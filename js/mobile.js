@@ -68,12 +68,13 @@ const M_SCREEN_FOR_VIEW = {
   dashboard:'home', register:'contracts', folder:'contracts', workspace:'contract',
   redline:'redline', doc:'contract', reports:'more', intel:'more', calendar:'more',
   templates:'more', templatelib:'more', playbook:'more', team:'more', advice:'more',
-  migration:'more', pipeline:'more', queue:'more',
+  migration:'more', pipeline:'more', queue:'more', directory:'people',
 };
 const M_VIEW_FOR_SCREEN = {
   home:'dashboard', contracts:'register', contract:'workspace', redline:'redline',
   negotiations:'redline',
   approvals:'dashboard', portfolio:'reports', more:'dashboard', handoff:'dashboard',
+  people:'directory',
 };
 
 /* --------------------------------------------------------------- THE MAP ---
@@ -734,7 +735,46 @@ function mAccountSheetHtml(){
     <div class="m-capline" style="margin:14px 0 6px">${i18t('m_jurisdiction')}</div>
     <div class="m-card m-list">${rows}</div>
     <div class="m-note" style="margin-top:8px">${maySetMarket?i18t('m_jx_sub'):i18t('set_market_admin_only')}</div>
-    <button class="m-btn m-btn-quiet" style="margin-top:14px" data-m-act="logout">${i18t('m_log_out')}</button>
+
+    ${''/* ---- THE REST OF "YOUR ACCOUNT", ON THE PHONE ----
+           Settings & Rules is admin-only from the Aug 2026 redesign, and this
+           sheet is the phone's only account surface — so everything a
+           non-admin used to be able to do on that page has to be reachable
+           from here or it is simply gone below 768px. The laptop's own
+           account drawer is the twin; the rows are the same rows and the
+           writers are the same writers. */}
+    <div class="m-capline" style="margin:14px 0 6px">${i18t('st_acct_job')}</div>
+    <div class="m-card" style="padding:12px">
+      <input id="m-acct-title" type="text" value="${mEsc((u&&u.title)||'')}"
+        placeholder="${mEsc(i18t('st_f_title'))}"
+        style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:8px;padding:10px 12px;font:inherit;font-size:15px;color:inherit;outline:none"/>
+      <button class="m-btn m-btn-quiet" style="margin-top:8px" data-m-act="acct-title">${i18t('act_save')}</button>
+      <div class="m-note" style="margin-top:6px">${i18t('st_acct_job_sub')}</div>
+    </div>
+
+    <div class="m-capline" style="margin:14px 0 6px">${i18t('st_acct_sidebar')}</div>
+    <div class="m-card m-list">
+      <button class="m-row" data-m-act="acct-nav-all">
+        <span style="flex:1;min-width:0"><span class="m-row-name">${i18t('set_show_everything')}</span>
+        <span class="m-row-sub">${i18t('set_full_cockpit')}</span></span>
+        ${(typeof navShowEverything==='function'&&navShowEverything())?tick:''}
+      </button>
+    </div>
+
+    ${(typeof API_MODE==='function'&&API_MODE())?`
+    <div class="m-capline" style="margin:14px 0 6px">${i18t('st_acct_sessions')}</div>
+    <div class="m-card" style="padding:12px"><div id="sessions-list" class="m-note">${i18t('set_loading')}</div></div>
+
+    ${''/* The honest read-only statement, kept exactly as it is on the laptop.
+           The checkboxes it replaced were wired to nothing. */}
+    <div class="m-capline" style="margin:14px 0 6px">${i18t('st_acct_email')}</div>
+    <div class="m-card" style="padding:12px">
+      <div style="font-size:13px;font-weight:600">${i18t('set_still_emailed')}</div>
+      <div class="m-note" style="margin-top:4px">${i18t('set_three_events')}</div>
+    </div>`:''}
+
+    <button class="m-btn m-btn-quiet" style="margin-top:14px" data-m-act="acct-backup">${i18t('set_export_backup')}</button>
+    <button class="m-btn m-btn-quiet" style="margin-top:8px" data-m-act="logout">${i18t('m_log_out')}</button>
     <button class="m-btn m-btn-quiet" style="margin-top:8px" data-m-act="close-sheet">${i18t('act_close')}</button>`;
 }
 
@@ -781,9 +821,16 @@ function mTabsHtml(){
 
 /* --------------------------------------------------------------- SCREENS ---*/
 
-/* MORE — every door the phone does not open itself. */
+/* MORE — every door the phone does not open itself, and the one it does.
+   PEOPLE IS FIRST AND IT IS NOT A HANDOFF. Everything else in this list ends
+   at "open on a computer", because the work behind it is desk work. A staff
+   directory is not: it is four facts a row, it is exactly what you want on a
+   phone when you are trying to reach somebody, and the phone already holds the
+   roster. So it gets its own screen and its row carries a › rather than the
+   computer word — a row that promises a page and delivers a refusal is the
+   fault this whole list was built to avoid. */
 function mMoreHtml(){
-  const rows = M_DESK.map(d=>`
+  const desk = M_DESK.map(d=>`
     <button class="m-row" data-m-desk="${d.view}">
       <span style="flex:1;min-width:0">
         <span class="m-row-name" style="font-weight:500">${mEsc(d.label)}</span>
@@ -791,14 +838,71 @@ function mMoreHtml(){
       </span>
       <span style="flex:none;font-size:14px;color:var(--color-neutral-600)">${i18t('m_computer')}</span>
     </button>`).join('');
+  const people = `
+    <button class="m-row" data-m-go="people">
+      <span style="flex:1;min-width:0">
+        <span class="m-row-name" style="font-weight:500">${mEsc(i18t('nav_people'))}</span>
+        <span class="m-row-sub">${mEsc(i18t('pg_people_sub'))}</span>
+      </span>
+      <span style="flex:none;font-size:16px;color:var(--color-neutral-500)">›</span>
+    </button>`;
   return `
     <div class="m-pagehead">
       <div class="m-title">${i18t('m_more')}</div>
       <div class="m-sub">${i18t('m_rest_of_hati')}</div>
     </div>
     <div class="m-scroll">
-      <div class="m-card m-list" style="margin:16px">${rows}</div>
+      <div class="m-card m-list" style="margin:16px">${people}${desk}</div>
       <div class="m-note" style="margin:0 16px 24px">${i18t('m_nothing_missing')}</div>
+    </div>`;
+}
+
+/* PEOPLE — the same roster the laptop draws, in the phone's own row shape.
+   It DECIDES NOTHING of its own: dirPeople is the desktop's ordering, so the
+   two shells cannot disagree about who is on the list or in what order —
+   exactly as Contracts and Negotiations already work. What differs is the row.
+   Nothing here can carry folder access, a signing limit or a review flag,
+   because none of it is in a non-admin's browser at all. */
+function mPeopleHtml(){
+  const me = (typeof currentUser==='function' ? currentUser() : null) || {};
+  const people = (typeof dirPeople==='function') ? dirPeople() : [];
+  const rows = people.map(u=>{
+    const mail = String(u.email||'').trim();
+    const ini = String(u.name||mail||'?').split(' ').filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase();
+    const role = (typeof roleName==='function') ? roleName(u.role) : (u.role||'');
+    /* ---- AN ABSENCE SAYS THE SAME THING ON BOTH SHELLS ----
+       The phone used to fold the title and the role into one line and fall back
+       to "No job title on file" only when BOTH were empty — which never
+       happens, because everybody has a role. So somebody with no title read as
+       plain "Editor" here and as "No job title on file" on the laptop: two
+       screens describing one person differently. The title half now carries its
+       own absence, in the same words and the same grey, and the role still
+       follows it. Same for the address, which the phone simply omitted. */
+    const title = u.title
+      ? mEsc(u.title)
+      : `<span class="dir-none">${mEsc(i18t('dir_no_title'))}</span>`;
+    return `<div class="m-row" data-m-person="${mEsc(u.id||'')}">
+      <span class="dir-av" style="margin-right:10px">${mEsc(ini)}</span>
+      <span style="flex:1;min-width:0">
+        <span class="m-row-name" style="font-weight:500">${mEsc(u.name||mail||'—')}${
+          u.id&&u.id===me.id?` <span style="font-weight:400;color:var(--color-neutral-500)">${mEsc(i18t('set_you'))}</span>`:''}</span>
+        <span class="m-row-sub">${title}${role?' · '+mEsc(role):''}</span>
+        <span class="m-row-sub">${mail
+          ? `<a href="mailto:${mEsc(mail)}" style="color:var(--color-accent-700)">${mEsc(mail)}</a>`
+          : `<span class="dir-none">${mEsc(i18t('dir_no_email'))}</span>`}</span>
+      </span>
+    </div>`;
+  }).join('');
+  return `
+    <div class="m-pagehead" style="display:flex;align-items:center;gap:4px;padding:8px 8px">
+      <button class="m-head-btn" data-m-act="back" aria-label="${i18t('m_back')}" style="color:var(--color-accent-700)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+      </button>
+      <div style="font-size:19px;font-weight:600;font-family:var(--font-heading,inherit)">${i18t('nav_people')}</div>
+    </div>
+    <div class="m-scroll">
+      <div class="m-card m-list" style="margin:16px">${rows||`<div class="m-row"><span class="m-row-sub">${mEsc(i18t('dir_empty'))}</span></div>`}</div>
+      <div class="m-note" style="margin:0 16px 24px">${mEsc(i18t('dir_note'))}</div>
     </div>`;
 }
 
@@ -878,6 +982,7 @@ function mRender(){
   else if(s.screen==='approvals') body = mApprovalsHtml();
   else if(s.screen==='portfolio') body = mPortfolioHtml();
   else if(s.screen==='more')      body = mMoreHtml();
+  else if(s.screen==='people')    body = mPeopleHtml();
   else if(s.screen==='handoff')   body = mHandoffHtml();
   /* ---- THE NEGOTIATIONS SCREEN IS PHONE-SHAPED NOW ----
      It used to be the desktop's own builder drawn into this screen unchanged,
@@ -968,6 +1073,10 @@ function mWire(){
   root.querySelectorAll('[data-m-desk]').forEach(b=>b.addEventListener('click',()=>{
     mGo('handoff',{ deskView:b.getAttribute('data-m-desk') });
   }));
+  /* A row on More that opens a REAL phone screen rather than a handoff. */
+  root.querySelectorAll('[data-m-go]').forEach(b=>b.addEventListener('click',()=>{
+    mGo(b.getAttribute('data-m-go'));
+  }));
   /* The review notice's clear. Session-only and shared with the desk — see
      reviewClearBanner. A refresh brings it back, which is the point. */
   root.querySelectorAll('[data-m-rv-clear]').forEach(b=>b.addEventListener('click',()=>{
@@ -1001,6 +1110,33 @@ function mWire(){
     if(k==='close-sheet'){ mCloseSheet(); return; }
     if(k==='back'){ mBack(); return; }
     if(k==='logout'){ mCloseSheet(); if(window.logout) logout(); return; }
+    /* ---- the account sheet's own rows ----
+       Each one calls the SAME writer the laptop calls. A second copy of "save
+       my job title" is a second place the people directory can fall out of
+       step with the roster. */
+    if(k==='acct-title'){
+      const u=(typeof currentUser==='function'&&currentUser())||null; if(!u) return;
+      const title=(document.getElementById('m-acct-title')||{}).value||'';
+      (async()=>{
+        try{
+          if(typeof API_MODE==='function'&&API_MODE()){
+            const r=await api('users/'+u.id,'PATCH',{ title:title.trim() });
+            if(r&&r.user) Object.assign(u,r.user); else u.title=title.trim();
+          } else { u.title=title.trim(); if(window.saveUsers) saveUsers(getUsers()); }
+          if(window.settingsMirrorDirectory) settingsMirrorDirectory(u.name,u.email,title.trim());
+          if(window.toast) toast(i18t('st_acct_saved'));
+        }catch(err){ if(window.toast) toast(err.message,'err'); }
+      })();
+      return;
+    }
+    if(k==='acct-nav-all'){
+      if(typeof navSetShowEverything==='function' && typeof navShowEverything==='function'){
+        const on=!navShowEverything(); navSetShowEverything(on);
+        if(window.toast) toast(on?i18t('set_sidebar_all_on'):i18t('set_sidebar_all_off'));
+      }
+      mRender(); return;
+    }
+    if(k==='acct-backup'){ if(window.settingsExportBackup) settingsExportBackup(); return; }
     if(k==='leave-redline'){ if(window.setView) setView('workspace'); else mGo('contract'); return; }
     mScreenAct(k, b, e);
   }));
@@ -1012,6 +1148,11 @@ function mWire(){
      one door clear the indicator on all of them. */
   if(window.updateAIBadge) try{ updateAIBadge(); }catch(_){}
   if(window.mMarkTappable) try{ mMarkTappable(); }catch(_){}
+  /* The sessions list is filled from the server after the paint, exactly as it
+     is on a laptop — and by the same function, so the revoke button behaves the
+     same way in both places. Guarded on the host so this costs nothing on any
+     other sheet or screen. */
+  if(document.getElementById('sessions-list') && window.loadSessions) try{ loadSessions(); }catch(_){}
 }
 
 /* Where "back" goes from each screen. Deliberately explicit rather than a
@@ -1021,6 +1162,9 @@ function mWire(){
 function mBack(){
   const s = mS();
   if(s.screen==='handoff'){ mGo('more'); return; }
+  /* People is reached from More and goes back to it — the same way a handoff
+     does, because it is the same door. */
+  if(s.screen==='people'){ mGo('more'); return; }
   if(s.screen==='portfolio'){ mGo('home'); return; }
   if(s.screen==='contract'){ mGo('contracts'); return; }
   mGo('home');

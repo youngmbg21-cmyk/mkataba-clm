@@ -2325,3 +2325,337 @@ and the sheet's type not moving at all — which is now the same pair the other
 way round, plus a new check that the page fills its column at every setting and
 a new section driving A⁻ all the way down to 8 through the button rather than
 the store.
+
+----- 13 Aug 2026: Settings & Rules becomes four tabs and one drawer -----
+
+THE PAGE BEFORE. One `<div id="set-page">` with sixteen `<section>` cards in a
+two-column grid, and you found a setting by scrolling until you saw it. The
+members table sat in the left column and everything else — approval rules, the
+review gate, the desk rule, renewal reminders, the monthly report, the whole
+Copilot engine panel with its key, its two model tiers, its nine spend
+ceilings, its onboarding allowance and its editable rate table, the market, the
+work shape, the company design, data & backup, active sessions, the
+notifications statement, the sidebar preference, pilot activation and the
+outbox — ran down the right one in whatever order it had been added in. It was
+not badly built; it had simply never been given a shape, and it had reached the
+size where the absence of one was the whole problem.
+
+FOUR TABS, AND WHY THOSE FOUR. People (who is here and what each of them may
+do), Platform settings (how the workspace behaves for everybody in it), Build &
+launch (setting it up and keeping it running), You (your own). The line between
+the second and the third is the one that actually earns its keep: an admin
+tuning a Copilot spend ceiling and an admin turning on the review gate are
+doing different jobs on different days, and the old page put them nine inches
+apart in the same column.
+
+EVERY ROW OPENS THE SAME DRAWER, and the drawer hangs off `<body>` rather than
+off `#content`. Two reasons, which are the same reason: the page underneath it
+genuinely rebuilds — the market's language-follow redraw calls renderTeam() —
+and "Your account" opens the same drawer from views that are not this page at
+all. It is the Activity panel's own mechanism: transform, a dimmed scrim,
+dismissed by the scrim, by Escape or by its own ✕.
+
+THE ACCESS RULE WAS THE HARD HALF, AND IT WAS NOT THE NAV ITEM. Making a page
+admin-only sounds like one line. There were FIVE doors into this one and only
+the first is the one anybody thinks of:
+
+  1. the sidebar nav item, drawn for every role;
+  2. the avatar in the top bar, a one-click `setView('team')`;
+  3. the Copilot-usage box in the sidebar foot, also `setView('team')`;
+  4. the session-restore whitelist, which lists 'team' among the views a
+     reload may land on;
+  5. `setView('settings')` on the email-setup banner — a key that does not
+     exist in the switch, so it fell through every branch and drew the
+     workspace. The one button on the one banner that says email is broken
+     opened a contract, and had done for as long as the banner had existed.
+
+So the gate is renderTeam()'s own. Whatever calls it arrives at the same
+question, and the answer for a non-admin is renderMyAccountPage() — a real
+page with their own settings on it — rather than a blank, a refusal or a
+bounce to the dashboard. The nav item is hidden as well, because a control
+that exists and refuses teaches nothing, but the hidden item was never going
+to be the wall and is not being asked to be. THE WALL IS THE SERVER, and f194
+signs in as an Editor and attacks fifteen routes to say so.
+
+RE-HOMING, NOT CLOSING, WHEREVER THERE WAS SOMETHING TO RE-HOME. The inventory
+of what a non-admin could actually DO on the old page came to six things and
+every one of them is now on "Your account": their own job title (the server has
+always permitted self + title-only on PATCH /api/users/:id), the sidebar
+preference, the backup export (which is built from their own already-scoped
+bootstrap and therefore theirs to take), their own sessions with revoke (that
+route is scoped to the caller and there is no all-users session view, not even
+for an admin), the honest read-only statement of what HaTi emails them, and —
+easy to miss — an EDITOR'S COMPANY-DESIGN DOOR, which was gated admin-OR-legal
+rather than admin-only. That last one is a workspace setting sitting on a
+personal surface, which is unusual, so the row says so rather than pretending
+to be one of theirs. The alternative was closing it, and closing a capability
+because it did not fit the new shape is how a redesign quietly costs somebody
+their job.
+
+WHAT DID CLOSE IS A LIST. SET_CLOSURES names the two: a non-admin can no longer
+READ the roster, and can no longer READ the workspace rules. Both are read
+access to who-may-do-what, which is exactly what an admin-only page is for, and
+both are deliberate. The list exists because a capability that disappears with
+nobody writing it down is a capability somebody rediscovers as a bug six months
+later — and f193 fails if it is empty, because a redesign that claims it took
+nothing from anybody has not looked.
+
+THE OLD PAGE'S OWN RULES ALL SURVIVED THE MOVE, and the drawer made two of them
+harder rather than easier:
+
+  · THE COMPANY CARDS STILL PATCH IN PLACE. A drawer is a shorter column than
+    the page was, so a rebuild there throws the reader further, not less far.
+  · THE MARKET'S LANGUAGE-FOLLOW REDRAW still holds panel heights, and now
+    re-opens the drawer in the new language on top of the redrawn page.
+  · THE GATES STILL WRITE ON CHANGE and have no Save button. That is why the
+    drawer has TWO feet: 'save' for a real form and 'done' for a panel that
+    has already written what you changed. One foot for both would have meant
+    either a Save button that does nothing on the review gate, or a gate that
+    is armed only if you remember to press it.
+
+AND THE REFUSAL MOVED INTO THE FOOT, WHICH WAS MEASURED RATHER THAN CHOSEN. It
+went above the fields first, which is where a form error usually goes. The
+browser check that exists precisely to catch this reported 46px: the moment a
+refusal appeared it pushed every field under it down, and the moment it cleared
+it pulled them back up — the reader's hand still on the control. In the foot it
+is pinned, it cannot be scrolled away from, and it sits beside the button that
+refused. The same run also caught the measurement itself being wrong: the
+drawer's `scrollHeight` answers the BOX wherever the content is shorter than
+it, so a refusal appearing in a pinned foot (which shrinks the body's box and
+moves nothing inside it) read as 47px of "the page changed height". What the
+check wants is the content's own extent, and that is what it measures now.
+
+THE PEOPLE TAB IS ONE DRAWER FOR ADDING AND EDITING. The creation flow was
+re-housed exactly: the temporary password, mustChangePassword on the server, an
+explicit folder answer whose first option carries no value, Viewer by default,
+POST /api/users. No invite-token flow was invented, because there is not one —
+"+ Invite member" on the old page was a scroll-to-form affordance and the
+"Invited" status was dead markup nothing ever set.
+
+TWO THINGS ON THAT DRAWER ARE WORTH NAMING. The ROLE is one stored value with
+two faces: three radios with a line each saying what the key costs, and a
+hidden select that the save reads. That is not decoration — the role a form
+opens on is a safety property this product has already been bitten by, and the
+list therefore reads safest first so that the value the control carries when
+nobody has answered is Viewer. And a RENAME CAN ORPHAN AN APPROVAL RULE,
+because a named approver is bound by NAME and not by id: renaming a member
+would leave the rule pointing at nobody, silently. It is said out loud before
+it happens and the rules are repointed.
+
+BUILD & LAUNCH IS READ OFF THE WORKSPACE. Nothing on the go-live checklist is
+typed: the legal name comes off the org branding record, mail from whether the
+server says email is configured, the Copilot key and its ceiling from the live
+config, the approval rule from the rules themselves, the samples from the
+contracts, the integrity row from the check having been run, the backup from
+when one was last taken, and the first-send row from the activation funnel.
+Every row is a door that names a tab and a panel.
+
+SAMPLES ARE TOLD APART BY ORIGIN. `seeded: true` is stamped on a demo contract
+at the moment the sample portfolio is created and survives the server's
+light-list projection, so "is this a sample?" is a fact on the record rather
+than a guess about its title — and the test proves it by putting a REAL
+contract with the same name beside a seeded one, and a real contract actually
+called "Sample agreement" beside both. Nothing new and destructive was built on
+the server: each removal goes through the per-contract delete the product
+already has and already guards.
+
+THE INTEGRITY CHECK IS GENUINELY NEW MACHINERY, and it is deliberately the
+smallest new machinery that could be honest. There is no workspace-wide check
+in this product and the server verifies no hashes at all; every verification is
+per contract and in the browser. This is that same verifier — negoIntegrityReport
+— run over every contract in a read-only loop that says so, repairs nothing,
+and prints the weak-digest sentence FIRST where the page has no crypto.subtle,
+because a "verified" taken over a fallback digest is worth less than the
+sentence explaining why.
+
+FOLDERS: BUILT-INS ARE STATED, NOT RENAMEABLE. They are literals every screen
+reads and there is no store to rename them into, so a rename box on them would
+be a control that looked like it worked until the next reload. Custom folders
+have a store and do rename and remove, and a removal is refused while the
+folder still holds contracts — those contracts would otherwise be filed under
+an id no picker offers.
+
+WHAT WAS REVERSED IN PLACE, each because the design genuinely changed it rather
+than because it was wrong: f149's "the admin was told why" now reads the
+drawer's refusal as well as a toast, and its "the roles are explained where
+they are chosen" is now one line per role beside each choice rather than one
+paragraph under the picker (set_role_help is retired from this screen and left
+inert in the dictionary). settings-holds-still-verify is staged through the
+drawer with its claims untouched. swedish-verify closes a phone sheet by its
+scrim rather than by a button that can now sit below the fold.
+
+----- 13 Aug 2026: how much may this person sign for -----
+
+THE FEATURE IS SMALL AND THE ROLLOUT IS THE WHOLE DESIGN. A per-member signing
+limit is three fields and a comparison. What makes it safe to ship into a live
+workspace is that it refuses nothing on the day it arrives: the limits are
+recorded, printed on the roster, read back in a sentence in the drawer and
+laddered beside the approval rules, and a workspace switch that is OFF by
+default decides whether any of it ever stops a signature. That ordering — warn,
+then enforce, behind a switch somebody has to turn — is the rule this product
+already follows for the review gate and the redlining desk, and it is the only
+reason a rule about signatures can be deployed at all.
+
+THREE STATES, AND THE THIRD IS THE ONE THAT COSTS SOMETHING. It would have been
+easier to store a number and let its absence mean "no limit" — folderAccess
+does exactly that, and the map says so in as many words: "absence is what
+unrestricted MEANS here". It is right there and wrong here, and the difference
+is worth writing down. An absent folder entry is a GRANT: it reads the same to
+the admin who made it and the admin who inherits it, and there is nothing to
+discover. An absent signing limit is a person nobody has thought about, and the
+completeness chip and the go-live checklist both exist to say so. So the record
+carries `null` (nobody decided), the string `'none'` (decided, no limit) and a
+number — and 'none' is not an invention: TEMPLATES.ND has carried
+valueType:'none' since the beginning, for precisely the same reason.
+
+WHERE THE REFUSAL LIVES. signBlockers is the ONE list of reasons a signature
+cannot be given — the same list the Sign button reads to disable itself and the
+refusal reads to say why — and this joins it rather than becoming a gate
+somewhere else. That is not tidiness: the desk and the review gate were BOTH
+removed from this list on 12 Aug 2026 because a rule enforced in one place and
+not the other produced a live primary button over a press that could not work.
+f195 greps the other modules to prove nobody else refuses a signature over a
+limit.
+
+AN ADMIN IS NEVER CAPPED, and the test says why in the only way that is honest.
+Asserting "an admin with no limit signs" proves nothing. So the test gives an
+Editor a limit of a thousand against a thirty-six-million contract, watches the
+server refuse it, PROMOTES them to admin without touching the limit, checks the
+limit is still on the record, and watches the same signature land. It is the
+role that steps aside, not the record. The reason is practical rather than
+principled: the caps and the switch are both an admin's to set, so an admin who
+capped themselves below their own paper would have locked the front door with
+the key inside.
+
+THE SERVER'S GUARD IS ASKED AS A DIFFERENCE, like every other guard on that
+route. PUT /api/contracts/:id receives the WHOLE contract on every save, so the
+question can never be "may this person sign this contract" — a member editing
+key terms on a contract over their limit is not signing anything, and would
+have been refused. The question is "does this save ADD a session-authenticated
+entry to c.signatures", which is the in-app signature and nothing else: the
+counterparty's mark arrives down a share token on its own route, and a paper
+signature carries its own method. The test proves both halves — the refusal,
+and an ordinary save on the same contract going straight through.
+
+THE COMPLETENESS CHIP HAD TO BE HELD BACK. The obvious build has an unset limit
+count as "missing", which would have turned every row on the People tab amber
+the morning this deployed, over a decision nobody had been asked to make and a
+rule that was not in force. It counts only while the switch is on. The go-live
+row is drawn either way — an admin going live wants to have decided — and its
+detail says which of the two worlds they are in, so a green tick there never
+reads as "and it is being enforced".
+
+ONE THING THE LADDER TAUGHT. It was first written as a single sort key, with
+"no limit" as 0 and an unanswered person as a large sentinel. That puts the
+person with the largest ceiling ABOVE the person who has no ceiling at all,
+because -90,000,000 sorts before 0. Authority is not a number here: it is four
+bands — an admin, then no limit, then a ceiling (largest first), then nobody
+decided, then a Viewer — with a sort inside one of them. The test caught it by
+asserting the first row is the admin.
+
+----- 13 Aug 2026: who is checked is per person -----
+
+WHY THE OLD SHAPE WAS WRONG. The internal-review gate asked one question of the
+whole workspace: is wording looked at before it travels, yes or no. That is not
+how anybody actually uses a review policy. A firm checks the person who joined
+last month and the contractor who is here for a quarter; it does not check the
+head of legal, and being asked to choose between checking everybody and
+checking nobody is why the switch was answered "off" and left there.
+
+THE MIGRATION IS THE DESIGN. Everything else here is a form field. The one
+decision that mattered is that the ABSENCE of the per-person flag means
+CHECKED — in the browser (`u.reviewChecked !== false`) and on the server
+(`!(u.review_checked === 0)`). Every existing member record is absent, so a
+workspace that already had the gate on keeps behaving exactly as it did the
+morning before the deploy, and a workspace that had it off is untouched either
+way. Turning somebody OFF is then a decision an admin makes on purpose, one
+person at a time, and it is the only thing that changes behaviour.
+
+The server travels `null` for absent rather than `true`. That looks like a
+nicety and is not: if the server helpfully filled in the default, there would be
+two places this rule is decided, and the day one of them changed the other would
+still be answering yesterday's question.
+
+ASKED ONCE, IN THE PREDICATE. The obvious build adds "and is this person
+checked?" to each enforcement point — the send block, the readiness list, the
+banner, the server's share route. That is four copies of one rule and this
+codebase has already paid for that mistake twice: the desk and the review gate
+both produced live primary buttons over presses that could not work, because a
+rule enforced in one place and not the other is a rule the screens disagree
+about. So the question goes inside reviewGateApplies and rvGateApplies, and
+everything that already asked those inherits it. The test greps for how many
+times reviewChecked is read, and fails if the answer grows.
+
+THE STANDING REVIEWER IS DELIBERATELY NOT A BINDING. It fills the ask dialog's
+combobox in and stops there. Binding it would make the common case faster and
+the uncommon one impossible: the person who should look at a payment clause is
+often not the person who should look at an indemnity, and a policy that forces
+one of them is a policy people route around. The box is ordinary text and
+resolves whatever is typed over it, exactly as it did.
+
+BOTH ARE ADMIN GRANTS, and the reason is one sentence: a person who could turn
+their own check off is not checked. The server refuses it from the person it
+applies to, refuses it smuggled in beside a job title, and refuses a named
+reviewer who is not a member, who is the person themselves, or who is a Viewer
+— a Viewer cannot rule on a change, so naming one would be a review nobody
+could ever hand back.
+
+WHAT WAS NOT BUILT, said out loud. There is no per-CONTRACT override and no
+per-folder rule; the flag is on the person and the master switch is on the
+workspace. And the counterparty half of the feature was not touched at all —
+reviewSeatShowsReview is the wall it has always been, and f196 asserts it here
+rather than assuming it, because the one thing a review must never do is leak.
+
+----- 13 Aug 2026: where they may sign, and the two things not built -----
+
+TWO RIGHTS, TWO LISTS. The product had one map saying which value streams a
+person may SEE, and nothing at all saying which they may SIGN in — so anybody
+who could open a contract could execute it. The instruction was explicit and it
+was the right one: a separate key, never an overload of folderAccess. One map
+carrying two meanings is how a reader who was only ever meant to look ends up
+putting their name at the bottom of a supply agreement.
+
+IT ONLY EVER NARROWS, and that is worth stating because it is what makes the
+feature safe to be wrong about. A folder the caller cannot see is already
+refused by the scope check — 404, because a contract outside your scope is
+invisible and therefore unwritable — so putting a folder on somebody's SIGNING
+list that is not on their reading list grants nothing at all. The test does
+exactly that and asserts the 404, so a future change that made this list
+additive would fail rather than quietly widen somebody.
+
+H-3 CAME BACK, AND WAS ANSWERED THE SAME WAY. The moment there is a second
+access-control map, it has the second map's problem: PUT /api/settings replaces
+the whole settings blob, so a second admin saving any unrelated setting from a
+slightly older copy silently reverts a restriction. folderAccess solved this by
+splitting the map out onto its own atomic route and having the general save
+preserve the stored copy. This does the same, with one wrinkle: the SWITCH
+belongs in the blob (it is an ordinary setting) and the MAP does not. So the
+browser's saveSettings trims signFolders down to `{on}` on its way out, and the
+server keeps the stored `.by` whenever a save does not carry one. There is a
+test that saves an unrelated key and then checks the restriction still bites.
+
+---- AND THE TWO THINGS THAT WERE NOT BUILT ----
+
+PER-PERSON APPROVER ("overseen by") was the next item on the list and it was
+skipped on purpose, because it has no honest anchor. Feeding the existing
+approval chain means adding a step that says "and X must approve this" — but
+approval steps are a property of the CONTRACT, and this product has no contract
+owner. `ownerInitials()` reads currentUser(); `deskLead(c)` exists only where a
+negotiation has been started. So the step would have to key off one of two
+things: the person READING the panel, which makes the approval panel say
+different things to different people (a panel that disagrees with itself is the
+fault this rulebook's first rule is about), or the desk lead, which is absent on
+most contracts. The honest third option is to give a contract an owner, and that
+is a bigger change than a phase-four item should smuggle in.
+
+PER-PERSON COPILOT MONEY CAP was skipped for a plainer reason: the ledger it
+would meter does not exist. ai_spend is keyed (day, feature) with no user
+column, so "smaller of the workspace cap and yours wins" needs a new per-user
+ledger threaded through every AI route's cost recorder, plus a guard and a
+second meter. It is ordinary work rather than hard work, and it is the wrong
+work to do quickly, because the failure mode of a money guard written in a hurry
+is either a bill nobody capped or a colleague who cannot use the product.
+
+Both are named here rather than left silent, which is the whole point of writing
+this file: a feature that was considered and refused reads very differently from
+a feature nobody thought of.

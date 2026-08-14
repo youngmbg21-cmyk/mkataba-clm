@@ -3,8 +3,40 @@
 // onclick handlers, cross-module calls); modules give file isolation
 // for editing, not scope isolation.
 /* ============================================================
-   VIEW: TEAM & SETTINGS
+   VIEW: SETTINGS & RULES — FOUR TABS AND ONE DRAWER
+   ============================================================
+   This was one long scrolling page with sixteen cards on it. It is now four
+   tabs — People, Platform settings, Build & launch, You — where every row
+   opens the SAME drawer on the right-hand side.
+
+   THE PAGE IS ADMIN-ONLY, AND THAT MEANT CLOSING EVERY DOOR, not just the one
+   in the sidebar. There were five: the nav item, the avatar in the top bar,
+   the Copilot-usage box in the sidebar foot, the session-restore whitelist,
+   and a dead `setView('settings')` on the email banner that opened the
+   workspace instead. renderTeam() itself is now the gate — a non-admin who
+   arrives here by ANY of those roads is drawn their own account page rather
+   than a blank or a refusal.
+
+   WHAT A NON-ADMIN COULD DO HERE HAS A NEW HOME, NOT A SILENT LOSS. Their own
+   job title, their sidebar preference, their own sessions, their own backup
+   export and the honest read-only statement of what HaTi emails them all moved
+   to "Your account" (openMyAccount) — reachable from the avatar on a laptop and
+   from the account sheet on a phone. An Editor's Company-design door moved
+   there too, labelled as the workspace setting it is. What genuinely closed:
+   a non-admin can no longer READ the roster, the approval rules or the state
+   of the two gates. That is deliberate.
+
+   THE PANELS WERE RE-HOUSED, NOT REWRITTEN. Every element id on this page is
+   the id it had before, so every existing handler, test and helper still finds
+   what it is looking for. In particular the settings-page traps stand:
+     · the two company cards still PATCH IN PLACE and never renderTeam()
+     · the market's language-follow redraw still holds panel heights
+     · the gates still write ON CHANGE and have no Save button — a gate armed
+       only if you remember to press Save is a gate that is off when it matters
+   Which is why the drawer has TWO feet: `save` (a real form — the person
+   drawer) and `done` (a panel that has already written what you changed).
    ============================================================ */
+
 /* Parse an imported directory CSV into [{name,email,title}].
    Detects a header row (Name/Email/Title in any order); without one it assumes
    the columns are Name, Email, Title. Handles quoted fields and doubled quotes. */
@@ -34,7 +66,10 @@ function parseDirectoryCsv(text){
   return out;
 }
 /* Admin-only editor: grant a member every stream, or a specific subset. Stored
-   in state.settings.folderAccess and persisted through saveSettings() (both modes). */
+   in state.settings.folderAccess and persisted through saveSettings() (both modes).
+   THE PERSON DRAWER IS THE DOOR NOW — this stays because it is the one WRITER
+   the product has for this map, and it is what the drawer's Folders section
+   calls (settingsWriteFolderAccess below shares its refusals). */
 function openFolderAccessEditor(userId){
   const u=getUsers().find(x=>x.id===userId); if(!u) return;
   const cur=(((state.settings||{}).folderAccess)||{})[userId];
@@ -59,28 +94,33 @@ function openFolderAccessEditor(userId){
   allBox.addEventListener('change',()=>{ list.style.display=allBox.checked?'none':'grid'; });
   document.getElementById('fa-cancel').addEventListener('click',closeModal);
   document.getElementById('fa-save').addEventListener('click',async()=>{
-    state.settings=state.settings||{}; state.settings.folderAccess=state.settings.folderAccess||{};
-    let folders;
-    if(allBox.checked){ folders=null; delete state.settings.folderAccess[userId]; }
-    else {
+    let folders=null;
+    if(!allBox.checked){
       const ids=[...document.querySelectorAll('[data-fa-folder]')].filter(cb=>cb.checked).map(cb=>cb.getAttribute('data-fa-folder'));
       if(!ids.length){ toast(i18t('set_pick_one_stream'),'err'); return; }
-      folders=ids; state.settings.folderAccess[userId]=ids;
+      folders=ids;
     }
-    /* H-3: write folder access through its own atomic endpoint, not the whole
-       settings blob. This is the security-relevant map, and routing it through
-       the general settings save is what let a concurrent, unrelated settings
-       change silently revert a restriction. In server mode the dedicated route
-       read-modify-writes just this key; static mode has no concurrency, so the
-       blob save is fine there. */
-    try{
-      if(window.API_MODE && window.API_MODE()) await api('settings/folder-access','PUT',{ userId, folders });
-      else await saveSettings();
-    }catch(e){ toast(i18t('set_could_not_save_access')+e.message,'err'); return; }
+    try{ await settingsWriteFolderAccess(userId, folders); }
+    catch(e){ toast(i18t('set_could_not_save_access')+e.message,'err'); return; }
     closeModal(); toast(i18t('set_t_access_updated',{who:u.name||u.email})); renderTeam();
   });
 }
-/* ---- onboarding allowance panel (Team & Settings) ----
+/* THE ONE WRITER for per-member stream access, and the one place the payload's
+   shape is decided. `null` means every stream and DELETES the key; an empty
+   array is never sent — the browser's map reads it as "nothing said" and the
+   server reads it as "deny all", and two stores disagreeing about one value is
+   how a restriction becomes a grant. H-3: in server mode it goes through the
+   dedicated atomic route rather than the whole settings blob, so a concurrent
+   unrelated settings save cannot revert a restriction. */
+async function settingsWriteFolderAccess(userId, folders){
+  if(Array.isArray(folders) && !folders.length) throw new Error(i18t('set_pick_one_stream'));
+  state.settings=state.settings||{}; state.settings.folderAccess=state.settings.folderAccess||{};
+  if(folders==null) delete state.settings.folderAccess[userId];
+  else state.settings.folderAccess[userId]=folders;
+  if(window.API_MODE && window.API_MODE()) await api('settings/folder-access','PUT',{ userId, folders });
+  else await saveSettings();
+}
+/* ---- onboarding allowance panel ----
    Shows the burn-down in the same shape the Migration screen shows it, so an
    admin and the person running the batch are reading the same numbers. */
 function renderAllowancePanel(a){
@@ -140,11 +180,10 @@ function renderRateTable(rates, meta){
    also why setView's scroll-keeping does not help. The content above the reader
    shrank; nothing was going to hold their place through that.
 
-   So each card now repaints only what its own answer changed. Nothing outside
-   these two cards shows a shape or the word, and the only other things on this
-   page that print money in the market's currency are the approval rules and the
-   review gate — both host-scoped repaints, neither of which costs the page a
-   pixel of height. */
+   THE RULE SURVIVED THE MOVE INTO A DRAWER, and it had to: a drawer is a
+   shorter column than the page was, so a rebuild there throws the reader
+   further, not less far. Each card still repaints only what its own answer
+   changed. */
 const WS_BOX_ON  = { line:'var(--color-accent)', fill:'color-mix(in srgb,var(--color-accent) 7%,transparent)' };
 const WS_BOX_OFF = { line:'var(--color-divider)', fill:'var(--color-surface)' };
 /* The three facts under the market dropdown. Built here rather than inline
@@ -211,932 +250,1635 @@ function settingsPaintShapeBoxes(){
   });
 }
 
-function renderTeam(){
-  const me=currentUser();
+/* ============================================================
+   THE PAGE'S OWN FURNITURE
+   ============================================================ */
+/* Shared inline tokens. They were declared inside renderTeam(), which meant
+   every drawer body that wanted a field had to restate them; one copy is one
+   place a control's clothes are decided. */
+const ST_CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px;padding:16px';
+const ST_H4='font-family:var(--font-mono);font-weight:600;font-size:14px;margin:0 0 6px;color:var(--color-text)';
+const ST_INPUT='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:5px;padding:6px 9px;font:inherit;font-size:12.5px;color:inherit;outline:none';
+const ST_MONO='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:5px;padding:5px 8px;font-family:var(--font-mono);font-size:11px;color:inherit;outline:none';
+const ST_BTN='font-family:var(--font-mono);font-weight:600;font-size:12.5px;padding:6px 14px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);border-radius:5px;cursor:pointer;white-space:nowrap';
+const ST_BTN_SM='font-family:var(--font-mono);font-weight:600;font-size:12px;padding:5px 12px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);border-radius:5px;cursor:pointer';
+const ST_BTN2='display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-weight:600;font-size:12px;padding:5px 11px;background:var(--color-surface);color:var(--color-accent-800);border:1px solid var(--color-divider);border-radius:5px;cursor:pointer';
+const ST_BTN_DANGER='display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-weight:600;font-size:12px;padding:5px 11px;background:var(--color-surface);color:var(--st-ruby-dot);border:1px solid var(--st-ruby-line);border-radius:5px;cursor:pointer';
+const ST_TAG='display:inline-flex;align-items:center;font-size:10.5px;font-weight:600;letter-spacing:.04em;padding:3px 10px;border-radius:999px;background:var(--color-accent-200);color:var(--color-accent-800)';
+const ST_AV='width:24px;height:24px;border-radius:50%;background:var(--color-accent-200);color:var(--color-accent-800);display:inline-grid;place-items:center;font-size:9px;font-weight:700;flex:none;font-family:var(--font-mono)';
+const stRoleTag=r=>{ const map={admin:['var(--st-steel-bg)','var(--st-steel-fg)'],legal:['var(--st-amber-bg)','var(--st-amber-fg)'],viewer:['var(--st-gray-bg)','var(--st-gray-fg)']};
+  const [bg,fg]=map[r]||map.viewer;
+  return `display:inline-flex;align-items:center;font-size:10px;font-weight:600;letter-spacing:.04em;padding:3px 10px;border-radius:999px;background:${bg};color:${fg}`; };
+const stLimitField=(id,label,sub,min)=>`<label style="display:block">
+    <span style="display:block;font-size:10px;color:var(--color-neutral-600);line-height:1.4">${label}<br><span style="color:var(--color-neutral-400)">${sub}</span></span>
+    <input id="${id}" type="number" min="${min}" style="margin-top:3px;${ST_MONO}"/></label>`;
 
-  // --- Industry token style fragments (inline, per design handoff) ---
-  const cardStyle='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px;padding:16px';
-  const h4Style='font-family:var(--font-mono);font-weight:600;font-size:14px;margin:0 0 6px;color:var(--color-text)';
-  const inputStyle='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:5px;padding:6px 9px;font:inherit;font-size:12.5px;color:inherit;outline:none';
-  const inputMono='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:5px;padding:5px 8px;font-family:var(--font-mono);font-size:11px;color:inherit;outline:none';
-  const primaryBtn='font-family:var(--font-mono);font-weight:600;font-size:12.5px;padding:6px 14px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);border-radius:5px;cursor:pointer;white-space:nowrap';
-  const primaryBtnSm='font-family:var(--font-mono);font-weight:600;font-size:12px;padding:5px 12px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);border-radius:5px;cursor:pointer';
-  const secondaryBtn='display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-weight:600;font-size:12px;padding:5px 11px;background:var(--color-surface);color:var(--color-accent-800);border:1px solid var(--color-divider);border-radius:5px;cursor:pointer';
-  const dangerBtn='display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-weight:600;font-size:12px;padding:5px 11px;background:var(--color-surface);color:var(--st-ruby-dot);border:1px solid var(--st-ruby-line);border-radius:5px;cursor:pointer';
-  const tagAccent='display:inline-flex;align-items:center;font-size:10.5px;font-weight:600;letter-spacing:.04em;padding:3px 10px;border-radius:999px;background:var(--color-accent-200);color:var(--color-accent-800)';
-  const avStyle='width:24px;height:24px;border-radius:50%;background:var(--color-accent-200);color:var(--color-accent-800);display:inline-grid;place-items:center;font-size:9px;font-weight:700;flex:none;font-family:var(--font-mono)';
-  const roleTag=r=>{ const map={admin:['var(--st-steel-bg)','var(--st-steel-fg)'],legal:['var(--st-amber-bg)','var(--st-amber-fg)'],viewer:['var(--st-gray-bg)','var(--st-gray-fg)']};
-    const [bg,fg]=map[r]||map.viewer;
-    return `display:inline-flex;align-items:center;font-size:10px;font-weight:600;letter-spacing:.04em;padding:3px 10px;border-radius:999px;background:${bg};color:${fg}`; };
+/* ---- WHAT A NON-ADMIN LOST, SAID OUT LOUD ----
+   Closing this page to non-admins took two things away that had no new home
+   and were not going to get one: it is a list rather than a silence, because a
+   capability that disappears with nobody writing it down is a capability
+   somebody rediscovers as a bug six months later. Everything else a non-admin
+   could DO here moved to "Your account" (openMyAccount) and is proved to have
+   arrived there by the parity test; these two are READ access, and read access
+   to who-may-do-what is exactly what an admin-only page is for. */
+const SET_CLOSURES=[
+  { key:'roster', what:'A non-admin can no longer read the member list — who is in the workspace, what role each of them holds, which folders they may see, and whether contract values are hidden from them.' },
+  { key:'rules',  what:'A non-admin can no longer read the workspace rules — the approval rules, whether internal review is on and on what condition, and whether the redlining desk is enforced. They still meet all three where they apply, in words, on the contract itself.' },
+  /* 14 Aug 2026, with the legal identity's move onto Company & market. An
+     Editor could change the registered name because it shared a route with the
+     document design; it does not share a screen with it any more, and this is
+     the name that appears on executed paper. The DESIGN is untouched — the
+     logo, the accent colour and the layout are what that permission was for. */
+  { key:'legal-identity', what:'An Editor can no longer change the company\'s registered name, registration number or address. Those moved to Settings → Platform settings → Company & market, which is admin-only, and the server refuses them for anybody else. The company design — logo, accent colour, layout — is unchanged and still theirs.' },
+];
 
-  const users=getUsers();
-  const totalStreams=Object.keys(FOLDERS).length;
-  /* RETURNS A SHAPE, NOT A SENTENCE. The row below used to decide whether a
-     member was restricted by comparing this function's output to the words
-     "All streams" — which stops being true the moment those words can be
-     translated, and stops silently: every member would read as unrestricted on
-     a Swedish screen and the amber warning colour would simply never appear.
-     The caller now asks `.all`, and the words are only ever displayed. */
-  const accessSummary=x=>{
-    if(x.role==='admin') return { all:true, get text(){ return i18t('set_all_streams_short'); } };
-    const v=(((state.settings||{}).folderAccess)||{})[x.id];
-    if(v==null||v==='*'||(Array.isArray(v)&&!v.length))
-      return { all:true, get text(){ return i18t('set_all_streams_short'); } };
-    return { all:false, get text(){ return i18t('set_streams_of',{n:v.length,total:totalStreams}); } };
-  };
-  // Value visibility is a server-side right (users.can_view_values); admins
-  // always have it, and a member created before the permission existed defaults
-  // to having it, so this deploy changes nothing until an admin turns it off.
-  const valuesOn=x=>x.role==='admin'||x.canViewValues!==false;
-  const rows=users.map(x=>{
-    const ini=x.name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
-    const isMe=x.id===me.id;
-    const canManage=isAdmin()&&!isMe;
-    const restricted=x.role!=='admin' && !accessSummary(x).all;
-    return `<tr style="border-bottom:1px solid var(--color-divider)">
-      <td style="padding:8px 10px 8px 14px">
-        <span style="display:flex;align-items:center;gap:8px;min-width:0">
-          <span style="${avStyle}">${ini}</span>
-          <span style="min-width:0">
-            <span style="display:block;font-weight:500;color:var(--color-text)">${esc(x.name)}${isMe?` <span style="font-weight:400;color:var(--color-neutral-500);font-size:11px">${i18t('set_you')}</span>`:''}</span>
-            <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(x.email)}</span>
-            <span style="display:block;font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:${x.title?'var(--color-neutral-700)':'var(--st-amber-fg)'}">
-              ${x.title?esc(x.title):i18t('set_no_job_title')}
-              ${(isAdmin()||isMe)?`<button data-title-for="${x.id}" title="${esc(i18t('set_capacity_hint'))}" style="margin-left:6px;font-size:10.5px;font-weight:600;color:var(--color-accent-800);background:none;border:0;cursor:pointer">${x.title?i18t('act_edit'):i18t('set_add')}</button>`:''}
-            </span>
-          </span>
+/* WHICH TAB IS UP is a working posture, not a setting: per sitting, in memory,
+   and it starts on People. A stored tab would mean an admin who came here to
+   change one thing last week lands somewhere unrelated today. */
+const ST_TABS=['people','platform','build','you'];
+let _stTab='people';
+/* A door may ask for a specific panel — the go-live checklist's rows do, and so
+   does the email banner's "Set it up". Consumed by the very next paint, exactly
+   like the negotiation door's _rlDoorAsked. */
+let _stWantPanel=null;
+function settingsTab(){ return ST_TABS.includes(_stTab)?_stTab:'people'; }
+function settingsGoTab(k){ if(!ST_TABS.includes(k)) return; _stTab=k; renderTeam(); }
+/* THE ONE NAMED DOOR IN. Everything that wants to land somewhere specific on
+   this page goes through it, so there is one place that knows the page is
+   admin-only and one place that knows how a tab and a panel are asked for. */
+function openSettingsAt(tab, panel){
+  if(typeof isAdmin==='function' && !isAdmin()){ openMyAccount(); return; }
+  if(ST_TABS.includes(tab)) _stTab=tab;
+  _stWantPanel=panel||null;
+  if(typeof setView==='function') setView('team'); else renderTeam();
+}
+
+/* ---------------- THE DRAWER ----------------
+   It hangs off document.body, not off #content, for two reasons that are the
+   same reason: it must survive a repaint of the page underneath it (the market
+   card's language redraw rebuilds #content), and "Your account" opens the same
+   drawer from views that are not this page at all.
+
+   ONE VALUE, not a map: which panel is open, or none. */
+let _stOpen=null;          // panel key, 'person:<id>', 'person:new', or 'account'
+let _stDrawerWired=false;
+function stDrawerHost(){
+  let d=document.getElementById('st-drawer');
+  if(d) return d;
+  const scrim=document.createElement('div');
+  scrim.id='st-scrim'; scrim.className='st-scrim'; scrim.setAttribute('hidden','');
+  const el=document.createElement('aside');
+  el.id='st-drawer'; el.className='st-drawer'; el.setAttribute('hidden','');
+  el.setAttribute('role','dialog'); el.setAttribute('aria-modal','true');
+  el.setAttribute('aria-labelledby','st-drawer-title');
+  el.innerHTML=`<div class="st-dhead" id="st-dhead"></div>
+    <div class="st-dbody" id="st-dbody"></div>
+    <div class="st-dfoot" id="st-dfoot"></div>`;
+  document.body.appendChild(scrim); document.body.appendChild(el);
+  return el;
+}
+/* ONE delegated set, armed once on document. The drawer's insides are rebuilt
+   on every open, so a listener bound to an element inside it would die with the
+   element — and one bound per open would stack one per press. */
+function stWireDrawerOnce(){
+  if(_stDrawerWired) return; _stDrawerWired=true;
+  document.addEventListener('click',e=>{
+    const t=e.target;
+    if(!t||!t.closest) return;
+    if(t.closest('#st-scrim')){ stDrawerClose(); return; }
+    if(t.closest('[data-st-dclose]')){ stDrawerClose(); return; }
+    const row=t.closest('[data-st-panel]');
+    if(row){ stDrawerOpen(row.getAttribute('data-st-panel')); return; }
+    const tab=t.closest('[data-st-tab]');
+    if(tab){ settingsGoTab(tab.getAttribute('data-st-tab')); return; }
+  });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape' && _stOpen) stDrawerClose(); });
+}
+function stDrawerClose(){
+  _stOpen=null;
+  const d=document.getElementById('st-drawer'), s=document.getElementById('st-scrim');
+  if(d){ d.classList.remove('open'); d.setAttribute('hidden',''); }
+  if(s){ s.classList.remove('open'); s.setAttribute('hidden',''); }
+}
+/* Build the drawer from a descriptor. `foot` is the honest half of this:
+   'save' draws Save & close + Cancel and the panel writes nothing until the
+   press; 'done' draws one Done, because that panel has already written every
+   answer as it was given — which is a rule this product keeps deliberately for
+   its gates and must not be papered over with a button that does nothing. */
+function stDrawerPaint(d){
+  stWireDrawerOnce();
+  const el=stDrawerHost(), scrim=document.getElementById('st-scrim');
+  const glyph=d.glyph||'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>';
+  const head=(typeof reviewDialogHeadHtml==='function')
+    ? reviewDialogHeadHtml(glyph, d.title, d.sub||'')
+    : `<h2 class="rvd-title" id="st-drawer-title">${esc(d.title)}</h2>${d.sub?`<p class="rvd-sub">${esc(d.sub)}</p>`:''}`;
+  document.getElementById('st-dhead').innerHTML=
+    `${head}<button class="st-dx" data-st-dclose title="${esc(i18t('st_close_drawer'))}" aria-label="${esc(i18t('st_close_drawer'))}">✕</button>`;
+  const ttl=el.querySelector('.rvd-title'); if(ttl && !ttl.id) ttl.id='st-drawer-title';
+  document.getElementById('st-dbody').innerHTML=d.body||'';
+  /* THE REFUSAL SITS IN THE FOOT, NOT AT THE TOP OF THE BODY, and that is a
+     measured decision rather than a layout preference. Put above the fields it
+     pushed everything under it down by 46px the moment it appeared and pulled
+     it back up when it cleared — which is the exact fault the settings page was
+     rebuilt to stop (settings-holds-still-verify). In the foot it is pinned, so
+     it cannot be scrolled away from either, and the control the reader just
+     pressed does not move under their hand. */
+  document.getElementById('st-dfoot').innerHTML =
+    `<div id="st-drawer-refusal" class="st-refusal" hidden></div>
+     <div class="st-dfoot-acts">${d.foot==='save'
+      ? `<button class="ui-btn" data-st-dclose>${i18t('act_cancel')}</button>
+         <button class="ui-btn ui-btn-primary" id="st-dsave">${i18t('st_save_close')}</button>`
+      : `<button class="ui-btn ui-btn-primary" data-st-dclose>${i18t('st_done')}</button>`}</div>`;
+  el.removeAttribute('hidden'); if(scrim) scrim.removeAttribute('hidden');
+  /* The class flip is what animates; it has to land on a frame after the
+     element stops being hidden or the transition has nothing to run from. */
+  const show=()=>{ el.classList.add('open'); if(scrim) scrim.classList.add('open'); };
+  if(typeof requestAnimationFrame==='function') requestAnimationFrame(show); else show();
+  if(typeof d.wire==='function') d.wire();
+  if(d.foot==='save' && typeof d.save==='function')
+    document.getElementById('st-dsave')?.addEventListener('click',()=>d.save());
+  try{ el.focus&&el.focus(); }catch(_){}
+}
+/* A REFUSAL IS SHOWN IN THE DRAWER, in words, beside the thing it refuses —
+   never as a toast that appears over the page behind it and never silently. */
+function stDrawerRefuse(msg){
+  const r=document.getElementById('st-drawer-refusal');
+  if(!r){ if(window.toast) toast(msg,'err'); return; }
+  r.textContent=msg; r.removeAttribute('hidden');
+}
+function stDrawerClearRefusal(){ document.getElementById('st-drawer-refusal')?.setAttribute('hidden',''); }
+function stDrawerOpen(key){
+  if(key==='account'){ openMyAccount(); return; }
+  if(String(key||'').indexOf('person:')===0){ settingsPersonDrawer(String(key).slice(7)); return; }
+  const p=SET_PANELS[key]; if(!p) return;
+  _stOpen=key;
+  stDrawerPaint({ title:p.title(), sub:p.sub?p.sub():'', foot:p.foot||'done', glyph:p.glyph,
+    body:p.body(), wire:p.wire, save:p.save });
+}
+
+/* ---------------- ROWS ----------------
+   A row states what the setting IS right now. Status dot, name, one line of
+   current state, whether it has to be answered, and a chip. */
+const ST_DOT={ ok:'var(--st-green-dot)', warn:'var(--st-amber-dot)', off:'var(--color-neutral-400)' };
+function stRowHtml(key){
+  const p=SET_PANELS[key]; if(!p) return '';
+  const st=p.state?p.state():{dot:'off',text:''};
+  const chip=p.chip?p.chip():'';
+  return `<button class="st-row" data-st-panel="${key}">
+    <span class="st-dot" style="background:${ST_DOT[st.dot]||ST_DOT.off}"></span>
+    <span class="st-row-main">
+      <span class="st-row-name">${esc(p.title())}</span>
+      <span class="st-row-state">${st.text||''}</span>
+    </span>
+    ${chip?`<span class="st-row-chip">${chip}</span>`:''}
+    <span class="st-row-tag"${p.mandatory?' data-req="1"':''}>${p.mandatory?i18t('st_mandatory'):i18t('st_optional')}</span>
+    <span class="st-row-go" aria-hidden="true">›</span>
+  </button>`;
+}
+function stRowsHtml(tab){
+  const keys=Object.keys(SET_PANELS).filter(k=>SET_PANELS[k].tab===tab && (!SET_PANELS[k].show || SET_PANELS[k].show()));
+  return `<div class="st-rows">${keys.map(stRowHtml).join('')}</div>`;
+}
+/* ONE ROW, REPAINTED WHERE IT STANDS. A row states what the setting IS right
+   now, so a panel that has just written something has to refresh the row behind
+   the drawer — and it must not do that with renderTeam(), which rebuilds the
+   whole screen and empties seven server-filled panels (THE SETTINGS PAGE HOLDS
+   STILL). Nothing else on the page moves: the replacement is the same markup
+   from the same builder, in the same box. */
+function stRepaintRow(key){
+  const el=document.querySelector(`.st-row[data-st-panel="${key}"]`);
+  if(!el || !SET_PANELS[key]) return;
+  const d=document.createElement('div'); d.innerHTML=stRowHtml(key);
+  const next=d.firstElementChild; if(next) el.replaceWith(next);
+}
+
+/* ============================================================
+   TAB 1 — PEOPLE
+   ============================================================
+   A member is FINISHED when the workspace can act on them without an admin
+   having to come back: a name, a work email, the capacity they sign in, and an
+   answer on which folders they may see. The chip counts exactly those, and the
+   banner names the people who are short — an amber count with nobody's name on
+   it is a number you cannot act on. */
+function stAccessOf(u){
+  if(u.role==='admin') return { all:true, get text(){ return i18t('set_all_streams_short'); } };
+  const v=(((state.settings||{}).folderAccess)||{})[u.id];
+  if(v==null||v==='*'||(Array.isArray(v)&&!v.length))
+    return { all:true, get text(){ return i18t('set_all_streams_short'); } };
+  return { all:false, n:v.length, get text(){ return i18t('set_streams_of',{n:v.length,total:Object.keys(FOLDERS).length}); } };
+}
+/* Value visibility is a server-side right (users.can_view_values); admins
+   always have it, and a member created before the permission existed defaults
+   to having it, so this deploy changes nothing until an admin turns it off. */
+const stValuesOn=u=>u.role==='admin'||u.canViewValues!==false;
+/* WHAT IS MISSING, AS A LIST OF WORDS — the same list the drawer refuses with
+   and the same list the chip counts. One reading, three readers. */
+function stPersonMissing(u){
+  const out=[];
+  if(!String(u.name||'').trim()) out.push(i18t('st_f_name'));
+  if(!String(u.email||'').trim()) out.push(i18t('st_f_email'));
+  if(!String(u.title||'').trim()) out.push(i18t('st_f_title'));
+  /* THE SIGNING LIMIT COUNTS ONLY WHILE THE RULE IS IN FORCE. With the switch
+     off an unset limit stops nothing, so calling it "missing" would light the
+     whole roster amber on the morning of a deploy over a decision nobody has
+     been asked to make yet. Turn the rule on and it becomes a real gap. */
+  if(typeof signCapEnforced==='function' && signCapEnforced()
+     && u.role!=='viewer' && u.role!=='admin'
+     && typeof signCapOf==='function' && !signCapOf(u).answered) out.push(i18t('sc_section'));
+  return out;
+}
+function stPeopleHtml(){
+  const me=currentUser()||{};
+  const users=getUsers()||[];
+  const unfinished=users.filter(u=>stPersonMissing(u).length);
+  const banner=unfinished.length?`
+    <div class="st-banner" id="st-people-banner">
+      <span class="st-banner-ic">${icon('alert','w-4 h-4')}</span>
+      <span><b>${i18tn('st_unfinished',unfinished.length,{n:unfinished.length,who:esc(unfinished.map(u=>u.name||u.email).join(', '))})}</b>
+      <span style="display:block;margin-top:2px">${i18t('st_unfinished_why')}</span></span>
+    </div>`:'';
+  const rows=users.map(u=>{
+    const ini=(u.name||u.email||'?').split(' ').filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase();
+    const miss=stPersonMissing(u);
+    const acc=stAccessOf(u);
+    return `<button class="st-person" data-st-panel="person:${PB_ATTR(u.id)}">
+      <span style="${ST_AV};width:30px;height:30px;font-size:10.5px">${esc(ini)}</span>
+      <span class="st-person-main">
+        <span class="st-person-name">${esc(u.name||u.email)}${u.id===me.id?` <span style="font-weight:400;color:var(--color-neutral-500);font-size:11px">${i18t('set_you')}</span>`:''}</span>
+        <span class="st-person-sub">
+          <span style="${stRoleTag(u.role)}">${esc(roleName(u.role))}</span>
+          <span>${u.title?esc(u.title):`<span style="color:var(--st-amber-fg)">${i18t('set_no_job_title')}</span>`}</span>
+          <span style="color:${acc.all?'var(--color-neutral-600)':'var(--st-amber-fg)'}">${esc(acc.text)}</span>
+          ${''/* HOW MUCH THEY MAY SIGN FOR, on the row, because it is the fact
+                 an admin comes to this list to check and it was invisible until
+                 you opened somebody. signCapText is the ONE reading. */}
+          <span data-st-cap="${PB_ATTR(u.id)}" style="color:${(typeof signCapOf==='function'&&!signCapOf(u).answered&&u.role!=='viewer'&&u.role!=='admin')?'var(--st-amber-fg)':'var(--color-neutral-600)'}">${esc((typeof signCapText==='function')?signCapText(u):'')}</span>
         </span>
-      </td>
-      <td style="padding:8px 10px"><span style="${roleTag(x.role)}">${roleName(x.role)}</span></td>
-      <td style="padding:8px 10px;white-space:nowrap">
-        <span style="font-size:11.5px;color:${restricted?'var(--st-amber-fg)':'var(--color-neutral-700)'}">${accessSummary(x).text}</span>
-        ${(isAdmin()&&x.role!=='admin')?`<button data-access-for="${x.id}" title="${esc(i18t('set_edit_folder_access'))}" style="margin-left:6px;font-size:10.5px;font-weight:600;color:var(--color-accent-800);background:none;border:0;cursor:pointer">${i18t('act_edit')}</button>`:''}
-        <span style="display:block;font-size:10.5px;color:${valuesOn(x)?'var(--color-neutral-600)':'var(--st-amber-fg)'};margin-top:2px">
-          ${valuesOn(x)?i18t('set_sees_values'):i18t('set_values_hidden')}
-          ${(isAdmin()&&x.role!=='admin'&&!isMe&&API_MODE())?`<button data-values-for="${x.id}" data-values-to="${valuesOn(x)?'0':'1'}" title="${esc(valuesOn(x)?i18t('set_hide_values'):i18t('set_show_values'))}" style="margin-left:6px;font-size:10.5px;font-weight:600;color:var(--color-accent-800);background:none;border:0;cursor:pointer">${valuesOn(x)?i18t('set_hide'):i18t('set_show')}</button>`:''}
-        </span>
-      </td>
-      <td style="padding:8px 10px;font-size:11.5px;color:var(--color-neutral-700);white-space:nowrap">${x.status==='invited'?i18t('set_invited'):i18t('set_active')}</td>
-      <td style="padding:8px 14px 8px 10px;text-align:right;white-space:nowrap">
-        ${canManage?`<select data-role-for="${x.id}" title="${esc(i18t('set_change_role'))}" style="font-size:11px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:3px 6px;color:inherit;font-family:inherit;outline:none">
-            ${['admin','legal','viewer'].map(r=>`<option value="${r}" ${x.role===r?'selected':''}>${roleName(r)}</option>`).join('')}
-          </select>
-          <button data-remove-user="${x.id}" style="margin-left:8px;font-size:11px;font-weight:600;color:var(--st-ruby-dot);background:none;border:0;cursor:pointer">${i18t('act_remove')}</button>`
-        :`<span style="color:var(--color-neutral-400)">—</span>`}
-      </td>
-    </tr>`;
+      </span>
+      <span class="st-chip" data-tone="${miss.length?'warn':'ok'}">${miss.length?i18tn('st_n_missing',miss.length,{n:miss.length}):i18t('st_complete')}</span>
+      <span class="st-row-go" aria-hidden="true">›</span>
+    </button>`;
   }).join('');
-
-  const limitField=(id,label,sub,min)=>`<label style="display:block">
-      <span style="display:block;font-size:10px;color:var(--color-neutral-600);line-height:1.4">${label}<br><span style="color:var(--color-neutral-400)">${sub}</span></span>
-      <input id="${id}" type="number" min="${min}" style="margin-top:3px;${inputMono}"/></label>`;
-
-  const _heldHeights=settingsHeightsBefore();
-  document.getElementById('content').innerHTML=`
-  <div id="set-page" class="view-enter" style="padding:16px 18px 28px">
-    <div class="tm-cols" style="display:grid;gap:18px;align-items:start">
-
-      <!-- ============ LEFT · MEMBERS (blueprint) ============ -->
-      <section class="blueprint" style="background:var(--color-surface);box-shadow:var(--shadow-sm);border-radius:10px;overflow:hidden">
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--color-divider)">
-          <h4 style="margin:0;font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--color-text)">${i18t('set_members_count',{n:users.length})}</h4>
-          ${isAdmin()?`<button id="tm-invite" style="font-family:var(--font-mono);font-weight:600;font-size:12px;padding:4px 10px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;cursor:pointer;color:var(--color-accent-800)">${i18t('set_invite_member')}</button>`:''}
-        </div>
-        <div class="table-scroll">
-          <table style="width:100%;border-collapse:collapse;font-size:12.5px">
-            <thead>
-              <tr style="text-align:left;border-bottom:1px solid var(--color-divider);color:var(--color-neutral-600);font-size:10px;letter-spacing:.08em;text-transform:uppercase">
-                <th style="padding:8px 10px 8px 14px;font-weight:600">${i18t('set_member')}</th>
-                <th style="padding:8px 10px;font-weight:600">${i18t('set_role')}</th>
-                <th style="padding:8px 10px;font-weight:600">${i18t('set_folder_access')}</th>
-                <th style="padding:8px 10px;font-weight:600">${i18t('reg_col_status')}</th>
-                <th style="padding:8px 14px 8px 10px;font-weight:600;text-align:right">${i18t('set_manage')}</th>
-              </tr>
-            </thead>
-            <tbody>${rows}</tbody>
-          </table>
-        </div>
-        ${isAdmin()?`
-        <div style="padding:12px 14px;border-top:1px solid var(--color-divider);background:var(--color-bg)">
-          <div style="font-family:var(--font-mono);font-weight:600;font-size:11px;color:var(--color-neutral-700);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">${i18t('set_add_team_member')}</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <input id="tm-name" type="text" placeholder="${esc(i18t('set_ph_full_name'))}" style="${inputStyle}"/>
-            <input id="tm-email" type="email" placeholder="${esc(i18t('set_ph_work_email'))}" style="${inputStyle}"/>
-            <input id="tm-title" type="text" placeholder="${esc(i18t('set_ph_title'))}" style="${inputStyle}"/>
-            ${''/* THE SAFE ONE IS THE DEFAULT. This opened on Editor — edit &
-                   sign — so an admin who filled in a name and an email and did
-                   not think about the dropdown had granted the right to redline
-                   and to SIGN. The quietest path through a form must never be
-                   the widest grant; it is the same rule the access dropdown
-                   below already follows. Viewer reads and nothing more, so a
-                   skipped answer costs a follow-up rather than an authority
-                   nobody meant to hand over. Reported from the field (Young,
-                   09 Aug 2026). */}
-            <select id="tm-role" style="${inputStyle}">
-              <option value="viewer" selected>${i18t('set_role_viewer')}</option>
-              <option value="legal">${i18t('set_role_legal')}</option>
-              <option value="admin">${i18t('set_role_admin')}</option>
-            </select>
-            <input id="tm-pass" type="password" placeholder="${esc(i18t('set_ph_temp_pass'))}" style="${inputStyle}"/>
-            ${''/* ACCESS IS PART OF ADDING SOMEBODY, NOT A LATER ERRAND. The form
-                   used to create a member with no answer to "what may they see",
-                   and the absent answer means EVERY stream — so the quietest
-                   possible path through this form was also the widest grant. The
-                   placeholder option carries no value, so the add button refuses
-                   until an admin has actually chosen. */}
-            <select id="tm-access" style="${inputStyle}">
-              <option value="">${i18t('set_choose_access')}</option>
-              <option value="*">${i18t('set_access_all')}</option>
-              <option value="pick">${i18t('set_access_pick')}</option>
-            </select>
-          </div>
-          <div id="tm-access-list" style="display:none;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:6px;margin-top:8px">
-            ${Object.values(FOLDERS).map(f=>`<label style="display:flex;align-items:center;gap:7px;padding:6px 8px;border:1px solid var(--color-divider);border-radius:6px;cursor:pointer;font-size:11.5px">
-              <input type="checkbox" data-tm-folder="${PB_ATTR(f.id)}" style="width:14px;height:14px;accent-color:var(--color-accent);flex:none"/>
-              <span style="width:8px;height:8px;border-radius:2px;background:${f.color};flex:none"></span>
-              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.name)}</span></label>`).join('')}
-          </div>
-          <div id="tm-access-note" style="display:none;margin-top:6px;font-size:10.5px;color:var(--color-neutral-600);line-height:1.5">${i18t('set_access_admin_note')}</div>
-          <div style="margin-top:8px;font-size:10.5px;color:var(--color-neutral-600);line-height:1.5">${i18t('set_role_help')}</div>
-          <button id="tm-add" style="margin-top:10px;${primaryBtn}">${i18t('set_add_member')}</button>
-        </div>
-        <div style="padding:12px 14px;border-top:1px solid var(--color-divider)">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px">
-            <div style="font-family:var(--font-mono);font-weight:600;font-size:11px;color:var(--color-neutral-700);text-transform:uppercase;letter-spacing:.06em">${i18tn('set_directory',(((state.settings||{}).directory)||[]).length,{n:(((state.settings||{}).directory)||[]).length})}</div>
-            <label style="${secondaryBtn}">${icon('upload','w-3.5 h-3.5')} ${i18t('set_import_csv')}<input id="dir-import" type="file" accept=".csv,text/csv" style="display:none"/></label>
-          </div>
-          <div style="font-size:10.5px;color:var(--color-neutral-600);line-height:1.5">${i18t('set_bulk_signers')} <b>${i18t('set_csv_columns')}</b>.${(((state.settings||{}).directory)||[]).length?` · <button id="dir-clear" style="color:var(--st-ruby-dot);background:none;border:0;cursor:pointer;font-weight:600;font-size:10.5px">${i18t('set_clear_directory')}</button>`:''}</div>
-        </div>`:''}
-      </section>
-
-      <!-- ============ RIGHT · SETTINGS STACK ============ -->
-      <div style="display:flex;flex-direction:column;gap:18px">
-
-        <section style="${cardStyle}">
-          <h4 style="${h4Style}">${i18t('set_approval_rules')}</h4>
-          <p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">${i18t('set_rules_sub')}</p>
-          <div id="approval-rules"></div>
-          ${isAdmin()?`<button id="ar-add" style="margin-top:8px;${secondaryBtn}">${icon('plus','w-3.5 h-3.5')} ${i18t('set_add_rule_btn')}</button>`
-            :`<p style="margin-top:6px;font-size:11px;color:var(--color-neutral-600)">${i18t('set_only_admin_approval')}</p>`}
-        </section>
-
-        ${''/* ---- THE OTHER GATE, AND IT IS DELIBERATELY NEXT TO THIS ONE ----
-               The rules above decide who has to say yes before a contract may
-               be SIGNED. This one decides who has to look before a redline may
-               be SENT. They are the same shape of question asked at two
-               different moments, and the moment is the whole difference: an
-               approval that arrives after the wording is with the counterparty
-               is an approval of something already done. Sitting them side by
-               side is how an admin sees that they are two settings and not one.
-
-               OFF BY DEFAULT, and the copy says so. A gate that appeared after
-               an update and stopped everybody's sends would be an outage. */}
-        <section style="${cardStyle}">
-          <h4 style="${h4Style}">${i18t('rv_set_title')}</h4>
-          <p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">${i18t('rv_set_sub')}</p>
-          <div id="rv-gate-panel"></div>
-          ${isAdmin()?'':`<p style="margin-top:6px;font-size:11px;color:var(--color-neutral-600)">${i18t('set_only_admin_approval')}</p>`}
-        </section>
-
-        ${''/* ---- THE THIRD GATE, AND IT ASKS AN EARLIER QUESTION THAN BOTH ----
-               The approval rules decide who says yes before a contract is
-               SIGNED. The review gate decides who looks before a redline is
-               SENT. This decides who may WRITE one at all — so it belongs with
-               them, and it belongs last, because it is the widest of the three
-               and the one an admin should read the other two before switching
-               on. OFF by default, and the copy says so. */}
-        <section style="${cardStyle}">
-          <h4 style="${h4Style}">${i18t('dk_set_title')}</h4>
-          <p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">${i18t('dk_set_sub')}</p>
-          <div id="dk-rule-panel"></div>
-          ${isAdmin()?'':`<p style="margin-top:6px;font-size:11px;color:var(--color-neutral-600)">${i18t('set_only_admin_approval')}</p>`}
-        </section>
-
-        <section style="${cardStyle}">
-          <h4 style="${h4Style}">${i18t('set_renewal_reminders')}</h4>
-          <p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.5">${i18t('set_renewal_sub')}</p>
-          <div style="display:flex;gap:6px">
-            ${[90,60,30].map(d=>`<span style="${tagAccent}">${i18t('set_days_out',{n:d})}</span>`).join('')}
-          </div>
-          <p style="font-size:10.5px;color:var(--color-neutral-600);margin:8px 0 0">${i18t('set_delivered_resend')}</p>
-        </section>
-
-        <section style="${cardStyle}">
-          <h4 style="${h4Style}">${i18t('set_monthly_report')}</h4>
-          <p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.5">${i18t('set_monthly_report_sub')}</p>
-          ${API_MODE()&&isAdmin()?`
-          <div id="mr-status" style="font-size:11px;color:var(--color-neutral-700);margin-bottom:8px">${i18t('set_checking')}</div>
-          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--color-text);cursor:pointer;margin-bottom:8px">
-            <input id="mr-enabled" type="checkbox" style="width:14px;height:14px;accent-color:var(--color-accent);flex:none"/>
-            <span>${i18t('set_monthly_report_on')}</span></label>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-            <select id="mr-recipients" aria-label="${i18t('set_mr_recipients_aria')}" style="min-width:170px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:7px 10px;font:inherit;font-size:12.5px;color:inherit;outline:none">
-              <option value="admins">${i18t('set_mr_admins')}</option>
-              <option value="all">${i18t('set_mr_all')}</option>
-            </select>
-            <button id="mr-send-now" style="${secondaryBtn}">${icon('clock','w-3.5 h-3.5')} ${i18t('set_mr_send_now')}</button>
-          </div>`
-          :`<p style="font-size:11px;color:var(--color-neutral-600)">${API_MODE()?i18t('set_mr_admin_only'):i18t('set_mr_needs_server')}</p>`}
-        </section>
-
-        <section style="${cardStyle}">
-          <h4 style="${h4Style}">${i18t('set_copilot_engine')}</h4>
-          <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.5">${i18t('set_engine_sub')}</p>
-          <div id="ai-cfg-status" style="font-size:11px;color:var(--color-neutral-700);margin-bottom:8px">${i18t('set_checking')}</div>
-          ${isAdmin()?`
-          <div style="display:flex;gap:8px;align-items:flex-end">
-            <label style="flex:1;min-width:0"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-text);margin-bottom:4px">${i18t('set_api_key')}</span>
-              <input id="ai-key" type="password" placeholder="sk-ant-…" style="${inputStyle}"/></label>
-            <button id="ai-key-save" style="${primaryBtn}">${i18t('set_save_key')}</button>
-          </div>
-          <button id="ai-key-clear" style="margin-top:6px;font-size:11px;font-weight:600;color:var(--st-ruby-dot);background:none;border:0;cursor:pointer;padding:0">${i18t('set_remove_key')}</button>
-          ${API_MODE()?`
-          <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--color-divider)">
-            <div style="font-size:12px;font-weight:600;color:var(--color-text)">${i18t('set_model_routing')}</div>
-            <p style="font-size:10.5px;color:var(--color-neutral-600);margin:2px 0 8px">${i18t('set_override_blank')}</p>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">
-              <div style="border:1px solid var(--color-divider);border-radius:4px;padding:8px">
-                <div style="font-size:11px;font-weight:600;color:var(--color-text)">${i18t('set_fast_tier')}</div>
-                <div style="font-size:10px;color:var(--color-neutral-500);margin:2px 0 4px">${i18t('set_fast_sub')}</div>
-                <div style="font-size:10px;color:var(--color-neutral-700);margin-bottom:4px">${i18t('set_current')} <span id="ai-model-fast-cur" style="font-family:var(--font-mono)">—</span></div>
-                <input id="ai-model-fast" type="text" placeholder="${esc(i18t('set_ph_default_rec'))}" style="${inputMono}"/>
-              </div>
-              <div style="border:1px solid var(--color-divider);border-radius:4px;padding:8px">
-                <div style="font-size:11px;font-weight:600;color:var(--color-text)">${i18t('set_deep_tier')}</div>
-                <div style="font-size:10px;color:var(--color-neutral-500);margin:2px 0 4px">${i18t('set_deep_sub')}</div>
-                <div style="font-size:10px;color:var(--color-neutral-700);margin-bottom:4px">${i18t('set_current')} <span id="ai-model-deep-cur" style="font-family:var(--font-mono)">—</span></div>
-                <input id="ai-model-deep" type="text" placeholder="${esc(i18t('set_ph_default_rec'))}" style="${inputMono}"/>
-              </div>
-            </div>
-            <details style="font-size:11px;margin-top:8px">
-              <summary style="cursor:pointer;color:var(--color-neutral-600)">${i18t('set_advanced_override')}</summary>
-              <div style="margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;gap:8px">
-                <input id="ai-model-global" type="text" placeholder="${esc(i18t('set_ph_none'))}" style="${inputMono};width:220px"/>
-                <span style="font-size:10px;color:var(--color-neutral-500)">${i18t('set_forces_one_model')}</span>
-              </div>
-            </details>
-            <button id="ai-model-save" style="margin-top:8px;${primaryBtnSm}">${i18t('set_save_model')}</button>
-          </div>
-
-          <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--color-divider)">
-            <div style="font-size:12px;font-weight:600;color:var(--color-text)">${i18t('set_spend_controls')}</div>
-            <p style="font-size:10.5px;color:var(--color-neutral-600);margin:2px 0 6px;line-height:1.5">${i18t('set_spend_governed')} ${i18t('set_spend_money')}</p>
-            <div id="ai-usage" style="font-size:11.5px;color:var(--color-neutral-700);margin-bottom:4px">${i18t('set_today_dash')}</div>
-            <div style="height:6px;background:var(--color-neutral-200);border-radius:3px;overflow:hidden;margin-bottom:8px"><div id="ai-usage-bar" style="width:0%;height:100%;background:var(--color-accent);transition:width .3s"></div></div>
-            <div id="ai-spend-breakdown" style="margin-bottom:10px"></div>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">
-              ${limitField('ai-daily-spend',i18t('set_lim_daily_spend'),i18t('set_lim_daily_spend_sub'),0)}
-              ${limitField('ai-estimate-confirm',i18t('set_lim_confirm'),i18t('set_lim_confirm_sub'),0)}
-              ${limitField('ai-rate-light',i18t('set_lim_light'),i18t('set_lim_light_sub'),1)}
-              ${limitField('ai-rate-deep',i18t('set_lim_deep'),i18t('set_lim_deep_sub'),1)}
-              ${limitField('ai-rate-ocr',i18t('set_lim_ocr'),i18t('set_lim_ocr_sub'),1)}
-              ${limitField('ai-daily',i18t('set_lim_daily_req'),i18t('set_lim_daily_req_sub'),0)}
-              ${limitField('ai-ocr-pages',i18t('set_lim_ocr_pages'),i18t('set_lim_ocr_pages_sub'),1)}
-              ${limitField('ai-maxchars',i18t('set_lim_chars'),i18t('set_lim_chars_sub'),1000)}
-              ${limitField('ai-maxcontracts',i18t('set_lim_contracts'),i18t('set_lim_contracts_sub'),1)}
-            </div>
-            <label style="display:flex;align-items:flex-start;gap:8px;margin-top:9px;font-size:11px;color:var(--color-neutral-700);line-height:1.45;cursor:pointer">
-              <input id="ai-thorough" type="checkbox" style="margin-top:2px;width:14px;height:14px;accent-color:var(--color-accent);flex:none"/>
-              <span><b>${i18t('set_thorough_extraction')}</b> ${i18t('set_thorough_body')}
-              <span style="color:var(--st-amber-fg)">${i18t('set_thorough_warn')}</span> ${i18t('set_preflight')}</span></label>
-            <button id="ai-limits-save" style="margin-top:9px;${primaryBtnSm}">${i18t('set_save_limits')}</button>
-          </div>
-
-          <!-- ---- onboarding allowance ---- -->
-          <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--color-divider)">
-            <div style="font-size:12px;font-weight:600;color:var(--color-text)">${i18t('set_onboarding_allowance')}</div>
-            <p style="font-size:10.5px;color:var(--color-neutral-600);margin:2px 0 8px;line-height:1.5">${i18t('set_allowance_sub')}</p>
-            <div id="ai-allowance-state" style="font-size:11.5px;color:var(--color-neutral-700);margin-bottom:6px">—</div>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">
-              ${limitField('ai-allow-budget',i18t('set_lim_allow_budget'),i18t('set_lim_allow_budget_sub'),0)}
-              ${limitField('ai-allow-docs',i18t('set_lim_allow_docs'),i18t('set_lim_allow_docs_sub'),0)}
-            </div>
-            <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
-              <button id="ai-allow-open" style="${primaryBtnSm}">${i18t('set_open_allowance')}</button>
-              <button id="ai-allow-topup" style="${secondaryBtn};font-size:11.5px;padding:5px 10px">${i18t('set_top_up')}</button>
-              <button id="ai-allow-close" style="${secondaryBtn};font-size:11.5px;padding:5px 10px">${i18t('act_close')}</button>
-            </div>
-          </div>
-
-          <!-- ---- model rate table ---- -->
-          <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--color-divider)">
-            <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
-              <div style="font-size:12px;font-weight:600;color:var(--color-text)">${i18t('set_rate_table')}</div>
-              <span id="ai-rates-meta" style="font-size:10px;color:var(--color-neutral-500)"></span>
-            </div>
-            <p style="font-size:10.5px;color:var(--color-neutral-600);margin:2px 0 8px;line-height:1.5">${i18t('set_usd_per')} ${i18t('set_per_million')}</p>
-            <div id="ai-rates-table" style="max-height:220px;overflow-y:auto" class="scroll-thin"></div>
-            <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
-              <button id="ai-rates-save" style="${primaryBtnSm}">${i18t('set_save_rates')}</button>
-              <button id="ai-rates-reset" style="${secondaryBtn};font-size:11.5px;padding:5px 10px">${i18t('set_reset_defaults')}</button>
-            </div>
-          </div>
-
-          <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--color-divider)">
-            <div style="font-size:12px;font-weight:600;color:var(--color-text);margin-bottom:2px">${i18t('set_file_existing')}</div>
-            <p style="font-size:10.5px;color:var(--color-neutral-600);margin:0 0 8px;line-height:1.5">${i18t('set_file_existing_sub')}</p>
-            <button id="meta-backfill" style="${secondaryBtn}">${icon('sparkle','w-3.5 h-3.5')} <span id="meta-backfill-lbl">${i18t('set_extract_metadata')}</span></button>
-          </div>`:`
-          <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--color-divider);font-size:10.5px;color:var(--color-neutral-600);line-height:1.5">${i18t('set_local_mode_note')}</div>`}`
-          :`<p style="font-size:11px;color:var(--color-neutral-600)">${i18t('set_only_admin_key')}</p>`}
-        </section>
-
-      ${''/* WHERE THE WORKSPACE OPERATES. This lived only in the top bar, as a
-             pair of flag buttons beside the search box — a workspace-level,
-             admin-only setting sitting in the one strip a person's eye crosses
-             a hundred times a day, while the setting they actually change
-             often (their language) had nowhere to go. The market moved here,
-             which is also where the server already puts the authority:
-             PUT /api/org/jurisdiction is admin-gated. */}
-      <section style="${cardStyle}">
-        <h4 style="${h4Style}">${i18t('set_market')}</h4>
-        <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">${i18t('set_market_sub')}</p>
-        ${isAdmin()?`
-        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-          <select id="set-market" style="min-width:190px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:7px 10px;font:inherit;font-size:13px;color:inherit;outline:none">
-            ${jxList().map(p=>`<option value="${p.id}"${p.id===jxId()?' selected':''}>${esc(p.name)}</option>`).join('')}
-          </select>
-          <div id="set-market-facts" style="font-size:10.5px;color:var(--color-neutral-600);line-height:1.6">${settingsMarketFactsHtml()}</div>
-        </div>`
-        :`<p style="font-size:11px;color:var(--color-neutral-600)">${i18t('set_market_admin_only')}</p>`}
-      </section>
-
-      ${''/* HOW THE WORK IS SHAPED. Beside the market and for the same reason:
-             both are the COMPANY's answer, both are admin-only, and both change
-             what every member sees. This one decides which panels appear on the
-             Portfolio tab and what noun they use. */}
-      <section style="${cardStyle}">
-        <h4 style="${h4Style}">${i18t('set_workshape')}</h4>
-        <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">${i18t('set_workshape_sub')}</p>
-        ${(isAdmin()&&typeof wsCfg==='function')?(()=>{ const cfg=wsCfg(); const det=wsDetect();
-          const box=(k,title,sub)=>`<label data-ws-box="${k}" style="display:flex;gap:9px;align-items:flex-start;padding:9px 11px;border:1px solid ${cfg.shapes.includes(k)?WS_BOX_ON.line:WS_BOX_OFF.line};border-radius:8px;cursor:pointer;background:${cfg.shapes.includes(k)?WS_BOX_ON.fill:WS_BOX_OFF.fill};flex:1 1 240px;min-width:0">
-            <input type="checkbox" data-ws-shape="${k}" ${cfg.shapes.includes(k)?'checked':''} style="margin-top:2px;flex:none"/>
-            <span style="min-width:0"><span style="display:block;font-size:12.5px;font-weight:600">${title}</span>
-            <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);line-height:1.5;margin-top:2px">${sub}</span></span></label>`;
-          return `
-        <div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:12px">
-          ${box('standing',i18t('set_shape_standing'),i18t('set_shape_standing_sub'))}
-          ${box('project',i18t('set_shape_project'),i18t('set_shape_project_sub'))}
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px">
-          <label style="display:flex;align-items:center;gap:9px;font-size:12px;font-weight:600">${i18t('set_work_word')}
-            <select id="set-work-word" style="min-width:150px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:7px 10px;font:inherit;font-size:13px;color:inherit;outline:none">
-              ${WS_WORDS.map(w=>`<option value="${w}"${w===cfg.word?' selected':''}>${esc(i18t('ww_'+w+'_title'))}</option>`).join('')}
-            </select></label>
-          <span style="font-size:10.5px;color:var(--color-neutral-600)">${i18t('set_work_word_sub')}</span>
-        </div>
-        <div style="padding:9px 11px;border-radius:7px;background:var(--color-neutral-100);font-size:10.5px;line-height:1.6;color:var(--color-neutral-700)">
-          <b>${i18t('set_workshape_detect')}.</b> ${det.total
-            ? esc(i18t('set_workshape_seen',{p:det.project,s:det.standing,u:det.unknown}))
-              +` <button id="ws-use-detected" style="border:0;background:none;padding:0;font:inherit;font-size:10.5px;font-weight:700;color:var(--color-accent-700);cursor:pointer;text-decoration:underline">${i18t('set_workshape_use')}</button>`
-            : i18t('set_workshape_seen_none')}
-        </div>`;})()
-        :`<p style="font-size:11px;color:var(--color-neutral-600)">${i18t('set_workshape_admin_only')}</p>`}
-      </section>
-
-      <section style="${cardStyle}">
-        <h4 style="${h4Style}">${i18t('set_company_design')}</h4>
-        <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">${i18t('set_design_sub')}</p>
-        ${(()=>{ const ob=window.ORG_BRANDING; const d=ob&&ob.designId&&window.docDesignById?docDesignById(ob.designId):null;
-          const canDesign=(currentUser()||{}).role==='admin'||(currentUser()||{}).role==='legal';
-          return `
-        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-          <div style="width:74px;height:42px;border:1px dashed var(--color-divider);border-radius:8px;display:grid;place-items:center;overflow:hidden;background:var(--color-bg);flex:none">
-            ${ob&&ob.logoUrl?`<img src="${ob.logoUrl}" alt="logo" style="max-width:100%;max-height:100%">`:`<span style="font-size:9px;color:var(--color-neutral-500)">${i18t('set_no_logo')}</span>`}
-          </div>
-          <div style="flex:1;min-width:150px">
-            ${d?`<div style="font-size:12.5px;font-weight:700">${esc(d.name)}${(()=>{ const st=ob.structureId&&window.docStructureById?docStructureById(ob.structureId):null;
-              return st&&st.id!==DEFAULT_STRUCTURE?` <span style="font-weight:500;color:var(--color-neutral-600)">· ${esc(st.name)}</span>`:''; })()}</div>
-            <div style="font-size:10.5px;color:var(--color-neutral-600)">${i18t('set_logo_pos',{pos:esc({'top-left':i18t('set_pos_top_left'),'top-center':i18t('set_pos_top_center'),'top-right':i18t('set_pos_top_right'),footer:i18t('set_pos_footer')}[ob.logoPosition]||ob.logoPosition||'—')})}${d.usesAccent&&ob.accentColor?` · ${i18t('set_accent')} <span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${ob.accentColor};vertical-align:-1px;border:1px solid var(--color-divider)"></span>`:''}</div>`
-            :`<div style="font-size:12px;color:var(--color-neutral-600)">${i18t('set_no_design')}</div>`}
-          </div>
-          ${canDesign?`<button id="brand-edit" style="${secondaryBtn}">${d?i18t('set_edit_design'):i18t('set_choose_design')}</button>`
-            :`<span style="font-size:10.5px;color:var(--color-neutral-600)">${i18t('set_admin_legal_change')}</span>`}
-        </div>`;})()}
-      </section>
-
-      <section style="${cardStyle}">
-        <h4 style="${h4Style}">${i18t('set_data_backup')}</h4>
-        <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">${API_MODE()?i18t('set_backup_server'):i18t('set_backup_local')}</p>
-        <div style="display:flex;flex-wrap:wrap;gap:8px">
-          <button id="bk-export" style="${secondaryBtn}">${icon('download','w-3.5 h-3.5')} ${i18t('set_export_backup')}</button>
-          ${(API_MODE()&&isAdmin())?`<a id="bk-zip" href="api/export/workspace.zip" style="${secondaryBtn};text-decoration:none">${icon('download','w-3.5 h-3.5')} ${i18t('set_full_workspace_zip')}</a>`:''}
-          ${(!API_MODE()&&isAdmin())?`
-          <label style="${secondaryBtn};cursor:pointer">${icon('upload','w-3.5 h-3.5')} ${i18t('set_restore_backup')}<input id="bk-import" type="file" accept=".json,application/json" style="display:none"/></label>
-          <button id="bk-reset" style="margin-left:auto;${dangerBtn}">${icon('ban','w-3.5 h-3.5')} ${i18t('set_reset_workspace')}</button>`:''}
-        </div>
-      </section>
-
-      ${(API_MODE())?`
-      <section style="${cardStyle}">
-        <h4 style="${h4Style}">${i18t('set_active_sessions')}</h4>
-        <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">${i18t('set_sessions_sub')}</p>
-        <div id="sessions-list" style="font-size:12px;color:var(--color-neutral-700)">${i18t('set_loading')}</div>
-      </section>`:''}
-
-      ${(API_MODE())?`
-      <section style="${cardStyle}">
-        ${''/* THE FIRST-OPEN TOGGLE IS GONE, with the email it switched on.
-               A settings page that still offered the checkbox would be
-               offering a switch wired to nothing. What replaces it is the
-               answer to the question somebody comes to this page with — "will
-               HaTi email me about this contract?" — stated once, plainly. */}
-        <h4 style="${h4Style}">${i18t('set_my_notifications')}</h4>
-        <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">${i18t('set_notif_sub')}</p>
-        <div style="border:1px solid var(--color-divider);border-radius:5px;padding:10px;font-size:12px;line-height:1.5;color:var(--color-neutral-700)">
-          <span style="font-weight:600;display:block;color:var(--color-text)">${i18t('set_still_emailed')}</span>
-          ${i18t('set_three_events')}
-        </div>
-      </section>`:''}
-
-      <section style="${cardStyle}">
-        <h4 style="${h4Style}">${i18t('set_my_sidebar')}</h4>
-        <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">${i18t('set_sidebar_sub')}</p>
-        <label style="display:flex;align-items:flex-start;gap:10px;border:1px solid var(--color-divider);border-radius:5px;padding:10px;cursor:pointer;font-size:12px">
-          <input id="pref-nav-all" type="checkbox" ${(typeof navShowEverything==='function'&&navShowEverything())?'checked':''} style="margin-top:1px;width:15px;height:15px;accent-color:var(--color-accent);flex:none"/>
-          <span><span style="font-weight:600;display:block">${i18t('set_show_everything')}</span>
-          <span style="color:var(--color-neutral-600);display:block;line-height:1.4">${i18t('set_full_cockpit')}</span></span>
-        </label>
-      </section>
-
-      ${(API_MODE()&&isAdmin())?`
-      <section style="${cardStyle}">
-        <h4 style="${h4Style}">${i18t('set_pilot_activation')}</h4>
-        <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">${i18t('set_activation_sub')}</p>
-        <div id="activation-funnel" style="font-size:12px;color:var(--color-neutral-700)">${i18t('set_loading')}</div>
-      </section>`:''}
-
-      ${(API_MODE()&&isAdmin())?`
-      <section style="${cardStyle}">
-        <h4 style="${h4Style}">${i18t('set_email_notifications')}</h4>
-        <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">${i18t('set_email_sub')}</p>
-        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
-          <button id="rem-run" style="${secondaryBtn}">${icon('clock','w-3.5 h-3.5')} ${i18t('set_check_renewals')}</button>
-          <button id="ob-refresh" style="${secondaryBtn}">${icon('history','w-3.5 h-3.5')} ${i18t('set_refresh_outbox')}</button>
-        </div>
-        <div id="outbox-list" style="font-size:12px;color:var(--color-neutral-700)">${i18t('set_loading_outbox')}</div>
-      </section>`:''}
-      </div>
+  return `${banner}
+    <div class="st-people-head">
+      <span class="st-people-count">${i18tn('st_people_count',users.length,{n:users.length})}</span>
+      <button id="st-add-person" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 12px" data-st-panel="person:new">${i18t('st_add_person')}</button>
     </div>
+    <div class="st-people">${rows}</div>`;
+}
+
+/* ---- SECTION 4 — SIGNING ----
+   Collapsed to a single sentence for a Viewer, who never signs at all: a
+   control whose only outcome is "not applicable" is furniture. The live
+   sentence at the foot reads back what is configured, including whether the
+   rule is actually in force — a limit that is recorded and not enforced must
+   not read as a limit that stops anybody. */
+function stSigningSectionHtml(u, isNew){
+  if(typeof signCapOf!=='function') return '';
+  const cap=signCapOf(u);
+  const enforced=(typeof signCapEnforced==='function')&&signCapEnforced();
+  const cur=(typeof jxCurrency==='function')?jxCurrency():'';
+  const sentence=(typeof signCapSentence==='function')?signCapSentence(u,cap,enforced):'';
+  const body=(u.role==='viewer'||u.role==='admin')
+    ? `<p class="st-note" id="tm-cap-says">${esc(sentence)}</p>`
+    : `<label class="st-toggle" style="margin-bottom:8px">
+         <input id="tm-cap-none" type="checkbox"${(cap.answered&&cap.limit==null)?' checked':''}/>
+         <span><span class="st-role-name">${esc(i18t('sc_no_limit'))}</span></span></label>
+       <label style="display:block">
+         <span style="${window.RV_LBL||''}">${esc(i18t('sc_cap_label',{cur}))}</span>
+         <input id="tm-cap" type="number" min="0" step="1000" value="${cap.limit==null?'':String(cap.limit)}"
+           style="${window.RV_FLD||ST_INPUT}"${(cap.answered&&cap.limit==null)?' disabled':''}/>
+         <span class="st-note">${esc(i18t('sc_cap_hint'))}</span></label>
+       <p class="st-note" id="tm-cap-says" style="margin-top:8px">${esc(sentence)}</p>`;
+  return `<section class="st-sec">
+    <h3 class="st-sec-h"><span class="st-sec-n">4</span>${esc(i18t('sc_section'))}</h3>${body}</section>`;
+}
+/* Read the two controls back into the ONE three-state value the record holds.
+   A ticked "No limit" is an ANSWER ('none'); an empty box with the tick off is
+   nobody having decided (null). */
+function stSigningRead(){
+  const none=document.getElementById('tm-cap-none');
+  const box=document.getElementById('tm-cap');
+  if(!none&&!box) return undefined;              // section not drawn — change nothing
+  if(none&&none.checked) return 'none';
+  const v=(box&&box.value||'').trim();
+  if(v==='') return null;
+  const n=Number(v);
+  return (Number.isFinite(n)&&n>=0) ? n : NaN;   // NaN = refuse, in words
+}
+function stSigningWire(u){
+  const none=document.getElementById('tm-cap-none');
+  const box=document.getElementById('tm-cap');
+  const says=document.getElementById('tm-cap-says');
+  if(!says) return;
+  const paint=()=>{
+    if(box&&none) box.disabled=!!none.checked;
+    const raw=stSigningRead();
+    const shown={ ...u, signCap: raw===undefined||Number.isNaN(raw) ? u.signCap : raw };
+    if(typeof signCapSentence==='function')
+      says.textContent=signCapSentence(shown, signCapOf(shown),
+        (typeof signCapEnforced==='function')&&signCapEnforced());
+  };
+  none?.addEventListener('change',paint);
+  box?.addEventListener('input',paint);
+  paint();
+}
+
+/* ---- THE SECOND COLUMN: WHERE THEY MAY SIGN ----
+   A SEPARATE list from what they may SEE, and the panel says which way it
+   cuts: it only ever narrows. Somebody who cannot open a Marketing contract
+   can never sign one, whatever is ticked here — so this can take a right away
+   and never hand one out. Not drawn for an admin, who holds every folder. */
+function stSignFolderHtml(u, isNew, folders){
+  if(typeof signFolderAccess!=='function') return '';
+  if(u.role==='admin') return '';
+  const cur=isNew ? '*' : signFolderAccess(u);
+  const set=new Set(Array.isArray(cur)?cur:[]);
+  const all=cur==='*';
+  return `<div class="st-sec" style="margin-top:14px">
+    <h3 class="st-sec-h">${esc(i18t('sf_title'))}</h3>
+    <select id="tm-sign-mode" style="${window.RV_FLD||ST_INPUT}">
+      <option value="*"${all?' selected':''}>${esc(i18t('sf_every_they_see'))}</option>
+      <option value="pick"${all?'':' selected'}>${esc(i18t('st_folders_pick'))}</option>
+    </select>
+    <div id="tm-sign-list" style="display:${all?'none':'grid'};grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;margin-top:8px">
+      ${folders.map(f=>`<label style="display:flex;align-items:center;gap:7px;padding:6px 8px;border:1px solid var(--color-divider);border-radius:6px;cursor:pointer;font-size:11.5px">
+        <input type="checkbox" data-tm-signfolder="${PB_ATTR(f.id)}"${set.has(f.id)?' checked':''} style="width:14px;height:14px;accent-color:var(--color-accent);flex:none"/>
+        <span style="width:8px;height:8px;border-radius:2px;background:${f.color};flex:none"></span>
+        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.name)}</span></label>`).join('')}
+    </div>
+    <span class="st-note">${esc(i18t('sf_narrows'))}</span>
   </div>`;
-  settingsHoldHeights(_heldHeights);
+}
+function stSignFolderRead(){
+  const sel=document.getElementById('tm-sign-mode');
+  if(!sel) return undefined;                      // not drawn — change nothing
+  if(sel.value==='*') return null;                // every folder they can see
+  const ids=[...document.querySelectorAll('[data-tm-signfolder]')].filter(cb=>cb.checked)
+    .map(cb=>cb.getAttribute('data-tm-signfolder'));
+  return ids.length?ids:false;                    // false = refuse, in words
+}
 
-  if(API_MODE()&&isAdmin()){
-    /* WO N7: the activation funnel — four labelled steps, each with its first
-       time and count, and one sentence for the north star. Words, not colour:
-       "not yet" is an answer, not an absence. */
-    (async()=>{
-      const host=document.getElementById('activation-funnel'); if(!host) return;
-      try{
-        const r=await api('activation');
-        const STEP={ added:i18t('set_step_added'), scanned:i18t('set_step_scanned'), sent:i18t('set_step_sent'), signed:i18t('set_step_signed') };
-        host.innerHTML=`
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:10px">
-            ${Object.entries(STEP).map(([k,label])=>{ const e=r.events&&r.events[k];
-              return `<div style="border:1px solid var(--color-divider);border-radius:6px;padding:9px 11px;background:${e?'var(--st-green-bg)':'var(--color-bg)'}">
-                <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:${e?'var(--st-green-fg)':'var(--color-neutral-600)'}">${e?icon('check2','w-3 h-3'):''}${label}</div>
-                <div style="font-size:10px;font-family:var(--font-mono);color:var(--color-neutral-600);margin-top:3px">${e?`${fmtDT(e.first)} · ${e.count}×`:i18t('set_not_yet')}</div>
-              </div>`; }).join('')}
-          </div>
-          <div style="font-size:11.5px;line-height:1.5;color:${r.northStar.withinSevenDays===true?'var(--st-green-fg)':r.northStar.withinSevenDays===false?'var(--st-amber-fg)':'var(--color-neutral-700)'}">
-            ${r.northStar.firstSendDays==null
-              ? i18t('set_north_star_none')
-              : r.northStar.withinSevenDays
-                ? `<b>${i18t('set_north_star')}</b> ${r.northStar.firstSendDays===0?i18t('set_first_send_dayone'):i18tn('set_first_send_after',r.northStar.firstSendDays,{n:r.northStar.firstSendDays})}`
-                : i18t('set_first_send_late',{n:r.northStar.firstSendDays})}
-          </div>`;
-      }catch(e){ host.innerHTML=`<span style="color:var(--color-neutral-600)">${i18t('set_activation_failed',{err:esc(e.message)})}</span>`; }
-    })();
-    const loadOutbox=async()=>{
-      try{ const r=await api('outbox');
-        const host=document.getElementById('outbox-list'); if(!host) return;
-        host.innerHTML=`<div class="mb-2 text-[11px] ${r.emailConfigured?'text-brand-600':'text-gold-600'}">${r.emailConfigured?i18t('set_email_configured'):i18t('set_email_not_configured')}</div>`+
-          (r.items.length?`<div class="space-y-1.5 max-h-56 overflow-y-auto scroll-thin">${r.items.map(it=>`
-            <div class="rounded-lg border border-brand-100 bg-white p-2.5">
-              <div class="flex items-center gap-2"><span class="text-[11px] font-medium text-brand-900 truncate flex-1">${it.subject}</span><span class="text-[9px] uppercase tracking-wider ${it.sent?'text-brand-600':'text-gold-600'}">${it.sent?i18t('set_sent_lower'):it.provider}</span></div>
-              <div class="text-[10px] font-mono text-brand-800/65 truncate">→ ${it.to_addr} · ${fmtDT(it.created_at)}</div>
-              ${it.detail?`<div class="mt-1 text-[10px] text-gold-700 bg-gold-500/10 rounded px-1.5 py-1 leading-relaxed">${i18t('set_why_failed',{why:esc(it.detail)})}</div>`:''}
-              ${it.dev_hint?`<div class="mt-1 text-[10px] font-mono text-gold-700 bg-gold-500/10 rounded px-1.5 py-0.5 inline-block">${it.dev_hint}</div>`:''}
-            </div>`).join('')}</div>`:`<div class="text-[11px] text-brand-800/65">${i18t('set_no_messages')}</div>`);
-      }catch(e){}
-    };
-    setTimeout(loadOutbox,50);
-    document.getElementById('ob-refresh')?.addEventListener('click',loadOutbox);
-    document.getElementById('rem-run')?.addEventListener('click',async()=>{
-      try{ const r=await api('reminders/run','POST',{}); toast(i18tn('set_checked_queued',r.queued,{checked:r.checked,n:r.queued})); loadOutbox(); }
-      catch(e){ toast(e.message,'err'); }
-    });
-    /* ---- the monthly report card (MR work order) ----
-       Status, the on/off switch and the audience, read from and written to the
-       server's own setting — the sweep that sends the report runs there, so
-       this card is a remote control, not a second copy of the rule. */
-    const loadMonthly=async()=>{
-      const st=document.getElementById('mr-status'); if(!st) return;
-      try{ const r=await api('reports/monthly');
-        const h=r.health||{};
-        st.innerHTML=[
-          r.emailConfigured?'':`<span style="color:var(--st-amber-fg)">${i18t('set_email_not_configured')}</span>`,
-          h.lastSentMonth?i18t('set_mr_last_sent',{month:h.lastSentMonth,n:h.lastSentTo||0}):i18t('set_mr_none_yet'),
-          h.lastError?`<span style="color:var(--st-ruby-dot)">${i18t('set_mr_last_error',{err:esc(h.lastError)})}</span>`:'',
-        ].filter(Boolean).join(' · ');
-        const en=document.getElementById('mr-enabled'); if(en) en.checked=!!r.settings.enabled;
-        const rec=document.getElementById('mr-recipients');
-        if(rec&&typeof r.settings.recipients==='string') rec.value=r.settings.recipients;
-      }catch(e){ st.textContent=e.message||'—'; }
-    };
-    setTimeout(loadMonthly,80);
-    document.getElementById('mr-enabled')?.addEventListener('change',async e=>{
-      try{ await api('reports/monthly/settings','PUT',{enabled:e.target.checked});
-        toast(e.target.checked?i18t('set_mr_on'):i18t('set_mr_off')); }
-      catch(err){ toast(err.message,'err'); loadMonthly(); }
-    });
-    document.getElementById('mr-recipients')?.addEventListener('change',async e=>{
-      try{ await api('reports/monthly/settings','PUT',{recipients:e.target.value}); toast(i18t('set_mr_saved')); }
-      catch(err){ toast(err.message,'err'); loadMonthly(); }
-    });
-    document.getElementById('mr-send-now')?.addEventListener('click',async()=>{
-      try{ const r=await api('reports/monthly/run','POST',{});
-        toast(r.sent?i18tn('set_mr_sent_n',r.sent,{n:r.sent,month:r.month}):i18t('set_mr_nothing_sent'));
-        loadMonthly(); loadOutbox(); }
-      catch(err){ toast(err.message,'err'); }
-    });
-  }
-
-  document.getElementById('pref-nav-all')?.addEventListener('change',e=>{
-    if(typeof navSetShowEverything==='function') navSetShowEverything(e.target.checked);
-    toast(e.target.checked?i18t('set_sidebar_all_on'):i18t('set_sidebar_all_off'));
-  });
-  /* No first-open toggle to wire — the alert it switched on is gone. */
-  document.getElementById('tm-invite')?.addEventListener('click',()=>{ const n=document.getElementById('tm-name'); if(n){ n.scrollIntoView({block:'nearest'}); n.focus(); } });
-  document.getElementById('org-export')?.addEventListener('click',()=>document.getElementById('bk-export')?.click());
-  document.getElementById('brand-edit')?.addEventListener('click',()=>openDesignStep({ mode:'settings', onBack:()=>renderTeam() }));
-  /* THE SHAPES AND THE WORD. See the note above renderTeam: the answer is
-     written and the card repaints itself, because a full re-render empties
-     every server-filled panel on the page and the screen jumps. The Portfolio
-     tab reads the shapes on its own next paint, as it always did. */
-  const wsSave=(shapes,word)=>{
-    if(typeof wsSet!=='function') return;
-    if(!shapes.length){
-      /* A refusal has to put the boxes back the way the record has them.
-         Leaving the refused answer ticked on screen reads as a save. */
-      toast(i18t('set_workshape_pick_shape'),'err');
-      const cur=(typeof wsCfg==='function'?wsCfg().shapes:[]);
-      settingsShapeBoxes().forEach(b=>{ b.checked=cur.includes(b.getAttribute('data-ws-shape')); });
-      settingsPaintShapeBoxes(); return;
-    }
-    wsSet(shapes,word); settingsPaintShapeBoxes(); toast(i18t('set_workshape_saved'));
+/* ---- SECTION 5 — WHO CHECKS THEIR WORK ----
+   The workspace gate is the master switch and it lives on Platform settings;
+   this is the per-person half. Drawn whether or not the gate is on, because an
+   admin setting a workspace up decides who is checked before they turn the rule
+   on — but it SAYS when nothing it holds is being held, so a tick here never
+   reads as a change that has taken effect. A Viewer never redlines, so there is
+   nothing of theirs to check. */
+function stReviewSectionHtml(u, isNew){
+  if(typeof reviewChecked!=='function') return '';
+  if(u.role==='viewer') return '';
+  const on=(typeof reviewGateCfg==='function')?reviewGateCfg().on:false;
+  const checked=isNew ? ((typeof reviewGateCfg==='function')?reviewGateCfg().newChecked:true) : reviewChecked(u);
+  const cand=((typeof getUsers==='function'?getUsers():[])||[])
+    .filter(x=>x&&x.id!==u.id&&x.role!=='viewer');
+  return `<section class="st-sec">
+    <h3 class="st-sec-h"><span class="st-sec-n">5</span>${esc(i18t('rv_who_checks'))}</h3>
+    ${on?'':`<p class="st-note" style="margin-bottom:8px">${esc(i18t('rv_person_gate_off'))}</p>`}
+    <label class="st-toggle" style="margin-bottom:8px">
+      <input id="tm-rv-checked" type="checkbox"${checked?' checked':''}/>
+      <span><span class="st-role-name">${esc(i18t('rv_person_checked'))}</span>
+      <span class="st-note">${esc(i18t('rv_person_checked_sub'))}</span></span></label>
+    <label style="display:block">
+      <span style="${window.RV_LBL||''}">${esc(i18t('rv_person_reviewer'))}</span>
+      <select id="tm-rv-reviewer" style="${window.RV_FLD||ST_INPUT}">
+        <option value="">${esc(i18t('rv_person_nobody'))}</option>
+        ${cand.map(x=>`<option value="${PB_ATTR(x.id)}"${String(u.reviewerId||'')===String(x.id)?' selected':''}>${esc(x.name||x.email)}</option>`).join('')}
+      </select>
+      <span class="st-note">${esc(i18t('rv_person_reviewer_sub'))}</span></label>
+    <p class="st-note" id="tm-rv-says" style="margin-top:8px"></p>
+  </section>`;
+}
+/* The live sentence, read off the two controls rather than off the record — it
+   has to describe what pressing Save would leave behind. */
+function stReviewWire(u){
+  const box=document.getElementById('tm-rv-checked');
+  const sel=document.getElementById('tm-rv-reviewer');
+  const says=document.getElementById('tm-rv-says');
+  if(!says) return;
+  const who=(u&&u.name)||i18t('sc_this_person');
+  const paint=()=>{
+    if(sel) sel.disabled=!(box&&box.checked);
+    if(!box||!box.checked){ says.textContent=i18t('rv_person_off',{who}); return; }
+    const pick=sel&&sel.value
+      ? ((typeof getUsers==='function'?getUsers():[])||[]).find(x=>String(x.id)===String(sel.value))
+      : null;
+    says.textContent=pick ? i18t('rv_person_on_named',{who,reviewer:pick.name||pick.email})
+                          : i18t('rv_person_on',{who});
   };
-  const wsRead=()=>settingsShapeBoxes().filter(b=>b.checked).map(b=>b.getAttribute('data-ws-shape'));
-  settingsShapeBoxes().forEach(b=>b.addEventListener('change',()=>
-    wsSave(wsRead(), document.getElementById('set-work-word')?.value || (typeof wsWord==='function'?wsWord():''))));
-  /* The word changes nothing this card draws, so nothing here repaints at all —
-     and the select keeps the focus the reader just used to change it. */
-  document.getElementById('set-work-word')?.addEventListener('change',e=>
-    wsSave(wsRead().length?wsRead():(typeof wsShapes==='function'?wsShapes():[]), e.target.value));
-  document.getElementById('ws-use-detected')?.addEventListener('click',()=>{
-    if(typeof wsDetect!=='function') return;
-    const sug=wsDetect().suggests;
-    settingsShapeBoxes().forEach(b=>{ b.checked=sug.includes(b.getAttribute('data-ws-shape')); });
-    wsSave(sug, document.getElementById('set-work-word')?.value || wsWord()); });
-  /* THE MARKET. jxSet writes the local key, the org record and the server. What
-     it changes ON THIS PAGE is three lines under the dropdown, the approval
-     rules (their thresholds are money) and the review gate (its box is labelled
-     with the currency). Those three, and nothing else. */
-  document.getElementById('set-market')?.addEventListener('change',e=>{
-    const langWas=(typeof langId==='function'?langId():null);
-    if(!window.jxSet || !jxSet(e.target.value)) return;
-    if(window.setRegion && window.regionCodeFor) setRegion(regionCodeFor(jxId()),{silent:true});
-    /* THE ONE CASE THAT IS NOT A PATCH. A reader who has never chosen a
-       language reads the one that goes with the market, so moving the market
-       moves every word on the page — and patching three lines would leave a
-       half-translated screen, which is the quiet fault js/i18n.js warns about.
-       Everyone else has chosen, nothing else changes, and the page holds
-       still. */
-    if((typeof langId==='function'?langId():null)!==langWas){ toast(i18t('set_market_saved')); renderTeam(); return; }
-    const facts=document.getElementById('set-market-facts');
-    if(facts) facts.innerHTML=settingsMarketFactsHtml();
-    if(typeof renderApprovalRules==='function') renderApprovalRules();
-    if(typeof renderReviewGatePanel==='function') renderReviewGatePanel();
-    toast(i18t('set_market_saved'));
-  });
-  renderClauseLibrary();
-  if(API_MODE()) loadSessions();
-  // Copilot engine config
-  if(API_MODE()){
-    const refreshAiCfg=async()=>{ const el=document.getElementById('ai-cfg-status'); if(!el) return;
-      try{ const c=await api('ai/config'); state.aiConfigured=!!c.configured;
-        const fast=c.tiers?.fast?.model||c.models?.fast||c.model||'', deep=c.tiers?.deep?.model||c.models?.deep||'';
-        el.innerHTML=c.configured
-          ?`<span class="text-brand-600">${i18t('set_configured')}</span> · ${i18t('set_key')} ${c.hint}${c.source==='env'?i18t('set_key_from_env'):''}`
-          :`<span class="text-gold-600">${i18t('set_not_configured')}</span>${i18t('set_falls_back')}`;
-        const set=(id,v)=>{ const n=document.getElementById(id); if(n) n.textContent=v||'—'; };
-        set('ai-model-fast-cur',fast); set('ai-model-deep-cur',deep);
-        // fill overrides without clobbering a field the admin is editing
-        const fill=(id,v)=>{ const n=document.getElementById(id); if(n&&document.activeElement!==n) n.value=v||''; };
-        fill('ai-model-fast',c.tiers?.fast?.override); fill('ai-model-deep',c.tiers?.deep?.override); fill('ai-model-global',c.globalOverride);
-        // usage + cost-control limits (admin-only fields; helpers null-check)
-        const lim=c.limits||{}, use=c.usage||{}, spend=c.spend||{};
-        state.aiCfg=c;   // migration's pre-flight estimate reads rates from here
-        const money=n=>'$'+Number(n||0).toFixed(2);
-        const budget=Number(lim.dailySpendLimit||0);
-        const spent=Number(spend.cost||0);
-        const uEl=document.getElementById('ai-usage');
-        if(uEl){
-          const reqN=Number(spend.requests||0);
-          uEl.innerHTML=budget>0
-            ? `${i18tn('set_today_of',reqN,{spent:money(spent),budget:money(budget),n:reqN.toLocaleString(jxLocale())})} <span style="color:var(--color-neutral-500)">(${spend.date||''})</span>`
-            : `${i18tn('set_today_free',reqN,{spent:money(spent),n:reqN.toLocaleString(jxLocale())})} <span style="color:var(--color-neutral-500)">(${spend.date||''})${i18t('set_no_daily_budget')}</span>`; }
-        const uBar=document.getElementById('ai-usage-bar');
-        if(uBar){ const pct=budget>0?Math.min(100,Math.round(spent/budget*100)):0;
-          uBar.style.width=pct+'%'; uBar.style.background=pct>=90?'var(--st-ruby-fg)':pct>=70?'var(--st-amber-dot)':'var(--color-accent)'; }
-        // per-feature breakdown — so an admin can see what is actually expensive
-        const bdHost=document.getElementById('ai-spend-breakdown');
-        if(bdHost){
-          const rows=Object.entries(spend.byFeature||{}).map(([k,v])=>({k,...v})).sort((a,b)=>b.cost-a.cost);
-          bdHost.innerHTML=rows.length?`<div style="border:1px solid var(--color-divider);border-radius:5px;overflow:hidden">
-            ${rows.map(r=>`<div style="display:flex;align-items:center;gap:8px;padding:4px 8px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent);font-size:11px">
-              <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${PB_ESC(r.label||r.k)}</span>
-              <span style="color:var(--color-neutral-500);font-family:var(--font-mono);font-size:10px">${Number(r.requests||0).toLocaleString(jxLocale())} req</span>
-              <span style="font-family:var(--font-mono);font-weight:600;min-width:62px;text-align:right">${'$'+Number(r.cost||0).toFixed(4)}</span>
-            </div>`).join('')}</div>`
-            :`<div style="font-size:10.5px;color:var(--color-neutral-500)">${i18t('set_no_spend')}</div>`;
-        }
-        const fillN=(id,v)=>{ const n=document.getElementById(id); if(n&&document.activeElement!==n&&v!==undefined) n.value=v; };
-        fillN('ai-rate-light',lim.rateLight); fillN('ai-rate-deep',lim.rateDeep); fillN('ai-daily',lim.dailyLimit);
-        fillN('ai-rate-ocr',lim.rateOcr); fillN('ai-ocr-pages',lim.ocrMaxPages);
-        fillN('ai-daily-spend',lim.dailySpendLimit); fillN('ai-estimate-confirm',lim.estimateConfirmAt);
-        fillN('ai-maxchars',lim.maxChars); fillN('ai-maxcontracts',lim.maxContracts);
-        const th=document.getElementById('ai-thorough'); if(th&&document.activeElement!==th) th.checked=!!lim.thoroughExtract;
-        renderAllowancePanel(c.allowance||{});
-        renderRateTable(c.rates||{}, c.ratesMeta||{});
-      }catch(e){ el.textContent='Could not read Copilot config.'; } };
-    refreshAiCfg();
-    // basic shape check mirroring the server (blank = clear override)
-    const okModel=(s)=>s===''||(!/\s/.test(s)&&/^claude-[a-z0-9][a-z0-9.\-]*$/i.test(s));
-    document.getElementById('ai-key-save')?.addEventListener('click',async()=>{
-      const key=document.getElementById('ai-key').value.trim();
-      if(!key){ toast(i18t('set_enter_key'),'err'); return; }
-      try{ await api('ai/config','PUT',{ key }); document.getElementById('ai-key').value=''; toast(i18t('set_key_saved')); refreshAiCfg(); }
-      catch(e){ toast(e.message,'err'); }
-    });
-    document.getElementById('ai-model-save')?.addEventListener('click',async()=>{
-      const modelFast=document.getElementById('ai-model-fast').value.trim();
-      const modelDeep=document.getElementById('ai-model-deep').value.trim();
-      const model=document.getElementById('ai-model-global').value.trim();
-      for(const m of [modelFast,modelDeep,model]) if(!okModel(m)){ toast(i18t('set_t_bad_model',{m}),'err'); return; }
-      try{ await api('ai/config','PUT',{ modelFast, modelDeep, model }); toast(i18t('set_model_saved')); refreshAiCfg(); }
-      catch(e){ toast(e.message,'err'); }
-    });
-    document.getElementById('ai-key-clear')?.addEventListener('click',async()=>{
-      if(!await confirmDialog({title:'Remove the stored Copilot key?', message:'Copilot features will fall back to the built-in interpreter until a new key is added.', confirmLabel:'Remove key', danger:true})) return;
-      try{ await api('ai/config','PUT',{ clear:true }); toast(i18t('set_key_removed')); refreshAiCfg(); }catch(e){ toast(e.message,'err'); }
-    });
-    document.getElementById('ai-limits-save')?.addEventListener('click',async()=>{
-      const num=id=>{ const el=document.getElementById(id); if(!el) return undefined; const v=el.value.trim(); return v===''?undefined:Number(v); };
-      const whole={ rateLight:num('ai-rate-light'), rateDeep:num('ai-rate-deep'), rateOcr:num('ai-rate-ocr'),
-        dailyLimit:num('ai-daily'), maxChars:num('ai-maxchars'), maxContracts:num('ai-maxcontracts'), ocrMaxPages:num('ai-ocr-pages') };
-      for(const [k,v] of Object.entries(whole)) if(v!==undefined&&(!Number.isFinite(v)||v<0||Math.floor(v)!==v)){ toast(i18t('set_t_whole_number',{k}),'err'); return; }
-      const cash={ dailySpendLimit:num('ai-daily-spend'), estimateConfirmAt:num('ai-estimate-confirm') };
-      for(const [k,v] of Object.entries(cash)) if(v!==undefined&&(!Number.isFinite(v)||v<0)){ toast(i18t('set_t_non_negative',{k}),'err'); return; }
-      const body={ ...whole, ...cash, thoroughExtract: !!document.getElementById('ai-thorough')?.checked };
-      try{ await api('ai/config','PUT',body); toast(i18t('set_limits_saved')); refreshAiCfg(); }
-      catch(e){ toast(e.message,'err'); }
-    });
-    // ---- onboarding allowance ----
-    const allowBody=()=>{
-      const n=id=>{ const v=document.getElementById(id)?.value.trim(); return v===''||v==null?0:Number(v); };
-      return { budget:n('ai-allow-budget'), docs:n('ai-allow-docs') };
-    };
-    document.getElementById('ai-allow-open')?.addEventListener('click',async()=>{
-      const b=allowBody();
-      if(!(b.budget>0)&&!(b.docs>0)){ toast(i18t('set_set_budget'),'err'); return; }
-      if(!await confirmDialog({title:'Open an onboarding allowance?',
-        message:`Bulk import and OCR will draw on ${b.budget>0?'$'+b.budget.toFixed(2):'no money cap'}${b.docs>0?` and ${b.docs} documents`:''} instead of the daily budget, until it runs out.`,
-        confirmLabel:'Open allowance'})) return;
-      try{ await api('ai/allowance','PUT',{ open:true, ...b }); toast(i18t('set_allowance_opened')); refreshAiCfg(); }
-      catch(e){ toast(e.message,'err'); }
-    });
-    document.getElementById('ai-allow-topup')?.addEventListener('click',async()=>{
-      try{ await api('ai/allowance','PUT',allowBody()); toast(i18t('set_allowance_updated')); refreshAiCfg(); }
-      catch(e){ toast(e.message,'err'); }
-    });
-    document.getElementById('ai-allow-close')?.addEventListener('click',async()=>{
-      if(!await confirmDialog({title:'Close the onboarding allowance?', message:'Migration and OCR will go back to drawing on the daily budget.', confirmLabel:'Close allowance', danger:true})) return;
-      try{ await api('ai/allowance','PUT',{ close:true }); toast(i18t('set_allowance_closed')); refreshAiCfg(); }
-      catch(e){ toast(e.message,'err'); }
-    });
-    // ---- model rate table ----
-    document.getElementById('ai-rates-save')?.addEventListener('click',async()=>{
-      const rates={};
-      document.querySelectorAll('[data-rate-model]').forEach(row=>{
-        const m=row.getAttribute('data-rate-model');
-        const i=Number(row.querySelector('[data-rate="in"]').value);
-        const o=Number(row.querySelector('[data-rate="out"]').value);
-        if(Number.isFinite(i)&&Number.isFinite(o)&&i>=0&&o>=0) rates[m]={in:i,out:o};
+  box?.addEventListener('change',paint);
+  sel?.addEventListener('change',paint);
+  paint();
+}
+function stReviewRead(){
+  const box=document.getElementById('tm-rv-checked');
+  const sel=document.getElementById('tm-rv-reviewer');
+  if(!box&&!sel) return undefined;                       // section not drawn
+  return { reviewChecked: box?!!box.checked:undefined,
+           reviewerId: sel?(sel.value||null):undefined };
+}
+
+/* ---- SECTION 6 — WHO SIGNS OFF THEIR CONTRACTS ----
+   Hangs on the contract's OWNER, so it says nothing about contracts nobody
+   raised — imported and uploaded paper keeps the ordinary rules, and the
+   panel says so rather than leaving an admin to discover it. Never for a
+   Viewer, who raises nothing. */
+function stOverseerSectionHtml(u, isNew){
+  if(typeof overseerCfg!=='function') return '';
+  if(u.role==='viewer') return '';
+  const on=overseerEnforced();
+  const cand=((typeof getUsers==='function'?getUsers():[])||[])
+    .filter(x=>x&&x.id!==u.id&&x.role!=='viewer');
+  return `<section class="st-sec">
+    <h3 class="st-sec-h"><span class="st-sec-n">6</span>${esc(i18t('ov_section'))}</h3>
+    ${on?'':`<p class="st-note" style="margin-bottom:8px">${esc(i18t('ov_says_not_enforced'))}</p>`}
+    <label style="display:block">
+      <span style="${window.RV_LBL||''}">${esc(i18t('ov_person'))}</span>
+      <select id="tm-overseer" style="${window.RV_FLD||ST_INPUT}">
+        <option value="">${esc(i18t('ov_nobody'))}</option>
+        ${cand.map(x=>`<option value="${PB_ATTR(x.id)}"${String(u.overseerId||'')===String(x.id)?' selected':''}>${esc(x.name||x.email)}</option>`).join('')}
+      </select>
+      <span class="st-note">${esc(i18t('ov_person_sub'))}</span></label>
+    <p class="st-note" id="tm-ov-says" style="margin-top:8px"></p>
+    <p class="st-note">${esc(i18t('ov_no_owner'))}</p>
+  </section>`;
+}
+function stOverseerWire(u){
+  const sel=document.getElementById('tm-overseer');
+  const says=document.getElementById('tm-ov-says');
+  if(!says) return;
+  const who=(u&&u.name)||i18t('sc_this_person');
+  const paint=()=>{
+    const pick=sel&&sel.value
+      ? ((typeof getUsers==='function'?getUsers():[])||[]).find(x=>String(x.id)===String(sel.value))
+      : null;
+    says.textContent=pick ? i18t('ov_says_on',{who,over:pick.name||pick.email})
+                          : i18t('ov_says_off',{who});
+  };
+  sel?.addEventListener('change',paint);
+  paint();
+}
+function stOverseerRead(){
+  const sel=document.getElementById('tm-overseer');
+  return sel ? (sel.value||null) : undefined;
+}
+
+/* ---- ONE DRAWER, WHETHER YOU ARE ADDING OR EDITING ----
+   Adding re-houses the EXISTING creation flow exactly — temp password,
+   mustChangePassword on the server, an explicit folder answer whose first
+   option carries no value, Viewer by default, POST /api/users. There is no
+   invite-token flow in this product and this drawer does not invent one. */
+function settingsPersonDrawer(idOrNew){
+  const isNew = idOrNew==='new';
+  const me=currentUser()||{};
+  const u = isNew ? { id:null, name:'', email:'', title:'', role:'viewer' }
+                  : (getUsers()||[]).find(x=>x.id===idOrNew);
+  if(!u) return;
+  _stOpen='person:'+(isNew?'new':u.id);
+  const isMe = !isNew && u.id===me.id;
+  const acc = isNew ? null : stAccessOf(u);
+  const set = new Set(!isNew && !acc.all ? (((state.settings||{}).folderAccess)||{})[u.id] : []);
+  const folders=Object.values(FOLDERS);
+  /* SAFEST FIRST, AND THAT IS A SAFETY PROPERTY RATHER THAN A PREFERENCE. The
+     old form opened on "Editor — edit & sign", so an admin who filled in a name
+     and an email and never looked at the dropdown had handed over the right to
+     redline and to SIGN (f149). The list therefore reads from least power to
+     most, and the value the control carries when nobody has answered is the
+     first one in it. */
+  const ROLES=[['viewer',i18t('set_role_viewer'),i18t('st_role_viewer_desc')],
+               ['legal',i18t('set_role_legal'),i18t('st_role_legal_desc')],
+               ['admin',i18t('set_role_admin'),i18t('st_role_admin_desc')]];
+  const sec=(n,label,inner)=>`<section class="st-sec">
+    <h3 class="st-sec-h"><span class="st-sec-n">${n}</span>${esc(label)}</h3>${inner}</section>`;
+  const fld=(id,label,note,type,value)=>`<label style="display:block;margin-bottom:10px">
+      <span style="${window.RV_LBL||''}">${esc(label)}</span>
+      <input id="${id}" type="${type||'text'}" value="${PB_ATTR(value||'')}" style="${window.RV_FLD||ST_INPUT}"/>
+      ${note?`<span class="st-note">${esc(note)}</span>`:''}</label>`;
+  const body=`
+    ${sec(1,i18t('st_sec_who'),
+      fld('tm-name',i18t('st_f_name'),'','text',u.name)
+      +fld('tm-email',i18t('st_f_email'),'','email',u.email)
+      +fld('tm-title',i18t('st_f_title'),i18t('st_f_title_note'),'text',u.title)
+      +(isNew?`<label style="display:block;margin-bottom:4px">
+          <span style="${window.RV_LBL||''}">${esc(i18t('st_f_temp_pass'))}</span>
+          <input id="tm-pass" type="password" style="${window.RV_FLD||ST_INPUT}"/>
+          <span class="st-note">${esc(i18t('st_f_temp_pass_note'))}</span></label>`:''))}
+
+    ${sec(2,i18t('st_sec_may'),`
+      <div class="st-roles">${ROLES.map(([k,label,desc])=>`
+        <label class="st-role"${(isMe&&!isNew)?' data-locked="1"':''}>
+          <input type="radio" name="tm-role-r" value="${k}" ${u.role===k?'checked':''}${(isMe&&!isNew)?' disabled':''}/>
+          <span><span class="st-role-name">${esc(label)}</span><span class="st-note">${esc(desc)}</span></span>
+        </label>`).join('')}</div>
+      ${''/* THE ROLE IS ONE VALUE WITH TWO FACES. The radios are what a person
+             reads — three keys with a line each saying what the key costs. The
+             select is what the SAVE reads, and it is kept because the role a
+             form opens on is a safety property this product has already been
+             bitten by (f149: the form opened on Editor, so the quietest path
+             through it handed over the right to redline and to sign). One
+             stored value, one default, and the two faces write to each other —
+             a radio press sets the select, and setting the select repaints the
+             radios — so neither can be the one that is true. */}
+      <select id="tm-role" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none" tabindex="-1" aria-hidden="true">
+        ${ROLES.map(([k,label])=>`<option value="${k}"${u.role===k?' selected':''}>${esc(label)}</option>`).join('')}
+      </select>
+      ${(isMe&&!isNew)?`<div class="st-note">${esc(i18t('st_you_cannot_change_own_role'))}</div>`:''}
+      ${(!isNew && isAdmin() && u.role!=='admin' && !isMe && API_MODE())?`
+      <label class="st-toggle" style="margin-top:10px">
+        <input id="tm-values" type="checkbox" ${stValuesOn(u)?'checked':''}/>
+        <span><span class="st-role-name">${esc(stValuesOn(u)?i18t('st_values_on'):i18t('st_values_off'))}</span>
+        <span class="st-note">${esc(i18t('st_values_note'))}</span></span>
+      </label>`:''}`)}
+
+    ${sec(3,i18t('st_sec_folders'),
+      (u.role==='admin'&&!isNew)
+      ? `<p class="st-note" id="tm-access-note">${esc(i18t('st_folders_all_locked'))}</p>`
+      : `<select id="tm-access" style="${window.RV_FLD||ST_INPUT}">
+          ${isNew?`<option value="">${esc(i18t('set_choose_access'))}</option>`:''}
+          <option value="*"${(!isNew&&acc.all)?' selected':''}>${esc(i18t('st_folders_all'))}</option>
+          <option value="pick"${(!isNew&&!acc.all)?' selected':''}>${esc(i18t('st_folders_pick'))}</option>
+        </select>
+        <div id="tm-access-list" style="display:${(!isNew&&!acc.all)?'grid':'none'};grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;margin-top:8px">
+          ${folders.map(f=>`<label style="display:flex;align-items:center;gap:7px;padding:6px 8px;border:1px solid var(--color-divider);border-radius:6px;cursor:pointer;font-size:11.5px">
+            <input type="checkbox" data-tm-folder="${PB_ATTR(f.id)}"${set.has(f.id)?' checked':''} style="width:14px;height:14px;accent-color:var(--color-accent);flex:none"/>
+            <span style="width:8px;height:8px;border-radius:2px;background:${f.color};flex:none"></span>
+            <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.name)}</span></label>`).join('')}
+        </div>
+        <div id="tm-access-note" style="display:none" class="st-note">${esc(i18t('set_access_admin_note'))}</div>
+        ${stSignFolderHtml(u, isNew, folders)}`)}
+
+    ${stSigningSectionHtml(u, isNew)}
+
+    ${stReviewSectionHtml(u, isNew)}
+
+    ${stOverseerSectionHtml(u, isNew)}
+
+    ${(!isNew && isAdmin() && !isMe)?`<div class="st-danger">
+      <button id="tm-remove" style="${ST_BTN_DANGER}">${icon('ban','w-3.5 h-3.5')} ${i18t('act_remove')}</button>
+    </div>`:''}`;
+
+  stDrawerPaint({
+    title: isNew?i18t('st_add_person'):(u.name||u.email),
+    sub: isNew?i18t('st_tab_people_sub'):roleName(u.role),
+    glyph:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>',
+    foot:'save', body,
+    wire(){
+      const roleSel=document.getElementById('tm-role');
+      const syncAccess=()=>{
+        const accSel=document.getElementById('tm-access');
+        const list=document.getElementById('tm-access-list'), note=document.getElementById('tm-access-note');
+        if(!roleSel||!accSel) return;
+        const adminRole=roleSel.value==='admin';
+        accSel.disabled=adminRole; accSel.style.opacity=adminRole?'.55':'';
+        if(note && note.tagName!=='P') note.style.display=adminRole?'block':'none';
+        if(list) list.style.display=(!adminRole && accSel.value==='pick')?'grid':'none';
+      };
+      document.querySelectorAll('[name="tm-role-r"]').forEach(r=>r.addEventListener('change',()=>{
+        if(roleSel) roleSel.value=r.value; syncAccess();
+      }));
+      roleSel?.addEventListener('change',()=>{
+        document.querySelectorAll('[name="tm-role-r"]').forEach(r=>{ r.checked=(r.value===roleSel.value); });
+        syncAccess();
       });
-      if(!Object.keys(rates).length){ toast(i18t('set_nothing_to_save'),'err'); return; }
-      try{ await api('ai/config','PUT',{ rates }); toast(i18t('set_rate_saved')); refreshAiCfg(); }
-      catch(e){ toast(e.message,'err'); }
-    });
-    document.getElementById('ai-rates-reset')?.addEventListener('click',async()=>{
-      if(!await confirmDialog({title:'Reset the rate table?', message:'Every model goes back to the prices HaTi ships with. Past spend already recorded is not re-priced.', confirmLabel:'Reset rates', danger:true})) return;
-      try{ await api('ai/config','PUT',{ rates:{} }); toast(i18t('set_rate_reset')); refreshAiCfg(); }
-      catch(e){ toast(e.message,'err'); }
-    });
-  }
-  // local mode: no server to hold the key — persist it in this browser so the
-  // field is present and remembered; Copilot still uses the built-in interpreter.
-  if(!API_MODE() && isAdmin()){
-    const st=document.getElementById('ai-cfg-status');
-    const refresh=()=>{ if(!st) return; const k=lsGet('hati.v1.aikey');
-      st.innerHTML=k?`<span style="color:var(--st-green-fg);font-weight:600">● Configured</span> · key ••••${String(k).slice(-4)} stored in this browser — Copilot is live.`
-                    :`<span style="color:var(--st-amber-fg);font-weight:600">● Not configured</span> — Copilot and Copilot features use the built-in interpreter.`; };
-    refresh();
-    // reflect the key change immediately in the sidebar status + Copilot panel header
-    const refreshAiIndicators=()=>{ if(typeof renderSideUser==='function') renderSideUser(); if(typeof updateAiBrainPill==='function') updateAiBrainPill(); };
-    document.getElementById('ai-key-save')?.addEventListener('click',()=>{
-      const inp=document.getElementById('ai-key'); const key=(inp?.value||'').trim();
-      if(!key){ toast(i18t('set_enter_key'),'err'); return; }
-      lsSet('hati.v1.aikey', key); inp.value='';
-      toast(i18t('set_t_key_saved',{last4:key.slice(-4)})); refresh(); refreshAiIndicators();
-    });
-    document.getElementById('ai-key-clear')?.addEventListener('click',async()=>{
-      if(!await confirmDialog({title:'Remove the stored Copilot key?', message:'HaTi Copilot and Copilot features will fall back to the built-in interpreter.', confirmLabel:'Remove key', danger:true})) return;
-      localStorage.removeItem('hati.v1.aikey'); toast(i18t('set_key_removed')); refresh(); refreshAiIndicators();
-    });
-  }
-  document.getElementById('meta-backfill')?.addEventListener('click',()=>runMetaBackfill());
-  /* The access picker follows the role: an admin always holds every stream
-     (userFolderAccess short-circuits on role), so asking is meaningless there —
-     the row is disabled and says so rather than collecting an answer that would
-     be ignored. */
-  const tmSyncAccess=()=>{
-    const roleSel=document.getElementById('tm-role'), accSel=document.getElementById('tm-access');
-    const list=document.getElementById('tm-access-list'), note=document.getElementById('tm-access-note');
-    if(!roleSel||!accSel||!list||!note) return;
-    const isAdminRole=roleSel.value==='admin';
-    accSel.disabled=isAdminRole;
-    accSel.style.opacity=isAdminRole?'.55':'';
-    note.style.display=isAdminRole?'block':'none';
-    list.style.display=(!isAdminRole && accSel.value==='pick')?'grid':'none';
-  };
-  document.getElementById('tm-role')?.addEventListener('change',tmSyncAccess);
-  document.getElementById('tm-access')?.addEventListener('change',tmSyncAccess);
-  tmSyncAccess();
-  document.getElementById('tm-add')?.addEventListener('click',async()=>{
-    const name=fval('tm-name').trim(), email=fval('tm-email').trim().toLowerCase(), role=document.getElementById('tm-role').value;
-    const title=fval('tm-title'), pass=document.getElementById('tm-pass').value;
-    if(!name){ toast(i18t('set_enter_member_name'),'err'); return; }
-    if(!validEmail(email)){ toast(i18t('set_enter_valid_email'),'err'); return; }
-    if(pass.length<8){ toast(i18t('set_temp_password_min'),'err'); return; }
-    if(getUsers().some(x=>x.email===email)){ toast(i18t('set_member_exists'),'err'); return; }
-    /* Folder access is decided BEFORE the account exists. `null` means every
-       stream — the same "no entry in the map" the editor writes — and it is
-       reached only by picking it, never by saying nothing. */
-    let folderIds=null;
-    if(role!=='admin'){
-      const choice=document.getElementById('tm-access')?.value||'';
-      if(!choice){ toast(i18t('set_choose_access_err'),'err'); document.getElementById('tm-access')?.focus(); return; }
-      if(choice==='pick'){
-        folderIds=[...document.querySelectorAll('[data-tm-folder]')].filter(cb=>cb.checked).map(cb=>cb.getAttribute('data-tm-folder'));
-        if(!folderIds.length){ toast(i18t('set_pick_one_stream'),'err'); return; }
-      }
+      document.getElementById('tm-access')?.addEventListener('change',syncAccess);
+      syncAccess();
+      const signSel=document.getElementById('tm-sign-mode');
+      signSel?.addEventListener('change',()=>{
+        const list=document.getElementById('tm-sign-list');
+        if(list) list.style.display=signSel.value==='pick'?'grid':'none';
+      });
+      stSigningWire(u);
+      stReviewWire(u);
+      stOverseerWire(u);
+      document.getElementById('tm-remove')?.addEventListener('click',()=>settingsRemoveMember(u));
+    },
+    save(){ stDrawerClearRefusal(); settingsSavePerson(isNew?null:u); },
+  });
+}
+/* Save — one refusal sentence naming every missing field, shown in the drawer.
+   The create half is the old form's handler moved across with nothing changed
+   about what it sends or in what order. */
+async function settingsSavePerson(existing){
+  const isNew=!existing;
+  const name=(document.getElementById('tm-name')?.value||'').trim();
+  const email=(document.getElementById('tm-email')?.value||'').trim().toLowerCase();
+  const title=(document.getElementById('tm-title')?.value||'').trim();
+  const role=document.getElementById('tm-role')?.value||'viewer';
+  const pass=document.getElementById('tm-pass')?.value||'';
+  const cap=(typeof stSigningRead==='function')?stSigningRead():undefined;
+  const rv=(typeof stReviewRead==='function')?stReviewRead():undefined;
+  const ovr=(typeof stOverseerRead==='function')?stOverseerRead():undefined;
+  const signFolders=(typeof stSignFolderRead==='function')?stSignFolderRead():undefined;
+  const missing=[];
+  if(!name) missing.push(i18t('st_f_name'));
+  if(!validEmail(email)) missing.push(i18t('st_f_email'));
+  if(isNew && pass.length<8) missing.push(i18t('st_f_temp_pass'));
+  if(missing.length){ stDrawerRefuse(i18tn('st_missing',missing.length,{what:missing.join(', ')})); return; }
+  if(typeof cap==='number' && Number.isNaN(cap)){ stDrawerRefuse(i18t('sc_bad_number')); return; }
+  if(signFolders===false){ stDrawerRefuse(i18t('set_pick_one_stream')); return; }
+  if(isNew && (getUsers()||[]).some(x=>(x.email||'').toLowerCase()===email)){ stDrawerRefuse(i18t('set_member_exists')); return; }
+
+  /* Folder access is decided BEFORE the account exists. `null` means every
+     stream — the same "no entry in the map" the editor writes — and it is
+     reached only by picking it, never by saying nothing. */
+  let folderIds=null, folderAnswered=true;
+  const accSel=document.getElementById('tm-access');
+  if(role!=='admin' && accSel && !accSel.disabled){
+    const choice=accSel.value||'';
+    if(!choice){ stDrawerRefuse(i18t('set_choose_access_err')); accSel.focus(); return; }
+    if(choice==='pick'){
+      folderIds=[...document.querySelectorAll('[data-tm-folder]')].filter(cb=>cb.checked).map(cb=>cb.getAttribute('data-tm-folder'));
+      if(!folderIds.length){ stDrawerRefuse(i18t('set_pick_one_stream')); return; }
     }
+  } else folderAnswered=(role==='admin');
+
+  if(isNew){
     let newId=null;
     if(API_MODE()){
       try{ const r=await api('users','POST',{ name, email, role, title, password:pass });
         REMOTE.users=[...REMOTE.users, r.user]; newId=r.user&&r.user.id;
-      }catch(e){ toast(e.message,'err'); return; }
+      }catch(e){ stDrawerRefuse(e.message); return; }
     } else {
       const salt=newSalt();
       newId='u'+(Date.now().toString(36));
       saveUsers([...getUsers(),{ id:newId, name, email, role, title, salt, hash:await hashPassword(pass,salt), createdAt:nowISO() }]);
     }
-    // Restriction goes through the same atomic route the access editor uses, so
-    // an unrelated settings save cannot clobber it (see H-3 above).
     if(folderIds && newId){
-      state.settings=state.settings||{}; state.settings.folderAccess=state.settings.folderAccess||{};
-      state.settings.folderAccess[newId]=folderIds;
-      try{
-        if(window.API_MODE && window.API_MODE()) await api('settings/folder-access','PUT',{ userId:newId, folders:folderIds });
-        else await saveSettings();
-      }catch(e){ toast(i18t('set_could_not_save_access')+e.message,'err'); }
+      try{ await settingsWriteFolderAccess(newId, folderIds); }
+      catch(e){ toast(i18t('set_could_not_save_access')+e.message,'err'); }
     }
-    // Mirror the member into the directory (with their title) so signer fields auto-fill.
-    state.settings=state.settings||{}; const dir=(state.settings.directory||[]).slice();
-    const ex=dir.find(p=>(p.email||'').toLowerCase()===email);
-    if(ex){ ex.name=name; if(title) ex.title=title; } else dir.push({ name, email, title:title||'' });
-    state.settings.directory=dir; saveSettings();
+    /* The signing limit is stamped after the account exists, because it is a
+       property of a member and there is no member until POST /api/users has
+       answered. Only when somebody actually decided — an untouched section
+       sends nothing, so a new account starts uncapped and blocks nothing. */
+    const after={};
+    if(cap!==undefined && !(typeof cap==='number' && Number.isNaN(cap))) after.signCap=cap;
+    if(rv&&rv.reviewChecked!==undefined) after.reviewChecked=rv.reviewChecked;
+    if(rv&&rv.reviewerId!==undefined) after.reviewerId=rv.reviewerId;
+    if(ovr!==undefined) after.overseerId=ovr;
+    if(newId && signFolders!==undefined && typeof saveSignFolders==='function'){
+      try{ await saveSignFolders(newId, signFolders); }catch(e){ toast(e.message,'err'); }
+    }
+    if(newId && Object.keys(after).length){
+      const u2=(getUsers()||[]).find(x=>x.id===newId);
+      if(API_MODE()){
+        try{ const r=await api('users/'+newId,'PATCH',after); if(r&&r.user&&u2) Object.assign(u2,r.user); }
+        catch(e){ toast(e.message,'err'); }
+      } else if(u2){ Object.assign(u2,after); saveUsers(getUsers()); }
+    }
+    settingsMirrorDirectory(name,email,title);
     toast(i18t('set_t_added_as',{name,role:roleName(role)})+(API_MODE()?i18t('set_t_invite_queued'):i18t('set_t_share_password')));
-    renderTeam();
-  });
-  document.querySelectorAll('[data-title-for]').forEach(b=>b.addEventListener('click',async()=>{
-    const id=b.getAttribute('data-title-for');
-    const u=(getUsers()||[]).find(x=>x.id===id); if(!u) return;
-    const t=await promptDialog({ title:`Job title — ${u.name}`,
-      message:'The capacity this person signs contracts in, e.g. "Chief Operating Officer". This is not their permission level: a signature block that says "Admin" tells a counterparty nothing about authority to sign. Leave it empty to show no capacity at all.',
-      label:'Job title', value:u.title||'', placeholder:'e.g. Chief Operating Officer', confirmLabel:'Save title' });
-    if(t==null) return;
-    const title=String(t).trim();
-    if(API_MODE()){
-      try{ const r=await api('users/'+id,'PATCH',{ title }); if(r&&r.user) Object.assign(u,r.user); else u.title=title; }
-      catch(e){ toast(i18t('set_could_not_save_title')+e.message,'err'); return; }
-    } else { u.title=title; saveUsers(getUsers()); }
-    // keep the people directory in step, so signer fields still auto-fill
-    state.settings=state.settings||{}; const dir=(state.settings.directory||[]).slice();
-    const ex=dir.find(p=>(p.email||'').toLowerCase()===(u.email||'').toLowerCase());
-    if(ex) ex.title=title; else if(u.email) dir.push({ name:u.name||'', email:u.email, title });
-    state.settings.directory=dir; saveSettings();
-    toast(title?`${u.name} signs as ${title}`:`Job title cleared for ${u.name}`);
-    renderTeam();
-  }));
-  document.querySelectorAll('[data-access-for]').forEach(b=>b.addEventListener('click',()=>openFolderAccessEditor(b.getAttribute('data-access-for'))));
-  document.querySelectorAll('[data-values-for]').forEach(b=>b.addEventListener('click',async()=>{
-    const id=b.getAttribute('data-values-for'), to=b.getAttribute('data-values-to')==='1';
-    const u=(getUsers()||[]).find(x=>x.id===id); if(!u) return;
-    if(!to && !await confirmDialog({ title:`Hide contract values from ${u.name}?`,
+    stDrawerClose(); renderTeam(); return;
+  }
+
+  /* ---- EDITING ----
+     A RENAME CAN ORPHAN AN APPROVAL RULE, because a named approver is bound by
+     NAME and not by id. Said out loud before it happens, with the rules
+     repointed for them rather than left pointing at nobody. */
+  const us=getUsers(); const target=us.find(x=>x.id===existing.id); if(!target) return;
+  const me=currentUser()||{};
+  const renamed = name && name!==target.name;
+  if(renamed){
+    const bound=(typeof approvalRules==='function'?approvalRules():[]).filter(r=>r.approver&&r.approver.kind==='member'&&r.approver.name===target.name);
+    if(bound.length){
+      const ok=await confirmDialog({
+        title:i18tn('st_rename_breaks_rule',bound.length,{n:bound.length,old:target.name}),
+        message:i18t('st_rename_fix'),
+        confirmLabel:i18t('st_rename_fix') });
+      if(!ok) return;
+      const all=approvalRules().slice();
+      all.forEach(r=>{ if(r.approver&&r.approver.kind==='member'&&r.approver.name===target.name) r.approver={kind:'member',name}; });
+      saveApprovalRules(all);
+    }
+  }
+  const roleChanged = role!==target.role && existing.id!==me.id;
+  const valuesBox=document.getElementById('tm-values');
+  const valuesTo = valuesBox ? !!valuesBox.checked : null;
+  const valuesChanged = valuesTo!==null && valuesTo!==stValuesOn(target);
+  if(valuesChanged && valuesTo===false){
+    const ok=await confirmDialog({ title:`Hide contract values from ${target.name}?`,
       message:'They will stop seeing amounts on the register, on a contract, in exports, in the dashboard metrics and in anything they ask the Copilot. They keep their folder access and everything else. You can turn this back on at any time.',
-      confirmLabel:'Hide values' })) return;
-    try{ const r=await api('users/'+id,'PATCH',{ canViewValues:to });
-      if(r&&r.user) Object.assign(u,r.user); else u.canViewValues=to;
-      toast(to?`${u.name} can now see contract values`:`Contract values are now hidden from ${u.name}`);
-      renderTeam();
-    }catch(e){ toast(i18t('set_could_not_change_access')+e.message,'err'); }
+      confirmLabel:'Hide values' });
+    if(!ok) return;
+  }
+  if(API_MODE()){
+    const patch={};
+    if(name!==target.name || title!==(target.title||'')) { patch.name=name; patch.title=title; }
+    if(roleChanged) patch.role=role;
+    if(valuesChanged) patch.canViewValues=valuesTo;
+    const capNow=(typeof signCapOf==='function')?signCapOf(target):{answered:false,limit:null};
+    const capWas=capNow.answered?(capNow.limit==null?'none':capNow.limit):null;
+    if(cap!==undefined && cap!==capWas) patch.signCap=cap;
+    if(rv&&rv.reviewChecked!==undefined && rv.reviewChecked!==reviewChecked(target)) patch.reviewChecked=rv.reviewChecked;
+    if(rv&&rv.reviewerId!==undefined && String(rv.reviewerId||'')!==String(target.reviewerId||'')) patch.reviewerId=rv.reviewerId;
+    if(ovr!==undefined && String(ovr||'')!==String(target.overseerId||'')) patch.overseerId=ovr;
+    /* The server takes title (self or admin), role and canViewValues. It does
+       NOT take a name today, so a rename is applied to the record we hold and
+       the directory that feeds signer fields — said here rather than pretended
+       about. */
+    const body={};
+    if(patch.title!==undefined) body.title=patch.title;
+    if(patch.role!==undefined) body.role=patch.role;
+    if(patch.canViewValues!==undefined) body.canViewValues=patch.canViewValues;
+    if(patch.signCap!==undefined) body.signCap=patch.signCap;
+    if(patch.reviewChecked!==undefined) body.reviewChecked=patch.reviewChecked;
+    if(patch.reviewerId!==undefined) body.reviewerId=patch.reviewerId;
+    if(patch.overseerId!==undefined) body.overseerId=patch.overseerId;
+    if(Object.keys(body).length){
+      try{ const r=await api('users/'+target.id,'PATCH',body); if(r&&r.user) Object.assign(target,r.user); }
+      catch(e){ stDrawerRefuse(e.message); return; }
+    }
+    if(name) target.name=name; target.title=title;
+    if(roleChanged) target.role=role;
+    if(valuesChanged) target.canViewValues=valuesTo;
+    if(patch.signCap!==undefined) target.signCap=patch.signCap;
+    if(patch.reviewChecked!==undefined) target.reviewChecked=patch.reviewChecked;
+    if(patch.reviewerId!==undefined) target.reviewerId=patch.reviewerId;
+    if(patch.overseerId!==undefined) target.overseerId=patch.overseerId;
+  } else {
+    target.name=name||target.name; target.title=title; if(roleChanged) target.role=role;
+    const capNow=(typeof signCapOf==='function')?signCapOf(target):{answered:false,limit:null};
+    const capWas=capNow.answered?(capNow.limit==null?'none':capNow.limit):null;
+    if(cap!==undefined && cap!==capWas) target.signCap=cap;
+    if(rv&&rv.reviewChecked!==undefined) target.reviewChecked=rv.reviewChecked;
+    if(rv&&rv.reviewerId!==undefined) target.reviewerId=rv.reviewerId;
+    if(ovr!==undefined) target.overseerId=ovr;
+    saveUsers(us);
+  }
+  if(target.role!=='admin'){
+    try{ await settingsWriteFolderAccess(target.id, folderAnswered?folderIds:null); }
+    catch(e){ stDrawerRefuse(i18t('set_could_not_save_access')+e.message); return; }
+  }
+  if(signFolders!==undefined && target.role!=='admin' && typeof saveSignFolders==='function'){
+    try{ await saveSignFolders(target.id, signFolders); }
+    catch(e){ stDrawerRefuse(e.message); return; }
+  }
+  settingsMirrorDirectory(target.name,email||target.email,title);
+  toast(i18t('st_person_saved',{who:target.name}));
+  stDrawerClose(); renderTeam();
+}
+/* Mirror a member into the people directory (with their title) so signer fields
+   auto-fill. Lifted whole out of the old add handler — two copies of this was
+   how a title could reach the roster and not the signer picker. */
+function settingsMirrorDirectory(name,email,title){
+  if(!email) return;
+  state.settings=state.settings||{}; const dir=(state.settings.directory||[]).slice();
+  const ex=dir.find(p=>(p.email||'').toLowerCase()===String(email).toLowerCase());
+  if(ex){ if(name) ex.name=name; if(title!==undefined) ex.title=title; }
+  else dir.push({ name:name||'', email, title:title||'' });
+  state.settings.directory=dir; saveSettings();
+}
+/* ---- SOMEBODY LEAVING TAKES THEIR NEGOTIATIONS WITH THEM ----
+   A desk whose lead has no account is a negotiation with no door out. Said
+   BEFORE the removal, while there is still somebody to ask about it. It warns
+   rather than refuses — an admin removing somebody who left on Friday must not
+   be stuck, and the desks can be reassigned afterwards by any admin. */
+async function settingsRemoveMember(u){
+  const us=getUsers(); const t=us.find(x=>x.id===u.id); if(!t) return;
+  /* ---- SOMEBODY WHO OVERSEES OTHERS TAKES THAT STEP WITH THEM ----
+     Said BEFORE the removal, beside the negotiation-lead warning and for the
+     same reason: the approval step stays and names an account that no longer
+     exists, and an admin needs to know to repoint it. It WARNS rather than
+     refusing — an admin removing somebody who left on Friday must not be
+     stuck. */
+  let oversees='';
+  const watched=((getUsers()||[]).filter(x=>x&&String(x.overseerId||'')===String(t.id)));
+  if(watched.length) oversees=`\n\n${i18tn('ov_leaver',watched.length,{who:t.name,n:watched.length})}`;
+  let leads='';
+  if(window.deskLedBy){
+    const led=deskLedBy(state.contracts||[],t.id);
+    if(led.length) leads=`\n\n${i18t('dk_leaver_title',{who:t.name,n:led.length})} — `
+      +led.slice(0,5).map(c=>c.name).join(', ')+(led.length>5?`, +${led.length-5}`:'')
+      +`\n${i18t('dk_leaver_sub')}`;
+  }
+  if(!await confirmDialog({title:`Remove ${t.name}?`, message:`${t.name} will lose access to this workspace. You can re-invite them later.${oversees}${leads}`, confirmLabel:'Remove member', danger:true})) return;
+  if(API_MODE()){
+    try{ await api('users/'+t.id,'DELETE'); REMOTE.users=REMOTE.users.filter(x=>x.id!==t.id); }
+    catch(e){ stDrawerRefuse(e.message); return; }
+  } else saveUsers(us.filter(x=>x.id!==t.id));
+  toast(i18t('set_t_removed',{name:t.name})); stDrawerClose(); renderTeam();
+}
+
+/* ============================================================
+   YOUR ACCOUNT — the surface every non-admin was left without
+   ============================================================
+   It is the SAME drawer, opened from the avatar, and it is what tab 4 draws in
+   the page for an admin. One builder, so the two cannot drift: an admin reading
+   "You" and a viewer reading "Your account" are looking at the same rows. */
+function stAccountBodyHtml(){
+  const u=currentUser()||{};
+  const mayDesign=u.role==='admin'||u.role==='legal';
+  return `
+    <section class="st-sec">
+      <h3 class="st-sec-h">${esc(i18t('st_acct_job'))}</h3>
+      <p class="st-note" style="margin-bottom:6px">${esc(i18t('st_acct_job_sub'))}</p>
+      <div style="display:flex;gap:8px;align-items:flex-end">
+        <label style="flex:1;min-width:0"><span style="${window.RV_LBL||''}">${esc(i18t('st_f_title'))}</span>
+          <input id="acct-title" type="text" value="${PB_ATTR(u.title||'')}" style="${window.RV_FLD||ST_INPUT}"/></label>
+        <button id="acct-title-save" style="${ST_BTN_SM}">${i18t('act_save')}</button>
+      </div>
+      <p class="st-note">${esc(i18t('st_f_title_note'))}</p>
+    </section>
+
+    <section class="st-sec">
+      <h3 class="st-sec-h">${esc(i18t('st_acct_sidebar'))}</h3>
+      <p class="st-note" style="margin-bottom:6px">${i18t('set_sidebar_sub')}</p>
+      <label class="st-toggle">
+        <input id="pref-nav-all" type="checkbox" ${(typeof navShowEverything==='function'&&navShowEverything())?'checked':''}/>
+        <span><span class="st-role-name">${i18t('set_show_everything')}</span>
+        <span class="st-note">${i18t('set_full_cockpit')}</span></span>
+      </label>
+    </section>
+
+    ${API_MODE()?`
+    <section class="st-sec">
+      <h3 class="st-sec-h">${esc(i18t('st_acct_sessions'))}</h3>
+      <p class="st-note" style="margin-bottom:6px">${i18t('set_sessions_sub')}</p>
+      <div id="sessions-list" style="font-size:12px;color:var(--color-neutral-700)">${i18t('set_loading')}</div>
+    </section>
+
+    ${''/* THE HONEST READ-ONLY STATEMENT STAYS. The checkboxes that used to be
+           here were wired to nothing and were removed for that reason; what
+           replaces them is the answer to the question somebody arrives with —
+           "will HaTi email me about this contract?" — stated once, plainly.
+           A dead switch is forbidden; this is what honest looks like. */}
+    <section class="st-sec">
+      <h3 class="st-sec-h">${esc(i18t('st_acct_email'))}</h3>
+      <div class="st-quiet">
+        <span style="font-weight:600;display:block;color:var(--color-text)">${i18t('set_still_emailed')}</span>
+        ${i18t('set_three_events')}
+      </div>
+    </section>`:''}
+
+    <section class="st-sec">
+      <h3 class="st-sec-h">${esc(i18t('st_acct_backup'))}</h3>
+      <p class="st-note" style="margin-bottom:6px">${API_MODE()?i18t('set_backup_server'):i18t('set_backup_local')}</p>
+      <button id="bk-export" style="${ST_BTN2}">${icon('download','w-3.5 h-3.5')} ${i18t('set_export_backup')}</button>
+    </section>
+
+    ${mayDesign?`
+    ${''/* AN EDITOR'S COMPANY-DESIGN DOOR CAME HERE RATHER THAN CLOSING.
+           #brand-edit was gated admin-OR-legal on the old page, and the page is
+           admin-only now, so an Editor would have lost it silently. It is a
+           WORKSPACE setting sitting on a personal surface, which is unusual —
+           so it says so on the row rather than pretending to be one of theirs. */}
+    <section class="st-sec">
+      <h3 class="st-sec-h">${esc(i18t('st_acct_design'))}</h3>
+      <p class="st-note" style="margin-bottom:6px">${esc(i18t('st_acct_design_note'))}</p>
+      <button id="brand-edit" style="${ST_BTN2}">${i18t('set_edit_design')}</button>
+    </section>`:''}
+
+    ${(u.role==='admin')?`
+    <section class="st-sec">
+      <h3 class="st-sec-h">${esc(i18t('st_acct_settings_door'))}</h3>
+      <p class="st-note" style="margin-bottom:6px">${esc(i18t('st_acct_settings_sub'))}</p>
+      <button id="acct-settings" style="${ST_BTN2}">${esc(i18t('st_acct_settings_door'))}</button>
+    </section>`:''}
+
+    ${''/* LANGUAGE KEEPS ITS ONE CONTROL AND ITS ONE WRITER. Drawing a second
+           picker here would be a second writer for one fact; the row says where
+           the control is instead. */}
+    <p class="st-note">${esc(i18t('st_acct_lang_note'))}</p>`;
+}
+function stAccountWire(){
+  document.getElementById('acct-title-save')?.addEventListener('click',async()=>{
+    const u=currentUser(); if(!u) return;
+    const title=(document.getElementById('acct-title')?.value||'').trim();
+    if(API_MODE()){
+      try{ const r=await api('users/'+u.id,'PATCH',{ title }); if(r&&r.user) Object.assign(u,r.user); else u.title=title; }
+      catch(e){ stDrawerRefuse(i18t('set_could_not_save_title')+e.message); return; }
+    } else { u.title=title; saveUsers(getUsers()); }
+    settingsMirrorDirectory(u.name,u.email,title);
+    toast(i18t('st_acct_saved'));
+    if(state.view==='team' && isAdmin()) renderTeam();
+  });
+  document.getElementById('pref-nav-all')?.addEventListener('change',e=>{
+    if(typeof navSetShowEverything==='function') navSetShowEverything(e.target.checked);
+    toast(e.target.checked?i18t('set_sidebar_all_on'):i18t('set_sidebar_all_off'));
+  });
+  document.getElementById('bk-export')?.addEventListener('click',()=>settingsExportBackup());
+  document.getElementById('brand-edit')?.addEventListener('click',()=>{
+    stDrawerClose(); openDesignStep({ mode:'settings', onBack:()=>{ if(isAdmin()) renderTeam(); else openMyAccount(); } });
+  });
+  document.getElementById('acct-settings')?.addEventListener('click',()=>{ stDrawerClose(); openSettingsAt('people'); });
+  if(API_MODE()) loadSessions();
+}
+function openMyAccount(){
+  const u=currentUser()||{};
+  _stOpen='account';
+  stDrawerPaint({
+    title:i18t('st_acct_menu'),
+    sub:`${u.name||''}${u.email?' · '+u.email:''}`,
+    glyph:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>',
+    foot:'done', body:stAccountBodyHtml(), wire:stAccountWire });
+}
+/* The backup export is the caller's own scoped contracts and works for every
+   role — which is why it is on the account surface and not behind the admin
+   gate. One writer, two doors (the account drawer and the You tab). */
+function settingsExportBackup(){
+  downloadFile(`hati-backup-${new Date().toISOString().slice(0,10)}.json`,
+    JSON.stringify({ kind:'hati-backup', v:1, exportedAt:nowISO(), org:getOrg(), users:getUsers(),
+      data:{ uid, contracts:state.contracts } },null,2));
+  try{ lsSet('hati.v1.lastBackup', nowISO()); }catch(e){}
+  toast(i18t('set_t_backup_downloaded'));
+}
+
+/* ============================================================
+   THE PANEL REGISTRY — tabs 2 and 3
+   ============================================================
+   One descriptor per setting. `state()` is what the row says without being
+   opened, `body()` is the drawer, `wire()` is what the drawer's controls do.
+   EVERY id inside a body is the id that panel had on the old page, so nothing
+   that reaches for one has to learn a new name. */
+const stOn=()=>i18t('st_b_on'), stOff=()=>i18t('st_b_off');
+const stApiOnly=()=>typeof API_MODE==='function' && API_MODE();
+const stLastBackup=()=>{ try{ return lsGet('hati.v1.lastBackup'); }catch(e){ return null; } };
+
+const SET_PANELS={
+
+  /* ---- WHERE THE WORKSPACE OPERATES ----
+     The market lived in the top bar as a pair of flag buttons — a workspace-
+     level, admin-only setting sitting in the one strip a person's eye crosses a
+     hundred times a day. The legal name and registration number are the design
+     step's own fields (PUT /api/org/branding); they are STATED here and edited
+     where they have always been edited, rather than given a second writer. */
+  company:{
+    tab:'platform', mandatory:true,
+    title:()=>i18t('st_p_company'),
+    sub:()=>i18t('st_p_company_sub'),
+    state(){
+      const ob=(typeof window!=='undefined'&&window.ORG_BRANDING)||null;
+      const legal=(ob&&ob.companyName)||'';
+      return { dot: legal?'ok':'warn',
+        text: `${esc(legal||(getOrg()&&getOrg().name)||'—')} · ${esc(jxName?jxName():jxId())} · ${esc(jxCurrency())}` };
+    },
+    body(){
+      const ob=(typeof window!=='undefined'&&window.ORG_BRANDING)||null;
+      return `
+      <section class="st-sec">
+        <h3 class="st-sec-h">${esc(i18t('set_market'))}</h3>
+        <p class="st-note" style="margin-bottom:8px">${i18t('set_market_sub')}</p>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <select id="set-market" style="min-width:190px;${window.RV_FLD||ST_INPUT}width:auto">
+            ${jxList().map(p=>`<option value="${p.id}"${p.id===jxId()?' selected':''}>${esc(p.name)}</option>`).join('')}
+          </select>
+          <div id="set-market-facts" style="font-size:10.5px;color:var(--color-neutral-600);line-height:1.6">${settingsMarketFactsHtml()}</div>
+        </div>
+      </section>
+      ${''/* ---- THE LEGAL IDENTITY LIVES HERE NOW (C, 14 Aug 2026) ----
+             It used to be four unlabelled boxes inside the COMPANY DESIGN step,
+             under the logo upload and the accent-colour picker, and this panel
+             merely STATED the facts over a button reading "Edit design" — so an
+             admin looking for the registered name had no reason to press it and
+             would reasonably conclude there was nowhere to enter one. (The
+             button was renamed and signposted first, on 14 Aug: that was worth
+             doing on its own and is what this replaces.)
+
+             A legal name is not a design decision. It is the same kind of fact
+             as the market and the currency — something true about the company
+             which happens to get printed on paper — so it sits beside them.
+
+             A MOVE, NOT A COPY: the boxes are GONE from the design step. Two
+             places to type one fact is the fault this codebase is built to
+             avoid. Same route, same stored record, same fields, no migration.
+
+             THE FOOTER TEXT DID NOT COME. Unlike these three it genuinely is a
+             design choice about what prints at the bottom of a page.
+
+             THE SECTION CARRIES ITS OWN SAVE and the panel stays a 'done'
+             panel. That is the established shape here — the Copilot engine
+             panel and the account page both hold per-section Saves — and it is
+             the honest one: the market writes the moment it is changed, these
+             three write when you press Save, and one foot cannot promise both.
+
+             NOTHING IS INVENTED FOR A WORKSPACE THAT NEVER FILLED THESE IN.
+             The boxes come up empty and the read-outs say "Not set"; the org
+             name typed at setup is a display fallback and is NOT promoted into
+             the legal name field. */}
+      <section class="st-sec">
+        <h3 class="st-sec-h">${esc(i18t('st_p_company'))}</h3>
+        <p class="st-note" style="margin-bottom:8px">${esc(i18t('st_company_legal_sub'))}</p>
+        <div style="display:grid;gap:9px">
+          <label><span style="${window.RV_LBL||''}">${esc(i18t('st_company_name'))}</span>
+            <input id="st-co-name" type="text" maxlength="200" style="${window.RV_FLD||ST_INPUT}"
+              placeholder="${esc((getOrg()&&getOrg().name)||'')}" value="${PB_ATTR((ob&&ob.companyName)||'')}"/></label>
+          <label><span style="${window.RV_LBL||''}">${esc(i18t('st_reg_number'))}</span>
+            <input id="st-co-reg" type="text" maxlength="100" style="${window.RV_FLD||ST_INPUT}"
+              value="${PB_ATTR((ob&&ob.registrationNumber)||'')}"/></label>
+          <label><span style="${window.RV_LBL||''}">${esc(i18t('st_company_address'))}</span>
+            <input id="st-co-addr" type="text" maxlength="500" style="${window.RV_FLD||ST_INPUT}"
+              value="${PB_ATTR((ob&&ob.address)||'')}"/></label>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap">
+          <button id="st-co-save" style="${ST_BTN_SM}">${i18t('act_save')}</button>
+          <span class="st-note" style="margin:0">${esc(i18t('st_company_legal_note'))}</span>
+        </div>
+      </section>
+      <section class="st-sec">
+        <h3 class="st-sec-h">${esc(i18t('st_p_design'))}</h3>
+        <p class="st-note" style="margin-bottom:8px">${esc(i18t('st_company_design_sub'))}</p>
+        <button id="st-company-design" style="${ST_BTN2}">${i18t('st_company_design_btn')}</button>
+      </section>`;
+    },
+    wire(){
+      /* THE MARKET. jxSet writes the local key, the org record and the server.
+         What it changes ON THIS PANEL is three lines under the dropdown; what it
+         changes on the page behind is the approval rules (their thresholds are
+         money) and the review gate (its box is labelled with the currency).
+         Those, and nothing else — the page holds still. */
+      document.getElementById('set-market')?.addEventListener('change',e=>{
+        const langWas=(typeof langId==='function'?langId():null);
+        if(!window.jxSet || !jxSet(e.target.value)) return;
+        if(window.setRegion && window.regionCodeFor) setRegion(regionCodeFor(jxId()),{silent:true});
+        /* THE ONE CASE THAT IS NOT A PATCH. A reader who has never chosen a
+           language reads the one that goes with the market, so moving the
+           market moves every word on the screen — patching three lines would
+           leave a half-translated one. The page redraws (holding its panel
+           heights) and the drawer is rebuilt in the new language on top of it. */
+        if((typeof langId==='function'?langId():null)!==langWas){
+          toast(i18t('set_market_saved')); renderTeam(); stDrawerOpen('company'); return;
+        }
+        const facts=document.getElementById('set-market-facts');
+        if(facts) facts.innerHTML=settingsMarketFactsHtml();
+        if(typeof renderApprovalRules==='function') renderApprovalRules();
+        if(typeof renderReviewGatePanel==='function') renderReviewGatePanel();
+        toast(i18t('set_market_saved'));
+      });
+      /* ---- THE LEGAL IDENTITY, SAVED FROM ITS OWN SECTION ----
+         THREE KEYS AND NOTHING ELSE. saveOrgBranding carries whatever it is
+         given and the route leaves alone what it is not given, so a save from
+         here cannot touch the logo, the accent colour or the layout — which the
+         design step owns and which this panel has no business writing. A save
+         that sent the whole record back would revert whatever the design step
+         did last, and it would do it silently.
+
+         REFUSALS GO IN THE DRAWER, in words, in the foot — never a toast over
+         the page behind. The server refuses a non-admin here (an Editor keeps
+         the design and loses the identity, deliberately: this is the name that
+         appears on executed paper), and this panel is admin-only anyway, so
+         that refusal is the wall rather than the sign. */
+      document.getElementById('st-co-save')?.addEventListener('click',async()=>{
+        const g=id=>(document.getElementById(id)||{value:''}).value.trim();
+        const btn=document.getElementById('st-co-save');
+        stDrawerClearRefusal();
+        if(btn) btn.disabled=true;
+        try{
+          await saveOrgBranding({ companyName:g('st-co-name'), registrationNumber:g('st-co-reg'), address:g('st-co-addr') });
+          toast(i18t('st_company_legal_saved'));
+          /* The ROW behind the drawer states the legal name without being
+             opened, so it has to be repainted — but the page holds still (this
+             panel's own rule): repaint the ONE row, never the screen. */
+          stRepaintRow('company');
+        }catch(e){ stDrawerRefuse((e&&e.message)||i18t('co_settings_save_failed')); }
+        finally{ if(btn) btn.disabled=false; }
+      });
+      document.getElementById('st-company-design')?.addEventListener('click',()=>{
+        stDrawerClose(); openDesignStep({ mode:'settings', onBack:()=>renderTeam() });
+      });
+    },
+  },
+
+  /* ---- THE LIST HaTi FILES INTO ----
+     Built-in folders are HaTi's own and are stated as such: they have no store
+     to be renamed into (they are literals every screen reads), so offering a
+     rename that would not survive a reload would be a control wired to nothing.
+     Custom folders DO have a store and are renameable and removable — and a
+     removal is refused while the folder still holds contracts, because the
+     contracts would be filed under an id no picker offers. */
+  folders:{
+    tab:'platform', mandatory:false,
+    title:()=>i18t('st_p_folders'),
+    sub:()=>i18t('st_p_folders_sub'),
+    state(){ const n=Object.keys(FOLDERS).length;
+      return { dot:'ok', text:i18tn('st_p_folders_count',n,{n})+' · '+Object.values(FOLDERS).slice(0,3).map(f=>esc(f.name)).join(', ')+(n>3?'…':'') }; },
+    body(){ return `<div id="st-folder-list"></div>
+      <div style="display:flex;gap:8px;margin-top:10px;align-items:flex-end">
+        <label style="flex:1;min-width:0"><span style="${window.RV_LBL||''}">${esc(i18t('st_p_folders_add'))}</span>
+          <input id="st-folder-new" type="text" style="${window.RV_FLD||ST_INPUT}"/></label>
+        <button id="st-folder-add" style="${ST_BTN_SM}">${i18t('set_add')}</button>
+      </div>
+      <p class="st-note" style="margin-top:10px">${esc(i18t('st_p_folders_body'))}</p>
+      <!-- ---- WHERE A FOLDER YOU MAKE ACTUALLY LIVES ----
+           A rename box and a delete button on this panel make the custom-folder
+           list look like a company setting. It is not: addCustomFolder writes to
+           this browser's own storage (saveCustomFolders → localStorage) and no
+           colleague's browser ever learns of it. That is more confidence than
+           the storage deserves, so the panel says so. No behaviour change — the
+           smallest honest fix, until somebody actually needs one shared. -->
+      <p class="st-note" style="margin-top:6px">${esc(i18t('st_p_folders_local'))}</p>`; },
+    wire(){ stPaintFolders(); },
+  },
+
+  approvals:{
+    tab:'platform', mandatory:true,
+    title:()=>i18t('st_p_approvals'),
+    sub:()=>i18t('st_p_approvals_sub'),
+    state(){ const rules=(typeof approvalRules==='function'?approvalRules():[]).slice().sort((a,b)=>(a.order||99)-(b.order||99));
+      return { dot:rules.length?'ok':'warn',
+        text:rules.length?rules.map(r=>esc(condLabel(r.cond))).join(' · '):i18t('set_no_approval_rules') }; },
+    chip(){ const n=(typeof approvalRules==='function'?approvalRules():[]).length; return n?String(n):''; },
+    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('set_rules_sub')}</p>
+      <div id="approval-rules"></div>
+      <button id="ar-add" style="margin-top:8px;${ST_BTN2}">${icon('plus','w-3.5 h-3.5')} ${i18t('set_add_rule_btn')}</button>
+      ${''/* ---- THE OTHER HALF OF THE SAME QUESTION ----
+             The rules above decide who must say YES before a contract is
+             signed. This decides how much each person may sign FOR. They
+             belong on one panel because an admin reading either one without
+             the other has half the answer. WARN BEFORE ENFORCE: the switch is
+             off by default and the ladder is a record until it is on. */}
+      <div class="st-sec">
+        <h3 class="st-sec-h">${esc(i18t('sc_rule_title'))}</h3>
+        <label class="st-toggle" style="margin-bottom:8px">
+          <input id="sc-rule-on" type="checkbox"${((typeof signCapEnforced==='function')&&signCapEnforced())?' checked':''}/>
+          <span><span class="st-role-name">${esc(i18t('sc_rule_on'))}</span>
+          <span class="st-note">${esc(i18t('sc_rule_sub'))}</span></span></label>
+        <label class="st-toggle" style="margin-bottom:8px">
+          <input id="ov-rule-on" type="checkbox"${((typeof overseerEnforced==='function')&&overseerEnforced())?' checked':''}/>
+          <span><span class="st-role-name">${esc(i18t('ov_rule_on'))}</span>
+          <span class="st-note">${esc(i18t('ov_rule_sub'))}</span></span></label>
+        <label class="st-toggle" style="margin-bottom:8px">
+          <input id="sf-rule-on" type="checkbox"${((typeof signFolderEnforced==='function')&&signFolderEnforced())?' checked':''}/>
+          <span><span class="st-role-name">${esc(i18t('sf_rule_on'))}</span>
+          <span class="st-note">${esc(i18t('sf_rule_sub'))}</span></span></label>
+        <div style="font-size:11px;font-weight:600;color:var(--color-text);margin:10px 0 6px">${esc(i18t('sc_ladder'))}</div>
+        <div id="sc-ladder"></div>
+      </div>`; },
+    wire(){
+      renderApprovalRules();
+      document.getElementById('ar-add')?.addEventListener('click',()=>openApprovalRuleEditor(-1));
+      stPaintLadder();
+      document.getElementById('sc-rule-on')?.addEventListener('change',e=>{
+        if(typeof saveSignCapCfg!=='function') return;
+        saveSignCapCfg({ on:e.target.checked });
+        toast(i18t('sc_rule_saved'));
+        /* The ladder's own sentences change with the switch (a limit that is
+           recorded and a limit that refuses are different facts), so it
+           repaints — the panel does not, and the page behind it does not. */
+        stPaintLadder();
+      });
+      document.getElementById('ov-rule-on')?.addEventListener('change',e=>{
+        if(typeof saveOverseerCfg!=='function') return;
+        saveOverseerCfg({ on:e.target.checked });
+        toast(i18t('ov_rule_saved'));
+      });
+      document.getElementById('sf-rule-on')?.addEventListener('change',e=>{
+        if(typeof saveSignFolderCfg!=='function') return;
+        saveSignFolderCfg({ on:e.target.checked });
+        toast(i18t('sf_rule_saved'));
+        stPaintLadder();
+      });
+    },
+  },
+
+  /* Availability only — a STATEMENT, not a switch, because there is no
+     workspace on/off flag behind Copilot: it answers when there is a key and
+     falls back to the built-in interpreter when there is not. A tick box wired
+     to nothing is forbidden here, so the row says which of those is true and
+     points at the one control that changes it. */
+  copilot:{
+    tab:'platform', mandatory:false,
+    title:()=>i18t('st_p_copilot'),
+    sub:()=>i18t('st_p_copilot_sub'),
+    state(){ const on=(typeof copilotAvailable==='function')&&copilotAvailable();
+      return { dot:on?'ok':'off', text:`${i18t('st_p_copilot_on')} — ${on?stOn():stOff()}` }; },
+    body(){ const on=(typeof copilotAvailable==='function')&&copilotAvailable();
+      return `<div class="st-quiet"><b>${i18t('st_p_copilot_on')} — ${on?stOn():stOff()}</b><br>${i18t('set_engine_sub')}</div>
+        <p class="st-note" style="margin-top:9px">${esc(i18t('st_p_copilot_engine_note'))}</p>
+        <button id="st-copilot-engine" style="margin-top:6px;${ST_BTN2}">${esc(i18t('st_b_engine'))}</button>`; },
+    wire(){ document.getElementById('st-copilot-engine')?.addEventListener('click',()=>{ settingsGoTab('build'); stDrawerOpen('engine'); }); },
+  },
+
+  review:{
+    tab:'platform', mandatory:false,
+    title:()=>i18t('st_p_review'),
+    sub:()=>i18t('rv_set_sub'),
+    state(){ const c=(window.reviewGateCfg?reviewGateCfg():{on:false});
+      return { dot:c.on?'ok':'off', text:`${i18t('rv_set_on')} — ${c.on?stOn():stOff()}` }; },
+    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('rv_set_sub')}</p><div id="rv-gate-panel"></div>`; },
+    wire(){ renderReviewGatePanel(); },
+  },
+
+  desk:{
+    tab:'platform', mandatory:false,
+    title:()=>i18t('st_p_desk'),
+    sub:()=>i18t('dk_set_sub'),
+    state(){ const c=(window.deskCfg?deskCfg():{on:false});
+      return { dot:c.on?'ok':'off', text:`${i18t('dk_set_on')} — ${c.on?stOn():stOff()}` }; },
+    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('dk_set_sub')}</p><div id="dk-rule-panel"></div>`; },
+    wire(){ renderDeskRulePanel(); },
+  },
+
+  renewals:{
+    tab:'platform', mandatory:false,
+    title:()=>i18t('st_p_renewals'),
+    sub:()=>i18t('set_renewal_sub'),
+    state(){ return { dot:'ok', text:[90,60,30].map(d=>i18t('set_days_out',{n:d})).join(' · ') }; },
+    body(){ return `<p class="st-note" style="margin-bottom:8px">${i18t('set_renewal_sub')}</p>
+      <div style="display:flex;gap:6px">${[90,60,30].map(d=>`<span style="${ST_TAG}">${i18t('set_days_out',{n:d})}</span>`).join('')}</div>
+      <p class="st-note" style="margin-top:8px">${i18t('set_delivered_resend')}</p>`; },
+    wire(){},
+  },
+
+  workshape:{
+    tab:'platform', mandatory:false,
+    title:()=>i18t('st_p_workshape'),
+    sub:()=>i18t('set_workshape_sub'),
+    state(){ const cfg=(typeof wsCfg==='function')?wsCfg():{shapes:[],word:''};
+      return { dot:cfg.shapes.length?'ok':'warn',
+        text:cfg.shapes.map(s=>esc(i18t('set_shape_'+s))).join(' · ')+(cfg.word?` · ${esc(i18t('ww_'+cfg.word+'_title'))}`:'') }; },
+    body(){
+      if(typeof wsCfg!=='function') return `<p class="st-note">${i18t('set_workshape_admin_only')}</p>`;
+      const cfg=wsCfg(), det=wsDetect();
+      const box=(k,title,sub)=>`<label data-ws-box="${k}" style="display:flex;gap:9px;align-items:flex-start;padding:9px 11px;border:1px solid ${cfg.shapes.includes(k)?WS_BOX_ON.line:WS_BOX_OFF.line};border-radius:8px;cursor:pointer;background:${cfg.shapes.includes(k)?WS_BOX_ON.fill:WS_BOX_OFF.fill};flex:1 1 240px;min-width:0">
+        <input type="checkbox" data-ws-shape="${k}" ${cfg.shapes.includes(k)?'checked':''} style="margin-top:2px;flex:none"/>
+        <span style="min-width:0"><span style="display:block;font-size:12.5px;font-weight:600">${title}</span>
+        <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);line-height:1.5;margin-top:2px">${sub}</span></span></label>`;
+      return `<p class="st-note" style="margin-bottom:10px">${i18t('set_workshape_sub')}</p>
+      <div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:12px">
+        ${box('standing',i18t('set_shape_standing'),i18t('set_shape_standing_sub'))}
+        ${box('project',i18t('set_shape_project'),i18t('set_shape_project_sub'))}
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+        <label style="display:flex;align-items:center;gap:9px;font-size:12px;font-weight:600">${i18t('set_work_word')}
+          <select id="set-work-word" style="min-width:150px;${window.RV_FLD||ST_INPUT}width:auto">
+            ${WS_WORDS.map(w=>`<option value="${w}"${w===cfg.word?' selected':''}>${esc(i18t('ww_'+w+'_title'))}</option>`).join('')}
+          </select></label>
+        <span class="st-note">${i18t('set_work_word_sub')}</span>
+      </div>
+      <div class="st-quiet"><b>${i18t('set_workshape_detect')}.</b> ${det.total
+        ? esc(i18t('set_workshape_seen',{p:det.project,s:det.standing,u:det.unknown}))
+          +` <button id="ws-use-detected" style="border:0;background:none;padding:0;font:inherit;font-size:10.5px;font-weight:700;color:var(--color-accent-700);cursor:pointer;text-decoration:underline">${i18t('set_workshape_use')}</button>`
+        : i18t('set_workshape_seen_none')}</div>`;
+    },
+    wire(){
+      /* THE SHAPES AND THE WORD. The answer is written and the card repaints
+         itself; a full re-render empties every server-filled panel and the
+         screen jumps (see the note above settingsHeightsBefore). */
+      const wsRead=()=>settingsShapeBoxes().filter(b=>b.checked).map(b=>b.getAttribute('data-ws-shape'));
+      const wsSave=(shapes,word)=>{
+        if(typeof wsSet!=='function') return;
+        if(!shapes.length){
+          /* A refusal has to put the boxes back the way the record has them.
+             Leaving the refused answer ticked on screen reads as a save. */
+          stDrawerRefuse(i18t('set_workshape_pick_shape'));
+          const cur=(typeof wsCfg==='function'?wsCfg().shapes:[]);
+          settingsShapeBoxes().forEach(b=>{ b.checked=cur.includes(b.getAttribute('data-ws-shape')); });
+          settingsPaintShapeBoxes(); return;
+        }
+        stDrawerClearRefusal();
+        wsSet(shapes,word); settingsPaintShapeBoxes(); toast(i18t('set_workshape_saved'));
+      };
+      settingsShapeBoxes().forEach(b=>b.addEventListener('change',()=>
+        wsSave(wsRead(), document.getElementById('set-work-word')?.value || (typeof wsWord==='function'?wsWord():''))));
+      document.getElementById('set-work-word')?.addEventListener('change',e=>
+        wsSave(wsRead().length?wsRead():(typeof wsShapes==='function'?wsShapes():[]), e.target.value));
+      document.getElementById('ws-use-detected')?.addEventListener('click',()=>{
+        if(typeof wsDetect!=='function') return;
+        const sug=wsDetect().suggests;
+        settingsShapeBoxes().forEach(b=>{ b.checked=sug.includes(b.getAttribute('data-ws-shape')); });
+        wsSave(sug, document.getElementById('set-work-word')?.value || wsWord()); });
+    },
+  },
+
+  /* A REAL CONTACT LIST, not a bare count. The count was all this ever showed,
+     which made it impossible to answer the question people actually bring to
+     it — "is this contact doing anything?" — so each row now says how many
+     contracts name them. */
+  directory:{
+    tab:'platform', mandatory:false,
+    title:()=>i18t('st_p_directory'),
+    sub:()=>i18t('st_p_directory_sub'),
+    state(){ const n=(((state.settings||{}).directory)||[]).length;
+      return { dot:n?'ok':'off', text:n?i18tn('set_directory',n,{n}):i18t('st_p_directory_empty') }; },
+    body(){ return `<p class="st-note" style="margin-bottom:8px">${i18t('set_bulk_signers')} <b>${i18t('set_csv_columns')}</b>.</p>
+      <div id="st-dir-list"></div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+        <label style="${ST_BTN2};cursor:pointer">${icon('upload','w-3.5 h-3.5')} ${i18t('set_import_csv')}<input id="dir-import" type="file" accept=".csv,text/csv" style="display:none"/></label>
+        <button id="dir-clear" style="${ST_BTN_DANGER}">${i18t('set_clear_directory')}</button>
+      </div>`; },
+    wire(){ stPaintDirectory(); },
+  },
+
+  design:{
+    tab:'platform', mandatory:false,
+    title:()=>i18t('st_p_design'),
+    sub:()=>i18t('set_design_sub'),
+    state(){ const ob=(typeof window!=='undefined'&&window.ORG_BRANDING)||null;
+      const d=ob&&ob.designId&&window.docDesignById?docDesignById(ob.designId):null;
+      return { dot:d?'ok':'off', text:d?esc(d.name):i18t('set_no_design') }; },
+    body(){
+      const ob=(typeof window!=='undefined'&&window.ORG_BRANDING)||null;
+      const d=ob&&ob.designId&&window.docDesignById?docDesignById(ob.designId):null;
+      return `<p class="st-note" style="margin-bottom:10px">${i18t('set_design_sub')}</p>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="width:74px;height:42px;border:1px dashed var(--color-divider);border-radius:8px;display:grid;place-items:center;overflow:hidden;background:var(--color-bg);flex:none">
+          ${ob&&ob.logoUrl?`<img src="${ob.logoUrl}" alt="logo" style="max-width:100%;max-height:100%">`:`<span style="font-size:9px;color:var(--color-neutral-500)">${i18t('set_no_logo')}</span>`}
+        </div>
+        <div style="flex:1;min-width:150px">
+          ${d?`<div style="font-size:12.5px;font-weight:700">${esc(d.name)}</div>
+            <div class="st-note">${i18t('set_logo_pos',{pos:esc({'top-left':i18t('set_pos_top_left'),'top-center':i18t('set_pos_top_center'),'top-right':i18t('set_pos_top_right'),footer:i18t('set_pos_footer')}[ob.logoPosition]||ob.logoPosition||'—')})}</div>`
+          :`<div style="font-size:12px;color:var(--color-neutral-600)">${i18t('set_no_design')}</div>`}
+        </div>
+        <button id="brand-edit" style="${ST_BTN2}">${d?i18t('set_edit_design'):i18t('set_choose_design')}</button>
+      </div>`;
+    },
+    wire(){ document.getElementById('brand-edit')?.addEventListener('click',()=>{
+      stDrawerClose(); openDesignStep({ mode:'settings', onBack:()=>renderTeam() }); }); },
+  },
+
+  report:{
+    tab:'platform', mandatory:false, show:stApiOnly,
+    title:()=>i18t('st_p_report'),
+    sub:()=>i18t('set_monthly_report_sub'),
+    state(){ return { dot:'off', text:i18t('set_monthly_report_sub') }; },
+    body(){ return `<p class="st-note" style="margin-bottom:8px">${i18t('set_monthly_report_sub')}</p>
+      <div id="mr-status" style="font-size:11px;color:var(--color-neutral-700);margin-bottom:8px">${i18t('set_checking')}</div>
+      <label class="st-toggle" style="margin-bottom:8px">
+        <input id="mr-enabled" type="checkbox"/><span><span class="st-role-name">${i18t('set_monthly_report_on')}</span></span></label>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <select id="mr-recipients" aria-label="${i18t('set_mr_recipients_aria')}" style="min-width:170px;${window.RV_FLD||ST_INPUT}width:auto">
+          <option value="admins">${i18t('set_mr_admins')}</option>
+          <option value="all">${i18t('set_mr_all')}</option>
+        </select>
+        <button id="mr-send-now" style="${ST_BTN2}">${icon('clock','w-3.5 h-3.5')} ${i18t('set_mr_send_now')}</button>
+      </div>`; },
+    wire(){ stWireMonthlyReport(); },
+  },
+
+  backup:{
+    tab:'platform', mandatory:false,
+    title:()=>i18t('st_p_backup'),
+    sub:()=>API_MODE()?i18t('set_backup_server'):i18t('set_backup_local'),
+    state(){ const at=stLastBackup(); return { dot:at?'ok':'off', text:at?`${i18t('set_export_backup')} · ${fmtDT(at)}`:i18t('st_not_set') }; },
+    body(){ return `<p class="st-note" style="margin-bottom:10px">${API_MODE()?i18t('set_backup_server'):i18t('set_backup_local')}</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <button id="bk-export" style="${ST_BTN2}">${icon('download','w-3.5 h-3.5')} ${i18t('set_export_backup')}</button>
+        ${API_MODE()?`<a id="bk-zip" href="api/export/workspace.zip" style="${ST_BTN2};text-decoration:none">${icon('download','w-3.5 h-3.5')} ${i18t('set_full_workspace_zip')}</a>`:`
+        <label style="${ST_BTN2};cursor:pointer">${icon('upload','w-3.5 h-3.5')} ${i18t('set_restore_backup')}<input id="bk-import" type="file" accept=".json,application/json" style="display:none"/></label>`}
+      </div>
+      ${!API_MODE()?`<div class="st-danger"><button id="bk-reset" style="${ST_BTN_DANGER}">${icon('ban','w-3.5 h-3.5')} ${i18t('set_reset_workspace')}</button></div>`:''}`; },
+    wire(){ stWireBackup(); },
+  },
+
+  /* ============================================================
+     TAB 3 — BUILD & LAUNCH
+     ============================================================ */
+  golive:{
+    tab:'build', mandatory:true,
+    title:()=>i18t('st_b_golive'),
+    sub:()=>i18t('st_b_golive_sub'),
+    state(){ const l=stGoLive(); const done=l.filter(r=>r.ok).length;
+      return { dot: done===l.length?'ok':'warn',
+        text: done===l.length ? i18t('st_b_golive_done',{n:done,n2:l.length})
+          : i18tn('st_b_golive_left', l.length-done, {n:done,n2:l.length,left:l.length-done}) }; },
+    chip(){ const l=stGoLive(); return `${l.filter(r=>r.ok).length}/${l.length}`; },
+    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('st_b_golive_sub')}</p>
+      <div class="st-rows" id="st-golive">${stGoLive().map(r=>`
+        <button class="st-row" ${r.go?`data-st-go="${r.go}"`:''}${r.go?'':' disabled'}>
+          <span class="st-dot" style="background:${r.ok?ST_DOT.ok:ST_DOT.warn}"></span>
+          <span class="st-row-main"><span class="st-row-name">${esc(r.label)}</span>
+          <span class="st-row-state">${esc(r.detail||'')}</span></span>
+          ${r.go?`<span class="st-row-go" aria-hidden="true">›</span>`:''}
+        </button>`).join('')}</div>`; },
+    wire(){
+      document.querySelectorAll('#st-golive [data-st-go]').forEach(b=>b.addEventListener('click',()=>{
+        const [tab,panel]=b.getAttribute('data-st-go').split(':');
+        settingsGoTab(tab); if(panel) stDrawerOpen(panel);
+      }));
+    },
+  },
+
+  engine:{
+    tab:'build', mandatory:false,
+    title:()=>i18t('st_b_engine'),
+    sub:()=>i18t('st_b_engine_sub'),
+    state(){ const on=(typeof copilotAvailable==='function')&&copilotAvailable();
+      const cap=Number(((state.aiCfg||{}).limits||{}).dailySpendLimit||0);
+      return { dot:on?(cap>0?'ok':'warn'):'off',
+        text:`${on?i18t('set_configured'):i18t('set_not_configured')}${cap>0?` · $${cap.toFixed(2)}/day`:''}` }; },
+    body(){ return stEngineBodyHtml(); },
+    wire(){ stWireEngine(); },
+  },
+
+  mail:{
+    tab:'build', mandatory:true, show:stApiOnly,
+    title:()=>i18t('st_b_mail'),
+    sub:()=>i18t('st_b_mail_sub'),
+    state(){ const off=(typeof emailOff==='function')&&emailOff();
+      return { dot:off?'warn':'ok', text:off?i18t('set_email_not_configured'):i18t('set_email_configured') }; },
+    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('set_email_sub')}</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+        <button id="rem-run" style="${ST_BTN2}">${icon('clock','w-3.5 h-3.5')} ${i18t('set_check_renewals')}</button>
+        <button id="ob-refresh" style="${ST_BTN2}">${icon('history','w-3.5 h-3.5')} ${i18t('set_refresh_outbox')}</button>
+      </div>
+      <div id="outbox-list" style="font-size:12px;color:var(--color-neutral-700)">${i18t('set_loading_outbox')}</div>`; },
+    wire(){ stWireOutbox(); },
+  },
+
+  pilot:{
+    tab:'build', mandatory:false, show:stApiOnly,
+    title:()=>i18t('st_b_pilot'),
+    sub:()=>i18t('set_activation_sub'),
+    state(){ return { dot:'off', text:i18t('set_activation_sub') }; },
+    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('set_activation_sub')}</p>
+      <div id="activation-funnel" style="font-size:12px;color:var(--color-neutral-700)">${i18t('set_loading')}</div>`; },
+    wire(){ stLoadActivation(); },
+  },
+
+  /* ---- DEMO & SAMPLE DATA ----
+     ORIGIN, NEVER NAME. `seeded` is stamped on a contract at the moment the
+     sample portfolio is created and survives the server's light-list
+     projection, so "is this a sample?" is a fact on the record rather than a
+     guess about its title. Nothing new and destructive was built on the server
+     for this: each removal goes through the per-contract delete the product
+     already has and already guards. */
+  samples:{
+    tab:'build', mandatory:false,
+    title:()=>i18t('set_demo_samples'),
+    sub:()=>i18t('set_demo_samples_sub'),
+    state(){ const n=stSampleContracts().length;
+      return { dot:n?'warn':'ok', text:n?i18tn('set_demo_still_here',n,{n}):i18t('set_demo_cleared') }; },
+    chip(){ const n=stSampleContracts().length; return n?String(n):''; },
+    body(){ const s=stSampleContracts();
+      return `<p class="st-note" style="margin-bottom:10px">${i18t('set_demo_samples_sub')}</p>
+      ${s.length?`<div class="st-quiet"><b>${i18tn('set_demo_still_here',s.length,{n:s.length})}</b><br>
+        ${s.slice(0,8).map(c=>esc(c.name)).join('<br>')}${s.length>8?`<br>+${s.length-8}`:''}</div>
+        <div class="st-danger"><button id="st-samples-clear" style="${ST_BTN_DANGER}">${icon('ban','w-3.5 h-3.5')} ${i18t('set_demo_clear')}</button></div>`
+        :`<div class="st-quiet">${i18t('set_demo_cleared')}</div>`}`; },
+    wire(){ document.getElementById('st-samples-clear')?.addEventListener('click',()=>stClearSamples()); },
+  },
+
+  /* ---- HISTORY INTEGRITY, ACROSS THE WHOLE BOOK ----
+     There is no workspace-wide check in this product and the server verifies no
+     hashes at all; every verification is per contract and in the browser. This
+     is that same verifier run over every contract in a read-only loop — it
+     writes nothing, and it says so. Where the browser has no real digest (a
+     plain-http page has no crypto.subtle) it says THAT first, because a
+     "verified" taken over a weak digest is worth less than the sentence
+     explaining why. */
+  integrity:{
+    tab:'build', mandatory:false,
+    title:()=>i18t('set_integrity_title'),
+    sub:()=>i18t('set_integrity_sub'),
+    state(){ const r=_stIntegrity;
+      return { dot: r? (r.faults? 'warn':'ok') : 'off',
+        text: r? i18t('set_integrity_result',{checked:r.checked,clean:r.clean,faults:r.faults}) : i18t('set_integrity_never') }; },
+    body(){ return `<p class="st-note" style="margin-bottom:8px">${i18t('set_integrity_sub')}</p>
+      ${(typeof sha256IsReal==='function'&&!sha256IsReal())?`<div class="st-refusal" style="display:block">${i18t('set_integrity_weak')}</div>`:''}
+      <div id="st-integrity-out" class="st-quiet">${_stIntegrity?stIntegrityHtml(_stIntegrity):i18t('set_integrity_never')}</div>
+      <button id="st-integrity-run" style="margin-top:10px;${ST_BTN_SM}">${i18t('set_integrity_run')}</button>`; },
+    wire(){ document.getElementById('st-integrity-run')?.addEventListener('click',()=>stRunIntegrity()); },
+  },
+
+  env:{
+    tab:'build', mandatory:false,
+    title:()=>i18t('st_b_env'),
+    sub:()=>i18t('st_b_env_sub'),
+    state(){ return { dot:'ok', text:`${i18t('st_b_env_mode')}: ${API_MODE()?'Server · SQLite':'Local · browser'}` }; },
+    body(){
+      const on=(typeof copilotAvailable==='function')&&copilotAvailable();
+      const mailOk=!((typeof emailOff==='function')&&emailOff());
+      const row=(k,v)=>`<div><span>${esc(k)}</span><b>${esc(v)}</b></div>`;
+      return `<div class="st-facts">
+        ${row(i18t('st_b_env_mode'), API_MODE()?'Server · SQLite':'Local · browser')}
+        ${row(i18t('st_b_env_server'), (typeof location!=='undefined'&&location.host)||'—')}
+        <div><span>${esc(i18t('st_b_env_version'))}</span><b id="st-env-version">—</b></div>
+        ${row(i18t('st_p_copilot'), on?stOn():stOff())}
+        ${row(i18t('st_b_env_mail'), API_MODE()?(mailOk?stOn():stOff()):i18t('st_needs_server'))}
+        ${row(i18t('st_b_env_contracts'), String((state.contracts||[]).length))}
+        ${row(i18t('st_b_env_people'), String((getUsers()||[]).length))}
+      </div>`;
+    },
+    /* The deployed build is the server's own answer and nothing else knows it,
+       so it is fetched rather than guessed. /api/status is public and cheap. */
+    wire(){
+      const el=document.getElementById('st-env-version'); if(!el || !API_MODE()) return;
+      (async()=>{ try{ const r=await api('status'); el.textContent=(r&&r.version)||'—'; }catch(e){ el.textContent='—'; } })();
+    },
+  },
+};
+
+/* ---------------- the pieces the panels lean on ---------------- */
+
+/* Folders: paint, rename, add, remove. Re-painted in place so a rename does not
+   throw the reader back to the top of a rebuilt drawer. */
+function stPaintFolders(){
+  const host=document.getElementById('st-folder-list'); if(!host) return;
+  const users=getUsers()||[];
+  /* ONE READING, TWO READERS. This panel used to carry its own copy of the
+     access map's arithmetic; the re-filing confirm on Key terms needs the same
+     sentence, and two copies of "who can see this drawer" is two answers to one
+     question. folderSeerCount (js/core.js) is built on canAccessFolder, the
+     map's own named predicate. */
+  const seers=fid=>folderSeerCount(fid).n;
+  host.innerHTML=Object.values(FOLDERS).map(f=>{
+    const n=(state.contracts||[]).filter(c=>c.folder===f.id).length;
+    return `<div class="st-frow" data-st-folder="${PB_ATTR(f.id)}">
+      <span class="st-fdot" style="background:${f.color}"></span>
+      ${f.custom?`<input class="st-fname" data-st-frename="${PB_ATTR(f.id)}" value="${PB_ATTR(f.name)}"/>`
+                :`<span class="st-fname" data-st-fixed="1">${esc(f.name)}</span>`}
+      <span class="st-fmeta">${i18tn('st_p_folders_count',n,{n})} · ${i18t('st_p_folders_seen',{n:seers(f.id),total:users.length})}</span>
+      ${f.custom?`<button class="st-fdel" data-st-fdel="${PB_ATTR(f.id)}" title="${esc(i18t('act_remove'))}">✕</button>`
+                :`<span class="st-fmeta" style="opacity:.7">${esc(i18t('st_p_folders_builtin'))}</span>`}
+    </div>`;
+  }).join('');
+  host.querySelectorAll('[data-st-frename]').forEach(inp=>inp.addEventListener('change',()=>{
+    const id=inp.getAttribute('data-st-frename'), name=inp.value.trim();
+    if(!name || !FOLDERS[id]) { stPaintFolders(); return; }
+    FOLDERS[id].name=name; if(typeof saveCustomFolders==='function') saveCustomFolders();
+    toast(i18t('st_p_folders_renamed',{name})); stPaintFolders();
   }));
+  host.querySelectorAll('[data-st-fdel]').forEach(b=>b.addEventListener('click',async()=>{
+    const id=b.getAttribute('data-st-fdel'), f=FOLDERS[id]; if(!f) return;
+    const n=(state.contracts||[]).filter(c=>c.folder===id).length;
+    if(n){ stDrawerRefuse(i18t('st_p_folders_holds',{n:i18tn('st_p_folders_count',n,{n})})); return; }
+    if(!await confirmDialog({ title:`${i18t('act_remove')} — ${f.name}`, message:i18t('st_p_folders_body'), confirmLabel:i18t('act_remove'), danger:true })) return;
+    delete FOLDERS[id]; if(typeof saveCustomFolders==='function') saveCustomFolders();
+    stDrawerClearRefusal(); toast(i18t('st_p_folders_removed',{name:f.name})); stPaintFolders();
+  }));
+  const add=()=>{
+    const inp=document.getElementById('st-folder-new'); const name=(inp?.value||'').trim();
+    if(!name){ stDrawerRefuse(i18t('st_p_folders_add')); return; }
+    if(typeof addCustomFolder!=='function') return;
+    const f=addCustomFolder(name); if(inp) inp.value='';
+    stDrawerClearRefusal(); toast(i18t('st_p_folders_added',{name:(f&&f.name)||name})); stPaintFolders();
+  };
+  document.getElementById('st-folder-add')?.addEventListener('click',add);
+}
+
+/* WHO CAN SIGN WHAT TODAY. Read-only, ordered by authority, and it says which
+   people nobody has decided about — which is the state every member is in the
+   day this ships. */
+function stPaintLadder(){
+  const host=document.getElementById('sc-ladder'); if(!host) return;
+  const rows=(typeof signCapLadder==='function')?signCapLadder():[];
+  const un=(typeof signCapUnanswered==='function')?signCapUnanswered():[];
+  const enforced=(typeof signCapEnforced==='function')&&signCapEnforced();
+  host.innerHTML=(rows.length?rows.map(r=>`<div class="st-frow">
+      <span class="st-fname" data-st-fixed="1">${esc(r.name)}</span>
+      <span class="st-fmeta">${esc(roleName(r.role))}</span>
+      <span class="st-fmeta" style="color:${(!r.answered&&r.mayEverSign&&r.role!=='admin')?'var(--st-amber-fg)':'var(--color-neutral-600)'}">${esc(r.text)}</span>
+      <span class="st-fmeta" style="opacity:.8">${esc((typeof signFolderText==='function')?signFolderText((getUsers()||[]).find(u=>u.id===r.id)||{}):'')}</span>
+    </div>`).join(''):`<p class="st-note">${esc(i18t('sc_ladder_none'))}</p>`)
+    +(un.length?`<p class="st-note" style="color:var(--st-amber-fg)">${esc(i18tn('sc_unanswered',un.length,{n:un.length}))}</p>`:'')
+    +(enforced?'':`<p class="st-note">${esc(i18t('sc_not_enforced'))}</p>`);
+}
+
+/* The directory as a list, each row saying whether anything actually names it. */
+function stPaintDirectory(){
+  const host=document.getElementById('st-dir-list'); if(!host) return;
+  const dir=(((state.settings||{}).directory)||[]);
+  const uses=p=>{
+    const nm=String(p.name||'').toLowerCase(), em=String(p.email||'').toLowerCase();
+    return (state.contracts||[]).filter(c=>{
+      const plan=(typeof signerPlan==='function')?signerPlan(c):(c.signerPlan||[]);
+      return plan.some(r=>String(r.email||'').toLowerCase()===em || (nm&&String(r.name||'').toLowerCase()===nm))
+        || (nm && String(c.signatory||'').toLowerCase().indexOf(nm)>=0);
+    }).length;
+  };
+  host.innerHTML=dir.length?dir.map(p=>{ const n=uses(p);
+    return `<div class="st-frow">
+      <span class="st-fname" data-st-fixed="1">${esc(p.name||p.email)}</span>
+      <span class="st-fmeta">${esc(p.title||'')}${p.title&&p.email?' · ':''}${esc(p.email||'')}</span>
+      <span class="st-fmeta" style="opacity:.8">${n?i18tn('st_p_directory_used',n,{n}):i18t('st_p_directory_unused')}</span>
+    </div>`; }).join('')
+    :`<p class="st-note">${esc(i18t('st_p_directory_empty'))}</p>`;
   document.getElementById('dir-import')?.addEventListener('change',e=>{
     const f=e.target.files[0]; if(!f) return;
     const rd=new FileReader();
     rd.onload=async()=>{
       const parsed=parseDirectoryCsv(rd.result);
-      if(!parsed.length){ toast(i18t('set_no_csv_rows'),'err'); return; }
-      state.settings=state.settings||{}; const dir=(state.settings.directory||[]).slice();
-      const byEmail={}; dir.forEach(p=>{ if(p.email) byEmail[p.email.toLowerCase()]=p; });
+      if(!parsed.length){ stDrawerRefuse(i18t('set_no_csv_rows')); return; }
+      state.settings=state.settings||{}; const d=(state.settings.directory||[]).slice();
+      const byEmail={}; d.forEach(p=>{ if(p.email) byEmail[p.email.toLowerCase()]=p; });
       let added=0, updated=0;
       parsed.forEach(r=>{ const k=(r.email||'').toLowerCase();
         if(k && byEmail[k]){ const p=byEmail[k]; if(r.name)p.name=r.name; if(r.title)p.title=r.title; updated++; }
-        else { const p={ name:r.name||'', email:r.email||'', title:r.title||'' }; dir.push(p); if(k)byEmail[k]=p; added++; } });
-      state.settings.directory=dir;
+        else { const p={ name:r.name||'', email:r.email||'', title:r.title||'' }; d.push(p); if(k)byEmail[k]=p; added++; } });
+      state.settings.directory=d;
       try{ await saveSettings(); }catch(err){ toast(i18t('set_t_sync_failed',{err:err.message}),'err'); }
+      stDrawerClearRefusal();
       toast(i18t('set_t_dir_import',{added})+(updated?i18t('set_t_dir_updated',{n:updated}):''));
-      renderTeam();
+      stPaintDirectory();
     };
     rd.readAsText(f); e.target.value='';
   });
   document.getElementById('dir-clear')?.addEventListener('click',async()=>{
     if(!await confirmDialog({title:'Clear the directory?', message:'Removes all imported contacts. Team members are not affected.', confirmLabel:'Clear directory', danger:true})) return;
     state.settings=state.settings||{}; state.settings.directory=[]; await saveSettings();
-    toast(i18t('set_t_dir_cleared')); renderTeam();
+    toast(i18t('set_t_dir_cleared')); stPaintDirectory();
   });
-  document.querySelectorAll('[data-role-for]').forEach(sel=>sel.addEventListener('change',async()=>{
-    const us=getUsers(); const u=us.find(x=>x.id===sel.getAttribute('data-role-for'));
-    if(!u) return;
-    if(API_MODE()){
-      try{ await api('users/'+u.id,'PATCH',{ role:sel.value }); u.role=sel.value; }
-      catch(e){ toast(e.message,'err'); renderTeam(); return; }
-    } else { u.role=sel.value; saveUsers(us); }
-    toast(i18t('set_t_now_role',{name:u.name,role:roleName(u.role)})); renderTeam();
-  }));
-  document.querySelectorAll('[data-remove-user]').forEach(b=>b.addEventListener('click',async()=>{
-    const us=getUsers(); const u=us.find(x=>x.id===b.getAttribute('data-remove-user'));
-    if(!u) return;
-    /* ---- SOMEBODY LEAVING TAKES THEIR NEGOTIATIONS WITH THEM ----
-       A desk whose lead has no account is a negotiation with no door out:
-       nobody can publish a round, and the one person who could hand it over is
-       gone. Said BEFORE the removal, while there is still somebody to ask about
-       it — this is the leaver check the whole one-lead design makes necessary.
-       It warns rather than refuses: an admin removing somebody who left the
-       company on Friday must not be stuck, and the desks can be reassigned
-       afterwards by any admin. */
-    let leads='';
-    if(window.deskLedBy){
-      const led=deskLedBy(state.contracts||[],u.id);
-      if(led.length) leads=`\n\n${i18t('dk_leaver_title',{who:u.name,n:led.length})} — `
-        +led.slice(0,5).map(c=>c.name).join(', ')+(led.length>5?`, +${led.length-5}`:'')
-        +`\n${i18t('dk_leaver_sub')}`;
-    }
-    if(!await confirmDialog({title:`Remove ${u.name}?`, message:`${u.name} will lose access to this workspace. You can re-invite them later.${leads}`, confirmLabel:'Remove member', danger:true})) return;
-    if(API_MODE()){
-      try{ await api('users/'+u.id,'DELETE'); REMOTE.users=REMOTE.users.filter(x=>x.id!==u.id); }
-      catch(e){ toast(e.message,'err'); return; }
-    } else saveUsers(us.filter(x=>x.id!==u.id));
-    toast(i18t('set_t_removed',{name:u.name})); renderTeam();
-  }));
-  renderApprovalRules();
-  document.getElementById('ar-add')?.addEventListener('click',()=>openApprovalRuleEditor(-1));
-  renderReviewGatePanel();
-  renderDeskRulePanel();
-  document.getElementById('bk-export')?.addEventListener('click',()=>{
-    downloadFile(`hati-backup-${new Date().toISOString().slice(0,10)}.json`,
-      JSON.stringify({ kind:'hati-backup', v:1, exportedAt:nowISO(), org:getOrg(), users:getUsers(),
-        data:{ uid, contracts:state.contracts } },null,2));
-    toast(i18t('set_t_backup_downloaded'));
-  });
+}
+
+function stWireBackup(){
+  document.getElementById('bk-export')?.addEventListener('click',()=>settingsExportBackup());
   document.getElementById('bk-import')?.addEventListener('change',e=>{
     const f=e.target.files[0]; if(!f) return;
     const rd=new FileReader();
     rd.onload=async()=>{ let b;
       try{ b=JSON.parse(rd.result); if(b.kind!=='hati-backup'||!b.org||!b.users) throw new Error('bad'); }
-      catch(err){ toast(i18t('set_t_bad_backup'),'err'); return; }
+      catch(err){ stDrawerRefuse(i18t('set_t_bad_backup')); return; }
       if(!await confirmDialog({title:'Restore from backup?', message:'Restoring replaces this workspace, its users and contracts with the backup. The current data will be overwritten.', confirmLabel:'Restore backup', danger:true})) return;
       lsSet(LS.org,b.org); saveUsers(b.users); if(b.data) lsSet(LS.data,b.data);
       localStorage.removeItem(LS.session); location.reload();
@@ -1148,9 +1890,540 @@ function renderTeam(){
       Object.values(LS).forEach(k=>localStorage.removeItem(k)); location.reload();
     }
   });
-  setActiveNav('team');
 }
 
+/* ---- samples: origin, and a confirm that names exactly what goes ---- */
+function stSampleContracts(){ return (state.contracts||[]).filter(c=>c&&c.seeded===true); }
+async function stClearSamples(){
+  const s=stSampleContracts(); if(!s.length) return;
+  const ok=await confirmDialog({ title:i18t('set_demo_clear'),
+    message:i18t('set_demo_clear_msg',{n:s.length})+'\n\n'+s.map(c=>c.name).join('\n'),
+    confirmLabel:i18t('set_demo_clear'), danger:true });
+  if(!ok) return;
+  /* NOT the per-contract delete: that one refuses anything past Draft or Under
+     Review, and half the samples are seeded as Signed — so driving this through
+     it would have left the signed examples behind and reported success. The
+     server decides by ORIGIN and answers with what actually went. */
+  let gone=0;
+  if(API_MODE()){
+    try{ const r=await api('demo/clear','POST',{});
+      const ids=new Set((r&&r.removed)||[]);
+      state.contracts=(state.contracts||[]).filter(c=>!ids.has(c.id));
+      gone=ids.size;
+    }catch(e){ stDrawerRefuse(e.message); return; }
+  } else {
+    const ids=new Set(s.map(c=>c.id));
+    state.contracts=(state.contracts||[]).filter(c=>!ids.has(c.id));
+    gone=ids.size; persist();
+  }
+  if(state.activeId && !getContract(state.activeId)) state.activeId=null;
+  if(window.updateSidebarCounts) updateSidebarCounts();
+  toast(i18t('set_demo_cleared_n',{n:gone}));
+  renderTeam(); stDrawerOpen('samples');
+}
+
+/* ---- workspace-wide integrity, read-only ---- */
+let _stIntegrity=null;
+function stIntegrityHtml(r){
+  return `<b>${i18t('set_integrity_result',{checked:r.checked,clean:r.clean,faults:r.faults})}</b>`
+    +(r.at?`<br><span style="color:var(--color-neutral-500)">${fmtDT(r.at)}</span>`:'')
+    +(r.bad&&r.bad.length?`<br>${r.bad.slice(0,8).map(b=>`${esc(b.name)} — ${esc(b.why||'')}`).join('<br>')}${r.bad.length>8?`<br>+${r.bad.length-8}`:''}`:'');
+}
+async function stRunIntegrity(){
+  const out=document.getElementById('st-integrity-out');
+  if(out) out.innerHTML=i18t('set_integrity_running');
+  const list=(state.contracts||[]).slice();
+  const bad=[]; let checked=0;
+  for(const c of list){
+    try{
+      if(typeof ensureFull==='function') await ensureFull(c);
+      if(typeof negoIntegrityReport!=='function') break;
+      const r=await negoIntegrityReport(c);
+      checked++;
+      if(!r.ok) bad.push({ name:c.name, why:r.firstBroken||'' });
+    }catch(e){ bad.push({ name:c.name, why:(e&&e.message)||'' }); checked++; }
+  }
+  _stIntegrity={ at:nowISO(), checked, clean:checked-bad.length, faults:bad.length, bad };
+  if(out) out.innerHTML=stIntegrityHtml(_stIntegrity);
+  if(document.getElementById('set-page')) renderTeam();
+}
+
+/* ---- the go-live checklist: every row read off the workspace ---- */
+function stGoLive(){
+  const ob=(typeof window!=='undefined'&&window.ORG_BRANDING)||null;
+  const rows=[];
+  rows.push({ key:'entity', label:i18t('st_b_go_entity'),
+    ok: !!((ob&&ob.companyName)||(getOrg()&&getOrg().name)),
+    detail:(ob&&ob.companyName)||(getOrg()&&getOrg().name)||i18t('st_not_set'), go:'platform:company' });
+  if(API_MODE()) rows.push({ key:'mail', label:i18t('st_b_go_mail'),
+    ok: !((typeof emailOff==='function')&&emailOff()),
+    detail:((typeof emailOff==='function')&&emailOff())?i18t('set_email_not_configured'):i18t('set_email_configured'), go:'build:mail' });
+  const aiOn=(typeof copilotAvailable==='function')&&copilotAvailable();
+  rows.push({ key:'key', label:i18t('st_b_go_key'), ok:aiOn,
+    detail:aiOn?i18t('set_configured'):i18t('set_not_configured'), go:'build:engine' });
+  const cap=Number(((state.aiCfg||{}).limits||{}).dailySpendLimit||0);
+  rows.push({ key:'ceiling', label:i18t('st_b_go_ceiling'), ok:cap>0,
+    detail:cap>0?`$${cap.toFixed(2)}`:i18t('st_not_set'), go:'build:engine' });
+  const nRules=(typeof approvalRules==='function'?approvalRules():[]).length;
+  rows.push({ key:'rule', label:i18t('st_b_go_rule'), ok:nRules>0,
+    detail:nRules?String(nRules):i18t('set_no_approval_rules'), go:'platform:approvals' });
+  const nS=stSampleContracts().length;
+  rows.push({ key:'samples', label:i18t('st_b_go_samples'), ok:nS===0,
+    detail:nS?i18tn('set_demo_still_here',nS,{n:nS}):i18t('set_demo_cleared'), go:'build:samples' });
+  rows.push({ key:'integrity', label:i18t('set_integrity_title'),
+    ok: !!(_stIntegrity && _stIntegrity.faults===0),
+    detail: _stIntegrity? i18t('set_integrity_result',{checked:_stIntegrity.checked,clean:_stIntegrity.clean,faults:_stIntegrity.faults}) : i18t('set_integrity_never'),
+    go:'build:integrity' });
+  /* EVERYONE WHO MAY SIGN HAS BEEN THOUGHT ABOUT. The row is drawn whether or
+     not the rule is in force — an admin going live wants to have decided —
+     and its detail says which of those two worlds they are in, so a green tick
+     never reads as "and it is being enforced" when it is not. */
+  if(typeof signCapUnanswered==='function'){
+    const un=signCapUnanswered();
+    rows.push({ key:'caps', label:i18t('sc_go_capped'), ok:un.length===0,
+      detail:(un.length?i18tn('sc_unanswered',un.length,{n:un.length}):i18t('sc_ladder'))
+        +((typeof signCapEnforced==='function'&&signCapEnforced())?'':' · '+i18t('sc_not_enforced')),
+      go:'platform:approvals' });
+  }
+  const bk=stLastBackup();
+  rows.push({ key:'backup', label:i18t('st_b_go_backup'), ok:!!bk,
+    detail:bk?fmtDT(bk):i18t('st_not_set'), go:'platform:backup' });
+  if(API_MODE()) rows.push({ key:'firstsend', label:i18t('st_b_go_firstsend'),
+    ok: _stActivation ? _stActivation.northStar && _stActivation.northStar.withinSevenDays===true : false,
+    detail: _stActivation && _stActivation.northStar && _stActivation.northStar.firstSendDays!=null
+      ? String(_stActivation.northStar.firstSendDays) : i18t('set_north_star_none'), go:'build:pilot' });
+  return rows;
+}
+
+/* ---- COPILOT ENGINE — the existing panel, relocated whole ----
+   Key status, fast/deep routing with the models actually in force, the global
+   override, today's spend against the budget with the per-feature ledger, every
+   ceiling field, the onboarding allowance and the editable rate table. USD,
+   because the API bills in USD. */
+function stEngineBodyHtml(){
+  if(!API_MODE()){
+    return `<div id="ai-cfg-status" style="font-size:11px;color:var(--color-neutral-700);margin-bottom:8px">${i18t('set_checking')}</div>
+      <div style="display:flex;gap:8px;align-items:flex-end">
+        <label style="flex:1;min-width:0"><span style="${window.RV_LBL||''}">${i18t('set_api_key')}</span>
+          <input id="ai-key" type="password" placeholder="sk-ant-…" style="${window.RV_FLD||ST_INPUT}"/></label>
+        <button id="ai-key-save" style="${ST_BTN}">${i18t('set_save_key')}</button>
+      </div>
+      <button id="ai-key-clear" style="margin-top:6px;font-size:11px;font-weight:600;color:var(--st-ruby-dot);background:none;border:0;cursor:pointer;padding:0">${i18t('set_remove_key')}</button>
+      <p class="st-note" style="margin-top:12px">${i18t('set_local_mode_note')}</p>`;
+  }
+  return `
+    <div id="ai-cfg-status" style="font-size:11px;color:var(--color-neutral-700);margin-bottom:8px">${i18t('set_checking')}</div>
+    <div style="display:flex;gap:8px;align-items:flex-end">
+      <label style="flex:1;min-width:0"><span style="${window.RV_LBL||''}">${i18t('set_api_key')}</span>
+        <input id="ai-key" type="password" placeholder="sk-ant-…" style="${window.RV_FLD||ST_INPUT}"/></label>
+      <button id="ai-key-save" style="${ST_BTN}">${i18t('set_save_key')}</button>
+    </div>
+    <button id="ai-key-clear" style="margin-top:6px;font-size:11px;font-weight:600;color:var(--st-ruby-dot);background:none;border:0;cursor:pointer;padding:0">${i18t('set_remove_key')}</button>
+
+    <div class="st-sec">
+      <div style="font-size:12px;font-weight:600;color:var(--color-text)">${i18t('set_model_routing')}</div>
+      <p class="st-note">${i18t('set_override_blank')}</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:6px">
+        <div style="border:1px solid var(--color-divider);border-radius:4px;padding:8px">
+          <div style="font-size:11px;font-weight:600;color:var(--color-text)">${i18t('set_fast_tier')}</div>
+          <div style="font-size:10px;color:var(--color-neutral-500);margin:2px 0 4px">${i18t('set_fast_sub')}</div>
+          <div style="font-size:10px;color:var(--color-neutral-700);margin-bottom:4px">${i18t('set_current')} <span id="ai-model-fast-cur" style="font-family:var(--font-mono)">—</span></div>
+          <input id="ai-model-fast" type="text" placeholder="${esc(i18t('set_ph_default_rec'))}" style="${ST_MONO}"/>
+        </div>
+        <div style="border:1px solid var(--color-divider);border-radius:4px;padding:8px">
+          <div style="font-size:11px;font-weight:600;color:var(--color-text)">${i18t('set_deep_tier')}</div>
+          <div style="font-size:10px;color:var(--color-neutral-500);margin:2px 0 4px">${i18t('set_deep_sub')}</div>
+          <div style="font-size:10px;color:var(--color-neutral-700);margin-bottom:4px">${i18t('set_current')} <span id="ai-model-deep-cur" style="font-family:var(--font-mono)">—</span></div>
+          <input id="ai-model-deep" type="text" placeholder="${esc(i18t('set_ph_default_rec'))}" style="${ST_MONO}"/>
+        </div>
+      </div>
+      <details style="font-size:11px;margin-top:8px">
+        <summary style="cursor:pointer;color:var(--color-neutral-600)">${i18t('set_advanced_override')}</summary>
+        <div style="margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;gap:8px">
+          <input id="ai-model-global" type="text" placeholder="${esc(i18t('set_ph_none'))}" style="${ST_MONO};width:220px"/>
+          <span style="font-size:10px;color:var(--color-neutral-500)">${i18t('set_forces_one_model')}</span>
+        </div>
+      </details>
+      <button id="ai-model-save" style="margin-top:8px;${ST_BTN_SM}">${i18t('set_save_model')}</button>
+    </div>
+
+    <div class="st-sec">
+      <div style="font-size:12px;font-weight:600;color:var(--color-text)">${i18t('set_spend_controls')}</div>
+      <p class="st-note">${i18t('set_spend_governed')} ${i18t('set_spend_money')}</p>
+      <div id="ai-usage" style="font-size:11.5px;color:var(--color-neutral-700);margin:6px 0 4px">${i18t('set_today_dash')}</div>
+      <div style="height:6px;background:var(--color-neutral-200);border-radius:3px;overflow:hidden;margin-bottom:8px"><div id="ai-usage-bar" style="width:0%;height:100%;background:var(--color-accent);transition:width .3s"></div></div>
+      <div id="ai-spend-breakdown" style="margin-bottom:10px"></div>
+      ${''/* ---- AND THE SAME MONEY BY PERSON ----
+             It is here, under the by-feature breakdown, because this is where
+             the money already lives — and NOT on the People tab, where a
+             per-person cost column would turn a list about permissions into a
+             league table. That is a different product decision from showing an
+             admin where the money went.
+
+             NOTHING IS REFUSED BY IT. Phase 1 shows the numbers; a cap
+             designed before anybody has seen them is a cap set to the wrong
+             figure. The note says what the figure IS, because somebody will
+             read it as a performance measure otherwise. */}
+      <div id="ai-spend-people" style="margin-bottom:10px"></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">
+        ${stLimitField('ai-daily-spend',i18t('set_lim_daily_spend'),i18t('set_lim_daily_spend_sub'),0)}
+        ${stLimitField('ai-estimate-confirm',i18t('set_lim_confirm'),i18t('set_lim_confirm_sub'),0)}
+        ${stLimitField('ai-rate-light',i18t('set_lim_light'),i18t('set_lim_light_sub'),1)}
+        ${stLimitField('ai-rate-deep',i18t('set_lim_deep'),i18t('set_lim_deep_sub'),1)}
+        ${stLimitField('ai-rate-ocr',i18t('set_lim_ocr'),i18t('set_lim_ocr_sub'),1)}
+        ${stLimitField('ai-daily',i18t('set_lim_daily_req'),i18t('set_lim_daily_req_sub'),0)}
+        ${stLimitField('ai-ocr-pages',i18t('set_lim_ocr_pages'),i18t('set_lim_ocr_pages_sub'),1)}
+        ${stLimitField('ai-maxchars',i18t('set_lim_chars'),i18t('set_lim_chars_sub'),1000)}
+        ${stLimitField('ai-maxcontracts',i18t('set_lim_contracts'),i18t('set_lim_contracts_sub'),1)}
+      </div>
+      <label style="display:flex;align-items:flex-start;gap:8px;margin-top:9px;font-size:11px;color:var(--color-neutral-700);line-height:1.45;cursor:pointer">
+        <input id="ai-thorough" type="checkbox" style="margin-top:2px;width:14px;height:14px;accent-color:var(--color-accent);flex:none"/>
+        <span><b>${i18t('set_thorough_extraction')}</b> ${i18t('set_thorough_body')}
+        <span style="color:var(--st-amber-fg)">${i18t('set_thorough_warn')}</span> ${i18t('set_preflight')}</span></label>
+      <button id="ai-limits-save" style="margin-top:9px;${ST_BTN_SM}">${i18t('set_save_limits')}</button>
+    </div>
+
+    <div class="st-sec">
+      <div style="font-size:12px;font-weight:600;color:var(--color-text)">${i18t('set_onboarding_allowance')}</div>
+      <p class="st-note">${i18t('set_allowance_sub')}</p>
+      <div id="ai-allowance-state" style="font-size:11.5px;color:var(--color-neutral-700);margin:6px 0">—</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">
+        ${stLimitField('ai-allow-budget',i18t('set_lim_allow_budget'),i18t('set_lim_allow_budget_sub'),0)}
+        ${stLimitField('ai-allow-docs',i18t('set_lim_allow_docs'),i18t('set_lim_allow_docs_sub'),0)}
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+        <button id="ai-allow-open" style="${ST_BTN_SM}">${i18t('set_open_allowance')}</button>
+        <button id="ai-allow-topup" style="${ST_BTN2};font-size:11.5px;padding:5px 10px">${i18t('set_top_up')}</button>
+        <button id="ai-allow-close" style="${ST_BTN2};font-size:11.5px;padding:5px 10px">${i18t('act_close')}</button>
+      </div>
+    </div>
+
+    <div class="st-sec">
+      <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
+        <div style="font-size:12px;font-weight:600;color:var(--color-text)">${i18t('set_rate_table')}</div>
+        <span id="ai-rates-meta" style="font-size:10px;color:var(--color-neutral-500)"></span>
+      </div>
+      <p class="st-note">${i18t('set_usd_per')} ${i18t('set_per_million')}</p>
+      <div id="ai-rates-table" style="max-height:220px;overflow-y:auto" class="scroll-thin"></div>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+        <button id="ai-rates-save" style="${ST_BTN_SM}">${i18t('set_save_rates')}</button>
+        <button id="ai-rates-reset" style="${ST_BTN2};font-size:11.5px;padding:5px 10px">${i18t('set_reset_defaults')}</button>
+      </div>
+    </div>
+
+    <div class="st-sec">
+      <div style="font-size:12px;font-weight:600;color:var(--color-text);margin-bottom:2px">${i18t('set_file_existing')}</div>
+      <p class="st-note">${i18t('set_file_existing_sub')}</p>
+      <button id="meta-backfill" style="margin-top:6px;${ST_BTN2}">${icon('sparkle','w-3.5 h-3.5')} <span id="meta-backfill-lbl">${i18t('set_extract_metadata')}</span></button>
+    </div>`;
+}
+function stWireEngine(){
+  if(!API_MODE()){
+    /* Local mode: no server to hold the key — persist it in this browser so the
+       field is present and remembered; Copilot still uses the built-in
+       interpreter. */
+    const st=document.getElementById('ai-cfg-status');
+    const refresh=()=>{ if(!st) return; const k=lsGet('hati.v1.aikey');
+      st.innerHTML=k?`<span style="color:var(--st-green-fg);font-weight:600">● Configured</span> · key ••••${String(k).slice(-4)} stored in this browser — Copilot is live.`
+                    :`<span style="color:var(--st-amber-fg);font-weight:600">● Not configured</span> — Copilot and Copilot features use the built-in interpreter.`; };
+    refresh();
+    const refreshAiIndicators=()=>{ if(typeof renderSideUser==='function') renderSideUser(); if(typeof updateAiBrainPill==='function') updateAiBrainPill(); };
+    document.getElementById('ai-key-save')?.addEventListener('click',()=>{
+      const inp=document.getElementById('ai-key'); const key=(inp?.value||'').trim();
+      if(!key){ stDrawerRefuse(i18t('set_enter_key')); return; }
+      lsSet('hati.v1.aikey', key); inp.value='';
+      stDrawerClearRefusal();
+      toast(i18t('set_t_key_saved',{last4:key.slice(-4)})); refresh(); refreshAiIndicators();
+    });
+    document.getElementById('ai-key-clear')?.addEventListener('click',async()=>{
+      if(!await confirmDialog({title:'Remove the stored Copilot key?', message:'HaTi Copilot and Copilot features will fall back to the built-in interpreter.', confirmLabel:'Remove key', danger:true})) return;
+      localStorage.removeItem('hati.v1.aikey'); toast(i18t('set_key_removed')); refresh(); refreshAiIndicators();
+    });
+    return;
+  }
+  const refreshAiCfg=async()=>{ const el=document.getElementById('ai-cfg-status'); if(!el) return;
+    try{ const c=await api('ai/config'); state.aiConfigured=!!c.configured;
+      const fast=c.tiers?.fast?.model||c.models?.fast||c.model||'', deep=c.tiers?.deep?.model||c.models?.deep||'';
+      el.innerHTML=c.configured
+        ?`<span class="text-brand-600">${i18t('set_configured')}</span> · ${i18t('set_key')} ${c.hint}${c.source==='env'?i18t('set_key_from_env'):''}`
+        :`<span class="text-gold-600">${i18t('set_not_configured')}</span>${i18t('set_falls_back')}`;
+      const set=(id,v)=>{ const n=document.getElementById(id); if(n) n.textContent=v||'—'; };
+      set('ai-model-fast-cur',fast); set('ai-model-deep-cur',deep);
+      const fill=(id,v)=>{ const n=document.getElementById(id); if(n&&document.activeElement!==n) n.value=v||''; };
+      fill('ai-model-fast',c.tiers?.fast?.override); fill('ai-model-deep',c.tiers?.deep?.override); fill('ai-model-global',c.globalOverride);
+      const lim=c.limits||{}, spend=c.spend||{};
+      state.aiCfg=c;   // migration's pre-flight estimate reads rates from here
+      const money=n=>'$'+Number(n||0).toFixed(2);
+      const budget=Number(lim.dailySpendLimit||0);
+      const spent=Number(spend.cost||0);
+      const uEl=document.getElementById('ai-usage');
+      if(uEl){
+        const reqN=Number(spend.requests||0);
+        uEl.innerHTML=budget>0
+          ? `${i18tn('set_today_of',reqN,{spent:money(spent),budget:money(budget),n:reqN.toLocaleString(jxLocale())})} <span style="color:var(--color-neutral-500)">(${spend.date||''})</span>`
+          : `${i18tn('set_today_free',reqN,{spent:money(spent),n:reqN.toLocaleString(jxLocale())})} <span style="color:var(--color-neutral-500)">(${spend.date||''})${i18t('set_no_daily_budget')}</span>`; }
+      const uBar=document.getElementById('ai-usage-bar');
+      if(uBar){ const pct=budget>0?Math.min(100,Math.round(spent/budget*100)):0;
+        uBar.style.width=pct+'%'; uBar.style.background=pct>=90?'var(--st-ruby-fg)':pct>=70?'var(--st-amber-dot)':'var(--color-accent)'; }
+      const bdHost=document.getElementById('ai-spend-breakdown');
+      if(bdHost){
+        const rows=Object.entries(spend.byFeature||{}).map(([k,v])=>({k,...v})).sort((a,b)=>b.cost-a.cost);
+        bdHost.innerHTML=rows.length?`<div style="border:1px solid var(--color-divider);border-radius:5px;overflow:hidden">
+          ${rows.map(r=>`<div style="display:flex;align-items:center;gap:8px;padding:4px 8px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent);font-size:11px">
+            <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${PB_ESC(r.label||r.k)}</span>
+            <span style="color:var(--color-neutral-500);font-family:var(--font-mono);font-size:10px">${Number(r.requests||0).toLocaleString(jxLocale())} req</span>
+            <span style="font-family:var(--font-mono);font-weight:600;min-width:62px;text-align:right">${'$'+Number(r.cost||0).toFixed(4)}</span>
+          </div>`).join('')}</div>`
+          :`<div style="font-size:10.5px;color:var(--color-neutral-500)">${i18t('set_no_spend')}</div>`;
+      }
+      const pHost=document.getElementById('ai-spend-people');
+      if(pHost){
+        const people=Array.isArray(spend.byPerson)?spend.byPerson:[];
+        const un=Number(spend.unattributed||0);
+        pHost.innerHTML=`
+          <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);margin:0 0 4px">${
+            esc(i18t('set_spend_people'))}</div>
+          ${people.length?`<div style="border:1px solid var(--color-divider);border-radius:5px;overflow:hidden">
+            ${people.map(p=>`<div style="display:flex;align-items:center;gap:8px;padding:4px 8px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent);font-size:11px">
+              <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${PB_ESC(p.name||'—')}${
+                p.gone?` <span style="color:var(--color-neutral-500);font-size:10px">${esc(i18t('set_spend_left'))}</span>`:''}</span>
+              <span style="color:var(--color-neutral-500);font-family:var(--font-mono);font-size:10px">${Number(p.requests||0).toLocaleString(jxLocale())} req</span>
+              <span style="font-family:var(--font-mono);font-weight:600;min-width:62px;text-align:right">${'$'+Number(p.cost||0).toFixed(4)}</span>
+            </div>`).join('')}</div>`
+          :`<div style="font-size:10.5px;color:var(--color-neutral-500)">${esc(i18t('set_spend_people_none'))}</div>`}
+          ${''/* THE GAP IS A FIGURE, NOT A DISCOVERY. Anything running outside
+                 a signed-in request counts toward the workspace total and
+                 against nobody, so the two lists need not agree — and an admin
+                 must not have to subtract to find that out. Drawn only when
+                 there IS a gap; an always-on "$0.0000 not attributed" is
+                 furniture. */}
+          ${un>0.000001?`<div style="font-size:10.5px;color:var(--st-amber-fg);margin-top:4px">${
+            esc(i18t('set_spend_unattributed',{amount:'$'+un.toFixed(4)}))}</div>`:''}
+          <div style="font-size:10px;color:var(--color-neutral-500);line-height:1.5;margin-top:5px">${
+            esc(i18t('set_spend_people_note'))}</div>`;
+      }
+      const fillN=(id,v)=>{ const n=document.getElementById(id); if(n&&document.activeElement!==n&&v!==undefined) n.value=v; };
+      fillN('ai-rate-light',lim.rateLight); fillN('ai-rate-deep',lim.rateDeep); fillN('ai-daily',lim.dailyLimit);
+      fillN('ai-rate-ocr',lim.rateOcr); fillN('ai-ocr-pages',lim.ocrMaxPages);
+      fillN('ai-daily-spend',lim.dailySpendLimit); fillN('ai-estimate-confirm',lim.estimateConfirmAt);
+      fillN('ai-maxchars',lim.maxChars); fillN('ai-maxcontracts',lim.maxContracts);
+      const th=document.getElementById('ai-thorough'); if(th&&document.activeElement!==th) th.checked=!!lim.thoroughExtract;
+      renderAllowancePanel(c.allowance||{});
+      renderRateTable(c.rates||{}, c.ratesMeta||{});
+    }catch(e){ el.textContent='Could not read Copilot config.'; } };
+  refreshAiCfg();
+  // basic shape check mirroring the server (blank = clear override)
+  const okModel=(s)=>s===''||(!/\s/.test(s)&&/^claude-[a-z0-9][a-z0-9.\-]*$/i.test(s));
+  document.getElementById('ai-key-save')?.addEventListener('click',async()=>{
+    const key=document.getElementById('ai-key').value.trim();
+    if(!key){ stDrawerRefuse(i18t('set_enter_key')); return; }
+    try{ await api('ai/config','PUT',{ key }); document.getElementById('ai-key').value='';
+      stDrawerClearRefusal(); toast(i18t('set_key_saved')); refreshAiCfg(); }
+    catch(e){ stDrawerRefuse(e.message); }
+  });
+  document.getElementById('ai-model-save')?.addEventListener('click',async()=>{
+    const modelFast=document.getElementById('ai-model-fast').value.trim();
+    const modelDeep=document.getElementById('ai-model-deep').value.trim();
+    const model=document.getElementById('ai-model-global').value.trim();
+    for(const m of [modelFast,modelDeep,model]) if(!okModel(m)){ stDrawerRefuse(i18t('set_t_bad_model',{m})); return; }
+    try{ await api('ai/config','PUT',{ modelFast, modelDeep, model }); stDrawerClearRefusal(); toast(i18t('set_model_saved')); refreshAiCfg(); }
+    catch(e){ stDrawerRefuse(e.message); }
+  });
+  document.getElementById('ai-key-clear')?.addEventListener('click',async()=>{
+    if(!await confirmDialog({title:'Remove the stored Copilot key?', message:'Copilot features will fall back to the built-in interpreter until a new key is added.', confirmLabel:'Remove key', danger:true})) return;
+    try{ await api('ai/config','PUT',{ clear:true }); toast(i18t('set_key_removed')); refreshAiCfg(); }catch(e){ stDrawerRefuse(e.message); }
+  });
+  document.getElementById('ai-limits-save')?.addEventListener('click',async()=>{
+    const num=id=>{ const el=document.getElementById(id); if(!el) return undefined; const v=el.value.trim(); return v===''?undefined:Number(v); };
+    const whole={ rateLight:num('ai-rate-light'), rateDeep:num('ai-rate-deep'), rateOcr:num('ai-rate-ocr'),
+      dailyLimit:num('ai-daily'), maxChars:num('ai-maxchars'), maxContracts:num('ai-maxcontracts'), ocrMaxPages:num('ai-ocr-pages') };
+    for(const [k,v] of Object.entries(whole)) if(v!==undefined&&(!Number.isFinite(v)||v<0||Math.floor(v)!==v)){ stDrawerRefuse(i18t('set_t_whole_number',{k})); return; }
+    const cash={ dailySpendLimit:num('ai-daily-spend'), estimateConfirmAt:num('ai-estimate-confirm') };
+    for(const [k,v] of Object.entries(cash)) if(v!==undefined&&(!Number.isFinite(v)||v<0)){ stDrawerRefuse(i18t('set_t_non_negative',{k})); return; }
+    const body={ ...whole, ...cash, thoroughExtract: !!document.getElementById('ai-thorough')?.checked };
+    try{ await api('ai/config','PUT',body); stDrawerClearRefusal(); toast(i18t('set_limits_saved')); refreshAiCfg(); }
+    catch(e){ stDrawerRefuse(e.message); }
+  });
+  const allowBody=()=>{
+    const n=id=>{ const v=document.getElementById(id)?.value.trim(); return v===''||v==null?0:Number(v); };
+    return { budget:n('ai-allow-budget'), docs:n('ai-allow-docs') };
+  };
+  document.getElementById('ai-allow-open')?.addEventListener('click',async()=>{
+    const b=allowBody();
+    if(!(b.budget>0)&&!(b.docs>0)){ stDrawerRefuse(i18t('set_set_budget')); return; }
+    if(!await confirmDialog({title:'Open an onboarding allowance?',
+      message:`Bulk import and OCR will draw on ${b.budget>0?'$'+b.budget.toFixed(2):'no money cap'}${b.docs>0?` and ${b.docs} documents`:''} instead of the daily budget, until it runs out.`,
+      confirmLabel:'Open allowance'})) return;
+    try{ await api('ai/allowance','PUT',{ open:true, ...b }); toast(i18t('set_allowance_opened')); refreshAiCfg(); }
+    catch(e){ stDrawerRefuse(e.message); }
+  });
+  document.getElementById('ai-allow-topup')?.addEventListener('click',async()=>{
+    try{ await api('ai/allowance','PUT',allowBody()); toast(i18t('set_allowance_updated')); refreshAiCfg(); }
+    catch(e){ stDrawerRefuse(e.message); }
+  });
+  document.getElementById('ai-allow-close')?.addEventListener('click',async()=>{
+    if(!await confirmDialog({title:'Close the onboarding allowance?', message:'Migration and OCR will go back to drawing on the daily budget.', confirmLabel:'Close allowance', danger:true})) return;
+    try{ await api('ai/allowance','PUT',{ close:true }); toast(i18t('set_allowance_closed')); refreshAiCfg(); }
+    catch(e){ stDrawerRefuse(e.message); }
+  });
+  document.getElementById('ai-rates-save')?.addEventListener('click',async()=>{
+    const rates={};
+    document.querySelectorAll('[data-rate-model]').forEach(row=>{
+      const m=row.getAttribute('data-rate-model');
+      const i=Number(row.querySelector('[data-rate="in"]').value);
+      const o=Number(row.querySelector('[data-rate="out"]').value);
+      if(Number.isFinite(i)&&Number.isFinite(o)&&i>=0&&o>=0) rates[m]={in:i,out:o};
+    });
+    if(!Object.keys(rates).length){ stDrawerRefuse(i18t('set_nothing_to_save')); return; }
+    try{ await api('ai/config','PUT',{ rates }); stDrawerClearRefusal(); toast(i18t('set_rate_saved')); refreshAiCfg(); }
+    catch(e){ stDrawerRefuse(e.message); }
+  });
+  document.getElementById('ai-rates-reset')?.addEventListener('click',async()=>{
+    if(!await confirmDialog({title:'Reset the rate table?', message:'Every model goes back to the prices HaTi ships with. Past spend already recorded is not re-priced.', confirmLabel:'Reset rates', danger:true})) return;
+    try{ await api('ai/config','PUT',{ rates:{} }); toast(i18t('set_rate_reset')); refreshAiCfg(); }
+    catch(e){ stDrawerRefuse(e.message); }
+  });
+  document.getElementById('meta-backfill')?.addEventListener('click',()=>runMetaBackfill());
+}
+
+/* ---- email delivery & outbox ---- */
+function stLoadOutbox(){
+  return (async()=>{
+    try{ const r=await api('outbox');
+      const host=document.getElementById('outbox-list'); if(!host) return;
+      host.innerHTML=`<div class="mb-2 text-[11px] ${r.emailConfigured?'text-brand-600':'text-gold-600'}">${r.emailConfigured?i18t('set_email_configured'):i18t('set_email_not_configured')}</div>`+
+        (r.items.length?`<div class="space-y-1.5 max-h-56 overflow-y-auto scroll-thin">${r.items.map(it=>`
+          <div class="rounded-lg border border-brand-100 bg-white p-2.5">
+            <div class="flex items-center gap-2"><span class="text-[11px] font-medium text-brand-900 truncate flex-1">${it.subject}</span><span class="text-[9px] uppercase tracking-wider ${it.sent?'text-brand-600':'text-gold-600'}">${it.sent?i18t('set_sent_lower'):it.provider}</span></div>
+            <div class="text-[10px] font-mono text-brand-800/65 truncate">→ ${it.to_addr} · ${fmtDT(it.created_at)}</div>
+            ${it.detail?`<div class="mt-1 text-[10px] text-gold-700 bg-gold-500/10 rounded px-1.5 py-1 leading-relaxed">${i18t('set_why_failed',{why:esc(it.detail)})}</div>`:''}
+            ${it.dev_hint?`<div class="mt-1 text-[10px] font-mono text-gold-700 bg-gold-500/10 rounded px-1.5 py-0.5 inline-block">${it.dev_hint}</div>`:''}
+          </div>`).join('')}</div>`:`<div class="text-[11px] text-brand-800/65">${i18t('set_no_messages')}</div>`);
+    }catch(e){}
+  })();
+}
+function stWireOutbox(){
+  stLoadOutbox();
+  document.getElementById('ob-refresh')?.addEventListener('click',()=>stLoadOutbox());
+  document.getElementById('rem-run')?.addEventListener('click',async()=>{
+    try{ const r=await api('reminders/run','POST',{}); toast(i18tn('set_checked_queued',r.queued,{checked:r.checked,n:r.queued})); stLoadOutbox(); }
+    catch(e){ stDrawerRefuse(e.message); }
+  });
+}
+
+/* ---- the monthly report card ----
+   Status, the on/off switch and the audience, read from and written to the
+   server's own setting — the sweep that sends the report runs there, so this
+   panel is a remote control, not a second copy of the rule. */
+function stWireMonthlyReport(){
+  const loadMonthly=async()=>{
+    const st=document.getElementById('mr-status'); if(!st) return;
+    try{ const r=await api('reports/monthly');
+      const h=r.health||{};
+      st.innerHTML=[
+        r.emailConfigured?'':`<span style="color:var(--st-amber-fg)">${i18t('set_email_not_configured')}</span>`,
+        h.lastSentMonth?i18t('set_mr_last_sent',{month:h.lastSentMonth,n:h.lastSentTo||0}):i18t('set_mr_none_yet'),
+        h.lastError?`<span style="color:var(--st-ruby-dot)">${i18t('set_mr_last_error',{err:esc(h.lastError)})}</span>`:'',
+      ].filter(Boolean).join(' · ');
+      const en=document.getElementById('mr-enabled'); if(en) en.checked=!!r.settings.enabled;
+      const rec=document.getElementById('mr-recipients');
+      if(rec&&typeof r.settings.recipients==='string') rec.value=r.settings.recipients;
+    }catch(e){ st.textContent=e.message||'—'; }
+  };
+  loadMonthly();
+  document.getElementById('mr-enabled')?.addEventListener('change',async e=>{
+    try{ await api('reports/monthly/settings','PUT',{enabled:e.target.checked});
+      toast(e.target.checked?i18t('set_mr_on'):i18t('set_mr_off')); }
+    catch(err){ stDrawerRefuse(err.message); loadMonthly(); }
+  });
+  document.getElementById('mr-recipients')?.addEventListener('change',async e=>{
+    try{ await api('reports/monthly/settings','PUT',{recipients:e.target.value}); toast(i18t('set_mr_saved')); }
+    catch(err){ stDrawerRefuse(err.message); loadMonthly(); }
+  });
+  document.getElementById('mr-send-now')?.addEventListener('click',async()=>{
+    try{ const r=await api('reports/monthly/run','POST',{});
+      toast(r.sent?i18tn('set_mr_sent_n',r.sent,{n:r.sent,month:r.month}):i18t('set_mr_nothing_sent'));
+      loadMonthly(); }
+    catch(err){ stDrawerRefuse(err.message); }
+  });
+}
+
+/* ---- pilot activation: four labelled steps and one north-star sentence ----
+   Words, not colour: "not yet" is an answer, not an absence. Held on the module
+   so the go-live checklist can read the same answer without asking twice. */
+let _stActivation=null;
+function stLoadActivation(){
+  return (async()=>{
+    const host=document.getElementById('activation-funnel'); if(!host) return;
+    try{
+      const r=await api('activation'); _stActivation=r;
+      const STEP={ added:i18t('set_step_added'), scanned:i18t('set_step_scanned'), sent:i18t('set_step_sent'), signed:i18t('set_step_signed') };
+      host.innerHTML=`
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:10px">
+          ${Object.entries(STEP).map(([k,label])=>{ const e=r.events&&r.events[k];
+            return `<div style="border:1px solid var(--color-divider);border-radius:6px;padding:9px 11px;background:${e?'var(--st-green-bg)':'var(--color-bg)'}">
+              <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:${e?'var(--st-green-fg)':'var(--color-neutral-600)'}">${e?icon('check2','w-3 h-3'):''}${label}</div>
+              <div style="font-size:10px;font-family:var(--font-mono);color:var(--color-neutral-600);margin-top:3px">${e?`${fmtDT(e.first)} · ${e.count}×`:i18t('set_not_yet')}</div>
+            </div>`; }).join('')}
+        </div>
+        <div style="font-size:11.5px;line-height:1.5;color:${r.northStar.withinSevenDays===true?'var(--st-green-fg)':r.northStar.withinSevenDays===false?'var(--st-amber-fg)':'var(--color-neutral-700)'}">
+          ${r.northStar.firstSendDays==null
+            ? i18t('set_north_star_none')
+            : r.northStar.withinSevenDays
+              ? `<b>${i18t('set_north_star')}</b> ${r.northStar.firstSendDays===0?i18t('set_first_send_dayone'):i18tn('set_first_send_after',r.northStar.firstSendDays,{n:r.northStar.firstSendDays})}`
+              : i18t('set_first_send_late',{n:r.northStar.firstSendDays})}
+        </div>`;
+    }catch(e){ host.innerHTML=`<span style="color:var(--color-neutral-600)">${i18t('set_activation_failed',{err:esc(e.message)})}</span>`; }
+  })();
+}
+
+/* ============================================================
+   THE PAGE
+   ============================================================ */
+function renderTeam(){
+  /* THE GATE IS HERE, not on the nav item, because the nav item is one of five
+     doors and the other four were the ones nobody remembered. Every road into
+     'team' arrives at this function; a non-admin is drawn their own account
+     page rather than a refusal or a blank. */
+  if(typeof isAdmin==='function' && !isAdmin()){ renderMyAccountPage(); return; }
+  const _heldHeights=settingsHeightsBefore();
+  const tab=settingsTab();
+  const tabRow=`<div class="st-tabs" role="tablist">${ST_TABS.map(k=>
+    `<button class="st-tab${k===tab?' on':''}" data-st-tab="${k}" role="tab" aria-selected="${k===tab?'true':'false'}">${esc(i18t('st_tab_'+k))}</button>`).join('')}</div>`;
+  const body =
+      tab==='people'   ? stPeopleHtml()
+    : tab==='you'      ? `<div class="st-you">${stAccountBodyHtml()}<p class="st-note">${esc(i18t('st_you_elsewhere'))}</p></div>`
+    : stRowsHtml(tab);
+  document.getElementById('content').innerHTML=`
+  <div id="set-page" class="view-enter st-page">
+    ${tabRow}
+    <p class="st-tabsub">${esc(i18t('st_tab_'+tab+'_sub'))}</p>
+    <div id="st-tabbody">${body}</div>
+  </div>`;
+  settingsHoldHeights(_heldHeights);
+  stWireDrawerOnce();
+  if(tab==='you') stAccountWire();
+  /* A door may have asked for one panel. Consumed on arrival, exactly once, so
+     a later repaint does not re-open something the reader closed. */
+  if(_stWantPanel){ const want=_stWantPanel; _stWantPanel=null; stDrawerOpen(want); }
+  setActiveNav('team');
+}
+/* A non-admin's whole settings page: their own account, drawn in the page
+   rather than in the drawer, because arriving at a view and being handed a
+   floating panel over an empty page reads as an error. */
+function renderMyAccountPage(){
+  document.getElementById('content').innerHTML=`
+  <div id="set-page" class="view-enter st-page">
+    <div class="st-quiet" style="margin-bottom:14px">
+      <b>${esc(i18t('st_admin_only_page'))}</b><br>${esc(i18t('st_admin_only_body'))}
+    </div>
+    <h2 class="st-tabsub" style="font-size:15px;font-weight:600;color:var(--color-text)">${esc(i18t('st_you_title'))}</h2>
+    <div class="st-you">${stAccountBodyHtml()}</div>
+  </div>`;
+  stWireDrawerOnce();
+  stAccountWire();
+  setActiveNav('team');
+}
 /* ---- E4 clause library editor + playbook viewer (Admin/Legal) ---- */
 function saveClauseLibrary(lib){ state.settings=state.settings||{}; state.settings.clauseLibrary=lib; saveSettings(); }
 function renderClauseLibrary(){
@@ -1407,6 +2680,22 @@ function renderReviewGatePanel(){
       <span style="font-weight:600;color:var(--color-text)">${i18t('rv_set_on')}</span>
     </label>
     <div id="rv-gate-more"${cfg.on?'':' hidden'}>
+      ${''/* ---- WHO IS CHECKED IS PER PERSON ----
+             The switch above is the MASTER: it decides whether any of this
+             happens at all. Under it, each person carries their own flag, set
+             on their row under People, and the absence of one means checked —
+             which is what keeps a workspace that already had this on behaving
+             exactly as it did. The unchecked are NAMED here rather than
+             counted, because an admin acts on names. */}
+      <p style="font-size:11px;color:var(--color-neutral-600);margin:0 0 9px;line-height:1.5">${i18t('rv_set_per_person')}
+        ${(()=>{ const off=(typeof reviewUncheckedPeople==='function')?reviewUncheckedPeople():[];
+          return off.length
+            ? `<span style="color:var(--st-amber-fg)">${esc(i18tn('rv_set_unchecked',off.length,{n:off.length,who:off.map(u=>u.name||u.email).join(', ')}))}</span>`
+            : esc(i18t('rv_set_all_checked')); })()}</p>
+      <label style="display:flex;gap:9px;align-items:flex-start;font-size:12px;line-height:1.5;cursor:${admin?'pointer':'not-allowed'};margin-bottom:10px">
+        <input id="rv-gate-newchecked" type="checkbox"${cfg.newChecked?' checked':''}${dis} style="margin-top:2px"/>
+        <span style="font-weight:600;color:var(--color-text)">${i18t('rv_set_new_checked')}</span>
+      </label>
       <label style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">${i18t('rv_set_when')}</label>
       <select id="rv-gate-when"${dis} style="${window.RV_FLD||''}margin-bottom:9px">
         <option value="always"${cfg.when==='always'?' selected':''}>${i18t('rv_set_when_always')}</option>
@@ -1423,13 +2712,15 @@ function renderReviewGatePanel(){
     const on=!!document.getElementById('rv-gate-on').checked;
     const when=document.getElementById('rv-gate-when')?.value||'deviation';
     const value=Number(document.getElementById('rv-gate-value')?.value||0);
-    saveReviewGateCfg({on,when,value});
+    const nc=document.getElementById('rv-gate-newchecked');
+    saveReviewGateCfg({on,when,value,newChecked:nc?!!nc.checked:undefined});
     toast(i18t('rv_set_saved'));
     renderReviewGatePanel();
   };
   document.getElementById('rv-gate-on')?.addEventListener('change',write);
   document.getElementById('rv-gate-when')?.addEventListener('change',write);
   document.getElementById('rv-gate-value')?.addEventListener('change',write);
+  document.getElementById('rv-gate-newchecked')?.addEventListener('change',write);
 }
 
 /* ---- who may redline a negotiation (Admin) ----
@@ -1495,4 +2786,16 @@ async function loadSessions(){
   }catch(e){ host.innerHTML=`<p style="font-size:11px;color:var(--color-neutral-500)">${i18t('set_could_not_load_sessions')}</p>`; }
 }
 
-Object.assign(window,{renderTeam,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,renderDeskRulePanel,condLabel,loadSessions});
+/* Exported because a cross-module call that is never exported silently takes
+   the else branch and nobody catches it — the lesson rlPaperFootHtml taught
+   this codebase for a year. openMyAccount and openSettingsAt are the two doors
+   the shell calls; SET_PANELS and the readers beside it are what the tests read. */
+Object.assign(window,{renderTeam,renderMyAccountPage,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,
+  renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,renderDeskRulePanel,condLabel,loadSessions,
+  openMyAccount,openSettingsAt,settingsGoTab,settingsTab,SET_PANELS,ST_TABS,SET_CLOSURES,
+  stDrawerOpen,stDrawerClose,stDrawerRefuse,settingsPersonDrawer,settingsSavePerson,settingsRemoveMember,
+  settingsWriteFolderAccess,settingsExportBackup,stGoLive,stSampleContracts,stClearSamples,stRunIntegrity,
+  stPersonMissing,stAccountBodyHtml,parseDirectoryCsv,openFolderAccessEditor,settingsMirrorDirectory,
+  stSigningSectionHtml,stSigningRead,stPaintLadder,stReviewSectionHtml,stReviewRead,stSignFolderHtml,stSignFolderRead,
+  stOverseerSectionHtml,stOverseerRead,
+  settingsMarketFactsHtml,settingsPaintShapeBoxes,settingsHeightsBefore,settingsHoldHeights});

@@ -117,10 +117,16 @@ const PROBE = () => {
            closing one leaves two in the DOM, and the older one takes the tap —
            which is a real fault worth failing on, so it is asserted rather
            than worked around. */
-        const stale = await page.$('.m-btn[data-m-act="close-sheet"]');
+        /* THE SCRIM, NOT THE BUTTON AT THE BOTTOM. The sheet scrolls (it holds
+           the whole account surface since the Aug 2026 redesign — job title,
+           sidebar, sessions, the email statement), so its Close button can sit
+           below the fold and a press at its coordinates lands on nothing. The
+           scrim is what a thumb taps to dismiss a sheet and it is always in the
+           same place. Same real pointer press, same claim. */
+        const stale = await page.$('.m-scrim');
         const staleBox = stale ? await stale.boundingBox() : null;   // null once detached
         if (staleBox) {
-          await page.mouse.click(staleBox.x + staleBox.width / 2, staleBox.y + staleBox.height / 2);
+          await page.mouse.click(staleBox.x + staleBox.width / 2, staleBox.y + 24);
           await page.waitForTimeout(450);
         }
         await page.click('[data-m-act="account"]');

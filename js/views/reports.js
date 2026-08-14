@@ -8,6 +8,23 @@ function firstAuditAt(c, actions){
   const hit=(c.audit||[]).find(a=>actions.includes(a.action));
   return hit?Date.parse(hit.at):null;
 }
+/* ---- THE THREE DATES, ON A ROW THAT HAS NO HISTORY ----
+   computeReports reads state.contracts, which in server mode is the LIGHT
+   list — and the audit trail is stripped from every row on it. So every
+   reading below used to come back empty on a real server and correct in local
+   mode, where records are whole: MEASURED, cycle time was null for every
+   signed contract and a contract that had sat fifteen days in Draft reported
+   a stage age of 0.0 days.
+   The server carries the three dates on the row (see auditDatesOf in
+   server.js). The trail is still asked wherever there IS one, so local mode
+   and an opened contract are unchanged. */
+const _repAt = v => { const t=Date.parse(v||''); return isNaN(t)?null:t; };
+function repRaisedAt(c){
+  return _repAt(c&&c._raisedAt) ?? firstAuditAt(c,['Created','Uploaded','Migrated']);
+}
+function repSignedAt(c){
+  return _repAt(c&&c._signedAt) ?? firstAuditAt(c,['Signed']);
+}
 function daysBetween(a,b){ if(a==null||b==null) return null; return Math.max(0,(b-a)/86400000); }
 
 /* ---- E7-T2: analytics computed over the loaded working set ----
@@ -19,11 +36,11 @@ function computeReports(){
   const active=cs.filter(c=>c.status!=='Declined');
   // cycle time draft -> signed
   const cycles=[];
-  cs.forEach(c=>{ if(c.status==='Signed'){ const created=firstAuditAt(c,['Created','Uploaded']); const signed=firstAuditAt(c,['Signed']); const d=daysBetween(created,signed); if(d!=null) cycles.push(d); } });
+  cs.forEach(c=>{ if(c.status==='Signed'){ const created=repRaisedAt(c); const signed=repSignedAt(c); const d=daysBetween(created,signed); if(d!=null) cycles.push(d); } });
   const avgCycle=cycles.length?cycles.reduce((a,b)=>a+b,0)/cycles.length:null;
   // time stuck in current stage (age of lastAction for non-signed)
   const stageAge={};
-  ['Draft','Under Review'].forEach(s=>{ const arr=cs.filter(c=>c.status===s).map(c=>{ const t=firstAuditAt(c,['Created','Uploaded'])||Date.parse(c.at||0); return t?(Date.now()-lastActivity(c))/86400000:0; }); stageAge[s]=arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:0; });
+  ['Draft','Under Review'].forEach(s=>{ const arr=cs.filter(c=>c.status===s).map(c=>{ const t=repRaisedAt(c); return t?(Date.now()-lastActivity(c))/86400000:0; }); stageAge[s]=arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:0; });
   // negotiation rounds per type
   const roundsByType={};
   cs.forEach(c=>{ const k=cKind(c); const r=(c.rounds||[]).length; if(!roundsByType[k]) roundsByType[k]={n:0,rounds:0}; roundsByType[k].n++; roundsByType[k].rounds+=r; });
@@ -59,7 +76,15 @@ function computeReports(){
   return { total:cs.length, active:active.length, avgCycle, cycleN:cycles.length, stageAge, roundsByType, byFolder, topParty, pipeline,
     totalValue, pipeTotal, pipeMonthsN, expiring90, avgRisk, highRisk, openOb, overdueOb, byStatus, countByFolder, riskBands, obByState };
 }
-function lastActivity(c){ const a=c.audit||[]; return a.length?Date.parse(a[a.length-1].at):Date.now(); }
+/* When anything last happened to this contract. On a light row the trail is
+   absent, and falling through to "now" made every stage age zero — the age of
+   a contract nothing has happened to since it was raised is the age of the
+   raising, not of this instant. */
+function lastActivity(c){
+  const a=c.audit||[];
+  if(a.length) return Date.parse(a[a.length-1].at);
+  return _repAt(c&&c._lastAuditAt) ?? _repAt(c&&c.lastAction) ?? Date.now();
+}
 
 const _esc = s => String(s==null?'':s).replace(/</g,'&lt;');
 /* E7: one labelled horizontal bar — label + tabular value over a 7px track. */
@@ -355,4 +380,4 @@ function exportReportsCsv(r){
   toast(i18t('rep_exported_csv'));
 }
 
-Object.assign(window,{lifecycleEvents,firstAuditAt,computeReports,renderReports,exportReportsCsv,repChartConfig,repHydrateCharts,repMonthLabel});
+Object.assign(window,{lifecycleEvents,firstAuditAt,repRaisedAt,repSignedAt,computeReports,renderReports,exportReportsCsv,repChartConfig,repHydrateCharts,repMonthLabel});

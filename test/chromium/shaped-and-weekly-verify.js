@@ -86,6 +86,10 @@ const FRAME = () => {
     /* ---- 1. THE SETTING ---- */
     await page.evaluate(() => window.setView('team'));
     await page.waitForTimeout(900);
+    /* The work-shape setting is a row on "Platform settings" and opens in the
+       drawer since the Aug 2026 redesign. Staged through the page's own door. */
+    await page.evaluate(() => { settingsGoTab('platform'); stDrawerOpen('workshape'); });
+    await page.waitForTimeout(700);
     const card = await page.evaluate(() => ({
       shapes: [...document.querySelectorAll('[data-ws-shape]')].map(b => b.getAttribute('data-ws-shape')),
       words: [...(document.getElementById('set-work-word') || { options: [] }).options].map(o => o.value),

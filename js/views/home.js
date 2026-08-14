@@ -363,7 +363,20 @@ function hmDashSlices(){
      underlying list is already folder-scoped by the server; this narrows it to
      what the reader can actually act on. */
   const me=currentUser();
-  const raisedByMe=c=>!!me&&(c.audit||[]).some(a=>/creat/i.test(a.action||'')&&a.user===me.name);
+  /* ---- WHO RAISED IT, ON A ROW THAT HAS NO HISTORY ----
+     This read the audit trail, and the dashboard reads the LIGHT list, which
+     the server strips the audit trail out of — so this answered false for
+     every contract in server mode and true only in local mode, where records
+     are whole. Half of "Decisions due" was dead in production and correct in
+     development, which is why it survived.
+     `_raisedBy` is the same fact carried on the row (see HEAVY, server.js).
+     The trail is still asked where there IS one, so local mode and an opened
+     contract are unchanged. */
+  const raisedByMe=c=>{
+    if(!me) return false;
+    if(c && c._raisedBy!=null) return c._raisedBy===me.name;
+    return (c&&c.audit||[]).some(a=>/creat/i.test(a.action||'')&&a.user===me.name);
+  };
   const canApproveSomeStep=st=>!!me&&(st.chain||[]).some(s=>s.status!=='approved'&&s.status!=='rejected'
     &&(typeof userCanApprove==='function'?userCanApprove(s.approver,me):false));
   const myApprovals=cs.filter(c=>c.status!=='Signed'&&c.status!=='Declined').map(c=>{

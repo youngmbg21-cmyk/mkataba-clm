@@ -296,8 +296,11 @@ function emailSetupBannerHtml(){
 }
 function wireEmailSetupBanner(){
   document.getElementById('email-setup-go')?.addEventListener('click',()=>{
-    // the outbox panel in Team & Settings is where the instructions already live
-    try{ setView('settings'); }catch(_){}
+    /* IT USED TO ASK FOR A VIEW THAT DOES NOT EXIST. `setView('settings')` fell
+       through every branch of the switch and drew the workspace, so the one
+       button on the one banner that says email is broken opened a contract.
+       It lands on the outbox now, which is where the instructions already are. */
+    try{ if(window.openSettingsAt) openSettingsAt('build','mail'); else setView('team'); }catch(_){}
   });
 }
 
@@ -722,7 +725,14 @@ async function saveContract(c){
     try{ await restoreHeavyFields(c); }
     catch(e){ toast(`Could not load ${c.id}'s history before saving — the change was not written`,'err'); return; }
   }
+  /* `_raisedBy` / `_raisedAt` ride down with a LIGHT row so the dashboard can
+     ask who raised a contract without the audit trail it was stripped of. They
+     are transport, not record — derived from the trail the server still holds
+     — so they go the same way as the other underscored fields rather than
+     being written back into the stored contract. */
   const payload={...c}; delete payload._light; delete payload._loaded; delete payload._v;
+  delete payload._raisedBy; delete payload._raisedAt;
+  delete payload._signedAt; delete payload._lastAuditAt;
   if(payload.upload && payload.upload.fileId){ payload.upload={...payload.upload, dataUrl:undefined}; }
   // Word-review version files and the rounds that carried them follow the same
   // rule: once the bytes live in the files store, the synced JSON keeps only
@@ -763,7 +773,13 @@ async function saveSettings(){
        own atomic endpoint. Never include it in a whole-blob save — that is what
        let a stale, unrelated settings save silently revert a folder restriction.
        Stripped here so the general PUT preserves the server's copy. */
-    const { folderAccess, ...rest } = (state.settings||{});
+    const { folderAccess, signFolders, ...rest } = (state.settings||{});
+    /* signFolders carries the SAME kind of map under .by — who may put their
+       name at the bottom of which folder's paper — and it learned the same
+       lesson: the map goes through its own atomic route and the switch beside
+       it rides the general save. Sending .by here would let a stale blob revert
+       a restriction, which is precisely what H-3 was. */
+    if(signFolders && typeof signFolders==='object') rest.signFolders={ on: !!signFolders.on };
     try{ await api('settings','PUT',rest); }catch(e){ toast(i18t('co_settings_save_failed')+e.message,'err'); }
   }
   else persist();
@@ -784,8 +800,15 @@ async function refreshOrgBranding(){
   }catch(e){ /* no branding yet is a normal state — render paths fall back to the legacy letterhead */ }
 }
 async function saveOrgBranding(b){
+  /* A PARTIAL SAVE LEAVES THE REST ALONE, in both modes and for the same
+     reason. Two screens write this record now — the design step owns the logo,
+     the colour and the layout; Company & market owns the registered name,
+     number and address — so a save carrying one half must not null the other.
+     The server preserves what a PUT does not carry (see /api/org/branding);
+     this is the same rule for the no-server mode, where the whole blob used to
+     be replaced. Absent is not null: sending logoUrl:null still clears it. */
   if(API_MODE()) await api('org/branding','PUT',b);
-  else { state.settings.branding={...b}; await saveSettings(); }
+  else { state.settings.branding={...(state.settings.branding||{}), ...b}; await saveSettings(); }
   await refreshOrgBranding();
 }
 Object.assign(window,{refreshOrgBranding,saveOrgBranding});
@@ -880,9 +903,64 @@ function _repairValueType(c){
   if(t && t.valueType==='none' && c.valueType && c.valueType!=='none') c.valueType='none';
   return c;
 }
+/* ============================================================
+   A CONTRACT KNOWS WHOSE IT IS
+   ============================================================
+   Until now nothing on a contract said who raised it. The fact existed only
+   in the first line of its audit trail, which is a HISTORY — appended to,
+   queried rather than read — and which the server strips out of every list
+   row, so no question of the shape "which contracts are Asha's" could be
+   answered at all. That is what killed half the dashboard's Decisions-due
+   card and both of Reports' timing figures.
+
+   `c.owner = { id, name }`, and BOTH halves earn their place: the id is what
+   survives somebody being renamed, the name is what survives their account
+   being deleted — and the name is what the audit trail and the approval rules
+   already speak, since an approver is bound by name in this product.
+
+   STAMPED ONCE, NEVER OVERWRITTEN. Whoever raised it, raised it. Handing a
+   contract to somebody else is a real act with its own audit line, and is
+   deliberately not this. */
+function contractOwnerStamp(c){
+  if(!c || c.owner) return c;                       // never overwrite
+  const u=(typeof currentUser==='function') ? currentUser() : null;
+  if(!u || !u.id) return c;                         // nobody signed in — say nothing
+  c.owner={ id:u.id, name:u.name||'' };
+  return c;
+}
+/* The backfill, for every contract raised before the field existed. Reads the
+   same trail the dashboard used to read, in the one place a whole record is
+   in hand. Narrow and self-clearing, exactly like _repairValueType:
+   · only where `owner` is absent — a stored owner is somebody's decision;
+   · 'System' is NOT an owner (it is what the seeded sample portfolio stamps,
+     and answering with it would put the whole demo book in a queue);
+   · a name that matches no current member still counts — somebody who has
+     left still raised it — so the id is null and the name stands. */
+const OWNER_FROM_ACTIONS=['Created','Uploaded','Migrated'];
+function _repairOwner(c){
+  if(!c || c.owner) return c;
+  const e=(c.audit||[]).find(a=>a&&OWNER_FROM_ACTIONS.includes(a.action));
+  const name=e&&e.user;
+  if(!name || name==='System') return c;
+  const found=((typeof getUsers==='function'?getUsers():[])||[]).find(u=>u&&u.name===name);
+  c.owner={ id:(found&&found.id)||null, name };
+  return c;
+}
+/* Who to print. The stored owner where there is one; otherwise the fact the
+   server carried on the row (js/views/home.js and reports read the same), so
+   a light row still answers before the backfill has ever opened it. */
+function contractOwnerName(c){
+  if(c&&c.owner&&c.owner.name) return c.owner.name;
+  return (c&&c._raisedBy)||null;
+}
+function contractOwnedBy(c,u){
+  if(!c||!u) return false;
+  if(c.owner) return c.owner.id ? String(c.owner.id)===String(u.id) : c.owner.name===u.name;
+  return (c._raisedBy||null)===u.name;
+}
 function migrateContract(c){
-  return _repairValueType(negoRecoverMisfiledReasons(Object.assign({ audit:[], signatures:[], comments:[], fields:{}, scan:null,
-    compliance:{}, hash:null, signedAt:null, expiry:null, execution:null, approval:null, rounds:[] }, c)));
+  return _repairOwner(_repairValueType(negoRecoverMisfiledReasons(Object.assign({ audit:[], signatures:[], comments:[], fields:{}, scan:null,
+    compliance:{}, hash:null, signedAt:null, expiry:null, execution:null, approval:null, rounds:[] }, c))));
 }
 
 /* ---------- approvals (spend-threshold sign-off) ---------- */
@@ -1002,6 +1080,17 @@ function userFolderAccess(u){
   return (own==null||own==='*'||!Array.isArray(own))?'*':own;
 }
 function canAccessFolder(fid,u){ const a=userFolderAccess(u); return a==='*'||(Array.isArray(a)&&a.includes(fid)); }
+/* ---- HOW MANY PEOPLE CAN SEE WHAT IS IN THIS DRAWER ----
+   The settings panel has printed "N of M people can see it" beside every folder
+   since the August 2026 rebuild, and re-filing a contract is the act that
+   CHANGES that number — so the confirm has to be able to say it too. One
+   reading, two readers: it is built on canAccessFolder, which is the map's own
+   named predicate, so the sentence on the confirm and the line on the settings
+   panel can never disagree about who is in a folder. */
+function folderSeerCount(fid){
+  const users=((typeof getUsers==='function'?getUsers():[])||[]);
+  return { n:users.filter(u=>canAccessFolder(fid,u)).length, total:users.length };
+}
 
 /* ---------- signing capacity ----------
    A signature block states the capacity in which someone bound the company —
@@ -1062,7 +1151,7 @@ function canViewValues(u){
    authoritative, whole-register export is GET /api/export/contracts.csv, which
    the server masks the same way. */
 const csvValueCell = c => (!isMonetary(c) || !canViewValues()) ? '' : (c.value||0);
-Object.assign(window,{orgDirectory,directoryLookup,userFolderAccess,canAccessFolder,canViewValues,csvValueCell,signerTitle,signatureCapacity});
+Object.assign(window,{orgDirectory,directoryLookup,userFolderAccess,canAccessFolder,folderSeerCount,canViewValues,csvValueCell,signerTitle,signatureCapacity});
 
 const newSalt = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 const hashPassword = (pw,salt) => sha256(`${salt}::${pw}`);
@@ -1303,7 +1392,7 @@ function startApp(){
      honest empty state when their contract or template is not loaded yet, so
      resuming there is safe — and losing a refresh mid-negotiation to the
      dashboard was the exact complaint this list caused. */
-  setView(['dashboard','register','pipeline','advice','folder','intel','calendar','reports','templates','templatelib','playbook','workspace','team','migration','redline'].includes(state.view)?state.view:'dashboard');
+  setView(['dashboard','register','pipeline','advice','folder','intel','calendar','reports','templates','templatelib','playbook','workspace','team','directory','migration','redline'].includes(state.view)?state.view:'dashboard');
   if(API_MODE()){ refreshStats(); refreshShareOverview(); refreshWaitingQuestions(); pollPendingResponses(); refreshAiUsage();
     schedulePolling();
     /* Coming back to the tab is when a person expects to be up to date. */
@@ -1401,7 +1490,15 @@ function renderSideUser(){
   const org=getOrg().name||'HaTi';
   const initials=(u.name||org).split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
   const av=document.getElementById('rail-avatar');
-  if(av){ av.title=`${u.name} · ${org} · ${roleName(u.role)}`; av.onclick=()=>setView('team'); }
+  /* ---- THE AVATAR IS THE ACCOUNT MENU NOW, FOR EVERYBODY ----
+     It used to be a one-click door straight into Team & Settings, which is
+     admin-only from the Aug 2026 redesign — so for two of the three roles it
+     was a door onto a refusal. It opens "Your account" instead: their own job
+     title, their sidebar, their sessions, their backup and the honest statement
+     of what HaTi emails them. An admin finds Settings & Rules on that surface
+     and in the sidebar, so no door was lost; one was gained for everybody else. */
+  if(av){ av.title=`${u.name} · ${org} · ${roleName(u.role)}`;
+    av.onclick=()=>{ if(window.openMyAccount) openMyAccount(); else setView('team'); }; }
   const lo=document.getElementById('side-logout');
   if(lo) lo.onclick=async()=>{
     const ok=(typeof confirmDialog==='function')
@@ -1435,7 +1532,14 @@ async function refreshAiUsage(){
   const lab=document.getElementById('side-ai-usage-label'), sub=document.getElementById('side-ai-usage-sub');
   if(!box||!txt) return;
   if(!API_MODE()){ box.style.display='none'; return; }
-  box.onclick=()=>setView('team');
+  /* A DOOR ONLY WHERE PRESSING IT DOES SOMETHING. This box took everybody to
+     Team & Settings, and that page is admin-only now — so for a colleague it
+     was a control that looked live and led to their own account instead. It
+     still SHOWS the workspace's Copilot spend to everyone (that is worth
+     knowing), it simply stops promising a press. */
+  const mayTune=(typeof isAdmin==='function') && isAdmin();
+  box.onclick = mayTune ? (()=>{ if(window.openSettingsAt) openSettingsAt('build','engine'); else setView('team'); }) : null;
+  box.style.cursor = mayTune ? '' : 'default';
   try{
     const u=await api('ai/usage');
     state.aiUsage=u;
@@ -5260,4 +5364,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});
