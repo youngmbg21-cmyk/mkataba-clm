@@ -286,6 +286,7 @@ function createFromWizard(tid, vars, opts){
   applyTemplateValues(c, vars, values);
   if(t.valueType==='none'){ c.value=0; c.valueType='none'; }
   c._loaded=true; c._light=false; c._v=0;
+  if(window.contractOwnerStamp) contractOwnerStamp(c);
   state.contracts.unshift(c); state.activeId=c.id;
   /* A NEW DRAFT OPENS ON KEY TERMS, not on its document — see wsTabDefaults. */
   if(window.roomOpenOnTerms) roomOpenOnTerms(c.id);

@@ -352,6 +352,7 @@ async function tplLibCreate(id, essentials) {
     if (r.uid) window.uid = r.uid; // keep the client's MK-counter in step with the server's
     const c = typeof migrateContract === 'function' ? migrateContract(r.contract) : r.contract;
     c._loaded = true;
+    if(window.contractOwnerStamp) contractOwnerStamp(c);
     state.contracts.unshift(c);
   /* A NEW DRAFT OPENS ON KEY TERMS, not on its document — see
      wsTabDefaults. Registered at every creation site because there is no

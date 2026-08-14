@@ -896,9 +896,64 @@ function _repairValueType(c){
   if(t && t.valueType==='none' && c.valueType && c.valueType!=='none') c.valueType='none';
   return c;
 }
+/* ============================================================
+   A CONTRACT KNOWS WHOSE IT IS
+   ============================================================
+   Until now nothing on a contract said who raised it. The fact existed only
+   in the first line of its audit trail, which is a HISTORY — appended to,
+   queried rather than read — and which the server strips out of every list
+   row, so no question of the shape "which contracts are Asha's" could be
+   answered at all. That is what killed half the dashboard's Decisions-due
+   card and both of Reports' timing figures.
+
+   `c.owner = { id, name }`, and BOTH halves earn their place: the id is what
+   survives somebody being renamed, the name is what survives their account
+   being deleted — and the name is what the audit trail and the approval rules
+   already speak, since an approver is bound by name in this product.
+
+   STAMPED ONCE, NEVER OVERWRITTEN. Whoever raised it, raised it. Handing a
+   contract to somebody else is a real act with its own audit line, and is
+   deliberately not this. */
+function contractOwnerStamp(c){
+  if(!c || c.owner) return c;                       // never overwrite
+  const u=(typeof currentUser==='function') ? currentUser() : null;
+  if(!u || !u.id) return c;                         // nobody signed in — say nothing
+  c.owner={ id:u.id, name:u.name||'' };
+  return c;
+}
+/* The backfill, for every contract raised before the field existed. Reads the
+   same trail the dashboard used to read, in the one place a whole record is
+   in hand. Narrow and self-clearing, exactly like _repairValueType:
+   · only where `owner` is absent — a stored owner is somebody's decision;
+   · 'System' is NOT an owner (it is what the seeded sample portfolio stamps,
+     and answering with it would put the whole demo book in a queue);
+   · a name that matches no current member still counts — somebody who has
+     left still raised it — so the id is null and the name stands. */
+const OWNER_FROM_ACTIONS=['Created','Uploaded','Migrated'];
+function _repairOwner(c){
+  if(!c || c.owner) return c;
+  const e=(c.audit||[]).find(a=>a&&OWNER_FROM_ACTIONS.includes(a.action));
+  const name=e&&e.user;
+  if(!name || name==='System') return c;
+  const found=((typeof getUsers==='function'?getUsers():[])||[]).find(u=>u&&u.name===name);
+  c.owner={ id:(found&&found.id)||null, name };
+  return c;
+}
+/* Who to print. The stored owner where there is one; otherwise the fact the
+   server carried on the row (js/views/home.js and reports read the same), so
+   a light row still answers before the backfill has ever opened it. */
+function contractOwnerName(c){
+  if(c&&c.owner&&c.owner.name) return c.owner.name;
+  return (c&&c._raisedBy)||null;
+}
+function contractOwnedBy(c,u){
+  if(!c||!u) return false;
+  if(c.owner) return c.owner.id ? String(c.owner.id)===String(u.id) : c.owner.name===u.name;
+  return (c._raisedBy||null)===u.name;
+}
 function migrateContract(c){
-  return _repairValueType(negoRecoverMisfiledReasons(Object.assign({ audit:[], signatures:[], comments:[], fields:{}, scan:null,
-    compliance:{}, hash:null, signedAt:null, expiry:null, execution:null, approval:null, rounds:[] }, c)));
+  return _repairOwner(_repairValueType(negoRecoverMisfiledReasons(Object.assign({ audit:[], signatures:[], comments:[], fields:{}, scan:null,
+    compliance:{}, hash:null, signedAt:null, expiry:null, execution:null, approval:null, rounds:[] }, c))));
 }
 
 /* ---------- approvals (spend-threshold sign-off) ---------- */
@@ -5291,4 +5346,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});

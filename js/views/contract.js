@@ -1319,6 +1319,7 @@ async function submitUpload(){
     applyMetadata(c, out);
   }
   _up=null;
+  if(window.contractOwnerStamp) contractOwnerStamp(c);
   state.contracts.unshift(c);
   /* A NEW DRAFT OPENS ON KEY TERMS, not on its document — see
      wsTabDefaults. Registered at every creation site because there is no

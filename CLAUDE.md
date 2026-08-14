@@ -212,6 +212,21 @@ Tests: term-and-fields-verify (24, browser).
 
 pbUI records what is SHUT, so a finding arrives read and pressing it folds it. Deliberate asymmetry with change cards (forty cards arrive as a wall; a handful of findings IS the panel's content). The fold is keyed by pbFoldKey (contract + category, never row index), in memory, never persisted. Quotes live in the review panel ONLY (the Key-terms reprint was removed); the one standing sentence in Key terms stays — it explains why governing law and the liability cap are not rows, drawn with or without a run. Tests: playbook-opens-read-verify (13, browser); f178's Key-terms assertions untouched.
 
+## A CONTRACT KNOWS WHOSE IT IS (14 Aug 2026)
+
+`c.owner = {id, name}` — BOTH halves earn their place: the id survives a rename, the name survives the account being deleted and is what the audit trail and the approval rules already speak (an approver is bound by name here). contractOwnerStamp(c) is called at ALL SEVEN creation sites — the same list f170 walks, and f199 walks it too and fails on an unregistered eighth. STAMPED ONCE, NEVER OVERWRITTEN: handing a contract over is a real act with its own audit line and is deliberately not built.
+
+THE BACKFILL IS NARROW, and rides migrateContract like _repairValueType: _repairOwner only where `owner` is absent; the first Created/Uploaded/Migrated entry; 'System' is NOT an owner (the seeded portfolio belongs to nobody); a name matching no current member still counts, with id null — somebody who has left still raised it.
+
+READ THROUGH contractOwnerName / contractOwnedBy, never the raw field: the stored owner first, then `_raisedBy` (the server's stop-gap, see the section below), so a light row answers before the backfill has ever opened it. HEAVY prefers the STORED owner over the trail — the record is the senior of the two, or a contract handed over later would go on reporting whoever first typed it.
+
+OVERSEEN BY — a per-person approver, and the owner field is what made it possible. overseerFor(c) resolves the contract's OWNER → their overseerId → a live member; overseerCfg().on is a workspace switch, OFF by default. It joins buildApprovalChain as an ordinary step sorted LAST, so approvalState, the panel, the refusal and the dashboard count all inherit it and nothing grows a second gate; its decision survives a rebuild by the same ruleId lookup the rules use (OVERSEER_STEP_ID).
+- A CONTRACT NOBODY RAISED GETS NO OVERSEER STEP. Imported and uploaded paper has no owner and never will; making it unapprovable would strand it, so the ordinary rules apply unchanged and the panel says so.
+- NOBODY OVERSEES THEMSELVES — refused in the predicate AND on PATCH /api/users/:id, which also refuses a non-member and a Viewer. It is an ADMIN GRANT: somebody who could pick their own approver is not overseen, and it cannot ride along with a job title.
+- Removing somebody who oversees others WARNS by name, beside the negotiation-lead warning and for the same reason: the step stays and names an account that no longer exists.
+- KEYING IT OFF THE READER WAS REFUSED (the approval panel would say different things to different people — the fault this rulebook opens with), and so was the desk lead (absent on most contracts).
+Tests: f199 (34 — the seven sites, the backfill's four refusals, the chain both ways, and the server's grant).
+
 ## WHO RAISED THIS SURVIVES THE LIST (owner-reported 14 Aug 2026)
 
 "Decisions due" is two halves — what this reader can APPROVE, and what they RAISED — and the second half asked the audit trail: `(c.audit||[]).some(a=>/creat/i.test(a.action)&&a.user===me.name)`. The dashboard reads state.contracts, which in server mode is the LIGHT list, and HEAVY strips `audit` out of every row on purpose. So it answered false for everything in server mode and true in local mode, where records are whole — correct everywhere except in production, which is why it survived. Reproduced against a real server before it was touched.

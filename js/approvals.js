@@ -91,11 +91,53 @@ function approvalDrift(step, c){
 }
 
 /* Build (or refresh) the ordered approval chain for a contract. */
+/* ============================================================
+   OVERSEEN BY — a per-person approver
+   ============================================================
+   A member can be given somebody who signs off THEIR contracts. It hangs on
+   the contract's OWNER (js/core.js), which is why it could not be built until
+   a contract knew whose it was: keying it off the reader would make the
+   approval panel say different things to different people, and a panel that
+   disagrees with itself is the fault this rulebook opens with.
+
+   It arrives the way every enforcement in this product arrives — behind a
+   switch that is OFF by default, so nothing changes on deploy.
+
+   A CONTRACT WITH NO OWNER GETS NO OVERSEER STEP. Imported back-catalogue
+   paper has no owner and never will; making it unapprovable would strand it.
+   The ordinary rules still apply to it, unchanged. */
+function overseerCfg(){
+  const s=(state.settings&&state.settings.overseer)||{};
+  return { on: !!s.on };
+}
+function saveOverseerCfg(cfg){
+  state.settings=state.settings||{};
+  state.settings.overseer={ on: !!(cfg&&cfg.on) };
+  if(typeof saveSettings==='function') saveSettings();
+  return overseerCfg();
+}
+const overseerEnforced = () => overseerCfg().on;
+/* Who oversees this contract's owner, resolved to a live member. Returns null
+   wherever any link in that chain is missing — no owner, no overseer named,
+   or an overseer whose account has gone. */
+function overseerFor(c){
+  if(!overseerEnforced()) return null;
+  const owner=(typeof contractOwnerName==='function')?contractOwnerName(c):null;
+  if(!owner) return null;
+  const users=((typeof getUsers==='function'?getUsers():[])||[]);
+  const raiser=(c&&c.owner&&c.owner.id)
+    ? users.find(u=>u&&String(u.id)===String(c.owner.id))
+    : users.find(u=>u&&u.name===owner);
+  if(!raiser||!raiser.overseerId) return null;
+  const over=users.find(u=>u&&String(u.id)===String(raiser.overseerId));
+  if(!over||over.id===raiser.id) return null;      // nobody oversees themselves
+  return { raiser, over };
+}
 function buildApprovalChain(c){
   const matched=approvalRules().filter(r=>ruleMatches(r,c)).sort((a,b)=>(a.order||99)-(b.order||99));
   // preserve prior decisions for rules that still match
   const prior=(c.approvalChain||[]);
-  return matched.map(r=>{ const was=prior.find(p=>p.ruleId===r.id);
+  const chain=matched.map(r=>{ const was=prior.find(p=>p.ruleId===r.id);
     /* A REJECTION HAD TO BE PRESERVED TOO, and was not.
 
        This kept only 'approved' and rebuilt everything else as 'pending'. But
@@ -115,7 +157,27 @@ function buildApprovalChain(c){
       if(drift.length){ step.status='stale'; step.drift=drift; }
     }
     return step; });
+  /* THE OVERSEER JOINS THE SAME CHAIN, LAST, as an ordinary step — so
+     approvalState, the panel, the refusal and the dashboard count all inherit
+     it and nothing grows a second gate. Its decision is preserved across
+     rebuilds exactly like a rule's, by the same ruleId lookup. */
+  const ov=overseerFor(c);
+  if(ov){
+    const was=prior.find(p=>p.ruleId===OVERSEER_STEP_ID);
+    const kept=was&&(was.status==='approved'||was.status==='rejected')?was.status:'pending';
+    const step={ ruleId:OVERSEER_STEP_ID, name:i18t('ov_step_name',{who:ov.raiser.name||''}),
+      approver:{kind:'member',name:ov.over.name}, order:9999,
+      status:kept, by:was?.by||null, at:was?.at||null, comment:was?.comment||null,
+      stamp:was?.stamp||null };
+    if(kept==='approved'){
+      const drift=approvalDrift(step, c);
+      if(drift.length){ step.status='stale'; step.drift=drift; }
+    }
+    chain.push(step);
+  }
+  return chain;
 }
+const OVERSEER_STEP_ID='__overseer__';
 function approvalState(c){
   // legacy single-approval contracts still resolve (c.approval) if no chain rules
   const chain=buildApprovalChain(c);
@@ -893,7 +955,7 @@ function wireApprovalPanel(c){
    "have they seen it" — it reads shares.first_opened_at, which is stamped once
    on the first real open and never re-counted. */
 
-Object.assign(window,{approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,approvalPanelHtml,approvalChainHtml,signerRouteHtml,wireApprovalPanel});
+Object.assign(window,{overseerCfg,saveOverseerCfg,overseerEnforced,overseerFor,OVERSEER_STEP_ID,approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,approvalPanelHtml,approvalChainHtml,signerRouteHtml,wireApprovalPanel});
 
 /* ============================================================
    HOW MUCH MAY THIS PERSON SIGN FOR

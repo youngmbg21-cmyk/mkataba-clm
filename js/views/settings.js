@@ -661,6 +661,51 @@ function stReviewRead(){
            reviewerId: sel?(sel.value||null):undefined };
 }
 
+/* ---- SECTION 6 — WHO SIGNS OFF THEIR CONTRACTS ----
+   Hangs on the contract's OWNER, so it says nothing about contracts nobody
+   raised — imported and uploaded paper keeps the ordinary rules, and the
+   panel says so rather than leaving an admin to discover it. Never for a
+   Viewer, who raises nothing. */
+function stOverseerSectionHtml(u, isNew){
+  if(typeof overseerCfg!=='function') return '';
+  if(u.role==='viewer') return '';
+  const on=overseerEnforced();
+  const cand=((typeof getUsers==='function'?getUsers():[])||[])
+    .filter(x=>x&&x.id!==u.id&&x.role!=='viewer');
+  return `<section class="st-sec">
+    <h3 class="st-sec-h"><span class="st-sec-n">6</span>${esc(i18t('ov_section'))}</h3>
+    ${on?'':`<p class="st-note" style="margin-bottom:8px">${esc(i18t('ov_says_not_enforced'))}</p>`}
+    <label style="display:block">
+      <span style="${window.RV_LBL||''}">${esc(i18t('ov_person'))}</span>
+      <select id="tm-overseer" style="${window.RV_FLD||ST_INPUT}">
+        <option value="">${esc(i18t('ov_nobody'))}</option>
+        ${cand.map(x=>`<option value="${PB_ATTR(x.id)}"${String(u.overseerId||'')===String(x.id)?' selected':''}>${esc(x.name||x.email)}</option>`).join('')}
+      </select>
+      <span class="st-note">${esc(i18t('ov_person_sub'))}</span></label>
+    <p class="st-note" id="tm-ov-says" style="margin-top:8px"></p>
+    <p class="st-note">${esc(i18t('ov_no_owner'))}</p>
+  </section>`;
+}
+function stOverseerWire(u){
+  const sel=document.getElementById('tm-overseer');
+  const says=document.getElementById('tm-ov-says');
+  if(!says) return;
+  const who=(u&&u.name)||i18t('sc_this_person');
+  const paint=()=>{
+    const pick=sel&&sel.value
+      ? ((typeof getUsers==='function'?getUsers():[])||[]).find(x=>String(x.id)===String(sel.value))
+      : null;
+    says.textContent=pick ? i18t('ov_says_on',{who,over:pick.name||pick.email})
+                          : i18t('ov_says_off',{who});
+  };
+  sel?.addEventListener('change',paint);
+  paint();
+}
+function stOverseerRead(){
+  const sel=document.getElementById('tm-overseer');
+  return sel ? (sel.value||null) : undefined;
+}
+
 /* ---- ONE DRAWER, WHETHER YOU ARE ADDING OR EDITING ----
    Adding re-houses the EXISTING creation flow exactly — temp password,
    mustChangePassword on the server, an explicit folder answer whose first
@@ -749,6 +794,8 @@ function settingsPersonDrawer(idOrNew){
 
     ${stReviewSectionHtml(u, isNew)}
 
+    ${stOverseerSectionHtml(u, isNew)}
+
     ${(!isNew && isAdmin() && !isMe)?`<div class="st-danger">
       <button id="tm-remove" style="${ST_BTN_DANGER}">${icon('ban','w-3.5 h-3.5')} ${i18t('act_remove')}</button>
     </div>`:''}`;
@@ -785,6 +832,7 @@ function settingsPersonDrawer(idOrNew){
       });
       stSigningWire(u);
       stReviewWire(u);
+      stOverseerWire(u);
       document.getElementById('tm-remove')?.addEventListener('click',()=>settingsRemoveMember(u));
     },
     save(){ stDrawerClearRefusal(); settingsSavePerson(isNew?null:u); },
@@ -802,6 +850,7 @@ async function settingsSavePerson(existing){
   const pass=document.getElementById('tm-pass')?.value||'';
   const cap=(typeof stSigningRead==='function')?stSigningRead():undefined;
   const rv=(typeof stReviewRead==='function')?stReviewRead():undefined;
+  const ovr=(typeof stOverseerRead==='function')?stOverseerRead():undefined;
   const signFolders=(typeof stSignFolderRead==='function')?stSignFolderRead():undefined;
   const missing=[];
   if(!name) missing.push(i18t('st_f_name'));
@@ -849,6 +898,7 @@ async function settingsSavePerson(existing){
     if(cap!==undefined && !(typeof cap==='number' && Number.isNaN(cap))) after.signCap=cap;
     if(rv&&rv.reviewChecked!==undefined) after.reviewChecked=rv.reviewChecked;
     if(rv&&rv.reviewerId!==undefined) after.reviewerId=rv.reviewerId;
+    if(ovr!==undefined) after.overseerId=ovr;
     if(newId && signFolders!==undefined && typeof saveSignFolders==='function'){
       try{ await saveSignFolders(newId, signFolders); }catch(e){ toast(e.message,'err'); }
     }
@@ -904,6 +954,7 @@ async function settingsSavePerson(existing){
     if(cap!==undefined && cap!==capWas) patch.signCap=cap;
     if(rv&&rv.reviewChecked!==undefined && rv.reviewChecked!==reviewChecked(target)) patch.reviewChecked=rv.reviewChecked;
     if(rv&&rv.reviewerId!==undefined && String(rv.reviewerId||'')!==String(target.reviewerId||'')) patch.reviewerId=rv.reviewerId;
+    if(ovr!==undefined && String(ovr||'')!==String(target.overseerId||'')) patch.overseerId=ovr;
     /* The server takes title (self or admin), role and canViewValues. It does
        NOT take a name today, so a rename is applied to the record we hold and
        the directory that feeds signer fields — said here rather than pretended
@@ -915,6 +966,7 @@ async function settingsSavePerson(existing){
     if(patch.signCap!==undefined) body.signCap=patch.signCap;
     if(patch.reviewChecked!==undefined) body.reviewChecked=patch.reviewChecked;
     if(patch.reviewerId!==undefined) body.reviewerId=patch.reviewerId;
+    if(patch.overseerId!==undefined) body.overseerId=patch.overseerId;
     if(Object.keys(body).length){
       try{ const r=await api('users/'+target.id,'PATCH',body); if(r&&r.user) Object.assign(target,r.user); }
       catch(e){ stDrawerRefuse(e.message); return; }
@@ -925,6 +977,7 @@ async function settingsSavePerson(existing){
     if(patch.signCap!==undefined) target.signCap=patch.signCap;
     if(patch.reviewChecked!==undefined) target.reviewChecked=patch.reviewChecked;
     if(patch.reviewerId!==undefined) target.reviewerId=patch.reviewerId;
+    if(patch.overseerId!==undefined) target.overseerId=patch.overseerId;
   } else {
     target.name=name||target.name; target.title=title; if(roleChanged) target.role=role;
     const capNow=(typeof signCapOf==='function')?signCapOf(target):{answered:false,limit:null};
@@ -932,6 +985,7 @@ async function settingsSavePerson(existing){
     if(cap!==undefined && cap!==capWas) target.signCap=cap;
     if(rv&&rv.reviewChecked!==undefined) target.reviewChecked=rv.reviewChecked;
     if(rv&&rv.reviewerId!==undefined) target.reviewerId=rv.reviewerId;
+    if(ovr!==undefined) target.overseerId=ovr;
     saveUsers(us);
   }
   if(target.role!=='admin'){
@@ -964,6 +1018,15 @@ function settingsMirrorDirectory(name,email,title){
    be stuck, and the desks can be reassigned afterwards by any admin. */
 async function settingsRemoveMember(u){
   const us=getUsers(); const t=us.find(x=>x.id===u.id); if(!t) return;
+  /* ---- SOMEBODY WHO OVERSEES OTHERS TAKES THAT STEP WITH THEM ----
+     Said BEFORE the removal, beside the negotiation-lead warning and for the
+     same reason: the approval step stays and names an account that no longer
+     exists, and an admin needs to know to repoint it. It WARNS rather than
+     refusing — an admin removing somebody who left on Friday must not be
+     stuck. */
+  let oversees='';
+  const watched=((getUsers()||[]).filter(x=>x&&String(x.overseerId||'')===String(t.id)));
+  if(watched.length) oversees=`\n\n${i18tn('ov_leaver',watched.length,{who:t.name,n:watched.length})}`;
   let leads='';
   if(window.deskLedBy){
     const led=deskLedBy(state.contracts||[],t.id);
@@ -971,7 +1034,7 @@ async function settingsRemoveMember(u){
       +led.slice(0,5).map(c=>c.name).join(', ')+(led.length>5?`, +${led.length-5}`:'')
       +`\n${i18t('dk_leaver_sub')}`;
   }
-  if(!await confirmDialog({title:`Remove ${t.name}?`, message:`${t.name} will lose access to this workspace. You can re-invite them later.${leads}`, confirmLabel:'Remove member', danger:true})) return;
+  if(!await confirmDialog({title:`Remove ${t.name}?`, message:`${t.name} will lose access to this workspace. You can re-invite them later.${oversees}${leads}`, confirmLabel:'Remove member', danger:true})) return;
   if(API_MODE()){
     try{ await api('users/'+t.id,'DELETE'); REMOTE.users=REMOTE.users.filter(x=>x.id!==t.id); }
     catch(e){ stDrawerRefuse(e.message); return; }
@@ -1244,6 +1307,10 @@ const SET_PANELS={
           <span><span class="st-role-name">${esc(i18t('sc_rule_on'))}</span>
           <span class="st-note">${esc(i18t('sc_rule_sub'))}</span></span></label>
         <label class="st-toggle" style="margin-bottom:8px">
+          <input id="ov-rule-on" type="checkbox"${((typeof overseerEnforced==='function')&&overseerEnforced())?' checked':''}/>
+          <span><span class="st-role-name">${esc(i18t('ov_rule_on'))}</span>
+          <span class="st-note">${esc(i18t('ov_rule_sub'))}</span></span></label>
+        <label class="st-toggle" style="margin-bottom:8px">
           <input id="sf-rule-on" type="checkbox"${((typeof signFolderEnforced==='function')&&signFolderEnforced())?' checked':''}/>
           <span><span class="st-role-name">${esc(i18t('sf_rule_on'))}</span>
           <span class="st-note">${esc(i18t('sf_rule_sub'))}</span></span></label>
@@ -1262,6 +1329,11 @@ const SET_PANELS={
            recorded and a limit that refuses are different facts), so it
            repaints — the panel does not, and the page behind it does not. */
         stPaintLadder();
+      });
+      document.getElementById('ov-rule-on')?.addEventListener('change',e=>{
+        if(typeof saveOverseerCfg!=='function') return;
+        saveOverseerCfg({ on:e.target.checked });
+        toast(i18t('ov_rule_saved'));
       });
       document.getElementById('sf-rule-on')?.addEventListener('change',e=>{
         if(typeof saveSignFolderCfg!=='function') return;
@@ -2599,4 +2671,5 @@ Object.assign(window,{renderTeam,renderMyAccountPage,renderAllowancePanel,render
   settingsWriteFolderAccess,settingsExportBackup,stGoLive,stSampleContracts,stClearSamples,stRunIntegrity,
   stPersonMissing,stAccountBodyHtml,parseDirectoryCsv,openFolderAccessEditor,settingsMirrorDirectory,
   stSigningSectionHtml,stSigningRead,stPaintLadder,stReviewSectionHtml,stReviewRead,stSignFolderHtml,stSignFolderRead,
+  stOverseerSectionHtml,stOverseerRead,
   settingsMarketFactsHtml,settingsPaintShapeBoxes,settingsHeightsBefore,settingsHoldHeights});

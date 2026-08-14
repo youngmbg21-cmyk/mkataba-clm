@@ -509,6 +509,7 @@ function createFromTemplate(tid){
     audit:[{at:nowISO(),user:u?.name||'System',action:'Created',detail:`Generated from Template ${tid} (${t.kind})`}],
     signatures:[] };
   c._loaded=true; c._light=false; c._v=0;
+  if(window.contractOwnerStamp) contractOwnerStamp(c);
   state.contracts.unshift(c);
   /* A NEW DRAFT OPENS ON KEY TERMS, not on its document — see
      wsTabDefaults. Registered at every creation site because there is no

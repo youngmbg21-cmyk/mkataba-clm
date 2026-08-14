@@ -227,7 +227,8 @@ const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role,
      reads "not false" and a server that helpfully filled in a default would be
      a second place this rule is decided. */
   reviewChecked: u.review_checked == null ? null : !!u.review_checked,
-  reviewerId: u.reviewer_id || null });
+  reviewerId: u.reviewer_id || null,
+  overseerId: u.overseer_id || null });
 
 /* ---------- per-contract storage (scales to large portfolios) ----------
    Each contract is its own row with its own version. Lists return a light
@@ -285,8 +286,13 @@ const HEAVY = c => { // strip the big fields for list/index responses
   const x = { ...c };
   if (x.execution) x.execution = { ...x.execution, html: undefined };
   if (x.upload) x.upload = { ...x.upload, dataUrl: undefined, extractedText: undefined };
-  const raised = raisedFrom(x);
-  if (raised) x._raisedBy = raised.by;
+  /* THE STORED OWNER WINS. `_raisedBy` was the stop-gap that made the
+     dashboard true before a contract had an owner field; it stays for every
+     record raised before that landed and never backfilled. One reading, two
+     sources, and the record is the senior of them. */
+  const own = x.owner && (x.owner.name || x.owner.id) ? x.owner : null;
+  const raised = own ? { by: own.name || null } : raisedFrom(x);
+  if (raised && raised.by) x._raisedBy = raised.by;
   /* The DATES are not the same question as the PERSON: a seeded sample has no
      owner to name but was still raised on a day, and its cycle time is a real
      figure. So these are taken from the trail whoever stamped it. */
@@ -435,6 +441,10 @@ addColumnIfMissing('users', 'sign_cap', 'TEXT');
    js/review.js. */
 addColumnIfMissing('users', 'review_checked', 'INTEGER');
 addColumnIfMissing('users', 'reviewer_id', 'TEXT');
+/* Who signs off this member's contracts, as a final approval step. Hangs on
+   the contract's OWNER, so it could not exist before a contract knew whose it
+   was. NULL = nobody, which is where every existing member starts. */
+addColumnIfMissing('users', 'overseer_id', 'TEXT');
 addColumnIfMissing('sessions', 'expires_at', 'TEXT');
 addColumnIfMissing('sessions', 'last_seen', 'TEXT');
 addColumnIfMissing('sessions', 'ip', 'TEXT');
@@ -5133,12 +5143,15 @@ app.patch('/api/users/:id', auth, (req, res) => {
   /* WHO CHECKS THEIR WORK is an admin's grant too, and for the plainest reason
      there is: a person who could turn their own check off is not checked. */
   const hasChecked = b.reviewChecked !== undefined, hasReviewer = b.reviewerId !== undefined;
-  if (!hasRole && !hasValues && !hasTitle && !hasCap && !hasChecked && !hasReviewer)
+  /* Who oversees them is an admin's grant for the same reason the rest are:
+     somebody who could pick their own approver is not overseen. */
+  const hasOverseer = b.overseerId !== undefined;
+  if (!hasRole && !hasValues && !hasTitle && !hasCap && !hasChecked && !hasReviewer && !hasOverseer)
     return res.status(400).json({ error: 'Nothing to change' });
   const self = req.params.id === req.user.id;
   // Only a title may be set by a non-admin, and only on their own account.
   if (req.user.role !== 'admin'
-    && !(self && hasTitle && !hasRole && !hasValues && !hasCap && !hasChecked && !hasReviewer))
+    && !(self && hasTitle && !hasRole && !hasValues && !hasCap && !hasChecked && !hasReviewer && !hasOverseer))
     return res.status(403).json({ error: 'Admin access required' });
   if (userPrefs(req.user).mustChangePassword)
     return res.status(403).json({ error: 'Set your own password before making changes', mustChangePassword: true });
@@ -5184,6 +5197,19 @@ app.patch('/api/users/:id', auth, (req, res) => {
       if (who.role === 'viewer') return res.status(400).json({ error: 'A Viewer cannot rule on a change.' });
     }
     db.prepare('UPDATE users SET reviewer_id=? WHERE id=?').run(rid, req.params.id);
+  }
+  if (hasOverseer) {
+    const oid = b.overseerId == null || b.overseerId === '' ? null : String(b.overseerId);
+    if (oid) {
+      /* NOBODY OVERSEES THEIR OWN CONTRACTS — an approval step you grant
+         yourself is not an approval. Refused here and not only in the picker,
+         because the picker is a decision about pixels. */
+      if (oid === req.params.id) return res.status(400).json({ error: 'Nobody oversees their own contracts.' });
+      const who = db.prepare('SELECT id, role FROM users WHERE id=?').get(oid);
+      if (!who) return res.status(400).json({ error: 'That person is not a member of this workspace.' });
+      if (who.role === 'viewer') return res.status(400).json({ error: 'A Viewer cannot approve a contract.' });
+    }
+    db.prepare('UPDATE users SET overseer_id=? WHERE id=?').run(oid, req.params.id);
   }
   if (hasValues) {
     const role = hasRole ? b.role : target.role;

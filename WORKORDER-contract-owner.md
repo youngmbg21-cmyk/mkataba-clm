@@ -3,8 +3,21 @@
 **Raised by:** Young, 2026-08-14, walking back through the overnight list:
 "build B and fix the dashboard bug but keep it in a work order for now".
 **Repo:** `youngmbg21-cmyk/mkataba-clm` (HaTi).
-**Status:** OPEN — written, not built. Nothing in this file has been
-implemented.
+**Status:** CLOSED — built 14 Aug 2026 on Young's instruction ("complete the
+rest of the work orders autonomously"), taking this order's own
+recommendations for D-1 to D-5 except D-5. O-1 to O-4 landed: the field
+stamped at all seven creation sites, the narrow backfill on migrateContract,
+the stored owner outranking the `_raisedBy` stop-gap on the light list, and
+the overseer step joining the one approval chain behind a default-OFF switch.
+The dashboard bug was fixed first and separately (f198), together with the
+same wound on Reports.
+
+**D-5 (the owner as a register column) was NOT taken** — it is a visible
+change to a screen nobody asked to change, and it is one line of work
+whenever it is wanted. Everything it needs is now on the row.
+
+Proof: f199 (34), f198 (13), full suite 3497/3497, settings/dashboard/new-
+contract browser checks green.
 
 ---
 
