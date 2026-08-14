@@ -50,7 +50,12 @@ describe('filing: the funnel tells "unchanged" and "reformatted" apart', () => {
     assert.equal(ch.newText, ch.oldText, 'the words really are unchanged');
     assert.equal(ch.summary, 'Formatting changed — the wording is unchanged',
       'the summary is truthful — not the "Wording changed" fallback');
-    assert.equal(ch.hashV, 3, 'fingerprinted under the format that covers the rich body');
+    /* v4 since 14 Aug 2026 — the fields are length-prefixed and the redline
+       marks are inside the fingerprint. The version is pinned as a literal on
+       purpose: reading it off NEGO_HASH_V would make this assertion true
+       whatever the constant said, and the whole point of the stamp is that a
+       record can be read back under the format it was written under. */
+    assert.equal(ch.hashV, 4, 'fingerprinted under the format that covers the rich body and the marks');
     /* The sanitiser canonicalises B → STRONG on the way in (RICH_MAP), so the
        stored record carries the canonical tag, not the editor's. */
     assert.ok(ch.bodyHtml.includes('<strong>'), 'the proposed markup is on the record');
@@ -140,11 +145,26 @@ describe('the fingerprint attests to the formatting, and old records still verif
     c.negotiation.chainHead = a.hash;
     const b = await win.negoEditClause(c, cl5.clauseId, bolded(cl5.bodyHtml),
       { side: 'counterparty', author: 'Erik Lindqvist' });
-    assert.equal(b.hashV, 3);
-    assert.equal(b.prevChangeHash, a.hash, 'the v3 record chains onto the v2 one');
+    assert.equal(b.hashV, 4);
+    assert.equal(b.prevChangeHash, a.hash, 'the new record chains onto the v2 one');
     const v = await win.verifyChangeChain(c);
     assert.equal(v.ok, true, `mixed-version chain verifies: ${v.detail}`);
     assert.equal(v.checked, 2);
+    /* AND A v3 RECORD IN THE SAME CHAIN. Two format bumps have now happened,
+       so "old records go on verifying" has to mean every old format, not just
+       the one immediately before. A build that dropped v2 or v3 would accuse
+       every contract written under them of tampering. */
+    const cl6 = win.negoClauseList(c).find(x => x.num === '6');
+    if (cl6) {
+      const d = await win.negoEditClause(c, cl6.clauseId, '<p>Notice period is thirty (30) days.</p>',
+        { side: 'counterparty', author: 'Erik Lindqvist' });
+      d.hashV = 3;
+      d.hash = await win.negoHash(c.id, d);
+      assert.ok(win.negoHashInput(c.id, d).startsWith('hati-change-v3'), 'the input really is the v3 string');
+      const v3 = await win.verifyChangeChain(c);
+      assert.equal(v3.ok, true, `a v2, a v3 and a v4 record verify together: ${v3.detail}`);
+      assert.equal(v3.checked, 3);
+    }
   });
 
   test('tampering with a formatting-only record is caught', async () => {

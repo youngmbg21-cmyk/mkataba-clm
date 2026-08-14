@@ -489,15 +489,38 @@ describe('f167 · the desk gates redlining and sending, never signing', () => {
   /* THE PREDICATE ITSELF DID NOT MOVE. Everything the desk was written to stop
      is still stopped — which is the half of this fix that is easy to lose. */
   test('the desk still refuses that same person a REDLINE', async () => {
+    /* THE PREDICATE IS ASKED ON ITS OWN, because on the reported contract two
+       true refusals now overlap: two colleagues have already signed, and since
+       14 Aug 2026 a signature freezes the wording for EVERYBODY — desk or no
+       desk. That freeze answers first, which is the right order (it is the
+       wider rule), so the desk's own refusal is proved where it actually
+       bites: on a contract nobody has signed yet. */
     const c = await reported();
     const asDan = signWorld(DAN);
     assert.equal(asDan.win.deskMayRedline(c, DAN), false);
-    /* The funnel refuses by returning null and saying so, exactly as it does
-       for a reader above — see "a reader is refused by the FUNNEL". */
-    const filed = await editIn(asDan.win, c, 6, NEW_CAP, { author: DAN.name });
+
+    const unsigned = await reported();
+    delete unsigned.signerPlan;                    // nothing signed — the desk is the only rule left
+    const filed = await editIn(asDan.win, unsigned, 6, NEW_CAP, { author: DAN.name });
     assert.equal(filed, null, 'signing is not redlining, and the funnel still says so');
     const err = asDan.log.toasts.filter(t => t.kind === 'err').pop();
     assert.match(err.msg, /not on this negotiation/);
+  });
+
+  test('and once anybody has signed, the wording is frozen for everybody', async () => {
+    /* Owner-ruled 14 Aug 2026. On a route with more than one signer there was a
+       window between the first mark and the seal in which the wording could
+       still move, so the first signer's name ended up on a document they had
+       not seen. The lead is the person the desk would otherwise allow, which is
+       what makes them the right person to refuse here. */
+    const c = await reported();
+    const lead = signWorld(ME);
+    assert.equal(lead.win.deskMayRedline(c, ME), true, 'the desk would allow it');
+    const filed = await editIn(lead.win, c, 6, NEW_CAP, { author: ME.name });
+    assert.equal(filed, null, 'and the signature refuses it anyway');
+    const err = lead.log.toasts.filter(t => t.kind === 'err').pop();
+    assert.match(err.msg, /already signed/i);
+    assert.match(err.msg, /start the signing again/i, 'and it says the one way forward');
   });
 
   test('and still refuses a contributor the SEND', async () => {

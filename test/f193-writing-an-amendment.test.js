@@ -105,16 +105,55 @@ describe('f193 · the link is there from the first moment', () => {
     assert.equal(c.audit[0].user, ME.name, 'and names who did it');
   });
 
-  test('the new end date reaches the whole family, which is the point of it', () => {
+  test('an UNSIGNED amendment proposes the new end date and does not impose it', () => {
+    /* REVERSED IN PLACE, owner-ruled 14 Aug 2026. This asserted that creating a
+       draft amendment moved the master's live expiry immediately — deliberate,
+       documented behaviour, which the audit put to the owner as legal risk.
+
+       An unsigned amendment has no legal effect, and a renewal reminder is
+       acted on without anybody re-checking why it says what it says: somebody
+       reading the moved date and deciding not to serve notice would be relying
+       on a term that does not exist yet.
+
+       THE PROPOSAL IS NOT LOST, which is the other half of the ruling. It is
+       stated BESIDE the live date rather than replacing it. */
     const { win } = world([master()]);
     const parent = win.state.contracts[0];
     assert.equal(win.effectiveExpiry(parent), '2026-09-30', 'before: its own date');
 
     const c = win.createAmendment(parent, { relation: 'amendment', expiry: '2029-03-31' }).contract;
+    assert.equal(win.effectiveExpiry(parent), '2026-09-30',
+      'a draft does not move the live expiry');
+    assert.equal(win.expirySource(parent), null, 'nor claim a source for one');
+
+    const p = win.proposedExpiry(parent);
+    assert.ok(p, 'but the proposal is known');
+    assert.equal(p.date, '2029-03-31');
+    assert.equal(p.id, c.id, 'and it names the document asking for it');
+  });
+
+  test('and once it is signed, the term moves — and the panel says where from', () => {
+    const { win } = world([master()]);
+    const parent = win.state.contracts[0];
+    const c = win.createAmendment(parent, { relation: 'amendment', expiry: '2029-03-31' }).contract;
+    c.status = 'Signed';
     assert.equal(win.effectiveExpiry(parent), '2029-03-31',
-      'after: the date the amendment states');
+      'the date the signed amendment states');
     assert.equal(win.expirySource(parent).id, c.id,
       'and the panel can say WHICH document moved it, rather than quietly showing another date');
+    assert.equal(win.proposedExpiry(parent), null,
+      'and it stops being a proposal once it is the answer');
+  });
+
+  test('a seal counts as signed even where the status has not caught up', () => {
+    /* The same three signals negoExecuted and the server's isExecutedRow read.
+       Reducing this to the status alone is the narrowing both of those exist
+       to prevent. */
+    const { win } = world([master()]);
+    const parent = win.state.contracts[0];
+    const c = win.createAmendment(parent, { relation: 'amendment', expiry: '2030-01-31' }).contract;
+    c.execution = { at: new Date().toISOString() };
+    assert.equal(win.effectiveExpiry(parent), '2030-01-31');
   });
 
   test('an amendment that does not touch the term leaves it alone', () => {

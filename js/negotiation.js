@@ -90,6 +90,29 @@ const negoClauseById = (c, id) => negoClauseList(c).find(cl => cl.clauseId === i
 function negoExecuted(c){
   return !!(c && (c.status === 'Signed' || c.hash || (c.execution && c.execution.at)));
 }
+/* ---- AND THE WORDING FREEZES AT THE FIRST SIGNATURE (owner-ruled 14 Aug 2026) ----
+   negoExecuted is true when the LAST signer has signed and the seal is taken.
+   On a route with more than one signer there is a window between the first
+   mark and that moment, and in it the wording could still be changed — so the
+   first signer's name ended up on a document they had not seen. What they
+   signed is what they were shown; a contract that moves underneath a signature
+   is not the contract that was signed.
+
+   ONE PREDICATE, TWO SIGNALS, matching signingLocked in js/approvals.js — which
+   already reads both stores for the ROUTE, and for the same reason: a
+   counterparty's mark reaches c.signatures only when the owner's browser
+   applies it, while an internal signer's lands on the plan row. Reading one
+   alone leaves the other half of the window open.
+
+   This is the wording lock ONLY. Numbering, obligations, the audit trail and
+   the signature-taking itself are unaffected — the point is that the words
+   stop moving, not that the contract stops working. */
+function negoAnySignature(c){
+  if (!c) return false;
+  if (Array.isArray(c.signatures) && c.signatures.length) return true;
+  return (Array.isArray(c.signerPlan) ? c.signerPlan : []).some(s => s && s.signed);
+}
+const negoWordingFrozen = c => negoExecuted(c) || negoAnySignature(c);
 
 /* ---------- THE NUMBERING OF AN EXECUTED CONTRACT IS FINAL ----------
    The same predicate under the name that says WHY it is being asked, because
@@ -718,7 +741,40 @@ function negoNextId(c){
    never status order. A revision of a pending change is an issuance like any
    other, so a revised change's new hash chains onto its own prior wording, and
    every earlier wording stays recoverable from the chain. */
-const NEGO_HASH_V = 3;
+/* ---- v4: THE FIELDS ARE LENGTH-PREFIXED, AND THE MARKS ARE INSIDE ----
+   (audit finding 8, 14 Aug 2026.) v2 and v3 joined the fields with '\n' and
+   nothing else, and two of those fields are CONTRACT WORDING, which contains
+   newlines. So the boundary between "the words before" and "the words after"
+   was a character the words themselves could contain, and moving a line break
+   across it produced a byte-identical hash input for a genuinely different
+   change. Demonstrated: {old:'Payment within 30 days.\nLate fees apply.',
+   new:'Payment within 45 days.'} and {old:'Payment within 30 days.',
+   new:'Late fees apply.\nPayment within 45 days.'} hashed the same. A
+   fingerprint that can attest to two different histories attests to neither.
+
+   THE REMEDY IS THE STANDARD ONE: write each field's length before it, so no
+   content can imitate a separator. `12:hello world` cannot be confused with
+   anything, whatever `hello world` contains.
+
+   AND `ops` COMES INSIDE. The marks are what the counterparty actually reads —
+   the rendered redline — and they travelled in the payload as authoritative
+   while sitting outside the attestation entirely, so the visible diff could be
+   rewritten without disturbing the fingerprint. Serialised through the same
+   length-prefixing rather than JSON, which has its own escaping to reason about.
+
+   OLD RECORDS ARE NOT RECOMPUTED. Every existing fingerprint was issued under
+   v2 or v3 and goes on verifying under the version stamped on it — the same
+   rule this file already kept for v2 when v3 arrived. Only new issuances are
+   v4, and verifyChangeChain reads each record's own stamp. */
+const NEGO_HASH_V = 4;
+/* Every format a record on a live contract may legitimately be stamped with.
+   A record verifies under the version it was WRITTEN under, forever — bumping
+   the format must never accuse an existing contract of tampering. */
+const NEGO_HASH_VERIFIES = new Set([2, 3, 4]);
+/* length-prefixed, so a field's own content can never look like the separator */
+const _lp = s => { const t = String(s == null ? '' : s); return `${t.length}:${t}`; };
+const _lpOps = ops => (Array.isArray(ops) ? ops : [])
+  .map(o => _lp((o && o.op) || '') + _lp((o && o.text) == null ? '' : o.text)).join('');
 function negoHashInput(contractRef, iss){
   const v = Number(iss.hashV) || NEGO_HASH_V;
   const fields = [
@@ -731,7 +787,10 @@ function negoHashInput(contractRef, iss){
     String(iss.createdAt || ''),
     String(iss.prevChangeHash || ''),
   ];
-  if (v >= 3) return ['hati-change-v3', ...fields,
+  if (v >= 4) return 'hati-change-v4' + fields.map(_lp).join('')
+    + _lp(iss.bodyHtml == null ? '' : iss.bodyHtml)
+    + _lp(_lpOps(iss.ops));
+  if (v === 3) return ['hati-change-v3', ...fields,
     String(iss.bodyHtml == null ? '' : iss.bodyHtml)].join('\n');
   return ['hati-change-v2', ...fields].join('\n');
 }
@@ -806,10 +865,15 @@ async function verifyChangeChain(c){
        predate the rich-body field and must keep verifying after v3 shipped, or
        bumping the format would have silently accused every existing contract
        of tampering. negoHashInput reads the record's own hashV stamp. */
-    if (iss.hashV !== 2 && iss.hashV !== NEGO_HASH_V)
+    /* v4 arrived on 14 Aug 2026 (see negoHashInput). The accepted set is now a
+       LIST rather than two named versions, so the next format joins it without
+       this line having to be rewritten — and, more importantly, so no record
+       already on a contract is ever accused of tampering by a build that moved
+       on without it. */
+    if (!NEGO_HASH_VERIFIES.has(Number(iss.hashV)))
       return { ok: false, checked: list.length, failedAt: iss.id || null, seq: iss.seq || null,
         reason: 'unknown-hash-version',
-        detail: `#${iss.id} was written under hash format v${iss.hashV || 1}; this build verifies v2 and v${NEGO_HASH_V}` };
+        detail: `#${iss.id} was written under hash format v${iss.hashV || 1}; this build verifies v${[...NEGO_HASH_VERIFIES].join(', v')}` };
     /* A revision must follow its own previous wording; anything else must
        follow whatever was issued immediately before it. Rebuilt here from the
        stored records rather than trusted, so a reordered or removed issuance
@@ -983,8 +1047,8 @@ async function negoFileChange(c, draft, opts = {}){
      will too, and it inherits this without knowing it needs to. Before
      negoInit, because a refusal must not leave initialisation behind as its
      only trace. */
-  if (negoExecuted(c)){
-    if (window.toast) toast(i18t('ne_executed_amend'), 'err');
+  if (negoWordingFrozen(c)){
+    if (window.toast) toast(i18t(negoExecuted(c) ? 'ne_executed_amend' : 'ne_signed_frozen'), 'err');
     return null;
   }
   negoInit(c);
@@ -1685,8 +1749,8 @@ function negoResolve(c, id, status, opts = {}){
      numbering lock reads the identical fact and had no business writing the
      expression out a second time — two copies is how one of them comes to be
      the narrowed version this comment exists to warn about. */
-  if (negoExecuted(c)){
-    if (window.toast) toast(i18t('ne_executed_amend'), 'err');
+  if (negoWordingFrozen(c)){
+    if (window.toast) toast(i18t(negoExecuted(c) ? 'ne_executed_amend' : 'ne_signed_frozen'), 'err');
     return null;
   }
   const who = String(opts.by || (window.currentUser && window.currentUser()?.name) || 'System');
@@ -2199,6 +2263,28 @@ function negoSigningBlockers(c){
   if (a.contested.length) out.push(`${a.contested.length} refused ask${a.contested.length === 1 ? '' : 's'}`
     + ` ${a.contested.length === 1 ? 'is' : 'are'} still outstanding — the side that asked has not withdrawn`
     + ` ${a.contested.length === 1 ? 'it' : 'them'} (${a.contested.map(x => '#' + x.id).join(', ')})`);
+  /* ---- AND CLOSING THE ROUND DOES NOT SETTLE A REFUSAL (audit finding 6) ----
+     negoAlignment reads the LIVE c.changes, which negoAdvanceRound empties: it
+     refuses to close over anything still pending, but a refused counterparty
+     ask is not pending — it is decided — so it archived cleanly and took the
+     block with it. The contract then reported aligned and could be signed over
+     a disagreement the other side never withdrew, which is the exact state the
+     line above exists to prevent. The refuser settled it by closing the round;
+     only the asker's withdrawal is supposed to do that (see negoWithdraw).
+
+     negoOpenPoints is that question asked across ALL rounds — it reads
+     negoAllChanges, skips anything withdrawn, and skips anything whose wording
+     ended up in the document anyway, so a point that was really resolved does
+     not come back. It was computed and had no reader in the product; this is
+     the reader. Live ones are already named above, so only the archived
+     remainder is added and the two cannot double-count. */
+  const seen = new Set(a.contested.map(x => String(x.id)));
+  const buried = (window.negoOpenPoints ? negoOpenPoints(c) : [])
+    .filter(p => p && !seen.has(String(p.id)));
+  if (buried.length) out.push(`${buried.length} refused ask${buried.length === 1 ? '' : 's'}`
+    + ` from an earlier round ${buried.length === 1 ? 'is' : 'are'} still outstanding —`
+    + ` closing a round does not withdraw ${buried.length === 1 ? 'it' : 'them'}`
+    + ` (${buried.map(x => '#' + x.id).join(', ')})`);
   return out;
 }
 /* What is stopping this, in words, for the disabled button to say. Never
@@ -3177,7 +3263,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoExecuted, negoNumberingLocked, negoNumberingGaps, executedDivergence, negoExecutedText,
   negoBrokenRefs, negoAllRefs, negoActorLabel,
   negoRenumberBlocked, negoRenumberPlan, negoRenumberApply, negoTimeline, negoIntegrityReport, negoLiveNumbered,
-  negoInit, negoStampContract, negoFreshenBaseline, negoBaseText, negoBaseBody, negoRound,
+  negoAnySignature, negoWordingFrozen, negoInit, negoStampContract, negoFreshenBaseline, negoBaseText, negoBaseBody, negoRound,
   negoChanges, negoChangeById, negoPending, negoOpenChanges,
   negoNextId, negoHashInput, negoHash, negoIssue, negoIssuances, negoShortHash,
   verifyChangeChain, negoVerifyCached, negoRefreshVerification, negoInvalidateVerification, NEGO_HASH_V,

@@ -354,8 +354,17 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
   test('a row says whose move it is, and pressing it goes in', () => {
     const b = world(['MK-1', 'MK-2', 'MK-3']);
     theirAsk(b.byId('MK-1'), 'CHG-1');                       // waiting on us
+    /* WAITING ON THEM MEANS THE ASK HAS GONE (14 Aug 2026). This fixture used
+       to push an owner-authored pending change and call it "waiting on them",
+       and that is exactly the untruth the audit found: an ask we have written
+       and not published is held on our own desk, so the move is ours. The
+       change is dated BEFORE the hand-over, which is what makes it a sent one
+       — the same arithmetic negoUnsentAsks does. */
+    b.byId('MK-2').negotiation = Object.assign({}, b.byId('MK-2').negotiation,
+      { turn: 'counterparty', turnAt: '2026-08-10T09:00:00.000Z' });
     b.byId('MK-2').changes.push({ id: 'CHG-2', status: 'pending', authorSide: 'owner',
-      clauseId: 'c1', kind: 'edit', author: 'Us', seq: 1 }); // waiting on them
+      clauseId: 'c1', kind: 'edit', author: 'Us', seq: 1,
+      createdAt: '2026-08-09T09:00:00.000Z' });             // sent — waiting on them
     b.byId('MK-3').changes.push({ id: 'CHG-3', status: 'accepted', authorSide: 'owner',
       clauseId: 'c1', kind: 'edit', author: 'Us', seq: 1 }); // settled
     b.win.openNegotiations();
@@ -370,6 +379,28 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
     assert.equal(b.win.negWhoseMove(b.byId('MK-3')).k, 'clear');
     b.$('#reg-tbody [data-row="MK-1"]').dispatchEvent(new b.win.Event('click'));
     assert.equal(b.win.redlineHeldId(), 'MK-1', 'a row is a door in — to the negotiation');
+  });
+
+  test('an ask we have written and NOT sent is waiting on US, not on them', () => {
+    /* Audit finding 4, and the second route into the class the owner reported
+       on MK-255. `open` counts every pending change, ours included, and our own
+       unpublished asks are held by holdUnsent until Publish Round — so one
+       clause written and not yet sent banded the whole agreement under "With
+       the other side" while nothing had left the building. negoTurnBanner,
+       reading the same contract, correctly said "1 change you have not sent
+       yet"; the two now agree. */
+    const b = world(['MK-9']);
+    b.byId('MK-9').changes.push({ id: 'CHG-9', status: 'pending', authorSide: 'owner',
+      clauseId: 'c1', kind: 'edit', author: 'Us', seq: 1,
+      createdAt: new Date().toISOString() });               // never published
+    b.win.openNegotiations();
+    const m = b.win.negWhoseMove(b.byId('MK-9'));
+    assert.equal(m.k, 'you', 'the move is ours — the thing to do next is send it');
+    assert.equal(m.why, 'unsent', 'and it says WHICH kind of waiting, not a decision count');
+    const pill = b.$('#reg-tbody [data-row="MK-9"] .ngl-w');
+    assert.match(pill.className, /ngl-w-you/);
+    assert.match(pill.textContent, /not sent yet/i,
+      'the pill says what the move is rather than counting decisions that do not exist');
   });
 
   test('the columns are the register\'s own, in the register\'s own order', () => {
@@ -392,8 +423,13 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
     const b = world(['MK-1', 'MK-2', 'MK-3', 'MK-4']);
     theirAsk(b.byId('MK-1'), 'CHG-1');
     theirAsk(b.byId('MK-2'), 'CHG-2');
+    /* MK-3 is the "with the other side" row, so its ask has to have GONE — see
+       the note in the whose-move test above. Dated before the hand-over. */
+    b.byId('MK-3').negotiation = Object.assign({}, b.byId('MK-3').negotiation,
+      { turn: 'counterparty', turnAt: '2026-08-10T09:00:00.000Z' });
     b.byId('MK-3').changes.push({ id: 'CHG-3', status: 'pending', authorSide: 'owner',
-      clauseId: 'c1', kind: 'edit', author: 'Us', seq: 1 });
+      clauseId: 'c1', kind: 'edit', author: 'Us', seq: 1,
+      createdAt: '2026-08-09T09:00:00.000Z' });
     b.byId('MK-4').changes.push({ id: 'CHG-4', status: 'accepted', authorSide: 'owner',
       clauseId: 'c1', kind: 'edit', author: 'Us', seq: 1 });
     b.win.openNegotiations();

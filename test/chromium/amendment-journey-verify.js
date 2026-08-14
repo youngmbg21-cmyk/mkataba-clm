@@ -251,12 +251,45 @@ const VISIBLE = `(el) => {
        fixture rather than on the arithmetic. Both halves have to be there: the
        live date, the document it came from, and the fact that the master's own
        date is different and is still shown. */
-    const liveLine = (master.html.match(/live expiry[^.]*\./) || [])[0] || '';
-    check('and says the live expiry is the amendment’s, naming both dates',
+    /* THE DRAFT PROPOSES, IT DOES NOT IMPOSE (owner-ruled 14 Aug 2026). The
+       amendment made above is unsigned, so the master's live expiry must NOT
+       have moved — and the proposal must be stated beside it, naming the
+       document asking. Before the ruling this asserted the opposite. */
+    const propLine = (master.html.match(/A draft document proposes[\s\S]*?signed\./) || [])[0] || '';
+    check('a DRAFT amendment proposes the new term rather than imposing it',
+      /2029-03-31/.test(propLine) && new RegExp(childIdEarly).test(propLine)
+      && /until it is signed/i.test(propLine), propLine || master.html.slice(0, 200));
+    /* "The live expiry X comes from Y" is the sentence that only appears once a
+       SIGNED amendment has moved the term. The proposal sentence mentions the
+       words "live expiry" in explaining that it has NOT moved it, so match the
+       claim rather than the phrase. */
+    check('and the live expiry itself has not moved',
+      !/live expiry <?b?>?[\d-]/.test(master.html) && !/comes from/.test(master.html),
+      (master.html.match(/comes from[^.]*\./) || ['not claimed'])[0]);
+
+    /* Sign it, and the term moves — with the panel naming where it came from. */
+    await page.evaluate(async id => {
+      const c = getContract(id);
+      c.status = 'Signed'; c.signedAt = nowISO();
+      c.execution = { at: nowISO(), html: c.redlineText };
+      persist(c); if (window.flushSaves) await flushSaves();
+    }, childIdEarly);
+    await page.evaluate(() => openWorkspace('MK-B2'));
+    await page.waitForTimeout(900);
+    await page.evaluate(id => { openWorkspace(id); }, cid);
+    await page.waitForTimeout(1100);
+    await page.evaluate(id => roomGoTab(getContract(id), 'terms'), cid);
+    await page.waitForTimeout(800);
+    const signedCard = await page.evaluate(() =>
+      (document.getElementById('family-section') || {}).textContent.replace(/\s+/g, ' ').trim());
+    const liveLine = (signedCard.match(/live expiry[^.]*\./) || [])[0] || '';
+    check('once SIGNED, the live expiry is the amendment’s, naming both dates',
       /2029-03-31/.test(liveLine) && new RegExp(childIdEarly).test(liveLine)
       && /own date of \d{4}-\d{2}-\d{2}/.test(liveLine)
       && !/own date of 2029-03-31/.test(liveLine),
       liveLine);
+    check('and it stops being described as a proposal',
+      !/proposes/i.test(signedCard));
     check('"Link to a parent agreement" stands down on a master — it could only refuse',
       master.create && !master.link);
 

@@ -229,6 +229,11 @@ const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role,
   reviewChecked: u.review_checked == null ? null : !!u.review_checked,
   reviewerId: u.reviewer_id || null,
   overseerId: u.overseer_id || null });
+/* The facts on that record that are ONE PERSON'S OWN and an admin's business,
+   and nobody else's. Stripped from every colleague's copy at the bootstrap —
+   see the note there. A new per-person setting belongs on this list the day it
+   is added; f202 fails if one of these ever reaches a non-admin again. */
+const ADMIN_ONLY_USER_FIELDS = ['folderAccess', 'signCap', 'reviewChecked', 'reviewerId', 'overseerId'];
 
 /* ---------- per-contract storage (scales to large portfolios) ----------
    Each contract is its own row with its own version. Lists return a light
@@ -1879,7 +1884,20 @@ app.get('/api/bootstrap', auth, (req, res) => {
      them on `me.folderAccess`), and it quietly discloses the workspace's access
      structure. Strip it for non-admins; admins still get it to edit. */
   const rawSettings = getSetting('appSettings') || {};
-  const settings = req.user.role === 'admin' ? rawSettings : (() => { const s = { ...rawSettings }; delete s.folderAccess; return s; })();
+  /* `signFolders.by` is the same kind of map as folderAccess — WHO MAY SIGN IN
+     WHICH STREAM, for the whole workspace — and it rode this blob untouched
+     while folderAccess beside it was stripped (audit finding 5). The SWITCH is
+     an ordinary workspace setting every screen may read; the MAP is not, which
+     is the same split PUT /api/settings already keeps when it preserves the
+     stored map through a save that does not carry it. */
+  const settings = req.user.role === 'admin' ? rawSettings : (() => {
+    const s = { ...rawSettings };
+    delete s.folderAccess;
+    if (s.signFolders && typeof s.signFolders === 'object') {
+      s.signFolders = { ...s.signFolders }; delete s.signFolders.by;
+    }
+    return s;
+  })();
   res.json({
     org: getSetting('org'),
     me: publicUser(req.user),
@@ -1887,9 +1905,22 @@ app.get('/api/bootstrap', auth, (req, res) => {
        achieved nothing while this list handed the same map back one record at a
        time — every member's scope, to every signed-in member. A non-admin gets
        their own scope on `me` and nobody else's here. */
+    /* ---- WHAT ONE MEMBER MAY KNOW ABOUT ANOTHER (audit finding 5, 14 Aug 2026) ----
+       Only folderAccess was stripped, and the other four admin-only facts were
+       handed to everybody — including Viewers. A signing limit, whether
+       somebody's work is checked, who their standing reviewer is and who
+       oversees them are all management decisions ABOUT AN INDIVIDUAL, and this
+       rulebook says they are admin-only. The People directory was built on the
+       understanding that they do not travel.
+
+       ONE LIST, so the next per-person setting is added in one place rather
+       than being remembered in two. `canViewValues` stays: it is not a decision
+       about a person's standing but a fact the drawing needs — a colleague's
+       row has to know whether to print money. */
     users: db.prepare('SELECT * FROM users ORDER BY created_at').all().map(u => {
       const p = publicUser(u);
-      if (req.user.role !== 'admin' && u.id !== req.user.id) delete p.folderAccess;
+      if (req.user.role !== 'admin' && u.id !== req.user.id)
+        for (const k of ADMIN_ONLY_USER_FIELDS) delete p[k];
       return p;
     }),
     uid: getSetting('uid') || 100,
@@ -2142,6 +2173,27 @@ app.get('/api/contracts/:id/state', auth, (req, res) => {
 const EXECUTED_IMMUTABLE = [
   'body', 'redlineText', 'format', 'execution', 'signatures', 'hash', 'sealVersion',
   'value', 'valueType', 'counterparty', 'template', 'fields', 'upload', 'signedAt',
+  /* ---- AND THE REST OF WHAT WAS SIGNED (audit finding 1, 14 Aug 2026) ----
+     The wording, the money and the counterparty were frozen; the TITLE of the
+     agreement, WHICH OF OUR ENTITIES is named on it and WHEN IT ENDS were not.
+     All three are printed on the document's own face — docPaperHeadHtml's
+     "Between A and B", the title above it, the term — so a save could change
+     what an executed contract says about itself while the seal went on
+     verifying, because the seal binds the FROZEN party in c.execution rather
+     than the live c.party.
+
+     `status` is the load-bearing one and the reason the others were reachable
+     at all. It was absent, so a save could move a signed contract back to
+     Draft — and the NEXT save, finding a draft in the stored row, let the
+     sealed wording through. Two requests and execution came undone; the attack
+     is block A of test/audit/sim-d-server-attacks.audit.js. Freezing the status
+     closes that, and freezing it is safe for the same reason isExecutedRow can
+     read it: both signing paths write status and seal in one operation, so no
+     legitimate save moves the status of an already-executed record.
+
+     NOT `folder` and NOT `obligations`: both are deliberately mutable after
+     signature and this file says why at each of them. */
+  'status', 'name', 'party', 'expiry', 'metadata',
   /* THE NEGOTIATION RECORD IS EVIDENCE TOO, and was not on this list. The
      wording was protected and the account of how the parties reached it was
      not, so a request could leave the sealed text untouched and rewrite the
@@ -2267,6 +2319,72 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
       folderMove: { from: prev.folder || null, to: c.folder || null } });
   }
 
+  /* ---------- FILING ONE CONTRACT UNDER ANOTHER IS AN ACT, AND IT IS RECORDED ----------
+     Audit finding 3. `parentId` and `relation` were guarded nowhere. A plain
+     Editor could file any contract they could see underneath any other simply
+     by saving it that way — no refusal, no audit line, nobody told. That is not
+     cosmetic: a child's renewal reminders stop firing (its expiry is nulled in
+     the reminder query on purpose, because the family's term is the parent's),
+     and it leaves the agreement count. A contract that quietly drops out of
+     your renewal warnings is the one you hear about after it has auto-renewed.
+
+     The browser has always refused the malformed shapes — linkError in
+     js/family.js — and the browser was the only thing refusing them. Two
+     contracts could be made each other's parent through the API, which drops
+     both out of the register's grouped view entirely.
+
+     ASKED AS A DIFFERENCE, exactly like the folder move below it: every
+     ordinary save carries the parent unchanged, so the question is never "may
+     this person touch parents" but "does this save MOVE the contract under a
+     different one, and is the move legal". Guarded on `existing`, so creating a
+     contract already filed against its parent — which is what "Create an
+     amendment" does, in one breath, deliberately — is not caught.
+
+     THE RULES ARE THE BROWSER'S OWN, restated where they can be enforced:
+     the parent must exist, nothing may be its own parent, a document already
+     filed under something cannot become a parent, and a document that has
+     children of its own cannot become a child. Families are one level deep. */
+  if (existing && stable(prev && prev.parentId) !== stable(c.parentId)) {
+    const from = (prev && prev.parentId) || null;
+    const to = c.parentId || null;
+    if (to) {
+      if (String(to) === String(c.id))
+        return res.status(400).json({ error: 'A contract cannot be filed under itself.' });
+      const p = db.prepare('SELECT id, json, folder FROM contracts WHERE id=?').get(String(to));
+      if (!p || !inScope(scope, p.folder))
+        return res.status(404).json({ error: `${to} does not exist, or is not one you can see.` });
+      let pj = null; try { pj = JSON.parse(p.json); } catch (_) { pj = null; }
+      if (pj && pj.parentId)
+        return res.status(400).json({
+          error: `${to} is itself filed under ${pj.parentId}. File this under the master agreement instead `
+            + '— HaTi keeps families one level deep on purpose.' });
+      const kids = db.prepare('SELECT COUNT(*) n FROM contracts WHERE parent_id=?').get(String(c.id));
+      if (kids && kids.n > 0)
+        return res.status(400).json({
+          error: `${c.id} already has ${kids.n} document(s) filed under it, so it is a master agreement. `
+            + 'Move those first if it should become an amendment.' });
+    }
+    /* AND IT IS WRITTEN DOWN, HERE, rather than trusted to whichever screen
+       made the call. The browser writes its own line through applyParentLink
+       and that line is kept (the append-only audit guard below merges rather
+       than replaces); this adds one only where the save arrived without it,
+       which is precisely the case that left no trace — a request made outside
+       the interface. Same reasoning as the share record: the fact belongs to
+       the route every path goes through, not to one of the paths. */
+    const said = (Array.isArray(c.audit) ? c.audit : []).some(a => a
+      && /^(Linked|Unlinked|Re-filed)$/i.test(String(a.action || ''))
+      && String(a.detail || '').includes(String(to || from || '')));
+    if (!said) {
+      c.audit = (Array.isArray(c.audit) ? c.audit : []).concat([{
+        at: now(), user: (req.user && req.user.name) || 'System',
+        action: to ? 'Linked' : 'Unlinked',
+        detail: to
+          ? `Filed under ${to}${from ? ` (was under ${from})` : ''}`
+          : `No longer filed under ${from} — recorded as a standalone agreement`,
+      }]);
+    }
+  }
+
   /* ---------- A SIGNING STEP RESERVED FOR SOMEONE IS RESERVED HERE TOO ----------
      The browser has always refused to let one member sign another member's
      step (js/views/contract.js, "This step is reserved for …"). That is a sign
@@ -2339,8 +2457,16 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   if (prev && Array.isArray(prev.signerPlan)) {
     const marks = s => (Array.isArray(s && s.signerPlan) ? s.signerPlan : []).filter(x => x && x.signed).length
       + (Array.isArray(s && s.signatures) ? s.signatures : []).length;
+    /* `memberId` is IN the identity string (audit finding 2, 14 Aug 2026). It
+       was not, and the reserved-step guard below keys entirely on it — so the
+       one field that decides whether a step belongs to a named colleague could
+       be deleted by the same request that claimed the step, and the guard that
+       would have noticed was not looking at it. Stripping it made the row
+       "not bound to a member and not this rule's business", which was true a
+       moment earlier and false now. With it here, removing it IS a route move
+       and the lock above refuses. */
     const idsOf = s => (Array.isArray(s && s.signerPlan) ? s.signerPlan : [])
-      .map(x => `${x && x.id}|${x && x.party}|${x && x.name}|${x && x.email}|${x && x.order}`).join('~');
+      .map(x => `${x && x.id}|${x && x.party}|${x && x.name}|${x && x.email}|${x && x.order}|${x && x.memberId}`).join('~');
     const routeMoved = idsOf(prev) !== idsOf(c);
     if (marks(prev) > 0 && routeMoved && marks(c) > 0)
       return res.status(409).json({
@@ -2363,6 +2489,49 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
         error: `That signing step is reserved for ${stolen.name || 'another member'}. `
           + 'Only they can sign it.',
         reservedFor: stolen.name || null,
+      });
+    }
+  }
+
+  /* ---------- A SIGNATURE MADE IN THIS APP NAMES THE PERSON WHO MADE IT ----------
+     Audit finding 2, and the half that matters most: an ordinary Editor saved a
+     contract carrying a colleague's name, title and email as an in-app
+     signature, and this route took it. Nothing anywhere asked whether a
+     signature recorded as `session-authenticated` — which means "this person
+     was signed in and pressed Sign" — belonged to the session that sent it.
+     The guard above only defends steps that carry a memberId; a route row
+     naming somebody by hand, or no route at all, defended nothing.
+
+     ASKED AS A DIFFERENCE, like every guard on this route: not "may this person
+     sign" but "does this save ADD an in-app signature, and does it name
+     somebody other than the caller". A save that touches no signature passes;
+     the counterparty's mark arrives down its own route and carries its own
+     method; a paper signature carries its own too.
+
+     MATCHED ON EMAIL FIRST, name second. The address is the account's unique
+     handle and the name is what the document prints — a workspace can hold two
+     people with one name and never two with one address. Where the entry
+     carries no address at all the name has to answer, which is weaker and is
+     the reason the app writes the address. */
+  {
+    const inAppSig = x => x && x.method === 'session-authenticated';
+    const sigKey = x => `${(x && x.name) || ''}|${(x && x.email) || ''}|${(x && x.at) || ''}`;
+    const before = new Set((Array.isArray(prev && prev.signatures) ? prev.signatures : []).map(sigKey));
+    const added = (Array.isArray(c.signatures) ? c.signatures : [])
+      .filter(x => inAppSig(x) && !before.has(sigKey(x)));
+    const me = req.user || {};
+    const mine = x => {
+      const e = String((x && x.email) || '').trim().toLowerCase();
+      if (e) return e === String(me.email || '').trim().toLowerCase();
+      return String((x && x.name) || '').trim() === String(me.name || '').trim();
+    };
+    const forged = added.find(x => !mine(x));
+    if (forged) {
+      return res.status(403).json({
+        error: `A signature made in HaTi has to be made by the person signing. This save records `
+          + `${forged.name || 'somebody else'} as having signed, but you are signed in as `
+          + `${me.name || 'another account'}. Ask them to sign it themselves.`,
+        signatureNotYours: forged.name || null,
       });
     }
   }
@@ -2395,7 +2564,17 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     const fresh = (Array.isArray(c.signatures) ? c.signatures : []).filter(inApp).filter(x => !had.has(key(x)));
     if (fresh.length) {
       const cap = signCapOfRow(req.user);
-      const value = Number(c.value || 0);
+      /* MEASURED AGAINST THE LARGER OF STORED AND INCOMING (audit, 14 Aug 2026).
+         This read `c.value` — the value in the REQUEST — which is the one thing
+         the person being capped controls. A capped signer sent their signature
+         and `value: 0` in the same save and the guard waved it through, then the
+         stored record carried the falsified figure. Every other guard on this
+         route asks its question of the STORED contract for exactly this reason.
+
+         The larger of the two rather than the stored one alone, because a save
+         may legitimately RAISE the value in the same breath as signing, and a
+         cap that only ever looked backwards would miss it. */
+      const value = Math.max(Number((prev && prev.value) || 0), Number(c.value || 0));
       if (cap.answered && cap.limit != null && value > cap.limit)
         return res.status(403).json({
           error: `This contract is ${value} and your signing limit is ${cap.limit}. `
@@ -2971,7 +3150,13 @@ app.get('/api/ai/usage', auth, (req, res) => {
 
 /* Today's spend, broken down by feature — what an admin looks at to see what is
    actually expensive. Survives a restart because it is a SQLite table. */
-app.get('/api/ai/spend', auth, (req, res) => {
+/* ADMIN-ONLY, to match where it is drawn (audit finding 12, 14 Aug 2026). The
+   sidebar's running Copilot figure is deliberately shown to everybody and comes
+   from /api/ai/usage, which is unchanged. THIS is the full breakdown — by
+   feature, by person, against the workspace ceiling — and it lives on the
+   admin-only Copilot engine panel. A route more open than the page it feeds is
+   a permission that exists only in the pixels. */
+app.get('/api/ai/spend', auth, admin, (req, res) => {
   const day = typeof req.query.day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(req.query.day) ? req.query.day : aiToday();
   const rows = aiSpendRows(day);
   res.json({
@@ -5972,6 +6157,44 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
   /* WO N7: a share created by the owner IS the "sent" moment, whatever the
      channel — the derived view-links and payload refreshes are not. */
   logActivation('sent', shareId, (req.user && req.user.name) || null);
+  /* ---- AND THE CONTRACT'S OWN HISTORY SAYS SO (audit finding 7, 14 Aug 2026) ----
+     "When did we send this to them, and who sent it?" is one of the first
+     questions asked in a dispute, and the History tab is where somebody goes to
+     answer it. The line was written by the DESKTOP share dialog, so a link sent
+     from the phone left no trace at all: the link worked, appeared under
+     sharing, and the record showed nothing. Nothing looked wrong, which is what
+     made it dangerous.
+
+     WRITTEN HERE, at the one route every send passes through, rather than by
+     copying the missing call into the phone — the same reasoning the change
+     model is built on. Every route in, including any added later, is recorded
+     by construction.
+
+     AND IT DOES NOT DOUBLE UP. The desktop still writes its own richer line
+     (recipient, channel, purpose) before this route is reached, so this looks
+     for a Shared entry already describing this send and adds one only where
+     there is none. The append-only audit guard on the save route is what
+     protects both from being rewritten afterwards. */
+  if (shareId) {
+    try {
+      const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(shareId);
+      if (row) {
+        const cj = JSON.parse(row.json);
+        const trail = Array.isArray(cj.audit) ? cj.audit : [];
+        const recent = Date.now() - 120000;
+        const already = trail.some(a => a && /^Shared$/i.test(String(a.action || ''))
+          && Date.parse(a.at || '') >= recent);
+        if (!already) {
+          const who = String(rec.name || email || phone || 'a recipient');
+          cj.audit = trail.concat([{
+            at: now(), user: (req.user && req.user.name) || 'System', action: 'Shared',
+            detail: `${purp === 'sign' ? 'Signing' : purp === 'view' ? 'Read-only' : 'Negotiation'} link sent to ${who} by ${ch}`,
+          }]);
+          db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(cj), shareId);
+        }
+      }
+    } catch (_) { /* the share is made; a missing line must never fail the send */ }
+  }
   const link = shareUrl(req, token);
   let emailSent = false, emailError = null;
   /* A bound link whose turn has not come yet is created but NOT delivered —
@@ -7214,9 +7437,22 @@ function runReminders() {
       (f.signedAt && String(f.signedAt).slice(0, 10)) || (f.migration && f.migration.importedAt && String(f.migration.importedAt).slice(0, 10)) || ''; };
   const kidsOf = new Map();
   for (const r of rows) { if (!r.parent_id) continue; if (!kidsOf.has(r.parent_id)) kidsOf.set(r.parent_id, []); kidsOf.get(r.parent_id).push(r); }
+  /* ---- ONLY A SIGNED AMENDMENT MOVES THE TERM (owner-ruled 14 Aug 2026) ----
+     The twin of effectiveExpiry in js/family.js, and it has to move with it or
+     the reminder this function sends disagrees with the date the screens show.
+     A DRAFT amendment used to move the term, so a renewal reminder could be
+     suppressed — or brought forward — by a document nobody had signed. That is
+     the sharpest form of the risk, because a reminder is acted on without
+     anybody re-checking why it says what it says.
+
+     Executed, not merely 'Signed': the same three signals isExecutedRow reads,
+     for the same reason. A Declined child was already excluded at the query. */
+  const executedKid = (k) => { const f = parsed.get(k.id) || {};
+    return !!(k.status === 'Signed' || f.hash || (f.execution && f.execution.at)); };
   const effExpiry = (r) => {
     if (r.parent_id) return ownExp(r);
-    const kids = (kidsOf.get(r.id) || []).filter(k => TERM_CHANGING.has((parsed.get(k.id) || {}).relation) && ownExp(k));
+    const kids = (kidsOf.get(r.id) || []).filter(k => TERM_CHANGING.has((parsed.get(k.id) || {}).relation)
+      && ownExp(k) && executedKid(k));
     if (!kids.length) return ownExp(r);
     kids.sort((a, b) => String(amendDate(a)).localeCompare(String(amendDate(b))) || String(ownExp(a)).localeCompare(String(ownExp(b))));
     return ownExp(kids[kids.length - 1]);

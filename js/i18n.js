@@ -1165,6 +1165,8 @@ const STRINGS = {
        contract at all. Where that is the case the product says what it knows
        and offers the act that makes the wait real. See negoTheirCopy. */
     ng_no_live_copy: 'No live copy — send one',
+    ng_not_sent_yet_one: '{n} change not sent yet',
+    ng_not_sent_yet_other: '{n} changes not sent yet',
     ng_nocopy_k: 'They cannot see this',
     ng_nocopy_say: '{who} holds no live copy of this contract, so they have not seen the refusal and cannot answer it. Send them a link.',
     ng_badge_refused_nocopy_title: 'Refused — but {who} holds no live copy, so they have not seen it',
@@ -2063,7 +2065,9 @@ const STRINGS = {
     fa_name_hint_one: 'Counted from the {n} document already in this family.',
     fa_name_hint_other: 'Counted from the {n} documents already in this family.',
     fa_end_q: 'Does this change the end date?',
-    fa_end_hint: 'If you set it, this becomes the whole family’s live expiry — and the renewal reminder moves with it.',
+    fa_end_hint: 'If you set it, this becomes the whole family’s live expiry once this document is signed — and the renewal reminder moves with it. Until then it is shown as a proposal.',
+    fa_proposed_term: 'A draft document proposes a term to <b>{date}</b> ({id}). It does not move the live expiry or the renewal reminder until it is signed.',
+    fa_end_hint_kept: 'Recorded on this document only. A document of this kind does not move the agreement’s live expiry or its renewal reminder — write an amendment, a variation, an addendum or a renewal to do that.',
     fa_end_unchanged: 'Leave blank if the term is unchanged',
     fa_note_ph: 'e.g. re-prices maintenance from Q1',
     fa_skeleton: 'Start with the opening and closing lines',
@@ -2546,6 +2550,7 @@ const STRINGS = {
     ap_theme_dark: 'Dark',
     ap_theme_dark_note: 'Easier at night',
     ne_executed_amend: 'This contract is executed — record an amendment instead',
+    ne_signed_frozen: 'Somebody has already signed this contract, so its wording is fixed. To change it, start the signing again — that discards the signatures already given.',
     ne_viewers_no_decide: 'Viewers cannot decide changes',
     ne_not_own_proposal: 'You cannot decide your own proposal',
     ne_only_refused_withdraw: 'Only a refused ask can be withdrawn',
@@ -3805,6 +3810,7 @@ const STRINGS = {
     set_integrity_never: 'Not run yet.',
     set_integrity_run: 'Run the check',
     set_integrity_running: 'Checking…',
+    co_seal_weak: 'But this page has no real digest available (that needs a secure connection), so the seal is the weak kind — it will spot a clumsy change and is far weaker evidence than a proper one. Re-open over https to check it properly.',
     set_integrity_weak: 'This browser has no real digest on this page (that needs a secure connection), so the check falls back to a weak one. It will still spot a changed record, but treat a clean result as weaker evidence than it looks.',
 
     /* ---- SETTINGS & RULES — four tabs, one drawer (Aug 2026 redesign) ----
@@ -5008,6 +5014,8 @@ const STRINGS = {
     ng_last_updated_by: 'Senast ändrad av {who}',
     ng_asked_by_full: 'Begärd av {who}',
     ng_no_live_copy: 'Ingen aktiv kopia — skicka en',
+    ng_not_sent_yet_one: '{n} ändring är inte skickad än',
+    ng_not_sent_yet_other: '{n} ändringar är inte skickade än',
     ng_nocopy_k: 'De kan inte se det här',
     ng_nocopy_say: '{who} har ingen aktiv kopia av avtalet, så de har inte sett avslaget och kan inte svara på det. Skicka dem en länk.',
     ng_badge_refused_nocopy_title: 'Avslagen — men {who} har ingen aktiv kopia och har därför inte sett det',
@@ -5870,7 +5878,10 @@ const STRINGS = {
     fa_name_hint_one: 'Räknat från det {n} dokument som redan finns i familjen.',
     fa_name_hint_other: 'Räknat från de {n} dokument som redan finns i familjen.',
     fa_end_q: 'Ändrar detta slutdatumet?',
-    fa_end_hint: 'Om du sätter det blir det hela familjens gällande slutdatum — och påminnelsen om förnyelse flyttar med.',
+    fa_end_hint: 'Om du sätter det blir det hela familjens gällande slutdatum när dokumentet har signerats — och påminnelsen om förnyelse flyttar med. Fram till dess visas det som ett förslag.',
+    fa_proposed_term: 'A draft document proposes a term to <b>{date}</b> ({id}). It does not move the live expiry or the renewal reminder until it is signed.',
+    fa_proposed_term: 'Ett utkast föreslår en löptid till <b>{date}</b> ({id}). Det flyttar inte det gällande slutdatumet eller påminnelsen om förnyelse förrän det är signerat.',
+    fa_end_hint_kept: 'Noteras endast på detta dokument. Ett dokument av den här sorten flyttar inte avtalets gällande slutdatum eller påminnelsen om förnyelse — skriv ett ändringsavtal, en ändring, ett tillägg eller en förnyelse för det.',
     fa_end_unchanged: 'Lämna tomt om löptiden är oförändrad',
     fa_note_ph: 't.ex. omprissätter underhåll från Q1',
     fa_skeleton: 'Börja med inlednings- och avslutningsraderna',
@@ -6345,6 +6356,7 @@ const STRINGS = {
     ap_theme_dark: 'Mörkt',
     ap_theme_dark_note: 'Skonsammare på kvällen',
     ne_executed_amend: 'Avtalet är undertecknat — registrera ett tillägg i stället',
+    ne_signed_frozen: 'Någon har redan undertecknat avtalet, så texten är låst. Starta signeringen på nytt för att ändra den — det kasserar de underskrifter som redan lämnats.',
     ne_viewers_no_decide: 'Läsare kan inte avgöra ändringar',
     ne_not_own_proposal: 'Du kan inte avgöra ditt eget förslag',
     ne_only_refused_withdraw: 'Endast en avslagen begäran kan dras tillbaka',
@@ -7552,6 +7564,7 @@ const STRINGS = {
     set_integrity_never: 'Inte körd ännu.',
     set_integrity_run: 'Kör kontrollen',
     set_integrity_running: 'Kontrollerar…',
+    co_seal_weak: 'Men den här sidan har ingen riktig kontrollsumma (det kräver en säker anslutning), så förseglingen är av den svagare sorten — den upptäcker en klumpig ändring och är betydligt svagare bevis än en riktig. Öppna sidan över https för att kontrollera den ordentligt.',
     set_integrity_weak: 'Den här webbläsaren har ingen riktig kontrollsumma på den här sidan (det kräver en säker anslutning), så kontrollen faller tillbaka på en svagare. Den upptäcker fortfarande ett ändrat underlag, men ett felfritt svar är svagare bevis än det ser ut.',
 
     /* ---- INSTÄLLNINGAR OCH REGLER — fyra flikar, en låda ---- */
