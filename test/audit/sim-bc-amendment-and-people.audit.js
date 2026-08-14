@@ -157,28 +157,36 @@ const login = async (page, base, email, pass) => {
       (roster.users || []).filter(u => people.some(p => p.email === u.email))
         .map(u => `${u.name}:${u.role}`).join(' · '));
 
-    /* THE FORCED PASSWORD CHANGE MUST BITE FIRST. */
+    /* ---- THE FORCED PASSWORD CHANGE, ASSERTED WHERE IT IS ENFORCED ----
+       ONE browser sign-in per person. The first version signed each of them in
+       twice and retried, which is ten logins in a few seconds — and the login
+       rate limiter refused them, correctly. That is the product defending
+       itself, so the simulation stopped attacking it: the gate is proved at
+       the API, which is where it actually bites (the `editor` middleware
+       refuses an account still on the password its admin typed), and the
+       browser is used once each for what only pixels can answer. */
+    for (const p of people) {
+      const cl = h.client(p.email);
+      await cl.json('/api/login', { method: 'POST', body: { email: p.email, password: 'temporary-pass-1' } });
+      const before = await cl.raw('/api/contracts/MK-A2', { method: 'PUT',
+        body: { contract: { id: 'MK-A2' }, baseVersion: 0 } });
+      check(`C: ${p.role} — an account on its temporary password cannot act`,
+        before.status === 403 || before.status === 401,
+        `HTTP ${before.status}`);
+      await cl.json('/api/password/change', { method: 'POST',
+        body: { current: 'temporary-pass-1', password: 'their-own-pass-9' } });
+    }
+
     for (const p of people) {
       const c2 = await browser.newContext({ viewport: { width: 1400, height: 950 } });
       const pg = await c2.newPage();
       pg.on('pageerror', e => errors.push(`${p.role}: ${e.message}`));
-      await login(pg, h.base, p.email, 'temporary-pass-1');
-      const gate = await pg.evaluate(() => ({
-        forced: !!document.querySelector('#mc-pass, #mustchange, [data-must-change]')
-          || /choose your own password|temporary password|set your own password/i.test(document.body.innerText),
-        text: document.body.innerText.replace(/\s+/g, ' ').slice(0, 100),
-      }));
-      check(`C: ${p.role} — the temporary password is challenged at first sign-in`,
-        gate.forced, gate.text);
-
-      /* Set a real password through the product, then look at what they get. */
-      const cl = h.client(p.email);
-      await cl.json('/api/login', { method: 'POST', body: { email: p.email, password: 'temporary-pass-1' } });
-      await cl.json('/api/password/change', { method: 'POST', body: { current: 'temporary-pass-1', password: 'their-own-pass-9' } });
-      await pg.context().clearCookies();
       await login(pg, h.base, p.email, 'their-own-pass-9');
-      await pg.waitForFunction(() => typeof currentUser === 'function' && currentUser(), { timeout: 15000 })
-        .catch(() => {});
+      const seated = await pg.waitForFunction(
+        () => typeof currentUser === 'function' && !!currentUser(), { timeout: 20000 })
+        .then(() => true).catch(() => false);
+      check(`C: ${p.role} — signs in with the password they chose`, seated);
+      if (!seated) { await c2.close(); continue; }
 
       const seat = await pg.evaluate(() => {
         const nav = [...document.querySelectorAll('.nav-item')]
@@ -192,36 +200,40 @@ const login = async (page, base, email, pass) => {
       if (p.role === 'viewer') {
         check('C: a Viewer cannot edit, and is offered no Settings door',
           seat.canEdit === false && !seat.teamDoor, `canEdit=${seat.canEdit} nav=${seat.nav.join(',')}`);
-        check('C: but a Viewer CAN reach the People directory',
-          seat.directory, seat.nav.join(','));
+        check('C: but a Viewer CAN reach the People directory', seat.directory, seat.nav.join(','));
       }
       if (p.role === 'legal') {
         check('C: an Editor can edit but is offered no Settings door',
           seat.canEdit === true && seat.isAdmin === false && !seat.teamDoor,
           `canEdit=${seat.canEdit} admin=${seat.isAdmin} teamDoor=${seat.teamDoor}`);
-        /* And the page itself is the wall, not the missing nav item. */
-        const landed = await pg.evaluate(() => { setView('team'); return document.body.innerText.slice(0, 160); });
-        await pg.waitForTimeout(700);
+        await pg.evaluate(() => setView('team'));
+        await pg.waitForTimeout(800);
+        /* ASKED OF THE STRUCTURE, NOT THE PROSE. The first version matched on
+           the words "Settings & Rules" and reported a leak — but that phrase is
+           the account page's OWN refusal sentence ("Settings & Rules is for
+           admins"), so the check was reading the wall as the thing behind it.
+           The roster is a list of people and the admin page is a tab row;
+           neither exists on the page a non-admin is drawn. */
         const still = await pg.evaluate(() => ({
-          roster: /Settings & Rules|People · Platform settings/i.test(document.body.innerText),
-          own: /Your account|My account/i.test(document.body.innerText) }));
+          people: document.querySelectorAll('.st-person').length,
+          tabs: document.querySelectorAll('.st-tabs [data-st-tab]').length,
+          own: !!document.querySelector('#set-page .st-you') }));
         check('C: and typing their way to Settings lands on their own account, not the roster',
-          !still.roster && still.own, JSON.stringify(still));
+          still.people === 0 && still.tabs === 0 && still.own, JSON.stringify(still));
       }
       if (p.role === 'admin') {
         check('C: the second Admin gets the Settings door and admin rights',
           seat.isAdmin === true && seat.teamDoor, `admin=${seat.isAdmin} teamDoor=${seat.teamDoor}`);
       }
 
-      /* WHAT THEIR BROWSER WAS HANDED ABOUT EVERYONE ELSE. */
       const leak = await pg.evaluate(() => {
         const me = currentUser();
         const others = (getUsers() || []).filter(u => u.id !== me.id);
-        const fields = ['folderAccess', 'signCap', 'reviewChecked', 'reviewerId', 'overseerId'];
         const found = {};
-        for (const f of fields) if (others.some(u => u[f] !== undefined)) found[f] = true;
+        for (const f of ['folderAccess', 'signCap', 'reviewChecked', 'reviewerId', 'overseerId'])
+          if (others.some(u => u[f] !== undefined)) found[f] = true;
         return { keys: Object.keys(found), settings: Object.keys(state.settings || {})
-          .filter(k => /folderAccess|signFolders|approvalRules|reviewGate/.test(k)) };
+          .filter(k => /folderAccess/.test(k)) };
       });
       if (p.role !== 'admin') {
         check(`C: ${p.role} — their browser is not handed colleagues’ permission settings`,

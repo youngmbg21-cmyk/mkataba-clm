@@ -402,6 +402,13 @@ were excluded by instruction and are unrelated to any finding here.
 
 ## 10 · Suggested fix order
 
+> **Since resolved.** All twelve findings and all five decisions in section 7
+> were built and merged on 14 August 2026, and the audit was then run again.
+> This report is left exactly as it was written, as the record of what HaTi was
+> that morning. **For what it is now, read `AUDIT-RE-RUN.md`** — including one
+> new fault the re-run found, and two of the attacks below that turned out on
+> re-reading to have been set up wrongly rather than to have found holes.
+
 1. **Stop a signed contract being put back to Draft** (finding 1). Smallest
    change, largest consequence — it currently unlocks everything else.
 2. **Check that an in-app signature belongs to the person making it**

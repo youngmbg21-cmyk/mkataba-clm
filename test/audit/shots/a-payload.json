@@ -4,7 +4,7 @@
     "kind": "hati-share",
     "org": "Highland Corporate Ltd",
     "sharedBy": "Amina Otieno",
-    "at": "2026-08-14T14:57:08.810Z",
+    "at": "2026-08-14T20:07:32.846Z",
     "docHash": {
       "purpose": "negotiate"
     },
@@ -19,7 +19,7 @@
       "changes": [
         {
           "id": "CHG-001",
-          "clauseId": "cl_ytt21p",
+          "clauseId": "cl_f7v48t",
           "clauseLabel": "Clause 2 · Payment",
           "changeType": "modify",
           "afterClauseId": null,
@@ -49,8 +49,8 @@
           ],
           "oldText": "The Customer shall pay each invoice within sixty (60) days of receipt.",
           "newText": "2. Payment\nThe Customer shall pay each invoice within thirty (30) days of receipt.",
-          "hash": "0x8f8da46a64fdfb34168f10f404cbee8b8800a656620a7ff1462e94143f6da298",
-          "hashV": 3,
+          "hash": "0x3165f8949e6310cdd9163b44df8350189f22ccb746a70443dcde340d8dc6a3a8",
+          "hashV": 4,
           "prevChangeHash": null,
           "seq": 1,
           "status": "pending",
@@ -58,7 +58,7 @@
           "needsReviewWhy": null,
           "author": "Amina Otieno",
           "authorSide": "owner",
-          "createdAt": "2026-08-14T14:57:08.763Z",
+          "createdAt": "2026-08-14T20:07:32.797Z",
           "roundN": 1,
           "summary": "added “2. Payment”; “sixty (60)” → “thirty (30)”",
           "note": null,
@@ -70,7 +70,7 @@
         },
         {
           "id": "CHG-002",
-          "clauseId": "cl_f05fib",
+          "clauseId": "cl_5dw6j7",
           "clauseLabel": "New clause",
           "changeType": "insertClause",
           "afterClauseId": {
@@ -87,16 +87,16 @@
           ],
           "oldText": "",
           "newText": "",
-          "hash": "0x07464f8e0c640d4584a81a58278f1754e532206b6bfd7343b3f2c2c314dd7acf",
-          "hashV": 3,
-          "prevChangeHash": "0x8f8da46a64fdfb34168f10f404cbee8b8800a656620a7ff1462e94143f6da298",
+          "hash": "0x16a8a3432d2764e4de26cee12deed9f86fb2f63efa86baae2c032d5551f50768",
+          "hashV": 4,
+          "prevChangeHash": "0x3165f8949e6310cdd9163b44df8350189f22ccb746a70443dcde340d8dc6a3a8",
           "seq": 2,
           "status": "pending",
           "needsReview": false,
           "needsReviewWhy": null,
           "author": "Juno Limited",
           "authorSide": "counterparty",
-          "createdAt": "2026-08-14T14:57:08.768Z",
+          "createdAt": "2026-08-14T20:07:32.799Z",
           "roundN": 1,
           "summary": "New clause added — ",
           "note": null,
@@ -111,11 +111,11 @@
         "round": 1,
         "turn": "owner",
         "turnAt": null,
-        "chainHead": "0x07464f8e0c640d4584a81a58278f1754e532206b6bfd7343b3f2c2c314dd7acf",
+        "chainHead": "0x16a8a3432d2764e4de26cee12deed9f86fb2f63efa86baae2c032d5551f50768",
         "chainSeq": 2,
         "seq": 2,
         "hashV": 2,
-        "baselineBody": "<h2 data-clause-id=\"cl_zd281e\">1. Scope</h2><p>The Supplier shall provide refrigerated haulage between Nairobi and Mombasa.</p><h2 data-clause-id=\"cl_ytt21p\">2. Payment</h2><p>The Customer shall pay each invoice within sixty (60) days of receipt.</p><h2 data-clause-id=\"cl_cw40o8\">3. Liability</h2><p>The Supplier shall not be liable for any indirect or consequential loss.</p>",
+        "baselineBody": "<h2 data-clause-id=\"cl_apms9z\">1. Scope</h2><p>The Supplier shall provide refrigerated haulage between Nairobi and Mombasa.</p><h2 data-clause-id=\"cl_f7v48t\">2. Payment</h2><p>The Customer shall pay each invoice within sixty (60) days of receipt.</p><h2 data-clause-id=\"cl_uscdhr\">3. Liability</h2><p>The Supplier shall not be liable for any indirect or consequential loss.</p>",
         "baselineText": "1. Scope\nThe Supplier shall provide refrigerated haulage between Nairobi and Mombasa.\n2. Payment\nThe Customer shall pay each invoice within sixty (60) days of receipt.\n3. Liability\nThe Supplier shall not be liable for any indirect or consequential loss."
       },
       "party": "Highland Corporate Ltd",
@@ -124,7 +124,7 @@
       "valueType": "standard",
       "fields": {},
       "docText": "1. Scope\nThe Supplier shall provide refrigerated haulage between Nairobi and Mombasa.\n2. Payment\nThe Customer shall pay each invoice within sixty (60) days of receipt.\n3. Liability\nThe Supplier shall not be liable for any indirect or consequential loss.",
-      "redlineText": "<h2 data-clause-id=\"cl_zd281e\">1. Scope</h2><p>The Supplier shall provide refrigerated haulage between Nairobi and Mombasa.</p><h2 data-clause-id=\"cl_ytt21p\">2. Payment</h2><p>The Customer shall pay each invoice within sixty (60) days of receipt.</p><h2 data-clause-id=\"cl_cw40o8\">3. Liability</h2><p>The Supplier shall not be liable for any indirect or consequential loss.</p>",
+      "redlineText": "<h2 data-clause-id=\"cl_apms9z\">1. Scope</h2><p>The Supplier shall provide refrigerated haulage between Nairobi and Mombasa.</p><h2 data-clause-id=\"cl_f7v48t\">2. Payment</h2><p>The Customer shall pay each invoice within sixty (60) days of receipt.</p><h2 data-clause-id=\"cl_uscdhr\">3. Liability</h2><p>The Supplier shall not be liable for any indirect or consequential loss.</p>",
       "format": "rich"
     }
   },
@@ -140,7 +140,7 @@
   "share": {
     "recipientName": "Juno Limited",
     "recipientEmail": "contracts@juno.co.ke",
-    "expiresAt": "2026-08-28T14:57:08.817Z",
+    "expiresAt": "2026-08-28T20:07:32.851Z",
     "channel": "link"
   }
 }

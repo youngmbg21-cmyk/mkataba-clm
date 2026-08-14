@@ -1178,13 +1178,23 @@ const rlHits = new Map();
    link WAS opened, which the share panel and the timeline show and which a
    negotiation genuinely turns on. The difference is live surveillance versus a
    record of delivery, and only the first one was the problem. */
+function rlKeyFor(bucket, req, keyFn) {
+  return bucket + ':' + ((keyFn ? keyFn(req) : clientIp(req)) || 'unknown');
+}
+/* Record one attempt against a bucket. Split out of the middleware so a route
+   can decide AFTER it knows the outcome whether the attempt was worth counting
+   (see rlAuth / rlNoteAuthFailure below). */
+function rlRecord(key, windowMs) {
+  const nowMs = Date.now();
+  const arr = (rlHits.get(key) || []).filter(t => nowMs - t < windowMs);
+  arr.push(nowMs); rlHits.set(key, arr);
+}
 function rateLimit(bucket, max, windowMs, opts = {}) {
   const limitOf = typeof max === 'function' ? max : () => max;
   const keyFn = opts.keyFn;
   const message = opts.message || 'Too many attempts — please wait and try again';
   return (req, res, next) => {
-    const id = (keyFn ? keyFn(req) : clientIp(req)) || 'unknown';
-    const key = bucket + ':' + id;
+    const key = rlKeyFor(bucket, req, keyFn);
     const nowMs = Date.now();
     const arr = (rlHits.get(key) || []).filter(t => nowMs - t < windowMs);
     if (arr.length >= limitOf(req)) {
@@ -1192,13 +1202,40 @@ function rateLimit(bucket, max, windowMs, opts = {}) {
       res.setHeader('Retry-After', retry);
       return res.status(429).json({ error: message, retryAfter: retry });
     }
-    arr.push(nowMs); rlHits.set(key, arr);
+    /* countFailuresOnly: the middleware still REFUSES on a full bucket, but the
+       route records the attempt itself, and only when it failed. */
+    if (!opts.countFailuresOnly) { arr.push(nowMs); rlHits.set(key, arr); }
     next();
   };
 }
 // periodic cleanup so the map cannot grow unbounded
 setInterval(() => { const nowMs = Date.now(); for (const [k, arr] of rlHits) { const keep = arr.filter(t => nowMs - t < 3600000); if (keep.length) rlHits.set(k, keep); else rlHits.delete(k); } }, 600000).unref?.();
-const rlAuth = rateLimit('auth', 10, 15 * 60 * 1000);   // 10 / 15 min per IP
+/* A SIGN-IN LIMITER COUNTS WRONG GUESSES, NOT PEOPLE ARRIVING AT WORK
+   (audit finding, 2026-08-14 — reproduced before it was touched: with a fresh
+   workspace and ten members each typing their CORRECT password once, the tenth
+   was refused with a 429).
+   The bucket is keyed by IP, and a whole office shares one public address, so
+   counting SUCCESSES meant the eleventh colleague through the door on a Monday
+   morning was told "too many attempts" and locked out for a quarter of an hour
+   — by their own colleagues signing in correctly. Nothing about that is an
+   attack, and the limiter exists to stop guessing.
+   So the ceiling and the window are unchanged and a wrong password still costs
+   exactly what it always did; a RIGHT one now costs nothing. The refusal still
+   fires off the middleware, before the handler, so a full bucket is still shut
+   to the next guess. Deliberately NOT extended to /api/password/reset-request:
+   that route always answers the same way (it must never disclose whether an
+   address is on file), so it has no failure to count, and every call there
+   sends mail — which is the thing being rationed. */
+const rlAuth = rateLimit('auth', 10, 15 * 60 * 1000, { countFailuresOnly: true });
+const rlNoteAuthFailure = req => rlRecord(rlKeyFor('auth', req), 15 * 60 * 1000);
+/* The other two routes that used to share the sign-in bucket now hold their own,
+   because each rations a different thing and only one of them has a "failure"
+   to count. Setup is a one-shot (it 409s forever once a workspace exists) and a
+   reset request must answer identically whether or not the address is on file,
+   so it has no outcome to branch on — what it spends is OUTBOUND MAIL, and
+   every call spends it. Same ceiling, same window, counted per bucket. */
+const rlSetup = rateLimit('setup', 10, 15 * 60 * 1000);
+const rlReset = rateLimit('reset', 10, 15 * 60 * 1000);
 const rlOtp = rateLimit('otp', 8, 15 * 60 * 1000);
 /* C-1: also cap OTP traffic PER SHARE TOKEN, not only per IP. A signing code
    belongs to one contract link; capping guesses against that link means an
@@ -1809,7 +1846,7 @@ if (MAPPER_TOKEN) {
   });
 }
 
-app.post('/api/setup', rlAuth, (req, res) => {
+app.post('/api/setup', rlSetup, (req, res) => {
   if (getSetting('org')) return res.status(409).json({ error: 'Workspace already exists' });
   const b = req.body || {};
   const org = clean(b.org), name = clean(b.name), email = cleanEmail(b.email), title = clean(b.title).slice(0, 120);
@@ -1841,8 +1878,10 @@ app.post('/api/setup', rlAuth, (req, res) => {
 app.post('/api/login', rlAuth, (req, res) => {
   const { email, password } = req.body || {};
   const u = db.prepare('SELECT * FROM users WHERE email=?').get(cleanEmail(email));
-  if (!u || !safeEq(hashPw(password || '', u.salt), u.hash))
+  if (!u || !safeEq(hashPw(password || '', u.salt), u.hash)) {
+    rlNoteAuthFailure(req);   // a wrong guess is what the bucket is for
     return res.status(401).json({ error: 'Email or password is incorrect' });
+  }
   // E8-T3: rotate — old sessions for this user on this device are not reused;
   // a fresh token is minted with a new expiry.
   createSession(res, req, u.id);
@@ -7297,7 +7336,7 @@ app.put('/api/me/prefs', auth, (req, res) => {
 });
 
 /* ---------- password reset ---------- */
-app.post('/api/password/reset-request', rlAuth, (req, res) => {
+app.post('/api/password/reset-request', rlReset, (req, res) => {
   const email = String((req.body || {}).email || '').toLowerCase();
   const u = db.prepare('SELECT * FROM users WHERE email=?').get(email);
   if (u) {
