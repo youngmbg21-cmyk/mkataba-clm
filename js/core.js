@@ -725,7 +725,13 @@ async function saveContract(c){
     try{ await restoreHeavyFields(c); }
     catch(e){ toast(`Could not load ${c.id}'s history before saving — the change was not written`,'err'); return; }
   }
+  /* `_raisedBy` / `_raisedAt` ride down with a LIGHT row so the dashboard can
+     ask who raised a contract without the audit trail it was stripped of. They
+     are transport, not record — derived from the trail the server still holds
+     — so they go the same way as the other underscored fields rather than
+     being written back into the stored contract. */
   const payload={...c}; delete payload._light; delete payload._loaded; delete payload._v;
+  delete payload._raisedBy; delete payload._raisedAt;
   if(payload.upload && payload.upload.fileId){ payload.upload={...payload.upload, dataUrl:undefined}; }
   // Word-review version files and the rounds that carried them follow the same
   // rule: once the bytes live in the files store, the synced JSON keeps only

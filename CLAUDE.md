@@ -212,6 +212,16 @@ Tests: term-and-fields-verify (24, browser).
 
 pbUI records what is SHUT, so a finding arrives read and pressing it folds it. Deliberate asymmetry with change cards (forty cards arrive as a wall; a handful of findings IS the panel's content). The fold is keyed by pbFoldKey (contract + category, never row index), in memory, never persisted. Quotes live in the review panel ONLY (the Key-terms reprint was removed); the one standing sentence in Key terms stays — it explains why governing law and the liability cap are not rows, drawn with or without a run. Tests: playbook-opens-read-verify (13, browser); f178's Key-terms assertions untouched.
 
+## WHO RAISED THIS SURVIVES THE LIST (owner-reported 14 Aug 2026)
+
+"Decisions due" is two halves — what this reader can APPROVE, and what they RAISED — and the second half asked the audit trail: `(c.audit||[]).some(a=>/creat/i.test(a.action)&&a.user===me.name)`. The dashboard reads state.contracts, which in server mode is the LIGHT list, and HEAVY strips `audit` out of every row on purpose. So it answered false for everything in server mode and true in local mode, where records are whole — correct everywhere except in production, which is why it survived. Reproduced against a real server before it was touched.
+
+THE FACT IS CARRIED, NOT THE TRAIL. raisedFrom(c) (server/server.js, beside HEAVY) reads the first Created/Uploaded/Migrated entry in the one place that still HAS the trail, and HEAVY sends `_raisedBy` / `_raisedAt` on the row. UNDERSCORED BECAUSE IT IS TRANSPORT: a contract gains no owner from this, and saveContract deletes both alongside _light/_loaded/_v — a derived field written back into the record is stale the moment the trail says otherwise, and then there are two answers to one question. 'System' answers NOTHING (it is what the seeded portfolio stamps; answering with it puts the whole demo book in somebody's queue). The reader falls back to the trail where there is one, so local mode and an opened contract are untouched.
+
+THE REAL ANSWER IS A STORED OWNER on the contract — WORKORDER-contract-owner.md — and it supersedes this the day it lands. NOT FIXED HERE, said out loud: js/views/reports.js reads the same stripped field (firstAuditAt over Created/Uploaded, and lastActivity), so cycle time and stage age are measuring off light rows too. Same cause, own fix.
+
+Tests: f198 (9 — fails FOUR ways against the old code, which is what makes it a regression test rather than a description).
+
 ## THE KPI RIBBON HOLDS FOUR (owner-asked, 13 Aug 2026)
 
 The catalogue had a FLOOR (keep at least one) and no ceiling: eleven metrics, all tickable, and the row across the top of Home became a list wearing card clothes. KPI_MAX = 4 is the one number and kpiAtMax(sel) the one predicate; both are exported and BOTH pickers ask them — the desktop popover (openKpiCustomizer, js/views/home.js) and the phone's sheet (mKpiSheetHtml + its toggle, js/mobile-screens.js), which reads KPI_MAX rather than repeating 4.

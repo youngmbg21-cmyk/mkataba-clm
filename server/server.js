@@ -240,10 +240,35 @@ const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role,
    input must run this and carry ESCAPE '\'. */
 const likeEscape = s => String(s == null ? '' : s).replace(/[\\%_]/g, c => '\\' + c);
 
+/* ---- WHO RAISED THIS, AND WHEN ----
+   The audit trail's first Created/Uploaded/Migrated entry is where this
+   product records who a contract came from. It is also the field HEAVY strips
+   out of every list row — which is how the dashboard's "contracts I raised"
+   half came to answer false for everything in server mode while working
+   perfectly in local mode, where the records are whole.
+
+   So the fact is CARRIED rather than the trail: computed here, in the one
+   place that still has the trail in hand, and sent as two small transport
+   fields. It is not a new record — a contract does not gain an owner from
+   this — which is why the names are underscored like `_light` and `_v`, and
+   why js/core.js strips them before a save. The real answer is a stored owner
+   on the contract; that is WORKORDER-contract-owner.md and it supersedes this
+   the day it lands. */
+const RAISED_ACTIONS = ['Created', 'Uploaded', 'Migrated'];
+function raisedFrom(c) {
+  const trail = Array.isArray(c && c.audit) ? c.audit : [];
+  const e = trail.find(a => a && RAISED_ACTIONS.includes(a.action));
+  /* `System` raised nothing — it is what the seeded sample portfolio stamps.
+     Answering with it would put every demo contract in somebody's queue. */
+  if (!e || !e.user || e.user === 'System') return null;
+  return { by: e.user, at: e.at || null };
+}
 const HEAVY = c => { // strip the big fields for list/index responses
   const x = { ...c };
   if (x.execution) x.execution = { ...x.execution, html: undefined };
   if (x.upload) x.upload = { ...x.upload, dataUrl: undefined, extractedText: undefined };
+  const raised = raisedFrom(x);
+  if (raised) { x._raisedBy = raised.by; x._raisedAt = raised.at; }
   x.comments = undefined; x.audit = undefined;
   x._light = true;
   return x;
