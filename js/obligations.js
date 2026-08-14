@@ -196,6 +196,15 @@ function obligationSurfacesChanged(){
      calendar above: its numbers are computed during a render, and ticking an
      obligation off is not a screen switch. */
   if(window.state && state.view==='dashboard' && window.renderDashboard) renderDashboard();
+  /* AND THE CHECKS CARD, which counts them on its own row since 14 Aug 2026
+     ("6 tracked"). Same reasoning again, and the reason this function exists:
+     one count, many surfaces, refreshed from ONE place rather than from each of
+     the four callers that can change an obligation. renderChecksCard returns
+     immediately where there is no card, so this is a no-op everywhere else. */
+  if(window.renderChecksCard && window.state && window.getContract){
+    const c=getContract(state.activeId);
+    if(c) renderChecksCard(c);
+  }
 }
 
 /* ---- ONE VERB, PRESSED FROM THREE SCREENS ----

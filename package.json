@@ -13,7 +13,7 @@
     "test:structure": "node test/chromium/structure-verify.js",
     "test:standardpaper": "node test/chromium/standard-paper-verify.js",
     "test:designstep": "node test/chromium/designstep-verify.js",
-    "test:all": "npm test && npm run test:browser && npm run test:selection && npm run test:parity && npm run test:live && npm run test:timeline && npm run test:structure && npm run test:designstep && npm run test:laptops && npm run test:phone && npm run test:newcontract && npm run test:standardpaper && npm run test:themetokens && npm run test:swedish && npm run test:sharerecipient && npm run test:insights && npm run test:cardcollapse && npm run test:roomnotices && npm run test:historyhead && npm run test:kpifour",
+    "test:all": "npm test && npm run test:browser && npm run test:selection && npm run test:parity && npm run test:live && npm run test:timeline && npm run test:structure && npm run test:designstep && npm run test:laptops && npm run test:phone && npm run test:newcontract && npm run test:standardpaper && npm run test:themetokens && npm run test:swedish && npm run test:sharerecipient && npm run test:insights && npm run test:cardcollapse && npm run test:roomnotices && npm run test:historyhead && npm run test:kpifour && npm run test:amendment",
     "test:live": "node test/chromium/live-verify.js",
     "test:laptops": "node test/chromium/laptops-verify.js",
     "test:phone": "node test/chromium/phone-verify.js",
@@ -27,7 +27,8 @@
     "test:papergrows": "node test/chromium/paper-grows-verify.js",
     "test:cpbell": "node test/chromium/counterparty-bell-verify.js",
     "test:historyhead": "node test/chromium/history-head-verify.js",
-    "test:kpifour": "node test/chromium/kpi-four-verify.js"
+    "test:kpifour": "node test/chromium/kpi-four-verify.js",
+    "test:amendment": "node test/chromium/amendment-journey-verify.js"
   },
   "engines": {
     "node": ">=22.5"

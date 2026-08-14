@@ -2003,9 +2003,13 @@ const STRINGS = {
     fa_no_matching: 'No matching contracts.',
     fa_agreement_family: 'Agreement family',
     fa_unlink: 'Unlink',
-    fa_add_amendment: 'Add an amendment',
+    /* fa_add_amendment RETIRED 14 Aug 2026 — it read "Add an amendment" over a
+       button that adds nothing: it attaches a document you already have. With a
+       button beside it that genuinely writes one, two buttons read the same and
+       did different things. The old act keeps its words, plainly. */
+    fa_link_existing: 'Link an existing document',
     fa_link_parent: 'Link to a parent agreement',
-    fa_filed_as: 'This document is filed as a',
+    fa_filed_as: 'This document is filed as',
     fa_this_is_a: 'This is a',
     fa_standalone_desc: 'A standalone agreement — no amendments or addenda are linked to it.',
     fa_reads_like_amendment: 'This reads like an amendment',
@@ -2029,6 +2033,34 @@ const STRINGS = {
     fa_annex_desc: 'a schedule or annex to the parent',
     fa_side_letter: 'Side letter',
     fa_side_letter_desc: 'a separate letter modifying the agreement',
+    // ---- writing a new amendment from blank paper ----
+    fa_create_amendment: 'Create an amendment',
+    fa_create_sub: 'A new blank document, filed against {ref} from the moment it is made. Same parties, same letterhead, its own wording.',
+    fa_kind_q: 'What kind of document is it?',
+    fa_name: 'Name',
+    fa_name_hint_one: 'Counted from the {n} document already in this family.',
+    fa_name_hint_other: 'Counted from the {n} documents already in this family.',
+    fa_end_q: 'Does this change the end date?',
+    fa_end_hint: 'If you set it, this becomes the whole family’s live expiry — and the renewal reminder moves with it.',
+    fa_end_unchanged: 'Leave blank if the term is unchanged',
+    fa_note_ph: 'e.g. re-prices maintenance from Q1',
+    fa_skeleton: 'Start with the opening and closing lines',
+    fa_skeleton_hint: 'The two recitals naming the agreement being amended, and the line that says everything else stands. Every word editable — untick for a blank page.',
+    fa_create_open: 'Create and open',
+    fa_needs_name: 'Give the document a name.',
+    fa_bad_date: 'That end date is not a date HaTi can read — use the picker.',
+    fa_child_cannot_amend: 'This document is itself an amendment. Amendments are one level deep — write the next one on the master agreement.',
+    /* Worded so neither language needs an indefinite article: English would
+       want a/an by the following word, and Swedish en/ett by the noun's own
+       gender, and four of the seven relations differ in each. */
+    fa_created: '{id} created and filed under {pid} — {rel}',
+    fa_nothing_written: 'Nothing written yet',
+    fa_nothing_written_t: 'This document has no wording. Press <strong>{btn}</strong> to write the first clause.',
+    /* The skeleton's own four sentences are NOT here. They are the DOCUMENT's
+       words, and every one of the twelve built-in templates drafts its paper in
+       English whatever language the reader has chosen — see docBody's BUILD.
+       A skeleton that followed the reader instead would put a Swedish body
+       under an English title on a page a counterparty reads. js/family.js. */
     si_adopt: 'Adopt your signature',
     si_draw_type_upload: 'Draw it, type your name, or upload a scan — your choice. This mark is sealed onto the document.',
     si_click_upload: 'Click to upload an image of your signature',
@@ -5506,9 +5538,9 @@ const STRINGS = {
     fa_no_matching: 'Inga matchande avtal.',
     fa_agreement_family: 'Avtalsfamilj',
     fa_unlink: 'Koppla bort',
-    fa_add_amendment: 'Lägg till ett tillägg',
+    fa_link_existing: 'Koppla ett befintligt dokument',
     fa_link_parent: 'Koppla till ett huvudavtal',
-    fa_filed_as: 'Dokumentet är arkiverat som ett',
+    fa_filed_as: 'Dokumentet är arkiverat som',
     fa_this_is_a: 'Detta är ett',
     fa_standalone_desc: 'Ett fristående avtal — inga tillägg eller bilagor är kopplade till det.',
     fa_reads_like_amendment: 'Detta läser som ett tillägg',
@@ -5532,6 +5564,26 @@ const STRINGS = {
     fa_annex_desc: 'en bilaga till huvudavtalet',
     fa_side_letter: 'Sidobrev',
     fa_side_letter_desc: 'ett separat brev som ändrar avtalet',
+    // ---- skriva ett nytt tillägg från blankt papper ----
+    fa_create_amendment: 'Skapa ett tillägg',
+    fa_create_sub: 'Ett nytt blankt dokument, kopplat till {ref} redan när det skapas. Samma parter, samma brevhuvud, egen text.',
+    fa_kind_q: 'Vilken sorts dokument är det?',
+    fa_name: 'Namn',
+    fa_name_hint_one: 'Räknat från det {n} dokument som redan finns i familjen.',
+    fa_name_hint_other: 'Räknat från de {n} dokument som redan finns i familjen.',
+    fa_end_q: 'Ändrar detta slutdatumet?',
+    fa_end_hint: 'Om du sätter det blir det hela familjens gällande slutdatum — och påminnelsen om förnyelse flyttar med.',
+    fa_end_unchanged: 'Lämna tomt om löptiden är oförändrad',
+    fa_note_ph: 't.ex. omprissätter underhåll från Q1',
+    fa_skeleton: 'Börja med inlednings- och avslutningsraderna',
+    fa_skeleton_hint: 'De två ingresserna som namnger avtalet som ändras, och raden som säger att allt annat gäller. Varje ord går att ändra — kryssa ur för ett blankt papper.',
+    fa_create_open: 'Skapa och öppna',
+    fa_needs_name: 'Ge dokumentet ett namn.',
+    fa_bad_date: 'Det slutdatumet kan HaTi inte läsa — använd väljaren.',
+    fa_child_cannot_amend: 'Det här dokumentet är självt ett tillägg. Tillägg är en nivå djupa — skriv nästa på huvudavtalet.',
+    fa_created: '{id} skapat och arkiverat under {pid} — {rel}',
+    fa_nothing_written: 'Inget skrivet ännu',
+    fa_nothing_written_t: 'Dokumentet har ingen text. Tryck <strong>{btn}</strong> för att skriva den första klausulen.',
     si_adopt: 'Skapa din underskrift',
     si_draw_type_upload: 'Rita den, skriv ditt namn, eller ladda upp en inskanning — du väljer. Märket förseglas på dokumentet.',
     si_click_upload: 'Klicka för att ladda upp en bild av din underskrift',

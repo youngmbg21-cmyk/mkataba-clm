@@ -135,4 +135,46 @@ describe('f170 · no creation route was missed', () => {
         `${f} creates a contract without sending it to Key terms`);
     });
   }
+
+  /* ============================================================
+     THE ONE ROUTE THAT DELIBERATELY DOES NOT (14 Aug 2026)
+     ============================================================
+     An eighth creation site arrived — "Create an amendment", which writes a new
+     draft from blank paper against a master agreement — and it lands on the
+     DOCUMENT tab. That is an exception to the rule this whole file is about, so
+     it is NAMED here and asserted rather than left to be discovered as a
+     missing line in the list above.
+
+     THE RULE'S OWN REASONING IS WHAT EXEMPTS IT. A new draft goes to Key terms
+     because its document is a template full of blanks that are filled from the
+     terms, so landing on the document shows somebody the output of a form they
+     have not filled in. Neither half is true of an amendment: every term it has
+     is copied from the parent at the moment it is created, and its document is
+     the empty thing the reader pressed the button in order to go and write.
+
+     It needs no flag to get there — wsTabDefaults already answers 'docs' for
+     any contract that has not registered — so what is asserted is the ABSENCE,
+     plus the comment that says the absence is a decision. A future ninth route
+     that simply forgot the call would have no such comment. */
+  test('js/family.js creates a contract and deliberately does NOT send it to Key terms', () => {
+    const src = fs.readFileSync(path.join(ROOT, 'js/family.js'), 'utf8');
+    assert.match(src, /state\.contracts\.unshift\(c\);/,
+      'this file creates contracts too — it is a creation site');
+    /* The CALL, not the word: the file names the function in the comment that
+       explains why it is not calling it, which is exactly what we want to see. */
+    assert.ok(!/roomOpenOnTerms\s*\(/.test(src),
+      'and it must not register the Key terms landing');
+    assert.match(src, /AND IT DOES NOT REGISTER roomOpenOnTerms/,
+      'the exception is written down where the code is, not only here');
+  });
+
+  test('and an amendment therefore lands on the document', () => {
+    const w = buildWorld({ user: ME, contractView: true, negotiationView: true });
+    w.win.state = { settings: {}, contracts: [], activeId: null, view: 'workspace' };
+    /* Nothing registered, status Draft — the exact state createAmendment leaves
+       behind. The control above proves this is the room's own default rather
+       than something this test arranged. */
+    const c = contract({ id: 'MK-AMEND-1', parentId: 'MK-1042', relation: 'amendment' });
+    assert.equal(landOn(w.win, c), 'docs');
+  });
 });
