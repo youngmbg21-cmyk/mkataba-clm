@@ -28,11 +28,45 @@ View) closed by extending D2's seat-relative rule to the two header proxies —
 `f84`. Recorded in `BUGLOG.md` under "Run: two buttons for one act, and only
 one of them following the rule".
 
+*Closed 15 Aug 2026:* **OI-6** (Retract dead on the counterparty's page),
+**OI-7** (a second edit to an already-adopted clause refused) and **OI-8** (the
+three readings and a More menu on their page) were all built. OI-6 and OI-7 are
+pinned by `f208` (24, node); OI-8 by
+`counterparty-reading-and-more-verify` (41, browser). The reasoning for each is
+in `CLAUDE.md` — under ONE PROPOSAL ON THE TABLE for OI-7, and beside the
+counterparty's bell for OI-8. The two things deliberately NOT taken with them
+are recorded below.
+
+---
+
+## Still open — the decision OI-6 raised and nobody has taken
+
+**Decided changes vanish unevenly on the counterparty's page.** A decided
+change keeps its card only where the *reader* made the decision: their own ask,
+once the owner has answered it, leaves their column entirely, while the owner's
+ask that they themselves answered keeps a card. Half the decided work stays
+visible and half does not, and which half depends on who answered. They also
+have no equivalent of the owner's **Reopen**, so there is no way back from that
+seat once anything is decided.
+
+Reproduced and understood; the owner has seen it and set it aside for now
+(15 Aug 2026) rather than have it built alongside the three above. Two sizes
+when it is picked up: keep decided cards whoever answered, sunk to the bottom
+and read-only; or that plus a way for them to reopen a refusal.
+
+**Span-level anchoring** (marks sitting on words rather than whole clauses)
+stays parked as OI-7 records it — a real improvement to how a contract reads,
+a much larger job, and explicitly not to be bundled with the word-level overlap
+work that shipped.
+
 ---
 
 ## OI-6 — Retract is a dead button on the counterparty's page
 
-*Logged 15 Aug 2026, owner-reported, for a later review. Reproduced; not fixed.*
+*Logged 15 Aug 2026, owner-reported. Reproduced first, then **FIXED 15 Aug 2026** —
+pinned by `f208`. Kept here as the record of what was wrong and why; the
+reasoning for the fix is in `CLAUDE.md`. Could not be moved to `BUGLOG.md` in
+this session — that file was not writable.*
 
 **What the reader sees.** A counterparty drafts a change of their own on the
 share link, presses **Retract**, and gets a red refusal reading *"This change
@@ -74,9 +108,10 @@ there is no way back from that seat once anything is decided.
 
 ## OI-7 — A second edit to a clause you have already adopted is refused
 
-*Logged 15 Aug 2026, owner-reported, for a later review. Reproduced; not
-fixed. Filed separately from OI-6 rather than inside it — different screen,
-different cause, and this file's own rule is one entry per issue.*
+*Logged 15 Aug 2026, owner-reported. Reproduced first, then **FIXED 15 Aug
+2026** — pinned by `f208`. Filed separately from OI-6 — different screen,
+different cause, and this file's own rule is one entry per issue. Kept here as
+the record; the reasoning is in `CLAUDE.md` under ONE PROPOSAL ON THE TABLE.*
 
 **What the reader sees.** A change is adopted on a clause. Later in the same
 round somebody edits a **different part of that same clause** and the new ask
@@ -179,9 +214,11 @@ legibility. **Not needed to fix this**, and it should not be bundled with it.
 
 ## OI-8 — The counterparty's page needs the three readings, and a More menu
 
-*Owner-asked, 15 Aug 2026, from a screenshot of the owner's own room. A
-feature request rather than a defect, logged here so the whole queue reads in
-one place. Not started.*
+*Owner-asked, 15 Aug 2026, from a screenshot of the owner's own room. **BUILT
+15 Aug 2026** — pinned by `counterparty-reading-and-more-verify` (41, browser).
+Kept here as the brief it was built from; three things below turned out
+differently in the doing and are corrected in `CLAUDE.md`, beside the
+counterparty's bell.*
 
 **What is asked.** Put on the counterparty's negotiation page:
 
