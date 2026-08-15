@@ -18,6 +18,22 @@
      · both browsers really hold the same version number
      · each browser's own copy really names its own filer as lead
 
+   TURNED OVER IN PLACE, 15 Aug 2026 (collision sweep pass 2 — the counters).
+   This file was written the other way round: it ASSERTED the broken behaviour,
+   so it read as 41/0 while the product was losing a colleague's redline. Every
+   claim it makes about the browsers' own copies is unchanged — the collision is
+   still real, both browsers still claim the desk for their own filer and both
+   still mint CHG-001, because a browser cannot see a document that exists
+   nowhere yet. What is turned over is every claim about the OUTCOME, and each
+   one says in place what it used to assert and why that is now wrong.
+
+   AND ONE FIXTURE WAS RESTAGED HONESTLY: "keep mine & save" is hand-typed here,
+   and it was typed as the OLD keep-mine — the whole stale copy re-sent at the
+   winner's version. That is a request HaTi stopped making on 15 Aug (pass 1:
+   saveContract sends `rebase:true` with the version the copy was TAKEN FROM),
+   so a probe that goes on sending it stages the broken behaviour by hand and
+   then reports it as a product fault. It types the current two lines now.
+
    Run:  node test/audit/collisions/c6-desk-claim-race.js
 */
 const path = require('node:path');
@@ -159,53 +175,72 @@ async function main() {
     ok((stored1.changes || []).length === 1 && stored1.changes[0].id === chA.id,
       'the stored record carries A\'s change only: ' + (stored1.changes || []).map(x => x.id + '/' + x.author).join(','));
 
-    head('YARDSTICK — the loser\'s screen still shows the loser as lead');
-    ok(String(wB.win.deskLead(cB).id) === String(B.user.id),
-      'after the refusal, B\'s in-memory contract STILL names B as lead — nothing rolled it back');
-    ok(wB.win.deskMaySend(cB) === true,
-      'and B\'s browser still answers deskMaySend = true, over a server that says otherwise');
-    note('nothing in the client reverts c.desk on a failed save: saveContract\'s catch branch '
-       + 'either re-saves (keep mine), Object.assigns the server copy (load theirs), or toasts.');
-
-    head('YARDSTICK — does anything reconcile it before a page reload?');
-    {
-      const fs2 = require('node:fs');
-      const core = fs2.readFileSync(path.join(__dirname, '..', '..', '..', 'js', 'core.js'), 'utf8');
-      ok(/async function pollNow\(reason\)\{[\s\S]{0,220}pollPendingResponses\(\);[\s\S]{0,80}pollThreadMessages\(\);/.test(core),
-        'the client\'s only poller asks for counterparty RESPONSES and thread messages — it never '
-        + 're-reads the contract record, so a stale desk is never refreshed by a tick');
-      ok(/async function ensureFull\(c\)\{\s*\n?\s*if\(!API_MODE\(\) \|\| !c \|\| c\._loaded\) return;/.test(core),
-        'and ensureFull returns early on an already-loaded contract, so re-opening the room does not '
-        + 're-read it either — only a page reload (loadBootstrap) puts B\'s screen right');
-    }
-
     head('KEEP MINE — what the H-4 dialog\'s first button actually does');
-    const fresh = await B.client.json('/api/contracts/' + ID);
+    /* RESTAGED: saveContract's "Keep mine & save" is rebaseSave, which sends the
+       same body with the version the copy was TAKEN FROM and rebase:true. The
+       old two lines (re-fetch, re-send at the winner's version) are a request
+       HaTi no longer makes. */
     const keepMine = await B.client.raw('/api/contracts/' + ID, { method: 'PUT',
-      body: { contract: payloadOf(cB), baseVersion: fresh._v } });
-    note('B "keep mine & save" → ' + keepMine.status + ' ' + (keepMine.text || '').slice(0, 220));
-    ok(keepMine.status === 403,
-      'THE SERVER REFUSES IT (403) — the desk guard asks rosterMoved against the stored desk');
-    ok(/can change who is on this negotiation/i.test(keepMine.text || ''),
-      'and the refusal NAMES the lead and the way out: ' + JSON.stringify(keepMine.json));
+      body: { contract: payloadOf(cB), baseVersion, rebase: true } });
+    note('B "keep mine & save" → ' + keepMine.status + ' ' + (keepMine.text || '').slice(0, 240));
+    ok(keepMine.status === 409,
+      'THE SERVER REFUSES IT — WAS 403 with the roster refusal, IS NOW 409 with the claim refusal. '
+      + 'The claim is settled where the record is, so the loser meets a rule about WHO GOT THERE '
+      + 'FIRST rather than a rule about editing a roster they never touched');
+    ok(/claimed this negotiation first/i.test(keepMine.text || ''),
+      'REVERSED IN PLACE — this used to assert the roster sentence ("Only X, or an admin, can change '
+      + 'who is on this negotiation"), which names a desk B has never seen on a contract B believes '
+      + 'nobody had started. It now says what happened: ' + JSON.stringify(keepMine.json));
+    ok(keepMine.json && keepMine.json.deskClaimFirst === true && keepMine.json.deskClaimedBy === A.user.name,
+      'and it is STRUCTURED, not only English — deskClaimFirst + deskClaimedBy='
+      + JSON.stringify(keepMine.json && keepMine.json.deskClaimedBy)
+      + ', which is what js/core.js reads rather than matching on words');
 
     head('YARDSTICK — a refused save is a told save');
     const msg = String((keepMine.json && keepMine.json.error) || '');
     ok(!/conflict|version/i.test(msg),
-      'the 403 text carries neither "conflict" nor "version", so js/core.js saveContract '
-      + 'falls to its plain error toast (co_save_failed + message) rather than the H-4 dialog');
-    ok(msg.includes(A.user.name),
-      'the sentence B is shown names ' + A.user.name + ' — but B has just filed what B believes '
-      + 'is the FIRST change on an unclaimed contract, so the refusal describes a desk B never saw');
+      'the text carries neither "conflict" nor "version", so it can never be mistaken for a version '
+      + 'clash and the H-4 dialog is not what B sees');
+    ok(msg.includes(A.user.name) && /not filed/i.test(msg),
+      'REVERSED IN PLACE — this used to assert that naming ' + A.user.name + ' was the FAULT, because '
+      + 'the sentence described a desk B never saw. Naming the winner is right; what was missing is '
+      + 'what became of B\'s work, and the sentence now says it was not filed: ' + JSON.stringify(msg));
 
-    head('AND B\'S CHANGE IS NOWHERE');
+    head('YARDSTICK — the loser\'s screen is put right, not left to a reload');
+    {
+      const fs2 = require('node:fs');
+      const core = fs2.readFileSync(path.join(__dirname, '..', '..', '..', 'js', 'core.js'), 'utf8');
+      ok(/deskClaimFirst\)\{[\s\S]{0,240}adoptServerCopy\(c,fresh\);[\s\S]{0,60}repaintAfterAdopt\(\);/.test(core),
+        'REVERSED IN PLACE — this used to assert that NOTHING reverts c.desk on a failed save, and '
+        + 'that only a page reload put B right. saveContract reads deskClaimFirst, re-reads the '
+        + 'record, adopts it and repaints');
+      ok(/function repaintAfterAdopt\(\)\{[\s\S]{0,200}state\.view==='redline'[\s\S]{0,80}renderRedline\(\)/.test(core),
+        'and it repaints the screen the reader is ON — the workbench is not renderWorkspace\'s output, '
+        + 'and repainting the wrong one leaves a Send drawn over a record that no longer allows it');
+    }
+    /* The model half of the same claim, measured rather than grepped: take the
+       server's copy the way adoptServerCopy does and ask the two predicates. */
+    const afterRefusal = await B.client.json('/api/contracts/' + ID);
+    const cB2 = wB.win.state.contracts[0];
+    for (const k of Object.keys(cB2)) delete cB2[k];
+    Object.assign(cB2, JSON.parse(JSON.stringify(afterRefusal)));
+    ok(String(wB.win.deskLead(cB2).id) === String(A.user.id),
+      'with the record adopted, B\'s own browser names ' + A.user.name + ' as lead');
+    ok(wB.win.deskMaySend(cB2, { id: B.user.id, name: B.user.name, role: 'legal' }) === false,
+      'and answers deskMaySend = false for B — the Send that only one of them could hold is no longer '
+      + 'drawn for the one who cannot');
+
+    head('AND B\'S CHANGE IS NOWHERE — WHICH IS NOW WHAT B WAS TOLD');
     const stored2 = await admin.json('/api/contracts/' + ID);
     const ids2 = (stored2.changes || []).map(x => x.id + '/' + x.author);
     ok(!(stored2.changes || []).some(x => x.author === B.user.name),
       'the stored contract holds no change of B\'s: [' + ids2.join(', ') + ']');
     const trail = (stored2.audit || []).map(a => a.action + ': ' + a.detail);
-    ok(!trail.some(t => /Bram|refused|blocked|not saved/i.test(t)),
-      'and the audit trail says nothing about B\'s attempt — ' + trail.length + ' lines, none naming it');
+    ok(!trail.some(t => /Bram/i.test(t)),
+      'the audit trail names nothing of B\'s — ' + trail.length + ' lines. REVERSED IN PLACE: this '
+      + 'used to be the complaint (nothing anywhere said B had been refused), and the refusal is now '
+      + 'the sentence B is shown, on the screen, at the moment it happens. A record of an act that '
+      + 'did not land is what this whole sweep is about; nothing was filed, so nothing is written');
     trail.forEach(t => note('audit | ' + t.slice(0, 120)));
 
     head('CONTROL — the same race with the rule OFF (the shipped default)');
@@ -237,53 +272,84 @@ async function main() {
     ok(r2A.status === 200, 'A lands (200)');
     const r2B = await B.client.raw('/api/contracts/' + ID2, { method: 'PUT', body: { contract: payloadOf(c2B), baseVersion: b2._v } });
     ok(r2B.status === 409, 'B is refused as a version conflict (409)');
-    const fresh2 = await B.client.json('/api/contracts/' + ID2);
-    const keep2 = await B.client.raw('/api/contracts/' + ID2, { method: 'PUT', body: { contract: payloadOf(c2B), baseVersion: fresh2._v } });
-    note('B "keep mine & save" with the rule OFF → ' + keep2.status);
-    ok(keep2.status === 200, 'IT LANDS — with the rule off nothing guards the roster');
+    /* RESTAGED, same reason as above: this is the rebase HaTi actually sends. */
+    const keep2 = await B.client.raw('/api/contracts/' + ID2, { method: 'PUT',
+      body: { contract: payloadOf(c2B), baseVersion: b2._v, rebase: true } });
+    note('B "keep mine & save" with the rule OFF → ' + keep2.status + ' ' + (keep2.text || '').slice(0, 200));
+    ok(keep2.status === 200, 'IT LANDS — with the rule off nothing gates the redline, and B\'s work is saved');
     const stored3 = await admin.json('/api/contracts/' + ID2);
-    ok(String(stored3.desk.leadId) === String(B.user.id),
-      'the desk lead was silently REPLACED: stored leadId=' + stored3.desk.leadId + ' (' + stored3.desk.leadName + ')');
+    ok(String(stored3.desk.leadId) === String(A.user.id),
+      'REVERSED IN PLACE — this used to assert that the lead was silently REPLACED by whoever saved '
+      + 'last. The claim is first-writer-wins on the server whether the rule is on or off, because '
+      + 'the claim gates nothing and was only ever a record of who started: stored leadId='
+      + stored3.desk.leadId + ' (' + stored3.desk.leadName + ')');
+    ok(keep2.json && keep2.json.deskKeptBy === A.user.name,
+      'and the loser is TOLD, on the answer to their own save: deskKeptBy='
+      + JSON.stringify(keep2.json && keep2.json.deskKeptBy)
+      + ' — which js/core.js prints through co_desk_claimed_first');
 
     head('AND THE TWO CHANGES WERE BORN WITH THE SAME ID');
     ok(ch2A.id === ch2B.id,
-      'negoNextId is per contract and per browser, so both first changes are ' + ch2A.id
-      + ' — A\'s and B\'s are DIFFERENT asks wearing ONE id');
+      'ARMED — negoNextId is per contract and per browser, so both first changes are born ' + ch2A.id
+      + '. A browser cannot see a change that exists nowhere yet, so this half does not change');
     ok(ch2A.hash !== ch2B.hash,
       'their fingerprints differ (' + String(ch2A.hash).slice(0, 12) + '… vs ' + String(ch2B.hash).slice(0, 12)
       + '…), so they are provably two different records, not one');
     const surv = (stored3.changes || []);
     note('stored changes: [' + surv.map(x => x.id + '/' + x.author + '/' + x.clauseLabel).join(' | ') + ']');
-    ok(surv.length === 1 && surv[0].author === B.user.name && surv[0].hash === ch2B.hash,
-      'exactly one survives and it is B\'s: ' + surv[0].id + ' by ' + surv[0].author + ' on ' + surv[0].clauseLabel);
-    ok(!surv.some(x => x.hash === ch2A.hash),
-      'A\'s ask (' + ch2A.clauseLabel + ', fingerprint ' + String(ch2A.hash).slice(0, 12) + '…) is not on the record at all');
+    ok(surv.length === 2,
+      'REVERSED IN PLACE — this used to assert that exactly ONE survived (B\'s), because rebaseList '
+      + 'keys the changes array by id and read the two rivals as one item both people had moved. '
+      + 'BOTH are on the record now: ' + surv.map(x => x.id + '/' + x.author).join(', '));
+    ok(surv.some(x => x.hash === ch2A.hash) && surv.some(x => x.hash === ch2B.hash),
+      'REVERSED IN PLACE — A\'s ask (' + ch2A.clauseLabel + ', fingerprint '
+      + String(ch2A.hash).slice(0, 12) + '…) used to be nowhere on the record. Both fingerprints are');
+    const idOf = h => (surv.find(x => x.hash === h) || {}).id;
+    ok(idOf(ch2A.hash) !== idOf(ch2B.hash),
+      'and they no longer wear one id: A\'s is ' + idOf(ch2A.hash) + ', B\'s is ' + idOf(ch2B.hash));
+    ok(idOf(ch2A.hash) === 'CHG-001' && idOf(ch2B.hash) === 'CHG-002',
+      'the FIRST WRITER KEEPS THE NUMBER THEY WERE GIVEN and the arrival is renumbered — an id already '
+      + 'on the record is never moved under the person who has it');
+    ok((keep2.json.rebased && keep2.json.rebased.renumbered || []).some(r => r.from === 'CHG-001' && r.to === 'CHG-002'),
+      'and the answer says so, so the loser\'s screen can: '
+      + JSON.stringify(keep2.json.rebased && keep2.json.rebased.renumbered));
+    ok(Number((stored3.negotiation || {}).seq) >= 2,
+      'the slot counter followed it (seq=' + (stored3.negotiation || {}).seq
+      + '), or the next mint from this record starts the same collision again');
 
     head('YARDSTICK — every recorded "yes" is in the outcome');
     const trail3 = (stored3.audit || []).map(a => a.action + ': ' + a.detail);
-    const proposed = trail3.filter(t => /#CHG-001 proposed by/.test(t));
+    const proposed = trail3.filter(t => /#CHG-\d+ proposed by/.test(t));
     proposed.forEach(t => note('audit | ' + t.slice(0, 150)));
-    ok(proposed.length === 2,
-      'the audit trail holds TWO "#CHG-001 proposed by" lines — two different authors, two different '
-      + 'clauses, one id — while c.changes holds one');
+    ok(proposed.filter(t => /#CHG-001 proposed by/.test(t)).length === 1,
+      'REVERSED IN PLACE — the trail used to hold TWO "#CHG-001 proposed by" lines naming two people '
+      + 'and two clauses, against one CHG-001 on the contract. Exactly one line names CHG-001 now');
+    ok(proposed.some(t => /#CHG-002 proposed by/.test(t) && /Bram/.test(t)),
+      'and the line THIS SAVE wrote followed the number its change was given: '
+      + JSON.stringify(proposed.find(t => /#CHG-002/.test(t)) || null));
     ok(/Asha/.test(proposed.join(' ')) && /Bram/.test(proposed.join(' ')),
-      'and they name both people, so the record contradicts itself about what CHG-001 is');
+      'both people are still named — nothing was hidden, the two acts were told apart');
     const said = trail3.filter(t => /Negotiation desk/i.test(t));
     said.forEach(t => note('audit | ' + t.slice(0, 140)));
-    ok(said.length === 2,
-      'BOTH desk-opening audit lines survive on the record (' + said.length + ') — two "Negotiation opened by" '
-      + 'entries naming two different leads, while c.desk holds only the second');
-    ok(!trail3.some(t => /replac|took over|overwrit|handover|not saved|dropped/i.test(t)),
-      'nothing in the trail says the lead was replaced or that A\'s change was dropped');
+    ok(said.length === 1 && /Asha/.test(said[0]),
+      'REVERSED IN PLACE — BOTH desk-opening lines used to survive, naming two different leads while '
+      + 'c.desk held only the second. The line this save wrote about a claim that did not land goes '
+      + 'with the claim (the dropped-approval rule, said again): ' + said.length + ' line, ' + JSON.stringify(said[0]));
+    const conflictLine = trail3.filter(t => /^Save conflict/.test(t));
+    conflictLine.forEach(t => note('audit | ' + t.slice(0, 220)));
+    ok(conflictLine.some(t => /CHG-001[\s\S]*CHG-002/.test(t)),
+      'REVERSED IN PLACE — "nothing in the trail says the lead was replaced or that A\'s change was '
+      + 'dropped" was true because nothing said anything. Nothing was dropped, and the one Save '
+      + 'conflict line names the renumber and whose change kept the number');
 
     head('YARDSTICK — does the fingerprint chain notice?');
     const wCheck = browser({ id: A.user.id, name: A.user.name, role: 'legal', email: A.user.email },
       JSON.parse(JSON.stringify(stored3)), false);
     const v = await wCheck.win.verifyChangeChain(wCheck.win.state.contracts[0]);
     note('verifyChangeChain → ' + JSON.stringify(v));
-    ok(v && v.ok === true,
-      'the surviving record verifies clean — the chain is per-change and cannot see that a '
-      + 'sibling CHG-001 ever existed');
+    ok(v && v.ok === true && v.checked === 2,
+      'the record verifies clean over BOTH changes (' + v.checked + ' checked). The id is not in the '
+      + 'fingerprint — the chain is by hash — so renumbering one cannot break what it attests to');
 
   } finally {
     await h.stop();

@@ -56,9 +56,24 @@ describe('f199 — every creation site stamps an owner', () => {
       const src = fs.readFileSync(path.join(ROOT, f), 'utf8');
       assert.match(src, /state\.contracts\.unshift\(c\);/, 'this file is expected to create contracts');
       const at = src.indexOf('state.contracts.unshift(c);');
-      const before = src.slice(Math.max(0, at - 300), at);
-      assert.match(before, /contractOwnerStamp\(c\)/,
-        `${f} files a contract without stamping who raised it`);
+      /* IT ASKS ABOUT ORDER NOW, NOT PROXIMITY (15 Aug 2026, the collision
+         sweep's fix pass). This read a 300-character window before the unshift,
+         which quietly carried a SECOND claim nobody had stated: "and nothing
+         else may sit between them". js/family.js now warns when a sibling
+         already carries the ordinal it is about to write, and that warning
+         belongs exactly there — after the record is complete, before it joins
+         the list — so the test failed on correct code.
+
+         Widening the window was tried first and rejected: the number would
+         have to grow again on the next legitimate insertion, and a magic
+         number that keeps moving is not a claim, it is a habit. ORDER is the
+         real claim and is the one worth pinning — a stamp AFTER the unshift
+         would leave a contract briefly owned by nobody, and every list in the
+         product reads that field. */
+      const stampAt = src.indexOf('contractOwnerStamp(c)');
+      assert.ok(stampAt >= 0, `${f} never stamps who raised the contract`);
+      assert.ok(stampAt < at,
+        `${f} files a contract before stamping who raised it`);
     });
   }
 
