@@ -596,3 +596,52 @@ are `?` and `↩` and are told apart for the first time.
 the owner's own suggestion and it is unambiguous, but a question mark reads as
 "unknown" or "help" in most interfaces rather than "waiting". A hollow dot is
 the alternative. Rendered with `?`; worth one look before it is fixed.
+
+### DECIDED 15 Aug 2026 (owner): variant C, and the pill becomes a door
+
+**The pill is variant C** — an outline pill with a coloured cap down its left
+edge, the cap carrying the side. It mirrors the change card's own left border
+exactly, which is the point: the paper and the column then use one colour
+language rather than two. It also keeps the pill quiet on a warm sheet, where
+two filled pills per clause compete with the wording.
+
+**And pressing a pill shows, in the clause, what that change proposed.**
+Owner-asked, and it closes a hole that already exists rather than only adding
+something: the clause press today resolves the FIRST token of the jump anchor,
+so on a clause carrying three changes only the lead one can be reached from the
+paper at all. The other two have no handle.
+
+**IT MATTERS MOST ONCE THE CARD HAS GONE.** A decided change leaves the Tracked
+Changes column — that is deliberate and unchanged — but its pill stays on the
+clause for the life of the contract. After a round closes, the pill is the ONLY
+remaining handle on that change, and today it does nothing.
+
+**The shape, as rendered:**
+  · Press a pill → a panel opens INSIDE the clause, under the wording, carrying
+    the change's own marks (strike and insertion), a line naming it, and — on a
+    refusal — the reason that was given.
+  · The pressed pill takes a selected face and grows an ✕. Press again, or the
+    ✕, to close.
+  · One open at a time, document-wide — the same single-value rule as the card
+    pop-out's `_rlPopId`, and for the same reason.
+
+**THE CLAUSE BODY IS NOT SWAPPED, and that was the alternative.** Redrawing the
+clause itself with the selected change's marks was considered and refused: the
+clause body is the wording as it stands, and overwriting it makes the paper
+temporarily untrue while somebody is reading it. The panel sits BESIDE the
+wording so both are on screen at once.
+
+**A RULE THE COUNTERPARTY'S SEAT IMPOSES, caught on the render.** The panel in
+the mock names who ruled — "refused 15 Aug by Young Mbagaya". `resolvedBy` is
+stripped from the share payload and must never reach them, so on their seat the
+panel names the ASK and its outcome and NOT the person who settled it. The
+reason text itself does travel (it is the answer to their ask). Their page
+mounts the same renderer, so this is a real branch and not a theoretical one.
+
+**Not part of the paper.** A reading posture, in memory, per sitting — it never
+prints, never exports and never reaches a PDF. Same rule as the reading modes.
+
+**Still open:** whether pressing a pill should ALSO highlight the change's card
+where one still exists. Recommendation: highlight, never scroll — the column
+jumping under a reader who pressed something on the paper is the fault the
+queue overlay was fixed for.
