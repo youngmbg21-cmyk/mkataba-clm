@@ -47,6 +47,18 @@ function tplLibStatusBadge(status) {
    builder, upload review) still take over the content area and return to the
    Templates page when done. */
 const tplLibPublished = () => (_tplLib.list || []).filter(t => t.status === 'published');
+/* The stream options for a template form. visibleFolders is the ONE list every
+   stream picker in this product reads — see STREAM ACCESS in CLAUDE.md — and it
+   keeps a record's current stream on the list even when it is out of reach, so
+   re-saving a template cannot silently re-file it. */
+function tplStreamOpts(cur){
+  const cu = String(cur == null ? '' : cur);
+  const fs = (typeof visibleFolders === 'function') ? visibleFolders()
+    : Object.values((typeof FOLDERS === 'object' && FOLDERS) || {});
+  const ids = fs.map(f => f.id);
+  if (cu && !ids.includes(cu) && typeof FOLDERS === 'object' && FOLDERS[cu]) fs.push(FOLDERS[cu]);
+  return fs.map(f => `<option value="${esc(f.id)}"${f.id === cu ? ' selected' : ''}>${esc(f.name)}</option>`).join('');
+}
 const tplLibCount = () => (_tplLib.loaded ? tplLibPublished().length : 0);
 /* Refresh the cache; resolves true when the list changed (callers re-render). */
 async function tplLibRefresh() {
@@ -376,6 +388,16 @@ function tplLibCreateModal() {
         <input id="tpllib-name" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 10px;font:inherit;font-size:13px;outline:none" placeholder="e.g. Account Opening Form" maxlength="160"></label>
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">${i18t('tl_category')}</span>
         <select id="tpllib-cat" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 10px;font:inherit;font-size:13px;outline:none"><option value="other">${i18t('tl_other_category')}</option>${cats}</select></label>
+      ${''/* ---- WHICH STREAM IT IS FILED UNDER (15 Aug 2026, OI-11) ----
+             The draft-from-template picker opens on the value streams now, so a
+             template needs one or it lands in "Other". Optional on purpose: an
+             unfiled template is an honest state, and "Other" is where it goes
+             rather than into a stream somebody guessed for it. Built from
+             visibleFolders, which is the one list every other stream picker in
+             the product reads. */}
+      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">${i18t('tl_stream')}</span>
+        <select id="tpllib-stream" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 10px;font:inherit;font-size:13px;outline:none">
+          <option value="">${i18t('tl_stream_none')}</option>${tplStreamOpts('')}</select></label>
       <label style="display:block;margin-bottom:16px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">${i18t('tl_description')} <span style="font-weight:400;color:var(--color-neutral-500)">(optional)</span></span>
         <textarea id="tpllib-desc" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 10px;font:inherit;font-size:13px;outline:none;min-height:60px" maxlength="2000" placeholder="${i18t('tl_what_for')}"></textarea></label>
       <div style="display:flex;justify-content:flex-end;gap:8px">
@@ -389,6 +411,7 @@ function tplLibCreateModal() {
     try {
       const d = await api('templates', 'POST', {
         name, category: document.getElementById('tpllib-cat').value,
+        folder: document.getElementById('tpllib-stream').value || null,
         description: document.getElementById('tpllib-desc').value.trim(),
       });
       closeModal();
@@ -533,6 +556,16 @@ function tplLibMetaModal(t) {
         <input id="tpllib-m-name" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 10px;font:inherit;font-size:13px;outline:none" maxlength="160" value="${esc(t.name)}"></label>
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">${i18t('tl_category')}</span>
         <select id="tpllib-m-cat" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 10px;font:inherit;font-size:13px;outline:none">${cats}</select></label>
+      ${''/* ---- WHICH STREAM IT IS FILED UNDER (15 Aug 2026, OI-11) ----
+             The draft-from-template picker opens on the value streams now, so a
+             template needs one or it lands in "Other". Optional on purpose: an
+             unfiled template is an honest state, and "Other" is where it goes
+             rather than into a stream somebody guessed for it. Built from
+             visibleFolders, which is the one list every other stream picker in
+             the product reads. */}
+      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">${i18t('tl_stream')}</span>
+        <select id="tpllib-m-stream" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 10px;font:inherit;font-size:13px;outline:none">
+          <option value="">${i18t('tl_stream_none')}</option>${tplStreamOpts(t.folder)}</select></label>
       <label style="display:block;margin-bottom:16px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">${i18t('tl_description')}</span>
         <textarea id="tpllib-m-desc" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 10px;font:inherit;font-size:13px;outline:none;min-height:60px" maxlength="2000">${esc(t.description)}</textarea></label>
       <div style="display:flex;justify-content:flex-end;gap:8px">
@@ -546,6 +579,7 @@ function tplLibMetaModal(t) {
     try {
       await api('templates/' + t.id, 'PATCH', {
         name, category: document.getElementById('tpllib-m-cat').value,
+        folder: document.getElementById('tpllib-m-stream').value || null,
         description: document.getElementById('tpllib-m-desc').value.trim(),
       });
       closeModal(); toast(i18t('tl_saved')); openTemplateLibDetail(t.id);

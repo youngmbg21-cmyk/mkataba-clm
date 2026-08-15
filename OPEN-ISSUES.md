@@ -28,6 +28,15 @@ View) closed by extending D2's seat-relative rule to the two header proxies —
 `f84`. Recorded in `BUGLOG.md` under "Run: two buttons for one act, and only
 one of them following the rule".
 
+*Closed 15 Aug 2026, second batch:* **OI-9** (nothing said a redline was
+unsent), **OI-10** (every toast was red because success was thrown away),
+**OI-11** (the template picker opens on the value streams, with Other for the
+unfiled) and **OI-12** (the ask tag is an id and a glyph, and pressing it shows
+what the change proposed) were all built. Pinned by `f209` (34, node), with
+`f95`, `f187` and `n6`'s claims reversed or updated in place and the readings in
+`f207`/`f37`/`f70`/`f93`/`f96` moved to the tag's title with their claims intact.
+The reasoning for each is in `CLAUDE.md`. Entries kept below as the record.
+
 *Closed 15 Aug 2026:* **OI-6** (Retract dead on the counterparty's page),
 **OI-7** (a second edit to an already-adopted clause refused) and **OI-8** (the
 three readings and a More menu on their page) were all built. OI-6 and OI-7 are
@@ -303,3 +312,357 @@ rather than deleted.
   · **The phone.** Their page below 768px has no room in the header for this,
     the same reason it draws no bell. Decide whether the phone gets the
     readings in flow, or nothing, rather than letting the width decide.
+
+---
+
+## OI-9 — Nothing tells you a redline has not been sent
+
+
+**BUILT 15 Aug 2026** — pinned by `f209`. Kept as the record of what was
+wrong and what was decided; the reasoning is in `CLAUDE.md`.
+*Owner-reported 15 Aug 2026, from a screenshot of the Tracked Changes column.
+Rendered and agreed in outline; not built.*
+
+**What the reader sees.** You make three redlines. Each card says **Draft** and
+carries its own Send. Nothing anywhere counts them, and nothing says they have
+not left your desk. The column head says "6 on the table", which is a different
+number about a different thing.
+
+**What exists today, and why it does not do the job.** The only surface that
+mentions unsent work is a suffix on **Publish Round** at the far end of the
+toolbar, reading "· 3 unsent". Three faults: it never uses the word *send*; it
+is nowhere near the cards that were just written; and **it folds away** — the
+toolbar's fit ladder drops `.rl-send-detail` on its second rung, so on an
+ordinary laptop the count is simply not on screen.
+
+**The fix: a one-line band at the top of the Tracked Changes column.**
+`● 3 not sent · they cannot answer yet · [Send all 3]` — 41px, against the
+108px the first two-line drafts measured. Owner-ruled on sight: one line, no
+wrapping, few words.
+
+  · **It never wraps.** The count and the button are fixed width; the middle
+    phrase is the only thing that gives, and it ellipsises. MEASURED at a
+    300px column — the narrowest the resizer allows — where it holds one line
+    at 41px and trims to "they cannot a…". The whole sentence goes on hover.
+  · **It draws only when something is unsent.** An always-on warning is
+    furniture, the standing rule.
+  · **ONE COUNT, MANY SURFACES.** It reads negoUnsentAsks — the same reading
+    the toolbar suffix and the wall line already use — so the band and the
+    button can never disagree.
+  · **Send all is a PROXY onto the existing postbox**, never a second
+    transport. Same pattern the per-card Send already uses.
+  · **The per-card Send stays.** The owner asked for both routes explicitly.
+  · **It counts wording only** — our unsent asks. Their asks awaiting our
+    answer are a different job and have their own status word on the card.
+  · **Top of the COLUMN, never the top of the contract** — nothing bands the
+    paper, the standing rule.
+  · **Both seats.** The counterparty has the same problem with held answers and
+    should get the same band in their own words.
+
+**Decided on sight:** the Publish Round suffix comes off when this ships. Two
+places saying the same number is how they come to disagree.
+
+**Still open:** whether the band should also count held DECISIONS on our seat,
+or stay about wording alone. Recommendation is wording alone — Publish Round
+already owns the round.
+
+---
+
+## OI-10 — Every toast is red, because success toasts are thrown away
+
+
+**BUILT 15 Aug 2026** — pinned by `f209`. Kept as the record of what was
+wrong and what was decided; the reasoning is in `CLAUDE.md`.
+*Owner-reported 15 Aug 2026: "a red alert would make you think something bad
+happened when in this case I simply sent a redline." Cause found; not fixed.*
+
+**It is not a colour bug.** `toast(msg, kind='ok')` in `js/core.js` computes
+`isErr = kind !== 'ok'` and its **second line is `if(!isErr) return`**. Success
+toasts are built and then discarded. The function even carries styling for a
+success toast — a tick icon and an accent background — down a branch no call
+can reach.
+
+**So the product has one visible toast state.** There are **590 toast calls and
+only 340 pass an error kind**; the other ~250 are confirmations nobody has ever
+seen — "#CHG-001 retracted", "Round 2 closed", "#CHG-001 filed", all of them.
+
+**And that is why the reported message was red.** The publish path needs the
+reader to know the round went to a link but was not emailed, and the only way
+to make a toast appear is to mark it an error. The call reads, in full: use
+`'err'` *unless* it was delivered. Nobody was careless; it was the one door.
+
+**The fix: three states, three meanings, from tokens the app already has.**
+
+  · **Done** — deep teal, tick. "Round 2 published to Juno Limited." Confirms
+    and goes.
+  · **Needs you** — amber, warning mark. "Published to Juno Limited's link —
+    not emailed." **Carries a Copy link button.**
+  · **Refused** — ruby, the stop sign. Red then means one thing only.
+
+**The amber state fixes a second fault in the same message.** Today it tells
+the reader to send the link and gives them nothing to press — the same class of
+fault as a refusal with no way forward. If a toast asks for something, it hands
+over the thing.
+
+**Two decisions before it is built:**
+  1. **Which of the ~250 silent confirmations to switch on.** All at once is a
+     toast after every accept, reject and filing. Recommendation: on for acts
+     that TRAVEL or are hard to reverse (published, sent, round closed,
+     retracted); silent for acts the screen already shows (a change filed — the
+     card appears).
+  2. **Dwell time per state.** Recommendation: Done 3s, Needs-you 8s or until
+     dismissed, Refused until dismissed. A state that is asking for something
+     must not vanish on the same timer as one that is only confirming.
+
+---
+
+## OI-11 — "Draft from a template" is a flat list, not a set of streams
+
+
+**BUILT 15 Aug 2026** — pinned by `f209`. Kept as the record of what was
+wrong and what was decided; the reasoning is in `CLAUDE.md`.
+*Owner-asked 15 Aug 2026: "you should first see the list of streams in folders,
+choose let's say HR, then find the agreement you are looking for." Investigated;
+not built. Bigger than it looks — read the second half before scoping it.*
+
+**What the reader sees.** New contract from a template opens on one flat grid
+under "Your company standard templates", every card wearing the identical
+sub-line "v1 · pre-filled & branded". In the reported screenshot ten templates
+are shown, **three of them named "Momo Beach"**, with nothing on any card to
+tell them apart. There is a search box below, but nothing to browse BY.
+
+**What the record actually holds — and this is the finding.** The three groups
+in this dialog do not carry the same facts:
+
+  · **Saved-from-a-contract templates** carry `folder`, and the picker already
+    prints the stream name as their sub-line. These could be grouped today.
+  · **Company standard templates — the ones in the report — carry no stream at
+    all.** The `templates` table has no `folder` column. It has `category`,
+    whose five values (sales · procurement · employment · nda · other) are a
+    DIFFERENT VOCABULARY from the six value streams, and 'other' is the
+    default. So grouping these by stream is not a screen change: the field has
+    to exist first.
+  · **Built-in HaTi papers** carry a folder through TEMPLATES.
+
+**AND THERE IS NO HR STREAM IN THIS WORKSPACE.** The six are Procurement & Raw
+Materials · Manufacturing & Production · Warehousing & Distribution · Sales &
+Route-to-Market · Marketing & Brand · Corporate & Compliance — an FMCG value
+stream. An employment contract files under Corporate & Compliance today. So the
+example in the request cannot be satisfied by grouping alone; either a stream is
+added, or the browse step is built on a different word than the one the owner
+used. **This needs the owner's answer before anything is built.**
+
+**Three ways to do it, smallest first:**
+  1. **Group what already has a stream, label the rest.** No schema change.
+     Standard templates land under one honest heading (their category) rather
+     than a stream they do not have. Cheap; half-answers the request.
+  2. **Give a template a stream.** A `folder` column, set when a template is
+     published, defaulted from `category` where one can be inferred and left
+     blank otherwise. Then the dialog opens on the six streams with a count
+     each, and picking one lists its templates. This is what was asked for.
+  3. **Streams first, everywhere.** The Templates page groups the same way, and
+     the two screens stop disagreeing.
+
+**A question option 2 forces, and it must not be answered by accident:** does a
+template inherit STREAM ACCESS? Somebody who cannot see a stream can already
+not see its contracts — the server enforces it on every query. If templates gain
+a stream, "can this person draft from an HR template" becomes a real question
+with a real answer, and it should be decided deliberately rather than falling
+out of a rendering change. Recommendation: templates are patterns, not records —
+they should NOT be access-controlled by stream, and the grouping is
+organisational only. Said out loud so the opposite is a decision too.
+
+**Logged beside it, same screen:** three templates called "Momo Beach" with
+identical sub-lines is its own defect. Whatever else changes, a card needs
+something that tells one from another — the stream, the source contract, or the
+date it was published.
+
+### DECIDED, 15 Aug 2026 (owner)
+
+**The stream folders appear first, and anything with no stream assigned goes to
+a folder called Other.** That settles the three options above — it is option 2's
+shape, and "Other" is what makes it shippable without a backfill, because no
+template has to be classified before the screen can be built.
+
+Three things follow from it, and the second is the one that decides whether this
+is worth doing.
+
+**1 · WHAT IT LOOKS LIKE ON THE FIRST MORNING, said plainly.** No company
+standard template carries a stream today, so on the day this ships **every one
+of them is in Other** and the six stream folders are empty. A browse step that
+opens on six empty folders and one full one is WORSE than the flat list it
+replaces. That is not an argument against the decision; it is the reason the
+second half is not optional.
+
+**2 · SO IT IS TWO HALVES, AND THEY SHIP TOGETHER.**
+  · **(a) The browse step** — streams first, each with its count, Other last.
+  · **(b) A WAY TO PUT A TEMPLATE IN A STREAM** — asked when a template is
+    published, and editable afterwards on one that already exists. Without (b)
+    nothing ever leaves Other and the feature is a folder called Other.
+  Building (a) alone would be building the half that demonstrates the problem.
+
+**3 · "OTHER" IS A FOLDER IN THIS PICKER, NOT A SEVENTH VALUE STREAM.**
+  · It draws only while something is in it, and disappears when nothing is —
+    the same rule every other count on this product keeps.
+  · It is NOT added to FOLDERS. Contracts must never be filable into it; it is
+    the absence of an answer, and a stream you can file into is an answer.
+  · Its heading says what it means — "no stream yet" — rather than looking like
+    a category somebody chose.
+
+### AND ONE BLOCKER THE DECISION UNCOVERS — custom streams are browser-only
+
+The request named **HR**, which is not one of the six. A stream can be added:
+`addCustomFolder` exists and every picker, chip and report reads FOLDERS. But it
+writes to **localStorage and nothing else** — `saveCustomFolders` is a
+localStorage set, and there is no folders route on the server at all.
+
+So an HR stream created by one admin exists **in that one person's browser**. A
+colleague opening the same template picker would not see the folder; templates
+filed to it would show as Other for everyone else; and the grouping would differ
+per machine for the same workspace. Grouping a COMPANY-WIDE template library by
+a stream that is per-browser does not work.
+
+Moving custom folders to the server was considered on 14 Aug and deliberately
+NOT taken — "half a day's work for a problem nobody in this workspace has (no
+custom folder has ever been created here)." **This decision revives it.** The
+reasoning that parked it is now out of date, and the note in `CLAUDE.md` under
+the folders panel should be reversed in place when it is picked up.
+
+Two ways forward, owner's call:
+  · **Ship the browse step on the six built-in streams plus Other**, and put
+    employment templates under Corporate & Compliance for now. No server work.
+  · **Move custom streams to the server first**, then add HR properly. Half a
+    day of work before this feature can start, and it fixes a fault that will
+    otherwise bite the first time anybody creates a stream.
+
+**RESOLVED 15 Aug 2026 (owner): HR was only an example — take the first.** The
+browse step ships on the six built-in streams plus Other, and no server work is
+needed for this feature. The per-browser custom-folder fault is REAL and stays
+recorded above, but it is not this feature's blocker and must not be bundled
+into it; it bites the first time somebody actually creates a stream, and that
+is the day to fix it.
+
+### Still open
+
+Whether an unassigned template should be **suggested** a stream from its
+`category` (sales → Sales & Route-to-Market, procurement → Procurement & Raw
+Materials, nda → Corporate & Compliance) rather than all of them landing in
+Other. It would seed most of the library in one pass. Recommendation: offer it
+as a one-time suggestion an admin confirms, never a silent assignment — a
+guessed classification wearing a fact's clothes is how a template ends up in a
+stream nobody chose.
+
+
+---
+
+## OI-12 — The clause pills say too much, and say it in words
+
+
+**BUILT 15 Aug 2026** — pinned by `f209`. Kept as the record of what was
+wrong and what was decided; the reasoning is in `CLAUDE.md`.
+*Owner-asked 15 Aug 2026, from a screenshot of a clause carrying two pills.
+Rendered and decided in outline; not built.*
+
+**What the reader sees.** Every change on a clause draws a pill on the clause's
+own top row, reading `CHG-006 · Their ask · ✓ adopted`. With two on a clause
+the heading row is mostly pills; with four it wraps and the clause heading is
+pushed off its own line.
+
+**MEASURED, at the sheet's default type:** a pill with a verdict is **218px**
+and one without is **129px**. Four on a clause needs about 694px of a heading
+row — which is why the reported screenshot has them running into each other.
+
+**The decision (owner): COLOUR IS WHOSE, GLYPH IS WHERE IT STANDS.**
+The pill becomes the change id and one glyph:
+
+  · `✓` adopted  ·  `?` awaiting an answer  ·  `✗` refused  ·  `↩` withdrawn
+
+and the side is carried by the pill's colour — **amber = theirs, teal = yours**.
+Proposed pills measure **102px and 98px**: a two-pill clause goes from 347px to
+200px, and a four-pill clause from ~694px to ~410px.
+
+**IT REUSES THE COLOUR LANGUAGE THE PRODUCT ALREADY HAS.** The change card's
+left edge is already teal for ours and amber for theirs (`data-rl-origin`). The
+pill is amber for BOTH sides today, which means the paper currently carries no
+side colour at all. So this is not a new colour language — it is the card's own,
+finally reaching the clause. A second one would be worse than the words.
+
+**AND THE RULE HAS NO EXCEPTIONS, which is what the render settled.** The first
+draft gave a REFUSED pill its own ruby fill. Two refused asks — one theirs, one
+ours — then drew as two identical ruby pills, and the side was gone. So colour
+answers one question and one only. Refusal is carried by `✗` and by the
+strikethrough already on the wording; the ruby stays where it belongs, on the
+card's edge and in the column.
+
+**WHAT MUST TRAVEL WITH IT, or the pill is a colour nobody can read:**
+  · **The tooltip names the side in words** — "Their ask" / "Your ask" — so the
+    fact is never colour-only.
+  · **The change card in the column already names the author and the
+    organisation**, which is the second carrier this rulebook's own pipeline-ring
+    section requires ("every slice is named in the key besides").
+  · **THE TWO COLOURS MUST BE MEASURED UNDER COLOUR-VISION DEFICIENCY BEFORE
+    THIS SHIPS.** Amber against teal is far apart in both hue and lightness and
+    will very probably pass, but this project's standard is to measure and
+    record the figure, not to assume it — the pipeline ring did exactly that and
+    rejected a pair on the strength of it. A dot inside the pill was rendered as
+    the fallback if the measurement disappoints.
+  · **Both themes.** Rendered in dark as well as light.
+
+**One thing the render turned up that is a defect today, not a redesign:**
+`tagFor` gives a suffix to accepted and rejected only, so a PENDING change and a
+WITHDRAWN one draw an identical bare pill on the paper. Under the new set they
+are `?` and `↩` and are told apart for the first time.
+
+**Still open:** whether `?` is the right glyph for "awaiting an answer". It was
+the owner's own suggestion and it is unambiguous, but a question mark reads as
+"unknown" or "help" in most interfaces rather than "waiting". A hollow dot is
+the alternative. Rendered with `?`; worth one look before it is fixed.
+
+### DECIDED 15 Aug 2026 (owner): variant C, and the pill becomes a door
+
+**The pill is variant C** — an outline pill with a coloured cap down its left
+edge, the cap carrying the side. It mirrors the change card's own left border
+exactly, which is the point: the paper and the column then use one colour
+language rather than two. It also keeps the pill quiet on a warm sheet, where
+two filled pills per clause compete with the wording.
+
+**And pressing a pill shows, in the clause, what that change proposed.**
+Owner-asked, and it closes a hole that already exists rather than only adding
+something: the clause press today resolves the FIRST token of the jump anchor,
+so on a clause carrying three changes only the lead one can be reached from the
+paper at all. The other two have no handle.
+
+**IT MATTERS MOST ONCE THE CARD HAS GONE.** A decided change leaves the Tracked
+Changes column — that is deliberate and unchanged — but its pill stays on the
+clause for the life of the contract. After a round closes, the pill is the ONLY
+remaining handle on that change, and today it does nothing.
+
+**The shape, as rendered:**
+  · Press a pill → a panel opens INSIDE the clause, under the wording, carrying
+    the change's own marks (strike and insertion), a line naming it, and — on a
+    refusal — the reason that was given.
+  · The pressed pill takes a selected face and grows an ✕. Press again, or the
+    ✕, to close.
+  · One open at a time, document-wide — the same single-value rule as the card
+    pop-out's `_rlPopId`, and for the same reason.
+
+**THE CLAUSE BODY IS NOT SWAPPED, and that was the alternative.** Redrawing the
+clause itself with the selected change's marks was considered and refused: the
+clause body is the wording as it stands, and overwriting it makes the paper
+temporarily untrue while somebody is reading it. The panel sits BESIDE the
+wording so both are on screen at once.
+
+**A RULE THE COUNTERPARTY'S SEAT IMPOSES, caught on the render.** The panel in
+the mock names who ruled — "refused 15 Aug by Young Mbagaya". `resolvedBy` is
+stripped from the share payload and must never reach them, so on their seat the
+panel names the ASK and its outcome and NOT the person who settled it. The
+reason text itself does travel (it is the answer to their ask). Their page
+mounts the same renderer, so this is a real branch and not a theoretical one.
+
+**Not part of the paper.** A reading posture, in memory, per sitting — it never
+prints, never exports and never reaches a PDF. Same rule as the reading modes.
+
+**Still open:** whether pressing a pill should ALSO highlight the change's card
+where one still exists. Recommendation: highlight, never scroll — the column
+jumping under a reader who pressed something on the paper is the fault the
+queue overlay was fixed for.

@@ -111,8 +111,9 @@ describe('F70 — the counterparty sees the negotiation we see', () => {
     const read = root => ({
       cards: Array.from(root.querySelectorAll('[id="rl-changes"] [data-nego-card]'))
         .map(n => n.getAttribute('data-nego-card')),
+      /* READING MOVED, CLAIM UNCHANGED (OI-12): the tag prints an id and a glyph; its words are on the title. */
       tags: Array.from(root.querySelectorAll('[id="rl-doc"] .rl-asktag'))
-        .map(n => n.textContent.replace(/Their ask|Your ask/, 'ask').trim()),
+        .map(n => (n.getAttribute('title') || '').replace(/Their ask|Your ask/, 'ask').trim()),
     });
     const mine = read(win.document.getElementById('view-redline'));
     const v = theirLink(c);
@@ -272,10 +273,11 @@ describe('F70 — every card says whose ask it is', () => {
     win.renderRedline();
     const tagIn = (root, id) => Array.from(root.querySelectorAll('.rl-asktag'))
       .find(n => n.textContent.includes(id));
-    const oursHere = tagIn(win.document.getElementById('view-redline'), live.id).textContent;
+    /* READING MOVED, CLAIM UNCHANGED (OI-12). */
+    const oursHere = tagIn(win.document.getElementById('view-redline'), live.id).getAttribute('title');
 
     const v = theirLink(c);
-    const oursThere = tagIn(v.win.document.getElementById('pt-nego'), live.id).textContent;
+    const oursThere = tagIn(v.win.document.getElementById('pt-nego'), live.id).getAttribute('title');
 
     assert.match(oursHere, /Your ask/);
     assert.match(oursThere, /Their ask/,

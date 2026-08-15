@@ -5599,6 +5599,32 @@ if (typeof document !== 'undefined' && !document._rlReadWired){
     rlSetReadMode(b.getAttribute('data-rl-read'));
     rlRepaintFrom(b);
   });
+  /* ---- AND THE ASK TAG, ON THE SAME TERMS (OI-12) ----
+     Delegated on the document for the reason the reading buttons give above:
+     these tags are painted by two document renderers into four different
+     shells, and a listener bound while a page is being built reaches whichever
+     of them existed at the time.
+
+     stopPropagation is load-bearing. The tag sits inside .nego-clause, whose
+     own press jumps to the lead change's card — so without this, pressing a tag
+     would open the panel and navigate away from it in the same gesture. */
+  document.addEventListener('click', ev => {
+    const b = ev.target && ev.target.closest && ev.target.closest('[data-rl-asktag]');
+    if (!b) return;
+    ev.preventDefault(); ev.stopPropagation();
+    rlAskSetOpen(b.getAttribute('data-rl-asktag'));
+    rlRepaintFrom(b);
+  });
+  /* Escape closes it, like every other posture on this page. Guarded on one
+     being open so the key stays free for the dialogs above it. */
+  document.addEventListener('keydown', ev => {
+    if (ev.key !== 'Escape' || ev.defaultPrevented || !rlAskOpenId()) return;
+    const el = document.querySelector('[data-rl-askrv]');
+    if (!el) { rlAskResetOpen(); return; }
+    ev.preventDefault();
+    rlAskResetOpen();
+    rlRepaintFrom(el);
+  });
 }
 
 /* THE NOTICE IS OWED, NOT OPTIONAL. A document silently missing its strikes
@@ -5651,6 +5677,173 @@ let _redlineSide = 'owner';
    in the same mode they left. */
 let _rlFocus = false;
 function rlFocusOn(){ return _rlFocus; }
+/* ============================================================
+   "N NOT SENT" — THE BAND ON THE CHANGE COLUMN (15 Aug 2026, OI-9)
+   ============================================================
+   Reported: you write three redlines, every card says Draft and carries its own
+   Send, and NOTHING counts them or says they have not left your desk. The only
+   surface that mentioned it was a suffix on Publish Round at the far end of the
+   toolbar — which never uses the word "send", is nowhere near the cards just
+   written, and FOLDS AWAY on the fit ladder's second rung, so on an ordinary
+   laptop the count is simply not on screen.
+
+   ONE LINE, NEVER TWO. Owner-ruled on sight, after two-line drafts measured
+   108px against this one's 41px. The count and the button are fixed width; the
+   middle phrase is the only thing that gives and it ellipsises, so a column
+   dragged to its 300px minimum still holds one line. The whole sentence is on
+   the hover.
+
+   ONE COUNT, MANY SURFACES. It borrows the same arithmetic the toolbar's Publish
+   Round suffix and the wall line already use — negoUnsentAsks, less what a
+   review is holding — so the band and the button cannot disagree. That suffix
+   comes OFF when this ships: two places printing one number is how they come to
+   differ.
+
+   DRAWN ONLY WHEN SOMETHING IS UNSENT. An always-on warning is furniture.
+
+   AND THE SEND IS A PROXY, never a second transport — the same postbox the
+   per-card Send presses, which is why pressing it sends everything. The
+   per-card Send stays: the owner asked for both routes in the same breath. */
+function rlUnsentCount(c, opts = {}){
+  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
+  if (opts.readonly) return 0;
+  /* THEIR SEAT COUNTS WHAT THEIR PAGE IS HOLDING, ours what the record says is
+     unsent. Two different stores, one question — and their page is the only
+     thing that knows about the first, which is why it hands the numbers in. */
+  if (side === 'counterparty')
+    return Math.max(0, Number(opts.pendingDecisions || 0) + Number(opts.pendingProposals || 0));
+  const unsent = window.negoUnsentAsks ? negoUnsentAsks(c, 'owner').length : 0;
+  const held = window.reviewHeldIds ? reviewHeldIds(c).size : 0;
+  const wait = window.reviewAwaiting ? reviewAwaiting(c).length : 0;
+  return Math.max(0, unsent - held - wait);
+}
+function rlUnsentBandHtml(c, opts = {}){
+  const n = rlUnsentCount(c, opts);
+  if (!n) return '';
+  /* A reviewer holding somebody's clause cannot publish a round, so offering
+     them the batch send would be a control whose one outcome is a refusal. */
+  if (window.rlActorHeld && rlActorHeld(c, opts)) return '';
+  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
+  const who = side === 'counterparty'
+    ? (opts.org || (window.FIRST_PARTY) || i18t('ng_the_counterparty'))
+    : (c.counterparty || i18t('ng_the_counterparty'));
+  const target = side === 'counterparty' ? 'nego-send-decisions' : 'nego-send';
+  return `<div class="rl-unsent" role="status" title="${_nea(i18t('ng_unsent_full', { n, who }))}">
+    <span class="rl-unsent-dot" aria-hidden="true"></span>
+    <span class="rl-unsent-n">${i18t('ng_unsent_n', { n })}</span>
+    <span class="rl-unsent-s">${i18t('ng_unsent_why')}</span>
+    <button type="button" class="rl-unsent-go" data-redline-proxy="${target}"
+      title="${_nea(i18t('ng_unsent_send_title', { n, who }))}">${i18t('ng_unsent_send', { n })}</button>
+  </div>`;
+}
+
+/* ============================================================
+   THE ASK TAG ON A CLAUSE, AND WHAT PRESSING IT OPENS (15 Aug 2026, OI-12)
+   ============================================================
+   The tag read `CHG-006 · Their ask · ✓ adopted` — 218px of a clause's heading
+   row, or 129px without a verdict. Four changes on one clause wanted about
+   694px and pushed the heading off its own line, which is how it was reported.
+
+   COLOUR IS WHOSE, GLYPH IS WHERE IT STANDS. The tag is the change id and one
+   mark — ✓ adopted, ? awaiting, ✗ refused, ↩ withdrawn — and the side rides on
+   a coloured cap down its left edge. 102px and 98px measured.
+
+   THE CAP IS THE CHANGE CARD'S OWN LEFT BORDER, deliberately: the card is
+   already teal for ours and amber for theirs (data-rl-origin), while this tag
+   was amber for BOTH sides, so the paper carried no side colour at all. This is
+   not a new colour language — it is the card's, finally reaching the clause.
+
+   AND THE RULE HAS NO EXCEPTIONS. A first draft gave a refused tag its own ruby
+   fill; two refusals, one theirs and one ours, then drew identically and the
+   side was gone. Colour answers ONE question. Refusal is carried by ✗, by the
+   strikethrough already on the wording, and by the card's own ruby edge.
+
+   COLOUR IS NEVER THE ONLY CARRIER: the title names the side in words, and the
+   change's card names the author and the organisation. The pipeline ring's rule
+   — every slice named in the key besides — applies here too. */
+const RL_ASK_GLYPH = { accepted: '&#10003;', rejected: '&#10007;' };
+function rlAskGlyph(ch){
+  if (!ch) return '?';
+  if (ch.withdrawn) return '&#8617;';
+  return RL_ASK_GLYPH[ch.status] || '?';
+}
+function rlAskWord(ch){
+  if (!ch) return '';
+  if (ch.withdrawn) return i18t('ng_tag_withdrawn');
+  return ch.status === 'accepted' ? i18t('ng_tag_adopted')
+    : ch.status === 'rejected' ? i18t('ng_tag_refused') : i18t('ng_tag_awaiting');
+}
+function rlAskTagHtml(ch, side, opts = {}){
+  if (!ch) return '';
+  const theirs = ch.authorSide !== (side === 'counterparty' ? 'counterparty' : 'owner');
+  /* The words the tag no longer prints are what the hover says instead — the
+     side, where it stands, and the refusal's reason where there is one. */
+  const bits = [theirs ? i18t('ng_their_ask') : i18t('ng_your_ask_short'), rlAskWord(ch)];
+  if (opts.newClause) bits.push(i18t('ng_new_clause_tag'));
+  if (ch.status === 'rejected' && ch.reply) bits.push('“' + String(ch.reply) + '”');
+  const open = rlAskOpenId() === ch.id;
+  return `<button type="button" class="rl-asktag${open ? ' on' : ''}" data-rl-asktag="${_nea(ch.id)}"
+    aria-expanded="${open ? 'true' : 'false'}" title="${_nea(bits.join(' · ') + ' — ' + i18t('ng_tag_press'))}"
+    ><span class="rl-asktag-cap rl-cap-${theirs ? 'them' : 'us'}"></span><span class="rl-asktag-lb">${
+    _ne(ch.id)}<span class="rl-asktag-g">${rlAskGlyph(ch)}</span></span>${
+    open ? '<span class="rl-asktag-x" aria-hidden="true">&#10005;</span>' : ''}</button>`;
+}
+/* ---- PRESSING A TAG SHOWS WHAT THE CHANGE PROPOSED, IN THE CLAUSE ----
+   Owner-asked, and it closes a hole rather than only adding one: the clause
+   press resolves the FIRST token of the jump anchor, so on a clause carrying
+   three changes the other two could not be reached from the paper at all.
+
+   IT MATTERS MOST ONCE THE CARD HAS GONE. A decided change leaves the Tracked
+   Changes column — deliberate, unchanged — but its tag stays on the clause for
+   the life of the contract, so after a round closes the tag is the ONLY handle
+   left on it. Pressing it did nothing.
+
+   THE CLAUSE BODY IS NOT SWAPPED, and that was the alternative. The body is the
+   wording as it STANDS; redrawing it with one change's marks makes the paper
+   temporarily untrue under a reader. The panel sits beside the wording so both
+   are on screen at once.
+
+   ONE AT A TIME, document-wide, in memory, never persisted — the same single
+   value and the same reasoning as the card pop-out's _rlPopId. It is a reading
+   posture: it never prints and never leaves the page. */
+let _rlAskOpen = null;
+const rlAskOpenId = () => _rlAskOpen;
+function rlAskSetOpen(id){ _rlAskOpen = (_rlAskOpen === id) ? null : (id || null); return _rlAskOpen; }
+function rlAskResetOpen(){ _rlAskOpen = null; }
+function rlAskRevealHtml(c, ch, side, opts = {}){
+  if (!ch || rlAskOpenId() !== ch.id) return '';
+  const theirs = ch.authorSide !== (side === 'counterparty' ? 'counterparty' : 'owner');
+  const ops = Array.isArray(ch.ops) && ch.ops.length ? ch.ops
+    : [{ op: ch.changeType === 'deleteClause' ? 'del' : 'ins', text: ch.newText || ch.oldText || '' }];
+  const wording = window.redlineOpsBlocksHtml ? redlineOpsBlocksHtml(ops)
+    : (window.redlineOpsHtml ? `<p>${redlineOpsHtml(ops)}</p>` : `<p>${_ne(ch.newText || '')}</p>`);
+  /* ---- WHO SETTLED IT NEVER TRAVELS ----
+     `resolvedBy` is stripped from the share payload — it is one of the two
+     things this product walls off from the other side — and their page mounts
+     this very renderer. So the line names the ask and its outcome from every
+     chair, and the PERSON who ruled only on ours. The refusal's reason does
+     travel: it is the answer to their ask and they are owed it. */
+  const seatShowsRuler = side !== 'counterparty' && !(typeof window !== 'undefined' && window.PORTAL_MODE);
+  const author = String(ch.author || ch.by || '').trim();
+  const when = ch.updatedAt || ch.createdAt;
+  const ruled = seatShowsRuler && ch.resolvedBy ? String(ch.resolvedBy).trim() : '';
+  const line = [
+    `<b>${_ne(ch.id)}</b>`,
+    theirs ? i18t('ng_their_ask_lc') : i18t('ng_your_ask_lc'),
+    rlAskWord(ch) + (ruled ? ' ' + i18t('ng_tag_by', { who: _ne(ruled) }) : ''),
+    author && ch.status === 'pending' ? i18t('ng_tag_from', { who: _ne(author) }) : '',
+    when ? negoWhen(when) : '',
+  ].filter(Boolean).join(' &middot; ');
+  return `<div class="rl-askrv rl-askrv-${theirs ? 'them' : 'us'}" data-rl-askrv="${_nea(ch.id)}">
+    <span class="rl-askrv-bar" aria-hidden="true"></span>
+    <div class="rl-askrv-bd">
+      <span class="rl-askrv-who">${line}</span>
+      <div class="rl-askrv-wd">${wording}</div>
+      ${ch.status === 'rejected' && ch.reply
+        ? `<span class="rl-askrv-why">“${_ne(ch.reply)}”</span>` : ''}
+    </div>
+  </div>`;
+}
 /* ---- HOW THE CONTRACT READS, AS ONE BUILDER (15 Aug 2026) ----
    Three words — Redlined / As agreed / With changes — and they were written
    inline in renderRedline, which is the owner's page and only the owner's. The
@@ -6658,11 +6851,75 @@ function redlineLayoutCss(){
      --doc-scale is the same ratio the title, the kicker and the parties at the
      foot already read, 1 wherever nothing sets it — so the print, the export
      and any screen that draws this tag without a stepper are all unchanged. */
-  .redline-page .rl-asktag{flex:none;font-size:calc(10.5px * var(--doc-scale,1));
-    font-weight:600;letter-spacing:.04em;
-    padding:calc(3px * var(--doc-scale,1)) calc(9px * var(--doc-scale,1));
-    border-radius:999px;white-space:nowrap;
-    background:var(--st-amber-bg);color:var(--st-amber-fg);border:1px solid var(--st-amber-line)}
+  /* ---- "N NOT SENT" (OI-9) ----
+     One line and it never wraps: the count and the button are flex:none, the
+     middle phrase is the only thing allowed to give and it ellipsises. Measured
+     at a 300px column — the narrowest the resizer allows — where it holds one
+     line at 41px. */
+  .redline-page .rl-unsent{display:flex;align-items:center;gap:8px;
+    margin:8px 0 6px;padding:6px 8px 6px 10px;border-radius:8px;
+    border:1px solid var(--st-amber-line);background:var(--st-amber-bg);
+    white-space:nowrap;overflow:hidden}
+  .redline-page .rl-unsent-dot{width:7px;height:7px;border-radius:999px;
+    background:var(--st-amber-dot);flex:none}
+  .redline-page .rl-unsent-n{font-size:12px;font-weight:600;color:var(--st-amber-fg);flex:none}
+  .redline-page .rl-unsent-s{font-size:11.5px;color:var(--color-neutral-700);
+    flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  html.dark .redline-page .rl-unsent-s{color:var(--color-neutral-600)}
+  .redline-page .rl-unsent-go{flex:none;border:0;border-radius:6px;cursor:pointer;
+    background:var(--st-amber-fg);color:#fff;font:inherit;font-size:11.5px;font-weight:600;
+    padding:5px 10px;white-space:nowrap}
+  .redline-page .rl-unsent-go:hover{filter:brightness(1.08)}
+  .redline-page .rl-unsent-go:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
+
+  /* ---- THE ASK TAG (OI-12) ----
+     An outline pill with a coloured cap: the cap is whose, the glyph is where
+     it stands. It is a BUTTON now — pressing it opens the change under the
+     clause — so the reset of the app's button chrome is deliberate. The cap
+     stretches with align-items:stretch, which is what makes it read as the
+     change card's own left border rather than a dot. */
+  .redline-page .rl-asktag{flex:none;display:inline-flex;align-items:stretch;
+    font:inherit;font-size:calc(10.5px * var(--doc-scale,1));
+    font-weight:600;letter-spacing:.04em;cursor:pointer;
+    border-radius:999px;white-space:nowrap;overflow:hidden;
+    background:var(--color-surface);color:var(--color-neutral-700);
+    border:1px solid var(--color-divider);
+    transition:box-shadow .14s ease,border-color .14s ease,background .14s ease}
+  .redline-page .rl-asktag-cap{width:calc(5px * var(--doc-scale,1));flex:none}
+  .redline-page .rl-cap-them{background:var(--st-amber-dot)}
+  .redline-page .rl-cap-us{background:var(--color-accent)}
+  .redline-page .rl-asktag-lb{display:inline-flex;align-items:center;gap:calc(5px * var(--doc-scale,1));
+    padding:calc(3px * var(--doc-scale,1)) calc(9px * var(--doc-scale,1))
+      calc(3px * var(--doc-scale,1)) calc(7px * var(--doc-scale,1))}
+  .redline-page .rl-asktag-g{font-weight:700;font-size:calc(11.5px * var(--doc-scale,1));line-height:1}
+  .redline-page .rl-asktag:hover{border-color:var(--color-neutral-400)}
+  .redline-page .rl-asktag:focus-visible{outline:2px solid var(--color-accent);outline-offset:1px}
+  /* Open: the tag is the thing being read, and it carries its own way out. */
+  .redline-page .rl-asktag.on{border-color:var(--color-neutral-500);color:var(--color-text);
+    background:var(--color-neutral-100);box-shadow:0 0 0 2px rgba(38,55,74,.10)}
+  .redline-page .rl-asktag-x{display:inline-flex;align-items:center;font-weight:700;
+    padding-right:calc(8px * var(--doc-scale,1));color:var(--color-neutral-500)}
+  /* ---- AND WHAT IT OPENS ----
+     Beside the wording, never over it and never instead of it. Quiet ground so
+     the clause stays the thing being read. */
+  .redline-page .rl-askrv{display:flex;gap:calc(9px * var(--doc-scale,1));
+    margin:calc(9px * var(--doc-scale,1)) 0 0;padding:calc(8px * var(--doc-scale,1)) 10px
+      calc(8px * var(--doc-scale,1)) 0;border-radius:6px;overflow:hidden;
+    background:color-mix(in srgb,var(--color-neutral-100) 70%,transparent)}
+  html.dark .redline-page .rl-askrv{background:color-mix(in srgb,var(--color-neutral-200) 45%,transparent)}
+  .redline-page .rl-askrv-bar{width:3px;flex:none;border-radius:2px}
+  .redline-page .rl-askrv-them .rl-askrv-bar{background:var(--st-amber-dot)}
+  .redline-page .rl-askrv-us .rl-askrv-bar{background:var(--color-accent)}
+  .redline-page .rl-askrv-bd{flex:1;min-width:0;padding-left:calc(9px * var(--doc-scale,1))}
+  .redline-page .rl-askrv-who{display:block;font-size:calc(11px * var(--doc-scale,1));
+    color:var(--color-neutral-600);margin-bottom:calc(4px * var(--doc-scale,1))}
+  .redline-page .rl-askrv-who b{color:var(--color-neutral-700);font-family:var(--font-mono);letter-spacing:.02em}
+  .redline-page .rl-askrv-wd{font-size:calc(13px * var(--doc-scale,1));line-height:1.6}
+  .redline-page .rl-askrv-why{display:block;margin-top:calc(5px * var(--doc-scale,1));
+    font-size:calc(11.5px * var(--doc-scale,1));color:var(--st-ruby-fg);font-style:italic}
+  /* A READING POSTURE IS NOT ON THE PAPER. Print and every export take the
+     contract, not what somebody had open while reading it. */
+  @media print{ .redline-page .rl-askrv{display:none} }
 
   /* the design's change cards */
   /* No padding: the cards sit straight on the page like the sheet does, and
@@ -8206,8 +8463,17 @@ function renderRedline(){
      carrying the whole sentence. Both remain in textContent either way, which
      is what the tests read. */
   const sendVerb = side === 'owner' ? 'Publish Round' : 'Send Response';
-  const sendCounts = (_goes ? ` · ${_goes} unsent` : '')
-    + (_held ? ` · ${_held} held` : '')
+  /* ---- THE UNSENT COUNT CAME OFF THIS BUTTON (15 Aug 2026, OI-9) ----
+     It now has a home of its own, in one line at the top of the change column,
+     beside the cards it is about and with a Send that says the word. Two
+     surfaces printing one number is how they come to disagree — and this one
+     was the worse of the two: it never said "send", it sat at the far end of
+     the row, and the fit ladder drops .rl-send-detail on its second rung, so on
+     an ordinary laptop it was not on screen at all.
+     HELD AND IN-REVIEW STAY HERE. They are not "unsent work waiting on you" —
+     they are work waiting on a COLLEAGUE, they belong to the round rather than
+     to the column, and the band deliberately does not count them. */
+  const sendCounts = (_held ? ` · ${_held} held` : '')
     + (_wait ? ` · ${_wait} in review` : '');
   const sendTip = side === 'owner'
     ? `Publish this round's changes to ${c.counterparty || 'the counterparty'}`
@@ -8716,12 +8982,28 @@ function renderRedline(){
            actually held to find nothing had moved — because it was not the URL
            we had refreshed. Where the send could not reuse their copy, that is
            the whole news, so it outranks the ordinary sentence. */
+        /* ---- THE THREE OUTCOMES ARE THREE STATES NOW (15 Aug 2026, OI-10) ----
+           This call is the one the owner reported: publishing a round to an
+           existing link came back RED, reading as a failure over an act that had
+           worked. It was marked an error on purpose, because until now a toast
+           that was not an error was thrown away and the sentence "send them the
+           link if it was not emailed" would never have been seen.
+
+           Delivered is DONE. Published-but-not-emailed and a stranded second
+           link are both NEEDS YOU — something worked and something is left for
+           the sender to do — so they are amber and they CARRY THE LINK, which
+           is the thing the old sentence asked for and did not hand over. */
+        const delivered = !!(out && out.delivered && !out.stranded);
+        const link = (out && out.link) || null;
         if (window.toast) toast(out && out.stranded
           ? `${window.reshareStrandedLine ? reshareStrandedLine(to) : 'A NEW link was created for ' + to + '.'}${turnLine ? ' It is now their turn.' : ''}`
-          : out && out.delivered
+          : delivered
           ? `Sent to ${to}${turnLine}`
-          : `Published to ${to}'s link${turnLine}. Send them the link if it was not emailed.`,
-          (out && out.delivered && !out.stranded) ? undefined : 'err');
+          : `${i18t('ng_published_not_emailed', { who: to })}${turnLine}`,
+          delivered ? 'ok' : 'warn',
+          (!delivered && link) ? { action: { label: i18t('ng_copy_link'),
+            onClick: () => { try{ navigator.clipboard.writeText(link); }catch(e){}
+              if (window.toast) toast(i18t('ng_link_copied'), 'ok'); } } } : undefined);
       }catch(err){
         btns.forEach(b => { b.disabled = false; });
         if (window.toast) toast(`Could not send to ${to} — ${(err && err.message) || err}`, 'err');
@@ -10655,9 +10937,10 @@ function redlineDocHtml(c, opts = {}){
     return `<section class="nego-clause rl-clause is-changed rl-clause-new" data-clause="${_ne(ch.clauseId)}" data-nego-card-anchor="${_ne(ch.id)}">
       <div class="rl-clause-top">
         ${label ? `<h4 class="rl-clause-h">${_ne(label)}</h4>` : ''}
-        <span class="rl-asktag"${tagTip}>${_ne(ch.id)} · ${theirs ? i18t('ng_their_ask') : i18t('ng_your_ask_short')} &middot; ${i18t('ng_new_clause_tag')}${st}</span>
+        ${rlAskTagHtml(ch, side, { newClause: true })}
       </div>
       <div class="nego-body">${inner}</div>
+      ${rlAskRevealHtml(c, ch, side, opts)}
     </section>`;
   };
   /* Folded to the reviewer's own clauses — see rlRvDocClauses. Null means the
@@ -10681,13 +10964,7 @@ function redlineDocHtml(c, opts = {}){
        marks are actually on screen. rlLinkFocus matches with [~=], so every
        card finds this clause whichever position its id holds. */
     const anchorIds = _ne(chs.map(x => x.id).reverse().join(' '));
-    const tagFor = x => {
-      const xTheirs = x.authorSide !== side;
-      const xSt = x.status === 'accepted' ? ' &middot; &#10003; adopted'
-        : x.status === 'rejected' ? ' &middot; &#10007; refused' : '';
-      const xTip = x.status === 'rejected' && x.reply ? ` title="${_nea(x.reply)}"` : '';
-      return `<span class="rl-asktag"${xTip}>${_ne(x.id)} · ${xTheirs ? 'Their ask' : 'Your ask'}${xSt}</span>`;
-    };
+    const tagFor = x => rlAskTagHtml(x, side);
     if (ch){
       const theirs = ch.authorSide !== side;
       /* ---- A CLEAN READING CARRIES NO MARKERS EITHER ----
@@ -10730,6 +11007,7 @@ function redlineDocHtml(c, opts = {}){
           ${rest.map(tagFor).join('')}${tagFor(ch)}${fmtChip}
         </div>
         ${clean == null ? richBody(cl) : clean}
+        ${chs.map(x => rlAskRevealHtml(c, x, side, opts)).join('')}
         ${tools(cl, ch)}
       </section>${after}`;
     }
@@ -12790,6 +13068,12 @@ function redlinePanesHtml(c, opts = {}){
           <button class="nego-fold" id="nego-fold" hidden>${i18t('ng_hide')}</button>
           <div class="nego-track" hidden><div class="nego-fill" id="nego-fill" style="width:${p.pct}%"></div></div>
           <div id="nego-progress" hidden>${i18t('ng_resolved_short',{done:p.done,total:p.total})}</div>
+          ${''/* ---- N NOT SENT ----
+                 Inside the head, not the card list: prepended to the cards it
+                 would scroll away with them, and a count you have to scroll
+                 back to is the fault this band exists to fix. See
+                 rlUnsentBandHtml. */}
+          ${rlUnsentBandHtml(c, opts)}
           ${''/* ---- AND NOW THE BULK VERBS ARE GONE FROM BOTH SEATS ----
                  They left OUR column first: deciding the other side's wording
                  in one press is the act that should cost a press per clause,
@@ -12959,7 +13243,9 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlDocType, rlDocScale, rlSetDocType, rlTypeStepHtml, rlWireTypeStep,
   rlApplyDocZoom, rlObserveDocPane, RL_PAGE_W, RL_ZOOM_MAX,
   rlFocusOn, rlSetFocus, rlResetFocus, rlWireFocusKey, rlPaintFocusBtn, rlFocusPage,
-  rlReadSegsHtml,
+  rlReadSegsHtml, rlPaintReadSegs,
+  rlAskTagHtml, rlAskRevealHtml, rlAskGlyph, rlAskWord, rlAskOpenId, rlAskSetOpen, rlAskResetOpen,
+  rlUnsentBandHtml, rlUnsentCount,
   rlFitTabRow, rlWireFitTabRow, rlObserveTabRow,
   redlineHeldId, redlineEvict, openRedlineWorkbench, RL_DEMOTABLE,
   rlOwnerOpenActions, rlOwnerOpenTotal, rlJumpHtml,

@@ -633,14 +633,25 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       clippedAway: !!b.closest('.rl-sendslot-hidden'),
       headerCopies: document.querySelectorAll('.rl-head [data-rl-blast]').length,
       proxies: document.querySelectorAll('[data-redline-proxy="nego-send"]').length,
+      toolbarProxy: !!document.querySelector('.rl-tabrow [data-redline-proxy="nego-send"]'),
+      bandProxy: !!document.querySelector('.rl-unsent [data-redline-proxy="nego-send"]'),
       unsent: negoUnsentAsks(CONTRACT, 'owner').length };
   });
   check('13 the engine\'s send is mounted in the column, out of the way',
     !!blast && blast.inChangesCol && blast.clippedAway,
     blast && `in the column: ${blast.inChangesCol}, clipped: ${blast.clippedAway}`);
-  check('13 and it is the toolbar\'s Publish Round that presses it',
-    !!blast && blast.headerCopies === 0 && blast.proxies === 1,
+  /* CLAIM WIDENED, 15 Aug 2026 (OI-9): the change column gained a "N not sent"
+     band whose Send is a SECOND DOOR onto this same postbox — the pattern the
+     per-card Send already used. What is under test is unchanged and is the
+     thing that matters: one transport, no duplicate BUTTON in the header, and
+     every door pressing the engine's own send rather than opening a route of
+     its own. */
+  check('13 and every door onto it is a proxy — one transport, no header copy',
+    !!blast && blast.headerCopies === 0 && blast.proxies >= 1,
     blast && `${blast.headerCopies} copies, ${blast.proxies} proxies`);
+  check('13 the toolbar is one of them, the unsent band the other',
+    !!blast && blast.toolbarProxy && blast.bandProxy,
+    blast && `toolbar:${blast.toolbarProxy} band:${blast.bandProxy}`);
   check('13 it counts the unsent drafts',
     !!blast && blast.text.indexOf(`(${blast.unsent})`) >= 0, blast && blast.text);
   check('13 it is animated', !!blast && blast.anim === 'rlBlast', blast && blast.anim);

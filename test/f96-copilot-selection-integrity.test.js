@@ -611,7 +611,9 @@ describe('F96 (B13) — a clause the record holds and the canvas did not draw', 
     assert.ok(sec, 'the clause is on the canvas');
     assert.ok(sec.classList.contains('rl-clause-new'),
       'a clause that is not in the agreement yet must not read as one that is');
-    assert.match(sec.textContent, /new clause/i, 'and the tag says so in words');
+    /* READING MOVED, CLAIM UNCHANGED (OI-12). */
+    assert.match(sec.querySelector('.rl-asktag')?.getAttribute('title') || '',
+      /new clause/i, 'and the tag says so in words');
     assert.ok(sec.querySelector('ins, .nego-ins'), 'the wording carries insertion marks');
   });
 
@@ -638,7 +640,8 @@ describe('F96 (B13) — a clause the record holds and the canvas did not draw', 
     const sec = p.$$('#rl-doc [data-clause]').find(el => /confidential/.test(el.textContent));
     assert.ok(sec, 'a gap in the document cannot be told from a clause never proposed');
     assert.ok(sec.querySelector('del, .nego-del'), 'refused wording is struck, not erased');
-    assert.match(sec.textContent, /refused/i);
+    /* READING MOVED, CLAIM UNCHANGED (OI-12). */
+    assert.match(sec.querySelector('.rl-asktag')?.getAttribute('title') || '', /refused/i);
   });
 
   test('an insert whose anchor has gone falls to the end, and only then', async () => {

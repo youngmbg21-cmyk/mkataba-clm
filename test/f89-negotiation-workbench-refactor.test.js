@@ -235,9 +235,19 @@ describe('F89 (1) — the head is not a band at all: it rides on the tab row', (
        textContent every other test reads never changes. */
     const p = await page({ myChange: true });
     assert.ok(p.$('.rl-pb-btn .rl-word'), 'the purple buttons carry their words in a span');
-    const send = p.$('[data-redline-proxy]');
-    assert.ok(send.querySelector('.rl-send-detail'), 'Publish Round carries its counts in a span');
-    assert.match(send.textContent, /unsent/, 'and the counts are still in the text');
+    /* ---- THE COUNT MOVED AGAIN, 15 Aug 2026 (OI-9) ----
+       It went from a full-width wall banner to a suffix on Publish Round, and
+       now to a one-line band at the top of the change column — one step closer
+       to the act each time. The suffix folded away on the fit ladder's second
+       rung, so on an ordinary laptop it was not on screen at all, which is how
+       the owner came to report that nothing told them a redline was unsent.
+       WHAT IS UNDER TEST IS UNCHANGED: there is no standing banner, and the
+       number is still said, in one place, beside the thing it is about. */
+    const send = p.$('.rl-tabrow [data-redline-proxy]');
+    assert.ok(send.querySelector('.rl-send-detail'),
+      'Publish Round still carries its own counts — held and in review — in a span');
+    assert.match(p.$('.rl-unsent').textContent, /not sent/,
+      'and the unsent count is on the column, beside the cards it is about');
     assert.ok(/rl-tabrow-tight .rl-pb-btn .rl-word\{display:none/.test(p.css()),
       'tight folds the purple buttons to their glyphs');
     /* ---- CLAIM MOVED A RUNG, 13 Aug 2026 (owner-reported) ----

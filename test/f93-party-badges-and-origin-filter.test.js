@@ -182,7 +182,11 @@ describe('F93 (1) — the origin pill is OFF the card, and the edge still says i
     const p = await page();
     const tag = p.$('#rl-doc .rl-asktag');
     assert.ok(tag, 'the marked clause still carries its ask tag');
-    assert.match(tag.textContent, /ask/i, 'and the tag still says whose');
+    /* READING MOVED, CLAIM UNCHANGED (OI-12): whose is a coloured cap and a
+       word on the title now, not text in the pill. Both are asserted — colour
+       must never be the only carrier. */
+    assert.match(tag.getAttribute('title') || '', /ask/i, 'and the tag still says whose, in words');
+    assert.ok(tag.querySelector('.rl-cap-us, .rl-cap-them'), 'and shows it at a glance');
   });
 });
 

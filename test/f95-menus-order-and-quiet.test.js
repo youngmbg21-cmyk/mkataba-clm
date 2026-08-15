@@ -495,17 +495,42 @@ describe('F95 — green confirmations are gone, red warnings are not', () => {
     const dom = new JSDOM('<!doctype html><body><div id="toast-root"></div></body>');
     const win = dom.window;
     win.icon = () => '<svg></svg>';
+    win.esc = x => String(x == null ? '' : x);
+    /* LIFTED BETWEEN LANDMARKS, not by a signature. toast gained a kinds table
+       above it and a third argument on 15 Aug 2026, and slicing on the exact
+       parameter list silently produced a broken window instead of a failing
+       test. The two landmarks are asserted so a move fails loudly. */
     const core = src('js/core.js');
-    const fn = core.slice(core.indexOf('function toast(msg,kind='));
-    vm.runInContext(fn.slice(0, fn.indexOf('\n}') + 2), vm.createContext(win));
+    const from = core.indexOf('const TOAST_KINDS');
+    const to = core.indexOf('/* SHA-256, with an honest failure mode.');
+    assert.ok(from > 0 && to > from, 'the toast block is still where this stage reads it');
+    vm.runInContext(core.slice(from, to), vm.createContext(win));
     return { win, root: win.document.getElementById('toast-root'),
       boxes: () => win.document.getElementById('toast-root').children.length };
   }
 
-  test('an ok toast draws nothing at all', () => {
+  /* ---- THE SILENCE THIS BLOCK BOUGHT IS KEPT, AND IT IS NOW OPT-IN ----
+     (15 Aug 2026, OI-10.) F95's decision was right and stands: an ordinary
+     confirmation the screen has already made three times is noise. What was
+     wrong was that there was no way to opt IN — a message that genuinely had to
+     be read could only be made visible by calling it an error, which is exactly
+     what the publish path did, and the owner reported it as a red alert over a
+     successful send.
+
+     So a BARE call is still silent, which is every one of the ~250 this block
+     was written about; naming a kind is how a caller asks to be seen. */
+  test('a bare toast still draws nothing at all', () => {
     const s = stage();
     s.win.toast('#CHG-011 accepted — merged into the clean text');
     assert.equal(s.boxes(), 0, 'the screen already said this three ways');
+  });
+
+  test('but a caller can now ask to be seen without lying about it', () => {
+    const s = stage();
+    s.win.toast('Round 2 published to Juno Limited.', 'ok');
+    assert.equal(s.boxes(), 1, 'a deliberate confirmation draws');
+    assert.equal(s.root.firstChild.dataset.toastKind, 'ok',
+      'and it is not wearing the refusal colour to get there');
   });
 
   test('an error toast draws exactly as it always did', () => {
@@ -520,5 +545,12 @@ describe('F95 — green confirmations are gone, red warnings are not', () => {
     for (let i = 0; i < 10; i++) s.win.toast('saved ' + i);
     s.win.toast('save failed', 'err');
     assert.equal(s.boxes(), 1, 'the silencing lives in one place, not in every call site');
+  });
+
+  test('and an unknown kind is still a refusal, so nothing existing got quieter', () => {
+    const s = stage();
+    s.win.toast('Something odd', 'sideways');
+    assert.equal(s.boxes(), 1);
+    assert.equal(s.root.firstChild.dataset.toastKind, 'err');
   });
 });
