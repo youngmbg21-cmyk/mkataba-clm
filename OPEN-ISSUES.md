@@ -48,20 +48,50 @@ are recorded below.
 
 ---
 
-## Still open — the decision OI-6 raised and nobody has taken
+## Closed 15 Aug 2026 — the decision OI-6 raised, answered without code
 
-**Decided changes vanish unevenly on the counterparty's page.** A decided
-change keeps its card only where the *reader* made the decision: their own ask,
-once the owner has answered it, leaves their column entirely, while the owner's
-ask that they themselves answered keeps a card. Half the decided work stays
-visible and half does not, and which half depends on who answered. They also
-have no equivalent of the owner's **Reopen**, so there is no way back from that
-seat once anything is decided.
+**Decided changes vanish from the counterparty's column, unevenly**, and the
+owner asked the right question about it: now that every change keeps a tag on
+its clause for the life of the contract — with a glyph for its outcome and a
+press that opens what it proposed — is a card still needed?
 
-Reproduced and understood; the owner has seen it and set it aside for now
-(15 Aug 2026) rather than have it built alongside the three above. Two sizes
-when it is picked up: keep decided cards whoever answered, sunk to the bottom
-and read-only; or that plus a way for them to reopen a refusal.
+**No, and this is closed as answered by OI-12.** The column is a WORK QUEUE: a
+card is something to do, and decided work is not. The tag on the paper carries
+the outcome where the argument happened, and Negotiation history carries the
+list. Keeping decided cards would make the column a second history, which is
+what the uneven behaviour was accidentally half-doing.
+
+Two things were checked rather than assumed before closing it:
+  · **The discussion thread is not stranded.** The closed-round history card
+    carries `ch.thread` and the reply, so a settled change's conversation is
+    still readable.
+  · **The card that DOES stay is transitional, not a product decision.** A
+    decided-by-this-reader card survives because their page rebuilds from a
+    payload snapshotted before the send, and without it the verbs came back a
+    moment after the answer left — the send reading as having done nothing.
+    That is a sync gap, not a claim that decided work belongs in the column.
+
+### AND THE "NO WAY BACK" HALF WAS WRONG — CORRECTED IN PLACE
+
+This file said, twice, that the counterparty "has no equivalent of the owner's
+**Reopen**, so there is no way back from that seat once anything is decided."
+**That is not true and never was.** Measured off the real renderer on both
+seats:
+
+  · Their refusal, already sent → their card carries **Reopen**
+    (`data-nego-redecide`, wired and behind one deliberate press).
+  · Their refusal, still held → **Send** and **Undo**.
+  · OUR refusal of THEIR ask → their card carries **Withdraw** and **Edit**.
+
+That last one is the case the wrong claim was built on, and the product is
+right: they cannot reopen a refusal WE gave, because overturning our decision
+is not theirs to do. What they can do is let the ask go or rewrite it — which
+is what Withdraw and Edit are. The mirror on our own page is the same shape:
+we get Withdraw on an ask of ours THEY refused, and Reopen only on a refusal we
+gave ourselves.
+
+So there is nothing to build here. A rule that misdescribes the code is worse
+than no rule, and this one had been repeated three times.
 
 **Span-level anchoring** (marks sitting on words rather than whole clauses)
 stays parked as OI-7 records it — a real improvement to how a contract reads,

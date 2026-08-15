@@ -8817,11 +8817,31 @@ function renderRedline(){
      thing that can actually accept a change or publish a round. If the engine
      has not rendered that control — nothing pending, or the other side's turn —
      the header button disables itself rather than lying about what it can do. */
-  host.querySelectorAll('[data-redline-proxy]').forEach(el =>
-    el.addEventListener('click', () => {
+  /* ---- WIRED ONCE, ON THE DOCUMENT (15 Aug 2026) ----
+     This used to scan `host` — #content — at this line, which is BEFORE the
+     panes are mounted a few lines below. Every proxy that lived in the page
+     shell got its handler; a proxy painted into the mount got nothing. That was
+     true of exactly one control until the unsent band arrived in the change
+     column, and it made "Send all N" a button that did nothing at all: the
+     toolbar's Publish Round pressed the postbox once, the band pressed it zero
+     times. Reproduced before it was touched.
+
+     Bound to the document instead, where it cannot be painted away — the same
+     answer, for the same reason, as the reading buttons and the ask tags above.
+     ONE MECHANISM, NOT TWO: the element-bound scan is gone rather than kept
+     alongside, because a proxy reachable by both would press its postbox twice
+     and send the round twice. redlineSyncProxies still runs per paint; that is
+     a different job (it decides whether a proxy is usable) and it has always
+     had to re-run on fresh markup. */
+  if (typeof document !== 'undefined' && !document._rlProxyWired){
+    document._rlProxyWired = true;
+    document.addEventListener('click', ev => {
+      const el = ev.target && ev.target.closest && ev.target.closest('[data-redline-proxy]');
+      if (!el || el.disabled) return;
       const target = document.getElementById(el.getAttribute('data-redline-proxy'));
       if (target && !target.disabled) target.click();
-    }));
+    });
+  }
 
   /* The page's OWN three columns — document, tracked changes, discussion — not
      the two-pane comparison the contract tab renders. The engine still supplies

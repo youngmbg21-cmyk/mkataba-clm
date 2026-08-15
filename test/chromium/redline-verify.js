@@ -652,6 +652,39 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('13 the toolbar is one of them, the unsent band the other',
     !!blast && blast.toolbarProxy && blast.bandProxy,
     blast && `toolbar:${blast.toolbarProxy} band:${blast.bandProxy}`);
+  /* ---- AND EVERY DOOR ACTUALLY REACHES THE POSTBOX (15 Aug 2026) ----
+     The proxy click was wired by scanning #content at a point BEFORE the panes
+     are mounted, so a proxy in the page shell got its handler and one painted
+     into the mount got nothing. That was harmless while the toolbar was the
+     only proxy and made "Send all N" a dead button the day the band arrived:
+     the toolbar pressed the postbox once, the band pressed it zero times.
+     Counted here rather than inferred, on BOTH doors, because "a handler is
+     attached" and "the press lands" are different claims — and because a
+     document-level listener kept alongside the old element-bound one would
+     make each press land TWICE, which on a send is worse than not landing. */
+  const presses = await page.evaluate(() => {
+    const post = document.getElementById('nego-send');
+    if (!post) return null;
+    /* OBSERVED, NOT FIRED. Capturing on the postbox itself and stopping the
+       event dead means the press is counted and the round is NOT published —
+       without this the check sends for real, the share dialog opens, and the
+       next check (no modal was opened) fails on this one's side effect. */
+    let n = 0;
+    const count = ev => { n++; ev.stopImmediatePropagation(); ev.preventDefault(); };
+    post.addEventListener('click', count, true);
+    const band = document.querySelector('.rl-unsent [data-redline-proxy]');
+    const bar = document.querySelector('.rl-tabrow [data-redline-proxy]');
+    if (band) band.click();
+    const afterBand = n; n = 0;
+    if (bar) bar.click();
+    const afterBar = n;
+    post.removeEventListener('click', count, true);
+    return { afterBand, afterBar };
+  });
+  check('13 the band\'s Send reaches the postbox exactly once',
+    !!presses && presses.afterBand === 1, presses && `${presses.afterBand} presses`);
+  check('13 and so does the toolbar\'s — one each, never two',
+    !!presses && presses.afterBar === 1, presses && `${presses.afterBar} presses`);
   check('13 it counts the unsent drafts',
     !!blast && blast.text.indexOf(`(${blast.unsent})`) >= 0, blast && blast.text);
   check('13 it is animated', !!blast && blast.anim === 'rlBlast', blast && blast.anim);
