@@ -310,16 +310,35 @@ explicitly supports this. One accepts our ask at 09:00; the other rejects it at
 rewrote the contract wording back to the accepted version. **Nothing anywhere
 reads the time an answer was given** before applying it.
 
-This is not a theoretical replay: HaTi's own queue hands answers to the owner
-**out of time order by design** — one-shot links are always delivered before
-durable ones, so a 14:00 answer is applied before a 09:00 one. Which answer
-survives is decided by what kind of link it arrived on, not by anything either
-party did.
+This is not only a theoretical replay: HaTi's own queue can hand answers to the
+owner **out of time order**, because one-shot links are always delivered before
+durable ones — so a 14:00 answer is applied before a 09:00 one, and which answer
+survives is decided by what kind of link it arrived on rather than by anything
+either party did.
+
+**Narrowed by a counter-probe, and honestly so.** Reaching that through HaTi's
+own queue needs three things at once: a **one-shot** link alongside a durable one
+on the same contract, the one-shot answered *later*, and both answers still
+waiting in the same round of checking. Negotiate links are created as durable by
+default, so the sender has to have deliberately unticked that. **Two durable
+links — the ordinary case, and the one this candidate was written about — come
+out in the right order.** The underlying fault is unchanged and reproduces in
+full: nothing reads the time an answer was given. But the everyday route to it is
+a replayed or re-imported answer, not the queue.
+
+**One caveat for whoever fixes this,** found by the same counter-probe: the
+timestamp on an answer is supplied by the counterparty's own browser and stored
+as sent. Ordering on it means ordering on a number the other side controls. That
+is probably still worth doing, but it should be a decision rather than a
+surprise.
 
 **Fix.** Refuse — or at minimum announce — a decision older than the one already
-on the change, and sort the pending queue by the time the answer was given.
+recorded, and sort the pending queue by when each answer was actually given.
 
-*Probe: `c2-two-links-one-ask.js` — 16 passed, 9 yardstick misses.*
+*Probe: `c2-two-links-one-ask.js` — 16 passed, 9 yardstick misses. Counter-probes:
+`c2-SKEPTIC-counter-probe.js` (28 passed, 0 failed — the flip confirmed durable,
+saved and accepted by the server) and `c2-refute-order.js`, which produced the
+narrowing above.*
 
 ## 8 · Removing a colleague warns about two of the five things bound to their name
 
@@ -534,7 +553,10 @@ in a single pass.
    flips the first one's verdict, the state is right and the history holds both
    lines — but neither the line, nor the message to the owner, says an earlier
    answer was overturned, and the change keeps only one decision slot, so the
-   first person's words are simply gone.
+   first person's words are simply gone. A counter-probe pinned down exactly how
+   findable the lost acceptance is: **only in the history trail** — a tooltip on
+   the History tab, and nowhere in the export, the printable record or the
+   counterparty's own copy.
 2. **The first answerer's own page silently flips.** Their copy is refreshed from
    the record, so the ask they accepted now reads as refused, carrying their
    colleague's words with **nobody's name on them** — and one reload leaves them

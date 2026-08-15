@@ -163,6 +163,24 @@ const EXEC = 'MK-A2';   // the collision — B executes it
       { status: aHolds.status, renders: saver.log.renders });
     t.note('so the reader DOES eventually see a Signed contract — but is never told that is why the save was refused, and pressed a dead button ' + (saver.log.dialogs.length - 1) + ' times first');
 
+    /* ============ THE OTHER HALF OF THE SAME BRANCH ============
+       The misread is upstream of the activeId test, so the BACKGROUND-FLUSH
+       arm inherits it too: a colleague whose edit is not the contract on
+       screen is told to "open it and save again", which is an instruction the
+       server will never honour. Measured rather than reasoned. */
+    const bg = JSON.parse(JSON.stringify(stored)); bg._v = v1; bg._loaded = true; bg._light = false;
+    bg.status = 'Under Review'; bg.signatures = []; delete bg.hash; delete bg.sealVersion; delete bg.execution; delete bg.signedAt;
+    bg.metadata = { ...(bg.metadata || {}), bgNote: 'someone else\'s tab' };
+    const bgSaver = makeSaver(A, {
+      keepMine: () => true,
+      state: { view: 'dashboard', activeId: null, contracts: [bg] },   // NOT the open contract
+    });
+    await bgSaver.saveContract(bg);
+    t.note(`background-flush toasts: ${JSON.stringify(bgSaver.log.toasts.map(x => x.msg))}`);
+    t.ok(bgSaver.log.dialogs.length === 0 && bgSaver.log.toasts.some(x => /save again/i.test(x.msg)),
+      'the background arm inherits the misread too — no dialog, and "Open it and save again to keep your version" on a save that can never land',
+      bgSaver.log.toasts.map(x => x.msg));
+
     t.done();
   } catch (e) {
     console.log('FAIL  probe threw: ' + (e && e.stack || e));
