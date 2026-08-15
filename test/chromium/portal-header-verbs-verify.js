@@ -225,17 +225,48 @@ const VERBS = [
     `disabled=${m.readyDisabled}`);
   check('and explains why on the button itself', !!m.readyWhy, m.readyWhy);
 
-  /* ---- 9. THE SEND APPEARS WHERE THE OTHERS ARE, and is visible ----
+  /* ---- 9. THE SEND APPEARS, AND IS VISIBLE ----
      The postbox is drawn only once something is held, so it is the one verb
      that cannot be checked on a fresh page — and it is the verb this page lost
-     to a layout change once already. */
+     to a layout change once already.
+
+     CLAIM REVERSED IN PLACE, 15 Aug 2026. This used to require the batch Send
+     to be #pt-nego-send and to sit INSIDE .pw-id with the other verbs. That
+     was right when the header was the only place a batch send could live, and
+     it stopped being right when the unsent band arrived on the change column —
+     the place a reader is actually looking when they have answers to send.
+
+     Both were drawn for a day and the owner reported it: "you sometimes have
+     multiple send alerts. There should only be the one highlighted in yellow
+     on top of the redline cards." They disagreed as well as duplicated,
+     because the header counted DECISIONS and the band counts decisions AND
+     held proposals. So the header's send stands down on the workbench (keyed
+     on PORTAL_FOOT_COMPACT — the signing screen has no change column and
+     still draws it) and the band is the door.
+
+     WHAT THIS FILE IS FOR IS UNCHANGED and is what is measured below: a reader
+     who has decided something must have VISIBLE PIXELS to send it with, and
+     exactly one of them. Only the element carrying them has moved. */
   const afterDecision = await page.evaluate(async () => {
     const btn = document.querySelector('[data-nego-accept]');
     if (!btn) return { pressed: false };
     btn.click();
     await new Promise(r => setTimeout(r, 300));
-    const send = document.getElementById('pt-nego-send');
-    const head = document.querySelector('.pw-id');
+    const send = document.querySelector('.rl-unsent-go');
+    const band = document.querySelector('.rl-unsent');
+    /* "on top of the redline cards" is a GEOMETRY claim, so it is measured as
+       geometry: the band sits above the first card and shares its column. An
+       ancestor walk would have been the wrong test — the band is prepended to
+       .nego-index-head, which is a SIBLING of the card scroller, not its
+       parent, so containment answers false on a page that is drawn correctly. */
+    const card = document.querySelector('[data-nego-card]');
+    let over = null;
+    if (band && card){
+      const b = band.getBoundingClientRect(), k = card.getBoundingClientRect();
+      over = { above: b.bottom <= k.top + 1,
+        sameColumn: Math.abs(b.left - k.left) < 40,
+        b: Math.round(b.bottom), k: Math.round(k.top) };
+    }
     let why = 'absent';
     if (send){
       why = '';
@@ -246,8 +277,14 @@ const VERBS = [
     }
     const r = send && send.getBoundingClientRect();
     return { pressed: true, why, label: send ? send.textContent.replace(/\s+/g, ' ').trim() : null,
-      inHead: !!(head && send && head.contains(send)),
+      over,
+      proxy: send ? send.getAttribute('data-redline-proxy') : null,
       w: r ? Math.round(r.width) : 0,
+      /* ONE ALERT. The header's own send must not be drawn beside it — that is
+         the duplicate the owner reported, and it is what this check exists to
+         stop coming back. */
+      headerSends: document.querySelectorAll('#pt-nego-send').length,
+      batchSends: document.querySelectorAll('.rl-unsent-go').length,
       /* the card's own Send is a PROXY onto that one postbox — two doors, one
          transport, and both have to be pressable */
       cardSend: !!document.querySelector('[data-rl-send]') };
@@ -258,7 +295,15 @@ const VERBS = [
     afterDecision.pressed && !afterDecision.why && afterDecision.w > 0,
     afterDecision.pressed ? (afterDecision.why || `${afterDecision.w}px — "${afterDecision.label}"`)
       : 'nothing to decide in the fixture');
-  check('the Send joins the other verbs in the header', afterDecision.inHead);
+  check('the Send is ON TOP OF THE REDLINE CARDS, in their own column',
+    !!(afterDecision.over && afterDecision.over.above && afterDecision.over.sameColumn),
+    afterDecision.over ? `band bottom ${afterDecision.over.b} · first card top ${afterDecision.over.k}`
+      + ` · same column ${afterDecision.over.sameColumn}` : 'no band or no card to measure against');
+  check('and it is a PROXY onto the one postbox, never a second transport',
+    afterDecision.proxy === 'nego-send-decisions', afterDecision.proxy);
+  check('ONE SEND ALERT — the header draws no second one beside it',
+    afterDecision.headerSends === 0 && afterDecision.batchSends === 1,
+    `header ${afterDecision.headerSends}, band ${afterDecision.batchSends}`);
   check('and the card keeps its own Send, proxying the one postbox',
     afterDecision.cardSend);
 

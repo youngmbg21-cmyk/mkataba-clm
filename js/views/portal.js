@@ -1669,7 +1669,22 @@ function portalNegoFootHtml(p){
       ${readyOk||spent?'':`<span id="pt-ready-why" style="font-size:11px;line-height:1.5;color:var(--color-neutral-600)">${esc(whyNot)}</span>`}
     </span>`;
   return `${words}
-    ${n?`<button id="pt-nego-send" class="ui-btn ui-btn-primary nego-pulse" style="flex:none;font-size:12.5px;padding:8px 15px">Send ${n} decision${n===1?'':'s'}</button>`:''}
+    ${''/* ---- THE BATCH SEND IS THE BAND, NOT THIS (15 Aug 2026, owner-reported) ----
+           Reported as "you sometimes have multiple send alerts": with anything
+           held, this header carried "Send 1 decision" while the band at the top
+           of the change column carried "Send all 6" — two batch sends on one
+           screen, DISAGREEING, because this one counts decisions only and the
+           band counts everything that has not left the page. The band's number
+           is the honest one: the postbox both of them press sends the
+           counter-proposals too.
+           So on the WORKBENCH this stands down and the band is the one send.
+           PORTAL_FOOT_COMPACT is exactly the right discriminator — it is set by
+           renderShareWorkbench and reset by renderSharePortal — because the
+           SIGNING screen has no change column and therefore no band, and a
+           reader holding decisions there would otherwise have no batch send at
+           all. Same reasoning as the sentences this flag already stands down.
+           The per-card Send is untouched on both. */}
+    ${n && !PORTAL_FOOT_COMPACT?`<button id="pt-nego-send" class="ui-btn ui-btn-primary nego-pulse" style="flex:none;font-size:12.5px;padding:8px 15px">Send ${n} decision${n===1?'':'s'}</button>`:''}
     <button id="pt-nego-ready" class="ui-btn" ${readyOk&&!spent?'':'disabled'}
       title="${esc(spent?'You have told them you are ready — they issue the signing link.':readyOk?'Tell them you are ready to sign':whyNot)}"
       style="flex:none;font-size:12px;padding:8px 14px">${spent?'Readiness sent &#10003;':'Ready to sign'}</button>

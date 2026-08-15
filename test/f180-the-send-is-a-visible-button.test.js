@@ -126,14 +126,45 @@ describe('F180 — the counterparty\'s deal verbs are visible before any decisio
       'the reader is still told where decisions wait, before they make one');
   });
 
+  /* ---- CLAIM REVERSED IN PLACE, 15 Aug 2026 ----
+     This test used to name #pt-nego-send as the visible batch send on the
+     workbench, and the roll call below called it "the page's one postbox".
+     Both were true when written and are not now.
+
+     WHAT CHANGED AND WHY. The unsent band arrived on 15 Aug on the CHANGE
+     COLUMN of both seats — the place a reader is actually looking when they
+     have work to send — and the header strip's own send was left standing
+     beside it. The owner reported the result: "you sometimes have multiple
+     send alerts. There should only be the one highlighted in yellow on top of
+     the redline cards." They disagreed as well as duplicated, because the
+     header counted DECISIONS alone while the band counts decisions AND held
+     proposals, so a reader with both saw "Send 1 decision" and "Send all 6"
+     twelve pixels apart.
+
+     SO THE HEADER'S SEND STANDS DOWN WHERE THE BAND DRAWS, keyed on
+     PORTAL_FOOT_COMPACT — which is exactly the discriminator, because it is
+     set by renderShareWorkbench and reset by renderSharePortal, and the
+     signing screen has no change column and therefore no band. #pt-nego-send
+     is not retired: it is still the postbox, still the only element the
+     handler is bound to, still what the band proxies, and still DRAWN on the
+     signing screen. What moved is which door the reader presses on the
+     workbench.
+
+     THE CLAIM THIS FILE EXISTS FOR IS UNCHANGED and is what is asserted below:
+     a reader who has decided something must have VISIBLE PIXELS to send it
+     with. Only the element carrying them is different. */
   test('deciding draws the send, visible, with its count', async () => {
     const o = await ownerProposed();
     const v = counterpartyView(o.c);
     v.$(`[data-nego-accept="${o.filed[0].id}"]`).click();
-    const send = v.$('#pt-nego-send');
+    assert.equal(v.$('#pt-nego-send'), null,
+      'the header no longer draws a second batch send over the change column');
+    const send = v.$('.rl-unsent-go');
     assertVisible(send, 'the Send button');
-    assert.match(send.textContent, /Send 1 decision/,
+    assert.match(send.textContent, /Send all 1|Send 1/,
       'the button says what the press will do');
+    assert.equal(send.getAttribute('data-redline-proxy'), 'nego-send-decisions',
+      'and it is a PROXY onto the one postbox — never a second transport');
     /* The count that used to sit beside the buttons now rides on the button's
        own label above, and the "nothing has travelled yet" half is on the wall
        line — which counts the held answers itself. */
@@ -153,7 +184,7 @@ describe('F180 — the counterparty\'s deal verbs are visible before any decisio
     const v = counterpartyView(o.c);
     v.$(`[data-nego-accept="${o.filed[0].id}"]`).click();
     const VERBS = [
-      ['#pt-nego-send', 'Send decisions — the page\'s one postbox'],
+      ['.rl-unsent-go', 'Send — the band on the change column'],
       ['#pt-nego-ready', 'Ready to sign'],
       ['#pt-nego-decline', 'Decline'],
       ['#pt-derive', 'Share a read-only copy'],
@@ -162,10 +193,17 @@ describe('F180 — the counterparty\'s deal verbs are visible before any decisio
     /* And exactly one of each — the header once carried a MIRROR of Ready to
        sign, which is how deleting the strip could have left a page with a
        button that hides itself and no real one. Two doors onto one act is a
-       thing this app does deliberately elsewhere; here it is not wanted. */
+       thing this app does deliberately elsewhere; here it is not wanted.
+
+       WIDENED 15 Aug 2026 after the owner reported exactly that fault a second
+       time, in the send: the band and the header's own send were both drawn
+       and disagreed about the count. So the roll call now names the batch send
+       and asserts ONE of it — the check that would have caught it. */
     for (const [sel] of VERBS)
       assert.equal(v.p.win.document.querySelectorAll(sel).length, 1,
         `${sel} exists exactly once — no mirror to keep in step`);
+    assert.equal(v.p.win.document.querySelectorAll('#pt-nego-send').length, 0,
+      'and the header\'s own send is not drawn beside the band — ONE send alert');
   });
 
   test('and the send is ON THE CARD the decision was made on', async () => {
@@ -213,7 +251,7 @@ describe('F180 — the visible send closes the loop the bug report was about', (
        proves the proxy chain end to end. */
     const v = counterpartyView(o.c);
     v.$(`[data-nego-accept="${id}"]`).click();
-    assertVisible(v.$('#pt-nego-send'), 'the Send button');
+    assertVisible(v.$('.rl-unsent-go'), 'the Send button');
     v.p.setResponderName('Erik Lindqvist');
     const cardSend = v.$(`[data-nego-card="${id}"] [data-rl-send="${id}"]`);
     assertVisible(cardSend, 'the card\'s own Send');

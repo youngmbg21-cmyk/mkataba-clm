@@ -659,8 +659,8 @@ function negoStyleHtml(){
   /* The refusal that stays after formatting-only edits became fileable: a save
      where truly nothing changed. Inline beside the button that was pressed —
      a corner toast made the button read as dead. */
-  .nego-edit-bar .nego-nofile{font-family:var(--n-font-ui);font-size:11.5px;font-weight:600;
-    color:var(--n-del-fg);align-self:center;margin-left:6px}
+  .nego-edit-bar .nego-nofile{font-family:var(--n-font-ui);font-size:calc(11.5px * var(--doc-scale,1));font-weight:600;
+    color:var(--n-del-fg);align-self:center;margin-left:calc(6px * var(--doc-scale,1))}
 
   /* ---- the change index ---- */
   .nego-pane.index{background:var(--color-neutral-100)}
@@ -718,11 +718,23 @@ function negoStyleHtml(){
      editor OUTSIDE the #nego-root scope that defines the --n-* ramp, and a
      border whose color resolves to nothing is a toolbar that vanishes on
      exactly the page the customer sees. One look, both chairs. */
-  .nego-fmt-bar{display:flex;gap:4px;margin:0 0 6px;padding:4px;width:max-content;
+  /* ---- THE EDITOR IS FURNITURE ON THE CLAUSE, SO IT FOLLOWS THE CLAUSE ----
+     Reported 15 Aug 2026 off a screenshot: the wording inside the editor
+     scaled with the type stepper and everything AROUND it did not, so at the
+     floor of 8px the Save button and the format chips were larger than the
+     sentence they were editing — the same fault, and the same fix, as the ask
+     tag and the clause tools before them. --doc-scale is 1 on every surface
+     that sets no preference (the two-pane view scales WIDTH, not type), so
+     nothing but the redline page moves. POSITIONING stays in bare pixels for
+     the reason stated at .rl-tool: the bar is aligned to .rl-tools, and
+     scaling one offset without the other walks the pair apart. */
+  .nego-fmt-bar{display:flex;gap:calc(4px * var(--doc-scale,1));
+    margin:0 0 calc(6px * var(--doc-scale,1));padding:calc(4px * var(--doc-scale,1));width:max-content;
     background:var(--n-well,#f1f5f9);border:1px solid var(--n-line,#e2e8f0);border-radius:8px}
-  .nego-fmt-bar button{width:28px;height:28px;display:inline-grid;place-items:center;
+  .nego-fmt-bar button{width:calc(28px * var(--doc-scale,1));height:calc(28px * var(--doc-scale,1));
+    display:inline-grid;place-items:center;
     background:var(--n-paper,#fff);border:1px solid var(--n-line,#e2e8f0);border-radius:6px;
-    font-family:inherit;font-size:12.5px;color:var(--n-ink,#1e293b);cursor:pointer;
+    font-family:inherit;font-size:calc(12.5px * var(--doc-scale,1));color:var(--n-ink,#1e293b);cursor:pointer;
     box-shadow:0 1px 2px rgba(15,23,42,.08);transition:background .12s,border-color .12s}
   .nego-fmt-bar button:hover{border-color:var(--n-ink-soft,#94a3b8);background:var(--n-well,#f8fafc)}
   .nego-fmt-bar button:active{box-shadow:none;transform:translateY(.5px)}
@@ -755,23 +767,25 @@ function negoStyleHtml(){
   .nego-why-more{display:block;margin-top:3px;border:0;background:none;padding:0;cursor:pointer;
     font:inherit;font-size:10px;font-weight:700;color:var(--color-accent-700,#0f766e)}
   .nego-why-more:focus-visible{outline:2px solid var(--color-accent,#0d9488);outline-offset:2px;border-radius:3px}
-  .nego-reason{display:block;margin-top:8px}
+  .nego-reason{display:block;margin-top:calc(8px * var(--doc-scale,1))}
   .nego-reason.hidden,.nego-fmt-bar.hidden{display:none}
   /* Step two: the wording is still there and still exactly where it was, but it
      is being read rather than typed in — so it loses the caret ring and stops
      looking like an open field. */
   .nego-editing.is-review{outline:1px solid var(--n-line);background:var(--n-well,#f8fafc);
     cursor:default}
-  .nego-reason>span{display:block;font-size:10px;font-weight:700;letter-spacing:.04em;
-    text-transform:uppercase;color:var(--n-ink-soft);margin-bottom:3px}
+  .nego-reason>span{display:block;font-size:calc(10px * var(--doc-scale,1));font-weight:700;letter-spacing:.04em;
+    text-transform:uppercase;color:var(--n-ink-soft);margin-bottom:calc(3px * var(--doc-scale,1))}
   .nego-reason textarea{display:block;box-sizing:border-box;width:100%;max-width:100%;
-    min-height:52px;resize:vertical;border:1px solid var(--n-line);border-radius:5px;
-    padding:7px 9px;font:inherit;font-size:11.5px;line-height:1.6;
+    min-height:calc(52px * var(--doc-scale,1));resize:vertical;border:1px solid var(--n-line);border-radius:5px;
+    padding:calc(7px * var(--doc-scale,1)) calc(9px * var(--doc-scale,1));
+    font:inherit;font-size:calc(11.5px * var(--doc-scale,1));line-height:1.6;
     background:var(--n-paper);color:var(--n-ink);outline:none;
     white-space:pre-wrap;overflow-wrap:anywhere}
   .nego-reason textarea:focus{border-color:var(--n-focus)}
-  .nego-edit-bar{display:flex;gap:6px;margin-top:6px}
-  .nego-edit-bar button{font-size:11px;font-weight:700;border-radius:5px;padding:4px 10px;
+  .nego-edit-bar{display:flex;gap:calc(6px * var(--doc-scale,1));margin-top:calc(6px * var(--doc-scale,1))}
+  .nego-edit-bar button{font-size:calc(11px * var(--doc-scale,1));font-weight:700;border-radius:5px;
+    padding:calc(4px * var(--doc-scale,1)) calc(10px * var(--doc-scale,1));
     border:1.5px solid transparent;font-family:inherit;cursor:pointer}
   .nego-edit-bar .b-save{background:var(--n-accept);color:#fff}
   .nego-edit-bar .b-cancel{background:var(--n-paper);border-color:var(--n-line);color:var(--n-ink-soft)}
@@ -5606,6 +5620,51 @@ function rlRepaintFrom(node){
   return false;
 }
 
+/* ---- EVERY DOOR ONTO THE POSTBOX IS DELEGATED, AND ARMED AT LOAD ----
+   A [data-redline-proxy] button is not a transport: it presses the page's one
+   hidden postbox (#nego-send on our seat, #nego-send-decisions on theirs), so
+   one send exists however many doors reach it.
+
+   TWO FAULTS, ONE AFTER THE OTHER, both found on 15 Aug 2026 and both recorded
+   because the second was created by the fix for the first.
+
+   (1) IT SCANNED AN ELEMENT. The wiring sat inside renderRedline, scanning
+   #content at a line BEFORE the panes were mounted a few lines below. Every
+   proxy in the page shell got its handler; a proxy painted into the mount got
+   none. Harmless while the toolbar was the only door, and it made "Send all N"
+   a dead button the moment the unsent band arrived in the change column —
+   reproduced before it was touched: the toolbar pressed the postbox once, the
+   band pressed it zero times.
+
+   (2) AND THEN IT WAS ARMED ON ONE SEAT. Delegating it to the document fixed
+   the scan but left it inside renderRedline, which is the OWNER's page. The
+   counterparty reaches this component through renderShareWorkbench and never
+   calls renderRedline at all — so on their own browser, opening a share link
+   and nothing else, the band's Send would have been dead exactly as before.
+   It survived a browser check only because that harness draws the owner's page
+   too, which armed the listener for the whole document. A jsdom test opening
+   the portal alone caught it.
+
+   So it is armed HERE, at module load, on the same terms and for the same
+   reason as the reading buttons and the ask tags below it: a listener on the
+   document cannot be painted away, and one registered at load cannot belong to
+   whichever page happened to render first.
+
+   ONE MECHANISM, NOT TWO. The element-bound scan is gone rather than kept
+   beside this, because a proxy reachable by both would press its postbox twice
+   and publish the round twice. redlineSyncProxies still runs per paint — that
+   is a different job (whether a proxy is USABLE) and has always had to re-run
+   on fresh markup. */
+if (typeof document !== 'undefined' && !document._rlProxyWired){
+  document._rlProxyWired = true;
+  document.addEventListener('click', ev => {
+    const el = ev.target && ev.target.closest && ev.target.closest('[data-redline-proxy]');
+    if (!el || el.disabled) return;
+    const target = document.getElementById(el.getAttribute('data-redline-proxy'));
+    if (target && !target.disabled) target.click();
+  });
+}
+
 /* ---- WIRED ONCE, ON THE DOCUMENT ----
    The same pattern (and the same reason) as the reviewer's fold control above:
    two of these buttons live in the toolbar, which renderRedline paints, and one
@@ -6892,7 +6951,14 @@ function redlineLayoutCss(){
   .redline-page .rl-unsent-go{flex:none;border:0;border-radius:6px;cursor:pointer;
     background:var(--st-amber-fg);color:#fff;font:inherit;font-size:11.5px;font-weight:600;
     padding:5px 10px;white-space:nowrap}
-  .redline-page .rl-unsent-go:hover{filter:brightness(1.08)}
+  .redline-page .rl-unsent-go:hover:not(:disabled){filter:brightness(1.08)}
+  /* ---- A DEAD CONTROL MUST NOT LOOK ALIVE ----
+     redlineSyncProxies disables a proxy whose postbox is not on the page, and
+     this button had no disabled face at all: it stayed solid amber and fully
+     pointing while doing nothing, which is the state that makes a reader blame
+     themselves. The standing rule on this page, stated at the KPI picker:
+     disabled AND dimmed AND not pointing. */
+  .redline-page .rl-unsent-go:disabled{opacity:.45;cursor:not-allowed;filter:none}
   .redline-page .rl-unsent-go:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
 
   /* ---- THE ASK TAG (OI-12) ----
@@ -8840,31 +8906,10 @@ function renderRedline(){
      thing that can actually accept a change or publish a round. If the engine
      has not rendered that control — nothing pending, or the other side's turn —
      the header button disables itself rather than lying about what it can do. */
-  /* ---- WIRED ONCE, ON THE DOCUMENT (15 Aug 2026) ----
-     This used to scan `host` — #content — at this line, which is BEFORE the
-     panes are mounted a few lines below. Every proxy that lived in the page
-     shell got its handler; a proxy painted into the mount got nothing. That was
-     true of exactly one control until the unsent band arrived in the change
-     column, and it made "Send all N" a button that did nothing at all: the
-     toolbar's Publish Round pressed the postbox once, the band pressed it zero
-     times. Reproduced before it was touched.
-
-     Bound to the document instead, where it cannot be painted away — the same
-     answer, for the same reason, as the reading buttons and the ask tags above.
-     ONE MECHANISM, NOT TWO: the element-bound scan is gone rather than kept
-     alongside, because a proxy reachable by both would press its postbox twice
-     and send the round twice. redlineSyncProxies still runs per paint; that is
-     a different job (it decides whether a proxy is usable) and it has always
-     had to re-run on fresh markup. */
-  if (typeof document !== 'undefined' && !document._rlProxyWired){
-    document._rlProxyWired = true;
-    document.addEventListener('click', ev => {
-      const el = ev.target && ev.target.closest && ev.target.closest('[data-redline-proxy]');
-      if (!el || el.disabled) return;
-      const target = document.getElementById(el.getAttribute('data-redline-proxy'));
-      if (target && !target.disabled) target.click();
-    });
-  }
+  /* The proxy listener that used to be armed at this line is now armed at
+     module load — see rlWireProxyOnce above and the reasoning written there.
+     It was moved because arming it HERE meant arming it on the owner's page
+     only, and the band that presses it draws on both seats. */
 
   /* The page's OWN three columns — document, tracked changes, discussion — not
      the two-pane comparison the contract tab renders. The engine still supplies

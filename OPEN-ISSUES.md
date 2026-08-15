@@ -696,3 +696,92 @@ prints, never exports and never reaches a PDF. Same rule as the reading modes.
 where one still exists. Recommendation: highlight, never scroll — the column
 jumping under a reader who pressed something on the paper is the fault the
 queue overlay was fixed for.
+
+---
+
+## OI-13 — Two send alerts, a dead band on their seat, and an editor that ignores the type stepper
+
+**BUILT 15 Aug 2026** — pinned by `f209`, `f180` (claims reversed in place),
+`paper-grows-verify` section 5d and `portal-header-verbs-verify` section 9.
+Kept as the record; the reasoning is in `CLAUDE.md`.
+
+*Owner-reported 15 Aug 2026, with screenshots: "you sometimes have multiple
+send alerts. There should only be the one highlighted in yellow on top of the
+redline cards and that button currently not working when you click sent.
+Image 2 and 3, the edit areas are not proportional to the page like the rest of
+the buttons, fonts, etc. Ensure proportionality is fixed across the pages when
+the page is adjusted."*
+
+Three faults in one report, and the second was created by the fix for the
+first — which is why it is written down.
+
+### 1 · Two send alerts, disagreeing
+
+OI-9's band shipped onto the counterparty's change column and `#pt-nego-send`
+was left standing in their header. They did not merely duplicate, they
+**disagreed**: the header counts DECISIONS alone, the band counts decisions AND
+held proposals. Reproduced — "Send 1 decision" in the header and "Send all 6"
+on the column, twelve pixels apart.
+
+The header's send now draws only where there is no band. **The key is
+`PORTAL_FOOT_COMPACT`**, which is the discriminator rather than a convenient
+flag: `renderShareWorkbench` sets it and `renderSharePortal` resets it, and the
+signing screen has no change column and therefore no band — so the one screen
+that still needs the header's send is the one screen that still gets it.
+
+**`#pt-nego-send` is not retired.** It is still the postbox, still the only
+element the click handler is bound to, and still what the band proxies. What
+moved is which door the reader presses.
+
+### 2 · And the band was dead on their seat, for a reason the browser hid
+
+The 15 Aug fix moved the `[data-redline-proxy]` click off an element scan and
+onto `document` — correct — but left the ARMING inside `renderRedline`, **which
+is the owner's page**. The counterparty reaches this component through
+`renderShareWorkbench` and never calls `renderRedline` at all. So on their own
+browser, opening a share link and nothing else, the band's Send was dead
+exactly as it had been.
+
+**It survived a browser check.** That harness draws the owner's page too, which
+armed the listener for the whole document — so the check measured a page the
+reader never sees. A jsdom test opening the portal ALONE is what caught it.
+The lesson is the test, not the bug: a "wired once on the document" listener
+must be armed at MODULE LOAD, never from inside a renderer, or it belongs to
+whichever page happened to render first.
+
+Also fixed in the same pass: `.rl-unsent-go` had no `:disabled` face, and
+`redlineSyncProxies` can disable a proxy whose postbox is absent — a
+live-looking button that does nothing is the fault a reader blames themselves
+for.
+
+### 3 · The editor ignored the type stepper — the third report of one fault
+
+13 Aug fixed the ask tag and the clause tools; this is the same fault a third
+time, in the open editor, and it was missed for the same reason: the WORDING
+inside the editor is the clause's own text and always scaled, so the box looked
+right until you read what was around it.
+
+MEASURED at a document type of 9px, before: the format chips rendered 12.5px
+type in a 41px bar, the reason label at 10px, Save at 11px — the identical
+numbers they render at 20px. At the floor of 8 the Save button was taller than
+the sentence being saved.
+
+Everything on the editor now carries `calc(<px> * var(--doc-scale,1))`, and the
+steps are measured as EXACTLY 8/15 and 20/15 rather than merely "bigger".
+
+**Two things deliberately do not scale**, and both were checked rather than
+assumed: the reason textarea's WIDTH (it is `width:100%` so it tracks the
+clause — the rule that stops a textarea pushing its own container wider), and
+the POSITIONING, because `.rl-tools` sits at `bottom:-9px` to line up with this
+very bar and scaling one offset without the other walks the pair apart.
+
+**Nothing outside the redline page moved.** `--doc-scale` is 1 wherever no
+preference is set — the two-pane view scales WIDTH (`--nego-f`), not type.
+
+### What was swept and deliberately left alone
+
+The page CHROME — the toolbar, the change cards, the queue overlay, the
+notices — stays at app-shell size. Only what rides ON the sheet follows the
+sheet. That is the existing rule and this change keeps it rather than widening
+it; a reader who shrinks the contract to 8px is asking for smaller CONTRACT,
+not a smaller application.

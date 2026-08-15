@@ -121,6 +121,28 @@ describe('f209 · the column says what has not been sent', () => {
     assert.equal(w.win.rlUnsentBandHtml(c, { side: 'owner', readonly: true }), '');
   });
 
+  test('ONE SEND ALERT — the header\'s own send stands down where the band draws', () => {
+    /* Owner-reported 15 Aug 2026: "you sometimes have multiple send alerts.
+       There should only be the one highlighted in yellow on top of the redline
+       cards." Both were drawn, and they DISAGREED: the header counted
+       decisions alone, the band counts decisions AND held proposals, so a
+       reader with both saw "Send 1 decision" and "Send all 6" twelve pixels
+       apart.
+
+       PORTAL_FOOT_COMPACT is the discriminator and it is exactly right rather
+       than merely convenient: renderShareWorkbench sets it and
+       renderSharePortal resets it, and the signing screen has no change column
+       and therefore no band — so the one screen that still needs the header's
+       send is the one screen that still gets it. #pt-nego-send is NOT retired:
+       it is the postbox the band proxies and the handler is still bound to it.
+       f180's roll call carries the pixel claim; this is the rule. */
+    const src = read('js/views/portal.js');
+    assert.match(src, /n && !PORTAL_FOOT_COMPACT\s*\?\s*`<button id="pt-nego-send"/,
+      'the header send is keyed on the screen, not drawn unconditionally');
+    assert.match(src, /getElementById\('pt-nego-send'\)\?\.addEventListener/,
+      'and it is still the postbox the handler is bound to');
+  });
+
   test('THE COUNT LEFT THE PUBLISH BUTTON — one number, one place', () => {
     /* Two surfaces printing one figure is how they come to disagree, and this
        was the worse of the two: it folded away exactly when the column got
@@ -243,6 +265,62 @@ describe('f209 · a toast says which of three things happened', () => {
     assert.match(nego, /document\._rlProxyWired/, 'armed once, on the document');
     assert.ok(!/host\.querySelectorAll\('\[data-redline-proxy\]'\)\.forEach\(el =>\s*\n?\s*el\.addEventListener/.test(nego),
       'and the element-bound scan is gone, not kept alongside');
+    /* ---- AND IT IS ARMED AT LOAD, NOT INSIDE THE OWNER'S PAGE (15 Aug 2026)
+       ----
+       The second half of the same fault, and it was CREATED by the first fix.
+       Delegating to the document cured the scan but left the arming inside
+       renderRedline — which the counterparty never calls; their page is
+       renderShareWorkbench. So on their own browser, opening a share link and
+       nothing else, the band's Send would have been dead exactly as before.
+       A browser check missed it because that harness draws the owner's page
+       too, which armed the listener for the whole document.
+
+       Asserted structurally, because that is the shape of the bug: the arming
+       must sit at column 0 (module scope) rather than indented inside a
+       function body. */
+    assert.match(nego, /^if \(typeof document !== 'undefined' && !document\._rlProxyWired\)\{/m,
+      'armed at MODULE LOAD, so it belongs to no one page');
+    assert.ok(!/^ +if \(typeof document !== 'undefined' && !document\._rlProxyWired\)\{/m.test(nego),
+      'and never from inside a renderer — that armed it on the owner\'s seat alone');
+  });
+
+  test('THE COUNTERPARTY\'S BAND ACTUALLY POSTS, on a page that never draws ours', async () => {
+    /* The claim above, measured rather than read off the source: a portal
+       stage renders their workbench and nothing else, they accept, and the
+       band's Send — a proxy with no id of its own — puts a decisions response
+       on the wire. This is the test that caught the arming fault. */
+    const { buildPortal, sharePayloadFor } = require('./portalworld');
+    const rec = buildPortal();
+    rec.win.promptDialog = async () => '';
+    rec.win.persist = () => {}; rec.win.saveContract = () => {};
+    rec.win.renderWorkspace = () => {}; rec.win.setView = () => {};
+    const c = { id: 'MK-209S', name: 'Warehousing', counterparty: 'Nordfrakt AB',
+      template: 'WH', status: 'Under Review', folder: 'dist', fields: {}, metadata: {},
+      audit: [], rounds: [], versions: [], signatures: [], comments: [],
+      redlineText: '1. SCOPE\n1. The Provider shall store the goods.\n'
+        + '2. TERMINATION\n2. Either party may terminate on sixty (60) days notice.',
+      format: 'text' };
+    rec.win.negoInit(c);
+    const filed = await rec.win.negoFileProposal(c,
+      c.redlineText.replace('sixty (60)', 'ninety (90)'),
+      { side: 'owner', author: 'Wanjiru Kamau' });
+
+    const p = buildPortal();
+    p.open(sharePayloadFor(p, { ...c }));
+    const $ = s => p.win.document.querySelector(s);
+    assert.equal($('.rl-unsent-go'), null, 'nothing held, so no band');
+    $(`[data-nego-accept="${filed[0].id}"]`).click();
+    const go = $('.rl-unsent-go');
+    assert.ok(go, 'accepting draws the band on THEIR change column');
+    assert.equal(go.getAttribute('data-redline-proxy'), 'nego-send-decisions',
+      'aimed at their own postbox, not ours');
+    p.setResponderName('Erik Lindqvist');
+    await p.pressSel('.rl-unsent-go');
+    const sent = p.lastSent();
+    assert.ok(sent, 'THE PRESS LANDED — this is what was dead');
+    assert.equal(sent.action, 'decisions');
+    assert.equal(sent.negoDecisions[0].id, filed[0].id);
+    assert.equal(sent.negoDecisions[0].status, 'accepted');
   });
 
   test('the reported publish path is amber and hands over the link', () => {

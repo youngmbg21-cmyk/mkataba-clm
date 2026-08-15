@@ -208,6 +208,19 @@ function buildPortal(opts = {}) {
       await new Promise(r => setImmediate(r));
       return el;
     },
+    /* The same press, addressed by SELECTOR rather than id. Added 15 Aug 2026
+       for the unsent band, whose Send deliberately carries no id: it is a
+       proxy, and the id belongs to the postbox it presses. Same bubbling and
+       the same drain, so a delegated listener on document sees it exactly as
+       it sees a real press. */
+    async pressSel(sel) {
+      const el = win.document.querySelector(sel);
+      if (!el) throw new Error(`no control matching "${sel}" on the counterparty page`);
+      el.dispatchEvent(new win.Event('click', { bubbles: true }));
+      for (let i = 0; i < 8; i++) await Promise.resolve();
+      await new Promise(r => setImmediate(r));
+      return el;
+    },
     has: id => !!win.document.getElementById(id),
     /* WHO IS ANSWERING, once the box stopped being a box (12 Aug 2026). The
        workbench header used to carry #nego-cp-name and a test simply typed

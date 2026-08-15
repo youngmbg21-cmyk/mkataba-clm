@@ -441,6 +441,119 @@ const SHEET = () => {
     await page.evaluate(() => { window.rlSetDocType(15); window.SHOW_OWNER(); });
     await pause(600);
 
+    /* ---- 5d. AND SO DOES THE EDITOR, WHICH IS THE THIRD REPORT OF ONE FAULT
+       ----
+       Owner-reported 15 Aug 2026 off a screenshot, on both seats: "the edit
+       areas are not proportional to the page like the rest of the buttons,
+       fonts, etc."
+
+       It is 5c's lesson a third time and it was missed for a third time for the
+       same reason: the WORDING inside the open editor is the clause's own text
+       and always scaled, so the box looked right until you read what was around
+       it. MEASURED BEFORE THE FIX, at a document type of 9px: the format chips
+       rendered 12.5px type in a 41px-tall bar, the reason label at 10px and the
+       Save button at 11px — the identical numbers they render at 20px, so at
+       the floor the Save button was taller than the sentence being saved.
+
+       WHAT IS NOT SCALED, and it is deliberate rather than missed: the reason
+       textarea's WIDTH (it is width:100% and tracks the clause, which is the
+       rule that stops it pushing its own container wider) and .rl-tools'
+       POSITIONING, for the reason already written at .rl-tool — the editor bar
+       is aligned to it and scaling one offset without the other walks the pair
+       apart at every setting but the default.
+
+       THE REASON BOX IS DRAWN AT STEP TWO of the editor, so it carries
+       .hidden on arrival and measures 0x0. It is un-hidden here rather than
+       driven through a save, because what is being measured is the CSS, not
+       the two-step flow — which f130 and redline-verify already own. */
+    const EDITOR = `(() => {
+      const box = sel => { const el = document.querySelector(sel); if (!el) return null;
+        const r = el.getBoundingClientRect();
+        return { w: +r.width.toFixed(1), h: +r.height.toFixed(1) }; };
+      const words = document.querySelector('.redline-page .rl-paper .rl-clause p')
+        || document.querySelector('.redline-page .rl-paper p');
+      const wr = words ? words.getBoundingClientRect() : null;
+      return { lineH: wr ? +wr.height.toFixed(1) : 0,
+        fmtBtn: box('.redline-page .nego-fmt-bar button'),
+        ta:     box('.redline-page .nego-reason textarea'),
+        save:   box('.redline-page .nego-edit-bar button') };
+    })()`;
+    const openEditor = () => page.evaluate(() => {
+      if (!document.querySelector('.redline-page [data-nego-editor]')){
+        const b = document.querySelector('.redline-page [data-nego-edit]');
+        if (b) b.click();
+      }
+      const r = document.querySelector('.redline-page .nego-reason');
+      if (r) r.classList.remove('hidden');
+      return !!document.querySelector('.redline-page [data-nego-editor]');
+    });
+    const editorAt = async v => {
+      await page.evaluate(t => window.rlSetDocType(t), v);
+      await pause(300);
+      await openEditor();          /* a repaint can close it — re-open, then measure */
+      await pause(300);
+      return page.evaluate(EDITOR);
+    };
+    const editorOpens = await (async () => { await page.evaluate(t => window.rlSetDocType(t), 15);
+      await pause(300); return openEditor(); })();
+    check('5d the clause opens a real editor to measure',
+      editorOpens, editorOpens ? 'Direct Edit opened' : 'no editor on the clause');
+    if (editorOpens){
+      const e8 = await editorAt(8), e15 = await editorAt(15), e20 = await editorAt(20);
+      await page.screenshot({ path: path.join(OUT, '04d-owner-editor-20.png') });
+      const got = e15.fmtBtn && e15.save && e15.ta;
+      check('5d the open editor carries its format chips, reason box and Save',
+        !!got, got ? `chip ${e15.fmtBtn.w}x${e15.fmtBtn.h}, save ${e15.save.w}x${e15.save.h}, box h${e15.ta.h}` : 'editor furniture missing');
+      if (got){
+        /* THE REPORTED SYMPTOM, stated as the thing that must no longer be
+           true: three settings, three identical boxes. */
+        check('5d THE EDITOR FURNITURE IS NO LONGER THE SAME SIZE AT EVERY SETTING',
+          !(e8.fmtBtn.h === e15.fmtBtn.h && e15.fmtBtn.h === e20.fmtBtn.h),
+          `format chip — 8: ${e8.fmtBtn.h} · 15: ${e15.fmtBtn.h} · 20: ${e20.fmtBtn.h}`);
+        check('5d the format chips move the way the words move',
+          e8.fmtBtn.h < e15.fmtBtn.h && e20.fmtBtn.h > e15.fmtBtn.h,
+          `${e8.fmtBtn.h} < ${e15.fmtBtn.h} < ${e20.fmtBtn.h}`);
+        check('5d SAVE CHANGE / CANCEL follow too — the buttons in the screenshot',
+          e8.save.h < e15.save.h && e20.save.h > e15.save.h,
+          `${e8.save.h} < ${e15.save.h} < ${e20.save.h}`);
+        check('5d and the reason box grows with them',
+          e8.ta.h < e15.ta.h && e20.ta.h > e15.ta.h,
+          `${e8.ta.h} < ${e15.ta.h} < ${e20.ta.h}`);
+        /* PROPORTIONAL is the word the report used, so it is the word measured:
+           the ratio between two pieces of furniture and the type they sit at
+           must be the same at every setting. */
+        const prop = (a, b, k) => Math.abs(a / b - k) < 0.04;
+        check('5d PROPORTIONAL, not merely bigger — every step is exactly the step',
+          prop(e8.fmtBtn.h, e15.fmtBtn.h, 8 / 15) && prop(e20.fmtBtn.h, e15.fmtBtn.h, 20 / 15)
+          && prop(e8.save.h, e15.save.h, 8 / 15) && prop(e20.save.h, e15.save.h, 20 / 15),
+          `chip ${(e8.fmtBtn.h / e15.fmtBtn.h).toFixed(3)} / ${(e20.fmtBtn.h / e15.fmtBtn.h).toFixed(3)}`
+          + ` · save ${(e8.save.h / e15.save.h).toFixed(3)} / ${(e20.save.h / e15.save.h).toFixed(3)}`
+          + ` — wanted ${(8 / 15).toFixed(3)} / ${(20 / 15).toFixed(3)}`);
+        /* THE ONE THING THAT MUST NOT SCALE. The reason box is width:100% so it
+           tracks the clause; a box that grew its own width with the type is the
+           fault this rule was written to prevent. */
+        check('5d and the reason box still takes its WIDTH from the clause, not the type',
+          Math.abs(e8.ta.w - e20.ta.w) <= 1, `8: ${e8.ta.w} · 20: ${e20.ta.w}`);
+      }
+      /* BOTH SEATS. The counterparty mounts this same editor outside the
+         #nego-root scope — the reason every var in that rule carries a fallback
+         — so "one rule reaches both mounts" is measured, not inherited. */
+      await page.evaluate(() => { window.rlSetDocType(15); window.SHOW_COUNTERPARTY(); });
+      await pause(700);
+      const cpOpens = await openEditor();
+      check('5d · counterparty: their clause opens the same editor',
+        cpOpens, cpOpens ? 'Direct Edit opened on their seat' : 'no editor');
+      if (cpOpens){
+        const q15 = await editorAt(15), q20 = await editorAt(20);
+        await page.screenshot({ path: path.join(OUT, '04e-counterparty-editor-20.png') });
+        check('5d · counterparty: AND IT SCALES THERE TOO — one rule, both seats',
+          !!(q15.fmtBtn && q20.fmtBtn) && q20.fmtBtn.h > q15.fmtBtn.h,
+          q15.fmtBtn ? `15: ${q15.fmtBtn.h} → 20: ${q20.fmtBtn.h}` : 'no chips');
+      }
+      await page.evaluate(() => { window.rlSetDocType(15); window.SHOW_OWNER(); });
+      await pause(700);
+    }
+
     await page.screenshot({ path: path.join(OUT, '03-owner-stepped.png') });
 
     /* Put the preference back before the geometry checks, so they measure the

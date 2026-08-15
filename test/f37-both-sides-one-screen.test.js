@@ -440,16 +440,22 @@ describe('Erik can answer the changes Wanjiru proposed', () => {
     const o = await ownerProposed();
     const v = counterpartyView(o.c);
     const id = o.filed[0].id;
-    assert.equal(v.$('#pt-nego-send'), null, 'nothing to send yet');
+    assert.equal(v.$('.rl-unsent-go'), null, 'nothing to send yet');
 
     v.$(`[data-nego-accept="${id}"]`).click();
-    assert.ok(v.$('#pt-nego-send'), 'now there is');
+    assert.ok(v.$('.rl-unsent-go'), 'now there is');
     /* WHERE THE SENTENCE IS SAID (12 Aug 2026). The verb bar moved into the
        header row, which has room for buttons and none for paragraphs, so the
        count rides on the button's own label and the "it has not travelled"
        half is on the wall line the page draws above the document. Both halves
-       are still read before anything is sent, which is the claim. */
-    assert.match(v.$('#pt-nego-send').textContent, /Send 1 decision/);
+       are still read before anything is sent, which is the claim.
+
+       AND WHICH BUTTON CARRIES IT MOVED AGAIN, 15 Aug 2026 — see f180, whose
+       claim was reversed in place. The batch send on the workbench is now the
+       unsent band on the change column, and the header's own #pt-nego-send
+       stands down there so the reader is never offered two send buttons with
+       two different counts. The signing screen still draws #pt-nego-send. */
+    assert.match(v.$('.rl-unsent-go').textContent, /Send all 1|Send 1/);
     assert.match(v.$('#rl-banner').textContent,
       /1 answer.*nothing has reached .* yet/is);
     assert.equal(v.p.lastSent(), null, 'and nothing has actually been sent');
@@ -464,7 +470,11 @@ describe('Erik can answer the changes Wanjiru proposed', () => {
        the workbench's own #nego-cp-name, which the send path already
        preferred. One box, not two that can disagree. */
     v.p.setResponderName('Erik Lindqvist');
-    await v.p.click('pt-nego-send');
+    /* The band's button has no id — it is a PROXY, and the id belongs to the
+       postbox it presses (#nego-send-decisions). Dispatched with bubbles so it
+       reaches the one delegated listener on document, which is what a real
+       press does and what the element-scan bug of 15 Aug taught us to test. */
+    await v.p.pressSel('.rl-unsent-go');
 
     /* CORRECTED, and the old shape is why the bug lived.
 
