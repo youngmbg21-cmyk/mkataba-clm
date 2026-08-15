@@ -785,3 +785,45 @@ notices — stays at app-shell size. Only what rides ON the sheet follows the
 sheet. That is the existing rule and this change keeps it rather than widening
 it; a reader who shrinks the contract to 8px is asking for smaller CONTRACT,
 not a smaller application.
+
+---
+
+## OI-14 — The red alerts never go away
+
+**FIXED 15 Aug 2026** — pinned by `f209`. Kept as the record.
+
+*Owner-reported 15 Aug 2026 off a screenshot: two red boxes sitting over the
+Tracked Changes column, one naming CHG-003 and one naming CHG-006. "These
+alerts should not stick here permanently. They should disappear after a few
+seconds as it previously was the case."*
+
+**This reverses a decision I took the day before.** When the three toast kinds
+were built, `err` was given a dwell of zero — stay until dismissed — on the
+reasoning that a refusal is the one message you must not miss.
+
+**The reasoning is the part that was wrong.** A refusal fires on a *press*, so
+the reader is already looking at the thing they just pressed. Leaving the box
+up does not make it more likely to be read; it makes litter that has to be
+cleared by hand, and it stacks. Before the three kinds existed, every visible
+toast cleared itself after 3.2 seconds and nobody had ever asked for one to
+stay — which is the strongest evidence there is.
+
+**Now:** five seconds, then it goes. Five rather than 3.2 only because these
+guard sentences run to two lines and want reading. A press still dismisses it
+early, as before.
+
+**The rule that replaced it is stronger than the one it removed:** no toast
+kind may carry a dwell of zero, and the timer is no longer conditional on
+there being one. A fourth kind added without a dwell fails the test.
+
+**Found beside it and fixed with it, not reported:** pressing a blocked button
+twice stacked two identical boxes. An identical message now replaces the one
+already on screen instead of adding to it — which also restarts its clock,
+since the second press is what makes it worth reading again. Two *different*
+refusals still both stand, because that is what the screenshot actually had and
+both were worth reading.
+
+**Verified in a real browser** rather than off the source: the parity harness
+stubs `window.toast` to a no-op, so it cannot answer a timing question. The
+function was lifted out of `js/core.js` and run in a live page, where the box
+was measured appearing, still being there at 2.7 seconds, and gone by itself.

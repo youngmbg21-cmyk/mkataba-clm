@@ -647,10 +647,30 @@ function approvalLabel(c){
    stays until it is dismissed. Every toast is dismissable by a press.
 
    opts: { action: { label, onClick }, dwell } — both optional. */
+/* ---- NOTHING STAYS ON SCREEN UNTIL IT IS DISMISSED ----
+   OWNER-REPORTED 15 Aug 2026, off a screenshot of two red boxes sitting over
+   the change column: "these alerts should not stick here permanently. they
+   should disappear after a few seconds as it previously was the case."
+
+   THIS REVERSES A DECISION TAKEN THE DAY BEFORE, in this file, by me. When the
+   three kinds were introduced `err` was given dwell:0 on the reasoning that a
+   refusal is the one message you must not miss. The reasoning was wrong in
+   practice and the screenshot is why: a refusal fires on a PRESS, so the
+   reader is already looking at the thing they just pressed — and a box that
+   never leaves turns every blocked press into litter that has to be cleared by
+   hand. Two of them stack. Ten of them cover the column.
+
+   Before the three kinds existed EVERY visible toast cleared itself after
+   3200ms and nobody ever asked for one to stay, which is the strongest
+   evidence there is. 5000 rather than 3200 only because these guard sentences
+   run to two lines and want reading; it is still "a few seconds".
+
+   THE RULE IS NOW ABSOLUTE: every kind has a dwell, and dwell:0 is not a
+   value any of them may take. f209 pins that. */
 const TOAST_KINDS = {
   ok:   { bg:'var(--color-accent-900)', ic:'check2', dwell:2600 },
   warn: { bg:'#b45309',                 ic:'alert',  dwell:8000 },
-  err:  { bg:'var(--st-ruby-dot)',      ic:'ban',    dwell:0    },
+  err:  { bg:'var(--st-ruby-dot)',      ic:'ban',    dwell:5000 },
 };
 function toast(msg,kind,opts){
   const root=document.getElementById('toast-root');
@@ -707,9 +727,28 @@ function toast(msg,kind,opts){
     });
     el.addEventListener('click',go);        // a press always dismisses
   }catch(e){ /* see the note above: a stand-in element still gets its message */ }
+  /* ---- THE SAME SENTENCE TWICE IS ONE SENTENCE ----
+     Not reported, found beside the report above and fixed with it: pressing a
+     blocked button twice stacked two identical red boxes, and the second told
+     the reader nothing the first had not. An identical message already on
+     screen is REPLACED rather than added to, which also restarts its clock —
+     the second press is what makes it worth reading again.
+
+     Keyed on the raw message and the kind, so two different refusals (the
+     reported screenshot had two, naming different clauses) both stand. */
+  try{
+    el.dataset.toastMsg = String(msg);
+    root.querySelectorAll('[data-toast-msg]').forEach(old => {
+      if(old.dataset.toastMsg===String(msg) && old.dataset.toastKind===k) old.remove();
+    });
+  }catch(e){ /* stand-in elements in test stages have no dataset — see above */ }
   root.appendChild(el);
-  const dwell = (opts && Number(opts.dwell)) || spec.dwell;
-  if(dwell>0) setTimeout(go,dwell);
+  /* EVERY TOAST GOES BY ITSELF. `dwell` is read from the table, which has no
+     zero in it; an opts.dwell of 0 falls through to the table's value rather
+     than pinning the message to the screen, because "stays until dismissed" is
+     the state the owner asked to be rid of. */
+  const dwell = (opts && Number(opts.dwell) > 0 ? Number(opts.dwell) : spec.dwell) || 5000;
+  setTimeout(go,dwell);
 }
 /* SHA-256, with an honest failure mode.
 

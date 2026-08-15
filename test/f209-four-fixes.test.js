@@ -222,15 +222,55 @@ describe('f209 · a toast says which of three things happened', () => {
     assert.equal(copied, 1, 'and it runs');
   });
 
-  test('dwell follows meaning — a refusal stays until it is dismissed', () => {
+  /* ---- CLAIM REVERSED IN PLACE, 15 Aug 2026 ----
+     This used to assert that a refusal STAYS UNTIL IT IS DISMISSED (dwell:0).
+     That was my decision when the three kinds were built, and the owner
+     overruled it the next day off a screenshot of two red boxes parked over
+     the change column: "these alerts should not stick here permanently. they
+     should disappear after a few seconds as it previously was the case."
+
+     They were right, and the argument I had made is the one that fails: a
+     refusal fires on a PRESS, so the reader is already looking at what they
+     pressed — leaving the box up does not make it more read, it makes it
+     litter that has to be cleared by hand, and two of them stack. Before the
+     three kinds existed every visible toast cleared after 3200ms and nobody
+     ever asked for one to stay.
+
+     So the claim is now the opposite, and it is the STRONGER one: no kind may
+     have a dwell of zero, ever. A future kind added without one fails here. */
+  test('NOTHING STAYS UNTIL DISMISSED — every kind clears itself', () => {
     const src = read('js/core.js');
     const block = src.slice(src.indexOf('const TOAST_KINDS'), src.indexOf('function toast(msg'));
-    assert.match(block, /ok:.*dwell:\s*\d{3,4}/, 'done goes on its own');
-    assert.match(block, /err:.*dwell:\s*0/, 'a refusal does not');
-    const warn = /warn:.*dwell:\s*(\d+)/.exec(block);
-    const ok = /ok:.*dwell:\s*(\d+)/.exec(block);
-    assert.ok(Number(warn[1]) > Number(ok[1]),
+    const kinds = [...block.matchAll(/(\w+):\s*\{[^}]*dwell:\s*(\d+)/g)]
+      .map(m => ({ kind:m[1], dwell:Number(m[2]) }));
+    assert.ok(kinds.length >= 3, 'all three kinds are in the table');
+    for (const k of kinds)
+      assert.ok(k.dwell > 0, `${k.kind} must clear itself — dwell was ${k.dwell}`);
+    const by = Object.fromEntries(kinds.map(k => [k.kind, k.dwell]));
+    assert.ok(by.err > by.ok,
+      'a refusal is on screen longer than a confirmation — it has to be read');
+    assert.ok(by.warn > by.ok,
       'and something still asking for you outlasts something merely confirming');
+    assert.ok(by.err <= 8000, 'but "a few seconds" is the ask, not "a long time"');
+    /* And the timer is unconditional at the call site: the old body only set it
+       `if(dwell>0)`, which is the line that let dwell:0 pin a box to the page. */
+    assert.ok(!/if\s*\(\s*dwell\s*>\s*0\s*\)\s*setTimeout/.test(src),
+      'the timer is no longer conditional on a non-zero dwell');
+  });
+
+  test('the same refusal twice is one box, not two', () => {
+    /* Found beside the report above. Pressing a blocked button twice stacked
+       two identical messages; the second said nothing the first had not. Two
+       DIFFERENT refusals still both stand — the reported screenshot had two,
+       naming different clauses, and both were worth reading. */
+    const { w, root } = stage();
+    w.win.toast('#CHG-003 was already adopted on this clause.', 'err');
+    w.win.toast('#CHG-003 was already adopted on this clause.', 'err');
+    assert.equal(root.querySelectorAll('[data-toast-msg]').length, 1,
+      'the repeat replaced the first rather than piling on');
+    w.win.toast('#CHG-006 was already adopted on this clause.', 'err');
+    assert.equal(root.querySelectorAll('[data-toast-msg]').length, 2,
+      'but a different refusal is its own message');
   });
 
   test('every toast can be dismissed by a press', () => {
