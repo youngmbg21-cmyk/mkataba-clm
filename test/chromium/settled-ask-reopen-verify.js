@@ -1,4 +1,24 @@
-/* The whole reported loop, driven with real presses in a real browser. */
+/* Chromium verification: MK-311's three reports, driven with real presses.
+   ============================================================
+   Owner-reported 15 Aug 2026, three things in one message with three
+   screenshots. The rules live in f208 (sections 6 and 7) and f207; this file
+   exists for the parts jsdom cannot answer.
+
+   WHAT IS MEASURED HERE AND NOWHERE ELSE:
+     · the Reopen in the ask-tag reveal as VISIBLE PIXELS with a real size, and
+       a real click on it actually reopening the change. It is painted into the
+       document on a repaint and wired by the mount's own scan — a button that
+       renders but is never wired looks identical in a string assertion, and
+       this project has shipped exactly that fault more than once.
+     · the whole loop the owner was stuck in, end to end: the guard refuses,
+       the tag opens, Reopen is pressed, the rival goes through.
+     · that the counterparty's seat, mounted from a real share payload, draws
+       the reveal and never the reopen.
+
+   THE FIXTURE IS THE PARITY HARNESS's own contract, with the reported state
+   staged through the product's own funnel — an ask of theirs adopted by us,
+   then a second ask of theirs measured against the same baseline. Two rivals,
+   one already adopted, which is the state the report was made in. */
 const fs=require('node:fs'),path=require('node:path'),http=require('node:http');
 const {chromium}=require('playwright-core');
 const ROOT='/home/user/mkataba-clm';
