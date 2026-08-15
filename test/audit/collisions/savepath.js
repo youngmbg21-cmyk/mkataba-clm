@@ -76,11 +76,16 @@ function makeSaver(client, opts = {}) {
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
   vm.runInContext(coreSaveSource(), sandbox, { filename: 'js/core.js[save-path-slice]' });
+  /* `const dirty=new Map()` is a LEXICAL binding: in a vm context a top-level
+     const never becomes a property of the global object, so it is read back
+     through the context rather than off the sandbox (function declarations —
+     persist, flushSaves, saveContract — do become globals, which is why those
+     are reachable directly). */
   return { sandbox, log,
     saveContract: c => sandbox.saveContract(c),
     persist: c => sandbox.persist(c),
     flushSaves: () => sandbox.flushSaves(),
-    dirtyIds: () => [...sandbox.dirty.keys()],
+    dirtyIds: () => [...vm.runInContext('dirty', sandbox).keys()],
   };
 }
 

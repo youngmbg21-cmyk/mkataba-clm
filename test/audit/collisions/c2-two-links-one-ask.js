@@ -290,6 +290,38 @@ function recordStage() {
       + `prev===status, and applyNegoDecisions counts that as "done", so the round is re-announced.`);
     const dupLines = (rec3.audit || []).filter(a => /decided 1 proposed change/.test(a.detail || ''));
     NOTE(`audit lines saying the counterparty decided a change: ${dupLines.length}`);
+    NOTE('logAudit coalesces an identical LAST entry inside 60s (js/core.js ~1617), which is why '
+      + 'the audit did not double here; the counterparty comment did.');
+
+    /* ---------- 8. the poller's OWN ordering can be out of order ---------- */
+    HEAD('THE POLLER\'S QUEUE ORDER — is it time order?');
+    /* A one-shot link and a durable link both live on one contract. The pending
+       route returns non-durable rows FIRST and durable rows after, so the order
+       the owner's poller applies them in is a property of the LINK KIND, not of
+       when the two people answered. */
+    const oneShot = await (async () => {
+      const payload = win.buildSharePayload(c, docHash,
+        { org: 'Wanjiru Catering Ltd', sharedBy: 'Wanjiru Kamau' });
+      payload.purpose = 'negotiate';
+      return admin.json('/api/shares', { method: 'POST', body: {
+        payload, recipient: { name: 'Carl Ek', email: 'carl@nordkust.test' },
+        channel: 'link', durable: false, purpose: 'negotiate', expiryDays: 30 } });
+    })();
+    /* Carl answers LAST — three hours after everybody else. */
+    await (h.client('public')).json('/api/shares/' + oneShot.token + '/respond', { method: 'POST', body: {
+      kind: 'hati-response', action: 'decisions', id: 'MK-C2', name: 'Carl Ek',
+      at: '2026-08-15T14:00:00.000Z', docHash,
+      negoDecisions: [{ id: ASK_ID, status: 'accepted', reply: 'Carl says yes, last of all.' }] } });
+    const q = (await admin.json('/api/shares/pending')).filter(x => x.response && x.response.id === 'MK-C2');
+    const order = q.map(x => `${x.response.name}@${x.response.at}`);
+    NOTE('queue order the poller will apply: ' + JSON.stringify(order));
+    const times = q.map(x => Date.parse(x.response.at));
+    const isTimeOrdered = times.every((t, i) => i === 0 || t >= times[i - 1]);
+    P(isTimeOrdered,
+      'the pending queue hands answers to the poller in the order they were given',
+      'it does not. GET /api/shares/pending concatenates non-durable rows BEFORE durable rows '
+      + '(server/server.js ~6372), so the 14:00 one-shot answer is applied before the 09:00 and '
+      + '11:00 durable ones. Order: ' + JSON.stringify(order));
 
   } finally {
     await h.stop();

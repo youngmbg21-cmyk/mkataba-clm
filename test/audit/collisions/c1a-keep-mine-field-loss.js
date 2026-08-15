@@ -28,6 +28,23 @@ const ID = 'MK-A2';
     await A.json('/api/login', { method: 'POST', body: { email: 'admin@example.co.ke', password: 'adminpassword1' } });
     const B = w.unrestricted;                 // an ordinary Editor, same streams
 
+    /* ---------- POSITIVE CONTROL ----------
+       Before anything is judged, prove the rig can save NORMALLY: the sliced
+       js/core.js save path, through a real HTTP client, on an uncontested
+       contract. If this fails, every failure below is the harness, not HaTi. */
+    {
+      const ctl = await A.json('/api/contracts/' + ID);
+      const cCtl = JSON.parse(JSON.stringify(ctl)); cCtl._v = ctl._v; cCtl._loaded = true; cCtl._light = false;
+      cCtl.metadata = { ...(cCtl.metadata || {}), probe: 'positive-control' };
+      const s = makeSaver(A, { keepMine: false, state: { view: 'contract', activeId: ID, contracts: [cCtl] } });
+      await s.saveContract(cCtl);
+      const back = await A.json('/api/contracts/' + ID);
+      t.ok(back._v === ctl._v + 1 && back.metadata.probe === 'positive-control'
+        && s.log.dialogs.length === 0 && s.log.toasts.length === 0,
+        'CONTROL: the real save path writes normally through this rig',
+        { version: back._v, dialogs: s.log.dialogs.length, toasts: s.log.toasts.map(x => x.msg) });
+    }
+
     /* ---------- 0. both hold the same version ---------- */
     const a0 = await A.json('/api/contracts/' + ID);
     const b0 = await B.json('/api/contracts/' + ID);
@@ -136,6 +153,72 @@ const ID = 'MK-A2';
     const afterLoadTheirs = await A.json('/api/contracts/' + ID);
     t.ok(afterLoadTheirs.value === armed2.value && afterLoadTheirs._v === armed2._v,
       '"Load theirs" wrote nothing to the server', { value: afterLoadTheirs.value, version: afterLoadTheirs._v });
+
+    /* ---------- 9. THE SAME MECHANISM ON A TRACKED CHANGE ----------
+       A field is one thing; a filed redline is the product's most expensive
+       payload. Same collision, same answer, measured on c.changes. */
+    const c3 = await A.json('/api/contracts/' + ID);
+    const v3 = c3._v;
+    const aStale = JSON.parse(JSON.stringify(c3));           // A's copy, before B files anything
+    aStale._v = v3; aStale._loaded = true; aStale._light = false;
+    t.ok((aStale.changes || []).length === 0, 'ARMED (9): A\'s copy carries no tracked change', (aStale.changes || []).length);
+
+    const bFiles = JSON.parse(JSON.stringify(c3)); delete bFiles._v;
+    bFiles.changes = [{ id: 'CHG-001', seq: 1, clauseId: 'c3', kind: 'modify', status: 'pending',
+      authorSide: 'owner', author: 'Unrestricted Legal', round: 1,
+      body: 'Payment shall be made within forty-five (45) days of a valid invoice.',
+      at: new Date().toISOString() }];
+    bFiles.audit = (bFiles.audit || []).concat([{ at: new Date().toISOString(), user: 'Unrestricted Legal',
+      action: 'Change filed', detail: 'CHG-001 proposed on clause 3 (payment days)' }]);
+    const bRes3 = await B.json('/api/contracts/' + ID, { method: 'PUT', body: { contract: bFiles, baseVersion: v3 } });
+    const armed3 = await A.json('/api/contracts/' + ID);
+    t.ok((armed3.changes || []).length === 1 && armed3.changes[0].id === 'CHG-001',
+      `ARMED (9): B's tracked change is on the record at version ${bRes3.version}`,
+      (armed3.changes || []).map(x => x.id));
+
+    aStale.value = 55000000;
+    const saver3 = makeSaver(A, { keepMine: true, state: { view: 'contract', activeId: ID, contracts: [aStale] } });
+    await saver3.saveContract(aStale);
+    const after3 = await A.json('/api/contracts/' + ID);
+    t.ok((after3.changes || []).length === 1,
+      'YARDSTICK — B\'s tracked change survives A\'s "keep mine"', {
+        changesNow: (after3.changes || []).map(x => x.id), value: after3.value, version: after3._v });
+    const filedLine = (after3.audit || []).some(x => x.action === 'Change filed');
+    t.ok(!(filedLine && (after3.changes || []).length === 0),
+      'YARDSTICK — no "CHG-001 was filed" in the history with no CHG-001 in the contract',
+      { historySaysFiled: filedLine, changesOnRecord: (after3.changes || []).length });
+    t.note(`toasts A saw on the redline collision: ${JSON.stringify(saver3.log.toasts.map(x => x.msg))}`);
+
+    /* ---------- 10. IS ANY GUARD WATCHING? THE DESK, TURNED ON ----------
+       ourChangesTouched compares OUR changes as a set, so deleting one IS
+       touching them. It is behind two switches — the desk rule (off by
+       default) and an actual claim — so it covers this only where a workspace
+       has turned it on. Measured rather than assumed. */
+    await w.admin.json('/api/settings', { method: 'PUT', body: { deskRule: { on: true } } });
+    const c4 = await A.json('/api/contracts/' + ID);
+    const v4 = c4._v;
+    const withDesk = JSON.parse(JSON.stringify(c4)); delete withDesk._v;
+    withDesk.desk = { leadId: w.users.unrestricted.id, leadName: 'Unrestricted Legal', contributors: [] };
+    withDesk.changes = [{ id: 'CHG-002', seq: 2, clauseId: 'c4', kind: 'modify', status: 'pending',
+      authorSide: 'owner', author: 'Unrestricted Legal', round: 1, hash: 'h2',
+      body: 'Liability is capped at the sums paid in the preceding six months.', at: new Date().toISOString() }];
+    const bRes4 = await B.json('/api/contracts/' + ID, { method: 'PUT', body: { contract: withDesk, baseVersion: v4 } });
+    const armed4 = await A.json('/api/contracts/' + ID);
+    t.ok(armed4.desk && armed4.desk.leadId === w.users.unrestricted.id && (armed4.changes || []).length === 1,
+      `ARMED (10): the desk is claimed by B and carries CHG-002 (version ${bRes4.version})`,
+      { lead: armed4.desk && armed4.desk.leadName, changes: (armed4.changes || []).map(x => x.id) });
+
+    const aStale4 = JSON.parse(JSON.stringify(c4));           // A's copy: no desk, no change
+    aStale4._v = v4; aStale4._loaded = true; aStale4._light = false;
+    aStale4.value = 60000000;
+    const saver4 = makeSaver(A, { keepMine: n => n < 3, state: { view: 'contract', activeId: ID, contracts: [aStale4] } });
+    await saver4.saveContract(aStale4);
+    const after4 = await A.json('/api/contracts/' + ID);
+    t.ok((after4.changes || []).length === 1,
+      'with the desk rule ON, the server refuses the save that would have deleted B\'s change',
+      { changes: (after4.changes || []).map(x => x.id), value: after4.value, version: after4._v });
+    t.note(`with the desk on, A was told: ${JSON.stringify(saver4.log.toasts.map(x => x.msg))}`);
+    t.note(`dialogs A saw with the desk on: ${saver4.log.dialogs.length}`);
 
     t.done();
   } catch (e) {
