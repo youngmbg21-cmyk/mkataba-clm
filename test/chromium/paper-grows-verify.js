@@ -216,6 +216,73 @@ const SHEET = () => {
       back && `line ${after.lineH}px → ${back.lineH}px, zoom ${after.zoom} → ${back.zoom}`);
     await page.screenshot({ path: path.join(OUT, '02-owner-dragged.png') });
 
+    /* ---- 3b. THE CARDS FOLLOW THE SAME DIVIDER (owner-asked, 15 Aug 2026) ----
+       "The contracts fonts grow and shrink as you move the divider left to
+       right and vice versa, the fonts for the cards need to have the same
+       behavior as well." Same mechanism as the sheet: the list is laid out at
+       the column's 320px design width inside a zoom fitted to what the divider
+       leaves. Measured exactly as the sheet is — off the RENDERED card, never
+       the font-size property, which still reads its stylesheet value inside a
+       zoom layer. */
+    const CARDS = () => {
+      const wrap = document.querySelector('.redline-page .rl-cards-fit');
+      if (!wrap) return null;
+      const card = wrap.querySelector('[data-nego-card]');
+      const head = card && card.querySelector('.rl-card-head');
+      return { zoom: Number(getComputedStyle(wrap).zoom) || 1,
+        cardW: card ? Math.round(card.getBoundingClientRect().width) : null,
+        headH: head ? Math.round(head.getBoundingClientRect().height * 10) / 10 : null };
+    };
+    /* The divider sits at 0.45 from the drag above — the cards' column is
+       wide, so they should be rendering ZOOMED right now. */
+    const cWide = await page.evaluate(CARDS);
+    check('3b the cards are measured at all', !!cWide, cWide && `zoom ${cWide.zoom}`);
+    check('3b with a wide column THE CARDS ARE SCALED UP, like the sheet',
+      cWide && cWide.zoom > 1, cWide && `zoom ${cWide.zoom}, card ${cWide.cardW}px`);
+    /* Push the divider the other way: the contract grows, the cards give the
+       width back and their wording SHRINKS with it. */
+    await page.evaluate(() => { localStorage.setItem('hati.v1.rlLeftFrac', '0.80');
+      window.rlLayoutResizer(document); });
+    await pause(350);
+    const cNarrow = await page.evaluate(CARDS);
+    check('3b AND SHRINK AGAIN when the divider takes the width back — rendered, not the property',
+      cWide && cNarrow && cNarrow.zoom < cWide.zoom && cNarrow.headH < cWide.headH,
+      cWide && cNarrow && `zoom ${cWide.zoom} → ${cNarrow.zoom}, head ${cWide.headH}px → ${cNarrow.headH}px`);
+    /* Both directions is the whole report — bring the width back and the
+       cards must grow under the same pass the sheet moves in. */
+    await page.evaluate(() => { localStorage.setItem('hati.v1.rlLeftFrac', '0.55');
+      window.rlLayoutResizer(document); });
+    await pause(350);
+    const cBack = await page.evaluate(CARDS);
+    check('3b and GROW back when it returns',
+      cNarrow && cBack && cBack.zoom > cNarrow.zoom && cBack.headH > cNarrow.headH,
+      cNarrow && cBack && `zoom ${cNarrow.zoom} → ${cBack.zoom}, head ${cNarrow.headH}px → ${cBack.headH}px`);
+    check('3b under the sheet\'s own 2x ceiling',
+      cBack && cBack.zoom <= 2.001, cBack && `zoom ${cBack.zoom}`);
+    /* ONE FIX REACHES BOTH MOUNTS — the counterparty's page renders the same
+       panes and their cards must follow their divider too. */
+    await page.evaluate(() => window.SHOW_COUNTERPARTY());
+    await pause(500);
+    const cCp = await page.evaluate(CARDS);
+    check('3b · counterparty: their cards are scaled by their column too',
+      cCp && cCp.zoom > 1, cCp && `zoom ${cCp.zoom}`);
+    await page.evaluate(() => window.SHOW_OWNER());
+    await pause(450);
+    /* STACKED LAYOUTS OPT OUT. Below 1024 the grid is one column and the pane
+       is the full page width; a 320 fit against that would double every card.
+       The sheet gets this from its 660 floor, the cards ask by name — both
+       must land on 1. */
+    await page.setViewportSize({ width: 1000, height: 940 });
+    await pause(500);
+    const cStack = await page.evaluate(CARDS);
+    check('3b stacked below 1024, the cards are UNZOOMED',
+      cStack && Math.abs(cStack.zoom - 1) < 0.01, cStack && `zoom ${cStack.zoom}`);
+    await page.setViewportSize({ width: 1366, height: 940 });
+    await pause(400);
+    await page.evaluate(() => { localStorage.setItem('hati.v1.rlLeftFrac', '0.45');
+      window.rlLayoutResizer(document); });
+    await pause(300);
+
     /* AND AT A WIDTH WHERE THE CEILING IS THE BINDING CONSTRAINT, the honest
        claim is the other one: the sheet stops growing, deliberately, because a
        line of contract text running the full width of a large monitor is

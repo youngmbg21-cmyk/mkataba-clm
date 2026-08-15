@@ -6762,6 +6762,17 @@ function redlineLayoutCss(){
      sheet simply fills the column at zoom 1, which is what a phone and a
      stacked layout get and what they had before. */
   .redline-page .rl-zoom{zoom:var(--rl-zoom,1);max-width:660px;margin:0 auto}
+  /* ---- AND THE CARDS FOLLOW THE SAME DIVIDER (owner-asked, 15 Aug 2026) ----
+     The change cards used to keep one type size while the contract beside them
+     grew and shrank with the divider. Same mechanism now: the card list is laid
+     out at the column's own design width (RL_CARDS_W, the 320px the grid has
+     always reserved for it) and a zoom fits it to whatever the divider leaves.
+     The zoom sits on #rl-changes — the LIST, never the scroller — because the
+     card pop-out is appended to the scroller and a fixed-position panel inside
+     a zoomed ancestor is placed in the wrong coordinate space. The head above
+     the cards (caption, count, filter, unsent band) is furniture, not cards,
+     and deliberately does not scale. */
+  .redline-page .rl-cards-fit{zoom:var(--rl-cards-zoom,1)}
   .redline-page .rl-paper{padding:34px 40px 44px;max-width:660px;
     background:var(--color-doc-warm);border:1px solid var(--color-doc-warm-line);
     border-radius:14px;box-shadow:var(--shadow-paper);margin:0 auto}
@@ -7014,7 +7025,12 @@ function redlineLayoutCss(){
   /* No padding: the cards sit straight on the page like the sheet does, and
      a little room down the right so their shadows are not clipped by the
      scroller. */
-  .redline-page .rl-cards{padding:0 2px 2px}
+  /* scrollbar-gutter:stable — the cards' fit is measured off this scroller's
+     width, and a zoomed list is a taller one, so a scrollbar that comes and
+     goes with the zoom would move the very width the zoom is computed from
+     (appear → narrower → smaller fit → shorter list → vanish → wider → …).
+     Reserving the gutter takes the loop away at the root. */
+  .redline-page .rl-cards{padding:0 2px 2px;scrollbar-gutter:stable}
   .redline-page .rl-cards-empty{padding:6px 2px;font-size:11.5px;line-height:1.6;color:var(--color-neutral-500);
     display:flex;flex-direction:column;gap:6px}
   .redline-page .rl-cards-empty b{color:var(--color-text)}
@@ -7840,6 +7856,11 @@ function redlineLayoutCss(){
     .redline-page .rl-q-scrim,.redline-page .rl-q-tab,
     .redline-page .rl-q-min{display:none!important}
     .redline-page .rl-resizer{display:none}
+    /* With the panes stacked the cards pane is the full page width, and a fit
+       computed against 320 would double every card. rlApplyDocZoom writes 1
+       here too; this is the stylesheet saying the same thing, so a stacked
+       page is right even before a script pass runs. */
+    .redline-page .rl-cards-fit{zoom:1!important}
   }
   /* ---- THIS PAGE HAS NO DRAWER BUTTON, SO IT MUST NOT HAVE A DRAWER ----
      The engine's own narrow rule turns .nego-pane.index into an off-canvas
@@ -10660,6 +10681,11 @@ function rlSetDocType(px){
    until something else forced a repaint. */
 const RL_PAGE_W = 660;
 const RL_ZOOM_MAX = 2.0;   // the Document tab's own ceiling: past this it stops being a contract
+/* The cards' own reference width: the 320px the grid has always reserved for
+   the change column (--nego-c, a whisker above RL_RIGHT_MIN's 300). At or
+   below it the fit floors at 1 and the cards simply fill the width, exactly
+   as the sheet does below 660. */
+const RL_CARDS_W = 320;
 function rlApplyDocZoom(host){
   const scope = (host && host.querySelectorAll) ? host : document;
   const wraps = scope.querySelectorAll('.redline-page .rl-zoom');
@@ -10682,6 +10708,30 @@ function rlApplyDocZoom(host){
        × preference now, from the other side of the multiplication. */
     wrap.style.setProperty('--rl-zoom', fit.toFixed(3));
   });
+  /* ---- THE CARDS FOLLOW THE SAME DIVIDER (owner-asked, 15 Aug 2026) ----
+     Same pass, same causes: computed here so the drag, the observers and the
+     stepper's re-fit all move the cards with the sheet rather than a frame
+     after it. Deliberately NOT multiplied by the text-size preference — the
+     stepper is the CONTRACT's type and says so; the cards answer the divider
+     alone.
+
+     STACKED LAYOUTS OPT OUT. Below 1024 the grid is one column (the 1023px
+     media block) and the cards pane is the full page width — fitting 320 to
+     that would draw every card at double size on a tablet. The sheet gets
+     this for free from its 660px floor; the cards' floor is 320, so the
+     stacked state is asked about by name. */
+  const stacked = (typeof matchMedia === 'function') && matchMedia('(max-width: 1023px)').matches;
+  scope.querySelectorAll('.redline-page .rl-cards-fit').forEach(wrap => {
+    const pane = wrap.parentElement;
+    if (!pane) return;
+    if (stacked){ wrap.style.setProperty('--rl-cards-zoom', '1'); return; }
+    const cs = getComputedStyle(pane);
+    const room = pane.clientWidth - (parseFloat(cs.paddingLeft) || 0)
+      - (parseFloat(cs.paddingRight) || 0) - 2;
+    if (!(room > 0)) return;
+    const fit = Math.min(RL_ZOOM_MAX, Math.max(1, room / RL_CARDS_W));
+    wrap.style.setProperty('--rl-cards-zoom', fit.toFixed(3));
+  });
 }
 /* ---- AND IT FOLLOWS THE COLUMN WHATEVER MOVED IT ----
    The pane's width changes for at least five reasons: the divider is dragged,
@@ -10695,7 +10745,11 @@ function rlApplyDocZoom(host){
 function rlObserveDocPane(host){
   if (typeof ResizeObserver !== 'function') return;
   const scope = (host && host.querySelectorAll) ? host : document;
-  scope.querySelectorAll('.redline-page .rl-zoom').forEach(wrap => {
+  /* The CARDS pane is watched beside the document's, and not as a courtesy:
+     the grid gives the left column fixed pixels and the cards whatever is
+     left, so a window resize moves ONLY the cards pane — the document's
+     observer never fires and nothing else would re-fit them. */
+  scope.querySelectorAll('.redline-page .rl-zoom, .redline-page .rl-cards-fit').forEach(wrap => {
     const pane = wrap.parentElement;
     if (!pane || pane._rlZoomObserved) return;
     pane._rlZoomObserved = true;
@@ -13207,7 +13261,7 @@ function redlinePanesHtml(c, opts = {}){
                #rl-changes is the design's list of cards inside it. They are
                different things — a scroller and its contents — so nesting is the
                honest arrangement rather than a trick to satisfy both. -->
-          <div class="nego-index-scroll rl-cards" id="nego-cards">${negoLinkedBarHtml()}<div id="rl-changes">${redlineChangeCardsHtml(c, opts)}</div></div>
+          <div class="nego-index-scroll rl-cards" id="nego-cards">${negoLinkedBarHtml()}<div id="rl-changes" class="rl-cards-fit" style="zoom:var(--rl-cards-zoom,1)">${redlineChangeCardsHtml(c, opts)}</div></div>
         </div>
       </aside>
     </div>
@@ -13332,7 +13386,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   renderRedline, redlineRoundLabel, redlineLayoutCss, redlineSyncProxies,
   rlToggleDiscussion, rlSideMode, rlSetSideMode, rlLayoutResizer, rlWireResizer, rlWireClauseTools,
   rlDocType, rlDocScale, rlSetDocType, rlTypeStepHtml, rlWireTypeStep,
-  rlApplyDocZoom, rlObserveDocPane, RL_PAGE_W, RL_ZOOM_MAX,
+  rlApplyDocZoom, rlObserveDocPane, RL_PAGE_W, RL_ZOOM_MAX, RL_CARDS_W,
   rlFocusOn, rlSetFocus, rlResetFocus, rlWireFocusKey, rlPaintFocusBtn, rlFocusPage,
   rlReadSegsHtml, rlPaintReadSegs,
   rlAskTagHtml, rlAskRevealHtml, rlAskGlyph, rlAskWord, rlAskOpenId, rlAskSetOpen, rlAskResetOpen,
