@@ -4294,12 +4294,24 @@ function wireChangesStrip(c){
    counterparty can accept and reject in their own copy of Word. The whole
    document, not one clause — a tracked-changes file with three clauses in it
    is not the agreement. */
-function exportWordTracked(c){
+function exportWordTracked(c,opts){
   if(!window.docxExportTracked||!window.redlineDocHtml){ toast(i18t('ct_word_writer_missing'),'err'); return; }
+  /* ---- THE SEAT IS AN ARGUMENT NOW (15 Aug 2026) ----
+     The counterparty can take a tracked-changes copy from their own link, and
+     the marks in it must read from THEIR chair — `side` is what decides which
+     ops are theirs and which are ours on every span in the document. Hard-coded
+     to 'owner' this handed them a file describing their own asks as the other
+     side's. Defaulted, so every existing caller is untouched.
+     WHAT TRAVELS IS UNCHANGED: this reads redlineDocHtml, the same builder
+     their page already draws from, so an export can carry nothing their screen
+     does not already show — the internal review and who ruled on a change are
+     absent from that renderer and stay absent here. */
+  const side=(opts&&opts.side)==='counterparty'?'counterparty':'owner';
   let out;
   try{
-    const html=redlineDocHtml(c,{side:'owner'});
-    out=docxExportTracked(html,{author:(currentUser()&&currentUser().name)||'HaTi'});
+    const html=redlineDocHtml(c,{side});
+    const me=(window.currentUser&&currentUser())||null;
+    out=docxExportTracked(html,{author:(opts&&opts.author)||(me&&me.name)||'HaTi'});
   }catch(e){ toast(i18t('ct_word_write_failed')+((e&&e.message)||e),'err'); return; }
   const name=`${c.id}-redline.docx`;
   try{
@@ -4310,10 +4322,15 @@ function exportWordTracked(c){
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),0);
   }catch(e){ toast(i18t('ct_download_failed')+((e&&e.message)||e),'err'); return; }
-  logAudit(c,'Export',`Word export — ${name}`+(out.tracked&&(out.tracked.ins||out.tracked.del)
-    ?` carrying ${out.tracked.ins} insertion${out.tracked.ins===1?'':'s'} and ${out.tracked.del} deletion${out.tracked.del===1?'':'s'} as tracked changes`
-    :' (no redlines — clean wording)'));
-  persist(c);
+  /* Not from the reader's seat — their copy is a rebuild of a share payload and
+     writing it back would put a reconstruction over the record. Same rule and
+     same reasoning as exportPDF's. */
+  if(!(typeof window!=='undefined'&&window.PORTAL_MODE)){
+    logAudit(c,'Export',`Word export — ${name}`+(out.tracked&&(out.tracked.ins||out.tracked.del)
+      ?` carrying ${out.tracked.ins} insertion${out.tracked.ins===1?'':'s'} and ${out.tracked.del} deletion${out.tracked.del===1?'':'s'} as tracked changes`
+      :' (no redlines — clean wording)'));
+    persist(c);
+  }
   toast(out.tracked&&(out.tracked.ins||out.tracked.del)
     ? `${name} — ${out.tracked.ins} insertion${out.tracked.ins===1?'':'s'} and ${out.tracked.del} deletion${out.tracked.del===1?'':'s'}, as Word tracked changes`
     : `${name} — no redlines on this document, so it exports as clean wording`);

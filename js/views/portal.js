@@ -364,6 +364,107 @@ function portalReadingBtnsHtml(){
     </span>
     <span class="pw-id-rule" aria-hidden="true"></span>`;
 }
+
+/* ---------- THEIR OWN "MORE" (owner-asked, 15 Aug 2026) ----------
+   The owner's room has an overflow menu with nine rows in three groups. The
+   counterparty had none, and three of those rows are things a person reading a
+   contract they are being asked to sign obviously wants: a clean PDF, a Word
+   file with the marks in it, and the room to read without a header.
+
+   THREE ROWS, AND THE OTHER SIX ARE NOT OVERSIGHTS. Import their Word file
+   writes to OUR record; Save as template fills OUR library; Delete this draft
+   destroys OUR contract; the sealed Record row is our filing copy. Compare
+   versions is the one that looks like a gap and is not — this page already
+   carries Compare wording a few pixels to the left, and a second door onto one
+   act is the duplication this rulebook opens with.
+
+   IT IS A MENU AND MUST NEVER BECOME A <select>. PDF, Word and Focus mode are
+   ACTS; a select would sit there afterwards wearing the last one as though it
+   were a setting. Same rule, same words, as the history head's own menu.
+
+   The .room-menu clothes are the app's, defined once in index.html — this page
+   is inside the same document, so it inherits them rather than growing a
+   private copy that drifts. */
+function portalMoreMenuHtml(){
+  const canWord=!!(window.docxExportTracked&&window.redlineDocHtml);
+  return `
+    <div class="pw-more-wrap">
+      <button id="pt-more" class="ui-btn pt-verb pw-id-verb" type="button"
+        aria-haspopup="true" aria-expanded="false" title="${i18t('po_more_title')}">
+        <span aria-hidden="true" style="font-size:15px;line-height:1">&#8943;</span>
+        <span class="pw-more-word">${i18t('ct_more')}</span>
+        <span class="pw-more-caret" aria-hidden="true">${icon('chevD','w-3 h-3')}</span></button>
+      <div id="pt-more-menu" class="room-menu hidden">
+        <div class="mgroup">${i18t('ct_export')}</div>
+        <button type="button" id="pt-pdf" title="${i18t('po_pdf_title')}">${
+          icon('printer','w-3.5 h-3.5')}PDF<span class="mnote">${i18t('po_clean_copy')}</span></button>
+        ${canWord?`<button type="button" id="pt-word" title="${i18t('po_word_title')}">${
+          icon('file','w-3.5 h-3.5')}Word<span class="mnote">${i18t('po_tracked_changes')}</span></button>`:''}
+        <hr>
+        <div class="mgroup">${i18t('ct_view')}</div>
+        <button type="button" id="pt-focus" data-rl-focus aria-pressed="false"
+          title="${i18t('ct_focus_mode')}">${icon('scan','w-3.5 h-3.5')}${
+          i18t('po_focus_mode')}<span class="mnote">${i18t('ct_esc_to_leave')}</span></button>
+      </div>
+    </div>`;
+}
+/* Opening and closing it, and the three acts. Wired from renderShareWorkbench
+   beside the other header controls.
+
+   THE OUTSIDE-PRESS LISTENER IS ARMED ONCE, on the document, and guarded on the
+   menu still being there: this header is rebuilt by portalPaintAlerts and by
+   every refill of the verb slot, so a listener added per paint would stack one
+   per repaint — the same fault the history head's menu was fixed for, in the
+   same week. */
+let _ptMoreWired=false;
+function wirePortalMore(c,p){
+  const btn=document.getElementById('pt-more'), menu=document.getElementById('pt-more-menu');
+  if(!btn||!menu) return;
+  const shut=()=>{ menu.classList.add('hidden'); btn.setAttribute('aria-expanded','false'); };
+  if(!btn.dataset.ptWired){
+    btn.dataset.ptWired='1';
+    btn.addEventListener('click',ev=>{
+      ev.stopPropagation();
+      const open=menu.classList.toggle('hidden');
+      btn.setAttribute('aria-expanded',open?'false':'true');
+    });
+    /* Every row closes the menu before it acts. A print dialog or a download
+       opening over a menu still standing is a menu the reader has to dismiss
+       afterwards to see the page they just acted on. */
+    document.getElementById('pt-pdf')?.addEventListener('click',()=>{
+      shut();
+      if(window.exportPDF) exportPDF(c);
+      else if(window.toast) toast(i18t('po_export_unavailable'),'err');
+    });
+    document.getElementById('pt-word')?.addEventListener('click',()=>{
+      shut();
+      if(window.exportWordTracked)
+        exportWordTracked(c,{ side:'counterparty', author:portalResponderName()||(c&&c.counterparty)||'Counterparty' });
+      else if(window.toast) toast(i18t('po_export_unavailable'),'err');
+    });
+    document.getElementById('pt-focus')?.addEventListener('click',()=>{
+      shut();
+      if(window.rlSetFocus) rlSetFocus(!(window.rlFocusOn&&rlFocusOn()));
+    });
+  }
+  if(_ptMoreWired) return;
+  _ptMoreWired=true;
+  document.addEventListener('click',ev=>{
+    const m=document.getElementById('pt-more-menu'), b=document.getElementById('pt-more');
+    if(!m||!b||m.classList.contains('hidden')) return;
+    if(ev.target&&ev.target.closest&&(ev.target.closest('#pt-more-menu')||ev.target.closest('#pt-more'))) return;
+    m.classList.add('hidden'); b.setAttribute('aria-expanded','false');
+  });
+  document.addEventListener('keydown',ev=>{
+    if(ev.key!=='Escape') return;
+    const m=document.getElementById('pt-more-menu'), b=document.getElementById('pt-more');
+    if(!m||m.classList.contains('hidden')) return;
+    /* Escape closes the MENU first and does not fall through to focus mode's
+       own Escape — one key, one effect per press, nearest layer wins. */
+    ev.preventDefault();
+    m.classList.add('hidden'); if(b) b.setAttribute('aria-expanded','false');
+  });
+}
 /* ---- READY TO SIGN HAD A MIRROR HERE, AND DOES NOT NEED ONE ----
    From 12 Aug 2026 it was drawn twice: the live button in the strip under the
    header, and a copy beside Compare wording that forwarded its click to it. The
@@ -1826,6 +1927,14 @@ function wirePortalNego(c, p){
       if(window.portalPaintAlerts) portalPaintAlerts(c, p);
     },
     onWithdraw(_c, id, on){ if(on) PORTAL_NEGO_WITHDRAWN[id]=true; else delete PORTAL_NEGO_WITHDRAWN[id]; portalSaveHeld(); },
+    /* A DRAFT TAKEN BACK HAS TO LEAVE THE STORE, or it is put straight back.
+       portalNegoContract re-injects every entry in PORTAL_NEGO_PROPOSED on each
+       repaint — that is what stops a change this reader filed a moment ago
+       vanishing when the room redraws — so a retract that cleared only the
+       rebuilt copy was undone by the very next paint. Reported as the button
+       doing nothing. The engine's own rules ran and passed; this is the half
+       only the page can do. */
+    onRetract(_c, id){ delete PORTAL_NEGO_PROPOSED[id]; portalSaveHeld(); },
     onComment:portalNegoComment(p),
     onSendDecisions(){ portalRespond(p,'decisions'); },
     rerender(){ wirePortalNego(portalNegoContract(p), p); },
@@ -2616,8 +2725,23 @@ function portalWorkbenchStyle(){
     .pw-page{height:100vh;height:100dvh;box-sizing:border-box;display:flex;flex-direction:column;
       gap:9px;padding:9px 16px 12px;background:var(--color-bg);min-height:0;overflow:hidden;}
     html,body{background:var(--color-bg);}
-    .pw-id{display:flex;align-items:center;gap:11px;flex:none;background:var(--color-surface);
+    /* ---- IT WRAPS AT EVERY WIDTH, NOT ONLY ON A PHONE (15 Aug 2026) ----
+       This row wrapped below 1024 and nowhere else, which was true while it
+       held a title, two reading verbs, a bell and a stepper. The reading switch
+       and the More menu added about 320px to it, and at 1180 the deal verbs ran
+       off the right-hand edge of the window — MEASURED, not guessed.
+       Raising the breakpoint would have been a number to re-guess the next time
+       something joins this row. Wrapping on content is the answer that needs no
+       number: the row takes one line while one line is enough and takes a second
+       when it is not. Below 1024 the verbs still claim a whole row of their own
+       (see the media query) — that is a different rule, about a phone, and it
+       stays. row-gap so a wrapped line is not welded to the one above it. */
+    .pw-id{display:flex;align-items:center;gap:11px;row-gap:9px;flex-wrap:wrap;
+      flex:none;background:var(--color-surface);
       border:1px solid var(--color-divider);border-radius:8px;padding:9px 14px;box-shadow:var(--shadow-sm);}
+    /* The title is what gives way first: it is the one thing in the row that can
+       shorten without losing a control, and it already ellipsises. */
+    .pw-id-main{flex:1 1 220px;}
     .pw-id-badge{width:30px;height:30px;flex:none;border-radius:5px;background:var(--color-accent);
       color:#fff;display:grid;place-items:center;font-family:var(--font-mono);font-weight:600;font-size:13px;}
     .pw-id-main{min-width:0;line-height:1.3;}
@@ -2632,6 +2756,30 @@ function portalWorkbenchStyle(){
        group to the right-hand end, which is the corner the reader's eye already
        goes to for an act on this page. */
     .pw-id .pw-foot{margin-left:auto;}
+    /* ---- THE OVERFLOW MENU, AND THE ROW IT HAS TO LIVE IN ----
+       position:relative on the wrapper, not on .pw-id: the menu is absolutely
+       placed and .pw-id is a wrapping flex row, so hanging it off the row would
+       put it at the row's corner rather than under its own button once the row
+       wrapped. Right-aligned because this control sits at the right-hand end of
+       the reading group and a left-aligned panel would run off the edge. */
+    .pw-more-wrap{position:relative;flex:none;}
+    .pw-more-wrap .room-menu{right:0;left:auto;top:calc(100% + 6px);}
+    .pw-more-caret{display:inline-flex;transition:transform .15s ease;}
+    #pt-more[aria-expanded="true"] .pw-more-caret{transform:rotate(180deg);}
+    /* The reading switch is the owner's own control, drawn by the shared
+       builder, so it needs no colours here — only the room to sit in a row
+       that was built before it existed. */
+    .pw-id .rl-readwrap{flex:none;}
+    /* ---- FOCUS MODE ON THIS PAGE ----
+       The owner's rl-focused stands down the app shell, which this page does
+       not have; what has to go here is this page's own header and its notice
+       stack. Kept as its own class for exactly that reason — see rlSetFocus.
+       The wall line is NOT hidden: it is the sentence promising that decisions
+       stay on this page until Send, and a reading posture must not take a
+       promise off the screen. */
+    body.pw-focused .pw-id{display:none;}
+    body.pw-focused .pw-notes{display:none;}
+    body.pw-focused .pw-page{padding-top:6px;}
     /* The two reading verbs — see portalReadingBtnsHtml for why they stopped
        being ui-btn-secondary. The tint is mixed against whatever surface is
        under it, so the pair reads the same in either theme. */
@@ -2782,7 +2930,20 @@ function renderShareWorkbench(p, opts={}){
              not a seat-relative fact. The stepper is the shared component
              (rlSetDocType updates every mounted .redline-page, this embed
              included). */}
+      ${''/* ---- HOW THE CONTRACT READS (owner-asked, 15 Aug 2026) ----
+             Redlined / As agreed / With changes, the owner's own switch through
+             the one shared builder (rlReadSegsHtml) rather than a second copy.
+             Their document renderer has ALWAYS honoured this setting — it asks
+             rlReadMode like the owner's does — so the page could draw all three
+             readings and simply had no way to ask for them. Beside the text
+             stepper because both answer "how am I reading this", and neither is
+             a verb: the deal verbs are on the other side of the row. */}
+      ${window.rlReadSegsHtml ? rlReadSegsHtml() : ''}
       ${window.rlTypeStepHtml ? rlTypeStepHtml() : ''}
+      ${''/* Their own overflow: a clean PDF, a Word file with the marks, and
+             focus mode. See portalMoreMenuHtml for the six rows it deliberately
+             does not carry. */}
+      ${portalMoreMenuHtml()}
       ${''/* ---- AND EVERY DEAL VERB, WHERE THE NAME BOX USED TO BE ----
              Send / Ready to sign / Decline / Share a read-only copy. They were
              a strip across the page under this row until the owner asked for
@@ -2833,6 +2994,15 @@ function renderShareWorkbench(p, opts={}){
      and the change cards it counts — so painting before the mount exists
      would read an empty page and hide a bell that should be lit. */
   wirePortalAlerts(c, p);
+  /* Their overflow menu. After the header is on the page, and it wires its own
+     rows plus one document-level listener that is armed exactly once — see
+     wirePortalMore. The reading switch beside it needs no wiring at all: its
+     presses are already delegated on `document` by the component. */
+  wirePortalMore(c, p);
+  /* Focus mode's Escape is the component's own, armed once, and it is what
+     takes a reader back out of the mode this menu can now put them into. It is
+     idempotent by design. */
+  if(window.rlWireFocusKey) rlWireFocusKey();
   /* Polling is NOT started here. portalEntry owns it — it holds the token and
      the fetched envelope, which is what portalStartPolling actually takes.
      Starting it from the renderer passed the wrong arguments AND left a live
@@ -4188,8 +4358,19 @@ function exportPDF(c, opts){
       ${marks&&audit?`<div style="margin-top:24px;page-break-inside:avoid;"><div style="font-family:Inter,system-ui,sans-serif;font-weight:600;font-size:13px;border-bottom:1px solid var(--color-divider);padding-bottom:6px;margin-bottom:8px;">${i18t('po_audit_trail')}</div><table style="font-size:10px;border-collapse:collapse;width:100%;">${audit}</table></div>`:''}
       ${record?`<div style="margin-top:24px;font-size:9px;color:#999;text-align:center;">Generated by HaTi CLM · ${FIRST_PARTY}</div>`:''}
     </div>`;
-  logAudit(c,'Exported',record?'Full record exported (seal and audit trail)':'PDF export generated');
-  persist(c); renderAuditSection(c);
+  /* ---- A READER'S OWN COPY IS NOT AN ENTRY IN OUR RECORD (15 Aug 2026) ----
+     The counterparty can print from their link now, and this is the one
+     function that does it. Their page holds a contract rebuilt from a share
+     payload: it is not the record, nothing they do to it may be written to the
+     record, and persist() from that seat would push a reconstruction back over
+     the real one. renderAuditSection is not on their page at all.
+     THE PRINT ITSELF IS UNCHANGED — same wording, same branding, same seal
+     block; only what we write down about it differs by seat. Our own exports go
+     on being audited exactly as before. */
+  if (!(typeof window!=='undefined' && window.PORTAL_MODE)){
+    logAudit(c,'Exported',record?'Full record exported (seal and audit trail)':'PDF export generated');
+    persist(c); renderAuditSection(c);
+  }
   window.print();
 }
 

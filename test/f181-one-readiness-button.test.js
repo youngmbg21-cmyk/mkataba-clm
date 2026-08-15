@@ -153,11 +153,30 @@ describe('F181 — the header carries Ready to sign, beside Compare wording', ()
         'the YOU / name box is deleted from this page');
     });
 
-  test('the focus button is gone from that row, and from the page', async () => {
+  /* ---- CLAIM REVERSED IN PLACE, 15 Aug 2026 (owner-asked, OI-8) ----
+     This read "the focus button is gone from that row, and from the page", and
+     it was right: on 12 Aug focus mode was deliberately deleted from the
+     counterparty's page along with the strip that carried it, and #pt-focus,
+     .pt-focus-btn and .pw-focus went with it.
+
+     The owner has asked for it back — as one of three rows in a More menu, not
+     as a button loose in the header. So the claim turns over rather than being
+     deleted: the fact under test is still WHERE the control lives, and the
+     answer has changed. It is not in the identity row and it does not wear the
+     old class; it is a row inside the menu, which is where the owner put it. */
+  test('focus mode is back — inside the menu, not loose in the row', async () => {
     const o = await ownerProposed();
     const v = counterpartyView(o.c);
-    assert.equal(v.$('#pt-focus'), null, 'the focus toggle is removed');
-    assert.equal(v.$('.pt-focus-btn'), null, 'and nothing else wears its class');
+    const btn = v.$('#pt-focus');
+    assert.ok(btn, 'the reader can give the contract the whole window again');
+    assert.equal(v.$('.pt-focus-btn'), null,
+      'and it did not come back wearing the class the old loose button had');
+    const menu = v.$('#pt-more-menu');
+    assert.ok(menu && menu.contains(btn),
+      'it is a row in the overflow menu — the header row itself is unchanged');
+    const row = v.$('.pw-id');
+    assert.ok(!(row && [...row.children].some(el => el.id === 'pt-focus')),
+      'nothing loose in the identity row, which is what 12 Aug was actually about');
   });
 });
 

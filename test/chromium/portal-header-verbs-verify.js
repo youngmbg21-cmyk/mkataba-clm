@@ -137,7 +137,16 @@ const VERBS = [
       readyCount: document.querySelectorAll('#pt-nego-ready').length,
       readyPhraseCount: Array.from(document.querySelectorAll('button'))
         .filter(b => /Ready to sign/i.test(b.textContent)).length,
-      focusGone: !byId('pt-focus') && !document.querySelector('.pt-focus-btn'),
+      /* CLAIM REVERSED 15 Aug 2026 (owner-asked, OI-8): focus mode is back,
+         as a ROW IN THE MENU rather than a button loose in the header. What
+         12 Aug actually removed was a loose control in this row, and that is
+         still gone — so the measurement follows the fact rather than being
+         deleted. */
+      focusLoose: !!document.querySelector('.pt-focus-btn')
+        || [...(document.querySelector('.pw-id') || { children: [] }).children]
+             .some(el => el.id === 'pt-focus'),
+      focusInMenu: (() => { const b = byId('pt-focus'), m = byId('pt-more-menu');
+        return !!(b && m && m.contains(b)); })(),
       /* THE WALL LINE STAYS — the one band this page is allowed, because they
          must read it before they answer anything. */
       wall: (() => { const w = document.querySelector('.rl-wall');
@@ -186,7 +195,10 @@ const VERBS = [
   check('Ready to sign exists exactly once', m.readyCount === 1, `${m.readyCount} found`);
   check('and a reader sees the phrase exactly once', m.readyPhraseCount === 1,
     `${m.readyPhraseCount} buttons say it`);
-  check('the focus button is gone from the page', m.focusGone);
+  check('no focus button loose in the header row — what 12 Aug removed stays removed',
+    !m.focusLoose);
+  check('and focus mode is back where the owner asked for it: a row in the More menu',
+    m.focusInMenu);
 
   /* ---- 6. THE HIDE ACTUALLY HIDES — the .ui-btn cascade trap ----
      The pair is the assertion, not either half: shown it must be laid out,

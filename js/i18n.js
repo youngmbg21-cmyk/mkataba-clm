@@ -1198,6 +1198,13 @@ const STRINGS = {
     /* THE THREE READINGS. See rlReadMode — the switch changes how the page is
        drawn and never what is on the record. */
     ng_read_group: 'How the contract reads',
+    po_more_title: 'Take a copy, or give the contract the whole window',
+    po_clean_copy: 'clean copy',
+    po_tracked_changes: 'tracked changes',
+    po_pdf_title: 'Print or save the wording as it stands, with no marks on it',
+    po_word_title: 'A Word file with every proposal in it as a tracked change',
+    po_focus_mode: 'Focus mode',
+    po_export_unavailable: 'This copy cannot produce a file right now — ask the sender for one',
     ng_view_group: 'Whose seat you are reading from',
     ng_read_marks: 'Redlined',
     ng_read_agreed: 'As agreed',
@@ -1261,6 +1268,7 @@ const STRINGS = {
     ng_counters_line: 'Counters #{id} — the earlier ask stays on the record',
     ng_draft_superseded: 'Their proposal on {label} took the table — your unsent draft #{old} was set aside. Its wording stays on the record; edit the clause to re-raise it.',
     ng_accept_blocked_adopted: '#{id} was already adopted on this clause — reopen it first, or reject this one.',
+    ng_reopen_blocked_downstream: '#{id} was agreed on top of this one — reopen or refuse that first, or its wording stays in the contract with nothing standing behind it.',
     ng_formatting_only_title: 'Formatting only — the wording is unchanged',
     ng_view_only_no_actions: 'This view is read-only &mdash; nothing can be filed or decided from it',
     ng_library_unavailable: 'The clause library is not available on this page',
@@ -2566,6 +2574,8 @@ const STRINGS = {
     ne_only_refused_withdraw: 'Only a refused ask can be withdrawn',
     ne_only_asker_withdraw: 'Only the side that asked for this can withdraw it',
     ne_only_drafter_retract: 'Only the side that drafted this can retract it',
+    ne_retract_decided: 'This change already has an answer, so it can\'t be retracted',
+    ne_retract_already_sent: 'This change has already gone to the other side, so it can\'t be retracted — withdraw it instead',
 
     // ---- the market, in Settings ----
     set_market: "Where you operate",
@@ -5057,6 +5067,13 @@ const STRINGS = {
     ng_decided_this_round: 'avgjorda den här rundan',
     ng_the_contract: 'Avtalet',
     ng_read_group: 'Så här läses avtalet',
+    po_more_title: 'Ta en kopia, eller ge avtalet hela fönstret',
+    po_clean_copy: 'ren kopia',
+    po_tracked_changes: 'spårade ändringar',
+    po_pdf_title: 'Skriv ut eller spara lydelsen som den står, utan markeringar',
+    po_word_title: 'En Word-fil där varje förslag ligger som en spårad ändring',
+    po_focus_mode: 'Fokusläge',
+    po_export_unavailable: 'Den här kopian kan inte skapa en fil just nu — be avsändaren om en',
     ng_view_group: 'Vems vy du läser från',
     ng_read_marks: 'Markerat',
     ng_read_agreed: 'Som avtalat',
@@ -5119,6 +5136,7 @@ const STRINGS = {
     ng_counters_line: 'Svar på #{id} — det tidigare förslaget finns kvar i registret',
     ng_draft_superseded: 'Deras förslag på {label} tog över — ditt oskickade utkast #{old} lades åt sidan. Formuleringen finns kvar i registret; redigera klausulen för att ta upp det igen.',
     ng_accept_blocked_adopted: '#{id} är redan antagen på den här klausulen — öppna den igen först, eller avvisa det här förslaget.',
+    ng_reopen_blocked_downstream: '#{id} godkändes ovanpå den här — öppna eller avvisa den först, annars blir dess lydelse kvar i avtalet utan att något står bakom den.',
     ng_formatting_only_title: 'Endast formatering — formuleringen är oförändrad',
     ng_view_only_no_actions: 'Den här vyn är skrivskyddad &mdash; inget kan arkiveras eller avgöras härifrån',
     ng_library_unavailable: 'Klausulbiblioteket är inte tillgängligt på den här sidan',
@@ -6384,6 +6402,8 @@ const STRINGS = {
     ne_only_refused_withdraw: 'Endast en avslagen begäran kan dras tillbaka',
     ne_only_asker_withdraw: 'Endast parten som begärde detta kan dra tillbaka det',
     ne_only_drafter_retract: 'Endast parten som skrev detta kan återkalla det',
+    ne_retract_decided: 'Den här ändringen har redan fått ett svar och kan därför inte återkallas',
+    ne_retract_already_sent: 'Den här ändringen har redan gått till motparten och kan därför inte återkallas — dra tillbaka den i stället',
 
     // ---- marknaden, under Inställningar ----
     set_market: "Var ni är verksamma",

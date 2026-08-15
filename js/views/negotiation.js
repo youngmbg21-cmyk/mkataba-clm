@@ -5469,7 +5469,23 @@ let _rlRead = 'marks';
 function rlReadMode(){ return _rlRead; }
 function rlSetReadMode(v){
   _rlRead = RL_READS.includes(v) ? v : 'marks';
+  rlPaintReadSegs();
   return _rlRead;
+}
+/* ONE PAINTER, like rlPaintFocusBtn beside it and for the same reason: this
+   switch is drawn in more than one place now — the owner's toolbar and the
+   counterparty's header — and a repaint reaches only the mount it belongs to.
+   The counterparty's sits OUTSIDE the mount its press redraws, so without this
+   their page changed its wording while the switch went on showing the segment
+   they had just moved off. Faces, never a rebuild: a repaint here would throw
+   away the header the reader is pressing in. */
+function rlPaintReadSegs(){
+  if (typeof document === 'undefined') return;
+  document.querySelectorAll('.rl-readwrap [data-rl-read]').forEach(b => {
+    const on = b.getAttribute('data-rl-read') === _rlRead;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
 }
 /* The sentence the floating notice prints, and the one place that decides
    whether a notice is owed at all — an empty string means the page is on its
@@ -5527,6 +5543,22 @@ function rlOpsAsSide(ops, which){
 function rlRepaintFrom(node){
   const embed = node && node.closest && node.closest('.rl-embed');
   if (embed && typeof embed._rlRerender === 'function'){ embed._rlRerender(); return true; }
+  /* ---- A CONTROL CAN SIT OUTSIDE THE THING IT REDRAWS (15 Aug 2026) ----
+     Every caller above walks UP from the press, which works while the control
+     lives inside the mount it repaints. The counterparty's reading switch does
+     not: it is in their page header, and the document it changes is in an embed
+     alongside. Walking up from it found no mount, no #ws-notices, no #m-root
+     and no #view-redline, so the press set the mode and redrew nothing — the
+     paper kept its marks and the switch kept its old segment lit.
+     So where the press is not inside a mount, the page's ONE mount answers.
+     Guarded on there being exactly one: with two mounted embeds "the page's
+     mount" is not a question with an answer, and the callers below are the
+     right fallback for that shape. */
+  if (node && node.closest && !embed){
+    const mounts = [...document.querySelectorAll('.rl-embed')]
+      .filter(el => typeof el._rlRerender === 'function');
+    if (mounts.length === 1){ mounts[0]._rlRerender(); return true; }
+  }
   /* THE ROOM'S STACK REPAINTS ITSELF AND NOTHING ELSE. The Document tab is not
      the workbench: falling through to renderNegotiationTab would replace the
      room a reader is standing in with the negotiation component. It owns one
@@ -5619,10 +5651,51 @@ let _redlineSide = 'owner';
    in the same mode they left. */
 let _rlFocus = false;
 function rlFocusOn(){ return _rlFocus; }
+/* ---- HOW THE CONTRACT READS, AS ONE BUILDER (15 Aug 2026) ----
+   Three words — Redlined / As agreed / With changes — and they were written
+   inline in renderRedline, which is the owner's page and only the owner's. The
+   counterparty was asked to decide on wording with no way to read it clean,
+   even though their page has always DRAWN whatever reading was set: both
+   document renderers ask rlReadMode, and theirs is one of them. The switch was
+   the only missing half, so this is a builder rather than a second copy — two
+   segmented controls for one setting is exactly how the two pages come to
+   disagree about what "As agreed" means.
+
+   The presses are already delegated on `document` (see the [data-rl-read]
+   listener), so a control drawn on any mounted page is live with nothing to
+   wire — which is why the counterparty's costs no handler of its own. */
+function rlReadSegsHtml(){
+  const seg = (v, label, tip) => `<button type="button" data-rl-read="${v}"
+    class="rl-seg${rlReadMode() === v ? ' on' : ''}" aria-pressed="${rlReadMode() === v ? 'true' : 'false'}"
+    title="${_nea(tip)}">${_ne(label)}</button>`;
+  return `<div class="rl-segwrap rl-readwrap" role="group" aria-label="${_nea(i18t('ng_read_group'))}"
+    title="${_nea(i18t('ng_read_group'))}">${
+    seg('marks', i18t('ng_read_marks'), i18t('ng_read_marks_title'))}${
+    seg('agreed', i18t('ng_read_agreed'), i18t('ng_read_agreed_title'))}${
+    seg('proposed', i18t('ng_read_proposed'), i18t('ng_read_proposed_title'))}</div>`;
+}
+/* WHICHEVER PAGE IS MOUNTED. #view-redline is the owner's own bench; the
+   counterparty reads the same component mounted inside their share page, where
+   that id does not exist — so looking it up by name alone made focus mode a
+   verb that could only ever work for one of the two seats. It is asked for by
+   name first (the owner's page is the common case and unambiguous) and then by
+   the class every mounted redline page carries. */
+function rlFocusPage(){
+  if (typeof document === 'undefined') return null;
+  return document.getElementById('view-redline') || document.querySelector('.redline-page');
+}
 function rlSetFocus(on){
   _rlFocus = !!on;
-  const page = document.getElementById('view-redline');
+  const page = rlFocusPage();
   if (page) page.classList.toggle('rl-focus', _rlFocus);
+  /* The counterparty's header is not the app shell and is not stood down by
+     `rl-focused`, which hides the sidebar and the top strip. Their page carries
+     its own marker so its own stylesheet can answer — see portalWorkbenchStyle.
+     Kept separate rather than widening `rl-focused`: one class meaning "hide
+     the owner's shell" and "hide the reader's header" is one class that will be
+     changed for one page and break the other. */
+  if (typeof document !== 'undefined' && document.body && document.body.classList)
+    document.body.classList.toggle('pw-focused', _rlFocus && !!(typeof window !== 'undefined' && window.PORTAL_MODE));
   /* The sidebar and the top strip live OUTSIDE this page, so the class that
      stands them down has to go on the body. Cleared on the way out and on the
      way off this page — a reader who leaves the bench in focus mode and lands
@@ -5695,7 +5768,11 @@ function rlWireFocusKey(){
   _rlFocusKeyWired = true;
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape' || e.defaultPrevented) return;
-    if (_rlFocus && document.getElementById('view-redline')) rlSetFocus(false);
+    /* Asked of whichever page is mounted, for the reason rlFocusPage gives —
+       on the counterparty's link the guard was #view-redline, which is never
+       there, so Escape was the way out of a mode they could not enter anyway.
+       Both halves are fixed together or the second is a trap. */
+    if (_rlFocus && rlFocusPage()) rlSetFocus(false);
   });
 }
 /* ---- DOES THE TAB ROW HOLD BOTH? ASK THE BROWSER, DO NOT GUESS ----
@@ -6019,16 +6096,32 @@ function redlineLayoutCss(){
      segmented pair is RAISED — white on the tray with a shadow under it —
      rather than filled with the accent: two accent fills on one row would
      compete with the act. */
+  /* ---- THE CONTROL CARRIES ITS OWN CLOTHES (15 Aug 2026) ----
+     These were scoped to .redline-page, which is the mounted component — right
+     while every segmented control in the product sat inside one. The reading
+     switch is drawn in the counterparty's page HEADER now, which is beside the
+     mount and not in it, so the scoped rules did not reach it and the three
+     words rendered as one run of unstyled text: "RedlinedAs agreedWith
+     changes". Caught by a screenshot; jsdom resolves no cascade and would never
+     have seen it.
+     So the selector follows the BUILDER rather than one of its homes — one
+     control, one set of clothes, wherever rlReadSegsHtml puts it. The
+     .redline-page copies are kept beside them at the same specificity so
+     nothing inside the mount changes weight. */
+  .rl-segwrap,
   .redline-page .rl-segwrap{display:flex;align-items:center;gap:3px;background:var(--color-neutral-100);
     border:1px solid var(--color-divider);padding:3px;border-radius:9px;height:34px;flex:none}
   /* 10px, not 12: five of these sit on the tab row and the four pixels each
      one gives back are what lets a 1600px laptop keep the controls up there
      instead of dropping them to a line of their own. */
+  .rl-seg,
   .redline-page .rl-seg{border:0;background:none;font:inherit;font-size:12px;font-weight:500;
     height:26px;padding:0 10px;border-radius:7px;cursor:pointer;color:var(--color-neutral-500);
     white-space:nowrap;transition:background .12s,color .12s}
+  .rl-seg.on,
   .redline-page .rl-seg.on{background:var(--color-surface);color:var(--color-text);font-weight:600;
     box-shadow:0 1px 2px rgba(15,23,42,.08)}
+  html.dark .rl-seg.on,
   html.dark .redline-page .rl-seg.on{background:var(--color-neutral-200);box-shadow:none}
   /* ---- WHAT IS WAITING ON YOU ----
      A quiet button with an amber dot: the dot is the news, the words are the
@@ -6283,6 +6376,15 @@ function redlineLayoutCss(){
   .redline-page.rl-focus .rl-tabrow,
   .redline-page.rl-focus .rl-head,
   .redline-page.rl-focus #rl-banner{display:none}
+  /* ---- EXCEPT ON THEIR PAGE, WHERE #rl-banner IS THE WALL LINE ----
+     (15 Aug 2026, when focus mode reached the counterparty's seat.) On the
+     owner's bench that banner is furniture and standing it down is the point.
+     On the counterparty's it carries the ONE sentence this rulebook already
+     protects from every other fold: decisions and counter-proposals stay on
+     this page until you press Send. A reading posture may hide chrome; it may
+     not take a promise off the screen while the reader is deciding. Same
+     exception, same reason, as the notice stack's — the wall line never folds. */
+  body.pw-focused .redline-page.rl-focus #rl-banner{display:block}
   .redline-page.rl-focus{padding:8px 10px 10px}
   body.rl-focused #side-nav,
   body.rl-focused #top-header{display:none!important}
@@ -8048,9 +8150,6 @@ function renderRedline(){
   /* The same pill, asked a different question: which of the three readings the
      document is drawn in. aria-pressed rather than a tab role — nothing is
      being switched between, one surface is being drawn differently. */
-  const readSeg = (v, label, tip) => `<button type="button" data-rl-read="${v}"
-    class="rl-seg${rlReadMode() === v ? ' on' : ''}" aria-pressed="${rlReadMode() === v ? 'true' : 'false'}"
-    title="${_nea(tip)}">${_ne(label)}</button>`;
   /* ---- WHAT IS WAITING ON THIS READER ----
      The other side's live asks, in the order the document carries them, minus
      anything walled off from this seat and minus the clauses a reviewer was not
@@ -8285,11 +8384,7 @@ function renderRedline(){
                    Not a filter and not a mode the record knows about: the same
                    clauses, drawn three ways. See rlReadMode for what each one
                    means and why only LIVE proposals are affected. */}
-            <div class="rl-segwrap rl-readwrap" role="group" aria-label="${_nea(i18t('ng_read_group'))}"
-              title="${_nea(i18t('ng_read_group'))}">${
-              readSeg('marks', i18t('ng_read_marks'), i18t('ng_read_marks_title'))}${
-              readSeg('agreed', i18t('ng_read_agreed'), i18t('ng_read_agreed_title'))}${
-              readSeg('proposed', i18t('ng_read_proposed'), i18t('ng_read_proposed_title'))}</div>
+            ${rlReadSegsHtml()}
             ${''/* ---- THE WAY INTO THE WORK ----
                    A count of what is waiting on THIS reader, and a press that
                    goes to the first of them. The number is the same set the
@@ -9971,9 +10066,24 @@ function rlWireClauseTools(c, host, opts){
     const chId = btn.getAttribute('data-rl-retract');
     if (!window.negoRetractDraft) return;
     const side = (opts && opts.side) === 'counterparty' ? 'counterparty' : 'owner';
-    const ch = negoRetractDraft(c, chId, { side, by: opts && opts.by });
+    /* THE BUTTON AND THE RULE HAVE TO ASK ONE QUESTION. This card is drawn from
+       opts.unsentIds where the mount supplies them (the counterparty's page
+       does), so the engine is handed the same list rather than deriving a
+       second answer from the turn stamp — which is what made this button dead
+       on their seat before the first hand-over. See negoRetractDraft. */
+    const ch = negoRetractDraft(c, chId, { side, by: opts && opts.by,
+      unsentIds: Array.isArray(opts && opts.unsentIds) ? opts.unsentIds : undefined });
     if (!ch) return;
     if (window.negoInvalidateVerification) negoInvalidateVerification(c);
+    /* ---- AND THE PAGE HOLDING THE DRAFT HAS TO BE TOLD IT HAS GONE ----
+       On the counterparty's link the contract is rebuilt from the share payload
+       on every repaint and their own unsent asks are put back from a store this
+       function cannot see. So removing the change from the copy on screen and
+       repainting drew it straight back, and the button read as dead a second
+       way. The mount that owns the store clears it. */
+    if (opts && typeof opts.onRetract === 'function'){
+      try { opts.onRetract(c, chId); } catch (_){ /* a page that cannot forget must not take the act down */ }
+    }
     if (window.persist) persist(c);
     if (window.toast) toast(`#${chId} retracted — it was never sent, so nothing left your desk`);
     again();
@@ -12848,7 +12958,8 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlToggleDiscussion, rlSideMode, rlSetSideMode, rlLayoutResizer, rlWireResizer, rlWireClauseTools,
   rlDocType, rlDocScale, rlSetDocType, rlTypeStepHtml, rlWireTypeStep,
   rlApplyDocZoom, rlObserveDocPane, RL_PAGE_W, RL_ZOOM_MAX,
-  rlFocusOn, rlSetFocus, rlResetFocus, rlWireFocusKey, rlPaintFocusBtn,
+  rlFocusOn, rlSetFocus, rlResetFocus, rlWireFocusKey, rlPaintFocusBtn, rlFocusPage,
+  rlReadSegsHtml,
   rlFitTabRow, rlWireFitTabRow, rlObserveTabRow,
   redlineHeldId, redlineEvict, openRedlineWorkbench, RL_DEMOTABLE,
   rlOwnerOpenActions, rlOwnerOpenTotal, rlJumpHtml,

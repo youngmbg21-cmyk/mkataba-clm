@@ -79,6 +79,67 @@ function negoClauseList(c){
 }
 const negoClauseById = (c, id) => negoClauseList(c).find(cl => cl.clauseId === id) || null;
 
+/* ---------- THE CLAUSE AS THE PERSON TYPING IS SHOWN IT ----------
+   negoClauseList above is the ROUND BASELINE, and it is the right reading for
+   anything asking "what did this round start from". It is the WRONG reading
+   for the moment somebody edits a clause that has already had a change adopted
+   on it, and that mismatch was a reported fault (Young, 15 Aug 2026, MK-311).
+
+   A clause with an adopted change does not read like the baseline any more.
+   The document on screen shows the adopted wording, the editor is seeded from
+   the document, so a second edit typed into it is an edit of THAT text — and
+   measuring it against the baseline anyway produced a diff that re-expressed
+   the adopted change as though the author had just made it. Two things fell
+   out of that, both visible:
+
+     · The card struck through words nobody had touched — the reported
+       screenshot shows exactly this on the new ask's preview.
+     · Two accepted changes on one clause could not be told apart from two
+       RIVAL proposals for the same words, so negoResolve's guard refused the
+       second, in words, on an ordinary act. That refusal is what was reported.
+
+   So a change is measured against what its author was shown. WHERE NOTHING IS
+   ADOPTED THE TWO READINGS ARE THE SAME TEXT — which is every clause on every
+   contract in its first round, and is why no stored change moves, no
+   fingerprint changes and no migration is needed. The cost is paid only on the
+   clause that has actually moved under the author's feet.
+
+   The baseline reading is NOT replaced. negoClauseList still answers for the
+   round, and negoBuildBody still replays from it. */
+function negoClauseNowById(c, clauseId){
+  negoInit(c);
+  const base = negoClauseById(c, clauseId);
+  if (!window.clauseSegment) return base;
+  /* Asked before the work is done, not after. Rebuilding the resolved document
+     for every edit on every clause would be a full replay to hand back the
+     baseline it started from — and this runs on every keystroke-ending save. */
+  const moved = (c.changes || []).some(x => x && x.clauseId === clauseId
+    && x.status === 'accepted' && x.changeType === 'modify');
+  if (!moved) return base;
+  let now = null;
+  try { now = clauseSegment(negoResolvedBody(c)).find(cl => cl.clauseId === clauseId) || null; }
+  catch (_){ now = null; }
+  return now || base;
+}
+/* WHAT A CHANGE WAS MEASURED AGAINST, and whether two were measured against the
+   same thing. `oldText` has always carried this; until negoClauseNowById above
+   it was the round baseline for every change on a clause and therefore said
+   nothing. It now separates the two states negoResolve has to tell apart:
+
+     · SAME measured-from text  → the two are RIVALS. Both replay from one
+       starting point, so accepting both would let the second silently discard
+       the first. This is the state the accept guard exists for.
+     · DIFFERENT               → the later one was written on top of the
+       earlier, so accepting both is sequential composition — how negotiation
+       works — and negoBuildBody's replacement in seq order already produces
+       exactly the right wording, because the later body contains the earlier.
+
+   Legacy changes, filed before this existed, all carry the baseline and so all
+   compare EQUAL — which keeps the guard exactly as strict as it was for every
+   contract already on the table. Nothing is loosened retrospectively. */
+const negoMeasuredFrom = ch => String((ch && ch.oldText) == null ? '' : ch.oldText);
+const negoMeasuredAlike = (a, b) => negoMeasuredFrom(a) === negoMeasuredFrom(b);
+
 /* ---------- IS THIS CONTRACT EXECUTED ----------
    One predicate, named, because the answer decides three different things and
    was written out longhand at each of them. An executed record takes no new
@@ -1011,7 +1072,12 @@ function _negoFormattingMoved(c, draft, live){
   if (!draft.bodyHtml) return false;
   if (!(window.isRich && window.canonicalRich && isRich(c.format))) return false;
   const canon = h => { try{ return canonicalRich(String(h || '')); }catch(_){ return String(h || ''); } };
-  const cl = window.negoClauseById ? negoClauseById(c, draft.clauseId) : null;
+  /* Measured against what the author was shown, for the reason
+     negoClauseNowById gives: on a clause carrying an adopted change the
+     baseline's markup is not the markup on screen, so comparing to it would
+     call an untouched clause a formatting change. */
+  const cl = window.negoClauseNowById ? negoClauseNowById(c, draft.clauseId)
+    : (window.negoClauseById ? negoClauseById(c, draft.clauseId) : null);
   const base = (cl && cl.bodyHtml) ? canon(cl.bodyHtml) : '';
   if (!base) return false;
   const want = canon(draft.bodyHtml);
@@ -1333,7 +1399,10 @@ async function negoFileChange(c, draft, opts = {}){
    whole distance travelled rather than two measuring halves of it. */
 async function negoEditClause(c, clauseId, newBodyHtml, opts = {}){
   negoInit(c);
-  const cl = negoClauseById(c, clauseId);
+  /* NOT the round baseline — the clause as it currently stands, which is what
+     the editor was seeded from and therefore what this edit is an edit OF. See
+     negoClauseNowById; on a clause with nothing adopted the two are one text. */
+  const cl = negoClauseNowById(c, clauseId);
   if (!cl) return null;
   const body = window.sanitizeRich ? sanitizeRich(newBodyHtml) : String(newBodyHtml || '');
   const newText = window.richToText ? richToText(body) : '';
@@ -1361,7 +1430,10 @@ async function negoInsertClause(c, afterClauseId, clause, opts = {}){
    the document until someone accepts the deletion. */
 async function negoDeleteClause(c, clauseId, opts = {}){
   negoInit(c);
-  const cl = negoClauseById(c, clauseId);
+  /* The wording being struck out is the wording on screen, which on a clause
+     carrying an adopted change is not the baseline's. Same reading as the edit
+     above, and for the same reason. */
+  const cl = negoClauseNowById(c, clauseId);
   if (!cl) return null;
   return negoFileChange(c, { clauseId, changeType: 'deleteClause',
     oldText: cl.text, newText: '', clauseLabel: negoClauseLabel(cl) }, opts);
@@ -1824,12 +1896,52 @@ function negoResolve(c, id, status, opts = {}){
      cross-round acceptance is sequential composition — how negotiation works —
      and must never be caught. Rejecting stays free: a refusal composes with
      anything. */
+  /* ---- AND IT ASKS ABOUT THE WORDS, NOT ABOUT THE CLAUSE (15 Aug 2026) ----
+     As first written this refused ANY second acceptance on a clause, and the
+     note beside it said the state "cannot arise on new work" because a newly
+     filed change supersedes an older rival. That was wrong in one word:
+     supersession reaches a change still AWAITING AN ANSWER, never an adopted
+     one. So the ordinary act of adopting a change and then editing another part
+     of the same clause walked straight into a guard its author expected almost
+     never to fire, and was refused. Reported on MK-311.
+
+     The real question is not "is another change adopted here" but "were these
+     two measured against the same wording" — see negoMeasuredAlike. Two
+     measured from one starting point are rivals and the refusal stands. One
+     measured against a text that already contains the other was written on top
+     of it, and negoBuildBody's replacement in seq order composes them
+     correctly with no change of its own. Legacy changes all carry the baseline
+     and so all still compare alike: nothing already on the table is loosened. */
   if (status === 'accepted' && ch.changeType !== 'insertClause'){
     const adopted = c.changes.find(x => x && x !== ch && x.clauseId === ch.clauseId
       && x.status === 'accepted' && x.changeType !== 'insertClause'
-      && (x.roundN || 1) === (ch.roundN || 1));
+      && (x.roundN || 1) === (ch.roundN || 1)
+      && negoMeasuredAlike(x, ch));
     if (adopted){
       if (window.toast) toast(i18t('ng_accept_blocked_adopted', { id: adopted.id }), 'err');
+      return null;
+    }
+  }
+  /* ---- AND THE MIRROR OF IT: YOU CANNOT PULL THE FLOOR OUT ----
+     The rule above lets a change be adopted on top of an adopted one. That
+     makes the earlier one LOAD-BEARING: the later change's stored body was
+     written over it and carries its wording inside, so reopening the earlier
+     one alone would leave that wording standing in the contract with nothing
+     adopted behind it — the record saying one thing and the document another,
+     which is the whole class of fault the accept guard exists to prevent, let
+     in through the other door.
+
+     So the way back is taken in order: reopen or refuse what was built on top
+     first. Only for a change something was ACTUALLY built on — a lone adopted
+     change, or two rivals measured alike, reopen freely as they always have. */
+  if (status === 'pending' && ch.status === 'accepted' && ch.changeType !== 'insertClause'){
+    const built = c.changes.find(x => x && x !== ch && x.clauseId === ch.clauseId
+      && x.status === 'accepted' && x.changeType !== 'insertClause'
+      && (x.roundN || 1) === (ch.roundN || 1)
+      && (x.seq || 0) > (ch.seq || 0)
+      && !negoMeasuredAlike(x, ch));
+    if (built){
+      if (window.toast) toast(i18t('ng_reopen_blocked_downstream', { id: built.id }), 'err');
       return null;
     }
   }
@@ -1947,11 +2059,33 @@ function negoRetractDraft(c, id, opts = {}){
     return null;
   }
   if (ch.status !== 'pending'){
-    if (window.toast) toast('This change already has an answer, so it can\'t be retracted', 'err');
+    if (window.toast) toast(i18t('ne_retract_decided'), 'err');
     return null;
   }
-  if (!negoUnsentAsks(c, side).some(x => x && x.id === id)){
-    if (window.toast) toast('This change has already been sent, so it can\'t be retracted', 'err');
+  /* ---- WHAT COUNTS AS UNSENT IS THE CALLER'S ANSWER WHERE IT HAS ONE ----
+     (owner-reported, 15 Aug 2026 — OI-6, and reproduced before it was touched.)
+
+     negoUnsentAsks measures against the turn stamp, which is the right reading
+     on our own record and the wrong one on the counterparty's page. Their copy
+     is rebuilt from a share payload on every repaint and holds its own drafts
+     in a store of its own; and before the first hand-over there is no turn
+     stamp at all, at which point that function answers "nothing on THIS side is
+     unsent" for the counterparty by construction. So this refused every draft
+     they had ever written — the card drew a Retract button (the page knew the
+     draft was unsent) and pressing it produced "this change has already been
+     sent", over a change that had never left their browser. Two readings of one
+     fact, disagreeing, with the untrue one doing the talking.
+
+     The page holding the drafts is the authority on which of them have gone, so
+     it may say. Absent, the model answers as it always has — which is every
+     caller on our own side, unchanged. */
+  const given = opts.unsentIds;
+  const unsent = (given instanceof Set) ? given
+    : Array.isArray(given) ? new Set(given.map(String)) : null;
+  const isUnsent = unsent ? unsent.has(String(id))
+    : negoUnsentAsks(c, side).some(x => x && x.id === id);
+  if (!isUnsent){
+    if (window.toast) toast(i18t('ne_retract_already_sent'), 'err');
     return null;
   }
   const i = c.changes.findIndex(x => x && x.id === id);
@@ -3345,7 +3479,8 @@ function cardName(name, org){
 
 if (typeof window !== 'undefined') Object.assign(window, {
   cardName, negoTheirCopy,
-  negoClauseLabel, negoClauses, negoClauseList, negoClauseById, negoBodyOf,
+  negoClauseLabel, negoClauses, negoClauseList, negoClauseById, negoClauseNowById,
+  negoMeasuredFrom, negoMeasuredAlike, negoBodyOf,
   negoExecuted, negoNumberingLocked, negoNumberingGaps, executedDivergence, negoExecutedText,
   negoBrokenRefs, negoAllRefs, negoActorLabel,
   negoRenumberBlocked, negoRenumberPlan, negoRenumberApply, negoTimeline, negoIntegrityReport, negoLiveNumbered,
