@@ -99,6 +99,7 @@ const STRINGS = {
     nav_insights_title: 'Insights — how your portfolio is behaving',
     nav_templates_title: "Templates — the paper you draft from: company standards, counterparty paper and HaTi's own",
     nav_our_standards_title: 'Our standards — the clause library and negotiation playbook every review checks against',
+    nav_reports_title: 'Reports — cycle time, bottlenecks, value concentration and the renewal pipeline',
     nav_insights_new_title: 'Newly unlocked — your portfolio is big enough for Insights to say something',
 
     // ---- actions that appear on almost every screen ----
@@ -3999,6 +4000,7 @@ const STRINGS = {
     nav_insights_title: 'Insikter — hur din avtalsportfölj utvecklas',
     nav_templates_title: 'Mallar — pappret du utgår från: företagets standarder, motpartens papper och HaTi:s egna',
     nav_our_standards_title: 'Våra standarder — klausulbiblioteket och förhandlingsguiden som varje granskning stäms av mot',
+    nav_reports_title: 'Rapporter — ledtid, flaskhalsar, värdekoncentration och kommande förnyelser',
     nav_insights_new_title: 'Nyligen upplåst — din portfölj är stor nog för att Insikter ska ha något att säga',
 
     // ---- åtgärder som finns på nästan varje skärm ----

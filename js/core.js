@@ -163,9 +163,11 @@ function sampleContracts(){
    toggle — stored per browser like the theme, because which dials a person
    wants is their seat's business, not the workspace's. The thresholds are a
    table, not scattered ifs, so the sidebar and the tests read the same
-   truth. Queue, Advice Desk and Reports are NOT here: they live in the
+   truth. Advice Desk and Reports are NOT here: they live in the
    Administration fold permanently — resurfacing them at a threshold would
-   give them two homes, which is the exact fault WO N1 removed. */
+   give them two homes, which is the exact fault WO N1 removed. (Reports'
+   door was retired for a while and restored on the owner's ask, 15 Aug
+   2026; Queue's stayed retired — its view is routable but has no door.) */
 const NAV_EARN_AT={ intel:5 };
 function navShowEverything(){ try{ return localStorage.getItem('hati.v1.nav-all')==='1'; }catch(e){ return false; } }
 function navSetShowEverything(on){

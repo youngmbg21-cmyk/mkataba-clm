@@ -2887,10 +2887,20 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.7 9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1 1 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
             <span style="flex:1;" data-i18n="nav_our_standards">Our standards</span>
           </button>
-          <!-- Advice Desk is the one operational desk left in the fold: the
-               Queue and Reports doors were retired as premature for this
-               stage — both views stay routable (a saved link still opens
-               them), they just no longer occupy the sidebar. -->
+          <!-- Reports has its door BACK (owner-asked, 15 Aug 2026). It was
+               retired with the Queue door as premature, but the screen it
+               names — cycle time, the weekly review, the reports CSV — stayed
+               finished and routable, which left it reachable by NOBODY on a
+               mouse: a page whose only door is a restored session is a page
+               that cannot be tested, let alone used. It sits in this fold
+               because reporting is reached rarely and by choice, exactly what
+               the fold is for. The QUEUE door stays retired; its view is
+               still routable so a saved link opens it. -->
+          <button data-view="reports" class="nav-item" title="Reports — cycle time, bottlenecks, value concentration and the renewal pipeline" data-i18n-title="nav_reports_title">
+            <span class="nav-rail"></span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M4 20a1 1 0 0 1-1-1V4.5a1 1 0 1 1 2 0V18h15a1 1 0 1 1 0 2H4Z"/><rect x="7" y="12" width="3.2" height="4.5" rx=".6"/><rect x="12" y="8.5" width="3.2" height="8" rx=".6"/><rect x="17" y="5.5" width="3.2" height="11" rx=".6"/></svg>
+            <span style="flex:1;" data-i18n="nav_reports">Reports</span>
+          </button>
           <button data-view="advice" class="nav-item" title="Advice Desk" data-i18n-title="nav_advice_desk_title">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9.6L5 21.2a1 1 0 0 1-1.7-.7V17H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M7.5 8.5h9v1.6h-9V8.5Zm0 3.2h6v1.6h-6v-1.6Z" fill="var(--color-surface)"/></svg>
