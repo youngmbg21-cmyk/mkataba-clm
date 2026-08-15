@@ -2855,6 +2855,11 @@ function buildSharePayload(c, docHash, who, opts){
       prevChangeHash:x.prevChangeHash||null, seq:x.seq||null, status:x.status,
       needsReview:x.needsReview||false, needsReviewWhy:x.needsReviewWhy||null,
       author:x.author, authorSide:x.authorSide, createdAt:x.createdAt, roundN:x.roundN||null,
+      /* Which ask this one superseded. It names a change id the other side
+         already knows — their own ask, or one we sent them — so their card can
+         say "counters #CHG-001" instead of showing an unexplained replacement.
+         The superseded change itself never travels (filtered above). */
+      counterOf:x.counterOf||null,
       /* THE NOTE IS THE AUTHOR'S ASIDE, AND IT DOES NOT CROSS THE TABLE. It
          used to travel whole, and the counterparty's page printed it under
          "why they asked" — which for a Copilot-drafted change read

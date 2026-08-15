@@ -63,7 +63,15 @@ describe('one row per clause', () => {
     const { win } = buildWorld({ negotiationView: true });
     const c = contract();
     win.negoInit(c);
-    await ask(win, c, '4', '<p>Undisputed invoices are payable within forty-five (45) days.</p>');
+    /* RESTAGED 15 Aug 2026 (one proposal on the table). This used to file two
+       LIVE rivals — theirs and ours, both pending on clause 4 — a state the
+       funnel now resolves at filing time: the second supersedes the first. The
+       row's claim is unchanged; the STATE that produces a two-change row is
+       now decided-then-filed, which is how it actually arises in a
+       negotiation: their ask is answered, and a fresh ask lands on the same
+       clause. */
+    const first = await ask(win, c, '4', '<p>Undisputed invoices are payable within forty-five (45) days.</p>');
+    win.negoResolve(c, first.id, 'accepted', { side: 'owner', by: 'Wanjiru Kamau' });
     await ask(win, c, '4', '<p>Undisputed invoices are payable within forty-five (45) days, net of VAT.</p>',
       { side: 'owner', author: 'Wanjiru Kamau' });
 
@@ -78,10 +86,12 @@ describe('one row per clause', () => {
     const { win } = buildWorld({ negotiationView: true });
     const c = contract();
     win.negoInit(c);
+    /* RESTAGED 15 Aug 2026: decided first, then the new filing — two live
+       rivals no longer leave the funnel (the second supersedes the first). */
     const first = await ask(win, c, '4', '<p>Payable within forty-five (45) days.</p>');
+    win.negoResolve(c, first.id, 'accepted', { side: 'owner', by: 'Wanjiru Kamau' });
     const second = await ask(win, c, '4', '<p>Payable within forty-five (45) days, net of VAT.</p>',
       { side: 'owner', author: 'Wanjiru Kamau' });
-    win.negoResolve(c, first.id, 'accepted', { side: 'owner', by: 'Wanjiru Kamau' });
 
     const r = win.rlQueueRows(c, { side: 'owner' })[0];
     assert.equal(r.lead.id, second.id,
@@ -110,10 +120,12 @@ describe('a row never reads as finished while something under it is unanswered',
     const { win } = buildWorld({ negotiationView: true });
     const c = contract();
     win.negoInit(c);
+    /* RESTAGED 15 Aug 2026: accept theirs, then file ours — the roll-up state
+       the funnel still produces, now that two live rivals supersede. */
     const a = await ask(win, c, '4', '<p>Payable within forty-five (45) days.</p>');
+    win.negoResolve(c, a.id, 'accepted', { side: 'owner', by: 'Wanjiru Kamau' });
     await ask(win, c, '4', '<p>Payable within forty-five (45) days, net of VAT.</p>',
       { side: 'owner', author: 'Wanjiru Kamau' });
-    win.negoResolve(c, a.id, 'accepted', { side: 'owner', by: 'Wanjiru Kamau' });
 
     const r = win.rlQueueRows(c, { side: 'owner' })[0];
     assert.equal(r.state, 'open');
@@ -125,10 +137,12 @@ describe('a row never reads as finished while something under it is unanswered',
     const { win } = buildWorld({ negotiationView: true });
     const c = contract();
     win.negoInit(c);
+    /* RESTAGED 15 Aug 2026: each filed against a table with no live rival on
+       the clause — the order a real negotiation reaches disagreeing answers. */
     const a = await ask(win, c, '4', '<p>Payable within forty-five (45) days.</p>');
+    win.negoResolve(c, a.id, 'accepted', { side: 'owner', by: 'Wanjiru Kamau' });
     const b = await ask(win, c, '4', '<p>Payable within forty-five (45) days, net of VAT.</p>',
       { side: 'owner', author: 'Wanjiru Kamau' });
-    win.negoResolve(c, a.id, 'accepted', { side: 'owner', by: 'Wanjiru Kamau' });
     win.negoResolve(c, b.id, 'rejected', { side: 'counterparty', by: 'Erik Lindqvist' });
 
     const r = win.rlQueueRows(c, { side: 'owner' })[0];
@@ -247,9 +261,17 @@ describe('which one am I on', () => {
     const { win } = buildWorld({ negotiationView: true });
     const c = contract();
     win.negoInit(c);
-    await ask(win, c, '6', '<p>Notice within twenty-one (21) days.</p>');
+    /* TWO LIVE CHANGES ON ONE CLAUSE IS A LEGACY STATE since 15 Aug 2026 —
+       the funnel supersedes the first at the second's filing. Contracts
+       written before that rule still hold the pair, and this row must go on
+       reading them honestly, so the fixture stages the stored record by hand:
+       file both, then restore the superseded one to pending as an old
+       contract would carry it. */
+    const older = await ask(win, c, '6', '<p>Notice within twenty-one (21) days.</p>');
     await ask(win, c, '6', '<p>Notice within twenty-one (21) days, in writing.</p>',
       { side: 'owner', author: 'Wanjiru Kamau' });
+    older.status = 'pending';
+    delete older.supersededBy; delete older.supersededAt;
     /* The category is deliberately NOT a word in the clause's heading:
        negoRiskOf matches a deviation's category against the clause label as
        well as its quote, so "Force majeure" here would flag both changes and
@@ -336,10 +358,16 @@ describe('what the column renders', () => {
     const { win } = buildWorld({ negotiationView: true });
     const c = contract();
     win.negoInit(c);
+    /* STAGED AS A LEGACY RECORD since 15 Aug 2026: two live changes on one
+       clause no longer leave the funnel (the second supersedes the first), but
+       contracts written before that rule hold exactly this shape and the
+       column must render them unchanged — so the pair is restored by hand and
+       every assertion below is byte-identical to the original claim. */
     const a = await ask(win, c, '2', '<p>Fortnightly consignments.</p>');
-    await ask(win, c, '4', '<p>Payable within forty-five (45) days.</p>');
+    const b = await ask(win, c, '4', '<p>Payable within forty-five (45) days.</p>');
     await ask(win, c, '4', '<p>Payable within forty-five (45) days, net of VAT.</p>',
       { side: 'owner', author: 'Wanjiru Kamau' });
+    b.status = 'pending'; delete b.supersededBy; delete b.supersededAt;
     win.negoResolve(c, a.id, 'accepted', { side: 'owner', by: 'Wanjiru Kamau' });
 
     const html = win.rlQueueHtml(c, { side: 'owner' });

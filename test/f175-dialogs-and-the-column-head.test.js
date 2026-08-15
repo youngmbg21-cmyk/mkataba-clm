@@ -33,7 +33,9 @@ const INDEX = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 
 const BODY =
   '<h1>Cane Supply Agreement</h1><p>Between Wanjiru Catering Ltd and Nordfrakt Logistik AB</p>'
-  + '<h2>Clause 5 · Pricing</h2><p>Prices are fixed for the first twelve months.</p>';
+  + '<h2>Clause 5 · Pricing</h2><p>Prices are fixed for the first twelve months.</p>'
+  /* A second clause for THEIR ask to land on — see withBoth. */
+  + '<h2>Clause 6 · Delivery</h2><p>Deliveries are made weekly to the mill gate.</p>';
 
 const ME    = { id: 'u_me',  name: 'Wanjiru Kamau',  role: 'admin', email: 'wanjiru@w.co.ke' };
 const SALES = { id: 'u_sal', name: 'Achieng Otieno', role: 'legal', email: 'achieng@w.co.ke' };
@@ -208,9 +210,13 @@ describe('f175 · the Tracked Changes head is a rule, not a box', () => {
    this section pins, because they are the ones that make the control safe. */
 async function withBoth(){
   const p = await stage();                       // one ask of ours already filed
-  const cl = p.win.negoClauseList(p.c)[0];
+  /* THEIR ask lands on the SECOND clause (15 Aug 2026): filed on the same
+     clause as ours it is a counter now, and the funnel supersedes ours — one
+     live change, and a filter with nothing to split. Mine-and-theirs
+     coexisting is a two-clause state, which is what a real book looks like. */
+  const cl = p.win.negoClauseList(p.c).find(x => x.num === '6');
   await p.win.negoEditClause(p.c, cl.clauseId,
-    '<p>Prices may be revised each quarter.</p>',
+    '<p>Deliveries are made fortnightly to the mill gate.</p>',
     { side: 'counterparty', author: 'Amina · Nordfrakt' });
   p.win.rlSetCardFilter('all');
   p.win.renderRedline();
