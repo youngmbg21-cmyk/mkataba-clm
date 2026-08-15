@@ -517,6 +517,13 @@ Two ways forward, owner's call:
     day of work before this feature can start, and it fixes a fault that will
     otherwise bite the first time anybody creates a stream.
 
+**RESOLVED 15 Aug 2026 (owner): HR was only an example — take the first.** The
+browse step ships on the six built-in streams plus Other, and no server work is
+needed for this feature. The per-browser custom-folder fault is REAL and stays
+recorded above, but it is not this feature's blocker and must not be bundled
+into it; it bites the first time somebody actually creates a stream, and that
+is the day to fix it.
+
 ### Still open
 
 Whether an unassigned template should be **suggested** a stream from its
@@ -526,3 +533,66 @@ Other. It would seed most of the library in one pass. Recommendation: offer it
 as a one-time suggestion an admin confirms, never a silent assignment — a
 guessed classification wearing a fact's clothes is how a template ends up in a
 stream nobody chose.
+
+
+---
+
+## OI-12 — The clause pills say too much, and say it in words
+
+*Owner-asked 15 Aug 2026, from a screenshot of a clause carrying two pills.
+Rendered and decided in outline; not built.*
+
+**What the reader sees.** Every change on a clause draws a pill on the clause's
+own top row, reading `CHG-006 · Their ask · ✓ adopted`. With two on a clause
+the heading row is mostly pills; with four it wraps and the clause heading is
+pushed off its own line.
+
+**MEASURED, at the sheet's default type:** a pill with a verdict is **218px**
+and one without is **129px**. Four on a clause needs about 694px of a heading
+row — which is why the reported screenshot has them running into each other.
+
+**The decision (owner): COLOUR IS WHOSE, GLYPH IS WHERE IT STANDS.**
+The pill becomes the change id and one glyph:
+
+  · `✓` adopted  ·  `?` awaiting an answer  ·  `✗` refused  ·  `↩` withdrawn
+
+and the side is carried by the pill's colour — **amber = theirs, teal = yours**.
+Proposed pills measure **102px and 98px**: a two-pill clause goes from 347px to
+200px, and a four-pill clause from ~694px to ~410px.
+
+**IT REUSES THE COLOUR LANGUAGE THE PRODUCT ALREADY HAS.** The change card's
+left edge is already teal for ours and amber for theirs (`data-rl-origin`). The
+pill is amber for BOTH sides today, which means the paper currently carries no
+side colour at all. So this is not a new colour language — it is the card's own,
+finally reaching the clause. A second one would be worse than the words.
+
+**AND THE RULE HAS NO EXCEPTIONS, which is what the render settled.** The first
+draft gave a REFUSED pill its own ruby fill. Two refused asks — one theirs, one
+ours — then drew as two identical ruby pills, and the side was gone. So colour
+answers one question and one only. Refusal is carried by `✗` and by the
+strikethrough already on the wording; the ruby stays where it belongs, on the
+card's edge and in the column.
+
+**WHAT MUST TRAVEL WITH IT, or the pill is a colour nobody can read:**
+  · **The tooltip names the side in words** — "Their ask" / "Your ask" — so the
+    fact is never colour-only.
+  · **The change card in the column already names the author and the
+    organisation**, which is the second carrier this rulebook's own pipeline-ring
+    section requires ("every slice is named in the key besides").
+  · **THE TWO COLOURS MUST BE MEASURED UNDER COLOUR-VISION DEFICIENCY BEFORE
+    THIS SHIPS.** Amber against teal is far apart in both hue and lightness and
+    will very probably pass, but this project's standard is to measure and
+    record the figure, not to assume it — the pipeline ring did exactly that and
+    rejected a pair on the strength of it. A dot inside the pill was rendered as
+    the fallback if the measurement disappoints.
+  · **Both themes.** Rendered in dark as well as light.
+
+**One thing the render turned up that is a defect today, not a redesign:**
+`tagFor` gives a suffix to accepted and rejected only, so a PENDING change and a
+WITHDRAWN one draw an identical bare pill on the paper. Under the new set they
+are `?` and `↩` and are told apart for the first time.
+
+**Still open:** whether `?` is the right glyph for "awaiting an answer". It was
+the owner's own suggestion and it is unambiguous, but a question mark reads as
+"unknown" or "help" in most interfaces rather than "waiting". A hollow dot is
+the alternative. Rendered with `?`; worth one look before it is fixed.
