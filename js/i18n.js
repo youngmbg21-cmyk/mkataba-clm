@@ -1810,6 +1810,7 @@ const STRINGS = {
     /* The owner's own way back from a refusal they gave. Deliberately says what
        it costs — the clause goes back to how it was and their copy follows —
        because the button itself says only one word. */
+    ng_reopen_ask_title: 'Put #{id} back on the table. The clause returns to the wording it had before this was settled, and the ask goes back to Accept or Reject.',
     ng_reopen_refusal_title: 'Take your refusal back — this ask returns to Accept or Reject, the clause goes back to the agreed wording, and their copy is brought up to date.',
     ng_they_refused: 'They refused this. Take it off the table so it stops standing between you — the record keeps the ask and the refusal.',
     ng_put_ask_back: 'Put this ask back on the table',
@@ -5678,6 +5679,7 @@ const STRINGS = {
     ng_who_can_read: 'Vem som kan läsa svaret',
     ng_reply_on_change: 'Svara på ändringen…',
     ng_answered_and_sent: 'Du har svarat och det har gått till dem. Ett annat svar arkiveras som ett nytt beslut, och det går också iväg.',
+    ng_reopen_ask_title: 'Lägg tillbaka #{id} på bordet. Klausulen återgår till lydelsen den hade innan detta avgjordes, och begäran går tillbaka till Godkänn eller Avslå.',
     ng_reopen_refusal_title: 'Ta tillbaka ditt avslag — begäran går tillbaka till Godkänn eller Avslå, klausulen återgår till den avtalade lydelsen och deras kopia uppdateras.',
     ng_they_refused: 'De avslog detta. Ta bort det från bordet så att det inte längre står mellan er — handlingen behåller både begäran och avslaget.',
     ng_put_ask_back: 'Lägg tillbaka begäran på bordet',

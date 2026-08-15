@@ -153,12 +153,35 @@ describe('f207-B — a counter takes the table', () => {
     assert.ok(!queued.includes(ours.id), 'off the round queue');
   });
 
-  test('the card says what it countered', async () => {
-    const { win, c, theirs } = await contested();
+  /* ---- CLAIM REVERSED IN PLACE, 15 Aug 2026 ----
+     This asserted that the countering card CARRIES a line naming the ask it
+     replaced — "Counters #CHG-005 — the earlier ask stays on the record". The
+     owner saw it on the real page and ruled it out: "avoid adding more
+     information to the cards unless I ask you to."
+
+     A fair call, and the reason is the card's budget. It already carries an
+     id, a status, a clause, an author, a company, the marked wording, a reason
+     and a row of verbs; a ninth line about record-keeping was the least of
+     those and it pushed the wording down.
+
+     THE FACT IS NOT LOST, which is what makes the removal safe rather than a
+     deletion: `counterOf` is still stamped by the funnel (asserted above),
+     still travels on the payload (asserted below), and the audit trail still
+     names both changes. What went is one line of prose on a card. */
+  test('the card does NOT explain what it countered — that stays in the record', async () => {
+    const { win, c, theirs, ours } = await contested();
     const cards = win.redlineChangeCardsHtml(c, { side: 'owner', canAct: true });
     const card = cards.split('data-nego-card=').find(x => x.includes(theirs.id)) || '';
-    assert.match(card, /counter/i, 'the countering card carries the line');
-    assert.ok(card.includes('CHG-001'), 'naming the ask it replaced');
+    assert.ok(card, 'the countering card is on the table');
+    assert.ok(!/counter/i.test(card), 'and carries no counter line');
+    assert.ok(!card.includes(ours.id),
+      'nor names the ask it replaced — that is what the audit trail is for');
+    /* The record still knows, which is the half that must not be lost. */
+    assert.equal(win.negoChangeById(c, theirs.id).counterOf, ours.id,
+      'counterOf is still stamped on the change itself');
+    assert.ok((c.audit || []).some(a => /\b(counter|supersed)/i.test(
+      [a.action, a.detail].filter(Boolean).join(' '))),
+      'and the audit trail still names the supersession');
   });
 
   test('when the loser was OUR OWN UNSENT draft, the owner is told', async () => {

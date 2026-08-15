@@ -73,9 +73,20 @@ const check = (name, pass, detail) => {
     }, { oursId: b.ours.id, theirsId: b.theirs.id });
     check('the superseded card has left the column', !bench.oursCard, JSON.stringify(bench.oursCard));
     check('the counter is the one live card', bench.theirsCard);
-    check('and it says what it countered, as visible pixels',
-      bench.counterLineVisible && new RegExp(b.ours.id).test(bench.counterLine || ''),
-      bench.counterLine);
+    /* ---- CLAIM REVERSED IN PLACE, 15 Aug 2026 ----
+       This asserted the countering card CARRIES a line naming what it replaced,
+       as visible pixels. The owner saw it on the real page and ruled it out:
+       "avoid adding more information to the cards unless I ask you to." The
+       card already carries an id, a status, a clause, an author, a company, the
+       marked wording, a reason and its verbs; a ninth line about record-keeping
+       pushed the wording down for the least of them.
+
+       The FACT is untouched and is asserted above — counterOf is stamped on the
+       change, and f207 pins the audit line and the payload. What went is one
+       line of prose. So the claim becomes its opposite, measured the same way. */
+    check('and the card does NOT explain what it countered — the record does',
+      !bench.counterLineVisible && !bench.counterLine,
+      bench.counterLine === null ? 'no counter line drawn' : 'STILL DRAWN: ' + bench.counterLine);
     check('the paper carries ONE live tag — one proposal on the table',
       bench.tagsOnPaper.length === 1 && bench.tagsOnPaper[0].includes(b.theirs.id),
       JSON.stringify(bench.tagsOnPaper));

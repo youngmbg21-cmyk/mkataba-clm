@@ -827,3 +827,73 @@ both were worth reading.
 stubs `window.toast` to a no-op, so it cannot answer a timing question. The
 function was lifted out of `js/core.js` and run in a live page, where the box
 was measured appearing, still being there at 2.7 seconds, and gone by itself.
+
+---
+
+## OI-15 — An adopted change was invisible on the contract, and the way out of the refusal did not exist
+
+**FIXED 15 Aug 2026** — pinned by `f208` (sections 6 and 7), `f207` and
+`competing-redlines-verify` (one claim reversed in each). Kept as the record.
+
+*Owner-reported 15 Aug 2026 on MK-311, three things in one message with three
+screenshots. All three reproduced against the real renderers before anything
+was touched.*
+
+### 1 · "Avoid adding more information to the cards unless I ask you to"
+
+The card carried a line reading *"Counters #CHG-005 — the earlier ask stays on
+the record"*, added unasked when supersession shipped. Removed.
+
+The card's budget is the reason: it already carries an id, a status, a clause,
+an author, a company, the marked wording, a reason and a row of verbs. A ninth
+line about record-keeping was the least of those and it pushed the wording
+down.
+
+**The fact is not lost.** `counterOf` is still stamped, still travels on the
+payload, and the audit trail still names both changes — which is where a record
+belongs. The builder is kept as an empty stub rather than deleted, because it
+is exported and called from two places; a third caller must not be able to
+bring the line back through a door nobody remembered.
+
+### 2 · The contract did not reflect a change that had been accepted
+
+**The serious one.** A clause showed, in full, a sentence that the other side's
+ask had struck out and we had adopted.
+
+The document canvas is built from the **round baseline**, and adopting a change
+does not move the baseline — only closing the round does. So an adopted change
+reaches the paper only by having its own marks drawn there. The canvas drew one
+change per clause, the newest, and gave the rest a tag. On a clause carrying an
+adopted change *and* a newer pending rival, the rival was drawn over the
+baseline and the adoption was nowhere on the page.
+
+**The fix is a rule about measurement, not about age** — the same reading the
+accept guard already uses. Prefer the newest change measured against what *now
+stands*; failing that, draw the last adopted change, because its wording is
+what stands. Where nothing is adopted the two readings are one text, so first
+rounds and older two-rival clauses are untouched byte for byte.
+
+**No re-diffing.** The stored marks are inside the fingerprint, and a mark
+drawn from a fresh comparison would not be the mark the other side verified.
+This picks between changes already on the record; it never rewrites one.
+
+### 3 · "Nothing happens and I am therefore stuck on awaiting you"
+
+The guard was right — the two asks were rivals, and accepting the second would
+have quietly undone the first. It refuses in words, naming the way out: *reopen
+it first, or reject this one*.
+
+**The way out did not exist.** An adopted change has no card. The column keeps
+pending changes, and a *refused* one survives; an *accepted* one does not. So
+the reader was told to press a button that was drawn nowhere on the page, and
+the loop had no exit.
+
+A refusal whose stated remedy cannot be reached is worse than no remedy. Reopen
+now sits in the panel the ask tag opens — the one place a settled change is
+still visible, and on the clause the refusal is about. It presses the same
+re-open the card uses where a card exists, never a second path.
+
+**Narrow by design:** settled changes only, our seat only, never on a
+counterparty's copy and never on a read-only one. Their page has its own answer
+for its own answers, and the standing rule is that a refusal is reopened by the
+side that gave it.

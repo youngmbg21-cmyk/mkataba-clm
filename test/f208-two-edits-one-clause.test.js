@@ -491,3 +491,219 @@ describe('f208 · the press clears the store the card is drawn from', () => {
     assert.equal(c.changes.length, 0, 'retracted, with no hook in sight');
   });
 });
+
+/* ============================================================
+   6 — THE PAPER MUST SHOW WHAT WAS ADOPTED
+   ============================================================
+   Owner-reported 15 Aug 2026 on MK-311, third of three in one message, with a
+   screenshot: "it seems that in CHG-003, i accepted a change on the clause but
+   the contract does not reflect that change." The clause on the page still
+   carried, in full, a sentence their ask had struck out and we had adopted.
+
+   THE CAUSE. redlineDocHtml is built from the ROUND BASELINE, and adopting a
+   change does not move the baseline — only closing the round does. An adopted
+   change reaches the paper only by having its own marks drawn there. The
+   canvas drew ONE change per clause, the newest, and gave the rest a tag; so
+   on a clause carrying an adopted change AND a newer pending rival, the rival
+   was drawn over the baseline and the adoption was nowhere. The contract on
+   screen was untrue, which is the worst thing that page can be.
+
+   THE FIX is a rule about MEASUREMENT, not about age — the same reading
+   negoMeasuredAlike already gave the accept guard. Prefer the newest change
+   measured against what NOW STANDS (an edit written on top of an adoption
+   already contains it); failing that, draw the LAST ADOPTED change, because
+   its wording IS what stands. With nothing adopted the two readings are one
+   text, so first rounds and legacy two-rival clauses are untouched. */
+describe('f208 · the paper shows what was adopted', () => {
+
+  /* Their ask deletes a sentence, we adopt it, and then ANOTHER of their asks
+     lands measured against the same baseline — a rival, which is the state the
+     report was made in. */
+  async function adoptedThenRival(w){
+    const c = contract();
+    w.win.negoInit(c);
+    const cl = clauseOf(w.win, c, '2');
+    const BASE = cl.text;
+    const cut = BASE.replace(/,\s*payable within thirty \(30\) days\./, '.');
+    assert.notEqual(cut, BASE, 'the fixture really removes a phrase');
+    const adopted = await w.win.negoEditClause(c, cl.clauseId, `<p>${cut}</p>`,
+      { side: 'counterparty', author: 'Juno Limited', summary: 'drop the payment terms' });
+    assert.ok(w.win.negoResolve(c, adopted.id, 'accepted', { side: 'owner', by: ME.name }));
+    const rival = await w.win.negoFileChange(c, { clauseId: cl.clauseId, changeType: 'modify',
+      side: 'counterparty', author: 'Juno Limited', oldText: BASE,
+      newText: BASE.replace('thirty (30)', 'sixty (60)'), summary: 'longer terms' });
+    return { c, cl, BASE, cut, adopted, rival };
+  }
+
+  test('THE REPORTED FAULT: the adopted wording is on the paper, not the old wording', async () => {
+    const w = world();
+    const { c, cl, adopted, rival } = await adoptedThenRival(w);
+    assert.equal(w.win.negoChangeById(c, adopted.id).status, 'accepted');
+    assert.equal(w.win.negoChangeById(c, rival.id).status, 'pending');
+
+    const doc = w.win.redlineDocHtml(c, { side: 'owner' });
+    const sec = doc.split('<section').find(s => s.includes(`data-clause="${cl.clauseId}"`)) || '';
+    const words = sec.replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/g, ' ').replace(/\s+/g, ' ');
+    assert.ok(!/payable within thirty \(30\) days/.test(words),
+      'the phrase the adopted ask removed is GONE from the clause: ' + words.slice(0, 200));
+  });
+
+  test('and both asks still carry their tag — nothing is hidden', async () => {
+    const w = world();
+    const { c, cl, adopted, rival } = await adoptedThenRival(w);
+    const doc = w.win.redlineDocHtml(c, { side: 'owner' });
+    const sec = doc.split('<section').find(s => s.includes(`data-clause="${cl.clauseId}"`)) || '';
+    assert.ok(sec.includes(adopted.id), 'the adopted one has a tag');
+    assert.ok(sec.includes(rival.id), 'and so does the rival');
+    /* The jump anchor still names every change on the clause, lead first. */
+    const anchor = /data-nego-card-anchor="([^"]*)"/.exec(sec);
+    assert.ok(anchor, 'the anchor is drawn');
+    assert.ok(anchor[1].split(/\s+/).includes(adopted.id));
+    assert.ok(anchor[1].split(/\s+/).includes(rival.id));
+  });
+
+  test('AN EDIT WRITTEN ON TOP OF AN ADOPTION still draws the newer one', async () => {
+    /* The ordinary sequential case, and the one that must not have moved: the
+       second ask was measured against the adopted text, so it already contains
+       it, and drawing it shows both. This is what the page did before. */
+    const w = world();
+    const { c, cl, first, second } = await adoptedThenEdited(w);
+    assert.equal(w.win.negoChangeById(c, first.id).status, 'accepted');
+    const doc = w.win.redlineDocHtml(c, { side: 'owner' });
+    const sec = doc.split('<section').find(s => s.includes(`data-clause="${cl.clauseId}"`)) || '';
+    const words = sec.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+    assert.ok(/Producer/.test(words), 'the adopted rename is on the paper');
+    assert.ok(/exclusive property/.test(words), 'and so is the newer ask being made on top of it');
+  });
+
+  test('with nothing adopted the drawn wording is untouched — no churn', async () => {
+    const w = world();
+    const c = contract();
+    w.win.negoInit(c);
+    const cl = clauseOf(w.win, c, '1');
+    const only = await w.win.negoEditClause(c, cl.clauseId,
+      '<p>The Producer shall manufacture the products.</p>',
+      { side: 'counterparty', author: 'Juno Limited', summary: 'one ask' });
+    const doc = w.win.redlineDocHtml(c, { side: 'owner' });
+    const sec = doc.split('<section').find(s => s.includes(`data-clause="${cl.clauseId}"`)) || '';
+    assert.ok(sec.includes(only.id));
+    assert.match(sec, /<del|<ins/, 'a single live ask still draws its marks exactly as before');
+  });
+});
+
+/* ============================================================
+   7 — A SETTLED ASK HAS A WAY BACK
+   ============================================================
+   Owner-reported in the same message: "when I reopen a card and I click accept
+   nothing happens and i am therefore stuck on awaiting you."
+
+   The accept guard (section 3 above) refuses a second acceptance on a clause
+   whose rival is already adopted, and it refuses IN WORDS naming the way out —
+   "reopen it first, or reject this one". THE WAY OUT DID NOT EXIST. An adopted
+   change has no card: _rlIsLive keeps pending only, and a refused one survives
+   on `contestedAny` while an accepted one does not. So the reader was told to
+   press a button that was drawn nowhere on the page, and the loop had no exit.
+
+   A refusal whose stated remedy cannot be reached is worse than no remedy —
+   this codebase's own standing rule is that a refusal needs its way forward on
+   the same screen. It is now on the ask tag, which is the one place a settled
+   change is still visible and is on the clause the refusal is about. */
+describe('f208 · a settled ask can be reopened from its tag', () => {
+
+  /* The reveal holds nested markup, so splitting on '<div class="rl-askrv'
+     truncates at the first inner div and would read the block as empty — a
+     test that passes for the wrong reason is worse than one that fails. Cut
+     from the opening tag to the end of the document instead and read forward;
+     only one reveal is ever open at a time (_rlAskOpen is one value). */
+  const revealOf = (doc, id) => {
+    const at = doc.indexOf(`data-rl-askrv="${id}"`);
+    return at < 0 ? '' : doc.slice(at, at + 1600);
+  };
+
+  async function adoptedRivalPair(w){
+    const c = contract();
+    w.win.negoInit(c);
+    const cl = clauseOf(w.win, c, '2');
+    const BASE = cl.text;
+    const adopted = await w.win.negoEditClause(c, cl.clauseId,
+      `<p>${BASE.replace('thirty (30)', 'forty-five (45)')}</p>`,
+      { side: 'counterparty', author: 'Juno Limited', summary: 'forty-five days' });
+    assert.ok(w.win.negoResolve(c, adopted.id, 'accepted', { side: 'owner', by: ME.name }));
+    const rival = await w.win.negoFileChange(c, { clauseId: cl.clauseId, changeType: 'modify',
+      side: 'counterparty', author: 'Juno Limited', oldText: BASE,
+      newText: BASE.replace('thirty (30)', 'ninety (90)'), summary: 'ninety days' });
+    return { c, cl, adopted, rival };
+  }
+
+  test('THE STATE THE OWNER WAS STUCK IN, reproduced', async () => {
+    const w = world();
+    const { c, adopted, rival } = await adoptedRivalPair(w);
+    w.toasts.length = 0;
+    w.win.negoResolve(c, rival.id, 'accepted', { side: 'owner', by: ME.name });
+    assert.equal(w.win.negoChangeById(c, rival.id).status, 'pending',
+      'accepting is refused — the guard is right, they are rivals');
+    assert.match(w.toasts.map(t => t.text).join(' '), /reopen it first/i,
+      'and it names the way out');
+    /* THE PART THAT MADE IT A TRAP: the change it tells you to reopen has no
+       card to reopen it on. */
+    const ids = w.win.redlineCardIds(c, { side: 'owner' });
+    assert.ok(!ids.includes(adopted.id),
+      'the adopted change is not in the column — so the remedy was unreachable');
+  });
+
+  test('its tag opens a reveal that carries Reopen', async () => {
+    const w = world();
+    const { c, cl, adopted } = await adoptedRivalPair(w);
+    w.win.rlAskSetOpen(adopted.id);
+    const doc = w.win.redlineDocHtml(c, { side: 'owner', canEdit: true });
+    const rv = revealOf(doc, adopted.id);
+    assert.ok(rv, 'the reveal is drawn for the adopted ask');
+    assert.match(rv, new RegExp(`data-nego-undo="${adopted.id}"`),
+      'and offers the engine\'s own re-open — not a second path');
+    assert.match(rv, /Reopen/i, 'in words');
+    w.win.rlAskResetOpen();
+  });
+
+  test('reopening frees the rival — the loop closes', async () => {
+    const w = world();
+    const { c, adopted, rival } = await adoptedRivalPair(w);
+    w.win.negoResolve(c, adopted.id, 'pending', { side: 'owner', by: ME.name });
+    assert.equal(w.win.negoChangeById(c, adopted.id).status, 'pending');
+    w.win.negoResolve(c, rival.id, 'accepted', { side: 'owner', by: ME.name });
+    assert.equal(w.win.negoChangeById(c, rival.id).status, 'accepted',
+      'the second ask goes through once the first is off the table');
+  });
+
+  test('a PENDING ask is not offered a reopen — there is nothing to undo', async () => {
+    const w = world();
+    const { c, rival } = await adoptedRivalPair(w);
+    w.win.rlAskSetOpen(rival.id);
+    const doc = w.win.redlineDocHtml(c, { side: 'owner', canEdit: true });
+    const rv = revealOf(doc, rival.id);
+    assert.ok(rv, 'the pending ask still reveals its wording');
+    assert.ok(!/data-nego-undo/.test(rv), 'but carries no reopen');
+    w.win.rlAskResetOpen();
+  });
+
+  test('a read-only reader is never offered it', async () => {
+    const w = world();
+    const { c, adopted } = await adoptedRivalPair(w);
+    w.win.rlAskSetOpen(adopted.id);
+    const ro = w.win.redlineDocHtml(c, { side: 'owner', readonly: true });
+    assert.ok(!/data-nego-undo/.test(ro), 'nothing to press on a copy that cannot act');
+    w.win.rlAskResetOpen();
+  });
+
+  test('and the counterparty NEVER gets our reopen', async () => {
+    /* Their seat mounts this very renderer. A refusal is reopened by the side
+       that GAVE it; this is the owner undoing the owner's own decision, and
+       their page has its own answer for its own answers. */
+    const w = world();
+    const { c, adopted } = await adoptedRivalPair(w);
+    w.win.rlAskSetOpen(adopted.id);
+    const theirs = w.win.redlineDocHtml(c, { side: 'counterparty', canEdit: true });
+    assert.ok(theirs.includes('rl-askrv'), 'they still see what was asked');
+    assert.ok(!/data-nego-undo/.test(theirs), 'and cannot reopen our decision');
+    w.win.rlAskResetOpen();
+  });
+});

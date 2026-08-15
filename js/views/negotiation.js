@@ -1980,20 +1980,25 @@ function negoCardsHtml(c, opts){
   }
   return negoLiveCardsHtml(c, opts);
 }
-/* THE REPLACEMENT IS NEVER UNEXPLAINED. A counter that took the table names
-   the ask it answered, on the card, on both seats and both renderers — the
-   superseded wording is one hover away (its summary and author ride the
-   tooltip, read from the record where supersession keeps it). One helper for
-   the two card renderers, because the pair drifting apart is the duplication
-   this codebase's first rule exists to prevent. */
-function negoCounterLineHtml(c, ch){
-  if (!ch || !ch.counterOf) return '';
-  const old = (typeof negoAllChanges === 'function' ? negoAllChanges(c) : (c.changes || []))
-    .find(x => x && x.id === ch.counterOf);
-  const tip = old ? [old.summary, old.author ? '— ' + old.author : ''].filter(Boolean).join(' ') : '';
-  return `<div class="rl-counterline nego-counterline"${tip ? ` title="${_nea(tip)}"` : ''}>${
-    i18t('ng_counters_line', { id: _ne(String(ch.counterOf)) })}</div>`;
-}
+/* ---- THE COUNTER LINE IS OFF THE CARD (owner-asked, 15 Aug 2026) ----
+   It read "Counters #CHG-005 — the earlier ask stays on the record" and it was
+   added, unasked, when supersession shipped. The owner's instruction on seeing
+   it: "avoid adding more information to the cards unless I ask you to."
+
+   It is a fair call and the reason is the card's own budget. A change card is
+   already carrying an id, a status, a clause, an author, a company, the
+   wording with its marks, a reason and a row of verbs; a ninth line about
+   record-keeping is the least of those and it pushed the wording down. The
+   FACT is not lost — `counterOf` is still stamped by the funnel, still
+   travels on the payload, and the audit trail still names both changes, which
+   is where a record belongs.
+
+   The builder is kept as a stub rather than deleted: it is exported, and both
+   card renderers call it. A stub that returns nothing cannot be reached by
+   some third caller and start drawing the line again through a door nobody
+   remembered. `ng_counters_line` and `.rl-counterline` / `.nego-counterline`
+   are STALE — flag any mention. */
+function negoCounterLineHtml(){ return ''; }
 function negoLiveCardsHtml(c, opts){
   const side = opts.side || 'owner';
   /* THE REVIEWER'S POSTURE. Missed here on the first pass, which is exactly the
@@ -5916,6 +5921,33 @@ function rlAskRevealHtml(c, ch, side, opts = {}){
     author && ch.status === 'pending' ? i18t('ng_tag_from', { who: _ne(author) }) : '',
     when ? negoWhen(when) : '',
   ].filter(Boolean).join(' &middot; ');
+  /* ---- A SETTLED ASK NEEDS A WAY BACK, AND THIS IS THE ONLY PLACE IT HAS ONE
+     ---- (owner-reported 15 Aug 2026, MK-311: "when I reopen a card and I click
+     accept nothing happens and i am therefore stuck on awaiting you.")
+
+     Reproduced. The accept guard refuses a second acceptance on a clause whose
+     rival is already adopted, and it refuses IN WORDS, naming the way out:
+     "reopen it first, or reject this one". The way out did not exist. An
+     ADOPTED change has no card — _rlIsLive keeps pending only, and a refused
+     one survives on `contestedAny` while an accepted one does not — so the
+     reader was told to press a button that is not drawn anywhere on the page.
+     A refusal whose stated remedy cannot be reached is worse than no remedy.
+
+     The tag on the clause is where it belongs: it is the one place a settled
+     change is still visible, it is what the reader presses to read the ask,
+     and it is on the clause the refusal is about. This uses the ENGINE's own
+     re-open (data-nego-undo → decide(id,'pending')) rather than a second
+     path — the same control the card carries where the card exists.
+
+     OUR SEAT ONLY, and narrowly. The counterparty's page has its own answer
+     for its own answers (data-nego-redecide, behind a deliberate press) and
+     the mirror rule that a refusal is reopened by the side that GAVE it. This
+     is the owner reopening a decision the owner made; widening it would be a
+     different change with a different rule to walk. */
+  const settled = ch.status === 'accepted' || (ch.status === 'rejected' && !ch.withdrawn);
+  const mayReopen = settled && side !== 'counterparty'
+    && !(typeof window !== 'undefined' && window.PORTAL_MODE)
+    && !opts.readonly && opts.canEdit !== false;
   return `<div class="rl-askrv rl-askrv-${theirs ? 'them' : 'us'}" data-rl-askrv="${_nea(ch.id)}">
     <span class="rl-askrv-bar" aria-hidden="true"></span>
     <div class="rl-askrv-bd">
@@ -5923,6 +5955,11 @@ function rlAskRevealHtml(c, ch, side, opts = {}){
       <div class="rl-askrv-wd">${wording}</div>
       ${ch.status === 'rejected' && ch.reply
         ? `<span class="rl-askrv-why">“${_ne(ch.reply)}”</span>` : ''}
+      ${mayReopen ? `<div class="rl-askrv-act">
+        <button type="button" class="rl-askrv-reopen" data-nego-undo="${_ne(ch.id)}"
+          data-rl-reopen="${_ne(ch.id)}"
+          title="${_nea(i18t('ng_reopen_ask_title', { id: ch.id }))}">${i18t('ng_change_decision')}</button>
+      </div>` : ''}
     </div>
   </div>`;
 }
@@ -7006,6 +7043,19 @@ function redlineLayoutCss(){
   .redline-page .rl-askrv-wd{font-size:calc(13px * var(--doc-scale,1));line-height:1.6}
   .redline-page .rl-askrv-why{display:block;margin-top:calc(5px * var(--doc-scale,1));
     font-size:calc(11.5px * var(--doc-scale,1));color:var(--st-ruby-fg);font-style:italic}
+  /* The way back out of a settled decision. It rides ON the clause, so it takes
+     the sheet's own scale like every other piece of furniture there — the
+     lesson of 13 and 15 Aug, applied at the point of writing this time rather
+     than after a third report. */
+  .redline-page .rl-askrv-act{margin-top:calc(7px * var(--doc-scale,1))}
+  .redline-page .rl-askrv-reopen{font:inherit;font-family:var(--font-body);
+    font-size:calc(11px * var(--doc-scale,1));font-weight:600;line-height:1.4;
+    padding:calc(4px * var(--doc-scale,1)) calc(10px * var(--doc-scale,1));
+    border:1px solid var(--color-divider);border-radius:6px;
+    background:var(--color-surface);color:var(--color-neutral-700);cursor:pointer;
+    transition:border-color .15s,color .15s}
+  .redline-page .rl-askrv-reopen:hover{border-color:var(--color-neutral-500);color:var(--color-neutral-900)}
+  .redline-page .rl-askrv-reopen:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
   /* A READING POSTURE IS NOT ON THE PAPER. Print and every export take the
      contract, not what somebody had open while reading it. */
   @media print{ .redline-page .rl-askrv{display:none} }
@@ -11042,14 +11092,61 @@ function redlineDocHtml(c, opts = {}){
   const body = clauses.filter(cl => !_rvOnly || _rvOnly.has(String(cl.clauseId))).map(cl => {
     const after = (insertsAfter.get(cl.clauseId) || []).map(insertBlock).join('');
     const chs = byClause.get(cl.clauseId) || [];
-    /* The NEWEST change is the one whose redline is drawn in the clause —
-       the same change the old one-per-clause map kept, so the wording on the
-       page is untouched by the list. Everything else on the clause keeps its
-       TAG and its place in the jump anchor; their wording reads on the card
-       and in the pop-out, which is where a proposal's detail has always
-       lived. */
-    const ch = chs.length ? chs[chs.length - 1] : null;
-    const rest = chs.slice(0, -1);
+    /* ---- THE PAPER MUST SHOW WHAT WAS ADOPTED (owner-reported 15 Aug 2026)
+       ----
+       This was `chs[chs.length - 1]` — draw the NEWEST change and give the
+       rest a tag only. Reported on MK-311 with a screenshot: a sentence was
+       struck out by their ask, we adopted it, and the clause on screen still
+       carried the sentence in full. Reproduced before it was touched.
+
+       WHY. The canvas is built from the ROUND BASELINE (negoClauseList), and
+       adopting a change does not move the baseline — only closing the round
+       does. An adopted change reaches the page only by having its own marks
+       drawn. So on a clause carrying an adopted change AND a newer pending
+       one, "newest wins" drew the pending one's marks over the baseline and
+       the adoption was nowhere on the paper. The contract on screen was
+       untrue, which is the worst thing this page can be.
+
+       THE RULE, and it is a rule about MEASUREMENT rather than about age —
+       the same reading negoMeasuredAlike gave the accept guard:
+         · Prefer the newest change measured against what NOW STANDS. A change
+           written on top of an adoption already contains it, so drawing that
+           one shows the adopted wording in its own un-struck text. This is
+           every ordinary sequential edit, and it is what was drawn before.
+         · Where no change was measured against what stands — the rivals case,
+           which is exactly the reported one — draw the LAST ADOPTED change
+           instead. Its marks ARE the standing wording, and the rival keeps
+           its tag, which opens its own wording where the detail belongs.
+         · With nothing adopted, "what stands" is the baseline and every
+           change qualifies, so the newest is drawn: first rounds and legacy
+           two-rival clauses are untouched, byte for byte.
+
+       WHAT IS NOT DONE HERE, deliberately: no re-diffing. The stored ops are
+       inside the fingerprint and a mark drawn from a fresh diff would not be
+       the mark the other side verified. This picks between changes already on
+       the record; it never rewrites one. */
+    const standingNow = (typeof negoClauseNowById === 'function')
+      ? (negoClauseNowById(c, cl.clauseId) || cl) : cl;
+    const standsText = String(standingNow.text == null ? '' : standingNow.text);
+    const measuredOnStanding = x => (typeof negoMeasuredFrom === 'function')
+      ? negoMeasuredFrom(x) === standsText
+      : String((x && x.oldText) == null ? '' : x.oldText) === standsText;
+    let ch = null;
+    for (let i = chs.length - 1; i >= 0; i--){
+      if (measuredOnStanding(chs[i])){ ch = chs[i]; break; }
+    }
+    if (!ch){
+      /* Nothing composes with the standing text. The wording that STANDS is
+         what the last adoption made it, so that is the change whose marks the
+         paper carries. */
+      for (let i = chs.length - 1; i >= 0; i--){
+        if (chs[i] && chs[i].status === 'accepted' && chs[i].changeType !== 'insertClause'){
+          ch = chs[i]; break;
+        }
+      }
+    }
+    if (!ch) ch = chs.length ? chs[chs.length - 1] : null;
+    const rest = chs.filter(x => x !== ch);
     /* Lead first: three selection helpers read this attribute expecting one id
        and take the first token, and the first token must stay the change whose
        marks are actually on screen. rlLinkFocus matches with [~=], so every
