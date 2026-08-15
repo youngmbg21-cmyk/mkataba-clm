@@ -134,13 +134,24 @@ describe('f198 — it is transport, not a record', () => {
        trail says something else, and there are two answers to one question. */
     const row = await rowOf(W.unrestricted, 'MK-R1');
     assert.ok(row._raisedBy, 'it is on the row before we send it back');
+    /* RE-POINTED, NOT RELAXED (15 Aug 2026, collision sweep pass 1). The
+       stripping used to be written inline in saveContract; it now lives in
+       savePayload, which is the ONE place the wire payload is built — precisely
+       so the conflict path and the ordinary path cannot send two different
+       shapes of the same record. Same claim, same four fields, read where the
+       code actually is; the server-side half below is unchanged and is what
+       proves it rather than describing it. */
     const src = fs.readFileSync(path.join(ROOT, 'js/core.js'), 'utf8');
-    const save = src.slice(src.indexOf('async function saveContract'));
+    const save = src.slice(src.indexOf('function savePayload(c){'));
     assert.match(save.slice(0, 1200), /delete payload\._raisedBy/, 'stripped on the way out');
     assert.match(save.slice(0, 1200), /delete payload\._raisedAt/);
     /* The three dates go the same way, for the same reason. */
     assert.match(save.slice(0, 1200), /delete payload\._signedAt/);
     assert.match(save.slice(0, 1200), /delete payload\._lastAuditAt/);
+    /* and saveContract is still the only door — it builds nothing of its own */
+    const body = src.slice(src.indexOf('async function saveContract'));
+    assert.match(body.slice(0, 900), /const payload=savePayload\(c\);/,
+      'saveContract must go through the one payload builder, or the strip is one path wide');
 
     /* And proved against the server rather than off the source: send the row
        back the way the product would, then read the stored record. */

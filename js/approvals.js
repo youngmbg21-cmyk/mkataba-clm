@@ -198,7 +198,25 @@ function approvalState(c){
   return { required:true, ok, chain, next, canApproveNext, rejected, stale,
     approverLabel: next?approverLabelOf(next.approver):'' };
 }
-function approveContract(c, comment){
+/* WHAT A PRESS DID IS SAID AFTER IT LANDS, NOT BEFORE (collision sweep
+   finding 2 and its silent twin). Two admins could both satisfy one step; the
+   second one's browser announced "All approvals complete — signing unlocked"
+   the instant the button moved, before the save had been attempted, and the
+   save then found the step already answered. A promise made about a write that
+   has not happened yet is the same fault as the audit line for an act that did
+   not land, said out loud instead of in the trail.
+
+   The chain still moves synchronously, so every reader of it — the panel, the
+   sign button, the dashboard count — is unchanged. Only the SENTENCE waits.
+   Where there is no save path at all (the static mode, a test world holding
+   only this module) the flush is skipped and the sentence is said at once,
+   which is what it always did. */
+async function approvalWriteSettled(c){
+  try{ if(typeof flushSaves==='function') await flushSaves(); }
+  catch(e){ /* the toast below reads the record, whatever the write did */ }
+  return c;
+}
+async function approveContract(c, comment){
   const st=approvalState(c);
   if(!st.required){ return; }
   if(!st.next){ toast(i18t('ap_chain_complete')); return; }
@@ -206,26 +224,46 @@ function approveContract(c, comment){
   const u=currentUser();
   const stamp=approvalStamp(c);
   const was=st.next.status;
-  c.approvalChain=st.chain.map(s=> s.ruleId===st.next.ruleId
+  const ruleId=st.next.ruleId, stepName=st.next.name;
+  c.approvalChain=st.chain.map(s=> s.ruleId===ruleId
     ? {...s, status:'approved', by:u.name, at:nowISO(), comment:comment||null, stamp, drift:undefined}
     : s);
-  logAudit(c,'Approved',`Step "${st.next.name}" approved by ${u.name} (${ROLE_LABEL[u.role]})`
+  logAudit(c,'Approved',`Step "${stepName}" approved by ${u.name} (${ROLE_LABEL[u.role]})`
     +` — for ${fmtMoneyShort(stamp.value)} and the wording as it stands`
     +(was==='stale'?' · re-approved after the contract changed':was==='rejected'?' · previously refused':''));
   persist(c); renderSignButton(c); renderAuditSection(c);
-  const done=approvalState(c).ok;
-  toast(done?'All approvals complete — signing unlocked':'Step approved — next approver notified');
+  await approvalWriteSettled(c);
+  let after; try{ after=approvalState(c); }catch(e){ return; }
+  const mine=(after.chain||[]).find(s=>s&&s.ruleId===ruleId);
+  /* A step that came back carrying somebody else's answer means this press did
+     not land — the server keeps the first decision. Say so, by name, instead of
+     reporting a chain this person did not complete. */
+  if(mine && !(mine.status==='approved' && String(mine.by||'')===String(u.name||''))){
+    toast(`"${stepName}" was already ${mine.status==='rejected'?'refused':'decided'} by ${mine.by||'a colleague'} — your approval was not recorded`,'err');
+    renderSignButton(c); renderAuditSection(c);
+    return;
+  }
+  toast(after.ok?'All approvals complete — signing unlocked':'Step approved — next approver notified');
 }
-function rejectApprovalStep(c, comment){
+async function rejectApprovalStep(c, comment){
   const st=approvalState(c); if(!st.next) return;
   const u=currentUser(); if(!st.canApproveNext){ toast(`This step needs ${approverLabelOf(st.next.approver)}`,'err'); return; }
-  c.approvalChain=st.chain.map(s=> s.ruleId===st.next.ruleId
+  const ruleId=st.next.ruleId, stepName=st.next.name;
+  c.approvalChain=st.chain.map(s=> s.ruleId===ruleId
     ? {...s, status:'rejected', by:u.name, at:nowISO(), comment:comment||s.comment||null} : s);
   if(c.status!=='Signed') c.status='Under Review';
-  logAudit(c,'Approval rejected',`Step "${st.next.name}" rejected by ${u.name}`
+  logAudit(c,'Approval rejected',`Step "${stepName}" rejected by ${u.name}`
     +(comment?` — “${String(comment).slice(0,500)}”`:'')
     +' — the contract goes back to its owner to revise and resubmit');
   persist(c); renderSignButton(c); renderAuditSection(c);
+  await approvalWriteSettled(c);
+  let chain; try{ chain=approvalState(c).chain||[]; }catch(e){ return; }
+  const mine=chain.find(s=>s&&s.ruleId===ruleId);
+  if(mine && !(mine.status==='rejected' && String(mine.by||'')===String(u.name||''))){
+    toast(`"${stepName}" was already ${mine.status==='approved'?'approved':'decided'} by ${mine.by||'a colleague'} — your refusal was not recorded`,'err');
+    renderSignButton(c); renderAuditSection(c);
+    return;
+  }
   toast(i18t('ap_step_rejected'));
 }
 /* THE WAY OUT OF A REFUSAL.
@@ -955,7 +993,7 @@ function wireApprovalPanel(c){
    "have they seen it" — it reads shares.first_opened_at, which is stamped once
    on the first real open and never re-counted. */
 
-Object.assign(window,{overseerCfg,saveOverseerCfg,overseerEnforced,overseerFor,OVERSEER_STEP_ID,approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,approvalPanelHtml,approvalChainHtml,signerRouteHtml,wireApprovalPanel});
+Object.assign(window,{overseerCfg,saveOverseerCfg,overseerEnforced,overseerFor,OVERSEER_STEP_ID,approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approvalWriteSettled,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,approvalPanelHtml,approvalChainHtml,signerRouteHtml,wireApprovalPanel});
 
 /* ============================================================
    HOW MUCH MAY THIS PERSON SIGN FOR

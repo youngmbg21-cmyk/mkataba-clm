@@ -140,6 +140,11 @@ db.exec(`
     id TEXT PRIMARY KEY, json TEXT NOT NULL,
     name TEXT, counterparty TEXT, folder TEXT, status TEXT, value REAL, expiry TEXT, is_upload INTEGER,
     seq INTEGER, version INTEGER NOT NULL DEFAULT 1, updated_at TEXT);
+  -- The before-picture a merge needs (collision sweep finding 5). One row per
+  -- save, pruned to the last CONTRACT_VERSIONS_KEPT per contract.
+  CREATE TABLE IF NOT EXISTS contract_versions (
+    id TEXT NOT NULL, version INTEGER NOT NULL, json TEXT NOT NULL, at TEXT NOT NULL,
+    PRIMARY KEY (id, version));
   CREATE INDEX IF NOT EXISTS idx_contracts_folder ON contracts(folder);
   CREATE INDEX IF NOT EXISTS idx_contracts_status ON contracts(status);
   CREATE INDEX IF NOT EXISTS idx_contracts_seq ON contracts(seq);
@@ -353,6 +358,34 @@ function syncFts(c) {
       .run(c.id, c.name || '', c.counterparty || '', contractSearchBody(c));
   } catch (_) {}
 }
+/* ---------- THE VERSION A COPY WAS TAKEN FROM, KEPT ----------
+   Collision sweep finding 5, 15 Aug 2026. A save that arrives out of date can
+   only be merged if the version it was TAKEN FROM is still readable: without it
+   "did this person change the counterparty, or is their copy simply older than
+   the person who did?" has no answer, and the two look identical on the wire.
+
+   So every write keeps its own before-picture. Cheap by construction — the same
+   JSON the row already stores, one extra row per save — and bounded, because a
+   contract that has been saved four hundred times does not need four hundred
+   before-pictures to merge the save somebody started ninety seconds ago.
+   Anything older than the window simply is not there, and rebaseContract says
+   so out loud rather than guessing (see `baseKnown`). */
+const CONTRACT_VERSIONS_KEPT = 12;
+function keepContractVersion(id, version, json) {
+  try {
+    db.prepare('INSERT OR REPLACE INTO contract_versions (id,version,json,at) VALUES (?,?,?,?)')
+      .run(id, version, json, now());
+    db.prepare('DELETE FROM contract_versions WHERE id=? AND version <= ?')
+      .run(id, Number(version) - CONTRACT_VERSIONS_KEPT);
+  } catch (_) { /* a before-picture is an aid to merging, never the write itself */ }
+}
+/* The stored record AS IT WAS at one version, or null where it has aged out. */
+function contractAtVersion(id, version) {
+  try {
+    const r = db.prepare('SELECT json FROM contract_versions WHERE id=? AND version=?').get(id, Number(version));
+    return r ? JSON.parse(r.json) : null;
+  } catch (_) { return null; }
+}
 function upsertContract(c, version) {
   const j = JSON.stringify(c);
   const u = c.upload || {};
@@ -377,6 +410,7 @@ function upsertContract(c, version) {
     template_id: c.libraryTemplateId || null,
     template_version_id: c.libraryTemplateVersionId || null,
   });
+  keepContractVersion(c.id, version, j);
   syncFts(c);
 }
 // One-time FTS backfill for rows that predate the index.
@@ -410,6 +444,29 @@ let seqCounter = null;
 function nextSeq() {
   if (seqCounter == null) { const r = db.prepare('SELECT MAX(seq) m FROM contracts').get(); seqCounter = (r && r.m) || 0; }
   return ++seqCounter;
+}
+/* ---------- A CONTRACT REFERENCE IS MINTED WHERE THE RECORD IS ----------
+   Collision sweep finding 4. `nextId()` in js/core.js is `'MK-' + (++uid)` off
+   a counter handed out at sign-in and frozen for the sitting, so two colleagues
+   who each create anything in the same minute mint the SAME reference — and the
+   loser was then asked the H-4 question, which describes a different event
+   entirely and destroys one of the two documents whichever way it is answered.
+
+   This is the one place a reference is handed out, and it is deliberately
+   RESERVING rather than reading: the counter is written before the id is
+   returned, so two losers in the same second get two different answers. It also
+   steps past any number the contracts table already holds, because a counter
+   that has been walked backwards (or restored from an older backup) would
+   otherwise hand out a live id with perfect confidence.
+
+   The template route mints its own the same way and has since it was written —
+   see POST /api/templates/:id/contracts, which this generalises. */
+function freeContractId() {
+  let n = (Number(getSetting('uid')) || 100) + 1;
+  const taken = db.prepare('SELECT 1 FROM contracts WHERE id=?');
+  while (taken.get('MK-' + n)) n++;
+  setSetting('uid', n);
+  return 'MK-' + n;
 }
 // One-time migration: split a legacy single-blob workspace into per-contract rows.
 function migrateBlobIfNeeded() {
@@ -2325,6 +2382,327 @@ const SEAL_ACQUIRABLE = new Set(['hash', 'execution', 'sealVersion', 'signedAt']
 const isEmptyish = v => v === undefined || v === null || v === '';
 const stable = v => JSON.stringify(v === undefined ? null : v);
 
+/* ============================================================
+   A SAVE THAT ARRIVED LATE IS REBASED, NOT REPLAYED
+   ============================================================
+   Collision sweep findings 1, 2, 5 and 6 (15 Aug 2026), which are one fault
+   wearing four coats. HaTi saves a contract by sending the WHOLE record. When
+   two people held it at once the second save was refused — correctly — and the
+   browser then asked "keep yours, or load theirs?". "Keep mine" RE-SENT THE
+   ENTIRE STALE COPY under the winner's version number, so every field, tracked
+   change, signature and approval decision the sender had never seen was deleted
+   by a save that was never about any of them. The audit trail survived, because
+   it is append-only here, so the record ended up SAYING one thing and HOLDING
+   another: "Grace Njeri countersigned", with no signature on the contract.
+
+   THE RULE ALREADY EXISTED IN THIS FILE, TWICE, and had simply never been
+   applied to contracts themselves — H-3 ("never include folderAccess in a
+   whole-blob save … that is what let a stale, unrelated settings save silently
+   revert a folder restriction") and org branding ("a key this save does not
+   carry is a key it does not touch"). This is the same sentence said a third
+   time, at the scale of a whole record: A KEY THIS PERSON DID NOT CHANGE IS A
+   KEY THIS SAVE DOES NOT TOUCH.
+
+   IT IS HERE, NOT ONLY IN THE BROWSER, because the server is the authority — a
+   merge that lives in one client is a merge the next client does not have, and
+   the whole reason this hole was reachable is that the wire accepted a whole
+   record with no way to say which parts of it the sender meant.
+
+   THREE-WAY, and the third leg is what makes it possible: `base` is the record
+   as it stood at the version the sender's copy was taken from (contract_versions
+   above). Without it "they sent the old counterparty" and "they deliberately
+   typed the old counterparty back" are the same bytes. Where the before-picture
+   has aged out the merge still runs, conservatively — every act-bearing list is
+   still unioned so nothing of anybody's is destroyed, plain fields fall to the
+   sender, and `baseKnown:false` rides back so the audit line can say so. */
+
+/* WHAT A LIST OF ACTS IS KEYED BY. Each of these carries other people's work,
+   so it is merged item by item rather than replaced wholesale. The key is read
+   off how the product itself writes the array — a change by its id, a signature
+   by the same name|email|at triple the signing guards below already use. */
+const REBASE_LISTS = {
+  changes: x => String((x && x.id) || ''),
+  signatures: x => `${(x && x.name) || ''}|${(x && x.email) || ''}|${(x && x.at) || ''}`,
+  comments: x => String((x && x.id) || `${(x && x.at) || ''}|${(x && x.author) || ''}|${String((x && x.text) || '').slice(0, 160)}`),
+  approvalChain: x => String((x && x.ruleId) || ''),
+  obligations: x => String((x && x.id) || `${(x && x.desc) || ''}|${(x && x.due) || ''}`),
+  rounds: x => String((x && x.id) != null ? x.id : (x && x.n)),
+  versions: x => String((x && x.id) || `${(x && x.at) || ''}|${(x && x.by) || ''}`),
+  signerPlan: x => String((x && x.id) != null ? x.id : (x && x.order)),
+  documents: x => String((x && x.fileId) || (x && x.id) || ''),
+  audit: x => stable(x),
+};
+/* ============================================================
+   TWO FIRST REDLINES ARE NOT BOTH #CHG-001
+   ============================================================
+   Collision sweep finding 6, second half. `negoNextId` is `'CHG-' +
+   (++c.negotiation.seq)` counted on each browser's own copy of the contract, so
+   two colleagues filing the first change on one agreement both mint CHG-001 —
+   two different asks, on two different clauses, by two different people,
+   wearing one id. The audit trail held two "#CHG-001 proposed by" lines against
+   one CHG-001 on the record, and the fingerprint chain verified clean, because
+   it checks each change on its own and cannot see that a sibling existed.
+
+   AND AFTER THE REBASE IT BECAME A DELETION. rebaseList keys the changes array
+   by id, so the two rivals read as ONE item that both people had "moved", the
+   sender's won, and the other person's redline was dropped by a merge whose
+   whole purpose is that nothing is dropped.
+
+   THE MERGE IS THE ONE DOOR TWO INDEPENDENTLY-MINTED LISTS CAN MEET AT, which
+   is why the renumber lives here rather than at the mint. A browser that has
+   read the record counts from the record's own seq, the counterparty's
+   proposals are numbered by OUR seq when they arrive, and a plain stale save is
+   refused before it can land — so the only way two rival numbers reach one
+   record is a rebase. Fixing it at the mint would need a round trip before
+   every redline; fixing it here needs none, and the loser's browser adopts the
+   merged record back, so the new number is on their screen a moment later.
+
+   EXISTING CONTRACTS KEEP THE IDS THEY HAVE. Nothing is renumbered except a
+   change that arrived in THIS save and collided; the fingerprint does not
+   contain the id (see negoHashInput: contractRef | clauseId | changeType |
+   oldText | newText | author | createdAt | prevChangeHash | bodyHtml), so a
+   renumber cannot break a chain — the chain is by hash, not by number. */
+const CHG_NUM = /^CHG-(\d+)$/;
+const chgNum = id => { const m = CHG_NUM.exec(String(id == null ? '' : id)); return m ? Number(m[1]) : null; };
+const chgId = n => 'CHG-' + String(n).padStart(3, '0');
+/* The same change, or two changes wearing one id? Asked of the FINGERPRINT,
+   which is the change model's own identity for its content: equal hashes are
+   the same record, and a revision cites the wording it replaced on revisions[],
+   so "mine is a revision of theirs" (or the other way about) is a lookup rather
+   than a guess. Where a record carries no hash at all the clause and the author
+   have to answer, which is weaker and is the reason the product issues one. */
+function sameChangeRecord(a, b) {
+  if (!a || !b) return false;
+  if (a.hash && b.hash) {
+    if (String(a.hash) === String(b.hash)) return true;
+    const cites = (x, h) => (Array.isArray(x.revisions) ? x.revisions : [])
+      .some(r => r && String(r.hash) === String(h));
+    return cites(a, b.hash) || cites(b, a.hash);
+  }
+  return String(a.clauseId || '') === String(b.clauseId || '')
+      && String(a.author || '') === String(b.author || '');
+}
+function rebaseRenumberChanges(base, mine, theirs, report) {
+  const mineCh = Array.isArray(mine && mine.changes) ? mine.changes : null;
+  const theirCh = Array.isArray(theirs && theirs.changes) ? theirs.changes : null;
+  if (!mineCh || !theirCh || !mineCh.length || !theirCh.length) return mine;
+  const T = new Map(theirCh.map(x => [String((x && x.id) || ''), x]));
+  const moved = new Map();
+  let top = 0;
+  const seen = x => { const n = chgNum(x && x.id); if (n != null && n > top) top = n; };
+  theirCh.forEach(seen); mineCh.forEach(seen);
+  (Array.isArray(base && base.changes) ? base.changes : []).forEach(seen);
+  top = Math.max(top, Number((mine.negotiation || {}).seq) || 0, Number((theirs.negotiation || {}).seq) || 0);
+  for (const x of mineCh) {
+    const id = String((x && x.id) || '');
+    const rival = T.get(id);
+    if (!x || !rival || chgNum(id) == null || sameChangeRecord(x, rival)) continue;
+    const to = chgId(++top);
+    moved.set(id, to);
+    report.renumbered.push({ from: id, to, author: x.author || '', clause: x.clauseLabel || x.clauseId || '',
+      keptBy: rival.author || '' });
+  }
+  if (!moved.size) return mine;
+  const at = id => moved.get(String(id == null ? '' : id)) || id;
+  const out = { ...mine };
+  out.changes = mineCh.map(x => {
+    if (!x) return x;
+    const y = { ...x, id: at(x.id) };
+    if (x.counterOf) y.counterOf = at(x.counterOf);
+    if (x.supersededBy) y.supersededBy = at(x.supersededBy);
+    return y;
+  });
+  /* A review names the changes it covers by id, and an ask raised in the same
+     save as the change it covers would otherwise point at a number that no
+     longer exists — a hold on nothing, which is a hold that is not enforced. */
+  if (mine.review && Array.isArray(mine.review.requests)) {
+    out.review = { ...mine.review, requests: mine.review.requests.map(r => (r && Array.isArray(r.changeIds))
+      ? { ...r, changeIds: r.changeIds.map(at) } : r) };
+  }
+  /* AND THE LINES THIS SAVE WROTE ABOUT IT FOLLOW THE NUMBER. Same rule as the
+     dropped-approval line beside it: the trail may not name a change the record
+     does not carry. Only lines this save ADDED are eligible — nothing already
+     on the record is touched, because the trail is evidence. */
+  if (Array.isArray(mine.audit)) {
+    const onRecord = new Set((Array.isArray(theirs && theirs.audit) ? theirs.audit : []).map(stable));
+    const re = new RegExp('\\b(' + [...moved.keys()].map(k => k.replace(/[-]/g, '\\-')).join('|') + ')\\b', 'g');
+    out.audit = mine.audit.map(a => (a && !onRecord.has(stable(a)) && typeof a.detail === 'string' && re.test(a.detail))
+      ? { ...a, detail: a.detail.replace(re, m => at(m)) } : a);
+  }
+  /* The slot counter follows the highest number now in use, or the next mint
+     from this record starts the same collision over again. */
+  if (mine.negotiation && typeof mine.negotiation === 'object')
+    out.negotiation = { ...mine.negotiation, seq: Math.max(Number(mine.negotiation.seq) || 0, top) };
+  return out;
+}
+const APPROVAL_DECIDED = new Set(['approved', 'rejected']);
+const indexBy = (list, key) => {
+  const m = new Map();
+  for (const x of (Array.isArray(list) ? list : [])) { const k = key(x); if (!m.has(k)) m.set(k, x); }
+  return m;
+};
+
+function rebaseList(field, base, mine, theirs, report) {
+  const key = REBASE_LISTS[field];
+  const B = indexBy(base, key), M = indexBy(mine, key), T = indexBy(theirs, key);
+  const known = base !== undefined && base !== null;
+  const out = [];
+  const done = new Set();
+  const push = (k, v) => { if (!done.has(k)) { done.add(k); if (v !== undefined) out.push(v); } };
+
+  for (const [k, theirItem] of T) {
+    if (M.has(k)) {
+      const myItem = M.get(k);
+      if (stable(myItem) === stable(theirItem)) { push(k, theirItem); continue; }
+      /* A SIGNING ROW'S "signed" IS AN ACT AND ONLY EVER GOES ONE WAY. Merged
+         field by field rather than picked, because the two copies disagree
+         about a fact (they signed) and about an intention (the row's name or
+         order) at the same time. */
+      if (field === 'signerPlan' && theirItem && theirItem.signed && !(myItem && myItem.signed)) {
+        push(k, { ...myItem, signed: true, at: theirItem.at, by: theirItem.by, signature: theirItem.signature });
+        continue;
+      }
+      /* ONE QUESTION, ONE ANSWER. A decision recorded on the step SINCE this
+         copy was taken is an act by somebody who got there first, and the first
+         answer stands — including where both said yes, because "approved by
+         Amina" and "approved by Daniel" are two different facts about who
+         answered. The loser's press is reported back so their screen and their
+         audit line can be corrected rather than left claiming an act that never
+         landed.
+
+         A decision this copy ALREADY KNEW ABOUT is not this rule's business:
+         that is the ordinary "send it back and approve it again" path, and the
+         base comparison below handles it, which is what keeps resubmit — and an
+         approver changing their own mind — working. */
+      if (field === 'approvalChain' && theirItem && APPROVAL_DECIDED.has(String(theirItem.status))
+          && (!known || !B.has(k) || stable(theirItem) !== stable(B.get(k)))) {
+        push(k, theirItem);
+        if (myItem && APPROVAL_DECIDED.has(String(myItem.status)))
+          report.droppedApprovals.push({ ruleId: k, name: myItem.name || theirItem.name || '',
+            status: String(myItem.status), keptStatus: String(theirItem.status), keptBy: theirItem.by || '' });
+        continue;
+      }
+      if (!known) { push(k, myItem); report.overwrote.push(field); continue; }
+      const iMoved = stable(myItem) !== stable(B.get(k));
+      const theyMoved = stable(theirItem) !== stable(B.get(k));
+      if (iMoved) { push(k, myItem); if (theyMoved) report.overwrote.push(field); }
+      else push(k, theirItem);
+      continue;
+    }
+    /* On the record, absent from this save. Their addition, or my deletion —
+       and my deletion only counts where they left the item exactly as I last
+       saw it. An item they have MOVED since my copy was taken is their act and
+       is never dropped by somebody who could not have known about it.
+       THE TRAIL IS EXEMPT: it is append-only here and nothing, merge included,
+       may shorten it. */
+    if (field !== 'audit' && known && B.has(k) && stable(theirItem) === stable(B.get(k))) { done.add(k); continue; }
+    push(k, theirItem);
+  }
+
+  for (const [k, myItem] of M) {
+    if (done.has(k)) continue;
+    /* Absent from the record. Mine to add — unless the record dropped it and I
+       did not touch it, which is their deletion and stands. */
+    if (known && B.has(k) && stable(myItem) === stable(B.get(k))) { done.add(k); continue; }
+    push(k, myItem);
+  }
+  return out;
+}
+
+/* Fields no merge may touch: transport, and the id itself. */
+const REBASE_SKIP = new Set(['id', '_v', '_light', '_loaded', '_seq', '_valuesHidden']);
+
+function rebaseContract(base, mine, theirs) {
+  const report = { baseKnown: !!base, keptTheirs: [], keptMine: [], overwrote: [], droppedApprovals: [],
+    renumbered: [] };
+  /* BEFORE ANYTHING IS MERGED: a change this save minted under a number the
+     record has already given to somebody else's change is given a free one, so
+     the union below sees two items rather than one item two people moved. */
+  mine = rebaseRenumberChanges(base, mine, theirs, report);
+  const out = { ...theirs };
+  const keys = [...new Set([...Object.keys(theirs || {}), ...Object.keys(mine || {})])];
+  for (const k of keys) {
+    if (REBASE_SKIP.has(k)) continue;
+    if (REBASE_LISTS[k] && (Array.isArray(mine[k]) || Array.isArray(theirs[k]))) {
+      out[k] = rebaseList(k, base ? base[k] : undefined, mine[k], theirs[k], report);
+      continue;
+    }
+    /* THE ONE SENTENCE: a key this person did not change is a key this save
+       does not touch. Where the before-picture is missing the sender's own copy
+       is all there is to go on, so their value stands and the overwrite is
+       named rather than assumed away. */
+    const iMoved = base ? stable(mine[k]) !== stable(base[k]) : stable(mine[k]) !== stable(theirs[k]);
+    if (!iMoved) { out[k] = theirs[k]; continue; }
+    const theyMoved = base ? stable(theirs[k]) !== stable(base[k]) : true;
+    out[k] = mine[k];
+    if (theyMoved && stable(mine[k]) !== stable(theirs[k])) report.overwrote.push(k);
+  }
+  /* WHAT ACTUALLY HAPPENED, read off the result rather than tallied on the way
+     — so the sentence in the audit trail cannot drift from the record it
+     describes. */
+  for (const k of keys) {
+    if (REBASE_SKIP.has(k) || k === 'audit') continue;
+    if (stable(out[k]) !== stable(mine[k])) report.keptTheirs.push(k);
+    if (stable(out[k]) !== stable(theirs[k])) report.keptMine.push(k);
+  }
+  report.keptTheirs = [...new Set(report.keptTheirs)];
+  report.keptMine = [...new Set(report.keptMine)];
+  report.overwrote = [...new Set(report.overwrote)];
+
+  /* AN AUDIT LINE FOR AN ACT THAT DID NOT LAND IS THE FAULT THIS WHOLE SWEEP IS
+     ABOUT, said from the other side. Where a second approver's decision was
+     dropped because the step was already answered, the line they wrote about it
+     goes with it — otherwise the trail names an approver the record does not
+     carry, which is exactly "a yes in the history with no matching fact in the
+     contract". Only lines this save ADDED are eligible; nothing already on the
+     record is ever touched here. */
+  if (report.droppedApprovals.length && Array.isArray(out.audit)) {
+    const onRecord = new Set((Array.isArray(theirs && theirs.audit) ? theirs.audit : []).map(stable));
+    out.audit = out.audit.filter(a => {
+      if (onRecord.has(stable(a))) return true;
+      const action = String((a && a.action) || '');
+      if (!/^(Approved|Approval rejected)$/i.test(action)) return true;
+      const detail = String((a && a.detail) || '');
+      return !report.droppedApprovals.some(d => d.name && detail.includes(`"${d.name}"`));
+    });
+  }
+  return { merged: out, report };
+}
+
+/* ONE LINE, IN ENGLISH, NAMING WHAT WAS OVERWRITTEN AND WHOSE IT WAS — so the
+   person whose work lost can find it even though nothing pushes it to them. A
+   record keeps English, the standing rule in this codebase. */
+const REBASE_LINE_NAMES = 8;   // a trail line is read by a person, not parsed
+function rebaseAuditLine(user, atVersion, report, theirs, base) {
+  const list = ks => ks.slice(0, REBASE_LINE_NAMES).join(', ')
+    + (ks.length > REBASE_LINE_NAMES ? ` and ${ks.length - REBASE_LINE_NAMES} more` : '');
+  const said = [];
+  if (report.keptTheirs.length) said.push(`kept from the stored record: ${list(report.keptTheirs)}`);
+  if (report.keptMine.length) said.push(`kept from this save: ${list(report.keptMine)}`);
+  if (report.overwrote.length) said.push(`OVERWROTE: ${list(report.overwrote)}`);
+  else said.push('nothing of theirs was overwritten');
+  if (report.droppedApprovals.length)
+    said.push(report.droppedApprovals.map(d =>
+      `the approval step "${d.name}" was already ${d.keptStatus} by ${d.keptBy || 'somebody else'}, so this decision was not recorded`).join('; '));
+  if (report.renumbered.length)
+    said.push(report.renumbered.map(r =>
+      `#${r.from} was already used by ${r.keptBy || 'a colleague'}'s change, so ${r.author || 'this'} change on `
+      + `${r.clause || 'that clause'} is recorded as #${r.to}`).join('; '));
+  if (!report.baseKnown)
+    said.push('the version this copy was taken from is no longer on file, so every field this save carried was kept');
+  const other = lastWriterSince(theirs, base);
+  return { at: now(), user: user || 'System', action: 'Save conflict',
+    detail: `Saved over version ${atVersion}${other ? `, which ${other} had just written` : ''} — ${said.join('; ')}.` };
+}
+/* Whose work this save landed on top of, read off the trail rather than
+   guessed: the last audit line the record gained since the sender's copy. */
+function lastWriterSince(theirs, base) {
+  const had = new Set((Array.isArray(base && base.audit) ? base.audit : []).map(stable));
+  const gained = (Array.isArray(theirs && theirs.audit) ? theirs.audit : []).filter(a => !had.has(stable(a)));
+  for (let i = gained.length - 1; i >= 0; i--) if (gained[i] && gained[i].user) return gained[i].user;
+  return null;
+}
+
 // Save ONE contract with its own optimistic-lock version.
 app.put('/api/contracts/:id', auth, editor, (req, res) => {
   const { contract, baseVersion } = req.body || {};
@@ -2339,12 +2717,72 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   if (!inScope(scope, contract.folder))
     return res.status(403).json({ error: 'You do not have access to that value stream' });
   const cur = existing ? existing.version : 0;
-  if (Number(baseVersion || 0) !== cur) return res.status(409).json({ error: 'Version conflict — this contract changed on the server', version: cur });
-  const next = cur + 1;
-  const c = { ...contract }; delete c._v; delete c._light; delete c._loaded; delete c._valuesHidden;
-
+  /* ---------- "KEEP MINE" IS A REBASE, AND IT IS ASKED FOR BY NAME ----------
+     A save that is simply out of date is still refused, exactly as before —
+     nothing changes for any caller that does not ask. `rebase:true` is the
+     browser's H-4 answer ("keep yours and overwrite theirs") arriving as what
+     it always should have been: not "write my whole copy over theirs at their
+     version number", but "here is my copy and the version I took it from; work
+     out which parts of it are mine". Every guard below then runs against the
+     MERGED record, so a rebase can no more forge a signature or move a frozen
+     field than an ordinary save can. */
   let prev = null;
   if (existing) { try { prev = JSON.parse(existing.json); } catch (_) { prev = null; } }
+  /* ---------- A CREATE WHOSE REFERENCE IS TAKEN IS ITS OWN REFUSAL ----------
+     Collision sweep finding 4. Two colleagues each pressed "Create an
+     amendment" on the same master in the same minute; both browsers minted
+     MK-201 from the same sign-in counter; the second save came back "Version
+     conflict", and the browser asked the H-4 question: "Someone else saved a
+     change to MK-201 while you were editing. Keep yours and overwrite theirs,
+     or discard yours and load their version?"
+
+     THAT QUESTION IS THE WRONG SHAPE, and it is the wrong shape whichever way
+     it is answered — nobody edited this person's document. A different
+     colleague's different document was minted under the same reference, and
+     "keep mine" and "load theirs" both destroy one of the two. A stale save and
+     a reference collision are two different events and had exactly one answer
+     between them.
+
+     ASKED AS A DIFFERENCE, like every guard on this route: not "is this id
+     taken" — which is true of every ordinary save — but "does this save think
+     it is CREATING a contract (it carries no version) that already exists AND
+     WAS BORN SOMEWHERE ELSE". Birth is read off the trail's first line, which
+     every creation site in the product writes and which nothing may rewrite
+     (the append-only guard below). Same trail, same document: an ordinary stale
+     save from a browser that lost its version, and it keeps the 409 it has
+     always had. Different trail: two documents, one reference.
+
+     A FRESH REFERENCE RIDES BACK. The document that lost is a draft seconds
+     old, referenced by nothing, so re-minting it costs nothing and loses
+     nobody's work — which is why this is a refusal the browser can answer by
+     itself (saveContract's `idTaken` branch) rather than a question for a
+     person. The id is RESERVED by the mint, so two losers get two answers. */
+  const bornKey = s => {
+    const first = (Array.isArray(s && s.audit) ? s.audit : [])[0];
+    return first ? `${first.at || ''}|${first.user || ''}|${first.action || ''}` : '';
+  };
+  if (existing && prev && Number(baseVersion || 0) === 0
+      && bornKey(prev) && bornKey(contract) && bornKey(prev) !== bornKey(contract)) {
+    return res.status(409).json({
+      error: `${req.params.id} was created by somebody else a moment ago. Nothing of yours has been `
+        + 'overwritten — your document has been given a reference of its own.',
+      idTaken: true, freeId: freeContractId(), takenBy: (prev.audit[0] || {}).user || null });
+  }
+  const wantsRebase = !!(req.body && req.body.rebase);
+  const rebasing = wantsRebase && !!existing && !!prev && Number(baseVersion || 0) < cur;
+  if (Number(baseVersion || 0) !== cur && !rebasing)
+    return res.status(409).json({ error: 'Version conflict — this contract changed on the server', version: cur });
+  const next = cur + 1;
+  let c = { ...contract }; delete c._v; delete c._light; delete c._loaded; delete c._valuesHidden;
+  let rebaseReport = null, deskKeptBy = null, familyOrdinal = null;
+  if (rebasing) {
+    const snap = contractAtVersion(req.params.id, Number(baseVersion || 0));
+    const r = rebaseContract(snap, c, prev);
+    c = r.merged; delete c._v; delete c._light; delete c._loaded; delete c._valuesHidden;
+    rebaseReport = r.report;
+    c.audit = (Array.isArray(c.audit) ? c.audit : [])
+      .concat([rebaseAuditLine((req.user && req.user.name) || 'System', cur, r.report, prev, snap)]);
+  }
 
   /* A member without can_view_values was sent a record with the money stripped
      out. Saving it back must not write those holes over the stored contract, so
@@ -2512,6 +2950,51 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
      be one request wide: post yourself onto c.desk.contributors, then post the
      redline. The roster may only be moved by the lead or an admin, which is
      what deskMayManage says in the browser. */
+  /* ---------- WHOEVER FILED FIRST CLAIMED IT, AND THAT IS DECIDED HERE ----------
+     Collision sweep finding 6. deskClaimOnFile runs in the BROWSER, inside
+     negoFileChange, so two colleagues filing the first redline on one contract
+     each claimed the desk for themselves and both screens offered a Send only
+     one of them could hold. With the rule off the second save silently REPLACED
+     the lead; with it on the loser met the roster refusal — "Only Asha, or an
+     admin, can change who is on this negotiation" — which names a desk that
+     reader has never seen, on a contract they believe nobody had started.
+
+     THE CLAIM IS A FACT ABOUT WHO GOT THERE FIRST, so it is settled where the
+     record is, and it is settled WITH THE RULE OFF TOO: the claim has always
+     been stage-1 bookkeeping that gates nothing (deskOpen's own words — "the
+     first wins and the second is told who leads, rather than quietly taking it
+     from them"), and that sentence was true in one browser and false across
+     two. Off, the save still lands and the stored desk simply stands. On, the
+     redline it carries would be refused a line below anyway, so the loser is
+     refused HERE, in words that describe what actually happened.
+
+     ASKED AS A DIFFERENCE, like every guard on this route: not "may this person
+     touch the desk" — every ordinary save carries it unchanged — but "does this
+     save name a DIFFERENT lead than the record does, and is the caller entitled
+     to move it". A deliberate handover by the lead, or by an admin, is
+     untouched; that is deskMayManage's answer and this repeats it. */
+  if (prev && deskIsClaimed(prev)) {
+    const mineLead = String((deskOfRow(c) || {}).leadId || '');
+    const theirLead = String((deskOfRow(prev) || {}).leadId || '');
+    const seat = deskSeatOf(prev, req.user);
+    if (mineLead && mineLead !== theirLead && seat !== 'lead' && req.user.role !== 'admin') {
+      if (deskRuleOn())
+        return res.status(409).json({
+          error: `${deskLeadName(prev)} claimed this negotiation first, so your change was not filed. `
+            + `Ask ${deskLeadName(prev)} to add you to it, then file it again.`,
+          deskClaimFirst: true, deskClaimedBy: deskLeadName(prev) });
+      c.desk = prev.desk;
+      deskKeptBy = deskLeadName(prev);
+      /* AND THE LINE THIS SAVE WROTE ABOUT THE CLAIM GOES WITH THE CLAIM — the
+         same rule as the dropped approval and the renumbered change: the trail
+         may not record an act that did not land. Only this save's own line is
+         eligible; the record's own opening line is evidence and is untouched. */
+      const onRecord = new Set((Array.isArray(prev.audit) ? prev.audit : []).map(stable));
+      c.audit = (Array.isArray(c.audit) ? c.audit : []).filter(a => onRecord.has(stable(a))
+        || String((a && a.action) || '') !== 'Negotiation desk'
+        || !/^Negotiation opened by /.test(String((a && a.detail) || '')));
+    }
+  }
   if (prev && deskRuleOn() && deskIsClaimed(prev)) {
     const seat = deskSeatOf(prev, req.user);
     if (seat !== 'lead' && rosterMoved(prev, c) && !(seat === 'lead' || req.user.role === 'admin'))
@@ -2564,6 +3047,94 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
           + 'To change who signs, start the signing again — that discards the signatures already '
           + 'given and retires every signing link on the contract.',
         signingLocked: true });
+  }
+
+  /* ---------- A SIGNATURE ALREADY GIVEN IS NEVER TAKEN BACK BY A SAVE ----------
+     Collision sweep finding 1, 15 Aug 2026. A counterparty signed on their
+     link; a colleague who had been holding the contract since before that saved
+     an ordinary edit; the whole record went back and the signature went with
+     it. Nothing here treated REMOVING a signature as a change worth guarding —
+     every signing guard on this route watches marks being ADDED — so the
+     record ended up carrying "Countersigned" in its trail and no signature at
+     all, and the response had already been marked delivered, so it could never
+     come back.
+
+     ASKED AS A DIFFERENCE, like every guard around it: not "may this person
+     touch signatures" but "does this save REMOVE one that is on the record, or
+     un-sign a route row that is already signed". Everything else passes.
+
+     THE ONE PERMITTED CLEARING IS THE FULL RESTART, and it is recognised the
+     same way the route lock beside it recognises it — by its RESULT rather than
+     by a flag a client could send. signingRestart re-issues every row with a
+     fresh id, so a genuine restart shares no row id with the record it
+     replaces and leaves nothing signed anywhere. A save that keeps the row ids
+     and merely un-ticks them is not a restart; it is the collision. */
+  if (prev) {
+    const sigKey = x => `${(x && x.name) || ''}|${(x && x.email) || ''}|${(x && x.at) || ''}`;
+    const hadSigs = Array.isArray(prev.signatures) ? prev.signatures : [];
+    const nowSigs = new Set((Array.isArray(c.signatures) ? c.signatures : []).map(sigKey));
+    const goneSigs = hadSigs.filter(x => !nowSigs.has(sigKey(x)));
+    const nowRows = new Map((Array.isArray(c.signerPlan) ? c.signerPlan : [])
+      .map(s => [String((s && s.id) != null ? s.id : (s && s.order)), s]));
+    const unsigned = (Array.isArray(prev.signerPlan) ? prev.signerPlan : []).filter(s => {
+      if (!s || !s.signed) return false;
+      const after = nowRows.get(String(s.id != null ? s.id : s.order));
+      return !!after && !after.signed;                 // a row that is gone entirely is the route lock's business
+    });
+    if (goneSigs.length || unsigned.length) {
+      const prevIds = new Set((Array.isArray(prev.signerPlan) ? prev.signerPlan : [])
+        .map(s => String((s && s.id) != null ? s.id : '')).filter(Boolean));
+      const keptAnyId = (Array.isArray(c.signerPlan) ? c.signerPlan : [])
+        .some(s => s && s.id != null && prevIds.has(String(s.id)));
+      const marksAfter = (Array.isArray(c.signerPlan) ? c.signerPlan : []).filter(x => x && x.signed).length
+        + (Array.isArray(c.signatures) ? c.signatures : []).length;
+      const isRestart = marksAfter === 0 && !keptAnyId;
+      if (!isRestart) {
+        const who = goneSigs.map(x => x.name).concat(unsigned.map(x => x.by || x.name)).filter(Boolean);
+        return res.status(409).json({
+          error: `${req.params.id} carries a signature this save does not. `
+            + `${who.length ? who.join(', ') + ' already signed it. ' : ''}`
+            + 'Reload the contract and save again, or start the signing again if the route really has to change — '
+            + 'a signature cannot be removed by an ordinary save.',
+          signatureRemoved: who.length ? who : true });
+      }
+    }
+  }
+
+  /* ---------- A WRITTEN REFUSAL IS NOT ANSWERED BY SOMEBODY ELSE'S YES ----------
+     Collision sweep finding 2. One approval step either of two admins could
+     give; Amina refused it in writing, Daniel approved it from the copy he was
+     already holding, and the chain became simply "approved by Daniel". Her
+     refusal and her reason were gone, the gate opened, and NOTHING on this
+     server guarded the approval chain at all.
+
+     ASKED AS A DIFFERENCE: does this save turn a step the record shows as
+     REFUSED into an approved one, and is the approver a different person from
+     the one who refused it. The way out is named, and it is the way out the
+     product already has — resubmitApproval puts a refused step back to pending,
+     which is a save this guard lets through, and the approval then lands on a
+     step nobody is currently refusing.
+
+     THE REFUSER MAY STILL CHANGE THEIR OWN MIND. approveContract has always
+     recorded "· previously refused" on exactly that act, and it is theirs to
+     make. What is refused is a colleague quietly writing over it. */
+  if (prev && Array.isArray(prev.approvalChain) && Array.isArray(c.approvalChain)) {
+    const was = new Map(prev.approvalChain.map(s => [String(s && s.ruleId), s]));
+    const flipped = c.approvalChain.find(s => {
+      if (!s || String(s.status) !== 'approved') return false;
+      const before = was.get(String(s.ruleId));
+      if (!before || String(before.status) !== 'rejected') return false;
+      return String(s.by || '') !== String(before.by || '');
+    });
+    if (flipped) {
+      const before = was.get(String(flipped.ruleId));
+      return res.status(409).json({
+        error: `${(before && before.by) || 'An approver'} refused "${flipped.name || before.name || 'this step'}"`
+          + `${before && before.comment ? ` — “${String(before.comment).slice(0, 200)}”` : ''}. `
+          + 'A refusal is answered by sending the contract back for approval, not by approving over it. '
+          + 'Use "Send back for approval" first.',
+        approvalRefused: (before && before.by) || null });
+    }
   }
 
   if (prev && Array.isArray(prev.signerPlan) && Array.isArray(c.signerPlan)) {
@@ -2815,6 +3386,42 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
       !prev.audit.some(b => stable(a) === stable(b))));
   }
 
+  /* ---------- TWO "AMENDMENT NO. 1"s ARE SAID OUT LOUD, NOT RENUMBERED ----------
+     Collision sweep finding 4, the half a fresh reference does not answer.
+     amendmentOrdinal counts the children THIS BROWSER can see at the moment the
+     button is pressed, so two colleagues creating an amendment in the same
+     minute both write "Amendment No. 1" — and neither browser can know better,
+     because the other document does not exist anywhere yet. The FIRST place
+     both documents are ever in one hand is here.
+
+     A WARNING, NOT A RENUMBER, and that is the rule this codebase already
+     states: the name is stamped into the contract's own record, printed on the
+     paper and cited by the other side, so it keeps English and it keeps
+     whatever a person put on it (RELATION_DOC_WORD's own note). Quietly
+     rewriting "Amendment No. 1" to "No. 2" underneath somebody would change a
+     document's title after they had written it. The product says so instead,
+     and the person renames it or does not.
+
+     ON CREATION ONLY. A save that carries the name it already had is not two
+     colleagues colliding, and warning about it every time anybody edits a
+     filed amendment would be furniture. */
+  if (!existing && c.parentId) {
+    const ordOf = s => { const m = /\bNo\.\s*(\d+)\b/.exec(String(s || '')); return m ? Number(m[1]) : null; };
+    const ord = ordOf(c.name);
+    if (ord != null) {
+      const rel = String(c.relation || 'amendment');
+      for (const row of db.prepare('SELECT id, json FROM contracts WHERE parent_id=? AND id<>?')
+        .all(String(c.parentId), String(c.id))) {
+        let j = null; try { j = JSON.parse(row.json); } catch (_) { continue; }
+        if (!j || String(j.relation || 'amendment') !== rel) continue;
+        if (ordOf(j.name) !== ord) continue;
+        familyOrdinal = { ordinal: ord, taken: row.id, name: j.name || '',
+          by: ((Array.isArray(j.audit) ? j.audit : [])[0] || {}).user || null };
+        break;
+      }
+    }
+  }
+
   if (existing) { const r = db.prepare('SELECT seq FROM contracts WHERE id=?').get(req.params.id); c._seq = r.seq; }
   else c._seq = nextSeq();
   /* ---- WO N7: the four activation moments, observed where they land ----
@@ -2832,7 +3439,25 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     if ((prev ? prev.status : null) !== 'Signed' && c.status === 'Signed') logActivation('signed', c.id, actor);
   }
   upsertContract(c, next);
-  if (req.body.uid) setSetting('uid', req.body.uid);
+  /* ---------- A COUNTER NEVER GOES BACKWARDS ----------
+     Collision sweep finding 4, second half. This was `setSetting('uid',
+     req.body.uid)` with no floor, and every ordinary save carries the sending
+     browser's own counter — which was handed out at sign-in and has been
+     frozen ever since. So a colleague who signed in this morning, made nothing
+     and saved a note this afternoon walked the STORED counter back to where it
+     was at breakfast, and the next person to sign in was handed a number whose
+     contract already exists. Measured: `bootNow.uid` 118 → 103.
+
+     THE FLOOR IS THE WHOLE FIX. The counter is a high-water mark, not a
+     reading: the largest number anybody has claimed. A save may raise it and
+     may never lower it. freeContractId() below is the other half — it also
+     skips any number the contracts table is already using, so even a counter
+     somebody has edited by hand cannot hand out a used id. */
+  if (req.body.uid) {
+    const incoming = Number(req.body.uid) || 0;
+    const stored = Number(getSetting('uid')) || 100;
+    if (incoming > stored) setSetting('uid', incoming);
+  }
   /* ---- WHOSE TURN IT IS MAY HAVE JUST CHANGED ----
      Two of the six rungs of the signing ladder land here and nowhere else: a
      route SAVED with an internal signer first (nothing was ever sent for that
@@ -2858,7 +3483,17 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     };
     if (turnOf(c) && turnOf(prev) !== turnOf(c)) notifyInternalSignerTurn(req, c.id);
   } catch (_) { /* the save is the thing that matters */ }
-  res.json({ ok: true, version: next });
+  /* A rebased save answers with what it merged, so the browser can put the
+     right sentence on the screen instead of a silent success — the loser of a
+     field is the one person nothing else will ever tell. */
+  const answer = { ok: true, version: next };
+  if (rebaseReport) answer.rebased = { baseKnown: rebaseReport.baseKnown, over: cur,
+    keptTheirs: rebaseReport.keptTheirs, keptMine: rebaseReport.keptMine,
+    overwrote: rebaseReport.overwrote, droppedApprovals: rebaseReport.droppedApprovals,
+    renumbered: rebaseReport.renumbered };
+  if (deskKeptBy) answer.deskKeptBy = deskKeptBy;
+  if (familyOrdinal) answer.familyOrdinal = familyOrdinal;
+  res.json(answer);
 });
 
 const ACTIVATION_EVENTS = ['added', 'scanned', 'sent', 'signed'];
@@ -2911,6 +3546,8 @@ app.delete('/api/contracts/:id', auth, editor, (req, res) => {
     revoked = r.changes || 0;
     for (const fid of fileIds) db.prepare('DELETE FROM files WHERE id=?').run(fid);
     db.prepare('DELETE FROM contracts WHERE id=?').run(req.params.id);
+    // the before-pictures go with the record they were pictures of
+    db.prepare('DELETE FROM contract_versions WHERE id=?').run(req.params.id);
   });
   _storedBytes = null;   // H-8: recompute the storage total after removing files
   res.json({ ok: true, sharesRevoked: revoked, filesDeleted: fileIds.length });
@@ -3058,6 +3695,7 @@ app.post('/api/demo/clear', auth, admin, (req, res) => {
       db.prepare("UPDATE shares SET revoked_at=? WHERE contract_id=? AND revoked_at IS NULL").run(now(), d.id);
       for (const fid of d.fileIds) db.prepare('DELETE FROM files WHERE id=?').run(fid);
       db.prepare('DELETE FROM contracts WHERE id=?').run(d.id);
+      db.prepare('DELETE FROM contract_versions WHERE id=?').run(d.id);
     }
   });
   res.json({ ok: true, removed: doomed.map(d => d.id), kept: rows.length - doomed.length });

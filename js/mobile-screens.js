@@ -644,7 +644,10 @@ function mWireScreen(root){
   root.querySelectorAll('[data-m-approve]').forEach(b=>b.addEventListener('click',()=>{
     const c = getContract(b.getAttribute('data-m-approve'));
     if(!c) return;
-    try{ approveContract(c); }catch(e){ if(window.toast) toast(e.message||'Could not approve','err'); }
+    /* approveContract reports AFTER the write lands (collision sweep finding 2),
+       so it is a promise now — the catch has to follow it out. */
+    try{ Promise.resolve(approveContract(c)).catch(e=>{ if(window.toast) toast(e.message||'Could not approve','err'); }); }
+    catch(e){ if(window.toast) toast(e.message||'Could not approve','err'); }
     s.apprOpen=null; mRender();
   }));
   root.querySelectorAll('[data-m-reject]').forEach(b=>b.addEventListener('click',()=>{
@@ -655,7 +658,7 @@ function mWireScreen(root){
     if(!String(why).trim()){ s.apprWhy=''; s.apprErr=true; mRender(); return; }
     const c = getContract(b.getAttribute('data-m-reject-send'));
     if(!c) return;
-    try{ rejectApprovalStep(c, String(why).trim()); }
+    try{ Promise.resolve(rejectApprovalStep(c, String(why).trim())).catch(e=>{ if(window.toast) toast(e.message||'Could not reject','err'); }); }
     catch(e){ if(window.toast) toast(e.message||'Could not reject','err'); }
     s.apprReject=null; s.apprOpen=null; s.apprWhy=''; s.apprErr=false;
     mRender();

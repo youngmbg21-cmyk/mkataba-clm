@@ -4,13 +4,29 @@
    The original probe runs js/core.js's save path inside a vm sandbox. That is a
    rig, and a rig is where fixture faults hide. This file removes the rig
    entirely: two real cookie-keeping clients, plain HTTP, and the keep-mine
-   branch reproduced BY HAND as three literal lines of what js/core.js does —
+   branch reproduced BY HAND as the literal lines js/core.js performs.
+
+   RESTAGED 15 Aug 2026, WHEN THE FIX LANDED, AND THE RESTAGING IS THE POINT.
+   This file used to hand-type the OLD keep-mine —
 
        catch 409  →  fresh = GET /api/contracts/:id
                   →  c._v = fresh._v
                   →  PUT the SAME stale body again with baseVersion = fresh._v
 
-   If the loss reproduces here, the vm slice is irrelevant to the verdict.
+   — which is a request HaTi no longer makes. A probe that goes on sending it is
+   staging the broken behaviour by hand and then reporting it as a product
+   fault, which is the fixture fault this whole sweep was told to guard against.
+   It now types the CURRENT two lines instead:
+
+       catch 409  →  PUT the same body back with baseVersion = THE VERSION IT
+                     WAS TAKEN FROM, and rebase:true
+
+   Still no rig and still no re-implementation: the merge itself is the
+   server's, which is exactly what makes this the stronger of the two probes —
+   it proves the fix holds for ANY client, not only for the browser that ships
+   with it. Section 11 pins that js/core.js really does send this and really
+   does not re-send at the winner's version, so the probe cannot quietly drift
+   back to testing a request nobody makes.
 
    It also asks the three questions the skeptic pass owes the finding:
      · is the 409 the SERVER's own answer, or something the rig invented?
@@ -19,6 +35,8 @@
 
    Run:  node test/audit/collisions/c1a-SKEPTIC-counter-probe.js
 */
+const fs = require('node:fs');
+const path = require('node:path');
 const { startHati, seedWorkspace } = require('../../helpers');
 
 const ID = 'MK-A2';
@@ -81,10 +99,13 @@ const note = m => console.log('      · ' + m);
     ok(r409.json && r409.json.version === v0 + 1, 'the 409 hands back the fresh version number', r409.json && r409.json.version);
 
     /* ================= 5 · "KEEP MINE & SAVE", BY HAND =================
-       js/core.js:  if(keepMine){ if(fresh) c._v=fresh._v; await saveContract(c); return; }
-       No rig, no sandbox: the same stale body, re-sent under the fresh number. */
+       js/core.js:  if(keepMine) return await rebaseSave(c);
+       which is:    PUT { contract: <the same body>, baseVersion: c._v, rebase:true }
+       No rig, no sandbox: the same stale body, sent with the version it was
+       taken from, and the server told to work out which parts of it are A's. */
     const fresh = await A.json('/api/contracts/' + ID);
-    const rKeep = await A.raw('/api/contracts/' + ID, { method: 'PUT', body: { contract: cA, baseVersion: fresh._v } });
+    note(`the record is at version ${fresh._v}; A's copy was taken at version ${v0}`);
+    const rKeep = await A.raw('/api/contracts/' + ID, { method: 'PUT', body: { contract: cA, baseVersion: v0, rebase: true } });
     ok(rKeep.status === 200, `"keep mine" is accepted, version ${fresh._v} → ${rKeep.json && rKeep.json.version}`,
       { status: rKeep.status, body: rKeep.json });
 
@@ -94,10 +115,18 @@ const note = m => console.log('      · ' + m);
     ok(after.value === 42000000, 'A\'s edit is on the record', after.value);
     const lostField = after.counterparty !== 'Nandi Dairy Co-operative PLC';
     const lostChange = (after.changes || []).length === 0;
-    ok(!lostField, 'B\'s counterparty edit survives (expected to FAIL if the finding stands)',
+    ok(!lostField, 'B\'s counterparty edit survives',
       { expected: 'Nandi Dairy Co-operative PLC', got: after.counterparty });
-    ok(!lostChange, 'B\'s tracked change survives (expected to FAIL if the finding stands)',
+    ok(!lostChange, 'B\'s tracked change survives',
       { changes: (after.changes || []).map(x => x.id) });
+    /* AND THE OLD REQUEST IS STILL REFUSED NOTHING — which is the honest half.
+       A whole stale record sent at the CURRENT version is indistinguishable, on
+       the wire, from somebody deliberately typing those values; the server
+       cannot and must not guess. That is exactly why the browser now sends the
+       version it read, and why section 11 checks that it does. */
+    ok(rKeep.json && rKeep.json.rebased && rKeep.json.rebased.baseKnown === true,
+      'the server had the before-picture and says so, so the merge was three-way and not a guess',
+      rKeep.json && rKeep.json.rebased);
 
     /* ================= 6 · WHAT THE RECORD NOW SAYS vs WHAT IT HOLDS ================= */
     const saysProposed = (after.audit || []).some(x => /CHG-001 proposed/.test(x.detail || ''));
@@ -118,11 +147,52 @@ const note = m => console.log('      · ' + m);
       'B, on reloading, still sees their own counterparty edit', bSees.counterparty);
     ok((bSees.changes || []).length === 1, 'B, on reloading, still sees their own CHG-001', (bSees.changes || []).map(x => x.id));
 
+    /* REVERSED IN PLACE, 15 Aug 2026, and the reason is the finding's own.
+       This used to ask for a MESSAGE to B, because B's work had been destroyed
+       and nothing anywhere would ever tell them. Under the rebase nothing of
+       B's was touched — the two assertions immediately above are the proof —
+       so a message to B would be a notification about an event that did not
+       happen, which is its own kind of untruth. What is still owed is a RECORD
+       of the collision, and that is asserted at 6 and again at 7b below, where
+       a genuine same-field clash is staged so the claim keeps its teeth. */
     let outbox = null;
     try { outbox = await w.admin.json('/api/outbox'); } catch (e) { outbox = { error: String(e.message).slice(0, 80) }; }
     const mails = (outbox && (outbox.messages || outbox.outbox || outbox.rows)) || [];
     const toB = mails.filter(m => /everything@example/i.test(JSON.stringify(m)));
-    ok(toB.length > 0, 'a message reached B about the overwrite', { outboxSize: mails.length, toB: toB.length });
+    ok(!lostField && !lostChange && toB.length === 0,
+      'nothing was sent to B, and nothing needed to be — none of B\'s work was overwritten',
+      { outboxSize: mails.length, toB: toB.length, lostField, lostChange });
+
+    /* ================= 7b · A REAL CLASH — BOTH EDIT THE SAME FIELD =================
+       The one case where somebody's work really is written over: A and B both
+       move the value. A's answer wins, because A is the one being asked. What
+       must not happen is silence — the audit line has to name the field AND
+       whose save it landed on, or the loser has nothing to find. */
+    const k0 = await A.json('/api/contracts/' + ID);
+    const kv = k0._v;
+    const bClash = JSON.parse(JSON.stringify(k0)); delete bClash._v;
+    bClash.value = 11000000;
+    bClash.audit = (bClash.audit || []).concat([{ at: new Date().toISOString(), user: 'Unrestricted Legal',
+      action: 'Edited', detail: 'Updated contract value to 11,000,000' }]);
+    await B.json('/api/contracts/' + ID, { method: 'PUT', body: { contract: bClash, baseVersion: kv } });
+    const armedClash = await A.json('/api/contracts/' + ID);
+    ok(armedClash.value === 11000000, 'ARMED (7b): B\'s value is on the record', armedClash.value);
+
+    const aClash = JSON.parse(JSON.stringify(k0)); delete aClash._v;    // A's copy from BEFORE
+    aClash.value = 23000000;
+    const rClash = await A.raw('/api/contracts/' + ID, { method: 'PUT',
+      body: { contract: aClash, baseVersion: kv, rebase: true } });
+    const afterClash = await A.json('/api/contracts/' + ID);
+    ok(rClash.status === 200 && afterClash.value === 23000000,
+      'the person answering the question gets their way on the field they both moved',
+      { status: rClash.status, value: afterClash.value });
+    const clashLine = (afterClash.audit || []).find(x => /Save conflict/i.test(String(x.action)));
+    ok(!!clashLine && /value/i.test(clashLine.detail || '') && /Unrestricted Legal/.test(clashLine.detail || ''),
+      'the audit line NAMES the field that was overwritten and whose save it landed on',
+      clashLine || null);
+    ok(rClash.json && rClash.json.rebased && (rClash.json.rebased.overwrote || []).includes('value'),
+      'and the answer says so on the wire, so the browser can put it on the screen',
+      rClash.json && rClash.json.rebased);
 
     /* ================= 8 · THE CONTROL — is it really the STALENESS, not the rig? =================
        A re-reads first (what any honest client does), applies the same value
@@ -162,14 +232,14 @@ const note = m => console.log('      · ' + m);
 
     const stale4 = JSON.parse(JSON.stringify(c4)); delete stale4._v;       // A's copy from BEFORE
     stale4.value = 88000000;
-    const fresh4 = await A.json('/api/contracts/' + ID);
-    await A.json('/api/contracts/' + ID, { method: 'PUT', body: { contract: stale4, baseVersion: fresh4._v } });
+    await A.json('/api/contracts/' + ID, { method: 'PUT', body: { contract: stale4, baseVersion: v4, rebase: true } });
     const after4 = await A.json('/api/contracts/' + ID);
     ok((after4.obligations || []).length === 1,
       'B\'s obligation survives A\'s keep-mine', { obligations: (after4.obligations || []).length });
     ok(after4.metadata && after4.metadata.bNote === 'written by B',
       'B\'s metadata note survives A\'s keep-mine', after4.metadata && after4.metadata.bNote);
-    note(`the whole record is replaced except the audit trail: obligations=${(after4.obligations || []).length} bNote=${after4.metadata && after4.metadata.bNote}`);
+    ok(after4.value === 88000000, 'and A\'s own edit still landed', after4.value);
+    note(`only what A actually moved is written: obligations=${(after4.obligations || []).length} bNote=${after4.metadata && after4.metadata.bNote} value=${after4.value}`);
 
     /* ================= 10 · HOW FAR DOES THE HOLE REACH? THE EXECUTED BOUNDARY =================
        EXECUTED_IMMUTABLE (server ~2263) freezes counterparty, value, changes,
@@ -190,7 +260,7 @@ const note = m => console.log('      · ' + m);
       `ARMED (10): the contract is executed (status ${e1.status}, seal present, version ${e1._v})`,
       { status: eRes.status, s: e1.status, hash: !!e1.hash });
 
-    const aStaleExec = JSON.parse(JSON.stringify(e1)); delete aStaleExec._v;   // A's copy, taken NOW
+    const aStaleExec = JSON.parse(JSON.stringify(e1)); const av = e1._v; delete aStaleExec._v;   // A's copy, taken NOW
     /* B adds an obligation — mutable after signature by design */
     const bExec = JSON.parse(JSON.stringify(e1)); const bv = bExec._v; delete bExec._v;
     bExec.obligations = [{ id: 'OB-9', what: 'Quarterly report to the board', due: '2026-11-01' }];
@@ -201,17 +271,33 @@ const note = m => console.log('      · ' + m);
 
     /* A, meanwhile, leaves an internal comment on their stale copy and saves */
     aStaleExec.comments = (aStaleExec.comments || []).concat([{ at: new Date().toISOString(), user: 'Amina Otieno', text: 'Filed for the board pack.' }]);
-    const rExec = await A.raw('/api/contracts/' + ID, { method: 'PUT', body: { contract: aStaleExec, baseVersion: e2._v } });
+    const rExec = await A.raw('/api/contracts/' + ID, { method: 'PUT', body: { contract: aStaleExec, baseVersion: av, rebase: true } });
     const e3 = await A.json('/api/contracts/' + ID);
     ok(rExec.status === 200, 'a stale keep-mine on an EXECUTED contract that moves no frozen field is accepted',
       { status: rExec.status, body: rExec.json });
     ok((e3.obligations || []).length === 1,
-      'B\'s obligation survives on the EXECUTED contract (expected to FAIL if the hole reaches here)',
-      { obligations: (e3.obligations || []).length });
-    note(`executed boundary: frozen fields are refused, mutable ones (obligations, comments) are not — obligations now ${(e3.obligations || []).length}`);
+      'B\'s obligation survives on the EXECUTED contract', { obligations: (e3.obligations || []).length });
+    ok((e3.comments || []).some(x => /board pack/i.test(String(x.text || ''))),
+      'and A\'s own note landed on it', (e3.comments || []).map(x => x.text));
+    note(`executed boundary: frozen fields are refused, mutable ones (obligations, comments) are merged rather than replaced — obligations now ${(e3.obligations || []).length}`);
+
+    /* ================= 11 · IS THIS THE REQUEST THE PRODUCT ACTUALLY MAKES? =================
+       The whole worth of a hand-typed probe is that it types what the product
+       types. Read js/core.js and check the two things that matter: keep-mine
+       goes through rebaseSave, and rebaseSave sends the version the copy was
+       taken from with rebase:true — never the winner's version, which is the
+       line this file used to reproduce. */
+    const core = fs.readFileSync(path.join(__dirname, '..', '..', '..', 'js', 'core.js'), 'utf8');
+    ok(/if\(keepMine\)\s*return await rebaseSave\(c\);/.test(core),
+      'js/core.js answers "keep mine" with a rebase', /if\(keepMine\)[^\n]*/.exec(core));
+    ok(/rebaseSave[\s\S]{0,600}baseVersion:c\._v\|\|0,\s*rebase:true/.test(core),
+      'and rebaseSave sends the version the copy was taken from, with rebase:true',
+      /baseVersion:c\._v\|\|0,\s*rebase:true/.test(core));
+    ok(!/if\(keepMine\)\{\s*if\(fresh\)\s*c\._v=fresh\._v/.test(core),
+      'the old "stamp the winner\'s version onto my stale copy" line is gone', true);
 
     console.log(`\nC1a SKEPTIC counter-probe: ${pass} passed, ${fail} failed`);
-    console.log('(FAILs at 5/6/7/9 = the finding reproduces WITHOUT the vm rig; PASS at 8 = the rig/route is sound.)');
+    console.log('(5/6/7/9/10 = the fix holds with no browser in the picture at all; 8 = the route was always sound; 11 = this is the request HaTi makes.)');
   } catch (e) {
     console.log('FAIL  counter-probe threw: ' + (e && e.stack || e));
     process.exitCode = 1;

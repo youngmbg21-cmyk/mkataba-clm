@@ -599,6 +599,24 @@ function createAmendment(parent, opts={}){
      hole c.owner was added to close. See contractOwnerStamp (js/core.js): it
      stamps once and never overwrites. */
   if(window.contractOwnerStamp) contractOwnerStamp(c);
+  /* ---- A NUMBER THIS FAMILY ALREADY CARRIES IS SAID OUT LOUD ----
+     Collision sweep finding 4. amendmentOrdinal counts from what this browser
+     can see, so it never re-issues a number it knows about — but a name typed
+     by hand can land on one, and a sibling created by a colleague a minute ago
+     is invisible here until the list is refreshed. Warned, never renumbered:
+     the name is a RECORD (see RELATION_DOC_WORD's note), and rewriting a title
+     under somebody after they wrote it is worse than the clash.
+
+     THIS IS THE HALF THE BROWSER CAN ANSWER. The other half — two colleagues
+     minting No. 1 in the same minute, where neither list holds the other
+     document — is answered by the server on the way in and reported by
+     saveAnswerNotices (js/core.js), because the record is the first place both
+     documents are ever in one hand. */
+  const clash=familyChildren(parent.id).find(k=>k && k.id!==c.id
+    && (k.relation||'amendment')===rel && String(k.name||'').trim()===String(name).trim());
+  if(clash && window.toast)
+    toast(i18t('co_family_ordinal_taken',{ n:ord, id:clash.id,
+      who:(window.contractOwnerName?contractOwnerName(clash):null)||i18t('co_a_colleague') }),'err');
   state.contracts.unshift(c);
   persist(c);
   const p=getContract(parent.id); if(p) persist(p);

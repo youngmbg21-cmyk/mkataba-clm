@@ -725,8 +725,126 @@ async function deleteContract(id){
 }
 async function flushSaves(){
   const items=[...dirty.values()]; dirty.clear();
-  for(const c of items){ await saveContract(c); }
+  let all=true;
+  for(const c of items){ if(!await saveContract(c)) all=false; }
   refreshStats();  // keep portfolio KPIs current after status/value changes
+  return all;
+}
+/* SAVE THIS ONE NOW, AND SAY WHETHER IT LANDED.
+   persist() is debounced by 400ms, which is right for typing and wrong for
+   anything that has to know the write actually happened before it does the next
+   thing — marking a counterparty's response delivered, or telling an approver
+   what their press did. Takes the contract out of the debounce queue so the
+   timer cannot save it a second time. */
+async function saveNow(c){
+  if(!c || !c.id) return false;
+  if(API_MODE()){ dirty.delete(c.id); }
+  return await saveContract(c);
+}
+/* The record exactly as the server holds it, kept beside the in-memory copy so
+   a conflict can be read field by field rather than record by record. Cheap by
+   construction: the same payload shape saveContract already builds, with the
+   upload's bytes stripped. Underscored because it is working memory, never part
+   of the record — savePayload drops it on the way out. */
+function stampBase(c, payload){
+  if(!c) return;
+  try{ Object.defineProperty(c,'_base',{ value:JSON.parse(JSON.stringify(payload||savePayload(c))),
+    writable:true, enumerable:false, configurable:true }); }
+  catch(e){ /* a missing before-picture makes the merge conservative, never wrong */ }
+}
+/* WHAT THE OTHER PERSON CHANGED, AND WHAT THIS PERSON DID — the reading behind
+   the conflict dialog's own sentence. Returns record field names, which is what
+   the dialog then names, because "someone else saved a change" told the reader
+   nothing about what they were being offered the chance to destroy. */
+const CONFLICT_IGNORE=new Set(['id','_v','_light','_loaded','_base','_seq','_valuesHidden',
+  '_raisedBy','_raisedAt','_signedAt','_lastAuditAt','lastAction','audit']);
+function conflictReading(c, fresh){
+  const mine=savePayload(c), base=c&&c._base?c._base:null, theirs=fresh||{};
+  const st=v=>JSON.stringify(v===undefined?null:v);
+  const keys=[...new Set([...Object.keys(mine||{}),...Object.keys(theirs||{})])].filter(k=>!CONFLICT_IGNORE.has(k));
+  const theirs_=[], mine_=[];
+  for(const k of keys){
+    if(base ? st(theirs[k])!==st(base[k]) : st(theirs[k])!==st(mine[k])) theirs_.push(k);
+    if(base ? st(mine[k])!==st(base[k]) : false) mine_.push(k);
+  }
+  const sigs=(Array.isArray(theirs.signatures)?theirs.signatures:[]).length
+    -(Array.isArray(mine.signatures)?mine.signatures:[]).length;
+  const decided=(Array.isArray(theirs.approvalChain)?theirs.approvalChain:[])
+    .filter(s=>s&&(s.status==='approved'||s.status==='rejected'));
+  const hadDecided=new Set((Array.isArray(mine.approvalChain)?mine.approvalChain:[])
+    .filter(s=>s&&(s.status==='approved'||s.status==='rejected')).map(s=>String(s.ruleId)));
+  return { theirs:theirs_, mine:mine_, baseKnown:!!base,
+    newSignatures:sigs>0?sigs:0,
+    newDecisions:decided.filter(s=>!hadDecided.has(String(s.ruleId))) };
+}
+/* The reader's word for a record field where there is one, and the record's own
+   field name where there is not — which is honest rather than blank, and is
+   what a workspace with an untranslated field falls back to. */
+function conflictFieldWord(k){
+  const key='cf_f_'+k, w=i18t(key);
+  return (w && w!==key) ? w : k;
+}
+/* The dialog says what is AT STAKE before it offers to overwrite it (collision
+   sweep findings 1 and 5). The body of this dialog has always been English and
+   stays English rather than becoming half-translated: it names the record's own
+   field names, and a sentence that is whole in one language beats one that is
+   half in two — the rule this codebase learned from the import box. */
+function conflictDialogMessage(c, read){
+  const nameList=ks=>ks.slice(0,4).map(conflictFieldWord).join(', ')+(ks.length>4?`, +${ks.length-4} more`:'');
+  const bits=['Someone else saved a change to '+c.id+' while you were editing.'];
+  if(read.newSignatures) bits.push(`Their copy carries ${read.newSignatures} signature${read.newSignatures===1?'':'s'} yours does not — keeping yours would remove ${read.newSignatures===1?'it':'them'}.`);
+  if(read.newDecisions.length) bits.push(`It also carries an approval decision yours does not: ${read.newDecisions.map(s=>`"${s.name||s.ruleId}" ${s.status} by ${s.by||'a colleague'}`).join('; ')}.`);
+  if(read.theirs.length) bits.push('They changed: '+nameList(read.theirs)
+    +(read.baseKnown?'':' (compared with your copy)')+'.');
+  if(read.mine.length) bits.push('You changed: '+nameList(read.mine)+'.');
+  /* THE PROMISE IS THE SERVER'S, NOT THIS BROWSER'S. The merge is done where
+     the record lives and against the version this copy was taken from, so it
+     holds whether or not this page still remembers its own before-picture. What
+     the save actually did is reported after it lands, by name. */
+  bits.push('Keeping yours merges the two — their work is kept, and only what you actually changed is written over it.');
+  bits.push('Keep yours, or discard yours and load their version?');
+  return bits.join(' ');
+}
+/* The one place the wire payload is built, so the conflict path and the
+   ordinary path can never send two different shapes of the same record. */
+function savePayload(c){
+  /* `_raisedBy` / `_raisedAt` ride down with a LIGHT row so the dashboard can
+     ask who raised a contract without the audit trail it was stripped of. They
+     are transport, not record — derived from the trail the server still holds
+     — so they go the same way as the other underscored fields rather than
+     being written back into the stored contract. */
+  const payload={...c}; delete payload._light; delete payload._loaded; delete payload._v;
+  delete payload._raisedBy; delete payload._raisedAt;
+  delete payload._signedAt; delete payload._lastAuditAt; delete payload._base;
+  if(payload.upload && payload.upload.fileId){ payload.upload={...payload.upload, dataUrl:undefined}; }
+  // Word-review version files and the rounds that carried them follow the same
+  // rule: once the bytes live in the files store, the synced JSON keeps only
+  // the reference — a 4 MB base64 blob per round would bloat every save.
+  if(payload.upload && Array.isArray(payload.upload.versions))
+    payload.upload={ ...payload.upload, versions: payload.upload.versions.map(v=>v&&v.fileId?{...v, dataUrl:undefined}:v) };
+  if(Array.isArray(payload.rounds))
+    payload.rounds=payload.rounds.map(r=>(r&&r.file&&r.file.fileId)?{...r, file:{...r.file, dataUrl:undefined}}:r);
+  return payload;
+}
+/* THE WORKING MEMORY A CONTRACT CARRIES IN THIS BROWSER and never on the wire:
+   transport the list endpoint added, and the per-sitting caches the negotiation
+   screens hang off the record. NAMED, not matched on the underscore — "anything
+   starting with _ is ours" would let a discarded edit survive being discarded
+   simply by being called _something. */
+const CONTRACT_WORKING_KEYS=new Set(['_v','_light','_loaded','_base','_seq','_valuesHidden',
+  '_raisedBy','_raisedAt','_signedAt','_lastAuditAt','_shareFetch','_msgFetch','_messages',
+  '_chainVerify','_famChild','_famKids','_ngBand','_ngN']);
+/* TAKE THE SERVER'S COPY AND MEAN IT. Object.assign MERGES, so "load theirs"
+   used to leave behind every key the reader's own copy had invented — a
+   discarded edit that quietly survived being discarded. Keys the server does
+   not have are dropped; the working memory above is not part of the record
+   and stays. */
+function adoptServerCopy(c, fresh){
+  if(!c || !fresh) return;
+  for(const k of Object.keys(c)) if(!CONTRACT_WORKING_KEYS.has(k) && !(k in fresh)) delete c[k];
+  Object.assign(c,fresh);
+  c._v=fresh._v; c._loaded=true; c._light=false;
+  stampBase(c);
 }
 async function saveContract(c){
   // A light row is a register summary, not a contract: the server strips audit,
@@ -736,28 +854,41 @@ async function saveContract(c){
   // a merge, not a reload, so the caller's own changes are never discarded.
   if(c._light && !c._loaded){
     try{ await restoreHeavyFields(c); }
-    catch(e){ toast(`Could not load ${c.id}'s history before saving — the change was not written`,'err'); return; }
+    catch(e){ toast(`Could not load ${c.id}'s history before saving — the change was not written`,'err'); return false; }
   }
-  /* `_raisedBy` / `_raisedAt` ride down with a LIGHT row so the dashboard can
-     ask who raised a contract without the audit trail it was stripped of. They
-     are transport, not record — derived from the trail the server still holds
-     — so they go the same way as the other underscored fields rather than
-     being written back into the stored contract. */
-  const payload={...c}; delete payload._light; delete payload._loaded; delete payload._v;
-  delete payload._raisedBy; delete payload._raisedAt;
-  delete payload._signedAt; delete payload._lastAuditAt;
-  if(payload.upload && payload.upload.fileId){ payload.upload={...payload.upload, dataUrl:undefined}; }
-  // Word-review version files and the rounds that carried them follow the same
-  // rule: once the bytes live in the files store, the synced JSON keeps only
-  // the reference — a 4 MB base64 blob per round would bloat every save.
-  if(payload.upload && Array.isArray(payload.upload.versions))
-    payload.upload={ ...payload.upload, versions: payload.upload.versions.map(v=>v&&v.fileId?{...v, dataUrl:undefined}:v) };
-  if(Array.isArray(payload.rounds))
-    payload.rounds=payload.rounds.map(r=>(r&&r.file&&r.file.fileId)?{...r, file:{...r.file, dataUrl:undefined}}:r);
+  const payload=savePayload(c);
   try{
     const r=await api('contracts/'+c.id,'PUT',{ contract:payload, baseVersion:c._v||0, uid });
     c._v=r.version; c._loaded=true; c._light=false;
+    stampBase(c,payload);
+    saveAnswerNotices(r);
+    return true;
   }catch(e){
+    /* ---- A REFERENCE COLLISION IS NOT A VERSION CLASH, AND IS NOT A QUESTION ----
+       Collision sweep finding 4. Two colleagues each minted MK-201 from the
+       same sign-in counter; the second save came back a 409 and the reader was
+       asked "Someone else saved a change to MK-201 while you were editing" —
+       which is false, and whose two answers each destroy one of the two
+       documents. The server now tells these apart and hands back a free
+       reference; the browser answers it without a dialog, because a draft
+       seconds old is referenced by nothing and re-minting it loses nobody's
+       work. Read BEFORE the /conflict|version/ test so the H-4 dialog can
+       never be what a person sees for this. */
+    if(e.data&&e.data.idTaken&&e.data.freeId) return await remintContract(c,e.data.freeId,e.data.takenBy);
+    /* ---- AND NEITHER IS SOMEBODY ELSE HAVING CLAIMED THE NEGOTIATION ----
+       Collision sweep finding 6. Two colleagues file the first redline at once;
+       the server settles the claim on whoever wrote first (see the desk guard
+       on PUT /api/contracts/:id). The loser used to be told nothing but a bare
+       "Save failed", and their own screen went on naming them as lead and
+       offering a Send until they reloaded — so the record is taken back here
+       too, not just reported. */
+    if(e.data&&e.data.deskClaimFirst){
+      let fresh=null; try{ fresh=await api('contracts/'+c.id); }catch(_){}
+      if(fresh) adoptServerCopy(c,fresh);
+      repaintAfterAdopt();
+      toast(e.message,'err');
+      return false;
+    }
     if(/conflict|version/i.test(e.message)){
       /* H-4: someone else saved this contract while it was being edited. The old
          behaviour overwrote the in-progress edit with the server copy and showed
@@ -767,18 +898,115 @@ async function saveContract(c){
          modal over unrelated work — it keeps the edit in memory and warns once. */
       let fresh=null; try{ fresh=await api('contracts/'+c.id); }catch(_){}
       if(state.activeId===c.id){
+        const read=conflictReading(c,fresh);
         const keepMine=await confirmDialog({
           get title(){ return i18t('co_just_changed'); },
-          message:'Someone else saved a change to '+c.id+' while you were editing. Your change has not been saved. Keep yours and overwrite theirs, or discard yours and load their version?',
+          message:conflictDialogMessage(c,read),
           confirmLabel:'Keep mine & save', cancelLabel:'Load theirs', danger:true });
-        if(keepMine){ if(fresh) c._v=fresh._v; await saveContract(c); return; }
-        if(fresh){ Object.assign(c,fresh); c._v=fresh._v; c._loaded=true; c._light=false; if(typeof renderWorkspace==='function') renderWorkspace(); }
+        /* "KEEP MINE" IS A REBASE, NOT A REPLAY (collision sweep findings 1, 2,
+           5 and 6). It used to be `c._v=fresh._v; saveContract(c)` — the whole
+           stale record re-sent under the winner's number, which deleted every
+           field, redline, signature and approval decision this person had never
+           seen. It now sends the same body with the version it was TAKEN FROM
+           and asks the server to merge, which is where that decision belongs:
+           one merge, one authority, and any client inherits it. */
+        if(keepMine) return await rebaseSave(c);
+        if(fresh){ adoptServerCopy(c,fresh); if(typeof renderWorkspace==='function') renderWorkspace(); }
         toast(i18t('co_loaded_server_version'),'err');
       } else {
         toast(c.id+' changed on the server — your edit is kept but not yet saved. Open it and save again to keep your version.','err');
       }
     } else toast(i18t('co_save_failed')+e.message,'err');
+    return false;
   }
+}
+/* Send this copy, and the version it came from, and let the server work out
+   which parts of it are actually this person's. Then take the merged record
+   back, so the screen shows what was written rather than what was pressed. */
+async function rebaseSave(c){
+  const payload=savePayload(c);
+  try{
+    const r=await api('contracts/'+c.id,'PUT',{ contract:payload, baseVersion:c._v||0, rebase:true, uid });
+    let merged=null; try{ merged=await api('contracts/'+c.id); }catch(_){}
+    if(merged) adoptServerCopy(c,merged); else { c._v=r.version; c._loaded=true; c._light=false; }
+    if(typeof renderWorkspace==='function') renderWorkspace();
+    const rb=r&&r.rebased;
+    if(rb && (rb.overwrote||[]).length)
+      toast(`Saved — your version of ${(rb.overwrote||[]).map(conflictFieldWord).join(', ')} was written over theirs, and everything else of theirs was kept. The contract's history says what happened.`,'err');
+    else if(rb && (rb.droppedApprovals||[]).length)
+      toast(rb.droppedApprovals.map(d=>`"${d.name}" was already ${d.keptStatus} by ${d.keptBy||'a colleague'} — your decision was not recorded`).join('; '),'err');
+    else if(rb && !(rb.renumbered||[]).length) toast(i18t('co_conflict_merged'));
+    saveAnswerNotices(r);
+    return true;
+  }catch(e){
+    if(e.data&&e.data.deskClaimFirst){
+      let fresh=null; try{ fresh=await api('contracts/'+c.id); }catch(_){}
+      if(fresh) adoptServerCopy(c,fresh);
+      repaintAfterAdopt();
+      toast(e.message,'err');
+      return false;
+    }
+    toast(i18t('co_save_failed')+e.message,'err'); return false;
+  }
+}
+/* WHATEVER SCREEN IS ON, PUT IT RIGHT. adoptServerCopy replaces the record in
+   memory; a reader looking at the negotiation workbench is not looking at
+   renderWorkspace's output, and repainting the wrong one is how a screen goes
+   on offering a Send its own record no longer allows. */
+function repaintAfterAdopt(){
+  try{
+    if(state && state.view==='redline' && typeof renderRedline==='function'){ renderRedline(); return; }
+  }catch(_){}
+  if(typeof renderWorkspace==='function') renderWorkspace();
+}
+/* ---- WHAT THE SERVER NOTICED ABOUT THIS SAVE, SAID ONCE ----
+   Three facts only the record can know, so they ride back on the answer rather
+   than being worked out by whichever screen happened to make the save: a
+   sibling already carrying this amendment's number, a desk claim that was
+   settled in somebody else's favour, and a tracked change renumbered because
+   its number was taken. Said HERE, in the one save path, so every creation site
+   and every authoring screen inherits them without knowing they exist. */
+function saveAnswerNotices(r){
+  if(!r) return;
+  const fo=r.familyOrdinal;
+  if(fo) toast(i18t('co_family_ordinal_taken',{ n:fo.ordinal, id:fo.taken,
+    who:fo.by||i18t('co_a_colleague') }),'err');
+  if(r.deskKeptBy) toast(i18t('co_desk_claimed_first',{ who:r.deskKeptBy }),'err');
+  const rn=(r.rebased&&r.rebased.renumbered)||[];
+  if(rn.length) toast(rn.map(x=>i18t('co_change_renumbered',
+    { from:x.from, to:x.to, who:x.keptBy||i18t('co_a_colleague') })).join(' '),'err');
+}
+/* ---- THE LOSER OF A REFERENCE RACE IS RE-MINTED, NOT DESTROYED ----
+   Safe precisely because of WHEN it happens: the server only answers `idTaken`
+   for a save that carries no version at all — a document's first — and whose
+   trail was opened somewhere else, so this contract is seconds old and nothing
+   in the workspace points at it yet. The reference moves, everything the person
+   wrote stays, and the save is simply made again.
+
+   IT REFUSES ANYTHING THAT IS NOT THAT, in words. A record already carrying
+   fingerprinted changes, a signature or a seal has an id inside evidence
+   (negoHashInput's contractRef), and moving it would break what the evidence
+   attests to. Nothing can reach that state through this branch today; the
+   refusal is here so that a future path which could is stopped rather than
+   quietly re-stamped. */
+async function remintContract(c, freeId, takenBy){
+  const old=c.id;
+  if((c.changes||[]).length || (c.signatures||[]).length || c.hash){
+    toast(i18t('co_id_taken_not_new',{ id:old, who:takenBy||i18t('co_a_colleague') }),'err');
+    return false;
+  }
+  dirty.delete(old);
+  c.id=freeId;
+  const n=Number(String(freeId).replace(/^MK-/,''));
+  if(Number.isFinite(n) && n>uid) uid=n;
+  if(state.activeId===old) state.activeId=freeId;
+  c._v=0; c._loaded=true; c._light=false;
+  const ok=await saveContract(c);
+  if(ok){
+    toast(i18t('co_id_taken_reminted',{ old, id:freeId, who:takenBy||i18t('co_a_colleague') }),'err');
+    if(typeof renderWorkspace==='function' && state.activeId===freeId) renderWorkspace();
+  }
+  return ok;
 }
 async function saveSettings(){
   if(API_MODE()){
@@ -831,6 +1059,8 @@ async function ensureFull(c){
   if(!API_MODE() || !c || c._loaded) return;
   const full=await api('contracts/'+c.id);
   Object.assign(c, full); c._loaded=true; c._light=false; c._v=full._v;
+  // the version this copy was taken from, kept for the merge (see stampBase)
+  stampBase(c, savePayload(full));
 }
 /* The exact inverse of the server's HEAVY() list-row stripper. Restores only
    the fields a summary row is missing and leaves everything the caller has
@@ -850,6 +1080,11 @@ async function restoreHeavyFields(c){
   }
   c._loaded=true; c._light=false;
   if(c._v==null) c._v=full._v;
+  /* THE BEFORE-PICTURE IS THE SERVER'S RECORD, NOT THE PATCHED-UP ONE. This
+     function deliberately keeps the caller's own edits, so `c` is already
+     ahead of the record; a base taken from it would report those edits as
+     things nobody changed. */
+  stampBase(c, savePayload(full));
 }
 function hydrate(){
   const d = lsGet(LS.data);
@@ -5324,10 +5559,18 @@ async function pollPendingResponses(){
       const c=getContract(item.response?.id);
       if(!c) continue;
       const ok=await applyResponse(c, item.response, {background:true});
-      // A durable link carries one row per round, so the acknowledgement names
-      // the answer just applied. Marking the whole link applied would silence
-      // every later round on it.
-      if(ok){ await api('shares/'+item.token+'/applied','POST',
+      /* APPLIED MEANS WRITTEN, NOT MERELY APPLIED IN MEMORY (collision sweep
+         finding 1). applyResponse persists through the 400ms debounce, and this
+         used to acknowledge the answer immediately — so a save that was then
+         refused, or overwritten by a colleague's stale copy, took the
+         counterparty's signature with it AND had already emptied the queue that
+         would have delivered it again. The answer leaves the queue when the
+         record actually carries it.
+         A durable link carries one row per round, so the acknowledgement names
+         the answer just applied. Marking the whole link applied would silence
+         every later round on it. */
+      if(ok && await saveNow(c)){
+              await api('shares/'+item.token+'/applied','POST',
                 item.responseId?{ responseId:item.responseId }:{});
               refreshShareOverview(); }
     }
@@ -5417,4 +5660,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,saveNow,conflictFieldWord,savePayload,stampBase,adoptServerCopy,conflictReading,conflictDialogMessage,rebaseSave,saveAnswerNotices,remintContract,repaintAfterAdopt,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});

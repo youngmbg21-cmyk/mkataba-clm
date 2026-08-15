@@ -190,10 +190,21 @@ const ID = 'MK-A2';
     t.note(`toasts A saw on the redline collision: ${JSON.stringify(saver3.log.toasts.map(x => x.msg))}`);
 
     /* ---------- 10. IS ANY GUARD WATCHING? THE DESK, TURNED ON ----------
-       ourChangesTouched compares OUR changes as a set, so deleting one IS
-       touching them. It is behind two switches — the desk rule (off by
-       default) and an actual claim — so it covers this only where a workspace
-       has turned it on. Measured rather than assumed. */
+       WHY THIS PASSES CHANGED, 15 Aug 2026, and the claim is kept and its
+       reason reversed in place. It used to pass because ourChangesTouched
+       compares OUR changes as a set, so deleting one WAS touching them and the
+       desk rule refused the whole save — a guard that happened to catch this,
+       behind two switches (the rule is off by default, and a desk has to have
+       been claimed), and whose refusal talked about the negotiation to somebody
+       who was only editing a value.
+
+       It now passes because the rebase never deletes B's change in the first
+       place, so there is nothing for the desk rule to refuse and A's value edit
+       lands. That is the better outcome on both halves: the change survives in
+       a workspace that has NOT turned the desk rule on, which is the shipped
+       default and the case the guard never covered, and an editor who is not
+       touching the negotiation is no longer refused by a rule about it. The
+       assertion is unchanged — B's change is still on the record. */
     await w.admin.json('/api/settings', { method: 'PUT', body: { deskRule: { on: true } } });
     const c4 = await A.json('/api/contracts/' + ID);
     const v4 = c4._v;
@@ -215,8 +226,11 @@ const ID = 'MK-A2';
     await saver4.saveContract(aStale4);
     const after4 = await A.json('/api/contracts/' + ID);
     t.ok((after4.changes || []).length === 1,
-      'with the desk rule ON, the server refuses the save that would have deleted B\'s change',
+      'with the desk rule ON, B\'s change is still on the record after A\'s keep-mine',
       { changes: (after4.changes || []).map(x => x.id), value: after4.value, version: after4._v });
+    t.ok(after4.value === 60000000,
+      'and A\'s own edit landed — the desk rule does not refuse somebody who never touched the negotiation',
+      { value: after4.value });
     t.note(`with the desk on, A was told: ${JSON.stringify(saver4.log.toasts.map(x => x.msg))}`);
     t.note(`dialogs A saw with the desk on: ${saver4.log.dialogs.length}`);
 
