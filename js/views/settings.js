@@ -1665,8 +1665,16 @@ const SET_PANELS={
     tab:'build', mandatory:true, show:stApiOnly,
     title:()=>i18t('st_b_mail'),
     sub:()=>i18t('st_b_mail_sub'),
+    /* THREE STATES, NOT TWO. This row said "Email configured" off emailOff()
+       alone, so a workspace whose provider was refusing every message read
+       exactly like one delivering them. A configured-but-failing provider is
+       the WORST of the three to draw green, because unlike "not configured" it
+       gives the admin no reason to look. */
     state(){ const off=(typeof emailOff==='function')&&emailOff();
-      return { dot:off?'warn':'ok', text:off?i18t('set_email_not_configured'):i18t('set_email_configured') }; },
+      if(off) return { dot:'warn', text:i18t('set_email_not_configured') };
+      if((typeof emailFailing==='function')&&emailFailing())
+        return { dot:'warn', text:i18tn('set_email_failing', emailFailedCount(), { n:emailFailedCount() }) };
+      return { dot:'ok', text:i18t('set_email_configured') }; },
     body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('set_email_sub')}</p>
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
         <button id="rem-run" style="${ST_BTN2}">${icon('clock','w-3.5 h-3.5')} ${i18t('set_check_renewals')}</button>
@@ -1955,9 +1963,18 @@ function stGoLive(){
   rows.push({ key:'entity', label:i18t('st_b_go_entity'),
     ok: !!((ob&&ob.companyName)||(getOrg()&&getOrg().name)),
     detail:(ob&&ob.companyName)||(getOrg()&&getOrg().name)||i18t('st_not_set'), go:'platform:company' });
-  if(API_MODE()) rows.push({ key:'mail', label:i18t('st_b_go_mail'),
-    ok: !((typeof emailOff==='function')&&emailOff()),
-    detail:((typeof emailOff==='function')&&emailOff())?i18t('set_email_not_configured'):i18t('set_email_configured'), go:'build:mail' });
+  /* THE GO-LIVE ROW IS CALLED "MAIL DELIVERING", so it has to mean delivering.
+     It read emailOff() — configured or not — and ticked green over a provider
+     refusing every message. A green tick that is wrong is worse than no row. */
+  if(API_MODE()){
+    const mailOff=(typeof emailOff==='function')&&emailOff();
+    const mailFail=(typeof emailFailing==='function')&&emailFailing();
+    rows.push({ key:'mail', label:i18t('st_b_go_mail'),
+      ok: !mailOff && !mailFail,
+      detail: mailOff ? i18t('set_email_not_configured')
+        : mailFail ? i18tn('set_email_failing', emailFailedCount(), { n:emailFailedCount() })
+        : i18t('set_email_configured'), go:'build:mail' });
+  }
   const aiOn=(typeof copilotAvailable==='function')&&copilotAvailable();
   rows.push({ key:'key', label:i18t('st_b_go_key'), ok:aiOn,
     detail:aiOn?i18t('set_configured'):i18t('set_not_configured'), go:'build:engine' });
@@ -2291,7 +2308,16 @@ function stLoadOutbox(){
   return (async()=>{
     try{ const r=await api('outbox');
       const host=document.getElementById('outbox-list'); if(!host) return;
-      host.innerHTML=`<div class="mb-2 text-[11px] ${r.emailConfigured?'text-brand-600':'text-gold-600'}">${r.emailConfigured?i18t('set_email_configured'):i18t('set_email_not_configured')}</div>`+
+      /* The panel's own heading answers the same three states the row does, off
+         the route's own health reading rather than a second copy of it — and
+         it NAMES the provider's reason, which is the thing an admin can act on
+         ("the domain is not verified" tells them exactly what to go and do). */
+      const hp=r.health||{}, failing=!!(r.emailConfigured&&hp.failing);
+      host.innerHTML=`<div class="mb-2 text-[11px] ${r.emailConfigured&&!failing?'text-brand-600':'text-gold-600'}">${
+          !r.emailConfigured ? i18t('set_email_not_configured')
+          : failing ? i18tn('set_email_failing', hp.failed||0, { n:hp.failed||0 })
+          : i18t('set_email_configured')}</div>`+
+        (failing&&hp.lastError?`<div class="mb-2 text-[10.5px] text-gold-700 bg-gold-500/10 rounded px-2 py-1.5 leading-relaxed">${i18t('set_why_failed',{why:esc(hp.lastError)})}</div>`:'')+
         (r.items.length?`<div class="space-y-1.5 max-h-56 overflow-y-auto scroll-thin">${r.items.map(it=>`
           <div class="rounded-lg border border-brand-100 bg-white p-2.5">
             <div class="flex items-center gap-2"><span class="text-[11px] font-medium text-brand-900 truncate flex-1">${it.subject}</span><span class="text-[9px] uppercase tracking-wider ${it.sent?'text-brand-600':'text-gold-600'}">${it.sent?i18t('set_sent_lower'):it.provider}</span></div>

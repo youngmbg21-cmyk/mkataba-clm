@@ -90,6 +90,76 @@ function startAiStub() {
   });
 }
 
+/* ---------- THE EMAIL PROVIDER STAND-IN ----------
+   HaTi delivers through Resend, and RESEND_BASE_URL is overridable exactly as
+   ANTHROPIC_BASE_URL is — so the whole live-provider path can be exercised for
+   real without a key and without firing at anybody's inbox. Until this existed,
+   every test ran with EMAIL off, which meant the outbox branch was the only
+   branch ever taken: nothing had ever run the code that talks to a provider,
+   reads its refusal, or reports what it said.
+
+   `sent` is what the delivery assertions read — one entry per message the
+   server actually tried to send, with the address, subject, body and any
+   attachments as the provider received them.
+
+   `mode` decides what the provider does next, and the refusals matter as much
+   as the successes: 'ok' delivers, 'refuse' answers Resend's own error shape
+   with a status, and 'dead' closes the socket so the send throws. */
+function startMailStub({ mode = 'ok', status = 422, message = 'The from address is not verified.' } = {}) {
+  const sent = [];
+  const state = { mode, status, message };
+  const server = http.createServer((req, res) => {
+    let raw = '';
+    req.on('data', d => { raw += d; });
+    req.on('end', () => {
+      let body = {}; try { body = JSON.parse(raw); } catch (_) {}
+      if (state.mode === 'dead') { req.socket.destroy(); return; }
+      sent.push({ url: req.url, to: (body.to || [])[0] || null, from: body.from || null,
+        subject: body.subject || '', text: body.text || '',
+        attachments: body.attachments || [], body });
+      if (state.mode === 'refuse') {
+        res.writeHead(state.status, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ name: 'validation_error', message: state.message,
+          statusCode: state.status }));
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ id: 'em_' + sent.length }));
+    });
+  });
+  return new Promise(resolve => {
+    server.listen(0, '127.0.0.1', () => {
+      resolve({
+        base: 'http://127.0.0.1:' + server.address().port,
+        sent,
+        /* A test flips the provider mid-run to prove the SAME send behaves
+           differently — a working provider and a refusing one are two states of
+           one route, not two routes. */
+        setMode(m, opts = {}) { state.mode = m; if (opts.status) state.status = opts.status; if (opts.message) state.message = opts.message; },
+        lastTo() { return sent.length ? sent[sent.length - 1].to : null; },
+        toAddresses() { return sent.map(s => s.to); },
+        reset() { sent.length = 0; },
+        stop() { return new Promise(r => server.close(r)); },
+      });
+    });
+  });
+}
+
+/* Start a server with email genuinely ON, pointed at the stub above. The key is
+   what EMAIL_ON() reads, so it must be non-empty; it never leaves the stub. */
+async function startHatiWithMail(mailOpts = {}, env = {}) {
+  const mail = await startMailStub(mailOpts);
+  const h = await startHati({
+    RESEND_API_KEY: 'test-mail-key-not-real',
+    RESEND_BASE_URL: mail.base,
+    EMAIL_FROM: 'HaTi <hello@hati.test>',
+    ...env,
+  });
+  const stop = h.stop;
+  h.stop = async () => { await stop(); await mail.stop(); };
+  h.mail = mail;
+  return h;
+}
+
 /* ---------- a SCRIPTED Anthropic stand-in ----------
    Unlike startAiStub above (which always answers with the request's first
    tool), this one plays back exactly what each test enqueues, so a
@@ -364,5 +434,6 @@ function mentionsFolderB(text) {
   return B_MARKERS.filter(m => s.includes(m));
 }
 
-module.exports = { startHati, startAiStub, startScriptedAi, seedWorkspace, fixtureContract, FIXTURE_BODY_A1,
+module.exports = { startHati, startAiStub, startScriptedAi, startMailStub, startHatiWithMail,
+  seedWorkspace, fixtureContract, FIXTURE_BODY_A1,
   FIXTURES, FOLDER_A, FOLDER_B, B_MARKERS, mentionsFolderB, nameASigner, Client };
