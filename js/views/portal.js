@@ -1514,7 +1514,11 @@ function portalAgreedHtml(p){
 let PORTAL_FOOT_COMPACT=false;
 function portalNegoFootHtml(p){
   const n=Object.keys(PORTAL_NEGO_DECISIONS).length;
-  const live=!!PORTAL_OPTS.token && !portalReadOnly();
+  /* The token is NOT part of this. See renderShareWorkbench: a copy with no way
+     back can still be answered — the answer leaves as a code instead of a
+     request — so the verbs stay and only their destination changes. Without
+     this the column offered Accept and Reject and the foot offered no Send. */
+  const live=!portalReadOnly();
   /* WHY THERE ARE NO VERBS, on the page that has room to say it. In the header
      the same sentence travels to the workbench as readonlyWhy and is said
      once, where the verbs would have been — see renderShareWorkbench. */
@@ -1710,7 +1714,22 @@ function wirePortalNego(c, p){
      Only a link the sender explicitly issued for signature loses the
      negotiating verbs. */
   const signing=portalIssuedForSigning(p);
-  const live=!!PORTAL_OPTS.token && !portalReadOnly() && !signing;
+  /* NO CHANNEL BACK IS NOT READ-ONLY, and treating it as one was a real fault
+     (found by the re-audit, 14 Aug 2026). `live` used to require the token, so
+     a reader whose copy could not reach this server was shown the negotiation
+     with NO Accept and NO Reject at all — nothing to press, and a line telling
+     them to reply to an email. Meanwhile the SIGNING screen in the very same
+     state still offered Sign, Accept and Decline and minted a copyable response
+     code. Two screens, one state, opposite answers; and the more consequential
+     act was the one that still worked.
+     Their answers are held on THIS PAGE either way — that is what the wall line
+     has always promised and what holdsDecisions means — so being unable to
+     reach us changes only how the answer travels, not whether one can be given.
+     REACH is therefore its own reading, and it gates the two things that
+     genuinely need the network: the discussion channel (it posts to a route)
+     and minting a derived link. Deciding is not one of them. */
+  const reachable=!!PORTAL_OPTS.token;
+  const live=!portalReadOnly() && !signing;
   const org=(p&&p.org)||'the sender';
   const held=Object.keys(PORTAL_NEGO_DECISIONS).length;
   const prog=(window.negoProgress&&c)?negoProgress(c):{ done:0, total:0 };
@@ -1718,7 +1737,12 @@ function wirePortalNego(c, p){
   const banner = live
     ? `<div class="rl-wall" role="status"><span class="rl-wall-ic">&#128274;</span><span><b>${i18t('po_your_table')}</b> ${
         held?`<b>${held} answer${held===1?'':'s'}</b> held here — nothing has reached ${esc(org)} yet. `:''
-      }Decisions and counter-proposals stay on this page until you press Send. A reply travels only if marked shared. <span id="pt-nego-facts" style="opacity:.75">${facts}</span></span></div>`
+      }${reachable
+        ? 'Decisions and counter-proposals stay on this page until you press Send. A reply travels only if marked shared.'
+        /* THE PROMISE IS THE SAME; WHAT SEND DOES IS DIFFERENT, and the reader
+           has to know that before they start rather than after they press it. */
+        : esc(i18t('po_wall_no_channel'))
+      } <span id="pt-nego-facts" style="opacity:.75">${facts}</span></span></div>`
     : `<div class="rl-wall" role="status"><span class="rl-wall-ic">&#128274;</span><span>${esc(
         portalExecuted() ? 'This contract has been executed and sealed — the wording is final.'
         : PORTAL_OPTS.superseded ? 'This copy has been superseded — a newer link was sent to you.'
@@ -1746,7 +1770,9 @@ function wirePortalNego(c, p){
         ? (portalExecuted() ? 'This contract has been executed and sealed — the wording is final.'
           : PORTAL_OPTS.superseded ? 'This copy has been superseded — a newer link was sent to you. Open that one to answer.'
           : PORTAL_OPTS.responded ? 'This link has already been answered. Ask the sender for a fresh one if you need to reply again.'
-          : 'This copy has no channel back — reply to the email you received, or ask the sender for a live link.')
+          /* NOT the no-channel case any more — that state is no longer read-only,
+             and the wall line above says how the answer travels instead. */
+          : 'This copy is read-only.')
         : undefined),
     holdsDecisions:true,
     canComment:!!PORTAL_OPTS.token && !PORTAL_OPTS.superseded,
@@ -3384,7 +3410,24 @@ async function portalRespond(p, action, extra){
       name, title, email, comment, negoDecisions:decisions,
       negoWithdrawn:withdrawn.length?withdrawn:undefined,
       negoProposed:proposed.length?proposed:undefined, at:nowISO() };
-    if(!PORTAL_OPTS.token){ toast(i18t('po_no_channel_back'),'err'); return; }
+    /* NO WAY BACK IS NOT NO ANSWER. This branch used to refuse here — "reply to
+       the email you received" — and drop `res` on the floor, so a reader whose
+       copy could not reach this server had no way to answer the asks in front
+       of them. The signing branch below has always minted a copyable code for
+       exactly this state, and the OWNER's import box says in so many words that
+       it accepts one. The negotiation half simply never got it.
+       Their answers are held on their own page either way (PORTAL_NEGO_*), so
+       nothing is cleared here — the code IS the send, and until the owner
+       imports it the reader's page should go on showing what they decided. */
+    if(!PORTAL_OPTS.token){
+      const noWayBack=action==='ready' ? i18t('po_readiness_lower') : i18t('po_answers_lower');
+      portalSetDone(action==='ready'
+        ? (document.getElementById('pt-nego-ready') ? 'pt-nego-ready' : 'nego-cp-ready')
+        : (document.getElementById('nego-send-decisions') ? 'nego-send-decisions' : 'pt-nego-send'),
+        i18t('po_code_ready_short'));
+      portalOfferResponseCode(p, res, noWayBack);
+      return;
+    }
     /* Whichever control was actually pressed reports back on itself. The send
        lives in the change index on a negotiation link and in the foot of the
        card on a signing link, so both are offered and the one on the page
@@ -3524,19 +3567,80 @@ async function portalRespond(p, action, extra){
     return;
   }
   portalSetDone(pressed, doneLabel);
+  portalOfferResponseCode(p, response, label);
+}
+/* ---------- THE RESPONSE CODE — ONE BUILDER, TWO SCREENS ----------
+   A share link that cannot reach this server still has to be answerable, and
+   the code is how: the reader copies it, sends it back by email or WhatsApp,
+   and the owner pastes it into "Import their Word file". The owner's box says
+   so in those words.
+
+   IT WAS BUILT FOR ONE OF THE TWO SCREENS. The signing screen minted a code
+   whenever there was no token; the NEGOTIATION screen — answering each of the
+   other side's asks — refused instead, with "This copy has no channel back —
+   reply to the email you received", and threw the fully-built response away.
+   So a counterparty could sign a contract with no route home, but could not
+   say "yes to clause 3, no to clause 7", which is the commoner act and the one
+   a negotiation link exists for. Meanwhile the owner's import box went on
+   offering to receive a code that half the product could not produce.
+
+   ONE BUILDER, and the SLOT is what differs, because the two screens are
+   genuinely different shapes: the signing screen has a result column and fills
+   it (unchanged, to the pixel); the negotiation workbench has no such slot —
+   it is a document and a change column — so the code arrives in a dialog of its
+   own. That is the same answer openDerivedLinkDialog gives for the same reason,
+   and for the same reason it is NOT dismissable by a backdrop click: this is
+   the one showing, and losing it loses the reader's answers. */
+function portalOfferResponseCode(p, response, label){
   const code=b64e(response);
-  document.getElementById('portal-result').innerHTML=`
-    <div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:6px;padding:13px;">
-      <div style="display:flex;align-items:center;gap:6px;color:var(--color-accent-800);font-size:12px;font-weight:600;margin-bottom:6px;">${icon('check2','w-3.5 h-3.5')} ${i18t('po_your_x_ready',{what:label})}</div>
-      <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.5;">Copy this response code and send it back to ${esc(p.sharedBy)} at ${esc(p.org)} (email or WhatsApp). They import it in HaTi to record it on the contract.</p>
-      <textarea id="pt-code" readonly rows="4" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:10px;font-size:10px;font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all;">${code}</textarea>
-      <button id="pt-copy" class="ui-btn ui-btn-primary" style="margin-top:8px;width:100%;padding:8px;font-size:12px;">${icon('copy','w-3 h-3')} Copy response code</button>
+  const who=esc((p&&p.sharedBy)||i18t('po_the_sender'));
+  const org=esc((p&&p.org)||'');
+  const slot=document.getElementById('portal-result');
+  const head=i18t('po_your_x_ready',{what:label});
+  const lead=i18t('po_code_send_back',{who,org});
+  if(slot){
+    slot.innerHTML=`
+      <div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:6px;padding:13px;">
+        <div style="display:flex;align-items:center;gap:6px;color:var(--color-accent-800);font-size:12px;font-weight:600;margin-bottom:6px;">${icon('check2','w-3.5 h-3.5')} ${head}</div>
+        <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.5;">${lead}</p>
+        <textarea id="pt-code" readonly rows="4" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:10px;font-size:10px;font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all;">${code}</textarea>
+        <button id="pt-copy" class="ui-btn ui-btn-primary" style="margin-top:8px;width:100%;padding:8px;font-size:12px;">${icon('copy','w-3 h-3')} ${i18t('po_copy_response_code')}</button>
+      </div>`;
+    document.getElementById('pt-copy').addEventListener('click',async()=>{
+      const ta=document.getElementById('pt-code'); ta.select();
+      try{ await navigator.clipboard.writeText(ta.value); }catch(e){ document.execCommand('copy'); }
+      toast(i18t('po_response_code_copied'));
+    });
+    return code;
+  }
+  const ov=document.createElement('div');
+  ov.id='pt-code-dialog';
+  ov.style.cssText='position:fixed;inset:0;z-index:94;display:grid;place-items:center;padding:16px';
+  ov.innerHTML=`
+    <div style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 50%,transparent)"></div>
+    <div class="modal-in" role="dialog" aria-modal="true" aria-labelledby="pt-code-t"
+      style="position:relative;width:100%;max-width:33rem;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:7px;padding:22px 24px">
+      <h3 id="pt-code-t" style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0 0 4px;line-height:1.3">${head}</h3>
+      <p style="font-size:12.5px;color:var(--color-neutral-700);line-height:1.55;margin:0 0 12px">${lead}</p>
+      <textarea id="pt-code" readonly rows="5" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:10px;font-size:10px;font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all;">${code}</textarea>
+      <p style="font-size:11px;color:var(--color-neutral-600);line-height:1.55;margin:10px 0 16px">${i18t('po_code_only_showing')}</p>
+      <div style="display:flex;justify-content:flex-end;gap:8px">
+        <button id="pt-copy" class="ui-btn ui-btn-primary" style="font-size:12px;padding:7px 13px">${icon('copy','w-3 h-3')} ${i18t('po_copy_response_code')}</button>
+        <button id="pt-code-done" class="ui-btn" style="font-size:12px;padding:7px 13px">${i18t('po_done')}</button>
+      </div>
     </div>`;
-  document.getElementById('pt-copy').addEventListener('click',async()=>{
-    const ta=document.getElementById('pt-code'); ta.select();
-    try{ await navigator.clipboard.writeText(ta.value); }catch(e){ document.execCommand('copy'); }
+  document.body.appendChild(ov);
+  const close=()=>{ ov.remove(); document.removeEventListener('keydown',onKey); };
+  function onKey(e){ if(e.key==='Escape') close(); }
+  document.addEventListener('keydown',onKey);
+  ov.querySelector('#pt-code-done').addEventListener('click',close);
+  ov.querySelector('#pt-copy').addEventListener('click',async()=>{
+    const ta=ov.querySelector('#pt-code'); ta.select();
+    try{ await navigator.clipboard.writeText(ta.value); }catch(e){ try{ document.execCommand('copy'); }catch(_){} }
     toast(i18t('po_response_code_copied'));
   });
+  /* Deliberately no backdrop-click close — see the note above. */
+  return code;
 }
 /* Signing where no verification code can be sent. The signature is real and
    binding; what is missing is HaTi's independent check that the signer holds

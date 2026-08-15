@@ -73,6 +73,79 @@ is really rationing is outgoing email.
 
 ---
 
+## The two gaps the first audit named, now closed
+
+The first report said out loud that it had not covered real outbound email, or
+the paste-a-code half of the Word import box. Both were looked at properly, and
+**both were hiding real faults.**
+
+### Email: HaTi said "sent" when it meant "we have an email account"
+
+Three places told somebody a message was on its way when it was not:
+
+- **adding a colleague** — the welcome email carrying their temporary password;
+- **the signing code** — the six digits a counterparty needs before they can
+  sign;
+- **the password reset** — the one email a locked-out person cannot work around.
+
+All three reported success purely because an email provider was *configured*.
+Whether the message actually left was never checked. The commonest real mail
+failure is a sending domain that was never verified — and in exactly that case
+all three said it had gone.
+
+The signing-code one is the worst: the counterparty sits watching an empty inbox
+with the signature blocked behind it, and nobody on either side knows why.
+
+**Fixed.** All three now wait to see what the provider did and report what
+actually happened, with the reason. The counterparty is told their code did not
+arrive — but the provider's own words (which name your sending domain and your
+settings) stay in the admin-only outbox rather than crossing to an outsider.
+
+**The password reset is deliberately different, and stays different.** Its reply
+must read identically whether or not the address is on file — otherwise anyone
+could use it to find out who has an account here. So it still says nothing. The
+failure is recorded for the admin instead.
+
+### And nothing anywhere said "your email is broken"
+
+Both screens that report on email only asked *is a provider configured*. A
+workspace whose domain was never verified showed a green **"Email delivery is
+configured"** on the go-live checklist while every message it sent bounced.
+
+**Fixed.** There are three states now, not two: not set up · set up but failing ·
+working. The failing state names the provider's reason, because "the domain is
+not verified" tells an admin exactly what to go and do. With no provider at all
+nothing is called a failure — queuing to the outbox is what the product promises
+there.
+
+### The Word import: half the product could not produce a response code
+
+The owner's import box says, in these words, *"Paste the response code the
+counterparty sent back after opening your share link."* That code is how a
+response gets home when the other side cannot reach your server at all.
+
+Only half the product could make one. On a **signing** link with no route back,
+the counterparty could still sign, decline or accept, and got a code to send
+you. On a **negotiation** link — answering your asks one by one, which is the
+commoner act and the whole point of a negotiation link — they were told "this
+copy has no channel back" and their answers were thrown away.
+
+Probing the page rather than the code turned up the worse half: with no live
+link, the negotiation page was drawn **read-only**. No Accept, no Reject,
+nothing to press. They could not even record a decision, let alone send one.
+
+**Fixed.** No way back is no longer treated as nothing to say. The buttons stay,
+the answers are held on their page exactly as they always were, and pressing
+Send hands over a copyable code instead of making a request. The page says so
+before they start rather than after. The code appears in a window of its own that
+a stray click cannot dismiss — it is shown once, and losing it would lose their
+answers.
+
+Their answers stay on their screen after the code is produced, because nothing
+has actually reached you until you paste it in.
+
+---
+
 ## Two attacks that were wrong, not two holes that were missed
 
 Both of these are the audit's own faults, found by re-reading the attacks rather

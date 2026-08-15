@@ -1151,14 +1151,35 @@ describe('the awkward cases', () => {
   });
 
   /* A screen with no verbs and no explanation is a screen someone hunts for a
-     button on. Each of the three ways a copy goes read-only is a different fact
-     about their link, and the room says which. */
-  test('a copy with no channel back offers no verbs, and says why', async () => {
+     button on. Each of the ways a copy goes read-only is a different fact about
+     their link, and the room says which. */
+
+  /* REVERSED IN PLACE, 14 Aug 2026, by the re-audit. This used to assert
+     "a copy with no channel back offers no verbs, and says why" — and that WAS
+     the behaviour, and it was the bug.
+
+     No channel back is not read-only. Their answers are held on their own page
+     either way — that is what the wall line has always promised — so being
+     unable to reach us changes only HOW the answer travels, not whether one can
+     be given. Drawn inert, the reader could not even record a decision, and the
+     "reply to the email you received" line was the only thing on offer. The
+     signing screen in the very same state still let them sign, accept or
+     decline and handed them a copyable response code; two screens, one state,
+     opposite answers, with the more consequential act the one that still worked.
+
+     So the verbs stay and pressing Send hands over a code (f206). What is still
+     genuinely read-only is unchanged and is asserted by the three tests around
+     this one: executed, superseded, already answered. */
+  test('a copy with no channel back can still be ANSWERED — the code is how it travels', async () => {
     const { win, c, filed } = await ownerProposed();
     for (const ch of filed) win.negoResolve(c, ch.id, 'accepted', { side: 'counterparty', by: 'Erik' });
     const v = theirLink(c, { opts: { token: null } });
-    assert.equal(v.$('#pt-nego-ready'), null, 'no channel, no verbs');
-    assert.match(v.$('#nego-readonly-why').textContent, /no channel back/);
+    assert.ok(v.$('#pt-nego-ready'), 'the verbs stay — a reader with no live link can still decide');
+    assert.equal(v.$('#nego-readonly-why'), null, 'and it is not read-only, so nothing says it is');
+    /* THE READER IS TOLD BEFORE THEY START what Send will do here, rather than
+       after they press it. */
+    assert.match(v.text(), /response code|no live link back/i,
+      'the wall line says how the answer travels on this copy');
   });
 
   test('and a superseded one says THAT, rather than the same shrug', async () => {

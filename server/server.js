@@ -1725,6 +1725,45 @@ async function sendEmail(to, subject, body, devHint, opts = {}) {
   return { id, sent, provider, detail };
 }
 
+/* WHAT A ROUTE SAYS ABOUT A MESSAGE IT JUST TRIED TO SEND — one shape, named
+   once, so no two routes can describe the same three outcomes differently.
+
+   THE FAULT IT REPLACES: three routes answered `emailSent: EMAIL_ON()`, which
+   is not "it went" — it is "a key is configured". With a key present and the
+   provider refusing (an unverified sending domain, which is the commonest real
+   failure there is), HaTi told an admin the welcome message had gone, told a
+   counterparty their signing code was on its way, and told somebody locked out
+   of their account to go and check their inbox. Nothing arrived in any of the
+   three cases and nothing anywhere said so.
+
+   The rulebook already solved exactly this once, for the internal review
+   notice — three ways nothing arrives looked identical from the requester's
+   chair. These three routes simply never got the same treatment.
+
+   `outbox` is the honest third answer and is NOT a failure: with no provider
+   configured the message queues where an admin can read it, which is what the
+   documentation has always promised. */
+function mailReport(r) {
+  const sent = !!(r && r.sent);
+  return { emailSent: sent, emailConfigured: EMAIL_ON(), outbox: !EMAIL_ON(),
+    emailError: sent ? null : (r && r.detail) || (EMAIL_ON()
+      ? 'The email provider refused the message.'
+      : 'Email is not configured on this server — the message is in the outbox.') };
+}
+/* The same three outcomes on a PUBLIC route, where the reader is the
+   counterparty rather than the workspace. They must learn that nothing arrived
+   — otherwise they sit waiting for a code that is never coming — but the
+   provider's own words can name our sending domain and our configuration, and
+   that is the workspace's business. The detail stays in the admin-only outbox;
+   what crosses is the fact, and what to do about it. */
+function mailReportPublic(r) {
+  const sent = !!(r && r.sent);
+  return { emailSent: sent, emailConfigured: EMAIL_ON(),
+    emailError: sent ? null : (EMAIL_ON()
+      ? 'The message could not be delivered. Ask the sender to send it another way.'
+      : 'This workspace has no email provider set up yet. Ask the sender for the code directly.') };
+}
+
 /* ---------- session handling (httpOnly cookie) ---------- */
 const COOKIE = 'hati_session';
 function readSession(req) {
@@ -1977,6 +2016,18 @@ app.get('/api/bootstrap', auth, (req, res) => {
        codes, the strength of a signature, and now questions between the
        parties. Saying it here lets the app say it on day one instead. */
     emailConfigured: EMAIL_ON(),
+    /* CONFIGURED IS NOT DELIVERING, and every screen that reported on email
+       read only the first. THE FACT travels to everybody — an Editor about to
+       press Send on a share needs it exactly as much as an admin does — but the
+       provider's own words name our sending domain and our configuration, so
+       the DETAIL is admin-only, like every other operational fact on this
+       route. Same split as folderAccess above. */
+    emailHealth: (() => {
+      const hp = emailHealth();
+      return req.user.role === 'admin' ? hp
+        : { configured: hp.configured, failing: hp.failing, recent: hp.recent, failed: hp.failed,
+            lastError: null, lastFailedAt: null };
+    })(),
   });
 });
 
@@ -5444,7 +5495,7 @@ app.post('/api/contracts/:id/review-request', auth, editor, async (req, res) => 
 });
 
 /* ---------- team management ---------- */
-app.post('/api/users', auth, admin, (req, res) => {
+app.post('/api/users', auth, admin, async (req, res) => {
   const b = req.body || {};
   const name = clean(b.name), email = cleanEmail(b.email), role = b.role, password = b.password;
   const title = clean(b.title).slice(0, 120);
@@ -5464,10 +5515,17 @@ app.post('/api/users', auth, admin, (req, res) => {
   db.prepare('INSERT INTO users (id,name,email,role,title,salt,hash,created_at,prefs) VALUES (?,?,?,?,?,?,?,?,?)')
     .run(u.id, u.name, u.email, u.role, u.title, u.salt, u.hash, u.created_at, u.prefs);
   const org = getSetting('org');
-  sendEmail(u.email, `You've been added to ${org?.name || 'a HaTi workspace'}`,
+  /* "SENT" USED TO MEAN "WE HAVE A KEY". This answered emailSent: EMAIL_ON()
+     without waiting to see what the provider did with it, so an admin whose
+     sending domain is not verified — the commonest real mail failure there is —
+     was told the welcome message had gone. The colleague never receives their
+     temporary password, and nobody finds out until they say so. It is awaited
+     now and reported for what actually happened; the admin can then hand the
+     password over another way, which is the whole point of being told. */
+  const mailed = await sendEmail(u.email, `You've been added to ${org?.name || 'a HaTi workspace'}`,
     `${req.user.name} added you to ${org?.name || 'the workspace'} on HaTi as ${role}.\nSign in at ${req.protocol}://${req.get('host')} with your email and the temporary password you were given, then change it.`,
     `invite: ${u.email} (${role})`);
-  res.json({ ok: true, user: publicUser(u), emailSent: EMAIL_ON() });
+  res.json({ ok: true, user: publicUser(u), ...mailReport(mailed) });
 });
 
 /* Role and value-visibility are both edited here; either may be sent on its own
@@ -6996,7 +7054,7 @@ app.get('/api/contracts/:id/engagement', auth, (req, res) => {
    signs. Its replacement is W7's recorded route — the owner names each
    signer's address up front and each gets their own bound link — which is why
    W8 ships with W7 and never before it. Flagged in the release notes. */
-app.post('/api/shares/:token/otp', rlOtp, rlOtpToken, (req, res) => {     // public: request a code
+app.post('/api/shares/:token/otp', rlOtp, rlOtpToken, async (req, res) => {     // public: request a code
   const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
   if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
   /* A READ-ONLY LINK CANNOT ASK FOR A SIGNING CODE, and until now it could.
@@ -7020,7 +7078,13 @@ app.post('/api/shares/:token/otp', rlOtp, rlOtpToken, (req, res) => {     // pub
   db.prepare('INSERT INTO share_otp (token,email,code_hash,verify,verified,expires,attempts) VALUES (?,?,?,?,0,?,0) ' +
     'ON CONFLICT(token) DO UPDATE SET email=excluded.email, code_hash=excluded.code_hash, verify=NULL, verified=0, expires=excluded.expires, attempts=0')
     .run(req.params.token, invited, sha(code + req.params.token), null, expires);
-  sendEmail(invited, 'Your HaTi signing code', `Your one-time code to sign this contract is ${code}. It expires in 10 minutes.`, `OTP for signing: ${code}`);
+  /* AWAITED, because the person who pressed this is now waiting for a code and
+     is the one who most needs to know it is not coming. This answered
+     emailSent: EMAIL_ON() — "a key exists" — so a refused send read to them as
+     a delivered one and they sat watching an empty inbox with the signature
+     blocked behind it. The provider's own words stay in the admin-only outbox
+     (mailReportPublic); what crosses is that it did not arrive. */
+  const mailed = await sendEmail(invited, 'Your HaTi signing code', `Your one-time code to sign this contract is ${code}. It expires in 10 minutes.`, `OTP for signing: ${code}`);
   // The code is NEVER returned to the caller. This endpoint is public and the
   // caller is the party being verified — handing them the code makes the check
   // theatre. With no mail provider the code queues to the admin-only outbox
@@ -7028,7 +7092,7 @@ app.post('/api/shares/:token/otp', rlOtp, rlOtpToken, (req, res) => {     // pub
   // `sentTo` is safe to return: it is the address the sender already chose,
   // shown so the page can say where to look rather than implying the typed
   // address was used.
-  res.json({ ok: true, emailSent: EMAIL_ON(), sentTo: invited });
+  res.json({ ok: true, ...mailReportPublic(mailed), sentTo: invited });
 });
 app.post('/api/shares/:token/verify-otp', rlOtp, rlOtpToken, (req, res) => {  // public: verify the code
   const row = db.prepare('SELECT * FROM share_otp WHERE token=?').get(req.params.token);
@@ -7336,7 +7400,7 @@ app.put('/api/me/prefs', auth, (req, res) => {
 });
 
 /* ---------- password reset ---------- */
-app.post('/api/password/reset-request', rlReset, (req, res) => {
+app.post('/api/password/reset-request', rlReset, async (req, res) => {
   const email = String((req.body || {}).email || '').toLowerCase();
   const u = db.prepare('SELECT * FROM users WHERE email=?').get(email);
   if (u) {
@@ -7351,7 +7415,15 @@ app.post('/api/password/reset-request', rlReset, (req, res) => {
     // exactly like the signing OTP does — the sole place a real key turns this
     // from an admin-visible outbox into delivered mail — and the response body
     // is identical whether or not the account exists.
-    sendEmail(email, 'Reset your HaTi password', `Open this link to set a new password (valid 30 minutes):\n${link}`, `Reset link: ${link}`);
+    /* AWAITED so the outbox row — the admin's only sight of a failing provider
+       — is written before this request finishes, rather than landing at some
+       unspecified moment after. THE REPLY DELIBERATELY DOES NOT CHANGE: it is
+       the one route in the product that must read identically whether or not
+       the address is on file, so it can say nothing about what happened to a
+       message it will not admit to having sent. The failure is a fact for the
+       ADMIN, who can see it on Build & Launch and in the outbox; it is not a
+       fact this response may carry. */
+    await sendEmail(email, 'Reset your HaTi password', `Open this link to set a new password (valid 30 minutes):\n${link}`, `Reset link: ${link}`);
   }
   res.json({ ok: true, emailSent: EMAIL_ON() }); // never leak whether the email exists, and never return the token
 });
@@ -7428,8 +7500,31 @@ app.get('/api/outbox', auth, admin, (req, res) => {
      HaTi" and handing them the platform's front door. What cannot be read
      back cannot be checked. */
   const rows = db.prepare('SELECT id,to_addr,subject,body,sent,provider,dev_hint,detail,created_at FROM outbox ORDER BY created_at DESC LIMIT 40').all();
-  res.json({ emailConfigured: EMAIL_ON(), items: rows });
+  res.json({ emailConfigured: EMAIL_ON(), items: rows, health: emailHealth() });
 });
+
+/* IS THE MAIL ACTUALLY GETTING OUT? — a different question from "is a provider
+   configured", and the only one worth putting on a go-live checklist. Both
+   screens that report on email read the configuration alone, so a workspace
+   whose sending domain was never verified showed a green "Email configured"
+   while every message it sent bounced.
+   Read off the last EMAIL_HEALTH_WINDOW real send attempts, so one historic
+   failure does not condemn a provider that is working now, and a provider that
+   has just started refusing is not hidden behind a long tail of old successes.
+   With no provider configured this is not a failure and does not say it is —
+   queuing to the outbox is what the product promises there. */
+const EMAIL_HEALTH_WINDOW = 10;
+function emailHealth() {
+  if (!EMAIL_ON()) return { configured: false, failing: false, recent: 0, failed: 0, lastError: null };
+  const rows = db.prepare('SELECT sent,detail,created_at FROM outbox ORDER BY created_at DESC LIMIT ?').all(EMAIL_HEALTH_WINDOW);
+  const failed = rows.filter(r => !r.sent);
+  return { configured: true, failing: failed.length > 0, recent: rows.length,
+    failed: failed.length,
+    /* The provider's own words, which are what an admin needs — "the domain is
+       not verified" tells them exactly what to go and do. */
+    lastError: failed.length ? String(failed[0].detail || '').slice(0, 240) : null,
+    lastFailedAt: failed.length ? failed[0].created_at : null };
+}
 
 /* ---------- renewal reminders ---------- */
 // Nudge counterparties on email shares that sat unopened for N days — one
