@@ -166,7 +166,7 @@ rests on. Adopting Word's moving-text model would cost the counterparty's copy
 its ability to verify what it was shown, which is the property this product has
 and a word processor does not.
 
-### A separate, larger decision — span-level anchoring
+### A separate, larger decision — span-level anchoring (see also OI-8)
 
 Making the **anchor itself** a span, so marks in the document sit on words
 rather than on whole clauses, is a genuine improvement to how a contract reads
@@ -174,3 +174,95 @@ and is a much bigger job: both document renderers, the change cards, the round
 queue, the jump links, the Mine/Theirs filter, the share payload and the
 counterparty's copy all key on the clause today. Worth doing one day for
 legibility. **Not needed to fix this**, and it should not be bundled with it.
+
+---
+
+## OI-8 — The counterparty's page needs the three readings, and a More menu
+
+*Owner-asked, 15 Aug 2026, from a screenshot of the owner's own room. A
+feature request rather than a defect, logged here so the whole queue reads in
+one place. Not started.*
+
+**What is asked.** Put on the counterparty's negotiation page:
+
+  1. The **Redlined / As agreed / With changes** switch, as the owner has it.
+  2. A **More** menu carrying only three of the owner's rows —
+     **PDF** *(clean copy)*, **Word** *(tracked changes)* and **Focus mode**.
+
+**Explicitly NOT asked for, and each is right to leave out** — recorded so
+nobody adds them later on the grounds that the owner has them:
+
+  · *Import their Word file* — that writes to our record.
+  · *Save as template* — our template library.
+  · *Delete this draft* — our contract.
+  · *Compare versions* — their page already carries **Compare wording** in
+    its header, so the need is served and a second door would be a duplicate.
+
+### 1 · The three readings are nearly free, and this is why
+
+The document renderer their page already mounts **reads the mode today** — it
+asks for the current reading and draws marks, as-agreed or folded-in wording
+accordingly. So their copy already renders in whatever reading is set. What is
+missing is only the **control to set it**. This is a matter of drawing the
+switch on their page and wiring it, not of teaching their page a new way to
+read a contract.
+
+Two rules it must inherit rather than re-implement:
+
+  · **A non-default reading always says so, with the way back.** The floating
+    notice that carries this is already built into the shared panes, which is
+    what their page mounts — so it should arrive by construction. The claim
+    still has to be proved on their seat, not assumed.
+  · **The reading is per sitting and in memory**, never persisted. A reader
+    returning to a link must land on the redlined view, which is the one that
+    shows them what is being asked.
+
+### 2 · The More menu is new work, and the header row is the constraint
+
+Their page has no overflow menu at all — the owner's lives in the room head,
+which their page does not draw. So a menu has to be built into their identity
+row, which already carries Negotiation history, Compare wording, the bell, the
+text-size stepper and the three deal verbs, and which already wraps at narrow
+widths. A menu that **consolidates** may help that row rather than crowd it;
+that should be measured at real widths, not assumed either way.
+
+It stays a **menu**, never a dropdown that sits afterwards wearing the last
+choice — PDF, Word and Focus mode are acts, not settings. Same rule as the
+owner's history menu.
+
+### 3 · Export does not exist on their page today — and it carries a rule
+
+Neither PDF nor Word is offered to a counterparty at present. This is the
+genuinely new build in OI-8, and the one with a rule attached:
+
+**A tracked-changes Word file must carry what already travels and nothing
+more.** Change authors, version authors and shared-comment authors are already
+named to the counterparty and must keep travelling — the author is inside the
+change's fingerprint, so redacting it would leave their copy unable to verify
+the chain. What must never appear in an export is what never travels: the
+**internal review entire** (its existence, the verdict, the reviewer's name)
+and **who ruled on each change**. An export is a new door onto the same
+payload, and a door that carries more than the payload does is the fault
+worth testing for here.
+
+### 4 · Focus mode is a REVERSAL, and is flagged as one
+
+Focus mode was **deliberately removed from the counterparty's page on 12 Aug
+2026** — the button, its styling and its mobile override were all deleted and
+recorded in the rulebook as stale. The owner is asking for it back. That is
+the owner's call and it is taken, but it is a reversal rather than a gap, so:
+the rulebook line must be **reversed in place with the reasoning**, not
+quietly contradicted, and any test asserting the absence must be turned round
+rather than deleted.
+
+### 5 · Open, for the owner to answer before this is built
+
+  · **Does the export follow the reading?** If somebody is reading "As
+    agreed", should the PDF be that wording, or always the clean current
+    text? A menu that ignores the switch beside it will be read as broken.
+  · **On a read-only copy** — executed, superseded or already answered —
+    which of the three rows still stands? Export plainly should. Focus mode
+    probably should. The reading switch has nothing live to show.
+  · **The phone.** Their page below 768px has no room in the header for this,
+    the same reason it draws no bell. Decide whether the phone gets the
+    readings in flow, or nothing, rather than letting the width decide.
