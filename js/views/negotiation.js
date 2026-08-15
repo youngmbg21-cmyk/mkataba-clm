@@ -4699,13 +4699,30 @@ function wireNegotiationTab(c, opts = {}){
        knows the difference: it revises in place when the same hand comes back
        and stacks a new change when a different one does.
 
-       Only PENDING. An accepted change is in the baseline already, and a
-       rejected one means the baseline stands — reopening either from the
-       change would edit wording the record no longer carries. A proposed
+       Only PENDING — a rejected change means the wording stands, and reopening
+       the editor on it would edit wording the record does not carry. A proposed
        DELETION carries no replacement wording at all, so it falls through to
-       the baseline too, which is exactly what the document is still showing.
-       And bodyHtml is not guaranteed on a change (one lifted from returned
-       text may have only ops), so the baseline stays the floor.
+       the clause itself. And bodyHtml is not guaranteed on a change (one lifted
+       from returned text may have only ops), so the clause stays the floor.
+
+       AND WHAT "THE CLAUSE ITSELF" MEANS WAS WRONG (owner-reported 15 Aug 2026).
+       This line used to say "an accepted change is in the baseline already" and
+       fall back to the ROUND BASELINE. It is not: adopting a change does not
+       move the baseline — only closing the round does — so on a clause with an
+       adopted change the editor opened on the wording as it stood BEFORE the
+       adoption. Reported from a clause whose governing-law sentence had been
+       struck out and agreed: the document read without it and the editor opened
+       with it back.
+
+       That was not only a stale reading. Since a filing is now measured against
+       the clause as the author was SHOWN it (negoClauseNowById), opening this
+       editor and pressing Save without typing anything filed a change proposing
+       to put the deleted sentence back — an adopted change quietly reversed by
+       a reader who had touched nothing. Reproduced before it was touched.
+
+       So the floor is the clause AS IT STANDS, which is the same reading the
+       filing uses and the same wording the document is displaying. On a clause
+       with nothing adopted the two are one text, so nothing else moves.
 
        WHICH change is read off the CLAUSE ITSELF — the id the renderer wrote
        into the block it drew — rather than searched for in the record. The
@@ -4726,8 +4743,14 @@ function wireNegotiationTab(c, opts = {}){
         .find(x => x && shownIds.includes(x.id) && x.status === 'pending'
           && x.changeType !== 'deleteClause' && x.changeType !== 'insertClause')
       : null;
+    /* The clause as it currently stands — baseline plus whatever is adopted on
+       it — for the reason set out above. Falls back to the baseline reading if
+       the model is not loaded, which is the behaviour every stage without it
+       had before. */
+    const shown = (typeof negoClauseNowById === 'function')
+      ? (negoClauseNowById(c, clauseId) || cl) : cl;
     const openOn = (onTable && String(onTable.bodyHtml || '').trim())
-      || cl.bodyHtml || `<p>${_ne(cl.text)}</p>`;
+      || shown.bodyHtml || `<p>${_ne(shown.text)}</p>`;
     const holder = document.createElement('div');
     holder.className = 'nego-editing';
     holder.setAttribute('contenteditable', 'true');

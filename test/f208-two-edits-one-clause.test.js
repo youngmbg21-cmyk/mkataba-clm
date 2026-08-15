@@ -39,6 +39,9 @@
    ============================================================ */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const ROOT = path.join(__dirname, '..');
 const { buildWorld } = require('./world');
 
 const BODY =
@@ -161,6 +164,95 @@ describe('f208 · a second edit to a clause you have already adopted', () => {
       { side: 'counterparty', author: 'Juno Limited', summary: 'payment window' });
     assert.equal(w.win.negoMeasuredFrom(ch), w.win.negoClauseById(c, cl.clauseId).text,
       'measured from the baseline, as every change on a first-round clause is');
+  });
+});
+
+/* ============================================================
+   1b — AND THE EDITOR OPENS ON THE SAME WORDING
+   ============================================================
+   Owner-reported 15 Aug 2026, from two screenshots: a clause whose
+   governing-law sentence had been struck out and ADOPTED read without it, and
+   pressing Edit opened the box with the sentence back in.
+
+   The editor fell back to the ROUND BASELINE on the reasoning that "an
+   accepted change is in the baseline already". It is not — adopting does not
+   move the baseline, only closing the round does — so the editor opened on the
+   wording as it stood before the adoption.
+
+   And because a filing is now measured against the clause as its author was
+   SHOWN it, that made a silent reversal reachable: open the editor, touch
+   nothing, press Save, and a change was filed proposing to put the deleted
+   sentence back.
+   ============================================================ */
+describe('f208 · the editor opens on the clause as it stands', () => {
+
+  const adopted = async w => {
+    const c = contract();
+    w.win.negoInit(c);
+    const cl = clauseOf(w.win, c, '1');
+    const ch = await w.win.negoEditClause(c, cl.clauseId,
+      '<p>The Co-Packer shall manufacture, fill and pack the products.</p>',
+      { side: 'counterparty', author: 'Juno Limited', summary: 'shorten the scope' });
+    assert.ok(w.win.negoResolve(c, ch.id, 'accepted', { side: 'owner', by: ME.name }));
+    return { c, cl, ch };
+  };
+
+  test('THE FAULT: adopting does not move the baseline, so the baseline is stale', async () => {
+    const w = world();
+    const { c, cl } = await adopted(w);
+    assert.notEqual(w.win.negoClauseById(c, cl.clauseId).text,
+      w.win.negoClauseNowById(c, cl.clauseId).text,
+      'the two readings genuinely differ — which is what made the fallback wrong');
+    assert.match(w.win.negoClauseById(c, cl.clauseId).text, /licensed facility/,
+      'the baseline still carries the wording the adoption removed');
+  });
+
+  test('the editor is seeded from the clause AS IT STANDS', () => {
+    /* The editor takes its floor from the same reading the filing measures
+       against. Asserted off the source: the seeding is a DOM path with no
+       return value, and what is under test is which of two readings it asks. */
+    const src = fs.readFileSync(path.join(ROOT, 'js/views/negotiation.js'), 'utf8');
+    const at = src.indexOf('const openOn = (onTable');
+    assert.ok(at > 0, 'the editor still seeds itself here');
+    assert.match(src.slice(at - 400, at + 200), /negoClauseNowById\(c, clauseId\)/,
+      'it reads the clause as it stands');
+    assert.ok(!/const openOn = \(onTable && String\(onTable\.bodyHtml \|\| ''\)\.trim\(\)\)\s*\n\s*\|\| cl\.bodyHtml/.test(src),
+      'and no longer falls back to the round baseline');
+  });
+
+  test('SAVING WITHOUT TYPING FILES NOTHING — the silent reversal is closed', async () => {
+    const w = world();
+    const { c, cl } = await adopted(w);
+    const shown = w.win.negoClauseNowById(c, cl.clauseId);
+    const again = await w.win.negoEditClause(c, cl.clauseId, shown.bodyHtml,
+      { side: 'owner', author: ME.name });
+    assert.equal(again, null, 'nothing changed, so nothing is filed');
+  });
+
+  test('and the stale reading WOULD have reversed the adoption', async () => {
+    /* The proof that this was a reversal and not only a stale box: feeding the
+       editor what it used to open on files a change putting the wording back. */
+    const w = world();
+    const { c, cl } = await adopted(w);
+    const stale = w.win.negoClauseById(c, cl.clauseId).bodyHtml;
+    const filed = await w.win.negoEditClause(c, cl.clauseId, stale,
+      { side: 'owner', author: ME.name });
+    assert.ok(filed, 'the old seeding really did produce a change');
+    assert.match((filed.ops || []).filter(o => o.op === 'ins').map(o => o.text).join(''),
+      /licensed facility/, 'and it proposed the adopted deletion straight back');
+  });
+
+  test('a pending draft of your own still wins — continuing your own edit', async () => {
+    const w = world();
+    const c = contract();
+    w.win.negoInit(c);
+    const cl = clauseOf(w.win, c, '2');
+    const mine = await w.win.negoEditClause(c, cl.clauseId,
+      '<p>Billed per unit, payable within forty-five (45) days.</p>',
+      { side: 'owner', author: ME.name, summary: 'payment window' });
+    assert.equal(mine.status, 'pending');
+    assert.match(String(mine.bodyHtml || ''), /forty-five/,
+      'the live draft is what the editor reopens on, unchanged by this fix');
   });
 });
 
