@@ -458,3 +458,71 @@ organisational only. Said out loud so the opposite is a decision too.
 identical sub-lines is its own defect. Whatever else changes, a card needs
 something that tells one from another — the stream, the source contract, or the
 date it was published.
+
+### DECIDED, 15 Aug 2026 (owner)
+
+**The stream folders appear first, and anything with no stream assigned goes to
+a folder called Other.** That settles the three options above — it is option 2's
+shape, and "Other" is what makes it shippable without a backfill, because no
+template has to be classified before the screen can be built.
+
+Three things follow from it, and the second is the one that decides whether this
+is worth doing.
+
+**1 · WHAT IT LOOKS LIKE ON THE FIRST MORNING, said plainly.** No company
+standard template carries a stream today, so on the day this ships **every one
+of them is in Other** and the six stream folders are empty. A browse step that
+opens on six empty folders and one full one is WORSE than the flat list it
+replaces. That is not an argument against the decision; it is the reason the
+second half is not optional.
+
+**2 · SO IT IS TWO HALVES, AND THEY SHIP TOGETHER.**
+  · **(a) The browse step** — streams first, each with its count, Other last.
+  · **(b) A WAY TO PUT A TEMPLATE IN A STREAM** — asked when a template is
+    published, and editable afterwards on one that already exists. Without (b)
+    nothing ever leaves Other and the feature is a folder called Other.
+  Building (a) alone would be building the half that demonstrates the problem.
+
+**3 · "OTHER" IS A FOLDER IN THIS PICKER, NOT A SEVENTH VALUE STREAM.**
+  · It draws only while something is in it, and disappears when nothing is —
+    the same rule every other count on this product keeps.
+  · It is NOT added to FOLDERS. Contracts must never be filable into it; it is
+    the absence of an answer, and a stream you can file into is an answer.
+  · Its heading says what it means — "no stream yet" — rather than looking like
+    a category somebody chose.
+
+### AND ONE BLOCKER THE DECISION UNCOVERS — custom streams are browser-only
+
+The request named **HR**, which is not one of the six. A stream can be added:
+`addCustomFolder` exists and every picker, chip and report reads FOLDERS. But it
+writes to **localStorage and nothing else** — `saveCustomFolders` is a
+localStorage set, and there is no folders route on the server at all.
+
+So an HR stream created by one admin exists **in that one person's browser**. A
+colleague opening the same template picker would not see the folder; templates
+filed to it would show as Other for everyone else; and the grouping would differ
+per machine for the same workspace. Grouping a COMPANY-WIDE template library by
+a stream that is per-browser does not work.
+
+Moving custom folders to the server was considered on 14 Aug and deliberately
+NOT taken — "half a day's work for a problem nobody in this workspace has (no
+custom folder has ever been created here)." **This decision revives it.** The
+reasoning that parked it is now out of date, and the note in `CLAUDE.md` under
+the folders panel should be reversed in place when it is picked up.
+
+Two ways forward, owner's call:
+  · **Ship the browse step on the six built-in streams plus Other**, and put
+    employment templates under Corporate & Compliance for now. No server work.
+  · **Move custom streams to the server first**, then add HR properly. Half a
+    day of work before this feature can start, and it fixes a fault that will
+    otherwise bite the first time anybody creates a stream.
+
+### Still open
+
+Whether an unassigned template should be **suggested** a stream from its
+`category` (sales → Sales & Route-to-Market, procurement → Procurement & Raw
+Materials, nda → Corporate & Compliance) rather than all of them landing in
+Other. It would seed most of the library in one pass. Recommendation: offer it
+as a one-time suggestion an admin confirms, never a silent assignment — a
+guessed classification wearing a fact's clothes is how a template ends up in a
+stream nobody chose.
