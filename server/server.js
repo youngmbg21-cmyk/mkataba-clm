@@ -2777,6 +2777,13 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
            counterparty's, so a settlement in somebody else's name is not this
            caller's act. Their own withdrawal is theirs too. */
         if (ch.authorSide !== 'counterparty') return false;
+        /* SUPERSEDING IS FILING, NOT ANSWERING. A counter filed on a contested
+           clause steps the rival down to 'superseded' in the same save (the
+           one-proposal-on-the-table rule, 15 Aug 2026) — nobody accepted or
+           rejected anything, the table moved. What a held reviewer may or may
+           not FILE is its own rule, judged on the change they filed, not on
+           the status its arrival moved. */
+        if (String(ch.status) === 'superseded') return false;
         const by = String(ch.resolvedBy || '');
         if (by && by !== String(req.user.name || '')) return false;
         if (ch.withdrawn && ch.withdrawn.side === 'counterparty') return false;

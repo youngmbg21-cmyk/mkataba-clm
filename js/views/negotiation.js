@@ -910,6 +910,7 @@ function negoStyleHtml(){
   .nego-st.past{margin-left:0;background:var(--n-badge-bg);color:var(--n-slate);border:1px solid #dde5ee}
   html.dark .nego-st.past{border-color:#334155;color:var(--n-ink-soft)}
   .nego-past-thread{margin-top:9px;border-top:1px dashed var(--n-line);padding-top:8px}
+  .nego-counterline{font-size:11px;color:var(--n-ink-soft);margin-bottom:7px}
   .nego-contested{border-left:2px solid var(--n-reject);background:var(--n-del-bg);border-radius:0 4px 4px 0;
     padding:6px 9px;margin-bottom:8px;font-size:11px;line-height:1.5;color:var(--n-ink)}
   .nego-hash{font-family:var(--n-font-mono);font-size:9.5px;color:var(--n-slate-soft);
@@ -1610,8 +1611,17 @@ function negoDocHtml(c, opts){
      state somebody can be stuck in without knowing why the list got short. */
   if (_negoOnly && _negoLinked && changes.some(x => x.id === _negoLinked))
     changes = changes.filter(x => x.id === _negoLinked);
+  /* A LIST PER CLAUSE — the same correction as redlineDocHtml's, and the
+     rulebook's rule that a drawing fix goes in BOTH pending-change renderers.
+     Newest last, so the entry the old one-per-clause map kept is the one whose
+     body is still drawn; the others keep their badges. */
   const byClause = new Map();
-  for (const ch of changes) if (ch.changeType !== 'insertClause') byClause.set(ch.clauseId, ch);
+  for (const ch of changes.slice().sort((a, b) => (a.seq || 0) - (b.seq || 0))){
+    if (ch.changeType === 'insertClause') continue;
+    const arr = byClause.get(ch.clauseId) || [];
+    arr.push(ch);
+    byClause.set(ch.clauseId, arr);
+  }
   /* Insertions are drawn WHERE THEY WERE PROPOSED — after the clause they name
      — rather than swept to the end of the document. The old model appended
      them because a line-index id gave it nowhere else to point; a durable id
@@ -1744,7 +1754,13 @@ function negoDocHtml(c, opts){
      heading, so Change, Delete, badge anchoring and the synchronised highlight
      do not know the difference. And the comparison is unaffected either way —
      negoEditClause still opens on bodyHtml, the diff still runs on text. */
-  const clauseBlock = (cl, ch, domPrefix) => {
+  const clauseBlock = (cl, chs, domPrefix) => {
+    /* `chs` is the clause's LIST of changes, newest last. The newest carries
+       the body — the same change the old single-value map kept — and every
+       other one keeps its own badge, so a decided ask stays visible beside a
+       newer one instead of silently losing its place on the paper. */
+    const ch = Array.isArray(chs) ? (chs.length ? chs[chs.length - 1] : null) : (chs || null);
+    const rest = Array.isArray(chs) ? chs.slice(0, -1) : [];
     if (baseline || !ch)
       return `<div class="nego-clause" id="${domPrefix}-${negoDomId(cl.clauseId)}" data-clause="${_ne(cl.clauseId)}">
         ${tools(cl)}${head(cl) ? `<h2 data-nego-chrome>${head(cl)}</h2>` : ''}${negoRichBody(cl)}</div>`;
@@ -1810,8 +1826,19 @@ function negoDocHtml(c, opts){
        to stop. */
     const row = tools(cl, notes);
     const inHead = row ? '' : notes;
-    return `<div class="nego-clause${active ? ' is-active' : ''}" id="${domPrefix}-${negoDomId(cl.clauseId)}" data-clause="${_ne(cl.clauseId)}" data-change="${_ne(ch.id)}">
-      ${row}<button class="nego-badge${active && !badgeCls ? ' is-active' : ''}${badgeCls ? ' ' + badgeCls : ''}"
+    /* One badge per change on the clause, oldest first, each wearing its own
+       verdict glyph — the newest (whose redline is the body below) keeps the
+       active highlight it always had. First token of data-change stays the
+       drawn change, for the selection helpers that read one id. */
+    const restBadges = rest.map(x => {
+      const cls = x.status === 'accepted' ? ' is-accepted' : x.status === 'rejected' ? ' is-rejected' : '';
+      const sfx = x.status === 'accepted' ? ' ✓' : x.status === 'rejected' ? ' ✕' : '';
+      return `<button class="nego-badge${cls}" data-badge="${_ne(x.id)}" title="${_ne(x.hash || '')}"
+        aria-label="${_ne(i18t('ng_change_aria',{id:x.id,status:x.status}))}">#${_ne(x.id)}${sfx}</button>`;
+    }).join('');
+    const changeIds = _ne([ch].concat(rest).map(x => x.id).join(' '));
+    return `<div class="nego-clause${active ? ' is-active' : ''}" id="${domPrefix}-${negoDomId(cl.clauseId)}" data-clause="${_ne(cl.clauseId)}" data-change="${changeIds}">
+      ${row}${restBadges}<button class="nego-badge${active && !badgeCls ? ' is-active' : ''}${badgeCls ? ' ' + badgeCls : ''}"
         data-badge="${_ne(ch.id)}" title="${_ne(ch.hash || '')}" aria-label="${_ne(i18t('ng_change_aria',{id:ch.id,status:ch.status}))}">#${_ne(ch.id)}${badgeSuffix}</button>
       ${head(cl) ? `<h2 data-nego-chrome>${head(cl)}${inHead}</h2>` : inHead}${body}</div>`;
   };
@@ -1938,6 +1965,20 @@ function negoCardsHtml(c, opts){
       </div>`).join('');
   }
   return negoLiveCardsHtml(c, opts);
+}
+/* THE REPLACEMENT IS NEVER UNEXPLAINED. A counter that took the table names
+   the ask it answered, on the card, on both seats and both renderers — the
+   superseded wording is one hover away (its summary and author ride the
+   tooltip, read from the record where supersession keeps it). One helper for
+   the two card renderers, because the pair drifting apart is the duplication
+   this codebase's first rule exists to prevent. */
+function negoCounterLineHtml(c, ch){
+  if (!ch || !ch.counterOf) return '';
+  const old = (typeof negoAllChanges === 'function' ? negoAllChanges(c) : (c.changes || []))
+    .find(x => x && x.id === ch.counterOf);
+  const tip = old ? [old.summary, old.author ? '— ' + old.author : ''].filter(Boolean).join(' ') : '';
+  return `<div class="rl-counterline nego-counterline"${tip ? ` title="${_nea(tip)}"` : ''}>${
+    i18t('ng_counters_line', { id: _ne(String(ch.counterOf)) })}</div>`;
 }
 function negoLiveCardsHtml(c, opts){
   const side = opts.side || 'owner';
@@ -2213,6 +2254,7 @@ function negoLiveCardsHtml(c, opts){
                 on this line's own hover. */}
         <div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:7px" title="${_ne(String(ch.author || ''))}">${i18t('ng_author')} <b style="color:var(--n-ink);font-weight:600">${
           _ne(window.cardName ? cardName(ch.author, _liveOrg) : ch.author)}</b></div>
+        ${negoCounterLineHtml(c, ch)}
         ${''/* Both renderers carry it — the project's own duplication rule. */}
         ${(side !== 'counterparty' && ch.revisedBy && ch.revisedBy !== ch.author) ? `<div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:7px"
           title="${_ne(i18t('ng_revised_title'))} — ${_ne(String(ch.revisedBy))} / ${_ne(String(ch.author))}"><span aria-hidden="true">&#9998;</span> ${
@@ -4673,11 +4715,15 @@ function wireNegotiationTab(c, opts = {}){
        walked straight past it and opened the editor on wording the reader is
        not entitled to see. Reading the block's own anchor means the editor can
        only ever open on the wording already on the screen. */
-    const shownId = block.getAttribute('data-nego-card-anchor')
-      || block.getAttribute('data-change');
-    const onTable = shownId
+    /* The anchor may carry several ids now (one per change on the clause,
+       lead first). The editor opens on the wording that is ON SCREEN, which
+       is the lead's — so the first pending token wins, exactly the change
+       whose marks the block is drawing. */
+    const shownIds = String(block.getAttribute('data-nego-card-anchor')
+      || block.getAttribute('data-change') || '').split(/\s+/).filter(Boolean);
+    const onTable = shownIds.length
       ? (typeof negoChanges === 'function' ? negoChanges(c) : [])
-        .find(x => x && x.id === shownId && x.status === 'pending'
+        .find(x => x && shownIds.includes(x.id) && x.status === 'pending'
           && x.changeType !== 'deleteClause' && x.changeType !== 'insertClause')
       : null;
     const openOn = (onTable && String(onTable.bodyHtml || '').trim())
@@ -4902,8 +4948,10 @@ function wireNegotiationTab(c, opts = {}){
          renders its marks in the document, and counting those refused clean
          selections with the one instruction that could never help: "accept or
          reject the current redline first", about a redline already decided. */
-      const changeId = clauseEl.getAttribute('data-change')
-        || clauseEl.getAttribute('data-nego-card-anchor');
+      /* First token: the attribute lists every change on the clause, lead
+         first, and the lead is the one whose marks this selection sits in. */
+      const changeId = String(clauseEl.getAttribute('data-change')
+        || clauseEl.getAttribute('data-nego-card-anchor') || '').split(/\s+/)[0];
       const chOf = changeId && window.negoChangeById ? negoChangeById(c, changeId) : null;
       const live = !!chOf && chOf.status === 'pending' && !chOf.withdrawn;
       const marked = passage.hasMarks && live;
@@ -4979,8 +5027,8 @@ function wireNegotiationTab(c, opts = {}){
       if (!text){ if (window.toast) toast(i18t('ng_clause_no_wording'), 'err'); return; }
       let rect;
       try { rect = btn.getBoundingClientRect(); } catch (e){ return; }
-      const changeId = clauseEl && (clauseEl.getAttribute('data-change')
-        || clauseEl.getAttribute('data-nego-card-anchor'));
+      const changeId = clauseEl ? String(clauseEl.getAttribute('data-change')
+        || clauseEl.getAttribute('data-nego-card-anchor') || '').split(/\s+/)[0] : '';
       const chOf = changeId && window.negoChangeById ? negoChangeById(c, changeId) : null;
       const live = !!chOf && chOf.status === 'pending' && !chOf.withdrawn;
       const hasMarks = !!(clauseEl && clauseEl.querySelector
@@ -5042,7 +5090,7 @@ function wireNegotiationTab(c, opts = {}){
     });
   });
   host.querySelectorAll('.nego-clause[data-change]').forEach(n => n.addEventListener('click', () =>
-    negoFocus(c, n.getAttribute('data-change'), 'clause')));
+    negoFocus(c, String(n.getAttribute('data-change') || '').split(/\s+/)[0], 'clause')));
 
   host.querySelectorAll('[data-nego-accept]').forEach(b => b.addEventListener('click', e => {
     e.stopPropagation(); decide(b.getAttribute('data-nego-accept'), 'accepted'); }));
@@ -6617,6 +6665,7 @@ function redlineLayoutCss(){
   /* A caption may shout; a name may not. This one is "Achieng Otieno said". */
   .redline-page .rl-said-k{text-transform:none;letter-spacing:.01em}
   .redline-page .rl-card-meta{font-size:10.5px;color:var(--color-neutral-500);line-height:1.5}
+  .redline-page .rl-counterline{font-size:10.5px;color:var(--color-neutral-500);line-height:1.5;margin-top:2px}
   /* ---- THE CARD NO LONGER CARRIES THE REDLINE ----
      It used to, clamped to two lines, which put the changed wording on screen
      twice: once in the document pane being read and again in a lesser copy
@@ -9628,7 +9677,12 @@ function rlLinkFocus(c, changeId, source){
   if (!page || !id) return false;
   const q = v => (window.CSS && CSS.escape) ? CSS.escape(v) : v;
   page.querySelectorAll('.is-linked').forEach(n => n.classList.remove('is-linked'));
-  const clause = page.querySelector('#rl-doc [data-nego-card-anchor="' + q(id) + '"]');
+  /* [~=] — attribute word match. The anchor carries EVERY change on the
+     clause, space-separated (the queue's data-rl-queue-ids pattern), so each
+     card finds its clause whichever position its id holds in the list. This
+     is the line that made half the cards dead when two asks shared a clause:
+     an exact match against a one-id attribute that only ever named the newest. */
+  const clause = page.querySelector('#rl-doc [data-nego-card-anchor~="' + q(id) + '"]');
   const card = page.querySelector('#rl-changes [data-nego-card="' + q(id) + '"]');
   /* The change's THREAD is the same thing again in the discussion panel, so
      it lights with the pair — and whichever sidebar face is showing is the
@@ -9854,7 +9908,10 @@ function rlWireClauseTools(c, host, opts){
       if (fromClauseControl(ev.target)) return;
       const sel = window.getSelection && window.getSelection();
       if (sel && !sel.isCollapsed && String(sel.toString() || '').trim()) return;
-      rlLinkFocus(c, sec.getAttribute('data-nego-card-anchor'), 'clause');
+      /* The anchor is a LIST now; a press on the clause lights the change
+         whose marks are on screen — the first token, kept lead-first for
+         exactly this read. */
+      rlLinkFocus(c, String(sec.getAttribute('data-nego-card-anchor') || '').split(/\s+/)[0], 'clause');
     }));
 
   /* ---- DISCUSSION CARD → CONTRACT ----
@@ -10270,8 +10327,22 @@ function redlineDocHtml(c, opts = {}){
   const live = (typeof negoChanges === 'function')
     ? negoChanges(c).filter(x => x.status !== 'superseded' && !hidden.has(x.id)) : [];
   const changes = live.filter(x => x.changeType !== 'insertClause');
+  /* A LIST PER CLAUSE, NOT ONE (owner-approved 15 Aug 2026). This map used to
+     hold a single change — last write wins — so a clause carrying our ask AND
+     their counter drew one tag and silently dropped the other, the dropped
+     card had no clause to jump to, and a decided mark vanished the moment a
+     newer change landed. The round queue has always kept the list
+     (data-rl-queue-ids); the paper now tells the same truth. The funnel's
+     supersede-on-counter rule makes two LIVE changes rare going forward, but
+     contracts written before it hold rivals, and a decided change beside a
+     pending one is ordinary. Sorted by seq so the last entry is the newest —
+     exactly the change the old map kept, so the drawn WORDING does not move. */
   const byClause = new Map();
-  for (const ch of changes) byClause.set(ch.clauseId, ch);
+  for (const ch of changes.slice().sort((a, b) => (a.seq || 0) - (b.seq || 0))){
+    const arr = byClause.get(ch.clauseId) || [];
+    arr.push(ch);
+    byClause.set(ch.clauseId, arr);
+  }
   /* ---- A CLAUSE SOMEBODY PROPOSED TO ADD IS PART OF THE DOCUMENT ----
      This canvas used to drop every insertClause on the floor. That was harmless
      for exactly as long as nothing here could FILE one: the passage menu
@@ -10486,7 +10557,27 @@ function redlineDocHtml(c, opts = {}){
   const _rvHidden = _rvOnly ? clauses.filter(cl => !_rvOnly.has(String(cl.clauseId))).length : 0;
   const body = clauses.filter(cl => !_rvOnly || _rvOnly.has(String(cl.clauseId))).map(cl => {
     const after = (insertsAfter.get(cl.clauseId) || []).map(insertBlock).join('');
-    const ch = byClause.get(cl.clauseId);
+    const chs = byClause.get(cl.clauseId) || [];
+    /* The NEWEST change is the one whose redline is drawn in the clause —
+       the same change the old one-per-clause map kept, so the wording on the
+       page is untouched by the list. Everything else on the clause keeps its
+       TAG and its place in the jump anchor; their wording reads on the card
+       and in the pop-out, which is where a proposal's detail has always
+       lived. */
+    const ch = chs.length ? chs[chs.length - 1] : null;
+    const rest = chs.slice(0, -1);
+    /* Lead first: three selection helpers read this attribute expecting one id
+       and take the first token, and the first token must stay the change whose
+       marks are actually on screen. rlLinkFocus matches with [~=], so every
+       card finds this clause whichever position its id holds. */
+    const anchorIds = _ne(chs.map(x => x.id).reverse().join(' '));
+    const tagFor = x => {
+      const xTheirs = x.authorSide !== side;
+      const xSt = x.status === 'accepted' ? ' &middot; &#10003; adopted'
+        : x.status === 'rejected' ? ' &middot; &#10007; refused' : '';
+      const xTip = x.status === 'rejected' && x.reply ? ` title="${_nea(x.reply)}"` : '';
+      return `<span class="rl-asktag"${xTip}>${_ne(x.id)} · ${xTheirs ? 'Their ask' : 'Your ask'}${xSt}</span>`;
+    };
     if (ch){
       const theirs = ch.authorSide !== side;
       /* ---- A CLEAN READING CARRIES NO MARKERS EITHER ----
@@ -10508,7 +10599,7 @@ function redlineDocHtml(c, opts = {}){
       const marked = which === 'marks';
       const clean = redlineBody(ch);
       if (!marked){
-        return `<section class="nego-clause rl-clause" data-clause="${_ne(cl.clauseId)}" data-nego-working="${_ne(cl.clauseId)}" data-nego-card-anchor="${_ne(ch.id)}">
+        return `<section class="nego-clause rl-clause" data-clause="${_ne(cl.clauseId)}" data-nego-working="${_ne(cl.clauseId)}" data-nego-card-anchor="${anchorIds}">
           ${heading(cl)}
           ${''/* A formatting-only ask read "as agreed" is simply the clause. */}
           ${clean == null ? richBody(cl) : clean}
@@ -10518,18 +10609,15 @@ function redlineDocHtml(c, opts = {}){
       /* The decision rides on the tag, because the card leaves the column once
          a change is settled: without this the document showed the marks and
          nothing said the argument about them was over. The refusal's reason —
-         ch.reply, which travels — is on the tag's tooltip. */
-      const st = ch.status === 'accepted' ? ' &middot; &#10003; adopted'
-        : ch.status === 'rejected' ? ' &middot; &#10007; refused' : '';
-      const tagTip = ch.status === 'rejected' && ch.reply ? ` title="${_nea(ch.reply)}"` : '';
-      /* Named on the tag, because this clause shows no strike/insert marks —
-         the chip is the only thing saying the words did not move. */
+         ch.reply, which travels — is on the tag's tooltip. EVERY change on the
+         clause gets its tag, oldest first so the row reads in the order the
+         asks were made and ends on the one whose marks are drawn. */
       const fmtChip = ch.formattingOnly
         ? `<span class="nego-note fmt" title="${_nea(i18t('ng_formatting_only_title'))}">${i18t('ng_formatting_only')}</span>` : '';
-      return `<section class="nego-clause rl-clause is-changed" data-clause="${_ne(cl.clauseId)}" data-nego-working="${_ne(cl.clauseId)}" data-nego-card-anchor="${_ne(ch.id)}">
+      return `<section class="nego-clause rl-clause is-changed" data-clause="${_ne(cl.clauseId)}" data-nego-working="${_ne(cl.clauseId)}" data-nego-card-anchor="${anchorIds}">
         <div class="rl-clause-top">
           ${heading(cl)}
-          <span class="rl-asktag"${tagTip}>${_ne(ch.id)} · ${theirs ? 'Their ask' : 'Your ask'}${st}</span>${fmtChip}
+          ${rest.map(tagFor).join('')}${tagFor(ch)}${fmtChip}
         </div>
         ${clean == null ? richBody(cl) : clean}
         ${tools(cl, ch)}
@@ -12020,7 +12108,7 @@ function redlineChangeCardsHtml(c, opts = {}){
           badge[2] ? ` title="${_nea(badge[2])}"` : ''}>${badge[1]}</span>${
           ch.round ? `<span class="rl-card-round" title="${_nea(i18t('ng_proposed_in_round',{n:ch.round}))}">R${_ne(ch.round)}</span>` : ''}${popBtn}</div>
         <div class="rl-card-meta"${tip ? ` title="${_nea(tip)}"` : ''}>${who}</div>
-        ${diff}
+        ${negoCounterLineHtml(c, ch)}${diff}
       </div>
       ${body}
       ${actionBar}

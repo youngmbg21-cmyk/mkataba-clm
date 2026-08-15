@@ -1260,6 +1260,57 @@ async function negoFileChange(c, draft, opts = {}){
     needsReview: !!draft.needsReview,
     needsReviewWhy: draft.needsReviewWhy || null,
   };
+  /* ---- ONE PROPOSAL ON THE TABLE (owner-approved 15 Aug 2026) ----
+     A filing on a clause that already carries a pending change the fold above
+     did not cover — the other side's ask, or our own from another round — is a
+     COUNTER, and the market is unanimous about what a counter does: it takes
+     the table, and the earlier proposal becomes history. Word and Google Docs
+     make rivals unrepresentable by layering; the CLM platforms (Juro,
+     Ironclad, SpotDraft) make the counter the position on the table with the
+     prior position kept as a version; nobody draws two rivals as equals with
+     independent Accept buttons — which is the state this product was in, and
+     it cost the paper one of its tags, the column a working card, and (worst)
+     let accept-both silently keep only the second.
+
+     `superseded` is the status every list, count and share payload already
+     filter — built long ago and never set by anything until this line. The
+     stepped-down ask keeps its hash, its place in the chain and its record;
+     the audit trail names both sides of the exchange; and `counterOf` on the
+     new change is what the card prints so a replacement is never unexplained.
+
+     INSERTIONS ARE EXEMPT in both directions, deliberately: a proposed new
+     clause's id exists only on the proposal, so an edit to it is layered work
+     on ground the insertion provides — superseding the insertion would delete
+     the ground the edit stands on. Both stay, and the paper's per-clause tag
+     list (part A of the same work order) draws them honestly. */
+  const rivals = draft.changeType === 'insertClause' ? [] :
+    c.changes.filter(x => x && x.clauseId === draft.clauseId && x.status === 'pending'
+      && x.changeType !== 'insertClause');
+  if (rivals.length){
+    const localSide = (typeof window !== 'undefined' && window.PORTAL_MODE) ? 'counterparty' : 'owner';
+    /* Read BEFORE the supersession: unsent is a fact about pending asks. */
+    const unsentHere = new Set((typeof negoUnsentAsks === 'function'
+      ? negoUnsentAsks(c, localSide) : []).map(x => x.id));
+    const newest = rivals.slice().sort((a, b) => (a.seq || 0) - (b.seq || 0)).pop();
+    for (const r of rivals){
+      r.status = 'superseded';
+      r.supersededBy = ch.id;
+      r.supersededAt = at;
+      /* THE OWNER IS TOLD when an arrival set aside their own internal work —
+         a draft they never sent was not answered by this counter, it was
+         overtaken, and silence here is the "product asserting something the
+         person did not do" class of fault. A sent ask needs no notice: the
+         counter IS the reply, and the card says so. */
+      if (r.authorSide === localSide && side !== localSide && unsentHere.has(r.id)
+          && typeof window !== 'undefined' && window.toast)
+        toast(i18t('ng_draft_superseded', { old: r.id, label: r.clauseLabel || r.clauseId }));
+    }
+    ch.counterOf = newest ? newest.id : null;
+    if (window.logAudit && !opts.quiet) logAudit(c, 'Negotiation',
+      `#${ch.id} supersedes ${rivals.map(x => '#' + x.id).join(', ')} on ` +
+      `${ch.clauseLabel || ch.clauseId} — one proposal on the table; the earlier ` +
+      `wording stays on the record with its fingerprint`);
+  }
   await negoIssue(c, ch);
   c.changes.push(ch);
   if (window.logAudit && !opts.quiet) logAudit(c, 'Negotiation',
@@ -1723,6 +1774,13 @@ function negoResolve(c, id, status, opts = {}){
   const ch = negoChangeById(c, id);
   if (!ch) return null;
   if (!['pending', 'accepted', 'rejected'].includes(status)) return null;
+  /* A superseded change is off the table — a counter took its place — and a
+     thing that is not on the table takes no decision, in either direction. Its
+     record is not rewritten and its verbs are not drawn; this line is for the
+     callers that arrive by id (an old link's held decision, a replayed
+     response code) after the table has moved. Quiet, like the other
+     cannot-apply returns here: the surfaces that could ask already show why. */
+  if (ch.status === 'superseded') return null;
   /* Read the permission through `window` deliberately, not as a bare call.
      js/core.js declares `const canEdit = …`, which is a LEXICAL binding rather
      than a property of the global object — so a bare `canEdit()` here resolves
@@ -1752,6 +1810,28 @@ function negoResolve(c, id, status, opts = {}){
   if (negoWordingFrozen(c)){
     if (window.toast) toast(i18t(negoExecuted(c) ? 'ne_executed_amend' : 'ne_signed_frozen'), 'err');
     return null;
+  }
+  /* ---- NO SECOND ACCEPTANCE SILENTLY DISCARDS A FIRST (15 Aug 2026) ----
+     Two rivals measured against the same baseline replay in sequence when the
+     agreed wording is rebuilt, so accepting the second used to overwrite the
+     first — two "accepted" entries in the history, one wording in the
+     contract, nothing said anywhere. The whole market refuses this state: Git
+     makes it a conflict a human must resolve, and Word's Combine literally
+     halts with "choose which set to keep". With the supersede-on-counter rule
+     in the funnel this cannot arise on new work; this guard is for contracts
+     that already hold rivals, and it refuses IN WORDS, naming the way out.
+     SAME ROUND ONLY: a later round's ask measures the updated clause, so
+     cross-round acceptance is sequential composition — how negotiation works —
+     and must never be caught. Rejecting stays free: a refusal composes with
+     anything. */
+  if (status === 'accepted' && ch.changeType !== 'insertClause'){
+    const adopted = c.changes.find(x => x && x !== ch && x.clauseId === ch.clauseId
+      && x.status === 'accepted' && x.changeType !== 'insertClause'
+      && (x.roundN || 1) === (ch.roundN || 1));
+    if (adopted){
+      if (window.toast) toast(i18t('ng_accept_blocked_adopted', { id: adopted.id }), 'err');
+      return null;
+    }
   }
   const who = String(opts.by || (window.currentUser && window.currentUser()?.name) || 'System');
   const prev = ch.status;
@@ -2930,12 +3010,18 @@ function negoAdvanceRound(c, opts = {}){
   if (p.pending) return null;                 // an undecided change is not history yet
   const decided = negoChanges(c).filter(x => x.status === 'accepted' || x.status === 'rejected');
   if (!decided.length) return null;
+  /* Superseded asks are ARCHIVED BESIDE the decided ones, not dropped: a
+     countered proposal is history with a fingerprint on it, and `c.changes = []`
+     below would otherwise erase it from the record at the exact moment the
+     round that superseded it closed. They do not gate the close and do not
+     count in the tally — nobody decided them; the table moved past them. */
+  const settled = decided.concat(negoChanges(c).filter(x => x.status === 'superseded'));
   const n = c.negotiation.round;
   c.negotiation.rounds = Array.isArray(c.negotiation.rounds) ? c.negotiation.rounds : [];
   c.negotiation.rounds.push({ n, at: (window.nowISO ? window.nowISO() : new Date().toISOString()),
     baselineBody: c.negotiation.baselineBody,
     baselineText: c.negotiation.baselineText,
-    changes: decided.map(x => ({ ...x, thread: (x.thread || []).slice(),
+    changes: settled.map(x => ({ ...x, thread: (x.thread || []).slice(),
       revisions: (x.revisions || []).slice() })) });
   const body = negoResolvedBody(c);
   c.negotiation.baselineBody = body;
