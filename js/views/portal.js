@@ -3629,13 +3629,21 @@ async function portalRespond(p, action, extra){
       if(np) sentBits.push(`${np} change${np===1?'':'s'} you asked for`);
       if(n) sentBits.push(`${n} decision${n===1?'':'s'}`);
       const sentWhat=sentBits.join(' and ')||'your answer';
+      /* ---- 'ok', NOT A BARE CALL (15 Aug 2026, OI-10) ----
+         These two confirm an act that has LEFT THIS PAGE and reached the other
+         company, which is the test for whether a toast is owed: it travels and
+         it cannot be taken back. Bare, they were silent — and the reader had
+         just pressed Send on a batch, watched the cards clear and been told
+         nothing, which reads as a button that did not work. Reported as exactly
+         that. The button's own label changes too (portalSetDone), but a label
+         on the control you pressed is not a confirmation you notice. */
       if(action==='ready'){
         portalSetDone(pressed,'Sent — they know you are ready');
         toast(`${p.org||'The sender'} has been told you are ready to sign`
-          +`${sentBits.length?` — ${sentWhat} sent with it`:''}. Nothing is signed yet; they will send a signing link.`);
+          +`${sentBits.length?` — ${sentWhat} sent with it`:''}. Nothing is signed yet; they will send a signing link.`,'ok');
       } else {
         portalSetDone(pressed,`${sentWhat} sent`);
-        toast(`${sentWhat} sent to ${p.org||'the sender'} — it is now their turn.`);
+        toast(`${sentWhat} sent to ${p.org||'the sender'} — it is now their turn.`,'ok');
       }
       /* Repaint, so the room shows the decisions as sent rather than still
          waiting to be. The room is their page — there is nowhere else for the

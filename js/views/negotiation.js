@@ -9100,7 +9100,10 @@ function renderRedline(){
       const r = negoAdvanceRound(c, { by: opts.by || (window.currentUser && currentUser()?.name) });
       if (!r){ if (window.toast) toast(i18t('ng_round_cannot_close'), 'err'); return; }
       if (window.persist) persist(c);
-      if (window.toast) toast(`Round ${r.n} closed — the agreed wording is the new baseline for round ${negoRound(c)}`);
+      /* 'ok' by the same test as the portal's send confirmations: closing a
+         round is irreversible and moves the baseline every later change is
+         measured against. See TOAST_KINDS. */
+      if (window.toast) toast(`Round ${r.n} closed — the agreed wording is the new baseline for round ${negoRound(c)}`, 'ok');
       renderRedline();
     }));
   rlWireClauseTools(c, host, opts);

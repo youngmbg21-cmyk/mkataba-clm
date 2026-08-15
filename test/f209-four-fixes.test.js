@@ -218,6 +218,33 @@ describe('f209 · a toast says which of three things happened', () => {
     assert.equal(root.firstChild.style.opacity, '0', 'it is on its way out');
   });
 
+  test('AN ACT THAT TRAVELS CONFIRMS ITSELF — the send said nothing at all', () => {
+    /* Reported as "the Send all button does not work". It worked: the wiring
+       fix landed and the decisions went. What did not happen was anything on
+       screen — the confirmation was a bare call, and a bare call is silent. A
+       batch send that clears the cards and says nothing reads as a dead button,
+       which is the same complaint arriving by a different road. */
+    const portal = read('js/views/portal.js');
+    assert.match(portal, /it is now their turn\.`,\s*'ok'\)/,
+      'sending decisions to the other company confirms itself');
+    assert.match(portal, /they will send a signing link\.`,\s*'ok'\)/,
+      'and so does telling them you are ready');
+    const nego = read('js/views/negotiation.js');
+    assert.match(nego, /the new baseline for round \$\{negoRound\(c\)\}`, 'ok'\)/,
+      'and closing a round, which is irreversible');
+  });
+
+  test('EVERY DOOR ONTO THE POSTBOX IS DELEGATED, and there is only one mechanism', () => {
+    /* The proxy click was wired by scanning #content BEFORE the panes mount, so
+       a proxy painted into the column got no handler at all — which is what
+       made the band's Send dead. Two mechanisms would be worse than one: a
+       proxy reachable by both would publish the round twice. */
+    const nego = read('js/views/negotiation.js');
+    assert.match(nego, /document\._rlProxyWired/, 'armed once, on the document');
+    assert.ok(!/host\.querySelectorAll\('\[data-redline-proxy\]'\)\.forEach\(el =>\s*\n?\s*el\.addEventListener/.test(nego),
+      'and the element-bound scan is gone, not kept alongside');
+  });
+
   test('the reported publish path is amber and hands over the link', () => {
     const src = read('js/views/negotiation.js');
     assert.match(src, /delivered \? 'ok' : 'warn'/,
