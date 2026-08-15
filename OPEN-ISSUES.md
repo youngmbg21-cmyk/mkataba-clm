@@ -303,3 +303,158 @@ rather than deleted.
   · **The phone.** Their page below 768px has no room in the header for this,
     the same reason it draws no bell. Decide whether the phone gets the
     readings in flow, or nothing, rather than letting the width decide.
+
+---
+
+## OI-9 — Nothing tells you a redline has not been sent
+
+*Owner-reported 15 Aug 2026, from a screenshot of the Tracked Changes column.
+Rendered and agreed in outline; not built.*
+
+**What the reader sees.** You make three redlines. Each card says **Draft** and
+carries its own Send. Nothing anywhere counts them, and nothing says they have
+not left your desk. The column head says "6 on the table", which is a different
+number about a different thing.
+
+**What exists today, and why it does not do the job.** The only surface that
+mentions unsent work is a suffix on **Publish Round** at the far end of the
+toolbar, reading "· 3 unsent". Three faults: it never uses the word *send*; it
+is nowhere near the cards that were just written; and **it folds away** — the
+toolbar's fit ladder drops `.rl-send-detail` on its second rung, so on an
+ordinary laptop the count is simply not on screen.
+
+**The fix: a one-line band at the top of the Tracked Changes column.**
+`● 3 not sent · they cannot answer yet · [Send all 3]` — 41px, against the
+108px the first two-line drafts measured. Owner-ruled on sight: one line, no
+wrapping, few words.
+
+  · **It never wraps.** The count and the button are fixed width; the middle
+    phrase is the only thing that gives, and it ellipsises. MEASURED at a
+    300px column — the narrowest the resizer allows — where it holds one line
+    at 41px and trims to "they cannot a…". The whole sentence goes on hover.
+  · **It draws only when something is unsent.** An always-on warning is
+    furniture, the standing rule.
+  · **ONE COUNT, MANY SURFACES.** It reads negoUnsentAsks — the same reading
+    the toolbar suffix and the wall line already use — so the band and the
+    button can never disagree.
+  · **Send all is a PROXY onto the existing postbox**, never a second
+    transport. Same pattern the per-card Send already uses.
+  · **The per-card Send stays.** The owner asked for both routes explicitly.
+  · **It counts wording only** — our unsent asks. Their asks awaiting our
+    answer are a different job and have their own status word on the card.
+  · **Top of the COLUMN, never the top of the contract** — nothing bands the
+    paper, the standing rule.
+  · **Both seats.** The counterparty has the same problem with held answers and
+    should get the same band in their own words.
+
+**Decided on sight:** the Publish Round suffix comes off when this ships. Two
+places saying the same number is how they come to disagree.
+
+**Still open:** whether the band should also count held DECISIONS on our seat,
+or stay about wording alone. Recommendation is wording alone — Publish Round
+already owns the round.
+
+---
+
+## OI-10 — Every toast is red, because success toasts are thrown away
+
+*Owner-reported 15 Aug 2026: "a red alert would make you think something bad
+happened when in this case I simply sent a redline." Cause found; not fixed.*
+
+**It is not a colour bug.** `toast(msg, kind='ok')` in `js/core.js` computes
+`isErr = kind !== 'ok'` and its **second line is `if(!isErr) return`**. Success
+toasts are built and then discarded. The function even carries styling for a
+success toast — a tick icon and an accent background — down a branch no call
+can reach.
+
+**So the product has one visible toast state.** There are **590 toast calls and
+only 340 pass an error kind**; the other ~250 are confirmations nobody has ever
+seen — "#CHG-001 retracted", "Round 2 closed", "#CHG-001 filed", all of them.
+
+**And that is why the reported message was red.** The publish path needs the
+reader to know the round went to a link but was not emailed, and the only way
+to make a toast appear is to mark it an error. The call reads, in full: use
+`'err'` *unless* it was delivered. Nobody was careless; it was the one door.
+
+**The fix: three states, three meanings, from tokens the app already has.**
+
+  · **Done** — deep teal, tick. "Round 2 published to Juno Limited." Confirms
+    and goes.
+  · **Needs you** — amber, warning mark. "Published to Juno Limited's link —
+    not emailed." **Carries a Copy link button.**
+  · **Refused** — ruby, the stop sign. Red then means one thing only.
+
+**The amber state fixes a second fault in the same message.** Today it tells
+the reader to send the link and gives them nothing to press — the same class of
+fault as a refusal with no way forward. If a toast asks for something, it hands
+over the thing.
+
+**Two decisions before it is built:**
+  1. **Which of the ~250 silent confirmations to switch on.** All at once is a
+     toast after every accept, reject and filing. Recommendation: on for acts
+     that TRAVEL or are hard to reverse (published, sent, round closed,
+     retracted); silent for acts the screen already shows (a change filed — the
+     card appears).
+  2. **Dwell time per state.** Recommendation: Done 3s, Needs-you 8s or until
+     dismissed, Refused until dismissed. A state that is asking for something
+     must not vanish on the same timer as one that is only confirming.
+
+---
+
+## OI-11 — "Draft from a template" is a flat list, not a set of streams
+
+*Owner-asked 15 Aug 2026: "you should first see the list of streams in folders,
+choose let's say HR, then find the agreement you are looking for." Investigated;
+not built. Bigger than it looks — read the second half before scoping it.*
+
+**What the reader sees.** New contract from a template opens on one flat grid
+under "Your company standard templates", every card wearing the identical
+sub-line "v1 · pre-filled & branded". In the reported screenshot ten templates
+are shown, **three of them named "Momo Beach"**, with nothing on any card to
+tell them apart. There is a search box below, but nothing to browse BY.
+
+**What the record actually holds — and this is the finding.** The three groups
+in this dialog do not carry the same facts:
+
+  · **Saved-from-a-contract templates** carry `folder`, and the picker already
+    prints the stream name as their sub-line. These could be grouped today.
+  · **Company standard templates — the ones in the report — carry no stream at
+    all.** The `templates` table has no `folder` column. It has `category`,
+    whose five values (sales · procurement · employment · nda · other) are a
+    DIFFERENT VOCABULARY from the six value streams, and 'other' is the
+    default. So grouping these by stream is not a screen change: the field has
+    to exist first.
+  · **Built-in HaTi papers** carry a folder through TEMPLATES.
+
+**AND THERE IS NO HR STREAM IN THIS WORKSPACE.** The six are Procurement & Raw
+Materials · Manufacturing & Production · Warehousing & Distribution · Sales &
+Route-to-Market · Marketing & Brand · Corporate & Compliance — an FMCG value
+stream. An employment contract files under Corporate & Compliance today. So the
+example in the request cannot be satisfied by grouping alone; either a stream is
+added, or the browse step is built on a different word than the one the owner
+used. **This needs the owner's answer before anything is built.**
+
+**Three ways to do it, smallest first:**
+  1. **Group what already has a stream, label the rest.** No schema change.
+     Standard templates land under one honest heading (their category) rather
+     than a stream they do not have. Cheap; half-answers the request.
+  2. **Give a template a stream.** A `folder` column, set when a template is
+     published, defaulted from `category` where one can be inferred and left
+     blank otherwise. Then the dialog opens on the six streams with a count
+     each, and picking one lists its templates. This is what was asked for.
+  3. **Streams first, everywhere.** The Templates page groups the same way, and
+     the two screens stop disagreeing.
+
+**A question option 2 forces, and it must not be answered by accident:** does a
+template inherit STREAM ACCESS? Somebody who cannot see a stream can already
+not see its contracts — the server enforces it on every query. If templates gain
+a stream, "can this person draft from an HR template" becomes a real question
+with a real answer, and it should be decided deliberately rather than falling
+out of a rendering change. Recommendation: templates are patterns, not records —
+they should NOT be access-controlled by stream, and the grouping is
+organisational only. Said out loud so the opposite is a decision too.
+
+**Logged beside it, same screen:** three templates called "Momo Beach" with
+identical sub-lines is its own defect. Whatever else changes, a card needs
+something that tells one from another — the stream, the source contract, or the
+date it was published.
