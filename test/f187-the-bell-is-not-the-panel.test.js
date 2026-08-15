@@ -220,13 +220,30 @@ describe('f187 (3) — the suppression is a shape, and nothing wears it', () => 
     });
   });
 
-  test('a toast is deliberately NOT the channel', () => {
-    /* This product draws only error toasts (see toast in js/core.js: a kind of
-       'ok' returns immediately), so an informational one would be a message
-       nobody ever sees. */
+  test('a toast is still not the channel for THIS — but it is a channel now', () => {
+    /* ---- CLAIM REVERSED IN PLACE, 15 Aug 2026 (OI-10) ----
+       This read: "this product draws only error toasts (a kind of 'ok' returns
+       immediately), so an informational one would be a message nobody ever
+       sees." That was TRUE and it was the fault: toast's second line was
+       `if(!isErr) return`, so about 250 of the product's 590 toast calls were
+       written and discarded, and the only way to make a message visible was to
+       mark it an error — which is exactly what the publish path did, and what
+       was reported as a red alert over a successful send.
+
+       There are three kinds now. What this test still pins is the DECISION it
+       was written for: the disabled-button tooltip is the channel for "not on
+       this page", not a toast — that has not changed and is asserted below. */
     const core = read('js/core.js');
     const t = core.slice(core.indexOf('function toast(msg'));
-    assert.match(t.slice(0, 200), /if\(!isErr\) return;/);
+    assert.ok(!/if\(!isErr\) return;/.test(t.slice(0, 400)),
+      'success is no longer thrown away');
+    assert.match(t.slice(0, 2600), /TOAST_KINDS\[kind\] \? kind : 'err'/,
+      'the kind decides the face rather than whether it is drawn at all');
+    /* AND THE SILENCE F95 BOUGHT IS KEPT: saying nothing is still saying
+       nothing, which is what leaves this decision — the tooltip, not a toast —
+       exactly where it was. */
+    assert.match(t.slice(0, 2600), /if\(kind===undefined\|\|kind===null\|\|kind===''\) return;/,
+      'a bare call still draws nothing');
     const app = read('js/app.js');
     const open = app.slice(app.indexOf('const openPanel=face=>'));
     assert.ok(!/toast\(/.test(open.slice(0, open.indexOf('\n  };'))));

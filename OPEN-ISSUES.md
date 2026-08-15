@@ -28,6 +28,15 @@ View) closed by extending D2's seat-relative rule to the two header proxies —
 `f84`. Recorded in `BUGLOG.md` under "Run: two buttons for one act, and only
 one of them following the rule".
 
+*Closed 15 Aug 2026, second batch:* **OI-9** (nothing said a redline was
+unsent), **OI-10** (every toast was red because success was thrown away),
+**OI-11** (the template picker opens on the value streams, with Other for the
+unfiled) and **OI-12** (the ask tag is an id and a glyph, and pressing it shows
+what the change proposed) were all built. Pinned by `f209` (34, node), with
+`f95`, `f187` and `n6`'s claims reversed or updated in place and the readings in
+`f207`/`f37`/`f70`/`f93`/`f96` moved to the tag's title with their claims intact.
+The reasoning for each is in `CLAUDE.md`. Entries kept below as the record.
+
 *Closed 15 Aug 2026:* **OI-6** (Retract dead on the counterparty's page),
 **OI-7** (a second edit to an already-adopted clause refused) and **OI-8** (the
 three readings and a More menu on their page) were all built. OI-6 and OI-7 are
@@ -308,6 +317,9 @@ rather than deleted.
 
 ## OI-9 — Nothing tells you a redline has not been sent
 
+
+**BUILT 15 Aug 2026** — pinned by `f209`. Kept as the record of what was
+wrong and what was decided; the reasoning is in `CLAUDE.md`.
 *Owner-reported 15 Aug 2026, from a screenshot of the Tracked Changes column.
 Rendered and agreed in outline; not built.*
 
@@ -358,6 +370,9 @@ already owns the round.
 
 ## OI-10 — Every toast is red, because success toasts are thrown away
 
+
+**BUILT 15 Aug 2026** — pinned by `f209`. Kept as the record of what was
+wrong and what was decided; the reasoning is in `CLAUDE.md`.
 *Owner-reported 15 Aug 2026: "a red alert would make you think something bad
 happened when in this case I simply sent a redline." Cause found; not fixed.*
 
@@ -403,6 +418,9 @@ over the thing.
 
 ## OI-11 — "Draft from a template" is a flat list, not a set of streams
 
+
+**BUILT 15 Aug 2026** — pinned by `f209`. Kept as the record of what was
+wrong and what was decided; the reasoning is in `CLAUDE.md`.
 *Owner-asked 15 Aug 2026: "you should first see the list of streams in folders,
 choose let's say HR, then find the agreement you are looking for." Investigated;
 not built. Bigger than it looks — read the second half before scoping it.*
@@ -539,6 +557,9 @@ stream nobody chose.
 
 ## OI-12 — The clause pills say too much, and say it in words
 
+
+**BUILT 15 Aug 2026** — pinned by `f209`. Kept as the record of what was
+wrong and what was decided; the reasoning is in `CLAUDE.md`.
 *Owner-asked 15 Aug 2026, from a screenshot of a clause carrying two pills.
 Rendered and decided in outline; not built.*
 

@@ -153,8 +153,16 @@ describe('F84 — the design names every part, and the names are on the page', (
     q.win.renderRedline();
     assert.ok(!/The wall:/.test(q.doc.getElementById('rl-banner').textContent),
       'and none once a draft is held back either — no banner, ever');
-    assert.match(q.doc.querySelector('[data-redline-proxy]').textContent, /unsent/,
-      'the send button carries the count instead');
+    /* ---- THE COUNT MOVED AGAIN, 15 Aug 2026 (OI-9) ----
+       It went from a full-width wall banner to a suffix on Publish Round, and
+       now to a one-line band at the top of the change column — one step closer
+       to the act each time. The suffix folded away on the fit ladder's second
+       rung, so on an ordinary laptop it was not on screen at all, which is how
+       the owner came to report that nothing told them a redline was unsent.
+       WHAT IS UNDER TEST IS UNCHANGED: there is no standing banner, and the
+       number is still said, in one place, beside the thing it is about. */
+    assert.match(q.doc.querySelector('.rl-unsent').textContent, /not sent/,
+      'the change column carries the count instead');
   });
 });
 

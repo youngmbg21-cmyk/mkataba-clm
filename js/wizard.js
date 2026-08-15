@@ -81,6 +81,10 @@ function openWizard(preTid){
   const tmpls=myCreatableTemplates();
   if(!tmpls.length){ toast(i18t('wz_no_templates_role'),'err'); return; }
   let tid=preTid&&tmpls.some(t=>t.id===preTid)?preTid:null;
+  /* Which stream folder is open, per sitting and in memory: a browse position
+     is not a setting, and landing somebody back inside a folder a week later is
+     not what they asked for. */
+  let wzStream=null;
   const renderStep=()=>{
     if(!tid){
       const card=t=>`<button data-wz-tid="${t.id}" style="text-align:left;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:12px;cursor:pointer;transition:border-color .15s,box-shadow .15s;" onmouseover="this.style.borderColor='var(--color-accent)';this.style.boxShadow='var(--shadow-sm)'" onmouseout="this.style.borderColor='var(--color-divider)';this.style.boxShadow='none'">
@@ -104,45 +108,98 @@ function openWizard(preTid){
       const mine=(typeof customTemplates==='function'&&canEdit())?customTemplates():[];
       const industry=workspaceIndustry();
       const admin=(typeof isAdmin==='function')&&isAdmin();
+      /* ============================================================
+         THE STREAMS COME FIRST (15 Aug 2026, OI-11)
+         ============================================================
+         This opened on one flat grid of every template, each card wearing the
+         identical sub-line "v1 · pre-filled & branded". Reported with three
+         templates called "Momo Beach" on it and nothing to tell them apart, and
+         nothing to browse BY — only a search box, which needs you to know the
+         name already.
+
+         Owner-ruled: the value streams appear first, and anything with no stream
+         assigned goes to a folder called OTHER.
+
+         "OTHER" IS A FOLDER IN THIS PICKER AND NOT A SEVENTH VALUE STREAM. It
+         is never added to FOLDERS and a contract can never be filed into it: it
+         is the ABSENCE of an answer, and a stream you can file into is an
+         answer. It draws only while something is in it.
+
+         AND THE SECOND HALF SHIPS WITH IT. A browse step alone would have opened
+         on six empty folders and one full one, because no company-standard
+         template carried a stream — so the Templates page gained a stream field
+         on the same day. See tplStreamOpts in js/views/templatelib.js. */
+      const WZ_OTHER='__wz_other__';
+      const rows=[
+        ...lib.map(t=>({ pick:'lib', id:t.id, name:t.name, folder:t.folder||null,
+          sub:`v${t.publishedVersion} · ${i18t('wz_prefilled_branded')}`, ic:'copy', std:true })),
+        ...mine.map(t=>({ pick:'mine', id:t.id, name:t.name, folder:t.folder||null,
+          sub:i18t('wz_saved_here'), ic:'copy' })),
+        ...tmpls.map(t=>({ pick:'tid', id:t.id, name:t.kind, folder:t.folder||null,
+          sub:t.blurb||'', ic:t.ic||'file' })),
+      ];
+      const esc2=x=>String(x==null?'':x).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+      const rowCard=r=>`<button data-wz-${r.pick}="${esc2(r.id)}" style="text-align:left;border:${r.std?'1.5px solid var(--color-accent)':'1px solid var(--color-divider)'};background:${r.std?'var(--color-accent-100)':'var(--color-surface)'};border-radius:6px;padding:12px;cursor:pointer;">
+        <span style="display:flex;align-items:center;gap:8px;"><span style="width:28px;height:28px;display:grid;place-items:center;border-radius:4px;background:${r.std?'var(--color-accent)':'var(--color-accent-100)'};color:${r.std?'#fff':'var(--color-accent)'};flex:none;">${icon(r.ic,'w-3.5 h-3.5')}</span>
+        <span style="font-size:13px;font-weight:600;color:var(--color-text);">${esc2(r.name)}</span></span>
+        <span style="display:block;margin-top:5px;font-size:11px;color:var(--color-neutral-600);line-height:1.4;">${esc2(r.sub)}</span></button>`;
+      /* Grouped once, and the ORDER is visibleFolders' — the same order every
+         other stream list in the product uses, so this screen cannot present
+         the streams differently from the register or the settings panel. */
+      const byStream=new Map();
+      for(const r of rows){
+        const k=r.folder&&typeof FOLDERS==='object'&&FOLDERS[r.folder]?r.folder:WZ_OTHER;
+        if(!byStream.has(k)) byStream.set(k,[]);
+        byStream.get(k).push(r);
+      }
+      const fList=(typeof visibleFolders==='function')?visibleFolders():Object.values(FOLDERS||{});
+      const order=[...fList.map(f=>f.id).filter(id=>byStream.has(id)),
+        ...(byStream.has(WZ_OTHER)?[WZ_OTHER]:[])];
+      const fName=k=>k===WZ_OTHER?i18t('wz_stream_unfiled'):((FOLDERS[k]||{}).name||k);
+      const fDesc=k=>k===WZ_OTHER?i18t('wz_stream_unfiled_sub'):((FOLDERS[k]||{}).desc||'');
+      const fColor=k=>k===WZ_OTHER?'var(--color-neutral-400)':((FOLDERS[k]||{}).color||'var(--color-accent)');
+      const fIcon=k=>k===WZ_OTHER?'folder':((FOLDERS[k]||{}).ic||'folder');
+      const streamCard=k=>{
+        const n=(byStream.get(k)||[]).length;
+        return `<button data-wz-stream="${esc2(k)}" style="text-align:left;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:12px;cursor:pointer;border-left:3px solid ${fColor(k)};">
+          <span style="display:flex;align-items:center;gap:8px;"><span style="width:28px;height:28px;display:grid;place-items:center;border-radius:4px;background:color-mix(in srgb,${fColor(k)} 15%,transparent);color:${fColor(k)};flex:none;">${icon(fIcon(k),'w-3.5 h-3.5')}</span>
+          <span style="font-size:13px;font-weight:600;color:var(--color-text);flex:1;min-width:0;">${esc2(fName(k))}</span>
+          <span style="font-size:11.5px;font-weight:600;color:var(--color-neutral-500);flex:none;">${n}</span></span>
+          <span style="display:block;margin-top:5px;font-size:11px;color:var(--color-neutral-600);line-height:1.4;">${esc2(fDesc(k))}</span></button>`;
+      };
+      const inStream=wzStream&&byStream.has(wzStream)?byStream.get(wzStream):null;
       openModal(`<div style="padding:22px 24px;">
-        <h3 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0 0 3px;">${i18t('wz_new_from_template')}</h3>
-        <p style="font-size:12px;color:var(--color-neutral-600);margin:0 0 14px;line-height:1.5;">${i18t('wz_pick_template')}</p>
+        ${inStream?`<button id="wz-streams-back" style="font-size:11px;color:var(--color-accent-700);font-weight:600;font-family:var(--font-mono);background:none;border:0;cursor:pointer;margin-bottom:8px;padding:0;">← ${i18t('wz_all_streams')}</button>`:''}
+        <h3 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0 0 3px;">${inStream?esc2(fName(wzStream)):i18t('wz_new_from_template')}</h3>
+        <p style="font-size:12px;color:var(--color-neutral-600);margin:0 0 14px;line-height:1.5;">${inStream?i18tn('wz_n_in_stream',inStream.length,{n:inStream.length}):i18t('wz_pick_stream')}</p>
         <div id="wz-pick" class="scroll-thin" style="max-height:62vh;overflow-y:auto;">
-          ${lib.length?`<div style="margin-bottom:14px">
-            <span style="${EYE}">${i18t('wz_your_standards')}</span>
-            <div style="${GRID}">${lib.map(t=>`<button data-wz-lib="${t.id}" style="text-align:left;border:1.5px solid var(--color-accent);background:var(--color-accent-100);border-radius:6px;padding:12px;cursor:pointer;">
-              <span style="display:flex;align-items:center;gap:8px;"><span style="width:28px;height:28px;display:grid;place-items:center;border-radius:4px;background:var(--color-accent);color:#fff;flex:none;">${icon('copy','w-3.5 h-3.5')}</span>
-              <span style="font-size:13px;font-weight:600;color:var(--color-text);">${String(t.name||'').replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</span></span>
-              <span style="display:block;margin-top:5px;font-size:11px;color:var(--color-neutral-600);">v${t.publishedVersion} · pre-filled &amp; branded</span></button>`).join('')}</div>
-          </div>`:''}
-          ${mine.length?`<div style="margin-bottom:14px">
-            <span style="${EYE}">${i18t('wz_saved_templates')}</span>
-            <div style="${GRID}">${mine.map(t=>`<button data-wz-mine="${t.id}" style="text-align:left;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:12px;cursor:pointer;">
-              <span style="display:flex;align-items:center;gap:8px;"><span style="width:28px;height:28px;display:grid;place-items:center;border-radius:4px;background:var(--color-accent-100);color:var(--color-accent);flex:none;">${icon('copy','w-3.5 h-3.5')}</span>
-              <span style="font-size:13px;font-weight:600;color:var(--color-text);">${String(t.name||'').replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</span></span>
-              <span style="display:block;margin-top:5px;font-size:11px;color:var(--color-neutral-600);">${(typeof FOLDERS!=='undefined'&&FOLDERS[t.folder]?.name)||''}</span></button>`).join('')}</div>
-          </div>`:''}
-          ${curated?`<div style="margin-bottom:12px">
+          ${inStream?`<div style="${GRID}">${inStream.map(rowCard).join('')}</div>`:`
+          ${curated?`<div style="margin-bottom:14px">
             <span style="${EYE}">${i18t('wz_for_you')}${industry?` · ${INDUSTRY_LABEL[industry]}`:''}</span>
             <div style="${GRID}">${forYou.map(card).join('')}</div>
           </div>`:''}
-          ${admin?`<label style="display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:11px;color:var(--color-neutral-600)">Line of business — tunes this list
+          ${admin?`<label style="display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:11px;color:var(--color-neutral-600)">${i18t('wz_line_of_business')}
             <select id="wz-industry" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:4px 8px;font:inherit;font-size:11.5px;color:inherit">
               <option value="">${i18t('wz_not_set')}</option>
               ${Object.keys(INDUSTRY_TEMPLATES).map(k=>`<option value="${k}" ${industry===k?'selected':''}>${INDUSTRY_LABEL[k]}</option>`).join('')}
             </select></label>`:''}
+          ${''/* SEARCH STAYS ON THE FRONT SCREEN and looks across every stream:
+                 browsing is for when you do not know the name, and searching is
+                 for when you do. Making the search obey the open folder would
+                 make the faster of the two routes the narrower one. */}
           <input id="wz-search" type="search" placeholder="${i18t('wz_search_all')}" autocomplete="off"
             style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:6px;padding:8px 12px;font:inherit;font-size:12.5px;color:inherit;outline:none;margin-bottom:10px"/>
           <div id="wz-hits" style="${GRID};margin-bottom:10px"></div>
-          <details id="wz-all" ${curated?'':'open'}>
-            <summary style="cursor:pointer;font-size:11.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:8px">${i18t('wz_all_templates_n',{n:tmpls.length})}</summary>
-            <div style="${GRID}">${tmpls.map(card).join('')}</div>
-          </details>
+          <span style="${EYE}">${i18t('wz_streams_head')}</span>
+          <div style="${GRID}">${order.map(streamCard).join('')}</div>`}
         </div></div>`);
       /* One delegated listener: the search box re-renders cards into #wz-hits,
          and per-card wiring would quietly miss whichever render came second. */
       const pick=document.getElementById('wz-pick');
+      document.getElementById('wz-streams-back')?.addEventListener('click',()=>{ wzStream=null; renderStep(); });
       pick.addEventListener('click',e=>{
+        const st=e.target.closest('[data-wz-stream]');
+        if(st){ wzStream=st.getAttribute('data-wz-stream'); renderStep(); return; }
         const lb=e.target.closest('[data-wz-lib]');
         if(lb){ closeModal(); if(window.tplLibNewContract) tplLibNewContract(lb.getAttribute('data-wz-lib')); return; }
         const mn=e.target.closest('[data-wz-mine]');
@@ -150,14 +207,21 @@ function openWizard(preTid){
         const b=e.target.closest('[data-wz-tid]');
         if(b){ tid=b.getAttribute('data-wz-tid'); renderStep(); }
       });
+      /* GUARDED, because there are two screens now. Search belongs to the
+         streams screen — inside a folder the list is already the answer — so
+         these two elements are absent on the second one, and reaching for them
+         unconditionally threw where the wiring should simply have nothing to
+         do. */
       const search=document.getElementById('wz-search'), hits=document.getElementById('wz-hits');
-      search.addEventListener('input',()=>{
+      if(search&&hits) search.addEventListener('input',()=>{
         const q=search.value.trim().toLowerCase();
-        const rows=q?tmpls.filter(t=>`${t.kind} ${t.name} ${t.blurb||''}`.toLowerCase().includes(q)):[];
-        hits.innerHTML=q?(rows.length?rows.map(card).join('')
+        /* Across every stream and all three kinds of template — see the note
+           at the search box. `rows` is the normalised list the folders are
+           built from, so a hit and a folder card cannot disagree. */
+        const found=q?rows.filter(r=>`${r.name} ${r.sub}`.toLowerCase().includes(q)):[];
+        hits.innerHTML=q?(found.length?found.map(rowCard).join('')
           :`<div style="grid-column:1/-1;font-size:11.5px;color:var(--color-neutral-600);padding:6px 2px">${i18t('wz_nothing_matches_q',{q:q.replace(/</g,'&lt;')})}</div>`):'';
-        const all=document.getElementById('wz-all');
-        if(all&&q) all.removeAttribute('open');
+
       });
       /* The one settings question, asked where its answer is used. Admin-only
          because PUT /api/settings is admin-only — a select that fails to save

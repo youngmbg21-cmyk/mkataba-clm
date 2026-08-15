@@ -179,7 +179,7 @@ describe('f207-A — the paper tells the truth (legacy rivals)', () => {
   test('the workbench document draws a tag for EVERY ask on the clause', async () => {
     const { win, c, ours, theirs } = await legacyRivals();
     const doc = win.redlineDocHtml(c, { side: 'owner' });
-    const tags = [...doc.matchAll(/class="rl-asktag"[^>]*>([^<]*)</g)].map(m => m[1]);
+    const tags = [...doc.matchAll(/class="rl-asktag[^"]*"[^>]*>([\s\S]*?)<\/button>/g)].map(m => m[1].replace(/<[^>]+>/g, ''));
     assert.ok(tags.some(t => t.includes(ours.id)), 'our ask is marked on the paper');
     assert.ok(tags.some(t => t.includes(theirs.id)), 'and so is theirs');
   });
@@ -187,7 +187,7 @@ describe('f207-A — the paper tells the truth (legacy rivals)', () => {
   test('the jump anchor carries every id, and each is findable the way the queue is', async () => {
     const { win, c, ours, theirs } = await legacyRivals();
     const doc = win.redlineDocHtml(c, { side: 'owner' });
-    const anchors = [...doc.matchAll(/data-nego-card-anchor="([^"]+)"/g)].map(m => m[1]);
+    const anchors = [...doc.matchAll(/data-nego-card-anchor="([^"]+)"/g)].map(m => m[1].replace(/<[^>]+>/g, ''));
     const hit = anchors.find(a => a.split(/\s+/).includes(ours.id));
     assert.ok(hit, 'the hidden ask has a clause to jump to: ' + JSON.stringify(anchors));
     assert.ok(hit.split(/\s+/).includes(theirs.id), 'one clause, one anchor, both ids');
@@ -203,7 +203,7 @@ describe('f207-A — the paper tells the truth (legacy rivals)', () => {
     win.negoResolve(c, ours.id, 'accepted', { side: 'counterparty', by: 'Nordkust Legal' });
     const doc = win.redlineDocHtml(c, { side: 'owner' });
     assert.match(doc, /adopted/, 'the acceptance is on the paper');
-    const tags = [...doc.matchAll(/class="rl-asktag"[^>]*>([^<]*)</g)].map(m => m[1]).join(' | ');
+    const tags = [...doc.matchAll(/class="rl-asktag[^"]*"[^>]*>([\s\S]*?)<\/button>/g)].map(m => m[1].replace(/<[^>]+>/g, '')).join(' | ');
     assert.ok(tags.includes(ours.id) && tags.includes(theirs.id),
       'both the decided and the live ask are marked: ' + tags);
   });
@@ -211,7 +211,7 @@ describe('f207-A — the paper tells the truth (legacy rivals)', () => {
   test('the contract tab’s renderer draws a badge for every ask too', async () => {
     const { win, c, ours, theirs } = await legacyRivals();
     const doc = win.negoDocHtml(c, { side: 'owner' });
-    const badges = [...doc.matchAll(/data-badge="([^"]+)"/g)].map(m => m[1]);
+    const badges = [...doc.matchAll(/data-badge="([^"]+)"/g)].map(m => m[1].replace(/<[^>]+>/g, ''));
     assert.ok(badges.includes(ours.id), 'our badge is drawn');
     assert.ok(badges.includes(theirs.id), 'and theirs');
   });
@@ -219,7 +219,7 @@ describe('f207-A — the paper tells the truth (legacy rivals)', () => {
   test('the counterparty’s seat reads the same truth', async () => {
     const { win, c, ours, theirs } = await legacyRivals();
     const doc = win.redlineDocHtml(c, { side: 'counterparty', hiddenIds: [] });
-    const tags = [...doc.matchAll(/class="rl-asktag"[^>]*>([^<]*)</g)].map(m => m[1]).join(' | ');
+    const tags = [...doc.matchAll(/class="rl-asktag[^"]*"[^>]*>([\s\S]*?)<\/button>/g)].map(m => m[1].replace(/<[^>]+>/g, '')).join(' | ');
     assert.ok(tags.includes(ours.id) && tags.includes(theirs.id),
       'both asks marked from their chair: ' + tags);
   });
@@ -229,9 +229,12 @@ describe('f207-A — the paper tells the truth (legacy rivals)', () => {
     const only = await s.win.negoEditClause(s.c, s.cl, '<p>Forty-five days.</p>',
       { side: 'owner', author: 'Amina Otieno' });
     const doc = s.win.redlineDocHtml(s.c, { side: 'owner' });
-    const anchors = [...doc.matchAll(/data-nego-card-anchor="([^"]+)"/g)].map(m => m[1]);
+    const anchors = [...doc.matchAll(/data-nego-card-anchor="([^"]+)"/g)].map(m => m[1].replace(/<[^>]+>/g, ''));
     assert.deepEqual(anchors, [only.id], 'a single ask keeps a single-id anchor');
-    assert.equal((doc.match(/rl-asktag/g) || []).length, 1, 'and one tag');
+    /* The tag is a nested element now (cap + label + glyph), so counting the
+       bare class name counts its parts. Anchored on the opening class, which
+       only the tag itself carries. */
+    assert.equal((doc.match(/class="rl-asktag[" ]/g) || []).length, 1, 'and one tag');
   });
 });
 

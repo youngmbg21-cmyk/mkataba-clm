@@ -279,8 +279,14 @@ describe('an action by one side shows up on the other', () => {
     v = counterpartyView(o.c);
     assert.equal(v.$(`[data-nego-card="${ch.id}"]`), null,
       'a settled change is no longer "tracked" — it lives in the document now');
+    /* READING MOVED, CLAIM UNCHANGED (15 Aug 2026, OI-12): the tag prints the
+       change id and one glyph now — the words it used to carry are on its
+       title, which is where the side and the outcome are stated for a reader
+       who cannot use colour. What is under test is that the paper SAYS the
+       argument is over, and it still does. */
     const tag = v.$$('.rl-asktag').find(n => n.textContent.includes(ch.id));
-    assert.match(tag.textContent, /adopted/, 'the clause tag says the ask was adopted');
+    assert.match(tag.getAttribute('title') || '', /adopted/, 'the clause tag says the ask was adopted');
+    assert.match(tag.textContent, /\u2713/, 'and wears the adopted glyph');
     /* The chain is a READ, so it has to be walked before it can say anything.
        Erik's page verifies the chain he was sent — the same records, the same
        hashes — and reaches the same answer Wanjiru's does, which is the point
@@ -307,7 +313,8 @@ describe('an action by one side shows up on the other', () => {
       'withdrawing it is the settlement he is offered');
     // her reason rides the clause tag, where the refusal is marked
     const tag = v.$$('.rl-asktag').find(n => n.textContent.includes(ch.id));
-    assert.match(tag.textContent, /refused/);
+    assert.match(tag.getAttribute('title') || '', /refused/);
+    assert.match(tag.textContent, /\u2717/, 'and wears the refused glyph');
     assert.match(tag.getAttribute('title') || '',
       /One hundred and twenty days is the whole point of the facility\./,
       'a refusal he cannot understand is a refusal he will send again');
@@ -424,7 +431,9 @@ describe('Erik can answer the changes Wanjiru proposed', () => {
     assert.equal(own.querySelector('[data-nego-accept]'), null,
       'nobody rules on their own ask');
     const tag = v2.$$('.rl-asktag').find(n => n.textContent.includes(o2.filed[0].id));
-    assert.match(tag.textContent, /Your ask/, 'his own ask is named as his in the document');
+    assert.match(tag.getAttribute('title') || '', /Your ask/,
+      'his own ask is named as his in the document — in words, never colour alone');
+    assert.ok(tag.querySelector('.rl-cap-us'), 'and the cap carries the side at a glance');
   });
 
   test('his decisions are held on the page until he sends them', async () => {
@@ -721,7 +730,8 @@ describe('the durable link keeps showing current state', () => {
     p.open(sharePayloadFor(p, o.c));
     assert.equal(p.win.document.querySelectorAll('[data-nego-card]').length, 0,
       'the settled cards must not survive the refresh');
-    assert.match(liveNego(p.win).textContent, /adopted/,
+    assert.ok([...liveNego(p.win).querySelectorAll('.rl-asktag')]
+      .some(t => /adopted/.test(t.getAttribute('title') || '')),
       'the decisions are on the clause tags now');
     assert.match(p.win.document.getElementById('pt-nego-facts').textContent, /Resolved: 3 of 3/);
   });

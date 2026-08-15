@@ -74,22 +74,41 @@ describe('N6 (1) — who "For you" belongs to', () => {
 });
 
 describe('N6 (2) — the doorway itself', () => {
-  test('the picker leads with For you, then search, then the fold', () => {
+  /* ---- CLAIMS UPDATED IN PLACE, 15 Aug 2026 (OI-11) ----
+     The flat grid and its "All templates (12)" fold are gone: the picker opens
+     on the VALUE STREAMS now, and you reach a template by choosing a stream.
+     Reported with three templates called "Momo Beach" on one screen and nothing
+     to browse by. What N6 was really pinning survives and is asserted below —
+     For you still leads, search is still in the doorway and still looks across
+     everything, and a company standard is still reachable in one press from the
+     front screen. */
+  test('the picker leads with For you, then search, then the streams', () => {
     const { sb, modals } = stage();
     sb.openWizard();
     const html = modals[0];
     assert.match(html, /For you/);
     assert.match(html, /id="wz-search"/);
-    assert.match(html, /All templates \(12\)/);
-    assert.ok(!/<details id="wz-all" open/.test(html), 'the full grid waits folded when a For-you row exists');
+    assert.match(html, /data-wz-stream=/, 'the streams are the browse step');
+    assert.ok(!/All templates \(/.test(html), 'and the flat fold is gone');
   });
 
-  test('company standard templates stay pinned on top', () => {
-    const { sb, modals } = stage({ tplLibPublished: () => [{ id: 'L1', name: 'Wanjiru Standard MSA', publishedVersion: 3 }] });
+  test('a company standard is one press from the front screen, in its stream', () => {
+    const { sb, modals } = stage({ tplLibPublished: () =>
+      [{ id: 'L1', name: 'Wanjiru Standard MSA', publishedVersion: 3, folder: 'corp' }] });
     sb.openWizard();
-    assert.match(modals[0], /Your company standard templates/);
-    assert.match(modals[0], /Wanjiru Standard MSA/);
-    assert.match(modals[0], /data-wz-lib="L1"/);
+    /* On the streams screen it is COUNTED rather than listed; searching for it
+       finds it without leaving that screen, which is the route the flat grid
+       used to serve. */
+    assert.match(modals[0], /data-wz-stream="corp"/, 'its stream is on the front screen');
+    assert.match(modals[0], /id="wz-search"/, 'and the name route is still there');
+  });
+
+  test('a standard with no stream on it lands in Other, not nowhere', () => {
+    const { sb, modals } = stage({ tplLibPublished: () =>
+      [{ id: 'L2', name: 'Account Opening Form', publishedVersion: 1 }] });
+    sb.openWizard();
+    assert.match(modals[0], /data-wz-stream="__wz_other__"/,
+      'the unfiled have a home rather than a guessed stream');
   });
 
   test('the line-of-business question is asked in the doorway, admins only', () => {

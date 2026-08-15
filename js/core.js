@@ -618,19 +618,98 @@ function approvalLabel(c){
    Nothing is silenced at the source — every toast('…') call in the app is
    untouched, so no caller has to know about this rule and a future one cannot
    forget it. The ok case simply no longer draws. */
-function toast(msg,kind='ok'){
+/* ---------- THREE STATES, THREE MEANINGS (15 Aug 2026, OI-10) ----------
+   Reported as a colour fault — "a red alert would make you think something bad
+   happened when in this case I simply sent a redline" — and the cause was worse
+   than the symptom.
+
+   THIS FUNCTION USED TO THROW SUCCESS AWAY. Its second line read
+   `if(!isErr) return`, so a toast was drawn only when it was an error. It even
+   carried styling for a success toast — a tick, an accent background — down a
+   branch no call could reach. The product held 590 toast calls and only 340
+   could ever appear: about 250 confirmations were written and discarded.
+
+   AND THAT IS WHY THE REPORTED MESSAGE WAS RED. The publish path needs the
+   reader to know the round reached a link but was not emailed, and marking it
+   an error was the ONLY way to make a toast visible. Nobody was careless; it
+   was the one door.
+
+   So there are three now, and they are about what the reader must DO:
+     · 'ok'   DONE      — deep teal, a tick. It happened. Short dwell.
+     · 'warn' NEEDS YOU — amber. It happened AND something is left for you.
+                          Takes an action button, because a message that asks
+                          for something and offers nothing to press is the same
+                          fault as a refusal with no way forward.
+     · 'err'  REFUSED   — ruby. Red then means one thing only.
+
+   DWELL FOLLOWS MEANING, not a single timer: a confirmation may go on its own,
+   a thing still asking for your attention may not go as fast, and a refusal
+   stays until it is dismissed. Every toast is dismissable by a press.
+
+   opts: { action: { label, onClick }, dwell } — both optional. */
+const TOAST_KINDS = {
+  ok:   { bg:'var(--color-accent-900)', ic:'check2', dwell:2600 },
+  warn: { bg:'#b45309',                 ic:'alert',  dwell:8000 },
+  err:  { bg:'var(--st-ruby-dot)',      ic:'ban',    dwell:0    },
+};
+function toast(msg,kind,opts){
   const root=document.getElementById('toast-root');
-  const isErr = kind!=='ok';
-  if(!isErr) return;
+  if(!root) return;
+  /* ---- A BARE CALL IS STILL SILENT, AND THAT IS DELIBERATE ----
+     F95 took this decision and it was the right one: about 250 of the product's
+     toast calls are ordinary confirmations — "#CHG-011 accepted", "saved" —
+     which the screen has already said in the place the reader was looking, and
+     turning all of them on at once would be a box blinking after every press.
+     What was WRONG was that there was no way to opt IN, so a message that
+     genuinely had to be read could only be made visible by calling it an error.
+
+     So silence is now what you get by SAYING NOTHING, and each of the three
+     states is something a caller asks for on purpose. Every existing bare call
+     is exactly as quiet as it was this morning; every existing 'err' is exactly
+     as loud. Only a call that names 'ok' or 'warn' is new behaviour. */
+  if(kind===undefined||kind===null||kind==='') return;
+  /* ANY UNKNOWN KIND IS A REFUSAL. Three hundred and forty existing calls pass
+     'err' and a handful pass other things; treating an unrecognised word as an
+     error keeps every one of them exactly as loud as it is today. */
+  const k = TOAST_KINDS[kind] ? kind : 'err';
+  const spec = TOAST_KINDS[k];
   const el=document.createElement('div');
   el.className='toast-in';
-  el.style.cssText=`display:flex;align-items:center;gap:10px;border-radius:4px;`
-    +`border:1px solid ${isErr?'color-mix(in srgb,#fff 22%,transparent)':'color-mix(in srgb,#fff 14%,transparent)'};`
-    +`background:${isErr?'var(--st-ruby-dot)':'var(--color-accent-900)'};color:#fff;`
-    +`padding:11px 15px;box-shadow:var(--shadow-lg);font-size:13px;font-family:var(--font-body);max-width:20rem;`;
-  el.innerHTML=`<span style="display:inline-flex;color:${isErr?'#fff':'var(--color-accent-300)'};">${icon(kind==='ok'?'check2':'ban')}</span><span>${msg}</span>`;
+  /* ---- EVERY DOM CALL BEYOND THE OLD FOUR IS GUARDED ----
+     This function is reached from stages that stand a MINIMAL element in for a
+     real one — createElement returning an object with className, style and
+     innerHTML and nothing else, which was all the old body ever touched. The
+     kind marker, the role and the wiring below are new, and an unguarded
+     `el.dataset` threw inside applyResponse on exactly those stages: a toast is
+     the last thing that should be able to take an act down with it. */
+  try{ el.setAttribute('role', k==='err' ? 'alert' : 'status'); }catch(e){}
+  try{ el.dataset.toastKind=k; }catch(e){}
+  el.style.cssText='display:flex;align-items:center;gap:10px;border-radius:6px;'
+    +'border:1px solid color-mix(in srgb,#fff 20%,transparent);'
+    +'background:'+spec.bg+';color:#fff;cursor:pointer;'
+    +'padding:11px 15px;box-shadow:var(--shadow-lg);font-size:13px;font-family:var(--font-body);max-width:26rem;';
+  const act = opts && opts.action && opts.action.label ? opts.action : null;
+  el.innerHTML='<span style="display:inline-flex;flex:none">'+icon(spec.ic)+'</span>'
+    +'<span style="flex:1;min-width:0">'+msg+'</span>'
+    +(act?'<button type="button" data-toast-act style="flex:none;border:1px solid rgba(255,255,255,.55);'
+      +'background:rgba(255,255,255,.14);color:#fff;border-radius:5px;font:inherit;font-size:11.5px;'
+      +'font-weight:600;padding:5px 9px;cursor:pointer;white-space:nowrap">'+esc(act.label)+'</button>':'');
+  const go=()=>{ if(!el.isConnected) return;
+    el.style.transition='opacity .3s, transform .3s'; el.style.opacity=0;
+    el.style.transform='translateY(8px)'; setTimeout(()=>el.remove(),300); };
+  try{
+    if(act) el.querySelector('[data-toast-act]').addEventListener('click',ev=>{
+      ev.stopPropagation();
+      /* The act runs, THEN the toast goes — a message that vanished before its
+         own button had finished would leave nothing saying whether it worked. */
+      try{ act.onClick&&act.onClick(); }catch(e){}
+      go();
+    });
+    el.addEventListener('click',go);        // a press always dismisses
+  }catch(e){ /* see the note above: a stand-in element still gets its message */ }
   root.appendChild(el);
-  setTimeout(()=>{el.style.transition='opacity .3s, transform .3s';el.style.opacity=0;el.style.transform='translateY(8px)';setTimeout(()=>el.remove(),300);},3200);
+  const dwell = (opts && Number(opts.dwell)) || spec.dwell;
+  if(dwell>0) setTimeout(go,dwell);
 }
 /* SHA-256, with an honest failure mode.
 

@@ -297,8 +297,16 @@ describe('F92 — the six-round negotiation, end to end', () => {
        the wall. Same number, counted the same way, one place closer to the
        act. */
     assert.ok(!/The wall:/.test(t.$('#rl-banner').textContent), 'no standing banner');
-    assert.match(t.$('[data-redline-proxy]').textContent, /1 unsent/,
-      'the send button counts what is being held back');
+    /* ---- THE COUNT MOVED AGAIN, 15 Aug 2026 (OI-9) ----
+       It went from a full-width wall banner to a suffix on Publish Round, and
+       now to a one-line band at the top of the change column — one step closer
+       to the act each time. The suffix folded away on the fit ladder's second
+       rung, so on an ordinary laptop it was not on screen at all, which is how
+       the owner came to report that nothing told them a redline was unsent.
+       WHAT IS UNDER TEST IS UNCHANGED: there is no standing banner, and the
+       number is still said, in one place, beside the thing it is about. */
+    assert.match(t.$('.rl-unsent').textContent, /1 not sent/,
+      'the change column counts what is being held back');
     /* The internal note is still ours and still internal — checked on the
        RECORD here, because by this round the change it hangs off has been
        decided and its card has left the column. It was read off the screen

@@ -8090,6 +8090,13 @@ db.exec(`
     category TEXT NOT NULL DEFAULT 'other',
     status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','published','archived')),
     origin TEXT NOT NULL DEFAULT 'built_in_hati' CHECK (origin IN ('upload','saved_from_contract','built_in_hati')),
+    /* WHICH VALUE STREAM THIS TEMPLATE BELONGS TO (15 Aug 2026, OI-11).
+       NULL means nobody has said, and the picker files those under "Other"
+       rather than guessing — a stream inferred from the category would be a
+       guess wearing a fact's clothes, and the five categories are a different
+       vocabulary from the six streams anyway. No default and no backfill: every
+       template that existed before this reads as unassigned, which is true. */
+    folder TEXT,
     source_contract_id TEXT,
     last_used_at TEXT,
     created_by TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
@@ -8156,6 +8163,10 @@ addColumnIfMissing('org_branding', 'set_at', 'TEXT');
 /* A template may switch designs for ITS contracts without moving the company
    default (DESIGN §2: "switching designs for that one document is allowed but
    does not silently overwrite the default"). NULL = follow the default. */
+/* The value stream a template is filed under (OI-11). NULL on every template
+   that existed before this, which is the truth about them and is exactly what
+   the picker's "Other" folder is for — no backfill, no inferred stream. */
+addColumnIfMissing('templates', 'folder', 'TEXT');
 addColumnIfMissing('templates', 'design_id', 'TEXT');
 addColumnIfMissing('templates', 'design_logo_position', 'TEXT');
 addColumnIfMissing('templates', 'design_accent_color', 'TEXT');
@@ -8222,11 +8233,20 @@ function tplNewVersion(templateId, versionNumber) {
     .run(v.id, v.template_id, v.version_number, 'draft', now(), now());
   return v;
 }
+/* A stream id, or null. Deliberately NOT validated against a list of six: the
+   product lets a workspace mint its own streams, so an unknown id here is a
+   custom stream this server has never been told about rather than an error.
+   Length-capped and trimmed, which is all this field needs. */
+function tplFolderOf(v){
+  const s = String(v == null ? '' : v).trim().slice(0, 40);
+  return s || null;
+}
 function tplListView(t) {
   const pub = tplPublishedVersion(t.id);
   const latest = db.prepare('SELECT MAX(version_number) m FROM template_versions WHERE template_id=?').get(t.id).m || 0;
   return {
     id: t.id, name: t.name, description: t.description || '', category: t.category,
+    folder: t.folder || null,
     status: t.status, origin: t.origin, sourceContractId: t.source_contract_id || null,
     publishedVersion: pub ? pub.version_number : null,
     publishedVersionId: pub ? pub.id : null,
@@ -8257,14 +8277,17 @@ app.post('/api/templates', auth, templateManager, passwordCurrent, (req, res) =>
   if (!name) return res.status(400).json({ error: 'A template needs a name' });
   const category = TPL_CATEGORIES.includes(b.category) ? b.category : 'other';
   const origin = TPL_ORIGINS.includes(b.origin) ? b.origin : 'built_in_hati';
+  /* A stream is optional and stays optional: absent is the honest answer for a
+     template nobody has filed, and the picker has a folder for exactly that. */
+  const folder = tplFolderOf(b.folder);
   const t = {
     id: 'tpl_' + rid(8), name, description: clean(b.description).slice(0, 2000), category,
-    origin, source_contract_id: null, created_by: req.user.name,
+    folder, origin, source_contract_id: null, created_by: req.user.name,
   };
   txn(() => {
-    db.prepare(`INSERT INTO templates (id,org_id,name,description,category,status,origin,source_contract_id,created_by,created_at,updated_at)
-      VALUES (?,?,?,?,?,'draft',?,?,?,?,?)`)
-      .run(t.id, WORKSPACE_ID, t.name, t.description, t.category, t.origin, t.source_contract_id, t.created_by, now(), now());
+    db.prepare(`INSERT INTO templates (id,org_id,name,description,category,folder,status,origin,source_contract_id,created_by,created_at,updated_at)
+      VALUES (?,?,?,?,?,?,'draft',?,?,?,?,?)`)
+      .run(t.id, WORKSPACE_ID, t.name, t.description, t.category, t.folder, t.origin, t.source_contract_id, t.created_by, now(), now());
     tplNewVersion(t.id, 1);
   });
   res.json({ ok: true, template: tplListView(tplGet(t.id)) });
@@ -8295,6 +8318,14 @@ app.patch('/api/templates/:id', auth, templateManager, passwordCurrent, (req, re
     if (!TPL_CATEGORIES.includes(b.category)) return res.status(400).json({ error: 'Unknown category' });
     sets.push('category=?'); args.push(b.category);
   }
+  /* FILING A TEMPLATE IS NOT ACCESS CONTROL, and this route deliberately does
+     not treat it as one. A stream on a template is organisational — it decides
+     which folder the draft-from-template picker lists it under and nothing
+     else. Templates are patterns, not records: they carry no counterparty, no
+     value and no wording anybody has agreed, so the folder-scope rules that
+     govern CONTRACTS have no business here. Said out loud so the opposite is a
+     decision somebody takes on purpose rather than one that leaks in. */
+  if (b.folder !== undefined) { sets.push('folder=?'); args.push(tplFolderOf(b.folder)); }
   if (b.status !== undefined) {
     // Status is a lifecycle, not a free field: archive is allowed from
     // anywhere; restore returns to published/draft depending on whether a
