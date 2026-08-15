@@ -61,6 +61,15 @@ of the source file at the moment it runs, rather than a re-implementation; the
 slicers fail loudly if the code moves, so this can never quietly rot into
 testing a copy.
 
+**The findings were then attacked.** Every claim in this report was re-run
+independently before it was written down — all thirteen probes, from a clean
+start — and the two most load-bearing findings had counter-probes written
+against them whose whole purpose was to prove them wrong: no test rig, plain
+requests, and every alternative explanation the finding might have missed. Both
+refutations failed, and one of them usefully **narrowed** a claim, which is
+recorded in place. Four findings were also checked a third way, by reading the
+product's own source for the exact line each depends on.
+
 Findings carry one of four verdicts:
 
 - **HOLE** — something is lost, forged or doubled, silently.
@@ -240,11 +249,21 @@ desk rule switched on the server refuses the save — but that rule is off by
 default, needs a desk to have been claimed, and its refusal talks about the
 negotiation even when the person was only editing a value.
 
+**Tried hard to refute, and could not.** A second probe was written specifically
+to break this finding — no test rig at all, two plain browsers' worth of ordinary
+HTTP, and the keep-mine step reproduced by hand as the three literal lines HaTi
+performs. The loss reproduced identically, and took obligations and record notes
+with it. That probe also settles what the fix is: **re-reading the contract and
+then saving keeps both people's work** — so the loss is the stale copy being
+sent, not anything wrong with the route.
+
 **Fix.** On "keep mine", re-send only the fields that person actually changed —
 HaTi has already fetched the other version to show the dialog — and write one
 audit line naming what was overwritten and whose it was.
 
-*Probe: `c1a-keep-mine-field-loss.js` — 21 passed, 7 yardstick misses.*
+*Probe: `c1a-keep-mine-field-loss.js` — 21 passed, 7 yardstick misses.
+Counter-probe: `c1a-SKEPTIC-counter-probe.js` — 13 passed, 9 failed; refutation
+failed, and its control proves the fix.*
 
 ## 6 · The negotiation desk race: two leads, two changes numbered CHG-001, one destroyed
 
@@ -480,10 +499,18 @@ later the edit that was promised as kept is gone, and the only thing said is
 says nothing about the reader's own work being dropped. No sub-second timing is
 needed; following HaTi's own instruction is enough.
 
+**Narrower than it first looked, and this matters.** A counter-probe written to
+refute this one established that the same collision **does** reach the proper
+keep-or-discard dialog when the reader is on the contract itself. It is only on
+the **negotiation workbench** that the poll swallows the edit in silence. The
+finding stands, and its reach is one screen.
+
 **Fix.** Before replacing the record, ask whether it is carrying unsaved work —
 and if it is, keep it and say so.
 
-*Probe: `c1b-write-doors-and-the-poll.js` — 25 passed, 7 yardstick misses.*
+*Probe: `c1b-write-doors-and-the-poll.js` — 25 passed, 7 yardstick misses.
+Counter-probe: `c1b-skeptic-counterprobe.js` — refutation failed on all five
+attempts.*
 
 ---
 
