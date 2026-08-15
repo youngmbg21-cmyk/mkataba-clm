@@ -257,6 +257,16 @@ with it. That probe also settles what the fix is: **re-reading the contract and
 then saving keeps both people's work** — so the loss is the stale copy being
 sent, not anything wrong with the route.
 
+**And it does not stop at signature.** Signing freezes the important parts of a
+contract, so a stale save that moves one of those is properly refused. But
+obligations and internal comments are **deliberately left changeable after
+signature** — the rulebook's own decision, and a good one, because a quarterly
+reporting duty starts mattering *after* the deal is signed. The consequence
+nobody had looked at: the overwrite survives execution on exactly those fields.
+A colleague adding an obligation to a signed contract can have it deleted by
+another colleague's stale save, with the contract fully executed and everybody
+behaving.
+
 **Fix.** On "keep mine", re-send only the fields that person actually changed —
 HaTi has already fetched the other version to show the dialog — and write one
 audit line naming what was overwritten and whose it was.
@@ -533,7 +543,14 @@ in a single pass.
    field list contains the word `sealVersion`, the browser mistakes a permanent
    refusal for a temporary one and offers "keep mine and overwrite" — which is
    refused again, and offered again, in a loop. The real reason ("this is
-   executed — record an amendment instead") never reaches the reader.
+   executed — record an amendment instead") never reaches the reader. A
+   counter-probe confirmed the loop belongs to the product and not the test:
+   an ordinary clash produces exactly one question, the signed one produces a
+   fresh question on every press. Nothing is damaged — the signed contract is
+   untouched throughout, and pressing "load theirs" does eventually show the
+   reader a signed contract, after they have pressed a dead button three times.
+   **The fix is nearly free:** the server already sends the real answer alongside
+   the sentence, as data the browser is holding and not reading.
 4. **An inbound counter records no supersede line.** The supersede rule built last
    week writes a history line naming both changes — except on the one road a real
    counterparty counter actually arrives by, where inbound changes are filed

@@ -171,6 +171,45 @@ const note = m => console.log('      · ' + m);
       'B\'s metadata note survives A\'s keep-mine', after4.metadata && after4.metadata.bNote);
     note(`the whole record is replaced except the audit trail: obligations=${(after4.obligations || []).length} bNote=${after4.metadata && after4.metadata.bNote}`);
 
+    /* ================= 10 · HOW FAR DOES THE HOLE REACH? THE EXECUTED BOUNDARY =================
+       EXECUTED_IMMUTABLE (server ~2263) freezes counterparty, value, changes,
+       rounds, negotiation, versions, metadata … on a signed contract, so a stale
+       keep-mine that MOVED one of those is refused. `obligations` is deliberately
+       NOT on that list ("a quarterly report starts mattering AFTER signature"),
+       and `comments` is not either — so the collision survives execution on
+       exactly the fields the rulebook keeps mutable. Measured, not assumed. */
+    const e0 = await A.json('/api/contracts/' + ID);
+    const exec = JSON.parse(JSON.stringify(e0)); const ev = exec._v; delete exec._v;
+    exec.status = 'Signed';
+    exec.hash = 'seal-' + Date.now();
+    exec.execution = { at: new Date().toISOString(), html: '<p>frozen wording</p>' };
+    exec.signatures = [{ name: 'Amina Otieno', email: 'admin@example.co.ke', at: new Date().toISOString(), method: 'session-authenticated' }];
+    const eRes = await A.raw('/api/contracts/' + ID, { method: 'PUT', body: { contract: exec, baseVersion: ev } });
+    const e1 = await A.json('/api/contracts/' + ID);
+    ok(eRes.status === 200 && e1.status === 'Signed' && !!e1.hash,
+      `ARMED (10): the contract is executed (status ${e1.status}, seal present, version ${e1._v})`,
+      { status: eRes.status, s: e1.status, hash: !!e1.hash });
+
+    const aStaleExec = JSON.parse(JSON.stringify(e1)); delete aStaleExec._v;   // A's copy, taken NOW
+    /* B adds an obligation — mutable after signature by design */
+    const bExec = JSON.parse(JSON.stringify(e1)); const bv = bExec._v; delete bExec._v;
+    bExec.obligations = [{ id: 'OB-9', what: 'Quarterly report to the board', due: '2026-11-01' }];
+    const bER = await B.raw('/api/contracts/' + ID, { method: 'PUT', body: { contract: bExec, baseVersion: bv } });
+    const e2 = await A.json('/api/contracts/' + ID);
+    ok(bER.status === 200 && (e2.obligations || []).length === 1,
+      'ARMED (10): B\'s obligation is on the executed record', { status: bER.status, obligations: (e2.obligations || []).length });
+
+    /* A, meanwhile, leaves an internal comment on their stale copy and saves */
+    aStaleExec.comments = (aStaleExec.comments || []).concat([{ at: new Date().toISOString(), user: 'Amina Otieno', text: 'Filed for the board pack.' }]);
+    const rExec = await A.raw('/api/contracts/' + ID, { method: 'PUT', body: { contract: aStaleExec, baseVersion: e2._v } });
+    const e3 = await A.json('/api/contracts/' + ID);
+    ok(rExec.status === 200, 'a stale keep-mine on an EXECUTED contract that moves no frozen field is accepted',
+      { status: rExec.status, body: rExec.json });
+    ok((e3.obligations || []).length === 1,
+      'B\'s obligation survives on the EXECUTED contract (expected to FAIL if the hole reaches here)',
+      { obligations: (e3.obligations || []).length });
+    note(`executed boundary: frozen fields are refused, mutable ones (obligations, comments) are not — obligations now ${(e3.obligations || []).length}`);
+
     console.log(`\nC1a SKEPTIC counter-probe: ${pass} passed, ${fail} failed`);
     console.log('(FAILs at 5/6/7/9 = the finding reproduces WITHOUT the vm rig; PASS at 8 = the rig/route is sound.)');
   } catch (e) {
