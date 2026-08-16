@@ -2897,3 +2897,31 @@ panel's own colour token (--nav-bg) — dark green in the green workspace, navy
 in the blue one — so the theme, and the dark theme, come free and the two
 controls can never disagree with the shell about what colour this workspace
 is. f210's emerald claim re-pointed at the token.
+
+
+## HISTORY | + NOTES — THE PANEL OPENS CLEAN (16 Aug 2026)
+
+Owner-asked: "On the edit panel, add a button next to edit that shows history
+with notes. The default will be without notes." Three renders were mocked and
+shown first — a lighting pill, this switch, and a bottom conversation section
+— and Option 2 was chosen: a two-way History | + notes switch beside the EDIT
+label, dressed like the toolbar's reading segments so there is nothing new to
+learn.
+
+The implementation is deliberately almost nothing: the conversation blocks
+(each change's thread AND its reply box) render exactly as they did, and one
+CSS rule hides them on the default face; "+ notes" is one class on the panel.
+A class flip rather than a repaint is this panel's own standing rule, and here
+it is also load-bearing a second way: the reply box is the ONE engine-wired
+composer, bound by element id at paint — rebuild it on toggle and it becomes a
+box that accepts typing and posts nothing, the pop-out's old lesson through a
+new door. The choice is per sitting, in memory, one value for the whole
+sitting, never persisted. Both seats get the switch, because the panel is
+shared markup and the counterparty's reply box lives behind the same face.
+
+One fault caught by a SCREENSHOT and not by the assertions: the first cut
+flipped the panel class and aria-pressed but not the buttons' own .on face, so
+the notes appeared while the switch still wore "History" dark. jsdom resolves
+no cascade and reads no pixels; the class-flip tests were all green. The face
+now flips in rlCpSetNotes beside the state, f210 pins it, and clause-door-verify
+measures the COMPUTED hide/show in a real browser.

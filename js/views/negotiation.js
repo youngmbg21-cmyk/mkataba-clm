@@ -8164,6 +8164,22 @@ function redlineLayoutCss(){
   }
   .redline-page .rl-cp-head{display:flex;align-items:center;gap:8px;flex:none;
     padding:11px 12px;border-bottom:1px solid var(--color-divider)}
+  ${''/* ---- HISTORY | + NOTES ----
+     Dressed like the toolbar's reading segments — one look for one kind of
+     control — and pushed right so it sits beside the ✕ (whose own order:2
+     keeps it last). The conversation blocks are HIDDEN by the default face:
+     one rule, one class, so the toggle costs a class flip and the one
+     engine-wired composer stays alive in the DOM either way. */}
+  .redline-page .rl-cp-segs{order:1;margin-left:auto;display:inline-flex;
+    border:1px solid var(--color-divider);border-radius:7px;overflow:hidden;flex:none}
+  .redline-page .rl-cp-segs button{border:0;background:var(--color-surface);cursor:pointer;
+    font:inherit;font-size:10px;font-weight:700;line-height:1.6;padding:3px 9px;
+    color:var(--color-neutral-600);white-space:nowrap}
+  .redline-page .rl-cp-segs button + button{border-left:1px solid var(--color-divider)}
+  .redline-page .rl-cp-segs button.on{background:var(--nav-bg,#0b3d3a);color:#fff}
+  .redline-page .rl-cp-segs button:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
+  .redline-page .rl-cp .rl-cnotes{display:none}
+  .redline-page .rl-cp.rl-cp-notes .rl-cnotes{display:block}
   .redline-page .rl-cp-label{margin:0;font-size:9.5px;font-weight:700;letter-spacing:.06em;
     text-transform:uppercase;color:var(--color-neutral-600)}
   .redline-page .rl-cp-min{order:2;margin-left:auto;border:0;background:transparent;
@@ -13562,6 +13578,49 @@ function rlWireQueueMin(host){
 let _rlCpId = null;
 function rlCpOpenId(){ return _rlCpId; }
 function rlCpSetOpen(id){ _rlCpId = id || null; return _rlCpId; }
+/* ---- HISTORY | + NOTES (owner-asked 16 Aug 2026: "add a button next to edit
+   that shows history with notes. The default will be without notes") ----
+   A two-way switch in the panel's own head, dressed like the toolbar's
+   Redlined / As agreed segments so there is nothing new to learn. The DEFAULT
+   face is the clean panel: every conversation block (the thread AND the reply
+   box) is hidden by one CSS rule, and the "+ notes" face is one class on
+   #rl-cp — a class flip, never a repaint, which is this panel's own standing
+   rule and is also what keeps the ONE engine-wired composer alive in the DOM
+   whichever face is showing (a composer rebuilt on toggle would drop the
+   handlers wireNegotiationTab bound at paint).
+
+   Per sitting, in memory, never persisted — a reading posture, like the fold
+   and the panel itself. One value for the whole sitting rather than one per
+   clause: a reader who asked for the conversation is reading conversations,
+   and re-asking on every clause would make the switch a chore. Both seats get
+   it, because the panel is shared markup and the counterparty's reply box
+   lives behind the same face. */
+let _rlCpNotes = false;
+function rlCpNotesOn(){ return _rlCpNotes; }
+function rlCpSetNotes(scope, on){
+  _rlCpNotes = !!on;
+  const root = (scope && scope.querySelectorAll) ? scope : document;
+  root.querySelectorAll('#rl-cp').forEach(p => p.classList.toggle('rl-cp-notes', _rlCpNotes));
+  root.querySelectorAll('[data-rl-cp-notes]').forEach(b => {
+    const mine = (b.getAttribute('data-rl-cp-notes') === 'on') === _rlCpNotes;
+    b.setAttribute('aria-pressed', String(mine));
+    /* The FACE flips with the state — aria alone is invisible pixels, and a
+       switch still wearing "History" dark after "+ notes" was pressed is the
+       kind of fault a reader blames themselves for. Caught by a screenshot,
+       not by the class-flip assertions. */
+    b.classList.toggle('on', mine);
+  });
+  return _rlCpNotes;
+}
+function rlCpSegsHtml(){
+  const on = rlCpNotesOn();
+  return `<div class="rl-cp-segs" role="group" aria-label="${_nea(i18t('ng_cp_notes_group'))}">
+    <button type="button" data-rl-cp-notes="off" aria-pressed="${on ? 'false' : 'true'}"
+      class="${on ? '' : 'on'}" title="${_nea(i18t('ng_cp_hist_title'))}">${i18t('ng_cp_hist')}</button>
+    <button type="button" data-rl-cp-notes="on" aria-pressed="${on ? 'true' : 'false'}"
+      class="${on ? 'on' : ''}" title="${_nea(i18t('ng_cp_hist_notes_title'))}">${i18t('ng_cp_hist_notes')}</button>
+  </div>`;
+}
 function rlClausePanelHtml(bodies){
   const open = !!rlCpOpenId();
   const src = (bodies || []).join('');
@@ -13572,12 +13631,13 @@ function rlClausePanelHtml(bodies){
          Activity panel are built. NOT role="dialog": it is a complementary
          panel a reader works BESIDE the wording, and this page already refuses
          to put a dialog over the wording being judged (f89). */}
-  <aside class="rl-col rl-cp${open ? ' is-open' : ''}" id="rl-cp"
+  <aside class="rl-col rl-cp${open ? ' is-open' : ''}${rlCpNotesOn() ? ' rl-cp-notes' : ''}" id="rl-cp"
     aria-hidden="${open ? 'false' : 'true'}" aria-label="${_nea(i18t('ng_cp_open_title'))}">
     <div class="rl-cp-head">
       <button type="button" id="rl-cp-min" class="rl-cp-min" data-rl-cp-close="1"
         title="${_nea(i18t('ng_cp_close_title'))}" aria-label="${_nea(i18t('ng_cp_close_title'))}">&times;</button>
       <p class="rl-cp-label">${i18t('ng_cp_edit')}</p>
+      ${rlCpSegsHtml()}
     </div>
     <div class="rl-cp-body" id="rl-cp-body">${src}</div>
   </aside>`;
@@ -13641,6 +13701,16 @@ if (typeof document !== 'undefined' && !document._rlCpWired){
   document.addEventListener('click', ev => {
     const t = ev.target;
     if (!t || !t.closest) return;
+    /* The History | + notes switch — a class flip on the panel, never a
+       repaint (see rlCpSetNotes). stopPropagation for the same reason the
+       pill stops its own: a control must not also be a navigation. */
+    const seg = t.closest('[data-rl-cp-notes]');
+    if (seg){
+      ev.preventDefault(); ev.stopPropagation();
+      rlCpSetNotes(seg.closest('.redline-page') || document,
+        seg.getAttribute('data-rl-cp-notes') === 'on');
+      return;
+    }
     const opener = t.closest('[data-rl-cp-open]');
     if (opener){
       /* The pill sits inside .nego-clause, whose own press navigates. Same
@@ -14033,7 +14103,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlReadSegsHtml, rlPaintReadSegs,
   rlAskTagHtml, rlAskRevealHtml, rlAskGlyph, rlAskWord, rlAskOpenId, rlAskSetOpen, rlAskResetOpen,
   rlChangeWordingHtml, rlClauseEditPillHtml, rlClausePanelBodyHtml, rlClausePanelHtml,
-  rlCpOpenId, rlCpSetOpen, rlCpSetShown, rlCpPaint,
+  rlCpOpenId, rlCpSetOpen, rlCpSetShown, rlCpPaint, rlCpNotesOn, rlCpSetNotes,
   rlUnsentBandHtml, rlUnsentCount,
   rlFitTabRow, rlWireFitTabRow, rlObserveTabRow,
   redlineHeldId, redlineEvict, openRedlineWorkbench, RL_DEMOTABLE,
