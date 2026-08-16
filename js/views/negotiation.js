@@ -1769,12 +1769,43 @@ function negoDocHtml(c, opts){
      do not know the difference. And the comparison is unaffected either way —
      negoEditClause still opens on bodyHtml, the diff still runs on text. */
   const clauseBlock = (cl, chs, domPrefix) => {
-    /* `chs` is the clause's LIST of changes, newest last. The newest carries
-       the body — the same change the old single-value map kept — and every
-       other one keeps its own badge, so a decided ask stays visible beside a
-       newer one instead of silently losing its place on the paper. */
-    const ch = Array.isArray(chs) ? (chs.length ? chs[chs.length - 1] : null) : (chs || null);
-    const rest = Array.isArray(chs) ? chs.slice(0, -1) : [];
+    /* `chs` is the clause's LIST of changes, newest last, and one of them
+       carries the BODY while the rest keep their badges — so a decided ask
+       stays visible beside a newer one instead of losing its place.
+
+       WHICH ONE CARRIES THE BODY IS A QUESTION ABOUT MEASUREMENT, NOT AGE, and
+       this renderer was reading it as age (`chs[chs.length - 1]`) long after
+       its twin was corrected. That is the duplication warning at the top of the
+       rulebook, in its least obvious direction: redlineDocHtml was fixed on
+       15 Aug 2026 for MK-311 — a sentence struck by their ask, adopted by us,
+       and still printed in full — and this canvas, which is what the contract
+       tab and the room draw, went on making exactly the same mistake. The two
+       renderers disagreed about what the contract said.
+
+       The rule, and it is the same reading negoMeasuredAlike gave the accept
+       guard: prefer the newest change measured against what NOW STANDS (an edit
+       written on top of an adoption already contains it, which is every
+       ordinary sequential edit and is what was drawn before); failing that draw
+       the last ADOPTED change, because its wording IS what stands. With nothing
+       adopted, "what stands" is the baseline and every change qualifies — so
+       first rounds and legacy two-rival clauses are untouched, byte for byte. */
+    const _list = Array.isArray(chs) ? chs : (chs ? [chs] : []);
+    let ch = null;
+    if (_list.length === 1) ch = _list[0];
+    else if (_list.length){
+      const standing = (typeof negoClauseNowById === 'function')
+        ? (negoClauseNowById(c, cl.clauseId) || cl) : cl;
+      const stands = String(standing.text == null ? '' : standing.text);
+      const onStanding = x => (typeof negoMeasuredFrom === 'function')
+        ? negoMeasuredFrom(x) === stands
+        : String((x && x.oldText) == null ? '' : x.oldText) === stands;
+      for (let i = _list.length - 1; i >= 0 && !ch; i--) if (onStanding(_list[i])) ch = _list[i];
+      for (let i = _list.length - 1; i >= 0 && !ch; i--){
+        if (_list[i] && _list[i].status === 'accepted' && _list[i].changeType !== 'insertClause') ch = _list[i];
+      }
+      if (!ch) ch = _list[_list.length - 1];
+    }
+    const rest = _list.filter(x => x !== ch);
     if (baseline || !ch)
       return `<div class="nego-clause" id="${domPrefix}-${negoDomId(cl.clauseId)}" data-clause="${_ne(cl.clauseId)}">
         ${tools(cl)}${head(cl) ? `<h2 data-nego-chrome>${head(cl)}</h2>` : ''}${negoRichBody(cl)}</div>`;
@@ -4200,6 +4231,7 @@ const _NEGO_SEL_BLOCK = new Set(['P', 'DIV', 'LI', 'OL', 'UL', 'H1', 'H2', 'H3',
    emits h4.rl-line for them) which ARE stored wording and must not be cut. A
    rule guessing from the tag name would take those with it. */
 const _NEGO_SEL_CHROME = '[data-nego-chrome],.rl-tools,.rl-tool,.nego-tool,.rl-asktag,.nego-badge,'
+  + '.rl-cp-pill,.rl-cp-src,'
   + '.nego-note,.rl-clause-h,.nego-edit-bar,[data-nego-editor],button,input,textarea,select';
 /* One reading of a node's wording. `mode` says how to treat tracked marks:
    'baseline' keeps struck wording and drops inserted (what the round baseline
@@ -5897,13 +5929,23 @@ let _rlAskOpen = null;
 const rlAskOpenId = () => _rlAskOpen;
 function rlAskSetOpen(id){ _rlAskOpen = (_rlAskOpen === id) ? null : (id || null); return _rlAskOpen; }
 function rlAskResetOpen(){ _rlAskOpen = null; }
+/* ---- WHAT ONE CHANGE PROPOSED, DRAWN FROM ITS OWN STORED OPS ----
+   The ask reveal and the clause panel both print this and they must never
+   drift: two renderings of one change is how a page comes to say two things
+   about the same ask. NO RE-DIFFING — the stored ops are inside the
+   fingerprint, so a mark drawn from a fresh diff would not be the mark the
+   other side verified. */
+function rlChangeWordingHtml(ch){
+  if (!ch) return '';
+  const ops = Array.isArray(ch.ops) && ch.ops.length ? ch.ops
+    : [{ op: ch.changeType === 'deleteClause' ? 'del' : 'ins', text: ch.newText || ch.oldText || '' }];
+  return window.redlineOpsBlocksHtml ? redlineOpsBlocksHtml(ops)
+    : (window.redlineOpsHtml ? `<p>${redlineOpsHtml(ops)}</p>` : `<p>${_ne(ch.newText || '')}</p>`);
+}
 function rlAskRevealHtml(c, ch, side, opts = {}){
   if (!ch || rlAskOpenId() !== ch.id) return '';
   const theirs = ch.authorSide !== (side === 'counterparty' ? 'counterparty' : 'owner');
-  const ops = Array.isArray(ch.ops) && ch.ops.length ? ch.ops
-    : [{ op: ch.changeType === 'deleteClause' ? 'del' : 'ins', text: ch.newText || ch.oldText || '' }];
-  const wording = window.redlineOpsBlocksHtml ? redlineOpsBlocksHtml(ops)
-    : (window.redlineOpsHtml ? `<p>${redlineOpsHtml(ops)}</p>` : `<p>${_ne(ch.newText || '')}</p>`);
+  const wording = rlChangeWordingHtml(ch);
   /* ---- WHO SETTLED IT NEVER TRAVELS ----
      `resolvedBy` is stripped from the share payload — it is one of the two
      things this product walls off from the other side — and their page mounts
@@ -5963,6 +6005,138 @@ function rlAskRevealHtml(c, ch, side, opts = {}){
     </div>
   </div>`;
 }
+/* ---- THE GREEN EDIT PILL, AND THE PANEL IT OPENS (owner-asked, 16 Aug 2026)
+   ---- "Just add a green pill that says Edit on the top right of the clause."
+
+   IT IS A DOOR, NOT A VERB. Pressing it does not open an editor; it opens the
+   clause's own panel on the right — what the clause says now, what is on the
+   table, and everything that has ever been asked about it — and the ways to
+   change the wording are inside, beside the history that explains why anybody
+   would want to.
+
+   WHY IT IS ALWAYS DRAWN AND THE TOOL ROW IS NOT. The hover row at the foot of
+   the clause is furniture on a clause you are already working on; this is the
+   way IN. A hover-only door is an invisible affordance, which is the exact
+   fault this file already records against the selection route — a reader
+   looking at a clause and wanting to change it must be able to SEE that they
+   can.
+
+   ONE PLACE THE PANEL IS OFFERED. Not on a read-only copy and not for a seat
+   with no hands: `editable` is the same reading the tool row asks, so a viewer,
+   a signing link and a closed round get a clause they can read and no door
+   promising something the page would refuse. */
+function rlClauseEditPillHtml(cl, opts = {}){
+  if (!cl || opts.editable === false || !opts.hasPanel) return '';
+  const id = _ne(cl.clauseId);
+  return `<button type="button" class="rl-cp-pill" data-rl-cp-open="${id}"
+    aria-expanded="${rlCpOpenId() === String(cl.clauseId) ? 'true' : 'false'}"
+    title="${_nea(i18t('ng_cp_open_title'))}">${i18t('ng_cp_edit')}</button>`;
+}
+
+/* The panel's contents for ONE clause.
+
+   IT IS NOT RENDERED INSIDE THE CLAUSE, and that was the first build. Putting a
+   second copy of the clause's own wording inside .rl-clause — even hidden —
+   poisons every query scoped to a clause: three of this file's own tests
+   immediately counted four paragraphs where the document has two, and found an
+   unattributed mark that is the panel's history row rather than anything on the
+   paper. A hidden node is still in the DOM, and this page is read by measuring
+   the DOM.
+
+   So redlineDocHtml pushes these into opts.cpSink and the PANEL renders them.
+   One producer, one reading: the wall that hides the other side's unsent draft,
+   the reviewer's fold and the change grouping are all computed exactly once, in
+   the canvas, and the panel is only a consumer. A caller with no sink — the
+   Word export renders this same canvas — gets no panel bodies and, by the same
+   flag, no Edit pill: a door is drawn only where the room behind it exists. */
+function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
+  const editable = opts.editable !== false;
+  const id = _ne(cl.clauseId);
+  const list = (chs || []).slice().sort((a, b) => (a.seq || 0) - (b.seq || 0));
+  /* AS IT STANDS is the clause as the reader is SHOWN it — baseline plus what
+     is adopted on it — never the round baseline. Adopting does not move the
+     baseline (only closing the round does), so a panel headed "as it stands"
+     printing the baseline would state the wording that was in force before the
+     adoption the reader had just made. negoClauseNowById is the one reading;
+     the accept guard, the editor's seed and the paper all measure from it. */
+  const standing = (typeof negoClauseNowById === 'function')
+    ? (negoClauseNowById(c, cl.clauseId) || cl) : cl;
+  const standsBody = (typeof negoRichBody === 'function')
+    ? negoRichBody(standing) : `<p>${_ne(standing.text || '')}</p>`;
+  const live = list.filter(x => x.status === 'pending' && !x.withdrawn);
+  const row = ch => {
+    const theirs = ch.authorSide !== (side === 'counterparty' ? 'counterparty' : 'owner');
+    /* WHO SETTLED IT NEVER TRAVELS — resolvedBy is stripped from the share
+       payload and their page mounts this renderer. The REASON does travel: it
+       is the answer to their ask and they are owed it. Same wall, same words,
+       as the ask reveal a few lines above. */
+    const seatShowsRuler = side !== 'counterparty' && !(typeof window !== 'undefined' && window.PORTAL_MODE);
+    const author = String(ch.author || ch.by || '').trim();
+    const when = ch.updatedAt || ch.createdAt;
+    const ruled = seatShowsRuler && ch.resolvedBy ? String(ch.resolvedBy).trim() : '';
+    const line = [
+      `<b>${_ne(ch.id)}</b>`,
+      theirs ? i18t('ng_their_ask_lc') : i18t('ng_your_ask_lc'),
+      rlAskWord(ch) + (ruled ? ' ' + i18t('ng_tag_by', { who: _ne(ruled) }) : ''),
+      author ? i18t('ng_tag_from', { who: _ne(author) }) : '',
+      when ? negoWhen(when) : '',
+    ].filter(Boolean).join(' &middot; ');
+    return `<div class="rl-cp-row rl-cp-row-${theirs ? 'them' : 'us'}" data-rl-cp-change="${_nea(ch.id)}">
+      <span class="rl-cp-bar" aria-hidden="true"></span>
+      <div class="rl-cp-rowbd">
+        <span class="rl-cp-who">${line}</span>
+        <div class="rl-cp-wd">${rlChangeWordingHtml(ch)}</div>
+        ${ch.status === 'rejected' && ch.reply
+          ? `<span class="rl-cp-why">&ldquo;${_ne(ch.reply)}&rdquo;</span>` : ''}
+      </div>
+    </div>`;
+  };
+  /* THE HISTORY IS ALWAYS DRAWN, including when it is empty. A section that
+     appears only once there is something in it teaches the reader nothing about
+     where to look the first time they need it, and "nothing has been asked
+     about this clause yet" is a real answer to a real question. */
+  return `<div class="rl-cp-src${rlCpOpenId() === String(cl.clauseId) ? ' is-on' : ''}" data-rl-cp-for="${id}">
+    <p class="rl-cp-clname">${_ne(String(cl.headingText || cl.title || '').trim() || i18t('ng_cp_stands'))}</p>
+    <section class="rl-cp-sec">
+      <h5 class="rl-cp-h">${i18t('ng_cp_stands')}</h5>
+      <p class="rl-cp-note">${i18t('ng_cp_stands_note')}</p>
+      <div class="rl-cp-stands">${standsBody}</div>
+    </section>
+    <section class="rl-cp-sec">
+      <h5 class="rl-cp-h">${i18t('ng_cp_table')}</h5>
+      ${live.length ? live.map(row).join('') : `<p class="rl-cp-none">${i18t('ng_cp_table_none')}</p>`}
+    </section>
+    <section class="rl-cp-sec">
+      <h5 class="rl-cp-h">${i18t('ng_cp_history')}</h5>
+      ${list.length ? list.map(row).join('') : `<p class="rl-cp-none">${i18t('ng_cp_history_none')}</p>`}
+    </section>
+    ${!editable ? '' : `<section class="rl-cp-sec rl-cp-acts">
+      <h5 class="rl-cp-h">${i18t('ng_cp_acts')}</h5>
+      ${''/* THE ENGINE'S OWN CONTROLS, not lookalikes. data-nego-edit opens the
+             inline editor on the clause and data-nego-ai-clause opens the
+             Copilot against its wording — the same two doors the hover row
+             carries, so every ask still travels the one funnel with the same
+             refusals and the same fingerprint. They carry data-rl-cp-close
+             beside them because the editor they open is ON THE CLAUSE, behind
+             this panel: a door that opens something you cannot see is a door
+             that reads as broken. */}
+      ${''/* THEY ARE NOT .rl-tool, AND THAT IS A RULE RATHER THAN A STYLE
+             CHOICE. The first build wore the sheet's tool-pill class, and the
+             panel is written EARLIER in the grid than the document — so
+             `querySelector('.redline-page .rl-tool')`, which is how the sheet's
+             own furniture is measured, started answering with a hidden button
+             inside this panel and returned a 0x0 box. paper-grows-verify caught
+             it. A control that is not on the sheet must not answer to the
+             sheet's selectors; it wears the same colours through its own
+             class. */}
+      ${opts.noAi ? '' : `<button type="button" class="rl-cp-act rl-cp-act-ai" data-rl-cp-close="1"
+        data-nego-ai-clause="${id}" title="${_nea(i18t('ng_ai_redraft_title'))}">&#10024; Copilot</button>`}
+      <button type="button" class="rl-cp-act rl-cp-act-edit" data-rl-cp-close="1"
+        data-nego-edit="${id}" title="${_nea(i18t('ng_direct_edit_title'))}">&#9998; ${i18t('ng_direct_edit')}</button>
+    </section>`}
+  </div>`;
+}
+
 /* ---- HOW THE CONTRACT READS, AS ONE BUILDER (15 Aug 2026) ----
    Three words — Redlined / As agreed / With changes — and they were written
    inline in renderRedline, which is the owner's page and only the owner's. The
@@ -6952,6 +7126,35 @@ function redlineLayoutCss(){
   .redline-page .rl-clause.rl-clause-new{background:color-mix(in srgb,#10b981 7%,transparent);
     border-color:color-mix(in srgb,#10b981 34%,transparent)}
   .redline-page .rl-clause-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+  /* ---- THE GREEN EDIT PILL (owner-asked, 16 Aug 2026) ----
+     Top right of every clause, always drawn, in the emerald this page already
+     wears for "your redlines travel on this colour". margin-left:auto rather
+     than relying on the row's space-between: a headingless clause — the
+     fallback for an upload that arrived as a wall of paragraphs — leaves the
+     pill as the row's only child, and space-between would park it on the LEFT,
+     which is the one place it was asked not to be.
+
+     IT IS THE SHEET'S FURNITURE, so it follows the sheet's type — the reading
+     .rl-asktag and .rl-tool already take, and the third report of one fault
+     (13 and 15 Aug 2026) is enough to apply it without waiting for a fourth.
+     And it is CUT FROM THE SELECTION with the rest of the furniture (see
+     _NEGO_SEL_CHROME): a drag from above the first word to below the last must
+     not sweep the word "Edit" into the passage the Copilot is asked about. */
+  .redline-page .rl-cp-pill{margin-left:auto;flex:none;
+    border:1px solid #6ee7b7;background:#ecfdf5;color:#065f46;
+    border-radius:999px;padding:calc(3px * var(--doc-scale,1)) calc(11px * var(--doc-scale,1));
+    font:inherit;font-size:calc(10.5px * var(--doc-scale,1));font-weight:700;line-height:1.6;
+    cursor:pointer;white-space:nowrap;-webkit-user-select:none;user-select:none;
+    box-shadow:0 1px 2px rgba(15,23,42,.08);transition:background .15s,border-color .15s}
+  .redline-page .rl-cp-pill:hover{background:#d1fae5;border-color:#059669}
+  .redline-page .rl-cp-pill:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
+  html.dark .redline-page .rl-cp-pill{background:rgba(5,150,105,.16);border-color:rgba(5,150,105,.45);color:#6ee7b7}
+  /* Every clause's panel body is in the panel already; opening flips which one
+     is on. ONE AT A TIME — the same single-value rule as the card pop-out and
+     the ask reveal — so the panel can never show two clauses at once, and
+     opening costs a class flip rather than a repaint. */
+  .redline-page #rl-cp-body .rl-cp-src{display:none}
+  .redline-page #rl-cp-body .rl-cp-src.is-on{display:block}
   /* ---- AND THE TAG FOLLOWS THE READER'S TEXT SIZE TOO ----
      (Owner-reported, 13 Aug 2026: "the clause number pill ... do not
      proportionally shrink and expand with the page, both in owner and
@@ -7603,6 +7806,84 @@ function redlineLayoutCss(){
     .redline-page .rl-queue{transition:none}
     .redline-page .rl-q-scrim{transition:none}
   }
+  /* ---- THE CLAUSE PANEL, ON THE OTHER WALL ----
+     The queue's mechanism mirrored: absolute inside .rl-grid so it lands on the
+     working area's own RIGHT border — on the bench, on the contract tab's embed
+     and on the counterparty's page alike, each against its own wall. Wider than
+     the queue because it carries wording rather than a reading order, and
+     capped at 92vw so a phone-width window still leaves an edge to press back
+     through. visibility follows the same delay rule: parked off the PAGE's edge
+     it would still be on screen and still tabbable. */
+  .redline-page .rl-cp{
+    position:absolute;right:0;top:0;bottom:0;z-index:56;
+    width:min(520px,92vw);min-width:0;border-radius:0;
+    border:0;border-left:1px solid var(--color-divider);
+    box-shadow:var(--shadow-lg);
+    display:flex;flex-direction:column;
+    transform:translateX(105%);
+    visibility:hidden;
+    transition:transform .3s cubic-bezier(.22,.61,.36,1),visibility 0s linear .3s;
+  }
+  .redline-page .rl-cp.is-open{transform:none;visibility:visible;
+    transition:transform .3s cubic-bezier(.22,.61,.36,1),visibility 0s}
+  .redline-page .rl-cp-scrim{
+    position:fixed;inset:0;z-index:55;
+    background:color-mix(in srgb,#020617 45%,transparent);
+    opacity:0;pointer-events:none;transition:opacity .25s;
+  }
+  .redline-page .rl-cp-scrim.is-open{opacity:1;pointer-events:auto}
+  @media (prefers-reduced-motion:reduce){
+    .redline-page .rl-cp{transition:none}
+    .redline-page .rl-cp-scrim{transition:none}
+  }
+  .redline-page .rl-cp-head{display:flex;align-items:center;gap:8px;flex:none;
+    padding:11px 12px;border-bottom:1px solid var(--color-divider)}
+  .redline-page .rl-cp-label{margin:0;font-size:9.5px;font-weight:700;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--color-neutral-600)}
+  .redline-page .rl-cp-min{order:2;margin-left:auto;border:0;background:transparent;
+    font-size:18px;line-height:1;color:var(--color-neutral-600);cursor:pointer;padding:2px 4px}
+  .redline-page .rl-cp-min:hover{color:var(--color-text)}
+  .redline-page .rl-cp-body{flex:1;min-height:0;overflow-y:auto;padding:12px 14px 22px}
+  .redline-page .rl-cp-clname{margin:0 0 12px;font-family:var(--font-heading);
+    font-size:15px;font-weight:700;color:var(--color-text)}
+  .redline-page .rl-cp-sec{margin:0 0 18px}
+  .redline-page .rl-cp-h{margin:0 0 4px;font-size:9.5px;font-weight:700;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--color-neutral-600)}
+  .redline-page .rl-cp-note,.redline-page .rl-cp-none{margin:0 0 8px;font-size:11.5px;
+    color:var(--color-neutral-600)}
+  .redline-page .rl-cp-stands{font-size:12.5px;line-height:1.65;color:var(--color-text);
+    border-left:2px solid var(--color-divider);padding-left:10px}
+  /* A row is one ask. The cap down its left edge is the CHANGE CARD's own side
+     colour — teal ours, amber theirs — so the panel speaks the language the
+     column beside it already speaks rather than inventing a second one. */
+  .redline-page .rl-cp-row{display:flex;gap:8px;margin:0 0 10px}
+  .redline-page .rl-cp-bar{flex:none;width:3px;border-radius:2px;background:var(--color-divider)}
+  .redline-page .rl-cp-row-us .rl-cp-bar{background:#14b8a6}
+  .redline-page .rl-cp-row-them .rl-cp-bar{background:#f59e0b}
+  .redline-page .rl-cp-rowbd{min-width:0;flex:1}
+  .redline-page .rl-cp-who{display:block;font-size:10.5px;color:var(--color-neutral-600);
+    margin-bottom:3px}
+  .redline-page .rl-cp-wd{font-size:12.5px;line-height:1.6;color:var(--color-text)}
+  .redline-page .rl-cp-why{display:block;margin-top:4px;font-size:11.5px;font-style:italic;
+    color:var(--color-neutral-600)}
+  .redline-page .rl-cp-acts{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+  .redline-page .rl-cp-acts .rl-cp-h{flex-basis:100%}
+  /* THE PANEL'S OWN BUTTONS ARE NOT THE SHEET'S FURNITURE — their own class,
+     not .rl-tool (see the note beside them). Same colours, because they are the
+     same two acts; fixed sizes, because the panel is not the document and does
+     not follow the reader's document type. */
+  .redline-page .rl-cp-act{border:1px solid var(--color-divider);background:var(--color-surface);
+    border-radius:999px;padding:5px 12px;font:inherit;font-size:11.5px;font-weight:600;
+    line-height:1.6;color:var(--color-neutral-600);cursor:pointer;white-space:nowrap;
+    box-shadow:0 1px 2px rgba(15,23,42,.08);
+    transition:border-color .15s,color .15s,background .15s}
+  .redline-page .rl-cp-act:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
+  .redline-page .rl-cp-act.rl-cp-act-edit{background:#ecfdf5;border-color:#6ee7b7;color:#065f46}
+  .redline-page .rl-cp-act.rl-cp-act-edit:hover{background:#d1fae5;border-color:#059669}
+  .redline-page .rl-cp-act.rl-cp-act-ai{background:#f5f3ff;border-color:#ddd6fe;color:#5b21b6}
+  .redline-page .rl-cp-act.rl-cp-act-ai:hover{background:#ede9fe;border-color:#7c3aed}
+  html.dark .redline-page .rl-cp-act.rl-cp-act-edit{background:rgba(5,150,105,.16);border-color:rgba(5,150,105,.45);color:#6ee7b7}
+  html.dark .redline-page .rl-cp-act.rl-cp-act-ai{background:rgba(124,58,237,.18);border-color:rgba(124,58,237,.45);color:#ddd6fe}
   /* ---- AND THE SCORE SURVIVES THE CLOSE ----
      The folded rail's whole justification was that "2 of 7 decided" stayed
      legible at 34px, so reopening was never a guess. An overlay that simply
@@ -7890,6 +8171,16 @@ function redlineLayoutCss(){
     .redline-page .rl-q-scrim,.redline-page .rl-q-tab,
     .redline-page .rl-q-min{display:none!important}
     .redline-page .rl-resizer{display:none}
+    /* ---- THE CLAUSE PANEL DOES NOT STACK, AND THAT IS THE OPPOSITE CALL FROM
+       THE QUEUE'S, ON PURPOSE. The queue is the reading order and belongs at
+       the top of a stacked page whatever the width. This panel is about ONE
+       clause and is shut until a reader presses that clause's pill, so putting
+       it in flow would print one arbitrary clause's history above the contract
+       and leave the pill with nothing to open. It stays an overlay and moves
+       from the PAGE's wall to the WINDOW's: below this width .rl-grid is
+       height:auto and as tall as the whole stacked page, so an absolute panel
+       pinned top-to-bottom inside it would run off the bottom of the screen. */
+    .redline-page .rl-cp{position:fixed;top:0;bottom:0;right:0;z-index:56}
   }
   /* ---- THIS PAGE HAS NO DRAWER BUTTON, SO IT MUST NOT HAVE A DRAWER ----
      The engine's own narrow rule turns .nego-pane.index into an off-canvas
@@ -10404,6 +10695,12 @@ function rlWireClauseTools(c, host, opts){
      one it was holding went with the rebuild. Runs LAST, after the engine has
      wired this paint's nodes, so the listeners travel with the node. */
   if (_rlPopId != null) rlPopPaint(c);
+  /* And the clause panel, for the same reason and by the same rule: it borrows
+     the CLAUSE's node, and a repaint of the document destroys the one it was
+     holding. rlCpPaint re-takes the fresh one, or shuts the panel where the
+     clause has gone entirely. Scoped to this mount, so two mounted pages do
+     not fight over one panel. */
+  rlCpPaint(host.closest && host.closest('.redline-page') ? host.closest('.redline-page') : host);
 
   /* PRESSING ANYWHERE ELSE USED TO CLOSE THEM ALL, on the reasoning that a
      press outside the column was the reader moving on. It is gone with the
@@ -10908,6 +11205,22 @@ function redlineDocHtml(c, opts = {}){
   const tmpl = (window.TEMPLATES && c.template && TEMPLATES[c.template] && TEMPLATES[c.template].name) || 'Contract';
   const region = RL_REGION[(window.state && state.region) || 'KE'] || RL_REGION.KE;
   const editable = !opts.readonly && opts.canEdit !== false;
+  /* ---- THE CLAUSE PANEL'S BODIES ARE BUILT HERE AND RENDERED THERE ----
+     A sink, not a second reading. Everything the panel needs — which changes
+     are on which clause, which of them the wall hides, whether this seat has
+     hands — has already been worked out above, and asking it twice is how two
+     surfaces come to disagree about one clause. redlinePanesHtml passes an
+     array, gets the bodies back in it, and renders them into #rl-cp-body.
+
+     No sink means no panel on this mount (the Word export renders this same
+     canvas), and the Edit pill stands down with it: a door is drawn only where
+     the room behind it exists. */
+  const hasPanel = Array.isArray(opts.cpSink);
+  const cpPush = (cl, chs) => {
+    if (!hasPanel) return '';
+    opts.cpSink.push(rlClausePanelBodyHtml(c, cl, chs, side, { editable, noAi: opts.noAi }));
+    return '';
+  };
   /* ---- THE CLAUSE TOOLBAR ----
      Three verbs on every clause, and each one presses the ENGINE's control
      rather than a lookalike: Direct Edit carries data-nego-edit, which opens
@@ -11175,9 +11488,13 @@ function redlineDocHtml(c, opts = {}){
       const clean = redlineBody(ch);
       if (!marked){
         return `<section class="nego-clause rl-clause" data-clause="${_ne(cl.clauseId)}" data-nego-working="${_ne(cl.clauseId)}" data-nego-card-anchor="${anchorIds}">
-          ${heading(cl)}
+          <div class="rl-clause-top">
+            ${heading(cl)}
+            ${rlClauseEditPillHtml(cl, { editable, hasPanel })}
+          </div>
           ${''/* A formatting-only ask read "as agreed" is simply the clause. */}
           ${clean == null ? richBody(cl) : clean}
+          ${cpPush(cl, chs)}
           ${tools(cl, ch)}
         </section>${after}`;
       }
@@ -11193,15 +11510,21 @@ function redlineDocHtml(c, opts = {}){
         <div class="rl-clause-top">
           ${heading(cl)}
           ${rest.map(tagFor).join('')}${tagFor(ch)}${fmtChip}
+          ${rlClauseEditPillHtml(cl, { editable, hasPanel })}
         </div>
         ${clean == null ? richBody(cl) : clean}
         ${chs.map(x => rlAskRevealHtml(c, x, side, opts)).join('')}
+        ${cpPush(cl, chs)}
         ${tools(cl, ch)}
       </section>${after}`;
     }
     return `<section class="nego-clause rl-clause" data-clause="${_ne(cl.clauseId)}" data-nego-working="${_ne(cl.clauseId)}">
-      ${heading(cl)}
+      <div class="rl-clause-top">
+        ${heading(cl)}
+        ${rlClauseEditPillHtml(cl, { editable, hasPanel })}
+      </div>
       ${richBody(cl)}
+      ${cpPush(cl, chs)}
       ${tools(cl, null)}
     </section>${after}`;
   }).join('') + orphanInserts.map(insertBlock).join('');
@@ -13093,6 +13416,125 @@ function rlWireQueueMin(host){
   }
 }
 
+/* ---- THE CLAUSE PANEL ----
+   The queue's own mechanism, mirrored on the other wall: scrim, slide-over,
+   three ways out. It is ABSOLUTE inside .rl-grid for the reason the queue is —
+   the grid is the positioned ancestor, so the panel lands on the working area's
+   own right border on the bench, on the contract tab's embed and on the
+   counterparty's page alike, each against ITS OWN wall. Fixed to the window it
+   would sit over the app's furniture.
+
+   NO DOOR TAB. The queue keeps one because its door carries the score; this
+   panel's door is the Edit pill on the clause it is about, which is the only
+   place the question "which clause?" has an answer.
+
+   ONE AT A TIME, in memory, per sitting, shut on arrival — the same single
+   value and the same reasoning as the card pop-out's _rlPopId and the ask
+   reveal's _rlAskOpen. It is a reading posture: it never prints and never
+   leaves the page. */
+let _rlCpId = null;
+function rlCpOpenId(){ return _rlCpId; }
+function rlCpSetOpen(id){ _rlCpId = id || null; return _rlCpId; }
+function rlClausePanelHtml(bodies){
+  const open = !!rlCpOpenId();
+  const src = (bodies || []).join('');
+  return `<div class="rl-cp-scrim${open ? ' is-open' : ''}" id="rl-cp-scrim" data-rl-cp-close="1" aria-hidden="true"></div>
+  ${''/* An <aside> with a label and nothing else, exactly as the queue and the
+         Activity panel are built. NOT role="dialog": it is a complementary
+         panel a reader works BESIDE the wording, and this page already refuses
+         to put a dialog over the wording being judged (f89). */}
+  <aside class="rl-col rl-cp${open ? ' is-open' : ''}" id="rl-cp"
+    aria-hidden="${open ? 'false' : 'true'}" aria-label="${_nea(i18t('ng_cp_open_title'))}">
+    <div class="rl-cp-head">
+      <button type="button" id="rl-cp-min" class="rl-cp-min" data-rl-cp-close="1"
+        title="${_nea(i18t('ng_cp_close_title'))}" aria-label="${_nea(i18t('ng_cp_close_title'))}">&times;</button>
+      <p class="rl-cp-label">${i18t('ng_cp_edit')}</p>
+    </div>
+    <div class="rl-cp-body" id="rl-cp-body">${src}</div>
+  </aside>`;
+}
+/* Opening and closing, applied WITHOUT A REPAINT — the property worth keeping
+   from the queue: rebuilding the workbench to show one panel would throw away
+   the reader's place in the contract, which is the one thing they were holding
+   on to. Every clause's body is already in the panel; this flips which one is
+   on. Two class flips and nothing else. */
+function rlCpSetShown(scope, clauseId){
+  const root = (scope && scope.querySelector) ? scope : document;
+  const want = clauseId ? String(clauseId) : null;
+  /* A CLAUSE WITH NO BODY IN THE PANEL CANNOT BE OPENED. The panel would slide
+     out empty, which reads as broken rather than as "nothing here". */
+  const bodies = [...root.querySelectorAll('#rl-cp-body .rl-cp-src')];
+  const found = want ? bodies.some(b => b.getAttribute('data-rl-cp-for') === want) : false;
+  const on = !!(want && found);
+  rlCpSetOpen(on ? want : null);
+  bodies.forEach(b => b.classList.toggle('is-on', on && b.getAttribute('data-rl-cp-for') === want));
+  root.querySelectorAll('#rl-cp').forEach(p => {
+    p.classList.toggle('is-open', on); p.setAttribute('aria-hidden', on ? 'false' : 'true');
+  });
+  root.querySelectorAll('#rl-cp-scrim').forEach(sc => sc.classList.toggle('is-open', on));
+  root.querySelectorAll('[data-rl-cp-open]').forEach(b => b.setAttribute('aria-expanded',
+    on && b.getAttribute('data-rl-cp-open') === want ? 'true' : 'false'));
+  if (on){
+    const close = root.querySelector('#rl-cp-min');
+    if (close && close.focus){ try{ close.focus(); }catch(_){} }
+  }
+}
+/* A repaint rebuilds the panel from the markup, so the class the open body was
+   wearing goes with it. Called LAST in the page's own wiring, after the engine
+   has wired this paint. Where the clause has gone entirely — a round closed, a
+   reviewer's fold narrowed the page — the panel SHUTS rather than holding over
+   wording that is no longer on the paper: a panel and a document disagreeing is
+   the one thing this page may not do. */
+function rlCpPaint(scope){
+  const id = rlCpOpenId();
+  if (!id) return;
+  rlCpSetShown((scope && scope.querySelector) ? scope : document, id);
+}
+/* The pill, the close, the scrim and Escape — the queue's four ways in and out,
+   on this panel. ARMED AT MODULE LOAD, on `document`, never inside a renderer:
+   a listener registered by the owner's page cannot belong to the counterparty's
+   mount, and that exact fault made the unsent band's Send dead on their seat
+   for a day (15 Aug 2026). */
+if (typeof document !== 'undefined' && !document._rlCpWired){
+  document._rlCpWired = true;
+  /* ---- IN THE CAPTURE PHASE, AND THAT IS LOAD-BEARING ----
+     The panel's own acts are the ENGINE's controls — data-nego-edit opens the
+     inline editor and its handler calls stopPropagation, correctly, because a
+     press on a clause control must not also navigate the clause. So a bubbling
+     listener never saw the press: Direct edit opened the editor ON THE CLAUSE
+     and left the panel standing over it, which is a door opening something the
+     reader cannot see.
+
+     Capture also settles the ORDER, which the bubble phase could not: the
+     panel is shut BEFORE the editor's own repaint runs, so rlCpPaint finds
+     nothing open and does not put it back up. */
+  document.addEventListener('click', ev => {
+    const t = ev.target;
+    if (!t || !t.closest) return;
+    const opener = t.closest('[data-rl-cp-open]');
+    if (opener){
+      /* The pill sits inside .nego-clause, whose own press navigates. Same
+         reason the ask tag stops its press: a door that also moves you is two
+         acts on one press. */
+      ev.preventDefault(); ev.stopPropagation();
+      const id = opener.getAttribute('data-rl-cp-open');
+      const scope = opener.closest('.redline-page') || document;
+      rlCpSetShown(scope, rlCpOpenId() === id ? null : id);
+      return;
+    }
+    const closer = t.closest('[data-rl-cp-close]');
+    if (closer) rlCpSetShown(closer.closest('.redline-page') || document, null);
+  }, true);
+  document.addEventListener('keydown', ev => {
+    if (ev.key !== 'Escape' || !rlCpOpenId()) return;
+    /* Only when this panel is the thing on top: a dialog over it owns Escape
+       first, exactly as the queue's own handler defers. */
+    const mr = document.getElementById('modal-root');
+    if (mr && mr.innerHTML.trim()) return;
+    rlCpSetShown(document, null);
+  });
+}
+
 /* The design's grid. Everything inside it is the engine's, arranged the way the
    design arranges it rather than the way the comparison workbench does. */
 function redlinePanesHtml(c, opts = {}){
@@ -13122,6 +13564,14 @@ function redlinePanesHtml(c, opts = {}){
      drift again. */
   const changeTotal = (typeof redlineCardIds === 'function')
     ? redlineCardIds(c, { ...opts, hiddenIds: [...tabHidden] }).length : 0;
+  /* ---- THE DOCUMENT IS BUILT BEFORE THE PANEL, BECAUSE THE PANEL IS ITS
+     OUTPUT. redlineDocHtml fills _cpBodies as it walks the clauses — one
+     reading of the wall, the fold and the change grouping — and the panel is
+     rendered from what came back. Built here rather than inline in the markup
+     below because the panel is written EARLIER in the grid than the document
+     it is about. */
+  const _cpBodies = [];
+  const _cpDoc = redlineDocHtml(c, { ...opts, cpSink: _cpBodies });
   /* #nego-root is not decoration: the engine declares its entire colour ramp
      on `.nego-room, #nego-root`, so without this wrapper --n-slate and friends
      are undefined and the clause tools render as transparent boxes with white
@@ -13191,7 +13641,7 @@ function redlinePanesHtml(c, opts = {}){
              actually are ("N on the table"). What is left is the paper, on the
              page, which is the whole point of the column. */}
       <section id="rl-doc" class="rl-doc nego-pane working" aria-label="${_nea(i18t('ng_doc_aria'))}">
-        <div class="nego-scroll" id="nego-scroll-work">${redlineDocHtml(c, opts)}</div>
+        <div class="nego-scroll" id="nego-scroll-work">${_cpDoc}</div>
       </section>
 
       <div id="rl-resizer" class="rl-resizer" role="separator" aria-orientation="vertical"
@@ -13307,6 +13757,22 @@ function redlinePanesHtml(c, opts = {}){
           <div class="nego-index-scroll rl-cards" id="nego-cards">${negoLinkedBarHtml()}<div id="rl-changes">${redlineChangeCardsHtml(c, opts)}</div></div>
         </div>
       </aside>
+      <!-- THE CLAUSE PANEL, on the other wall and on the same mechanism as the
+           queue. Built here rather than on the workbench toolbar, which is what
+           makes it reach every mount — the owner's bench, the contract tab's
+           embed and the COUNTERPARTY's page, which renders these panes and has
+           no toolbar of its own.
+
+           WRITTEN LAST, and that is the opposite of the queue's placement for a
+           reason of its own. The queue goes first because it is READ first and
+           its edge door has to exist before a reader looks for it. This panel
+           has no door on the page's edge — its door is the pill on the clause —
+           and it holds a copy of every clause's wording, so written first it
+           would answer to the sheet's own selectors before the sheet did.
+           paper-grows-verify caught exactly that, measuring a 0x0 box for a
+           clause tool that was really a hidden button in here. It is
+           position:absolute, so where it appears is unaffected. -->
+      ${rlClausePanelHtml(_cpBodies)}
     </div>
     ${''/* OVER THE PAGE, NOT ABOVE IT — see rlFloatingNoticesHtml. Last in the
            markup and position:fixed, so it floats clear of the grid rather than
@@ -13433,6 +13899,8 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlFocusOn, rlSetFocus, rlResetFocus, rlWireFocusKey, rlPaintFocusBtn, rlFocusPage,
   rlReadSegsHtml, rlPaintReadSegs,
   rlAskTagHtml, rlAskRevealHtml, rlAskGlyph, rlAskWord, rlAskOpenId, rlAskSetOpen, rlAskResetOpen,
+  rlChangeWordingHtml, rlClauseEditPillHtml, rlClausePanelBodyHtml, rlClausePanelHtml,
+  rlCpOpenId, rlCpSetOpen, rlCpSetShown, rlCpPaint,
   rlUnsentBandHtml, rlUnsentCount,
   rlFitTabRow, rlWireFitTabRow, rlObserveTabRow,
   redlineHeldId, redlineEvict, openRedlineWorkbench, RL_DEMOTABLE,
