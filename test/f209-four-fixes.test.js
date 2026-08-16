@@ -538,14 +538,22 @@ describe('f209 · the tag on a clause, and what pressing it opens', () => {
       'it never prints');
   });
 
-  test('and the document draws a tag AND a reveal slot for every change on a clause', async () => {
+  test('and the clause PANEL names every change on the clause', async () => {
+    /* REVERSED IN PLACE, 16 Aug 2026: the ask tags have come off the paper
+       (owner-asked, "remove the pills from the contracts") and the panel behind
+       the Edit pill is where a change is named now — live and settled alike,
+       with its wording and its outcome. The population is the same; the surface
+       is not. */
     const w = world();
     const { c, ch } = await staged(w);
-    w.win.rlAskSetOpen(ch.id);
-    const doc = w.win.redlineDocHtml(c, { side: 'owner' });
-    assert.equal((doc.match(/class="rl-asktag[" ]/g) || []).length, 1);
-    assert.equal((doc.match(/data-rl-askrv=/g) || []).length, 1,
-      'the open one, in the clause it belongs to');
-    w.win.rlAskResetOpen();
+    const cpSink = [];
+    const doc = w.win.redlineDocHtml(c, { side: 'owner', cpSink });
+    const panel = cpSink.join('');
+    assert.equal((doc.match(/class="rl-asktag[" ]/g) || []).length, 0,
+      'no tags on the paper');
+    assert.ok(panel.includes(`data-rl-cp-change="${ch.id}"`),
+      'and the change is named in the panel, once');
+    assert.equal((panel.match(new RegExp(`data-rl-cp-change="${ch.id}"`, 'g')) || []).length, 1,
+      'a live ask is on the table and nowhere else — see f210 (3)');
   });
 });

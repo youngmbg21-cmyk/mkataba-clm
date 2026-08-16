@@ -615,9 +615,20 @@ describe('f208 · a settled ask can be reopened from its tag', () => {
      test that passes for the wrong reason is worse than one that fails. Cut
      from the opening tag to the end of the document instead and read forward;
      only one reveal is ever open at a time (_rlAskOpen is one value). */
-  const revealOf = (doc, id) => {
-    const at = doc.indexOf(`data-rl-askrv="${id}"`);
-    return at < 0 ? '' : doc.slice(at, at + 1600);
+  /* The clause panel's row for one change. redlineDocHtml only builds the panel
+     when a caller hands it a sink — see the one-producer rule in f210 — so a
+     test that wants to know what the reader can reach has to be that caller. */
+  const panelRowOf = (win, c, opts, id) => {
+    const cpSink = [];
+    win.redlineDocHtml(c, { ...opts, cpSink });
+    const panel = cpSink.join('');
+    const at = panel.indexOf(`data-rl-cp-change="${id}"`);
+    if (at < 0) return '';
+    /* To the NEXT row, not a fixed run of characters: two rows sit inches apart
+       in the markup and a generous slice read the neighbour's Reopen as this
+       one's. */
+    const next = panel.indexOf('data-rl-cp-change="', at + 1);
+    return panel.slice(at, next < 0 ? undefined : next);
   };
 
   async function adoptedRivalPair(w){
@@ -651,17 +662,21 @@ describe('f208 · a settled ask can be reopened from its tag', () => {
       'the adopted change is not in the column — so the remedy was unreachable');
   });
 
-  test('its tag opens a reveal that carries Reopen', async () => {
+  test('the clause PANEL carries Reopen on the adopted ask', async () => {
+    /* REVERSED IN PLACE, 16 Aug 2026. The remedy used to live in the ask tag's
+       reveal, because the tag was the one place a settled change was still
+       visible. The tags have come off the paper (owner-asked: "remove the pills
+       from the contracts") and the panel's History is that place now. THE RULE
+       DID NOT CHANGE, ONLY ITS ADDRESS — and the two had to move together, or
+       this test's own subject would be back: a refusal naming a remedy that
+       cannot be reached. */
     const w = world();
-    const { c, cl, adopted } = await adoptedRivalPair(w);
-    w.win.rlAskSetOpen(adopted.id);
-    const doc = w.win.redlineDocHtml(c, { side: 'owner', canEdit: true });
-    const rv = revealOf(doc, adopted.id);
-    assert.ok(rv, 'the reveal is drawn for the adopted ask');
+    const { c, adopted } = await adoptedRivalPair(w);
+    const rv = panelRowOf(w.win, c, { side: 'owner', canEdit: true }, adopted.id);
+    assert.ok(rv, 'the adopted ask is on the record the reader can open');
     assert.match(rv, new RegExp(`data-nego-undo="${adopted.id}"`),
       'and offers the engine\'s own re-open — not a second path');
     assert.match(rv, /Reopen/i, 'in words');
-    w.win.rlAskResetOpen();
   });
 
   test('reopening frees the rival — the loop closes', async () => {
@@ -677,10 +692,8 @@ describe('f208 · a settled ask can be reopened from its tag', () => {
   test('a PENDING ask is not offered a reopen — there is nothing to undo', async () => {
     const w = world();
     const { c, rival } = await adoptedRivalPair(w);
-    w.win.rlAskSetOpen(rival.id);
-    const doc = w.win.redlineDocHtml(c, { side: 'owner', canEdit: true });
-    const rv = revealOf(doc, rival.id);
-    assert.ok(rv, 'the pending ask still reveals its wording');
+    const rv = panelRowOf(w.win, c, { side: 'owner', canEdit: true }, rival.id);
+    assert.ok(rv, 'the pending ask still shows its wording');
     assert.ok(!/data-nego-undo/.test(rv), 'but carries no reopen');
     w.win.rlAskResetOpen();
   });
@@ -700,10 +713,9 @@ describe('f208 · a settled ask can be reopened from its tag', () => {
        their page has its own answer for its own answers. */
     const w = world();
     const { c, adopted } = await adoptedRivalPair(w);
-    w.win.rlAskSetOpen(adopted.id);
-    const theirs = w.win.redlineDocHtml(c, { side: 'counterparty', canEdit: true });
-    assert.ok(theirs.includes('rl-askrv'), 'they still see what was asked');
+    const theirs = panelRowOf(w.win, c, { side: 'counterparty', canEdit: true, hiddenIds: [] },
+      adopted.id);
+    assert.ok(theirs, 'they still see what was asked');
     assert.ok(!/data-nego-undo/.test(theirs), 'and cannot reopen our decision');
-    w.win.rlAskResetOpen();
   });
 });

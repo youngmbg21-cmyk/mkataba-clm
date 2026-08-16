@@ -611,10 +611,15 @@ describe('F96 (B13) — a clause the record holds and the canvas did not draw', 
     assert.ok(sec, 'the clause is on the canvas');
     assert.ok(sec.classList.contains('rl-clause-new'),
       'a clause that is not in the agreement yet must not read as one that is');
-    /* READING MOVED, CLAIM UNCHANGED (OI-12). */
-    assert.match(sec.querySelector('.rl-asktag')?.getAttribute('title') || '',
-      /new clause/i, 'and the tag says so in words');
-    assert.ok(sec.querySelector('ins, .nego-ins'), 'the wording carries insertion marks');
+/* ---- REVERSED IN PLACE, 16 Aug 2026 ---- the ask tags have come off the
+       paper (owner-asked: "remove the pills from the contracts"). A proposed
+       clause says what it is through its own treatment, which is what a reader
+       scrolling the page actually sees: the washed-green frame for one that is
+       not in the agreement yet, insertion marks on its wording, and the strike
+       when it has been refused. The claim is re-pointed at those. */
+    assert.equal(sec.querySelector('.rl-asktag'), null, 'no tag on the paper');
+    assert.ok(sec.querySelector('ins, .nego-ins'),
+      'the wording carries insertion marks — which is what says it is an addition');
   });
 
   test('it sits after the clause it names, not swept to the end', async () => {
@@ -640,8 +645,13 @@ describe('F96 (B13) — a clause the record holds and the canvas did not draw', 
     const sec = p.$$('#rl-doc [data-clause]').find(el => /confidential/.test(el.textContent));
     assert.ok(sec, 'a gap in the document cannot be told from a clause never proposed');
     assert.ok(sec.querySelector('del, .nego-del'), 'refused wording is struck, not erased');
-    /* READING MOVED, CLAIM UNCHANGED (OI-12). */
-    assert.match(sec.querySelector('.rl-asktag')?.getAttribute('title') || '', /refused/i);
+    /* ---- REVERSED IN PLACE, 16 Aug 2026 ---- the ask tags have come off the
+       paper (owner-asked: "remove the pills from the contracts"). A proposed
+       clause says what it is through its own treatment, which is what a reader
+       scrolling the page actually sees: the washed-green frame for one that is
+       not in the agreement yet, insertion marks on its wording, and the strike
+       when it has been refused. The claim is re-pointed at those. */
+    assert.equal(sec.querySelector('.rl-asktag'), null, 'and it says so by the strike, not a tag');
   });
 
   test('an insert whose anchor has gone falls to the end, and only then', async () => {

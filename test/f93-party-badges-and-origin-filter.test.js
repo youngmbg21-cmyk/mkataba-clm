@@ -176,17 +176,23 @@ describe('F93 (1) — the origin pill is OFF the card, and the edge still says i
       'and it names the organisation that asked');
   });
 
-  test('the tags INSIDE the document are untouched — they are not the pill', async () => {
-    /* Deliberately kept: they mark which ask sits on which clause, which is
-       the one thing nothing else on the page does. */
+  test('which ask sits on which clause is still said — in the clause panel', async () => {
+    /* ---- REVERSED IN PLACE, 16 Aug 2026 ---- the ask tags have come off the
+       paper (owner-asked: "remove the pills from the contracts"). What they
+       said at a glance is now the red rule down the changed clause's right
+       edge; what they said in detail is the clause panel behind the Edit pill,
+       which names every ask on the clause in words rather than in a glyph and
+       a tooltip. The CLAIM is unchanged and still worth pinning — the reader
+       can see that the argument is over — so it is re-pointed, not dropped. */
     const p = await page();
-    const tag = p.$('#rl-doc .rl-asktag');
-    assert.ok(tag, 'the marked clause still carries its ask tag');
-    /* READING MOVED, CLAIM UNCHANGED (OI-12): whose is a coloured cap and a
-       word on the title now, not text in the pill. Both are asserted — colour
-       must never be the only carrier. */
-    assert.match(tag.getAttribute('title') || '', /ask/i, 'and the tag still says whose, in words');
-    assert.ok(tag.querySelector('.rl-cap-us, .rl-cap-them'), 'and shows it at a glance');
+    assert.equal(p.$('#rl-doc .rl-asktag'), null, 'no tags on the paper');
+    assert.ok(p.$('#rl-doc .nego-clause.is-changed'),
+      'the clause is marked as argued over, which is what the tags said at a glance');
+    const row = p.$('#rl-cp-body .rl-cp-who');
+    assert.ok(row, 'and the ask is named in the panel');
+    assert.match(row.textContent, /ask/i, 'in words, saying whose');
+    assert.ok(p.$('#rl-cp-body .rl-cp-row-us, #rl-cp-body .rl-cp-row-them'),
+      'and shows it at a glance too — colour is never the only carrier');
   });
 });
 

@@ -152,12 +152,14 @@ const INSTRUMENT = () => {
   /* ---- 0. the furniture really is unselectable in a real cascade ---- */
   const cascade = await page.evaluate(() => {
     const t = document.querySelector('#rl-doc .rl-tools');
-    const tag = document.querySelector('#rl-doc .rl-asktag');
+    /* The tags left the paper on 16 Aug 2026; the Edit pill is what rides the
+       clause head now and must be cut from a selection for the same reason. */
+    const tag = document.querySelector('#rl-doc .rl-cp-pill');
     return { tools: t ? getComputedStyle(t).userSelect : 'missing',
       asktag: tag ? getComputedStyle(tag).userSelect : 'missing' };
   });
   check('0 the clause toolbar computes to user-select:none', cascade.tools === 'none', cascade.tools);
-  check('0 and so does the ask tag', cascade.asktag === 'none', cascade.asktag);
+  check('0 and so does the clause\'s Edit pill', cascade.asktag === 'none', cascade.asktag);
 
   /* ---- 1. ::marker is genuinely absent from a real selection ----
      Measured before anything is asserted about matching, because it is the

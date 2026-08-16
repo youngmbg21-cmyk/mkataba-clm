@@ -120,7 +120,7 @@ function readScreen(root, win){
   const q = sel => Array.from(root.querySelectorAll(sel));
   return {
     clauses: q('[id="rl-doc"] .rl-clause').map(n => n.getAttribute('data-clause')),
-    tags: q('[id="rl-doc"] .rl-asktag').map(n => n.textContent.replace(/Their ask|Your ask/, 'ask').trim()),
+    tags: q('[id="rl-cp-body"] .rl-cp-who b').map(n => n.textContent.trim()),
     cards: q('[id="rl-changes"] [data-nego-card]').map(n => ({
       id: n.getAttribute('data-nego-card'),
       meta: (n.querySelector('.rl-card-meta') || {}).textContent?.replace(/\s+/g, ' ').trim() || '',
@@ -279,14 +279,16 @@ describe('an action by one side shows up on the other', () => {
     v = counterpartyView(o.c);
     assert.equal(v.$(`[data-nego-card="${ch.id}"]`), null,
       'a settled change is no longer "tracked" — it lives in the document now');
-    /* READING MOVED, CLAIM UNCHANGED (15 Aug 2026, OI-12): the tag prints the
-       change id and one glyph now — the words it used to carry are on its
-       title, which is where the side and the outcome are stated for a reader
-       who cannot use colour. What is under test is that the paper SAYS the
-       argument is over, and it still does. */
-    const tag = v.$$('.rl-asktag').find(n => n.textContent.includes(ch.id));
-    assert.match(tag.getAttribute('title') || '', /adopted/, 'the clause tag says the ask was adopted');
-    assert.match(tag.textContent, /\u2713/, 'and wears the adopted glyph');
+/* ---- REVERSED IN PLACE, 16 Aug 2026 ---- the ask tags have come off the
+       paper (owner-asked: "remove the pills from the contracts"). What they
+       said at a glance is now the red rule down the changed clause's right
+       edge; what they said in detail is the clause panel behind the Edit pill,
+       which names every ask on the clause in words rather than in a glyph and
+       a tooltip. The CLAIM is unchanged and still worth pinning — the reader
+       can see that the argument is over — so it is re-pointed, not dropped. */
+    const tag = v.$$('#rl-cp-body .rl-cp-who').find(n => n.textContent.includes(ch.id));
+    assert.ok(tag, 'the settled ask is named where the reader can open it');
+    assert.match(tag.textContent, /adopted/, 'and it says the ask was adopted, in words');
     /* The chain is a READ, so it has to be walked before it can say anything.
        Erik's page verifies the chain he was sent — the same records, the same
        hashes — and reaches the same answer Wanjiru's does, which is the point
@@ -311,11 +313,16 @@ describe('an action by one side shows up on the other', () => {
     assert.match(card.textContent, /Refused/);
     assert.ok(card.querySelector(`[data-nego-withdraw="${ch.id}"]`),
       'withdrawing it is the settlement he is offered');
-    // her reason rides the clause tag, where the refusal is marked
-    const tag = v.$$('.rl-asktag').find(n => n.textContent.includes(ch.id));
-    assert.match(tag.getAttribute('title') || '', /refused/);
-    assert.match(tag.textContent, /\u2717/, 'and wears the refused glyph');
-    assert.match(tag.getAttribute('title') || '',
+/* ---- REVERSED IN PLACE, 16 Aug 2026 ---- the tags have come off the paper
+       (owner-asked: "remove the pills from the contracts"). Their detail is in
+       the clause panel now, and it is stated in WORDS in the row rather than in
+       a glyph and a tooltip — which is the same claim with one fewer thing to
+       hover for. */
+    // her reason rides the panel row, where the refusal is recorded
+    const row = v.$$('#rl-cp-body .rl-cp-row').find(n => n.textContent.includes(ch.id));
+    assert.ok(row, 'the refused ask is named where he can open it');
+    assert.match(row.textContent, /refused/i);
+    assert.match(row.textContent,
       /One hundred and twenty days is the whole point of the facility\./,
       'a refusal he cannot understand is a refusal he will send again');
     // and the wording stayed at baseline
@@ -430,10 +437,17 @@ describe('Erik can answer the changes Wanjiru proposed', () => {
     const own = v2.$(`[data-nego-card="${o2.filed[0].id}"]`);
     assert.equal(own.querySelector('[data-nego-accept]'), null,
       'nobody rules on their own ask');
-    const tag = v2.$$('.rl-asktag').find(n => n.textContent.includes(o2.filed[0].id));
-    assert.match(tag.getAttribute('title') || '', /Your ask/,
-      'his own ask is named as his in the document — in words, never colour alone');
-    assert.ok(tag.querySelector('.rl-cap-us'), 'and the cap carries the side at a glance');
+/* ---- REVERSED IN PLACE, 16 Aug 2026 ---- the tags have come off the paper
+       (owner-asked: "remove the pills from the contracts"). Their detail is in
+       the clause panel now, and it is stated in WORDS in the row rather than in
+       a glyph and a tooltip — which is the same claim with one fewer thing to
+       hover for. */
+    const row = v2.$$('#rl-cp-body .rl-cp-row').find(n => n.textContent.includes(o2.filed[0].id));
+    assert.ok(row, 'his own ask is in the panel');
+    assert.match(row.textContent, /your ask/i,
+      'named as his — in words, never colour alone');
+    assert.ok(row.classList.contains('rl-cp-row-us'),
+      'and the cap carries the side at a glance');
   });
 
   test('his decisions are held on the page until he sends them', async () => {
@@ -740,9 +754,9 @@ describe('the durable link keeps showing current state', () => {
     p.open(sharePayloadFor(p, o.c));
     assert.equal(p.win.document.querySelectorAll('[data-nego-card]').length, 0,
       'the settled cards must not survive the refresh');
-    assert.ok([...liveNego(p.win).querySelectorAll('.rl-asktag')]
-      .some(t => /adopted/.test(t.getAttribute('title') || '')),
-      'the decisions are on the clause tags now');
+    assert.ok([...liveNego(p.win).querySelectorAll('#rl-cp-body .rl-cp-who')]
+      .some(t => /adopted/.test(t.textContent || '')),
+      'the decisions are in the clause panel now');
     assert.match(p.win.document.getElementById('pt-nego-facts').textContent, /Resolved: 3 of 3/);
   });
 

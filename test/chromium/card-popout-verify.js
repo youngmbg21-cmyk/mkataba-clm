@@ -333,6 +333,7 @@ const SEEN = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
       return { ours: read(ours), theirs: read(theirs),
         anyPill: document.querySelectorAll('#rl-changes .rl-origin').length,
         tagsInDoc: document.querySelectorAll('#rl-doc .rl-asktag').length,
+        markedClauses: document.querySelectorAll('#rl-doc .nego-clause.is-changed').length,
         filter: !!document.querySelector('#rl-changes [data-rl-cardfilter], .rl-idx-head') };
     }, [SEEN]);
     check('NO ORIGIN PILL ON ANY CARD IN THE COLUMN', heads.anyPill === 0, heads.anyPill + ' found');
@@ -343,8 +344,14 @@ const SEEN = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
       heads.ours.spine !== heads.theirs.spine, `${heads.ours.spine} vs ${heads.theirs.spine}`);
     check('the name is still on the card, on the line under the head',
       /Nordfrakt/.test(heads.theirs.meta), heads.theirs.meta.replace(/\s+/g, ' ').trim());
-    check('the ask tags INSIDE the document are untouched',
-      heads.tagsInDoc > 0, heads.tagsInDoc + ' tags on the wording');
+    /* REVERSED IN PLACE, 16 Aug 2026 — the ask tags have come off the paper
+       (owner-asked: "remove the pills from the contracts"). What replaced them
+       is the red rule down a changed clause's right edge, which is what this
+       claim was really about: the paper still says which clauses have been
+       argued over. */
+    check('the ask tags have left the document, and the clause still says it changed',
+      heads.tagsInDoc === 0 && heads.markedClauses > 0,
+      heads.tagsInDoc + ' tags, ' + heads.markedClauses + ' clauses marked');
     check('the Tracked Changes head — where the Mine/Theirs filter lives — is still drawn',
       heads.filter);
     check('a change of ours that has NOT been sent still shows the green Send',

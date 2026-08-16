@@ -72,26 +72,34 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('IMAGE 3 — the paper shows the ADOPTED wording',
      !!shown && !shown.includes(dropped.slice(0,30)),
      'dropped sentence still on the paper? '+(shown&&shown.includes(dropped.slice(0,30))?'YES':'no'));
-  ck('and both asks still carry a tag on the clause',
-     await p.evaluate(id=>document.querySelectorAll(
-       `.nego-clause[data-clause="${id}"] .rl-asktag`).length,staged.clauseId)===2);
+  /* REVERSED IN PLACE, 16 Aug 2026 — the ask tags have come off the paper
+     (owner-asked: "remove the pills from the contracts"). The clause panel names
+     every ask now; the paper says at a glance that a clause has been argued over
+     with a red rule down its right edge. */
+  ck('and the clause is marked as argued over, with both asks named in its panel',
+     await p.evaluate(id=>{
+       const marked=!!document.querySelector(`.nego-clause[data-clause="${id}"].is-changed`);
+       const src=document.querySelector(`#rl-cp .rl-cp-src[data-rl-cp-for="${id}"]`);
+       const n=src?src.querySelectorAll('.rl-cp-row').length:0;
+       return marked && n===2;},staged.clauseId));
 
   /* ---- IMAGE 2 ---- */
   const inColumn = await p.evaluate(a=>!!document.querySelector(`[data-nego-card="${a}"]`),staged.a);
   ck('the adopted change has no card — which is why "reopen it first" was unreachable',!inColumn);
 
-  await p.click(`.nego-clause[data-clause="${staged.clauseId}"] [data-rl-asktag="${staged.a}"]`);
-  await pause(450);
-  ck('pressing its tag opens the reveal',
-     await p.evaluate(a=>!!document.querySelector(`[data-rl-askrv="${a}"]`),staged.a));
+  await p.click(`.nego-clause[data-clause="${staged.clauseId}"] .rl-cp-pill`);
+  await pause(600);
+  ck('pressing the clause\'s Edit pill opens its panel',
+     await p.evaluate(id=>!!document.querySelector(
+       `#rl-cp .rl-cp-src.is-on[data-rl-cp-for="${id}"]`),staged.clauseId));
   const btn = await p.evaluate(a=>{
-    const el=document.querySelector(`[data-rl-askrv="${a}"] [data-nego-undo]`);
+    const el=document.querySelector(`#rl-cp [data-rl-cp-change="${a}"] [data-nego-undo]`);
     if(!el) return null; const r=el.getBoundingClientRect();
     return {t:el.textContent.trim(),w:Math.round(r.width),h:Math.round(r.height)};},staged.a);
-  ck('IMAGE 2 — and the reveal offers a REACHABLE Reopen, as visible pixels',
+  ck('IMAGE 2 — and the panel offers a REACHABLE Reopen, as visible pixels',
      !!btn&&btn.w>20&&btn.h>10,btn?`"${btn.t}" ${btn.w}x${btn.h}`:'absent');
 
-  await p.click(`[data-rl-askrv="${staged.a}"] [data-nego-undo]`);
+  await p.click(`#rl-cp [data-rl-cp-change="${staged.a}"] [data-nego-undo]`);
   await pause(600);
   ck('pressing it really reopens the change',
      await p.evaluate(a=>negoChangeById(window.CONTRACT,a).status,staged.a)==='pending',
@@ -114,10 +122,23 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   /* the counterparty must not be handed our reopen */
   await p.evaluate(()=>window.SHOW_COUNTERPARTY()); await pause(700);
   const cpTag = await p.evaluate(()=>{
-    const t=document.querySelector('[data-rl-asktag]'); if(!t) return 'no tag'; t.click(); return 'pressed';});
-  await pause(500);
-  ck('their seat gets the reveal but NEVER our reopen',
-     await p.evaluate(()=>!document.querySelector('[data-rl-askrv] [data-nego-undo]')),cpTag);
+    const t=document.querySelector('#rl-doc .nego-clause.is-changed .rl-cp-pill')
+      || document.querySelector('.rl-cp-pill');
+    if(!t) return 'no pill'; t.click();
+    return t.getAttribute('data-rl-cp-open');});
+  await pause(700);
+  const cpSeen = await p.evaluate(()=>({
+    open: !!document.querySelector('#rl-cp .rl-cp-src.is-on'),
+    rows: document.querySelectorAll('#rl-cp .rl-cp-src.is-on .rl-cp-row').length,
+    anyReopen: document.querySelectorAll('#rl-cp [data-nego-undo]').length }));
+  /* The claim is about the REOPEN, and it is asserted over their whole page
+     rather than one opened body: their copy must not carry it anywhere, opened
+     or not. That the panel opens at all on their seat is measured in
+     clause-door-verify (6b/6c), against a mount built for it. */
+  ck('their seat carries the panel and NEVER our reopen',
+     !!cpTag && cpSeen.anyReopen === 0
+     && await p.evaluate(()=>document.querySelectorAll('#rl-cp .rl-cp-src').length > 0),
+     JSON.stringify(cpSeen) + ' on ' + cpTag);
 
   ck('no page errors in the whole run',errs.length===0,errs.join(' ; ')||'clean');
   await p.evaluate(()=>window.SHOW_OWNER()); await pause(400);

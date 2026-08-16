@@ -112,7 +112,7 @@ describe('F70 — the counterparty sees the negotiation we see', () => {
       cards: Array.from(root.querySelectorAll('[id="rl-changes"] [data-nego-card]'))
         .map(n => n.getAttribute('data-nego-card')),
       /* READING MOVED, CLAIM UNCHANGED (OI-12): the tag prints an id and a glyph; its words are on the title. */
-      tags: Array.from(root.querySelectorAll('[id="rl-doc"] .rl-asktag'))
+      tags: Array.from(root.querySelectorAll('[id="rl-cp-body"] .rl-cp-who b'))
         .map(n => (n.getAttribute('title') || '').replace(/Their ask|Your ask/, 'ask').trim()),
     });
     const mine = read(win.document.getElementById('view-redline'));
@@ -271,16 +271,20 @@ describe('F70 — every card says whose ask it is', () => {
     win.state = Object.assign({}, win.state, { contracts: [c], activeId: c.id, view: 'redline' });
     win.getContract = id => (id === c.id ? c : null);
     win.renderRedline();
-    const tagIn = (root, id) => Array.from(root.querySelectorAll('.rl-asktag'))
+    const tagIn = (root, id) => Array.from(root.querySelectorAll('#rl-cp-body .rl-cp-who'))
       .find(n => n.textContent.includes(id));
-    /* READING MOVED, CLAIM UNCHANGED (OI-12). */
-    const oursHere = tagIn(win.document.getElementById('view-redline'), live.id).getAttribute('title');
+    /* ---- REVERSED IN PLACE, 16 Aug 2026 ---- the tags have come off the paper
+       (owner-asked: "remove the pills from the contracts"). Their detail is in
+       the clause panel now, and it is stated in WORDS in the row rather than in
+       a glyph and a tooltip — which is the same claim with one fewer thing to
+       hover for. */
+    const oursHere = tagIn(win.document.getElementById('view-redline'), live.id).textContent;
 
     const v = theirLink(c);
-    const oursThere = tagIn(v.win.document.getElementById('pt-nego'), live.id).getAttribute('title');
+    const oursThere = tagIn(v.win.document.getElementById('pt-nego'), live.id).textContent;
 
-    assert.match(oursHere, /Your ask/);
-    assert.match(oursThere, /Their ask/,
+    assert.match(oursHere, /your ask/i);
+    assert.match(oursThere, /their ask/i,
       'the ask we filed cannot read as theirs on their screen');
   });
 

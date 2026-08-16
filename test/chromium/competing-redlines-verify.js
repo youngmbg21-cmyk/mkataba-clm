@@ -67,7 +67,12 @@ const check = (name, pass, detail) => {
         theirsCard: vis(card(theirsId)),
         counterLine: counterLine ? counterLine.textContent.trim() : null,
         counterLineVisible: vis(counterLine),
-        tagsOnPaper: [...document.querySelectorAll('#rl-doc .rl-asktag')].map(t => t.textContent.trim()),
+        tagsOnPaper: (() => {
+          /* One body per clause, one shown at a time — open it before reading. */
+          const cl = document.querySelector('#rl-doc .nego-clause.is-changed');
+          if (cl && window.rlCpSetShown) rlCpSetShown(document, cl.getAttribute('data-clause'));
+          return [...document.querySelectorAll('#rl-cp-body .rl-cp-src.is-on .rl-cp-row')]
+            .map(t => t.textContent.trim()); })(),
         pill: (document.querySelector('[data-rl-cardfilter="all"] .rl-fseg-n') || {}).textContent || null,
       };
     }, { oursId: b.ours.id, theirsId: b.theirs.id });
@@ -87,7 +92,7 @@ const check = (name, pass, detail) => {
     check('and the card does NOT explain what it countered — the record does',
       !bench.counterLineVisible && !bench.counterLine,
       bench.counterLine === null ? 'no counter line drawn' : 'STILL DRAWN: ' + bench.counterLine);
-    check('the paper carries ONE live tag — one proposal on the table',
+    check('the panel names ONE live ask — one proposal on the table',
       bench.tagsOnPaper.length === 1 && bench.tagsOnPaper[0].includes(b.theirs.id),
       JSON.stringify(bench.tagsOnPaper));
 
@@ -100,21 +105,24 @@ const check = (name, pass, detail) => {
       ours.status = 'pending'; delete ours.supersededBy; delete ours.supersededAt;
       persist(c);
       renderRedline();
-      return { oursId: ours.id };
+      return { oursId: ours.id, clauseId: ours.clauseId };
     }, ID);
     await page.waitForTimeout(1500);
 
-    const legacy = await page.evaluate(({ oursId, theirsId }) => {
+    const legacy = await page.evaluate(({ oursId, theirsId, clauseId }) => {
       const vis = el => !!(el && el.getClientRects().length);
-      const tags = [...document.querySelectorAll('#rl-doc .rl-asktag')]
+      /* The panel holds a body per clause and shows one at a time, so it has to
+         be OPENED on the clause under test before its rows are pixels. */
+      if (window.rlCpSetShown) rlCpSetShown(document, clauseId);
+      const tags = [...document.querySelectorAll('#rl-cp-body .rl-cp-src.is-on .rl-cp-row')]
         .filter(vis).map(t => t.textContent.trim());
       const anchor = document.querySelector(`#rl-doc [data-nego-card-anchor~="${oursId}"]`);
       return { tags,
         anchorHoldsBoth: !!anchor && (anchor.getAttribute('data-nego-card-anchor') || '').split(/\s+/).length === 2,
         cards: [...document.querySelectorAll('#rl-changes [data-nego-card]')].filter(vis)
           .map(n => n.getAttribute('data-nego-card')) };
-    }, { oursId: l.oursId, theirsId: b.theirs.id });
-    check('a legacy clause wears BOTH tags on the real paper',
+    }, { oursId: l.oursId, theirsId: b.theirs.id, clauseId: l.clauseId });
+    check('a legacy clause names BOTH asks in its panel',
       legacy.tags.some(t => t.includes(l.oursId)) && legacy.tags.some(t => t.includes(b.theirs.id)),
       JSON.stringify(legacy.tags));
     check('one clause, one anchor, both ids', legacy.anchorHoldsBoth);
@@ -147,7 +155,7 @@ const check = (name, pass, detail) => {
       window.toast = t;
       return { second: second === null, said: window.__toasts.join(' | '),
         wording: richToText(negoResolvedBody(c)).includes('forty-five') };
-    }, { oursId: l.oursId, theirsId: b.theirs.id });
+    }, { oursId: l.oursId, theirsId: b.theirs.id, clauseId: l.clauseId });
     check('accepting the rival on an adopted clause is refused', guard.second);
     check('in words that name the adopted change and the way out',
       guard.said.includes(l.oursId) && /reopen|reject/i.test(guard.said), guard.said.slice(0, 110));

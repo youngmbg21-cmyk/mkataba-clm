@@ -229,14 +229,15 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      is in the panel now: the ＋ opens the engine's editor HERE and must NOT
      close what it is opening into, while the Copilot still hands off to a panel
      elsewhere and still closes behind itself. Direct Edit has left. */
-  ck('3d the acts are the ＋ and the Copilot — Direct Edit has left the panel',
-     said.acts.length === 2 && said.acts.some(a => a.plus === staged.clauseId)
-     && said.acts.some(a => a.ai === staged.clauseId)
-     && !said.acts.some(a => a.edit),
+  /* ---- 3d/3d″ REVERSED IN PLACE, 16 Aug 2026 ---- the Copilot is a label
+     rather than a button now (see 8c), so the panel has exactly ONE pressable
+     act and it is the ＋. */
+  ck('3d the ＋ is the panel\'s only act — Direct Edit and the Copilot press nothing',
+     said.acts.length === 1 && said.acts[0].plus === staged.clauseId
+     && !said.acts.some(a => a.edit) && !said.acts.some(a => a.ai),
      said.acts.map(a=>a.t).join(' / '));
-  ck('3d″ the ＋ does not close the panel it writes into, and the Copilot does',
-     said.acts.find(a => a.plus) && !said.acts.find(a => a.plus).close
-     && said.acts.find(a => a.ai) && said.acts.find(a => a.ai).close,
+  ck('3d″ and it does not close the panel it writes into',
+     !!said.acts[0] && !said.acts[0].close,
      said.acts.map(a=>`${a.t}:${a.close?'closes':'stays'}`).join(' / '));
   ck('3d′ and they do NOT wear the sheet\'s tool-pill class — a control that is not '
      + 'on the paper must not answer to the paper\'s selectors',
@@ -473,8 +474,8 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     '#rl-cp .rl-cp-src.is-on .rl-cp-acts button')].map(b => ({
       t:b.textContent.trim(), plus:b.hasAttribute('data-rl-cp-edit'),
       ai:b.hasAttribute('data-nego-ai-clause'), direct:b.hasAttribute('data-nego-edit') })));
-  ck('7a the panel offers the ＋ and the Copilot, and Direct Edit has left it',
-     acts.length===2 && acts[0].plus && acts[1].ai && !acts.some(a=>a.direct),
+  ck('7a the panel offers the ＋ alone — Direct Edit and the Copilot press nothing',
+     acts.length===1 && acts[0].plus && !acts.some(a=>a.direct) && !acts.some(a=>a.ai),
      acts.map(a=>a.t).join(' / '));
 
   await p.click('#rl-cp .rl-cp-src.is-on [data-rl-cp-edit]'); await pause(500);
@@ -564,7 +565,8 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
       clause: ch && ch.clauseId === t, hasOps: !!(ch && Array.isArray(ch.ops) && ch.ops.length),
       text: ch && String(ch.newText||'').slice(0,40),
       card: !!document.querySelector(`[data-nego-card="${ch&&ch.id}"]`),
-      onPaper: !!document.querySelector(`.nego-clause[data-clause="${t}"] [data-rl-asktag="${ch&&ch.id}"]`),
+      marked: !!document.querySelector(`.nego-clause[data-clause="${t}"].is-changed`),
+      noTags: document.querySelectorAll('#rl-doc .rl-asktag').length === 0,
       panelStillOpen: document.querySelector('#rl-cp').classList.contains('is-open'),
       onTable: (() => { const t = [...sec].find(x =>
         /On the table/i.test((x.querySelector('.rl-cp-h')||{}).textContent||''));
@@ -575,8 +577,11 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      filed.n === nBefore + 1 && filed.clause && filed.hasOps && filed.side === 'owner',
      `${filed.id} on ${filed.text}…`);
   ck('7j …with the reason it was given', filed.why === 'Thirty is our standard.', filed.why);
-  ck('7k …a card in the column and a tag on the paper', filed.card && filed.onPaper,
-     `card ${filed.card}, tag ${filed.onPaper}`);
+  /* REVERSED IN PLACE, 16 Aug 2026: the tags have come off the paper. What the
+     paper says now is that the clause has been argued over — the red rule down
+     its right edge — and the detail is in the panel and the card. */
+  ck('7k …a card in the column, and the clause marked as changed on the paper',
+     filed.card && filed.marked, `card ${filed.card}, marked ${filed.marked}`);
   ck('7l …the panel still open on the same clause, now showing it on the table',
      filed.panelStillOpen && filed.onTable === 1, `open ${filed.panelStillOpen}, table ${filed.onTable}`);
   ck('7m …and the ＋ now says it would continue that draft',
@@ -609,21 +614,30 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      disappears and the copilot dropdown appears on the top right corner" — the
      menu was anchored on a button whose rect had already gone to zeros, because
      closing the panel hides the body it sits in. */
-  const cop = await p.evaluate(async () => {
-    const b = document.querySelector('#rl-cp .rl-cp-src.is-on [data-nego-ai-clause]');
-    if (!b) return { none: true };
-    b.click();
-    await new Promise(r => setTimeout(r, 800));
-    const ai = document.querySelector('#ai-panel');
-    return { menus: document.querySelectorAll('.nego-selmenu').length,
-      aiOpen: !!ai && getComputedStyle(ai).display !== 'none' && !ai.hasAttribute('hidden'),
-      panelShut: !document.querySelector('#rl-cp').classList.contains('is-open') };
+  /* ---- 8c/8d REVERSED IN PLACE, 16 Aug 2026 ---- these pressed a Copilot
+     BUTTON in the panel and proved it left no stray dropdown. The button is
+     gone: owner-asked, "delete the edit with copilot feature but leave the
+     words … in purple without a pill around it. This is to signal that the
+     feature is available where you can highlight." So the claim becomes the one
+     that matters about a label — that it is not pressable, and that the route
+     it names still works (7g presses that route for real). */
+  const cop = await p.evaluate(() => {
+    const on = document.querySelector('#rl-cp .rl-cp-src.is-on');
+    const note = on.querySelector('.rl-cp-ai-note');
+    if (!note) return { none: true };
+    const s = getComputedStyle(note);
+    return { tag: note.tagName, text: note.textContent.trim(), cursor: s.cursor,
+      colour: s.color, border: parseFloat(s.borderTopWidth) || 0,
+      bg: s.backgroundColor,
+      stillAButton: !!on.querySelector('[data-nego-ai-clause]') };
   });
-  ck('8c pressing Edit with Copilot leaves NO stray dropdown on the page',
-     !cop.none && cop.menus === 0, cop.none ? 'no button' : `${cop.menus} menus`);
-  ck('8d …it opens the Copilot itself, which is where the press said it would go',
-     !cop.none && cop.aiOpen && cop.panelShut,
-     `copilot ${cop.aiOpen}, clause panel shut ${cop.panelShut}`);
+  ck('8c the Copilot is WORDS in the panel, not a control',
+     !cop.none && cop.tag === 'SPAN' && !cop.stillAButton && cop.cursor === 'default',
+     cop.none ? 'no label' : `${cop.tag} "${cop.text}" cursor:${cop.cursor}`);
+  ck('8d …with no pill around it, and in the Copilot\'s own violet',
+     !cop.none && cop.border === 0 && /rgba\(0, 0, 0, 0\)/.test(cop.bg)
+     && /rgb\(109, 40, 217\)/.test(cop.colour),
+     cop.none ? '' : `border ${cop.border}, bg ${cop.bg}, colour ${cop.colour}`);
 
   /* 8e THE COUNTERPARTY'S UNSENT COUNT. Reported as "the counterparty side the
      changes do not seem to be working", and it PREDATES the clause panel —
@@ -684,9 +698,19 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      !!look.insPanel && look.insPanel.fw === '400' && look.insPanel.bb === 0
      && look.insPanel.td === 'none' && /rgb\(4, 120, 87\)/.test(look.insPanel.col),
      JSON.stringify(look.insPanel));
-  ck('9b …and the PAPER keeps the tracked-changes convention, deliberately',
-     !!look.insDoc && look.insDoc.fw === '600' && look.insDoc.bb > 0,
-     JSON.stringify(look.insDoc));
+  /* ---- 9b REVERSED IN PLACE, 16 Aug 2026 ---- this proved the paper KEPT the
+     bold-and-underlined convention while only the panel went plain. The owner
+     reported it a second time, pointing at the paper, so the rule moved to the
+     base and both surfaces now read the same. What must still hold is that a
+     DELETION keeps its strike: colour alone can say "added", nothing but the
+     strike can say "taken out". */
+  ck('9b …and the PAPER now reads the same way — one fact, one rule',
+     !!look.insDoc && look.insDoc.fw === '400' && look.insDoc.bb === 0
+     && look.insDoc.td === 'none', JSON.stringify(look.insDoc));
+  const struck = await p.evaluate(() => {
+    const d = document.querySelector('#rl-doc .nego-del, #rl-doc del.hati-del');
+    return d ? getComputedStyle(d).textDecorationLine : null; });
+  ck('9b′ …while a DELETION keeps its strike', /line-through/.test(struck || ''), struck);
   ck('9c the acts sit between "As it stands" and "On the table"',
      look.actsUnderStands && look.actsAboveTable,
      `under ${look.actsUnderStands}, above ${look.actsAboveTable}`);

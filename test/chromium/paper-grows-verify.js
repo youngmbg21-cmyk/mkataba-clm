@@ -390,7 +390,10 @@ const SHEET = () => {
       const words = document.querySelector('.redline-page .rl-paper .rl-clause p')
         || document.querySelector('.redline-page .rl-paper p');
       return { words: words ? +parseFloat(getComputedStyle(words).fontSize).toFixed(2) : 0,
-        tag: box('.redline-page .rl-asktag'), tool: box('.redline-page .rl-tool') };
+        /* The tags left the paper on 16 Aug 2026; the Edit pill is the piece of
+           furniture that rides the clause head now, and it takes the same
+           --doc-scale reading the tag did. Same claim, its successor. */
+        tag: box('.redline-page .rl-cp-pill'), tool: box('.redline-page .rl-tool') };
     })()`;
     const furnitureAt = async v => {
       await page.evaluate(t => window.rlSetDocType(t), v);

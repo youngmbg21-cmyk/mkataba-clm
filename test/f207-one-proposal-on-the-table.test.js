@@ -27,6 +27,34 @@
  */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
+
+/* ---- REVERSED IN PLACE, 16 Aug 2026 ---- the ask tags have come off the
+   paper (owner-asked: "remove the pills from the contracts"). Four of them on
+   one clause heading pushed the clause's own name off its line. What replaced
+   them is the clause PANEL — every ask on the clause, live and settled, with
+   its wording and its outcome, behind the Edit pill on the same row — and a red
+   rule down the clause's right edge, which says at a glance the one thing the
+   tags said at a glance: this clause has been argued over.
+
+   The claim is not deleted, because what it was really pinning is still true
+   and still worth pinning. It is re-pointed at the surface that now carries it.
+
+   Every ask on a clause is named once in the panel, in a .rl-cp-who line whose
+   <b> is the change id — the same population the tags drew, read where it now
+   lives. Deduplicated, because a live ask is named on the table AND nowhere
+   else while settled ones sit in the history: one row per change either way. */
+const _panelIds = html => {
+  const ids = [...String(html).matchAll(/<span class="rl-cp-who"><b>([^<]+)<\/b>/g)].map(m => m[1]);
+  return [...new Set(ids)];
+};
+/* The canvas AND the panel bodies it fills. redlineDocHtml only builds the
+   panel when a caller hands it a sink, so a test that wants to know what the
+   reader can see has to be that caller — see the one-producer rule in f210. */
+const _paper = (win, c, opts = {}) => {
+  const cpSink = [];
+  const doc = win.redlineDocHtml(c, { ...opts, cpSink });
+  return { doc, panel: cpSink.join('') };
+};
 const { buildWorld, supplyContract } = require('./world.js');
 
 const RICH = [
@@ -201,10 +229,14 @@ describe('f207-B — a counter takes the table', () => {
 describe('f207-A — the paper tells the truth (legacy rivals)', () => {
   test('the workbench document draws a tag for EVERY ask on the clause', async () => {
     const { win, c, ours, theirs } = await legacyRivals();
-    const doc = win.redlineDocHtml(c, { side: 'owner' });
-    const tags = [...doc.matchAll(/class="rl-asktag[^"]*"[^>]*>([\s\S]*?)<\/button>/g)].map(m => m[1].replace(/<[^>]+>/g, ''));
-    assert.ok(tags.some(t => t.includes(ours.id)), 'our ask is marked on the paper');
-    assert.ok(tags.some(t => t.includes(theirs.id)), 'and so is theirs');
+    const { doc, panel } = _paper(win, c, { side: 'owner' });
+    const tags = _panelIds(panel);
+    assert.ok(tags.includes(ours.id), 'our ask is named where the reader can reach it');
+    assert.ok(tags.includes(theirs.id), 'and so is theirs');
+    /* AND THE CLAUSE ITSELF SAYS IT HAS BEEN ARGUED OVER, which is what the
+       tags did at a glance and what the red margin rule does now. */
+    assert.match(doc, /class="nego-clause rl-clause is-changed/,
+      'the clause is marked as changed on the paper');
   });
 
   test('the jump anchor carries every id, and each is findable the way the queue is', async () => {
@@ -224,9 +256,10 @@ describe('f207-A — the paper tells the truth (legacy rivals)', () => {
   test('a decided mark no longer vanishes when a newer change lands on the clause', async () => {
     const { win, c, ours, theirs } = await legacyRivals();
     win.negoResolve(c, ours.id, 'accepted', { side: 'counterparty', by: 'Nordkust Legal' });
-    const doc = win.redlineDocHtml(c, { side: 'owner' });
-    assert.match(doc, /adopted/, 'the acceptance is on the paper');
-    const tags = [...doc.matchAll(/class="rl-asktag[^"]*"[^>]*>([\s\S]*?)<\/button>/g)].map(m => m[1].replace(/<[^>]+>/g, '')).join(' | ');
+    const { doc, panel } = _paper(win, c, { side: 'owner' });
+    assert.match(panel, /adopted/, 'the acceptance is on the record the reader opens');
+    assert.match(doc, /is-changed/, 'and the clause is still marked as argued over');
+    const tags = _panelIds(panel).join(' | ');
     assert.ok(tags.includes(ours.id) && tags.includes(theirs.id),
       'both the decided and the live ask are marked: ' + tags);
   });
@@ -241,8 +274,8 @@ describe('f207-A — the paper tells the truth (legacy rivals)', () => {
 
   test('the counterparty’s seat reads the same truth', async () => {
     const { win, c, ours, theirs } = await legacyRivals();
-    const doc = win.redlineDocHtml(c, { side: 'counterparty', hiddenIds: [] });
-    const tags = [...doc.matchAll(/class="rl-asktag[^"]*"[^>]*>([\s\S]*?)<\/button>/g)].map(m => m[1].replace(/<[^>]+>/g, '')).join(' | ');
+    const { panel } = _paper(win, c, { side: 'counterparty', hiddenIds: [] });
+    const tags = _panelIds(panel).join(' | ');
     assert.ok(tags.includes(ours.id) && tags.includes(theirs.id),
       'both asks marked from their chair: ' + tags);
   });
@@ -251,13 +284,13 @@ describe('f207-A — the paper tells the truth (legacy rivals)', () => {
     const s = stage();
     const only = await s.win.negoEditClause(s.c, s.cl, '<p>Forty-five days.</p>',
       { side: 'owner', author: 'Amina Otieno' });
-    const doc = s.win.redlineDocHtml(s.c, { side: 'owner' });
+    const { doc, panel } = _paper(s.win, s.c, { side: 'owner' });
     const anchors = [...doc.matchAll(/data-nego-card-anchor="([^"]+)"/g)].map(m => m[1].replace(/<[^>]+>/g, ''));
     assert.deepEqual(anchors, [only.id], 'a single ask keeps a single-id anchor');
     /* The tag is a nested element now (cap + label + glyph), so counting the
        bare class name counts its parts. Anchored on the opening class, which
        only the tag itself carries. */
-    assert.equal((doc.match(/class="rl-asktag[" ]/g) || []).length, 1, 'and one tag');
+    assert.equal(_panelIds(panel).length, 1, 'and one ask named in the panel');
   });
 });
 

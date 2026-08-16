@@ -439,7 +439,7 @@ function negoStyleHtml(){
      like every other token in this stylesheet. */
   .nego-room ins.hati-ins,.nego-room ins.nego-ins{
     background:var(--n-ins-bg);color:var(--n-ins-fg);text-decoration:none;
-    border-bottom:2px solid var(--n-ins-fg);border-radius:2px;padding:0 1px}
+    border-radius:2px;padding:0 1px;font-weight:inherit}
   .nego-room del.hati-del,.nego-room del.nego-del{
     background:var(--n-del-bg);color:var(--n-del-fg);text-decoration:line-through;
     border-radius:2px;padding:0 1px}
@@ -615,8 +615,21 @@ function negoStyleHtml(){
   /* Redline runs, at the prototype's values. */
   .nego-del{background:var(--n-del-bg);color:var(--n-del-fg);text-decoration:line-through;
     text-decoration-color:var(--n-del-fg);text-decoration-thickness:1.5px;border-radius:3px;padding:0 3px}
-  .nego-ins{background:var(--n-ins-bg);color:var(--n-ins-fg);border-bottom:2px solid var(--n-ins-fg);
-    border-radius:3px;padding:0 3px;font-weight:600}
+  /* ---- AN INSERTION IS GREEN AND NOTHING ELSE ----
+     (owner-reported twice: 16 Aug 2026, "the green additions to the contract
+     should just be green, not bold and not underlined", and again after the
+     first pass scoped the change to the clause panel and left the paper on the
+     tracked-changes convention. The paper was the half being pointed at. So the
+     rule moves to the BASE, where it reaches the sheet, the room, the contract
+     tab, the panel and the counterparty's copy at once — and the panel's own
+     override goes, because two rules for one fact is how they come to differ.)
+
+     The DELETION keeps its strike, and that is not an inconsistency: a struck
+     phrase has to read as struck or it reads as ordinary wording, which is the
+     one thing a redline may not do. Colour alone can say "added"; nothing but
+     the strike can say "taken out". */
+  .nego-ins{background:var(--n-ins-bg);color:var(--n-ins-fg);
+    border-radius:3px;padding:0 3px;text-decoration:none}
   .nego-resolved{background:var(--n-ins-bg);border-radius:3px;padding:0 3px;transition:background 1.2s ease}
   .nego-resolved.nego-faded{background:transparent}
 
@@ -6143,6 +6156,24 @@ function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
   /* What is SETTLED — everything that is not on the table. Same list, same
      order, one predicate apart, so a change cannot be in neither or in both. */
   const past = list.filter(x => !live.includes(x));
+  /* ---- A SETTLED ASK NEEDS A WAY BACK, AND THE PANEL IS NOW THE ONLY PLACE IT
+     HAS ONE ---- (16 Aug 2026, moved with the ask tags.)
+
+     It used to live in the tag's reveal on the clause, because that was the one
+     place a settled change was still visible. The tags have come off the paper
+     (owner-asked), so the History section here is that place: the reveal's rule
+     did not change, only its address.
+
+     The rule itself is unchanged and still narrow. The accept guard refuses a
+     second acceptance on a clause whose rival is already adopted and refuses IN
+     WORDS, naming reopening as the way out; a refusal whose stated remedy
+     cannot be reached is worse than no remedy, which is why this had to move
+     rather than simply go. OUR SEAT ONLY: their page has its own answers for
+     its own answers, and the mirror rule that a refusal is reopened by the side
+     that GAVE it. */
+  const mayReopen = ch => (ch.status === 'accepted' || (ch.status === 'rejected' && !ch.withdrawn))
+    && side !== 'counterparty' && !(typeof window !== 'undefined' && window.PORTAL_MODE)
+    && !opts.readonly && editable;
   const row = ch => {
     const theirs = ch.authorSide !== (side === 'counterparty' ? 'counterparty' : 'owner');
     /* WHO SETTLED IT NEVER TRAVELS — resolvedBy is stripped from the share
@@ -6167,6 +6198,11 @@ function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
         <div class="rl-cp-wd">${rlChangeWordingHtml(ch)}</div>
         ${ch.status === 'rejected' && ch.reply
           ? `<span class="rl-cp-why">&ldquo;${_ne(ch.reply)}&rdquo;</span>` : ''}
+        ${mayReopen(ch) ? `<div class="rl-cp-act-row">
+          <button type="button" class="rl-cp-reopen" data-nego-undo="${_ne(ch.id)}"
+            data-rl-reopen="${_ne(ch.id)}"
+            title="${_nea(i18t('ng_reopen_ask_title', { id: ch.id }))}">${i18t('ng_change_decision')}</button>
+        </div>` : ''}
       </div>
     </div>`;
   };
@@ -6213,7 +6249,25 @@ function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
              further away and pointed at the clause behind the panel. It stays
              on the CLAUSE's own hover row, which is a different place with a
              different reason; retiring it there is its own piece. */}
-      ${''/* ---- IT GOES STRAIGHT TO THE COPILOT, WITH NO MENU IN BETWEEN ----
+      ${''/* ---- AND THE COPILOT IS A SIGNAL HERE, NOT A CONTROL ----
+             (owner-asked 16 Aug 2026: "delete the edit with copilot feature but
+             leave the words as they are there in purple without a pill around
+             it. This is to signal that the feature ... is available where you
+             can highlight and get the copilot feature.")
+
+             The button is gone; the words stay, in the violet this page already
+             gives the Copilot, with no pill and nothing to press. What they now
+             do is NAME the thing the line under them explains — highlight a
+             sentence and the Copilot is offered on it — which is the only route
+             this panel ever needed. A door and a label for one feature, twelve
+             pixels apart, was the door doing the label's job badly.
+
+             THE HIGHLIGHT ROUTE IS UNTOUCHED and is what makes this honest: the
+             selection inside this editor is a legal pane (see paneSel) and
+             offers exactly this action. If that ever stops working these words
+             become a promise the page does not keep — which is why f210 pins
+             them together. */}
+      ${''/* ---- IT WENT STRAIGHT TO THE COPILOT, WITH NO MENU IN BETWEEN ----
              (owner-reported 16 Aug 2026: "When I click edit with copilot the
              panel disappears and the copilot dropdown appears on the top right
              corner.")
@@ -6233,9 +6287,7 @@ function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
              so the press does what its label says and lands in the Copilot
              chat, which is the "moves you to the copilot assistant" the owner
              asked for. */}
-      ${opts.noAi ? '' : `<button type="button" class="rl-cp-act rl-cp-act-ai" data-rl-cp-close="1"
-        data-nego-ai-clause="${id}" data-rl-cp-ai="1"
-        title="${_nea(i18t('ng_cp_copilot_title'))}">&#10024; ${i18t('ng_cp_copilot')}</button>`}
+      ${opts.noAi ? '' : `<span class="rl-cp-ai-note">&#10024; ${i18t('ng_cp_copilot')}</span>`}
       ${''/* THEY ARE NOT .rl-tool, AND THAT IS A RULE RATHER THAN A STYLE
              CHOICE. The first build wore the sheet's tool-pill class, and the
              panel is written EARLIER in the grid than the document, so the
@@ -7242,8 +7294,21 @@ function redlineLayoutCss(){
   .redline-page .rl-propose{margin-top:7px;border:0;background:none;padding:0;cursor:pointer;
     font:inherit;font-size:11.5px;font-weight:600;color:var(--color-accent-600)}
   .redline-page .rl-propose:hover{text-decoration:underline}
-  .redline-page .rl-clause.is-changed{background:color-mix(in srgb,#f59e0b 7%,transparent);
-    border:1px solid color-mix(in srgb,#f59e0b 32%,transparent);border-radius:10px;padding:12px 14px}
+  /* ---- A REDLINED CLAUSE IS MARKED IN THE MARGIN, NOT WASHED ----
+     (owner-asked 16 Aug 2026: "keep the contract page white but add a thin
+     redline on the right of the clause to signal a clause that has been
+     redlined".) It used to be an amber tint with an amber frame, and on a
+     document where most clauses are under negotiation that is most of the page
+     tinted — the marker stops marking anything. A rule in the margin says the
+     same thing and costs the wording nothing: the page reads as paper again,
+     and the clauses that have been argued over are countable down the right
+     edge without reading a word. Red, because that is what a redline is called.
+
+     The padding is KEPT so the wording does not shift when a clause gains or
+     loses its first change; only the fill and the frame go. */
+  .redline-page .rl-clause.is-changed{background:none;border:0;
+    border-right:3px solid #dc2626;border-radius:0;padding:12px 14px}
+  html.dark .redline-page .rl-clause.is-changed{border-right-color:#f87171}
   /* ---- WHERE "EDIT" LANDS YOU ----
      Pressing Edit on a card scrolls the document to that clause, and the clause
      has to say so when it arrives — a page that silently jumps has moved the
@@ -8086,17 +8151,10 @@ function redlineLayoutCss(){
      who from, when — is context and stays quiet; the handle you cite the change
      by is what must not be missed. */
   .redline-page .rl-cp-who b{color:var(--color-text)}
-  /* ---- THE ADDITIONS ARE GREEN, AND NOTHING ELSE ----
-     (owner-asked 16 Aug 2026: "the green additions to the contract should just
-     be green, not bold and not underlined".) The engine's own mark carries a
-     2px bottom rule and weight 600 as well as the colour — the tracked-changes
-     convention, and it is kept ON THE PAPER, which is the document anybody
-     cites. In this panel the wording is a summary of one ask rather than the
-     contract itself, and three signals for one fact is two too many at 12.5px.
-     Written at three classes so it outranks the engine's own rule. */
-  .redline-page .rl-cp-src .nego-ins,
-  .redline-page .rl-cp-src ins.hati-ins{
-    border-bottom:0;font-weight:400;text-decoration:none}
+  /* The panel had its own copy of the plain-green rule while the paper still
+     carried the convention. The paper does not any more (see .nego-ins), so the
+     copy is gone: one fact, one rule. */
+  .redline-page .rl-cp-src ins.hati-ins{font-weight:inherit}
   .redline-page .rl-cp-wd{font-size:12.5px;line-height:1.6;color:var(--color-text)}
   .redline-page .rl-cp-why{display:block;margin-top:4px;font-size:11.5px;font-style:italic;
     color:var(--color-neutral-600)}
@@ -8116,6 +8174,20 @@ function redlineLayoutCss(){
   .redline-page .rl-cp-act.rl-cp-act-new:hover{background:#d1fae5;border-color:#059669}
   html.dark .redline-page .rl-cp-act.rl-cp-act-new{background:rgba(5,150,105,.16);border-color:rgba(5,150,105,.45);color:#6ee7b7}
   .redline-page .rl-cp-hint{flex-basis:100%;margin:6px 0 0;font-size:10.5px}
+  /* The Copilot's WORDS, not its button — a signal that the feature exists on a
+     highlight, in the violet this page already gives the assistant. No pill, no
+     border, no pointer: nothing here is pressable, and it must not look it. */
+  .redline-page .rl-cp-ai-note{display:inline-flex;align-items:center;gap:4px;
+    font-size:11.5px;font-weight:600;color:#6d28d9;cursor:default;-webkit-user-select:none;user-select:none}
+  html.dark .redline-page .rl-cp-ai-note{color:#c4b5fd}
+  /* Reopen, on a settled ask in the History. Edit's own quiet clothes, as it
+     wore in the tag reveal it moved from — nothing about changing your mind
+     should shout louder than the record it sits in. */
+  .redline-page .rl-cp-act-row{margin-top:6px}
+  .redline-page .rl-cp-reopen{border:1px solid var(--color-divider);background:var(--color-surface);
+    border-radius:999px;padding:3px 10px;font:inherit;font-size:10.5px;font-weight:600;
+    color:var(--color-neutral-600);cursor:pointer}
+  .redline-page .rl-cp-reopen:hover{border-color:var(--accent-solid);color:var(--color-text)}
   /* ---- THE PANEL IS WHERE YOU WRITE (owner-asked 16 Aug 2026) ----
      The engine's editor opens here on the "As it stands" block, so every rule
      it already carries applies unchanged. What it needs from this panel is
@@ -11691,10 +11763,8 @@ function redlineDocHtml(c, opts = {}){
     return `<section class="nego-clause rl-clause is-changed rl-clause-new" data-clause="${_ne(ch.clauseId)}" data-nego-card-anchor="${_ne(ch.id)}">
       <div class="rl-clause-top">
         ${label ? `<h4 class="rl-clause-h">${_ne(label)}</h4>` : ''}
-        ${rlAskTagHtml(ch, side, { newClause: true })}
       </div>
       <div class="nego-body">${inner}</div>
-      ${rlAskRevealHtml(c, ch, side, opts)}
     </section>`;
   };
   /* Folded to the reviewer's own clauses — see rlRvDocClauses. Null means the
@@ -11765,7 +11835,6 @@ function redlineDocHtml(c, opts = {}){
        marks are actually on screen. rlLinkFocus matches with [~=], so every
        card finds this clause whichever position its id holds. */
     const anchorIds = _ne(chs.map(x => x.id).reverse().join(' '));
-    const tagFor = x => rlAskTagHtml(x, side);
     if (ch){
       const theirs = ch.authorSide !== side;
       /* ---- A CLEAN READING CARRIES NO MARKERS EITHER ----
@@ -11809,11 +11878,31 @@ function redlineDocHtml(c, opts = {}){
       return `<section class="nego-clause rl-clause is-changed" data-clause="${_ne(cl.clauseId)}" data-nego-working="${_ne(cl.clauseId)}" data-nego-card-anchor="${anchorIds}">
         <div class="rl-clause-top">
           ${heading(cl)}
-          ${rest.map(tagFor).join('')}${tagFor(ch)}${fmtChip}
+          ${''/* ---- THE ASK TAGS HAVE COME OFF THE PAPER (owner-asked 16 Aug
+                 2026: "remove the pills from the contracts") ----
+                 Four of them on one clause heading — "CHG-003 ✓ CHG-009 ↩
+                 CHG-011 ↩ CHG-013 ?" — pushed the clause's own name off its
+                 line, which is the fault the tag's own label was trimmed twice
+                 to avoid. They were kept this long for one reason and it has
+                 gone: a settled change leaves the change column, and the tag
+                 was the only handle left on it. The clause PANEL is that handle
+                 now — every ask on the clause, live and settled, with its
+                 wording and its outcome, behind the Edit pill on the same row.
+                 The Reopen the tag's reveal carried moved with it (see
+                 mayReopen in rlClausePanelBodyHtml); a refusal whose stated
+                 remedy cannot be reached is worse than no remedy, so the two
+                 had to move together or neither could.
+
+                 What is LEFT on the clause is the red rule down its right edge,
+                 which says the same thing the tags said at a glance — this
+                 clause has been argued over — without spending the heading on
+                 it. rlAskTagHtml and rlAskRevealHtml survive as builders with
+                 no caller on this canvas; negoDocHtml's own badges are a
+                 different marker and are untouched. */}
+          ${fmtChip}
           ${rlClauseEditPillHtml(cl, { editable, hasPanel })}
         </div>
         ${clean == null ? richBody(cl) : clean}
-        ${chs.map(x => rlAskRevealHtml(c, x, side, opts)).join('')}
         ${cpPush(cl, chs)}
         ${tools(cl, ch)}
       </section>${after}`;

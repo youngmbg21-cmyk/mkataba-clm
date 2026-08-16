@@ -568,10 +568,17 @@ describe('f210 (11) — the editing is in the panel', () => {
     const p = await bench();
     const box = page(p);
     const b = bodies(box)[0];
+    /* REVERSED IN PLACE, 16 Aug 2026: this used to require TWO buttons, the ＋
+       and a Copilot. The Copilot is a SIGNAL here now, not a control — owner-
+       asked, "delete the edit with copilot feature but leave the words … in
+       purple without a pill around it. This is to signal that the feature is
+       available where you can highlight". One button, one label. */
     const acts = [...b.querySelectorAll('.rl-cp-acts button')];
-    assert.equal(acts.length, 2, 'the ＋ and the Copilot, and nothing else');
-    assert.ok(acts[0].hasAttribute('data-rl-cp-edit'), 'the ＋ leads');
-    assert.ok(acts[1].hasAttribute('data-nego-ai-clause'), 'the Copilot follows');
+    assert.equal(acts.length, 1, 'the ＋, and nothing else pressable');
+    assert.ok(acts[0].hasAttribute('data-rl-cp-edit'), 'the ＋ is it');
+    assert.ok(b.querySelector('.rl-cp-ai-note'), 'and the Copilot is words, not a button');
+    assert.equal(b.querySelector('.rl-cp-acts [data-nego-ai-clause]'), null,
+      'nothing in the panel presses the Copilot any more');
     assert.equal(b.querySelector('.rl-cp-acts [data-nego-edit]'), null,
       'Direct Edit is not in the panel');
     /* …and it is still on the clause, which is the half that is NOT changing. */
@@ -659,13 +666,26 @@ describe('f210 (11) — the editing is in the panel', () => {
 });
 
 describe('f210 (12) — the Copilot', () => {
-  test('the panel keeps its Edit with Copilot button', async () => {
-    /* Owner-asked, in the same breath as removing Direct Edit: "Also keep the
-       edit with copilot button." */
+  test('the panel keeps the WORDS "Edit with Copilot", and nothing to press',
+    async () => {
+    /* REVERSED IN PLACE, 16 Aug 2026. It was a button, kept on the owner's own
+       "Also keep the edit with copilot button". They have since asked for the
+       button to go and the words to stay, in purple, with no pill: a SIGNAL
+       that the feature exists on a highlight rather than a second door to it.
+
+       THE WORDS ARE A PROMISE, so they are pinned together with the route that
+       keeps it — if the highlight ever stops offering the Copilot, this label
+       is the page lying. */
     const p = await bench();
-    const b = page(p).querySelector('.rl-cp-acts [data-nego-ai-clause]');
-    assert.ok(b);
-    assert.match(b.textContent, /Edit with Copilot/);
+    const note = page(p).querySelector('.rl-cp-acts .rl-cp-ai-note');
+    assert.ok(note, 'the words are there');
+    assert.match(note.textContent, /Edit with Copilot/);
+    assert.equal(note.tagName, 'SPAN', 'not a button');
+    assert.equal(note.getAttribute('data-nego-ai-clause'), null, 'and it presses nothing');
+    assert.match(SRC, /\.redline-page \.rl-cp-ai-note\{[^}]*cursor:default/,
+      'and it does not even look pressable');
+    assert.match(SRC, /'\.rl-cp-src \[data-nego-editor\]'/,
+      'while the highlight route it names is still a legal pane');
   });
 
   test('a highlight inside the panel\'s editor is a legal selection', async () => {
@@ -722,7 +742,12 @@ describe('f210 (12) — the Copilot', () => {
 });
 
 describe('f210 (14) — three faults reported the morning after the editing landed', () => {
-  test('the Copilot button hands straight over — no menu to anchor', async () => {
+  test('the Copilot press handed straight over — no menu to anchor', async () => {
+    /* KEPT AFTER THE BUTTON WENT (16 Aug 2026). The button is a label now, so
+       the panel no longer presses this path — but the clause toolbar's own
+       Copilot still does, and `direct` is what stops a one-row menu being drawn
+       for anything else that narrows the offer. The rule outlived its first
+       caller; deleting the claim with the button would leave it unguarded. */
     /* Owner-reported 16 Aug 2026: "When I click edit with copilot the panel
        disappears and the copilot dropdown appears on the top right corner."
 
@@ -806,21 +831,31 @@ describe('f210 (15) — how the panel reads', () => {
     assert.deepEqual(heads, ['As it stands', 'Change this clause', 'On the table', 'History']);
   });
 
-  test('the panel\'s additions are green and nothing else', async () => {
-    /* Owner-asked: "the green additions to the contract should just be green,
-       not bold and not underlined." The engine's mark carries a 2px bottom rule
-       and weight 600 as well as the colour; at 12.5px in a summary of one ask,
-       three signals for one fact is two too many. */
-    assert.match(SRC, /\.redline-page \.rl-cp-src \.nego-ins,\s*\n\s*\.redline-page \.rl-cp-src ins\.hati-ins\{\s*\n\s*border-bottom:0;font-weight:400;text-decoration:none\}/);
+  test('additions are green and nothing else — and the rule is at the BASE', async () => {
+    /* REVERSED IN PLACE, 16 Aug 2026. This asserted a rule scoped to the panel,
+       written while the paper was still on the tracked-changes convention. The
+       owner reported it a second time, pointing at the paper, so the rule moved
+       to .nego-ins itself and the panel's copy went — two rules for one fact is
+       how they come to differ. The claim that matters now is that no scoped
+       copy has crept back. */
+    assert.doesNotMatch(SRC, /\.rl-cp-src \.nego-ins/,
+      'no panel-only copy of a rule the base already carries');
+    assert.match(SRC, /\.nego-ins\{[^}]*text-decoration:none\}/);
   });
 
-  test('and the PAPER keeps the tracked-changes convention', async () => {
-    /* Deliberately left alone, and said out loud. The document is what anybody
-       cites, and underline-for-an-insertion is what a redline means outside
-       this product. Scoping the panel rule to .rl-cp-src is what keeps the two
-       apart; a rule on .nego-ins alone would have taken the paper with it. */
-    assert.match(SRC, /\.nego-ins\{background:var\(--n-ins-bg\);color:var\(--n-ins-fg\);border-bottom:2px solid var\(--n-ins-fg\);/);
-    assert.match(SRC, /\.nego-ins\{[^}]*font-weight:600\}/);
+  test('and the PAPER carries the same rule — one fact, one rule', async () => {
+    /* REVERSED IN PLACE, 16 Aug 2026. This asserted that the document kept the
+       tracked-changes convention while only the panel went plain, and said the
+       reason out loud: the document is what anybody cites. The owner reported
+       it a second time — the paper was the half being pointed at — so the rule
+       moved to the BASE and the panel's copy went with it. Two rules for one
+       fact is how they come to differ. */
+    assert.doesNotMatch(SRC, /\.nego-ins\{[^}]*border-bottom:2px/);
+    assert.doesNotMatch(SRC, /\.nego-ins\{[^}]*font-weight:600/);
+    assert.match(SRC, /\.nego-ins\{background:var\(--n-ins-bg\);color:var\(--n-ins-fg\);\s*\n\s*border-radius:3px;padding:0 3px;text-decoration:none\}/);
+    /* AND THE DELETION KEEPS ITS STRIKE. Not an inconsistency: colour alone can
+       say "added"; nothing but the strike can say "taken out". */
+    assert.match(SRC, /\.nego-del\{[^}]*text-decoration:line-through/);
   });
 
   test('the signposts are black; the captions under them are not', async () => {
@@ -909,6 +944,68 @@ describe('f210 (16) — a contract limb keeps its label and hangs its wraps', ()
     assert.ok(marker.includes('[a-zA-Z]'),
       'and the marker pattern knows a lettered label');
     assert.ok(marker.includes('ivxlcdm'), 'and a roman one');
+  });
+});
+
+describe('f210 (17) — the pills come off the paper, and the marker moves to the margin', () => {
+  test('no ask tags on the contract, on either seat', async () => {
+    /* Owner-asked 16 Aug 2026: "remove the pills from the contracts." Four of
+       them on one clause heading — CHG-003 ✓ CHG-009 ↩ CHG-011 ↩ CHG-013 ? —
+       pushed the clause's own name off its line, which is the fault the tag's
+       label was trimmed twice to avoid. They were kept this long for ONE reason
+       and it has gone: a settled change leaves the change column, and the tag
+       was the only handle left on it. The panel is that handle now. */
+    const p = await bench();
+    for (const side of ['owner', 'counterparty']){
+      const box = page(p, { side });
+      assert.equal(box.querySelectorAll('#rl-doc .rl-asktag').length, 0, side);
+      assert.equal(box.querySelectorAll('#rl-doc .rl-askrv').length, 0,
+        'and no reveal, which nothing could open');
+    }
+  });
+
+  test('a redlined clause is marked in the MARGIN instead', async () => {
+    /* "keep the contract page white but add a thin redline on the right of the
+       clause to signal a clause that has been redlined." An amber wash on most
+       of the page marks nothing; a rule in the margin says the same thing and
+       costs the wording none of its width. */
+    const p = await bench();
+    assert.ok(page(p).querySelector('#rl-doc .nego-clause.is-changed'),
+      'the clause still says it has been argued over');
+    assert.match(SRC, /\.redline-page \.rl-clause\.is-changed\{background:none;border:0;\s*\n\s*border-right:3px solid #dc2626/);
+    /* THE PADDING IS KEPT so the wording does not shift when a clause gains or
+       loses its first change — only the fill and the frame go. */
+    assert.match(SRC, /\.rl-clause\.is-changed\{[^}]*padding:12px 14px\}/);
+  });
+
+  test('and the Reopen moved with them, or the remedy would be unreachable', async () => {
+    /* The tag's reveal carried the way back from a settled decision, and the
+       accept guard refuses IN WORDS naming reopening as the way out. The two
+       had to move together: a refusal whose stated remedy cannot be reached is
+       worse than no remedy — this file's own standing rule, and the exact fault
+       f208 was written for. */
+    const p = await bench();
+    p.win.negoResolve(p.c, p.c.changes[0].id, 'rejected',
+      { side: 'owner', by: 'Young Mbagaya', reply: 'No.' });
+    const b = bodies(page(p)).find(x => x.querySelector('.rl-cp-row'));
+    const re = b.querySelector('[data-rl-reopen]');
+    assert.ok(re, 'a settled ask offers Reopen in the panel');
+    assert.equal(re.getAttribute('data-nego-undo'), p.c.changes[0].id,
+      'through the engine\'s own re-open, not a second path');
+    /* And the History is where it sits, because that is where a settled ask is. */
+    const hist = [...b.querySelectorAll('.rl-cp-sec')]
+      .find(x => /History/.test(x.querySelector('.rl-cp-h').textContent));
+    assert.ok(hist.contains(re));
+  });
+
+  test('and not on a pending ask, the counterparty, or a read-only seat', async () => {
+    const p = await bench();
+    assert.equal(bodies(page(p)).find(x => x.querySelector('.rl-cp-row'))
+      .querySelector('[data-rl-reopen]'), null, 'nothing to undo on a live ask');
+    p.win.negoResolve(p.c, p.c.changes[0].id, 'rejected', { side: 'owner', by: 'Y' });
+    assert.equal(page(p, { side: 'counterparty' }).querySelector('[data-rl-reopen]'), null,
+      'a refusal is reopened by the side that gave it');
+    assert.equal(page(p, { readonly: true }).querySelector('[data-rl-reopen]'), null);
   });
 });
 
