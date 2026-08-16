@@ -358,7 +358,34 @@ describe('F98e — the panel hands the exchange to the model', () => {
     await ai.copilotPropose({ ask: 'Rewrite.', passage: '4.2 …\n4.3 …',
       clauseLabel: 'Clause 4 · PRICING, INVOICING & PAYMENT TERMS' });
     assert.match(seen, /The passage comes from Clause 4 · PRICING, INVOICING & PAYMENT TERMS/);
-    assert.match(seen, /sub-paragraphs of that one clause, not separate clauses/);
+    /* THE PURPOSE SURVIVES THE REWORD: a passage that really reads "4.2 … 4.3 …"
+       is still told, bindingly, that those are sub-paragraphs of one clause. */
+    assert.match(seen, /sub-paragraphs of\s+that one clause, never as separate clauses/);
+    assert.match(seen, /is ONE clause/);
+  });
+
+  test('the sub-paragraph rule is CONDITIONAL — it never asserts the example numbers exist', async () => {
+    /* Owner-reported 16 Aug 2026: the old line read "Numbers inside it — 4.2,
+       4.3, (a), (b) — are sub-paragraphs", sent on EVERY request. On a
+       one-sentence governing-law clause with no numbering the model took the
+       examples as fact, decided it had been shown a fragment, and refused to
+       draft until "the full clause including its sub-paragraphs" was pasted in
+       — naming exactly those four example numbers back. The sentence must be an
+       "if", never a statement that specific numbers are present. */
+    const ai = loadAi();
+    let seen = '';
+    ai.window.copilotAsk = async msgs => { seen = msgs[0].content; return '{"advice":"a","proposedText":"b"}'; };
+    await ai.copilotPropose({ ask: 'Rewrite.',
+      passage: 'This Agreement is governed by the laws of Sweden, and the Parties submit to the exclusive jurisdiction of the courts of Sweden.',
+      clauseLabel: 'Clause 4 · Governing Law' });
+    /* The old assertive form must be gone… */
+    assert.doesNotMatch(seen, /Numbers inside it/,
+      'the assertive form is what made the model believe 4.2/4.3/(a)/(b) exist');
+    /* …the examples may only appear inside a clearly conditional sentence… */
+    assert.match(seen, /If it contains\s+numbered or lettered items \(for example 4\.2 or \(a\)\)/);
+    /* …and the model is told outright not to ask for sub-paragraphs it was not shown. */
+    assert.match(seen, /Do not ask for sub-paragraphs the passage\s+does not show/);
+    assert.match(seen, /what is shown is the whole selection/);
   });
 
   test('a caller with no label sends no line about clauses at all', async () => {

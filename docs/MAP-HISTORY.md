@@ -2659,3 +2659,88 @@ is either a bill nobody capped or a colleague who cannot use the product.
 Both are named here rather than left silent, which is the whole point of writing
 this file: a feature that was considered and refused reads very differently from
 a feature nobody thought of.
+
+
+## THE NEW DESIGN — the routing rows, the pop-out's retirement, the square corners, and the Copilot's sub-paragraph note (16 Aug 2026)
+
+Four pieces landed in one pass, three of them the finishing moves of the
+clause-panel design and one a Copilot prompt fault the owner reproduced on a
+one-sentence clause.
+
+---- THE COPILOT REFUSED TO DRAFT OVER NUMBERS THAT DID NOT EXIST ----
+
+The sentence added on 12 Aug to stop the model reading "4.2 … 4.3 …" as two
+clauses said: "Numbers inside it — 4.2, 4.3, (a), (b) — are sub-paragraphs of
+that one clause." The numbers were meant as examples and the sentence went on
+EVERY request — so on a clause with no numbering at all the model read them as
+a statement of fact, concluded it had been shown a fragment missing
+sub-paragraphs 4.2, 4.3, (a) and (b), and refused to draft until they were
+pasted in. The owner reproduced it on a one-sentence governing-law clause; the
+refusal named exactly those four example numbers back.
+
+Two fixes were on the table: only include the sentence when the passage really
+contains numbering, or reword it so it is clearly conditional. Conditional won,
+because it is the one that cannot regress: a detector that misses one numbering
+style — Roman numerals, "Section 4.2.1", "a." lists — silently brings the
+original two-clauses misreading back for exactly those passages, while an "if"
+costs nothing when false and binds just as hard when true. The line now reads
+"…is ONE clause. If it contains numbered or lettered items (for example 4.2 or
+(a)), treat them as sub-paragraphs of that one clause, never as separate
+clauses. Do not ask for sub-paragraphs the passage does not show…" There was
+exactly one site to fix: every entry path — the selection menu, the clause
+button, the refine loop, the phone — goes through copilotPropose. f98 pins both
+directions: the assertion gone on a plain clause, the one-clause rule intact on
+a numbered one.
+
+---- THE CARDS BECAME ROUTING ROWS, AND THE POP-OUT WENT WITH THEM ----
+
+The Tracked Changes card carried id, status, clause, author, company, a
+two-line clamped copy of the wording, the reason and the verbs — and its
+hidden body (the reason, the reviewer's note, the whole thread) was reachable
+only through the floating pop-out a ⤢ opened. Since the clause panel shipped,
+everything the card and the pop-out said is said in the panel, on the clause,
+twice over. Option C from the design conversation is what got built: a short
+row — id and state, the clause name, the author's reason, an Open — with the
+body pressing through to the clause and Open raising the panel.
+
+The pop-out's whole reason to exist was the composer lesson: the engine binds
+the reply box by element id scoped to its mount, so a COPY of it accepts
+typing and posts nothing — which is why the pop-out borrowed the card's body
+node instead of rendering one. Retiring it therefore meant moving the one real
+composer first. It renders in the clause panel's row for the change now
+(rlClausePanelBodyHtml calls rlCardNotesHtml; the card renders none), inside
+the mount the engine wires, so the same rule holds with none of the
+borrowed-node dance. The author and organisation moved to the row's hover and
+the panel's own row; the desk's "drafted by", the on-behalf and revised-by
+stamps, the reason and the reviewer's note stay VISIBLE on the row — they used
+to be hidden in the body the pop-out alone could show, and a fact behind a
+control that no longer exists is a fact lost. The verbs did not move an inch:
+same action bar, same engine handlers, still visible pixels (f180), which is
+what kept F100f's ['Send','Undo'] and every decision path intact.
+
+Open carries data-rl-cp-open with the clause id — the panel's own delegated
+door, armed at module load in capture — so it needed no per-paint wiring and
+works on the owner's bench, the contract-tab embed and the counterparty's page
+alike. It is drawn only where the mount has a panel (the Word export's canvas
+does not) and never on an insertClause ask, whose proposed clause has no panel
+body. About fifty test claims across f100, f89, f92, f93, f37, f58, f84, f137,
+f166, f173, f188 and four browser files were reversed or re-pointed in place;
+card-popout-verify.js was deleted the way card-collapse-verify was before it.
+parity-verify's edit probe had been finding the Net-45 card BY ITS TEXT, which
+a routing row no longer carries — it reads the record now, which also stopped
+it silently opening the wrong clause's editor.
+
+---- AND THE CORNERS ARE SQUARE ----
+
+Owner-asked off a screenshot, both seats: the contract sheet and the edit
+side panel lose their round corners; everything else keeps its own. The paper
+was easy (.rl-paper and the clipping .rl-doc to radius 0). The panel was the
+interesting one: it already carried border-radius:0 — and showed 14px corners
+anyway, because the panel wears .rl-col too and .rl-col's radius rule sits
+LATER in the stylesheet at equal specificity, so order decided against the
+panel's own rule. The fix is written at three classes
+(.redline-page .rl-col.rl-cp) so it wins on specificity, not position — the
+same lesson the engine's overflow rule taught on this very page a day earlier.
+f95's "one radius" claim was split in place: the columns and cards keep the
+14/12px family, the sheet and the panel are square, and the drift the test
+exists to catch is still caught.

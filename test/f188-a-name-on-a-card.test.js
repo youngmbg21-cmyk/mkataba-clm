@@ -118,12 +118,18 @@ describe('f188 (2) — both card renderers write the short form', () => {
     return { w, c };
   }
 
-  test('the workbench card names the author short, and keeps it whole on hover', async () => {
+  test('the workbench card keeps the whole name on hover, and prints none at all', async () => {
+    /* CLAIM UPDATED 16 Aug 2026, one step further in the same direction: the
+       card became a routing row and the AUTHOR left its visible line entirely
+       — the meta line is the clause name, the coloured edge says whose side,
+       and the clause panel's row names the author in full. The rule this
+       block exists for still holds where a name IS printed (the contract
+       tab's card below), and NOTHING IS LOST here: the whole name is one
+       hover away on the row's meta line. */
     const { w, c } = await staged();
     const html = w.win.redlineChangeCardsHtml(c, { side: 'owner' });
-    assert.match(html, /Young M\./, 'the meta line is the glance');
-    assert.ok(!/Young Mbagaya<|Young Mbagaya &middot;/.test(html),
-      'and the long form is not printed as visible text');
+    assert.ok(!/Young Mbagaya<|Young Mbagaya &middot;|Young M\./.test(html),
+      'no name — short or long — as visible text on the row');
     assert.match(html, /title="[^"]*Young Mbagaya/,
       'NOTHING IS LOST: the whole name is one hover away');
   });

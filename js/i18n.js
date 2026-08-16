@@ -1265,12 +1265,15 @@ const STRINGS = {
     ng_notices_fab: 'Internal alerts — press to open',
     ng_notices_min: 'Hide',
     ng_notices_min_title: 'Minimise these alerts — the bell brings them back',
-    /* The pop-out: the change's reading matter in a window of its own. */
+    /* The pop-out is retired (16 Aug 2026) — its ng_pop_* keys are left inert.
+       The routing row's Open raises the clause panel instead. */
     ng_pop_open: 'Open this change — the reason, the notes and the replies',
     ng_pop_close: 'Close',
     ng_pop_move: 'Drag this bar to move the panel',
     ng_pop_wording: 'The wording',
     ng_pop_aria: 'Change {id} — reason and notes',
+    ng_row_open: 'Open',
+    ng_row_open_title: 'Open this clause’s panel — the full wording, the history and the replies',
     ng_needs_you_one: '1 needs you',
     ng_needs_you_other: '{n} need you',
     ng_needs_you_title: 'Jump to the next change waiting on your answer',
@@ -5186,6 +5189,8 @@ const STRINGS = {
     ng_pop_move: 'Dra i listen för att flytta panelen',
     ng_pop_wording: 'Formuleringen',
     ng_pop_aria: 'Ändring {id} — skäl och noteringar',
+    ng_row_open: 'Öppna',
+    ng_row_open_title: 'Öppna klausulens panel — hela formuleringen, historiken och svaren',
     ng_needs_you_one: '1 väntar på dig',
     ng_needs_you_other: '{n} väntar på dig',
     ng_needs_you_title: 'Hoppa till nästa ändring som väntar på ditt svar',

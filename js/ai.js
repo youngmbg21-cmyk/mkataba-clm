@@ -2280,9 +2280,24 @@ async function copilotPropose(opts){
        from one HEADING to the next (clauseSegment, js/clausemodel.js), so 4.2
        and 4.3 under a "4. PRICING" heading are sub-paragraphs of one clause.
        Naming the clause makes the boundary the app enforces the same boundary
-       the model reasons about. */
-    o.clauseLabel ? `The passage comes from ${o.clauseLabel}. Numbers inside it — 4.2, 4.3, (a), (b) `
-      + '— are sub-paragraphs of that one clause, not separate clauses. Your wording acts on the '
+       the model reasons about.
+
+       THE RULE IS CONDITIONAL, NEVER AN ASSERTION (owner-reported 16 Aug 2026).
+       This line used to state "Numbers inside it — 4.2, 4.3, (a), (b) — are
+       sub-paragraphs", meaning the numbers as examples — and on a clause with
+       no numbering at all the model read them as fact, concluded it had been
+       shown a fragment missing sub-paragraphs 4.2, 4.3, (a) and (b), and
+       refused to draft until they were pasted in. A one-sentence governing-law
+       clause could not get an answer. Conditional wording was chosen over
+       detecting numbering in the passage because a detector that misses one
+       style — Roman numerals, "Section 4.2.1", "a." lists — silently brings
+       the original two-clauses misreading back; an "if" costs nothing when
+       false and binds exactly the same when true. The purpose survives: a
+       passage that really reads "4.2 … 4.3 …" is still ONE clause. */
+    o.clauseLabel ? `The passage comes from ${o.clauseLabel} and is ONE clause. If it contains `
+      + 'numbered or lettered items (for example 4.2 or (a)), treat them as sub-paragraphs of '
+      + 'that one clause, never as separate clauses. Do not ask for sub-paragraphs the passage '
+      + 'does not show — what is shown is the whole selection. Your wording acts on the '
       + 'passage shown and on nothing outside it.' : '',
     placements
       ? 'The drafter has selected this wording. It is the ANCHOR — depending on the placement '

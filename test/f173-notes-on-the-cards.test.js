@@ -22,6 +22,12 @@
 
    The fourth complaint in the report — the Tracked Changes head — is a paint
    question; its rules are asserted here from the stylesheet.
+
+   RE-POINTED 16 Aug 2026: the conversation lives in the CLAUSE PANEL's row for
+   the change now (the card is a routing row and the pop-out is retired), so
+   every claim below reads the panel — same switch, same defaults, same fold,
+   new address. The card is asserted to carry none of it, which is the new
+   half of the claim.
    ============================================================ */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
@@ -74,9 +80,12 @@ async function mounted(opts = {}){
 describe('f173 · our composer carries the switch, defaulting to Internal', () => {
   test('both faces are drawn on our seat, Internal pressed', async () => {
     const p = await mounted();
-    const card = p.$('#rl-changes .rl-card');
-    assert.ok(card, 'the card is drawn');
-    const sw = card.querySelector('.nego-visswitch');
+    assert.ok(p.$('#rl-changes .rl-card'), 'the card is drawn');
+    assert.equal(p.$('#rl-changes .nego-visswitch'), null,
+      'the routing row carries no composer of its own');
+    const row = p.$(`#rl-cp-body [data-rl-cp-change="${p.theirs.id}"]`);
+    assert.ok(row, 'the change has its row in the clause panel');
+    const sw = row.querySelector('.nego-visswitch');
     assert.ok(sw, 'our seat has the visibility switch now');
     assert.equal(sw.querySelector('.v-int').getAttribute('aria-pressed'), 'true',
       'and it opens on Internal — the quiet path stays the safe one');
@@ -85,7 +94,7 @@ describe('f173 · our composer carries the switch, defaulting to Internal', () =
 
   test('the button and the promise carry both faces for the switch to choose', async () => {
     const p = await mounted();
-    const card = p.$('#rl-changes .rl-card');
+    const card = p.$(`#rl-cp-body [data-rl-cp-change="${p.theirs.id}"]`);
     const btn = card.querySelector('.rl-cnote-add');
     assert.ok(btn.querySelector('.rl-when-int') && btn.querySelector('.rl-when-sh'),
       'the send button has an Internal face and a Send face');
@@ -104,16 +113,16 @@ describe('f173 · the counterparty\'s note arrives on the card', () => {
       author: 'Amina Wanjiru', at: '2026-08-10T10:00:00Z',
       body: 'Our AP cycle runs monthly — Net-30 forces out-of-cycle payments.' }] });
     assert.ok(Array.isArray(p.c._messages), 'the channel was fetched');
-    const card = p.$('#rl-changes .rl-card');
-    assert.match(card.textContent, /AP cycle runs monthly/,
-      'their words are on the change they are about');
-    assert.ok(card.querySelector('.rl-cnote.is-shared'), 'wearing the shared wash');
+    const row = p.$(`#rl-cp-body [data-rl-cp-change="${p.theirs.id}"]`);
+    assert.match(row.textContent, /AP cycle runs monthly/,
+      'their words are on the change they are about, in the panel');
+    assert.ok(row.querySelector('.rl-cnote.is-shared'), 'wearing the shared wash');
   });
 
   test('with nothing in the channel the card simply has no notes', async () => {
     const p = await mounted();
     assert.ok(Array.isArray(p.c._messages), 'fetched, and empty is a real answer');
-    assert.equal(p.$('#rl-changes .rl-cnote'), null);
+    assert.equal(p.$('#rl-cp-body .rl-cnote'), null);
   });
 });
 
@@ -123,7 +132,7 @@ describe('f173 · a long note folds instead of growing the card', () => {
     const essay = 'This clause needs careful thought. '.repeat(12);   // ~420 chars
     p.w.win.negoPostComment(p.c, p.theirs.id, essay, { side: 'owner', author: ME.name });
     p.w.win.renderRedline();
-    const note = p.$('#rl-changes .rl-cnote');
+    const note = p.$('#rl-cp-body .rl-cnote');
     assert.ok(note.querySelector('p.rl-cnote-clamp'), 'the paragraph is clamped');
     const more = note.querySelector('[data-rl-note-more]');
     assert.ok(more, 'with the reader\'s own way to open it');
@@ -141,7 +150,7 @@ describe('f173 · a long note folds instead of growing the card', () => {
     const p = await mounted();
     p.w.win.negoPostComment(p.c, p.theirs.id, 'Fine by me.', { side: 'owner', author: ME.name });
     p.w.win.renderRedline();
-    const note = p.$('#rl-changes .rl-cnote');
+    const note = p.$('#rl-cp-body .rl-cnote');
     assert.ok(note, 'the note is drawn');
     assert.equal(note.querySelector('.rl-cnote-clamp'), null);
     assert.equal(note.querySelector('[data-rl-note-more]'), null);

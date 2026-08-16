@@ -732,28 +732,27 @@ describe('F89 (6) — the document that was uploaded is the document that is dra
   });
 });
 
-describe('F89 (7) — two type scales, each declared once', () => {
-  /* The one-size rule this replaced unified the canvas with the cards. The
-     master directive supersedes it: the CANVAS reads at the Doc page's own
-     contract size, so switching tabs never changes the size of the wording
-     being judged, while the cards stay at their compact pointer scale. What
-     survives from the old rule is the discipline — each scale is one token,
-     so neither can drift within itself. */
-  test('the canvas is set from the doc token, the cards from the card token', async () => {
+describe('F89 (7) — one type scale, declared once', () => {
+  /* CLAIM NARROWED IN PLACE, 16 Aug 2026: there were two scales while the
+     card carried wording. The routing row carries none, so --rl-type lost its
+     last consumer and was retired with it — a token nothing reads is a token
+     nobody can read. What survives is the discipline the pair existed for:
+     the CANVAS reads at the Doc page's own contract size, from ONE token, so
+     switching tabs never changes the size of the wording being judged. */
+  test('the canvas is set from the doc token, and the card token is retired', async () => {
     const p = await page();
-    assert.match(p.css(), /\.redline-page\{--rl-type:[\d.]+px;--rl-doc-type:[\d.]+px\}/,
-      'both scales must be tokens, or a column can drift apart within itself');
-    assert.match(p.rule('.redline-page .rl-card-diff') || '', /font-size:var\(--rl-type\)/,
-      'the cards keep the compact pointer scale');
+    assert.match(p.css(), /\.redline-page\{--rl-doc-type:[\d.]+px\}/,
+      'the canvas scale must be a token, or the column can drift within itself');
+    assert.doesNotMatch(p.css(), /--rl-type:/,
+      'the card scale is gone with its last consumer, the clamped diff');
     assert.match(p.css(), /\.redline-page \.rl-clause-p,[\s\S]{0,200}?font-size:var\(--rl-doc-type\)/,
       'the contract body must read at the Doc page\'s contract size');
   });
 
-  test('the canvas token is the Doc page\'s ~15px; the card token stays compact', async () => {
+  test('the canvas token is the Doc page\'s ~15px', async () => {
     const p = await page();
-    const m = /\.redline-page\{--rl-type:([\d.]+)px;--rl-doc-type:([\d.]+)px\}/.exec(p.css());
-    assert.equal(m[1], '11.5');
-    assert.equal(m[2], '15');
+    const m = /\.redline-page\{--rl-doc-type:([\d.]+)px\}/.exec(p.css());
+    assert.equal(m[2] === undefined && m[1], '15');
   });
 });
 
@@ -816,23 +815,21 @@ describe('F89 (9) — one sidebar, and one face left in it', () => {
   });
 
   test('the conversation moved onto the change, it did not disappear', async () => {
-    /* It moved twice: off the Discussion column onto the card, then (12 Aug
-       2026) out of the card's fold into the card's own panel. Both moves say
-       the same thing — the thread belongs to the CHANGE, not to a column of its
-       own and not to a strip too narrow to read it in.
-
-       It is still rendered ON the card, hidden there, and MOVED into the panel
-       when it opens: the engine binds this composer by element id and scopes
-       its lookups to its own mount, so a second copy would never send. */
+    /* It has moved three times: off the Discussion column onto the card, out
+       of the card's fold into the pop-out, and (16 Aug 2026) into the CLAUSE
+       PANEL's row for the change, where it renders once and for good. Every
+       move says the same thing — the thread belongs to the CHANGE — and the
+       one-copy rule is the constant: the engine binds this composer by element
+       id and scopes its lookups to its own mount, so a second copy would never
+       send. */
     const p = await page();
     const card = p.$('#rl-changes [data-nego-card]');
     const id = card.getAttribute('data-nego-card');
-    assert.ok(card.querySelector('.rl-cnotes'), 'the notes block is on the change');
-    assert.ok(card.querySelector(`[id="nego-ti-${id}"]`), 'with the engine\'s own composer');
-    assert.ok(card.querySelector(`[data-nego-send="${id}"]`), 'and its own send');
-    card.querySelector('[data-rl-pop]').click();
-    assert.equal(p.$('#rl-pop .rl-cnotes'), card.querySelector('.rl-cnotes') || p.$('#rl-pop .rl-cnotes'),
-      'and the panel borrows that very node');
+    const row = p.$(`#rl-cp-body [data-rl-cp-change="${id}"]`);
+    assert.ok(row, 'the clause panel names the change');
+    assert.ok(row.querySelector('.rl-cnotes'), 'the notes block is on the change\'s row');
+    assert.ok(row.querySelector(`[id="nego-ti-${id}"]`), 'with the engine\'s own composer');
+    assert.ok(row.querySelector(`[data-nego-send="${id}"]`), 'and its own send');
     assert.equal(p.$$('.rl-cnotes').length, 1, 'never two copies of one thread');
   });
 });
@@ -920,23 +917,21 @@ describe('F89 (11,12) — the card verbs, their colours, and where Edit lands', 
 });
 
 describe('F89 (14) — the card says what the change is, in two lines', () => {
-  /* AND THAT IS A REVERSAL. The wording was taken OFF the card on the argument
-     that the document beside it already shows the change, so a clamped copy
-     was the same words twice. True, and the card that was left read as a
-     filing reference: an id, a clause number and four buttons, with nothing on
-     it about the thing being decided. It is back on the design's call (10 Aug
-     2026) — clamped to two lines, marks and all, a summary you skim down the
-     column rather than a place to read a clause. The full wording in its own
-     surroundings is one click away and always has been (rlLinkFocus). */
+  /* CLAIM REVERSED AGAIN, 16 Aug 2026 (owner-asked — the routing-row design).
+     The clamped copy came back on 10 Aug because the card that was left read
+     as a filing reference. What has changed since is the CLAUSE PANEL: it
+     prints every ask's full wording on the clause it is about, one Open away,
+     and the marks are on the paper beside the column — so the row carries no
+     copy at all, and names its clause instead. */
   test('the card carries the delta, clamped', async () => {
     const p = await page();
-    const diff = p.$('#rl-changes .rl-card-diff');
-    assert.ok(diff, 'the card says what is being asked for');
-    assert.ok(diff.textContent.trim().length, 'and says it in words');
-    const r = p.rule('.redline-page .rl-card-diff');
-    assert.match(r, /-webkit-line-clamp:2/,
-      'two lines: a summary, not a second copy of the clause');
-    assert.match(r, /overflow:hidden/);
+    assert.equal(p.$('#rl-changes .rl-card-diff'), null,
+      'no clamped copy on the routing row');
+    const meta = p.$('#rl-changes .rl-card .rl-card-meta');
+    assert.ok(meta && meta.textContent.trim(), 'the row names its clause instead');
+    const id = p.$('#rl-changes .rl-card').getAttribute('data-nego-card');
+    assert.ok(p.$(`#rl-cp-body [data-rl-cp-change="${id}"] .rl-cp-wd`),
+      'and the full wording is in the clause panel, one Open away');
   });
 
   test('but the document still marks it, so nothing was lost with the copy', async () => {
@@ -1092,11 +1087,11 @@ describe('F89 (16) — Send is one click, and the card says so afterwards', () =
     assert.match(p.$('#rl-changes .rl-badge').textContent, /^Sent$/,
       'the fact is on the card, where nothing can hide it');
     const card = p.$('#rl-changes .rl-card');
-    /* The fold is gone (12 Aug 2026): the reading matter opens in a floating
-       panel, so the card is one height whatever is being read. */
-    assert.equal(card.getAttribute('data-rl-popped'), '0', 'nothing popped out');
+    /* The fold is gone (12 Aug 2026), and so is the pop-out (16 Aug 2026): the
+       reading matter lives in the clause panel, so the card is one height
+       whatever is being read. */
     assert.ok(card.querySelector('.rl-card-head'), 'the head takes you to the clause');
-    assert.ok(card.querySelector('[data-rl-pop]'), 'and the button opens its reasoning');
+    assert.ok(card.querySelector('.rl-open-btn'), 'and Open raises the clause panel');
     assert.ok(!p.$('#rl-changes [data-rl-send]'), 'it cannot be sent twice');
   });
 

@@ -139,11 +139,11 @@ describe('F92 — the six-round negotiation, end to end', () => {
     assert.equal(t.post.reshared, 1, 'and the dispatch really happened');
     assert.equal(win.negoTurn(c), 'counterparty', 'the table turned');
     assert.equal(t.$$('#rl-changes .rl-badge').filter(b => /^Sent$/.test(b.textContent.trim())).length, 2);
-    /* The card folds once it is theirs to answer: no verb on it is a move
-       this reader can make. The badge above carries the fact, and opening the
-       card brings the amber Sent back — f89 pins that half. */
-    assert.equal(t.$('#rl-changes .rl-card').getAttribute('data-rl-popped'), '0',
-      'a sent ask sits quiet — nothing is popped out over the contract');
+    /* The card sits quiet once it is theirs to answer: no verb on it is a move
+       this reader can make. The badge carries the fact, and the clause panel
+       holds the reading matter (16 Aug 2026 — the pop-out is retired). */
+    assert.equal(t.win.rlCpOpenId(), null,
+      'a sent ask sits quiet — no panel is open over the contract');
     assert.ok(!t.$('[data-rl-blast]'), 'nothing unsent, no flashing control');
 
     /* ================= ROUND 2 — the counterparty answers ================= */
@@ -248,12 +248,11 @@ describe('F92 — the six-round negotiation, end to end', () => {
        lives after that is the record and the archive, which this file already
        checks at the end. */
     win.renderRedline();
-    /* The reading matter — our own internal note among it — is behind the
-       card's own button now, in a panel rather than a fold. */
-    t.$(`[data-nego-card="${storage.id}"] [data-rl-pop]`)
-      ?.dispatchEvent(new win.Event('click', { bubbles: true }));
-    assert.ok(t.$$('#rl-pop .rl-cnotes').some(n => /walk if they push past/.test(n.textContent)),
-      'our own internal note is ours to read, in the change\'s own window');
+    /* The reading matter — our own internal note among it — lives in the
+       clause panel's row for the change now (16 Aug 2026). */
+    assert.ok(t.$$(`#rl-cp-body [data-rl-cp-change="${storage.id}"] .rl-cnotes`)
+      .some(n => /walk if they push past/.test(n.textContent)),
+      'our own internal note is ours to read, on the change\'s own row');
     // Send the new ask.
     t.$('#rl-changes [data-rl-send]').click();
     await t.pause();

@@ -441,17 +441,26 @@ describe('F95 — the negotiate objects are one set of objects', () => {
      and the queue is 2px is the drift this test exists to catch, whichever
      number is current. */
   test('the queue, the sheet and the change cards share one radius', () => {
+    /* CLAIM SPLIT IN PLACE, 16 Aug 2026 (owner-asked): the SHEET is square now
+       — a contract page prints square, and the rounded paper read as an app
+       card — and the clause panel is square with it. The columns keep the
+       14px family and a card inside them keeps its 12px step: the one-family
+       rule survives everywhere the page still rounds. */
     const radius = sel => {
       const rule = nego.slice(nego.indexOf(sel + '{'));
       const block = rule.slice(0, rule.indexOf('}'));
       return ((block.match(/border-radius:\s*([^;}]+)/) || [])[1] || '').trim();
     };
-    const got = ['.redline-page .rl-col', '.redline-page .rl-doc',
-      '.redline-page .rl-paper'].map(radius);
-    assert.deepEqual([...new Set(got)], ['14px'],
-      'the three big surfaces are one shape: ' + got.join(' / '));
+    assert.equal(radius('.redline-page .rl-col'), '14px',
+      'the column surface keeps the family shape');
+    assert.equal(radius('.redline-page .rl-doc'), '0',
+      'the doc column clips square — a radius here rounds the sheet\'s corners');
+    assert.equal(radius('.redline-page .rl-paper'), '0',
+      'the paper is square: a contract page prints square');
+    assert.equal(radius('.redline-page .rl-col.rl-cp'), '0',
+      'and the clause panel is square with it, winning on specificity');
     assert.equal(radius('.redline-page .rl-card'), '12px',
-      'and a card inside them is one step tighter, never a different family');
+      'a card inside the column is one step tighter, never a different family');
   });
 
   test('the Document tab\'s own cards were brought with them', () => {

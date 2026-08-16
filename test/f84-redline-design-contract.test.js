@@ -86,20 +86,27 @@ describe('F84 — the design names every part, and the names are on the page', (
   });
 
   /* AND WHAT REPLACED THEM. The names above were the handle everything reached
-     for; these are the handles the conversation has now. */
-  test('the card carries its notes, and the composer the engine binds', async () => {
+     for; these are the handles the conversation has now. RE-POINTED 16 Aug
+     2026: the conversation moved from the card into the clause panel's row for
+     the change — the card is a routing row and the panel is where the one
+     engine-bound composer renders. */
+  test('the panel carries the notes, and the composer the engine binds', async () => {
     const p = await page();
     const card = p.$('#rl-changes [data-nego-card]');
     assert.ok(card, 'there is a card to hang a conversation off');
-    assert.ok(card.querySelector('.rl-cnotes'), 'the notes block is on the card');
     const id = card.getAttribute('data-nego-card');
-    assert.ok(card.querySelector(`[id="nego-ti-${id}"]`), 'the engine\'s own composer id');
-    assert.ok(card.querySelector(`[data-nego-send="${id}"]`), 'and its own send');
+    const row = p.$(`#rl-cp-body [data-rl-cp-change="${id}"]`);
+    assert.ok(row, 'the clause panel has the change\'s row');
+    assert.ok(row.querySelector('.rl-cnotes'), 'the notes block is in the panel');
+    assert.ok(row.querySelector(`[id="nego-ti-${id}"]`), 'the engine\'s own composer id');
+    assert.ok(row.querySelector(`[data-nego-send="${id}"]`), 'and its own send');
+    assert.equal(card.querySelector('.rl-cnotes'), null,
+      'and the routing row carries no second copy — one composer, one home');
     /* THE MARKER IS NOT DECORATION. wireNegotiationTab resolves visibility by
        finding the pressed data-nego-vis button for this change and DEFAULTS TO
-       SHARED when there is none — so on our seat, where the card promises the
+       SHARED when there is none — so on our seat, where the panel promises the
        note never travels, the marker must be present and pressed to internal. */
-    const vis = card.querySelector(`[data-nego-vis][data-for="${id}"][aria-pressed="true"]`);
+    const vis = row.querySelector(`[data-nego-vis][data-for="${id}"][aria-pressed="true"]`);
     assert.ok(vis, 'a pressed visibility marker');
     assert.equal(vis.getAttribute('data-nego-vis'), 'internal',
       'and on our own seat it says internal, or every note would go to them');

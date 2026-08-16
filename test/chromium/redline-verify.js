@@ -317,15 +317,16 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
      a two-line pointer is not the document. */
   const type = await page.evaluate(() => {
     const body = document.querySelector('#rl-doc .nego-body');
-    /* The card's own scale, read off the head — the diff it used to be read
-       from is gone, because the card no longer carries a copy of the wording. */
+    /* The card token (--rl-type) is retired with its last consumer, the
+       clamped diff (16 Aug 2026) — the routing row's chrome sizes are
+       literal, so the compact claim is measured off the head directly. */
     const meta = document.querySelector('#rl-changes .rl-card-meta');
     return { body: getComputedStyle(body).fontSize,
       cardScale: getComputedStyle(document.querySelector('.redline-page')).getPropertyValue('--rl-type').trim(),
       meta: meta ? getComputedStyle(meta).fontSize : null };
   });
   check('7 the contract body reads at the Doc page scale', type.body === '15px', type.body);
-  check('7 the card scale stays compact', type.cardScale === '11.5px', type.cardScale);
+  check('7 the retired card token declares nothing', type.cardScale === '', type.cardScale || 'gone');
   check('7 and the card head is set smaller still', type.meta === '10.5px', type.meta);
 
   /* ---- 8. attribution on every mark ---- */
@@ -417,78 +418,62 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     cards.acc && cards.rej && cards.acc.fg !== cards.rej.fg,
     cards.acc && cards.rej ? `${cards.acc.fg} vs ${cards.rej.fg}` : 'missing');
 
-  /* ---- 14. the card is a handle, not a second copy of the wording ----
-     It carries the redline clamped to two lines again — taken off once as a
-     duplicate of the document pane, restored on the 10 Aug 2026 design because
-     the card that was left read as a filing reference with nothing on it about
-     the thing being decided. What has to hold is that it stays a SUMMARY: two
-     lines, clamped, never a second full copy of the clause. */
+  /* ---- 14. the card is a ROUTING ROW, not a second copy of the wording ----
+     (Claims reversed in place 16 Aug 2026, owner-asked.) The clamped two-line
+     copy is gone with the fat card: the row is the id and state, the clause
+     name, the author's reason and an Open. The wording lives on the paper
+     beside it and, in full, in the clause panel behind Open. */
   const delta = await page.evaluate(() => {
     const card = document.querySelector('#rl-changes .rl-card');
-    const clause = document.querySelector('#rl-doc .rl-clause.is-changed .nego-body').textContent;
-    const sq = s => s.replace(/\s+/g, ' ').trim();
-    const phrase = sq(clause).split(' ').slice(3, 9).join(' ');
-    const diff = document.querySelector('#rl-changes .rl-card-diff');
-    const ds = diff && getComputedStyle(diff);
-    return { hasDiff: !!diff,
-      clampLines: ds && ds.webkitLineClamp,
-      /* MEASURED, not read off the stylesheet: a clamp that stopped applying
-         would let the card grow to the whole clause and this is the only
-         place that would notice. */
-      clampedShort: !!diff && diff.scrollHeight >= diff.clientHeight,
+    return { hasDiff: !!document.querySelector('#rl-changes .rl-card-diff'),
+      meta: (card.querySelector('.rl-card-meta') || { textContent: '' }).textContent.trim(),
       marked: document.querySelectorAll('#rl-doc ins, #rl-doc del').length,
+      openBtn: !!card.querySelector('.rl-open-btn[data-rl-cp-open]'),
       popBtn: !!card.querySelector('[data-rl-pop]'),
-      sample: sq(card.textContent).slice(0, 70) };
+      body: !!card.querySelector('.rl-card-body') };
   });
-  check('14 the card carries the delta, clamped to two lines',
-    delta.hasDiff && delta.clampLines === '2' && delta.clampedShort,
-    `${delta.clampLines} lines — ${delta.sample}`);
+  check('14 the row carries no clamped copy of the wording', !delta.hasDiff);
+  check('14 and names its clause instead', !!delta.meta, delta.meta);
   check('14 and the document still marks it, so nothing was lost', delta.marked > 0, delta.marked);
-  check('14 the card carries the door to its reasoning', delta.popBtn);
+  check('14 the row carries Open — the door to the clause panel',
+    delta.openBtn && !delta.popBtn && !delta.body);
 
-  /* ---- 14b. THE CARD POPS OUT; IT DOES NOT GROW ----
-     The card used to unfold in place. It opens a floating panel now (owner,
-     12 Aug 2026), and the deep version of this — the panel's clipping, the
-     borrowed reply box actually posting, the phone sheet — lives in
-     card-popout-verify.js. What is checked HERE is the part that belongs to
-     this file's subject, the column: that opening a change does not move the
-     column, and that pressing a card still takes you to the clause. */
+  /* ---- 14b. OPEN RAISES THE CLAUSE PANEL; THE COLUMN DOES NOT MOVE ----
+     The pop-out is retired (16 Aug 2026). Open flips the page's ONE clause
+     panel, so opening a change's reading matter must still move nothing in
+     the column, pressing the row must still only navigate, and hovering must
+     still do nothing at all. */
   const pop = await page.evaluate(async () => {
-    const settle = () => new Promise(r => setTimeout(r, 260));
+    const settle = () => new Promise(r => setTimeout(r, 360));
     /* FOLLOWED BY ID, not by position: every press repaints the column. */
     const ID = document.querySelector('#rl-changes [data-nego-card]').getAttribute('data-nego-card');
     const card = () => document.querySelector(`#rl-changes [data-nego-card="${CSS.escape(ID)}"]`);
     const press = el => el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     const h = () => Math.round(card().getBoundingClientRect().height);
     const colH = () => Math.round(document.getElementById('rl-changes').scrollHeight);
-    const start = { h: h(), col: colH(), panel: !!document.getElementById('rl-pop'),
-      popped: card().getAttribute('data-rl-popped') };
-    press(card().querySelector('[data-rl-pop]')); await settle();
-    const opened = { h: h(), col: colH(), panel: !!document.getElementById('rl-pop'),
-      popped: card().getAttribute('data-rl-popped') };
-    press(card().querySelector('[data-rl-pop]')); await settle();
-    const closed = { panel: !!document.getElementById('rl-pop'),
-      popped: card().getAttribute('data-rl-popped') };
+    const panelOpen = () => !!document.querySelector('#rl-cp.is-open');
+    const start = { h: h(), col: colH(), panel: panelOpen() };
+    press(card().querySelector('.rl-open-btn')); await settle();
+    const opened = { h: h(), col: colH(), panel: panelOpen() };
+    press(card().querySelector('.rl-open-btn')); await settle();
+    const closed = { panel: panelOpen() };
     /* Pressing the card itself navigates and opens nothing. */
     press(card().querySelector('.rl-card-head')); await settle();
-    const afterHead = { panel: !!document.getElementById('rl-pop') };
+    const afterHead = { panel: panelOpen() };
     /* And hovering does nothing at all — the peek has been gone for a while
        and must stay gone. */
     card().dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
     card().dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
     await settle();
-    const hovered = { panel: !!document.getElementById('rl-pop') };
+    const hovered = { panel: panelOpen() };
     return { start, opened, closed, afterHead, hovered };
   });
-  check('14b nothing is popped out to begin with',
-    !pop.start.panel && pop.start.popped === '0', JSON.stringify(pop.start));
-  check('14b the button opens the panel', pop.opened.panel && pop.opened.popped === '1',
-    JSON.stringify(pop.opened));
+  check('14b nothing is popped out to begin with', !pop.start.panel, JSON.stringify(pop.start));
+  check('14b Open raises the clause panel', pop.opened.panel, JSON.stringify(pop.opened));
   check('14b AND THE COLUMN DOES NOT MOVE — the whole point of the change',
     pop.opened.h === pop.start.h && pop.opened.col === pop.start.col,
     `card ${pop.start.h}→${pop.opened.h}px, column ${pop.start.col}→${pop.opened.col}px`);
-  check('14b the same press closes it', !pop.closed.panel && pop.closed.popped === '0',
-    JSON.stringify(pop.closed));
+  check('14b the same press closes it', !pop.closed.panel, JSON.stringify(pop.closed));
   check('14b pressing the card takes you to the clause and opens nothing',
     !pop.afterHead.panel, JSON.stringify(pop.afterHead));
   check('14b and hovering opens nothing — the peek is gone', !pop.hovered.panel);

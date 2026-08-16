@@ -579,23 +579,28 @@ const SHEET = () => {
     check('6 the queue rail still hangs on the working area\'s own left border',
       !!rail && Math.abs(rail.dx) <= 2, rail && `${rail.dx}px from the grid edge`);
 
+    /* RE-POINTED 16 Aug 2026: the card pop-out is retired — the row's Open
+       raises the clause panel, which lives in the grid's second track and is
+       outside the zoom by construction. What this file's subject requires is
+       that the panel is on screen and unaffected by the sheet's zoom. */
     const pop = await page.evaluate(async () => {
-      const btn = document.querySelector('#rl-changes .rl-card [data-rl-pop]');
+      const btn = document.querySelector('#rl-changes .rl-card .rl-open-btn');
       if (!btn) return null;
       btn.click();
-      await new Promise(r => setTimeout(r, 350));
-      const panel = document.querySelector('.rl-pop');
-      const card = btn.closest('.rl-card');
-      if (!panel || !card) return { open: false };
-      const p = panel.getBoundingClientRect(), c = card.getBoundingClientRect();
+      await new Promise(r => setTimeout(r, 400));
+      const panel = document.querySelector('#rl-cp.is-open');
+      if (!panel) return { open: false };
+      const p = panel.getBoundingClientRect();
       return { open: p.width > 0 && p.height > 0,
-        leftOfCard: p.right <= c.left + 4,
         onScreen: p.left >= 0 && p.right <= window.innerWidth + 1 };
     });
-    check('6 the card pop-out still lands beside its card, on screen',
-      pop && pop.open && pop.leftOfCard && pop.onScreen, JSON.stringify(pop));
-    await page.evaluate(() => { const p = document.querySelector('.rl-pop');
-      if (p) document.body.click(); });
+    check('6 the clause panel opens from the row, on screen',
+      pop && pop.open && pop.onScreen, JSON.stringify(pop));
+    await page.evaluate(async () => {
+      const btn = document.querySelector('#rl-changes .rl-card .rl-open-btn');
+      if (btn) btn.click();
+      await new Promise(r => setTimeout(r, 350));
+    });
     await pause(200);
 
     /* THE HANDLE TRACKS THE CURSOR ONE-TO-ONE. The fault this guards is real
