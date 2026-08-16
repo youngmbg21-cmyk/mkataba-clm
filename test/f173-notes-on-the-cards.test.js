@@ -183,7 +183,14 @@ describe('f173 · the column head is a caption and a count', () => {
       'and the count is mono — it is the one part of the head that is a number');
     assert.match(n, /font-variant-numeric:tabular-nums/,
       'in tabular figures, so 1 and 11 do not shift the words beside them');
-    assert.ok(p.$('.rl-idx-head .rl-idx-k') && p.$('.rl-idx-head .rl-idx-n'),
-      'both parts are drawn');
+    /* Option 1 (16 Aug 2026): where the filter tabs draw, the All tab is the
+       count and the separate .rl-idx-n stands down — it survives only on a
+       narrowed reviewer's head, which draws no tabs. The caption is always
+       there; the count is there exactly once, in one form or the other. */
+    assert.ok(p.$('.rl-idx-head .rl-idx-k'), 'the caption is drawn');
+    assert.ok(p.$('.rl-idx-head .rl-idx-n') === null
+      ? !!p.$('.rl-idx-head .rl-fsegwrap')
+      : !p.$('.rl-idx-head .rl-fsegwrap'),
+      'the count appears exactly once — on the tabs, or as its own span, never both');
   });
 });

@@ -229,10 +229,16 @@ describe('F93 (2) — the origin filter is gone, and nothing hides a card', () =
   test('the count above the cards counts the cards', async () => {
     /* The pill and the list it labels are the pair the old filter could put
        out of step — a column showing four under a head reading two. Same
-       reading now, from redlineCardIds, so they cannot disagree. */
+       reading now, from redlineCardIds, so they cannot disagree.
+       SINCE THE ONE-LINE HEAD (Option 1, 16 Aug 2026) the count lives in the
+       filter's own All tab — the separate "N on the table" drew the same
+       number twice and cost the head a row. Same claim, read off the tab. */
     const p = await page({ myChange: true });
-    assert.match(p.$('.rl-idx-n').textContent,
-      new RegExp('\\b' + p.cardIds().length + ' on the table'));
+    assert.equal(p.$('.rl-idx-n'), null,
+      'the separate count is gone where the tabs draw');
+    assert.equal(
+      p.$('[data-rl-cardfilter="all"] .rl-fseg-n').textContent.trim(),
+      String(p.cardIds().length), 'All carries the count instead');
   });
 });
 
@@ -342,8 +348,12 @@ describe('F93 (5) — the counterparty link gets the same column, seat-flipped',
     const head = box.querySelector('.rl-idx-head');
     assert.ok(head, 'same head, no portal-shaped copy');
     assert.match(head.textContent, /Tracked changes/i);
-    assert.match(head.textContent, /on the table/);
-    assert.equal(box.querySelector('#rl-card-filter'), null, 'and no filter on their seat either');
+    /* Option 1 (16 Aug 2026): the count rides the All tab on every seat that
+       draws the tabs — "on the table" survives only on a narrowed reviewer's
+       head, which their seat never is. */
+    assert.ok(head.querySelector('[data-rl-cardfilter="all"] .rl-fseg-n'),
+      'the All tab carries the count on their seat too');
+    assert.equal(box.querySelector('#rl-card-filter'), null, 'and no filter dropdown on their seat either');
   });
 });
 

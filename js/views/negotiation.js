@@ -7529,7 +7529,11 @@ function redlineLayoutCss(){
      middle phrase is the only thing allowed to give and it ellipsises. Measured
      at a 300px column — the narrowest the resizer allows — where it holds one
      line at 41px. */
-  .redline-page .rl-unsent{display:flex;align-items:center;gap:8px;
+  ${''/* flex-basis:100%: the band lives inside the head, and since the head
+     became one line (Option 1, 16 Aug 2026) a flex item without a basis
+     would try to share the caption's line. The band always takes a whole
+     line of its own. */}
+  .redline-page .rl-unsent{display:flex;flex-basis:100%;align-items:center;gap:8px;
     margin:8px 0 6px;padding:6px 8px 6px 10px;border-radius:8px;
     border:1px solid var(--st-amber-line);background:var(--st-amber-bg);
     white-space:nowrap;overflow:hidden}
@@ -7884,6 +7888,9 @@ function redlineLayoutCss(){
      broken one. */
   .redline-page .rl-idx-head:has(.rl-fsegwrap){padding-bottom:0}
   .redline-page .rl-idx-head [hidden]{display:none!important}
+  ${''/* the read-only sentence also lives inside the head; on the one-line
+     head it must never share the caption's line. */}
+  .redline-page .rl-idx-head .nego-why{flex-basis:100%}
   .redline-page .rl-idx-k{flex:1;min-width:0;font-size:10.5px;font-weight:800;letter-spacing:.12em;
     text-transform:uppercase;color:var(--color-neutral-600)}
   .redline-page .rl-idx-n{flex:none;font-family:var(--font-mono);font-size:11px;font-weight:700;
@@ -7893,9 +7900,7 @@ function redlineLayoutCss(){
   /* ---- WHOSE ASKS: THE THREE-WAY CUT ----
      A segmented control, not a dropdown, so all three answers and the live one
      are readable without opening anything — the difference between a filter you
-     can forget you set and one you cannot. It takes a full line of the strip
-     (flex-basis:100%) because the column is narrow and a caption, a count and
-     three chips do not share 300px.
+     can forget you set and one you cannot.
 
      NO TRAY AT ALL, now that there is no band to sit it on. A tray is how you
      say "these three belong together" when they float on open ground; hung off
@@ -7907,10 +7912,16 @@ function redlineLayoutCss(){
 
      THE TABS TAKE THEIR NATURAL WIDTH (flex:none, not flex:1). Stretched to
      thirds they read as three buttons; at their own width with a real gap they
-     read as three labels, which is what a filter is. It still takes a full
-     line of the strip — a caption, a count and three labels do not share
-     300px. */
-  .redline-page .rl-fsegwrap{flex-basis:100%;display:flex;gap:16px;padding:0;margin-top:3px;
+     read as three labels, which is what a filter is.
+
+     ONE LINE WITH THE CAPTION (owner-chose Option 1, 16 Aug 2026). This used
+     to take a full line of its own (flex-basis:100%) under a caption AND a
+     separate count — two rows saying one number twice. The separate count is
+     gone wherever the tabs draw (All N is the count), the caption's flex:1
+     pushes the tabs to the right wall, and the head is one ruled line. On a
+     column too narrow for both, flex-wrap drops the tabs to a second line —
+     the old arrangement, as the fallback rather than the rule. */
+  .redline-page .rl-fsegwrap{flex:none;display:flex;gap:16px;padding:0;
     background:none;border:0;border-radius:0}
   .redline-page .rl-fseg{flex:none;min-width:0;display:flex;align-items:center;
     gap:5px;border:0;border-bottom:2px solid transparent;background:none;font:inherit;
@@ -13970,7 +13981,16 @@ function redlinePanesHtml(c, opts = {}){
         <div class="nego-pane index" id="rl-changes-col" aria-label="${i18t('ng_tracked_changes')}">
           <div class="nego-index-head rl-idx-head">
           <span class="rl-idx-k">${i18t('ng_tracked_changes_head')}</span>
-          <span class="rl-idx-n${changeTotal ? ' is-live' : ''}" id="rl-chg-count-wrap">${i18t('ng_on_the_table',{n:changeTotal})}</span>
+          ${''/* ---- THE COUNT DRAWS ONLY WHERE THE TABS DO NOT ----
+                 (owner-chose Option 1, 16 Aug 2026.) "2 on the table" and the
+                 filter's "All 2" said the same number twice, twelve pixels
+                 apart, and the duplicate cost the head a whole row. The
+                 filter's own counts are the count now — one line, caption
+                 left, tabs right on the same rule. A narrowed reviewer gets
+                 no filter (one-outcome control is furniture), so THEIR head
+                 keeps the plain count: dropping both would leave the column
+                 with no number at all. */}
+          ${rlMyCardIds(c, opts) ? `<span class="rl-idx-n${changeTotal ? ' is-live' : ''}" id="rl-chg-count-wrap">${i18t('ng_on_the_table',{n:changeTotal})}</span>` : ''}
           ${''/* ---- WHOSE ASKS ----
                  Asked for by name (Young, 10 Aug 2026). Segmented rather than
                  a dropdown, and every option carries its own count, so a

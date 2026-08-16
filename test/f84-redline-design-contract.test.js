@@ -255,11 +255,17 @@ describe('F84 — the Tracked Changes head is a caption and a count', () => {
      has to be in the DOM, and it has to be clickable rather than display:none.
      That is the one thing here that would break silently. */
   test('the head says what the column is and how much is on the table', async () => {
+    /* "How much" moved onto the filter's All tab (Option 1, 16 Aug 2026):
+       "N on the table" and "All N" printed one number twice, and the
+       duplicate cost the head a row. The claim is unchanged — the head still
+       answers both questions — the count is just read off the tab now. */
     const p = await page();
     const head = p.$('.rl-idx-head');
     assert.ok(head, 'the column heads itself');
     assert.match(head.textContent, /Tracked changes/i, 'what it is');
-    assert.match(head.textContent, /\d+ on the table/, 'and how much is in it');
+    const all = head.querySelector('[data-rl-cardfilter="all"] .rl-fseg-n');
+    assert.ok(all && /^\d+$/.test(all.textContent.trim()),
+      'and how much is in it — on the All tab, said once');
   });
 
   test('the controls that used to crowd it are gone', async () => {
