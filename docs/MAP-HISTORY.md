@@ -3011,3 +3011,46 @@ never moved is the relation, the count a hair above the caption and no more.
 The MAP's own sentence calling the head "an accent COLOUR STRIP" was found
 stale in the same pass (the strip came and went on 10 Aug 2026; f175 has
 pinned the rule-not-a-box frame since) and corrected.
+
+## FOCUS MODE'S VOID WAS THE SHELL'S EMPTY TRACK (16 Aug 2026, the second report)
+
+The column cap above shipped believing it answered the owner's focus-mode
+screenshot, and the owner came straight back: "focus mode is still not fixed",
+with a new screenshot. This one had the detail that broke the case open: the
+void sat LEFT OF THE ENTIRE GRID — the queue rail, which hangs on the grid's
+own left border, was floating ~490px from the window's edge — where the
+zoom-cap void sits INSIDE the doc column, split evenly around a centred
+sheet. Two different faults, one symptom, and the first fix had found a real
+fault that happened not to be the reported one.
+
+The mechanism: index.html pins the shell's main column to grid-column:2, with
+a comment explaining why — below 1500px the sidebar goes position:fixed,
+leaves grid flow entirely, and an auto-placed main column would slide into
+the sidebar's own track. Focus mode then collapsed the shell to ONE column
+(grid-template-columns:minmax(0,1fr)!important). A pinned grid-column:2 in a
+one-column template lands in an IMPLICIT, auto-sized column — and the
+explicit 1fr column sits empty to its left, taking every pixel the content's
+natural width leaves over.
+
+That content-dependence is why a day of probing never saw it. An auto track
+sizes to its content's max-content width, and max-content ignores wrapping:
+a column of full cards, whose paragraphs measure enormous laid on one line,
+filled the window — void zero. So did the empty column's blurb sentence. But
+a column of one-line receipts — which is exactly what the bench looks like
+the moment you have sent your asks, and exactly what the owner's screenshot
+showed — measures ~500px, the grid's own inline columns another ~850, and
+the rest of the window went to the empty track. Staged with two sent
+receipts at the owner's divider split, the void measured 917px before the
+fix was touched.
+
+The fix is one value: keep TWO explicit columns under focus, the first one
+zero — grid-template-columns:0px minmax(0,1fr)!important — so the pin stays
+honest and column 2 is the real full-width 1fr track. f94 pins the rule's
+text (jsdom computes no grid layout, so the text is what a node test can
+hold); negotiations-door-verify section 10 measures the geometry in a real
+Chrome, staging the receipt first because the narrow content is the whole
+trigger, and checks the way back out of focus restores the sidebar.
+
+The zoom-cap entry stays on its own merits — 427px of measured white on a
+2560 monitor is real — re-attributed in place so the map does not claim it
+answered a report it did not.

@@ -451,6 +451,56 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       benchHeld.held === cid2 && benchHeld.bench,
       `held ${benchHeld.held} · sheet drawn ${benchHeld.bench}`);
 
+    /* ---- 10. FOCUS MODE KEEPS THE PAGE AT THE WALL ----
+       Owner-reported 16 Aug 2026: a wide dead-white void LEFT of the contract
+       in focus mode. The shell's main column is pinned grid-column:2, and the
+       focus rule used to collapse the shell to ONE column — pushing the pinned
+       content into an implicit auto-sized column whose width followed the
+       CONTENT's natural width. A column of full cards (paragraphs measure
+       wide) hid the fault; a column of one-line RECEIPTS exposed it, which is
+       why the staging here sends the asks first. jsdom computes no grid, so
+       this geometry can only be measured here. */
+    await page.evaluate(async () => {
+      localStorage.setItem('hati.v1.rlLeftFrac', '0.45');
+      const c = getContract(redlineHeldId());
+      negoInit(c);
+      const cl = negoClauseList(c);
+      await negoEditClause(c, cl[0].clauseId, '<p>Focus-probe wording one.</p>',
+        { side: 'owner', author: 'Amina Otieno', summary: 'probe' });
+      negoHandOver(c, { to: 'counterparty', by: 'Amina Otieno' });
+      renderRedline();
+    });
+    await page.waitForTimeout(600);
+    const receiptsOnly = await page.evaluate(() =>
+      document.querySelectorAll('#rl-changes .rl-receipt').length);
+    check('10 the column holds a one-line receipt — the narrow content that showed the void',
+      receiptsOnly >= 1, receiptsOnly + ' receipt(s)');
+    await page.evaluate(() => rlSetFocus(true));
+    await page.waitForTimeout(700);
+    const focusGeo = await page.evaluate(() => {
+      const g = document.querySelector('.redline-page .rl-grid').getBoundingClientRect();
+      return { left: Math.round(g.left), right: Math.round(window.innerWidth - g.right),
+        cols: getComputedStyle(document.getElementById('app-shell')).gridTemplateColumns };
+    });
+    check('10 IN FOCUS THE GRID STARTS AT THE WALL — no void left of the contract',
+      focusGeo.left <= 24, `grid left ${focusGeo.left}px · shell ${focusGeo.cols}`);
+    /* 40, not 24: the right edge legitimately spends the page's own 10px
+       padding plus the scroll container's reserved gutter (scrollbar-gutter:
+       stable, ~17px). What it must never spend is a TRACK's worth. */
+    check('10 and ends at the other wall — the width was not handed to an empty track',
+      focusGeo.right <= 40, `gap right ${focusGeo.right}px`);
+    check('10 the shell\'s first track is exactly zero, not a share of the window',
+      /^0px /.test(focusGeo.cols), focusGeo.cols);
+    await page.screenshot({ path: path.join(OUT, '10-focus-at-the-wall.png') });
+    await page.evaluate(() => rlSetFocus(false));
+    await page.waitForTimeout(500);
+    const backGeo = await page.evaluate(() => {
+      const g = document.querySelector('.redline-page .rl-grid').getBoundingClientRect();
+      return { left: Math.round(g.left) };
+    });
+    check('10 leaving focus brings the sidebar and the old geometry back',
+      backGeo.left > 60, `grid left ${backGeo.left}px`);
+
     check('no page errors on the whole journey', errors.length === 0, errors.join(' | ') || 'clean');
   } catch (e) {
     check('the run completed', false, e.message);
