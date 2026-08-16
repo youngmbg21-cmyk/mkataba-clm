@@ -76,8 +76,12 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('1a the pill is on the clause, as visible pixels', !!pill && pill.w > 20 && pill.h > 10,
      pill ? `"${pill.text}" ${pill.w}x${pill.h}` : 'absent');
   ck('1b it says Edit', !!pill && pill.text === 'Edit', pill && pill.text);
-  ck('1c it is GREEN — measured, not read off a rule that may be scoped elsewhere',
-     !!pill && /rgb\(236, 253, 245\)/.test(pill.bg) && /rgb\(6, 95, 70\)/.test(pill.colour),
+  ck('1c it wears the NAV\'s colour — measured, not read off a rule that may be scoped elsewhere',
+     /* Re-pointed 16 Aug 2026 (owner-asked): the pill follows the nav panel's
+        own token — dark green #0b3d3a in the green workspace (this harness's
+        fallback), navy in the blue one — with white text. It was a fixed pale
+        emerald before. */
+     !!pill && /rgb\(11, 61, 58\)/.test(pill.bg) && /rgb\(255, 255, 255\)/.test(pill.colour),
      pill && `bg ${pill.bg}, text ${pill.colour}`);
   ck('1d it is ABOVE the wording', !!pill && pill.aboveWording,
      pill && `pill bottom vs body top`);

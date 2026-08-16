@@ -99,17 +99,19 @@ describe('f210 (1) — the pill', () => {
     });
   });
 
-  test('it is green, and it is not hover-only', async () => {
-    /* Emerald is the colour this page already wears for "your redlines travel
-       on this" — the same family Direct Edit uses, deliberately, so a reader
-       does not learn a second signal for the same idea.
+  test('it wears the nav\'s colour, and it is not hover-only', async () => {
+    /* CLAIM MOVED WITH THE OWNER'S ASK (16 Aug 2026): the pill follows the
+       workspace theme through the nav panel's own token — dark green in the
+       green workspace, navy in the blue one — instead of a fixed emerald that
+       ignored what the workspace wore. One token, --nav-bg, so the dark theme
+       comes free.
 
        ALWAYS DRAWN is the load-bearing half. The tool row is furniture on a
        clause you are already working on; this is the way IN, and a hover-only
        door is an invisible affordance — the exact fault this file records
        against the selection route. */
-    assert.match(SRC, /\.redline-page \.rl-cp-pill\{[^}]*background:#ecfdf5/,
-      'the pill is emerald');
+    assert.match(SRC, /\.redline-page \.rl-cp-pill\{[^}]*background:var\(--nav-bg/,
+      'the pill wears the nav panel\'s own colour token');
     assert.match(SRC, /\.redline-page \.rl-cp-pill\{[^}]*margin-left:auto/,
       'and it is pushed right even on a clause with no heading beside it');
     assert.doesNotMatch(SRC, /\.rl-clause:hover \.rl-cp-pill/,

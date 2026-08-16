@@ -2959,6 +2959,14 @@ function buildSharePayload(c, docHash, who, opts){
        for in flight); the payload does not need to. */
     try{ for (const id of reviewWithheldIds(c)) heldBack.add(id); }catch(_){}
   }
+  /* AND WHAT A SOLO SEND CHOSE TO KEEP BACK (16 Aug 2026) — unconditionally,
+     for exactly the reason the review's holds are: reshareToLastRecipient,
+     the round-send every negotiation after the first travels on, passes no
+     options, and a flag-gated filter would push a deliberately held draft
+     down the ordinary path. See negoHeldBackIds. */
+  if (window.negoHeldBackIds){
+    try{ for (const id of negoHeldBackIds(c)) heldBack.add(id); }catch(_){}
+  }
   const shareChanges = (window.negoAllChanges ? negoAllChanges(c) : [])
     .filter(x => x.status !== 'superseded' && !heldBack.has(x.id))
     .map(x => ({ id:x.id, clauseId:x.clauseId, clauseLabel:x.clauseLabel||null, type:x.type,

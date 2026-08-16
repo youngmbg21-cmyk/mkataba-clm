@@ -5833,12 +5833,20 @@ function rlRepaintFrom(node){
    and publish the round twice. redlineSyncProxies still runs per paint — that
    is a different job (whether a proxy is USABLE) and has always had to re-run
    on fresh markup. */
+/* Which change a card's Send is about, for the duration of one press. Consumed
+   by onSendDirect; null means a BATCH send (the band, Publish Round). See the
+   [data-rl-send] handler in rlWireClauseTools. */
+let _rlSoloSendId = null;
 if (typeof document !== 'undefined' && !document._rlProxyWired){
   document._rlProxyWired = true;
   document.addEventListener('click', ev => {
     const el = ev.target && ev.target.closest && ev.target.closest('[data-redline-proxy]');
     if (!el || el.disabled) return;
     const target = document.getElementById(el.getAttribute('data-redline-proxy'));
+    /* A proxy is always a BATCH door — the band's "Send all N" and Publish
+       Round both come through here — so any solo marker is stale by
+       definition and must not narrow this send. */
+    _rlSoloSendId = null;
     if (target && !target.disabled) target.click();
   });
 }
@@ -7466,15 +7474,21 @@ function redlineLayoutCss(){
      And it is CUT FROM THE SELECTION with the rest of the furniture (see
      _NEGO_SEL_CHROME): a drag from above the first word to below the last must
      not sweep the word "Edit" into the passage the Copilot is asked about. */
+  ${''/* THE PILL WEARS THE NAV'S OWN COLOUR (owner-asked 16 Aug 2026): dark
+     green like the nav panel in the green workspace, navy like the nav panel
+     in the blue one — one token, --nav-bg, so it follows the theme (and the
+     dark theme) with no rule of its own. It replaced a pale emerald that
+     stayed emerald whatever the workspace wore. Hover lightens the same
+     colour rather than changing it. */}
   .redline-page .rl-cp-pill{margin-left:auto;flex:none;
-    border:1px solid #6ee7b7;background:#ecfdf5;color:#065f46;
+    border:1px solid var(--nav-bg,#0b3d3a);background:var(--nav-bg,#0b3d3a);color:#fff;
     border-radius:999px;padding:calc(3px * var(--doc-scale,1)) calc(11px * var(--doc-scale,1));
     font:inherit;font-size:calc(10.5px * var(--doc-scale,1));font-weight:700;line-height:1.6;
     cursor:pointer;white-space:nowrap;-webkit-user-select:none;user-select:none;
     box-shadow:0 1px 2px rgba(15,23,42,.08);transition:background .15s,border-color .15s}
-  .redline-page .rl-cp-pill:hover{background:#d1fae5;border-color:#059669}
+  .redline-page .rl-cp-pill:hover{background:color-mix(in srgb,var(--nav-bg,#0b3d3a) 82%,#fff);
+    border-color:color-mix(in srgb,var(--nav-bg,#0b3d3a) 82%,#fff)}
   .redline-page .rl-cp-pill:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
-  html.dark .redline-page .rl-cp-pill{background:rgba(5,150,105,.16);border-color:rgba(5,150,105,.45);color:#6ee7b7}
   /* Every clause's panel body is in the panel already; opening flips which one
      is on. ONE AT A TIME — the same single-value rule as the card pop-out and
      the ask reveal — so the panel can never show two clauses at once, and
@@ -7772,11 +7786,15 @@ function redlineLayoutCss(){
 
   /* ---- THE LINK BETWEEN A CLAUSE AND ITS CARD ----
      Both ends light at once, whichever end was clicked, because the point of
-     the pairing is that they are one thing shown twice. A ring rather than a
-     fill: the clause already uses background to say "something is on the table
-     here", and a second background would have two meanings competing in one
-     box. */
-  .redline-page .rl-clause.is-linked{box-shadow:0 0 0 2px var(--accent-solid)}
+     the pairing is that they are one thing shown twice. ON THE PAPER the mark
+     is a THIN GREY DOTTED LINE (owner-asked 16 Aug 2026, off a screenshot):
+     the solid accent ring read as a heavy blue box around the contract's own
+     words, and the paper is the one surface that must stay quiet — an outline,
+     so it costs the wording no width and moves nothing. Both seats inherit it,
+     the same rule. The CARD keeps the accent ring: a row in a column is
+     furniture, and there the stronger mark is what makes the pairing findable. */
+  .redline-page .rl-clause.is-linked{outline:1px dotted var(--color-neutral-400);
+    outline-offset:3px}
   .redline-page .rl-card.is-linked{box-shadow:0 0 0 2px var(--accent-solid);
     border-color:var(--accent-solid)}
 
@@ -8201,9 +8219,13 @@ function redlineLayoutCss(){
     box-shadow:0 1px 2px rgba(15,23,42,.08);
     transition:border-color .15s,color .15s,background .15s}
   .redline-page .rl-cp-act:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
-  .redline-page .rl-cp-act.rl-cp-act-new{background:#ecfdf5;border-color:#6ee7b7;color:#065f46}
-  .redline-page .rl-cp-act.rl-cp-act-new:hover{background:#d1fae5;border-color:#059669}
-  html.dark .redline-page .rl-cp-act.rl-cp-act-new{background:rgba(5,150,105,.16);border-color:rgba(5,150,105,.45);color:#6ee7b7}
+  ${''/* The ＋ wears the nav's colour for the same reason the Edit pill does —
+     they are the same act's two doors, and both follow the theme through
+     --nav-bg (dark green workspace → dark green, blue → navy). */}
+  .redline-page .rl-cp-act.rl-cp-act-new{background:var(--nav-bg,#0b3d3a);
+    border-color:var(--nav-bg,#0b3d3a);color:#fff}
+  .redline-page .rl-cp-act.rl-cp-act-new:hover{background:color-mix(in srgb,var(--nav-bg,#0b3d3a) 82%,#fff);
+    border-color:color-mix(in srgb,var(--nav-bg,#0b3d3a) 82%,#fff)}
   .redline-page .rl-cp-hint{flex-basis:100%;margin:6px 0 0;font-size:10.5px}
   /* The Copilot's WORDS, not its button — a signal that the feature exists on a
      highlight, in the violet this page already gives the assistant. No pill, no
@@ -9710,6 +9732,19 @@ function renderRedline(){
       renderRedline();
     },
     async onSendDirect(){
+      /* ---- SOLO OR BATCH, DECIDED BEFORE ANYTHING LEAVES ----
+         Read on the first line, before the first await, because the marker
+         lives only for the synchronous press that set it. A solo send holds
+         every OTHER unsent draft back (negoHoldOthers — buildSharePayload
+         subtracts the held set unconditionally, the same way it subtracts a
+         reviewer's holds); a batch send releases any standing hold so drafts
+         a solo send kept back finally travel with it. `released` is
+         remembered because the turn arithmetic cannot see those drafts once
+         the hold is lifted — negoHandOver is told work left anyway. */
+      const solo = _rlSoloSendId; _rlSoloSendId = null;
+      let released = false;
+      if (solo && window.negoHoldOthers) negoHoldOthers(c, solo);
+      else if (window.negoReleaseHold) released = negoReleaseHold(c);
       const to = c.counterpartyName || c.counterparty || 'the counterparty';
       const btns = [...document.querySelectorAll('#view-redline [data-rl-send], #view-redline [data-rl-blast]')];
       btns.forEach(b => { b.disabled = true; });
@@ -9721,7 +9756,13 @@ function renderRedline(){
            timestamp. Moving it first and sending after would put the word
            "Sent" on a card while the send was still in flight, and leave it
            there if the send failed. */
-        const handed = negoHandOver(c, { to: 'counterparty', by: opts.by || (window.currentUser && currentUser()?.name) });
+        const handed = negoHandOver(c, { to: 'counterparty',
+          by: opts.by || (window.currentUser && currentUser()?.name),
+          /* Drafts a solo send once held back read as SENT the moment the
+             hold lifts (their createdAt predates the last turn stamp), so
+             the arithmetic alone would call this batch a no-op. It was not:
+             the payload above carried them. */
+          sentAnyway: released });
         if (window.persist) persist(c);
         /* "It is now their turn" is only true when the turn actually moved. A
            second batch sent while it was already theirs must not claim the
@@ -9747,11 +9788,15 @@ function renderRedline(){
            is the thing the old sentence asked for and did not hand over. */
         const delivered = !!(out && out.delivered && !out.stranded);
         const link = (out && out.link) || null;
+        /* A solo send says what it deliberately left on the desk — silence
+           about the other drafts is how a partial send reads as a full one. */
+        const kept = window.negoHeldBackIds ? negoHeldBackIds(c).length : 0;
+        const keptLine = kept ? ` — ${kept} other draft${kept === 1 ? '' : 's'} still unsent` : '';
         if (window.toast) toast(out && out.stranded
           ? `${window.reshareStrandedLine ? reshareStrandedLine(to) : 'A NEW link was created for ' + to + '.'}${turnLine ? ' It is now their turn.' : ''}`
           : delivered
-          ? `Sent to ${to}${turnLine}`
-          : `${i18t('ng_published_not_emailed', { who: to })}${turnLine}`,
+          ? `Sent to ${to}${turnLine}${keptLine}`
+          : `${i18t('ng_published_not_emailed', { who: to })}${turnLine}${keptLine}`,
           delivered ? 'ok' : 'warn',
           (!delivered && link) ? { action: { label: i18t('ng_copy_link'),
             onClick: () => { try{ navigator.clipboard.writeText(link); }catch(e){}
@@ -10807,10 +10852,20 @@ function rlWireClauseTools(c, host, opts){
       rlLinkFocus(c, t.getAttribute('data-rl-thread'), 'card');
     }));
 
-  /* The card's Send — the SAME act as the toolbar's batch send, because there
-     is only one send: everything unsent goes in one round. A per-change send
-     would let a reader believe they had published one ask while three others
-     stayed home. */
+  /* ---- THE CARD'S SEND SENDS THAT CARD (owner-asked 16 Aug 2026, and this
+     REVERSES the 11 Aug "one send, batch semantics" decision — reported as a
+     bug in exactly those words: "if I click on one card to send, it sends all
+     the cards"). The press still goes through the page's ONE postbox — never
+     a second transport — but it marks itself a SOLO send first: onSendDirect
+     reads the marker and holds every OTHER unsent draft back
+     (negoHoldOthers), so the round that leaves carries exactly this change
+     and the rest stay on the desk reading Draft. The batch doors — the "Send
+     all N" band and Publish Round — release the hold on their way through,
+     because a batch door means "send everything".
+
+     OWNER'S SEAT ONLY. The counterparty's card Send still posts everything
+     their page holds (#nego-send-decisions) — their held answers travel as
+     one response envelope by design, and the button's title says so. */
   negoWireWhyClamp(host);
   host.querySelectorAll('[data-rl-send]').forEach(btn => btn.addEventListener('click', ev => {
     ev.preventDefault(); ev.stopPropagation();
@@ -10820,7 +10875,16 @@ function rlWireClauseTools(c, host, opts){
        first so two workbenches on one page cannot press each other. */
     const id = (opts && opts.side) === 'counterparty' ? 'nego-send-decisions' : 'nego-send';
     const engine = negoPick(host, id) || document.getElementById(id);
-    if (engine && !engine.disabled){ engine.click(); return; }
+    if (engine && !engine.disabled){
+      const chId = btn.getAttribute('data-rl-send');
+      /* The marker lives only for this synchronous press: onSendDirect
+         consumes it on its first line, and the timeout clears it in case the
+         press fell through to the share dialog instead (no contact on file) —
+         a lingering marker would turn the NEXT batch press into a solo one. */
+      if (id === 'nego-send' && chId) _rlSoloSendId = chId;
+      try{ engine.click(); } finally { setTimeout(() => { _rlSoloSendId = null; }, 0); }
+      return;
+    }
     if (window.toast) toast(i18t('ng_nothing_to_send'), 'err');
   }));
 

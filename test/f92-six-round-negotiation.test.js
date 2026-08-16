@@ -138,7 +138,12 @@ describe('F92 — the six-round negotiation, end to end', () => {
     assert.match(t.$('[data-rl-blast]').textContent, /Send All \(2\) Redlines/);
 
     // One click sends the lot; no dialog; badges flip; the verb turns amber.
-    t.$('#rl-changes [data-rl-send]').click();
+    /* THE BATCH DOOR, NOT A CARD'S SEND (claim re-pointed 16 Aug 2026,
+       owner-asked): a card's Send now sends that card alone — pressing it here
+       would publish one draft and hold the other, which is F100g's story. The
+       "send the lot" act this round needs is the band's Send all, a
+       [data-redline-proxy] batch door onto the same postbox. */
+    t.$('.rl-unsent-go').dispatchEvent(new win.Event('click', { bubbles: true }));
     await t.pause();
     win.renderRedline();
     assert.equal(t.post.modals, 0, 'zero confirmation pop-ups on the send path');
