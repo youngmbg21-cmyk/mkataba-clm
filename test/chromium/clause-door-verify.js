@@ -110,7 +110,8 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     const grid = document.querySelector('.redline-page .rl-grid').getBoundingClientRect();
     const on = panel.querySelector('.rl-cp-src.is-on');
     const heads = [...panel.querySelectorAll('.rl-cp-src.is-on .rl-cp-h')].map(h=>h.textContent.trim());
-    const scrim = document.querySelector('.redline-page #rl-cp-scrim');
+    const side = document.querySelector('.redline-page #rl-side').getBoundingClientRect();
+    const doc = document.querySelector('.redline-page #rl-doc');
     return { openClass: panel.classList.contains('is-open'),
       visible: getComputedStyle(panel).visibility === 'visible',
       w: Math.round(r.width), h: Math.round(r.height),
@@ -119,7 +120,17 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
       forClause: on && on.getAttribute('data-rl-cp-for'),
       heads, bodies: panel.querySelectorAll('.rl-cp-src').length,
       shown: panel.querySelectorAll('.rl-cp-src.is-on').length,
-      scrimOn: !!scrim && getComputedStyle(scrim).opacity === '1' };
+      noScrim: !document.querySelector('.redline-page #rl-cp-scrim'),
+      coversColumn: Math.round(r.left) <= Math.round(side.left),
+      deeperBy: Math.round(side.left - r.left),
+      docDimmed: getComputedStyle(doc).opacity !== '1' || getComputedStyle(doc).filter !== 'none',
+      docReachable: (() => {
+        /* Is a word of the contract still the top thing at its own coordinates?
+           If it is, the reader can still read it, select it and press it. */
+        const cl = document.querySelector('.redline-page #rl-doc section.rl-clause .nego-body');
+        const b = cl.getBoundingClientRect();
+        const top = document.elementFromPoint(b.left + 20, b.top + 8);
+        return !!(top && top.closest && top.closest('#rl-doc')); })() };
   }, staged.clauseId);
   ck('2a a real press opens the panel — the delegated listener is armed',
      !!open && open.openClass && open.visible, open && `is-open ${open.openClass}, ${open.visibility||open.visible}`);
@@ -135,7 +146,18 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('2f the three sections are there',
      !!open && open.heads.slice(0,3).join('|') === 'As it stands|On the table|History',
      open && open.heads.join(' · '));
-  ck('2g the backdrop is up', !!open && open.scrimOn);
+  /* ---- REVERSED IN PLACE, 16 Aug 2026 ---- this used to read "the backdrop is
+     up". The owner asked for the opposite: no shading, "it has to remain
+     active". So the three claims are now that there is no backdrop, that the
+     contract is not dimmed, and that it is still the top thing at its own
+     coordinates — which is what "usable" means to a mouse. */
+  ck('2g there is NO backdrop — the contract must stay lit', !!open && open.noScrim);
+  ck('2g′ and it is not dimmed or filtered', !!open && !open.docDimmed);
+  ck('2g″ and it is still reachable — the reader can read and press it',
+     !!open && open.docReachable);
+  ck('2i it covers the WHOLE right column and reaches past it',
+     !!open && open.coversColumn && open.deeperBy > 120,
+     open && `${open.deeperBy}px past the column's left edge`);
 
   const docAfter = await p.evaluate(() => {
     const d = document.querySelector('.redline-page #rl-doc');
@@ -214,21 +236,71 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   await p.keyboard.press('Escape'); await pause(500);
   ck('4c Escape closes it', await shut());
 
+  /* ---- 4d/4e REVERSED IN PLACE, 16 Aug 2026 ---- these used to press a
+     backdrop and then prove the backdrop covered the door. There is no backdrop
+     now. What takes their place is the property the owner actually asked for:
+     the contract behind the panel is still SCROLLABLE, and a clause whose pill
+     is still in the clear is still a door. */
   await reopen();
-  await p.click('.redline-page #rl-cp-scrim', { position:{x:40,y:40} }); await pause(500);
-  ck('4d the backdrop closes it', await shut());
+  const scrolls = await p.evaluate(async () => {
+    const s = document.querySelector('#nego-scroll-work');
+    const was = s.scrollTop; s.scrollTop = was + 240;
+    await new Promise(r=>setTimeout(r,700));
+    return { was, now: s.scrollTop };
+  });
+  ck('4d the contract behind the panel still scrolls — it stayed active',
+     scrolls.now > scrolls.was, `${scrolls.was} → ${scrolls.now}`);
 
-  /* AND THE PILL IS BEHIND THE BACKDROP WHILE THE PANEL IS UP — which is what
-     makes the backdrop the way out rather than a second press of the door. The
-     queue behaves the same way and for the same reason. */
-  await reopen();
-  const covered = await p.evaluate(id => {
-    const b = document.querySelector(`.nego-clause[data-clause="${id}"] .rl-cp-pill`);
-    const r = b.getBoundingClientRect();
-    const top = document.elementFromPoint(r.left + r.width/2, r.top + r.height/2);
-    return top && top.id; }, staged.clauseId);
-  ck('4e while it is open the backdrop covers the page, so the door is not a second way out',
-     covered === 'rl-cp-scrim', covered);
+  const swapped = await p.evaluate(() => {
+    /* Any clause whose pill is not under the panel is still a live door: press
+       it and the panel should swap to that clause rather than needing a close
+       first. */
+    const pills = [...document.querySelectorAll('.redline-page #rl-doc .rl-cp-pill')];
+    const cp = document.querySelector('#rl-cp').getBoundingClientRect();
+    const clear = pills.find(b => b.getBoundingClientRect().right < cp.left
+      && b.getBoundingClientRect().top > 0);
+    if (!clear) return { none: true };
+    const want = clear.getAttribute('data-rl-cp-open');
+    clear.click();
+    const on = document.querySelector('#rl-cp .rl-cp-src.is-on');
+    return { want, got: on && on.getAttribute('data-rl-cp-for') };
+  });
+  ck('4e …and a pill still in the clear swaps the panel straight to its clause',
+     swapped.none ? true : swapped.want === swapped.got,
+     swapped.none ? 'no pill in the clear at this width' : `${swapped.want} → ${swapped.got}`);
+  await p.evaluate(()=>rlCpSetShown(document,null)); await pause(400);
+
+  /* ---- 4f THE SLIDE IS SMOOTH — MEASURED FRAME BY FRAME ----
+     Owner-reported 16 Aug 2026: "the page shakes rather than have a smooth
+     transition". This is the only place that claim can be tested: it is about
+     what happens DURING the 300ms, and neither a node test nor a before/after
+     snapshot can see it. Every animation frame of the open is sampled, and
+     nothing behind the panel — the document's box, the change column's box, the
+     contract's own scroll position, the grid's scroll offset, the window's — is
+     allowed to move by a single pixel on any of them. */
+  await p.evaluate(()=>rlCpSetShown(document,null)); await pause(500);
+  await p.evaluate(()=>{document.querySelector('#nego-scroll-work').scrollTop=300;});
+  await pause(1200);                       // scroll-behavior is smooth; let it land
+  const frames = await p.evaluate(id => new Promise(done => {
+    const out = [], t0 = performance.now();
+    const read = () => {
+      const d = document.querySelector('#rl-doc').getBoundingClientRect();
+      const sd = document.querySelector('#rl-side').getBoundingClientRect();
+      const sc = document.querySelector('#nego-scroll-work');
+      const g = document.querySelector('.rl-grid');
+      return [Math.round(d.x), Math.round(d.width), Math.round(sd.x),
+        Math.round(sc.scrollTop), Math.round(g.scrollLeft), Math.round(window.scrollX)].join(',');
+    };
+    out.push(read());
+    document.querySelector(`.nego-clause[data-clause="${id}"] .rl-cp-pill`).click();
+    const tick = () => { out.push(read());
+      if (performance.now() - t0 < 700) requestAnimationFrame(tick); else done(out); };
+    requestAnimationFrame(tick);
+  }), staged.clauseId);
+  const moved = frames.filter(f => f !== frames[0]);
+  ck('4f THE PAGE DOES NOT SHAKE — no frame of the slide moves anything behind it',
+     frames.length > 20 && moved.length === 0,
+     `${frames.length} frames, ${moved.length} moved` + (moved.length ? ` (first: ${moved[0]} vs ${frames[0]})` : ''));
   await p.evaluate(()=>rlCpSetShown(document,null)); await pause(400);
 
   /* ---- 5. A REPAINT KEEPS IT OPEN ON THE RIGHT CLAUSE ---- */

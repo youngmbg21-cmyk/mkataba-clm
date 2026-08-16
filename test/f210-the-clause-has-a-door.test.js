@@ -147,7 +147,8 @@ describe('f210 (2) — it is a door, not a verb', () => {
     const before = wording();
     p.win.rlCpSetShown(box, id);
     assert.ok(box.querySelector('#rl-cp').classList.contains('is-open'));
-    assert.ok(box.querySelector('#rl-cp-scrim').classList.contains('is-open'));
+    assert.equal(box.querySelector('#rl-cp-scrim'), null,
+      'and there is no backdrop to dim the contract — REVERSED IN PLACE, 16 Aug 2026');
     assert.equal(wording(), before, 'the contract under it did not move a byte');
     /* The one thing on the paper that DOES move is the pressed pill's own
        aria-expanded, which is the pill describing its own door. */
@@ -347,14 +348,53 @@ describe('f210 (6) — the wall holds through the panel too', () => {
 });
 
 describe('f210 (7) — the ways out, and where they are armed', () => {
-  test('close button, scrim and Escape', async () => {
+  test('close button, the pill again, and Escape', async () => {
+    /* REVERSED IN PLACE, 16 Aug 2026. This used to name a backdrop as one of
+       the three. The scrim is gone — the owner asked for the contract to stay
+       lit and usable beside the panel — and with it gone the PILL is reachable
+       again, which makes pressing it a second time the third way out. */
     const p = await bench();
     const box = page(p);
     assert.ok(box.querySelector('#rl-cp-min[data-rl-cp-close]'), 'the ✕');
-    assert.ok(box.querySelector('#rl-cp-scrim[data-rl-cp-close]'), 'the backdrop');
+    assert.equal(box.querySelector('#rl-cp-scrim'), null, 'no backdrop');
     assert.match(SRC, /if \(ev\.key !== 'Escape' \|\| !rlCpOpenId\(\)\) return;/, 'and Escape');
     assert.match(SRC, /const mr = document\.getElementById\('modal-root'\);\s*\n\s*if \(mr && mr\.innerHTML\.trim\(\)\) return;/,
       'which defers to a dialog on top of it, as the queue\'s own handler does');
+  });
+
+  test('there is no scrim, so the contract stays lit and stays usable', async () => {
+    /* Owner-reported 16 Aug 2026, in the same breath as the width and the
+       shake: keep the contract visible, "it has to remain active". A dimmed
+       backdrop is right for the queue — a reading order you step through — and
+       wrong here, where the whole point is reading the panel AGAINST the
+       wording it is about. */
+    const p = await bench();
+    const box = page(p);
+    assert.equal(box.querySelector('#rl-cp-scrim'), null, 'no scrim in the markup');
+    assert.doesNotMatch(SRC, /rl-cp-scrim/, 'and none left in the stylesheet or the wiring either');
+  });
+
+  test('the panel is deeper than the column it covers, as a proportion', async () => {
+    /* Owner-reported: "it covers the entire right panel but expands deeper". It
+       shipped at a flat 520px against a change column that measures 483px on a
+       1500px window — 37px of "deeper", which reads as a lid rather than a
+       panel. A PROPORTION, because the split between the panes is draggable and
+       any fixed number is wrong at one end of that drag. */
+    assert.match(SRC, /\.redline-page \.rl-cp\{[\s\S]*?width:clamp\(360px,48%,760px\)/);
+  });
+
+  test('the grid CLIPS rather than hides, or the parked panel can be scrolled to',
+    async () => {
+    /* The reported shake, and its cause. Measured: with the panel parked off the
+       right edge the grid's scrollWidth was 2008 against a clientWidth of 1462.
+       overflow:hidden shows no bar but still makes a SCROLL BOX, and moving
+       focus into the panel at the instant it opens made the browser scroll that
+       box sideways — dragging the contract and the change column left and
+       snapping them back as the slide finished. Two independent answers: no
+       scroll box at all, and a focus call that asks not to scroll. */
+    assert.match(SRC, /\.redline-page #rl-grid\.nego-work\{overflow:clip\}/,
+      'written at a weight that beats the engine\'s own id-scoped overflow:hidden');
+    assert.match(SRC, /close\.focus\(\{ preventScroll: true \}\)/);
   });
 
   test('the listener is armed at MODULE LOAD, not inside a renderer', async () => {

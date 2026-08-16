@@ -7738,7 +7738,33 @@ function redlineLayoutCss(){
      contract will not otherwise shrink below its longest unbroken line, and
      the sidebar gets pushed off the row instead of the text wrapping. */
   .redline-page .rl-grid{flex:1;min-height:0;position:relative;display:grid;gap:14px;
-    grid-template-columns:minmax(0,2fr) minmax(0,1fr);align-items:stretch}
+    grid-template-columns:minmax(0,2fr) minmax(0,1fr);align-items:stretch;
+    /* ---- CLIP, NOT HIDDEN, AND THAT IS WHAT STOPPED THE PAGE SHAKING ----
+       (owner-reported 16 Aug 2026: "the page shakes rather than have a smooth
+       transition".) Reproduced and MEASURED before it was touched: with the
+       clause panel parked off the right edge the grid's scrollWidth was 2008
+       against a clientWidth of 1462 — 546px of overflow nobody could see,
+       because overflow:hidden shows no bar. But hidden still makes a SCROLL BOX,
+       a scroll box can be scrolled by the browser: moving focus to the panel's
+       close button, which happens at the instant it opens and while it is still
+       parked, made Chrome scroll the grid sideways to reveal it — dragging the
+       contract and the change column bodily left, then snapping them back as
+       the slide finished. That is the shake, and it was never the transition.
+
+       overflow:clip clips identically and creates NO scroll box at all, so there is
+       nothing left to scroll. The focus call asks for preventScroll besides —
+       two independent answers, because this is the kind of fault that comes
+       back through a door nobody remembered. The queue never showed it: it
+       parks off the LEFT edge, and negative overflow adds no scrollWidth. */
+    overflow:clip}
+  /* ...and it has to be written at THIS weight to land. The engine declares
+     #nego-root .nego-work{overflow:hidden} and the grid wears both classes, so
+     an id-scoped rule outranks the plain one above and the clip was silently
+     ignored - measured, the computed value stayed hidden. Written against the
+     same id plus the class it also carries, which beats it on specificity
+     rather than on sheet order (not in this file's favour; see the note above
+     .rl-paper). */
+  .redline-page #rl-grid.nego-work{overflow:clip}
 
   /* ---- THE QUEUE IS AN OVERLAY, NOT A COLUMN (owner-asked, 12 Aug 2026) ----
      It used to be a third grid track — about 300px of it — and the comment that
@@ -7809,32 +7835,42 @@ function redlineLayoutCss(){
   /* ---- THE CLAUSE PANEL, ON THE OTHER WALL ----
      The queue's mechanism mirrored: absolute inside .rl-grid so it lands on the
      working area's own RIGHT border — on the bench, on the contract tab's embed
-     and on the counterparty's page alike, each against its own wall. Wider than
-     the queue because it carries wording rather than a reading order, and
-     capped at 92vw so a phone-width window still leaves an edge to press back
-     through. visibility follows the same delay rule: parked off the PAGE's edge
-     it would still be on screen and still tabbable. */
+     and on the counterparty's page alike, each against its own wall.
+
+     ---- IT COVERS THE WHOLE RIGHT COLUMN AND REACHES PAST IT (owner-reported,
+     16 Aug 2026: "it covers the entire right panel but expands deeper"). It
+     shipped at a flat 520px, and the change column on a 1500px window measures
+     483px — so the panel landed 37px past the column's own left edge and read
+     as a lid on it rather than a panel over the page. A PROPORTION rather than
+     a number, because the split between the two panes is draggable and any
+     fixed width is wrong at one end of that drag: 48% of the working area is
+     always deeper than the column beside it, with a floor for a narrow window
+     and a ceiling so it never becomes the page.
+
+     ---- AND THERE IS NO SCRIM (owner-reported in the same breath: keep the
+     contract visible, "it has to remain active"). A dimmed backdrop is right
+     for the queue, which is a reading order you step through; it is wrong here,
+     where the whole point is reading the panel AGAINST the wording it is about.
+     The contract stays lit, stays scrollable, and stays pressable — so the pill
+     is also still a way to close it, and the panel simply stays where you put
+     it until you close it (the card pop-out's own rule).
+
+     visibility follows the queue's delay rule: parked off the PAGE's edge it
+     would still be on screen and still tabbable. */
   .redline-page .rl-cp{
     position:absolute;right:0;top:0;bottom:0;z-index:56;
-    width:min(520px,92vw);min-width:0;border-radius:0;
+    width:clamp(360px,48%,760px);min-width:0;border-radius:0;
     border:0;border-left:1px solid var(--color-divider);
     box-shadow:var(--shadow-lg);
     display:flex;flex-direction:column;
-    transform:translateX(105%);
+    transform:translateX(100%);
     visibility:hidden;
     transition:transform .3s cubic-bezier(.22,.61,.36,1),visibility 0s linear .3s;
   }
   .redline-page .rl-cp.is-open{transform:none;visibility:visible;
     transition:transform .3s cubic-bezier(.22,.61,.36,1),visibility 0s}
-  .redline-page .rl-cp-scrim{
-    position:fixed;inset:0;z-index:55;
-    background:color-mix(in srgb,#020617 45%,transparent);
-    opacity:0;pointer-events:none;transition:opacity .25s;
-  }
-  .redline-page .rl-cp-scrim.is-open{opacity:1;pointer-events:auto}
   @media (prefers-reduced-motion:reduce){
     .redline-page .rl-cp{transition:none}
-    .redline-page .rl-cp-scrim{transition:none}
   }
   .redline-page .rl-cp-head{display:flex;align-items:center;gap:8px;flex:none;
     padding:11px 12px;border-bottom:1px solid var(--color-divider)}
@@ -13438,7 +13474,9 @@ function rlCpSetOpen(id){ _rlCpId = id || null; return _rlCpId; }
 function rlClausePanelHtml(bodies){
   const open = !!rlCpOpenId();
   const src = (bodies || []).join('');
-  return `<div class="rl-cp-scrim${open ? ' is-open' : ''}" id="rl-cp-scrim" data-rl-cp-close="1" aria-hidden="true"></div>
+  return `${''/* NO SCRIM — see the note on .rl-cp. The contract stays lit and
+         stays usable beside the panel, which is the whole point of a panel
+         about one clause. */}
   ${''/* An <aside> with a label and nothing else, exactly as the queue and the
          Activity panel are built. NOT role="dialog": it is a complementary
          panel a reader works BESIDE the wording, and this page already refuses
@@ -13471,12 +13509,13 @@ function rlCpSetShown(scope, clauseId){
   root.querySelectorAll('#rl-cp').forEach(p => {
     p.classList.toggle('is-open', on); p.setAttribute('aria-hidden', on ? 'false' : 'true');
   });
-  root.querySelectorAll('#rl-cp-scrim').forEach(sc => sc.classList.toggle('is-open', on));
   root.querySelectorAll('[data-rl-cp-open]').forEach(b => b.setAttribute('aria-expanded',
     on && b.getAttribute('data-rl-cp-open') === want ? 'true' : 'false'));
   if (on){
+    /* preventScroll — see the note on .rl-grid's overflow. Moving focus into a
+       panel that has not finished sliding in is what made the page lurch. */
     const close = root.querySelector('#rl-cp-min');
-    if (close && close.focus){ try{ close.focus(); }catch(_){} }
+    if (close && close.focus){ try{ close.focus({ preventScroll: true }); }catch(_){ try{ close.focus(); }catch(_e){} } }
   }
 }
 /* A repaint rebuilds the panel from the markup, so the class the open body was
