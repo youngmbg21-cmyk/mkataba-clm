@@ -142,49 +142,38 @@ describe('f145 — the clause model reads standard paper as clauses', () => {
 });
 
 describe('f145 — the workbench draws a window per clause', () => {
+  /* REVERSED IN PLACE, 16 Aug 2026. This section grew up around the clause
+     toolbar — one Direct Edit per clause, a Copilot button on each, the
+     button opening the clause-scoped menu. The owner has retired that whole
+     surface ("there should be no ability to make edits on the contract
+     itself … All edits will happen on the side panel"), so the claim each
+     test carried moves to its successor: the window-per-clause claim itself
+     is unchanged, the per-clause DOOR is the green Edit pill, and the
+     Copilot's routes are the highlight on the paper and the panel. */
 
-  test('every clause gets its own box and its own Direct Edit', async () => {
+  test('every clause gets its own box and its own Edit pill', async () => {
     const p = await page();
     const boxes = p.clauses();
     assert.ok(boxes.length > 1,
       `the page drew ${boxes.length} clause box — the screenshot's single window`);
-    const edits = p.doc.querySelectorAll('#rl-doc [data-nego-edit]');
-    assert.equal(edits.length, boxes.length,
-      'one Direct Edit per clause, not one for the whole document');
+    const pills = p.doc.querySelectorAll('#rl-doc .rl-cp-pill');
+    assert.equal(pills.length, boxes.length,
+      'one door per clause, not one for the whole document');
+    assert.equal(p.doc.querySelectorAll('#rl-doc [data-nego-edit]').length, 0,
+      'and no Direct Edit anywhere on the paper — writing happens in the panel');
   });
 
-  test('and a Copilot button on each of them', async () => {
+  test('and no clause-level Copilot button on any of them', async () => {
     const p = await page();
-    const boxes = p.clauses();
-    const ai = p.doc.querySelectorAll('#rl-doc [data-nego-ai-clause]');
-    assert.equal(ai.length, boxes.length, 'the Copilot is reachable on every clause');
-    for (const box of boxes)
-      assert.ok(box.querySelector('[data-nego-ai-clause]'),
-        'a clause with no visible Copilot door is the reported complaint');
-  });
-
-  test('pressing it opens the same menu a highlight opens, scoped to the clause', async () => {
-    const p = await page();
-    const box = p.clauses()[0];
-    const clauseId = box.getAttribute('data-clause');
-    box.querySelector('[data-nego-ai-clause]').click();
-    const menu = p.doc.querySelector('.nego-selmenu');
-    assert.ok(menu, 'the menu opened');
-    assert.ok(/This clause/.test(menu.textContent), 'and says what it is scoped to');
-    assert.ok(menu.querySelectorAll('[data-nego-ai]').length >= 1,
-      'carrying the Copilot actions, not a private one of its own');
-    /* The quote is this clause's wording — not the document's, and not the
-       previous selection's. */
-    const cl = p.win.negoClauseById(p.c, clauseId);
-    const opening = String(cl.text).trim().slice(0, 12);
-    assert.ok(menu.textContent.includes(opening),
-      'the menu quotes the clause the button sits on');
+    assert.equal(p.doc.querySelectorAll('#rl-doc [data-nego-ai-clause]').length, 0,
+      'the highlight and the panel are the Copilot\'s doors now');
   });
 
   /* The counterparty's page mounts the same workbench with noAi, because it
-     has no Copilot panel to route an ask into. A button that opened nothing
-     would be worse than no button. */
-  test('a page with no Copilot shows no Copilot button', async () => {
+     has no Copilot panel to route an ask into. A promise that opened nothing
+     would be worse than no promise — the panel's violet Copilot note stands
+     down with noAi exactly as the retired button did. */
+  test('a page with no Copilot shows no Copilot signal in the panel', async () => {
     const w = buildWorld({ negotiationView: true });
     const { win } = w;
     const c = contractFixture();
@@ -193,13 +182,13 @@ describe('f145 — the workbench draws a window per clause', () => {
     const host = win.document.createElement('div');
     win.document.body.appendChild(host);
     win.redlineEmbed(host, c, { side: 'counterparty', noAi: true, selMenu(){}, persist: false });
-    assert.ok(host.querySelectorAll('[data-nego-edit]').length > 0, 'it can still redline');
-    assert.equal(host.querySelectorAll('[data-nego-ai-clause]').length, 0);
+    assert.ok(host.querySelectorAll('[data-rl-cp-edit]').length > 0, 'it can still redline — through the panel');
+    assert.equal(host.querySelectorAll('.rl-cp-ai-note').length, 0);
   });
 
-  test('an executed contract offers neither verb', async () => {
+  test('an executed contract offers neither door', async () => {
     const p = await page({ status: 'Signed', hash: '0xabc' });
-    assert.equal(p.doc.querySelectorAll('#rl-doc [data-nego-ai-clause]').length, 0);
-    assert.equal(p.doc.querySelectorAll('#rl-doc [data-nego-edit]').length, 0);
+    assert.equal(p.doc.querySelectorAll('#rl-doc .rl-cp-pill').length, 0);
+    assert.equal(p.doc.querySelectorAll('#rl-cp [data-rl-cp-edit]').length, 0);
   });
 });

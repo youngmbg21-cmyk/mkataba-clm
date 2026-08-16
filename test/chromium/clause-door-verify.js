@@ -485,7 +485,6 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     const r = e.getBoundingClientRect();
     const stands = document.querySelector('#rl-cp .rl-cp-stands');
     const save = document.querySelector('#rl-cp .nego-edit-bar button');
-    const paperTool = document.querySelector('#rl-doc .rl-tool');
     return { w:Math.round(r.width), h:Math.round(r.height),
       text: e.innerText.replace(/\s+/g,' ').trim().slice(0,50),
       fmt: !!document.querySelector('#rl-cp .nego-fmt-bar'),
@@ -493,7 +492,6 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
       actsGone: !stands && !document.querySelector('#rl-cp .rl-cp-src.is-on .rl-cp-acts')
         || getComputedStyle(document.querySelector('#rl-cp .rl-cp-src.is-on .rl-cp-acts')).display === 'none',
       saveSize: save ? getComputedStyle(save).fontSize : null,
-      paperToolSize: paperTool ? getComputedStyle(paperTool).fontSize : null,
       inPanel: !!e.closest('#rl-cp') };
   });
   ck('7b the ＋ opens the engine\'s own editor, inside the panel, with real size',
@@ -505,11 +503,14 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
 
   /* THE PANEL DOES NOT FOLLOW THE READER'S DOCUMENT TYPE. Measured against the
      sheet's own furniture at a document type the reader has moved: the paper's
-     pill changes size, the panel's Save does not. */
+     pill changes size, the panel's Save does not. (The furniture measured was
+     the clause tool row until 16 Aug 2026; the row is retired — no edits on
+     the paper — and the Edit pill is the furniture that rides the clause and
+     the --doc-scale reading with it.) */
   const scale = await p.evaluate(async () => {
     const read = () => ({
       save: parseFloat(getComputedStyle(document.querySelector('#rl-cp .nego-edit-bar button')).fontSize),
-      tool: parseFloat(getComputedStyle(document.querySelector('#rl-doc .rl-tool')).fontSize) });
+      tool: parseFloat(getComputedStyle(document.querySelector('#rl-doc .rl-cp-pill')).fontSize) });
     const at15 = read();
     rlSetDocType(20); await new Promise(r=>setTimeout(r,300));
     const at20 = read();
@@ -745,17 +746,32 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
        from the real text nodes, because "is it indented" is a question about
        glyphs and not about a class. */
     const columns = el => {
-      const walk = n => { if (n.nodeType === 3 && n.textContent.trim()) return n;
-        for (const k of n.childNodes){ const f = walk(k); if (f) return f; } return null; };
-      const tn = walk(el); if (!tn) return null;
+      /* RE-MEASURED 16 Aug 2026, second report on the same geometry
+         ("specifications and provided needs to start at the same line as
+         manufacture"): the marker is boxed into a fixed gutter now, so the
+         measurement separates the LABEL's column from the WORDING's. The ask
+         is that the wording sits in ONE column on every row, first and
+         wrapped alike, with the label alone in the gutter. */
+      const nodes = [];
+      const walk = n => { if (n.nodeType === 3 && n.textContent.trim()) nodes.push(n);
+        else for (const k of n.childNodes) walk(k); };
+      walk(el);
+      if (!nodes.length) return null;
       const r = document.createRange(), pts = [];
-      for (let i = 0; i < tn.length; i++){
-        r.setStart(tn, i); r.setEnd(tn, i + 1);
-        const b = r.getBoundingClientRect();
-        if (b.width || b.height) pts.push({ x: Math.round(b.x), y: Math.round(b.y) });
+      for (const tn of nodes){
+        const inMarker = !!(tn.parentElement && tn.parentElement.closest('.rl-marker'));
+        for (let i = 0; i < tn.length; i++){
+          r.setStart(tn, i); r.setEnd(tn, i + 1);
+          const b = r.getBoundingClientRect();
+          if (b.width || b.height) pts.push({ x: Math.round(b.x), y: Math.round(b.y), inMarker });
+        }
       }
-      const rows = [...new Set(pts.map(p => p.y))].sort((a, b) => a - b);
-      return rows.slice(0, 3).map(y => Math.min(...pts.filter(p => p.y === y).map(p => p.x)));
+      const word = pts.filter(p => !p.inMarker);
+      const marks = pts.filter(p => p.inMarker);
+      if (!word.length || !marks.length) return null;
+      const rows = [...new Set(word.map(p => p.y))].sort((a, b) => a - b);
+      return { label: Math.min(...marks.map(p => p.x)),
+        word: rows.slice(0, 3).map(y => Math.min(...word.filter(p => p.y === y).map(p => p.x))) };
     };
     return { text: sec.innerText,
       hangCount: hang.length,
@@ -768,11 +784,17 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      limbs.text.split('\n').filter(l=>/^\(/.test(l.trim())).join(' / ').slice(0,80));
   ck('10b each limb is a hanging line', limbs.hangCount >= 2 && !!limbs.style,
      limbs.style && `${limbs.style.pl} / ${limbs.style.ti}`);
-  ck('10c THE WRAPPED LINES START ON THE SAME VERTICAL LINE AS EACH OTHER',
-     limbs.cols.every(c => c && c.length >= 3 && c[1] === c[2]),
+  ck('10c THE WORDING STARTS ON ONE VERTICAL LINE — the first row and its wraps alike',
+     /* ±6px, and the residue is named: the first fragment of a marked run
+        carries the ins element's own 1px side padding and the glyph's left
+        bearing, which a wrapped fragment (box-decoration-break: slice) does
+        not — a sub-glyph offset, where the reported fault was the whole
+        hanging measure (~40px). The wraps against EACH OTHER stay exact. */
+     limbs.cols.every(c => c && c.word.length >= 3
+       && Math.abs(c.word[0] - c.word[1]) <= 6 && Math.abs(c.word[1] - c.word[2]) <= 1),
      JSON.stringify(limbs.cols));
-  ck('10d …and past the label, not under it — which is the whole ask',
-     limbs.cols.every(c => c && c[1] > c[0]), JSON.stringify(limbs.cols));
+  ck('10d …and past the label, which sits alone in the gutter',
+     limbs.cols.every(c => c && c.word[0] > c.label), JSON.stringify(limbs.cols));
 
   /* THE DUPLICATION RULE: their page mounts the same builder inside the same
      .redline-page wrapper, so the rule reaches it — asserted rather than

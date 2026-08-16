@@ -2659,3 +2659,104 @@ is either a bill nobody capped or a colleague who cannot use the product.
 Both are named here rather than left silent, which is the whole point of writing
 this file: a feature that was considered and refused reads very differently from
 a feature nobody thought of.
+
+----- 16 Aug 2026: no edits on the paper, and the marker becomes a gutter -----
+
+Two owner reports arrived in one message, each with a screenshot, while the
+routing-rows piece was mid-flight. Both were done first, on the owner's
+instruction to stop and continue from there.
+
+THE FIRST SCREENSHOT was a bulleted sub-clause with a red box drawn on its
+wrapped lines: "specifications and provided needs to start at the same line as
+manufacture. It should be built how a proper professional contract would
+align." This was the SECOND report on the same geometry — the hanging indent
+had been built two days earlier ("A CONTRACT LIMB KEEPS ITS LABEL, AND ITS
+WRAPS HANG") and it was half a fix: it set where the WRAPS start (2.6em of
+padding against -2.6em of text-indent) and let the first line's wording start
+wherever the marker's own width happened to put it. After "7.1" the two nearly
+agree; after "•" the wording begins around 0.8em while its wraps sit at 2.6em,
+and the wrapped lines read as indented PAST their own first word — exactly the
+red box.
+
+The fix had to land in two places because the product draws redlines through
+two renderers. The two-text path (redlineBlocksHtml) had always split the
+marker into a span, so CSS alone could box it. The OPS path
+(redlineOpsBlocksHtml) — which is what the negotiation canvas actually draws —
+deliberately did not: its comment said cutting the marker free "would mean
+rewriting the ops this function exists to render verbatim", and the ops are
+inside the fingerprint, so that caution was load-bearing. The answer keeps both
+halves true: the marker's characters are still rendered through the same op
+renderer, wearing the same ins/del element (colour and strike intact, record
+untouched, textContent character-identical) — they are merely GROUPED inside a
+presentational span so the CSS can make the marker a fixed-width gutter:
+inline-block, min-width the full hanging measure, text-indent:0 (an
+inline-block is a block container and would otherwise inherit the line's
+-2.6em into its own first line and shove its glyph out of its box). min-width
+rather than width so "12.10." is never clipped. The result is one text column
+whatever the marker is — bullet, letter or number — which is how Word sets a
+hanging list and how a contract is set on paper.
+
+Measured in Chromium afterwards: the wording sits in one column on every row,
+first and wrapped alike, with one named residue — the first fragment of a
+MARKED run starts ~3px right of its wraps, which is the ins element's own 1px
+side padding plus the glyph's left bearing, neither of which a wrapped
+fragment carries (box-decoration-break: slice). The reported fault was the
+whole hanging measure, ~40px; the residue is under a glyph's width and the
+test names it rather than hiding it. One node test (f57) read a struck line as
+ONE del element and now reads it as a LINE, because a marked line is two del
+elements now — marker and wording — and the claim was always about lines.
+
+THE SECOND SCREENSHOT was the clause tool row itself — ✨ Copilot and ✎ Direct
+Edit at the foot of a clause — with the instruction that closed a question the
+row's whole history had been circling: "there should be no ability to make
+edits on the contract itself so the features for copilot and direct edit on
+the bottom right of image 2 should be deleted. All edits will happen on the
+side panel." That row's biography is written across three sections of the
+rulebook: AI Assist renamed away, Add Note/Tag retired, Propose deletion
+retired, the Copilot removed and brought BACK (04 Aug 2026) because a text
+selection is an invisible affordance. The green Edit pill ended the
+discoverability argument that kept resurrecting it — a permanent door at the
+clause's head that leads to everything the hover row offered, plus the history
+that explains why anybody would want it. Two edit doors on one clause were two
+answers to one question, and the paper is for reading.
+
+What deliberately stays: the SELECTION route on the paper (a highlight is a
+statement of scope, not a button — rlSelMenu still opens with all three
+actions), and the room's own nego-tool row in negoDocHtml, a different surface
+with no panel to send anybody to. rlJumpToClause lost its editor-opening
+branch (a card's Edit is a pure jump now), the empty-column blurb points at
+the pill, and the retired classes left the selection guard lists.
+
+THE RETIREMENT EXPOSED A REAL BUG THE SAME HOUR. When f144's fixture was
+re-pointed from the clause's Direct Edit to the pill-then-＋ route, its
+"re-opening shows the redline that was filed" claim failed — and the failure
+was the product's, not the test's. The editor resolves "what is on the table"
+from the clause block's data-nego-card-anchor, and the PANEL body never
+carried one: so the panel's ＋, whose label read "Continue your draft", opened
+on the standing wording with the writer's own pending ask nowhere on screen.
+That is f144's original 02-Aug fault, back through a door that was three days
+old. The handler now reads the anchor off the DOCUMENT's own clause block in
+panel mode — one canvas, one wall, one list of what is on screen, and the
+panel grows no copy that could drift. A second gap fell out of the same
+re-pointing: every one of f144's editor-dressing twins (.nego-editing tables
+at full width, pre scrolling inside the box) was scoped to .nego-clause, the
+home the editor no longer opens in, so a table typed into the panel's editor
+shrank to its content. The panel scope now carries the same set.
+
+About 25 test claims were reversed in place across nine node suites and five
+browser files, each with the reason written beside it. The loudest reversal is
+paper-grows-verify's 5d, which now proves the OPPOSITE of its old claim: the
+editor furniture holds its size at every document-type setting — because the
+editor lives in the panel and the panel is pinned at --doc-scale:1, the same
+two owner decisions read together. standard-paper-verify and six-round-audit
+still press the retired row and were NOT re-pointed: both were failing for
+unrelated, pre-existing reasons before this change (recorded in the 16 Aug
+handoff), and re-pointing them belongs to whichever piece takes those files
+back to green.
+
+AND A RULE ABOUT TESTING ITSELF entered the rulebook the same day, owner-asked
+after watching the session spend most of its clock waiting on test runs: the
+targeted files while working, the full suite exactly once at the end, one
+browser file per screen changed. The suite runs cost more wall-clock than the
+two fixes and the twenty-five reversals combined, and most of the re-runs
+bought nothing a targeted file had not already proved.

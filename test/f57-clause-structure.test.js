@@ -120,13 +120,18 @@ describe('F57 — the projection keeps its line breaks', () => {
     assert.ok(dels.length, 'every word stays on the page until the deletion is decided');
     /* Struck through line by line, for the same reason: a schedule being
        deleted is still a schedule, and the reader deciding whether to lose it
-       needs to see its shape. */
+       needs to see its shape. RE-MEASURED 16 Aug 2026: a marked line's
+       opening marker is boxed into its own struck run inside the hanging
+       gutter now (see redlineOpsBlocksHtml), so one LINE can be two del
+       elements. The claim is about lines, so it is read off the line blocks —
+       textContent is character-identical to what one element used to hold. */
     const lines = r.parties.text.split('\n').filter(x => x.trim());
-    const flat = dels.map(d => d.textContent.replace(/\s+/g, ' ').trim()).join('\n');
+    const lineEls = [...block.querySelectorAll('.rl-line')];
+    const flat = lineEls.map(el => el.textContent.replace(/\s+/g, ' ').trim()).join('\n');
     for (const line of lines)
       assert.ok(flat.includes(line.replace(/\s+/g, ' ').trim()),
         `the struck-through clause lost a line: ${line.slice(0, 40)}`);
-    assert.ok(dels.length >= lines.length, 'each line is struck in a block of its own');
+    assert.ok(dels.length >= lines.length, 'each line is struck, none more faintly than another');
   });
 });
 

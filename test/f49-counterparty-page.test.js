@@ -138,13 +138,20 @@ describe('while there is something to negotiate, the link is the room', () => {
       'and the discussion column offers the change its composer');
   });
 
-  test('and propose their own — the clause tools are on their side too', async () => {
+  test('and propose their own — the way into writing is on their side too', async () => {
+    /* RE-POINTED 16 Aug 2026: this read the clause's Direct Edit, which
+       retired with the tool row (no edits on the paper — all writing through
+       the clause panel). The door that must exist on their seat is the Edit
+       pill and the panel's ＋ — the same panes serve both sides, which is the
+       claim this test has always carried. */
     const { c } = await negotiated();
     const v = theirPage(c);
-    assert.ok(v.$$('#pt-nego [id="rl-doc"] [data-nego-edit]').length,
+    assert.ok(v.$$('#pt-nego [id="rl-doc"] [data-rl-cp-open]').length,
       'proposing wording is the whole point of sending them the link');
+    assert.ok(v.$$('#pt-nego [data-rl-cp-edit]').length,
+      'and the panel behind the pill offers the draft');
     assert.equal(v.$$('#pt-nego [data-nego-del]').length, 0,
-      'proposing a deletion is gone from their seat too — the same toolbar serves both');
+      'proposing a deletion is gone from their seat too — the same panes serve both');
   });
 
   /* REWRITTEN, and it reverses what this file asserted a round ago: "leaving
@@ -324,8 +331,10 @@ describe('a SIGNING link is the signature — and it is a different link', () =>
     const v = theirPage(contract(), { purpose: 'negotiate' });
     assert.equal(v.win.portalNegoPhase(v.payload).phase, 'negotiate');
     assert.ok(v.$('#pt-nego .rl-embed'), 'they were invited to negotiate; give them the workbench');
-    assert.ok(v.$$('#pt-nego [id="rl-doc"] [data-nego-edit]').length,
-      'with the clause tools, so there is something to do here');
+    /* The Edit pill, since 16 Aug 2026 — the clause tool row is retired and
+       the panel is where writing happens. */
+    assert.ok(v.$$('#pt-nego [id="rl-doc"] [data-rl-cp-open]').length,
+      'with the way into writing, so there is something to do here');
   });
 
   test('a signing link accounts for what was settled rather than asking them to sign on trust', async () => {

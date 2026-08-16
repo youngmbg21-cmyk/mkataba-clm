@@ -525,24 +525,37 @@ describe('F96 (B6) — a drag that overshoots into the margin', () => {
   });
 });
 
-describe('F96 (B7) — the hover toolbar is furniture, not contract', () => {
-  test('the clause tools and the ask tag are not selectable', async () => {
+describe('F96 (B7) — the clause\'s furniture is not contract', () => {
+  /* REVERSED IN PLACE, 16 Aug 2026. This section kept the hover TOOL ROW out
+     of a highlight — user-select:none on .rl-tools, and the reading cutting
+     "Direct Edit" from a swept passage. The row is retired (no edits on the
+     paper; all writing through the clause panel), so the rules that dressed it
+     are gone too — a user-select rule for an element nothing draws would be
+     the dead scaffolding this suite exists to catch. The CLAIM survives on the
+     furniture that is still on the clause: the ask-tag rule keeps its
+     user-select:none (the builder still exists), and the green Edit pill is
+     what a careless drag sweeps now. */
+  test('the furniture is not selectable, and no rule dresses the retired row', async () => {
     const p = await page();
     const css = (p.doc.getElementById('redline-layout-css') || { textContent: '' }).textContent;
-    assert.match(css, /\.redline-page \.rl-tools,\.redline-page \.rl-asktag[^{]*\{[^}]*user-select:none/,
+    assert.match(css, /\.redline-page \.rl-asktag[^{]*\{[^}]*user-select:none/,
       'an invisible control is still selectable text unless it is told not to be');
+    assert.ok(!/\.redline-page \.rl-tools/.test(css),
+      'no rule survives for the retired tool row');
   });
 
-  test('and a drag that sweeps them still matches the clause', async () => {
+  test('and a drag that sweeps the Edit pill still matches the clause', async () => {
     const p = await page();
     const cl = p.clauseWith(/payable within thirty/);
-    /* Whatever the browser lets through, the reading takes it out again. */
-    const menu = p.highlight(cl, 'All invoices', 'Direct Edit');
+    /* Whatever the browser lets through, the reading takes it out again. The
+       sweep runs from the pill at the clause's head down into the wording —
+       the old test swept downhill into the tool row at its foot. */
+    const menu = p.highlight(cl, 'Edit', 'payable within thirty');
     assert.ok(menu);
     await p.press(menu);
-    assert.equal(p.panel.proposals.length, 1, 'the toolbar must not defeat the match');
+    assert.equal(p.panel.proposals.length, 1, 'the pill must not defeat the match');
     const asked = p.panel.proposals[0].passage;
-    assert.ok(!/Direct Edit|Propose deletion|Add Note/.test(asked),
+    assert.ok(!/\bEdit\b/.test(asked),
       'and it must not be sent to the model as if it were wording');
   });
 });

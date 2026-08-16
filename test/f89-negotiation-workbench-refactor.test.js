@@ -480,33 +480,29 @@ describe('F89 (2b) — the page sets the contract, it does not float it', () => 
     assert.equal(after.scrollTop, 480, 'and put the reader back where they were');
   });
 
-  test('the clause toolbar is an overlay: hidden at rest, costing no height', async () => {
-    /* This rule has been wrong twice, in opposite directions. opacity:0 IN THE
-       FLOW reserved a blank 26px row under every clause — the vertical air a
-       review complained about. Permanently visible closed that gap and opened
-       the opposite complaint: three buttons repeating under every clause is
-       not a clean contract. The resolution is an overlay — absolute, so it
-       costs zero height AND can be hidden without leaving a hole. Both halves
-       are asserted together because either alone re-creates a known defect. */
+  test('the clause toolbar is GONE, and its rules went with it', async () => {
+    /* REVERSED IN PLACE, 16 Aug 2026. This test spent its life keeping the
+       hover toolbar honest — an overlay costing no height, hidden at rest,
+       revealed by hover AND focus, in the flow on touch. Each of those halves
+       was a real defect once. The toolbar itself is now retired on the owner's
+       instruction ("there should be no ability to make edits on the contract
+       itself … All edits will happen on the side panel"), so what has to be
+       kept true is the opposite: no .rl-tools rules survive to dress an
+       element nothing draws, and no clause on the canvas carries an edit
+       button. The way into writing is the Edit pill → the panel's ＋; the
+       selection route on the paper stays because a highlight is a statement
+       of scope, not a button. */
     const p = await page();
-    const r = p.rule('.redline-page .rl-tools');
-    assert.ok(r, '.rl-tools must carry a rule');
-    assert.match(r, /position:absolute/,
-      'in the flow, a hidden toolbar still occupies its row — that was the gap');
-    assert.match(r, /opacity:0/, 'and at rest it is hidden — that was the clutter');
-    assert.match(r, /pointer-events:none/,
-      'an invisible button must never swallow a click aimed at the text under it');
-  });
-
-  test('hover and keyboard focus both reveal it; touch gets it outright', async () => {
-    const p = await page();
-    const css = p.css();
-    assert.match(css, /\.redline-page \.rl-clause:hover \.rl-tools,\s*\.redline-page \.rl-clause:focus-within \.rl-tools\{opacity:1;pointer-events:auto\}/,
-      'hover alone strands a keyboard user — focusing a tool must reveal the row it sits in');
-    assert.match(css, /@media \(hover:none\)\{\s*\.redline-page \.rl-tools\{position:static;opacity:1/,
-      'on touch there is no hover, so hidden tools are unreachable tools (f44\'s objection)');
-    assert.match(p.rule('.redline-page .rl-clause', 'position:relative') || '', /position:relative/,
-      'the overlay anchors to its clause, not to whatever ancestor happens to be positioned');
+    assert.equal(p.rule('.redline-page .rl-tools'), null,
+      'no rule dresses a retired element');
+    assert.ok(!p.css().includes('.rl-tool.rl-tool-'),
+      'the three verb colour rules went with their verbs');
+    assert.equal(p.$('#rl-doc .rl-tools'), null, 'nothing draws the row');
+    assert.equal(p.$('#rl-doc [data-nego-edit]'), null,
+      'no Direct Edit on any clause');
+    assert.equal(p.$('#rl-doc [data-nego-ai-clause]'), null,
+      'no clause-level Copilot button');
+    assert.ok(p.$('#rl-doc .rl-cp-pill'), 'the Edit pill is the one door left');
   });
 });
 
@@ -904,7 +900,15 @@ describe('F89 (11,12) — the card verbs, their colours, and where Edit lands', 
     assert.match(card.textContent, /Draft/);
   });
 
-  test('Edit jumps to the clause in the document and opens the editor there', async () => {
+  test('Edit jumps to the clause in the document and opens NO editor there', async () => {
+    /* REVERSED IN PLACE, 16 Aug 2026. The card's Edit used to jump AND open
+       the engine's inline editor on the clause — right while the clause was
+       where writing happened. The owner has closed that surface ("no ability
+       to make edits on the contract itself … All edits will happen on the
+       side panel"), so the press keeps its navigation half — the card is a
+       handle on a passage — and the editor half moved behind the clause's
+       Edit pill, into the panel's ＋. An editor opening ON the paper now would
+       be the fault, not the feature. */
     const p = await page();
     const btn = p.$('#rl-changes [data-rl-edit]');
     const clauseId = btn.getAttribute('data-rl-edit');
@@ -913,8 +917,10 @@ describe('F89 (11,12) — the card verbs, their colours, and where Edit lands', 
     assert.ok(clause, 'the target clause must exist in the canvas');
     assert.ok(clause.classList.contains('rl-arrived'),
       'a page that silently jumps has moved the reader without telling them where');
-    assert.ok(clause.querySelector('[data-nego-editor]'),
-      'Edit means edit — the engine\'s inline editor opens on the clause itself');
+    assert.equal(clause.querySelector('[data-nego-editor]'), null,
+      'no editor opens on the paper — writing happens in the panel');
+    assert.ok(clause.querySelector('.rl-cp-pill'),
+      'and the way into writing is drawn on the clause the jump lit');
   });
 
 });
@@ -1036,13 +1042,20 @@ describe('F89 (15) — a clause and its card are one thing shown twice', () => {
       'the reader can already see the thing they just pressed');
   });
 
-  test('pressing a clause tool is not a request to move the page', async () => {
+  test('pressing a clause control is not a request to move the page', async () => {
+    /* REVERSED IN PLACE, 16 Aug 2026 — the control changed, the claim did not.
+       This pressed the hover tool row's .rl-tool; that row is retired (no
+       edits on the paper — all writing through the panel). The Edit pill is
+       the control that sits on the clause now, and the same rule holds:
+       operating a clause is not asking about it, so the press must not
+       scroll the column to its card. The pill's own stopPropagation is what
+       keeps the clause's navigate-press out of it. */
     const p = await page();
     const ch = p.win.negoChanges(p.c)[0];
     const card = p.$(`#rl-changes [data-nego-card="${ch.id}"]`);
     let scrolled = false;
     card.scrollIntoView = () => { scrolled = true; };
-    p.$(`#rl-doc [data-nego-card-anchor="${ch.id}"] .rl-tool`).click();
+    p.$(`#rl-doc [data-nego-card-anchor="${ch.id}"] .rl-cp-pill`).click();
     assert.equal(scrolled, false, 'operating a clause is not asking about it');
   });
 

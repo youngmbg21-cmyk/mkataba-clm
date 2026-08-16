@@ -174,15 +174,27 @@ const READ = () => {
     await page.goto(`${h.base}/#share=t:${token}`, { waitUntil: 'networkidle' });
     await page.waitForTimeout(900);
 
+    /* RE-POINTED 16 Aug 2026: the clause's Direct Edit retired with the tool
+       row (no edits on the paper — all writing through the panel), so the
+       press is the Edit pill and then the panel's ＋ — and the box whose
+       width must hold still is the PANEL body the editor opens in, not the
+       clause behind it. Same claim, its new home. */
+    const pillPressed = await page.evaluate(() => {
+      const pill = document.querySelector('[data-rl-cp-open]');
+      if (!pill) return false; pill.click();
+      return !!document.querySelector('.rl-cp-src.is-on');
+    });
+    await page.waitForTimeout(400);
     const before = await page.evaluate(() => {
-      const b = document.querySelector('.nego-clause');
+      const b = document.querySelector('.rl-cp-src.is-on');
       return b ? Math.round(b.getBoundingClientRect().width) : null;
     });
-    const opened = await page.evaluate(() => {
-      const b = document.querySelector('[data-nego-edit]');
-      if (!b) return false; b.click(); return true;
+    const opened = pillPressed && await page.evaluate(() => {
+      const plus = document.querySelector('.rl-cp-src.is-on [data-rl-cp-edit]');
+      if (!plus) return false; plus.click();
+      return true;
     });
-    check('editor: Change opens an editor on a clause', opened);
+    check('editor: the pill and the ＋ open an editor in the panel', !!opened);
     await page.waitForTimeout(500);
 
     /* Step one is the wording. The reason is behind Save, which is the point of
@@ -191,7 +203,7 @@ const READ = () => {
       next: !!document.querySelector('[data-nego-next]'),
       reasonHidden: !document.querySelector('[data-nego-reason]')
         || document.querySelector('[data-nego-reason]').offsetParent === null,
-      blockW: (() => { const b = document.querySelector('.nego-clause');
+      blockW: (() => { const b = document.querySelector('.rl-cp-src.is-on');
         return b ? Math.round(b.getBoundingClientRect().width) : null; })(),
     }));
     check('editor: step one offers Save, not a reason box', s1.next && s1.reasonHidden);
@@ -210,19 +222,21 @@ const READ = () => {
 
     const m = await page.evaluate(() => {
       const ta = document.querySelector('[data-nego-reason]');
-      const blk = ta && ta.closest('.nego-clause');
+      const blk = ta && ta.closest('.rl-cp-src');
       if (!ta || !blk) return null;
       const cs = getComputedStyle(ta);
+      const wrap = ta.closest('.nego-reason') || ta.parentElement;
       return { blockW: Math.round(blk.getBoundingClientRect().width),
+        wrapW: Math.round(wrap.getBoundingClientRect().width),
         taW: Math.round(ta.getBoundingClientRect().width),
         boxSizing: cs.boxSizing, overflowWrap: cs.overflowWrap, wrap: ta.wrap };
     });
     check('editor: the reason field is there', !!m);
     if (m){
-      check('editor: the shaded clause box keeps its width', m.blockW === before,
+      check('editor: the panel body keeps its width', m.blockW === before,
         `${before}px before, ${m.blockW}px with the editor open`);
-      check('editor: the reason field fills the box and no more',
-        m.taW === m.blockW, `${m.taW}px in ${m.blockW}px`);
+      check('editor: the reason field fills its box and no more',
+        m.taW === m.wrapW, `${m.taW}px in ${m.wrapW}px`);
       check('editor: it is sized from the box, not from its own content',
         m.boxSizing === 'border-box', m.boxSizing);
       check('editor: text wraps rather than running sideways',
@@ -234,7 +248,7 @@ const READ = () => {
           + 'Thursday, so Net-30 forces an out-of-cycle payment. '
           + 'REF-SUPPLIERAGREEMENTSCHEDULEB-PAYMENTTERMS-2026-REVISION-FOURTEEN-NO-SPACES';
         ta.dispatchEvent(new Event('input', { bubbles: true }));
-        const blk = ta.closest('.nego-clause');
+        const blk = ta.closest('.rl-cp-src');
         return { blockW: Math.round(blk.getBoundingClientRect().width),
           sideways: ta.scrollWidth > ta.clientWidth + 1,
           pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
@@ -360,8 +374,13 @@ const READ = () => {
     await page.waitForTimeout(900);
 
     const opened = await page.evaluate(() => {
-      const b = document.querySelector('[data-nego-edit]');
-      if (!b) return false; b.click(); return true;
+      /* The pill and the ＋, since 16 Aug 2026 — the clause's own Direct Edit
+         retired with the tool row on this seat too. */
+      const pill = document.querySelector('[data-rl-cp-open]');
+      if (!pill) return false; pill.click();
+      const plus = document.querySelector('.rl-cp-src.is-on [data-rl-cp-edit]');
+      if (!plus) return false; plus.click();
+      return true;
     });
     check('fmt: the editor opens on the counterparty page', opened);
     await page.waitForTimeout(400);
@@ -391,8 +410,11 @@ const READ = () => {
 
     /* And the true no-op: open the OTHER clause, change nothing, file. */
     const noop = await page.evaluate(async () => {
-      const btns = [...document.querySelectorAll('[data-nego-edit]')];
-      const b = btns[btns.length - 1];
+      const pills = [...document.querySelectorAll('[data-rl-cp-open]')];
+      const pill = pills[pills.length - 1];
+      if (!pill) return null; pill.click();
+      await new Promise(r => setTimeout(r, 250));
+      const b = document.querySelector('.rl-cp-src.is-on [data-rl-cp-edit]');
       if (!b) return null; b.click();
       await new Promise(r => setTimeout(r, 300));
       document.querySelector('[data-nego-next]')?.click();

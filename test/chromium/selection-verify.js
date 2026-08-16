@@ -151,15 +151,17 @@ const INSTRUMENT = () => {
 
   /* ---- 0. the furniture really is unselectable in a real cascade ---- */
   const cascade = await page.evaluate(() => {
-    const t = document.querySelector('#rl-doc .rl-tools');
-    /* The tags left the paper on 16 Aug 2026; the Edit pill is what rides the
-       clause head now and must be cut from a selection for the same reason. */
+    /* The tags left the paper on 16 Aug 2026, and the hover toolbar followed
+       the same day (no edits on the paper — all writing through the panel).
+       The Edit pill is the one piece of furniture riding the clause head now
+       and must be cut from a selection for the same reason both of them were. */
     const tag = document.querySelector('#rl-doc .rl-cp-pill');
-    return { tools: t ? getComputedStyle(t).userSelect : 'missing',
+    return { toolCount: document.querySelectorAll('#rl-doc .rl-tools, #rl-doc .rl-tool').length,
       asktag: tag ? getComputedStyle(tag).userSelect : 'missing' };
   });
-  check('0 the clause toolbar computes to user-select:none', cascade.tools === 'none', cascade.tools);
-  check('0 and so does the clause\'s Edit pill', cascade.asktag === 'none', cascade.asktag);
+  check('0 the retired clause toolbar is not drawn at all', cascade.toolCount === 0,
+    `${cascade.toolCount} tool elements`);
+  check('0 and the clause\'s Edit pill computes to user-select:none', cascade.asktag === 'none', cascade.asktag);
 
   /* ---- 1. ::marker is genuinely absent from a real selection ----
      Measured before anything is asserted about matching, because it is the

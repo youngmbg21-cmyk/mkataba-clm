@@ -585,50 +585,47 @@ describe('F84 — the header actions press the engine, not a lookalike', () => {
 });
 
 describe('F84 — the clause toolbar files against the contract, not the sandbox', () => {
-  test('every clause carries its verbs, each in its own colour', async () => {
+  test('the clause carries a door, not verbs — and no retired label came back', async () => {
+    /* REVERSED IN PLACE, 16 Aug 2026. This test's whole history is verbs
+       arriving on and leaving the clause: AI Assist renamed away, Add Note/Tag
+       retired, Propose deletion retired, the Copilot brought BACK (04 Aug
+       2026) because a selection is an invisible affordance. The owner has now
+       closed the question the churn was about: "there should be no ability to
+       make edits on the contract itself … All edits will happen on the side
+       panel." So the clause carries ONE control — the green Edit pill, a door
+       to the panel — and every retired label stays retired. The Copilot's
+       visible door moved with the editing into the panel (the ＋ and the
+       violet highlight note); the selection route on the paper is unchanged. */
     const p = await page();
     const clause = p.$('#rl-doc .rl-clause');
-    const tools = [...clause.querySelectorAll('.rl-tool')];
-    const labels = tools.map(b => b.textContent.trim());
-    /* THE COPILOT IS BACK ON THE CLAUSE, and it is a reversal of what this test
-       used to pin (Young, 04 Aug 2026). It was removed on the argument that a
-       text selection states the scope better than a whole-clause button; true,
-       and it left the Copilot reachable only by a gesture nothing on the page
-       mentions, so a reader concluded it could not touch their paper at all.
-       Its NAME still may not be "AI Assist": that label named a tool rather
-       than an act and is not coming back. See f145 for the door itself. */
-    assert.ok(!labels.some(t => /AI Assist/.test(t)), 'not under that name');
-    assert.ok(labels.some(t => /Copilot/.test(t)), 'the Copilot has a visible door on the clause');
-    assert.ok(clause.querySelector('.rl-tool.rl-tool-ai[data-nego-ai-clause]'),
-      'and it is the clause-scoped hook, not a page-level one');
-    /* "Add Note/Tag" was removed (Young, 03 Aug 2026): a private remark kept
-       beside the wording answered nobody in the next round, and the reason for
-       a change now travels ON the change, asked for when it is filed. */
-    assert.ok(!labels.some(t => /Add Note|Tag/i.test(t)),
-      'the note shortcut is gone from the toolbar');
-    assert.ok(labels.some(t => /Direct Edit/.test(t)));
-    /* Propose deletion was removed from both seats (Young, 03 Aug 2026) —
-       deletion changes stay first-class in the engine; the originating button
-       is gone. */
-    assert.ok(!labels.some(t => /Propose deletion|Delete/.test(t)),
-      'the delete verb is gone from the toolbar');
-    /* the colour themes: indigo to talk, emerald to write, rose to strike */
+    assert.equal(clause.querySelectorAll('.rl-tool, .rl-tools').length, 0,
+      'no tool row on the clause');
+    assert.equal(clause.querySelector('[data-nego-ai-clause]'), null,
+      'no clause-level Copilot button');
+    assert.equal(clause.querySelector('[data-nego-edit]'), null,
+      'no Direct Edit on the clause');
     assert.equal(clause.querySelector('[data-rl-note]'), null);
-    assert.ok(clause.querySelector('.rl-tool.rl-tool-edit[data-nego-edit]'));
     assert.equal(clause.querySelector('[data-nego-del]'), null);
+    const labels = [...clause.querySelectorAll('button')].map(b => b.textContent.trim());
+    assert.ok(!labels.some(t => /AI Assist|Add Note|Propose deletion/i.test(t)),
+      'none of the retired labels came back');
+    assert.ok(clause.querySelector('.rl-cp-pill'), 'the Edit pill is the door');
     const css = (p.doc.getElementById('redline-layout-css') || { textContent: '' }).textContent;
-    assert.match(css, /\.rl-tool\.rl-tool-note\{[^}]*background:#eef2ff/, 'Add Note/Tag is indigo');
-    assert.match(css, /\.rl-tool\.rl-tool-edit\{[^}]*background:#ecfdf5/, 'Direct Edit is emerald');
-    assert.match(css, /\.rl-tool\.rl-tool-ai\{[^}]*background:#f5f3ff/, 'the Copilot is violet, as everywhere else');
-    assert.ok(!/rl-tool-del\{/.test(css), 'and its rose styling went with it');
+    assert.ok(!/\.rl-tool\b/.test(css.replace(/\/\*[\s\S]*?\*\//g, '')),
+      'and no rule dresses the retired row');
     assert.ok(!/data-rl-ai=/.test(p.html()), 'and the old whole-clause AI hook is gone from the page');
   });
 
-  test('Direct Edit is the engine\'s propose handler, by attribute', async () => {
+  test('the panel\'s ＋ is the engine\'s propose handler, by attribute', async () => {
+    /* REVERSED IN PLACE, 16 Aug 2026: this pinned Direct Edit's data-nego-edit.
+       The door moved; the rule it pinned — one engine handler, never a
+       lookalike — moved with it. wireNegotiationTab binds
+       [data-nego-edit],[data-rl-cp-edit] as ONE selector (f210 pins the
+       source), so the ＋ opens the same editor with the same refusals. */
     const p = await page();
-    const edit = [...p.$$('#rl-doc .rl-tool')].find(b => /Direct Edit/.test(b.textContent));
-    assert.ok(edit.hasAttribute('data-nego-edit'),
-      'Direct Edit must carry the attribute wireNegotiationTab binds the propose dialog to');
+    const plus = p.$('#rl-cp [data-rl-cp-edit]');
+    assert.ok(plus,
+      'the ＋ must carry the attribute wireNegotiationTab binds the editor to');
   });
 
   /* The sandbox this guards against is gone — the lab was deleted once the
@@ -684,10 +681,12 @@ describe('F84 — the clause toolbar files against the contract, not the sandbox
     /* The pane treats a mouseup as "the reader finished selecting words", and
        a mouseup on a CONTROL used to collapse the selection and dismiss the
        menu in the same gesture. Real-browser measurement caught this; jsdom
-       does not schedule it the same way, so the handler is invoked directly. */
+       does not schedule it the same way, so the handler is invoked directly.
+       (The control changed on 16 Aug 2026 — the tool row retired and the Edit
+       pill is what sits on the clause — the claim did not.) */
     const p = await page();
     assert.ok(openSel(p), 'the menu must open');
-    const tool = p.$('#rl-doc .rl-tool');
+    const tool = p.$('#rl-doc .rl-cp-pill');
     tool.dispatchEvent(new p.win.MouseEvent('mouseup', { bubbles: true }));
     await new Promise(r => setTimeout(r, 30));
     assert.ok(p.$('.nego-selmenu'),

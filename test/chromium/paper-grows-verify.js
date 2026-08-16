@@ -392,8 +392,11 @@ const SHEET = () => {
       return { words: words ? +parseFloat(getComputedStyle(words).fontSize).toFixed(2) : 0,
         /* The tags left the paper on 16 Aug 2026; the Edit pill is the piece of
            furniture that rides the clause head now, and it takes the same
-           --doc-scale reading the tag did. Same claim, its successor. */
-        tag: box('.redline-page .rl-cp-pill'), tool: box('.redline-page .rl-tool') };
+           --doc-scale reading the tag did. Same claim, its successor. THE TOOL
+           ROW left the same day (no edits on the paper — all writing through
+           the panel), so the pill is also the LAST piece of clause furniture
+           there is to measure. */
+        tag: box('.redline-page .rl-cp-pill') };
     })()`;
     const furnitureAt = async v => {
       await page.evaluate(t => window.rlSetDocType(t), v);
@@ -401,9 +404,9 @@ const SHEET = () => {
       return page.evaluate(FURNITURE);
     };
     const f8 = await furnitureAt(8), f15 = await furnitureAt(15), f20 = await furnitureAt(20);
-    check('5c the sheet carries a clause tag and a clause tool to measure',
-      !!(f15.tag && f15.tool), f15.tag ? `tag ${f15.tag.w}x${f15.tag.h}, tool ${f15.tool ? f15.tool.w : '—'}` : 'no tag on the sheet');
-    if (f15.tag && f15.tool){
+    check('5c the sheet carries the Edit pill to measure',
+      !!f15.tag, f15.tag ? `pill ${f15.tag.w}x${f15.tag.h}` : 'no pill on the sheet');
+    if (f15.tag){
       /* The reported symptom, stated as the thing that must no longer be true:
          three different settings, three identical boxes. */
       check('5c THE CLAUSE TAG IS NO LONGER THE SAME SIZE AT EVERY SETTING',
@@ -419,9 +422,15 @@ const SHEET = () => {
       check('5c and it stays in PROPORTION to the wording, which is what was asked',
         Math.abs(ratio(f8) - ratio(f15)) < 0.25 && Math.abs(ratio(f20) - ratio(f15)) < 0.25,
         `tag height ÷ body size — 8: ${ratio(f8).toFixed(2)} · 15: ${ratio(f15).toFixed(2)} · 20: ${ratio(f20).toFixed(2)}`);
-      check('5c THE COPILOT / DIRECT EDIT PILLS FOLLOW TOO — reported in the same breath',
-        f8.tool.w < f15.tool.w && f20.tool.w > f15.tool.w,
-        `8: ${f8.tool.w} · 15: ${f15.tool.w} · 20: ${f20.tool.w}`);
+      /* REVERSED IN PLACE, 16 Aug 2026: this used to measure the Copilot /
+         Direct Edit pills scaling in the same breath. That row is retired —
+         no edits on the paper, all writing through the panel — so the claim
+         that survives is its ABSENCE, at every setting. */
+      const noTool = await page.evaluate(() =>
+        !document.querySelector('.redline-page .rl-tool')
+        && !document.querySelector('.redline-page .rl-tools'));
+      check('5c THE COPILOT / DIRECT EDIT PILLS ARE GONE FROM THE PAPER — retired 16 Aug 2026',
+        noTool, 'no .rl-tool / .rl-tools anywhere on the page');
     }
     await page.evaluate(() => window.rlSetDocType(20));
     await pause(300);
@@ -444,26 +453,24 @@ const SHEET = () => {
     await page.evaluate(() => { window.rlSetDocType(15); window.SHOW_OWNER(); });
     await pause(600);
 
-    /* ---- 5d. AND SO DOES THE EDITOR, WHICH IS THE THIRD REPORT OF ONE FAULT
-       ----
-       Owner-reported 15 Aug 2026 off a screenshot, on both seats: "the edit
-       areas are not proportional to the page like the rest of the buttons,
-       fonts, etc."
+    /* ---- 5d. THE EDITOR LIVES IN THE PANEL NOW, AND THE PANEL DOES NOT
+       FOLLOW THE STEPPER — REVERSED IN PLACE, 16 Aug 2026 ----
 
-       It is 5c's lesson a third time and it was missed for a third time for the
-       same reason: the WORDING inside the open editor is the clause's own text
-       and always scaled, so the box looked right until you read what was around
-       it. MEASURED BEFORE THE FIX, at a document type of 9px: the format chips
-       rendered 12.5px type in a 41px-tall bar, the reason label at 10px and the
-       Save button at 11px — the identical numbers they render at 20px, so at
-       the floor the Save button was taller than the sentence being saved.
+       This section used to prove the OPPOSITE: the editor opened on the
+       clause (Direct Edit), it was the sheet's furniture, and its chips, Save
+       and reason box had to scale 8/15/20 with the wording (the third report
+       of one fault, 15 Aug 2026). Two owner decisions later that geometry is
+       gone: the clause tool row is retired ("no ability to make edits on the
+       contract itself … All edits will happen on the side panel"), and the
+       panel deliberately pins --doc-scale to 1 ("the paper scales; the panel
+       does not" — a Save button shrinking because somebody made the PAPER
+       smaller is the fault, in the panel's frame).
 
-       WHAT IS NOT SCALED, and it is deliberate rather than missed: the reason
-       textarea's WIDTH (it is width:100% and tracks the clause, which is the
-       rule that stops it pushing its own container wider) and .rl-tools'
-       POSITIONING, for the reason already written at .rl-tool — the editor bar
-       is aligned to it and scaling one offset without the other walks the pair
-       apart at every setting but the default.
+       So the same measurements now prove the new rules: the ONE editor on
+       this page opens in the panel via the pill and the ＋, and its furniture
+       is the SAME SIZE at every document-type setting while the paper's own
+       words go on moving. The old scaling claims did not vanish — their
+       subject moved out of the space they measured.
 
        THE REASON BOX IS DRAWN AT STEP TWO of the editor, so it carries
        .hidden on arrival and measures 0x0. It is un-hidden here rather than
@@ -483,8 +490,16 @@ const SHEET = () => {
     })()`;
     const openEditor = () => page.evaluate(() => {
       if (!document.querySelector('.redline-page [data-nego-editor]')){
-        const b = document.querySelector('.redline-page [data-nego-edit]');
-        if (b) b.click();
+        /* The pill opens the panel, the ＋ opens the editor in it — the only
+           editing door this canvas has since the tool row retired. The ＋ is
+           read from the OPEN body: every clause's body is in the DOM and a
+           press in a hidden one opens an editor nothing can measure. */
+        if (!document.querySelector('.redline-page .rl-cp.is-open')){
+          const pill = document.querySelector('.redline-page [data-rl-cp-open]');
+          if (pill) pill.click();
+        }
+        const plus = document.querySelector('.redline-page .rl-cp-src.is-on [data-rl-cp-edit]');
+        if (plus) plus.click();
       }
       const r = document.querySelector('.redline-page .nego-reason');
       if (r) r.classList.remove('hidden');
@@ -499,58 +514,51 @@ const SHEET = () => {
     };
     const editorOpens = await (async () => { await page.evaluate(t => window.rlSetDocType(t), 15);
       await pause(300); return openEditor(); })();
-    check('5d the clause opens a real editor to measure',
-      editorOpens, editorOpens ? 'Direct Edit opened' : 'no editor on the clause');
+    check('5d the pill and the ＋ open a real editor to measure',
+      editorOpens, editorOpens ? 'the panel\'s editor opened' : 'no editor anywhere');
     if (editorOpens){
+      const noClauseEditor = await page.evaluate(() =>
+        !document.querySelector('.redline-page .rl-clause [data-nego-editor]')
+        && !!document.querySelector('.redline-page .rl-cp-src [data-nego-editor]'));
+      check('5d and it opened in the PANEL — the paper itself carries no editor',
+        noClauseEditor, 'editor inside .rl-cp-src, none inside a clause');
       const e8 = await editorAt(8), e15 = await editorAt(15), e20 = await editorAt(20);
       await page.screenshot({ path: path.join(OUT, '04d-owner-editor-20.png') });
       const got = e15.fmtBtn && e15.save && e15.ta;
       check('5d the open editor carries its format chips, reason box and Save',
         !!got, got ? `chip ${e15.fmtBtn.w}x${e15.fmtBtn.h}, save ${e15.save.w}x${e15.save.h}, box h${e15.ta.h}` : 'editor furniture missing');
       if (got){
-        /* THE REPORTED SYMPTOM, stated as the thing that must no longer be
-           true: three settings, three identical boxes. */
-        check('5d THE EDITOR FURNITURE IS NO LONGER THE SAME SIZE AT EVERY SETTING',
-          !(e8.fmtBtn.h === e15.fmtBtn.h && e15.fmtBtn.h === e20.fmtBtn.h),
+        /* THE PANEL'S OWN RULE, stated as the thing that must now be true:
+           three settings, three IDENTICAL boxes — while the paper's words
+           move. The old "no longer the same size at every setting" claim
+           belonged to an editor that sat ON the paper. */
+        check('5d THE EDITOR FURNITURE HOLDS ITS SIZE AT EVERY SETTING — the panel does not follow the stepper',
+          e8.fmtBtn.h === e15.fmtBtn.h && e15.fmtBtn.h === e20.fmtBtn.h,
           `format chip — 8: ${e8.fmtBtn.h} · 15: ${e15.fmtBtn.h} · 20: ${e20.fmtBtn.h}`);
-        check('5d the format chips move the way the words move',
-          e8.fmtBtn.h < e15.fmtBtn.h && e20.fmtBtn.h > e15.fmtBtn.h,
-          `${e8.fmtBtn.h} < ${e15.fmtBtn.h} < ${e20.fmtBtn.h}`);
-        check('5d SAVE CHANGE / CANCEL follow too — the buttons in the screenshot',
-          e8.save.h < e15.save.h && e20.save.h > e15.save.h,
-          `${e8.save.h} < ${e15.save.h} < ${e20.save.h}`);
-        check('5d and the reason box grows with them',
-          e8.ta.h < e15.ta.h && e20.ta.h > e15.ta.h,
-          `${e8.ta.h} < ${e15.ta.h} < ${e20.ta.h}`);
-        /* PROPORTIONAL is the word the report used, so it is the word measured:
-           the ratio between two pieces of furniture and the type they sit at
-           must be the same at every setting. */
-        const prop = (a, b, k) => Math.abs(a / b - k) < 0.04;
-        check('5d PROPORTIONAL, not merely bigger — every step is exactly the step',
-          prop(e8.fmtBtn.h, e15.fmtBtn.h, 8 / 15) && prop(e20.fmtBtn.h, e15.fmtBtn.h, 20 / 15)
-          && prop(e8.save.h, e15.save.h, 8 / 15) && prop(e20.save.h, e15.save.h, 20 / 15),
-          `chip ${(e8.fmtBtn.h / e15.fmtBtn.h).toFixed(3)} / ${(e20.fmtBtn.h / e15.fmtBtn.h).toFixed(3)}`
-          + ` · save ${(e8.save.h / e15.save.h).toFixed(3)} / ${(e20.save.h / e15.save.h).toFixed(3)}`
-          + ` — wanted ${(8 / 15).toFixed(3)} / ${(20 / 15).toFixed(3)}`);
-        /* THE ONE THING THAT MUST NOT SCALE. The reason box is width:100% so it
-           tracks the clause; a box that grew its own width with the type is the
-           fault this rule was written to prevent. */
-        check('5d and the reason box still takes its WIDTH from the clause, not the type',
+        check('5d Save / Cancel hold too',
+          e8.save.h === e15.save.h && e15.save.h === e20.save.h,
+          `${e8.save.h} · ${e15.save.h} · ${e20.save.h}`);
+        check('5d and the reason box with them',
+          e8.ta.h === e15.ta.h && e15.ta.h === e20.ta.h,
+          `${e8.ta.h} · ${e15.ta.h} · ${e20.ta.h}`);
+        check('5d …while the paper\'s own words still move under the same presses',
+          f8.words < f15.words && f20.words > f15.words,
+          `words — 8: ${f8.words} · 15: ${f15.words} · 20: ${f20.words}`);
+        check('5d and the reason box still takes its WIDTH from its container, not the type',
           Math.abs(e8.ta.w - e20.ta.w) <= 1, `8: ${e8.ta.w} · 20: ${e20.ta.w}`);
       }
-      /* BOTH SEATS. The counterparty mounts this same editor outside the
-         #nego-root scope — the reason every var in that rule carries a fallback
-         — so "one rule reaches both mounts" is measured, not inherited. */
+      /* BOTH SEATS. The counterparty mounts this same panel and the same
+         editor; the pin is the panel's own rule, so it must hold there too. */
       await page.evaluate(() => { window.rlSetDocType(15); window.SHOW_COUNTERPARTY(); });
       await pause(700);
       const cpOpens = await openEditor();
-      check('5d · counterparty: their clause opens the same editor',
-        cpOpens, cpOpens ? 'Direct Edit opened on their seat' : 'no editor');
+      check('5d · counterparty: their pill and ＋ open the same editor',
+        cpOpens, cpOpens ? 'the panel\'s editor opened on their seat' : 'no editor');
       if (cpOpens){
         const q15 = await editorAt(15), q20 = await editorAt(20);
         await page.screenshot({ path: path.join(OUT, '04e-counterparty-editor-20.png') });
-        check('5d · counterparty: AND IT SCALES THERE TOO — one rule, both seats',
-          !!(q15.fmtBtn && q20.fmtBtn) && q20.fmtBtn.h > q15.fmtBtn.h,
+        check('5d · counterparty: AND IT HOLDS THERE TOO — one rule, both seats',
+          !!(q15.fmtBtn && q20.fmtBtn) && q20.fmtBtn.h === q15.fmtBtn.h,
           q15.fmtBtn ? `15: ${q15.fmtBtn.h} → 20: ${q20.fmtBtn.h}` : 'no chips');
       }
       await page.evaluate(() => { window.rlSetDocType(15); window.SHOW_OWNER(); });

@@ -89,18 +89,24 @@ async function table(){
     view(side){ t.$(`[data-redline-side="${side}"]`).click(); },
     clauseByHead(re){ return t.$$('#rl-doc .rl-clause').find(x => re.test(x.textContent)); },
     card(id){ return t.$(`#rl-changes [data-nego-card="${id}"]`); },
-    /* Direct Edit through the DOM: open the inline editor on a clause, swap
-       the body, save. The same path a person's click takes. */
+    /* An edit through the DOM: the Edit pill opens the clause's panel, the ＋
+       opens the editor there, swap the body, save. The same path a person's
+       click takes — RE-STAGED 16 Aug 2026 when the clause's own Direct Edit
+       retired (no edits on the paper; all writing through the panel). */
     async edit(re, newHtml){
       const cl = t.clauseByHead(re);
-      cl.querySelector('[data-nego-edit]').click();
-      const box = cl.querySelector('[data-nego-editor]');
-      assert.ok(box, 'the inline editor must open on the clause itself');
+      const id = cl.getAttribute('data-clause');
+      const body = () => t.$$('#rl-cp .rl-cp-src')
+        .find(b => b.getAttribute('data-rl-cp-for') === id);
+      if (!body().classList.contains('is-on')) cl.querySelector('[data-rl-cp-open]').click();
+      body().querySelector('[data-rl-cp-edit]').click();
+      const box = body().querySelector('[data-nego-editor]');
+      assert.ok(box, 'the editor must open in the clause\'s panel');
       box.innerHTML = newHtml;
       /* Two steps: wording, then why. Skipped here — this simulation is about
          the rounds, not the reasons. */
-      cl.querySelector('[data-nego-next]').click();
-      (cl.querySelector('[data-nego-skip]') || cl.querySelector('[data-nego-save]')).click();
+      body().querySelector('[data-nego-next]').click();
+      (body().querySelector('[data-nego-skip]') || body().querySelector('[data-nego-save]')).click();
       await new Promise(r => setTimeout(r, 25));
     },
     async pause(ms = 25){ return new Promise(r => setTimeout(r, ms)); } };

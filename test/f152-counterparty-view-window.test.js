@@ -87,6 +87,10 @@ describe('the sign — the window renders no verbs', () => {
     t.view('counterparty');
     assert.ok(!t.$('[data-nego-edit]'), 'no Direct Edit / Change on any clause');
     assert.ok(!t.$('[data-nego-ai-clause]'), 'no per-clause Copilot');
+    /* The clause panel's doors stand down with the verbs (16 Aug 2026 — they
+       are the only way into writing now, so a window must not draw them). */
+    assert.ok(!t.$('.rl-cp-pill') && !t.$('[data-rl-cp-edit]'),
+      'no Edit pill and no panel ＋ on a window');
     assert.ok(!t.$('[data-nego-accept]') && !t.$('[data-nego-reject]'), 'no Accept/Reject anywhere');
     assert.equal(t.doc.getElementById('nego-bulk-acc'), null, 'no Accept all');
     assert.equal(t.doc.getElementById('nego-bulk-rej'), null, 'no Reject all');
@@ -109,7 +113,13 @@ describe('the sign — the window renders no verbs', () => {
     const t = await page();
     t.view('counterparty');
     t.view('owner');
-    assert.ok(t.$('[data-nego-edit]'), 'Change is back');
+    /* REVERSED IN PLACE, 16 Aug 2026: this read `[data-nego-edit]` — the
+       clause's Direct Edit — and that button is retired from the canvas
+       everywhere (no edits on the paper; all writing through the clause
+       panel). The verb that must come back with the owner's chair is the way
+       into writing that exists now: the Edit pill and the panel's ＋. */
+    assert.ok(t.$('.rl-cp-pill'), 'the Edit pill is back');
+    assert.ok(t.$('[data-rl-cp-edit]'), 'and the panel\'s ＋ with it');
     /* The bulk verbs never come back on OUR seat — they are gone from it
        (10 Aug 2026) and live only on the counterparty's own page. What the
        flip restores is our own column and its send. */

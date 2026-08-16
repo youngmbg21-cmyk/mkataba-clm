@@ -563,8 +563,7 @@ describe('f210 (11) — the editing is in the panel', () => {
     /* Owner-asked 16 Aug 2026: "Direct edit will not be needed because the
        window is already open for direct editing." It is the same act as the ＋
        beside it, one press further away and pointed at the clause BEHIND the
-       panel. It stays on the clause's own hover row, which is a different place
-       with a different reason — said out loud rather than quietly kept. */
+       panel. */
     const p = await bench();
     const box = page(p);
     const b = bodies(box)[0];
@@ -581,9 +580,23 @@ describe('f210 (11) — the editing is in the panel', () => {
       'nothing in the panel presses the Copilot any more');
     assert.equal(b.querySelector('.rl-cp-acts [data-nego-edit]'), null,
       'Direct Edit is not in the panel');
-    /* …and it is still on the clause, which is the half that is NOT changing. */
-    assert.ok(box.querySelector('#rl-doc .rl-tools [data-nego-edit]'),
-      'the clause\'s own hover row keeps it');
+    /* REVERSED IN PLACE, 16 Aug 2026 (same day, later report). This used to
+       assert Direct Edit SURVIVED on the clause's hover row — "a different
+       place with a different reason; retiring it there is its own piece". The
+       owner then retired that piece off a screenshot of the row itself: "there
+       should be no ability to make edits on the contract itself … All edits
+       will happen on the side panel." So the whole tool row is gone from this
+       canvas — no Direct Edit, no clause-level Copilot button — and the only
+       doors into writing are the Edit pill (the panel's ＋) and a highlight on
+       the paper, which is a statement of scope rather than a button. The
+       room's own nego-tool row (negoDocHtml) is a different surface with no
+       panel and is deliberately untouched. */
+    assert.equal(box.querySelector('#rl-doc .rl-tools'), null,
+      'the clause tool row is gone from the paper');
+    assert.equal(box.querySelector('#rl-doc [data-nego-edit]'), null,
+      'no edit door on the contract itself');
+    assert.equal(box.querySelector('#rl-doc [data-nego-ai-clause]'), null,
+      'and no clause-level Copilot button either');
   });
 
   test('the ＋ opens the ENGINE\'s editor, not a second one', async () => {

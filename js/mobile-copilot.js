@@ -229,7 +229,7 @@ function mWireSentenceTap(){
     if(!t || !t.closest) return;
     /* Controls keep their own jobs. The same guard list the desktop selection
        handler uses, so a tap on a tool is a tap on a tool on both. */
-    if(t.closest('.rl-tools, .rl-tool, .nego-tool, .nego-selmenu, .nego-aipop, #ai-panel, [data-nego-editor], button, a, input, textarea, select')) return;
+    if(t.closest('.nego-tool, .nego-selmenu, .nego-aipop, #ai-panel, [data-nego-editor], button, a, input, textarea, select')) return;
     const pane = t.closest(M_PANE_SEL);
     if(!pane) return;
     /* Only where a change could actually be filed. An executed contract's pane

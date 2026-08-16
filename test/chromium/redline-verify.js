@@ -217,7 +217,6 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     const bodies = [...document.querySelectorAll('#rl-doc .rl-clause .nego-body')];
     const left = Math.min(...bodies.map(b => b.getBoundingClientRect().left));
     const right = Math.max(...bodies.map(b => b.getBoundingClientRect().right));
-    const tools = document.querySelector('#rl-doc .rl-tools');
     const cls = [...document.querySelectorAll('#rl-doc .rl-clause')];
     const gaps = cls.slice(1).map((c, i) =>
       c.getBoundingClientRect().top - cls[i].getBoundingClientRect().bottom);
@@ -235,9 +234,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       colWidth: Math.round(col.width), paperWidth: Math.round(paper.width), zoom: z,
       padL: Math.round((left - paper.left) / z), padR: Math.round((paper.right - right) / z),
       textWidth: Math.round(right - left), gaps: gaps.map(g => Math.round(g / z)),
-      toolsOpacity: tools ? getComputedStyle(tools).opacity : null,
-      toolsPosition: tools ? getComputedStyle(tools).position : null,
-      toolsPE: tools ? getComputedStyle(tools).pointerEvents : null };
+      toolRows: document.querySelectorAll('#rl-doc .rl-tools, #rl-doc .rl-tool').length };
   });
   check('2b the text sits the same distance from both edges',
     Math.abs(inset.left - inset.right) <= 2, `${inset.left}px left / ${inset.right}px right`);
@@ -260,29 +257,26 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('2b nothing is reserved inside the sheet beyond its own padding',
     inset.textWidth / inset.paperWidth >= 0.88,
     `${(inset.textWidth / inset.paperWidth * 100).toFixed(1)}% of the sheet`);
-  /* The toolbar is an overlay: hidden at rest and OUT OF THE FLOW, so being
-     hidden costs no height — the failure mode both of its predecessors had
-     (a reserved blank row, then a permanently busy page) is measured against
-     here, not asserted from the stylesheet. */
-  check('2b at rest the toolbar is hidden and costs no height',
-    inset.toolsOpacity === '0' && inset.toolsPosition === 'absolute' && inset.toolsPE === 'none',
-    `opacity ${inset.toolsOpacity}, position ${inset.toolsPosition}, pointer-events ${inset.toolsPE}`);
+  /* REVERSED IN PLACE, 16 Aug 2026. Two checks here kept the hover toolbar
+     honest — hidden at rest costing no height, revealed clickably on a real
+     hover. The toolbar is retired (owner-asked: "no ability to make edits on
+     the contract itself … All edits will happen on the side panel"), so what
+     is measured now is its absence and the door that replaced it: the Edit
+     pill, drawn without a hover because a hover-only door is an invisible
+     affordance. */
+  check('2b the clause tool row is gone from the paper',
+    inset.toolRows === 0, `${inset.toolRows} tool elements found`);
   check('2b the gaps between clauses are even and tight',
     inset.gaps.every(g => g <= 20), JSON.stringify(inset.gaps));
-
-  /* A REAL hover, through the input pipeline, because :hover cannot be faked
-     from script and a class-toggle simulation would be testing the simulation. */
-  await page.hover('#rl-doc .rl-clause');
-  await pause(300);                                   // the .15s reveal transition
-  const hovered = await page.evaluate(() => {
-    const t = document.querySelector('#rl-doc .rl-clause:hover .rl-tools')
-      || document.querySelector('#rl-doc .rl-clause .rl-tools');
-    return { op: getComputedStyle(t).opacity, pe: getComputedStyle(t).pointerEvents };
+  const pillAtRest = await page.evaluate(() => {
+    const p = document.querySelector('#rl-doc .rl-cp-pill');
+    if (!p) return null;
+    const s = getComputedStyle(p);
+    return { op: s.opacity, pe: s.pointerEvents };
   });
-  check('2b hovering a clause reveals its tools, clickably',
-    hovered.op === '1' && hovered.pe !== 'none', `opacity ${hovered.op}, pointer-events ${hovered.pe}`);
-  await page.mouse.move(5, 5);                        // park the pointer off the document
-  await pause(250);
+  check('2b the Edit pill stands in its place, visible without a hover',
+    !!pillAtRest && pillAtRest.op === '1' && pillAtRest.pe !== 'none',
+    pillAtRest ? `opacity ${pillAtRest.op}, pointer-events ${pillAtRest.pe}` : 'no pill');
 
   /* ---- 6. the uploaded document survives ---- */
   const struct = await page.evaluate(() => {
@@ -795,40 +789,46 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('12 Edit puts the clause on screen', jump.inView,
     jump.wasHidden ? 'it had scrolled out of view and came back' : 'the document fits the column');
   check('12 the clause says it has arrived', jump.lit);
-  check('12 and the editor opens on the clause itself, inline', jump.editing);
+  /* REVERSED IN PLACE, 16 Aug 2026: this pressed the same button and required
+     the engine's inline editor OPEN ON THE CLAUSE. The owner has closed that
+     surface — "no ability to make edits on the contract itself … All edits
+     will happen on the side panel" — so the card's Edit keeps its navigation
+     half (a card is a handle on a passage) and an editor appearing on the
+     paper would now be the fault. The panel's ＋ is where writing starts, and
+     12b below drives that door for real. */
+  check('12 and NO editor opens on the clause — writing moved to the panel', !jump.editing);
   check('12 no modal was opened to do it', jump.modals === 0, jump.modals);
   await page.screenshot({ path: path.join(OUT, '02-edit-jump.png') });
 
-  /* ---- 12b. AN OPEN EDITOR STILL READS AS THE DOCUMENT ----
-     Reported with a screenshot (f144): the clause card came apart the moment
-     Direct Edit opened on it. Every typographic rule for a clause body is
-     written for .nego-body, and the editor REPLACES .nego-body with
-     .nego-editing — so the wording lost its wrapping, its block spacing, its
-     table width and its preformatted overflow all at once.
+  /* ---- 12b. AN OPEN EDITOR STILL READS AS THE WORDING IT REPLACED ----
+     Reported with a screenshot (f144): the clause came apart the moment the
+     editor opened on it — the wording lost its wrapping, its block spacing,
+     its table width and its preformatted overflow all at once, because the
+     editor's .nego-editing rules had no twin for the body's.
 
-     This is the half that cannot be asserted from a stylesheet. f144 pins the
-     rule-level claim (every .nego-body rule has a .nego-editing twin); these
-     four are the box model, taken from the SAME clause before and after the
-     editor opens, so each is a comparison rather than a magic number.
-
-     And the hover row: :focus-within is what reveals it, a caret in the editor
-     IS focus within the clause, and the row is absolutely positioned at
-     bottom:-9px — right where the editor's own Save change / Cancel bar lands.
-     It was painted over the two buttons the writer actually needed. */
+     RE-STAGED IN THE PANEL, 16 Aug 2026. The editor used to open on the
+     clause (Direct Edit); that door is retired — no edits on the paper, all
+     writing through the panel — so the same claims are now measured where the
+     editor actually opens: the ＋ replaces the panel's "As it stands" block,
+     and the wording must arrive in the editor wearing the block's own dress.
+     The old "hover verbs stand down while typing" check went with the hover
+     verbs themselves. */
   const dressed = await page.evaluate(async () => {
-    const clause = [...document.querySelectorAll('#rl-doc .rl-clause[data-clause]')]
-      .find(s => s.querySelector('[data-nego-edit]') && s.querySelector('.nego-body p'));
+    if (!document.querySelector('.redline-page .rl-cp.is-open')){
+      const pill = document.querySelector('#rl-doc [data-rl-cp-open]');
+      if (pill) pill.click();
+    }
+    await new Promise(r => setTimeout(r, 120));
+    const body = document.querySelector('#rl-cp .rl-cp-src.is-on');
     const read = el => { const s = getComputedStyle(el);
       return { ws: s.whiteSpace, size: s.fontSize, lh: s.lineHeight }; };
-    const before = read(clause.querySelector('.nego-body p'));
-    clause.querySelector('[data-nego-edit]').click();
+    const before = read(body.querySelector('.rl-cp-stands p') || body.querySelector('.rl-cp-stands'));
+    body.querySelector('[data-rl-cp-edit]').click();
     await new Promise(r => setTimeout(r, 120));
-    const ed = clause.querySelector('[data-nego-editor]');
-    const after = read(ed.querySelector('p'));
+    const ed = document.querySelector('#rl-cp [data-nego-editor]');
+    if (!ed) return { none: true };
+    const after = read(ed.querySelector('p') || ed);
     const w = el => Math.round(el.getBoundingClientRect().width);
-    const tools = clause.querySelector('.rl-tools');
-    const bar = clause.querySelector('.nego-edit-bar');
-    const t = tools.getBoundingClientRect(), b = bar.getBoundingClientRect();
     return { before, after,
       /* Injected rather than looked for: the harness contract has no table or
          pre in a clause body, and the failure is about how the editor DRESSES
@@ -838,34 +838,33 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
           '<table><tbody><tr><td>BUYER</td><td>SUPPLIER</td></tr></tbody></table>'
           + '<pre>Name: [Authorised Officer]        Title: Procurement Director</pre>');
         const tbl = ed.querySelector('table'), pre = ed.querySelector('pre');
-        return { tableW: w(tbl), editorW: w(ed),
+        /* Against the CONTENT box: the panel's editor wears its own 9px/11px
+           padding (the clause's never did), and a table at width:100% fills
+           the box inside it. */
+        const s = getComputedStyle(ed);
+        const contentW = Math.round(ed.getBoundingClientRect().width
+          - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight)
+          - parseFloat(s.borderLeftWidth) - parseFloat(s.borderRightWidth));
+        return { tableW: w(tbl), editorW: contentW,
           preOverflow: pre.scrollWidth - w(pre), preOx: getComputedStyle(pre).overflowX };
-      })(),
-      gap: getComputedStyle(ed.firstElementChild).marginBottom,
-      toolsOpacity: getComputedStyle(tools).opacity,
-      toolsPE: getComputedStyle(tools).pointerEvents,
-      /* Recorded, not asserted: the row is still geometrically over the bar,
-         and that is fine as long as it is invisible and takes no clicks. */
-      overGeometrically: !(t.right < b.left || t.left > b.right || t.bottom < b.top || t.top > b.bottom) };
+      })() };
   });
-  check('12b the wording wraps in the editor exactly as it does in the document',
-    dressed.after.ws === dressed.before.ws && dressed.after.ws !== 'pre-wrap',
-    `${dressed.before.ws} → ${dressed.after.ws}`);
-  check('12b and is set at the same size and leading',
-    dressed.after.size === dressed.before.size && dressed.after.lh === dressed.before.lh,
-    `${dressed.before.size}/${dressed.before.lh} → ${dressed.after.size}/${dressed.after.lh}`);
-  check('12b a table in the editor fills the clause',
-    dressed.blocks.tableW === dressed.blocks.editorW,
-    `${dressed.blocks.tableW} of ${dressed.blocks.editorW}px`);
-  check('12b a preformatted block scrolls inside the clause rather than out of it',
-    dressed.blocks.preOx === 'auto' && dressed.blocks.preOverflow <= 0,
-    `overflow-x:${dressed.blocks.preOx}, spilling ${dressed.blocks.preOverflow}px`);
-  check('12b the blocks keep the document\'s 9px between them',
-    dressed.gap === '9px', dressed.gap);
-  check('12b and the hover verbs stand down while the clause is being typed in',
-    dressed.toolsOpacity === '0' && dressed.toolsPE === 'none',
-    `opacity ${dressed.toolsOpacity}, pointer-events ${dressed.toolsPE}`
-      + `, still over the Save bar: ${dressed.overGeometrically}`);
+  check('12b the ＋ opens the editor over "As it stands"', !dressed.none,
+    dressed.none ? 'no editor arrived in the panel' : 'editor in the panel');
+  if (!dressed.none){
+    check('12b the wording wraps in the editor exactly as it did in the block it replaced',
+      dressed.after.ws === dressed.before.ws && dressed.after.ws !== 'pre-wrap',
+      `${dressed.before.ws} → ${dressed.after.ws}`);
+    check('12b and is set at the same size and leading',
+      dressed.after.size === dressed.before.size && dressed.after.lh === dressed.before.lh,
+      `${dressed.before.size}/${dressed.before.lh} → ${dressed.after.size}/${dressed.after.lh}`);
+    check('12b a table in the editor fills its box',
+      Math.abs(dressed.blocks.tableW - dressed.blocks.editorW) <= 2,
+      `${dressed.blocks.tableW} of ${dressed.blocks.editorW}px`);
+    check('12b a preformatted block scrolls inside the box rather than out of it',
+      dressed.blocks.preOx === 'auto' && dressed.blocks.preOverflow <= 0,
+      `overflow-x:${dressed.blocks.preOx}, spilling ${dressed.blocks.preOverflow}px`);
+  }
   await page.screenshot({ path: path.join(OUT, '02b-edit-dressed.png') });
 
   /* ---- 12c. THE CLAUSE YOU LANDED ON IS STILL A CLAUSE ----
@@ -915,9 +914,9 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   await pause(250);
   const menu = await page.evaluate(async () => {
     /* The REAL entry: highlight words in a clause and release the mouse. The
-       clause toolbar now carries a Copilot button too (see standard-paper-verify),
-       but a selection is still a door of its own and is what is measured here —
-       this drives the same engine hook a person's drag does. */
+       clause toolbar is retired (16 Aug 2026 — no edits on the paper), so a
+       selection is the paper's ONE door to the Copilot and is what is measured
+       here — this drives the same engine hook a person's drag does. */
     const para = document.querySelector('#rl-doc .rl-clause .nego-body p')
       || document.querySelector('#rl-doc .rl-clause p');
     const textNode = [...para.childNodes].find(n => n.nodeType === 3 && n.nodeValue.trim().length > 30)
@@ -931,16 +930,15 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     await new Promise(r => setTimeout(r, 60));
     const m = document.querySelector('.nego-selmenu');
     return { open: !!m,
-      noToolbarAi: ![...document.querySelectorAll('#rl-doc .rl-tool')]
-        .some(b => /AI Assist/.test(b.textContent)),
-      toolbarCopilot: [...document.querySelectorAll('#rl-doc .rl-clause')]
-        .every(el => !!el.querySelector('[data-nego-ai-clause]')),
+      /* REVERSED IN PLACE, 16 Aug 2026: 'every clause carries a Copilot
+         button' became its opposite when the tool row retired — the paper
+         carries NO buttons that edit, and the highlight is the door. */
+      noToolbar: document.querySelectorAll('#rl-doc .rl-tool, #rl-doc [data-nego-ai-clause]').length === 0,
       items: m ? [...m.querySelectorAll('[data-nego-ai]')].map(b => b.textContent.trim()) : [],
       dialogs: document.querySelectorAll('.nego-aipop, .lab-aipop').length,
       modals: document.querySelectorAll('#modal-root *').length };
   });
-  check('5 the retired "AI Assist" label has not come back', menu.noToolbarAi);
-  check('5 every clause carries a Copilot button', menu.toolbarCopilot);
+  check('5 no clause carries a Copilot button — the highlight is the door', menu.noToolbar);
   check('5 the selection menu offers exactly three actions', menu.items.length === 3,
     JSON.stringify(menu.items));
   /* "Edit with Copilot", not "Rephrase with Copilot": the first verb was

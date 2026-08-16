@@ -165,7 +165,11 @@ describe('f139 — and the counterparty can redline on round one', () => {
     assert.equal(v.p.win.portalIssuedForSigning(v.payload), false,
       'nobody issued this for signature');
     assert.ok(v.p.win.document.getElementById('pt-nego'), 'the shared workbench is mounted');
-    assert.ok(/Direct Edit/.test(v.html),
+    /* The counter-proposal route. It read "Direct Edit" until 16 Aug 2026;
+       that button retired with the clause tool row (no edits on the paper —
+       all writing through the clause panel), so the route this link exists to
+       open is the Edit pill and the panel's ＋. Same claim, its successor. */
+    assert.ok(/data-rl-cp-open/.test(v.html) && /data-rl-cp-edit/.test(v.html),
       'the counter-proposal route — this is what a counterparty could not reach');
     assert.ok(!/negotiation is closed on this link/i.test(v.html),
       'a round-one negotiation link must never say the negotiation is closed');
@@ -174,7 +178,7 @@ describe('f139 — and the counterparty can redline on round one', () => {
   test('a signing link still closes the negotiation, as W6 intends', async () => {
     const v = await counterpartyPageFor('sign');
     assert.equal(v.p.win.portalIssuedForSigning(v.payload), true);
-    assert.ok(!/Direct Edit/.test(v.html),
+    assert.ok(!/data-rl-cp-edit/.test(v.html),
       'a link issued for signature keeps no way back into a closed negotiation');
   });
 });

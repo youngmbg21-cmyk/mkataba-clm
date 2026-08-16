@@ -575,11 +575,25 @@ function redlineOpsBlocks(ops){
 }
 /* Render those groups, one block per line.
 
-   The marker is deliberately NOT split out here, unlike the two-text path. It
-   sits inside a recorded op, and cutting it free would mean rewriting the ops
-   this function exists to render verbatim. The hanging indent is done in CSS
-   instead — negative text-indent against matching padding — which produces the
-   same set page without touching the record. */
+   The marker IS split out here now — for RENDERING, never for the record
+   (16 Aug 2026, owner-reported off a screenshot: "specifications and provided
+   needs to start at the same line as manufacture"). This function used to
+   leave the marker inside its op and do the hang in CSS alone — negative
+   text-indent against matching padding — and that geometry aligns the first
+   line with its wraps ONLY if the marker plus its gap is exactly the hanging
+   measure. A bullet is a third of it, so the wording after "•" started well
+   left of its own wrapped lines and the wraps read as over-indented.
+
+   WHAT IS AND IS NOT TOUCHED. The recorded ops are inside the fingerprint and
+   are not rewritten: the marker's characters are rendered through the SAME
+   op renderer, wearing the SAME ins/del element and therefore the same
+   colour and strike — they are merely grouped inside a presentational
+   `<span class="rl-marker">` so the CSS can make the marker a fixed-width
+   gutter (see the rl-hang rules) and start the wording at the tab stop on
+   every line, first and wrapped alike. textContent is character-identical to
+   what was rendered before. The split only happens when the whole marker
+   sits inside the line's FIRST op — a marker torn across two ops is left
+   alone rather than half-boxed. */
 function redlineOpsBlocksHtml(ops, opts = {}){
   const pre = opts.classPrefix || 'rl';
   return redlineOpsBlocks(ops).map(group => {
@@ -600,9 +614,20 @@ function redlineOpsBlocksHtml(ops, opts = {}){
        Rendering attributed ops through the flat renderer instead would answer
        "who wrote this" at the cost of the clause's numbering and indents —
        trading one thing a reader needs for another. */
-    const inner = opts.attributed
-      ? redlineAttributedHtml(group, opts)
-      : redlineOpsHtml(group, opts);
+    const draw = g => opts.attributed
+      ? redlineAttributedHtml(g, opts)
+      : redlineOpsHtml(g, opts);
+    let inner;
+    const fm = hang ? redlineSplitMarker(String(group[0].text)) : { marker: '' };
+    if (fm.marker){
+      const head = String(group[0].text);
+      const markerOp = { ...group[0], text: head.slice(0, head.length - fm.rest.length) };
+      const rest = [{ ...group[0], text: fm.rest }, ...group.slice(1)]
+        .filter(o => o.text !== '');
+      inner = `<span class="${pre}-marker">${draw([markerOp])}</span>${draw(rest)}`;
+    } else {
+      inner = draw(group);
+    }
     return `<${tag} class="${cls}">${inner}</${tag}>`;
   }).join('');
 }

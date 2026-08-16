@@ -80,8 +80,26 @@ async function page(opts = {}){
   const preamble = () => [...doc.querySelectorAll('#rl-doc .rl-clause[data-clause]')]
     .find(s => /PROCUREMENT AGREEMENT/.test((s.querySelector('.rl-clause-h') || {}).textContent || ''));
   return { w, win, c, doc, preamble,
-    /* The engine's own control, pressed the way a reader presses it. */
-    edit(){ preamble().querySelector('[data-nego-edit]').click(); return doc.querySelector('[data-nego-editor]'); },
+    /* The engine's own controls, pressed the way a reader presses them.
+       RE-STAGED 16 Aug 2026: the clause's Direct Edit is retired (no edits on
+       the paper — all writing through the panel), so the press is the Edit
+       pill and then the panel's ＋. Same editor, same handler, new home; the
+       pill is pressed only when the clause's panel body is not already up,
+       because the pill is a toggle. */
+    edit(){
+      const cl = preamble();
+      const id = cl.getAttribute('data-clause');
+      const body = () => [...doc.querySelectorAll('#rl-cp .rl-cp-src')]
+        .find(b => b.getAttribute('data-rl-cp-for') === id);
+      if (!body().classList.contains('is-on')) cl.querySelector('[data-rl-cp-open]').click();
+      body().querySelector('[data-rl-cp-edit]').click();
+      return doc.querySelector('[data-nego-editor]');
+    },
+    cpBody(){
+      const id = preamble().getAttribute('data-clause');
+      return [...doc.querySelectorAll('#rl-cp .rl-cp-src')]
+        .find(b => b.getAttribute('data-rl-cp-for') === id);
+    },
     /* Save is two steps now: the wording, then "why this change?". These
        tests are about the wording, so they walk through and skip the reason —
        the same thing a person does when they have nothing to add. */
@@ -153,21 +171,27 @@ describe('f144 — the editor is styled as the clause it replaces', () => {
   });
 });
 
-describe('f144 — an open editor is not also a row of hover verbs', () => {
-  test('the clause says it is being written in', async () => {
+describe('f144 — an open editor is not also a row of verbs', () => {
+  /* RE-STAGED 16 Aug 2026. The hover verbs this section kept down are retired
+     with their row (no edits on the paper — all writing through the panel),
+     and the editor's home moved into the panel with them. The CLAIM survives
+     where the editor lives now: while the panel's editor is open, the panel's
+     own acts (the ＋) stand down — a door the reader is already standing in —
+     and the flag that says so dies with the editor. */
+  test('the panel body says it is being written in', async () => {
     const p = await page();
-    assert.ok(!p.preamble().classList.contains('is-editing'), 'not before');
+    assert.ok(!p.cpBody().classList.contains('is-editing'), 'not before');
     p.edit();
-    assert.ok(p.preamble().classList.contains('is-editing'),
-      'the clause must be able to say so, or its tools cannot stand down');
+    assert.ok(p.cpBody().classList.contains('is-editing'),
+      'the body must be able to say so, or its acts cannot stand down');
   });
 
-  test('and the sheet takes the tools off a clause that says it', async () => {
+  test('and the sheet takes the acts off a body that says it', async () => {
     const p = await page();
-    /* Both readings: the pointer one, and the touch one where the tools live in
-       the flow instead of over the card. */
-    assert.match(p.pageCss(), /\.rl-clause\.is-editing \.rl-tools\{[^}]*opacity:0/);
-    assert.match(p.pageCss(), /\.rl-clause\.is-editing \.rl-tools\{display:none\}/);
+    assert.match(p.pageCss(), /\.rl-cp-src\.is-editing \.rl-cp-acts\{display:none\}/);
+    /* And nothing dresses the retired hover row any more. */
+    assert.ok(!/\.rl-clause\.is-editing \.rl-tools/.test(p.pageCss()),
+      'no rule survives for the retired tool row');
   });
 
   test('the flag dies with the editor, not after it', async () => {
@@ -175,8 +199,8 @@ describe('f144 — an open editor is not also a row of hover verbs', () => {
     p.edit();
     p.doc.querySelector('[data-nego-cancel]').click();
     assert.equal(p.doc.querySelector('[data-nego-editor]'), null, 'the editor closed');
-    assert.ok(!p.preamble().classList.contains('is-editing'),
-      'a clause left flagged as editing would keep its tools hidden for good');
+    assert.ok(!p.cpBody().classList.contains('is-editing'),
+      'a body left flagged as editing would keep its acts hidden for good');
   });
 });
 

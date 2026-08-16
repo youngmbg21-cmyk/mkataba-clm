@@ -146,18 +146,29 @@ const CARD_EDIT = async () => {
   await new Promise(r => setTimeout(r, 800));
   const s = getComputedStyle(clause);
   const head = clause.querySelector('.rl-clause-h');
-  const ed = clause.querySelector('[data-nego-editor]');
-  const tools = clause.querySelector('.rl-tools');
+  /* RE-STAGED 16 Aug 2026: the card's Edit no longer opens an editor on the
+     clause — the tool row is retired and all writing happens in the panel. So
+     the editor half of this measurement now walks the door that exists: the
+     clause's Edit pill, then the panel's ＋. The clause itself must carry NO
+     editor and NO tool row on either seat. */
+  const pill = clause.querySelector('[data-rl-cp-open]');
+  if (pill) pill.click();
+  await new Promise(r => setTimeout(r, 250));
+  const body = document.querySelector('.rl-cp-src.is-on');
+  const plus = body && body.querySelector('[data-rl-cp-edit]');
+  if (plus) plus.click();
+  await new Promise(r => setTimeout(r, 250));
+  const ed = body && body.querySelector('[data-nego-editor]');
   const para = ed && ed.querySelector('p');
   return { before, after: w(clause),
     maxWidth: s.maxWidth, overflowX: s.overflowX,
     headWrap: head ? getComputedStyle(head).whiteSpace : null,
     arrived: clause.classList.contains('rl-arrived'),
     wearsPickerClass: clause.classList.contains('rl-jump'),
-    editorOpen: !!ed, editing: clause.classList.contains('is-editing'),
+    editorOpen: !!ed, editing: !!(body && body.classList.contains('is-editing')),
+    clauseCarriesNothing: !clause.querySelector('[data-nego-editor]')
+      && !clause.querySelector('.rl-tools'),
     paraWrap: para ? getComputedStyle(para).whiteSpace : null,
-    toolsOpacity: tools ? getComputedStyle(tools).opacity : null,
-    toolsPointer: tools ? getComputedStyle(tools).pointerEvents : null,
     /* The wording the editor opened ON. The fixture files Net-45 over a Net-30
        baseline, so which of the two comes back says whether the editor
        continues the redline or silently restarts from underneath it. */
@@ -306,15 +317,18 @@ const CARD_EDIT = async () => {
       check(`9 ${who}: the clause says it has arrived, without the picker's name`,
         r.arrived && !r.wearsPickerClass,
         `arrived:${r.arrived} wearsPickerClass:${r.wearsPickerClass}`);
-      check(`9 ${who}: the editor opened, and the clause knows it`,
+      check(`9 ${who}: the editor opened in the panel, and the panel knows it`,
         r.editorOpen && r.editing, `editor:${r.editorOpen} is-editing:${r.editing}`);
-      /* The editor is the clause: the room's body rules have to reach it, or
-         the wording changes shape the moment it is edited. */
+      /* The editor arrives dressed as wording: the body rules have to reach
+         it, or the wording changes shape the moment it is edited. */
       check(`9 ${who}: the wording wraps in the editor as it does in the document`,
         r.paraWrap === 'normal', r.paraWrap);
-      check(`9 ${who}: the hover verbs stand down while the clause is typed in`,
-        r.toolsOpacity === '0' && r.toolsPointer === 'none',
-        `opacity ${r.toolsOpacity}, pointer-events ${r.toolsPointer}`);
+      /* REVERSED IN PLACE, 16 Aug 2026: this kept the hover verbs down while
+         the clause was typed in. The verbs are retired with their row and the
+         clause is not typed in at all any more — what must now be true is
+         that the paper stayed clean while the panel carried the writing. */
+      check(`9 ${who}: the clause itself carries no editor and no tool row`,
+        r.clauseCarriesNothing, `clean: ${r.clauseCarriesNothing}`);
       /* Net-45 is the filed redline; Net-30 is the baseline under it. */
       check(`9 ${who}: the editor continues the redline, it does not restart it`,
         /Net-45/.test(r.opensOn) && !/Net-30/.test(r.opensOn),
@@ -323,7 +337,7 @@ const CARD_EDIT = async () => {
     /* AND THE TWO AGREE. Each assertion above could pass on one seat and fail
        on the other; this is the one that says they are the same product. */
     const same = ['maxWidth', 'overflowX', 'headWrap', 'arrived', 'wearsPickerClass',
-      'editorOpen', 'editing', 'paraWrap', 'toolsOpacity', 'toolsPointer']
+      'editorOpen', 'editing', 'paraWrap', 'clauseCarriesNothing']
       .filter(k => String(ownerEdit[k]) !== String(cpEdit[k]));
     check('9 the two seats edit a clause identically', same.length === 0,
       same.length ? same.map(k => `${k}: ${ownerEdit[k]} vs ${cpEdit[k]}`).join(' · ')

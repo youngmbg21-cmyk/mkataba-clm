@@ -421,6 +421,21 @@ function negoStyleHtml(){
     font-family:var(--n-font-doc)}
   .nego-redline .rl-heading:first-child{margin-top:0}
   .nego-redline .rl-hang{padding-left:2.6em;text-indent:-2.6em}
+  /* ---- THE MARKER IS A GUTTER, NOT A GLYPH (owner-reported 16 Aug 2026, off a
+     screenshot: "specifications and provided needs to start at the same line as
+     manufacture") ----
+     The hang above pulls the first line back 2.6em and indents every wrap by
+     the same 2.6em — which aligns the two ONLY if the marker plus its gap is
+     exactly 2.6em wide. It never was: "•" is a third of that, so the first
+     line's wording started well LEFT of its own wraps and the wraps read as
+     over-indented. The marker now occupies the full hanging measure as an
+     inline-block, so the wording starts at the tab stop on every line, first
+     and wrapped alike — one text column whatever the marker is, which is how a
+     contract is set on paper. min-width, not width, so a long citation
+     ("12.10.") is never clipped; text-indent:0 because an inline-block is a
+     block container and would otherwise inherit the -2.6em and shove its own
+     glyph out of its box. */
+  .nego-redline .rl-hang .rl-marker{display:inline-block;min-width:2.6em;text-indent:0}
   .nego-redline .rl-clause{margin-top:9px}
   /* A line that arrived or went whole is marked in the margin as well as in
      its colour, so the two are still distinguishable in print and to anyone
@@ -604,6 +619,35 @@ function negoStyleHtml(){
   .nego-clause .nego-body blockquote,
   .nego-clause .nego-editing blockquote{margin:8px 0 8px 18px;padding-left:12px;
     border-left:2px solid var(--n-line);color:var(--n-ink-soft)}
+  /* ---- AND THE SAME DRESS IN THE EDITOR'S OTHER HOME (16 Aug 2026) ----
+     Every twin above is scoped to .nego-clause — the editor's home when f144
+     built them. Since the clause tool row retired, the editor OPENS in the
+     clause panel (.rl-cp-src, over "As it stands"), and without these the
+     fault came straight back through the new door: a table typed into the
+     panel's editor shrank to its content and a preformatted block hung
+     outside the box. Same values; fallbacks on the vars because the
+     counterparty's mount can sit outside the #nego-root scope that defines
+     them. */
+  .rl-cp-src .nego-editing>*{margin:0 0 9px}
+  .rl-cp-src .nego-editing>*:last-child{margin-bottom:0}
+  .rl-cp-src .nego-editing p,.rl-cp-src .nego-editing li{white-space:normal}
+  .rl-cp-src .nego-editing ol,.rl-cp-src .nego-editing ul{margin:7px 0 9px;padding-left:26px}
+  .rl-cp-src .nego-editing li{margin:0 0 5px}
+  .rl-cp-src .nego-editing li:last-child{margin-bottom:0}
+  .rl-cp-src .nego-editing strong,.rl-cp-src .nego-editing b{font-weight:700}
+  .rl-cp-src .nego-editing em,.rl-cp-src .nego-editing i{font-style:italic}
+  .rl-cp-src .nego-editing u{text-decoration:underline}
+  .rl-cp-src .nego-editing h1,.rl-cp-src .nego-editing h2,.rl-cp-src .nego-editing h3,
+  .rl-cp-src .nego-editing h4,.rl-cp-src .nego-editing h5,.rl-cp-src .nego-editing h6{
+    font-family:var(--n-font-doc,serif);font-size:13.5px;font-weight:700;margin:10px 0 5px}
+  .rl-cp-src .nego-editing table{border-collapse:collapse;width:100%;margin:9px 0;font-size:12px}
+  .rl-cp-src .nego-editing td,.rl-cp-src .nego-editing th{
+    border:1px solid var(--n-line,#e2e8f0);padding:5px 8px;text-align:left;vertical-align:top}
+  .rl-cp-src .nego-editing th{font-weight:700;background:var(--n-badge-bg,#f1f5f9)}
+  .rl-cp-src .nego-editing pre{white-space:pre;overflow-x:auto;
+    font-family:var(--n-font-mono,monospace);font-size:11.5px;line-height:1.5}
+  .rl-cp-src .nego-editing blockquote{margin:8px 0 8px 18px;padding-left:12px;
+    border-left:2px solid var(--n-line,#e2e8f0);color:var(--n-ink-soft,#475569)}
   .nego-clause.is-active{background:#f3f7fb;box-shadow:0 0 0 2px var(--n-slate-soft)}
   html.dark .nego-clause.is-active{background:rgba(127,163,200,.12)}
   .nego-clause.flash{animation:negoFlash 1.4s ease 1}
@@ -736,11 +780,12 @@ function negoStyleHtml(){
      scaled with the type stepper and everything AROUND it did not, so at the
      floor of 8px the Save button and the format chips were larger than the
      sentence they were editing — the same fault, and the same fix, as the ask
-     tag and the clause tools before them. --doc-scale is 1 on every surface
+     tag and the clause tools before them (the tool row itself has since been
+     retired — 16 Aug 2026, all edits through the clause panel — but the
+     scaling rule it taught stands). --doc-scale is 1 on every surface
      that sets no preference (the two-pane view scales WIDTH, not type), so
-     nothing but the redline page moves. POSITIONING stays in bare pixels for
-     the reason stated at .rl-tool: the bar is aligned to .rl-tools, and
-     scaling one offset without the other walks the pair apart. */
+     nothing but the redline page moves. POSITIONING stays in bare pixels:
+     scaling one offset without its partner walks a pair apart. */
   .nego-fmt-bar{display:flex;gap:calc(4px * var(--doc-scale,1));
     margin:0 0 calc(6px * var(--doc-scale,1));padding:calc(4px * var(--doc-scale,1));width:max-content;
     background:var(--n-well,#f1f5f9);border:1px solid var(--n-line,#e2e8f0);border-radius:8px}
@@ -4243,7 +4288,7 @@ const _NEGO_SEL_BLOCK = new Set(['P', 'DIV', 'LI', 'OL', 'UL', 'H1', 'H2', 'H3',
    redline legitimately renders sub-headings of its own (redlineOpsBlocksHtml
    emits h4.rl-line for them) which ARE stored wording and must not be cut. A
    rule guessing from the tag name would take those with it. */
-const _NEGO_SEL_CHROME = '[data-nego-chrome],.rl-tools,.rl-tool,.nego-tool,.rl-asktag,.nego-badge,'
+const _NEGO_SEL_CHROME = '[data-nego-chrome],.nego-tool,.rl-asktag,.nego-badge,'
   + '.rl-cp-pill,.rl-cp-src,'
   + '.nego-note,.rl-clause-h,.nego-edit-bar,[data-nego-editor],button,input,textarea,select';
 /* One reading of a node's wording. `mode` says how to treat tracked marks:
@@ -4822,8 +4867,20 @@ function wireNegotiationTab(c, opts = {}){
        lead first). The editor opens on the wording that is ON SCREEN, which
        is the lead's — so the first pending token wins, exactly the change
        whose marks the block is drawing. */
-    const shownIds = String(block.getAttribute('data-nego-card-anchor')
-      || block.getAttribute('data-change') || '').split(/\s+/).filter(Boolean);
+    /* THE PANEL'S ＋ CONTINUES THE SAME DRAFT THE CLAUSE IS SHOWING (16 Aug
+       2026, caught by f144 the day the clause's own editor retired). The
+       anchor lives on the DOCUMENT's clause block; the panel body never
+       carried one, so in the panel `shownIds` came back empty, onTable came
+       back null, and a ＋ whose label read "Continue your draft" opened on
+       the standing wording with the writer's own ask nowhere on screen —
+       f144's original fault, back through the new door. The panel reads the
+       clause's OWN anchor rather than growing a copy that could drift: one
+       canvas, one wall, one list of what is on screen. */
+    const anchorEl = inPanel
+      ? host.querySelector(`.nego-pane.working .nego-clause[data-clause="${clauseId}"]`)
+      : block;
+    const shownIds = String((anchorEl && (anchorEl.getAttribute('data-nego-card-anchor')
+      || anchorEl.getAttribute('data-change'))) || '').split(/\s+/).filter(Boolean);
     const onTable = shownIds.length
       ? (typeof negoChanges === 'function' ? negoChanges(c) : [])
         .find(x => x && shownIds.includes(x.id) && x.status === 'pending'
@@ -5210,7 +5267,7 @@ function wireNegotiationTab(c, opts = {}){
          exempt. */
       if (t.closest('.rl-cp-src [data-nego-editor]')) return false;
       return !!t.closest(
-        '.rl-tools, .rl-tool, .nego-tool, .nego-selmenu, .nego-aipop, #ai-panel, ' +
+        '.nego-tool, .nego-selmenu, .nego-aipop, #ai-panel, ' +
         '[data-nego-editor], button, a, input, textarea, select');
     };
     host.addEventListener('mouseup', e => {
@@ -6098,17 +6155,18 @@ function rlAskRevealHtml(c, ch, side, opts = {}){
    change the wording are inside, beside the history that explains why anybody
    would want to.
 
-   WHY IT IS ALWAYS DRAWN AND THE TOOL ROW IS NOT. The hover row at the foot of
-   the clause is furniture on a clause you are already working on; this is the
-   way IN. A hover-only door is an invisible affordance, which is the exact
-   fault this file already records against the selection route — a reader
-   looking at a clause and wanting to change it must be able to SEE that they
-   can.
+   WHY IT IS ALWAYS DRAWN. A hover-only door is an invisible affordance, which
+   is the exact fault this file already records against the selection route — a
+   reader looking at a clause and wanting to change it must be able to SEE that
+   they can. Since 16 Aug 2026 it is also the ONLY door on the clause: the
+   hover tool row at the foot (Copilot / Direct Edit) is retired on the owner's
+   instruction that no edit happens on the contract itself — every way to write
+   lives behind this pill, in the panel.
 
    ONE PLACE THE PANEL IS OFFERED. Not on a read-only copy and not for a seat
-   with no hands: `editable` is the same reading the tool row asks, so a viewer,
-   a signing link and a closed round get a clause they can read and no door
-   promising something the page would refuse. */
+   with no hands: `editable` is the same reading the retired tool row asked, so
+   a viewer, a signing link and a closed round get a clause they can read and
+   no door promising something the page would refuse. */
 function rlClauseEditPillHtml(cl, opts = {}){
   if (!cl || opts.editable === false || !opts.hasPanel) return '';
   const id = _ne(cl.clauseId);
@@ -6246,9 +6304,10 @@ function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
       ${''/* DIRECT EDIT HAS LEFT THIS PANEL (owner-asked 16 Aug 2026: "Direct
              edit will not be needed because the window is already open for
              direct editing"). It is the same act as the ＋ beside it, one press
-             further away and pointed at the clause behind the panel. It stays
-             on the CLAUSE's own hover row, which is a different place with a
-             different reason; retiring it there is its own piece. */}
+             further away and pointed at the clause behind the panel. Later the
+             same day it left the CLAUSE's hover row too, with the whole row —
+             the owner's "no edits on the contract itself" — so the ＋ here and
+             the highlight-Copilot are now the ways to write, full stop. */}
       ${''/* ---- AND THE COPILOT IS A SIGNAL HERE, NOT A CONTROL ----
              (owner-asked 16 Aug 2026: "delete the edit with copilot feature but
              leave the words as they are there in purple without a pill around
@@ -7279,6 +7338,23 @@ function redlineLayoutCss(){
   /* And in the clause panel, which renders the same builder's output at its own
      size. Same measure, its own scale. */
   .redline-page .rl-cp-src .rl-hang{padding-left:2.6em;text-indent:-2.6em}
+  /* ---- AND THE MARKER FILLS THE MEASURE, SO FIRST LINE AND WRAPS AGREE ----
+     (owner-reported 16 Aug 2026, off a screenshot of a bulleted sub-clause:
+     "specifications and provided needs to start at the same line as
+     manufacture. It should be built how a proper professional contract would
+     align.")
+     The hang was half the geometry. It set where the WRAPS start (2.6em) and
+     let the FIRST line's wording start wherever the marker's own width put it —
+     so after a narrow "•" the wording began around 0.8em while its wraps sat at
+     2.6em, and the wrapped lines read as indented past their own first word.
+     The marker is an inline-block the full width of the hanging measure now:
+     the bullet or number sits at the left edge of the gutter and the wording
+     starts at the tab stop on EVERY line. min-width rather than width so a wide
+     citation is never clipped, and text-indent:0 because an inline-block is a
+     block container that would otherwise inherit the line's -2.6em into its own
+     first line. Same rule in the panel's copy — one geometry, both homes. */
+  .redline-page .rl-doc .rl-hang .rl-marker,
+  .redline-page .rl-cp-src .rl-hang .rl-marker{display:inline-block;min-width:2.6em;text-indent:0}
   /* A real list gets the same shape from the browser, but only if it is allowed
      its gutter: the sheet's reset leaves ul/ol at the user-agent padding on
      some surfaces and at zero on others, and at zero the marker sits ON the
@@ -7365,7 +7441,8 @@ function redlineLayoutCss(){
      which is the one place it was asked not to be.
 
      IT IS THE SHEET'S FURNITURE, so it follows the sheet's type — the reading
-     .rl-asktag and .rl-tool already take, and the third report of one fault
+     .rl-asktag already takes (and the retired tool row took before it), and
+     the third report of one fault
      (13 and 15 Aug 2026) is enough to apply it without waiting for a fourth.
      And it is CUT FROM THE SELECTION with the rest of the furniture (see
      _NEGO_SEL_CHROME): a drag from above the first word to below the last must
@@ -8413,72 +8490,16 @@ function redlineLayoutCss(){
      are cut from the reading as well (see _NEGO_SEL_CHROME); this stops them
      joining the highlight in the first place, so what is highlighted on screen
      is what the Copilot is asked about. */
-  .redline-page .rl-tools,.redline-page .rl-asktag,.redline-page .nego-badge{
+  .redline-page .rl-asktag,.redline-page .nego-badge{
     -webkit-user-select:none;user-select:none}
-  .redline-page .rl-tools{position:absolute;right:6px;bottom:-9px;z-index:3;margin:0;
-    display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px;
-    opacity:0;pointer-events:none;transition:opacity .15s ease}
-  .redline-page .rl-clause:hover .rl-tools,
-  .redline-page .rl-clause:focus-within .rl-tools{opacity:1;pointer-events:auto}
-  /* ---- BUT NOT WHILE THE CLAUSE IS BEING TYPED IN ----
-     :focus-within is what reveals the row, and a caret inside the editor IS
-     focus within the clause — so the moment Direct Edit opened, the three
-     hover verbs latched on and stayed on. They are absolutely positioned at
-     bottom:-9px, which is exactly where the editor's own Save change / Cancel
-     bar sits, so "Add Note/Tag ✎ Direct Edit 🗑 Propose deletion" was painted
-     on top of the two buttons the writer actually needed, at z-index 3.
-
-     Hidden rather than moved. A clause under edit already carries its verbs —
-     Save and Cancel — and offering "Direct Edit" beside them names a door the
-     reader is standing in. is-editing is set by wireNegotiationTab when the
-     editor opens and disappears with the repaint that closes it, so there is
-     no state here that can outlive the editor. */
-  .redline-page .rl-clause.is-editing .rl-tools{opacity:0;pointer-events:none}
-  /* On a touch screen there is no hover, so hidden tools would be unreachable
-     tools — the objection test/f44 records against hover-only controls.
-     There, and only there, they return to the flow and stay visible: the
-     trade against a busier page is forced, the trade against unusable tools
-     is not. */
-  @media (hover:none){
-    .redline-page .rl-tools{position:static;opacity:1;pointer-events:auto;margin-top:7px}
-    /* …and there they are in the flow, above the editor rather than over it,
-       so the same rule holds: an open editor shows Save and Cancel, not a
-       second Direct Edit under them. */
-    .redline-page .rl-clause.is-editing .rl-tools{display:none}
-  }
-  /* Copilot and Direct Edit ride ON the clause, so they are the sheet's
-     furniture and follow the sheet's type — the same reading as .rl-asktag
-     above, reported in the same breath. The POSITIONING is deliberately left
-     in bare pixels: .rl-tools sits at bottom:-9px because that is exactly
-     where the editor's own Save change / Cancel bar sits, and scaling the
-     offset would walk the two apart at every setting but the default. */
-  .redline-page .rl-tool{border:1px solid var(--color-divider);background:var(--color-surface);
-    border-radius:999px;padding:calc(3px * var(--doc-scale,1)) calc(10px * var(--doc-scale,1));
-    font:inherit;font-size:calc(10.5px * var(--doc-scale,1));font-weight:600;line-height:1.6;
-    color:var(--color-neutral-600);cursor:pointer;white-space:nowrap;
-    box-shadow:0 1px 2px rgba(15,23,42,.08);
-    transition:border-color .15s,color .15s,background .15s}
-  .redline-page .rl-tool:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
-  /* ---- THE THREE VERBS, EACH IN ITS OWN COLOUR ----
-     Indigo to talk, emerald to write, rose to strike — the same families the
-     rest of the workbench speaks (discussion is indigo, your redlines travel
-     on emerald, deletions read red). Fixed hex, dark tints, for the reason
-     every colour on this page is: a verb that re-maps with the theme is a
-     verb pressed by mistake. Written as .rl-tool.rl-tool-* so the pair
-     outranks the base pill at every state. */
-  .redline-page .rl-tool.rl-tool-note{background:#eef2ff;border-color:#c7d2fe;color:#4338ca}
-  .redline-page .rl-tool.rl-tool-note:hover{background:#e0e7ff;border-color:#6366f1;color:#3730a3}
-  .redline-page .rl-tool.rl-tool-edit{background:#ecfdf5;border-color:#6ee7b7;color:#065f46}
-  .redline-page .rl-tool.rl-tool-edit:hover{background:#d1fae5;border-color:#059669}
-  /* Violet for the Copilot, which is the colour it already wears everywhere
-     else on this page — the "Review vs Playbook" button above the document and
-     the Copilot column's own chrome. A reader should not have to learn a second
-     signal for the same assistant. */
-  .redline-page .rl-tool.rl-tool-ai{background:#f5f3ff;border-color:#ddd6fe;color:#5b21b6}
-  .redline-page .rl-tool.rl-tool-ai:hover{background:#ede9fe;border-color:#7c3aed}
-  html.dark .redline-page .rl-tool.rl-tool-note{background:rgba(99,102,241,.16);border-color:rgba(99,102,241,.45);color:#c7d2fe}
-  html.dark .redline-page .rl-tool.rl-tool-edit{background:rgba(5,150,105,.16);border-color:rgba(5,150,105,.45);color:#6ee7b7}
-  html.dark .redline-page .rl-tool.rl-tool-ai{background:rgba(124,58,237,.18);border-color:rgba(124,58,237,.45);color:#ddd6fe}
+  /* ---- THE CLAUSE TOOL ROW'S RULES LEFT WITH THE ROW (16 Aug 2026) ----
+     .rl-tools / .rl-tool and their hover-reveal, is-editing and hover:none
+     rules all stood here. The row is retired — no edits on the paper, all
+     edits through the clause panel (owner-asked; see the note where the
+     builder stood in redlineDocHtml) — and rules kept for elements nothing
+     draws are how a dead control comes back through a door nobody remembered.
+     .rl-cp-act in the panel carries the same colour families on its own
+     class, which is why nothing else changed shade. */
   .redline-page .rl-btn-ghost{background:var(--color-neutral-100);color:var(--color-neutral-600)}
   .redline-page .rl-btn-ghost[aria-pressed="true"]{background:var(--accent-solid);color:#fff;
     border-color:var(--accent-solid)}
@@ -10925,19 +10946,21 @@ function rlJumpToClause(clauseId, opts = {}){
      second press of the same card's Edit lit nothing. */
   void clause.offsetWidth;
   clause.classList.add('rl-arrived');
-  if (opts.edit !== false){
-    const editBtn = clause.querySelector('[data-nego-edit]');
-    if (editBtn && !clause.querySelector('.nego-edit-bar')) editBtn.click();
-    const box = clause.querySelector('[data-nego-editor]');
-    if (box && box.focus) box.focus();
-  }
+  /* THE JUMP NO LONGER OPENS AN EDITOR, because there is none on the clause to
+     open (16 Aug 2026): the tool row is retired and all writing happens in the
+     clause panel. opts.edit used to choose between "take me there" and "take
+     me there and start typing"; both callers now get the first, and the way
+     into writing is the Edit pill on the clause this jump just lit. The opts
+     shape is kept so no caller changes. */
+  void opts;
   return clause;
 }
 
-/* AI Assist, Add Note/Tag, and the Tracked Changes card verbs, bound to the
-   engine. AI Assist opens the same three RL_SEL_ACTIONS a text selection
-   offers, because a clause-level ask and a phrase-level ask are the same ask
-   over a different span of text. */
+/* The page's own wiring — the queue, the card jumps, the resizer, the zoom,
+   the pop-out and the clause panel's repaint. (The clause TOOL ROW this
+   function was named for is retired — 16 Aug 2026, all edits through the
+   clause panel — and its wiring went with its buttons; the name stays because
+   half the suite calls it by it.) */
 function rlWireClauseTools(c, host, opts){
   /* The owner's page repaints itself; a mount repaints however its host says.
      Falling back to renderRedline from inside an embed would paint the owner's
@@ -11088,7 +11111,7 @@ function rlWireClauseTools(c, host, opts){
      page while a phrase is being selected — is the interruption this pairing is
      supposed to save them. */
   const fromClauseControl = t => !!(t && t.closest && t.closest(
-    '.rl-tools, .rl-tool, .nego-tool, .nego-selmenu, [data-nego-editor], .nego-edit-bar, '
+    '.nego-tool, .nego-selmenu, [data-nego-editor], .nego-edit-bar, '
     + 'button, a, input, textarea, select'));
   host.querySelectorAll('#rl-doc [data-nego-card-anchor]').forEach(sec =>
     sec.addEventListener('click', ev => {
@@ -11593,56 +11616,28 @@ function redlineDocHtml(c, opts = {}){
     opts.cpSink.push(rlClausePanelBodyHtml(c, cl, chs, side, { editable, noAi: opts.noAi }));
     return '';
   };
-  /* ---- THE CLAUSE TOOLBAR ----
-     Three verbs on every clause, and each one presses the ENGINE's control
-     rather than a lookalike: Direct Edit carries data-nego-edit, which opens
-     the engine's inline editor on the clause itself; AI Assist opens the three
-     RL_SEL_ACTIONS against this clause's own wording, in the Copilot side
-     panel; Add Note/Tag jumps to the per-change reply box in the Discussion
-     column, which is where a note on a clause actually lives.
+  /* ---- THE CLAUSE TOOLBAR IS GONE FROM THE PAPER (owner-asked 16 Aug 2026:
+     "there should be no ability to make edits on the contract itself ... All
+     edits will happen on the side panel.") ----
+     It was two hover pills at the clause's foot — ✨ Copilot and ✎ Direct
+     Edit — and each had its own careful history (the Copilot came BACK to the
+     clause on 04 Aug 2026 because a text selection is an invisible
+     affordance). Both retired together, because the discoverability problem
+     they solved is solved better by the door that is ALWAYS drawn: the green
+     Edit pill at the clause's top right, which opens the panel where the ＋
+     and the highlight-Copilot both live. Two edit doors on one clause — one
+     hover-only at the foot, one permanent at the head — were two answers to
+     one question, and the paper is for reading.
 
-     WHY NOT THE DOC LAB'S TOOLBAR, which looks identical. The lab's buttons
-     write to hati.lab.v1 — a sandbox store that by design cannot reach a
-     contract. Wired onto this page they would appear to work and quietly file
-     nothing against the real agreement. Same three verbs, same look, engine
-     underneath: that is the whole point of the port. */
-  const tools = (cl, ch) => {
-    if (!editable) return '';
-    const id = _ne(cl.clauseId);
-    /* ---- THE COPILOT IS BACK ON THE CLAUSE, AND THAT IS A REVERSAL ----
-       It was removed on the argument that highlighting the words you want
-       worked on is itself the statement of scope, so a whole-clause entry was a
-       duplicate door. True of scope, and wrong about discoverability: a text
-       selection is an invisible affordance. A reader looking at a clause and
-       wanting the Copilot to redraft it saw one button, marked Direct Edit,
-       and concluded the Copilot could not touch company paper at all
-       (Young, 04 Aug 2026).
+     WHAT DELIBERATELY STAYS: the SELECTION route on the paper (highlight a
+     passage → rlSelMenu), because a highlight is a statement of scope, not a
+     button; and the ROOM's own nego-tool row in negoDocHtml, a different
+     surface with no panel to send anybody to. The engine's
+     [data-nego-edit] handler also stays: the panel's ＋ (data-rl-cp-edit)
+     shares it, and the room still emits the attribute.
 
-       It is not a second WAY of proposing — that would be the thing this page
-       refuses. The button builds the same ctx a drag across the whole clause
-       builds and hands it to the same rlSelMenu, so every ask still travels
-       rlAiPropose → negoEditClause, with the same refusals and the same
-       fingerprint. The selection route is untouched and still does finer work:
-       this one is the door you can see. */
-    /* "ADD NOTE/TAG" IS GONE FROM THIS TOOLBAR, with its twin in the
-             selection menu. A note about wording, kept privately beside the
-             wording, is the weakest version of the thing this screen is for:
-             the reason a change was asked for now travels ON the change, given
-             when the change is filed, where the other side can read it and
-             where the history keeps it. A private remark that never leaves the
-             workspace answers nobody's question in the next round.
-
-             The capability is not lost, only its shortcut: the Discussion
-             panel still composes notes and still has the shared/internal
-             switch. What went is the two doors that opened it pre-set to
-             internal and pointed at a fragment. */
-    return `<div class="rl-tools" role="group" aria-label="${i18t('ng_tools_for_clause')}">
-      ${opts.noAi ? '' : `<button type="button" class="rl-tool rl-tool-ai" data-nego-ai-clause="${id}"
-        title="${i18t('ng_ai_redraft_title')}">&#10024; Copilot</button>`}
-      <button type="button" class="rl-tool rl-tool-edit" data-nego-edit="${id}"
-        title="${_nea(i18t('ng_direct_edit_title'))}">&#9998; ${i18t('ng_direct_edit')}</button>
-    </div>`;
-  };
+     rl-tools / rl-tool / rl-tool-ai / rl-tool-edit are STALE on this canvas —
+     flag any mention. Their rules left the sheet with them. */
   /* ---- THE HEADING THE DOCUMENT ACTUALLY CARRIES ----
      This used to be rebuilt as `${num}. ${title}` from the two halves the
      clause parser split the heading into, and rebuilding is where the document
@@ -11864,7 +11859,6 @@ function redlineDocHtml(c, opts = {}){
           ${''/* A formatting-only ask read "as agreed" is simply the clause. */}
           ${clean == null ? richBody(cl) : clean}
           ${cpPush(cl, chs)}
-          ${tools(cl, ch)}
         </section>${after}`;
       }
       /* The decision rides on the tag, because the card leaves the column once
@@ -11904,7 +11898,6 @@ function redlineDocHtml(c, opts = {}){
         </div>
         ${clean == null ? richBody(cl) : clean}
         ${cpPush(cl, chs)}
-        ${tools(cl, ch)}
       </section>${after}`;
     }
     return `<section class="nego-clause rl-clause" data-clause="${_ne(cl.clauseId)}" data-nego-working="${_ne(cl.clauseId)}">
@@ -11914,7 +11907,6 @@ function redlineDocHtml(c, opts = {}){
       </div>
       ${richBody(cl)}
       ${cpPush(cl, chs)}
-      ${tools(cl, null)}
     </section>${after}`;
   }).join('') + orphanInserts.map(insertBlock).join('');
   /* ---- THE DOCUMENT'S OWN FRONT MATTER, NOT A LABEL ABOUT IT ----
@@ -12828,9 +12820,13 @@ function redlineChangeCardsHtml(c, opts = {}){
       </div>`;
     return `<div class="rl-cards-empty">
       <b>${i18t('ng_no_changes')}</b>
+      ${''/* THE WAY IN IS THE EDIT PILL NOW (16 Aug 2026). This blurb pointed
+             at Direct Edit under the clause, and that row is retired — all
+             writing happens in the clause panel, whose door is the green Edit
+             pill on every clause. The blurb points where the door is. */}
       <span>${opts.noAi
-        ? `Press <b>${i18t('ng_direct_edit')}</b> under any clause to ask for different wording.`
-        : `Under any clause, press <b>${i18t('ng_direct_edit')}</b> to type the wording yourself, or <b>&#10024; Copilot</b> to have it drafted for you.`} ${i18t('ng_each_ask_lands')}</span>
+        ? `Press <b>${i18t('ng_cp_edit')}</b> on any clause to open its panel, then <b>&#43;</b> to propose new wording.`
+        : `Press <b>${i18t('ng_cp_edit')}</b> on any clause to open its panel — <b>&#43;</b> starts a draft, and highlighting a passage offers <b>&#10024; Copilot</b>.`} ${i18t('ng_each_ask_lands')}</span>
       ${settled ? `<span>${settled} change${settled === 1 ? ' has' : 's have'} already been decided — ${settled === 1 ? 'it is' : 'they are'} in the document and the round history, not here.</span>` : ''}
     </div>`;
   }
