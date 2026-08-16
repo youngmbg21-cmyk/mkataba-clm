@@ -22,7 +22,7 @@ THIS FILE IS THE CONDENSED RULEBOOK (condensed 2026-08-11, owner-approved). The 
 
 The full suite takes 3+ minutes a run and each browser file starts a real Chrome and takes 2–5. The recipe for any change:
 - WHILE WORKING, run only the test files the feature's own section names ("Tests: f210, clause-door-verify" — every section ends with that list): `node --test test/<file>.test.js`, seconds each.
-- THE FULL SUITE RUNS EXACTLY ONCE, at the end, before pushing. It exists to catch ripples in places you did not think you touched; running it mid-work buys nothing a targeted file does not.
+- THE FULL SUITE RUNS ONCE, WHEN YOU BELIEVE YOU ARE FINISHED, before pushing — and again ONLY if that run found something to fix, because the fix must be proven before it ships. On a clean day that is one run; on a day with a catch, two. What it never is: a mid-work reassurance loop — the suite exists to catch ripples in places you did not think you touched, and running it before the work is done buys nothing a targeted file does not.
 - ONE browser file per screen changed, and only the screen changed. Re-run a browser file only after a change to what it measures — never as reassurance.
 - This does not weaken Bug Fix Rule 4: "test where the USER looks" says WHICH files to run, this says WHEN. A fix that touches three surfaces still runs three files — once each.
 
