@@ -7144,7 +7144,18 @@ function redlineLayoutCss(){
   .redline-page.rl-focus{padding:8px 10px 10px}
   body.rl-focused #side-nav,
   body.rl-focused #top-header{display:none!important}
-  body.rl-focused #app-shell{grid-template-columns:minmax(0,1fr)!important;
+  ${''/* TWO COLUMNS, THE FIRST ONE ZERO — never one column (owner-reported
+     16 Aug 2026, a screenshot of ~900px of dead white left of the contract in
+     focus mode; reproduced with two sent receipts in the column). The shell's
+     main column is PINNED to grid-column:2 in index.html — deliberately, so
+     the floating sidebar below 1500 cannot overlap it. Collapse the template
+     to ONE column and that pin pushes the content into an IMPLICIT auto-sized
+     column 2, leaving the explicit 1fr column EMPTY on the left. The void's
+     size then follows the content's own natural width, which is why a column
+     of full cards (whose paragraphs measure wide) hid the fault and a column
+     of one-line receipts exposed it. A zero first track keeps the pin
+     honest: column 2 is the real 1fr and takes the whole window. */}
+  body.rl-focused #app-shell{grid-template-columns:0px minmax(0,1fr)!important;
     grid-template-rows:minmax(0,1fr)!important}
   /* The way out. The button that turned it on is inside the strip that has just
      stood down — a control that hides itself cannot be pressed again — so the

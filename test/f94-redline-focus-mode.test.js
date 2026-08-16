@@ -149,6 +149,23 @@ describe('F94 — the stylesheet keeps the bargain', () => {
     assert.ok(p.$('[data-rl-focus-exit]'), 'and it is rendered, in or out of focus');
   });
 
+  test('the shell keeps TWO columns under focus — the first one zero, never one column', async () => {
+    /* Owner-reported 16 Aug 2026: a wide dead-white void LEFT of the contract
+       in focus mode. The shell's main column is PINNED to grid-column:2 in
+       index.html (so the floating sidebar below 1500 cannot overlap it);
+       collapsing the template to ONE column pushed that pinned content into an
+       IMPLICIT auto-sized column and left the explicit 1fr column empty on the
+       left. The void's width followed the CONTENT's natural width — a column
+       of full cards hid it, a column of one-line receipts showed ~900px of
+       white (measured in Chromium; jsdom computes no grid, so the pin here is
+       the rule's text and the browser run is the geometry). A zero first
+       track keeps the grid-column:2 pin honest. */
+    const p = await page();
+    assert.match(p.css(),
+      /body\.rl-focused #app-shell\{grid-template-columns:0px minmax\(0,1fr\)!important/,
+      'two explicit columns, the first 0px — one column re-opens the void');
+  });
+
   test('the pressed button has its dark face in the stylesheet', async () => {
     const p = await page();
     assert.ok(/\.rl-focus-btn\.on/.test(p.css()),
