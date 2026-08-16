@@ -374,13 +374,41 @@ describe('f210 (7) — the ways out, and where they are armed', () => {
     assert.doesNotMatch(SRC, /rl-cp-scrim/, 'and none left in the stylesheet or the wiring either');
   });
 
-  test('the panel is deeper than the column it covers, as a proportion', async () => {
-    /* Owner-reported: "it covers the entire right panel but expands deeper". It
-       shipped at a flat 520px against a change column that measures 483px on a
-       1500px window — 37px of "deeper", which reads as a lid rather than a
-       panel. A PROPORTION, because the split between the panes is draggable and
-       any fixed number is wrong at one end of that drag. */
-    assert.match(SRC, /\.redline-page \.rl-cp\{[\s\S]*?width:clamp\(360px,48%,760px\)/);
+  test('the panel has NO width of its own — it IS the cards column', async () => {
+    /* REVERSED IN PLACE, 16 Aug 2026, and it reverses this claim's own
+       replacement from the same day. It shipped with a number (520px), then
+       with a proportion (48%), and both were the same mistake in different
+       clothes: a second opinion about how wide the right of this page should
+       be, standing beside the one the reader already sets with the divider.
+       Two opinions drift, and the proportion's drift was visible — it covered
+       220px of the contract's own words.
+
+       Owner-asked: "Stop it at the cards column so no words are covered. End at
+       cards column but also in the position where you can expand it and
+       minimize right to left with the cards and the contracts using the divider
+       feature already available."
+
+       So it is placed in the grid's SECOND TRACK and inset to it. An
+       absolutely-positioned child of a grid container is laid out against the
+       grid AREA it names, so the divider drives it with no JavaScript and there
+       is nothing to keep in step. */
+    assert.match(SRC, /\.redline-page \.rl-cp\{[\s\S]*?grid-column:2;grid-row:1;/,
+      'it names the cards column\'s own track');
+    assert.match(SRC, /\.redline-page \.rl-cp\{[\s\S]*?inset:0;width:auto;/,
+      'and takes that track whole, with no width of its own');
+    assert.doesNotMatch(SRC, /\.redline-page \.rl-cp\{[\s\S]*?width:clamp/,
+      'the proportion is gone, not merely overridden');
+  });
+
+  test('and nothing keeps the panel and the divider in step, because nothing has to',
+    async () => {
+    /* The property worth pinning is an ABSENCE: the resizer writes the grid's
+       columns and the panel is one of them, so there is no second writer to
+       fall out of date. A rlLayoutResizer that started setting the panel's
+       width would be exactly the drift this reversal removed. */
+    const resizer = SRC.slice(SRC.indexOf('function rlLayoutResizer'),
+      SRC.indexOf('function rlLayoutResizer') + 1600);
+    assert.doesNotMatch(resizer, /rl-cp/, 'the resizer does not know the panel exists');
   });
 
   test('the grid CLIPS rather than hides, or the parked panel can be scrolled to',

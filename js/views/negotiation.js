@@ -7832,34 +7832,45 @@ function redlineLayoutCss(){
     .redline-page .rl-queue{transition:none}
     .redline-page .rl-q-scrim{transition:none}
   }
-  /* ---- THE CLAUSE PANEL, ON THE OTHER WALL ----
-     The queue's mechanism mirrored: absolute inside .rl-grid so it lands on the
-     working area's own RIGHT border — on the bench, on the contract tab's embed
-     and on the counterparty's page alike, each against its own wall.
+  /* ---- THE CLAUSE PANEL IS THE CARDS COLUMN ----
+     Owner-asked, 16 Aug 2026: "Stop it at the cards column so no words are
+     covered. End at cards column but also in the position where you can expand
+     it and minimize right to left with the cards and the contracts using the
+     divider feature already available."
 
-     ---- IT COVERS THE WHOLE RIGHT COLUMN AND REACHES PAST IT (owner-reported,
-     16 Aug 2026: "it covers the entire right panel but expands deeper"). It
-     shipped at a flat 520px, and the change column on a 1500px window measures
-     483px — so the panel landed 37px past the column's own left edge and read
-     as a lid on it rather than a panel over the page. A PROPORTION rather than
-     a number, because the split between the two panes is draggable and any
-     fixed width is wrong at one end of that drag: 48% of the working area is
-     always deeper than the column beside it, with a floor for a narrow window
-     and a ceiling so it never becomes the page.
+     ---- IT HAS NO WIDTH OF ITS OWN, AND THAT IS THE WHOLE DESIGN. It shipped
+     with a number (520px), then with a proportion (48%), and both were the same
+     mistake in different clothes: a second opinion about how wide the right of
+     this page should be, standing beside the one the reader already sets with
+     the divider. Two opinions drift. So the panel is placed in the grid's
+     SECOND TRACK — grid-column 2, grid-row 1, inset to it — and takes whatever
+     the cards column currently is. Absolutely-positioned children of a grid
+     container are laid out against the grid AREA they name, so this needs no
+     JavaScript and there is nothing to keep in step: drag the divider and the
+     panel is already the new width, in the same frame as the contract.
 
-     ---- AND THERE IS NO SCRIM (owner-reported in the same breath: keep the
-     contract visible, "it has to remain active"). A dimmed backdrop is right
-     for the queue, which is a reading order you step through; it is wrong here,
-     where the whole point is reading the panel AGAINST the wording it is about.
-     The contract stays lit, stays scrollable, and stays pressable — so the pill
-     is also still a way to close it, and the panel simply stays where you put
-     it until you close it (the card pop-out's own rule).
+     THREE THINGS FALL OUT OF IT, all of them things that were separately wrong:
+     · NO WORD OF THE CONTRACT IS EVER COVERED. Its left edge is the divider.
+     · THE CLAUSE PILLS STAY IN THE CLEAR, so pressing another clause's Edit
+       swaps the panel straight to it. Before this the pills were under the
+       panel and switching clauses meant closing first.
+     · IT INHERITS THE DIVIDER'S OWN LIMITS (RL_LEFT_MIN / RL_RIGHT_MIN, and the
+       amber grip that says so), so it can be neither squeezed to a sliver nor
+       widened until the contract is unreadable. One control, one set of rules.
 
-     visibility follows the queue's delay rule: parked off the PAGE's edge it
+     ---- AND THERE IS NO SCRIM (owner-reported 16 Aug 2026: keep the contract
+     visible, "it has to remain active"). A dimmed backdrop is right for the
+     queue, which is a reading order you step through; it is wrong here, where
+     the whole point is reading the panel AGAINST the wording it is about. The
+     contract stays lit, stays scrollable, and stays pressable — so the pill is
+     also still a way to close it, and the panel simply stays where you put it
+     until you close it (the card pop-out's own rule).
+
+     visibility follows the queue's delay rule: parked off the track's edge it
      would still be on screen and still tabbable. */
   .redline-page .rl-cp{
-    position:absolute;right:0;top:0;bottom:0;z-index:56;
-    width:clamp(360px,48%,760px);min-width:0;border-radius:0;
+    position:absolute;grid-column:2;grid-row:1;
+    inset:0;width:auto;min-width:0;z-index:56;border-radius:0;
     border:0;border-left:1px solid var(--color-divider);
     box-shadow:var(--shadow-lg);
     display:flex;flex-direction:column;
@@ -8215,8 +8226,14 @@ function redlineLayoutCss(){
        and leave the pill with nothing to open. It stays an overlay and moves
        from the PAGE's wall to the WINDOW's: below this width .rl-grid is
        height:auto and as tall as the whole stacked page, so an absolute panel
-       pinned top-to-bottom inside it would run off the bottom of the screen. */
-    .redline-page .rl-cp{position:fixed;top:0;bottom:0;right:0;z-index:56}
+       pinned top-to-bottom inside it would run off the bottom of the screen.
+
+       IT ALSO STOPS BEING THE CARDS COLUMN HERE, because there is no second
+       track to be: the grid is one column and the divider is not drawn. So it
+       takes a width of its own again, and only here — the rule it inherits
+       above (be exactly the cards column) has nothing to point at. */
+    .redline-page .rl-cp{position:fixed;top:0;bottom:0;right:0;left:auto;
+      grid-column:auto;grid-row:auto;width:min(520px,92vw);z-index:56}
   }
   /* ---- THIS PAGE HAS NO DRAWER BUTTON, SO IT MUST NOT HAVE A DRAWER ----
      The engine's own narrow rule turns .nego-pane.index into an off-canvas

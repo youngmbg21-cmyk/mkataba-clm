@@ -114,15 +114,28 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     const doc = document.querySelector('.redline-page #rl-doc');
     return { openClass: panel.classList.contains('is-open'),
       visible: getComputedStyle(panel).visibility === 'visible',
-      w: Math.round(r.width), h: Math.round(r.height),
+      w: Math.round(r.width), h: Math.round(r.height), w0left: Math.round(r.left),
       onRightWall: Math.abs(Math.round(r.right - grid.right)) <= 2,
       onScreen: r.left < 1500 && r.right > 0,
       forClause: on && on.getAttribute('data-rl-cp-for'),
       heads, bodies: panel.querySelectorAll('.rl-cp-src').length,
       shown: panel.querySelectorAll('.rl-cp-src.is-on').length,
       noScrim: !document.querySelector('.redline-page #rl-cp-scrim'),
-      coversColumn: Math.round(r.left) <= Math.round(side.left),
-      deeperBy: Math.round(side.left - r.left),
+      /* IT IS THE CARDS COLUMN, to the pixel, on all four edges. */
+      onColumn: [Math.round(r.left) === Math.round(side.left),
+        Math.round(r.right) === Math.round(side.right),
+        Math.round(r.top) === Math.round(side.top),
+        Math.round(r.bottom) === Math.round(side.bottom)],
+      /* …and no word of the contract is behind it. Measured off the wording's
+         own boxes, not off the column's, because the sheet is narrower than the
+         column it sits in and it is the WORDS the owner asked to keep. */
+      textRight: (() => { let x = 0;
+        document.querySelectorAll('.redline-page #rl-doc .nego-body').forEach(n => {
+          const b = n.getBoundingClientRect(); if (b.right > x) x = b.right; });
+        return Math.round(x); })(),
+      pillsClear: [...document.querySelectorAll('.redline-page #rl-doc .rl-cp-pill')]
+        .filter(b => b.getBoundingClientRect().right <= r.left).length,
+      pillsTotal: document.querySelectorAll('.redline-page #rl-doc .rl-cp-pill').length,
       docDimmed: getComputedStyle(doc).opacity !== '1' || getComputedStyle(doc).filter !== 'none',
       docReachable: (() => {
         /* Is a word of the contract still the top thing at its own coordinates?
@@ -155,9 +168,18 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('2g′ and it is not dimmed or filtered', !!open && !open.docDimmed);
   ck('2g″ and it is still reachable — the reader can read and press it',
      !!open && open.docReachable);
-  ck('2i it covers the WHOLE right column and reaches past it',
-     !!open && open.coversColumn && open.deeperBy > 120,
-     open && `${open.deeperBy}px past the column's left edge`);
+  /* ---- 2i REVERSED IN PLACE, 16 Aug 2026 ---- this used to prove the panel
+     reached PAST the cards column by more than 120px, which is what the
+     proportion bought and what covered the contract's own words. Owner-asked:
+     stop it at the cards column. The claim is now the opposite and it is
+     stricter — the panel must BE that column, to the pixel, on every edge. */
+  ck('2i it IS the cards column, to the pixel, on all four edges',
+     !!open && open.onColumn.every(Boolean), open && JSON.stringify(open.onColumn));
+  ck('2i′ and NO WORD of the contract is behind it',
+     !!open && open.textRight < open.w0left, open && `text ends ${open.textRight}, panel starts ${open.w0left}`);
+  ck('2i″ every clause\'s Edit pill stays in the clear',
+     !!open && open.pillsTotal > 1 && open.pillsClear === open.pillsTotal,
+     open && `${open.pillsClear}/${open.pillsTotal}`);
 
   const docAfter = await p.evaluate(() => {
     const d = document.querySelector('.redline-page #rl-doc');
@@ -268,6 +290,57 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('4e …and a pill still in the clear swaps the panel straight to its clause',
      swapped.none ? true : swapped.want === swapped.got,
      swapped.none ? 'no pill in the clear at this width' : `${swapped.want} → ${swapped.got}`);
+  await p.evaluate(()=>rlCpSetShown(document,null)); await pause(400);
+
+  /* ---- 4g THE DIVIDER RESIZES THE PANEL, WITH A REAL MOUSE DRAG ----
+     Owner-asked, 16 Aug 2026: "in the position where you can expand it and
+     minimize right to left with the cards and the contracts using the divider
+     feature already available." This is the whole point of the panel having no
+     width of its own, and it can only be tested here: it is a drag through the
+     input pipeline against a real grid.
+
+     THE CLAIM IS ONE OF ALIGNMENT, NOT OF NUMBERS. What must hold at every
+     split is that the panel and the cards column are still the same box, that
+     the contract still has all its words on the visible side of it, and that
+     the drag moved the panel at all — a panel that ignored the divider would
+     sit at one width through both drags and still "pass" a size check. */
+  await reopen();
+  const drag = async dx => {
+    const rz = await p.evaluate(() => { const r = document.querySelector('#rl-resizer').getBoundingClientRect();
+      return { x: Math.round(r.left + r.width/2), y: Math.round(r.top + r.height/2) }; });
+    await p.mouse.move(rz.x, rz.y); await p.mouse.down();
+    await p.mouse.move(rz.x + dx, rz.y, { steps: 12 }); await p.mouse.up();
+    await pause(500);
+    return p.evaluate(() => {
+      const cp = document.querySelector('#rl-cp').getBoundingClientRect();
+      const sd = document.querySelector('#rl-side').getBoundingClientRect();
+      let x = 0; document.querySelectorAll('#rl-doc .nego-body').forEach(n => {
+        const b = n.getBoundingClientRect(); if (b.right > x) x = b.right; });
+      return { w: Math.round(cp.width), left: Math.round(cp.left),
+        aligned: Math.round(cp.left) === Math.round(sd.left)
+          && Math.round(cp.right) === Math.round(sd.right)
+          && Math.round(cp.width) === Math.round(sd.width),
+        textRight: Math.round(x),
+        pillsClear: [...document.querySelectorAll('#rl-doc .rl-cp-pill')]
+          .filter(b => b.getBoundingClientRect().right <= cp.left).length,
+        pillsTotal: document.querySelectorAll('#rl-doc .rl-cp-pill').length };
+    });
+  };
+  const start = await drag(0);
+  const wider = await drag(-260);
+  ck('4g dragging the divider LEFT widens the panel with the cards',
+     wider.w > start.w + 100, `${start.w} → ${wider.w}`);
+  ck('4g′ …and it is still exactly the cards column', wider.aligned);
+  ck('4g″ …and the contract still has every word on the visible side',
+     wider.textRight < wider.left && wider.pillsClear === wider.pillsTotal,
+     `text ends ${wider.textRight}, panel starts ${wider.left}, pills ${wider.pillsClear}/${wider.pillsTotal}`);
+  const narrower = await drag(400);
+  ck('4h dragging it RIGHT gives the width back to the contract',
+     narrower.w < wider.w - 100, `${wider.w} → ${narrower.w}`);
+  ck('4h′ …still the cards column, still no words covered',
+     narrower.aligned && narrower.textRight < narrower.left
+     && narrower.pillsClear === narrower.pillsTotal,
+     `text ends ${narrower.textRight}, panel starts ${narrower.left}`);
   await p.evaluate(()=>rlCpSetShown(document,null)); await pause(400);
 
   /* ---- 4f THE SLIDE IS SMOOTH — MEASURED FRAME BY FRAME ----
