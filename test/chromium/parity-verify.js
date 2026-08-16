@@ -428,6 +428,48 @@ const CARD_EDIT = async () => {
       badges.metaTitle || badges.meta);
   }
 
+  /* ---- 11. THE PANEL'S TYPE IS THE SAME ON BOTH SEATS ----
+     (owner-asked 16 Aug 2026: "font sizes on the edit panel in the
+     counterparty side should mirror exactly what is on the owner side".)
+     Measured, not assumed: one stylesheet serves both seats, but that is a
+     fact about today's code — a portal-side override or a second copy of the
+     rules is exactly the drift this file exists to catch. The Copilot note is
+     deliberately absent on their seat (presence, not size), so it is not in
+     the roll call. */
+  const PANEL_TYPE = `(() => {
+    const pill = document.querySelector('.rl-cp-pill[data-rl-cp-open]');
+    if (!pill) return { err: 'no pill' };
+    pill.click();
+    const panel = document.querySelector('.rl-cp');
+    if (!panel) return { err: 'no panel' };
+    const fz = sel => { const el = panel.querySelector(sel);
+      return el ? getComputedStyle(el).fontSize : null; };
+    return { h: fz('.rl-cp-h'), stands: fz('.rl-cp-stands'), who: fz('.rl-cp-who'),
+      note: fz('.rl-cp-note'), act: fz('.rl-cp-act'), clname: fz('.rl-cp-clname'),
+      segs: fz('.rl-cp-segs button'),
+      cardMeta: (el => el ? getComputedStyle(el).fontSize : null)(document.querySelector('.rl-card-meta')),
+      badge: (el => el ? getComputedStyle(el).fontSize : null)(document.querySelector('.rl-badge')) };
+  })()`;
+  await page.evaluate(() => window.SHOW_OWNER());
+  await pause(600);
+  const ownerType = await page.evaluate(PANEL_TYPE);
+  await page.evaluate(() => window.SHOW_COUNTERPARTY());
+  await pause(700);
+  const cpType = await page.evaluate(PANEL_TYPE);
+  if (ownerType.err || cpType.err){
+    check('11 the panel opened on both seats for the type roll call', false,
+      (ownerType.err || '') + ' / ' + (cpType.err || ''));
+  } else {
+    const drift = Object.keys(ownerType).filter(k => ownerType[k] !== cpType[k]);
+    check('11 EVERY MEASURED PANEL SIZE IS IDENTICAL ON BOTH SEATS',
+      drift.length === 0,
+      drift.length ? drift.map(k => `${k}: ${ownerType[k]} vs ${cpType[k]}`).join(', ')
+        : JSON.stringify(ownerType));
+    check('11 and the sizes are the bumped ones, not a stale copy',
+      ownerType.stands === '14px' && ownerType.h === '11px' && ownerType.cardMeta === '12px',
+      `stands ${ownerType.stands} · h ${ownerType.h} · meta ${ownerType.cardMeta}`);
+  }
+
   /* The owner's side is the control: if these were absent there too, every
      assertion above would be passing for the wrong reason.
      nego-bulk-acc is no longer one of them — it is gone from our column by

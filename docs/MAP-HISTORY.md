@@ -3054,3 +3054,54 @@ trigger, and checks the way back out of focus restores the sidebar.
 The zoom-cap entry stays on its own merits — 427px of measured white on a
 2560 monitor is real — re-attributed in place so the map does not claim it
 answered a report it did not.
+
+## THE HEAD IS ONE LINE, AND THE NUMBER IS SAID ONCE (16 Aug 2026)
+
+Off the inset-and-bump pass the owner asked for renders before code: "show me
+better renders of how to make the attached highlighted area look better. I
+need 3 renders so no coding yet." Three were mocked — one line with the count
+inside the tabs; the filter dressed as the toolbar's segmented control; a
+title-case heading with a live chip — and Option 1 chosen: "Implement option
+1 and merge to main and make sure there is breathing room between the edge
+and the Tracked changes."
+
+The argument Option 1 rode on: "2 on the table" and the filter's "All 2"
+printed one number twice, twelve pixels apart, and the duplicate cost the
+head a whole row. So the separate count stands down wherever the tabs draw —
+the All tab is the count — and the caption's flex:1 pushes the tabs to the
+right wall of the same ruled line. The 12px inset and the one-size-up type
+from the morning's pass are untouched; the head just lost its second row,
+which the cards gained.
+
+One head keeps the plain count, deliberately: a narrowed reviewer's. Their
+filter is not drawn (every option answers the same once the column holds one
+person's work — a one-outcome control is furniture), and dropping the count
+there too would leave that column with no number at all. The .rl-idx-n
+element and its is-live accent survive in the sheet for exactly that head.
+The unsent band and the read-only sentence, which live inside the head,
+gained flex-basis:100% so neither ever shares the caption's line; a column
+too narrow for one line wraps the tabs down — the old arrangement demoted to
+the fallback.
+
+Five test claims reversed in place (f84, f93, f173, f175 twice), each
+re-pointed at the tab that now carries what the retired span used to say.
+
+## THE COUNTERPARTY'S PANEL TYPE, MEASURED RATHER THAN FIXED (16 Aug 2026)
+
+Asked twice in one day: "font sizes on the edit panel in the counterparty
+side should mirror exactly what is on the owner side where we increase the
+fonts by a size." Checked before touching anything: the counterparty's mount
+(redlineEmbed) injects the same one stylesheet the owner's bench uses, and a
+Chromium probe on the two-seat parity harness measured every panel and card
+size — headings, standing wording, notes, acts, meta, badges, Open — at
+identical computed pixels on both seats. The mismatch the owner saw was the
+deployed site running the code from before the type bump, not a divergence
+in the code.
+
+So the fix is a PIN, not a change: parity-verify section 11 opens the panel
+on both seats from one record and fails on any drift in the roll call, plus
+a second check that the sizes are the bumped ones and not a stale copy — so
+a portal-side override or a second copy of the rules, the drift this harness
+exists to catch, cannot land quietly. The Copilot note is off the roll call:
+it is absent on their seat by design, which is a presence difference, not a
+size.

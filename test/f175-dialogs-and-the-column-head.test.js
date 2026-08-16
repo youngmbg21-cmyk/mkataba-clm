@@ -176,25 +176,29 @@ describe('f175 · the Tracked Changes head is a rule, not a box', () => {
       'set below the caption in ink, which is what keeps it quieter');
   });
 
-  test('the count earns colour only when something is on the table', async () => {
+  test('the separate count stands down where the tabs draw — Option 1, one line', async () => {
+    /* REVERSED IN PLACE (owner-chose Option 1, 16 Aug 2026). This test used
+       to pin "N on the table" beside the filter — the same number the All tab
+       prints, twelve pixels apart, at the cost of a whole head row. Where the
+       tabs draw, the tabs ARE the count now; the .rl-idx-n element and its
+       is-live accent survive in the sheet for the ONE head that has no tabs —
+       a narrowed reviewer's, whose filter is furniture and is not drawn. */
     const p = await stage();
-    assert.ok(p.$('.rl-idx-n.is-live'), 'one ask outstanding — the count is live');
+    assert.equal(p.$('.rl-idx-n'), null,
+      'no separate count beside a drawn filter — one number, said once');
+    assert.equal(p.$('[data-rl-cardfilter="all"] .rl-fseg-n').textContent.trim(), '1',
+      'the All tab carries it instead');
     assert.ok(/\.rl-idx-n\.is-live\{[^}]*var\(--color-accent-800\)/.test(p.css()),
-      'and live means the accent ink, against the resting grey');
+      'the count rules stay in the sheet for the reviewer head that still draws one');
+    assert.ok(/\.rl-fseg\.on \.rl-fseg-n\{[^}]*var\(--color-accent-800\)/.test(p.css()),
+      'and the pressed tab\'s count wears the same live accent');
 
-    /* THE STATE IN THE REPORT: nothing on the table at all. Driven by opening
-       the bench on a contract with no changes, rather than by deciding this
-       one — a decided ask can legitimately keep its card (see the sentIds and
-       contested branches in redlineChangeCardsHtml), so deciding proves
-       nothing about an empty column. */
+    /* Nothing on the table at all: the tabs still draw, reading zero. */
     const q = await stage();
     q.c.changes = [];
     q.win.renderRedline();
-    const n = q.$('.rl-idx-n');
-    assert.ok(n, 'the count is still drawn when it is zero');
-    assert.match(n.textContent, /0/, 'and it really is reading zero');
-    assert.ok(!n.classList.contains('is-live'),
-      'nothing on the table is not news, so it goes quiet');
+    assert.equal(q.$('[data-rl-cardfilter="all"] .rl-fseg-n').textContent.trim(), '0',
+      'an empty book reads zero on the tab, not a missing head');
   });
 });
 
@@ -258,10 +262,12 @@ describe('f175 · the strip filters by who asked', () => {
     const ours = p.win.negoChanges(p.c).filter(x => x.authorSide === 'owner').map(x => x.id);
     assert.deepEqual(p.win.redlineCardIds(p.c, { side: 'owner' }), ours,
       'the list is ours alone');
-    /* The count above the cards is drawn from redlineCardIds, so it cannot
-       label a column it is not describing — the fault that function exists to
-       prevent. */
-    assert.match(p.$('.rl-idx-n').textContent, /1/, 'and the count says one');
+    /* The head no longer carries a filtered count (Option 1 — the tab counts
+       deliberately do NOT move with the filter; that is their safety). What
+       says "you are reading the Mine cut" is the pressed tab itself. */
+    const on = p.$('.rl-fseg.on');
+    assert.equal(on && on.getAttribute('data-rl-cardfilter'), 'mine',
+      'the pressed tab names the cut');
     assert.equal(p.win.document.querySelectorAll('#rl-changes [data-nego-card]').length, 1,
       'one card on screen');
   });
