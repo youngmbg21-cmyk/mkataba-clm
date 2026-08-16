@@ -1033,3 +1033,92 @@ describe('f210 (13) — the new words, both languages', () => {
     });
   }
 });
+
+/* ============================================================ */
+describe('f210 (18) — History | + notes, default without notes', () => {
+  /* Owner-asked 16 Aug 2026: "add a button next to edit that shows history
+     with notes. The default will be without notes." Option 2 of three renders
+     shown and chosen: a two-way switch beside the EDIT label, dressed like the
+     toolbar's reading segments. The default face is the clean panel; "+ notes"
+     is ONE CLASS on #rl-cp, and the conversation blocks are hidden by one CSS
+     rule — a class flip, never a repaint, which is what keeps the one
+     engine-wired composer alive in the DOM whichever face is showing. */
+
+  test('the switch sits in the panel head, beside EDIT, default History', async () => {
+    const p = await bench();
+    const box = page(p);
+    const head = box.querySelector('.rl-cp-head');
+    const segs = head && head.querySelector('.rl-cp-segs');
+    assert.ok(segs, 'the switch is in the head');
+    const [hist, notes] = [...segs.querySelectorAll('[data-rl-cp-notes]')];
+    assert.equal(hist.getAttribute('data-rl-cp-notes'), 'off');
+    assert.equal(notes.getAttribute('data-rl-cp-notes'), 'on');
+    assert.equal(hist.getAttribute('aria-pressed'), 'true', 'History is the default face');
+    assert.equal(notes.getAttribute('aria-pressed'), 'false');
+    assert.ok(!box.querySelector('#rl-cp').classList.contains('rl-cp-notes'),
+      'and the panel opens without notes');
+  });
+
+  test('the default face HIDES the conversation by one rule, and + notes shows it', async () => {
+    /* jsdom resolves no cascade, so the rule is read at the source — the same
+       way f95 reads every radius. The browser half is clause-door-verify's. */
+    assert.match(SRC, /\.redline-page \.rl-cp \.rl-cnotes\{display:none\}/,
+      'the clean face is the default');
+    assert.match(SRC, /\.redline-page \.rl-cp\.rl-cp-notes \.rl-cnotes\{display:block\}/,
+      'and one class brings the conversation back');
+  });
+
+  test('the press is a class flip — the composer node survives it', async () => {
+    const p = await bench();
+    p.win.renderRedline();
+    const $ = s => p.win.document.querySelector(s);
+    const chId = p.c.changes[0].id;
+    const boxBefore = $(`#rl-cp-body textarea#nego-ti-${chId}`);
+    assert.ok(boxBefore, 'the one composer is in the panel');
+    assert.ok(!$('#rl-cp').classList.contains('rl-cp-notes'), 'default: without notes');
+    $('[data-rl-cp-notes="on"]').click();
+    assert.ok($('#rl-cp').classList.contains('rl-cp-notes'), 'one press shows the notes');
+    assert.equal($('[data-rl-cp-notes="on"]').getAttribute('aria-pressed'), 'true');
+    assert.ok($('[data-rl-cp-notes="on"]').classList.contains('on')
+      && !$('[data-rl-cp-notes="off"]').classList.contains('on'),
+      'and the FACE flips with the state — aria alone is invisible pixels');
+    assert.equal($(`#rl-cp-body textarea#nego-ti-${chId}`), boxBefore,
+      'the SAME node — no repaint, so the engine\'s wiring survives the flip');
+    $('[data-rl-cp-notes="off"]').click();
+    assert.ok(!$('#rl-cp').classList.contains('rl-cp-notes'), 'and the way back');
+    assert.equal($('[data-rl-cp-notes="off"]').getAttribute('aria-pressed'), 'true');
+  });
+
+  test('the choice survives a repaint within the sitting, and is not persisted', async () => {
+    const p = await bench();
+    p.win.renderRedline();
+    const $ = s => p.win.document.querySelector(s);
+    $('[data-rl-cp-notes="on"]').click();
+    p.win.renderRedline();
+    assert.ok($('#rl-cp').classList.contains('rl-cp-notes'),
+      'a reader who asked for the conversation is reading conversations');
+    assert.ok(!/rl-cp-notes|rlCpNotes/i.test(JSON.stringify(p.win.localStorage)),
+      'a reading posture is not a setting');
+  });
+
+  test('the switch does not open, close or move the panel', async () => {
+    const p = await bench();
+    p.win.renderRedline();
+    const $ = s => p.win.document.querySelector(s);
+    const clauseId = p.c.changes[0].clauseId;
+    $(`.rl-cp-pill[data-rl-cp-open="${clauseId}"]`).click();
+    assert.equal(p.win.rlCpOpenId(), clauseId, 'the panel is open on the clause');
+    $('[data-rl-cp-notes="on"]').click();
+    assert.equal(p.win.rlCpOpenId(), clauseId,
+      'showing the notes must not navigate or shut the panel');
+    assert.ok($('#rl-cp').classList.contains('is-open'), 'still open');
+  });
+
+  test('both faces speak both languages', async () => {
+    const en = read('js/i18n.js');
+    for (const k of ['ng_cp_hist', 'ng_cp_hist_notes', 'ng_cp_notes_group',
+      'ng_cp_hist_title', 'ng_cp_hist_notes_title'])
+      assert.equal((en.match(new RegExp(`${k}:`, 'g')) || []).length, 2,
+        `${k} must exist in EN and SV`);
+  });
+});

@@ -800,6 +800,44 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('10d …and past the label, which sits alone in the gutter',
      limbs.cols.every(c => c && c.word[0] > c.label), JSON.stringify(limbs.cols));
 
+  /* ---- 11. History | + notes — default without notes (owner-asked 16 Aug
+     2026, Option 2 of three renders). The cascade question no node test can
+     answer: the conversation must COMPUTE hidden on the default face and
+     visible after the press, with the switch itself real pixels in the head. */
+  await p.evaluate(() => {
+    const pill = document.querySelector('.rl-cp-pill');
+    if (pill) pill.click();
+  });
+  await pause(500);
+  const notesSwitch = await p.evaluate(() => {
+    const segs = document.querySelector('#rl-cp .rl-cp-segs');
+    if (!segs) return null;
+    const r = segs.getBoundingClientRect();
+    const note = document.querySelector('#rl-cp-body .rl-cnotes');
+    const disp = () => note ? getComputedStyle(note).display : 'absent';
+    const before = disp();
+    segs.querySelector('[data-rl-cp-notes="on"]').click();
+    const after = disp();
+    const afterBox = note ? note.getBoundingClientRect().height : 0;
+    segs.querySelector('[data-rl-cp-notes="off"]').click();
+    const back = disp();
+    return { w: Math.round(r.width), h: Math.round(r.height), before, after, afterBox, back,
+      panelStillOpen: !!document.querySelector('#rl-cp.is-open') };
+  });
+  ck('11a the switch is real pixels in the panel head',
+     !!notesSwitch && notesSwitch.w > 60 && notesSwitch.h > 12,
+     notesSwitch ? `${notesSwitch.w}x${notesSwitch.h}` : 'absent');
+  ck('11b the default face hides the conversation — COMPUTED, not assumed',
+     !!notesSwitch && notesSwitch.before === 'none', notesSwitch && notesSwitch.before);
+  ck('11c “+ notes” shows it, with real height, without closing the panel',
+     !!notesSwitch && notesSwitch.after === 'block' && notesSwitch.afterBox > 30
+       && notesSwitch.panelStillOpen,
+     notesSwitch && `${notesSwitch.after} @ ${notesSwitch.afterBox}px, open=${notesSwitch.panelStillOpen}`);
+  ck('11d and “History” is the way back', !!notesSwitch && notesSwitch.back === 'none',
+     notesSwitch && notesSwitch.back);
+  await p.evaluate(() => { const x = document.querySelector('#rl-cp-min'); if (x) x.click(); });
+  await pause(300);
+
   /* THE DUPLICATION RULE: their page mounts the same builder inside the same
      .redline-page wrapper, so the rule reaches it — asserted rather than
      assumed, because "it is the same markup" is exactly the reasoning that has
