@@ -321,7 +321,9 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   });
   check('7 the contract body reads at the Doc page scale', type.body === '15px', type.body);
   check('7 the retired card token declares nothing', type.cardScale === '', type.cardScale || 'gone');
-  check('7 and the card head is set smaller still', type.meta === '10.5px', type.meta);
+  /* 12px since the one-size bump (owner-asked 16 Aug 2026) — still smaller
+     than the 15px contract body, which is the claim. */
+  check('7 and the card head is set smaller still', type.meta === '12px', type.meta);
 
   /* ---- 8. attribution on every mark ---- */
   const marks = await page.evaluate(() => {
@@ -412,25 +414,55 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     cards.acc && cards.rej && cards.acc.fg !== cards.rej.fg,
     cards.acc && cards.rej ? `${cards.acc.fg} vs ${cards.rej.fg}` : 'missing');
 
-  /* ---- 14. the card is a ROUTING ROW, not a second copy of the wording ----
-     (Claims reversed in place 16 Aug 2026, owner-asked.) The clamped two-line
-     copy is gone with the fat card: the row is the id and state, the clause
-     name, the author's reason and an Open. The wording lives on the paper
-     beside it and, in full, in the clause panel behind Open. */
+  /* ---- 14. WORK BIG, RECEIPTS SMALL (claims reversed again 16 Aug 2026,
+     owner-asked — Option 4). A card with a decision or a send on it carries a
+     two-line greyed preview of its redline; a change that needs nothing is a
+     one-line receipt with no copy and no verbs, so finished business stops
+     costing card-height. The pop-out stays gone on both kinds. */
   const delta = await page.evaluate(() => {
-    const card = document.querySelector('#rl-changes .rl-card');
-    return { hasDiff: !!document.querySelector('#rl-changes .rl-card-diff'),
-      meta: (card.querySelector('.rl-card-meta') || { textContent: '' }).textContent.trim(),
+    const working = [...document.querySelectorAll('#rl-changes .rl-card:not(.rl-receipt)')]
+      .find(el => el.querySelector('.rl-card-verbs'));
+    const wr = working && working.getBoundingClientRect();
+    const base = {
+      workingDiff: !!(working && working.querySelector('.rl-card-diff')),
+      workingMeta: working ? (working.querySelector('.rl-card-meta') || { textContent: '' }).textContent.trim() : '',
       marked: document.querySelectorAll('#rl-doc ins, #rl-doc del').length,
-      openBtn: !!card.querySelector('.rl-open-btn[data-rl-cp-open]'),
-      popBtn: !!card.querySelector('[data-rl-pop]'),
-      body: !!card.querySelector('.rl-card-body') };
+      openBtn: !!(working && working.querySelector('.rl-open-btn[data-rl-cp-open]')),
+      popBtn: !!document.querySelector('#rl-changes [data-rl-pop]'),
+      body: !!document.querySelector('#rl-changes .rl-card-body'),
+      workingH: wr ? Math.round(wr.height) : 0 };
+    /* THE FIXTURE HOLDS NO SENT CHANGE, so the receipt state is STAGED — the
+       owner's draft is handed over, measured, and the stamp put back exactly,
+       so every later section reads the fixture it always read. */
+    const n = CONTRACT.negotiation;
+    const save = { turn: n.turn, turnAt: n.turnAt,
+      ver: CONTRACT.versions.length, aud: CONTRACT.audit.length };
+    negoHandOver(CONTRACT, { to: 'counterparty' });
+    renderRedline();
+    const receipt = document.querySelector('#rl-changes .rl-card.rl-receipt');
+    const rr = receipt && receipt.getBoundingClientRect();
+    const staged = {
+      hasReceipt: !!receipt,
+      receiptVerbs: receipt ? receipt.querySelectorAll('.rl-card-verbs button').length : -1,
+      receiptDiff: receipt ? !!receipt.querySelector('.rl-card-diff') : null,
+      receiptOpen: !!(receipt && receipt.querySelector('.rl-open-btn')),
+      receiptH: rr ? Math.round(rr.height) : 0 };
+    n.turn = save.turn; n.turnAt = save.turnAt;
+    CONTRACT.versions.length = save.ver; CONTRACT.audit.length = save.aud;
+    renderRedline();
+    return Object.assign(base, staged);
   });
-  check('14 the row carries no clamped copy of the wording', !delta.hasDiff);
-  check('14 and names its clause instead', !!delta.meta, delta.meta);
+  check('14 a working card says what is being decided, clamped', delta.workingDiff);
+  check('14 and names its clause', !!delta.workingMeta, delta.workingMeta);
   check('14 and the document still marks it, so nothing was lost', delta.marked > 0, delta.marked);
-  check('14 the row carries Open — the door to the clause panel',
+  check('14 the card carries Open — the door to the clause panel',
     delta.openBtn && !delta.popBtn && !delta.body);
+  check('14 a change needing nothing is a one-line receipt — no verbs, no copy, Open kept',
+    delta.hasReceipt && delta.receiptVerbs === 0 && delta.receiptDiff === false && delta.receiptOpen,
+    `verbs ${delta.receiptVerbs}, diff ${delta.receiptDiff}`);
+  check('14 and the receipt is really SMALL — under half a working card',
+    delta.receiptH > 0 && delta.receiptH * 2 < delta.workingH,
+    `receipt ${delta.receiptH}px vs working ${delta.workingH}px`);
 
   /* ---- 14b. OPEN RAISES THE CLAUSE PANEL; THE COLUMN DOES NOT MOVE ----
      The pop-out is retired (16 Aug 2026). Open flips the page's ONE clause

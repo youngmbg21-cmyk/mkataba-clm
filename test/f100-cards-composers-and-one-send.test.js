@@ -153,15 +153,18 @@ describe('F100b — the card is a handle, not a copy', () => {
      author's reason, and an Open that raises that panel. The pop-out
      (rlPop*, data-rl-pop, .rl-card-body) is retired with it. */
   test('the card says what is being asked for, in two clamped lines', async () => {
-    /* REVERSED: the row carries NO copy of the wording. The paper beside it
-       has the marks and the panel has the full text — two copies in reach is
-       what makes the row honest without one of its own. */
+    /* REVERSED BACK, 16 Aug 2026 (Option 4 — work big, receipts small): a
+       WORKING card carries the two-line greyed preview again, because a card
+       asking for a decision must say what is being decided. The fixture's one
+       draft has Send and Retract on it, so it is a working card. What stays
+       reversed from the fat-card days: a receipt (see F100f) carries none. */
     const p = await page();
-    assert.ok(p.$$('#rl-changes .rl-card').length, 'there is a row to look at');
-    assert.equal(p.$('#rl-changes .rl-card-diff'), null,
-      'no clamped delta on the row any more');
+    assert.ok(p.$$('#rl-changes .rl-card').length, 'there is a card to look at');
+    const diff = p.$('#rl-changes .rl-card .rl-card-diff');
+    assert.ok(diff, 'the working card carries the delta');
+    assert.ok(diff.textContent.includes('forty-five'), 'and it is the real proposal');
     const meta = p.$('#rl-changes .rl-card .rl-card-meta');
-    assert.ok(meta && meta.textContent.trim(), 'the row names its clause');
+    assert.ok(meta && meta.textContent.trim(), 'and still names its clause');
   });
 
   test('the document still carries it in full', async () => {
@@ -954,6 +957,29 @@ describe('F100g — a card\'s Send sends that card, and only that card', () => {
     assert.ok(p.$(`[data-nego-card="${b}"] [data-rl-send]`),
       'and its own Send is still on its card');
     assert.match(p.$('.rl-unsent-n').textContent, /1/, 'the band counts what is left');
+  });
+
+  test('a sent ask shrinks to a one-line receipt; the draft keeps its full card', async () => {
+    /* Option 4 (owner-asked 16 Aug 2026): the card's size follows what it
+       needs from the reader. After the solo send, change A needs nothing —
+       one line: id, state, clause, Open, no verbs, no preview (even Edit goes;
+       revising is one Open away through the panel's ＋). Change B is still
+       work: full card, preview, its own Send. */
+    const p = await page();
+    const [a, b] = p.c.changes.map(x => x.id);
+    p.$(`[data-nego-card="${a}"] [data-rl-send]`).click();
+    await p.settle();
+    p.again();
+    const sent = p.$(`[data-nego-card="${a}"]`);
+    assert.ok(sent.classList.contains('rl-receipt'), 'the sent ask is a receipt');
+    assert.equal(sent.querySelector('.rl-card-verbs'), null, 'no verbs on a receipt');
+    assert.equal(sent.querySelector('.rl-card-diff'), null, 'and no preview');
+    assert.ok(sent.querySelector('.rl-open-btn'), 'Open is the receipt\'s one door');
+    assert.ok(sent.querySelector('.rl-card-head'), 'and the body still presses through');
+    const draft = p.$(`[data-nego-card="${b}"]`);
+    assert.ok(!draft.classList.contains('rl-receipt'), 'the draft is still work');
+    assert.ok(draft.querySelector('.rl-card-diff'), 'work says what it is about');
+    assert.ok(draft.querySelector('[data-rl-send]'), 'and carries its Send');
   });
 
   test('the payload subtracts the held draft the way it subtracts a reviewer\'s holds', () => {
