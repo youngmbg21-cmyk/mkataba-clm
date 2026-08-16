@@ -336,10 +336,11 @@ describe('F58 — a reply survives the repaint that used to eat it', () => {
     const v = theirLink(c);
     const id = filed[0].id;
 
-    /* THE REPLY BOX IS ON THE CHANGE'S OWN CARD NOW. The Discussion column it
-       used to live in is gone (10 Aug 2026) and the thread reads on the card
-       it belongs to — same engine underneath, same three attributes, so this
-       test still presses exactly what the counterparty presses.
+    /* THE REPLY BOX IS IN THE CLAUSE PANEL'S ROW FOR THE CHANGE (16 Aug 2026
+       — the card is a routing row now and the pop-out is retired; before that
+       it was on the card, and before that in the Discussion column). Same
+       engine underneath, same three attributes, so this test still presses
+       exactly what the counterparty presses.
 
        Their seat KEEPS the shared/internal switch, and it opens on shared:
        this page is the only channel they have, so an internal-only box here
@@ -351,16 +352,16 @@ describe('F58 — a reply survives the repaint that used to eat it', () => {
 
     assert.ok(v.p.log.sent.some(x => /\/messages$/.test(x.pathname) && x.body.topic === 'change:' + id),
       'the reply really went down the discussion route');
-    assert.match(v.$(`[data-nego-card="${id}"]`).textContent, /match our AP cycle/,
+    assert.match(v.$(`[data-rl-cp-change="${id}"]`).textContent, /match our AP cycle/,
       'and it is on the change straight away');
 
     /* THE REPAINT THAT USED TO EAT IT. Accept rebuilds the whole page from the
        share payload — a snapshot taken before the reply existed. */
     await v.press(`[data-nego-accept="${id}"]`);
-    assert.match(v.$(`[data-nego-card="${id}"]`).textContent, /match our AP cycle/,
+    assert.match(v.$(`[data-rl-cp-change="${id}"]`).textContent, /match our AP cycle/,
       'their own words must not disappear under them');
-    assert.match(v.$(`[data-nego-card="${id}"]`).textContent, /Notes . 1/,
-      'and the card counts it');
+    assert.match(v.$(`[data-rl-cp-change="${id}"]`).textContent, /Notes . 1/,
+      'and the row counts it');
   });
 
   test('and survives a second repaint, and a third', async () => {
@@ -372,7 +373,7 @@ describe('F58 — a reply survives the repaint that used to eat it', () => {
     await v.press(`[data-nego-send="${id}"]`);
     await v.press(`[data-nego-accept="${id}"]`);
     await v.press(`[data-nego-undo="${id}"]`);
-    assert.match(v.$(`[data-nego-card="${id}"]`).textContent, /Net-45 please/);
+    assert.match(v.$(`[data-rl-cp-change="${id}"]`).textContent, /Net-45 please/);
   });
 
   test('their postbox pulses once a decision is held', async () => {

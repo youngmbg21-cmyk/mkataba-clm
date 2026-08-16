@@ -155,7 +155,9 @@ describe('F93 (1) — the origin pill is OFF the card, and the edge still says i
     const top = p.$('#rl-changes [data-nego-card] .rl-card-top');
     assert.ok(top.querySelector('.rl-card-id'), 'the id is still there');
     assert.ok(top.querySelector('.rl-badge'), 'so is the one status slot');
-    assert.ok(top.querySelector('[data-rl-pop]'), 'and the door into the reasoning');
+    /* RE-POINTED 16 Aug 2026: the door is Open — the clause panel's own
+       control — since the pop-out is retired. Same slot, same claim. */
+    assert.ok(top.querySelector('.rl-open-btn[data-rl-cp-open]'), 'and the door into the reasoning');
     assert.equal(top.querySelector('.rl-origin'), null, 'and nothing else');
     /* THE LEAD GROUP SURVIVES, holding the id alone. It is the flex item that
        gives width back when the card is narrow; collapsing it would change how
@@ -165,15 +167,17 @@ describe('F93 (1) — the origin pill is OFF the card, and the edge still says i
     assert.equal(lead.children.length, 1, 'with the id in it and nothing else');
   });
 
-  test('AND THE NAME IS STILL ON THE CARD — on the line under the head', async () => {
-    /* Where the counterparty's name lives now. Read from the AUTHOR's side on
-       either seat, so the two screens say the same thing about the same
-       change — which the pill, being seat-relative, never quite did. */
+  test('AND THE NAME IS STILL ON THE CARD — one hover away on the line under the head', async () => {
+    /* CLAIM MOVED WITH THE DESIGN, 16 Aug 2026: the routing row's visible meta
+       line is the CLAUSE, and the organisation that asked moved into that
+       line's hover (and into the clause panel's row, in words). Still read
+       from the AUTHOR's side on either seat, so the two screens say the same
+       thing about the same change. */
     const p = await page();
     const meta = p.$('#rl-changes [data-nego-card] .rl-card-meta');
     assert.ok(meta, 'the meta line is drawn');
-    assert.match(meta.textContent, new RegExp(p.c.counterparty),
-      'and it names the organisation that asked');
+    assert.match(meta.getAttribute('title') || '', new RegExp(p.c.counterparty),
+      'and its hover names the organisation that asked');
   });
 
   test('which ask sits on which clause is still said — in the clause panel', async () => {
@@ -265,8 +269,6 @@ describe('F93 (3) — the verbs are reciprocal: nobody rules on their own ask', 
     p.win.negoHandOver(p.c, { to: 'counterparty' });
     p.win.renderRedline();
     let card = p.doc.querySelector('#rl-changes [data-rl-origin="us"]');
-    assert.equal(card.getAttribute('data-rl-popped'), '0',
-      'the next move is theirs — nothing is popped out');
     assert.equal(card.querySelector('.rl-sent[data-rl-sent]'), null,
       'and no marker where the Send was');
     assert.match(card.querySelector('.rl-badge').textContent, /Sent/,
@@ -320,9 +322,11 @@ describe('F93 (5) — the counterparty link gets the same column, seat-flipped',
     const p = await page({ myChange: true });
     const meta = theirSeat(p).querySelector('[data-rl-origin="them"] .rl-card-meta');
     assert.ok(meta, 'the meta line is on their card too');
-    assert.match(meta.textContent, /Wanjiru Catering Ltd/,
+    /* The name rides the HOVER since 16 Aug 2026 — see the owner-seat twin. */
+    assert.match(meta.getAttribute('title') || '', /Wanjiru Catering Ltd/,
       'the author\'s organisation — opts.org, the portal\'s sender');
-    assert.ok(!meta.textContent.includes('Naivas'),
+    assert.ok(!(meta.getAttribute('title') || '').includes('Naivas')
+      && !meta.textContent.includes('Naivas'),
       'c.counterparty on that page is the reader themselves');
   });
 

@@ -72,17 +72,15 @@ describe('F137a — the label is not painted', () => {
       'and the label it held is nowhere on the card');
   });
 
-  test('nor does the padlock it wore appear on the card body', async () => {
+  test('nor does the padlock it wore appear on the card', async () => {
+    /* CLAIM RE-POINTED (16 Aug 2026): .rl-card-body is gone with the pop-out —
+       the card is a routing row whose reading matter is its visible strips.
+       The note composer (whose Internal face legitimately wears a padlock)
+       lives in the clause panel now, so the whole card can be read directly. */
     const p = await page();
-    const body = p.column().querySelector('.rl-card-body');
-    assert.ok(body, 'the card has a body');
-    /* The note composer's visibility switch legitimately wears a padlock on
-       its Internal face (10 Aug 2026 — both seats choose who reads a note).
-       That is a control, not the provenance label this test buried, so it is
-       taken out of the reading before the assertion. */
-    const sans = body.cloneNode(true);
-    sans.querySelectorAll('.nego-visswitch').forEach(n => n.remove());
-    assert.ok(!/\u{1F512}/u.test(sans.textContent),
+    const card = p.column().querySelector('.rl-card');
+    assert.ok(card, 'the card exists');
+    assert.ok(!/\u{1F512}/u.test(card.textContent),
       'the padlock promised secrecy about a label that is no longer shown');
   });
 });

@@ -99,8 +99,9 @@ const MEASURE = () => {
     pageH: document.documentElement.scrollHeight,
     winH: window.innerHeight,
     tabs,
-    /* The conversation moved onto the cards when the Discussion face went. */
-    cardNotes: document.querySelectorAll('#rl-changes .rl-cnotes').length,
+    /* The conversation moved onto the cards when the Discussion face went,
+       and into the clause panel's rows on 16 Aug 2026. */
+    cardNotes: document.querySelectorAll('#rl-cp-body .rl-cnotes').length,
     clippedLabels: clipped('.rl-side-tab, .nego-origin, .nego-chip, .nego-card-id'),
     /* Counted across BOTH renderings of a contract: .doc-surface is the plain
        document (the old #pt-doc, and the viewer's sheet) and .nego-doc is the
@@ -130,10 +131,14 @@ const CARD_EDIT = async () => {
   /* NAMED, NOT POSITIONAL. The column's order is a product decision — work
      still being argued about comes first and settled work sinks (rlCardSort) —
      so "the first card" is not a stable way to reach a particular redline. The
-     assertions below are about the Net-45 ask specifically, so this finds the
-     card carrying it and falls back to the first only if it is not there. */
-  const cards = [...document.querySelectorAll('#rl-changes [data-nego-card]')];
-  const want = cards.find(el => /forty-five|Net-45|45\)/.test(el.textContent || ''));
+     assertions below are about the Net-45 ask specifically. FOUND ON THE
+     RECORD, not by the card's text (16 Aug 2026): the routing row carries no
+     copy of the wording any more, so the change is looked up by what it
+     proposes and its card by its id. */
+  const net45 = (window.negoChanges ? negoChanges(window.CONTRACT) : [])
+    .find(x => /forty-five|Net-45/.test(String(x.newText || x.proposedText || '')));
+  const want = net45 && document.querySelector(
+    `#rl-changes [data-nego-card="${CSS.escape(net45.id)}"]`);
   const btn = (want && want.querySelector('[data-rl-edit]'))
     || document.querySelector('#rl-changes [data-rl-edit]');
   if (!btn) return { error: 'no card Edit button on this seat' };
@@ -249,7 +254,7 @@ const CARD_EDIT = async () => {
      absence of the switcher plus the presence of the notes. */
   check('4 no sidebar switcher on their page', cp.tabs.length === 0, cp.tabs.length);
   check('4 and the conversation is on the change instead',
-    cp.cardNotes > 0, `${cp.cardNotes} cards carry their notes`);
+    cp.cardNotes > 0, `${cp.cardNotes} change rows carry their notes in the panel`);
 
   /* ---- 5. nothing truncated ---- */
   check('5 no label truncated on the counterparty\'s page',
@@ -381,7 +386,8 @@ const CARD_EDIT = async () => {
       statusOnRow: st.getBoundingClientRect().right <= head.right + 1,
       spine: getComputedStyle(card).borderLeftColor,
       spineW: getComputedStyle(card).borderLeftWidth,
-      meta: (meta ? meta.textContent : '').replace(/\s+/g, ' ').trim() };
+      meta: (meta ? meta.textContent : '').replace(/\s+/g, ' ').trim(),
+      metaTitle: meta ? (meta.getAttribute('title') || '') : '' };
   });
   if (!badges){
     check('10 there is a card to read the head of', false, 'no card carrying an origin');
@@ -392,8 +398,14 @@ const CARD_EDIT = async () => {
       badges.statusOnRow, `status on row: ${badges.statusOnRow}`);
     check('10 the coloured left edge still marks it as theirs',
       parseFloat(badges.spineW) >= 2 && !!badges.spine, `${badges.spineW} ${badges.spine}`);
-    check('10 and the name reads on the line under the head',
-      /APEX LOGISTICS & WAREHOUSING KENYA LTD/.test(badges.meta), badges.meta);
+    /* RE-POINTED 16 Aug 2026: the routing row's visible meta line is the
+       clause; the organisation moved into that line's HOVER (and, in words,
+       into the clause panel's row). The claim — the monstrous name is still
+       reachable from the card, and never printed as the reader's own company —
+       survives on the hover. */
+    check('10 and the name reads on the meta line\'s hover',
+      /APEX LOGISTICS & WAREHOUSING KENYA LTD/.test(badges.metaTitle || ''),
+      badges.metaTitle || badges.meta);
   }
 
   /* The owner's side is the control: if these were absent there too, every

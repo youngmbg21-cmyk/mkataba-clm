@@ -340,15 +340,18 @@ describe('an action by one side shows up on the other', () => {
       { side: 'owner', author: 'Wanjiru Kamau', visibility: 'shared' });
 
     const v = counterpartyView(o.c);
-    /* The thread is on the change's own card now — the Discussion column that
-       used to hold it is gone from both seats (10 Aug 2026), which is why the
-       card is what gets read here and why it no longer has to NAME the change
-       it hangs off: it is inside it. */
+    /* RE-POINTED 16 Aug 2026: the thread moved from the change's card into the
+       CLAUSE PANEL's row for that change — the card is a routing row now and
+       the panel is where the conversation reads and is replied to, on their
+       page exactly as on ours. The claim is the same claim: her shared words
+       are on his copy, on the change they are about. */
     const card = v.$(`#pt-nego [data-nego-card="${ch.id}"]`);
     assert.ok(card, 'their copy carries the change');
-    assert.match(card.textContent, /Would you take Net-45 with a 1% early-settlement discount\?/);
-    assert.match(card.querySelector('.rl-cnotes').textContent, /Notes/,
-      'under the card\'s own notes heading');
+    const row = v.$$(`#pt-nego [data-rl-cp-change="${ch.id}"]`)[0];
+    assert.ok(row, 'and the clause panel names the change on their seat');
+    assert.match(row.textContent, /Would you take Net-45 with a 1% early-settlement discount\?/);
+    assert.match(row.querySelector('.rl-cnotes').textContent, /Notes/,
+      'under the row\'s own notes heading');
   });
 
   test('progress and the resolved count move together on both sides', async () => {

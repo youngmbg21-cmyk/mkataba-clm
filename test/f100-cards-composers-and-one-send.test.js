@@ -144,23 +144,24 @@ describe('F100b — the card is a handle, not a copy', () => {
     return { w, win, c, $, $$, again: () => win.renderRedline() };
   }
 
-  /* ---- AND THE COPY CAME BACK, CLAMPED ----
-     The wording was taken off the card because the document beside it already
-     showed the change. True, and what was left read as a filing reference: an
-     id, a clause number and four buttons, nothing about the thing being
-     decided. It is back on the design's call (10 Aug 2026) as two clamped
-     lines — a summary you skim down the column, not a place to read a clause.
-     The document is still where the wording is read in its surroundings, and
-     it is still one click away. */
+  /* ---- CLAIMS REVERSED IN PLACE, 16 Aug 2026 — THE CARD IS A ROUTING ROW ----
+     The clamped two-line copy came back on 10 Aug because the card that was
+     left read as a filing reference. What has changed since is that the CLAUSE
+     PANEL exists and says everything the fat card said — the full wording, the
+     author, the reason, the history, the reply box — on the clause the ask is
+     about. So the card is now a short row: id and state, the clause name, the
+     author's reason, and an Open that raises that panel. The pop-out
+     (rlPop*, data-rl-pop, .rl-card-body) is retired with it. */
   test('the card says what is being asked for, in two clamped lines', async () => {
+    /* REVERSED: the row carries NO copy of the wording. The paper beside it
+       has the marks and the panel has the full text — two copies in reach is
+       what makes the row honest without one of its own. */
     const p = await page();
-    assert.ok(p.$$('#rl-changes .rl-card').length, 'there is a card to look at');
-    const diff = p.$('#rl-changes .rl-card-diff');
-    assert.ok(diff, 'the card carries the delta');
-    assert.ok(diff.textContent.includes('forty-five'), 'and it is the real proposal');
-    const css = p.win.document.getElementById('redline-layout-css').textContent;
-    assert.match(css, /\.rl-card-diff\{[^}]*-webkit-line-clamp:2/,
-      'two lines — a summary, never a second copy of the clause');
+    assert.ok(p.$$('#rl-changes .rl-card').length, 'there is a row to look at');
+    assert.equal(p.$('#rl-changes .rl-card-diff'), null,
+      'no clamped delta on the row any more');
+    const meta = p.$('#rl-changes .rl-card .rl-card-meta');
+    assert.ok(meta && meta.textContent.trim(), 'the row names its clause');
   });
 
   test('the document still carries it in full', async () => {
@@ -170,96 +171,94 @@ describe('F100b — the card is a handle, not a copy', () => {
   });
 
   test('a draft arrives with nothing popped out, and a door to open', async () => {
+    /* REVERSED: the door is Open — data-rl-cp-open, the clause panel's own
+       delegated control — and there is no hidden body waiting to be borrowed:
+       the reading matter lives in the panel from the start. */
     const p = await page();
     const card = p.$('#rl-changes .rl-card');
-    assert.equal(card.getAttribute('data-rl-popped'), '0',
+    assert.equal(p.win.rlCpOpenId(), null,
       'a panel is open only because somebody opened it');
-    assert.ok(card.querySelector('[data-rl-pop]'),
-      'and a real button says the reason and the notes are behind it');
-    assert.ok(card.querySelector('.rl-card-body'),
-      'the reading matter is on the card, ready for the panel to borrow');
+    const open = card.querySelector('.rl-open-btn[data-rl-cp-open]');
+    assert.ok(open, 'a real button, wearing a word, opens the clause panel');
+    assert.equal(open.getAttribute('data-rl-cp-open'), p.c.changes[0].clauseId,
+      'and it names the clause the change sits in');
+    assert.equal(card.querySelector('[data-rl-pop]'), null, 'the pop-out door is gone');
+    assert.equal(card.querySelector('.rl-card-body'), null,
+      'and so is the hidden body it existed to show');
   });
 
-  test('the reading matter is on the card and never shown there', async () => {
-    /* It stays in the card so the engine wires it with everything else — the
-       reply box is bound by element id, scoped to this mount. The panel MOVES
-       this node rather than rendering a second copy, which would be a composer
-       with no handlers at all. */
+  test('the reading matter is in the clause panel, and rendered exactly once', async () => {
+    /* The pop-out BORROWED the card's body because a second copy of the
+       composer posts nothing. The rule survives the pop-out: the one
+       engine-wired composer per change renders in the panel and nowhere else. */
     const p = await page();
-    const css = p.win.document.getElementById('redline-layout-css').textContent;
-    assert.match(css, /\.redline-page \.rl-card \.rl-card-body\{display:none\}/,
-      'hidden on the card');
-    assert.match(css, /\.rl-pop-body \.rl-card-body\{display:block\}/,
-      'and shown once the panel has it');
+    const id = p.c.changes[0].id;
+    assert.equal(p.$$(`textarea#nego-ti-${id}`).length, 1,
+      'exactly one composer for the change in the whole document');
+    assert.ok(p.$(`#rl-cp-body textarea#nego-ti-${id}`),
+      'and it is inside the clause panel');
+    assert.equal(p.$('#rl-changes .rl-cnotes'), null,
+      'the card renders no thread of its own');
   });
 
-  test('pressing its head takes you to the change and leaves the card alone', async () => {
+  test('pressing its head takes you to the change and leaves the panel shut', async () => {
     const p = await page();
     p.win.negoHandOver(p.c, { to: 'counterparty' });
     p.again();
     p.$('#rl-changes .rl-card .rl-card-head')
       .dispatchEvent(new p.win.Event('click', { bubbles: true }));
-    assert.equal(p.win.rlPopId(), null, 'no panel opened');
-    assert.equal(p.$('#rl-changes .rl-card').getAttribute('data-rl-popped'), '0',
-      'and the column holds still');
+    assert.equal(p.win.rlCpOpenId(), null, 'no panel opened — the head only navigates');
   });
 
-  test('the button opens the panel, and the body MOVES into it', async () => {
-    /* The move is the whole design. A rendered copy looks identical and its
-       reply box never sends. */
+  test('Open raises the clause panel on the change\'s own clause', async () => {
     const p = await page();
-    const card = () => p.$('#rl-changes .rl-card');
-    const bodyBefore = card().querySelector('.rl-card-body');
-    assert.ok(bodyBefore, 'the body starts on the card');
-    p.$('#rl-changes .rl-card [data-rl-pop]').click();
-    const pop = p.$('#rl-pop');
-    assert.ok(pop, 'the panel is drawn');
-    assert.equal(card().querySelector('.rl-card-body'), null, 'the card lent it out');
-    assert.equal(pop.querySelector('.rl-card-body'), bodyBefore,
-      'and it is the very same node, listeners and all');
-    assert.equal(p.$$('.rl-card-body').length, 1, 'never two copies in the document');
+    const clauseId = p.c.changes[0].clauseId;
+    p.$('#rl-changes .rl-card .rl-open-btn').click();
+    assert.equal(p.win.rlCpOpenId(), clauseId, 'the panel opened on the right clause');
+    const panel = p.$('#rl-cp');
+    assert.ok(panel && panel.classList.contains('is-open'), 'and it is the page\'s ONE panel');
+    const body = p.$(`#rl-cp-body .rl-cp-src[data-rl-cp-for="${clauseId}"]`);
+    assert.ok(body && body.classList.contains('is-on'), 'showing this clause\'s body');
+    assert.ok(body.querySelector(`[data-rl-cp-change="${p.c.changes[0].id}"]`),
+      'which names the change the row routed from');
   });
 
-  test('and closing it gives the body back to its card', async () => {
+  test('and the same press closes it', async () => {
     const p = await page();
-    const btn = () => p.$('#rl-changes .rl-card [data-rl-pop]');
+    const btn = () => p.$('#rl-changes .rl-card .rl-open-btn');
     btn().click();
+    assert.ok(p.win.rlCpOpenId());
     btn().click();
-    assert.equal(p.$('#rl-pop'), null, 'the panel is gone');
-    const card = p.$('#rl-changes .rl-card');
-    assert.ok(card.querySelector('.rl-card-body'), 'and the body is home');
-    assert.ok(card.querySelector('.rl-card-body').nextElementSibling.classList.contains('rl-card-actions'),
-      'in its own place, above the action bar');
+    assert.equal(p.win.rlCpOpenId(), null, 'the door is a toggle, like the pill');
   });
 
-  test('the panel carries the wording in full, which the card only clamps', async () => {
+  test('the panel carries the wording in full, which the row does not carry at all', async () => {
     const p = await page();
-    p.$('#rl-changes .rl-card [data-rl-pop]').click();
-    const pop = p.$('#rl-pop');
-    assert.ok(pop.querySelector('.rl-pop-word'), 'the wording, unclamped');
-    assert.ok(pop.querySelector('[data-rl-pop-close]'), 'and a way to shut it');
+    p.$('#rl-changes .rl-card .rl-open-btn').click();
+    const body = p.$('#rl-cp-body .rl-cp-src.is-on');
+    assert.ok(body.querySelector('.rl-cp-wd'), 'the ask\'s wording, unclamped');
+    assert.ok(p.$('#rl-cp [data-rl-cp-close]'), 'and a way to shut it');
   });
 
-  test('an open panel survives the card changing state underneath it', async () => {
+  test('an open panel survives the column changing state underneath it', async () => {
     const p = await page();
-    p.$('#rl-changes .rl-card [data-rl-pop]').click();
-    const id = p.win.rlPopId();
+    p.$('#rl-changes .rl-card .rl-open-btn').click();
+    const id = p.win.rlCpOpenId();
     assert.ok(id);
     p.win.negoHandOver(p.c, { to: 'counterparty' });
     p.again();
-    assert.equal(p.win.rlPopId(), id, 'still open on the same change');
-    assert.ok(p.$('#rl-pop .rl-card-body'),
-      'and it took the rebuilt card\'s body — the one it held went with the repaint');
-    assert.equal(p.$$('.rl-card-body').length, 1, 'still exactly one');
+    assert.equal(p.win.rlCpOpenId(), id, 'still open on the same clause');
+    assert.ok(p.$('#rl-cp-body .rl-cp-src.is-on'),
+      'and rlCpPaint re-flipped the fresh markup after the repaint');
   });
 
-  test('and it closes when its change leaves the list', async () => {
+  test('and it shuts when its clause leaves the paper', async () => {
     const p = await page();
-    p.$('#rl-changes .rl-card [data-rl-pop]').click();
-    p.win.rlPopSet('CHG-DOES-NOT-EXIST');
+    p.$('#rl-changes .rl-card .rl-open-btn').click();
+    p.win.rlCpSetOpen('CL-DOES-NOT-EXIST');
     p.again();
-    assert.equal(p.win.rlPopId(), null);
-    assert.equal(p.$('#rl-pop'), null);
+    assert.equal(p.win.rlCpOpenId(), null,
+      'a panel over wording no longer on the paper is the one thing this page may not do');
   });
 
   test('the rule is read off the verbs, not off a list of statuses', () => {
@@ -487,19 +486,16 @@ describe('F100d — a second batch of asks can still be sent', () => {
 });
 
 /* ============================================================ */
-describe('F100e — the card pops out; it does not grow', () => {
+describe('F100e — the pop-out is retired; Open raises the clause panel', () => {
   /* ---- WHAT THIS BLOCK USED TO PIN, AND WHY IT DOES NOT ----
-     Three rules once decided a card's state for the reader — a card carrying a
-     verb opened itself, hovering peeked one open, and opening one shut the rest
-     — and all three were replaced by a plain in-place toggle in Aug 2026.
-
-     The toggle went too (owner, 12 Aug 2026). Unfolding in place put the
-     reason, the reviewer's note and the whole thread into the narrowest column
-     on the screen, and moved every card below down the page while somebody was
-     reading one of them. It pops out into a floating panel instead.
+     Auto-open, hover-peek, the in-place toggle and then the floating pop-out
+     each had a turn deciding how a card's reading matter was reached, and each
+     was replaced. The pop-out went on 16 Aug 2026 (owner-asked): the clause
+     panel says everything it said, on the clause, and the card is a routing
+     row whose Open raises THAT panel.
 
      WHAT SURVIVES, and matters more than the layout: pressing a card takes you
-     to its clause and now does only that; the verbs are on the card whatever is
+     to its clause and does only that; the verbs are on the row whatever is
      open; and nothing but a press opens or closes the panel. */
 
   async function page(){
@@ -522,65 +518,59 @@ describe('F100e — the card pops out; it does not grow', () => {
     const $ = s => win.document.querySelector(s);
     return { w, win, c, $, doc: win.document, again: () => win.renderRedline() };
   }
-  const sent = async () => { const p = await page();
-    p.win.negoHandOver(p.c, { to: 'counterparty' }); p.again(); return p; };
-  const fire = (el, type, init) => el.dispatchEvent(
-    new el.ownerDocument.defaultView.Event(type, Object.assign({ bubbles: false }, init)));
-  const head = p => p.$('#rl-changes .rl-card .rl-card-head');
-
-  const popBtn = p => p.$('#rl-changes .rl-card [data-rl-pop]');
+  const openBtn = p => p.$('#rl-changes .rl-card .rl-open-btn');
 
   test('every card arrives with nothing popped out', async () => {
+    /* REVERSED IN PLACE: "popped out" is the clause panel now, and the row
+       carries none of the pop-out's markup. */
     const p = await page();
-    assert.equal(p.win.rlPopId(), null);
-    assert.equal(p.$('#rl-pop'), null, 'no panel until somebody opens one');
-    assert.equal(p.$('#rl-changes .rl-card').getAttribute('data-rl-popped'), '0');
+    assert.equal(p.win.rlCpOpenId(), null);
+    assert.equal(p.$('#rl-pop'), null, 'the pop-out is never drawn');
+    assert.equal(p.$('#rl-changes [data-rl-pop]'), null, 'its door is gone from every row');
+    assert.equal(p.$('#rl-changes .rl-card-body'), null, 'and so is the hidden body');
+    assert.equal(typeof p.win.rlPopId, 'undefined', 'the machinery itself is retired');
   });
 
   test('one press opens it, the same press closes it', async () => {
     const p = await page();
-    const id = p.$('#rl-changes .rl-card').getAttribute('data-nego-card');
-    popBtn(p).click();
-    assert.equal(p.win.rlPopId(), id);
-    assert.ok(p.$('#rl-pop'));
-    popBtn(p).click();
-    assert.equal(p.win.rlPopId(), null);
-    assert.equal(p.$('#rl-pop'), null, 'gone, not merely hidden');
+    const clauseId = p.c.changes[0].clauseId;
+    openBtn(p).click();
+    assert.equal(p.win.rlCpOpenId(), clauseId);
+    assert.ok(p.$('#rl-cp.is-open'));
+    openBtn(p).click();
+    assert.equal(p.win.rlCpOpenId(), null);
+    assert.equal(p.$('#rl-cp.is-open'), null, 'shut, and says so');
   });
 
-  test('THE ONE THAT WOULD HURT: the panel is inside the mount, outside the column', async () => {
+  test('THE ONE THAT WOULD HURT: the composer is inside the mount, outside the column', async () => {
     /* Outside the mount, the engine's own wiring — which is scoped to it — does
        not reach the reply box, and the composer accepts typing and never sends.
-       Inside the COLUMN, the scroller clips it. It has to be both. */
+       Inside the COLUMN, the scroller clips it. The panel is both: inside the
+       page the engine wires, outside #rl-changes. */
     const p = await page();
-    popBtn(p).click();
-    const pop = p.$('#rl-pop');
-    assert.ok(pop, 'the panel exists');
-    assert.equal(pop.closest('#rl-changes'), null, 'not in the scroller');
-    assert.ok(pop.closest('.redline-page'), 'but inside the page the engine wires');
+    const box = p.$(`#rl-cp-body textarea#nego-ti-${p.c.changes[0].id}`);
+    assert.ok(box, 'the reply box exists, in the panel');
+    assert.equal(box.closest('#rl-changes'), null, 'not in the scroller');
+    assert.ok(box.closest('.redline-page'), 'but inside the page the engine wires');
   });
 
-  test('the conversation moves WITH the node, never as a second copy', async () => {
-    /* The claim that matters. The engine binds the reply box by element id and
-       scopes every lookup to its own mount, so a rendered copy is a composer
-       with no handlers — it accepts typing and never sends. Proving the node
-       MOVED, and that there is only ever one of it, is proving that cannot
-       happen. */
+  test('the conversation renders once, in the panel, never as a second copy', async () => {
+    /* The claim that matters, carried over from the borrowing design: the
+       engine binds the reply box by element id, so a second copy anywhere is a
+       composer with no handlers — it accepts typing and never sends. One copy,
+       in the panel, is the whole rule now. */
     const p = await page();
-    const notesBefore = p.$('#rl-changes .rl-card .rl-cnotes');
-    assert.ok(notesBefore, 'the thread starts on the card');
-    popBtn(p).click();
-    const pop = p.$('#rl-pop');
-    assert.equal(pop.querySelector('.rl-cnotes'), notesBefore, 'the same node, moved');
     assert.equal(p.doc.querySelectorAll('.rl-cnotes').length, 1,
-      'and only ever one in the document');
+      'exactly one conversation block in the document');
+    assert.ok(p.$('#rl-cp-body .rl-cnotes'), 'and it is the panel\'s');
+    assert.equal(p.$('#rl-changes .rl-cnotes'), null, 'the card renders none');
   });
 
   test('pressing a card takes you to its clause and pops nothing out', async () => {
     const p = await page();
     p.$('#rl-changes .rl-card .rl-card-head')
       .dispatchEvent(new p.win.Event('click', { bubbles: true }));
-    assert.equal(p.win.rlPopId(), null);
+    assert.equal(p.win.rlCpOpenId(), null);
   });
 
   test('hovering does nothing at all', async () => {
@@ -588,30 +578,30 @@ describe('F100e — the card pops out; it does not grow', () => {
     const card = p.$('#rl-changes .rl-card');
     card.dispatchEvent(new p.win.Event('mouseenter'));
     card.dispatchEvent(new p.win.Event('mouseover'));
-    assert.equal(p.win.rlPopId(), null, 'the column does not move under a passing pointer');
+    assert.equal(p.win.rlCpOpenId(), null, 'the column does not move under a passing pointer');
   });
 
   test('an open panel survives a repaint', async () => {
     const p = await page();
-    popBtn(p).click();
-    const id = p.win.rlPopId();
+    openBtn(p).click();
+    const id = p.win.rlCpOpenId();
     p.again();
-    assert.equal(p.win.rlPopId(), id);
-    assert.ok(p.$('#rl-pop'));
+    assert.equal(p.win.rlCpOpenId(), id);
+    assert.ok(p.$('#rl-cp.is-open'), 'rlCpPaint re-flipped the fresh markup');
   });
 
   test('and it does not travel to another contract', async () => {
     const p = await page();
-    popBtn(p).click();
-    assert.ok(p.win.rlPopId());
+    openBtn(p).click();
+    assert.ok(p.win.rlCpOpenId());
     p.win.rlCardForgetPins('SOME-OTHER-CONTRACT');
-    assert.equal(p.win.rlPopId(), null);
+    assert.equal(p.win.rlCpOpenId(), null);
   });
 
   test('the choice is not persisted anywhere', async () => {
     const p = await page();
-    popBtn(p).click();
-    assert.ok(!/rlPop|rl-pop/i.test(JSON.stringify(p.win.localStorage)),
+    openBtn(p).click();
+    assert.ok(!/rlCp|rl-cp|rlPop|rl-pop/i.test(JSON.stringify(p.win.localStorage)),
       'a working preference is not a setting');
   });
 });
@@ -705,18 +695,25 @@ describe('F100f — and all of it from the counterparty\'s own chair', () => {
     assert.equal(card.querySelector('[data-rl-retract]'), null);
   });
 
-  test('WO-2 · every card arrives shut on this seat too', async () => {
-    /* Their page mounts the same renderer, so the toggle arrives by
-       construction — but "by construction" is the claim, not the proof. */
+  test('WO-2 · every card is a routing row on this seat too', async () => {
+    /* Their page mounts the same renderer, so the row arrives by construction
+       — but "by construction" is the claim, not the proof. REVERSED IN PLACE
+       (16 Aug 2026): no pop markup on either state, and the Open door is drawn
+       only where the mount carries the panel — this bare harness does not, and
+       a door with no room behind it must not be drawn (the panes mount below,
+       in the WO-2 mount tests, has both). */
     const p = await page();
     const done = seat(p).querySelector('[data-rl-origin="us"]');
-    assert.equal(done.getAttribute('data-rl-popped'), '0');
+    assert.equal(done.querySelector('[data-rl-pop]'), null, 'the pop-out door is gone');
+    assert.equal(done.querySelector('.rl-card-body'), null, 'and its hidden body with it');
     const live = seat(p, { unsentIds: [p.c.changes[0].id] }).querySelector('[data-rl-origin="us"]');
-    assert.equal(live.getAttribute('data-rl-popped'), '0',
-      'a card with something to press is not an exception any more — nothing is');
     assert.ok(live.querySelector('.rl-card-head'), 'its head takes them to the clause');
-    assert.ok(live.querySelector('[data-rl-pop]'),
-      'and the door to its reasoning is beside it — this seat has the least room of anybody');
+    assert.equal(live.querySelector('.rl-open-btn'), null,
+      'no panel on this mount, so no door promising one');
+    const withPanel = seat(p, { unsentIds: [p.c.changes[0].id], cpPanel: true })
+      .querySelector('[data-rl-origin="us"]');
+    assert.ok(withPanel.querySelector('.rl-open-btn[data-rl-cp-open]'),
+      'where the mount has the panel, the row has its Open');
   });
 
   /* ---- A DECISION THAT HAS GONE IS FINISHED BUSINESS ----
@@ -770,8 +767,7 @@ describe('F100f — and all of it from the counterparty\'s own chair', () => {
       'and the sentence the word gave up is in the hover text');
     /* And "Change decision" is "Reopen" — same button, same escape hatch. */
     assert.ok(verbsOf(card).includes('Reopen'),
-      'the escape hatch is still on the card — hidden, not removed');
-    assert.equal(card.getAttribute('data-rl-popped'), '0', 'folded, like every card');
+      'the escape hatch is still on the card');
   });
 
   test('a REJECTION that has been sent folds the same way', async () => {
@@ -782,22 +778,22 @@ describe('F100f — and all of it from the counterparty\'s own chair', () => {
     const p = await page();
     const { card } = await decided(p, 'rejected', 'sent');
     assert.match(card.querySelector('.rl-badge').textContent, /Rejected/);
-    assert.equal(card.getAttribute('data-rl-popped'), '0');
     assert.ok(card.querySelector('.rl-card-head'), 'and one press away, like every card');
   });
 
   test('but the badge stays readable while it is folded', async () => {
-    /* The whole safety argument for folding this card: what it folds away is a
-       button nobody is waiting on, never the answer itself. The head — id,
-       origin, status — is outside .rl-card-body and survives. */
+    /* CLAIM REVERSED IN PLACE (16 Aug 2026): there is no fold and no hidden
+       body left — the row IS the head plus its verbs, so the answer and the
+       clause it belongs to are visible by construction. Asserted rather than
+       assumed, because "nothing can hide it" is exactly the kind of claim
+       that quietly stops being true. */
     const p = await page();
     const { card } = await decided(p, 'accepted', 'sent');
-    const body = card.querySelector('.rl-card-body');
-    assert.ok(body, 'the body is rendered, and hidden by CSS rather than dropped');
-    assert.ok(!body.contains(card.querySelector('.rl-badge')),
-      'the status badge is in the head, so folding cannot take it away');
-    assert.ok(!body.contains(card.querySelector('.rl-card-meta')),
-      'nor the clause it belongs to');
+    assert.equal(card.querySelector('.rl-card-body'), null, 'no hidden body at all');
+    assert.ok(card.querySelector('.rl-card-head .rl-badge'),
+      'the status badge is in the head, on screen');
+    assert.ok(card.querySelector('.rl-card-head .rl-card-meta'),
+      'and so is the clause it belongs to');
   });
 
   test('an answer that has NOT been sent stays open, with its Undo showing', async () => {
@@ -811,22 +807,14 @@ describe('F100f — and all of it from the counterparty\'s own chair', () => {
        postbox, same as the owner's per-card Send. f180 pins its visibility
        and that pressing it posts the batch. */
     assert.deepEqual(verbsOf(card), ['Send', 'Undo']);
-    /* IT FOLDS LIKE EVERYTHING ELSE. Undo used to hold the card open — the one
-       state that looks finished and is not, and the second after a click, when
-       a mis-press is likeliest. It is one press away now, and the alternative
-       was worse: a card that opened itself could not be closed. */
-    assert.equal(card.getAttribute('data-rl-popped'), '0');
   });
 
   test('the verbs are on the card, and there is no fold left to hide them in', async () => {
-    /* This has moved twice and the direction is the point. It first insisted
-       those states stayed OPEN; then, when the automatic opening went, it
-       settled for "rendered, one press away". Asked for on 11 Aug 2026: a shut
-       card is the header block AND the action bar, and the fold hides only
-       "Why they asked" and the notes. So the verbs are out of .rl-card-body
-       altogether — the thing display:none is applied to — and sit in a sibling
-       .rl-card-actions that no rule folds. A card that arrives shut can still
-       be sent from. */
+    /* This has moved three times and the direction is the point: open-by-rule,
+       then rendered-one-press-away, then out of the foldable body, and now (16
+       Aug 2026) there is NO fold and no hidden body at all — the row is its
+       head, its visible strips and its action bar, so nothing pressable can be
+       out of sight by construction. Asserted rather than assumed. */
     const p = await page();
     const mine = p.c.changes[0].id;
     const theirs = (await ownerAsk(p)).id;
@@ -837,29 +825,28 @@ describe('F100f — and all of it from the counterparty\'s own chair', () => {
     for (const [what, over, id] of cases){
       const card = seat(p, over).querySelector(`[data-nego-card="${id}"]`);
       assert.ok(card, `${what} is on the column`);
-      assert.equal(card.getAttribute('data-rl-popped'), '0', `${what} arrives with nothing popped out`);
       assert.ok(card.querySelector('.rl-card-head'), `${what} has a head to press`);
       assert.ok(card.querySelector('.rl-card-actions .rl-card-verbs button'),
         `${what} carries its verbs on the action bar`);
-      const hidden = card.querySelector('.rl-card-body');
-      assert.ok(!hidden || !hidden.querySelector('.rl-card-verbs'),
-        `${what}: no verb may sit in the part that moves into the panel`);
+      assert.equal(card.querySelector('.rl-card-body'), null,
+        `${what}: no hidden body for a verb to be lost in`);
     }
   });
 
   test('and what the fold hides is reading matter, not a move waiting on anybody', async () => {
+    /* CLAIM REVERSED IN PLACE (16 Aug 2026): the fold is gone. What stays
+       visible on the row (.rl-card-info — the reason, the on-behalf and
+       revised-by stamps, the reviewer's note) is reading matter carrying no
+       verb on the change; the verbs live in .rl-card-actions, a SIBLING of the
+       head, so a press on Send can never navigate or fold anything. */
     const p = await page();
     const theirs = (await ownerAsk(p)).id;
     const card = seat(p, {}).querySelector(`[data-nego-card="${theirs}"]`);
-    const body = card.querySelector('.rl-card-body');
-    assert.ok(body, 'the body is rendered, and hidden by CSS rather than dropped');
-    assert.equal(body.querySelectorAll('button').length -
-      body.querySelectorAll('.rl-cnote-add, .nego-vis, [data-rl-note-more], [data-nego-vis]').length <= 0,
-      true, 'nothing in the fold is a verb on the change itself');
-    /* And the action bar is a SIBLING of the head, never a child — that is what
-       keeps a press on Send from folding the card underneath the hand. */
+    const info = card.querySelector('.rl-card-info');
+    assert.ok(!info || !info.querySelector('[data-nego-accept],[data-nego-reject],[data-rl-send],[data-rl-retract],[data-nego-undo]'),
+      'nothing in the info strips is a verb on the change itself');
     assert.ok(!card.querySelector('.rl-card-head .rl-card-actions'),
-      'the action bar must not be inside the toggle');
+      'the action bar must not be inside the press-through');
   });
 
   /* ---- THE MOUNT REPAINTS ITSELF, OR THE PIN NEVER LETS GO ---- */
@@ -871,35 +858,33 @@ describe('F100f — and all of it from the counterparty\'s own chair', () => {
     return host;
   };
 
-  test('WO-2 · the toggle repaints THIS mount, never the owner\'s workbench', async () => {
+  test('WO-2 · Open works inside THIS mount, never the owner\'s workbench', async () => {
     const p = await page();
-    /* A marker in the owner's mount. If the toggle's repaint reaches for
-       renderRedline it paints the workbench over it, and the counterparty is
-       looking at a page that was never theirs. This was a real fault on the
-       unpin that used to live here, and the repaint it guarded is the same one
-       the toggle uses. */
+    /* A marker in the owner's mount. The clause panel's door is delegated on
+       document; the panel it opens must be the one inside THIS mount, and
+       nothing may repaint the owner's page from inside their portal. */
     p.doc.getElementById('content').innerHTML = '<b id="owner-mount-untouched"></b>';
     const host = mountPortal(p);
     const card = () => host.querySelector('#rl-changes .rl-card');
-    assert.equal(card().getAttribute('data-rl-popped'), '0');
-    card().querySelector('[data-rl-pop]').click();
-    assert.equal(card().getAttribute('data-rl-popped'), '1', 'it opens on this seat too');
-    assert.ok(host.querySelector('#rl-pop'), 'and the panel is inside THIS mount');
-    card().querySelector('[data-rl-pop]').click();
-    assert.equal(card().getAttribute('data-rl-popped'), '0', 'and closes here too');
+    assert.ok(card().querySelector('.rl-open-btn'), 'the row has its Open on this seat too');
+    card().querySelector('.rl-open-btn').click();
+    assert.ok(p.win.rlCpOpenId(), 'it opens on this seat too');
+    assert.ok(host.querySelector('#rl-cp.is-open'), 'and the panel is inside THIS mount');
+    card().querySelector('.rl-open-btn').click();
+    assert.equal(p.win.rlCpOpenId(), null, 'and closes here too');
     assert.ok(p.doc.getElementById('owner-mount-untouched'),
       'and the owner\'s workbench was not painted from inside their portal');
   });
 
   test('WO-2 · an open panel does not survive the mount being handed another contract', async () => {
     /* The owner's page forgets what was open when the reader moves on
-       (renderRedline); a mount is not exempt from the rule, or a card arrives
-       open on a change this reader has never seen. */
+       (renderRedline); a mount is not exempt from the rule, or a panel arrives
+       open on a clause this reader has never seen. */
     const p = await page();
     const host = mountPortal(p);
-    host.querySelector('#rl-changes .rl-card [data-rl-pop]').click();
-    assert.equal(host.querySelector('#rl-changes .rl-card').getAttribute('data-rl-popped'), '1');
+    host.querySelector('#rl-changes .rl-card .rl-open-btn').click();
+    assert.ok(p.win.rlCpOpenId());
     p.win.redlineEmbed(host, Object.assign({}, p.c, { id: 'MK-OTHER' }), seatOpts());
-    assert.equal(p.win.rlPopId(), null, 'the panel let go with the contract');
+    assert.equal(p.win.rlCpOpenId(), null, 'the panel let go with the contract');
   });
 });
