@@ -135,13 +135,31 @@ const CARD_EDIT = async () => {
      RECORD, not by the card's text (16 Aug 2026): the routing row carries no
      copy of the wording any more, so the change is looked up by what it
      proposes and its card by its id. */
+  /* RE-POINTED AGAIN, 16 Aug 2026 (Option 4): a change that needs nothing is
+     a RECEIPT now and carries no Edit — on the counterparty's seat their own
+     sent Net-45 ask is exactly that. The probe's subject is the ROUTE, so it
+     runs on a card that HAS the door on this seat: the Net-45 card where it is
+     a working card, else any working card over a PENDING change — and the
+     continues-vs-restarts claim reads that change's own record instead of a
+     hard-coded phrase. */
   const net45 = (window.negoChanges ? negoChanges(window.CONTRACT) : [])
     .find(x => /forty-five|Net-45/.test(String(x.newText || x.proposedText || '')));
   const want = net45 && document.querySelector(
     `#rl-changes [data-nego-card="${CSS.escape(net45.id)}"]`);
+  const btns = [...document.querySelectorAll('#rl-changes [data-rl-edit]')];
   const btn = (want && want.querySelector('[data-rl-edit]'))
-    || document.querySelector('#rl-changes [data-rl-edit]');
+    || btns.find(b => { const card = b.closest('[data-nego-card]');
+        const ch = negoChangeById(CONTRACT, card.getAttribute('data-nego-card'));
+        return ch && ch.status === 'pending'; })
+    || btns[0];
   if (!btn) return { error: 'no card Edit button on this seat' };
+  const probeCh = negoChangeById(CONTRACT,
+    btn.closest('[data-nego-card]').getAttribute('data-nego-card'));
+  const words = t => String(t || '').split(/\W+/).filter(x => x.length > 3);
+  const marker = words(probeCh && probeCh.newText)
+    .find(x => !words(probeCh && probeCh.oldText).includes(x)) || null;
+  const goneWord = words(probeCh && probeCh.oldText)
+    .find(x => !words(probeCh && probeCh.newText).includes(x)) || null;
   const id = btn.getAttribute('data-rl-edit');
   const clause = document.querySelector(`#rl-doc [data-clause="${CSS.escape(id)}"]`);
   if (!clause) return { error: 'the card names a clause the document does not draw' };
@@ -174,10 +192,11 @@ const CARD_EDIT = async () => {
     clauseCarriesNothing: !clause.querySelector('[data-nego-editor]')
       && !clause.querySelector('.rl-tools'),
     paraWrap: para ? getComputedStyle(para).whiteSpace : null,
-    /* The wording the editor opened ON. The fixture files Net-45 over a Net-30
-       baseline, so which of the two comes back says whether the editor
-       continues the redline or silently restarts from underneath it. */
-    opensOn: ed ? ed.textContent.replace(/\s+/g, ' ').trim() : null };
+    /* The wording the editor opened ON, with the probe change's own before/
+       after markers: the editor must show the NEW wording (continuing the
+       redline) and not only the old (restarting from underneath it). */
+    opensOn: ed ? ed.textContent.replace(/\s+/g, ' ').trim() : null,
+    marker, goneWord };
 };
 
 (async () => {
@@ -334,10 +353,11 @@ const CARD_EDIT = async () => {
          that the paper stayed clean while the panel carried the writing. */
       check(`9 ${who}: the clause itself carries no editor and no tool row`,
         r.clauseCarriesNothing, `clean: ${r.clauseCarriesNothing}`);
-      /* Net-45 is the filed redline; Net-30 is the baseline under it. */
+      /* Judged against the probe change's own record — see CARD_EDIT. */
       check(`9 ${who}: the editor continues the redline, it does not restart it`,
-        /Net-45/.test(r.opensOn) && !/Net-30/.test(r.opensOn),
-        (r.opensOn || '').slice(0, 80));
+        !!r.marker && (r.opensOn || '').includes(r.marker)
+          && (!r.goneWord || !(r.opensOn || '').includes(r.goneWord)),
+        `wants "${r.marker}", not "${r.goneWord}" — ` + (r.opensOn || '').slice(0, 60));
     }
     /* AND THE TWO AGREE. Each assertion above could pass on one seat and fail
        on the other; this is the one that says they are the same product. */

@@ -923,21 +923,25 @@ describe('F89 (11,12) — the card verbs, their colours, and where Edit lands', 
 });
 
 describe('F89 (14) — the card says what the change is, in two lines', () => {
-  /* CLAIM REVERSED AGAIN, 16 Aug 2026 (owner-asked — the routing-row design).
-     The clamped copy came back on 10 Aug because the card that was left read
-     as a filing reference. What has changed since is the CLAUSE PANEL: it
-     prints every ask's full wording on the clause it is about, one Open away,
-     and the marks are on the paper beside the column — so the row carries no
-     copy at all, and names its clause instead. */
+  /* CLAIM REVERSED A THIRD TIME, 16 Aug 2026 (Option 4 — work big, receipts
+     small). The copy came off with the routing rows and the owner reported
+     the result: "the cards look very empty and almost useless." So a WORKING
+     card — one with a decision or a send on it — carries the two-line greyed
+     preview again, while a change that needs nothing is a one-line receipt
+     with no copy at all. The fixture's ask awaits a decision, so it is the
+     working kind. */
   test('the card carries the delta, clamped', async () => {
     const p = await page();
-    assert.equal(p.$('#rl-changes .rl-card-diff'), null,
-      'no clamped copy on the routing row');
+    const diff = p.$('#rl-changes .rl-card .rl-card-diff');
+    assert.ok(diff, 'a card asking for a decision says what is being decided');
+    assert.ok(diff.textContent.trim().length, 'in words');
+    const r = p.rule('.redline-page .rl-card-diff');
+    assert.match(r, /-webkit-line-clamp:2/, 'two lines: a summary, not a second copy');
     const meta = p.$('#rl-changes .rl-card .rl-card-meta');
-    assert.ok(meta && meta.textContent.trim(), 'the row names its clause instead');
+    assert.ok(meta && meta.textContent.trim(), 'and the row still names its clause');
     const id = p.$('#rl-changes .rl-card').getAttribute('data-nego-card');
     assert.ok(p.$(`#rl-cp-body [data-rl-cp-change="${id}"] .rl-cp-wd`),
-      'and the full wording is in the clause panel, one Open away');
+      'with the full wording in the clause panel, one Open away');
   });
 
   test('but the document still marks it, so nothing was lost with the copy', async () => {

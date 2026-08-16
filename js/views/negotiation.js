@@ -7634,12 +7634,12 @@ function redlineLayoutCss(){
   .redline-page .rl-card:focus-visible{outline:2px solid var(--color-accent)}
   .redline-page .rl-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px}
   .redline-page .rl-card-lead{display:inline-flex;align-items:center;gap:6px;min-width:0}
-  .redline-page .rl-card-id{font-family:var(--font-mono);font-size:10.5px;font-weight:700;
+  .redline-page .rl-card-id{font-family:var(--font-mono);font-size:11.5px;font-weight:700;
     background:var(--color-neutral-100);color:var(--color-neutral-700);
     border-radius:5px;padding:2px 7px;white-space:nowrap}
   /* The round the ask belongs to, at the far right of the head — "R3" — so a
      card carried over from an earlier round says so without being opened. */
-  .redline-page .rl-card-round{font-family:var(--font-mono);font-size:10px;font-weight:700;
+  .redline-page .rl-card-round{font-family:var(--font-mono);font-size:11px;font-weight:700;
     color:var(--color-neutral-500);flex:none;margin-left:6px}
   /* ---- THE STATUS CORNER IS A WORD, NOT A PILL (owner-asked, 12 Aug 2026) ----
      It was a capsule: a tint, a border and 3px/9px of padding around 10.5px
@@ -7664,7 +7664,7 @@ function redlineLayoutCss(){
      The review mark beside it keeps its box on purpose: after this change it
      is the only enclosed shape left in the row, which is what makes it read
      as a mark rather than as another status. Do not tidy it away. */
-  .redline-page .rl-badge{font-size:11.5px;font-weight:700;white-space:nowrap;
+  .redline-page .rl-badge{font-size:12.5px;font-weight:700;white-space:nowrap;
     padding:0;border:0;border-radius:0;background:none;line-height:1.3}
   .redline-page .rl-badge-sent{color:var(--st-steel-fg)}
   .redline-page .rl-badge-draft{color:var(--st-amber-fg)}
@@ -7695,23 +7695,34 @@ function redlineLayoutCss(){
      that stops a card being taken as something the other side sent. */
   .redline-page .rl-card-behalf{margin-top:6px;border-left:2px solid var(--st-amber-dot);
     background:var(--st-amber-bg);border-radius:0 4px 4px 0;padding:5px 9px;
-    font-size:10.5px;font-weight:600;line-height:1.5;color:var(--st-amber-fg);
+    font-size:11.5px;font-weight:600;line-height:1.5;color:var(--st-amber-fg);
     overflow-wrap:anywhere}
   .redline-page .rl-card-why{margin-top:6px;border-left:2px solid var(--color-accent);
     background:color-mix(in srgb,var(--color-accent) 6%,transparent);border-radius:0 4px 4px 0;
-    padding:6px 9px;font-size:11.5px;line-height:1.55;color:var(--color-text);
+    padding:6px 9px;font-size:12.5px;line-height:1.55;color:var(--color-text);
     overflow-wrap:anywhere}
-  .redline-page .rl-card-why-k{display:block;font-size:9px;font-weight:700;letter-spacing:.08em;
+  .redline-page .rl-card-why-k{display:block;font-size:10px;font-weight:700;letter-spacing:.08em;
     text-transform:uppercase;color:var(--color-accent-800);margin-bottom:2px}
   /* A caption may shout; a name may not. This one is "Achieng Otieno said". */
   .redline-page .rl-said-k{text-transform:none;letter-spacing:.01em}
-  .redline-page .rl-card-meta{font-size:10.5px;color:var(--color-neutral-500);line-height:1.5}
+  .redline-page .rl-card-meta{font-size:12px;color:var(--color-neutral-500);line-height:1.5}
   .redline-page .rl-counterline{font-size:10.5px;color:var(--color-neutral-500);line-height:1.5;margin-top:2px}
-  /* ---- THE CARD NO LONGER CARRIES THE REDLINE ----
-     It went, came back clamped to two lines (10 Aug 2026), and went for good
-     with the routing row (16 Aug 2026): the wording is on the paper beside the
-     column and, in full, in the clause panel behind Open. .rl-card-diff is
-     STALE — nothing emits it, and its rule went with it. */
+  /* ---- WORK BIG, RECEIPTS SMALL (owner-asked 16 Aug 2026, Option 4) ----
+     The two-line greyed preview is BACK on working cards — a card asking for
+     a decision must say what is being decided — and a change that needs
+     nothing shrinks to a one-line receipt instead of spending a card of
+     height on finished business. See the receipt branch in
+     redlineChangeCardsHtml for which is which. */
+  .redline-page .rl-card-diff{font-size:12px;line-height:1.6;color:var(--color-neutral-600);
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:7px}
+  .redline-page .rl-receipt{padding:7px 11px}
+  .redline-page .rl-receipt-line{display:flex;align-items:center;gap:8px;min-width:0}
+  .redline-page .rl-receipt-line .rl-card-lead{flex:none;min-width:0}
+  .redline-page .rl-receipt-line .rl-badge{flex:none}
+  ${''/* The clause takes the slack and ellipsises; margin resets because
+     .rl-card-meta's own top margin was written for a stacked head. */}
+  .redline-page .rl-receipt-cl{flex:1;min-width:0;white-space:nowrap;overflow:hidden;
+    text-overflow:ellipsis;margin-top:0}
   .redline-page .rl-card-verbs{margin-top:8px}
   /* ---- OPEN, THE ROW'S ONE DOOR (16 Aug 2026) ----
      The routing row's word-button into the clause panel. It replaced the
@@ -7722,7 +7733,7 @@ function redlineLayoutCss(){
      same fault one size up. */
   .redline-page .rl-open-btn{flex:none;margin-left:2px;padding:3px 10px;
     display:inline-flex;align-items:center;cursor:pointer;font:inherit;
-    font-size:10px;font-weight:700;line-height:1.6;
+    font-size:11px;font-weight:700;line-height:1.6;
     border:1px solid var(--color-divider);border-radius:8px;background:var(--color-surface);
     color:var(--color-neutral-600);transition:border-color .13s,color .13s,background .13s}
   .redline-page .rl-open-btn:hover{border-color:var(--color-accent);color:var(--color-accent-700);
@@ -7741,7 +7752,7 @@ function redlineLayoutCss(){
      a wall of colour that outweighed the change itself. */
   .redline-page .rl-card-verbs{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;margin-top:9px}
   .redline-page .rl-card-verbs button{border:0;border-radius:8px;padding:6px 13px;font:inherit;
-    font-size:10px;font-weight:700;line-height:1.6;cursor:pointer;transition:filter .15s}
+    font-size:11px;font-weight:700;line-height:1.6;cursor:pointer;transition:filter .15s}
   /* washes darken a touch on hover in light, lift in dark — a brightness
      bump on a near-white tint is invisible */
   .redline-page .rl-card-verbs button:hover{filter:brightness(.95)}
@@ -7948,7 +7959,7 @@ function redlineLayoutCss(){
      skimmed reads as wording-then-verbs and a card being worked on carries the
      argument as well. */
   .redline-page .rl-cnotes{margin-top:12px;border-top:1px dashed var(--color-divider);padding-top:10px}
-  .redline-page .rl-cnotes-k{font-size:9.5px;font-weight:700;letter-spacing:.08em;
+  .redline-page .rl-cnotes-k{font-size:10.5px;font-weight:700;letter-spacing:.08em;
     text-transform:uppercase;color:var(--color-neutral-400)}
   /* Long sentences wrap inside the card, and so does a long unbroken run — a
      URL or a word typed without spaces would otherwise set the card's width
@@ -7976,24 +7987,24 @@ function redlineLayoutCss(){
   .redline-page .rl-cnotes:has(.v-sh[aria-pressed="true"]) .rl-when-sh{display:inline}
   .redline-page .rl-cnotes:has(.v-sh[aria-pressed="true"]) .rl-when-int{display:none}
   .redline-page .rl-cnote-top{display:flex;align-items:baseline;gap:7px;
-    font-size:10.5px;margin-bottom:2px;color:var(--color-neutral-400)}
+    font-size:11.5px;margin-bottom:2px;color:var(--color-neutral-400)}
   .redline-page .rl-cnote-top b{min-width:0;overflow-wrap:anywhere;font-weight:600;color:var(--color-neutral-600)}
   .redline-page .rl-cnote-int{margin-left:auto;flex:none;border:1px solid var(--color-divider);
-    border-radius:999px;padding:1px 7px;font-size:9.5px;font-weight:600;color:var(--color-neutral-500)}
-  .redline-page .rl-cnote p{margin:0;font-size:11.5px;line-height:1.55;color:var(--color-neutral-700);
+    border-radius:999px;padding:1px 7px;font-size:10.5px;font-weight:600;color:var(--color-neutral-500)}
+  .redline-page .rl-cnote p{margin:0;font-size:12.5px;line-height:1.55;color:var(--color-neutral-700);
     white-space:pre-wrap;overflow-wrap:anywhere}
   .redline-page textarea.rl-cnote-in{width:100%;margin-top:9px;border:1px solid var(--color-divider);
-    border-radius:9px;padding:8px 10px;font:inherit;font-size:11.5px;line-height:1.5;
+    border-radius:9px;padding:8px 10px;font:inherit;font-size:12.5px;line-height:1.5;
     color:inherit;background:var(--color-surface);outline:none;box-sizing:border-box}
   .redline-page textarea.rl-cnote-in:focus{border-color:var(--color-accent-500)}
   .redline-page .rl-cnote-foot{display:flex;align-items:center;gap:9px;margin-top:7px}
   .redline-page .rl-cnote-add{flex:none;border:1px solid var(--color-divider);border-radius:8px;
-    background:var(--color-surface);padding:5px 12px;font:inherit;font-size:11.5px;font-weight:500;
+    background:var(--color-surface);padding:5px 12px;font:inherit;font-size:12.5px;font-weight:500;
     color:var(--color-neutral-700);cursor:pointer}
   .redline-page .rl-cnote-add:hover{border-color:var(--color-neutral-400);color:var(--color-text)}
   /* The promise under the button. It is the whole of what this composer is,
      so it is drawn beside it rather than in a tooltip. */
-  .redline-page .rl-cnote-hint{font-size:10.5px;color:var(--color-neutral-400);min-width:0}
+  .redline-page .rl-cnote-hint{font-size:11.5px;color:var(--color-neutral-400);min-width:0}
   /* The shared composer look, repeated inside this page's own stylesheet
      because the workbench also mounts as an EMBED on the counterparty portal,
      which does not carry the shell's head. Same declarations as index.html. */
@@ -8173,21 +8184,21 @@ function redlineLayoutCss(){
   .redline-page .rl-cp-segs{order:1;margin-left:auto;display:inline-flex;
     border:1px solid var(--color-divider);border-radius:7px;overflow:hidden;flex:none}
   .redline-page .rl-cp-segs button{border:0;background:var(--color-surface);cursor:pointer;
-    font:inherit;font-size:10px;font-weight:700;line-height:1.6;padding:3px 9px;
+    font:inherit;font-size:11px;font-weight:700;line-height:1.6;padding:3px 9px;
     color:var(--color-neutral-600);white-space:nowrap}
   .redline-page .rl-cp-segs button + button{border-left:1px solid var(--color-divider)}
   .redline-page .rl-cp-segs button.on{background:var(--nav-bg,#0b3d3a);color:#fff}
   .redline-page .rl-cp-segs button:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
   .redline-page .rl-cp .rl-cnotes{display:none}
   .redline-page .rl-cp.rl-cp-notes .rl-cnotes{display:block}
-  .redline-page .rl-cp-label{margin:0;font-size:9.5px;font-weight:700;letter-spacing:.06em;
+  .redline-page .rl-cp-label{margin:0;font-size:11px;font-weight:700;letter-spacing:.06em;
     text-transform:uppercase;color:var(--color-neutral-600)}
   .redline-page .rl-cp-min{order:2;margin-left:auto;border:0;background:transparent;
     font-size:18px;line-height:1;color:var(--color-neutral-600);cursor:pointer;padding:2px 4px}
   .redline-page .rl-cp-min:hover{color:var(--color-text)}
   .redline-page .rl-cp-body{flex:1;min-height:0;overflow-y:auto;padding:12px 14px 22px}
   .redline-page .rl-cp-clname{margin:0 0 12px;font-family:var(--font-heading);
-    font-size:15px;font-weight:700;color:var(--color-text)}
+    font-size:16px;font-weight:700;color:var(--color-text)}
   .redline-page .rl-cp-sec{margin:0 0 18px}
   /* ---- THE THINGS THAT POINT AT SOMETHING ARE BLACK ----
      (owner-asked 16 Aug 2026: "the highlighted features that bring your
@@ -8196,11 +8207,11 @@ function redlineLayoutCss(){
      things a reader scans for — and at neutral-600 they read as captions
      ABOUT the content rather than as the labels ON it. The explanatory lines
      under them stay grey, because those are the captions. */
-  .redline-page .rl-cp-h{margin:0 0 4px;font-size:9.5px;font-weight:700;letter-spacing:.06em;
+  .redline-page .rl-cp-h{margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:.06em;
     text-transform:uppercase;color:var(--color-text)}
-  .redline-page .rl-cp-note,.redline-page .rl-cp-none{margin:0 0 8px;font-size:11.5px;
+  .redline-page .rl-cp-note,.redline-page .rl-cp-none{margin:0 0 8px;font-size:12.5px;
     color:var(--color-neutral-600)}
-  .redline-page .rl-cp-stands{font-size:12.5px;line-height:1.65;color:var(--color-text);
+  .redline-page .rl-cp-stands{font-size:14px;line-height:1.65;color:var(--color-text);
     border-left:2px solid var(--color-divider);padding-left:10px}
   /* A row is one ask. The cap down its left edge is the CHANGE CARD's own side
      colour — teal ours, amber theirs — so the panel speaks the language the
@@ -8210,7 +8221,7 @@ function redlineLayoutCss(){
   .redline-page .rl-cp-row-us .rl-cp-bar{background:#14b8a6}
   .redline-page .rl-cp-row-them .rl-cp-bar{background:#f59e0b}
   .redline-page .rl-cp-rowbd{min-width:0;flex:1}
-  .redline-page .rl-cp-who{display:block;font-size:10.5px;color:var(--color-neutral-600);
+  .redline-page .rl-cp-who{display:block;font-size:12px;color:var(--color-neutral-600);
     margin-bottom:3px}
   /* The id, and only the id. The rest of the line — whose ask, where it stands,
      who from, when — is context and stays quiet; the handle you cite the change
@@ -8220,8 +8231,8 @@ function redlineLayoutCss(){
      carried the convention. The paper does not any more (see .nego-ins), so the
      copy is gone: one fact, one rule. */
   .redline-page .rl-cp-src ins.hati-ins{font-weight:inherit}
-  .redline-page .rl-cp-wd{font-size:12.5px;line-height:1.6;color:var(--color-text)}
-  .redline-page .rl-cp-why{display:block;margin-top:4px;font-size:11.5px;font-style:italic;
+  .redline-page .rl-cp-wd{font-size:14px;line-height:1.6;color:var(--color-text)}
+  .redline-page .rl-cp-why{display:block;margin-top:4px;font-size:12.5px;font-style:italic;
     color:var(--color-neutral-600)}
   .redline-page .rl-cp-acts{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
   .redline-page .rl-cp-acts .rl-cp-h{flex-basis:100%}
@@ -8230,7 +8241,7 @@ function redlineLayoutCss(){
      same two acts; fixed sizes, because the panel is not the document and does
      not follow the reader's document type. */
   .redline-page .rl-cp-act{border:1px solid var(--color-divider);background:var(--color-surface);
-    border-radius:999px;padding:5px 12px;font:inherit;font-size:11.5px;font-weight:600;
+    border-radius:999px;padding:5px 12px;font:inherit;font-size:12.5px;font-weight:600;
     line-height:1.6;color:var(--color-neutral-600);cursor:pointer;white-space:nowrap;
     box-shadow:0 1px 2px rgba(15,23,42,.08);
     transition:border-color .15s,color .15s,background .15s}
@@ -8242,7 +8253,7 @@ function redlineLayoutCss(){
     border-color:var(--nav-bg,#0b3d3a);color:#fff}
   .redline-page .rl-cp-act.rl-cp-act-new:hover{background:color-mix(in srgb,var(--nav-bg,#0b3d3a) 82%,#fff);
     border-color:color-mix(in srgb,var(--nav-bg,#0b3d3a) 82%,#fff)}
-  .redline-page .rl-cp-hint{flex-basis:100%;margin:6px 0 0;font-size:10.5px}
+  .redline-page .rl-cp-hint{flex-basis:100%;margin:6px 0 0;font-size:12px}
   /* The Copilot's WORDS, not its button — a signal that the feature exists on a
      highlight, in the violet this page already gives the assistant. No pill, no
      border, no pointer: nothing here is pressable, and it must not look it. */
@@ -8271,7 +8282,7 @@ function redlineLayoutCss(){
      smaller. The paper scales; the panel does not. */
   .redline-page .rl-cp-src{--doc-scale:1}
   .redline-page .rl-cp-src .nego-editing{border:1px solid var(--accent-solid);border-radius:10px;
-    padding:9px 11px;min-height:120px;font-size:12.5px;line-height:1.65;
+    padding:9px 11px;min-height:120px;font-size:14px;line-height:1.65;
     background:var(--color-surface);color:var(--color-text);outline:none}
   .redline-page .rl-cp-src .nego-editing.is-review{border-color:var(--color-divider);
     background:var(--color-neutral-50)}
@@ -13091,12 +13102,13 @@ function redlineChangeCardsHtml(c, opts = {}){
     if (theirNoCopy && contested && theirs && editable)
       verbs.push(`<button type="button" class="rl-send" data-rl-sendcopy="1"
         title="${_nea(i18t('ng_send_copy_title', { who: whoThem }))}">${i18t('ng_send_copy')}</button>`);
+    const rvVerbs = window.reviewVerbsHtml ? reviewVerbsHtml(c, ch, opts) : '';
     const actions = [
       noCopyBlock,
       rvStuckBlock,
       (verbs.length || rvCancel) ? `<div class="rl-card-verbs">${verbs.join('')}${rvCancel}</div>` : '',
       dkInstead,
-      window.reviewVerbsHtml ? reviewVerbsHtml(c, ch, opts) : '',
+      rvVerbs,
     ].filter(Boolean).join('');
     /* ---- WHAT STAYS VISIBLE ON THE ROW ----
        The rare, load-bearing strips only: the desk's "drafted by" caption (a
@@ -13110,6 +13122,14 @@ function redlineChangeCardsHtml(c, opts = {}){
        pop-out is retired, and a fact behind a control that no longer exists is
        a fact lost. */
     const info = [dkBy, behalfBlock, revisedBlock, whyBlock, rvNoteBlock].filter(Boolean).join('');
+    /* What holds a card OPEN as a full card is narrower than what a full card
+       shows: the desk's "drafted by" and the author's own reason are captions
+       — on a change that needs nothing they are finished business, and both
+       stay one Open away in the panel — so a sent ask carrying only those
+       still shrinks to a receipt. The CAUTION strips — on-behalf, revised-by,
+       the reviewer's note — keep the full card: each is a fact a reader
+       should not have to go looking for. */
+    const infoHold = [behalfBlock, revisedBlock, rvNoteBlock].filter(Boolean).join('');
     const actionBar = actions ? `<div class="rl-card-actions">${actions}</div>` : '';
     /* ---- OPEN RAISES THE CLAUSE PANEL (owner-asked, 16 Aug 2026) ----
        The row's one door into the reading matter. It carries data-rl-cp-open —
@@ -13128,6 +13148,54 @@ function redlineChangeCardsHtml(c, opts = {}){
           title="${_nea(i18t('ng_row_open_title'))}"
           aria-label="${_nea(i18t('ng_row_open_title'))} ${_nea(ch.id)}">${i18t('ng_row_open')}</button>`
       : '';
+    /* ---- WORK BIG, RECEIPTS SMALL (owner-asked 16 Aug 2026, Option 4 of four
+       mocked renders — the routing rows "look very empty and almost useless").
+       The card's SIZE follows what it needs from the reader:
+
+       · A change with a move on it — Accept/Reject, Send, Withdraw, Undo,
+         Retract, a reviewer's verdict, a way back (Reopen / Change decision),
+         a cancel, or any explanatory strip — keeps the FULL card, and the full
+         card gets its two-line WORDING PREVIEW back (greyed, marks and all):
+         that is the work, and the work should say what it is about.
+
+       · A change that needs NOTHING — our sent ask, an ask out with a
+         reviewer — shrinks to a one-line RECEIPT: id, state, clause, Open.
+         Three receipts cost less height than one old card, which is the whole
+         complaint answered.
+
+       THE RECEIPT DROPS EVEN Edit, deliberately: revising a sent ask is one
+       Open away (the panel's ＋ reads "Continue your draft" on a pending ask
+       of ours), and a receipt with a button it does not need is a card again.
+       The body press still navigates to the clause, as on every card. */
+    const receipt = !noCopyBlock && !rvStuckBlock && !dkInstead && !rvVerbs && !rvCancel && !infoHold
+      && !rlCardNeedsYou(verbs)
+      && !/data-nego-redecide|data-rl-reopen/.test(verbs.join(''));
+    if (receipt){
+      return `<article class="rl-card rl-receipt" data-nego-card="${_ne(ch.id)}" data-rl-origin="${theirs ? 'them' : 'us'}"${
+        rvOut ? ' data-rv-waiting="1"' : ''}${
+        ch.withdrawn ? ` data-withdrawn="${_ne(ch.id)}"` : ''} tabindex="0">
+        <div class="rl-card-head rl-receipt-line">
+          <span class="rl-card-lead"><span class="rl-card-id">${_ne(ch.id)}</span></span>
+          <span class="rl-badge rl-badge-${badge[0]}"${
+          badge[2] ? ` title="${_nea(badge[2])}"` : ''}>${badge[1]}</span>
+          <span class="rl-card-meta rl-receipt-cl"${tip ? ` title="${_nea(tip)}"` : ''}>${who}</span>
+          ${openBtn}
+        </div>
+      </article>`;
+    }
+    /* ---- THE PREVIEW, ON WORKING CARDS ONLY ----
+       Two lines, clamped, greyed, marks and all — a summary you skim, never a
+       second copy of the clause (the paper has the marks, the panel the full
+       text). It came off with the routing rows and comes back HERE because a
+       card asking for a decision must say what is being decided; the receipt
+       above stays bare, which is what keeps the column short. */
+    const diff = (() => {
+      const ops = rlOpsAsSide(ch.ops, rlReadSideOf(ch, rlReadMode()));
+      if (window.redlineOpsHtml && Array.isArray(ops) && ops.length)
+        return `<div class="rl-card-diff">${redlineOpsHtml(ops)}</div>`;
+      const t = String(ch.proposedText || ch.newText || '').trim();
+      return t ? `<div class="rl-card-diff">${_ne(t)}</div>` : '';
+    })();
     return `<article class="rl-card" data-nego-card="${_ne(ch.id)}" data-rl-origin="${theirs ? 'them' : 'us'}"${
       (ch.status === 'rejected' && !ch.withdrawn) ? ` data-contested="${_ne(ch.id)}"` : ''}${
       heldHere ? ` data-unsent="${_ne(ch.id)}"` : ''}${
@@ -13150,7 +13218,7 @@ function redlineChangeCardsHtml(c, opts = {}){
           badge[2] ? ` title="${_nea(badge[2])}"` : ''}>${badge[1]}</span>${
           ch.round ? `<span class="rl-card-round" title="${_nea(i18t('ng_proposed_in_round',{n:ch.round}))}">R${_ne(ch.round)}</span>` : ''}${openBtn}</div>
         <div class="rl-card-meta"${tip ? ` title="${_nea(tip)}"` : ''}>${who}</div>
-        ${negoCounterLineHtml(c, ch)}
+        ${negoCounterLineHtml(c, ch)}${diff}
       </div>
       ${info ? `<div class="rl-card-info">${info}</div>` : ''}
       ${actionBar}

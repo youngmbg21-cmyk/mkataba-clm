@@ -2925,3 +2925,38 @@ the notes appeared while the switch still wore "History" dark. jsdom resolves
 no cascade and reads no pixels; the class-flip tests were all green. The face
 now flips in rlCpSetNotes beside the state, f210 pins it, and clause-door-verify
 measures the COMPUTED hide/show in a real browser.
+
+
+## WORK BIG, RECEIPTS SMALL — AND THE TYPE ONE SIZE UP (16 Aug 2026)
+
+The routing rows lasted half a day before the owner reported them "very empty
+and almost useless", with a screenshot of three Sent cards showing an id, a
+clause and an Edit in a sea of white. Four renders were mocked (the preview
+back on every card; an inbox of one-line rows; grouped-by-clause; state-aware
+sizing) and Option 4 chosen with the recommendation: the card's size follows
+what it needs from the reader.
+
+A change with a move on it keeps the full card and the full card got its
+two-line greyed preview back — the third reversal of the wording-on-the-card
+question, and the first with a rule that explains the other two: a card ASKING
+FOR A DECISION must say what is being decided; a card needing nothing must not
+cost a card. Sent asks and asks out with a reviewer are one-line receipts now —
+id, state, clause, Open — with even Edit dropped, because revising a pending
+ask is one Open away through the panel's ＋. What holds a card OPEN is
+narrower than what a full card shows: cautions (on-behalf, revised-by, the
+reviewer's note) hold; captions (the desk's "drafted by", the author's own
+reason) show on full cards but do not hold, or every sent ask with a reason
+would have stayed a card and the complaint would have survived the fix.
+
+Two probes had to move with it. redline-verify's fixture holds no sent change,
+so the receipt is STAGED inside the check — hand over, measure, put the stamp
+back — and the receipt measures under half a working card. parity-verify's
+edit probe had hard-coded the Net-45 ask, which on the counterparty's seat is
+now a receipt with no Edit; it picks a working card on each seat and judges
+"continues, not restarts" from that change's own record instead of a phrase.
+
+And everything on the right went up one size (owner-asked, "currently too
+small"): the panel's headings, wording, notes and buttons, the cards' meta,
+badges and verbs — with the panel's editor bumped to match the "As it stands"
+block it replaces, which redline-verify 12b caught at 14px vs 12.5px the
+moment the block moved without it.
