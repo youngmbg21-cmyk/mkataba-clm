@@ -173,8 +173,11 @@ describe('f173 · the column head is a caption and a count', () => {
   test('caption type, and a count set apart from it', async () => {
     const p = await mounted();
     const css = p.css();
-    assert.ok(/\.rl-idx-k\{[^}]*font-size:9\.5px;font-weight:800;letter-spacing:\.12em/.test(css),
-      'the caption takes .rl-q-label\'s own type');
+    /* 10.5, not 9.5: the whole head went up one size (owner-asked 16 Aug 2026
+       — "increase everything under the highlight by one size font"). The
+       weight and tracking are the claim that never moved. */
+    assert.ok(/\.rl-idx-k\{[^}]*font-size:10\.5px;font-weight:800;letter-spacing:\.12em/.test(css),
+      'the caption keeps its label type, one size up');
     const n = /\.rl-idx-n\{([^}]*)\}/.exec(css)[1];
     assert.match(n, /font-family:var\(--font-mono\)/,
       'and the count is mono — it is the one part of the head that is a number');

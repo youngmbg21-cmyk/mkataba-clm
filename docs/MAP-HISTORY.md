@@ -2960,3 +2960,54 @@ small"): the panel's headings, wording, notes and buttons, the cards' meta,
 badges and verbs — with the panel's editor bumped to match the "As it stands"
 block it replaces, which redline-verify 12b caught at 14px vs 12.5px the
 moment the block moved without it.
+
+## THE DOC COLUMN STOPS WHERE THE SHEET DOES (16 Aug 2026)
+
+Owner-reported off the deployed site with three screenshots: "when i am in
+focus mode, the left page of the contract acts differently from when I am in
+normal mode" — image 1 showed roughly 427 pixels of empty white beside the
+contract. It refused to reproduce for hours, at 1900 and at 1912x875, through
+the real focus button, with a stale grid split, with the queue opened and
+closed — every probe came back with the grid flush left and no void, because
+the void was never focus mode's.
+
+The sheet's zoom has a deliberate ceiling: RL_ZOOM_MAX = 2, "past this it
+stops being a contract", so the 660px page can never use more than 1320
+visual pixels. The doc column had no matching limit. On a monitor wide enough
+— and focus mode hiding the sidebar is exactly what pushes a wide monitor
+over the line — the column kept growing past what the sheet could use, and
+the centred sheet (margin:0 auto inside the zoom wrapper) split the surplus
+into equal white margins. At 2560 with the divider at 0.80 the measurement
+came back 427px of white each side: the reported number exactly, which is
+what confirmed the theory over the "cannot reproduce" verdict that nearly
+shipped instead.
+
+The fix is a third limit on the divider beside RL_LEFT_MIN and RL_RIGHT_MIN:
+RL_LEFT_MAX = RL_PAGE_W * RL_ZOOM_MAX + 40, clamped in rlLayoutResizer's one
+arithmetic (the same pass that already clamps the mins, so the drag and the
+layout cannot disagree), announced by the same amber at-limit grip. The 40
+covers the pane's own padding, the zoom's rounding guard and a classic
+scrollbar, so the fit still reaches a full 2.0 inside the cap — measured, 20px
+gutters where 427 stood. The surplus width goes to the cards column, which the
+clause panel takes whole, so it is spent rather than parked. The stored
+fraction is read and never rewritten above the cap — the nav drawer's own
+rule — and a 1440 laptop never reaches it (measured, 3px gutters, untouched).
+
+## THE COLUMN HEAD EARNS ITS INSET AND A SIZE (16 Aug 2026)
+
+Same message, images 2 and 3: "the tracked and 2 on the table markings are too
+close to the edge of the page. Make it more professional and maybe resemble
+image 3. Beyond that, increase everything under the highlight by one size font
+as well." The head's text sat 2px from the column edge — the same 2px the
+cards keep, which is right for a bordered object and wrong for a bare label.
+
+The inset is 12px of PADDING, never margin, so the head's hairline rule still
+runs the column's full width — a rule that stopped short of its own caption
+would read as a broken line. The cards below deliberately keep their 2px: a
+table header's relationship to its rows. And the whole head went up one size —
+caption 9.5 to 10.5, count 10 to 11, the All/Mine/Theirs tabs 11 to 12, their
+counts 9.5 to 10.5 — with f173 and f175 re-pinned in place; the claim that
+never moved is the relation, the count a hair above the caption and no more.
+The MAP's own sentence calling the head "an accent COLOUR STRIP" was found
+stale in the same pass (the strip came and went on 10 Aug 2026; f175 has
+pinned the rule-not-a-box frame since) and corrected.
