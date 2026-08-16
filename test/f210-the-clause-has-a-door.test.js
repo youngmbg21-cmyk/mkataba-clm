@@ -22,6 +22,8 @@
      8  "as it stands" is what STANDS, not the round baseline
      9  both languages
     10  the twin renderer was carrying the MK-311 fault and now is not
+    11  THE EDITING IS IN THE PANEL — one editor, two homes
+    12  the Copilot: one button, one narrowed selection offer, one menu
    ============================================================ */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
@@ -533,4 +535,177 @@ describe('f210 (10) — the twin renderer carried the MK-311 fault and now does 
         `${name} draws the adopted wording, not only the newest rival`);
     }
   });
+});
+
+describe('f210 (11) — the editing is in the panel', () => {
+  test('the acts are the ＋ and the Copilot; Direct Edit has left', async () => {
+    /* Owner-asked 16 Aug 2026: "Direct edit will not be needed because the
+       window is already open for direct editing." It is the same act as the ＋
+       beside it, one press further away and pointed at the clause BEHIND the
+       panel. It stays on the clause's own hover row, which is a different place
+       with a different reason — said out loud rather than quietly kept. */
+    const p = await bench();
+    const box = page(p);
+    const b = bodies(box)[0];
+    const acts = [...b.querySelectorAll('.rl-cp-acts button')];
+    assert.equal(acts.length, 2, 'the ＋ and the Copilot, and nothing else');
+    assert.ok(acts[0].hasAttribute('data-rl-cp-edit'), 'the ＋ leads');
+    assert.ok(acts[1].hasAttribute('data-nego-ai-clause'), 'the Copilot follows');
+    assert.equal(b.querySelector('.rl-cp-acts [data-nego-edit]'), null,
+      'Direct Edit is not in the panel');
+    /* …and it is still on the clause, which is the half that is NOT changing. */
+    assert.ok(box.querySelector('#rl-doc .rl-tools [data-nego-edit]'),
+      'the clause\'s own hover row keeps it');
+  });
+
+  test('the ＋ opens the ENGINE\'s editor, not a second one', async () => {
+    /* ONE EDITOR, TWO HOMES. Everything the editor carries — the formatting
+       bar, the two-step save, the reason question and its Skip, the
+       fingerprint, every refusal — is the same code in both places, so the two
+       can never come to disagree about what filing a change costs. The
+       difference is three lines: which element it replaces. */
+    assert.match(SRC, /host\.querySelectorAll\('\[data-nego-edit\],\[data-rl-cp-edit\]'\)/,
+      'one handler, both doors');
+    assert.match(SRC, /const inPanel = b\.hasAttribute\('data-rl-cp-edit'\);/);
+    assert.match(SRC, /const body = inPanel \? block\.querySelector\('\.rl-cp-stands'\)/,
+      'in the panel it opens on the "As it stands" wording');
+    assert.equal((SRC.match(/holder\.setAttribute\('data-nego-editor'/g) || []).length, 1,
+      'and there is exactly one place an editor is built');
+  });
+
+  test('the ＋ says which act it is', async () => {
+    /* With one of OUR asks already pending the engine continues that draft
+       rather than starting a rival — its own rule, not a decision taken here —
+       so the button must not promise "new wording" over a press that does
+       something else. */
+    const p = await bench({ side: 'owner', author: 'Young Mbagaya' });
+    /* The body for the clause the ask is ON — the panel holds one per clause
+       and every other clause is untouched, which is itself the point. */
+    const onIt = bodies(page(p)).find(b => b.querySelector('.rl-cp-row'));
+    assert.match(onIt.querySelector('[data-rl-cp-edit]').textContent, /Continue your draft/);
+    const untouched = bodies(page(p)).find(b => !b.querySelector('.rl-cp-row'));
+    assert.match(untouched.querySelector('[data-rl-cp-edit]').textContent, /Propose new wording/,
+      'every other clause still offers new wording');
+    const q = await bench({ ask: false });
+    assert.match(page(q).querySelector('.rl-cp-acts [data-rl-cp-edit]').textContent,
+      /Propose new wording/);
+  });
+
+  test('THEIRS pending is not ours — the ＋ still offers new wording', async () => {
+    /* The engine stacks a new change when a different hand comes back, so a
+       counterparty ask on the clause does not make this "continue your draft". */
+    const p = await bench();                       // their ask, by default
+    const onIt = bodies(page(p)).find(b => b.querySelector('.rl-cp-row'));
+    assert.match(onIt.querySelector('[data-rl-cp-edit]').textContent, /Propose new wording/);
+  });
+
+  test('the panel\'s editor does not follow the reader\'s DOCUMENT type', async () => {
+    /* Every piece of the editor's furniture was taught to scale on --doc-scale
+       (15 Aug 2026, the third report of one fault), and --doc-scale is written
+       on the .redline-page ROOT by the document-type stepper. Inside the panel
+       that would be a Save button shrinking because somebody made the PAPER
+       smaller. The paper scales; the panel does not. */
+    assert.match(SRC, /\.redline-page \.rl-cp-src\{--doc-scale:1\}/);
+  });
+
+  test('and the ＋ stands down while the panel is being written in', async () => {
+    /* A door the reader is already standing in. Pressing it again is refused in
+       silence by the handler (it returns on an open bar), and a control whose
+       press does nothing is one the reader blames themselves for. */
+    assert.match(SRC, /\.redline-page \.rl-cp-src\.is-editing \.rl-cp-acts\{display:none\}/);
+  });
+
+  test('the counterparty gets the ＋ too — they propose on this engine as well',
+    async () => {
+    /* The duplication warning in its ordinary direction: the panel is built in
+       the shared panes and their page mounts the same component, so a control
+       added for our seat is on theirs unless something stops it. Nothing should
+       — proposing wording is exactly what their page is for. */
+    const p = await bench();
+    const box = page(p, { side: 'counterparty' });
+    const plus = box.querySelector('.rl-cp-acts [data-rl-cp-edit]');
+    assert.ok(plus, 'the ＋ is on their seat');
+    assert.equal(box.querySelector('.rl-cp-acts [data-nego-edit]'), null,
+      'and Direct Edit is gone from theirs as well, not only ours');
+  });
+
+  test('nothing in the panel is drawn for a seat with no hands', async () => {
+    const p = await bench();
+    const box = page(p, { readonly: true });
+    assert.equal(box.querySelector('.rl-cp-acts'), null);
+    assert.equal(box.querySelector('[data-rl-cp-edit]'), null);
+  });
+});
+
+describe('f210 (12) — the Copilot', () => {
+  test('the panel keeps its Edit with Copilot button', async () => {
+    /* Owner-asked, in the same breath as removing Direct Edit: "Also keep the
+       edit with copilot button." */
+    const p = await bench();
+    const b = page(p).querySelector('.rl-cp-acts [data-nego-ai-clause]');
+    assert.ok(b);
+    assert.match(b.textContent, /Edit with Copilot/);
+  });
+
+  test('a highlight inside the panel\'s editor is a legal selection', async () => {
+    /* "Leave the feature where you can highlight a sentence and it allows you
+       to edit with copilot and moves you to the copilot assistant chat bot."
+       NARROWED TO THE EDITOR, not the panel: the panel also prints the history,
+       and a highlight there would be offered a redraft of a settled record. */
+    assert.match(SRC, /'\.rl-cp-src \[data-nego-editor\]'/);
+    assert.match(SRC, /if \(inPanel\) holder\.setAttribute\('data-clause', clauseId\);/,
+      'and the editor carries the clause id a passage is resolved against');
+    /* AND THE GUARD THAT BLOCKED IT IS EXEMPTED, NARROWLY. [data-nego-editor]
+       is on the "this press is somebody operating the page" list because
+       dragging inside the DOCUMENT's clause editor is somebody selecting words
+       to bold them, and a menu over the formatting bar there is in the way. In
+       the panel the editor IS the writing surface and the ask is the opposite.
+       Narrow by construction: the formatting bar is a SIBLING of the holder,
+       so its buttons still read as controls. */
+    assert.match(SRC, /if \(t\.closest\('\.rl-cp-src \[data-nego-editor\]'\)\) return false;/);
+    assert.match(SRC, /holder\.before\(fmt\);/,
+      'the formatting bar is placed BEFORE the holder, which is what keeps it outside the exemption');
+  });
+
+  test('the offer narrows there to one action, through the SAME menu', async () => {
+    /* A list, not a fork. Same builder, same routing, same refusals — this
+       file's own rule that "a second menu would be a second set of refusals to
+       keep in step". */
+    const p = await bench();
+    const { win } = p;
+    win.document.body.innerHTML = '';
+    const ctx = { c: p.c, text: 'some chosen wording', clauseId: 'x',
+      rect: { left: 10, top: 10, width: 40, height: 12 } };
+    const one = win.rlSelMenu({ ...ctx, only: ['edit'] });
+    const labels = [...one.querySelectorAll('[data-nego-ai]')].map(b => b.textContent.trim());
+    assert.equal(labels.length, 1, 'one action in the panel');
+    assert.match(labels[0], /Edit with Copilot/);
+    /* AND THE DOCUMENT'S OWN MENU IS UNTOUCHED — deliberately left alone, and
+       said out loud. Simplify and Compare-to-our-standard are acts on the
+       clause AS IT STANDS; inside the panel the reader is highlighting their
+       own half-typed draft, where both are a different question. */
+    const all = win.rlSelMenu({ ...ctx });
+    const allLabels = [...all.querySelectorAll('[data-nego-ai]')].map(b => b.textContent.trim());
+    assert.equal(allLabels.length, 3, 'the contract keeps all three');
+    assert.match(allLabels.join('|'), /Simplify/);
+    assert.match(allLabels.join('|'), /Compare to our standard/);
+  });
+
+  test('an unknown narrowing falls back to the whole list, never to an empty menu',
+    async () => {
+    const p = await bench();
+    const menu = p.win.rlSelMenu({ c: p.c, text: 'words', clauseId: 'x',
+      rect: { left: 10, top: 10, width: 40, height: 12 }, only: ['no-such-action'] });
+    assert.equal(menu.querySelectorAll('[data-nego-ai]').length, 3);
+  });
+});
+
+describe('f210 (13) — the new words, both languages', () => {
+  for (const k of ['ng_cp_propose', 'ng_cp_propose_title', 'ng_cp_continue',
+    'ng_cp_continue_title', 'ng_cp_copilot', 'ng_cp_sel_hint']){
+    test(`${k} is defined twice`, () => {
+      assert.equal((I18N.match(new RegExp(`\\b${k}:`, 'g')) || []).length, 2,
+        'one English, one Swedish');
+    });
+  }
 });

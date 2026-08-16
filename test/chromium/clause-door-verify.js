@@ -205,6 +205,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
       names: [...on.querySelectorAll('.rl-cp-who')].map(w=>w.innerText.trim()),
       acts: [...on.querySelectorAll('.rl-cp-acts button')].map(b=>({
         t:b.textContent.trim(), edit:b.getAttribute('data-nego-edit'),
+        plus:b.getAttribute('data-rl-cp-edit'),
         ai:b.getAttribute('data-nego-ai-clause'), close:b.hasAttribute('data-rl-cp-close'),
         cls:b.className })),
       sheetTools: document.querySelectorAll('#rl-cp .rl-tool').length,
@@ -216,31 +217,52 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('3c the row names the ask, where it stands and who asked',
      /CHG-/.test(said.names[0]||'') && /their ask/i.test(said.names[0]||'')
      && /from /i.test(said.names[0]||''), said.names[0]);
-  ck('3d the acts are the ENGINE\'s own controls, and they close the panel behind them',
-     said.acts.length === 2
-     && said.acts.some(a => a.ai === staged.clauseId && a.close)
-     && said.acts.some(a => a.edit === staged.clauseId && a.close),
+  /* ---- 3d REVERSED IN PLACE, 16 Aug 2026 ---- this used to prove the panel's
+     two acts were Copilot and Direct Edit, BOTH carrying data-rl-cp-close
+     because both opened something on the clause behind the panel. The editing
+     is in the panel now: the ＋ opens the engine's editor HERE and must NOT
+     close what it is opening into, while the Copilot still hands off to a panel
+     elsewhere and still closes behind itself. Direct Edit has left. */
+  ck('3d the acts are the ＋ and the Copilot — Direct Edit has left the panel',
+     said.acts.length === 2 && said.acts.some(a => a.plus === staged.clauseId)
+     && said.acts.some(a => a.ai === staged.clauseId)
+     && !said.acts.some(a => a.edit),
      said.acts.map(a=>a.t).join(' / '));
+  ck('3d″ the ＋ does not close the panel it writes into, and the Copilot does',
+     said.acts.find(a => a.plus) && !said.acts.find(a => a.plus).close
+     && said.acts.find(a => a.ai) && said.acts.find(a => a.ai).close,
+     said.acts.map(a=>`${a.t}:${a.close?'closes':'stays'}`).join(' / '));
   ck('3d′ and they do NOT wear the sheet\'s tool-pill class — a control that is not '
      + 'on the paper must not answer to the paper\'s selectors',
      said.sheetTools === 0 && said.acts.every(a=>/rl-cp-act/.test(a.cls)),
      said.acts.map(a=>a.cls).join(' / '));
 
-  /* A real press on Direct edit inside the panel must open the editor on the
-     clause AND shut the panel — a door that opens something behind a wall
-     reads as broken. */
-  await p.click(`.redline-page .rl-cp-src[data-rl-cp-for="${staged.clauseId}"] [data-nego-edit]`);
+  /* ---- 3e/3f REVERSED IN PLACE, 16 Aug 2026 ---- these used to press Direct
+     edit inside the panel and prove it opened the editor ON THE CLAUSE and shut
+     the panel behind it. The editing is in the panel now: the ＋ opens the
+     editor HERE, and the panel stays. Direct Edit is gone from this seat
+     (asserted at 3d); it remains on the clause's own hover row, which is a
+     different place and its own piece of work. */
+  await p.click(`.redline-page .rl-cp-src[data-rl-cp-for="${staged.clauseId}"] [data-rl-cp-edit]`);
   await pause(700);
   const edited = await p.evaluate(id => ({
-    editor: !!document.querySelector(`.nego-clause[data-clause="${id}"] [data-nego-editor]`),
-    panelShut: !document.querySelector('.redline-page #rl-cp').classList.contains('is-open') }), staged.clauseId);
-  ck('3e pressing Direct edit in the panel opens the editor on the clause', edited.editor);
-  ck('3f …and shuts the panel so the editor is not behind it', edited.panelShut);
-  await p.evaluate(id => {
-    const b = document.querySelector(`.nego-clause[data-clause="${id}"] .nego-edit-bar button:last-child`);
+    inPanel: !!document.querySelector('.redline-page #rl-cp [data-nego-editor]'),
+    notOnClause: !document.querySelector(`.nego-clause[data-clause="${id}"] [data-nego-editor]`),
+    panelOpen: document.querySelector('.redline-page #rl-cp').classList.contains('is-open') }), staged.clauseId);
+  ck('3e pressing the ＋ opens the editor INSIDE the panel', edited.inPanel && edited.notOnClause);
+  ck('3f …and the panel stays open, because that is what it opened into', edited.panelOpen);
+  await p.evaluate(() => {
+    const b = document.querySelector('#rl-cp [data-nego-cancel]');
     if (b) b.click();
-  }, staged.clauseId);
-  await pause(500);
+  });
+  await pause(600);
+  ck('3f′ Cancel puts the panel back as it was, still open on the clause',
+     await p.evaluate(id => {
+       const on = document.querySelector('#rl-cp .rl-cp-src.is-on');
+       return !document.querySelector('#rl-cp [data-nego-editor]')
+         && !!document.querySelector('#rl-cp .rl-cp-stands')
+         && !!on && on.getAttribute('data-rl-cp-for') === id; }, staged.clauseId));
+  await p.evaluate(()=>rlCpSetShown(document,null)); await pause(400);
 
   /* ---- 4. THE THREE WAYS OUT, EACH PRESSED ---- */
   const reopen = async () => {
@@ -409,8 +431,149 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     });
     ck('6b and a real press opens it there — the listener is armed at MODULE LOAD, '
        + 'so it belongs to no one page', cpOpen.open, JSON.stringify(cpOpen.heads));
+    /* AND THEY CAN WRITE IN IT. The panel is built in the shared panes, so the
+       ＋ reaches their seat unless something stops it — and nothing should:
+       proposing wording is exactly what their page is for. */
+    const cpPlus = await p.evaluate(async () => {
+      const b = document.querySelector('#rl-cp .rl-cp-src.is-on [data-rl-cp-edit]');
+      if (!b) return { none: true };
+      b.click();
+      await new Promise(r => setTimeout(r, 500));
+      const e = document.querySelector('#rl-cp [data-nego-editor]');
+      return { word: b.textContent.trim(), editor: !!e,
+        direct: !!document.querySelector('#rl-cp [data-nego-edit]'),
+        seeded: e ? e.innerText.trim().length > 20 : false };
+    });
+    ck('6c their seat gets the ＋, and pressing it opens the editor in their panel',
+       !cpPlus.none && cpPlus.editor && cpPlus.seeded && !cpPlus.direct,
+       cpPlus.none ? 'no ＋ on their seat' : `${cpPlus.word}, editor ${cpPlus.editor}`);
+    await p.evaluate(()=>{const b=document.querySelector('#rl-cp [data-nego-cancel]');if(b)b.click();});
+    await pause(500);
     await p.evaluate(()=>rlCpSetShown(document,null)); await pause(300);
   }
+
+  /* ---- 7. THE EDITING IS IN THE PANEL, DRIVEN FOR REAL ----
+     Owner-asked, 16 Aug 2026: "Now build the editing inside the panel." The
+     model rules live in f210; what only a browser can answer is whether the
+     whole journey lands — the ＋ pressed, the engine's editor arriving in the
+     panel at the panel's own scale, wording typed, the two-step save walked,
+     and a change actually on the record with a card in the column and a mark on
+     the paper. */
+  await p.evaluate(()=>window.SHOW_OWNER&&window.SHOW_OWNER()); await pause(800);
+  const target = await p.evaluate(()=>negoClauseList(window.CONTRACT)[2].clauseId);
+  const nBefore = await p.evaluate(()=>(window.CONTRACT.changes||[]).length);
+  await p.click(`.nego-clause[data-clause="${target}"] .rl-cp-pill`); await pause(650);
+  const acts = await p.evaluate(()=>[...document.querySelectorAll(
+    '#rl-cp .rl-cp-src.is-on .rl-cp-acts button')].map(b => ({
+      t:b.textContent.trim(), plus:b.hasAttribute('data-rl-cp-edit'),
+      ai:b.hasAttribute('data-nego-ai-clause'), direct:b.hasAttribute('data-nego-edit') })));
+  ck('7a the panel offers the ＋ and the Copilot, and Direct Edit has left it',
+     acts.length===2 && acts[0].plus && acts[1].ai && !acts.some(a=>a.direct),
+     acts.map(a=>a.t).join(' / '));
+
+  await p.click('#rl-cp .rl-cp-src.is-on [data-rl-cp-edit]'); await pause(500);
+  const ed = await p.evaluate(() => {
+    const e = document.querySelector('#rl-cp [data-nego-editor]');
+    if (!e) return null;
+    const r = e.getBoundingClientRect();
+    const stands = document.querySelector('#rl-cp .rl-cp-stands');
+    const save = document.querySelector('#rl-cp .nego-edit-bar button');
+    const paperTool = document.querySelector('#rl-doc .rl-tool');
+    return { w:Math.round(r.width), h:Math.round(r.height),
+      text: e.innerText.replace(/\s+/g,' ').trim().slice(0,50),
+      fmt: !!document.querySelector('#rl-cp .nego-fmt-bar'),
+      bar: [...document.querySelectorAll('#rl-cp .nego-edit-bar button')].map(b=>b.textContent.trim()),
+      actsGone: !stands && !document.querySelector('#rl-cp .rl-cp-src.is-on .rl-cp-acts')
+        || getComputedStyle(document.querySelector('#rl-cp .rl-cp-src.is-on .rl-cp-acts')).display === 'none',
+      saveSize: save ? getComputedStyle(save).fontSize : null,
+      paperToolSize: paperTool ? getComputedStyle(paperTool).fontSize : null,
+      inPanel: !!e.closest('#rl-cp') };
+  });
+  ck('7b the ＋ opens the engine\'s own editor, inside the panel, with real size',
+     !!ed && ed.inPanel && ed.w > 200 && ed.h > 80, ed && `${ed.w}x${ed.h}`);
+  ck('7c seeded with the wording as it stands', !!ed && ed.text.length > 20, ed && ed.text);
+  ck('7d it is the WHOLE editor — formatting bar and the two-step bar',
+     !!ed && ed.fmt && ed.bar.length === 2, ed && ed.bar.join(' / '));
+  ck('7e and the ＋ stands down while it is open', !!ed && ed.actsGone);
+
+  /* THE PANEL DOES NOT FOLLOW THE READER'S DOCUMENT TYPE. Measured against the
+     sheet's own furniture at a document type the reader has moved: the paper's
+     pill changes size, the panel's Save does not. */
+  const scale = await p.evaluate(async () => {
+    const read = () => ({
+      save: parseFloat(getComputedStyle(document.querySelector('#rl-cp .nego-edit-bar button')).fontSize),
+      tool: parseFloat(getComputedStyle(document.querySelector('#rl-doc .rl-tool')).fontSize) });
+    const at15 = read();
+    rlSetDocType(20); await new Promise(r=>setTimeout(r,300));
+    const at20 = read();
+    rlSetDocType(15); await new Promise(r=>setTimeout(r,300));
+    return { at15, at20 };
+  });
+  ck('7f the paper scales with the reader\'s type and the PANEL does not',
+     scale.at20.tool > scale.at15.tool && scale.at20.save === scale.at15.save,
+     `paper ${scale.at15.tool}→${scale.at20.tool}, panel ${scale.at15.save}→${scale.at20.save}`);
+
+  /* A HIGHLIGHT INSIDE THE EDITOR OFFERS ONE ACTION; the same drag on the
+     contract offers all three. One menu, narrowed on one surface. */
+  const selMenu = async (sel) => {
+    await p.evaluate(s => {
+      const el = document.querySelector(s);
+      const node = el.querySelector('p') || el;
+      const r = document.createRange(); r.selectNodeContents(node);
+      const g = window.getSelection(); g.removeAllRanges(); g.addRange(r);
+      node.dispatchEvent(new MouseEvent('mouseup', { bubbles:true }));
+    }, sel);
+    await pause(400);
+    return p.evaluate(()=>[...document.querySelectorAll('.nego-selmenu [data-nego-ai]')]
+      .map(b=>b.textContent.trim()));
+  };
+  const inPanelMenu = await selMenu('#rl-cp [data-nego-editor]');
+  ck('7g a highlight in the panel\'s editor offers exactly Edit with Copilot',
+     inPanelMenu.length === 1 && /Edit with Copilot/.test(inPanelMenu[0]),
+     inPanelMenu.join(' / ') || 'no menu');
+  await p.evaluate(()=>{const g=window.getSelection&&window.getSelection();if(g)g.removeAllRanges();
+    document.querySelectorAll('.nego-selmenu').forEach(n=>n.remove());});
+  await pause(200);
+
+  /* TYPE, AND WALK THE TWO STEPS. */
+  await p.evaluate(() => {
+    const e = document.querySelector('#rl-cp [data-nego-editor]');
+    e.focus();
+    e.innerHTML = '<p>Written in the panel: either party may terminate on thirty (30) days notice.</p>';
+  });
+  await p.click('#rl-cp [data-nego-next]'); await pause(400);
+  const step2 = await p.evaluate(()=>({
+    reason: !!document.querySelector('#rl-cp [data-nego-reason]'),
+    bar: [...document.querySelectorAll('#rl-cp .nego-edit-bar button')].map(b=>b.textContent.trim()) }));
+  ck('7h Save leads into the reason question, in the panel, exactly as on the clause',
+     step2.reason && step2.bar.length === 3, step2.bar.join(' / '));
+  await p.evaluate(()=>{document.querySelector('#rl-cp [data-nego-reason]').value='Thirty is our standard.';});
+  await p.click('#rl-cp [data-nego-save]'); await pause(1100);
+
+  const filed = await p.evaluate(t => {
+    const c = window.CONTRACT;
+    const ch = (c.changes||[]).slice(-1)[0];
+    const sec = document.querySelectorAll('#rl-cp .rl-cp-src.is-on .rl-cp-sec');
+    return { n:(c.changes||[]).length, id:ch&&ch.id, why:ch&&ch.why, side:ch&&ch.authorSide,
+      clause: ch && ch.clauseId === t, hasOps: !!(ch && Array.isArray(ch.ops) && ch.ops.length),
+      text: ch && String(ch.newText||'').slice(0,40),
+      card: !!document.querySelector(`[data-nego-card="${ch&&ch.id}"]`),
+      onPaper: !!document.querySelector(`.nego-clause[data-clause="${t}"] [data-rl-asktag="${ch&&ch.id}"]`),
+      panelStillOpen: document.querySelector('#rl-cp').classList.contains('is-open'),
+      onTable: sec[1] ? sec[1].querySelectorAll('.rl-cp-row').length : 0,
+      plusWord: (document.querySelector('#rl-cp .rl-cp-src.is-on [data-rl-cp-edit]')||{}).textContent };
+  }, target);
+  ck('7i FILING FROM THE PANEL PUTS A REAL CHANGE ON THE RECORD',
+     filed.n === nBefore + 1 && filed.clause && filed.hasOps && filed.side === 'owner',
+     `${filed.id} on ${filed.text}…`);
+  ck('7j …with the reason it was given', filed.why === 'Thirty is our standard.', filed.why);
+  ck('7k …a card in the column and a tag on the paper', filed.card && filed.onPaper,
+     `card ${filed.card}, tag ${filed.onPaper}`);
+  ck('7l …the panel still open on the same clause, now showing it on the table',
+     filed.panelStillOpen && filed.onTable === 1, `open ${filed.panelStillOpen}, table ${filed.onTable}`);
+  ck('7m …and the ＋ now says it would continue that draft',
+     /Continue your draft/.test(filed.plusWord||''), filed.plusWord);
+  await p.evaluate(()=>rlCpSetShown(document,null)); await pause(300);
 
   ck('no page errors', errs.length===0, errs.join(' | ')||'clean');
   const pass=R.filter(Boolean).length;

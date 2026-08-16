@@ -4714,18 +4714,40 @@ function wireNegotiationTab(c, opts = {}){
     else if (window.toast) toast(i18t('ng_sharing_unavailable'), 'err');
   });
 
-  host.querySelectorAll('[data-nego-edit]').forEach(b => b.addEventListener('click', e => {
+  /* ---- ONE EDITOR, TWO HOMES (owner-asked 16 Aug 2026: build the editing
+     inside the panel) ----
+     The clause panel does not get an editor of its own. It gets THIS one,
+     opened on a different element. Everything below — the formatting bar, the
+     two-step save, the reason question and its Skip, the fingerprint, every
+     refusal — is the same code in both homes, so the two can never come to
+     disagree about what filing a change costs.
+
+     The DIFFERENCE is three lines: which element the editor replaces, and
+     therefore where the writing appears. data-nego-edit still opens it on the
+     clause in the document; data-rl-cp-edit opens it in the panel, on the
+     "As it stands" wording, which IS a copy of the standing clause — so the
+     panel's ＋ is literally "copy what stands into a draft and let me work on
+     it", with no second reading of what "what stands" means (both are
+     negoClauseNowById; see openOn below). */
+  host.querySelectorAll('[data-nego-edit],[data-rl-cp-edit]').forEach(b => b.addEventListener('click', e => {
     e.stopPropagation();
-    const clauseId = b.getAttribute('data-nego-edit');
-    const block = host.querySelector(`.nego-pane.working .nego-clause[data-clause="${clauseId}"]`);
+    const inPanel = b.hasAttribute('data-rl-cp-edit');
+    const clauseId = b.getAttribute(inPanel ? 'data-rl-cp-edit' : 'data-nego-edit');
+    const block = inPanel
+      ? host.querySelector(`#rl-cp-body .rl-cp-src[data-rl-cp-for="${clauseId}"]`)
+      : host.querySelector(`.nego-pane.working .nego-clause[data-clause="${clauseId}"]`);
     if (!block || block.querySelector('.nego-edit-bar')) return;
     /* THE WHOLE BODY, not the first paragraph of it. A clause with nothing
        proposed against it is drawn as its own markup — `<div class="nego-body">`
        around however many paragraphs, lists and tables it has — so reaching for
        `p` found the first paragraph inside it and swapped only that, leaving the
        list and the paragraphs after it stranded below the editor and outside
-       what would be saved. */
-    const body = block.querySelector('.nego-body') || block.querySelector('p');
+       what would be saved.
+
+       In the panel the target is the "As it stands" block, which is the same
+       wording drawn by the same reading. */
+    const body = inPanel ? block.querySelector('.rl-cp-stands')
+      : (block.querySelector('.nego-body') || block.querySelector('p'));
     if (!body) return;
     /* The clause is edited as the RICH content it is, in place. The old flow
        put the whole document into a <textarea>, which is why headings,
@@ -4806,6 +4828,12 @@ function wireNegotiationTab(c, opts = {}){
     holder.className = 'nego-editing';
     holder.setAttribute('contenteditable', 'true');
     holder.setAttribute('data-nego-editor', clauseId);
+    /* IN THE PANEL ONLY. negoReadPassage resolves which clause a highlight
+       belongs to by walking up to the nearest [data-clause]; in the document
+       the clause section already carries one, and adding a second inside it
+       would give a selection two answers. In the panel there is no such
+       ancestor, so the editor is it. */
+    if (inPanel) holder.setAttribute('data-clause', clauseId);
     /* Sanitised on the way IN as well as on the way out. Every other surface
        that shows a clause runs its stored markup through sanitizeRich at
        render time — the rule js/richdoc.js states in its own header, because
@@ -4962,7 +4990,23 @@ function wireNegotiationTab(c, opts = {}){
      every character of a drag and would flicker a menu under the pointer the
      whole way across the clause. */
   if (editableRoom){
-    const paneSel = '.nego-pane.working .nego-doc, .nego-doc[data-nego-working]';
+    /* ---- AND THE CLAUSE PANEL'S OPEN EDITOR IS A THIRD LEGAL PANE ----
+       (owner-asked 16 Aug 2026: "Leave the feature where you can highlight a
+       sentence and it allows you to edit with copilot and moves you to the
+       copilot assistant chat bot.")
+
+       NARROWED TO THE EDITOR ITSELF, not to the panel. The panel also prints
+       the history — other people's asks, with their marks on — and a highlight
+       there would be offered a redraft of a settled record. Only wording the
+       reader is actively writing qualifies, which is also the only wording a
+       proposal could be filed from.
+
+       ONE MENU, NOT A SECOND ONE. It routes into the same opts.selMenu the
+       document's own selections use, so the passage reaches the Copilot the
+       same way with the same refusals. This file's own rule: "a second menu
+       would be a second set of refusals to keep in step." */
+    const paneSel = '.nego-pane.working .nego-doc, .nego-doc[data-nego-working], '
+      + '.rl-cp-src [data-nego-editor]';
     const openSelMenu = () => {
       const sel = window.getSelection && window.getSelection();
       if (!sel || sel.isCollapsed){ _negoKillSelMenu(); return; }
@@ -5047,8 +5091,12 @@ function wireNegotiationTab(c, opts = {}){
          to, whether the reader may propose at all — is the same question on
          every surface and must keep exactly one answer. */
       if (typeof opts.selMenu === 'function'){
+        /* Inside the clause panel's own editor the offer narrows to one action
+           — see the note in rlSelMenu. Read off the pane the selection is in,
+           which is the only thing that tells the two surfaces apart. */
+        const inCpEditor = !!(pane.closest && pane.closest('.rl-cp-src'));
         opts.selMenu({ c, opts, text, clauseId, rect, side, again, marked, settled, spans,
-          passage, clauseIds: passage.clauseIds });
+          passage, clauseIds: passage.clauseIds, only: inCpEditor ? ['edit'] : null });
         return;
       }
       defaultMenu({ text, clauseId, rect, marked, settled, spans, passage });
@@ -5126,9 +5174,27 @@ function wireNegotiationTab(c, opts = {}){
 
        So the gesture is read first: pressing a button, a link or a field is
        somebody operating the page, not selecting words in it. */
-    const fromControl = t => !!(t && t.closest && t.closest(
-      '.rl-tools, .rl-tool, .nego-tool, .nego-selmenu, .nego-aipop, #ai-panel, ' +
-      '[data-nego-editor], button, a, input, textarea, select'));
+    const fromControl = t => {
+      if (!t || !t.closest) return false;
+      /* ---- THE CLAUSE PANEL'S EDITOR IS THE ONE EXEMPTION ----
+         [data-nego-editor] is on this list because dragging inside the
+         DOCUMENT's clause editor is somebody selecting words to bold them, and
+         a Copilot menu popping over the formatting bar there is in the way.
+
+         In the panel the editor IS the writing surface and the owner asked for
+         exactly the opposite behaviour (16 Aug 2026): "Leave the feature where
+         you can highlight a sentence and it allows you to edit with copilot and
+         moves you to the copilot assistant chat bot."
+
+         NARROW BY CONSTRUCTION: the formatting bar is a SIBLING of the holder,
+         not a child of it (holder.before(fmt)), so its buttons are still read
+         as controls and still raise nothing. Only wording inside the box is
+         exempt. */
+      if (t.closest('.rl-cp-src [data-nego-editor]')) return false;
+      return !!t.closest(
+        '.rl-tools, .rl-tool, .nego-tool, .nego-selmenu, .nego-aipop, #ai-panel, ' +
+        '[data-nego-editor], button, a, input, textarea, select');
+    };
     host.addEventListener('mouseup', e => {
       if (fromControl(e.target)) return;
       setTimeout(openSelMenu, 0);
@@ -6064,6 +6130,11 @@ function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
   const standsBody = (typeof negoRichBody === 'function')
     ? negoRichBody(standing) : `<p>${_ne(standing.text || '')}</p>`;
   const live = list.filter(x => x.status === 'pending' && !x.withdrawn);
+  /* One of OUR OWN asks still on the table. The editor continues it rather than
+     starting a rival — the engine's rule, not a decision taken here — so the ＋
+     says so instead of promising something else. */
+  const mine = live.some(x => x.authorSide === (side === 'counterparty' ? 'counterparty' : 'owner')
+    && x.changeType !== 'deleteClause' && x.changeType !== 'insertClause');
   const row = ch => {
     const theirs = ch.authorSide !== (side === 'counterparty' ? 'counterparty' : 'owner');
     /* WHO SETTLED IT NEVER TRAVELS — resolvedBy is stripped from the share
@@ -6112,27 +6183,39 @@ function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
     </section>
     ${!editable ? '' : `<section class="rl-cp-sec rl-cp-acts">
       <h5 class="rl-cp-h">${i18t('ng_cp_acts')}</h5>
-      ${''/* THE ENGINE'S OWN CONTROLS, not lookalikes. data-nego-edit opens the
-             inline editor on the clause and data-nego-ai-clause opens the
-             Copilot against its wording — the same two doors the hover row
-             carries, so every ask still travels the one funnel with the same
-             refusals and the same fingerprint. They carry data-rl-cp-close
-             beside them because the editor they open is ON THE CLAUSE, behind
-             this panel: a door that opens something you cannot see is a door
-             that reads as broken. */}
+      ${''/* ---- THE PLUS COPIES WHAT STANDS INTO A DRAFT ----
+             It opens the ENGINE's own editor (see the two-homes note at
+             data-nego-edit) on the "As it stands" block a few lines above —
+             which is the same wording, from the same reading, that a filing
+             will be measured against. So "copy the standing wording into a
+             draft" is not a second act this panel performs; it is where the
+             one editor happens to open.
+
+             ITS WORD CHANGES WITH WHAT IS ALREADY THERE. With one of our own
+             asks still pending on this clause the editor continues THAT draft
+             rather than starting a rival — the engine's own rule, unchanged —
+             so the button must not say "propose new wording" over a press that
+             does something else. */}
+      <button type="button" class="rl-cp-act rl-cp-act-new" data-rl-cp-edit="${id}"
+        title="${_nea(i18t(mine ? 'ng_cp_continue_title' : 'ng_cp_propose_title'))}"
+        >&#43; ${i18t(mine ? 'ng_cp_continue' : 'ng_cp_propose')}</button>
+      ${''/* DIRECT EDIT HAS LEFT THIS PANEL (owner-asked 16 Aug 2026: "Direct
+             edit will not be needed because the window is already open for
+             direct editing"). It is the same act as the ＋ beside it, one press
+             further away and pointed at the clause behind the panel. It stays
+             on the CLAUSE's own hover row, which is a different place with a
+             different reason; retiring it there is its own piece. */}
+      ${opts.noAi ? '' : `<button type="button" class="rl-cp-act rl-cp-act-ai" data-rl-cp-close="1"
+        data-nego-ai-clause="${id}" title="${_nea(i18t('ng_ai_redraft_title'))}">&#10024; ${i18t('ng_cp_copilot')}</button>`}
       ${''/* THEY ARE NOT .rl-tool, AND THAT IS A RULE RATHER THAN A STYLE
              CHOICE. The first build wore the sheet's tool-pill class, and the
-             panel is written EARLIER in the grid than the document — so
-             `querySelector('.redline-page .rl-tool')`, which is how the sheet's
-             own furniture is measured, started answering with a hidden button
-             inside this panel and returned a 0x0 box. paper-grows-verify caught
-             it. A control that is not on the sheet must not answer to the
-             sheet's selectors; it wears the same colours through its own
-             class. */}
-      ${opts.noAi ? '' : `<button type="button" class="rl-cp-act rl-cp-act-ai" data-rl-cp-close="1"
-        data-nego-ai-clause="${id}" title="${_nea(i18t('ng_ai_redraft_title'))}">&#10024; Copilot</button>`}
-      <button type="button" class="rl-cp-act rl-cp-act-edit" data-rl-cp-close="1"
-        data-nego-edit="${id}" title="${_nea(i18t('ng_direct_edit_title'))}">&#9998; ${i18t('ng_direct_edit')}</button>
+             panel is written EARLIER in the grid than the document, so the
+             query that measures the sheet's own furniture started answering
+             with a hidden button inside this panel and returned a 0x0 box.
+             paper-grows-verify caught it. A control that is not on the sheet
+             must not answer to the sheet's selectors; it wears the same colours
+             through its own class. */}
+      <p class="rl-cp-note rl-cp-hint">${i18t('ng_cp_sel_hint')}</p>
     </section>`}
   </div>`;
 }
@@ -7925,8 +8008,35 @@ function redlineLayoutCss(){
     box-shadow:0 1px 2px rgba(15,23,42,.08);
     transition:border-color .15s,color .15s,background .15s}
   .redline-page .rl-cp-act:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
-  .redline-page .rl-cp-act.rl-cp-act-edit{background:#ecfdf5;border-color:#6ee7b7;color:#065f46}
-  .redline-page .rl-cp-act.rl-cp-act-edit:hover{background:#d1fae5;border-color:#059669}
+  .redline-page .rl-cp-act.rl-cp-act-new{background:#ecfdf5;border-color:#6ee7b7;color:#065f46}
+  .redline-page .rl-cp-act.rl-cp-act-new:hover{background:#d1fae5;border-color:#059669}
+  html.dark .redline-page .rl-cp-act.rl-cp-act-new{background:rgba(5,150,105,.16);border-color:rgba(5,150,105,.45);color:#6ee7b7}
+  .redline-page .rl-cp-hint{flex-basis:100%;margin:6px 0 0;font-size:10.5px}
+  /* ---- THE PANEL IS WHERE YOU WRITE (owner-asked 16 Aug 2026) ----
+     The engine's editor opens here on the "As it stands" block, so every rule
+     it already carries applies unchanged. What it needs from this panel is
+     room and a scale.
+
+     --doc-scale IS PINNED TO 1 and that is load-bearing. Every piece of the
+     editor's furniture was taught to scale on --doc-scale (15 Aug 2026, the
+     third report of one fault), and --doc-scale is written on the .redline-page
+     ROOT by the reader's document-type stepper. Inside the panel that would be
+     the panel's toolbar and its Save button following a setting about the
+     CONTRACT's type — a control shrinking because somebody made the paper
+     smaller. The paper scales; the panel does not. */
+  .redline-page .rl-cp-src{--doc-scale:1}
+  .redline-page .rl-cp-src .nego-editing{border:1px solid var(--accent-solid);border-radius:10px;
+    padding:9px 11px;min-height:120px;font-size:12.5px;line-height:1.65;
+    background:var(--color-surface);color:var(--color-text);outline:none}
+  .redline-page .rl-cp-src .nego-editing.is-review{border-color:var(--color-divider);
+    background:var(--color-neutral-50)}
+  .redline-page .rl-cp-src .nego-fmt-bar{margin-bottom:6px}
+  .redline-page .rl-cp-src .nego-reason{display:block;margin-top:9px}
+  .redline-page .rl-cp-src .nego-edit-bar{margin-top:9px}
+  /* While the panel is being written in, the ＋ that opened it stands down: it
+     is a door the reader is already standing in, and pressing it again would
+     be refused in silence (the handler returns on an open bar). */
+  .redline-page .rl-cp-src.is-editing .rl-cp-acts{display:none}
   .redline-page .rl-cp-act.rl-cp-act-ai{background:#f5f3ff;border-color:#ddd6fe;color:#5b21b6}
   .redline-page .rl-cp-act.rl-cp-act-ai:hover{background:#ede9fe;border-color:#7c3aed}
   html.dark .redline-page .rl-cp-act.rl-cp-act-edit{background:rgba(5,150,105,.16);border-color:rgba(5,150,105,.45);color:#6ee7b7}
@@ -9779,7 +9889,28 @@ function rlSayInPanel(text){
    in it hands off to the side panel or the discussion column and disappears. */
 function rlSelMenu(ctx){
   const { text, clauseId, rect, whole } = ctx;
-  const actions = rlSelActions();
+  /* ---- THE OFFER NARROWS ON ONE SURFACE, AND IT IS STILL ONE MENU ----
+     (owner-asked 16 Aug 2026, designing the clause panel: "Remove simplify and
+     compare with company standards. Leave the feature where you can highlight a
+     sentence and it allows you to edit with copilot".)
+
+     ctx.only is a list of action ids. The clause panel passes ['edit'] and
+     nothing else does, so the DOCUMENT's own selection menu still offers all
+     three — deliberately left alone, and said out loud: the instruction was
+     about what the panel offers, and Simplify and Compare-to-our-standard are
+     acts on the clause AS IT STANDS. Inside the panel the reader is highlighting
+     THEIR OWN HALF-TYPED DRAFT, where "compare this to our standard" is a
+     different question and "simplify" would rewrite work in progress. Narrowing
+     there is principled rather than merely obedient.
+
+     A LIST, NOT A FORK. Same builder, same routing, same refusals — this file's
+     own rule that "a second menu would be a second set of refusals to keep in
+     step." An unknown id in `only` narrows to nothing, so it falls back to the
+     whole list rather than opening an empty menu. */
+  const want = Array.isArray(ctx.only) && ctx.only.length ? ctx.only : null;
+  const all = rlSelActions();
+  const picked = want ? all.filter(a => want.includes(a.id)) : all;
+  const actions = picked.length ? picked : all;
   _negoKillSelMenu();
   const menu = document.createElement('div');
   menu.className = 'nego-selmenu';
