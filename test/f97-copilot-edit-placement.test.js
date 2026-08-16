@@ -202,13 +202,37 @@ describe('F97b — an addition is not measured against what it sits beside', () 
     assert.match(lines[2], /^\(c\)/);
   });
 
-  test('and those three lines become three list items in the document', () => {
-    /* The end of the journey: what is filed has to READ as a list, which is
-       docRichFromText's job and only works on wording that still has its
-       lines. */
+  test('and those three lines become three limbs that KEEP their letters', () => {
+    /* REVERSED IN PLACE, 16 Aug 2026 (owner-reported off a Copilot proposal):
+       the wording came back reading "(a) Manufacture all products…" and what
+       landed in the contract was "• Manufacture all products…" — the letters
+       gone. This claim used to assert the item COUNT precisely because the
+       letters were consumed into the markup, and that turned out to be the
+       fault rather than the design: a lettered limb is cited as clause 1(b),
+       exactly as a numbered one is cited as clause 7.1, and js/docx.js already
+       states the rule for numbers — "Both keep their number: it is the
+       citation."
+
+       So they are paragraphs now, each carrying its own label. Still three
+       limbs, still not one run-on, and the wording a contract is cited by
+       survives. */
     const html = D.docRichFromText(BULLETS);
-    assert.equal((html.match(/<li\b/g) || []).length, 3,
-      'a list filed as one paragraph loses the numbering a contract is cited by');
+    assert.equal((html.match(/<li\b/g) || []).length, 0,
+      'no list markup — no browser draws "(a)" as a list marker, so making one '
+      + 'means throwing the label away');
+    for (const label of ['(a)', '(b)', '(c)'])
+      assert.ok(html.includes(label), `${label} survives into the document`);
+    assert.equal((html.match(/<p>/g) || []).length, 3, 'three limbs, not one run-on');
+  });
+
+  test('a TRUE bullet still loses its mark and becomes a list item', () => {
+    /* The other half of the same rule, and the reason the two patterns are
+       separate now: a bullet mark carries no citation, so nothing is lost by
+       letting the list draw its own. */
+    const html = D.docRichFromText(
+      '\u2022 Personal data is deleted on termination.\n\u2022 Deletion is certified in writing.');
+    assert.equal((html.match(/<li\b/g) || []).length, 2);
+    assert.ok(!html.includes('\u2022'), 'the mark is the list\'s, not the wording\'s');
   });
 
   test('markup is still refused where the clause it joins is plain', () => {
@@ -386,14 +410,14 @@ describe('F97d — "after" keeps the sentence it follows', () => {
       'and the baseline is untouched — this is a proposal until the other side answers it');
   });
 
-  test('the three bullets are filed as three list items, not one paragraph', async () => {
+  test('the three bullets are filed as three limbs that keep their letters', async () => {
     /* THE END OF THE JOURNEY, and the reason aiCleanAddedWording must leave the
-       lines alone. docRichFromText reads the (a)/(b)/(c) openers and builds a
-       real list out of them — the letters are consumed INTO the markup rather
-       than kept as characters, which is why this asserts on the item count and
-       not on the literal "(a)". Wording that arrived as one run-on would come
-       back as a single <p> here, and a list filed as one paragraph loses the
-       numbering the clause is cited by. */
+       lines alone. REVERSED IN PLACE, 16 Aug 2026: this used to assert the item
+       count and say so explicitly — "the letters are consumed INTO the markup
+       rather than kept as characters" — which is exactly what the owner
+       reported as a fault. Wording that arrived as one run-on would still come
+       back as a single block here; what is asserted now is that it did not, AND
+       that the labels a contract is cited by survived the journey. */
     const p = await page({ placement: 'after' });
     const lines = s => s.split('\n').filter(l => l.trim()).length;
     const card = await p.ask('All invoices are payable within thirty (30) days from the date of issue.',
@@ -403,8 +427,9 @@ describe('F97d — "after" keeps the sentence it follows', () => {
     await new Promise(r => setTimeout(r, 0));
 
     const ch = p.changes().filter(x => x.clauseId === p.clause.clauseId).pop();
-    assert.equal((String(ch.bodyHtml).match(/<li\b/g) || []).length, 3,
-      'three bullets in, three list items filed');
+    for (const label of ['(a)', '(b)', '(c)'])
+      assert.ok(String(ch.bodyHtml).includes(label),
+        `${label} is on the record — the label is how the limb is cited`);
     assert.equal(lines(p.filed()), wasLines + 3,
       'and the clause gained exactly three sub-paragraphs — not one run-on, and not five');
   });

@@ -35,6 +35,7 @@ const ROOT = path.join(__dirname, '..');
 const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
 const SRC = read('js/views/negotiation.js');
 const I18N = read('js/i18n.js');
+const SRC_DOCX = read('js/docx.js');
 
 /* A negotiation with one ask on one clause, from a named side. */
 async function bench(opts = {}){
@@ -834,6 +835,80 @@ describe('f210 (15) — how the panel reads', () => {
       'the explanatory lines stay quiet');
     assert.match(SRC, /\.redline-page \.rl-cp-who\{[^}]*color:var\(--color-neutral-600\);/,
       'and so does the rest of the meta line — only the id is lifted');
+  });
+});
+
+describe('f210 (16) — a contract limb keeps its label and hangs its wraps', () => {
+  const D = (() => {
+    const win = {};
+    new Function('window', 'module', read('js/docx.js'))(win, { exports: {} });
+    return win;
+  })();
+
+  test('a lettered limb keeps its label — it is how the limb is cited', () => {
+    /* Owner-reported 16 Aug 2026, off a Copilot proposal: the wording came back
+       reading "(a) Manufacture all products…" and what landed in the contract
+       was "• Manufacture all products…". DOC_BULLET matched `(a)` along with
+       the true bullet marks, and the branch that used it STRIPPED what it
+       matched — so every lettered limb the Copilot drafted, and every one in an
+       uploaded contract, arrived with its label thrown away.
+
+       js/docx.js already states the rule three lines from the fault, for
+       numbers: "Both keep their number: it is the citation." A lettered limb is
+       cited the same way — clause 1(b). */
+    const html = D.docRichFromText(
+      'The Co-Packer shall:\n(a) Manufacture all products to the recipe.\n'
+      + '(b) Maintain full traceability of all materials and batch records.');
+    assert.ok(html.includes('(a)') && html.includes('(b)'));
+    assert.equal((html.match(/<li\b/g) || []).length, 0,
+      'not a list — no browser draws "(a)" as a marker, so a list means losing the label');
+  });
+
+  test('"a)" and "(iv)" too, and a true bullet still loses its mark', () => {
+    assert.ok(D.docRichFromText('a) First limb of the clause.').includes('a)'));
+    assert.ok(D.docRichFromText('(iv) Fourth limb of the clause.').includes('(iv)'));
+    const bullets = D.docRichFromText('\u2022 One item here.\n\u2022 Another item here.');
+    assert.equal((bullets.match(/<li\b/g) || []).length, 2);
+    assert.ok(!bullets.includes('\u2022'), 'a bullet mark carries no citation');
+  });
+
+  test('numbered clauses are untouched by the split', () => {
+    /* The change is to ONE branch. A pattern widened later must not be able to
+       turn a number back into a bullet, which is why the label is asked for
+       before the mark. */
+    const html = D.docRichFromText(
+      '3. Payment shall be made within thirty days of a valid invoice being issued.');
+    assert.match(html, /<ol start="3">/);
+    assert.match(SRC_DOCX, /const labelled = !numbered && !bulleted && DOC_LABEL\.test\(t\);/);
+  });
+
+  test('a wrapped limb hangs under its own first word', () => {
+    /* Owner-asked: "the words when wrap texted the should not go to the same
+       line as the bullet point … so that the words in the first and second line
+       are on the same vertical line."
+
+       THE INDENT WAS ALREADY BEING COMPUTED AND NOTHING DREW IT.
+       redlineOpsBlocksHtml has always split the opening marker off every line
+       and stamped it rl-hang for exactly this; the rule that acts on it was
+       scoped to .nego-redline, which is the ROOM's class and not this page's.
+       The class was on the element the whole time. */
+    assert.match(SRC, /\.redline-page \.rl-doc \.rl-hang\{padding-left:2\.6em;text-indent:-2\.6em\}/);
+    assert.match(SRC, /\.redline-page \.rl-cp-src \.rl-hang\{padding-left:2\.6em;text-indent:-2\.6em\}/,
+      'and in the panel, which renders the same builder\'s output');
+    /* em, not px: the measure follows the reader's document type with the
+       wording rather than drifting away from it at either end of the stepper. */
+    assert.doesNotMatch(SRC, /\.rl-hang\{padding-left:\d+px/);
+  });
+
+  test('and the builder really does stamp it', () => {
+    /* The other half of the claim: a rule for a class nothing emits is a rule
+       nobody can see is broken. */
+    const rl = read('js/redline.js');
+    assert.match(rl, /const hang = redlineSplitMarker\(shown\)\.marker \? `\$\{pre\}-hang` : '';/);
+    const marker = rl.slice(rl.indexOf('const RL_MARKER'), rl.indexOf('const RL_MARKER') + 200);
+    assert.ok(marker.includes('[a-zA-Z]'),
+      'and the marker pattern knows a lettered label');
+    assert.ok(marker.includes('ivxlcdm'), 'and a roman one');
   });
 });
 

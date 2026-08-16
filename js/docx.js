@@ -184,8 +184,26 @@ function docClausePrefix(line){
    agreed. Dropped, because "PAGE 1 OF 4" wedged between a recital and a clause
    heading is noise a reader has to step over on every read. */
 const DOC_FURNITURE = /^(?:page\s+\d+\s*(?:of\s+\d+)?\s*[:.]?|\d+\s*\/\s*\d+|[-–—]\s*\d+\s*[-–—]|\d{1,3})$/i;
-/* A bullet, in any of the marks a contract actually uses. */
-const DOC_BULLET = /^\s*(?:[•●▪◦‣·]|\(?[a-z]\)|\([ivxlcdm]+\)|[-–—]\s)\s*/i;
+/* A bullet, in any of the marks a contract actually uses.
+
+   ---- A LETTERED LABEL IS NOT A BULLET, AND IT USED TO BE ONE ----
+   (owner-reported 16 Aug 2026, off a Copilot proposal: the wording came back
+   reading "(a) Manufacture all products…", and what landed in the contract was
+   "• Manufacture all products…" — the letters gone.)
+
+   This pattern used to swallow `(a)`, `a)` and `(iv)` along with the true
+   bullet marks, and the branch that uses it STRIPS what it matched. So every
+   lettered sub-clause the Copilot drafted, and every one in an uploaded
+   contract, arrived with its label thrown away and a bullet in its place.
+
+   That is the same mistake DOC_NUMBERED was written to avoid, and this file
+   already states the rule three lines below it: "Both keep their number: it is
+   the citation." A lettered limb is cited exactly the same way — clause 1(b) —
+   so it keeps its label for exactly the same reason. A bullet mark carries no
+   citation and nothing is lost by dropping it. */
+const DOC_BULLET = /^\s*(?:[•●▪◦‣·]|[-–—]\s)\s*/;
+/* A lettered or roman limb: "(a)", "a)", "(iv)". The label is KEPT. */
+const DOC_LABEL = /^\s*(?:\([a-z]\)|[a-z]\)|\([ivxlcdm]+\))\s+\S/i;
 /* A numbered clause opener: "3.", "7.1.4", "12)" — the anchor a citation uses. */
 /* Capped at three digits on purpose. A clause number is small; a four-digit
    number followed by a full stop is a YEAR — "under the Companies Act, 2015." —
@@ -262,6 +280,10 @@ function docBlocksFromText(text){
     const kind = docLineKind(t);
     const numbered = DOC_NUMBERED.exec(t);
     const bulleted = !numbered && DOC_BULLET.test(t) && /[A-Za-z]/.test(t.replace(DOC_BULLET, ''));
+    /* Asked BEFORE the bullet, though the two can no longer both match: the
+       order is the statement that a label outranks a mark, so a pattern widened
+       later cannot quietly turn a citation back into a bullet. */
+    const labelled = !numbered && !bulleted && DOC_LABEL.test(t);
 
     if (kind === 'heading'){
       close();
@@ -272,6 +294,19 @@ function docBlocksFromText(text){
     if (bulleted){
       close();
       open = { kind: 'li', text: t.replace(DOC_BULLET, '').trim() };
+      continue;
+    }
+    /* A LABELLED LIMB IS A PARAGRAPH THAT KEEPS ITS LABEL. Not a list item:
+       a list draws its own marker, and no list marker in any browser renders
+       "(a)" — the label would have to be thrown away to make room for it, which
+       is the fault. As an ordinary paragraph the label is simply part of the
+       wording, which is what it is on paper; the renderers already read it back
+       (RL_MARKER in js/redline.js) and hang the wrapped lines under it. And
+       because it is a paragraph, the line below it JOINS when it is a wrap —
+       docLineWraps, the same rule every other paragraph gets. */
+    if (labelled){
+      close();
+      open = { kind: 'p', text: t };
       continue;
     }
     if (numbered){
@@ -729,7 +764,7 @@ function docxExportTracked(html, opts = {}){
 }
 
 if(typeof window!=='undefined') Object.assign(window,{DOCX_MIME,isWordDoc,docxExtract,docxXmlToText,docLineKind,docClausePrefix,
-  docTextIsRunOn,docBreakRunOn,docBlocksFromText,docRichFromText,docLineWraps,DOC_FURNITURE,DOC_BULLET,DOC_NUMBERED,
+  docTextIsRunOn,docBreakRunOn,docBlocksFromText,docRichFromText,docLineWraps,DOC_FURNITURE,DOC_BULLET,DOC_LABEL,DOC_NUMBERED,
   docxStripUiBadges,docxRunsFromHtml,docxTrackedXml,docxDocumentXml,docxExportTracked,docxZip,docxCrc32,
   docxComments,docxCommentQuote,
   DOCX_UI_CLASSES,DOCX_UI_ID});

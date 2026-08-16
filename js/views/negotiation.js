@@ -7206,6 +7206,35 @@ function redlineLayoutCss(){
   .redline-page .rl-doc .nego-body,
   .redline-page .rl-doc .nego-editing,
   .redline-page .rl-doc .rl-line{margin:0;font-size:var(--rl-doc-type);line-height:1.75;color:var(--color-text)}
+  /* ---- A WRAPPED LIMB HANGS UNDER ITS OWN FIRST WORD ----
+     (owner-asked 16 Aug 2026: "the words when wrap texted the should not go to
+     the same line as the bullet point. The should be indentation on the wrapped
+     sentence or word as well so that the words in the first and second line are
+     on the same vertical line.")
+
+     THE INDENT WAS ALREADY BEING COMPUTED AND NOTHING WAS DRAWING IT.
+     redlineOpsBlocksHtml has always split the opening marker off every line —
+     "7.1", "(b)", "•" — and stamped the line rl-hang for exactly this; see
+     RL_MARKER in js/redline.js, whose own comment says the marker sits "in the
+     hanging indent's gutter". The rule that acts on it was scoped to
+     .nego-redline, which is the room's class and not this page's, so on the
+     redline page every wrapped sub-clause ran back to the margin and sat under
+     its own number. The class was on the element the whole time.
+
+     The measure is in em, so it follows the reader's document type with the
+     wording rather than drifting away from it at either end of the stepper. */
+  .redline-page .rl-doc .rl-hang{padding-left:2.6em;text-indent:-2.6em}
+  /* And in the clause panel, which renders the same builder's output at its own
+     size. Same measure, its own scale. */
+  .redline-page .rl-cp-src .rl-hang{padding-left:2.6em;text-indent:-2.6em}
+  /* A real list gets the same shape from the browser, but only if it is allowed
+     its gutter: the sheet's reset leaves ul/ol at the user-agent padding on
+     some surfaces and at zero on others, and at zero the marker sits ON the
+     first word. Stated once, here, for both. */
+  .redline-page .rl-doc .nego-body ul,.redline-page .rl-doc .nego-body ol,
+  .redline-page .rl-cp-src ul,.redline-page .rl-cp-src ol{
+    margin:0 0 .5em;padding-left:2.1em;list-style-position:outside}
+  .redline-page .rl-doc .nego-body li,.redline-page .rl-cp-src li{margin:0 0 .3em}
   /* the sheet keeps its auto margins — margin:0 here beat the centring rule
      (three classes to two) and pinned the paper to the left of the column */
   .redline-page .rl-doc .nego-doc{margin:0 auto;font-size:var(--rl-doc-type);line-height:1.75;color:var(--color-text)}

@@ -698,6 +698,73 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      `note ${look.note}, meta ${look.meta}`);
   await p.evaluate(()=>rlCpSetShown(document,null)); await pause(300);
 
+  /* ---- 10. A CONTRACT LIMB KEEPS ITS LABEL AND HANGS ITS WRAPS ----
+     Two owner reports off a Copilot proposal (16 Aug 2026). The rules are in
+     f210 (16); what only a browser can answer is where the characters land —
+     whether the second line of a limb really starts on the same vertical line
+     as the first WORD of it, which is a measurement and nothing else. */
+  const limbs = await p.evaluate(async () => {
+    const c = window.CONTRACT, cl = negoClauseList(c)[0];
+    const add = 'The Co-Packer shall:\n'
+      + '(a) Manufacture all products in accordance with the written recipe, formulation and '
+      + 'specifications, including all quality parameters and shelf-life requirements.\n'
+      + '(b) Maintain full traceability of all materials, batch records and production logs '
+      + 'for each manufacturing run and retain them for three years.';
+    await negoEditClause(c, cl.clauseId,
+      (cl.bodyHtml || ('<p>' + cl.text + '</p>')) + window.docRichFromText(add),
+      { side:'owner', author:'Young Mbagaya', why:'add the limbs' });
+    renderRedline();
+    await new Promise(r => setTimeout(r, 600));
+    const sec = document.querySelector(`#rl-doc .nego-clause[data-clause="${cl.clauseId}"]`);
+    const hang = [...sec.querySelectorAll('.rl-line.rl-hang')];
+    /* Where does the first painted character of each visual row sit? Measured
+       from the real text nodes, because "is it indented" is a question about
+       glyphs and not about a class. */
+    const columns = el => {
+      const walk = n => { if (n.nodeType === 3 && n.textContent.trim()) return n;
+        for (const k of n.childNodes){ const f = walk(k); if (f) return f; } return null; };
+      const tn = walk(el); if (!tn) return null;
+      const r = document.createRange(), pts = [];
+      for (let i = 0; i < tn.length; i++){
+        r.setStart(tn, i); r.setEnd(tn, i + 1);
+        const b = r.getBoundingClientRect();
+        if (b.width || b.height) pts.push({ x: Math.round(b.x), y: Math.round(b.y) });
+      }
+      const rows = [...new Set(pts.map(p => p.y))].sort((a, b) => a - b);
+      return rows.slice(0, 3).map(y => Math.min(...pts.filter(p => p.y === y).map(p => p.x)));
+    };
+    return { text: sec.innerText,
+      hangCount: hang.length,
+      style: hang[0] ? (s => ({ pl: s.paddingLeft, ti: s.textIndent }))(getComputedStyle(hang[0])) : null,
+      cols: hang.slice(0, 2).map(columns) };
+  });
+  ck('10a the lettered labels survive into the contract',
+     /\(a\)/.test(limbs.text) && /\(b\)/.test(limbs.text)
+     && !/\u2022\s*Manufacture/.test(limbs.text),
+     limbs.text.split('\n').filter(l=>/^\(/.test(l.trim())).join(' / ').slice(0,80));
+  ck('10b each limb is a hanging line', limbs.hangCount >= 2 && !!limbs.style,
+     limbs.style && `${limbs.style.pl} / ${limbs.style.ti}`);
+  ck('10c THE WRAPPED LINES START ON THE SAME VERTICAL LINE AS EACH OTHER',
+     limbs.cols.every(c => c && c.length >= 3 && c[1] === c[2]),
+     JSON.stringify(limbs.cols));
+  ck('10d …and past the label, not under it — which is the whole ask',
+     limbs.cols.every(c => c && c[1] > c[0]), JSON.stringify(limbs.cols));
+
+  /* THE DUPLICATION RULE: their page mounts the same builder inside the same
+     .redline-page wrapper, so the rule reaches it — asserted rather than
+     assumed, because "it is the same markup" is exactly the reasoning that has
+     been wrong on this page before. */
+  await p.evaluate(()=>window.SHOW_COUNTERPARTY()); await pause(1100);
+  const theirHang = await p.evaluate(() => {
+    const h = document.querySelector('#rl-doc .rl-line.rl-hang');
+    if (!h) return { none: true };
+    const s = getComputedStyle(h);
+    return { pl: s.paddingLeft, ti: s.textIndent, label: /\([a-z]\)/.test(h.innerText) };
+  });
+  ck('10e their page hangs its limbs too — the same rule, the same mount',
+     theirHang.none ? false : (parseFloat(theirHang.pl) > 20 && parseFloat(theirHang.ti) < 0),
+     theirHang.none ? 'no hanging line on their copy' : `${theirHang.pl} / ${theirHang.ti}`);
+
   ck('no page errors', errs.length===0, errs.join(' | ')||'clean');
   const pass=R.filter(Boolean).length;
   console.log(`\n${pass}/${R.length} checks passed`);
