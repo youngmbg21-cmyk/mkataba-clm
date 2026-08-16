@@ -212,8 +212,13 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     };
   }, staged.clauseId);
   ck('3a "As it stands" carries real wording', said.stands.length > 40, said.stands.slice(0,60)+'…');
-  ck('3b the live ask is on the table AND in the history', said.table === 1 && said.history === 1,
-     `table ${said.table}, history ${said.history}`);
+  /* ---- 3b REVERSED IN PLACE, 16 Aug 2026 ---- this used to assert the ask was
+     in BOTH sections. Owner-reported: "when i redline, the new change appears
+     On the Table and also as the last redline which is redundant." The two
+     sections sit twelve pixels apart, so a live ask printed itself twice,
+     identically. It is on the table only until it settles. */
+  ck('3b the live ask is ON THE TABLE ONLY, never in the history as well',
+     said.table === 1 && said.history === 0, `table ${said.table}, history ${said.history}`);
   ck('3c the row names the ask, where it stands and who asked',
      /CHG-/.test(said.names[0]||'') && /their ask/i.test(said.names[0]||'')
      && /from /i.test(said.names[0]||''), said.names[0]);
@@ -573,6 +578,76 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      filed.panelStillOpen && filed.onTable === 1, `open ${filed.panelStillOpen}, table ${filed.onTable}`);
   ck('7m …and the ＋ now says it would continue that draft',
      /Continue your draft/.test(filed.plusWord||''), filed.plusWord);
+  await p.evaluate(()=>rlCpSetShown(document,null)); await pause(300);
+
+  /* ---- 8. THE THREE FAULTS REPORTED THE MORNING AFTER THE EDITING LANDED ---- */
+
+  /* 8a/8b THE SETTLED ASK MOVES SECTION. Filed above at 7i; settle it and watch
+     it change places, which is the whole of what the owner asked for. */
+  const settledId = await p.evaluate(()=>(window.CONTRACT.changes||[]).slice(-1)[0].id);
+  await p.evaluate(async id => { await negoResolve(window.CONTRACT, id, 'accepted',
+    { by:'Wanjiru Kamau' }); renderRedline(); }, settledId);
+  await pause(900);
+  await p.evaluate(id => rlCpSetShown(document, id), target); await pause(500);
+  const shifted = await p.evaluate(() => {
+    const sec = document.querySelectorAll('#rl-cp .rl-cp-src.is-on .rl-cp-sec');
+    const ids = n => [...sec[n].querySelectorAll('.rl-cp-row')]
+      .map(r => r.getAttribute('data-rl-cp-change'));
+    return { table: ids(1), hist: ids(2),
+      histWasEmpty: !!sec[2].querySelector('.rl-cp-none') };
+  });
+  ck('8a a settled ask leaves the table', shifted.table.length === 0, shifted.table.join(','));
+  ck('8b …and takes its place at the bottom of the history',
+     shifted.hist[shifted.hist.length-1] === settledId, shifted.hist.join(' → '));
+
+  /* 8c THE COPILOT BUTTON HANDS STRAIGHT OVER. Reported as "the panel
+     disappears and the copilot dropdown appears on the top right corner" — the
+     menu was anchored on a button whose rect had already gone to zeros, because
+     closing the panel hides the body it sits in. */
+  const cop = await p.evaluate(async () => {
+    const b = document.querySelector('#rl-cp .rl-cp-src.is-on [data-nego-ai-clause]');
+    if (!b) return { none: true };
+    b.click();
+    await new Promise(r => setTimeout(r, 800));
+    const ai = document.querySelector('#ai-panel');
+    return { menus: document.querySelectorAll('.nego-selmenu').length,
+      aiOpen: !!ai && getComputedStyle(ai).display !== 'none' && !ai.hasAttribute('hidden'),
+      panelShut: !document.querySelector('#rl-cp').classList.contains('is-open') };
+  });
+  ck('8c pressing Edit with Copilot leaves NO stray dropdown on the page',
+     !cop.none && cop.menus === 0, cop.none ? 'no button' : `${cop.menus} menus`);
+  ck('8d …it opens the Copilot itself, which is where the press said it would go',
+     !cop.none && cop.aiOpen && cop.panelShut,
+     `copilot ${cop.aiOpen}, clause panel shut ${cop.panelShut}`);
+
+  /* 8e THE COUNTERPARTY'S UNSENT COUNT. Reported as "the counterparty side the
+     changes do not seem to be working", and it PREDATES the clause panel —
+     measured against the commit before it, same numbers. Their page held every
+     ask that had ARRIVED on the payload as though it were unsent, so the first
+     edit of any kind offered to re-send a whole round. */
+  await p.evaluate(()=>window.SHOW_COUNTERPARTY()); await pause(1100);
+  const cpBefore = await p.evaluate(()=>({
+    band: !!document.querySelector('.rl-unsent'),
+    arrived: document.querySelectorAll('#rl-changes .rl-card').length }));
+  const cpAfter = await p.evaluate(async () => {
+    const pill = document.querySelector('.rl-cp-pill');
+    pill.click(); await new Promise(r=>setTimeout(r,500));
+    document.querySelector('#rl-cp .rl-cp-src.is-on [data-rl-cp-edit]').click();
+    await new Promise(r=>setTimeout(r,450));
+    const e = document.querySelector('#rl-cp [data-nego-editor]');
+    e.focus(); e.innerHTML = '<p>Their rewrite: ninety (90) days.</p>';
+    document.querySelector('#rl-cp [data-nego-next]').click();
+    await new Promise(r=>setTimeout(r,350));
+    document.querySelector('#rl-cp [data-nego-save]').click();
+    await new Promise(r=>setTimeout(r,1100));
+    return { n: (document.querySelector('.rl-unsent-n')||{}).textContent,
+      cards: document.querySelectorAll('#rl-changes .rl-card').length };
+  });
+  ck('8e their page holds NOTHING before they touch anything', !cpBefore.band,
+     `${cpBefore.arrived} asks already on the payload`);
+  ck('8f …and after one edit it holds exactly ONE, not the whole round',
+     /^1 /.test(String(cpAfter.n||'')) && cpAfter.cards === cpBefore.arrived + 1,
+     `band "${cpAfter.n}", cards ${cpBefore.arrived} → ${cpAfter.cards}`);
   await p.evaluate(()=>rlCpSetShown(document,null)); await pause(300);
 
   ck('no page errors', errs.length===0, errs.join(' | ')||'clean');

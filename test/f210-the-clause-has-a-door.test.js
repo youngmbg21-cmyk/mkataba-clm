@@ -200,14 +200,26 @@ describe('f210 (3) — what is in the panel', () => {
     const heads = [...b.querySelectorAll('.rl-cp-h')].map(h => h.textContent.trim());
     assert.ok(heads.includes('History'), 'the heading is there with nothing under it');
     const nones = [...b.querySelectorAll('.rl-cp-none')].map(n => n.textContent.trim());
-    assert.ok(nones.includes('Nothing has been asked about this clause yet.'));
+    assert.ok(nones.includes('Nothing has been settled on this clause yet.'),
+      'and it names what is ABSENT — "nothing has been asked" would be untrue '
+      + 'the moment an ask sits on the table twelve pixels above it');
     assert.ok(nones.includes('Nothing is on the table for this clause.'));
   });
 
-  test('a live ask appears on the table AND in the history', async () => {
-    /* They answer different questions — "what am I deciding" and "how did this
-       clause get here" — and an ask that is still open is a true answer to
-       both. */
+  test('a live ask is ON THE TABLE ONLY — never in the history as well', async () => {
+    /* REVERSED IN PLACE, 16 Aug 2026 (owner-reported): "when i redline, the new
+       change appears On the Table and also as the last redline which is
+       redundant. It should only appear On the Table and once resolved it takes
+       its place at the bottom of the sequence in history."
+
+       This used to assert the opposite, on the reasoning that "what am I
+       deciding" and "how did this clause get here" are different questions and
+       an open ask is a true answer to both. Measured against the screen, that
+       is not worth the line it costs: the two sections sit twelve pixels apart,
+       so a live ask printed itself twice, identically, and the reader has to
+       work out that they are one thing. The SEQUENCE is not broken by the
+       change — a settled ask joins the history at the bottom, which is where
+       seq order puts it anyway. */
     const p = await bench();
     const box = page(p);
     const b = bodies(box).find(x => x.querySelector('.rl-cp-row'));
@@ -215,9 +227,13 @@ describe('f210 (3) — what is in the panel', () => {
     const secs = [...b.querySelectorAll('.rl-cp-sec')];
     const table = secs.find(s => /On the table/.test(s.querySelector('.rl-cp-h').textContent));
     const hist = secs.find(s => /History/.test(s.querySelector('.rl-cp-h').textContent));
-    assert.equal(table.querySelectorAll('.rl-cp-row').length, 1);
-    assert.equal(hist.querySelectorAll('.rl-cp-row').length, 1);
+    assert.equal(table.querySelectorAll('.rl-cp-row').length, 1, 'on the table');
+    assert.equal(hist.querySelectorAll('.rl-cp-row').length, 0, 'and NOT in the history');
     assert.equal(table.querySelector('.rl-cp-row b').textContent, p.c.changes[0].id);
+    /* …and the history's empty line says what is actually absent. "Nothing has
+       been asked about this clause yet" would be untrue with an ask sitting
+       twelve pixels above it. */
+    assert.match(hist.querySelector('.rl-cp-none').textContent, /Nothing has been settled/);
   });
 
   test('a settled ask leaves the table and stays in the history', async () => {
@@ -233,7 +249,8 @@ describe('f210 (3) — what is in the panel', () => {
     const table = secs.find(s => /On the table/.test(s.querySelector('.rl-cp-h').textContent));
     const hist = secs.find(s => /History/.test(s.querySelector('.rl-cp-h').textContent));
     assert.equal(table.querySelectorAll('.rl-cp-row').length, 0, 'nothing left to decide');
-    assert.equal(hist.querySelectorAll('.rl-cp-row').length, 1, 'and the record keeps it');
+    assert.equal(hist.querySelectorAll('.rl-cp-row').length, 1,
+      'and it takes its place in the history — the two sections are one list, split by one predicate');
     assert.match(hist.querySelector('.rl-cp-why').textContent, /Sixty is too long/,
       'with the reason the refusal travelled with');
   });
@@ -700,9 +717,76 @@ describe('f210 (12) — the Copilot', () => {
   });
 });
 
+describe('f210 (14) — three faults reported the morning after the editing landed', () => {
+  test('the Copilot button hands straight over — no menu to anchor', async () => {
+    /* Owner-reported 16 Aug 2026: "When I click edit with copilot the panel
+       disappears and the copilot dropdown appears on the top right corner."
+
+       Reproduced. The button raised the same three-item menu the clause toolbar
+       raises, anchored on ITSELF — and the panel is shut in the capture phase
+       before the menu is built, which sets its body to display:none, so the
+       button's rect came back all zeros and the menu was clamped into the
+       corner of the window. A dropdown detached from the thing that summoned
+       it, offering two actions the owner had already asked this surface not to
+       offer.
+
+       Both halves answered by taking the menu out: a control already narrowed
+       to ONE action is a menu with one row, and a menu with one row is a press
+       the reader has to make twice. */
+    assert.match(SRC, /const fromPanel = !!btn\.closest\('\.rl-cp-src'\);/);
+    assert.match(SRC, /only: fromPanel \? \['edit'\] : null, direct: fromPanel/);
+    assert.match(SRC, /if \(ctx\.direct && actions\.length === 1\)\{/,
+      'and rlSelMenu hands it to rlAiPropose rather than drawing a one-row menu');
+  });
+
+  test('rlSelMenu returns no menu on a direct press, and still draws one otherwise',
+    async () => {
+    const p = await bench();
+    const { win } = p;
+    let handed = null;
+    const real = win.rlAiPropose;
+    win.rlAiPropose = ctx => { handed = ctx.action && ctx.action.id; };
+    const ctx = { c: p.c, text: 'wording', clauseId: 'x',
+      rect: { left: 10, top: 10, width: 40, height: 12 } };
+    const none = win.rlSelMenu({ ...ctx, only: ['edit'], direct: true });
+    assert.equal(none, null, 'nothing is drawn');
+    assert.equal(handed, 'edit', 'it went straight to the Copilot');
+    assert.equal(win.document.querySelectorAll('.nego-selmenu').length, 0,
+      'and no stray dropdown is left on the page');
+    /* A direct press with the whole list still gets a menu — `direct` is not a
+       licence to pick for the reader. */
+    const menu = win.rlSelMenu({ ...ctx, direct: true });
+    assert.ok(menu && menu.querySelectorAll('[data-nego-ai]').length === 3);
+    win.rlAiPropose = real;
+  });
+
+  test('a change that ARRIVED on the payload is not held as unsent', async () => {
+    /* Owner-reported: "The counterparty side the changes do not seem to be
+       working." Reproduced on the browser harness, and it PREDATES the clause
+       panel — measured against the commit before it, same numbers.
+
+       The portal's guard was `!PORTAL_NEGO_PROPOSED_SENT[ch.id]`, and that
+       store starts empty in a fresh browser: it only fills when this reader
+       presses Send. So on a link carrying asks this side had already made in an
+       earlier round, the first act of any kind swept every one of them into
+       "held here until you send them" — a reader who redlined once was told six
+       changes were not sent and offered "Send all 6", over asks the owner had
+       been looking at for a week.
+
+       The payload IS the record of what has reached the other side, so it is
+       asked each time rather than stored: nothing to persist, nothing to
+       migrate, and no second store to keep in step. */
+    const src = read('js/views/portal.js');
+    assert.match(src, /const arrived = new Set\(\(\(\(p\|\|\{\}\)\.contract\|\|\{\}\)\.changes\|\|\[\]\)/);
+    assert.match(src, /&& !arrived\.has\(ch\.id\) && !PORTAL_NEGO_PROPOSED_SENT\[ch\.id\]/);
+    assert.match(src, /if\(arrived\.has\(ch\.id\) && PORTAL_NEGO_PROPOSED\[ch\.id\]\) delete PORTAL_NEGO_PROPOSED\[ch\.id\];/,
+      'and a stale entry from before this rule is cleared, since nothing else removes one');
+  });
+});
+
 describe('f210 (13) — the new words, both languages', () => {
   for (const k of ['ng_cp_propose', 'ng_cp_propose_title', 'ng_cp_continue',
-    'ng_cp_continue_title', 'ng_cp_copilot', 'ng_cp_sel_hint']){
+    'ng_cp_continue_title', 'ng_cp_copilot', 'ng_cp_copilot_title', 'ng_cp_sel_hint']){
     test(`${k} is defined twice`, () => {
       assert.equal((I18N.match(new RegExp(`\\b${k}:`, 'g')) || []).length, 2,
         'one English, one Swedish');

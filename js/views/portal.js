@@ -1921,6 +1921,26 @@ function wirePortalNego(c, p){
        redlineDocHtml. */
     hiddenIds:[],
     onChange(rec){
+      /* ---- A CHANGE THAT ARRIVED ON THE PAYLOAD HAS ALREADY BEEN SENT ----
+         (owner-reported 16 Aug 2026: "The counterparty side the changes do not
+         seem to be working." Reproduced, and it predates the clause panel.)
+
+         The guard below was `!PORTAL_NEGO_PROPOSED_SENT[ch.id]`, and that store
+         starts EMPTY in a fresh browser — it only fills when this reader
+         presses Send. So on a link carrying asks this side had already made in
+         an earlier round, the first act of any kind swept every one of them
+         into "held here until you send them": a reader who redlined once was
+         told six changes were not sent and offered "Send all 6", over asks the
+         owner had been looking at for a week. Measured on the harness: nothing
+         held before the first edit, six held straight after it.
+
+         READ FROM THE PAYLOAD, NOT STORED. The payload IS the record of what
+         has reached the other side, so asking it each time cannot go stale, and
+         a refreshed link brings its own answer with it. Nothing to persist,
+         nothing to migrate, and no second store to keep in step with the
+         first. */
+      const arrived = new Set((((p||{}).contract||{}).changes||[])
+        .map(x => x && x.id).filter(Boolean));
       for(const ch of (rec.changes||[])){
         // a held decision is one that differs from what was sent — see the
         // history on portalDecisionSettled
@@ -1928,8 +1948,13 @@ function wirePortalNego(c, p){
           PORTAL_NEGO_DECISIONS[ch.id]={ status:ch.status, reply:ch.reply||null };
         else if(ch.status==='pending' && ch.authorSide==='owner') delete PORTAL_NEGO_DECISIONS[ch.id];
         // wording THEY have asked for, held by value until sent
-        if(ch.authorSide==='counterparty' && ch.status==='pending' && !PORTAL_NEGO_PROPOSED_SENT[ch.id])
+        if(ch.authorSide==='counterparty' && ch.status==='pending'
+          && !arrived.has(ch.id) && !PORTAL_NEGO_PROPOSED_SENT[ch.id])
           PORTAL_NEGO_PROPOSED[ch.id]={ ...ch, thread:[] };
+        /* And one that HAS arrived can never be held: a stale entry from before
+           this rule would otherwise sit in the store for the life of the
+           browser, since nothing else ever removes it. */
+        if(arrived.has(ch.id) && PORTAL_NEGO_PROPOSED[ch.id]) delete PORTAL_NEGO_PROPOSED[ch.id];
       }
       portalSaveHeld();
       const foot=document.getElementById('pt-nego-foot');

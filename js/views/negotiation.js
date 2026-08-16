@@ -5158,9 +5158,14 @@ function wireNegotiationTab(c, opts = {}){
           .some(n => String(n.textContent || '').trim()));
       const passage = { text, readings: [], occurrence: 0, parts: [], hasMarks,
         clauses: clauseEl ? [clauseEl] : [], clauseIds: [clauseId], multiRange: false };
+      /* Pressed from the clause panel: one action, and no menu to anchor. See
+         the note beside the button — its own rect is unreadable by the time
+         this runs, because closing the panel hides the body it sits in. */
+      const fromPanel = !!btn.closest('.rl-cp-src');
       const ctx = { c, opts, text, clauseId, rect, side, again, whole: true, event: 'click',
         marked: hasMarks && live, settled: hasMarks && !live, spans: false,
-        passage, clauseIds: [clauseId] };
+        passage, clauseIds: [clauseId],
+        only: fromPanel ? ['edit'] : null, direct: fromPanel };
       _negoKillSelMenu();
       if (typeof opts.selMenu === 'function'){ opts.selMenu(ctx); return; }
       defaultMenu(ctx);
@@ -6135,6 +6140,9 @@ function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
      says so instead of promising something else. */
   const mine = live.some(x => x.authorSide === (side === 'counterparty' ? 'counterparty' : 'owner')
     && x.changeType !== 'deleteClause' && x.changeType !== 'insertClause');
+  /* What is SETTLED — everything that is not on the table. Same list, same
+     order, one predicate apart, so a change cannot be in neither or in both. */
+  const past = list.filter(x => !live.includes(x));
   const row = ch => {
     const theirs = ch.authorSide !== (side === 'counterparty' ? 'counterparty' : 'owner');
     /* WHO SETTLED IT NEVER TRAVELS — resolvedBy is stripped from the share
@@ -6179,7 +6187,23 @@ function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
     </section>
     <section class="rl-cp-sec">
       <h5 class="rl-cp-h">${i18t('ng_cp_history')}</h5>
-      ${list.length ? list.map(row).join('') : `<p class="rl-cp-none">${i18t('ng_cp_history_none')}</p>`}
+      ${''/* ---- SETTLED ONLY, AND THAT IS A REVERSAL (owner-reported 16 Aug
+             2026: "when i redline, the new change appears On the Table and also
+             as the last redline which is redundant. It should only appear On
+             the Table and once resolved it takes its place at the bottom of the
+             sequence in history.")
+
+             This drew EVERY change, on the reasoning that "what am I deciding"
+             and "how did this clause get here" are different questions and an
+             open ask is a true answer to both. Measured against the screen, it
+             is not worth the line it costs: the two sections sit twelve pixels
+             apart, so a live ask printed itself twice, identically, and the
+             reader has to work out that they are one thing.
+
+             The sequence is the point of the section, and it is not broken by
+             this — a change joins the history at the moment it is settled, at
+             the BOTTOM, which is where it belongs in seq order anyway. */}
+      ${past.length ? past.map(row).join('') : `<p class="rl-cp-none">${i18t('ng_cp_history_none')}</p>`}
     </section>
     ${!editable ? '' : `<section class="rl-cp-sec rl-cp-acts">
       <h5 class="rl-cp-h">${i18t('ng_cp_acts')}</h5>
@@ -6205,8 +6229,29 @@ function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
              further away and pointed at the clause behind the panel. It stays
              on the CLAUSE's own hover row, which is a different place with a
              different reason; retiring it there is its own piece. */}
+      ${''/* ---- IT GOES STRAIGHT TO THE COPILOT, WITH NO MENU IN BETWEEN ----
+             (owner-reported 16 Aug 2026: "When I click edit with copilot the
+             panel disappears and the copilot dropdown appears on the top right
+             corner.")
+
+             Reproduced. This button raised the same three-item menu the clause
+             toolbar raises, anchored on ITSELF — and the panel is shut in the
+             capture phase before the menu is built, which sets its body to
+             display:none, so the button's rect came back all zeros and the menu
+             was clamped into the corner of the window. A dropdown detached from
+             the thing that summoned it, offering two actions the owner had
+             already asked this surface not to offer.
+
+             Both halves answered at once by taking the menu out: a control
+             already narrowed to ONE action is a menu with one row, and a menu
+             with one row is a press the reader has to make twice. `direct`
+             hands it to rlAiPropose, which is where every route ends anyway —
+             so the press does what its label says and lands in the Copilot
+             chat, which is the "moves you to the copilot assistant" the owner
+             asked for. */}
       ${opts.noAi ? '' : `<button type="button" class="rl-cp-act rl-cp-act-ai" data-rl-cp-close="1"
-        data-nego-ai-clause="${id}" title="${_nea(i18t('ng_ai_redraft_title'))}">&#10024; ${i18t('ng_cp_copilot')}</button>`}
+        data-nego-ai-clause="${id}" data-rl-cp-ai="1"
+        title="${_nea(i18t('ng_cp_copilot_title'))}">&#10024; ${i18t('ng_cp_copilot')}</button>`}
       ${''/* THEY ARE NOT .rl-tool, AND THAT IS A RULE RATHER THAN A STYLE
              CHOICE. The first build wore the sheet's tool-pill class, and the
              panel is written EARLIER in the grid than the document, so the
@@ -9911,6 +9956,18 @@ function rlSelMenu(ctx){
   const all = rlSelActions();
   const picked = want ? all.filter(a => want.includes(a.id)) : all;
   const actions = picked.length ? picked : all;
+  /* ---- ONE ACTION AND A DIRECT PRESS IS NOT A MENU ----
+     A menu with a single row is a press the reader has to make twice, and the
+     panel's Copilot button has no anchor to hang one on anyway (closing the
+     panel hides the button before its rect can be read — the reported
+     top-corner dropdown). It hands straight to rlAiPropose, which is where
+     every row in this menu ends. Returns null: there is no menu to return. */
+  if (ctx.direct && actions.length === 1){
+    _negoKillSelMenu();
+    const a = actions[0];
+    rlAiPropose({ ...ctx, action: a.standard ? rlStandardAction(ctx.c) : a });
+    return null;
+  }
   _negoKillSelMenu();
   const menu = document.createElement('div');
   menu.className = 'nego-selmenu';
