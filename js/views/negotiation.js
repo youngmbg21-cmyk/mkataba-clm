@@ -7855,9 +7855,15 @@ function redlineLayoutCss(){
      and "11 on the table" shifting the words beside them. It earns the accent
      only when there is actually something on the table. */
   .redline-page .nego-pane.index{background:transparent}
+  ${''/* The head's text sits INSET from the column edge (owner-asked 16 Aug
+     2026, off a screenshot: "too close to the edge of the page"). The inset is
+     PADDING so the bottom rule still runs the column's width — a rule that
+     stopped short of its own caption would read as a broken line. The cards
+     below keep their own 2px: they are bordered objects and the caption is a
+     label, the same relationship a table header has to its rows. */}
   .redline-page .rl-idx-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px;
     background:none;border:0;border-bottom:1px solid var(--color-divider);
-    border-radius:0;padding:0 2px 9px;margin:0 2px 10px}
+    border-radius:0;padding:6px 12px 9px;margin:0 2px 10px}
   /* The tabs carry their own bottom padding down to the rule, so the head must
      not carry it too. :has() and not a class because the filter's absence is
      decided in the renderer (a reviewer's column has no filter — see the note
@@ -7867,9 +7873,9 @@ function redlineLayoutCss(){
      broken one. */
   .redline-page .rl-idx-head:has(.rl-fsegwrap){padding-bottom:0}
   .redline-page .rl-idx-head [hidden]{display:none!important}
-  .redline-page .rl-idx-k{flex:1;min-width:0;font-size:9.5px;font-weight:800;letter-spacing:.12em;
+  .redline-page .rl-idx-k{flex:1;min-width:0;font-size:10.5px;font-weight:800;letter-spacing:.12em;
     text-transform:uppercase;color:var(--color-neutral-600)}
-  .redline-page .rl-idx-n{flex:none;font-family:var(--font-mono);font-size:10px;font-weight:700;
+  .redline-page .rl-idx-n{flex:none;font-family:var(--font-mono);font-size:11px;font-weight:700;
     letter-spacing:.01em;font-variant-numeric:tabular-nums;color:var(--color-neutral-500);
     background:none;border:0;border-radius:0;padding:0;line-height:1.2}
   .redline-page .rl-idx-n.is-live{color:var(--color-accent-800)}
@@ -7897,7 +7903,7 @@ function redlineLayoutCss(){
     background:none;border:0;border-radius:0}
   .redline-page .rl-fseg{flex:none;min-width:0;display:flex;align-items:center;
     gap:5px;border:0;border-bottom:2px solid transparent;background:none;font:inherit;
-    font-size:11px;font-weight:600;color:var(--color-neutral-500);padding:0 0 8px;
+    font-size:12px;font-weight:600;color:var(--color-neutral-500);padding:0 0 8px;
     margin-bottom:-1px;border-radius:0;cursor:pointer;white-space:nowrap;
     transition:color .12s,border-color .12s}
   .redline-page .rl-fseg:hover{color:var(--color-text)}
@@ -7910,7 +7916,7 @@ function redlineLayoutCss(){
     outline-offset:2px;border-radius:3px}
   /* The count rides INSIDE its own tab: it is the thing that stops a filter
      hiding a change quietly, so it must be readable on the resting face too. */
-  .redline-page .rl-fseg-n{flex:none;font-family:var(--font-mono);font-size:9.5px;font-weight:700;
+  .redline-page .rl-fseg-n{flex:none;font-family:var(--font-mono);font-size:10.5px;font-weight:700;
     opacity:.62}
   .redline-page .rl-fseg.on .rl-fseg-n{opacity:1;color:var(--color-accent-800)}
   /* MOUNTED, UNSEEN, AND STILL CLICKABLE. Not display:none — a hidden control
@@ -8439,11 +8445,11 @@ function redlineLayoutCss(){
      list and the contract are the page. On a short window the furniture gives
      way. Nothing is hidden. */
   @media (max-height:820px){
-    .redline-page .rl-idx-head{padding:0 2px 8px;gap:6px}
+    .redline-page .rl-idx-head{padding:4px 12px 8px;gap:6px}
     .redline-page .rl-paper{padding:26px 30px 30px}
   }
   @media (max-height:680px){
-    .redline-page .rl-idx-head{padding:0 2px 6px;gap:5px}
+    .redline-page .rl-idx-head{padding:2px 12px 6px;gap:5px}
     .redline-page .rl-paper{padding:20px 26px 24px}
   }
   /* ---- THE HANDLE ----
@@ -11067,7 +11073,7 @@ function rlLayoutResizer(host){
   const avail = _rlAvail(grid);
   let left = Math.round(_rlLeftFrac() * avail);
   if (avail >= RL_LEFT_MIN + RL_RIGHT_MIN)
-    left = Math.min(Math.max(left, RL_LEFT_MIN), avail - RL_RIGHT_MIN);
+    left = Math.min(Math.max(left, RL_LEFT_MIN), avail - RL_RIGHT_MIN, RL_LEFT_MAX);
   const s = { avail, left };
   /* Unmeasured (a stage with no layout) or stacked to one column: the CSS
      fallback columns hold, and writing 0px here would break them. */
@@ -11081,7 +11087,8 @@ function rlLayoutResizer(host){
      nothing on screen to say why, so the control read as broken exactly when
      somebody was pushing hardest at it. A splitter at its limit should look
      like one. */
-  const atMin = s.left <= RL_LEFT_MIN, atMax = s.left >= s.avail - RL_RIGHT_MIN;
+  const atMin = s.left <= RL_LEFT_MIN,
+    atMax = s.left >= Math.min(s.avail - RL_RIGHT_MIN, RL_LEFT_MAX);
   if (atMin || atMax) rez.setAttribute('data-rl-at-limit', atMin ? 'min' : 'max');
   else rez.removeAttribute('data-rl-at-limit');
   /* THE CONTRACT FOLLOWS THE DIVIDER IN THE SAME PASS. The observer below
@@ -11164,6 +11171,21 @@ function rlSetDocType(px){
    until something else forced a repaint. */
 const RL_PAGE_W = 660;
 const RL_ZOOM_MAX = 2.0;   // the Document tab's own ceiling: past this it stops being a contract
+/* ---- AND THE COLUMN STOPS WHERE THE SHEET DOES (owner-reported 16 Aug 2026,
+   from focus mode on a wide monitor) ----
+   The sheet can never use more than RL_PAGE_W × RL_ZOOM_MAX = 1320 visual
+   pixels; a doc column wider than that buys nothing but white either side of a
+   centred page, which was reported as a void beside the contract. FOCUS MODE
+   is where it showed — hiding the sidebar is what pushed the column past the
+   ceiling — but the fault was never focus's: the same width reached by a wide
+   monitor or a hard divider drag white-spaced identically. So the divider's
+   left column carries a MAX beside its two MINs, and the surplus goes to the
+   track that can use it — the cards, and the clause panel that takes that
+   track whole. The 40 covers the pane's own padding, the zoom's rounding
+   guard and a classic scrollbar, so the fit still reaches 2.0 inside the cap.
+   The stored fraction is READ, NEVER REWRITTEN, above the cap — the nav
+   drawer's own rule — so a narrower window gets the old split back. */
+const RL_LEFT_MAX = RL_PAGE_W * RL_ZOOM_MAX + 40;
 function rlApplyDocZoom(host){
   const scope = (host && host.querySelectorAll) ? host : document;
   const wraps = scope.querySelectorAll('.redline-page .rl-zoom');

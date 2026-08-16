@@ -167,8 +167,10 @@ describe('f175 · the Tracked Changes head is a rule, not a box', () => {
     const css = p.css();
     const k = /\.rl-idx-k\{([^}]*)\}/.exec(css)[1];
     const n = /\.rl-idx-n\{([^}]*)\}/.exec(css)[1];
-    assert.match(k, /font-size:9\.5px/, 'the caption is the queue label\'s type');
-    assert.match(n, /font-size:10px/,
+    /* One size up across the head (owner-asked 16 Aug 2026); the RELATION is
+       the claim — the count stays a hair above the caption and no more. */
+    assert.match(k, /font-size:10\.5px/, 'the caption is the queue label\'s type');
+    assert.match(n, /font-size:11px/,
       'and the count is a hair larger only because mono runs small at the same size');
     assert.match(n, /color:var\(--color-neutral-500\)/,
       'set below the caption in ink, which is what keeps it quieter');
