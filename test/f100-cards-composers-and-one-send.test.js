@@ -888,3 +888,130 @@ describe('F100f — and all of it from the counterparty\'s own chair', () => {
     assert.equal(p.win.rlCpOpenId(), null, 'the panel let go with the contract');
   });
 });
+
+/* ============================================================ */
+describe('F100g — a card\'s Send sends that card, and only that card', () => {
+  /* Owner-reported 16 Aug 2026, in exactly these words: "when I have multiple
+     edits that need to be sent, there is a bug where if I click on one card to
+     send, it sends all the cards." It was not a bug until the owner ruled it
+     one — the 11 Aug decision was "one send, batch semantics" — but the ruling
+     stands and REVERSES it: a card's Send now marks itself a SOLO send, and
+     onSendDirect holds every OTHER unsent draft back (negoHoldOthers) so the
+     round that leaves carries exactly the chosen change. The batch doors —
+     the "Send all N" band and Publish Round — release the hold on their way
+     through, because a batch door means "send everything".
+
+     THE HOLD IS ITS OWN RECORD (negotiation.holdIds), because `turnAt` cannot
+     say "this draft went and that one did not": it is one timestamp for the
+     whole desk, and the moment a solo send moved it, every older draft would
+     have silently flipped to Sent without ever leaving. */
+  async function page(){
+    const w = buildWorld({ negotiationView: true, contractView: true });
+    const { win } = w;
+    win.promptDialog = async () => '';
+    win.openAI = () => {}; win.aiPush = () => {}; win.renderAIFeed = () => {};
+    win.copilotAvailable = () => false;
+    const post = { reshared: 0, modals: 0 };
+    win.openShareModal = () => { post.modals++; };
+    win.counterpartyContact = () => ({ name: 'Erik', email: 'erik@kabras.co.ke', channel: 'email' });
+    win.reshareToLastRecipient = async () => { post.reshared++; return { delivered: true }; };
+    win.cachedShares = () => [];
+    const c = supplyContract();
+    win.negoInit(c);
+    /* TWO drafts of our own, the reported state. */
+    await win.negoFileProposal(c, win.negoBaseText(c).replace('thirty (30) days', 'forty-five (45) days'),
+      { side: 'owner', author: 'Young Mbagaya' });
+    await win.negoFileProposal(c, win.negoResolvedText(c) + '\nA cap on liability of 100% of fees.',
+      { side: 'owner', author: 'Young Mbagaya' });
+    win.rlSetCardFilter('all');
+    win.state = Object.assign({}, win.state, { contracts: [c], activeId: c.id, view: 'redline' });
+    win.getContract = id => (id === c.id ? c : null);
+    win.renderRedline();
+    const $ = s => win.document.querySelector(s);
+    const $$ = s => [...win.document.querySelectorAll(s)];
+    const settle = async () => { for (let i = 0; i < 4; i++) await new Promise(r => setImmediate(r)); };
+    return { w, win, c, post, $, $$, settle, again: () => win.renderRedline() };
+  }
+  const badgeOf = (p, id) => p.$(`[data-nego-card="${id}"] .rl-badge`).textContent.trim();
+
+  test('THE FIX: one card\'s Send publishes that change and holds the other back', async () => {
+    const p = await page();
+    const [a, b] = p.c.changes.map(x => x.id);
+    assert.equal(p.win.negoUnsentAsks(p.c, 'owner').length, 2, 'both start unsent');
+    p.$(`[data-nego-card="${a}"] [data-rl-send]`).click();
+    await p.settle();
+    p.again();
+    assert.equal(p.post.reshared, 1, 'one round went');
+    assert.equal(p.post.modals, 0, 'and no dialog');
+    assert.equal(badgeOf(p, a), 'Sent', 'the chosen change has gone');
+    assert.match(badgeOf(p, b), /Draft/, 'the other is still a draft on the desk');
+    /* Joined, not deep-compared: the page realm's Array prototype is not this
+       realm's — the f60 trap this file already documents. */
+    assert.equal(p.win.negoUnsentAsks(p.c, 'owner').map(x => x.id).join(','), b,
+      'the arithmetic agrees: one unsent draft remains');
+    assert.equal([...p.win.negoHeldBackIds(p.c)].join(','), b,
+      'held by its own record, not by the turn stamp');
+    assert.ok(p.$(`[data-nego-card="${b}"] [data-rl-send]`),
+      'and its own Send is still on its card');
+    assert.match(p.$('.rl-unsent-n').textContent, /1/, 'the band counts what is left');
+  });
+
+  test('the payload subtracts the held draft the way it subtracts a reviewer\'s holds', () => {
+    /* Source-level, like F100a's one-rule check: buildSharePayload lives in
+       js/core.js, which this stage does not load. The claim is that the
+       held-back set folds negoHeldBackIds UNCONDITIONALLY — the round send
+       passes no options, and a flag-gated filter would push a held draft down
+       the ordinary path. */
+    const src = read('js/core.js');
+    assert.match(src, /if \(window\.negoHeldBackIds\)\{/,
+      'the payload asks the engine for the solo send\'s holds');
+    assert.match(src, /for \(const id of negoHeldBackIds\(c\)\) heldBack\.add\(id\);/,
+      'and folds them into the one held-back set, unconditionally');
+  });
+
+  test('the batch door releases the hold, and the held draft finally travels', async () => {
+    const p = await page();
+    const [a, b] = p.c.changes.map(x => x.id);
+    p.$(`[data-nego-card="${a}"] [data-rl-send]`).click();
+    await p.settle();
+    p.again();
+    /* The band's "Send all N" is a [data-redline-proxy] door — a batch door —
+       so pressing it must clear the hold and send what was kept back. */
+    p.$('.rl-unsent-go').dispatchEvent(new p.win.Event('click', { bubbles: true }));
+    await p.settle();
+    p.again();
+    assert.equal(p.post.reshared, 2, 'a second round went');
+    assert.equal(p.win.negoHeldBackIds(p.c).length, 0, 'nothing is held any more');
+    assert.equal(p.win.negoUnsentAsks(p.c, 'owner').length, 0, 'nothing reads unsent');
+    assert.match(badgeOf(p, b), /Sent/, 'the once-held draft has gone');
+  });
+
+  test('the hold is self-cleaning: a decided change falls out on its own', async () => {
+    const p = await page();
+    const [a, b] = p.c.changes.map(x => x.id);
+    p.win.negoHoldOthers(p.c, a);
+    assert.equal([...p.win.negoHeldBackIds(p.c)].join(','), b);
+    p.c.changes.find(x => x.id === b).status = 'withdrawn';
+    assert.equal(p.win.negoHeldBackIds(p.c).length, 0,
+      'a change that left the table cannot be "held back" from anything');
+  });
+
+  test('the counterparty\'s card Send is untouched — their answers travel as one envelope', async () => {
+    /* Their seat holds decisions AND proposals until one Send, by design; the
+       card's title says so and F100f pins the verbs. What this asserts is that
+       the SOLO machinery is the owner's: their press targets the decisions
+       postbox and never writes a hold on the contract. */
+    const p = await page();
+    /* A held DECISION is an answered change still on their page — the badge
+       and verbs branch on status !== 'pending'. */
+    p.c.changes[0].status = 'accepted';
+    const box = p.win.document.createElement('div');
+    box.innerHTML = p.win.redlineChangeCardsHtml(p.c, { side: 'counterparty',
+      org: 'Wanjiru Catering Ltd', hiddenIds: [], holdsDecisions: true,
+      heldDecisionIds: [p.c.changes[0].id], unsentIds: [] });
+    const send = box.querySelector('[data-rl-send]');
+    assert.ok(send, 'their held answer carries its Send');
+    assert.match(send.getAttribute('title') || '', /everything else held/i,
+      'and its title still promises the batch');
+  });
+});

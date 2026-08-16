@@ -3056,7 +3056,12 @@ function negoHandOver(c, opts = {}){
      second must not stamp again. */
   const alreadyTheirs = n.turn === to;
   const mine = to === 'owner' ? 'counterparty' : 'owner';
-  if (alreadyTheirs && !negoUnsentAsks(c, mine).length) return null;
+  /* opts.sentAnyway: the caller just RELEASED a solo send's hold, so drafts
+     that really did travel in this batch read as already-sent to the
+     arithmetic (their createdAt predates the last stamp). The idempotency
+     this guard exists for is untouched — a second caller after one send
+     passes no such flag and still no-ops. */
+  if (alreadyTheirs && !negoUnsentAsks(c, mine).length && !opts.sentAnyway) return null;
   n.turn = to;
   n.turnAt = (window.nowISO ? window.nowISO() : new Date().toISOString());
   const by = String(opts.by || (window.currentUser && window.currentUser()?.name) || 'System');
@@ -3093,9 +3098,54 @@ function negoHandOver(c, opts = {}){
    was fixed for: propose something after handing over, and the change was
    filed, pending, with no send anywhere in the room. It waited for THEM to
    answer before we were allowed to tell them what we had asked. */
+/* ---- DRAFTS THE SENDER CHOSE TO KEEP BACK (owner-asked 16 Aug 2026) ----
+   A card's Send used to be a proxy onto the batch postbox — press one, publish
+   everything — which the owner reported as a bug: "if I click on one card to
+   send, it sends all the cards." Sending ONE change means the others must
+   still read as unsent afterwards, and `turnAt` cannot say that: it is one
+   timestamp for the whole desk, so the moment a solo send moves it, every
+   older draft would silently flip to "Sent" without ever leaving.
+
+   So the choice is its own record: negotiation.holdIds — the ids of our own
+   drafts deliberately kept back from a send. It is read SELF-CLEANING (only
+   ids that are still our own pending asks count; a decided, withdrawn or
+   superseded change falls out on its own), folded into buildSharePayload's
+   held-back set unconditionally exactly as the review's holds are, and
+   CLEARED by the batch doors ("Send all N", Publish Round) before they press
+   the postbox — a batch door means "send everything", including what a solo
+   send once kept back. */
+function negoHeldBackIds(c){
+  const raw = (c && c.negotiation && Array.isArray(c.negotiation.holdIds))
+    ? c.negotiation.holdIds : [];
+  if (!raw.length) return [];
+  const mine = new Set(negoPending(c).filter(x => x && x.authorSide === 'owner').map(x => x.id));
+  return raw.filter(id => mine.has(id));
+}
+/* Keep back every unsent owner draft EXCEPT the one being sent. Called by the
+   per-card send immediately before it presses the one postbox, so the round
+   that goes out carries exactly the chosen change. */
+function negoHoldOthers(c, keepId){
+  const n = negoInit(c);
+  const keep = String(keepId == null ? '' : keepId);
+  n.holdIds = negoUnsentAsks(c, 'owner').map(x => x.id).filter(id => id !== keep);
+  return n.holdIds.length;
+}
+/* A batch door means "send everything". Nothing else may clear the list — a
+   hold that evaporated on a repaint would re-create the reported bug. */
+function negoReleaseHold(c){
+  if (c && c.negotiation && Array.isArray(c.negotiation.holdIds) && c.negotiation.holdIds.length){
+    c.negotiation.holdIds = [];
+    return true;
+  }
+  return false;
+}
 function negoUnsentAsks(c, side){
   const me = side === 'counterparty' ? 'counterparty' : 'owner';
   const at = (c && c.negotiation && c.negotiation.turnAt) || null;
+  /* A draft deliberately kept back by a solo send stays unsent whatever the
+     turn stamp says — see negoHeldBackIds above. Owner side only: the list is
+     only ever written on the owner's desk. */
+  const hb = me === 'owner' ? new Set(negoHeldBackIds(c)) : null;
   /* Measured against a hand-over that actually happened. With no `turnAt` at
      all nothing has ever been sent, and "unsent" is not the useful fact about
      the round — it is simply somebody's turn, and the turn already says so.
@@ -3103,12 +3153,13 @@ function negoUnsentAsks(c, side){
      side's asks: a change of theirs is on our record only because it was sent
      to us, whatever the turn stamp says. */
   return negoPending(c).filter(x => x && x.authorSide === me
-    && (at ? String(x.createdAt || '') > String(at)
+    && ((hb && hb.has(x.id))
+      || (at ? String(x.createdAt || '') > String(at)
            /* Nothing has ever been handed over. Our own pending asks are
               therefore unsent — the first round is unsent work like any other.
               Theirs are not: a change of theirs is on our record only because
               it was sent to us, whatever the turn stamp says. */
-           : me === 'owner'));
+           : me === 'owner')));
 }
 function negoTurnBanner(c, side){
   negoInit(c);
@@ -3502,6 +3553,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoVersionOptions, negoVersionChoices, negoVersionByKey, negoVersionRound,
   negoIsLivePair, negoCompareVersions,
   negoTurn, negoHandOver, negoTurnBanner, negoUnsentAsks,
+  negoHeldBackIds, negoHoldOthers, negoReleaseHold,
   negoAdvanceRound, negoAllChanges, negoRevisionAt,
   negoChangeHtml, negoDiffHtml,
   negoIntakePath, negoNormalizeDocument, negoRichFromLines, negoMigrate });

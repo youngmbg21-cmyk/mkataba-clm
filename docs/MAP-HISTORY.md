@@ -2845,3 +2845,55 @@ same lesson the engine's overflow rule taught on this very page a day earlier.
 f95's "one radius" claim was split in place: the columns and cards keep the
 14/12px family, the sheet and the panel are square, and the drift the test
 exists to catch is still caught.
+
+
+## THE SOLO SEND, THE DOTTED LINE, AND THE NAV-COLOURED PILLS (16 Aug 2026)
+
+Three owner asks in one message, after the routing rows merged.
+
+---- "IF I CLICK ON ONE CARD TO SEND, IT SENDS ALL THE CARDS" ----
+
+Reported as a bug, and it was working as designed — the 11 Aug decision was
+"one send, batch semantics": a card's Send was a proxy onto the one postbox,
+and the postbox published every unsent draft. The owner's ruling reverses it.
+
+The interesting part is WHY a per-card send needed new machinery at all.
+"Sent" on this product is arithmetic over one timestamp — negoUnsentAsks
+measures createdAt against negotiation.turnAt, the moment work last left the
+desk. One timestamp cannot say "this draft went and that one did not": the
+moment a solo send stamps it, every OLDER draft flips to "Sent" without ever
+leaving, which is a worse lie than the bug being fixed. So the choice to keep
+a draft back became its own record — negotiation.holdIds — read self-cleaning
+(a decided or withdrawn change falls out on its own), folded into
+buildSharePayload's held-back set unconditionally exactly as the internal
+review's holds are, and counted by negoUnsentAsks beside the stamp so a held
+draft keeps its Draft badge, its own Send, and its place in the "N not sent"
+band.
+
+The press itself still goes through the one postbox — never a second
+transport. It marks itself solo for the duration of one synchronous click
+(_rlSoloSendId, consumed by onSendDirect on its first line); the batch doors
+— the band's "Send all N" and Publish Round, both [data-redline-proxy] doors
+— clear the marker and release the hold on their way through, because a
+batch door means "send everything". One subtlety fell out of the release: a
+draft the hold had covered predates the turn stamp, so the moment the hold
+lifts the arithmetic calls the batch a no-op — negoHandOver is told
+`sentAnyway` and still stamps the turn, files the audit line and snapshots
+the version for a round that genuinely left. The counterparty's seat is
+untouched: their held answers travel as one envelope by design and their
+button's title says so. F100g pins all of it; f92's "send the lot" step
+re-pointed at the batch door it now means.
+
+---- THE BLUE BOX AND THE EMERALD PILLS ----
+
+Two smaller asks off the same screenshots. The clicked clause's mark
+(.rl-clause.is-linked) was a solid 2px accent ring — in the blue workspace, a
+heavy blue box around the contract's own words — and is now a thin grey
+DOTTED outline, offset off the text, both seats from one rule; the card's
+ring keeps the accent because a column row is furniture and the pairing must
+stay findable there. And the Edit pill on every clause plus the panel's
+"+ Propose new wording" stopped being a fixed emerald: they wear the nav
+panel's own colour token (--nav-bg) — dark green in the green workspace, navy
+in the blue one — so the theme, and the dark theme, come free and the two
+controls can never disagree with the shell about what colour this workspace
+is. f210's emerald claim re-pointed at the token.
