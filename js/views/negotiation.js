@@ -6181,30 +6181,14 @@ function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
       <p class="rl-cp-note">${i18t('ng_cp_stands_note')}</p>
       <div class="rl-cp-stands">${standsBody}</div>
     </section>
-    <section class="rl-cp-sec">
-      <h5 class="rl-cp-h">${i18t('ng_cp_table')}</h5>
-      ${live.length ? live.map(row).join('') : `<p class="rl-cp-none">${i18t('ng_cp_table_none')}</p>`}
-    </section>
-    <section class="rl-cp-sec">
-      <h5 class="rl-cp-h">${i18t('ng_cp_history')}</h5>
-      ${''/* ---- SETTLED ONLY, AND THAT IS A REVERSAL (owner-reported 16 Aug
-             2026: "when i redline, the new change appears On the Table and also
-             as the last redline which is redundant. It should only appear On
-             the Table and once resolved it takes its place at the bottom of the
-             sequence in history.")
-
-             This drew EVERY change, on the reasoning that "what am I deciding"
-             and "how did this clause get here" are different questions and an
-             open ask is a true answer to both. Measured against the screen, it
-             is not worth the line it costs: the two sections sit twelve pixels
-             apart, so a live ask printed itself twice, identically, and the
-             reader has to work out that they are one thing.
-
-             The sequence is the point of the section, and it is not broken by
-             this — a change joins the history at the moment it is settled, at
-             the BOTTOM, which is where it belongs in seq order anyway. */}
-      ${past.length ? past.map(row).join('') : `<p class="rl-cp-none">${i18t('ng_cp_history_none')}</p>`}
-    </section>
+    ${''/* ---- THE ACTS SIT UNDER THE WORDING THEY ACT ON (owner-asked 16 Aug
+           2026: "these buttons should appear under the As it Stands clause") ----
+           They were at the FOOT of the panel, below the history, which put the
+           ＋ furthest from the one thing it copies. It belongs here for the same
+           reason the editor opens here: this block IS what the ＋ duplicates, so
+           the button and its subject read as one thing. It also means the
+           editor, once open, is at the top of the panel rather than under a
+           scroll of settled asks. */}
     ${!editable ? '' : `<section class="rl-cp-sec rl-cp-acts">
       <h5 class="rl-cp-h">${i18t('ng_cp_acts')}</h5>
       ${''/* ---- THE PLUS COPIES WHAT STANDS INTO A DRAFT ----
@@ -6262,6 +6246,30 @@ function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
              through its own class. */}
       <p class="rl-cp-note rl-cp-hint">${i18t('ng_cp_sel_hint')}</p>
     </section>`}
+    <section class="rl-cp-sec">
+      <h5 class="rl-cp-h">${i18t('ng_cp_table')}</h5>
+      ${live.length ? live.map(row).join('') : `<p class="rl-cp-none">${i18t('ng_cp_table_none')}</p>`}
+    </section>
+    <section class="rl-cp-sec">
+      <h5 class="rl-cp-h">${i18t('ng_cp_history')}</h5>
+      ${''/* ---- SETTLED ONLY, AND THAT IS A REVERSAL (owner-reported 16 Aug
+             2026: "when i redline, the new change appears On the Table and also
+             as the last redline which is redundant. It should only appear On
+             the Table and once resolved it takes its place at the bottom of the
+             sequence in history.")
+
+             This drew EVERY change, on the reasoning that "what am I deciding"
+             and "how did this clause get here" are different questions and an
+             open ask is a true answer to both. Measured against the screen, it
+             is not worth the line it costs: the two sections sit twelve pixels
+             apart, so a live ask printed itself twice, identically, and the
+             reader has to work out that they are one thing.
+
+             The sequence is the point of the section, and it is not broken by
+             this — a change joins the history at the moment it is settled, at
+             the BOTTOM, which is where it belongs in seq order anyway. */}
+      ${past.length ? past.map(row).join('') : `<p class="rl-cp-none">${i18t('ng_cp_history_none')}</p>`}
+    </section>
   </div>`;
 }
 
@@ -8022,8 +8030,15 @@ function redlineLayoutCss(){
   .redline-page .rl-cp-clname{margin:0 0 12px;font-family:var(--font-heading);
     font-size:15px;font-weight:700;color:var(--color-text)}
   .redline-page .rl-cp-sec{margin:0 0 18px}
+  /* ---- THE THINGS THAT POINT AT SOMETHING ARE BLACK ----
+     (owner-asked 16 Aug 2026: "the highlighted features that bring your
+     attention to something should be in black font so it is not missed".)
+     The section headings and the change id are the panel's signposts — the two
+     things a reader scans for — and at neutral-600 they read as captions
+     ABOUT the content rather than as the labels ON it. The explanatory lines
+     under them stay grey, because those are the captions. */
   .redline-page .rl-cp-h{margin:0 0 4px;font-size:9.5px;font-weight:700;letter-spacing:.06em;
-    text-transform:uppercase;color:var(--color-neutral-600)}
+    text-transform:uppercase;color:var(--color-text)}
   .redline-page .rl-cp-note,.redline-page .rl-cp-none{margin:0 0 8px;font-size:11.5px;
     color:var(--color-neutral-600)}
   .redline-page .rl-cp-stands{font-size:12.5px;line-height:1.65;color:var(--color-text);
@@ -8038,6 +8053,21 @@ function redlineLayoutCss(){
   .redline-page .rl-cp-rowbd{min-width:0;flex:1}
   .redline-page .rl-cp-who{display:block;font-size:10.5px;color:var(--color-neutral-600);
     margin-bottom:3px}
+  /* The id, and only the id. The rest of the line — whose ask, where it stands,
+     who from, when — is context and stays quiet; the handle you cite the change
+     by is what must not be missed. */
+  .redline-page .rl-cp-who b{color:var(--color-text)}
+  /* ---- THE ADDITIONS ARE GREEN, AND NOTHING ELSE ----
+     (owner-asked 16 Aug 2026: "the green additions to the contract should just
+     be green, not bold and not underlined".) The engine's own mark carries a
+     2px bottom rule and weight 600 as well as the colour — the tracked-changes
+     convention, and it is kept ON THE PAPER, which is the document anybody
+     cites. In this panel the wording is a summary of one ask rather than the
+     contract itself, and three signals for one fact is two too many at 12.5px.
+     Written at three classes so it outranks the engine's own rule. */
+  .redline-page .rl-cp-src .nego-ins,
+  .redline-page .rl-cp-src ins.hati-ins{
+    border-bottom:0;font-weight:400;text-decoration:none}
   .redline-page .rl-cp-wd{font-size:12.5px;line-height:1.6;color:var(--color-text)}
   .redline-page .rl-cp-why{display:block;margin-top:4px;font-size:11.5px;font-style:italic;
     color:var(--color-neutral-600)}

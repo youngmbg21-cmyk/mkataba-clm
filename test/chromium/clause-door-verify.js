@@ -157,7 +157,8 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      !!open && open.shown === 1 && open.bodies === allPills.clauses,
      open && `${open.shown} shown of ${open.bodies}`);
   ck('2f the three sections are there',
-     !!open && open.heads.slice(0,3).join('|') === 'As it stands|On the table|History',
+     !!open && open.heads.filter(h=>h!=='Change this clause').join('|')
+       === 'As it stands|On the table|History',
      open && open.heads.join(' · '));
   /* ---- REVERSED IN PLACE, 16 Aug 2026 ---- this used to read "the backdrop is
      up". The owner asked for the opposite: no shading, "it has to remain
@@ -565,7 +566,9 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
       card: !!document.querySelector(`[data-nego-card="${ch&&ch.id}"]`),
       onPaper: !!document.querySelector(`.nego-clause[data-clause="${t}"] [data-rl-asktag="${ch&&ch.id}"]`),
       panelStillOpen: document.querySelector('#rl-cp').classList.contains('is-open'),
-      onTable: sec[1] ? sec[1].querySelectorAll('.rl-cp-row').length : 0,
+      onTable: (() => { const t = [...sec].find(x =>
+        /On the table/i.test((x.querySelector('.rl-cp-h')||{}).textContent||''));
+        return t ? t.querySelectorAll('.rl-cp-row').length : -1; })(),
       plusWord: (document.querySelector('#rl-cp .rl-cp-src.is-on [data-rl-cp-edit]')||{}).textContent };
   }, target);
   ck('7i FILING FROM THE PANEL PUTS A REAL CHANGE ON THE RECORD',
@@ -590,11 +593,13 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   await pause(900);
   await p.evaluate(id => rlCpSetShown(document, id), target); await pause(500);
   const shifted = await p.evaluate(() => {
-    const sec = document.querySelectorAll('#rl-cp .rl-cp-src.is-on .rl-cp-sec');
-    const ids = n => [...sec[n].querySelectorAll('.rl-cp-row')]
+    /* BY NAME, NOT BY POSITION. The acts section moved between the first two on
+       16 Aug 2026 and took two index-based readings down with it. */
+    const sec = [...document.querySelectorAll('#rl-cp .rl-cp-src.is-on .rl-cp-sec')];
+    const of = re => sec.find(x => re.test((x.querySelector('.rl-cp-h')||{}).textContent||''));
+    const ids = el => [...el.querySelectorAll('.rl-cp-row')]
       .map(r => r.getAttribute('data-rl-cp-change'));
-    return { table: ids(1), hist: ids(2),
-      histWasEmpty: !!sec[2].querySelector('.rl-cp-none') };
+    return { table: ids(of(/On the table/i)), hist: ids(of(/History/i)) };
   });
   ck('8a a settled ask leaves the table', shifted.table.length === 0, shifted.table.join(','));
   ck('8b …and takes its place at the bottom of the history',
@@ -648,6 +653,49 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('8f …and after one edit it holds exactly ONE, not the whole round',
      /^1 /.test(String(cpAfter.n||'')) && cpAfter.cards === cpBefore.arrived + 1,
      `band "${cpAfter.n}", cards ${cpBefore.arrived} → ${cpAfter.cards}`);
+  await p.evaluate(()=>rlCpSetShown(document,null)); await pause(300);
+
+  /* ---- 9. HOW THE PANEL READS, MEASURED (owner-asked 16 Aug 2026) ----
+     Three asks off three screenshots, and every one of them is a computed style
+     or a geometry — none of it visible to a node test. */
+  await p.evaluate(()=>window.SHOW_OWNER&&window.SHOW_OWNER()); await pause(800);
+  await p.evaluate(id=>rlCpSetShown(document,id), staged.clauseId); await pause(600);
+  const look = await p.evaluate(() => {
+    const on = document.querySelector('#rl-cp .rl-cp-src.is-on');
+    const box = s => { const e = on.querySelector(s); return e ? e.getBoundingClientRect() : null; };
+    const st = (root, s) => { const e = root.querySelector(s); return e ? getComputedStyle(e) : null; };
+    const insP = st(on, '.nego-ins, ins.hati-ins');
+    const insDoc = st(document.querySelector('#rl-doc'), '.nego-ins, ins.hati-ins');
+    const stands = box('.rl-cp-stands'), acts = box('.rl-cp-acts');
+    const table = [...on.querySelectorAll('.rl-cp-sec')]
+      .find(s => /On the table/i.test((s.querySelector('.rl-cp-h')||{}).textContent||''));
+    return {
+      insPanel: insP && { fw: insP.fontWeight, bb: parseFloat(insP.borderBottomWidth),
+        td: insP.textDecorationLine, col: insP.color },
+      insDoc: insDoc && { fw: insDoc.fontWeight, bb: parseFloat(insDoc.borderBottomWidth),
+        td: insDoc.textDecorationLine },
+      actsUnderStands: !!(stands && acts) && acts.top >= stands.bottom,
+      actsAboveTable: !!(acts && table) && acts.bottom <= table.getBoundingClientRect().top,
+      head: (st(on, '.rl-cp-h')||{}).color, id: (st(on, '.rl-cp-who b')||{}).color,
+      meta: (st(on, '.rl-cp-who')||{}).color, note: (st(on, '.rl-cp-note')||{}).color,
+      body: getComputedStyle(document.body).color };
+  });
+  ck('9a the panel\'s additions are plain green — no bold, no underline, no rule',
+     !!look.insPanel && look.insPanel.fw === '400' && look.insPanel.bb === 0
+     && look.insPanel.td === 'none' && /rgb\(4, 120, 87\)/.test(look.insPanel.col),
+     JSON.stringify(look.insPanel));
+  ck('9b …and the PAPER keeps the tracked-changes convention, deliberately',
+     !!look.insDoc && look.insDoc.fw === '600' && look.insDoc.bb > 0,
+     JSON.stringify(look.insDoc));
+  ck('9c the acts sit between "As it stands" and "On the table"',
+     look.actsUnderStands && look.actsAboveTable,
+     `under ${look.actsUnderStands}, above ${look.actsAboveTable}`);
+  ck('9d the section headings and the change id are the page\'s own text colour',
+     look.head === look.body && look.id === look.body,
+     `head ${look.head}, id ${look.id}, body ${look.body}`);
+  ck('9e …and the captions under them are NOT — only the signposts were lifted',
+     look.note !== look.body && look.meta !== look.body,
+     `note ${look.note}, meta ${look.meta}`);
   await p.evaluate(()=>rlCpSetShown(document,null)); await pause(300);
 
   ck('no page errors', errs.length===0, errs.join(' | ')||'clean');

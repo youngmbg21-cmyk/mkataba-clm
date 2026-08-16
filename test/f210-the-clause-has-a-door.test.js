@@ -187,7 +187,10 @@ describe('f210 (3) — what is in the panel', () => {
     const box = page(p);
     const b = bodies(box)[0];
     const heads = [...b.querySelectorAll('.rl-cp-h')].map(h => h.textContent.trim());
-    assert.deepEqual(heads.slice(0, 3), ['As it stands', 'On the table', 'History']);
+    /* The acts sit between the first two — see f210 (15). The three sections
+       the panel is ABOUT are still these three, in this order. */
+    assert.deepEqual(heads.filter(h => h !== 'Change this clause'),
+      ['As it stands', 'On the table', 'History']);
   });
 
   test('the history is drawn even when it is empty', async () => {
@@ -781,6 +784,56 @@ describe('f210 (14) — three faults reported the morning after the editing land
     assert.match(src, /&& !arrived\.has\(ch\.id\) && !PORTAL_NEGO_PROPOSED_SENT\[ch\.id\]/);
     assert.match(src, /if\(arrived\.has\(ch\.id\) && PORTAL_NEGO_PROPOSED\[ch\.id\]\) delete PORTAL_NEGO_PROPOSED\[ch\.id\];/,
       'and a stale entry from before this rule is cleared, since nothing else removes one');
+  });
+});
+
+describe('f210 (15) — how the panel reads', () => {
+  test('the acts sit under "As it stands", not at the foot of the panel', async () => {
+    /* Owner-asked 16 Aug 2026: "these buttons should appear under the As it
+       Stands clause." They were below the history, which put the ＋ furthest
+       from the one thing it copies. This block IS what the ＋ duplicates, so the
+       button and its subject read as one thing — and once the editor is open it
+       is at the top of the panel rather than under a scroll of settled asks. */
+    const p = await bench();
+    const b = bodies(page(p))[0];
+    const secs = [...b.children].map(n => n.className);
+    const iStands = secs.findIndex(k => /rl-cp-sec/.test(k) && !/acts/.test(k));
+    const iActs = secs.findIndex(k => /rl-cp-acts/.test(k));
+    assert.ok(iActs > iStands, 'after the wording it acts on');
+    assert.equal(iActs, iStands + 1, 'and immediately after it — nothing in between');
+    const heads = [...b.querySelectorAll('.rl-cp-h')].map(h => h.textContent.trim());
+    assert.deepEqual(heads, ['As it stands', 'Change this clause', 'On the table', 'History']);
+  });
+
+  test('the panel\'s additions are green and nothing else', async () => {
+    /* Owner-asked: "the green additions to the contract should just be green,
+       not bold and not underlined." The engine's mark carries a 2px bottom rule
+       and weight 600 as well as the colour; at 12.5px in a summary of one ask,
+       three signals for one fact is two too many. */
+    assert.match(SRC, /\.redline-page \.rl-cp-src \.nego-ins,\s*\n\s*\.redline-page \.rl-cp-src ins\.hati-ins\{\s*\n\s*border-bottom:0;font-weight:400;text-decoration:none\}/);
+  });
+
+  test('and the PAPER keeps the tracked-changes convention', async () => {
+    /* Deliberately left alone, and said out loud. The document is what anybody
+       cites, and underline-for-an-insertion is what a redline means outside
+       this product. Scoping the panel rule to .rl-cp-src is what keeps the two
+       apart; a rule on .nego-ins alone would have taken the paper with it. */
+    assert.match(SRC, /\.nego-ins\{background:var\(--n-ins-bg\);color:var\(--n-ins-fg\);border-bottom:2px solid var\(--n-ins-fg\);/);
+    assert.match(SRC, /\.nego-ins\{[^}]*font-weight:600\}/);
+  });
+
+  test('the signposts are black; the captions under them are not', async () => {
+    /* Owner-asked: "the highlighted features that bring your attention to
+       something should be in black font so it is not missed." The section
+       headings and the change id are what a reader scans for; at neutral-600
+       they read as captions ABOUT the content rather than labels ON it. The
+       explanatory lines stay grey, because those really are captions. */
+    assert.match(SRC, /\.redline-page \.rl-cp-h\{[^}]*color:var\(--color-text\)\}/);
+    assert.match(SRC, /\.redline-page \.rl-cp-who b\{color:var\(--color-text\)\}/);
+    assert.match(SRC, /\.redline-page \.rl-cp-note,\.redline-page \.rl-cp-none\{[^}]*color:var\(--color-neutral-600\)\}/,
+      'the explanatory lines stay quiet');
+    assert.match(SRC, /\.redline-page \.rl-cp-who\{[^}]*color:var\(--color-neutral-600\);/,
+      'and so does the rest of the meta line — only the id is lifted');
   });
 });
 
