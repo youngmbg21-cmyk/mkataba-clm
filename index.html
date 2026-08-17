@@ -455,22 +455,25 @@
   html.dark .hover\:border-indigo-300:hover{border-color:rgba(99,102,241,.5);}
 
   /* buttons */
-  /* A SECONDARY BUTTON HAS TO LOOK PRESSABLE (owner-asked 17 Aug 2026, off the
-     Playbook panel's Re-run and the room's More: "needs to be more visible
-     that it is a button"). The divider-grey border on a white surface read as
-     an outline of a region, not a control. Strengthened ONCE, here, for every
-     .ui-btn in the product rather than dressing two buttons specially: a
-     border one visible step darker (neutral-300 — theme-aware, so dark mode
-     gets its own step), a small crisp lift, and a hover that firms the border
-     as the background tints. The tokens flip with the theme; the shadow is a
-     literal because a token shadow here (--shadow-sm) carries a 26px soft
-     component sized for cards, not chips. */
-  .ui-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:13px;line-height:1.2;color:var(--color-text);background:var(--color-surface);border:1px solid var(--color-neutral-300);border-radius:8px;padding:6px 12px;box-shadow:0 1px 2px rgba(15,23,42,.08);transition:background .15s,border-color .15s,color .15s;}
-  .ui-btn:hover{background:color-mix(in srgb,var(--color-text) 7%,transparent);}
+  /* A SECONDARY BUTTON HAS TO LOOK PRESSABLE — reported TWICE (owner, 17 Aug
+     2026, off the Playbook panel's Re-run and the room's More: "needs to be
+     more visible that it is a button", then "they are both still not visible
+     enough for a user" after a first pass that only darkened the grey border).
+     Grey was the wrong axis: this product has already learned three times
+     that a neutral-grey control reads as furniture — the folded-notices chip,
+     the counterparty's reading verbs (.pt-verb) and the Copilot launcher all
+     ended up wearing the workspace ACCENT for exactly this reason. So the
+     base class now wears the same established treatment: an accent tint
+     mixed against the surface (holds in both themes without assuming either),
+     an accent border, accent-leaning ink, and a small crisp lift. One class,
+     once, for every secondary button in the product. The primary's filled
+     face overrides all of it and is untouched. */
+  .ui-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:13px;line-height:1.2;color:color-mix(in srgb,var(--accent-solid) 40%,var(--color-text));background:color-mix(in srgb,var(--accent-solid) 10%,var(--color-surface));border:1px solid color-mix(in srgb,var(--accent-solid) 45%,var(--color-surface));border-radius:8px;padding:6px 12px;box-shadow:0 1px 2px rgba(15,23,42,.08);transition:background .15s,border-color .15s,color .15s;}
+  .ui-btn:hover{background:color-mix(in srgb,var(--accent-solid) 18%,var(--color-surface));}
   /* :not(.ui-btn-primary): the hover rule outranks the primary's resting
-     border on specificity, and a grey ring flashing over a filled navy button
+     border on specificity, and a ring flashing over a filled navy button
      is the kind of leak that gets reported as flicker. */
-  .ui-btn:not(.ui-btn-primary):hover{border-color:var(--color-neutral-400);}
+  .ui-btn:not(.ui-btn-primary):hover{border-color:color-mix(in srgb,var(--accent-solid) 70%,var(--color-surface));}
   /* HIDING A BUTTON HAS TO ACTUALLY HIDE IT. The rule above sets a display, and
      an author rule beats the browser's own [hidden]{display:none} — so every
      `btn.hidden = true` in this app was leaving the button standing on screen,

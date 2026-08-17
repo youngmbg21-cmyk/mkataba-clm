@@ -3200,3 +3200,24 @@ its accent border and glow, unchanged).
 f175 pins the dress and the :not guard beside its other index.html class
 checks — the ui-input lesson's file, which is where rules about "this class
 must really be defined this way" already live.
+
+## AND GREY WAS THE WRONG AXIS (17 Aug 2026, the second report the same day)
+
+"They are both still not visible enough for a user." The first pass had
+darkened the grey border and added a lift — a real improvement a designer
+can measure and a reader does not notice. The correction was to stop
+strengthening grey and change colour: the product has learned three times
+that a neutral-grey control reads as furniture (the folded-notices chip was
+"reported as a caption"; the counterparty's reading verbs were "missed,
+repeatedly, by the person who put them there"; the Copilot launcher wears
+the accent for the same reason), and each time the answer was the workspace
+accent mixed against the surface.
+
+So the base .ui-btn wears that treatment now: accent tint at rest, accent
+border, accent-leaning ink mixed into the theme's text colour so dark mode
+keeps readable light glyphs, and the crisp lift from the first pass. The
+recipe is color-mix against --accent-solid and --color-surface throughout,
+which is what makes one rule serve the teal workspace, the navy one, and
+both themes. The filled primary overrides everything and is untouched —
+measured beside the More button in both themes, and the f175 pin was
+rewritten from the grey recipe to this one the same hour it was added.
