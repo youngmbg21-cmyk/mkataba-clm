@@ -3172,3 +3172,31 @@ and still lands on the Document tab.
 f91 pins the source shape; negotiations-door-verify 7b drives the reported
 journey — into the negotiation from the list, back to the Document tab,
 back again — and asserts the Contracts page and a truthful label.
+
+## A SECONDARY BUTTON LOOKS PRESSABLE (17 Aug 2026)
+
+Owner-reported off two screenshots — the Playbook panel's "Re-run playbook
+review" and the room head's "⋯ More ▾": "the re-run button needs to be more
+visible that it is a button. Same goes for the more buttons in the owner
+platform."
+
+Both wear .ui-btn, the product's one secondary-button class, and the fault
+was the class's: a 1px divider-grey border on a white surface is the same
+line the app draws around regions, so a control dressed in it reads as a
+labelled area. Dressing the two reported buttons specially would have left
+every other .ui-btn with the same complaint waiting to be filed — so the
+class was strengthened once: border up one visible step to neutral-300
+(theme-aware, so dark mode steps too), a small crisp shadow (a literal,
+because --shadow-sm carries a 26px soft component sized for cards and looks
+like a halo on a chip), and a hover that firms the border to neutral-400.
+
+One leak caught before it shipped: .ui-btn:hover outranks .ui-btn-primary's
+resting border on specificity, so the firmer hover border would have flashed
+a grey ring over the filled navy primaries. The hover border is scoped
+:not(.ui-btn-primary); the primaries keep their own fill, glow and hover
+untouched — measured in Chromium (More: neutral-300 border + lift; Share:
+its accent border and glow, unchanged).
+
+f175 pins the dress and the :not guard beside its other index.html class
+checks — the ui-input lesson's file, which is where rules about "this class
+must really be defined this way" already live.
