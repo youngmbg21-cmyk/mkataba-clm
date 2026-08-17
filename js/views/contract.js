@@ -5084,6 +5084,7 @@ function renderWorkspace(){
   wireKeyTerms(c);
   wireActionBar(c);
   wireDocCanvas(c);   // expand / re-read buttons (inside #doc-canvas)
+  wireDocCopilotSel(c);   // highlight → the two-action Copilot menu (reading aids, never edits)
   wireRoomHead(c);    // the "⋯" and the way back — shared with the workbench
   /* Draft new agreement carries data-page-new and is NOT wired here. The shell
      binds every [data-page-new] trigger once, by delegation (js/app.js), and
@@ -5133,6 +5134,129 @@ function renderWorkspace(){
 function wireDocCanvas(c){
   document.querySelector('[data-expand-doc]')?.addEventListener('click',()=>openDocReader(docFileUrl(c), c.upload?.fileName||c.name, c.upload?.mime));
   document.querySelector('[data-reread]')?.addEventListener('click',e=>rereadUploadText(c, e.currentTarget));
+}
+
+/* ============================================================
+   HIGHLIGHT ON THE DOCUMENT TAB → SIMPLIFY / ASK COPILOT
+   ============================================================
+   (owner-asked 17 Aug 2026, confirmed before building.) Highlight any
+   sentence, passage or clause on the Document tab's paper and a small menu
+   appears beside the highlight — the negotiation page's own selection menu
+   (rlSelMenu, one builder, never a copy) carrying TWO actions of this tab's
+   own: Simplify and Ask Copilot.
+
+   READING AIDS, NOT EDITS — the difference from the negotiation page, and the
+   reason this is small. Over there a Copilot answer comes back as a PROPOSAL
+   with an Apply that files a tracked change; the Document tab is deliberately
+   a clean read (wording changes go through Negotiate — "no second editor on
+   the Document tab"), so both actions only TALK in the panel. Nothing here
+   calls negoFileChange, negoEditClause or any wrapper; nothing is written to
+   the record. That is also what makes it safe on every status — draft, under
+   review, signed — where "what does this clause actually mean?" matters most,
+   and for every role including Viewers.
+
+   NO CLAUSE MATCHING, deliberately. The negotiation path refuses front
+   matter, multi-clause drags and wording under live marks because it must
+   FILE against one clause's agreed text. A reading aid has no such stake:
+   the recital, the title, a run across two clauses are all fair questions,
+   so the whole paper is selectable and none of those refusals apply.
+
+   NEVER THE COUNTERPARTY (owner-ruled): this wiring lives on the owner's
+   Document tab, which the share pages never render, and the PORTAL_MODE
+   guard states the decision where a future mount would trip it. */
+const DOC_SEL_ACTIONS=[
+  { id:'simplify', label:'✂️ Simplify' },
+  { id:'ask',      label:'✨ Ask Copilot' }
+];
+function docSelKill(){ document.querySelectorAll('.nego-selmenu').forEach(n=>n.remove()); }
+function wireDocCopilotSel(c){
+  const canvas=document.getElementById('doc-canvas');
+  if(!canvas||!window.rlSelMenu) return;
+  if(window.PORTAL_MODE) return;
+  if(window.negoEnsureStyle) negoEnsureStyle();   // the menu's clothes — .nego-selmenu lives in the engine's sheet
+  /* A drag inside a fillable blank is somebody editing a field, not selecting
+     contract wording; same for any control. The guard list is the negotiation
+     page's own, minus the panes this tab does not have. */
+  const fromControl=t=>!!(t&&t.closest&&t.closest(
+    'button, a, input, textarea, select, [contenteditable="true"], .nego-selmenu, #ai-panel'));
+  const open=()=>{
+    const sel=window.getSelection&&window.getSelection();
+    if(!sel||sel.isCollapsed){ docSelKill(); return; }
+    const within=n=>{ const el=n&&(n.nodeType===1?n:n.parentElement);
+      return !!(el&&el.closest&&el.closest('#doc-canvas')); };
+    if(!within(sel.anchorNode)||!within(sel.focusNode)){ docSelKill(); return; }
+    const text=String(sel.toString()).replace(/\s+/g,' ').trim();
+    if(text.length<3){ docSelKill(); return; }
+    let rect; try{ rect=sel.getRangeAt(0).getBoundingClientRect(); }catch(e){ return; }
+    if(!rect||(!rect.width&&!rect.height)) return;
+    /* The text is captured HERE, in the closure — so the mousedown press that
+       collapses the selection a moment later cannot lose the words. */
+    rlSelMenu({ text, rect, actions:DOC_SEL_ACTIONS.slice(),
+      onPick:a=>docAiRead(c,a,text) });
+  };
+  canvas.addEventListener('mouseup',e=>{ if(fromControl(e.target)) return; setTimeout(open,0); });
+  canvas.addEventListener('keyup',e=>{
+    if(!(e.shiftKey||e.key==='Shift')) return;
+    if(fromControl(e.target)) return; setTimeout(open,0); });
+  /* Dismissal armed ONCE on the document (the 15 Aug lesson — a listener that
+     belongs to a page is a listener the other page does not have). The guard
+     mirrors the negotiation page's own: a press inside the menu is the menu's. */
+  if(!document._docSelDismiss){
+    document._docSelDismiss=true;
+    document.addEventListener('mousedown',e=>{
+      if(!e.target.closest||!e.target.closest('.nego-selmenu')) docSelKill();
+    },true);
+    document.addEventListener('keydown',e=>{ if(e.key==='Escape') docSelKill(); });
+  }
+}
+/* Both actions end here, and everything here only talks. The panel opens
+   FIRST, before anything is asked and before anything can fail — the same rule
+   rlAiPropose states: a press must do something visible on the same gesture. */
+async function docAiRead(c,action,text){
+  docSelKill();
+  if(window.openAI) openAI(null,{docked:true,summoned:true});
+  /* The full passage rides in the quote — visually clamped by max-height, but
+     whole in the DOM, because aiChatMessages() reads the text of this bubble
+     into the next request's history. A truncated display string would hand the
+     model a truncated passage. */
+  const quote=`<div style="font-size:11px;margin-top:4px;opacity:.85;font-style:italic;max-height:76px;overflow-y:auto">“${esc(text)}”</div>`;
+  if(window.aiPush) aiPush('user',{text:`${esc(action.label)}${quote}`});
+  if(!window.copilotAvailable||!copilotAvailable()){
+    if(window.aiPush) aiPush('assistant',{text:'The Copilot is not connected yet. Connect it under Team &amp; Settings &rarr; Copilot engine, then try again.'});
+    if(window.renderAIFeed) renderAIFeed();
+    return;
+  }
+  if(action.id==='ask'){
+    /* The passage is on the record two bubbles up; the next typed question
+       travels with it through the ordinary chat door (aiSubmit → copilotAsk
+       reads the history), so no session machinery is needed and the composer
+       stays the one composer. */
+    aiPush('assistant',{text:'What would you like to know about this passage? Ask in your own words — I’ll answer about exactly the wording you highlighted, read against the rest of this contract.'});
+    renderAIFeed();
+    const inp=document.getElementById('ai-input');
+    if(inp){ try{ inp.focus({preventScroll:true}); }catch(_){ try{ inp.focus(); }catch(_2){} } }
+    return;
+  }
+  /* Simplify: one turn, asked now. The instruction replaces the display bubble
+     as the request's last message so the model gets the whole passage plus a
+     brief that forbids the one thing this tab must never do — propose edits. */
+  renderAIFeed(true);
+  ai.busy=true;
+  const instruction='Explain the following contract wording in plain, simple language for a non-lawyer. '
+    +'Keep it short and concrete: what it means, what each side must do, and anything worth watching out for. '
+    +'Do not propose new wording and do not suggest edits — this is a reading aid, not a redraft.\n\n'
+    +'The wording, quoted exactly:\n“'+text+'”';
+  const messages=[...aiChatMessages().slice(0,-1),{role:'user',content:instruction}];
+  try{
+    const res=await copilotAsk(messages,aiChatContext());
+    ai.busy=false;
+    aiPush('assistant',aiRenderServerAnswer(res));
+  }catch(e){
+    ai.busy=false;
+    aiPush('assistant',{text:`<div>That didn’t come back: ${esc((e&&e.message)||'the Copilot could not answer')}. Nothing about the contract has changed.</div>`,err:true});
+  }
+  renderAIFeed();
+  if(!ai.open){ ai.unread=true; updateAIBadge(); }
 }
 
 /* -------- doc field sync --------
@@ -6180,4 +6304,5 @@ Object.assign(window,{applyDocZoom,renderDiscussSection,discussPointsSectionHtml
      I walked it on re-rendered the workspace, which measures on the way in. */
   layoutDocResizer,renderSignButton,renderSignSide,signBlockHtml,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsPaintRoundNeeds,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,docWorkingTextNoteHtml,docNothingWrittenHtml,docHasNoWording,negoRoundNeedsHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
-  ROOM_TABS,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomCurrentTab,wsTabDefaults,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,roomVersionsHtml,docFillable,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,openCheckPanel,roomHeadHtml,wireRoomHead});
+  ROOM_TABS,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomCurrentTab,wsTabDefaults,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,roomVersionsHtml,docFillable,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,openCheckPanel,roomHeadHtml,wireRoomHead,
+  DOC_SEL_ACTIONS,wireDocCopilotSel,docAiRead,docSelKill});

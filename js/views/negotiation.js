@@ -10166,11 +10166,24 @@ function rlSelMenu(ctx){
      A LIST, NOT A FORK. Same builder, same routing, same refusals — this file's
      own rule that "a second menu would be a second set of refusals to keep in
      step." An unknown id in `only` narrows to nothing, so it falls back to the
-     whole list rather than opening an empty menu. */
-  const want = Array.isArray(ctx.only) && ctx.only.length ? ctx.only : null;
-  const all = rlSelActions();
+     whole list rather than opening an empty menu.
+
+     ctx.actions + ctx.onPick (owner-asked 16 Aug 2026, the Document tab's
+     Simplify / Ask Copilot): a host may supply its OWN action list and its own
+     handler, and gets this builder's markup, anchoring, kill logic and one-at-
+     a-time rule instead of writing a second menu. Without onPick every row
+     still ends in rlAiPropose exactly as before — the negotiation surfaces
+     pass neither and are untouched. */
+  const custom = Array.isArray(ctx.actions) && ctx.actions.length ? ctx.actions : null;
+  const want = !custom && Array.isArray(ctx.only) && ctx.only.length ? ctx.only : null;
+  const all = custom || rlSelActions();
   const picked = want ? all.filter(a => want.includes(a.id)) : all;
   const actions = picked.length ? picked : all;
+  const pick = action => {
+    if (typeof ctx.onPick === 'function'){ ctx.onPick(action, ctx); return; }
+    if (action.standard){ rlAiPropose({ ...ctx, action: rlStandardAction(ctx.c) }); return; }
+    rlAiPropose({ ...ctx, action });
+  };
   /* ---- ONE ACTION AND A DIRECT PRESS IS NOT A MENU ----
      A menu with a single row is a press the reader has to make twice, and the
      panel's Copilot button has no anchor to hang one on anyway (closing the
@@ -10179,8 +10192,7 @@ function rlSelMenu(ctx){
      every row in this menu ends. Returns null: there is no menu to return. */
   if (ctx.direct && actions.length === 1){
     _negoKillSelMenu();
-    const a = actions[0];
-    rlAiPropose({ ...ctx, action: a.standard ? rlStandardAction(ctx.c) : a });
+    pick(actions[0]);
     return null;
   }
   _negoKillSelMenu();
@@ -10205,8 +10217,7 @@ function rlSelMenu(ctx){
     const action = actions.find(a => a.id === b.getAttribute('data-nego-ai'));
     _negoKillSelMenu();
     if (!action) return;
-    if (action.standard){ rlAiPropose({ ...ctx, action: rlStandardAction(ctx.c) }); return; }
-    rlAiPropose({ ...ctx, action });
+    pick(action);
   }));
   return menu;
 }
