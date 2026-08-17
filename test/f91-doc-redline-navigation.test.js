@@ -229,6 +229,22 @@ describe('F91 (1,2) — the Doc page header and its sub-navigation', () => {
       'the label lives on the selection menu\'s action alone, not a header door');
   });
 
+  test('the room\'s back arrow goes to the Contracts page — never wherever you came from', () => {
+    /* Owner-asked 17 Aug 2026: "it should always take me to the contracts
+       page… never the negotiations page which sometimes it does." goBack used
+       to replay state.wsReturn's view, so a room reached from the Negotiations
+       list sent the reader back there — while the label said "Back to
+       Contracts", because the label map never knew 'redline'. The ONE
+       surviving return is a stream drawer (the contracts page, narrowed);
+       everything else is setView('register'), a constant, not a variable.
+       The geometry of the real journey is negotiations-door-verify 7b. */
+    const s = code();
+    const fn = s.slice(s.indexOf('const goBack='), s.indexOf('const goBack=') + 700);
+    assert.match(fn, /setView\('register'\)/, 'the register is the destination');
+    assert.doesNotMatch(fn, /setView\(r\.view/, 'the origin is not replayed');
+    assert.match(fn, /r\.view==='folder'/, 'the stream drawer is the one survivor');
+  });
+
   test('and it opens through the shell\'s anchored delegation, not a listener of its own', () => {
     /* The shell binds every [data-page-new] trigger once (js/app.js) and that
        delegated handler is the one that ANCHORS the menu under the button that

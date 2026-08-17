@@ -4420,9 +4420,13 @@ function roomHeadHtml(c,opts={}){
      builder too, and its test stage loads the engine without the folder model
      — a head that throws there takes the whole page with it. */
   const F=(typeof window!=='undefined'&&window.FOLDERS)||{};
+  /* The arrow goes to the Contracts page (or the stream drawer it was opened
+     from) and nowhere else — see goBack in wireRoomHead. The label says only
+     what the press will do; naming the origin was how it came to promise
+     Insights while delivering the register. */
   const backLabel=(_wr.view==='folder'&&_wr.folderId&&F[_wr.folderId])
     ? i18t('ct_back_to',{where:F[_wr.folderId].name})
-    : i18t('ct_back_to',{where:({register:i18t('ct_back_register'),pipeline:i18t('ct_back_queue'),intel:i18t('ct_back_intel'),calendar:i18t('ct_back_calendar'),dashboard:i18t('ct_back_portfolio'),reports:i18t('ct_back_reports'),advice:i18t('ct_back_advice')}[_wr.view]||i18t('ct_back_register'))});
+    : i18t('ct_back_to',{where:i18t('ct_back_register')});
   const may=(typeof canEdit!=='function')||canEdit();
   const locked=c.status==='Signed';
   /* The primary is the CONTRACT'S next act, read from wsNextAction — the same
@@ -4655,9 +4659,21 @@ function wireRoomHead(c){
       else if(window.openWorkspace) openWorkspace(c.id);
       return;
     }
+    /* ---- THE ROOM'S BACK ARROW GOES TO THE CONTRACTS PAGE, ALWAYS ----
+       (owner-asked 17 Aug 2026: "when I am in the document page and click the
+       back button it should always take me to the contracts page… It should
+       never take me to the negotiations page which sometimes it does.")
+       It used to replay state.wsReturn — "wherever you came from" — so a room
+       reached from the Negotiations list sent the reader back there, while
+       the arrow's own label said "Back to Contracts" (the label map never knew
+       'redline' and fell back to the register's name). One button, one
+       destination, and the label finally tells the truth. THE ONE SURVIVOR is
+       a stream drawer: a reader browsing one folder of the contracts page
+       returns to that drawer — the same page, narrowed — and the label names
+       the drawer. Every other origin lands on the register. */
     const r=state.wsReturn||{};
     if(r.view==='folder'&&r.folderId&&window.FOLDERS&&FOLDERS[r.folderId]){ state.folderId=r.folderId; setView('folder'); }
-    else setView(r.view&&r.view!=='workspace'?r.view:'register');
+    else setView('register');
   };
   back?.addEventListener('click',goBack);
   document.getElementById('ws-back-title')?.addEventListener('click',goBack);
@@ -4732,12 +4748,13 @@ function renderWorkspace(){
   // counterparty/value/valueType in), and only for roles that can edit.
   const ktEditable=!locked&&canEdit()&&!PORTAL_MODE;
   const ktReadable=((isUpload(c)?(c.upload&&c.upload.extractedText):(window.docPlainText?docPlainText(c):''))||'').length>200;
-  // Back returns to wherever the workspace was opened from (register/folder/queue…),
-  // defaulting to the register. state.wsReturn is captured in setView.
+  // Back goes to the Contracts page — or the stream drawer the room was opened
+  // from, which is that page narrowed — and nowhere else (owner-asked 17 Aug
+  // 2026; see goBack in wireRoomHead). The label says the destination.
   const _wr=state.wsReturn||{};
   const backLabel=(_wr.view==='folder'&&_wr.folderId&&FOLDERS[_wr.folderId])
     ? i18t('ct_back_to',{where:FOLDERS[_wr.folderId].name})
-    : i18t('ct_back_to',{where:({register:i18t('ct_back_register'),pipeline:i18t('ct_back_queue'),intel:i18t('ct_back_intel'),calendar:i18t('ct_back_calendar'),dashboard:i18t('ct_back_portfolio'),reports:i18t('ct_back_reports'),advice:i18t('ct_back_advice')}[_wr.view]||i18t('ct_back_register'))});
+    : i18t('ct_back_to',{where:i18t('ct_back_register')});
   content.innerHTML=`
   <div class="view-enter" style="height:var(--view-h);box-sizing:border-box;padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px">
 
