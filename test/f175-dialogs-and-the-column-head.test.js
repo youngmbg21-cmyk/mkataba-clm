@@ -133,19 +133,24 @@ describe('f175 · every dialog in the feature wears the same head', () => {
   });
 
   test('a secondary button looks pressable — the .ui-btn dress, pinned', () => {
-    /* Owner-asked 17 Aug 2026, off the Playbook panel's Re-run and the room's
-       More: "needs to be more visible that it is a button". The fix is the
-       CLASS, once — a divider-grey border on a white surface read as a region
-       outline. Pinned so a refactor cannot quietly put the faint border back:
-       a border one visible step up (neutral-300, theme-aware) and a crisp
-       lift; and the firmer hover border must not leak onto the filled primary,
-       which outranks it only at rest. */
+    /* Reported TWICE (owner, 17 Aug 2026): "needs to be more visible that it
+       is a button", then "still not visible enough" after a first pass that
+       only darkened the grey border. Grey was the wrong axis — the folded
+       chip, the portal verbs and the Copilot launcher all learned the same
+       lesson — so the class wears the workspace ACCENT, mixed against the
+       surface so it holds in both themes. Pinned so a refactor cannot quietly
+       fade it back to furniture; the firmer hover border must never leak onto
+       the filled primary, which outranks it only at rest. */
     const btn = /\.ui-btn\{([^}]*)\}/.exec(INDEX);
     assert.ok(btn, 'the class is defined');
-    assert.match(btn[1], /border:1px solid var\(--color-neutral-300\)/,
-      'a border a reader can see, in both themes');
+    assert.match(btn[1], /background:color-mix\(in srgb,var\(--accent-solid\) 10%,var\(--color-surface\)\)/,
+      'an accent tint at rest — a reader can see the control, in both themes');
+    assert.match(btn[1], /border:1px solid color-mix\(in srgb,var\(--accent-solid\) 45%,var\(--color-surface\)\)/,
+      'an accent border, mixed against the surface');
+    assert.match(btn[1], /color:color-mix\(in srgb,var\(--accent-solid\) 40%,var\(--color-text\)\)/,
+      'and accent-leaning ink that still follows the theme\'s text');
     assert.match(btn[1], /box-shadow:0 1px 2px/, 'and a small crisp lift');
-    assert.match(INDEX, /\.ui-btn:not\(\.ui-btn-primary\):hover\{border-color:var\(--color-neutral-400\)/,
+    assert.match(INDEX, /\.ui-btn:not\(\.ui-btn-primary\):hover\{border-color:color-mix\(in srgb,var\(--accent-solid\) 70%,var\(--color-surface\)\)/,
       'the hover firms the border — and never over a filled primary');
   });
 });
