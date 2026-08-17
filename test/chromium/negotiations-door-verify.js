@@ -173,6 +173,22 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     check('on its Document tab, where the door in lives', out.tab === 'docs', out.tab);
     check('and the four tabs are back with it', out.tabs.length === 4, out.tabs.join(' | '));
 
+    /* ---- 7b. AND THE ROOM'S OWN BACK ARROW GOES TO CONTRACTS, NEVER BACK
+       INTO THE NEGOTIATION (owner-asked 17 Aug 2026: "it should always take
+       me to the contracts page… never the negotiations page which sometimes
+       it does"). This is exactly the journey that showed it: the room was
+       reached FROM the negotiation page, so the old "wherever you came from"
+       reading sent this press to the negotiations list. */
+    const roomBack = await page.evaluate(() => {
+      const b = document.getElementById('ws-back');
+      const title = b ? (b.getAttribute('title') || '') : '';
+      if (b) b.click();
+      return { title, view: state.view };
+    });
+    check('7b the room\'s back arrow lands on the Contracts page',
+      roomBack.view === 'register', roomBack.view);
+    check('7b and its label says so', /contracts/i.test(roomBack.title), roomBack.title);
+
     /* ---- 8. THE DOOR REOPENS THE LAST ONE, FROM ANYWHERE ---- */
     await page.evaluate(() => setView('calendar'));
     await page.waitForTimeout(900);

@@ -3144,3 +3144,31 @@ nowhere in contract.js, written when those words named a duplicate header
 door. They now name a selection action the owner chose, so the claim narrows
 to "exactly once, inside DOC_SEL_ACTIONS, never on a header control" — which
 keeps what the test was protecting without forbidding what was asked for.
+
+## THE ROOM'S BACK ARROW STOPS FOLLOWING YOU AROUND (17 Aug 2026)
+
+Owner-reported with two screenshots: "when I am in the document page and
+click the back button it should always take me to the contracts page. It
+should never take me to the negotiations page which sometimes it does."
+
+The arrow replayed state.wsReturn — wherever the room was opened from — so
+its destination was a property of the reader's history: register, a folder,
+the pipeline, Insights, the calendar, or the Negotiations list. "Sometimes"
+is exactly what that reads as from the chair. And the label had already
+stopped agreeing with the behaviour: the label map never learned 'redline',
+so a room reached from the Negotiations list wore "Back to Contracts" over a
+press that went back to the negotiation — the one origin the owner reported
+is the one origin where the label lied.
+
+Now the destination is a constant. setView('register'), with one survivor:
+a stream drawer, because that is the contracts page narrowed to a stream and
+the label names the drawer. Both label sites dropped their origin maps —
+the six origin keys are orphaned and left inert in the dictionary — and
+ct_back_register now reads "Contracts", the page's own name in the nav and
+its own heading (the Swedish "avtalslistan" already said it). The workbench's
+own arrow (data-back="contract") is a different button with a different job
+and still lands on the Document tab.
+
+f91 pins the source shape; negotiations-door-verify 7b drives the reported
+journey — into the negotiation from the list, back to the Document tab,
+back again — and asserts the Contracts page and a truthful label.

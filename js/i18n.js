@@ -3097,7 +3097,7 @@ const STRINGS = {
 
     // ---- the contract room: header, checks and tooltips ----
     ct_back_to: 'Back to {where}',
-    ct_back_register: 'register',
+    ct_back_register: 'Contracts',
     ct_back_queue: 'my queue',
     ct_back_intel: 'intelligence',
     ct_back_calendar: 'calendar',
