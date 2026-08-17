@@ -217,7 +217,16 @@ describe('F91 (1,2) — the Doc page header and its sub-navigation', () => {
     assert.match(STRINGS.en.home_draft_new, /Draft new agreement/i, 'and it must still say so');
     assert.ok(STRINGS.sv.home_draft_new, 'in every language the app offers');
     assert.ok(!/id="ws-ai"/.test(s), 'the third door to the Copilot is gone');
-    assert.ok(!/Ask Copilot/.test(s), 'and so is its label');
+    /* NARROWED IN PLACE (17 Aug 2026): the words "Ask Copilot" are back in
+       this file, and deliberately — the owner asked for a selection-menu
+       action by exactly that name (highlight → Simplify / Ask Copilot, f211).
+       What this test was really about is the HEADER not carrying a third
+       Copilot door, and that still holds: the label may appear only inside
+       DOC_SEL_ACTIONS, never on a header control. */
+    const uses = s.split('Ask Copilot').length - 1;
+    const inActions = /DOC_SEL_ACTIONS=\[[\s\S]{0,200}Ask Copilot/.test(s);
+    assert.ok(uses === 1 && inActions,
+      'the label lives on the selection menu\'s action alone, not a header door');
   });
 
   test('and it opens through the shell\'s anchored delegation, not a listener of its own', () => {

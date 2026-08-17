@@ -3105,3 +3105,42 @@ a portal-side override or a second copy of the rules, the drift this harness
 exists to catch, cannot land quietly. The Copilot note is off the roll call:
 it is absent on their seat by design, which is a presence difference, not a
 size.
+
+## HIGHLIGHT ON THE DOCUMENT TAB → SIMPLIFY / ASK COPILOT (17 Aug 2026)
+
+Asked with a screenshot of the Document page and an instruction to confirm
+understanding first: "give the contract the ability to highlight any sentence
+or clause and then the copilot dropdown appears with a choice to simplify or
+ask copilot… The process should be similar to what we have in the negotiation
+page." The understanding was played back — reading aids only, nothing writes,
+same machinery not a copy, counterparty excluded — and the owner confirmed:
+"Counterparty is not included. Go ahead and implement then merge to main."
+
+The build rode almost entirely on things that already existed. rlSelMenu was
+extended with ctx.actions and ctx.onPick so a host can bring its own action
+list and handler while keeping the one builder's markup, anchoring and
+kill logic — without them the builder routes to rlAiPropose exactly as
+before, so the negotiation surfaces are untouched (asserted both ways). The
+Document tab wires a small selection listener on its canvas: capture the
+highlighted text in the closure (a press collapses the selection a moment
+later), raise the menu with Simplify and Ask Copilot, and both actions end in
+docAiRead, which only talks. Simplify sends one turn through the ordinary
+chat door with the FULL passage and a brief that forbids proposing wording;
+Ask pushes the quote and a greeting, and the next typed question travels with
+the passage through the panel's own composer — no session machinery, because
+aiChatMessages() already carries the last eight bubbles.
+
+Two traps found while testing. The display bubble originally trimmed the
+quote for tidiness — and aiChatMessages() reads the bubble's text into the
+next request, so a trimmed display would have quietly handed the model a
+trimmed passage; the bubble now clamps with max-height and carries the whole
+text. And the browser harness's canned provider echoes whatever tool it is
+offered, which the generic chat loop never converges on — so the browser file
+stubs copilotAsk at the browser boundary and asserts the visible journey,
+while f211 pins the request's shape in the node suite.
+
+One old claim narrowed in place: f91 pinned that "Ask Copilot" appears
+nowhere in contract.js, written when those words named a duplicate header
+door. They now name a selection action the owner chose, so the claim narrows
+to "exactly once, inside DOC_SEL_ACTIONS, never on a header control" — which
+keeps what the test was protecting without forbidding what was asked for.
