@@ -3221,3 +3221,98 @@ which is what makes one rule serve the teal workspace, the navy one, and
 both themes. The filled primary overrides everything and is untouched —
 measured beside the More button in both themes, and the f175 pin was
 rewritten from the grey recipe to this one the same hour it was added.
+
+## THE GAP-MAP BATCH — the AI brain's first night (18–19 Aug 2026)
+
+The evening began as strategy, not code. The owner asked what HaTi is still
+missing to give SMEs the upscale service an enterprise buys from a
+world-class contract platform (CRM/ERP integration excluded), and how AI
+should become the brain of the product. The answer was researched — the
+2026 leaders (Ironclad, DocuSign's Iris, Icertis, Sirion, Agiloft) have all
+repositioned around AI that works UNASKED, extracting obligations, watching
+the book in the background and redlining from precedent, while the SME
+research says the money is lost after signature, to missed dates and unread
+paper — and then checked against the codebase, which turned out to hold far
+more of the machinery than the market gives an SME tool credit for:
+extraction with OCR and confidence spans, a configurable playbook with
+fallback positions, an obligations finder, notice-period arithmetic, FTS
+over the wording, semantic Q&A with citations. The gaps were named, ranked
+and filed as WORKORDER-gap-map.md; the owner said "build it on an
+autonomous overnight run as I go to sleep", and Phase 1 was built that
+night. The report's one-line verdict became the batch's spine: make HaTi
+speak first, and let the humans stay the hands.
+
+WO-1, the nudge. Obligations had carried an assignee since the finder
+shipped and the sweep ignored it — every overdue notice went to every
+admin, the day AFTER the date, and nothing fired before it. The person who
+owed the work never heard. Now the assignee (resolved to a MEMBER record
+only — a free-text address that matches nobody gets no mail, the
+notify-signer route's open-relay lesson) hears at −7, 0 and +1 in their own
+language, and the admins are brought in at +4, by name, told who was
+already reminded. The no-match path is byte-identical to the old mail so
+nothing got quieter. Two traps caught in the hour: the escalation subject
+printed a literal {days} because the template vars were passed to the body
+line and not the subject — one vars object for both now — and the test's
+own mail stub was flipped back to healthy before the fire-and-forget send
+landed on it, which read as a product fault and was a test fault; the mode
+now holds until the outbox row exists.
+
+WO-2, the Contract Brief. The one-press plain-English cover memo — what a
+lawyer would staple on top: what this is, term, money, the clauses that
+bite with their verbatim quotes, anything unusual. The design fights were
+all about where things live. The cache went into its OWN briefs table
+because a server-side write onto the record would bump the version under an
+open editor (the signer_notices lesson); it rides GETs as _brief transport
+and is stripped on PUT from both sides, so a forged copy pushed through a
+save changes nothing — the table answers. Money is masked for readers
+without canViewValues (the FTS-snippet rule), which only works because the
+prompt confines every amount to the money section. The share route strips
+it from even a hand-built payload: our reading of their paper must never
+reach them. And a SIGNED contract can still be briefed — imported signed
+paper is exactly what most needs explaining — which reversed f176's
+"obligations alone stays live" claim in place, deliberately.
+
+WO-3, the Daily Brief. One email per member per day, only when something
+needs THEM, nothing at all on quiet days — and a quiet day burns no dedupe
+row, so an item landing at noon still briefs. The split is the design:
+personal duties (own obligations, reviews waiting, a signing turn) go to
+their person; portfolio dates and orphan overdue duties go to the admins
+who can re-route them. Building it forced the right refactor: runReminders'
+family-aware term resolution — "only a signed amendment moves the term",
+the owner-ruled defect class — was about to be copied a second time, so it
+was lifted into effExpiryReader and BOTH sweeps read it; f65 proved the
+extraction moved nothing. The off switch rode the existing prefs machinery
+(PUT /api/me/prefs) rather than growing a column, and it is the one LIVE
+toggle in the account page's email section, beside the honest read-only
+statement — a section whose own comment forbids dead switches.
+
+WO-4, ask-your-book. Full-wording search existed and exactly one box could
+reach it. The palette now merges an "In the wording" section off the SAME
+route (two doors, one index, the server's masking standing) and always
+offers "Ask Copilot" last — a handoff that prefills the existing panel and
+never calls an AI route itself. Pinned at the source the way f187 pins the
+shell, because buildWorld deliberately never loads js/app.js.
+
+WO-5, the archive shelf. The delete refusal on an executed contract has
+said "archive it instead" since the immutability work — and no archive
+existed. The design question was where "archived" lives: a status was
+refused (an archived Signed contract stays Signed), so it is a filing fact
+beside status, additive like a note, which is what lets a sealed record be
+filed away without touching what was signed. The sweep question was the
+night's most instructive: twenty-six live-book sites filter on
+status!=='Declined', and patching them one by one is how one gets missed —
+but the dashboard turned out to read everything through hmDashSlices' one
+cs, the alerts through buildAlerts' one cs, insights through pfLive, and
+the negotiations door through negoIsLive, so four door-level filters
+covered most of the product and the rest were swept mechanically with f151's
+drift test standing guard. Two deliberate absences: an archived EXECUTED
+amendment still sets its parent's term (archiving is filing, not
+un-signing — both family twins unswept, the sweeps skip at the contract
+loop), and the family arithmetic itself never learned the word. FTS keeps
+archived contracts and the palette tags them, because the difference
+between filing and deleting is that filing can be found.
+
+Left undone on purpose, named in the work order: browser-verify passes for
+the new pixels (first item of the next run), the TOTP stretch if the night
+ran out, and every Phase 2/3 item — currency truth, the intake front door,
+events-out, the redline co-pilot, precedent memory, the signature ladder.
