@@ -1118,6 +1118,21 @@ function stAccountBodyHtml(){
         <span><span class="st-role-name">${i18t('set_daily_brief')}</span>
         <span class="st-note">${i18t('set_daily_brief_sub')}</span></span>
       </label>
+    </section>
+
+    ${''/* TWO-STEP SIGN-IN (WO-6). Self-service both ways: enrolment holds
+           the secret as pending until a first code proves the app has it, and
+           turning it off costs a current code — an open session must not be
+           able to quietly remove the lock it could not pick. The lost-phone
+           RESCUE is the server's admin grant (PATCH clearTwoStep) — its
+           People-page button is Phase 2 work, named in the gap-map order. */}
+    <section class="st-sec">
+      <h3 class="st-sec-h">${esc(i18t('ts_title'))}</h3>
+      <p class="st-note" style="margin-bottom:6px">${esc(i18t('ts_sub'))}</p>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="st-quiet" style="flex:1">${u.twoStep?i18t('ts_on_line'):i18t('ts_off_line')}</span>
+        <button id="ts-toggle" style="${ST_BTN2};flex:none">${u.twoStep?i18t('ts_turn_off'):i18t('ts_turn_on')}</button>
+      </div>
     </section>`:''}
 
     <section class="st-sec">
@@ -1177,12 +1192,64 @@ function stAccountWire(){
       toast(i18t('set_daily_brief_fail')+(err&&err.message||''),'err');
     }
   });
+  document.getElementById('ts-toggle')?.addEventListener('click',()=>stTwoStepToggle());
   document.getElementById('bk-export')?.addEventListener('click',()=>settingsExportBackup());
   document.getElementById('brand-edit')?.addEventListener('click',()=>{
     stDrawerClose(); openDesignStep({ mode:'settings', onBack:()=>{ if(isAdmin()) renderTeam(); else openMyAccount(); } });
   });
   document.getElementById('acct-settings')?.addEventListener('click',()=>{ stDrawerClose(); openSettingsAt('people'); });
   if(API_MODE()) loadSessions();
+}
+/* ---- TWO-STEP SIGN-IN, self-service (WO-6) ---- */
+async function stTwoStepToggle(){
+  const u=currentUser()||{};
+  if(u.twoStep){
+    const code=await promptDialog({ title:i18t('ts_off_title'), message:i18t('ts_off_msg'),
+      placeholder:'123456', confirmLabel:i18t('ts_turn_off'), cancelLabel:i18t('act_cancel') });
+    if(code==null) return;
+    try{
+      await api('me/totp/disable','POST',{ code:String(code).trim() });
+      u.twoStep=false; toast(i18t('ts_off_done'),'ok'); openMyAccount();
+    }catch(e){ toast((e&&e.message)||i18t('ts_failed'),'err'); }
+    return;
+  }
+  let start;
+  try{ start=await api('me/totp/start','POST',{}); }
+  catch(e){ toast((e&&e.message)||i18t('ts_failed'),'err'); return; }
+  openModal(`<div style="padding:22px;max-width:470px">
+    <h3 style="margin:0 0 6px;font-size:15px;font-weight:700;font-family:var(--font-heading)">${esc(i18t('ts_enrol_title'))}</h3>
+    <p class="st-note" style="margin:0 0 4px">${esc(i18t('ts_enrol_msg'))}</p>
+    <div style="font-family:var(--font-mono);font-size:14.5px;letter-spacing:.14em;background:var(--color-bg);border:1px solid var(--color-divider);border-radius:6px;padding:10px 12px;margin:8px 0;word-break:break-all;user-select:all">${esc(start.secret)}</div>
+    <p class="st-note" style="margin:8px 0 4px">${esc(i18t('ts_enrol_code_msg'))}</p>
+    <input id="ts-code" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" style="${window.RV_FLD||ST_INPUT}"/>
+    <p id="ts-err" class="st-note" style="color:var(--st-ruby-fg);min-height:16px;margin:6px 0 0"></p>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+      <button id="ts-cancel" style="${ST_BTN2}">${i18t('act_cancel')}</button>
+      <button id="ts-confirm" class="ui-btn ui-btn-primary" style="font-size:12px;padding:7px 14px">${i18t('ts_confirm')}</button>
+    </div>
+  </div>`,{maxWidth:'490px'});
+  document.getElementById('ts-cancel')?.addEventListener('click',()=>closeModal());
+  document.getElementById('ts-confirm')?.addEventListener('click',async()=>{
+    const code=(document.getElementById('ts-code')?.value||'').trim();
+    const errEl=document.getElementById('ts-err');
+    try{
+      const r=await api('me/totp/verify','POST',{ code });
+      const u2=currentUser(); if(u2) u2.twoStep=true;
+      closeModal();
+      // the ten one-time codes, shown exactly ONCE — the server keeps hashes
+      openModal(`<div style="padding:22px;max-width:470px">
+        <h3 style="margin:0 0 6px;font-size:15px;font-weight:700;font-family:var(--font-heading)">${esc(i18t('ts_recovery_title'))}</h3>
+        <p class="st-note" style="margin:0 0 10px">${esc(i18t('ts_recovery_msg'))}</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-family:var(--font-mono);font-size:13px;letter-spacing:.08em;user-select:all">
+          ${(r.recovery||[]).map(cd=>`<span style="background:var(--color-bg);border:1px solid var(--color-divider);border-radius:5px;padding:6px 10px;text-align:center">${esc(cd)}</span>`).join('')}
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:14px">
+          <button id="ts-done" class="ui-btn ui-btn-primary" style="font-size:12px;padding:7px 14px">${i18t('ts_done')}</button>
+        </div>
+      </div>`,{maxWidth:'490px'});
+      document.getElementById('ts-done')?.addEventListener('click',()=>{ closeModal(); toast(i18t('ts_on_done'),'ok'); openMyAccount(); });
+    }catch(e){ if(errEl) errEl.textContent=(e&&e.message)||i18t('ts_failed'); }
+  });
 }
 function openMyAccount(){
   const u=currentUser()||{};

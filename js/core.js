@@ -1469,7 +1469,10 @@ async function doLogin(){
   const err=document.getElementById('li-err');
   if(REMOTE){
     try{
-      await api('login','POST',{ email, password:pass });
+      const r=await api('login','POST',{ email, password:pass });
+      // two-step sign-in (WO-6): a correct password earned a ticket, not a
+      // session — the code turns it into one
+      if(r&&r.twoStep) return doLoginTotp(r.ticket, err);
       await loadBootstrap();
       startApp();
       toast(`Karibu tena, ${REMOTE.me.name.split(' ')[0]}`);
@@ -1481,6 +1484,24 @@ async function doLogin(){
   lsSet(LS.session,{ userId:u.id, at:nowISO() });
   startApp();
   toast(`Karibu tena, ${u.name.split(' ')[0]}`);
+}
+/* The second step (WO-6). Cancel falls back to the sign-in form; a wrong code
+   re-asks while the ticket is live (the server's failures-only limiter is the
+   wall against grinding); "sign in again" from the server means the five-
+   minute window closed, so the password comes first once more. */
+async function doLoginTotp(ticket, err){
+  const code=await promptDialog({ title:i18t('ts_code_title'), message:i18t('ts_code_msg'),
+    placeholder:'123456', confirmLabel:i18t('ts_confirm'), cancelLabel:i18t('act_cancel') });
+  if(code==null) return;
+  try{
+    await api('login/totp','POST',{ ticket, code:String(code).trim() });
+    await loadBootstrap();
+    startApp();
+    toast(`Karibu tena, ${REMOTE.me.name.split(' ')[0]}`);
+  }catch(e){
+    if(err){ err.textContent=e.message; err.classList.remove('hidden'); }
+    if(!/sign in again/i.test(e&&e.message||'')) return doLoginTotp(ticket, err);
+  }
 }
 function logout(){
   if(REMOTE){ api('logout','POST').catch(()=>{}).finally(()=>location.reload()); return; }

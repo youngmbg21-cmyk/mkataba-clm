@@ -225,6 +225,9 @@ const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role,
      org. */
   lang: u.lang || null,
   createdAt: u.created_at, prefs: userPrefs(u), folderAccess: folderScopeFor(u), canViewValues: canViewValues(u),
+  // the FACT that two-step is on; never the secret (WO-6). Admin-only on
+  // other people's rows, like every operational grant beside it.
+  twoStep: !!u.totp_secret,
   /* Three states travel as three values — null, 'none' or a number — because
      collapsing "nobody decided" into "no limit" is what the completeness chip
      exists to tell apart. */
@@ -240,7 +243,7 @@ const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role,
    and nobody else's. Stripped from every colleague's copy at the bootstrap —
    see the note there. A new per-person setting belongs on this list the day it
    is added; f202 fails if one of these ever reaches a non-admin again. */
-const ADMIN_ONLY_USER_FIELDS = ['folderAccess', 'signCap', 'reviewChecked', 'reviewerId', 'overseerId'];
+const ADMIN_ONLY_USER_FIELDS = ['folderAccess', 'signCap', 'reviewChecked', 'reviewerId', 'overseerId', 'twoStep'];
 
 /* ---------- per-contract storage (scales to large portfolios) ----------
    Each contract is its own row with its own version. Lists return a light
@@ -457,6 +460,13 @@ addColumnIfMissing('users', 'reviewer_id', 'TEXT');
    the contract's OWNER, so it could not exist before a contract knew whose it
    was. NULL = nobody, which is where every existing member starts. */
 addColumnIfMissing('users', 'overseer_id', 'TEXT');
+// two-step sign-in (WO-6): the secret is stored raw (the algorithm needs it
+// back) and NEVER travels — publicUser is an allow-list and carries only the
+// twoStep boolean. pending holds an unconfirmed enrolment; recovery holds the
+// sha() hashes of the unused one-time codes.
+addColumnIfMissing('users', 'totp_secret', 'TEXT');
+addColumnIfMissing('users', 'totp_pending', 'TEXT');
+addColumnIfMissing('users', 'totp_recovery', 'TEXT');
 addColumnIfMissing('sessions', 'expires_at', 'TEXT');
 addColumnIfMissing('sessions', 'last_seen', 'TEXT');
 addColumnIfMissing('sessions', 'ip', 'TEXT');
@@ -1924,6 +1934,63 @@ app.post('/api/setup', rlSetup, (req, res) => {
   res.json({ ok: true, me: publicUser(u) });
 });
 
+/* ---------- TWO-STEP SIGN-IN (WO-6, WORKORDER-gap-map.md) ----------
+   Standard authenticator-app TOTP — RFC 6238, HMAC-SHA1, 30-second steps,
+   six digits — on node's own crypto, no dependency. Per member, OFF until
+   they enrol; the enrolment is PENDING until a first code proves the app
+   really holds the secret, so an account can never be locked behind a
+   secret nobody scanned. A correct password on a two-step account earns a
+   short-lived single-use TICKET, never a session; the code — or an unused
+   one-time recovery code, consumed on use — turns the ticket into the
+   session. Code failures count against the same failures-only bucket as
+   password guesses (f204's rule: guesses cost, people arriving don't). */
+const B32A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+const b32encode = buf => { let bits = 0, val = 0, out = '';
+  for (const byte of buf) { val = (val << 8) | byte; bits += 8;
+    while (bits >= 5) { out += B32A[(val >>> (bits - 5)) & 31]; bits -= 5; } }
+  if (bits > 0) out += B32A[(val << (5 - bits)) & 31];
+  return out; };
+const b32decode = s => { let bits = 0, val = 0; const out = [];
+  for (const ch of String(s).toUpperCase().replace(/[^A-Z2-7]/g, '')) {
+    val = (val << 5) | B32A.indexOf(ch); bits += 5;
+    if (bits >= 8) { out.push((val >>> (bits - 8)) & 255); bits -= 8; } }
+  return Buffer.from(out); };
+const totpCode = (secret, step) => {
+  const msg = Buffer.alloc(8); msg.writeBigUInt64BE(BigInt(step));
+  const h = crypto.createHmac('sha1', b32decode(secret)).update(msg).digest();
+  const o = h[h.length - 1] & 0xf;
+  const n = ((h[o] & 0x7f) << 24) | (h[o + 1] << 16) | (h[o + 2] << 8) | h[o + 3];
+  return String(n % 1e6).padStart(6, '0');
+};
+// ±1 step: a code typed at second 29 must not die in flight
+const totpOk = (secret, code) => {
+  const c = String(code || '').replace(/\D/g, '');
+  if (c.length !== 6 || !secret) return false;
+  const step = Math.floor(Date.now() / 30000);
+  return [step - 1, step, step + 1].some(st => safeEq(totpCode(secret, st), c));
+};
+/* An unused recovery code, consumed on success — single-use is the whole
+   point of a recovery code, or a leaked one is a permanent second key. */
+function totpSpendRecovery(u, code) {
+  let hashes; try { hashes = JSON.parse(u.totp_recovery || '[]') || []; } catch (_) { hashes = []; }
+  const want = sha(String(code || '').trim().toUpperCase());
+  const hit = hashes.find(hh => typeof hh === 'string' && hh.length === want.length && safeEq(hh, want));
+  if (!hit) return false;
+  db.prepare('UPDATE users SET totp_recovery=? WHERE id=?')
+    .run(JSON.stringify(hashes.filter(hh => hh !== hit)), u.id);
+  return true;
+}
+/* In-memory, single-instance, like the rate buckets: a restart costs a
+   retyped password, which is the right price for not persisting half-done
+   sign-ins anywhere. */
+const totpTickets = new Map();
+const totpTicketMint = uid => { const t = rid(18); totpTickets.set(t, { uid, exp: Date.now() + 5 * 60 * 1000 }); return t; };
+const totpTicketRead = t => {
+  const row = totpTickets.get(String(t || ''));
+  if (!row) return null;
+  if (row.exp < Date.now()) { totpTickets.delete(String(t)); return null; }
+  return row;
+};
 app.post('/api/login', rlAuth, (req, res) => {
   const { email, password } = req.body || {};
   const u = db.prepare('SELECT * FROM users WHERE email=?').get(cleanEmail(email));
@@ -1931,10 +1998,57 @@ app.post('/api/login', rlAuth, (req, res) => {
     rlNoteAuthFailure(req);   // a wrong guess is what the bucket is for
     return res.status(401).json({ error: 'Email or password is incorrect' });
   }
+  /* The password alone is HALF a sign-in on a two-step account: no session,
+     no publicUser (nothing about the workspace leaves before the second
+     half), just the ticket the code will spend. Not a failure — the person
+     typed their own password correctly. */
+  if (u.totp_secret) return res.json({ twoStep: true, ticket: totpTicketMint(u.id) });
   // E8-T3: rotate — old sessions for this user on this device are not reused;
   // a fresh token is minted with a new expiry.
   createSession(res, req, u.id);
   res.json({ ok: true, me: publicUser(u) });
+});
+app.post('/api/login/totp', rlAuth, (req, res) => {
+  const { ticket, code } = req.body || {};
+  const t = totpTicketRead(ticket);
+  if (!t) return res.status(401).json({ error: 'Sign in again — the code window has closed' });
+  const u = db.prepare('SELECT * FROM users WHERE id=?').get(t.uid);
+  if (!u || !u.totp_secret) { totpTickets.delete(String(ticket)); return res.status(401).json({ error: 'Sign in again' }); }
+  const ok = totpOk(u.totp_secret, code) || totpSpendRecovery(u, code);
+  if (!ok) { rlNoteAuthFailure(req); return res.status(401).json({ error: 'That code is not right' }); }
+  totpTickets.delete(String(ticket));   // single-use, spent on success
+  createSession(res, req, u.id);
+  res.json({ ok: true, me: publicUser(u) });
+});
+/* Enrolment, self-service. START holds the secret as PENDING and hands it
+   over exactly once; VERIFY proves the authenticator holds it and mints the
+   ten recovery codes (hashes stored, plaintext shown exactly once); DISABLE
+   costs a current code or an unused recovery code — a stolen open session
+   must not be able to quietly remove the lock it could not pick. */
+app.post('/api/me/totp/start', auth, (req, res) => {
+  if (req.user.totp_secret) return res.status(409).json({ error: 'Two-step sign-in is already on' });
+  const secret = b32encode(crypto.randomBytes(20));
+  db.prepare('UPDATE users SET totp_pending=? WHERE id=?').run(secret, req.user.id);
+  const label = encodeURIComponent('HaTi:' + (req.user.email || req.user.name || ''));
+  res.json({ secret, otpauth: `otpauth://totp/${label}?secret=${secret}&issuer=HaTi` });
+});
+app.post('/api/me/totp/verify', auth, (req, res) => {
+  const pending = req.user.totp_pending;
+  if (!pending) return res.status(400).json({ error: 'Start again — there is nothing to confirm' });
+  if (!totpOk(pending, (req.body || {}).code))
+    return res.status(400).json({ error: 'That code is not right — check the app and try again' });
+  const recovery = Array.from({ length: 10 }, () => b32encode(crypto.randomBytes(5)));
+  db.prepare('UPDATE users SET totp_secret=?, totp_pending=NULL, totp_recovery=? WHERE id=?')
+    .run(pending, JSON.stringify(recovery.map(cd => sha(cd))), req.user.id);
+  res.json({ ok: true, recovery });
+});
+app.post('/api/me/totp/disable', auth, (req, res) => {
+  if (!req.user.totp_secret) return res.status(400).json({ error: 'Two-step sign-in is not on' });
+  const code = (req.body || {}).code;
+  const ok = totpOk(req.user.totp_secret, code) || totpSpendRecovery(req.user, code);
+  if (!ok) return res.status(403).json({ error: 'A current code — or an unused recovery code — is needed to turn this off' });
+  db.prepare('UPDATE users SET totp_secret=NULL, totp_pending=NULL, totp_recovery=NULL WHERE id=?').run(req.user.id);
+  res.json({ ok: true });
 });
 
 // E8-T3: active sessions list + revoke (the signed-in user's own sessions).
@@ -5668,12 +5782,17 @@ app.patch('/api/users/:id', auth, (req, res) => {
   /* Who oversees them is an admin's grant for the same reason the rest are:
      somebody who could pick their own approver is not overseen. */
   const hasOverseer = b.overseerId !== undefined;
-  if (!hasRole && !hasValues && !hasTitle && !hasCap && !hasChecked && !hasReviewer && !hasOverseer)
+  /* The two-step RESCUE (WO-6): an admin clears a locked-out member's second
+     step so they can enrol again. A grant-shaped act like the rest — and
+     never on yourself, because your own lock comes off with a code on the
+     account page, not with admin rank. */
+  const hasClear2 = b.clearTwoStep === true;
+  if (!hasRole && !hasValues && !hasTitle && !hasCap && !hasChecked && !hasReviewer && !hasOverseer && !hasClear2)
     return res.status(400).json({ error: 'Nothing to change' });
   const self = req.params.id === req.user.id;
   // Only a title may be set by a non-admin, and only on their own account.
   if (req.user.role !== 'admin'
-    && !(self && hasTitle && !hasRole && !hasValues && !hasCap && !hasChecked && !hasReviewer && !hasOverseer))
+    && !(self && hasTitle && !hasRole && !hasValues && !hasCap && !hasChecked && !hasReviewer && !hasOverseer && !hasClear2))
     return res.status(403).json({ error: 'Admin access required' });
   if (userPrefs(req.user).mustChangePassword)
     return res.status(403).json({ error: 'Set your own password before making changes', mustChangePassword: true });
@@ -5684,11 +5803,13 @@ app.patch('/api/users/:id', auth, (req, res) => {
     // cannot restore (admins are unconditionally allowed to see values), so it
     // is refused rather than silently ignored.
     if (hasValues) return res.status(400).json({ error: 'You cannot change your own access' });
+    if (hasClear2) return res.status(400).json({ error: 'Turn off your own two-step sign-in from your account page — it needs a current code' });
   }
   const target = db.prepare('SELECT * FROM users WHERE id=?').get(req.params.id);
   if (!target) return res.status(404).json({ error: 'User not found' });
   if (hasTitle) db.prepare('UPDATE users SET title=? WHERE id=?').run(clean(b.title).slice(0, 120), req.params.id);
   if (hasRole) db.prepare('UPDATE users SET role=? WHERE id=?').run(b.role, req.params.id);
+  if (hasClear2) db.prepare('UPDATE users SET totp_secret=NULL, totp_pending=NULL, totp_recovery=NULL WHERE id=?').run(req.params.id);
   if (hasCap) {
     /* null clears the decision, 'none' IS a decision, a number is the ceiling.
        Anything else is refused rather than coerced — a signing limit read out
