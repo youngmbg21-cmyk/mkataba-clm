@@ -863,6 +863,10 @@ async function saveContract(c){
      being written back into the stored contract. */
   const payload={...c}; delete payload._light; delete payload._loaded; delete payload._v;
   delete payload._raisedBy; delete payload._raisedAt;
+  // _brief is GET-time transport off the server's briefs table (WO-2) — a
+  // derived reading written back into the record would be stale the moment the
+  // wording moved, and then there are two answers to one question.
+  delete payload._brief;
   delete payload._signedAt; delete payload._lastAuditAt;
   if(payload.upload && payload.upload.fileId){ payload.upload={...payload.upload, dataUrl:undefined}; }
   // Word-review version files and the rounds that carried them follow the same

@@ -118,6 +118,13 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS resets (
     id TEXT PRIMARY KEY, user_id TEXT, token_hash TEXT, expires INTEGER, used INTEGER DEFAULT 0);
   CREATE TABLE IF NOT EXISTS reminders (rkey TEXT PRIMARY KEY, created_at TEXT);
+  -- The Contract Brief cache (WO-2, WORKORDER-gap-map.md). Its OWN table, not a
+  -- field on the contract JSON, for the signer_notices reason: a server-side
+  -- write onto the record would bump the version under an open editor, and a
+  -- cached reading is not part of what was agreed or signed. It rides GETs as
+  -- the underscored transport field _brief and never enters the stored record.
+  CREATE TABLE IF NOT EXISTS briefs (
+    contract_id TEXT PRIMARY KEY, json TEXT NOT NULL, created_at TEXT NOT NULL);
   -- "It is your turn to sign", to somebody who works here.
   --
   -- A COUNTERPARTY SIGNER'S TURN IS RECORDED ON THEIR SHARE — created / sent /
@@ -1468,6 +1475,9 @@ const AI_FEATURE_LABEL = {
      was the hardest to find. Adding the label is the whole fix — the spend
      rows were always written with the right key. */
   template_convert: 'Document converter',
+  // The one-press plain-English cover memo (WO-2). Named on arrival so its
+  // spending never lands in the Other bucket the way conversion's once did.
+  brief: 'Contract brief',
 };
 
 function aiSpendRows(day) {
@@ -2231,7 +2241,20 @@ app.get('/api/contracts/:id', auth, (req, res) => {
   // who is not allowed to know any of that.
   if (!r || !inScope(folderScopeFor(req.user), r.folder)) return res.status(404).json({ error: 'Contract not found' });
   const c = JSON.parse(r.json); c._v = r.version;
-  res.json(visibleContract(c, req.user));
+  const out = visibleContract(c, req.user);
+  /* The Contract Brief rides along as TRANSPORT (_brief, from its own table —
+     WO-2): never part of the record, stripped again on PUT. A reader without
+     canViewValues gets it with the money section removed — the same masking
+     the FTS snippets apply to derived text. */
+  const b = db.prepare('SELECT json FROM briefs WHERE contract_id=?').get(req.params.id);
+  if (b) {
+    try {
+      const brief = JSON.parse(b.json);
+      if (!canViewValues(req.user) && brief.data) delete brief.data.money;
+      out._brief = brief;
+    } catch (_) {}
+  }
+  res.json(out);
 });
 
 /* The owner's cheap "did anything move?" probe: version and clock only, no
@@ -2342,6 +2365,10 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   if (Number(baseVersion || 0) !== cur) return res.status(409).json({ error: 'Version conflict — this contract changed on the server', version: cur });
   const next = cur + 1;
   const c = { ...contract }; delete c._v; delete c._light; delete c._loaded; delete c._valuesHidden;
+  // _brief is GET-time transport off the briefs table (WO-2) — a client that
+  // echoes it back must not get it stored into the record, where it would
+  // shadow the real cache and ride saves it was never part of.
+  delete c._brief;
 
   let prev = null;
   if (existing) { try { prev = JSON.parse(existing.json); } catch (_) { prev = null; } }
@@ -2910,6 +2937,7 @@ app.delete('/api/contracts/:id', auth, editor, (req, res) => {
     const r = db.prepare("UPDATE shares SET revoked_at=? WHERE contract_id=? AND revoked_at IS NULL").run(now(), req.params.id);
     revoked = r.changes || 0;
     for (const fid of fileIds) db.prepare('DELETE FROM files WHERE id=?').run(fid);
+    db.prepare('DELETE FROM briefs WHERE contract_id=?').run(req.params.id);
     db.prepare('DELETE FROM contracts WHERE id=?').run(req.params.id);
   });
   _storedBytes = null;   // H-8: recompute the storage total after removing files
@@ -3717,6 +3745,84 @@ app.post('/api/ai/obligations', auth, rlAiDeep, aiFeature('obligations'), aiBudg
     const block = (data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
     res.json({ obligations: Array.isArray(block.input?.obligations) ? block.input.obligations : [], ...aiNotice(req, resp) });
+  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+});
+
+/* ---------- the Contract Brief (WO-2, WORKORDER-gap-map.md) ----------
+   A plain-English cover memo for the WHOLE contract — the closest thing
+   software offers an SME without in-house counsel to a lawyer's covering
+   note. A READING AID on the obligations/playbook pattern: it proposes no
+   wording, files no change, and its cache lives in its own table so writing
+   it never moves the record's version under an open editor.
+
+   The wording comes from the CLIENT where provided — the same text the
+   screens render, because a template-built contract regenerates its wording
+   in the browser and the server never holds it — with the server's own
+   stored reading (contractFullBody) as the fallback for uploads and
+   imports. The cache is keyed on a hash of exactly the text that was read,
+   so an unchanged contract is paid for once and a changed one regenerates;
+   `force` is the human's Rewrite press.
+
+   GENERATION is editor-and-up (it spends Copilot money). READING the cached
+   brief rides GET /api/contracts/:id as _brief, where a reader without
+   canViewValues gets it with the money section removed. The prompt keeps
+   every amount in that one section so the masking has one thing to mask. */
+app.post('/api/ai/brief', auth, editor, rlAiDeep, aiFeature('brief'), aiBudgetGuard, capAiInput, async (req, res) => {
+  const { id, text, force } = req.body || {};
+  if (!id) return res.status(400).json({ error: 'id is required' });
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(String(id));
+  // out of scope reads exactly like "does not exist", as on every contract route
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  let full = {}; try { full = JSON.parse(row.json) || {}; } catch (_) {}
+  const body = (typeof text === 'string' && text.trim()) ? text : contractFullBody(full);
+  if (!body || body.trim().length < 120) return res.status(400).json({ error: 'There is no wording to brief yet' });
+  const inputHash = sha(String(body).slice(0, 20000));
+  const prev = db.prepare('SELECT json FROM briefs WHERE contract_id=?').get(String(id));
+  if (prev && !force) {
+    try {
+      const b = JSON.parse(prev.json);
+      if (b.inputHash === inputHash) return res.json({ brief: b, cached: true });
+    } catch (_) {}
+  }
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true });
+  const tool = {
+    name: 'contract_brief',
+    description: 'A plain-English cover memo for the whole contract.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        overview: { type: 'string', description: '2–4 plain sentences: what this contract is, between whom, and for what.' },
+        term: { type: 'object', properties: {
+          start: { type: 'string', description: 'When it starts, as stated. Empty if not stated.' },
+          end: { type: 'string', description: 'When it ends or renews, as stated.' },
+          notice: { type: 'string', description: 'Any notice required to exit or stop a renewal.' },
+        } },
+        money: { type: 'object', properties: {
+          value: { type: 'string', description: 'What is paid, with the currency exactly as written.' },
+          paymentTerms: { type: 'string', description: 'When and how payment falls due.' },
+        } },
+        watchouts: { type: 'array', maxItems: 6, items: { type: 'object', properties: {
+          point: { type: 'string', description: 'A clause that bites, in one plain sentence — what it means in practice.' },
+          quote: { type: 'string', description: 'Short verbatim snippet it comes from.' },
+        }, required: ['point'] } },
+        unusual: { type: 'array', maxItems: 4, items: { type: 'string' },
+          description: 'Terms unusual for this kind of contract, plainly put. Empty if none.' },
+      },
+      required: ['overview', 'watchouts'],
+    },
+  };
+  const J = orgJx();
+  const prompt = `You are explaining a contract to a business owner who has no lawyer, under ${J.adjective} law. Read the DOCUMENT and return a short cover memo via contract_brief. Plain, everyday sentences — any unavoidable legal term gets an immediate plain explanation. Only state what the wording actually says: never invent, never guess, and never propose new wording — this is a reading aid, not a redraft. Keep every monetary amount in the money section only. If something is unusual for this kind of contract, say so plainly; if nothing is, return an empty unusual list.\n\nDOCUMENT:\n${String(body).slice(0, 20000)}`;
+  try {
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 1400, tools: [tool], tool_choice: { type: 'tool', name: 'contract_brief' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'brief', who: aiWho(req) });
+    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    const block = (resp.data.content || []).find(b => b.type === 'tool_use');
+    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    const brief = { v: 1, at: now(), by: (req.user && req.user.name) || '', inputHash, data: block.input || {} };
+    db.prepare('INSERT INTO briefs (contract_id,json,created_at) VALUES (?,?,?) ON CONFLICT(contract_id) DO UPDATE SET json=excluded.json, created_at=excluded.created_at')
+      .run(String(id), JSON.stringify(brief), now());
+    res.json({ brief, ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
 
@@ -6139,6 +6245,12 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
       req.rvStripped = before - payload.contract.changes.length;
     }
   }
+  /* THE BRIEF NEVER TRAVELS (WO-2). It is an internal reading aid — our own
+     colleague's plain-English take on their paper — and the product's client
+     never includes it (buildSharePayload is an allow-list). Stripped here too
+     so a hand-built payload cannot carry it out either: the wall belongs to
+     the route every path goes through, like the review strip above. */
+  if (payload.contract) { delete payload.contract._brief; delete payload.contract.brief; }
   const ch = ['email', 'whatsapp', 'link'].includes(channel) ? channel : 'link';
   const rec = recipient || {};
   const email = String(rec.email || '').trim().toLowerCase();

@@ -2935,6 +2935,65 @@ document.getElementById('ai-send').addEventListener('click',aiSubmit);
 document.getElementById('ai-expand')?.addEventListener('click',()=>toggleAIExpand());
 /* Enter sends, Shift+Enter breaks the line — chatFieldSubmits owns that rule
    for every composer in the product so the six cannot drift apart. */
+/* ============================== THE CONTRACT BRIEF (WO-2, gap-map) ==========
+   One press → a plain-English cover memo of the whole contract, cached
+   server-side per wording (the briefs table) and carried back on the record
+   as _brief — transport, never stored in the contract JSON. A READING AID on
+   the Simplify rule: it proposes no wording and files no change. Its row
+   lives on the Checks card and its result opens in the side panel like the
+   other three rows (openCheckPanel 'brief'). The text handed to the server
+   is EXACTLY the source extractObligations reads — the screens' own wording
+   — so the brief can never describe a document the reader is not looking at. */
+async function runContractBrief(c,opts={}){
+  if(!(typeof API_MODE==='function'&&API_MODE())||!state.aiConfigured){ toast(i18t('br_no_ai'),'warn'); return null; }
+  const text=isUpload(c)?(c.upload&&c.upload.extractedText)||'':(window.contractPlainText?contractPlainText(c):'');
+  try{
+    const r=await api('ai/brief','POST',{ id:c.id, text:String(text||'').slice(0,20000), force:!!opts.force });
+    if(r&&r.brief){
+      c._brief=r.brief;
+      // a cache hit changed nothing — only a real (re)write earns an audit line
+      if(!r.cached){ logAudit(c,'Brief',opts.force?'Contract brief rewritten by Copilot':'Contract brief written by Copilot'); persist(c); }
+      return r.brief;
+    }
+  }catch(e){ toast(i18t('br_failed')+(e&&e.message?' '+e.message:''),'err'); }
+  return null;
+}
+function briefFactsHtml(d){
+  const t=d.term||{},m=d.money||{};
+  const term=[t.start,t.end,t.notice].filter(Boolean).join(' · ');
+  // absent for a reader without canViewValues — the server strips money before
+  // it travels, so there is nothing here to hide locally
+  const money=[m.value,m.paymentTerms].filter(Boolean).join(' · ');
+  const row=(label,val)=>val?`<div style="display:flex;gap:10px;font-size:12.5px;line-height:1.55;margin:3px 0"><span style="flex:none;min-width:52px;font-weight:600;color:var(--color-neutral-600)">${label}</span><span style="min-width:0">${_aiEsc(val)}</span></div>`:'';
+  return row(i18t('br_term'),term)+row(i18t('br_money'),money);
+}
+function renderBriefSection(c){
+  const host=document.getElementById('brief-section'); if(!host) return;
+  const b=c._brief;
+  if(!b||!b.data){ host.innerHTML=''; return; }
+  const d=b.data;
+  const mayRemake=(typeof canEdit!=='function'||canEdit())&&typeof API_MODE==='function'&&API_MODE()&&state.aiConfigured;
+  const when=(()=>{ try{ return new Date(b.at).toLocaleDateString(typeof langLocale==='function'?langLocale():undefined,{day:'numeric',month:'short',year:'numeric'}); }catch(_){ return String(b.at||'').slice(0,10); } })();
+  const wl=(d.watchouts||[]).map(w=>`<li style="margin:6px 0"><div style="font-size:12.5px;line-height:1.55">${_aiEsc(w.point||'')}</div>${w.quote?`<div style="font-size:11.5px;color:var(--color-neutral-600);font-style:italic;margin-top:2px">“${_aiEsc(w.quote)}”</div>`:''}</li>`).join('');
+  const ul=(d.unusual||[]).filter(Boolean).map(u=>`<li style="font-size:12.5px;line-height:1.55;margin:4px 0">${_aiEsc(u)}</li>`).join('');
+  const head=t=>`<h6 style="margin:12px 0 4px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--color-neutral-600)">${t}</h6>`;
+  host.innerHTML=`
+    <div style="font-size:13px;line-height:1.65">${_aiEsc(d.overview||'')}</div>
+    <div style="margin:10px 0">${briefFactsHtml(d)}</div>
+    ${wl?head(i18t('br_watchouts'))+`<ul style="margin:0;padding-left:18px">${wl}</ul>`:''}
+    ${ul?head(i18t('br_unusual'))+`<ul style="margin:0;padding-left:18px">${ul}</ul>`:''}
+    <div style="display:flex;align-items:center;gap:10px;margin-top:14px;padding-top:10px;border-top:1px solid var(--color-divider)">
+      <span style="font-size:11px;color:var(--color-neutral-600)">${i18t('br_written',{date:when,name:_aiEsc(b.by||'Copilot')})}</span>
+      ${mayRemake?`<button class="ui-btn" data-brief-remake style="margin-left:auto;font-size:11px;padding:4px 10px">${i18t('br_rewrite')}</button>`:''}
+    </div>`;
+  host.querySelector('[data-brief-remake]')?.addEventListener('click',async ev=>{
+    const btn=ev.currentTarget; btn.disabled=true; btn.textContent=i18t('ct_working');
+    const r=await runContractBrief(c,{force:true});
+    if(r){ renderBriefSection(c); if(window.renderChecksCard) renderChecksCard(c); }
+    else{ btn.disabled=false; btn.textContent=i18t('br_rewrite'); }
+  });
+}
+
 document.getElementById('ai-input').addEventListener('keydown',e=>{
   if(window.chatFieldSubmits?chatFieldSubmits(e):e.key==='Enter') aiSubmit();
 });
@@ -2967,4 +3026,4 @@ Object.assign(window,{
   aiKeepStructuralTags,aiStructureOf,aiSplitItems,aiRestoreEmphasis,aiPreserveTypography,
   aiParseProposal,copilotPropose,aiProposalCardHtml,aiOpenProposal,aiActiveProposal,
   aiProposalApply,aiProposalDecline,aiProposalToggleEdit,aiWireProposals,aiRefineProposal,aiStepBackIfSummoned,
-  AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,aiCompareTable,aiChatMessages,aiChatContext,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});
+  AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,aiCompareTable,aiChatMessages,aiChatContext,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,runContractBrief,briefFactsHtml,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});

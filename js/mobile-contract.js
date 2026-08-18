@@ -278,8 +278,20 @@ function mTermsHtml(c){
     { get label(){ return i18t('mc_contract_id'); }, value:c.id },
   ].filter(Boolean);
   const missing = rows.filter(r=>r.miss && !String(r.value||'').trim()).length;
+  /* THE CONTRACT BRIEF, READ-ONLY (WO-2). The phone renders the cached memo
+     and decides nothing of its own — generating and rewriting stay on the
+     desktop's Checks card, the same split as every other phone surface. Money
+     is already absent for a reader the server masks it from. */
+  const b = c && c._brief && c._brief.data;
+  const briefBlock = b ? `
+      <div class="m-card" style="margin:16px 16px 0;padding:14px">
+        <div style="font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:6px">${mEsc(i18t('br_title'))}</div>
+        <div style="font-size:14px;line-height:1.6">${mEsc(b.overview||'')}</div>
+        ${(b.watchouts||[]).length?`<ul style="margin:8px 0 0;padding-left:18px">${(b.watchouts||[]).map(w=>`<li style="font-size:13px;line-height:1.55;margin:4px 0">${mEsc(w.point||'')}</li>`).join('')}</ul>`:''}
+      </div>` : '';
   return `
     <div class="m-scroll">
+      ${briefBlock}
       <div class="m-card m-list" style="margin:16px">
         ${rows.map(r=>{
           const empty = !String(r.value||'').trim();

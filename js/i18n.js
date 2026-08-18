@@ -1621,6 +1621,16 @@ const STRINGS = {
     mail_ob_esc_subject: "Still open {days} days after its date — {desc}",
     mail_ob_esc_line: "The obligation \"{desc}\" on \"{name}\" ({id}) was due {due} and is still open {days} days later. {assignee} was reminded before the date, on it, and the day after.",
     mail_ob_open: "Open the contract:",
+    // ---- the Contract Brief (WO-2) ----
+    br_title: "Contract brief",
+    br_written: "Written {date} by {name}",
+    br_rewrite: "Rewrite the brief",
+    br_term: "Term",
+    br_money: "Money",
+    br_watchouts: "Worth watching",
+    br_unusual: "Unusual for this kind of contract",
+    br_no_ai: "Copilot is not connected, so there is nothing to read the contract with — the brief needs it.",
+    br_failed: "The brief could not be written.",
 
     // ---- negotiation support modules ----
     ve_compare_versions: 'Compare versions',
@@ -5526,6 +5536,15 @@ const STRINGS = {
     mail_ob_esc_subject: "Fortfarande öppet {days} dagar efter sitt datum — {desc}",
     mail_ob_esc_line: "Åtagandet \"{desc}\" i \"{name}\" ({id}) skulle ha utförts {due} och är fortfarande öppet {days} dagar senare. {assignee} påmindes före datumet, på dagen och dagen efter.",
     mail_ob_open: "Öppna avtalet:",
+    br_title: "Avtalssammanfattning",
+    br_written: "Skriven {date} av {name}",
+    br_rewrite: "Skriv om sammanfattningen",
+    br_term: "Löptid",
+    br_money: "Pengar",
+    br_watchouts: "Värt att bevaka",
+    br_unusual: "Ovanligt för den här avtalstypen",
+    br_no_ai: "Copilot är inte ansluten, så det finns inget som kan läsa avtalet — sammanfattningen kräver det.",
+    br_failed: "Sammanfattningen kunde inte skrivas.",
 
     // ---- negotiation support modules ----
     ve_compare_versions: 'Jämför versioner',

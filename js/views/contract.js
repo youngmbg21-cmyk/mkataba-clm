@@ -3849,6 +3849,16 @@ function checkVerdict(c,kind){
     const high=open.filter(x=>x.sev==='high').length;
     return {tone:high?'bad':'warn',label:high?`${high} high · ${open.length} open`:`${open.length} open`};
   }
+  /* 'brief' (WO-2). Green once written — a brief is a reading, not a verdict,
+     so it never colours amber or ruby; the label says when it was written and
+     the panel says the rest. Null before one exists, which draws "Run →". */
+  if(kind==='brief'){
+    const b=c._brief;
+    if(!b) return null;
+    let when=String(b.at||'').slice(0,10);
+    try{ when=new Date(b.at).toLocaleDateString(typeof langLocale==='function'?langLocale():undefined,{day:'numeric',month:'short'}); }catch(_){}
+    return {tone:'ok',label:when};
+  }
   /* 'oblig'. Named rather than left as the fall-through it used to be: the row
      went away in August and this branch stayed, answering for any string that
      was not 'playbook' or 'risk'. With the row back it is a real kind and the
@@ -3916,7 +3926,11 @@ function checksRowsHtml(c){
      reading the contract itself. */
   return row('oblig','calendar',i18t('ob_obligations'))
     + row('playbook','shield',i18t('ct_playbook_review'))
-    + row('risk','scan',i18t('ct_copilot_risk_scan'));
+    + row('risk','scan',i18t('ct_copilot_risk_scan'))
+    /* The Contract Brief (WO-2) — last, not leading: the three above are the
+       stated working order (commitments, playbook, risk), and the brief is a
+       reading aid beside them rather than a step in that sequence. */
+    + row('brief','file',i18t('br_title'));
 }
 function renderChecksCard(c){
   const card=document.getElementById('checks-card'); if(!card) return;
@@ -3945,8 +3959,8 @@ function checksNoteHtml(c){
    and flashes the clause — behind a centred, scrimmed modal that was a jump you
    could not watch. See openSidePanel in js/core.js. */
 function openCheckPanel(c,kind){
-  const id=kind==='playbook'?'playbook-section':kind==='oblig'?'obligations-section':'scan-section';
-  const title=kind==='playbook'?i18t('ct_playbook_review'):kind==='oblig'?i18t('ob_obligations'):i18t('ct_risk_scan');
+  const id=kind==='playbook'?'playbook-section':kind==='oblig'?'obligations-section':kind==='brief'?'brief-section':'scan-section';
+  const title=kind==='playbook'?i18t('ct_playbook_review'):kind==='oblig'?i18t('ob_obligations'):kind==='brief'?i18t('br_title'):i18t('ct_risk_scan');
   if(window.openSidePanel) openSidePanel(`<div id="${id}"></div>`,{width:'400px',title,get label(){ return i18t('ct_checks'); }});
   else openModal(`<div style="padding:6px"><div id="${id}"></div></div>`,{maxWidth:'620px'});
   /* THE OBLIGATIONS CARD ARRIVES WHOLE, not as a second rendering of it. The
@@ -3957,6 +3971,7 @@ function openCheckPanel(c,kind){
      Find, same ticking off. */
   if(kind==='playbook') renderPlaybookSection(c);
   else if(kind==='oblig'){ if(window.renderObligationsSection) renderObligationsSection(c); }
+  else if(kind==='brief'){ if(window.renderBriefSection) renderBriefSection(c); }
   else renderScanSection(c);
   /* Both section renderers empty their host when there is nothing to show, and
      a full-height column of nothing is a worse answer than a sentence. The
@@ -3965,8 +3980,8 @@ function openCheckPanel(c,kind){
   const host=document.getElementById(id);
   if(host && !host.innerHTML.trim()){
     host.innerHTML=`<p style="margin:0;font-size:12px;line-height:1.6;color:var(--color-neutral-600)">
-      Nothing has been ${kind==='playbook'?'reviewed against the playbook':kind==='oblig'?'tracked on this contract':'scanned'} on this contract yet.
-      Close this and press <b>${kind==='playbook'?i18t('ct_playbook_review'):kind==='oblig'?i18t('ob_obligations'):i18t('ct_copilot_risk_scan')}</b> ${i18t('ct_in_checks_card')}</p>`;
+      Nothing has been ${kind==='playbook'?'reviewed against the playbook':kind==='oblig'?'tracked on this contract':kind==='brief'?'briefed':'scanned'} on this contract yet.
+      Close this and press <b>${kind==='playbook'?i18t('ct_playbook_review'):kind==='oblig'?i18t('ob_obligations'):kind==='brief'?i18t('br_title'):i18t('ct_copilot_risk_scan')}</b> ${i18t('ct_in_checks_card')}</p>`;
   }
 }
 function wireChecksCard(c){
@@ -3987,8 +4002,13 @@ function wireChecksCard(c){
      inheriting it here would have re-introduced through the door the panel had
      just shut.
 
-     Deliberate, and per-kind rather than a hole in the rule. */
-  const editableFor=kind=>mayEdit&&(kind==='oblig'||c.status!=='Signed');
+     Deliberate, and per-kind rather than a hole in the rule.
+
+     THE BRIEF JOINS THE EXCEPTION (WO-2), for the imported-paper reason: a
+     signed contract that arrived by upload is exactly the one an owner most
+     needs explained, and generating a brief writes NOTHING to the sealed
+     record — the cache lives in its own table, additive like a note. */
+  const editableFor=kind=>mayEdit&&(kind==='oblig'||kind==='brief'||c.status!=='Signed');
   card.querySelectorAll('[data-check]').forEach(b=>{
     const kind=b.getAttribute('data-check');
     const ran=!!checkVerdict(c,kind);
@@ -4014,6 +4034,13 @@ function wireChecksCard(c){
           renderChecksCard(c);
           if(window.renderSignButton) renderSignButton(c);
           openCheckPanel(c,'playbook');
+          return;
+        }
+        if(kind==='brief'){
+          if(!window.runContractBrief) throw new Error('unavailable');
+          const r=await runContractBrief(c);
+          renderChecksCard(c);
+          if(r) openCheckPanel(c,'brief');
           return;
         }
         if(kind==='oblig'){
