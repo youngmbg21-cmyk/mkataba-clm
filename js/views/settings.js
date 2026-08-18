@@ -1109,6 +1109,15 @@ function stAccountBodyHtml(){
         <span style="font-weight:600;display:block;color:var(--color-text)">${i18t('set_still_emailed')}</span>
         ${i18t('set_three_events')}
       </div>
+      ${''/* THE ONE LIVE SWITCH BESIDE THE HONEST STATEMENT (WO-3). The daily
+             brief is the single per-person email choice the server actually
+             honours (prefs.dailyBrief, read by runDailyBriefs) — a real
+             switch, never a dead one, which is this section's own rule. */}
+      <label class="st-toggle" style="margin-top:10px">
+        <input id="pref-daily-brief" type="checkbox" ${((u.prefs||{}).dailyBrief)!==false?'checked':''}/>
+        <span><span class="st-role-name">${i18t('set_daily_brief')}</span>
+        <span class="st-note">${i18t('set_daily_brief_sub')}</span></span>
+      </label>
     </section>`:''}
 
     <section class="st-sec">
@@ -1156,6 +1165,17 @@ function stAccountWire(){
   document.getElementById('pref-nav-all')?.addEventListener('change',e=>{
     if(typeof navSetShowEverything==='function') navSetShowEverything(e.target.checked);
     toast(e.target.checked?i18t('set_sidebar_all_on'):i18t('set_sidebar_all_off'));
+  });
+  document.getElementById('pref-daily-brief')?.addEventListener('change',async e=>{
+    const on=e.target.checked;
+    try{
+      const r=await api('me/prefs','PUT',{ dailyBrief:on });
+      const u=currentUser(); if(u) u.prefs=(r&&r.prefs)||{ ...(u.prefs||{}), dailyBrief:on };
+      toast(on?i18t('set_daily_brief_on'):i18t('set_daily_brief_off'));
+    }catch(err){
+      e.target.checked=!on;          // the screen must not claim a save that failed
+      toast(i18t('set_daily_brief_fail')+(err&&err.message||''),'err');
+    }
   });
   document.getElementById('bk-export')?.addEventListener('click',()=>settingsExportBackup());
   document.getElementById('brand-edit')?.addEventListener('click',()=>{

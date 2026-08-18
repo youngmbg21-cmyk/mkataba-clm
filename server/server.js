@@ -7517,7 +7517,9 @@ function notifyShareResponse(s, r) {
    arrives, this list is where it goes. */
 app.put('/api/me/prefs', auth, (req, res) => {
   const prefs = userPrefs(req.user);
-  for (const k of ['notifyShareOpens']) if (k in (req.body || {})) prefs[k] = !!req.body[k];
+  // dailyBrief: WO-3's off switch — absent means ON, so only an explicit
+  // false ever silences somebody, and a fresh workspace briefs everyone.
+  for (const k of ['notifyShareOpens', 'dailyBrief']) if (k in (req.body || {})) prefs[k] = !!req.body[k];
   db.prepare('UPDATE users SET prefs=? WHERE id=?').run(JSON.stringify(prefs), req.user.id);
   res.json({ ok: true, prefs });
 });
@@ -7688,21 +7690,21 @@ function obligationRecipient(assignee) {
     return { email: u.email, name: u.name || assignee, lang: u.lang || null };
   return null;
 }
-function runReminders() {
-  // Share nudges go to counterparties, so they run regardless of admin setup.
-  const nudged = runShareNudges();
-  // Pull full JSON so we can also see E1 metadata (notice period) and E3
-  // obligations, not just the indexed expiry column.
-  const rows = db.prepare("SELECT id,name,counterparty,expiry,status,parent_id,json FROM contracts WHERE status!='Declined'").all();
-  // Family-aware term resolution, mirrored from js/family.js. A master
-  // agreement's real end date is whatever the most recent term-changing
-  // amendment says; an amendment is not itself a renewable agreement, so it
-  // never fires its own reminder. Getting this wrong is the whole defect.
+/* Family-aware term resolution over one query's rows — mirrored from
+   js/family.js, and since WO-3 shared by BOTH sweeps (renewal reminders and
+   the daily brief). ONE implementation on purpose: a third copy is how the
+   mails and the screens come to disagree, which is the recorded defect this
+   block exists to prevent.
+
+   ONLY A SIGNED AMENDMENT MOVES THE TERM (owner-ruled 14 Aug 2026): a DRAFT
+   amendment used to move it, so a renewal reminder could be suppressed — or
+   brought forward — by a document nobody had signed. Executed, not merely
+   'Signed': the same three signals isExecutedRow reads. An amendment never
+   fires its own reminder; its parent carries the term it set. */
+function effExpiryReader(rows, parsed) {
   const TERM_CHANGING = new Set(['amendment', 'variation', 'renewal', 'addendum']);
-  const parsed = new Map();
-  for (const r of rows) { let f = {}; try { f = JSON.parse(r.json) || {}; } catch (_) {} parsed.set(r.id, f); }
   /* Normalised at the one place the term is read, so every comparison, sort
-     and piece of arithmetic below it is working on a real calendar day or on
+     and piece of arithmetic on it is working on a real calendar day or on
      null — see dateOnly(). */
   const ownExp = (r) => { const f = parsed.get(r.id) || {};
     return dateOnly((f.metadata && f.metadata.expiryDate) || r.expiry || null); };
@@ -7711,19 +7713,9 @@ function runReminders() {
       (f.signedAt && String(f.signedAt).slice(0, 10)) || (f.migration && f.migration.importedAt && String(f.migration.importedAt).slice(0, 10)) || ''; };
   const kidsOf = new Map();
   for (const r of rows) { if (!r.parent_id) continue; if (!kidsOf.has(r.parent_id)) kidsOf.set(r.parent_id, []); kidsOf.get(r.parent_id).push(r); }
-  /* ---- ONLY A SIGNED AMENDMENT MOVES THE TERM (owner-ruled 14 Aug 2026) ----
-     The twin of effectiveExpiry in js/family.js, and it has to move with it or
-     the reminder this function sends disagrees with the date the screens show.
-     A DRAFT amendment used to move the term, so a renewal reminder could be
-     suppressed — or brought forward — by a document nobody had signed. That is
-     the sharpest form of the risk, because a reminder is acted on without
-     anybody re-checking why it says what it says.
-
-     Executed, not merely 'Signed': the same three signals isExecutedRow reads,
-     for the same reason. A Declined child was already excluded at the query. */
   const executedKid = (k) => { const f = parsed.get(k.id) || {};
     return !!(k.status === 'Signed' || f.hash || (f.execution && f.execution.at)); };
-  const effExpiry = (r) => {
+  const eff = (r) => {
     if (r.parent_id) return ownExp(r);
     const kids = (kidsOf.get(r.id) || []).filter(k => TERM_CHANGING.has((parsed.get(k.id) || {}).relation)
       && ownExp(k) && executedKid(k));
@@ -7731,6 +7723,17 @@ function runReminders() {
     kids.sort((a, b) => String(amendDate(a)).localeCompare(String(amendDate(b))) || String(ownExp(a)).localeCompare(String(ownExp(b))));
     return ownExp(kids[kids.length - 1]);
   };
+  return { eff, ownExp, kidsOf };
+}
+function runReminders() {
+  // Share nudges go to counterparties, so they run regardless of admin setup.
+  const nudged = runShareNudges();
+  // Pull full JSON so we can also see E1 metadata (notice period) and E3
+  // obligations, not just the indexed expiry column.
+  const rows = db.prepare("SELECT id,name,counterparty,expiry,status,parent_id,json FROM contracts WHERE status!='Declined'").all();
+  const parsed = new Map();
+  for (const r of rows) { let f = {}; try { f = JSON.parse(r.json) || {}; } catch (_) {} parsed.set(r.id, f); }
+  const { eff: effExpiry, ownExp, kidsOf } = effExpiryReader(rows, parsed);
   const admins = db.prepare("SELECT email FROM users WHERE role='admin'").all().map(u => u.email);
   if (!admins.length) return { checked: 0, queued: nudged };
   const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -7832,6 +7835,117 @@ function runReminders() {
   return { checked, queued };
 }
 app.post('/api/reminders/run', auth, admin, (req, res) => res.json(runReminders()));
+/* ---------- THE DAILY BRIEF (WO-3, WORKORDER-gap-map.md) ----------
+   Once a day, per member, ONE email listing what needs THEM — and on a quiet
+   day, nothing at all. The report's single next step: HaTi speaks first.
+
+   WHAT A PERSON GETS IS PERSONAL: commitments assigned to them (due within a
+   week, or overdue), reviews waiting on their verdict, and a signing turn
+   that is theirs. ADMINS additionally get the portfolio dates — expiries
+   inside 30 days, renewal-notice deadlines inside 14 — and overdue
+   commitments nobody owns. Everything is filtered through folderScopeFor, so
+   nobody is emailed about a stream they cannot open.
+
+   MECHANICS: the day key is the workspace's own day (aiToday — the AI-budget
+   timezone, which is the customer's midnight rather than the server's);
+   dedupe rides the reminders table as daily:<user>:<day>, so however many
+   sweeps run, the first of the day sends and the rest are silent. The off
+   switch is prefs.dailyBrief (absent = on; PUT /api/me/prefs writes it, the
+   account page draws it). Sends are fire-and-forget like every sweep mail; a
+   dead provider leaves honest rows in the outbox and the sweep alive. */
+function runDailyBriefs() {
+  const day = aiToday();
+  const members = db.prepare('SELECT * FROM users').all()
+    .filter(u => /.+@.+\..+/.test(String(u.email || '')));
+  if (!members.length) return { day, sent: 0 };
+  const rows = db.prepare("SELECT id,name,counterparty,expiry,status,parent_id,folder,json FROM contracts WHERE status!='Declined'").all();
+  const parsed = new Map();
+  for (const r of rows) { let f = {}; try { f = JSON.parse(r.json) || {}; } catch (_) {} parsed.set(r.id, f); }
+  const { eff: effExpiry, ownExp, kidsOf } = effExpiryReader(rows, parsed);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const daysTo = iso => Math.ceil((new Date(iso + 'T00:00:00') - today) / 86400000);
+  /* Whose signature is next, computed once per contract rather than once per
+     member — the same reading notifyInternalSignerTurn makes, via the same
+     helpers, so the brief can never name a turn that route would refuse. */
+  const nextSignerEmail = new Map();
+  for (const r of rows) {
+    const full = parsed.get(r.id) || {};
+    if (!Array.isArray(full.signerPlan) || !full.signerPlan.length) continue;
+    try {
+      if (contractIsExecuted(r.id)) continue;
+      const rt = signerRouteFor(r.id); if (!rt) continue;
+      const next = rt.plan.find(s => !rt.signedRow(s));
+      if (!next || String(next.party || '') === 'counterparty') continue;
+      const to = internalSignerRecipient(next);
+      if (to) nextSignerEmail.set(r.id, String(to.email).toLowerCase());
+    } catch (_) {}
+  }
+  let sent = 0;
+  for (const u of members) {
+    if (userPrefs(u).dailyBrief === false) continue;          // the off switch
+    const rkey = `daily:${u.id}:${day}`;
+    if (db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(rkey)) continue;  // once a day
+    const scope = folderScopeFor(u);
+    const L = (u.lang && I18N_STRINGS[u.lang]) ? u.lang : I18N_DEFAULT;
+    const isAdminU = u.role === 'admin';
+    const uEmail = String(u.email).toLowerCase();
+    const S = { ob: [], rv: [], sign: [], exp: [], notice: [] };
+    for (const r of rows) {
+      if (!inScope(scope, r.folder)) continue;
+      const full = parsed.get(r.id) || {};
+      for (const o of (full.obligations || [])) {
+        if (!o || o.status === 'done') continue;
+        const due = dateOnly(o.due); if (!due) continue;
+        const od = daysTo(due);
+        const who = obligationRecipient(o.assignee);
+        const mineOb = who && String(who.email).toLowerCase() === uEmail;
+        // the -30 floor keeps a years-old dead item from renting a line forever
+        if (mineOb && od <= 7 && od >= -30)
+          S.ob.push({ line: `${o.desc} — "${r.name}" · ${od < 0 ? tFor(L, 'mail_db_overdue', { due }) : tFor(L, 'mail_db_due', { due })}`, id: r.id });
+        else if (isAdminU && !who && od < 0 && od >= -30)
+          S.ob.push({ line: `${o.desc} — "${r.name}" · ${tFor(L, 'mail_db_overdue', { due })} · ${tFor(L, 'mail_db_unassigned')}`, id: r.id });
+      }
+      for (const rv of rvOpenList(full)) {
+        if (!rvIsReviewer(rv, u) || rvSpent(full, rv)) continue;
+        S.rv.push({ line: tFor(L, 'mail_db_rv_line', { n: (rv.changeIds || []).length, name: r.name }), id: r.id });
+      }
+      if (nextSignerEmail.get(r.id) === uEmail)
+        S.sign.push({ line: `"${r.name}"`, id: r.id });
+      if (isAdminU) {
+        const expiry = r.parent_id ? null : effExpiry(r);
+        if (expiry) {
+          const d = daysTo(expiry);
+          if (d >= 0 && d <= 30) S.exp.push({ line: `"${r.name}" — ${expiry} (${d}d)`, id: r.id });
+          const termSetter = (kidsOf.get(r.id) || []).find(k => ownExp(k) === expiry);
+          const termMeta = termSetter ? ((parsed.get(termSetter.id) || {}).metadata || {}) : ((full.metadata) || {});
+          const nn = Number(termMeta.noticePeriodDays) || Number(((full.metadata) || {}).noticePeriodDays) || 0;
+          if (nn > 0) {
+            const dd = new Date(expiry + 'T00:00:00'); dd.setDate(dd.getDate() - nn);
+            if (!isNaN(dd.getTime())) {
+              const dIso = isoDay(dd); const dds = daysTo(dIso);
+              if (dds >= 0 && dds <= 14)
+                S.notice.push({ line: `"${r.name}" — ${tFor(L, 'mail_db_notice_by', { date: dIso, days: nn })}`, id: r.id });
+            }
+          }
+        }
+      }
+    }
+    const total = S.ob.length + S.rv.length + S.sign.length + S.exp.length + S.notice.length;
+    if (!total) continue;                                     // quiet days say nothing
+    db.prepare('INSERT INTO reminders (rkey,created_at) VALUES (?,?)').run(rkey, now());
+    const sec = (title, items) => items.length
+      ? `${title}\n` + items.map(i => `  • ${i.line}\n    ${contractUrl(null, i.id)}`).join('\n') + '\n\n' : '';
+    const body = `${tFor(L, 'mail_hello')}${u.name ? ' ' + u.name : ''},\n\n${tFor(L, 'mail_db_lead')}\n\n`
+      + sec(tFor(L, 'mail_db_ob'), S.ob) + sec(tFor(L, 'mail_db_rv'), S.rv)
+      + sec(tFor(L, 'mail_db_sign'), S.sign) + sec(tFor(L, 'mail_db_exp'), S.exp)
+      + sec(tFor(L, 'mail_db_notice'), S.notice)
+      + `${tFor(L, 'mail_db_off')}\n\n${tFor(L, 'mail_automated_notice')}`;
+    sendEmail(u.email, tFor(L, 'mail_db_subject', { n: total }), body, 'daily brief');
+    sent++;
+  }
+  return { day, sent };
+}
+app.post('/api/daily-brief/run', auth, admin, (req, res) => res.json(runDailyBriefs()));
 /* Twice daily. The catch is deliberate — a sweep that throws must not take the
    process with it — but it used to be EMPTY, and that is how one malformed
    expiry switched every renewal reminder in a workspace off in perfect silence.
@@ -7860,6 +7974,21 @@ function reminderSweep() {
         .run('rem_' + rid(6), 'admin', 'Renewal reminders did not run',
           `The automatic renewal-reminder sweep failed and no reminders went out this cycle.\n\nReason: ${msg}\n\nRenewal, notice and expiry alerts are paused until this is resolved. Check the most recently edited contract's dates.`,
           'system', 'reminder sweep failure', now());
+    } catch (_) {}
+  }
+  /* The daily brief rides the same timer under its OWN catch: neither sweep
+     may take the other down, and its failure is recorded where an admin can
+     see it — the M-6 lesson, applied on arrival rather than after the first
+     silent month. */
+  try { runDailyBriefs(); }
+  catch (e) {
+    const msg = (e && e.message) || String(e);
+    console.warn('[daily-brief] sweep failed, no briefs went out this cycle:', msg);
+    try {
+      db.prepare('INSERT INTO outbox (id,to_addr,subject,body,sent,provider,dev_hint,created_at) VALUES (?,?,?,?,0,?,?,?)')
+        .run('db_' + rid(6), 'admin', 'The daily brief did not run',
+          `The daily-brief sweep failed and no briefs went out this cycle.\n\nReason: ${msg}`,
+          'system', 'daily brief failure', now());
     } catch (_) {}
   }
 }
