@@ -645,10 +645,50 @@ function openCommandPalette(){
   document.body.appendChild(ov);
   const input=ov.querySelector('#cp-input'), list=ov.querySelector('#cp-list');
   let results=[], active=0;
-  const close=()=>{ ov.remove(); document.removeEventListener('keydown',onKey,true); };
-  const openItem=it=>{ close(); if(it.kind==='folder') openFolder(it.id); else openWorkspace(it.id); };
+  /* ---- ASK-YOUR-BOOK (WO-4). Two additions ride the sync results: ----
+     "In the wording" rows off the server's own full-text index (GET
+     /api/search — the Register box's route, value-masking and all), fetched
+     on a debounce and merged only while the typed query still matches; and
+     an always-last "Ask Copilot" row that HANDS the question to the existing
+     Copilot door with it prefilled — never a second AI path from here. */
+  let ftsRows=[], ftsFor='', ftsT=null;
+  const close=()=>{ clearTimeout(ftsT); ov.remove(); document.removeEventListener('keydown',onKey,true); };
+  const openItem=it=>{
+    if(it.kind==='ask'){
+      close();
+      if(window.openAI) openAI();
+      const ai=document.getElementById('ai-input');
+      if(ai){ ai.value=it.q; ai.focus(); }
+      return;
+    }
+    close(); if(it.kind==='folder') openFolder(it.id); else openWorkspace(it.id);
+  };
+  const ftsPlan=()=>{
+    const q=input.value.trim();
+    clearTimeout(ftsT);
+    if(!(typeof API_MODE==='function'&&API_MODE())||q.length<2){ ftsRows=[]; ftsFor=''; return; }
+    ftsT=setTimeout(async()=>{
+      try{
+        const r=await api('search?q='+encodeURIComponent(q)+'&limit=8');
+        // only merge while the box still says what was asked
+        if(input.value.trim()===q){ ftsRows=(r&&r.hits)||[]; ftsFor=q.toLowerCase(); paint(); }
+      }catch(_){ /* the sync rows stand alone — search down is not palette down */ }
+    },250);
+  };
   const paint=()=>{
     results=commandPaletteResults(input.value);
+    const q=input.value.trim();
+    if(q){
+      const seen=new Set(results.filter(r=>r.kind==='contract').map(r=>r.id));
+      if(ftsFor===q.toLowerCase())
+        ftsRows.filter(h=>h&&!seen.has(h.id)).slice(0,5).forEach(h=>results.push({
+          kind:'wording',id:h.id,title:h.name||h.id,
+          // the server already masked snippets for readers without canViewValues
+          sub:(h.snippet?String(h.snippet).replace(/[\[\]]/g,''):(h.counterparty||h.id)),
+          ic:'search',get tag(){ return i18t('ap_tag_wording'); }}));
+      results.push({kind:'ask',q,title:i18t('ap_ask_copilot',{q}),
+        get sub(){ return i18t('ap_ask_copilot_sub'); },ic:'sparkle'});
+    }
     if(active>=results.length) active=Math.max(0,results.length-1);
     if(!results.length){ list.innerHTML=`<div style="padding:22px 12px;text-align:center;font-size:12.5px;color:var(--color-neutral-600)">No matches${input.value.trim()?` for “${input.value.replace(/</g,'&lt;')}”`:''}.</div>`; return; }
     list.innerHTML=results.map((r,i)=>`
@@ -658,7 +698,7 @@ function openCommandPalette(){
           <span style="display:block;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(r.title||'').replace(/</g,'&lt;')}</span>
           <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(r.sub||'').replace(/</g,'&lt;')}</span>
         </span>
-        ${r.kind==='contract'&&window.statusChip?`<span style="flex:none">${statusChip(r.status)}</span>`:`<span style="flex:none;font-size:9.5px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--color-neutral-500)">${r.kind}</span>`}
+        ${r.kind==='contract'&&window.statusChip?`<span style="flex:none">${statusChip(r.status)}</span>`:`<span style="flex:none;font-size:9.5px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--color-neutral-500)">${r.tag||r.kind}</span>`}
       </button>`).join('');
     list.querySelectorAll('[data-cp-i]').forEach(b=>{
       const i=+b.getAttribute('data-cp-i');
@@ -674,7 +714,7 @@ function openCommandPalette(){
     else if(e.key==='Enter'){ e.preventDefault(); if(results[active]) openItem(results[active]); }
   }
   document.addEventListener('keydown',onKey,true);
-  input.addEventListener('input',()=>{ active=0; paint(); });
+  input.addEventListener('input',()=>{ active=0; paint(); ftsPlan(); });
   ov.addEventListener('click',e=>{ if(e.target===ov||e.target===ov.firstElementChild) close(); });
   paint(); input.focus();
 }

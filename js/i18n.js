@@ -1650,6 +1650,10 @@ const STRINGS = {
     set_daily_brief_on: "Daily brief on",
     set_daily_brief_off: "Daily brief off",
     set_daily_brief_fail: "Could not save the setting: ",
+    /* ---- ask-your-book from the palette (WO-4) ---- */
+    ap_ask_copilot: "Ask Copilot: “{q}”",
+    ap_ask_copilot_sub: "Opens the Copilot panel with this question ready to send",
+    ap_tag_wording: "wording",
 
     // ---- negotiation support modules ----
     ve_compare_versions: 'Compare versions',
@@ -5582,6 +5586,9 @@ const STRINGS = {
     set_daily_brief_on: "Dagligt sammandrag på",
     set_daily_brief_off: "Dagligt sammandrag av",
     set_daily_brief_fail: "Inställningen kunde inte sparas: ",
+    ap_ask_copilot: "Fråga Copilot: ”{q}”",
+    ap_ask_copilot_sub: "Öppnar Copilot-panelen med frågan redo att skickas",
+    ap_tag_wording: "lydelse",
 
     // ---- negotiation support modules ----
     ve_compare_versions: 'Jämför versioner',
