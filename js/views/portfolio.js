@@ -37,7 +37,7 @@ const pfEsc = s => String(s==null?'':s).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':
 
 /* The book this frame reads. Declined contracts are not live — the same rule
    the Copilot snapshot applies, deliberately. */
-const pfLive = () => (state.contracts||[]).filter(c=>c.status!=='Declined');
+const pfLive = () => (state.contracts||[]).filter(c=>c.status!=='Declined'&&!c.archived);
 
 const pfMoneyOk = () => (typeof canViewValues!=='function') || canViewValues();
 /* One place decides what a contract is "worth" for ranking. When values are

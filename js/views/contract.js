@@ -4539,6 +4539,7 @@ function roomHeadHtml(c,opts={}){
              Drawn only where there IS a negotiation: "Round 1" over a draft
              nobody has redlined is a number about nothing. */}
       <div class="room-sub">${c.id}${F[c.folder]?' · '+esc(F[c.folder].name):''}${
+        c.archived?' · '+i18t('ct_archived_tag'):''}${
         (c.negotiation&&window.negoRound)?' · '+i18t('ct_round_n',{n:negoRound(c)}):''}${
         ''/* What the Negotiate tab's amber count used to say, now that the tab
               is gone — see negoRoundNeedsHtml. Not drawn on the workbench: that
@@ -4639,6 +4640,8 @@ function roomHeadHtml(c,opts={}){
           <hr>
           <div class="mgroup">${i18t('ct_view')}</div>
           <button type="button" id="ws-focus" aria-pressed="false" title="${i18t('ct_hide_header')}">${icon('scan','w-3.5 h-3.5')}Focus mode<span class="mnote">${i18t('ct_esc_to_leave')}</span></button>
+          ${may?`<hr>
+          <button type="button" id="ws-archive" title="${i18t(c.archived?'ar_restore_title':'ar_archive_title')}">${icon(c.archived?'history':'folder','w-3.5 h-3.5')}${c.archived?i18t('reg_restore'):i18t('reg_archive')}</button>`:''}
           ${(may&&(c.status==='Draft'||c.status==='Under Review'))?`<hr>
           <button type="button" id="ws-delete" class="danger" title="${i18t('ct_delete_draft')}">${icon('trash','w-3.5 h-3.5')}${i18t('ct_delete_this_draft')}</button>`:''}
           ${''/* ws-new keeps its id and its data-page-new: it is a real button
@@ -4725,6 +4728,11 @@ function wireRoomHead(c){
      this tab before, because the click never arrived. */
   document.getElementById('ws-delete')?.addEventListener('click',()=>
     deleteContract(c.id).then(ok=>{ if(ok) setView('register'); }));
+  /* the archive shelf (WO-5): the same act as the register row's, repainting
+     the room so the menu's word and the sub-line's tag both turn over */
+  document.getElementById('ws-archive')?.addEventListener('click',()=>{
+    if(window.contractSetArchived) contractSetArchived(c,!c.archived).then(ok=>{ if(ok) renderWorkspace(); });
+  });
 }
 
 function renderWorkspace(){

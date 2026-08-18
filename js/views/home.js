@@ -302,7 +302,9 @@ function gsGoTargetExists(k){
    as the phone does. Not one line of the arithmetic changed in the move —
    deliberately, so the desktop it feeds is the desktop that shipped. */
 function hmDashSlices(){
-  const cs=state.contracts;
+  /* THE ARCHIVE SHELF (WO-5): filed-away contracts leave every dashboard
+     figure at the one door the whole dashboard reads through. */
+  const cs=(state.contracts||[]).filter(c=>!c.archived);
   /* state.contracts, state.serverStats and state.shareOverview are already
      scoped and masked by the server (F1/F2) — every slice below is therefore
      scoped by construction. `money` is the last mile: it stops the dashboard

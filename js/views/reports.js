@@ -33,7 +33,7 @@ function daysBetween(a,b){ if(a==null||b==null) return null; return Math.max(0,(
    the audit trail of the loaded contracts. */
 function computeReports(){
   const cs=state.contracts;
-  const active=cs.filter(c=>c.status!=='Declined');
+  const active=cs.filter(c=>c.status!=='Declined'&&!c.archived);
   // cycle time draft -> signed
   const cycles=[];
   cs.forEach(c=>{ if(c.status==='Signed'){ const created=repRaisedAt(c); const signed=repSignedAt(c); const d=daysBetween(created,signed); if(d!=null) cycles.push(d); } });
@@ -58,7 +58,7 @@ function computeReports(){
   const totalValue=active.reduce((s,c)=>s+Number(c.value||0),0);
   const pipeTotal=Object.values(pipeline).reduce((a,b)=>a+b,0);
   const pipeMonthsN=Object.keys(pipeline).length;
-  const expiring90=agreementsIn(cs).filter(c=>{ const exp=effectiveExpiry(c); return exp&&c.status!=='Declined'&&daysUntil(exp)>=0&&daysUntil(exp)<=90; }).length;
+  const expiring90=agreementsIn(cs).filter(c=>{ const exp=effectiveExpiry(c); return exp&&c.status!=='Declined'&&!c.archived&&daysUntil(exp)>=0&&daysUntil(exp)<=90; }).length;
   const risks=cs.map(c=>contractRisk(c)).filter(n=>typeof n==='number'&&!isNaN(n));
   const avgRisk=risks.length?risks.reduce((a,b)=>a+b,0)/risks.length:null;
   const highRisk=cs.filter(c=>contractRisk(c)>=70).length;

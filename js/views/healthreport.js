@@ -33,7 +33,7 @@ function hatiRecordMonthlySnapshot(){
   const month=hatiMonthKey();
   const snaps=hatiMonthlySnapshots();
   if(snaps.some(s=>s&&s.month===month)) return null;
-  const live=cs.filter(c=>c.status!=='Declined');
+  const live=cs.filter(c=>c.status!=='Declined'&&!c.archived);
   const _obState=(typeof obState==='function')?obState:(o=>(o&&o.status==='done')?'done':'open');
   const obs=(typeof allObligations==='function')?allObligations().filter(o=>_obState(o)!=='done'):[];
   const snap={ month, at:new Date().toISOString(),
@@ -80,7 +80,7 @@ function healthReportData(){
   const money=(typeof kpiMoneyOk==='function')?kpiMoneyOk():(typeof canViewValues==='function'?canViewValues():true);
   const exp=c=>(typeof effectiveExpiry==='function'?effectiveExpiry(c):c.expiry)||null;
   const dU=iso=>(typeof daysUntil==='function'?daysUntil(iso):Math.ceil((new Date(iso+'T00:00:00')-Date.now())/86400000));
-  const live=cs.filter(c=>c.status!=='Declined');
+  const live=cs.filter(c=>c.status!=='Declined'&&!c.archived);
   const ag=(typeof agreementsIn==='function')?agreementsIn(live):live;
 
   const withExp=ag.map(c=>({c,e:exp(c)})).filter(x=>x.e).map(x=>({...x,d:dU(x.e)}));

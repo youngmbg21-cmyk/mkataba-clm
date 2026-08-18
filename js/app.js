@@ -624,7 +624,9 @@ function commandPaletteResults(q){
   if(q) cs=cs.filter(c=>(c.name+' '+(c.counterparty||'')+' '+c.id).toLowerCase().includes(q));
   else cs=cs.slice().sort((a,b)=>Date.parse(b.lastAction||0)-Date.parse(a.lastAction||0));
   cs.slice(0,q?12:6).forEach(c=>out.push({kind:'contract',id:c.id,
-    title:c.name, sub:`${c.id}${c.counterparty?' · '+c.counterparty:''}`, ic:(window.cIcon?cIcon(c):'file'), status:c.status}));
+    // an archived row stays findable HERE (filing, not deleting — WO-5) and
+    // says so, since no list would explain how it got here otherwise
+    title:c.name, sub:`${c.id}${c.counterparty?' · '+c.counterparty:''}${c.archived?' · '+i18t('ct_archived_tag'):''}`, ic:(window.cIcon?cIcon(c):'file'), status:c.status}));
   return out.slice(0,14);
 }
 function openCommandPalette(){
@@ -818,7 +820,8 @@ const ALERT_TONE = { amber:'var(--st-amber-dot)', green:'var(--st-green-dot)',
    `go` is what the row's press runs. */
 function buildAlerts(){
   const out=[];
-  const cs=(state.contracts||[]);
+  // archived contracts alert nobody (WO-5) — the shelf is quiet
+  const cs=(state.contracts||[]).filter(c=>!c.archived);
   const me=(typeof currentUser==='function')?currentUser():null;
   const push=(kind,c,text,go)=>{ const d=ALERT_KINDS.find(x=>x.k===kind)||ALERT_KINDS[0];
     out.push({ kind, id:c?c.id:'', name:c?(c.name||c.id):'', text, tone:d.tone, ic:d.ic, go }); };

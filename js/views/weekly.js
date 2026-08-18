@@ -63,7 +63,7 @@ function wkSnapshots(){ const v=_wkLsGet(WK_SNAP_KEY); return Array.isArray(v)?v
 function wkRecordSnapshot(){
   const cs=(window.state&&Array.isArray(state.contracts))?state.contracts:[];
   if(!cs.length) return null;
-  const live=cs.filter(c=>c.status!=='Declined');
+  const live=cs.filter(c=>c.status!=='Declined'&&!c.archived);
   const find=c=>(c.scan&&typeof openFindings==='function')?openFindings(c).length:0;
   const snap={ week:wkKey(), at:new Date().toISOString(),
     contracts:live.length, value:live.reduce((a,c)=>a+Number(c.value||0),0),
@@ -82,7 +82,7 @@ const wkPrevSnapshot = () => { const k=wkKey();
 /* ---------------------------------------------------------- the figures --- */
 function weeklyData(){
   const cs=(window.state&&Array.isArray(state.contracts))?state.contracts:[];
-  const live=cs.filter(c=>c.status!=='Declined');
+  const live=cs.filter(c=>c.status!=='Declined'&&!c.archived);
   const money=n=>(typeof fmtMoneyShort==='function')?fmtMoneyShort(n):String(n);
   const canSee=(typeof canViewValues!=='function')||canViewValues();
   const val=c=>canSee?Number(c.value||0):0;

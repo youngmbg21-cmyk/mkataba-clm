@@ -7755,6 +7755,11 @@ function runReminders() {
   for (const c of rows) {
     checked++;
     const full = parsed.get(c.id) || {};
+    /* An ARCHIVED contract stops nagging (WO-5) — that is half of what the
+       shelf is for. Skipped HERE, never inside effExpiryReader: an archived
+       executed amendment still sets its parent's term, because archiving a
+       child is filing, not un-signing it. */
+    if (full.archived) continue;
     const meta = full.metadata || {};
     // an amendment does not fire its own renewal reminder — its parent does,
     // using the term the amendment set
@@ -7870,6 +7875,7 @@ function runDailyBriefs() {
   const nextSignerEmail = new Map();
   for (const r of rows) {
     const full = parsed.get(r.id) || {};
+    if (full.archived) continue;            // the shelf is quiet (WO-5)
     if (!Array.isArray(full.signerPlan) || !full.signerPlan.length) continue;
     try {
       if (contractIsExecuted(r.id)) continue;
@@ -7893,6 +7899,7 @@ function runDailyBriefs() {
     for (const r of rows) {
       if (!inScope(scope, r.folder)) continue;
       const full = parsed.get(r.id) || {};
+      if (full.archived) continue;          // the shelf is quiet (WO-5)
       for (const o of (full.obligations || [])) {
         if (!o || o.status === 'done') continue;
         const due = dateOnly(o.due); if (!due) continue;

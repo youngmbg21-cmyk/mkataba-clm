@@ -887,7 +887,7 @@ function aiAnswer(qRaw){
   if(has('compare','side by side','side-by-side','versus',' vs ')||idsInQ.length>=2){
     let ids=idsInQ.filter(id=>getContract(id));
     if(ids.length<2 && has('highest','largest','biggest','top','most valuable'))
-      ids=[...cs].filter(c=>c.status!=='Declined'&&Number(c.value||0)>0).sort((a,b)=>b.value-a.value).slice(0,2).map(c=>c.id);
+      ids=[...cs].filter(c=>c.status!=='Declined'&&!c.archived&&Number(c.value||0)>0).sort((a,b)=>b.value-a.value).slice(0,2).map(c=>c.id);
     if(ids.length<2){
       const words=q.replace(/[?.,!]/g,'').split(/\s+/).filter(w=>w.length>3);
       const byParty=cs.filter(c=>c.counterparty&&words.some(w=>c.counterparty.toLowerCase().includes(w)));
@@ -916,7 +916,7 @@ function aiAnswer(qRaw){
 
   // 1a) expiry / renewal queries
   if(has('expir','renew','lapse','ending','due soon')){
-    const exp=cs.filter(c=>c.expiry && c.status!=='Declined')
+    const exp=cs.filter(c=>c.expiry && c.status!=='Declined' && !c.archived)
       .map(c=>({c,d:Math.ceil((new Date(c.expiry+'T00:00:00')-Date.now())/86400000)}))
       .filter(x=>x.d>=0&&x.d<=90).sort((a,b)=>a.d-b.d);
     if(!exp.length) return { text:`<span class="ai-tone ai-tone-pos">Nothing in the active book lapses in the next 90 days.</span>` };
@@ -958,15 +958,15 @@ function aiAnswer(qRaw){
   if(has('total','value','worth','how much','portfolio')){
     const m=metrics();
     const byFolder=Object.values(FOLDERS).map(f=>{
-      const v=folderContracts(f.id).filter(c=>c.status!=='Declined').reduce((s,c)=>s+Number(c.value||0),0);
+      const v=folderContracts(f.id).filter(c=>c.status!=='Declined'&&!c.archived).reduce((s,c)=>s+Number(c.value||0),0);
       return `<div class="flex items-center justify-between text-xs py-1.5 border-b border-brand-100/60 last:border-0"><span class="text-brand-800/70">${f.name}</span><span class="font-mono font-medium text-brand-900">${fmtMoneyShort(v)}</span></div>`;
     }).join('');
-    return { text:`Your active portfolio is worth <strong>${fmtMoney(m.totalValue)}</strong> across ${cs.filter(c=>c.status!=='Declined').length} live agreements. Breakdown by folder:`,
+    return { text:`Your active portfolio is worth <strong>${fmtMoney(m.totalValue)}</strong> across ${cs.filter(c=>c.status!=='Declined'&&!c.archived).length} live agreements. Breakdown by folder:`,
       cards:`<div class="rounded-xl border border-brand-100 bg-white px-3.5 py-1.5">${byFolder}</div>` };
   }
   // 7) highest / largest
   if(has('highest','largest','biggest','top contract','most valuable')){
-    const sorted=[...cs].filter(c=>c.status!=='Declined').sort((a,b)=>b.value-a.value).slice(0,3);
+    const sorted=[...cs].filter(c=>c.status!=='Declined'&&!c.archived).sort((a,b)=>b.value-a.value).slice(0,3);
     if(!sorted.length) return { text:`There are no active contracts to rank yet — create one from a template or upload received paper and ask me again.` };
     return { text:`Your highest-value agreement is <strong>${sorted[0].name}</strong> at <strong>${fmtMoney(sorted[0].value)}</strong>. Top three by value:`, cards:aiCards(sorted) };
   }
@@ -1088,7 +1088,7 @@ const AI_SNAPSHOT_CAP = 40;
 function aiPortfolioSnapshot(){
   const cs=(state.contracts||[]);
   if(!cs.length) return 'PORTFOLIO: no contracts in this workspace yet.';
-  const live=cs.filter(c=>c.status!=='Declined');
+  const live=cs.filter(c=>c.status!=='Declined'&&!c.archived);
   const money=n=>(typeof fmtMoney==='function'?fmtMoney(n):`${jxCurrency()} `+Number(n||0).toLocaleString(jxLocale()));
   const byStatus=['Draft','Under Review','Signed','Declined']
     .map(st=>`${st}: ${cs.filter(c=>c.status===st).length}`).join(' · ');
@@ -1446,7 +1446,7 @@ function _localToolRun(name,a){
       if(a.status) l=l.filter(c=>(c.status||'')===a.status);
       if(a.folder) l=l.filter(c=>(c.folder||'')===a.folder);
       if(Number(a.minValue)>0) l=l.filter(c=>Number(c.value||0)>=Number(a.minValue));
-      if(Number(a.expiringWithinDays)>0) l=l.filter(c=>{ const d=c.expiry?_daysTo(c.expiry):null; return c.expiry&&c.status!=='Declined'&&d!=null&&d>=0&&d<=Number(a.expiringWithinDays); });
+      if(Number(a.expiringWithinDays)>0) l=l.filter(c=>{ const d=c.expiry?_daysTo(c.expiry):null; return c.expiry&&c.status!=='Declined'&&!c.archived&&d!=null&&d>=0&&d<=Number(a.expiringWithinDays); });
       /* The cap is a fact the model must be handed, not a silent trim: forty
          rows with no total reads as "forty contracts", and the model reported
          it as the whole portfolio. Same shape as the server tool. */
@@ -1581,7 +1581,7 @@ Examples: "highlight the customer contracts" → {"folder":"sales","action":"hig
   if(s.kind){ const k=String(s.kind).toLowerCase(); cs=cs.filter(c=>cKind(c).toLowerCase().includes(k)); filtered=true; }
   if(s.counterparty){ const k=String(s.counterparty).toLowerCase(); cs=cs.filter(c=>(c.counterparty||'').toLowerCase().includes(k)); filtered=true; }
   if(s.valueMin){ cs=cs.filter(c=>Number(c.value||0)>=Number(s.valueMin)); filtered=true; }
-  if(s.expiryDays!=null){ const n=Number(s.expiryDays); cs=cs.filter(c=>c.expiry&&c.status!=='Declined'&&daysUntil(c.expiry)>=0&&daysUntil(c.expiry)<=n); filtered=true; }
+  if(s.expiryDays!=null){ const n=Number(s.expiryDays); cs=cs.filter(c=>c.expiry&&c.status!=='Declined'&&!c.archived&&daysUntil(c.expiry)>=0&&daysUntil(c.expiry)<=n); filtered=true; }
   const note=s.note||'Copilot filter';
   const vis=filtered?cs:null;
   const answer = vis===null

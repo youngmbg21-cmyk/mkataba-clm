@@ -1654,6 +1654,16 @@ const STRINGS = {
     ap_ask_copilot: "Ask Copilot: “{q}”",
     ap_ask_copilot_sub: "Opens the Copilot panel with this question ready to send",
     ap_tag_wording: "wording",
+    /* ---- the archive shelf (WO-5) ---- */
+    reg_view_archived: "Archived",
+    reg_archive: "Archive",
+    reg_restore: "Restore",
+    ct_archived_tag: "Archived",
+    ar_archive_title: "File it away — off the live lists and counts, still searchable",
+    ar_restore_title: "Bring it back to the live lists",
+    ar_archived_toast: "Archived — off the live lists, still searchable",
+    ar_restored_toast: "Restored to the live lists",
+    ar_editors_only: "Only editors can archive or restore a contract",
 
     // ---- negotiation support modules ----
     ve_compare_versions: 'Compare versions',
@@ -5589,6 +5599,15 @@ const STRINGS = {
     ap_ask_copilot: "Fråga Copilot: ”{q}”",
     ap_ask_copilot_sub: "Öppnar Copilot-panelen med frågan redo att skickas",
     ap_tag_wording: "lydelse",
+    reg_view_archived: "Arkiverade",
+    reg_archive: "Arkivera",
+    reg_restore: "Återställ",
+    ct_archived_tag: "Arkiverat",
+    ar_archive_title: "Lägg undan det — borta från aktiva listor och siffror, fortfarande sökbart",
+    ar_restore_title: "Ta tillbaka det till de aktiva listorna",
+    ar_archived_toast: "Arkiverat — borta från de aktiva listorna, fortfarande sökbart",
+    ar_restored_toast: "Återställt till de aktiva listorna",
+    ar_editors_only: "Endast redaktörer kan arkivera eller återställa ett avtal",
 
     // ---- negotiation support modules ----
     ve_compare_versions: 'Jämför versioner',

@@ -4428,7 +4428,7 @@ function metrics(){
   const s=state.serverStats;
   if(s) return { totalValue:s.totalValue||0, pending:s.pending||0, signed:s.signed||0,
     declined:s.declined||0, drafts:s.drafts||0, expired:s.expired||0, expiredValue:s.expiredValue||0 };
-  const cs=state.contracts;
+  const cs=(state.contracts||[]).filter(c=>!c.archived);   // the shelf is off the books (WO-5)
   /* ACTIVE VALUE IS THE VALUE OF WHAT IS STILL RUNNING. This counted every
      contract that was not Declined, so a supply agreement that ended in 2023
      went on contributing its whole face value to the headline figure on the

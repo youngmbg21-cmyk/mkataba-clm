@@ -141,7 +141,7 @@ function allObligations(){
    dashboard panel reads. Declined contracts are out — a deal nobody is doing
    has no deliverables — and so is anything already done. */
 function openObligations(withinDays){
-  const live=new Set((state.contracts||[]).filter(c=>c.status!=='Declined').map(c=>c.id));
+  const live=new Set((state.contracts||[]).filter(c=>c.status!=='Declined'&&!c.archived).map(c=>c.id));
   return allObligations()
     .filter(o=>live.has(o.cid) && obState(o)!=='done')
     .map(o=>{ const due=obligationDue(o); return { ...o, due, days:due?daysUntil(due):null }; })

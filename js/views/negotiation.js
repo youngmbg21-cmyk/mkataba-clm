@@ -8891,6 +8891,7 @@ function negoNeedsYouIds(c, opts = {}){
 const NEGO_DEAD_STATUS = new Set(['Signed', 'Declined']);
 function negoIsLive(c){
   if (!c || !c.negotiation) return false;
+  if (c.archived) return false;      // the shelf argues with nobody (WO-5)
   if (NEGO_DEAD_STATUS.has(c.status)) return false;
   return Array.isArray(c.changes) && c.changes.length > 0;
 }

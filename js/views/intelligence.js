@@ -30,7 +30,7 @@ function buildGraph(){
   state.contracts.forEach(c=>{ if(!c.counterparty) return;
     (parties[c.counterparty]||(parties[c.counterparty]=[])).push(c); });
   Object.entries(parties).forEach(([name,cs])=>{
-    const val=cs.filter(x=>x.status!=='Declined').reduce((s,x)=>s+Number(x.value||0),0);
+    const val=cs.filter(x=>x.status!=='Declined'&&!x.archived).reduce((s,x)=>s+Number(x.value||0),0);
     nodes.push({ id:'p:'+name, type:'party', party:name, cs, label:trunc(name), sub:cs.length+' deal'+(cs.length===1?'':'s')+' \u00b7 '+fmtMoneyShort(val),
       kind:'party', bar:'#2c455d', w:0,h:0,x:0,y:0 });
     cs.forEach(c=>edges.push({from:c.id, to:'p:'+name, label:'party to'}));
@@ -192,7 +192,7 @@ function graphInterpret(qRaw){
   const kindHit=(...k)=>cs.filter(c=>k.some(x=>cKind(c).toLowerCase().includes(x)));
   if(has('expir','renew','lapse','ending',' end ','coming to an end','ends in','end in','end within')){
     const horizon=parseHorizonDays(q)??90;
-    vis=cs.filter(c=>c.expiry&&c.status!=='Declined'&&daysUntil(c.expiry)>=0&&daysUntil(c.expiry)<=horizon);
+    vis=cs.filter(c=>c.expiry&&c.status!=='Declined'&&!c.archived&&daysUntil(c.expiry)>=0&&daysUntil(c.expiry)<=horizon);
     note='Expiring ≤ '+(horizon%30===0&&horizon>=30?Math.round(horizon/30)+'mo':horizon+' days');
     badges={}; vis.forEach(c=>badges[c.id]='ends in '+daysUntil(c.expiry)+'d');
     action='highlight';
@@ -406,7 +406,7 @@ async function intelChatAsk(q){
    risks, missing protections, ambiguous terms. Grounded, instant, and works with
    or without an Copilot key. Framed as a first-pass review for counsel, not advice. */
 async function intelComplianceScan(q){
-  const cs=(state.contracts||[]).filter(c=>c.status!=='Declined');
+  const cs=(state.contracts||[]).filter(c=>c.status!=='Declined'&&!c.archived);
   const RANK=(typeof SEV_RANK==='object'&&SEV_RANK)||{high:3,med:2,low:1};
   const worst=arr=>(typeof worstSevOf==='function')?worstSevOf(arr)
     :(arr.some(f=>f.sev==='high')?'high':arr.some(f=>f.sev==='med')?'med':'low');
@@ -1399,7 +1399,7 @@ function openPartyModal(name){
   layoutGraph(nodes, edges, W, H);
   state.mapPos=savedPos;
 
-  const val=own.filter(x=>x.status!=='Declined').reduce((s,x)=>s+Number(x.value||0),0);
+  const val=own.filter(x=>x.status!=='Declined'&&!x.archived).reduce((s,x)=>s+Number(x.value||0),0);
   modal.innerHTML=`
   <div class="view-enter bg-white rounded-2xl border border-brand-100 shadow-2xl shadow-brand-900/25 overflow-hidden">
     <div class="flex items-center gap-3 px-5 py-4 border-b border-brand-100/60">
