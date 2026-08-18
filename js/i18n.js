@@ -1607,6 +1607,20 @@ const STRINGS = {
     mail_int_turn_body: "It's your turn to sign \"{name}\"{pos}. Everybody before you on the signing order has signed, so the agreement is now waiting on you.",
     mail_int_turn_open: "Open the contract on its Signing tab:",
     mail_int_turn_signin: "You sign inside HaTi with your own account, so you will be asked to sign in first — that is what records the signature as yours.",
+    /* ---- an OBLIGATION's own nudges (WO-1, the gap-map order) ----
+       The person responsible hears before the date, on it, and the day after;
+       the admins are brought in only when it is still open days later — or
+       from the start where no assignee resolves to a member, which keeps the
+       old admin-only mail unchanged so nothing is quieter than it was. */
+    mail_ob_soon_subject: "Due in 7 days — {desc}",
+    mail_ob_soon_line: "The obligation \"{desc}\" on \"{name}\" ({id}) is due on {due} — 7 days from now.",
+    mail_ob_today_subject: "Due today — {desc}",
+    mail_ob_today_line: "The obligation \"{desc}\" on \"{name}\" ({id}) is due today, {due}.",
+    mail_ob_over_subject: "Overdue — {desc}",
+    mail_ob_over_line: "The obligation \"{desc}\" on \"{name}\" ({id}) was due {due} and is now overdue.",
+    mail_ob_esc_subject: "Still open {days} days after its date — {desc}",
+    mail_ob_esc_line: "The obligation \"{desc}\" on \"{name}\" ({id}) was due {due} and is still open {days} days later. {assignee} was reminded before the date, on it, and the day after.",
+    mail_ob_open: "Open the contract:",
 
     // ---- negotiation support modules ----
     ve_compare_versions: 'Compare versions',
@@ -5503,6 +5517,15 @@ const STRINGS = {
     mail_int_turn_body: "Det är din tur att underteckna \"{name}\"{pos}. Alla före dig i undertecknandeordningen har skrivit under, så avtalet väntar nu på dig.",
     mail_int_turn_open: "Öppna avtalet på fliken Underskrift:",
     mail_int_turn_signin: "Du undertecknar inne i HaTi med ditt eget konto, så du kommer först att ombes logga in — det är det som registrerar underskriften som din.",
+    mail_ob_soon_subject: "Förfaller om 7 dagar — {desc}",
+    mail_ob_soon_line: "Åtagandet \"{desc}\" i \"{name}\" ({id}) förfaller {due} — om 7 dagar.",
+    mail_ob_today_subject: "Förfaller idag — {desc}",
+    mail_ob_today_line: "Åtagandet \"{desc}\" i \"{name}\" ({id}) förfaller idag, {due}.",
+    mail_ob_over_subject: "Försenat — {desc}",
+    mail_ob_over_line: "Åtagandet \"{desc}\" i \"{name}\" ({id}) skulle ha utförts {due} och är nu försenat.",
+    mail_ob_esc_subject: "Fortfarande öppet {days} dagar efter sitt datum — {desc}",
+    mail_ob_esc_line: "Åtagandet \"{desc}\" i \"{name}\" ({id}) skulle ha utförts {due} och är fortfarande öppet {days} dagar senare. {assignee} påmindes före datumet, på dagen och dagen efter.",
+    mail_ob_open: "Öppna avtalet:",
 
     // ---- negotiation support modules ----
     ve_compare_versions: 'Jämför versioner',

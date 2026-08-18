@@ -5971,8 +5971,12 @@ function internalSignerRecipient(row) {
    needs them to go and find it. Honoured by startApp in js/core.js, on the far
    side of the sign-in wall — the hash survives the wall, and that is what makes
    this safe to send to a page that will refuse to load without a session. */
+/* Like shareUrl: APP_URL first, the request second, localhost last — and req
+   may be NULL, because the reminder sweep runs on a timer with no request to
+   read a host from. */
 const contractUrl = (req, contractId, tab) =>
-  `${req.protocol}://${req.get('host')}/#contract=${encodeURIComponent(contractId)}`
+  (APP_URL() || (req ? `${req.protocol}://${req.get('host')}` : `http://localhost:${PORT}`))
+  + `/#contract=${encodeURIComponent(contractId)}`
   + (tab ? `&tab=${encodeURIComponent(tab)}` : '');
 const contractSignUrl = (req, contractId) => contractUrl(req, contractId, 'sign');
 /* ONE WORDING, BOTH TRIGGERS, BOTH LANGUAGES. The two mails this replaces said
@@ -7555,6 +7559,23 @@ function runShareNudges() {
   }
   return queued;
 }
+/* WHO OWES THE WORK. The assignee on an obligation is free text — usually a
+   colleague's name, sometimes an address. It resolves to a MEMBER record or to
+   nobody: only a member's own address is written to (the open-relay rule the
+   notify-signer route learned), and a name matching nobody keeps the old
+   admin-only path so nothing is quieter than it was. WO-1, WORKORDER-gap-map. */
+function obligationRecipient(assignee) {
+  const q = String(assignee || '').trim().toLowerCase();
+  if (!q) return null;
+  let u = null;
+  try {
+    u = db.prepare('SELECT * FROM users WHERE LOWER(email)=?').get(q);
+    if (!u) u = db.prepare('SELECT * FROM users WHERE LOWER(name)=?').get(q);
+  } catch (_) { u = null; }
+  if (u && /.+@.+\..+/.test(String(u.email || '')))
+    return { email: u.email, name: u.name || assignee, lang: u.lang || null };
+  return null;
+}
 function runReminders() {
   // Share nudges go to counterparties, so they run regardless of admin setup.
   const nudged = runShareNudges();
@@ -7602,12 +7623,19 @@ function runReminders() {
   if (!admins.length) return { checked: 0, queued: nudged };
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const daysTo = iso => Math.ceil((new Date(iso + 'T00:00:00') - today) / 86400000);
-  const fire = (rkey, subj, body, tag) => {
+  /* fireTo is the general door: one dedupe row per rkey however many addresses,
+     and the message is BUILT PER ADDRESS so each reader gets their own language
+     (mk is a function of the address). fire keeps the old shape — same words to
+     every admin — so the renewal blocks below are untouched. */
+  const fireTo = (rkey, addrs, mk, tag) => {
+    if (!addrs.length) return false;
     if (db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(rkey)) return false;
     db.prepare('INSERT INTO reminders (rkey,created_at) VALUES (?,?)').run(rkey, now());
-    admins.forEach(a => sendEmail(a, subj, body, tag));
+    addrs.forEach(a => { const m = mk(a); sendEmail(a, m.subject, m.body, tag); });
     return true;
   };
+  const fire = (rkey, subj, body, tag) =>
+    fireTo(rkey, admins, () => ({ subject: subj, body }), tag);
   let queued = nudged, checked = 0;
   for (const c of rows) {
     checked++;
@@ -7644,7 +7672,16 @@ function runReminders() {
           `decision ${dms}d: ${c.name}`)) queued++;
       }
     }
-    // 3) obligations newly overdue (fire once per obligation)
+    /* 3) obligations. THE NUDGE REACHES THE PERSON RESPONSIBLE (WO-1,
+       WORKORDER-gap-map.md): where the assignee resolves to a member, THEY are
+       told — 7 days before the date, on it, and the day after — in their own
+       language, and the admins are brought in only when it is STILL open three
+       days after that. Admin-only mail made the admin a human message-router
+       and told the person who owed the work nothing. Where no assignee
+       resolves, the old admin day-after mail runs byte-identical (f65 pins
+       it), so nothing is quieter than it was. Milestones match an exact day,
+       like the renewal blocks above; the overdue rkey keeps its historic shape
+       so an already-reminded obligation is not re-fired by the upgrade. */
     (full.obligations || []).forEach(o => {
       if (o.status === 'done') return;
       // through the same normalisation: an obligation due "31 March 2027" gave
@@ -7652,7 +7689,29 @@ function runReminders() {
       const due = dateOnly(o.due);
       if (!due) return;
       const od = daysTo(due);
-      if (od === -1 && fire(`${c.id}:ob:${o.id || due}:overdue`,
+      const okey = o.id || due;
+      const who = obligationRecipient(o.assignee);
+      if (who) {
+        const link = contractUrl(null, c.id);
+        const oMail = key => a => {
+          const L = a === who.email ? (who.lang || I18N_DEFAULT) : langForEmail(a);
+          // one vars object for subject AND line — the subject carries {desc}
+          // always and {days} on the escalation, and a template var only half
+          // supplied prints itself literally
+          const vars = { desc: o.desc, name: c.name, id: c.id, due,
+            days: -od, assignee: who.name || o.assignee };
+          return {
+            subject: tFor(L, `mail_ob_${key}_subject`, vars),
+            body: `${tFor(L, 'mail_hello')}${a === who.email && who.name ? ' ' + who.name : ''},\n\n`
+              + tFor(L, `mail_ob_${key}_line`, vars)
+              + `\n\n${tFor(L, 'mail_ob_open')}\n${link}\n\n${tFor(L, 'mail_automated_notice')}`,
+          };
+        };
+        if (od === 7 && fireTo(`${c.id}:ob:${okey}:soon`, [who.email], oMail('soon'), `obligation soon: ${c.name}`)) queued++;
+        if (od === 0 && fireTo(`${c.id}:ob:${okey}:today`, [who.email], oMail('today'), `obligation today: ${c.name}`)) queued++;
+        if (od === -1 && fireTo(`${c.id}:ob:${okey}:overdue`, [who.email], oMail('over'), `obligation overdue: ${c.name}`)) queued++;
+        if (od === -4 && fireTo(`${c.id}:ob:${okey}:escalate`, admins, oMail('esc'), `obligation escalated: ${c.name}`)) queued++;
+      } else if (od === -1 && fire(`${c.id}:ob:${okey}:overdue`,
         `Obligation overdue: ${c.name}`,
         `The obligation "${o.desc}" on "${c.name}" (${c.id}) was due ${due} and is now overdue${o.assignee ? ` (assigned to ${o.assignee})` : ''}.`,
         `obligation overdue: ${c.name}`)) queued++;
