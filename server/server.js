@@ -2041,12 +2041,18 @@ app.get('/api/bootstrap', auth, (req, res) => {
   });
 });
 
+/* THE ARCHIVE SHELF LEAVES THE SQL AGGREGATES TOO (WO-5). `archived` lives
+   in the record rather than a column, so these dashboard-cadence queries read
+   it with json_extract — the client's own counts already exclude it, and a
+   server figure that disagreed with the screens would be the register head
+   saying 146 over a table showing 145. */
+const NOT_ARCH = "json_extract(json,'$.archived') IS NULL";
 // Portfolio aggregates computed in SQL — O(1) client cost at any scale, and
 // scoped to what the caller may see, so "the portfolio" means THEIR portfolio.
 app.get('/api/stats', auth, (req, res) => {
   const scope = folderScopeFor(req.user);
   const f = scopeFrag(scope);
-  const w = whereOf(f.sql);
+  const w = whereOf(NOT_ARCH, f.sql);
   const g = db.prepare(`SELECT
       COALESCE(SUM(CASE WHEN status!='Declined' THEN value ELSE 0 END),0) totalValue,
       SUM(status='Under Review') pending, SUM(status='Signed') signed,
@@ -2071,7 +2077,7 @@ app.get('/api/stats', auth, (req, res) => {
      reminder sweep uses; a value that is no kind of date means "we do not know
      when this ends", which is not a claim that it has ended. */
   const today = isoDay(new Date());
-  const signed = db.prepare(`SELECT expiry, value FROM contracts ${whereOf("status='Signed'", f.sql)}`).all(...f.args);
+  const signed = db.prepare(`SELECT expiry, value FROM contracts ${whereOf("status='Signed'", NOT_ARCH, f.sql)}`).all(...f.args);
   let expired = 0, expiredValue = 0;
   for (const r of signed) {
     const day = dateOnly(r.expiry);
@@ -2093,15 +2099,15 @@ app.get('/api/analytics', auth, (req, res) => {
   const scope = folderScopeFor(req.user);
   const money = canViewValues(req.user);
   const f = scopeFrag(scope);
-  const w = whereOf(f.sql);
+  const w = whereOf(NOT_ARCH, f.sql);
   const byStatus = db.prepare(`SELECT status, COUNT(*) n, COALESCE(SUM(value),0) val FROM contracts ${w} GROUP BY status`).all(...f.args);
   const byFolder = db.prepare(`SELECT folder, COUNT(*) n, COALESCE(SUM(CASE WHEN status!='Declined' THEN value ELSE 0 END),0) val FROM contracts ${w} GROUP BY folder ORDER BY val DESC`).all(...f.args);
   const byParty = db.prepare(`SELECT counterparty, COUNT(*) n, COALESCE(SUM(CASE WHEN status!='Declined' THEN value ELSE 0 END),0) val
-      FROM contracts ${whereOf("counterparty!=''", f.sql)} GROUP BY counterparty ORDER BY val DESC LIMIT 12`).all(...f.args);
+      FROM contracts ${whereOf("counterparty!=''", NOT_ARCH, f.sql)} GROUP BY counterparty ORDER BY val DESC LIMIT 12`).all(...f.args);
   // renewal pipeline: active value (or, without the right, contract count)
   // expiring in each of the next 12 months
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  const rows = db.prepare(`SELECT expiry, value FROM contracts ${whereOf("expiry IS NOT NULL", "status!='Declined'", f.sql)}`).all(...f.args);
+  const rows = db.prepare(`SELECT expiry, value FROM contracts ${whereOf("expiry IS NOT NULL", "status!='Declined'", NOT_ARCH, f.sql)}`).all(...f.args);
   const pipeline = {}, pipelineCount = {};
   for (const r of rows) {
     const d = new Date(r.expiry + 'T00:00:00'); const months = (d.getFullYear() - today.getFullYear()) * 12 + (d.getMonth() - today.getMonth());
@@ -8046,8 +8052,12 @@ function mrRecipients() {
 function buildMonthlyReport(month) {
   const cur = (orgJx() || {}).currency || 'KES';
   const money = n => `${cur} ${Math.round(Number(n) || 0).toLocaleString('en-US')}`;
-  const rows = db.prepare('SELECT id,name,counterparty,status,expiry,value,json FROM contracts').all();
-  const parsed = rows.map(r => { let c = {}; try { c = JSON.parse(r.json) || {}; } catch (_) {} return { r, c }; });
+  const parsedAll = db.prepare('SELECT id,name,counterparty,status,expiry,value,json FROM contracts').all()
+    .map(r => { let c = {}; try { c = JSON.parse(r.json) || {}; } catch (_) {} return { r, c }; });
+  // the archive shelf stays out of the monthly letter (WO-5) — filed away
+  // means off every figure an admin acts on
+  const parsed = parsedAll.filter(x => !x.c.archived);
+  const rows = parsed.map(x => x.r);
   const active = rows.filter(r => r.status !== 'Declined');
   const totalValue = active.reduce((s, r) => s + (Number(r.value) || 0), 0);
   const byStatus = {};

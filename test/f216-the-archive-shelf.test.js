@@ -103,6 +103,19 @@ describe('F216 — the archive shelf, against a real server', () => {
     assert.ok(c2.archived, 'and the shelf has it');
   });
 
+  test('the SQL aggregates leave the shelf out too — the server\'s figures follow the screens', async () => {
+    /* /api/stats feeds the register head-count and dashboard figures in server
+       mode; a server total that still counted the shelf would be the head
+       saying 146 over a table showing 145. */
+    await put('MK-AR-VAL', { name: 'Retired canteen concession', value: 777000, status: 'Draft' });
+    const before = await W.admin.json('/api/stats');
+    await putBack('MK-AR-VAL', c => { c.archived = { at: new Date().toISOString(), by: 'Amina Otieno' }; });
+    const after2 = await W.admin.json('/api/stats');
+    assert.equal(after2.total, before.total - 1, 'the count follows the filing');
+    assert.equal(Math.round(before.totalValue - after2.totalValue), 777000,
+      'and so does the money — a filed-away value is off the headline figure');
+  });
+
   test('the delete refusal\'s old promise is finally true', async () => {
     const r = await W.admin.raw('/api/contracts/MK-AR-SIGNED', { method: 'DELETE' });
     assert.equal(r.status, 409);
@@ -166,6 +179,18 @@ describe('F216 — the client\'s rules, pinned at the source', () => {
   test('the palette tags an archived row instead of hiding it', () => {
     assert.match(read('js/app.js'), /c\.archived\?' · '\+i18t\('ct_archived_tag'\):''/,
       'findable, and honest about what it is');
+  });
+
+  test('every server aggregate reads the shelf the same way', () => {
+    const srv = read('server/server.js');
+    assert.match(srv, /const NOT_ARCH = "json_extract\(json,'\$\.archived'\) IS NULL";/,
+      'one named fragment, not a per-query improvisation');
+    for (const route of ["app.get('/api/stats'", "app.get('/api/analytics'"]) {
+      const body = srv.slice(srv.indexOf(route), srv.indexOf(route) + 2600);
+      assert.ok(/NOT_ARCH/.test(body), route + ' excludes the shelf');
+    }
+    const mr = srv.slice(srv.indexOf('function buildMonthlyReport'), srv.indexOf('function runMonthlyReport'));
+    assert.match(mr, /filter\(x => !x\.c\.archived\)/, 'the monthly letter reads the live book');
   });
 
   test('the new words exist in BOTH languages', () => {
