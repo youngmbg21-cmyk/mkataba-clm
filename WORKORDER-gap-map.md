@@ -7,9 +7,12 @@ Map): what a world-class contract platform gives an enterprise customer that
 HaTi does not yet give an SME — CRM/ERP integration excluded — and how AI
 becomes the brain that makes the work flow easy.
 **Repo:** `youngmbg21-cmyk/mkataba-clm` (HaTi).
-**Status:** OPEN — Phase 1 building overnight 18–19 Aug 2026 on the
-autonomous run. Phases 2 and 3 are specified here so later runs pick them up
-without re-deriving anything.
+**Status:** PHASE 1 BUILT — overnight 18–19 Aug 2026 on the autonomous run,
+all six including the WO-6 stretch. Proof: f212–f217 plus the full suite;
+the condensed rules live in CLAUDE.md under THE GAP-MAP BATCH and the story
+in docs/MAP-HISTORY.md. Phases 2 and 3 remain OPEN and are specified below
+so later runs pick them up without re-deriving anything; the browser-verify
+pass for the new pixels is the first item of the next run.
 
 ---
 

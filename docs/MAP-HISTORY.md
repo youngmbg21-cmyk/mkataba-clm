@@ -3316,3 +3316,20 @@ Left undone on purpose, named in the work order: browser-verify passes for
 the new pixels (first item of the next run), the TOTP stretch if the night
 ran out, and every Phase 2/3 item — currency truth, the intake front door,
 events-out, the redline co-pilot, precedent memory, the signature ladder.
+
+And the stretch was reached. WO-6, two-step sign-in, went last because it
+touches the front door: every test in the suite signs in, so the feature
+had to be strictly opt-in per member or the whole harness would have felt
+it. The shape that made it safe is the ticket split — a correct password on
+a two-step account earns a five-minute single-use ticket and no session,
+and nothing about the workspace (publicUser included) leaves the building
+before the code lands. The enrolment is proven rather than assumed: the
+secret stays pending until a first code shows the authenticator really
+holds it, because the worst outcome a security feature can have is locking
+an account behind a key nobody scanned. Recovery codes spend once;
+disabling costs a current code so a stolen open session cannot remove the
+lock it could not pick; the lost-phone rescue is an admin grant refused on
+yourself. The test file carries its own RFC 6238 generator, so the server
+is checked against the standard and never against its own arithmetic. The
+People-page rescue button and any workspace-wide "require two-step" policy
+are Phase 2, named in the order.
