@@ -1236,6 +1236,7 @@ async function stHooksLoad(){
   try{
     const r=await api('webhooks');
     state.webhooks=(r&&r.webhooks)||[];
+    if(r&&Array.isArray(r.events)) state.webhookEvents=r.events;
   }catch(_){ state.webhooks=[]; }
   const rows=state.webhooks||[];
   if(!rows.length){ host.innerHTML=`<p class="st-note" style="margin:0">${esc(i18t('st_hooks_none'))}</p>`; return; }
@@ -1260,8 +1261,10 @@ async function stHooksAdd(){
   stDrawerClearRefusal();
   const url=(document.getElementById('wh-url')||{value:''}).value.trim();
   if(!url) return;
+  const events=[...document.querySelectorAll('[data-wh-ev]')].filter(b=>b.checked).map(b=>b.getAttribute('data-wh-ev'));
+  if(!events.length) return stDrawerRefuse(i18t('st_hooks_pick_event'));
   try{
-    const r=await api('webhooks','POST',{ url });
+    const r=await api('webhooks','POST',{ url, events });
     const box=document.getElementById('wh-url'); if(box) box.value='';
     await stHooksLoad(); stRepaintRow('webhooks');
     /* THE SECRET IS SHOWN ONCE. It is what proves a delivery came from HaTi;
@@ -1856,10 +1859,20 @@ const SET_PANELS={
     },
     body(){ return `<p class="st-note" style="margin-bottom:9px">${i18t('st_hooks_sub')}</p>
       <div id="wh-list" style="display:flex;flex-direction:column;gap:7px;margin-bottom:10px"></div>
-      <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
-        <label style="flex:1;min-width:210px"><span style="${window.RV_LBL||''}">${esc(i18t('st_hooks_url'))}</span>
-          <input id="wh-url" type="url" placeholder="https://example.com/hooks/hati" style="${window.RV_FLD||ST_INPUT}"/></label>
-        <button id="wh-add" style="${ST_BTN_SM};flex:none">${i18t('st_hooks_add')}</button>
+      <label style="display:block;margin-bottom:8px"><span style="${window.RV_LBL||''}">${esc(i18t('st_hooks_url'))}</span>
+        <input id="wh-url" type="url" placeholder="https://example.com/hooks/hati" style="${window.RV_FLD||ST_INPUT}"/></label>
+      ${''/* AN ENDPOINT IS TOLD WHAT IT SUBSCRIBED TO. The server treats an
+             empty list as NOTHING (fail closed), so this list is not a
+             convenience — it is the subscription, and every box starts
+             ticked because that is what somebody adding an address means. */}
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:5px;margin-bottom:9px">
+        ${(state.webhookEvents||['contract.signed','round.received','obligation.due','intake.requested']).map(ev=>
+          `<label style="display:flex;align-items:center;gap:7px;font-size:11.5px">
+            <input type="checkbox" data-wh-ev="${esc(ev)}" checked style="width:14px;height:14px;accent-color:var(--color-accent)"/>
+            <span style="font-family:var(--font-mono);font-size:10.5px">${esc(ev)}</span></label>`).join('')}
+      </div>
+      <div style="display:flex;justify-content:flex-end">
+        <button id="wh-add" style="${ST_BTN_SM}">${i18t('st_hooks_add')}</button>
       </div>
       <p class="st-note" style="margin-top:9px">${i18t('st_hooks_note')}</p>`; },
     wire(){ stHooksLoad(); document.getElementById('wh-add')?.addEventListener('click',()=>stHooksAdd()); },

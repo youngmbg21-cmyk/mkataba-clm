@@ -49,10 +49,17 @@ describe('F221 — where it may post', () => {
       'https://169.254.169.254/latest/meta-data/', // the cloud metadata service
       'https://[::1]/hook',
       'https://user:pass@example.com/hook',        // credentials in the address
+      /* THE TRAILING DOT — found by the security review, 19 Aug 2026. new URL
+         keeps it on a NAME and resolvers treat "db.internal." exactly as
+         "db.internal", so without normalising it the one guard designed to
+         survive a rebind was bypassed by a single character. */
+      'https://localhost./hook',
+      'https://db.internal./hook',
+      'https://thing.local/hook',
       'not-a-url',
     ];
     for (const url of refused) {
-      const r = await W.admin.raw('/api/webhooks', { method: 'POST', body: { url } });
+      const r = await W.admin.raw('/api/webhooks', { method: 'POST', body: { url, events: ['contract.signed'] } });
       assert.equal(r.status, 400, url + ' must be refused');
     }
     const list = await W.admin.json('/api/webhooks');
@@ -73,7 +80,7 @@ describe('F221 — where it may post', () => {
   test('only an admin may see or change where HaTi posts', async () => {
     for (const c of [W.unrestricted, W.novalues]) {
       assert.equal((await c.raw('/api/webhooks')).status, 403);
-      assert.equal((await c.raw('/api/webhooks', { method: 'POST', body: { url: 'https://x.example.com/h' } })).status, 403);
+      assert.equal((await c.raw('/api/webhooks', { method: 'POST', body: { url: 'https://x.example.com/h', events: ['contract.signed'] } })).status, 403);
     }
   });
 
@@ -82,6 +89,25 @@ describe('F221 — where it may post', () => {
       url: 'https://hooks.example.com/two', events: ['contract.signed', 'made.up.event'] } });
     assert.deepEqual(r.webhook.events, ['contract.signed']);
     await W.admin.json('/api/webhooks/' + r.webhook.id, { method: 'DELETE' });
+  });
+
+  test('SUBSCRIBING TO NOTHING IS REFUSED — an empty list must never mean everything', async () => {
+    /* The security review's finding: the filter read an empty list as "send
+       me all of it", and the panel sent no list at all, so every endpoint
+       created through the product silently received every event. Fail closed
+       at both ends: the route refuses, and the filter requires a match. */
+    const r = await W.admin.raw('/api/webhooks', { method: 'POST', body: { url: 'https://hooks.example.com/three' } });
+    assert.equal(r.status, 400);
+    assert.match(r.text, /at least one event/i);
+    const srv = fs.readFileSync(path.join(ROOT, 'server', 'server.js'), 'utf8');
+    assert.match(srv, /return JSON\.parse\(r\.events \|\| '\[\]'\)\.includes\(kind\);/,
+      'the filter no longer treats an empty list as a subscription to everything');
+  });
+
+  test('there is a ceiling on how many addresses one event can fan out to', async () => {
+    const srv = fs.readFileSync(path.join(ROOT, 'server', 'server.js'), 'utf8');
+    assert.match(srv, /const WEBHOOK_MAX = 20;/);
+    assert.match(srv, /if \(have >= WEBHOOK_MAX\)/, 'and it is enforced where they are added');
   });
 });
 
@@ -98,17 +124,22 @@ describe('F221 — what actually goes out', () => {
     await new Promise(r => sink.listen(0, '127.0.0.1', r));
     h = await startHati();
     W = await seedWorkspace(h, { contracts: [] });
-    /* The stand-in listens on 127.0.0.1, which the guard refuses — correctly.
-       So the row is written straight to the database, exactly as if a public
-       hostname had been registered and later repointed inside. That is the
-       DNS-rebinding case, and the send-time guard is what must catch it. */
+    /* THE ROW IS WRITTEN STRAIGHT TO THE DATABASE — exactly as if a public
+       hostname had been registered and later repointed inside, which is the
+       rebinding case the send-time guard exists for.
+
+       AND IT IS https, DELIBERATELY. The first version of this test used
+       http://, which webhookUrlRefusal turns away on the PROTOCOL alone —
+       so the address check it claimed to prove was never reached. The
+       security review of 19 Aug 2026 caught that: a test asserting a
+       property the code does not have is worse than no test. */
     secret = 'test-secret-not-real';
     const dbFile = path.join(h.dataDir, 'hati.db');
     const { DatabaseSync } = require('node:sqlite');
     const db = new DatabaseSync(dbFile);
     db.prepare(`INSERT INTO webhooks (id,url,secret,events,active,created_by,created_at)
-      VALUES ('wh_test',?,?,'[]',1,'test',?)`)
-      .run('http://127.0.0.1:' + sink.address().port + '/hook', secret, new Date().toISOString());
+      VALUES ('wh_test',?,?,'["contract.signed"]',1,'test',?)`)
+      .run('https://127.0.0.1:' + sink.address().port + '/hook', secret, new Date().toISOString());
     db.close();
   });
   after(async () => { await h.stop(); await new Promise(r => sink.close(r)); });
@@ -131,28 +162,54 @@ describe('F221 — what actually goes out', () => {
 describe('F221 — the shape of a delivery, and the guards at the source', () => {
   const srv = read('server/server.js');
 
-  test('the payload carries ids and nothing anybody could read a contract from', () => {
+  test('the payload carries ids and NOTHING ELSE — an allow-list, not a blocklist', () => {
+    /* REWRITTEN after the security review, 19 Aug 2026. This used to grep the
+       fire sites for forbidden substrings, and `name: c.name` and the intake
+       `title` — a contract's counterparty identity, and 200 characters any
+       Viewer can type — sailed straight through it. A blocklist tests the
+       words somebody thought of; the shape is what actually needs pinning. */
+    const ALLOWED = new Set(['contractId', 'requestId', 'obligationId', 'status', 'due', 'action']);
     const fires = srv.match(/webhookQueue\('[^']+',\s*\(\)\s*=>\s*\(\{[^}]*\}\)/g) || [];
-    assert.ok(fires.length >= 4, 'all four events fire');
-    const joined = fires.join('\n');
-    for (const forbidden of ['redlineText', 'body:', 'value', 'email', 'wording', 'signatures'])
-      assert.ok(!joined.includes(forbidden), 'a delivery must not carry ' + forbidden);
-    assert.match(joined, /contractId/, 'ids are what a receiving system comes back with');
+    assert.equal(fires.length, 4, 'all four events fire, and only four');
+    for (const f of fires) {
+      const keys = [...f.matchAll(/([A-Za-z_][A-Za-z0-9_]*)\s*:/g)].map(m => m[1]).filter(k => k !== 'webhookQueue');
+      assert.ok(keys.length, 'a payload with no keys is not a payload');
+      for (const k of keys)
+        assert.ok(ALLOWED.has(k), `a delivery may not carry "${k}" — ids and states only: ${f.slice(0, 90)}`);
+    }
+    assert.ok(fires.some(f => /contractId/.test(f)), 'ids are what a receiving system comes back with');
   });
 
-  test('every delivery is signed over the exact body, with the workspace named', () => {
-    const fn = srv.slice(srv.indexOf('async function webhookFire'), srv.indexOf('const webhookQueue'));
-    assert.match(fn, /createHmac\('sha256', r\.secret\)\.update\(body\)/,
-      'HMAC over the body that is actually sent');
-    assert.match(fn, /'X-HaTi-Signature': 'sha256=' \+ sig/);
-    assert.match(fn, /at: now\(\)/, 'with a timestamp inside the signed material');
-    assert.match(fn, /redirect: 'manual'/, 'a redirect could walk the guard back inside');
-    assert.match(fn, /AbortController/, 'and a dead endpoint cannot hang the sweep');
+  test('every delivery is signed as timestamp.body, and a receiver can spot a replay', () => {
+    const fn = srv.slice(srv.indexOf('async function webhookFire'), srv.indexOf('/* Fire-and-forget'));
+    assert.match(fn, /createHmac\('sha256', r\.secret\)\.update\(at \+ '\.' \+ body\)/,
+      'the timestamp is INSIDE the signed material, so a captured delivery cannot be replayed later');
+    assert.match(fn, /'X-HaTi-Timestamp': at/,
+      'and it rides a header, so freshness is checkable BEFORE untrusted JSON is parsed');
+    assert.match(fn, /'X-HaTi-Delivery': delivery/, 'with an id a receiver can de-duplicate on');
+    assert.match(fn, /if \(!r\.secret\)/, 'an empty key would sign with nothing and anyone could forge it');
   });
 
-  test('a failing endpoint is switched off rather than retried forever', () => {
+  test('the transport takes the guarded lookup, caps the body and times the whole exchange', () => {
+    const fn = srv.slice(srv.indexOf('function webhookPost'), srv.indexOf('function webhookTargetOk'));
+    assert.match(fn, /lookup: webhookGuardedLookup/,
+      'THE FIX: the address is checked inside the resolution that produces the socket');
+    assert.match(fn, /require\('node:https'\)\.request/,
+      "node's own client, which does not follow redirects at all");
+    assert.match(fn, /seen > 8192/, 'a dribbling endpoint cannot hold a socket open on an unread body');
+    assert.match(fn, /req\.setTimeout\(WEBHOOK_TIMEOUT_MS/, 'and the timeout covers the whole exchange');
+  });
+
+  test('a failing endpoint is switched off rather than retried forever, on EVERY failing path', () => {
     assert.match(srv, /WEBHOOK_FAIL_OFF = 20/);
-    assert.match(srv, /fails \+ 1 >= WEBHOOK_FAIL_OFF\) \? 0 : r\.active/);
+    /* Counted in SQL rather than in JS: concurrent fires reading the same row
+       clobbered each other's count, and the refused-address branch used to
+       skip the cutoff entirely — so a permanently unreachable address was
+       re-resolved for ever. Both found by the security review. */
+    assert.match(srv, /fails=fails\+1,\s*\n\s*active=CASE WHEN fails\+1 >= \$\{WEBHOOK_FAIL_OFF\} THEN 0 ELSE active END/,
+      'atomic, and the cutoff is part of the same statement');
+    const fn = srv.slice(srv.indexOf('async function webhookFire'), srv.indexOf('/* Fire-and-forget'));
+    assert.ok(!/fails: r\.fails \+ 1|r\.fails \+ 1/.test(fn), 'nothing computes the next count in JS any more');
   });
 
   test('firing never blocks or breaks the act that triggered it', () => {
@@ -165,10 +222,16 @@ describe('F221 — the shape of a delivery, and the guards at the source', () =>
     for (const rule of ['a === 127', 'a === 10', '169 && b === 254', '172 && b >= 16', '192 && b === 168'])
       assert.ok(fn.includes(rule), 'missing the rule for ' + rule);
     assert.match(fn, /a >= 224/, 'multicast and reserved too');
-    assert.match(srv, /const hits = await lookup\(new URL\(url\)\.hostname, \{ all: true \}\);/,
-      'and it is asked of what the name RESOLVES to, at send time');
-    assert.match(srv, /hits\.every\(h => !ipIsPrivate\(h\.address\)\)/,
-      'every answer must be public — one private hit is enough to refuse');
+    for (const rule of ['192 && b === 0 && c3 === 0', '198 && b >= 18', "t.startsWith('2002:')"])
+      assert.ok(fn.includes(rule) || srv.includes(rule),
+        'the security review\'s range gaps are closed: ' + rule);
+    /* AND THE CHECK RUNS INSIDE THE RESOLUTION THAT MAKES THE SOCKET. A
+       separate lookup followed by a fetch is two resolutions with a window
+       between them, which a zero-TTL name wins every time — the review
+       proved that, and this is the shape that has no window. */
+    assert.match(srv, /function webhookGuardedLookup\(hostname, options, cb\)/);
+    assert.match(srv, /if \(list\.some\(a => ipIsPrivate\(a\.address\)\)\) return done\(new Error\('address refused'\)\);/,
+      'one private answer refuses the whole set');
   });
 
   test('the words exist in both languages', () => {

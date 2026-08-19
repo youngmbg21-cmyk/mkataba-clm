@@ -1296,6 +1296,17 @@ const rlShare = rateLimit('share', 30, 15 * 60 * 1000);
 // per-user daily cap on outbound shares/resends — protects sender reputation
 const rlShareSend = rateLimit('share-send', 100, 24 * 60 * 60 * 1000,
   { keyFn: req => 'u:' + ((req.user && req.user.id) || 'anon'), message: 'Daily share limit reached — try again tomorrow' });
+/* TWO TRIGGER PATHS, THEIR OWN BUCKETS (W2-3's security review). Raising an
+   intake request and registering a webhook both start outbound work, so both
+   are rationed — but each with its OWN counter and its own sentence: sharing
+   the share-send bucket would let a colleague's requests silently exhaust
+   somebody's ability to send a contract, and report it in the wrong words. */
+const rlIntake = rateLimit('intake', 60, 60 * 60 * 1000,
+  { keyFn: req => 'u:' + ((req.user && req.user.id) || 'anon'),
+    message: 'That is a lot of requests in one hour — give somebody a chance to read them' });
+const rlHookAdd = rateLimit('hook-add', 20, 60 * 60 * 1000,
+  { keyFn: req => 'u:' + ((req.user && req.user.id) || 'anon'),
+    message: 'Too many address changes in one hour — please wait and try again' });
 
 /* ---------- Copilot cost controls (rate limit, input caps, daily backstop) ------
    Each Copilot endpoint calls Anthropic and costs real money. These controls reuse
@@ -3080,7 +3091,11 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
       /* W2-3: ids and the plainest facts only — never the wording, the value
          or anybody's address. A receiving system comes back through the API
          with a session, where scope and masking apply. */
-      webhookQueue('contract.signed', () => ({ contractId: c.id, name: c.name || '', status: 'Signed' }));
+      /* IDS ONLY. A contract's NAME routinely carries the counterparty's
+         identity ("Mutual NDA — Acme Ltd"), which is the fact a CLM exists to
+         protect; the receiving system comes back through the API with a
+         session, where folder scope and masking apply. */
+      webhookQueue('contract.signed', () => ({ contractId: c.id, status: 'Signed' }));
     }
   }
   upsertContract(c, next);
@@ -4113,6 +4128,7 @@ app.post('/api/ai/brief', auth, editor, rlAiDeep, aiFeature('brief'), aiBudgetGu
 const WEBHOOK_EVENTS = ['contract.signed', 'round.received', 'obligation.due', 'intake.requested'];
 const WEBHOOK_TIMEOUT_MS = 4000;
 const WEBHOOK_FAIL_OFF = 20;      // stop trying an endpoint that never answers
+const WEBHOOK_MAX = 20;           // a ceiling on how much pending work one event can start
 /* A literal IP that must never be reached from this server. Checked against
    the RESOLVED address, not the hostname, which is what makes it a real
    guard rather than a spelling test. */
@@ -4123,16 +4139,26 @@ function ipIsPrivate(ip) {
      public. Everything else — loopback ::1, link-local fe80::, unique-local
      fc00::/7, the unspecified :: — is local. Anything unparseable is refused,
      which is the safe direction for a guard. */
-  if (s.includes(':') && !/^::ffff:\d{1,3}(\.\d{1,3}){3}$/i.test(s)) return !/^[23]/.test(s);
+  if (s.includes(':') && !/^::ffff:\d{1,3}(\.\d{1,3}){3}$/i.test(s)) {
+    const t = s.toLowerCase();
+    /* 6to4 (2002::/16) EMBEDS a v4 address — 2002:7f00:1:: is 127.0.0.1 wearing
+       a global-unicast prefix — and Teredo (2001:0000::/32) tunnels likewise.
+       Both start with a digit the plain 2000::/3 test calls public. */
+    if (t.startsWith('2002:') || t.startsWith('2001:0:') || t.startsWith('2001:0000:')) return true;
+    return !/^[23]/.test(t);
+  }
   const v4 = s.replace(/^::ffff:/i, '');
   const p = v4.split('.').map(Number);
   if (p.length !== 4 || p.some(n => !Number.isInteger(n) || n < 0 || n > 255)) return true;
-  const [a, b] = p;
+  const [a, b, c3] = p;
   return a === 0 || a === 10 || a === 127
     || (a === 169 && b === 254)                 // link-local, incl. cloud metadata
     || (a === 172 && b >= 16 && b <= 31)
     || (a === 192 && b === 168)
     || (a === 100 && b >= 64 && b <= 127)       // carrier-grade NAT
+    || (a === 192 && b === 0 && c3 === 0)       // IETF protocol assignments (NAT64)
+    || (a === 198 && b >= 18 && b <= 19)        // benchmarking — routed internally in some networks
+    || (a === 192 && b === 88 && c3 === 99)     // 6to4 relay anycast
     || a >= 224;                                // multicast and reserved
 }
 /* Is this hostname a LITERAL address rather than a name? It decides which
@@ -4145,54 +4171,115 @@ function webhookUrlRefusal(raw) {
   let u; try { u = new URL(String(raw || '')); } catch (_) { return 'That is not a URL'; }
   if (u.protocol !== 'https:') return 'The address must start with https:// — a signed delivery over plain http is readable on the way';
   if (u.username || u.password) return 'Take the username and password out of the address — the signature is what proves it came from HaTi';
-  const hn = String(u.hostname || '').replace(/^\[|\]$/g, '');
+  /* NORMALISED BEFORE MATCHING. new URL keeps the trailing dot on a NAME (the
+     FQDN-root form), and resolvers treat "db.internal." exactly as
+     "db.internal" — so without the strip, the one guard designed to survive a
+     rebind is bypassed by a single character. */
+  const hn = String(u.hostname || '').replace(/^\[|\]$/g, '').replace(/\.$/, '').toLowerCase();
   if (!hn) return 'That is not a URL';
   // names that never leave the building, whatever DNS says today
   if (/^localhost$/i.test(hn) || /\.(local|internal|localdomain)$/i.test(hn)) return PRIVATE_MSG;
   if (IP_LITERAL(hn) && ipIsPrivate(hn)) return PRIVATE_MSG;
   return null;
 }
-/* The same question again at SEND time, against what the name resolves to
-   NOW. A hostname registered while it pointed somewhere public can be
-   repointed at 127.0.0.1 an hour later; without this the guard above is a
-   formality. */
-async function webhookTargetOk(url) {
-  const refusal = webhookUrlRefusal(url);
-  if (refusal) return false;
-  try {
-    const { lookup } = require('node:dns').promises;
-    const hits = await lookup(new URL(url).hostname, { all: true });
-    return hits.length > 0 && hits.every(h => !ipIsPrivate(h.address));
-  } catch (_) { return false; }
+/* ---- THE ADDRESS IS CHECKED ON THE SOCKET THAT IS ACTUALLY USED ----
+   A hostname registered while it pointed somewhere public can be repointed
+   at 127.0.0.1 an hour later. The obvious guard — resolve the name, check
+   the answers, then fetch — does NOT close that: fetch performs its own,
+   second resolution, and between the two lies a window a name with a
+   zero-second TTL wins every time (DNS rebinding). Worse, the fire path can
+   be driven on demand by anybody holding a share token, so the race need
+   not be waited for; it can be retried.
+
+   So the check moved INSIDE the resolution that produces the socket. This
+   `lookup` is what node:https hands to net.connect, so the address it
+   approves is the address connected to, and there is no window at all.
+   Found by the security review of 19 Aug 2026 — the previous version was a
+   formality wearing a guard's clothes. */
+function webhookGuardedLookup(hostname, options, cb) {
+  const done = typeof cb === 'function' ? cb : options;
+  const opts = typeof cb === 'function' ? options : {};
+  require('node:dns').lookup(hostname, { ...opts, all: true }, (err, addrs) => {
+    if (err) return done(err);
+    const list = Array.isArray(addrs) ? addrs : [addrs];
+    if (!list.length) return done(new Error('address refused'));
+    // one private answer refuses the whole set — the safe direction
+    if (list.some(a => ipIsPrivate(a.address))) return done(new Error('address refused'));
+    const first = list[0];
+    return opts.all ? done(null, list) : done(null, first.address, first.family);
+  });
 }
+/* One POST, on node's own https client rather than fetch, for exactly one
+   reason: it takes the guarded lookup above. Redirects are not followed
+   (this client does not follow them at all), the body is capped and
+   consumed so a dribbling endpoint cannot hold a socket, and the timeout
+   covers the WHOLE exchange rather than just the headers. */
+function webhookPost(url, body, headers) {
+  return new Promise(resolve => {
+    let u; try { u = new URL(url); } catch (_) { return resolve({ ok: false, status: 'bad url' }); }
+    let settled = false;
+    const finish = r => { if (!settled) { settled = true; resolve(r); } };
+    let req;
+    try {
+      req = require('node:https').request({
+        protocol: u.protocol, hostname: u.hostname, port: u.port || 443,
+        path: u.pathname + u.search, method: 'POST', headers,
+        lookup: webhookGuardedLookup, servername: u.hostname,
+      }, res => {
+        let seen = 0;
+        res.on('data', chunk => { seen += chunk.length; if (seen > 8192) res.destroy(); });
+        res.on('end', () => finish({ ok: res.statusCode >= 200 && res.statusCode < 300, status: 'HTTP ' + res.statusCode }));
+        res.on('error', () => finish({ ok: false, status: 'HTTP ' + res.statusCode }));
+      });
+    } catch (e) { return finish({ ok: false, status: String((e && e.message) || e).slice(0, 120) }); }
+    req.setTimeout(WEBHOOK_TIMEOUT_MS, () => { req.destroy(new Error('timed out')); });
+    req.on('error', e => finish({ ok: false, status: String((e && e.message) || e).slice(0, 120) }));
+    req.end(body);
+  });
+}
+/* Still asked before we go anywhere — a URL that fails the static rules is
+   refused without a lookup at all. The RESOLUTION guard above is what makes
+   it hold; this keeps the cheap refusals cheap and gives the admin a
+   readable reason. */
+function webhookTargetOk(url) { return !webhookUrlRefusal(url); }
 async function webhookFire(kind, factsFn) {
   if (!WEBHOOK_EVENTS.includes(kind)) return;
   let rows = [];
   try { rows = db.prepare('SELECT * FROM webhooks WHERE active=1').all(); } catch (_) { return; }
-  rows = rows.filter(r => { try { const e = JSON.parse(r.events || '[]'); return !e.length || e.includes(kind); } catch (_) { return true; } });
+  /* FAIL CLOSED. An endpoint subscribes to the events it NAMED; an empty
+     list is "nothing yet", not "everything". The opposite reading meant a
+     row created without a list quietly received every event in the product
+     — which is how a webhook surface leaks by default. */
+  rows = rows.filter(r => { try { return JSON.parse(r.events || '[]').includes(kind); } catch (_) { return false; } });
   if (!rows.length) return;
   let facts; try { facts = factsFn(); } catch (_) { return; }
   if (!facts) return;
+  const bump = (id, ok, status) => {
+    /* ATOMIC, and the cutoff applies on EVERY failing path — computing
+       fails+1 in JS from a row read at the top lets concurrent fires clobber
+       each other, and the refused-address branch used to skip the cutoff
+       entirely, so a permanently unreachable endpoint was retried for ever. */
+    if (ok) db.prepare('UPDATE webhooks SET last_at=?, last_ok=1, last_status=?, fails=0 WHERE id=?').run(now(), status, id);
+    else db.prepare(`UPDATE webhooks SET last_at=?, last_ok=0, last_status=?, fails=fails+1,
+      active=CASE WHEN fails+1 >= ${WEBHOOK_FAIL_OFF} THEN 0 ELSE active END WHERE id=?`).run(now(), status, id);
+  };
   for (const r of rows) {
-    if (!(await webhookTargetOk(r.url))) {
-      db.prepare('UPDATE webhooks SET last_at=?, last_ok=0, last_status=?, fails=fails+1 WHERE id=?')
-        .run(now(), 'address refused', r.id);
-      continue;
-    }
-    const body = JSON.stringify({ kind, at: now(), workspace: (getSetting('org') || {}).name || '', data: facts });
-    const sig = crypto.createHmac('sha256', r.secret).update(body).digest('hex');
-    let ok = 0, status = '';
-    try {
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), WEBHOOK_TIMEOUT_MS);
-      const resp = await fetch(r.url, { method: 'POST', signal: ctrl.signal,
-        headers: { 'Content-Type': 'application/json', 'X-HaTi-Event': kind, 'X-HaTi-Signature': 'sha256=' + sig },
-        body, redirect: 'manual' });   // a redirect could walk the guard back inside
-      clearTimeout(t);
-      ok = resp.ok ? 1 : 0; status = 'HTTP ' + resp.status;
-    } catch (e) { status = String((e && e.message) || e).slice(0, 120); }
-    db.prepare(`UPDATE webhooks SET last_at=?, last_ok=?, last_status=?, fails=?, active=? WHERE id=?`)
-      .run(now(), ok, status, ok ? 0 : r.fails + 1, (!ok && r.fails + 1 >= WEBHOOK_FAIL_OFF) ? 0 : r.active, r.id);
+    // an empty key would sign with nothing and any observer could forge it
+    if (!r.secret) { bump(r.id, false, 'no signing secret'); continue; }
+    if (!webhookTargetOk(r.url)) { bump(r.id, false, 'address refused'); continue; }
+    const at = now(), delivery = 'dl_' + rid(8);
+    const body = JSON.stringify({ kind, at, delivery, workspace: (getSetting('org') || {}).name || '', data: facts });
+    /* Signed as timestamp.body, the shape GitHub and Stripe use: a receiver
+       can check freshness from the HEADER without parsing untrusted JSON
+       first, and a captured delivery cannot be replayed outside the window.
+       The delivery id lets a receiver drop a duplicate. */
+    const sig = crypto.createHmac('sha256', r.secret).update(at + '.' + body).digest('hex');
+    const out = await webhookPost(r.url, body, {
+      'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body),
+      'X-HaTi-Event': kind, 'X-HaTi-Timestamp': at, 'X-HaTi-Delivery': delivery,
+      'X-HaTi-Signature': 'sha256=' + sig,
+    });
+    bump(r.id, out.ok, out.status);
   }
 }
 /* Fire-and-forget by design: a customer's dead endpoint must never slow, fail
@@ -4205,11 +4292,17 @@ app.get('/api/webhooks', auth, admin, (req, res) => {
   res.json({ webhooks: db.prepare('SELECT * FROM webhooks ORDER BY created_at DESC').all().map(webhookPublic),
     events: WEBHOOK_EVENTS });
 });
-app.post('/api/webhooks', auth, admin, (req, res) => {
+app.post('/api/webhooks', auth, admin, rlHookAdd, (req, res) => {
   const b = req.body || {};
   const refusal = webhookUrlRefusal(b.url);
   if (refusal) return res.status(400).json({ error: refusal });
+  /* A CEILING. Each event fires the endpoints one after another with a real
+     timeout apiece, so an unbounded list is an unbounded amount of pending
+     work per event — and nothing in this product needs more than a handful. */
+  const have = db.prepare('SELECT COUNT(*) n FROM webhooks').get().n;
+  if (have >= WEBHOOK_MAX) return res.status(400).json({ error: `That is as many addresses as HaTi will post to (${WEBHOOK_MAX}). Remove one first.` });
   const events = Array.isArray(b.events) ? b.events.filter(e => WEBHOOK_EVENTS.includes(e)) : [];
+  if (!events.length) return res.status(400).json({ error: 'Name at least one event to send' });
   const id = 'wh_' + rid(6), secret = rid(24);
   db.prepare('INSERT INTO webhooks (id,url,secret,events,active,created_by,created_at) VALUES (?,?,?,?,1,?,?)')
     .run(id, String(b.url), secret, JSON.stringify(events), req.user.name || '', now());
@@ -4244,7 +4337,7 @@ const intakeRow = r => ({ id: r.id, title: r.title, need: r.need, counterparty: 
   folder: r.folder || '', status: r.status, by: { id: r.by_id, name: r.by_name },
   contractId: r.contract_id || null, decidedBy: r.decided_by || null, decidedAt: r.decided_at || null,
   note: r.note || '', createdAt: r.created_at, updatedAt: r.updated_at || null });
-app.post('/api/intake', auth, (req, res) => {
+app.post('/api/intake', auth, rlIntake, (req, res) => {   // a trigger path, so rationed
   const b = req.body || {};
   const title = clean(b.title).slice(0, 200);
   const need = clean(b.need).slice(0, 4000);
@@ -4259,7 +4352,10 @@ app.post('/api/intake', auth, (req, res) => {
   db.prepare(`INSERT INTO intake_requests (id,title,need,counterparty,folder,status,by_id,by_name,created_at)
     VALUES (?,?,?,?,?,'open',?,?,?)`)
     .run(id, title, need, clean(b.counterparty).slice(0, 200), folder, req.user.id, req.user.name || '', now());
-  webhookQueue('intake.requested', () => ({ requestId: id, title, folder: folder || null }));
+  /* The TITLE is arbitrary text any signed-in person — a Viewer included —
+     can type, so carrying it would be a small data-egress primitive handed to
+     the least-privileged role. The id is enough to go and look. */
+  webhookQueue('intake.requested', () => ({ requestId: id }));
   res.json({ ok: true, request: intakeRow(db.prepare('SELECT * FROM intake_requests WHERE id=?').get(id)) });
 });
 app.get('/api/intake', auth, (req, res) => {
@@ -8413,7 +8509,7 @@ function runReminders() {
           queued++;
           // W2-3: rides the mail's OWN dedupe, so an outside system is told
           // exactly as often as the person is — once
-          webhookQueue('obligation.due', () => ({ contractId: c.id, obligationId: String(okey), due }));
+          webhookQueue('obligation.due', () => ({ contractId: c.id, obligationId: String(okey).slice(0, 64), due }));
         }
         if (od === -1 && fireTo(`${c.id}:ob:${okey}:overdue`, [who.email], oMail('over'), `obligation overdue: ${c.name}`)) queued++;
         if (od === -4 && fireTo(`${c.id}:ob:${okey}:escalate`, admins, oMail('esc'), `obligation escalated: ${c.name}`)) queued++;
