@@ -5307,6 +5307,13 @@ function wireNegotiationTab(c, opts = {}){
   host.querySelectorAll('.nego-clause[data-change]').forEach(n => n.addEventListener('click', () =>
     negoFocus(c, String(n.getAttribute('data-change') || '').split(/\s+/)[0], 'clause')));
 
+  /* The co-pilot band's fold (W3-1). Its ROWS are not wired here and must
+     not be: their buttons carry the cards' own attributes and are picked up
+     by the very handlers below, which is the whole design. */
+  host.querySelectorAll('[data-rl-plan-toggle]').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation(); e.preventDefault();
+    rlPlanSetOpen(!rlPlanIsOpen());
+    if (window.rlRepaintFrom) rlRepaintFrom(b); }));
   host.querySelectorAll('[data-nego-accept]').forEach(b => b.addEventListener('click', e => {
     e.stopPropagation(); decide(b.getAttribute('data-nego-accept'), 'accepted'); }));
   host.querySelectorAll('[data-nego-undo]').forEach(b => b.addEventListener('click', e => {
@@ -5985,6 +5992,66 @@ function rlUnsentCount(c, opts = {}){
   const wait = window.reviewAwaiting ? reviewAwaiting(c).length : 0;
   return Math.max(0, unsent - held - wait);
 }
+/* ---- THE CO-PILOT'S FIRST PASS, DRAWN (W3-1) ----
+   A folded band over the change column: how many of their asks sit inside
+   our standard, how many need pushing back, how many are somebody else's
+   call. Open it and every ask has its recommendation, the position it was
+   measured against, and what our own history says about that standard.
+
+   THE BUTTONS ARE THE CARDS' OWN. data-nego-accept, data-rl-ask-review and
+   data-rl-cp-open are wired by the existing handlers a few lines below this
+   markup, so a press here is the same press as on the card: same funnel,
+   same guards, same catch-up to the counterparty. Nothing in this file
+   decides anything, and that is what makes it safe.
+
+   NEVER ON THEIR SEAT. This is our playbook, our fallbacks and our
+   negotiating history, read out loud. */
+function rlPlanBandHtml(c, opts = {}){
+  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
+  if (side === 'counterparty' || (typeof PORTAL_MODE !== 'undefined' && PORTAL_MODE)) return '';
+  if (opts.readonly || (typeof redlinePlan !== 'function')) return '';
+  if (window.rlActorHeld && rlActorHeld(c, opts)) return '';
+  const plan = redlinePlan(c);
+  if (!plan.length) return '';
+  const n = rlpCounts(plan);
+  const open = !!_rlPlanOpen;
+  const chip = v => `<span class="rl-plan-chip rl-plan-${v}">${n[v] || 0} ${_nea(RLP_VERDICTS[v].label)}</span>`;
+  const row = r => {
+    const acts = [];
+    if (r.verdict === 'accept')
+      acts.push(`<button class="rl-plan-act" data-nego-accept="${_nea(r.id)}">${i18t('rp_take_it')}</button>`);
+    if (r.verdict === 'push' || r.verdict === 'review')
+      acts.push(`<button class="rl-plan-act" data-rl-cp-open="${_nea(r.clauseId || '')}">${i18t('rp_open_clause')}</button>`);
+    if (r.verdict === 'escalate')
+      acts.push(`<button class="rl-plan-act" data-rl-ask-review="${_nea(r.id)}">${i18t('rp_escalate_it')}</button>`);
+    return `<div class="rl-plan-row">
+      <div class="rl-plan-head">
+        <span class="rl-plan-chip rl-plan-${r.verdict}">${_nea(RLP_VERDICTS[r.verdict].label)}</span>
+        <span class="rl-plan-id">${_nea(r.id)}</span>
+        <span class="rl-plan-clause">${_nea(r.clause || i18t('rp_this_clause'))}</span>
+      </div>
+      ${r.why.map(w => `<p class="rl-plan-why">${_nea(w)}</p>`).join('')}
+      ${r.precedent ? `<p class="rl-plan-prec">${_nea(r.precedent)}</p>` : ''}
+      <div class="rl-plan-acts">${acts.join('')}</div>
+    </div>`;
+  };
+  return `<div class="rl-plan" data-rl-plan>
+    <button type="button" class="rl-plan-bar" data-rl-plan-toggle aria-expanded="${open ? 'true' : 'false'}">
+      <span class="rl-plan-title">${i18t('rp_title', { n: plan.length })}</span>
+      ${chip('escalate')}${chip('push')}${chip('review')}${chip('accept')}
+      <span class="rl-plan-caret">${open ? '\u2013' : '+'}</span>
+    </button>
+    ${open ? `<div class="rl-plan-body">
+      <p class="rl-plan-note">${i18t('rp_note')}</p>
+      ${plan.map(row).join('')}
+    </div>` : ''}
+  </div>`;
+}
+/* Per sitting, in memory — a working posture, not a setting, and shut on
+   arrival so the column opens on the cards themselves. */
+let _rlPlanOpen = false;
+const rlPlanIsOpen = () => _rlPlanOpen;
+const rlPlanSetOpen = v => { _rlPlanOpen = !!v; };
 function rlUnsentBandHtml(c, opts = {}){
   const n = rlUnsentCount(c, opts);
   if (!n) return '';
@@ -7572,6 +7639,47 @@ function redlineLayoutCss(){
      disabled AND dimmed AND not pointing. */
   .redline-page .rl-unsent-go:disabled{opacity:.45;cursor:not-allowed;filter:none}
   .redline-page .rl-unsent-go:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
+
+  /* ---- THE CO-PILOT'S FIRST PASS (W3-1) ----
+     A band, not a card: it sits in the column head with the unsent band and
+     answers the same kind of question — what is in front of you — so it
+     wears the same width and the same restraint. Shut it and one line
+     remains; the cards below are the work and this is a reading of them.
+     Every colour is a status token already in the sheet, because a
+     recommendation is a verdict and the product already has three. */
+  .redline-page .rl-plan{flex-basis:100%;margin-top:6px}
+  .redline-page .rl-plan-bar{display:flex;align-items:center;gap:6px;width:100%;
+    border:1px solid var(--color-divider);border-radius:7px;background:var(--color-surface);
+    padding:6px 9px;cursor:pointer;font:inherit;text-align:left}
+  .redline-page .rl-plan-bar:hover{border-color:var(--color-accent-300)}
+  .redline-page .rl-plan-bar:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
+  .redline-page .rl-plan-title{font-size:calc(11.5px * var(--doc-scale,1));font-weight:700;flex:1;min-width:0}
+  .redline-page .rl-plan-caret{flex:none;font-family:var(--font-mono);font-size:12px;color:var(--color-neutral-600)}
+  .redline-page .rl-plan-chip{flex:none;font-size:calc(10px * var(--doc-scale,1));font-weight:700;
+    border-radius:999px;padding:1px 7px;white-space:nowrap}
+  .redline-page .rl-plan-accept{background:var(--st-green-bg);color:var(--st-green-fg)}
+  .redline-page .rl-plan-push{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  .redline-page .rl-plan-escalate{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  .redline-page .rl-plan-review{background:var(--st-steel-bg);color:var(--st-steel-fg)}
+  .redline-page .rl-plan-body{border:1px solid var(--color-divider);border-top:0;
+    border-radius:0 0 7px 7px;background:var(--color-surface);padding:8px 10px}
+  .redline-page .rl-plan-note{margin:0 0 8px;font-size:calc(10.5px * var(--doc-scale,1));
+    color:var(--color-neutral-600);line-height:1.5}
+  .redline-page .rl-plan-row{border-top:1px solid var(--color-divider);padding:8px 0 6px}
+  .redline-page .rl-plan-row:first-of-type{border-top:0;padding-top:0}
+  .redline-page .rl-plan-head{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap}
+  .redline-page .rl-plan-id{font-family:var(--font-mono);font-size:calc(10px * var(--doc-scale,1));
+    color:var(--color-neutral-500)}
+  .redline-page .rl-plan-clause{font-size:calc(11.5px * var(--doc-scale,1));font-weight:600;
+    min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .redline-page .rl-plan-why{margin:4px 0 0;font-size:calc(11px * var(--doc-scale,1));line-height:1.5}
+  .redline-page .rl-plan-prec{margin:3px 0 0;font-size:calc(10.5px * var(--doc-scale,1));
+    line-height:1.5;color:var(--color-neutral-600);font-style:italic}
+  .redline-page .rl-plan-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .redline-page .rl-plan-act{border:1px solid var(--color-divider);border-radius:6px;
+    background:var(--color-bg);cursor:pointer;font:inherit;
+    font-size:calc(10.5px * var(--doc-scale,1));padding:3px 9px}
+  .redline-page .rl-plan-act:hover{border-color:var(--color-accent-300);color:var(--color-accent-700)}
 
   /* ---- THE ASK TAG (OI-12) ----
      An outline pill with a coloured cap: the cap is whose, the glyph is where
@@ -14062,6 +14170,12 @@ function redlinePanesHtml(c, opts = {}){
                  back to is the fault this band exists to fix. See
                  rlUnsentBandHtml. */}
           ${rlUnsentBandHtml(c, opts)}
+          ${''/* ---- THE CO-PILOT'S FIRST PASS (W3-1) ----
+                 Under the unsent band and above the cards, because it is a
+                 reading OF those cards. Drawn only on our seat, only where
+                 they have actually asked for something, and never for a
+                 narrowed reviewer. See rlPlanBandHtml. */}
+          ${rlPlanBandHtml(c, opts)}
           ${''/* ---- AND NOW THE BULK VERBS ARE GONE FROM BOTH SEATS ----
                  They left OUR column first: deciding the other side's wording
                  in one press is the act that should cost a press per clause,
@@ -14262,6 +14376,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlHiddenFrom, rlMsgVisible, redlineEmbed, negoIsRedeciding, rlSeatAlertsHtml,
   RL_CARD_FILTERS, rlCardFilter, rlSetCardFilter, rlCardFilterPass,
   RL_SEL_ACTIONS, RL_PLACEMENT_NOTE, rlSelActions, rlSelMenu, rlAiPropose, rlStandardAction,
+  rlPlanBandHtml, rlPlanIsOpen, rlPlanSetOpen,
   redlineCardIds, rlCardRank, rlCardSort, rlOneNoticeHtml, rlNoticeStackHtml, rlFloatingNoticesHtml, rlNoticesFolded, rlSetNoticesFolded,
   rlJumpToClause, rlLinkFocus, rlDeltaOps, rlSayInPanel,
   /* The per-card open/shut model went with the fold (12 Aug 2026), and the

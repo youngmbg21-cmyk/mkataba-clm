@@ -36,6 +36,7 @@ import './ocr.js';
 import './dedupe.js';
 import './family.js';
 import './precedent.js';     // what this workspace's own settled rounds say (W3-2)
+import './redlineplan.js';   // the co-pilot's first pass over their round (W3-1)
 import './views/negotiation.js';  // the three-pane redline, rendered for whichever side is looking
 import './views/contract.js';
 import './pdfrich.js';
