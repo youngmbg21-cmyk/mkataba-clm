@@ -298,10 +298,11 @@ const jxNamesHome = s => {
    One formatter, reading the pack. Both shapes kept because the short one is
    what fits in a KPI tile and the long one is what belongs in a sentence. */
 const fmtMoney = n => `${jxCurrency()} ` + Number(n || 0).toLocaleString(jxLocale());
-const fmtMoneyShort = n => { n = Number(n || 0); const c = jxCurrency();
+const fmtMoneyShortIn = (n, code) => { n = Number(n || 0); const c = code || jxCurrency();
   if (n >= 1e6) return `${c} ` + (n / 1e6).toFixed(2).replace(/\.00$/, '') + 'M';
   if (n >= 1e3) return `${c} ` + (n / 1e3).toFixed(0) + 'K';
   return `${c} ` + n; };
+const fmtMoneyShort = n => fmtMoneyShortIn(n, jxCurrency());
 
 /* ---- MONEY IN ITS OWN CURRENCY (W2-1, WORKORDER-gap-map.md) ----
    Owner-ruled 19 Aug 2026: REPORTING converts to the workspace currency so
@@ -364,6 +365,13 @@ const fxMissingLine = list => {
 };
 // the per-contract print: the amount in the contract's OWN currency
 const fmtMoneyOf = c => `${contractCurrency(c)} ` + Number((c && c.value) || 0).toLocaleString(jxLocale());
+/* THE SAME ANSWER IN THE COMPACT FORM a table cell holds. The long print got
+   the rule on the day W2-1 shipped and every SHORT print was left stating the
+   workspace currency over a foreign amount — so a register row read
+   "KES 420K" over a contract written in euros, which is the exact untruth
+   W2-1 exists to stop. The row states what the paper says; the aggregate
+   under it still converts. */
+const fmtMoneyShortOf = c => fmtMoneyShortIn(Number((c && c.value) || 0), contractCurrency(c));
 
 const JX_API = { JURISDICTIONS, JX_DEFAULT, JX_LS, JX_OTHER_SEATS,
   jx, jxId, jxIs, jxSet, jxList, jxPack, jxLaw, jxAdjective, jxName, jxCurrency, jxLocale,
@@ -371,9 +379,9 @@ const JX_API = { JURISDICTIONS, JX_DEFAULT, JX_LS, JX_OTHER_SEATS,
   jxPlaybookLabel, jxPreferredLaw, jxFallbackLaw, jxForeignMarkers, jxNamesHome,
   jxIncorporatedIn, jxTaxAuthority, jxFoodSafetyRegulator, jxProfessionalBodies,
   jxLandStatute, jxLandForum, jxEg, jxTaxIdField, jxGovernedBy, jxGovernedByArb, jxLeaseLaw,
-  fmtMoney, fmtMoneyShort,
+  fmtMoney, fmtMoneyShort, fmtMoneyShortIn,
   fxSetRatesReader, fxSetHomeReader, fxHomeCode, contractCurrency, fxIsForeign,
-  fxRateFor, fxHome, fxHomeValue, fxMissing, fxMissingLine, fmtMoneyOf };
+  fxRateFor, fxHome, fxHomeValue, fxMissing, fxMissingLine, fmtMoneyOf, fmtMoneyShortOf };
 /* Two hosts, one table. The browser gets globals like every other module here;
    server/server.js is a plain Node process with no window, and requires it. */
 if (typeof window !== 'undefined') Object.assign(window, JX_API);

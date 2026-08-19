@@ -5313,7 +5313,13 @@ function wireNegotiationTab(c, opts = {}){
   host.querySelectorAll('[data-rl-plan-toggle]').forEach(b => b.addEventListener('click', e => {
     e.stopPropagation(); e.preventDefault();
     rlPlanSetOpen(!rlPlanIsOpen());
-    if (window.rlRepaintFrom) rlRepaintFrom(b); }));
+    /* BARE, like every other caller in this file. Written `window.rlRepaintFrom`
+       it read as ordinary defensiveness and was a guard that is ALWAYS false —
+       rlRepaintFrom is not among this module's window exports — so the fold
+       flipped its state and the page never redrew, and the band could not be
+       opened at all. Same family as the rlPaperFootHtml lesson: nothing catches
+       a call that is never made. Found 19 Aug 2026, photographing the band. */
+    rlRepaintFrom(b); }));
   host.querySelectorAll('[data-nego-accept]').forEach(b => b.addEventListener('click', e => {
     e.stopPropagation(); decide(b.getAttribute('data-nego-accept'), 'accepted'); }));
   host.querySelectorAll('[data-nego-undo]').forEach(b => b.addEventListener('click', e => {

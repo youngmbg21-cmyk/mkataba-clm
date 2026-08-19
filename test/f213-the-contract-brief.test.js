@@ -152,3 +152,72 @@ describe('F213 — the Contract Brief', () => {
     assert.ok(after2._brief, 'and yet the brief is there');
   });
 });
+
+/* ============================================================
+   F213 — AND AN ADVISORY READ NEVER REPORTS A FAILED SAVE
+   ============================================================
+   Found 19 Aug 2026, photographing the panels against a signed contract: the
+   brief and the renewal advice both arrived and drew correctly, and both put
+   a red "Save failed: … negotiation cannot be changed after signature" over
+   the top of themselves.
+
+   Neither was saving the reading — that is cached in its own server table,
+   and the test above pins that it moves no version. What each was saving was
+   the courtesy AUDIT LINE on top of it. On an executed contract a save is
+   refused outright, and a room that has drawn a negotiation carries an
+   in-memory negotiation object the stored record has never had, so the
+   refusal was certain rather than occasional.
+
+   Signed paper is exactly what most needs explaining — the whole reason the
+   brief is allowed on it (WO-2) — so the READING stays and the audit line
+   stands down in the one state the record cannot take it. */
+describe('F213 — the audit line stands down where the record is sealed', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'ai.js'), 'utf8');
+
+  /* The function itself, lifted and run — the codebase's own way of testing a
+     browser function without standing up a whole shell. */
+  function lift() {
+    const i = src.indexOf('function aiNoteRead(');
+    assert.ok(i > 0, 'the one helper exists');
+    const body = src.slice(i, src.indexOf('\n}', i) + 2);
+    const calls = { audit: [], persist: [] };
+    const sandbox = {
+      window: {},
+      logAudit: (c, a, d) => calls.audit.push([c.id, a, d]),
+      persist: c => calls.persist.push(c.id),
+    };
+    sandbox.window.negoExecuted = c => !!(c && (c.status === 'Signed' || c.hash));
+    const fn = new Function('window', 'logAudit', 'persist',
+      body + '; return aiNoteRead;')(sandbox.window, sandbox.logAudit, sandbox.persist);
+    return { fn, calls };
+  }
+
+  test('a live contract still gains its audit line', () => {
+    const { fn, calls } = lift();
+    assert.equal(fn({ id: 'MK-1', status: 'Under Review' }, 'Brief', 'written'), true);
+    assert.deepEqual(calls.audit, [['MK-1', 'Brief', 'written']]);
+    assert.deepEqual(calls.persist, ['MK-1']);
+  });
+
+  test('an executed contract is read, and nothing is written to it', () => {
+    const { fn, calls } = lift();
+    assert.equal(fn({ id: 'MK-2', status: 'Signed' }, 'Brief', 'written'), false);
+    assert.equal(fn({ id: 'MK-3', status: 'Under Review', hash: 'abc' }, 'Renewal', 'renegotiate'), false,
+      'a sealed record is sealed whatever its status field says');
+    assert.deepEqual(calls.audit, [], 'no line');
+    assert.deepEqual(calls.persist, [], 'and above all no save to be refused');
+  });
+
+  test('both readings go through the one helper — neither saves on its own', () => {
+    for (const name of ['runContractBrief', 'runRenewalAdvice']) {
+      const i = src.indexOf('async function ' + name + '(');
+      assert.ok(i > 0, name + ' is there');
+      const body = src.slice(i, src.indexOf('\nfunction ', i + 10));
+      assert.match(body, /aiNoteRead\(/, name + ' notes the read through the helper');
+      assert.ok(!/\bpersist\(/.test(body), name + ' does not save the record itself');
+      assert.ok(!/\blogAudit\(/.test(body), name + ' does not write the trail itself');
+    }
+  });
+});

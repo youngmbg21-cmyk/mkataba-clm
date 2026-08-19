@@ -197,3 +197,20 @@ describe('F219 — the window, and the card it draws', () => {
       assert.equal((i18n.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k);
   });
 });
+
+/* The renewal card lives on contracts that are usually SIGNED — that is what
+   a renewal is — so the sealed-record rule matters more here than anywhere.
+   Asking for advice must never put a red "Save failed" over the advice it
+   just delivered. The behaviour is pinned in f213 beside the brief, which
+   shares the one helper; this is the claim from this feature's own chair. */
+describe('F219 — asking for advice writes nothing to a sealed record', () => {
+  test('the ask goes through aiNoteRead and saves nothing itself', () => {
+    const src = read('js/ai.js');
+    const i = src.indexOf('async function runRenewalAdvice(');
+    assert.ok(i > 0);
+    const body = src.slice(i, src.indexOf('\nconst RN_TONE', i));
+    assert.match(body, /aiNoteRead\(/);
+    assert.ok(!/\bpersist\(/.test(body),
+      'a renewal is asked about on signed paper, where a save is refused outright');
+  });
+});

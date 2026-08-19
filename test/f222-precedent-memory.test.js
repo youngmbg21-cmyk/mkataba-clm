@@ -227,7 +227,136 @@ describe('F222 — the sentence, and the seat it is never said in', () => {
 
   test('the words exist in both languages', () => {
     const i18n = read('js/i18n.js');
-    for (const k of ['pc_title', 'pc_sub', 'pc_line', 'pc_adopt', 'pc_adopt_q', 'pc_adopted', 'pc_current_none'])
+    for (const k of ['pc_title', 'pc_sub', 'pc_line', 'pc_adopt', 'pc_adopt_q', 'pc_adopted', 'pc_current_none',
+      'pc_hist_them', 'pc_hist_settled',
+      'pc_hist_mixed_one', 'pc_hist_mixed_other', 'pc_hist_gave_one', 'pc_hist_gave_other',
+      'pc_hist_held_one', 'pc_hist_held_other'])
       assert.equal((i18n.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k);
+  });
+
+  /* "pushed on Payment terms 1 times" — the sentence read as broken English
+     on exactly the commonest case, one settled argument, and it was the one
+     line in this feature a Swedish reader could not read at all. */
+  test('one argument is counted as one', () => {
+    const book = [
+      contract('MK-N1', 'Nordfrakt Logistik AB', [
+        change({ id: 'CHG-N1', label: 'Payment terms', status: 'accepted', side: 'counterparty',
+          oldText: 'within thirty (30) days', newText: 'within forty-five (45) days' }),
+      ]),
+    ];
+    const win = withBook(world(), book);
+    const c = book[0];
+    const line = win.precedentLine(win.precedentForChange(c, c.changes[0]));
+    assert.match(line, /once/, 'one time is "once", never "1 times"');
+    assert.ok(!/\b1 times\b/.test(line), line);
+    assert.match(line, /45 days/, 'and it still names what it settled at');
+  });
+});
+
+/* ============================================================
+   F222 — THE WORDS A CONTRACT ACTUALLY USES
+   ============================================================
+   Found 19 Aug 2026, photographing the panel with an ordinary book in front
+   of it: a settled "12. Termination for convenience" argument counted for
+   nothing, and the whole Termination topic was invisible.
+
+   The topic patterns were written with STEMS — terminat, liabilit, indemnif,
+   arbitrat, confidential, invoic — inside one \b(...)\b group. The trailing
+   boundary refuses the very words the stem exists for: "termination"
+   continues with a letter, so there is no word boundary after "terminat" and
+   the alternative could only ever match the bare string "terminat", which
+   appears in no contract ever drafted.
+
+   IT SURVIVED THE FIRST WRITING OF THIS FILE because the fixtures above are
+   labelled with the topic's own category name — "Payment terms",
+   "Liability cap" — and those match as whole words or through a second
+   alternative. Real clause headings are numbered and inflected. So these
+   cases are deliberately written the way a contract writes them.
+
+   SAME FAMILY as precedentFigure's "forty-five (45) days": a pattern that
+   silently finds nothing, on a feature whose only symptom is silence. */
+describe('F222 — the words a contract actually uses', () => {
+  const CASES = [
+    ['12. Termination for convenience', 'term'],
+    ['11. Termination', 'term'],
+    ['9. Liability', 'liability'],
+    ['8. Limitation of liabilities', 'liability'],
+    ['14. Confidentiality', 'conf'],
+    ['4. Invoicing', 'payment'],
+    ['3. Payments', 'payment'],
+  ];
+  for (const [label, key] of CASES)
+    test(`"${label}" is read as the ${key} standard`, () => {
+      const win = withBook(world(), []);
+      const t = win.precedentTopicOf({ clauseLabel: label });
+      assert.ok(t, 'a heading a real contract carries must reach a standard');
+      assert.equal(t.key, key);
+    });
+
+  test('and it reads them out of the WORDING too, not only the heading', () => {
+    const win = withBook(world(), []);
+    assert.equal(win.precedentTopicOf({ clauseLabel: '', newText: 'Either party may terminate on sixty (60) days written notice.' }).key, 'term');
+    assert.equal(win.precedentTopicOf({ clauseLabel: '', newText: 'The Provider shall indemnify the Company against any claim.' }).key, 'liability');
+    assert.equal(win.precedentTopicOf({ clauseLabel: '', newText: 'Disputes shall be settled by arbitration seated in Nairobi.' }).key, 'law');
+  });
+
+  test('the stem still stops at a word that merely starts the same way', () => {
+    const win = withBook(world(), []);
+    assert.equal(win.precedentTopicOf({ clauseLabel: 'Termite and pest control' }), null,
+      'a wider pattern must not start swallowing clauses that are nothing to do with it');
+    assert.equal(win.precedentTopicOf({ clauseLabel: 'Delivery schedule', newText: 'pallets by Tuesday' }), null);
+  });
+
+  /* THE FAULT AS REPORTED, end to end: settled termination arguments in the
+     book, and a count that stayed at zero. */
+  test('a settled termination argument reaches the counts', () => {
+    const book = [
+      contract('MK-T1', 'Nordfrakt Logistik AB', [
+        change({ id: 'CHG-T1', label: '11. Termination', status: 'accepted', side: 'counterparty',
+          oldText: 'terminate on thirty (30) days written notice',
+          newText: 'terminate on sixty (60) days written notice' }),
+      ]),
+      contract('MK-T2', 'Kabras Sugar', [
+        change({ id: 'CHG-T2', label: '12. Termination for convenience', status: 'rejected', side: 'counterparty',
+          oldText: 'terminate on sixty (60) days written notice',
+          newText: 'terminate on thirty (30) days written notice' }),
+      ]),
+    ];
+    const win = withBook(world(), book);
+    const m = win.precedentMine();
+    assert.equal(m.term.theirs.accepted, 1);
+    assert.equal(m.term.theirs.refused, 1);
+    assert.equal(m.term.total, 2);
+    assert.deepEqual([...m.term.contracts].sort(), ['MK-T1', 'MK-T2'],
+      'and the panel can name the contracts it read them from');
+  });
+
+  /* THE SWEEP. A stem written straight into a boundary group is the defect,
+     not the file it happened to be in — it was in three. This reads every
+     regex in the product, finds the groups that are CLOSED BY \b, and fails
+     on any alternative inside one that is a bare stem. Deliberately narrow:
+     the same stems appear all over this codebase in groups with no trailing
+     boundary at all (js/metadata.js, js/playbook.js, js/views/migration.js),
+     where they match exactly as intended and there is nothing to fix. */
+  test('no stem sits inside a group that is closed by a word boundary', () => {
+    const STEMS = ['terminat', 'liabilit', 'indemnif', 'indemnit', 'arbitrat', 'confidential', 'invoic'];
+    const dirs = ['js', 'js/views'];
+    const bad = [];
+    for (const d of dirs)
+      for (const f of fs.readdirSync(path.join(ROOT, d)).filter(n => n.endsWith('.js'))) {
+        const rel = d + '/' + f;
+        /* Comments stripped first — this very file quotes the broken pattern
+           a few lines above, and a sweep that read its own explanation would
+           fail for ever. */
+        const src = read(rel).replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
+        const groups = src.match(/\(([^()]*)\)\\b/g) || [];
+        for (const g of groups) {
+          const inner = g.slice(1, -3).replace(/^\?:/, '');
+          for (const alt of inner.split('|'))
+            if (STEMS.includes(alt.trim())) bad.push(rel + ' — "' + alt.trim() + '" in ' + g);
+        }
+      }
+    assert.deepEqual(bad, [],
+      'a stem closed by \\b can only match itself, and matches nothing a contract says');
   });
 });

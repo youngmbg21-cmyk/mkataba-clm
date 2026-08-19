@@ -85,6 +85,56 @@ describe('F218 — the model, on its own', () => {
   });
 });
 
+/* ============================================================
+   F218 — AND THE SHORT PRINT STATES ITS OWN CURRENCY TOO
+   ============================================================
+   Found 19 Aug 2026, photographing the register with a euro contract on it:
+   the row read "KES 420K" over an agreement written in euros. The LONG print
+   (fmtMoneyOf) got the rule the day W2-1 shipped and every SHORT print — the
+   one a table cell, a queue card, a map node and the Copilot's own contract
+   row actually use — went on stating the workspace currency over a foreign
+   amount. The aggregate beneath it was right all along (it converts), so the
+   page showed a true total over an untrue row, which is the worse of the two
+   ways to be wrong about money.
+
+   THE RULE IS THE SAME ONE, SAID ONCE MORE: a contract's own surface states
+   the contract's own currency; anything that ADDS contracts up converts. */
+describe('F218 — the short print states its own currency too', () => {
+  const jx = require('../js/jurisdiction.js');
+
+  test('the compact form carries the contract\'s own code', () => {
+    assert.equal(jx.fmtMoneyShortOf({ value: 420000, metadata: { currency: 'EUR' } }), 'EUR 420K');
+    assert.equal(jx.fmtMoneyShortOf({ value: 18500000, metadata: { currency: 'EUR' } }), 'EUR 18.50M');
+    assert.match(jx.fmtMoneyShortOf({ value: 420000 }), /^KES /, 'no currency of its own is home currency, unchanged');
+  });
+
+  test('the workspace-currency form is untouched — a threshold is not a contract', () => {
+    assert.match(jx.fmtMoneyShort(5000000), /^KES 5M$/,
+      'approval thresholds, signing caps and fee estimates are stated in the workspace currency and always were');
+  });
+
+  /* THE SWEEP. The defect was never one file — it was every screen that
+     prints one contract's amount, and the fix had to reach all of them. This
+     fails on the next one written the old way. */
+  test('no screen prints one contract\'s amount in the workspace currency', () => {
+    const dirs = ['js', 'js/views'];
+    const bad = [];
+    for (const d of dirs)
+      for (const f of fs.readdirSync(path.join(ROOT, d)).filter(n => n.endsWith('.js'))) {
+        const rel = d + '/' + f;
+        const src = read(rel).replace(/\/\*[\s\S]*?\*\//g, ' ');
+        for (const m of src.matchAll(/fmtMoney(Short)?\(c\.value\)/g)) {
+          /* the guarded form names the per-contract function first and falls
+             back only where the module is absent — that one is correct */
+          const before = src.slice(Math.max(0, m.index - 70), m.index);
+          if (!/fmtMoney(Short)?Of\(c\)\s*:\s*$/.test(before)) bad.push(rel + ' — ' + m[0]);
+        }
+      }
+    assert.deepEqual(bad, [],
+      'a contract states its own currency; only figures that add contracts up convert');
+  });
+});
+
 describe('F218 — the server reports one currency', () => {
   let h, W;
   const put = (id, over) => W.admin.json('/api/contracts/' + id, { method: 'PUT', body: { contract: {

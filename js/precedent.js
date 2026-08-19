@@ -41,9 +41,18 @@ function precedentFigure(text, unitRe){
   return bare?Number(bare[1]):null;
 }
 
+/* THE STEMS CARRY \w*, AND THAT IS NOT DECORATION. Written as
+   /\b(terminat|liabilit|indemnif)\b/ the trailing boundary refuses the very
+   words the stem was written for — "termination" continues with a letter, so
+   there is no word boundary after "terminat" and the alternative can only
+   match the string "terminat", which appears in no contract ever drafted. The
+   whole Termination topic was therefore invisible: a settled notice-period
+   argument counted for nothing. Same family as the figure reader above — a
+   pattern that silently finds nothing, on a feature whose only symptom is
+   silence. Found 19 Aug 2026 while photographing the panel. */
 const PRECEDENT_TOPICS = [
   { key:'payment',  category:'Payment terms',   clause:'cl-pay',
-    re:/\b(payment|invoice|net\s*\d|days? of receipt|payable)\b/i,
+    re:/\b(payment\w*|invoic\w*|net\s*\d|days? of receipt|payable)\b/i,
     /* The number that IS the position. Payment is argued in days and
        liability in months, so a settled figure is worth more than a settled
        clause: it can be compared, ranked, and offered as a fallback. */
@@ -51,19 +60,19 @@ const PRECEDENT_TOPICS = [
       const net=String(t).match(/\bnet\s*(\d{1,3})\b/i); return net?Number(net[1]):null; },
     unit:'days', dir:'higher-is-worse' },
   { key:'liability', category:'Liability cap',  clause:'cl-liab',
-    re:/\b(liabilit|indemnif|cap(?:ped)? at|aggregate liability)\b/i,
+    re:/\b(liabilit\w*|indemnif\w*|indemnit\w*|cap(?:ped)? at|aggregate liability)\b/i,
     num:t=>precedentFigure(t,'months?'),
     unit:'months', dir:'lower-is-worse' },
   { key:'law',       category:'Governing law',  clause:'cl-law',
-    re:/\b(govern(?:ed|ing)\s+law|jurisdiction|forum|arbitrat)\b/i, num:()=>null },
+    re:/\b(govern(?:ed|ing)\s+law|jurisdiction|forum|arbitrat\w*)\b/i, num:()=>null },
   { key:'conf',      category:'Confidentiality', clause:'cl-conf',
-    re:/\b(confidential|non-disclosure|secret)\b/i,
+    re:/\b(confidential\w*|non-disclosure|secret\w*)\b/i,
     num:t=>precedentFigure(t,'years?'),
     unit:'years', dir:'lower-is-worse' },
   { key:'dp',        category:'Data protection', clause:'cl-dp',
     re:/\b(data protection|personal data|odpc|gdpr)\b/i, num:()=>null },
   { key:'term',      category:'Termination',    clause:'cl-term',
-    re:/\b(terminat|notice period|cure period|material breach)\b/i,
+    re:/\b(terminat\w*|notice period|cure period|material breach)\b/i,
     num:t=>precedentFigure(t,"days?['’]?\\s*(?:written\\s+)?notice"),
     unit:'days', dir:'lower-is-worse' },
 ];
@@ -206,11 +215,15 @@ function precedentLine(p){
   if(!them) return '';
   const held=src.theirs.refused, gave=src.theirs.accepted;
   const nums=src.numbers.theirsAccepted.filter(n=>n!=null);
-  const at=nums.length?` (settled at ${Math.max(...nums)}${p.unit?' '+p.unit:''})`:'';
-  const subject=who?who:'Counterparties';
-  if(gave&&held) return `${subject} pushed on ${p.category} ${them} times: you agreed ${gave}, held ${held}${at}.`;
-  if(gave) return `${subject} pushed on ${p.category} ${them} times and you agreed each time${at}.`;
-  return `${subject} pushed on ${p.category} ${them} times and you held every time.`;
+  /* THROUGH THE DICTIONARY, and counted properly. Built in English here it
+     printed "pushed on Payment terms 1 times", which is the sort of sentence
+     that makes a reader distrust the number in it — and it was the one line
+     in this feature a Swedish reader could not read. */
+  const at=nums.length?i18t('pc_hist_settled',{figure:`${Math.max(...nums)}${p.unit?' '+p.unit:''}`}):'';
+  const v={ who: who || i18t('pc_hist_them'), category:p.category, gave, held, at };
+  if(gave&&held) return i18tn('pc_hist_mixed',them,v);
+  if(gave) return i18tn('pc_hist_gave',them,v);
+  return i18tn('pc_hist_held',them,v);
 }
 
 Object.assign(window,{PRECEDENT_TOPICS,precedentFigure,PRECEDENT_MIN,PRECEDENT_EXAMPLES,PRECEDENT_SETTLED,

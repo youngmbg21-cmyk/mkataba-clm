@@ -77,7 +77,7 @@ function scanRules(c){
       'Different indices move differently; an unnamed benchmark invites a pricing dispute at every quarterly review.',
       'Name the specific published index and state the review formula.');
     if(Number(c.value)>50000000) add('rm-sec','med','missing','No alternate-source / security of supply','c1',
-      `At ${fmtMoneyShort(c.value)} a year this is a critical input, yet nothing addresses supply failure.`,
+      `At ${(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value))} a year this is a critical input, yet nothing addresses supply failure.`,
       'A single-source dependency at this scale can halt production if the supplier defaults.',
       'Add a business-continuity clause: safety stock, an approved alternate source, or step-in rights.');
   }
@@ -139,7 +139,7 @@ function scanRules(c){
       'Without a remedy the target is aspirational, and repeated late deliveries erode trade fill rates with no recourse.',
       'Attach service credits or penalties to defined OTIF bands, tiered by channel priority.');
     if(Number(c.value)>5000000) add('ff-ins','low','risk','Goods-in-transit insurance silent','c4',
-      `At ${fmtMoneyShort(c.value)} of annual flows the agreement does not require goods-in-transit cover.`,
+      `At ${(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value))} of annual flows the agreement does not require goods-in-transit cover.`,
       'An uninsured hijack or accident lands as a dispute over the liability cap instead of a clean claim.',
       'Require the Carrier to maintain goods-in-transit insurance to full consignment value, Principal as loss payee.');
   }
@@ -851,7 +851,7 @@ function aiContractCard(c){
     <span class="h-7 w-7 shrink-0 grid place-items-center rounded-lg bg-brand-50 text-brand-500">${icon(cIcon(c),'w-3.5 h-3.5')}</span>
     <span class="min-w-0 flex-1">
       <span class="block text-xs font-medium text-brand-900 truncate group-hover:text-brand-600 transition">${esc(c.name)}</span>
-      <span class="block text-[10px] font-mono text-brand-800/65 truncate">${esc(c.counterparty||'—')} · ${!isMonetary(c)?'non-monetary':(c.value?fmtMoneyShort(c.value):'no value')}</span>
+      <span class="block text-[10px] font-mono text-brand-800/65 truncate">${esc(c.counterparty||'—')} · ${!isMonetary(c)?'non-monetary':(c.value?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):'no value')}</span>
     </span>
     ${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}
   </button>`;
@@ -909,7 +909,7 @@ function aiAnswer(qRaw){
     if(!c) c=cs.find(x=>q.includes(x.counterparty.toLowerCase().split(' ')[0]) && x.counterparty);
     if(!c) c=cs.find(x=>x.name.toLowerCase().split(' ').some(w=>w.length>4&&q.includes(w)));
     if(c){
-      return { text:`${i18t('ai_summary_line',{name:`<strong>${esc(c.name)}</strong>`,id:esc(c.id),kind:isUpload(c)?i18t('ai_an_external_doc'):i18t('ai_a_kind',{kind:cKind(c)}),who:esc(c.counterparty||i18t('ai_no_counterparty_yet')),folder:esc(FOLDERS[c.folder].name)})} ${i18t('ai_value_label')} <strong>${!isMonetary(c)?i18t('ai_non_monetary'):(c.value?fmtMoney(c.value)+(c.valueType==='estimated'?i18t('ai_estimated'):''):i18t('ai_not_set'))}</strong> · Status: <strong>${c.status}</strong> · Last action ${c.lastAction}. ${c.status==='Signed'?'It is fully executed with an SHA-256 seal and verified IPRS + PKI compliance.':c.status==='Under Review'?'It is waiting on counterparty action — compliance checks are '+((c.compliance.iprs&&c.compliance.pki)?'complete':'still open')+'.':c.status==='Draft'?'It is still in draft — fill the counterparty and value to move it into review.':'It was declined and is closed without signature.'} There are ${c.comments.length} comments on the thread.${(()=>{ if(!c.scan) return ' It has not been Copilot-scanned yet.'; const o=openFindings(c); return o.length?` The Copilot scan shows <strong>${o.length} open finding${o.length===1?'':'s'}</strong> (worst: ${SEV_META[worstSevOf(o)].label.toLowerCase()}).`:' The Copilot scan is clean — no open findings.'; })()}`,
+      return { text:`${i18t('ai_summary_line',{name:`<strong>${esc(c.name)}</strong>`,id:esc(c.id),kind:isUpload(c)?i18t('ai_an_external_doc'):i18t('ai_a_kind',{kind:cKind(c)}),who:esc(c.counterparty||i18t('ai_no_counterparty_yet')),folder:esc(FOLDERS[c.folder].name)})} ${i18t('ai_value_label')} <strong>${!isMonetary(c)?i18t('ai_non_monetary'):(c.value?(window.fmtMoneyOf?fmtMoneyOf(c):fmtMoney(c.value))+(c.valueType==='estimated'?i18t('ai_estimated'):''):i18t('ai_not_set'))}</strong> · Status: <strong>${c.status}</strong> · Last action ${c.lastAction}. ${c.status==='Signed'?'It is fully executed with an SHA-256 seal and verified IPRS + PKI compliance.':c.status==='Under Review'?'It is waiting on counterparty action — compliance checks are '+((c.compliance.iprs&&c.compliance.pki)?'complete':'still open')+'.':c.status==='Draft'?'It is still in draft — fill the counterparty and value to move it into review.':'It was declined and is closed without signature.'} There are ${c.comments.length} comments on the thread.${(()=>{ if(!c.scan) return ' It has not been Copilot-scanned yet.'; const o=openFindings(c); return o.length?` The Copilot scan shows <strong>${o.length} open finding${o.length===1?'':'s'}</strong> (worst: ${SEV_META[worstSevOf(o)].label.toLowerCase()}).`:' The Copilot scan is clean — no open findings.'; })()}`,
         cards:aiCards([c]) };
     }
   }
@@ -1674,7 +1674,7 @@ function localCompareData(ids){
   const cs=ids.map(id=>getContract(id)).filter(Boolean).slice(0,4);
   if(cs.length<2) return null;
   const open=c=>(c.scan&&typeof openFindings==='function')?openFindings(c):[];
-  const fmtVal=c=>c.valueType==='none'?'Non-monetary':(Number(c.value)>0?fmtMoneyShort(c.value):'Not set');
+  const fmtVal=c=>c.valueType==='none'?'Non-monetary':(Number(c.value)>0?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):'Not set');
   const exp=c=>{ if(!c.expiry) return '—'; const d=_daysTo(c.expiry); return c.expiry+(d!=null?(d>=0?` (in ${d}d)`:' (lapsed)'):''); };
   const rows=[
     { label:'Name', cells:cs.map(c=>c.name||c.id) },
@@ -2944,6 +2944,32 @@ document.getElementById('ai-expand')?.addEventListener('click',()=>toggleAIExpan
    other three rows (openCheckPanel 'brief'). The text handed to the server
    is EXACTLY the source extractObligations reads — the screens' own wording
    — so the brief can never describe a document the reader is not looking at. */
+/* ---- AN ADVISORY READ MUST NOT REPORT A FAILED SAVE (found 19 Aug 2026) ----
+   The brief and the renewal advice are READINGS. Each is cached in its own
+   server table — deliberately, so a server-side write never bumps the record
+   version under an open editor — and the audit line here is a courtesy on
+   top of that, not the thing itself.
+
+   On an EXECUTED contract the courtesy cost the feature its credibility. The
+   record is sealed, and a room that has drawn a negotiation carries an
+   in-memory negotiation object the stored copy has never had, so the save is
+   refused with "negotiation cannot be changed after signature" — a red
+   Save failed banner over a brief that had, in fact, arrived and drawn
+   correctly beside it. Reproduced on a signed contract before it was touched.
+
+   Signed paper is exactly what most needs explaining — that is why the brief
+   is allowed on it at all (WO-2) — so the READING stays and the AUDIT LINE
+   stands down in the one state where the record cannot take it. Nothing is
+   lost: the advice itself is cached server-side and comes back on the next
+   read either way. */
+function aiNoteRead(c, action, detail){
+  const sealed = (typeof window.negoExecuted === 'function')
+    ? window.negoExecuted(c) : (c && c.status === 'Signed');
+  if (sealed) return false;
+  if (typeof logAudit === 'function') logAudit(c, action, detail);
+  if (typeof persist === 'function') persist(c);
+  return true;
+}
 async function runContractBrief(c,opts={}){
   if(!(typeof API_MODE==='function'&&API_MODE())||!state.aiConfigured){ toast(i18t('br_no_ai'),'warn'); return null; }
   const text=isUpload(c)?(c.upload&&c.upload.extractedText)||'':(window.contractPlainText?contractPlainText(c):'');
@@ -2952,7 +2978,7 @@ async function runContractBrief(c,opts={}){
     if(r&&r.brief){
       c._brief=r.brief;
       // a cache hit changed nothing — only a real (re)write earns an audit line
-      if(!r.cached){ logAudit(c,'Brief',opts.force?'Contract brief rewritten by Copilot':'Contract brief written by Copilot'); persist(c); }
+      if(!r.cached) aiNoteRead(c,'Brief',opts.force?'Contract brief rewritten by Copilot':'Contract brief written by Copilot');
       return r.brief;
     }
   }catch(e){ toast(i18t('br_failed')+(e&&e.message?' '+e.message:''),'err'); }
@@ -3011,7 +3037,7 @@ async function runRenewalAdvice(c,opts={}){
     const r=await api('ai/renewal','POST',{ id:c.id, force:!!opts.force });
     if(r&&r.advice){
       c._renewalAdvice=r.advice;
-      if(!r.cached){ logAudit(c,'Renewal',`Renewal advice: ${(r.advice.data&&r.advice.data.verdict)||'—'}`); persist(c); }
+      if(!r.cached) aiNoteRead(c,'Renewal',`Renewal advice: ${(r.advice.data&&r.advice.data.verdict)||'—'}`);
       return r.advice;
     }
   }catch(e){ toast(i18t('rn_failed')+(e&&e.message?' '+e.message:''),'err'); }
@@ -3106,4 +3132,4 @@ Object.assign(window,{
   aiKeepStructuralTags,aiStructureOf,aiSplitItems,aiRestoreEmphasis,aiPreserveTypography,
   aiParseProposal,copilotPropose,aiProposalCardHtml,aiOpenProposal,aiActiveProposal,
   aiProposalApply,aiProposalDecline,aiProposalToggleEdit,aiWireProposals,aiRefineProposal,aiStepBackIfSummoned,
-  AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,aiCompareTable,aiChatMessages,aiChatContext,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,runContractBrief,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});
+  AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,aiCompareTable,aiChatMessages,aiChatContext,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,runContractBrief,aiNoteRead,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});

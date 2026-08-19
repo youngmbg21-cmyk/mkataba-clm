@@ -1710,6 +1710,19 @@ const STRINGS = {
     pc_title: "What your own history says",
     pc_sub: "Read from rounds you have already settled — not a rule, a pattern. Adopting one changes the fallback your reviews measure against.",
     pc_line: "On {category} you have settled at {figure} {unit} — {seen} of the last {settled} times it was argued.",
+    /* THE ONE-SENTENCE READING beside a live ask. Through the dictionary
+       rather than built in English in js/precedent.js, which also said
+       "1 times" — a count that reads as broken English is a count nobody
+       trusts. The unit ("days", "months") rides inside {figure} exactly as
+       pc_line already carries it. */
+    pc_hist_them: "Counterparties",
+    pc_hist_settled: " (settled at {figure})",
+    pc_hist_mixed_one: "{who} pushed on {category} once: you agreed {gave}, held {held}{at}.",
+    pc_hist_mixed_other: "{who} pushed on {category} {n} times: you agreed {gave}, held {held}{at}.",
+    pc_hist_gave_one: "{who} pushed on {category} once and you agreed{at}.",
+    pc_hist_gave_other: "{who} pushed on {category} {n} times and you agreed each time{at}.",
+    pc_hist_held_one: "{who} pushed on {category} once and you held.",
+    pc_hist_held_other: "{who} pushed on {category} {n} times and you held every time.",
     pc_current: "Your fallback today says {figure} {unit}.",
     pc_current_none: "You have no fallback written for this.",
     pc_from_n_one: "from {n} contract",
@@ -5836,6 +5849,14 @@ const STRINGS = {
     pc_title: "Vad er egen historik säger",
     pc_sub: "Läst ur rundor ni redan avslutat — ingen regel, ett mönster. Att anta ett förslag ändrar den nivå era granskningar mäter mot.",
     pc_line: "I {category} har ni landat på {figure} {unit} — {seen} av de senaste {settled} gångerna det förhandlades.",
+    pc_hist_them: "Motparter",
+    pc_hist_settled: " (landade på {figure})",
+    pc_hist_mixed_one: "{who} drev {category} en gång: ni gick med på {gave}, höll emot {held}{at}.",
+    pc_hist_mixed_other: "{who} drev {category} {n} gånger: ni gick med på {gave}, höll emot {held}{at}.",
+    pc_hist_gave_one: "{who} drev {category} en gång och ni gick med på det{at}.",
+    pc_hist_gave_other: "{who} drev {category} {n} gånger och ni gick med på det varje gång{at}.",
+    pc_hist_held_one: "{who} drev {category} en gång och ni höll emot.",
+    pc_hist_held_other: "{who} drev {category} {n} gånger och ni höll emot varje gång.",
     pc_current: "Er nuvarande nivå säger {figure} {unit}.",
     pc_current_none: "Ni har ingen nivå nedskriven för detta.",
     pc_from_n_one: "från {n} avtal",

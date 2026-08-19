@@ -26,7 +26,7 @@ function pipeCard(c){
   const r = contractRisk(c);
   const rp = riskPal(r);
   const stream = streamLabel(c);
-  const val = !isMonetary(c) ? 'n/m' : (c.value ? fmtMoneyShort(c.value) : '—');
+  const val = !isMonetary(c) ? 'n/m' : (c.value ? (window.fmtMoneyShortOf ? fmtMoneyShortOf(c) : (window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value))) : '—');
   return `
     <div data-card="${c.id}" class="q-card" style="background:var(--color-surface);border:1px solid var(--color-divider);border-left:4px solid ${folderColor(c)};border-radius:5px;box-shadow:var(--shadow-sm);padding:11px 12px;cursor:pointer;display:flex;flex-direction:column;gap:5px">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
