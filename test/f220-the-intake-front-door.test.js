@@ -181,3 +181,123 @@ describe('F220 — the screen, pinned at the source', () => {
       assert.equal((i18n.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k);
   });
 });
+
+/* ============================================================
+   F220 — AND THE PERSON WHO ASKED IS TOLD WHAT HAPPENED
+   ============================================================
+   Owner-asked 19 Aug 2026, after the walkthrough named the gap: a request
+   was decided on a screen the requester was not looking at, and nothing
+   reached them. The notice lives on the ROUTE every decision goes through,
+   for the same reason the Shared audit line does.
+
+   The rules pinned here, each one this codebase already holds elsewhere:
+   - ONLY THE MEMBER'S OWN STORED ADDRESS is written to — never one supplied
+     in the request body, which would be an open relay wearing this
+     workspace's name.
+   - NOBODY IS TOLD ABOUT THEIR OWN ACT: withdrawing your own sends nothing.
+   - ONLY A REAL CHANGE IS NEWS: re-saving the same status sends nothing.
+   - EACH READER'S OWN LANGUAGE, like every member mail since f185. */
+const { startHatiWithMail } = require('./helpers');
+
+describe('F220 — the requester is told what happened', () => {
+  let h2, W2, mail;
+  const ASKER = 'everything@example.co.ke';        // Unrestricted Legal, reads Swedish below
+  const pause = ms => new Promise(r => setTimeout(r, ms));
+  const settle = async (pred, ms = 2500) => {
+    const end = Date.now() + ms;
+    while (Date.now() < end && !pred()) await pause(25);
+    await pause(150);
+  };
+  const to = addr => mail.sent.filter(m => m.to === addr);
+  const ask = (client, title) => client.json('/api/intake', { method: 'POST', body: {
+    title, need: 'We need this before the trial next week. Nothing signed yet.' } });
+
+  before(async () => {
+    h2 = await startHatiWithMail();
+    W2 = await seedWorkspace(h2);
+    mail = h2.mail;
+    // the requester reads Swedish — their notice must follow THEIR language
+    await W2.unrestricted.json('/api/me/lang', { method: 'PUT', body: { lang: 'sv' } });
+  });
+  after(async () => { await h2.stop(); });
+
+  test('turning a request into a draft tells the person who asked, in their language, with the link', async () => {
+    const { request } = await ask(W2.unrestricted, 'NDA for the packaging trial');
+    mail.reset();
+    await W2.admin.json('/api/intake/' + request.id, { method: 'PATCH', body: { status: 'done', contractId: 'MK-NEW-1' } });
+    await settle(() => to(ASKER).length >= 1);
+    const got = to(ASKER);
+    assert.equal(got.length, 1, 'one notice, to the person who asked');
+    assert.match(got[0].subject, /Din förfrågan är nu ett utkast/, 'their own language');
+    assert.match(got[0].subject, /NDA for the packaging trial/, 'named by what they asked for');
+    assert.match(got[0].text, /MK-NEW-1/, 'and it carries the way through to the contract');
+  });
+
+  test('declining tells them, and carries the reason that was given', async () => {
+    const { request } = await ask(W2.unrestricted, 'Sponsorship letter for the county fair');
+    mail.reset();
+    await W2.admin.json('/api/intake/' + request.id, { method: 'PATCH', body: {
+      status: 'declined', note: 'Marketing already has a standing agreement that covers this.' } });
+    await settle(() => to(ASKER).length >= 1);
+    const got = to(ASKER);
+    assert.equal(got.length, 1);
+    assert.match(got[0].subject, /avslogs/, 'declined, in their language');
+    assert.match(got[0].text, /standing agreement that covers this/, 'with the reason, so it is not a dead end');
+  });
+
+  test('withdrawing your own request tells nobody — you did it yourself', async () => {
+    const { request } = await ask(W2.unrestricted, 'Courier framework agreement');
+    mail.reset();
+    await W2.unrestricted.json('/api/intake/' + request.id, { method: 'PATCH', body: { status: 'withdrawn' } });
+    await pause(700);
+    assert.equal(to(ASKER).length, 0, 'nobody is emailed about their own act');
+  });
+
+  test('re-saving the same answer is not news', async () => {
+    const { request } = await ask(W2.unrestricted, 'Cold store rental');
+    await W2.admin.json('/api/intake/' + request.id, { method: 'PATCH', body: { status: 'declined', note: 'Not this quarter.' } });
+    await settle(() => to(ASKER).length >= 1);
+    mail.reset();
+    await W2.admin.json('/api/intake/' + request.id, { method: 'PATCH', body: { status: 'declined', note: 'Not this quarter.' } });
+    await pause(700);
+    assert.equal(to(ASKER).length, 0, 'a status that did not move sends nothing');
+  });
+
+  test('the address is the member\'s own — a body-supplied one is never written to', async () => {
+    const { request } = await ask(W2.unrestricted, 'Haulage rate card');
+    mail.reset();
+    await W2.admin.json('/api/intake/' + request.id, { method: 'PATCH', body: {
+      status: 'declined', note: 'No.', email: 'attacker@example.com', to: 'attacker@example.com' } });
+    await settle(() => mail.sent.length >= 1);
+    assert.equal(to(ASKER).length, 1, 'the requester is told');
+    assert.equal(mail.sent.filter(m => /attacker/.test(String(m.to))).length, 0,
+      'and the route mails nowhere it was told to — that would be an open relay in this workspace\'s name');
+  });
+
+  test('deciding a request you raised yourself tells nobody', async () => {
+    const { request } = await ask(W2.admin, 'Admin raises one for themselves');
+    mail.reset();
+    await W2.admin.json('/api/intake/' + request.id, { method: 'PATCH', body: { status: 'declined', note: 'Changed my mind.' } });
+    await pause(700);
+    assert.equal(mail.sent.length, 0);
+  });
+
+  test('the decline dialog promises the email only where mail is actually delivering', () => {
+    const src = read('js/views/intake.js');
+    const i = src.indexOf("status==='declined'");
+    const near = src.slice(i, i + 900);
+    assert.match(near, /ik_decline_emails/, 'it says where the words go');
+    assert.match(near, /emailOff\(\)/, 'and stands down with no provider configured');
+    assert.match(near, /emailFailing\(\)/, 'and where the provider is refusing');
+    assert.match(near, /API_MODE==='function' && API_MODE\(\)/,
+      'and in local mode, where nothing is sent at all');
+  });
+
+  test('the notice exists in both languages', () => {
+    const i18n = read('js/i18n.js');
+    for (const k of ['mail_ik_subject_done', 'mail_ik_subject_declined', 'mail_ik_subject_accepted',
+      'mail_ik_lead_done', 'mail_ik_lead_declined', 'mail_ik_lead_accepted',
+      'mail_ik_reason', 'mail_ik_where', 'ik_decline_emails'])
+      assert.equal((i18n.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k);
+  });
+});

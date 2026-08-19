@@ -4371,6 +4371,42 @@ app.get('/api/intake', auth, (req, res) => {
   res.json({ requests: visible.map(intakeRow),
     openCount: visible.filter(r => r.status === 'open').length });
 });
+/* ---- THE PERSON WHO ASKED IS TOLD WHAT HAPPENED (19 Aug 2026) ----
+   A request was decided on a screen the requester was not looking at, and
+   nothing reached them: they had to keep coming back to the Requests page
+   to find out. This is the notice, and it lives on the ROUTE rather than in
+   the browser for the same reason the Shared audit line does — every path
+   that decides a request goes through here, including any future one.
+
+   THREE RULES, each of them one this codebase already holds:
+   - ONLY A MEMBER'S OWN STORED ADDRESS is ever written to. The requester is
+     looked up by id; a body-supplied address is not read, because a route
+     that mails wherever it is told is an open relay wearing this
+     workspace's name.
+   - NOBODY IS TOLD ABOUT THEIR OWN ACT. Withdrawing your own request sends
+     nothing, and neither does an editor deciding a request they raised
+     themselves.
+   - NOWHERE TO WRITE IS A FACT, NOT A FAILURE: an account since deleted, or
+     one with no address, simply gets no mail and the decision still stands.
+   The send is fire-and-forget like every other sweep mail — the editor's
+   answer must not wait on a mail provider, and the outbox is where an admin
+   reads what was actually attempted. */
+function notifyIntakeDecision(row, actor) {
+  if (!row) return false;
+  const u = db.prepare('SELECT * FROM users WHERE id=?').get(row.by_id);
+  if (!u || !/.+@.+\..+/.test(String(u.email || ''))) return false;
+  const L = (u.lang && I18N_STRINGS[u.lang]) ? u.lang : I18N_DEFAULT;
+  const k = row.status === 'done' ? 'done' : row.status === 'declined' ? 'declined' : 'accepted';
+  const who = (actor && actor.name) || '';
+  const link = row.contract_id ? contractUrl(null, row.contract_id) : '';
+  const body = `${tFor(L, 'mail_hello')}${u.name ? ' ' + u.name : ''},\n\n`
+    + tFor(L, 'mail_ik_lead_' + k, { title: row.title, who }) + '\n'
+    + (row.note ? `\n${tFor(L, 'mail_ik_reason', { note: row.note })}\n` : '')
+    + (link ? `\n${link}\n` : '')
+    + `\n${tFor(L, 'mail_ik_where')}\n\n${tFor(L, 'mail_automated_notice')}`;
+  sendEmail(u.email, tFor(L, 'mail_ik_subject_' + k, { title: row.title }), body, 'intake decision');
+  return true;
+}
 /* An editor moves a request along; the requester may only WITHDRAW their own.
    Every other transition is an act by somebody who could have drafted it
    themselves, which is what makes it an approval rather than a formality. */
@@ -4394,7 +4430,12 @@ app.patch('/api/intake/:id', auth, (req, res) => {
   db.prepare('UPDATE intake_requests SET status=?, note=?, contract_id=?, decided_by=?, decided_at=?, updated_at=? WHERE id=?')
     .run(status, clean(b.note).slice(0, 2000) || r.note, contractId || null,
       req.user.name || '', now(), now(), req.params.id);
-  res.json({ ok: true, request: intakeRow(db.prepare('SELECT * FROM intake_requests WHERE id=?').get(req.params.id)) });
+  const after = db.prepare('SELECT * FROM intake_requests WHERE id=?').get(req.params.id);
+  /* Only where the answer actually MOVED, and never back to the person who
+     moved it. Re-saving the same status is not news. */
+  if (status !== r.status && ['accepted', 'declined', 'done'].includes(status) && r.by_id !== req.user.id)
+    notifyIntakeDecision(after, req.user);
+  res.json({ ok: true, request: intakeRow(after) });
 });
 
 /* ---------- the renewal adviser (W2-4, WORKORDER-gap-map.md) ----------

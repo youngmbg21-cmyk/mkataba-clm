@@ -195,7 +195,16 @@ async function intakeSetStatus(id,status,opts={}){
   const r=(_intake.list||[]).find(x=>x.id===id); if(!r) return;
   let note='';
   if(status==='declined'){
-    const said=await promptDialog({ title:i18t('ik_decline_title'), message:i18t('ik_decline_msg'),
+    /* THE DIALOG SAYS WHERE THE WORDS GO, and only where that is true: the
+       route emails the requester their reason, so the person typing it
+       should know — but a workspace with no mail provider, or one whose
+       provider is refusing, must not be promised a delivery. Same rule as
+       everywhere else in this product: "sent" has to mean sent. */
+    const mails = typeof API_MODE==='function' && API_MODE()
+      && !(typeof emailOff==='function' && emailOff())
+      && !(typeof emailFailing==='function' && emailFailing());
+    const said=await promptDialog({ title:i18t('ik_decline_title'),
+      message:i18t('ik_decline_msg')+(mails?' '+i18t('ik_decline_emails'):''),
       confirmLabel:i18t('ik_act_decline'), cancelLabel:i18t('act_cancel') });
     if(said==null) return;
     note=String(said||'').trim();
