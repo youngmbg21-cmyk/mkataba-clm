@@ -3974,7 +3974,13 @@ function checksNoteHtml(c){
 function openCheckPanel(c,kind){
   const id=kind==='playbook'?'playbook-section':kind==='oblig'?'obligations-section':kind==='brief'?'brief-section':'scan-section';
   const title=kind==='playbook'?i18t('ct_playbook_review'):kind==='oblig'?i18t('ob_obligations'):kind==='brief'?i18t('br_title'):i18t('ct_risk_scan');
-  if(window.openSidePanel) openSidePanel(`<div id="${id}"></div>`,{width:'400px',title,get label(){ return i18t('ct_checks'); }});
+  /* THE BRIEF GETS A QUARTER MORE ROOM (owner-asked, 19 Aug 2026). It is the
+     one panel that is all prose — the other three are lists and findings —
+     and at 400px its sentences broke every six or seven words. 500px is the
+     same panel a quarter further left; the width is a max, so a narrow window
+     still gets the full screen and no horizontal scroll. */
+  const w = kind==='brief' ? '500px' : '400px';
+  if(window.openSidePanel) openSidePanel(`<div id="${id}"></div>`,{width:w,title,get label(){ return i18t('ct_checks'); }});
   else openModal(`<div style="padding:6px"><div id="${id}"></div></div>`,{maxWidth:'620px'});
   /* THE OBLIGATIONS CARD ARRIVES WHOLE, not as a second rendering of it. The
      panel hosts the SAME element id the Key terms column used to, so

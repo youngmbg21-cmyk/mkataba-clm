@@ -459,12 +459,26 @@ describe('F89 (2b) — the page sets the contract, it does not float it', () => 
       'the selector must out-specify .nego-pane.working .nego-doc, not merely restate it');
   });
 
-  test('a clause is flush to the sheet; only a changed one is framed', async () => {
+  test('every clause is flush to the sheet — the mark is in the margin', async () => {
     const p = await page();
     assert.match(p.rule('.redline-page .rl-clause') || '', /padding:0/,
       '.nego-clause\'s 10px/12px is a second inset inside the sheet\'s own');
-    assert.match(p.rule('.redline-page .rl-clause.is-changed') || '', /padding:12px 14px/,
-      'the design pads only what is on the table — p-3 — so the frame means something');
+    /* REVERSED IN PLACE, 19 Aug 2026 (owner-reported). This asserted that a
+       CHANGED clause is padded — p-3, "so the frame means something" — and
+       that inset, plus the 3px rule beside it, is precisely what moved the
+       wording 14px right and the Edit pill 17px left the moment a change
+       landed. Measured both ways before it was touched.
+
+       The frame still means something and still marks the same clause: it is
+       a bar in the sheet's OWN MARGIN now, outside the text column, so it
+       costs the wording nothing. A first attempt reserved the width on every
+       clause instead and redline-verify caught it in one run — the text
+       stopped sitting evenly on the sheet, which on a document is the worse
+       fault of the two. */
+    assert.match(p.rule('.redline-page .rl-clause.is-changed') || '', /padding:0/,
+      'a marked clause has exactly the box an unmarked one has');
+    assert.match(p.css(), /\.rl-clause\.is-changed::after\{content:'';position:absolute;[\s\S]{0,40}right:-18px/,
+      'and the mark sits outside the text column, in the margin the sheet already has');
   });
 
   test('a repaint does not lose the reader\'s place in the contract', async () => {

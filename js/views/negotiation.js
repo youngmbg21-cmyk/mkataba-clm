@@ -7435,9 +7435,19 @@ function redlineLayoutCss(){
      them. The reference sets an unchanged clause flush to the sheet and pads
      only the CHANGED ones — p-3, the frame that says something is on the table
      — which is what these two rules restore. */
+  /* ---- THE BOX IS THE SAME WHETHER OR NOT ANYTHING IS ON THE TABLE ----
+     (owner-asked, 19 Aug 2026.) A redlined clause used to gain 14px of
+     padding and a 3px rule that an unmarked clause did not have, so the
+     moment a change landed the wording slid 14px right and the Edit pill —
+     which hangs off the clause's own edge — jumped 17px left. Measured, both
+     ways. Every clause reserves the SAME right-hand gutter now, and the rule
+     is simply transparent where there is nothing to mark: the mark appears
+     and disappears, the geometry never moves. The vertical air stays on the
+     marked clause alone, because that is what it was for — the frame that
+     says something is on the table — and it moves nothing sideways. */
   .redline-page .rl-clause{margin:0 0 16px;padding:0}
   .redline-page .rl-clause-h{margin:0 0 5px;font-size:var(--rl-doc-type);font-weight:700;
-    letter-spacing:.02em}
+    letter-spacing:.02em;padding-right:calc(62px * var(--doc-scale,1))}
   /* ---- THE CANVAS READS LIKE THE DOC PAGE ----
      One declaration for the whole document canvas — clause bodies, marked
      lines, the recital — set from --rl-doc-type so the wording is the same
@@ -7519,9 +7529,20 @@ function redlineLayoutCss(){
 
      The padding is KEPT so the wording does not shift when a clause gains or
      loses its first change; only the fill and the frame go. */
-  .redline-page .rl-clause.is-changed{background:none;border:0;
-    border-right:3px solid #dc2626;border-radius:0;padding:12px 14px}
-  html.dark .redline-page .rl-clause.is-changed{border-right-color:#f87171}
+  /* ---- AND THE MARK GOES IN THE MARGIN, NOT IN THE TEXT COLUMN ----
+     The rule was a border on the clause, and a border takes width: a marked
+     clause was 17px narrower and 14px further in than an unmarked one, so
+     the first change on a clause slid its wording right and its Edit pill
+     left. Measured both ways, 19 Aug 2026, and reported by the owner.
+
+     It is a bar in the SHEET'S OWN MARGIN now — outside the text column, in
+     the white the page already has — so a clause has exactly the same box
+     whether or not anything is on the table, and the mark costs the wording
+     nothing. Which is what "marked in the margin" said all along. */
+  .redline-page .rl-clause.is-changed{background:none;border:0;border-radius:0;padding:0}
+  .redline-page .rl-clause.is-changed::after{content:'';position:absolute;
+    top:0;bottom:0;right:-18px;width:3px;border-radius:2px;background:#dc2626}
+  html.dark .redline-page .rl-clause.is-changed::after{background:#f87171}
   /* ---- WHERE "EDIT" LANDS YOU ----
      Pressing Edit on a card scrolls the document to that clause, and the clause
      has to say so when it arrives — a page that silently jumps has moved the
@@ -7568,7 +7589,7 @@ function redlineLayoutCss(){
      has to be able to tell the two apart without reading the tag. */
   .redline-page .rl-clause.rl-clause-new{background:color-mix(in srgb,#10b981 7%,transparent);
     border-color:color-mix(in srgb,#10b981 34%,transparent)}
-  .redline-page .rl-clause-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+  .redline-page .rl-clause-top{position:relative;display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
   /* ---- THE GREEN EDIT PILL (owner-asked, 16 Aug 2026) ----
      Top right of every clause, always drawn, in the emerald this page already
      wears for "your redlines travel on this colour". margin-left:auto rather
@@ -7590,7 +7611,16 @@ function redlineLayoutCss(){
      dark theme) with no rule of its own. It replaced a pale emerald that
      stayed emerald whatever the workspace wore. Hover lightens the same
      colour rather than changing it. */}
-  .redline-page .rl-cp-pill{margin-left:auto;flex:none;
+  /* ---- AND IT IS PINNED, NOT CARRIED ----
+     Out of the heading's flex row and onto the clause's own box, at a fixed
+     offset from the gutter above. Equal boxes alone would have aligned it;
+     pinning it means no marker invented later — the linked-clause outline,
+     the new-clause tint, whatever comes next — can move it either. The
+     heading reserves the width (see .rl-clause-h) so no title can run under
+     it. The offset is measured from the padding box, so right:0 lands the
+     pill on the text column's own right edge — where it has always appeared
+     on an unmarked clause, and now on every clause. */
+  .redline-page .rl-cp-pill{position:absolute;right:0;top:0;z-index:2;flex:none;
     border:1px solid var(--nav-bg,#0b3d3a);background:var(--nav-bg,#0b3d3a);color:#fff;
     border-radius:999px;padding:calc(3px * var(--doc-scale,1)) calc(11px * var(--doc-scale,1));
     font:inherit;font-size:calc(10.5px * var(--doc-scale,1));font-weight:700;line-height:1.6;

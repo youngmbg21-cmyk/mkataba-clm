@@ -2990,8 +2990,44 @@ function briefFactsHtml(d){
   // absent for a reader without canViewValues — the server strips money before
   // it travels, so there is nothing here to hide locally
   const money=[m.value,m.paymentTerms].filter(Boolean).join(' · ');
-  const row=(label,val)=>val?`<div style="display:flex;gap:10px;font-size:12.5px;line-height:1.55;margin:3px 0"><span style="flex:none;min-width:52px;font-weight:600;color:var(--color-neutral-600)">${label}</span><span style="min-width:0">${_aiEsc(val)}</span></div>`:'';
-  return row(i18t('br_term'),term)+row(i18t('br_money'),money);
+  /* The two facts a reader looks for first, set apart from the prose as a
+     small table rather than buried in it, with their figures marked. */
+  const row=(label,val)=>val?`<dt>${label}</dt><dd>${briefMark(val)}</dd>`:'';
+  const rows=row(i18t('br_term'),term)+row(i18t('br_money'),money);
+  return rows?`<dl class="br-facts">${rows}</dl>`:'';
+}
+/* ---- WHAT TO LOOK AT TWICE (owner-asked, 19 Aug 2026) ----
+   The brief was a wall of even grey text, and the figures a reader has to
+   check — an amount, a notice period, a percentage, a date — sat in it with
+   no more weight than the words around them.
+
+   THE MARKING IS DETERMINISTIC AND IT MARKS FACTS, NOT OPINIONS. It is a
+   pass over the finished text for money, periods, percentages and dates; no
+   model decides what is emphasised, so nothing can be talked up. The
+   JUDGEMENT half is already in the data and simply was not dressed as one —
+   the model's own "worth watching" list — which now reads as a list of
+   warnings instead of bullets.
+
+   ESCAPED FIRST, MARKED SECOND. The input is the model's own text and could
+   contain anything; every pattern below runs over already-escaped output, so
+   a match can never introduce markup of its own. */
+const BR_MONTHS = 'January|February|March|April|May|June|July|August|September|October|November|December';
+const BR_FIG_RE = new RegExp([
+  // an amount with its currency code — KES 85,000,000 · EUR 96,000
+  '\\b[A-Z]{3}\\s?\\d[\\d,]*(?:\\.\\d+)?\\b',
+  // a period written the way contracts write it — thirty (30) days
+  '\\b[A-Za-z-]+\\s\\(\\d{1,4}\\)\\s?(?:calendar\\s|working\\s|business\\s)?(?:days?|months?|weeks?|years?)\\b',
+  // or plainly — 60 days, 12 months
+  '\\b\\d{1,4}\\s?(?:calendar\\s|working\\s|business\\s)?(?:days?|months?|weeks?|years?)\\b',
+  '\\bNet[\\s-]?\\d{1,3}\\b',
+  '\\b\\d+(?:\\.\\d+)?\\s?%',
+  '\\b\\d{1,2}\\s(?:' + BR_MONTHS + ')\\s\\d{4}\\b',
+  '\\b(?:' + BR_MONTHS + ')\\s\\d{1,2},?\\s\\d{4}\\b',
+  '\\b\\d{4}-\\d{2}-\\d{2}\\b',
+].join('|'), 'g');
+function briefMark(text){
+  return _aiEsc(String(text == null ? '' : text))
+    .replace(BR_FIG_RE, m => `<b class="br-fig">${m}</b>`);
 }
 function renderBriefSection(c){
   const host=document.getElementById('brief-section'); if(!host) return;
@@ -3000,14 +3036,52 @@ function renderBriefSection(c){
   const d=b.data;
   const mayRemake=(typeof canEdit!=='function'||canEdit())&&typeof API_MODE==='function'&&API_MODE()&&state.aiConfigured;
   const when=(()=>{ try{ return new Date(b.at).toLocaleDateString(typeof langLocale==='function'?langLocale():undefined,{day:'numeric',month:'short',year:'numeric'}); }catch(_){ return String(b.at||'').slice(0,10); } })();
-  const wl=(d.watchouts||[]).map(w=>`<li style="margin:6px 0"><div style="font-size:12.5px;line-height:1.55">${_aiEsc(w.point||'')}</div>${w.quote?`<div style="font-size:11.5px;color:var(--color-neutral-600);font-style:italic;margin-top:2px">“${_aiEsc(w.quote)}”</div>`:''}</li>`).join('');
-  const ul=(d.unusual||[]).filter(Boolean).map(u=>`<li style="font-size:12.5px;line-height:1.55;margin:4px 0">${_aiEsc(u)}</li>`).join('');
-  const head=t=>`<h6 style="margin:12px 0 4px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--color-neutral-600)">${t}</h6>`;
+  /* WORTH WATCHING IS A LIST OF WARNINGS, so it is drawn as one: the model's
+     own "clauses that bite", each on its own amber card with the wording it
+     rests on underneath. UNUSUAL is a different weight of thing — worth
+     knowing, not necessarily dangerous — so it takes the steel tone rather
+     than a second amber. Two tones, two meanings; the app's own tokens, no
+     new colour. */
+  const wl=(d.watchouts||[]).map(w=>`<li class="br-item br-watch">
+      <div class="br-point">${briefMark(w.point||'')}</div>
+      ${w.quote?`<div class="br-quote">“${briefMark(w.quote)}”</div>`:''}</li>`).join('');
+  const ul=(d.unusual||[]).filter(Boolean).map(u=>`<li class="br-item br-odd">
+      <div class="br-point">${briefMark(u)}</div></li>`).join('');
+  const head=(t,tone)=>`<h6 class="br-head br-head-${tone}"><span class="br-dot"></span>${t}</h6>`;
   host.innerHTML=`
-    <div style="font-size:13px;line-height:1.65">${_aiEsc(d.overview||'')}</div>
-    <div style="margin:10px 0">${briefFactsHtml(d)}</div>
-    ${wl?head(i18t('br_watchouts'))+`<ul style="margin:0;padding-left:18px">${wl}</ul>`:''}
-    ${ul?head(i18t('br_unusual'))+`<ul style="margin:0;padding-left:18px">${ul}</ul>`:''}
+    <style>
+      #brief-section .br-fig{font-weight:700;color:var(--color-accent-800);
+        background:color-mix(in srgb,var(--color-accent) 12%,transparent);
+        border-radius:3px;padding:0 3px}
+      #brief-section .br-lead{font-size:13.5px;line-height:1.7;color:var(--color-text)}
+      #brief-section .br-head{display:flex;align-items:center;gap:7px;margin:16px 0 7px;
+        font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+      #brief-section .br-dot{width:7px;height:7px;border-radius:50%;flex:none}
+      #brief-section .br-head-watch{color:var(--st-amber-fg)}
+      #brief-section .br-head-watch .br-dot{background:var(--st-amber-dot)}
+      #brief-section .br-head-odd{color:var(--st-gray-fg)}
+      #brief-section .br-head-odd .br-dot{background:var(--st-gray-dot)}
+      #brief-section .br-list{margin:0;padding:0;list-style:none;display:flex;
+        flex-direction:column;gap:8px}
+      #brief-section .br-item{border-radius:6px;padding:10px 12px;border:1px solid transparent}
+      #brief-section .br-watch{background:var(--st-amber-bg);border-left:3px solid var(--st-amber-dot)}
+      /* Grey, not a second colour: "unusual" is worth knowing, not a warning,
+         and three tints in one panel would flatten the one that matters. */
+      #brief-section .br-odd{background:var(--st-gray-bg);border-left:3px solid var(--st-gray-dot)}
+      #brief-section .br-point{font-size:13px;line-height:1.6;font-weight:500;color:var(--color-text)}
+      #brief-section .br-quote{font-size:11.5px;line-height:1.5;color:var(--color-neutral-600);
+        font-style:italic;margin-top:5px}
+      #brief-section .br-facts{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;
+        margin:12px 0;padding:11px 13px;background:var(--color-bg);border-radius:6px;
+        border:1px solid var(--color-divider)}
+      #brief-section .br-facts dt{font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;
+        text-transform:uppercase;color:var(--color-neutral-600);padding-top:2px}
+      #brief-section .br-facts dd{margin:0;font-size:12.5px;line-height:1.6;color:var(--color-text)}
+    </style>
+    <div class="br-lead">${briefMark(d.overview||'')}</div>
+    ${briefFactsHtml(d)}
+    ${wl?head(i18t('br_watchouts'),'watch')+`<ul class="br-list">${wl}</ul>`:''}
+    ${ul?head(i18t('br_unusual'),'odd')+`<ul class="br-list">${ul}</ul>`:''}
     <div style="display:flex;align-items:center;gap:10px;margin-top:14px;padding-top:10px;border-top:1px solid var(--color-divider)">
       <span style="font-size:11px;color:var(--color-neutral-600)">${i18t('br_written',{date:when,name:_aiEsc(b.by||'Copilot')})}</span>
       ${mayRemake?`<button class="ui-btn" data-brief-remake style="margin-left:auto;font-size:11px;padding:4px 10px">${i18t('br_rewrite')}</button>`:''}
@@ -3132,4 +3206,4 @@ Object.assign(window,{
   aiKeepStructuralTags,aiStructureOf,aiSplitItems,aiRestoreEmphasis,aiPreserveTypography,
   aiParseProposal,copilotPropose,aiProposalCardHtml,aiOpenProposal,aiActiveProposal,
   aiProposalApply,aiProposalDecline,aiProposalToggleEdit,aiWireProposals,aiRefineProposal,aiStepBackIfSummoned,
-  AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,aiCompareTable,aiChatMessages,aiChatContext,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,runContractBrief,aiNoteRead,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});
+  AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,aiCompareTable,aiChatMessages,aiChatContext,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,runContractBrief,aiNoteRead,briefMark,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});

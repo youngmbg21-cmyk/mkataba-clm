@@ -221,3 +221,78 @@ describe('F213 — the audit line stands down where the record is sealed', () =>
     }
   });
 });
+
+/* ============================================================
+   F213 — AND THE PANEL SAYS WHERE TO LOOK TWICE
+   ============================================================
+   Owner-asked 19 Aug 2026: "very bland and boring". The brief was an even
+   wall of grey text — the figures a reader has to check sat in it with no
+   more weight than the words around them, and the model's own list of
+   clauses that bite was drawn as plain bullets.
+
+   THE MARKING IS DETERMINISTIC AND MARKS FACTS, NOT OPINIONS: a pass over
+   the finished text for money, periods, percentages and dates. No model
+   decides what is emphasised, so nothing can be talked up. And it ESCAPES
+   BEFORE IT MARKS — the input is the model's own text. */
+describe('F213 — the brief shows where to look', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'ai.js'), 'utf8');
+  const lift = () => {
+    const i = src.indexOf('const BR_MONTHS');
+    const j = src.indexOf('function renderBriefSection');
+    assert.ok(i > 0 && j > i);
+    const esc = x => String(x == null ? '' : x)
+      .replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
+    return new Function('_aiEsc', src.slice(i, j) + '; return briefMark;')(esc);
+  };
+
+  test('it marks the figures a reader has to check', () => {
+    const mark = lift();
+    for (const [text, want] of [
+      ['Invoices fall due within thirty (30) days.', 'thirty (30) days'],
+      ['and late payment carries 1.5% a month', '1.5%'],
+      ['The fee is KES 85,000,000 a year', 'KES 85,000,000'],
+      ['it runs to 30 November 2026', '30 November 2026'],
+      ['renews for 12 months unless', '12 months'],
+      ['payment terms are Net 60', 'Net 60'],
+    ]) assert.ok(mark(text).includes('<b class="br-fig">' + want + '</b>'), text);
+  });
+
+  test('and marks nothing that is not one', () => {
+    const mark = lift();
+    const plain = 'The Provider shall keep the goods chilled and provide logs.';
+    assert.equal(mark(plain), plain, 'ordinary prose comes back untouched');
+  });
+
+  test('it escapes before it marks — the text is the model\'s, not ours', () => {
+    const mark = lift();
+    const out = mark('<script>alert(1)</script> within 45 days');
+    assert.ok(!/<script/.test(out), 'no markup survives from the input');
+    assert.ok(out.includes('&lt;script&gt;'));
+    assert.ok(out.includes('<b class="br-fig">45 days</b>'), 'and the figure is still marked');
+  });
+
+  test('worth watching is drawn as a list of warnings, unusual as a note', () => {
+    assert.match(src, /br-watch\{background:var\(--st-amber-bg\)/, 'amber is the one that asks for attention');
+    assert.match(src, /br-odd\{background:var\(--st-gray-bg\)/, 'and "unusual" is grey — a note, not a second warning');
+    assert.match(src, /class="br-item br-watch"/);
+    assert.match(src, /class="br-quote"/, 'each warning still carries the wording it rests on');
+  });
+
+  test('the panel is a quarter wider for the brief, and only for the brief', () => {
+    const room = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'contract.js'), 'utf8');
+    assert.match(room, /const w = kind==='brief' \? '500px' : '400px'/,
+      '500 is 400 plus a quarter; the other three panels are lists and keep theirs');
+    assert.match(fs.readFileSync(path.join(__dirname, '..', 'js', 'core.js'), 'utf8'),
+      /width:100%;max-width:\$\{w\}/,
+      'and the width is a ceiling, so a narrow window still gets the whole screen');
+  });
+
+  test('one marker, both shells — the phone cannot disagree with the laptop', () => {
+    const m = fs.readFileSync(path.join(__dirname, '..', 'js', 'mobile-contract.js'), 'utf8');
+    assert.match(m, /typeof briefMark==='function'/, 'the phone borrows the desktop\'s pass');
+    assert.match(m, /: mEsc\(t\)/, 'and falls back to plain escaped text without it');
+    assert.ok(!/BR_FIG_RE|BR_MONTHS/.test(m), 'the phone runs no second copy of the patterns');
+  });
+});
