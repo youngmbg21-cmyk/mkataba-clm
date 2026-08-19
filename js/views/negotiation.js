@@ -7171,10 +7171,19 @@ function redlineLayoutCss(){
   .redline-page .rl-pb-btn{flex:none;border:1px solid #ddd6fe;background:#f5f3ff;color:#6d28d9;
     border-radius:9px;padding:6px 11px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer;
     transition:background .12s}
-  .redline-page .rl-pb-btn:hover{background:#ede9fe}
+  .redline-page .rl-pb-btn:not([data-rl-dead]):hover{background:#ede9fe}
   .redline-page .rl-pb-btn:disabled{opacity:.6;cursor:wait}
+  /* ---- THE COUNTERPARTY PREVIEW'S DEAD FACE (19 Aug 2026) ----
+     Its own marker rather than :disabled alone, because :disabled on this
+     button already means "the playbook pass is running" and wears a wait
+     cursor — two states, two looks, or the reader learns neither. The button
+     keeps its box (that is the whole point: nothing moves when the toggle is
+     flipped), loses its colour weight and its lift, and says on hover which
+     press brings it back. */
+  .redline-page .rl-tabrow [data-rl-dead]{opacity:.42;cursor:not-allowed;
+    box-shadow:none;filter:saturate(.35)}
   html.dark .redline-page .rl-pb-btn{background:rgba(139,92,246,.15);border-color:rgba(139,92,246,.35);color:#c4b5fd}
-  html.dark .redline-page .rl-pb-btn:hover{background:rgba(139,92,246,.25)}
+  html.dark .redline-page .rl-pb-btn:not([data-rl-dead]):hover{background:rgba(139,92,246,.25)}
   /* The presence pill's rules were here — .rl-presence and its green
      .rl-live-dot. Gone with the feature (10 Aug 2026); dead rules for a removed
      control are how one comes back by accident. */
@@ -9365,7 +9374,27 @@ function renderRedline(){
     }).catch(() => {});
   }
   const side = _redlineSide === 'counterparty' ? 'counterparty' : 'owner';
+  /* ---- THE COUNTERPARTY VIEW IS A PREVIEW, NOT A DIFFERENT CHAIR ----
+     (owner-asked, 19 Aug 2026.) `side` still decides what the DOCUMENT and the
+     cards draw — that is the whole point of the toggle. It no longer decides
+     what the CONTROL ROW says. Every label on that row used to swap with the
+     view (our count for theirs, "Publish Round" for "Send Response", four of
+     our controls removed outright), so flipping the toggle shuffled the row
+     sideways and shuffled it back — on the one control whose entire purpose is
+     comparing the two views, where movement is the noise. The row is drawn
+     from OUR chair either way and goes DEAD; rowSide is what pins it. */
   const seg = (v, label) => `<button data-redline-side="${v}" class="rl-seg${side === v ? ' on' : ''}">${label}</button>`;
+  /* AND NEITHER ACT IS THE REVIEWER'S while their review is open. Publishing
+     puts wording in front of the counterparty; closing the round makes the
+     agreed wording the next baseline, which settles what was sent. A person who
+     accepted a review does neither here until they have handed it back — the
+     posture, not the gate. See rlActorHeld. Read HERE, at the top, because the
+     row's own labels below depend on it. */
+  const _rvPosture = rlActorHeld(c, { side, readonly: false });
+  /* A narrowed reviewer keeps the HIDING — their controls are absent by
+     permission, not by posture — so the preview flag asks that first. */
+  const preview = side === 'counterparty' && !_rvPosture;
+  const rowSide = preview ? 'owner' : side;
   /* The same pill, asked a different question: which of the three readings the
      document is drawn in. aria-pressed rather than a tab role — nothing is
      being switched between, one surface is being drawn differently. */
@@ -9377,7 +9406,7 @@ function renderRedline(){
      showing three cannot happen. */
   /* The same arithmetic the sidebar door, the round line and the Document tab's
      button run — negoNeedsYouIds, one function, so the four cannot disagree. */
-  const needsYou = negoNeedsYouIds(c, { side });
+  const needsYou = negoNeedsYouIds(c, { side: rowSide });
   /* ---- THE BATCH SEND ----
      Drawn only when there is something behind the wall, and labelled with how
      much. It is a proxy onto #nego-send like Publish Round is — the same one
@@ -9385,7 +9414,7 @@ function renderRedline(){
      publishes every unsent draft in one go rather than opening a queue of
      confirmations. See redlineSyncProxies for why a proxy can go dead. */
   /* Whose postbox the send acts for, named from the reader's chair (D2). */
-  const sendTarget = side === 'counterparty' ? 'nego-send-decisions' : 'nego-send';
+  const sendTarget = rowSide === 'counterparty' ? 'nego-send-decisions' : 'nego-send';
   const sendWho = side === 'counterparty' ? (window.FIRST_PARTY || 'the owner')
     : (c.counterparty || 'the counterparty');
   /* ---- THE HEADER CARRIES ONE VERB, NOT THREE ----
@@ -9424,7 +9453,7 @@ function renderRedline(){
      window) the counts stand down and the verb stays, with the title still
      carrying the whole sentence. Both remain in textContent either way, which
      is what the tests read. */
-  const sendVerb = side === 'owner' ? 'Publish Round' : 'Send Response';
+  const sendVerb = rowSide === 'owner' ? 'Publish Round' : 'Send Response';
   /* ---- THE UNSENT COUNT CAME OFF THIS BUTTON (15 Aug 2026, OI-9) ----
      It now has a home of its own, in one line at the top of the change column,
      beside the cards it is about and with a Send that says the word. Two
@@ -9437,7 +9466,7 @@ function renderRedline(){
      to the column, and the band deliberately does not count them. */
   const sendCounts = (_held ? ` · ${_held} held` : '')
     + (_wait ? ` · ${_wait} in review` : '');
-  const sendTip = side === 'owner'
+  const sendTip = rowSide === 'owner'
     ? `Publish this round's changes to ${c.counterparty || 'the counterparty'}`
       + (_held ? ` — ${_held} held back by an internal reviewer will not travel` : '')
       + (_wait ? ` — ${_wait} still with a colleague and will not travel yet` : '')
@@ -9453,14 +9482,27 @@ function renderRedline(){
      naming dialog the room uses, because closing is irreversible. */
   const prog = (typeof negoProgress === 'function') ? negoProgress(c)
     : { pending: 0, total: 0 };
-  /* AND NEITHER ACT IS THE REVIEWER'S while their review is open. Publishing
-     puts wording in front of the counterparty; closing the round makes the
-     agreed wording the next baseline, which settles what was sent. A person who
-     accepted a review does neither here until they have handed it back — the
-     posture, not the gate. See rlActorHeld. */
-  const _rvPosture = rlActorHeld(c, { side, readonly: false });
-  const closer = (!prog.pending && prog.total && side === 'owner' && !_rvPosture)
-    ? `<button data-rl-close-round class="rl-btn rl-btn-go" title="${_nea(i18t('ng_close_round_title'))}">&#10003; ${i18t('ng_close_round_n',{n:negoRound(c)})}</button>` : '';
+  /* ---- THE COUNTERPARTY VIEW IS A PREVIEW, NOT A DIFFERENT CHAIR ----
+     (owner-asked, 19 Aug 2026.) Flipping the toggle used to REMOVE our own
+     four controls from the row, so every remaining control jumped sideways
+     and jumped back when you flipped again — on a toggle whose whole purpose
+     is comparing the two views, where anything that moves is noise.
+
+     They stay where they are and are DEAD instead: `disabled`, dimmed, and
+     not pointing, with a title that says which press brings them back. That
+     is not the "a verb that cannot work is not drawn" rule being broken —
+     that rule is about a verb this PERSON may not use, and this person may
+     use all four. It is the KPI picker's rule instead: at the ceiling the
+     un-tickable rows are disabled AND dimmed AND explained, because the
+     refusal has a way forward on the same screen. Here the way forward is
+     one press away, on the toggle beside them.
+
+     A REVIEWER IS UNCHANGED. _rvPosture genuinely may not do these things —
+     that hiding is a permission and stays a hiding. */
+  const deadAttrs = preview
+    ? ` disabled aria-disabled="true" data-rl-dead="1" title="${_nea(i18t('ng_preview_dead'))}"` : '';
+  const closer = (!prog.pending && prog.total && !_rvPosture)
+    ? `<button data-rl-close-round class="rl-btn rl-btn-go"${deadAttrs || ` title="${_nea(i18t('ng_close_round_title'))}"`}>&#10003; ${i18t('ng_close_round_n',{n:negoRound(c)})}</button>` : '';
   host.innerHTML = `
     <!-- The reference is lg:h-full: the workbench fills the window and each of
          its three columns scrolls inside itself, rather than the page growing
@@ -9593,8 +9635,8 @@ function renderRedline(){
                    ThinkPad-width window (Young, 10 Aug 2026: "the highlight
                    buttons do not descend to a second line") the row compresses
                    to glyphs before it ever wraps — the title says the rest. */}
-            ${side !== 'counterparty' && !_rvPosture && (typeof canEdit !== 'function' || canEdit()) ? `<button type="button" data-rl-pbreview class="rl-pb-btn"
-              title="${i18t('ng_review_every_clause')}"><span class="rl-word">${i18t('ng_review_vs_playbook')}</span><span class="rl-glyph" aria-hidden="true">&#10022;</span></button>` : ''}
+            ${!_rvPosture && (typeof canEdit !== 'function' || canEdit()) ? `<button type="button" data-rl-pbreview class="rl-pb-btn"${
+              deadAttrs || ` title="${_nea(i18t('ng_review_every_clause'))}"`}><span class="rl-word">${i18t('ng_review_vs_playbook')}</span><span class="rl-glyph" aria-hidden="true">&#10022;</span></button>` : ''}
             ${''/* ALWAYS A WAY IN. This used to become "With John Wayne" the
                    moment anything went out — a button that had stopped being a
                    button, on the one control you need again the second you spot
@@ -9602,11 +9644,11 @@ function renderRedline(){
                    on the cards, where the changes are; this row's job is to open
                    the door. Its word follows the state, because the reviewer and
                    the requester press the same place for opposite acts. */}
-            ${side !== 'counterparty' && (typeof canEdit !== 'function' || canEdit()) && window.reviewState ? (() => {
+            ${(typeof canEdit !== 'function' || canEdit()) && window.reviewState ? (() => {
               const st = reviewState(c);
               const label = st.phase === 'yours' ? i18t('rv_head_return') : i18t('rv_head_ask');
               return `<button type="button" data-rl-review class="rl-pb-btn"
-                data-rv-phase="${_nea(st.phase)}" title="${_nea(i18t('rv_head_title'))}">&#128100;<span class="rl-word"> ${_ne(label)}</span></button>`;
+                data-rv-phase="${_nea(st.phase)}"${deadAttrs || ` title="${_nea(i18t('rv_head_title'))}"`}>&#128100;<span class="rl-word"> ${_ne(label)}</span></button>`;
             })() : ''}
             ${''/* ---- HOW THE CONTRACT READS, AS THREE WORDS ----
                    Not a filter and not a mode the record knows about: the same
@@ -9668,10 +9710,10 @@ function renderRedline(){
                    column used to draw its own copy beside the cards and this one
                    proxied onto it; the column's copy is gone and the engine's
                    #nego-send survives, hidden, as the control this presses. */}
-            ${side === 'counterparty' || _rvPosture ? '' : `<button data-redline-proxy="${sendTarget}" class="rl-btn rl-btn-go" title="${_nea(sendTip)}">
+            ${_rvPosture ? '' : `<button data-redline-proxy="${sendTarget}" class="rl-btn rl-btn-go"${deadAttrs || ` title="${_nea(sendTip)}"`}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
               ${_ne(sendVerb)}<span class="rl-send-detail">${_ne(sendCounts)}</span></button>`}
-            ${side === 'counterparty' ? '' : closer}
+            ${closer}
           </div>
         </section>
       </div>
