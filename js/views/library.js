@@ -1520,6 +1520,9 @@ function renderPlaybookPage(){
         </div>
         <p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">${i18t('lib_clause_library_sub')}</p>
         <div id="clause-lib" style="display:flex;flex-direction:column;gap:8px"></div>
+        <!-- W3-2: what the workspace's own settled rounds say the fallback
+             should be. Empty (and undrawn) until there is real history. -->
+        <div id="precedent-panel" class="empty:hidden" style="margin-top:10px"></div>
       </section>
 
       <div style="display:flex;flex-direction:column;gap:18px">

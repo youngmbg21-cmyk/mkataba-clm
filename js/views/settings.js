@@ -2724,6 +2724,64 @@ function renderMyAccountPage(){
 }
 /* ---- E4 clause library editor + playbook viewer (Admin/Legal) ---- */
 function saveClauseLibrary(lib){ state.settings=state.settings||{}; state.settings.clauseLibrary=lib; saveSettings(); }
+/* ---- WHAT YOUR OWN HISTORY SAYS (W3-2, precedent memory) ----
+   The suggestions sit WITH the clause library, because the thing they
+   propose to change is a library fallback and a proposal belongs beside the
+   thing it is about. Nothing here writes: an admin presses Adopt, and that
+   press goes through saveClauseLibrary exactly as hand-editing the clause
+   would. A suggestion is evidence and a button, never a change.
+
+   IT SAYS NOTHING UNTIL THERE IS SOMETHING TO SAY. With a thin book
+   (PRECEDENT_MIN) the panel does not draw at all — an empty "no patterns
+   yet" card on every workspace's settings page is furniture, and this
+   feature has to earn its place by having read something real. */
+function renderPrecedentPanel(){
+  const host=document.getElementById('precedent-panel'); if(!host) return;
+  if(typeof precedentSuggestions!=='function'){ host.innerHTML=''; return; }
+  const sug=precedentSuggestions();
+  if(!sug.length){ host.innerHTML=''; return; }
+  const mayAdopt=isAdmin()||currentUser()?.role==='legal';
+  host.innerHTML=`
+    <div style="border:1px solid var(--color-divider);border-radius:8px;background:var(--color-surface);padding:12px 14px">
+      <h4 style="margin:0 0 3px;font-size:12.5px;font-weight:700;font-family:var(--font-heading)">${esc(i18t('pc_title'))}</h4>
+      <p class="st-note" style="margin:0 0 9px">${esc(i18t('pc_sub'))}</p>
+      ${sug.map(x=>`
+        <div style="border-top:1px solid var(--color-divider);padding:9px 0 3px">
+          <div style="font-size:12px;line-height:1.55">${esc(i18t('pc_line',{
+            category:x.category, figure:x.figure, unit:x.unit, seen:x.seen, settled:x.settled }))}</div>
+          <div style="font-size:11px;color:var(--color-neutral-600);margin-top:3px">${
+            x.currentFigure!=null
+              ? esc(i18t('pc_current',{figure:x.currentFigure,unit:x.unit}))
+              : esc(i18t('pc_current_none'))}
+            · ${esc(i18tn('pc_from_n',x.contracts.length,{n:x.contracts.length}))}</div>
+          ${mayAdopt?`<button class="ui-btn" data-pc-adopt="${esc(x.key)}" style="font-size:11px;padding:4px 10px;margin-top:6px">${esc(i18t('pc_adopt'))}</button>`:''}
+        </div>`).join('')}
+    </div>`;
+  host.querySelectorAll('[data-pc-adopt]').forEach(b=>b.addEventListener('click',()=>precedentAdopt(b.getAttribute('data-pc-adopt'))));
+}
+/* ADOPTING IS THE ADMIN'S ACT, and it asks first — a fallback is the line
+   the company holds, and moving it moves what every future review calls a
+   deviation. The write is the ordinary one; nothing about this bypasses the
+   editor a person would otherwise have used. */
+async function precedentAdopt(key){
+  const x=(precedentSuggestions()||[]).find(s=>s.key===key); if(!x) return;
+  const t=(typeof precedentTopicByKey==='function')?precedentTopicByKey(key):null;
+  const lib=clauseLibrary().slice();
+  const i=lib.findIndex(cl=>cl.id===x.clause);
+  if(i<0){ toast(i18t('pc_no_clause'),'err'); return; }
+  const nextText=i18t('pc_fallback_text',{figure:x.figure,unit:x.unit,category:x.category});
+  if(!await confirmDialog({ title:i18t('pc_adopt_q',{category:x.category}),
+    message:i18t('pc_adopt_msg',{ current:x.current||i18t('pc_current_none'), next:nextText }),
+    confirmLabel:i18t('pc_adopt') })) return;
+  /* The library seeds are GETTERS on the default object (they read the
+     market pack), so the row is copied field by field into a plain record
+     before it is edited — assigning onto a getter-backed literal throws, and
+     spreading it evaluates every getter once, which is what we want here. */
+  lib[i]={ ...lib[i], fallback:nextText };
+  saveClauseLibrary(lib);
+  renderClauseLibrary();
+  toast(i18t('pc_adopted',{category:x.category}),'ok');
+}
 function renderClauseLibrary(){
   const host=document.getElementById('clause-lib'); if(!host) return;
   const canEditLib=isAdmin()||currentUser()?.role==='legal';
@@ -2742,6 +2800,7 @@ function renderClauseLibrary(){
   host.querySelectorAll('[data-cl-edit]').forEach(b=>b.addEventListener('click',()=>openClauseEditor(Number(b.getAttribute('data-cl-edit')))));
   host.querySelectorAll('[data-cl-del]').forEach(b=>b.addEventListener('click',()=>{ const i=Number(b.getAttribute('data-cl-del')); const lib2=clauseLibrary().slice(); lib2.splice(i,1); saveClauseLibrary(lib2); renderClauseLibrary(); toast(i18t('set_t_clause_removed')); }));
   document.getElementById('cl-add')?.addEventListener('click',()=>openClauseEditor(-1));
+  renderPrecedentPanel();
   renderPlaybookView();
 }
 /* ---- playbook viewer + editor (Admin / Legal) ---- */
@@ -3088,7 +3147,7 @@ async function loadSessions(){
    the else branch and nobody catches it — the lesson rlPaperFootHtml taught
    this codebase for a year. openMyAccount and openSettingsAt are the two doors
    the shell calls; SET_PANELS and the readers beside it are what the tests read. */
-Object.assign(window,{renderTeam,renderMyAccountPage,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,
+Object.assign(window,{renderTeam,renderMyAccountPage,renderPrecedentPanel,precedentAdopt,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,
   renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,renderDeskRulePanel,condLabel,loadSessions,
   openMyAccount,openSettingsAt,settingsGoTab,settingsTab,SET_PANELS,ST_TABS,SET_CLOSURES,
   stDrawerOpen,stDrawerClose,stDrawerRefuse,settingsPersonDrawer,settingsSavePerson,settingsRemoveMember,

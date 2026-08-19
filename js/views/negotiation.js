@@ -6381,6 +6381,23 @@ function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
     <section class="rl-cp-sec">
       <h5 class="rl-cp-h">${i18t('ng_cp_table')}</h5>
       ${live.length ? live.map(row).join('') : `<p class="rl-cp-none">${i18t('ng_cp_table_none')}</p>`}
+      ${''/* ---- WHAT HAPPENED BEFORE (W3-2, precedent memory) ----
+             One sentence, and only where the workspace's own settled rounds
+             have something to say about THIS standard: how often this
+             counterparty has pushed here, what was conceded, what was held,
+             and the figure it settled at. It sits under the live asks
+             because it is context for the decision being taken above it,
+             not a fact about the clause.
+
+             NEVER ON THE COUNTERPARTY'S PAGE. This is our own negotiating
+             history — how far we have bent before, and with whom — which is
+             the single most useful thing an opponent could read. The seat
+             check is the wall; precedentForChange is never called there. */}
+      ${(side !== 'counterparty' && !PORTAL_MODE && live.length && typeof precedentForChange === 'function') ? (() => {
+        const line = (typeof precedentLine === 'function')
+          ? precedentLine(precedentForChange(c, live[0])) : '';
+        return line ? `<p class="rl-cp-note" data-rl-precedent>${esc(line)}</p>` : '';
+      })() : ''}
     </section>
     <section class="rl-cp-sec">
       <h5 class="rl-cp-h">${i18t('ng_cp_history')}</h5>
