@@ -1230,6 +1230,53 @@ function stAccountWire(){
   document.getElementById('acct-settings')?.addEventListener('click',()=>{ stDrawerClose(); openSettingsAt('people'); });
   if(API_MODE()) loadSessions();
 }
+/* ---- EVENTS OUT (W2-3): the list, and adding one ---- */
+async function stHooksLoad(){
+  const host=document.getElementById('wh-list'); if(!host) return;
+  try{
+    const r=await api('webhooks');
+    state.webhooks=(r&&r.webhooks)||[];
+  }catch(_){ state.webhooks=[]; }
+  const rows=state.webhooks||[];
+  if(!rows.length){ host.innerHTML=`<p class="st-note" style="margin:0">${esc(i18t('st_hooks_none'))}</p>`; return; }
+  host.innerHTML=rows.map(w=>{
+    const tone=w.lastOk===false?'ruby':(w.lastOk?'green':'steel');
+    const said=w.lastAt?`${w.lastOk?i18t('st_hooks_ok'):i18t('st_hooks_bad')} · ${esc(w.lastStatus||'')}`:i18t('st_hooks_never');
+    return `<div style="display:flex;align-items:center;gap:9px;font-size:11.5px">
+      <span class="pill-x" style="background:var(--st-${tone}-bg);color:var(--st-${tone}-fg);flex:none">${w.active?i18t('st_hooks_live'):i18t('st_hooks_off')}</span>
+      <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(w.url)}
+        <span class="st-note" style="margin:0">${esc(said)}</span></span>
+      <button data-wh-del="${esc(w.id)}" style="${ST_BTN_SM};flex:none">${i18t('st_hooks_remove')}</button>
+    </div>`;
+  }).join('');
+  host.querySelectorAll('[data-wh-del]').forEach(b=>b.addEventListener('click',async()=>{
+    if(!await confirmDialog({ title:i18t('st_hooks_remove_q'), message:i18t('st_hooks_remove_msg'),
+      confirmLabel:i18t('st_hooks_remove') })) return;
+    try{ await api('webhooks/'+encodeURIComponent(b.getAttribute('data-wh-del')),'DELETE'); stHooksLoad(); stRepaintRow('webhooks'); }
+    catch(e){ stDrawerRefuse((e&&e.message)||i18t('co_settings_save_failed')); }
+  }));
+}
+async function stHooksAdd(){
+  stDrawerClearRefusal();
+  const url=(document.getElementById('wh-url')||{value:''}).value.trim();
+  if(!url) return;
+  try{
+    const r=await api('webhooks','POST',{ url });
+    const box=document.getElementById('wh-url'); if(box) box.value='';
+    await stHooksLoad(); stRepaintRow('webhooks');
+    /* THE SECRET IS SHOWN ONCE. It is what proves a delivery came from HaTi;
+       a screen that could re-read it would hand it to anybody who reaches the
+       screen. Said plainly rather than left for somebody to discover. */
+    openModal(`<div style="padding:20px 22px;max-width:470px">
+      <h3 style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0 0 6px">${i18t('st_hooks_secret_title')}</h3>
+      <p class="st-note" style="margin:0 0 10px">${esc(i18t('st_hooks_secret_msg'))}</p>
+      <div style="font-family:var(--font-mono);font-size:12.5px;background:var(--color-bg);border:1px solid var(--color-divider);border-radius:6px;padding:10px 12px;word-break:break-all;user-select:all">${esc(r.secret)}</div>
+      <div style="display:flex;justify-content:flex-end;margin-top:12px">
+        <button id="wh-done" class="ui-btn ui-btn-primary" style="font-size:12px;padding:7px 14px">${i18t('ts_done')}</button>
+      </div></div>`,{maxWidth:'490px'});
+    document.getElementById('wh-done')?.addEventListener('click',()=>closeModal());
+  }catch(e){ stDrawerRefuse((e&&e.message)||i18t('co_settings_save_failed')); }
+}
 /* ---- EXCHANGE RATES (W2-1) ----
    A LIST, then one add/replace row. Painted rather than re-rendered, because
    this page's own rule is that it holds still: a saved rate repaints the
@@ -1789,6 +1836,33 @@ const SET_PANELS={
         <button id="mr-send-now" style="${ST_BTN2}">${icon('clock','w-3.5 h-3.5')} ${i18t('set_mr_send_now')}</button>
       </div>`; },
     wire(){ stWireMonthlyReport(); },
+  },
+
+  /* ---- EVENTS OUT (W2-3) ----
+     Admin-only, server-mode-only, and deliberately plain: a list of where
+     HaTi posts, what each one is told about, and whether the far end is
+     actually answering. The secret is shown ONCE on creation — it is what
+     proves a delivery came from here, and a secret a screen can re-read is
+     one anybody with the screen can take. */
+  webhooks:{
+    tab:'platform', mandatory:false, show:stApiOnly,
+    title:()=>i18t('st_p_hooks'),
+    sub:()=>i18t('st_hooks_sub'),
+    state(){
+      const n=(state.webhooks||[]).length;
+      const bad=(state.webhooks||[]).filter(w=>w.lastOk===false).length;
+      return { dot: n?(bad?'warn':'ok'):'off',
+        text: n? i18tn('st_hooks_count',n,{n})+(bad?` · ${i18t('st_hooks_failing',{n:bad})}`:'') : i18t('st_hooks_none') };
+    },
+    body(){ return `<p class="st-note" style="margin-bottom:9px">${i18t('st_hooks_sub')}</p>
+      <div id="wh-list" style="display:flex;flex-direction:column;gap:7px;margin-bottom:10px"></div>
+      <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+        <label style="flex:1;min-width:210px"><span style="${window.RV_LBL||''}">${esc(i18t('st_hooks_url'))}</span>
+          <input id="wh-url" type="url" placeholder="https://example.com/hooks/hati" style="${window.RV_FLD||ST_INPUT}"/></label>
+        <button id="wh-add" style="${ST_BTN_SM};flex:none">${i18t('st_hooks_add')}</button>
+      </div>
+      <p class="st-note" style="margin-top:9px">${i18t('st_hooks_note')}</p>`; },
+    wire(){ stHooksLoad(); document.getElementById('wh-add')?.addEventListener('click',()=>stHooksAdd()); },
   },
 
   backup:{

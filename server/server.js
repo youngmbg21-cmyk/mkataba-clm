@@ -148,6 +148,13 @@ db.exec(`
     contract_id TEXT, decided_by TEXT, decided_at TEXT, note TEXT,
     created_at TEXT NOT NULL, updated_at TEXT);
   CREATE INDEX IF NOT EXISTS idx_intake_status ON intake_requests(status);
+  -- EVENTS OUT (W2-3). An admin registers a URL; HaTi posts a SMALL, SIGNED
+  -- fact to it when something happens. Deliveries are recorded so an admin can
+  -- see whether the other end is actually receiving them.
+  CREATE TABLE IF NOT EXISTS webhooks (
+    id TEXT PRIMARY KEY, url TEXT NOT NULL, secret TEXT NOT NULL, events TEXT,
+    active INTEGER NOT NULL DEFAULT 1, created_by TEXT, created_at TEXT NOT NULL,
+    last_at TEXT, last_ok INTEGER, last_status TEXT, fails INTEGER NOT NULL DEFAULT 0);
   -- "It is your turn to sign", to somebody who works here.
   --
   -- A COUNTERPARTY SIGNER'S TURN IS RECORDED ON THEIR SHARE — created / sent /
@@ -3068,7 +3075,13 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     const actor = (req.user && req.user.name) || null;
     if (!prev) logActivation('added', c.id, actor);
     if ((prev ? !prev.scan : true) && c.scan) logActivation('scanned', c.id, actor);
-    if ((prev ? prev.status : null) !== 'Signed' && c.status === 'Signed') logActivation('signed', c.id, actor);
+    if ((prev ? prev.status : null) !== 'Signed' && c.status === 'Signed') {
+      logActivation('signed', c.id, actor);
+      /* W2-3: ids and the plainest facts only — never the wording, the value
+         or anybody's address. A receiving system comes back through the API
+         with a session, where scope and masking apply. */
+      webhookQueue('contract.signed', () => ({ contractId: c.id, name: c.name || '', status: 'Signed' }));
+    }
   }
   upsertContract(c, next);
   if (req.body.uid) setSetting('uid', req.body.uid);
@@ -4066,6 +4079,150 @@ app.post('/api/ai/brief', auth, editor, rlAiDeep, aiFeature('brief'), aiBudgetGu
   } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
 
+/* ===================== EVENTS OUT (W2-3, gap-map) =====================
+   A customer's other systems learn that something happened here — a
+   contract signed, a round received, a commitment falling due — without
+   anybody watching a screen. Deliberately the SMALLEST thing that is
+   useful, because a webhook surface is the one feature in this product
+   that makes HaTi's server send requests to an address a person typed.
+
+   THREE RULES, and the first is the one that matters:
+
+   1. WHERE IT MAY POST. An outbound fetch to an operator-supplied URL is a
+      Server-Side Request Forgery hole by default: `http://localhost:9200`,
+      `http://169.254.169.254/` (the cloud metadata service, which hands out
+      credentials) and every address inside the private network are all
+      reachable FROM the server and from nowhere else. So https only, no
+      credentials in the URL, and the resolved IP must be public — checked
+      after DNS resolution, at the moment of sending, because a hostname
+      that resolved publicly when it was registered can resolve to
+      127.0.0.1 tomorrow (DNS rebinding). A URL that fails any of it is
+      refused when it is registered AND skipped when it is fired.
+
+   2. WHAT TRAVELS. Ids, a kind, a timestamp and the plainest facts — never
+      the wording, never a value, never a person's email. A webhook is a
+      "go and look" nudge, not a data feed: what a receiving system may see
+      is decided when it comes back through the API with a session, where
+      folder scope and value-masking apply.
+
+   3. THAT IT REALLY CAME FROM HaTi. Every delivery carries an HMAC-SHA256
+      signature over the exact body with the endpoint's own secret, and a
+      timestamp inside the signed material so a captured delivery cannot be
+      replayed later. The secret is shown once at registration and never
+      returned again. */
+const WEBHOOK_EVENTS = ['contract.signed', 'round.received', 'obligation.due', 'intake.requested'];
+const WEBHOOK_TIMEOUT_MS = 4000;
+const WEBHOOK_FAIL_OFF = 20;      // stop trying an endpoint that never answers
+/* A literal IP that must never be reached from this server. Checked against
+   the RESOLVED address, not the hostname, which is what makes it a real
+   guard rather than a spelling test. */
+function ipIsPrivate(ip) {
+  const s = String(ip || '').trim();
+  if (!s) return true;
+  /* Real IPv6 (not a v4-mapped address): only global unicast, 2000::/3, is
+     public. Everything else — loopback ::1, link-local fe80::, unique-local
+     fc00::/7, the unspecified :: — is local. Anything unparseable is refused,
+     which is the safe direction for a guard. */
+  if (s.includes(':') && !/^::ffff:\d{1,3}(\.\d{1,3}){3}$/i.test(s)) return !/^[23]/.test(s);
+  const v4 = s.replace(/^::ffff:/i, '');
+  const p = v4.split('.').map(Number);
+  if (p.length !== 4 || p.some(n => !Number.isInteger(n) || n < 0 || n > 255)) return true;
+  const [a, b] = p;
+  return a === 0 || a === 10 || a === 127
+    || (a === 169 && b === 254)                 // link-local, incl. cloud metadata
+    || (a === 172 && b >= 16 && b <= 31)
+    || (a === 192 && b === 168)
+    || (a === 100 && b >= 64 && b <= 127)       // carrier-grade NAT
+    || a >= 224;                                // multicast and reserved
+}
+/* Is this hostname a LITERAL address rather than a name? It decides which
+   guard applies here: a literal is judged now, a NAME is judged at send time
+   against what it resolves to — asking ipIsPrivate about a name would refuse
+   every legitimate address, since a name parses as no IP at all. */
+const IP_LITERAL = hn => /^\d{1,3}(\.\d{1,3}){3}$/.test(hn) || hn.includes(':');
+const PRIVATE_MSG = 'That address is inside a private network and cannot be reached from here';
+function webhookUrlRefusal(raw) {
+  let u; try { u = new URL(String(raw || '')); } catch (_) { return 'That is not a URL'; }
+  if (u.protocol !== 'https:') return 'The address must start with https:// — a signed delivery over plain http is readable on the way';
+  if (u.username || u.password) return 'Take the username and password out of the address — the signature is what proves it came from HaTi';
+  const hn = String(u.hostname || '').replace(/^\[|\]$/g, '');
+  if (!hn) return 'That is not a URL';
+  // names that never leave the building, whatever DNS says today
+  if (/^localhost$/i.test(hn) || /\.(local|internal|localdomain)$/i.test(hn)) return PRIVATE_MSG;
+  if (IP_LITERAL(hn) && ipIsPrivate(hn)) return PRIVATE_MSG;
+  return null;
+}
+/* The same question again at SEND time, against what the name resolves to
+   NOW. A hostname registered while it pointed somewhere public can be
+   repointed at 127.0.0.1 an hour later; without this the guard above is a
+   formality. */
+async function webhookTargetOk(url) {
+  const refusal = webhookUrlRefusal(url);
+  if (refusal) return false;
+  try {
+    const { lookup } = require('node:dns').promises;
+    const hits = await lookup(new URL(url).hostname, { all: true });
+    return hits.length > 0 && hits.every(h => !ipIsPrivate(h.address));
+  } catch (_) { return false; }
+}
+async function webhookFire(kind, factsFn) {
+  if (!WEBHOOK_EVENTS.includes(kind)) return;
+  let rows = [];
+  try { rows = db.prepare('SELECT * FROM webhooks WHERE active=1').all(); } catch (_) { return; }
+  rows = rows.filter(r => { try { const e = JSON.parse(r.events || '[]'); return !e.length || e.includes(kind); } catch (_) { return true; } });
+  if (!rows.length) return;
+  let facts; try { facts = factsFn(); } catch (_) { return; }
+  if (!facts) return;
+  for (const r of rows) {
+    if (!(await webhookTargetOk(r.url))) {
+      db.prepare('UPDATE webhooks SET last_at=?, last_ok=0, last_status=?, fails=fails+1 WHERE id=?')
+        .run(now(), 'address refused', r.id);
+      continue;
+    }
+    const body = JSON.stringify({ kind, at: now(), workspace: (getSetting('org') || {}).name || '', data: facts });
+    const sig = crypto.createHmac('sha256', r.secret).update(body).digest('hex');
+    let ok = 0, status = '';
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), WEBHOOK_TIMEOUT_MS);
+      const resp = await fetch(r.url, { method: 'POST', signal: ctrl.signal,
+        headers: { 'Content-Type': 'application/json', 'X-HaTi-Event': kind, 'X-HaTi-Signature': 'sha256=' + sig },
+        body, redirect: 'manual' });   // a redirect could walk the guard back inside
+      clearTimeout(t);
+      ok = resp.ok ? 1 : 0; status = 'HTTP ' + resp.status;
+    } catch (e) { status = String((e && e.message) || e).slice(0, 120); }
+    db.prepare(`UPDATE webhooks SET last_at=?, last_ok=?, last_status=?, fails=?, active=? WHERE id=?`)
+      .run(now(), ok, status, ok ? 0 : r.fails + 1, (!ok && r.fails + 1 >= WEBHOOK_FAIL_OFF) ? 0 : r.active, r.id);
+  }
+}
+/* Fire-and-forget by design: a customer's dead endpoint must never slow, fail
+   or roll back the act that triggered it. */
+const webhookQueue = (kind, factsFn) => { Promise.resolve().then(() => webhookFire(kind, factsFn)).catch(() => {}); };
+const webhookPublic = r => ({ id: r.id, url: r.url, events: (() => { try { return JSON.parse(r.events || '[]'); } catch (_) { return []; } })(),
+  active: !!r.active, createdAt: r.created_at, createdBy: r.created_by || '',
+  lastAt: r.last_at || null, lastOk: r.last_ok == null ? null : !!r.last_ok, lastStatus: r.last_status || '', fails: r.fails || 0 });
+app.get('/api/webhooks', auth, admin, (req, res) => {
+  res.json({ webhooks: db.prepare('SELECT * FROM webhooks ORDER BY created_at DESC').all().map(webhookPublic),
+    events: WEBHOOK_EVENTS });
+});
+app.post('/api/webhooks', auth, admin, (req, res) => {
+  const b = req.body || {};
+  const refusal = webhookUrlRefusal(b.url);
+  if (refusal) return res.status(400).json({ error: refusal });
+  const events = Array.isArray(b.events) ? b.events.filter(e => WEBHOOK_EVENTS.includes(e)) : [];
+  const id = 'wh_' + rid(6), secret = rid(24);
+  db.prepare('INSERT INTO webhooks (id,url,secret,events,active,created_by,created_at) VALUES (?,?,?,?,1,?,?)')
+    .run(id, String(b.url), secret, JSON.stringify(events), req.user.name || '', now());
+  // the secret is shown ONCE, here, and never returned by any other route
+  res.json({ ok: true, secret, webhook: webhookPublic(db.prepare('SELECT * FROM webhooks WHERE id=?').get(id)) });
+});
+app.delete('/api/webhooks/:id', auth, admin, (req, res) => {
+  const r = db.prepare('SELECT id FROM webhooks WHERE id=?').get(req.params.id);
+  if (!r) return res.status(404).json({ error: 'Not found' });
+  db.prepare('DELETE FROM webhooks WHERE id=?').run(req.params.id);
+  res.json({ ok: true });
+});
+
 /* ================= THE INTAKE FRONT DOOR (W2-2, gap-map) =================
    Until now only somebody with edit rights could start a contract, so the
    colleague who actually needs one — the salesperson, the ops manager —
@@ -4102,6 +4259,7 @@ app.post('/api/intake', auth, (req, res) => {
   db.prepare(`INSERT INTO intake_requests (id,title,need,counterparty,folder,status,by_id,by_name,created_at)
     VALUES (?,?,?,?,?,'open',?,?,?)`)
     .run(id, title, need, clean(b.counterparty).slice(0, 200), folder, req.user.id, req.user.name || '', now());
+  webhookQueue('intake.requested', () => ({ requestId: id, title, folder: folder || null }));
   res.json({ ok: true, request: intakeRow(db.prepare('SELECT * FROM intake_requests WHERE id=?').get(id)) });
 });
 app.get('/api/intake', auth, (req, res) => {
@@ -7836,6 +7994,11 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
     }
   });
   notifyShareResponse(s, r);   // fire-and-forget: owner alert + counterparty receipt
+  /* W2-3: the other side answered. The KIND of answer travels and nothing
+     else — no wording, no decisions, no name — because this is a nudge to go
+     and look, not a feed of what they said. */
+  webhookQueue('round.received', () => ({ contractId: s.contract_id || null,
+    action: String((r && r.action) || 'response') }));
   /* W7 sequential release: this signature may be the one the next signer's
      dormant link is waiting on. Fired from here — the moment the signature is
      STORED — so the route runs unattended whether or not the owner's browser
@@ -8246,7 +8409,12 @@ function runReminders() {
           };
         };
         if (od === 7 && fireTo(`${c.id}:ob:${okey}:soon`, [who.email], oMail('soon'), `obligation soon: ${c.name}`)) queued++;
-        if (od === 0 && fireTo(`${c.id}:ob:${okey}:today`, [who.email], oMail('today'), `obligation today: ${c.name}`)) queued++;
+        if (od === 0 && fireTo(`${c.id}:ob:${okey}:today`, [who.email], oMail('today'), `obligation today: ${c.name}`)) {
+          queued++;
+          // W2-3: rides the mail's OWN dedupe, so an outside system is told
+          // exactly as often as the person is — once
+          webhookQueue('obligation.due', () => ({ contractId: c.id, obligationId: String(okey), due }));
+        }
         if (od === -1 && fireTo(`${c.id}:ob:${okey}:overdue`, [who.email], oMail('over'), `obligation overdue: ${c.name}`)) queued++;
         if (od === -4 && fireTo(`${c.id}:ob:${okey}:escalate`, admins, oMail('esc'), `obligation escalated: ${c.name}`)) queued++;
       } else if (od === -1 && fire(`${c.id}:ob:${okey}:overdue`,
