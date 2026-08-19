@@ -2260,6 +2260,12 @@ function downloadEvidence(c){
       ? 'Executed outside HaTi and migrated in as a record. No electronic signature was taken in HaTi; the signatures are on the original document.'
       : jxEsignature(),
     disclosure:'Government IPRS identity verification and CAK-accredited PKI signatures are not yet integrated.',
+    /* THE AGREEMENT IS ONLY AS WELL PROVED AS ITS LEAST-PROVED SIGNATURE, so
+       this is the WEAKEST rung and not the best one — the flattering reading
+       is the one a dispute destroys. */
+    assurance:(()=>{ const a=(typeof contractAssurance==='function')?contractAssurance(c):null;
+      return a?{ key:a.key, label:String(a.rung.label), basis:String(a.rung.basis),
+        derived:!!a.derived, note:'The lowest assurance among the signatures below.' }:null; })(),
     migration: isExternallyExecuted(c)
       ? { filedBy:(c.migration&&c.migration.importedBy)||null, filedAt:(c.migration&&c.migration.importedAt)||null,
           batch:(c.migration&&c.migration.batch)||null,
@@ -2279,6 +2285,17 @@ function downloadEvidence(c){
     signatures:(c.signatures||[]).map(s=>({ party:s.party, name:s.name, email:s.email||null,
       capacity:signatureCapacity(s)||null,
       method:s.method||null, form:s.form||null, signatureImageSha256:s.imageHash||null, signatureImage:s.image||null,
+      /* W3-3: WHAT WAS PROVED, in the pack that exists to answer exactly
+         that. `assuranceDerived` is not a footnote — a reader must be able
+         to tell a recorded fact from an inference drawn years later. */
+      assurance:(()=>{ const a=(typeof signatureAssurance==='function')?signatureAssurance(s,c):null;
+        return a?a.key:null; })(),
+      assuranceLabel:(()=>{ const a=(typeof signatureAssurance==='function')?signatureAssurance(s,c):null;
+        return a&&a.rung?String(a.rung.label):null; })(),
+      assuranceBasis:(()=>{ const a=(typeof signatureAssurance==='function')?signatureAssurance(s,c):null;
+        return a&&a.rung?String(a.rung.basis):null; })(),
+      assuranceDerived:(()=>{ const a=(typeof signatureAssurance==='function')?signatureAssurance(s,c):null;
+        return a?!!a.derived:null; })(),
       ip:s.ip||null, userAgent:s.ua||null, at:s.at })),
     distribution:c.distribution||null,
     auditTrail:c.audit||[],
@@ -5038,6 +5055,12 @@ async function applyResponse(c, r, opts={}){
       typedName:r.signatureTypedName||null, font:r.signatureFont||null };
     c.signatures.push({ party:'counterparty', name:r.name, title:r.title||'', email:r.email||'', at:r.at,
       method:r.method||'share-link', verified:r.verified!==false, ip:r.ip||null, ua:r.ua||null, docHash:r.docHash,
+      /* W3-3: which rung this was taken at, stamped as the response is
+         applied. `verify` is the one-time code they proved against the
+         invited address — the difference between "somebody typed a name"
+         and "the person we wrote to answered". */
+      assurance:(typeof assuranceAtSigning==='function')
+        ? assuranceAtSigning({ method:r.method||'share-link', verify:r.verify||(r.verified!==false&&r.verifyToken)||null }) : undefined,
       form:sig.form, image:sig.image, imageHash:sig.imageHash, typedName:sig.typedName, font:sig.font });
     if(boundRow){
       boundRow.signed=true; boundRow.at=r.at; boundRow.by=r.name; boundRow.signature=sig;

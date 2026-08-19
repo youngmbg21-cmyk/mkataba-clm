@@ -2118,7 +2118,13 @@ function signatureBlock(c){
        They are still captured, and they still appear in the audit trail and in
        the downloadable evidence pack, which is where evidence belongs.
        (Display-only: nothing about the sealed content moves. See F5.) */
-    const sub=s=>`<div class="text-[10px] text-brand-800/65 font-normal leading-snug">${[s.email,s.form?s.form+' signature':s.method,s.at?fmtDT(s.at):''].filter(Boolean).join(' · ')}</div>`;
+    /* W3-3: WHAT WAS PROVED, beside who signed and when. One short label —
+       the rung's own word — with the full basis on hover, because the
+       difference between a typed name and a checked code is the whole
+       question in a dispute and the record has always held it silently. */
+    const asWord=s=>{ const a=(typeof signatureAssurance==='function')?signatureAssurance(s,c):null;
+      return a&&a.rung?`<span title="${esc(String(a.rung.basis))}">${esc(String(a.rung.label))}${a.derived?'*':''}</span>`:''; };
+    const sub=s=>`<div class="text-[10px] text-brand-800/65 font-normal leading-snug">${[s.email,s.form?s.form+' signature':s.method,asWord(s),s.at?fmtDT(s.at):''].filter(Boolean).join(' · ')}</div>`;
     const card=s=>`<div class="rounded-lg bg-white border border-brand-100 p-2.5">
       <div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-1 flex items-center gap-1">${icon(s.party==='counterparty'?'users':'finger','w-3 h-3')} ${partyLabel(s)}</div>
       ${s.image?`<img src="${s.image}" alt="signature of ${(s.name||'').replace(/"/g,'')}" style="height:40px;max-width:190px;object-fit:contain;margin:2px 0 5px"/>`:''}
@@ -5976,6 +5982,11 @@ async function signDocument(c){
     // title, and to nothing at all rather than to Admin/Legal/Viewer.
     c.signatures.push({ party:'internal-planned', name:ns.name||u.name, title:ns.role||signerTitle(u), email:ns.email||u.email, at,
       method:'session-authenticated', ip:meta.ip||null, ua:navigator.userAgent,
+      /* W3-3: the rung is stamped NOW, with what is true now — whether this
+         account carried a second step is a fact about the moment of signing,
+         and an account changed next year must not move it either way. */
+      assurance:(typeof assuranceAtSigning==='function')
+        ? assuranceAtSigning({ method:'session-authenticated', twoStep:!!(u&&u.twoStep) }) : undefined,
       form:sig.form, image:sig.image, imageHash:sig.imageHash, typedName:sig.typedName, font:sig.font });
     logAudit(c,'Signature',`${ns.name} signed (${ordLabel(ns.order)} of ${plan.length}) — ${sig.form} signature${signerProvenance(meta.ip,navigator.userAgent)}`);
     if(!allSigned(c)){
@@ -6183,6 +6194,8 @@ async function finalizeExecution(c, opts={}){
     const s=opts.firstPartySig;
     c.signatures.push({ party:'first', name:u.name, email:u.email, title:signerTitle(u), at,
       method:'session-authenticated', ip, ua:navigator.userAgent,
+      assurance:(typeof assuranceAtSigning==='function')
+        ? assuranceAtSigning({ method:'session-authenticated', twoStep:!!(u&&u.twoStep) }) : undefined,
       form:s.form, image:s.image, imageHash:s.imageHash, typedName:s.typedName, font:s.font });
   }
   c.sealVersion=2;                       // fold the marks into the seal (see sealString)
