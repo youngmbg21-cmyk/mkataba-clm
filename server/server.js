@@ -137,6 +137,17 @@ db.exec(`
   -- editor, and a recommendation is not part of what was agreed or signed.
   CREATE TABLE IF NOT EXISTS renewal_advice (
     contract_id TEXT PRIMARY KEY, json TEXT NOT NULL, created_at TEXT NOT NULL);
+  -- THE INTAKE FRONT DOOR (W2-2). A colleague who may not draft can still ASK
+  -- for a contract; the request is a record of its own, never a half-made
+  -- contract, so nothing unapproved can be mistaken for paper. The folder is
+  -- what scopes it (the same value stream a contract would be filed in), and
+  -- contract_id is filled the moment an editor turns it into a draft.
+  CREATE TABLE IF NOT EXISTS intake_requests (
+    id TEXT PRIMARY KEY, title TEXT, need TEXT, counterparty TEXT, folder TEXT,
+    status TEXT NOT NULL DEFAULT 'open', by_id TEXT, by_name TEXT,
+    contract_id TEXT, decided_by TEXT, decided_at TEXT, note TEXT,
+    created_at TEXT NOT NULL, updated_at TEXT);
+  CREATE INDEX IF NOT EXISTS idx_intake_status ON intake_requests(status);
   -- "It is your turn to sign", to somebody who works here.
   --
   -- A COUNTERPARTY SIGNER'S TURN IS RECORDED ON THEIR SHARE — created / sent /
@@ -4053,6 +4064,83 @@ app.post('/api/ai/brief', auth, editor, rlAiDeep, aiFeature('brief'), aiBudgetGu
       .run(String(id), JSON.stringify(brief), now());
     res.json({ brief, ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+});
+
+/* ================= THE INTAKE FRONT DOOR (W2-2, gap-map) =================
+   Until now only somebody with edit rights could start a contract, so the
+   colleague who actually needs one — the salesperson, the ops manager —
+   had no way even to ASK inside HaTi. That capped the product at the two or
+   three people who handle contracts, and pushed every real request into
+   email, where it is untracked.
+
+   A REQUEST IS ITS OWN RECORD, never a half-made contract. Nothing
+   unapproved can be mistaken for paper, nothing appears in the register or
+   any count, and a request that is declined leaves no orphan draft behind.
+   An editor turns one into a draft with a press, and the request then
+   POINTS at that contract rather than becoming it.
+
+   WHO SEES WHAT: a requester sees their OWN requests, always — they must be
+   able to follow what they asked for. An editor-and-up sees the queue,
+   scoped by folder exactly as contracts are. Asking never grants edit
+   rights, which is the whole point: reach without permission creep. */
+const intakeRow = r => ({ id: r.id, title: r.title, need: r.need, counterparty: r.counterparty || '',
+  folder: r.folder || '', status: r.status, by: { id: r.by_id, name: r.by_name },
+  contractId: r.contract_id || null, decidedBy: r.decided_by || null, decidedAt: r.decided_at || null,
+  note: r.note || '', createdAt: r.created_at, updatedAt: r.updated_at || null });
+app.post('/api/intake', auth, (req, res) => {
+  const b = req.body || {};
+  const title = clean(b.title).slice(0, 200);
+  const need = clean(b.need).slice(0, 4000);
+  if (!title || !need) return res.status(400).json({ error: 'Say what you need, in a line and a paragraph' });
+  const folder = clean(b.folder).slice(0, 60);
+  /* A REQUESTER MAY NOT ASK INTO A STREAM THEY CANNOT SEE — the same rule a
+     contract's folder follows, and for the same reason: it would make a
+     record appear somewhere invisible to the person who raised it. */
+  if (folder && !inScope(folderScopeFor(req.user), folder))
+    return res.status(403).json({ error: 'You do not have access to that value stream' });
+  const id = 'REQ-' + rid(5).toUpperCase().slice(0, 6);
+  db.prepare(`INSERT INTO intake_requests (id,title,need,counterparty,folder,status,by_id,by_name,created_at)
+    VALUES (?,?,?,?,?,'open',?,?,?)`)
+    .run(id, title, need, clean(b.counterparty).slice(0, 200), folder, req.user.id, req.user.name || '', now());
+  res.json({ ok: true, request: intakeRow(db.prepare('SELECT * FROM intake_requests WHERE id=?').get(id)) });
+});
+app.get('/api/intake', auth, (req, res) => {
+  const mine = String(req.query.mine || '') === '1';
+  const rows = db.prepare('SELECT * FROM intake_requests ORDER BY created_at DESC LIMIT 300').all();
+  const scope = folderScopeFor(req.user);
+  const isEditor = req.user.role !== 'viewer';
+  /* Their own always; the queue only for somebody who could act on it, and
+     then only within their streams. A request with no stream named yet is
+     visible to any editor — somebody has to be able to pick it up. */
+  const visible = rows.filter(r => r.by_id === req.user.id
+    || (!mine && isEditor && (!r.folder || inScope(scope, r.folder))));
+  res.json({ requests: visible.map(intakeRow),
+    openCount: visible.filter(r => r.status === 'open').length });
+});
+/* An editor moves a request along; the requester may only WITHDRAW their own.
+   Every other transition is an act by somebody who could have drafted it
+   themselves, which is what makes it an approval rather than a formality. */
+app.patch('/api/intake/:id', auth, (req, res) => {
+  const r = db.prepare('SELECT * FROM intake_requests WHERE id=?').get(req.params.id);
+  if (!r) return res.status(404).json({ error: 'Request not found' });
+  if (r.folder && !inScope(folderScopeFor(req.user), r.folder) && r.by_id !== req.user.id)
+    return res.status(404).json({ error: 'Request not found' });
+  const b = req.body || {};
+  const status = clean(b.status);
+  const isEditor = req.user.role !== 'viewer';
+  const isOwner = r.by_id === req.user.id;
+  if (!['open', 'accepted', 'declined', 'withdrawn', 'done'].includes(status))
+    return res.status(400).json({ error: 'Unknown status' });
+  if (status === 'withdrawn') {
+    if (!isOwner && !isEditor) return res.status(403).json({ error: 'Only the person who asked can withdraw it' });
+  } else if (!isEditor) {
+    return res.status(403).json({ error: 'Viewers can raise and withdraw requests, not decide them' });
+  }
+  const contractId = clean(b.contractId).slice(0, 60) || r.contract_id;
+  db.prepare('UPDATE intake_requests SET status=?, note=?, contract_id=?, decided_by=?, decided_at=?, updated_at=? WHERE id=?')
+    .run(status, clean(b.note).slice(0, 2000) || r.note, contractId || null,
+      req.user.name || '', now(), now(), req.params.id);
+  res.json({ ok: true, request: intakeRow(db.prepare('SELECT * FROM intake_requests WHERE id=?').get(req.params.id)) });
 });
 
 /* ---------- the renewal adviser (W2-4, WORKORDER-gap-map.md) ----------

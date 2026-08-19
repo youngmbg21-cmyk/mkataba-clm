@@ -1571,7 +1571,7 @@ function startApp(){
      honest empty state when their contract or template is not loaded yet, so
      resuming there is safe — and losing a refresh mid-negotiation to the
      dashboard was the exact complaint this list caused. */
-  setView(['dashboard','register','pipeline','advice','folder','intel','calendar','reports','templates','templatelib','playbook','workspace','team','directory','migration','redline'].includes(state.view)?state.view:'dashboard');
+  setView(['dashboard','register','pipeline','advice','intake','folder','intel','calendar','reports','templates','templatelib','playbook','workspace','team','directory','migration','redline'].includes(state.view)?state.view:'dashboard');
   if(API_MODE()){ refreshStats(); refreshShareOverview(); refreshWaitingQuestions(); pollPendingResponses(); refreshAiUsage();
     schedulePolling();
     /* Coming back to the tab is when a person expects to be up to date. */
@@ -1582,6 +1582,7 @@ function startApp(){
     }
     setInterval(refreshShareOverview,60000); setInterval(refreshWaitingQuestions,60000); setInterval(refreshAiUsage,30000);
     window.loadAdviceRequests&&loadAdviceRequests().then(()=>{ updateSidebarCounts(); if(state.view==='advice') renderAdviceDesk(); }).catch(()=>{});
+    window.loadIntake&&loadIntake().then(()=>{ updateSidebarCounts(); if(state.view==='intake') renderIntake(); }).catch(()=>{});
     /* One-time heal: workspaces whose market was chosen before the choice was
        persisted server-side (see jxSet) have it only in this browser's local
        store, and every server-built artefact fell back to the default market.
