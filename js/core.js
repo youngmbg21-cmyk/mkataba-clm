@@ -889,6 +889,7 @@ async function saveContract(c){
   // derived reading written back into the record would be stale the moment the
   // wording moved, and then there are two answers to one question.
   delete payload._brief;
+  delete payload._renewalAdvice;
   delete payload._signedAt; delete payload._lastAuditAt;
   if(payload.upload && payload.upload.fileId){ payload.upload={...payload.upload, dataUrl:undefined}; }
   // Word-review version files and the rounds that carried them follow the same

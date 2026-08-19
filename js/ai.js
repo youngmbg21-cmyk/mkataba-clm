@@ -2994,6 +2994,86 @@ function renderBriefSection(c){
   });
 }
 
+/* ====================== THE RENEWAL ADVISER (W2-4, gap-map) ================
+   A reminder says a date is coming. This says what to do about it: renew,
+   renegotiate or let it lapse, with the reasons named — and the way to act
+   on it one press away.
+
+   THE CARD IS DRAWN BY THE DATES, NOT BY THE AI. renewalWindow(c) decides
+   whether the card appears at all (an agreement, inside 90 days of its
+   decision) and states the dates itself; the recommendation is asked for by
+   a person and cached server-side. So a workspace with no Copilot key still
+   gets the card, the dates and the button — only the paragraph is missing,
+   and it says so rather than offering a dead press. */
+async function runRenewalAdvice(c,opts={}){
+  if(!(typeof API_MODE==='function'&&API_MODE())||!state.aiConfigured){ toast(i18t('rn_no_ai'),'warn'); return null; }
+  try{
+    const r=await api('ai/renewal','POST',{ id:c.id, force:!!opts.force });
+    if(r&&r.advice){
+      c._renewalAdvice=r.advice;
+      if(!r.cached){ logAudit(c,'Renewal',`Renewal advice: ${(r.advice.data&&r.advice.data.verdict)||'—'}`); persist(c); }
+      return r.advice;
+    }
+  }catch(e){ toast(i18t('rn_failed')+(e&&e.message?' '+e.message:''),'err'); }
+  return null;
+}
+const RN_TONE={ renew:'green', renegotiate:'amber', lapse:'ruby', unclear:'steel' };
+function renewalCardHtml(c){
+  const w=(typeof renewalWindow==='function')?renewalWindow(c):null;
+  if(!w||!w.inWindow) return '';
+  const a=c._renewalAdvice&&c._renewalAdvice.data;
+  const may=(typeof canEdit!=='function'||canEdit());
+  const tone=RN_TONE[(a&&a.verdict)||'steel']||'steel';
+  const when=(iso)=>{ try{ return new Date(iso+'T00:00:00').toLocaleDateString(typeof langLocale==='function'?langLocale():undefined,{day:'numeric',month:'short',year:'numeric'}); }catch(_){ return iso; } };
+  /* THE DATES FIRST, ALWAYS — they are the fact; the advice is an opinion
+     about the fact, and a card that led with the opinion would be the wrong
+     way round. The overdue case is stated in its own words: a deadline that
+     has passed is not "in 0 days". */
+  const line=w.missed
+    ? i18t('rn_missed',{date:when(w.decideBy),n:Math.abs(w.days)})
+    : (w.notice
+      ? i18t('rn_decide_by',{date:when(w.decideBy),n:w.days,notice:w.notice,expiry:when(w.expiry)})
+      : i18t('rn_expires_on',{date:when(w.expiry),n:w.days}));
+  return `<section id="renewal-section" class="kt-side-card" style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:8px;padding:13px 15px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <h6 style="margin:0;font-size:13px;font-weight:700;font-family:var(--font-heading);flex:1">${i18t('rn_title')}</h6>
+      ${w.auto?`<span class="pill-x" style="background:var(--st-amber-bg);color:var(--st-amber-fg)">${i18t('rn_auto')}</span>`:''}
+    </div>
+    <p style="margin:0 0 9px;font-size:12px;line-height:1.55;color:${w.missed?'var(--st-ruby-fg)':'var(--color-neutral-700)'}">${_aiEsc(line)}</p>
+    ${a?`
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:5px">
+        <span class="pill-x" style="background:var(--st-${tone}-bg);color:var(--st-${tone}-fg)">${_aiEsc(i18t('rn_verdict_'+a.verdict)||a.verdict)}</span>
+      </div>
+      <p style="margin:0 0 7px;font-size:12.5px;line-height:1.6">${_aiEsc(a.headline||'')}</p>
+      ${(a.because||[]).length?`<ul style="margin:0 0 7px;padding-left:17px">${(a.because||[]).map(b=>`<li style="font-size:11.5px;line-height:1.5;margin:3px 0;color:var(--color-neutral-700)">${_aiEsc(b)}</li>`).join('')}</ul>`:''}
+      ${(a.pushOn||[]).length?`<div style="font-size:11.5px;line-height:1.5;margin-bottom:7px"><b>${i18t('rn_push_on')}</b> ${_aiEsc((a.pushOn||[]).join(' · '))}</div>`:''}
+      ${a.watchIf?`<p style="margin:0 0 7px;font-size:11px;color:var(--color-neutral-600);line-height:1.5">${_aiEsc(i18t('rn_watch_if'))} ${_aiEsc(a.watchIf)}</p>`:''}
+    `:`<p style="margin:0 0 9px;font-size:11.5px;color:var(--color-neutral-600);line-height:1.55">${_aiEsc(i18t('rn_not_asked'))}</p>`}
+    <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px">
+      ${may?`<button class="ui-btn" data-rn-ask style="font-size:11px;padding:5px 11px">${a?i18t('rn_again'):i18t('rn_ask')}</button>`:''}
+      ${may?`<button class="ui-btn" data-rn-start style="font-size:11px;padding:5px 11px">${i18t('rn_start')}</button>`:''}
+    </div>
+  </section>`;
+}
+function renderRenewalSection(c){
+  const host=document.getElementById('renewal-host'); if(!host) return;
+  host.innerHTML=renewalCardHtml(c);
+  host.querySelector('[data-rn-ask]')?.addEventListener('click',async ev=>{
+    const b=ev.currentTarget; b.disabled=true; b.textContent=i18t('ct_working');
+    const had=!!c._renewalAdvice;
+    const r=await runRenewalAdvice(c,{force:had});
+    renderRenewalSection(c);
+    if(!r&&!had){ const b2=document.querySelector('[data-rn-ask]'); if(b2){ b2.disabled=false; b2.textContent=i18t('rn_ask'); } }
+  });
+  /* ONE DOOR TO THE RENEWAL, and it is the family machinery's own — the same
+     createAmendment a person uses from the Agreement family card, with the
+     relation set. Nothing here mints a contract of its own. */
+  host.querySelector('[data-rn-start]')?.addEventListener('click',()=>{
+    if(!window.openCreateAmendmentModal) return toast(i18t('rn_start_unavailable'),'err');
+    openCreateAmendmentModal(c,null,{relation:'renewal'});
+  });
+}
+
 document.getElementById('ai-input').addEventListener('keydown',e=>{
   if(window.chatFieldSubmits?chatFieldSubmits(e):e.key==='Enter') aiSubmit();
 });
@@ -3026,4 +3106,4 @@ Object.assign(window,{
   aiKeepStructuralTags,aiStructureOf,aiSplitItems,aiRestoreEmphasis,aiPreserveTypography,
   aiParseProposal,copilotPropose,aiProposalCardHtml,aiOpenProposal,aiActiveProposal,
   aiProposalApply,aiProposalDecline,aiProposalToggleEdit,aiWireProposals,aiRefineProposal,aiStepBackIfSummoned,
-  AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,aiCompareTable,aiChatMessages,aiChatContext,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,runContractBrief,briefFactsHtml,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});
+  AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,aiCompareTable,aiChatMessages,aiChatContext,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,runContractBrief,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});

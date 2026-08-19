@@ -132,6 +132,11 @@ db.exec(`
   -- the underscored transport field _brief and never enters the stored record.
   CREATE TABLE IF NOT EXISTS briefs (
     contract_id TEXT PRIMARY KEY, json TEXT NOT NULL, created_at TEXT NOT NULL);
+  -- The renewal adviser's cache (W2-4), on the same terms as briefs above: its
+  -- own table, so writing one never bumps the record's version under an open
+  -- editor, and a recommendation is not part of what was agreed or signed.
+  CREATE TABLE IF NOT EXISTS renewal_advice (
+    contract_id TEXT PRIMARY KEY, json TEXT NOT NULL, created_at TEXT NOT NULL);
   -- "It is your turn to sign", to somebody who works here.
   --
   -- A COUNTERPARTY SIGNER'S TURN IS RECORDED ON THEIR SHARE — created / sent /
@@ -1495,6 +1500,7 @@ const AI_FEATURE_LABEL = {
   // The one-press plain-English cover memo (WO-2). Named on arrival so its
   // spending never lands in the Other bucket the way conversion's once did.
   brief: 'Contract brief',
+  renewal: 'Renewal adviser',   // W2-4
 };
 
 function aiSpendRows(day) {
@@ -2422,6 +2428,18 @@ app.get('/api/contracts/:id', auth, (req, res) => {
       out._brief = brief;
     } catch (_) {}
   }
+  /* The renewal recommendation rides the same way and under the same rules
+     (W2-4): transport, never the record, stripped on PUT. */
+  const ra = db.prepare('SELECT json FROM renewal_advice WHERE contract_id=?').get(req.params.id);
+  if (ra) {
+    try {
+      const adv = JSON.parse(ra.json);
+      if (!canViewValues(req.user) && adv.signals) {
+        adv.signals = { ...adv.signals, valueInWorkspaceCurrency: undefined, valueAsWritten: undefined };
+      }
+      out._renewalAdvice = adv;
+    } catch (_) {}
+  }
   res.json(out);
 });
 
@@ -2537,6 +2555,7 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   // echoes it back must not get it stored into the record, where it would
   // shadow the real cache and ride saves it was never part of.
   delete c._brief;
+  delete c._renewalAdvice;   // W2-4: transport too, off its own table
 
   let prev = null;
   if (existing) { try { prev = JSON.parse(existing.json); } catch (_) { prev = null; } }
@@ -3120,6 +3139,7 @@ app.delete('/api/contracts/:id', auth, editor, (req, res) => {
     revoked = r.changes || 0;
     for (const fid of fileIds) db.prepare('DELETE FROM files WHERE id=?').run(fid);
     db.prepare('DELETE FROM briefs WHERE contract_id=?').run(req.params.id);
+    db.prepare('DELETE FROM renewal_advice WHERE contract_id=?').run(req.params.id);
     db.prepare('DELETE FROM contracts WHERE id=?').run(req.params.id);
   });
   _storedBytes = null;   // H-8: recompute the storage total after removing files
@@ -4032,6 +4052,99 @@ app.post('/api/ai/brief', auth, editor, rlAiDeep, aiFeature('brief'), aiBudgetGu
     db.prepare('INSERT INTO briefs (contract_id,json,created_at) VALUES (?,?,?) ON CONFLICT(contract_id) DO UPDATE SET json=excluded.json, created_at=excluded.created_at')
       .run(String(id), JSON.stringify(brief), now());
     res.json({ brief, ...aiNotice(req, resp) });
+  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+});
+
+/* ---------- the renewal adviser (W2-4, WORKORDER-gap-map.md) ----------
+   At the 90-day mark HaTi has always sent an alarm. This turns the alarm
+   into a recommendation: renew, renegotiate, or let it lapse — with the
+   reasons cited, and the way to act on it one press away.
+
+   THE DATES ARE NOT THE MODEL'S TO INVENT. Every fact the recommendation
+   rests on — the effective expiry, the notice deadline, whether it
+   auto-renews, the value, how much was argued over last time, what the
+   playbook flagged, what is still owed — is computed HERE from the stored
+   record and handed over as `signals`. The model weighs them and writes the
+   sentences; it is never asked what day anything is due, because a
+   confident wrong date is the one failure this feature cannot afford.
+
+   A PROPOSAL, NOT A DECISION. Nothing here renews, cancels or drafts
+   anything: the verdict is a recommendation a person reads, and the button
+   beside it goes through createAmendment exactly as a human-started
+   renewal always has. Cached per contract like the brief, in its own table,
+   keyed on the signals + wording so it regenerates when the facts move. */
+app.post('/api/ai/renewal', auth, editor, rlAiDeep, aiFeature('renewal'), aiBudgetGuard, capAiInput, async (req, res) => {
+  const { id, force } = req.body || {};
+  if (!id) return res.status(400).json({ error: 'id is required' });
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(String(id));
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  let full = {}; try { full = JSON.parse(row.json) || {}; } catch (_) {}
+  // the family-aware term, read the same way both sweeps read it
+  const kids = db.prepare('SELECT id,name,counterparty,expiry,status,parent_id,json FROM contracts WHERE parent_id=? OR id=?').all(String(id), String(id));
+  const parsed = new Map();
+  for (const r of kids) { let f = {}; try { f = JSON.parse(r.json) || {}; } catch (_) {} parsed.set(r.id, f); }
+  const me = kids.find(r => r.id === String(id)) || { id: String(id), expiry: full.expiry, parent_id: full.parentId || null };
+  const { eff } = effExpiryReader(kids, parsed);
+  const expiry = dateOnly(eff(me));
+  const meta = full.metadata || {};
+  const notice = Number(meta.noticePeriodDays) || 0;
+  let decideBy = expiry;
+  if (expiry && notice > 0) { const d = new Date(expiry + 'T00:00:00'); d.setDate(d.getDate() - notice); if (!isNaN(d.getTime())) decideBy = isoDay(d); }
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const daysTo = iso => (iso ? Math.ceil((new Date(iso + 'T00:00:00') - today) / 86400000) : null);
+  const openObs = (full.obligations || []).filter(o => o && o.status !== 'done');
+  const overdue = openObs.filter(o => { const d = dateOnly(o.due); return d && daysTo(d) < 0; });
+  const pb = full.playbook && Array.isArray(full.playbook.verdicts) ? full.playbook.verdicts : [];
+  const money = fxHome({ value: full.value, metadata: meta });
+  const signals = {
+    name: full.name || String(id), counterparty: full.counterparty || '', status: full.status || '',
+    expiry, noticePeriodDays: notice, decideBy, daysToDecision: daysTo(decideBy),
+    daysToExpiry: daysTo(expiry), renewalType: meta.renewalType || 'unknown',
+    // money in ONE currency (W2-1), and said to be so, with the original beside it
+    valueInWorkspaceCurrency: money.missing ? null : money.v,
+    valueAsWritten: full.value ? `${contractCurrency({ metadata: meta })} ${full.value}` : null,
+    workspaceCurrency: orgJx().currency,
+    roundsNegotiated: Array.isArray(full.rounds) ? full.rounds.length : 0,
+    changesFiled: Array.isArray(full.changes) ? full.changes.length : 0,
+    playbookDeviations: pb.filter(v => v && (v.status === 'deviation' || v.status === 'missing')).map(v => v.category).slice(0, 8),
+    openObligations: openObs.length, overdueObligations: overdue.length,
+    amendments: kids.filter(r => r.parent_id === String(id)).map(r => ({ name: r.name, status: r.status })),
+  };
+  const inputHash = sha(JSON.stringify(signals));
+  const prev = db.prepare('SELECT json FROM renewal_advice WHERE contract_id=?').get(String(id));
+  if (prev && !force) {
+    try { const a = JSON.parse(prev.json); if (a.inputHash === inputHash) return res.json({ advice: a, cached: true }); } catch (_) {}
+  }
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true });
+  const tool = {
+    name: 'renewal_advice',
+    description: 'Recommend what to do about an agreement coming up for renewal.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        verdict: { type: 'string', enum: ['renew', 'renegotiate', 'lapse', 'unclear'],
+          description: 'renew = carry on as is; renegotiate = renew but push on named terms; lapse = let it end; unclear = the facts on file do not support a recommendation.' },
+        headline: { type: 'string', description: 'One plain sentence saying what you recommend and why.' },
+        because: { type: 'array', maxItems: 5, items: { type: 'string' },
+          description: 'The reasons, each naming the fact it rests on. Plain sentences.' },
+        pushOn: { type: 'array', maxItems: 5, items: { type: 'string' },
+          description: 'If renegotiating, the specific terms worth reopening. Empty otherwise.' },
+        watchIf: { type: 'string', description: 'What would change this recommendation. One sentence, or empty.' },
+      },
+      required: ['verdict', 'headline', 'because'],
+    },
+  };
+  const prompt = `You are advising a business owner on an agreement coming up for renewal, under ${orgJx().adjective} law. Recommend renew, renegotiate or lapse, using ONLY the SIGNALS below and the wording — every date and figure there is computed from the record, so use them as given and never restate a date differently. Where the signals are too thin to justify a recommendation, answer 'unclear' and say what is missing rather than guessing. Do not draft any wording. Plain, everyday sentences.\n\nSIGNALS:\n${JSON.stringify(signals)}\n\nDOCUMENT:\n${String(contractFullBody(full)).slice(0, 12000)}`;
+  try {
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 900, tools: [tool], tool_choice: { type: 'tool', name: 'renewal_advice' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'renewal', who: aiWho(req) });
+    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    const block = (resp.data.content || []).find(b => b.type === 'tool_use');
+    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    const advice = { v: 1, at: now(), by: (req.user && req.user.name) || '', inputHash, signals, data: block.input || {} };
+    db.prepare('INSERT INTO renewal_advice (contract_id,json,created_at) VALUES (?,?,?) ON CONFLICT(contract_id) DO UPDATE SET json=excluded.json, created_at=excluded.created_at')
+      .run(String(id), JSON.stringify(advice), now());
+    res.json({ advice, ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
 
@@ -6466,7 +6579,8 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
      never includes it (buildSharePayload is an allow-list). Stripped here too
      so a hand-built payload cannot carry it out either: the wall belongs to
      the route every path goes through, like the review strip above. */
-  if (payload.contract) { delete payload.contract._brief; delete payload.contract.brief; }
+  if (payload.contract) { delete payload.contract._brief; delete payload.contract.brief;
+    delete payload.contract._renewalAdvice; }   // our own advice about their paper never travels
   const ch = ['email', 'whatsapp', 'link'].includes(channel) ? channel : 'link';
   const rec = recipient || {};
   const email = String(rec.email || '').trim().toLowerCase();

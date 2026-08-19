@@ -149,6 +149,35 @@ function openObligations(withinDays){
     .sort((a,b)=>{ if(a.days==null) return 1; if(b.days==null) return -1; return a.days-b.days; });
 }
 function overdueObligationCount(){ return allObligations().filter(o=>obState(o)==='overdue').length; }
+/* ---- IS THIS AGREEMENT INSIDE ITS RENEWAL WINDOW? (W2-4) ----
+   The deterministic half of the renewal adviser, and the ONE reading behind
+   the card: no AI, no opinion — dates, and what they mean. Ninety days is
+   the same mark the reminder sweep's first milestone uses, so the card
+   appears on the screen in the same week the first email goes out.
+
+   AN AMENDMENT NEVER RENEWS ITSELF (parentId), a DECLINED or ARCHIVED
+   agreement is not up for renewal, and a term we cannot read is not a claim
+   that anything is due. effectiveExpiry is family-aware, so a signed
+   amendment that moved the term moves this with it. */
+const RENEWAL_WINDOW_DAYS = 90;
+function renewalWindow(c){
+  if(!c || c.parentId || c.archived) return null;
+  if(c.status==='Declined' || c.status==='Draft') return null;
+  const expiry = dateOnly((window.effectiveExpiry?effectiveExpiry(c):null)
+    || (c.metadata&&c.metadata.expiryDate) || c.expiry);
+  if(!expiry) return null;
+  const decideBy = renewalDecisionDate(c);
+  const days = daysUntil(decideBy||expiry);
+  if(days==null || isNaN(days)) return null;
+  const notice = Number(c.metadata&&c.metadata.noticePeriodDays)||0;
+  const auto = (c.metadata&&c.metadata.renewalType)==='auto-renew';
+  return { expiry, decideBy: decideBy||expiry, days, notice, auto,
+    /* PAST the decision date is still IN the window — that is when it matters
+       most, and a card that vanished the day the deadline passed would take
+       the bad news off the screen at exactly the wrong moment. */
+    inWindow: days<=RENEWAL_WINDOW_DAYS, missed: days<0,
+    expiresDays: daysUntil(expiry) };
+}
 function renewalDecisionsDue(withinDays=30){
   const out=[];
   state.contracts.forEach(c=>{ if(c.status==='Declined'||c.status==='Signed'&&!c.metadata) {/*keep signed w/ renewal*/}
@@ -469,4 +498,4 @@ function openObligationsReview(c, found){
   });
 }
 
-Object.assign(window,{OBLIG_RECUR,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,obligationDue,obligationSurfacesChanged,obState,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});
+Object.assign(window,{OBLIG_RECUR,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,obligationDue,obligationSurfacesChanged,obState,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});

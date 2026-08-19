@@ -3252,7 +3252,13 @@ function riskCardHtml(c){
 function renderKeyTermsSide(c){
   const host=document.getElementById('kt-side'); if(!host) return;
   const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:8px;padding:13px 15px';
-  host.innerHTML=`<section id="family-section" class="kt-side-card" style="${CARD}"></section>`;
+  /* THE RENEWAL CARD LEADS, AND ONLY WHEN THERE IS A DECISION TO MAKE (W2-4).
+     renewalCardHtml returns '' outside the 90-day window, so on most contracts
+     this column is exactly what it was; inside the window the question of the
+     week sits above the family it belongs to. */
+  host.innerHTML=`<div id="renewal-host" class="empty:hidden"></div>
+    <section id="family-section" class="kt-side-card" style="${CARD}"></section>`;
+  if(window.renderRenewalSection) renderRenewalSection(c);
   if(window.renderFamilySection) renderFamilySection(c);
   /* #kt-readdoc's wiring went with the button — see readTermsHtml. */
 }
