@@ -3442,3 +3442,66 @@ necessary reads exactly like a guard that works, and a test named after a
 property reads exactly like a test that proves it. Neither is evidence.
 This feature is the one place in the product where an outbound request goes
 to an address a stranger may influence, and it earned the review it got.
+
+## PHASE 3 — THE THREE BETS (19 Aug 2026)
+
+The strategic end of the gap map: the two features no competitor can copy
+for this customer, and the honesty work under the signature.
+
+PRECEDENT MEMORY was the one worth building first, and not only because the
+co-pilot cites it. Every negotiation this workspace had ever run was already
+on the record — what was asked, by whom, on which clause, how it ended — and
+nothing had ever read it back. So the same argument was had from scratch
+every time and the playbook went on stating a line the company had quietly
+stopped holding. The whole feature is a reading; the interesting decisions
+are all about what NOT to count. A withdrawn ask is neither agreed nor
+refused, because the side that asked took it back and that says nothing
+about whether the other side would have agreed — counting it as a refusal
+would flatter our own position every time somebody changed their mind. The
+suggested figure is the worst REPEATED one rather than the average (a number
+nobody ever signed) or the extreme (the one deal everybody regrets). And it
+says nothing at all below three settled arguments, because a standard
+changed on the strength of one deal is not a standard. It suggests only the
+FALLBACK, never the preferred position: a preferred position is what the
+company wants, and history cannot argue with an aspiration.
+
+One bug fell out of testing and it would have made the whole feature silent:
+the figure extractor read only bare digits, so "forty-five (45) days" — the
+way legal drafting writes numbers, including HaTi's own seeded clause
+library — matched nothing at all.
+
+THE REDLINE CO-PILOT is the feature every enterprise platform advertised
+this year, and the design question was not how to judge a change but how to
+keep the judgement from becoming a decision. The answer turned out to be
+almost free: the band's buttons carry the CHANGE CARDS' OWN data attributes,
+so the handlers that already run per paint pick them up and every press goes
+through the ordinary funnel — desk rule, review gate, accept guard, and the
+live-link catch-up that tells the counterparty. There is no second decision
+path because there is no new path at all; the band's own wiring binds only
+its fold, and that omission is commented where somebody might otherwise
+"finish" it. Escalation is not a new concept either: it is the internal
+review that has existed since August. The judging is deterministic and names
+what it rests on, and where the playbook is silent it says exactly that —
+a guess dressed as a recommendation is the one output this feature must
+never produce.
+
+The evaluation set caught something worth recording. The test harness had no
+`cKind`, so every playbook lookup threw, the engine fell safely to "review",
+and all seven matrix cases would have passed while proving nothing about the
+matrix. A feature that fails safe is easy to test into meaninglessness.
+
+THE ASSURANCE LADDER is the smallest of the three and the one most likely to
+matter in an argument. HaTi has always taken signatures of quite different
+strengths — a typed name on a link, a name typed after proving an emailed
+code, a colleague on a named account — and recorded the difference in
+scattered fields while saying nothing about it. The ladder names six rungs
+and makes the record state which one was used. Two rules keep it honest: it
+is STAMPED at the moment of signing, because whether an account carried a
+second step is a fact about that moment and accounts change; and an older
+signature with no stamp is read conservatively and reported as DERIVED, so
+an inference is never dressed up as a record. The contract-level statement
+takes the WEAKEST signature, because the flattering reading is the one a
+dispute destroys. Nothing about it changes what HaTi accepts — and the
+national eID rung is declared unavailable rather than omitted, so the
+product can say "not this one" out loud and the BankID rung clips on the day
+there is a broker account to clip it to.

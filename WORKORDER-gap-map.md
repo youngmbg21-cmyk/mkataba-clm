@@ -264,7 +264,12 @@ moves to Phase 2 unbuilt, and nothing else depends on it.
 half of W2-3 (WhatsApp, Slack). Both are blocked on accounts only the owner
 can open — there is no code left to write until they exist.
 
-## PHASE 3 — strategic bets (design before build)
+## PHASE 3 — BUILT 19 Aug 2026 (f222 · f223 · f224, full suite 4018/4018,
+## redline/clause-door/sign-links/settings browser checks green)
+
+What remains under W3-3 is the BankID rung itself, blocked on a broker
+account; the ladder it clips onto is built and declares it unavailable.
+Original specification below.
 
 - **W3-1 · Redline co-pilot.** First-pass answers to a counterparty round —
   accept within fallback, push back with proposed wording citing the
