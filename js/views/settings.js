@@ -763,7 +763,22 @@ function settingsPersonDrawer(idOrNew){
       +(isNew?`<label style="display:block;margin-bottom:4px">
           <span style="${window.RV_LBL||''}">${esc(i18t('st_f_temp_pass'))}</span>
           <input id="tm-pass" type="password" style="${window.RV_FLD||ST_INPUT}"/>
-          <span class="st-note">${esc(i18t('st_f_temp_pass_note'))}</span></label>`:''))}
+          <span class="st-note">${esc(i18t('st_f_temp_pass_note'))}</span></label>`:'')
+      +(''/* ---- THE LOST-PHONE RESCUE (W2-5a) ----
+             The server grant has existed since WO-6 (PATCH clearTwoStep,
+             refused on yourself); this is its button. A STATEMENT first —
+             whether this person is protected — because an admin looking at a
+             locked-out colleague needs to know that before anything else, and
+             the button appears only where pressing it would do something.
+
+             NEVER ON YOURSELF: your own lock comes off with a current code on
+             your account page, not with admin rank. The server refuses it too;
+             this is the sign, that is the wall. */)
+      +((!isNew && isAdmin() && !isMe && API_MODE())?`
+        <div style="display:flex;align-items:center;gap:10px;margin-top:4px">
+          <span class="st-note" style="flex:1;margin:0">${esc(u.twoStep?i18t('ts_person_on'):i18t('ts_person_off'))}</span>
+          ${u.twoStep?`<button id="tm-clear-2fa" data-uid="${PB_ATTR(u.id)}" style="${ST_BTN_SM};flex:none">${esc(i18t('ts_clear_btn'))}</button>`:''}
+        </div>`:''))}
 
     ${sec(2,i18t('st_sec_may'),`
       <div class="st-roles">${ROLES.map(([k,label,desc])=>`
@@ -852,6 +867,21 @@ function settingsPersonDrawer(idOrNew){
       stReviewWire(u);
       stOverseerWire(u);
       document.getElementById('tm-remove')?.addEventListener('click',()=>settingsRemoveMember(u));
+      /* W2-5a: the rescue. It COSTS this person their second step, so it asks
+         first and says what it costs — they sign in on their password alone
+         until they enrol again. Refusals land in the drawer's foot, never as
+         a toast over the page behind (this page's own rule). */
+      document.getElementById('tm-clear-2fa')?.addEventListener('click',async()=>{
+        stDrawerClearRefusal();
+        if(!await confirmDialog({ title:i18t('ts_clear_title',{name:u.name}),
+          message:i18t('ts_clear_msg'), confirmLabel:i18t('ts_clear_btn') })) return;
+        try{
+          await api('users/'+u.id,'PATCH',{ clearTwoStep:true });
+          u.twoStep=false;
+          toast(i18t('ts_clear_done',{name:u.name}),'ok');
+          stDrawerClose(); renderTeam();
+        }catch(e){ stDrawerRefuse((e&&e.message)||i18t('ts_failed')); }
+      });
     },
     save(){ stDrawerClearRefusal(); settingsSavePerson(isNew?null:u); },
   });

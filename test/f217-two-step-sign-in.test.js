@@ -159,3 +159,38 @@ describe('F217 — two-step sign-in', () => {
         k + ' must be defined exactly once per language');
   });
 });
+
+/* ---- W2-5a: the rescue has a button now (19 Aug 2026) ----
+   The grant above was built and tested on the overnight run with no way to
+   press it. It sits in the person drawer's first section, beside who they
+   are, and only where pressing it would do something: an admin, on somebody
+   else, who actually has two-step on. Your own lock comes off with a code on
+   your account page — the server refuses the self case and this never draws
+   it, which is sign and wall agreeing. */
+describe('F217 — the lost-phone rescue is reachable', () => {
+  const fs2 = require('node:fs');
+  const path2 = require('node:path');
+  const settings = fs2.readFileSync(path2.join(__dirname, '..', 'js', 'views', 'settings.js'), 'utf8');
+
+  test('the button is drawn for an admin, on somebody else, only when it is on', () => {
+    assert.match(settings, /\(!isNew && isAdmin\(\) && !isMe && API_MODE\(\)\)/,
+      'an admin, not yourself, on a real member, against a real server');
+    assert.match(settings, /u\.twoStep\?`<button id="tm-clear-2fa"/,
+      'and only where the person actually has two-step to clear');
+    assert.match(settings, /ts_person_on|ts_person_off/,
+      'the STATE is stated either way — an admin needs to know before they act');
+  });
+
+  test('it asks first, says what it costs, and sends the grant', () => {
+    const wire = settings.slice(settings.indexOf("getElementById('tm-clear-2fa')"), settings.length).slice(0, 900);
+    assert.match(wire, /confirmDialog/, 'a rescue that weakens an account asks first');
+    assert.match(wire, /api\('users\/'\+u\.id,'PATCH',\{ clearTwoStep:true \}\)/, 'the grant the server already guards');
+    assert.match(wire, /stDrawerRefuse/, 'refusals land in the drawer, not as a toast over the page');
+  });
+
+  test('the words exist in both languages', () => {
+    const i18n = fs2.readFileSync(path2.join(__dirname, '..', 'js', 'i18n.js'), 'utf8');
+    for (const k of ['ts_person_on', 'ts_person_off', 'ts_clear_btn', 'ts_clear_title', 'ts_clear_msg', 'ts_clear_done'])
+      assert.equal((i18n.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k);
+  });
+});

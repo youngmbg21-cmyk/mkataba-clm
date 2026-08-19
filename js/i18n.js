@@ -1705,6 +1705,12 @@ const STRINGS = {
     ts_code_title: "Enter your code",
     ts_code_msg: "This account uses two-step sign-in. Enter the 6-digit code from your authenticator app — or an unused recovery code.",
     ts_failed: "That did not work — try again.",
+    ts_person_on: "Two-step sign-in is on for this person.",
+    ts_person_off: "Two-step sign-in is off for this person. They can turn it on from their own account page.",
+    ts_clear_btn: "Clear two-step",
+    ts_clear_title: "Clear two-step sign-in for {name}?",
+    ts_clear_msg: "Use this when they have lost the phone with their authenticator app and have no recovery codes left. They will sign in on their password alone until they enrol again — so make sure you know who you are talking to.",
+    ts_clear_done: "Two-step sign-in cleared for {name}",
 
     // ---- negotiation support modules ----
     ve_compare_versions: 'Compare versions',
@@ -5688,6 +5694,12 @@ const STRINGS = {
     ts_code_title: "Ange din kod",
     ts_code_msg: "Det här kontot använder tvåstegsinloggning. Ange den sexsiffriga koden från din autentiseringsapp — eller en oanvänd återställningskod.",
     ts_failed: "Det fungerade inte — försök igen.",
+    ts_person_on: "Tvåstegsinloggning är på för den här personen.",
+    ts_person_off: "Tvåstegsinloggning är av för den här personen. De kan slå på den från sin egen kontosida.",
+    ts_clear_btn: "Nollställ tvåstegs",
+    ts_clear_title: "Nollställa tvåstegsinloggning för {name}?",
+    ts_clear_msg: "Använd detta när de har tappat telefonen med autentiseringsappen och inte har några återställningskoder kvar. De loggar in med enbart lösenordet tills de registrerar sig igen — så säkerställ att du vet vem du talar med.",
+    ts_clear_done: "Tvåstegsinloggning nollställd för {name}",
 
     // ---- negotiation support modules ----
     ve_compare_versions: 'Jämför versioner',
