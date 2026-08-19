@@ -223,7 +223,10 @@ moves to Phase 2 unbuilt, and nothing else depends on it.
 
 ## PHASE 2 — next runs, specified now (each with why not tonight)
 
-- **W2-1 · Money speaks its own currency.** RULED BY THE OWNER, 19 Aug 2026:
+- **W2-1 · Money speaks its own currency. — BUILT 19 Aug 2026.** Proof: f218
+  (20), full suite 3929/3929, dashboard/settings/money browser checks green;
+  rules in CLAUDE.md under MONEY IN ITS OWN CURRENCY. The ruling that shaped
+  it, kept here as the record: RULED BY THE OWNER, 19 Aug 2026:
   "i would want for the contract to be converted to local currency when it
   comes to reporting so the dashboards or reporting have one currency." So:
   every REPORTING surface (dashboards, totals, insights, reports, the
@@ -248,8 +251,11 @@ moves to Phase 2 unbuilt, and nothing else depends on it.
 - **W2-4 · Renewal adviser.** At the 90-day mark, recommend renew /
   renegotiate / let lapse with cited reasons and a one-press amendment
   draft via the family machinery. Builds on WO-3's sweep.
-- **W2-5 · Two-step sign-in** if WO-6 was not reached, and "sign in with
-  Google" once the owner opens the Google credentials (blocked list below).
+- **W2-5 · Two-step sign-in — BUILT as WO-6 on the overnight run** (f217).
+  What remains under this heading is its People-page RESCUE BUTTON (the
+  server grant `clearTwoStep` exists and is tested; only the admin's button
+  is missing — an hour's work) and "sign in with Google", which is blocked
+  on the owner opening the Google credentials (blocked list below).
 
 ## PHASE 3 — strategic bets (design before build)
 
