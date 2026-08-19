@@ -3387,3 +3387,58 @@ on the way past.
 
 Nothing stored was rewritten, no migration ran, and a workspace that has
 only ever used one currency reads exactly as it did the day before.
+
+## PHASE 2, AND WHAT A SECURITY REVIEW IS FOR (19 Aug 2026)
+
+Four builds after the currency ruling: the intake front door, the renewal
+adviser, events out, and the People-page button that finished WO-6's
+lost-phone rescue.
+
+THE INTAKE DOOR is the one that changes what HaTi is. Every other feature
+in this product serves the person who handles contracts; this one serves
+everybody else, and the design turns on refusing the obvious build. "Let a
+viewer create a Draft" is wrong twice — it puts unapproved paper in the
+register and hands the right to write contracts to people the workspace
+deliberately withheld it from. A request is its own record instead: no
+paper, no count, nothing to tidy when it is declined, and every act that
+produces real paper still runs through canEdit and the ordinary creation
+path. Asking grants nothing, which is the whole point.
+
+THE RENEWAL ADVISER turns an alarm into a recommendation, and its one hard
+rule is that the dates are not the model's. Every fact the recommendation
+rests on is computed from the record and handed over; the model weighs and
+writes. A confident wrong date is the single failure this feature could not
+survive, because a renewal decision is acted on without anybody going back
+to check why the screen said what it said.
+
+EVENTS OUT is the reason this entry is worth reading. It shipped with what
+looked like a thorough SSRF defence — https only, private ranges refused,
+and a send-time re-resolution explicitly commented as the DNS-rebinding
+guard. A security review, run adversarially against the committed code,
+found that the guard was a formality: `webhookTargetOk` resolved the name,
+and then `fetch` resolved it a second time, so the address that was checked
+was never the address that was connected to. A name with a zero-second TTL
+wins that race every time, and because the public share-response route is
+one of the triggers, the race did not even have to be waited for — it could
+be retried until it landed. The fix was structural rather than additional:
+the check moved inside the resolution that produces the socket, using
+node:https with a guarded lookup, so there is no window at all.
+
+The review found nine other things — a contract's name and an
+arbitrary Viewer-typed title in the payloads, an empty subscription list
+meaning "everything", an unread response body with the timeout already
+cleared, a trailing dot walking past the hostname blocklist, 6to4 addresses
+embedding 127.0.0.1 and reading as global unicast, a fails counter that
+concurrent fires clobbered — but the sharpest finding was about the TESTS.
+Two of f221's assertions were hollow: the rebinding test used an http URL,
+so it was refused on the protocol and never reached the address check it
+claimed to prove, and the payload test grepped a blocklist that `name:` and
+`title` walked straight through. Both are rewritten — the second as an
+allow-list of permitted keys, because a blocklist only tests the words
+somebody happened to think of.
+
+The lesson worth keeping: a guard with a comment explaining why it is
+necessary reads exactly like a guard that works, and a test named after a
+property reads exactly like a test that proves it. Neither is evidence.
+This feature is the one place in the product where an outbound request goes
+to an address a stranger may influence, and it earned the review it got.
