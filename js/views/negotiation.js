@@ -5085,6 +5085,32 @@ function wireNegotiationTab(c, opts = {}){
         ? anchorNode.closest(paneSel)
         : (anchorNode && anchorNode.parentElement ? anchorNode.parentElement.closest(paneSel) : null);
       if (!pane || !host.contains(pane)){ _negoKillSelMenu(); return; }
+      /* ---- NOTHING IS EDITED FROM THE PAPER ON THE NEGOTIATION PAGE ----
+         (owner-asked 19 Aug 2026: "there should not be possibility to edit the
+         contract while on the contract in the left hand side. Only way to edit
+         is to click edit and the edit happens in the panel on the right.")
+
+         THE HIGHLIGHT ITSELF STAYS — deliberately, and the owner asked for it:
+         selecting words is how anybody copies wording out of a contract, and
+         taking that away costs something real to buy nothing. What goes is the
+         MENU: the gesture is reading, not a door, and the one door is the green
+         Edit pill on the clause.
+
+         SCOPED BY THE CANVAS AND BY THE SEAT. `.rl-doc` is the negotiation
+         page's own paper (the room's two-pane view keeps its .nego-pane.working
+         markup and has no clause panel to send anybody to, so it is untouched),
+         and the panel's editor is exempt because that is where the writing now
+         happens — a highlight there still hands one sentence to the Copilot.
+         The counterparty's seat is left exactly as it was: their mount already
+         passes a no-op menu and noAi, so they never saw one, and skipping this
+         guard for them keeps even the front-matter notice below unchanged. */
+      const inCpEditorPane = !!(pane.closest && pane.closest('.rl-cp-src'));
+      const theirSeat = side === 'counterparty'
+        || (typeof window !== 'undefined' && window.PORTAL_MODE);
+      if (!theirSeat && !inCpEditorPane && pane.closest && pane.closest('.rl-doc')){
+        _negoKillSelMenu();
+        return;
+      }
       let range;
       try { range = sel.getRangeAt(0); } catch (e){ return; }
       let rect;
@@ -6183,6 +6209,55 @@ function rlClauseEditPillHtml(cl, opts = {}){
     title="${_nea(i18t('ng_cp_open_title'))}">${i18t('ng_cp_edit')}</button>`;
 }
 
+/* ---- ONE CLAUSE, ONE SHAPE, WHEREVER IT IS DRAWN ----
+   (owner-reported 19 Aug 2026, off a screenshot of clause 3 side by side:
+   "make sure the structure in the contract is resembled in the panel on the
+   left so that users can follow the words and structure as well.")
+
+   THE PAPER AND THE PANEL WERE PRINTING THE SAME WORDS IN TWO SHAPES. A clause
+   UNDER CHANGE is drawn from its stored ops through redlineOpsBlocksHtml, which
+   splits the opening marker — "3.1", "(b)", "•" — into its own span and stamps
+   the line rl-hang, so the number sits in a gutter and every wrapped line
+   starts under the first word. A clause drawn from its own markup — every
+   unmarked clause, and the panel's "As it stands" block — went straight out as
+   stored: same words, no gutter, wraps running back to the margin. So the
+   reported screenshot had 3.1/3.2/3.3 hanging correctly on the contract and
+   flush on the panel twelve pixels away, which is exactly the comparison the
+   panel exists to make easy.
+
+   THIS IS THE SAME TREATMENT, APPLIED TO RENDERED MARKUP RATHER THAN TO OPS.
+   It reads the marker with redlineSplitMarker — the ONE pattern, shared with
+   the op renderer, so the two can never come to disagree about what a marker
+   is — and emits the classes the sheet already styles (.rl-hang, .rl-marker,
+   defined once for .rl-doc and .rl-cp-src alike). Nothing is re-diffed, nothing
+   is re-worded and no stored body is rewritten: this is a class and a span
+   around characters that were already there, and textContent is identical.
+
+   BOTH SURFACES OR NEITHER. It is applied by redlineDocHtml's own richBody and
+   by the panel's standing block, which is what makes the two agree on a marked
+   clause AND on an unmarked one. The room's two-pane view is deliberately not
+   in this list: it has its own sheet and its own rules, and negoRichBody stays
+   exactly what it was for every caller that is not this page. */
+function rlHangRichHtml(html){
+  const src = String(html == null ? '' : html);
+  if (!src || typeof redlineSplitMarker !== 'function') return src;
+  return src.replace(/<p\b([^>]*)>([^<]*)/g, (whole, attrs, text) => {
+    let split;
+    try { split = redlineSplitMarker(text); } catch (e){ return whole; }
+    if (!split || !split.marker) return whole;
+    /* The marker's own characters, boxed to the hanging measure. The text after
+       it is left untouched — the split is on the leading run only, so anything
+       else in the paragraph (bold, a defined term, a nested span) is never
+       reached. */
+    const head = text.slice(0, text.length - split.rest.length);
+    const at = String(attrs || '');
+    const dressed = /\bclass\s*=\s*"/.test(at)
+      ? at.replace(/\bclass\s*=\s*"/, 'class="rl-hang ')
+      : at + ' class="rl-hang"';
+    return `<p${dressed}><span class="rl-marker">${head}</span>${split.rest}`;
+  });
+}
+
 /* The panel's contents for ONE clause.
 
    IT IS NOT RENDERED INSIDE THE CLAUSE, and that was the first build. Putting a
@@ -6211,8 +6286,8 @@ function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
      the accept guard, the editor's seed and the paper all measure from it. */
   const standing = (typeof negoClauseNowById === 'function')
     ? (negoClauseNowById(c, cl.clauseId) || cl) : cl;
-  const standsBody = (typeof negoRichBody === 'function')
-    ? negoRichBody(standing) : `<p>${_ne(standing.text || '')}</p>`;
+  const standsBody = rlHangRichHtml((typeof negoRichBody === 'function')
+    ? negoRichBody(standing) : `<p>${_ne(standing.text || '')}</p>`);
   const live = list.filter(x => x.status === 'pending' && !x.withdrawn);
   /* One of OUR OWN asks still on the table. The editor continues it rather than
      starting a rival — the engine's rule, not a decision taken here — so the ＋
@@ -6274,6 +6349,19 @@ function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
       <div class="rl-cp-rowbd">
         <span class="rl-cp-who">${line}</span>
         <div class="rl-cp-wd">${rlChangeWordingHtml(ch)}</div>
+        ${''/* ---- THE REASON THE ASK WAS MADE, WHICH CAME HERE FROM THE CARD
+               (19 Aug 2026) ---- The column's card carried it as its own titled
+               strip and no longer does; a reason removed from one slot has to be
+               findable in another before the slot goes, and this is the slot —
+               the same row that already carries the wording, the author and the
+               outcome, on the clause the reason is about.
+
+               IT IS THE AUTHOR'S REASON, and the line below it is the REFUSAL's
+               reply: two different people answering two different questions, so
+               they are two lines and never one. Both travel to the other side
+               and both are drawn on both seats, unchanged. */}
+        ${ch.why
+          ? `<span class="rl-cp-why"><b>${i18t('ng_why_they_asked')}</b> ${_ne(ch.why)}</span>` : ''}
         ${ch.status === 'rejected' && ch.reply
           ? `<span class="rl-cp-why">&ldquo;${_ne(ch.reply)}&rdquo;</span>` : ''}
         ${mayReopen(ch) ? `<div class="rl-cp-act-row">
@@ -6367,7 +6455,29 @@ function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
              so the press does what its label says and lands in the Copilot
              chat, which is the "moves you to the copilot assistant" the owner
              asked for. */}
-      ${opts.noAi ? '' : `<span class="rl-cp-ai-note">&#10024; ${i18t('ng_cp_copilot')}</span>`}
+      ${''/* ---- AND IT IS A BUTTON AGAIN (owner-asked 19 Aug 2026: "change
+             'edit with copilot' to be a button which if clicked, it takes you
+             to copilot and you can edit the entire clause") ----
+
+             THIS REVERSES 16 Aug, when the button became plain violet WORDS on
+             the reasoning that a door and a label for one feature, twelve
+             pixels apart, was the door doing the label's job badly. What
+             changed under it is the paper: the highlight menu is off the
+             contract now, so the words were the only Copilot on this page and
+             they pointed at a route the reader has to discover by dragging.
+
+             THE TWO ROUTES ARE DIFFERENT SIZES, which is what makes both worth
+             having: the button hands the WHOLE clause over, the highlight hands
+             ONE SENTENCE from the draft you are writing. The hint line below
+             says the second one out loud, so nothing rests on discovery.
+
+             STRAIGHT TO THE COPILOT, NO MENU IN BETWEEN — `direct` in the
+             handler at data-nego-ai-clause, for the reason recorded there: a
+             control already narrowed to one action would raise a menu of one
+             row, anchored on a button the closing panel has just hidden. */}
+      ${opts.noAi ? '' : `<button type="button" class="rl-cp-act rl-cp-act-ai" data-rl-cp-close="1"
+        data-nego-ai-clause="${id}" data-rl-cp-ai="1"
+        title="${_nea(i18t('ng_cp_copilot_title'))}">&#10024; ${i18t('ng_cp_copilot')}</button>`}
       ${''/* THEY ARE NOT .rl-tool, AND THAT IS A RULE RATHER THAN A STYLE
              CHOICE. The first build wore the sheet's tool-pill class, and the
              panel is written EARLIER in the grid than the document, so the
@@ -8282,12 +8392,10 @@ function redlineLayoutCss(){
   .redline-page .rl-cp-act.rl-cp-act-new:hover{background:color-mix(in srgb,var(--nav-bg,#0b3d3a) 82%,#fff);
     border-color:color-mix(in srgb,var(--nav-bg,#0b3d3a) 82%,#fff)}
   .redline-page .rl-cp-hint{flex-basis:100%;margin:6px 0 0;font-size:12px}
-  /* The Copilot's WORDS, not its button — a signal that the feature exists on a
-     highlight, in the violet this page already gives the assistant. No pill, no
-     border, no pointer: nothing here is pressable, and it must not look it. */
-  .redline-page .rl-cp-ai-note{display:inline-flex;align-items:center;gap:4px;
-    font-size:11.5px;font-weight:600;color:#6d28d9;cursor:default;-webkit-user-select:none;user-select:none}
-  html.dark .redline-page .rl-cp-ai-note{color:#c4b5fd}
+  /* .rl-cp-ai-note is RETIRED (19 Aug 2026) — the Copilot is a BUTTON in this
+     panel again, see the note beside it. The words-without-a-pill were right
+     while the paper still offered a highlight menu of its own; with that off,
+     the one Copilot on this page had to be pressable. */
   /* Reopen, on a settled ask in the History. Edit's own quiet clothes, as it
      wore in the tag reveal it moved from — nothing about changing your mind
      should shout louder than the record it sits in. */
@@ -11497,8 +11605,8 @@ function redlineDocHtml(c, opts = {}){
      replaces `.nego-body` (falling back to the first `p`), so without this
      wrapper a multi-paragraph clause would have had only its first paragraph
      swapped for the editor and the rest stranded outside what got saved. */
-  const richBody = cl => `<div class="nego-body">${
-    (typeof negoRichBody === 'function') ? negoRichBody(cl) : `<p>${_ne(cl.text || '')}</p>`}</div>`;
+  const richBody = cl => `<div class="nego-body">${rlHangRichHtml(
+    (typeof negoRichBody === 'function') ? negoRichBody(cl) : `<p>${_ne(cl.text || '')}</p>`)}</div>`;
   /* How this page is being read — see rlReadMode. Resolved once for the whole
      document so every clause on it answers the same question. */
   const readMode = rlReadMode();
@@ -12837,9 +12945,21 @@ function redlineChangeCardsHtml(c, opts = {}){
        It was going onto two other card renderers and not this one, which is
        the card in the change column that people actually read. A reason
        nobody sees is a reason nobody gives. */
-    const whyBlock = ch.why
-      ? `<div class="rl-card-why"><span class="rl-card-why-k">${i18t('ng_why_they_asked')}</span><span class="nego-why-clamp">${_ne(ch.why)}</span></div>`
-      : '';
+    /* ---- AND IT IS OFF THE CARD (owner-asked 19 Aug 2026, off a screenshot of
+       a refused ask whose whole reason was the word "No": "remove the why they
+       asked feature from the cards in the negotiation page") ----
+
+       THE FACT IS NOT LOST, WHICH IS THIS FILE'S OWN CONDITION FOR REMOVING A
+       SLOT: the reason is printed in the clause panel's row for this change,
+       one press of Open away, beside the wording it is a reason ABOUT. That is
+       the same journey the author's name, the organisation and the full wording
+       already took when the fat card became a routing row.
+
+       The FIELD is untouched — still asked for by the two-step save, still on
+       the record, still fingerprinted, still travelling to the other side, and
+       still drawn on the contract tab's cards and in the closed-round history,
+       which are different screens and were not what was reported. */
+    const whyBlock = '';
     /* ---- AND WHO PUT IT THERE, WHEN THAT IS NOT WHO IT IS FROM ----
        An ask entered from this workspace wearing the counterparty's hat is
        recorded in their name — correctly, it IS their ask — but a card saying
@@ -14235,6 +14355,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlReadSegsHtml, rlPaintReadSegs,
   rlAskTagHtml, rlAskRevealHtml, rlAskGlyph, rlAskWord, rlAskOpenId, rlAskSetOpen, rlAskResetOpen,
   rlChangeWordingHtml, rlClauseEditPillHtml, rlClausePanelBodyHtml, rlClausePanelHtml,
+  rlHangRichHtml,
   rlCpOpenId, rlCpSetOpen, rlCpSetShown, rlCpPaint, rlCpNotesOn, rlCpSetNotes,
   rlUnsentBandHtml, rlUnsentCount,
   rlFitTabRow, rlWireFitTabRow, rlObserveTabRow,

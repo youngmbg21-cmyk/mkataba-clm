@@ -94,9 +94,16 @@ const VISIBLE = `(el) => {
         || document.getElementById('kt-side').parentElement.firstElementChild;
       const r = el => el ? el.getBoundingClientRect() : null;
       const a = r(fam), b = r(kt);
+      const side = document.getElementById('kt-side');
+      const pane = document.querySelector('[data-ws-pane="terms"]');
+      const sr = r(side), pr = r(pane);
       return { fam: vis(fam), obPresent: !!ob,
         title: fam ? (fam.querySelector('h4') || {}).textContent : null,
-        famH: a ? Math.round(a.height) : 0, ktH: b ? Math.round(b.height) : 0 };
+        famH: a ? Math.round(a.height) : 0, ktH: b ? Math.round(b.height) : 0,
+        sideScrolls: side ? getComputedStyle(side).overflowY : null,
+        sideH: sr ? Math.round(sr.height) : 0,
+        divider: !!document.getElementById('kt-resizer'),
+        overrun: (sr && pr) ? Math.round(sr.bottom - pr.bottom) : null };
     })()`);
     check('Agreement family is on screen in the Key terms column',
       side.fam.on, side.fam.on ? `${side.fam.w}x${side.fam.h}` : side.fam.why);
@@ -104,11 +111,57 @@ const VISIBLE = `(el) => {
       /Agreement family/i.test(side.title || ''), side.title);
     check('the Obligations card has left this tab — one door, not two',
       !side.obPresent);
-    /* The claim f176's third block has always made: ONE card beside Key terms,
-       squared off with it. Which card it is has changed; the shape has not. */
-    check('and the two cards still square off',
-      side.famH > 0 && Math.abs(side.famH - side.ktH) <= 2,
-      `family ${side.famH}px · key terms ${side.ktH}px`);
+    /* ---- REVERSED IN PLACE, 19 Aug 2026 ---- this asserted that the two cards
+       SQUARE OFF, which is what f176's third block claimed and what the grid
+       used to do. The owner has asked for the opposite, and for a reason the
+       squared layout could not answer: "keep the size of the card on the left
+       intact ... add a divider between the two cards so that you can scroll on
+       the right hand side especially when you can ran a renewal reason."
+
+       Stretched, a tall right-hand card drags Key terms up with it and its own
+       content runs off the bottom of the window. So the right column takes the
+       column's full height and scrolls INSIDE it, the left card keeps its own
+       height, and a divider between them sets the split. The claim underneath
+       is the one that always mattered and is asserted last: neither card runs
+       past the bottom of the page. */
+    check('the right-hand COLUMN takes the height, and both cards keep their own',
+      side.sideH > side.famH + 2 && side.famH > 0,
+      `column ${side.sideH}px · family ${side.famH}px · key terms ${side.ktH}px`);
+    check('…and it scrolls inside itself rather than running off the page',
+      side.sideScrolls === 'auto' && side.overrun !== null && side.overrun <= 2,
+      `overflow-y:${side.sideScrolls}, ${side.overrun}px past the pane`);
+    check('…with a divider between the two to set the split', side.divider);
+
+    /* ---- AND IT IS A REAL DRAG, NOT A DECORATION ----
+       A splitter that renders and does not move is the fault this project has
+       shipped before with controls that looked live (the unsent band's Send,
+       dead on one seat for a day). Measured with a real pointer, both columns
+       before and after, and the contract's own tab left exactly where it was. */
+    const box = await page.evaluate(`(() => {
+      const g = document.querySelector('.terms-grid');
+      const kt = g.firstElementChild, sd = document.getElementById('kt-side');
+      const h = document.getElementById('kt-resizer');
+      const r = el => el.getBoundingClientRect();
+      return { left: Math.round(r(kt).width), right: Math.round(r(sd).width),
+        hx: r(h).left + r(h).width / 2, hy: r(h).top + r(h).height / 2 };
+    })()`);
+    await page.mouse.move(box.hx, box.hy);
+    await page.mouse.down();
+    await page.mouse.move(box.hx - 90, box.hy, { steps: 12 });
+    await page.mouse.up();
+    await new Promise(r => setTimeout(r, 260));
+    const after = await page.evaluate(`(() => {
+      const g = document.querySelector('.terms-grid');
+      const kt = g.firstElementChild, sd = document.getElementById('kt-side');
+      const r = el => el.getBoundingClientRect();
+      return { left: Math.round(r(kt).width), right: Math.round(r(sd).width),
+        saved: Number(localStorage.getItem('hati.v1.ktLeftFrac')) || 0 };
+    })()`);
+    check('dragging the divider gives the room from one card to the other',
+      after.left < box.left - 40 && after.right > box.right + 40,
+      `left ${box.left}→${after.left}px · right ${box.right}→${after.right}px`);
+    check('…and the split is remembered, so it is not re-set on the next paint',
+      after.saved > 0.2 && after.saved < 0.75, String(after.saved));
 
     /* ================= 2 · THE BUTTONS ================= */
     const btns = await page.evaluate(`(() => {

@@ -233,12 +233,13 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      is in the panel now: the ＋ opens the engine's editor HERE and must NOT
      close what it is opening into, while the Copilot still hands off to a panel
      elsewhere and still closes behind itself. Direct Edit has left. */
-  /* ---- 3d/3d″ REVERSED IN PLACE, 16 Aug 2026 ---- the Copilot is a label
-     rather than a button now (see 8c), so the panel has exactly ONE pressable
-     act and it is the ＋. */
-  ck('3d the ＋ is the panel\'s only act — Direct Edit and the Copilot press nothing',
-     said.acts.length === 1 && said.acts[0].plus === staged.clauseId
-     && !said.acts.some(a => a.edit) && !said.acts.some(a => a.ai),
+  /* ---- 3d/3d″ REVERSED AGAIN, 19 Aug 2026 ---- the Copilot is a button once
+     more (owner-asked; see 8c), so the panel offers TWO acts: the ＋ that writes
+     here, and the Copilot that hands the whole clause over and closes behind
+     itself. Direct Edit is still gone, and that half of the claim is unchanged. */
+  ck('3d the panel offers the ＋ and the Copilot, and Direct Edit is gone',
+     said.acts.length === 2 && said.acts[0].plus === staged.clauseId
+     && !said.acts.some(a => a.edit) && said.acts.some(a => a.ai),
      said.acts.map(a=>a.t).join(' / '));
   ck('3d″ and it does not close the panel it writes into',
      !!said.acts[0] && !said.acts[0].close,
@@ -478,8 +479,8 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     '#rl-cp .rl-cp-src.is-on .rl-cp-acts button')].map(b => ({
       t:b.textContent.trim(), plus:b.hasAttribute('data-rl-cp-edit'),
       ai:b.hasAttribute('data-nego-ai-clause'), direct:b.hasAttribute('data-nego-edit') })));
-  ck('7a the panel offers the ＋ alone — Direct Edit and the Copilot press nothing',
-     acts.length===1 && acts[0].plus && !acts.some(a=>a.direct) && !acts.some(a=>a.ai),
+  ck('7a the panel offers the ＋ and the Copilot; Direct Edit is not among them',
+     acts.length===2 && acts[0].plus && acts.some(a=>a.ai) && !acts.some(a=>a.direct),
      acts.map(a=>a.t).join(' / '));
 
   await p.click('#rl-cp .rl-cp-src.is-on [data-rl-cp-edit]'); await pause(500);
@@ -619,30 +620,45 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      disappears and the copilot dropdown appears on the top right corner" — the
      menu was anchored on a button whose rect had already gone to zeros, because
      closing the panel hides the body it sits in. */
-  /* ---- 8c/8d REVERSED IN PLACE, 16 Aug 2026 ---- these pressed a Copilot
-     BUTTON in the panel and proved it left no stray dropdown. The button is
-     gone: owner-asked, "delete the edit with copilot feature but leave the
-     words … in purple without a pill around it. This is to signal that the
-     feature is available where you can highlight." So the claim becomes the one
-     that matters about a label — that it is not pressable, and that the route
-     it names still works (7g presses that route for real). */
+  /* ---- 8c/8d REVERSED IN PLACE AGAIN, 19 Aug 2026 ---- and back to what they
+     asserted before 16 Aug: a real, pressable Copilot BUTTON in the panel.
+     Owner-asked, in these words: "change 'edit with copilot' to be a button
+     which if clicked, it takes you to copilot and you can edit the entire
+     clause." The words-without-a-pill were right while the paper still offered
+     a highlight menu of its own; with that gone they named the only Copilot on
+     the page and named it as something nobody could press.
+
+     THE ORIGINAL REPORT IS STILL PINNED HERE — "the panel disappears and the
+     copilot dropdown appears on the top right corner": the press must hand
+     straight to the Copilot and leave no stray menu clamped into the corner of
+     the window. That is 8d, measured after a real press. */
   const cop = await p.evaluate(() => {
     const on = document.querySelector('#rl-cp .rl-cp-src.is-on');
-    const note = on.querySelector('.rl-cp-ai-note');
-    if (!note) return { none: true };
-    const s = getComputedStyle(note);
-    return { tag: note.tagName, text: note.textContent.trim(), cursor: s.cursor,
-      colour: s.color, border: parseFloat(s.borderTopWidth) || 0,
-      bg: s.backgroundColor,
-      stillAButton: !!on.querySelector('[data-nego-ai-clause]') };
+    const btn = on.querySelector('[data-nego-ai-clause]');
+    if (!btn) return { none: true };
+    const s = getComputedStyle(btn), r = btn.getBoundingClientRect();
+    return { tag: btn.tagName, text: btn.textContent.trim(), cursor: s.cursor,
+      colour: s.color, w: Math.round(r.width), h: Math.round(r.height),
+      note: !!on.querySelector('.rl-cp-ai-note') };
   });
-  ck('8c the Copilot is WORDS in the panel, not a control',
-     !cop.none && cop.tag === 'SPAN' && !cop.stillAButton && cop.cursor === 'default',
-     cop.none ? 'no label' : `${cop.tag} "${cop.text}" cursor:${cop.cursor}`);
-  ck('8d …with no pill around it, and in the Copilot\'s own violet',
-     !cop.none && cop.border === 0 && /rgba\(0, 0, 0, 0\)/.test(cop.bg)
-     && /rgb\(109, 40, 217\)/.test(cop.colour),
-     cop.none ? '' : `border ${cop.border}, bg ${cop.bg}, colour ${cop.colour}`);
+  ck('8c the Copilot is a real, pressable button in the panel',
+     !cop.none && cop.tag === 'BUTTON' && /Edit with Copilot/.test(cop.text)
+     && cop.w > 40 && cop.h > 10 && !cop.note,
+     cop.none ? 'no button' : `${cop.tag} "${cop.text}" ${cop.w}x${cop.h}`);
+  const copPress = await (async () => {
+    await p.click('#rl-cp .rl-cp-src.is-on [data-nego-ai-clause]');
+    await pause(260);
+    return p.evaluate(() => {
+      const m = document.querySelector('.nego-selmenu');
+      const box = m ? m.getBoundingClientRect() : null;
+      return { menu: !!m, left: box ? Math.round(box.left) : null,
+        top: box ? Math.round(box.top) : null,
+        panelShut: !document.querySelector('#rl-cp.is-open') };
+    });
+  })();
+  ck('8d …and pressing it hands straight over, with no dropdown left in the corner',
+     copPress.menu === false,
+     copPress.menu ? `a menu at ${copPress.left},${copPress.top}` : 'no stray menu');
 
   /* 8e THE COUNTERPARTY'S UNSENT COUNT. Reported as "the counterparty side the
      changes do not seem to be working", and it PREDATES the clause panel —
@@ -837,6 +853,81 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      notesSwitch && notesSwitch.back);
   await p.evaluate(() => { const x = document.querySelector('#rl-cp-min'); if (x) x.click(); });
   await pause(300);
+
+  /* ---- 12. THE PANEL IS SET LIKE THE CONTRACT (owner-reported 19 Aug 2026,
+     off a screenshot of clause 3 side by side: "make sure the structure in the
+     contract is resembled in the panel on the left so that users can follow the
+     words and structure as well.")
+
+     The paper gave a numbered limb a gutter — the number out to the left, every
+     wrapped line under the first word — and the panel printed the same wording
+     flush, because the paper's marker treatment came from the redline's own
+     block renderer and the panel's standing wording never went through it. One
+     shared treatment now, applied to both. Measured as GLYPH COLUMNS in the
+     panel, exactly as 10c measures them on the paper: a question about where
+     letters land, which no node test can answer. */
+  const paperVsPanel = await p.evaluate(async () => {
+    /* A clause whose STANDING wording really is sub-numbered — filed and
+       adopted through the product's own funnel, so "as it stands" contains the
+       limbs rather than a proposal of them. */
+    const c = window.CONTRACT, cl = negoClauseList(c)[3] || negoClauseList(c)[2];
+    const text = '3.1 Delivery Terms. Unless otherwise specified in an applicable purchase order, '
+      + 'all deliveries shall be made DDP to the Buyer\'s designated manufacturing or storage facility.\n'
+      + '3.2 Timely Delivery. Time is of the essence for all deliveries under this Agreement, and the '
+      + 'Supplier shall maintain a minimum on-time in-full delivery rate of ninety-five per cent.';
+    /* Filed by THEM and adopted by US — the ordinary way wording becomes what
+       stands, and the one negoResolve accepts (you do not accept your own ask). */
+    const ch = await negoEditClause(c, cl.clauseId, window.docRichFromText(text),
+      { side: 'counterparty', author: 'Henry M.', why: 'sub-numbered limbs' });
+    await negoResolve(c, ch.id, 'accepted', { side: 'owner', by: 'Young Mbagaya' });
+    renderRedline();
+    await new Promise(r => setTimeout(r, 600));
+    const sec = document.querySelector(`#rl-doc .nego-clause[data-clause="${cl.clauseId}"]`);
+    if (!sec || !sec.querySelector('.rl-cp-pill')) return { none: 'the staged clause has no door' };
+    sec.querySelector('.rl-cp-pill').click();
+    await new Promise(r => setTimeout(r, 450));
+    const stands = document.querySelector('#rl-cp .rl-cp-src.is-on .rl-cp-stands');
+    if (!stands) return { none: 'the panel did not open' };
+    const hang = [...stands.querySelectorAll('.rl-hang')];
+    const cols = el => {
+      const nodes = [];
+      const walk = n => { if (n.nodeType === 3 && n.textContent.trim()) nodes.push(n);
+        else for (const k of n.childNodes) walk(k); };
+      walk(el);
+      const r = document.createRange(), pts = [];
+      for (const tn of nodes){
+        const inMarker = !!(tn.parentElement && tn.parentElement.closest('.rl-marker'));
+        for (let i = 0; i < tn.length; i++){
+          r.setStart(tn, i); r.setEnd(tn, i + 1);
+          const b = r.getBoundingClientRect();
+          if (b.width || b.height) pts.push({ x: Math.round(b.x), y: Math.round(b.y), inMarker });
+        }
+      }
+      const word = pts.filter(p => !p.inMarker), marks = pts.filter(p => p.inMarker);
+      if (!word.length || !marks.length) return null;
+      const rows = [...new Set(word.map(p => p.y))].sort((a, b) => a - b);
+      return { label: Math.min(...marks.map(p => p.x)),
+        word: rows.slice(0, 3).map(y => Math.min(...word.filter(p => p.y === y).map(p => p.x))) };
+    };
+    const style = hang[0] ? getComputedStyle(hang[0]) : null;
+    /* A failure here prints the panel's own markup: "the gutter is missing" and
+       "the panel is showing a different clause" look identical in a verdict. */
+    if (!hang.length) return { none: 'no hanging line', dump: stands.innerHTML.slice(0, 200) };
+    return { hangs: hang.length,
+      pl: style ? style.paddingLeft : null, ti: style ? style.textIndent : null,
+      cols: hang.slice(0, 2).map(cols).filter(Boolean) };
+  });
+  ck('12a the panel gives a numbered limb the same gutter the paper gives it',
+     !paperVsPanel.none && paperVsPanel.hangs >= 1 && !!paperVsPanel.pl,
+     paperVsPanel.none ? `${paperVsPanel.none} :: ${paperVsPanel.dump || ''}`
+       : `${paperVsPanel.hangs} hanging line(s), ${paperVsPanel.pl} / ${paperVsPanel.ti}`);
+  ck('12b …and its wording sits in ONE column, first row and wraps alike',
+     !paperVsPanel.none && paperVsPanel.cols.length >= 1
+     && paperVsPanel.cols.every(c => c.word.length >= 2
+        && Math.abs(c.word[0] - c.word[1]) <= 6 && c.word[0] > c.label),
+     JSON.stringify(paperVsPanel.cols));
+  await p.evaluate(() => { const x = document.querySelector('#rl-cp-min'); if (x) x.click(); });
+  await pause(250);
 
   /* THE DUPLICATION RULE: their page mounts the same builder inside the same
      .redline-page wrapper, so the rule reaches it — asserted rather than

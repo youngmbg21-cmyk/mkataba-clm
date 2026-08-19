@@ -311,6 +311,27 @@ function openSettingsAt(tab, panel){
   if(ST_TABS.includes(tab)) _stTab=tab;
   _stWantPanel=panel||null;
   if(typeof setView==='function') setView('team'); else renderTeam();
+  /* ---- A NAMED DOOR LANDS AT THE TOP OF WHAT IT OPENS ----
+     (owner-reported 19 Aug 2026: "when I click on the settings and rules
+     button, the landing page it takes me to I land at the bottom of the page
+     and have to scroll up to see what is on the page.")
+
+     setView keeps the reader's scroll when the view it is asked for is the one
+     already on screen — deliberately, and rightly: a save, a delete or a
+     background response that repaints must not throw somebody back to the top.
+     But this is not a repaint. It is a door with a name on it, pressed from the
+     account drawer (which opens over any page, this one included), so "you are
+     already here" is exactly the case that lands the reader at the bottom of a
+     page they have just asked to be shown.
+
+     Written here rather than in setView, because setView cannot tell a
+     navigation from a repaint and this function can: everything that arrives
+     through it is a navigation. The frame is asked twice for the reason setView
+     asks twice — the rebuild's shorter intermediate paint clamps the scroll,
+     and the value has to be put back once the new frame has its height. */
+  const sc=(typeof document!=='undefined')&&document.getElementById('content-scroll');
+  if(sc){ sc.scrollTop=0;
+    if(typeof requestAnimationFrame==='function') requestAnimationFrame(()=>{ sc.scrollTop=0; }); }
 }
 
 /* ---------------- THE DRAWER ----------------
@@ -2304,10 +2325,16 @@ function stWireEngine(){
 }
 
 /* ---- email delivery & outbox ---- */
+/* ---- IT REPORTS WHAT HAPPENED (owner-reported 19 Aug 2026) ----
+   Returns {ok, n} so a caller that was PRESSED can say so, and says the failure
+   out loud instead of swallowing it. The silent catch was half of why "Refresh
+   outbox" read as a dead button: a request that failed left the last list on
+   screen and no word anywhere. Callers that merely FILL the panel ignore the
+   answer, exactly as before. */
 function stLoadOutbox(){
   return (async()=>{
     try{ const r=await api('outbox');
-      const host=document.getElementById('outbox-list'); if(!host) return;
+      const host=document.getElementById('outbox-list'); if(!host) return { ok:true, n:(r.items||[]).length };
       /* The panel's own heading answers the same three states the row does, off
          the route's own health reading rather than a second copy of it — and
          it NAMES the provider's reason, which is the thing an admin can act on
@@ -2325,16 +2352,50 @@ function stLoadOutbox(){
             ${it.detail?`<div class="mt-1 text-[10px] text-gold-700 bg-gold-500/10 rounded px-1.5 py-1 leading-relaxed">${i18t('set_why_failed',{why:esc(it.detail)})}</div>`:''}
             ${it.dev_hint?`<div class="mt-1 text-[10px] font-mono text-gold-700 bg-gold-500/10 rounded px-1.5 py-0.5 inline-block">${it.dev_hint}</div>`:''}
           </div>`).join('')}</div>`:`<div class="text-[11px] text-brand-800/65">${i18t('set_no_messages')}</div>`);
-    }catch(e){}
+      return { ok:true, n:(r.items||[]).length };
+    }catch(e){
+      const host=document.getElementById('outbox-list');
+      const why=(e&&e.message)||String(e);
+      if(host) host.innerHTML=`<div class="text-[11px] text-gold-700">${esc(i18t('set_outbox_unreadable',{why}))}</div>`;
+      return { ok:false, why };
+    }
   })();
 }
+/* ---- A PRESS THAT SAYS NOTHING IS A PRESS NOBODY BELIEVES IN ----
+   (owner-reported 19 Aug 2026, off a screenshot with both buttons ringed: "the
+   highlighted buttons are not working".)
+
+   BOTH WERE WORKING. "Check renewals" really did run the sweep and queue the
+   reminders; "Refresh outbox" really did re-read the list. What neither did was
+   SAY SO. The renewal sweep's confirmation was a bare toast call — and a bare
+   call is silent by design in this product (see toast in js/core.js: about 250
+   ordinary confirmations would otherwise blink after every press) — while a
+   refresh that finds the same three messages redraws pixel-for-pixel identical
+   pixels. Two correct buttons, indistinguishable from two dead ones.
+
+   So each one now: goes busy while it works, and answers with 'ok' when it is
+   done. The refusal path is unchanged and still lands in the drawer's foot,
+   which is where this page puts a refusal. */
 function stWireOutbox(){
   stLoadOutbox();
-  document.getElementById('ob-refresh')?.addEventListener('click',()=>stLoadOutbox());
-  document.getElementById('rem-run')?.addEventListener('click',async()=>{
-    try{ const r=await api('reminders/run','POST',{}); toast(i18tn('set_checked_queued',r.queued,{checked:r.checked,n:r.queued})); stLoadOutbox(); }
+  const busy=(btn,word,fn)=>async()=>{
+    const held=btn.innerHTML;
+    btn.disabled=true; btn.innerHTML=esc(i18t(word));
+    try{ await fn(); } finally { btn.disabled=false; btn.innerHTML=held; }
+  };
+  const ob=document.getElementById('ob-refresh');
+  ob?.addEventListener('click',busy(ob,'set_outbox_refreshing',async()=>{
+    const r=await stLoadOutbox();
+    if(!r||r.ok===false){ stDrawerRefuse(i18t('set_outbox_unreadable',{why:(r&&r.why)||''})); return; }
+    toast(i18tn('set_outbox_refreshed',r.n,{n:r.n}),'ok');
+  }));
+  const rr=document.getElementById('rem-run');
+  rr?.addEventListener('click',busy(rr,'set_reminders_checking',async()=>{
+    try{ const r=await api('reminders/run','POST',{});
+      toast(i18tn('set_checked_queued',r.queued,{checked:r.checked,n:r.queued}),'ok');
+      await stLoadOutbox(); }
     catch(e){ stDrawerRefuse(e.message); }
-  });
+  }));
 }
 
 /* ---- the monthly report card ----

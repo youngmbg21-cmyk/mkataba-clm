@@ -1321,9 +1321,72 @@
      980px, where two columns would leave the signature boxes too narrow to
      hold a drawn mark. */
   /* ---- KEY TERMS: THE FACTS, AND WHAT THEY COMMIT YOU TO ---- */
-  .terms-grid{ display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);
-    gap:14px; max-width:1040px; width:100%; margin:0 auto; }
-  @media (max-width:980px){ .terms-grid{ grid-template-columns:1fr; max-width:640px; } }
+  /* ---- THE TWO CARDS HAVE A DIVIDER BETWEEN THEM (owner-asked, 19 Aug 2026)
+     ----
+     "Keep the size of the card on the left intact and next changes the size.
+     Add a divider between the two cards so that you can scroll on the right
+     hand side especially when you can ran a renewal reason."
+
+     THREE TRACKS, NOT TWO: card · handle · card. The split is set by dragging,
+     in pixels written by ktFitSplit, exactly as the negotiation page's divider
+     writes its own two columns — one mechanism in this product, not two. The
+     fr values below are the fallback the layout holds before any measurement
+     and after a stack, so a stage that never measures still draws the old
+     proportions.
+
+     THE RIGHT-HAND COLUMN SCROLLS INSIDE ITSELF, which is the half of the ask
+     that is not about width: a tall card there — a renewal reasoning that runs
+     to a dozen lines — used to grow the row and run off the bottom of the
+     window. And the LEFT card is back to its own height (align-self:start),
+     reversing the "the two cards square off" rule for this grid: squaring off
+     was right when both cards were short lists, and it is what would stretch
+     Key terms to the height of whatever the right-hand card has to say. */
+  .terms-grid{ display:grid;
+    grid-template-columns:minmax(0,1.15fr) var(--kt-gap,14px) minmax(0,1fr);
+    gap:0; max-width:1040px; width:100%; margin:0 auto;
+    /* A DEFINITE HEIGHT IS WHAT MAKES THE RIGHT COLUMN SCROLL. The pane is a
+       flex column; taking its height (flex:1, min-height:0) gives the grid a
+       bound to scroll inside instead of a height derived from its own tallest
+       card — which is the height a long renewal card would have grown without
+       limit. If the LEFT card outgrows that bound the pane scrolls, as it
+       always did. */
+    flex:1; min-height:0; }
+  .terms-grid > *:first-child{ align-self:start; }
+  .terms-grid #kt-side{ align-self:stretch; min-height:0; overflow-y:auto;
+    overscroll-behavior:contain; }
+  /* THE COLUMN TAKES THE HEIGHT; THE CARD IN IT TAKES ITS CONTENT. Measured on
+     the real page: with the card stretched as well, a short Agreement family
+     card became a floor-to-ceiling box with a paragraph at the top of it. The
+     COLUMN is what has to be tall — that is what gives a long card somewhere to
+     scroll — and the card sizing to its own content is what keeps a short one
+     looking finished. The .kt-side-card rules below (a flex column whose list
+     scrolls) are untouched and still do their job inside whatever height the
+     card ends up with. */
+  .terms-grid #kt-side > .kt-side-card{ flex:0 1 auto; }
+  /* The handle sits IN the gap it is dividing: it is the whole middle track, so
+     there is no separate gutter to keep in step with it. Its grab area is the
+     track's full width and the line it draws is 1px in the middle of that. */
+  .kt-resizer{ position:relative; cursor:col-resize; align-self:stretch;
+    background:none; border:0; padding:0; touch-action:none; }
+  .kt-resizer::before{ content:''; position:absolute; top:2px; bottom:2px;
+    left:50%; width:1px; margin-left:-0.5px; background:var(--color-divider);
+    border-radius:1px; transition:background .12s, width .12s; }
+  .kt-resizer:hover::before,.kt-resizer:focus-visible::before,
+  .kt-resizer[data-drag]::before{ background:var(--color-accent); width:3px; margin-left:-1.5px; }
+  .kt-resizer:focus-visible{ outline:2px solid var(--color-accent); outline-offset:-2px; }
+  /* AND IT SAYS WHEN IT WILL NOT GO FURTHER — the negotiation divider's own
+     rule: a splitter that stops following the cursor in silence reads as
+     broken exactly when somebody is pushing hardest at it. */
+  .kt-resizer[data-kt-at-limit]::before{ background:var(--st-amber-dot,#f59e0b); width:3px; margin-left:-1.5px; }
+  @media (max-width:980px){
+    /* Stacked: one column, no divider, and the pane scrolls as one page again —
+       there is no split to set and no second column to scroll inside. */
+    .terms-grid{ grid-template-columns:1fr !important; max-width:640px; gap:14px;
+      flex:0 0 auto; }
+    .terms-grid > *:first-child{ align-self:stretch; }
+    .terms-grid #kt-side{ overflow-y:visible; align-self:stretch; }
+    .kt-resizer{ display:none; }
+  }
   /* ---- A SUMMARY THAT BECOMES A FORM ONE ROW AT A TIME ----
      Values read as values. The row lights faintly on hover to say it can be
      changed, and only the row you press turns into a field. */
@@ -1380,12 +1443,17 @@
      The cap is on the ROWS so the head and the two buttons stay put. 322px is
      four rows and the top of a fifth: a list that ends flush at its boundary
      looks finished, and one that is visibly cut mid-row says "keep going". */
-  /* Key terms and the card beside it square off — see renderKeyTermsSide. The
-     card fills the column it was given; the list inside it takes whatever is
-     left after the head and the buttons, and scrolls. Since 14 Aug 2026 the
-     card in that slot is Agreement family, and .fam-list below is its .ob-list:
-     the same rule, so the two cards go on squaring off whichever is in there. */
-  .terms-grid{ align-items:stretch; }
+  /* ---- THE TWO CARDS NO LONGER SQUARE OFF, AND THAT IS A REVERSAL ----
+     (owner-asked 19 Aug 2026: "keep the size of the card on the left intact".)
+     They were stretched to a common height so neither half of the screen ended
+     in mid-air. That was right while the right-hand slot held a short list; it
+     is wrong now that it can hold a paragraph of renewal reasoning, because the
+     card that grows would drag Key terms up with it. The RIGHT-hand column
+     stretches and scrolls inside itself (see .terms-grid above), and the left
+     card is its own height again.
+     The .kt-side-card rules below are unchanged and still do their own job:
+     the card fills the column it was given and the list inside it scrolls. */
+  .terms-grid{ align-items:start; }
   .kt-side-card{ display:flex; flex-direction:column; min-height:0; flex:1; }
   .kt-side-card > div{ display:flex; flex-direction:column; min-height:0; flex:1; }
   .ob-list{ flex:1; min-height:120px; max-height:322px; overflow-y:auto; padding-right:4px; }
@@ -2890,9 +2958,17 @@
       <div class="nav-section" data-section="settings">
         <button class="nav-section-head" data-section-toggle="settings" aria-expanded="false"><span data-i18n="nav_administration">Administration</span><span class="nav-plus"></span></button>
         <div class="nav-section-body">
+          <!-- ITS OWN SYMBOL (owner-reported 19 Aug 2026, off a screenshot with
+               both rows ringed: "we need a differentiation in the symbols").
+               This drew the IDENTICAL people mark that People wears two rows
+               above — same path data, same everything — so the menu answered
+               "who is in this workspace" and "the rules this workspace runs on"
+               with one picture. Sliders: the mark every product uses for
+               settings, and nothing else in this menu wears it. People keeps
+               the people. -->
           <button data-view="team" class="nav-item" title="Team" data-i18n-title="nav_team_title">
             <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="7.5" r="3.7"/><path d="M9 12.6c-3.6 0-6.6 2-6.6 4.6v2.3a1 1 0 0 0 1 1h11.2a1 1 0 0 0 1-1v-2.3c0-2.6-3-4.6-6.6-4.6Z"/><circle cx="17.6" cy="8.6" r="2.8"/><path d="M17.6 13c-1 0-2 .2-2.8.6 1.3 1.1 2.1 2.6 2.1 4.3v2.6h4.1a1 1 0 0 0 1-1v-2c0-2.2-2-4.5-4.4-4.5Z"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6.5h9"/><path d="M17.5 6.5H20"/><circle cx="15.2" cy="6.5" r="2.3" fill="currentColor" stroke="none"/><path d="M4 17.5h5"/><path d="M13.5 17.5H20"/><circle cx="11.2" cy="17.5" r="2.3" fill="currentColor" stroke="none"/><path d="M4 12h3.5"/><path d="M12 12h8"/><circle cx="9.7" cy="12" r="2.3" fill="currentColor" stroke="none"/></svg>
             <span style="flex:1;" data-i18n="nav_settings_rules">Settings &amp; Rules</span><span class="nav-count" data-count="team"></span>
           </button>
           <!-- Our standards — the clause library and the negotiation playbook

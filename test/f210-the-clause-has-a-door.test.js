@@ -569,17 +569,22 @@ describe('f210 (11) — the editing is in the panel', () => {
     const p = await bench();
     const box = page(p);
     const b = bodies(box)[0];
-    /* REVERSED IN PLACE, 16 Aug 2026: this used to require TWO buttons, the ＋
-       and a Copilot. The Copilot is a SIGNAL here now, not a control — owner-
-       asked, "delete the edit with copilot feature but leave the words … in
-       purple without a pill around it. This is to signal that the feature is
-       available where you can highlight". One button, one label. */
+    /* REVERSED IN PLACE AGAIN, 19 Aug 2026. On 16 Aug this required ONE button:
+       the Copilot had become plain violet WORDS, on the reasoning that a door
+       and a label twelve pixels apart was the door doing the label's job badly.
+       The owner has now asked for the button back — "change 'edit with copilot'
+       to be a button which if clicked, it takes you to copilot and you can edit
+       the entire clause" — and the ground under the old reasoning has moved
+       with it: the paper's highlight menu is OFF on this seat, so the words
+       named the only Copilot route on the page and it was one nobody could see.
+       TWO buttons, and Direct Edit is still not one of them. */
     const acts = [...b.querySelectorAll('.rl-cp-acts button')];
-    assert.equal(acts.length, 1, 'the ＋, and nothing else pressable');
-    assert.ok(acts[0].hasAttribute('data-rl-cp-edit'), 'the ＋ is it');
-    assert.ok(b.querySelector('.rl-cp-ai-note'), 'and the Copilot is words, not a button');
-    assert.equal(b.querySelector('.rl-cp-acts [data-nego-ai-clause]'), null,
-      'nothing in the panel presses the Copilot any more');
+    assert.equal(acts.length, 2, 'the ＋ and the Copilot, and nothing else');
+    assert.ok(acts[0].hasAttribute('data-rl-cp-edit'), 'the ＋ leads');
+    assert.ok(acts[1].hasAttribute('data-nego-ai-clause'),
+      'and the Copilot beside it hands the whole clause over');
+    assert.equal(b.querySelector('.rl-cp-ai-note'), null,
+      'the words-without-a-pill are retired, not left beside their own button');
     assert.equal(b.querySelector('.rl-cp-acts [data-nego-edit]'), null,
       'Direct Edit is not in the panel');
     /* REVERSED IN PLACE, 16 Aug 2026 (same day, later report). This used to
@@ -681,26 +686,28 @@ describe('f210 (11) — the editing is in the panel', () => {
 });
 
 describe('f210 (12) — the Copilot', () => {
-  test('the panel keeps the WORDS "Edit with Copilot", and nothing to press',
+  test('"Edit with Copilot" is a BUTTON, and it hands over the whole clause',
     async () => {
-    /* REVERSED IN PLACE, 16 Aug 2026. It was a button, kept on the owner's own
-       "Also keep the edit with copilot button". They have since asked for the
-       button to go and the words to stay, in purple, with no pill: a SIGNAL
-       that the feature exists on a highlight rather than a second door to it.
+    /* REVERSED IN PLACE, 19 Aug 2026, back to what it asserted before 16 Aug —
+       and the reversal is the owner's, in these words: "change 'edit with
+       copilot' to be a button which if clicked, it takes you to copilot and you
+       can edit the entire clause."
 
-       THE WORDS ARE A PROMISE, so they are pinned together with the route that
-       keeps it — if the highlight ever stops offering the Copilot, this label
-       is the page lying. */
+       THE TWO ROUTES ARE DIFFERENT SIZES and that is why both are pinned here:
+       this button hands the WHOLE clause over, the highlight inside the panel's
+       editor hands ONE SENTENCE. The second is still a legal pane, asserted
+       below, so the hint line under these buttons stays a promise the page
+       keeps. */
     const p = await bench();
-    const note = page(p).querySelector('.rl-cp-acts .rl-cp-ai-note');
-    assert.ok(note, 'the words are there');
-    assert.match(note.textContent, /Edit with Copilot/);
-    assert.equal(note.tagName, 'SPAN', 'not a button');
-    assert.equal(note.getAttribute('data-nego-ai-clause'), null, 'and it presses nothing');
-    assert.match(SRC, /\.redline-page \.rl-cp-ai-note\{[^}]*cursor:default/,
-      'and it does not even look pressable');
+    const btn = page(p).querySelector('.rl-cp-acts [data-nego-ai-clause]');
+    assert.ok(btn, 'the button is there');
+    assert.match(btn.textContent, /Edit with Copilot/);
+    assert.equal(btn.tagName, 'BUTTON', 'pressable, not a caption');
+    assert.ok(btn.hasAttribute('data-rl-cp-ai'), 'marked as the panel\'s own Copilot door');
+    assert.equal(page(p).querySelector('.rl-cp-ai-note'), null,
+      'and the retired words-only signal is not drawn beside it');
     assert.match(SRC, /'\.rl-cp-src \[data-nego-editor\]'/,
-      'while the highlight route it names is still a legal pane');
+      'while the highlight route the hint names is still a legal pane');
   });
 
   test('a highlight inside the panel\'s editor is a legal selection', async () => {

@@ -3223,6 +3223,18 @@ const STRINGS = {
     set_why_failed: 'Why it failed: {why}',
     set_checked_queued_one: 'Checked {checked} contracts — {n} reminder queued',
     set_checked_queued_other: 'Checked {checked} contracts — {n} reminders queued',
+    /* THE TWO BUTTONS ON THE OUTBOX PANEL SAY WHAT THEY DID (owner-reported
+       19 Aug 2026: "the highlighted buttons are not working"). They were
+       working; they were silent — the confirmation was a bare toast call,
+       which this product answers with nothing on purpose, and a refresh of an
+       unchanged list looks identical to a dead press. */
+    ct_kt_split: 'Resize the two cards',
+    ct_kt_split_title: 'Drag to give one card more room — double-click to put the split back',
+    set_outbox_refreshed_one: 'Outbox refreshed — {n} message',
+    set_outbox_refreshed_other: 'Outbox refreshed — {n} messages',
+    set_outbox_refreshing: 'Refreshing…',
+    set_outbox_unreadable: 'The outbox could not be read: {why}',
+    set_reminders_checking: 'Checking…',
     set_sidebar_all_on: 'Sidebar shows everything',
     set_sidebar_all_off: 'Sidebar grows with the portfolio again',
     set_configured: '● Configured',
@@ -7100,6 +7112,13 @@ const STRINGS = {
     set_why_failed: 'Varför det misslyckades: {why}',
     set_checked_queued_one: 'Kontrollerade {checked} avtal — {n} påminnelse köad',
     set_checked_queued_other: 'Kontrollerade {checked} avtal — {n} påminnelser köade',
+    ct_kt_split: 'Ändra storlek på de två korten',
+    ct_kt_split_title: 'Dra för att ge ett kort mer plats — dubbelklicka för att återställa',
+    set_outbox_refreshed_one: 'Utkorgen uppdaterad — {n} meddelande',
+    set_outbox_refreshed_other: 'Utkorgen uppdaterad — {n} meddelanden',
+    set_outbox_refreshing: 'Uppdaterar…',
+    set_outbox_unreadable: 'Utkorgen kunde inte läsas: {why}',
+    set_reminders_checking: 'Kontrollerar…',
     set_sidebar_all_on: 'Sidomenyn visar allt',
     set_sidebar_all_off: 'Sidomenyn växer med beståndet igen',
     set_configured: '● Konfigurerad',
