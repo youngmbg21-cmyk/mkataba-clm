@@ -298,10 +298,80 @@ const jxNamesHome = s => {
    One formatter, reading the pack. Both shapes kept because the short one is
    what fits in a KPI tile and the long one is what belongs in a sentence. */
 const fmtMoney = n => `${jxCurrency()} ` + Number(n || 0).toLocaleString(jxLocale());
-const fmtMoneyShort = n => { n = Number(n || 0); const c = jxCurrency();
+const fmtMoneyShortIn = (n, code) => { n = Number(n || 0); const c = code || jxCurrency();
   if (n >= 1e6) return `${c} ` + (n / 1e6).toFixed(2).replace(/\.00$/, '') + 'M';
   if (n >= 1e3) return `${c} ` + (n / 1e3).toFixed(0) + 'K';
   return `${c} ` + n; };
+const fmtMoneyShort = n => fmtMoneyShortIn(n, jxCurrency());
+
+/* ---- MONEY IN ITS OWN CURRENCY (W2-1, WORKORDER-gap-map.md) ----
+   Owner-ruled 19 Aug 2026: REPORTING converts to the workspace currency so
+   dashboards and reports carry one figure; a contract's own page still
+   states its own currency beside its amount. THE ARITHMETIC LIVES HERE ONCE
+   and both hosts run it — the browser reads rates off the bootstrap
+   settings, the server injects its own readers at boot (fxSetRatesReader /
+   fxSetHomeReader) — because a client/server twin of a money formula is the
+   recorded defect class. Stored values are NEVER rewritten. A currency with
+   NO RATE ON FILE is never guessed: its contracts are LEFT OUT of converted
+   figures and the leaving-out is said beside the number (fxMissing is what
+   the surfaces print — a silent trim is the fault the insights panels were
+   rebuilt to stop). */
+let FX_RATES_READ = () => { try { return (state && state.settings && state.settings.fxRates) || {}; } catch (_) { return {}; } };
+let FX_HOME_READ = () => jxCurrency();
+const fxSetRatesReader = fn => { if (typeof fn === 'function') FX_RATES_READ = fn; };
+const fxSetHomeReader = fn => { if (typeof fn === 'function') FX_HOME_READ = fn; };
+const fxHomeCode = () => { try { return FX_HOME_READ() || jxCurrency(); } catch (_) { return jxCurrency(); } };
+/* The record wins where it said something readable; anything else — blank,
+   prose, a typo — falls back to the workspace currency, which is exactly
+   yesterday's behaviour, so no existing book moves. */
+const contractCurrency = c => {
+  const raw = String((c && c.metadata && c.metadata.currency) || '').trim().toUpperCase();
+  return /^[A-Z]{3}$/.test(raw) ? raw : fxHomeCode();
+};
+const fxIsForeign = c => contractCurrency(c) !== fxHomeCode();
+const fxRateFor = code => {
+  const r = (FX_RATES_READ() || {})[String(code || '').toUpperCase()];
+  const n = r && Number(r.rate);
+  return n > 0 ? { rate: n, at: r.at || null } : null;
+};
+/* THE ONE CONVERSION — a contract's value in the workspace currency.
+   missing:true means a foreign currency with no rate on file: the caller
+   leaves it out and says so, never guesses. */
+function fxHome(c) {
+  const v = Number((c && c.value) || 0);
+  const code = contractCurrency(c);
+  if (code === fxHomeCode()) return { v, code, converted: false, missing: false };
+  const r = fxRateFor(code);
+  if (!r) return { v: 0, code, converted: false, missing: true };
+  return { v: Math.round(v * r.rate), code, converted: true, missing: false, rate: r.rate, at: r.at };
+}
+const fxHomeValue = c => fxHome(c).v;
+/* What the converted figures LEFT OUT — {code: count} over valued, live,
+   unarchived contracts. */
+function fxMissing(list) {
+  let cs = list;
+  if (!cs) { try { cs = (state && state.contracts) || []; } catch (_) { cs = []; } }
+  const out = {};
+  for (const c of cs) {
+    if (!c || c.status === 'Declined' || c.archived || !(Number(c.value || 0) > 0)) continue;
+    const h = fxHome(c);
+    if (h.missing) out[h.code] = (out[h.code] || 0) + 1;
+  }
+  return out;
+}
+const fxMissingLine = list => {
+  const m = fxMissing(list);
+  return Object.keys(m).sort().map(k => `${m[k]} × ${k}`).join(' · ');
+};
+// the per-contract print: the amount in the contract's OWN currency
+const fmtMoneyOf = c => `${contractCurrency(c)} ` + Number((c && c.value) || 0).toLocaleString(jxLocale());
+/* THE SAME ANSWER IN THE COMPACT FORM a table cell holds. The long print got
+   the rule on the day W2-1 shipped and every SHORT print was left stating the
+   workspace currency over a foreign amount — so a register row read
+   "KES 420K" over a contract written in euros, which is the exact untruth
+   W2-1 exists to stop. The row states what the paper says; the aggregate
+   under it still converts. */
+const fmtMoneyShortOf = c => fmtMoneyShortIn(Number((c && c.value) || 0), contractCurrency(c));
 
 const JX_API = { JURISDICTIONS, JX_DEFAULT, JX_LS, JX_OTHER_SEATS,
   jx, jxId, jxIs, jxSet, jxList, jxPack, jxLaw, jxAdjective, jxName, jxCurrency, jxLocale,
@@ -309,7 +379,9 @@ const JX_API = { JURISDICTIONS, JX_DEFAULT, JX_LS, JX_OTHER_SEATS,
   jxPlaybookLabel, jxPreferredLaw, jxFallbackLaw, jxForeignMarkers, jxNamesHome,
   jxIncorporatedIn, jxTaxAuthority, jxFoodSafetyRegulator, jxProfessionalBodies,
   jxLandStatute, jxLandForum, jxEg, jxTaxIdField, jxGovernedBy, jxGovernedByArb, jxLeaseLaw,
-  fmtMoney, fmtMoneyShort };
+  fmtMoney, fmtMoneyShort, fmtMoneyShortIn,
+  fxSetRatesReader, fxSetHomeReader, fxHomeCode, contractCurrency, fxIsForeign,
+  fxRateFor, fxHome, fxHomeValue, fxMissing, fxMissingLine, fmtMoneyOf, fmtMoneyShortOf };
 /* Two hosts, one table. The browser gets globals like every other module here;
    server/server.js is a plain Node process with no window, and requires it. */
 if (typeof window !== 'undefined') Object.assign(window, JX_API);

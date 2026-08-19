@@ -25,7 +25,9 @@ const FOLDER_SORTS=[
 function folderFiltered(){
   const f=FOLDERS[state.folderId]; if(!f) return [];
   const q=(state.folderQuery||'').trim().toLowerCase();
-  let cs=folderContracts(f.id);
+  // the stream drawer is a daily list, so the shelf stays off it (WO-5);
+  // the Archived view on the Contracts page is the one way back in
+  let cs=folderContracts(f.id).filter(c=>!c.archived);
   if(q) cs=cs.filter(c=>(c.name+' '+(c.counterparty||'')+' '+c.id).toLowerCase().includes(q));
   let sort=state.folderSort||'updated';
   // a stored "sort by value" preference is meaningless without the right
@@ -42,7 +44,7 @@ function renderFolder(){
   if(!f){ setView('dashboard'); return; }
   state.folderShown=FOLDER_PAGE; state.folderSel={};   // fresh selection on entry
   const cs=folderFiltered();
-  const val=cs.filter(c=>c.status!=='Declined').reduce((s,c)=>s+Number(c.value||0),0);
+  const val=cs.filter(c=>c.status!=='Declined').reduce((s,c)=>s+(window.fxHomeValue?fxHomeValue(c):Number(c.value||0)),0);
   const sortOpts=visibleSorts(FOLDER_SORTS).map(s=>`<option value="${s.k}" ${(state.folderSort||'updated')===s.k?'selected':''}>${s.label}</option>`).join('');
 
   /* A select left on `appearance:auto` is drawn by the platform, and the
@@ -180,7 +182,7 @@ function folderRowsHtml(cs){
         </span>
       </div></td>
       <td style="font-size:11.5px;color:var(--color-neutral-700);white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:6px">${icon(cIcon(c),'w-4 h-4')}${cKind(c)}</span>${scan}</td>
-      <td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:500;white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}" ${!isMonetary(c)?`title="${i18t('reg_non_monetary')}"`:''}>${!isMonetary(c)?'n/m':(c.value?fmtMoneyShort(c.value):'—')}</td>
+      <td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:500;white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}" ${!isMonetary(c)?`title="${i18t('reg_non_monetary')}"`:''}>${!isMonetary(c)?'n/m':(c.value?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):'—')}</td>
       <td style="font-size:11.5px;font-variant-numeric:tabular-nums;white-space:nowrap">${folderExpiryCell(c)}</td>
       <td style="font-size:11px;color:var(--color-neutral-600);white-space:nowrap">${c.lastAction||'—'}</td>
       ${''/* Same split as the register: the link mark to its own column, the
@@ -270,6 +272,7 @@ const REG_VIEWS=[
   {k:'expired',    get label(){ return i18t('reg_term_ended'); }},
   {k:'autosoon',   get label(){ return i18t('reg_auto_renew'); }},
   {k:'overdueob',  get label(){ return i18t('reg_overdue_obligations'); }},
+  {k:'archived',   get label(){ return i18t('reg_view_archived'); }},
 ];
 /* ---- WHICH PAGE THIS TABLE IS ON (added 2026-08-12) ----
    The register's machinery — its filters, its row builder, its body renderer,
@@ -453,6 +456,14 @@ function regFiltered(){
   /* Then, because it is not a question about a contract but a set somebody
      else chose — everything below narrows WITHIN it. */
   if(R.only&&Array.isArray(R.only.ids)){ const keep=new Set(R.only.ids); cs=cs.filter(c=>keep.has(c.id)); }
+  /* ---- THE ARCHIVE SHELF (WO-5): filed away, not deleted ----
+     Archived contracts leave every default list and come back under exactly
+     ONE view, where they are all that shows. It lives with the views because
+     "show me the shelf" is a way of looking, not a stage — an archived
+     Signed contract is still Signed. Search (FTS and the palette) still
+     finds them, which is the difference between filing and deleting. */
+  if(R.view==='archived') cs=cs.filter(c=>!!c.archived);
+  else cs=cs.filter(c=>!c.archived);
   // 'awaiting' is a virtual stage = contracts out with a counterparty and not yet
   // signed (a live share in 'sent' or 'opened'), matching the dashboard KPI. It
   // reads the dispatch state, not the status column. Real status pills fall
@@ -531,6 +542,10 @@ const REG_ROW_ACTIONS=[
   {k:'scan',   ic:'sparkle',   get label(){ return i18t('reg_run_scan'); }},
   {k:'pdf',    ic:'printer',   get label(){ return i18t('reg_export_pdf'); }},
   {k:'decline',ic:'ban',       get label(){ return i18t('reg_decline_close'); }, ruby:true},
+  /* the archive shelf (WO-5): reversible filing, editor-and-up — the same
+     level as re-filing between streams, and audited the same way */
+  {k:'archive', ic:'folder',  get label(){ return i18t('reg_archive'); }, when:c=>!c.archived&&(typeof canEdit!=='function'||canEdit())},
+  {k:'restore', ic:'history', get label(){ return i18t('reg_restore'); }, when:c=>!!c.archived&&(typeof canEdit!=='function'||canEdit())},
   // permanent delete — only offered while a contract is still a draft or in review
   {k:'delete', ic:'trash',     get label(){ return i18t('reg_delete_permanently'); }, ruby:true, when:c=>c.status==='Draft'||c.status==='Under Review'},
 ];
@@ -656,7 +671,7 @@ function regRowsHtml(cs){
     const renUrgent=din!=null&&din<30, renSoon=din!=null&&din>=30&&din<=90;
     const renColor=din==null?'transparent':(renUrgent?'var(--st-ruby-fg)':renSoon?'var(--st-amber-fg)':'var(--color-neutral-500)');
     const renDateColor=renUrgent?'var(--st-ruby-fg)':renSoon?'var(--st-amber-fg)':'var(--color-neutral-700)';
-    const val=!isMonetary(c)?'n/m':(c.value?fmtMoneyShort(c.value):'—');
+    const val=!isMonetary(c)?'n/m':(c.value?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):'—');
     /* The band header for the group this row opens, drawn once, ahead of it. */
     let band='';
     if(neg && c._ngBand!==lastBand){ band=bandsBefore(c._ngBand); lastBand=c._ngBand; }
@@ -696,7 +711,8 @@ function regRowsHtml(cs){
        the trailing ones are only reachable here, after the last row. */
     + bandsAfter();
 }
-function regAggregate(cs){ return cs.filter(c=>c.status!=='Declined'&&isMonetary(c)).reduce((s,c)=>s+Number(c.value||0),0); }
+// W2-1: converted to the workspace currency, so one column total is one currency
+function regAggregate(cs){ return cs.filter(c=>c.status!=='Declined'&&!c.archived&&isMonetary(c)).reduce((s,c)=>s+(window.fxHomeValue?fxHomeValue(c):Number(c.value||0)),0); }
 function renderRegisterBody(){
   const cs=regFiltered();
   /* The stagger intro belongs to arriving at the page; this body re-renders on
@@ -731,6 +747,9 @@ function wireRegRows(){
     if(act==='open') openWorkspace(id);
     else if(act==='share') openShareModal(c);
     else if(act==='scan') runScanFor(c);
+    else if(act==='archive'||act==='restore'){
+      if(window.contractSetArchived) contractSetArchived(c,act==='archive').then(ok=>{ if(ok) regRepaint(); });
+    }
     else if(act==='delete') deleteContract(id).then(ok=>{ if(ok){
       /* The reader was three pages down when they pressed Delete; the row goes,
          the place stays. renderRegister() rebuilds the whole view and hard-resets

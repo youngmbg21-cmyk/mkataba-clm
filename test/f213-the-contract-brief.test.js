@@ -1,0 +1,298 @@
+/* ============================================================
+   F213 — the Contract Brief (WO-2, the gap-map order)
+   ============================================================
+   One press → a plain-English cover memo of the whole contract. The rules
+   this file pins, each of which is a decision and not an accident:
+
+   - GENERATION is editor-and-up (it spends Copilot money); a Viewer is
+     refused in words. READING rides GET /api/contracts/:id as `_brief`.
+   - THE CACHE IS THE WORDING'S: keyed on a hash of exactly the text that was
+     read, so an unchanged contract is paid for once (no second provider
+     call), a changed one regenerates, and `force` is the human's Rewrite.
+   - THE CACHE LIVES IN ITS OWN TABLE. A forged `_brief` sent through PUT is
+     ignored — the table, not the record, answers; and the record's version
+     never moves when a brief is written.
+   - MONEY IS MASKED for a reader without canViewValues — the same rule the
+     FTS snippets follow — while the rest of the brief still travels to them.
+   - THE BRIEF NEVER TRAVELS to the counterparty: the share route strips it
+     even from a hand-built payload, so the wall does not depend on the
+     client being polite.
+   - Scope is scope: a contract the caller cannot see answers 404, exactly
+     like every other contract route.
+
+   The provider is the scripted stand-in — exact content in, no live calls. */
+const { test, describe, before, after } = require('node:test');
+const assert = require('node:assert/strict');
+const { startHati, startScriptedAi, seedWorkspace } = require('./helpers');
+
+const LONG_TEXT = ('This agreement is made between Highland Corporate Ltd and Savannah Consumer '
+  + 'Goods Limited for chilled distribution services across the named counties, '
+  + 'with service levels, delivery windows and cold-chain custody obligations set out below. ').repeat(3);
+
+const BRIEF_ONE = {
+  overview: 'Highland provides chilled distribution to Savannah for two years with strict cold-chain duties.',
+  term: { start: '1 September 2026', end: '31 August 2028', notice: '60 days before renewal' },
+  money: { value: 'KES 1,200,000 per year', paymentTerms: '30 days from invoice' },
+  watchouts: [{ point: 'Liability is capped at three months of fees.', quote: 'liability shall not exceed' }],
+  unusual: ['The buyer may audit the warehouse without notice.'],
+};
+const BRIEF_TWO = { ...BRIEF_ONE, overview: 'Rewritten after the wording moved: now a three-year term.' };
+const tu = input => [{ type: 'tool_use', id: 'tu_brief', name: 'contract_brief', input }];
+
+describe('F213 — the Contract Brief', () => {
+  let ai, h, W, viewer;
+
+  before(async () => {
+    ai = await startScriptedAi();
+    h = await startHati({ ANTHROPIC_BASE_URL: ai.base });
+    W = await seedWorkspace(h);
+    await W.admin.json('/api/users', { method: 'POST', body: {
+      name: 'Read Only', email: 'viewer@example.co.ke', role: 'viewer', password: 'temporary-pass-1' } });
+    viewer = h.client('viewer');
+    await viewer.json('/api/login', { method: 'POST', body: { email: 'viewer@example.co.ke', password: 'temporary-pass-1' } });
+  });
+  after(async () => { await h.stop(); await ai.stop(); });
+
+  test('an editor writes the brief and it comes back structured, named and dated', async () => {
+    ai.script(tu(BRIEF_ONE));
+    const calls0 = ai.calls.length;
+    const r = await W.unrestricted.json('/api/ai/brief', { method: 'POST', body: { id: 'MK-A1', text: LONG_TEXT } });
+    assert.equal(ai.calls.length, calls0 + 1, 'one provider call');
+    assert.equal(r.brief.data.overview, BRIEF_ONE.overview);
+    assert.equal(r.brief.by, 'Unrestricted Legal', 'the brief names who asked for it');
+    assert.ok(r.brief.at, 'and when');
+    assert.ok(r.brief.inputHash, 'and what wording it was read from');
+  });
+
+  test('the cached brief rides GET /api/contracts/:id as _brief — with money for those who may see it', async () => {
+    const c = await W.admin.json('/api/contracts/MK-A1');
+    assert.ok(c._brief, 'the brief travels as transport on the full record');
+    assert.equal(c._brief.data.overview, BRIEF_ONE.overview);
+    assert.equal(c._brief.data.money.value, 'KES 1,200,000 per year');
+  });
+
+  test('a reader without canViewValues gets the brief with the money section removed', async () => {
+    const c = await W.novalues.json('/api/contracts/MK-A1');
+    assert.ok(c._brief, 'the brief itself still travels — it is a reading aid, not a money field');
+    assert.equal(c._brief.data.money, undefined, 'but the money section does not');
+    assert.equal(c._brief.data.overview, BRIEF_ONE.overview, 'the rest is intact');
+  });
+
+  test('the same wording is paid for once — a second press is a cache hit, not a provider call', async () => {
+    const calls0 = ai.calls.length;
+    const r = await W.unrestricted.json('/api/ai/brief', { method: 'POST', body: { id: 'MK-A1', text: LONG_TEXT } });
+    assert.equal(r.cached, true);
+    assert.equal(r.brief.data.overview, BRIEF_ONE.overview);
+    assert.equal(ai.calls.length, calls0, 'no second provider call for unchanged wording');
+  });
+
+  test('changed wording regenerates by itself; force is the human Rewrite on unchanged wording', async () => {
+    ai.script(tu(BRIEF_TWO));
+    const calls0 = ai.calls.length;
+    const r = await W.unrestricted.json('/api/ai/brief', { method: 'POST', body: { id: 'MK-A1', text: LONG_TEXT + ' The term is extended to three years.' } });
+    assert.equal(ai.calls.length, calls0 + 1, 'a different wording is a different brief');
+    assert.equal(r.brief.data.overview, BRIEF_TWO.overview);
+    const c = await W.admin.json('/api/contracts/MK-A1');
+    assert.equal(c._brief.data.overview, BRIEF_TWO.overview, 'and the ride-along follows the newest');
+  });
+
+  test('a Viewer is refused generation in words', async () => {
+    const r = await viewer.raw('/api/ai/brief', { method: 'POST', body: { id: 'MK-A1', text: LONG_TEXT } });
+    assert.equal(r.status, 403);
+    assert.match(r.text, /read-only/i);
+  });
+
+  test('a contract outside the caller\'s streams answers 404, like every contract route', async () => {
+    const r = await W.restricted.raw('/api/ai/brief', { method: 'POST', body: { id: 'MK-B1', text: LONG_TEXT } });
+    assert.equal(r.status, 404, 'out of scope reads exactly like "does not exist"');
+  });
+
+  test('a contract with no readable wording is refused rather than briefed from thin air', async () => {
+    await W.admin.json('/api/contracts/MK-BR-EMPTY', { method: 'PUT', body: { contract: {
+      id: 'MK-BR-EMPTY', name: 'Tiny', counterparty: 'X', status: 'Draft', fields: {}, metadata: {},
+      obligations: [], audit: [], rounds: [], versions: [], signatures: [], comments: [] } } });
+    const r = await W.admin.raw('/api/ai/brief', { method: 'POST', body: { id: 'MK-BR-EMPTY' } });
+    assert.equal(r.status, 400);
+    assert.match(r.text, /wording/i);
+  });
+
+  test('a forged _brief pushed through PUT is ignored — the table answers, not the record', async () => {
+    const c = await W.admin.json('/api/contracts/MK-A1');
+    const v = c._v; delete c._v;
+    c._brief = { v: 1, at: c.updatedAt, by: 'Forger', inputHash: 'x', data: { overview: 'FORGED OVERVIEW' } };
+    await W.admin.json('/api/contracts/MK-A1', { method: 'PUT', body: { contract: c, baseVersion: v } });
+    const again = await W.admin.json('/api/contracts/MK-A1');
+    assert.equal(again._brief.data.overview, BRIEF_TWO.overview, 'the stored table copy still answers');
+    assert.ok(!JSON.stringify(again).includes('FORGED OVERVIEW'), 'and the forgery is nowhere on the record');
+  });
+
+  test('the brief never travels on a share — even a hand-built payload is stripped', async () => {
+    const full = await W.admin.json('/api/contracts/MK-A1');
+    delete full._v;
+    const mk = await W.admin.json('/api/shares', { method: 'POST', body: {
+      payload: { kind: 'hati-share', purpose: 'view', org: 'Highland Corporate Ltd', contract: full },
+      recipient: { name: 'Outside Advisor', email: 'advisor@example.co.ke' },
+      channel: 'link', purpose: 'view' } });
+    const token = mk.token || (mk.link || '').split('share=')[1];
+    assert.ok(token, 'a view link was minted');
+    const pub = h.client('public');
+    const r = await pub.raw('/api/shares/' + encodeURIComponent(token.replace(/^t:/, '')));
+    assert.equal(r.status, 200);
+    assert.ok(!r.text.includes(BRIEF_TWO.overview),
+      'their copy must carry no trace of our internal reading of their paper');
+    assert.ok(!/"_brief"|"brief"\s*:/.test(r.text), 'not even as an empty field');
+  });
+
+  test('writing a brief never moves the record\'s version under an open editor', async () => {
+    const before = await W.admin.json('/api/contracts/MK-A2');
+    ai.script(tu(BRIEF_ONE));
+    await W.unrestricted.json('/api/ai/brief', { method: 'POST', body: { id: 'MK-A2', text: LONG_TEXT } });
+    const after2 = await W.admin.json('/api/contracts/MK-A2');
+    assert.equal(after2._v, before._v, 'the brief is not a save — nobody\'s open work gains a version conflict');
+    assert.ok(after2._brief, 'and yet the brief is there');
+  });
+});
+
+/* ============================================================
+   F213 — AND AN ADVISORY READ NEVER REPORTS A FAILED SAVE
+   ============================================================
+   Found 19 Aug 2026, photographing the panels against a signed contract: the
+   brief and the renewal advice both arrived and drew correctly, and both put
+   a red "Save failed: … negotiation cannot be changed after signature" over
+   the top of themselves.
+
+   Neither was saving the reading — that is cached in its own server table,
+   and the test above pins that it moves no version. What each was saving was
+   the courtesy AUDIT LINE on top of it. On an executed contract a save is
+   refused outright, and a room that has drawn a negotiation carries an
+   in-memory negotiation object the stored record has never had, so the
+   refusal was certain rather than occasional.
+
+   Signed paper is exactly what most needs explaining — the whole reason the
+   brief is allowed on it (WO-2) — so the READING stays and the audit line
+   stands down in the one state the record cannot take it. */
+describe('F213 — the audit line stands down where the record is sealed', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'ai.js'), 'utf8');
+
+  /* The function itself, lifted and run — the codebase's own way of testing a
+     browser function without standing up a whole shell. */
+  function lift() {
+    const i = src.indexOf('function aiNoteRead(');
+    assert.ok(i > 0, 'the one helper exists');
+    const body = src.slice(i, src.indexOf('\n}', i) + 2);
+    const calls = { audit: [], persist: [] };
+    const sandbox = {
+      window: {},
+      logAudit: (c, a, d) => calls.audit.push([c.id, a, d]),
+      persist: c => calls.persist.push(c.id),
+    };
+    sandbox.window.negoExecuted = c => !!(c && (c.status === 'Signed' || c.hash));
+    const fn = new Function('window', 'logAudit', 'persist',
+      body + '; return aiNoteRead;')(sandbox.window, sandbox.logAudit, sandbox.persist);
+    return { fn, calls };
+  }
+
+  test('a live contract still gains its audit line', () => {
+    const { fn, calls } = lift();
+    assert.equal(fn({ id: 'MK-1', status: 'Under Review' }, 'Brief', 'written'), true);
+    assert.deepEqual(calls.audit, [['MK-1', 'Brief', 'written']]);
+    assert.deepEqual(calls.persist, ['MK-1']);
+  });
+
+  test('an executed contract is read, and nothing is written to it', () => {
+    const { fn, calls } = lift();
+    assert.equal(fn({ id: 'MK-2', status: 'Signed' }, 'Brief', 'written'), false);
+    assert.equal(fn({ id: 'MK-3', status: 'Under Review', hash: 'abc' }, 'Renewal', 'renegotiate'), false,
+      'a sealed record is sealed whatever its status field says');
+    assert.deepEqual(calls.audit, [], 'no line');
+    assert.deepEqual(calls.persist, [], 'and above all no save to be refused');
+  });
+
+  test('both readings go through the one helper — neither saves on its own', () => {
+    for (const name of ['runContractBrief', 'runRenewalAdvice']) {
+      const i = src.indexOf('async function ' + name + '(');
+      assert.ok(i > 0, name + ' is there');
+      const body = src.slice(i, src.indexOf('\nfunction ', i + 10));
+      assert.match(body, /aiNoteRead\(/, name + ' notes the read through the helper');
+      assert.ok(!/\bpersist\(/.test(body), name + ' does not save the record itself');
+      assert.ok(!/\blogAudit\(/.test(body), name + ' does not write the trail itself');
+    }
+  });
+});
+
+/* ============================================================
+   F213 — AND THE PANEL SAYS WHERE TO LOOK TWICE
+   ============================================================
+   Owner-asked 19 Aug 2026: "very bland and boring". The brief was an even
+   wall of grey text — the figures a reader has to check sat in it with no
+   more weight than the words around them, and the model's own list of
+   clauses that bite was drawn as plain bullets.
+
+   THE MARKING IS DETERMINISTIC AND MARKS FACTS, NOT OPINIONS: a pass over
+   the finished text for money, periods, percentages and dates. No model
+   decides what is emphasised, so nothing can be talked up. And it ESCAPES
+   BEFORE IT MARKS — the input is the model's own text. */
+describe('F213 — the brief shows where to look', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'ai.js'), 'utf8');
+  const lift = () => {
+    const i = src.indexOf('const BR_MONTHS');
+    const j = src.indexOf('function renderBriefSection');
+    assert.ok(i > 0 && j > i);
+    const esc = x => String(x == null ? '' : x)
+      .replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
+    return new Function('_aiEsc', src.slice(i, j) + '; return briefMark;')(esc);
+  };
+
+  test('it marks the figures a reader has to check', () => {
+    const mark = lift();
+    for (const [text, want] of [
+      ['Invoices fall due within thirty (30) days.', 'thirty (30) days'],
+      ['and late payment carries 1.5% a month', '1.5%'],
+      ['The fee is KES 85,000,000 a year', 'KES 85,000,000'],
+      ['it runs to 30 November 2026', '30 November 2026'],
+      ['renews for 12 months unless', '12 months'],
+      ['payment terms are Net 60', 'Net 60'],
+    ]) assert.ok(mark(text).includes('<b class="br-fig">' + want + '</b>'), text);
+  });
+
+  test('and marks nothing that is not one', () => {
+    const mark = lift();
+    const plain = 'The Provider shall keep the goods chilled and provide logs.';
+    assert.equal(mark(plain), plain, 'ordinary prose comes back untouched');
+  });
+
+  test('it escapes before it marks — the text is the model\'s, not ours', () => {
+    const mark = lift();
+    const out = mark('<script>alert(1)</script> within 45 days');
+    assert.ok(!/<script/.test(out), 'no markup survives from the input');
+    assert.ok(out.includes('&lt;script&gt;'));
+    assert.ok(out.includes('<b class="br-fig">45 days</b>'), 'and the figure is still marked');
+  });
+
+  test('worth watching is drawn as a list of warnings, unusual as a note', () => {
+    assert.match(src, /br-watch\{background:var\(--st-amber-bg\)/, 'amber is the one that asks for attention');
+    assert.match(src, /br-odd\{background:var\(--st-gray-bg\)/, 'and "unusual" is grey — a note, not a second warning');
+    assert.match(src, /class="br-item br-watch"/);
+    assert.match(src, /class="br-quote"/, 'each warning still carries the wording it rests on');
+  });
+
+  test('the panel is a quarter wider for the brief, and only for the brief', () => {
+    const room = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'contract.js'), 'utf8');
+    assert.match(room, /const w = kind==='brief' \? '500px' : '400px'/,
+      '500 is 400 plus a quarter; the other three panels are lists and keep theirs');
+    assert.match(fs.readFileSync(path.join(__dirname, '..', 'js', 'core.js'), 'utf8'),
+      /width:100%;max-width:\$\{w\}/,
+      'and the width is a ceiling, so a narrow window still gets the whole screen');
+  });
+
+  test('one marker, both shells — the phone cannot disagree with the laptop', () => {
+    const m = fs.readFileSync(path.join(__dirname, '..', 'js', 'mobile-contract.js'), 'utf8');
+    assert.match(m, /typeof briefMark==='function'/, 'the phone borrows the desktop\'s pass');
+    assert.match(m, /: mEsc\(t\)/, 'and falls back to plain escaped text without it');
+    assert.ok(!/BR_FIG_RE|BR_MONTHS/.test(m), 'the phone runs no second copy of the patterns');
+  });
+});

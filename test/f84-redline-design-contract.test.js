@@ -481,11 +481,20 @@ describe('F84 — the header actions press the engine, not a lookalike', () => {
   const headerLabels = p => p.$$('.rl-head button, .room-head button').map(b => b.textContent.trim());
 
   test('THE FIX: our playbook\'s verb is not offered from their chair', async () => {
-    const labels = headerLabels(await asCounterparty()).join(' | ');
+    const p = await asCounterparty();
+    const labels = headerLabels(p).join(' | ');
     assert.ok(!/Non-Risk/.test(labels),
       '"Accept All Non-Risk" sorts by OUR playbook and reads out how we score their asks');
-    assert.ok(!/Publish Round/.test(labels),
-      'publishing a round is the owner\'s act; the other chair sends answers back');
+    /* REVERSED IN PLACE, 19 Aug 2026 (owner-asked). Publish Round used to be
+       REMOVED here, and removing it — with three others — emptied 130px out of
+       the row and moved every remaining control sideways, on the one toggle
+       whose purpose is comparing the two views. It is drawn now and DEAD.
+       WHAT THIS TEST PROTECTS IS UNCHANGED and is asserted directly instead of
+       through an absence: nothing on their chair can publish our round. */
+    const pub = p.$$('.rl-head button').find(b => /Publish Round/.test(b.textContent));
+    assert.ok(pub, 'it keeps its place, so the row does not move when the view is flipped');
+    assert.ok(pub.hasAttribute('disabled') && pub.hasAttribute('data-rl-dead'),
+      'and it is dead there — publishing a round is not done from the preview');
   });
 
   test('the window has no verbs at all — not even seat-relative ones', async () => {
@@ -525,7 +534,13 @@ describe('F84 — the header actions press the engine, not a lookalike', () => {
       'exactly one send for the proxy to point at');
     const p = await asCounterparty();
     assert.equal(p.doc.getElementById('nego-bulk-acc'), null, 'nothing bulk on the preview');
-    assert.equal(p.$('[data-redline-proxy]'), null, 'and nothing to press from it');
+    /* REVERSED IN PLACE with the claim above: the proxy stays on the row so
+       nothing moves, and carries `disabled`, which is the browser refusing to
+       dispatch the click rather than a decision about pixels. f152's
+       click-sweep presses every rendered button and diffs the record. */
+    const proxy = p.$('[data-redline-proxy]');
+    assert.ok(proxy, 'the proxy keeps its place in the preview');
+    assert.ok(proxy.hasAttribute('disabled'), 'and nothing can be pressed from it');
   });
 
   test('and no send survives anywhere on the preview seat', async () => {

@@ -22,7 +22,7 @@ function buildGraph(){
   const trunc=(s,n=24)=>s.length>n?s.slice(0,n-1)+'\u2026':s;
   // contract nodes
   state.contracts.forEach(c=>{
-    nodes.push({ id:c.id, type:'contract', c, label:trunc(c.name), sub:c.id+' \u00b7 '+(c.value?fmtMoneyShort(c.value):'\u2014'),
+    nodes.push({ id:c.id, type:'contract', c, label:trunc(c.name), sub:c.id+' \u00b7 '+(c.value?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):'\u2014'),
       kind:c.folder, bar:STATUS_BAR[c.status], w:0,h:0,x:0,y:0 });
   });
   // party nodes (aggregate)
@@ -30,7 +30,7 @@ function buildGraph(){
   state.contracts.forEach(c=>{ if(!c.counterparty) return;
     (parties[c.counterparty]||(parties[c.counterparty]=[])).push(c); });
   Object.entries(parties).forEach(([name,cs])=>{
-    const val=cs.filter(x=>x.status!=='Declined').reduce((s,x)=>s+Number(x.value||0),0);
+    const val=cs.filter(x=>x.status!=='Declined'&&!x.archived).reduce((s,x)=>s+(window.fxHomeValue?fxHomeValue(x):Number(x.value||0)),0);
     nodes.push({ id:'p:'+name, type:'party', party:name, cs, label:trunc(name), sub:cs.length+' deal'+(cs.length===1?'':'s')+' \u00b7 '+fmtMoneyShort(val),
       kind:'party', bar:'#2c455d', w:0,h:0,x:0,y:0 });
     cs.forEach(c=>edges.push({from:c.id, to:'p:'+name, label:'party to'}));
@@ -192,7 +192,7 @@ function graphInterpret(qRaw){
   const kindHit=(...k)=>cs.filter(c=>k.some(x=>cKind(c).toLowerCase().includes(x)));
   if(has('expir','renew','lapse','ending',' end ','coming to an end','ends in','end in','end within')){
     const horizon=parseHorizonDays(q)??90;
-    vis=cs.filter(c=>c.expiry&&c.status!=='Declined'&&daysUntil(c.expiry)>=0&&daysUntil(c.expiry)<=horizon);
+    vis=cs.filter(c=>c.expiry&&c.status!=='Declined'&&!c.archived&&daysUntil(c.expiry)>=0&&daysUntil(c.expiry)<=horizon);
     note='Expiring ≤ '+(horizon%30===0&&horizon>=30?Math.round(horizon/30)+'mo':horizon+' days');
     badges={}; vis.forEach(c=>badges[c.id]='ends in '+daysUntil(c.expiry)+'d');
     action='highlight';
@@ -234,7 +234,7 @@ const IG_TEMPLATE_RE=/\btemplate\b|\bbase\b.{0,30}\b(new|next|on)\b|model (contr
 // "which contracts have risky/illegal clauses", "red flags", "compliance issues"…
 const IG_COMPLIANCE_RE=/\b(illegal|unlawful|non-?complian(?:t|ce)|red[-\s]?flags?|problematic|risky clauses?|risk(?:y)?\s+(?:or|and)\s+(?:illegal|unlawful|problematic)|onerous|unfair terms?|dodgy|complian(?:ce|t)\s+(?:issues?|risks?|review|check)|potential(?:ly)?\s+(?:illegal|unlawful|risky|problematic))\b/i;
 // reads / summarises / quotes a contract → grounded Copilot Q&A
-const IG_QA_RE=/\b(summar(?:y|ise|ize|ies)|quote|verbatim|explain|describe|read|clause|says?|state[sd]?|obligations?|payment terms?|governing law|liabilit|termination|indemnit|renewal terms?|brief(?:ing)?|what (?:does|do|is|are|kind|type)|tell me about|how much (?:is|does)|when does)\b/i;
+const IG_QA_RE=/\b(summar(?:y|ise|ize|ies)|quote|verbatim|explain|describe|read|clause|says?|state[sd]?|obligations?|payment terms?|governing law|liabilit\w*|termination|indemnit\w*|renewal terms?|brief(?:ing)?|what (?:does|do|is|are|kind|type)|tell me about|how much (?:is|does)|when does)\b/i;
 // manipulates the map rather than reading text → graph interpreter
 const IG_GRAPH_RE=/\b(group by|regroup|filter|show (?:only|all|me)|highlight|hide|cluster|colou?r by|which contracts? (?:end|expire|renew|are|match))\b/i;
 async function intelAsk(qRaw){
@@ -406,7 +406,7 @@ async function intelChatAsk(q){
    risks, missing protections, ambiguous terms. Grounded, instant, and works with
    or without an Copilot key. Framed as a first-pass review for counsel, not advice. */
 async function intelComplianceScan(q){
-  const cs=(state.contracts||[]).filter(c=>c.status!=='Declined');
+  const cs=(state.contracts||[]).filter(c=>c.status!=='Declined'&&!c.archived);
   const RANK=(typeof SEV_RANK==='object'&&SEV_RANK)||{high:3,med:2,low:1};
   const worst=arr=>(typeof worstSevOf==='function')?worstSevOf(arr)
     :(arr.some(f=>f.sev==='high')?'high':arr.some(f=>f.sev==='med')?'med':'low');
@@ -517,7 +517,7 @@ function buildGraphModel(){
   const nodes=[], edges=[];
   hubs.forEach((h,i)=>{ nodes.push({id:'hub:'+h.label, kind:'hub', label:h.label, sub:h.ids.length+' contract'+(h.ids.length===1?'':'s')}); });
   cs.forEach(c=>{ const g=groupLabelOf(c,groupBy,override);
-    nodes.push({id:c.id, kind:'contract', c, label:c.name, sub:c.id+(isMonetary(c)&&c.value?' · '+fmtMoneyShort(c.value):''), group:g, dot:STATUS_DOT[c.status]||'var(--st-gray-dot)',
+    nodes.push({id:c.id, kind:'contract', c, label:c.name, sub:c.id+(isMonetary(c)&&c.value?' · '+(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):''), group:g, dot:STATUS_DOT[c.status]||'var(--st-gray-dot)',
       hit: highlight&&act.ids.has(c.id), mut: highlight&&!act.ids.has(c.id), badge: act.badges?.[c.id]||null});
     edges.push({from:'hub:'+g, to:c.id});   // hub -> contract: arrows fan outward
   });
@@ -1199,7 +1199,7 @@ function igMiniCard(id, extra){
     ${extra||''}<span class="h-6 w-6 shrink-0 grid place-items-center rounded-lg bg-brand-50 text-brand-500">${icon(cIcon(c),'w-3 h-3')}</span>
     <span class="min-w-0 flex-1">
       <span class="block truncate text-[12px] font-medium text-brand-900">${igEsc(c.name)}</span>
-      <span class="block text-[10px] font-mono text-ink/45">${c.id}${isMonetary(c)&&c.value?' · '+fmtMoneyShort(c.value):''} · ${statusLabel(c.status)}</span>
+      <span class="block text-[10px] font-mono text-ink/45">${c.id}${isMonetary(c)&&c.value?' · '+(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):''} · ${statusLabel(c.status)}</span>
     </span>
   </button>`;
 }
@@ -1225,7 +1225,7 @@ function igExplainCard(id){
     </div>
     ${row('Type',igEsc(cKind(c)))}
     ${row('Counterparty',igEsc(c.counterparty||'—'))}
-    ${row('Value',isMonetary(c)&&c.value?fmtMoneyShort(c.value):'Non-monetary')}
+    ${row('Value',isMonetary(c)&&c.value?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):'Non-monetary')}
     ${row('Status',statusLabel(c.status))}
     ${row('Expiry',c.expiry?(c.expiry+(d!=null?(d>=0?` · ${i18t('int_in_days',{n:d})}`:` · ${i18t('int_lapsed')}`):'')):'—')}
     ${row('Group',igEsc(groupLabelOf(c,intel.groupBy,intel.groups)))}
@@ -1379,7 +1379,7 @@ function openPartyModal(name){
   const trunc=(s,n=22)=>s.length>n?s.slice(0,n-1)+'\u2026':s;
   nodes.push({id:'p:'+name, type:'party', label:trunc(name), sub:own.length+' deals', bar:'#2c455d', kind:'party'});
   const addC=c=>{ if(nodes.some(n=>n.id===c.id)) return;
-    nodes.push({id:c.id, type:'contract', c, label:trunc(c.name), sub:!isMonetary(c)?'non-monetary':(c.value?fmtMoneyShort(c.value):c.status), bar:STATUS_BAR[c.status], kind:c.folder}); };
+    nodes.push({id:c.id, type:'contract', c, label:trunc(c.name), sub:!isMonetary(c)?'non-monetary':(c.value?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):c.status), bar:STATUS_BAR[c.status], kind:c.folder}); };
   own.forEach(c=>{ addC(c); edges.push({from:c.id,to:'p:'+name,label:'party to'}); });
   linked.forEach(c=>{ addC(c);
     if(c.counterparty && c.counterparty!==name){
@@ -1399,7 +1399,7 @@ function openPartyModal(name){
   layoutGraph(nodes, edges, W, H);
   state.mapPos=savedPos;
 
-  const val=own.filter(x=>x.status!=='Declined').reduce((s,x)=>s+Number(x.value||0),0);
+  const val=own.filter(x=>x.status!=='Declined'&&!x.archived).reduce((s,x)=>s+(window.fxHomeValue?fxHomeValue(x):Number(x.value||0)),0);
   modal.innerHTML=`
   <div class="view-enter bg-white rounded-2xl border border-brand-100 shadow-2xl shadow-brand-900/25 overflow-hidden">
     <div class="flex items-center gap-3 px-5 py-4 border-b border-brand-100/60">

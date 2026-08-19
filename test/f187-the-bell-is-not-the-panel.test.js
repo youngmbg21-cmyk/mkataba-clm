@@ -151,10 +151,15 @@ describe('f187 (2) — the alerts are borrowed counts, never new ones', () => {
   test('and both obey stream access by construction', () => {
     /* state.contracts IS the caller's already-scoped bootstrap — the server
        filtered it on the way out. A second browser-side filter here would be a
-       copy of a server rule, free to disagree with it. */
+       copy of a server rule, free to disagree with it.
+
+       UPDATED IN PLACE 18 Aug 2026 (WO-5): the line gained the archive-shelf
+       filter — archived contracts alert nobody. That NARROWS what the scoped
+       bootstrap already delivered; it copies no server rule and can widen
+       nothing, so the claim this test makes stands as it was. */
     const app = read('js/app.js');
     const body = app.slice(app.indexOf('function buildAlerts'), app.indexOf('function alertCount'));
-    assert.match(body, /const cs=\(state\.contracts\|\|\[\]\);/);
+    assert.match(body, /const cs=\(state\.contracts\|\|\[\]\)\.filter\(c=>!c\.archived\);/);
     assert.ok(!/userFolderAccess|folderScopeFor/.test(body));
   });
 

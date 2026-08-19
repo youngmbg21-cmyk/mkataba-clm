@@ -784,7 +784,22 @@ function settingsPersonDrawer(idOrNew){
       +(isNew?`<label style="display:block;margin-bottom:4px">
           <span style="${window.RV_LBL||''}">${esc(i18t('st_f_temp_pass'))}</span>
           <input id="tm-pass" type="password" style="${window.RV_FLD||ST_INPUT}"/>
-          <span class="st-note">${esc(i18t('st_f_temp_pass_note'))}</span></label>`:''))}
+          <span class="st-note">${esc(i18t('st_f_temp_pass_note'))}</span></label>`:'')
+      +(''/* ---- THE LOST-PHONE RESCUE (W2-5a) ----
+             The server grant has existed since WO-6 (PATCH clearTwoStep,
+             refused on yourself); this is its button. A STATEMENT first —
+             whether this person is protected — because an admin looking at a
+             locked-out colleague needs to know that before anything else, and
+             the button appears only where pressing it would do something.
+
+             NEVER ON YOURSELF: your own lock comes off with a current code on
+             your account page, not with admin rank. The server refuses it too;
+             this is the sign, that is the wall. */)
+      +((!isNew && isAdmin() && !isMe && API_MODE())?`
+        <div style="display:flex;align-items:center;gap:10px;margin-top:4px">
+          <span class="st-note" style="flex:1;margin:0">${esc(u.twoStep?i18t('ts_person_on'):i18t('ts_person_off'))}</span>
+          ${u.twoStep?`<button id="tm-clear-2fa" data-uid="${PB_ATTR(u.id)}" style="${ST_BTN_SM};flex:none">${esc(i18t('ts_clear_btn'))}</button>`:''}
+        </div>`:''))}
 
     ${sec(2,i18t('st_sec_may'),`
       <div class="st-roles">${ROLES.map(([k,label,desc])=>`
@@ -873,6 +888,21 @@ function settingsPersonDrawer(idOrNew){
       stReviewWire(u);
       stOverseerWire(u);
       document.getElementById('tm-remove')?.addEventListener('click',()=>settingsRemoveMember(u));
+      /* W2-5a: the rescue. It COSTS this person their second step, so it asks
+         first and says what it costs — they sign in on their password alone
+         until they enrol again. Refusals land in the drawer's foot, never as
+         a toast over the page behind (this page's own rule). */
+      document.getElementById('tm-clear-2fa')?.addEventListener('click',async()=>{
+        stDrawerClearRefusal();
+        if(!await confirmDialog({ title:i18t('ts_clear_title',{name:u.name}),
+          message:i18t('ts_clear_msg'), confirmLabel:i18t('ts_clear_btn') })) return;
+        try{
+          await api('users/'+u.id,'PATCH',{ clearTwoStep:true });
+          u.twoStep=false;
+          toast(i18t('ts_clear_done',{name:u.name}),'ok');
+          stDrawerClose(); renderTeam();
+        }catch(e){ stDrawerRefuse((e&&e.message)||i18t('ts_failed')); }
+      });
     },
     save(){ stDrawerClearRefusal(); settingsSavePerson(isNew?null:u); },
   });
@@ -1130,6 +1160,46 @@ function stAccountBodyHtml(){
         <span style="font-weight:600;display:block;color:var(--color-text)">${i18t('set_still_emailed')}</span>
         ${i18t('set_three_events')}
       </div>
+      ${''/* THE ONE LIVE CHOICE BESIDE THE HONEST STATEMENT (WO-3, widened
+             19 Aug 2026 on the owner's ask). The brief is the single
+             per-person email decision the server actually honours, and it now
+             has THREE answers rather than a tick-box's two: every morning,
+             once a week, or not at all. THREE OPTIONS, NOT THREE STATES —
+             each says what it means and each is one press, which is the same
+             rule the change column's own filter follows. Written on change,
+             like every other setting in this drawer: a choice that only
+             saves if you remember to press Save is a choice that is wrong
+             when it matters. */}
+      <div class="st-sec-lead" style="margin-top:12px;font-weight:600;font-size:12.5px;color:var(--color-text)">${i18t('set_brief_how_often')}</div>
+      ${''/* THE GROUP NAME IS UNIQUE PER RENDERING, and that is not decoration:
+             this section is drawn on the You tab AND again inside the drawer
+             that opens over it, so a shared radio name would make the two
+             copies fight — pressing one would silently clear the other's dot.
+             The same fault the old tick-box had in its own way, with one id
+             on two elements and the second one dead. */}
+      ${(_briefGroup++, '')}${[['daily','set_brief_daily','set_brief_daily_sub'],
+         ['weekly','set_brief_weekly','set_brief_weekly_sub'],
+         ['off','set_brief_off','set_brief_off_sub']].map(([v,k,sub])=>`
+        <label class="st-toggle" style="margin-top:8px">
+          <input type="radio" name="pref-brief-every-${_briefGroup}" data-pref-brief="${v}"${briefCadenceOf(u)===v?' checked':''}/>
+          <span><span class="st-role-name">${i18t(k)}</span>
+          <span class="st-note">${i18t(sub)}</span></span>
+        </label>`).join('')}
+    </section>
+
+    ${''/* TWO-STEP SIGN-IN (WO-6). Self-service both ways: enrolment holds
+           the secret as pending until a first code proves the app has it, and
+           turning it off costs a current code — an open session must not be
+           able to quietly remove the lock it could not pick. The lost-phone
+           RESCUE is the server's admin grant (PATCH clearTwoStep) — its
+           People-page button is Phase 2 work, named in the gap-map order. */}
+    <section class="st-sec">
+      <h3 class="st-sec-h">${esc(i18t('ts_title'))}</h3>
+      <p class="st-note" style="margin-bottom:6px">${esc(i18t('ts_sub'))}</p>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="st-quiet" style="flex:1">${u.twoStep?i18t('ts_on_line'):i18t('ts_off_line')}</span>
+        <button id="ts-toggle" style="${ST_BTN2};flex:none">${u.twoStep?i18t('ts_turn_off'):i18t('ts_turn_on')}</button>
+      </div>
     </section>`:''}
 
     <section class="st-sec">
@@ -1178,12 +1248,191 @@ function stAccountWire(){
     if(typeof navSetShowEverything==='function') navSetShowEverything(e.target.checked);
     toast(e.target.checked?i18t('set_sidebar_all_on'):i18t('set_sidebar_all_off'));
   });
+  document.querySelectorAll('[data-pref-brief]').forEach(el=>el.addEventListener('change',async e=>{
+    const v=e.target.getAttribute('data-pref-brief');
+    const was=briefCadenceOf(currentUser());
+    try{
+      const r=await api('me/prefs','PUT',{ briefEvery:v });
+      const u=currentUser(); if(u) u.prefs=(r&&r.prefs)||{ ...(u.prefs||{}), briefEvery:v };
+      briefPaintCadence(v);          // every copy of the control says the same thing
+      toast(i18t('set_brief_saved_'+v));
+    }catch(err){
+      /* THE SCREEN MUST NOT CLAIM A SAVE THAT FAILED — put the previous
+         answer back rather than leaving the new one lit. */
+      briefPaintCadence(was);
+      toast(i18t('set_daily_brief_fail')+(err&&err.message||''),'err');
+    }
+  }));
+  document.getElementById('ts-toggle')?.addEventListener('click',()=>stTwoStepToggle());
   document.getElementById('bk-export')?.addEventListener('click',()=>settingsExportBackup());
   document.getElementById('brand-edit')?.addEventListener('click',()=>{
     stDrawerClose(); openDesignStep({ mode:'settings', onBack:()=>{ if(isAdmin()) renderTeam(); else openMyAccount(); } });
   });
   document.getElementById('acct-settings')?.addEventListener('click',()=>{ stDrawerClose(); openSettingsAt('people'); });
   if(API_MODE()) loadSessions();
+}
+/* ---- EVENTS OUT (W2-3): the list, and adding one ---- */
+async function stHooksLoad(){
+  const host=document.getElementById('wh-list'); if(!host) return;
+  try{
+    const r=await api('webhooks');
+    state.webhooks=(r&&r.webhooks)||[];
+    if(r&&Array.isArray(r.events)) state.webhookEvents=r.events;
+  }catch(_){ state.webhooks=[]; }
+  const rows=state.webhooks||[];
+  if(!rows.length){ host.innerHTML=`<p class="st-note" style="margin:0">${esc(i18t('st_hooks_none'))}</p>`; return; }
+  host.innerHTML=rows.map(w=>{
+    const tone=w.lastOk===false?'ruby':(w.lastOk?'green':'steel');
+    const said=w.lastAt?`${w.lastOk?i18t('st_hooks_ok'):i18t('st_hooks_bad')} · ${esc(w.lastStatus||'')}`:i18t('st_hooks_never');
+    return `<div style="display:flex;align-items:center;gap:9px;font-size:11.5px">
+      <span class="pill-x" style="background:var(--st-${tone}-bg);color:var(--st-${tone}-fg);flex:none">${w.active?i18t('st_hooks_live'):i18t('st_hooks_off')}</span>
+      <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(w.url)}
+        <span class="st-note" style="margin:0">${esc(said)}</span></span>
+      <button data-wh-del="${esc(w.id)}" style="${ST_BTN_SM};flex:none">${i18t('st_hooks_remove')}</button>
+    </div>`;
+  }).join('');
+  host.querySelectorAll('[data-wh-del]').forEach(b=>b.addEventListener('click',async()=>{
+    if(!await confirmDialog({ title:i18t('st_hooks_remove_q'), message:i18t('st_hooks_remove_msg'),
+      confirmLabel:i18t('st_hooks_remove') })) return;
+    try{ await api('webhooks/'+encodeURIComponent(b.getAttribute('data-wh-del')),'DELETE'); stHooksLoad(); stRepaintRow('webhooks'); }
+    catch(e){ stDrawerRefuse((e&&e.message)||i18t('co_settings_save_failed')); }
+  }));
+}
+async function stHooksAdd(){
+  stDrawerClearRefusal();
+  const url=(document.getElementById('wh-url')||{value:''}).value.trim();
+  if(!url) return;
+  const events=[...document.querySelectorAll('[data-wh-ev]')].filter(b=>b.checked).map(b=>b.getAttribute('data-wh-ev'));
+  if(!events.length) return stDrawerRefuse(i18t('st_hooks_pick_event'));
+  try{
+    const r=await api('webhooks','POST',{ url, events });
+    const box=document.getElementById('wh-url'); if(box) box.value='';
+    await stHooksLoad(); stRepaintRow('webhooks');
+    /* THE SECRET IS SHOWN ONCE. It is what proves a delivery came from HaTi;
+       a screen that could re-read it would hand it to anybody who reaches the
+       screen. Said plainly rather than left for somebody to discover. */
+    openModal(`<div style="padding:20px 22px;max-width:470px">
+      <h3 style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0 0 6px">${i18t('st_hooks_secret_title')}</h3>
+      <p class="st-note" style="margin:0 0 10px">${esc(i18t('st_hooks_secret_msg'))}</p>
+      <div style="font-family:var(--font-mono);font-size:12.5px;background:var(--color-bg);border:1px solid var(--color-divider);border-radius:6px;padding:10px 12px;word-break:break-all;user-select:all">${esc(r.secret)}</div>
+      <div style="display:flex;justify-content:flex-end;margin-top:12px">
+        <button id="wh-done" class="ui-btn ui-btn-primary" style="font-size:12px;padding:7px 14px">${i18t('ts_done')}</button>
+      </div></div>`,{maxWidth:'490px'});
+    document.getElementById('wh-done')?.addEventListener('click',()=>closeModal());
+  }catch(e){ stDrawerRefuse((e&&e.message)||i18t('co_settings_save_failed')); }
+}
+/* ---- EXCHANGE RATES (W2-1) ----
+   A LIST, then one add/replace row. Painted rather than re-rendered, because
+   this page's own rule is that it holds still: a saved rate repaints the
+   list and nothing else. Removing is setting the rate to nothing, which puts
+   that currency back to "no rate on file" — left out and said, never
+   guessed. */
+function stFxPaint(){
+  const host=document.getElementById('st-fx-list'); if(!host) return;
+  const rates=(state.settings&&state.settings.fxRates)||{};
+  const codes=Object.keys(rates).sort();
+  if(!codes.length){ host.innerHTML=`<p class="st-note" style="margin:0">${esc(i18t('st_fx_none'))}</p>`; return; }
+  host.innerHTML=codes.map(code=>{
+    const r=rates[code]||{};
+    return `<div style="display:flex;align-items:center;gap:10px;font-size:12px">
+      <span style="font-family:var(--font-mono);font-weight:600;min-width:40px">${esc(code)}</span>
+      <span style="flex:1;min-width:0">${esc(i18t('st_fx_line',{code,rate:Number(r.rate).toLocaleString(),cur:jxCurrency()}))}
+        <span class="st-note" style="margin:0">${r.at?esc(i18t('st_fx_set_on',{date:r.at})):''}</span></span>
+      <button data-fx-del="${esc(code)}" style="${ST_BTN_SM};flex:none">${i18t('st_fx_remove')}</button>
+    </div>`;
+  }).join('');
+  host.querySelectorAll('[data-fx-del]').forEach(b=>b.addEventListener('click',()=>stFxSave(b.getAttribute('data-fx-del'),null)));
+}
+async function stFxSave(codeIn,rateIn){
+  const code=String(codeIn!=null?codeIn:(document.getElementById('st-fx-code')||{value:''}).value).trim().toUpperCase();
+  const raw=rateIn!==undefined&&codeIn!=null?rateIn:(document.getElementById('st-fx-rate')||{value:''}).value;
+  const rate=(raw===null||String(raw).trim()==='')?null:Number(raw);
+  stDrawerClearRefusal();
+  if(!/^[A-Z]{3}$/.test(code)) return stDrawerRefuse(i18t('st_fx_bad_code'));
+  if(rate!==null&&!(rate>0)) return stDrawerRefuse(i18t('st_fx_bad_rate'));
+  try{
+    const r=await api('settings/fx-rates','PUT',{ code, rate });
+    state.settings=state.settings||{}; state.settings.fxRates=(r&&r.fxRates)||{};
+    const ce=document.getElementById('st-fx-code'), re=document.getElementById('st-fx-rate');
+    if(ce) ce.value=''; if(re) re.value='';
+    stFxPaint();
+    toast(rate===null?i18t('st_fx_removed',{code}):i18t('st_fx_saved',{code}),'ok');
+    // every converted figure just moved — repaint whatever is behind the drawer
+    if(window.refreshStats) refreshStats();
+  }catch(e){ stDrawerRefuse((e&&e.message)||i18t('co_settings_save_failed')); }
+}
+/* ---- TWO-STEP SIGN-IN, self-service (WO-6) ---- */
+async function stTwoStepToggle(){
+  const u=currentUser()||{};
+  if(u.twoStep){
+    const code=await promptDialog({ title:i18t('ts_off_title'), message:i18t('ts_off_msg'),
+      placeholder:'123456', confirmLabel:i18t('ts_turn_off'), cancelLabel:i18t('act_cancel') });
+    if(code==null) return;
+    try{
+      await api('me/totp/disable','POST',{ code:String(code).trim() });
+      u.twoStep=false; toast(i18t('ts_off_done'),'ok'); openMyAccount();
+    }catch(e){ toast((e&&e.message)||i18t('ts_failed'),'err'); }
+    return;
+  }
+  let start;
+  try{ start=await api('me/totp/start','POST',{}); }
+  catch(e){ toast((e&&e.message)||i18t('ts_failed'),'err'); return; }
+  openModal(`<div style="padding:22px;max-width:470px">
+    <h3 style="margin:0 0 6px;font-size:15px;font-weight:700;font-family:var(--font-heading)">${esc(i18t('ts_enrol_title'))}</h3>
+    <p class="st-note" style="margin:0 0 4px">${esc(i18t('ts_enrol_msg'))}</p>
+    <div style="font-family:var(--font-mono);font-size:14.5px;letter-spacing:.14em;background:var(--color-bg);border:1px solid var(--color-divider);border-radius:6px;padding:10px 12px;margin:8px 0;word-break:break-all;user-select:all">${esc(start.secret)}</div>
+    <p class="st-note" style="margin:8px 0 4px">${esc(i18t('ts_enrol_code_msg'))}</p>
+    <input id="ts-code" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" style="${window.RV_FLD||ST_INPUT}"/>
+    <p id="ts-err" class="st-note" style="color:var(--st-ruby-fg);min-height:16px;margin:6px 0 0"></p>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+      <button id="ts-cancel" style="${ST_BTN2}">${i18t('act_cancel')}</button>
+      <button id="ts-confirm" class="ui-btn ui-btn-primary" style="font-size:12px;padding:7px 14px">${i18t('ts_confirm')}</button>
+    </div>
+  </div>`,{maxWidth:'490px'});
+  document.getElementById('ts-cancel')?.addEventListener('click',()=>closeModal());
+  document.getElementById('ts-confirm')?.addEventListener('click',async()=>{
+    const code=(document.getElementById('ts-code')?.value||'').trim();
+    const errEl=document.getElementById('ts-err');
+    try{
+      const r=await api('me/totp/verify','POST',{ code });
+      const u2=currentUser(); if(u2) u2.twoStep=true;
+      closeModal();
+      // the ten one-time codes, shown exactly ONCE — the server keeps hashes
+      openModal(`<div style="padding:22px;max-width:470px">
+        <h3 style="margin:0 0 6px;font-size:15px;font-weight:700;font-family:var(--font-heading)">${esc(i18t('ts_recovery_title'))}</h3>
+        <p class="st-note" style="margin:0 0 10px">${esc(i18t('ts_recovery_msg'))}</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-family:var(--font-mono);font-size:13px;letter-spacing:.08em;user-select:all">
+          ${(r.recovery||[]).map(cd=>`<span style="background:var(--color-bg);border:1px solid var(--color-divider);border-radius:5px;padding:6px 10px;text-align:center">${esc(cd)}</span>`).join('')}
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:14px">
+          <button id="ts-done" class="ui-btn ui-btn-primary" style="font-size:12px;padding:7px 14px">${i18t('ts_done')}</button>
+        </div>
+      </div>`,{maxWidth:'490px'});
+      document.getElementById('ts-done')?.addEventListener('click',()=>{ closeModal(); toast(i18t('ts_on_done'),'ok'); openMyAccount(); });
+    }catch(e){ if(errEl) errEl.textContent=(e&&e.message)||i18t('ts_failed'); }
+  });
+}
+/* HOW OFTEN THIS PERSON IS BRIEFED, read the way the server reads it
+   (briefCadence in server/server.js): the stored answer where there is one,
+   and otherwise the old tick-box — absent means every morning, and an
+   account carrying dailyBrief:false still reads 'off'. One rule, two hosts,
+   and nobody's setting moves. */
+const BRIEF_EVERY_VALUES = ['daily','weekly','off'];
+let _briefGroup = 0;
+/* ONE ANSWER, HOWEVER MANY COPIES OF THE CONTROL ARE ON SCREEN. The section
+   is drawn on the You tab and again in the drawer over it, so a save has to
+   reach both — otherwise closing the drawer reveals a page still showing the
+   answer the reader has just changed. */
+function briefPaintCadence(v){
+  document.querySelectorAll('[data-pref-brief]').forEach(el=>{
+    el.checked = el.getAttribute('data-pref-brief')===v;
+  });
+}
+function briefCadenceOf(u){
+  const p=(u&&u.prefs)||{};
+  const v=String(p.briefEvery||'').toLowerCase();
+  if(BRIEF_EVERY_VALUES.includes(v)) return v;
+  return p.dailyBrief===false ? 'off' : 'daily';
 }
 function openMyAccount(){
   const u=currentUser()||{};
@@ -1296,6 +1545,32 @@ const SET_PANELS={
           <span class="st-note" style="margin:0">${esc(i18t('st_company_legal_note'))}</span>
         </div>
       </section>
+      ${''/* ---- EXCHANGE RATES (W2-1, owner-ruled 19 Aug 2026) ----
+             "I would want for the contract to be converted to local currency
+             when it comes to reporting so the dashboards or reporting have
+             one currency." So every reporting figure converts — and the rate
+             is an ADMIN'S CLAIM WITH A DATE, never a live feed: a headline
+             that moves by itself, from an outside service nobody in the
+             workspace controls, is a number no admin can stand behind.
+
+             A currency with no rate here is never guessed. Its contracts are
+             LEFT OUT of the converted figures and every surface that shows
+             one says so — the silent-trim rule the insights panels already
+             hold. Sits beside the market because the market is what decides
+             which currency is "home". */}
+      <section class="st-sec">
+        <h3 class="st-sec-h">${esc(i18t('st_fx'))}</h3>
+        <p class="st-note" style="margin-bottom:8px">${esc(i18t('st_fx_sub',{cur:jxCurrency()}))}</p>
+        <div id="st-fx-list" style="display:grid;gap:6px;margin-bottom:9px"></div>
+        <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+          <label style="flex:0 0 108px"><span style="${window.RV_LBL||''}">${esc(i18t('st_fx_code'))}</span>
+            <input id="st-fx-code" type="text" maxlength="3" placeholder="USD" style="${window.RV_FLD||ST_INPUT}text-transform:uppercase"/></label>
+          <label style="flex:1;min-width:150px"><span style="${window.RV_LBL||''}">${esc(i18t('st_fx_rate',{cur:jxCurrency()}))}</span>
+            <input id="st-fx-rate" type="number" step="any" min="0" placeholder="129.50" style="${window.RV_FLD||ST_INPUT}"/></label>
+          <button id="st-fx-save" style="${ST_BTN_SM};flex:none">${i18t('act_save')}</button>
+        </div>
+        <p class="st-note" style="margin-top:8px">${esc(i18t('st_fx_note'))}</p>
+      </section>
       <section class="st-sec">
         <h3 class="st-sec-h">${esc(i18t('st_p_design'))}</h3>
         <p class="st-note" style="margin-bottom:8px">${esc(i18t('st_company_design_sub'))}</p>
@@ -1357,6 +1632,8 @@ const SET_PANELS={
       document.getElementById('st-company-design')?.addEventListener('click',()=>{
         stDrawerClose(); openDesignStep({ mode:'settings', onBack:()=>renderTeam() });
       });
+      stFxPaint();
+      document.getElementById('st-fx-save')?.addEventListener('click',()=>stFxSave());
     },
   },
 
@@ -1625,6 +1902,43 @@ const SET_PANELS={
         <button id="mr-send-now" style="${ST_BTN2}">${icon('clock','w-3.5 h-3.5')} ${i18t('set_mr_send_now')}</button>
       </div>`; },
     wire(){ stWireMonthlyReport(); },
+  },
+
+  /* ---- EVENTS OUT (W2-3) ----
+     Admin-only, server-mode-only, and deliberately plain: a list of where
+     HaTi posts, what each one is told about, and whether the far end is
+     actually answering. The secret is shown ONCE on creation — it is what
+     proves a delivery came from here, and a secret a screen can re-read is
+     one anybody with the screen can take. */
+  webhooks:{
+    tab:'platform', mandatory:false, show:stApiOnly,
+    title:()=>i18t('st_p_hooks'),
+    sub:()=>i18t('st_hooks_sub'),
+    state(){
+      const n=(state.webhooks||[]).length;
+      const bad=(state.webhooks||[]).filter(w=>w.lastOk===false).length;
+      return { dot: n?(bad?'warn':'ok'):'off',
+        text: n? i18tn('st_hooks_count',n,{n})+(bad?` · ${i18t('st_hooks_failing',{n:bad})}`:'') : i18t('st_hooks_none') };
+    },
+    body(){ return `<p class="st-note" style="margin-bottom:9px">${i18t('st_hooks_sub')}</p>
+      <div id="wh-list" style="display:flex;flex-direction:column;gap:7px;margin-bottom:10px"></div>
+      <label style="display:block;margin-bottom:8px"><span style="${window.RV_LBL||''}">${esc(i18t('st_hooks_url'))}</span>
+        <input id="wh-url" type="url" placeholder="https://example.com/hooks/hati" style="${window.RV_FLD||ST_INPUT}"/></label>
+      ${''/* AN ENDPOINT IS TOLD WHAT IT SUBSCRIBED TO. The server treats an
+             empty list as NOTHING (fail closed), so this list is not a
+             convenience — it is the subscription, and every box starts
+             ticked because that is what somebody adding an address means. */}
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:5px;margin-bottom:9px">
+        ${(state.webhookEvents||['contract.signed','round.received','obligation.due','intake.requested']).map(ev=>
+          `<label style="display:flex;align-items:center;gap:7px;font-size:11.5px">
+            <input type="checkbox" data-wh-ev="${esc(ev)}" checked style="width:14px;height:14px;accent-color:var(--color-accent)"/>
+            <span style="font-family:var(--font-mono);font-size:10.5px">${esc(ev)}</span></label>`).join('')}
+      </div>
+      <div style="display:flex;justify-content:flex-end">
+        <button id="wh-add" style="${ST_BTN_SM}">${i18t('st_hooks_add')}</button>
+      </div>
+      <p class="st-note" style="margin-top:9px">${i18t('st_hooks_note')}</p>`; },
+    wire(){ stHooksLoad(); document.getElementById('wh-add')?.addEventListener('click',()=>stHooksAdd()); },
   },
 
   backup:{
@@ -2513,6 +2827,64 @@ function renderMyAccountPage(){
 }
 /* ---- E4 clause library editor + playbook viewer (Admin/Legal) ---- */
 function saveClauseLibrary(lib){ state.settings=state.settings||{}; state.settings.clauseLibrary=lib; saveSettings(); }
+/* ---- WHAT YOUR OWN HISTORY SAYS (W3-2, precedent memory) ----
+   The suggestions sit WITH the clause library, because the thing they
+   propose to change is a library fallback and a proposal belongs beside the
+   thing it is about. Nothing here writes: an admin presses Adopt, and that
+   press goes through saveClauseLibrary exactly as hand-editing the clause
+   would. A suggestion is evidence and a button, never a change.
+
+   IT SAYS NOTHING UNTIL THERE IS SOMETHING TO SAY. With a thin book
+   (PRECEDENT_MIN) the panel does not draw at all — an empty "no patterns
+   yet" card on every workspace's settings page is furniture, and this
+   feature has to earn its place by having read something real. */
+function renderPrecedentPanel(){
+  const host=document.getElementById('precedent-panel'); if(!host) return;
+  if(typeof precedentSuggestions!=='function'){ host.innerHTML=''; return; }
+  const sug=precedentSuggestions();
+  if(!sug.length){ host.innerHTML=''; return; }
+  const mayAdopt=isAdmin()||currentUser()?.role==='legal';
+  host.innerHTML=`
+    <div style="border:1px solid var(--color-divider);border-radius:8px;background:var(--color-surface);padding:12px 14px">
+      <h4 style="margin:0 0 3px;font-size:12.5px;font-weight:700;font-family:var(--font-heading)">${esc(i18t('pc_title'))}</h4>
+      <p class="st-note" style="margin:0 0 9px">${esc(i18t('pc_sub'))}</p>
+      ${sug.map(x=>`
+        <div style="border-top:1px solid var(--color-divider);padding:9px 0 3px">
+          <div style="font-size:12px;line-height:1.55">${esc(i18t('pc_line',{
+            category:x.category, figure:x.figure, unit:x.unit, seen:x.seen, settled:x.settled }))}</div>
+          <div style="font-size:11px;color:var(--color-neutral-600);margin-top:3px">${
+            x.currentFigure!=null
+              ? esc(i18t('pc_current',{figure:x.currentFigure,unit:x.unit}))
+              : esc(i18t('pc_current_none'))}
+            · ${esc(i18tn('pc_from_n',x.contracts.length,{n:x.contracts.length}))}</div>
+          ${mayAdopt?`<button class="ui-btn" data-pc-adopt="${esc(x.key)}" style="font-size:11px;padding:4px 10px;margin-top:6px">${esc(i18t('pc_adopt'))}</button>`:''}
+        </div>`).join('')}
+    </div>`;
+  host.querySelectorAll('[data-pc-adopt]').forEach(b=>b.addEventListener('click',()=>precedentAdopt(b.getAttribute('data-pc-adopt'))));
+}
+/* ADOPTING IS THE ADMIN'S ACT, and it asks first — a fallback is the line
+   the company holds, and moving it moves what every future review calls a
+   deviation. The write is the ordinary one; nothing about this bypasses the
+   editor a person would otherwise have used. */
+async function precedentAdopt(key){
+  const x=(precedentSuggestions()||[]).find(s=>s.key===key); if(!x) return;
+  const t=(typeof precedentTopicByKey==='function')?precedentTopicByKey(key):null;
+  const lib=clauseLibrary().slice();
+  const i=lib.findIndex(cl=>cl.id===x.clause);
+  if(i<0){ toast(i18t('pc_no_clause'),'err'); return; }
+  const nextText=i18t('pc_fallback_text',{figure:x.figure,unit:x.unit,category:x.category});
+  if(!await confirmDialog({ title:i18t('pc_adopt_q',{category:x.category}),
+    message:i18t('pc_adopt_msg',{ current:x.current||i18t('pc_current_none'), next:nextText }),
+    confirmLabel:i18t('pc_adopt') })) return;
+  /* The library seeds are GETTERS on the default object (they read the
+     market pack), so the row is copied field by field into a plain record
+     before it is edited — assigning onto a getter-backed literal throws, and
+     spreading it evaluates every getter once, which is what we want here. */
+  lib[i]={ ...lib[i], fallback:nextText };
+  saveClauseLibrary(lib);
+  renderClauseLibrary();
+  toast(i18t('pc_adopted',{category:x.category}),'ok');
+}
 function renderClauseLibrary(){
   const host=document.getElementById('clause-lib'); if(!host) return;
   const canEditLib=isAdmin()||currentUser()?.role==='legal';
@@ -2531,6 +2903,7 @@ function renderClauseLibrary(){
   host.querySelectorAll('[data-cl-edit]').forEach(b=>b.addEventListener('click',()=>openClauseEditor(Number(b.getAttribute('data-cl-edit')))));
   host.querySelectorAll('[data-cl-del]').forEach(b=>b.addEventListener('click',()=>{ const i=Number(b.getAttribute('data-cl-del')); const lib2=clauseLibrary().slice(); lib2.splice(i,1); saveClauseLibrary(lib2); renderClauseLibrary(); toast(i18t('set_t_clause_removed')); }));
   document.getElementById('cl-add')?.addEventListener('click',()=>openClauseEditor(-1));
+  renderPrecedentPanel();
   renderPlaybookView();
 }
 /* ---- playbook viewer + editor (Admin / Legal) ---- */
@@ -2877,7 +3250,7 @@ async function loadSessions(){
    the else branch and nobody catches it — the lesson rlPaperFootHtml taught
    this codebase for a year. openMyAccount and openSettingsAt are the two doors
    the shell calls; SET_PANELS and the readers beside it are what the tests read. */
-Object.assign(window,{renderTeam,renderMyAccountPage,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,
+Object.assign(window,{renderTeam,renderMyAccountPage,briefCadenceOf,BRIEF_EVERY_VALUES,renderPrecedentPanel,precedentAdopt,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,
   renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,renderDeskRulePanel,condLabel,loadSessions,
   openMyAccount,openSettingsAt,settingsGoTab,settingsTab,SET_PANELS,ST_TABS,SET_CLOSURES,
   stDrawerOpen,stDrawerClose,stDrawerRefuse,settingsPersonDrawer,settingsSavePerson,settingsRemoveMember,

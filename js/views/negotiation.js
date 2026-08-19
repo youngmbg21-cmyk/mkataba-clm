@@ -5333,6 +5333,19 @@ function wireNegotiationTab(c, opts = {}){
   host.querySelectorAll('.nego-clause[data-change]').forEach(n => n.addEventListener('click', () =>
     negoFocus(c, String(n.getAttribute('data-change') || '').split(/\s+/)[0], 'clause')));
 
+  /* The co-pilot band's fold (W3-1). Its ROWS are not wired here and must
+     not be: their buttons carry the cards' own attributes and are picked up
+     by the very handlers below, which is the whole design. */
+  host.querySelectorAll('[data-rl-plan-toggle]').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation(); e.preventDefault();
+    rlPlanSetOpen(!rlPlanIsOpen());
+    /* BARE, like every other caller in this file. Written `window.rlRepaintFrom`
+       it read as ordinary defensiveness and was a guard that is ALWAYS false —
+       rlRepaintFrom is not among this module's window exports — so the fold
+       flipped its state and the page never redrew, and the band could not be
+       opened at all. Same family as the rlPaperFootHtml lesson: nothing catches
+       a call that is never made. Found 19 Aug 2026, photographing the band. */
+    rlRepaintFrom(b); }));
   host.querySelectorAll('[data-nego-accept]').forEach(b => b.addEventListener('click', e => {
     e.stopPropagation(); decide(b.getAttribute('data-nego-accept'), 'accepted'); }));
   host.querySelectorAll('[data-nego-undo]').forEach(b => b.addEventListener('click', e => {
@@ -6011,6 +6024,66 @@ function rlUnsentCount(c, opts = {}){
   const wait = window.reviewAwaiting ? reviewAwaiting(c).length : 0;
   return Math.max(0, unsent - held - wait);
 }
+/* ---- THE CO-PILOT'S FIRST PASS, DRAWN (W3-1) ----
+   A folded band over the change column: how many of their asks sit inside
+   our standard, how many need pushing back, how many are somebody else's
+   call. Open it and every ask has its recommendation, the position it was
+   measured against, and what our own history says about that standard.
+
+   THE BUTTONS ARE THE CARDS' OWN. data-nego-accept, data-rl-ask-review and
+   data-rl-cp-open are wired by the existing handlers a few lines below this
+   markup, so a press here is the same press as on the card: same funnel,
+   same guards, same catch-up to the counterparty. Nothing in this file
+   decides anything, and that is what makes it safe.
+
+   NEVER ON THEIR SEAT. This is our playbook, our fallbacks and our
+   negotiating history, read out loud. */
+function rlPlanBandHtml(c, opts = {}){
+  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
+  if (side === 'counterparty' || (typeof PORTAL_MODE !== 'undefined' && PORTAL_MODE)) return '';
+  if (opts.readonly || (typeof redlinePlan !== 'function')) return '';
+  if (window.rlActorHeld && rlActorHeld(c, opts)) return '';
+  const plan = redlinePlan(c);
+  if (!plan.length) return '';
+  const n = rlpCounts(plan);
+  const open = !!_rlPlanOpen;
+  const chip = v => `<span class="rl-plan-chip rl-plan-${v}">${n[v] || 0} ${_nea(RLP_VERDICTS[v].label)}</span>`;
+  const row = r => {
+    const acts = [];
+    if (r.verdict === 'accept')
+      acts.push(`<button class="rl-plan-act" data-nego-accept="${_nea(r.id)}">${i18t('rp_take_it')}</button>`);
+    if (r.verdict === 'push' || r.verdict === 'review')
+      acts.push(`<button class="rl-plan-act" data-rl-cp-open="${_nea(r.clauseId || '')}">${i18t('rp_open_clause')}</button>`);
+    if (r.verdict === 'escalate')
+      acts.push(`<button class="rl-plan-act" data-rl-ask-review="${_nea(r.id)}">${i18t('rp_escalate_it')}</button>`);
+    return `<div class="rl-plan-row">
+      <div class="rl-plan-head">
+        <span class="rl-plan-chip rl-plan-${r.verdict}">${_nea(RLP_VERDICTS[r.verdict].label)}</span>
+        <span class="rl-plan-id">${_nea(r.id)}</span>
+        <span class="rl-plan-clause">${_nea(r.clause || i18t('rp_this_clause'))}</span>
+      </div>
+      ${r.why.map(w => `<p class="rl-plan-why">${_nea(w)}</p>`).join('')}
+      ${r.precedent ? `<p class="rl-plan-prec">${_nea(r.precedent)}</p>` : ''}
+      <div class="rl-plan-acts">${acts.join('')}</div>
+    </div>`;
+  };
+  return `<div class="rl-plan" data-rl-plan>
+    <button type="button" class="rl-plan-bar" data-rl-plan-toggle aria-expanded="${open ? 'true' : 'false'}">
+      <span class="rl-plan-title">${i18t('rp_title', { n: plan.length })}</span>
+      ${chip('escalate')}${chip('push')}${chip('review')}${chip('accept')}
+      <span class="rl-plan-caret">${open ? '\u2013' : '+'}</span>
+    </button>
+    ${open ? `<div class="rl-plan-body">
+      <p class="rl-plan-note">${i18t('rp_note')}</p>
+      ${plan.map(row).join('')}
+    </div>` : ''}
+  </div>`;
+}
+/* Per sitting, in memory — a working posture, not a setting, and shut on
+   arrival so the column opens on the cards themselves. */
+let _rlPlanOpen = false;
+const rlPlanIsOpen = () => _rlPlanOpen;
+const rlPlanSetOpen = v => { _rlPlanOpen = !!v; };
 function rlUnsentBandHtml(c, opts = {}){
   const n = rlUnsentCount(c, opts);
   if (!n) return '';
@@ -6491,6 +6564,23 @@ function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
     <section class="rl-cp-sec">
       <h5 class="rl-cp-h">${i18t('ng_cp_table')}</h5>
       ${live.length ? live.map(row).join('') : `<p class="rl-cp-none">${i18t('ng_cp_table_none')}</p>`}
+      ${''/* ---- WHAT HAPPENED BEFORE (W3-2, precedent memory) ----
+             One sentence, and only where the workspace's own settled rounds
+             have something to say about THIS standard: how often this
+             counterparty has pushed here, what was conceded, what was held,
+             and the figure it settled at. It sits under the live asks
+             because it is context for the decision being taken above it,
+             not a fact about the clause.
+
+             NEVER ON THE COUNTERPARTY'S PAGE. This is our own negotiating
+             history — how far we have bent before, and with whom — which is
+             the single most useful thing an opponent could read. The seat
+             check is the wall; precedentForChange is never called there. */}
+      ${(side !== 'counterparty' && !PORTAL_MODE && live.length && typeof precedentForChange === 'function') ? (() => {
+        const line = (typeof precedentLine === 'function')
+          ? precedentLine(precedentForChange(c, live[0])) : '';
+        return line ? `<p class="rl-cp-note" data-rl-precedent>${esc(line)}</p>` : '';
+      })() : ''}
     </section>
     <section class="rl-cp-sec">
       <h5 class="rl-cp-h">${i18t('ng_cp_history')}</h5>
@@ -7191,10 +7281,19 @@ function redlineLayoutCss(){
   .redline-page .rl-pb-btn{flex:none;border:1px solid #ddd6fe;background:#f5f3ff;color:#6d28d9;
     border-radius:9px;padding:6px 11px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer;
     transition:background .12s}
-  .redline-page .rl-pb-btn:hover{background:#ede9fe}
+  .redline-page .rl-pb-btn:not([data-rl-dead]):hover{background:#ede9fe}
   .redline-page .rl-pb-btn:disabled{opacity:.6;cursor:wait}
+  /* ---- THE COUNTERPARTY PREVIEW'S DEAD FACE (19 Aug 2026) ----
+     Its own marker rather than :disabled alone, because :disabled on this
+     button already means "the playbook pass is running" and wears a wait
+     cursor — two states, two looks, or the reader learns neither. The button
+     keeps its box (that is the whole point: nothing moves when the toggle is
+     flipped), loses its colour weight and its lift, and says on hover which
+     press brings it back. */
+  .redline-page .rl-tabrow [data-rl-dead]{opacity:.42;cursor:not-allowed;
+    box-shadow:none;filter:saturate(.35)}
   html.dark .redline-page .rl-pb-btn{background:rgba(139,92,246,.15);border-color:rgba(139,92,246,.35);color:#c4b5fd}
-  html.dark .redline-page .rl-pb-btn:hover{background:rgba(139,92,246,.25)}
+  html.dark .redline-page .rl-pb-btn:not([data-rl-dead]):hover{background:rgba(139,92,246,.25)}
   /* The presence pill's rules were here — .rl-presence and its green
      .rl-live-dot. Gone with the feature (10 Aug 2026); dead rules for a removed
      control are how one comes back by accident. */
@@ -7446,9 +7545,19 @@ function redlineLayoutCss(){
      them. The reference sets an unchanged clause flush to the sheet and pads
      only the CHANGED ones — p-3, the frame that says something is on the table
      — which is what these two rules restore. */
+  /* ---- THE BOX IS THE SAME WHETHER OR NOT ANYTHING IS ON THE TABLE ----
+     (owner-asked, 19 Aug 2026.) A redlined clause used to gain 14px of
+     padding and a 3px rule that an unmarked clause did not have, so the
+     moment a change landed the wording slid 14px right and the Edit pill —
+     which hangs off the clause's own edge — jumped 17px left. Measured, both
+     ways. Every clause reserves the SAME right-hand gutter now, and the rule
+     is simply transparent where there is nothing to mark: the mark appears
+     and disappears, the geometry never moves. The vertical air stays on the
+     marked clause alone, because that is what it was for — the frame that
+     says something is on the table — and it moves nothing sideways. */
   .redline-page .rl-clause{margin:0 0 16px;padding:0}
   .redline-page .rl-clause-h{margin:0 0 5px;font-size:var(--rl-doc-type);font-weight:700;
-    letter-spacing:.02em}
+    letter-spacing:.02em;padding-right:calc(62px * var(--doc-scale,1))}
   /* ---- THE CANVAS READS LIKE THE DOC PAGE ----
      One declaration for the whole document canvas — clause bodies, marked
      lines, the recital — set from --rl-doc-type so the wording is the same
@@ -7530,9 +7639,20 @@ function redlineLayoutCss(){
 
      The padding is KEPT so the wording does not shift when a clause gains or
      loses its first change; only the fill and the frame go. */
-  .redline-page .rl-clause.is-changed{background:none;border:0;
-    border-right:3px solid #dc2626;border-radius:0;padding:12px 14px}
-  html.dark .redline-page .rl-clause.is-changed{border-right-color:#f87171}
+  /* ---- AND THE MARK GOES IN THE MARGIN, NOT IN THE TEXT COLUMN ----
+     The rule was a border on the clause, and a border takes width: a marked
+     clause was 17px narrower and 14px further in than an unmarked one, so
+     the first change on a clause slid its wording right and its Edit pill
+     left. Measured both ways, 19 Aug 2026, and reported by the owner.
+
+     It is a bar in the SHEET'S OWN MARGIN now — outside the text column, in
+     the white the page already has — so a clause has exactly the same box
+     whether or not anything is on the table, and the mark costs the wording
+     nothing. Which is what "marked in the margin" said all along. */
+  .redline-page .rl-clause.is-changed{background:none;border:0;border-radius:0;padding:0}
+  .redline-page .rl-clause.is-changed::after{content:'';position:absolute;
+    top:0;bottom:0;right:-18px;width:3px;border-radius:2px;background:#dc2626}
+  html.dark .redline-page .rl-clause.is-changed::after{background:#f87171}
   /* ---- WHERE "EDIT" LANDS YOU ----
      Pressing Edit on a card scrolls the document to that clause, and the clause
      has to say so when it arrives — a page that silently jumps has moved the
@@ -7579,7 +7699,7 @@ function redlineLayoutCss(){
      has to be able to tell the two apart without reading the tag. */
   .redline-page .rl-clause.rl-clause-new{background:color-mix(in srgb,#10b981 7%,transparent);
     border-color:color-mix(in srgb,#10b981 34%,transparent)}
-  .redline-page .rl-clause-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+  .redline-page .rl-clause-top{position:relative;display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
   /* ---- THE GREEN EDIT PILL (owner-asked, 16 Aug 2026) ----
      Top right of every clause, always drawn, in the emerald this page already
      wears for "your redlines travel on this colour". margin-left:auto rather
@@ -7601,7 +7721,16 @@ function redlineLayoutCss(){
      dark theme) with no rule of its own. It replaced a pale emerald that
      stayed emerald whatever the workspace wore. Hover lightens the same
      colour rather than changing it. */}
-  .redline-page .rl-cp-pill{margin-left:auto;flex:none;
+  /* ---- AND IT IS PINNED, NOT CARRIED ----
+     Out of the heading's flex row and onto the clause's own box, at a fixed
+     offset from the gutter above. Equal boxes alone would have aligned it;
+     pinning it means no marker invented later — the linked-clause outline,
+     the new-clause tint, whatever comes next — can move it either. The
+     heading reserves the width (see .rl-clause-h) so no title can run under
+     it. The offset is measured from the padding box, so right:0 lands the
+     pill on the text column's own right edge — where it has always appeared
+     on an unmarked clause, and now on every clause. */
+  .redline-page .rl-cp-pill{position:absolute;right:0;top:0;z-index:2;flex:none;
     border:1px solid var(--nav-bg,#0b3d3a);background:var(--nav-bg,#0b3d3a);color:#fff;
     border-radius:999px;padding:calc(3px * var(--doc-scale,1)) calc(11px * var(--doc-scale,1));
     font:inherit;font-size:calc(10.5px * var(--doc-scale,1));font-weight:700;line-height:1.6;
@@ -7665,6 +7794,47 @@ function redlineLayoutCss(){
      disabled AND dimmed AND not pointing. */
   .redline-page .rl-unsent-go:disabled{opacity:.45;cursor:not-allowed;filter:none}
   .redline-page .rl-unsent-go:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
+
+  /* ---- THE CO-PILOT'S FIRST PASS (W3-1) ----
+     A band, not a card: it sits in the column head with the unsent band and
+     answers the same kind of question — what is in front of you — so it
+     wears the same width and the same restraint. Shut it and one line
+     remains; the cards below are the work and this is a reading of them.
+     Every colour is a status token already in the sheet, because a
+     recommendation is a verdict and the product already has three. */
+  .redline-page .rl-plan{flex-basis:100%;margin-top:6px}
+  .redline-page .rl-plan-bar{display:flex;align-items:center;gap:6px;width:100%;
+    border:1px solid var(--color-divider);border-radius:7px;background:var(--color-surface);
+    padding:6px 9px;cursor:pointer;font:inherit;text-align:left}
+  .redline-page .rl-plan-bar:hover{border-color:var(--color-accent-300)}
+  .redline-page .rl-plan-bar:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
+  .redline-page .rl-plan-title{font-size:calc(11.5px * var(--doc-scale,1));font-weight:700;flex:1;min-width:0}
+  .redline-page .rl-plan-caret{flex:none;font-family:var(--font-mono);font-size:12px;color:var(--color-neutral-600)}
+  .redline-page .rl-plan-chip{flex:none;font-size:calc(10px * var(--doc-scale,1));font-weight:700;
+    border-radius:999px;padding:1px 7px;white-space:nowrap}
+  .redline-page .rl-plan-accept{background:var(--st-green-bg);color:var(--st-green-fg)}
+  .redline-page .rl-plan-push{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  .redline-page .rl-plan-escalate{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  .redline-page .rl-plan-review{background:var(--st-steel-bg);color:var(--st-steel-fg)}
+  .redline-page .rl-plan-body{border:1px solid var(--color-divider);border-top:0;
+    border-radius:0 0 7px 7px;background:var(--color-surface);padding:8px 10px}
+  .redline-page .rl-plan-note{margin:0 0 8px;font-size:calc(10.5px * var(--doc-scale,1));
+    color:var(--color-neutral-600);line-height:1.5}
+  .redline-page .rl-plan-row{border-top:1px solid var(--color-divider);padding:8px 0 6px}
+  .redline-page .rl-plan-row:first-of-type{border-top:0;padding-top:0}
+  .redline-page .rl-plan-head{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap}
+  .redline-page .rl-plan-id{font-family:var(--font-mono);font-size:calc(10px * var(--doc-scale,1));
+    color:var(--color-neutral-500)}
+  .redline-page .rl-plan-clause{font-size:calc(11.5px * var(--doc-scale,1));font-weight:600;
+    min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .redline-page .rl-plan-why{margin:4px 0 0;font-size:calc(11px * var(--doc-scale,1));line-height:1.5}
+  .redline-page .rl-plan-prec{margin:3px 0 0;font-size:calc(10.5px * var(--doc-scale,1));
+    line-height:1.5;color:var(--color-neutral-600);font-style:italic}
+  .redline-page .rl-plan-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .redline-page .rl-plan-act{border:1px solid var(--color-divider);border-radius:6px;
+    background:var(--color-bg);cursor:pointer;font:inherit;
+    font-size:calc(10.5px * var(--doc-scale,1));padding:3px 9px}
+  .redline-page .rl-plan-act:hover{border-color:var(--color-accent-300);color:var(--color-accent-700)}
 
   /* ---- THE ASK TAG (OI-12) ----
      An outline pill with a coloured cap: the cap is whose, the glyph is where
@@ -8999,6 +9169,7 @@ function negoNeedsYouIds(c, opts = {}){
 const NEGO_DEAD_STATUS = new Set(['Signed', 'Declined']);
 function negoIsLive(c){
   if (!c || !c.negotiation) return false;
+  if (c.archived) return false;      // the shelf argues with nobody (WO-5)
   if (NEGO_DEAD_STATUS.has(c.status)) return false;
   return Array.isArray(c.changes) && c.changes.length > 0;
 }
@@ -9341,7 +9512,27 @@ function renderRedline(){
     }).catch(() => {});
   }
   const side = _redlineSide === 'counterparty' ? 'counterparty' : 'owner';
+  /* ---- THE COUNTERPARTY VIEW IS A PREVIEW, NOT A DIFFERENT CHAIR ----
+     (owner-asked, 19 Aug 2026.) `side` still decides what the DOCUMENT and the
+     cards draw — that is the whole point of the toggle. It no longer decides
+     what the CONTROL ROW says. Every label on that row used to swap with the
+     view (our count for theirs, "Publish Round" for "Send Response", four of
+     our controls removed outright), so flipping the toggle shuffled the row
+     sideways and shuffled it back — on the one control whose entire purpose is
+     comparing the two views, where movement is the noise. The row is drawn
+     from OUR chair either way and goes DEAD; rowSide is what pins it. */
   const seg = (v, label) => `<button data-redline-side="${v}" class="rl-seg${side === v ? ' on' : ''}">${label}</button>`;
+  /* AND NEITHER ACT IS THE REVIEWER'S while their review is open. Publishing
+     puts wording in front of the counterparty; closing the round makes the
+     agreed wording the next baseline, which settles what was sent. A person who
+     accepted a review does neither here until they have handed it back — the
+     posture, not the gate. See rlActorHeld. Read HERE, at the top, because the
+     row's own labels below depend on it. */
+  const _rvPosture = rlActorHeld(c, { side, readonly: false });
+  /* A narrowed reviewer keeps the HIDING — their controls are absent by
+     permission, not by posture — so the preview flag asks that first. */
+  const preview = side === 'counterparty' && !_rvPosture;
+  const rowSide = preview ? 'owner' : side;
   /* The same pill, asked a different question: which of the three readings the
      document is drawn in. aria-pressed rather than a tab role — nothing is
      being switched between, one surface is being drawn differently. */
@@ -9353,7 +9544,7 @@ function renderRedline(){
      showing three cannot happen. */
   /* The same arithmetic the sidebar door, the round line and the Document tab's
      button run — negoNeedsYouIds, one function, so the four cannot disagree. */
-  const needsYou = negoNeedsYouIds(c, { side });
+  const needsYou = negoNeedsYouIds(c, { side: rowSide });
   /* ---- THE BATCH SEND ----
      Drawn only when there is something behind the wall, and labelled with how
      much. It is a proxy onto #nego-send like Publish Round is — the same one
@@ -9361,7 +9552,7 @@ function renderRedline(){
      publishes every unsent draft in one go rather than opening a queue of
      confirmations. See redlineSyncProxies for why a proxy can go dead. */
   /* Whose postbox the send acts for, named from the reader's chair (D2). */
-  const sendTarget = side === 'counterparty' ? 'nego-send-decisions' : 'nego-send';
+  const sendTarget = rowSide === 'counterparty' ? 'nego-send-decisions' : 'nego-send';
   const sendWho = side === 'counterparty' ? (window.FIRST_PARTY || 'the owner')
     : (c.counterparty || 'the counterparty');
   /* ---- THE HEADER CARRIES ONE VERB, NOT THREE ----
@@ -9400,7 +9591,7 @@ function renderRedline(){
      window) the counts stand down and the verb stays, with the title still
      carrying the whole sentence. Both remain in textContent either way, which
      is what the tests read. */
-  const sendVerb = side === 'owner' ? 'Publish Round' : 'Send Response';
+  const sendVerb = rowSide === 'owner' ? 'Publish Round' : 'Send Response';
   /* ---- THE UNSENT COUNT CAME OFF THIS BUTTON (15 Aug 2026, OI-9) ----
      It now has a home of its own, in one line at the top of the change column,
      beside the cards it is about and with a Send that says the word. Two
@@ -9413,7 +9604,7 @@ function renderRedline(){
      to the column, and the band deliberately does not count them. */
   const sendCounts = (_held ? ` · ${_held} held` : '')
     + (_wait ? ` · ${_wait} in review` : '');
-  const sendTip = side === 'owner'
+  const sendTip = rowSide === 'owner'
     ? `Publish this round's changes to ${c.counterparty || 'the counterparty'}`
       + (_held ? ` — ${_held} held back by an internal reviewer will not travel` : '')
       + (_wait ? ` — ${_wait} still with a colleague and will not travel yet` : '')
@@ -9429,14 +9620,27 @@ function renderRedline(){
      naming dialog the room uses, because closing is irreversible. */
   const prog = (typeof negoProgress === 'function') ? negoProgress(c)
     : { pending: 0, total: 0 };
-  /* AND NEITHER ACT IS THE REVIEWER'S while their review is open. Publishing
-     puts wording in front of the counterparty; closing the round makes the
-     agreed wording the next baseline, which settles what was sent. A person who
-     accepted a review does neither here until they have handed it back — the
-     posture, not the gate. See rlActorHeld. */
-  const _rvPosture = rlActorHeld(c, { side, readonly: false });
-  const closer = (!prog.pending && prog.total && side === 'owner' && !_rvPosture)
-    ? `<button data-rl-close-round class="rl-btn rl-btn-go" title="${_nea(i18t('ng_close_round_title'))}">&#10003; ${i18t('ng_close_round_n',{n:negoRound(c)})}</button>` : '';
+  /* ---- THE COUNTERPARTY VIEW IS A PREVIEW, NOT A DIFFERENT CHAIR ----
+     (owner-asked, 19 Aug 2026.) Flipping the toggle used to REMOVE our own
+     four controls from the row, so every remaining control jumped sideways
+     and jumped back when you flipped again — on a toggle whose whole purpose
+     is comparing the two views, where anything that moves is noise.
+
+     They stay where they are and are DEAD instead: `disabled`, dimmed, and
+     not pointing, with a title that says which press brings them back. That
+     is not the "a verb that cannot work is not drawn" rule being broken —
+     that rule is about a verb this PERSON may not use, and this person may
+     use all four. It is the KPI picker's rule instead: at the ceiling the
+     un-tickable rows are disabled AND dimmed AND explained, because the
+     refusal has a way forward on the same screen. Here the way forward is
+     one press away, on the toggle beside them.
+
+     A REVIEWER IS UNCHANGED. _rvPosture genuinely may not do these things —
+     that hiding is a permission and stays a hiding. */
+  const deadAttrs = preview
+    ? ` disabled aria-disabled="true" data-rl-dead="1" title="${_nea(i18t('ng_preview_dead'))}"` : '';
+  const closer = (!prog.pending && prog.total && !_rvPosture)
+    ? `<button data-rl-close-round class="rl-btn rl-btn-go"${deadAttrs || ` title="${_nea(i18t('ng_close_round_title'))}"`}>&#10003; ${i18t('ng_close_round_n',{n:negoRound(c)})}</button>` : '';
   host.innerHTML = `
     <!-- The reference is lg:h-full: the workbench fills the window and each of
          its three columns scrolls inside itself, rather than the page growing
@@ -9569,8 +9773,8 @@ function renderRedline(){
                    ThinkPad-width window (Young, 10 Aug 2026: "the highlight
                    buttons do not descend to a second line") the row compresses
                    to glyphs before it ever wraps — the title says the rest. */}
-            ${side !== 'counterparty' && !_rvPosture && (typeof canEdit !== 'function' || canEdit()) ? `<button type="button" data-rl-pbreview class="rl-pb-btn"
-              title="${i18t('ng_review_every_clause')}"><span class="rl-word">${i18t('ng_review_vs_playbook')}</span><span class="rl-glyph" aria-hidden="true">&#10022;</span></button>` : ''}
+            ${!_rvPosture && (typeof canEdit !== 'function' || canEdit()) ? `<button type="button" data-rl-pbreview class="rl-pb-btn"${
+              deadAttrs || ` title="${_nea(i18t('ng_review_every_clause'))}"`}><span class="rl-word">${i18t('ng_review_vs_playbook')}</span><span class="rl-glyph" aria-hidden="true">&#10022;</span></button>` : ''}
             ${''/* ALWAYS A WAY IN. This used to become "With John Wayne" the
                    moment anything went out — a button that had stopped being a
                    button, on the one control you need again the second you spot
@@ -9578,11 +9782,11 @@ function renderRedline(){
                    on the cards, where the changes are; this row's job is to open
                    the door. Its word follows the state, because the reviewer and
                    the requester press the same place for opposite acts. */}
-            ${side !== 'counterparty' && (typeof canEdit !== 'function' || canEdit()) && window.reviewState ? (() => {
+            ${(typeof canEdit !== 'function' || canEdit()) && window.reviewState ? (() => {
               const st = reviewState(c);
               const label = st.phase === 'yours' ? i18t('rv_head_return') : i18t('rv_head_ask');
               return `<button type="button" data-rl-review class="rl-pb-btn"
-                data-rv-phase="${_nea(st.phase)}" title="${_nea(i18t('rv_head_title'))}">&#128100;<span class="rl-word"> ${_ne(label)}</span></button>`;
+                data-rv-phase="${_nea(st.phase)}"${deadAttrs || ` title="${_nea(i18t('rv_head_title'))}"`}>&#128100;<span class="rl-word"> ${_ne(label)}</span></button>`;
             })() : ''}
             ${''/* ---- HOW THE CONTRACT READS, AS THREE WORDS ----
                    Not a filter and not a mode the record knows about: the same
@@ -9644,10 +9848,10 @@ function renderRedline(){
                    column used to draw its own copy beside the cards and this one
                    proxied onto it; the column's copy is gone and the engine's
                    #nego-send survives, hidden, as the control this presses. */}
-            ${side === 'counterparty' || _rvPosture ? '' : `<button data-redline-proxy="${sendTarget}" class="rl-btn rl-btn-go" title="${_nea(sendTip)}">
+            ${_rvPosture ? '' : `<button data-redline-proxy="${sendTarget}" class="rl-btn rl-btn-go"${deadAttrs || ` title="${_nea(sendTip)}"`}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
               ${_ne(sendVerb)}<span class="rl-send-detail">${_ne(sendCounts)}</span></button>`}
-            ${side === 'counterparty' ? '' : closer}
+            ${closer}
           </div>
         </section>
       </div>
@@ -14164,6 +14368,12 @@ function redlinePanesHtml(c, opts = {}){
                  back to is the fault this band exists to fix. See
                  rlUnsentBandHtml. */}
           ${rlUnsentBandHtml(c, opts)}
+          ${''/* ---- THE CO-PILOT'S FIRST PASS (W3-1) ----
+                 Under the unsent band and above the cards, because it is a
+                 reading OF those cards. Drawn only on our seat, only where
+                 they have actually asked for something, and never for a
+                 narrowed reviewer. See rlPlanBandHtml. */}
+          ${rlPlanBandHtml(c, opts)}
           ${''/* ---- AND NOW THE BULK VERBS ARE GONE FROM BOTH SEATS ----
                  They left OUR column first: deciding the other side's wording
                  in one press is the act that should cost a press per clause,
@@ -14365,6 +14575,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlHiddenFrom, rlMsgVisible, redlineEmbed, negoIsRedeciding, rlSeatAlertsHtml,
   RL_CARD_FILTERS, rlCardFilter, rlSetCardFilter, rlCardFilterPass,
   RL_SEL_ACTIONS, RL_PLACEMENT_NOTE, rlSelActions, rlSelMenu, rlAiPropose, rlStandardAction,
+  rlPlanBandHtml, rlPlanIsOpen, rlPlanSetOpen,
   redlineCardIds, rlCardRank, rlCardSort, rlOneNoticeHtml, rlNoticeStackHtml, rlFloatingNoticesHtml, rlNoticesFolded, rlSetNoticesFolded,
   rlJumpToClause, rlLinkFocus, rlDeltaOps, rlSayInPanel,
   /* The per-card open/shut model went with the fold (12 Aug 2026), and the

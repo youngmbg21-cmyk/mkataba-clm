@@ -24,6 +24,9 @@
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const { buildWorld } = require('./world');
+const fs = require('node:fs');
+const path = require('node:path');
+const read = rel => fs.readFileSync(path.join(__dirname, '..', rel), 'utf8');
 
 const BASE = [
   'RAW MATERIAL SUPPLY AGREEMENT',
@@ -97,7 +100,20 @@ describe('the sign — the window renders no verbs', () => {
     assert.ok(!t.$('[data-rl-send]') && !t.$('[data-rl-retract]'), 'no card Send or Retract');
     assert.equal(t.doc.getElementById('nego-send-decisions'), null, 'no hand-back postbox');
     assert.ok(!t.$('[data-nego-send]'), 'no thread composer send');
-    assert.ok(!t.$('[data-rl-pbreview]'), 'no Review vs Playbook — it can file proposals');
+    /* REVERSED IN PLACE, 19 Aug 2026 (owner-asked). The four toolbar controls
+       used to be REMOVED in this view, which emptied 130px out of the row and
+       shuffled everything left of them sideways — on the one control whose
+       purpose is comparing the two views. They are drawn now, in the same
+       place, and DEAD: `disabled`, dimmed, and marked. The claim this file
+       exists for is unchanged and is asserted harder — the window can still
+       file nothing — and the lock test below sweeps a click across every
+       rendered button, which is what actually proves it. */
+    for (const sel of ['[data-rl-pbreview]', '[data-rl-review]', '.rl-tabrow [data-redline-proxy]']) {
+      const el = t.$(sel);
+      if (!el) continue;                       // absent for its own reasons is fine
+      assert.ok(el.hasAttribute('disabled'), sel + ' is drawn but dead in the window');
+      assert.ok(el.hasAttribute('data-rl-dead'), sel + ' wears the preview\'s own marker');
+    }
     /* AND IT DOES NOT EXPLAIN ITSELF IN A PARAGRAPH. This used to assert the
        opposite — a four-line notice at the top of the column naming the party
        and saying nothing could be decided from here. Removed (Young, 10 Aug
@@ -128,6 +144,9 @@ describe('the sign — the window renders no verbs', () => {
     assert.ok(t.doc.getElementById('nego-send') || t.$('[data-redline-proxy]'),
       'but our own send is back');
     assert.ok(t.$('[data-rl-pbreview]'), 'the playbook pass is back');
+    assert.ok(!t.$('[data-rl-pbreview]').hasAttribute('disabled'),
+      'and alive again — the dead face belongs to the preview only');
+    assert.ok(!t.$('[data-rl-dead]'), 'nothing on our own chair wears the preview marker');
     assert.ok(t.$('[data-nego-accept]'), 'their ask is decidable again from the owner chair');
   });
 });
@@ -164,5 +183,64 @@ describe('the lock — nothing clickable on the window moves the record', () => 
     const acts = [...host.querySelectorAll('[data-nego-accept],[data-nego-reject],[data-nego-edit],[data-rl-send]')];
     assert.equal(acts.length, 0, 'a readonly embed renders no acting controls');
     assert.equal(recordFacts(t.win, t.c), before, 'and mounting it wrote nothing');
+  });
+});
+
+/* ============================================================
+   f152 — AND NOTHING ON THE ROW MOVES WHEN YOU FLIP THE VIEW
+   ============================================================
+   Owner-asked 19 Aug 2026. The toggle exists so the two views can be
+   compared, and it used to make the comparison harder: our four controls
+   were removed in the counterparty view and every remaining control shuffled
+   sideways — 130px of it — then shuffled back. The row is drawn from OUR
+   chair in both views now, and goes dead in the preview.
+
+   THE LOCK IS UNTOUCHED, and is what makes this safe: `disabled` on a button
+   is not a decision about pixels, it is the browser refusing to dispatch the
+   click at all, and the sweep above presses every rendered button and diffs
+   the record afterwards. */
+describe('the row — same controls, same places, dead in the window', () => {
+  test('every control the internal view draws is drawn in the window too', async () => {
+    const t = await page();
+    const seen = sel => !!t.$(sel);
+    const internal = ['[data-rl-pbreview]', '[data-rl-review]', '.rl-tabrow [data-redline-proxy]']
+      .filter(seen);
+    assert.ok(internal.length >= 2, 'the internal view draws them to begin with');
+    t.view('counterparty');
+    for (const sel of internal) {
+      assert.ok(t.$(sel), sel + ' is still on the row in the window');
+      assert.ok(t.$(sel).hasAttribute('disabled'), sel + ' is dead there');
+    }
+  });
+
+  test('and its labels do not swap with the view — the row is drawn from our chair', () => {
+    const src = read('js/views/negotiation.js');
+    assert.match(src, /const rowSide = preview \? 'owner' : side/);
+    for (const line of [
+      /const needsYou = negoNeedsYouIds\(c, \{ side: rowSide \}\)/,
+      /const sendTarget = rowSide === 'counterparty'/,
+      /const sendVerb = rowSide === 'owner'/,
+      /const sendTip = rowSide === 'owner'/,
+    ]) assert.match(src, line, 'a label that still read `side` would change width and move the row');
+  });
+
+  test('a narrowed reviewer keeps the hiding — that one is a permission', () => {
+    const src = read('js/views/negotiation.js');
+    assert.match(src, /const preview = side === 'counterparty' && !_rvPosture/,
+      'the preview posture never overrides what a reviewer may not do');
+  });
+
+  test('the dead face is its own marker, not a borrowed one', () => {
+    const src = read('js/views/negotiation.js');
+    assert.match(src, /data-rl-dead="1"/);
+    assert.match(src, /\.rl-pb-btn:disabled\{opacity:\.6;cursor:wait\}/,
+      'because :disabled on that button already means "the playbook pass is running"');
+    assert.match(src, /\[data-rl-dead\]\{opacity:\.42;cursor:not-allowed/);
+    assert.match(src, /\.rl-pb-btn:not\(\[data-rl-dead\]\):hover/, 'and a dead button has no hover life');
+  });
+
+  test('it says which press brings them back, in both languages', () => {
+    const i18n = read('js/i18n.js');
+    assert.equal((i18n.match(/\bng_preview_dead:/g) || []).length, 2);
   });
 });

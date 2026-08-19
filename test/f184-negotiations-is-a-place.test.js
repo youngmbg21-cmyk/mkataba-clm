@@ -581,8 +581,16 @@ describe('F184 (3) — one count, four surfaces, and it never writes', () => {
     const app = read('js/app.js');
     assert.match(app, /negotiations: \(window\.negoNeedsYouTotal/, 'and so does the sidebar');
     const nego = read('js/views/negotiation.js');
-    assert.match(nego, /const needsYou = negoNeedsYouIds\(c, \{ side \}\)/,
+    /* NARROWED IN PLACE, 19 Aug 2026: the toolbar asks the same one function,
+       for `rowSide` rather than `side`. The two are the same value on our own
+       chair; they differ only while the Counterparty toggle is previewing
+       their view, where the row is deliberately drawn from OUR chair so that
+       nothing on it moves. The claim — one function, four surfaces — is
+       untouched. */
+    assert.match(nego, /const needsYou = negoNeedsYouIds\(c, \{ side: rowSide \}\)/,
       "and so does the workbench's own toolbar");
+    assert.match(nego, /const rowSide = preview \? 'owner' : side/,
+      'and rowSide is our own chair whenever the row is drawn');
   });
 });
 
@@ -702,5 +710,59 @@ describe('F184 (5) — the phone changes the same way', () => {
     assert.match(s, /regSetScope\(s\.screen==='negotiations'/);
     /* The phone still files no changes of its own — the standing rule. */
     assert.ok(!/negoFileChange\(/.test(s));
+  });
+});
+
+/* ============================================================
+   F184 — WHOSE MOVE IS A STATE IN WORDS, NOT A CHIP
+   ============================================================
+   Owner-asked 19 Aug 2026, off the live list: every row ended in a filled
+   capsule, and sixteen of them down the right-hand edge read as sixteen
+   buttons — on a column that carries a STATE and whose press belongs to the
+   row. The words keep the colour, which is the part that does the work, and
+   lose the pill: the treatment the contracts page already gives its action
+   text, on the page that IS the contracts table.
+
+   THE PRESS IS UNCHANGED, and that is the half worth pinning: the cell
+   carries no stopPropagation, so pressing the words opens the negotiation
+   exactly as pressing the row does. */
+describe('F184 — the whose-move column is words, not pills', () => {
+  const css = read('index.html');
+  const grab = sel => {
+    const i = css.indexOf(sel + '{');
+    assert.ok(i > 0, sel + ' is defined');
+    return css.slice(i, css.indexOf('}', i));
+  };
+
+  test('the state carries no chip — no fill, no border, no capsule', () => {
+    const w = grab('  .ngl-w');
+    assert.match(w, /background:none/, 'no fill');
+    assert.match(w, /border:0/, 'no outline');
+    assert.match(w, /padding:0/, 'and no capsule padding');
+    assert.match(w, /border-radius:0/);
+  });
+
+  test('but it keeps the colour, which is what the reader actually reads', () => {
+    assert.match(grab('  .ngl-w-you'), /color:var\(--st-amber-fg\)/, 'the one that asks for something');
+    assert.match(grab('  .ngl-w-them'), /color:var\(--st-gray-fg\)/);
+    assert.match(grab('  .ngl-w-clear'), /color:var\(--st-green-fg\)/);
+    for (const k of ['.ngl-w-you', '.ngl-w-them', '.ngl-w-clear'])
+      assert.ok(!/background:/.test(grab('  ' + k)), k + ' fills nothing');
+  });
+
+  test('the words are pressable — the row press reaches them', () => {
+    const reg = read('js/views/register.js');
+    const i = reg.indexOf('negoMovePillHtml(c)');
+    assert.ok(i > 0);
+    const cell = reg.slice(reg.lastIndexOf('<td', i), i);
+    assert.ok(!/stopPropagation/.test(cell),
+      'the contracts page stops the row press on its ACTIONS cell; this one is a state and must not');
+    assert.match(css, /tr\[data-nego-row\]:hover \.ngl-w\{ text-decoration:underline/,
+      'and the row hover says the words are a door');
+  });
+
+  test('one builder, so the phone reads the same way', () => {
+    assert.match(read('js/mobile-screens.js'), /negoMovePillHtml\(c\)/,
+      'the phone draws the same span and inherits the same rule');
   });
 });

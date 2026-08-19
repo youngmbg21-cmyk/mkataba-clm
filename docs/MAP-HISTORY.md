@@ -3221,3 +3221,287 @@ which is what makes one rule serve the teal workspace, the navy one, and
 both themes. The filled primary overrides everything and is untouched —
 measured beside the More button in both themes, and the f175 pin was
 rewritten from the grey recipe to this one the same hour it was added.
+
+## THE GAP-MAP BATCH — the AI brain's first night (18–19 Aug 2026)
+
+The evening began as strategy, not code. The owner asked what HaTi is still
+missing to give SMEs the upscale service an enterprise buys from a
+world-class contract platform (CRM/ERP integration excluded), and how AI
+should become the brain of the product. The answer was researched — the
+2026 leaders (Ironclad, DocuSign's Iris, Icertis, Sirion, Agiloft) have all
+repositioned around AI that works UNASKED, extracting obligations, watching
+the book in the background and redlining from precedent, while the SME
+research says the money is lost after signature, to missed dates and unread
+paper — and then checked against the codebase, which turned out to hold far
+more of the machinery than the market gives an SME tool credit for:
+extraction with OCR and confidence spans, a configurable playbook with
+fallback positions, an obligations finder, notice-period arithmetic, FTS
+over the wording, semantic Q&A with citations. The gaps were named, ranked
+and filed as WORKORDER-gap-map.md; the owner said "build it on an
+autonomous overnight run as I go to sleep", and Phase 1 was built that
+night. The report's one-line verdict became the batch's spine: make HaTi
+speak first, and let the humans stay the hands.
+
+WO-1, the nudge. Obligations had carried an assignee since the finder
+shipped and the sweep ignored it — every overdue notice went to every
+admin, the day AFTER the date, and nothing fired before it. The person who
+owed the work never heard. Now the assignee (resolved to a MEMBER record
+only — a free-text address that matches nobody gets no mail, the
+notify-signer route's open-relay lesson) hears at −7, 0 and +1 in their own
+language, and the admins are brought in at +4, by name, told who was
+already reminded. The no-match path is byte-identical to the old mail so
+nothing got quieter. Two traps caught in the hour: the escalation subject
+printed a literal {days} because the template vars were passed to the body
+line and not the subject — one vars object for both now — and the test's
+own mail stub was flipped back to healthy before the fire-and-forget send
+landed on it, which read as a product fault and was a test fault; the mode
+now holds until the outbox row exists.
+
+WO-2, the Contract Brief. The one-press plain-English cover memo — what a
+lawyer would staple on top: what this is, term, money, the clauses that
+bite with their verbatim quotes, anything unusual. The design fights were
+all about where things live. The cache went into its OWN briefs table
+because a server-side write onto the record would bump the version under an
+open editor (the signer_notices lesson); it rides GETs as _brief transport
+and is stripped on PUT from both sides, so a forged copy pushed through a
+save changes nothing — the table answers. Money is masked for readers
+without canViewValues (the FTS-snippet rule), which only works because the
+prompt confines every amount to the money section. The share route strips
+it from even a hand-built payload: our reading of their paper must never
+reach them. And a SIGNED contract can still be briefed — imported signed
+paper is exactly what most needs explaining — which reversed f176's
+"obligations alone stays live" claim in place, deliberately.
+
+WO-3, the Daily Brief. One email per member per day, only when something
+needs THEM, nothing at all on quiet days — and a quiet day burns no dedupe
+row, so an item landing at noon still briefs. The split is the design:
+personal duties (own obligations, reviews waiting, a signing turn) go to
+their person; portfolio dates and orphan overdue duties go to the admins
+who can re-route them. Building it forced the right refactor: runReminders'
+family-aware term resolution — "only a signed amendment moves the term",
+the owner-ruled defect class — was about to be copied a second time, so it
+was lifted into effExpiryReader and BOTH sweeps read it; f65 proved the
+extraction moved nothing. The off switch rode the existing prefs machinery
+(PUT /api/me/prefs) rather than growing a column, and it is the one LIVE
+toggle in the account page's email section, beside the honest read-only
+statement — a section whose own comment forbids dead switches.
+
+WO-4, ask-your-book. Full-wording search existed and exactly one box could
+reach it. The palette now merges an "In the wording" section off the SAME
+route (two doors, one index, the server's masking standing) and always
+offers "Ask Copilot" last — a handoff that prefills the existing panel and
+never calls an AI route itself. Pinned at the source the way f187 pins the
+shell, because buildWorld deliberately never loads js/app.js.
+
+WO-5, the archive shelf. The delete refusal on an executed contract has
+said "archive it instead" since the immutability work — and no archive
+existed. The design question was where "archived" lives: a status was
+refused (an archived Signed contract stays Signed), so it is a filing fact
+beside status, additive like a note, which is what lets a sealed record be
+filed away without touching what was signed. The sweep question was the
+night's most instructive: twenty-six live-book sites filter on
+status!=='Declined', and patching them one by one is how one gets missed —
+but the dashboard turned out to read everything through hmDashSlices' one
+cs, the alerts through buildAlerts' one cs, insights through pfLive, and
+the negotiations door through negoIsLive, so four door-level filters
+covered most of the product and the rest were swept mechanically with f151's
+drift test standing guard. Two deliberate absences: an archived EXECUTED
+amendment still sets its parent's term (archiving is filing, not
+un-signing — both family twins unswept, the sweeps skip at the contract
+loop), and the family arithmetic itself never learned the word. FTS keeps
+archived contracts and the palette tags them, because the difference
+between filing and deleting is that filing can be found.
+
+Left undone on purpose, named in the work order: browser-verify passes for
+the new pixels (first item of the next run), the TOTP stretch if the night
+ran out, and every Phase 2/3 item — currency truth, the intake front door,
+events-out, the redline co-pilot, precedent memory, the signature ladder.
+
+And the stretch was reached. WO-6, two-step sign-in, went last because it
+touches the front door: every test in the suite signs in, so the feature
+had to be strictly opt-in per member or the whole harness would have felt
+it. The shape that made it safe is the ticket split — a correct password on
+a two-step account earns a five-minute single-use ticket and no session,
+and nothing about the workspace (publicUser included) leaves the building
+before the code lands. The enrolment is proven rather than assumed: the
+secret stays pending until a first code shows the authenticator really
+holds it, because the worst outcome a security feature can have is locking
+an account behind a key nobody scanned. Recovery codes spend once;
+disabling costs a current code so a stolen open session cannot remove the
+lock it could not pick; the lost-phone rescue is an admin grant refused on
+yourself. The test file carries its own RFC 6238 generator, so the server
+is checked against the standard and never against its own arithmetic. The
+People-page rescue button and any workspace-wide "require two-step" policy
+are Phase 2, named in the order.
+
+## MONEY IN ITS OWN CURRENCY (W2-1, 19 Aug 2026)
+
+The gap map listed mixed currencies as a Phase 2 item and left the design
+question open: per-currency totals only, or one combined figure at a dated
+rate? The owner ruled the same day — "i would want for the contract to be
+converted to local currency when it comes to reporting so the dashboards or
+reporting have one currency" — which is the harder of the two options and
+the more useful one, and it settled everything downstream.
+
+The fault it fixes was quiet and total: `metadata.currency` had existed for
+as long as the AI extractor had been filling it in, and NOTHING read it.
+Every sum in the product added the raw number, so a dollar contract in a
+Nairobi workspace contributed its face value in shillings to the headline
+figure, the stream totals, the insights charts, the renewal pipeline, the
+monthly letter and the server's own aggregates. A wrong number wearing a
+right number's clothes.
+
+The design turns on one split: **a contract states its own currency, and
+reporting converts.** Everything a reader sees about ONE agreement — its
+page, its row, its phone card, the branding fact sheet — prints the code
+the paper is written in; everything that ADDS agreements up converts to the
+workspace currency first. That split is what makes the feature honest
+rather than merely consistent: nobody is ever shown a converted number
+where they expect the contract's own, and no total ever mixes.
+
+Three rules did the real work. FIRST, one arithmetic for two hosts: the
+conversion lives in js/jurisdiction.js and the server injects its own
+readers at boot rather than keeping a twin — this codebase has been bitten
+by client/server copies of one formula often enough that a money version
+was not worth risking. SECOND, no rate is ever guessed: a foreign currency
+with no rate on file is left OUT of converted figures and the omission is
+carried back as data (fxMissing) so the dashboard's own value card can say
+"1 contract left out — no exchange rate for USD" instead of quietly
+under-reporting; silent trimming on a money headline is the fault the
+insights panels were rebuilt to prevent. THIRD, the rate is an admin's
+claim with a date, never a live feed — a figure that moves by itself,
+sourced from a service nobody in the workspace controls, is one no admin
+can stand behind in a board meeting; f218 greps for rate-API hostnames to
+keep that decision from eroding.
+
+The sharpest part was the guards. A signing limit and an approval threshold
+are both written in the workspace currency, so comparing a dollar
+contract's raw number against them is a lie in whichever direction the
+rates happen to run. Both convert now — and the unconvertible case is
+deliberately NOT a pass: the signing cap refuses in words and names the
+missing rate, and the approval rule engages rather than skipping. On money,
+an unanswerable question errs toward the human. The server's wall reads the
+currency off the STORED record for the same reason it already read the
+value there: it is the half the person being capped does not get to restate
+on the way past.
+
+Nothing stored was rewritten, no migration ran, and a workspace that has
+only ever used one currency reads exactly as it did the day before.
+
+## PHASE 2, AND WHAT A SECURITY REVIEW IS FOR (19 Aug 2026)
+
+Four builds after the currency ruling: the intake front door, the renewal
+adviser, events out, and the People-page button that finished WO-6's
+lost-phone rescue.
+
+THE INTAKE DOOR is the one that changes what HaTi is. Every other feature
+in this product serves the person who handles contracts; this one serves
+everybody else, and the design turns on refusing the obvious build. "Let a
+viewer create a Draft" is wrong twice — it puts unapproved paper in the
+register and hands the right to write contracts to people the workspace
+deliberately withheld it from. A request is its own record instead: no
+paper, no count, nothing to tidy when it is declined, and every act that
+produces real paper still runs through canEdit and the ordinary creation
+path. Asking grants nothing, which is the whole point.
+
+THE RENEWAL ADVISER turns an alarm into a recommendation, and its one hard
+rule is that the dates are not the model's. Every fact the recommendation
+rests on is computed from the record and handed over; the model weighs and
+writes. A confident wrong date is the single failure this feature could not
+survive, because a renewal decision is acted on without anybody going back
+to check why the screen said what it said.
+
+EVENTS OUT is the reason this entry is worth reading. It shipped with what
+looked like a thorough SSRF defence — https only, private ranges refused,
+and a send-time re-resolution explicitly commented as the DNS-rebinding
+guard. A security review, run adversarially against the committed code,
+found that the guard was a formality: `webhookTargetOk` resolved the name,
+and then `fetch` resolved it a second time, so the address that was checked
+was never the address that was connected to. A name with a zero-second TTL
+wins that race every time, and because the public share-response route is
+one of the triggers, the race did not even have to be waited for — it could
+be retried until it landed. The fix was structural rather than additional:
+the check moved inside the resolution that produces the socket, using
+node:https with a guarded lookup, so there is no window at all.
+
+The review found nine other things — a contract's name and an
+arbitrary Viewer-typed title in the payloads, an empty subscription list
+meaning "everything", an unread response body with the timeout already
+cleared, a trailing dot walking past the hostname blocklist, 6to4 addresses
+embedding 127.0.0.1 and reading as global unicast, a fails counter that
+concurrent fires clobbered — but the sharpest finding was about the TESTS.
+Two of f221's assertions were hollow: the rebinding test used an http URL,
+so it was refused on the protocol and never reached the address check it
+claimed to prove, and the payload test grepped a blocklist that `name:` and
+`title` walked straight through. Both are rewritten — the second as an
+allow-list of permitted keys, because a blocklist only tests the words
+somebody happened to think of.
+
+The lesson worth keeping: a guard with a comment explaining why it is
+necessary reads exactly like a guard that works, and a test named after a
+property reads exactly like a test that proves it. Neither is evidence.
+This feature is the one place in the product where an outbound request goes
+to an address a stranger may influence, and it earned the review it got.
+
+## PHASE 3 — THE THREE BETS (19 Aug 2026)
+
+The strategic end of the gap map: the two features no competitor can copy
+for this customer, and the honesty work under the signature.
+
+PRECEDENT MEMORY was the one worth building first, and not only because the
+co-pilot cites it. Every negotiation this workspace had ever run was already
+on the record — what was asked, by whom, on which clause, how it ended — and
+nothing had ever read it back. So the same argument was had from scratch
+every time and the playbook went on stating a line the company had quietly
+stopped holding. The whole feature is a reading; the interesting decisions
+are all about what NOT to count. A withdrawn ask is neither agreed nor
+refused, because the side that asked took it back and that says nothing
+about whether the other side would have agreed — counting it as a refusal
+would flatter our own position every time somebody changed their mind. The
+suggested figure is the worst REPEATED one rather than the average (a number
+nobody ever signed) or the extreme (the one deal everybody regrets). And it
+says nothing at all below three settled arguments, because a standard
+changed on the strength of one deal is not a standard. It suggests only the
+FALLBACK, never the preferred position: a preferred position is what the
+company wants, and history cannot argue with an aspiration.
+
+One bug fell out of testing and it would have made the whole feature silent:
+the figure extractor read only bare digits, so "forty-five (45) days" — the
+way legal drafting writes numbers, including HaTi's own seeded clause
+library — matched nothing at all.
+
+THE REDLINE CO-PILOT is the feature every enterprise platform advertised
+this year, and the design question was not how to judge a change but how to
+keep the judgement from becoming a decision. The answer turned out to be
+almost free: the band's buttons carry the CHANGE CARDS' OWN data attributes,
+so the handlers that already run per paint pick them up and every press goes
+through the ordinary funnel — desk rule, review gate, accept guard, and the
+live-link catch-up that tells the counterparty. There is no second decision
+path because there is no new path at all; the band's own wiring binds only
+its fold, and that omission is commented where somebody might otherwise
+"finish" it. Escalation is not a new concept either: it is the internal
+review that has existed since August. The judging is deterministic and names
+what it rests on, and where the playbook is silent it says exactly that —
+a guess dressed as a recommendation is the one output this feature must
+never produce.
+
+The evaluation set caught something worth recording. The test harness had no
+`cKind`, so every playbook lookup threw, the engine fell safely to "review",
+and all seven matrix cases would have passed while proving nothing about the
+matrix. A feature that fails safe is easy to test into meaninglessness.
+
+THE ASSURANCE LADDER is the smallest of the three and the one most likely to
+matter in an argument. HaTi has always taken signatures of quite different
+strengths — a typed name on a link, a name typed after proving an emailed
+code, a colleague on a named account — and recorded the difference in
+scattered fields while saying nothing about it. The ladder names six rungs
+and makes the record state which one was used. Two rules keep it honest: it
+is STAMPED at the moment of signing, because whether an account carried a
+second step is a fact about that moment and accounts change; and an older
+signature with no stamp is read conservatively and reported as DERIVED, so
+an inference is never dressed up as a record. The contract-level statement
+takes the WEAKEST signature, because the flattering reading is the one a
+dispute destroys. Nothing about it changes what HaTi accepts — and the
+national eID rung is declared unavailable rather than omitted, so the
+product can say "not this one" out loud and the BankID rung clips on the day
+there is a broker account to clip it to.

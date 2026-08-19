@@ -810,8 +810,16 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
         bearing, which a wrapped fragment (box-decoration-break: slice) does
         not — a sub-glyph offset, where the reported fault was the whole
         hanging measure (~40px). The wraps against EACH OTHER stay exact. */
-     limbs.cols.every(c => c && c.word.length >= 3
-       && Math.abs(c.word[0] - c.word[1]) <= 6 && Math.abs(c.word[1] - c.word[2]) <= 1),
+     /* NARROWED IN PLACE, 19 Aug 2026: this required THREE rows from every
+        limb, which is a claim about where the text happens to wrap rather
+        than about the column it starts in — and the clause got 17px wider
+        when the redline mark moved out into the sheet's margin, so one limb
+        now needs two lines instead of three. The claim is unchanged: first
+        row against its wrap always, and wrap against wrap wherever there is
+        a second one. */
+     limbs.cols.every(c => c && c.word.length >= 2
+       && Math.abs(c.word[0] - c.word[1]) <= 6
+       && (c.word.length < 3 || Math.abs(c.word[1] - c.word[2]) <= 1)),
      JSON.stringify(limbs.cols));
   ck('10d …and past the label, which sits alone in the gutter',
      limbs.cols.every(c => c && c.word[0] > c.label), JSON.stringify(limbs.cols));
@@ -854,7 +862,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   await p.evaluate(() => { const x = document.querySelector('#rl-cp-min'); if (x) x.click(); });
   await pause(300);
 
-  /* ---- 12. THE PANEL IS SET LIKE THE CONTRACT (owner-reported 19 Aug 2026,
+  /* ---- 13. THE PANEL IS SET LIKE THE CONTRACT (owner-reported 19 Aug 2026,
      off a screenshot of clause 3 side by side: "make sure the structure in the
      contract is resembled in the panel on the left so that users can follow the
      words and structure as well.")
@@ -917,11 +925,11 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
       pl: style ? style.paddingLeft : null, ti: style ? style.textIndent : null,
       cols: hang.slice(0, 2).map(cols).filter(Boolean) };
   });
-  ck('12a the panel gives a numbered limb the same gutter the paper gives it',
+  ck('13a the panel gives a numbered limb the same gutter the paper gives it',
      !paperVsPanel.none && paperVsPanel.hangs >= 1 && !!paperVsPanel.pl,
      paperVsPanel.none ? `${paperVsPanel.none} :: ${paperVsPanel.dump || ''}`
        : `${paperVsPanel.hangs} hanging line(s), ${paperVsPanel.pl} / ${paperVsPanel.ti}`);
-  ck('12b …and its wording sits in ONE column, first row and wraps alike',
+  ck('13b …and its wording sits in ONE column, first row and wraps alike',
      !paperVsPanel.none && paperVsPanel.cols.length >= 1
      && paperVsPanel.cols.every(c => c.word.length >= 2
         && Math.abs(c.word[0] - c.word[1]) <= 6 && c.word[0] > c.label),
@@ -943,6 +951,50 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('10e their page hangs its limbs too — the same rule, the same mount',
      theirHang.none ? false : (parseFloat(theirHang.pl) > 20 && parseFloat(theirHang.ti) < 0),
      theirHang.none ? 'no hanging line on their copy' : `${theirHang.pl} / ${theirHang.ti}`);
+
+  /* ---- 12. THE PILL DOES NOT MOVE WHEN A CLAUSE IS REDLINED ----
+     (owner-asked, 19 Aug 2026.) A marked clause used to gain 14px of padding
+     and a 3px rule an unmarked one did not have, so the wording slid 14px
+     right and the pill jumped 17px left the moment anything landed on the
+     clause. Both are measured here, on the same page, at three document
+     sizes — the reader's type must not be able to pull them apart either. */
+  const rails = await p.evaluate(() => {
+    const out = [];
+    document.querySelectorAll('.redline-page .rl-doc .rl-clause').forEach(cl => {
+      const pill = cl.querySelector('.rl-cp-pill');
+      const body = cl.querySelector('.nego-body, p');
+      if (!pill || !body) return;
+      out.push({ marked: cl.classList.contains('is-changed'),
+        pillRight: Math.round(pill.getBoundingClientRect().right),
+        textLeft: Math.round(body.getBoundingClientRect().left) });
+    });
+    return out;
+  });
+  const marked = rails.filter(r => r.marked), plain = rails.filter(r => !r.marked);
+  ck('12a the page has both a redlined clause and a plain one to compare',
+     marked.length >= 1 && plain.length >= 1, `${marked.length} marked / ${plain.length} plain`);
+  const pillEdges = [...new Set(rails.map(r => r.pillRight))];
+  const textEdges = [...new Set(rails.map(r => r.textLeft))];
+  ck('12b every Edit pill sits on one rail, redlined or not',
+     pillEdges.length === 1, pillEdges.join(', ') + 'px');
+  ck('12c and the wording starts in one column, redlined or not',
+     textEdges.length === 1, textEdges.join(', ') + 'px');
+
+  for (const size of [8, 20]) {
+    await p.evaluate(px => { if (window.rlSetDocType) rlSetDocType(px); }, size);
+    await pause(400);
+    const at = await p.evaluate(() => {
+      const e = [];
+      document.querySelectorAll('.redline-page .rl-doc .rl-clause').forEach(cl => {
+        const pill = cl.querySelector('.rl-cp-pill');
+        if (pill) e.push(Math.round(pill.getBoundingClientRect().right));
+      });
+      return [...new Set(e)];
+    });
+    ck(`12d the rail holds at ${size}px document type`, at.length === 1, at.join(', ') + 'px');
+  }
+  await p.evaluate(() => { if (window.rlSetDocType) rlSetDocType(15); });
+  await pause(300);
 
   ck('no page errors', errs.length===0, errs.join(' | ')||'clean');
   const pass=R.filter(Boolean).length;

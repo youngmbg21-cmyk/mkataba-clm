@@ -9,7 +9,8 @@ const express = require('express');
    signature rests on. Required from js/jurisdiction.js rather than restated
    here: a second copy would drift from the browser's the first time either
    moved, and the two would then describe different markets to the same model. */
-const { jxPack, JX_DEFAULT, JURISDICTIONS } = require('../js/jurisdiction.js');
+const { jxPack, JX_DEFAULT, JURISDICTIONS,
+  fxSetRatesReader, fxSetHomeReader, fxHome, fxHomeValue, fxMissing, contractCurrency } = require('../js/jurisdiction.js');
 /* One dictionary, two hosts. The server writes email and needs the recipient's
    own language from the SAME table the screens use — a second copy here would
    drift from js/i18n.js without anything noticing, which is the fault the
@@ -39,6 +40,12 @@ const tFor = (lang, key, vars) => {
   return vars ? String(s).replace(/\{(\w+)\}/g, (m, k) => (vars[k] == null ? m : String(vars[k]))) : s;
 };
 const orgJx = () => jxPack(((typeof getSetting === 'function' && getSetting('org')) || {}).jurisdiction || JX_DEFAULT);
+/* MONEY IN ITS OWN CURRENCY (W2-1): the conversion arithmetic lives ONCE in
+   js/jurisdiction.js and the server injects its own data sources — the
+   stored rates and the org's own market currency — so the server's figures
+   and the screens' can never drift apart on the formula. */
+fxSetRatesReader(() => ((typeof getSetting === 'function' && getSetting('appSettings')) || {}).fxRates || {});
+fxSetHomeReader(() => orgJx().currency);
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
@@ -118,6 +125,36 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS resets (
     id TEXT PRIMARY KEY, user_id TEXT, token_hash TEXT, expires INTEGER, used INTEGER DEFAULT 0);
   CREATE TABLE IF NOT EXISTS reminders (rkey TEXT PRIMARY KEY, created_at TEXT);
+  -- The Contract Brief cache (WO-2, WORKORDER-gap-map.md). Its OWN table, not a
+  -- field on the contract JSON, for the signer_notices reason: a server-side
+  -- write onto the record would bump the version under an open editor, and a
+  -- cached reading is not part of what was agreed or signed. It rides GETs as
+  -- the underscored transport field _brief and never enters the stored record.
+  CREATE TABLE IF NOT EXISTS briefs (
+    contract_id TEXT PRIMARY KEY, json TEXT NOT NULL, created_at TEXT NOT NULL);
+  -- The renewal adviser's cache (W2-4), on the same terms as briefs above: its
+  -- own table, so writing one never bumps the record's version under an open
+  -- editor, and a recommendation is not part of what was agreed or signed.
+  CREATE TABLE IF NOT EXISTS renewal_advice (
+    contract_id TEXT PRIMARY KEY, json TEXT NOT NULL, created_at TEXT NOT NULL);
+  -- THE INTAKE FRONT DOOR (W2-2). A colleague who may not draft can still ASK
+  -- for a contract; the request is a record of its own, never a half-made
+  -- contract, so nothing unapproved can be mistaken for paper. The folder is
+  -- what scopes it (the same value stream a contract would be filed in), and
+  -- contract_id is filled the moment an editor turns it into a draft.
+  CREATE TABLE IF NOT EXISTS intake_requests (
+    id TEXT PRIMARY KEY, title TEXT, need TEXT, counterparty TEXT, folder TEXT,
+    status TEXT NOT NULL DEFAULT 'open', by_id TEXT, by_name TEXT,
+    contract_id TEXT, decided_by TEXT, decided_at TEXT, note TEXT,
+    created_at TEXT NOT NULL, updated_at TEXT);
+  CREATE INDEX IF NOT EXISTS idx_intake_status ON intake_requests(status);
+  -- EVENTS OUT (W2-3). An admin registers a URL; HaTi posts a SMALL, SIGNED
+  -- fact to it when something happens. Deliveries are recorded so an admin can
+  -- see whether the other end is actually receiving them.
+  CREATE TABLE IF NOT EXISTS webhooks (
+    id TEXT PRIMARY KEY, url TEXT NOT NULL, secret TEXT NOT NULL, events TEXT,
+    active INTEGER NOT NULL DEFAULT 1, created_by TEXT, created_at TEXT NOT NULL,
+    last_at TEXT, last_ok INTEGER, last_status TEXT, fails INTEGER NOT NULL DEFAULT 0);
   -- "It is your turn to sign", to somebody who works here.
   --
   -- A COUNTERPARTY SIGNER'S TURN IS RECORDED ON THEIR SHARE — created / sent /
@@ -218,6 +255,9 @@ const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role,
      org. */
   lang: u.lang || null,
   createdAt: u.created_at, prefs: userPrefs(u), folderAccess: folderScopeFor(u), canViewValues: canViewValues(u),
+  // the FACT that two-step is on; never the secret (WO-6). Admin-only on
+  // other people's rows, like every operational grant beside it.
+  twoStep: !!u.totp_secret,
   /* Three states travel as three values — null, 'none' or a number — because
      collapsing "nobody decided" into "no limit" is what the completeness chip
      exists to tell apart. */
@@ -233,7 +273,7 @@ const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role,
    and nobody else's. Stripped from every colleague's copy at the bootstrap —
    see the note there. A new per-person setting belongs on this list the day it
    is added; f202 fails if one of these ever reaches a non-admin again. */
-const ADMIN_ONLY_USER_FIELDS = ['folderAccess', 'signCap', 'reviewChecked', 'reviewerId', 'overseerId'];
+const ADMIN_ONLY_USER_FIELDS = ['folderAccess', 'signCap', 'reviewChecked', 'reviewerId', 'overseerId', 'twoStep'];
 
 /* ---------- per-contract storage (scales to large portfolios) ----------
    Each contract is its own row with its own version. Lists return a light
@@ -450,6 +490,13 @@ addColumnIfMissing('users', 'reviewer_id', 'TEXT');
    the contract's OWNER, so it could not exist before a contract knew whose it
    was. NULL = nobody, which is where every existing member starts. */
 addColumnIfMissing('users', 'overseer_id', 'TEXT');
+// two-step sign-in (WO-6): the secret is stored raw (the algorithm needs it
+// back) and NEVER travels — publicUser is an allow-list and carries only the
+// twoStep boolean. pending holds an unconfirmed enrolment; recovery holds the
+// sha() hashes of the unused one-time codes.
+addColumnIfMissing('users', 'totp_secret', 'TEXT');
+addColumnIfMissing('users', 'totp_pending', 'TEXT');
+addColumnIfMissing('users', 'totp_recovery', 'TEXT');
 addColumnIfMissing('sessions', 'expires_at', 'TEXT');
 addColumnIfMissing('sessions', 'last_seen', 'TEXT');
 addColumnIfMissing('sessions', 'ip', 'TEXT');
@@ -1249,6 +1296,17 @@ const rlShare = rateLimit('share', 30, 15 * 60 * 1000);
 // per-user daily cap on outbound shares/resends — protects sender reputation
 const rlShareSend = rateLimit('share-send', 100, 24 * 60 * 60 * 1000,
   { keyFn: req => 'u:' + ((req.user && req.user.id) || 'anon'), message: 'Daily share limit reached — try again tomorrow' });
+/* TWO TRIGGER PATHS, THEIR OWN BUCKETS (W2-3's security review). Raising an
+   intake request and registering a webhook both start outbound work, so both
+   are rationed — but each with its OWN counter and its own sentence: sharing
+   the share-send bucket would let a colleague's requests silently exhaust
+   somebody's ability to send a contract, and report it in the wrong words. */
+const rlIntake = rateLimit('intake', 60, 60 * 60 * 1000,
+  { keyFn: req => 'u:' + ((req.user && req.user.id) || 'anon'),
+    message: 'That is a lot of requests in one hour — give somebody a chance to read them' });
+const rlHookAdd = rateLimit('hook-add', 20, 60 * 60 * 1000,
+  { keyFn: req => 'u:' + ((req.user && req.user.id) || 'anon'),
+    message: 'Too many address changes in one hour — please wait and try again' });
 
 /* ---------- Copilot cost controls (rate limit, input caps, daily backstop) ------
    Each Copilot endpoint calls Anthropic and costs real money. These controls reuse
@@ -1468,6 +1526,10 @@ const AI_FEATURE_LABEL = {
      was the hardest to find. Adding the label is the whole fix — the spend
      rows were always written with the right key. */
   template_convert: 'Document converter',
+  // The one-press plain-English cover memo (WO-2). Named on arrival so its
+  // spending never lands in the Other bucket the way conversion's once did.
+  brief: 'Contract brief',
+  renewal: 'Renewal adviser',   // W2-4
 };
 
 function aiSpendRows(day) {
@@ -1914,6 +1976,63 @@ app.post('/api/setup', rlSetup, (req, res) => {
   res.json({ ok: true, me: publicUser(u) });
 });
 
+/* ---------- TWO-STEP SIGN-IN (WO-6, WORKORDER-gap-map.md) ----------
+   Standard authenticator-app TOTP — RFC 6238, HMAC-SHA1, 30-second steps,
+   six digits — on node's own crypto, no dependency. Per member, OFF until
+   they enrol; the enrolment is PENDING until a first code proves the app
+   really holds the secret, so an account can never be locked behind a
+   secret nobody scanned. A correct password on a two-step account earns a
+   short-lived single-use TICKET, never a session; the code — or an unused
+   one-time recovery code, consumed on use — turns the ticket into the
+   session. Code failures count against the same failures-only bucket as
+   password guesses (f204's rule: guesses cost, people arriving don't). */
+const B32A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+const b32encode = buf => { let bits = 0, val = 0, out = '';
+  for (const byte of buf) { val = (val << 8) | byte; bits += 8;
+    while (bits >= 5) { out += B32A[(val >>> (bits - 5)) & 31]; bits -= 5; } }
+  if (bits > 0) out += B32A[(val << (5 - bits)) & 31];
+  return out; };
+const b32decode = s => { let bits = 0, val = 0; const out = [];
+  for (const ch of String(s).toUpperCase().replace(/[^A-Z2-7]/g, '')) {
+    val = (val << 5) | B32A.indexOf(ch); bits += 5;
+    if (bits >= 8) { out.push((val >>> (bits - 8)) & 255); bits -= 8; } }
+  return Buffer.from(out); };
+const totpCode = (secret, step) => {
+  const msg = Buffer.alloc(8); msg.writeBigUInt64BE(BigInt(step));
+  const h = crypto.createHmac('sha1', b32decode(secret)).update(msg).digest();
+  const o = h[h.length - 1] & 0xf;
+  const n = ((h[o] & 0x7f) << 24) | (h[o + 1] << 16) | (h[o + 2] << 8) | h[o + 3];
+  return String(n % 1e6).padStart(6, '0');
+};
+// ±1 step: a code typed at second 29 must not die in flight
+const totpOk = (secret, code) => {
+  const c = String(code || '').replace(/\D/g, '');
+  if (c.length !== 6 || !secret) return false;
+  const step = Math.floor(Date.now() / 30000);
+  return [step - 1, step, step + 1].some(st => safeEq(totpCode(secret, st), c));
+};
+/* An unused recovery code, consumed on success — single-use is the whole
+   point of a recovery code, or a leaked one is a permanent second key. */
+function totpSpendRecovery(u, code) {
+  let hashes; try { hashes = JSON.parse(u.totp_recovery || '[]') || []; } catch (_) { hashes = []; }
+  const want = sha(String(code || '').trim().toUpperCase());
+  const hit = hashes.find(hh => typeof hh === 'string' && hh.length === want.length && safeEq(hh, want));
+  if (!hit) return false;
+  db.prepare('UPDATE users SET totp_recovery=? WHERE id=?')
+    .run(JSON.stringify(hashes.filter(hh => hh !== hit)), u.id);
+  return true;
+}
+/* In-memory, single-instance, like the rate buckets: a restart costs a
+   retyped password, which is the right price for not persisting half-done
+   sign-ins anywhere. */
+const totpTickets = new Map();
+const totpTicketMint = uid => { const t = rid(18); totpTickets.set(t, { uid, exp: Date.now() + 5 * 60 * 1000 }); return t; };
+const totpTicketRead = t => {
+  const row = totpTickets.get(String(t || ''));
+  if (!row) return null;
+  if (row.exp < Date.now()) { totpTickets.delete(String(t)); return null; }
+  return row;
+};
 app.post('/api/login', rlAuth, (req, res) => {
   const { email, password } = req.body || {};
   const u = db.prepare('SELECT * FROM users WHERE email=?').get(cleanEmail(email));
@@ -1921,10 +2040,57 @@ app.post('/api/login', rlAuth, (req, res) => {
     rlNoteAuthFailure(req);   // a wrong guess is what the bucket is for
     return res.status(401).json({ error: 'Email or password is incorrect' });
   }
+  /* The password alone is HALF a sign-in on a two-step account: no session,
+     no publicUser (nothing about the workspace leaves before the second
+     half), just the ticket the code will spend. Not a failure — the person
+     typed their own password correctly. */
+  if (u.totp_secret) return res.json({ twoStep: true, ticket: totpTicketMint(u.id) });
   // E8-T3: rotate — old sessions for this user on this device are not reused;
   // a fresh token is minted with a new expiry.
   createSession(res, req, u.id);
   res.json({ ok: true, me: publicUser(u) });
+});
+app.post('/api/login/totp', rlAuth, (req, res) => {
+  const { ticket, code } = req.body || {};
+  const t = totpTicketRead(ticket);
+  if (!t) return res.status(401).json({ error: 'Sign in again — the code window has closed' });
+  const u = db.prepare('SELECT * FROM users WHERE id=?').get(t.uid);
+  if (!u || !u.totp_secret) { totpTickets.delete(String(ticket)); return res.status(401).json({ error: 'Sign in again' }); }
+  const ok = totpOk(u.totp_secret, code) || totpSpendRecovery(u, code);
+  if (!ok) { rlNoteAuthFailure(req); return res.status(401).json({ error: 'That code is not right' }); }
+  totpTickets.delete(String(ticket));   // single-use, spent on success
+  createSession(res, req, u.id);
+  res.json({ ok: true, me: publicUser(u) });
+});
+/* Enrolment, self-service. START holds the secret as PENDING and hands it
+   over exactly once; VERIFY proves the authenticator holds it and mints the
+   ten recovery codes (hashes stored, plaintext shown exactly once); DISABLE
+   costs a current code or an unused recovery code — a stolen open session
+   must not be able to quietly remove the lock it could not pick. */
+app.post('/api/me/totp/start', auth, (req, res) => {
+  if (req.user.totp_secret) return res.status(409).json({ error: 'Two-step sign-in is already on' });
+  const secret = b32encode(crypto.randomBytes(20));
+  db.prepare('UPDATE users SET totp_pending=? WHERE id=?').run(secret, req.user.id);
+  const label = encodeURIComponent('HaTi:' + (req.user.email || req.user.name || ''));
+  res.json({ secret, otpauth: `otpauth://totp/${label}?secret=${secret}&issuer=HaTi` });
+});
+app.post('/api/me/totp/verify', auth, (req, res) => {
+  const pending = req.user.totp_pending;
+  if (!pending) return res.status(400).json({ error: 'Start again — there is nothing to confirm' });
+  if (!totpOk(pending, (req.body || {}).code))
+    return res.status(400).json({ error: 'That code is not right — check the app and try again' });
+  const recovery = Array.from({ length: 10 }, () => b32encode(crypto.randomBytes(5)));
+  db.prepare('UPDATE users SET totp_secret=?, totp_pending=NULL, totp_recovery=? WHERE id=?')
+    .run(pending, JSON.stringify(recovery.map(cd => sha(cd))), req.user.id);
+  res.json({ ok: true, recovery });
+});
+app.post('/api/me/totp/disable', auth, (req, res) => {
+  if (!req.user.totp_secret) return res.status(400).json({ error: 'Two-step sign-in is not on' });
+  const code = (req.body || {}).code;
+  const ok = totpOk(req.user.totp_secret, code) || totpSpendRecovery(req.user, code);
+  if (!ok) return res.status(403).json({ error: 'A current code — or an unused recovery code — is needed to turn this off' });
+  db.prepare('UPDATE users SET totp_secret=NULL, totp_pending=NULL, totp_recovery=NULL WHERE id=?').run(req.user.id);
+  res.json({ ok: true });
 });
 
 // E8-T3: active sessions list + revoke (the signed-in user's own sessions).
@@ -2031,12 +2197,18 @@ app.get('/api/bootstrap', auth, (req, res) => {
   });
 });
 
+/* THE ARCHIVE SHELF LEAVES THE SQL AGGREGATES TOO (WO-5). `archived` lives
+   in the record rather than a column, so these dashboard-cadence queries read
+   it with json_extract — the client's own counts already exclude it, and a
+   server figure that disagreed with the screens would be the register head
+   saying 146 over a table showing 145. */
+const NOT_ARCH = "json_extract(json,'$.archived') IS NULL";
 // Portfolio aggregates computed in SQL — O(1) client cost at any scale, and
 // scoped to what the caller may see, so "the portfolio" means THEIR portfolio.
 app.get('/api/stats', auth, (req, res) => {
   const scope = folderScopeFor(req.user);
   const f = scopeFrag(scope);
-  const w = whereOf(f.sql);
+  const w = whereOf(NOT_ARCH, f.sql);
   const g = db.prepare(`SELECT
       COALESCE(SUM(CASE WHEN status!='Declined' THEN value ELSE 0 END),0) totalValue,
       SUM(status='Under Review') pending, SUM(status='Signed') signed,
@@ -2061,17 +2233,38 @@ app.get('/api/stats', auth, (req, res) => {
      reminder sweep uses; a value that is no kind of date means "we do not know
      when this ends", which is not a claim that it has ended. */
   const today = isoDay(new Date());
-  const signed = db.prepare(`SELECT expiry, value FROM contracts ${whereOf("status='Signed'", f.sql)}`).all(...f.args);
+  /* ---- ONE FIGURE, IN THE WORKSPACE CURRENCY (W2-1, owner-ruled) ----
+     The SQL sums above add the raw numbers, which is only true while every
+     contract is in the workspace currency. The money figures are therefore
+     RE-SUMMED here over the records, converting each foreign contract with
+     the admin's dated rate — the same fxHome the screens and the monthly
+     letter call, so no surface can drift. A currency with no rate on file is
+     LEFT OUT, and `fxMissing` rides back so the dashboard can say so rather
+     than quietly under-reporting. Read in JS for the same reason the expiry
+     loop below already is: the fact lives in the record, not a column. */
+  const valued = db.prepare(`SELECT id, folder, status, expiry, value, json FROM contracts ${w}`).all(...f.args)
+    .map(r => { let c = {}; try { c = JSON.parse(r.json) || {}; } catch (_) {} return { r, c }; });
+  let totalHome = 0; const folderHome = {};
+  for (const { r, c } of valued) {
+    if (r.status === 'Declined') continue;
+    const h = fxHome({ value: r.value, metadata: c.metadata });
+    totalHome += h.v;
+    folderHome[r.folder || ''] = (folderHome[r.folder || ''] || 0) + h.v;
+  }
+  g.totalValue = totalHome;
+  for (const row of byFolder) row.val = folderHome[row.folder || ''] || 0;
   let expired = 0, expiredValue = 0;
-  for (const r of signed) {
+  for (const { r, c } of valued) {
+    if (r.status !== 'Signed') continue;
     const day = dateOnly(r.expiry);
-    if (day && day < today) { expired++; expiredValue += Number(r.value) || 0; }
+    if (day && day < today) { expired++; expiredValue += fxHome({ value: r.value, metadata: c.metadata }).v; }
   }
   g.expired = expired;
   g.expiredValue = expiredValue;
+  g.fxMissing = fxMissing(valued.map(({ r, c }) => ({ ...c, value: r.value, status: r.status })));
   g.totalValue = Math.max(0, (Number(g.totalValue) || 0) - expiredValue);
   if (!canViewValues(req.user)) {
-    delete g.totalValue; delete g.expiredValue;
+    delete g.totalValue; delete g.expiredValue; delete g.fxMissing;
     return res.json({ ...g, byFolder: byFolder.map(({ val, ...rest }) => rest), valuesHidden: true });
   }
   res.json({ ...g, byFolder });
@@ -2083,21 +2276,40 @@ app.get('/api/analytics', auth, (req, res) => {
   const scope = folderScopeFor(req.user);
   const money = canViewValues(req.user);
   const f = scopeFrag(scope);
-  const w = whereOf(f.sql);
-  const byStatus = db.prepare(`SELECT status, COUNT(*) n, COALESCE(SUM(value),0) val FROM contracts ${w} GROUP BY status`).all(...f.args);
-  const byFolder = db.prepare(`SELECT folder, COUNT(*) n, COALESCE(SUM(CASE WHEN status!='Declined' THEN value ELSE 0 END),0) val FROM contracts ${w} GROUP BY folder ORDER BY val DESC`).all(...f.args);
-  const byParty = db.prepare(`SELECT counterparty, COUNT(*) n, COALESCE(SUM(CASE WHEN status!='Declined' THEN value ELSE 0 END),0) val
-      FROM contracts ${whereOf("counterparty!=''", f.sql)} GROUP BY counterparty ORDER BY val DESC LIMIT 12`).all(...f.args);
+  const w = whereOf(NOT_ARCH, f.sql);
+  /* W2-1: the COUNTS stay in SQL (fast, and a count needs no currency); every
+     MONEY figure is grouped in JS over the records so each foreign contract
+     converts with the admin's dated rate — the same fxHome the dashboard and
+     the monthly letter use. A currency with no rate is left out and named in
+     `fxMissing`, never silently dropped. */
+  const recs = db.prepare(`SELECT id, folder, status, counterparty, expiry, value, json FROM contracts ${w}`).all(...f.args)
+    .map(r => { let c = {}; try { c = JSON.parse(r.json) || {}; } catch (_) {} return { r, c, home: fxHome({ value: r.value, metadata: c.metadata }).v }; });
+  const roll = (keyOf, liveOnly) => {
+    const m = new Map();
+    for (const x of recs) {
+      if (liveOnly && x.r.status === 'Declined') continue;
+      const k = keyOf(x); if (k == null || k === '') continue;
+      const cur = m.get(k) || { n: 0, val: 0 };
+      cur.n++; cur.val += x.home; m.set(k, cur);
+    }
+    return m;
+  };
+  const byStatus = [...roll(x => x.r.status, false)].map(([status, v]) => ({ status, ...v }));
+  const byFolder = [...roll(x => x.r.folder, true)].map(([folder, v]) => ({ folder, ...v })).sort((a, b) => b.val - a.val);
+  const byParty = [...roll(x => (x.r.counterparty || '').trim(), true)]
+    .map(([counterparty, v]) => ({ counterparty, ...v })).sort((a, b) => b.val - a.val).slice(0, 12);
   // renewal pipeline: active value (or, without the right, contract count)
   // expiring in each of the next 12 months
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  const rows = db.prepare(`SELECT expiry, value FROM contracts ${whereOf("expiry IS NOT NULL", "status!='Declined'", f.sql)}`).all(...f.args);
   const pipeline = {}, pipelineCount = {};
-  for (const r of rows) {
-    const d = new Date(r.expiry + 'T00:00:00'); const months = (d.getFullYear() - today.getFullYear()) * 12 + (d.getMonth() - today.getMonth());
+  for (const x of recs) {
+    if (x.r.status === 'Declined' || !x.r.expiry) continue;
+    const d = new Date(x.r.expiry + 'T00:00:00');
+    if (isNaN(d.getTime())) continue;
+    const months = (d.getFullYear() - today.getFullYear()) * 12 + (d.getMonth() - today.getMonth());
     if (months >= 0 && months < 12) {
-      const k = r.expiry.slice(0, 7);
-      pipeline[k] = (pipeline[k] || 0) + (Number(r.value) || 0);
+      const k = String(x.r.expiry).slice(0, 7);
+      pipeline[k] = (pipeline[k] || 0) + x.home;
       pipelineCount[k] = (pipelineCount[k] || 0) + 1;
     }
   }
@@ -2106,7 +2318,8 @@ app.get('/api/analytics', auth, (req, res) => {
     byFolder: byFolder.map(({ val, ...rest }) => rest),
     byParty: byParty.map(({ val, ...rest }) => rest),
     pipelineCount, valuesHidden: true });
-  res.json({ byStatus, byFolder, byParty, pipeline, pipelineCount });
+  res.json({ byStatus, byFolder, byParty, pipeline, pipelineCount,
+    fxMissing: fxMissing(recs.map(x => ({ ...x.c, value: x.r.value, status: x.r.status }))) });
 });
 
 // Paginated, filterable, searchable list of SUMMARY rows (heavy fields stripped).
@@ -2231,7 +2444,32 @@ app.get('/api/contracts/:id', auth, (req, res) => {
   // who is not allowed to know any of that.
   if (!r || !inScope(folderScopeFor(req.user), r.folder)) return res.status(404).json({ error: 'Contract not found' });
   const c = JSON.parse(r.json); c._v = r.version;
-  res.json(visibleContract(c, req.user));
+  const out = visibleContract(c, req.user);
+  /* The Contract Brief rides along as TRANSPORT (_brief, from its own table —
+     WO-2): never part of the record, stripped again on PUT. A reader without
+     canViewValues gets it with the money section removed — the same masking
+     the FTS snippets apply to derived text. */
+  const b = db.prepare('SELECT json FROM briefs WHERE contract_id=?').get(req.params.id);
+  if (b) {
+    try {
+      const brief = JSON.parse(b.json);
+      if (!canViewValues(req.user) && brief.data) delete brief.data.money;
+      out._brief = brief;
+    } catch (_) {}
+  }
+  /* The renewal recommendation rides the same way and under the same rules
+     (W2-4): transport, never the record, stripped on PUT. */
+  const ra = db.prepare('SELECT json FROM renewal_advice WHERE contract_id=?').get(req.params.id);
+  if (ra) {
+    try {
+      const adv = JSON.parse(ra.json);
+      if (!canViewValues(req.user) && adv.signals) {
+        adv.signals = { ...adv.signals, valueInWorkspaceCurrency: undefined, valueAsWritten: undefined };
+      }
+      out._renewalAdvice = adv;
+    } catch (_) {}
+  }
+  res.json(out);
 });
 
 /* The owner's cheap "did anything move?" probe: version and clock only, no
@@ -2342,6 +2580,11 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   if (Number(baseVersion || 0) !== cur) return res.status(409).json({ error: 'Version conflict — this contract changed on the server', version: cur });
   const next = cur + 1;
   const c = { ...contract }; delete c._v; delete c._light; delete c._loaded; delete c._valuesHidden;
+  // _brief is GET-time transport off the briefs table (WO-2) — a client that
+  // echoes it back must not get it stored into the record, where it would
+  // shadow the real cache and ride saves it was never part of.
+  delete c._brief;
+  delete c._renewalAdvice;   // W2-4: transport too, off its own table
 
   let prev = null;
   if (existing) { try { prev = JSON.parse(existing.json); } catch (_) { prev = null; } }
@@ -2664,7 +2907,21 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
          The larger of the two rather than the stored one alone, because a save
          may legitimately RAISE the value in the same breath as signing, and a
          cap that only ever looked backwards would miss it. */
-      const value = Math.max(Number((prev && prev.value) || 0), Number(c.value || 0));
+      const raw = Math.max(Number((prev && prev.value) || 0), Number(c.value || 0));
+      /* ---- AND IN THE SAME CURRENCY AS THE LIMIT (W2-1) ----
+         The cap is written in the workspace currency. The currency comes off
+         the STORED record where there is one — the same reason the value does:
+         it is the half the person being capped does not get to restate on the
+         way past. No rate on file means the comparison cannot be made, and on
+         a signature an unanswerable question is refused, never waved through. */
+      const meta = (prev && prev.metadata) || (c && c.metadata) || {};
+      const conv = fxHome({ value: raw, metadata: meta });
+      if (cap.answered && cap.limit != null && conv.missing)
+        return res.status(403).json({
+          error: `This contract is in ${conv.code} and no exchange rate for it has been set, `
+            + 'so it cannot be measured against your signing limit. Ask an admin to set the rate.',
+          signCap: cap.limit, fxMissing: conv.code });
+      const value = conv.v;
       if (cap.answered && cap.limit != null && value > cap.limit)
         return res.status(403).json({
           error: `This contract is ${value} and your signing limit is ${cap.limit}. `
@@ -2829,7 +3086,17 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     const actor = (req.user && req.user.name) || null;
     if (!prev) logActivation('added', c.id, actor);
     if ((prev ? !prev.scan : true) && c.scan) logActivation('scanned', c.id, actor);
-    if ((prev ? prev.status : null) !== 'Signed' && c.status === 'Signed') logActivation('signed', c.id, actor);
+    if ((prev ? prev.status : null) !== 'Signed' && c.status === 'Signed') {
+      logActivation('signed', c.id, actor);
+      /* W2-3: ids and the plainest facts only — never the wording, the value
+         or anybody's address. A receiving system comes back through the API
+         with a session, where scope and masking apply. */
+      /* IDS ONLY. A contract's NAME routinely carries the counterparty's
+         identity ("Mutual NDA — Acme Ltd"), which is the fact a CLM exists to
+         protect; the receiving system comes back through the API with a
+         session, where folder scope and masking apply. */
+      webhookQueue('contract.signed', () => ({ contractId: c.id, status: 'Signed' }));
+    }
   }
   upsertContract(c, next);
   if (req.body.uid) setSetting('uid', req.body.uid);
@@ -2910,6 +3177,8 @@ app.delete('/api/contracts/:id', auth, editor, (req, res) => {
     const r = db.prepare("UPDATE shares SET revoked_at=? WHERE contract_id=? AND revoked_at IS NULL").run(now(), req.params.id);
     revoked = r.changes || 0;
     for (const fid of fileIds) db.prepare('DELETE FROM files WHERE id=?').run(fid);
+    db.prepare('DELETE FROM briefs WHERE contract_id=?').run(req.params.id);
+    db.prepare('DELETE FROM renewal_advice WHERE contract_id=?').run(req.params.id);
     db.prepare('DELETE FROM contracts WHERE id=?').run(req.params.id);
   });
   _storedBytes = null;   // H-8: recompute the storage total after removing files
@@ -2992,8 +3261,35 @@ app.put('/api/settings', auth, admin, (req, res) => {
   const stoSF = (stored.signFolders && typeof stored.signFolders === 'object') ? stored.signFolders : null;
   if (stoSF && stoSF.by && !(incSF && 'by' in incSF))
     incoming.signFolders = { ...(incSF || {}), by: stoSF.by };
+  /* fxRates (W2-1) gets the same protection and for a sharper reason: a stale
+     blob save that silently reverted an exchange rate would move every
+     converted figure in the workspace. The rates change only through their
+     own atomic endpoint below. */
+  if (!('fxRates' in incoming) && 'fxRates' in stored) incoming.fxRates = stored.fxRates;
   setSetting('appSettings', incoming);
   res.json({ ok: true });
+});
+/* W2-1: the one place the exchange rates change — read-modify-write of just
+   that key. A rate is a CLAIM WITH A DATE: {code: {rate, at}}, rate being how
+   many units of the workspace currency one unit of the foreign one is worth,
+   `at` stamped here so every converted figure can say when its rate was set.
+   rate null/0 removes the entry (back to "no rate on file" honesty). */
+app.put('/api/settings/fx-rates', auth, admin, (req, res) => {
+  const { code, rate } = req.body || {};
+  const cc = String(code || '').trim().toUpperCase();
+  if (!/^[A-Z]{3}$/.test(cc)) return res.status(400).json({ error: 'code must be a three-letter currency code' });
+  if (cc === orgJx().currency) return res.status(400).json({ error: 'That is the workspace currency — it needs no rate' });
+  const stored = getSetting('appSettings') || {};
+  const rates = { ...(stored.fxRates || {}) };
+  if (rate == null || Number(rate) === 0) delete rates[cc];
+  else {
+    const n = Number(rate);
+    if (!(n > 0) || !isFinite(n)) return res.status(400).json({ error: 'rate must be a number greater than zero' });
+    rates[cc] = { rate: n, at: now().slice(0, 10) };
+  }
+  stored.fxRates = rates;
+  setSetting('appSettings', stored);
+  res.json({ ok: true, fxRates: rates });
 });
 /* H-3: the one place folderAccess changes — a server-side read-modify-write of
    just that key, so it cannot be clobbered by a concurrent full-blob save. Send
@@ -3717,6 +4013,521 @@ app.post('/api/ai/obligations', auth, rlAiDeep, aiFeature('obligations'), aiBudg
     const block = (data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
     res.json({ obligations: Array.isArray(block.input?.obligations) ? block.input.obligations : [], ...aiNotice(req, resp) });
+  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+});
+
+/* ---------- the Contract Brief (WO-2, WORKORDER-gap-map.md) ----------
+   A plain-English cover memo for the WHOLE contract — the closest thing
+   software offers an SME without in-house counsel to a lawyer's covering
+   note. A READING AID on the obligations/playbook pattern: it proposes no
+   wording, files no change, and its cache lives in its own table so writing
+   it never moves the record's version under an open editor.
+
+   The wording comes from the CLIENT where provided — the same text the
+   screens render, because a template-built contract regenerates its wording
+   in the browser and the server never holds it — with the server's own
+   stored reading (contractFullBody) as the fallback for uploads and
+   imports. The cache is keyed on a hash of exactly the text that was read,
+   so an unchanged contract is paid for once and a changed one regenerates;
+   `force` is the human's Rewrite press.
+
+   GENERATION is editor-and-up (it spends Copilot money). READING the cached
+   brief rides GET /api/contracts/:id as _brief, where a reader without
+   canViewValues gets it with the money section removed. The prompt keeps
+   every amount in that one section so the masking has one thing to mask. */
+app.post('/api/ai/brief', auth, editor, rlAiDeep, aiFeature('brief'), aiBudgetGuard, capAiInput, async (req, res) => {
+  const { id, text, force } = req.body || {};
+  if (!id) return res.status(400).json({ error: 'id is required' });
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(String(id));
+  // out of scope reads exactly like "does not exist", as on every contract route
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  let full = {}; try { full = JSON.parse(row.json) || {}; } catch (_) {}
+  const body = (typeof text === 'string' && text.trim()) ? text : contractFullBody(full);
+  if (!body || body.trim().length < 120) return res.status(400).json({ error: 'There is no wording to brief yet' });
+  const inputHash = sha(String(body).slice(0, 20000));
+  const prev = db.prepare('SELECT json FROM briefs WHERE contract_id=?').get(String(id));
+  if (prev && !force) {
+    try {
+      const b = JSON.parse(prev.json);
+      if (b.inputHash === inputHash) return res.json({ brief: b, cached: true });
+    } catch (_) {}
+  }
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true });
+  const tool = {
+    name: 'contract_brief',
+    description: 'A plain-English cover memo for the whole contract.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        overview: { type: 'string', description: '2–4 plain sentences: what this contract is, between whom, and for what.' },
+        term: { type: 'object', properties: {
+          start: { type: 'string', description: 'When it starts, as stated. Empty if not stated.' },
+          end: { type: 'string', description: 'When it ends or renews, as stated.' },
+          notice: { type: 'string', description: 'Any notice required to exit or stop a renewal.' },
+        } },
+        money: { type: 'object', properties: {
+          value: { type: 'string', description: 'What is paid, with the currency exactly as written.' },
+          paymentTerms: { type: 'string', description: 'When and how payment falls due.' },
+        } },
+        watchouts: { type: 'array', maxItems: 6, items: { type: 'object', properties: {
+          point: { type: 'string', description: 'A clause that bites, in one plain sentence — what it means in practice.' },
+          quote: { type: 'string', description: 'Short verbatim snippet it comes from.' },
+        }, required: ['point'] } },
+        unusual: { type: 'array', maxItems: 4, items: { type: 'string' },
+          description: 'Terms unusual for this kind of contract, plainly put. Empty if none.' },
+      },
+      required: ['overview', 'watchouts'],
+    },
+  };
+  const J = orgJx();
+  const prompt = `You are explaining a contract to a business owner who has no lawyer, under ${J.adjective} law. Read the DOCUMENT and return a short cover memo via contract_brief. Plain, everyday sentences — any unavoidable legal term gets an immediate plain explanation. Only state what the wording actually says: never invent, never guess, and never propose new wording — this is a reading aid, not a redraft. Keep every monetary amount in the money section only. If something is unusual for this kind of contract, say so plainly; if nothing is, return an empty unusual list.\n\nDOCUMENT:\n${String(body).slice(0, 20000)}`;
+  try {
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 1400, tools: [tool], tool_choice: { type: 'tool', name: 'contract_brief' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'brief', who: aiWho(req) });
+    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    const block = (resp.data.content || []).find(b => b.type === 'tool_use');
+    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    const brief = { v: 1, at: now(), by: (req.user && req.user.name) || '', inputHash, data: block.input || {} };
+    db.prepare('INSERT INTO briefs (contract_id,json,created_at) VALUES (?,?,?) ON CONFLICT(contract_id) DO UPDATE SET json=excluded.json, created_at=excluded.created_at')
+      .run(String(id), JSON.stringify(brief), now());
+    res.json({ brief, ...aiNotice(req, resp) });
+  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+});
+
+/* ===================== EVENTS OUT (W2-3, gap-map) =====================
+   A customer's other systems learn that something happened here — a
+   contract signed, a round received, a commitment falling due — without
+   anybody watching a screen. Deliberately the SMALLEST thing that is
+   useful, because a webhook surface is the one feature in this product
+   that makes HaTi's server send requests to an address a person typed.
+
+   THREE RULES, and the first is the one that matters:
+
+   1. WHERE IT MAY POST. An outbound fetch to an operator-supplied URL is a
+      Server-Side Request Forgery hole by default: `http://localhost:9200`,
+      `http://169.254.169.254/` (the cloud metadata service, which hands out
+      credentials) and every address inside the private network are all
+      reachable FROM the server and from nowhere else. So https only, no
+      credentials in the URL, and the resolved IP must be public — checked
+      after DNS resolution, at the moment of sending, because a hostname
+      that resolved publicly when it was registered can resolve to
+      127.0.0.1 tomorrow (DNS rebinding). A URL that fails any of it is
+      refused when it is registered AND skipped when it is fired.
+
+   2. WHAT TRAVELS. Ids, a kind, a timestamp and the plainest facts — never
+      the wording, never a value, never a person's email. A webhook is a
+      "go and look" nudge, not a data feed: what a receiving system may see
+      is decided when it comes back through the API with a session, where
+      folder scope and value-masking apply.
+
+   3. THAT IT REALLY CAME FROM HaTi. Every delivery carries an HMAC-SHA256
+      signature over the exact body with the endpoint's own secret, and a
+      timestamp inside the signed material so a captured delivery cannot be
+      replayed later. The secret is shown once at registration and never
+      returned again. */
+const WEBHOOK_EVENTS = ['contract.signed', 'round.received', 'obligation.due', 'intake.requested'];
+const WEBHOOK_TIMEOUT_MS = 4000;
+const WEBHOOK_FAIL_OFF = 20;      // stop trying an endpoint that never answers
+const WEBHOOK_MAX = 20;           // a ceiling on how much pending work one event can start
+/* A literal IP that must never be reached from this server. Checked against
+   the RESOLVED address, not the hostname, which is what makes it a real
+   guard rather than a spelling test. */
+function ipIsPrivate(ip) {
+  const s = String(ip || '').trim();
+  if (!s) return true;
+  /* Real IPv6 (not a v4-mapped address): only global unicast, 2000::/3, is
+     public. Everything else — loopback ::1, link-local fe80::, unique-local
+     fc00::/7, the unspecified :: — is local. Anything unparseable is refused,
+     which is the safe direction for a guard. */
+  if (s.includes(':') && !/^::ffff:\d{1,3}(\.\d{1,3}){3}$/i.test(s)) {
+    const t = s.toLowerCase();
+    /* 6to4 (2002::/16) EMBEDS a v4 address — 2002:7f00:1:: is 127.0.0.1 wearing
+       a global-unicast prefix — and Teredo (2001:0000::/32) tunnels likewise.
+       Both start with a digit the plain 2000::/3 test calls public. */
+    if (t.startsWith('2002:') || t.startsWith('2001:0:') || t.startsWith('2001:0000:')) return true;
+    return !/^[23]/.test(t);
+  }
+  const v4 = s.replace(/^::ffff:/i, '');
+  const p = v4.split('.').map(Number);
+  if (p.length !== 4 || p.some(n => !Number.isInteger(n) || n < 0 || n > 255)) return true;
+  const [a, b, c3] = p;
+  return a === 0 || a === 10 || a === 127
+    || (a === 169 && b === 254)                 // link-local, incl. cloud metadata
+    || (a === 172 && b >= 16 && b <= 31)
+    || (a === 192 && b === 168)
+    || (a === 100 && b >= 64 && b <= 127)       // carrier-grade NAT
+    || (a === 192 && b === 0 && c3 === 0)       // IETF protocol assignments (NAT64)
+    || (a === 198 && b >= 18 && b <= 19)        // benchmarking — routed internally in some networks
+    || (a === 192 && b === 88 && c3 === 99)     // 6to4 relay anycast
+    || a >= 224;                                // multicast and reserved
+}
+/* Is this hostname a LITERAL address rather than a name? It decides which
+   guard applies here: a literal is judged now, a NAME is judged at send time
+   against what it resolves to — asking ipIsPrivate about a name would refuse
+   every legitimate address, since a name parses as no IP at all. */
+const IP_LITERAL = hn => /^\d{1,3}(\.\d{1,3}){3}$/.test(hn) || hn.includes(':');
+const PRIVATE_MSG = 'That address is inside a private network and cannot be reached from here';
+function webhookUrlRefusal(raw) {
+  let u; try { u = new URL(String(raw || '')); } catch (_) { return 'That is not a URL'; }
+  if (u.protocol !== 'https:') return 'The address must start with https:// — a signed delivery over plain http is readable on the way';
+  if (u.username || u.password) return 'Take the username and password out of the address — the signature is what proves it came from HaTi';
+  /* NORMALISED BEFORE MATCHING. new URL keeps the trailing dot on a NAME (the
+     FQDN-root form), and resolvers treat "db.internal." exactly as
+     "db.internal" — so without the strip, the one guard designed to survive a
+     rebind is bypassed by a single character. */
+  const hn = String(u.hostname || '').replace(/^\[|\]$/g, '').replace(/\.$/, '').toLowerCase();
+  if (!hn) return 'That is not a URL';
+  // names that never leave the building, whatever DNS says today
+  if (/^localhost$/i.test(hn) || /\.(local|internal|localdomain)$/i.test(hn)) return PRIVATE_MSG;
+  if (IP_LITERAL(hn) && ipIsPrivate(hn)) return PRIVATE_MSG;
+  return null;
+}
+/* ---- THE ADDRESS IS CHECKED ON THE SOCKET THAT IS ACTUALLY USED ----
+   A hostname registered while it pointed somewhere public can be repointed
+   at 127.0.0.1 an hour later. The obvious guard — resolve the name, check
+   the answers, then fetch — does NOT close that: fetch performs its own,
+   second resolution, and between the two lies a window a name with a
+   zero-second TTL wins every time (DNS rebinding). Worse, the fire path can
+   be driven on demand by anybody holding a share token, so the race need
+   not be waited for; it can be retried.
+
+   So the check moved INSIDE the resolution that produces the socket. This
+   `lookup` is what node:https hands to net.connect, so the address it
+   approves is the address connected to, and there is no window at all.
+   Found by the security review of 19 Aug 2026 — the previous version was a
+   formality wearing a guard's clothes. */
+function webhookGuardedLookup(hostname, options, cb) {
+  const done = typeof cb === 'function' ? cb : options;
+  const opts = typeof cb === 'function' ? options : {};
+  require('node:dns').lookup(hostname, { ...opts, all: true }, (err, addrs) => {
+    if (err) return done(err);
+    const list = Array.isArray(addrs) ? addrs : [addrs];
+    if (!list.length) return done(new Error('address refused'));
+    // one private answer refuses the whole set — the safe direction
+    if (list.some(a => ipIsPrivate(a.address))) return done(new Error('address refused'));
+    const first = list[0];
+    return opts.all ? done(null, list) : done(null, first.address, first.family);
+  });
+}
+/* One POST, on node's own https client rather than fetch, for exactly one
+   reason: it takes the guarded lookup above. Redirects are not followed
+   (this client does not follow them at all), the body is capped and
+   consumed so a dribbling endpoint cannot hold a socket, and the timeout
+   covers the WHOLE exchange rather than just the headers. */
+function webhookPost(url, body, headers) {
+  return new Promise(resolve => {
+    let u; try { u = new URL(url); } catch (_) { return resolve({ ok: false, status: 'bad url' }); }
+    let settled = false;
+    const finish = r => { if (!settled) { settled = true; resolve(r); } };
+    let req;
+    try {
+      req = require('node:https').request({
+        protocol: u.protocol, hostname: u.hostname, port: u.port || 443,
+        path: u.pathname + u.search, method: 'POST', headers,
+        lookup: webhookGuardedLookup, servername: u.hostname,
+      }, res => {
+        let seen = 0;
+        res.on('data', chunk => { seen += chunk.length; if (seen > 8192) res.destroy(); });
+        res.on('end', () => finish({ ok: res.statusCode >= 200 && res.statusCode < 300, status: 'HTTP ' + res.statusCode }));
+        res.on('error', () => finish({ ok: false, status: 'HTTP ' + res.statusCode }));
+      });
+    } catch (e) { return finish({ ok: false, status: String((e && e.message) || e).slice(0, 120) }); }
+    req.setTimeout(WEBHOOK_TIMEOUT_MS, () => { req.destroy(new Error('timed out')); });
+    req.on('error', e => finish({ ok: false, status: String((e && e.message) || e).slice(0, 120) }));
+    req.end(body);
+  });
+}
+/* Still asked before we go anywhere — a URL that fails the static rules is
+   refused without a lookup at all. The RESOLUTION guard above is what makes
+   it hold; this keeps the cheap refusals cheap and gives the admin a
+   readable reason. */
+function webhookTargetOk(url) { return !webhookUrlRefusal(url); }
+async function webhookFire(kind, factsFn) {
+  if (!WEBHOOK_EVENTS.includes(kind)) return;
+  let rows = [];
+  try { rows = db.prepare('SELECT * FROM webhooks WHERE active=1').all(); } catch (_) { return; }
+  /* FAIL CLOSED. An endpoint subscribes to the events it NAMED; an empty
+     list is "nothing yet", not "everything". The opposite reading meant a
+     row created without a list quietly received every event in the product
+     — which is how a webhook surface leaks by default. */
+  rows = rows.filter(r => { try { return JSON.parse(r.events || '[]').includes(kind); } catch (_) { return false; } });
+  if (!rows.length) return;
+  let facts; try { facts = factsFn(); } catch (_) { return; }
+  if (!facts) return;
+  const bump = (id, ok, status) => {
+    /* ATOMIC, and the cutoff applies on EVERY failing path — computing
+       fails+1 in JS from a row read at the top lets concurrent fires clobber
+       each other, and the refused-address branch used to skip the cutoff
+       entirely, so a permanently unreachable endpoint was retried for ever. */
+    if (ok) db.prepare('UPDATE webhooks SET last_at=?, last_ok=1, last_status=?, fails=0 WHERE id=?').run(now(), status, id);
+    else db.prepare(`UPDATE webhooks SET last_at=?, last_ok=0, last_status=?, fails=fails+1,
+      active=CASE WHEN fails+1 >= ${WEBHOOK_FAIL_OFF} THEN 0 ELSE active END WHERE id=?`).run(now(), status, id);
+  };
+  for (const r of rows) {
+    // an empty key would sign with nothing and any observer could forge it
+    if (!r.secret) { bump(r.id, false, 'no signing secret'); continue; }
+    if (!webhookTargetOk(r.url)) { bump(r.id, false, 'address refused'); continue; }
+    const at = now(), delivery = 'dl_' + rid(8);
+    const body = JSON.stringify({ kind, at, delivery, workspace: (getSetting('org') || {}).name || '', data: facts });
+    /* Signed as timestamp.body, the shape GitHub and Stripe use: a receiver
+       can check freshness from the HEADER without parsing untrusted JSON
+       first, and a captured delivery cannot be replayed outside the window.
+       The delivery id lets a receiver drop a duplicate. */
+    const sig = crypto.createHmac('sha256', r.secret).update(at + '.' + body).digest('hex');
+    const out = await webhookPost(r.url, body, {
+      'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body),
+      'X-HaTi-Event': kind, 'X-HaTi-Timestamp': at, 'X-HaTi-Delivery': delivery,
+      'X-HaTi-Signature': 'sha256=' + sig,
+    });
+    bump(r.id, out.ok, out.status);
+  }
+}
+/* Fire-and-forget by design: a customer's dead endpoint must never slow, fail
+   or roll back the act that triggered it. */
+const webhookQueue = (kind, factsFn) => { Promise.resolve().then(() => webhookFire(kind, factsFn)).catch(() => {}); };
+const webhookPublic = r => ({ id: r.id, url: r.url, events: (() => { try { return JSON.parse(r.events || '[]'); } catch (_) { return []; } })(),
+  active: !!r.active, createdAt: r.created_at, createdBy: r.created_by || '',
+  lastAt: r.last_at || null, lastOk: r.last_ok == null ? null : !!r.last_ok, lastStatus: r.last_status || '', fails: r.fails || 0 });
+app.get('/api/webhooks', auth, admin, (req, res) => {
+  res.json({ webhooks: db.prepare('SELECT * FROM webhooks ORDER BY created_at DESC').all().map(webhookPublic),
+    events: WEBHOOK_EVENTS });
+});
+app.post('/api/webhooks', auth, admin, rlHookAdd, (req, res) => {
+  const b = req.body || {};
+  const refusal = webhookUrlRefusal(b.url);
+  if (refusal) return res.status(400).json({ error: refusal });
+  /* A CEILING. Each event fires the endpoints one after another with a real
+     timeout apiece, so an unbounded list is an unbounded amount of pending
+     work per event — and nothing in this product needs more than a handful. */
+  const have = db.prepare('SELECT COUNT(*) n FROM webhooks').get().n;
+  if (have >= WEBHOOK_MAX) return res.status(400).json({ error: `That is as many addresses as HaTi will post to (${WEBHOOK_MAX}). Remove one first.` });
+  const events = Array.isArray(b.events) ? b.events.filter(e => WEBHOOK_EVENTS.includes(e)) : [];
+  if (!events.length) return res.status(400).json({ error: 'Name at least one event to send' });
+  const id = 'wh_' + rid(6), secret = rid(24);
+  db.prepare('INSERT INTO webhooks (id,url,secret,events,active,created_by,created_at) VALUES (?,?,?,?,1,?,?)')
+    .run(id, String(b.url), secret, JSON.stringify(events), req.user.name || '', now());
+  // the secret is shown ONCE, here, and never returned by any other route
+  res.json({ ok: true, secret, webhook: webhookPublic(db.prepare('SELECT * FROM webhooks WHERE id=?').get(id)) });
+});
+app.delete('/api/webhooks/:id', auth, admin, (req, res) => {
+  const r = db.prepare('SELECT id FROM webhooks WHERE id=?').get(req.params.id);
+  if (!r) return res.status(404).json({ error: 'Not found' });
+  db.prepare('DELETE FROM webhooks WHERE id=?').run(req.params.id);
+  res.json({ ok: true });
+});
+
+/* ================= THE INTAKE FRONT DOOR (W2-2, gap-map) =================
+   Until now only somebody with edit rights could start a contract, so the
+   colleague who actually needs one — the salesperson, the ops manager —
+   had no way even to ASK inside HaTi. That capped the product at the two or
+   three people who handle contracts, and pushed every real request into
+   email, where it is untracked.
+
+   A REQUEST IS ITS OWN RECORD, never a half-made contract. Nothing
+   unapproved can be mistaken for paper, nothing appears in the register or
+   any count, and a request that is declined leaves no orphan draft behind.
+   An editor turns one into a draft with a press, and the request then
+   POINTS at that contract rather than becoming it.
+
+   WHO SEES WHAT: a requester sees their OWN requests, always — they must be
+   able to follow what they asked for. An editor-and-up sees the queue,
+   scoped by folder exactly as contracts are. Asking never grants edit
+   rights, which is the whole point: reach without permission creep. */
+const intakeRow = r => ({ id: r.id, title: r.title, need: r.need, counterparty: r.counterparty || '',
+  folder: r.folder || '', status: r.status, by: { id: r.by_id, name: r.by_name },
+  contractId: r.contract_id || null, decidedBy: r.decided_by || null, decidedAt: r.decided_at || null,
+  note: r.note || '', createdAt: r.created_at, updatedAt: r.updated_at || null });
+app.post('/api/intake', auth, rlIntake, (req, res) => {   // a trigger path, so rationed
+  const b = req.body || {};
+  const title = clean(b.title).slice(0, 200);
+  const need = clean(b.need).slice(0, 4000);
+  if (!title || !need) return res.status(400).json({ error: 'Say what you need, in a line and a paragraph' });
+  const folder = clean(b.folder).slice(0, 60);
+  /* A REQUESTER MAY NOT ASK INTO A STREAM THEY CANNOT SEE — the same rule a
+     contract's folder follows, and for the same reason: it would make a
+     record appear somewhere invisible to the person who raised it. */
+  if (folder && !inScope(folderScopeFor(req.user), folder))
+    return res.status(403).json({ error: 'You do not have access to that value stream' });
+  const id = 'REQ-' + rid(5).toUpperCase().slice(0, 6);
+  db.prepare(`INSERT INTO intake_requests (id,title,need,counterparty,folder,status,by_id,by_name,created_at)
+    VALUES (?,?,?,?,?,'open',?,?,?)`)
+    .run(id, title, need, clean(b.counterparty).slice(0, 200), folder, req.user.id, req.user.name || '', now());
+  /* The TITLE is arbitrary text any signed-in person — a Viewer included —
+     can type, so carrying it would be a small data-egress primitive handed to
+     the least-privileged role. The id is enough to go and look. */
+  webhookQueue('intake.requested', () => ({ requestId: id }));
+  res.json({ ok: true, request: intakeRow(db.prepare('SELECT * FROM intake_requests WHERE id=?').get(id)) });
+});
+app.get('/api/intake', auth, (req, res) => {
+  const mine = String(req.query.mine || '') === '1';
+  const rows = db.prepare('SELECT * FROM intake_requests ORDER BY created_at DESC LIMIT 300').all();
+  const scope = folderScopeFor(req.user);
+  const isEditor = req.user.role !== 'viewer';
+  /* Their own always; the queue only for somebody who could act on it, and
+     then only within their streams. A request with no stream named yet is
+     visible to any editor — somebody has to be able to pick it up. */
+  const visible = rows.filter(r => r.by_id === req.user.id
+    || (!mine && isEditor && (!r.folder || inScope(scope, r.folder))));
+  res.json({ requests: visible.map(intakeRow),
+    openCount: visible.filter(r => r.status === 'open').length });
+});
+/* ---- THE PERSON WHO ASKED IS TOLD WHAT HAPPENED (19 Aug 2026) ----
+   A request was decided on a screen the requester was not looking at, and
+   nothing reached them: they had to keep coming back to the Requests page
+   to find out. This is the notice, and it lives on the ROUTE rather than in
+   the browser for the same reason the Shared audit line does — every path
+   that decides a request goes through here, including any future one.
+
+   THREE RULES, each of them one this codebase already holds:
+   - ONLY A MEMBER'S OWN STORED ADDRESS is ever written to. The requester is
+     looked up by id; a body-supplied address is not read, because a route
+     that mails wherever it is told is an open relay wearing this
+     workspace's name.
+   - NOBODY IS TOLD ABOUT THEIR OWN ACT. Withdrawing your own request sends
+     nothing, and neither does an editor deciding a request they raised
+     themselves.
+   - NOWHERE TO WRITE IS A FACT, NOT A FAILURE: an account since deleted, or
+     one with no address, simply gets no mail and the decision still stands.
+   The send is fire-and-forget like every other sweep mail — the editor's
+   answer must not wait on a mail provider, and the outbox is where an admin
+   reads what was actually attempted. */
+function notifyIntakeDecision(row, actor) {
+  if (!row) return false;
+  const u = db.prepare('SELECT * FROM users WHERE id=?').get(row.by_id);
+  if (!u || !/.+@.+\..+/.test(String(u.email || ''))) return false;
+  const L = (u.lang && I18N_STRINGS[u.lang]) ? u.lang : I18N_DEFAULT;
+  const k = row.status === 'done' ? 'done' : row.status === 'declined' ? 'declined' : 'accepted';
+  const who = (actor && actor.name) || '';
+  const link = row.contract_id ? contractUrl(null, row.contract_id) : '';
+  const body = `${tFor(L, 'mail_hello')}${u.name ? ' ' + u.name : ''},\n\n`
+    + tFor(L, 'mail_ik_lead_' + k, { title: row.title, who }) + '\n'
+    + (row.note ? `\n${tFor(L, 'mail_ik_reason', { note: row.note })}\n` : '')
+    + (link ? `\n${link}\n` : '')
+    + `\n${tFor(L, 'mail_ik_where')}\n\n${tFor(L, 'mail_automated_notice')}`;
+  sendEmail(u.email, tFor(L, 'mail_ik_subject_' + k, { title: row.title }), body, 'intake decision');
+  return true;
+}
+/* An editor moves a request along; the requester may only WITHDRAW their own.
+   Every other transition is an act by somebody who could have drafted it
+   themselves, which is what makes it an approval rather than a formality. */
+app.patch('/api/intake/:id', auth, (req, res) => {
+  const r = db.prepare('SELECT * FROM intake_requests WHERE id=?').get(req.params.id);
+  if (!r) return res.status(404).json({ error: 'Request not found' });
+  if (r.folder && !inScope(folderScopeFor(req.user), r.folder) && r.by_id !== req.user.id)
+    return res.status(404).json({ error: 'Request not found' });
+  const b = req.body || {};
+  const status = clean(b.status);
+  const isEditor = req.user.role !== 'viewer';
+  const isOwner = r.by_id === req.user.id;
+  if (!['open', 'accepted', 'declined', 'withdrawn', 'done'].includes(status))
+    return res.status(400).json({ error: 'Unknown status' });
+  if (status === 'withdrawn') {
+    if (!isOwner && !isEditor) return res.status(403).json({ error: 'Only the person who asked can withdraw it' });
+  } else if (!isEditor) {
+    return res.status(403).json({ error: 'Viewers can raise and withdraw requests, not decide them' });
+  }
+  const contractId = clean(b.contractId).slice(0, 60) || r.contract_id;
+  db.prepare('UPDATE intake_requests SET status=?, note=?, contract_id=?, decided_by=?, decided_at=?, updated_at=? WHERE id=?')
+    .run(status, clean(b.note).slice(0, 2000) || r.note, contractId || null,
+      req.user.name || '', now(), now(), req.params.id);
+  const after = db.prepare('SELECT * FROM intake_requests WHERE id=?').get(req.params.id);
+  /* Only where the answer actually MOVED, and never back to the person who
+     moved it. Re-saving the same status is not news. */
+  if (status !== r.status && ['accepted', 'declined', 'done'].includes(status) && r.by_id !== req.user.id)
+    notifyIntakeDecision(after, req.user);
+  res.json({ ok: true, request: intakeRow(after) });
+});
+
+/* ---------- the renewal adviser (W2-4, WORKORDER-gap-map.md) ----------
+   At the 90-day mark HaTi has always sent an alarm. This turns the alarm
+   into a recommendation: renew, renegotiate, or let it lapse — with the
+   reasons cited, and the way to act on it one press away.
+
+   THE DATES ARE NOT THE MODEL'S TO INVENT. Every fact the recommendation
+   rests on — the effective expiry, the notice deadline, whether it
+   auto-renews, the value, how much was argued over last time, what the
+   playbook flagged, what is still owed — is computed HERE from the stored
+   record and handed over as `signals`. The model weighs them and writes the
+   sentences; it is never asked what day anything is due, because a
+   confident wrong date is the one failure this feature cannot afford.
+
+   A PROPOSAL, NOT A DECISION. Nothing here renews, cancels or drafts
+   anything: the verdict is a recommendation a person reads, and the button
+   beside it goes through createAmendment exactly as a human-started
+   renewal always has. Cached per contract like the brief, in its own table,
+   keyed on the signals + wording so it regenerates when the facts move. */
+app.post('/api/ai/renewal', auth, editor, rlAiDeep, aiFeature('renewal'), aiBudgetGuard, capAiInput, async (req, res) => {
+  const { id, force } = req.body || {};
+  if (!id) return res.status(400).json({ error: 'id is required' });
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(String(id));
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  let full = {}; try { full = JSON.parse(row.json) || {}; } catch (_) {}
+  // the family-aware term, read the same way both sweeps read it
+  const kids = db.prepare('SELECT id,name,counterparty,expiry,status,parent_id,json FROM contracts WHERE parent_id=? OR id=?').all(String(id), String(id));
+  const parsed = new Map();
+  for (const r of kids) { let f = {}; try { f = JSON.parse(r.json) || {}; } catch (_) {} parsed.set(r.id, f); }
+  const me = kids.find(r => r.id === String(id)) || { id: String(id), expiry: full.expiry, parent_id: full.parentId || null };
+  const { eff } = effExpiryReader(kids, parsed);
+  const expiry = dateOnly(eff(me));
+  const meta = full.metadata || {};
+  const notice = Number(meta.noticePeriodDays) || 0;
+  let decideBy = expiry;
+  if (expiry && notice > 0) { const d = new Date(expiry + 'T00:00:00'); d.setDate(d.getDate() - notice); if (!isNaN(d.getTime())) decideBy = isoDay(d); }
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const daysTo = iso => (iso ? Math.ceil((new Date(iso + 'T00:00:00') - today) / 86400000) : null);
+  const openObs = (full.obligations || []).filter(o => o && o.status !== 'done');
+  const overdue = openObs.filter(o => { const d = dateOnly(o.due); return d && daysTo(d) < 0; });
+  const pb = full.playbook && Array.isArray(full.playbook.verdicts) ? full.playbook.verdicts : [];
+  const money = fxHome({ value: full.value, metadata: meta });
+  const signals = {
+    name: full.name || String(id), counterparty: full.counterparty || '', status: full.status || '',
+    expiry, noticePeriodDays: notice, decideBy, daysToDecision: daysTo(decideBy),
+    daysToExpiry: daysTo(expiry), renewalType: meta.renewalType || 'unknown',
+    // money in ONE currency (W2-1), and said to be so, with the original beside it
+    valueInWorkspaceCurrency: money.missing ? null : money.v,
+    valueAsWritten: full.value ? `${contractCurrency({ metadata: meta })} ${full.value}` : null,
+    workspaceCurrency: orgJx().currency,
+    roundsNegotiated: Array.isArray(full.rounds) ? full.rounds.length : 0,
+    changesFiled: Array.isArray(full.changes) ? full.changes.length : 0,
+    playbookDeviations: pb.filter(v => v && (v.status === 'deviation' || v.status === 'missing')).map(v => v.category).slice(0, 8),
+    openObligations: openObs.length, overdueObligations: overdue.length,
+    amendments: kids.filter(r => r.parent_id === String(id)).map(r => ({ name: r.name, status: r.status })),
+  };
+  const inputHash = sha(JSON.stringify(signals));
+  const prev = db.prepare('SELECT json FROM renewal_advice WHERE contract_id=?').get(String(id));
+  if (prev && !force) {
+    try { const a = JSON.parse(prev.json); if (a.inputHash === inputHash) return res.json({ advice: a, cached: true }); } catch (_) {}
+  }
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true });
+  const tool = {
+    name: 'renewal_advice',
+    description: 'Recommend what to do about an agreement coming up for renewal.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        verdict: { type: 'string', enum: ['renew', 'renegotiate', 'lapse', 'unclear'],
+          description: 'renew = carry on as is; renegotiate = renew but push on named terms; lapse = let it end; unclear = the facts on file do not support a recommendation.' },
+        headline: { type: 'string', description: 'One plain sentence saying what you recommend and why.' },
+        because: { type: 'array', maxItems: 5, items: { type: 'string' },
+          description: 'The reasons, each naming the fact it rests on. Plain sentences.' },
+        pushOn: { type: 'array', maxItems: 5, items: { type: 'string' },
+          description: 'If renegotiating, the specific terms worth reopening. Empty otherwise.' },
+        watchIf: { type: 'string', description: 'What would change this recommendation. One sentence, or empty.' },
+      },
+      required: ['verdict', 'headline', 'because'],
+    },
+  };
+  const prompt = `You are advising a business owner on an agreement coming up for renewal, under ${orgJx().adjective} law. Recommend renew, renegotiate or lapse, using ONLY the SIGNALS below and the wording — every date and figure there is computed from the record, so use them as given and never restate a date differently. Where the signals are too thin to justify a recommendation, answer 'unclear' and say what is missing rather than guessing. Do not draft any wording. Plain, everyday sentences.\n\nSIGNALS:\n${JSON.stringify(signals)}\n\nDOCUMENT:\n${String(contractFullBody(full)).slice(0, 12000)}`;
+  try {
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 900, tools: [tool], tool_choice: { type: 'tool', name: 'renewal_advice' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'renewal', who: aiWho(req) });
+    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    const block = (resp.data.content || []).find(b => b.type === 'tool_use');
+    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    const advice = { v: 1, at: now(), by: (req.user && req.user.name) || '', inputHash, signals, data: block.input || {} };
+    db.prepare('INSERT INTO renewal_advice (contract_id,json,created_at) VALUES (?,?,?) ON CONFLICT(contract_id) DO UPDATE SET json=excluded.json, created_at=excluded.created_at')
+      .run(String(id), JSON.stringify(advice), now());
+    res.json({ advice, ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
 
@@ -5556,12 +6367,17 @@ app.patch('/api/users/:id', auth, (req, res) => {
   /* Who oversees them is an admin's grant for the same reason the rest are:
      somebody who could pick their own approver is not overseen. */
   const hasOverseer = b.overseerId !== undefined;
-  if (!hasRole && !hasValues && !hasTitle && !hasCap && !hasChecked && !hasReviewer && !hasOverseer)
+  /* The two-step RESCUE (WO-6): an admin clears a locked-out member's second
+     step so they can enrol again. A grant-shaped act like the rest — and
+     never on yourself, because your own lock comes off with a code on the
+     account page, not with admin rank. */
+  const hasClear2 = b.clearTwoStep === true;
+  if (!hasRole && !hasValues && !hasTitle && !hasCap && !hasChecked && !hasReviewer && !hasOverseer && !hasClear2)
     return res.status(400).json({ error: 'Nothing to change' });
   const self = req.params.id === req.user.id;
   // Only a title may be set by a non-admin, and only on their own account.
   if (req.user.role !== 'admin'
-    && !(self && hasTitle && !hasRole && !hasValues && !hasCap && !hasChecked && !hasReviewer && !hasOverseer))
+    && !(self && hasTitle && !hasRole && !hasValues && !hasCap && !hasChecked && !hasReviewer && !hasOverseer && !hasClear2))
     return res.status(403).json({ error: 'Admin access required' });
   if (userPrefs(req.user).mustChangePassword)
     return res.status(403).json({ error: 'Set your own password before making changes', mustChangePassword: true });
@@ -5572,11 +6388,13 @@ app.patch('/api/users/:id', auth, (req, res) => {
     // cannot restore (admins are unconditionally allowed to see values), so it
     // is refused rather than silently ignored.
     if (hasValues) return res.status(400).json({ error: 'You cannot change your own access' });
+    if (hasClear2) return res.status(400).json({ error: 'Turn off your own two-step sign-in from your account page — it needs a current code' });
   }
   const target = db.prepare('SELECT * FROM users WHERE id=?').get(req.params.id);
   if (!target) return res.status(404).json({ error: 'User not found' });
   if (hasTitle) db.prepare('UPDATE users SET title=? WHERE id=?').run(clean(b.title).slice(0, 120), req.params.id);
   if (hasRole) db.prepare('UPDATE users SET role=? WHERE id=?').run(b.role, req.params.id);
+  if (hasClear2) db.prepare('UPDATE users SET totp_secret=NULL, totp_pending=NULL, totp_recovery=NULL WHERE id=?').run(req.params.id);
   if (hasCap) {
     /* null clears the decision, 'none' IS a decision, a number is the ceiling.
        Anything else is refused rather than coerced — a signing limit read out
@@ -5971,8 +6789,12 @@ function internalSignerRecipient(row) {
    needs them to go and find it. Honoured by startApp in js/core.js, on the far
    side of the sign-in wall — the hash survives the wall, and that is what makes
    this safe to send to a page that will refuse to load without a session. */
+/* Like shareUrl: APP_URL first, the request second, localhost last — and req
+   may be NULL, because the reminder sweep runs on a timer with no request to
+   read a host from. */
 const contractUrl = (req, contractId, tab) =>
-  `${req.protocol}://${req.get('host')}/#contract=${encodeURIComponent(contractId)}`
+  (APP_URL() || (req ? `${req.protocol}://${req.get('host')}` : `http://localhost:${PORT}`))
+  + `/#contract=${encodeURIComponent(contractId)}`
   + (tab ? `&tab=${encodeURIComponent(tab)}` : '');
 const contractSignUrl = (req, contractId) => contractUrl(req, contractId, 'sign');
 /* ONE WORDING, BOTH TRIGGERS, BOTH LANGUAGES. The two mails this replaces said
@@ -6135,6 +6957,13 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
       req.rvStripped = before - payload.contract.changes.length;
     }
   }
+  /* THE BRIEF NEVER TRAVELS (WO-2). It is an internal reading aid — our own
+     colleague's plain-English take on their paper — and the product's client
+     never includes it (buildSharePayload is an allow-list). Stripped here too
+     so a hand-built payload cannot carry it out either: the wall belongs to
+     the route every path goes through, like the review strip above. */
+  if (payload.contract) { delete payload.contract._brief; delete payload.contract.brief;
+    delete payload.contract._renewalAdvice; }   // our own advice about their paper never travels
   const ch = ['email', 'whatsapp', 'link'].includes(channel) ? channel : 'link';
   const rec = recipient || {};
   const email = String(rec.email || '').trim().toLowerCase();
@@ -7302,6 +8131,11 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
     }
   });
   notifyShareResponse(s, r);   // fire-and-forget: owner alert + counterparty receipt
+  /* W2-3: the other side answered. The KIND of answer travels and nothing
+     else — no wording, no decisions, no name — because this is a nudge to go
+     and look, not a feed of what they said. */
+  webhookQueue('round.received', () => ({ contractId: s.contract_id || null,
+    action: String((r && r.action) || 'response') }));
   /* W7 sequential release: this signature may be the one the next signer's
      dormant link is waiting on. Fired from here — the moment the signature is
      STORED — so the route runs unattended whether or not the owner's browser
@@ -7401,7 +8235,20 @@ function notifyShareResponse(s, r) {
    arrives, this list is where it goes. */
 app.put('/api/me/prefs', auth, (req, res) => {
   const prefs = userPrefs(req.user);
-  for (const k of ['notifyShareOpens']) if (k in (req.body || {})) prefs[k] = !!req.body[k];
+  // dailyBrief: WO-3's off switch — absent means ON, so only an explicit
+  // false ever silences somebody, and a fresh workspace briefs everyone.
+  for (const k of ['notifyShareOpens', 'dailyBrief']) if (k in (req.body || {})) prefs[k] = !!req.body[k];
+  /* HOW OFTEN THE BRIEF COMES (owner-asked 19 Aug 2026): daily, weekly or
+     not at all. ONE stored answer, and a value outside the three is REFUSED
+     rather than stored — a preference nobody can read is worse than none.
+     The old boolean is left exactly where it is: briefCadence reads it when
+     this key is absent, which is the whole migration. */
+  if ('briefEvery' in (req.body || {})) {
+    const v = String(req.body.briefEvery || '').toLowerCase();
+    if (!BRIEF_EVERY.includes(v))
+      return res.status(400).json({ error: 'briefEvery must be one of: ' + BRIEF_EVERY.join(', ') });
+    prefs.briefEvery = v;
+  }
   db.prepare('UPDATE users SET prefs=? WHERE id=?').run(JSON.stringify(prefs), req.user.id);
   res.json({ ok: true, prefs });
 });
@@ -7555,21 +8402,38 @@ function runShareNudges() {
   }
   return queued;
 }
-function runReminders() {
-  // Share nudges go to counterparties, so they run regardless of admin setup.
-  const nudged = runShareNudges();
-  // Pull full JSON so we can also see E1 metadata (notice period) and E3
-  // obligations, not just the indexed expiry column.
-  const rows = db.prepare("SELECT id,name,counterparty,expiry,status,parent_id,json FROM contracts WHERE status!='Declined'").all();
-  // Family-aware term resolution, mirrored from js/family.js. A master
-  // agreement's real end date is whatever the most recent term-changing
-  // amendment says; an amendment is not itself a renewable agreement, so it
-  // never fires its own reminder. Getting this wrong is the whole defect.
+/* WHO OWES THE WORK. The assignee on an obligation is free text — usually a
+   colleague's name, sometimes an address. It resolves to a MEMBER record or to
+   nobody: only a member's own address is written to (the open-relay rule the
+   notify-signer route learned), and a name matching nobody keeps the old
+   admin-only path so nothing is quieter than it was. WO-1, WORKORDER-gap-map. */
+function obligationRecipient(assignee) {
+  const q = String(assignee || '').trim().toLowerCase();
+  if (!q) return null;
+  let u = null;
+  try {
+    u = db.prepare('SELECT * FROM users WHERE LOWER(email)=?').get(q);
+    if (!u) u = db.prepare('SELECT * FROM users WHERE LOWER(name)=?').get(q);
+  } catch (_) { u = null; }
+  if (u && /.+@.+\..+/.test(String(u.email || '')))
+    return { email: u.email, name: u.name || assignee, lang: u.lang || null };
+  return null;
+}
+/* Family-aware term resolution over one query's rows — mirrored from
+   js/family.js, and since WO-3 shared by BOTH sweeps (renewal reminders and
+   the daily brief). ONE implementation on purpose: a third copy is how the
+   mails and the screens come to disagree, which is the recorded defect this
+   block exists to prevent.
+
+   ONLY A SIGNED AMENDMENT MOVES THE TERM (owner-ruled 14 Aug 2026): a DRAFT
+   amendment used to move it, so a renewal reminder could be suppressed — or
+   brought forward — by a document nobody had signed. Executed, not merely
+   'Signed': the same three signals isExecutedRow reads. An amendment never
+   fires its own reminder; its parent carries the term it set. */
+function effExpiryReader(rows, parsed) {
   const TERM_CHANGING = new Set(['amendment', 'variation', 'renewal', 'addendum']);
-  const parsed = new Map();
-  for (const r of rows) { let f = {}; try { f = JSON.parse(r.json) || {}; } catch (_) {} parsed.set(r.id, f); }
   /* Normalised at the one place the term is read, so every comparison, sort
-     and piece of arithmetic below it is working on a real calendar day or on
+     and piece of arithmetic on it is working on a real calendar day or on
      null — see dateOnly(). */
   const ownExp = (r) => { const f = parsed.get(r.id) || {};
     return dateOnly((f.metadata && f.metadata.expiryDate) || r.expiry || null); };
@@ -7578,19 +8442,9 @@ function runReminders() {
       (f.signedAt && String(f.signedAt).slice(0, 10)) || (f.migration && f.migration.importedAt && String(f.migration.importedAt).slice(0, 10)) || ''; };
   const kidsOf = new Map();
   for (const r of rows) { if (!r.parent_id) continue; if (!kidsOf.has(r.parent_id)) kidsOf.set(r.parent_id, []); kidsOf.get(r.parent_id).push(r); }
-  /* ---- ONLY A SIGNED AMENDMENT MOVES THE TERM (owner-ruled 14 Aug 2026) ----
-     The twin of effectiveExpiry in js/family.js, and it has to move with it or
-     the reminder this function sends disagrees with the date the screens show.
-     A DRAFT amendment used to move the term, so a renewal reminder could be
-     suppressed — or brought forward — by a document nobody had signed. That is
-     the sharpest form of the risk, because a reminder is acted on without
-     anybody re-checking why it says what it says.
-
-     Executed, not merely 'Signed': the same three signals isExecutedRow reads,
-     for the same reason. A Declined child was already excluded at the query. */
   const executedKid = (k) => { const f = parsed.get(k.id) || {};
     return !!(k.status === 'Signed' || f.hash || (f.execution && f.execution.at)); };
-  const effExpiry = (r) => {
+  const eff = (r) => {
     if (r.parent_id) return ownExp(r);
     const kids = (kidsOf.get(r.id) || []).filter(k => TERM_CHANGING.has((parsed.get(k.id) || {}).relation)
       && ownExp(k) && executedKid(k));
@@ -7598,20 +8452,43 @@ function runReminders() {
     kids.sort((a, b) => String(amendDate(a)).localeCompare(String(amendDate(b))) || String(ownExp(a)).localeCompare(String(ownExp(b))));
     return ownExp(kids[kids.length - 1]);
   };
+  return { eff, ownExp, kidsOf };
+}
+function runReminders() {
+  // Share nudges go to counterparties, so they run regardless of admin setup.
+  const nudged = runShareNudges();
+  // Pull full JSON so we can also see E1 metadata (notice period) and E3
+  // obligations, not just the indexed expiry column.
+  const rows = db.prepare("SELECT id,name,counterparty,expiry,status,parent_id,json FROM contracts WHERE status!='Declined'").all();
+  const parsed = new Map();
+  for (const r of rows) { let f = {}; try { f = JSON.parse(r.json) || {}; } catch (_) {} parsed.set(r.id, f); }
+  const { eff: effExpiry, ownExp, kidsOf } = effExpiryReader(rows, parsed);
   const admins = db.prepare("SELECT email FROM users WHERE role='admin'").all().map(u => u.email);
   if (!admins.length) return { checked: 0, queued: nudged };
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const daysTo = iso => Math.ceil((new Date(iso + 'T00:00:00') - today) / 86400000);
-  const fire = (rkey, subj, body, tag) => {
+  /* fireTo is the general door: one dedupe row per rkey however many addresses,
+     and the message is BUILT PER ADDRESS so each reader gets their own language
+     (mk is a function of the address). fire keeps the old shape — same words to
+     every admin — so the renewal blocks below are untouched. */
+  const fireTo = (rkey, addrs, mk, tag) => {
+    if (!addrs.length) return false;
     if (db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(rkey)) return false;
     db.prepare('INSERT INTO reminders (rkey,created_at) VALUES (?,?)').run(rkey, now());
-    admins.forEach(a => sendEmail(a, subj, body, tag));
+    addrs.forEach(a => { const m = mk(a); sendEmail(a, m.subject, m.body, tag); });
     return true;
   };
+  const fire = (rkey, subj, body, tag) =>
+    fireTo(rkey, admins, () => ({ subject: subj, body }), tag);
   let queued = nudged, checked = 0;
   for (const c of rows) {
     checked++;
     const full = parsed.get(c.id) || {};
+    /* An ARCHIVED contract stops nagging (WO-5) — that is half of what the
+       shelf is for. Skipped HERE, never inside effExpiryReader: an archived
+       executed amendment still sets its parent's term, because archiving a
+       child is filing, not un-signing it. */
+    if (full.archived) continue;
     const meta = full.metadata || {};
     // an amendment does not fire its own renewal reminder — its parent does,
     // using the term the amendment set
@@ -7644,7 +8521,16 @@ function runReminders() {
           `decision ${dms}d: ${c.name}`)) queued++;
       }
     }
-    // 3) obligations newly overdue (fire once per obligation)
+    /* 3) obligations. THE NUDGE REACHES THE PERSON RESPONSIBLE (WO-1,
+       WORKORDER-gap-map.md): where the assignee resolves to a member, THEY are
+       told — 7 days before the date, on it, and the day after — in their own
+       language, and the admins are brought in only when it is STILL open three
+       days after that. Admin-only mail made the admin a human message-router
+       and told the person who owed the work nothing. Where no assignee
+       resolves, the old admin day-after mail runs byte-identical (f65 pins
+       it), so nothing is quieter than it was. Milestones match an exact day,
+       like the renewal blocks above; the overdue rkey keeps its historic shape
+       so an already-reminded obligation is not re-fired by the upgrade. */
     (full.obligations || []).forEach(o => {
       if (o.status === 'done') return;
       // through the same normalisation: an obligation due "31 March 2027" gave
@@ -7652,7 +8538,34 @@ function runReminders() {
       const due = dateOnly(o.due);
       if (!due) return;
       const od = daysTo(due);
-      if (od === -1 && fire(`${c.id}:ob:${o.id || due}:overdue`,
+      const okey = o.id || due;
+      const who = obligationRecipient(o.assignee);
+      if (who) {
+        const link = contractUrl(null, c.id);
+        const oMail = key => a => {
+          const L = a === who.email ? (who.lang || I18N_DEFAULT) : langForEmail(a);
+          // one vars object for subject AND line — the subject carries {desc}
+          // always and {days} on the escalation, and a template var only half
+          // supplied prints itself literally
+          const vars = { desc: o.desc, name: c.name, id: c.id, due,
+            days: -od, assignee: who.name || o.assignee };
+          return {
+            subject: tFor(L, `mail_ob_${key}_subject`, vars),
+            body: `${tFor(L, 'mail_hello')}${a === who.email && who.name ? ' ' + who.name : ''},\n\n`
+              + tFor(L, `mail_ob_${key}_line`, vars)
+              + `\n\n${tFor(L, 'mail_ob_open')}\n${link}\n\n${tFor(L, 'mail_automated_notice')}`,
+          };
+        };
+        if (od === 7 && fireTo(`${c.id}:ob:${okey}:soon`, [who.email], oMail('soon'), `obligation soon: ${c.name}`)) queued++;
+        if (od === 0 && fireTo(`${c.id}:ob:${okey}:today`, [who.email], oMail('today'), `obligation today: ${c.name}`)) {
+          queued++;
+          // W2-3: rides the mail's OWN dedupe, so an outside system is told
+          // exactly as often as the person is — once
+          webhookQueue('obligation.due', () => ({ contractId: c.id, obligationId: String(okey).slice(0, 64), due }));
+        }
+        if (od === -1 && fireTo(`${c.id}:ob:${okey}:overdue`, [who.email], oMail('over'), `obligation overdue: ${c.name}`)) queued++;
+        if (od === -4 && fireTo(`${c.id}:ob:${okey}:escalate`, admins, oMail('esc'), `obligation escalated: ${c.name}`)) queued++;
+      } else if (od === -1 && fire(`${c.id}:ob:${okey}:overdue`,
         `Obligation overdue: ${c.name}`,
         `The obligation "${o.desc}" on "${c.name}" (${c.id}) was due ${due} and is now overdue${o.assignee ? ` (assigned to ${o.assignee})` : ''}.`,
         `obligation overdue: ${c.name}`)) queued++;
@@ -7661,6 +8574,150 @@ function runReminders() {
   return { checked, queued };
 }
 app.post('/api/reminders/run', auth, admin, (req, res) => res.json(runReminders()));
+/* ---------- THE DAILY BRIEF (WO-3, WORKORDER-gap-map.md) ----------
+   Once a day, per member, ONE email listing what needs THEM — and on a quiet
+   day, nothing at all. The report's single next step: HaTi speaks first.
+
+   WHAT A PERSON GETS IS PERSONAL: commitments assigned to them (due within a
+   week, or overdue), reviews waiting on their verdict, and a signing turn
+   that is theirs. ADMINS additionally get the portfolio dates — expiries
+   inside 30 days, renewal-notice deadlines inside 14 — and overdue
+   commitments nobody owns. Everything is filtered through folderScopeFor, so
+   nobody is emailed about a stream they cannot open.
+
+   MECHANICS: the day key is the workspace's own day (aiToday — the AI-budget
+   timezone, which is the customer's midnight rather than the server's);
+   dedupe rides the reminders table as daily:<user>:<day>, so however many
+   sweeps run, the first of the day sends and the rest are silent. The off
+   switch is prefs.dailyBrief (absent = on; PUT /api/me/prefs writes it, the
+   account page draws it). Sends are fire-and-forget like every sweep mail; a
+   dead provider leaves honest rows in the outbox and the sweep alive. */
+/* HOW OFTEN THIS PERSON IS BRIEFED — the ONE reading, and the only place
+   the three answers are decided. ABSENT MEANS DAILY, exactly as it always
+   has, and an account carrying the old dailyBrief:false still reads 'off':
+   nobody's setting moves and there is no migration to run. */
+const BRIEF_EVERY = ['daily', 'weekly', 'off'];
+function briefCadence(u) {
+  const p = userPrefs(u);
+  const v = String(p.briefEvery || '').toLowerCase();
+  if (BRIEF_EVERY.includes(v)) return v;
+  return p.dailyBrief === false ? 'off' : 'daily';
+}
+/* The Monday of the week a workspace-day belongs to. Parsed as UTC on
+   purpose — aiToday() is already the customer's own day, and re-reading it
+   through the server's timezone is how a date drifts by one. */
+function briefWeekOf(day) {
+  const d = new Date(day + 'T00:00:00Z');
+  if (isNaN(d.getTime())) return day;
+  const back = (d.getUTCDay() + 6) % 7;                    // Monday = 0
+  d.setUTCDate(d.getUTCDate() - back);
+  return d.toISOString().slice(0, 10);
+}
+function runDailyBriefs() {
+  const day = aiToday();
+  const members = db.prepare('SELECT * FROM users').all()
+    .filter(u => /.+@.+\..+/.test(String(u.email || '')));
+  if (!members.length) return { day, sent: 0 };
+  const rows = db.prepare("SELECT id,name,counterparty,expiry,status,parent_id,folder,json FROM contracts WHERE status!='Declined'").all();
+  const parsed = new Map();
+  for (const r of rows) { let f = {}; try { f = JSON.parse(r.json) || {}; } catch (_) {} parsed.set(r.id, f); }
+  const { eff: effExpiry, ownExp, kidsOf } = effExpiryReader(rows, parsed);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const daysTo = iso => Math.ceil((new Date(iso + 'T00:00:00') - today) / 86400000);
+  /* Whose signature is next, computed once per contract rather than once per
+     member — the same reading notifyInternalSignerTurn makes, via the same
+     helpers, so the brief can never name a turn that route would refuse. */
+  const nextSignerEmail = new Map();
+  for (const r of rows) {
+    const full = parsed.get(r.id) || {};
+    if (full.archived) continue;            // the shelf is quiet (WO-5)
+    if (!Array.isArray(full.signerPlan) || !full.signerPlan.length) continue;
+    try {
+      if (contractIsExecuted(r.id)) continue;
+      const rt = signerRouteFor(r.id); if (!rt) continue;
+      const next = rt.plan.find(s => !rt.signedRow(s));
+      if (!next || String(next.party || '') === 'counterparty') continue;
+      const to = internalSignerRecipient(next);
+      if (to) nextSignerEmail.set(r.id, String(to.email).toLowerCase());
+    } catch (_) {}
+  }
+  let sent = 0;
+  for (const u of members) {
+    const every = briefCadence(u);
+    if (every === 'off') continue;                            // the off switch
+    /* THE DAILY KEY KEEPS ITS HISTORIC SHAPE, so upgrading re-sends nothing.
+       The weekly one is keyed on the week's MONDAY rather than on the day it
+       goes out: it normally leaves on Monday morning, and where a server was
+       down for it the week's brief still goes on the Tuesday instead of
+       being lost. Somebody who has just asked for a weekly brief gets this
+       week's — which is what asking for it means. */
+    const rkey = every === 'weekly' ? `weekly:${u.id}:${briefWeekOf(day)}` : `daily:${u.id}:${day}`;
+    if (db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(rkey)) continue;  // once a day / once a week
+    const scope = folderScopeFor(u);
+    const L = (u.lang && I18N_STRINGS[u.lang]) ? u.lang : I18N_DEFAULT;
+    const isAdminU = u.role === 'admin';
+    const uEmail = String(u.email).toLowerCase();
+    const S = { ob: [], rv: [], sign: [], exp: [], notice: [] };
+    for (const r of rows) {
+      if (!inScope(scope, r.folder)) continue;
+      const full = parsed.get(r.id) || {};
+      if (full.archived) continue;          // the shelf is quiet (WO-5)
+      for (const o of (full.obligations || [])) {
+        if (!o || o.status === 'done') continue;
+        const due = dateOnly(o.due); if (!due) continue;
+        const od = daysTo(due);
+        const who = obligationRecipient(o.assignee);
+        const mineOb = who && String(who.email).toLowerCase() === uEmail;
+        // the -30 floor keeps a years-old dead item from renting a line forever
+        if (mineOb && od <= 7 && od >= -30)
+          S.ob.push({ line: `${o.desc} — "${r.name}" · ${od < 0 ? tFor(L, 'mail_db_overdue', { due }) : tFor(L, 'mail_db_due', { due })}`, id: r.id });
+        else if (isAdminU && !who && od < 0 && od >= -30)
+          S.ob.push({ line: `${o.desc} — "${r.name}" · ${tFor(L, 'mail_db_overdue', { due })} · ${tFor(L, 'mail_db_unassigned')}`, id: r.id });
+      }
+      for (const rv of rvOpenList(full)) {
+        if (!rvIsReviewer(rv, u) || rvSpent(full, rv)) continue;
+        S.rv.push({ line: tFor(L, 'mail_db_rv_line', { n: (rv.changeIds || []).length, name: r.name }), id: r.id });
+      }
+      if (nextSignerEmail.get(r.id) === uEmail)
+        S.sign.push({ line: `"${r.name}"`, id: r.id });
+      if (isAdminU) {
+        const expiry = r.parent_id ? null : effExpiry(r);
+        if (expiry) {
+          const d = daysTo(expiry);
+          if (d >= 0 && d <= 30) S.exp.push({ line: `"${r.name}" — ${expiry} (${d}d)`, id: r.id });
+          const termSetter = (kidsOf.get(r.id) || []).find(k => ownExp(k) === expiry);
+          const termMeta = termSetter ? ((parsed.get(termSetter.id) || {}).metadata || {}) : ((full.metadata) || {});
+          const nn = Number(termMeta.noticePeriodDays) || Number(((full.metadata) || {}).noticePeriodDays) || 0;
+          if (nn > 0) {
+            const dd = new Date(expiry + 'T00:00:00'); dd.setDate(dd.getDate() - nn);
+            if (!isNaN(dd.getTime())) {
+              const dIso = isoDay(dd); const dds = daysTo(dIso);
+              if (dds >= 0 && dds <= 14)
+                S.notice.push({ line: `"${r.name}" — ${tFor(L, 'mail_db_notice_by', { date: dIso, days: nn })}`, id: r.id });
+            }
+          }
+        }
+      }
+    }
+    const total = S.ob.length + S.rv.length + S.sign.length + S.exp.length + S.notice.length;
+    if (!total) continue;                                     // quiet days say nothing
+    db.prepare('INSERT INTO reminders (rkey,created_at) VALUES (?,?)').run(rkey, now());
+    const sec = (title, items) => items.length
+      ? `${title}\n` + items.map(i => `  • ${i.line}\n    ${contractUrl(null, i.id)}`).join('\n') + '\n\n' : '';
+    const K = every === 'weekly'
+      ? { subject: 'mail_wb_subject', lead: 'mail_wb_lead', off: 'mail_wb_off' }
+      : { subject: 'mail_db_subject', lead: 'mail_db_lead', off: 'mail_db_off' };
+    const body = `${tFor(L, 'mail_hello')}${u.name ? ' ' + u.name : ''},\n\n${tFor(L, K.lead)}\n\n`
+      + sec(tFor(L, 'mail_db_ob'), S.ob) + sec(tFor(L, 'mail_db_rv'), S.rv)
+      + sec(tFor(L, 'mail_db_sign'), S.sign) + sec(tFor(L, 'mail_db_exp'), S.exp)
+      + sec(tFor(L, 'mail_db_notice'), S.notice)
+      + `${tFor(L, K.off)}\n\n${tFor(L, 'mail_automated_notice')}`;
+    sendEmail(u.email, tFor(L, K.subject, { n: total }), body, every === 'weekly' ? 'weekly brief' : 'daily brief');
+    sent++;
+  }
+  return { day, sent };
+}
+app.post('/api/daily-brief/run', auth, admin, (req, res) => res.json(runDailyBriefs()));
 /* Twice daily. The catch is deliberate — a sweep that throws must not take the
    process with it — but it used to be EMPTY, and that is how one malformed
    expiry switched every renewal reminder in a workspace off in perfect silence.
@@ -7689,6 +8746,21 @@ function reminderSweep() {
         .run('rem_' + rid(6), 'admin', 'Renewal reminders did not run',
           `The automatic renewal-reminder sweep failed and no reminders went out this cycle.\n\nReason: ${msg}\n\nRenewal, notice and expiry alerts are paused until this is resolved. Check the most recently edited contract's dates.`,
           'system', 'reminder sweep failure', now());
+    } catch (_) {}
+  }
+  /* The daily brief rides the same timer under its OWN catch: neither sweep
+     may take the other down, and its failure is recorded where an admin can
+     see it — the M-6 lesson, applied on arrival rather than after the first
+     silent month. */
+  try { runDailyBriefs(); }
+  catch (e) {
+    const msg = (e && e.message) || String(e);
+    console.warn('[daily-brief] sweep failed, no briefs went out this cycle:', msg);
+    try {
+      db.prepare('INSERT INTO outbox (id,to_addr,subject,body,sent,provider,dev_hint,created_at) VALUES (?,?,?,?,0,?,?,?)')
+        .run('db_' + rid(6), 'admin', 'The daily brief did not run',
+          `The daily-brief sweep failed and no briefs went out this cycle.\n\nReason: ${msg}`,
+          'system', 'daily brief failure', now());
     } catch (_) {}
   }
 }
@@ -7739,10 +8811,22 @@ function mrRecipients() {
 function buildMonthlyReport(month) {
   const cur = (orgJx() || {}).currency || 'KES';
   const money = n => `${cur} ${Math.round(Number(n) || 0).toLocaleString('en-US')}`;
-  const rows = db.prepare('SELECT id,name,counterparty,status,expiry,value,json FROM contracts').all();
-  const parsed = rows.map(r => { let c = {}; try { c = JSON.parse(r.json) || {}; } catch (_) {} return { r, c }; });
+  const parsedAll = db.prepare('SELECT id,name,counterparty,status,expiry,value,json FROM contracts').all()
+    .map(r => { let c = {}; try { c = JSON.parse(r.json) || {}; } catch (_) {} return { r, c }; });
+  // the archive shelf stays out of the monthly letter (WO-5) — filed away
+  // means off every figure an admin acts on
+  const parsed = parsedAll.filter(x => !x.c.archived);
+  const rows = parsed.map(x => x.r);
   const active = rows.filter(r => r.status !== 'Declined');
-  const totalValue = active.reduce((s, r) => s + (Number(r.value) || 0), 0);
+  /* W2-1: the letter reports ONE figure in the workspace currency. A foreign
+     contract is converted with the admin's dated rate; one with no rate on
+     file is left out and the letter says so rather than quietly under-
+     reporting. byId carries the record, because the currency lives on the
+     contract's metadata and the row only has the number. */
+  const byId = new Map(parsed.map(x => [x.r.id, x.c]));
+  const homeOf = r => fxHome({ value: r.value, metadata: (byId.get(r.id) || {}).metadata });
+  const totalValue = active.reduce((s, r) => s + homeOf(r).v, 0);
+  const fxLeftOut = fxMissing(active.map(r => ({ ...byId.get(r.id), value: r.value, status: r.status })));
   const byStatus = {};
   for (const r of active) byStatus[r.status] = (byStatus[r.status] || 0) + 1;
 
@@ -7788,6 +8872,9 @@ function buildMonthlyReport(month) {
     'PORTFOLIO TODAY',
     `  Active contracts: ${active.length} (${statusLine})`,
     `  Total value on the book: ${money(totalValue)}`,
+    ...(Object.keys(fxLeftOut).length
+      ? [`  (not included — no exchange rate on file: ${Object.keys(fxLeftOut).sort().map(k => `${fxLeftOut[k]} × ${k}`).join(', ')})`]
+      : []),
     '',
     `MOVED IN ${mrMonthName(month).toUpperCase()}`,
     `  New contracts: ${created} · Signed: ${signed}`,
