@@ -8197,6 +8197,17 @@ app.put('/api/me/prefs', auth, (req, res) => {
   // dailyBrief: WO-3's off switch — absent means ON, so only an explicit
   // false ever silences somebody, and a fresh workspace briefs everyone.
   for (const k of ['notifyShareOpens', 'dailyBrief']) if (k in (req.body || {})) prefs[k] = !!req.body[k];
+  /* HOW OFTEN THE BRIEF COMES (owner-asked 19 Aug 2026): daily, weekly or
+     not at all. ONE stored answer, and a value outside the three is REFUSED
+     rather than stored — a preference nobody can read is worse than none.
+     The old boolean is left exactly where it is: briefCadence reads it when
+     this key is absent, which is the whole migration. */
+  if ('briefEvery' in (req.body || {})) {
+    const v = String(req.body.briefEvery || '').toLowerCase();
+    if (!BRIEF_EVERY.includes(v))
+      return res.status(400).json({ error: 'briefEvery must be one of: ' + BRIEF_EVERY.join(', ') });
+    prefs.briefEvery = v;
+  }
   db.prepare('UPDATE users SET prefs=? WHERE id=?').run(JSON.stringify(prefs), req.user.id);
   res.json({ ok: true, prefs });
 });
@@ -8540,6 +8551,27 @@ app.post('/api/reminders/run', auth, admin, (req, res) => res.json(runReminders(
    switch is prefs.dailyBrief (absent = on; PUT /api/me/prefs writes it, the
    account page draws it). Sends are fire-and-forget like every sweep mail; a
    dead provider leaves honest rows in the outbox and the sweep alive. */
+/* HOW OFTEN THIS PERSON IS BRIEFED — the ONE reading, and the only place
+   the three answers are decided. ABSENT MEANS DAILY, exactly as it always
+   has, and an account carrying the old dailyBrief:false still reads 'off':
+   nobody's setting moves and there is no migration to run. */
+const BRIEF_EVERY = ['daily', 'weekly', 'off'];
+function briefCadence(u) {
+  const p = userPrefs(u);
+  const v = String(p.briefEvery || '').toLowerCase();
+  if (BRIEF_EVERY.includes(v)) return v;
+  return p.dailyBrief === false ? 'off' : 'daily';
+}
+/* The Monday of the week a workspace-day belongs to. Parsed as UTC on
+   purpose — aiToday() is already the customer's own day, and re-reading it
+   through the server's timezone is how a date drifts by one. */
+function briefWeekOf(day) {
+  const d = new Date(day + 'T00:00:00Z');
+  if (isNaN(d.getTime())) return day;
+  const back = (d.getUTCDay() + 6) % 7;                    // Monday = 0
+  d.setUTCDate(d.getUTCDate() - back);
+  return d.toISOString().slice(0, 10);
+}
 function runDailyBriefs() {
   const day = aiToday();
   const members = db.prepare('SELECT * FROM users').all()
@@ -8570,9 +8602,16 @@ function runDailyBriefs() {
   }
   let sent = 0;
   for (const u of members) {
-    if (userPrefs(u).dailyBrief === false) continue;          // the off switch
-    const rkey = `daily:${u.id}:${day}`;
-    if (db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(rkey)) continue;  // once a day
+    const every = briefCadence(u);
+    if (every === 'off') continue;                            // the off switch
+    /* THE DAILY KEY KEEPS ITS HISTORIC SHAPE, so upgrading re-sends nothing.
+       The weekly one is keyed on the week's MONDAY rather than on the day it
+       goes out: it normally leaves on Monday morning, and where a server was
+       down for it the week's brief still goes on the Tuesday instead of
+       being lost. Somebody who has just asked for a weekly brief gets this
+       week's — which is what asking for it means. */
+    const rkey = every === 'weekly' ? `weekly:${u.id}:${briefWeekOf(day)}` : `daily:${u.id}:${day}`;
+    if (db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(rkey)) continue;  // once a day / once a week
     const scope = folderScopeFor(u);
     const L = (u.lang && I18N_STRINGS[u.lang]) ? u.lang : I18N_DEFAULT;
     const isAdminU = u.role === 'admin';
@@ -8624,12 +8663,15 @@ function runDailyBriefs() {
     db.prepare('INSERT INTO reminders (rkey,created_at) VALUES (?,?)').run(rkey, now());
     const sec = (title, items) => items.length
       ? `${title}\n` + items.map(i => `  • ${i.line}\n    ${contractUrl(null, i.id)}`).join('\n') + '\n\n' : '';
-    const body = `${tFor(L, 'mail_hello')}${u.name ? ' ' + u.name : ''},\n\n${tFor(L, 'mail_db_lead')}\n\n`
+    const K = every === 'weekly'
+      ? { subject: 'mail_wb_subject', lead: 'mail_wb_lead', off: 'mail_wb_off' }
+      : { subject: 'mail_db_subject', lead: 'mail_db_lead', off: 'mail_db_off' };
+    const body = `${tFor(L, 'mail_hello')}${u.name ? ' ' + u.name : ''},\n\n${tFor(L, K.lead)}\n\n`
       + sec(tFor(L, 'mail_db_ob'), S.ob) + sec(tFor(L, 'mail_db_rv'), S.rv)
       + sec(tFor(L, 'mail_db_sign'), S.sign) + sec(tFor(L, 'mail_db_exp'), S.exp)
       + sec(tFor(L, 'mail_db_notice'), S.notice)
-      + `${tFor(L, 'mail_db_off')}\n\n${tFor(L, 'mail_automated_notice')}`;
-    sendEmail(u.email, tFor(L, 'mail_db_subject', { n: total }), body, 'daily brief');
+      + `${tFor(L, K.off)}\n\n${tFor(L, 'mail_automated_notice')}`;
+    sendEmail(u.email, tFor(L, K.subject, { n: total }), body, every === 'weekly' ? 'weekly brief' : 'daily brief');
     sent++;
   }
   return { day, sent };

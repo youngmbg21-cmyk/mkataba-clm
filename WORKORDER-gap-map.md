@@ -307,3 +307,11 @@ Original specification below.
   spend nobody chose.
 - Archived is a filing fact beside status, reversible, editor-level, always
   audited — filing, not destruction.
+
+---
+
+## AFTER THE RUN — 19 Aug 2026
+
+**The brief has three cadences, not a tick-box** (owner-asked). Daily · weekly · off, one stored answer (`prefs.briefEvery`), absent still meaning daily and the old boolean still meaning off. Weekly is keyed on the week's Monday and says "this week" in its own words, in both languages. Tests: f214 (10).
+
+**Four faults found while photographing the features for the owner's artifact**, each reproduced before it was touched: every per-contract money print stated the workspace currency over a foreign amount (fmtMoneyShortOf); the redline co-pilot's band could not be opened at all (a window guard that was always false); an advisory read wrote to a sealed record and reported a failed save (aiNoteRead); and precedent memory could not match the word "Termination" (a stem closed by \b). Tests: f218 (24), f213 (16), f219 (15), f222 (32), and a new browser file, copilot-band-verify (10).

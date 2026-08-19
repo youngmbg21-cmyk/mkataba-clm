@@ -1139,15 +1139,31 @@ function stAccountBodyHtml(){
         <span style="font-weight:600;display:block;color:var(--color-text)">${i18t('set_still_emailed')}</span>
         ${i18t('set_three_events')}
       </div>
-      ${''/* THE ONE LIVE SWITCH BESIDE THE HONEST STATEMENT (WO-3). The daily
-             brief is the single per-person email choice the server actually
-             honours (prefs.dailyBrief, read by runDailyBriefs) — a real
-             switch, never a dead one, which is this section's own rule. */}
-      <label class="st-toggle" style="margin-top:10px">
-        <input id="pref-daily-brief" type="checkbox" ${((u.prefs||{}).dailyBrief)!==false?'checked':''}/>
-        <span><span class="st-role-name">${i18t('set_daily_brief')}</span>
-        <span class="st-note">${i18t('set_daily_brief_sub')}</span></span>
-      </label>
+      ${''/* THE ONE LIVE CHOICE BESIDE THE HONEST STATEMENT (WO-3, widened
+             19 Aug 2026 on the owner's ask). The brief is the single
+             per-person email decision the server actually honours, and it now
+             has THREE answers rather than a tick-box's two: every morning,
+             once a week, or not at all. THREE OPTIONS, NOT THREE STATES —
+             each says what it means and each is one press, which is the same
+             rule the change column's own filter follows. Written on change,
+             like every other setting in this drawer: a choice that only
+             saves if you remember to press Save is a choice that is wrong
+             when it matters. */}
+      <div class="st-sec-lead" style="margin-top:12px;font-weight:600;font-size:12.5px;color:var(--color-text)">${i18t('set_brief_how_often')}</div>
+      ${''/* THE GROUP NAME IS UNIQUE PER RENDERING, and that is not decoration:
+             this section is drawn on the You tab AND again inside the drawer
+             that opens over it, so a shared radio name would make the two
+             copies fight — pressing one would silently clear the other's dot.
+             The same fault the old tick-box had in its own way, with one id
+             on two elements and the second one dead. */}
+      ${(_briefGroup++, '')}${[['daily','set_brief_daily','set_brief_daily_sub'],
+         ['weekly','set_brief_weekly','set_brief_weekly_sub'],
+         ['off','set_brief_off','set_brief_off_sub']].map(([v,k,sub])=>`
+        <label class="st-toggle" style="margin-top:8px">
+          <input type="radio" name="pref-brief-every-${_briefGroup}" data-pref-brief="${v}"${briefCadenceOf(u)===v?' checked':''}/>
+          <span><span class="st-role-name">${i18t(k)}</span>
+          <span class="st-note">${i18t(sub)}</span></span>
+        </label>`).join('')}
     </section>
 
     ${''/* TWO-STEP SIGN-IN (WO-6). Self-service both ways: enrolment holds
@@ -1211,17 +1227,21 @@ function stAccountWire(){
     if(typeof navSetShowEverything==='function') navSetShowEverything(e.target.checked);
     toast(e.target.checked?i18t('set_sidebar_all_on'):i18t('set_sidebar_all_off'));
   });
-  document.getElementById('pref-daily-brief')?.addEventListener('change',async e=>{
-    const on=e.target.checked;
+  document.querySelectorAll('[data-pref-brief]').forEach(el=>el.addEventListener('change',async e=>{
+    const v=e.target.getAttribute('data-pref-brief');
+    const was=briefCadenceOf(currentUser());
     try{
-      const r=await api('me/prefs','PUT',{ dailyBrief:on });
-      const u=currentUser(); if(u) u.prefs=(r&&r.prefs)||{ ...(u.prefs||{}), dailyBrief:on };
-      toast(on?i18t('set_daily_brief_on'):i18t('set_daily_brief_off'));
+      const r=await api('me/prefs','PUT',{ briefEvery:v });
+      const u=currentUser(); if(u) u.prefs=(r&&r.prefs)||{ ...(u.prefs||{}), briefEvery:v };
+      briefPaintCadence(v);          // every copy of the control says the same thing
+      toast(i18t('set_brief_saved_'+v));
     }catch(err){
-      e.target.checked=!on;          // the screen must not claim a save that failed
+      /* THE SCREEN MUST NOT CLAIM A SAVE THAT FAILED — put the previous
+         answer back rather than leaving the new one lit. */
+      briefPaintCadence(was);
       toast(i18t('set_daily_brief_fail')+(err&&err.message||''),'err');
     }
-  });
+  }));
   document.getElementById('ts-toggle')?.addEventListener('click',()=>stTwoStepToggle());
   document.getElementById('bk-export')?.addEventListener('click',()=>settingsExportBackup());
   document.getElementById('brand-edit')?.addEventListener('click',()=>{
@@ -1370,6 +1390,28 @@ async function stTwoStepToggle(){
       document.getElementById('ts-done')?.addEventListener('click',()=>{ closeModal(); toast(i18t('ts_on_done'),'ok'); openMyAccount(); });
     }catch(e){ if(errEl) errEl.textContent=(e&&e.message)||i18t('ts_failed'); }
   });
+}
+/* HOW OFTEN THIS PERSON IS BRIEFED, read the way the server reads it
+   (briefCadence in server/server.js): the stored answer where there is one,
+   and otherwise the old tick-box — absent means every morning, and an
+   account carrying dailyBrief:false still reads 'off'. One rule, two hosts,
+   and nobody's setting moves. */
+const BRIEF_EVERY_VALUES = ['daily','weekly','off'];
+let _briefGroup = 0;
+/* ONE ANSWER, HOWEVER MANY COPIES OF THE CONTROL ARE ON SCREEN. The section
+   is drawn on the You tab and again in the drawer over it, so a save has to
+   reach both — otherwise closing the drawer reveals a page still showing the
+   answer the reader has just changed. */
+function briefPaintCadence(v){
+  document.querySelectorAll('[data-pref-brief]').forEach(el=>{
+    el.checked = el.getAttribute('data-pref-brief')===v;
+  });
+}
+function briefCadenceOf(u){
+  const p=(u&&u.prefs)||{};
+  const v=String(p.briefEvery||'').toLowerCase();
+  if(BRIEF_EVERY_VALUES.includes(v)) return v;
+  return p.dailyBrief===false ? 'off' : 'daily';
 }
 function openMyAccount(){
   const u=currentUser()||{};
@@ -3147,7 +3189,7 @@ async function loadSessions(){
    the else branch and nobody catches it — the lesson rlPaperFootHtml taught
    this codebase for a year. openMyAccount and openSettingsAt are the two doors
    the shell calls; SET_PANELS and the readers beside it are what the tests read. */
-Object.assign(window,{renderTeam,renderMyAccountPage,renderPrecedentPanel,precedentAdopt,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,
+Object.assign(window,{renderTeam,renderMyAccountPage,briefCadenceOf,BRIEF_EVERY_VALUES,renderPrecedentPanel,precedentAdopt,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,
   renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,renderDeskRulePanel,condLabel,loadSessions,
   openMyAccount,openSettingsAt,settingsGoTab,settingsTab,SET_PANELS,ST_TABS,SET_CLOSURES,
   stDrawerOpen,stDrawerClose,stDrawerRefuse,settingsPersonDrawer,settingsSavePerson,settingsRemoveMember,

@@ -138,6 +138,91 @@ describe('F214 — the Daily Brief', () => {
     assert.ok(!r[0].text.includes('Naivas'), 'not even the contract\'s name leaks');
   });
 
+  /* ============================================================
+     DAILY, WEEKLY OR NOT AT ALL (owner-asked 19 Aug 2026)
+     ============================================================
+     The tick-box became a choice of three. The rules pinned here:
+     - ABSENT MEANS DAILY, exactly as before, and an account still carrying
+       the old dailyBrief:false reads 'off' — nobody's setting moves.
+     - WEEKLY IS ONCE A WEEK, keyed on the week's Monday, so a second sweep
+       the same week is silent and a server that was down on Monday still
+       sends on the Tuesday.
+     - THE WORDS SAY WHICH ONE IT IS: a weekly brief must not arrive saying
+       "today".
+     - A VALUE OUTSIDE THE THREE IS REFUSED rather than stored. */
+  test('a value outside the three is refused, and nothing is stored', async () => {
+    const r = await W.novalues.raw('/api/me/prefs', { method: 'PUT', body: { briefEvery: 'hourly' } });
+    assert.equal(r.status, 400, 'a preference nobody can read is worse than none');
+    const ok = await W.novalues.json('/api/me/prefs', { method: 'PUT', body: { notifyShareOpens: true } });
+    assert.ok(!ok.prefs.briefEvery, 'and the refused value was never written');
+  });
+
+  test('weekly sends once, says "this week", and the second sweep that week is silent', async () => {
+    await put('MK-DB-WK', { obligations: [{ id: 'ob_w', desc: 'Reconcile the weekly haulage log',
+      due: isoDay(2), status: 'open', assignee: 'No Values Legal' }] });
+    await W.novalues.json('/api/me/prefs', { method: 'PUT', body: { briefEvery: 'weekly' } });
+    mail.reset();
+    assert.equal((await run()).status, 200);
+    await settle(() => briefsTo(NOVALUES).length >= 1);
+    const got = briefsTo(NOVALUES);
+    assert.equal(got.length, 1, 'one brief');
+    assert.match(got[0].subject, /this week/i, 'the subject says which brief this is');
+    assert.match(got[0].text, /this week/i, 'and so does the lead line');
+    assert.ok(!/today/i.test(got[0].subject), 'a weekly brief must never arrive saying "today"');
+    assert.ok(got[0].text.includes('Reconcile the weekly haulage log'), 'with their own work in it');
+
+    mail.reset();
+    assert.equal((await run()).status, 200);
+    await pause(700);
+    assert.equal(briefsTo(NOVALUES).length, 0, 'once a week means once a week');
+  });
+
+  test('turning it off silences them, and daily brings them back the same day', async () => {
+    await W.novalues.json('/api/me/prefs', { method: 'PUT', body: { briefEvery: 'off' } });
+    mail.reset();
+    assert.equal((await run()).status, 200);
+    await pause(700);
+    assert.equal(briefsTo(NOVALUES).length, 0, 'off is off');
+    // put them back where the rest of this file expects to find them
+    await W.novalues.json('/api/me/prefs', { method: 'PUT', body: { briefEvery: 'daily' } });
+  });
+
+  test('the three answers, and the words for them, exist in both languages', () => {
+    const { STRINGS } = require('../js/i18n.js');
+    for (const k of ['set_brief_how_often', 'set_brief_daily', 'set_brief_daily_sub',
+      'set_brief_weekly', 'set_brief_weekly_sub', 'set_brief_off', 'set_brief_off_sub',
+      'set_brief_saved_daily', 'set_brief_saved_weekly', 'set_brief_saved_off',
+      'mail_wb_subject', 'mail_wb_lead', 'mail_wb_off']) {
+      assert.ok(STRINGS.en[k], 'en ' + k);
+      assert.ok(STRINGS.sv[k], 'sv ' + k);
+    }
+  });
+
+  test('the account page offers three options and writes on change', () => {
+    const fs = require('node:fs'), path = require('node:path');
+    const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'settings.js'), 'utf8');
+    for (const v of ['daily', 'weekly', 'off'])
+      assert.ok(src.includes("'" + v + "','set_brief_" + v + "'"), 'the ' + v + ' option is drawn');
+    assert.ok(!src.includes('pref-daily-brief'),
+      'the old tick-box is gone rather than left beside its replacement');
+    const i = src.indexOf('[data-pref-brief]');
+    assert.ok(src.slice(i, i + 600).includes("api('me/prefs','PUT',{ briefEvery:v })"),
+      'a press writes immediately — a setting that needs a Save button is off when it matters');
+    assert.match(src.slice(i, i + 900), /briefPaintCadence\(was\)/,
+      'and a failed save puts the previous answer back');
+    assert.match(src.slice(i, i + 900), /briefPaintCadence\(v\)/,
+      'a save repaints EVERY copy of the control — this section is on screen twice');
+  });
+
+  test('the two hosts read the cadence by the same rule', () => {
+    const fs = require('node:fs'), path = require('node:path');
+    const srv = fs.readFileSync(path.join(__dirname, '..', 'server', 'server.js'), 'utf8');
+    const cli = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'settings.js'), 'utf8');
+    for (const src of [srv, cli])
+      assert.match(src, /dailyBrief === false \? 'off' : 'daily'|dailyBrief===false \? 'off' : 'daily'/,
+        'absent means daily, and the old boolean still means off');
+  });
+
   test('a refusing provider leaves the sweep alive and the attempt honestly recorded', async () => {
     await put('MK-DB-NV', { obligations: [{ id: 'ob_5', desc: 'Certify the cold-chain audit',
       due: isoDay(1), status: 'open', assignee: 'No Values Legal' }] });
