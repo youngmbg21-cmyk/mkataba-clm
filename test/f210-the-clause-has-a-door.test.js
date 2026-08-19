@@ -112,7 +112,16 @@ describe('f210 (1) — the pill', () => {
        against the selection route. */
     assert.match(SRC, /\.redline-page \.rl-cp-pill\{[^}]*background:var\(--nav-bg/,
       'the pill wears the nav panel\'s own colour token');
-    assert.match(SRC, /\.redline-page \.rl-cp-pill\{[^}]*margin-left:auto/,
+    /* REVERSED IN PLACE, 19 Aug 2026 (owner-asked). margin-left:auto put the
+       pill at the right of the heading's FLEX ROW, which is inside the
+       clause's content box — so anything that changed that box moved the
+       button, and a redline changed it by 17px. It is pinned to the clause
+       now. The claim this line was making is unchanged and is stronger: the
+       pill is at the right of the clause on every clause, including one with
+       no heading beside it. */
+    assert.match(SRC, /\.redline-page \.rl-cp-pill\{[^}]*position:absolute/,
+      'it is pinned to the clause, so nothing the clause does can move it');
+    assert.match(SRC, /\.redline-page \.rl-cp-pill\{[^}]*right:0/,
       'and it is pushed right even on a clause with no heading beside it');
     assert.doesNotMatch(SRC, /\.rl-clause:hover \.rl-cp-pill/,
       'nothing reveals it on hover, because it is never hidden');
@@ -987,10 +996,28 @@ describe('f210 (17) — the pills come off the paper, and the marker moves to th
     const p = await bench();
     assert.ok(page(p).querySelector('#rl-doc .nego-clause.is-changed'),
       'the clause still says it has been argued over');
-    assert.match(SRC, /\.redline-page \.rl-clause\.is-changed\{background:none;border:0;\s*\n\s*border-right:3px solid #dc2626/);
-    /* THE PADDING IS KEPT so the wording does not shift when a clause gains or
-       loses its first change — only the fill and the frame go. */
-    assert.match(SRC, /\.rl-clause\.is-changed\{[^}]*padding:12px 14px\}/);
+    /* RE-POINTED 19 Aug 2026: the rule moved from a BORDER on the clause to a
+       bar in the sheet's margin, because a border takes width — see the
+       claims below. The mark itself is unchanged to look at. */
+    assert.match(SRC, /\.rl-clause\.is-changed::after\{content:'';position:absolute;\s*\n\s*top:0;bottom:0;right:-18px;width:3px;border-radius:2px;background:#dc2626\}/);
+    /* REVERSED IN PLACE, 19 Aug 2026 — and this one was reversed because the
+       claim in the comment was NOT TRUE of the code beneath it. "The padding
+       is kept so the wording does not shift" described an older arrangement
+       where every clause carried padding; the rule next to it had since set
+       unmarked clauses to none, so a clause gaining its first change moved
+       its wording 14px right and its Edit pill 17px left. Measured, both
+       ways, before it was touched.
+
+       The intention was always right, and it is what the code does now: one
+       shared gutter on every clause, the rule reserved and transparent until
+       there is something to mark, and the marked clause keeping only its own
+       vertical air — which moves nothing sideways. */
+    assert.match(SRC, /\.rl-clause\.is-changed\{background:none;border:0;border-radius:0;padding:0\}/,
+      'a marked clause has exactly the box an unmarked one has');
+    assert.match(SRC, /\.rl-clause\.is-changed::after\{content:'';position:absolute;\s*\n\s*top:0;bottom:0;right:-18px/,
+      'and the mark is a bar in the sheet\'s own margin, outside the text column');
+    assert.match(SRC, /\.redline-page \.rl-clause\{margin:0 0 16px;padding:0\}/,
+      'so nothing about the wording moves when a change lands');
   });
 
   test('and the Reopen moved with them, or the remedy would be unreachable', async () => {
@@ -1120,5 +1147,64 @@ describe('f210 (18) — History | + notes, default without notes', () => {
       'ng_cp_hist_title', 'ng_cp_hist_notes_title'])
       assert.equal((en.match(new RegExp(`${k}:`, 'g')) || []).length, 2,
         `${k} must exist in EN and SV`);
+  });
+});
+
+/* ============================================================
+   F210 — THE CLAUSE BOX IS THE SAME WHETHER OR NOT ANYTHING IS ON IT
+   ============================================================
+   Owner-asked 19 Aug 2026, off a screenshot: the Edit pill sat 17px further
+   left on a redlined clause than on a plain one, and the wording 14px
+   further right. The cause was one rule — a marked clause gained padding and
+   a rule an unmarked one did not have, and the pill hangs off the clause's
+   own edge.
+
+   TWO CHANGES, and the second is why this can never come back through a door
+   nobody remembered: the boxes are equal, AND the pill is pinned to the box
+   rather than carried by the heading's row. A marker invented later — the
+   linked-clause outline, the new-clause tint, whatever comes next — cannot
+   move it. The pixels are measured in clause-door-verify; these are the
+   rules that produce them. */
+describe('F210 — the clause rail', () => {
+  const src = read('js/views/negotiation.js');
+  const rule = sel => {
+    const i = src.indexOf(sel + '{');
+    assert.ok(i > 0, sel + ' is defined');
+    return src.slice(i, src.indexOf('}', i));
+  };
+
+  test('every clause has the same box, marked or not', () => {
+    assert.match(rule('.redline-page .rl-clause'), /margin:0 0 16px;padding:0/,
+      'no padding on any of them');
+    const marked = rule('.redline-page .rl-clause.is-changed');
+    assert.match(marked, /padding:0/, 'including the marked one');
+    assert.ok(!/border-right:3px solid #dc2626/.test(marked),
+      'the rule is no longer a border — a border takes width from the wording');
+    assert.ok(!/padding:12px 14px/.test(marked), 'and the old inset is gone');
+  });
+
+  test('the mark is a bar in the margin, not a border on the text', () => {
+    const bar = rule('.redline-page .rl-clause.is-changed::after');
+    assert.match(bar, /position:absolute/);
+    assert.match(bar, /right:-18px/, 'outside the text column, in the white the sheet already has');
+    assert.match(bar, /background:#dc2626/);
+    assert.match(SRC, /html\.dark .redline-page \.rl-clause\.is-changed::after\{background:#f87171\}/,
+      'and it follows the dark theme');
+  });
+
+  test('the pill is pinned to the box, not carried by the heading row', () => {
+    const pill = rule('.redline-page .rl-cp-pill');
+    assert.match(pill, /position:absolute/);
+    assert.match(pill, /right:0/);
+    assert.ok(!/margin-left:auto/.test(pill),
+      'it no longer rides the row, so the row cannot move it');
+    assert.match(rule('.redline-page .rl-clause-top'), /position:relative/,
+      'and it is pinned to the clause, not the page');
+  });
+
+  test('the heading keeps clear of it, at every document size', () => {
+    assert.match(rule('.redline-page .rl-clause-h'),
+      /padding-right:calc\(62px \* var\(--doc-scale,1\)\)/,
+      'reserved in the reader\'s own type scale — the pill grows with it');
   });
 });
