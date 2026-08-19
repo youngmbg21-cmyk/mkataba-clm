@@ -227,7 +227,14 @@ function renderIntake(){
   const mine=intakeMine(), queue=intakeQueue();
   const empty=t=>`<p style="font-size:12.5px;color:var(--color-neutral-600);line-height:1.6;margin:0">${esc(t)}</p>`;
   host.innerHTML=`
-    <div class="view-enter" style="padding:0 0 40px;display:flex;flex-direction:column;gap:22px;max-width:860px">
+    ${''/* ---- THE PAGE HAS A MARGIN (owner-reported 19 Aug 2026, off a
+           screenshot with the left edge ringed: "space is needed between the
+           content and the edge of the page to look more professional") ----
+           This drew at padding:0, so the heading, the lead and every row sat
+           flush against the sidebar. 16px 18px 28px is this product's own page
+           measure — the same one Templates, Reports and the template library
+           use — rather than a number picked for this screen. */}
+    <div class="view-enter" style="padding:16px 18px 28px;display:flex;flex-direction:column;gap:22px;max-width:894px">
       <section style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap">
         <div style="flex:1;min-width:220px">
           <p style="font-size:12.5px;color:var(--color-neutral-600);line-height:1.6;margin:0">${esc(may?i18t('ik_lead_editor'):i18t('ik_lead_asker'))}</p>

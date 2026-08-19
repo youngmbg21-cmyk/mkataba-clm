@@ -180,6 +180,43 @@ const signIn = async (page, base, email, pass) => {
     check("and the row behind it says the new name", /Highland Corporate Limited/.test(legalRowSays), legalRowSays);
     const stillOpen = await page.evaluate(() => document.getElementById('st-drawer').classList.contains('open'));
     check('the drawer is still open — the page held still', stillOpen);
+
+    /* ---- THE CURRENCY IS CHOSEN FROM A LIST (owner-asked 19 Aug 2026: "there
+       should be a search for currency where options are available and you
+       should have a button to add more currencies in case you have contracts
+       from other currencies") ----
+       The rules are f218's. What only a browser can answer: that the options
+       are really attached to the field a person types in, that the button opens
+       the row, and that a rate typed into it reaches the server and comes back
+       as a line on the panel. */
+    const fx = await page.evaluate(() => {
+      const input = document.getElementById('st-fx-code');
+      const list = document.getElementById('st-fx-codes');
+      return { add: !!document.getElementById('st-fx-add'),
+        listed: input ? input.getAttribute('list') : null,
+        options: list ? list.options.length : 0,
+        labels: list ? [...list.options].slice(0, 3).map(o => o.label) : [],
+        type: input ? input.type : null };
+    });
+    check('the currency box is a search with options behind it',
+      fx.type === 'text' && fx.listed === 'st-fx-codes' && fx.options > 20,
+      `${fx.options} options · ${fx.labels.join(' / ')}`);
+    check('each option carries its code AND its name — half of them are dollars',
+      fx.labels.every(l => /^[A-Z]{3} — .+/.test(l || '')), fx.labels.join(' / '));
+    check('and a button says there can be more than one', fx.add);
+    /* Typed and pressed, for real, and read back off the panel. */
+    await page.fill('#st-fx-code', 'USD');
+    await page.fill('#st-fx-rate', '129.5');
+    await page.click('#st-fx-save');
+    await page.waitForTimeout(1300);
+    const fxAfter = await page.evaluate(() => ({
+      line: (document.getElementById('st-fx-list') || {}).textContent || '',
+      rowShut: !!(document.getElementById('st-fx-row') || {}).hidden,
+      gone: !document.querySelector('#st-fx-codes option[value="USD"]'),
+    }));
+    check('a rate typed into it lands on the panel', /USD/.test(fxAfter.line), fxAfter.line.trim().slice(0, 60));
+    check('the row closes behind the save, so the list is what the panel reads as', fxAfter.rowShut);
+    check('and the currency it set stops being offered', fxAfter.gone);
     await page.keyboard.press('Escape'); await page.waitForTimeout(350);
 
     /* ---- nothing spills sideways, at four widths ---- */

@@ -99,6 +99,72 @@ describe('F218 — the model, on its own', () => {
 
    THE RULE IS THE SAME ONE, SAID ONCE MORE: a contract's own surface states
    the contract's own currency; anything that ADDS contracts up converts. */
+describe('F218 — the rate is chosen from a list, not recalled from memory', () => {
+  /* Owner-asked 19 Aug 2026: "there should be a search for currency where
+     options are available and you should have a button to add more currencies
+     in case you have contracts from other currencies."
+
+     The box was a bare three-letter field, so setting a rate meant knowing the
+     ISO code by heart, and one row with a Save on it gave no sign that a
+     workspace can hold as many rates as it has currencies. */
+  const jx = require('../js/jurisdiction.js');
+
+  test('the list offers a code AND an English name, because half of them are dollars', () => {
+    assert.ok(jx.FX_CURRENCIES.USD && jx.FX_CURRENCIES.AUD && jx.FX_CURRENCIES.SGD,
+      'the dollars are all there to be told apart');
+    assert.equal(jx.fxCurrencyName('usd'), 'US dollar', 'and case is not the reader\'s problem');
+    assert.equal(jx.fxCurrencyName('ZZZ'), '', 'an unknown code has no name, and says so by silence');
+  });
+
+  test('THE CURRENCIES THIS BOOK USES COME FIRST', () => {
+    /* The owner's "in case you have contracts from other currencies", answered
+       with this workspace's own facts rather than with a longer alphabet: the
+       lead comes from fxMissing, the same reading every surface uses to say
+       what was left out of a converted figure. */
+    const codes = jx.fxPickerCodes({ rates: {}, missing: { MWK: 2, JPY: 1 } });
+    assert.deepEqual(codes.slice(0, 2), ['MWK', 'JPY'],
+      'what the book is written in leads, in the order fxMissing reports');
+    assert.ok(codes.length > 20, 'and the rest of the world follows');
+  });
+
+  test('what is already on file, and the home currency, are not offered again', () => {
+    const codes = jx.fxPickerCodes({ rates: { USD: { rate: 129 } }, missing: {} });
+    assert.ok(!codes.includes('USD'), 'a rate that is set is set');
+    assert.ok(!codes.includes(jx.fxHomeCode()), 'and nobody converts the home currency to itself');
+    assert.equal(new Set(codes).size, codes.length, 'no code is offered twice');
+  });
+
+  test('it OFFERS, it does not refuse', () => {
+    /* A counterparty who invoices in something nobody listed must still be
+       payable: the field stays ordinary text and the route still takes any
+       three-letter code. What the list changes is how easy the common case is,
+       never what is possible. */
+    const set = read('js/views/settings.js');
+    assert.match(set, /<input id="st-fx-code" type="text" list="st-fx-codes"/,
+      'a search with options, not a dropdown of permitted values');
+    assert.match(set, /if\(!\/\^\[A-Z\]\{3\}\$\/\.test\(code\)\) return stDrawerRefuse/,
+      'and the only refusal is still "that is not a currency code"');
+    assert.match(set, /const code=\(typed\.match\(\/\^\[A-Z\]\{3\}\\b\/\)\|\|\[typed\]\)\[0\];/,
+      'a reader who picks "USD — US dollar" from the list has picked USD');
+  });
+
+  test('and a button says there can be more than one', () => {
+    const set = read('js/views/settings.js');
+    assert.match(set, /id="st-fx-add"/, 'an explicit door to add another');
+    assert.match(set, /id="st-fx-row" hidden/, 'the row is behind it');
+    assert.match(set, /if\(fxRow && !fxHas\) fxRow\.hidden=false;/,
+      'except with nothing on file, where a button to reveal the only content buys nothing');
+    assert.match(set, /if\(row && rate!==null\) row\.hidden=true;/,
+      'and it closes behind a save, so the list of what is set is what the panel reads as');
+  });
+
+  test('the words exist in both languages', () => {
+    const i18n = read('js/i18n.js');
+    for (const k of ['st_fx_add', 'st_fx_code_ph', 'st_fx_needed_one', 'st_fx_needed_other'])
+      assert.equal((i18n.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k);
+  });
+});
+
 describe('F218 — the short print states its own currency too', () => {
   const jx = require('../js/jurisdiction.js');
 

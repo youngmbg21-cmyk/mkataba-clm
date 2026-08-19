@@ -1327,7 +1327,35 @@ async function stHooksAdd(){
    list and nothing else. Removing is setting the rate to nothing, which puts
    that currency back to "no rate on file" — left out and said, never
    guessed. */
+/* The options the picker offers, and the sentence that says which of them this
+   workspace actually needs. Painted rather than rendered with the panel: a
+   saved rate changes both lists (the code leaves the picker and joins the ones
+   on file) and this page's rule is that it holds still. */
+function stFxPaintPicker(){
+  const list=document.getElementById('st-fx-codes');
+  if(list && typeof fxPickerCodes==='function'){
+    list.innerHTML=fxPickerCodes().map(code=>{
+      const name=(typeof fxCurrencyName==='function'&&fxCurrencyName(code))||'';
+      /* label carries both, because "USD" and "AUD" and "SGD" all read as
+         dollars to somebody hunting for the right one. */
+      return `<option value="${esc(code)}"${name?` label="${esc(code+' — '+name)}"`:''}>${
+        name?esc(code+' — '+name):''}</option>`;
+    }).join('');
+  }
+  const need=document.getElementById('st-fx-need');
+  if(need){
+    const missing=(typeof fxMissing==='function')?fxMissing():{};
+    const codes=Object.keys(missing).sort();
+    /* NAMED, NEVER COUNTED: "3 currencies have no rate" is a number nobody can
+       act on; the codes are what an admin goes and looks up. */
+    need.innerHTML=codes.length
+      ? `<p class="st-note" style="margin:0 0 8px;color:var(--st-amber-fg)">${
+          esc(i18tn('st_fx_needed',codes.length,{n:codes.length,codes:codes.join(', ')}))}</p>`
+      : '';
+  }
+}
 function stFxPaint(){
+  stFxPaintPicker();
   const host=document.getElementById('st-fx-list'); if(!host) return;
   const rates=(state.settings&&state.settings.fxRates)||{};
   const codes=Object.keys(rates).sort();
@@ -1344,7 +1372,11 @@ function stFxPaint(){
   host.querySelectorAll('[data-fx-del]').forEach(b=>b.addEventListener('click',()=>stFxSave(b.getAttribute('data-fx-del'),null)));
 }
 async function stFxSave(codeIn,rateIn){
-  const code=String(codeIn!=null?codeIn:(document.getElementById('st-fx-code')||{value:''}).value).trim().toUpperCase();
+  /* A datalist hands back whatever is in the box, and a reader who picks
+     "USD — US dollar" from the list gets exactly that string. The code is the
+     first three letters of it; the name was only ever there to be searched. */
+  const typed=String(codeIn!=null?codeIn:(document.getElementById('st-fx-code')||{value:''}).value).trim().toUpperCase();
+  const code=(typed.match(/^[A-Z]{3}\b/)||[typed])[0];
   const raw=rateIn!==undefined&&codeIn!=null?rateIn:(document.getElementById('st-fx-rate')||{value:''}).value;
   const rate=(raw===null||String(raw).trim()==='')?null:Number(raw);
   stDrawerClearRefusal();
@@ -1355,6 +1387,10 @@ async function stFxSave(codeIn,rateIn){
     state.settings=state.settings||{}; state.settings.fxRates=(r&&r.fxRates)||{};
     const ce=document.getElementById('st-fx-code'), re=document.getElementById('st-fx-rate');
     if(ce) ce.value=''; if(re) re.value='';
+    /* The row closes behind a save so the LIST of what is set is what the panel
+       reads as; "+ Add a currency" opens it again for the next one. */
+    const row=document.getElementById('st-fx-row');
+    if(row && rate!==null) row.hidden=true;
     stFxPaint();
     toast(rate===null?i18t('st_fx_removed',{code}):i18t('st_fx_saved',{code}),'ok');
     // every converted figure just moved — repaint whatever is behind the drawer
@@ -1561,10 +1597,45 @@ const SET_PANELS={
       <section class="st-sec">
         <h3 class="st-sec-h">${esc(i18t('st_fx'))}</h3>
         <p class="st-note" style="margin-bottom:8px">${esc(i18t('st_fx_sub',{cur:jxCurrency()}))}</p>
+        <div id="st-fx-need"></div>
         <div id="st-fx-list" style="display:grid;gap:6px;margin-bottom:9px"></div>
-        <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
-          <label style="flex:0 0 108px"><span style="${window.RV_LBL||''}">${esc(i18t('st_fx_code'))}</span>
-            <input id="st-fx-code" type="text" maxlength="3" placeholder="USD" style="${window.RV_FLD||ST_INPUT}text-transform:uppercase"/></label>
+        ${''/* ---- A SEARCH WITH OPTIONS, AND A BUTTON THAT SAYS THERE CAN BE
+               MORE THAN ONE (owner-asked 19 Aug 2026: "there should be a search
+               for currency where options are available and you should have a
+               button to add more currencies in case you have contracts from
+               other currencies") ----
+
+               THE BOX WAS A BARE THREE-LETTER FIELD, so setting a rate meant
+               knowing the ISO code by heart, and one row with a Save on it gave
+               no sign that a workspace can hold as many rates as it has
+               currencies. Now: a list to SEARCH (code and English name, native
+               datalist so typing filters it), and an explicit **Add a currency**
+               button that opens the row — closed again after each save, so the
+               list of what is set stays the thing you read.
+
+               IT OFFERS, IT DOES NOT REFUSE. The field is still ordinary text
+               and any three-letter code is still accepted by both this panel
+               and the route: a counterparty who invoices in something nobody
+               listed must still be payable. What the list changes is how easy
+               the common case is, never what is possible.
+
+               AND THE CURRENCIES YOUR OWN BOOK USES COME FIRST — fxPickerCodes
+               leads with the ones fxMissing reports, which is the same reading
+               every surface uses to say what was left out of a converted
+               figure. That is the owner's "in case you have contracts from
+               other currencies", answered with this workspace's own facts. */}
+        <button id="st-fx-add" style="${ST_BTN2}">&#43; ${i18t('st_fx_add')}</button>
+        <div id="st-fx-row" hidden style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-top:9px">
+          <label style="flex:1 1 210px;min-width:180px"><span style="${window.RV_LBL||''}">${esc(i18t('st_fx_code'))}</span>
+            ${''/* THE VALUE IS UPPERCASED, THE PROMPT IS NOT. text-transform
+                   catches the placeholder too, so the search hint rendered as
+                   "SEARCH — USD, EURO, RAND…" — a shout where a prompt was
+                   meant, and wide enough to be clipped besides. The pseudo-
+                   element rule that exempts it lives in index.html, because an
+                   inline style cannot reach a ::placeholder. */}
+            <input id="st-fx-code" type="text" list="st-fx-codes" autocomplete="off"
+              placeholder="${esc(i18t('st_fx_code_ph'))}" style="${window.RV_FLD||ST_INPUT}text-transform:uppercase"/></label>
+          <datalist id="st-fx-codes"></datalist>
           <label style="flex:1;min-width:150px"><span style="${window.RV_LBL||''}">${esc(i18t('st_fx_rate',{cur:jxCurrency()}))}</span>
             <input id="st-fx-rate" type="number" step="any" min="0" placeholder="129.50" style="${window.RV_FLD||ST_INPUT}"/></label>
           <button id="st-fx-save" style="${ST_BTN_SM};flex:none">${i18t('act_save')}</button>
@@ -1633,6 +1704,17 @@ const SET_PANELS={
         stDrawerClose(); openDesignStep({ mode:'settings', onBack:()=>renderTeam() });
       });
       stFxPaint();
+      /* WITH NOTHING ON FILE THE ROW IS ALREADY OPEN: a panel whose only
+         content is a button to reveal the only thing on it is a press that
+         buys nothing. */
+      const fxRow=document.getElementById('st-fx-row');
+      const fxHas=Object.keys((state.settings&&state.settings.fxRates)||{}).length;
+      if(fxRow && !fxHas) fxRow.hidden=false;
+      document.getElementById('st-fx-add')?.addEventListener('click',()=>{
+        if(!fxRow) return;
+        fxRow.hidden=false;
+        document.getElementById('st-fx-code')?.focus();
+      });
       document.getElementById('st-fx-save')?.addEventListener('click',()=>stFxSave());
     },
   },

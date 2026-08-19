@@ -1376,6 +1376,10 @@
   /* The handle sits IN the gap it is dividing: it is the whole middle track, so
      there is no separate gutter to keep in step with it. Its grab area is the
      track's full width and the line it draws is 1px in the middle of that. */
+  /* The currency search shouts its VALUE, never its prompt — see the note at
+     the field. text-transform applies to the placeholder as well, and an inline
+     style has no way to say "not that". */
+  #st-fx-code::placeholder{ text-transform:none; }
   .kt-resizer{ position:relative; cursor:col-resize; align-self:stretch;
     background:none; border:0; padding:0; touch-action:none; }
   .kt-resizer::before{ content:''; position:absolute; top:2px; bottom:2px;
@@ -2951,6 +2955,22 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 10 5-10 5L2 7l10-5Z"/><path d="m3.9 11.3-1.9.9 10 5 10-5-1.9-.9L12 15.2l-8.1-3.9Z"/><path d="m3.9 15.8-1.9.9 10 5 10-5-1.9-.9L12 19.7l-8.1-3.9Z"/></svg>
             <span style="flex:1;" data-i18n="nav_templates">Templates</span><span class="nav-count" data-count="templates"></span>
           </button>
+          <!-- THE INTAKE FRONT DOOR (W2-2), MOVED UNDER TEMPLATES (owner-asked
+               19 Aug 2026, off a screenshot with the row ringed: "move requests
+               to under Templates").
+
+               Its own comment already SAID it belonged in the everyday group —
+               "asking for a contract is the commonest thing a colleague who
+               does not draft will ever do here, and it is the one door in this
+               product that every role can press" — and it was sitting under
+               ADMINISTRATION, which is a fold that starts shut and is the wrong
+               shelf for a door every role presses. The comment and the markup
+               agree now. -->
+          <button data-view="intake" class="nav-item" title="Request a contract" data-i18n-title="nav_intake_title">
+            <span class="nav-rail"></span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm-1 7V3.5L18.5 9H13Z"/><path d="M8.8 13.4h6.4v1.5H8.8v-1.5Zm0 3h4.2v1.5H8.8v-1.5Z" fill="var(--color-surface)"/></svg>
+            <span style="flex:1;" data-i18n="nav_intake">Requests</span><span class="nav-count" data-count="intake"></span>
+          </button>
           <!-- People — the staff directory, and it is in the EVERYDAY group
                rather than under ADMINISTRATION on purpose: reading who is in
                the workspace is not an administrative act, it is the thing you
@@ -2994,15 +3014,6 @@
                Queue and Reports doors were retired as premature for this
                stage — both views stay routable (a saved link still opens
                them), they just no longer occupy the sidebar. -->
-          <!-- THE INTAKE FRONT DOOR (W2-2). In the EVERYDAY group, above the
-               operational desks: asking for a contract is the commonest thing
-               a colleague who does not draft will ever do here, and it is the
-               one door in this product that every role can press. -->
-          <button data-view="intake" class="nav-item" title="Request a contract" data-i18n-title="nav_intake_title">
-            <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm-1 7V3.5L18.5 9H13Z"/><path d="M8.8 13.4h6.4v1.5H8.8v-1.5Zm0 3h4.2v1.5H8.8v-1.5Z" fill="var(--color-surface)"/></svg>
-            <span style="flex:1;" data-i18n="nav_intake">Requests</span><span class="nav-count" data-count="intake"></span>
-          </button>
           <button data-view="advice" class="nav-item" title="Advice Desk" data-i18n-title="nav_advice_desk_title">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9.6L5 21.2a1 1 0 0 1-1.7-.7V17H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M7.5 8.5h9v1.6h-9V8.5Zm0 3.2h6v1.6h-6v-1.6Z" fill="var(--color-surface)"/></svg>

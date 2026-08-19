@@ -1843,6 +1843,13 @@ const STRINGS = {
     st_fx: "Exchange rates",
     st_fx_sub: "Contracts written in another currency are converted to {cur} on dashboards and reports, using the rates you set here. Each contract still shows its own currency on its own page.",
     st_fx_code: "Currency",
+    /* The picker (owner-asked 19 Aug 2026). The placeholder teaches the search:
+       a code or a name, because half the world's currencies are called dollars
+       and nobody hunts by ISO code alone. */
+    st_fx_code_ph: "Search a currency…",
+    st_fx_add: "Add a currency",
+    st_fx_needed_one: "{codes} is used by a contract in this workspace and has no rate on file — its value is left out of converted totals.",
+    st_fx_needed_other: "{codes} are used by contracts in this workspace and have no rate on file — their values are left out of converted totals.",
     st_fx_rate: "1 unit = ? {cur}",
     st_fx_line: "1 {code} = {rate} {cur}",
     st_fx_set_on: "· set {date}",
@@ -6006,6 +6013,10 @@ const STRINGS = {
     st_fx: "Växelkurser",
     st_fx_sub: "Avtal skrivna i en annan valuta räknas om till {cur} på översikter och rapporter, med kurserna du anger här. Varje avtal visar fortfarande sin egen valuta på sin egen sida.",
     st_fx_code: "Valuta",
+    st_fx_code_ph: "Sök en valuta…",
+    st_fx_add: "Lägg till en valuta",
+    st_fx_needed_one: "{codes} används av ett avtal i arbetsytan och saknar kurs — dess värde utelämnas från omräknade summor.",
+    st_fx_needed_other: "{codes} används av avtal i arbetsytan och saknar kurs — deras värden utelämnas från omräknade summor.",
     st_fx_rate: "1 enhet = ? {cur}",
     st_fx_line: "1 {code} = {rate} {cur}",
     st_fx_set_on: "· angiven {date}",
