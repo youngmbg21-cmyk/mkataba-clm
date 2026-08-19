@@ -95,7 +95,7 @@ function contractRow(c, {showFolder=false}={}){
     ${(()=>{ const o=openFindings(c); if(!o.length) return '';
       const sm=SEV_META[worstSevOf(o)];
       return `<span class="hidden md:inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${sm.chip}" title="Open scan findings">${icon('scan','w-2.5 h-2.5')}${o.length}</span>`; })()}
-    <span class="hidden sm:block text-xs font-mono whitespace-nowrap" style="color:${isMonetary(c)?'var(--color-text)':'var(--color-neutral-500)'}" ${!isMonetary(c)?'title="Non-monetary agreement"':''}>${!isMonetary(c)?'n/m':(c.value?fmtMoneyShort(c.value):'—')}</span>
+    <span class="hidden sm:block text-xs font-mono whitespace-nowrap" style="color:${isMonetary(c)?'var(--color-text)':'var(--color-neutral-500)'}" ${!isMonetary(c)?'title="Non-monetary agreement"':''}>${!isMonetary(c)?'n/m':(c.value?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):'—')}</span>
     <span class="shrink-0">${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}</span>
     <span class="transition shrink-0" style="color:var(--color-neutral-400)">${icon('chevR')}</span>
   </button>`;

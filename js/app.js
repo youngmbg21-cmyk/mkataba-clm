@@ -35,6 +35,9 @@ import './views/register.js';
 import './ocr.js';
 import './dedupe.js';
 import './family.js';
+import './precedent.js';     // what this workspace's own settled rounds say (W3-2)
+import './redlineplan.js';   // the co-pilot's first pass over their round (W3-1)
+import './assurance.js';     // which rung a signature was taken at (W3-3)
 import './views/negotiation.js';  // the three-pane redline, rendered for whichever side is looking
 import './views/contract.js';
 import './pdfrich.js';
@@ -47,6 +50,7 @@ import './views/directory.js';    // People: the roster, read-only, for every ro
 import './views/queue.js';
 import './views/advice.js';
 import './views/adviceportal.js';
+import './views/intake.js';     // the intake front door: anybody may ASK for a contract (W2-2)
 import './templatefields.js';
 import './views/library.js';
 import './fieldlib.js';            // the template-library field catalogue (shared with the server)
@@ -120,6 +124,7 @@ function commandMeta(view){
     case 'playbook':  return [i18t('nav_our_standards'), i18t('pg_standards_sub')];
     case 'pipeline':  return [i18t('pg_queue'), i18t('pg_queue_sub')];
     case 'advice':    return [i18t('nav_advice_desk'), i18t('pg_advice_sub')];
+    case 'intake':    return [i18t('nav_intake'), i18t('pg_intake_sub')];
     // Named to match the nav item exactly. One feature answering to two names
     // is one name too many for a reader trying to describe where they were.
     case 'intel':     return [i18t('nav_insights'), i18t('pg_insights_sub')];
@@ -277,6 +282,7 @@ function updateSidebarCounts(){
     register: total,
     pipeline: cs.filter(c=>c.status==='Under Review').length,
     advice: (state.advice||[]).filter(r=>ADVICE_ACTIVE.includes(r.status)).length,
+    intake: (typeof intakeCount==='function')?intakeCount():0,
     /* obligationDue, not `.slice(0,10)`: slicing ten characters off "31 March
        2027" produces "31 March 2", which is not a date either — the count
        simply left out every obligation whose date a person had typed. */
@@ -296,7 +302,7 @@ function updateSidebarCounts(){
   /* Tone of the count pill: teal = size of the portfolio, amber = items
      waiting on a person. A zero drops to neutral so an amber tag never cries
      wolf over an empty queue. */
-  const NAV_COUNT_TONE={register:'teal',calendar:'amber',migration:'amber',pipeline:'amber',advice:'amber',negotiations:'amber'};
+  const NAV_COUNT_TONE={register:'teal',calendar:'amber',migration:'amber',pipeline:'amber',advice:'amber',negotiations:'amber',intake:'amber'};
   document.querySelectorAll('[data-count]').forEach(el=>{
     const k=el.getAttribute('data-count'); const v=counts[k];
     el.textContent=(v==null||v==='')?'':Number(v).toLocaleString(jxLocale());
@@ -346,7 +352,7 @@ function updateSidebarCounts(){
 /* ============================================================ SHELL VIEW SWITCH */
 const VIEW_LABEL = { dashboard:'Home', folder:'this value stream', intel:'Insights',
   calendar:'Calendar', reports:'Reports', register:'Contracts', migration:'Import contracts',
-  pipeline:'Pipeline', advice:'Advice desk', templates:'Templates', playbook:'Our standards',
+  pipeline:'Pipeline', advice:'Advice desk', intake:'Requests', templates:'Templates', playbook:'Our standards',
   team:'Team & settings', directory:'People', workspace:'the contract workspace',
   redline:'Negotiations' };
 
@@ -438,6 +444,7 @@ function setView(view){
     else if(view==='migration') renderMigration();
     else if(view==='pipeline') renderPipeline();
     else if(view==='advice') renderAdviceDesk();
+    else if(view==='intake') renderIntake();
     else if(view==='templates') renderTemplatesPage();
     else if(view==='playbook') renderPlaybookPage();
     else if(view==='team') renderTeam();
@@ -624,7 +631,9 @@ function commandPaletteResults(q){
   if(q) cs=cs.filter(c=>(c.name+' '+(c.counterparty||'')+' '+c.id).toLowerCase().includes(q));
   else cs=cs.slice().sort((a,b)=>Date.parse(b.lastAction||0)-Date.parse(a.lastAction||0));
   cs.slice(0,q?12:6).forEach(c=>out.push({kind:'contract',id:c.id,
-    title:c.name, sub:`${c.id}${c.counterparty?' · '+c.counterparty:''}`, ic:(window.cIcon?cIcon(c):'file'), status:c.status}));
+    // an archived row stays findable HERE (filing, not deleting — WO-5) and
+    // says so, since no list would explain how it got here otherwise
+    title:c.name, sub:`${c.id}${c.counterparty?' · '+c.counterparty:''}${c.archived?' · '+i18t('ct_archived_tag'):''}`, ic:(window.cIcon?cIcon(c):'file'), status:c.status}));
   return out.slice(0,14);
 }
 function openCommandPalette(){
@@ -645,10 +654,50 @@ function openCommandPalette(){
   document.body.appendChild(ov);
   const input=ov.querySelector('#cp-input'), list=ov.querySelector('#cp-list');
   let results=[], active=0;
-  const close=()=>{ ov.remove(); document.removeEventListener('keydown',onKey,true); };
-  const openItem=it=>{ close(); if(it.kind==='folder') openFolder(it.id); else openWorkspace(it.id); };
+  /* ---- ASK-YOUR-BOOK (WO-4). Two additions ride the sync results: ----
+     "In the wording" rows off the server's own full-text index (GET
+     /api/search — the Register box's route, value-masking and all), fetched
+     on a debounce and merged only while the typed query still matches; and
+     an always-last "Ask Copilot" row that HANDS the question to the existing
+     Copilot door with it prefilled — never a second AI path from here. */
+  let ftsRows=[], ftsFor='', ftsT=null;
+  const close=()=>{ clearTimeout(ftsT); ov.remove(); document.removeEventListener('keydown',onKey,true); };
+  const openItem=it=>{
+    if(it.kind==='ask'){
+      close();
+      if(window.openAI) openAI();
+      const ai=document.getElementById('ai-input');
+      if(ai){ ai.value=it.q; ai.focus(); }
+      return;
+    }
+    close(); if(it.kind==='folder') openFolder(it.id); else openWorkspace(it.id);
+  };
+  const ftsPlan=()=>{
+    const q=input.value.trim();
+    clearTimeout(ftsT);
+    if(!(typeof API_MODE==='function'&&API_MODE())||q.length<2){ ftsRows=[]; ftsFor=''; return; }
+    ftsT=setTimeout(async()=>{
+      try{
+        const r=await api('search?q='+encodeURIComponent(q)+'&limit=8');
+        // only merge while the box still says what was asked
+        if(input.value.trim()===q){ ftsRows=(r&&r.hits)||[]; ftsFor=q.toLowerCase(); paint(); }
+      }catch(_){ /* the sync rows stand alone — search down is not palette down */ }
+    },250);
+  };
   const paint=()=>{
     results=commandPaletteResults(input.value);
+    const q=input.value.trim();
+    if(q){
+      const seen=new Set(results.filter(r=>r.kind==='contract').map(r=>r.id));
+      if(ftsFor===q.toLowerCase())
+        ftsRows.filter(h=>h&&!seen.has(h.id)).slice(0,5).forEach(h=>results.push({
+          kind:'wording',id:h.id,title:h.name||h.id,
+          // the server already masked snippets for readers without canViewValues
+          sub:(h.snippet?String(h.snippet).replace(/[\[\]]/g,''):(h.counterparty||h.id)),
+          ic:'search',get tag(){ return i18t('ap_tag_wording'); }}));
+      results.push({kind:'ask',q,title:i18t('ap_ask_copilot',{q}),
+        get sub(){ return i18t('ap_ask_copilot_sub'); },ic:'sparkle'});
+    }
     if(active>=results.length) active=Math.max(0,results.length-1);
     if(!results.length){ list.innerHTML=`<div style="padding:22px 12px;text-align:center;font-size:12.5px;color:var(--color-neutral-600)">No matches${input.value.trim()?` for “${input.value.replace(/</g,'&lt;')}”`:''}.</div>`; return; }
     list.innerHTML=results.map((r,i)=>`
@@ -658,7 +707,7 @@ function openCommandPalette(){
           <span style="display:block;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(r.title||'').replace(/</g,'&lt;')}</span>
           <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(r.sub||'').replace(/</g,'&lt;')}</span>
         </span>
-        ${r.kind==='contract'&&window.statusChip?`<span style="flex:none">${statusChip(r.status)}</span>`:`<span style="flex:none;font-size:9.5px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--color-neutral-500)">${r.kind}</span>`}
+        ${r.kind==='contract'&&window.statusChip?`<span style="flex:none">${statusChip(r.status)}</span>`:`<span style="flex:none;font-size:9.5px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--color-neutral-500)">${r.tag||r.kind}</span>`}
       </button>`).join('');
     list.querySelectorAll('[data-cp-i]').forEach(b=>{
       const i=+b.getAttribute('data-cp-i');
@@ -674,7 +723,7 @@ function openCommandPalette(){
     else if(e.key==='Enter'){ e.preventDefault(); if(results[active]) openItem(results[active]); }
   }
   document.addEventListener('keydown',onKey,true);
-  input.addEventListener('input',()=>{ active=0; paint(); });
+  input.addEventListener('input',()=>{ active=0; paint(); ftsPlan(); });
   ov.addEventListener('click',e=>{ if(e.target===ov||e.target===ov.firstElementChild) close(); });
   paint(); input.focus();
 }
@@ -778,7 +827,8 @@ const ALERT_TONE = { amber:'var(--st-amber-dot)', green:'var(--st-green-dot)',
    `go` is what the row's press runs. */
 function buildAlerts(){
   const out=[];
-  const cs=(state.contracts||[]);
+  // archived contracts alert nobody (WO-5) — the shelf is quiet
+  const cs=(state.contracts||[]).filter(c=>!c.archived);
   const me=(typeof currentUser==='function')?currentUser():null;
   const push=(kind,c,text,go)=>{ const d=ALERT_KINDS.find(x=>x.k===kind)||ALERT_KINDS[0];
     out.push({ kind, id:c?c.id:'', name:c?(c.name||c.id):'', text, tone:d.tone, ic:d.ic, go }); };

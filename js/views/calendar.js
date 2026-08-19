@@ -17,7 +17,7 @@ const CAL_PRIORITY = ['expiry','renewal','obligation'];
 function calendarEvents(){
   const out=[];
   state.contracts.forEach(c=>{
-    if(c.status!=='Declined'){
+    if(c.status!=='Declined'&&!c.archived){
       /* Through dateOnly, because the grid is keyed by YYYY-MM-DD: an expiry
          written "30 September 2026" matched no cell, so the event was built,
          counted and then rendered on no day at all. Same normalisation the

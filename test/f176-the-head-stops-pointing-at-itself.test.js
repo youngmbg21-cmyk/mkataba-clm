@@ -118,14 +118,21 @@ describe('F176 — one door onto Find obligations, and it is the Checks row', ()
   });
 
   test('the sweep is still offered on a contract that is already signed', () => {
-    /* The one rule the row does NOT inherit. Checks refuses to re-run once the
+    /* The rule the row does NOT inherit. Checks refuses to re-run once the
        wording is sealed, which is right for a reading of the wording and wrong
        for a commitment kept alongside it: a quarterly report starts mattering
        AFTER signature. renderObligationsSection made and corrected exactly this
        mistake in its own guard; inheriting it here would have let it back in
-       through the door that panel had just shut. */
-    assert.match(SRC, /const editableFor=kind=>mayEdit&&\(kind==='oblig'\|\|c\.status!=='Signed'\)/,
-      'obligations alone stays live on an executed contract');
+       through the door that panel had just shut.
+
+       UPDATED IN PLACE 18 Aug 2026 (WO-2): this claim used to read "obligations
+       ALONE stays live", and the Contract Brief now deliberately joins the
+       exception — a signed contract that arrived by upload is exactly the one
+       an owner most needs explained, and generating a brief writes NOTHING to
+       the sealed record (its cache lives in its own table). The playbook and
+       risk rows still stand down once the wording is sealed. */
+    assert.match(SRC, /const editableFor=kind=>mayEdit&&\(kind==='oblig'\|\|kind==='brief'\|\|c\.status!=='Signed'\)/,
+      'obligations and the brief stay live on an executed contract; playbook and risk do not');
   });
 });
 

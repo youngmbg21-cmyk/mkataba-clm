@@ -2118,7 +2118,13 @@ function signatureBlock(c){
        They are still captured, and they still appear in the audit trail and in
        the downloadable evidence pack, which is where evidence belongs.
        (Display-only: nothing about the sealed content moves. See F5.) */
-    const sub=s=>`<div class="text-[10px] text-brand-800/65 font-normal leading-snug">${[s.email,s.form?s.form+' signature':s.method,s.at?fmtDT(s.at):''].filter(Boolean).join(' · ')}</div>`;
+    /* W3-3: WHAT WAS PROVED, beside who signed and when. One short label —
+       the rung's own word — with the full basis on hover, because the
+       difference between a typed name and a checked code is the whole
+       question in a dispute and the record has always held it silently. */
+    const asWord=s=>{ const a=(typeof signatureAssurance==='function')?signatureAssurance(s,c):null;
+      return a&&a.rung?`<span title="${esc(String(a.rung.basis))}">${esc(String(a.rung.label))}${a.derived?'*':''}</span>`:''; };
+    const sub=s=>`<div class="text-[10px] text-brand-800/65 font-normal leading-snug">${[s.email,s.form?s.form+' signature':s.method,asWord(s),s.at?fmtDT(s.at):''].filter(Boolean).join(' · ')}</div>`;
     const card=s=>`<div class="rounded-lg bg-white border border-brand-100 p-2.5">
       <div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-1 flex items-center gap-1">${icon(s.party==='counterparty'?'users':'finger','w-3 h-3')} ${partyLabel(s)}</div>
       ${s.image?`<img src="${s.image}" alt="signature of ${(s.name||'').replace(/"/g,'')}" style="height:40px;max-width:190px;object-fit:contain;margin:2px 0 5px"/>`:''}
@@ -2883,7 +2889,8 @@ function ktReadValue(c,key){
     :`<span class="kt-none" data-kt-none="1">${i18t('ct_pick_a_date')}</span>`;
   if(key==='counterparty') return c.counterparty?esc(c.counterparty):dash;
   if(key==='cpEmail') return c.counterpartyEmail?esc(c.counterpartyEmail):dash;
-  if(key==='value') return `<span style="font-family:var(--font-mono)">${isMonetary(c)?(c.value?fmtMoney(c.value):dash):`<span class="kt-none">${i18t('ct_non_monetary')}</span>`}</span>`;
+  // W2-1: a contract states its OWN currency; only REPORTING converts
+  if(key==='value') return `<span style="font-family:var(--font-mono)">${isMonetary(c)?(c.value?(window.fmtMoneyOf?fmtMoneyOf(c):fmtMoney(c.value)):dash):`<span class="kt-none">${i18t('ct_non_monetary')}</span>`}</span>`;
   if(key==='effDate') return day(c.fields&&c.fields.effDate);
   if(key==='expiry') return day(c.expiry);
   return '';
@@ -2996,7 +3003,7 @@ function ktTermsRowsHtml(c,opts={}){
      reader was getting wrong. Same data-kt-none marker, so everything that
      keys off empty (the dashed border, the cue, ktIsEmptyRead) is unchanged. */
   const dashDate=`<span class="kt-none" data-kt-none="1">${i18t('ct_pick_a_date')}</span>`;
-  const money=isMonetary(c)?(c.value?fmtMoney(c.value):dash):`<span class="kt-none">${i18t('ct_non_monetary')}</span>`;
+  const money=isMonetary(c)?(c.value?(window.fmtMoneyOf?fmtMoneyOf(c):fmtMoney(c.value)):dash):`<span class="kt-none">${i18t('ct_non_monetary')}</span>`;
   const day=v=>v?esc((window.fmtDocDate&&fmtDocDate(v))||v):dashDate;
   const tmpl=c.template?((window.TEMPLATES&&TEMPLATES[c.template]&&TEMPLATES[c.template].name)||c.template)
     :(isUpload(c)?'Uploaded document':'');
@@ -3251,7 +3258,13 @@ function riskCardHtml(c){
 function renderKeyTermsSide(c){
   const host=document.getElementById('kt-side'); if(!host) return;
   const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:8px;padding:13px 15px';
-  host.innerHTML=`<section id="family-section" class="kt-side-card" style="${CARD}"></section>`;
+  /* THE RENEWAL CARD LEADS, AND ONLY WHEN THERE IS A DECISION TO MAKE (W2-4).
+     renewalCardHtml returns '' outside the 90-day window, so on most contracts
+     this column is exactly what it was; inside the window the question of the
+     week sits above the family it belongs to. */
+  host.innerHTML=`<div id="renewal-host" class="empty:hidden"></div>
+    <section id="family-section" class="kt-side-card" style="${CARD}"></section>`;
+  if(window.renderRenewalSection) renderRenewalSection(c);
   if(window.renderFamilySection) renderFamilySection(c);
   /* #kt-readdoc's wiring went with the button — see readTermsHtml. */
 }
@@ -3849,6 +3862,16 @@ function checkVerdict(c,kind){
     const high=open.filter(x=>x.sev==='high').length;
     return {tone:high?'bad':'warn',label:high?`${high} high · ${open.length} open`:`${open.length} open`};
   }
+  /* 'brief' (WO-2). Green once written — a brief is a reading, not a verdict,
+     so it never colours amber or ruby; the label says when it was written and
+     the panel says the rest. Null before one exists, which draws "Run →". */
+  if(kind==='brief'){
+    const b=c._brief;
+    if(!b) return null;
+    let when=String(b.at||'').slice(0,10);
+    try{ when=new Date(b.at).toLocaleDateString(typeof langLocale==='function'?langLocale():undefined,{day:'numeric',month:'short'}); }catch(_){}
+    return {tone:'ok',label:when};
+  }
   /* 'oblig'. Named rather than left as the fall-through it used to be: the row
      went away in August and this branch stayed, answering for any string that
      was not 'playbook' or 'risk'. With the row back it is a real kind and the
@@ -3916,7 +3939,11 @@ function checksRowsHtml(c){
      reading the contract itself. */
   return row('oblig','calendar',i18t('ob_obligations'))
     + row('playbook','shield',i18t('ct_playbook_review'))
-    + row('risk','scan',i18t('ct_copilot_risk_scan'));
+    + row('risk','scan',i18t('ct_copilot_risk_scan'))
+    /* The Contract Brief (WO-2) — last, not leading: the three above are the
+       stated working order (commitments, playbook, risk), and the brief is a
+       reading aid beside them rather than a step in that sequence. */
+    + row('brief','file',i18t('br_title'));
 }
 function renderChecksCard(c){
   const card=document.getElementById('checks-card'); if(!card) return;
@@ -3945,8 +3972,8 @@ function checksNoteHtml(c){
    and flashes the clause — behind a centred, scrimmed modal that was a jump you
    could not watch. See openSidePanel in js/core.js. */
 function openCheckPanel(c,kind){
-  const id=kind==='playbook'?'playbook-section':kind==='oblig'?'obligations-section':'scan-section';
-  const title=kind==='playbook'?i18t('ct_playbook_review'):kind==='oblig'?i18t('ob_obligations'):i18t('ct_risk_scan');
+  const id=kind==='playbook'?'playbook-section':kind==='oblig'?'obligations-section':kind==='brief'?'brief-section':'scan-section';
+  const title=kind==='playbook'?i18t('ct_playbook_review'):kind==='oblig'?i18t('ob_obligations'):kind==='brief'?i18t('br_title'):i18t('ct_risk_scan');
   if(window.openSidePanel) openSidePanel(`<div id="${id}"></div>`,{width:'400px',title,get label(){ return i18t('ct_checks'); }});
   else openModal(`<div style="padding:6px"><div id="${id}"></div></div>`,{maxWidth:'620px'});
   /* THE OBLIGATIONS CARD ARRIVES WHOLE, not as a second rendering of it. The
@@ -3957,6 +3984,7 @@ function openCheckPanel(c,kind){
      Find, same ticking off. */
   if(kind==='playbook') renderPlaybookSection(c);
   else if(kind==='oblig'){ if(window.renderObligationsSection) renderObligationsSection(c); }
+  else if(kind==='brief'){ if(window.renderBriefSection) renderBriefSection(c); }
   else renderScanSection(c);
   /* Both section renderers empty their host when there is nothing to show, and
      a full-height column of nothing is a worse answer than a sentence. The
@@ -3965,8 +3993,8 @@ function openCheckPanel(c,kind){
   const host=document.getElementById(id);
   if(host && !host.innerHTML.trim()){
     host.innerHTML=`<p style="margin:0;font-size:12px;line-height:1.6;color:var(--color-neutral-600)">
-      Nothing has been ${kind==='playbook'?'reviewed against the playbook':kind==='oblig'?'tracked on this contract':'scanned'} on this contract yet.
-      Close this and press <b>${kind==='playbook'?i18t('ct_playbook_review'):kind==='oblig'?i18t('ob_obligations'):i18t('ct_copilot_risk_scan')}</b> ${i18t('ct_in_checks_card')}</p>`;
+      Nothing has been ${kind==='playbook'?'reviewed against the playbook':kind==='oblig'?'tracked on this contract':kind==='brief'?'briefed':'scanned'} on this contract yet.
+      Close this and press <b>${kind==='playbook'?i18t('ct_playbook_review'):kind==='oblig'?i18t('ob_obligations'):kind==='brief'?i18t('br_title'):i18t('ct_copilot_risk_scan')}</b> ${i18t('ct_in_checks_card')}</p>`;
   }
 }
 function wireChecksCard(c){
@@ -3987,8 +4015,13 @@ function wireChecksCard(c){
      inheriting it here would have re-introduced through the door the panel had
      just shut.
 
-     Deliberate, and per-kind rather than a hole in the rule. */
-  const editableFor=kind=>mayEdit&&(kind==='oblig'||c.status!=='Signed');
+     Deliberate, and per-kind rather than a hole in the rule.
+
+     THE BRIEF JOINS THE EXCEPTION (WO-2), for the imported-paper reason: a
+     signed contract that arrived by upload is exactly the one an owner most
+     needs explained, and generating a brief writes NOTHING to the sealed
+     record — the cache lives in its own table, additive like a note. */
+  const editableFor=kind=>mayEdit&&(kind==='oblig'||kind==='brief'||c.status!=='Signed');
   card.querySelectorAll('[data-check]').forEach(b=>{
     const kind=b.getAttribute('data-check');
     const ran=!!checkVerdict(c,kind);
@@ -4014,6 +4047,13 @@ function wireChecksCard(c){
           renderChecksCard(c);
           if(window.renderSignButton) renderSignButton(c);
           openCheckPanel(c,'playbook');
+          return;
+        }
+        if(kind==='brief'){
+          if(!window.runContractBrief) throw new Error('unavailable');
+          const r=await runContractBrief(c);
+          renderChecksCard(c);
+          if(r) openCheckPanel(c,'brief');
           return;
         }
         if(kind==='oblig'){
@@ -4512,6 +4552,7 @@ function roomHeadHtml(c,opts={}){
              Drawn only where there IS a negotiation: "Round 1" over a draft
              nobody has redlined is a number about nothing. */}
       <div class="room-sub">${c.id}${F[c.folder]?' · '+esc(F[c.folder].name):''}${
+        c.archived?' · '+i18t('ct_archived_tag'):''}${
         (c.negotiation&&window.negoRound)?' · '+i18t('ct_round_n',{n:negoRound(c)}):''}${
         ''/* What the Negotiate tab's amber count used to say, now that the tab
               is gone — see negoRoundNeedsHtml. Not drawn on the workbench: that
@@ -4532,7 +4573,7 @@ function roomHeadHtml(c,opts={}){
               property of window — the trap THE MAP records against currentUser
               and friends. A bare call from a stage that has not loaded that
               file is a ReferenceError that takes the whole head down. */}${
-        (typeof fmtMoney==='function'&&Number(c.value)>0)?' · '+esc(fmtMoney(c.value)):''}${
+        (typeof fmtMoney==='function'&&Number(c.value)>0)?' · '+esc(window.fmtMoneyOf?fmtMoneyOf(c):fmtMoney(c.value)):''}${
         c.lastAction?' · '+i18t('ct_updated_on',{when:esc(c.lastAction)}):''}</div>
     </div>
     <div class="room-acts">
@@ -4612,6 +4653,8 @@ function roomHeadHtml(c,opts={}){
           <hr>
           <div class="mgroup">${i18t('ct_view')}</div>
           <button type="button" id="ws-focus" aria-pressed="false" title="${i18t('ct_hide_header')}">${icon('scan','w-3.5 h-3.5')}Focus mode<span class="mnote">${i18t('ct_esc_to_leave')}</span></button>
+          ${may?`<hr>
+          <button type="button" id="ws-archive" title="${i18t(c.archived?'ar_restore_title':'ar_archive_title')}">${icon(c.archived?'history':'folder','w-3.5 h-3.5')}${c.archived?i18t('reg_restore'):i18t('reg_archive')}</button>`:''}
           ${(may&&(c.status==='Draft'||c.status==='Under Review'))?`<hr>
           <button type="button" id="ws-delete" class="danger" title="${i18t('ct_delete_draft')}">${icon('trash','w-3.5 h-3.5')}${i18t('ct_delete_this_draft')}</button>`:''}
           ${''/* ws-new keeps its id and its data-page-new: it is a real button
@@ -4698,6 +4741,11 @@ function wireRoomHead(c){
      this tab before, because the click never arrived. */
   document.getElementById('ws-delete')?.addEventListener('click',()=>
     deleteContract(c.id).then(ok=>{ if(ok) setView('register'); }));
+  /* the archive shelf (WO-5): the same act as the register row's, repainting
+     the room so the menu's word and the sub-line's tag both turn over */
+  document.getElementById('ws-archive')?.addEventListener('click',()=>{
+    if(window.contractSetArchived) contractSetArchived(c,!c.archived).then(ok=>{ if(ok) renderWorkspace(); });
+  });
 }
 
 function renderWorkspace(){
@@ -5291,7 +5339,7 @@ function syncKeyTermsUI(c, source){
   const cp=document.getElementById('meta-cp'); if(cp) cp.textContent=c.counterparty||'—';
   const mv=document.getElementById('meta-value');
   if(mv){
-    mv.textContent=!isMonetary(c)?'Non-monetary':(c.value?fmtMoney(c.value)+(c.valueType==='estimated'?' (est.)':''):'—');
+    mv.textContent=!isMonetary(c)?'Non-monetary':(c.value?(window.fmtMoneyOf?fmtMoneyOf(c):fmtMoney(c.value))+(c.valueType==='estimated'?' (est.)':''):'—');
     mv.classList.add('text-brand-500'); setTimeout(()=>mv.classList.remove('text-brand-500'),250);
   }
 }
@@ -5934,6 +5982,11 @@ async function signDocument(c){
     // title, and to nothing at all rather than to Admin/Legal/Viewer.
     c.signatures.push({ party:'internal-planned', name:ns.name||u.name, title:ns.role||signerTitle(u), email:ns.email||u.email, at,
       method:'session-authenticated', ip:meta.ip||null, ua:navigator.userAgent,
+      /* W3-3: the rung is stamped NOW, with what is true now — whether this
+         account carried a second step is a fact about the moment of signing,
+         and an account changed next year must not move it either way. */
+      assurance:(typeof assuranceAtSigning==='function')
+        ? assuranceAtSigning({ method:'session-authenticated', twoStep:!!(u&&u.twoStep) }) : undefined,
       form:sig.form, image:sig.image, imageHash:sig.imageHash, typedName:sig.typedName, font:sig.font });
     logAudit(c,'Signature',`${ns.name} signed (${ordLabel(ns.order)} of ${plan.length}) — ${sig.form} signature${signerProvenance(meta.ip,navigator.userAgent)}`);
     if(!allSigned(c)){
@@ -6141,6 +6194,8 @@ async function finalizeExecution(c, opts={}){
     const s=opts.firstPartySig;
     c.signatures.push({ party:'first', name:u.name, email:u.email, title:signerTitle(u), at,
       method:'session-authenticated', ip, ua:navigator.userAgent,
+      assurance:(typeof assuranceAtSigning==='function')
+        ? assuranceAtSigning({ method:'session-authenticated', twoStep:!!(u&&u.twoStep) }) : undefined,
       form:s.form, image:s.image, imageHash:s.imageHash, typedName:s.typedName, font:s.font });
   }
   c.sealVersion=2;                       // fold the marks into the seal (see sealString)

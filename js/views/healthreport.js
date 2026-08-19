@@ -33,7 +33,7 @@ function hatiRecordMonthlySnapshot(){
   const month=hatiMonthKey();
   const snaps=hatiMonthlySnapshots();
   if(snaps.some(s=>s&&s.month===month)) return null;
-  const live=cs.filter(c=>c.status!=='Declined');
+  const live=cs.filter(c=>c.status!=='Declined'&&!c.archived);
   const _obState=(typeof obState==='function')?obState:(o=>(o&&o.status==='done')?'done':'open');
   const obs=(typeof allObligations==='function')?allObligations().filter(o=>_obState(o)!=='done'):[];
   const snap={ month, at:new Date().toISOString(),
@@ -41,7 +41,7 @@ function hatiRecordMonthlySnapshot(){
     signed:cs.filter(c=>c.status==='Signed').length,
     underReview:cs.filter(c=>c.status==='Under Review').length,
     drafts:cs.filter(c=>c.status==='Draft').length,
-    totalValue:live.reduce((s,c)=>s+Number(c.value||0),0),
+    totalValue:live.reduce((s,c)=>s+(window.fxHomeValue?fxHomeValue(c):Number(c.value||0)),0),
     openOb:obs.length,
     overdueOb:obs.filter(o=>_obState(o)==='overdue').length,
     highRisk:(typeof contractRisk==='function')?cs.filter(c=>contractRisk(c)>=70).length:0 };
@@ -80,7 +80,7 @@ function healthReportData(){
   const money=(typeof kpiMoneyOk==='function')?kpiMoneyOk():(typeof canViewValues==='function'?canViewValues():true);
   const exp=c=>(typeof effectiveExpiry==='function'?effectiveExpiry(c):c.expiry)||null;
   const dU=iso=>(typeof daysUntil==='function'?daysUntil(iso):Math.ceil((new Date(iso+'T00:00:00')-Date.now())/86400000));
-  const live=cs.filter(c=>c.status!=='Declined');
+  const live=cs.filter(c=>c.status!=='Declined'&&!c.archived);
   const ag=(typeof agreementsIn==='function')?agreementsIn(live):live;
 
   const withExp=ag.map(c=>({c,e:exp(c)})).filter(x=>x.e).map(x=>({...x,d:dU(x.e)}));
@@ -206,7 +206,7 @@ function buildHealthReportHtml(d, imgs){
   if(!d.prev) delta=`<p class="muted">${_hrEsc(t('hr_delta_first'))}</p>`;
   else{
     const p=d.prev;
-    const live=d.live.reduce((s,c)=>s+Number(c.value||0),0);
+    const live=d.live.reduce((s,c)=>s+(window.fxHomeValue?fxHomeValue(c):Number(c.value||0)),0);
     const dv=live-(p.totalValue||0);
     const bits=[
       _hrDelta(d.cs.length-p.total,true,_hrEsc(t('hr_d_contracts'))),

@@ -77,7 +77,7 @@ function scanRules(c){
       'Different indices move differently; an unnamed benchmark invites a pricing dispute at every quarterly review.',
       'Name the specific published index and state the review formula.');
     if(Number(c.value)>50000000) add('rm-sec','med','missing','No alternate-source / security of supply','c1',
-      `At ${fmtMoneyShort(c.value)} a year this is a critical input, yet nothing addresses supply failure.`,
+      `At ${(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value))} a year this is a critical input, yet nothing addresses supply failure.`,
       'A single-source dependency at this scale can halt production if the supplier defaults.',
       'Add a business-continuity clause: safety stock, an approved alternate source, or step-in rights.');
   }
@@ -139,7 +139,7 @@ function scanRules(c){
       'Without a remedy the target is aspirational, and repeated late deliveries erode trade fill rates with no recourse.',
       'Attach service credits or penalties to defined OTIF bands, tiered by channel priority.');
     if(Number(c.value)>5000000) add('ff-ins','low','risk','Goods-in-transit insurance silent','c4',
-      `At ${fmtMoneyShort(c.value)} of annual flows the agreement does not require goods-in-transit cover.`,
+      `At ${(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value))} of annual flows the agreement does not require goods-in-transit cover.`,
       'An uninsured hijack or accident lands as a dispute over the liability cap instead of a clean claim.',
       'Require the Carrier to maintain goods-in-transit insurance to full consignment value, Principal as loss payee.');
   }
@@ -851,7 +851,7 @@ function aiContractCard(c){
     <span class="h-7 w-7 shrink-0 grid place-items-center rounded-lg bg-brand-50 text-brand-500">${icon(cIcon(c),'w-3.5 h-3.5')}</span>
     <span class="min-w-0 flex-1">
       <span class="block text-xs font-medium text-brand-900 truncate group-hover:text-brand-600 transition">${esc(c.name)}</span>
-      <span class="block text-[10px] font-mono text-brand-800/65 truncate">${esc(c.counterparty||'—')} · ${!isMonetary(c)?'non-monetary':(c.value?fmtMoneyShort(c.value):'no value')}</span>
+      <span class="block text-[10px] font-mono text-brand-800/65 truncate">${esc(c.counterparty||'—')} · ${!isMonetary(c)?'non-monetary':(c.value?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):'no value')}</span>
     </span>
     ${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}
   </button>`;
@@ -887,7 +887,7 @@ function aiAnswer(qRaw){
   if(has('compare','side by side','side-by-side','versus',' vs ')||idsInQ.length>=2){
     let ids=idsInQ.filter(id=>getContract(id));
     if(ids.length<2 && has('highest','largest','biggest','top','most valuable'))
-      ids=[...cs].filter(c=>c.status!=='Declined'&&Number(c.value||0)>0).sort((a,b)=>b.value-a.value).slice(0,2).map(c=>c.id);
+      ids=[...cs].filter(c=>c.status!=='Declined'&&!c.archived&&Number(c.value||0)>0).sort((a,b)=>b.value-a.value).slice(0,2).map(c=>c.id);
     if(ids.length<2){
       const words=q.replace(/[?.,!]/g,'').split(/\s+/).filter(w=>w.length>3);
       const byParty=cs.filter(c=>c.counterparty&&words.some(w=>c.counterparty.toLowerCase().includes(w)));
@@ -909,14 +909,14 @@ function aiAnswer(qRaw){
     if(!c) c=cs.find(x=>q.includes(x.counterparty.toLowerCase().split(' ')[0]) && x.counterparty);
     if(!c) c=cs.find(x=>x.name.toLowerCase().split(' ').some(w=>w.length>4&&q.includes(w)));
     if(c){
-      return { text:`${i18t('ai_summary_line',{name:`<strong>${esc(c.name)}</strong>`,id:esc(c.id),kind:isUpload(c)?i18t('ai_an_external_doc'):i18t('ai_a_kind',{kind:cKind(c)}),who:esc(c.counterparty||i18t('ai_no_counterparty_yet')),folder:esc(FOLDERS[c.folder].name)})} ${i18t('ai_value_label')} <strong>${!isMonetary(c)?i18t('ai_non_monetary'):(c.value?fmtMoney(c.value)+(c.valueType==='estimated'?i18t('ai_estimated'):''):i18t('ai_not_set'))}</strong> · Status: <strong>${c.status}</strong> · Last action ${c.lastAction}. ${c.status==='Signed'?'It is fully executed with an SHA-256 seal and verified IPRS + PKI compliance.':c.status==='Under Review'?'It is waiting on counterparty action — compliance checks are '+((c.compliance.iprs&&c.compliance.pki)?'complete':'still open')+'.':c.status==='Draft'?'It is still in draft — fill the counterparty and value to move it into review.':'It was declined and is closed without signature.'} There are ${c.comments.length} comments on the thread.${(()=>{ if(!c.scan) return ' It has not been Copilot-scanned yet.'; const o=openFindings(c); return o.length?` The Copilot scan shows <strong>${o.length} open finding${o.length===1?'':'s'}</strong> (worst: ${SEV_META[worstSevOf(o)].label.toLowerCase()}).`:' The Copilot scan is clean — no open findings.'; })()}`,
+      return { text:`${i18t('ai_summary_line',{name:`<strong>${esc(c.name)}</strong>`,id:esc(c.id),kind:isUpload(c)?i18t('ai_an_external_doc'):i18t('ai_a_kind',{kind:cKind(c)}),who:esc(c.counterparty||i18t('ai_no_counterparty_yet')),folder:esc(FOLDERS[c.folder].name)})} ${i18t('ai_value_label')} <strong>${!isMonetary(c)?i18t('ai_non_monetary'):(c.value?(window.fmtMoneyOf?fmtMoneyOf(c):fmtMoney(c.value))+(c.valueType==='estimated'?i18t('ai_estimated'):''):i18t('ai_not_set'))}</strong> · Status: <strong>${c.status}</strong> · Last action ${c.lastAction}. ${c.status==='Signed'?'It is fully executed with an SHA-256 seal and verified IPRS + PKI compliance.':c.status==='Under Review'?'It is waiting on counterparty action — compliance checks are '+((c.compliance.iprs&&c.compliance.pki)?'complete':'still open')+'.':c.status==='Draft'?'It is still in draft — fill the counterparty and value to move it into review.':'It was declined and is closed without signature.'} There are ${c.comments.length} comments on the thread.${(()=>{ if(!c.scan) return ' It has not been Copilot-scanned yet.'; const o=openFindings(c); return o.length?` The Copilot scan shows <strong>${o.length} open finding${o.length===1?'':'s'}</strong> (worst: ${SEV_META[worstSevOf(o)].label.toLowerCase()}).`:' The Copilot scan is clean — no open findings.'; })()}`,
         cards:aiCards([c]) };
     }
   }
 
   // 1a) expiry / renewal queries
   if(has('expir','renew','lapse','ending','due soon')){
-    const exp=cs.filter(c=>c.expiry && c.status!=='Declined')
+    const exp=cs.filter(c=>c.expiry && c.status!=='Declined' && !c.archived)
       .map(c=>({c,d:Math.ceil((new Date(c.expiry+'T00:00:00')-Date.now())/86400000)}))
       .filter(x=>x.d>=0&&x.d<=90).sort((a,b)=>a.d-b.d);
     if(!exp.length) return { text:`<span class="ai-tone ai-tone-pos">Nothing in the active book lapses in the next 90 days.</span>` };
@@ -958,15 +958,15 @@ function aiAnswer(qRaw){
   if(has('total','value','worth','how much','portfolio')){
     const m=metrics();
     const byFolder=Object.values(FOLDERS).map(f=>{
-      const v=folderContracts(f.id).filter(c=>c.status!=='Declined').reduce((s,c)=>s+Number(c.value||0),0);
+      const v=folderContracts(f.id).filter(c=>c.status!=='Declined'&&!c.archived).reduce((s,c)=>s+Number(c.value||0),0);
       return `<div class="flex items-center justify-between text-xs py-1.5 border-b border-brand-100/60 last:border-0"><span class="text-brand-800/70">${f.name}</span><span class="font-mono font-medium text-brand-900">${fmtMoneyShort(v)}</span></div>`;
     }).join('');
-    return { text:`Your active portfolio is worth <strong>${fmtMoney(m.totalValue)}</strong> across ${cs.filter(c=>c.status!=='Declined').length} live agreements. Breakdown by folder:`,
+    return { text:`Your active portfolio is worth <strong>${fmtMoney(m.totalValue)}</strong> across ${cs.filter(c=>c.status!=='Declined'&&!c.archived).length} live agreements. Breakdown by folder:`,
       cards:`<div class="rounded-xl border border-brand-100 bg-white px-3.5 py-1.5">${byFolder}</div>` };
   }
   // 7) highest / largest
   if(has('highest','largest','biggest','top contract','most valuable')){
-    const sorted=[...cs].filter(c=>c.status!=='Declined').sort((a,b)=>b.value-a.value).slice(0,3);
+    const sorted=[...cs].filter(c=>c.status!=='Declined'&&!c.archived).sort((a,b)=>b.value-a.value).slice(0,3);
     if(!sorted.length) return { text:`There are no active contracts to rank yet — create one from a template or upload received paper and ask me again.` };
     return { text:`Your highest-value agreement is <strong>${sorted[0].name}</strong> at <strong>${fmtMoney(sorted[0].value)}</strong>. Top three by value:`, cards:aiCards(sorted) };
   }
@@ -1088,18 +1088,18 @@ const AI_SNAPSHOT_CAP = 40;
 function aiPortfolioSnapshot(){
   const cs=(state.contracts||[]);
   if(!cs.length) return 'PORTFOLIO: no contracts in this workspace yet.';
-  const live=cs.filter(c=>c.status!=='Declined');
+  const live=cs.filter(c=>c.status!=='Declined'&&!c.archived);
   const money=n=>(typeof fmtMoney==='function'?fmtMoney(n):`${jxCurrency()} `+Number(n||0).toLocaleString(jxLocale()));
   const byStatus=['Draft','Under Review','Signed','Declined']
     .map(st=>`${st}: ${cs.filter(c=>c.status===st).length}`).join(' · ');
-  const total=live.reduce((s,c)=>s+Number(c.value||0),0);
+  const total=live.reduce((s,c)=>s+(window.fxHomeValue?fxHomeValue(c):Number(c.value||0)),0);
   const exp=c=>(typeof effectiveExpiry==='function'?effectiveExpiry(c):c.expiry)||null;
   const dU=iso=>(typeof daysUntil==='function'?daysUntil(iso):null);
   const win=n=>live.filter(c=>{ const e=exp(c); if(!e) return false; const d=dU(e); return d!=null&&d>=0&&d<=n; });
   const streams=Object.values((typeof FOLDERS==='object'&&FOLDERS)||{})
     .map(f=>{ const in_=live.filter(c=>c.folder===f.id); return in_.length?`${f.name}: ${in_.length} (${money(in_.reduce((s,c)=>s+Number(c.value||0),0))})`:null; })
     .filter(Boolean).join(' · ');
-  const parties=[...live.reduce((m,c)=>{ const k=(c.counterparty||'').trim(); if(k) m.set(k,(m.get(k)||0)+Number(c.value||0)); return m; },new Map())]
+  const parties=[...live.reduce((m,c)=>{ const k=(c.counterparty||'').trim(); if(k) m.set(k,(m.get(k)||0)+(window.fxHomeValue?fxHomeValue(c):Number(c.value||0))); return m; },new Map())]
     .sort((a,b)=>b[1]-a[1]).slice(0,8).map(([k,v])=>`${k} ${money(v)}`).join(' · ');
   /* THROUGH obState, WHICH IS WHAT COMPLETION MEANS HERE. This read `!o.done`,
      and nothing in the product has ever written an obligation with a `done`
@@ -1446,7 +1446,7 @@ function _localToolRun(name,a){
       if(a.status) l=l.filter(c=>(c.status||'')===a.status);
       if(a.folder) l=l.filter(c=>(c.folder||'')===a.folder);
       if(Number(a.minValue)>0) l=l.filter(c=>Number(c.value||0)>=Number(a.minValue));
-      if(Number(a.expiringWithinDays)>0) l=l.filter(c=>{ const d=c.expiry?_daysTo(c.expiry):null; return c.expiry&&c.status!=='Declined'&&d!=null&&d>=0&&d<=Number(a.expiringWithinDays); });
+      if(Number(a.expiringWithinDays)>0) l=l.filter(c=>{ const d=c.expiry?_daysTo(c.expiry):null; return c.expiry&&c.status!=='Declined'&&!c.archived&&d!=null&&d>=0&&d<=Number(a.expiringWithinDays); });
       /* The cap is a fact the model must be handed, not a silent trim: forty
          rows with no total reads as "forty contracts", and the model reported
          it as the whole portfolio. Same shape as the server tool. */
@@ -1581,7 +1581,7 @@ Examples: "highlight the customer contracts" → {"folder":"sales","action":"hig
   if(s.kind){ const k=String(s.kind).toLowerCase(); cs=cs.filter(c=>cKind(c).toLowerCase().includes(k)); filtered=true; }
   if(s.counterparty){ const k=String(s.counterparty).toLowerCase(); cs=cs.filter(c=>(c.counterparty||'').toLowerCase().includes(k)); filtered=true; }
   if(s.valueMin){ cs=cs.filter(c=>Number(c.value||0)>=Number(s.valueMin)); filtered=true; }
-  if(s.expiryDays!=null){ const n=Number(s.expiryDays); cs=cs.filter(c=>c.expiry&&c.status!=='Declined'&&daysUntil(c.expiry)>=0&&daysUntil(c.expiry)<=n); filtered=true; }
+  if(s.expiryDays!=null){ const n=Number(s.expiryDays); cs=cs.filter(c=>c.expiry&&c.status!=='Declined'&&!c.archived&&daysUntil(c.expiry)>=0&&daysUntil(c.expiry)<=n); filtered=true; }
   const note=s.note||'Copilot filter';
   const vis=filtered?cs:null;
   const answer = vis===null
@@ -1674,7 +1674,7 @@ function localCompareData(ids){
   const cs=ids.map(id=>getContract(id)).filter(Boolean).slice(0,4);
   if(cs.length<2) return null;
   const open=c=>(c.scan&&typeof openFindings==='function')?openFindings(c):[];
-  const fmtVal=c=>c.valueType==='none'?'Non-monetary':(Number(c.value)>0?fmtMoneyShort(c.value):'Not set');
+  const fmtVal=c=>c.valueType==='none'?'Non-monetary':(Number(c.value)>0?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):'Not set');
   const exp=c=>{ if(!c.expiry) return '—'; const d=_daysTo(c.expiry); return c.expiry+(d!=null?(d>=0?` (in ${d}d)`:' (lapsed)'):''); };
   const rows=[
     { label:'Name', cells:cs.map(c=>c.name||c.id) },
@@ -2935,6 +2935,171 @@ document.getElementById('ai-send').addEventListener('click',aiSubmit);
 document.getElementById('ai-expand')?.addEventListener('click',()=>toggleAIExpand());
 /* Enter sends, Shift+Enter breaks the line — chatFieldSubmits owns that rule
    for every composer in the product so the six cannot drift apart. */
+/* ============================== THE CONTRACT BRIEF (WO-2, gap-map) ==========
+   One press → a plain-English cover memo of the whole contract, cached
+   server-side per wording (the briefs table) and carried back on the record
+   as _brief — transport, never stored in the contract JSON. A READING AID on
+   the Simplify rule: it proposes no wording and files no change. Its row
+   lives on the Checks card and its result opens in the side panel like the
+   other three rows (openCheckPanel 'brief'). The text handed to the server
+   is EXACTLY the source extractObligations reads — the screens' own wording
+   — so the brief can never describe a document the reader is not looking at. */
+/* ---- AN ADVISORY READ MUST NOT REPORT A FAILED SAVE (found 19 Aug 2026) ----
+   The brief and the renewal advice are READINGS. Each is cached in its own
+   server table — deliberately, so a server-side write never bumps the record
+   version under an open editor — and the audit line here is a courtesy on
+   top of that, not the thing itself.
+
+   On an EXECUTED contract the courtesy cost the feature its credibility. The
+   record is sealed, and a room that has drawn a negotiation carries an
+   in-memory negotiation object the stored copy has never had, so the save is
+   refused with "negotiation cannot be changed after signature" — a red
+   Save failed banner over a brief that had, in fact, arrived and drawn
+   correctly beside it. Reproduced on a signed contract before it was touched.
+
+   Signed paper is exactly what most needs explaining — that is why the brief
+   is allowed on it at all (WO-2) — so the READING stays and the AUDIT LINE
+   stands down in the one state where the record cannot take it. Nothing is
+   lost: the advice itself is cached server-side and comes back on the next
+   read either way. */
+function aiNoteRead(c, action, detail){
+  const sealed = (typeof window.negoExecuted === 'function')
+    ? window.negoExecuted(c) : (c && c.status === 'Signed');
+  if (sealed) return false;
+  if (typeof logAudit === 'function') logAudit(c, action, detail);
+  if (typeof persist === 'function') persist(c);
+  return true;
+}
+async function runContractBrief(c,opts={}){
+  if(!(typeof API_MODE==='function'&&API_MODE())||!state.aiConfigured){ toast(i18t('br_no_ai'),'warn'); return null; }
+  const text=isUpload(c)?(c.upload&&c.upload.extractedText)||'':(window.contractPlainText?contractPlainText(c):'');
+  try{
+    const r=await api('ai/brief','POST',{ id:c.id, text:String(text||'').slice(0,20000), force:!!opts.force });
+    if(r&&r.brief){
+      c._brief=r.brief;
+      // a cache hit changed nothing — only a real (re)write earns an audit line
+      if(!r.cached) aiNoteRead(c,'Brief',opts.force?'Contract brief rewritten by Copilot':'Contract brief written by Copilot');
+      return r.brief;
+    }
+  }catch(e){ toast(i18t('br_failed')+(e&&e.message?' '+e.message:''),'err'); }
+  return null;
+}
+function briefFactsHtml(d){
+  const t=d.term||{},m=d.money||{};
+  const term=[t.start,t.end,t.notice].filter(Boolean).join(' · ');
+  // absent for a reader without canViewValues — the server strips money before
+  // it travels, so there is nothing here to hide locally
+  const money=[m.value,m.paymentTerms].filter(Boolean).join(' · ');
+  const row=(label,val)=>val?`<div style="display:flex;gap:10px;font-size:12.5px;line-height:1.55;margin:3px 0"><span style="flex:none;min-width:52px;font-weight:600;color:var(--color-neutral-600)">${label}</span><span style="min-width:0">${_aiEsc(val)}</span></div>`:'';
+  return row(i18t('br_term'),term)+row(i18t('br_money'),money);
+}
+function renderBriefSection(c){
+  const host=document.getElementById('brief-section'); if(!host) return;
+  const b=c._brief;
+  if(!b||!b.data){ host.innerHTML=''; return; }
+  const d=b.data;
+  const mayRemake=(typeof canEdit!=='function'||canEdit())&&typeof API_MODE==='function'&&API_MODE()&&state.aiConfigured;
+  const when=(()=>{ try{ return new Date(b.at).toLocaleDateString(typeof langLocale==='function'?langLocale():undefined,{day:'numeric',month:'short',year:'numeric'}); }catch(_){ return String(b.at||'').slice(0,10); } })();
+  const wl=(d.watchouts||[]).map(w=>`<li style="margin:6px 0"><div style="font-size:12.5px;line-height:1.55">${_aiEsc(w.point||'')}</div>${w.quote?`<div style="font-size:11.5px;color:var(--color-neutral-600);font-style:italic;margin-top:2px">“${_aiEsc(w.quote)}”</div>`:''}</li>`).join('');
+  const ul=(d.unusual||[]).filter(Boolean).map(u=>`<li style="font-size:12.5px;line-height:1.55;margin:4px 0">${_aiEsc(u)}</li>`).join('');
+  const head=t=>`<h6 style="margin:12px 0 4px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--color-neutral-600)">${t}</h6>`;
+  host.innerHTML=`
+    <div style="font-size:13px;line-height:1.65">${_aiEsc(d.overview||'')}</div>
+    <div style="margin:10px 0">${briefFactsHtml(d)}</div>
+    ${wl?head(i18t('br_watchouts'))+`<ul style="margin:0;padding-left:18px">${wl}</ul>`:''}
+    ${ul?head(i18t('br_unusual'))+`<ul style="margin:0;padding-left:18px">${ul}</ul>`:''}
+    <div style="display:flex;align-items:center;gap:10px;margin-top:14px;padding-top:10px;border-top:1px solid var(--color-divider)">
+      <span style="font-size:11px;color:var(--color-neutral-600)">${i18t('br_written',{date:when,name:_aiEsc(b.by||'Copilot')})}</span>
+      ${mayRemake?`<button class="ui-btn" data-brief-remake style="margin-left:auto;font-size:11px;padding:4px 10px">${i18t('br_rewrite')}</button>`:''}
+    </div>`;
+  host.querySelector('[data-brief-remake]')?.addEventListener('click',async ev=>{
+    const btn=ev.currentTarget; btn.disabled=true; btn.textContent=i18t('ct_working');
+    const r=await runContractBrief(c,{force:true});
+    if(r){ renderBriefSection(c); if(window.renderChecksCard) renderChecksCard(c); }
+    else{ btn.disabled=false; btn.textContent=i18t('br_rewrite'); }
+  });
+}
+
+/* ====================== THE RENEWAL ADVISER (W2-4, gap-map) ================
+   A reminder says a date is coming. This says what to do about it: renew,
+   renegotiate or let it lapse, with the reasons named — and the way to act
+   on it one press away.
+
+   THE CARD IS DRAWN BY THE DATES, NOT BY THE AI. renewalWindow(c) decides
+   whether the card appears at all (an agreement, inside 90 days of its
+   decision) and states the dates itself; the recommendation is asked for by
+   a person and cached server-side. So a workspace with no Copilot key still
+   gets the card, the dates and the button — only the paragraph is missing,
+   and it says so rather than offering a dead press. */
+async function runRenewalAdvice(c,opts={}){
+  if(!(typeof API_MODE==='function'&&API_MODE())||!state.aiConfigured){ toast(i18t('rn_no_ai'),'warn'); return null; }
+  try{
+    const r=await api('ai/renewal','POST',{ id:c.id, force:!!opts.force });
+    if(r&&r.advice){
+      c._renewalAdvice=r.advice;
+      if(!r.cached) aiNoteRead(c,'Renewal',`Renewal advice: ${(r.advice.data&&r.advice.data.verdict)||'—'}`);
+      return r.advice;
+    }
+  }catch(e){ toast(i18t('rn_failed')+(e&&e.message?' '+e.message:''),'err'); }
+  return null;
+}
+const RN_TONE={ renew:'green', renegotiate:'amber', lapse:'ruby', unclear:'steel' };
+function renewalCardHtml(c){
+  const w=(typeof renewalWindow==='function')?renewalWindow(c):null;
+  if(!w||!w.inWindow) return '';
+  const a=c._renewalAdvice&&c._renewalAdvice.data;
+  const may=(typeof canEdit!=='function'||canEdit());
+  const tone=RN_TONE[(a&&a.verdict)||'steel']||'steel';
+  const when=(iso)=>{ try{ return new Date(iso+'T00:00:00').toLocaleDateString(typeof langLocale==='function'?langLocale():undefined,{day:'numeric',month:'short',year:'numeric'}); }catch(_){ return iso; } };
+  /* THE DATES FIRST, ALWAYS — they are the fact; the advice is an opinion
+     about the fact, and a card that led with the opinion would be the wrong
+     way round. The overdue case is stated in its own words: a deadline that
+     has passed is not "in 0 days". */
+  const line=w.missed
+    ? i18t('rn_missed',{date:when(w.decideBy),n:Math.abs(w.days)})
+    : (w.notice
+      ? i18t('rn_decide_by',{date:when(w.decideBy),n:w.days,notice:w.notice,expiry:when(w.expiry)})
+      : i18t('rn_expires_on',{date:when(w.expiry),n:w.days}));
+  return `<section id="renewal-section" class="kt-side-card" style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:8px;padding:13px 15px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <h6 style="margin:0;font-size:13px;font-weight:700;font-family:var(--font-heading);flex:1">${i18t('rn_title')}</h6>
+      ${w.auto?`<span class="pill-x" style="background:var(--st-amber-bg);color:var(--st-amber-fg)">${i18t('rn_auto')}</span>`:''}
+    </div>
+    <p style="margin:0 0 9px;font-size:12px;line-height:1.55;color:${w.missed?'var(--st-ruby-fg)':'var(--color-neutral-700)'}">${_aiEsc(line)}</p>
+    ${a?`
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:5px">
+        <span class="pill-x" style="background:var(--st-${tone}-bg);color:var(--st-${tone}-fg)">${_aiEsc(i18t('rn_verdict_'+a.verdict)||a.verdict)}</span>
+      </div>
+      <p style="margin:0 0 7px;font-size:12.5px;line-height:1.6">${_aiEsc(a.headline||'')}</p>
+      ${(a.because||[]).length?`<ul style="margin:0 0 7px;padding-left:17px">${(a.because||[]).map(b=>`<li style="font-size:11.5px;line-height:1.5;margin:3px 0;color:var(--color-neutral-700)">${_aiEsc(b)}</li>`).join('')}</ul>`:''}
+      ${(a.pushOn||[]).length?`<div style="font-size:11.5px;line-height:1.5;margin-bottom:7px"><b>${i18t('rn_push_on')}</b> ${_aiEsc((a.pushOn||[]).join(' · '))}</div>`:''}
+      ${a.watchIf?`<p style="margin:0 0 7px;font-size:11px;color:var(--color-neutral-600);line-height:1.5">${_aiEsc(i18t('rn_watch_if'))} ${_aiEsc(a.watchIf)}</p>`:''}
+    `:`<p style="margin:0 0 9px;font-size:11.5px;color:var(--color-neutral-600);line-height:1.55">${_aiEsc(i18t('rn_not_asked'))}</p>`}
+    <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px">
+      ${may?`<button class="ui-btn" data-rn-ask style="font-size:11px;padding:5px 11px">${a?i18t('rn_again'):i18t('rn_ask')}</button>`:''}
+      ${may?`<button class="ui-btn" data-rn-start style="font-size:11px;padding:5px 11px">${i18t('rn_start')}</button>`:''}
+    </div>
+  </section>`;
+}
+function renderRenewalSection(c){
+  const host=document.getElementById('renewal-host'); if(!host) return;
+  host.innerHTML=renewalCardHtml(c);
+  host.querySelector('[data-rn-ask]')?.addEventListener('click',async ev=>{
+    const b=ev.currentTarget; b.disabled=true; b.textContent=i18t('ct_working');
+    const had=!!c._renewalAdvice;
+    const r=await runRenewalAdvice(c,{force:had});
+    renderRenewalSection(c);
+    if(!r&&!had){ const b2=document.querySelector('[data-rn-ask]'); if(b2){ b2.disabled=false; b2.textContent=i18t('rn_ask'); } }
+  });
+  /* ONE DOOR TO THE RENEWAL, and it is the family machinery's own — the same
+     createAmendment a person uses from the Agreement family card, with the
+     relation set. Nothing here mints a contract of its own. */
+  host.querySelector('[data-rn-start]')?.addEventListener('click',()=>{
+    if(!window.openCreateAmendmentModal) return toast(i18t('rn_start_unavailable'),'err');
+    openCreateAmendmentModal(c,null,{relation:'renewal'});
+  });
+}
+
 document.getElementById('ai-input').addEventListener('keydown',e=>{
   if(window.chatFieldSubmits?chatFieldSubmits(e):e.key==='Enter') aiSubmit();
 });
@@ -2967,4 +3132,4 @@ Object.assign(window,{
   aiKeepStructuralTags,aiStructureOf,aiSplitItems,aiRestoreEmphasis,aiPreserveTypography,
   aiParseProposal,copilotPropose,aiProposalCardHtml,aiOpenProposal,aiActiveProposal,
   aiProposalApply,aiProposalDecline,aiProposalToggleEdit,aiWireProposals,aiRefineProposal,aiStepBackIfSummoned,
-  AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,aiCompareTable,aiChatMessages,aiChatContext,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});
+  AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,aiCompareTable,aiChatMessages,aiChatContext,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,runContractBrief,aiNoteRead,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});

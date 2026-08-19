@@ -841,6 +841,28 @@ async function deleteContract(id){
   toast(`${label} deleted`,'err');
   return true;
 }
+/* ---- THE ARCHIVE SHELF (WO-5, WORKORDER-gap-map.md) ----
+   Reversible FILING, never deletion — the answer to the promise the delete
+   refusal has always made ("archive it instead") with nothing behind it. A
+   filing fact BESIDE status, not a status: an archived Signed contract stays
+   Signed. Archived contracts leave every default list, count and sweep
+   (register, dashboard, insights, alerts, calendar, reminders, the daily
+   brief) and stay fully searchable — FTS, the palette, and the register's
+   own Archived view are the ways back in. Editor-and-up, always audited,
+   English records. */
+function isArchived(c){ return !!(c&&c.archived); }
+async function contractSetArchived(c,on){
+  if(typeof canEdit==='function'&&!canEdit()){ toast(i18t('ar_editors_only'),'err'); return false; }
+  if(on) c.archived={ at:new Date().toISOString(), by:currentUser().name };
+  else delete c.archived;
+  logAudit(c,on?'Archived':'Restored',
+    on?'Moved to the archive shelf — off the live lists and counts, still searchable'
+      :'Restored from the archive shelf to the live lists');
+  persist(c);
+  toast(on?i18t('ar_archived_toast'):i18t('ar_restored_toast'),'ok');
+  if(window.updateSidebarCounts) updateSidebarCounts();
+  return true;
+}
 async function flushSaves(){
   const items=[...dirty.values()]; dirty.clear();
   for(const c of items){ await saveContract(c); }
@@ -863,6 +885,11 @@ async function saveContract(c){
      being written back into the stored contract. */
   const payload={...c}; delete payload._light; delete payload._loaded; delete payload._v;
   delete payload._raisedBy; delete payload._raisedAt;
+  // _brief is GET-time transport off the server's briefs table (WO-2) — a
+  // derived reading written back into the record would be stale the moment the
+  // wording moved, and then there are two answers to one question.
+  delete payload._brief;
+  delete payload._renewalAdvice;
   delete payload._signedAt; delete payload._lastAuditAt;
   if(payload.upload && payload.upload.fileId){ payload.upload={...payload.upload, dataUrl:undefined}; }
   // Word-review version files and the rounds that carried them follow the same
@@ -1443,7 +1470,10 @@ async function doLogin(){
   const err=document.getElementById('li-err');
   if(REMOTE){
     try{
-      await api('login','POST',{ email, password:pass });
+      const r=await api('login','POST',{ email, password:pass });
+      // two-step sign-in (WO-6): a correct password earned a ticket, not a
+      // session — the code turns it into one
+      if(r&&r.twoStep) return doLoginTotp(r.ticket, err);
       await loadBootstrap();
       startApp();
       toast(`Karibu tena, ${REMOTE.me.name.split(' ')[0]}`);
@@ -1455,6 +1485,24 @@ async function doLogin(){
   lsSet(LS.session,{ userId:u.id, at:nowISO() });
   startApp();
   toast(`Karibu tena, ${u.name.split(' ')[0]}`);
+}
+/* The second step (WO-6). Cancel falls back to the sign-in form; a wrong code
+   re-asks while the ticket is live (the server's failures-only limiter is the
+   wall against grinding); "sign in again" from the server means the five-
+   minute window closed, so the password comes first once more. */
+async function doLoginTotp(ticket, err){
+  const code=await promptDialog({ title:i18t('ts_code_title'), message:i18t('ts_code_msg'),
+    placeholder:'123456', confirmLabel:i18t('ts_confirm'), cancelLabel:i18t('act_cancel') });
+  if(code==null) return;
+  try{
+    await api('login/totp','POST',{ ticket, code:String(code).trim() });
+    await loadBootstrap();
+    startApp();
+    toast(`Karibu tena, ${REMOTE.me.name.split(' ')[0]}`);
+  }catch(e){
+    if(err){ err.textContent=e.message; err.classList.remove('hidden'); }
+    if(!/sign in again/i.test(e&&e.message||'')) return doLoginTotp(ticket, err);
+  }
 }
 function logout(){
   if(REMOTE){ api('logout','POST').catch(()=>{}).finally(()=>location.reload()); return; }
@@ -1523,7 +1571,7 @@ function startApp(){
      honest empty state when their contract or template is not loaded yet, so
      resuming there is safe — and losing a refresh mid-negotiation to the
      dashboard was the exact complaint this list caused. */
-  setView(['dashboard','register','pipeline','advice','folder','intel','calendar','reports','templates','templatelib','playbook','workspace','team','directory','migration','redline'].includes(state.view)?state.view:'dashboard');
+  setView(['dashboard','register','pipeline','advice','intake','folder','intel','calendar','reports','templates','templatelib','playbook','workspace','team','directory','migration','redline'].includes(state.view)?state.view:'dashboard');
   if(API_MODE()){ refreshStats(); refreshShareOverview(); refreshWaitingQuestions(); pollPendingResponses(); refreshAiUsage();
     schedulePolling();
     /* Coming back to the tab is when a person expects to be up to date. */
@@ -1534,6 +1582,7 @@ function startApp(){
     }
     setInterval(refreshShareOverview,60000); setInterval(refreshWaitingQuestions,60000); setInterval(refreshAiUsage,30000);
     window.loadAdviceRequests&&loadAdviceRequests().then(()=>{ updateSidebarCounts(); if(state.view==='advice') renderAdviceDesk(); }).catch(()=>{});
+    window.loadIntake&&loadIntake().then(()=>{ updateSidebarCounts(); if(state.view==='intake') renderIntake(); }).catch(()=>{});
     /* One-time heal: workspaces whose market was chosen before the choice was
        persisted server-side (see jxSet) have it only in this browser's local
        store, and every server-built artefact fell back to the default market.
@@ -2211,6 +2260,12 @@ function downloadEvidence(c){
       ? 'Executed outside HaTi and migrated in as a record. No electronic signature was taken in HaTi; the signatures are on the original document.'
       : jxEsignature(),
     disclosure:'Government IPRS identity verification and CAK-accredited PKI signatures are not yet integrated.',
+    /* THE AGREEMENT IS ONLY AS WELL PROVED AS ITS LEAST-PROVED SIGNATURE, so
+       this is the WEAKEST rung and not the best one — the flattering reading
+       is the one a dispute destroys. */
+    assurance:(()=>{ const a=(typeof contractAssurance==='function')?contractAssurance(c):null;
+      return a?{ key:a.key, label:String(a.rung.label), basis:String(a.rung.basis),
+        derived:!!a.derived, note:'The lowest assurance among the signatures below.' }:null; })(),
     migration: isExternallyExecuted(c)
       ? { filedBy:(c.migration&&c.migration.importedBy)||null, filedAt:(c.migration&&c.migration.importedAt)||null,
           batch:(c.migration&&c.migration.batch)||null,
@@ -2230,6 +2285,17 @@ function downloadEvidence(c){
     signatures:(c.signatures||[]).map(s=>({ party:s.party, name:s.name, email:s.email||null,
       capacity:signatureCapacity(s)||null,
       method:s.method||null, form:s.form||null, signatureImageSha256:s.imageHash||null, signatureImage:s.image||null,
+      /* W3-3: WHAT WAS PROVED, in the pack that exists to answer exactly
+         that. `assuranceDerived` is not a footnote — a reader must be able
+         to tell a recorded fact from an inference drawn years later. */
+      assurance:(()=>{ const a=(typeof signatureAssurance==='function')?signatureAssurance(s,c):null;
+        return a?a.key:null; })(),
+      assuranceLabel:(()=>{ const a=(typeof signatureAssurance==='function')?signatureAssurance(s,c):null;
+        return a&&a.rung?String(a.rung.label):null; })(),
+      assuranceBasis:(()=>{ const a=(typeof signatureAssurance==='function')?signatureAssurance(s,c):null;
+        return a&&a.rung?String(a.rung.basis):null; })(),
+      assuranceDerived:(()=>{ const a=(typeof signatureAssurance==='function')?signatureAssurance(s,c):null;
+        return a?!!a.derived:null; })(),
       ip:s.ip||null, userAgent:s.ua||null, at:s.at })),
     distribution:c.distribution||null,
     auditTrail:c.audit||[],
@@ -4989,6 +5055,12 @@ async function applyResponse(c, r, opts={}){
       typedName:r.signatureTypedName||null, font:r.signatureFont||null };
     c.signatures.push({ party:'counterparty', name:r.name, title:r.title||'', email:r.email||'', at:r.at,
       method:r.method||'share-link', verified:r.verified!==false, ip:r.ip||null, ua:r.ua||null, docHash:r.docHash,
+      /* W3-3: which rung this was taken at, stamped as the response is
+         applied. `verify` is the one-time code they proved against the
+         invited address — the difference between "somebody typed a name"
+         and "the person we wrote to answered". */
+      assurance:(typeof assuranceAtSigning==='function')
+        ? assuranceAtSigning({ method:r.method||'share-link', verify:r.verify||(r.verified!==false&&r.verifyToken)||null }) : undefined,
       form:sig.form, image:sig.image, imageHash:sig.imageHash, typedName:sig.typedName, font:sig.font });
     if(boundRow){
       boundRow.signed=true; boundRow.at=r.at; boundRow.by=r.name; boundRow.signature=sig;
@@ -5543,4 +5615,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,isArchived,contractSetArchived,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});

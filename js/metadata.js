@@ -567,7 +567,7 @@ async function runMetaBackfill(opts={}){
      them. */
   const needCat = !!opts.missingCategory;
   const todo = needCat
-    ? state.contracts.filter(c=>c.status!=='Declined' && !(c.metadata&&c.metadata.category))
+    ? state.contracts.filter(c=>c.status!=='Declined' && !c.archived && !(c.metadata&&c.metadata.category))
     : state.contracts.filter(c=>isUpload(c) && !(c.metadata&&c.metadata.confirmedAt));
   if(!todo.length){ toast(i18t(needCat?'me_all_categorised':'me_all_confirmed')); return; }
   const lbl=document.getElementById('meta-backfill-lbl');

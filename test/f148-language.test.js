@@ -53,6 +53,10 @@ const SAME_IN_BOTH = new Set([
   'wk_tier_full',         // '360' is a number, not a word
   'lib_col_version',      // 'Version' is the same word in Swedish
   'set_rate_in',          // token rate "in" — the same preposition in Swedish
+  /* W2-1 (19 Aug 2026): "1 {code} = {rate} {cur}" is an EQUATION — three
+     placeholders, a numeral and an equals sign, with not one word in it to
+     translate. Beside set_usd_per above, which is the same case. */
+  'st_fx_line',
   'ct_live',              // 'live' is the borrowed word Swedish uses too
   /* Settings & Rules redesign (Aug 2026) — four words that are genuinely the
      same in both languages, not four forgotten translations. */

@@ -607,10 +607,16 @@ function createAmendment(parent, opts={}){
 
 /* The form. Everything answered already except the one question that cannot be
    guessed — whether this document moves the end of the term. */
-function openCreateAmendmentModal(parent, onDone){
+/* `opts.relation` preselects the kind (W2-4: the renewal adviser's "Start the
+   renewal" opens THIS dialog with Renewal chosen rather than growing a second
+   creation path — one door, one set of rules, one audit line). Everything
+   about the dialog is otherwise unchanged, and a caller that passes nothing
+   still opens on Amendment. */
+function openCreateAmendmentModal(parent, onDone, opts){
   if(!canEdit()){ toast(i18t('fa_viewers_no_change'),'err'); return; }
   if(!parent) return;
   if(parent.parentId){ toast(i18t('fa_child_cannot_amend'),'err'); return; }
+  const relOpen = (opts && isRelation(opts.relation)) ? opts.relation : 'amendment';
   const FLD='width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:7px 10px;font:inherit;font-size:13px;outline:none';
   const SEL='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 8px;font:inherit;font-size:13px';
   const LBL='display:block;font-size:11px;font-weight:600;margin-bottom:4px';
@@ -624,10 +630,10 @@ function openCreateAmendmentModal(parent, onDone){
 
       <label style="display:block;margin-bottom:10px"><span style="${LBL}">${i18t('fa_kind_q')}</span>
         <select id="am-rel" style="${SEL}">${CONTRACT_RELATIONS.map(r=>
-          `<option value="${r.k}" ${r.k==='amendment'?'selected':''}>${r.label} — ${r.blurb}</option>`).join('')}</select></label>
+          `<option value="${r.k}" ${r.k===relOpen?'selected':''}>${r.label} — ${r.blurb}</option>`).join('')}</select></label>
 
       <label style="display:block;margin-bottom:10px"><span style="${LBL}">${i18t('fa_name')}</span>
-        <input id="am-name" value="${_famAttr(amendmentDefaultName(parent,'amendment'))}" style="${FLD}"/>
+        <input id="am-name" value="${_famAttr(amendmentDefaultName(parent,relOpen))}" style="${FLD}"/>
         ${kids?`<span style="${HINT}" id="am-name-hint">${i18tn('fa_name_hint',kids,{n:kids})}</span>`:''}</label>
 
       ${''/* ---- AND THE HINT TELLS THE TRUTH FOR THIS KIND (audit finding 10) ----

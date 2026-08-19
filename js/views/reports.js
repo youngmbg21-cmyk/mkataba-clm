@@ -33,7 +33,7 @@ function daysBetween(a,b){ if(a==null||b==null) return null; return Math.max(0,(
    the audit trail of the loaded contracts. */
 function computeReports(){
   const cs=state.contracts;
-  const active=cs.filter(c=>c.status!=='Declined');
+  const active=cs.filter(c=>c.status!=='Declined'&&!c.archived);
   // cycle time draft -> signed
   const cycles=[];
   cs.forEach(c=>{ if(c.status==='Signed'){ const created=repRaisedAt(c); const signed=repSignedAt(c); const d=daysBetween(created,signed); if(d!=null) cycles.push(d); } });
@@ -46,19 +46,20 @@ function computeReports(){
   cs.forEach(c=>{ const k=cKind(c); const r=(c.rounds||[]).length; if(!roundsByType[k]) roundsByType[k]={n:0,rounds:0}; roundsByType[k].n++; roundsByType[k].rounds+=r; });
   // value by folder
   const byFolder={};
-  active.forEach(c=>{ const k=FOLDERS[c.folder]?.name||'Other'; byFolder[k]=(byFolder[k]||0)+Number(c.value||0); });
+  const _v=c=>(window.fxHomeValue?fxHomeValue(c):Number(c.value||0));   // W2-1: one currency
+  active.forEach(c=>{ const k=FOLDERS[c.folder]?.name||'Other'; byFolder[k]=(byFolder[k]||0)+_v(c); });
   // value by counterparty (top 8)
   const byParty={};
-  active.forEach(c=>{ if(c.counterparty) byParty[c.counterparty]=(byParty[c.counterparty]||0)+Number(c.value||0); });
+  active.forEach(c=>{ if(c.counterparty) byParty[c.counterparty]=(byParty[c.counterparty]||0)+_v(c); });
   const topParty=Object.entries(byParty).sort((a,b)=>b[1]-a[1]).slice(0,8);
   // renewal pipeline value next 12 months (by month)
   const pipeline={};
-  agreementsIn(active).forEach(c=>{ const exp=effectiveExpiry(c); if(!exp) return; const d=daysUntil(exp); if(d>=0&&d<=365){ const k=exp.slice(0,7); pipeline[k]=(pipeline[k]||0)+Number(c.value||0); } });
+  agreementsIn(active).forEach(c=>{ const exp=effectiveExpiry(c); if(!exp) return; const d=daysUntil(exp); if(d>=0&&d<=365){ const k=exp.slice(0,7); pipeline[k]=(pipeline[k]||0)+_v(c); } });
   // extra portfolio aggregates so report cards aren't forced to track value
-  const totalValue=active.reduce((s,c)=>s+Number(c.value||0),0);
+  const totalValue=active.reduce((s,c)=>s+_v(c),0);
   const pipeTotal=Object.values(pipeline).reduce((a,b)=>a+b,0);
   const pipeMonthsN=Object.keys(pipeline).length;
-  const expiring90=agreementsIn(cs).filter(c=>{ const exp=effectiveExpiry(c); return exp&&c.status!=='Declined'&&daysUntil(exp)>=0&&daysUntil(exp)<=90; }).length;
+  const expiring90=agreementsIn(cs).filter(c=>{ const exp=effectiveExpiry(c); return exp&&c.status!=='Declined'&&!c.archived&&daysUntil(exp)>=0&&daysUntil(exp)<=90; }).length;
   const risks=cs.map(c=>contractRisk(c)).filter(n=>typeof n==='number'&&!isNaN(n));
   const avgRisk=risks.length?risks.reduce((a,b)=>a+b,0)/risks.length:null;
   const highRisk=cs.filter(c=>contractRisk(c)>=70).length;

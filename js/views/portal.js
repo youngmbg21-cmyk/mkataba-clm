@@ -4331,7 +4331,7 @@ function exportPDF(c, opts){
         <div style="font-size:11px;color:#666;margin-bottom:10px;">${i18t('po_external_received',{who:c.counterparty||'—',folder:FOLDERS[c.folder].name})}</div>
         <table style="font-size:11px;border-collapse:collapse;">
           <tr><td style="padding:2px 12px 2px 0;color:#666;">${i18t('po_original_file')}</td><td style="font-weight:600;">${u.fileName||'—'} (${u.size?Math.round(u.size/1024):0} KB)</td></tr>
-          <tr><td style="padding:2px 12px 2px 0;color:#666;">${i18t('po_value')}</td><td style="font-weight:600;">${!isMonetary(c)?'Non-monetary':(c.value?fmtMoney(c.value):'—')}</td></tr>
+          <tr><td style="padding:2px 12px 2px 0;color:#666;">${i18t('po_value')}</td><td style="font-weight:600;">${!isMonetary(c)?'Non-monetary':(c.value?(window.fmtMoneyOf?fmtMoneyOf(c):fmtMoney(c.value)):'—')}</td></tr>
           <tr><td style="padding:2px 12px 2px 0;color:#666;">Status</td><td style="font-weight:600;">${c.status}</td></tr>
           <tr><td style="padding:2px 12px 2px 0;color:#666;">${i18t('po_file_fingerprint')}</td><td style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9px;word-break:break-all;">${u.fileHash||'—'}</td></tr>
         </table>
@@ -4428,7 +4428,7 @@ function metrics(){
   const s=state.serverStats;
   if(s) return { totalValue:s.totalValue||0, pending:s.pending||0, signed:s.signed||0,
     declined:s.declined||0, drafts:s.drafts||0, expired:s.expired||0, expiredValue:s.expiredValue||0 };
-  const cs=state.contracts;
+  const cs=(state.contracts||[]).filter(c=>!c.archived);   // the shelf is off the books (WO-5)
   /* ACTIVE VALUE IS THE VALUE OF WHAT IS STILL RUNNING. This counted every
      contract that was not Declined, so a supply agreement that ended in 2023
      went on contributing its whole face value to the headline figure on the
@@ -4438,13 +4438,13 @@ function metrics(){
   const active=cs.filter(c=>c.status!=='Declined'&&!gone(c));
   const expired=cs.filter(gone);
   return {
-    totalValue:active.reduce((s,c)=>s+Number(c.value||0),0),
+    totalValue:active.reduce((s,c)=>s+(window.fxHomeValue?fxHomeValue(c):Number(c.value||0)),0),
     pending:cs.filter(c=>c.status==='Under Review').length,
     signed:cs.filter(c=>c.status==='Signed').length,
     declined:cs.filter(c=>c.status==='Declined').length,
     drafts:cs.filter(c=>c.status==='Draft').length,
     expired:expired.length,
-    expiredValue:expired.reduce((s,c)=>s+Number(c.value||0),0),
+    expiredValue:expired.reduce((s,c)=>s+(window.fxHomeValue?fxHomeValue(c):Number(c.value||0)),0),
   };
 }
 async function refreshStats(){

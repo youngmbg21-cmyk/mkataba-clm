@@ -136,11 +136,16 @@ describe('f198 — it is transport, not a record', () => {
     assert.ok(row._raisedBy, 'it is on the row before we send it back');
     const src = fs.readFileSync(path.join(ROOT, 'js/core.js'), 'utf8');
     const save = src.slice(src.indexOf('async function saveContract'));
-    assert.match(save.slice(0, 1200), /delete payload\._raisedBy/, 'stripped on the way out');
-    assert.match(save.slice(0, 1200), /delete payload\._raisedAt/);
+    /* The window was 1200 chars; the strip block gained `_brief` and its
+       comment on 18 Aug 2026 (WO-2 — the same transport rule, a new field),
+       which pushed the date strips past the old measure. Widened in place;
+       every claim below is unchanged. */
+    assert.match(save.slice(0, 1800), /delete payload\._raisedBy/, 'stripped on the way out');
+    assert.match(save.slice(0, 1800), /delete payload\._raisedAt/);
+    assert.match(save.slice(0, 1800), /delete payload\._brief/, 'the brief is transport too (WO-2)');
     /* The three dates go the same way, for the same reason. */
-    assert.match(save.slice(0, 1200), /delete payload\._signedAt/);
-    assert.match(save.slice(0, 1200), /delete payload\._lastAuditAt/);
+    assert.match(save.slice(0, 1800), /delete payload\._signedAt/);
+    assert.match(save.slice(0, 1800), /delete payload\._lastAuditAt/);
 
     /* And proved against the server rather than off the source: send the row
        back the way the product would, then read the stored record. */
