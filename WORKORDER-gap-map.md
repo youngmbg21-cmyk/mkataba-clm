@@ -238,24 +238,31 @@ moves to Phase 2 unbuilt, and nothing else depends on it.
   where the figure is shown. Signing caps and approval thresholds convert
   with the same stored rate, and where none exists they err toward asking a
   human, in words. Stored values are NEVER rewritten.
-- **W2-2 · The intake front door.** A colleague types what they need in
+- **W2-2 · The intake front door. — BUILT 19 Aug 2026** (f220, 17).
+  Original specification: A colleague types what they need in
   plain words; AI picks the template (template advisor exists), pre-fills
   the blanks (blank-filler exists), routes a ready draft to an editor; the
   requester follows status without gaining edit rights. NOT TONIGHT: it
   changes who uses HaTi and adds screens the owner should see before they
   harden.
-- **W2-3 · Events-out and channels.** A small webhook surface (signed
+- **W2-3 · Events-out — BUILT 19 Aug 2026** (f221, 14, plus a security
+  review). The CHANNELS half (WhatsApp/Slack sending) stays blocked on the
+  owner's own provider accounts. Original specification: A small webhook surface (signed
   contract / round received / obligation due) plus notification channels
   beyond email. NOT TONIGHT: webhooks deserve a security review
   (signing, retries, egress), and WhatsApp/Slack sends need owner accounts.
-- **W2-4 · Renewal adviser.** At the 90-day mark, recommend renew /
+- **W2-4 · Renewal adviser. — BUILT 19 Aug 2026** (f219, 13).
+  Original specification: At the 90-day mark, recommend renew /
   renegotiate / let lapse with cited reasons and a one-press amendment
   draft via the family machinery. Builds on WO-3's sweep.
-- **W2-5 · Two-step sign-in — BUILT as WO-6 on the overnight run** (f217).
-  What remains under this heading is its People-page RESCUE BUTTON (the
-  server grant `clearTwoStep` exists and is tested; only the admin's button
-  is missing — an hour's work) and "sign in with Google", which is blocked
-  on the owner opening the Google credentials (blocked list below).
+- **W2-5 · Two-step sign-in — BUILT as WO-6**, and its People-page RESCUE
+  BUTTON built 19 Aug 2026 (W2-5a, f217 widened to 12). What remains under
+  this heading is "sign in with Google" alone, blocked on the owner opening
+  the Google credentials (blocked list below).
+
+**WHAT IS LEFT OF PHASE 2:** Google sign-in, and the notification CHANNELS
+half of W2-3 (WhatsApp, Slack). Both are blocked on accounts only the owner
+can open — there is no code left to write until they exist.
 
 ## PHASE 3 — strategic bets (design before build)
 
