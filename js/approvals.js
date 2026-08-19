@@ -29,7 +29,14 @@ function contractHasDeviation(c){ const sm=window.deviationSummary?deviationSumm
 function ruleMatches(rule, c){
   const cond=rule.cond||{};
   switch(cond.type){
-    case 'value': { const v=Number(c.value||0); return cond.op==='>='? v>=Number(cond.value) : v<=Number(cond.value); }
+    /* W2-1: an approval threshold is written in the workspace currency, so the
+       contract converts before it is compared. A currency with no rate on file
+       cannot be compared — and an approval rule is a SAFETY net, so the
+       unknown case ENGAGES the rule (a human looks) rather than skipping it. */
+    case 'value': {
+      const h=(typeof fxHome==='function')?fxHome(c):{v:Number(c.value||0),missing:false};
+      if(h.missing) return true;
+      const v=h.v; return cond.op==='>='? v>=Number(cond.value) : v<=Number(cond.value); }
     case 'folder': return c.folder===cond.value;
     case 'kind': return (cKind(c)||'').toLowerCase().includes(String(cond.value||'').toLowerCase());
     case 'foreignLaw': return contractForeignLaw(c);
@@ -1045,11 +1052,22 @@ function signCapBlocker(c, u){
   /* Money only where money passes. An NDA carries none and isMonetary is the
      one answer to that question in this product. */
   if(typeof isMonetary==='function' && !isMonetary(c)) return null;
-  const v=Number(c.value||0);
-  if(!(v>cap.limit)) return null;
+  /* ---- COMPARE LIKE WITH LIKE (W2-1) ----
+     A signing limit is written in the workspace currency. Measuring a USD
+     contract's raw number against a KES ceiling is a silent lie in whichever
+     direction the rates happen to run, so the contract is CONVERTED first —
+     and where the currency has no rate on file the comparison cannot be made
+     at all, which is a refusal in words rather than a guess: on a signature,
+     erring toward asking a human is the only safe direction. */
   const money=n=>(typeof fmtMoneyShort==='function')?fmtMoneyShort(n):String(n);
+  const h=(typeof fxHome==='function')?fxHome(c):{v:Number(c.value||0),missing:false,code:''};
+  if(h.missing) return { key:'signcap',
+    label:i18t('sc_block_norate',{code:h.code}), short:i18t('sc_block_norate_short',{code:h.code}) };
+  const v=h.v;
+  if(!(v>cap.limit)) return null;
   return { key:'signcap',
-    label:i18t('sc_block',{amount:money(v),cap:money(cap.limit)}),
+    label:i18t(h.converted?'sc_block_fx':'sc_block',
+      {amount:money(v),cap:money(cap.limit),code:h.code,raw:`${h.code} ${Number(c.value||0).toLocaleString()}`}),
     short:i18t('sc_block_short',{cap:money(cap.limit)}) };
 }
 /* WHO CAN SIGN WHAT TODAY — a read-only ladder, ordered by how much authority

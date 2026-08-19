@@ -1200,6 +1200,46 @@ function stAccountWire(){
   document.getElementById('acct-settings')?.addEventListener('click',()=>{ stDrawerClose(); openSettingsAt('people'); });
   if(API_MODE()) loadSessions();
 }
+/* ---- EXCHANGE RATES (W2-1) ----
+   A LIST, then one add/replace row. Painted rather than re-rendered, because
+   this page's own rule is that it holds still: a saved rate repaints the
+   list and nothing else. Removing is setting the rate to nothing, which puts
+   that currency back to "no rate on file" — left out and said, never
+   guessed. */
+function stFxPaint(){
+  const host=document.getElementById('st-fx-list'); if(!host) return;
+  const rates=(state.settings&&state.settings.fxRates)||{};
+  const codes=Object.keys(rates).sort();
+  if(!codes.length){ host.innerHTML=`<p class="st-note" style="margin:0">${esc(i18t('st_fx_none'))}</p>`; return; }
+  host.innerHTML=codes.map(code=>{
+    const r=rates[code]||{};
+    return `<div style="display:flex;align-items:center;gap:10px;font-size:12px">
+      <span style="font-family:var(--font-mono);font-weight:600;min-width:40px">${esc(code)}</span>
+      <span style="flex:1;min-width:0">${esc(i18t('st_fx_line',{code,rate:Number(r.rate).toLocaleString(),cur:jxCurrency()}))}
+        <span class="st-note" style="margin:0">${r.at?esc(i18t('st_fx_set_on',{date:r.at})):''}</span></span>
+      <button data-fx-del="${esc(code)}" style="${ST_BTN_SM};flex:none">${i18t('st_fx_remove')}</button>
+    </div>`;
+  }).join('');
+  host.querySelectorAll('[data-fx-del]').forEach(b=>b.addEventListener('click',()=>stFxSave(b.getAttribute('data-fx-del'),null)));
+}
+async function stFxSave(codeIn,rateIn){
+  const code=String(codeIn!=null?codeIn:(document.getElementById('st-fx-code')||{value:''}).value).trim().toUpperCase();
+  const raw=rateIn!==undefined&&codeIn!=null?rateIn:(document.getElementById('st-fx-rate')||{value:''}).value;
+  const rate=(raw===null||String(raw).trim()==='')?null:Number(raw);
+  stDrawerClearRefusal();
+  if(!/^[A-Z]{3}$/.test(code)) return stDrawerRefuse(i18t('st_fx_bad_code'));
+  if(rate!==null&&!(rate>0)) return stDrawerRefuse(i18t('st_fx_bad_rate'));
+  try{
+    const r=await api('settings/fx-rates','PUT',{ code, rate });
+    state.settings=state.settings||{}; state.settings.fxRates=(r&&r.fxRates)||{};
+    const ce=document.getElementById('st-fx-code'), re=document.getElementById('st-fx-rate');
+    if(ce) ce.value=''; if(re) re.value='';
+    stFxPaint();
+    toast(rate===null?i18t('st_fx_removed',{code}):i18t('st_fx_saved',{code}),'ok');
+    // every converted figure just moved — repaint whatever is behind the drawer
+    if(window.refreshStats) refreshStats();
+  }catch(e){ stDrawerRefuse((e&&e.message)||i18t('co_settings_save_failed')); }
+}
 /* ---- TWO-STEP SIGN-IN, self-service (WO-6) ---- */
 async function stTwoStepToggle(){
   const u=currentUser()||{};
@@ -1362,6 +1402,32 @@ const SET_PANELS={
           <span class="st-note" style="margin:0">${esc(i18t('st_company_legal_note'))}</span>
         </div>
       </section>
+      ${''/* ---- EXCHANGE RATES (W2-1, owner-ruled 19 Aug 2026) ----
+             "I would want for the contract to be converted to local currency
+             when it comes to reporting so the dashboards or reporting have
+             one currency." So every reporting figure converts — and the rate
+             is an ADMIN'S CLAIM WITH A DATE, never a live feed: a headline
+             that moves by itself, from an outside service nobody in the
+             workspace controls, is a number no admin can stand behind.
+
+             A currency with no rate here is never guessed. Its contracts are
+             LEFT OUT of the converted figures and every surface that shows
+             one says so — the silent-trim rule the insights panels already
+             hold. Sits beside the market because the market is what decides
+             which currency is "home". */}
+      <section class="st-sec">
+        <h3 class="st-sec-h">${esc(i18t('st_fx'))}</h3>
+        <p class="st-note" style="margin-bottom:8px">${esc(i18t('st_fx_sub',{cur:jxCurrency()}))}</p>
+        <div id="st-fx-list" style="display:grid;gap:6px;margin-bottom:9px"></div>
+        <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+          <label style="flex:0 0 108px"><span style="${window.RV_LBL||''}">${esc(i18t('st_fx_code'))}</span>
+            <input id="st-fx-code" type="text" maxlength="3" placeholder="USD" style="${window.RV_FLD||ST_INPUT}text-transform:uppercase"/></label>
+          <label style="flex:1;min-width:150px"><span style="${window.RV_LBL||''}">${esc(i18t('st_fx_rate',{cur:jxCurrency()}))}</span>
+            <input id="st-fx-rate" type="number" step="any" min="0" placeholder="129.50" style="${window.RV_FLD||ST_INPUT}"/></label>
+          <button id="st-fx-save" style="${ST_BTN_SM};flex:none">${i18t('act_save')}</button>
+        </div>
+        <p class="st-note" style="margin-top:8px">${esc(i18t('st_fx_note'))}</p>
+      </section>
       <section class="st-sec">
         <h3 class="st-sec-h">${esc(i18t('st_p_design'))}</h3>
         <p class="st-note" style="margin-bottom:8px">${esc(i18t('st_company_design_sub'))}</p>
@@ -1423,6 +1489,8 @@ const SET_PANELS={
       document.getElementById('st-company-design')?.addEventListener('click',()=>{
         stDrawerClose(); openDesignStep({ mode:'settings', onBack:()=>renderTeam() });
       });
+      stFxPaint();
+      document.getElementById('st-fx-save')?.addEventListener('click',()=>stFxSave());
     },
   },
 

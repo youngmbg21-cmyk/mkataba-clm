@@ -223,11 +223,18 @@ moves to Phase 2 unbuilt, and nothing else depends on it.
 
 ## PHASE 2 — next runs, specified now (each with why not tonight)
 
-- **W2-1 · Money speaks its own currency.** Store currency with the amount,
-  sum per currency (three honest totals beat one false one), convert only
-  with a dated rate. NOT TONIGHT: the blast radius is every money surface —
-  portfolio totals, signing caps, playbook ranges, CSV — and f151 pins that
-  all surfaces count the same book; this wants daytime eyes on each screen.
+- **W2-1 · Money speaks its own currency.** RULED BY THE OWNER, 19 Aug 2026:
+  "i would want for the contract to be converted to local currency when it
+  comes to reporting so the dashboards or reporting have one currency." So:
+  every REPORTING surface (dashboards, totals, insights, reports, the
+  monthly letter, the server aggregates) shows ONE figure in the workspace
+  currency, converting foreign-currency contracts with an ADMIN-SET, DATED
+  rate per currency; a contract's own page still states its own currency
+  beside its amount; a currency with NO rate on file is never guessed — its
+  contracts are left out of the converted figure and the leaving-out is said
+  where the figure is shown. Signing caps and approval thresholds convert
+  with the same stored rate, and where none exists they err toward asking a
+  human, in words. Stored values are NEVER rewritten.
 - **W2-2 · The intake front door.** A colleague types what they need in
   plain words; AI picks the template (template advisor exists), pre-fills
   the blanks (blank-filler exists), routes a ready draft to an editor; the

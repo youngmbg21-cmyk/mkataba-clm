@@ -1092,14 +1092,14 @@ function aiPortfolioSnapshot(){
   const money=n=>(typeof fmtMoney==='function'?fmtMoney(n):`${jxCurrency()} `+Number(n||0).toLocaleString(jxLocale()));
   const byStatus=['Draft','Under Review','Signed','Declined']
     .map(st=>`${st}: ${cs.filter(c=>c.status===st).length}`).join(' · ');
-  const total=live.reduce((s,c)=>s+Number(c.value||0),0);
+  const total=live.reduce((s,c)=>s+(window.fxHomeValue?fxHomeValue(c):Number(c.value||0)),0);
   const exp=c=>(typeof effectiveExpiry==='function'?effectiveExpiry(c):c.expiry)||null;
   const dU=iso=>(typeof daysUntil==='function'?daysUntil(iso):null);
   const win=n=>live.filter(c=>{ const e=exp(c); if(!e) return false; const d=dU(e); return d!=null&&d>=0&&d<=n; });
   const streams=Object.values((typeof FOLDERS==='object'&&FOLDERS)||{})
     .map(f=>{ const in_=live.filter(c=>c.folder===f.id); return in_.length?`${f.name}: ${in_.length} (${money(in_.reduce((s,c)=>s+Number(c.value||0),0))})`:null; })
     .filter(Boolean).join(' · ');
-  const parties=[...live.reduce((m,c)=>{ const k=(c.counterparty||'').trim(); if(k) m.set(k,(m.get(k)||0)+Number(c.value||0)); return m; },new Map())]
+  const parties=[...live.reduce((m,c)=>{ const k=(c.counterparty||'').trim(); if(k) m.set(k,(m.get(k)||0)+(window.fxHomeValue?fxHomeValue(c):Number(c.value||0))); return m; },new Map())]
     .sort((a,b)=>b[1]-a[1]).slice(0,8).map(([k,v])=>`${k} ${money(v)}`).join(' · ');
   /* THROUGH obState, WHICH IS WHAT COMPLETION MEANS HERE. This read `!o.done`,
      and nothing in the product has ever written an obligation with a `done`

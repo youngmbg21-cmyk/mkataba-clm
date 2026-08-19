@@ -41,7 +41,7 @@ function hatiRecordMonthlySnapshot(){
     signed:cs.filter(c=>c.status==='Signed').length,
     underReview:cs.filter(c=>c.status==='Under Review').length,
     drafts:cs.filter(c=>c.status==='Draft').length,
-    totalValue:live.reduce((s,c)=>s+Number(c.value||0),0),
+    totalValue:live.reduce((s,c)=>s+(window.fxHomeValue?fxHomeValue(c):Number(c.value||0)),0),
     openOb:obs.length,
     overdueOb:obs.filter(o=>_obState(o)==='overdue').length,
     highRisk:(typeof contractRisk==='function')?cs.filter(c=>contractRisk(c)>=70).length:0 };
@@ -206,7 +206,7 @@ function buildHealthReportHtml(d, imgs){
   if(!d.prev) delta=`<p class="muted">${_hrEsc(t('hr_delta_first'))}</p>`;
   else{
     const p=d.prev;
-    const live=d.live.reduce((s,c)=>s+Number(c.value||0),0);
+    const live=d.live.reduce((s,c)=>s+(window.fxHomeValue?fxHomeValue(c):Number(c.value||0)),0);
     const dv=live-(p.totalValue||0);
     const bits=[
       _hrDelta(d.cs.length-p.total,true,_hrEsc(t('hr_d_contracts'))),

@@ -2883,7 +2883,8 @@ function ktReadValue(c,key){
     :`<span class="kt-none" data-kt-none="1">${i18t('ct_pick_a_date')}</span>`;
   if(key==='counterparty') return c.counterparty?esc(c.counterparty):dash;
   if(key==='cpEmail') return c.counterpartyEmail?esc(c.counterpartyEmail):dash;
-  if(key==='value') return `<span style="font-family:var(--font-mono)">${isMonetary(c)?(c.value?fmtMoney(c.value):dash):`<span class="kt-none">${i18t('ct_non_monetary')}</span>`}</span>`;
+  // W2-1: a contract states its OWN currency; only REPORTING converts
+  if(key==='value') return `<span style="font-family:var(--font-mono)">${isMonetary(c)?(c.value?(window.fmtMoneyOf?fmtMoneyOf(c):fmtMoney(c.value)):dash):`<span class="kt-none">${i18t('ct_non_monetary')}</span>`}</span>`;
   if(key==='effDate') return day(c.fields&&c.fields.effDate);
   if(key==='expiry') return day(c.expiry);
   return '';
@@ -2996,7 +2997,7 @@ function ktTermsRowsHtml(c,opts={}){
      reader was getting wrong. Same data-kt-none marker, so everything that
      keys off empty (the dashed border, the cue, ktIsEmptyRead) is unchanged. */
   const dashDate=`<span class="kt-none" data-kt-none="1">${i18t('ct_pick_a_date')}</span>`;
-  const money=isMonetary(c)?(c.value?fmtMoney(c.value):dash):`<span class="kt-none">${i18t('ct_non_monetary')}</span>`;
+  const money=isMonetary(c)?(c.value?(window.fmtMoneyOf?fmtMoneyOf(c):fmtMoney(c.value)):dash):`<span class="kt-none">${i18t('ct_non_monetary')}</span>`;
   const day=v=>v?esc((window.fmtDocDate&&fmtDocDate(v))||v):dashDate;
   const tmpl=c.template?((window.TEMPLATES&&TEMPLATES[c.template]&&TEMPLATES[c.template].name)||c.template)
     :(isUpload(c)?'Uploaded document':'');
@@ -4560,7 +4561,7 @@ function roomHeadHtml(c,opts={}){
               property of window — the trap THE MAP records against currentUser
               and friends. A bare call from a stage that has not loaded that
               file is a ReferenceError that takes the whole head down. */}${
-        (typeof fmtMoney==='function'&&Number(c.value)>0)?' · '+esc(fmtMoney(c.value)):''}${
+        (typeof fmtMoney==='function'&&Number(c.value)>0)?' · '+esc(window.fmtMoneyOf?fmtMoneyOf(c):fmtMoney(c.value)):''}${
         c.lastAction?' · '+i18t('ct_updated_on',{when:esc(c.lastAction)}):''}</div>
     </div>
     <div class="room-acts">
@@ -5326,7 +5327,7 @@ function syncKeyTermsUI(c, source){
   const cp=document.getElementById('meta-cp'); if(cp) cp.textContent=c.counterparty||'—';
   const mv=document.getElementById('meta-value');
   if(mv){
-    mv.textContent=!isMonetary(c)?'Non-monetary':(c.value?fmtMoney(c.value)+(c.valueType==='estimated'?' (est.)':''):'—');
+    mv.textContent=!isMonetary(c)?'Non-monetary':(c.value?(window.fmtMoneyOf?fmtMoneyOf(c):fmtMoney(c.value))+(c.valueType==='estimated'?' (est.)':''):'—');
     mv.classList.add('text-brand-500'); setTimeout(()=>mv.classList.remove('text-brand-500'),250);
   }
 }

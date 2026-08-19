@@ -66,7 +66,7 @@ function wkRecordSnapshot(){
   const live=cs.filter(c=>c.status!=='Declined'&&!c.archived);
   const find=c=>(c.scan&&typeof openFindings==='function')?openFindings(c).length:0;
   const snap={ week:wkKey(), at:new Date().toISOString(),
-    contracts:live.length, value:live.reduce((a,c)=>a+Number(c.value||0),0),
+    contracts:live.length, value:live.reduce((a,c)=>a+(window.fxHomeValue?fxHomeValue(c):Number(c.value||0)),0),
     findings:live.reduce((a,c)=>a+find(c),0),
     uncategorised:live.filter(c=>!((c.metadata||{}).category)).length,
     expiringSoon:live.filter(c=>{ const e=(typeof effectiveExpiry==='function'?effectiveExpiry(c):c.expiry);
@@ -85,7 +85,7 @@ function weeklyData(){
   const live=cs.filter(c=>c.status!=='Declined'&&!c.archived);
   const money=n=>(typeof fmtMoneyShort==='function')?fmtMoneyShort(n):String(n);
   const canSee=(typeof canViewValues!=='function')||canViewValues();
-  const val=c=>canSee?Number(c.value||0):0;
+  const val=c=>canSee?(window.fxHomeValue?fxHomeValue(c):Number(c.value||0)):0;
   const exp=c=>(typeof effectiveExpiry==='function'?effectiveExpiry(c):null)||(c.metadata&&c.metadata.expiryDate)||c.expiry||null;
   const dTo=iso=>(iso&&typeof daysUntil==='function')?daysUntil(iso):null;
   const finds=c=>(c.scan&&typeof openFindings==='function')?openFindings(c):[];

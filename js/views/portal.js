@@ -4438,13 +4438,13 @@ function metrics(){
   const active=cs.filter(c=>c.status!=='Declined'&&!gone(c));
   const expired=cs.filter(gone);
   return {
-    totalValue:active.reduce((s,c)=>s+Number(c.value||0),0),
+    totalValue:active.reduce((s,c)=>s+(window.fxHomeValue?fxHomeValue(c):Number(c.value||0)),0),
     pending:cs.filter(c=>c.status==='Under Review').length,
     signed:cs.filter(c=>c.status==='Signed').length,
     declined:cs.filter(c=>c.status==='Declined').length,
     drafts:cs.filter(c=>c.status==='Draft').length,
     expired:expired.length,
-    expiredValue:expired.reduce((s,c)=>s+Number(c.value||0),0),
+    expiredValue:expired.reduce((s,c)=>s+(window.fxHomeValue?fxHomeValue(c):Number(c.value||0)),0),
   };
 }
 async function refreshStats(){

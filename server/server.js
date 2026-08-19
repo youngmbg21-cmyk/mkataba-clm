@@ -9,7 +9,8 @@ const express = require('express');
    signature rests on. Required from js/jurisdiction.js rather than restated
    here: a second copy would drift from the browser's the first time either
    moved, and the two would then describe different markets to the same model. */
-const { jxPack, JX_DEFAULT, JURISDICTIONS } = require('../js/jurisdiction.js');
+const { jxPack, JX_DEFAULT, JURISDICTIONS,
+  fxSetRatesReader, fxSetHomeReader, fxHome, fxHomeValue, fxMissing, contractCurrency } = require('../js/jurisdiction.js');
 /* One dictionary, two hosts. The server writes email and needs the recipient's
    own language from the SAME table the screens use — a second copy here would
    drift from js/i18n.js without anything noticing, which is the fault the
@@ -39,6 +40,12 @@ const tFor = (lang, key, vars) => {
   return vars ? String(s).replace(/\{(\w+)\}/g, (m, k) => (vars[k] == null ? m : String(vars[k]))) : s;
 };
 const orgJx = () => jxPack(((typeof getSetting === 'function' && getSetting('org')) || {}).jurisdiction || JX_DEFAULT);
+/* MONEY IN ITS OWN CURRENCY (W2-1): the conversion arithmetic lives ONCE in
+   js/jurisdiction.js and the server injects its own data sources — the
+   stored rates and the org's own market currency — so the server's figures
+   and the screens' can never drift apart on the formula. */
+fxSetRatesReader(() => ((typeof getSetting === 'function' && getSetting('appSettings')) || {}).fxRates || {});
+fxSetHomeReader(() => orgJx().currency);
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
@@ -2191,17 +2198,38 @@ app.get('/api/stats', auth, (req, res) => {
      reminder sweep uses; a value that is no kind of date means "we do not know
      when this ends", which is not a claim that it has ended. */
   const today = isoDay(new Date());
-  const signed = db.prepare(`SELECT expiry, value FROM contracts ${whereOf("status='Signed'", NOT_ARCH, f.sql)}`).all(...f.args);
+  /* ---- ONE FIGURE, IN THE WORKSPACE CURRENCY (W2-1, owner-ruled) ----
+     The SQL sums above add the raw numbers, which is only true while every
+     contract is in the workspace currency. The money figures are therefore
+     RE-SUMMED here over the records, converting each foreign contract with
+     the admin's dated rate — the same fxHome the screens and the monthly
+     letter call, so no surface can drift. A currency with no rate on file is
+     LEFT OUT, and `fxMissing` rides back so the dashboard can say so rather
+     than quietly under-reporting. Read in JS for the same reason the expiry
+     loop below already is: the fact lives in the record, not a column. */
+  const valued = db.prepare(`SELECT id, folder, status, expiry, value, json FROM contracts ${w}`).all(...f.args)
+    .map(r => { let c = {}; try { c = JSON.parse(r.json) || {}; } catch (_) {} return { r, c }; });
+  let totalHome = 0; const folderHome = {};
+  for (const { r, c } of valued) {
+    if (r.status === 'Declined') continue;
+    const h = fxHome({ value: r.value, metadata: c.metadata });
+    totalHome += h.v;
+    folderHome[r.folder || ''] = (folderHome[r.folder || ''] || 0) + h.v;
+  }
+  g.totalValue = totalHome;
+  for (const row of byFolder) row.val = folderHome[row.folder || ''] || 0;
   let expired = 0, expiredValue = 0;
-  for (const r of signed) {
+  for (const { r, c } of valued) {
+    if (r.status !== 'Signed') continue;
     const day = dateOnly(r.expiry);
-    if (day && day < today) { expired++; expiredValue += Number(r.value) || 0; }
+    if (day && day < today) { expired++; expiredValue += fxHome({ value: r.value, metadata: c.metadata }).v; }
   }
   g.expired = expired;
   g.expiredValue = expiredValue;
+  g.fxMissing = fxMissing(valued.map(({ r, c }) => ({ ...c, value: r.value, status: r.status })));
   g.totalValue = Math.max(0, (Number(g.totalValue) || 0) - expiredValue);
   if (!canViewValues(req.user)) {
-    delete g.totalValue; delete g.expiredValue;
+    delete g.totalValue; delete g.expiredValue; delete g.fxMissing;
     return res.json({ ...g, byFolder: byFolder.map(({ val, ...rest }) => rest), valuesHidden: true });
   }
   res.json({ ...g, byFolder });
@@ -2214,20 +2242,39 @@ app.get('/api/analytics', auth, (req, res) => {
   const money = canViewValues(req.user);
   const f = scopeFrag(scope);
   const w = whereOf(NOT_ARCH, f.sql);
-  const byStatus = db.prepare(`SELECT status, COUNT(*) n, COALESCE(SUM(value),0) val FROM contracts ${w} GROUP BY status`).all(...f.args);
-  const byFolder = db.prepare(`SELECT folder, COUNT(*) n, COALESCE(SUM(CASE WHEN status!='Declined' THEN value ELSE 0 END),0) val FROM contracts ${w} GROUP BY folder ORDER BY val DESC`).all(...f.args);
-  const byParty = db.prepare(`SELECT counterparty, COUNT(*) n, COALESCE(SUM(CASE WHEN status!='Declined' THEN value ELSE 0 END),0) val
-      FROM contracts ${whereOf("counterparty!=''", NOT_ARCH, f.sql)} GROUP BY counterparty ORDER BY val DESC LIMIT 12`).all(...f.args);
+  /* W2-1: the COUNTS stay in SQL (fast, and a count needs no currency); every
+     MONEY figure is grouped in JS over the records so each foreign contract
+     converts with the admin's dated rate — the same fxHome the dashboard and
+     the monthly letter use. A currency with no rate is left out and named in
+     `fxMissing`, never silently dropped. */
+  const recs = db.prepare(`SELECT id, folder, status, counterparty, expiry, value, json FROM contracts ${w}`).all(...f.args)
+    .map(r => { let c = {}; try { c = JSON.parse(r.json) || {}; } catch (_) {} return { r, c, home: fxHome({ value: r.value, metadata: c.metadata }).v }; });
+  const roll = (keyOf, liveOnly) => {
+    const m = new Map();
+    for (const x of recs) {
+      if (liveOnly && x.r.status === 'Declined') continue;
+      const k = keyOf(x); if (k == null || k === '') continue;
+      const cur = m.get(k) || { n: 0, val: 0 };
+      cur.n++; cur.val += x.home; m.set(k, cur);
+    }
+    return m;
+  };
+  const byStatus = [...roll(x => x.r.status, false)].map(([status, v]) => ({ status, ...v }));
+  const byFolder = [...roll(x => x.r.folder, true)].map(([folder, v]) => ({ folder, ...v })).sort((a, b) => b.val - a.val);
+  const byParty = [...roll(x => (x.r.counterparty || '').trim(), true)]
+    .map(([counterparty, v]) => ({ counterparty, ...v })).sort((a, b) => b.val - a.val).slice(0, 12);
   // renewal pipeline: active value (or, without the right, contract count)
   // expiring in each of the next 12 months
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  const rows = db.prepare(`SELECT expiry, value FROM contracts ${whereOf("expiry IS NOT NULL", "status!='Declined'", NOT_ARCH, f.sql)}`).all(...f.args);
   const pipeline = {}, pipelineCount = {};
-  for (const r of rows) {
-    const d = new Date(r.expiry + 'T00:00:00'); const months = (d.getFullYear() - today.getFullYear()) * 12 + (d.getMonth() - today.getMonth());
+  for (const x of recs) {
+    if (x.r.status === 'Declined' || !x.r.expiry) continue;
+    const d = new Date(x.r.expiry + 'T00:00:00');
+    if (isNaN(d.getTime())) continue;
+    const months = (d.getFullYear() - today.getFullYear()) * 12 + (d.getMonth() - today.getMonth());
     if (months >= 0 && months < 12) {
-      const k = r.expiry.slice(0, 7);
-      pipeline[k] = (pipeline[k] || 0) + (Number(r.value) || 0);
+      const k = String(x.r.expiry).slice(0, 7);
+      pipeline[k] = (pipeline[k] || 0) + x.home;
       pipelineCount[k] = (pipelineCount[k] || 0) + 1;
     }
   }
@@ -2236,7 +2283,8 @@ app.get('/api/analytics', auth, (req, res) => {
     byFolder: byFolder.map(({ val, ...rest }) => rest),
     byParty: byParty.map(({ val, ...rest }) => rest),
     pipelineCount, valuesHidden: true });
-  res.json({ byStatus, byFolder, byParty, pipeline, pipelineCount });
+  res.json({ byStatus, byFolder, byParty, pipeline, pipelineCount,
+    fxMissing: fxMissing(recs.map(x => ({ ...x.c, value: x.r.value, status: x.r.status }))) });
 });
 
 // Paginated, filterable, searchable list of SUMMARY rows (heavy fields stripped).
@@ -2811,7 +2859,21 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
          The larger of the two rather than the stored one alone, because a save
          may legitimately RAISE the value in the same breath as signing, and a
          cap that only ever looked backwards would miss it. */
-      const value = Math.max(Number((prev && prev.value) || 0), Number(c.value || 0));
+      const raw = Math.max(Number((prev && prev.value) || 0), Number(c.value || 0));
+      /* ---- AND IN THE SAME CURRENCY AS THE LIMIT (W2-1) ----
+         The cap is written in the workspace currency. The currency comes off
+         the STORED record where there is one — the same reason the value does:
+         it is the half the person being capped does not get to restate on the
+         way past. No rate on file means the comparison cannot be made, and on
+         a signature an unanswerable question is refused, never waved through. */
+      const meta = (prev && prev.metadata) || (c && c.metadata) || {};
+      const conv = fxHome({ value: raw, metadata: meta });
+      if (cap.answered && cap.limit != null && conv.missing)
+        return res.status(403).json({
+          error: `This contract is in ${conv.code} and no exchange rate for it has been set, `
+            + 'so it cannot be measured against your signing limit. Ask an admin to set the rate.',
+          signCap: cap.limit, fxMissing: conv.code });
+      const value = conv.v;
       if (cap.answered && cap.limit != null && value > cap.limit)
         return res.status(403).json({
           error: `This contract is ${value} and your signing limit is ${cap.limit}. `
@@ -3140,8 +3202,35 @@ app.put('/api/settings', auth, admin, (req, res) => {
   const stoSF = (stored.signFolders && typeof stored.signFolders === 'object') ? stored.signFolders : null;
   if (stoSF && stoSF.by && !(incSF && 'by' in incSF))
     incoming.signFolders = { ...(incSF || {}), by: stoSF.by };
+  /* fxRates (W2-1) gets the same protection and for a sharper reason: a stale
+     blob save that silently reverted an exchange rate would move every
+     converted figure in the workspace. The rates change only through their
+     own atomic endpoint below. */
+  if (!('fxRates' in incoming) && 'fxRates' in stored) incoming.fxRates = stored.fxRates;
   setSetting('appSettings', incoming);
   res.json({ ok: true });
+});
+/* W2-1: the one place the exchange rates change — read-modify-write of just
+   that key. A rate is a CLAIM WITH A DATE: {code: {rate, at}}, rate being how
+   many units of the workspace currency one unit of the foreign one is worth,
+   `at` stamped here so every converted figure can say when its rate was set.
+   rate null/0 removes the entry (back to "no rate on file" honesty). */
+app.put('/api/settings/fx-rates', auth, admin, (req, res) => {
+  const { code, rate } = req.body || {};
+  const cc = String(code || '').trim().toUpperCase();
+  if (!/^[A-Z]{3}$/.test(cc)) return res.status(400).json({ error: 'code must be a three-letter currency code' });
+  if (cc === orgJx().currency) return res.status(400).json({ error: 'That is the workspace currency — it needs no rate' });
+  const stored = getSetting('appSettings') || {};
+  const rates = { ...(stored.fxRates || {}) };
+  if (rate == null || Number(rate) === 0) delete rates[cc];
+  else {
+    const n = Number(rate);
+    if (!(n > 0) || !isFinite(n)) return res.status(400).json({ error: 'rate must be a number greater than zero' });
+    rates[cc] = { rate: n, at: now().slice(0, 10) };
+  }
+  stored.fxRates = rates;
+  setSetting('appSettings', stored);
+  res.json({ ok: true, fxRates: rates });
 });
 /* H-3: the one place folderAccess changes — a server-side read-modify-write of
    just that key, so it cannot be clobbered by a concurrent full-blob save. Send
@@ -8180,7 +8269,15 @@ function buildMonthlyReport(month) {
   const parsed = parsedAll.filter(x => !x.c.archived);
   const rows = parsed.map(x => x.r);
   const active = rows.filter(r => r.status !== 'Declined');
-  const totalValue = active.reduce((s, r) => s + (Number(r.value) || 0), 0);
+  /* W2-1: the letter reports ONE figure in the workspace currency. A foreign
+     contract is converted with the admin's dated rate; one with no rate on
+     file is left out and the letter says so rather than quietly under-
+     reporting. byId carries the record, because the currency lives on the
+     contract's metadata and the row only has the number. */
+  const byId = new Map(parsed.map(x => [x.r.id, x.c]));
+  const homeOf = r => fxHome({ value: r.value, metadata: (byId.get(r.id) || {}).metadata });
+  const totalValue = active.reduce((s, r) => s + homeOf(r).v, 0);
+  const fxLeftOut = fxMissing(active.map(r => ({ ...byId.get(r.id), value: r.value, status: r.status })));
   const byStatus = {};
   for (const r of active) byStatus[r.status] = (byStatus[r.status] || 0) + 1;
 
@@ -8226,6 +8323,9 @@ function buildMonthlyReport(month) {
     'PORTFOLIO TODAY',
     `  Active contracts: ${active.length} (${statusLine})`,
     `  Total value on the book: ${money(totalValue)}`,
+    ...(Object.keys(fxLeftOut).length
+      ? [`  (not included — no exchange rate on file: ${Object.keys(fxLeftOut).sort().map(k => `${fxLeftOut[k]} × ${k}`).join(', ')})`]
+      : []),
     '',
     `MOVED IN ${mrMonthName(month).toUpperCase()}`,
     `  New contracts: ${created} · Signed: ${signed}`,

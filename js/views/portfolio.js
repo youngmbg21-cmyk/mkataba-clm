@@ -46,7 +46,7 @@ const pfMoneyOk = () => (typeof canViewValues!=='function') || canViewValues();
 const pfWeight = c => {
   if(!pfMoneyOk()) return 1;
   if(typeof isMonetary==='function' && !isMonetary(c)) return 0;
-  return Number(c.value||0);
+  return (window.fxHomeValue?fxHomeValue(c):Number(c.value||0));
 };
 const pfSum = cs => cs.reduce((a,c)=>a+pfWeight(c),0);
 const pfMoney = n => pfMoneyOk()

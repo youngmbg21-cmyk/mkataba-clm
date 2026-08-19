@@ -49,7 +49,7 @@ function pipeColumnInner(col, list){
 }
 function renderPipeline(){
   const cs=state.contracts;
-  const valOf=arr=>arr.reduce((s,c)=>s+Number(c.value||0),0);
+  const valOf=arr=>arr.reduce((s,c)=>s+(window.fxHomeValue?fxHomeValue(c):Number(c.value||0)),0);
   const groups=PIPE_COLS.map(col=>{ const list=cs.filter(c=>c.status===col.k); return {col, list, val:valOf(list)}; });
 
   const columnsHtml=groups.map(g=>`

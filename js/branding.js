@@ -371,7 +371,7 @@ function brGlanceFacts(c) {
   const facts = [];
   const money = typeof window !== 'undefined' && window.isMonetary && window.fmtMoney;
   if (c.counterparty) facts.push(['Counterparty', c.counterparty]);
-  if (money && isMonetary(c) && c.value) facts.push(['Contract value', fmtMoney(c.value)]);
+  if (money && isMonetary(c) && c.value) facts.push(['Contract value', (typeof fmtMoneyOf==='function'?fmtMoneyOf(c):fmtMoney(c.value))]);
   const eff = c.effectiveDate || (c.fields && c.fields.effDate);
   if (eff) facts.push(['Effective date', String(eff)]);
   if (c.expiry) facts.push(['Expires', String(c.expiry)]);

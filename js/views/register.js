@@ -44,7 +44,7 @@ function renderFolder(){
   if(!f){ setView('dashboard'); return; }
   state.folderShown=FOLDER_PAGE; state.folderSel={};   // fresh selection on entry
   const cs=folderFiltered();
-  const val=cs.filter(c=>c.status!=='Declined').reduce((s,c)=>s+Number(c.value||0),0);
+  const val=cs.filter(c=>c.status!=='Declined').reduce((s,c)=>s+(window.fxHomeValue?fxHomeValue(c):Number(c.value||0)),0);
   const sortOpts=visibleSorts(FOLDER_SORTS).map(s=>`<option value="${s.k}" ${(state.folderSort||'updated')===s.k?'selected':''}>${s.label}</option>`).join('');
 
   /* A select left on `appearance:auto` is drawn by the platform, and the
@@ -711,7 +711,8 @@ function regRowsHtml(cs){
        the trailing ones are only reachable here, after the last row. */
     + bandsAfter();
 }
-function regAggregate(cs){ return cs.filter(c=>c.status!=='Declined'&&!c.archived&&isMonetary(c)).reduce((s,c)=>s+Number(c.value||0),0); }
+// W2-1: converted to the workspace currency, so one column total is one currency
+function regAggregate(cs){ return cs.filter(c=>c.status!=='Declined'&&!c.archived&&isMonetary(c)).reduce((s,c)=>s+(window.fxHomeValue?fxHomeValue(c):Number(c.value||0)),0); }
 function renderRegisterBody(){
   const cs=regFiltered();
   /* The stagger intro belongs to arriving at the page; this body re-renders on

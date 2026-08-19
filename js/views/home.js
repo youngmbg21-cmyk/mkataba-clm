@@ -312,7 +312,11 @@ function hmDashSlices(){
   const money=kpiMoneyOk();
   const m=metrics();
   const countAll=(state.serverStats&&state.serverStats.total!=null)?state.serverStats.total:cs.length;
-  const valOf=arr=>arr.reduce((s,c)=>s+Number(c.value||0),0);
+  /* W2-1: every dashboard figure is ONE currency — the workspace's — with
+     each foreign contract converted at the admin's dated rate (fxHomeValue).
+     A currency with no rate is left out and hmDashSlices carries fxMissing
+     so the card can say so. */
+  const valOf=arr=>arr.reduce((s,c)=>s+(window.fxHomeValue?fxHomeValue(c):Number(c.value||0)),0);
   const dU=window.daysUntil||(iso=>Math.ceil((new Date(iso+'T00:00:00')-Date.now())/86400000));
   const idleOf=c=>{ const t=Date.parse(c.lastAction); return isNaN(t)?0:Math.max(0,Math.floor((Date.now()-t)/86400000)); };
 
@@ -451,7 +455,17 @@ function hmDashSlices(){
   const myStaleDesks=(window.deskStaleInboxFor?deskStaleInboxFor(cs, me):[]);
   const KPI_CATALOG={
     under_mgmt:  {label:KPI_META.under_mgmt,   val:Number(countAll).toLocaleString(jxLocale()),        delta:i18t('home_new_this_week',{n:newThisWeek}),                                    sub:stageSub, grad:G.steel, ic:'building', go:{stage:'all'}},
-    active_value:{label:KPI_META.active_value, val:fmtMoneyShort(m.totalValue),                        delta:i18t('home_executed',{n:Number(m.signed||0).toLocaleString(jxLocale())}),       sub:i18t('home_across_agreements',{n:agreementsIn(cs).length.toLocaleString(jxLocale())}), grad:G.green, ic:'coins',    go:{stage:'all',sort:'value'}},
+    /* W2-1: the figure is ONE currency, and where a foreign contract could not
+       be converted the card SAYS SO instead of quietly under-reporting — the
+       sub-line carries the count and the codes. A silent trim on a money
+       headline is the worst version of the fault this product already refuses
+       for charts. */
+    active_value:{label:KPI_META.active_value, val:fmtMoneyShort(m.totalValue),                        delta:i18t('home_executed',{n:Number(m.signed||0).toLocaleString(jxLocale())}),       sub:(()=>{
+      const miss=(window.fxMissing?fxMissing(cs):{}), codes=Object.keys(miss).sort();
+      if(codes.length){ const n=codes.reduce((s,k)=>s+miss[k],0);
+        return i18tn('fx_left_out',n,{n,codes:codes.join(', ')}); }
+      return i18t('home_across_agreements',{n:agreementsIn(cs).length.toLocaleString(jxLocale())});
+    })(), grad:G.green, ic:'coins',    go:{stage:'all',sort:'value'}},
     awaiting:    {label:KPI_META.awaiting,     val:Number(awaitingCount).toLocaleString(jxLocale()),    delta:i18t('home_stalled',{n:stalled}),                                     sub:API_MODE()?i18t('home_out_with_cp'):i18t('home_shares_need_server'), grad:G.amber, ic:'clock',    go:{stage:'awaiting'}},
     approvals:   {label:KPI_META.approvals,    val:Number(myApprovals.length).toLocaleString(jxLocale()), delta:myApprovals.length?i18t('home_action_required'):i18t('home_all_clear'),            sub:myApprovals.length?i18t('home_waiting_split',{mine:apprMineN,others:myApprovals.length-apprMineN}):i18t('home_no_chain_open'), grad:G.amber, ic:'clock', go:{stage:'Under Review'}},
     compliance:  {label:KPI_META.compliance,   val:`${compliancePct}%`,                              delta:REG_PROFILE[state.region]||REG_PROFILE.KE,                      sub:i18t('home_clean_of_live',{clean,live:live.length}), grad:compliancePct>=90?G.green:compliancePct>=70?G.amber:G.ruby, ic:'shield', go:{stage:'all',sort:'risk'}},

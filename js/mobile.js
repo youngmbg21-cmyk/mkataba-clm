@@ -643,6 +643,9 @@ function mMoney(c){
   if(typeof canViewValues==='function' && !canViewValues()) return '';
   const v = Number((c&&c.value)||0);
   if(!v) return '—';
+  // W2-1: the row states the contract's own currency; the dashboards convert
+  if(typeof contractCurrency==='function' && typeof fxHomeCode==='function' && contractCurrency(c)!==fxHomeCode())
+    return `${contractCurrency(c)} ${v.toLocaleString()}`;
   return typeof fmtMoneyShort==='function' ? fmtMoneyShort(v) : String(v);
 }
 

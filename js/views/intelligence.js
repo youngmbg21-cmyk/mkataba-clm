@@ -30,7 +30,7 @@ function buildGraph(){
   state.contracts.forEach(c=>{ if(!c.counterparty) return;
     (parties[c.counterparty]||(parties[c.counterparty]=[])).push(c); });
   Object.entries(parties).forEach(([name,cs])=>{
-    const val=cs.filter(x=>x.status!=='Declined'&&!x.archived).reduce((s,x)=>s+Number(x.value||0),0);
+    const val=cs.filter(x=>x.status!=='Declined'&&!x.archived).reduce((s,x)=>s+(window.fxHomeValue?fxHomeValue(x):Number(x.value||0)),0);
     nodes.push({ id:'p:'+name, type:'party', party:name, cs, label:trunc(name), sub:cs.length+' deal'+(cs.length===1?'':'s')+' \u00b7 '+fmtMoneyShort(val),
       kind:'party', bar:'#2c455d', w:0,h:0,x:0,y:0 });
     cs.forEach(c=>edges.push({from:c.id, to:'p:'+name, label:'party to'}));
@@ -1399,7 +1399,7 @@ function openPartyModal(name){
   layoutGraph(nodes, edges, W, H);
   state.mapPos=savedPos;
 
-  const val=own.filter(x=>x.status!=='Declined'&&!x.archived).reduce((s,x)=>s+Number(x.value||0),0);
+  const val=own.filter(x=>x.status!=='Declined'&&!x.archived).reduce((s,x)=>s+(window.fxHomeValue?fxHomeValue(x):Number(x.value||0)),0);
   modal.innerHTML=`
   <div class="view-enter bg-white rounded-2xl border border-brand-100 shadow-2xl shadow-brand-900/25 overflow-hidden">
     <div class="flex items-center gap-3 px-5 py-4 border-b border-brand-100/60">
