@@ -3333,3 +3333,57 @@ yourself. The test file carries its own RFC 6238 generator, so the server
 is checked against the standard and never against its own arithmetic. The
 People-page rescue button and any workspace-wide "require two-step" policy
 are Phase 2, named in the order.
+
+## MONEY IN ITS OWN CURRENCY (W2-1, 19 Aug 2026)
+
+The gap map listed mixed currencies as a Phase 2 item and left the design
+question open: per-currency totals only, or one combined figure at a dated
+rate? The owner ruled the same day — "i would want for the contract to be
+converted to local currency when it comes to reporting so the dashboards or
+reporting have one currency" — which is the harder of the two options and
+the more useful one, and it settled everything downstream.
+
+The fault it fixes was quiet and total: `metadata.currency` had existed for
+as long as the AI extractor had been filling it in, and NOTHING read it.
+Every sum in the product added the raw number, so a dollar contract in a
+Nairobi workspace contributed its face value in shillings to the headline
+figure, the stream totals, the insights charts, the renewal pipeline, the
+monthly letter and the server's own aggregates. A wrong number wearing a
+right number's clothes.
+
+The design turns on one split: **a contract states its own currency, and
+reporting converts.** Everything a reader sees about ONE agreement — its
+page, its row, its phone card, the branding fact sheet — prints the code
+the paper is written in; everything that ADDS agreements up converts to the
+workspace currency first. That split is what makes the feature honest
+rather than merely consistent: nobody is ever shown a converted number
+where they expect the contract's own, and no total ever mixes.
+
+Three rules did the real work. FIRST, one arithmetic for two hosts: the
+conversion lives in js/jurisdiction.js and the server injects its own
+readers at boot rather than keeping a twin — this codebase has been bitten
+by client/server copies of one formula often enough that a money version
+was not worth risking. SECOND, no rate is ever guessed: a foreign currency
+with no rate on file is left OUT of converted figures and the omission is
+carried back as data (fxMissing) so the dashboard's own value card can say
+"1 contract left out — no exchange rate for USD" instead of quietly
+under-reporting; silent trimming on a money headline is the fault the
+insights panels were rebuilt to prevent. THIRD, the rate is an admin's
+claim with a date, never a live feed — a figure that moves by itself,
+sourced from a service nobody in the workspace controls, is one no admin
+can stand behind in a board meeting; f218 greps for rate-API hostnames to
+keep that decision from eroding.
+
+The sharpest part was the guards. A signing limit and an approval threshold
+are both written in the workspace currency, so comparing a dollar
+contract's raw number against them is a lie in whichever direction the
+rates happen to run. Both convert now — and the unconvertible case is
+deliberately NOT a pass: the signing cap refuses in words and names the
+missing rate, and the approval rule engages rather than skipping. On money,
+an unanswerable question errs toward the human. The server's wall reads the
+currency off the STORED record for the same reason it already read the
+value there: it is the half the person being capped does not get to restate
+on the way past.
+
+Nothing stored was rewritten, no migration ran, and a workspace that has
+only ever used one currency reads exactly as it did the day before.

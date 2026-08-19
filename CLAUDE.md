@@ -170,6 +170,20 @@ Strategy report first (the HaTi Gap Map), one work order, six builds on the over
 
 NOT DONE WITH THEM, said out loud: browser-verify files for the new pixels (the Checks row rides machinery three browser-proven rows already use; a contract-brief/archive-shelf/two-step browser pass is the first item of the next run), and everything Phase 2+ in the work order.
 
+## MONEY IN ITS OWN CURRENCY (W2-1, owner-ruled 19 Aug 2026)
+
+"I would want for the contract to be converted to local currency when it comes to reporting so the dashboards or reporting have one currency." Before this every amount was SUMMED as though it were the workspace currency — a USD 40,000 contract added 40,000 shillings to the headline.
+
+THE SPLIT IS THE WHOLE DESIGN: **a contract states its OWN currency; REPORTING converts.** The contract's page, its register row, its phone card and the branding facts print `fmtMoneyOf(c)` (its own code); every figure that ADDS contracts up converts through `fxHomeValue`.
+
+- ONE ARITHMETIC, TWO HOSTS — js/jurisdiction.js holds it and the SERVER INJECTS ITS DATA (`fxSetRatesReader` / `fxSetHomeReader` at boot, reading the stored rates and orgJx().currency). A client/server twin of a money formula is the recorded defect class; f218 greps that the server keeps no copy.
+- `contractCurrency(c)` is the ONE reading: a real three-letter code on `metadata.currency` wins, anything else (blank, prose, a typo) falls back to the workspace currency — which is exactly the old behaviour, so NO existing book moves and there is no migration.
+- **NO RATE IS EVER GUESSED.** `fxHome(c)` answers `{v, code, converted, missing}`; missing = a foreign currency with no rate on file, and the caller LEAVES IT OUT and SAYS SO. `fxMissing(list)` is the reportable omission ({code: count}) and it rides `/api/stats` and `/api/analytics`; the dashboard's value card prints `fx_left_out_one/_other` in place of its usual sub-line. A silent trim on a money headline is the fault the insights panels were rebuilt to stop.
+- THE RATE IS AN ADMIN'S CLAIM WITH A DATE — `{code:{rate, at}}` under `appSettings.fxRates`, written ONLY by `PUT /api/settings/fx-rates` (admin), stamped with the day, and PRESERVED through an ordinary settings save exactly as folderAccess and signFolders.by are: a stale blob that reverted a rate would move every figure in the workspace. **Never a live feed** — f218 greps for rate-API hostnames; a headline that moves by itself is a number no admin can stand behind. Panel: Platform → Company & market, beside the market that decides which currency is home.
+- THE GUARDS COMPARE LIKE WITH LIKE. signCapBlocker and the server's signing wall convert first (the server reads the currency off the STORED record, like the value beside it — the audit lesson); `cond.type==='value'` in buildApprovalChain converts too. **The unconvertible case is not a pass:** the cap REFUSES in words (`sc_block_norate`) and the approval rule ENGAGES (`return true`), because on money an unanswerable question errs toward the human.
+- STORED VALUES ARE NEVER REWRITTEN, and the executed record, the evidence pack and the document itself state the amount exactly as the paper does.
+Tests: f218 (20).
+
 ## "SENT" MUST MEAN SENT (14 Aug 2026 — the re-audit's second pass, owner-asked: "fix the email")
 
 THE FIRST AUDIT SAID IT HAD NOT COVERED REAL OUTBOUND EMAIL, and that absence was the finding. Every test ran with email OFF, so the OUTBOX branch was the only branch any of them had ever taken — nothing had executed the code that talks to a provider, reads its refusal, or reports what it said. `startMailStub` / `startHatiWithMail` (test/helpers.js) close it: RESEND_BASE_URL is overridable exactly as ANTHROPIC_BASE_URL is, so the whole live path runs for real against a stand-in that records what it was handed and can be told to refuse (`ok` / `refuse` / `dead`). Nothing fires at anybody's inbox.
