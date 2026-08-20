@@ -878,8 +878,23 @@ const trackedNote=t=>(t&&(t.ins||t.del))
    Display-only: the text underneath is byte-identical to what is stored; the
    seal and every diff bind the text, never this presentation.
    Escapes its input — never pass HTML. */
+/* ---- THE READER'S TEXT SIZE REACHES READ-OUT TEXT TOO (owner-reported
+   20 Aug 2026: on an uploaded contract the A- / A+ stepper did not move the
+   wording) ----
+   The stepper writes --doc-scale, and the sheet's own body reads it through
+   `calc(13.5px * var(--doc-scale,1))` — so a template contract scales by
+   inheritance. Text READ OUT OF A FILE is laid out here instead, and every
+   block carried a bare pixel size, which overrides that inheritance: the
+   preference moved (measured: 0.6 to 1.33) and the words stayed at 13px.
+   Each size is now the same calc, so the one preference reaches both kinds of
+   document. NOTHING ELSE MOVES: --doc-scale is defined only on the document
+   surfaces and the negotiation page's roots, so every other caller — the
+   template library's preview, the migration preview, an export — resolves it
+   to 1 and renders exactly as before. */
 function documentTextHtml(text, {size='12.5px', lh='1.65'}={}){
   const esc=s=>String(s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+  /* One helper so the three sizes below cannot drift apart. */
+  const scaled=px=>`calc(${px}px * var(--doc-scale,1))`;
   const kind=window.docLineKind||(()=> 'text');
   const lines=String(text||'').split('\n');
   const isRuled=l=>/^\s*[|+]/.test(l)||/[|+]\s*$/.test(l)||/\S\s{4,}\S/.test(l);
@@ -888,7 +903,7 @@ function documentTextHtml(text, {size='12.5px', lh='1.65'}={}){
   const flush=()=>{
     if(!buf.length) return;
     if(bufRuled){
-      out.push(`<div class="doc-pre" style="font-family:var(--font-doc-mono),var(--font-mono);font-size:${parseFloat(size)-1.5}px;line-height:1.5;white-space:pre;overflow-x:auto;margin:8px 0">${esc(buf.join('\n'))}</div>`);
+      out.push(`<div class="doc-pre" style="font-family:var(--font-doc-mono),var(--font-mono);font-size:${scaled((parseFloat(size)-1.5).toFixed(2))};line-height:1.5;white-space:pre;overflow-x:auto;margin:8px 0">${esc(buf.join('\n'))}</div>`);
       buf=[]; return;
     }
     // one pre-wrap block per run of body lines; headings break the run and
@@ -900,7 +915,7 @@ function documentTextHtml(text, {size='12.5px', lh='1.65'}={}){
       if(k==='heading'){
         if(para.length&&kind(para[para.length-1].replace(/<[^>]*>/g,''))==='blank') para.pop();
         endPara();
-        paras.push(`<div style="font-weight:700;font-size:${hSize}px;letter-spacing:.01em;margin:${paras.length?'14px':'0'} 0 6px;white-space:pre-wrap">${esc(l)}</div>`);
+        paras.push(`<div style="font-weight:700;font-size:${scaled(hSize)};letter-spacing:.01em;margin:${paras.length?'14px':'0'} 0 6px;white-space:pre-wrap">${esc(l)}</div>`);
         if(i+1<buf.length&&kind(buf[i+1])==='blank') i++;
         continue;
       }
@@ -923,7 +938,7 @@ function documentTextHtml(text, {size='12.5px', lh='1.65'}={}){
   flush();
   // --color-doc-text is the app's ONE reading-ink (see index.html tokens) —
   // stated here so every caller, portal included, reads black, not grey
-  return `<div style="font-size:${size};line-height:${lh};color:var(--color-doc-text)">${out.join('')}</div>`;
+  return `<div style="font-size:${scaled(parseFloat(size))};line-height:${lh};color:var(--color-doc-text)">${out.join('')}</div>`;
 }
 
 /* The contract's working-text body, in whichever format it carries. Rich

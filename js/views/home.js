@@ -593,10 +593,14 @@ function renderDashboard(){
         <p>${heroLine}</p>
       </div>
       <span style="flex:1 1 auto;"></span>
-      <button id="kpi-customize" class="hm-banner-ghost" title="${i18t('home_choose_metrics')}">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
-        ${i18t('home_customize')}
-      </button>
+      ${''/* CUSTOMIZE HAS LEFT THIS BANNER (owner-asked 20 Aug 2026: "why did
+           you put customize inside the card?"). It was never a decision — it
+           lived on the retired KEY METRICS caption row, moved onto the
+           Portfolio strip when that row went, and rode along when the strip
+           became the banner. A quiet preference does not belong on the most
+           prominent surface in the app, competing with the one primary act:
+           it sits on its own thin line directly above the four cards it
+           edits. See kpiBarHtml. The banner keeps ONE act. */}
       <button id="hero-draft" class="hm-banner-cta">
         ${icon('plus','w-3.5 h-3.5',2)} ${i18t('home_draft_new')}
       </button>
@@ -887,6 +891,19 @@ function renderDashboard(){
          treatment): the cards say what they are, and Customize now sits on
          the Portfolio strip above. -->
     <section>
+      <!-- ---- THE THIN LINE THAT CARRIES CUSTOMIZE (owner-chose render A,
+           20 Aug 2026) ---- Right-aligned, because a way OUT of a row reads at
+           its end rather than at its start, and dressed as a quiet link rather
+           than a button: it is a small preference, and it matches the "View
+           full register →" links this page already uses. It is paid for by the
+           banner above, which lost the same height it takes — measured, so the
+           cards and everything below them do not move. -->
+      <div class="hm-kpi-bar">
+        <button id="kpi-customize" class="hm-cz" title="${i18t('home_choose_metrics')}">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+          ${i18t('home_customize_metrics')}
+        </button>
+      </div>
       <!-- The chosen count is what the row wants; minmax gives it a floor, so
            on a narrow window the cards wrap onto a second line instead of
            squeezing every label into 34px of a 92px word. -->
