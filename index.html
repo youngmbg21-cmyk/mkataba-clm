@@ -2145,8 +2145,19 @@
      buttons re-dress for the accent ground: ghost translucent white, the CTA
      the white primary with accent ink. */
   .hm-banner{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:20px 26px;color:#fff;
-    background:linear-gradient(120deg,var(--color-accent-700),var(--color-accent-500));
-    border:1px solid var(--color-accent-700);}
+    /* ---- IT STARTS AT THE SIDEBAR'S OWN COLOUR (owner-asked 20 Aug 2026) ----
+       It was a fixed navy taken from the render, so in a green workspace the
+       banner and the sidebar beside it were two different colours meeting at an
+       edge. The left stop IS --nav-bg now and the gradient lightens rightward
+       by mixing toward a neutral slate, which means the banner follows the
+       workspace (green, navy) and the dark theme for free, from one rule —
+       rather than a second colour somebody has to remember to keep in step.
+       The right-hand stop lands mid-tone, not pale: the two buttons sit there
+       and white-on-pale would not read. */
+    background:linear-gradient(100deg, var(--nav-bg) 0%,
+      color-mix(in srgb, var(--nav-bg) 80%, #93a4b5) 46%,
+      color-mix(in srgb, var(--nav-bg) 45%, #93a4b5) 100%);
+    border:1px solid var(--nav-bg);}
   .hm-banner-greet{font-size:12.5px;font-weight:600;color:rgba(255,255,255,.88);}
   .hm-banner h2{margin:6px 0 3px;font-size:27px;font-weight:700;letter-spacing:-.3px;
     font-family:var(--font-heading);color:#fff;}
@@ -2157,7 +2168,13 @@
     padding:9px 14px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;
     display:inline-flex;align-items:center;gap:6px;flex:none;}
   .hm-banner-ghost:hover{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.6);color:#fff;}
-  .hm-banner-cta{background:#fff;border:1px solid #fff;color:var(--color-accent-800);
+  /* WHITE, not the mockup's teal (owner-asked 20 Aug 2026). It is the one
+     primary act on this banner and white is the strongest thing there is on a
+     dark ground — the ghost button beside it stays outlined, so the two are
+     still told apart at a glance. Its INK is the sidebar's own colour, which
+     is what keeps it part of the workspace rather than a plain white slab,
+     and which follows the gradient this banner now starts from. */
+  .hm-banner-cta{background:#fff;border:1px solid #fff;color:var(--nav-bg);
     padding:10px 18px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;
     display:inline-flex;align-items:center;gap:7px;flex:none;}
   .hm-banner-cta:hover{background:rgba(255,255,255,.9);border-color:#fff;}

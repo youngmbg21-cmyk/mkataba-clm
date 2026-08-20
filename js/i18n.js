@@ -921,7 +921,10 @@ const STRINGS = {
     ct_they_said: 'They said:',
     ct_you_replied: 'You replied:',
     ct_document_preview: 'Document preview',
-    ct_reading_view: 'Reading view — text read out of the Word file',
+    /* A CAPTION NOW, NOT A LID (20 Aug 2026): the wording is drawn on the
+       sheet itself, so this says where the words came from in one quiet line
+       instead of heading a bordered box. */
+    ct_reading_view: 'Text read out of the Word file',
     ct_cant_preview: "This file type can't preview in the browser — download the original to review it.",
     ct_executed_outside: 'executed outside HaTi',
     ct_on_their_paper: ', on their own paper. Review it below, run the Copilot review, then sign to record',
@@ -1632,13 +1635,33 @@ const STRINGS = {
     br_watchouts: "Worth watching",
     br_unusual: "Unusual for this kind of contract",
     br_no_ai: "Copilot is not connected, so there is nothing to read the contract with — the brief needs it.",
+    /* The brief's own card in the Key terms column (owner-asked 20 Aug 2026). */
+    br_open: "Read the brief",
+    br_write: "Write the brief",
+    br_kt_sub: "A plain-English read of this contract — what it commits you to, the money, and what is worth watching.",
+    br_kt_none: "Not written yet. Copilot reads the wording and explains it in plain English.",
+    br_kt_none_viewer: "No brief has been written for this contract yet.",
     br_failed: "The brief could not be written.",
     /* ---- the renewal adviser (W2-4) ---- */
     rn_title: "Renewal",
     rn_auto: "Auto-renews",
     rn_decide_by: "Decide by {date} — {n} days away. You must give {notice} days' notice, and it ends {expiry}.",
     rn_expires_on: "Ends {date} — {n} days away.",
-    rn_missed: "The decision date was {date}, {n} days ago.",
+    rn_missed: "Decision date passed — {date}, {n} days ago.",
+    /* WHERE THE DATE CAME FROM, in the contract's own words where we have them
+       (owner-asked 20 Aug 2026: "state the contract says so and so"). A bare
+       date is a conclusion with every input hidden; these two lines name the
+       expiry it was counted back from and the notice period that was
+       subtracted, and quote the phrase that notice period was read out of. */
+    rn_from_quote: "Counted back from the expiry on file, {expiry}, less a {n}-day notice period read from your document:",
+    rn_from_terms: "Counted back from the expiry on file, {expiry}, less the {n}-day notice period recorded on Key terms.",
+    rn_fix_terms: "If that is not the notice period that governs renewal, correct it on Key terms and this recalculates.",
+    /* A DEADLINE OLDER THAN THE RECORD IS NOT A MISS — see renewalWindow. */
+    rn_before_filed: "The decision date was {date}, before this contract was filed here on {filed} — so nothing has been missed. Check the expiry and notice period on Key terms before acting on it.",
+    /* THE DATES ARE OURS AND NEVER FAIL; only the written advice can. */
+    rn_advice_failed: "The written advice could not be produced. The dates above are unaffected.",
+    rn_card_broken: "This card could not be drawn. Nothing on the contract has changed.",
+    rn_try_again: "Try again",
     rn_not_asked: "Copilot can weigh this up for you — the value, what was argued over last time, what the playbook flagged, and what is still owed.",
     rn_ask: "What should we do?",
     rn_again: "Think again",
@@ -5191,7 +5214,7 @@ const STRINGS = {
     ct_they_said: 'De sa:',
     ct_you_replied: 'Du svarade:',
     ct_document_preview: 'Förhandsgranskning av dokument',
-    ct_reading_view: 'Läsvy — text uppläst ur Word-filen',
+    ct_reading_view: 'Text uppläst ur Word-filen',
     ct_cant_preview: 'Den här filtypen kan inte förhandsgranskas i webbläsaren — ladda ner originalet för att granska det.',
     ct_executed_outside: 'undertecknat utanför HaTi',
     ct_on_their_paper: ', på deras eget papper. Granska det nedan, kör Copilot-granskningen och underteckna sedan för att registrera',
@@ -5838,12 +5861,24 @@ const STRINGS = {
     br_watchouts: "Värt att bevaka",
     br_unusual: "Ovanligt för den här avtalstypen",
     br_no_ai: "Copilot är inte ansluten, så det finns inget som kan läsa avtalet — sammanfattningen kräver det.",
+    br_open: "Läs sammanfattningen",
+    br_write: "Skriv sammanfattningen",
+    br_kt_sub: "En sammanfattning av avtalet på vanlig svenska — vad det förbinder er till, pengarna och vad som är värt att bevaka.",
+    br_kt_none: "Inte skriven än. Copilot läser formuleringen och förklarar den på vanlig svenska.",
+    br_kt_none_viewer: "Ingen sammanfattning har skrivits för det här avtalet än.",
     br_failed: "Sammanfattningen kunde inte skrivas.",
     rn_title: "Förnyelse",
     rn_auto: "Förnyas automatiskt",
     rn_decide_by: "Besluta senast {date} — om {n} dagar. Uppsägningstiden är {notice} dagar och avtalet slutar {expiry}.",
     rn_expires_on: "Slutar {date} — om {n} dagar.",
-    rn_missed: "Beslutsdatumet var {date}, för {n} dagar sedan.",
+    rn_missed: "Beslutsdatumet har passerat — {date}, för {n} dagar sedan.",
+    rn_from_quote: "Räknat bakåt från slutdatumet {expiry}, minus en uppsägningstid på {n} dagar som lästes ur ditt dokument:",
+    rn_from_terms: "Räknat bakåt från slutdatumet {expiry}, minus uppsägningstiden på {n} dagar som är registrerad under Nyckelvillkor.",
+    rn_fix_terms: "Om det inte är den uppsägningstid som styr förnyelsen, ändra den under Nyckelvillkor så räknas detta om.",
+    rn_before_filed: "Beslutsdatumet var {date}, innan avtalet lades in här den {filed} — så ingenting har missats. Kontrollera slutdatum och uppsägningstid under Nyckelvillkor innan du agerar.",
+    rn_advice_failed: "Den skrivna bedömningen kunde inte tas fram. Datumen ovan påverkas inte.",
+    rn_card_broken: "Kortet kunde inte ritas. Ingenting i avtalet har ändrats.",
+    rn_try_again: "Försök igen",
     rn_not_asked: "Copilot kan väga samman detta åt dig — värdet, vad som förhandlades förra gången, vad förhandlingsguiden flaggade och vad som fortfarande är utestående.",
     rn_ask: "Vad bör vi göra?",
     rn_again: "Tänk om",

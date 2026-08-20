@@ -160,9 +160,24 @@ function overdueObligationCount(){ return allObligations().filter(o=>obState(o)=
    that anything is due. effectiveExpiry is family-aware, so a signed
    amendment that moved the term moves this with it. */
 const RENEWAL_WINDOW_DAYS = 90;
+/* ---- ONLY AN AGREEMENT IN FORCE IS UP FOR RENEWAL (owner-reported 20 Aug
+   2026: a contract uploaded that morning was offered renewal choices) ----
+   The gate used to be "not a draft and not declined", which let through
+   everything still being negotiated — a contract you are reviewing is not one
+   you are renewing, and renewal advice on it is an answer to a question nobody
+   asked. IN FORCE is negoExecuted's own reading (signed, sealed, or carrying an
+   execution stamp), so an uploaded record that was executed OUTSIDE HaTi — the
+   commonest thing a renewal question is actually asked about — still gets the
+   card, while paper still in review does not. */
+function renewalInForce(c){
+  if(!c) return false;
+  return (typeof window!=='undefined' && typeof window.negoExecuted==='function')
+    ? negoExecuted(c) : !!(c.status==='Signed' || c.hash || (c.execution && c.execution.at));
+}
 function renewalWindow(c){
   if(!c || c.parentId || c.archived) return null;
   if(c.status==='Declined' || c.status==='Draft') return null;
+  if(!renewalInForce(c)) return null;
   const expiry = dateOnly((window.effectiveExpiry?effectiveExpiry(c):null)
     || (c.metadata&&c.metadata.expiryDate) || c.expiry);
   if(!expiry) return null;
@@ -171,11 +186,21 @@ function renewalWindow(c){
   if(days==null || isNaN(days)) return null;
   const notice = Number(c.metadata&&c.metadata.noticePeriodDays)||0;
   const auto = (c.metadata&&c.metadata.renewalType)==='auto-renew';
-  return { expiry, decideBy: decideBy||expiry, days, notice, auto,
+  /* ---- A DEADLINE OLDER THAN THE RECORD IS NOT ONE ANYBODY HERE MISSED ----
+     The notice period is read out of the wording, and subtracting six months
+     from an expiry can easily land before the day the contract was filed. Told
+     "you missed this 78 days ago" about a file uploaded this morning, the
+     system is accusing the reader of something that was impossible. The date
+     is still stated — it is a fact and it still governs — but it is reported
+     as PREDATING the record rather than as a miss. `filedAt` is the contract's
+     first audit entry, which is when it entered HaTi whatever its paper says. */
+  const filed = dateOnly(c.createdAt || ((c.audit||[])[0]||{}).at) || null;
+  const before = !!(filed && decideBy && String(decideBy) < String(filed));
+  return { expiry, decideBy: decideBy||expiry, days, notice, auto, filed,
     /* PAST the decision date is still IN the window — that is when it matters
        most, and a card that vanished the day the deadline passed would take
        the bad news off the screen at exactly the wrong moment. */
-    inWindow: days<=RENEWAL_WINDOW_DAYS, missed: days<0,
+    inWindow: days<=RENEWAL_WINDOW_DAYS, missed: days<0 && !before, predatesRecord: before,
     expiresDays: daysUntil(expiry) };
 }
 function renewalDecisionsDue(withinDays=30){
@@ -498,4 +523,4 @@ function openObligationsReview(c, found){
   });
 }
 
-Object.assign(window,{OBLIG_RECUR,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,obligationDue,obligationSurfacesChanged,obState,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});
+Object.assign(window,{OBLIG_RECUR,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});

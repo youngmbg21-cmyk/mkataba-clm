@@ -168,8 +168,29 @@ describe('F176 — Key terms and the card beside it square off', () => {
     assert.match(side[0], /renderFamilySection\(c\)/, 'and filled by its own renderer');
     assert.ok(!/riskCardHtml/.test(side[0]), 'Risk is not');
     assert.ok(!/obligations-section/.test(side[0]), 'and Obligations has moved to the Checks card');
-    assert.equal((side[0].match(/class="kt-side-card"/g) || []).length, 1,
-      'one card in the column — the whole point of this block');
+    /* ---- REVERSED IN PLACE, 20 Aug 2026 ---- The claim used to be ONE card in
+       this column, so it could not run past the bottom of Key terms beside it.
+       THE REASON HAS GONE: since the divider work of 19 Aug the column takes
+       the grid's height and SCROLLS INSIDE ITSELF, which is what a long card
+       was given somewhere to go — and the Renewal card (also 19 Aug) was
+       already a second one. The Contract Brief joins them on 20 Aug, moved off
+       the Document tab's Checks card because a brief is prose about the whole
+       agreement and pins to no clause.
+       WHAT IS STILL ASSERTED is what this block was really protecting: every
+       card in the column is a kt-side-card (so they are one family and the
+       column can size them), and an EMPTY one draws nothing rather than an
+       empty bordered box. */
+    assert.match(side[0], /\$\{ktBriefCardHtml\(c,CARD\)\}/,
+      'the Contract Brief is composed into the column by its own builder');
+    assert.match(SRC, /id="brief-card" class="kt-side-card"/,
+      'and it is a card of the column\'s own family, so the column can size it');
+    /* A SHELL WRITTEN BEFORE ITS CONTENT MUST HIDE WHEN THE CONTENT DOES NOT
+       ARRIVE — the empty bordered box reported on 20 Aug. The brief card needs
+       no such rule: its content is built in the same breath as its box. */
+    assert.match(side[0], /id="family-section" class="kt-side-card empty:hidden"/,
+      'the family shell draws nothing when it is empty');
+    assert.match(side[0], /id="renewal-host" class="empty:hidden"/,
+      'and so does the renewal host, which draws only inside its window');
   });
 
   test('the card it draws is one nothing else in the product draws', () => {

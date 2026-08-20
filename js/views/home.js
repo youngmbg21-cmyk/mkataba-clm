@@ -811,14 +811,18 @@ function renderDashboard(){
      shows none of what they clicked. So the footer names its destination, and
      when the list mixes the two it offers both. */
   const lnk=(attr,label)=>`<button ${attr} style="border:0;background:none;padding:2px;font:inherit;font-size:11px;font-weight:600;color:var(--color-accent-600);cursor:pointer;text-align:left;">${label}</button>`;
-  const renewalN=decisions.length, reviewN=waitingLongest.length, riskN=highRisk.length;
-  /* The high-risk door survives the bottom row's removal as a quiet link here
-     (the Hero B render, 20 Aug 2026) — the number stays reachable without a
-     card of its own. Expiring and Awaiting need no link: they are KPI cards. */
+  const renewalN=decisions.length, reviewN=waitingLongest.length;
+  /* ---- EVERY LINK HERE NAMES WHERE A ROW ABOVE IT LIVES (owner-asked 20 Aug
+     2026: "remove any other shortcuts unrelated to decisions due") ----
+     The high-risk link rode here for a day, put in when the bottom row was
+     removed so the number kept a door. It was the one link with no row above
+     it — this card holds renewal decisions and contracts sitting in review,
+     and nothing else — so it is gone. The number is not lost: the Compliance
+     card in the ribbon opens the register sorted by risk, and Our standards is
+     a door in the sidebar. home_risk_link and data-open-standards are STALE. */
   const footerLinks=[
     renewalN?lnk('data-open-decisions',`${renewalN} renewal decision${renewalN===1?'':'s'} in the calendar →`):'',
     reviewN?lnk('data-open-review',i18t('home_waiting_in_review',{n:reviewN})):'',
-    riskN?lnk('data-open-standards',i18t('home_risk_link',{n:riskN})):'',
   ].filter(Boolean);
   const decisionFooter=(decisionItems.length>8||footerLinks.length>1)&&footerLinks.length
     ? `<div style="flex:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--color-divider);display:flex;flex-direction:column;gap:2px;align-items:flex-start;">${footerLinks.join('')}</div>`
@@ -1046,8 +1050,6 @@ function renderDashboard(){
   document.querySelectorAll('[data-open-review]').forEach(el=>el.addEventListener('click',()=>{
     const R=regState(); R.stage='Under Review'; R.type='all'; R.view=null; R.sel={}; setView('register');
   }));
-  // high-risk findings live on Our standards (the retired bottom card's door)
-  document.querySelectorAll('[data-open-standards]').forEach(el=>el.addEventListener('click',()=>setView('playbook')));
   document.getElementById('ob-open-cal')?.addEventListener('click',e=>{ e.stopPropagation(); setView('calendar'); });
   /* Through the shared verb in js/obligations.js, exactly as the calendar does:
      one place decides what completing means, and one refresh puts every surface
