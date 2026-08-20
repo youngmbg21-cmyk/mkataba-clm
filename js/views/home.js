@@ -826,8 +826,16 @@ function renderDashboard(){
       <circle cx="26" cy="26" r="21" fill="none" stroke="${color}" stroke-width="7" stroke-dasharray="${(f*C).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 26 26)"></circle>
       <text x="26" y="32" text-anchor="middle" style="font:300 17px var(--font-body);fill:var(--color-text);">${n}</text>
     </svg>`; };
-  const footCard=(ring,title,sub,act,attr)=>`
-    <button ${attr} class="hm-foot-card" type="button">
+  /* Owner-asked 20 Aug 2026: the card wears its status on its LEFT EDGE, the
+     change card's own mark. The tone is the ring's tone while the count says
+     something is waiting, and the green dot when it is zero — an all-clear
+     card must not wear an alarm colour. Inline on the element, like the KPI
+     top edges, so the hover's border-color repaint can never erase it (the
+     KPI cards' recorded lesson); left padding gives back the 2px the wider
+     border takes, so the content does not shift against the other cards. */
+  const footTone=(n,alert)=> n?alert:'var(--st-green-dot)';
+  const footCard=(tone,ring,title,sub,act,attr)=>`
+    <button ${attr} class="hm-foot-card" type="button" style="border-left:3px solid ${tone};padding-left:14px;">
       ${ring}
       <span style="min-width:0;text-align:left;">
         <span style="display:block;font-size:13px;font-weight:700;color:var(--color-text);">${title}</span>
@@ -841,11 +849,14 @@ function renderDashboard(){
     ? (money?i18t('home_exp90_value',{v:fmtMoneyShort(expVal(expiring))}):expDelta(expiring))
     : i18t('home_exp90_none');
   const waitSub=awaitingCount?i18tn('home_wait_n',awaitingCount,{n:awaitingCount}):i18t('home_wait_none');
+  const expTone=footTone(expiring.length,'var(--st-ruby-dot)'),
+        waitTone=footTone(awaitingCount,'var(--st-amber-dot)'),
+        riskTone=footTone(highRisk.length,'var(--st-ruby-dot)');
   const footRow=`
     <div class="hm-foot">
-      ${footCard(footRing(expiring.length,'var(--st-ruby-dot)'),i18t('home_exp90_title'),expSubLine,i18t('home_exp90_open'),'data-foot-cal')}
-      ${footCard(footRing(awaitingCount,'var(--st-amber-dot)'),i18t('home_wait_title'),waitSub,i18t('home_wait_open'),'data-foot-nego')}
-      ${footCard(footRing(highRisk.length,'var(--st-ruby-dot)'),i18t('home_risk_title'),i18t('home_risk_sub',{n:clean}),i18t('home_risk_open'),'data-foot-std')}
+      ${footCard(expTone,footRing(expiring.length,expTone),i18t('home_exp90_title'),expSubLine,i18t('home_exp90_open'),'data-foot-cal')}
+      ${footCard(waitTone,footRing(awaitingCount,waitTone),i18t('home_wait_title'),waitSub,i18t('home_wait_open'),'data-foot-nego')}
+      ${footCard(riskTone,footRing(highRisk.length,riskTone),i18t('home_risk_title'),i18t('home_risk_sub',{n:clean}),i18t('home_risk_open'),'data-foot-std')}
     </div>`;
 
   /* U-2: a brand-new workspace opened on a cockpit of zeroed gauges with no
