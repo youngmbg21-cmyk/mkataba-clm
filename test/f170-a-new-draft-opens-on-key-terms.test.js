@@ -78,6 +78,27 @@ describe('f170 · a new draft lands on Key terms', () => {
     const done = contract({ id: 'MK-503', status: 'Signed' });
     win.roomOpenOnTerms(done.id);
     assert.equal(landOn(win, done), 'docs');
+    /* And a sealed record that arrived by migration is excluded on the same
+       reading — negoExecuted, not the status field alone. */
+    const sealed = contract({ id: 'MK-503B', status: 'Under Review', hash: 'abc123' });
+    win.roomOpenOnTerms(sealed.id);
+    assert.equal(landOn(win, sealed), 'docs');
+  });
+
+  test('an UPLOADED contract lands on Key terms too (owner-reported 20 Aug 2026)', () => {
+    /* WIDENED IN PLACE. This rule used to read "a fresh contract AND a Draft",
+       and an upload carrying a counterparty is filed 'Under Review' — so the
+       uploader registered the intent and the room discarded it, landing the
+       reader on the document instead of on the terms just read out of it.
+       The test is the report: a fresh non-executed contract lands on terms
+       whatever its status. */
+    const { win } = world();
+    for (const status of ['Under Review', 'In Review', 'Draft']){
+      const c = contract({ id: 'MK-UP-' + status.replace(/\s/g, ''), status });
+      win.roomOpenOnTerms(c.id);
+      assert.equal(landOn(win, c), 'terms', status + ' lands on Key terms');
+      landOn(win, contract({ id: 'MK-RESET-' + status.replace(/\s/g, '') }));
+    }
   });
 
   test('an explicit tab request still wins', () => {

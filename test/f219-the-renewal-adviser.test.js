@@ -158,8 +158,54 @@ describe('F219 — the window, and the card it draws', () => {
     assert.match(fn, /c\.status==='Declined' \|\| c\.status==='Draft'/, 'nor a draft or a dead deal');
     assert.match(fn, /effectiveExpiry/, 'family-aware — a signed amendment moves it');
     assert.match(fn, /missed: days<0/, 'a passed deadline stays ON the card, where it matters most');
+    /* WIDENED 20 Aug 2026, owner-reported: renewal choices were offered on a
+       contract uploaded that morning. The gate was "not a draft, not
+       declined", which let through everything still being negotiated. */
+    assert.match(fn, /if\(!renewalInForce\(c\)\) return null;/,
+      'only an agreement in force is up for renewal');
+    assert.match(ob, /function renewalInForce/, 'and the reading is named once');
+    assert.match(ob, /negoExecuted/,
+      'in force is the executed reading, so paper executed OUTSIDE HaTi still gets the card');
+    assert.match(fn, /predatesRecord: before/,
+      'a deadline older than the record is reported as such, never as a miss');
     assert.match(fn, /inWindow: days<=RENEWAL_WINDOW_DAYS/, 'one named threshold, not a number inline');
     assert.match(ob, /const RENEWAL_WINDOW_DAYS = 90;/, 'the same 90 days the first reminder email uses');
+  });
+
+  test('the date names where it came from, and quotes the contract when it can (20 Aug 2026)', () => {
+    /* Owner-reported: "The decision date was 3 June 2026, 78 days ago" is a
+       conclusion with every input hidden — you cannot tell whether it is right
+       and you cannot tell what to correct if it is wrong. */
+    const ai = read('js/ai.js');
+    const fn = ai.slice(ai.indexOf('function renewalCardHtml'), ai.indexOf('function renderRenewalSection'));
+    assert.match(fn, /sourceSpans\)\|\|\{\}\)\.noticePeriodDays/,
+      'the quote is the one the document read already filed — never a new claim about the wording');
+    assert.match(fn, /rn_from_quote/, 'with a phrase on file it quotes the contract');
+    assert.match(fn, /rn_from_terms/, 'without one it says where the number is recorded instead');
+    assert.ok(!/rn_from_quote[\s\S]{0,200}\bquote\?''/.test(fn));
+    assert.match(fn, /const quote=span\?/,
+      'and it never invents a quote — no phrase on file, no quotation marks');
+    assert.match(fn, /rn_fix_terms/, 'and it says what to correct');
+    assert.match(fn, /rn_before_filed/, 'a deadline older than the record says so in its own words');
+  });
+
+  test('a failure states itself where the reader is looking, and cannot take the column down', () => {
+    const ai = read('js/ai.js');
+    const run = ai.slice(ai.indexOf('async function runRenewalAdvice'), ai.indexOf('const RN_TONE'));
+    assert.match(run, /c\._renewalAdviceError=i18t\('rn_no_ai'\)/, 'no key is recorded, not only toasted');
+    assert.match(run, /c\._renewalAdviceError=i18t\('rn_advice_failed'\)/, 'and so is a refusal');
+    assert.match(run, /c\._renewalAdvice=r\.advice; c\._renewalAdviceError='';/,
+      'arriving advice clears it');
+    const rs = ai.slice(ai.indexOf('function renderRenewalSection'), ai.indexOf('function renderRenewalSection') + 1800);
+    assert.match(rs, /try\{ host\.innerHTML=renewalCardHtml\(c\); \}/,
+      'a draw failure never escapes this card');
+    assert.match(rs, /rn_card_broken/, 'it says so, with a way forward');
+    const ct = read('js/views/contract.js');
+    const side = ct.slice(ct.indexOf('function renderKeyTermsSide'), ct.indexOf('\n}', ct.indexOf('function renderKeyTermsSide')));
+    assert.match(side, /id="family-section" class="kt-side-card empty:hidden"/,
+      'an empty card draws nothing rather than an empty bordered box');
+    assert.match(side, /try\{ if\(window\.renderFamilySection\)/,
+      'and the family card draws even when the renewal card did not');
   });
 
   test('the card draws from the dates, so no Copilot key still leaves it useful', () => {
@@ -183,7 +229,11 @@ describe('F219 — the window, and the card it draws', () => {
 
   test('the card is mounted on Key terms, above the family it belongs to', () => {
     const ct = read('js/views/contract.js');
-    const fn = ct.slice(ct.indexOf('function renderKeyTermsSide'), ct.indexOf('function renderKeyTermsSide') + 900);
+    /* Sliced to the END of the function rather than to a fixed number of
+       characters: the claim is the ORDER of the two cards, and a comment added
+       above the markup must not be able to fail it (20 Aug 2026). */
+    const at = ct.indexOf('function renderKeyTermsSide');
+    const fn = ct.slice(at, ct.indexOf('\n}', at));
     assert.ok(fn.indexOf('renewal-host') < fn.indexOf('family-section'), 'the question of the week leads');
     assert.match(fn, /renderRenewalSection\(c\)/);
   });

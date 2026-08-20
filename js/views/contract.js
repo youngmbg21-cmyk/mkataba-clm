@@ -1544,6 +1544,17 @@ async function loadDiscussion(c){
 }
 
 function uploadDocBody(c){
+  /* ---- WHO WE ARE ON THIS PAPER (found 20 Aug 2026, while moving the reading
+     view onto the sheet) ---- The received-document banner below names US, and
+     it read a bare `OURS` — a constant declared inside docBody, AFTER the early
+     return that sends every upload here, so it was never in this function's
+     scope at all. Every received contract that was NOT executed off-platform
+     threw a ReferenceError on the Document tab: the sentence names our side,
+     and the migrated branch beside it does not, which is why only half of them
+     ever showed it. Same reading as the recitals use (contractParty — the
+     DOCUMENT names the party, the workspace is what the PLATFORM says), so the
+     banner says what it always meant to. */
+  const OURS=(typeof contractParty==='function')?contractParty(c):FIRST_PARTY;
   const u=c.upload||{}, mime=u.mime||'';
   const isPdf=/pdf/.test(mime), isImg=/^image\//.test(mime), isText=/^text\//.test(mime);
   const isDocx=!!(window.isWordDoc&&isWordDoc(c));
@@ -1560,11 +1571,25 @@ function uploadDocBody(c){
     ? `<iframe id="uploaded-doc-frame" src="${fileUrl}" class="w-full h-[calc(100vh-235px)] min-h-[560px] rounded-xl border border-brand-100 bg-white elev-1" title="${i18t('ct_uploaded_document')}"></iframe>`
     : isImg
     ? `<div class="rounded-xl border border-brand-100 bg-white elev-1 overflow-auto max-h-[calc(100vh-235px)] min-h-[420px] grid place-items-start"><img id="uploaded-doc-frame" src="${fileUrl}" class="max-w-full" alt="${i18t('ct_uploaded_document')}"/></div>`
+    /* ---- THE WORDING IS THE PAGE, NOT A BOX ON IT (owner-reported 20 Aug
+       2026: "when the uploaded contract is loaded into documents page, it
+       looks different from standard contracts because it is pulled inside a
+       card in the contract page") ----
+       This whole tab already renders inside the standard sheet, so the text
+       was a bordered, separately-scrolling card sitting on a page — a
+       contract inside a contract. It reads as the document now: the same
+       paragraph and heading treatment, on the sheet, scrolling with the page
+       like every other agreement in the product.
+       WHAT IT COSTS AND WHY THAT IS RIGHT: the box had its own scrollbar, so
+       the file strip above stayed pinned while you read. A contract is read
+       from the top, the strip is a fact about the file rather than about the
+       wording, and no other document in HaTi pins anything over the paper.
+       THE PROVENANCE STAYS, as a caption rather than a lid — where the words
+       came from is worth one line and no border. PDFs keep their file preview:
+       there is no text to lay out, so a frame is the honest rendering. */
     : (isDocx&&!c.redlineText&&(u.extractedText||'').length>40)
-    ? `<div class="flex items-center justify-between gap-2 mb-2">
-         <div class="text-[11px] font-600 uppercase tracking-[0.14em] text-brand-800/60">${i18t('ct_reading_view')}</div>
-       </div>
-       <div class="scroll-thin rounded-xl border border-brand-100 bg-white elev-1 overflow-y-auto max-h-[calc(100vh-235px)] min-h-[420px]" style="padding:26px 30px">${documentTextHtml(u.extractedText,{size:'13px',lh:'1.85'})}</div>`
+    ? `<div style="font-size:10.5px;color:var(--color-neutral-600);margin:0 0 14px">${i18t('ct_reading_view')}</div>
+       ${documentTextHtml(u.extractedText,{size:'13px',lh:'1.85'})}`
     : `<div class="rounded-xl border border-dashed border-brand-200 bg-brand-50/40 p-10 text-center">
          <div class="text-brand-300 mb-2 flex justify-center">${icon('file','w-8 h-8')}</div>
          <div class="text-sm font-600 text-brand-800/80">${u.fileName||'Document'}</div>
@@ -1583,16 +1608,27 @@ function uploadDocBody(c){
     </div>
     ${PORTAL_MODE?'':`
     ${ocrBannerHtml(u)}
-    <div class="mb-4 grid sm:grid-cols-2 gap-2 text-[11px]">
-      <div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-0.5">${i18t('ct_original_file')}</div><div class="font-medium text-brand-900 truncate">${u.fileName||'—'} · ${sizeKB} KB</div></div>
-      <div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-0.5">${i18t('ct_uploaded')}</div><div class="font-medium text-brand-900 truncate">${u.uploadedBy||'—'} · ${u.uploadedAt?fmtDT(u.uploadedAt):'—'}</div></div>
-    </div>
-    <div class="mb-4 flex flex-wrap items-center gap-2">
-      <a href="${fileUrl}" download="${(u.fileName||'contract').replace(/"/g,'')}" class="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs font-medium text-brand-700 hover:bg-brand-50 transition">${icon('download','w-3.5 h-3.5')} Download original</a>
-      <span class="inline-flex items-center gap-1.5 rounded-lg border ${u.textChars>200?(isOcrText(u.textSource)?'border-gold-500/25 bg-gold-500/10 text-gold-700':'border-brand-100 bg-brand-50/50 text-brand-700'):'border-gold-500/25 bg-gold-500/10 text-gold-700'} px-3 py-2 text-[11px]">${icon('scan','w-3.5 h-3.5')}${u.textChars>200
-        ? `${Number(u.textChars).toLocaleString()} characters ${isOcrText(u.textSource)?`machine-read from ${u.ocrPages||'the'} scanned page${u.ocrPages===1?'':'s'}`:'read'} — Copilot review analyses the actual text`
-        : 'Text not machine-readable — Copilot review falls back to a manual checklist'}</span>
-      ${canEdit()?`<button type="button" data-reread class="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs font-medium text-brand-700 hover:bg-brand-50 transition" title="${i18t('ct_read_original_again')}">${icon('history','w-3.5 h-3.5')} Re-read document</button>`:''}
+    ${''/* ---- THE FILE IS A STRIP, NOT THE MAIN EVENT (owner-asked 20 Aug
+         2026) ---- Two bordered cards and a row of three chip-buttons stood
+         between the reader and the contract: about 130px of file handling
+         before the first word of the agreement. It is one quiet line now —
+         the file, who filed it, how well it was read, and the two acts —
+         above the paper it describes. NOTHING WAS DROPPED: every fact and
+         both buttons are here, and data-reread still carries the same
+         handler. */}
+    <div class="mb-4" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--color-neutral-600);border-bottom:1px solid var(--color-divider);padding-bottom:9px">
+      <span style="display:inline-flex;align-items:center;gap:5px;min-width:0">
+        ${icon('file','w-3.5 h-3.5')}<b style="font-weight:600;color:var(--color-text)">${esc(u.fileName||'—')}</b>${sizeKB?` · ${sizeKB} KB`:''}
+      </span>
+      <span style="opacity:.5">·</span>
+      <span style="min-width:0">${esc(u.uploadedBy||'—')}${u.uploadedAt?` · ${fmtDT(u.uploadedAt)}`:''}</span>
+      <span style="opacity:.5">·</span>
+      <span style="color:${u.textChars>200&&!isOcrText(u.textSource)?'var(--color-neutral-600)':'var(--st-amber-fg)'}">${u.textChars>200
+        ? `${Number(u.textChars).toLocaleString()} characters ${isOcrText(u.textSource)?`machine-read from ${u.ocrPages||'the'} scanned page${u.ocrPages===1?'':'s'}`:'read'}`
+        : 'Text not machine-readable'}</span>
+      <span style="flex:1 1 auto"></span>
+      <a href="${fileUrl}" download="${(u.fileName||'contract').replace(/"/g,'')}" class="ui-btn" style="font-size:11px;padding:4px 9px;display:inline-flex;align-items:center;gap:5px;flex:none">${icon('download','w-3.5 h-3.5')} Download original</a>
+      ${canEdit()?`<button type="button" data-reread class="ui-btn" style="font-size:11px;padding:4px 9px;display:inline-flex;align-items:center;gap:5px;flex:none" title="${i18t('ct_read_original_again')}">${icon('history','w-3.5 h-3.5')} Re-read document</button>`:''}
     </div>`}
     <!-- Everything above is the owner's own handling of the file: the Word
          round-trip control, who uploaded it and when, and how well the text
@@ -2537,7 +2573,22 @@ function roomCurrentTab(){ return _wsTab; }
 function wsTabDefaults(c){
   if(_wsTabFor!==c.id){
     const fresh=_wsNewDrafts.delete(String(c.id));
-    _wsTab=(fresh && c.status==='Draft')?'terms':'docs';
+    /* ---- IT IS "JUST CREATED HERE", NOT "IS A DRAFT" (owner-reported 20 Aug
+       2026: an uploaded contract landed on the Document tab) ----
+       The uploader DOES register the intent — every creation site does — and
+       this line threw it away, because an upload that names a counterparty is
+       filed 'Under Review' rather than 'Draft'. The rule was written when the
+       only new contract was a blank draft.
+       THE REASONING SURVIVES THE WIDENING, and for an upload it is stronger,
+       not weaker: a new draft goes to Key terms because its document is a
+       template full of blanks fed FROM the terms, and an upload arrives with a
+       complete document whose TERMS are the blanks — counterparty, value and
+       dates just read out of the file and waiting to be confirmed. What stays
+       excluded is an EXECUTED agreement, which has no terms left to fill;
+       negoExecuted, not `status==='Signed'`, so a sealed record that arrived by
+       migration is excluded too (f170 asserts both). */
+    const done=(typeof negoExecuted==='function')?negoExecuted(c):(c.status==='Signed');
+    _wsTab=(fresh && !done)?'terms':'docs';
     _wsTabFor=c.id;
     if(window.negoResetView) negoResetView();   // don't open on another contract's fingerprint
   }
@@ -3255,6 +3306,55 @@ function riskCardHtml(c){
    and it was a check row until August, when the row was removed as a duplicate
    of this card. It is not a duplicate any more, because this card is not
    staying: see checksRowsHtml. */
+/* ---- THE CONTRACT BRIEF, WHERE THE CONTRACT IS BEING UNDERSTOOD ----
+   (owner-asked 20 Aug 2026.) Moved off the Document tab's Checks card, which
+   is a list of sweeps that pin findings to clauses; the brief pins to nothing
+   and is read whole. IT IS THE SAME BRIEF AND THE SAME PANEL — checkVerdict
+   answers for it exactly as before and openCheckPanel hosts the one element id
+   renderBriefSection fills, so nothing about how a brief is written, cached,
+   masked for a reader without money rights, or kept off the share payload
+   changes by moving the door.
+
+   IT IS ALLOWED ON A SIGNED CONTRACT, deliberately and as before: imported
+   signed paper is exactly what most needs explaining, and writing a brief
+   touches nothing on the sealed record. A viewer reads a brief that exists and
+   is not offered the writing of one. */
+function ktBriefCardHtml(c,CARD){
+  if(!c) return '';
+  const v=(typeof checkVerdict==='function')?checkVerdict(c,'brief'):null;
+  const may=(typeof canEdit==='function'?canEdit():true);
+  const act=v
+    ? `<button type="button" data-kt-brief="open" class="ui-btn" style="font-size:11px;padding:5px 11px">${i18t('br_open')}</button>`
+    : (may?`<button type="button" data-kt-brief="run" class="ui-btn" style="font-size:11px;padding:5px 11px">${i18t('br_write')}</button>`:'');
+  /* flex-direction:row said out loud: the column's own `.kt-side-card > div`
+     rule makes every direct child a flex COLUMN, which stacks a head row's
+     title and pill and reads as centred. Same reason on the renewal card. */
+  return `<section id="brief-card" class="kt-side-card" style="${CARD}">
+    <div style="display:flex;flex-direction:row;align-items:center;gap:8px;margin-bottom:6px;flex:none">
+      <h6 style="margin:0;font-size:13px;font-weight:700;font-family:var(--font-heading);flex:1">${i18t('br_title')}</h6>
+      ${v?`<span class="pill-x" style="background:var(--st-green-bg);color:var(--st-green-fg)">${esc(v.label)}</span>`:''}
+    </div>
+    <p style="margin:0 0 9px;font-size:11.5px;line-height:1.55;color:var(--color-neutral-600)">${
+      v?i18t('br_kt_sub'):(may?i18t('br_kt_none'):i18t('br_kt_none_viewer'))}</p>
+    ${act?`<div style="display:flex;flex-direction:row;gap:7px;flex:none">${act}</div>`:''}
+  </section>`;
+}
+function wireKtBriefCard(c){
+  const b=document.querySelector('[data-kt-brief]'); if(!b) return;
+  b.addEventListener('click',async()=>{
+    if(b.getAttribute('data-kt-brief')==='open') return openCheckPanel(c,'brief');
+    if(!window.runContractBrief) return;
+    b.disabled=true; b.textContent=i18t('ct_working');
+    try{
+      const r=await runContractBrief(c);
+      /* The column repaints so the card states what it now holds; the panel
+         opens only where a brief actually arrived — a dead panel over a failed
+         read is the fault the renewal card was just corrected for. */
+      renderKeyTermsSide(c);
+      if(r) openCheckPanel(c,'brief');
+    }catch(e){ b.disabled=false; b.textContent=i18t('br_write'); }
+  });
+}
 function renderKeyTermsSide(c){
   const host=document.getElementById('kt-side'); if(!host) return;
   const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:0;padding:13px 15px';
@@ -3262,10 +3362,22 @@ function renderKeyTermsSide(c){
      renewalCardHtml returns '' outside the 90-day window, so on most contracts
      this column is exactly what it was; inside the window the question of the
      week sits above the family it belongs to. */
+  /* ---- AN EMPTY BORDERED BOX IS WORSE THAN NO BOX (owner-reported 20 Aug
+     2026) ---- The family card's shell is written into the column before its
+     content arrives, so anything that stopped the content — the renewal card
+     above it throwing, the module not loaded — left a bordered white rectangle
+     with nothing in it, which reads as a broken page rather than as a missing
+     card. `empty:hidden` is the app's own rule for exactly this: a section with
+     no content in it draws nothing at all. The renewal host already carried it.
+     AND ONE CARD MAY NOT TAKE THE OTHER DOWN: they are rendered independently,
+     so a failure in the first still leaves the second to draw. Each says what
+     went wrong in its own box — see renderRenewalSection. */
   host.innerHTML=`<div id="renewal-host" class="empty:hidden"></div>
-    <section id="family-section" class="kt-side-card" style="${CARD}"></section>`;
-  if(window.renderRenewalSection) renderRenewalSection(c);
-  if(window.renderFamilySection) renderFamilySection(c);
+    ${ktBriefCardHtml(c,CARD)}
+    <section id="family-section" class="kt-side-card empty:hidden" style="${CARD}"></section>`;
+  try{ if(window.renderRenewalSection) renderRenewalSection(c); }catch(e){}
+  try{ if(window.renderFamilySection) renderFamilySection(c); }catch(e){}
+  wireKtBriefCard(c);
   /* #kt-readdoc's wiring went with the button — see readTermsHtml. */
 }
 
@@ -3937,13 +4049,17 @@ function checksRowsHtml(c){
      a quarterly report is now one press deeper than it was. The calendar and
      the dashboard still open an obligation directly, so this only bites while
      reading the contract itself. */
+  /* ---- THE CONTRACT BRIEF HAS LEFT THIS CARD (owner-asked 20 Aug 2026) ----
+     "It only makes sense to review a brief while in the [Key terms] page than
+     while under the documents page." The other three rows all PIN THEIR
+     FINDINGS TO A CLAUSE, which is why they belong beside the wording; the
+     brief is prose about the whole agreement and pins to nothing. And the
+     moment it is most wanted is a contract somebody sent you that you have
+     never read — which is where Key terms already sends you. It is a card in
+     the Key terms column now, beside Renewal and Agreement family. */
   return row('oblig','calendar',i18t('ob_obligations'))
     + row('playbook','shield',i18t('ct_playbook_review'))
-    + row('risk','scan',i18t('ct_copilot_risk_scan'))
-    /* The Contract Brief (WO-2) — last, not leading: the three above are the
-       stated working order (commitments, playbook, risk), and the brief is a
-       reading aid beside them rather than a step in that sequence. */
-    + row('brief','file',i18t('br_title'));
+    + row('risk','scan',i18t('ct_copilot_risk_scan'));
 }
 function renderChecksCard(c){
   const card=document.getElementById('checks-card'); if(!card) return;
@@ -4053,13 +4169,6 @@ function wireChecksCard(c){
           renderChecksCard(c);
           if(window.renderSignButton) renderSignButton(c);
           openCheckPanel(c,'playbook');
-          return;
-        }
-        if(kind==='brief'){
-          if(!window.runContractBrief) throw new Error('unavailable');
-          const r=await runContractBrief(c);
-          renderChecksCard(c);
-          if(r) openCheckPanel(c,'brief');
           return;
         }
         if(kind==='oblig'){

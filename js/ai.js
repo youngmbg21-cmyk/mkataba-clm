@@ -3106,15 +3106,24 @@ function renderBriefSection(c){
    gets the card, the dates and the button — only the paragraph is missing,
    and it says so rather than offering a dead press. */
 async function runRenewalAdvice(c,opts={}){
-  if(!(typeof API_MODE==='function'&&API_MODE())||!state.aiConfigured){ toast(i18t('rn_no_ai'),'warn'); return null; }
+  /* EVERY WAY THIS CAN FAIL IS RECORDED ON THE CONTRACT, not only toasted.
+     The toast still fires — it is the right thing at the moment of the press —
+     but it fades, and a reader who looked away comes back to a card that says
+     nothing about why it is empty. The card prints c._renewalAdviceError; this
+     is the one place it is written, and arriving advice clears it. */
+  c._renewalAdviceError='';
+  if(!(typeof API_MODE==='function'&&API_MODE())||!state.aiConfigured){
+    c._renewalAdviceError=i18t('rn_no_ai'); toast(i18t('rn_no_ai'),'warn'); return null; }
   try{
     const r=await api('ai/renewal','POST',{ id:c.id, force:!!opts.force });
     if(r&&r.advice){
-      c._renewalAdvice=r.advice;
+      c._renewalAdvice=r.advice; c._renewalAdviceError='';
       if(!r.cached) aiNoteRead(c,'Renewal',`Renewal advice: ${(r.advice.data&&r.advice.data.verdict)||'—'}`);
       return r.advice;
     }
-  }catch(e){ toast(i18t('rn_failed')+(e&&e.message?' '+e.message:''),'err'); }
+    c._renewalAdviceError=i18t('rn_advice_failed');
+  }catch(e){ c._renewalAdviceError=i18t('rn_advice_failed');
+    toast(i18t('rn_failed')+(e&&e.message?' '+e.message:''),'err'); }
   return null;
 }
 const RN_TONE={ renew:'green', renegotiate:'amber', lapse:'ruby', unclear:'steel' };
@@ -3123,23 +3132,62 @@ function renewalCardHtml(c){
   if(!w||!w.inWindow) return '';
   const a=c._renewalAdvice&&c._renewalAdvice.data;
   const may=(typeof canEdit!=='function'||canEdit());
+  /* WHAT FAILED, WHERE THE READER IS LOOKING. A red toast that fades is the
+     wrong channel for "the thing you just pressed did not work" — by the time
+     they look back at the card it says nothing at all. Per sitting, in memory,
+     cleared the moment advice arrives. */
+  const err=c._renewalAdviceError||'';
   const tone=RN_TONE[(a&&a.verdict)||'steel']||'steel';
   const when=(iso)=>{ try{ return new Date(iso+'T00:00:00').toLocaleDateString(typeof langLocale==='function'?langLocale():undefined,{day:'numeric',month:'short',year:'numeric'}); }catch(_){ return iso; } };
   /* THE DATES FIRST, ALWAYS — they are the fact; the advice is an opinion
      about the fact, and a card that led with the opinion would be the wrong
      way round. The overdue case is stated in its own words: a deadline that
      has passed is not "in 0 days". */
-  const line=w.missed
+  const line=w.predatesRecord
+    ? i18t('rn_before_filed',{date:when(w.decideBy),filed:when(w.filed)})
+    : (w.missed
     ? i18t('rn_missed',{date:when(w.decideBy),n:Math.abs(w.days)})
     : (w.notice
       ? i18t('rn_decide_by',{date:when(w.decideBy),n:w.days,notice:w.notice,expiry:when(w.expiry)})
-      : i18t('rn_expires_on',{date:when(w.expiry),n:w.days}));
+      : i18t('rn_expires_on',{date:when(w.expiry),n:w.days})));
+  /* ---- WHERE THE DATE CAME FROM, IN THE CONTRACT'S OWN WORDS ----
+     (owner-asked 20 Aug 2026: "state the contract says so and so which will
+     allow the user to have clarity on what to do next".)
+
+     A bare "the decision date was 3 June, 78 days ago" is a conclusion with
+     every input hidden — you cannot tell whether it is right, and you cannot
+     tell what to correct if it is wrong. This names the two numbers the
+     arithmetic used and QUOTES the phrase the notice period was read out of,
+     which is what lets a reader see at a glance that the extractor picked up a
+     TERMINATION notice clause rather than a renewal one. That is exactly the
+     confusion reported, made visible instead of buried.
+
+     THE QUOTE IS THE ONE WE ALREADY STORED. Reading a document files the short
+     verbatim phrase behind each fact — it is what the upload confirm screen
+     prints under every field — so this claims nothing new about the wording and
+     cannot disagree with that screen. WITH NO QUOTE ON FILE IT SAYS WHERE THE
+     NUMBER IS RECORDED INSTEAD, and never pretends to quote: a contract typed
+     in by hand has no phrase to show, and inventing one would be the worst
+     thing this card could do. Drawn only where there IS a notice period, which
+     is the only number the sentence would send anybody to correct. */
+  const span=((c.metadata&&c.metadata.sourceSpans)||{}).noticePeriodDays;
+  const quote=span?String(span).replace(/\s+/g,' ').trim().slice(0,180):'';
+  const srcLine=w.notice
+    ? (quote
+      ? `${_aiEsc(i18t('rn_from_quote',{expiry:when(w.expiry),n:w.notice}))}<br><i>&ldquo;${_aiEsc(quote)}&rdquo;</i>`
+      : _aiEsc(i18t('rn_from_terms',{expiry:when(w.expiry),n:w.notice})))
+    : '';
+  /* The way out, said once and only where there is something to correct. */
+  const fixLine=(w.notice&&may)?_aiEsc(i18t('rn_fix_terms')):'';
   return `<section id="renewal-section" class="kt-side-card" style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:0;padding:13px 15px">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+    <div style="display:flex;flex-direction:row;align-items:center;gap:8px;margin-bottom:6px;flex:none">
       <h6 style="margin:0;font-size:13px;font-weight:700;font-family:var(--font-heading);flex:1">${i18t('rn_title')}</h6>
       ${w.auto?`<span class="pill-x" style="background:var(--st-amber-bg);color:var(--st-amber-fg)">${i18t('rn_auto')}</span>`:''}
     </div>
-    <p style="margin:0 0 9px;font-size:12px;line-height:1.55;color:${w.missed?'var(--st-ruby-fg)':'var(--color-neutral-700)'}">${_aiEsc(line)}</p>
+    <p style="margin:0 0 6px;font-size:12px;line-height:1.55;color:${w.missed?'var(--st-ruby-fg)':'var(--color-neutral-700)'}">${_aiEsc(line)}</p>
+    ${srcLine?`<p style="margin:0 0 6px;font-size:11px;line-height:1.55;color:var(--color-neutral-600)">${srcLine}</p>`:''}
+    ${fixLine?`<p style="margin:0 0 9px;font-size:11px;line-height:1.55;color:var(--color-neutral-600)">${fixLine}</p>`:''}
+    ${err?`<p style="margin:0 0 9px;padding:6px 8px;font-size:11.5px;line-height:1.5;background:var(--st-amber-bg);color:var(--st-amber-fg);border:1px solid var(--st-amber-line)">${_aiEsc(err)}</p>`:''}
     ${a?`
       <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:5px">
         <span class="pill-x" style="background:var(--st-${tone}-bg);color:var(--st-${tone}-fg)">${_aiEsc(i18t('rn_verdict_'+a.verdict)||a.verdict)}</span>
@@ -3149,7 +3197,7 @@ function renewalCardHtml(c){
       ${(a.pushOn||[]).length?`<div style="font-size:11.5px;line-height:1.5;margin-bottom:7px"><b>${i18t('rn_push_on')}</b> ${_aiEsc((a.pushOn||[]).join(' · '))}</div>`:''}
       ${a.watchIf?`<p style="margin:0 0 7px;font-size:11px;color:var(--color-neutral-600);line-height:1.5">${_aiEsc(i18t('rn_watch_if'))} ${_aiEsc(a.watchIf)}</p>`:''}
     `:`<p style="margin:0 0 9px;font-size:11.5px;color:var(--color-neutral-600);line-height:1.55">${_aiEsc(i18t('rn_not_asked'))}</p>`}
-    <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px">
+    <div style="display:flex;flex-direction:row;gap:7px;flex-wrap:wrap;margin-top:9px;flex:none">
       ${may?`<button class="ui-btn" data-rn-ask style="font-size:11px;padding:5px 11px">${a?i18t('rn_again'):i18t('rn_ask')}</button>`:''}
       ${may?`<button class="ui-btn" data-rn-start style="font-size:11px;padding:5px 11px">${i18t('rn_start')}</button>`:''}
     </div>
@@ -3157,7 +3205,22 @@ function renewalCardHtml(c){
 }
 function renderRenewalSection(c){
   const host=document.getElementById('renewal-host'); if(!host) return;
-  host.innerHTML=renewalCardHtml(c);
+  /* ---- ONE CARD FAILING MUST NOT TAKE THE COLUMN WITH IT (owner-reported
+     20 Aug 2026: an empty white box where the cards should be) ----
+     This card is drawn FIRST in the Key terms column and the Agreement family
+     card second, so an exception in here left the family card as an empty
+     bordered shell — a page that reads as broken rather than as missing one
+     card. The dates half of this card is our own arithmetic and cannot fail;
+     only the drawing of arrived advice realistically can. So a failure to draw
+     says so, in the card, with the way forward on it — and never escapes. */
+  try{ host.innerHTML=renewalCardHtml(c); }
+  catch(e){
+    host.innerHTML=`<section id="renewal-section" class="kt-side-card" style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:0;padding:13px 15px">
+      <h6 style="margin:0 0 6px;font-size:13px;font-weight:700;font-family:var(--font-heading)">${_aiEsc(i18t('rn_title'))}</h6>
+      <p style="margin:0 0 9px;font-size:12px;line-height:1.55;color:var(--st-amber-fg)">${_aiEsc(i18t('rn_card_broken'))}</p>
+      <button class="ui-btn" data-rn-ask style="font-size:11px;padding:5px 11px">${_aiEsc(i18t('rn_try_again'))}</button>
+    </section>`;
+  }
   host.querySelector('[data-rn-ask]')?.addEventListener('click',async ev=>{
     const b=ev.currentTarget; b.disabled=true; b.textContent=i18t('ct_working');
     const had=!!c._renewalAdvice;

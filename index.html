@@ -2103,7 +2103,19 @@
      accents from the owner's mockup, square corners. The retired hm-strip,
      hm-foot and hm-foot-card classes are stale — flag any mention. */
   .hm-banner{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:20px 26px;color:#fff;
-    background:linear-gradient(100deg,#0b1524 0%,#16233a 46%,#5c6875 100%);border:1px solid #0b1524;}
+    /* ---- IT STARTS AT THE SIDEBAR'S OWN COLOUR (owner-asked 20 Aug 2026) ----
+       It was a fixed navy taken from the render, so in a green workspace the
+       banner and the sidebar beside it were two different colours meeting at an
+       edge. The left stop IS --nav-bg now and the gradient lightens rightward
+       by mixing toward a neutral slate, which means the banner follows the
+       workspace (green, navy) and the dark theme for free, from one rule —
+       rather than a second colour somebody has to remember to keep in step.
+       The right-hand stop lands mid-tone, not pale: the two buttons sit there
+       and white-on-pale would not read. */
+    background:linear-gradient(100deg, var(--nav-bg) 0%,
+      color-mix(in srgb, var(--nav-bg) 80%, #93a4b5) 46%,
+      color-mix(in srgb, var(--nav-bg) 45%, #93a4b5) 100%);
+    border:1px solid var(--nav-bg);}
   .hm-banner-badge{display:inline-flex;align-items:center;gap:7px;background:rgba(20,184,166,.14);
     border:1px solid rgba(45,212,191,.55);color:#2dd4bf;font-size:11.5px;font-weight:700;padding:4px 12px;}
   .hm-banner h2{margin:8px 0 3px;font-size:27px;font-weight:700;letter-spacing:-.3px;
