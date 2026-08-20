@@ -4,7 +4,7 @@
    A silent, total, design-wide regression, and one that no test in this suite
    could have caught.
 
-   The redesign's two typefaces — Inter for body copy, Plus Jakarta Sans for
+   The design's two typefaces — "72" for the platform, Inter for
    headings — are carried in fonts/fonts.css, which index.html links. But
    server.js served exactly two static trees, /js and /sample-contracts, and
    /fonts was not among them. So on the deployed platform that link 404'd, no
@@ -58,11 +58,14 @@ describe('F85 — the design\'s assets reach the browser', () => {
   });
 
   test('and it actually carries both of the design\'s faces', async () => {
+    /* CLAIM RE-POINTED 20 Aug 2026 (the SAP treatment): the design's two
+       faces are now "72" (the platform) and Inter (the document face,
+       --font-doc). Plus Jakarta Sans retired with the old design. */
     const css = await (await get('/fonts/fonts.css')).text();
+    assert.match(css, /font-family:\s*'72'/,
+      'the platform face is missing from the served stylesheet');
     assert.match(css, /font-family:\s*'Inter'/,
-      'the body face is missing from the served stylesheet');
-    assert.match(css, /font-family:\s*'Plus Jakarta Sans'/,
-      'the heading face is missing from the served stylesheet');
+      'the document face is missing from the served stylesheet');
     // The faces are inlined as data URIs; a stylesheet of @font-face rules
     // pointing at files the server does not have would pass the check above
     // and still render nothing.

@@ -10525,7 +10525,7 @@ app.use('/js', express.static(path.join(__dirname, '..', 'js'), {
   setHeaders: res => res.setHeader('Cache-Control', 'no-cache'),
 }));
 /* THE FONTS HAVE TO BE REACHABLE OR THE WHOLE DESIGN FALLS BACK.
-   index.html links fonts/fonts.css, which carries Inter and Plus Jakarta Sans
+   index.html links fonts/fonts.css, which carries "72" and Inter (the document face)
    inline as data URIs. Without this route that link 404s, no @font-face ever
    registers, and every screen renders in whatever sans the operating system
    happens to default to — the platform quietly stops looking like the design,
