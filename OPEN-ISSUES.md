@@ -914,3 +914,15 @@ defect; the product's counting looks right.
 
 The fix is the fixture: pin MK-2's dates inside one month explicitly (or
 anchor "today" in the test's world), never loosen the assertion.
+
+## OI-17 — the phone's tap-to-select menu no longer opens
+
+Found 20 Aug 2026 while verifying the square-corner sweep, and **proven not
+that sweep's doing**: phone-verify fails the same single check ("tapping a
+sentence selects it and opens the three-item menu — no menu") with the sweep
+stashed, on the tree as merged from main — and passed 59/59 before that merge.
+The suspect is the 19 Aug "no edits on the paper" guard (the early return in
+openSelMenu that shut the highlight menu on the negotiation paper): the phone
+reuses rlSelMenu, and its tap route may now be caught by a guard written for
+the laptop's canvas. Needs its own deliberate fix — the guard's scoping rules
+are load-bearing (canvas and seat exemptions) and must not be loosened blind.

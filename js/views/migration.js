@@ -802,20 +802,20 @@ function migAllowanceHtml(){
   if(!API_MODE()||!state.aiConfigured) return '';
   const a=M.allowance;
   if(!a||!a.open){
-    return `<div style="font-size:11px;color:var(--color-neutral-600);background:var(--color-bg);border:1px solid var(--color-divider);border-radius:4px;padding:7px 10px;margin-bottom:12px">
+    return `<div style="font-size:11px;color:var(--color-neutral-600);background:var(--color-bg);border:1px solid var(--color-divider);border-radius:0;padding:7px 10px;margin-bottom:12px">
       ${i18t('mig_batch_draws')}</div>`;
   }
   const moneyPct=a.budget>0?Math.min(100,Math.round((a.spent||0)/a.budget*100)):0;
   const docsPct=a.docs>0?Math.min(100,Math.round((a.docsUsed||0)/a.docs*100)):0;
   const pct=Math.max(moneyPct,docsPct);
   const done=a.exhausted;
-  return `<div id="mig-allowance" style="font-size:11.5px;color:${done?'var(--st-ruby-fg)':'var(--color-accent-800)'};background:${done?'var(--st-ruby-bg)':'var(--color-accent-100)'};border:1px solid ${done?'var(--st-ruby-line)':'var(--color-divider)'};border-radius:4px;padding:8px 10px;margin-bottom:12px">
+  return `<div id="mig-allowance" style="font-size:11.5px;color:${done?'var(--st-ruby-fg)':'var(--color-accent-800)'};background:${done?'var(--st-ruby-bg)':'var(--color-accent-100)'};border:1px solid ${done?'var(--st-ruby-line)':'var(--color-divider)'};border-radius:0;padding:8px 10px;margin-bottom:12px">
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <span style="font-weight:600">${done?'Onboarding allowance used up':'Onboarding allowance'}</span>
       ${a.budget>0?`<span style="font-family:var(--font-mono)">${migMoney(a.spent)} / ${migMoney(a.budget)}</span>`:`<span>${i18t('mig_no_money_cap')}</span>`}
       ${a.docs>0?`<span style="font-family:var(--font-mono)">${a.docsUsed} / ${a.docs} docs</span>`:''}
     </div>
-    <div style="height:5px;background:color-mix(in srgb,var(--color-text) 10%,transparent);border-radius:3px;overflow:hidden;margin-top:6px">
+    <div style="height:5px;background:color-mix(in srgb,var(--color-text) 10%,transparent);border-radius:0;overflow:hidden;margin-top:6px">
       <div style="width:${pct}%;height:100%;background:${done?'var(--st-ruby-fg)':pct>=80?'var(--st-amber-dot)':'var(--st-green-dot)'};transition:width .3s"></div></div>
     ${done?`<div style="margin-top:6px;line-height:1.5">The import carries on with the built-in pattern matcher — nothing fails and nothing is lost, but extracted details will need more review. An admin can top the allowance up in Team &amp; Settings.</div>`:''}
   </div>`;
@@ -862,9 +862,9 @@ function renderMigQueue(){
         <span style="flex:1"></span>
         ${M.running?`<button id="mig-cancel" class="ui-btn" style="font-size:11.5px;padding:4px 10px">${i18t('mig_stop_after_current')}</button>`:''}
       </div>
-      <div style="height:6px;background:var(--color-neutral-200);border-radius:999px;overflow:hidden;margin-bottom:10px"><div style="width:${pct}%;height:100%;background:var(--color-accent);transition:width .3s"></div></div>
-      ${M.ocrError?`<div style="font-size:11.5px;color:var(--st-amber-fg);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);border-radius:4px;padding:7px 10px;margin-bottom:8px">A scanned document could not be read: ${migEsc(M.ocrError)}. Those files were imported with no text — open each one and enter the details, or fix the reader and use “Re-run Copilot extraction”.</div>`:''}
-      ${M.aiDown?`<div style="font-size:11.5px;color:var(--st-amber-fg);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);border-radius:4px;padding:7px 10px;margin-bottom:8px">${migEsc(M.aiDownMsg||'Copilot unavailable')} — remaining files use the built-in pattern-matcher and are flagged for review. Use “Re-run Copilot extraction” once the limit resets.</div>`:''}
+      <div style="height:6px;background:var(--color-neutral-200);border-radius:0;overflow:hidden;margin-bottom:10px"><div style="width:${pct}%;height:100%;background:var(--color-accent);transition:width .3s"></div></div>
+      ${M.ocrError?`<div style="font-size:11.5px;color:var(--st-amber-fg);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);border-radius:0;padding:7px 10px;margin-bottom:8px">A scanned document could not be read: ${migEsc(M.ocrError)}. Those files were imported with no text — open each one and enter the details, or fix the reader and use “Re-run Copilot extraction”.</div>`:''}
+      ${M.aiDown?`<div style="font-size:11.5px;color:var(--st-amber-fg);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);border-radius:0;padding:7px 10px;margin-bottom:8px">${migEsc(M.aiDownMsg||'Copilot unavailable')} — remaining files use the built-in pattern-matcher and are flagged for review. Use “Re-run Copilot extraction” once the limit resets.</div>`:''}
       <div class="scroll-thin" style="max-height:260px;overflow-y:auto">
         ${M.queue.map((q,i)=>{ const s=MIG_QSTATE[q.status]||MIG_QSTATE.waiting;
           const active=['reading','extracting','ai','matching','ocr'].includes(q.status);
@@ -894,11 +894,11 @@ function migDupeRowHtml(q, i){
   const M=migState();
   const pending = q.status==='dupe' && (M.pending||{})[i];
   const hit=d=>{ const c=getContract(d.id);
-    return `<span style="display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:var(--color-neutral-700);background:var(--color-bg);border:1px solid var(--color-divider);border-radius:3px;padding:2px 7px">
+    return `<span style="display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:var(--color-neutral-700);background:var(--color-bg);border:1px solid var(--color-divider);border-radius:0;padding:2px 7px">
       <b style="font-family:var(--font-mono)">${d.id}</b>
       <span style="max-width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${migEsc(c?c.name:'')}</span>
       <span style="color:var(--color-neutral-500)">${DUP_LABEL[d.kind]}${d.distance!=null&&d.kind!=='exact'&&d.kind!=='text'?` · distance ${d.distance}`:''}</span></span>`; };
-  const btn='font:inherit;font-size:10.5px;font-weight:600;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:3px 9px;cursor:pointer';
+  const btn='font:inherit;font-size:10.5px;font-weight:600;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:3px 9px;cursor:pointer';
   const parentOpts=q.dupes.map(d=>`<option value="${d.id}">${d.id}</option>`).join('');
   return `<div style="margin:5px 0 3px 16px;display:flex;flex-direction:column;gap:5px">
     <div style="display:flex;flex-wrap:wrap;gap:5px">${q.dupes.map(hit).join('')}${q.dupeTotal>q.dupes.length?`<span style="font-size:10.5px;color:var(--color-neutral-500);align-self:center">+${q.dupeTotal-q.dupes.length} more</span>`:''}</div>
@@ -907,10 +907,10 @@ function migDupeRowHtml(q, i){
       <button data-dup-import="${i}" style="${btn}">${i18t('mig_import_anyway')}</button>
       <span style="display:inline-flex;align-items:center;gap:5px">
         <button data-dup-link="${i}" style="${btn};border-color:var(--color-accent);color:var(--color-accent-800)">${i18t('mig_import_link_as')}</button>
-        <select data-dup-rel="${i}" style="font:inherit;font-size:10.5px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:3px 5px">
+        <select data-dup-rel="${i}" style="font:inherit;font-size:10.5px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:3px 5px">
           ${CONTRACT_RELATIONS.map(r=>`<option value="${r.k}">${r.label}</option>`).join('')}</select>
         <span style="font-size:10.5px;color:var(--color-neutral-600)">of</span>
-        <select data-dup-parent="${i}" style="font:inherit;font-size:10.5px;font-family:var(--font-mono);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:3px 5px">${parentOpts}</select>
+        <select data-dup-parent="${i}" style="font:inherit;font-size:10.5px;font-family:var(--font-mono);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:3px 5px">${parentOpts}</select>
       </span>
     </div>`:''}
   </div>`;
@@ -956,7 +956,7 @@ function migUnfinishedHtml(){
   const M=migState();
   if(!M.unfinished||!M.unfinished.length) return '';
   return M.unfinished.map(b=>`
-    <div style="font-size:11.5px;color:var(--st-ruby-fg);background:var(--st-ruby-bg);border:1px solid var(--st-ruby-line);border-radius:4px;padding:9px 11px;margin-bottom:10px">
+    <div style="font-size:11.5px;color:var(--st-ruby-fg);background:var(--st-ruby-bg);border:1px solid var(--st-ruby-line);border-radius:0;padding:9px 11px;margin-bottom:10px">
       <div style="font-weight:600;margin-bottom:4px">Batch ${migEsc(b.id)} did not finish — ${b.missed.length} file${b.missed.length===1?'':'s'} ${b.missed.length===1?'was':'were'} not imported.</div>
       <div style="margin-bottom:5px">Started ${migEsc(String(b.startedAt||'').slice(0,16).replace('T',' '))}${b.startedBy?' by '+migEsc(b.startedBy):''}. Drop these files again to finish the job:</div>
       <ul style="margin:0 0 6px;padding-left:16px;line-height:1.6">${b.missed.slice(0,15).map(x=>`<li>${migEsc(x.name)}${x.note?` — ${migEsc(x.note)}`:''}</li>`).join('')}</ul>
@@ -976,10 +976,10 @@ function renderMigration(){
   const folderOpts=folderOptionsHtml(M.defaults.folder||'auto', true);
   const statusOpts=[['Signed','Executed — signed outside HaTi'],['Under Review','In Review'],['Draft','Drafting']]
     .map(([v,l])=>`<option value="${v}" ${M.defaults.status===v?'selected':''}>${l}</option>`).join('');
-  const kpi=(n,label,color)=>`<div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:16px;padding:18px 20px;box-shadow:var(--shadow-sm)">
+  const kpi=(n,label,color)=>`<div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;padding:18px 20px;box-shadow:var(--shadow-sm)">
       <div style="font-family:var(--font-mono);font-size:24px;font-weight:700;color:${color||'var(--color-text)'};line-height:1;font-variant-numeric:tabular-nums">${n}</div>
       <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500);margin-top:6px">${label}</div></div>`;
-  const selStyle='font:inherit;font-size:12px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:5px 7px;color:inherit;cursor:pointer';
+  const selStyle='font:inherit;font-size:12px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:5px 7px;color:inherit;cursor:pointer';
 
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="padding:14px 16px 28px">
@@ -994,7 +994,7 @@ function renderMigration(){
       @media (min-width:640px){ .mig-kpis{grid-template-columns:repeat(4,minmax(0,1fr))} }
       @media (min-width:1024px){ .mig-kpis{grid-template-columns:repeat(5,minmax(0,1fr))} }
       .mig-table tbody tr:hover{background:color-mix(in srgb,var(--color-text) 4%,transparent)}
-      #mig-drop{border:2px dashed var(--color-divider);border-radius:12px;padding:32px 16px;
+      #mig-drop{border:2px dashed var(--color-divider);border-radius:0;padding:32px 16px;
         text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
       #mig-drop:hover{border-color:var(--color-accent)}
       #mig-drop.dragover{border-color:var(--color-accent);background:var(--color-accent-100)}
@@ -1013,7 +1013,7 @@ function renderMigration(){
 
       ${canEdit()?`
       <!-- intake -->
-      <section class="blueprint" style="background:var(--color-surface);box-shadow:var(--shadow-sm);padding:20px;border-radius:16px">
+      <section class="blueprint" style="background:var(--color-surface);box-shadow:var(--shadow-sm);padding:20px;border-radius:0">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
           <span style="display:inline-flex;color:var(--color-accent)">${icon('upload')}</span>
           <h3 style="font-family:var(--font-heading);font-weight:600;font-size:15px;margin:0">${i18t('mig_bulk_import')}</h3>
@@ -1031,20 +1031,20 @@ function renderMigration(){
         </div>
         ${migAllowanceHtml()}
         ${migUnfinishedHtml()}
-        ${M.manifestError?`<div style="font-size:11.5px;color:var(--st-ruby-fg);background:var(--st-ruby-bg);border:1px solid var(--st-ruby-line);border-radius:4px;padding:7px 10px;margin-bottom:8px"><strong>${migEsc(M.manifestError.name)}</strong> was not loaded — ${migEsc(M.manifestError.reason)}.${M.manifest?` Still using <strong>${migEsc(M.manifestName)}</strong>.`:''}</div>`:''}
-        ${M.manifest?`<div style="font-size:11.5px;color:var(--color-accent-800);background:var(--color-accent-100);border:1px solid var(--color-divider);border-radius:4px;padding:7px 10px;margin-bottom:12px">${i18t('mig_manifest')} <strong>${migEsc(M.manifestName)}</strong> loaded — ${M.manifest.length} rows. Files are matched by filename; manifest details (counterparty, dates, value, stream, status) take precedence over extraction.${M.manifestDateOrder&&!M.manifestDateOrder.proven?` Slashed dates are being read as <strong>${M.manifestDateOrder.order==='mdy'?'month/day/year':'day/month/year'}</strong>${M.manifestDateOrder.conflict?' — this file contains both orders, so check them':' (nothing in the file settles it either way)'}.`:''} The manifest lives in this session only — re-load it after a refresh to re-run reconciliation.</div>`:''}
-        ${(M.manifestProblems&&M.manifestProblems.length)?`<div style="font-size:11.5px;color:var(--st-amber-fg);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);border-radius:4px;padding:8px 10px;margin-bottom:12px">
+        ${M.manifestError?`<div style="font-size:11.5px;color:var(--st-ruby-fg);background:var(--st-ruby-bg);border:1px solid var(--st-ruby-line);border-radius:0;padding:7px 10px;margin-bottom:8px"><strong>${migEsc(M.manifestError.name)}</strong> was not loaded — ${migEsc(M.manifestError.reason)}.${M.manifest?` Still using <strong>${migEsc(M.manifestName)}</strong>.`:''}</div>`:''}
+        ${M.manifest?`<div style="font-size:11.5px;color:var(--color-accent-800);background:var(--color-accent-100);border:1px solid var(--color-divider);border-radius:0;padding:7px 10px;margin-bottom:12px">${i18t('mig_manifest')} <strong>${migEsc(M.manifestName)}</strong> loaded — ${M.manifest.length} rows. Files are matched by filename; manifest details (counterparty, dates, value, stream, status) take precedence over extraction.${M.manifestDateOrder&&!M.manifestDateOrder.proven?` Slashed dates are being read as <strong>${M.manifestDateOrder.order==='mdy'?'month/day/year':'day/month/year'}</strong>${M.manifestDateOrder.conflict?' — this file contains both orders, so check them':' (nothing in the file settles it either way)'}.`:''} The manifest lives in this session only — re-load it after a refresh to re-run reconciliation.</div>`:''}
+        ${(M.manifestProblems&&M.manifestProblems.length)?`<div style="font-size:11.5px;color:var(--st-amber-fg);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);border-radius:0;padding:8px 10px;margin-bottom:12px">
           <div style="font-weight:600;margin-bottom:4px">${M.manifestProblems.length} value${M.manifestProblems.length===1?'':'s'} in the manifest could not be read — those cells were left empty rather than guessed:</div>
           <ul style="margin:0;padding-left:16px;line-height:1.6">${M.manifestProblems.slice(0,12).map(p=>`<li><strong>${migEsc(p.label)}</strong> · ${migEsc(p.field)}: ${migEsc(p.message)}</li>`).join('')}</ul>
           ${M.manifestProblems.length>12?`<div style="margin-top:4px">…and ${M.manifestProblems.length-12} more.</div>`:''}
         </div>`:''}
         <div id="mig-drop">
-          <div style="display:inline-grid;place-items:center;width:40px;height:40px;border-radius:12px;background:var(--color-neutral-100);color:var(--color-accent-600);margin-bottom:8px">${icon('upload','w-5 h-5')}</div>
+          <div style="display:inline-grid;place-items:center;width:40px;height:40px;border-radius:0;background:var(--color-neutral-100);color:var(--color-accent-600);margin-bottom:8px">${icon('upload','w-5 h-5')}</div>
           <div style="font-size:13px;font-weight:600">${i18t('mig_drop_files')}</div>
           <div style="font-size:11px;color:var(--color-neutral-600);margin-top:3px">Up to ${MIG_MAX_FILES} files per batch · duplicates skipped automatically</div>
           <input id="mig-files" type="file" multiple accept="${MIG_ACCEPT}" style="display:none">
         </div>
-      </section>`:`<div style="font-size:12px;color:var(--color-neutral-600);background:var(--color-surface);border:1px solid var(--color-divider);border-radius:7px;padding:12px 14px">${i18t('mig_viewers_readonly')}</div>`}
+      </section>`:`<div style="font-size:12px;color:var(--color-neutral-600);background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;padding:12px 14px">${i18t('mig_viewers_readonly')}</div>`}
 
       <div id="mig-queue">${''}</div>
 

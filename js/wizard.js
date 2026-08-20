@@ -87,8 +87,8 @@ function openWizard(preTid){
   let wzStream=null;
   const renderStep=()=>{
     if(!tid){
-      const card=t=>`<button data-wz-tid="${t.id}" style="text-align:left;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:12px;cursor:pointer;transition:border-color .15s,box-shadow .15s;" onmouseover="this.style.borderColor='var(--color-accent)';this.style.boxShadow='var(--shadow-sm)'" onmouseout="this.style.borderColor='var(--color-divider)';this.style.boxShadow='none'">
-            <span style="display:flex;align-items:center;gap:8px;"><span style="width:28px;height:28px;display:grid;place-items:center;border-radius:4px;background:var(--color-accent-100);color:var(--color-accent);flex:none;">${icon(t.ic||'file','w-3.5 h-3.5')}</span>
+      const card=t=>`<button data-wz-tid="${t.id}" style="text-align:left;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:12px;cursor:pointer;transition:border-color .15s,box-shadow .15s;" onmouseover="this.style.borderColor='var(--color-accent)';this.style.boxShadow='var(--shadow-sm)'" onmouseout="this.style.borderColor='var(--color-divider)';this.style.boxShadow='none'">
+            <span style="display:flex;align-items:center;gap:8px;"><span style="width:28px;height:28px;display:grid;place-items:center;border-radius:0;background:var(--color-accent-100);color:var(--color-accent);flex:none;">${icon(t.ic||'file','w-3.5 h-3.5')}</span>
             <span style="font-size:13px;font-weight:600;color:var(--color-text);font-family:var(--font-mono);">${t.kind}</span></span>
             <span style="display:block;margin-top:5px;font-size:11px;color:var(--color-neutral-600);line-height:1.4;">${t.blurb||''}</span></button>`;
       const GRID='display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;';
@@ -139,8 +139,8 @@ function openWizard(preTid){
           sub:t.blurb||'', ic:t.ic||'file' })),
       ];
       const esc2=x=>String(x==null?'':x).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
-      const rowCard=r=>`<button data-wz-${r.pick}="${esc2(r.id)}" style="text-align:left;border:${r.std?'1.5px solid var(--color-accent)':'1px solid var(--color-divider)'};background:${r.std?'var(--color-accent-100)':'var(--color-surface)'};border-radius:6px;padding:12px;cursor:pointer;">
-        <span style="display:flex;align-items:center;gap:8px;"><span style="width:28px;height:28px;display:grid;place-items:center;border-radius:4px;background:${r.std?'var(--color-accent)':'var(--color-accent-100)'};color:${r.std?'#fff':'var(--color-accent)'};flex:none;">${icon(r.ic,'w-3.5 h-3.5')}</span>
+      const rowCard=r=>`<button data-wz-${r.pick}="${esc2(r.id)}" style="text-align:left;border:${r.std?'1.5px solid var(--color-accent)':'1px solid var(--color-divider)'};background:${r.std?'var(--color-accent-100)':'var(--color-surface)'};border-radius:0;padding:12px;cursor:pointer;">
+        <span style="display:flex;align-items:center;gap:8px;"><span style="width:28px;height:28px;display:grid;place-items:center;border-radius:0;background:${r.std?'var(--color-accent)':'var(--color-accent-100)'};color:${r.std?'#fff':'var(--color-accent)'};flex:none;">${icon(r.ic,'w-3.5 h-3.5')}</span>
         <span style="font-size:13px;font-weight:600;color:var(--color-text);">${esc2(r.name)}</span></span>
         <span style="display:block;margin-top:5px;font-size:11px;color:var(--color-neutral-600);line-height:1.4;">${esc2(r.sub)}</span></button>`;
       /* Grouped once, and the ORDER is visibleFolders' — the same order every
@@ -161,8 +161,8 @@ function openWizard(preTid){
       const fIcon=k=>k===WZ_OTHER?'folder':((FOLDERS[k]||{}).ic||'folder');
       const streamCard=k=>{
         const n=(byStream.get(k)||[]).length;
-        return `<button data-wz-stream="${esc2(k)}" style="text-align:left;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:12px;cursor:pointer;border-left:3px solid ${fColor(k)};">
-          <span style="display:flex;align-items:center;gap:8px;"><span style="width:28px;height:28px;display:grid;place-items:center;border-radius:4px;background:color-mix(in srgb,${fColor(k)} 15%,transparent);color:${fColor(k)};flex:none;">${icon(fIcon(k),'w-3.5 h-3.5')}</span>
+        return `<button data-wz-stream="${esc2(k)}" style="text-align:left;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:12px;cursor:pointer;border-left:3px solid ${fColor(k)};">
+          <span style="display:flex;align-items:center;gap:8px;"><span style="width:28px;height:28px;display:grid;place-items:center;border-radius:0;background:color-mix(in srgb,${fColor(k)} 15%,transparent);color:${fColor(k)};flex:none;">${icon(fIcon(k),'w-3.5 h-3.5')}</span>
           <span style="font-size:13px;font-weight:600;color:var(--color-text);flex:1;min-width:0;">${esc2(fName(k))}</span>
           <span style="font-size:11.5px;font-weight:600;color:var(--color-neutral-500);flex:none;">${n}</span></span>
           <span style="display:block;margin-top:5px;font-size:11px;color:var(--color-neutral-600);line-height:1.4;">${esc2(fDesc(k))}</span></button>`;
@@ -179,7 +179,7 @@ function openWizard(preTid){
             <div style="${GRID}">${forYou.map(card).join('')}</div>
           </div>`:''}
           ${admin?`<label style="display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:11px;color:var(--color-neutral-600)">${i18t('wz_line_of_business')}
-            <select id="wz-industry" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:4px 8px;font:inherit;font-size:11.5px;color:inherit">
+            <select id="wz-industry" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:4px 8px;font:inherit;font-size:11.5px;color:inherit">
               <option value="">${i18t('wz_not_set')}</option>
               ${Object.keys(INDUSTRY_TEMPLATES).map(k=>`<option value="${k}" ${industry===k?'selected':''}>${INDUSTRY_LABEL[k]}</option>`).join('')}
             </select></label>`:''}
@@ -188,7 +188,7 @@ function openWizard(preTid){
                  for when you do. Making the search obey the open folder would
                  make the faster of the two routes the narrower one. */}
           <input id="wz-search" type="search" placeholder="${i18t('wz_search_all')}" autocomplete="off"
-            style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:6px;padding:8px 12px;font:inherit;font-size:12.5px;color:inherit;outline:none;margin-bottom:10px"/>
+            style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:8px 12px;font:inherit;font-size:12.5px;color:inherit;outline:none;margin-bottom:10px"/>
           <div id="wz-hits" style="${GRID};margin-bottom:10px"></div>
           <span style="${EYE}">${i18t('wz_streams_head')}</span>
           <div style="${GRID}">${order.map(streamCard).join('')}</div>`}
@@ -247,11 +247,11 @@ function openWizard(preTid){
     const input=v=>{ const id='wz-'+String(v.key).replace(/[:]/g,'_');
       const lbl=`<span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">${v.label}${v.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}${mapNote(v)}</span>`;
       if(v.type==='select') return `<label style="display:block;">${lbl}
-        <select id="${id}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 11px;font-size:13px;color:var(--color-text);outline:none;">
+        <select id="${id}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 11px;font-size:13px;color:var(--color-text);outline:none;">
           ${(v.opts||[]).map(o=>`<option value="${String(o).replace(/"/g,'&quot;')}" ${v.def===o?'selected':''}>${o}</option>`).join('')}</select></label>`;
       const it=v.type==='date'?'date':(v.type==='num'?'number':'text');
       return `<label style="display:block;">${lbl}
-        <input id="${id}" type="${it}" value="${String(v.def||'').replace(/"/g,'&quot;')}" placeholder="${v.ph||''}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 11px;font-size:13px;font-family:var(--font-body);color:var(--color-text);outline:none;"/></label>`; };
+        <input id="${id}" type="${it}" value="${String(v.def||'').replace(/"/g,'&quot;')}" placeholder="${v.ph||''}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 11px;font-size:13px;font-family:var(--font-body);color:var(--color-text);outline:none;"/></label>`; };
     openModal(`<div style="padding:22px 24px;">
       <button id="wz-back" style="font-size:11px;color:var(--color-accent-700);font-weight:600;font-family:var(--font-mono);background:none;border:0;cursor:pointer;margin-bottom:8px;padding:0;">← templates</button>
       <h3 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0 0 3px;">${t.kind}</h3>
@@ -265,7 +265,7 @@ function openWizard(preTid){
                contract the strip never appears and the send goes straight out. */}
         <label style="display:block;">
           <span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">${i18t('wz_their_email')}<span style="font-weight:400;color:var(--color-neutral-500);text-transform:none;letter-spacing:0"> → so you can send it to them</span></span>
-          <input id="wz-cpemail" type="email" placeholder="${(typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 11px;font-size:13px;font-family:var(--font-body);color:var(--color-text);outline:none;"/></label>
+          <input id="wz-cpemail" type="email" placeholder="${(typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 11px;font-size:13px;font-family:var(--font-body);color:var(--color-text);outline:none;"/></label>
       </div>
       <div style="display:flex;align-items:center;gap:8px;margin-top:20px;">
         <button id="wz-cancel" class="ui-btn">${i18t('act_cancel')}</button>

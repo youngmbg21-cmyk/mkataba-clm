@@ -285,8 +285,8 @@ function diffHtml(aStr, bStr){
   // clear diff convention: additions emerald, deletions ruby (struck through)
   return wordDiff(aStr,bStr).map(p=>
     p.t==='eq' ? esc(p.text)
-    : p.t==='add' ? `<ins style="background:var(--st-green-bg);color:var(--st-green-fg);text-decoration:none;border-radius:2px;padding:0 1px">${esc(p.text)}</ins>`
-    : `<del style="background:var(--st-ruby-bg);color:var(--st-ruby-fg);border-radius:2px;padding:0 1px">${esc(p.text)}</del>`).join('');
+    : p.t==='add' ? `<ins style="background:var(--st-green-bg);color:var(--st-green-fg);text-decoration:none;border-radius:0;padding:0 1px">${esc(p.text)}</ins>`
+    : `<del style="background:var(--st-ruby-bg);color:var(--st-ruby-fg);border-radius:0;padding:0 1px">${esc(p.text)}</del>`).join('');
 }
 function diffStats(aStr,bStr){ let add=0,del=0; wordDiff(aStr,bStr).forEach(p=>{ const w=p.text.trim()?p.text.trim().split(/\s+/).length:0; if(p.t==='add') add+=w; else if(p.t==='del') del+=w; }); return {add,del}; }
 
@@ -434,8 +434,8 @@ function openPointsFor(c){
    verb — picking two versions and pressing Compare is that verb, and is what
    the window is for. */
 
-const _diffLegend = `<span style="display:inline-flex;align-items:center;gap:8px"><ins style="background:var(--st-green-bg);color:var(--st-green-fg);text-decoration:none;border-radius:2px;padding:0 4px">added</ins><del style="background:var(--st-ruby-bg);color:var(--st-ruby-fg);border-radius:2px;padding:0 4px">removed</del></span>`;
-const _diffBox = (a,b)=>`<div class="scroll-thin" style="border:1px solid var(--color-divider);border-radius:5px;background:var(--color-surface);padding:14px 16px;font-size:12.5px;line-height:1.85;color:var(--color-doc-text);max-height:56vh;overflow-y:auto;white-space:pre-wrap;font-family:var(--font-body)">${diffHtml(a,b)}</div>`;
+const _diffLegend = `<span style="display:inline-flex;align-items:center;gap:8px"><ins style="background:var(--st-green-bg);color:var(--st-green-fg);text-decoration:none;border-radius:0;padding:0 4px">added</ins><del style="background:var(--st-ruby-bg);color:var(--st-ruby-fg);border-radius:0;padding:0 4px">removed</del></span>`;
+const _diffBox = (a,b)=>`<div class="scroll-thin" style="border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);padding:14px 16px;font-size:12.5px;line-height:1.85;color:var(--color-doc-text);max-height:56vh;overflow-y:auto;white-space:pre-wrap;font-family:var(--font-body)">${diffHtml(a,b)}</div>`;
 const _statLine = (st)=>`<span style="font-weight:600;color:var(--st-green-fg)">+${st.add}</span> added · <span style="font-weight:600;color:var(--st-ruby-fg)">−${st.del}</span> removed`;
 
 function openDiffModal(aText, bText, labelA, labelB){
@@ -509,7 +509,7 @@ function openCompareModal(c){
   }
 
   const opts=items.map((it,i)=>`<option value="${i}">${it.label}</option>`).join('');
-  const selStyle='font:inherit;font-size:12.5px;border:1px solid var(--color-divider);background:var(--color-surface);padding:6px 8px;border-radius:4px;color:inherit;min-width:0;flex:1';
+  const selStyle='font:inherit;font-size:12.5px;border:1px solid var(--color-divider);background:var(--color-surface);padding:6px 8px;border-radius:0;color:inherit;min-width:0;flex:1';
   /* ---- THE CUMULATIVE REDLINE ----
      Round-by-round history answers "what changed this round"; the question a
      GC asks before signing is "what did we concede IN TOTAL" — current
@@ -533,7 +533,7 @@ function openCompareModal(c){
        surface in the product is painted --color-doc-text, including _diffBox
        immediately below this branch; leaving it unset is what let the
        container's placeholder grey through. */
-    return `<div class="cmp-doc" style="font-size:12.5px;line-height:1.75;border:1px solid var(--color-divider);border-radius:6px;background:var(--color-surface);color:var(--color-doc-text);padding:14px 18px;max-height:62vh;overflow:auto">${html}</div>`;
+    return `<div class="cmp-doc" style="font-size:12.5px;line-height:1.75;border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);color:var(--color-doc-text);padding:14px 18px;max-height:62vh;overflow:auto">${html}</div>`;
   };
   const foldUnchanged=()=>{
     const doc=document.querySelector('#cmp-out .cmp-doc'); if(!doc) return;
@@ -557,13 +557,13 @@ function openCompareModal(c){
     });
     fold();
   };
-  const segBtn=(k,label,on)=>`<button data-cmp-mode="${k}" style="border:0;border-radius:6px;padding:5px 12px;font:inherit;font-size:11.5px;font-weight:600;cursor:pointer;background:${on?'var(--accent-solid,var(--color-accent))':'none'};color:${on?'#fff':'var(--color-neutral-600)'}">${label}</button>`;
+  const segBtn=(k,label,on)=>`<button data-cmp-mode="${k}" style="border:0;border-radius:0;padding:5px 12px;font:inherit;font-size:11.5px;font-weight:600;cursor:pointer;background:${on?'var(--accent-solid,var(--color-accent))':'none'};color:${on?'#fff':'var(--color-neutral-600)'}">${label}</button>`;
   openModal(`
     <div style="padding:20px 22px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><span style="color:var(--color-accent)">${icon('history','w-4 h-4')}</span>
         <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0;flex:1">${i18t('ve_compare_versions')}</h3>
         <button id="cmp-x" title="${i18t('act_close')}" class="ui-btn" style="flex:none;width:30px;height:30px;padding:0">${icon('close','w-3.5 h-3.5')}</button></div>
-      ${cumulative?`<div id="cmp-mode" style="display:flex;gap:2px;background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:9px;padding:3px;width:max-content;margin-bottom:10px">
+      ${cumulative?`<div id="cmp-mode" style="display:flex;gap:2px;background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:0;padding:3px;width:max-content;margin-bottom:10px">
         ${segBtn('pair','Two versions',true)}${segBtn('cum','vs Original — cumulative',false)}
       </div>`:''}
       <div id="cmp-pair-row" style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
@@ -579,12 +579,12 @@ function openCompareModal(c){
         #cmp-out .cmp-doc>h4.cmp-line:first-child{margin-top:0}
         #cmp-out .cmp-hang{padding-left:34px;text-indent:-34px}
         #cmp-out .cmp-marker{font-weight:600;margin-right:6px}
-        #cmp-out ins.cmp-ins{background:var(--st-green-bg);color:var(--st-green-fg);text-decoration:none;border-radius:3px;padding:0 2px}
-        #cmp-out del.cmp-del{background:var(--st-ruby-bg);color:var(--st-ruby-fg);border-radius:3px;padding:0 2px}
+        #cmp-out ins.cmp-ins{background:var(--st-green-bg);color:var(--st-green-fg);text-decoration:none;border-radius:0;padding:0 2px}
+        #cmp-out del.cmp-del{background:var(--st-ruby-bg);color:var(--st-ruby-fg);border-radius:0;padding:0 2px}
         #cmp-out del.cmp-del+ins.cmp-ins{margin-left:.3em}
-        #cmp-out .cmp-line-ins{background:color-mix(in srgb,var(--st-green-bg) 45%,transparent);border-radius:4px}
-        #cmp-out .cmp-line-del{background:color-mix(in srgb,var(--st-ruby-bg) 40%,transparent);border-radius:4px}
-        #cmp-out .cmp-fold{display:block;width:100%;text-align:center;border:1px dashed var(--color-divider);background:var(--color-neutral-100);color:var(--color-neutral-600);border-radius:6px;font:inherit;font-size:11px;font-weight:600;padding:4px;margin:8px 0;cursor:pointer}
+        #cmp-out .cmp-line-ins{background:color-mix(in srgb,var(--st-green-bg) 45%,transparent);border-radius:0}
+        #cmp-out .cmp-line-del{background:color-mix(in srgb,var(--st-ruby-bg) 40%,transparent);border-radius:0}
+        #cmp-out .cmp-fold{display:block;width:100%;text-align:center;border:1px dashed var(--color-divider);background:var(--color-neutral-100);color:var(--color-neutral-600);border-radius:0;font:inherit;font-size:11px;font-weight:600;padding:4px;margin:8px 0;cursor:pointer}
         #cmp-out .cmp-fold:hover{color:var(--color-text)}
       </style>
       ${''/* THE GREY BELONGED TO ONE LINE OF PLACEHOLDER, AND THE CONTRACT WORE IT.
@@ -661,7 +661,7 @@ function openCompareModal(c){
       // structure moved. Reporting "no changes" here would be a lie.
       const fmtOnly=(a.canon||a.text)!==(b.canon||b.text);
       document.getElementById('cmp-out').innerHTML=fmtOnly
-        ? `<div style="font-size:12px;line-height:1.6;color:var(--color-neutral-700);border:1px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:4px;padding:10px 12px"><b>${i18t('ve_formatting_changed')}</b> ${i18t('ve_the_wording_of')} <b>${a.short}</b> and <b>${b.short}</b> is word-for-word identical, but the document's structure is not — headings, emphasis, clause numbering, indentation or table layout differ. Word-level comparison has nothing to highlight; open the two versions to see the difference.</div>`
+        ? `<div style="font-size:12px;line-height:1.6;color:var(--color-neutral-700);border:1px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:0;padding:10px 12px"><b>${i18t('ve_formatting_changed')}</b> ${i18t('ve_the_wording_of')} <b>${a.short}</b> and <b>${b.short}</b> is word-for-word identical, but the document's structure is not — headings, emphasis, clause numbering, indentation or table layout differ. Word-level comparison has nothing to highlight; open the two versions to see the difference.</div>`
         : `<div style="font-size:12px;color:var(--color-neutral-500)">${i18t('ve_identical')} <b>${a.short}</b> and <b>${b.short}</b>.</div>`;
       return; }
     const st=diffStats(a.text,b.text);
@@ -677,7 +677,7 @@ function openCompareModal(c){
     const st=diffStats(orig,live);
     const moved=(window.negoClauseJourney?negoClauseJourney(c):[]);
     const trail=moved.length
-      ? `<div style="font-size:11.5px;line-height:1.9;color:var(--color-neutral-700);border:1px solid var(--color-divider);border-radius:7px;padding:9px 12px;margin-bottom:10px"><b>${i18t('ve_clauses_moved')}</b> ${moved.slice(0,8).map(m=>`${m.label} ×${m.n}`).join(' · ')}${moved.length>8?` · +${moved.length-8} more`:''}</div>`
+      ? `<div style="font-size:11.5px;line-height:1.9;color:var(--color-neutral-700);border:1px solid var(--color-divider);border-radius:0;padding:9px 12px;margin-bottom:10px"><b>${i18t('ve_clauses_moved')}</b> ${moved.slice(0,8).map(m=>`${m.label} ×${m.n}`).join(' · ')}${moved.length>8?` · +${moved.length-8} more`:''}</div>`
       : '';
     document.getElementById('cmp-legend').innerHTML=`${_statLine(st)} · everything since the negotiation opened, as one redline · ${_diffLegend}`;
     document.getElementById('cmp-out').innerHTML=trail+structuredBox(orig,live);
@@ -716,13 +716,13 @@ function reviewProposedRound(c, n){
   const blockRow=b=>{
     const ask=noteForBlock(b, r.clauseNotes);
     return `
-    <div style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:7px;padding:11px 13px">
+    <div style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:11px 13px">
       ${b.context?`<div style="font-size:10.5px;color:var(--color-neutral-500);margin-bottom:6px">…${e(b.context)}</div>`:''}
       <div style="font-size:13px;line-height:1.7">
-        ${b.before.trim()?`<del style="background:var(--st-ruby-bg);color:var(--st-ruby-fg);border-radius:2px;padding:0 2px">${e(b.before.trim())}</del> `:''}
-        ${b.after.trim()?`<ins style="background:var(--st-green-bg);color:var(--st-green-fg);text-decoration:none;border-radius:2px;padding:0 2px">${e(b.after.trim())}</ins>`:''}
+        ${b.before.trim()?`<del style="background:var(--st-ruby-bg);color:var(--st-ruby-fg);border-radius:0;padding:0 2px">${e(b.before.trim())}</del> `:''}
+        ${b.after.trim()?`<ins style="background:var(--st-green-bg);color:var(--st-green-fg);text-decoration:none;border-radius:0;padding:0 2px">${e(b.after.trim())}</ins>`:''}
       </div>
-      ${ask?`<div style="margin-top:8px;border-left:2px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:0 4px 4px 0;padding:7px 10px">
+      ${ask?`<div style="margin-top:8px;border-left:2px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:0;padding:7px 10px">
         <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-accent-800);margin-bottom:2px">${i18t('ve_why_they_asked')}</span>
         <span style="font-size:12px;line-height:1.55;color:var(--color-neutral-800)">${e(ask)}</span></div>`:''}
       <div style="display:flex;gap:6px;margin-top:9px;align-items:center">
@@ -730,7 +730,7 @@ function reviewProposedRound(c, n){
         <button data-dec="reject" data-for="${b.id}" class="ui-btn" style="font-size:11.5px;padding:5px 12px">${i18t('ve_reject')}</button>
         <span data-state="${b.id}" style="margin-left:auto;font-size:11px;font-weight:600"></span>
       </div>
-      <input data-reply="${b.id}" type="text" placeholder="${i18t('ve_your_reply_optional')}" style="width:100%;margin-top:7px;border:1px solid var(--color-divider);border-radius:5px;padding:6px 9px;font:inherit;font-size:11.5px;background:var(--color-bg);outline:none"/>
+      <input data-reply="${b.id}" type="text" placeholder="${i18t('ve_your_reply_optional')}" style="width:100%;margin-top:7px;border:1px solid var(--color-divider);border-radius:0;padding:6px 9px;font:inherit;font-size:11.5px;background:var(--color-bg);outline:none"/>
     </div>`;};
   openModal(`
     <div style="height:100%;display:flex;flex-direction:column;min-height:0">
@@ -739,7 +739,7 @@ function reviewProposedRound(c, n){
           <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
             <span style="color:var(--st-amber-dot);display:inline-flex">${icon('history','w-4 h-4')}</span>
             <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Changes proposed by ${e(r.by||'the counterparty')}</h3>
-            <span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:999px;padding:3px 9px">${i18t('ve_round_open',{n})}</span>
+            <span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:0;padding:3px 9px">${i18t('ve_round_open',{n})}</span>
           </div>
           <p style="font-size:11.5px;color:var(--color-neutral-600);margin:7px 0 0;display:flex;flex-wrap:wrap;gap:10px;align-items:center">${fmtDT(r.at)} · ${_statLine(st)} · ${_diffLegend}</p>
         </div>
@@ -755,13 +755,13 @@ function reviewProposedRound(c, n){
             </div>
             <div id="pr-blocks" style="display:flex;flex-direction:column;gap:9px;margin-bottom:18px">${blocks.map(blockRow).join('')}</div>`:''}
           <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:7px">${i18t('ve_doc_with_changes')}</div>
-          <div style="background:var(--color-doc-surface);box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;font-size:14px;line-height:1.95;color:var(--color-doc-text);white-space:pre-wrap;font-family:var(--font-body)">${diffHtml(base, r.proposedText)}</div>
-          ${r.comment?`<div style="margin-top:14px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:12px 16px">
+          <div style="background:var(--color-doc-surface);box-shadow:var(--shadow-md);border-radius:0;padding:30px 36px;font-size:14px;line-height:1.95;color:var(--color-doc-text);white-space:pre-wrap;font-family:var(--font-body)">${diffHtml(base, r.proposedText)}</div>
+          ${r.comment?`<div style="margin-top:14px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:12px 16px">
             <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:5px">${i18t('ve_their_comment')}</div>
             <div style="font-size:12.5px;line-height:1.6;color:var(--color-neutral-800)">${e(r.comment)}</div></div>`:''}
           <label style="display:block;margin-top:14px">
             <span style="display:block;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:5px">${i18t('ve_your_reply_to',{who:e(r.by||i18t('ve_them'))})}</span>
-            <textarea id="pr-reply" rows="2" placeholder="${e(i18t('ve_ph_reply'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:5px;padding:9px 11px;font:inherit;font-size:12.5px;outline:none"></textarea>
+            <textarea id="pr-reply" rows="2" placeholder="${e(i18t('ve_ph_reply'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:9px 11px;font:inherit;font-size:12.5px;outline:none"></textarea>
           </label>
         </div>
       </div>

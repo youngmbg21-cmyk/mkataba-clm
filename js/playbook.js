@@ -223,7 +223,7 @@ function pbVerdictLine(v){
    checked at all. So no verdicts, no pill, and the card says so in words. */
 function pbHeadPill(sm){
   if(!sm||!sm.total) return '';
-  const chip=(bg,fg,txt)=>`<span style="flex:none;font-size:10px;font-weight:700;border-radius:999px;padding:2px 9px;background:${bg};color:${fg}">${txt}</span>`;
+  const chip=(bg,fg,txt)=>`<span style="flex:none;font-size:10px;font-weight:700;border-radius:0;padding:2px 9px;background:${bg};color:${fg}">${txt}</span>`;
   if(sm.ok) return chip('var(--st-green-bg)','var(--st-green-fg)','all aligned');
   if(sm.esc) return chip('var(--st-ruby-bg)','var(--st-ruby-fg)',`${sm.esc} to escalate`);
   const n=sm.dev+sm.miss;

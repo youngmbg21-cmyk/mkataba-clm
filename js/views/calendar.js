@@ -71,7 +71,7 @@ function renderCalendar(){
     const inMonth=dnum>=1&&dnum<=days;
     // the same floor as a real day, or the blank leading cells set the row
     // height and undo the fix below
-    if(!inMonth) return `<div class="cal-day cal-blank" style="min-height:clamp(38px,7.1vh,62px);min-width:0;background:transparent;border:1px solid transparent;border-radius:7px"></div>`;
+    if(!inMonth) return `<div class="cal-day cal-blank" style="min-height:clamp(38px,7.1vh,62px);min-width:0;background:transparent;border:1px solid transparent;border-radius:0"></div>`;
     const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(dnum).padStart(2,'0')}`;
     const today=iso===todayIso;
     const list=byDay[iso]||[], es=list.slice(0,3), more=list.length-es.length;
@@ -109,7 +109,7 @@ function renderCalendar(){
     const cids=Array.from(new Set(list.map(e=>e.cid).filter(Boolean)));
     const openable=cids.length>0;
     const dayName=new Date(y,m,dnum).toLocaleDateString(langLocale(),{day:'numeric',month:'long',year:'numeric'});
-    const cellStyle=`min-height:clamp(38px,7.1vh,62px);min-width:0;overflow:hidden;padding:4px 5px;display:flex;flex-direction:column;gap:2px;cursor:${openable?'pointer':'default'};border-radius:7px;`+
+    const cellStyle=`min-height:clamp(38px,7.1vh,62px);min-width:0;overflow:hidden;padding:4px 5px;display:flex;flex-direction:column;gap:2px;cursor:${openable?'pointer':'default'};border-radius:0;`+
       `background:${bg};border:1px solid ${bd}`;
     const cellAttrs=openable
       ? ` role="button" tabindex="0" data-cal-day="${iso}" title="${_esc(cids.length===1
@@ -190,11 +190,11 @@ function renderCalendar(){
     const doneBtn = (e.type==='obligation' && e.obId && window.toggleObligationById
         && (!window.canEdit || canEdit()))
       ? `<button data-ob-done="${_esc(e.obId)}" data-ob-cid="${_esc(e.cid)}" title="${i18t('cal_mark_complete')}"
-           style="flex:none;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;
+           style="flex:none;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;
              padding:2px 7px;font:inherit;font-size:10px;font-weight:600;color:var(--color-accent-700);cursor:pointer">${i18t('cal_done')}</button>`
       : '';
     const theirsChip = (e.type==='obligation' && e.theirs)
-      ? `<span title="${i18t('cal_cp_owes')}" style="flex:none;font-size:8.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:3px;padding:1px 4px;background:var(--st-amber-bg);color:var(--st-amber-fg)">theirs</span>`
+      ? `<span title="${i18t('cal_cp_owes')}" style="flex:none;font-size:8.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:0;padding:1px 4px;background:var(--st-amber-bg);color:var(--st-amber-fg)">theirs</span>`
       : '';
     return `<div style="display:flex;align-items:center;gap:8px;width:100%;border-bottom:1px solid color-mix(in srgb,var(--color-text) 8%,transparent)" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">`+
       `<button data-sel="${e.cid}" style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;padding:6px 2px;border:0;background:none;cursor:pointer;font:inherit;text-align:left;color:inherit">`+
@@ -208,15 +208,15 @@ function renderCalendar(){
       `<span style="font-size:10px;font-weight:600;font-family:var(--font-mono);color:${ev.fg};flex:none;padding-right:2px">${inTxt}</span>`+
     `</div>`;
   }).join(''):`<div style="text-align:center;padding:22px 8px">
-      <div style="width:40px;height:40px;margin:0 auto 10px;display:grid;place-items:center;border-radius:8px;background:var(--color-bg);color:var(--color-neutral-500)">${icon('calendar','w-5 h-5')}</div>
+      <div style="width:40px;height:40px;margin:0 auto 10px;display:grid;place-items:center;border-radius:0;background:var(--color-bg);color:var(--color-neutral-500)">${icon('calendar','w-5 h-5')}</div>
       <div style="font-size:12.5px;font-weight:600;color:var(--color-text)">${i18t('cal_nothing_due')}</div>
       <div style="font-size:11px;color:var(--color-neutral-600);margin:3px 0 12px;line-height:1.5">${i18t('cal_nothing_due_sub')}</div>
-      <button id="cal-empty-reg" style="font-size:11.5px;font-weight:600;color:var(--color-accent-700);background:none;border:1px solid var(--color-divider);border-radius:4px;padding:6px 12px;cursor:pointer">${i18t('cal_open_register')}</button>
+      <button id="cal-empty-reg" style="font-size:11.5px;font-weight:600;color:var(--color-accent-700);background:none;border:1px solid var(--color-divider);border-radius:0;padding:6px 12px;cursor:pointer">${i18t('cal_open_register')}</button>
     </div>`;
 
   /* THE REFERENCE'S NAVIGATION, which sits in the page header beside the title
      rather than inside the month card. 32px squares with an 8px radius. */
-  const btnBase='width:32px;height:32px;display:grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-surface);box-shadow:var(--shadow-sm);border-radius:8px;cursor:pointer;font-size:14px;color:var(--color-neutral-700);line-height:1';
+  const btnBase='width:32px;height:32px;display:grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-surface);box-shadow:var(--shadow-sm);border-radius:0;cursor:pointer;font-size:14px;color:var(--color-neutral-700);line-height:1';
 
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="height:var(--view-h);box-sizing:border-box;padding:14px 16px 18px;display:flex;flex-direction:column;gap:14px">
@@ -235,7 +235,7 @@ function renderCalendar(){
       .cal-split > *{min-height:0}
       .cal-month-card{grid-column:span 2}
       .cal-card{background:var(--color-surface);border:1px solid var(--color-divider);
-        box-shadow:var(--shadow-sm);border-radius:16px;padding:20px;display:flex;
+        box-shadow:var(--shadow-sm);border-radius:0;padding:20px;display:flex;
         flex-direction:column;min-height:0}
       /* A SHORT WINDOW STILL HAS TO SHOW A WHOLE MONTH. 20px of card padding
          and a 62px day cell are a big-screen luxury; six rows of them need
@@ -263,7 +263,7 @@ function renderCalendar(){
       <div style="display:flex;gap:8px;flex:none">
         <button id="cal-prev" style="${btnBase}" title="${i18t('cal_prev_month')}">‹</button>
         <button id="cal-next" style="${btnBase}" title="${i18t('cal_next_month')}">›</button>
-        <button id="cal-today" style="height:32px;padding:0 12px;border:1px solid var(--color-divider);background:var(--color-surface);box-shadow:var(--shadow-sm);border-radius:8px;cursor:pointer;font:inherit;font-size:11.5px;font-weight:600;color:var(--color-neutral-700)">${i18t('cal_today')}</button>
+        <button id="cal-today" style="height:32px;padding:0 12px;border:1px solid var(--color-divider);background:var(--color-surface);box-shadow:var(--shadow-sm);border-radius:0;cursor:pointer;font:inherit;font-size:11.5px;font-weight:600;color:var(--color-neutral-700)">${i18t('cal_today')}</button>
       </div>
     </div>
     <div class="cal-split">

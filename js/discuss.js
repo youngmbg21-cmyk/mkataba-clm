@@ -106,7 +106,7 @@ function discussVisBadgeHtml(m){
     ? 'background:var(--st-amber-bg);color:var(--st-amber-fg);border:1px solid rgba(138,106,42,.3)'
     : 'background:var(--color-accent-100);color:var(--color-accent-800);border:1px solid var(--color-accent-300)';
   return `<span style="display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:700;
-    letter-spacing:.04em;border-radius:999px;padding:2px 7px;white-space:nowrap;${pal}">${
+    letter-spacing:.04em;border-radius:0;padding:2px 7px;white-space:nowrap;${pal}">${
     internal ? '🔒 Internal only' : '🌐 Shared with counterparty'}</span>`;
 }
 
@@ -164,7 +164,7 @@ function discussBubbleHtml(m, mine){
     <div style="display:flex;flex-direction:column;gap:2px;align-items:${isMine ? 'flex-end' : 'flex-start'}">
       <div style="font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono);display:flex;align-items:center;gap:6px;flex-wrap:wrap">${e(m.author)}${when ? ` · ${when}` : ''}${
         internal ? ' ' + discussVisBadgeHtml(m) : ''}</div>
-      <div style="max-width:92%;border:1px solid ${internal ? 'rgba(138,106,42,.35)' : (isMine ? 'var(--color-divider)' : 'var(--color-accent-300)')};background:${internal ? 'rgba(245,158,11,.08)' : (isMine ? 'var(--color-bg)' : 'var(--color-accent-100)')};border-radius:7px;padding:8px 11px;font-size:12px;line-height:1.55;color:var(--color-neutral-800);white-space:pre-wrap">${e(m.body)}</div>
+      <div style="max-width:92%;border:1px solid ${internal ? 'rgba(138,106,42,.35)' : (isMine ? 'var(--color-divider)' : 'var(--color-accent-300)')};background:${internal ? 'rgba(245,158,11,.08)' : (isMine ? 'var(--color-bg)' : 'var(--color-accent-100)')};border-radius:0;padding:8px 11px;font-size:12px;line-height:1.55;color:var(--color-neutral-800);white-space:pre-wrap">${e(m.body)}</div>
     </div>`;
 }
 /* The whole panel: what has been said, grouped by what it is about, and one
@@ -187,13 +187,13 @@ function discussPanelHtml(opts){
   const options = (topics || []).map(t =>
     `<option value="${e(t.value)}">${e(t.label)}</option>`).join('');
   const composer = disabled ? `
-    <div style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:5px;padding:9px 12px;font-size:11.5px;line-height:1.55;color:var(--color-neutral-600)">${e(disabledNote || 'This conversation is closed.')}</div>` : `
+    <div style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:9px 12px;font-size:11.5px;line-height:1.55;color:var(--color-neutral-600)">${e(disabledNote || 'This conversation is closed.')}</div>` : `
     <div style="border-top:1px solid var(--color-divider);padding-top:12px">
       <label style="display:block;margin-bottom:7px">
         <span style="display:block;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:4px">${i18t('di_what_about')}</span>
-        <select id="${idp}-topic" style="width:100%;font:inherit;font-size:12px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:5px;padding:7px 9px;color:inherit">${options}</select>
+        <select id="${idp}-topic" style="width:100%;font:inherit;font-size:12px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 9px;color:inherit">${options}</select>
       </label>
-      <textarea id="${idp}-body" rows="2" placeholder="${e(i18t('di_ph_would_you'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:5px;padding:8px 11px;font:inherit;font-size:12.5px;outline:none;resize:vertical"></textarea>
+      <textarea id="${idp}-body" rows="2" placeholder="${e(i18t('di_ph_would_you'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:8px 11px;font:inherit;font-size:12.5px;outline:none;resize:vertical"></textarea>
       <div style="display:flex;align-items:center;gap:9px;margin-top:8px;flex-wrap:wrap">
         <span style="flex:1;min-width:140px;font-size:11px;color:var(--color-neutral-600);line-height:1.45">${i18t('di_sends_message')}</span>
         <button id="${idp}-send" class="ui-btn ui-btn-primary" style="flex:none;font-size:12px;padding:7px 14px">${i18t('di_send')}</button>
@@ -201,11 +201,11 @@ function discussPanelHtml(opts){
       <div id="${idp}-out" style="margin-top:9px"></div>
     </div>`;
   return `
-    <div id="${idp}-panel" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:8px;padding:14px 18px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
+    <div id="${idp}-panel" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:14px 18px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px;flex-wrap:wrap">
         <span style="flex:none;color:var(--color-accent);display:inline-flex">${window.icon ? icon('msg', 'w-4 h-4') : ''}</span>
         <span style="font-size:13px;font-weight:600">${e(title || 'Open points — talk it through')}</span>
-        ${waiting ? `<span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:999px;padding:2px 9px">${waiting} awaiting your reply</span>` : ''}
+        ${waiting ? `<span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:0;padding:2px 9px">${waiting} awaiting your reply</span>` : ''}
         <span style="margin-left:auto;font-size:10.5px;color:var(--color-neutral-500);font-family:var(--font-mono)">${(messages || []).length} message${(messages || []).length === 1 ? '' : 's'}</span>
       </div>
       ${blurb ? `<p style="margin:0 0 11px;font-size:11.5px;line-height:1.55;color:var(--color-neutral-600)">${e(blurb)}</p>` : ''}
@@ -240,7 +240,7 @@ function discussPointReplyHtml(topic, messages, opts){
   return `${thread}
     <div style="display:flex;gap:6px;align-items:center;margin-top:8px;flex-wrap:wrap">
       <textarea data-point-body="${e(idp)}" class="chat-field" rows="1" placeholder="${e(placeholder || 'Reply on this point — a sentence, not a redraft')}"
-        style="flex:1;min-width:150px;border:1px solid var(--color-divider);border-radius:5px;padding:7px 10px;font:inherit;font-size:11.5px;background:var(--color-surface);outline:none"></textarea>
+        style="flex:1;min-width:150px;border:1px solid var(--color-divider);border-radius:0;padding:7px 10px;font:inherit;font-size:11.5px;background:var(--color-surface);outline:none"></textarea>
       <button data-point-send="${e(idp)}" data-point-topic="${e(topic)}" data-point-label="${e((opts&&opts.label)||'')}" class="ui-btn" style="flex:none;font-size:11px;padding:6px 12px">${i18t('di_send')}</button>
     </div>
     <div data-point-out="${e(idp)}" style="margin-top:6px"></div>
@@ -269,7 +269,7 @@ function wireDiscussPoints(opts){
         if (input) input.value = '';
         if (onSent) onSent(res);
       } catch (e){
-        if (out) out.innerHTML = `<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:5px;padding:7px 10px;font-size:11px;line-height:1.5;color:var(--st-ruby-fg)"><b>${i18t('di_not_sent')}</b> ${(window.esc ? esc(e.message) : e.message) || 'Something went wrong.'} Your reply is still in the box.</div>`;
+        if (out) out.innerHTML = `<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:0;padding:7px 10px;font-size:11px;line-height:1.5;color:var(--st-ruby-fg)"><b>${i18t('di_not_sent')}</b> ${(window.esc ? esc(e.message) : e.message) || 'Something went wrong.'} Your reply is still in the box.</div>`;
         if (window.toast) toast(e.message || 'Could not send that reply', 'err');
       }
       btn.disabled = false; btn.innerHTML = restore;
@@ -299,7 +299,7 @@ function wireDiscussPanel(opts){
       if (onSent) onSent(res);
     } catch (e){
       // nothing was recorded, so the box keeps what they wrote
-      if (out) out.innerHTML = `<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:5px;padding:9px 11px;font-size:11.5px;line-height:1.5;color:var(--st-ruby-fg)"><b>${i18t('di_not_sent')}</b> ${(window.esc ? esc(e.message) : e.message) || 'Something went wrong.'} Your message is still in the box.</div>`;
+      if (out) out.innerHTML = `<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:0;padding:9px 11px;font-size:11.5px;line-height:1.5;color:var(--st-ruby-fg)"><b>${i18t('di_not_sent')}</b> ${(window.esc ? esc(e.message) : e.message) || 'Something went wrong.'} Your message is still in the box.</div>`;
       if (window.toast) toast(e.message || 'Could not send that message', 'err');
     }
     btn.disabled = false; btn.innerHTML = restore;
@@ -351,7 +351,7 @@ function discussDiscardBtnHtml(change, opts){
     title="${e(i18t('di_discard_title',{id}))}"
     aria-label="${e(i18t('di_discard_aria',{id}))}"
     style="margin-left:auto;flex:none;font-size:10.5px;padding:3px 8px;line-height:1.4;
-      border:1px solid rgba(143,50,43,.28);background:rgba(244,63,94,.08);color:var(--st-ruby-fg);border-radius:5px;cursor:pointer">🗑️ Discard</button>`;
+      border:1px solid rgba(143,50,43,.28);background:rgba(244,63,94,.08);color:var(--st-ruby-fg);border-radius:0;cursor:pointer">🗑️ Discard</button>`;
 }
 
 /* Wire every Discard on the page. The three steps are in this order for a

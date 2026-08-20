@@ -93,7 +93,7 @@ function bar(label, value, max, valStr, color){
   const pct=max>0?Math.max(0,Math.min(100,Math.round(value/max*100))):0;
   return `<div style="margin-bottom:7px">
     <div style="display:flex;justify-content:space-between;gap:10px;font-size:11px;margin-bottom:2px"><span style="color:var(--color-neutral-700);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(label)}</span><span style="font-weight:500;font-variant-numeric:tabular-nums;flex:none">${valStr}</span></div>
-    <div style="height:7px;background:var(--color-neutral-200);border-radius:999px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${color};border-radius:999px"></div></div>
+    <div style="height:7px;background:var(--color-neutral-200);border-radius:0;overflow:hidden"><div style="width:${pct}%;height:100%;background:${color};border-radius:0"></div></div>
   </div>`;
 }
 /* Metric catalogue for the top stat cards. Each customer follows what matters
@@ -175,13 +175,13 @@ function reportDropdown(variant, kind, idx, catalog, selKey){
     ? 'background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.42);color:#fff;font-size:10px;letter-spacing:.06em;text-transform:uppercase;font-weight:600'
     : 'background:var(--color-bg);border:1px solid var(--color-divider);color:var(--color-text);font-size:14px;font-weight:600';
   const chev=hero?'#fff':'var(--color-neutral-500)';
-  const opts=catalog.map(x=>`<button type="button" data-rd-opt="${kind}:${idx}:${x.k}" class="rd-opt${x.k===cur.k?' rd-opt-on':''}" style="display:block;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:12.5px;padding:7px 11px;border-radius:6px;cursor:pointer;white-space:nowrap">${_esc(x.label)}</button>`).join('');
+  const opts=catalog.map(x=>`<button type="button" data-rd-opt="${kind}:${idx}:${x.k}" class="rd-opt${x.k===cur.k?' rd-opt-on':''}" style="display:block;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:12.5px;padding:7px 11px;border-radius:0;cursor:pointer;white-space:nowrap">${_esc(x.label)}</button>`).join('');
   return `<div class="rd" style="position:relative;max-width:100%;${hero?'flex:1;min-width:0':'margin:0 0 10px'}">
-    <button type="button" data-rd-trigger="${kind}:${idx}" class="rd-trigger rd-trigger-${hero?'hero':'card'}" title="${esc(hero?i18t('rep_choose_metric'):i18t('rep_choose_chart'))}" style="display:inline-flex;align-items:center;gap:8px;max-width:100%;border-radius:999px;padding:4px 9px 4px 12px;cursor:pointer;line-height:1.25;transition:background .12s,border-color .12s;${trig}">
+    <button type="button" data-rd-trigger="${kind}:${idx}" class="rd-trigger rd-trigger-${hero?'hero':'card'}" title="${esc(hero?i18t('rep_choose_metric'):i18t('rep_choose_chart'))}" style="display:inline-flex;align-items:center;gap:8px;max-width:100%;border-radius:0;padding:4px 9px 4px 12px;cursor:pointer;line-height:1.25;transition:background .12s,border-color .12s;${trig}">
       <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(cur.label)}</span>
       <span aria-hidden="true" class="rd-chev" style="flex:none;color:${chev};pointer-events:none">▾</span>
     </button>
-    <div data-rd-menu="${kind}:${idx}" class="rd-menu" style="display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:50;min-width:220px;max-width:300px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:10px;padding:5px">${opts}</div>
+    <div data-rd-menu="${kind}:${idx}" class="rd-menu" style="display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:50;min-width:220px;max-width:300px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:0;padding:5px">${opts}</div>
   </div>`;
 }
 // Toggle / select / outside-close wiring for every reportDropdown on the page.
@@ -274,9 +274,9 @@ function renderReports(){
     const m=REPORT_METRICS.find(x=>x.k===sel[idx])||REPORT_METRICS[idx];
     const d=m.get(r);
     return `
-    <div style="display:flex;flex-direction:column;gap:10px;padding:15px 16px;border-radius:10px;background:${m.grad};color:#fff;box-shadow:var(--shadow-sm)">
+    <div style="display:flex;flex-direction:column;gap:10px;padding:15px 16px;border-radius:0;background:${m.grad};color:#fff;box-shadow:var(--shadow-sm)">
       <span style="display:flex;align-items:center;gap:9px">
-        <span style="width:30px;height:30px;flex:none;border-radius:7px;background:rgba(255,255,255,.22);display:grid;place-items:center;color:#fff">${icon(m.ic,'w-4 h-4',1.7)}</span>
+        <span style="width:30px;height:30px;flex:none;border-radius:0;background:rgba(255,255,255,.22);display:grid;place-items:center;color:#fff">${icon(m.ic,'w-4 h-4',1.7)}</span>
         ${reportDropdown('hero','metric',idx,REPORT_METRICS,sel[idx])}
       </span>
       <span class="tnum" style="font-family:var(--font-mono);font-weight:600;font-size:25px;line-height:1.0;color:#fff">${d.val}</span>
@@ -299,7 +299,7 @@ function renderReports(){
     const acts=(cfg&&typeof aiChartActionsHtml==='function')
       ?`<div style="position:relative;flex:none;width:76px;height:24px">${aiChartActionsHtml(key)}</div>`:'';
     return `
-    <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px;padding:16px">
+    <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:0;padding:16px">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
         ${reportDropdown('card','chart',idx,REPORT_CHARTS,csel[idx])}
         ${acts}
@@ -322,18 +322,18 @@ function renderReports(){
     </style>
     <div style="display:flex;flex-direction:column;gap:18px">
       <div style="display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap">
-        <button type="button" id="rep-export" style="display:inline-flex;align-items:center;gap:7px;border:1px solid var(--color-divider);background:var(--color-surface);color:var(--color-neutral-700);font:inherit;font-size:12px;font-weight:600;border-radius:6px;padding:7px 12px;cursor:pointer">${icon('download','w-3.5 h-3.5')}${i18t('rep_export_btn')}</button>
+        <button type="button" id="rep-export" style="display:inline-flex;align-items:center;gap:7px;border:1px solid var(--color-divider);background:var(--color-surface);color:var(--color-neutral-700);font:inherit;font-size:12px;font-weight:600;border-radius:0;padding:7px 12px;cursor:pointer">${icon('download','w-3.5 h-3.5')}${i18t('rep_export_btn')}</button>
         ${''/* THE WEEKLY REVIEW sits beside the health report because they are the
                same kind of thing — a deterministic document, opened in a tab,
                with no model anywhere near it. The size lives next to the button
                rather than inside the document: choosing it afterwards would mean
                reading the wrong one first. */}
         <label style="display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:600;color:var(--color-neutral-700)">${i18t('rep_weekly_size')}
-          <select id="rep-weekly-tier" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:6px 9px;font:inherit;font-size:12px;color:inherit;outline:none">
+          <select id="rep-weekly-tier" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:6px 9px;font:inherit;font-size:12px;color:inherit;outline:none">
             ${(typeof WK_TIERS!=='undefined'?WK_TIERS:['skinny','tower','full']).map(t=>`<option value="${t}"${(typeof wkTier==='function'&&wkTier()===t)?' selected':''}>${i18t('wk_tier_'+t)}</option>`).join('')}
           </select></label>
-        <button type="button" id="rep-weekly" style="display:inline-flex;align-items:center;gap:7px;border:1px solid var(--color-divider);background:var(--color-surface);color:var(--color-neutral-700);font:inherit;font-size:12px;font-weight:600;border-radius:6px;padding:7px 12px;cursor:pointer">${icon('file','w-3.5 h-3.5')}${i18t('rep_weekly_btn')}</button>
-        <button type="button" id="rep-health" style="display:inline-flex;align-items:center;gap:7px;border:0;background:var(--color-accent);color:#fff;font:inherit;font-size:12px;font-weight:600;border-radius:6px;padding:7px 12px;cursor:pointer">${icon('file','w-3.5 h-3.5')}${i18t('rep_health_btn')}</button>
+        <button type="button" id="rep-weekly" style="display:inline-flex;align-items:center;gap:7px;border:1px solid var(--color-divider);background:var(--color-surface);color:var(--color-neutral-700);font:inherit;font-size:12px;font-weight:600;border-radius:0;padding:7px 12px;cursor:pointer">${icon('file','w-3.5 h-3.5')}${i18t('rep_weekly_btn')}</button>
+        <button type="button" id="rep-health" style="display:inline-flex;align-items:center;gap:7px;border:0;background:var(--color-accent);color:#fff;font:inherit;font-size:12px;font-weight:600;border-radius:0;padding:7px 12px;cursor:pointer">${icon('file','w-3.5 h-3.5')}${i18t('rep_health_btn')}</button>
       </div>
       <section class="rp-stats" style="display:grid;gap:14px">
         ${stats}

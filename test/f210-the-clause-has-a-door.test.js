@@ -883,7 +883,8 @@ describe('f210 (15) — how the panel reads', () => {
        fact is how they come to differ. */
     assert.doesNotMatch(SRC, /\.nego-ins\{[^}]*border-bottom:2px/);
     assert.doesNotMatch(SRC, /\.nego-ins\{[^}]*font-weight:600/);
-    assert.match(SRC, /\.nego-ins\{background:var\(--n-ins-bg\);color:var\(--n-ins-fg\);\s*\n\s*border-radius:3px;padding:0 3px;text-decoration:none\}/);
+    /* radius literal moved to 0 with the square-corner sweep, 20 Aug 2026 */
+    assert.match(SRC, /\.nego-ins\{background:var\(--n-ins-bg\);color:var\(--n-ins-fg\);\s*\n\s*border-radius:0;padding:0 3px;text-decoration:none\}/);
     /* AND THE DELETION KEEPS ITS STRIKE. Not an inconsistency: colour alone can
        say "added"; nothing but the strike can say "taken out". */
     assert.match(SRC, /\.nego-del\{[^}]*text-decoration:line-through/);
@@ -1006,7 +1007,8 @@ describe('f210 (17) — the pills come off the paper, and the marker moves to th
     /* RE-POINTED 19 Aug 2026: the rule moved from a BORDER on the clause to a
        bar in the sheet's margin, because a border takes width — see the
        claims below. The mark itself is unchanged to look at. */
-    assert.match(SRC, /\.rl-clause\.is-changed::after\{content:'';position:absolute;\s*\n\s*top:0;bottom:0;right:-18px;width:3px;border-radius:2px;background:#dc2626\}/);
+    /* radius literal moved to 0 with the square-corner sweep, 20 Aug 2026 */
+    assert.match(SRC, /\.rl-clause\.is-changed::after\{content:'';position:absolute;\s*\n\s*top:0;bottom:0;right:-18px;width:3px;border-radius:0;background:#dc2626\}/);
     /* REVERSED IN PLACE, 19 Aug 2026 — and this one was reversed because the
        claim in the comment was NOT TRUE of the code beneath it. "The padding
        is kept so the wording does not shift" described an older arrangement

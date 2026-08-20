@@ -149,7 +149,7 @@ const WK_CSS=`
   header{margin-bottom:22px}
   h1{margin:0;font-size:25px;letter-spacing:-.02em}
   .sub{color:#64748b;font-size:13px;margin-top:4px}
-  .slot{background:#fff;border:1px solid #e3e8ee;border-radius:11px;padding:17px 20px;margin-bottom:13px}
+  .slot{background:#fff;border:1px solid #e3e8ee;border-radius:0;padding:17px 20px;margin-bottom:13px}
   .slot h2{margin:0 0 3px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:#7c8794}
   .slot .lead{font-size:15px;line-height:1.65}
   .row{display:flex;gap:12px;align-items:baseline;padding:8px 0;border-bottom:1px solid #eef1f5}
