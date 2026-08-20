@@ -2127,10 +2127,15 @@
     padding:9px 14px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;
     display:inline-flex;align-items:center;gap:6px;flex:none;}
   .hm-banner-ghost:hover{border-color:#5d7089;color:#fff;}
-  .hm-banner-cta{background:#0fb5a3;border:1px solid #0fb5a3;color:#fff;
+  /* WHITE, not the mockup's teal (owner-asked 20 Aug 2026). It is the one
+     primary act on this banner and white is the strongest thing there is on a
+     dark ground — the ghost button beside it stays outlined, so the two are
+     still told apart at a glance. Its INK is the sidebar's own colour, which
+     is what keeps it part of the workspace rather than a plain white slab. */
+  .hm-banner-cta{background:#fff;border:1px solid #fff;color:var(--nav-bg);
     padding:10px 18px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;
     display:inline-flex;align-items:center;gap:7px;flex:none;}
-  .hm-banner-cta:hover{background:#0da291;border-color:#0da291;}
+  .hm-banner-cta:hover{background:#eef2f5;border-color:#eef2f5;}
 
   /* Home — lifecycle pipeline: two thirds to the ring, one third to the list
      (was repeat(3,minmax(0,1fr)) when it drew three columns). */
