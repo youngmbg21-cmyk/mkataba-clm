@@ -268,6 +268,7 @@ const STRINGS = {
     lib_clause_library_sub: 'Your standard clauses — the wording HaTi drafts with and the Copilot review checks incoming paper against.',
     lib_negotiation_playbook: 'Negotiation playbook',
     lib_playbook_sub: 'Positions per contract type. Red = required / forbidden, steel = preferred, amber = numeric range.',
+    lib_deviations_sub: 'Contracts whose last review found wording off Our standards — press one to open it.',
     lib_portfolio_deviations: 'Portfolio deviations',
     lib_viewers_no_create: 'Viewers cannot create contracts',
     lib_template_not_found: 'Template not found',
@@ -3639,7 +3640,7 @@ const STRINGS = {
     reg_none_yet: 'No contracts in your register yet.',
     reg_widen: 'Try widening the filters, or clear them to see everything.',
     reg_not_sent: 'not sent',
-    reg_in_days: 'in {n}d',
+    reg_in_days: '{n} d',
     reg_saved_views_title: 'Saved views — expiry, auto-renewal and obligation presets',
     reg_create_from_template: 'Create one from a template, or upload a contract you received.',
 
@@ -4540,6 +4541,7 @@ const STRINGS = {
     lib_clause_library_sub: 'Era standardklausuler — formuleringen HaTi utgår från och som Copilot-granskningen stämmer av inkommande papper mot.',
     lib_negotiation_playbook: 'Förhandlingsguide',
     lib_playbook_sub: 'Positioner per avtalstyp. Rött = krävs / förbjudet, stål = föredraget, gult = numeriskt intervall.',
+    lib_deviations_sub: 'Avtal vars senaste genomgång fann formuleringar som avviker från våra standarder — tryck på ett för att öppna det.',
     lib_portfolio_deviations: 'Avvikelser i portföljen',
     lib_viewers_no_create: 'Läsare kan inte skapa avtal',
     lib_template_not_found: 'Mallen hittades inte',
@@ -7794,7 +7796,7 @@ const STRINGS = {
     reg_none_yet: 'Inga avtal i din avtalslista ännu.',
     reg_widen: 'Prova att vidga filtren, eller rensa dem för att se allt.',
     reg_not_sent: 'inte skickat',
-    reg_in_days: 'om {n} d',
+    reg_in_days: '{n} d',
     reg_saved_views_title: 'Sparade vyer — förval för utgång, automatisk förnyelse och åtaganden',
     reg_create_from_template: 'Skapa ett från en mall, eller ladda upp ett avtal du fått.',
 

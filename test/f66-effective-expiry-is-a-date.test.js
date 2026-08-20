@@ -67,7 +67,9 @@ describe('F66 — a hand-typed expiry is a date on every screen that reads it', 
     const cell = sb.folderExpiryCell(c);
     assert.ok(!/Invalid Date/.test(cell),
       'a row that looks completely normal must not carry "Invalid Date" where the date goes');
-    assert.match(cell, /in 45d/, 'and the urgency note has to be a number of days, not NaN');
+    /* Wording re-pointed 20 Aug 2026 with the mockup's countdown shape
+       ("45 d") — the claim is unchanged: a NUMBER of days, never NaN. */
+    assert.match(cell, /45 d/, 'and the urgency note has to be a number of days, not NaN');
   });
 
   test('Home counts it among the contracts that are about to expire', () => {
