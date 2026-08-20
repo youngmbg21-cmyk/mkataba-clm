@@ -174,9 +174,16 @@ const CARD_EDIT = async () => {
      the editor half of this measurement now walks the door that exists: the
      clause's Edit pill, then the panel's ＋. The clause itself must carry NO
      editor and NO tool row on either seat. */
-  const pill = clause.querySelector('[data-rl-cp-open]');
-  if (pill) pill.click();
-  await new Promise(r => setTimeout(r, 250));
+  /* RE-POINTED 20 Aug 2026: the card's Edit now opens the clause panel
+     ITSELF (owner-asked — "Edit should take you to the edit side panel, not
+     to the contract"), so the pill press is only the fallback for a world
+     where it did not. Pressing the pill unconditionally would TOGGLE the
+     freshly opened panel shut — the pill's own deliberate behaviour. */
+  if (!document.querySelector('.rl-cp-src.is-on')){
+    const pill = clause.querySelector('[data-rl-cp-open]');
+    if (pill) pill.click();
+    await new Promise(r => setTimeout(r, 250));
+  }
   const body = document.querySelector('.rl-cp-src.is-on');
   const plus = body && body.querySelector('[data-rl-cp-edit]');
   if (plus) plus.click();

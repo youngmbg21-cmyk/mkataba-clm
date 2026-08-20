@@ -7278,10 +7278,16 @@ function redlineLayoutCss(){
   .redline-page .rl-livelist .rl-livelist-n{font-family:var(--font-mono);font-size:10px;font-weight:700;
     line-height:1.7;color:var(--color-neutral-600);background:var(--color-neutral-100);
     border:1px solid var(--color-divider);border-radius:0;padding:0 6px}
-  .redline-page .rl-pb-btn{flex:none;border:1px solid #ddd6fe;background:#f5f3ff;color:#6d28d9;
+  ${''/* THE PURPLE CAME OFF (owner-asked 20 Aug 2026, off a screenshot of the
+        row): the two review buttons wear the "N needs you" chip's own
+        neutral clothes — surface, hairline, quiet ink — and keep their bold
+        word. Tokens, so the dark theme comes free and the violet dark
+        override went with the violet. */}
+  .redline-page .rl-pb-btn{flex:none;border:1px solid var(--color-divider);background:var(--color-surface);
+    color:var(--color-neutral-700);
     border-radius:0;padding:6px 11px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer;
-    transition:background .12s}
-  .redline-page .rl-pb-btn:not([data-rl-dead]):hover{background:#ede9fe}
+    transition:background .12s,border-color .12s,color .12s}
+  .redline-page .rl-pb-btn:not([data-rl-dead]):hover{border-color:var(--color-neutral-400);color:var(--color-text)}
   .redline-page .rl-pb-btn:disabled{opacity:.6;cursor:wait}
   /* ---- THE COUNTERPARTY PREVIEW'S DEAD FACE (19 Aug 2026) ----
      Its own marker rather than :disabled alone, because :disabled on this
@@ -7292,8 +7298,6 @@ function redlineLayoutCss(){
      press brings it back. */
   .redline-page .rl-tabrow [data-rl-dead]{opacity:.42;cursor:not-allowed;
     box-shadow:none;filter:saturate(.35)}
-  html.dark .redline-page .rl-pb-btn{background:rgba(139,92,246,.15);border-color:rgba(139,92,246,.35);color:#c4b5fd}
-  html.dark .redline-page .rl-pb-btn:not([data-rl-dead]):hover{background:rgba(139,92,246,.25)}
   /* The presence pill's rules were here — .rl-presence and its green
      .rl-live-dot. Gone with the feature (10 Aug 2026); dead rules for a removed
      control are how one comes back by accident. */
@@ -11131,16 +11135,28 @@ function rlWireClauseTools(c, host, opts){
     if (clauseId) rlJumpToClause(clauseId, { edit: false });
   }));
 
-  /* The card's Edit — light both ends, scroll the document to the clause and
-     open the editor on it. Stopped from bubbling because the card itself links
-     on click, and that would scroll the column back over the jump. */
+  /* THE CARD'S EDIT OPENS THE CLAUSE PANEL (owner-asked 20 Aug 2026: "when
+     you click on edit in the card, it should take you to the edit side panel
+     — not to the contract", both seats). The panel is where writing happens
+     since the paper's editors retired, so a card verb named Edit landing the
+     reader on a paper they cannot type into was a door to the wrong room.
+     One mechanism — rlCpSetShown, the pill's own — never a second path; the
+     jump stays FIRST so the paper still scrolls to the clause and lights it
+     beside the panel. Where the panel holds no body for the clause (an
+     insertClause ask), rlCpSetShown refuses to open an empty panel and the
+     press remains the old jump — a door must not open onto nothing.
+     Stopped from bubbling because the card itself links on click, and that
+     would scroll the column back over the jump. */
   host.querySelectorAll('[data-rl-edit]').forEach(btn => btn.addEventListener('click', ev => {
     ev.preventDefault(); ev.stopPropagation();
     const clauseId = btn.getAttribute('data-rl-edit');
     const changeId = btn.getAttribute('data-rl-edit-change');
     if (changeId) rlLinkFocus(c, changeId, 'card');
-    if (!rlJumpToClause(clauseId) && window.toast)
-      toast(i18t('ng_clause_gone'), 'err');
+    if (!rlJumpToClause(clauseId)){
+      if (window.toast) toast(i18t('ng_clause_gone'), 'err');
+      return;
+    }
+    rlCpSetShown(btn.closest('.redline-page') || document, clauseId);
   }));
 
   /* The origin filter and the sidebar's mode tabs were wired here. Both
