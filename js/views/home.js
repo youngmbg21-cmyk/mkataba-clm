@@ -550,34 +550,43 @@ function renderDashboard(){
      surface where they belong: renewal decisions and obligation due dates on
      the Calendar, an approval chain on the contract itself. What stays here is
      only what a card still counts (myApprovals feeds Pending approvals). */
-  /* ---- THE PORTFOLIO STRIP (owner-approved render, 20 Aug 2026) ----
-     The teal hero banner is gone — the SAP treatment opens on one slim line
-     that names the page and states the book (the same facts the hero's
-     sub-line carried), with the two controls on its right: Customize (moved
-     up from the retired KEY METRICS caption row) and Draft new agreement.
-     SAME IDS, SAME WIRING: #kpi-customize and #hero-draft are unchanged, so
-     the KPI picker still re-opens against this button after a tick (kpiApply)
-     and the draft button still opens the one new-contract menu. The greeting
-     went with the banner — a page title is not a salutation. */
+  /* ---- THE HERO BANNER IS BACK (owner-chose the "Hero B" render, 20 Aug
+     2026 — this supersedes the Portfolio strip of the same day). A dark
+     navy-to-grey banner from the owner's own mockup: teal readiness badge,
+     the page's big title, and the SUB-LINE CARRIES THE LIVE FACTS the strip
+     used to state (contracts under management, active value, needs-you) —
+     information, not a tagline. Its colours are ITS OWN, fixed in the
+     stylesheet (a dark surface in both themes, deliberately outside the
+     workspace accent — the owner approved this exact render). Square corners
+     like everything else. NOT the retired hm-hero (that class stays stale);
+     this is .hm-banner. SAME IDS, SAME WIRING: #kpi-customize and #hero-draft
+     ride the banner unchanged, so the KPI picker still re-opens against this
+     button after a tick (kpiApply) and the draft button still opens the one
+     new-contract menu. The numbers in the sub-line are BOLD — the values are
+     passed pre-wrapped, so the line is not esc()'d; every piece is our own
+     arithmetic or fmtMoneyShort output. */
   /* No flag emoji: Windows draws them as bare letter pairs in boxes. */
   const REGION_LABEL={SE:'Sweden', KE:'Kenya'};
   const regionNow=REGION_LABEL[state.region]||REGION_LABEL.KE;
   const activeVal=(money&&typeof fmtMoneyShort==='function')?fmtMoneyShort(valOf(live)):'';
   const heroLine=[
-    i18tn('home_hero_managed',countAll,{n:Number(countAll).toLocaleString(jxLocale())}),
-    activeVal?i18t('home_hero_value',{v:activeVal}):'',
-    apprMineN?i18tn('home_hero_need',apprMineN,{n:apprMineN}):'',
+    i18tn('home_hero_managed',countAll,{n:`<b>${Number(countAll).toLocaleString(jxLocale())}</b>`}),
+    activeVal?i18t('home_hero_value',{v:`<b>${esc(activeVal)}</b>`}):'',
+    apprMineN?i18tn('home_hero_need',apprMineN,{n:`<b>${apprMineN}</b>`}):'',
   ].filter(Boolean).join(' · ');
   const heroSection=`
-    <section class="hm-strip">
-      <h2 style="margin:0;font-size:15px;font-weight:700;color:var(--color-text);flex:none;">${i18t('home_portfolio')}</h2>
-      <p style="margin:0;font-size:12px;color:var(--color-neutral-500);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(heroLine)}</p>
+    <section class="hm-banner">
+      <div style="min-width:0;">
+        <span class="hm-banner-badge"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="rgba(20,184,166,.35)" stroke="none"/><polyline points="8 12.5 11 15.5 16 9.5"/></svg>${i18t('home_hero_badge')}</span>
+        <h2>${i18t('home_hero_title')}</h2>
+        <p>${heroLine}</p>
+      </div>
       <span style="flex:1 1 auto;"></span>
-      <button id="kpi-customize" class="ui-btn" title="${i18t('home_choose_metrics')}" style="font-size:11px;padding:5px 10px;display:inline-flex;align-items:center;gap:6px;flex:none;">
+      <button id="kpi-customize" class="hm-banner-ghost" title="${i18t('home_choose_metrics')}">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
         ${i18t('home_customize')}
       </button>
-      <button id="hero-draft" class="ui-btn" style="font-size:11.5px;font-weight:600;padding:5px 11px;display:inline-flex;align-items:center;gap:7px;flex:none;">
+      <button id="hero-draft" class="hm-banner-cta">
         ${icon('plus','w-3.5 h-3.5',2)} ${i18t('home_draft_new')}
       </button>
     </section>`;
@@ -791,10 +800,14 @@ function renderDashboard(){
      shows none of what they clicked. So the footer names its destination, and
      when the list mixes the two it offers both. */
   const lnk=(attr,label)=>`<button ${attr} style="border:0;background:none;padding:2px;font:inherit;font-size:11px;font-weight:600;color:var(--color-accent-600);cursor:pointer;text-align:left;">${label}</button>`;
-  const renewalN=decisions.length, reviewN=waitingLongest.length;
+  const renewalN=decisions.length, reviewN=waitingLongest.length, riskN=highRisk.length;
+  /* The high-risk door survives the bottom row's removal as a quiet link here
+     (the Hero B render, 20 Aug 2026) — the number stays reachable without a
+     card of its own. Expiring and Awaiting need no link: they are KPI cards. */
   const footerLinks=[
     renewalN?lnk('data-open-decisions',`${renewalN} renewal decision${renewalN===1?'':'s'} in the calendar →`):'',
     reviewN?lnk('data-open-review',i18t('home_waiting_in_review',{n:reviewN})):'',
+    riskN?lnk('data-open-standards',i18t('home_risk_link',{n:riskN})):'',
   ].filter(Boolean);
   const decisionFooter=(decisionItems.length>8||footerLinks.length>1)&&footerLinks.length
     ? `<div style="flex:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--color-divider);display:flex;flex-direction:column;gap:2px;align-items:flex-start;">${footerLinks.join('')}</div>`
@@ -810,54 +823,12 @@ function renderDashboard(){
       ${decisionFooter}
     </section>`;
 
-  /* ---- THE BOTTOM ROW: three summary cards (owner-approved render, 20 Aug 2026) ----
-     Drawings of numbers hmDashSlices ALREADY computes — nothing here counts
-     anything of its own (the one-count-many-surfaces rule): what expires
-     inside 90 days and the money at stake, what has been sent out and sits
-     unsigned, and what carries a risk score of 60 or more beside how many are
-     clean. Each card is a DOOR to the page that acts on its number — the
-     calendar, the negotiations list, Our standards. The little donut is a
-     plain inline SVG (share of the live book) in the same semantic colours as
-     the KPI top edges. IT IS ALL IN THE MARKUP — the pipeline card's lesson:
-     the numbers are in the rendered HTML, never painted on after. */
-  const footRing=(n,color)=>{ const C=2*Math.PI*21, f=Math.max(n?0.06:0, Math.min(1, n/Math.max(1,live.length)));
-    return `<svg width="52" height="52" viewBox="0 0 52 52" style="flex:none;" aria-hidden="true">
-      <circle cx="26" cy="26" r="21" fill="none" stroke="var(--color-neutral-100)" stroke-width="7"></circle>
-      <circle cx="26" cy="26" r="21" fill="none" stroke="${color}" stroke-width="7" stroke-dasharray="${(f*C).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 26 26)"></circle>
-      <text x="26" y="32" text-anchor="middle" style="font:300 17px var(--font-body);fill:var(--color-text);">${n}</text>
-    </svg>`; };
-  /* Owner-asked 20 Aug 2026: the card wears its status on its LEFT EDGE, the
-     change card's own mark. The tone is the ring's tone while the count says
-     something is waiting, and the green dot when it is zero — an all-clear
-     card must not wear an alarm colour. Inline on the element, like the KPI
-     top edges, so the hover's border-color repaint can never erase it (the
-     KPI cards' recorded lesson); left padding gives back the 2px the wider
-     border takes, so the content does not shift against the other cards. */
-  const footTone=(n,alert)=> n?alert:'var(--st-green-dot)';
-  const footCard=(tone,ring,title,sub,act,attr)=>`
-    <button ${attr} class="hm-foot-card" type="button" style="border-left:3px solid ${tone};padding-left:14px;">
-      ${ring}
-      <span style="min-width:0;text-align:left;">
-        <span style="display:block;font-size:13px;font-weight:700;color:var(--color-text);">${title}</span>
-        <span style="display:block;font-size:12px;color:var(--color-neutral-500);margin:2px 0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sub}</span>
-        <span style="display:block;font-size:11.5px;font-weight:600;color:var(--color-accent-600);">${act} &rarr;</span>
-      </span>
-    </button>`;
-  /* Money on the expiring card only where the reader may see money — the
-     no-rights sub says WHEN instead, which expDelta above already words. */
-  const expSubLine=expiring.length
-    ? (money?i18t('home_exp90_value',{v:fmtMoneyShort(expVal(expiring))}):expDelta(expiring))
-    : i18t('home_exp90_none');
-  const waitSub=awaitingCount?i18tn('home_wait_n',awaitingCount,{n:awaitingCount}):i18t('home_wait_none');
-  const expTone=footTone(expiring.length,'var(--st-ruby-dot)'),
-        waitTone=footTone(awaitingCount,'var(--st-amber-dot)'),
-        riskTone=footTone(highRisk.length,'var(--st-ruby-dot)');
-  const footRow=`
-    <div class="hm-foot">
-      ${footCard(expTone,footRing(expiring.length,expTone),i18t('home_exp90_title'),expSubLine,i18t('home_exp90_open'),'data-foot-cal')}
-      ${footCard(waitTone,footRing(awaitingCount,waitTone),i18t('home_wait_title'),waitSub,i18t('home_wait_open'),'data-foot-nego')}
-      ${footCard(riskTone,footRing(highRisk.length,riskTone),i18t('home_risk_title'),i18t('home_risk_sub',{n:clean}),i18t('home_risk_open'),'data-foot-std')}
-    </div>`;
+  /* THE BOTTOM ROW IS GONE (owner-asked 20 Aug 2026, with the Hero B render).
+     Its three cards repeated what the page already said — Awaiting counterparty
+     and Expiring are KPI cards, and the high-risk door now rides Decisions
+     due's footer links above. hm-foot / hm-foot-card / data-foot-* and the
+     home_exp90_* / home_wait_* / home_risk_title keys are STALE — flag any
+     mention (home_risk_link is the survivor). */
 
   /* U-2: a brand-new workspace opened on a cockpit of zeroed gauges with no
      route to the three real entry points. When there are no contracts yet, show
@@ -923,12 +894,6 @@ function renderDashboard(){
       </div>
     </div>
 
-    <!-- Three summary cards under the main row — each a door (calendar,
-         negotiations, standards). The page already scrolls when content
-         outgrows the window (overflow-y:auto on .hm-page), so a short laptop
-         scrolls to them rather than crushing the row above. -->
-    ${footRow}
-
   </div>`;
 
   // ---- wiring ----
@@ -953,13 +918,6 @@ function renderDashboard(){
     });
   });
   document.getElementById('kpi-customize')?.addEventListener('click',e=>{ e.stopPropagation(); openKpiCustomizer(e.currentTarget); });
-  /* The bottom row's three doors. Negotiations goes through the NAMED door —
-     a bare setView('redline') reads state.activeId and would reopen whatever
-     contract was last touched (the Negotiations-door rule). */
-  document.querySelector('[data-foot-cal]')?.addEventListener('click',()=>setView('calendar'));
-  document.querySelector('[data-foot-nego]')?.addEventListener('click',()=>{
-    if(window.openNegotiations) openNegotiations({list:true}); else setView('redline'); });
-  document.querySelector('[data-foot-std]')?.addEventListener('click',()=>setView('playbook'));
   /* The banner's one button opens the same new-contract menu the command bar
      owns, rather than a second way of creating paper. */
   document.getElementById('hero-draft')?.addEventListener('click',e=>{
@@ -1077,6 +1035,8 @@ function renderDashboard(){
   document.querySelectorAll('[data-open-review]').forEach(el=>el.addEventListener('click',()=>{
     const R=regState(); R.stage='Under Review'; R.type='all'; R.view=null; R.sel={}; setView('register');
   }));
+  // high-risk findings live on Our standards (the retired bottom card's door)
+  document.querySelectorAll('[data-open-standards]').forEach(el=>el.addEventListener('click',()=>setView('playbook')));
   document.getElementById('ob-open-cal')?.addEventListener('click',e=>{ e.stopPropagation(); setView('calendar'); });
   /* Through the shared verb in js/obligations.js, exactly as the calendar does:
      one place decides what completing means, and one refresh puts every surface

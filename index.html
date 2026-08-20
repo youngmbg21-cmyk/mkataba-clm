@@ -2098,13 +2098,27 @@
      20 Aug 2026). The strip is the hero's replacement: one line, the book's
      facts, the two controls. The bottom row is three summary cards — each a
      door — that stack to one column where the main row already stacks. */
-  .hm-strip{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:2px 2px 0;}
-  .hm-foot{flex:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;}
-  .hm-foot-card{display:flex;align-items:center;gap:14px;background:var(--color-surface);
-    border:1px solid var(--color-divider);border-radius:0;padding:13px 16px;cursor:pointer;
-    font:inherit;color:inherit;min-width:0;text-align:left;}
-  .hm-foot-card:hover{border-color:var(--accent-solid);}
-  @media (max-width:1199.98px){ .hm-foot{grid-template-columns:minmax(0,1fr);} }
+  /* The hero banner (Hero B, 20 Aug 2026) — replaces the Portfolio strip.
+     Its colours are its own: a fixed dark surface in both themes, teal
+     accents from the owner's mockup, square corners. The retired hm-strip,
+     hm-foot and hm-foot-card classes are stale — flag any mention. */
+  .hm-banner{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:20px 26px;color:#fff;
+    background:linear-gradient(100deg,#0b1524 0%,#16233a 46%,#5c6875 100%);border:1px solid #0b1524;}
+  .hm-banner-badge{display:inline-flex;align-items:center;gap:7px;background:rgba(20,184,166,.14);
+    border:1px solid rgba(45,212,191,.55);color:#2dd4bf;font-size:11.5px;font-weight:700;padding:4px 12px;}
+  .hm-banner h2{margin:8px 0 3px;font-size:27px;font-weight:700;letter-spacing:-.3px;
+    font-family:var(--font-heading);color:#fff;}
+  .hm-banner p{margin:0;font-size:12.5px;color:#c4cdd7;min-width:0;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .hm-banner p b{color:#fff;font-weight:600;}
+  .hm-banner-ghost{background:transparent;border:1px solid #43536a;color:#c4cdd7;
+    padding:9px 14px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;
+    display:inline-flex;align-items:center;gap:6px;flex:none;}
+  .hm-banner-ghost:hover{border-color:#5d7089;color:#fff;}
+  .hm-banner-cta{background:#0fb5a3;border:1px solid #0fb5a3;color:#fff;
+    padding:10px 18px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;
+    display:inline-flex;align-items:center;gap:7px;flex:none;}
+  .hm-banner-cta:hover{background:#0da291;border-color:#0da291;}
 
   /* Home — lifecycle pipeline: two thirds to the ring, one third to the list
      (was repeat(3,minmax(0,1fr)) when it drew three columns). */
