@@ -61,7 +61,7 @@ function renderFolder(){
      exactly what happened: the arrow vanished entirely. Base64 has no quotes
      in it, so it survives the trip into the attribute. */
   const selChevron='url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0ibTYgOSA2IDYgNi02Ii8+PC9zdmc+)';
-  const selStyle='font:inherit;font-size:12px;border:1px solid var(--color-divider);background-color:var(--color-surface);border-radius:8px;padding:5px 26px 5px 9px;color:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:'+selChevron+';background-repeat:no-repeat;background-position:right 8px center;background-size:12px';
+  const selStyle='font:inherit;font-size:12px;border:1px solid var(--color-divider);background-color:var(--color-surface);border-radius:0;padding:5px 26px 5px 9px;color:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:'+selChevron+';background-repeat:no-repeat;background-position:right 8px center;background-size:12px';
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="padding:14px 16px 28px">
     <style>
@@ -72,8 +72,8 @@ function renderFolder(){
     </style>
     <div style="display:flex;flex-direction:column;gap:10px">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <button id="back-dash" style="width:28px;height:28px;flex:none;display:inline-grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;color:var(--color-accent-700);cursor:pointer" title="${i18t('reg_back_to_portfolio')}">${icon('arrowLeft','w-4 h-4')}</button>
-        <span style="width:28px;height:28px;flex:none;display:grid;place-items:center;background:var(--color-accent-800);color:#fff;border-radius:4px">${icon(f.ic,'w-4 h-4')}</span>
+        <button id="back-dash" style="width:28px;height:28px;flex:none;display:inline-grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;color:var(--color-accent-700);cursor:pointer" title="${i18t('reg_back_to_portfolio')}">${icon('arrowLeft','w-4 h-4')}</button>
+        <span style="width:28px;height:28px;flex:none;display:grid;place-items:center;background:var(--color-accent-800);color:#fff;border-radius:0">${icon(f.ic,'w-4 h-4')}</span>
         <div style="min-width:0">
           <div style="font-family:var(--font-mono);font-weight:600;font-size:17px;color:var(--color-text);line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(f.name)}</div>
           <div style="font-size:11px;color:var(--color-neutral-600)"><span id="fold-count">${cs.length}</span> contracts${(typeof canViewValues==='function'&&!canViewValues())?'':` · ${fmtMoneyShort(val)} active value`}</div>
@@ -84,14 +84,14 @@ function renderFolder(){
         </label>
         <div style="position:relative">
           <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--color-neutral-500);display:inline-flex">${icon('search','w-3.5 h-3.5')}</span>
-          <input id="folder-search" value="${(state.folderQuery||'').replace(/"/g,'&quot;')}" type="text" placeholder="${i18t('reg_search_folder')}" style="width:230px;max-width:60vw;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:6px 9px 6px 30px;font:inherit;font-size:12px;outline:none;color:inherit">
+          <input id="folder-search" value="${(state.folderQuery||'').replace(/"/g,'&quot;')}" type="text" placeholder="${i18t('reg_search_folder')}" style="width:230px;max-width:60vw;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:6px 9px 6px 30px;font:inherit;font-size:12px;outline:none;color:inherit">
         </div>
       </div>
 
-      <div id="fold-selbar" class="flex hidden items-center justify-between" style="gap:12px;border:1px solid var(--color-accent-800);background:var(--color-accent-800);color:#fff;border-radius:4px;padding:8px 12px">
+      <div id="fold-selbar" class="flex hidden items-center justify-between" style="gap:12px;border:1px solid var(--color-accent-800);background:var(--color-accent-800);color:#fff;border-radius:0;padding:8px 12px">
         <span id="fold-sel-count" style="font-size:12px;font-weight:600">${i18t('reg_n_selected',{n:0})}</span>
         <div style="display:flex;align-items:center;gap:8px">
-          <button id="fold-export" style="display:inline-flex;align-items:center;gap:6px;border:0;background:rgba(255,255,255,.16);color:#fff;border-radius:4px;padding:5px 10px;font:inherit;font-size:11.5px;font-weight:600;cursor:pointer">${icon('download','w-3.5 h-3.5')} Export CSV</button>
+          <button id="fold-export" style="display:inline-flex;align-items:center;gap:6px;border:0;background:rgba(255,255,255,.16);color:#fff;border-radius:0;padding:5px 10px;font:inherit;font-size:11.5px;font-weight:600;cursor:pointer">${icon('download','w-3.5 h-3.5')} Export CSV</button>
           <button id="fold-clear" style="border:0;background:none;color:rgba(255,255,255,.72);padding:5px 8px;font:inherit;font-size:11.5px;font-weight:600;cursor:pointer">${i18t('reg_clear')}</button>
         </div>
       </div>
@@ -175,7 +175,7 @@ function folderRowsHtml(cs){
     <tr data-open="${c.id}" style="cursor:pointer;animation-delay:${Math.min(i,14)*22}ms">
       <td style="padding-left:12px" onclick="event.stopPropagation()"><input type="checkbox" data-fsel="${c.id}" ${sel[c.id]?'checked':''} style="accent-color:var(--color-accent)"></td>
       <td style="max-width:260px"><div style="display:flex;align-items:center;gap:9px;min-width:0">
-        <span style="width:26px;height:26px;flex:none;display:grid;place-items:center;border-radius:4px;border:1px solid var(--color-divider);background:${isUpload(c)?'var(--color-accent-200)':'var(--color-bg)'};color:${isUpload(c)?'var(--color-accent-800)':'var(--color-neutral-600)'}" ${isUpload(c)?`title="${i18t('reg_uploaded_from_cp')}"`:''}>${icon(cIcon(c),'w-3.5 h-3.5')}</span>
+        <span style="width:26px;height:26px;flex:none;display:grid;place-items:center;border-radius:0;border:1px solid var(--color-divider);background:${isUpload(c)?'var(--color-accent-200)':'var(--color-bg)'};color:${isUpload(c)?'var(--color-accent-800)':'var(--color-neutral-600)'}" ${isUpload(c)?`title="${i18t('reg_uploaded_from_cp')}"`:''}>${icon(cIcon(c),'w-3.5 h-3.5')}</span>
         <span style="min-width:0">
           <span style="display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.name)}</span>
           <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="font-family:var(--font-mono)">${esc(c.id)}</span> · ${esc(c.counterparty||'No counterparty yet')}</span>
@@ -404,7 +404,7 @@ function regCurPage(cs){ const R=regState(); const n=regPageCount(cs); R.page=Ma
 function regPager(cs){
   const n=regPageCount(cs); if(n<=1) return '';
   const p=regCurPage(cs);
-  const btn=(label,to,disabled,active)=>`<button ${disabled?'disabled':''} data-reg-page="${to}" style="min-width:32px;padding:5px 10px;font:inherit;font-size:12px;font-weight:${active?700:500};border:1px solid ${active?'var(--color-accent)':'var(--color-divider)'};background:${active?'var(--color-accent)':'var(--color-surface)'};color:${active?'#fff':(disabled?'var(--color-neutral-400)':'var(--color-accent-700)')};border-radius:6px;cursor:${disabled?'default':'pointer'}">${label}</button>`;
+  const btn=(label,to,disabled,active)=>`<button ${disabled?'disabled':''} data-reg-page="${to}" style="min-width:32px;padding:5px 10px;font:inherit;font-size:12px;font-weight:${active?700:500};border:1px solid ${active?'var(--color-accent)':'var(--color-divider)'};background:${active?'var(--color-accent)':'var(--color-surface)'};color:${active?'#fff':(disabled?'var(--color-neutral-400)':'var(--color-accent-700)')};border-radius:0;cursor:${disabled?'default':'pointer'}">${label}</button>`;
   const nums=[]; const lo=Math.max(1,p-2), hi=Math.min(n,p+2);
   if(lo>1){ nums.push(btn('1',1,false,p===1)); if(lo>2) nums.push('<span style="padding:0 3px;color:var(--color-neutral-500)">…</span>'); }
   for(let i=lo;i<=hi;i++) nums.push(btn(String(i),i,false,i===p));
@@ -628,7 +628,7 @@ function regRowsHtml(cs){
       : `<button id="reg-empty-new" class="ui-btn ui-btn-primary" style="font-size:12px;padding:6px 14px">+ New contract</button>`;
     return `<tr><td colspan="8" style="padding:48px 12px;text-align:center">
       <div style="max-width:340px;margin:0 auto">
-        <div style="width:44px;height:44px;margin:0 auto 12px;display:grid;place-items:center;border-radius:8px;background:var(--color-bg);color:var(--color-neutral-500)">${icon('list','w-5 h-5')}</div>
+        <div style="width:44px;height:44px;margin:0 auto 12px;display:grid;place-items:center;border-radius:0;background:var(--color-bg);color:var(--color-neutral-500)">${icon('list','w-5 h-5')}</div>
         <div style="font-size:14px;font-weight:600;color:var(--color-text)">${line}</div>
         <div style="font-size:12px;color:var(--color-neutral-600);margin:4px 0 14px;line-height:1.5">${sub}</div>
         ${btn}
@@ -661,7 +661,7 @@ function regRowsHtml(cs){
     return out;
   };
   let lastBand=null;
-  const actBtns=c=>REG_ROW_ACTIONS.filter(a=>!a.when||a.when(c)).map(a=>`<button data-act="${a.k}" data-id="${c.id}" class="reg-act${a.ruby?' danger':''}" style="display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;font:inherit;font-size:11.5px;text-align:left;padding:6px 9px;border-radius:5px;cursor:pointer;color:${a.ruby?'var(--st-ruby-fg)':'inherit'}">${window.icon?icon(a.ic,'w-3.5 h-3.5'):''}${a.label}</button>`).join('');
+  const actBtns=c=>REG_ROW_ACTIONS.filter(a=>!a.when||a.when(c)).map(a=>`<button data-act="${a.k}" data-id="${c.id}" class="reg-act${a.ruby?' danger':''}" style="display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;font:inherit;font-size:11.5px;text-align:left;padding:6px 9px;border-radius:0;cursor:pointer;color:${a.ruby?'var(--st-ruby-fg)':'inherit'}">${window.icon?icon(a.ic,'w-3.5 h-3.5'):''}${a.label}</button>`).join('');
   return pageRows.map((c,i)=>{
     const eff=effectiveExpiry(c);
     const din=eff?daysUntil(eff):null;
@@ -677,10 +677,18 @@ function regRowsHtml(cs){
     if(neg && c._ngBand!==lastBand){ band=bandsBefore(c._ngBand); lastBand=c._ngBand; }
     return band + `
     <tr data-row="${c.id}"${neg?' data-nego-row="1"':''} style="cursor:pointer;animation-delay:${Math.min(i,14)*22}ms">
-      <td class="reg-mk" style="border-left:4px solid ${folderColor(c)}">${c.id}</td>
+      <td class="reg-mk">${c.id}</td>
       <td style="max-width:280px${c._famChild?';padding-left:30px':''}">
-        <span class="reg-title" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:10.5px;font-weight:400" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc(c.parentId)}">↳ </span>`:''}${regTitleOf(c)}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:999px;font:inherit;font-weight:400;font-size:9.5px;font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
+        ${''/* The line design's title block: the stream tick beside the words
+              it files, the title in regular weight, and the document KIND on
+              a quiet second line — the mockup's own arrangement. */}
+        <span style="display:flex;align-items:center;gap:9px;min-width:0">
+        <span class="reg-tick" style="background:${folderColor(c)}"></span>
+        <span style="min-width:0;flex:1">
+        <span class="reg-title" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:10.5px;font-weight:400" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc(c.parentId)}">↳ </span>`:''}${regTitleOf(c)}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:400;font-size:9.5px;font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
+        <span class="reg-kind">${cKind(c)}</span>
         ${c._famChild?`<span style="display:block;font-size:10.5px;font-weight:400;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${RELATION_LABEL[c.relation]||'Amendment'} of ${c.parentId}</span>`:''}
+        </span></span>
       </td>
       <td style="color:var(--color-neutral-700);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.counterparty||'—')}</td>
       ${''/* The link dot has left this cell for a column of its own — it was
@@ -689,8 +697,10 @@ function regRowsHtml(cs){
              question IS about where the contract stands. */}
       <td style="white-space:nowrap"><span style="display:inline-flex;align-items:center">${window.questionDot?questionDot(c.id):''}${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}</span></td>
       <td style="text-align:center;white-space:nowrap">${window.shareLinkCell?shareLinkCell(c.id):''}</td>
-      <td style="text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}">${val}</td>
-      <td style="white-space:nowrap"><span style="font-weight:${renUrgent?700:400};color:${renDateColor}">${renDate}</span> <span style="font-size:9.5px;font-weight:600;color:${renColor}">${renIn}</span></td>
+      <td style="text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:400;white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}">${val}</td>
+      ${''/* The mockup's expiry cell: the date, then "· in Nd" in the urgency
+            colour — red inside 30 days, amber to 90 — carrying its weight. */}
+      <td style="white-space:nowrap"><span style="font-weight:${renUrgent?700:400};color:${renDateColor}">${renDate}</span>${renIn?` <span style="font-size:10.5px;font-weight:700;color:${renColor}">· ${renIn}</span>`:''}</td>
       ${''/* ---- THE LAST COLUMN IS A STATE, NOT AN ACTION ----
              On Contracts it is the row's own verb plus the ⋯ menu. On
              Negotiations it is whose move it is, and the ⋯ IS GONE with the
@@ -704,7 +714,7 @@ function regRowsHtml(cs){
       <td style="position:relative;text-align:right;white-space:nowrap" onclick="event.stopPropagation()">
         <button class="reg-actlink" data-act="open" data-id="${c.id}">${regPrimaryAction(c)}</button>
         <button data-menu="${c.id}" style="border:0;background:none;cursor:pointer;padding:2px 4px;margin-left:6px;color:var(--color-neutral-600);font-size:14px;letter-spacing:1px;vertical-align:middle" title="${i18t('reg_more_actions')}">⋯</button>
-        <div data-menu-pop="${c.id}" style="display:none;position:absolute;right:8px;top:34px;z-index:30;width:180px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:6px;padding:4px;flex-direction:column;text-align:left">${actBtns(c)}</div>
+        <div data-menu-pop="${c.id}" style="display:none;position:absolute;right:8px;top:34px;z-index:30;width:180px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:0;padding:4px;flex-direction:column;text-align:left">${actBtns(c)}</div>
       </td>`}
     </tr>`;}).join('')
     /* Any band with no rows under it still gets its header and its zero — and
@@ -820,7 +830,7 @@ function renderRegister(opts){
      exactly what happened: the arrow vanished entirely. Base64 has no quotes
      in it, so it survives the trip into the attribute. */
   const selChevron='url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0ibTYgOSA2IDYgNi02Ii8+PC9zdmc+)';
-  const selStyle='font:inherit;font-size:12px;border:1px solid var(--color-divider);background-color:var(--color-surface);border-radius:8px;padding:5px 26px 5px 9px;color:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:'+selChevron+';background-repeat:no-repeat;background-position:right 8px center;background-size:12px';
+  const selStyle='font:inherit;font-size:12px;border:1px solid var(--color-divider);background-color:var(--color-surface);border-radius:0;padding:5px 26px 5px 9px;color:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:'+selChevron+';background-repeat:no-repeat;background-position:right 8px center;background-size:12px';
   /* ---- ONE FILTER BAR, NOT THREE TIERS OF PILLS ----
      Stages, streams and saved views used to be three full-width rows of pills
      (plus a legend band and an export band) stacked above the table — the
@@ -837,7 +847,7 @@ function renderRegister(opts){
      regShowOnly. It leads the bar because it is the widest statement on it:
      every dropdown beside it narrows within this set. */
   const onlyChip=R.only?`<span id="reg-only-chip" title="${esc(i18t('reg_only_title'))}"
-      style="display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;border-radius:8px;padding:5px 6px 5px 10px;
+      style="display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;border-radius:0;padding:5px 6px 5px 10px;
         background:var(--color-accent-100);border:1px solid var(--color-accent-300);color:var(--color-accent-800)">
       <span>${esc(R.only.label||i18t('reg_only_fallback'))}</span>
       <button id="reg-only-clear" title="${esc(i18t('reg_only_clear'))}" aria-label="${esc(i18t('reg_only_clear'))}"
@@ -849,7 +859,7 @@ function renderRegister(opts){
      chose. It leads the bar so everything to its right is plainly a narrowing
      WITHIN live negotiations. */
   const lockChip=neg?`<span id="reg-lock-chip" title="${esc(i18t('ngl_locked_title'))}"
-      style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;border-radius:8px;padding:5px 10px;
+      style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;border-radius:0;padding:5px 10px;
         background:var(--color-accent-100);border:1px solid var(--color-accent-300);color:var(--color-accent-800)">
       <span aria-hidden="true">&#128274;</span><span>${esc(i18t('ngl_locked_chip'))}</span>
     </span>`:'';
@@ -873,8 +883,8 @@ function renderRegister(opts){
   const ftsBlock=API_MODE()?`
     <div style="position:relative;flex:1;min-width:200px;max-width:340px">
       <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--color-neutral-500);display:inline-flex">${icon('search','w-3.5 h-3.5')}</span>
-      <input id="reg-search" value="${R.query.replace(/"/g,'&quot;')}" placeholder="${esc(i18t('reg_search_ph'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:6px 9px 6px 30px;font:inherit;font-size:12px;outline:none;color:inherit">
-      <div id="reg-fts" class="hidden" style="position:absolute;z-index:40;margin-top:4px;width:100%;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:4px;max-height:320px;overflow-y:auto"></div>
+      <input id="reg-search" value="${R.query.replace(/"/g,'&quot;')}" placeholder="${esc(i18t('reg_search_ph'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:6px 9px 6px 30px;font:inherit;font-size:12px;outline:none;color:inherit">
+      <div id="reg-fts" class="hidden" style="position:absolute;z-index:40;margin-top:4px;width:100%;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:0;max-height:320px;overflow-y:auto"></div>
     </div>`:'';
 
   const hostEl=document.getElementById(_regOpts.hostId)||document.getElementById('content');
@@ -888,21 +898,33 @@ function renderRegister(opts){
          design's tokens rather than its raw slate classes so the same rules
          carry the dark theme — the header band used to be a hardcoded var(--color-neutral-100),
          which is a light-mode value sitting on a dark surface. */
-      .reg-table{width:100%;border-collapse:collapse;font-size:12px}
+      /* ---- THE LINE DESIGN (owner-approved mockup, 20 Aug 2026) ----
+         Measured off the owner's own HTML: a flat white table ruled by
+         hairlines, an uppercase 10.5/700 header on the surface itself (no
+         grey band), teal tracking numbers, regular-weight titles with the
+         document KIND on a quiet second line, the stream tick beside the
+         title rather than on the row's edge, and a tighter row. */
+      .reg-table{width:100%;border-collapse:collapse;font-size:12.5px}
       .reg-table thead th{position:sticky;top:0;z-index:3}
-      .reg-table th{text-align:left;font-size:10px;font-weight:700;letter-spacing:.06em;
-        text-transform:uppercase;color:var(--color-neutral-500);padding:14px 16px;
+      .reg-table th{text-align:left;font-size:10.5px;font-weight:700;letter-spacing:.06em;
+        text-transform:uppercase;color:var(--color-neutral-500);padding:9px 12px;
         border-bottom:1px solid var(--color-divider);white-space:nowrap;
-        background:var(--color-neutral-100)}
-      .reg-table td{padding:14px 16px;border-bottom:1px solid var(--color-divider);vertical-align:middle}
+        background:var(--color-surface)}
+      .reg-table td{padding:9px 12px;border-bottom:1px solid var(--color-divider);vertical-align:middle}
       .reg-table tbody tr:last-child td{border-bottom:0}
       .reg-table tbody tr{transition:background .12s}
       .reg-table tbody tr:hover{background:color-mix(in srgb,var(--color-text) 4%,transparent)}
       /* The tracking number leads the row, so it is set in the figure face and
-         never wraps — an id that breaks across two lines stops being an id. */
-      .reg-mk{font-family:var(--font-mono);font-size:11px;font-weight:600;
-        color:var(--color-neutral-600);white-space:nowrap;font-variant-numeric:tabular-nums}
-      .reg-title{font-weight:700;color:var(--color-text)}
+         never wraps — an id that breaks across two lines stops being an id.
+         Teal, like the mockup: the id is the row's own link-coloured handle. */
+      .reg-mk{font-family:var(--font-mono);font-size:12px;font-weight:600;
+        color:var(--color-accent-600);white-space:nowrap;font-variant-numeric:tabular-nums}
+      .reg-title{font-weight:400;color:var(--color-text)}
+      .reg-kind{display:block;font-size:10.5px;color:var(--color-neutral-500);
+        white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      /* The stream tick spans the title's two lines. A SPAN, not a border on
+         the id cell: the mockup puts the colour beside the words it files. */
+      .reg-tick{flex:none;width:3px;align-self:stretch;min-height:26px}
       /* The prototype's row action is a text link, not a button. The ⋯ beside it
          keeps the rest of the engine's actions reachable. */
       .reg-actlink{border:0;background:none;font:inherit;font-size:11.5px;font-weight:700;
@@ -1024,7 +1046,7 @@ function ftsSearch(q){
       if(!r.hits||!r.hits.length){ box.innerHTML=`<div style="padding:10px 12px;font-size:12px;color:var(--color-neutral-600)">${i18t('reg_no_fulltext')}</div>`; box.classList.remove('hidden'); return; }
       box.innerHTML=r.hits.map(h=>`<button data-fts-open="${h.id}" style="display:block;width:100%;text-align:left;padding:8px 12px;border:0;border-bottom:1px solid var(--color-divider);background:none;cursor:pointer;font:inherit">
         <div style="font-size:12.5px;font-weight:600;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(h.name||h.id)} <span style="font-family:var(--font-mono);font-size:10px;color:var(--color-neutral-500)">${h.id}</span></div>
-        ${h.snippet?`<div style="font-size:11px;color:var(--color-neutral-600);margin-top:2px">${h.snippet.replace(/</g,'&lt;').replace(/\[/g,'<mark style="background:var(--st-amber-bg);border-radius:2px;padding:0 2px">').replace(/\]/g,'</mark>')}</div>`:(h.counterparty?`<div style="font-size:11px;color:var(--color-neutral-500)">${h.counterparty}</div>`:'')}
+        ${h.snippet?`<div style="font-size:11px;color:var(--color-neutral-600);margin-top:2px">${h.snippet.replace(/</g,'&lt;').replace(/\[/g,'<mark style="background:var(--st-amber-bg);border-radius:0;padding:0 2px">').replace(/\]/g,'</mark>')}</div>`:(h.counterparty?`<div style="font-size:11px;color:var(--color-neutral-500)">${h.counterparty}</div>`:'')}
       </button>`).join('');
       box.classList.remove('hidden');
       box.querySelectorAll('[data-fts-open]').forEach(b=>b.addEventListener('click',()=>{ box.classList.add('hidden'); openWorkspace(b.getAttribute('data-fts-open')); }));

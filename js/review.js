@@ -1112,7 +1112,7 @@ function reviewChipHtml(ch, opts, c){
     return `<span class="rv-chip" data-rv-chip="${_rvE(ch.id)}" data-rv-verdict="waiting"
     title="${_rvE(named ? i18t('rv_waiting_title', { who: named }) : i18t('rv_waiting_title_anon'))}"
     style="display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;letter-spacing:.01em;
-    border-radius:5px;padding:2px 7px;background:var(--st-amber-bg);
+    border-radius:0;padding:2px 7px;background:var(--st-amber-bg);
     color:var(--st-amber-fg);border:1px solid currentColor">
     ${''/* A NAME ON A CARD IS A GLANCE (13 Aug 2026) — cardName, js/core.js,
            the same function the card's own status slot and meta line use. The
@@ -1140,7 +1140,7 @@ function reviewChipHtml(ch, opts, c){
     stale ? ' data-rv-stale="1"' : ''}
     title="${_rvE(title)}"
     style="display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;letter-spacing:.01em;
-    border-radius:5px;padding:2px 7px;background:${bg};color:${fg};border:1px solid currentColor">
+    border-radius:0;padding:2px 7px;background:${bg};color:${fg};border:1px solid currentColor">
     <span aria-hidden="true">${v.verdict === 'held' ? '&#9209;' : v.verdict === 'cleared' ? '&#10003;' : '&#128172;'}</span>
     ${_rvE(word)}${stale ? ` · ${_rvE(i18t('rv_moved_since'))}` : ''}</span>`;
 }
@@ -1164,7 +1164,7 @@ function reviewVerbsHtml(c, ch, opts = {}){
   const btn = (v, cls, label, title) => `<button type="button" class="rv-btn ${cls}"
     data-rv-mark="${_rvE(ch.id)}" data-rv-verdict="${_rvE(v)}" aria-pressed="${on(v) ? 'true' : 'false'}"
     title="${_rvE(title)}"
-    style="font:inherit;font-size:10.5px;font-weight:700;cursor:pointer;border-radius:5px;padding:3px 8px;
+    style="font:inherit;font-size:10.5px;font-weight:700;cursor:pointer;border-radius:0;padding:3px 8px;
     border:1.5px solid ${on(v) ? 'currentColor' : 'var(--color-divider)'};
     background:${on(v) ? 'color-mix(in srgb,currentColor 12%,transparent)' : 'var(--color-surface)'};
     color:${cls === 'rv-hold' ? 'var(--st-ruby-fg)' : cls === 'rv-clear' ? 'var(--st-green-fg)' : 'var(--color-neutral-700)'}">${_rvE(label)}</button>`;
@@ -1180,7 +1180,7 @@ function reviewVerbsHtml(c, ch, opts = {}){
     ${verbs.join('')}
     <button type="button" class="rv-btn rv-note" data-rv-note="${_rvE(ch.id)}"
       title="${_rvE(i18t('rv_note_title'))}"
-      style="font:inherit;font-size:10.5px;font-weight:600;cursor:pointer;border-radius:5px;padding:3px 8px;
+      style="font:inherit;font-size:10.5px;font-weight:600;cursor:pointer;border-radius:0;padding:3px 8px;
       border:1px solid var(--color-divider);background:var(--color-surface);color:var(--color-neutral-700)">${_rvE(i18t('rv_note_btn'))}</button>
   </div>`;
 }
@@ -1277,7 +1277,7 @@ function reviewBannerHtml(c, opts = {}){
   const rows = [];
   let tone = 'amber';
   const act = (id, label) => `<button type="button" data-rv-act="${id}"
-    style="flex:none;font:inherit;font-size:11px;font-weight:700;cursor:pointer;border-radius:6px;padding:4px 10px;
+    style="flex:none;font:inherit;font-size:11px;font-weight:700;cursor:pointer;border-radius:0;padding:4px 10px;
     border:1.5px solid currentColor;background:transparent;color:inherit">${_rvE(label)}</button>`;
   const line = (body, button) => `<div style="display:flex;align-items:flex-start;gap:10px;width:100%">
     <span style="flex:1;min-width:0">${body}</span>${button || ''}</div>`;
@@ -1361,7 +1361,7 @@ function reviewBannerHtml(c, opts = {}){
   const fg = { amber: 'var(--st-amber-fg)', green: 'var(--st-green-fg)', ruby: 'var(--st-ruby-fg)' }[tone];
   const ln = { amber: 'var(--st-amber-line)', green: 'var(--st-green-line)', ruby: 'var(--st-ruby-line)' }[tone];
   return `<div class="rv-banner" data-rv-banner="${_rvE(st.phase)}"
-    style="display:flex;align-items:flex-start;gap:10px;padding:10px 13px;margin:0 0 10px;border-radius:9px;
+    style="display:flex;align-items:flex-start;gap:10px;padding:10px 13px;margin:0 0 10px;border-radius:0;
     border:1px solid ${ln};background:${bg};color:${fg};font-size:11.5px;line-height:1.5">
     <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:9px">${rows.join('')}</span>
     <button type="button" data-rv-act="rv-clear" aria-label="${_rvE(i18t('rv_clear_banner'))}"
@@ -1391,7 +1391,7 @@ function reviewWhen(at){
    and a copy that says where it came from is better than a shared token nobody
    can find. If the share dialog's fields are restyled, restyle these. */
 const RV_FLD = 'width:100%;min-height:34px;border:1px solid var(--color-divider);'
-  + 'background:var(--color-surface);border-radius:4px;padding:8px 10px;font-size:12.5px;'
+  + 'background:var(--color-surface);border-radius:0;padding:8px 10px;font-size:12.5px;'
   + 'font-family:var(--font-body);color:var(--color-text);outline:none;line-height:1.5;';
 const RV_LBL = 'display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);'
   + 'margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;';
@@ -1477,7 +1477,7 @@ function reviewAskModalHtml(c, opts = {}){
     <input type="checkbox" class="rv-pickch" data-rv-ch="${_rvE(ch.id)}"${on(ch) ? ' checked' : ''}
       aria-label="${_rvE(i18t('rv_include_aria', { id: ch.id }))}" style="margin-top:3px;flex:none"/>
     <span style="flex:none;font-family:var(--font-mono);font-size:9.5px;font-weight:700;border:1.5px solid var(--color-accent);
-      color:var(--color-accent);border-radius:99px;padding:1px 6px;margin-top:1px">#${_rvE(ch.id)}</span>
+      color:var(--color-accent);border-radius:0;padding:1px 6px;margin-top:1px">#${_rvE(ch.id)}</span>
     <span style="flex:1;min-width:0">
       <span style="display:block;font-size:11.5px;font-weight:600;line-height:1.4">${_rvE(ch.summary || '')}</span>
       <span style="display:block;font-size:10.5px;color:var(--color-neutral-600)">${_rvE(ch.clauseLabel || ch.clauseId || '')}</span>
@@ -1507,13 +1507,13 @@ function reviewAskModalHtml(c, opts = {}){
         <ul id="rv-who-list" role="listbox" hidden
           style="list-style:none;margin:2px 0 0;padding:0;position:absolute;left:0;right:0;top:100%;z-index:5;
           max-height:212px;overflow-y:auto;background:var(--color-surface);border:1px solid var(--color-divider);
-          border-radius:6px;box-shadow:var(--shadow-lg)"></ul>
+          border-radius:0;box-shadow:var(--shadow-lg)"></ul>
       </div>
       <div id="rv-who-say" style="font-size:11.5px;line-height:1.5;margin-top:5px;color:var(--color-neutral-600)">${
         _rvE(i18t('rv_who_hint'))}</div>
       <input type="hidden" id="rv-who-id" value=""/>
     </div>` : `<div style="font-size:11.5px;color:var(--st-amber-fg);background:var(--st-amber-bg);
-      border:1px solid var(--st-amber-line);border-radius:7px;padding:9px 11px;margin-bottom:12px;line-height:1.5">${_rvE(i18t('rv_no_colleagues'))}</div>`}
+      border:1px solid var(--st-amber-line);border-radius:0;padding:9px 11px;margin-bottom:12px;line-height:1.5">${_rvE(i18t('rv_no_colleagues'))}</div>`}
 
     <label for="rv-note" style="${RV_LBL}">${_rvE(i18t('rv_note_label'))}</label>
     <textarea id="rv-note" rows="3" style="${RV_FLD}margin-bottom:12px;resize:vertical"
@@ -1526,7 +1526,7 @@ function reviewAskModalHtml(c, opts = {}){
       <input id="rv-email" type="checkbox" checked style="margin-top:2px"/>
       <span>${_rvE(i18t('rv_email_them'))}</span></label>` : ''}
 
-    <div style="border:1px solid var(--color-divider);border-radius:8px;padding:11px 13px;background:var(--color-bg);margin-bottom:14px">
+    <div style="border:1px solid var(--color-divider);border-radius:0;padding:11px 13px;background:var(--color-bg);margin-bottom:14px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
         <span style="flex:1;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--color-neutral-600)">${_rvE(i18t('rv_in_scope'))}</span>
         ${scope.all.length > 1 ? `<button type="button" id="rv-pick-all"
@@ -1821,7 +1821,7 @@ function openReviewReturnPicker(c, opts = {}){
     const p = reviewProgress(c, rv);
     return `<button type="button" data-rv-pick-return="${_rvE(rv.id)}"
       style="display:block;width:100%;text-align:left;font:inherit;cursor:pointer;margin-bottom:8px;
-      border:1px solid var(--color-divider);border-radius:8px;padding:10px 12px;background:var(--color-surface)">
+      border:1px solid var(--color-divider);border-radius:0;padding:10px 12px;background:var(--color-surface)">
       <span style="display:block;font-size:12.5px;font-weight:700;font-family:var(--font-mono);color:var(--color-accent-800)">${_rvE(reviewTagsFor(rv))}</span>
       <span style="display:block;font-size:11.5px;color:var(--color-neutral-700);margin-top:3px;line-height:1.5">
         ${_rvE(i18t('rv_pick_from', { who: rv.by }))}${rv.due ? ' · ' + _rvE(i18t('rv_due', { when: rv.due })) : ''}
@@ -1868,7 +1868,7 @@ function openReviewReturnModal(c, opts = {}){
   window.openModal(`
     ${reviewDialogHeadHtml('&#128229;', i18t('rv_return_title'), i18t('rv_return_sub'))}
     <div class="rvd-body">
-      <div style="border:1px solid var(--color-divider);border-radius:8px;padding:11px 13px;background:var(--color-bg);margin-bottom:12px;font-size:12px;line-height:1.7">
+      <div style="border:1px solid var(--color-divider);border-radius:0;padding:11px 13px;background:var(--color-bg);margin-bottom:12px;font-size:12px;line-height:1.7">
         <div><b>${cleared}</b> ${_rvE(i18t('rv_tally_cleared'))}</div>
         <div><b>${held}</b> ${_rvE(i18t('rv_tally_held'))}</div>
         <div><b>${advised}</b> ${_rvE(i18t('rv_tally_advised'))}</div>

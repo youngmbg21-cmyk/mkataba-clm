@@ -441,26 +441,26 @@ describe('F95 — the negotiate objects are one set of objects', () => {
      and the queue is 2px is the drift this test exists to catch, whichever
      number is current. */
   test('the queue, the sheet and the change cards share one radius', () => {
-    /* CLAIM SPLIT IN PLACE, 16 Aug 2026 (owner-asked): the SHEET is square now
-       — a contract page prints square, and the rounded paper read as an app
-       card — and the clause panel is square with it. The columns keep the
-       14px family and a card inside them keeps its 12px step: the one-family
-       rule survives everywhere the page still rounds. */
+    /* CLAIMS REVERSED IN PLACE, 20 Aug 2026 (owner-asked — the square-corner
+       sweep): the ONE number is now 0, product-wide. What this test exists to
+       catch — a page where the paper, the cards and the queue each round to a
+       different number — survives with the family collapsed to a single
+       value: square everywhere, and true circles (50%) untouched. */
     const radius = sel => {
       const rule = nego.slice(nego.indexOf(sel + '{'));
       const block = rule.slice(0, rule.indexOf('}'));
       return ((block.match(/border-radius:\s*([^;}]+)/) || [])[1] || '').trim();
     };
-    assert.equal(radius('.redline-page .rl-col'), '14px',
-      'the column surface keeps the family shape');
+    assert.equal(radius('.redline-page .rl-col'), '0',
+      'the column surface is square with the sweep');
     assert.equal(radius('.redline-page .rl-doc'), '0',
       'the doc column clips square — a radius here rounds the sheet\'s corners');
     assert.equal(radius('.redline-page .rl-paper'), '0',
       'the paper is square: a contract page prints square');
     assert.equal(radius('.redline-page .rl-col.rl-cp'), '0',
       'and the clause panel is square with it, winning on specificity');
-    assert.equal(radius('.redline-page .rl-card'), '12px',
-      'a card inside the column is one step tighter, never a different family');
+    assert.equal(radius('.redline-page .rl-card'), '0',
+      'a card inside the column shares the one shape, never a different family');
   });
 
   test('the Document tab\'s own cards were brought with them', () => {
@@ -468,15 +468,17 @@ describe('F95 — the negotiate objects are one set of objects', () => {
        workspace screen is too heavy to boot here and what is pinned is one
        line of source. */
     const ct = src('js/views/contract.js');
-    assert.match(ct, /const CARD='background:var\(--color-surface\)[^']*border-radius:12px'/,
+    assert.match(ct, /const CARD='background:var\(--color-surface\)[^']*border-radius:0'/,
       'the Doc page rail is the same card as the Negotiate column');
   });
 
   test('but the buttons and pills keep their own shape', () => {
-    assert.match(nego, /--n-r-sm:6px/, 'squaring a round Accept button turns it into a box');
+    /* REVERSED 20 Aug 2026 with the sweep: the small round things are square
+       now too — the tokens exist so they move together, and they moved. */
+    assert.match(nego, /--n-r-sm:0/, 'the small controls follow the sweep through their token');
     const verbs = nego.slice(nego.indexOf('.redline-page .rl-card-verbs button{'));
-    assert.match(verbs.slice(0, verbs.indexOf('}')), /border-radius:8px/,
-      'the verbs are the design\'s soft rectangles, not pills');
+    assert.match(verbs.slice(0, verbs.indexOf('}')), /border-radius:0/,
+      'the verbs are square rectangles now, not pills and not soft');
     /* ---- CLAIM REVERSED, 12 Aug 2026, OWNER-ASKED ----
        This used to read "and a status pill is still a pill", asserting
        border-radius:999px. The owner asked for the status corner to stop

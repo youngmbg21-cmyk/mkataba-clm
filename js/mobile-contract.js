@@ -161,7 +161,7 @@ function mDeskNoticeHtml(c){
       <div class="m-note" style="margin-top:3px">${mEsc(asked?i18t('dk_asked_already'):i18t('dk_phone_ask'))}</div>
     </span>
     ${asked?'':`<button type="button" data-dk-join="1" style="flex:none;font:inherit;font-size:13px;font-weight:700;
-      border:1.5px solid currentColor;background:transparent;color:inherit;border-radius:7px;padding:5px 11px">${mEsc(i18t('dk_ask_to_join'))}</button>`}
+      border:1.5px solid currentColor;background:transparent;color:inherit;border-radius:0;padding:5px 11px">${mEsc(i18t('dk_ask_to_join'))}</button>`}
   </div>`;
 }
 
@@ -289,12 +289,12 @@ function mTermsHtml(c){
      that module loaded it falls back to plain escaped text. */
   const mk = t => (typeof briefMark==='function') ? briefMark(t) : mEsc(t);
   const briefFig = `<style>.m-brief .br-fig{font-weight:700;color:var(--color-accent-800);
-    background:color-mix(in srgb,var(--color-accent) 12%,transparent);border-radius:3px;padding:0 3px}</style>`;
+    background:color-mix(in srgb,var(--color-accent) 12%,transparent);border-radius:0;padding:0 3px}</style>`;
   const briefBlock = b ? `${briefFig}
       <div class="m-card m-brief" style="margin:16px 16px 0;padding:14px">
         <div style="font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:6px">${mEsc(i18t('br_title'))}</div>
         <div style="font-size:14px;line-height:1.6">${mk(b.overview||'')}</div>
-        ${(b.watchouts||[]).length?`<ul style="margin:8px 0 0;padding-left:18px;list-style:none">${(b.watchouts||[]).map(w=>`<li style="font-size:13px;line-height:1.55;margin:6px 0;padding:8px 10px;border-radius:6px;background:var(--st-amber-bg);border-left:3px solid var(--st-amber-dot)">${mk(w.point||'')}</li>`).join('')}</ul>`:''}
+        ${(b.watchouts||[]).length?`<ul style="margin:8px 0 0;padding-left:18px;list-style:none">${(b.watchouts||[]).map(w=>`<li style="font-size:13px;line-height:1.55;margin:6px 0;padding:8px 10px;border-radius:0;background:var(--st-amber-bg);border-left:3px solid var(--st-amber-dot)">${mk(w.point||'')}</li>`).join('')}</ul>`:''}
       </div>` : '';
   return `
     <div class="m-scroll">
@@ -368,7 +368,7 @@ function mHistHtml(c){
       <div class="m-chips" style="padding:14px 16px 4px">${chips}</div>
       <div class="m-note" style="padding:6px 16px 0">${i18t('mc_labels_as_then')}</div>
       ${v?`
-      <div style="margin:12px 16px 0;display:flex;gap:10px;border-radius:12px;padding:13px;animation:mFadeIn .3s ease;
+      <div style="margin:12px 16px 0;display:flex;gap:10px;border-radius:0;padding:13px;animation:mFadeIn .3s ease;
         background:${v.ok?'var(--st-green-bg)':'var(--st-ruby-bg)'};border:1px solid ${v.ok?'var(--st-green-line)':'var(--st-ruby-line)'}">
         <span style="min-width:0">
           <span style="display:block;font-size:16px;font-weight:600;color:${v.ok?'var(--st-green-fg)':'var(--st-ruby-fg)'}">
@@ -446,7 +446,7 @@ function mOverflowSheetHtml(){
   return `
     <div class="m-grab"></div>
     ${items.map(i=>`
-      <button class="m-row" data-m-act="${i.k}" style="padding:0 12px;border-radius:8px">
+      <button class="m-row" data-m-act="${i.k}" style="padding:0 12px;border-radius:0">
         <span style="flex:1;font-size:16px;font-weight:500;color:${i.muted?'var(--color-neutral-400)':'var(--color-text)'}">${mEsc(i.label)}</span>
         ${i.desk?`<span style="flex:none;font-size:14px;color:var(--color-neutral-600)">${i18t('m_computer')}</span>`:''}
       </button>`).join('')}

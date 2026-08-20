@@ -102,7 +102,7 @@ const M_AI_CSS = `
   .m-ai-fab{
     position:fixed; right:16px; z-index:30;
     bottom:calc(env(safe-area-inset-bottom,0px) + 96px);
-    height:52px; padding:0 18px 0 15px; border:0; border-radius:999px; cursor:pointer;
+    height:52px; padding:0 18px 0 15px; border:0; border-radius:0; cursor:pointer;
     background:var(--brand-grad); color:#fff; display:flex; align-items:center; gap:8px;
     box-shadow:0 8px 22px -8px color-mix(in srgb,var(--accent-solid) 75%,transparent);
     font:inherit;
@@ -123,7 +123,7 @@ const M_AI_CSS = `
     position:fixed!important; left:12px!important; right:12px!important;
     top:auto!important; bottom:calc(env(safe-area-inset-bottom,0px) + 16px)!important;
     width:auto!important; max-width:none!important; z-index:70!important;
-    border-radius:14px!important; padding:8px!important;
+    border-radius:0!important; padding:8px!important;
     box-shadow:var(--shadow-lg)!important;
   }
   .nego-selmenu button{ min-height:48px!important; font-size:16px!important; }
@@ -133,7 +133,7 @@ const M_AI_CSS = `
   /* The sentence a tap can reach, marked so it looks reachable. Underlined
      rather than boxed: a box around every sentence turns a contract into a
      form, and the document has to go on reading like a document. */
-  .m-tappable{ border-bottom:1.5px dotted var(--color-neutral-400); border-radius:2px; }
+  .m-tappable{ border-bottom:1.5px dotted var(--color-neutral-400); border-radius:0; }
   .m-tapped{ background:var(--st-steel-bg); }
 }`;
 

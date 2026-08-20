@@ -98,7 +98,7 @@ function openKpiCustomizer(anchor){
   const full=kpiAtMax(sel);
   const pop=document.createElement('div');
   pop.id='kpi-cust-pop';
-  pop.style.cssText='position:absolute;z-index:60;top:calc(100% + 6px);right:0;width:252px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:8px;padding:8px;';
+  pop.style.cssText='position:absolute;z-index:60;top:calc(100% + 6px);right:0;width:252px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:0;padding:8px;';
   /* At four, the rows that cannot be turned on SAY SO before they are pressed —
      dimmed, not pointing, and carrying the sentence as a tooltip. The ticked
      four stay live, because turning one off is the way forward. */
@@ -106,7 +106,7 @@ function openKpiCustomizer(anchor){
     const on=sel.includes(id), shut=full&&!on;
     return `
     <label ${shut?`title="${esc(i18t('home_max_metrics',{max:KPI_MAX}))}"`:''}
-      style="display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:6px;font-size:12.5px;${
+      style="display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:0;font-size:12.5px;${
         shut?'cursor:default;opacity:.45;':'cursor:pointer;'}"${
         shut?'':` onmouseover="this.style.background='color-mix(in srgb,var(--color-accent) 9%,transparent)'" onmouseout="this.style.background='none'"`}>
       <input type="checkbox" data-kpi-toggle="${id}" ${on?'checked':''} ${shut?'disabled':''} style="width:15px;height:15px;accent-color:var(--color-accent);flex:none;"/>
@@ -266,18 +266,18 @@ function gettingStartedHtml(){
     /* The whole current row is the button — a target the size of the step,
        not a link the size of an arrow. */
     return isCur&&(s.k!=='sign'||gsGoTargetExists(s.k))
-      ?`<button data-gs-go="${s.k}" style="display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border:1px solid color-mix(in srgb,var(--color-accent) 25%,transparent);border-radius:9px;background:color-mix(in srgb,var(--color-accent) 6%,transparent);cursor:pointer;font:inherit;text-align:left;color:inherit">${body}</button>`
+      ?`<button data-gs-go="${s.k}" style="display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border:1px solid color-mix(in srgb,var(--color-accent) 25%,transparent);border-radius:0;background:color-mix(in srgb,var(--color-accent) 6%,transparent);cursor:pointer;font:inherit;text-align:left;color:inherit">${body}</button>`
       :`<div style="display:flex;align-items:center;gap:10px;padding:8px 10px">${body}</div>`;
   }).join('');
   return `
-    <section id="gs-card" style="border:1px solid var(--color-divider);border-radius:14px;background:var(--color-surface);padding:16px 18px 14px;">
+    <section id="gs-card" style="border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);padding:16px 18px 14px;">
       <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:8px">
         <h2 style="margin:0;font-family:var(--font-heading);font-weight:700;font-size:14.5px;color:var(--color-text)">${all?'You’re set up — first contract signed ⚡':'Getting started'}</h2>
         <span style="font-size:11px;color:var(--color-neutral-600);font-family:var(--font-mono)">${done} of ${steps.length} done</span>
         <span style="flex:1"></span>
         <button id="gs-dismiss" class="ui-btn" title="${i18t('home_hide_checklist')}" style="font-size:11px;padding:3px 10px">${all?'Done — hide this':'Hide'}</button>
       </div>
-      <div style="height:6px;border-radius:4px;background:var(--color-neutral-100);margin-bottom:10px"><i style="display:block;height:100%;border-radius:4px;background:var(--color-accent);width:${Math.round(done/steps.length*100)}%"></i></div>
+      <div style="height:6px;border-radius:0;background:var(--color-neutral-100);margin-bottom:10px"><i style="display:block;height:100%;border-radius:0;background:var(--color-accent);width:${Math.round(done/steps.length*100)}%"></i></div>
       ${all?`<p style="margin:0;font-size:12px;color:var(--color-neutral-600);line-height:1.55">Your workspace has done the whole journey — a contract in, scanned, sent and signed. Everything from here is more of the same.</p>`:rows}
     </section>`;
 }
@@ -496,7 +496,7 @@ function emailSetupLineHtml(){
   if(typeof emailOff!=='function' || !emailOff()) return '';
   const admin=(typeof isAdmin==='function')&&isAdmin();
   return `
-    <div id="email-setup-banner" style="display:flex;align-items:center;gap:9px;padding:8px 13px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:10px;font-size:11.5px;color:var(--st-amber-fg);line-height:1.45;">
+    <div id="email-setup-banner" style="display:flex;align-items:center;gap:9px;padding:8px 13px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:0;font-size:11.5px;color:var(--st-amber-fg);line-height:1.45;">
       <span style="flex:none;display:inline-flex;color:var(--st-amber-dot);">${icon('alert','w-3.5 h-3.5')}</span>
       <span style="flex:1;min-width:0;">${i18t('home_email_not_setup')}</span>
       ${admin?`<button id="email-setup-go" style="flex:none;border:0;background:none;padding:0;font:inherit;font-size:11.5px;font-weight:700;color:var(--st-amber-fg);cursor:pointer;text-decoration:underline;text-underline-offset:2px;">${i18t('home_set_it_up')}</button>`:''}

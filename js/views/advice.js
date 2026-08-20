@@ -27,12 +27,12 @@ function adviceCard(r){
   const fee=q.rate?`${fmtMoneyShort(q.rate*q.hoursMin)}–${fmtMoneyShort(q.rate*q.hoursMax)}`:'—';
   const ini=(r.assignee||'').split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
   return `
-    <div data-adv-card="${r.id}" ${drag?'draggable="true"':''} class="q-card" style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:5px;box-shadow:var(--shadow-sm);padding:11px 12px;cursor:${drag?'grab':'pointer'};display:flex;flex-direction:column;gap:5px">
+    <div data-adv-card="${r.id}" ${drag?'draggable="true"':''} class="q-card" style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;box-shadow:var(--shadow-sm);padding:11px 12px;cursor:${drag?'grab':'pointer'};display:flex;flex-direction:column;gap:5px">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
         <span style="font-family:var(--font-mono);font-size:10.5px;color:var(--color-neutral-600)">${r.id}</span>
         <span style="display:flex;align-items:center;gap:4px;flex:none">
-          ${r.urgency==='priority'?`<span style="background:var(--st-amber-bg);color:var(--st-amber-fg);font-size:9.5px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:999px">${i18t('adv_priority')}</span>`:''}
-          <span style="font-size:9.5px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:999px;font-variant-numeric:tabular-nums;background:color-mix(in srgb,${etaCol} 12%,#fff);color:${etaCol}">${etaTxt}</span>
+          ${r.urgency==='priority'?`<span style="background:var(--st-amber-bg);color:var(--st-amber-fg);font-size:9.5px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:0">${i18t('adv_priority')}</span>`:''}
+          <span style="font-size:9.5px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:0;font-variant-numeric:tabular-nums;background:color-mix(in srgb,${etaCol} 12%,#fff);color:${etaCol}">${etaTxt}</span>
         </span>
       </div>
       <div style="display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:500;line-height:1.3"><span style="display:inline-flex;color:var(--color-accent-700);flex:none">${icon(svc.ic,'w-3.5 h-3.5')}</span><span style="min-width:0">${esc(svc.name)}</span></div>
@@ -53,7 +53,7 @@ function renderAdviceDesk(){
   const dueSoon=active.filter(r=>{const d=adviceDaysLeft(r.eta); return d!=null&&d>=0&&d<=2;}).length;
   const delivered30=rs.filter(r=>r.status==='Delivered'&&(Date.now()-Date.parse((r.history||[]).find(h=>h.to==='Delivered')?.at||r.submittedAt))<30*86400000).length;
   const projected=active.reduce((s,r)=>s+((r.quote?.rate||0)*(((r.quote?.hoursMin||0)+(r.quote?.hoursMax||0))/2)),0);
-  const kpi=(label,val,col)=>`<div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:6px;padding:8px 14px;min-width:0">
+  const kpi=(label,val,col)=>`<div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;padding:8px 14px;min-width:0">
       <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600)">${label}</div>
       <div style="font-size:17px;font-weight:600;font-variant-numeric:tabular-nums;color:${col||'var(--color-text)'}">${val}</div></div>`;
 
@@ -63,10 +63,10 @@ function renderAdviceDesk(){
       <div style="display:flex;align-items:center;gap:6px;padding:0 2px 8px;min-width:0;flex:none">
         <span style="width:9px;height:9px;border-radius:50%;background:${g.col.color};flex:none;display:inline-block"></span>
         <span style="font-family:var(--font-mono);font-weight:600;font-size:12px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap">${g.col.label}</span>
-        <span style="font-size:10.5px;background:color-mix(in srgb,var(--color-accent) 11%,transparent);padding:1px 8px;border-radius:999px;color:var(--color-neutral-700);flex:none;font-variant-numeric:tabular-nums">${g.list.length}</span>
+        <span style="font-size:10.5px;background:color-mix(in srgb,var(--color-accent) 11%,transparent);padding:1px 8px;border-radius:0;color:var(--color-neutral-700);flex:none;font-variant-numeric:tabular-nums">${g.list.length}</span>
       </div>
-      <div data-adv-drop="${g.col.k}" class="pipe-col scroll-thin" style="background:color-mix(in srgb,var(--color-accent) 6%,transparent);border:1px solid var(--color-divider);border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:8px;flex:1;min-height:0;overflow-y:auto">
-        ${g.list.map(adviceCard).join('')||`<div style="border:1px dashed var(--color-divider);border-radius:4px;padding:22px 10px;text-align:center;font-size:11px;color:var(--color-neutral-500)">${i18t('adv_nothing_here')}</div>`}
+      <div data-adv-drop="${g.col.k}" class="pipe-col scroll-thin" style="background:color-mix(in srgb,var(--color-accent) 6%,transparent);border:1px solid var(--color-divider);border-radius:0;padding:8px;display:flex;flex-direction:column;gap:8px;flex:1;min-height:0;overflow-y:auto">
+        ${g.list.map(adviceCard).join('')||`<div style="border:1px dashed var(--color-divider);border-radius:0;padding:22px 10px;text-align:center;font-size:11px;color:var(--color-neutral-500)">${i18t('adv_nothing_here')}</div>`}
       </div>
     </div>`).join('');
 
@@ -139,7 +139,7 @@ function wireAdviceBoard(){
   document.getElementById('adv-link')?.addEventListener('click',async()=>{
     const link=adviceIntakeLink();
     try{ await navigator.clipboard.writeText(link); toast(i18t('adv_intake_copied')); }
-    catch(e){ openModal(`<div style="padding:22px 24px"><h2 style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0 0 8px">${i18t('adv_public_intake')}</h2><textarea readonly rows="2" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:10px;font-size:11px;font-family:var(--font-mono);word-break:break-all">${link}</textarea><div style="margin-top:12px;text-align:right"><button class="ui-btn" onclick="closeModal()">${i18t('act_close')}</button></div></div>`); }
+    catch(e){ openModal(`<div style="padding:22px 24px"><h2 style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0 0 8px">${i18t('adv_public_intake')}</h2><textarea readonly rows="2" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:10px;font-size:11px;font-family:var(--font-mono);word-break:break-all">${link}</textarea><div style="margin-top:12px;text-align:right"><button class="ui-btn" onclick="closeModal()">${i18t('act_close')}</button></div></div>`); }
   });
 }
 
@@ -156,16 +156,16 @@ function openAdviceModal(id){
         <span style="display:block;font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono)">${fmtDT(h.at)}</span></span>
     </div>`).join('');
   const notes=(r.notes||[]).slice().reverse().map(n=>`
-    <div style="border:1px solid var(--color-divider);border-radius:5px;background:var(--color-bg);padding:8px 10px;margin-bottom:6px">
+    <div style="border:1px solid var(--color-divider);border-radius:0;background:var(--color-bg);padding:8px 10px;margin-bottom:6px">
       <div style="font-size:11.5px;line-height:1.5">${esc(n.text)}</div>
       <div style="font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono);margin-top:2px">${esc(n.by)} · ${fmtDT(n.at)}</div>
     </div>`).join('')||`<div style="font-size:11px;color:var(--color-neutral-500)">${i18t('adv_no_notes')}</div>`;
   const members=getUsers().filter(u=>u.role!=='viewer');
-  const selStyle='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:6px 9px;font:inherit;font-size:12px;color:inherit;outline:none';
+  const selStyle='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:6px 9px;font:inherit;font-size:12px;color:inherit;outline:none';
   openModal(`
     <div style="padding:22px 24px">
       <div style="display:flex;align-items:center;gap:9px;margin-bottom:2px">
-        <span style="width:32px;height:32px;flex:none;display:grid;place-items:center;border-radius:6px;background:var(--color-accent-100);color:var(--color-accent-800)">${icon(svc.ic,'w-4 h-4')}</span>
+        <span style="width:32px;height:32px;flex:none;display:grid;place-items:center;border-radius:0;background:var(--color-accent-100);color:var(--color-accent-800)">${icon(svc.ic,'w-4 h-4')}</span>
         <div style="min-width:0">
           <h2 style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0;line-height:1.25">${esc(svc.name)}</h2>
           <div style="font-family:var(--font-mono);font-size:11px;color:var(--color-neutral-600)">${r.id} · submitted ${fmtDT(r.submittedAt)}</div>
@@ -181,7 +181,7 @@ function openAdviceModal(id){
         ${row('Estimate', q.rate?`${q.hoursMin}–${q.hoursMax} hrs ≈ ${fmtMoneyShort(q.rate*q.hoursMin)}–${fmtMoneyShort(q.rate*q.hoursMax)}`:'—')}
         ${row('Feedback due', `<span style="font-family:var(--font-mono)">${fmtDay(r.eta)}</span>`)}
       </div>
-      ${r.description&&r.description!=='Seeded as sample data'?`<div style="margin-top:10px;border:1px solid var(--color-divider);border-radius:5px;background:var(--color-bg);padding:9px 11px;font-size:12px;line-height:1.55;white-space:pre-wrap">${esc(r.description)}</div>`:''}
+      ${r.description&&r.description!=='Seeded as sample data'?`<div style="margin-top:10px;border:1px solid var(--color-divider);border-radius:0;background:var(--color-bg);padding:9px 11px;font-size:12px;line-height:1.55;white-space:pre-wrap">${esc(r.description)}</div>`:''}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
         <div>
           <h6 style="margin:0 0 6px;font-size:10px;color:var(--color-neutral-600);letter-spacing:.08em;text-transform:uppercase">${i18t('adv_pipeline_history')}</h6>
@@ -231,7 +231,7 @@ function openAdviceModal(id){
 /* ---------- rate card (published fees; admin edits, everyone reads) ---------- */
 function openRateCardModal(){
   const editable=isAdmin();
-  const inp=(id,v)=>`<input id="${id}" type="number" min="1" value="${v}" ${editable?'':'disabled'} style="width:100%;border:1px solid var(--color-divider);background:${editable?'var(--color-surface)':'var(--color-bg)'};border-radius:4px;padding:5px 7px;font-family:var(--font-mono);font-size:11.5px;color:inherit;outline:none"/>`;
+  const inp=(id,v)=>`<input id="${id}" type="number" min="1" value="${v}" ${editable?'':'disabled'} style="width:100%;border:1px solid var(--color-divider);background:${editable?'var(--color-surface)':'var(--color-bg)'};border-radius:0;padding:5px 7px;font-family:var(--font-mono);font-size:11.5px;color:inherit;outline:none"/>`;
   const rows=Object.values(ADVICE_SERVICES).map(s=>{
     const r=adviceRateFor(s.id);
     return `<tr style="border-bottom:1px solid var(--color-divider)">
@@ -277,7 +277,7 @@ function openRateCardModal(){
 
 /* ---------- internal intake (log a request on a customer's behalf) ---------- */
 function openAdviceIntakeModal(){
-  const inputStyle='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 10px;font:inherit;font-size:12.5px;color:inherit;outline:none';
+  const inputStyle='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 10px;font:inherit;font-size:12.5px;color:inherit;outline:none';
   const field=(id,label,ph,type='text')=>`<label style="display:block;margin-bottom:10px"><span style="display:block;font-size:10.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">${label}</span><input id="${id}" type="${type}" placeholder="${ph}" style="${inputStyle}"/></label>`;
   openModal(`
     <div style="padding:22px 24px">
