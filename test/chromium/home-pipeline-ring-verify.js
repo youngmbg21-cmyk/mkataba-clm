@@ -182,7 +182,7 @@ const SNAP = `(() => {
       check(`${vp.width}: nothing in the chart half is clipped away`, first.clipped <= 1, `${first.clipped}px`);
       check(`${vp.width}: the key is readable, not crushed`, first.keyH >= 60, `${first.keyH}px tall`);
 
-      /* THE TYPE IS THE APP'S OWN. --font-heading is Plus Jakarta Sans here;
+      /* THE TYPE IS THE APP'S OWN. --font-heading is "72" since the SAP treatment;
          what must never appear is a face this card brought with it. */
       check(`${vp.width}: the ring's figure is set in the app's heading face`,
         first.figFont && first.headingToken

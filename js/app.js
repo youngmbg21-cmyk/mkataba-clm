@@ -958,14 +958,16 @@ function updateAlertBadge(){
    takes it, and it stays taken until they say otherwise. Per browser, like
    the redline split and the document type size. */
 const RAIL_KEY = 'hati.v1.railCollapsed';
-/* COLLAPSED IS THE DEFAULT. The rail is what the workspace is meant to look
-   like: seven glyphs down the edge and the width given to the contract, which
-   is the thing anybody opened this to read. The labels are one press away and
-   the press is remembered, so nobody who wants the words has to keep asking.
-   A stored value always wins — `null` means "never chosen", not "chose no". */
+/* OPEN IS THE DEFAULT (owner-approved render, 20 Aug 2026 — this REVERSES
+   "collapsed is the default"): the SAP treatment shows the menu with its
+   words, and the render the owner approved has the sidebar open. This only
+   ever decides screens ABOVE the 1500 line — below it navDrawerActive() wins
+   and the strip stays a 64px rail whatever this answers, exactly as before.
+   A stored value always wins — `null` means "never chosen", not "chose no" —
+   so anybody who had already collapsed it keeps their rail. */
 function railCollapsed(){
-  try { const v = localStorage.getItem(RAIL_KEY); return v === null ? true : v === '1'; }
-  catch(e){ return true; }
+  try { const v = localStorage.getItem(RAIL_KEY); return v === null ? false : v === '1'; }
+  catch(e){ return false; }
 }
 function applyRail(){
   const shell=document.getElementById('app-shell'); if(!shell) return;

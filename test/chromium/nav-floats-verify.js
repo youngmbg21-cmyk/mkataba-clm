@@ -91,9 +91,13 @@ const RAIL_KEY = 'hati.v1.railCollapsed';
       const rest = await page.evaluate(READ);
       const below = w < 1500;
 
-      /* AT REST IT IS THE SAME THING EITHER SIDE OF THE LINE — the 64px rail,
-         which is what the stored default has always been. */
-      check(`${w}: it rests as the 64px rail`, rest.nav[2] === 64, `${rest.nav[2]}px`);
+      /* THE REST STATE SPLITS AT THE LINE (claim reversed in place, 20 Aug
+         2026, owner-approved SAP treatment): ABOVE it the default is now the
+         OPEN 256px column with its words — the render the owner approved —
+         while BELOW it navDrawerActive() still wins and the strip rests as
+         the 64px rail exactly as before. A stored choice still beats both. */
+      check(`${w}: it rests as ${below ? 'the 64px rail' : 'the open 256px column'}`,
+        rest.nav[2] === (below ? 64 : 256), `${rest.nav[2]}px`);
       check(`${w}: nothing in the strip paints outside it`, rest.spill === 0, `${rest.spill}px over`);
 
       if (below) {
@@ -130,19 +134,22 @@ const RAIL_KEY = 'hati.v1.railCollapsed';
         check(`${w}: Escape closes it and the page still has not moved`,
           !shut.navOpen && shut.content.join() === rest.content.join(), shut.content.join(','));
       } else {
-        /* ABOVE THE LINE NOTHING MOVED, and that is the other half of the ask:
-           whoever has the room keeps the sidebar they chose. */
+        /* ABOVE THE LINE the column still pushes and still remembers — the
+           mechanics are untouched; only the DEFAULT flipped to open (claims
+           reversed in place, 20 Aug 2026). So the first press now COLLAPSES
+           to the 64px rail, the page takes the width back, and the collapse
+           is what gets stored. */
         check(`${w}: above the line it is still a column`, rest.navPos !== 'fixed', rest.navPos);
         await page.click('#cmd-rail');
         await page.waitForTimeout(450);
-        const wide = await page.evaluate(READ);
-        check(`${w}: opening it gives the full 256px column`, wide.nav[2] === 256, `${wide.nav[2]}px`);
+        const rail = await page.evaluate(READ);
+        check(`${w}: collapsing it gives the 64px rail`, rail.nav[2] === 64, `${rail.nav[2]}px`);
         check(`${w}: and up here it PUSHES the page, exactly as it always did`,
-          wide.content[0] === 256 && wide.content[2] === rest.content[2] - 192,
-          `${rest.content.join(',')} → ${wide.content.join(',')}`);
-        check(`${w}: no scrim — a column is not a layer`, !wide.scrim);
+          rail.content[0] === 64 && rail.content[2] === rest.content[2] + 192,
+          `${rest.content.join(',')} → ${rail.content.join(',')}`);
+        check(`${w}: no scrim — a column is not a layer`, !rail.scrim);
         const kept = await page.evaluate(k => localStorage.getItem(k), RAIL_KEY);
-        check(`${w}: and the choice is remembered`, kept === '0', `stored ${JSON.stringify(kept)}`);
+        check(`${w}: and the choice is remembered`, kept === '1', `stored ${JSON.stringify(kept)}`);
         await page.click('#cmd-rail');
         await page.waitForTimeout(450);
       }

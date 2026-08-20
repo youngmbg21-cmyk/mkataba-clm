@@ -897,3 +897,20 @@ re-open the card uses where a card exists, never a second path.
 counterparty's copy and never on a read-only one. Their page has its own answer
 for its own answers, and the standing rule is that a refusal is reopened by the
 side that gave it.
+
+## OI-16 — f183's "single month" claim fails on certain calendar dates
+
+Found 20 Aug 2026 while running the full suite for the SAP-treatment build,
+and **proven pre-existing**: the same one subtest fails identically on the
+commit before any of that work (verified by stashing the whole change and
+re-running). Nothing in the SAP treatment touches the portfolio panels.
+
+The failing claim is f183's "work that starts and ends in one month is
+counted as that" — its fixture (MK-2) builds its dates relative to *today*,
+and on some calendar days the contract it means to keep inside a single month
+crosses a month boundary instead, so `why.singleMonth` counts nothing. A test
+about month arithmetic whose fixture depends on the day it is run is the
+defect; the product's counting looks right.
+
+The fix is the fixture: pin MK-2's dates inside one month explicitly (or
+anchor "today" in the test's world), never loosen the assertion.

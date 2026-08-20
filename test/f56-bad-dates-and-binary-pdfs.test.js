@@ -67,7 +67,9 @@ describe('F56 — an expiry that is not a date does not take the screen down', (
     const sb = screens([badContract(), good]);
     sb.renderDashboard();
     const html = sb.document.getElementById('content').innerHTML;
-    assert.ok(html.includes('Key metrics'), 'the dashboard must have rendered');
+    /* The "Key metrics" caption retired with the SAP treatment (20 Aug 2026);
+       the KPI grid itself is the render sentinel now. */
+    assert.ok(html.includes('kpi-grid'), 'the dashboard must have rendered');
     assert.ok(html.includes('MK-OK'),
       'one malformed record must not cost every other contract its screen');
   });

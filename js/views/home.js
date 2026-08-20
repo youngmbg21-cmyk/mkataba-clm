@@ -525,11 +525,18 @@ function renderDashboard(){
      volume, emerald = good, amber = pending, ruby = risk). */
   const TONE_OF=g=>g===G.green?'emerald':g===G.amber?'amber':g===G.ruby?'ruby':'steel';
   const TONE_FG={steel:'var(--tile-steel-fg)',emerald:'var(--tile-emerald-fg)',amber:'var(--tile-amber-fg)',ruby:'var(--tile-ruby-fg)'};
+  /* THE TOP EDGE IS THE CARD'S TONE (the SAP treatment, owner-approved render
+     20 Aug 2026): a 3px coloured rule along the top of a flat white card —
+     teal for volume, amber for pending, green for good, ruby for risk — so
+     whichever four metrics the reader picks, each carries its own colour.
+     THE HOVER MUST NOT TOUCH borderColor ANY MORE: resetting it would paint
+     all four sides the divider grey and erase the top edge. */
+  const TONE_EDGE={steel:'var(--color-accent-600)',emerald:'var(--st-green-dot)',amber:'var(--st-amber-dot)',ruby:'var(--st-ruby-dot)'};
   const kpiCard=id=>{ const k=KPI_CATALOG[id], t=TONE_OF(k.grad); return `
-    <button data-kpi-id="${id}" draggable="true" class="hati-stat" style="position:relative;display:flex;flex-direction:column;gap:8px;align-items:stretch;border:1px solid var(--color-divider);border-radius:16px;background:var(--color-surface);padding:20px;font:inherit;color:inherit;cursor:grab;text-align:left;box-shadow:var(--shadow-sm);transition:transform .2s var(--ease),box-shadow .2s var(--ease),border-color .15s,opacity .15s;" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow-md)';this.style.borderColor='color-mix(in srgb,var(--accent-solid) 35%,transparent)'" onmouseout="this.style.transform='none';this.style.boxShadow='var(--shadow-sm)';this.style.borderColor='var(--color-divider)'">
-      <span style="display:block;font-size:10.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;line-height:1.3;color:var(--color-neutral-500);">${k.label}</span>
+    <button data-kpi-id="${id}" draggable="true" class="hati-stat" style="position:relative;display:flex;flex-direction:column;gap:7px;align-items:stretch;border:1px solid var(--color-divider);border-top:3px solid ${TONE_EDGE[t]};border-radius:0;background:var(--color-surface);padding:12px 14px;font:inherit;color:inherit;cursor:grab;text-align:left;box-shadow:none;transition:transform .2s var(--ease),opacity .15s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+      <span style="display:block;font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;line-height:1.3;color:var(--color-neutral-500);">${k.label}</span>
       <span style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;">
-        <span class="tnum" style="font-family:var(--font-mono);font-weight:700;font-size:clamp(20px,17px + 0.45vw,28px);line-height:1.1;letter-spacing:-.02em;color:var(--color-text);">${k.val}</span>
+        <span class="tnum" style="font-family:var(--font-mono);font-weight:300;font-size:clamp(20px,17px + 0.45vw,28px);line-height:1.1;letter-spacing:-.02em;color:var(--color-text);">${k.val}</span>
         <span style="font-size:11px;font-weight:600;color:${TONE_FG[t]};text-align:right;">${k.delta}</span>
       </span>
       <span style="font-size:11px;color:var(--color-neutral-500);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${k.sub||''}</span>
@@ -543,21 +550,18 @@ function renderDashboard(){
      surface where they belong: renewal decisions and obligation due dates on
      the Calendar, an approval chain on the contract itself. What stays here is
      only what a card still counts (myApprovals feeds Pending approvals). */
-  /* ---- WELCOME BANNER (redesign) ----
-     The page used to open on a metric ribbon. It now opens on a statement of
-     what this workspace is for, and the one button that starts real work. The
-     sub-line names the jurisdiction actually in force (the header switcher),
-     rather than claiming both. */
+  /* ---- THE PORTFOLIO STRIP (owner-approved render, 20 Aug 2026) ----
+     The teal hero banner is gone — the SAP treatment opens on one slim line
+     that names the page and states the book (the same facts the hero's
+     sub-line carried), with the two controls on its right: Customize (moved
+     up from the retired KEY METRICS caption row) and Draft new agreement.
+     SAME IDS, SAME WIRING: #kpi-customize and #hero-draft are unchanged, so
+     the KPI picker still re-opens against this button after a tick (kpiApply)
+     and the draft button still opens the one new-contract menu. The greeting
+     went with the banner — a page title is not a salutation. */
   /* No flag emoji: Windows draws them as bare letter pairs in boxes. */
   const REGION_LABEL={SE:'Sweden', KE:'Kenya'};
   const regionNow=REGION_LABEL[state.region]||REGION_LABEL.KE;
-  /* The band greets the person and states the shape of their portfolio, rather
-     than naming the product back at them. Same slot, same one button — the
-     words changed, not the furniture. */
-  /* The PERSON'S OWN NAME is never translated — only the greeting around it. */
-  const firstName=(((me&&me.name)||'').trim().split(/\s+/)[0])||i18t('home_greet_there');
-  const hourNow=new Date().getHours();
-  const greeting=hourNow<12?i18t('home_greet_morning'):hourNow<17?i18t('home_greet_afternoon'):i18t('home_greet_evening');
   const activeVal=(money&&typeof fmtMoneyShort==='function')?fmtMoneyShort(valOf(live)):'';
   const heroLine=[
     i18tn('home_hero_managed',countAll,{n:Number(countAll).toLocaleString(jxLocale())}),
@@ -565,17 +569,17 @@ function renderDashboard(){
     apprMineN?i18tn('home_hero_need',apprMineN,{n:apprMineN}):'',
   ].filter(Boolean).join(' · ');
   const heroSection=`
-    <section class="hm-hero" style="position:relative;overflow:hidden;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;padding:20px 24px;border-radius:20px;background:var(--brand-hero);box-shadow:var(--shadow-md);color:#fff;">
-      <div class="hm-hero-glow" style="position:absolute;right:-60px;top:-90px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.16),transparent 68%);pointer-events:none;"></div>
-      <div style="position:relative;min-width:0;">
-        <h2 style="margin:0;font-size:clamp(21px,16px + 0.55vw,27px);line-height:1.15;font-weight:700;letter-spacing:-.02em;color:#fff;">${greeting}, ${esc(firstName)}</h2>
-        <p style="margin:4px 0 0;font-size:12.5px;color:var(--brand-hero-sub);max-width:62ch;">${esc(heroLine)}</p>
-      </div>
-      <div style="position:relative;display:flex;align-items:center;gap:10px;flex:none;">
-        <button id="hero-draft" style="display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border:0;border-radius:12px;background:#fff;color:var(--color-accent-700);font:inherit;font-family:var(--font-heading);font-size:12.5px;font-weight:700;cursor:pointer;box-shadow:0 8px 20px -8px rgba(3,25,25,.5);transition:filter .15s;" onmouseover="this.style.filter='brightness(.95)'" onmouseout="this.style.filter='none'">
-          ${icon('plus','w-3.5 h-3.5',2)} ${i18t('home_draft_new')}
-        </button>
-      </div>
+    <section class="hm-strip">
+      <h2 style="margin:0;font-size:15px;font-weight:700;color:var(--color-text);flex:none;">${i18t('home_portfolio')}</h2>
+      <p style="margin:0;font-size:12px;color:var(--color-neutral-500);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(heroLine)}</p>
+      <span style="flex:1 1 auto;"></span>
+      <button id="kpi-customize" class="ui-btn" title="${i18t('home_choose_metrics')}" style="font-size:11px;padding:5px 10px;display:inline-flex;align-items:center;gap:6px;flex:none;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+        ${i18t('home_customize')}
+      </button>
+      <button id="hero-draft" class="ui-btn" style="font-size:11.5px;font-weight:600;padding:5px 11px;display:inline-flex;align-items:center;gap:7px;flex:none;">
+        ${icon('plus','w-3.5 h-3.5',2)} ${i18t('home_draft_new')}
+      </button>
     </section>`;
 
   /* ---- ACTIVE CONTRACT LIFECYCLE PIPELINE (redesign) ----
@@ -685,9 +689,9 @@ function renderDashboard(){
   };
 
   const lifecycleSection=`
-    <section class="hm-pipe-card" style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:16px;padding:16px 18px;min-width:0;">
+    <section class="hm-pipe-card" style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:none;border-radius:0;padding:16px 18px;min-width:0;">
       <div style="flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;">
-        <h4 style="font-size:15px;margin:0;font-weight:700;">${i18t('home_pipeline_aria')}</h4>
+        <h4 style="font-size:14px;margin:0;font-weight:700;">${i18t('home_pipeline_aria')}</h4>
         <button data-open-register style="border:0;background:none;cursor:pointer;font:inherit;font-size:11.5px;color:var(--color-accent-600);font-weight:600;padding:0;">${i18t('home_view_register')}</button>
       </div>
       <div class="hm-pipe-cols" style="display:grid;gap:11px;">
@@ -796,15 +800,53 @@ function renderDashboard(){
     ? `<div style="flex:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--color-divider);display:flex;flex-direction:column;gap:2px;align-items:flex-start;">${footerLinks.join('')}</div>`
     : '';
   const activitySection=`
-    <section style="flex:1;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden;">
+    <section style="flex:1;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:none;border-radius:0;padding:16px 18px;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex:none;">
-        <h4 style="font-size:15px;margin:0;font-weight:700;">${i18t('home_decisions_due')}</h4>
+        <h4 style="font-size:14px;margin:0;font-weight:700;">${i18t('home_decisions_due')}</h4>
         <span class="live-ping" style="width:7px;height:7px;border-radius:50%;background:${decisionItems.length?'#f59e0b':'#10b981'};flex:none;"></span>
-        ${decisionItems.length?`<span style="margin-left:auto;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--st-amber-bg);color:var(--st-amber-fg);">${decisionItems.length}</span>`:''}
+        ${decisionItems.length?`<span style="margin-left:auto;font-size:10px;font-weight:700;padding:2px 8px;background:var(--st-amber-bg);color:var(--st-amber-fg);">${decisionItems.length}</span>`:''}
       </div>
       <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;">${decisionRows}</div>
       ${decisionFooter}
     </section>`;
+
+  /* ---- THE BOTTOM ROW: three summary cards (owner-approved render, 20 Aug 2026) ----
+     Drawings of numbers hmDashSlices ALREADY computes — nothing here counts
+     anything of its own (the one-count-many-surfaces rule): what expires
+     inside 90 days and the money at stake, what has been sent out and sits
+     unsigned, and what carries a risk score of 60 or more beside how many are
+     clean. Each card is a DOOR to the page that acts on its number — the
+     calendar, the negotiations list, Our standards. The little donut is a
+     plain inline SVG (share of the live book) in the same semantic colours as
+     the KPI top edges. IT IS ALL IN THE MARKUP — the pipeline card's lesson:
+     the numbers are in the rendered HTML, never painted on after. */
+  const footRing=(n,color)=>{ const C=2*Math.PI*21, f=Math.max(n?0.06:0, Math.min(1, n/Math.max(1,live.length)));
+    return `<svg width="52" height="52" viewBox="0 0 52 52" style="flex:none;" aria-hidden="true">
+      <circle cx="26" cy="26" r="21" fill="none" stroke="var(--color-neutral-100)" stroke-width="7"></circle>
+      <circle cx="26" cy="26" r="21" fill="none" stroke="${color}" stroke-width="7" stroke-dasharray="${(f*C).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 26 26)"></circle>
+      <text x="26" y="32" text-anchor="middle" style="font:300 17px var(--font-body);fill:var(--color-text);">${n}</text>
+    </svg>`; };
+  const footCard=(ring,title,sub,act,attr)=>`
+    <button ${attr} class="hm-foot-card" type="button">
+      ${ring}
+      <span style="min-width:0;text-align:left;">
+        <span style="display:block;font-size:13px;font-weight:700;color:var(--color-text);">${title}</span>
+        <span style="display:block;font-size:12px;color:var(--color-neutral-500);margin:2px 0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sub}</span>
+        <span style="display:block;font-size:11.5px;font-weight:600;color:var(--color-accent-600);">${act} &rarr;</span>
+      </span>
+    </button>`;
+  /* Money on the expiring card only where the reader may see money — the
+     no-rights sub says WHEN instead, which expDelta above already words. */
+  const expSubLine=expiring.length
+    ? (money?i18t('home_exp90_value',{v:fmtMoneyShort(expVal(expiring))}):expDelta(expiring))
+    : i18t('home_exp90_none');
+  const waitSub=awaitingCount?i18tn('home_wait_n',awaitingCount,{n:awaitingCount}):i18t('home_wait_none');
+  const footRow=`
+    <div class="hm-foot">
+      ${footCard(footRing(expiring.length,'var(--st-ruby-dot)'),i18t('home_exp90_title'),expSubLine,i18t('home_exp90_open'),'data-foot-cal')}
+      ${footCard(footRing(awaitingCount,'var(--st-amber-dot)'),i18t('home_wait_title'),waitSub,i18t('home_wait_open'),'data-foot-nego')}
+      ${footCard(footRing(highRisk.length,'var(--st-ruby-dot)'),i18t('home_risk_title'),i18t('home_risk_sub',{n:clean}),i18t('home_risk_open'),'data-foot-std')}
+    </div>`;
 
   /* U-2: a brand-new workspace opened on a cockpit of zeroed gauges with no
      route to the three real entry points. When there are no contracts yet, show
@@ -812,19 +854,19 @@ function renderDashboard(){
      existing portfolio, or explore — above the (still-zeroed) dashboard. Purely
      additive, so nothing that already renders disappears. */
   const firstRunBanner = countAll===0 ? `
-    <section style="border:1px solid var(--color-divider);border-radius:14px;background:var(--color-surface);padding:22px 22px 20px;">
+    <section style="border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);padding:22px 22px 20px;">
       <h2 style="margin:0 0 4px;font-family:var(--font-heading);font-weight:700;font-size:19px;color:var(--color-text);">${i18t('home_welcome')}</h2>
       <p style="margin:0 0 16px;font-size:12.5px;color:var(--color-neutral-600);max-width:64ch;line-height:1.55;">${i18t('home_welcome_sub')}</p>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;">
-        <button id="fr-draft" style="text-align:left;border:1px solid var(--color-divider);border-radius:11px;background:var(--color-bg);padding:15px;cursor:pointer;font:inherit;">
+        <button id="fr-draft" style="text-align:left;border:1px solid var(--color-divider);border-radius:0;background:var(--color-bg);padding:15px;cursor:pointer;font:inherit;">
           <div style="font-weight:700;font-size:13px;color:var(--color-text);margin-bottom:3px;">${i18t('home_draft_contract')}</div>
           <div style="font-size:11.5px;color:var(--color-neutral-600);line-height:1.5;">Fill in the blanks on a ${regionNow} template — the register, filters and reminders populate as you type.</div>
         </button>
-        <button id="fr-import" style="text-align:left;border:1px solid var(--color-divider);border-radius:11px;background:var(--color-bg);padding:15px;cursor:pointer;font:inherit;">
+        <button id="fr-import" style="text-align:left;border:1px solid var(--color-divider);border-radius:0;background:var(--color-bg);padding:15px;cursor:pointer;font:inherit;">
           <div style="font-weight:700;font-size:13px;color:var(--color-text);margin-bottom:3px;">${i18t('home_import_existing')}</div>
           <div style="font-size:11.5px;color:var(--color-neutral-600);line-height:1.5;">${i18t('home_import_sub')}</div>
         </button>
-        <button id="fr-explore" style="text-align:left;border:1px solid var(--color-divider);border-radius:11px;background:var(--color-bg);padding:15px;cursor:pointer;font:inherit;">
+        <button id="fr-explore" style="text-align:left;border:1px solid var(--color-divider);border-radius:0;background:var(--color-bg);padding:15px;cursor:pointer;font:inherit;">
           <div style="font-weight:700;font-size:13px;color:var(--color-text);margin-bottom:3px;">${i18t('home_explore_register')}</div>
           <div style="font-size:11.5px;color:var(--color-neutral-600);line-height:1.5;">${i18t('home_explore_sub')}</div>
         </button>
@@ -843,15 +885,11 @@ function renderDashboard(){
     <!-- Welcome banner — what this workspace is for, and the button that starts work -->
     ${heroSection}
 
-    <!-- KPI ribbon — customizable gradient hero cards (pick, drag to reorder) -->
+    <!-- KPI ribbon — customizable flat cards with a coloured top edge (pick,
+         drag to reorder). The KEY METRICS caption row is retired (the SAP
+         treatment): the cards say what they are, and Customize now sits on
+         the Portfolio strip above. -->
     <section>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <span style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);font-weight:700;">${i18t('home_key_metrics')}</span>
-        <button id="kpi-customize" class="ui-btn" title="${i18t('home_choose_metrics')}" style="font-size:11px;padding:3px 10px;display:inline-flex;align-items:center;gap:6px;">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
-          ${i18t('home_customize')}
-        </button>
-      </div>
       <!-- The chosen count is what the row wants; minmax gives it a floor, so
            on a narrow window the cards wrap onto a second line instead of
            squeezing every label into 34px of a 92px word. -->
@@ -873,6 +911,12 @@ function renderDashboard(){
         </div>
       </div>
     </div>
+
+    <!-- Three summary cards under the main row — each a door (calendar,
+         negotiations, standards). The page already scrolls when content
+         outgrows the window (overflow-y:auto on .hm-page), so a short laptop
+         scrolls to them rather than crushing the row above. -->
+    ${footRow}
 
   </div>`;
 
@@ -898,6 +942,13 @@ function renderDashboard(){
     });
   });
   document.getElementById('kpi-customize')?.addEventListener('click',e=>{ e.stopPropagation(); openKpiCustomizer(e.currentTarget); });
+  /* The bottom row's three doors. Negotiations goes through the NAMED door —
+     a bare setView('redline') reads state.activeId and would reopen whatever
+     contract was last touched (the Negotiations-door rule). */
+  document.querySelector('[data-foot-cal]')?.addEventListener('click',()=>setView('calendar'));
+  document.querySelector('[data-foot-nego]')?.addEventListener('click',()=>{
+    if(window.openNegotiations) openNegotiations({list:true}); else setView('redline'); });
+  document.querySelector('[data-foot-std]')?.addEventListener('click',()=>setView('playbook'));
   /* The banner's one button opens the same new-contract menu the command bar
      owns, rather than a second way of creating paper. */
   document.getElementById('hero-draft')?.addEventListener('click',e=>{
@@ -953,7 +1004,7 @@ function renderDashboard(){
     /* THE RING IS MEASURED FROM THE CARD, NEVER THE OTHER WAY ROUND. The card's
        height belongs to .hm-main-row; the chart is sized to whatever it is
        handed and can never push the card taller. */
-    const RING_FLOOR=84, RING_MIN=120, RING_MAX=236, KEY_MIN=250, PANE_PAD=20, PANE_GAP=18;
+    const RING_FLOOR=84, RING_MIN=120, RING_MAX=200, KEY_MIN=250, PANE_PAD=20, PANE_GAP=18;
     const hmFit=()=>{
       if(!hmPane.getBoundingClientRect) return;      // not a measuring DOM
       const r=hmPane.getBoundingClientRect();
@@ -969,10 +1020,14 @@ function renderDashboard(){
       const keyH=hmKey.scrollHeight;
       const beside=Math.min(r.height-PANE_PAD-chrome, r.width-PANE_PAD-PANE_GAP-KEY_MIN);
       const stacked=Math.min(r.height-PANE_PAD-chrome-keyH-10, r.width-PANE_PAD);
-      /* Stacking has to EARN its place: only when it leaves a bigger ring AND
-         still leaves a usable one. Taking it on a short card is what pushes the
-         key out through the bottom of the pane. */
-      const stack=stacked>beside&&stacked>=RING_MIN;
+      /* THE ROW IS THE DESIGN (owner-approved render, 20 Aug 2026 — this
+         REVERSES "stacking earns its place by leaving a bigger ring"): the
+         ring sits BESIDE its stage list wherever a usable ring fits there,
+         and stacking is only the fallback for a card too narrow to hold both.
+         A bigger ring stopped being a prize the day RING_MAX came down to the
+         render's modest size. Taking the stack on a short card is still what
+         pushes the key out through the bottom of the pane. */
+      const stack=beside<RING_MIN&&stacked>=RING_MIN;
       hmRow.classList.toggle('hm-stack',stack);
       /* RING_MIN is a preference, not a floor to clamp UP to — clamping a
          negative budget up to 120px is how a chart grows larger than the space

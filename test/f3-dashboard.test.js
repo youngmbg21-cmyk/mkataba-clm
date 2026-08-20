@@ -52,7 +52,9 @@ describe('F3 — the dashboard only ever contains scoped contracts', () => {
     // …and the folder-A contracts genuinely rendered, so this is not passing
     // because nothing rendered at all
     assert.ok(html.includes('MK-A2'), 'the restricted user\'s own contracts should be on the dashboard');
-    assert.ok(html.includes('Key metrics'), 'the dashboard should have rendered');
+    /* The "Key metrics" caption retired with the SAP treatment (20 Aug 2026);
+       the KPI grid itself is the render sentinel now. */
+    assert.ok(html.includes('kpi-grid'), 'the dashboard should have rendered');
   });
 
   test('the same render for an unrestricted user does contain folder B', async () => {
@@ -71,7 +73,7 @@ describe('F3 — the dashboard only ever contains scoped contracts', () => {
     const overview = await W.restricted.json('/api/shares/overview');
     const html = renderWith(page.rows, { shareOverview: overview });
     assert.deepEqual(mentionsFolderB(html), []);
-    assert.ok(html.includes('Key metrics'));
+    assert.ok(html.includes('kpi-grid'));   // caption retired with the SAP treatment
     assert.ok(html.includes('Active contract lifecycle pipeline'));
     assert.ok(html.includes('Decisions due'));
   });
@@ -173,7 +175,12 @@ describe('F3 — the KPI ribbon holds four, and says so', () => {
     const shown = ['Active contracts', 'Avg turnaround time', 'Pending approvals', 'Compliance rating']
       .filter(w => html.includes(w));
     assert.equal(shown.length, 4, 'the four that fit: ' + shown.join(', '));
-    assert.ok(!html.includes('High-risk findings'),
+    /* CLAIM RE-POINTED (20 Aug 2026): the words "High-risk findings" now also
+       title one of the bottom summary cards, which is ALWAYS drawn — so the
+       page text can no longer prove the SIXTH KPI stayed off the ribbon. The
+       KPI cards' own ids can: exactly four, and highrisk not among them. */
+    assert.equal((html.match(/data-kpi-id="/g) || []).length, 4, 'exactly four KPI cards');
+    assert.ok(!html.includes('data-kpi-id="highrisk"'),
       'the sixth choice reached the ribbon anyway');
   });
 
