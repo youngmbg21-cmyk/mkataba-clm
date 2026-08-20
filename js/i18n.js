@@ -7886,7 +7886,7 @@ const STRINGS = {
     home_portfolio: 'Portfölj',
     /* The product-category name, owner-asked in these exact words — kept in
        English in both languages, like the logo's own "SME Contract Platform". */
-    home_clm_title: 'Contract Lifecycle Management',
+    home_clm_title: 'Hantering av avtalens livscykel',
     home_exp90_title: 'Löper ut inom 90 dagar',
     home_exp90_value: '{v} av aktivt värde når avtalstidens slut',
     home_exp90_none: 'Inget når avtalstidens slut inom 90 dagar',
