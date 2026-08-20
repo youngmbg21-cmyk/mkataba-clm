@@ -662,12 +662,10 @@
   #app-shell.rail aside .sc-label{display:none;}
   /* The rail is 60px wide — no room for a labelled reading, so the card falls
      back to its two dots and keeps its tooltips. */
-  #app-shell.rail aside .foot-wrap{padding:10px 0;}
-  #app-shell.rail aside .foot-card{background:none;border:0;padding:0;align-items:center;gap:9px;}
-  #app-shell.rail aside .foot-card-head{justify-content:center;}
-  #app-shell.rail aside .foot-card-title,
-  #app-shell.rail aside .foot-kpi,
-  #app-shell.rail aside .foot-note{display:none;}
+  /* The 64px rail has no room for a handle, let alone a sheet — the folded
+     foot exists only on the open column (it used to show bare dots here;
+     the fold retired them with the block they belonged to). */
+  #app-shell.rail aside .foot-wrap{display:none;}
   #app-shell.rail aside #side-ai-usage{justify-content:center;border-top:0;padding:0;margin:0;}
   #app-shell.rail aside #side-ai-usage .foot-ai-dot{margin-top:0;}
 
@@ -1682,6 +1680,24 @@
      where it is the only status a reader can see. Nothing here reads a
      light-theme token. */
   #side-nav .foot-wrap{ border-top-color:rgba(255,255,255,.12); }
+  /* ---- THE FOLDED FOOT (owner-asked 20 Aug 2026) ----
+     A slim handle at rest; the card is a SHEET parked below its own height,
+     invisible, that slides up OVER the nav on the press — transform and
+     visibility, the left panels' own mechanism, never display:none (which
+     cannot animate and drops focus). It sits on the sidebar's opaque ground
+     so the nav rows beneath never show through. */
+  #side-nav .foot-handle{ display:flex; align-items:center; gap:7px; width:100%; min-width:0;
+    padding:10px 12px; border:0; background:none; cursor:pointer; font:inherit; text-align:left; }
+  #side-nav .foot-handle:hover .foot-card-title{ color:rgba(255,255,255,.85); }
+  #side-nav .foot-handle .foot-card-title{ flex:1; min-width:0; }
+  #side-nav .foot-chev{ flex:none; color:rgba(255,255,255,.5); transition:transform .18s var(--ease); }
+  #side-nav .foot-wrap.open .foot-chev{ transform:rotate(180deg); }
+  #side-nav .foot-sheet{ position:absolute; left:0; right:0; bottom:100%; z-index:6;
+    background:var(--nav-bg); border-top:1px solid rgba(255,255,255,.12); padding:12px;
+    transform:translateY(10px); opacity:0; visibility:hidden;
+    transition:transform .2s var(--ease), opacity .2s, visibility .2s; }
+  #side-nav .foot-wrap.open .foot-sheet{ transform:none; opacity:1; visibility:visible; }
+  @media (prefers-reduced-motion:reduce){ #side-nav .foot-sheet,#side-nav .foot-chev{ transition:none; } }
   #side-nav .foot-card{ background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.13);
     border-radius:0; padding:9px 11px 10px; display:flex; flex-direction:column; gap:5px; min-width:0; }
   #side-nav .foot-card-head{ display:flex; align-items:center; gap:7px; min-width:0; padding-bottom:1px; }
@@ -1706,7 +1722,6 @@
   #side-nav #side-ai-usage .foot-ai-dot{ margin-top:4px; }
   #side-nav .foot-ai-body{ display:flex; flex-direction:column; gap:1px; flex:1; min-width:0; }
   #side-nav #side-ai-usage:hover .foot-v{ text-decoration:underline; }
-  #app-shell.rail #side-nav .foot-card{ background:none; border:0; }
   /* the drawer below 900 floats this same block over the page */
   #side-nav .scroll-thin::-webkit-scrollbar-thumb{ background:rgba(255,255,255,.18); }
 
@@ -3068,13 +3083,23 @@
          "Copilot today: $1.02 / $10.00 · 15 req" — which wrapped into a knot
          and never told a reader what any of it measured. It is now a titled
          card of named readings: each line states what it is showing on the
-         left and the figure on the right. -->
-    <div class="foot-wrap" style="border-top:1px solid var(--nav-line);padding:12px;">
+         left and the figure on the right.
+
+         AND IT FOLDS (owner-asked 20 Aug 2026): at rest only a slim handle
+         shows — dot, title, chevron — and pressing it slides the card UP
+         over the nav, the way the left-hand panels slide over the page.
+         The freed height goes to the nav list, which is what stops it
+         scrolling. Open state is per sitting, in memory; Escape and the
+         handle both close it. The card's ids are untouched, so
+         updateSidebarStatus writes exactly where it always wrote. -->
+    <div class="foot-wrap" id="foot-wrap" style="position:relative;border-top:1px solid var(--nav-line);">
+      <button id="foot-toggle" type="button" class="foot-handle" aria-expanded="false" aria-controls="foot-sheet" title="Workspace status" data-i18n-title="foot_status_title">
+        <span class="live-ping" style="width:7px;height:7px;border-radius:50%;background:#10b981;flex:none;"></span>
+        <span class="foot-card-title" data-i18n="foot_status_title">Workspace status</span>
+        <svg class="foot-chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 15-6-6-6 6"/></svg>
+      </button>
+      <div id="foot-sheet" class="foot-sheet" aria-hidden="true">
       <div class="foot-card">
-        <div class="foot-card-head">
-          <span class="live-ping" style="width:7px;height:7px;border-radius:50%;background:#10b981;flex:none;"></span>
-          <span class="foot-card-title" data-i18n="foot_status_title">Workspace status</span>
-        </div>
         <div class="foot-kpi" title="Where this workspace keeps your contracts." data-i18n-title="foot_storage_title">
           <span class="foot-k" data-i18n="foot_storage">Storage</span><span class="foot-v" id="side-status-mode">—</span>
         </div>
@@ -3094,6 +3119,7 @@
             <span class="foot-note" id="side-ai-usage-sub"></span>
           </span>
         </button>
+      </div>
       </div>
     </div>
   </aside>

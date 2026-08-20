@@ -37,6 +37,9 @@ const { STRINGS, I18N_DEFAULT, LANGUAGES } = i18n;
 const SAME_IN_BOTH = new Set([
   'nav_administration',   // identical spelling in Swedish
   'reg_col_status',       // ditto
+  'reg_in_days',          // '{n} d' — a number and a unit, no words (the
+                          // mockup's countdown shape, 20 Aug 2026; 'd' is
+                          // the ordinary Swedish day abbreviation too)
   'set_usd_per',          // "USD per" — the currency code carries it
   'm_copilot',            // the product name
   'ct_risk',              // 'Risk' is the same word in Swedish

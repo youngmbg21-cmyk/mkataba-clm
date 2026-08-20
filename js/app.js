@@ -1457,6 +1457,24 @@ function wireShell(){
   // Copilot
   document.getElementById('cmd-ai')?.addEventListener('click',()=>openAI());
   document.getElementById('side-copilot')?.addEventListener('click',()=>openAI());
+  /* THE WORKSPACE-STATUS FOOT FOLDS (owner-asked 20 Aug 2026): the handle
+     toggles the sheet that slides up over the nav; Escape closes it. Open
+     state is per sitting, on the element — a posture, never a setting. */
+  const footSet=open=>{
+    const w=document.getElementById('foot-wrap'); if(!w) return;
+    w.classList.toggle('open',open);
+    document.getElementById('foot-toggle')?.setAttribute('aria-expanded',open?'true':'false');
+    document.getElementById('foot-sheet')?.setAttribute('aria-hidden',open?'false':'true');
+  };
+  document.getElementById('foot-toggle')?.addEventListener('click',()=>{
+    const w=document.getElementById('foot-wrap');
+    footSet(!(w&&w.classList.contains('open')));
+  });
+  document.addEventListener('keydown',e=>{
+    if(e.key!=='Escape') return;
+    const w=document.getElementById('foot-wrap');
+    if(w&&w.classList.contains('open')) footSet(false);
+  });
 
   /* ---- TWO ICONS, TWO QUESTIONS, ONE PANEL ----
      The bell used to literally press this button (`document.getElementById

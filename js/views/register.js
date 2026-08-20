@@ -144,13 +144,21 @@ function renderFolder(){
 }
 // Expiry cell: the date, plus a coloured "in Nd" / "Nd ago" hint when it's
 // close or past (only for live contracts).
+/* ---- THE EXPIRY DATE IS NUMERIC, DOTTED (owner-approved mockup, 20 Aug
+   2026: "25.08.2026 · 7 d") ---- one fixed shape on every table that prints
+   a term end. Digits, not month words, so the months-follow-the-language
+   rule has nothing to translate here and both languages read one format. */
+function regDotDate(iso){
+  const d=new Date(iso+'T00:00:00');
+  return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;
+}
 function folderExpiryCell(c){
   // the family-aware term: a master agreement shows the date its latest
   // amendment set, with a note naming the amendment it came from
   const eff=effectiveExpiry(c);
   if(!eff) return '<span style="color:var(--color-neutral-400)">—</span>';
   const from=window.expirySource?expirySource(c):null;
-  const dt=new Date(eff+'T00:00:00').toLocaleDateString(langLocale(),{day:'2-digit',month:'short',year:'numeric'});
+  const dt=regDotDate(eff);
   let col='var(--color-neutral-700)', hint='', weight=400;
   if(from) hint=i18t('reg_from_id',{id:from.id});
   if(c.status!=='Declined'){ const d=daysUntil(eff);
@@ -665,7 +673,7 @@ function regRowsHtml(cs){
   return pageRows.map((c,i)=>{
     const eff=effectiveExpiry(c);
     const din=eff?daysUntil(eff):null;
-    const renDate=eff?new Date(eff+'T00:00:00').toLocaleDateString(langLocale(),{day:'2-digit',month:'short',year:'2-digit'}):'—';
+    const renDate=eff?regDotDate(eff):'—';   // the mockup's "25.08.2026" shape
     const renIn=din==null?'':(din<0?i18t('reg_days_over',{n:Math.abs(din)}):i18t('reg_in_days',{n:din}));
     // urgency colour: red under 30 days (and overdue), gold under 90, else neutral
     const renUrgent=din!=null&&din<30, renSoon=din!=null&&din>=30&&din<=90;
