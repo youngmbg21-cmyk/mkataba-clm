@@ -1860,7 +1860,12 @@
        panel does not. So the rail rules further up are unwound for the
        duration. */
     #side-nav.open{ width:256px; box-shadow:var(--shadow-lg); }
-    #app-shell.rail #side-nav.open .nav-item{ width:auto; justify-content:flex-start; padding:9px 12px; gap:11px; margin:0; }
+    /* width:100%, never auto: auto shrinks each button to its own text, so the
+       count badges landed ragged down the list (owner-reported 20 Aug 2026,
+       "line up the numbers"). Full width lets the label's flex:1 push every
+       badge to one straight column at the drawer's right edge — the same line
+       the open column above 1500 has always drawn. */
+    #app-shell.rail #side-nav.open .nav-item{ width:100%; justify-content:flex-start; padding:9px 12px; gap:11px; margin:0; }
     #app-shell.rail #side-nav.open .nav-item>span:not(.nav-rail){ display:inline!important; }
     #app-shell.rail #side-nav.open .nav-count:not(:empty){ display:inline-block!important; }
     #app-shell.rail #side-nav.open .nav-item .nav-rail{ left:0; }

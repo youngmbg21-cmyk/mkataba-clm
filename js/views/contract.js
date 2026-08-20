@@ -1074,6 +1074,17 @@ function openUploadModal(){
    text — in which case the card says so and the person types, exactly as the
    old form asked them to, but only in the case where the machine truly
    could not help. */
+/* OUR ENTITIES, OFFERED NOT ENFORCED (the FX picker's rule): a datalist behind
+   an ordinary text box, so any typed name is still accepted. The list is the
+   workspace's registered name first, then every entity already named on a
+   contract — it grows by use, nothing for an admin to maintain. */
+function uploadPartyOptions(){
+  const seen=new Map();
+  const add=v=>{ const s=String(v||'').trim(); if(!s) return; const k=s.toLowerCase(); if(!seen.has(k)) seen.set(k,s); };
+  add((typeof window!=='undefined'&&window.FIRST_PARTY)||'');
+  (((typeof state!=='undefined'&&state)||{}).contracts||[]).forEach(c=>add(c&&c.party));
+  return [...seen.values()];
+}
 function uploadConfirmHtml(ext, meta){
   const m=meta||{}, conf=m.confidence||{}, spans=m.sourceSpans||{};
   const esc2=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
@@ -1085,7 +1096,7 @@ function uploadConfirmHtml(ext, meta){
   const fld=(id,label,opts={})=>{
     const read=!!opts.read;
     return `<label class="block"><span class="text-xs font-medium text-brand-800/70">${label}${read?MARK:''}</span>
-      <input id="${id}" type="${opts.type||'text'}" value="${attr(opts.value||'')}" placeholder="${attr(opts.ph||'')}" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400"${read?' style="border-color:var(--color-accent);background:var(--color-accent-100)"':''}/>${read?found(opts.foundKey||''):''}${opts.sub?`<span style="display:block;margin-top:2px;font-size:10px;color:var(--color-neutral-600)">${opts.sub}</span>`:''}</label>`;
+      <input id="${id}" type="${opts.type||'text'}" value="${attr(opts.value||'')}" placeholder="${attr(opts.ph||'')}"${opts.list?` list="${opts.list}"`:''} class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400"${read?' style="border-color:var(--color-accent);background:var(--color-accent-100)"':''}/>${read?found(opts.foundKey||''):''}${opts.sub?`<span style="display:block;margin-top:2px;font-size:10px;color:var(--color-neutral-600)">${opts.sub}</span>`:''}</label>`;
   };
   const fileBase=ext?String(ext.file.name||'').replace(/\.[^.]+$/,''):'';
   const nameFromDoc=has('contractType')&&has('counterparty');
@@ -1118,6 +1129,8 @@ function uploadConfirmHtml(ext, meta){
         <span>${esc2(ocrProvenanceLine(ext.upload))} ${i18t('ct_capped_at')} <b>${i18t('ct_medium')}</b> ${i18t('ct_confidence_until')}</span></div>`:''}
       <div class="grid sm:grid-cols-2 gap-2 mb-3">
         ${fld('up-name','Contract name',{value:suggestedName, ph:'e.g. Supply Agreement — Acme', read:nameFromDoc, sub:(ext&&!nameFromDoc)?'from the file name — rename it to what it is':''})}
+        ${fld('up-party',i18t('tf_our_party'),{value:(typeof window!=='undefined'&&window.FIRST_PARTY)||'', ph:i18t('tf_our_party_ph'), list:'up-party-list', sub:i18t('tf_our_party_hint')})}
+        <datalist id="up-party-list">${uploadPartyOptions().map(p=>`<option value="${attr(p)}"></option>`).join('')}</datalist>
         ${fld('up-cp','Received from (counterparty)',{value:has('counterparty')?m.counterparty:'', ph:'e.g. Acme Ltd', read:has('counterparty'), foundKey:'counterparty'})}
         ${fld('up-cpemail','Their email (so you can send it back)',{ph:'them@company.co.ke', type:'email', sub:ext?'the one thing a document never carries — add it and the first send is one click':''})}
       </div>
@@ -1268,6 +1281,10 @@ async function submitUpload(){
   if(!_up||!_up.file){ toast(i18t('ct_choose_file_upload'),'err'); return; }
   const { file, mime, wordTracked, extractedText, textSource, upload, meta }=_up;
   const cp=fval('up-cp');
+  /* Our entity on this agreement — see contractParty in js/core.js. Left
+     blank it stays absent and the reading falls back to the workspace, so
+     nothing filed before this field existed reads differently. */
+  const party=fval('up-party');
   const cpEmail=fval('up-cpemail');
   if(cpEmail && !/.+@.+\..+/.test(cpEmail)){ toast(`"${cpEmail}" is not an email address`,'err'); return; }
   const name=fval('up-name')||file.name.replace(/\.[^.]+$/,'');
@@ -1285,7 +1302,7 @@ async function submitUpload(){
       upload.fileId=r.id; }catch(e){ /* fall back to inline bytes */ }
   }
   const u=currentUser();
-  const c={ id:nextId(), name, counterparty:cp, counterpartyEmail:cpEmail||undefined, value, status: cp?'Under Review':'Draft',
+  const c={ id:nextId(), name, party:party||undefined, counterparty:cp, counterpartyEmail:cpEmail||undefined, value, status: cp?'Under Review':'Draft',
     template:null, source:'upload', folder, valueType:vtype,
     lastAction:todayStr(), expiry, hash:null, signedAt:null, signatory:u?.name||'Authorized signatory',
     compliance:{},
@@ -1545,6 +1562,11 @@ async function loadDiscussion(c){
 
 function uploadDocBody(c){
   const u=c.upload||{}, mime=u.mime||'';
+  /* The banner names the entity on THIS agreement, same reading as the
+     recitals (docBody). It used to reach for docBody's own OURS — a different
+     function's local — so the first non-executed upload threw and took the
+     whole workspace down. */
+  const OURS=(typeof contractParty==='function')?contractParty(c):FIRST_PARTY;
   const isPdf=/pdf/.test(mime), isImg=/^image\//.test(mime), isText=/^text\//.test(mime);
   const isDocx=!!(window.isWordDoc&&isWordDoc(c));
   // a generous reading surface: fills the viewport height, with an Expand
