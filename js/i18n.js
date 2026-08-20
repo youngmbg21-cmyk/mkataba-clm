@@ -3704,6 +3704,9 @@ const STRINGS = {
     home_hero_need_other: '{n} need you today',
     home_draft_new: 'Draft new agreement',
     home_customize: 'Customize',
+    /* The wording on the KPI row's own line — it names WHAT it edits,
+       because it no longer sits on the thing it belongs to. */
+    home_customize_metrics: 'Customize these metrics',
     home_hero_badge: 'Multi-jurisdiction engine ready',
     home_hero_title: 'SME Contract Control Center',
     home_risk_link: '{n} high-risk findings in our standards →',
@@ -7876,6 +7879,7 @@ const STRINGS = {
     home_hero_need_other: '{n} behöver dig i dag',
     home_draft_new: 'Upprätta nytt avtal',
     home_customize: 'Anpassa',
+    home_customize_metrics: 'Anpassa nyckeltalen',
     home_hero_badge: 'Motor för flera jurisdiktioner redo',
     home_hero_title: 'Kontrollcenter för SME-avtal',
     home_risk_link: '{n} högriskfynd i våra standarder →',
