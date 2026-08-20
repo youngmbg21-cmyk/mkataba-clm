@@ -176,8 +176,17 @@ describe('F92 — the six-round negotiation, end to end', () => {
     assert.match(t.$('#rl-banner').textContent, /exactly what/, 'G1: the view wall banner');
     assert.ok(!/The wall:/.test(t.$('#rl-banner').textContent));
     const [ask1, ask2] = win.negoChanges(c).map(x => x.id);
-    assert.ok(!t.card(ask1).querySelector('.rl-acc') && !t.card(ask1).querySelector('.rl-rej'),
-      'the preview offers no Accept/Reject — deciding their asks is theirs to do');
+    /* REVERSED IN PLACE, 20 Aug 2026 (owner-reported off two screenshots: the
+       preview drew bare receipts where their real link draws full cards). The
+       preview now DRAWS their seat's Accept/Reject — showing exactly what they
+       see is the toggle's whole purpose — and the verbs are DEAD: disabled +
+       data-rl-dead, the browser refusing the press. Deciding their asks is
+       still theirs to do; the click-sweep in f152 is what proves it. */
+    const pAcc = t.card(ask1).querySelector('.rl-acc'), pRej = t.card(ask1).querySelector('.rl-rej');
+    assert.ok(pAcc && pRej, 'the preview draws their seat\'s Accept/Reject');
+    assert.ok(pAcc.disabled && pAcc.hasAttribute('data-rl-dead')
+      && pRej.disabled && pRej.hasAttribute('data-rl-dead'),
+      'drawn DEAD — deciding their asks is still theirs to do');
     /* The spent Send marker came off every card on 13 Aug 2026 (the status
        corner says it), so this now passes on both counts. Kept rather than
        deleted: it is the preview seat's own guard, and a marker returning to
@@ -367,8 +376,11 @@ describe('F92 — the six-round negotiation, end to end', () => {
     assert.equal(win.negoTurn(c), 'counterparty');
     t.view('counterparty');
     await t.pause();
-    assert.ok(!t.card(gl.id).querySelector('[data-nego-accept]'),
-      'the window still offers no verbs in round six');
+    /* Reversed in place, 20 Aug 2026, with the round-one claim above: the
+       window DRAWS their seat's verbs and refuses the press. */
+    const r6acc = t.card(gl.id).querySelector('[data-nego-accept]');
+    assert.ok(r6acc && r6acc.disabled && r6acc.hasAttribute('data-rl-dead'),
+      'the window draws their Accept in round six too — dead');
     win.negoResolve(c, gl.id, 'accepted', { side: 'counterparty', by: 'Erik Lindqvist' });
     await t.pause();
     // the preview seat has no send — see the note in round 2

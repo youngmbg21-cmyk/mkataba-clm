@@ -94,7 +94,13 @@ describe('the sign — the window renders no verbs', () => {
        are the only way into writing now, so a window must not draw them). */
     assert.ok(!t.$('.rl-cp-pill') && !t.$('[data-rl-cp-edit]'),
       'no Edit pill and no panel ＋ on a window');
-    assert.ok(!t.$('[data-nego-accept]') && !t.$('[data-nego-reject]'), 'no Accept/Reject anywhere');
+    /* NARROWED IN PLACE, 20 Aug 2026 (owner-reported: the window showed bare
+       receipts where the counterparty's real link shows full cards). A crossed
+       ask now draws their seat's Accept/Reject DEAD — the test below stages
+       that. On THIS fixture nothing has crossed the wall, so nothing draws;
+       the standing claim is that no LIVE decide verb ever renders here. */
+    assert.ok(!t.$('[data-nego-accept]:not([disabled])') && !t.$('[data-nego-reject]:not([disabled])'),
+      'no live Accept/Reject anywhere');
     assert.equal(t.doc.getElementById('nego-bulk-acc'), null, 'no Accept all');
     assert.equal(t.doc.getElementById('nego-bulk-rej'), null, 'no Reject all');
     assert.ok(!t.$('[data-rl-send]') && !t.$('[data-rl-retract]'), 'no card Send or Retract');
@@ -123,6 +129,34 @@ describe('the sign — the window renders no verbs', () => {
        read-only is the absence asserted above, not a sentence about it. */
     assert.equal(t.doc.getElementById('nego-readonly-why'), null,
       'and no paragraph restating the view the reader just switched to');
+  });
+
+  test('a crossed ask draws their seat, dead — full card, Accept/Reject disabled (20 Aug 2026)', async () => {
+    /* Owner-reported off two screenshots: the window drew bare receipt rows
+       where the counterparty's real link draws full working cards. The window
+       mounts read-only (correct — it must not act as them), and read-only
+       killed the verbs, which made every card classify as a receipt. The rule
+       is the control row's own (19 Aug): DRAW what their seat draws, and let
+       `disabled` refuse the press. */
+    const t = await page();
+    /* The owner's ask crosses the wall — a published round is what puts it on
+       their page at all (unsent drafts are walled off from this view too). */
+    t.win.negoHandOver(t.c, { to: 'counterparty', by: 'Wanjiru' });
+    t.win.renderRedline();
+    t.view('counterparty');
+    const acc = t.$('[data-nego-accept]'), rej = t.$('[data-nego-reject]');
+    assert.ok(acc && rej, 'their seat\'s Accept and Reject are drawn in the window');
+    for (const b of [acc, rej]){
+      assert.ok(b.hasAttribute('disabled'), 'drawn but dead — the browser refuses the press');
+      assert.ok(b.hasAttribute('data-rl-dead'), 'and wears the preview\'s own marker');
+    }
+    assert.ok(acc.closest('.rl-card') && !acc.closest('.rl-receipt'),
+      'the card is a full card, as their page draws it — not a receipt');
+    /* And the window still files nothing: the sweep, on exactly this state. */
+    const before = recordFacts(t.win, t.c);
+    [...t.doc.querySelectorAll('#redline-host button')].forEach(b => { try{ b.click(); }catch(_){} });
+    assert.equal(recordFacts(t.win, t.c), before,
+      'a click on every rendered button leaves the record byte-identical');
   });
 
   test('flipping back to Internal View restores every owner verb', async () => {

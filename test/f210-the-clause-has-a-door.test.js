@@ -1188,6 +1188,76 @@ describe('f210 (18) — History | + notes, default without notes', () => {
    linked-clause outline, the new-clause tint, whatever comes next — cannot
    move it. The pixels are measured in clause-door-verify; these are the
    rules that produce them. */
+describe('f210 (19) — the panel\'s own type stepper', () => {
+  /* Owner-asked 20 Aug 2026: "Add the font adjuster to the redline panel
+     which will only adjust the panel and nothing more." The toolbar stepper's
+     own mechanism — a stored px, the same 8–20 bounds, applied live with no
+     repaint — driving a CSS zoom on the panel BODY alone. The standing rule
+     that the panel does not follow the DOCUMENT's type (.rl-cp-src
+     {--doc-scale:1}) is untouched; this is the panel's own preference. */
+
+  test('the stepper sits in the head, reading 14px, with its OWN readout class', async () => {
+    const p = await bench();
+    const box = page(p);
+    const head = box.querySelector('.rl-cp-head');
+    const down = head && head.querySelector('[data-rl-cp-type="down"]');
+    const up = head && head.querySelector('[data-rl-cp-type="up"]');
+    const out = head && head.querySelector('.rl-cp-type-out');
+    assert.ok(down && up && out, 'A− / readout / A＋ are in the panel head');
+    assert.equal(out.textContent, '14px', 'the panel\'s own base, not the document\'s 15');
+    /* rlSetDocType repaints every .rl-type-out on the page with the DOCUMENT's
+       px — one shared class is how the two steppers would come to lie about
+       each other's value. */
+    assert.ok(!out.classList.contains('rl-type-out'),
+      'the readout does not wear the document stepper\'s class');
+  });
+
+  test('a press steps the panel and repaints nothing', async () => {
+    const p = await bench();
+    p.win.renderRedline();
+    const $ = s => p.win.document.querySelector(s);
+    const panelBefore = $('#rl-cp');
+    $('[data-rl-cp-type="up"]').click();
+    assert.equal($('.rl-cp-type-out').textContent, '15px', 'one press, one px');
+    assert.equal($('#rl-cp').style.getPropertyValue('--cp-zoom'), (15 / 14).toFixed(4),
+      'the zoom is the ratio against the panel\'s own base');
+    assert.equal($('#rl-cp'), panelBefore, 'the SAME node — a class-and-var flip, never a repaint');
+    $('[data-rl-cp-type="down"]').click();
+    assert.equal($('.rl-cp-type-out').textContent, '14px', 'and the way back');
+  });
+
+  test('the bounds are the document stepper\'s own, and the buttons say so', async () => {
+    const p = await bench();
+    p.win.renderRedline();
+    const $ = s => p.win.document.querySelector(s);
+    p.win.rlCpSetType(99);
+    assert.equal($('.rl-cp-type-out').textContent, '20px', 'clamped to the shared ceiling');
+    assert.ok($('[data-rl-cp-type="up"]').disabled, 'A＋ refuses at the top');
+    p.win.rlCpSetType(1);
+    assert.equal($('.rl-cp-type-out').textContent, '8px', 'clamped to the shared floor');
+    assert.ok($('[data-rl-cp-type="down"]').disabled, 'A− refuses at the bottom');
+    p.win.rlCpSetType(14);
+  });
+
+  test('only the panel: the zoom is read by the panel body alone, and the document stepper does not touch it', async () => {
+    /* jsdom resolves no cascade — the rule is read at the source, the f95 way. */
+    assert.match(SRC, /\.redline-page \.rl-cp-body\{[^}]*zoom:var\(--cp-zoom,1\)/,
+      'the panel BODY takes the zoom');
+    assert.equal((SRC.match(/var\(--cp-zoom/g) || []).length, 1,
+      'and nothing else reads it — "only the panel and nothing more"');
+    const p = await bench();
+    p.win.renderRedline();
+    const $ = s => p.win.document.querySelector(s);
+    p.win.rlCpSetType(16);
+    p.win.rlSetDocType(10);
+    assert.equal($('.rl-cp-type-out').textContent, '16px',
+      'the document stepper repaints its own readouts and leaves the panel\'s alone');
+    assert.ok(!$('.rl-doc') || !String($('.rl-doc').getAttribute('style') || '').includes('--cp-zoom'),
+      'and the paper carries no panel zoom');
+    p.win.rlCpSetType(14); p.win.rlSetDocType(15);
+  });
+});
+
 describe('F210 — the clause rail', () => {
   const src = read('js/views/negotiation.js');
   const rule = sel => {

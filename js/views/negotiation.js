@@ -8520,7 +8520,24 @@ function redlineLayoutCss(){
   .redline-page .rl-cp-min{order:2;margin-left:auto;border:0;background:transparent;
     font-size:18px;line-height:1;color:var(--color-neutral-600);cursor:pointer;padding:2px 4px}
   .redline-page .rl-cp-min:hover{color:var(--color-text)}
-  .redline-page .rl-cp-body{flex:1;min-height:0;overflow-y:auto;padding:12px 14px 22px}
+  ${''/* The body alone takes the panel's own type preference (rlCpSetType) —
+     zoom, the sheet's established mechanism, so everything inside scales
+     together and the head's controls stay controls. */}
+  .redline-page .rl-cp-body{flex:1;min-height:0;overflow-y:auto;padding:12px 14px 22px;
+    zoom:var(--cp-zoom,1)}
+  ${''/* The stepper sits with the segs on the head's right; the head wraps
+     rather than clipping on a narrow column. Its readout is its OWN class —
+     .rl-type-out belongs to the DOCUMENT stepper and is repainted with the
+     document's px. */}
+  .redline-page .rl-cp-head{flex-wrap:wrap}
+  .redline-page .rl-cp-type{order:1}
+  .rl-type-step .rl-cp-type-out{min-width:34px;text-align:center;font-family:var(--font-mono);
+    font-size:11px;font-weight:600;color:#334155}
+  html.dark .rl-type-step .rl-cp-type-out{color:#cbd5e1}
+  ${''/* Preview cards: the counterparty view draws their seat's verbs DEAD —
+     see redlineChangeCardsHtml's previewSeat. The tab row's own dead rule is
+     scoped to the tab row, so the cards need their own. */}
+  .redline-page .rl-card [data-rl-dead]{opacity:.45;cursor:not-allowed}
   .redline-page .rl-cp-clname{margin:0 0 12px;font-family:var(--font-heading);
     font-size:16px;font-weight:700;color:var(--color-text)}
   .redline-page .rl-cp-sec{margin:0 0 18px}
@@ -12919,13 +12936,36 @@ function rlCardNotesHtml(c, ch, opts, side){
 function redlineChangeCardsHtml(c, opts = {}){
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   const held = rlActorHeld(c, opts);
+  /* ---- THE PREVIEW DRAWS THEIR SEAT, WITH THE VERBS DEAD ----
+     (owner-reported 20 Aug 2026, off two screenshots: the owner's Counterparty
+     view showed bare receipt rows where the counterparty's real link shows
+     full cards with Accept / Reject / Edit and the wording preview.)
+
+     The preview mounts read-only — deliberately, it is a window and must not
+     act as them — and read-only killed canAct, which killed the verbs, which
+     made every card classify as a "needs nothing" receipt. So the preview
+     showed LESS than their page does, on the one control whose whole purpose
+     is showing exactly what they see.
+
+     The 19 Aug control-row rule, applied to the cards: draw what their seat
+     draws, and let `disabled` refuse the press. previewSeat flips the two
+     DRAWING flags to the counterparty page's own answers (their live link is
+     readonly:false, canEdit:true) and the finished action bar is deadened
+     wholesale below — disabled + data-rl-dead, the browser refusing to
+     dispatch, which is what keeps f152's files-nothing sweep true. ONLY the
+     owner's named preview (opts.preview, set by renderRedline's mount and by
+     nobody else) takes this branch: the portal's real counterparty mount
+     carries no preview flag, and an EXECUTED contract stays verbless — their
+     real page is read-only then too. */
+  const previewSeat = !!opts.preview && side === 'counterparty'
+    && !((typeof negoExecuted === 'function') && negoExecuted(c));
   /* Answering the counterparty IS reaching them: an accept settles their ask
      and travels on the next round. */
-  const canAct = !opts.readonly && !held;
+  const canAct = previewSeat || (!opts.readonly && !held);
   /* Editing is not reaching them, and a reviewer correcting the wording is the
      thing this feature was built to allow. So `editable` keeps its own answer
      and only the SEND verbs below consult the posture. */
-  const editable = !opts.readonly && opts.canEdit !== false;
+  const editable = previewSeat || (!opts.readonly && opts.canEdit !== false);
   const all = (typeof negoChanges === 'function') ? negoChanges(c) : [];
   /* Through the wall: the other side's unsent drafts have no card on this
      side, because on this side they do not exist. opts.hiddenIds — see
@@ -12971,6 +13011,14 @@ function redlineChangeCardsHtml(c, opts = {}){
      card's Send button and the toolbar's cannot disagree about what is unsent. */
   const unsent = Array.isArray(opts.unsentIds)
     ? new Set(opts.unsentIds)
+    /* The preview's honest answer is the EMPTY set: nothing on OUR record is
+       unsent on THEIR side — an ask that is on this record has by definition
+       arrived, and their real drafts live in their browser, which their own
+       page reports through opts.unsentIds and this window cannot see. The
+       turn-stamp arithmetic below cannot know that, and read from their chair
+       it called an arrived counter-ask "unsent" — a Send verb their page
+       would never draw (caught by f92 the day previewSeat landed). */
+    : previewSeat ? new Set()
     : new Set((window.negoUnsentAsks ? negoUnsentAsks(c, side) : []).map(x => x.id));
   if (!changes.length){
     const settled = all.filter(x => x.status === 'accepted' || x.status === 'rejected').length;
@@ -13538,7 +13586,12 @@ function redlineChangeCardsHtml(c, opts = {}){
        the reviewer's note — keep the full card: each is a fact a reader
        should not have to go looking for. */
     const infoHold = [behalfBlock, revisedBlock, rvNoteBlock].filter(Boolean).join('');
-    const actionBar = actions ? `<div class="rl-card-actions">${actions}</div>` : '';
+    /* The preview's verbs are pixels, not presses — deadened WHOLESALE after
+       classification, so the receipt/full-card decision and the needs-you
+       reading stay exactly the counterparty page's own. See previewSeat. */
+    const deaden = h => previewSeat && h
+      ? h.replace(/<button /g, `<button disabled aria-disabled="true" data-rl-dead="1" `) : h;
+    const actionBar = actions ? `<div class="rl-card-actions">${deaden(actions)}</div>` : '';
     /* ---- OPEN RAISES THE CLAUSE PANEL (owner-asked, 16 Aug 2026) ----
        The row's one door into the reading matter. It carries data-rl-cp-open —
        the clause panel's own delegated control, armed at module load in the
@@ -14097,6 +14150,52 @@ function rlCpSegsHtml(){
       class="${on ? 'on' : ''}" title="${_nea(i18t('ng_cp_hist_notes_title'))}">${i18t('ng_cp_hist_notes')}</button>
   </div>`;
 }
+/* ---- THE PANEL'S OWN TYPE STEPPER (owner-asked 20 Aug 2026: "Add the font
+   adjuster to the redline panel which will only adjust the panel and nothing
+   more") ----
+   The panel deliberately does NOT follow the reader's document type — that is
+   a standing rule (.rl-cp-src{--doc-scale:1}) and it is untouched. This is the
+   panel's OWN preference: the toolbar stepper's exact mechanism (a stored px,
+   clamped to the same 8–20 bounds, applied live with no repaint) driving a
+   CSS zoom on the panel BODY alone. Zoom is the sheet's own mechanism
+   (.rl-zoom), so nothing new is invented; the head's controls stay unscaled
+   because they are controls, not reading matter. THE OUTPUT SPAN IS NOT
+   .rl-type-out — rlSetDocType repaints every .rl-type-out on the page with
+   the DOCUMENT's px, and one shared class is how the two steppers would come
+   to lie about each other's value. */
+const RL_CP_TYPE_DEF = 14, RL_CP_TYPE_KEY = 'hati.v1.cpType';
+function rlCpTypePx(){
+  try { const v = Number(localStorage.getItem(RL_CP_TYPE_KEY));
+    return (v >= RL_TYPE_MIN && v <= RL_TYPE_MAX) ? v : RL_CP_TYPE_DEF; }
+  catch (e) { return RL_CP_TYPE_DEF; }
+}
+function rlCpZoom(px){
+  const v = Number(px) || rlCpTypePx();
+  return (v / RL_CP_TYPE_DEF).toFixed(4);
+}
+function rlCpSetType(px){
+  const v = Math.max(RL_TYPE_MIN, Math.min(RL_TYPE_MAX, Math.round(Number(px) || RL_CP_TYPE_DEF)));
+  try { localStorage.setItem(RL_CP_TYPE_KEY, String(v)); } catch (e) {}
+  /* Applied live to every mounted panel — querySelectorAll by id, exactly as
+     rlCpSetNotes does, because the owner's page and a portal mount can both
+     hold one. No repaint: a half-typed reply in the panel's composer survives
+     a resize. */
+  document.querySelectorAll('#rl-cp').forEach(p => p.style.setProperty('--cp-zoom', rlCpZoom(v)));
+  document.querySelectorAll('.rl-cp-type-out').forEach(el => { el.textContent = v + 'px'; });
+  document.querySelectorAll('[data-rl-cp-type]').forEach(b => {
+    const d = b.getAttribute('data-rl-cp-type') === 'down' ? -1 : 1;
+    b.disabled = (d < 0 && v <= RL_TYPE_MIN) || (d > 0 && v >= RL_TYPE_MAX);
+  });
+  return v;
+}
+function rlCpTypeStepHtml(){
+  const v = rlCpTypePx();
+  return `<div class="rl-type-step rl-cp-type">
+    <button type="button" data-rl-cp-type="down" title="${_nea(i18t('ng_smaller_text'))}"${v <= RL_TYPE_MIN ? ' disabled' : ''}>A&#8315;</button>
+    <span class="rl-cp-type-out">${v}px</span>
+    <button type="button" data-rl-cp-type="up" title="${_nea(i18t('ng_larger_text'))}"${v >= RL_TYPE_MAX ? ' disabled' : ''}>A&#8314;</button>
+  </div>`;
+}
 function rlClausePanelHtml(bodies){
   const open = !!rlCpOpenId();
   const src = (bodies || []).join('');
@@ -14108,12 +14207,14 @@ function rlClausePanelHtml(bodies){
          panel a reader works BESIDE the wording, and this page already refuses
          to put a dialog over the wording being judged (f89). */}
   <aside class="rl-col rl-cp${open ? ' is-open' : ''}${rlCpNotesOn() ? ' rl-cp-notes' : ''}" id="rl-cp"
+    style="--cp-zoom:${rlCpZoom()}"
     aria-hidden="${open ? 'false' : 'true'}" aria-label="${_nea(i18t('ng_cp_open_title'))}">
     <div class="rl-cp-head">
       <button type="button" id="rl-cp-min" class="rl-cp-min" data-rl-cp-close="1"
         title="${_nea(i18t('ng_cp_close_title'))}" aria-label="${_nea(i18t('ng_cp_close_title'))}">&times;</button>
       <p class="rl-cp-label">${i18t('ng_cp_edit')}</p>
       ${rlCpSegsHtml()}
+      ${rlCpTypeStepHtml()}
     </div>
     <div class="rl-cp-body" id="rl-cp-body">${src}</div>
   </aside>`;
@@ -14177,6 +14278,14 @@ if (typeof document !== 'undefined' && !document._rlCpWired){
   document.addEventListener('click', ev => {
     const t = ev.target;
     if (!t || !t.closest) return;
+    /* The panel's type stepper — a stored px applied live, never a repaint
+       (see rlCpSetType). Same stop rules as every control in this head. */
+    const step = t.closest('[data-rl-cp-type]');
+    if (step){
+      ev.preventDefault(); ev.stopPropagation();
+      rlCpSetType(rlCpTypePx() + (step.getAttribute('data-rl-cp-type') === 'up' ? 1 : -1));
+      return;
+    }
     /* The History | + notes switch — a class flip on the panel, never a
        repaint (see rlCpSetNotes). stopPropagation for the same reason the
        pill stops its own: a control must not also be a navigation. */
@@ -14596,6 +14705,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlChangeWordingHtml, rlClauseEditPillHtml, rlClausePanelBodyHtml, rlClausePanelHtml,
   rlHangRichHtml,
   rlCpOpenId, rlCpSetOpen, rlCpSetShown, rlCpPaint, rlCpNotesOn, rlCpSetNotes,
+  rlCpTypePx, rlCpSetType, rlCpZoom,
   rlUnsentBandHtml, rlUnsentCount,
   rlFitTabRow, rlWireFitTabRow, rlObserveTabRow,
   redlineHeldId, redlineEvict, openRedlineWorkbench, RL_DEMOTABLE,

@@ -3681,6 +3681,9 @@ const STRINGS = {
     home_hero_need_other: '{n} need you today',
     home_draft_new: 'Draft new agreement',
     home_customize: 'Customize',
+    home_hero_badge: 'Multi-jurisdiction engine ready',
+    home_hero_title: 'SME Contract Control Center',
+    home_risk_link: '{n} high-risk findings in our standards →',
     home_portfolio: 'Portfolio',
     home_clm_title: 'Contract Lifecycle Management',
     home_exp90_title: 'Expiring in 90 days',
@@ -7838,6 +7841,9 @@ const STRINGS = {
     home_hero_need_other: '{n} behöver dig i dag',
     home_draft_new: 'Upprätta nytt avtal',
     home_customize: 'Anpassa',
+    home_hero_badge: 'Motor för flera jurisdiktioner redo',
+    home_hero_title: 'Kontrollcenter för SME-avtal',
+    home_risk_link: '{n} högriskfynd i våra standarder →',
     home_portfolio: 'Portfölj',
     /* The product-category name, owner-asked in these exact words — kept in
        English in both languages, like the logo's own "SME Contract Platform". */

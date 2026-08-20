@@ -2099,32 +2099,33 @@
   .hm-row-cp{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .hm-row-none{font-size:10.5px;color:var(--color-neutral-500);padding:4px 2px;}
 
-  /* ---- THE PORTFOLIO STRIP AND THE BOTTOM ROW (owner-approved render,
-     20 Aug 2026). The strip is the hero's replacement: one line, the book's
-     facts, the two controls. The bottom row is three summary cards — each a
-     door — that stack to one column where the main row already stacks. */
-  /* THE STRIP IS THE ACCENT'S OWN CARD (owner-asked 20 Aug 2026, off the old
-     teal hero render: "similar to image 1 when in green and act accordingly
-     when in blue"). Built from the accent tokens, never a fixed colour, so the
-     green workspace gets the teal card, the navy one gets blue, and dark mode
-     follows the tokens. Ink is white on both. */
-  .hm-strip{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:16px 22px;
-    background:linear-gradient(120deg,var(--color-accent-700),var(--color-accent-500));color:#fff;}
-  .hm-greet{font-size:12.5px;font-weight:600;color:rgba(255,255,255,.88);}
-  .hm-strip-title{margin:1px 0 3px;font-family:var(--font-heading);font-size:21px;font-weight:700;letter-spacing:-.01em;color:#fff;line-height:1.2;}
-  .hm-strip-line{margin:0;font-size:12px;color:rgba(255,255,255,.85);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  /* The two controls re-dress for the dark ground: Customize translucent,
-     Draft new agreement the white primary — the render's own pairing. */
-  .hm-strip .ui-btn{background:rgba(255,255,255,.13);border-color:rgba(255,255,255,.38);color:#fff;box-shadow:none;}
-  .hm-strip .ui-btn:hover{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.55);}
-  .hm-strip #hero-draft{background:#fff;border-color:#fff;color:var(--color-accent-800);}
-  .hm-strip #hero-draft:hover{background:rgba(255,255,255,.9);border-color:#fff;}
-  .hm-foot{flex:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;}
-  .hm-foot-card{display:flex;align-items:center;gap:14px;background:var(--color-surface);
-    border:1px solid var(--color-divider);border-radius:0;padding:13px 16px;cursor:pointer;
-    font:inherit;color:inherit;min-width:0;text-align:left;}
-  .hm-foot-card:hover{border-color:var(--accent-solid);}
-  @media (max-width:1199.98px){ .hm-foot{grid-template-columns:minmax(0,1fr);} }
+  /* The hero banner (Hero B, 20 Aug 2026) — replaces the Portfolio strip.
+     The retired hm-strip, hm-foot and hm-foot-card classes are stale — flag
+     any mention. THE COLOURS ARE THE ACCENT'S OWN (owner-asked the same day,
+     off a marked-up screenshot: "similar to image 1 when in green and act
+     accordingly when in blue") — a gradient from the accent tokens, never a
+     fixed navy, so the green workspace gets the teal card, the navy one blue,
+     and dark mode follows the tokens. The badge chip retired with the words
+     it carried (the greeting line took its slot — .hm-banner-greet); the two
+     buttons re-dress for the accent ground: ghost translucent white, the CTA
+     the white primary with accent ink. */
+  .hm-banner{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:20px 26px;color:#fff;
+    background:linear-gradient(120deg,var(--color-accent-700),var(--color-accent-500));
+    border:1px solid var(--color-accent-700);}
+  .hm-banner-greet{font-size:12.5px;font-weight:600;color:rgba(255,255,255,.88);}
+  .hm-banner h2{margin:6px 0 3px;font-size:27px;font-weight:700;letter-spacing:-.3px;
+    font-family:var(--font-heading);color:#fff;}
+  .hm-banner p{margin:0;font-size:12.5px;color:rgba(255,255,255,.85);min-width:0;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .hm-banner p b{color:#fff;font-weight:600;}
+  .hm-banner-ghost{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.4);color:#fff;
+    padding:9px 14px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;
+    display:inline-flex;align-items:center;gap:6px;flex:none;}
+  .hm-banner-ghost:hover{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.6);color:#fff;}
+  .hm-banner-cta{background:#fff;border:1px solid #fff;color:var(--color-accent-800);
+    padding:10px 18px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;
+    display:inline-flex;align-items:center;gap:7px;flex:none;}
+  .hm-banner-cta:hover{background:rgba(255,255,255,.9);border-color:#fff;}
 
   /* Home — lifecycle pipeline: two thirds to the ring, one third to the list
      (was repeat(3,minmax(0,1fr)) when it drew three columns). */
