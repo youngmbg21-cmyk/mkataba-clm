@@ -233,7 +233,7 @@ function dsPaint(opts) {
   };
   const contentsChoice = `
     <div style="margin:0 0 13px;padding:0 0 13px;border-bottom:1px solid var(--color-divider)">
-      <div style="font-family:var(--font-heading);font-size:10px;font-weight:800;letter-spacing:.09em;
+      <div style="font-family:var(--font-heading);font-size:10px;font-weight:700;letter-spacing:.09em;
         text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:7px">Contents page</div>
       <div style="display:flex;gap:7px;align-items:stretch">
         ${contentsBtn(false, 'Not included', 'Opens on the first clause.')}
@@ -338,7 +338,7 @@ function dsPaint(opts) {
         state === 'on' ? 'background:var(--color-accent-100);color:var(--color-accent-700)'
         : state === 'done' ? 'color:var(--color-good-fg,#047857)'
         : 'color:var(--color-neutral-500)'}">
-      <span style="width:19px;height:19px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:800;flex:none;${
+      <span style="width:19px;height:19px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:700;flex:none;${
         state === 'on' ? 'background:var(--accent-solid);color:#fff'
         : state === 'done' ? 'background:var(--st-green-bg);color:var(--st-green-fg);border:1px solid var(--st-green-line)'
         : 'background:var(--color-neutral-100);color:var(--color-neutral-500)'}">${state === 'done' ? '&check;' : n}</span>${label}</span>`;
@@ -405,7 +405,7 @@ function dsPaint(opts) {
           <div data-ds-step="${rh.n}" style="display:flex;align-items:center;gap:7px;font-family:var(--font-heading);font-size:11px;
             font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--color-accent-700)">
             <span style="width:17px;height:17px;border-radius:50%;background:var(--accent-solid);color:#fff;
-              display:grid;place-items:center;font-size:9.5px;font-weight:800">${rh.n}</span> ${i18t('ds_step_n_of_2',{n:rh.n})}</div>
+              display:grid;place-items:center;font-size:9.5px;font-weight:700">${rh.n}</span> ${i18t('ds_step_n_of_2',{n:rh.n})}</div>
           <h4 data-ds-step-title style="font-family:var(--font-heading);font-size:15px;margin:6px 0 3px;letter-spacing:-.015em">${rh.title}</h4>
           <p style="font-size:10.5px;color:var(--color-neutral-500);line-height:1.45;margin:0">${rh.hint}</p>
         </div>
@@ -444,7 +444,7 @@ function dsPaint(opts) {
       ${_ds.focus ? '' : `
       <section class="ds-rail-pane" style="${PANE}">
        <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:14px 16px">
-        <h4 style="font-family:var(--font-heading);font-weight:600;font-size:12px;margin:0 0 10px;text-transform:uppercase;letter-spacing:.06em;color:var(--color-neutral-600)">${i18t('ds_company_branding')}</h4>
+        <h4 style="font-family:var(--font-heading);font-weight:700;font-size:12px;margin:0 0 10px;text-transform:uppercase;letter-spacing:.06em;color:var(--color-neutral-600)">${i18t('ds_company_branding')}</h4>
         <div style="display:flex;gap:10px;align-items:center">
           <div style="width:86px;height:48px;border:1px dashed var(--color-divider);border-radius:0;display:grid;place-items:center;overflow:hidden;background:var(--color-bg);flex:none">
             ${b.logoUrl ? `<img src="${b.logoUrl}" alt="logo" style="max-width:100%;max-height:100%">` : `<span style="font-size:9.5px;color:var(--color-neutral-500)">${i18t('tb_no_logo')}</span>`}

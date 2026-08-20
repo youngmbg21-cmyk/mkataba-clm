@@ -259,7 +259,7 @@ function renderPlaybookSection(c){
     return `
     <div style="border-top:1px solid var(--color-divider)">
       <button ${detail?`data-pb-row="${_pbEsc(id)}"`:''} style="display:flex;align-items:flex-start;gap:9px;width:100%;text-align:left;border:0;background:none;font:inherit;color:inherit;padding:9px 2px;${detail?'cursor:pointer':'cursor:default'}">
-        <span aria-hidden="true" style="flex:none;margin-top:1px;width:17px;height:17px;border-radius:50%;background:${m.bg};color:${m.fg};display:grid;place-items:center;font-size:10px;font-weight:800;line-height:1">${m.glyph}</span>
+        <span aria-hidden="true" style="flex:none;margin-top:1px;width:17px;height:17px;border-radius:50%;background:${m.bg};color:${m.fg};display:grid;place-items:center;font-size:10px;font-weight:700;line-height:1">${m.glyph}</span>
         <span style="flex:1;min-width:0">
           <span style="display:block;font-size:12.5px;font-weight:600;color:var(--color-text);line-height:1.35">${_pbEsc(v.category)}</span>
           <span style="display:block;font-size:11px;color:var(--color-neutral-600);line-height:1.45;margin-top:1px">${pbVerdictLine(v)}</span>

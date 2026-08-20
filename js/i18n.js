@@ -3708,6 +3708,7 @@ const STRINGS = {
     home_hero_title: 'SME Contract Control Center',
     home_risk_link: '{n} high-risk findings in our standards →',
     home_portfolio: 'Portfolio',
+    home_clm_title: 'Contract Lifecycle Management',
     home_exp90_title: 'Expiring in 90 days',
     home_exp90_value: '{v} of active value reaches term end',
     home_exp90_none: 'Nothing reaches term end inside 90 days',
@@ -7879,6 +7880,9 @@ const STRINGS = {
     home_hero_title: 'Kontrollcenter för SME-avtal',
     home_risk_link: '{n} högriskfynd i våra standarder →',
     home_portfolio: 'Portfölj',
+    /* The product-category name, owner-asked in these exact words — kept in
+       English in both languages, like the logo's own "SME Contract Platform". */
+    home_clm_title: 'Contract Lifecycle Management',
     home_exp90_title: 'Löper ut inom 90 dagar',
     home_exp90_value: '{v} av aktivt värde når avtalstidens slut',
     home_exp90_none: 'Inget når avtalstidens slut inom 90 dagar',

@@ -633,13 +633,18 @@ describe('F96 (B7) — the clause\'s furniture is not contract', () => {
   test('and a drag that sweeps the Edit pill still reads as the clause', async () => {
     const p = await page();
     const cl = p.clauseWith(/payable within thirty/);
-    /* Whatever the browser lets through, the reading takes it out again. The
-       sweep runs from the pill at the clause's head down into the wording —
-       the old test swept downhill into the tool row at its foot. */
-    const { passage } = p.readSel(cl, 'Edit', 'payable within thirty');
+    /* RE-POINTED 20 Aug 2026: the pill is icon-only now (owner-asked), so the
+       word "Edit" is not on the paper to anchor a sweep on — the fault this
+       test guarded (a control's word leaking into a swept passage) is
+       UNREPRESENTABLE. The sweep runs from the clause heading, across the
+       pill's place in the row, down into the wording; the residual claims
+       hold: one clause, and nothing of the control in the passage. */
+    const { passage } = p.readSel(cl, 'PAYMENT TERMS', 'payable within thirty');
     assert.equal(passage.clauseIds.length, 1, 'the pill must not defeat the match');
     assert.ok(!/\bEdit\b/.test(passage.text),
       'and a control is not wording, whatever a careless drag sweeps in');
+    assert.equal((cl.querySelector('.rl-cp-pill') || { textContent: '' }).textContent.trim(), '',
+      'the pill carries no text at all — nothing to leak');
   });
 });
 

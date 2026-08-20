@@ -444,7 +444,7 @@ function docDesignHeaderHtml(b, c, opts = {}) {
       <div style="display:flex;flex-direction:${justify};align-items:center;gap:14px;${pos === 'top-center' ? 'justify-content:center;text-align:center;' : ''}">
         ${chip}
         <div style="min-width:0">
-          ${name ? `<div style="font-size:15px;font-weight:800;letter-spacing:.01em">${name}</div>` : ''}
+          ${name ? `<div style="font-size:15px;font-weight:700;letter-spacing:.01em">${name}</div>` : ''}
           ${ident ? `<div style="font-size:9.5px;opacity:.85;margin-top:1px">${ident}</div>` : ''}
         </div>
       </div>

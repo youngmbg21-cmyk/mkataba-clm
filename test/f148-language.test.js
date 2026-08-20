@@ -35,6 +35,9 @@ const { STRINGS, I18N_DEFAULT, LANGUAGES } = i18n;
 /* Words that are legitimately identical in both languages, so an equal-to-
    English value is a real translation rather than a forgotten one. */
 const SAME_IN_BOTH = new Set([
+  'home_clm_title',       // the product-category name, owner-asked in these
+                          // exact words (20 Aug 2026) — kept in English in
+                          // both languages like the logo's own line
   'nav_administration',   // identical spelling in Swedish
   'reg_col_status',       // ditto
   'reg_in_days',          // '{n} d' — a number and a unit, no words (the

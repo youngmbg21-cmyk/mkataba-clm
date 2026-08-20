@@ -274,7 +274,7 @@ const M_CSS = `
      label is always the short form of the place it opens. Nowrap and ellipsis
      stay as a backstop for a longer translation: a label that breaks onto two
      lines lifts the whole row and shunts the page above it. */
-  .m-tab span{ font-size:14px; font-weight:500; max-width:100%;
+  .m-tab span{ font-size:14px; font-weight:400; max-width:100%;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .m-tab.on span{ font-weight:600; }
   /* Something is owed on a negotiation. Amber here for the same reason it is
@@ -367,7 +367,7 @@ const M_CSS = `
      pressable — a heading between two stacks of cards. */
   .m-ngband{ display:flex; align-items:center; gap:9px; padding:0 16px 7px; }
   .m-ngband-dot{ width:9px; height:9px; border-radius:50%; flex:none; }
-  .m-ngband-k{ font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase;
+  .m-ngband-k{ font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
     color:var(--color-neutral-600); }
   .m-ngband-n{ font-family:var(--font-mono); font-size:12px; font-weight:700;
     color:var(--color-neutral-600); background:var(--color-surface);
@@ -836,7 +836,7 @@ function mMoreHtml(){
   const desk = M_DESK.map(d=>`
     <button class="m-row" data-m-desk="${d.view}">
       <span style="flex:1;min-width:0">
-        <span class="m-row-name" style="font-weight:500">${mEsc(d.label)}</span>
+        <span class="m-row-name" style="font-weight:400">${mEsc(d.label)}</span>
         <span class="m-row-sub">${mEsc(d.note)}</span>
       </span>
       <span style="flex:none;font-size:14px;color:var(--color-neutral-600)">${i18t('m_computer')}</span>
@@ -844,7 +844,7 @@ function mMoreHtml(){
   const people = `
     <button class="m-row" data-m-go="people">
       <span style="flex:1;min-width:0">
-        <span class="m-row-name" style="font-weight:500">${mEsc(i18t('nav_people'))}</span>
+        <span class="m-row-name" style="font-weight:400">${mEsc(i18t('nav_people'))}</span>
         <span class="m-row-sub">${mEsc(i18t('pg_people_sub'))}</span>
       </span>
       <span style="flex:none;font-size:16px;color:var(--color-neutral-500)">›</span>
@@ -887,7 +887,7 @@ function mPeopleHtml(){
     return `<div class="m-row" data-m-person="${mEsc(u.id||'')}">
       <span class="dir-av" style="margin-right:10px">${mEsc(ini)}</span>
       <span style="flex:1;min-width:0">
-        <span class="m-row-name" style="font-weight:500">${mEsc(u.name||mail||'—')}${
+        <span class="m-row-name" style="font-weight:400">${mEsc(u.name||mail||'—')}${
           u.id&&u.id===me.id?` <span style="font-weight:400;color:var(--color-neutral-500)">${mEsc(i18t('set_you'))}</span>`:''}</span>
         <span class="m-row-sub">${title}${role?' · '+mEsc(role):''}</span>
         <span class="m-row-sub">${mail

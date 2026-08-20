@@ -68,6 +68,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     const body = sec.querySelector('.nego-body').getBoundingClientRect();
     const box = sec.getBoundingClientRect();
     return { text:b.textContent.trim(), w:Math.round(r.width), h:Math.round(r.height),
+      hasSvg:!!b.querySelector('svg'), aria:b.getAttribute('aria-label'),
       bg:s.backgroundColor, colour:s.color, border:s.borderTopColor,
       aboveWording: Math.round(r.bottom) <= Math.round(body.top) + 2,
       rightGap: Math.round(box.right - r.right), leftGap: Math.round(r.left - box.left),
@@ -75,14 +76,18 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   }, staged.clauseId);
   ck('1a the pill is on the clause, as visible pixels', !!pill && pill.w > 20 && pill.h > 10,
      pill ? `"${pill.text}" ${pill.w}x${pill.h}` : 'absent');
-  ck('1b it says Edit', !!pill && pill.text === 'Edit', pill && pill.text);
-  ck('1c it wears the NAV\'s colour — measured, not read off a rule that may be scoped elsewhere',
-     /* Re-pointed 16 Aug 2026 (owner-asked): the pill follows the nav panel's
-        own token — dark green #0b3d3a in the green workspace (this harness's
-        fallback), navy in the blue one — with white text. It was a fixed pale
-        emerald before. */
-     !!pill && /rgb\(11, 61, 58\)/.test(pill.bg) && /rgb\(255, 255, 255\)/.test(pill.colour),
-     pill && `bg ${pill.bg}, text ${pill.colour}`);
+  /* Re-pointed 20 Aug 2026 (owner-asked, off a picture of the glyph): the WORD
+     left the paper for the pencil icon; it survives as aria-label + title. */
+  ck('1b it is the pencil icon, and the word Edit survives for a screen reader',
+     !!pill && pill.text === '' && pill.hasSvg && pill.aria === 'Edit',
+     pill && `text "${pill.text}", svg ${pill.hasSvg}, aria "${pill.aria}"`);
+  ck('1c it wears the workspace ACCENT on a transparent face — visible, not too dark, measured',
+     /* The dark nav-bg fill went with the word. The glyph's ink is
+        --accent-solid (teal in this harness's green fallback), the face is
+        transparent until hover. */
+     !!pill && /rgba\(0, 0, 0, 0\)|transparent/.test(pill.bg) && !/rgb\(11, 61, 58\)/.test(pill.colour)
+       && pill.colour !== 'rgb(255, 255, 255)',
+     pill && `bg ${pill.bg}, ink ${pill.colour}`);
   ck('1d it is ABOVE the wording', !!pill && pill.aboveWording,
      pill && `pill bottom vs body top`);
   ck('1e it is on the RIGHT of the clause, not the left',

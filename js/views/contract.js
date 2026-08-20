@@ -1074,6 +1074,17 @@ function openUploadModal(){
    text — in which case the card says so and the person types, exactly as the
    old form asked them to, but only in the case where the machine truly
    could not help. */
+/* OUR ENTITIES, OFFERED NOT ENFORCED (the FX picker's rule): a datalist behind
+   an ordinary text box, so any typed name is still accepted. The list is the
+   workspace's registered name first, then every entity already named on a
+   contract — it grows by use, nothing for an admin to maintain. */
+function uploadPartyOptions(){
+  const seen=new Map();
+  const add=v=>{ const s=String(v||'').trim(); if(!s) return; const k=s.toLowerCase(); if(!seen.has(k)) seen.set(k,s); };
+  add((typeof window!=='undefined'&&window.FIRST_PARTY)||'');
+  (((typeof state!=='undefined'&&state)||{}).contracts||[]).forEach(c=>add(c&&c.party));
+  return [...seen.values()];
+}
 function uploadConfirmHtml(ext, meta){
   const m=meta||{}, conf=m.confidence||{}, spans=m.sourceSpans||{};
   const esc2=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
@@ -1085,7 +1096,7 @@ function uploadConfirmHtml(ext, meta){
   const fld=(id,label,opts={})=>{
     const read=!!opts.read;
     return `<label class="block"><span class="text-xs font-medium text-brand-800/70">${label}${read?MARK:''}</span>
-      <input id="${id}" type="${opts.type||'text'}" value="${attr(opts.value||'')}" placeholder="${attr(opts.ph||'')}" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400"${read?' style="border-color:var(--color-accent);background:var(--color-accent-100)"':''}/>${read?found(opts.foundKey||''):''}${opts.sub?`<span style="display:block;margin-top:2px;font-size:10px;color:var(--color-neutral-600)">${opts.sub}</span>`:''}</label>`;
+      <input id="${id}" type="${opts.type||'text'}" value="${attr(opts.value||'')}" placeholder="${attr(opts.ph||'')}"${opts.list?` list="${opts.list}"`:''} class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400"${read?' style="border-color:var(--color-accent);background:var(--color-accent-100)"':''}/>${read?found(opts.foundKey||''):''}${opts.sub?`<span style="display:block;margin-top:2px;font-size:10px;color:var(--color-neutral-600)">${opts.sub}</span>`:''}</label>`;
   };
   const fileBase=ext?String(ext.file.name||'').replace(/\.[^.]+$/,''):'';
   const nameFromDoc=has('contractType')&&has('counterparty');
@@ -1118,6 +1129,8 @@ function uploadConfirmHtml(ext, meta){
         <span>${esc2(ocrProvenanceLine(ext.upload))} ${i18t('ct_capped_at')} <b>${i18t('ct_medium')}</b> ${i18t('ct_confidence_until')}</span></div>`:''}
       <div class="grid sm:grid-cols-2 gap-2 mb-3">
         ${fld('up-name','Contract name',{value:suggestedName, ph:'e.g. Supply Agreement — Acme', read:nameFromDoc, sub:(ext&&!nameFromDoc)?'from the file name — rename it to what it is':''})}
+        ${fld('up-party',i18t('tf_our_party'),{value:(typeof window!=='undefined'&&window.FIRST_PARTY)||'', ph:i18t('tf_our_party_ph'), list:'up-party-list', sub:i18t('tf_our_party_hint')})}
+        <datalist id="up-party-list">${uploadPartyOptions().map(p=>`<option value="${attr(p)}"></option>`).join('')}</datalist>
         ${fld('up-cp','Received from (counterparty)',{value:has('counterparty')?m.counterparty:'', ph:'e.g. Acme Ltd', read:has('counterparty'), foundKey:'counterparty'})}
         ${fld('up-cpemail','Their email (so you can send it back)',{ph:'them@company.co.ke', type:'email', sub:ext?'the one thing a document never carries — add it and the first send is one click':''})}
       </div>
@@ -1268,6 +1281,10 @@ async function submitUpload(){
   if(!_up||!_up.file){ toast(i18t('ct_choose_file_upload'),'err'); return; }
   const { file, mime, wordTracked, extractedText, textSource, upload, meta }=_up;
   const cp=fval('up-cp');
+  /* Our entity on this agreement — see contractParty in js/core.js. Left
+     blank it stays absent and the reading falls back to the workspace, so
+     nothing filed before this field existed reads differently. */
+  const party=fval('up-party');
   const cpEmail=fval('up-cpemail');
   if(cpEmail && !/.+@.+\..+/.test(cpEmail)){ toast(`"${cpEmail}" is not an email address`,'err'); return; }
   const name=fval('up-name')||file.name.replace(/\.[^.]+$/,'');
@@ -1285,7 +1302,7 @@ async function submitUpload(){
       upload.fileId=r.id; }catch(e){ /* fall back to inline bytes */ }
   }
   const u=currentUser();
-  const c={ id:nextId(), name, counterparty:cp, counterpartyEmail:cpEmail||undefined, value, status: cp?'Under Review':'Draft',
+  const c={ id:nextId(), name, party:party||undefined, counterparty:cp, counterpartyEmail:cpEmail||undefined, value, status: cp?'Under Review':'Draft',
     template:null, source:'upload', folder, valueType:vtype,
     lastAction:todayStr(), expiry, hash:null, signedAt:null, signatory:u?.name||'Authorized signatory',
     compliance:{},
@@ -1639,7 +1656,7 @@ function uploadDocBody(c){
     <div class="mb-4" data-anchor="redline">
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
         <span style="color:var(--color-accent)">${icon('history','w-3.5 h-3.5')}</span>
-        <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--color-neutral-600)">${i18t('ct_working_text')}</span>
+        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--color-neutral-600)">${i18t('ct_working_text')}</span>
       </div>
       <div style="border:1px solid var(--color-accent-300);background:var(--color-surface);border-radius:0;padding:12px 14px;color:var(--color-doc-text)">${docBodyHtml(c,{size:'13px',lh:'1.7'})}</div>
       <div style="font-size:10.5px;color:var(--color-neutral-600);margin-top:4px">This edited text is what versions, Compare and the seal operate on — the original file below is retained unchanged as the received source.</div>
@@ -4901,10 +4918,10 @@ function renderWorkspace(){
      Negotiate tab: the two tabs are one room and their objects should be the
      same objects (Young, 10 Aug 2026). */
   const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:0 1px 2px rgba(15,23,42,.05);border-radius:0';
-  const H6='margin:0;font-size:10px;font-weight:600;color:var(--color-neutral-600);text-transform:uppercase;letter-spacing:.1em';
+  const H6='margin:0;font-size:10px;font-weight:700;color:var(--color-neutral-600);text-transform:uppercase;letter-spacing:.1em';
   const KROW='display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);font-size:11.5px';
   const KKEY='color:var(--color-neutral-600);flex:none';
-  const kv=(k,v)=>`<div style="${KROW}"><span style="${KKEY}">${k}</span><span style="font-weight:500;text-align:right;min-width:0">${v}</span></div>`;
+  const kv=(k,v)=>`<div style="${KROW}"><span style="${KKEY}">${k}</span><span style="font-weight:400;text-align:right;min-width:0">${v}</span></div>`;
   const KIN='min-width:0;max-width:62%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:3px 7px;font:inherit;font-size:11.5px;text-align:right;outline:none';
   const tmplLabel=c.template?((window.TEMPLATES&&TEMPLATES[c.template]&&TEMPLATES[c.template].name)||c.template):(isUpload(c)?'Uploaded document':'—');
   // Key terms stay editable until the seal binds them (sealString folds
@@ -6578,7 +6595,7 @@ function distributionPanelHtml(c){
   }
   const rows=(d.recipients||[]).map(r=>`<div class="py-1 text-[11px]">
     <div class="flex items-center gap-2">
-    <span class="min-w-0 flex-1"><span class="text-ink/80 font-500">${(r.name||r.email||'').replace(/</g,'&lt;')}</span>${r.role?` <span class="text-ink/45">· ${String(r.role).replace(/</g,'&lt;')}</span>`:''}${r.attached?` <span class="text-[8.5px] font-mono px-1 py-px rounded bg-brand-50 text-brand-600" title="${i18t('ct_executed_attached')}">${i18t('ct_doc_attached')}</span>`:''}<br><span class="font-mono text-[9.5px] text-ink/45">${(r.email||'').replace(/</g,'&lt;')}</span></span>
+    <span class="min-w-0 flex-1"><span class="text-ink/80 font-normal">${(r.name||r.email||'').replace(/</g,'&lt;')}</span>${r.role?` <span class="text-ink/45">· ${String(r.role).replace(/</g,'&lt;')}</span>`:''}${r.attached?` <span class="text-[8.5px] font-mono px-1 py-px rounded bg-brand-50 text-brand-600" title="${i18t('ct_executed_attached')}">${i18t('ct_doc_attached')}</span>`:''}<br><span class="font-mono text-[9.5px] text-ink/45">${(r.email||'').replace(/</g,'&lt;')}</span></span>
     <span class="text-[9.5px] font-mono flex items-center gap-1 shrink-0" style="color:${dot(r.status)}"><span style="width:6px;height:6px;border-radius:0;background:${dot(r.status)}"></span>${stTxt(r.status)}</span>
     </div>
     ${r.detail?`<div class="text-[9.5px] mt-0.5" style="color:${dot(r.status)}">${String(r.detail).replace(/</g,'&lt;')}</div>`:''}

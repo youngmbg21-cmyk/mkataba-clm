@@ -35,11 +35,11 @@ function adviceCard(r){
           <span style="font-size:9.5px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:0;font-variant-numeric:tabular-nums;background:color-mix(in srgb,${etaCol} 12%,#fff);color:${etaCol}">${etaTxt}</span>
         </span>
       </div>
-      <div style="display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:500;line-height:1.3"><span style="display:inline-flex;color:var(--color-accent-700);flex:none">${icon(svc.ic,'w-3.5 h-3.5')}</span><span style="min-width:0">${esc(svc.name)}</span></div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:400;line-height:1.3"><span style="display:inline-flex;color:var(--color-accent-700);flex:none">${icon(svc.ic,'w-3.5 h-3.5')}</span><span style="min-width:0">${esc(svc.name)}</span></div>
       <div style="font-size:11px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.name)}${r.company?' · '+esc(r.company):''}</div>
       ${r.contractName?`<div style="font-size:10.5px;color:var(--color-neutral-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.contractName)}</div>`:''}
       <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;border-top:1px solid color-mix(in srgb,var(--color-text) 8%,transparent);padding-top:5px;margin-top:1px">
-        <span style="font-size:11px;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--color-text)">${fee}</span>
+        <span style="font-size:11px;font-weight:400;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--color-text)">${fee}</span>
         ${ini?`<span title="${esc(r.assignee)}" style="width:20px;height:20px;border-radius:50%;background:var(--color-accent-200);color:var(--color-accent-800);display:inline-grid;place-items:center;font-size:8.5px;font-weight:700;font-family:var(--font-mono);flex:none">${ini}</span>`
             :`<span style="font-size:10px;color:var(--color-neutral-400)">unassigned</span>`}
       </div>
@@ -62,7 +62,7 @@ function renderAdviceDesk(){
     <div style="min-width:0;display:flex;flex-direction:column;min-height:0">
       <div style="display:flex;align-items:center;gap:6px;padding:0 2px 8px;min-width:0;flex:none">
         <span style="width:9px;height:9px;border-radius:50%;background:${g.col.color};flex:none;display:inline-block"></span>
-        <span style="font-family:var(--font-mono);font-weight:600;font-size:12px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap">${g.col.label}</span>
+        <span style="font-family:var(--font-mono);font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap">${g.col.label}</span>
         <span style="font-size:10.5px;background:color-mix(in srgb,var(--color-accent) 11%,transparent);padding:1px 8px;border-radius:0;color:var(--color-neutral-700);flex:none;font-variant-numeric:tabular-nums">${g.list.length}</span>
       </div>
       <div data-adv-drop="${g.col.k}" class="pipe-col scroll-thin" style="background:color-mix(in srgb,var(--color-accent) 6%,transparent);border:1px solid var(--color-divider);border-radius:0;padding:8px;display:flex;flex-direction:column;gap:8px;flex:1;min-height:0;overflow-y:auto">
@@ -148,7 +148,7 @@ function openAdviceModal(id){
   const r=getAdviceRequest(id); if(!r) return;
   const svc=ADVICE_SERVICES[r.service]||{name:r.service,ic:'msg'};
   const q=r.quote||{};
-  const row=(k,v)=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);font-size:12px"><span style="color:var(--color-neutral-600);flex:none">${k}</span><span style="font-weight:500;text-align:right;min-width:0">${v}</span></div>`;
+  const row=(k,v)=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);font-size:12px"><span style="color:var(--color-neutral-600);flex:none">${k}</span><span style="font-weight:400;text-align:right;min-width:0">${v}</span></div>`;
   const hist=(r.history||[]).slice().reverse().map(h=>`
     <div style="display:flex;gap:8px;padding:4px 0;font-size:11px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent)">
       <span style="width:8px;height:8px;border-radius:50%;background:${adviceStage(h.to).color};flex:none;margin-top:3px"></span>
@@ -235,7 +235,7 @@ function openRateCardModal(){
   const rows=Object.values(ADVICE_SERVICES).map(s=>{
     const r=adviceRateFor(s.id);
     return `<tr style="border-bottom:1px solid var(--color-divider)">
-      <td style="padding:8px 10px 8px 0;min-width:0"><span style="display:flex;align-items:center;gap:7px"><span style="display:inline-flex;color:var(--color-accent-700)">${icon(s.ic,'w-3.5 h-3.5')}</span><span style="font-size:12px;font-weight:500">${s.name}</span></span></td>
+      <td style="padding:8px 10px 8px 0;min-width:0"><span style="display:flex;align-items:center;gap:7px"><span style="display:inline-flex;color:var(--color-accent-700)">${icon(s.ic,'w-3.5 h-3.5')}</span><span style="font-size:12px;font-weight:400">${s.name}</span></span></td>
       <td style="padding:8px 6px;width:92px">${inp('rt-rate-'+s.id,r.rate)}</td>
       <td style="padding:8px 6px;width:64px">${inp('rt-min-'+s.id,r.hoursMin)}</td>
       <td style="padding:8px 6px;width:64px">${inp('rt-max-'+s.id,r.hoursMax)}</td>

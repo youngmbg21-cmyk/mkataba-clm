@@ -180,7 +180,7 @@ function readyToSignRowsHtml(items){
       ${items.slice(0,6).map(r=>`
         <button data-sel="${esc(r.c.id)}" style="display:flex;align-items:flex-start;gap:9px;width:100%;padding:7px 4px;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
           <span style="flex:1;min-width:0">
-            <span style="display:block;font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.c.name)}</span>
+            <span style="display:block;font-size:12px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.c.name)}</span>
             <span style="display:block;font-size:10.5px;color:var(--color-neutral-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.sig.by||r.c.counterparty||'They')} signalled ready — nothing is signed yet</span>
           </span>
           <span style="font-size:10.5px;font-weight:600;font-family:var(--font-mono);color:var(--st-green-fg);flex:none">issue link</span>
@@ -551,20 +551,24 @@ function renderDashboard(){
      the Calendar, an approval chain on the contract itself. What stays here is
      only what a card still counts (myApprovals feeds Pending approvals). */
   /* ---- THE HERO BANNER IS BACK (owner-chose the "Hero B" render, 20 Aug
-     2026 — this supersedes the Portfolio strip of the same day). A dark
-     navy-to-grey banner from the owner's own mockup: teal readiness badge,
-     the page's big title, and the SUB-LINE CARRIES THE LIVE FACTS the strip
-     used to state (contracts under management, active value, needs-you) —
-     information, not a tagline. Its colours are ITS OWN, fixed in the
-     stylesheet (a dark surface in both themes, deliberately outside the
-     workspace accent — the owner approved this exact render). Square corners
-     like everything else. NOT the retired hm-hero (that class stays stale);
-     this is .hm-banner. SAME IDS, SAME WIRING: #kpi-customize and #hero-draft
-     ride the banner unchanged, so the KPI picker still re-opens against this
-     button after a tick (kpiApply) and the draft button still opens the one
-     new-contract menu. The numbers in the sub-line are BOLD — the values are
-     passed pre-wrapped, so the line is not esc()'d; every piece is our own
-     arithmetic or fmtMoneyShort output. */
+     2026 — this supersedes the Portfolio strip of the same day), and THE SAME
+     DAY'S MARKED-UP SCREENSHOT CHANGED THREE THINGS ON IT (owner-asked):
+     the readiness badge became a time-of-day GREETING with the reader's first
+     name (home_greet_* — morning <12, afternoon <17, evening; home_greet_there
+     when nameless), the title reads home_clm_title "Contract Lifecycle
+     Management" (home_hero_badge / home_hero_title are stale — flag mentions),
+     and the COLOURS ARE THE ACCENT'S OWN — a gradient from the accent tokens
+     in the stylesheet, teal in the green workspace, blue in navy ("similar to
+     image 1 when in green and act accordingly when in blue"), never a fixed
+     navy. The SUB-LINE CARRIES THE LIVE FACTS the strip used to state
+     (contracts under management, active value, needs-you) — information, not
+     a tagline. Square corners like everything else. NOT the retired hm-hero
+     (that class stays stale); this is .hm-banner. SAME IDS, SAME WIRING:
+     #kpi-customize and #hero-draft ride the banner unchanged, so the KPI
+     picker still re-opens against this button after a tick (kpiApply) and the
+     draft button still opens the one new-contract menu. The numbers in the
+     sub-line are BOLD — the values are passed pre-wrapped, so the line is not
+     esc()'d; every piece is our own arithmetic or fmtMoneyShort output. */
   /* No flag emoji: Windows draws them as bare letter pairs in boxes. */
   const REGION_LABEL={SE:'Sweden', KE:'Kenya'};
   const regionNow=REGION_LABEL[state.region]||REGION_LABEL.KE;
@@ -574,11 +578,18 @@ function renderDashboard(){
     activeVal?i18t('home_hero_value',{v:`<b>${esc(activeVal)}</b>`}):'',
     apprMineN?i18tn('home_hero_need',apprMineN,{n:`<b>${apprMineN}</b>`}):'',
   ].filter(Boolean).join(' · ');
+  /* THE GREETING IS BACK, OWNER-ASKED (20 Aug 2026, off the old hero render —
+     this reverses "a page title is not a salutation"): a small time-of-day
+     line over the page's real title. The hour is the reader's own clock; the
+     name is their first name, falling back to the dictionary's "there". */
+  const hour=new Date().getHours();
+  const greetKey=hour<12?'home_greet_morning':hour<17?'home_greet_afternoon':'home_greet_evening';
+  const firstName=String((me&&me.name)||'').trim().split(/\s+/)[0]||i18t('home_greet_there');
   const heroSection=`
     <section class="hm-banner">
       <div style="min-width:0;">
-        <span class="hm-banner-badge"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="rgba(20,184,166,.35)" stroke="none"/><polyline points="8 12.5 11 15.5 16 9.5"/></svg>${i18t('home_hero_badge')}</span>
-        <h2>${i18t('home_hero_title')}</h2>
+        <span class="hm-banner-greet">${i18t(greetKey)}, ${esc(firstName)}</span>
+        <h2>${i18t('home_clm_title')}</h2>
         <p>${heroLine}</p>
       </div>
       <span style="flex:1 1 auto;"></span>

@@ -142,3 +142,37 @@ describe('N2 (3) — when the machine could not help', () => {
     assert.ok(!/READ FROM THE DOCUMENT/.test(html));
   });
 });
+
+describe('N2 (4) — who we are on this agreement (owner-asked 20 Aug 2026)', () => {
+  /* The popup never asked which of OUR entities is contracting, so an upload
+     carried no party at all — and the banner sentence that names the party
+     crashed the whole workspace on the first non-executed upload (MK-358,
+     "OURS is not defined"). The field is a datalist behind an ordinary text
+     box, the FX picker's rule: it OFFERS the workspace name and every entity
+     already on a contract, and REFUSES nothing typed. */
+  test('the field is on the skeleton, prefilled with the workspace, wired to its list', () => {
+    const { sb } = stage({ FIRST_PARTY: 'Wanjiru Catering Ltd' });
+    const html = sb.uploadConfirmHtml(null, null);
+    assert.match(html, /id="up-party"/, 'the field exists from the first render');
+    assert.match(html, /id="up-party"[^>]*value="Wanjiru Catering Ltd"/,
+      'prefilled with the workspace — the assumption made out loud, overtypeable');
+    assert.match(html, /id="up-party"[^>]*list="up-party-list"/, 'the box asks its own datalist');
+    assert.match(html, /<datalist id="up-party-list">/);
+    assert.match(html, /id="up-party"[^>]*type="text"/,
+      'a text box, never a select — the list offers, it does not refuse');
+  });
+
+  test('the list is the workspace plus entities already used, deduped, nothing to maintain', () => {
+    const { sb } = stage({ FIRST_PARTY: 'Wanjiru Catering Ltd', state: { contracts: [
+      { id: 'A1', party: 'Highland Juice Ltd' },
+      { id: 'A2', party: 'highland juice ltd' },   // case dupe — one option
+      { id: 'A3', party: '  ' },                    // blank — no option
+      { id: 'A4' },                                 // no party — no option
+      { id: 'A5', party: 'Wanjiru Catering Ltd' },  // the workspace again — one option
+    ], settings: {}, view: 'workspace' } });
+    /* Array.from: the sandbox's own Array fails deepEqual's prototype check */
+    const opts = Array.from(sb.uploadPartyOptions());
+    assert.deepEqual(opts, ['Wanjiru Catering Ltd', 'Highland Juice Ltd'],
+      'workspace first, then the book\'s own entities, each once');
+  });
+});
