@@ -206,7 +206,7 @@ function renderAdviceTracking(r){
         </div>
       </div>`;
   }).join('');
-  const row=(k,v)=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);font-size:12px"><span style="color:var(--color-neutral-600);flex:none">${k}</span><span style="font-weight:500;text-align:right;min-width:0">${v}</span></div>`;
+  const row=(k,v)=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);font-size:12px"><span style="color:var(--color-neutral-600);flex:none">${k}</span><span style="font-weight:400;text-align:right;min-width:0">${v}</span></div>`;
   const etaBanner = closed
     ? `<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:0;padding:12px 14px;font-size:12px;color:var(--st-ruby-fg);line-height:1.5">This request was closed without delivery${reached('Closed')?` on ${fmtDay(reached('Closed').at)}`:''}. Contact the legal team if that's unexpected.</div>`
     : r.status==='Delivered'

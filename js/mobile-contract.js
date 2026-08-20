@@ -304,7 +304,7 @@ function mTermsHtml(c){
           const empty = !String(r.value||'').trim();
           return `<div style="display:flex;align-items:baseline;justify-content:space-between;gap:14px;padding:13px 14px">
             <span style="font-size:14px;color:var(--color-neutral-600);flex:none">${mEsc(r.label)}</span>
-            <span style="font-size:16px;font-weight:500;text-align:right;min-width:0;color:${empty&&r.miss?'var(--danger)':'var(--color-text)'}">${mEsc(empty?(r.miss?'Not set':'—'):r.value)}</span>
+            <span style="font-size:16px;font-weight:400;text-align:right;min-width:0;color:${empty&&r.miss?'var(--danger)':'var(--color-text)'}">${mEsc(empty?(r.miss?'Not set':'—'):r.value)}</span>
           </div>`;
         }).join('')}
       </div>
@@ -447,7 +447,7 @@ function mOverflowSheetHtml(){
     <div class="m-grab"></div>
     ${items.map(i=>`
       <button class="m-row" data-m-act="${i.k}" style="padding:0 12px;border-radius:0">
-        <span style="flex:1;font-size:16px;font-weight:500;color:${i.muted?'var(--color-neutral-400)':'var(--color-text)'}">${mEsc(i.label)}</span>
+        <span style="flex:1;font-size:16px;font-weight:400;color:${i.muted?'var(--color-neutral-400)':'var(--color-text)'}">${mEsc(i.label)}</span>
         ${i.desk?`<span style="flex:none;font-size:14px;color:var(--color-neutral-600)">${i18t('m_computer')}</span>`:''}
       </button>`).join('')}
     <button class="m-btn m-btn-quiet" style="margin-top:6px" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;

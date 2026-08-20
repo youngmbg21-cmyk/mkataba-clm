@@ -147,7 +147,7 @@ function mHomeHtml(){
       ${expiring.slice(0,6).map(x=>`
         <button class="m-row" data-m-open="${mEsc(x.c.id)}">
           <span style="flex:1;min-width:0">
-            <span class="m-row-name" style="font-weight:500">${mEsc(x.c.name||x.c.id)}</span>
+            <span class="m-row-name" style="font-weight:400">${mEsc(x.c.name||x.c.id)}</span>
             <span class="m-row-sub">${mEsc((typeof cParty==='function'?cParty(x.c):x.c.counterparty)||'—')}</span>
           </span>
           <span style="flex:none;font-size:14px;color:var(--color-neutral-600);white-space:nowrap">${mEsc(x.d===0?'today':'in '+x.d+'d')}</span>
@@ -172,12 +172,12 @@ function mHomeHtml(){
       ${expHtml}
       <div class="m-card m-list" style="margin:14px 16px 24px">
         <button class="m-row" data-m-act="portfolio">
-          <span style="flex:1;font-size:16px;font-weight:500;color:var(--color-accent-700)">${i18t('m_portfolio')}</span>
+          <span style="flex:1;font-size:16px;font-weight:400;color:var(--color-accent-700)">${i18t('m_portfolio')}</span>
           <span style="font-size:14px;color:var(--color-neutral-600)">${i18t('m_figures_streams')}</span>
           ${M_CHEV}
         </button>
         <button class="m-row" data-m-act="more">
-          <span style="flex:1;font-size:16px;font-weight:500;color:var(--color-accent-700)">${i18t('m_more')}</span>
+          <span style="flex:1;font-size:16px;font-weight:400;color:var(--color-accent-700)">${i18t('m_more')}</span>
           <span style="font-size:14px;color:var(--color-neutral-600)">${i18t('m_more_sub')}</span>
           ${M_CHEV}
         </button>
@@ -200,7 +200,7 @@ function mKpiSheetHtml(){
     /* A row that cannot be turned on goes quiet rather than staying bright and
        refusing on the tap — the same statement the desktop rows make. */
     return `<button class="m-row" data-m-kpi-toggle="${id}"${shut?' style="opacity:.45"':''}>
-      <span style="flex:1;min-width:0"><span class="m-row-name" style="font-weight:500">${mEsc(KPI_META[id]||id)}</span></span>
+      <span style="flex:1;min-width:0"><span class="m-row-name" style="font-weight:400">${mEsc(KPI_META[id]||id)}</span></span>
       <span style="flex:none;width:22px;height:22px;border-radius:0;display:grid;place-items:center;border:1.5px solid ${on?'var(--accent-solid)':'var(--color-divider)'};background:${on?'var(--accent-solid)':'transparent'};color:#fff">
         ${on?`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`:''}
       </span>
@@ -401,19 +401,19 @@ function mNewSheetHtml(){
   const routes = `
     <button class="m-row" data-m-act="new-wizard">
       <span style="flex:1;min-width:0">
-        <span class="m-row-name" style="font-weight:500">${i18t('m_draft_from_template')}</span>
+        <span class="m-row-name" style="font-weight:400">${i18t('m_draft_from_template')}</span>
         <span class="m-row-sub">${i18t('m_hati_standard')}</span>
       </span>${M_CHEV}
     </button>
     <button class="m-row" data-m-act="new-upload">
       <span style="flex:1;min-width:0">
-        <span class="m-row-name" style="font-weight:500">${i18t('m_upload_received')}</span>
+        <span class="m-row-name" style="font-weight:400">${i18t('m_upload_received')}</span>
         <span class="m-row-sub">${i18t('m_their_word_pdf')}</span>
       </span>${M_CHEV}
     </button>
     <button class="m-row" data-m-act="new-import">
       <span style="flex:1;min-width:0">
-        <span class="m-row-name" style="font-weight:500">${i18t('m_import_many')}</span>
+        <span class="m-row-name" style="font-weight:400">${i18t('m_import_many')}</span>
         <span class="m-row-sub">${i18t('m_import_many_sub')}</span>
       </span>
       <span style="flex:none;font-size:14px;color:var(--color-neutral-600)">${i18t('m_computer')}</span>
@@ -458,9 +458,9 @@ function mApprovalsHtml(){
       ${open?`
       <div style="border-top:1px solid var(--color-divider);padding:14px">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 14px">
-          <div><div class="m-note">${i18t('m_counterparty')}</div><div style="font-size:16px;font-weight:500;margin-top:1px">${mEsc((typeof cParty==='function'?cParty(c):c.counterparty)||'—')}</div></div>
+          <div><div class="m-note">${i18t('m_counterparty')}</div><div style="font-size:16px;font-weight:400;margin-top:1px">${mEsc((typeof cParty==='function'?cParty(c):c.counterparty)||'—')}</div></div>
           <div><div class="m-note">${i18t('m_value')}</div><div style="font-size:16px;font-weight:600;margin-top:1px">${mEsc(mMoney(c))}</div></div>
-          <div style="grid-column:1 / -1"><div class="m-note">${requested&&requested.user?'Requested by':'Waiting'}</div><div style="font-size:16px;font-weight:500;margin-top:1px">${
+          <div style="grid-column:1 / -1"><div class="m-note">${requested&&requested.user?'Requested by':'Waiting'}</div><div style="font-size:16px;font-weight:400;margin-top:1px">${
             [requested&&requested.user ? mEsc(requested.user) : '',
              x.idle ? `${x.idle} day${x.idle===1?'':'s'} ago` : 'since today'].filter(Boolean).join(' · ')}</div></div>
         </div>

@@ -3068,7 +3068,7 @@ function renderBriefSection(c){
       /* Grey, not a second colour: "unusual" is worth knowing, not a warning,
          and three tints in one panel would flatten the one that matters. */
       #brief-section .br-odd{background:var(--st-gray-bg);border-left:3px solid var(--st-gray-dot)}
-      #brief-section .br-point{font-size:13px;line-height:1.6;font-weight:500;color:var(--color-text)}
+      #brief-section .br-point{font-size:13px;line-height:1.6;font-weight:400;color:var(--color-text)}
       #brief-section .br-quote{font-size:11.5px;line-height:1.5;color:var(--color-neutral-600);
         font-style:italic;margin-top:5px}
       #brief-section .br-facts{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;

@@ -478,7 +478,7 @@ function openObligationsReview(c, found){
       <div class="space-y-2 max-h-[45vh] overflow-y-auto scroll-thin mb-4">
         ${found.map((o,i)=>`<label class="flex gap-2.5 rounded-lg border border-line bg-white px-3 py-2.5 cursor-pointer">
           <input type="checkbox" data-ob-pick="${i}" checked class="mt-0.5 h-4 w-4 rounded border-brand-200 accent-brand-700"/>
-          <span class="min-w-0"><span class="block text-[12.5px] font-500 text-ink">${(o.desc||'').replace(/</g,'&lt;')}</span>
+          <span class="min-w-0"><span class="block text-[12.5px] font-normal text-ink">${(o.desc||'').replace(/</g,'&lt;')}</span>
           ${o.quote?`<span class="block text-[10px] text-ink/50 italic mt-0.5">“${o.quote.replace(/</g,'&lt;')}”</span>`:''}</span></label>`).join('')}
       </div>
       <div class="flex justify-end gap-2">

@@ -246,7 +246,7 @@ function negoStyleHtml(){
   .nego-brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;letter-spacing:.2px;flex:none}
   .nego-brand .mark{width:26px;height:26px;border-radius:0;
     background:linear-gradient(135deg,#4d6d8f,#33475c 65%);border:1px solid rgba(255,255,255,.25);
-    display:grid;place-items:center;font-size:12px;font-weight:800}
+    display:grid;place-items:center;font-size:12px;font-weight:700}
   .nego-brand small{font-weight:400;opacity:.75;font-size:11.5px;margin-left:2px}
   .nego-crumbs{display:flex;align-items:center;gap:8px;font-size:12.5px;color:rgba(255,255,255,.82);min-width:0}
   /* The way out. The prototype's "Doc" breadcrumb chip IS the exit, because it
@@ -282,7 +282,7 @@ function negoStyleHtml(){
     border:1px solid var(--st-green-line);border-left:4px solid var(--n-accept);background:var(--st-green-bg);
     border-radius:0;padding:10px 14px}
   .nego-readysig .tick{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;
-    background:var(--n-accept);color:#fff;font-size:11px;font-weight:800}
+    background:var(--n-accept);color:#fff;font-size:11px;font-weight:700}
   .nego-readysig .body{flex:1;min-width:220px;font-size:12px;line-height:1.5;color:var(--st-green-fg)}
   .nego-readysig .row{display:block}
   .nego-readysig .row+.row{margin-top:3px;color:var(--n-ink-soft)}
@@ -298,7 +298,7 @@ function negoStyleHtml(){
   .nego-closed[data-state="signed"]{border-color:var(--st-green-line);border-left-color:var(--n-accept);background:var(--st-green-bg)}
   .nego-closed[data-state="declined"]{border-color:var(--st-ruby-line);border-left-color:var(--n-reject);background:var(--st-ruby-bg)}
   .nego-closed .tick{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;
-    background:var(--n-slate);color:#fff;font-size:11px;font-weight:800}
+    background:var(--n-slate);color:#fff;font-size:11px;font-weight:700}
   .nego-closed[data-state="signed"] .tick{background:var(--n-accept)}
   .nego-closed[data-state="declined"] .tick{background:var(--n-reject)}
   .nego-closed .body{flex:1;min-width:220px;font-size:12px;line-height:1.5;color:var(--n-ink)}
@@ -312,7 +312,7 @@ function negoStyleHtml(){
   .nego-gaps[data-locked="1"]{border-color:var(--n-line);background:var(--n-badge-bg);
     border-left-color:var(--n-slate)}
   .nego-gaps .mark{flex:none;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;
-    background:var(--st-amber-dot);color:#fff;font-size:11px;font-weight:800;line-height:1}
+    background:var(--st-amber-dot);color:#fff;font-size:11px;font-weight:700;line-height:1}
   .nego-gaps[data-locked="1"] .mark{background:var(--n-slate)}
   .nego-gaps .body{flex:1;min-width:200px;font-size:11.5px;line-height:1.55;color:var(--n-ink)}
   .nego-gaps .body b{font-weight:700}
@@ -366,7 +366,7 @@ function negoStyleHtml(){
   .nego-ver{font-family:var(--n-font-mono);font-size:10.5px;font-weight:600;
     background:var(--n-badge-bg);color:var(--n-slate-soft);
     border:1px solid #d6e0ea;border-radius:0;padding:1px 7px;flex:none}
-  .nego-sub{font-weight:500;color:var(--n-ink-soft);font-size:11.5px;min-width:0;
+  .nego-sub{font-weight:400;color:var(--n-ink-soft);font-size:11.5px;min-width:0;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .nego-fold{margin-left:auto;flex:none;border:1px solid #d6e0ea;background:var(--n-badge-bg);
     color:var(--n-slate-soft);border-radius:0;padding:2px 8px;font:inherit;font-size:10.5px;
@@ -860,7 +860,7 @@ function negoStyleHtml(){
   .nego-vsel:hover{border-color:var(--n-slate-soft)}
   .nego-cmp-bar{flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 14px;
     border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-left:4px solid var(--st-amber-dot);border-radius:0;padding:9px 13px}
-  .nego-cmp-tag{flex:none;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+  .nego-cmp-tag{flex:none;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
     background:var(--st-amber-dot);color:#fff;border-radius:0;padding:2px 7px}
   .nego-cmp-txt{flex:1;min-width:220px;font-size:11.5px;line-height:1.5;color:var(--st-amber-fg)}
   /* Clean read is a HYPOTHETICAL, not history — so it is the room's own slate
@@ -882,7 +882,7 @@ function negoStyleHtml(){
   .nego-cmp-exit{flex:none;border:1px solid var(--st-amber-fg);background:var(--st-amber-fg);color:#fff;border-radius:0;
     padding:6px 13px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
   .nego-cmp-exit:hover{filter:brightness(1.15)}
-  .nego-st{margin-left:auto;font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;
+  .nego-st{margin-left:auto;font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
     border-radius:0;padding:2px 7px}
   .nego-st.pending{background:#fdf3e3;color:#9a6a1f}
   html.dark .nego-st.pending{background:var(--st-amber-bg);color:var(--st-amber-fg)}
@@ -1066,7 +1066,7 @@ function negoStyleHtml(){
   .nego-thread{margin-top:10px;border-top:1px dashed var(--n-line);padding-top:10px;display:none}
   .nego-thread.open{display:block}
   .nego-thead{display:flex;align-items:center;gap:8px;margin-bottom:7px}
-  .nego-tlabel{flex:1;min-width:0;font-size:10px;font-weight:800;letter-spacing:.5px;
+  .nego-tlabel{flex:1;min-width:0;font-size:10px;font-weight:700;letter-spacing:.5px;
     text-transform:uppercase;color:var(--n-ink-soft)}
   /* The way back to a card the size it was, at the top of the thread so a long
      conversation never puts it out of reach. */
@@ -1135,7 +1135,7 @@ function negoStyleHtml(){
   }
   #nego-drawer{display:none;position:absolute;right:14px;bottom:44px;z-index:7;width:46px;height:46px;
     border-radius:50%;place-items:center;background:var(--n-slate);color:#fff;border:0;
-    font:inherit;font-size:11px;font-weight:800;box-shadow:var(--n-shadow-pop);cursor:pointer}
+    font:inherit;font-size:11px;font-weight:700;box-shadow:var(--n-shadow-pop);cursor:pointer}
 
   /* MOTION IS THE DECORATION, NOT THE MESSAGE. With animation off, both signals
      have to survive as colour — a reader who has asked for no movement is not
@@ -3220,7 +3220,7 @@ function negoPanesHtml(c, opts = {}){
     <aside class="nego-pane index" id="nego-index" aria-label="${i18t('ng_fingerprinted_index')}">
       <div class="nego-index-head">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
-          <h3 style="font-size:12.5px;font-weight:800;margin:0;flex:1;min-width:0">${i18t('ng_change_index')}</h3>
+          <h3 style="font-size:12.5px;font-weight:700;margin:0;flex:1;min-width:0">${i18t('ng_change_index')}</h3>
           <span class="nego-count" id="nego-count">${cmp && !cmp.live ? cmp.moved : (p.pending || p.total)}</span>
           <button class="nego-fold" id="nego-fold" title="${i18t('ng_fold_index')}">${i18t('ng_hide')}</button>
         </div>
@@ -7079,7 +7079,7 @@ function redlineLayoutCss(){
      one gives back are what lets a 1600px laptop keep the controls up there
      instead of dropping them to a line of their own. */
   .rl-seg,
-  .redline-page .rl-seg{border:0;background:none;font:inherit;font-size:12px;font-weight:500;
+  .redline-page .rl-seg{border:0;background:none;font:inherit;font-size:12px;font-weight:400;
     height:26px;padding:0 10px;border-radius:0;cursor:pointer;color:var(--color-neutral-500);
     white-space:nowrap;transition:background .12s,color .12s}
   .rl-seg.on,
@@ -7093,7 +7093,7 @@ function redlineLayoutCss(){
      is a way into the work, not the act that ends the round. */
   .redline-page .rl-needs{display:flex;align-items:center;gap:8px;height:34px;flex:none;
     border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;
-    padding:0 13px;font:inherit;font-size:12px;font-weight:500;color:var(--color-neutral-700);
+    padding:0 13px;font:inherit;font-size:12px;font-weight:400;color:var(--color-neutral-700);
     cursor:pointer;white-space:nowrap}
   .redline-page .rl-needs:hover{border-color:var(--color-neutral-400);color:var(--color-text)}
   .redline-page .rl-needs-dot{width:7px;height:7px;border-radius:0;background:var(--st-amber-dot);flex:none}
@@ -8187,7 +8187,7 @@ function redlineLayoutCss(){
   ${''/* the read-only sentence also lives inside the head; on the one-line
      head it must never share the caption's line. */}
   .redline-page .rl-idx-head .nego-why{flex-basis:100%}
-  .redline-page .rl-idx-k{flex:1;min-width:0;font-size:10.5px;font-weight:800;letter-spacing:.12em;
+  .redline-page .rl-idx-k{flex:1;min-width:0;font-size:10.5px;font-weight:700;letter-spacing:.12em;
     text-transform:uppercase;color:var(--color-neutral-600)}
   .redline-page .rl-idx-n{flex:none;font-family:var(--font-mono);font-size:11px;font-weight:700;
     letter-spacing:.01em;font-variant-numeric:tabular-nums;color:var(--color-neutral-500);
@@ -8323,7 +8323,7 @@ function redlineLayoutCss(){
   .redline-page textarea.rl-cnote-in:focus{border-color:var(--color-accent-500)}
   .redline-page .rl-cnote-foot{display:flex;align-items:center;gap:9px;margin-top:7px}
   .redline-page .rl-cnote-add{flex:none;border:1px solid var(--color-divider);border-radius:0;
-    background:var(--color-surface);padding:5px 12px;font:inherit;font-size:12.5px;font-weight:500;
+    background:var(--color-surface);padding:5px 12px;font:inherit;font-size:12.5px;font-weight:400;
     color:var(--color-neutral-700);cursor:pointer}
   .redline-page .rl-cnote-add:hover{border-color:var(--color-neutral-400);color:var(--color-text)}
   /* The promise under the button. It is the whole of what this composer is,
@@ -8699,7 +8699,7 @@ function redlineLayoutCss(){
      matters — it scrolled away behind the rows it was counting. */
   .redline-page .rl-q-head{position:relative;flex:none;padding:14px 10px 10px;
     border-bottom:1px solid var(--color-divider)}
-  .redline-page .rl-q-label{margin:0 26px 8px 0;font-size:9.5px;font-weight:800;
+  .redline-page .rl-q-label{margin:0 26px 8px 0;font-size:9.5px;font-weight:700;
     letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-500)}
   /* ---- THE CLOSE ----
      Same corner the fold chevron used, same id, and it is now what it always
@@ -8729,7 +8729,7 @@ function redlineLayoutCss(){
     border:1px solid var(--color-divider);border-radius:0;padding:0 6px}
   /* The mark column is a fixed width on every row, answered or not, so the
      clause names line up down the list instead of stepping in and out. */
-  .redline-page .rl-q-mark{flex:none;width:14px;text-align:center;font-weight:800;line-height:1}
+  .redline-page .rl-q-mark{flex:none;width:14px;text-align:center;font-weight:700;line-height:1}
   .redline-page .rl-q-row.is-done{color:var(--st-green-fg)}
   .redline-page .rl-q-row.is-done .rl-q-st{color:var(--st-green-fg)}
   .redline-page .rl-q-row.is-waiting{color:var(--color-neutral-400)}

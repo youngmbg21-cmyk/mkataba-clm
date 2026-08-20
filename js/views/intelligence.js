@@ -722,14 +722,20 @@ function renderIntel(){
      the live one is the one with the accent rule under it. The -1px bottom
      margin drops that rule onto the header's own hairline so the two share a
      single line instead of stacking two. */
-  const UNDERTAB='border:0;border-radius:0;background:none;margin-bottom:-1px;padding:10px 1px;font:inherit;font-weight:600;cursor:pointer;display:flex;align-items:center';
+  /* NO WEIGHT HERE — each builder sets its own, because weight is half the
+     active state (20 Aug 2026, measured against the SAP render, which draws
+     every tab `active ? 700 : 400`). This carried a flat 600 for every tab,
+     live or not, so the row had no weight contrast and the duplex 600 did not
+     even widen the live one: colour and the underline were doing all the work
+     on their own. */
+  const UNDERTAB='border:0;border-radius:0;background:none;margin-bottom:-1px;padding:10px 1px;font:inherit;cursor:pointer;display:flex;align-items:center';
   /* align-self:stretch, NOT a fixed height. The strip grows when the caption
      runs to two lines on a narrow window; a centred button would leave its
      underline floating in the middle of a tall strip. Stretched, the rule
      always lands on the strip's own hairline, and -1px puts the two on the
      same line instead of stacking them. */
   const TABROW='display:flex;align-items:stretch;align-self:stretch;flex:none';
-  const tabBtn=(k,label)=>`<button data-ig-tab="${k}" style="${UNDERTAB};border-bottom:2px solid ${intel.tab===k?'var(--accent-solid,var(--color-accent))':'transparent'};font-size:12.5px;color:${intel.tab===k?'var(--accent-ink,var(--color-accent))':'var(--color-neutral-500)'}">${label}</button>`;
+  const tabBtn=(k,label)=>`<button data-ig-tab="${k}" style="${UNDERTAB};border-bottom:2px solid ${intel.tab===k?'var(--accent-solid,var(--color-accent))':'transparent'};font-size:12.5px;font-weight:${intel.tab===k?700:400};color:${intel.tab===k?'var(--accent-ink,var(--color-accent))':'var(--color-neutral-500)'}">${label}</button>`;
   const tabsHtml=`<div style="${TABROW};gap:20px">${tabBtn('frame',i18t('pf_tab'))}${tabBtn('friction',i18t('int_negotiation_friction'))}${tabBtn('map',i18t('int_contract_graph'))}</div>`;
   /* The friction levers live IN the header strip (the approved comp): the
      period toggle and the counterparty select sit beside the tabs, so the
@@ -739,7 +745,7 @@ function renderIntel(){
      it is done by clicking a name in the report itself (data-igf-cp), and Clear
      below still lifts it — so the strip carries one lever, not two. */
   const ffOn=days=>days==null?!(ff&&ff.days):(ff&&ff.days)===days;
-  const ffSeg=(days,label)=>`<button data-igf-days="${days==null?'':days}" style="${UNDERTAB};border-bottom:2px solid ${ffOn(days)?'var(--accent-solid,var(--color-accent))':'transparent'};font-size:11.5px;color:${ffOn(days)?'var(--accent-ink,var(--color-accent))':'var(--color-neutral-500)'}">${label}</button>`;
+  const ffSeg=(days,label)=>`<button data-igf-days="${days==null?'':days}" style="${UNDERTAB};border-bottom:2px solid ${ffOn(days)?'var(--accent-solid,var(--color-accent))':'transparent'};font-size:11.5px;font-weight:${ffOn(days)?700:400};color:${ffOn(days)?'var(--accent-ink,var(--color-accent))':'var(--color-neutral-500)'}">${label}</button>`;
   const frictionControls=`
       <div style="${TABROW};gap:16px">${ffSeg(null,i18t('int_all_time'))}${ffSeg(90,i18t('int_last_90'))}</div>
       ${ff&&(ff.counterparty||ff.days||ff.clause)?`<button id="ig-friction-clear" style="border:0;background:none;cursor:pointer;font:inherit;font-size:11px;font-weight:700;color:var(--color-accent);flex:none">✕ Clear</button>`:''}`;
@@ -761,7 +767,7 @@ function renderIntel(){
       ${intel.tab==='map'?`<span class="ig-hd-sub" style="font-size:11.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;min-width:0">${state.contracts.length.toLocaleString(jxLocale())} contracts · ask the panel to read, summarise, quote or flag risky clauses</span>`:''}
       <span style="flex:1"></span>
       ${intel.tab==='friction'?frictionControls:''}
-      ${intel.tab==='map'?`<label style="display:flex;align-items:center;gap:8px;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600);flex:none">Group by
+      ${intel.tab==='map'?`<label style="display:flex;align-items:center;gap:8px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600);flex:none">Group by
         <span style="position:relative;display:inline-flex;align-items:center">
           <select id="ig-group" style="appearance:none;-webkit-appearance:none;-moz-appearance:none;border:1.5px solid var(--color-accent);background:var(--color-accent-100);color:var(--color-accent-800);font-family:var(--font-heading);font-weight:600;font-size:13px;letter-spacing:0;text-transform:none;padding:5px 26px 5px 11px;border-radius:0;cursor:pointer;outline:none">
             ${groupOpts.map(([k,l])=>`<option value="${k}" ${intel.groupBy===k?'selected':''}>${l}</option>`).join('')}

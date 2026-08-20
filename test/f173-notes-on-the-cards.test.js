@@ -175,8 +175,14 @@ describe('f173 · the column head is a caption and a count', () => {
     const css = p.css();
     /* 10.5, not 9.5: the whole head went up one size (owner-asked 16 Aug 2026
        — "increase everything under the highlight by one size font"). The
-       weight and tracking are the claim that never moved. */
-    assert.ok(/\.rl-idx-k\{[^}]*font-size:10\.5px;font-weight:800;letter-spacing:\.12em/.test(css),
+       weight and tracking are the claim that never moved.
+
+       REVERSED IN PLACE 20 Aug 2026: 800 became 700. "72" ships four cuts and
+       800 is not one of them, so this caption was ALREADY rendering at 700 —
+       measured, identical ink and identical width to a real 700. The claim is
+       unchanged (the caption keeps its bold label type); only the source now
+       asks for the weight it was always getting. */
+    assert.ok(/\.rl-idx-k\{[^}]*font-size:10\.5px;font-weight:700;letter-spacing:\.12em/.test(css),
       'the caption keeps its label type, one size up');
     const n = /\.rl-idx-n\{([^}]*)\}/.exec(css)[1];
     assert.match(n, /font-family:var\(--font-mono\)/,

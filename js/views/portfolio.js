@@ -136,7 +136,7 @@ function pfFigures(){
 
   const tile=(k,v,d,hero)=>`<div style="${PF_CARD};padding:12px 14px;gap:1px${hero?';background:var(--brand-hero,var(--color-accent-700));border-color:transparent;color:#fff':''}">
     <div style="font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:${hero?'var(--brand-hero-sub,#bde7e1)':'var(--color-neutral-600)'}">${k}</div>
-    <div style="font-family:var(--font-heading);font-size:22px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1.2">${v}</div>
+    <div style="font-family:var(--font-heading);font-size:22px;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1.2">${v}</div>
     <div style="font-size:10.5px;color:${hero?'var(--brand-hero-sub,#bde7e1)':'var(--color-neutral-600)'}">${d}</div></div>`;
 
   const heroLabel = pfMoneyOk() ? i18t('pf_contracted_value') : i18t('pf_contracts_live');
@@ -169,7 +169,7 @@ function pfWhereValueSits(){
         <span style="display:block;height:${dense?'6px':'7px'};margin-top:5px;border-radius:0;background:var(--color-neutral-100);overflow:hidden">
           <span style="display:block;height:100%;width:${Math.max(2,Math.round(e.v/max*100))}%;border-radius:0;background:var(--accent-solid,var(--color-accent))"></span></span>
       </span>
-      <span style="text-align:right;font-family:var(--font-heading);font-size:${dense?'14px':'16px'};font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums">${pfMoneyOk()?pfEsc(pfMoney(e.v)):e.n}</span>
+      <span style="text-align:right;font-family:var(--font-heading);font-size:${dense?'14px':'16px'};font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums">${pfMoneyOk()?pfEsc(pfMoney(e.v)):e.n}</span>
     </button>`;
   }).join('');
   const foot = pfMoneyOk()
@@ -265,7 +265,7 @@ function pfBiggest(){
     const e=per.get(k), sel=F.cp===k;
     return `<tr data-pf-cp="${pfEsc(k)}" style="cursor:pointer;${sel?'background:color-mix(in srgb,var(--color-accent) 10%,transparent)':''}">
       <td style="${td};font-weight:600">${pfEsc(k)}
-        <div style="font-size:10px;color:var(--color-neutral-600);font-weight:500">${pfEsc(pfCatLabel(e.cat))}${e.n>1?' · '+pfN(e.n,'contracts'):''}</div></td>
+        <div style="font-size:10px;color:var(--color-neutral-600);font-weight:400">${pfEsc(pfCatLabel(e.cat))}${e.n>1?' · '+pfN(e.n,'contracts'):''}</div></td>
       <td style="${td};width:30%"><span style="display:block;height:7px;border-radius:0;background:var(--accent-solid,var(--color-accent));width:${Math.max(2,Math.round(e.v/max*100))}%"></span></td>
       <td style="${td};text-align:right;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap">${pfMoneyOk()?pfEsc(pfMoney(e.v)):e.n}</td>
       <td style="${td};text-align:right;white-space:nowrap">${e.find
@@ -753,7 +753,7 @@ function pfMoneyHeld(){
         :{bg:'var(--color-neutral-100)',fg:'var(--color-neutral-700)'};
       return `<tr data-pf-open="${pfEsc(r.id)}" style="cursor:pointer">
         <td style="${td};font-weight:600">${pfEsc(r.name)}
-          <div style="font-size:10px;color:var(--color-neutral-600);font-weight:500">${r.retentionPct}% ${i18t('pf_ret_held_lc')}${due?' · '+i18t('pf_ret_due_back')+' '+pfEsc(pfDate(due)):''}</div></td>
+          <div style="font-size:10px;color:var(--color-neutral-600);font-weight:400">${r.retentionPct}% ${i18t('pf_ret_held_lc')}${due?' · '+i18t('pf_ret_due_back')+' '+pfEsc(pfDate(due)):''}</div></td>
         <td style="${td};text-align:right;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap">${pfEsc(pfMoney(r.held))}</td>
         <td style="${td};width:1%"><span style="font-size:9.5px;font-weight:700;padding:1px 7px;border-radius:0;background:${pal.bg};color:${pal.fg};white-space:nowrap">${st.t}</span></td></tr>`;
     }).join('')}</tbody></table></div>`;
@@ -872,7 +872,7 @@ function pfWonLost(){
   const seg=(v,col)=>`<span style="display:block;height:100%;width:${v/tot*100}%;background:${col}"></span>`;
   const stat=(k,v,d,col)=>`<div style="background:var(--color-neutral-100);border-left:3px solid ${col};border-radius:0;padding:7px 10px">
     <div style="font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-600)">${k}</div>
-    <div style="font-family:var(--font-heading);font-size:15px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums">${v}</div>
+    <div style="font-family:var(--font-heading);font-size:15px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums">${v}</div>
     <div style="font-size:10px;color:var(--color-neutral-600)">${d}</div></div>`;
   const body=`<div style="display:flex;height:22px;border-radius:0;overflow:hidden;border:1px solid var(--color-divider);margin-bottom:9px">
       ${seg(wv,'var(--accent-solid,var(--color-accent))')}${seg(ov,'var(--color-neutral-400)')}${seg(lv,'var(--color-neutral-300)')}</div>

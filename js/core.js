@@ -2596,7 +2596,7 @@ function shareSummaryStepHtml(c, opts={}){
         <span style="display:block;font-size:12.5px;font-weight:600;color:var(--color-text);line-height:1.45">${esc(x.summary||x.kind)}</span>
         <span style="display:block;font-size:11px;color:var(--color-neutral-600);margin-top:1px">${esc(x.clause)} · ${esc(x.kind)} · ${esc(x.mine?'yours':x.author)}</span>
       </span>
-      <span style="flex:none;font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;border-radius:0;padding:2px 6px;margin-top:1px;
+      <span style="flex:none;font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:0;padding:2px 6px;margin-top:1px;
         background:${x.status==='accepted'?'var(--st-green-bg)':x.status==='rejected'?'var(--st-ruby-bg)':'var(--st-amber-bg)'};
         color:${x.status==='accepted'?'var(--st-green-fg)':x.status==='rejected'?'var(--st-ruby-dot)':'var(--st-amber-fg)'}">${esc(x.status)}</span>
     </li>`).join('') : '';
@@ -2754,14 +2754,14 @@ function shareSignerRowsHtml(c, sel){
       style="display:flex;align-items:flex-start;gap:8px;width:100%;text-align:left;font:inherit;border:1px solid ${on?'var(--color-accent)':'var(--color-divider)'};
         background:${on?'var(--color-accent-100)':'var(--color-surface)'};border-radius:0;padding:7px 9px;margin-bottom:5px;
         cursor:${pickable?'pointer':'default'};opacity:${pickable||s.signed?'1':'.7'}">
-      <span style="flex:none;width:17px;height:17px;border-radius:50%;display:grid;place-items:center;font-size:9.5px;font-weight:800;
+      <span style="flex:none;width:17px;height:17px;border-radius:50%;display:grid;place-items:center;font-size:9.5px;font-weight:700;
         background:${on?'var(--color-accent)':'var(--color-neutral-100)'};color:${on?'#fff':'var(--color-neutral-700)'}">${i+1}</span>
       <span style="flex:1;min-width:0">
         <span style="display:block;font-size:12px;font-weight:600;color:var(--color-text)">${esc(s.name||'—')}${
           s.role?`<span style="font-weight:400;color:var(--color-neutral-600)"> · ${esc(s.role)}</span>`:''}</span>
         <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);line-height:1.45">${note}</span>
       </span>
-      ${on?`<span style="flex:none;font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--color-accent-800)">${i18t('co_signer_this_link')}</span>`:''}
+      ${on?`<span style="flex:none;font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--color-accent-800)">${i18t('co_signer_this_link')}</span>`:''}
     </${pickable?'button':'div'}>`;
   }).join('');
   return { plan, html };
@@ -4801,7 +4801,7 @@ async function renderSharesSection(c){
         return `<div style="border:1px solid var(--color-divider);border-radius:0;padding:8px 10px;background:var(--color-bg)">
           <div style="display:flex;align-items:center;gap:8px;min-width:0">
             ${shareChip(s.state)}
-            <span style="flex:1;min-width:0;font-size:11.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${who}">${who}</span>
+            <span style="flex:1;min-width:0;font-size:11.5px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${who}">${who}</span>
             <span style="font-size:9.5px;color:var(--color-neutral-500);font-family:var(--font-mono);flex:none">${chLabel[s.channel]||'Link'}</span>
           </div>
           ${s.responseBy?`<div style="font-size:10.5px;color:var(--color-neutral-700);margin-top:3px">by ${esc(s.responseBy)}</div>`:''}
