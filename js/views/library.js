@@ -1487,9 +1487,23 @@ function renderTemplatesPage(){
 }
 
 /* ============================================================ PLAYBOOK PAGE */
+/* ---- THE CARDS LIVE UNDER TABS (owner-asked 20 Aug 2026, "like in the
+   settings page"). Clause library · Negotiation playbook · Deviations —
+   wearing the Settings page's OWN tab classes (.st-tabs/.st-tab/.st-tabsub),
+   one class defined once, so the two pages cannot drift apart.
+   ALL THREE SECTIONS STAY IN THE DOM and the inactive ones are [hidden]:
+   renderClauseLibrary fills #clause-lib AND #playbook-view by id on every
+   paint, so removing a tab's markup would crash the fill — and every id any
+   door or test reaches for stays reachable. The chosen tab is per sitting,
+   in memory (the Settings page's own rule: a stored tab lands a reader
+   somewhere unrelated a week later). */
+const PB_PAGE_TABS=['clauses','playbook','deviations'];
+const PB_TAB_LABEL={clauses:'lib_clause_library',playbook:'lib_negotiation_playbook',deviations:'lib_portfolio_deviations'};
+const PB_TAB_SUB={clauses:'lib_clause_library_sub',playbook:'lib_playbook_sub',deviations:'lib_deviations_sub'};
+let _pbPageTab=null;
+function pbPageTab(){ return PB_PAGE_TABS.includes(_pbPageTab)?_pbPageTab:'clauses'; }
 function renderPlaybookPage(){
   const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:0';
-  const H4='font-family:var(--font-heading);font-weight:600;font-size:15px;margin:0';
   const canEditLib=isAdmin()||currentUser()?.role==='legal';
 
   // portfolio deviations (from the existing playbook review results)
@@ -1507,40 +1521,56 @@ function renderPlaybookPage(){
     </button>`).join('')
     :`<p style="font-size:11.5px;color:var(--color-neutral-600);margin:0;line-height:1.6">${i18t('lib_no_deviations')} <b>${i18t('lib_copilot_review')}</b> ${i18t('lib_from_workspace')}</p>`;
 
+  const tab=pbPageTab();
+  const tabRow=`<div class="st-tabs" role="tablist">${PB_PAGE_TABS.map(k=>
+    `<button class="st-tab${k===tab?' on':''}" data-pb-tab="${k}" role="tab" aria-selected="${k===tab?'true':'false'}">${esc(i18t(PB_TAB_LABEL[k]))}</button>`).join('')}</div>`;
+
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="padding:16px 18px 28px">
-    <div class="pb-cols" style="display:grid;gap:18px;align-items:start">
+    ${tabRow}
+    <p id="pb-tabsub" class="st-tabsub">${esc(i18t(PB_TAB_SUB[tab]))}</p>
 
-      <section style="${CARD};padding:16px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-          <h4 style="${H4}">${i18t('lib_clause_library')}</h4>
-          <span style="font-size:10.5px;color:var(--color-neutral-600)">${i18t('lib_fallback_wording')} · ${canEditLib?i18t('lib_admin_legal_edit'):i18t('lib_read_only_role')}</span>
-          <span style="flex:1"></span>
-          ${canEditLib?`<button id="cl-add" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 12px">${icon('plus','w-3.5 h-3.5')} ${i18t('lib_add_clause')}</button>`:''}
-        </div>
-        <p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">${i18t('lib_clause_library_sub')}</p>
-        <div id="clause-lib" style="display:flex;flex-direction:column;gap:8px"></div>
-        <!-- W3-2: what the workspace's own settled rounds say the fallback
-             should be. Empty (and undrawn) until there is real history. -->
-        <div id="precedent-panel" class="empty:hidden" style="margin-top:10px"></div>
-      </section>
-
-      <div style="display:flex;flex-direction:column;gap:18px">
-        <section style="${CARD};padding:16px">
-          <h4 style="${H4};margin-bottom:8px">${i18t('lib_negotiation_playbook')}</h4>
-          <p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">${i18t('lib_playbook_sub')}</p>
-          <div id="playbook-view"></div>
-        </section>
-        <section style="${CARD};padding:16px">
-          <h4 style="${H4};margin-bottom:8px">${i18t('lib_portfolio_deviations')}</h4>
-          ${devHtml}
-        </section>
+    ${''/* The card headings retired with the tabs — a card titled with the
+          word on the pressed tab twelve pixels above is the same word twice.
+          The meta line and the controls stay: they carry what the tab
+          cannot (who may edit, and the Add clause door). */}
+    <section data-pb-sec="clauses" ${tab==='clauses'?'':'hidden'} style="${CARD};padding:16px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <span style="font-size:10.5px;color:var(--color-neutral-600)">${i18t('lib_fallback_wording')} · ${canEditLib?i18t('lib_admin_legal_edit'):i18t('lib_read_only_role')}</span>
+        <span style="flex:1"></span>
+        ${canEditLib?`<button id="cl-add" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 12px">${icon('plus','w-3.5 h-3.5')} ${i18t('lib_add_clause')}</button>`:''}
       </div>
-    </div>
+      <div id="clause-lib" style="display:flex;flex-direction:column;gap:8px"></div>
+      <!-- W3-2: what the workspace's own settled rounds say the fallback
+           should be. Empty (and undrawn) until there is real history. -->
+      <div id="precedent-panel" class="empty:hidden" style="margin-top:10px"></div>
+    </section>
+
+    <section data-pb-sec="playbook" ${tab==='playbook'?'':'hidden'} style="${CARD};padding:16px">
+      <div id="playbook-view"></div>
+    </section>
+
+    <section data-pb-sec="deviations" ${tab==='deviations'?'':'hidden'} style="${CARD};padding:16px">
+      ${devHtml}
+    </section>
   </div>`;
 
   renderClauseLibrary();   // fills #clause-lib and #playbook-view, wires edit/add/remove
   document.querySelectorAll('[data-dev-open]').forEach(b=>b.addEventListener('click',()=>openWorkspace(b.getAttribute('data-dev-open'))));
+  /* A tab press is CLASS AND HIDDEN FLIPS, never a re-render: the clause
+     library holds open editors and scroll the reader is in the middle of,
+     and the settings page's own rule is that a selection must not rebuild
+     the screen under the reader. */
+  document.querySelectorAll('[data-pb-tab]').forEach(b=>b.addEventListener('click',()=>{
+    const k=b.getAttribute('data-pb-tab'); if(!PB_PAGE_TABS.includes(k)) return;
+    _pbPageTab=k;
+    document.querySelectorAll('[data-pb-tab]').forEach(t=>{
+      const on=t.getAttribute('data-pb-tab')===k;
+      t.classList.toggle('on',on); t.setAttribute('aria-selected',on?'true':'false');
+    });
+    document.querySelectorAll('[data-pb-sec]').forEach(s=>{ s.hidden=s.getAttribute('data-pb-sec')!==k; });
+    const sub=document.getElementById('pb-tabsub'); if(sub) sub.textContent=i18t(PB_TAB_SUB[k]);
+  }));
   setActiveNav('playbook');
 }
 
