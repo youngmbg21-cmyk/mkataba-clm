@@ -288,6 +288,27 @@ describe('f202 — it has a door on both shells', () => {
     assert.match(work, /data-i18n="nav_people"/);
   });
 
+  test('and it does not share its symbol with Settings & Rules', () => {
+    /* Owner-reported 19 Aug 2026, off a screenshot with both rows ringed: "we
+       need a differentiation in the symbols." The two rows carried the IDENTICAL
+       people drawing — same path data, character for character — so the menu
+       answered "who is in this workspace" and "the rules this workspace runs on"
+       with one picture, two groups apart. People keeps the people; Settings &
+       Rules wears the sliders every product uses for settings.
+
+       Compared as MARKUP rather than by naming a shape, so any future row that
+       reaches for the people mark again fails here rather than shipping. */
+    const html = read('index.html');
+    const svgOf = view => {
+      const at = html.indexOf(`data-view="${view}" class="nav-item"`);
+      const from = html.indexOf('<svg', at);
+      return html.slice(from, html.indexOf('</svg>', from) + 6);
+    };
+    const people = svgOf('directory'), team = svgOf('team');
+    assert.ok(people.length > 40 && team.length > 40, 'both rows draw a symbol');
+    assert.notEqual(people, team, 'two doors, two pictures');
+  });
+
   test('and it is NOT hidden for anybody — unlike Settings & Rules', () => {
     /* setActiveNav hides the team door for a non-admin. Nothing does that to
        this one, and the test names the mechanism so a future gate has to be a

@@ -345,6 +345,49 @@ function fxHome(c) {
   if (!r) return { v: 0, code, converted: false, missing: true };
   return { v: Math.round(v * r.rate), code, converted: true, missing: false, rate: r.rate, at: r.at };
 }
+/* ---- THE CURRENCIES A PICKER CAN OFFER (owner-asked 19 Aug 2026: "there
+   should be a search for currency where options are available") ----
+   A LIST TO CHOOSE FROM, NEVER A LIST THAT REFUSES. The rate route and the
+   panel both still accept ANY three-letter code — this is what a reader can
+   search rather than what they are allowed to say, because a workspace whose
+   counterparty invoices in a currency nobody thought to list must still be
+   able to set a rate for it. Names are English: they are chosen from, not
+   printed on paper, and the code beside each one is the thing that is stored.
+
+   ENGLISH NAMES BESIDE THE CODE, because "USD" and "AUD" and "SGD" all read
+   as dollars to somebody hunting for the right one. */
+const FX_CURRENCIES = {
+  AED: 'UAE dirham', AUD: 'Australian dollar', BWP: 'Botswana pula',
+  CAD: 'Canadian dollar', CHF: 'Swiss franc', CNY: 'Chinese yuan',
+  DKK: 'Danish krone', EGP: 'Egyptian pound', ETB: 'Ethiopian birr',
+  EUR: 'Euro', GBP: 'Pound sterling', GHS: 'Ghanaian cedi',
+  INR: 'Indian rupee', JPY: 'Japanese yen', KES: 'Kenyan shilling',
+  MAD: 'Moroccan dirham', MUR: 'Mauritian rupee', MWK: 'Malawian kwacha',
+  NGN: 'Nigerian naira', NOK: 'Norwegian krone', NZD: 'New Zealand dollar',
+  QAR: 'Qatari riyal', RWF: 'Rwandan franc', SAR: 'Saudi riyal',
+  SEK: 'Swedish krona', SGD: 'Singapore dollar', TZS: 'Tanzanian shilling',
+  UGX: 'Ugandan shilling', USD: 'US dollar', XAF: 'Central African CFA franc',
+  XOF: 'West African CFA franc', ZAR: 'South African rand', ZMW: 'Zambian kwacha',
+};
+const fxCurrencyName = code => FX_CURRENCIES[String(code || '').toUpperCase()] || '';
+/* What the picker offers, in the order that answers the reader's actual
+   question. THE CURRENCIES THIS BOOK IS ACTUALLY WRITTEN IN COME FIRST, and
+   they come from fxMissing — the same reading every surface uses to say what
+   was left out of a converted figure — so "in case you have contracts from
+   other currencies" is answered with this workspace's own facts rather than
+   with a longer alphabet. Then the list above, minus the home currency and
+   anything already on file. */
+function fxPickerCodes(opts = {}){
+  const home = fxHomeCode();
+  const have = Object.keys(opts.rates || (FX_RATES_READ() || {}));
+  const missing = Object.keys(opts.missing || fxMissing(opts.contracts));
+  const seen = new Set([home, ...have]);
+  const out = [];
+  for (const code of missing) if (!seen.has(code)){ seen.add(code); out.push(code); }
+  for (const code of Object.keys(FX_CURRENCIES).sort())
+    if (!seen.has(code)){ seen.add(code); out.push(code); }
+  return out;
+}
 const fxHomeValue = c => fxHome(c).v;
 /* What the converted figures LEFT OUT — {code: count} over valued, live,
    unarchived contracts. */
@@ -381,7 +424,8 @@ const JX_API = { JURISDICTIONS, JX_DEFAULT, JX_LS, JX_OTHER_SEATS,
   jxLandStatute, jxLandForum, jxEg, jxTaxIdField, jxGovernedBy, jxGovernedByArb, jxLeaseLaw,
   fmtMoney, fmtMoneyShort, fmtMoneyShortIn,
   fxSetRatesReader, fxSetHomeReader, fxHomeCode, contractCurrency, fxIsForeign,
-  fxRateFor, fxHome, fxHomeValue, fxMissing, fxMissingLine, fmtMoneyOf, fmtMoneyShortOf };
+  fxRateFor, fxHome, fxHomeValue, fxMissing, fxMissingLine, fmtMoneyOf, fmtMoneyShortOf,
+  FX_CURRENCIES, fxCurrencyName, fxPickerCodes };
 /* Two hosts, one table. The browser gets globals like every other module here;
    server/server.js is a plain Node process with no window, and requires it. */
 if (typeof window !== 'undefined') Object.assign(window, JX_API);

@@ -311,6 +311,27 @@ function openSettingsAt(tab, panel){
   if(ST_TABS.includes(tab)) _stTab=tab;
   _stWantPanel=panel||null;
   if(typeof setView==='function') setView('team'); else renderTeam();
+  /* ---- A NAMED DOOR LANDS AT THE TOP OF WHAT IT OPENS ----
+     (owner-reported 19 Aug 2026: "when I click on the settings and rules
+     button, the landing page it takes me to I land at the bottom of the page
+     and have to scroll up to see what is on the page.")
+
+     setView keeps the reader's scroll when the view it is asked for is the one
+     already on screen — deliberately, and rightly: a save, a delete or a
+     background response that repaints must not throw somebody back to the top.
+     But this is not a repaint. It is a door with a name on it, pressed from the
+     account drawer (which opens over any page, this one included), so "you are
+     already here" is exactly the case that lands the reader at the bottom of a
+     page they have just asked to be shown.
+
+     Written here rather than in setView, because setView cannot tell a
+     navigation from a repaint and this function can: everything that arrives
+     through it is a navigation. The frame is asked twice for the reason setView
+     asks twice — the rebuild's shorter intermediate paint clamps the scroll,
+     and the value has to be put back once the new frame has its height. */
+  const sc=(typeof document!=='undefined')&&document.getElementById('content-scroll');
+  if(sc){ sc.scrollTop=0;
+    if(typeof requestAnimationFrame==='function') requestAnimationFrame(()=>{ sc.scrollTop=0; }); }
 }
 
 /* ---------------- THE DRAWER ----------------
@@ -1306,7 +1327,35 @@ async function stHooksAdd(){
    list and nothing else. Removing is setting the rate to nothing, which puts
    that currency back to "no rate on file" — left out and said, never
    guessed. */
+/* The options the picker offers, and the sentence that says which of them this
+   workspace actually needs. Painted rather than rendered with the panel: a
+   saved rate changes both lists (the code leaves the picker and joins the ones
+   on file) and this page's rule is that it holds still. */
+function stFxPaintPicker(){
+  const list=document.getElementById('st-fx-codes');
+  if(list && typeof fxPickerCodes==='function'){
+    list.innerHTML=fxPickerCodes().map(code=>{
+      const name=(typeof fxCurrencyName==='function'&&fxCurrencyName(code))||'';
+      /* label carries both, because "USD" and "AUD" and "SGD" all read as
+         dollars to somebody hunting for the right one. */
+      return `<option value="${esc(code)}"${name?` label="${esc(code+' — '+name)}"`:''}>${
+        name?esc(code+' — '+name):''}</option>`;
+    }).join('');
+  }
+  const need=document.getElementById('st-fx-need');
+  if(need){
+    const missing=(typeof fxMissing==='function')?fxMissing():{};
+    const codes=Object.keys(missing).sort();
+    /* NAMED, NEVER COUNTED: "3 currencies have no rate" is a number nobody can
+       act on; the codes are what an admin goes and looks up. */
+    need.innerHTML=codes.length
+      ? `<p class="st-note" style="margin:0 0 8px;color:var(--st-amber-fg)">${
+          esc(i18tn('st_fx_needed',codes.length,{n:codes.length,codes:codes.join(', ')}))}</p>`
+      : '';
+  }
+}
 function stFxPaint(){
+  stFxPaintPicker();
   const host=document.getElementById('st-fx-list'); if(!host) return;
   const rates=(state.settings&&state.settings.fxRates)||{};
   const codes=Object.keys(rates).sort();
@@ -1323,7 +1372,11 @@ function stFxPaint(){
   host.querySelectorAll('[data-fx-del]').forEach(b=>b.addEventListener('click',()=>stFxSave(b.getAttribute('data-fx-del'),null)));
 }
 async function stFxSave(codeIn,rateIn){
-  const code=String(codeIn!=null?codeIn:(document.getElementById('st-fx-code')||{value:''}).value).trim().toUpperCase();
+  /* A datalist hands back whatever is in the box, and a reader who picks
+     "USD — US dollar" from the list gets exactly that string. The code is the
+     first three letters of it; the name was only ever there to be searched. */
+  const typed=String(codeIn!=null?codeIn:(document.getElementById('st-fx-code')||{value:''}).value).trim().toUpperCase();
+  const code=(typed.match(/^[A-Z]{3}\b/)||[typed])[0];
   const raw=rateIn!==undefined&&codeIn!=null?rateIn:(document.getElementById('st-fx-rate')||{value:''}).value;
   const rate=(raw===null||String(raw).trim()==='')?null:Number(raw);
   stDrawerClearRefusal();
@@ -1334,6 +1387,10 @@ async function stFxSave(codeIn,rateIn){
     state.settings=state.settings||{}; state.settings.fxRates=(r&&r.fxRates)||{};
     const ce=document.getElementById('st-fx-code'), re=document.getElementById('st-fx-rate');
     if(ce) ce.value=''; if(re) re.value='';
+    /* The row closes behind a save so the LIST of what is set is what the panel
+       reads as; "+ Add a currency" opens it again for the next one. */
+    const row=document.getElementById('st-fx-row');
+    if(row && rate!==null) row.hidden=true;
     stFxPaint();
     toast(rate===null?i18t('st_fx_removed',{code}):i18t('st_fx_saved',{code}),'ok');
     // every converted figure just moved — repaint whatever is behind the drawer
@@ -1540,10 +1597,45 @@ const SET_PANELS={
       <section class="st-sec">
         <h3 class="st-sec-h">${esc(i18t('st_fx'))}</h3>
         <p class="st-note" style="margin-bottom:8px">${esc(i18t('st_fx_sub',{cur:jxCurrency()}))}</p>
+        <div id="st-fx-need"></div>
         <div id="st-fx-list" style="display:grid;gap:6px;margin-bottom:9px"></div>
-        <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
-          <label style="flex:0 0 108px"><span style="${window.RV_LBL||''}">${esc(i18t('st_fx_code'))}</span>
-            <input id="st-fx-code" type="text" maxlength="3" placeholder="USD" style="${window.RV_FLD||ST_INPUT}text-transform:uppercase"/></label>
+        ${''/* ---- A SEARCH WITH OPTIONS, AND A BUTTON THAT SAYS THERE CAN BE
+               MORE THAN ONE (owner-asked 19 Aug 2026: "there should be a search
+               for currency where options are available and you should have a
+               button to add more currencies in case you have contracts from
+               other currencies") ----
+
+               THE BOX WAS A BARE THREE-LETTER FIELD, so setting a rate meant
+               knowing the ISO code by heart, and one row with a Save on it gave
+               no sign that a workspace can hold as many rates as it has
+               currencies. Now: a list to SEARCH (code and English name, native
+               datalist so typing filters it), and an explicit **Add a currency**
+               button that opens the row — closed again after each save, so the
+               list of what is set stays the thing you read.
+
+               IT OFFERS, IT DOES NOT REFUSE. The field is still ordinary text
+               and any three-letter code is still accepted by both this panel
+               and the route: a counterparty who invoices in something nobody
+               listed must still be payable. What the list changes is how easy
+               the common case is, never what is possible.
+
+               AND THE CURRENCIES YOUR OWN BOOK USES COME FIRST — fxPickerCodes
+               leads with the ones fxMissing reports, which is the same reading
+               every surface uses to say what was left out of a converted
+               figure. That is the owner's "in case you have contracts from
+               other currencies", answered with this workspace's own facts. */}
+        <button id="st-fx-add" style="${ST_BTN2}">&#43; ${i18t('st_fx_add')}</button>
+        <div id="st-fx-row" hidden style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-top:9px">
+          <label style="flex:1 1 210px;min-width:180px"><span style="${window.RV_LBL||''}">${esc(i18t('st_fx_code'))}</span>
+            ${''/* THE VALUE IS UPPERCASED, THE PROMPT IS NOT. text-transform
+                   catches the placeholder too, so the search hint rendered as
+                   "SEARCH — USD, EURO, RAND…" — a shout where a prompt was
+                   meant, and wide enough to be clipped besides. The pseudo-
+                   element rule that exempts it lives in index.html, because an
+                   inline style cannot reach a ::placeholder. */}
+            <input id="st-fx-code" type="text" list="st-fx-codes" autocomplete="off"
+              placeholder="${esc(i18t('st_fx_code_ph'))}" style="${window.RV_FLD||ST_INPUT}text-transform:uppercase"/></label>
+          <datalist id="st-fx-codes"></datalist>
           <label style="flex:1;min-width:150px"><span style="${window.RV_LBL||''}">${esc(i18t('st_fx_rate',{cur:jxCurrency()}))}</span>
             <input id="st-fx-rate" type="number" step="any" min="0" placeholder="129.50" style="${window.RV_FLD||ST_INPUT}"/></label>
           <button id="st-fx-save" style="${ST_BTN_SM};flex:none">${i18t('act_save')}</button>
@@ -1612,6 +1704,17 @@ const SET_PANELS={
         stDrawerClose(); openDesignStep({ mode:'settings', onBack:()=>renderTeam() });
       });
       stFxPaint();
+      /* WITH NOTHING ON FILE THE ROW IS ALREADY OPEN: a panel whose only
+         content is a button to reveal the only thing on it is a press that
+         buys nothing. */
+      const fxRow=document.getElementById('st-fx-row');
+      const fxHas=Object.keys((state.settings&&state.settings.fxRates)||{}).length;
+      if(fxRow && !fxHas) fxRow.hidden=false;
+      document.getElementById('st-fx-add')?.addEventListener('click',()=>{
+        if(!fxRow) return;
+        fxRow.hidden=false;
+        document.getElementById('st-fx-code')?.focus();
+      });
       document.getElementById('st-fx-save')?.addEventListener('click',()=>stFxSave());
     },
   },
@@ -2618,10 +2721,16 @@ function stWireEngine(){
 }
 
 /* ---- email delivery & outbox ---- */
+/* ---- IT REPORTS WHAT HAPPENED (owner-reported 19 Aug 2026) ----
+   Returns {ok, n} so a caller that was PRESSED can say so, and says the failure
+   out loud instead of swallowing it. The silent catch was half of why "Refresh
+   outbox" read as a dead button: a request that failed left the last list on
+   screen and no word anywhere. Callers that merely FILL the panel ignore the
+   answer, exactly as before. */
 function stLoadOutbox(){
   return (async()=>{
     try{ const r=await api('outbox');
-      const host=document.getElementById('outbox-list'); if(!host) return;
+      const host=document.getElementById('outbox-list'); if(!host) return { ok:true, n:(r.items||[]).length };
       /* The panel's own heading answers the same three states the row does, off
          the route's own health reading rather than a second copy of it — and
          it NAMES the provider's reason, which is the thing an admin can act on
@@ -2639,16 +2748,50 @@ function stLoadOutbox(){
             ${it.detail?`<div class="mt-1 text-[10px] text-gold-700 bg-gold-500/10 rounded px-1.5 py-1 leading-relaxed">${i18t('set_why_failed',{why:esc(it.detail)})}</div>`:''}
             ${it.dev_hint?`<div class="mt-1 text-[10px] font-mono text-gold-700 bg-gold-500/10 rounded px-1.5 py-0.5 inline-block">${it.dev_hint}</div>`:''}
           </div>`).join('')}</div>`:`<div class="text-[11px] text-brand-800/65">${i18t('set_no_messages')}</div>`);
-    }catch(e){}
+      return { ok:true, n:(r.items||[]).length };
+    }catch(e){
+      const host=document.getElementById('outbox-list');
+      const why=(e&&e.message)||String(e);
+      if(host) host.innerHTML=`<div class="text-[11px] text-gold-700">${esc(i18t('set_outbox_unreadable',{why}))}</div>`;
+      return { ok:false, why };
+    }
   })();
 }
+/* ---- A PRESS THAT SAYS NOTHING IS A PRESS NOBODY BELIEVES IN ----
+   (owner-reported 19 Aug 2026, off a screenshot with both buttons ringed: "the
+   highlighted buttons are not working".)
+
+   BOTH WERE WORKING. "Check renewals" really did run the sweep and queue the
+   reminders; "Refresh outbox" really did re-read the list. What neither did was
+   SAY SO. The renewal sweep's confirmation was a bare toast call — and a bare
+   call is silent by design in this product (see toast in js/core.js: about 250
+   ordinary confirmations would otherwise blink after every press) — while a
+   refresh that finds the same three messages redraws pixel-for-pixel identical
+   pixels. Two correct buttons, indistinguishable from two dead ones.
+
+   So each one now: goes busy while it works, and answers with 'ok' when it is
+   done. The refusal path is unchanged and still lands in the drawer's foot,
+   which is where this page puts a refusal. */
 function stWireOutbox(){
   stLoadOutbox();
-  document.getElementById('ob-refresh')?.addEventListener('click',()=>stLoadOutbox());
-  document.getElementById('rem-run')?.addEventListener('click',async()=>{
-    try{ const r=await api('reminders/run','POST',{}); toast(i18tn('set_checked_queued',r.queued,{checked:r.checked,n:r.queued})); stLoadOutbox(); }
+  const busy=(btn,word,fn)=>async()=>{
+    const held=btn.innerHTML;
+    btn.disabled=true; btn.innerHTML=esc(i18t(word));
+    try{ await fn(); } finally { btn.disabled=false; btn.innerHTML=held; }
+  };
+  const ob=document.getElementById('ob-refresh');
+  ob?.addEventListener('click',busy(ob,'set_outbox_refreshing',async()=>{
+    const r=await stLoadOutbox();
+    if(!r||r.ok===false){ stDrawerRefuse(i18t('set_outbox_unreadable',{why:(r&&r.why)||''})); return; }
+    toast(i18tn('set_outbox_refreshed',r.n,{n:r.n}),'ok');
+  }));
+  const rr=document.getElementById('rem-run');
+  rr?.addEventListener('click',busy(rr,'set_reminders_checking',async()=>{
+    try{ const r=await api('reminders/run','POST',{});
+      toast(i18tn('set_checked_queued',r.queued,{checked:r.checked,n:r.queued}),'ok');
+      await stLoadOutbox(); }
     catch(e){ stDrawerRefuse(e.message); }
-  });
+  }));
 }
 
 /* ---- the monthly report card ----

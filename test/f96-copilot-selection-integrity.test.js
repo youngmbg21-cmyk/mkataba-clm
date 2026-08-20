@@ -28,8 +28,34 @@
    LIVE redline, and a drag genuinely across two numbered clauses.
 
    Driven through the REAL gesture — a real Range, a real mouseup, the real
-   selection menu, the real Apply — because every bug here lived in the distance
-   between what the Range knew and what the string remembered. */
+   reading — because every bug here lived in the distance between what the Range
+   knew and what the string remembered.
+
+   ---- THE PAPER STOPPED OFFERING A MENU (19 Aug 2026) ----
+   The owner has taken editing off the contract itself on this page: "there
+   should not be possibility to edit the contract while on the contract in the
+   left hand side. Only way to edit is to click edit and the edit happens in the
+   panel on the right." A highlight on the paper is READING now — it still
+   selects, so wording can still be copied out — and the one door into writing
+   is the green Edit pill and the clause panel behind it.
+
+   SO THIS FILE'S JOURNEYS STOP ONE STEP EARLIER, AND SAY SO. What every fix
+   above actually fixed is the READING — negoReadPassage, which takes the page's
+   furniture out of a highlight, forgives markers that were never on screen,
+   counts which occurrence was pointed at and reports which clauses genuinely
+   have words in the range. That function is unchanged and still live: it is
+   what a highlight inside the clause panel's editor is read with. Its claims
+   are pinned here against the same real markup and the same real Ranges, one
+   layer down from the menu that used to follow them.
+
+   WHAT IS NOT PINNED HERE ANY MORE, said out loud rather than quietly dropped:
+   the paper journeys that ended in a proposal card and a filed change. They
+   ended at a menu this page no longer raises, and re-pointing them at the
+   panel's editor was refused as dishonest — the editor holds one clause's
+   wording with no heading, no front matter, no second clause and no marks, so
+   the cases that made this file worth writing cannot be staged there at all.
+   The reading each of them rested on is asserted below; the filing itself is
+   covered where filing still happens (f92, f144, f145, f210). */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const { buildWorld } = require('./world');
@@ -160,6 +186,54 @@ async function page(opts = {}){
   const highlight = (el, from, to, o = {}) =>
     drag(point(el, from, 'start', o.fromNth || 0), point(el, to || from, 'end', o.toNth || 0));
 
+  /* ---- THE GESTURE, AND WHAT THE PRODUCT READS FROM IT ----
+     The paper raises no menu on our seat any more (see the header). This is the
+     same drag, and it hands back BOTH answers: the menu that must not appear,
+     and the passage the product's one reading takes from the range — the thing
+     every fix in this file was actually about. Same Range, same markup, same
+     function; one layer below a door that has been taken off. */
+  const readRange = (a, b) => {
+    const r = doc.createRange();
+    r.setStart(a.node, a.offset);
+    r.setEnd(b.node, b.offset);
+    const sel = win.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(r);
+    (a.node.parentElement || $('#rl-doc')).dispatchEvent(
+      new win.MouseEvent('mouseup', { bubbles: true }));
+    return { menu: $('.nego-selmenu'), range: r,
+      passage: win.negoReadPassage(r, $('#rl-doc')) };
+  };
+  const readSel = (el, from, to, o = {}) =>
+    readRange(point(el, from, 'start', o.fromNth || 0), point(el, to || from, 'end', o.toNth || 0));
+
+  /* ---- AND THE OFFER ITSELF, WHERE A SURFACE STILL MAKES ONE ----
+     The mount's own selMenu hook, handed the passage read from a real Range —
+     which is precisely what a highlight inside the clause panel's editor does,
+     and what the paper did until 19 Aug. Driving the hook rather than the paper
+     is the shape B10 and B12 in this same file have always used for the cases
+     the paper could not stage. It keeps the chain below the hook under test —
+     menu, press, proposal, Apply, filed change — on the surfaces that still
+     have it. */
+  let handed = null;
+  const mount = () => {
+    if (handed) return handed;
+    const real = win.wireNegotiationTab;
+    win.wireNegotiationTab = (cc, o) => { handed = o; return real(cc, o); };
+    win.renderRedline();
+    win.wireNegotiationTab = real;
+    return handed;
+  };
+  const offer = (el, from, to, o = {}) => {
+    const { passage, range } = readSel(el, from, to, o);
+    const clauseEl = passage.clauses[0] || el.closest('[data-clause]');
+    mount().selMenu({ text: passage.text,
+      clauseId: clauseEl && clauseEl.getAttribute('data-clause'),
+      rect: { left: 10, top: 10, bottom: 30, right: 90, width: 80, height: 20 },
+      passage, clauseIds: passage.clauseIds, range });
+    return $('.nego-selmenu');
+  };
+
   /* Press a verb in the menu. mousedown, because that is what the menu listens
      for — a click would collapse the selection first. Awaited, because asking
      the Copilot is a round trip and the proposal card exists on the other side
@@ -178,6 +252,7 @@ async function page(opts = {}){
     || $$('.nego-selmenu .nego-selnote').some(n => re.test(n.textContent || ''));
 
   return { w, win, c, doc, panel, $, $$, clauseWith, point, drag, highlight, press, said, settle,
+    readRange, readSel, offer,
     toasts: () => w.log.toasts.map(t => t.msg).join(' | '),
     changes: () => win.negoChanges(c),
     clauseText: re => (win.negoClauseList(c).find(x => re.test(x.text)) || {}).text || '' };
@@ -196,51 +271,56 @@ const apply = async (p, wording = 'REWRITTEN WORDING') => {
 };
 
 describe('F96 (B1) — a highlight that starts on the clause heading', () => {
+  /* RE-POINTED 19 Aug 2026, with the claims intact. These three drove the drag
+     into a menu, a proposal and a filing; the paper raises no menu now, so they
+     assert the READING the whole chain rested on — that a heading swept into a
+     drag is furniture and the wording under it is the passage. */
   test('the heading is not wording, and does not defeat the match', async () => {
     const p = await page();
     const cl = p.clauseWith(/payable within thirty/);
     /* The natural "grab the whole clause" gesture: start on the number. */
-    const menu = p.highlight(cl, '2. PAYMENT TERMS', 'date of issue.');
-    assert.ok(menu, 'the menu must open on a heading-inclusive drag');
-    await p.press(menu);
-    assert.equal(p.panel.proposals.length, 1, 'THE FIX: this used to be refused as unmatchable');
-    assert.ok(!p.said(/couldn.t be matched|pending edits/i));
+    const { menu, passage } = p.readSel(cl, '2. PAYMENT TERMS', 'date of issue.');
+    assert.equal(menu, null, 'and the paper offers nothing to press — it is a read now');
+    assert.equal(passage.clauseIds.length, 1, 'one clause, found despite the heading');
+    assert.match(passage.text, /All invoices are payable/,
+      'THE FIX: this used to be unmatchable');
   });
 
-  test('and the heading is not sent to the model as if it were the passage', async () => {
+  test('and the heading is not part of what the reading hands on', async () => {
     const p = await page();
     const cl = p.clauseWith(/payable within thirty/);
-    await p.press(p.highlight(cl, '2. PAYMENT TERMS', 'date of issue.'));
-    const asked = p.panel.proposals[0].passage;
-    assert.ok(!/PAYMENT TERMS/.test(asked), 'the heading is chrome, not the wording under review');
-    assert.match(asked, /All invoices are payable/);
+    const { passage } = p.readSel(cl, '2. PAYMENT TERMS', 'date of issue.');
+    assert.ok(!/PAYMENT TERMS/.test(passage.text),
+      'the heading is chrome, not the wording under review');
+    assert.match(passage.text, /All invoices are payable/);
   });
 
   test('a heading-to-end drag is recognised as the whole clause', async () => {
     const p = await page();
     const cl = p.clauseWith(/payable within thirty/);
-    await p.press(p.highlight(cl, '2. PAYMENT TERMS', 'until settled.'));
-    assert.equal(p.panel.proposals.length, 1);
-    const r = await apply(p, 'The whole clause, rewritten.');
-    assert.ok(r && r.ok, `apply refused: ${r && r.message}`);
-    const ch = p.changes()[0];
-    assert.match(ch.newText, /The whole clause, rewritten\./);
-    assert.ok(!/All invoices are payable/.test(ch.newText), 'the old wording is gone, not appended');
+    const { passage } = p.readSel(cl, '2. PAYMENT TERMS', 'until settled.');
+    assert.equal(passage.clauseIds.length, 1, 'one clause, end to end');
+    assert.match(passage.text, /All invoices are payable/);
+    assert.match(passage.text, /until settled\.$/,
+      'and it runs to the last word of the clause, not to the end of its first block');
   });
 });
 
 describe('F96 — the two ordinary highlights, which must simply work', () => {
-  test('two sentences inside one paragraph, rephrased and filed on exactly those words', async () => {
+  test('two sentences inside one paragraph are read as exactly those words', async () => {
     const p = await page();
     const cl = p.clauseWith(/A party in breach/);
-    await p.press(p.highlight(cl, 'A party in breach', 'of notice,'));
-    assert.equal(p.panel.proposals.length, 1);
-    const r = await apply(p, 'A party in breach shall remedy it within fourteen (14) days of notice,');
-    assert.ok(r && r.ok, `apply refused: ${r && r.message}`);
-    const ch = p.changes()[0];
-    assert.match(ch.newText, /within fourteen \(14\) days of notice,/);
-    assert.match(ch.newText, /terminate on thirty \(30\) days written notice/,
-      'the wording after the highlight is untouched');
+    const { passage } = p.readSel(cl, 'A party in breach', 'of notice,');
+    assert.equal(passage.clauseIds.length, 1);
+    assert.match(passage.text, /^A party in breach/);
+    assert.match(passage.text, /of notice,$/,
+      'exactly the span the reader drew, no more');
+    assert.ok(!/terminate on thirty \(30\) days written notice/.test(passage.text),
+      'the wording after the highlight is not swept in with it');
+    /* And it is findable in the clause the record holds, which is the step the
+       splice was built on. */
+    const hit = p.win.negoFindPassage(p.clauseText(/A party in breach/), passage.text);
+    assert.ok(hit, 'the passage is located in the stored wording');
   });
 
   test('a highlight across a paragraph break inside ONE headed clause', async () => {
@@ -250,14 +330,11 @@ describe('F96 — the two ordinary highlights, which must simply work', () => {
        document's, and the reader crossed it in a single drag. */
     assert.match(p.clauseText(/payable within thirty/), /\n/,
       'fixture: the clause body must really be more than one block');
-    const menu = p.highlight(cl, 'All invoices are payable', 'until settled.');
-    assert.ok(menu, 'the menu must open across a paragraph break');
-    await p.press(menu);
-    assert.ok(!p.said(/more than one clause|couldn.t be matched/i));
-    assert.equal(p.panel.proposals.length, 1);
-    const r = await apply(p, 'Invoices are payable in thirty days; late sums carry interest.');
-    assert.ok(r && r.ok, `apply refused: ${r && r.message}`);
-    assert.match(p.changes()[0].newText, /Invoices are payable in thirty days; late sums carry interest\./);
+    const { passage } = p.readSel(cl, 'All invoices are payable', 'until settled.');
+    assert.equal(passage.clauseIds.length, 1,
+      'a paragraph break inside a clause is not a second clause');
+    assert.match(passage.text, /All invoices are payable/);
+    assert.match(passage.text, /until settled\./);
   });
 });
 
@@ -299,23 +376,26 @@ describe('F96 (B2) — a highlight across two lettered sub-clauses', () => {
        ::marker, so the selection contains neither. */
     assert.match(p.clauseText(/terminate for convenience/), /a\.\s/,
       'fixture: the projection must actually print markers');
-    const menu = p.highlight(cl, 'Either party may terminate', 'survive termination of this Agreement.');
-    assert.ok(menu);
-    await p.press(menu);
-    assert.equal(p.panel.proposals.length, 1, 'THE FIX: lettered sub-clauses are how contracts are written');
-    assert.ok(!p.said(/couldn.t be matched/i));
+    const { passage } = p.readSel(cl, 'Either party may terminate', 'survive termination of this Agreement.');
+    assert.ok(passage.text, 'the drag reads as wording');
+    /* THE FIX, one layer down: the passage the screen gives back is findable in
+       the stored text even though the stored text carries markers the screen
+       never drew. Lettered sub-clauses are how contracts are written. */
+    const hit = p.win.negoFindPassage(p.clauseText(/terminate for convenience/), passage.text);
+    assert.ok(hit, 'the markers must be forgiven, not made a reason to refuse');
   });
 
-  test('the splice lands on the wording, and leaves the clause either side alone', async () => {
+  test('the found span covers the wording, and leaves the clause either side alone', async () => {
     const p = await page();
     const cl = p.clauseWith(/terminate for convenience/);
-    await p.press(p.highlight(cl, 'Accrued rights', 'survive termination of this Agreement.'));
-    const r = await apply(p, 'Accrued rights survive.');
-    assert.ok(r && r.ok, `apply refused: ${r && r.message}`);
-    const ch = p.changes()[0];
-    assert.match(ch.newText, /Accrued rights survive\./);
-    assert.match(ch.newText, /Either party may terminate for convenience/,
-      'the first sub-clause was never selected and must not move');
+    const { passage } = p.readSel(cl, 'Accrued rights', 'survive termination of this Agreement.');
+    const hay = p.clauseText(/terminate for convenience/);
+    const hit = p.win.negoFindPassage(hay, passage.text);
+    assert.ok(hit, 'the passage is located');
+    assert.match(hay.slice(hit.start, hit.end), /^Accrued rights/,
+      'the span begins where the reader began');
+    assert.ok(!/Either party may terminate for convenience/.test(hay.slice(hit.start, hit.end)),
+      'the first sub-clause was never selected and is outside the span');
   });
 
   test('a marker mid-sentence is wording, not a marker', async () => {
@@ -373,61 +453,61 @@ describe('F96 (B1b) — the same rule on the room, which heads a clause differen
 });
 
 describe('F96 (B3) — a wall of paragraphs has no clauses to stay inside', () => {
-  test('a cross-paragraph highlight is not refused on a headingless document', async () => {
+  test('a cross-paragraph highlight reads as a head, a middle and a tail', async () => {
     const p = await page({ body: WALL });
     const first = p.clauseWith(/deliver the Goods/);
     const second = p.clauseWith(/fourteen \(14\) days/);
     assert.ok(first && second && first !== second,
       'fixture: each paragraph must be its own clause here');
-    const menu = p.drag(p.point(first, 'The Supplier shall deliver', 'start'),
+    const { passage } = p.readRange(p.point(first, 'The Supplier shall deliver', 'start'),
       p.point(second, 'each purchase order.', 'end'));
-    assert.ok(menu, 'the menu must open across paragraphs of a wall-of-text upload');
-    await p.press(menu);
-    assert.ok(!p.said(/more than one clause/i),
-      'THE FIX: those boundaries are an artefact of the parse, not of the agreement');
-    assert.equal(p.panel.proposals.length, 1);
+    /* THE FIX, at the level it was really made: the reading keeps each clause's
+       OWN share of the highlight, which is what let a wall-of-text upload be
+       redrafted across the parse's boundaries instead of refused at them. */
+    assert.equal(passage.clauseIds.length, 2, 'both paragraphs have words in the drag');
+    assert.equal(passage.parts.length, 2, 'and each keeps its own share of it');
+    assert.match(passage.parts[0].text, /^The Supplier shall deliver/);
+    assert.match(passage.parts[1].text, /each purchase order\.$/);
   });
 
-  test('the span is filed as a rewrite of the head and a deletion of what it ate', async () => {
+  test('a paragraph outside the highlight is not part of the reading', async () => {
     const p = await page({ body: WALL });
     const first = p.clauseWith(/deliver the Goods/);
     const second = p.clauseWith(/fourteen \(14\) days/);
-    await p.press(p.drag(p.point(first, 'The Supplier shall deliver', 'start'),
-      p.point(second, 'each purchase order.', 'end')));
-    const r = await apply(p, 'The Supplier shall deliver within fourteen (14) days of each order.');
-    assert.ok(r && r.ok, `apply refused: ${r && r.message}`);
-    const chs = p.changes();
-    assert.equal(chs.length, 2, 'one rewrite and one deletion, each answerable on its own');
-    assert.match(chs[0].newText, /deliver within fourteen \(14\) days of each order\./);
-    assert.equal(chs[1].changeType, 'deleteClause');
-    /* The third paragraph was never highlighted and must be untouched. */
-    assert.ok(!chs.some(x => /Risk in the Goods/.test(x.oldText || '')),
-      'a paragraph outside the highlight is not part of the rewrite');
+    const { passage } = p.readRange(p.point(first, 'The Supplier shall deliver', 'start'),
+      p.point(second, 'each purchase order.', 'end'));
+    assert.ok(!/Risk in the Goods/.test(passage.text),
+      'the third paragraph was never highlighted');
+    assert.ok(!passage.clauseIds.includes(
+      p.clauseWith(/Risk in the Goods/).getAttribute('data-clause')));
   });
 
-  test('the untouched tail of the last paragraph is kept, not carried off', async () => {
+  test('the untouched tail of the last paragraph is outside the reading', async () => {
     const p = await page({ body: WALL });
     const first = p.clauseWith(/deliver the Goods/);
     const second = p.clauseWith(/fourteen \(14\) days/);
     /* The highlight stops mid-way through the second paragraph. */
-    await p.press(p.drag(p.point(first, 'The Supplier shall deliver', 'start'),
-      p.point(second, 'Delivery shall take place', 'end')));
-    await apply(p, 'Delivery is prompt.');
-    const chs = p.changes();
-    const tail = chs.find(x => /purchase order/.test(x.newText || ''));
-    assert.ok(tail, 'the wording after the highlight survives as its own clause');
-    assert.ok(!/Delivery shall take place/.test(tail.newText),
-      'and the part that WAS highlighted is not left behind as well');
+    const { passage } = p.readRange(p.point(first, 'The Supplier shall deliver', 'start'),
+      p.point(second, 'Delivery shall take place', 'end'));
+    assert.equal(passage.parts.length, 2);
+    assert.ok(!/purchase order/.test(passage.parts[1].text),
+      'the wording after the highlight is the tail, and the tail is not in it');
+    assert.match(passage.parts[1].text, /Delivery shall take place$/);
   });
 
-  test('a document with headings still refuses a cross-clause drag', async () => {
+  test('a drag across two numbered clauses is read as two, not silently as one', async () => {
+    /* The refusal itself lived in the door this page no longer has. What made
+       it possible — the reading saying honestly that the drag covers two
+       clauses — is here, and is what any surface offering the Copilot asks. */
     const p = await page();
     const a = p.clauseWith(/payable within thirty/);
     const b = p.clauseWith(/A party in breach/);
-    await p.press(p.drag(p.point(a, 'All invoices', 'start'), p.point(b, 'of notice', 'end')));
-    assert.ok(p.said(/more than one clause/i),
+    const { menu, passage } = p.readRange(p.point(a, 'All invoices', 'start'),
+      p.point(b, 'of notice', 'end'));
+    assert.equal(passage.clauseIds.length, 2,
       'merging two NUMBERED clauses renumbers an instrument cited by those numbers');
-    assert.equal(p.panel.proposals.length, 0, 'and no tokens are spent on it');
+    assert.equal(menu, null, 'and nothing is offered on the paper to do it with');
+    assert.equal(p.panel.proposals.length, 0, 'no tokens are spent on it');
   });
 });
 
@@ -439,64 +519,71 @@ describe('F96 (B4) — a settled redline is not a pending one', () => {
     win.negoResolve(c, ch.id, status, { side: 'owner', by: 'Wanjiru Kamau' });
   };
 
-  test('wording in an ACCEPTED clause is not refused as having pending edits', async () => {
+  /* RE-POINTED 19 Aug 2026. "Pending edits" was never a property of the marks
+     alone: it is the marks AND the change still being live, which is the
+     distinction that made the false refusal false. The reading reports the
+     marks honestly; the change's own status says whether they are live. Both
+     halves are asserted here, on the same fixtures, one layer below the door. */
+  test('wording in an ACCEPTED clause carries marks that are not a live redline', async () => {
     const p = await page({ seed: withDecided('accepted') });
     const cl = p.clauseWith(/payable within/);
-    await p.press(p.highlight(cl, 'Any sum not paid when due', 'until settled.'));
-    assert.ok(!p.said(/pending edits/i),
+    const { passage } = p.readSel(cl, 'Any sum not paid when due', 'until settled.');
+    assert.ok(passage.text, 'the wording reads');
+    assert.equal(p.win.negoChanges(p.c)[0].status, 'accepted',
       'THE FIX: it was decided — there is no redline left to accept or reject');
-    assert.equal(p.panel.proposals.length, 1);
   });
 
-  test('wording in a REJECTED clause is not refused either', async () => {
+  test('wording in a REJECTED clause is settled too', async () => {
     const p = await page({ seed: withDecided('rejected') });
     const cl = p.clauseWith(/payable within/);
-    await p.press(p.highlight(cl, 'Any sum not paid when due', 'until settled.'));
-    assert.ok(!p.said(/pending edits/i));
-    assert.equal(p.panel.proposals.length, 1);
+    const { passage } = p.readSel(cl, 'Any sum not paid when due', 'until settled.');
+    assert.ok(passage.text, 'the wording reads');
+    assert.equal(p.win.negoChanges(p.c)[0].status, 'rejected');
   });
 
-  test('but wording inside a LIVE redline is still refused, and told the truth', async () => {
+  test('but a LIVE redline is still marked, and still pending', async () => {
     const p = await page({ seed: async (win, c) => {
       await win.negoFileProposal(c, win.negoBaseText(c).replace('thirty (30) days from the date of issue',
         'sixty (60) days from the date of issue'), { side: 'counterparty', author: 'Amina Wanjiru' });
     } });
     const cl = p.clauseWith(/payable within|invoices are payable/);
-    const menu = p.highlight(cl, 'invoices are payable', 'from the date of issue');
-    assert.ok(menu);
-    await p.press(menu);
-    assert.ok(p.said(/pending edits/i),
-      'the true positive must survive the fix to the false one');
+    const { passage } = p.readSel(cl, 'invoices are payable', 'from the date of issue');
+    assert.ok(passage.hasMarks,
+      'the true positive must survive the fix to the false one: these words are under a mark');
+    assert.equal(p.win.negoChanges(p.c)[0].status, 'pending', 'and the mark is live');
     assert.equal(p.panel.proposals.length, 0, 'and nothing is asked of the model');
   });
 });
 
 describe('F96 (B5) — the second "thirty (30) days" is not the first', () => {
-  test('the redline lands on the occurrence that was highlighted', async () => {
+  test('the reading counts WHICH occurrence was pointed at', async () => {
     const p = await page();
     const cl = p.clauseWith(/A party in breach/);
     const before = p.clauseText(/A party in breach/);
     assert.equal((before.match(/thirty \(30\) days/g) || []).length, 2,
       'fixture: the clause must say it twice');
     /* The SECOND one — the termination notice period, not the cure period. */
-    await p.press(p.highlight(cl, 'thirty (30) days', 'thirty (30) days', { fromNth: 1, toNth: 1 }));
-    const r = await apply(p, 'ninety (90) days');
-    assert.ok(r && r.ok, `apply refused: ${r && r.message}`);
-    const after = p.changes()[0].newText;
-    assert.match(after, /remedy it within thirty \(30\) days of notice/,
-      'THE FIX: the cure period was not the one pointed at and must not move');
-    assert.match(after, /terminate on ninety \(90\) days written notice/,
-      'the occurrence under the cursor is the one that changed');
+    const { passage } = p.readSel(cl, 'thirty (30) days', 'thirty (30) days',
+      { fromNth: 1, toNth: 1 });
+    assert.equal(passage.text, 'thirty (30) days');
+    assert.equal(passage.occurrence, 1,
+      'THE FIX: a bare indexOf always answered the first, and the cure period must not move');
+    /* And the occurrence is what the finder is asked with, so the span it
+       returns is the second one and not the first. */
+    const hit = p.win.negoFindPassage(before, passage.text, { occurrence: passage.occurrence });
+    assert.ok(hit && before.slice(0, hit.start).includes('remedy it within thirty (30) days'),
+      'the span found is past the cure period');
   });
 
   test('the first occurrence still answers when it is the one chosen', async () => {
     const p = await page();
     const cl = p.clauseWith(/A party in breach/);
-    await p.press(p.highlight(cl, 'thirty (30) days', 'thirty (30) days'));
-    await apply(p, 'ninety (90) days');
-    const after = p.changes()[0].newText;
-    assert.match(after, /remedy it within ninety \(90\) days of notice/);
-    assert.match(after, /terminate on thirty \(30\) days written notice/);
+    const { passage } = p.readSel(cl, 'thirty (30) days', 'thirty (30) days');
+    assert.equal(passage.occurrence, 0);
+    const hay = p.clauseText(/A party in breach/);
+    const hit = p.win.negoFindPassage(hay, passage.text, { occurrence: 0 });
+    assert.ok(hit && /remedy it within $/.test(hay.slice(0, hit.start)),
+      'the cure period is the one under the cursor this time');
   });
 
   test('an occurrence index beyond what the clause holds falls back, it does not fail', async () => {
@@ -516,12 +603,11 @@ describe('F96 (B6) — a drag that overshoots into the margin', () => {
     const b = p.clauseWith(/A party in breach/);
     /* The end lands at offset 0 of the next clause: zero characters of it are
        selected, which is what a drag into the gap below a clause produces. */
-    const menu = p.drag(p.point(a, 'All invoices', 'start'), { node: b, offset: 0 });
-    assert.ok(menu, 'the menu must still open');
-    await p.press(menu);
-    assert.ok(!p.said(/more than one clause/i),
+    const { passage } = p.readRange(p.point(a, 'All invoices', 'start'), { node: b, offset: 0 });
+    assert.equal(passage.clauseIds.length, 1,
       'THE FIX: a boundary that touches is not a highlight that covers');
-    assert.equal(p.panel.proposals.length, 1);
+    assert.equal(passage.clauseIds[0], a.getAttribute('data-clause'),
+      'and the one it covers is the one the drag started in');
   });
 });
 
@@ -544,44 +630,61 @@ describe('F96 (B7) — the clause\'s furniture is not contract', () => {
       'no rule survives for the retired tool row');
   });
 
-  test('and a drag that sweeps the Edit pill still matches the clause', async () => {
+  test('and a drag that sweeps the Edit pill still reads as the clause', async () => {
     const p = await page();
     const cl = p.clauseWith(/payable within thirty/);
     /* Whatever the browser lets through, the reading takes it out again. The
        sweep runs from the pill at the clause's head down into the wording —
        the old test swept downhill into the tool row at its foot. */
-    const menu = p.highlight(cl, 'Edit', 'payable within thirty');
-    assert.ok(menu);
-    await p.press(menu);
-    assert.equal(p.panel.proposals.length, 1, 'the pill must not defeat the match');
-    const asked = p.panel.proposals[0].passage;
-    assert.ok(!/\bEdit\b/.test(asked),
-      'and it must not be sent to the model as if it were wording');
+    const { passage } = p.readSel(cl, 'Edit', 'payable within thirty');
+    assert.equal(passage.clauseIds.length, 1, 'the pill must not defeat the match');
+    assert.ok(!/\bEdit\b/.test(passage.text),
+      'and a control is not wording, whatever a careless drag sweeps in');
   });
 });
 
-describe('F96 (B8) — a highlight in the front matter says so', () => {
-  test('selecting the recital is answered, not ignored', async () => {
+describe('F96 (B8) — the front matter, and the silence that is now correct', () => {
+  /* REVERSED IN PLACE, 19 Aug 2026. This pinned a NOTICE: selecting the recital
+     used to end in silence, and silence read as a broken page, so the page
+     answered "this is front matter, there is nothing here to redraft".
+
+     The reasoning has gone with the door. That notice existed to explain why
+     the MENU had not appeared on a page where every other highlight raised one.
+     No highlight raises one here now — the paper is a read — so an explanation
+     of a missing menu would be the page talking about a feature it no longer
+     has, on a gesture as ordinary as selecting words to copy them. Silence is
+     the right answer when nothing was promised.
+
+     WHAT MUST STILL BE TRUE is that the front matter is not mistaken for a
+     clause, and that is the reading, asserted here. */
+  test('the recital is not a clause, and the page says nothing about it', async () => {
     const p = await page();
     const recital = p.$('#rl-doc .rl-recital') || p.$('#rl-doc .rl-paper-head');
     assert.ok(recital, 'fixture: the page must render its front matter');
-    const menu = p.highlight(recital, 'Between the parties');
-    assert.ok(menu, 'THE FIX: this used to end in silence, which reads as a broken page');
-    assert.match(menu.textContent, /front matter|not a negotiable clause/i);
-    assert.equal(menu.querySelectorAll('[data-nego-ai]').length, 0,
-      'and it offers nothing, because there is nothing here to file against');
+    const { menu, passage } = p.readSel(recital, 'Between the parties');
+    assert.equal(passage.clauseIds.length, 0, 'front matter belongs to no clause');
+    assert.equal(menu, null, 'and nothing is offered, because nothing is promised');
+    assert.equal(p.$$('.nego-selnote').length, 0,
+      'no explanation of a menu that was never coming');
   });
 });
 
 describe('F96 (B8b) — a drag that begins outside any clause', () => {
-  test('the refusal names the start of the drag, not the passage', async () => {
+  test('the clause it reaches into is reported, and nothing is asked of the model',
+    async () => {
     const p = await page();
     const recital = p.$('#rl-doc .rl-recital') || p.$('#rl-doc .rl-paper-head');
     const cl = p.clauseWith(/payable within thirty/);
-    await p.press(p.drag(p.point(recital, 'Between the parties', 'start'),
-      p.point(cl, 'date of issue.', 'end')));
-    assert.ok(p.said(/reaches outside the clause/i),
-      'the part that has to change is where the drag STARTED');
+    const { menu, passage } = p.readRange(p.point(recital, 'Between the parties', 'start'),
+      p.point(cl, 'date of issue.', 'end'));
+    /* The reading still tells the truth about the shape of the drag: it has
+       words in exactly one clause, and it starts outside it. That is what the
+       old refusal was built on — "the part that has to change is where the drag
+       STARTED" — and it is what any surface offering the Copilot still asks. */
+    assert.equal(passage.clauseIds.length, 1, 'one clause has words in this drag');
+    assert.ok(/Between the parties/.test(passage.text),
+      'and the drag really did begin outside it');
+    assert.equal(menu, null);
     assert.equal(p.panel.proposals.length, 0, 'and nothing is asked of the model');
   });
 });
@@ -691,14 +794,17 @@ describe('F96 (B13) — a clause the record holds and the canvas did not draw', 
       /keep the other party information confidential/, 'and it is still in ours');
   });
 
-  test('highlighting inside a proposed clause is refused honestly, as before', async () => {
+  test('a proposed clause can be read, and the paper asks nothing of it', async () => {
     /* It is on the canvas now, so it can be selected — and it is still not in
-       the baseline, so there is nothing to redline against. The B12 answer has
-       to survive the clause becoming visible. */
+       the baseline, so there is nothing to redline against. The refusal itself
+       is B12's, which drives the mount's own hook and still holds; here the
+       claim is that the paper does not offer the act at all, on a clause that
+       could not honour it. */
     const p = await page({ seed: seedInsert() });
     const sec = p.$$('#rl-doc [data-clause]').find(el => /confidential/.test(el.textContent));
-    await p.press(p.highlight(sec, 'keep the other party', 'information confidential'));
-    assert.ok(p.said(/itself still a proposal|not been accepted/i));
+    const { menu, passage } = p.readSel(sec, 'keep the other party', 'information confidential');
+    assert.match(passage.text, /keep the other party/, 'the wording reads');
+    assert.equal(menu, null);
     assert.equal(p.panel.proposals.length, 0);
   });
 });
@@ -795,7 +901,7 @@ describe('F96 — the guarantees the fixes are not allowed to cost', () => {
   test('a Copilot proposal is filed as a tracked change like any other', async () => {
     const p = await page();
     const cl = p.clauseWith(/payable within thirty/);
-    await p.press(p.highlight(cl, 'All invoices', 'date of issue.'));
+    await p.press(p.offer(cl, 'All invoices', 'date of issue.'));
     await apply(p, 'All invoices are payable on presentation.');
     const ch = p.changes()[0];
     assert.equal(ch.status, 'pending', 'a proposal, never an edit');
@@ -806,7 +912,7 @@ describe('F96 — the guarantees the fixes are not allowed to cost', () => {
   test('nothing is filed until a person presses Apply', async () => {
     const p = await page();
     const cl = p.clauseWith(/payable within thirty/);
-    await p.press(p.highlight(cl, 'All invoices', 'date of issue.'));
+    await p.press(p.offer(cl, 'All invoices', 'date of issue.'));
     assert.equal(p.panel.proposals.length, 1, 'the model was asked');
     assert.equal(p.changes().length, 0, 'and the document is untouched');
   });
@@ -816,7 +922,7 @@ describe('F96 — the custom-prompt route matches the one-shot route', () => {
   test('Edit with Copilot opens a conversation, and its proposal splices the same way', async () => {
     const p = await page();
     const cl = p.clauseWith(/A party in breach/);
-    await p.press(p.highlight(cl, 'thirty (30) days', 'thirty (30) days', { fromNth: 1, toNth: 1 }),
+    await p.press(p.offer(cl, 'thirty (30) days', 'thirty (30) days', { fromNth: 1, toNth: 1 }),
       /Edit with Copilot/);
     assert.equal(p.panel.sessions.length, 1, 'the conversational action asks what the edit is FOR');
     assert.equal(p.panel.proposals.length, 0, 'and spends nothing before it is told');

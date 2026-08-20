@@ -5063,6 +5063,13 @@ function renderWorkspace(){
         <div id="kt-rows">${ktTermsRowsHtml(c,{editable:ktEditable})}</div>
         ${readTermsHtml(c)}
       </div>
+      ${''/* ---- THE DIVIDER BETWEEN THE TWO CARDS (owner-asked 19 Aug 2026)
+             ---- It is the grid's middle track, so the gap it sits in and the
+             handle are one thing rather than two that have to be kept in step.
+             A separator, not a button: it changes a width, it opens nothing,
+             and the keyboard reaches it as one (arrow keys in ktWireSplit). */}
+      <div id="kt-resizer" class="kt-resizer" role="separator" aria-orientation="vertical"
+        tabindex="0" aria-label="${i18t('ct_kt_split')}" title="${i18t('ct_kt_split_title')}"></div>
       ${''/* Obligations: what this contract COMMITS you to — the question a
              reader has the moment they have finished reading the terms
              themselves. Filled by renderKeyTermsSide from the record the
@@ -5421,7 +5428,124 @@ function wireDocumentSync(c){
 }
 
 /* -------- Key terms panel -------- */
+/* ============================================================
+   THE DIVIDER BETWEEN KEY TERMS AND THE CARD BESIDE IT
+   ============================================================
+   (owner-asked 19 Aug 2026: "Keep the size of the card on the left intact and
+   next changes the size. Add a divider between the two cards so that you can
+   scroll on the right hand side especially when you can ran a renewal reason.")
+
+   IT IS THE NEGOTIATION PAGE'S DIVIDER, IN ITS OWN GRID — deliberately the same
+   mechanism rather than a second one: the fraction is read from where the
+   POINTER IS inside the grid (never from how far it has travelled, which is
+   what once made that handle fall behind the cursor and gave it a dead band at
+   the limits), both halves of the arithmetic ask for the geometry the same way,
+   the limits are visible when they bite, and a double-click puts the split
+   back. What differs is the numbers, which are this grid's own.
+
+   THE STORED FRACTION IS READ, NEVER REWRITTEN, WHERE IT CANNOT BE HONOURED —
+   a stacked layout writes nothing, so a phone-width sitting does not quietly
+   reset the split somebody set on a laptop. */
+const KT_LEFT_MIN = 320, KT_RIGHT_MIN = 300, KT_GAP = 14;
+const KT_F0 = 0.535, KT_FMIN = 0.25, KT_FMAX = 0.75;
+const KT_SPLIT_KEY = 'hati.v1.ktLeftFrac';
+function _ktLeftFrac(){
+  try { const v = Number(localStorage.getItem(KT_SPLIT_KEY));
+    return (v >= KT_FMIN - 0.001 && v <= KT_FMAX + 0.001) ? v : KT_F0; }
+  catch (e) { return KT_F0; }
+}
+/* One geometry, asked for once: the grid's width less the track the handle
+   itself occupies. rlLayoutResizer's own lesson — two halves that describe the
+   layout differently are two halves that disagree by exactly that difference. */
+const _ktAvail = grid => grid.clientWidth - KT_GAP;
+/* Stacked below 980px, which is the stylesheet's own number for this grid. The
+   question is asked of the WINDOW rather than guessed from a width, so the two
+   cannot drift apart; where they answer "stacked" the inline columns are
+   cleared and the CSS holds. */
+function ktStacked(){
+  try { return !!(window.matchMedia && window.matchMedia('(max-width:980px)').matches); }
+  catch (e) { return false; }
+}
+function ktFitSplit(scope){
+  const root = (scope && scope.querySelector) ? scope : document;
+  const grid = root.querySelector('.terms-grid');
+  const rez = grid && grid.querySelector('#kt-resizer');
+  if (!grid || !rez) return;
+  if (ktStacked()){ grid.style.gridTemplateColumns=''; rez.removeAttribute('data-kt-at-limit'); return; }
+  const avail = _ktAvail(grid);
+  /* Unmeasured — the pane is still display:none, or this is a stage with no
+     layout at all. Writing 0px here would collapse the columns the CSS is
+     holding perfectly well on its own. */
+  if (avail < 160) return;
+  let left = Math.round(_ktLeftFrac() * avail);
+  if (avail >= KT_LEFT_MIN + KT_RIGHT_MIN)
+    left = Math.min(Math.max(left, KT_LEFT_MIN), avail - KT_RIGHT_MIN);
+  grid.style.gridTemplateColumns = left + 'px ' + KT_GAP + 'px minmax(0,1fr)';
+  const atMin = left <= KT_LEFT_MIN, atMax = left >= avail - KT_RIGHT_MIN;
+  if (atMin || atMax) rez.setAttribute('data-kt-at-limit', atMin ? 'min' : 'max');
+  else rez.removeAttribute('data-kt-at-limit');
+}
+function ktWireSplit(){
+  const grid = document.querySelector('.terms-grid');
+  const rez = grid && grid.querySelector('#kt-resizer');
+  if (!grid || !rez) return;
+  ktFitSplit(document);
+  /* BOUND ONCE PER ELEMENT. wireKeyTerms runs from renderKeyTerms AND from the
+     room's own wiring — the same trap the stream picker beside it records — and
+     a second binding here would drag the split twice per pointer move. */
+  if (rez.dataset.ktSplitBound) return;
+  rez.dataset.ktSplitBound = '1';
+  const clamp = f => Math.max(KT_FMIN, Math.min(KT_FMAX, f));
+  const save = f => { try { localStorage.setItem(KT_SPLIT_KEY, String(f)); } catch (e) {} };
+  let grabDx = 0;
+  const pointerFrac = x => {
+    const r = grid.getBoundingClientRect();
+    const avail = Math.max(1, _ktAvail(grid));
+    return clamp(((x + grabDx) - r.left) / avail);
+  };
+  const onMove = e => {
+    const x = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
+    save(pointerFrac(x));
+    ktFitSplit(document);
+  };
+  const onUp = () => { delete rez.dataset.drag;
+    document.body.style.cursor=''; document.body.style.userSelect='';
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp); };
+  rez.addEventListener('pointerdown', e => { e.preventDefault();
+    rez.dataset.drag='1';
+    const hb = rez.getBoundingClientRect();
+    grabDx = (hb.left + hb.width/2) - e.clientX;
+    document.body.style.cursor='col-resize'; document.body.style.userSelect='none';
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp); });
+  /* A separator nobody can reach with a keyboard is a control half the people
+     in this workspace do not have. One step is 2% of the grid, which is a few
+     pixels — enough to be useful, small enough not to jump. */
+  rez.addEventListener('keydown', e => {
+    const step = e.key==='ArrowLeft' ? -0.02 : e.key==='ArrowRight' ? 0.02 : 0;
+    if (!step) return;
+    e.preventDefault();
+    save(clamp(_ktLeftFrac() + step));
+    ktFitSplit(document);
+  });
+  rez.addEventListener('dblclick', () => { save(KT_F0); ktFitSplit(document); });
+  /* THE PANE IS HIDDEN UNTIL ITS TAB IS PRESSED, so the first measurement is
+     usually a zero and the fit has to be re-run when the grid finally has a
+     width. Same shape as the redline page's pane observer, and for the same
+     reason. */
+  if (typeof ResizeObserver === 'function' && !grid._ktObs){
+    try { grid._ktObs = new ResizeObserver(() => ktFitSplit(document)); grid._ktObs.observe(grid); }
+    catch (e) {}
+  }
+  if (typeof window !== 'undefined' && !window._ktResizeBound){
+    window._ktResizeBound = true;
+    window.addEventListener('resize', () => ktFitSplit(document));
+  }
+}
+
 function wireKeyTerms(c){
+  ktWireSplit();
   const LABEL={party:'our party', counterparty:'counterparty', value:'contract value', nonmonetary:'value type',
                effDate:'effective date', expiry:'expiry date', cpEmail:'counterparty email'};
   document.querySelectorAll('[data-kt]').forEach(inp=>{
@@ -6374,6 +6498,7 @@ Object.assign(window,{applyDocZoom,renderDiscussSection,discussPointsSectionHtml
      Caught by driving the real page. ktTermsRowsHtml and renderKeyTerms go
      with it: the same guard-and-miss is waiting for both. */
   wireKtRows,ktTermsRowsHtml,ktReadValue,ktIsEmptyRead,renderKeyTerms,
+  ktFitSplit,ktWireSplit,ktStacked,KT_LEFT_MIN,KT_RIGHT_MIN,KT_SPLIT_KEY,
   /* And layoutDocResizer, for the same reason and with worse consequences: the
      line that re-measures the Document pane the moment its tab is shown is
      guarded on `window.layoutDocResizer`. Unexported, that guard was false, so

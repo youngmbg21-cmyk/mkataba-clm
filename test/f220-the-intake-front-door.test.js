@@ -174,6 +174,34 @@ describe('F220 — the screen, pinned at the source', () => {
     assert.match(read('index.html'), /data-count="intake"/);
   });
 
+  test('its door is in the EVERYDAY group, under Templates', () => {
+    /* Owner-asked 19 Aug 2026, off a screenshot with the row ringed: "move
+       requests to under Templates". The button's OWN comment already said it
+       belonged in the everyday group — "the one door in this product that every
+       role can press" — and it was sitting under ADMINISTRATION, a fold that
+       starts shut. Asserted by POSITION rather than by the comment, so the two
+       cannot drift apart again. */
+    const html = read('index.html');
+    const work = html.slice(html.indexOf('data-section="work"'),
+      html.indexOf('<div class="nav-section" data-section="settings">'));
+    assert.ok(work.includes('data-view="intake"'), 'the door is in the everyday group');
+    const admin = html.slice(html.indexOf('<div class="nav-section" data-section="settings">'));
+    assert.ok(!admin.includes('data-view="intake"'), 'and not under Administration as well');
+    assert.ok(work.indexOf('data-view="templates"') < work.indexOf('data-view="intake"')
+      && work.indexOf('data-view="intake"') < work.indexOf('data-view="directory"'),
+      'directly under Templates, above People');
+  });
+
+  test('the page keeps a margin between its content and the edge', () => {
+    /* Owner-reported 19 Aug 2026: "space is needed between the content and the
+       edge of the page to look more professional." It drew at padding:0, so
+       every row sat flush against the sidebar. The measure is this product's
+       own page measure, which is why it is asserted as that exact string and
+       not merely as "some padding". */
+    assert.match(src, /class="view-enter" style="padding:16px 18px 28px/,
+      'the same measure Templates, Reports and the template library use');
+  });
+
   test('the words exist in both languages', () => {
     const i18n = read('js/i18n.js');
     for (const k of ['nav_intake', 'pg_intake_sub', 'ik_lead_asker', 'ik_lead_editor', 'ik_ask_btn',

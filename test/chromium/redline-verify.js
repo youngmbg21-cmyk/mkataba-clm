@@ -929,11 +929,19 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   await page.reload({ waitUntil: 'load' });
   await page.evaluate(() => window.READY);
   await pause(250);
+  /* ---- REVERSED IN PLACE, 19 Aug 2026 ---- this staged the paper's own
+     highlight and measured the three-item menu that followed. The owner has
+     taken editing off the contract itself: "there should not be possibility to
+     edit the contract while on the contract in the left hand side. Only way to
+     edit is to click edit and the edit happens in the panel on the right."
+
+     So the paper's door is proved SHUT here, and the route that replaced it —
+     the clause panel's Copilot button, which hands the whole clause over — is
+     what drives the rest of this section. Everything below it is unchanged and
+     still measured: the panel opens, docked, with no scrim, no dialog and the
+     contract still on screen. (The narrowed menu the panel's own editor offers
+     on a highlight is f210's and clause-door-verify's.) */
   const menu = await page.evaluate(async () => {
-    /* The REAL entry: highlight words in a clause and release the mouse. The
-       clause toolbar is retired (16 Aug 2026 — no edits on the paper), so a
-       selection is the paper's ONE door to the Copilot and is what is measured
-       here — this drives the same engine hook a person's drag does. */
     const para = document.querySelector('#rl-doc .rl-clause .nego-body p')
       || document.querySelector('#rl-doc .rl-clause p');
     const textNode = [...para.childNodes].find(n => n.nodeType === 3 && n.nodeValue.trim().length > 30)
@@ -947,51 +955,35 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     await new Promise(r => setTimeout(r, 60));
     const m = document.querySelector('.nego-selmenu');
     return { open: !!m,
-      /* REVERSED IN PLACE, 16 Aug 2026: 'every clause carries a Copilot
-         button' became its opposite when the tool row retired — the paper
-         carries NO buttons that edit, and the highlight is the door. */
+      selected: String(sel.toString() || '').trim().length,
       noToolbar: document.querySelectorAll('#rl-doc .rl-tool, #rl-doc [data-nego-ai-clause]').length === 0,
       items: m ? [...m.querySelectorAll('[data-nego-ai]')].map(b => b.textContent.trim()) : [],
       dialogs: document.querySelectorAll('.nego-aipop, .lab-aipop').length,
       modals: document.querySelectorAll('#modal-root *').length };
   });
-  check('5 no clause carries a Copilot button — the highlight is the door', menu.noToolbar);
-  check('5 the selection menu offers exactly three actions', menu.items.length === 3,
-    JSON.stringify(menu.items));
-  /* "Edit with Copilot", not "Rephrase with Copilot": the first verb was
-     renamed when the action learned to ADD wording as well as replace it, and
-     rephrasing is now one of the things it does rather than the whole of it.
-     This assertion still named the old label and had gone red unnoticed —
-     browser checks were not run on every branch, which is exactly how a stale
-     one survives a deliberate rename. (Since fixed both ways: the workflow now
-     runs them on every push, and the failing item list is passed as the detail
-     below, so a failure prints the menu rather than only the verdict — the one
-     fact that tells "the label changed" from "the menu never opened".) */
-  check('5 they are edit, simplify, compare-to-standard',
-    /Edit with Copilot/.test(menu.items[0] || '')
-    && /Simplify/.test(menu.items[1] || '') && !/Shorten &/.test(menu.items[1] || '')
-    && /Compare to our standard/.test(menu.items[2] || ''),
-    JSON.stringify(menu.items));
-  /* A SEPARATE CLAIM, and worth its own check: not merely that the first item
-     is Edit, but that Rephrase is nowhere. The rename could have been done as a
-     fourth entry beside the old one, and two doors reading the same to anyone
-     moving at speed is the failure this guards. */
-  check('5 and rephrase is gone from the menu',
-    !menu.items.some(t => /Rephrase/.test(t)), JSON.stringify(menu.items));
-  check('3 opening the menu opens no dialog', menu.dialogs === 0 && menu.modals === 0);
+  check('5 no clause carries a Copilot button — and no menu follows a highlight',
+    menu.noToolbar && !menu.open, `menu ${menu.open}, items ${JSON.stringify(menu.items)}`);
+  check('5 but the wording still selects, so it can still be copied',
+    menu.selected > 3, `${menu.selected} characters selected`);
+  check('3 and a highlight opens no dialog either', menu.dialogs === 0 && menu.modals === 0);
   await page.screenshot({ path: path.join(OUT, '03-selection-menu.png') });
 
   const routed = await page.evaluate(async () => {
-    const btn = [...document.querySelectorAll('.nego-selmenu [data-nego-ai]')]
-      .find(b => b.getAttribute('data-nego-ai') === 'shorten');
-    /* mousedown, as a pointer would deliver it: the selection-path menu acts
-       before the mouseup that would collapse the selection under it. */
-    btn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    /* THE ROUTE THAT REPLACED IT: the Edit pill raises the clause panel, and
+       the panel's Copilot button hands the whole clause over. Two real presses,
+       the same two a person makes. */
+    document.querySelector('#rl-doc .rl-clause .rl-cp-pill').click();
+    await new Promise(r => setTimeout(r, 400));
+    const btn = document.querySelector('#rl-cp .rl-cp-src.is-on [data-nego-ai-clause]');
+    btn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
     await new Promise(r => setTimeout(r, 700));
     const panel = document.getElementById('ai-panel');
     return { open: panel.classList.contains('open'), docked: panel.classList.contains('docked'),
       scrim: document.getElementById('ai-scrim').classList.contains('open'),
       card: !!document.querySelector('#ai-feed .ai-proposal'),
+      feed: (document.querySelector('#ai-feed') || {}).childElementCount || 0,
+      quoted: /Edit with Copilot|clause/i.test(
+        (document.querySelector('#ai-feed') || {}).textContent || ''),
       dialogs: document.querySelectorAll('.nego-aipop').length,
       modals: document.querySelectorAll('#modal-root *').length,
       docVisible: document.getElementById('rl-doc').getBoundingClientRect().width > 200 };
@@ -999,7 +991,14 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('4 the Copilot panel opens', routed.open);
   check('4 docked, with no scrim over the document', routed.docked && !routed.scrim);
   check('4 the document is still on screen beside it', routed.docVisible);
-  check('3 the proposal is a card in the panel, not a popover', routed.card && routed.dialogs === 0,
+  /* ---- RE-POINTED 19 Aug 2026 ---- the old route pressed Simplify, a one-shot
+     action that comes back with a proposal. The panel's Copilot button carries
+     the EDIT action, which is conversational by design: it asks what the edit
+     is for and spends nothing until it is told. So what is measured is what
+     that route must deliver — the exchange lands IN the docked panel, and no
+     popover opens over the document. */
+  check('3 the hand-over lands in the panel, not in a popover',
+    routed.feed > 0 && routed.dialogs === 0,
     JSON.stringify({ card: routed.card, dialogs: routed.dialogs }));
   check('3 no modal anywhere on the redline route', routed.modals === 0, routed.modals);
   await page.screenshot({ path: path.join(OUT, '04-copilot-panel.png') });

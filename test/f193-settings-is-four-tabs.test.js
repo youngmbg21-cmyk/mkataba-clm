@@ -473,6 +473,88 @@ describe('f193 — Build & launch is read off the workspace, never typed', () =>
   });
 });
 
+describe('f193 — the outbox panel\'s two buttons say what they did', () => {
+  /* Owner-reported 19 Aug 2026, off a screenshot with both ringed: "the
+     highlighted buttons are not working."
+
+     BOTH WERE WORKING AND NEITHER SAID SO. "Check renewals & queue reminders"
+     ran the sweep and confirmed it with a BARE toast call — which is silent by
+     design in this product, because about 250 ordinary confirmations would
+     otherwise blink after every press — and "Refresh outbox" re-read a list
+     that usually comes back looking identical. Two correct buttons,
+     indistinguishable from two dead ones.
+
+     Read off the SOURCE rather than a rendered panel, because this panel is
+     server-only (stApiOnly) and does not draw in a browser harness with no
+     server behind it. What is pinned is the shape of the answer: each press
+     goes busy, each success is asked for ON PURPOSE with 'ok', and a failure is
+     said out loud instead of being swallowed. */
+  const SET_SRC = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'settings.js'), 'utf8');
+
+  test('the refresh confirms, in words, with a kind the toast will actually draw', () => {
+    assert.match(SET_SRC, /toast\(i18tn\('set_outbox_refreshed'[^)]*\), *'ok'\)/,
+      'a bare call is silence — this one asks to be seen');
+  });
+
+  test('so does the renewal sweep, and its refusal still lands in the drawer', () => {
+    assert.match(SET_SRC, /toast\(i18tn\('set_checked_queued'[^;]*'ok'\)/,
+      'the sweep says what it checked and what it queued');
+    assert.match(SET_SRC, /catch\(e\)\{ stDrawerRefuse\(e\.message\); \}/,
+      'and a refusal is shown in the drawer, where this page puts refusals');
+  });
+
+  test('each press goes busy while it works', () => {
+    assert.match(SET_SRC, /const busy=\(btn,word,fn\)=>/, 'one helper, both buttons');
+    assert.match(SET_SRC, /busy\(ob,'set_outbox_refreshing'/);
+    assert.match(SET_SRC, /busy\(rr,'set_reminders_checking'/);
+    assert.match(SET_SRC, /finally \{ btn\.disabled=false; btn\.innerHTML=held; \}/,
+      'and gets its own label back however it ends');
+  });
+
+  test('a failed read is reported, not swallowed', () => {
+    /* The silent `catch(e){}` was the other half of "it does nothing": a
+       request that failed left the last list on screen and said nothing at all
+       anywhere. */
+    assert.match(SET_SRC, /return \{ ok:false, why \}/, 'the loader answers with the failure');
+    assert.match(SET_SRC, /set_outbox_unreadable/, 'and the panel prints it');
+    assert.ok(!/const r=await api\('outbox'\);[\s\S]{0,2400}\}catch\(e\)\{\}/.test(SET_SRC),
+      'the empty catch is gone');
+  });
+
+  test('both words exist in both languages', () => {
+    const i18n = require('../js/i18n.js');
+    for (const k of ['set_outbox_refreshed_one', 'set_outbox_refreshed_other',
+      'set_outbox_refreshing', 'set_outbox_unreadable', 'set_reminders_checking']){
+      assert.ok(k in i18n.STRINGS.en, `${k} is missing in English`);
+      assert.ok(k in i18n.STRINGS.sv, `${k} is missing in Swedish`);
+    }
+  });
+});
+
+describe('f193 — a named door lands at the top of what it opens', () => {
+  /* Owner-reported 19 Aug 2026: "when I click on the settings and rules button,
+     the landing page it takes me to I land at the bottom of the page and have
+     to scroll up to see what is on the page."
+
+     setView keeps the reader's scroll when the view asked for is the one
+     already on screen — deliberately, so a save or a background repaint does
+     not throw them to the top. Pressing Settings & Rules from the account
+     drawer, which opens over any page including this one, is exactly the case
+     that makes "already here" true. A door with a name on it is a navigation,
+     and openSettingsAt is the one place that knows the difference. */
+  const SET_SRC = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'settings.js'), 'utf8');
+  test('openSettingsAt puts the page back to the top after it renders', () => {
+    const fn = /function openSettingsAt\(tab, panel\)\{[\s\S]*?\n\}/.exec(SET_SRC);
+    assert.ok(fn, 'the one named door is still there');
+    assert.match(fn[0], /content-scroll/, 'it asks for the scroll container');
+    assert.match(fn[0], /sc\.scrollTop=0/, 'and starts at the top');
+    assert.match(fn[0], /requestAnimationFrame\(\(\)=>\{ sc\.scrollTop=0; \}\)/,
+      'twice, because the rebuild\'s shorter intermediate paint clamps it');
+    assert.ok(fn[0].indexOf('setView') < fn[0].indexOf('scrollTop'),
+      'after the render, never before it');
+  });
+});
+
 describe('f193 — the words', () => {
   test('every new key exists in both languages', () => {
     const i18n = require('../js/i18n.js');

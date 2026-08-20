@@ -185,18 +185,35 @@ describe('F176 — Key terms and the card beside it square off', () => {
       'exactly one place creates the family panel’s host');
   });
 
-  test('neither column pins itself to its own contents', () => {
-    /* align-self:start on a grid child is what let the two cards end at
-       different heights. Both are stretched now, and the card's own LIST
-       absorbs the difference by scrolling — .ob-list when Obligations was
-       there, .fam-list now. Both rules are kept: the obligations one still
-       dresses the same card inside the side panel. */
+  test('the right column stretches and scrolls; the left keeps its own height', () => {
+    /* REVERSED IN PLACE, 19 Aug 2026, and the reversal is the owner's: "keep
+       the size of the card on the left intact ... add a divider between the two
+       cards so that you can scroll on the right hand side especially when you
+       can ran a renewal reason."
+
+       Both columns used to be STRETCHED so neither half of the screen ended in
+       mid-air, and the card's own list absorbed the difference by scrolling.
+       That held while the right-hand slot was a short list. It does not hold
+       now the slot can carry a paragraph of renewal reasoning: stretched, the
+       card that grows drags Key terms up with it, and the reasoning runs off
+       the bottom of the window with nothing to scroll.
+
+       So the RIGHT column stretches to the grid and scrolls inside itself, and
+       the LEFT card is its own height again. The claim underneath is the one
+       this block always made — neither half is allowed to run past the bottom
+       of the page — and the card's own list rules are untouched. */
     assert.ok(!/id="kt-side" style="[^"]*align-self:start/.test(SRC),
-      'the side column stretches');
+      'the side column is not pinned to its own contents');
     const html = fs.readFileSync(
       path.join(__dirname, '..', 'index.html'), 'utf8');
-    assert.match(html, /\.terms-grid\{ align-items:stretch; \}/,
-      'the grid stretches its children');
+    assert.match(html, /\.terms-grid\{ align-items:start; \}/,
+      'the grid lets the left card keep its own height');
+    assert.match(html, /\.terms-grid #kt-side\{[^}]*align-self:stretch/,
+      'while the right column takes the full height');
+    assert.match(html, /\.terms-grid #kt-side\{[^}]*overflow-y:auto/,
+      'and scrolls inside it, which is what a tall card there needs');
+    assert.match(html, /\.kt-resizer\{[^}]*cursor:col-resize/,
+      'with a divider between the two to set the split');
     assert.match(html, /\.ob-list\{[^}]*overflow-y:auto/,
       'and the list scrolls inside whatever height it is given');
     assert.match(html, /\.fam-list\{[^}]*overflow-y:auto/,

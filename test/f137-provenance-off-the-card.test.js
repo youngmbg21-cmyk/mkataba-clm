@@ -93,23 +93,44 @@ describe('F137b — but the record still says where the change came from', () =>
       'removing a render must not take the field with it');
   });
 
-  test('and the reason — the reader\'s own words — still renders', async () => {
+  test('and the reason — the reader\'s own words — still renders, in the panel',
+    async () => {
     /* The field BESIDE the note, and the opposite of it: written by a person,
-       written to be read by the other side. Removing the amber bar must not
-       take the block above it. */
+       written to be read by the other side.
+
+       CLAIM RE-POINTED (19 Aug 2026). It used to read off the CARD, which
+       carried the reason as its own titled strip. The owner has taken that
+       strip off the negotiation page's cards — "remove the why they asked
+       feature from the cards" — and the reason moved where every other detail
+       on this page has already moved: the clause panel's row for the change,
+       one press of Open away, beside the wording it is a reason about. The
+       claim is unchanged in substance and this file still holds it: a render
+       may move, and removing one must never take the field with it. */
     const p = await page({ why: 'Our AP cycle runs monthly, so Net-30 forces an out-of-cycle payment.' });
-    const col = p.column();
-    assert.ok(col.querySelector('.rl-card-why'), 'the reason block is still drawn');
-    assert.match(col.textContent, /AP cycle runs monthly/);
+    assert.equal(p.column().querySelector('.rl-card-why'), null,
+      'not on the card any more');
+    assert.ok(!/AP cycle runs monthly/.test(p.column().textContent),
+      'and not anywhere else on the row either');
+    const panel = p.win.document.querySelector('.rl-cp');
+    assert.ok(panel, 'the clause panel is mounted on this page');
+    assert.ok(panel.querySelector('.rl-cp-why'), 'the reason is drawn in the panel');
+    assert.match(panel.textContent, /AP cycle runs monthly/);
+    assert.equal(p.change().why, 'Our AP cycle runs monthly, so Net-30 forces an out-of-cycle payment.',
+      'and the field itself is untouched');
   });
 
   test('a change with a note and no reason draws no block at all', async () => {
     /* The card that used to be all provenance and nothing else. With the bar
        gone it is simply a card with no aside on it, rather than one carrying a
-       restatement of the button that made it. */
+       restatement of the button that made it. Asserted on the panel too, now
+       that the panel is where a reason is read: no reason, nothing claiming
+       one. */
     const p = await page();
     assert.ok(!p.column().querySelector('.rl-card-why'),
       'no reason was given, so nothing claims one was');
+    const panel = p.win.document.querySelector('.rl-cp');
+    assert.ok(!panel || !panel.querySelector('.rl-cp-why'),
+      'and the panel invents none either');
     assert.equal(p.change().note, 'Copilot — Edit', 'though the record still knows');
   });
 });

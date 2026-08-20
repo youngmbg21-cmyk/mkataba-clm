@@ -1843,6 +1843,13 @@ const STRINGS = {
     st_fx: "Exchange rates",
     st_fx_sub: "Contracts written in another currency are converted to {cur} on dashboards and reports, using the rates you set here. Each contract still shows its own currency on its own page.",
     st_fx_code: "Currency",
+    /* The picker (owner-asked 19 Aug 2026). The placeholder teaches the search:
+       a code or a name, because half the world's currencies are called dollars
+       and nobody hunts by ISO code alone. */
+    st_fx_code_ph: "Search a currency…",
+    st_fx_add: "Add a currency",
+    st_fx_needed_one: "{codes} is used by a contract in this workspace and has no rate on file — its value is left out of converted totals.",
+    st_fx_needed_other: "{codes} are used by contracts in this workspace and have no rate on file — their values are left out of converted totals.",
     st_fx_rate: "1 unit = ? {cur}",
     st_fx_line: "1 {code} = {rate} {cur}",
     st_fx_set_on: "· set {date}",
@@ -3502,6 +3509,18 @@ const STRINGS = {
     set_why_failed: 'Why it failed: {why}',
     set_checked_queued_one: 'Checked {checked} contracts — {n} reminder queued',
     set_checked_queued_other: 'Checked {checked} contracts — {n} reminders queued',
+    /* THE TWO BUTTONS ON THE OUTBOX PANEL SAY WHAT THEY DID (owner-reported
+       19 Aug 2026: "the highlighted buttons are not working"). They were
+       working; they were silent — the confirmation was a bare toast call,
+       which this product answers with nothing on purpose, and a refresh of an
+       unchanged list looks identical to a dead press. */
+    ct_kt_split: 'Resize the two cards',
+    ct_kt_split_title: 'Drag to give one card more room — double-click to put the split back',
+    set_outbox_refreshed_one: 'Outbox refreshed — {n} message',
+    set_outbox_refreshed_other: 'Outbox refreshed — {n} messages',
+    set_outbox_refreshing: 'Refreshing…',
+    set_outbox_unreadable: 'The outbox could not be read: {why}',
+    set_reminders_checking: 'Checking…',
     set_sidebar_all_on: 'Sidebar shows everything',
     set_sidebar_all_off: 'Sidebar grows with the portfolio again',
     set_configured: '● Configured',
@@ -6007,6 +6026,10 @@ const STRINGS = {
     st_fx: "Växelkurser",
     st_fx_sub: "Avtal skrivna i en annan valuta räknas om till {cur} på översikter och rapporter, med kurserna du anger här. Varje avtal visar fortfarande sin egen valuta på sin egen sida.",
     st_fx_code: "Valuta",
+    st_fx_code_ph: "Sök en valuta…",
+    st_fx_add: "Lägg till en valuta",
+    st_fx_needed_one: "{codes} används av ett avtal i arbetsytan och saknar kurs — dess värde utelämnas från omräknade summor.",
+    st_fx_needed_other: "{codes} används av avtal i arbetsytan och saknar kurs — deras värden utelämnas från omräknade summor.",
     st_fx_rate: "1 enhet = ? {cur}",
     st_fx_line: "1 {code} = {rate} {cur}",
     st_fx_set_on: "· angiven {date}",
@@ -7646,6 +7669,13 @@ const STRINGS = {
     set_why_failed: 'Varför det misslyckades: {why}',
     set_checked_queued_one: 'Kontrollerade {checked} avtal — {n} påminnelse köad',
     set_checked_queued_other: 'Kontrollerade {checked} avtal — {n} påminnelser köade',
+    ct_kt_split: 'Ändra storlek på de två korten',
+    ct_kt_split_title: 'Dra för att ge ett kort mer plats — dubbelklicka för att återställa',
+    set_outbox_refreshed_one: 'Utkorgen uppdaterad — {n} meddelande',
+    set_outbox_refreshed_other: 'Utkorgen uppdaterad — {n} meddelanden',
+    set_outbox_refreshing: 'Uppdaterar…',
+    set_outbox_unreadable: 'Utkorgen kunde inte läsas: {why}',
+    set_reminders_checking: 'Kontrollerar…',
     set_sidebar_all_on: 'Sidomenyn visar allt',
     set_sidebar_all_off: 'Sidomenyn växer med beståndet igen',
     set_configured: '● Konfigurerad',

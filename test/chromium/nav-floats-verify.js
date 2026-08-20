@@ -174,6 +174,47 @@ const RAIL_KEY = 'hati.v1.railCollapsed';
       if (w === 1366) {
         await page.keyboard.press('Escape');
         await page.waitForTimeout(300);
+        /* ---- TWO OWNER REPORTS OF 19 Aug 2026, BOTH ABOUT WHERE THINGS SIT,
+           and both only answerable with a laid-out page ----
+           "Move requests to under Templates" (the door was under
+           Administration, a fold that starts shut, while its own comment said
+           it belonged in the everyday group), and "space is needed between the
+           content and the edge of the page to look more professional" (the
+           Requests page drew at padding:0, flush against the sidebar).
+
+           The margin is measured AGAINST ANOTHER PAGE rather than against a
+           number: what was wrong was that this page did not sit where every
+           other page sits. */
+        const doors = await page.evaluate(() => {
+          const y = sel => { const b = document.querySelector(sel);
+            return b ? Math.round(b.getBoundingClientRect().top) : null; };
+          /* WHICH SECTION it is in is asked of the DOM, not of the geometry:
+             the Administration fold starts shut, so everything inside it
+             measures at y=0 and a position comparison would pass for the wrong
+             reason. */
+          const sec = document.querySelector('[data-view="intake"]')?.closest('.nav-section');
+          return { templates: y('[data-view="templates"]'), intake: y('[data-view="intake"]'),
+            people: y('[data-view="directory"]'),
+            section: sec ? sec.getAttribute('data-section') : null };
+        });
+        check(`${w}: Requests sits under Templates, in the everyday group`,
+          doors.section === 'work' && doors.intake != null && doors.templates != null
+          && doors.templates < doors.intake && doors.intake < doors.people,
+          JSON.stringify(doors));
+        const edge = async view => {
+          await page.evaluate(v => setView(v), view);
+          await page.waitForTimeout(900);
+          return page.evaluate(() => {
+            const el = document.querySelector('#content .view-enter > *');
+            return el ? Math.round(el.getBoundingClientRect().left) : null;
+          });
+        };
+        const tplEdge = await edge('templates');
+        const ikEdge = await edge('intake');
+        check(`${w}: and its content starts where every other page's does`,
+          ikEdge != null && tplEdge != null && Math.abs(ikEdge - tplEdge) <= 1,
+          `Requests at x${ikEdge} · Templates at x${tplEdge}`);
+        await page.screenshot({ path: path.join(OUT, 'requests-1366.png') });
         await page.evaluate(() => setView('dashboard'));
         await page.waitForTimeout(900);
         await page.screenshot({ path: path.join(OUT, 'rest-1366.png') });
