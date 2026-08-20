@@ -12,7 +12,7 @@
    table, and everything that has ever been asked about it.
 
    WHAT IS PINNED HERE:
-     1  the pill: green, worded Edit, top right, on every clause, always drawn
+     1  the pill: the pencil icon (accent ink, word as aria-label), top right, on every clause, always drawn
      2  it is a DOOR, not a verb — it opens the panel and files nothing
      3  the panel's three sections, and the empty states that must be drawn
      4  ONE READING, ONE PRODUCER — the panel's bodies come from the canvas
@@ -72,7 +72,7 @@ const pills = box => [...box.querySelectorAll('.rl-cp-pill')];
 const bodies = box => [...box.querySelectorAll('#rl-cp-body .rl-cp-src')];
 
 describe('f210 (1) — the pill', () => {
-  test('every clause carries one, worded Edit', async () => {
+  test('every clause carries one — the pencil icon, with the word kept for a screen reader', async () => {
     const p = await bench();
     const box = page(p);
     /* section.rl-clause, not .rl-clause: the paper also puts that class on the
@@ -82,7 +82,15 @@ describe('f210 (1) — the pill', () => {
     assert.ok(clauses.length >= 2, 'the fixture has clauses to put a door on');
     assert.equal(pills(box).length, clauses.length,
       'one pill per clause — including the clauses nobody has asked anything about');
-    pills(box).forEach(b => assert.equal(b.textContent.trim(), 'Edit'));
+    /* REVERSED IN PLACE, 20 Aug 2026 (owner-asked, off a picture of the glyph):
+       the WORD left the paper for the pencil icon. The claim this test was
+       making — the door is findable and named — is unchanged: the icon is the
+       finding, and the name survives as aria-label + title. */
+    pills(box).forEach(b => {
+      assert.equal(b.textContent.trim(), '', 'icon-only on the paper');
+      assert.ok(b.querySelector('svg'), 'the pencil glyph is the button');
+      assert.equal(b.getAttribute('aria-label'), 'Edit', 'the word survives for a screen reader');
+    });
   });
 
   test('it is at the TOP of the clause, in the heading row', async () => {
@@ -110,8 +118,14 @@ describe('f210 (1) — the pill', () => {
        clause you are already working on; this is the way IN, and a hover-only
        door is an invisible affordance — the exact fault this file records
        against the selection route. */
-    assert.match(SRC, /\.redline-page \.rl-cp-pill\{[^}]*background:var\(--nav-bg/,
-      'the pill wears the nav panel\'s own colour token');
+    /* REVERSED IN PLACE, 20 Aug 2026 (owner-asked): the dark nav-bg fill went
+       with the word — the pencil now sits on a transparent face in the
+       workspace ACCENT, visible but not too dark, and never neutral grey
+       (the furniture lesson). */
+    assert.match(SRC, /\.redline-page \.rl-cp-pill\{[^}]*background:transparent/,
+      'no dark fill on the paper any more');
+    assert.match(SRC, /\.redline-page \.rl-cp-pill\{[^}]*color:var\(--accent-solid/,
+      'the glyph wears the workspace accent — visible, never furniture-grey');
     /* REVERSED IN PLACE, 19 Aug 2026 (owner-asked). margin-left:auto put the
        pill at the right of the heading's FLEX ROW, which is inside the
        clause's content box — so anything that changed that box moved the

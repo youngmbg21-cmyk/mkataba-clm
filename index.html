@@ -2103,7 +2103,22 @@
      20 Aug 2026). The strip is the hero's replacement: one line, the book's
      facts, the two controls. The bottom row is three summary cards — each a
      door — that stack to one column where the main row already stacks. */
-  .hm-strip{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:2px 2px 0;}
+  /* THE STRIP IS THE ACCENT'S OWN CARD (owner-asked 20 Aug 2026, off the old
+     teal hero render: "similar to image 1 when in green and act accordingly
+     when in blue"). Built from the accent tokens, never a fixed colour, so the
+     green workspace gets the teal card, the navy one gets blue, and dark mode
+     follows the tokens. Ink is white on both. */
+  .hm-strip{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:16px 22px;
+    background:linear-gradient(120deg,var(--color-accent-700),var(--color-accent-500));color:#fff;}
+  .hm-greet{font-size:12.5px;font-weight:600;color:rgba(255,255,255,.88);}
+  .hm-strip-title{margin:1px 0 3px;font-family:var(--font-heading);font-size:21px;font-weight:700;letter-spacing:-.01em;color:#fff;line-height:1.2;}
+  .hm-strip-line{margin:0;font-size:12px;color:rgba(255,255,255,.85);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  /* The two controls re-dress for the dark ground: Customize translucent,
+     Draft new agreement the white primary — the render's own pairing. */
+  .hm-strip .ui-btn{background:rgba(255,255,255,.13);border-color:rgba(255,255,255,.38);color:#fff;box-shadow:none;}
+  .hm-strip .ui-btn:hover{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.55);}
+  .hm-strip #hero-draft{background:#fff;border-color:#fff;color:var(--color-accent-800);}
+  .hm-strip #hero-draft:hover{background:rgba(255,255,255,.9);border-color:#fff;}
   .hm-foot{flex:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;}
   .hm-foot-card{display:flex;align-items:center;gap:14px;background:var(--color-surface);
     border:1px solid var(--color-divider);border-radius:0;padding:13px 16px;cursor:pointer;

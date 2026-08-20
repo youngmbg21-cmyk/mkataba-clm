@@ -6274,12 +6274,20 @@ function rlAskRevealHtml(c, ch, side, opts = {}){
    with no hands: `editable` is the same reading the retired tool row asked, so
    a viewer, a signing link and a closed round get a clause they can read and
    no door promising something the page would refuse. */
+/* THE WORD BECAME THE PENCIL (owner-asked 20 Aug 2026, off a picture of the
+   glyph: "replace the edit word on the contract with the edit symbol … it
+   should not be too dark but visible as well"). Icon-only on the paper; the
+   WORD survives as the aria-label and the hover title, so a screen reader and
+   a hesitant pointer both still get "Edit". The ink is the workspace accent —
+   the established answer to "visible but not furniture" (the folded-notices
+   chip, .ui-btn), and lighter than the nav-bg fill it replaces. */
 function rlClauseEditPillHtml(cl, opts = {}){
   if (!cl || opts.editable === false || !opts.hasPanel) return '';
   const id = _ne(cl.clauseId);
   return `<button type="button" class="rl-cp-pill" data-rl-cp-open="${id}"
     aria-expanded="${rlCpOpenId() === String(cl.clauseId) ? 'true' : 'false'}"
-    title="${_nea(i18t('ng_cp_open_title'))}">${i18t('ng_cp_edit')}</button>`;
+    aria-label="${_nea(i18t('ng_cp_edit'))}"
+    title="${_nea(i18t('ng_cp_open_title'))}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg></button>`;
 }
 
 /* ---- ONE CLAUSE, ONE SHAPE, WHEREVER IT IS DRAWN ----
@@ -7719,12 +7727,8 @@ function redlineLayoutCss(){
      And it is CUT FROM THE SELECTION with the rest of the furniture (see
      _NEGO_SEL_CHROME): a drag from above the first word to below the last must
      not sweep the word "Edit" into the passage the Copilot is asked about. */
-  ${''/* THE PILL WEARS THE NAV'S OWN COLOUR (owner-asked 16 Aug 2026): dark
-     green like the nav panel in the green workspace, navy like the nav panel
-     in the blue one — one token, --nav-bg, so it follows the theme (and the
-     dark theme) with no rule of its own. It replaced a pale emerald that
-     stayed emerald whatever the workspace wore. Hover lightens the same
-     colour rather than changing it. */}
+  ${''/* It wore the nav's own dark fill from 16 to 20 Aug 2026; the icon-only
+     dress below replaced it on the owner's ask. */}
   /* ---- AND IT IS PINNED, NOT CARRIED ----
      Out of the heading's flex row and onto the clause's own box, at a fixed
      offset from the gutter above. Equal boxes alone would have aligned it;
@@ -7734,14 +7738,22 @@ function redlineLayoutCss(){
      it. The offset is measured from the padding box, so right:0 lands the
      pill on the text column's own right edge — where it has always appeared
      on an unmarked clause, and now on every clause. */
+  ${''/* ICON-ONLY SINCE 20 Aug 2026 (owner-asked): the pencil glyph in the
+     workspace ACCENT on a transparent face — not too dark, still visible,
+     and never neutral grey (the furniture lesson, learned three times).
+     Hover puts a light accent tint behind it and deepens the ink. The nav-bg
+     fill and the word are retired from the paper; the word survives as
+     aria-label and title. */}
   .redline-page .rl-cp-pill{position:absolute;right:0;top:0;z-index:2;flex:none;
-    border:1px solid var(--nav-bg,#0b3d3a);background:var(--nav-bg,#0b3d3a);color:#fff;
-    border-radius:0;padding:calc(3px * var(--doc-scale,1)) calc(11px * var(--doc-scale,1));
-    font:inherit;font-size:calc(10.5px * var(--doc-scale,1));font-weight:700;line-height:1.6;
+    display:inline-flex;align-items:center;justify-content:center;
+    border:1px solid transparent;background:transparent;color:var(--accent-solid,#0d9488);
+    border-radius:0;padding:calc(3px * var(--doc-scale,1)) calc(4px * var(--doc-scale,1));
+    font:inherit;font-size:calc(10.5px * var(--doc-scale,1));font-weight:700;line-height:1;
     cursor:pointer;white-space:nowrap;-webkit-user-select:none;user-select:none;
-    box-shadow:0 1px 2px rgba(15,23,42,.08);transition:background .15s,border-color .15s}
-  .redline-page .rl-cp-pill:hover{background:color-mix(in srgb,var(--nav-bg,#0b3d3a) 82%,#fff);
-    border-color:color-mix(in srgb,var(--nav-bg,#0b3d3a) 82%,#fff)}
+    transition:background .15s,color .15s}
+  .redline-page .rl-cp-pill svg{width:calc(15px * var(--doc-scale,1));height:calc(15px * var(--doc-scale,1));display:block}
+  .redline-page .rl-cp-pill:hover{background:var(--color-accent-100,#ccfbf1);
+    color:var(--color-accent-800,#115e59)}
   .redline-page .rl-cp-pill:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
   /* Every clause's panel body is in the panel already; opening flips which one
      is on. ONE AT A TIME — the same single-value rule as the card pop-out and
@@ -12977,11 +12989,12 @@ function redlineChangeCardsHtml(c, opts = {}){
       <b>${i18t('ng_no_changes')}</b>
       ${''/* THE WAY IN IS THE EDIT PILL NOW (16 Aug 2026). This blurb pointed
              at Direct Edit under the clause, and that row is retired — all
-             writing happens in the clause panel, whose door is the green Edit
-             pill on every clause. The blurb points where the door is. */}
+             writing happens in the clause panel, whose door is the Edit pill
+             on every clause. Since 20 Aug 2026 the pill is the pencil icon,
+             so the blurb names the symbol beside the word. */}
       <span>${opts.noAi
-        ? `Press <b>${i18t('ng_cp_edit')}</b> on any clause to open its panel, then <b>&#43;</b> to propose new wording.`
-        : `Press <b>${i18t('ng_cp_edit')}</b> on any clause to open its panel — <b>&#43;</b> starts a draft, and highlighting a passage offers <b>&#10024; Copilot</b>.`} ${i18t('ng_each_ask_lands')}</span>
+        ? `Press the <b>&#9998; ${i18t('ng_cp_edit')}</b> button on any clause to open its panel, then <b>&#43;</b> to propose new wording.`
+        : `Press the <b>&#9998; ${i18t('ng_cp_edit')}</b> button on any clause to open its panel — <b>&#43;</b> starts a draft, and highlighting a passage offers <b>&#10024; Copilot</b>.`} ${i18t('ng_each_ask_lands')}</span>
       ${settled ? `<span>${settled} change${settled === 1 ? ' has' : 's have'} already been decided — ${settled === 1 ? 'it is' : 'they are'} in the document and the round history, not here.</span>` : ''}
     </div>`;
   }

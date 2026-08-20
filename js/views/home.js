@@ -568,11 +568,20 @@ function renderDashboard(){
     activeVal?i18t('home_hero_value',{v:activeVal}):'',
     apprMineN?i18tn('home_hero_need',apprMineN,{n:apprMineN}):'',
   ].filter(Boolean).join(' · ');
+  /* THE GREETING IS BACK, OWNER-ASKED (20 Aug 2026, off the old hero render —
+     this reverses "a page title is not a salutation"): a small time-of-day
+     line over the page's real title. The hour is the reader's own clock; the
+     name is their first name, falling back to the dictionary's "there". */
+  const hour=new Date().getHours();
+  const greetKey=hour<12?'home_greet_morning':hour<17?'home_greet_afternoon':'home_greet_evening';
+  const firstName=String((me&&me.name)||'').trim().split(/\s+/)[0]||i18t('home_greet_there');
   const heroSection=`
     <section class="hm-strip">
-      <h2 style="margin:0;font-size:15px;font-weight:700;color:var(--color-text);flex:none;">${i18t('home_portfolio')}</h2>
-      <p style="margin:0;font-size:12px;color:var(--color-neutral-500);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(heroLine)}</p>
-      <span style="flex:1 1 auto;"></span>
+      <div style="min-width:0;flex:1 1 auto;">
+        <div class="hm-greet">${i18t(greetKey)}, ${esc(firstName)}</div>
+        <h2 class="hm-strip-title">${i18t('home_clm_title')}</h2>
+        <p class="hm-strip-line">${esc(heroLine)}</p>
+      </div>
       <button id="kpi-customize" class="ui-btn" title="${i18t('home_choose_metrics')}" style="font-size:11px;padding:5px 10px;display:inline-flex;align-items:center;gap:6px;flex:none;">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
         ${i18t('home_customize')}
