@@ -557,6 +557,11 @@ function renderDashboard(){
      name (home_greet_* — morning <12, afternoon <17, evening; home_greet_there
      when nameless), the title reads home_clm_title "Contract Lifecycle
      Management" (home_hero_badge / home_hero_title are stale — flag mentions),
+     and it FOLLOWS THE READER'S LANGUAGE: it was kept in English in both for a
+     day and the owner reported the Swedish banner still reading English on
+     20 Aug 2026 — the page's own title is read by the reader, so it takes the
+     dictionary's own settled rendering of this phrase (the one ng_clm already
+     used) rather than a second wording,
      and the COLOURS ARE THE ACCENT'S OWN — a gradient from the accent tokens
      in the stylesheet, teal in the green workspace, blue in navy ("similar to
      image 1 when in green and act accordingly when in blue"), never a fixed
