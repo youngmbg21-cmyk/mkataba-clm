@@ -49,7 +49,11 @@ If the repository is already cloned, just `cd` into it and run the `checkout`.
 npm install
 ```
 
-About a minute. It installs three packages.
+About a minute.
+
+**npm will say it added around 108 packages.** That is normal and nothing has
+gone wrong: this project names only three, and those three bring their own
+dependencies along.
 
 ### 3. Confirm the contracts are there
 

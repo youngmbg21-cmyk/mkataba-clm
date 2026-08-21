@@ -261,8 +261,21 @@ function report(tallies, oblig, errors, n) {
   console.log('\n' + line);
   console.log(`Headline: ${S.headline(tallies)}`);
   console.log(`Contracts: ${n}`);
-  console.log('Claim as "measured at N% against 510 professionally reviewed contracts",');
-  console.log('never "N% accurate". Credit CUAD (CC BY 4.0) wherever a figure is published.');
+  /* THE CLAIM NAMES WHAT ACTUALLY RAN.
+
+     This line used to read "measured at N% against 510 professionally reviewed
+     contracts" — hardcoded, and wrong in the one direction that matters. 510 is
+     the size of the whole public CUAD dataset; this scorecard uses a chosen 50,
+     and `--n 10` measures ten. The tool was handing the reader a claim backed by
+     ten contracts dressed as five hundred and ten, which is the exact
+     overstatement the whole scorecard exists to prevent.
+
+     So the sentence is built from `n`. 510 may still be MENTIONED as where the
+     50 were drawn from — that is true and worth saying — but it can never be
+     the number claimed. f226-9 pins this. */
+  console.log(`Claim as "measured on ${n} contract${n === 1 ? '' : 's'} drawn from CUAD, a set of 510`);
+  console.log('marked up by commercial lawyers" — never "N% accurate", and never cite 510');
+  console.log('as the number measured. Credit CUAD (CC BY 4.0) wherever a figure is published.');
   console.log(line);
 
   if (errors.length) {

@@ -220,8 +220,17 @@ not a brief, and choosing what to leave out is the job.
   contracts with one resting on 20 and hide whichever is weak. Where a headline is
   wanted for a proposal, it states what it is: the mean of the per-field FOUND
   figures, with the field count beside it.
-- **The claim is "measured at N% against 510 professionally reviewed
-  contracts"**, never "N% accurate", and it credits CUAD (CC BY 4.0).
+- **The claim names the number of contracts that ACTUALLY RAN.**
+  **CORRECTED 21 Aug 2026.** This first read *"measured at N% against 510
+  professionally reviewed contracts"*, and the runner printed exactly that,
+  hardcoded. 510 is the size of the whole public CUAD dataset; this scorecard
+  uses a chosen 50, and `--n 10` measures ten — so the tool was handing the
+  reader a claim backed by ten contracts dressed as five hundred and ten. A
+  fifty-fold overstatement, produced by the very tool built to stop
+  overstatement.
+  The sentence is now built from the run's own count. 510 may be MENTIONED as
+  the set the 50 were drawn from, which is true and worth saying, but it can
+  never be the number claimed. Never "N% accurate". Credit CUAD (CC BY 4.0).
 
 ## WHAT STAGE 4 MUST NOT DO
 

@@ -331,3 +331,35 @@ test('f226-8f addDuration crosses month and year ends — including a known quir
   assert.equal(S.addDuration('2020-02-29', { n: 1, unit: 'year' }), '2021-03-01');
   assert.equal(S.addDuration('2019-12-31', { n: 1, unit: 'day' }), '2020-01-01');
 });
+
+/* ---------- 9. the published claim must not overstate ----------
+   The runner prints a suggested wording for any figure that leaves the
+   building. It first said "measured at N% against 510 professionally reviewed
+   contracts" — hardcoded, while `--n 10` measures ten. A fifty-fold
+   overstatement, printed by the tool built to prevent overstatement, and
+   caught by an operator reading the output rather than by any test here.
+
+   Source-pinned rather than behaviour-pinned: the claim is one console.log in
+   the runner, and running the runner costs money. The f215/f222 pattern. */
+
+const fs = require('node:fs');
+const path = require('node:path');
+const RUNNER = fs.readFileSync(path.join(__dirname, 'cuad', 'run.js'), 'utf8');
+/* comments legitimately DISCUSS the old wording — strip them before asserting */
+const RUNNER_CODE = RUNNER.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+
+test('f226-9a the runner never prints a hardcoded "against 510"', () => {
+  assert.ok(!/against 510/i.test(RUNNER_CODE),
+    'the claim must not name 510 as the number measured');
+});
+
+test('f226-9b the claim is built from the run\'s own contract count', () => {
+  const claim = RUNNER_CODE.split('\n').filter(l => /Claim as/.test(l)).join('\n');
+  assert.ok(claim, 'the runner must still print a suggested claim');
+  assert.match(claim, /\$\{n\b/, 'the claim must interpolate the actual count');
+});
+
+test('f226-9c "N% accurate" is still refused, and CUAD still credited', () => {
+  assert.match(RUNNER_CODE, /never "N% accurate"/);
+  assert.match(RUNNER_CODE, /CC BY 4\.0/);
+});
