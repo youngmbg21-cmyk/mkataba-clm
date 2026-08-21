@@ -26,7 +26,17 @@ const CONTRACT_RELATIONS = [
   { k:'annex',       get label(){ return i18t('fa_annex'); },  get blurb(){ return i18t('fa_annex_desc'); } },
   { k:'side-letter', get label(){ return i18t('fa_side_letter'); }, get blurb(){ return i18t('fa_side_letter_desc'); } },
 ];
-const RELATION_LABEL = Object.fromEntries(CONTRACT_RELATIONS.map(r=>[r.k,r.label]));
+/* READ LIVE, NEVER FROZEN AT LOAD. Object.fromEntries INVOKES each getter, so
+   this was a snapshot of whatever language was current when the module was
+   imported — the getter trap this codebase has met three times, and the reason
+   builtinTemplateFields stopped caching. A reader who switched language
+   mid-session kept the old word in the family panel and the register until they
+   reloaded. Per-key getters keep the RELATION_LABEL[k] shape every caller
+   already uses, and answer at the moment they are read. */
+const RELATION_LABEL = CONTRACT_RELATIONS.reduce((m,r)=>{
+  Object.defineProperty(m, r.k, { enumerable:true, get(){ return r.label; } });
+  return m;
+}, {});
 const isRelation = r => CONTRACT_RELATIONS.some(x=>x.k===r);
 /* "a addendum" / "a annex" — the audit line below reads the relation's own
    label, and four of the seven begin with a vowel. A record is read by people. */
@@ -66,7 +76,17 @@ function applyParentLink(c, parentId, relation, note, actor){
   if(note!=null) c.relationNote = String(note);
   const who = (actor && actor.name) || currentUser()?.name || 'System';
   c.audit = c.audit || [];
-  const word=RELATION_LABEL[c.relation].toLowerCase();
+  /* THE RECORD KEEPS ENGLISH (launch audit, 21 Aug 2026). This read
+     RELATION_LABEL — the SCREEN's word, which follows the reader — so a member
+     working in Swedish wrote "Filed as a ändringsavtal of MK-P1" into the audit
+     trail: a permanent record in two languages, with the English a/an article
+     computed over a Swedish noun, sitting next to the "Created" line from the
+     same act which correctly stayed English. The audit trail is shown
+     identically to every reader whatever language they read the app in, which is
+     exactly why the rulebook's rule is that a label which is also a RECORD keeps
+     English. RELATION_DOC_WORD is that word, and its own comment three hundred
+     lines down already said this line should have been using it. */
+  const word=(RELATION_DOC_WORD[c.relation]||'Amendment').toLowerCase();
   c.audit.push({ at:nowISO(), user:who, action:'Linked',
     detail:`Filed as ${_famAn(word)} ${word} of ${parentId}${note?` — ${note}`:''}` });
   return c;

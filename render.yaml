@@ -7,6 +7,13 @@
 # RESEND_API_KEY is present. HTTPS=true issues Secure cookies and makes the
 # share links in emails use https://<your-render-url>.
 #
+# ALSO SET APP_URL to this service's public address (e.g.
+# https://hati-clm.onrender.com). Mail that HaTi composes on a SCHEDULE —
+# obligation reminders, the daily/weekly brief, intake decisions and the nudge
+# to a counterparty who has not opened a shared contract — has no incoming
+# request to read the host from, so without APP_URL every link in it points at
+# http://localhost and is dead for the person who receives it.
+#
 # PERSISTENCE: the app stores its SQLite database and uploaded files under
 # HATI_DATA. That MUST point at a mounted persistent disk, otherwise Render's
 # filesystem is wiped on every deploy and all contracts/accounts are lost. The
@@ -35,3 +42,5 @@ services:
         value: HaTi <onboarding@resend.dev>
       - key: RESEND_API_KEY
         sync: false   # set this in the Render dashboard; never committed to git
+      - key: APP_URL
+        sync: false   # set to this service's public https URL — scheduled email links depend on it
