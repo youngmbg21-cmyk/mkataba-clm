@@ -152,7 +152,24 @@ features do it, and the reader is told nothing.
 > exclusivity. **Widening it is not tuning to the answer key** — a minimum
 > volume commitment is money a manufacturer loses by missing it, and belongs
 > here whether or not CUAD marks it. That CUAD marks it is how the gap was
-> found, not why it is being closed. **A fourth run is what settles this.**
+> found, not why it is being closed.
+>
+> **THE FOURTH RUN: THE PROMPT WORKED AND THE ROOM RAN OUT BEHIND IT.**
+> Contracts returning a genuinely empty answer fell from **7 to 3**, and the
+> two that answered returned **20 and 18** obligations against 12 and 12. One
+> that had managed 18 was cut off trying for more, and five came back as an
+> honest **502 naming the reason** — the silence they used to be.
+>
+> The arithmetic, rather than another guess: 20 items, each a description plus
+> a whole clause quoted continuously (400–600 characters is 100–150 tokens),
+> plus the JSON around them. Call it 200 tokens an item and 4,000 was exactly
+> not enough. **8,000** now, and the quote is **bounded at 200 characters** —
+> *"short snippet"* carried no number while the quoting rule asks for one
+> continuous passage, and those two pull in opposite directions. Output is
+> billed as used, so a scan needing 2,500 still costs 2,500.
+>
+> **A fifth run is what settles this.** Four runs, four real causes, each
+> found only after the last was fixed.
 
 
 Scored 0% on all four categories. That is **not** a reading failure:
@@ -211,6 +228,12 @@ That distinction decides how serious it is:
 > the sixteen are retention, the field most often genuinely absent. The rule
 > already said "omit if the field is empty" and lost the argument to the
 > sentence in front of it; it now says so twice and names this exact failure.
+>
+> **AND THAT FIX MEASURED CLEAN — fourth run.** Not-verbatim spans fell from
+> 16 of 121 (13%) to **5 of 110 (5%)**, and both retention fields left the
+> list entirely. **This finding is closed:** 34 spliced quotes at the start,
+> none now, and the absence-sentences gone with them. The five that remain are
+> ordinary paraphrase, spread one or two across four different fields.
 
 > **FIXED.** One sentence, stated once and reaching all four tools that hand a
 > quote to a customer, carrying its own way forward for the case that caused

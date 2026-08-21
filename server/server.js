@@ -4100,7 +4100,7 @@ app.post('/api/ai/obligations', auth, rlAiDeep, aiFeature('obligations'), aiBudg
           desc: { type: 'string', description: 'Short obligation, e.g. "Pay 30 days from invoice" or "Submit quarterly sales report".' },
           due: { type: 'string', description: 'ISO yyyy-mm-dd if a concrete date is stated, else empty.' },
           recurring: { type: 'string', enum: ['none','monthly','quarterly','annual'], description: 'Recurrence if periodic.' },
-          quote: { type: 'string', description: 'Short verbatim clause snippet this came from.' + AI_QUOTE_RULE },
+          quote: { type: 'string', description: 'The verbatim clause snippet this came from, under 200 characters.' + AI_QUOTE_RULE },
         }, required: ['desc'] } },
       },
       required: ['obligations'],
@@ -4146,7 +4146,7 @@ Quote the clause each came from. Return via list_obligations.\n\nDOCUMENT:\n${ai
        same day) makes each quote longer than the spliced fragment it
        replaced. Output is billed as used, so headroom that is not needed
        costs nothing; an answer cut off costs the whole answer. */
-    const resp = await anthropicMessages(key, 'deep', { max_tokens: 4000, tools: [tool], tool_choice: { type: 'tool', name: 'list_obligations' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'obligations', who: aiWho(req) });
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 8000, tools: [tool], tool_choice: { type: 'tool', name: 'list_obligations' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'obligations', who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');

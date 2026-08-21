@@ -185,7 +185,7 @@ describe('F227 — the whole contract is read', () => {
     /* Named, so a tool that quietly stops asking for it fails here. */
     assert.match(SERVER_CODE, /const span = \{ type: 'string'[^}]*AI_QUOTE_RULE/,
       'the extract sourceSpans — the ones printed on the upload confirm screen');
-    assert.match(SERVER_CODE, /Short verbatim clause snippet this came from\.' \+ AI_QUOTE_RULE/,
+    assert.match(SERVER_CODE, /verbatim clause snippet this came from, under \d+ characters\.' \+ AI_QUOTE_RULE/,
       'the obligations quote');
     assert.match(SERVER_CODE, /Short verbatim snippet it comes from\.' \+ AI_QUOTE_RULE/,
       'the brief quote');
@@ -223,7 +223,16 @@ describe('F227 — the whole contract is read', () => {
        which is how a fix in one place can cost an answer in another. */
     const m = SERVER_CODE.match(/max_tokens: (\d+), tools: \[tool\], tool_choice: \{ type: 'tool', name: 'list_obligations'/);
     assert.ok(m, 'could not read the obligations token ceiling');
-    assert.ok(Number(m[1]) >= 3000, `12 quoted obligations do not fit in ${m[1]} tokens`);
+    /* The number is derived, not picked. maxItems items, each a description
+       plus a WHOLE clause quoted continuously — a real clause runs 400-600
+       characters, so ~150 tokens — plus due, recurring and the JSON around
+       them: call it 200 tokens an item, and leave the wrapper room on top.
+       Measured on the fourth scorecard run, 4,000 was exactly not enough:
+       the two contracts that answered returned 20 and 18, and five came back
+       cut off. */
+    const items = Number(SERVER_CODE.match(/obligations: \{ type: 'array', maxItems: (\d+)/)[1]);
+    assert.ok(Number(m[1]) >= items * 200,
+      `${items} quoted obligations do not fit in ${m[1]} tokens`);
   });
 
   test('"none" and "cut off before it could say" are different answers', () => {
@@ -267,6 +276,15 @@ describe('F227 — the whole contract is read', () => {
        this schema. */
     const m = SERVER_CODE.match(/obligations: \{ type: 'array', maxItems: (\d+)/);
     assert.ok(Number(m[1]) >= 18, `a 50k master supply agreement carries more than ${m[1]} duties`);
+  });
+
+  test('the quote has a length, because two instructions were pulling apart', () => {
+    /* "Short snippet" carried no number while AI_QUOTE_RULE asks for one
+       CONTINUOUS passage — and an unbounded quote times twenty is what spent
+       the token ceiling. The extract route's span has said "under 140
+       characters" all along; this one had nothing. */
+    const q = SERVER_CODE.match(/quote: \{ type: 'string', description: '([^']*)'/)[1];
+    assert.match(q, /under \d+ characters/);
   });
 
   test('an absence is not a quotation', () => {
