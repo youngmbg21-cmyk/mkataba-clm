@@ -1128,17 +1128,23 @@ The Portfolio Health Report is DETERMINISTIC — the AI never writes a word. ope
 
 The Copilot brief travels in TWO parts: ctx.guideRules (the rulebook) and ctx.guideLive (the snapshot); buildCopilotSystem (server/server.js) stacks two system blocks, cache_control on the first. Failure bubbles carry err:true and are EXCLUDED from aiChatMessages (a stored error poisons later turns). f151 is the drift test: snapshot, health report and recipes must agree with arithmetic over state.contracts — a new figure in the prompt wants a row there.
 
-## A NOTE ON theme-tokens-verify
+## A NOTE ON theme-tokens-verify — RESOLVED 21 Aug 2026, KEPT AS THE LESSON
 
-It scores 20/40 and has done since well before this run — the recorded
-`theme-tokens-baseline.json` is a snapshot of every colour on twenty screens
-and this branch's design work has moved a great many of them. Checked by
-running the same file at the commit immediately before the 13 Aug 2026 batch:
-same 20/40, same screens. The twenty PASSING checks are the ones that matter
-and they still pass — switching to Navy repaints every screen, and no green
-survives the switch. Re-record the baseline (`--save`) when somebody is ready
-to own the current palette; until then it is a stale snapshot, not a
-regression, and it should not be read as one.
+This section stood for over a week saying the file "scores 20/40 and has done
+since well before this run", that the baseline was a stale snapshot rather
+than a regression, and that somebody should re-record it "when they are ready
+to own the current palette". **Somebody did.** It is 40/40, it is off the
+known-red list, and the standing rule is at THE NET above: re-record only when
+deliberately owning a palette change, never to make a red run go away.
+
+**The lesson is worth more than the note was.** A half-red file with a written
+excuse beside it is the most comfortable kind of debt in a codebase — the
+excuse was true, the reasoning was sound, and it still meant the one net built
+to catch a colour regression caught nothing for a week. `run-all.js` states
+the same rule in its own words now: an entry on KNOWN_RED is a promise that
+somebody looked, printed on every run so it stays something you have to keep
+reading rather than becoming the furniture. **Take a file off the list the day
+it goes green.**
 
 ## Line numbers drift
 
