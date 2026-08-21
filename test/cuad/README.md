@@ -41,6 +41,13 @@ from this set describes how HaTi reads Kenyan or Swedish paper.
 
 ## Running it
 
+Step-by-step directions for a non-developer are in **RUN-THE-SCORECARD.md**.
+RUN-ON-RENDER.md is DELETED — Render was tested and ruled out on three counts
+(the key is not there and need not be, 199 MB needed against 119 MB free, and
+Render strips the git remote after deploying). The post-mortem is the last
+section of RUN-THE-SCORECARD.md.
+
+
     # dry run — proves the plumbing, spends nothing, every score is zero
     node test/cuad/run.js --corpus /path/to/CUADv1.json
 
