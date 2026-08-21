@@ -3536,7 +3536,18 @@ async function anthropicMessages(key, tier, payload, meter = {}) {
     return { ok: false, status: r.status, error: text, model: chosen };
   }
   const data = await r.json();
-  return { ok: true, data, model: chosen, spend: book(chosen, data) };
+  /* AN ANSWER CUT SHORT IS NOT AN EMPTY ANSWER. Nothing in this file read
+     stop_reason, and a tool call stopped at max_tokens comes back with a
+     tool_use block whose input is partial or absent — so every route's
+     "Array.isArray(block.input?.x) ? ... : []" quietly turned "I ran out of
+     room" into "there is nothing here". The obligations reader is where it
+     was caught (it answered "no obligations found" on a contract full of
+     them) but the fault is not its own: this is the input-truncation lesson
+     on the OUTPUT side, and the rule is the same one — a cap is a FACT,
+     never a silent trim. Recorded once here; aiNotice turns it into a
+     sentence, and every route in this file already folds aiNotice in. */
+  return { ok: true, data, model: chosen, truncated: data && data.stop_reason === 'max_tokens',
+    spend: book(chosen, data) };
 }
 
 // A user-facing notice to fold into a response: combines the input-was-shortened
@@ -3544,6 +3555,7 @@ async function anthropicMessages(key, tier, payload, meter = {}) {
 const aiNotice = (req, out) => {
   const parts = [];
   if (req && req.aiInputCapped) parts.push('Your input was large, so it was shortened before being sent to the Copilot.');
+  if (out && out.truncated) parts.push('The Copilot answer was longer than the space allowed and was cut short, so some of it is missing. Try again, or narrow what you asked for.');
   if (out && out.fellBack) parts.push(`The configured Copilot model "${out.rejectedModel}" was rejected by the provider, so the built-in default "${out.model}" was used instead. Update the model in Team & Settings.`);
   return parts.length ? { notice: parts.join(' ') } : {};
 };
@@ -4096,12 +4108,23 @@ app.post('/api/ai/obligations', auth, rlAiDeep, aiFeature('obligations'), aiBudg
   };
   const prompt = `Extract the obligations this contract imposes (payment milestones, notice/termination deadlines, deliverables, reporting duties, insurance/indemnity upkeep). Quote the clause each came from. Only list obligations actually present. Return via list_obligations.\n\nDOCUMENT:\n${aiDocText(req, text)}`;
   try {
-    const resp = await anthropicMessages(key, 'deep', { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'list_obligations' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'obligations', who: aiWho(req) });
+    /* ROOM FOR THE ANSWER THE SCHEMA ALLOWS. maxItems is 12 and each item
+       carries a description AND a verbatim quote, which is roughly 100 tokens
+       apiece before the JSON around them — so 1500 left about two obligations
+       of headroom, and asking for ONE CONTINUOUS passage (AI_QUOTE_RULE, the
+       same day) makes each quote longer than the spliced fragment it
+       replaced. Output is billed as used, so headroom that is not needed
+       costs nothing; an answer cut off costs the whole answer. */
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 4000, tools: [tool], tool_choice: { type: 'tool', name: 'list_obligations' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'obligations', who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
-    res.json({ obligations: Array.isArray(block.input?.obligations) ? block.input.obligations : [], ...aiNotice(req, resp) });
+    const list = Array.isArray(block.input?.obligations) ? block.input.obligations : [];
+    /* "None" and "cut off before it could say" are different answers, and the
+       screen prints the first as a fact about the contract. */
+    if (!list.length && resp.truncated) return res.status(502).json({ error: 'Copilot ran out of room before it could list the obligations. Try again.' });
+    res.json({ obligations: list, ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
 

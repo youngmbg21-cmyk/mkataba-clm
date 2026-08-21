@@ -874,6 +874,19 @@ The first live measurement of Copilot against contracts HaTi did not write (`tes
 
 Tests: f227 (13 — the four slices swept on BOTH hosts so the next one fails here, the ceiling's two exclusions, the mark and the notice, the brief's key, the quoting rule proved to reach every tool, and the toast in both languages; 11 of the 13 fail against the code the morning before, which is what makes it a regression test rather than a description).
 
+## AN ANSWER CUT SHORT IS NOT AN EMPTY ANSWER (21 Aug 2026, found by the scorecard's second run)
+
+The obligations reader returned NOTHING on all ten contracts — the same 0% as before the truncation was lifted, which is what proved the truncation had never been the cause.
+
+- **NOTHING IN server.js READ `stop_reason`.** A tool call stopped at max_tokens returns a `tool_use` block whose input is partial or absent, so every route's `Array.isArray(block.input?.x) ? … : []` turned *"I ran out of room"* into *"there is nothing here"* — and `js/obligations.js` prints that as **"No obligations found in this contract"**, a claim about the customer's paper. THE INPUT-TRUNCATION LESSON ON THE OUTPUT SIDE, and the same standing rule: a cap is a FACT, never a silent trim.
+- **ONE PLACE, EVERY ROUTE.** `anthropicMessages` records `truncated`; `aiNotice` turns it into a sentence, and all ELEVEN AI routes already fold aiNotice into their response while `js/api.js` already toasts `notice`. One line reaches the lot — never a per-route check.
+- **THE CEILING WAS THE LOWEST OF ANY DEEP ROUTE.** 1,500 tokens against a schema whose `maxItems` is 12, each item carrying a description AND a verbatim quote — about 100 tokens apiece before the JSON, so roughly two obligations of headroom. Now 4,000. Output is billed as used, so headroom that is not needed costs nothing; an answer cut off costs the whole answer.
+- **AND THE QUOTING FIX PROBABLY TIPPED IT OVER**, said out loud: `AI_QUOTE_RULE` asks for ONE CONTINUOUS passage, which is longer than the spliced fragment it replaced. A fix in one place cost the answer in another, and only a measurement caught it.
+- **"NONE" AND "CUT OFF BEFORE IT COULD SAY" ARE DIFFERENT ANSWERS.** An empty list from a truncated call is now a refusal naming the reason, never an empty result.
+- STILL UNPROVEN, said out loud: a third run is what settles whether the reader now works. `test/cuad/run.js` records the notice and the refusal in its dump, and `inspect.js` prints them, so a third identical figure cannot be mistaken for either of the first two causes.
+
+Tests: f227 (19 — the flag recorded once, the sentence reaching every route, the ceiling measured against the schema's own maxItems, and the refusal).
+
 ## WHICH DURATION IN THE SENTENCE IS THE ANSWER (21 Aug 2026, owner-asked "fix the notice period and the expiry date")
 
 Both were reported at 50% by the CUAD scorecard. **Neither was HaTi's to fix: the ANSWER KEY was wrong on 18 of its 34 entries**, and checking the scorer before the product is what this file's own rule already said to do.

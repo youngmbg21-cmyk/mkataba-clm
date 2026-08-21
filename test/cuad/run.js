@@ -248,16 +248,25 @@ async function main() {
 
       /* RULE 1: the exact text CUAD annotated. Never a PDF, never a
          re-extraction — CUAD's offsets index this string. */
-      let ex = null, ob = null;
+      let ex = null, ob = null, obErr = null;
       try { ex = await admin.json('/api/ai/extract', { method: 'POST', body: { text: doc } }); }
       catch (e) { errors.push(`extract ${c.title.slice(0, 40)}: ${e.message.slice(0, 90)}`); }
+      /* THE REASON TRAVELS WITH THE RESULT. The first two runs could not tell
+         "the reader found nothing" from "the reader was cut off before it
+         could answer" — the route reported both as an empty list. It reports
+         the second as a refusal now, so a caught error here IS that answer
+         and must be kept rather than merely counted. */
       try { ob = await admin.json('/api/ai/obligations', { method: 'POST', body: { text: doc } }); }
-      catch (e) { errors.push(`obligations ${c.title.slice(0, 40)}: ${e.message.slice(0, 90)}`); }
+      catch (e) {
+        obErr = e.message.slice(0, 120);
+        errors.push(`obligations ${c.title.slice(0, 40)}: ${obErr.slice(0, 90)}`);
+      }
 
       const md = (ex && ex.metadata) || {};
       const spans = (ex && ex.sourceSpans) || {};
       if (DUMP) dump.push({ title: c.title, metadata: md, sourceSpans: spans,
-                            obligations: (ob && ob.obligations) || null });
+                            obligations: (ob && ob.obligations) || null,
+                            obligationsNotice: (ob && ob.notice) || null, obligationsError: obErr || null });
 
       for (const field of Object.keys(CAT)) {
         const key = spansOf(c, CAT[field]);

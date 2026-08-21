@@ -54,11 +54,22 @@ for (const r of rows) {
 }
 console.log(`\n  ${empty} of ${rows.length} contracts returned NO obligations at all.`);
 console.log(`  ${totalOb} obligations in total, ${withQuote} of them carrying a quote.`);
-if (empty === rows.length) {
-  console.log('\n  Every one empty. That is not a reading failure to pin on the model —');
-  console.log('  /api/ai/obligations truncates the contract to the first 20,000');
-  console.log('  characters, and audit rights, insurance and post-termination duties');
-  console.log('  are drafted at the BACK of an agreement.');
+/* WHY IT WAS EMPTY, which the count alone cannot say. Two runs reported the
+   same 0% for two different reasons: the first because the contract was
+   truncated to 20,000 characters, the second because the ANSWER was cut off
+   at max_tokens and the route reported a cut-off answer as an empty one.
+   Both are now fixed, and the dump carries the reason so a third identical
+   figure cannot be mistaken for either of them. */
+const cut = rows.filter(r => /ran out of room/i.test(String(r.obligationsError || ''))).length;
+const failed = rows.filter(r => r.obligationsError && !/ran out of room/i.test(String(r.obligationsError))).length;
+const noticed = rows.filter(r => r.obligationsNotice).length;
+if (cut) console.log(`  ${cut} were CUT OFF before they could answer — not a reading failure.`);
+if (failed) console.log(`  ${failed} failed for another reason (see the error lines in the run).`);
+if (noticed) console.log(`  ${noticed} came back with a notice attached — read it, it says what was clipped.`);
+if (empty === rows.length && !cut && !failed) {
+  console.log('\n  Every one empty, and none of them was cut off or refused. That is the');
+  console.log('  model genuinely finding nothing — worth reading one contract by hand');
+  console.log('  against its own answer before blaming the reader.');
 } else if (totalOb && !withQuote) {
   console.log('\n  Obligations found but none quoted — they cannot be traced to the');
   console.log('  wording. `quote` is optional in the tool schema (required is [desc]).');

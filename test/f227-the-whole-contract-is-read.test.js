@@ -195,7 +195,48 @@ describe('F227 — the whole contract is read', () => {
 
   /* ---------- 6. and it says so when it finds nothing ---------- */
 
-  /* ---- 7. the two fields the owner asked about ---- */
+  /* ---- 7. an answer cut short is not an empty answer ---- */
+
+  test('a tool call stopped at max_tokens is recorded as a fact', () => {
+    /* NOTHING in this file read stop_reason. A tool call stopped at the token
+       ceiling returns a tool_use block whose input is partial or absent, and
+       every route's "Array.isArray(block.input?.x) ? ... : []" turned "I ran
+       out of room" into "there is nothing here". The input-truncation lesson
+       on the OUTPUT side, and the same rule: a cap is a FACT. */
+    assert.match(SERVER_CODE, /truncated: data && data\.stop_reason === 'max_tokens'/,
+      'anthropicMessages must record it — one place, every route');
+  });
+
+  test('and it becomes a sentence for every route at once', () => {
+    /* aiNotice is already folded into all eleven routes and js/api.js already
+       toasts `notice`, so one line here reaches every one of them. */
+    const fn = SERVER_CODE.match(/const aiNotice = \(req, out\) => \{[\s\S]*?\n\};/)[0];
+    assert.match(fn, /out\.truncated/);
+    assert.match(fn, /cut short/);
+  });
+
+  test('the obligations reader has room for the answer its schema allows', () => {
+    /* maxItems is 12 and each item carries a description AND a verbatim
+       quote — roughly 100 tokens apiece before the JSON around them, so 1500
+       left about two obligations of headroom. Asking for one CONTINUOUS
+       passage makes each quote longer than the spliced fragment it replaced,
+       which is how a fix in one place can cost an answer in another. */
+    const m = SERVER_CODE.match(/max_tokens: (\d+), tools: \[tool\], tool_choice: \{ type: 'tool', name: 'list_obligations'/);
+    assert.ok(m, 'could not read the obligations token ceiling');
+    assert.ok(Number(m[1]) >= 3000, `12 quoted obligations do not fit in ${m[1]} tokens`);
+  });
+
+  test('"none" and "cut off before it could say" are different answers', () => {
+    const at = SERVER_CODE.indexOf("app.post('/api/ai/obligations'");
+    const body = SERVER_CODE.slice(at, at + 4000);
+    assert.match(body, /if \(!list\.length && resp\.truncated\)/,
+      'an empty list from a cut-off call is reported as a fact about the contract');
+    /* The screen prints an empty list as "No obligations found in this
+       contract", which is a claim about the customer's paper. */
+    assert.match(body, /ran out of room/);
+  });
+
+  /* ---- 8. the two fields the owner asked about ---- */
 
   test('noticePeriodDays names WHICH notice period, and ranks them', () => {
     /* It read "Notice period in days for termination/non-renewal" — two

@@ -103,6 +103,32 @@ features do it, and the reader is told nothing.
 
 ## 2. THE OBLIGATIONS READER GOES SILENT RATHER THAN PARTIAL
 
+> **THE DIAGNOSIS WAS WRONG, AND THE SECOND RUN PROVED IT — 21 Aug 2026.**
+> Truncation was not the cause. With the whole contract reaching it, the
+> reader returned **nothing on all ten**, exactly as before.
+>
+> The real fault was at the other end. **Nothing in the server read
+> `stop_reason`.** A tool call stopped at the token ceiling comes back with a
+> partial answer, and every route's `Array.isArray(block.input?.x) ? … : []`
+> turned *"I ran out of room"* into *"there is nothing here"* — which the
+> screen then prints as **"No obligations found in this contract"**, a claim
+> about the customer's paper.
+>
+> The ceiling was 1,500 tokens against a schema allowing 12 obligations, each
+> carrying a description **and** a verbatim quote — roughly 100 tokens apiece,
+> so about two obligations of headroom. **And the quoting fix probably tipped
+> it over**: asking for one *continuous* passage makes every quote longer than
+> the spliced fragment it replaced. A fix in one place cost the answer in
+> another.
+>
+> Fixed three ways: the flag is recorded once in `anthropicMessages` and
+> becomes a sentence on **all eleven** AI routes through `aiNotice`; the
+> obligations ceiling is 4,000; and an empty list from a cut-off call is now a
+> refusal rather than an answer. **Still unproven** — a third run is what
+> settles it, and the dump now carries the reason so a third identical figure
+> cannot be mistaken for either of the first two.
+
+
 Scored 0% on all four categories. That is **not** a reading failure:
 
 | | |
