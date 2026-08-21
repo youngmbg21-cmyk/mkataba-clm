@@ -363,3 +363,48 @@ test('f226-9c "N% accurate" is still refused, and CUAD still credited', () => {
   assert.match(RUNNER_CODE, /never "N% accurate"/);
   assert.match(RUNNER_CODE, /CC BY 4\.0/);
 });
+
+/* ---------- 10. a short run must still span the book ---------- */
+
+const row = (group, title) => ({ group, title });
+const BOOK = [
+  ...Array.from({ length: 10 }, (_, i) => row('procurement', 'p' + i)),
+  ...Array.from({ length: 10 }, (_, i) => row('manufacturing', 'm' + i)),
+  ...Array.from({ length: 6 }, (_, i) => row('equipment', 'e' + i)),
+  ...Array.from({ length: 12 }, (_, i) => row('distribution', 'd' + i)),
+  ...Array.from({ length: 6 }, (_, i) => row('marketing', 'k' + i)),
+  ...Array.from({ length: 6 }, (_, i) => row('services', 's' + i)),
+];
+
+test('f226-10a ten contracts reach every group, not ten of one', () => {
+  // The fault: selection.json is group-ordered, so slice(0,10) returned ten
+  // procurement contracts — the pharma-skewed ones stage 1 warned about.
+  const got = S.spreadAcrossGroups(BOOK, 10);
+  assert.equal(got.length, 10);
+  assert.equal(new Set(got.map(r => r.group)).size, 6, 'all six groups represented');
+  const naive = BOOK.slice(0, 10);
+  assert.equal(new Set(naive.map(r => r.group)).size, 1, 'and the old way really did take one');
+});
+
+test('f226-10b the full run is untouched — same contracts, every one', () => {
+  assert.equal(S.spreadAcrossGroups(BOOK, 0).length, BOOK.length);
+  assert.equal(S.spreadAcrossGroups(BOOK, 999).length, BOOK.length);
+  assert.deepEqual(S.spreadAcrossGroups(BOOK, 0), BOOK, 'no limit means no reordering at all');
+});
+
+test('f226-10c order within a group is preserved — best-covered first', () => {
+  // selection.json sorts each group by how much of the answer key it has.
+  const got = S.spreadAcrossGroups(BOOK, 12).filter(r => r.group === 'procurement');
+  assert.deepEqual(got.map(r => r.title), ['p0', 'p1']);
+});
+
+test('f226-10d a limit larger than one group still fills from the others', () => {
+  const small = [row('a', 'a0'), row('b', 'b0'), row('b', 'b1'), row('b', 'b2')];
+  const got = S.spreadAcrossGroups(small, 3);
+  assert.deepEqual(got.map(r => r.title), ['a0', 'b0', 'b1']);
+});
+
+test('f226-10e asking for more than exists returns everything, without looping', () => {
+  const small = [row('a', 'a0'), row('b', 'b0')];
+  assert.equal(S.spreadAcrossGroups(small, 50).length, 2);
+});

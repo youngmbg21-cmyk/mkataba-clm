@@ -313,6 +313,38 @@ function liabilityTruth(capSpans, uncappedSpans) {
   return null;
 }
 
+
+/* ---------- a short run must still span the book ----------
+   selection.json is built group by group, so taking the first N returned N
+   contracts from ONE group — for --n 10, ten pharma-skewed supply agreements
+   and nothing else. A calibration run that measures one sixth of the book
+   while reading as a general signal is the worst kind of wrong number:
+   plausible, cheap, and unrepresentative.
+
+   Round-robin: one from each group in turn until the limit is met. Order
+   WITHIN a group is preserved, so the best-covered contracts (selection.json
+   is sorted by answer-key coverage) are still the ones taken first. */
+function spreadAcrossGroups(rows, limit) {
+  if (!limit || limit >= rows.length) return rows;
+  const byGroup = new Map();
+  for (const r of rows) {
+    if (!byGroup.has(r.group)) byGroup.set(r.group, []);
+    byGroup.get(r.group).push(r);
+  }
+  const queues = [...byGroup.values()];
+  const out = [];
+  while (out.length < limit) {
+    let took = false;
+    for (const q of queues) {
+      if (!q.length) continue;
+      out.push(q.shift()); took = true;
+      if (out.length === limit) break;
+    }
+    if (!took) break;                        // every group exhausted
+  }
+  return out;
+}
+
 /* ---------- the tally ----------
    Every figure carries its denominator. A bare percentage hides that warranty
    duration rests on 20 contracts and notice period on 36, and this number
@@ -362,5 +394,5 @@ module.exports = {
   parseDuration, durationToDays, durationToMonths, parseDate,
   jurisdiction, JURISDICTIONS, normCompany, counterpartyVerdict, liabilityTruth,
   addDuration, expiryTruth, expiryMatches, EXPIRY_ANCHOR,
-  newTally, record, pct, headline, NOT_MEASURED,
+  newTally, record, pct, headline, NOT_MEASURED, spreadAcrossGroups,
 };

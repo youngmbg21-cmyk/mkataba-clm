@@ -155,9 +155,12 @@ async function main() {
   const corpus = loadCorpus();
   const sel = JSON.parse(fs.readFileSync(path.join(HERE, 'selection.json'), 'utf8'));
   const byTitle = new Map(corpus.map(c => [c.title, c]));
-  let chosen = sel.map(r => byTitle.get(r.title)).filter(Boolean);
-  const missing = sel.length - chosen.length;
-  if (LIMIT) chosen = chosen.slice(0, LIMIT);
+  const missing = sel.filter(r => !byTitle.has(r.title)).length;
+  let rows = sel.filter(r => byTitle.has(r.title));
+
+  /* The round-robin lives in score.js so f226 can prove it without a run. */
+  rows = S.spreadAcrossGroups(rows, LIMIT);
+  const chosen = rows.map(r => byTitle.get(r.title));
 
   if (LIVE && !process.env.ANTHROPIC_API_KEY) {
     console.error('--live needs a real ANTHROPIC_API_KEY. Without one, drop --live for a dry run.');
@@ -165,7 +168,15 @@ async function main() {
   }
 
   console.log(`\nCUAD scorecard — ${LIVE ? 'LIVE (this spends money)' : 'DRY RUN (stub AI, every score will be zero)'}`);
-  console.log(`${chosen.length} contracts` + (missing ? `  (${missing} in the manifest were not found in the corpus)` : '') + '\n');
+  /* The spread is PRINTED, not left to be trusted: a short run's coverage is
+     the first thing that makes its numbers readable or misleading. */
+  const spreadNote = (() => {
+    const c = {};
+    for (const r of rows) c[r.group] = (c[r.group] || 0) + 1;
+    return Object.entries(c).map(([g, k]) => `${k} ${g.toLowerCase()}`).join(' · ');
+  })();
+  console.log(`${chosen.length} contracts` + (missing ? `  (${missing} in the manifest were not found in the corpus)` : ''));
+  console.log(`  ${spreadNote}\n`);
 
   /* Settings raised for the TEST SERVER ONLY. The live workspace is untouched. */
   const env = { AI_MAX_CHARS: '200000', AI_RATE_DEEP: '100000', AI_RATE_LIGHT: '100000' };
