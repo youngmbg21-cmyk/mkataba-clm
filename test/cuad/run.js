@@ -43,12 +43,23 @@ const val = (f, d) => { const i = ARGS.indexOf(f); return i >= 0 ? ARGS[i + 1] :
 const LIVE = has('--live');
 const LIMIT = Number(val('--n', 0)) || 0;
 
-/* The corpus is NOT committed — it is 510 third-party contracts and it clones
-   in seconds. test/cuad/README.md carries the two commands. */
+/* THE 50 ARE COMMITTED; THE OTHER 460 ARE NOT.
+
+   contracts.json holds only the selected 50, and only the 14 categories the
+   scorecard actually scores — 2.2 MB against the full corpus's 39 MB. That is
+   not a tidiness decision: this is meant to run on a 512 MB Render instance
+   that is also serving the live site, and parsing 39 MB there could push the
+   real service into an out-of-memory restart. It also removes the download
+   step entirely, so the run works on a box with no route to GitHub.
+
+   CC BY 4.0 permits the redistribution; the attribution rides inside the file
+   and in README.md. --corpus still accepts the full CUADv1.json for anyone
+   re-running the selection. */
 const CORPUS = val('--corpus', process.env.CUAD_JSON || '');
 
 function loadCorpus() {
-  const tries = [CORPUS, path.join(HERE, 'CUADv1.json'),
+  const tries = [CORPUS, path.join(HERE, 'contracts.json'),
+                 path.join(HERE, 'CUADv1.json'),
                  '/tmp/cuad/CUADv1.json'].filter(Boolean);
   for (const p of tries) { if (p && fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, 'utf8')).data; }
   console.error(
