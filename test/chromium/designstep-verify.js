@@ -99,8 +99,19 @@ const READ = () => {
         titleLines: h1 ? Math.round(h1.getBoundingClientRect().height / parseFloat(getComputedStyle(h1).lineHeight)) : null,
       }; })(),
     stepper: !!document.querySelector('.rl-type-step'),
-    stepperStyled: document.querySelector('.rl-type-step')
-      ? getComputedStyle(document.querySelector('.rl-type-step')).borderRadius : null,
+    /* WHAT "STYLED" IS MADE OF, now that it cannot be made of a corner. This
+       read the border-radius alone and wanted 12px — a fair proxy for "this
+       control got dressed" until SQUARE CORNERS EVERYWHERE (20 Aug 2026) took
+       the radius off every control in the product. The dress it actually wears
+       is a filled ground, a hairline and padding, so those are what is read;
+       the radius is read too, and is now asserted to BE square, so the sweep
+       that squared it is pinned rather than merely tolerated. */
+    stepperStyled: (() => {
+      const e = document.querySelector('.rl-type-step'); if (!e) return null;
+      const s = getComputedStyle(e);
+      return { radius: s.borderRadius, bg: s.backgroundColor,
+               border: parseFloat(s.borderTopWidth) || 0, pad: parseFloat(s.paddingTop) || 0 };
+    })(),
     focusBtn: !!document.getElementById('ds-focus'),
     railsVisible: document.querySelectorAll('.ds-rail-pane').length > 0
       && [...document.querySelectorAll('.ds-rail-pane')].every(e => e.getBoundingClientRect().width > 0),
@@ -193,7 +204,14 @@ const READ = () => {
     m.sheet && m.sheet.zoom > 0 && Math.abs(m.sheet.onScreenW - m.sheet.paneW) < 40,
     m.sheet ? `zoom ${m.sheet.zoom} → ${m.sheet.onScreenW}px in a ${m.sheet.paneW}px pane` : '');
   check('5 · the workbench\'s own text-size stepper is here, styled',
-    m.stepper && m.stepperStyled === '12px', `stepper=${m.stepper}, radius=${m.stepperStyled}`);
+    m.stepper && !!m.stepperStyled
+      && m.stepperStyled.bg !== 'rgba(0, 0, 0, 0)' && m.stepperStyled.bg !== 'transparent'
+      && m.stepperStyled.border > 0 && m.stepperStyled.pad > 0,
+    m.stepperStyled ? `bg=${m.stepperStyled.bg}, border=${m.stepperStyled.border}px, pad=${m.stepperStyled.pad}px`
+                    : `stepper=${m.stepper}`);
+  check('5 · and its corners are square, like every other control',
+    !!m.stepperStyled && m.stepperStyled.radius === '0px',
+    m.stepperStyled ? `radius=${m.stepperStyled.radius}` : 'no stepper');
   check('5 · and the focus control is here', m.focusBtn);
   check('5 · step 1 offers Next, not Publish', m.nextBtn && !m.publishBtn);
 

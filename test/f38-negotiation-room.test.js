@@ -16,6 +16,8 @@
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const { buildWorld, supplyContract } = require('./world');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const BASE = [
   'WAREHOUSING AND LOGISTICS SERVICES AGREEMENT',
@@ -192,6 +194,37 @@ describe('the top bar, and the way out', () => {
        buttons minting the same link is one too many. */
     assert.equal(r.$('#nego-share-link'), null);
     assert.equal(r.$('#nego-export').textContent.trim(), 'Export Clean PDF');
+    /* AND IT EXPORTS SOMETHING. Until 21 Aug 2026 this button called
+       `exportContractPdf`, a name nothing in the product defines, through a
+       `window.` guard — so the guard was always false, the else branch was the
+       only branch that ever ran, and the button had never once produced a file.
+       Every test in the suite passed because they all asked whether the BUTTON
+       was there and what it SAID. Nothing asked whether pressing it could do
+       anything, which is the whole rlPaperFootHtml lesson.
+
+       TWO QUESTIONS, EACH ASKED WHERE IT CAN BE ANSWERED. This stage does not
+       load js/views/portal.js, so the real exporter is genuinely absent here —
+       which makes it the right stage for the SECOND question and the wrong one
+       for the first. So the first is asked of the source. */
+    const NEGO_SRC = fs.readFileSync(
+      path.join(__dirname, '..', 'js', 'views', 'negotiation.js'), 'utf8');
+    const PORTAL_SRC = fs.readFileSync(
+      path.join(__dirname, '..', 'js', 'views', 'portal.js'), 'utf8');
+    assert.ok(/byId\('nego-export'\)[\s\S]{0,600}exportPDF\(c\)/.test(NEGO_SRC),
+      'the Export handler must call the exporter this product actually has');
+    assert.ok(!/\bexportContractPdf\b/.test(NEGO_SRC.replace(/\/\*[\s\S]*?\*\//g, '')),
+      'and must not name exportContractPdf, which nothing defines');
+    assert.ok(/^function exportPDF\(/m.test(PORTAL_SRC),
+      'exportPDF is the real function it names');
+
+    /* THE SECOND HALF — that a press with no exporter present SAYS so rather
+       than failing silently — is deliberately not asserted here. On this stage
+       the button is drawn disabled whenever anything is still pending, so a
+       press lands nowhere and the check would be measuring the disabled
+       attribute wearing the guard's clothes. The guard is real and is what the
+       handler falls back to; proving it wants a stage with a settled round and
+       no js/views/portal.js, which is a fixture of its own rather than a line
+       here. Said out loud rather than left as a silent gap. */
     // and a way to put wording forward, which the prototype's bar has no control for
     /* "Propose edits" is GONE, deliberately. It opened a modal holding the
        whole document in one box; a clause is now edited where it is read, with

@@ -117,7 +117,7 @@ describe('F184 (1) — four tabs in the room, none on the negotiation screen', (
   });
 
   test('the negotiation screen asks for no tab row, and wires none', () => {
-    const s = read('js/views/negotiation.js');
+    const s = (read('js/views/negotiation.js') + read('js/views/negotiation-css.js'));
     assert.ok(!/roomTabsHtml\(c,\s*'redline'\)/.test(s),
       'the workbench must not draw the room tabs');
     assert.ok(!/#ws-tabs \[data-ws-tab\]/.test(s),
@@ -276,7 +276,7 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
   });
 
   test('every door names itself — none is left to be inferred', () => {
-    const s = read('js/views/negotiation.js');
+    const s = (read('js/views/negotiation.js') + read('js/views/negotiation-css.js'));
     const at = s.indexOf('function openRedlineWorkbench');
     const fn = s.slice(at, at + 900);
     assert.match(fn, /_rlDoorAsked = 'named'/,
@@ -286,7 +286,7 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
   });
 
   test('and it is ONE route — the sidebar\'s own door with an argument', () => {
-    const s = read('js/views/negotiation.js');
+    const s = (read('js/views/negotiation.js') + read('js/views/negotiation-css.js'));
     assert.match(s, /data-rl-live-list\]'\)\.forEach\([\s\S]{0,120}openNegotiations\(\{ list: true \}\)/,
       'the button presses openNegotiations, never a second way to the list');
     assert.ok(!/renderNegotiationsList\(host\);\s*\}\);/.test(
@@ -315,7 +315,7 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
     /* The fit ladder tightens before it wraps. A new control that could not
        fold would push the row to a second line on a ThinkPad, which comes
        straight out of the contract's height. */
-    const s = read('js/views/negotiation.js');
+    const s = (read('js/views/negotiation.js') + read('js/views/negotiation-css.js'));
     /* ---- CLAIM MOVED A RUNG, 13 Aug 2026 (owner-reported) ----
        This used to read "on the tight step", when tight was the only middle
        step there was. The ladder is graded now — trim, lite, half, tight — and
@@ -580,7 +580,7 @@ describe('F184 (3) — one count, four surfaces, and it never writes', () => {
     assert.match(needs, /negoNeedsYouIds\(c\)/, 'and so does the round line');
     const app = read('js/app.js');
     assert.match(app, /negotiations: \(window\.negoNeedsYouTotal/, 'and so does the sidebar');
-    const nego = read('js/views/negotiation.js');
+    const nego = (read('js/views/negotiation.js') + read('js/views/negotiation-css.js'));
     /* NARROWED IN PLACE, 19 Aug 2026: the toolbar asks the same one function,
        for `rowSide` rather than `side`. The two are the same value on our own
        chair; they differ only while the Counterparty toggle is previewing

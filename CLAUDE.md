@@ -20,11 +20,57 @@ THIS FILE IS THE CONDENSED RULEBOOK (condensed 2026-08-11, owner-approved). The 
 
 ## HOW TO TEST ECONOMICALLY (owner-asked 16 Aug 2026, after a session spent mostly waiting on test runs)
 
-The full suite takes 3+ minutes a run and each browser file starts a real Chrome and takes 2–5. The recipe for any change:
+The full suite takes **5m17s** a run — MEASURED 21 Aug 2026, 4,101 tests in 873 suites; the "3+ minutes" that stood here was an estimate and had drifted. A browser file starts a real Chrome and costs 11–40 SECONDS, not the 2–5 minutes claimed here (measured the same day across all 55 of them; the minutes were a guess nobody had timed). That second number is what made `run-all.js` possible. The recipe for any change:
+- **THE PROOFREADER RUNS FIRST AND COSTS SECONDS**: `npm run lint`. It answers the one question nothing else in this project asked — is every name being called a name that exists — and it is the check that would have caught rlPaperFootHtml in a second rather than in a year. Zero errors is the bar; the ~137 warnings are unused locals and are a tidy-up list, deliberately not an alarm (see eslint.config.js, which explains every rule and holds KNOWN_ABSENT — the standing list of functions this app calls that nothing defines).
 - WHILE WORKING, run only the test files the feature's own section names ("Tests: f210, clause-door-verify" — every section ends with that list): `node --test test/<file>.test.js`, seconds each.
 - THE FULL SUITE RUNS ONCE, WHEN YOU BELIEVE YOU ARE FINISHED, before pushing — and again ONLY if that run found something to fix, because the fix must be proven before it ships. On a clean day that is one run; on a day with a catch, two. What it never is: a mid-work reassurance loop — the suite exists to catch ripples in places you did not think you touched, and running it before the work is done buys nothing a targeted file does not.
 - ONE browser file per screen changed, and only the screen changed. Re-run a browser file only after a change to what it measures — never as reassurance.
 - This does not weaken Bug Fix Rule 4: "test where the USER looks" says WHICH files to run, this says WHEN. A fix that touches three surfaces still runs three files — once each.
+- **THE WHOLE BROWSER SET IS ONE COMMAND NOW**: `node test/chromium/run-all.js`, four at a time. It is not a replacement for the rule above — one file per screen changed is still what you run while working — it is what CI runs on every push, across four machines. A file expected to fail is named in that script's KNOWN_RED **with its reason**, printed on every run: a permanent exception has to stay readable, or it becomes the furniture.
+
+**A TEST WHOSE ANSWER DEPENDS ON THE DAY IT RUNS IS WORSE THAN NO TEST** (found 21 Aug 2026, on a clean tree: 4,100 passing and one red). f183's fixture built a contract that had to start and end inside one calendar month and said so as `day(1)…day(12)` — one month only while today is early enough in the month for twelve days not to cross into the next. MEASURED over two years: broken on 264 days of 730, so it passed for two thirds of every month and failed for the last twelve days of it, and the failure was a fact about the calendar rather than about the code. That is the expensive part — a red run nobody can trust teaches the reader to discount red runs, which is how a real failure gets waved through. Fixture dates that carry a calendar claim are built with `monthSpan(off)` (first and last day of a whole month), never by counting days from today. A SWEEP FOR SIBLINGS found none: the suite was re-run at four simulated dates and came back 4,101/0 at each. NOTE THE INSTRUMENT'S OWN LIMIT, since the next person will reach for it — faking node's clock does NOT move jsdom's, so anything comparing a test-side `Date.now()` against the app's own reads as failing (f63 does, at offsets past +10; its window is a rolling 30 days and has no calendar sensitivity at all). Rule out the instrument before believing the finding.
+
+## THE TWO DRAWERS, AND WHAT WAS ACTUALLY DUPLICATED (measured 21 Aug 2026)
+
+"Two change-card renderers and six document renderers draw the same things" was the standing description and it overstated the problem twice. **MEASURED:**
+
+- **THE SIX DOCUMENT RENDERERS ARE ONE DISPATCHER.** `docBody` routes by document KIND — `isUpload → uploadDocBody`, executed → `frozenDocBody`, stored wording → `redlineDocBody`, else the template branch. One entry point and its branches, which is what this rulebook already said ("one builder: docBody → uploadDocBody"). Nothing to merge.
+- **THE TWO CARD RENDERERS ARE ALREADY CORRECTLY FACTORED.** negoLiveCardsHtml (contract tab, 322 lines) and redlineChangeCardsHtml (negotiation page, 753) share every reading they must agree on — `rlCardSort` for the order, `reviewChipHtml`, `negoWhoseHtml` — and the helpers only one of them uses (`rlCardRank`, `rlCardFilterPass`, `rlAskWord`) are the ones this file already records as belonging to that surface alone. The SIZE difference is the tell: the redline card carries routing rows, receipts, the filter and the review chips. **Different surfaces, deliberately.**
+- **ONE THING REALLY WAS WRITTEN TWICE, and it is the dangerous kind**: the reading that decides WHICH change a clause's paper draws. negoDocHtml and redlineDocHtml each carried it, line for line — the three-step measurement rule from MK-311 — and they had **already drifted apart once**, which is how a sentence struck by their ask and adopted by us went on being printed in full. Two renderers disagreeing about what the agreement SAYS is the worst thing this product can do.
+
+**`negoLeadChange(c, cl, chs)` is that reading, and it is now the only copy.** Both document renderers ask it; neither keeps a private one. f210 (10) no longer asserts that two hand-written loops match — it asserts there is ONE reading, that exactly TWO callers ask it, and that neither renderer carries the old inline loop.
+
+**THE RULE THIS LEAVES BEHIND, and it is the useful half of the duplication warning:** the DRAWING may differ between two surfaces and often must — the contract tab is not the negotiation page and the phone is neither. **The READING never may.** When you find a pair, do not merge the renderers; find the question they both have to answer the same way, and make that one function.
+
+## THE NEGOTIATION PAGE IS TWO FILES (split 21 Aug 2026)
+
+js/views/negotiation.js was 14,770 lines and every reader of it paid for that. It is **11,700** now, and the 3,096 lines that left are its STYLESHEETS — negoStyleHtml and redlineLayoutCss, in **js/views/negotiation-css.js**.
+
+**THE SEAM WAS MEASURED, NOT CHOSEN BY EYE, and that is the whole of why this was safe.** The file declares 308 top-level names of which **111 are private helpers**, and those are spread evenly through the whole thing — lines 0-999 hold eight of them, 5000-5999 hold fourteen, and so on all the way down. Almost any boundary drawn on a section heading slices through one, and the only way to make the halves work again is to publish a private helper to window, which is a refactor turning into a wider global namespace. Those two functions are the exception: with comments discounted they reference **NOTHING else in the file** — not one identifier — and they are called from **three places, all at runtime**. An interface of two names against 3,096 lines. That is a seam; the rest of the file is a knot.
+
+- **NOTHING RESOLVES DIFFERENTLY.** Both were already published to window and still are, so every bare call reaches them exactly as before. The file that lost them keeps a signpost where they were.
+- **THE LOAD ORDER IS A COURTESY, NOT A REQUIREMENT** — nothing runs at load; negoEnsureStyle and both redlineLayoutCss callers run when a page renders. The stylesheet is still listed first everywhere, because a reader expects the sheet before the page that draws it.
+- **FOUR PLACES LIST THIS PAGE'S FILES AND ALL FOUR HAD TO LEARN THE SECOND ONE**: js/app.js's import list, test/world.js (NEGOTIATION_VIEW is an ARRAY now), test/portalworld.js, and the four hand-written harness pages in test/chromium/*.html. **The browser harnesses do not load index.html — they build their own page with their own script list**, which is why the node suite went green while twelve browser files failed with "redlineLayoutCss is not defined". A new file in js/views/ is not automatically on those pages.
+- **f48 CAUGHT THE ONE REAL DEFECT**: the names were published by BOTH files for a moment, because the export list in the file they left still carried them. That test exists for exactly this ("no two modules claim the same name on window") and is the reason it was a five-minute fix rather than a mystery later.
+- **SOURCE-READING TESTS NEEDED WIDENING, not re-pointing.** Six files assert on this page's own CSS by reading its source; a rule that moved has not changed, so they read both files now. f100's list of "every file that declares a chat box" gained the new one instead.
+
+DO NOT SPLIT FURTHER WITHOUT THE SAME MEASUREMENT. The next candidate has to answer the same question — what does this region reference that lives outside it, and who calls into it — and if the answer is more than a handful of names, the split costs more than the file's length does.
+
+## WHERE A COLOUR LIVES (measured 21 Aug 2026 — read this before hunting for one)
+
+"Changing a button colour is a hunt" was the standing complaint, and the number quoted for it — 4,002 — was the count of ALL inline `style="` attributes, most of which are layout. **MEASURED, the colour problem was 401 hex literals in js/, of which 154 had a token to point at.** The hunt was real and much smaller than it looked. It is smaller again now:
+
+- **THE PLATFORM'S PALETTE IS `:root` IN index.html — 120 tokens, one place.** Every brand, status, neutral and surface colour is defined there once and answers differently under `html.dark`. A colour change to the product's own furniture is one line THERE, and always was.
+- **THE NEGOTIATION PAGE'S STYLESHEET NOW READS IT** (21 Aug 2026): 40 hexes typed into CSS declarations in js/views/negotiation.js became `var(--token)`. That file held 74 of the 154 swappable literals — the concentration was almost entirely there, which is why it was the screen that felt like a hunt. Measured before and after on 20 screens in both themes: **every colour identical, not by a shade.**
+- **THE INLINE ATTRIBUTES WERE ALREADY DOING IT.** Of 24 swappable hexes inside `style="…"`, 22 turned out to be `var(--token, #hex)` FALLBACKS — the token was already named and the hex was the answer for a stage that does not define it. Replacing one yields `var(--x, var(--x))`, a token falling back to itself: not a swap, the fallback deleted. A first pass did exactly that to 8 of them and was reverted. **Never rewrite the second argument of a var().**
+
+WHAT IS DELIBERATELY STILL A LITERAL, and none of it is debt:
+- **js/aichart.js** — a chart paints to a CANVAS, and `var()` means nothing to `fillStyle`. Chart colours must be real values.
+- **js/views/healthreport.js, js/views/weekly.js** — standalone documents opened in their own window. They do not carry the app's stylesheet, so a token there resolves to nothing.
+- **`--n-*` in js/views/negotiation.js** — the room's own token block, and `--n-paper:#ffffff` is the contract sheet. It must stay white in every theme: the print pins white and a document is meant to read the same wherever it is drawn. **A hex that IS a custom property's definition is not a stray literal — it is the one place that colour is written, which is the thing this pass exists to create.**
+- **JS colour TABLES** (KIND_TAG, PIPE_DOT, TONE_EDGE, THEMES) — these are already one place each, and they are read in contexts where a token cannot be. A pass that mistook `color:'#b45309'` in an object literal for a CSS declaration moved the register's and templates' dark screens; the census caught it and it was reverted.
+
+**THE NET IS theme-tokens-verify**, and it is built for exactly this job — its own header says the plumbing "changes nothing on screen, not by a shade", which is a claim only measurement can make. It records every resolved background, text, border, outline, fill, stroke and shadow across 20 screens in both themes and compares the census. **Its baseline was re-recorded 21 Aug 2026** (it had been 20/40 against a snapshot predating the current design, and was listed as known-red for it); it is 40/40 now and is no longer an exception. Re-record it only when somebody is deliberately owning a palette change — never to make a red run go away. NOTE ITS REACH: the 20 screens do NOT include Insights or Portfolio, so a colour change there is proved by insights-panels-verify instead.
 
 ## THE MAP — how changes get filed (verified 2026-08-03)
 
@@ -229,6 +275,108 @@ THE SPLIT IS THE WHOLE DESIGN: **a contract states its OWN currency; REPORTING c
 - **THE RATE IS CHOSEN FROM A LIST, NOT RECALLED FROM MEMORY** (owner-asked 19 Aug 2026: "there should be a search for currency where options are available and you should have a button to add more currencies in case you have contracts from other currencies"). The box was a bare three-letter field — so setting a rate meant knowing the ISO code by heart — and one row with a Save on it gave no sign that a workspace holds as many rates as it has currencies. `FX_CURRENCIES` (js/jurisdiction.js, beside the arithmetic, because this is money knowledge) is a code→English-name table; `fxPickerCodes()` is the ORDER, and the order is the point: **the currencies this book is actually written in come first**, read off `fxMissing` — the same reading every surface uses to say what was left out of a converted figure — then the rest of the table, minus the home currency and anything already on file. That is the owner's "in case you have contracts from other currencies", answered with this workspace's own facts rather than with a longer alphabet, and the panel names those codes in amber above the list. **IT OFFERS, IT DOES NOT REFUSE**: a native datalist behind an ordinary text field, so any three-letter code is still accepted by the panel and the route (a counterparty who invoices in something nobody listed must still be payable) — what the list changes is how easy the common case is, never what is possible. A datalist hands back whatever is in the box, so the save takes the leading three letters of it ("USD — US dollar" is USD). **+ Add a currency** opens the row and a save closes it again, so the list of what is SET is what the panel reads as — except with nothing on file, where a button revealing the only content on the panel would be a press that buys nothing. English names beside the code because USD, AUD and SGD all read as dollars to somebody hunting. Tests: f218 (the list, the order, the two exclusions, the "offers not refuses" claim, both languages), settings-tabs-verify (the options really attached to the field, a rate typed and saved for real, the code leaving the picker).
 
 AND THE SHORT PRINT WAS LEFT BEHIND (found 19 Aug 2026, photographing the register): fmtMoneyOf got the rule the day W2-1 shipped and every COMPACT print — the register row, the flat list, the queue card, both intelligence maps, the migration preview, the contract row in the Copilot panel, components.js's row — went on stating the workspace currency over a foreign amount, so a euro contract read "KES 420K" while the aggregate beneath it (which converts) was right. **fmtMoneyShortOf(c)** is the compact twin of fmtMoneyOf, built on fmtMoneyShortIn(n, code); fmtMoneyShort(n) is unchanged and is still what a THRESHOLD, a signing cap and a fee estimate print in. The phone already had the rule (mMoney) — the duplication warning in its usual direction. Tests: f218 (24, including a sweep that fails on the next screen written the old way).
+
+## THE LAUNCH AUDIT'S FIXES (21 Aug 2026) — AUDIT-E2E-REPORT.md, WORKORDER-e2e-launch-audit.md
+
+An autonomous end-to-end audit drove a real server through an SME's whole
+working life and came back with six defects, every one reproduced twice from a
+fresh server before it was touched. FOUR OF THE SIX ARE ONE CLASS, and it is the
+class the legal audit closed everywhere else: **the browser is cosmetics, the
+server is the wall.** A rule enforced only in the pixels holds until somebody
+sends the request themselves. Tests: f226 (10), f218's server claim REVERSED IN
+PLACE.
+
+- **THE WORDING FREEZE HAD NO SERVER HALF.** This rulebook states it as an
+  implemented invariant — the wording freezes at the FIRST signature, not the
+  last — and it lived only in negoFileChange / negoResolve. `EXECUTED_IMMUTABLE`
+  engages on `isExecutedRow`, which is FULL execution, so between the first mark
+  and the last (status still Under Review, no seal) a raw PUT rewrote the
+  document under a signature already given: the first signer's mark stood over
+  wording they never saw, and their stored signature kept the docHash of text the
+  record no longer held. **anySignatureRow** is the server's twin of
+  negoAnySignature and reads BOTH stores for the same reason signingLocked does
+  (a counterparty's mark reaches c.signatures only when the owner's browser
+  applies it; an internal signer's lands on the plan row). **SIGNED_WORDING_FROZEN**
+  = body · redlineText · format · upload — a SUBSET of EXECUTED_IMMUTABLE, so a
+  record only ever gains protection. THE WORDING ONLY, mirroring the browser's
+  own scope out loud ("the point is that the words stop moving, not that the
+  contract stops working"): taking the remaining signature, obligations, notes
+  and every additive fact still pass, or an SME with two signers is stuck between
+  them. Asked as a DIFFERENCE, like every guard on that route.
+- **THE SIGNING CAP WAS DODGED BY RENAMING THE CURRENCY.** The guard's own
+  comment says the currency comes off the STORED record — "the half the person
+  being capped does not get to restate on the way past" — and the code read
+  `(prev && prev.metadata) || (c && c.metadata) || {}`, which does the opposite
+  the moment the stored record has NO metadata object: the ordinary shape of a
+  template-made contract, whose value is typed on Key terms and never writes a
+  metadata block. A capped editor sent their signature and
+  `metadata:{currency:'TZS'}` in ONE save and a sub-1 rate slipped a 10,000,000
+  contract under a 5,000,000 cap, leaving the record mislabelled besides. **BOTH
+  READINGS, LARGER WINS** — the value guard's own answer one line up, and safe in
+  BOTH directions: stored-only would close the reported hole and open its mirror
+  (a dearer currency named for the first time in that same save would be measured
+  in workspace money and under-counted). EITHER reading missing a rate REFUSES,
+  because a rate missing on the currency being claimed is exactly the state that
+  must not become a pass. **WHAT IS NOT CLOSED, said out loud:** the same signer
+  can still relabel the currency in one save and sign in the NEXT, because the
+  guard then reads a stored record that genuinely says TZS. That is not this
+  guard failing — it is the open question of *who may restate a contract's
+  currency at all*, which moves every reported figure in the workspace and is the
+  owner's to rule on, not a fix to make at the end of a night.
+- **THE PER-PERSON COPILOT SPEND LEAKED THROUGH A SECOND DOOR.** `/api/ai/spend`
+  carries `admin` precisely so the by-PERSON league table stays with admins — "a
+  route more open than the page it feeds is a permission that exists only in the
+  pixels". `/api/ai/config` is `auth` only, every signed-in browser calls it, and
+  it embedded the WHOLE `aiSpendToday()` object; when that object gained
+  `byPerson` on 14 Aug the leak came with it, unnoticed because f203 only ever
+  read it as the admin. `byPerson` and `unattributed` are stripped for a
+  non-admin the way the bootstrap strips ADMIN_ONLY_USER_FIELDS — the fact does
+  not travel, rather than the screen choosing not to draw it. The by-FEATURE and
+  workspace totals are UNTOUCHED: they are public by design through
+  `/api/ai/usage`, and the browser reads byPerson only on renderTeam.
+- **EVERY SCHEDULED MAIL LINKED TO localhost.** Mail composed without a live
+  request — obligation nudges, the daily and weekly briefs, intake decisions, and
+  the 3-day nudge that goes to the COUNTERPARTY — builds links from APP_URL, and
+  neither `render.yaml`'s env list nor `DEPLOYMENT.md`'s table ever asked for it,
+  so the documented way to deploy shipped dead links to real inboxes. Worst of
+  all to an outside reader, whose only button led nowhere. THREE HALVES: both
+  deploy files now require it, **appUrlWarn()** says so once at boot (and stands
+  down on an OS-assigned ephemeral port, which is the test harness — a warning
+  that cries wolf in the logs is one nobody reads on the day it is true), and
+  `notifyIntakeDecision` now takes the **`req` it always had** and never needed
+  APP_URL for at all. The sweeps genuinely have no request and are the reason the
+  setting is not optional.
+- **AN EDITOR COULD SILENTLY WITHDRAW A COLLEAGUE'S REQUEST.** PATCH
+  /api/intake/:id guarded 'withdrawn' with `(!isOwner && !isEditor)` — any
+  non-viewer passed for ANYBODY's request, the opposite of the sentence printed
+  beside it and of the route's own comment. It mattered because 'withdrawn' is
+  deliberately outside notifyIntakeDecision on the premise that nobody needs
+  telling about their own act: the request vanished from the queue with no mail,
+  no reason and no name on it, and the requester's row read "Withdrawn" as though
+  they had done it themselves — the exact silent-disappearance fault the notice
+  was built to close, and a quiet way around declining, which always costs a
+  reason and always mails. Now the requester or an ADMIN (who can already decide
+  it outright, and has to be able to tidy up after a member who has left).
+- **A RECORD WAS WRITTEN IN THE READER'S LANGUAGE.** `applyParentLink` built the
+  'Linked' audit line from RELATION_LABEL — the SCREEN's word — so a member
+  working in Swedish wrote "Filed as a ändringsavtal of MK-P1" into the trail: a
+  permanent record in two languages, the English a/an article computed over a
+  Swedish noun, beside a "Created" line from the same act that correctly stayed
+  English. RELATION_DOC_WORD is the record word and its own comment three hundred
+  lines down already said so. AND THE GETTER TRAP, a fourth time:
+  `Object.fromEntries(...r.label)` INVOKES each getter, so RELATION_LABEL was a
+  snapshot of whatever language was current at import — a reader who switched
+  mid-session kept the old word in the family panel, the register and the
+  migration preview until they reloaded. Per-key getters delegating to
+  CONTRACT_RELATIONS' own `label` keep the `RELATION_LABEL[k]` shape every caller
+  uses and answer at the moment they are read.
+
+NOT TAKEN, said out loud: the counterparty share payload is still served as the
+sender's browser built it — POST /api/shares strips reviewer-held changes off the
+STORED contract (that wall holds), but a hand-crafted `review` object,
+per-change `resolvedBy` or an owner-side `note` would be stored and served
+verbatim. Unreachable through the product, and closing it changes what the
+counterparty receives, which is the owner's call rather than a night's fix.
 
 ## "SENT" MUST MEAN SENT (14 Aug 2026 — the re-audit's second pass, owner-asked: "fix the email")
 

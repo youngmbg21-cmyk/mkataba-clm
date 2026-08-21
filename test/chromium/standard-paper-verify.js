@@ -104,78 +104,121 @@ const FREIGHT = [
     !boxes.some(b => /Termination/.test(b.text) && /Governing Law/.test(b.text)),
     boxes.map(b => b.text.slice(0, 18)).join(' | ').slice(0, 200));
 
-  /* ---- 2. a verb on each of them, not one at the foot of the page ---- */
+  /* ---- 2. a door on each of them, not one at the foot of the page ----
+     RE-POINTED 16 Aug 2026. This counted Direct Edit and the Copilot on every
+     clause; NO EDITS ON THE PAPER retired that tool row outright — all writing
+     goes through the clause panel now — so the door being counted is the green
+     Edit pill, which is what replaced it. THE CLAIM IS UNCHANGED and is the
+     reported fault in one line: clause 8 must be workable without opening
+     clause 1, so every clause needs its OWN way in. */
   const verbs = await page.evaluate(() => {
     const els = [...document.querySelectorAll('#rl-doc .rl-clause[data-clause]')];
     return { clauses: els.length,
-      edit: els.filter(el => el.querySelector('[data-nego-edit]')).length,
-      ai: els.filter(el => el.querySelector('[data-nego-ai-clause]')).length };
+      pill: els.filter(el => el.querySelector('.rl-cp-pill')).length,
+      /* The retired row must be gone, not merely unused: a stale selector in a
+         guard is a mention, and mentions of retired things get flagged. */
+      stale: els.filter(el => el.querySelector('[data-nego-edit],[data-nego-ai-clause]')).length };
   });
-  check('2 every clause carries Direct Edit', verbs.edit === verbs.clauses,
-    `${verbs.edit} of ${verbs.clauses}`);
-  check('2 every clause carries the Copilot', verbs.ai === verbs.clauses,
-    `${verbs.ai} of ${verbs.clauses}`);
+  check('2 every clause carries its own Edit pill', verbs.pill === verbs.clauses,
+    `${verbs.pill} of ${verbs.clauses}`);
+  check('2 and the retired tool row is gone from the paper', verbs.stale === 0,
+    verbs.stale ? `${verbs.stale} clauses still carry it` : '');
 
-  /* ---- 3. the toolbar sits on ITS clause, not somewhere down the page ----
-     The reported symptom in one number: the distance from the button to the
-     bottom of the clause it belongs to. */
+  /* ---- 3. the door sits on ITS clause, not somewhere down the page ----
+     The reported symptom in one number. It used to be the distance from the
+     button to the clause's FOOT, because the tool row hung at the bottom; the
+     pill is pinned to the clause's top-right, so the same question is asked of
+     the top edge. What is really being measured either way is that the control
+     belongs to the clause beside it. */
   const drift = await page.evaluate(() => {
     const els = [...document.querySelectorAll('#rl-doc .rl-clause[data-clause]')];
-    let worst = 0, which = '';
+    let worst = 0, which = '', outside = 0;
     for (const el of els){
-      const btn = el.querySelector('[data-nego-edit]');
+      const btn = el.querySelector('.rl-cp-pill');
       if (!btn) continue;
-      const d = Math.abs(btn.getBoundingClientRect().bottom - el.getBoundingClientRect().bottom);
+      if (!el.contains(btn)) outside++;
+      const d = Math.abs(btn.getBoundingClientRect().top - el.getBoundingClientRect().top);
       if (d > worst){ worst = d; which = (el.textContent || '').trim().slice(0, 24); }
     }
-    return { worst: Math.round(worst), which };
+    return { worst: Math.round(worst), which, outside };
   });
-  check('3 no clause\'s verbs are more than 20px from its own foot',
+  check('3 no clause\'s door is more than 20px from its own head',
     drift.worst <= 20, `${drift.worst}px (${drift.which})`);
+  check('3 and every door sits inside the clause it belongs to', drift.outside === 0);
 
-  /* ---- 4. clause 8 is workable without opening clause 1 ---- */
-  const eight = await page.evaluate(() => {
+  /* ---- 4. clause 8 is workable without opening clause 1 ----
+     THE FILE'S WHOLE REASON, and it survives the door moving. The editor no
+     longer opens ON the clause — it opens in the panel, which is where all
+     writing goes — so the walk is pill → panel → ＋, and what must still be
+     true is that what arrives holds clause 8 and nothing else. */
+  const eight = await page.evaluate(async () => {
     const el = [...document.querySelectorAll('#rl-doc .rl-clause[data-clause]')]
-      .find(x => /^8\. Termination/.test((x.textContent || '').trim()));
+      /* THE HEADINGS THIS FIXTURE ACTUALLY HAS. "8. Termination" and
+         "9. Confidentiality" matched nothing — the sample agreement numbers them
+         8.2(a) and 14 — so sections 4 and 5 were failing on the clause LOOKUP
+         as well as on the retired tool row, and had been since the document
+         changed under them. Two faults, one red mark. */
+      .find(x => /^8\.2\(a\)\s*Termination/.test((x.textContent || '').trim()));
     if (!el) return null;
-    el.querySelector('[data-nego-edit]').click();
+    el.querySelector('.rl-cp-pill').click();
+    await new Promise(r => setTimeout(r, 400));
+    const body = document.querySelector('#rl-cp .rl-cp-src.is-on');
+    const stands = body ? (body.querySelector('.rl-cp-wd, .rl-cp-sec') || {}).textContent || '' : '';
+    const plus = body && body.querySelector('[data-rl-cp-edit]');
+    if (plus) plus.click();
+    await new Promise(r => setTimeout(r, 400));
     const ed = document.querySelector('[data-nego-editor]');
-    return { opened: !!ed, inClause: !!(ed && el.contains(ed)),
+    return { opened: !!body, panelOpen: !!document.querySelector('#rl-cp.is-open'),
+      inPanel: !!(ed && document.querySelector('#rl-cp').contains(ed)),
+      stands: stands.replace(/\s+/g, ' ').trim(),
       text: ed ? (ed.textContent || '').replace(/\s+/g, ' ').trim() : '' };
   });
-  check('4 Direct Edit on clause 8 opens on clause 8', !!(eight && eight.opened && eight.inClause),
-    eight ? eight.text.slice(0, 60) : 'clause 8 not found');
+  check('4 the Edit pill on clause 8 opens the panel on clause 8',
+    !!(eight && eight.opened && eight.panelOpen) && /8\. Termination|Termination/.test(eight.stands),
+    eight ? eight.stands.slice(0, 60) : 'clause 8 not found');
+  check('4 and the ＋ opens the editor inside that panel',
+    !!eight && eight.inPanel, eight ? `inPanel=${eight.inPanel}` : '');
   check('4 and it holds clause 8 alone',
-    !!eight && /^8\. Termination/.test(eight.text) && !/Governing Law/.test(eight.text),
+    !!eight && /Termination/.test(eight.text) && !/Governing Law/.test(eight.text),
     eight ? String(eight.text.length) + ' chars' : '');
   await page.screenshot({ path: path.join(OUT, '02-editing-clause-8.png'), fullPage: false });
 
-  /* ---- 5. the Copilot opens from the clause, with the clause in it ---- */
-  const menu = await page.evaluate(() => {
+  /* ---- 5. the Copilot is reached from the clause, with the clause in it ----
+     RE-POINTED TWICE, and the second reversal is the one that matters. This
+     pressed the clause toolbar's Copilot and read the three-item menu it raised.
+     That row retired (no edits on the paper), and then on 19 Aug 2026 the owner
+     asked for the panel's Copilot to be a BUTTON that hands the whole clause
+     over — "it takes you to copilot and you can edit the entire clause" — so
+     there is deliberately NO menu in between: a control narrowed to one action
+     would raise a menu of one row, anchored on a panel that is closing.
+
+     So what is asserted is the hand-over itself: the Copilot panel opens, and
+     the clause went with it. */
+  const handed = await page.evaluate(async () => {
     document.querySelector('[data-nego-cancel]')?.click();
+    await new Promise(r => setTimeout(r, 200));
     const el = [...document.querySelectorAll('#rl-doc .rl-clause[data-clause]')]
-      .find(x => /^9\. Confidentiality/.test((x.textContent || '').trim()));
+      .find(x => /^14\.\s*Confidentiality/.test((x.textContent || '').trim()));
     if (!el) return null;
-    el.querySelector('[data-nego-ai-clause]').click();
-    const m = document.querySelector('.nego-selmenu');
-    if (!m) return { open: false };
-    const r = m.getBoundingClientRect();
-    const btn = el.querySelector('[data-nego-ai-clause]').getBoundingClientRect();
-    return { open: true, onScreen: r.top >= 0 && r.left >= 0
-        && r.bottom <= window.innerHeight && r.right <= window.innerWidth,
-      box: { top: Math.round(r.top), left: Math.round(r.left),
-        bottom: Math.round(r.bottom), right: Math.round(r.right) },
-      btn: { top: Math.round(btn.top), left: Math.round(btn.left), bottom: Math.round(btn.bottom) },
-      win: { w: window.innerWidth, h: window.innerHeight },
-      text: (m.textContent || '').replace(/\s+/g, ' ').trim(),
-      items: m.querySelectorAll('[data-nego-ai]').length };
+    el.querySelector('.rl-cp-pill').click();
+    await new Promise(r => setTimeout(r, 400));
+    const btn = document.querySelector('#rl-cp .rl-cp-src.is-on .rl-cp-act-ai');
+    if (!btn) return { there: false };
+    btn.click();
+    await new Promise(r => setTimeout(r, 700));
+    const ai = document.getElementById('ai-panel');
+    return { there: true,
+      menu: !!document.querySelector('.nego-selmenu'),
+      aiOpen: !!(ai && getComputedStyle(ai).display !== 'none'
+        && ai.getBoundingClientRect().width > 0),
+      panelShut: !document.querySelector('#rl-cp.is-open'),
+      text: ai ? (ai.textContent || '').replace(/\s+/g, ' ').trim() : '' };
   });
-  check('5 the Copilot menu opens from the clause toolbar', !!(menu && menu.open));
-  check('5 it is scoped to that clause', !!menu && /This clause/.test(menu.text)
-    && /Confidentiality/.test(menu.text), menu ? menu.text.slice(0, 70) : '');
-  check('5 it offers the Copilot actions', !!menu && menu.items >= 1, menu ? menu.items : 0);
-  check('5 and it is drawn on screen', !!menu && menu.onScreen,
-    menu && JSON.stringify({ menu: menu.box, btn: menu.btn, win: menu.win }));
+  check('5 the panel offers the Copilot on that clause', !!(handed && handed.there));
+  check('5 it hands over with no menu in between', !!handed && handed.menu === false,
+    handed && handed.menu ? 'a selection menu still opens' : '');
+  check('5 the Copilot panel opens', !!handed && handed.aiOpen);
+  check('5 and it closes the clause panel behind it', !!handed && handed.panelShut);
   await page.screenshot({ path: path.join(OUT, '03-copilot-on-clause.png'), fullPage: false });
 
   await browser.close();

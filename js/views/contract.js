@@ -6648,5 +6648,5 @@ Object.assign(window,{applyDocZoom,renderDiscussSection,discussPointsSectionHtml
      I walked it on re-rendered the workspace, which measures on the way in. */
   layoutDocResizer,renderSignButton,renderSignSide,signBlockHtml,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsPaintRoundNeeds,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,docWorkingTextNoteHtml,docNothingWrittenHtml,docHasNoWording,negoRoundNeedsHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
-  ROOM_TABS,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomCurrentTab,wsTabDefaults,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,roomVersionsHtml,docFillable,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,openCheckPanel,roomHeadHtml,wireRoomHead,
+  ROOM_TABS,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomCurrentTab,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,roomVersionsHtml,docFillable,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,openCheckPanel,roomHeadHtml,wireRoomHead,
   DOC_SEL_ACTIONS,wireDocCopilotSel,docAiRead,docSelKill});

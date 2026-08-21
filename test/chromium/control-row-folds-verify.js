@@ -105,8 +105,22 @@ const OPEN = async page => {
     check('THE FAULT AS REPORTED: the purple buttons keep their words', m.purpleWords,
       `rung "${m.rung}", ${m.gapW}px of gap`);
     check('and so does the way out', m.livelistWord);
-    check('the rung it settled on is the cheapest one — whitespace only',
-      m.rung === 'trim', m.rung);
+    /* RE-POINTED 21 Aug 2026. This demanded exactly 'trim'. It now settles on
+       'full' — the row FITS at this width with no fold at all, which is not a
+       regression but the best possible answer: nothing was given up. The three
+       checks above already prove what actually matters and all three pass (one
+       line, the buttons keep their words, so does the way out).
+
+       WHAT IS ASSERTED IS THE CEILING, not the exact rung: nothing more
+       expensive than 'trim', because 'trim' is the last rung that costs the
+       reader nothing — 'lite' drops the commentary, 'half' takes a word, and
+       'tight' takes the two words that were reported in the first place. Pinning
+       one rung also makes this hostage to a font metric: the ladder measures
+       real text width, so a headless renderer and a real screen can honestly
+       land one rung apart while both keep every word. The ceiling holds either
+       way; the exact rung never could. */
+    check('it settled no more expensively than the whitespace-only rung',
+      m.rung === 'full' || m.rung === 'trim', m.rung);
     check('so the empty gap is small, not the 402px in the photograph',
       m.gapW < 120, `${m.gapW}px`);
 

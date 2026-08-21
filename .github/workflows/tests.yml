@@ -1,4 +1,5 @@
-# Every check, on every push — including the two browser harnesses.
+# Every check, on every push — the proofreader, the node suite, and ALL of the
+# browser harnesses.
 #
 # The browser checks existed and were green-capable for a day while nine of
 # them sat red, because they only ran when somebody remembered to run them:
@@ -6,6 +7,19 @@
 # rename to "Edit with Copilot") updated the jsdom tests and sailed straight
 # past the assertions nobody's routine touched. A check that does not run on
 # every change is a diary, not an alarm. This workflow is the alarm.
+#
+# IT WAS STILL A DIARY FOR FIFTY-THREE OF THEM. This file ran redline-verify
+# and selection-verify; the other fifty-three browser harnesses ran only by
+# hand, which is the very habit the paragraph above was written about. They
+# were left out for a real reason rather than an oversight — each starts a
+# Chromium and takes minutes, so run one after another they cost hours — and
+# the answer to that is to run them SIDE BY SIDE. test/chromium/run-all.js
+# does that, four at a time, and this workflow puts four machines on it, so
+# the whole set lands in about the time a single slow one used to take.
+#
+# A FILE THAT IS EXPECTED TO FAIL IS NAMED IN run-all.js's KNOWN_RED, with the
+# reason, and is printed on every run. Everything else must pass. That is what
+# keeps a red run meaningful: there is nowhere for a new failure to hide.
 name: tests
 
 on:
@@ -13,6 +27,19 @@ on:
   pull_request:
 
 jobs:
+  # The proofreader runs first and alone: it takes seconds, needs no browser,
+  # and a name that does not exist is worth knowing before anything is booted.
+  lint:
+    name: proofreader (eslint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm run lint
+
   node:
     name: node suite (jsdom)
     runs-on: ubuntu-latest
@@ -27,8 +54,15 @@ jobs:
       - run: npm test
 
   browser:
-    name: browser checks (Chromium)
+    name: browser checks ${{ matrix.shard }}/4
     runs-on: ubuntu-latest
+    strategy:
+      # ONE SHARD'S FAILURE MUST NOT CANCEL THE OTHER THREE. The point of a run
+      # is the whole picture — "these four broke" is a diagnosis, "one broke and
+      # we stopped looking" is another push to find out the rest.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -39,14 +73,13 @@ jobs:
       # the registry copy this installs (see EXEC in test/chromium/*.js —
       # the dev sandbox's fixed path wins only where it exists).
       - run: npx playwright-core install --with-deps chromium
-      - run: npm run test:browser
-      - run: npm run test:selection
+      - run: node test/chromium/run-all.js --shard ${{ matrix.shard }}/4 --jobs 2
       # The measurements are numbers, but a failure is usually a LOOK — keep
       # the screenshots so a red run can be seen, not only read.
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: chromium-screenshots
+          name: chromium-screenshots-${{ matrix.shard }}
           path: test/chromium/shots/
           if-no-files-found: ignore
           retention-days: 14

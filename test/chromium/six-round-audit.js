@@ -25,10 +25,16 @@
 const path = require('node:path');
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
-const { startHati, Client } = require('../helpers');
+const { startHati, Client, nameASigner } = require('../helpers');
 
 const OUT = path.join(__dirname, 'shots', 'audit');
-const EXEC = '/opt/pw-browsers/chromium';
+/* THE SAME LADDER EVERY OTHER HARNESS USES: an override, then the dev sandbox's
+   own copy IF IT EXISTS, then whatever playwright installed. The bare path was
+   true in exactly one place — on a CI runner playwright installs its own build
+   and /opt/pw-browsers does not exist, so the launch threw before a single
+   check ran. */
+const EXEC = process.env.CHROMIUM_BIN
+  || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
 const CID = 'MK-NEG';
 const ERIK = 'erik@nordfrakt.se';
 
@@ -87,6 +93,15 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   const mailToErik = async () =>
     ((await admin.json('/api/outbox')).items || []).filter(m => String(m.to_addr).includes(ERIK));
 
+  /* NAMING THE SIGNERS IS WHAT OPENS SIGNING (11 Aug 2026), and this journey
+     predates it. The endgame issues a signing link through the real hand-off,
+     and since that rule a link cannot be minted until somebody is named on each
+     side — defaultSharePurpose even answers 'negotiate' while nobody is, which
+     is why the dialog was quietly producing a second negotiate link rather than
+     refusing. It is the PRECONDITION of the endgame, not its subject: the six
+     rounds under audit are unchanged by it. */
+  await nameASigner(admin, CID, { name: 'Erik Lindqvist', email: ERIK });
+
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
 
   /* ---- the owner's browser, signed in with the admin cookie ---- */
@@ -114,27 +129,52 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   };
   const ownerFlush = async () => { await owner.evaluate(() => flushSaves()); };
 
-  /* File a clause edit through the REAL Direct Edit control on whichever page. */
+  /* File a clause edit through the REAL controls on whichever page.
+     RE-POINTED 16 Aug 2026. This pressed the clause's Direct Edit, which NO
+     EDITS ON THE PAPER retired: the paper carries one control now, the green
+     Edit pill, and every way to write is inside the clause panel it opens. So
+     the walk is pill → ＋ → editor, and the editor is in the PANEL rather than
+     in the clause, which is why it is looked for on the document rather than
+     inside the doc root. Everything after that — the two-step save, the skip,
+     the funnel it files through — is unchanged, which is the point: this file
+     audits six real rounds and only the door moved. */
   async function directEdit(page, root, headingRe, replaceRe, replacement){
-    const did = await page.evaluate(({ root, headingRe, replaceRe, replacement }) => {
+    const did = await page.evaluate(async ({ root, headingRe, replaceRe, replacement }) => {
+      const wait = ms => new Promise(r => setTimeout(r, ms));
       const scope = document.querySelector(root); if (!scope) return 'no root';
       const clause = Array.from(scope.querySelectorAll('.rl-clause')).find(cl =>
         new RegExp(headingRe).test((cl.querySelector('.rl-clause-h') || {}).textContent || ''));
       if (!clause) return 'no clause';
-      const btn = clause.querySelector('[data-nego-edit]'); if (!btn) return 'no edit tool';
-      btn.click();
-      const ed = scope.querySelector('[data-nego-editor]') || document.querySelector('[data-nego-editor]');
+      const pill = clause.querySelector('.rl-cp-pill'); if (!pill) return 'no edit pill';
+      pill.click();
+      await wait(450);
+      const body = document.querySelector('#rl-cp .rl-cp-src.is-on');
+      if (!body) return 'panel did not open';
+      const plus = body.querySelector('[data-rl-cp-edit]'); if (!plus) return 'no ＋ in the panel';
+      plus.click();
+      await wait(450);
+      const ed = document.querySelector('[data-nego-editor]');
       if (!ed) return 'no editor';
       ed.innerHTML = ed.innerHTML.replace(new RegExp(replaceRe), replacement);
       const next = (ed.parentElement.querySelector('[data-nego-next]')
         || document.querySelector('[data-nego-next]'));
       if (next) next.click();          // step 1 → step 2 (why), skipped below
+      await wait(250);
       const save = (ed.parentElement.querySelector('[data-nego-skip]')
         || document.querySelector('[data-nego-skip]')
         || ed.parentElement.querySelector('[data-nego-save]')
         || document.querySelector('[data-nego-save]'));
       if (!save) return 'no save';
       save.click();
+      await wait(300);
+      /* SHUT THE PANEL BEHIND US. It is an overlay on the working area, and
+         left standing it covers whatever the next step wants to press — which
+         surfaces as a click timing out on a button that is plainly on screen,
+         not as anything that names the panel. A helper should leave the page as
+         it found it. */
+      const shut = document.querySelector('#rl-cp [data-rl-cp-close], #rl-cp-min');
+      if (shut) shut.click();
+      await wait(200);
       return 'ok';
     }, { root, headingRe, replaceRe, replacement });
     return did;
@@ -284,12 +324,31 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     await cpOpen(token);
     await leakCheck(3);
     const text = await bodyText(cp);
-    check(3, 'Erik reads the refusal reason on the clause tag',
-      /whole point of the facility/.test(await cp.evaluate(() =>
-        Array.from(document.querySelectorAll('.rl-asktag[title]')).map(n => n.title).join(' | '))));
+    /* RE-POINTED 16 Aug 2026: the ask tags came off the paper, so a refusal's
+       reason is no longer a tooltip on a pill beside the heading. It is in the
+       clause panel, on the clause the refusal is about — which is a press away
+       rather than a hover away, so the walk opens each clause's panel until it
+       finds the words. The claim is unchanged: Erik must be able to READ why he
+       was refused. */
+    const refusalSeen = await cp.evaluate(async () => {
+      const wait = ms => new Promise(r => setTimeout(r, ms));
+      for (const pill of [...document.querySelectorAll('.rl-clause .rl-cp-pill')]) {
+        pill.click();
+        await wait(350);
+        const said = [...document.querySelectorAll('#rl-cp .rl-cp-src.is-on .rl-cp-why')]
+          .map(n => n.textContent).join(' | ');
+        if (/whole point of the facility/.test(said)) return said;
+      }
+      return '';
+    });
+    check(3, 'Erik reads the refusal reason in the clause panel',
+      /whole point of the facility/.test(refusalSeen), refusalSeen.slice(0, 70));
     check(3, 'the new ask reached him', /thirty \(30\) days written notice/.test(text));
     check(3, 'his refused ask offers Withdraw', !!(await cp.$('[data-nego-withdraw]')));
   }
+
+  /* The change both sides reply on, carried between rounds 4 and 5. */
+  let replyOn = null;
 
   /* ========= ROUND 4 — Erik withdraws, decides, replies in a thread ========= */
   {
@@ -297,26 +356,35 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     await pause(700);
     const dec = await cp.evaluate(() => {
       const b = document.querySelector('[data-nego-accept]');
-      if (!b) return 'nothing to decide';
-      b.click(); return 'ok';
+      if (!b) return { r: 'nothing to decide' };
+      const id = b.getAttribute('data-nego-accept');
+      b.click(); return { r: 'ok', id };
     });
-    check(4, 'Erik accepts the termination ask', dec === 'ok', dec);
+    check(4, 'Erik accepts the termination ask', dec.r === 'ok', dec.r);
+    replyOn = dec.id;
     await pause(500);
 
-    // A SHARED reply on the round — it must reach the owner's thread.
-    const said = await cp.evaluate(() => {
-      const sh = document.querySelector('[data-nego-vis="shared"]');
-      if (!sh) return 'no shared switch';
+    /* A SHARED reply on the round — it must reach the owner's thread.
+       NAMED, NOT "WHICHEVER IS FIRST". The composer moved into the clause panel
+       on 16 Aug 2026 and the panel renders a body for EVERY clause, so a bare
+       [data-nego-vis="shared"] now matches the first clause on the paper rather
+       than the change being replied to — the reply went somewhere real and to
+       the wrong thread, which reads exactly like the reply being lost. The
+       change's own id is what addresses it. */
+    const said = await cp.evaluate(async id => {
+      const wait = ms => new Promise(r => setTimeout(r, ms));
+      const input = document.getElementById('nego-ti-' + id);
+      if (!input) return 'no reply box for ' + id;
+      const sh = document.querySelector(`[data-nego-vis="shared"][data-for="${id}"]`);
+      if (!sh) return 'no shared switch for ' + id;
       sh.click();
-      const forId = sh.getAttribute('data-for');
-      const input = document.getElementById('nego-ti-' + forId);
-      if (!input) return 'no reply box';
+      await wait(150);
       input.value = 'Agreed on notice — please confirm storage stays at 120 days.';
-      const send = document.querySelector(`[data-nego-send="${forId}"]`);
-      if (!send) return 'no reply send';
+      const send = document.querySelector(`[data-nego-send="${id}"]`);
+      if (!send) return 'no reply send for ' + id;
       send.click(); return 'ok';
-    });
-    check(4, 'Erik replies on a change, marked shared', said === 'ok', said);
+    }, replyOn);
+    check(4, 'Erik replies on that change, marked shared', said === 'ok', said);
     await pause(1200);
 
     await cp.evaluate(() => {
@@ -328,14 +396,22 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
 
     await ownerPoll();
     await ownerOpenBench();
-    const ownerSees = await owner.evaluate(() => ({
-      thread: document.getElementById('rl-threads') ? document.getElementById('rl-threads').textContent : '',
+    /* WHERE A THREAD IS READ NOW. #rl-threads was the Discussion COLUMN, and
+       that column left this page when the notes moved onto the change itself;
+       nothing renders that id any more (three references to it survive in
+       js/views/negotiation.js with nothing to find — stale, and worth a sweep).
+       A change's conversation is in the clause panel's row for that change, and
+       every clause's body is rendered whether or not the panel is open, so the
+       words are readable without pressing anything. */
+    const ownerSees = await owner.evaluate(id => ({
+      thread: [...document.querySelectorAll(`[data-rl-cp-change="${id}"] .rl-cnote`)]
+        .map(n => n.textContent).join(' | '),
       withdrawn: (() => { const c = getContract(state.activeId);
         return negoChanges(c).filter(x => x.withdrawn).length; })(),
       termination: (() => { const c = getContract(state.activeId);
         const ch = negoChanges(c).find(x => /thirty \(30\) days/.test(x.newText || ''));
         return ch && ch.status; })(),
-    }));
+    }), replyOn);
     check(4, 'his shared reply is on the owner\'s thread',
       /please confirm storage stays/.test(ownerSees.thread), ownerSees.thread.slice(0, 80));
     check(4, 'the withdrawal settled the contested ask', ownerSees.withdrawn >= 1);
@@ -345,26 +421,27 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   /* ====== ROUND 5 — the owner answers the thread and closes the round ====== */
   {
     await ownerOpenBench();
-    const said = await owner.evaluate(() => {
-      const sh = document.querySelector('[data-nego-vis="shared"]');
-      if (!sh) return 'no shared switch';
-      sh.click();
-      const forId = sh.getAttribute('data-for');
-      const input = document.getElementById('nego-ti-' + forId);
-      if (!input) return 'no reply box';
+    /* THE SAME THREAD, named by the same change id — see round 4. */
+    const said = await owner.evaluate(async id => {
+      const wait = ms => new Promise(r => setTimeout(r, ms));
+      const input = document.getElementById('nego-ti-' + id);
+      if (!input) return 'no reply box for ' + id;
+      const sh = document.querySelector(`[data-nego-vis="shared"][data-for="${id}"]`);
+      if (sh){ sh.click(); await wait(150); }
       input.value = 'Confirmed — storage stays at one hundred and twenty (120) days.';
-      const send = document.querySelector(`[data-nego-send="${forId}"]`);
-      if (!send) return 'no reply send';
+      const send = document.querySelector(`[data-nego-send="${id}"]`);
+      if (!send) return 'no reply send for ' + id;
       send.click(); return 'ok';
-    });
+    }, replyOn);
     check(5, 'the owner replies in the same thread', said === 'ok', said);
     await pause(1200);
 
     await cpOpen(token);
     await leakCheck(5);
     check(5, 'the reply is on Erik\'s page without any re-send',
-      /Confirmed — storage stays/.test(await cp.evaluate(() =>
-        (document.getElementById('rl-threads') || {}).textContent || '')));
+      /Confirmed — storage stays/.test(await cp.evaluate(id =>
+        [...document.querySelectorAll(`[data-rl-cp-change="${id}"] .rl-cnote`)]
+          .map(n => n.textContent).join(' | '), replyOn)));
     await mailCheck(5, 1, 'a comment is a comment — no email');
   }
 
@@ -408,11 +485,22 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     await mailCheck(6, 1, 'six rounds in: still exactly one email to Erik');
 
     await ownerPoll(); await ownerOpenBench();
-    const signal = await owner.evaluate(() => ({
-      sig: !!document.getElementById('nego-ready-signal'),
-      issue: !!document.getElementById('nego-issue-signing'),
-    }));
-    check(6, 'the owner sees the readiness signal', signal.sig);
+    /* UNFOLD THE NOTICES FIRST. The readiness signal used to sit in a band at
+       the top of the page; NOTHING BANDS THE TOP OF THE CONTRACT any more, so
+       it is one of the notices in the floating stack — and that stack arrives
+       FOLDED behind an amber bell, by design, so the notice is not in the DOM
+       until the bell is pressed. Reading it without pressing asks whether the
+       reader has already opened their post, not whether the post arrived. */
+    const signal = await owner.evaluate(async () => {
+      const wait = ms => new Promise(r => setTimeout(r, ms));
+      const bell = document.querySelector('[data-rl-notices-open]');
+      if (bell){ bell.click(); await wait(400); }
+      return { bell: !!bell,
+        sig: !!document.getElementById('nego-ready-signal'),
+        issue: !!document.getElementById('nego-issue-signing') };
+    });
+    check(6, 'the owner sees the readiness signal, once the notices are opened',
+      signal.sig, `bell:${signal.bell} sig:${signal.sig}`);
     check(6, 'and holds the hand-off — Issue a signing link', signal.issue);
     await owner.screenshot({ path: path.join(OUT, 'r6-owner-signal.png') });
   }
@@ -427,6 +515,24 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     // banner's hand-off, then the share dialog it opens, prefilled with the
     // address the owner set once at round 1.
     await ownerOpenBench();
+    /* Same fold: the hand-off is a button ON that notice, so it has to be on
+       screen before it can be pressed. */
+    await owner.evaluate(async () => {
+      const wait = ms => new Promise(r => setTimeout(r, ms));
+      const bell = document.querySelector('[data-rl-notices-open]');
+      if (bell){ bell.click(); await wait(400); }
+    });
+    await owner.waitForSelector('#nego-issue-signing', { timeout: 10000 });
+    /* A toast still fading over the corner intercepts the press exactly as the
+       panel does. Both are cleared rather than clicked through: forcing a click
+       past something that is really on top would prove the button reachable
+       when it is not. */
+    await owner.evaluate(() => {
+      const shut = document.querySelector('#rl-cp [data-rl-cp-close], #rl-cp-min');
+      if (shut) shut.click();
+      const tr = document.getElementById('toast-root'); if (tr) tr.innerHTML = '';
+    });
+    await pause(300);
     await owner.click('#nego-issue-signing');
     // the share dialog's two steps: the summary, then the send form
     await owner.waitForSelector('#share-next', { timeout: 10000 });

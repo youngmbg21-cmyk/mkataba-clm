@@ -44,7 +44,9 @@ const MODULES = [
   // rendering rather than the product's
   'js/views/contract.js',
   // the shared Negotiation component: the counterparty's page renders the SAME
-  // file the owner's tab does, so it has to be on this stage too
+  // file the owner's tab does, so it has to be on this stage too — and since
+  // 21 Aug 2026 that is two files, the stylesheet first (see its own header).
+  'js/views/negotiation-css.js',
   'js/views/negotiation.js',
   'js/views/portal.js',
 ];

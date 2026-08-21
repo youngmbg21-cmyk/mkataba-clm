@@ -33,7 +33,10 @@ const { buildWorld, supplyContract } = require('./world');
 
 const ROOT = path.join(__dirname, '..');
 const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
-const SRC = read('js/views/negotiation.js');
+/* THE PAGE'S SOURCE IS TWO FILES since 21 Aug 2026: its stylesheets were lifted
+   into js/views/negotiation-css.js. A CSS rule that moved has not changed —
+   reading only the renderer reports the whole sheet as missing. */
+const SRC = (read('js/views/negotiation.js') + read('js/views/negotiation-css.js'));
 const I18N = read('js/i18n.js');
 const SRC_DOCX = read('js/docx.js');
 
@@ -550,7 +553,22 @@ describe('f210 (10) — the twin renderer carried the MK-311 fault and now does 
        contract said. */
     assert.doesNotMatch(SRC, /const ch = Array\.isArray\(chs\) \? \(chs\.length \? chs\[chs\.length - 1\] : null\)/,
       'the old newest-wins line is gone from negoDocHtml');
-    assert.match(SRC, /for \(let i = _list\.length - 1; i >= 0 && !ch; i--\) if \(onStanding\(_list\[i\]\)\) ch = _list\[i\];/);
+    /* STRONGER SINCE 21 Aug 2026, and this is the point of that day's merge:
+       the rule is no longer WRITTEN TWICE and asserted to match in two places.
+       Both renderers ask negoLeadChange, which is the one reading, so they
+       cannot drift again — which is what they did for a day and what made the
+       contract on screen untrue. The renderers themselves stay separate on
+       purpose: they draw different surfaces. It is the READING that may never
+       be duplicated. */
+    assert.match(SRC, /function negoLeadChange\(c, cl, chs\)\{/,
+      'the one reading exists');
+    const asks = (SRC.match(/=\s*negoLeadChange\(c, cl, /g) || []).length;
+    assert.equal(asks, 2, 'and BOTH document renderers ask it — no more, no fewer');
+    /* Neither may keep a copy: the loops that used to sit inline are gone. */
+    assert.doesNotMatch(SRC, /measuredOnStanding/,
+      'redlineDocHtml keeps no private copy of the rule');
+    assert.doesNotMatch(SRC, /if \(_list\.length === 1\) ch = _list\[0\];/,
+      'and negoDocHtml keeps none either');
   });
 
   test('both renderers draw the adopted wording on a clause carrying a rival', async () => {
@@ -1022,7 +1040,10 @@ describe('f210 (17) — the pills come off the paper, and the marker moves to th
        bar in the sheet's margin, because a border takes width — see the
        claims below. The mark itself is unchanged to look at. */
     /* radius literal moved to 0 with the square-corner sweep, 20 Aug 2026 */
-    assert.match(SRC, /\.rl-clause\.is-changed::after\{content:'';position:absolute;\s*\n\s*top:0;bottom:0;right:-18px;width:3px;border-radius:0;background:#dc2626\}/);
+    /* background:var(--danger) since 21 Aug 2026 — the literal #dc2626 IS that
+       token, so this rule did not move, only its spelling. See the note at the
+       margin-bar test below, and f89's "THE COLOUR IS NAMED, NOT TYPED". */
+    assert.match(SRC, /\.rl-clause\.is-changed::after\{content:'';position:absolute;\s*\n\s*top:0;bottom:0;right:-18px;width:3px;border-radius:0;background:var\(--danger\)\}/);
     /* REVERSED IN PLACE, 19 Aug 2026 — and this one was reversed because the
        claim in the comment was NOT TRUE of the code beneath it. "The padding
        is kept so the wording does not shift" described an older arrangement
@@ -1259,7 +1280,7 @@ describe('f210 (19) — the panel\'s own type stepper', () => {
 });
 
 describe('F210 — the clause rail', () => {
-  const src = read('js/views/negotiation.js');
+  const src = (read('js/views/negotiation.js') + read('js/views/negotiation-css.js'));
   const rule = sel => {
     const i = src.indexOf(sel + '{');
     assert.ok(i > 0, sel + ' is defined');
@@ -1280,7 +1301,11 @@ describe('F210 — the clause rail', () => {
     const bar = rule('.redline-page .rl-clause.is-changed::after');
     assert.match(bar, /position:absolute/);
     assert.match(bar, /right:-18px/, 'outside the text column, in the white the sheet already has');
-    assert.match(bar, /background:#dc2626/);
+    /* NAMED, NOT TYPED (21 Aug 2026, the same move f89 records above it): the
+       literal #dc2626 IS --danger, so the rule is unchanged and only its
+       spelling moved. The hand-written dark override below is untouched and
+       still wins in dark, which is why the census did not shift by a shade. */
+    assert.match(bar, /background:var\(--danger\)/);
     assert.match(SRC, /html\.dark .redline-page \.rl-clause\.is-changed::after\{background:#f87171\}/,
       'and it follows the dark theme');
   });

@@ -84,6 +84,10 @@ window.customTemplates = () => [];
 <script src="../../js/discuss.js"></script>
 <script src="../../js/negotiation.js"></script>
 <script src="../../js/ai.js"></script>
+<!-- The negotiation page is TWO files since 21 Aug 2026: its stylesheets were
+     lifted into negotiation-css.js. It loads first, because the renderer below
+     calls negoStyleHtml and redlineLayoutCss by name. -->
+<script src="../../js/views/negotiation-css.js"></script>
 <script src="../../js/views/negotiation.js"></script>
 <!-- contract.js only because the portal's DUPLICATE document surface (#pt-doc)
      calls docBody() from it. W2 deletes that surface; when it goes, so does

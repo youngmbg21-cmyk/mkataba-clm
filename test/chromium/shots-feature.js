@@ -13,7 +13,13 @@ const { chromium } = require('playwright-core');
 
 const OUT = path.join(__dirname, 'shots', 'feature');
 const ROOT = path.join(__dirname, '..', '..');
-const EXEC = '/opt/pw-browsers/chromium';
+/* THE SAME LADDER EVERY OTHER HARNESS USES: an override, then the dev sandbox's
+   own copy IF IT EXISTS, then whatever playwright installed. The bare path was
+   true in exactly one place — on a CI runner playwright installs its own build
+   and /opt/pw-browsers does not exist, so the launch threw before a single
+   check ran. */
+const EXEC = process.env.CHROMIUM_BIN
+  || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };
 
 function serve(){

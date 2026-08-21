@@ -2604,6 +2604,25 @@ const EXECUTED_IMMUTABLE = [
    Signed status against a stored record that was already Signed. */
 const isExecutedRow = c => !!(c && ((c.execution && c.execution.at) || c.hash || c.status === 'Signed'));
 
+/* ---------- ONE SIGNATURE IS ENOUGH TO STOP THE WORDING ----------
+   The server's twin of negoAnySignature (js/negotiation.js), and it reads the
+   same two stores for the same reason signingLocked does: a counterparty's mark
+   reaches c.signatures only when the owner's browser applies it, while an
+   internal signer's lands on the plan row. Reading one alone leaves the other
+   half of the window open.
+
+   SEPARATE FROM isExecutedRow ON PURPOSE. That answers "is this finished", which
+   freezes everything on EXECUTED_IMMUTABLE; this answers "has anybody signed
+   yet", which freezes the words alone. */
+const anySignatureRow = c => !!(c && (
+  (Array.isArray(c.signatures) && c.signatures.length)
+  || (Array.isArray(c.signerPlan) && c.signerPlan.some(s => s && s.signed))));
+
+/* WHAT "THE WORDING" IS — every store the document itself is drawn from, and
+   nothing else. A subset of EXECUTED_IMMUTABLE, so a record that goes on to be
+   executed only ever gains protection, never trades one rule for another. */
+const SIGNED_WORDING_FROZEN = ['body', 'redlineText', 'format', 'upload'];
+
 /* THE SEAL MAY BE ACQUIRED ONCE, AND NEVER CHANGED AFTER.
    Widening isExecutedRow to include the status caught a case it should not: a
    record marked Signed that has not been sealed yet. Refusing there makes the
@@ -2671,6 +2690,37 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
       return res.status(409).json({
         error: `${req.params.id} is executed — ${changed.join(', ')} cannot be changed after signature. Record an amendment instead.`,
         immutable: changed,
+      });
+    }
+  } else if (prev && anySignatureRow(prev)) {
+    /* ---------- AND THE WORDING FREEZES AT THE FIRST SIGNATURE, HERE TOO ----------
+       (launch audit, 21 Aug 2026.) The rule is owner-ruled and already stated in
+       CLAUDE.md — the wording freezes at the FIRST signature, not the last — and
+       it was enforced ONLY in the browser, at negoFileChange and negoResolve
+       (negoWordingFrozen, js/negotiation.js). The guard above engages only once
+       the record is FULLY executed, so on a route with more than one signer
+       there was a window — first mark taken, status still Under Review, no seal
+       — in which a raw save could rewrite the document. The first signer's mark
+       then stood over wording they had never seen, and their stored signature
+       kept the docHash of text the record no longer held.
+
+       This is the same "the browser is cosmetics, the server is the wall" class
+       the legal audit closed for the desk rule, the review wall, the signing cap
+       and the reserved signing step; the wording freeze simply never got its
+       half. ASKED AS A DIFFERENCE, like every guard on this route.
+
+       THE WORDING ONLY, deliberately — mirroring the browser's own scope, whose
+       comment says it out loud: "Numbering, obligations, the audit trail and the
+       signature-taking itself are unaffected — the point is that the words stop
+       moving, not that the contract stops working." Taking the signature, filling
+       in Key terms while the second signer is waited on, and every additive fact
+       stay open, so nothing an SME does between two signatures is refused. */
+    const changed = SIGNED_WORDING_FROZEN.filter(k => stable(prev[k]) !== stable(c[k]));
+    if (changed.length) {
+      return res.status(409).json({
+        error: `${req.params.id} has already been signed by one party — the wording (${changed.join(', ')}) `
+          + 'cannot be changed while the remaining signatures are outstanding. Restart the signing route to renegotiate, or record an amendment once it is executed.',
+        immutable: changed, signedFreeze: true,
       });
     }
   }
@@ -2972,8 +3022,32 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
          it is the half the person being capped does not get to restate on the
          way past. No rate on file means the comparison cannot be made, and on
          a signature an unanswerable question is refused, never waved through. */
-      const meta = (prev && prev.metadata) || (c && c.metadata) || {};
-      const conv = fxHome({ value: raw, metadata: meta });
+      /* AND THE SAME ARITHMETIC AS THE VALUE BESIDE IT (launch audit, 21 Aug 2026).
+         This read `(prev && prev.metadata) || (c && c.metadata) || {}`, which
+         does what the comment above forbids the moment the STORED record has no
+         metadata object at all — the ordinary shape of a template-made contract,
+         whose value is typed on Key terms and never writes a metadata block. The
+         falsy stored half fell through to the REQUEST's own currency, so a capped
+         signer sent their signature and `metadata:{currency:'TZS'}` in one save
+         and a sub-1 rate shrank a 10,000,000 contract to 500,000, under a
+         5,000,000 cap. The record was left mislabelled TZS as well.
+
+         READ BOTH AND TAKE THE LARGER, which is the value guard's own answer one
+         line up and safe in BOTH directions. Stored-only would close the reported
+         hole and open its mirror: a contract genuinely in a dearer currency,
+         declared for the first time in this same save, would be measured in
+         workspace money and under-counted. The larger of the two readings can
+         only ever refuse more, and contractCurrency already falls back to the
+         workspace currency where a record says nothing — so a metadata-less
+         contract is measured at its face value, exactly as every other screen in
+         the product reads it. */
+      const convOf = m => fxHome({ value: raw, metadata: m || {} });
+      const convStored = convOf(prev && prev.metadata);
+      const convAsked = convOf(c && c.metadata);
+      /* AN UNANSWERABLE QUESTION IS REFUSED, NEVER WAVED THROUGH — and it is
+         refused if EITHER reading cannot be made, because a rate missing on the
+         currency being claimed is exactly the state that must not become a pass. */
+      const conv = [convStored, convAsked].find(x => x.missing) || (convAsked.v > convStored.v ? convAsked : convStored);
       if (cap.answered && cap.limit != null && conv.missing)
         return res.status(403).json({
           error: `This contract is in ${conv.code} and no exchange rate for it has been set, `
@@ -3594,7 +3668,26 @@ app.get('/api/ai/config', auth, (req, res) => {
       cacheWriteMultiplier: AI_CACHE_WRITE_MULT, cacheReadMultiplier: AI_CACHE_READ_MULT },
     estimate: AI_ESTIMATE,
     featureLabels: AI_FEATURE_LABEL,
-    spend: aiSpendToday(),
+    /* ---- THE PER-PERSON HALF IS ADMIN-ONLY, ON THIS ROUTE TOO ----
+       (launch audit, 21 Aug 2026.) /api/ai/spend carries the `admin` middleware
+       precisely so the by-PERSON breakdown stays with admins — its own comment
+       says "a route more open than the page it feeds is a permission that exists
+       only in the pixels". This route is `auth` only and every signed-in
+       browser calls it, and it embedded the WHOLE aiSpendToday() object; when
+       that object gained byPerson on 14 Aug it silently inherited the leak, so
+       any Editor or Viewer could read each colleague's name and Copilot cost.
+
+       The by-FEATURE and workspace totals stay exactly as they were — those are
+       public by design through /api/ai/usage, and the browser reads byPerson
+       only on renderTeam, which is admin-only. Stripped the way the bootstrap
+       strips ADMIN_ONLY_USER_FIELDS: the fact does not travel, rather than the
+       screen choosing not to draw it. */
+    spend: (() => {
+      const s = aiSpendToday();
+      if (req.user && req.user.role === 'admin') return s;
+      const { byPerson, unattributed, ...rest } = s;
+      return rest;
+    })(),
     allowance: allowanceView(),
     usage: (() => { const u = aiUsageToday(); return { date: u.date, count: u.count, dailyLimit: aiDailyLimit() }; })(),
   });
@@ -4539,14 +4632,19 @@ app.get('/api/intake', auth, (req, res) => {
    The send is fire-and-forget like every other sweep mail — the editor's
    answer must not wait on a mail provider, and the outbox is where an admin
    reads what was actually attempted. */
-function notifyIntakeDecision(row, actor) {
+/* `req` IS PASSED WHERE THERE IS ONE (launch audit, 21 Aug 2026). This built
+   its link with a hard-coded null and therefore fell back to APP_URL — or, with
+   APP_URL unset, to http://localhost — while sitting inside a live request that
+   knows the real host. The sweeps below genuinely have no request and must have
+   APP_URL set; this one never did. */
+function notifyIntakeDecision(row, actor, req) {
   if (!row) return false;
   const u = db.prepare('SELECT * FROM users WHERE id=?').get(row.by_id);
   if (!u || !/.+@.+\..+/.test(String(u.email || ''))) return false;
   const L = (u.lang && I18N_STRINGS[u.lang]) ? u.lang : I18N_DEFAULT;
   const k = row.status === 'done' ? 'done' : row.status === 'declined' ? 'declined' : 'accepted';
   const who = (actor && actor.name) || '';
-  const link = row.contract_id ? contractUrl(null, row.contract_id) : '';
+  const link = row.contract_id ? contractUrl(req || null, row.contract_id) : '';
   const body = `${tFor(L, 'mail_hello')}${u.name ? ' ' + u.name : ''},\n\n`
     + tFor(L, 'mail_ik_lead_' + k, { title: row.title, who }) + '\n'
     + (row.note ? `\n${tFor(L, 'mail_ik_reason', { note: row.note })}\n` : '')
@@ -4570,7 +4668,24 @@ app.patch('/api/intake/:id', auth, (req, res) => {
   if (!['open', 'accepted', 'declined', 'withdrawn', 'done'].includes(status))
     return res.status(400).json({ error: 'Unknown status' });
   if (status === 'withdrawn') {
-    if (!isOwner && !isEditor) return res.status(403).json({ error: 'Only the person who asked can withdraw it' });
+    /* WITHDRAWING IS THE REQUESTER'S OWN ACT, AND ONLY THEIRS (launch audit,
+       21 Aug 2026). This guard read `(!isOwner && !isEditor)`, so any non-viewer
+       passed for ANYBODY's request — the opposite of the sentence it refuses
+       with, and of the rule this route's own comment states. It mattered because
+       'withdrawn' is deliberately outside notifyIntakeDecision, on the premise
+       that nobody needs telling about their own act: an editor withdrawing
+       someone else's open request made it vanish from the queue with no mail, no
+       reason and no name on it, so the requester's row read "Withdrawn" as
+       though they had done it themselves. That is exactly the "decided on a
+       screen the requester was not looking at, and nothing reached them" fault
+       the notice was built to close, and it offered a quiet way around declining
+       — which always costs a reason and always mails.
+
+       An admin is kept, because an admin can already decide the request outright
+       and someone has to be able to tidy up after a member who has left; every
+       other editor is turned away in the words that were always printed here. */
+    if (!isOwner && req.user.role !== 'admin')
+      return res.status(403).json({ error: 'Only the person who asked can withdraw it' });
   } else if (!isEditor) {
     return res.status(403).json({ error: 'Viewers can raise and withdraw requests, not decide them' });
   }
@@ -4582,7 +4697,7 @@ app.patch('/api/intake/:id', auth, (req, res) => {
   /* Only where the answer actually MOVED, and never back to the person who
      moved it. Re-saving the same status is not news. */
   if (status !== r.status && ['accepted', 'declined', 'done'].includes(status) && r.by_id !== req.user.id)
-    notifyIntakeDecision(after, req.user);
+    notifyIntakeDecision(after, req.user, req);
   res.json({ ok: true, request: intakeRow(after) });
 });
 
@@ -6700,7 +6815,29 @@ app.delete('/api/files/orphans', auth, admin, (req, res) => {
    allowed (one per recipient); the existing one-response-per-token rule holds
    per share, and the first signature wins on the contract itself. */
 const SHARE_EXPIRY_DEFAULT_DAYS = 14;
+/* ---------- THE PUBLIC ADDRESS, AND WHY IT IS NOT OPTIONAL ----------
+   Every link in a mail composed WITHOUT a live request — the obligation nudges,
+   the daily and weekly briefs, the intake decision notice, the share nudge that
+   goes to the COUNTERPARTY — is built from this. With a request the host can be
+   read off it; the sweeps have no request, so with APP_URL unset they fell back
+   to `http://localhost:PORT` and shipped a dead link to a real inbox (launch
+   audit, 21 Aug 2026). render.yaml and DEPLOYMENT.md never asked for it, so the
+   documented way to deploy produced exactly that. Both now do, and a server that
+   starts without it says so once, loudly, rather than letting an admin find out
+   from a counterparty who could not open their contract. */
 const APP_URL = () => String(process.env.APP_URL || '').replace(/\/+$/, '');
+const appUrlWarn = () => {
+  if (APP_URL()) return;
+  /* Not on an OS-assigned ephemeral port: that is the test harness booting a
+     throwaway server (helpers.js passes PORT=0), which sends no mail to anybody
+     and would otherwise print this on every one of hundreds of runs. A warning
+     that cries wolf in the logs is one nobody reads on the day it is true. */
+  if (Number(PORT) === 0) return;
+  console.warn('[hati] APP_URL is not set. Mail sent on a schedule — obligation reminders, the'
+    + ' daily/weekly brief, intake decisions and the counterparty share nudge — has no request to'
+    + ` read a host from, so its links will point at http://localhost:${PORT} and will not work for`
+    + ' anyone. Set APP_URL to this deployment\'s public address, e.g. APP_URL=https://hati.example.com');
+};
 const shareUrl = (req, token) =>
   (APP_URL() || (req ? `${req.protocol}://${req.get('host')}` : `http://localhost:${PORT}`)) + '/#share=t:' + token;
 const shareExpired = s => !!(s.expires_at && Date.parse(s.expires_at) < Date.now());
@@ -10690,4 +10827,7 @@ app.use('/sample-contracts', express.static(path.join(__dirname, '..', 'sample-c
 
 // Log the port actually bound, not the one requested — with PORT=0 the OS
 // picks one, and "which port is it on?" should not need a second guess.
-const server = app.listen(PORT, () => console.log(`HaTi CLM server running → http://localhost:${server.address().port}`));
+const server = app.listen(PORT, () => {
+  console.log(`HaTi CLM server running → http://localhost:${server.address().port}`);
+  appUrlWarn();
+});

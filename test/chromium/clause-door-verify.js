@@ -25,7 +25,14 @@
    ============================================================ */
 const fs=require('node:fs'),path=require('node:path'),http=require('node:http');
 const {chromium}=require('playwright-core');
-const ROOT='/home/user/mkataba-clm';
+/* WHERE THE REPO IS AND WHICH CHROMIUM TO START — asked, not assumed. Both were
+   written as the dev sandbox's own absolute paths, which is true in exactly one
+   place; on a CI runner the checkout is elsewhere and playwright installs its
+   own browser. Derived from this file's own location, and from the same
+   CHROMIUM_BIN → sandbox → playwright's-own ladder every other harness uses. */
+const ROOT=path.join(__dirname,'..','..');
+const EXEC=process.env.CHROMIUM_BIN
+  ||(fs.existsSync('/opt/pw-browsers/chromium')?'/opt/pw-browsers/chromium':undefined);
 const MIME={'.html':'text/html','.js':'text/javascript','.css':'text/css'};
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
 const R=[];const ck=(n,p,d)=>{R.push(!!p);console.log((p?'PASS':'FAIL')+'  '+n+(d!=null?' — '+d:''))};
@@ -38,7 +45,13 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
 
 (async()=>{
   const srv=await serve();
-  const br=await chromium.launch({executablePath:'/opt/pw-browsers/chromium',args:['--no-sandbox']});
+  /* THE SAME LOOKUP THE OTHER FIFTY-SIX USE. This file named the dev sandbox's
+     browser outright, which works in the sandbox and nowhere else: on a CI
+     runner playwright installs its own copy and /opt/pw-browsers does not
+     exist, so the launch threw before a single check ran. It never showed
+     because this file only ever ran in the sandbox — the exact habit run-all.js
+     was written to end, caught by run-all.js on its first push. */
+  const br=await chromium.launch({executablePath:EXEC,args:['--no-sandbox']});
   const p=await br.newPage({viewport:{width:1500,height:1000},deviceScaleFactor:2});
   const errs=[];p.on('pageerror',e=>errs.push(e.message));
   await p.goto(`http://127.0.0.1:${srv.address().port}/test/chromium/parity.html`,{waitUntil:'load'});
@@ -588,6 +601,30 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      filed.n === nBefore + 1 && filed.clause && filed.hasOps && filed.side === 'owner',
      `${filed.id} on ${filed.text}…`);
   ck('7j …with the reason it was given', filed.why === 'Thirty is our standard.', filed.why);
+  /* AND THE REASON REACHES A READER, not merely the record. 7j above proves it
+     was STORED; this proves it is DRAWN, which is the half that has actually
+     broken before — the two-step save once shipped asking for a reason that was
+     then written to two card renderers and not the third, and every test in the
+     suite passed because they all checked that the FIELD existed rather than
+     that the answer arrived. The reason moved off the card to this panel on
+     19 Aug 2026, so this is where that walk now ends. live-verify used to hold
+     it and cannot: its hand-built payload ships no baseline, so clause ids drift
+     on that stage and the panel has nothing to show. */
+  const whyDrawn = await p.evaluate(() => {
+    const el = [...document.querySelectorAll('#rl-cp .rl-cp-why')]
+      .find(e => /Thirty is our standard/.test(e.textContent));
+    if (!el) return { there: false };
+    return { there: true, text: el.textContent,
+      /* Shown WHOLE. The card clamped to two lines because a column of forty
+         cards is a wall; the panel is where a reader has gone TO read it. */
+      whole: el.scrollHeight <= el.clientHeight + 1,
+      onScreen: el.getBoundingClientRect().width > 0 && el.getBoundingClientRect().height > 0 };
+  });
+  ck('7j2 …and the panel DRAWS that reason, named, as visible pixels',
+     whyDrawn.there && whyDrawn.onScreen && /Why they asked/i.test(whyDrawn.text || ''),
+     whyDrawn.there ? (whyDrawn.text || '').slice(0, 60) : 'no .rl-cp-why on the panel');
+  ck('7j3 …whole, not clamped — the panel is where you go to read it',
+     whyDrawn.whole === true, `whole=${whyDrawn.whole}`);
   /* REVERSED IN PLACE, 16 Aug 2026: the tags have come off the paper. What the
      paper says now is that the clause has been argued over — the red rule down
      its right edge — and the detail is in the panel and the card. */

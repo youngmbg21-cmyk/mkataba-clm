@@ -927,7 +927,7 @@ function acceptProposedRound(c, n, opts={}){
   // was — which is the same omission fix-7 exists to prevent.
   logAudit(c,'Redline',`Round ${n} proposed edits from ${r.by||'the counterparty'} ${partly
       ? `partly accepted by ${u.name} — ${accepted.length} of ${blocks.length} changes adopted, ${rejected.length} not adopted and left open`
-      : `accepted by ${u.name}`} — adopted as v${c.versions.length}${r.via==='word'&&r.file?` · returned file “${r.file.fileName}” filed as document version v${(window.wordVersionList?wordVersionList(c):[]).length?(window.wordVersionList(c)[window.wordVersionList(c).length-1].n):2}`:''}${flattened?' · the edit could not be placed back into the formatted document, so it is now plain text':''}`);
+      : `accepted by ${u.name}`} — adopted as v${c.versions.length}${r.via==='word'&&r.file?` · returned file “${r.file.fileName}” filed as document version v${(listedVersions(c).slice(-1)[0]||{n:2}).n}`:''}${flattened?' · the edit could not be placed back into the formatted document, so it is now plain text':''}`);
   persist(c); renderWorkspace();
   toast(partly
     ? `Round ${n}: ${accepted.length} of ${blocks.length} changes adopted — the rest stay open`

@@ -194,14 +194,27 @@ const PROBE = () => {
         if (box && box.y > 50 && box.y < 820) {
           await page.mouse.click(box.x, box.y);
           await page.waitForTimeout(600);
-          const menu = await page.evaluate(() => {
-            const m = document.querySelector('.nego-selmenu');
-            return m ? { items: m.querySelectorAll('[data-nego-ai]').length,
-              sel: String(window.getSelection() || '').trim().length } : null;
-          });
-          check(`${P.name}: tapping a sentence selects it and opens the three-item menu`,
-            !!menu && menu.items === 3 && menu.sel > 10,
-            menu ? `${menu.items} items, ${menu.sel} chars selected` : 'no menu');
+          /* REVERSED IN PLACE, 19 Aug 2026. This wanted a three-item menu on the
+             tap. The owner asked for the opposite in those words — "there should
+             not be possibility to edit the contract while on the contract in the
+             left hand side… So remove the highlighting and edit on the contract"
+             — and in the same breath kept the half that costs nothing: "copying
+             stays". So the tap must still SELECT and must NOT offer a menu, and
+             the way in is the clause's own Edit pill into the panel.
+
+             All three are asserted rather than just the absence: a menu that has
+             gone is easy to prove by accident (a tap that missed the words looks
+             identical), so the selection is measured first and the door after. */
+          const tap = await page.evaluate(() => ({
+            menu: !!document.querySelector('.nego-selmenu'),
+            sel: String(window.getSelection() || '').trim().length,
+            pill: !!document.querySelector('.rl-cp-pill, [data-rl-cp-open]'),
+          }));
+          check(`${P.name}: tapping a sentence still selects it, so it can be copied`,
+            tap.sel > 10, `${tap.sel} chars selected`);
+          check(`${P.name}: and offers no menu — no edits on the paper`,
+            !tap.menu, tap.menu ? 'the selection menu still opens' : '');
+          check(`${P.name}: the way in is the clause's own Edit pill`, tap.pill);
           await page.keyboard.press('Escape');
         } else check(`${P.name}: a clause on screen to tap`, false, 'none reachable');
         await page.evaluate(() => window.setView && window.setView('dashboard'));

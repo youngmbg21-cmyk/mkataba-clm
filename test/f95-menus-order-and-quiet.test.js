@@ -142,7 +142,10 @@ describe('F95 — every menu row has a symbol, and the symbols are solid dark gr
     const rows = menu.split('<button').slice(1);
     assert.ok(rows.length >= 6, 'the whole menu is being read');
     for (const r of rows){
-      const id = (r.match(/id="([^"]+)"/) || [, '(unnamed)'])[1];
+      /* `[null, '(unnamed)']` rather than `[, '(unnamed)']`: the hole in the
+         middle of an array literal is legal and meant here, but it is also
+         exactly what a stray comma looks like, so it is written out. */
+      const id = (r.match(/id="([^"]+)"/) || [null, '(unnamed)'])[1];
       assert.match(r.slice(0, r.indexOf('</button>')), /<svg/, `${id} has no symbol`);
     }
   });
@@ -256,7 +259,7 @@ describe('F95 — the round’s queue slides over the page', () => {
     assert.ok(b.grid(), 'the grid is there');
     assert.ok(!b.grid().classList.contains('has-queue'),
       'the grid no longer reserves a track for the queue');
-    const nego = src('js/views/negotiation.js');
+    const nego = (src('js/views/negotiation.js') + src('js/views/negotiation-css.js'));
     assert.ok(!/--rl-queue-w:/.test(nego), 'and nothing declares a width for that track');
     assert.ok(!/_rlQueueW/.test(nego), 'nor does the resizer subtract one');
     /* Re-derived rather than patched: ONE description of the geometry, asked
@@ -318,7 +321,7 @@ describe('F95 — the round’s queue slides over the page', () => {
     const doc = b.host.querySelector('#rl-doc');
     b.press(b.tab());
     assert.equal(b.host.querySelector('#rl-doc'), doc, 'the same node, not a rebuilt one');
-    const src2 = src('js/views/negotiation.js');
+    const src2 = (src('js/views/negotiation.js') + src('js/views/negotiation-css.js'));
     const fn = src2.slice(src2.indexOf('function rlSetQueueShown'));
     const body = fn.slice(0, fn.indexOf('\n}'));
     assert.ok(!/again\(\)|renderRedline|redlineEmbed/.test(body), 'no repaint in the flip');
@@ -362,7 +365,7 @@ describe('F95 — the round’s queue slides over the page', () => {
        the page its own thickness and nothing else. The measurement lives in the
        browser file — jsdom resolves no class rules — so what is pinned here is
        the RULE, and that nothing re-pins either of them to the viewport. */
-    const nego = src('js/views/negotiation.js');
+    const nego = (src('js/views/negotiation.js') + src('js/views/negotiation-css.js'));
     const panel = (nego.match(/\.redline-page \.rl-queue\{[\s\S]*?\n  \}/) || [''])[0];
     assert.match(panel, /position:absolute;left:0;top:0;bottom:0/,
       'the panel hangs off the page, not off the window');
@@ -383,7 +386,7 @@ describe('F95 — the round’s queue slides over the page', () => {
        furniture. It is the page's own wall now, and focus mode is where a
        reader works THROUGH the round — the one place the reading order matters
        most — so hiding it there left the queue unreachable. */
-    const nego = src('js/views/negotiation.js');
+    const nego = (src('js/views/negotiation.js') + src('js/views/negotiation-css.js'));
     assert.ok(!/\.rl-focus \.rl-q-tab\{display:none\}/.test(nego),
       'focus mode no longer hides the way into the queue');
     /* The notices stack IS still stood down in focus mode — that rule is a
@@ -392,7 +395,7 @@ describe('F95 — the round’s queue slides over the page', () => {
   });
 
   test('THE PHONE GETS NO DESKTOP OVERLAY', () => {
-    const nego = src('js/views/negotiation.js');
+    const nego = (src('js/views/negotiation.js') + src('js/views/negotiation-css.js'));
     const narrow = nego.slice(nego.lastIndexOf('@media (max-width:1023px)'));
     const block = narrow.slice(0, narrow.indexOf('\n  }'));
     assert.match(block, /\.rl-queue\{position:static!important/,
@@ -406,7 +409,7 @@ describe('F95 — focus mode leaves no dead band at the foot', () => {
   test('entering focus re-measures the view height', () => {
     /* The band was never a padding value to halve: --view-h is the scroll
        container measured once, while the top strip was still on screen. */
-    const nego = src('js/views/negotiation.js');
+    const nego = (src('js/views/negotiation.js') + src('js/views/negotiation-css.js'));
     const fn = nego.slice(nego.indexOf('function rlSetFocus('));
     const body = fn.slice(0, fn.indexOf('\n}'));
     assert.match(body, /syncViewHeight/, 'the stale measurement is retaken');
@@ -427,7 +430,7 @@ describe('F95 — focus mode leaves no dead band at the foot', () => {
 });
 
 describe('F95 — the negotiate objects are one set of objects', () => {
-  const nego = src('js/views/negotiation.js');
+  const nego = (src('js/views/negotiation.js') + src('js/views/negotiation-css.js'));
 
   /* THIS BLOCK USED TO SAY "SQUARE". The workbench had been given a 0-3px
      radius everywhere, on the argument that a negotiation surface is a working

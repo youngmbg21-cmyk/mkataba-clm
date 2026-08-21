@@ -30,8 +30,27 @@ const { loadViews, STUB_TEMPLATES, STUB_FOLDERS } = require('./dom');
 
 const SERVER_SRC = fs.readFileSync(path.join(__dirname, '..', 'server', 'server.js'), 'utf8');
 
+const iso = d =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const day = off => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + off);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  return iso(d); };
+
+/* A WHOLE CALENDAR MONTH, SAID AS ONE. MK-2 below has to start and end inside a
+   single month — that is the whole point of it — and it used to say so as
+   day(1)…day(12), which is one month only while today is early enough in the
+   month for twelve days not to cross into the next one. So this fixture passed
+   for about two thirds of every month and failed for the last twelve days of
+   it, and the failure was a fact about the calendar rather than about the code.
+   A test whose answer depends on the day it is run is worse than no test: it
+   teaches the reader to discount a red run, which is how a real failure gets
+   waved through. monthSpan names the first and last day of a whole calendar
+   month, which is one month whatever today is. */
+const monthSpan = off => {
+  const n = new Date(); n.setHours(0, 0, 0, 0);
+  return { start: iso(new Date(n.getFullYear(), n.getMonth() + off, 1)),
+           end:   iso(new Date(n.getFullYear(), n.getMonth() + off + 1, 0)) };
+};
+const MK2_MONTH = monthSpan(1);
 
 /* A book with a deliberate spike, and two different reasons for it: one big
    contract whose start defaulted to the day it was signed, and one that starts
@@ -41,8 +60,8 @@ const CONTRACTS = [
     value: 6000000, valueType: 'standard', expiry: day(150), signedAt: day(-3), audit: [],
     metadata: { category: 'works', retentionPct: 10, warrantyMonths: 12 } },
   { id: 'MK-2', name: 'One-month fit-out', counterparty: 'Siginon', folder: 'proc', status: 'Signed',
-    value: 4000000, valueType: 'standard', expiry: day(12), audit: [],
-    metadata: { category: 'works', effectiveDate: day(1), warrantyMonths: 6 } },
+    value: 4000000, valueType: 'standard', expiry: MK2_MONTH.end, audit: [],
+    metadata: { category: 'works', effectiveDate: MK2_MONTH.start, warrantyMonths: 6 } },
   { id: 'MK-3', name: 'Long refurbishment', counterparty: 'Britam', folder: 'corp', status: 'Under Review',
     value: 3000000, valueType: 'standard', expiry: day(300), audit: [],
     metadata: { category: 'works', effectiveDate: day(-10), retentionPct: 5 } },
@@ -151,6 +170,15 @@ describe('F183 — the object can explain the spike, not just report it', () => 
   test('work that starts and ends in one month is counted as that', () => {
     const one = d.buckets.filter(b => b.why.singleMonth > 0);
     assert.ok(one.length >= 1, 'MK-2 runs inside a single month');
+    /* AND IT IS THE MONTH MK-2 ACTUALLY RUNS IN. "at least one bucket
+       somewhere" passed while the fixture's own dates crossed a month
+       boundary — the count was coming from another contract entirely. Naming
+       the bucket is what makes this a reading of MK-2 rather than of the book. */
+    const mk2Month = d.buckets.find(b => b.offset === 1);
+    assert.equal(mk2Month.why.singleMonth, 1, "next month holds MK-2's whole run");
+    const mk2 = mk2Month.drivers.find(x => x.id === 'MK-2');
+    assert.ok(mk2, 'and MK-2 is named as a driver of that month');
+    assert.equal(mk2.months, 1, 'occupying exactly one month');
   });
 
   test('what it could NOT place travels with the reason — never a silent trim', () => {
