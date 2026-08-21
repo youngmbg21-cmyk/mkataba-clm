@@ -7,6 +7,23 @@ my own bugs; these are the figures after both were fixed.
 Method and rules: `SCORING.md`. The set: `selection.json`. Raw answers from the
 run that produced this: `--dump`, then `inspect.js`.
 
+## HOW BIG A MOVEMENT IS READABLE — READ THIS FIRST
+
+**On ten contracts, a change of fewer than about three contracts in a field is
+noise**, and this was measured here rather than assumed. Runs 4 and 5 had
+byte-identical field-extraction code — the only changes were inside the
+obligations route — and the headline still moved 90% → 85%, with three fields
+shifting by one or two contracts each. About **5% of individual answers flip
+between runs**.
+
+**FOUND is noisy; CORRECT is not** — every CORRECT figure was identical across
+that pair. Where HaTi finds the passage it gets the answer right consistently;
+what varies is which passage it quotes.
+
+So: a fifteen-point move is real, a five-point move is not, and the way to
+narrow the band is more contracts rather than more runs. Full reasoning and
+the measurements are in SCORING.md.
+
 ## HOW TO READ THIS
 
 Two figures per field, never averaged (SCORING.md):
@@ -168,8 +185,21 @@ features do it, and the reader is told nothing.
 > continuous passage, and those two pull in opposite directions. Output is
 > billed as used, so a scan needing 2,500 still costs 2,500.
 >
-> **A fifth run is what settles this.** Four runs, four real causes, each
-> found only after the last was fixed.
+> **THE FIFTH RUN SETTLED IT.** All four categories scored above zero for the
+> first time — post-termination services 2 of 3, minimum commitments 1 of 2,
+> audit rights 1 of 5, insurance 1 of 4. **161 obligations, every one of them
+> quoted**, against 38. Contracts answering nothing fell from 8 to 5, and
+> nothing was cut off.
+>
+> That is far outside the noise band measured below, so it is real. **The
+> reader is no longer the silent feature this project started with.**
+>
+> Two things it did NOT fix, said out loud. Five contracts still return
+> nothing, and the longest three are among them. And volume is not the same as
+> aim: 161 obligations found, and audit rights still 1 of 5 — it is finding a
+> great deal without reliably finding the things a lawyer marked as mattering.
+> **Neither is worth chasing on ten contracts** (see the noise band); both are
+> worth revisiting on fifty.
 
 
 Scored 0% on all four categories. That is **not** a reading failure:

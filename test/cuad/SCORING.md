@@ -240,3 +240,45 @@ not a brief, and choosing what to leave out is the job.
 - Must not write a second duration reader — rule 3.
 - Must not report a field's CORRECT figure against its FOUND denominator.
 - Must not treat an obligation CUAD never marked as a false positive.
+
+## HOW BIG A MOVEMENT IS READABLE (measured 21 Aug 2026, and it is smaller than it looks)
+
+**On ten contracts, a change of fewer than about three contracts in a field is
+noise.** This is not a caution copied from a statistics book — it was measured
+here, by accident, and it retroactively qualifies several readings of these
+numbers.
+
+Runs 4 and 5 were the first pair with **byte-identical field-extraction code**:
+the only changes between them were inside `/api/ai/obligations` (a length bound
+on its quote, and its token ceiling). The extract route, its prompt, its schema
+and its inputs were untouched. Same fifty contracts, same ten drawn.
+
+The field-extraction figures still moved:
+
+| | Run 4 | Run 5 | Contracts |
+|---|---|---|---|
+| Headline (mean FOUND) | 90% | **85%** | — |
+| `noticePeriodDays` FOUND | 90% | **70%** | 2 |
+| `expiryDate` FOUND | 89% | **78%** | 1 |
+| `renewalType` FOUND | 100% | **90%** | 1 |
+
+Four individual answers out of about ninety comparisons came back differently
+from identical code — roughly **5% of answers flip between runs**, which is
+±5 points on the headline and up to 20 points on one field.
+
+**FOUND IS NOISY; CORRECT IS NOT.** Every CORRECT figure was identical across
+the two runs — 80, 100, 83, 100, 100, 100, 100. Where HaTi finds the passage it
+gets the answer right consistently; what varies is *which* passage it quotes.
+That is worth knowing before anybody spends a day chasing a CORRECT score.
+
+### What follows from it
+
+- **Do not report a one-field, one-contract movement as an improvement.** Two
+  such movements were reported that way during this project and at least one of
+  them was almost certainly this.
+- **A movement of the size run 1 → run 2 (72% → 87%) is real.** Fifteen points
+  is three times the noise band.
+- **The obligations reader going from 0 to 5 of 14 categories, and 38 to 161
+  quoted obligations, is real.** Also far outside it.
+- **The way to narrow the band is more contracts, not more runs.** Fifty would
+  roughly halve it. Re-running ten proves nothing that ten already proved.
