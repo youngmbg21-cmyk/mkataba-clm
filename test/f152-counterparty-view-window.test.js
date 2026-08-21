@@ -248,7 +248,7 @@ describe('the row — same controls, same places, dead in the window', () => {
   });
 
   test('and its labels do not swap with the view — the row is drawn from our chair', () => {
-    const src = read('js/views/negotiation.js');
+    const src = (read('js/views/negotiation.js') + read('js/views/negotiation-css.js'));
     assert.match(src, /const rowSide = preview \? 'owner' : side/);
     for (const line of [
       /const needsYou = negoNeedsYouIds\(c, \{ side: rowSide \}\)/,
@@ -259,13 +259,13 @@ describe('the row — same controls, same places, dead in the window', () => {
   });
 
   test('a narrowed reviewer keeps the hiding — that one is a permission', () => {
-    const src = read('js/views/negotiation.js');
+    const src = (read('js/views/negotiation.js') + read('js/views/negotiation-css.js'));
     assert.match(src, /const preview = side === 'counterparty' && !_rvPosture/,
       'the preview posture never overrides what a reviewer may not do');
   });
 
   test('the dead face is its own marker, not a borrowed one', () => {
-    const src = read('js/views/negotiation.js');
+    const src = (read('js/views/negotiation.js') + read('js/views/negotiation-css.js'));
     assert.match(src, /data-rl-dead="1"/);
     assert.match(src, /\.rl-pb-btn:disabled\{opacity:\.6;cursor:wait\}/,
       'because :disabled on that button already means "the playbook pass is running"');

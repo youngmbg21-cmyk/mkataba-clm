@@ -148,7 +148,7 @@ describe('f209 · the column says what has not been sent', () => {
        was the worse of the two: it folded away exactly when the column got
        narrow. Held and in-review deliberately stay on the button — they are
        work waiting on a COLLEAGUE, not unsent work waiting on you. */
-    const src = read('js/views/negotiation.js');
+    const src = (read('js/views/negotiation.js') + read('js/views/negotiation-css.js'));
     assert.ok(!/\$\{_goes\} unsent/.test(src), 'the suffix is gone');
     assert.match(src, /\$\{_held\} held/, 'held stays where it was');
     assert.match(src, /\$\{_wait\} in review/, 'and so does in review');
@@ -291,7 +291,7 @@ describe('f209 · a toast says which of three things happened', () => {
       'sending decisions to the other company confirms itself');
     assert.match(portal, /they will send a signing link\.`,\s*'ok'\)/,
       'and so does telling them you are ready');
-    const nego = read('js/views/negotiation.js');
+    const nego = (read('js/views/negotiation.js') + read('js/views/negotiation-css.js'));
     assert.match(nego, /the new baseline for round \$\{negoRound\(c\)\}`, 'ok'\)/,
       'and closing a round, which is irreversible');
   });
@@ -301,7 +301,7 @@ describe('f209 · a toast says which of three things happened', () => {
        a proxy painted into the column got no handler at all — which is what
        made the band's Send dead. Two mechanisms would be worse than one: a
        proxy reachable by both would publish the round twice. */
-    const nego = read('js/views/negotiation.js');
+    const nego = (read('js/views/negotiation.js') + read('js/views/negotiation-css.js'));
     assert.match(nego, /document\._rlProxyWired/, 'armed once, on the document');
     assert.ok(!/host\.querySelectorAll\('\[data-redline-proxy\]'\)\.forEach\(el =>\s*\n?\s*el\.addEventListener/.test(nego),
       'and the element-bound scan is gone, not kept alongside');
@@ -364,7 +364,7 @@ describe('f209 · a toast says which of three things happened', () => {
   });
 
   test('the reported publish path is amber and hands over the link', () => {
-    const src = read('js/views/negotiation.js');
+    const src = (read('js/views/negotiation.js') + read('js/views/negotiation-css.js'));
     assert.match(src, /delivered \? 'ok' : 'warn'/,
       'published-but-not-emailed is no longer an error');
     assert.match(src, /ng_copy_link/, 'and the link goes with it');
@@ -533,7 +533,7 @@ describe('f209 · the tag on a clause, and what pressing it opens', () => {
   });
 
   test('the reveal is a posture, not part of the paper', () => {
-    const src = read('js/views/negotiation.js');
+    const src = (read('js/views/negotiation.js') + read('js/views/negotiation-css.js'));
     assert.match(src, /@media print\{ \.redline-page \.rl-askrv\{display:none\} \}/,
       'it never prints');
   });

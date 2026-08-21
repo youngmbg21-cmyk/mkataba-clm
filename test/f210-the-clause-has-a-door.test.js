@@ -33,7 +33,10 @@ const { buildWorld, supplyContract } = require('./world');
 
 const ROOT = path.join(__dirname, '..');
 const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
-const SRC = read('js/views/negotiation.js');
+/* THE PAGE'S SOURCE IS TWO FILES since 21 Aug 2026: its stylesheets were lifted
+   into js/views/negotiation-css.js. A CSS rule that moved has not changed —
+   reading only the renderer reports the whole sheet as missing. */
+const SRC = (read('js/views/negotiation.js') + read('js/views/negotiation-css.js'));
 const I18N = read('js/i18n.js');
 const SRC_DOCX = read('js/docx.js');
 
@@ -1262,7 +1265,7 @@ describe('f210 (19) — the panel\'s own type stepper', () => {
 });
 
 describe('F210 — the clause rail', () => {
-  const src = read('js/views/negotiation.js');
+  const src = (read('js/views/negotiation.js') + read('js/views/negotiation-css.js'));
   const rule = sel => {
     const i = src.indexOf(sel + '{');
     assert.ok(i > 0, sel + ' is defined');

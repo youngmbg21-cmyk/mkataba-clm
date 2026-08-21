@@ -314,7 +314,10 @@ describe('F100c — a message box you can read back', () => {
   });
 
   test('the style wraps rather than scrolling sideways, and stops growing', () => {
-    for (const f of ['index.html', 'js/views/negotiation.js']){
+    /* THE NEGOTIATION PAGE'S SHEET MOVED on 21 Aug 2026 into its own file — the
+       rule this walks for is in negotiation-css.js now, unchanged. The list is
+       "every file that declares one of these boxes", so the new file joins it. */
+    for (const f of ['index.html', 'js/views/negotiation-css.js']){
       const css = read(f);
       assert.match(css, /textarea\.chat-field\{[^}]*white-space:pre-wrap/, `${f}: it must wrap`);
       assert.match(css, /textarea\.chat-field\{[^}]*max-height:/,

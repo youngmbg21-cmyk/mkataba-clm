@@ -73,7 +73,11 @@ const CONTRACT_VIEW = 'js/views/contract.js';
    independently of it: a test can assert on the three panes without dragging in
    the whole workspace screen (buildWorld({negotiationView:true})), which is
    what the interaction tests do. */
-const NEGOTIATION_VIEW = 'js/views/negotiation.js';
+/* TWO FILES SINCE 21 Aug 2026, and the stylesheet goes in FIRST. The page's CSS
+   builders were lifted into their own file (see its header for why that seam);
+   a stage that loaded only the renderer would have negoEnsureStyle reaching for
+   a negoStyleHtml nothing had defined. */
+const NEGOTIATION_VIEW = ['js/views/negotiation-css.js', 'js/views/negotiation.js'];
 /* The clause library and playbook engine (buildWorld({playbook:true})). Loaded
    on request because applyClauseRedline no longer edits the document — it files
    a tracked insertClause change — so proving that needs playbook.js and
@@ -310,7 +314,7 @@ function buildWorld(opts = {}) {
   const ctx = dom.getInternalVMContext();
   const loaded = [];
   const files = [...MODULES];
-  if (opts.negotiationView) files.push(NEGOTIATION_VIEW);
+  if (opts.negotiationView) files.push(...NEGOTIATION_VIEW);
   if (opts.contractView) files.push(CONTRACT_VIEW);
   if (opts.playbook) files.push(PLAYBOOK);
   if (opts.homeView) files.push(HOME_VIEW);
