@@ -21,7 +21,14 @@
    one already adopted, which is the state the report was made in. */
 const fs=require('node:fs'),path=require('node:path'),http=require('node:http');
 const {chromium}=require('playwright-core');
-const ROOT='/home/user/mkataba-clm';
+/* WHERE THE REPO IS AND WHICH CHROMIUM TO START — asked, not assumed. Both were
+   written as the dev sandbox's own absolute paths, which is true in exactly one
+   place; on a CI runner the checkout is elsewhere and playwright installs its
+   own browser. Derived from this file's own location, and from the same
+   CHROMIUM_BIN → sandbox → playwright's-own ladder every other harness uses. */
+const ROOT=path.join(__dirname,'..','..');
+const EXEC=process.env.CHROMIUM_BIN
+  ||(fs.existsSync('/opt/pw-browsers/chromium')?'/opt/pw-browsers/chromium':undefined);
 const MIME={'.html':'text/html','.js':'text/javascript','.css':'text/css'};
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
 const R=[];const ck=(n,p,d)=>{R.push(!!p);console.log((p?'PASS':'FAIL')+'  '+n+(d!=null?' — '+d:''))};
@@ -33,7 +40,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   fs.createReadStream(f).pipe(rep)});s.listen(0,'127.0.0.1',()=>res(s))})}
 (async()=>{
   const srv=await serve();
-  const br=await chromium.launch({executablePath:'/opt/pw-browsers/chromium',args:['--no-sandbox']});
+  const br=await chromium.launch({executablePath:EXEC,args:['--no-sandbox']});
   const p=await br.newPage({viewport:{width:1500,height:1000},deviceScaleFactor:2});
   const errs=[];p.on('pageerror',e=>errs.push(e.message));
   await p.goto(`http://127.0.0.1:${srv.address().port}/test/chromium/parity.html`,{waitUntil:'load'});
