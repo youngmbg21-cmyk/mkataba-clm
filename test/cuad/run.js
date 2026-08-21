@@ -31,6 +31,7 @@
 
 'use strict';
 const fs = require('node:fs');
+const readline = require('node:readline');
 const path = require('node:path');
 const S = require('./score.js');
 const { startHati } = require('../helpers.js');
@@ -157,6 +158,23 @@ function compareFor(field) {
   }
 }
 
+
+/* Read a secret without echoing it. The prompt is written first, then output
+   is muted, so the key never appears on screen, in scrollback, or in shell
+   history — and cannot be captured by a screenshot of the terminal. */
+function askHidden(promptText) {
+  return new Promise((resolve) => {
+    process.stdout.write(promptText);
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: true });
+    rl._writeToOutput = () => {};
+    rl.question('', (answer) => {
+      rl.close();
+      process.stdout.write('\n');
+      resolve(String(answer || '').trim());
+    });
+  });
+}
+
 /* ---------- the run ---------- */
 async function main() {
   const corpus = loadCorpus();
@@ -169,9 +187,24 @@ async function main() {
   rows = S.spreadAcrossGroups(rows, LIMIT);
   const chosen = rows.map(r => byTitle.get(r.title));
 
+  /* THE KEY IS NEVER TYPED ON A COMMAND LINE.
+
+     It was, and an owner's key ended up in a chat transcript inside a
+     SCREENSHOT of their terminal — a route no warning about pasting keys
+     covers. A command line is echoed, scrolled back, saved to shell history
+     and photographed; asking for the key here means it is none of those.
+
+     Also fixes the Windows half of the same failure: `VAR=value command` is
+     bash syntax and PowerShell rejects it outright, so the documented command
+     could not work on Windows at all. Prompting works identically on both. */
   if (LIVE && !process.env.ANTHROPIC_API_KEY) {
-    console.error('--live needs a real ANTHROPIC_API_KEY. Without one, drop --live for a dry run.');
-    process.exit(2);
+    if (!process.stdin.isTTY) {
+      console.error('--live needs a key. Run this in a terminal so it can be asked for,');
+      console.error('or set ANTHROPIC_API_KEY in the environment first.');
+      process.exit(2);
+    }
+    process.env.ANTHROPIC_API_KEY = await askHidden('Anthropic API key (not shown as you type): ');
+    if (!process.env.ANTHROPIC_API_KEY) { console.error('\nNo key given.'); process.exit(2); }
   }
 
   console.log(`\nCUAD scorecard — ${LIVE ? 'LIVE (this spends money)' : 'DRY RUN (stub AI, every score will be zero)'}`);

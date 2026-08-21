@@ -83,17 +83,40 @@ needs undoing.
 
 ## Step 5: this one is yours
 
-Copy this line, paste your key between the quotes, and run it:
+```
+node test/cuad/run.js --live --n 10 --dump
+```
+
+It will ask for the key. **Paste it and press Enter — nothing appears as you
+type.** That is deliberate.
+
+Works the same on Windows, Mac and Linux.
+
+**Expect:** two or three minutes of quiet, then a table with real percentages.
+Cost: roughly US$0.60.
+
+### Why it is asked for, and not put on the command line
+
+This document used to say:
 
 ```
 ANTHROPIC_API_KEY="paste-your-key-here" node test/cuad/run.js --live --n 10
 ```
 
-**Expect:** two or three minutes of quiet, then a table with real percentages.
-Cost: roughly US$0.60.
+Two things were wrong with it, and both bit on the same attempt:
 
-The key is used by this one command. It is not saved to a file, not added to
-your shell, and it disappears when the terminal closes.
+**It leaked a key.** A command line is echoed on screen, kept in scrollback,
+written to shell history — and photographed. An owner following this document
+sent a screenshot of their terminal and their whole key came with it. No
+warning about "don't paste keys into chats" covers a screenshot of a command
+you were told to type.
+
+**It could not run on Windows at all.** `VAR=value command` is bash syntax.
+PowerShell rejects it outright with *"is not recognized as the name of a
+cmdlet"* — which is exactly what happened, so the leak bought nothing.
+
+Being asked for the key fixes both: it is never displayed, never stored, never
+in history, and the same command works on every system.
 
 ### What it will NOT touch
 
