@@ -890,7 +890,11 @@ describe('F89 (11,12) — the card verbs, their colours, and where Edit lands', 
     assert.match(p.rule('.redline-page .rl-acc,.redline-page .rl-send') || '', /background:var\(--color-accent-700\)/);
     assert.match(p.rule('.redline-page .rl-acc,.redline-page .rl-send') || '', /color:#fff/);
     assert.match(p.rule('.redline-page .rl-rej') || '', /background:none/);
-    assert.match(p.rule('.redline-page .rl-rej') || '', /color:#b91c1c/);
+    /* AND THE SAME AGAIN FOR THE NO, 21 Aug 2026. #b91c1c is --danger-hover and
+       is now named that way for exactly the reason the paragraph above gives.
+       The colour did not move: measured across 20 screens in both themes, the
+       census is identical. */
+    assert.match(p.rule('.redline-page .rl-rej') || '', /color:var\(--danger-hover\)/);
     assert.match(p.rule('.redline-page .rl-edit') || '', /background:none/);
     assert.match(p.rule('.redline-page .rl-edit') || '', /border:1px solid/);
   });

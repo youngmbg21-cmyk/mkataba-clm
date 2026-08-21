@@ -1022,7 +1022,10 @@ describe('f210 (17) — the pills come off the paper, and the marker moves to th
        bar in the sheet's margin, because a border takes width — see the
        claims below. The mark itself is unchanged to look at. */
     /* radius literal moved to 0 with the square-corner sweep, 20 Aug 2026 */
-    assert.match(SRC, /\.rl-clause\.is-changed::after\{content:'';position:absolute;\s*\n\s*top:0;bottom:0;right:-18px;width:3px;border-radius:0;background:#dc2626\}/);
+    /* background:var(--danger) since 21 Aug 2026 — the literal #dc2626 IS that
+       token, so this rule did not move, only its spelling. See the note at the
+       margin-bar test below, and f89's "THE COLOUR IS NAMED, NOT TYPED". */
+    assert.match(SRC, /\.rl-clause\.is-changed::after\{content:'';position:absolute;\s*\n\s*top:0;bottom:0;right:-18px;width:3px;border-radius:0;background:var\(--danger\)\}/);
     /* REVERSED IN PLACE, 19 Aug 2026 — and this one was reversed because the
        claim in the comment was NOT TRUE of the code beneath it. "The padding
        is kept so the wording does not shift" described an older arrangement
@@ -1280,7 +1283,11 @@ describe('F210 — the clause rail', () => {
     const bar = rule('.redline-page .rl-clause.is-changed::after');
     assert.match(bar, /position:absolute/);
     assert.match(bar, /right:-18px/, 'outside the text column, in the white the sheet already has');
-    assert.match(bar, /background:#dc2626/);
+    /* NAMED, NOT TYPED (21 Aug 2026, the same move f89 records above it): the
+       literal #dc2626 IS --danger, so the rule is unchanged and only its
+       spelling moved. The hand-written dark override below is untouched and
+       still wins in dark, which is why the census did not shift by a shade. */
+    assert.match(bar, /background:var\(--danger\)/);
     assert.match(SRC, /html\.dark .redline-page \.rl-clause\.is-changed::after\{background:#f87171\}/,
       'and it follows the dark theme');
   });

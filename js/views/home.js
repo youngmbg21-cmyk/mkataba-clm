@@ -840,7 +840,7 @@ function renderDashboard(){
     <section style="flex:1;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:none;border-radius:0;padding:16px 18px;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex:none;">
         <h4 style="font-size:14px;margin:0;font-weight:700;">${i18t('home_decisions_due')}</h4>
-        <span class="live-ping" style="width:7px;height:7px;border-radius:50%;background:${decisionItems.length?'#f59e0b':'#10b981'};flex:none;"></span>
+        <span class="live-ping" style="width:7px;height:7px;border-radius:50%;background:${decisionItems.length?'var(--st-amber-dot)':'var(--st-green-dot)'};flex:none;"></span>
         ${decisionItems.length?`<span style="margin-left:auto;font-size:10px;font-weight:700;padding:2px 8px;background:var(--st-amber-bg);color:var(--st-amber-fg);">${decisionItems.length}</span>`:''}
       </div>
       <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;">${decisionRows}</div>

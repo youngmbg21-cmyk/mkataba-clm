@@ -41,16 +41,14 @@ const DIR = __dirname;
  * because that browser file was not in anybody's routine. That is word for word
  * the fault the workflow's own header describes.
  *
- * FIVE OF THEM HAVE SINCE BEEN RE-POINTED and are off this list: designstep,
- * live-verify, phone-verify, standard-paper-verify and queue-overlay-verify. The
- * three that remain each say what is left to do, because a listed exception has
- * to keep earning its place or it becomes the furniture. */
+ * SIX OF THE EIGHT ARE NOW OFF THIS LIST: designstep, live-verify, phone-verify,
+ * standard-paper-verify and queue-overlay-verify were re-pointed, and
+ * theme-tokens-verify's baseline was re-recorded on 21 Aug 2026 when somebody
+ * finally owned the palette — it is 40/40 and is the net the colour work is
+ * measured against, so it had to stop being an exception. The two that remain
+ * each say what is left to do, because a listed exception has to keep earning
+ * its place or it becomes the furniture. */
 const KNOWN_RED = {
-  'theme-tokens-verify.js':
-    'scores 20/40 against a recorded colour snapshot that predates the current ' +
-    'design. Re-record with --save when somebody is ready to own the palette; ' +
-    'the 20 that pass are the ones that matter and they still pass.',
-
   /* --- stale after a deliberate change: the product moved, the file did not --- */
   'six-round-audit.js':
     'ROUNDS 1-6 NOW PASS; the ENDGAME does not. Re-pointed 21 Aug 2026: the ' +
