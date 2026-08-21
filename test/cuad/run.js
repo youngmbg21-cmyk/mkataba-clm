@@ -267,9 +267,17 @@ async function main() {
       /* The obligations reader is scored on LOCATION alone, per category.
          Obligations CUAD never marked are NOT counted against it — this
          measures what was missed, not what was invented. */
+      /* A FAILED CALL IS NOT AN EMPTY ANSWER.
+
+         The first diagnostic run reported "14 x the reader returned nothing
+         at all" for every measurable case — and `ob` is null when the REQUEST
+         threw, which collapsed into the same bucket as a reader that genuinely
+         found no obligations. Those want opposite responses: one is a broken
+         call, the other is a finding about HaTi. */
+      const obFailed = !ob;
       const items = (ob && ob.obligations) || [];
       for (const cat of OBLIGATION_CATS) {
-        const v = S.obligationMatch(doc, items, spansOf(c, cat));
+        const v = obFailed ? 'call-failed' : S.obligationMatch(doc, items, spansOf(c, cat));
         if (v === 'excluded') { oblig[cat].excludedNotMarked++; continue; }
         oblig[cat].foundOf++;
         if (v === 'found') oblig[cat].found++;
@@ -316,7 +324,8 @@ function report(tallies, oblig, errors, n, obWhy = {}) {
   const WHY = {
     'elsewhere': 'the reader found real obligations, but about OTHER clauses — a scope difference, not a failure',
     'no-quotes': 'obligations returned with NO quote — they cannot be traced back to the wording (a product defect)',
-    'none-returned': 'the reader returned nothing at all',
+    'none-returned': 'the reader ran and found NO obligations in the contract',
+    'call-failed': 'the request to HaTi failed — not a reading failure, see the errors below',
   };
   const missed = Object.entries(obWhy).filter(([, k]) => k);
   if (missed.length) {
