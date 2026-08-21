@@ -127,8 +127,12 @@ function truthFor(field, c) {
     /* Mostly not written as a date at all — see expiryTruth. Computed from a
        STATED anchor where there is one, never from an assumed one. */
     case 'expiryDate': return S.expiryTruth(sp, spansOf(c, 'Effective Date'));
+    /* noticeDuration, never parseDuration. A renewal clause states the renewal
+       TERM before the notice ("successive one-year terms unless ... sixty (60)
+       days notice"), so the first duration in the span is usually the wrong
+       one — 18 of 34 truths for this field were the term. See score.js. */
     case 'noticePeriodDays': {
-      for (const t of texts) { const r = S.durationToDays(S.parseDuration(t)); if (r) return r; }
+      for (const t of texts) { const r = S.durationToDays(S.noticeDuration(t)); if (r) return r; }
       return null;
     }
     case 'warrantyMonths': {

@@ -172,16 +172,47 @@ Ordered by what it costs the business, not by effort.
 **~~2. The truncation.~~** and **~~3. The splicing~~** were fixed on
 21 Aug 2026. What is left:
 
-**1. The notice period, at 50% (5/10).** This feeds the renewal card's deadline
-and the reminder emails. Half of them wrong is a customer missing a renewal.
-The highest-consequence number in this document. **It may already be better
-than this** — a notice period is usually drafted in the termination clause,
-which is at the back of an agreement and was inside the truncated part. That is
-a reason to re-measure before working on it, not a reason to assume it is
-fixed.
+**~~1. The notice period, at 50% (5/10).~~ THAT FIGURE WAS MEANINGLESS —
+21 Aug 2026.** Asked to fix it, I checked the answer key first, and the answer
+key was wrong on **18 of its 34 entries**.
 
-**4. The expiry date, at 50% (3/6).** Same family as the notice period, smaller
-sample, same consequence — and the same reason to re-measure first.
+`parseDuration` returns the first duration in a marked span, and a renewal
+clause states the renewal **term** before the notice:
+
+> "renew automatically for successive **one-year terms** unless one Party gives
+> notification of termination with at least **sixty (60) days** written notice"
+
+The answer is 60 days. The scorer read 365. So on more than half of these,
+HaTi was being marked wrong for giving the right answer. Fixed —
+`noticeDuration` asks what each duration is *attached to* rather than taking
+the first one, and all 18 corrected readings were checked back against their
+own spans by hand. **The true figure is unknown until a re-run.**
+
+**~~4. The expiry date, at 50% (3/6).~~** Same fault, same fix. `expiryTruth`
+computed an expiry off the first duration too — turning *"terminable by either
+party with one (1) year written notice"* into a one-year term, and inventing a
+term outright for an evergreen agreement that states none. It now refuses where
+the span states no term: 25 scorable truths became 24, in the honest direction.
+
+**THIS IS THE THIRD SCORER BUG OF ONE FAMILY** (after `yes`/`no` against
+`capped`/`uncapped`, and expiry overstated at 42/49) and the largest. All three
+had the same tell, and the rule written into `score.js` after the first one
+caught this one: *a figure that disagrees with a healthy FOUND score is a
+scorer bug until proven otherwise.* FOUND for the notice period was 70%.
+
+**None of the 59 existing tests caught it**, because every fixture in them held
+a single duration. Section 12 of f226 now carries the real sentences, verbatim
+from the corpus.
+
+**HaTi's own two field definitions were hardened at the same time** — not
+because they are proven to be the cause, but because both were genuinely
+under-specified and it is cheap. `noticePeriodDays` named two different clauses
+with a slash and ranked neither, while everything downstream treats it as the
+renewal one; it now says which wins, warns about the term-before-notice trap,
+and states the month-to-days conversion its sibling field already stated.
+`expiryDate` asked for a date on contracts that state only a term — silent
+arithmetic, which this product refuses everywhere else — and now leaves it
+empty rather than estimating.
 
 **5. Re-run the scorecard.** Two of the three findings changed what the AI is
 shown, so every figure in this document now describes code that no longer

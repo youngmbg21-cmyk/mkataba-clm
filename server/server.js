@@ -3913,11 +3913,40 @@ app.post('/api/ai/extract', auth, rlAiLight, aiFeature('extract'), aiBudgetGuard
         category: { type: 'string', enum: ['customer', 'supplier', 'employment', 'lease', 'licence', 'partner', 'funding', 'other'],
           description: 'Which side of the business this sits on. "customer" = they pay us for goods, work or services. "supplier" = we pay them, including subcontracts. "employment" = a contract of service with a person. "lease" = premises, land or equipment hired. "licence" = software or IP licensed. "partner" = a collaboration with no money changing hands directly. "funding" = a grant or donor agreement. Use "other" only when none fits.' },
         effectiveDate: { type: 'string', description: 'ISO yyyy-mm-dd, or empty.' },
-        expiryDate: { type: 'string', description: 'ISO yyyy-mm-dd end/expiry date, or empty.' },
+        /* A DATE THE DOCUMENT SUPPORTS, OR NOTHING. Most commercial contracts
+           state a TERM ("three (3) years from the Effective Date") and never a
+           calendar end date, so filling this in means doing arithmetic — and
+           silent arithmetic is exactly what this product refuses everywhere
+           else (the renewal adviser computes every date server-side and tells
+           the model "never restate a date differently"). Measured against
+           CUAD: of 49 contracts whose expiry a lawyer marked, only 9 STATE a
+           date; 15 more can be derived from a term plus a start date the
+           document also states; the remaining 25 cannot be derived at all.
+           Empty is the right answer on half of them, and Key terms already
+           treats an empty expiry as a blank to fill rather than a failure. */
+        expiryDate: { type: 'string', description: 'ISO yyyy-mm-dd end/expiry date. Give a date ONLY if the document states one, or if it states a term (e.g. "three years") AND a start date the document also states, in which case count forward from that start date. If the term runs from a date the document does not give, or the agreement continues until terminated with no end date, leave this EMPTY — never estimate one. The sourceSpan must quote the clause the date or the term came from.' },
         value: { type: 'number', description: 'Contract value as a number (no currency symbol). 0 if none/non-monetary.' },
         currency: { type: 'string', description: 'ISO currency code as written in the document, e.g. KES, SEK, USD. Empty if none.' },
         renewalType: { type: 'string', enum: ['auto-renew', 'fixed', 'evergreen', 'unknown'], description: 'Renewal mechanism.' },
-        noticePeriodDays: { type: 'number', description: 'Notice period in days for termination/non-renewal. 0 if none/unclear.' },
+        /* WHICH NOTICE PERIOD, SAID OUT LOUD. This slot named two different
+           clauses with a slash and ranked neither, while every consumer of the
+           value treats it as one thing: renewalDecisionDate subtracts it from
+           the expiry to get the date a renewal decision is due, the renewal
+           card quotes its span as the source of that deadline, and the
+           reminder emails fire off it. A contract routinely sets a different
+           period for each, so an unranked field is a deadline computed from
+           whichever clause the model happened to read first.
+
+           AND THE TRAP IS NAMED, because it is a real one that caught this
+           project's own scorer: a renewal clause states the renewal TERM
+           BEFORE the notice — "successive one-year terms unless sixty (60)
+           days notice" — so the first duration in the sentence is usually the
+           wrong answer. The scorer read 365 there on 18 of 34 contracts.
+
+           The conversion rule is stated for the same reason its sibling
+           retentionReleaseDays states one: without it, "six months' notice"
+           can come back as 180, 182 or 6. */
+        noticePeriodDays: { type: 'number', description: 'How much notice must be given to stop the agreement continuing — to prevent an automatic renewal, or to end it at the end of its term. If the contract states BOTH this and a separate notice to terminate early (for convenience or for breach), return THIS one: it is used to compute the date by which a renewal decision must be made. Only where there is no renewal or non-renewal notice at all, return the notice to terminate early. Beware that a renewal clause usually states the length of the RENEWAL TERM before it states the notice ("successive one-year terms unless sixty (60) days notice") — the notice is 60 days there, not a year. Convert to days: a week is 7, a month 30, a year 365. 0 if none is stated or it is unclear.' },
         governingLaw: { type: 'string', description: 'e.g. Kenya, Sweden, England & Wales. Empty if unclear.' },
         paymentTerms: { type: 'string', description: 'Short phrase, e.g. "30 days from invoice". Empty if none.' },
         // What the agreement leaves behind once the work is done, and what it

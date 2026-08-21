@@ -211,15 +211,110 @@ function addDuration(iso, d) {
    itself about whether the term ends on the anniversary or the day before it,
    and that ambiguity is the contract's, not HaTi's. Where the paper states a
    date there is nothing to be ambiguous about. */
+/* ---- WHICH DURATION IN THE SENTENCE IS THE ONE BEING ASKED FOR? ----
+
+   THE THIRD SCORER BUG OF ONE FAMILY, and the most expensive. parseDuration
+   returns the FIRST duration in a span, and a renewal clause almost always
+   states the renewal TERM before the notice:
+
+     "renew automatically for successive ONE-YEAR TERMS unless one Party
+      gives notification of termination with at least SIXTY (60) DAYS notice"
+
+   The answer is 60 days. parseDuration read 365. Measured across the answer
+   key: 18 of 34 notice-period truths were the renewal TERM rather than the
+   notice — so more than HALF the key for that field was wrong, and HaTi was
+   marked wrong for answering correctly. noticePeriodDays scored 50% against
+   it, and that figure meant nothing.
+
+   The same fault reached expiryTruth, which computed an expiry off the first
+   duration in the expiry span — turning "terminable by either party with ONE
+   (1) YEAR written notice" into a one-year term, and inventing a term
+   entirely for an evergreen agreement that states none.
+
+   So the reading has to ask WHAT THE DURATION IS ATTACHED TO. Two cues, and
+   the test is proximity in the sentence, not order:
+     - a NOTICE cue (notice, notify, written, prior to, in advance) means the
+       duration measures how much warning must be given;
+     - a TERM cue IMMEDIATELY AFTER (term, period, increment, extension,
+       renewal, anniversary) means the duration IS the term.
+   Everything else is a tie broken toward the LATER duration, because
+   "renew for X unless Y notice" is the shape this clause almost always takes.
+
+   NOT A HEURISTIC ADDED FOR ITS OWN SAKE: every one of the 18 changed truths
+   was read back against its own span by hand before this shipped, and each
+   new reading is the number a lawyer would give. f226 pins four by name.
+
+   AND IT IS THE RULE THIS FILE ALREADY CARRIES, applied a third time: a
+   figure that disagrees with a healthy FOUND score is a scorer bug until
+   proven otherwise. FOUND for noticePeriodDays was 70%. */
+const NOTICE_CUE = /\b(notice|notif|written|advis|request|prior\s+to|in\s+advance|advance)\b/i;
+const TERM_CUE   = /^[\s,.)"']*(?:term|terms|period|periods|increment|extension|renewal|anniversar)/i;
+
+function parseDurations(text) {
+  const str = String(text || '');
+  const words = Object.keys(WORD_NUM).sort((a, b) => b.length - a.length).join('|');
+  const re = new RegExp(
+    '(?:(\\d{1,4})|\\b(' + words + ')\\b)\\s*(?:\\(\\s*(\\d{1,4})\\s*\\)\\s*)?[\\s-]*(day|week|month|year)s?\\b', 'gi');
+  const out = [];
+  let m;
+  while ((m = re.exec(str))) {
+    const num = m[3] ? Number(m[3]) : (m[1] ? Number(m[1]) : WORD_NUM[String(m[2]).toLowerCase()]);
+    if (!Number.isFinite(num)) continue;
+    out.push({ n: num, unit: String(m[4]).toLowerCase(), at: m.index, end: m.index + m[0].length });
+  }
+  return out;
+}
+
+/* Score every duration in the span and return the best fit for one of the two
+   readings. `want` is 'notice' or 'term'. */
+function pickDuration(text, want) {
+  const str = String(text || '');
+  const all = parseDurations(str);
+  if (!all.length) return null;
+  let best = null, bestScore = -Infinity;
+  all.forEach((d, i) => {
+    const rightAfter = str.slice(d.end, d.end + 30);
+    const before = str.slice(Math.max(0, d.at - 70), d.at);
+    const after = str.slice(d.end, d.end + 60);
+    const isTerm = TERM_CUE.test(rightAfter);
+    const isNotice = NOTICE_CUE.test(before) || NOTICE_CUE.test(after);
+    let sc = 0;
+    if (want === 'notice') {
+      if (isTerm) sc -= 5;
+      if (NOTICE_CUE.test(before)) sc += 3;
+      if (NOTICE_CUE.test(after)) sc += 2;
+      sc += i * 0.1;                    // "renew for X unless Y notice"
+    } else {
+      if (isTerm) sc += 4;
+      if (isNotice) sc -= 6;            // a notice period is never the term
+      sc -= i * 0.1;                    // the term is stated first
+    }
+    if (sc > bestScore) { bestScore = sc; best = d; }
+  });
+  if (!best) return null;
+  /* A REFUSAL IS AN ANSWER. Where every candidate looks like the OTHER thing,
+     the span does not state what was asked for — an evergreen agreement
+     really has no term — and inventing one is how a wrong truth gets into an
+     answer key. */
+  if (want === 'term' && bestScore < 0) return null;
+  return { n: best.n, unit: best.unit.replace(/s$/, '') };
+}
+
+const noticeDuration = text => pickDuration(text, 'notice');
+const termDuration = text => pickDuration(text, 'term');
+
 function expiryTruth(expirySpans, effectiveSpans) {
   const texts = (expirySpans || []).map(s => s.text);
   for (const t of texts) { const d = parseDate(t); if (d) return { at: d, computed: false }; }
-  const anchored = texts.find(t => EXPIRY_ANCHOR.test(t) && parseDuration(t));
+  /* termDuration, never parseDuration: the first duration in an expiry span is
+     regularly a NOTICE period ("terminable on one (1) year written notice"),
+     and treating it as the term invents an expiry the contract never states. */
+  const anchored = texts.find(t => EXPIRY_ANCHOR.test(t) && termDuration(t));
   if (!anchored) return null;
   let eff = null;
   for (const s of (effectiveSpans || [])) { eff = parseDate(s.text); if (eff) break; }
   if (!eff) return null;
-  const at = addDuration(eff, parseDuration(anchored));
+  const at = addDuration(eff, termDuration(anchored));
   return at ? { at, computed: true } : null;
 }
 
@@ -438,7 +533,8 @@ function headline(tallies) {
 
 module.exports = {
   locate, overlaps, foundVerdict, OVERLAP_MIN,
-  parseDuration, durationToDays, durationToMonths, parseDate,
+  parseDuration, parseDurations, noticeDuration, termDuration, pickDuration,
+  durationToDays, durationToMonths, parseDate,
   jurisdiction, JURISDICTIONS, normCompany, counterpartyVerdict, liabilityTruth,
   LIABILITY_STATES,
   addDuration, expiryTruth, expiryMatches, EXPIRY_ANCHOR,

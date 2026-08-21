@@ -10,7 +10,7 @@
    score.js, this file is right.  */
 
 'use strict';
-const { test } = require('node:test');
+const { test, describe } = require('node:test');
 const assert = require('node:assert');
 const S = require('../test/cuad/score.js');
 
@@ -464,4 +464,98 @@ test('f226-11d nothing returned at all is distinct from all of the above', () =>
 
 test('f226-11e CUAD marked nothing -> excluded, ruling 3 again', () => {
   assert.equal(S.obligationMatch(OB_DOC, [{ desc: 'x', quote: 'y' }], []), 'excluded');
+});
+
+/* ============================================================
+   SECTION 12 — WHICH DURATION IS THE ANSWER
+   ============================================================
+   Added 21 Aug 2026, after the owner asked for the notice period and the
+   expiry date to be fixed. They were not HaTi's to fix: the ANSWER KEY was
+   wrong on more than half of one field.
+
+   parseDuration returns the first duration in a span, and a renewal clause
+   almost always states the renewal TERM before the notice. So on 18 of the
+   34 contracts CUAD marks for "Notice Period To Terminate Renewal", the
+   figure HaTi was scored against was the length of the renewal term. HaTi
+   answering "60 days" was marked wrong against a truth of 365.
+
+   NONE of the 59 tests above caught it, because every fixture in them holds
+   one duration. So the spans below are VERBATIM from the corpus — the exact
+   sentences that were misread — and each is a case a lawyer would answer
+   without hesitating. A fixture that cannot fail the way the real data
+   failed is a description, not a test.
+
+   THIS IS THE THIRD SCORER BUG OF THIS FAMILY (after 'yes'/'no' against
+   capped/uncapped, and expiryDate overstated at 42/49). All three had the
+   same tell, and score.js states the rule: a figure that disagrees with a
+   healthy FOUND score is a scorer bug until proven otherwise. */
+
+describe('f226-12 which duration in the sentence is the answer', () => {
+
+  /* Verbatim from the CUAD answer key. Do not tidy them. */
+  const ZOUNDS = 'This Agreement will renew automatically thereafter for successive one-year terms unless and until one Party gives notification of termination with at least sixty (60) days written notice.';
+  const BELLRING = 'This Agreement will commence on the Effective Date and continue for an Initial Term of five (5) years, and will automatically renew for additional periods of five (5) years unless one Party notifies the other of its intention not to renew, no less than 12 months prior to the expiration of the then-current term, unless terminated as permitted under this Agreement.';
+  const EDIETS = 'This agreement shall automatically renew for additional successive terms of twelve (12) months each at the end of the Initial Term ("Renewal Terms"), unless either party notifies the other in writing at least sixty (60) days prior to the end of the Initial Term.';
+  const NANOPHASE = 'The initial term of this Agreement shall be for a period of five (5) years from the date first set forth above and shall thereafter automatically renew for additional two (2) year terms unless a party provides the other party with notice of non-renewal no less than 6 months prior to the expiration of the initial term or any renewal term unless earlier terminated as follows:';
+  const APOLLO_NOTICE = 'by either party with one (1) year written notice prior to the expiration of the initial period or any extension period thereof.';
+
+  test('f226-12a the notice reading takes the notice, not the renewal term', () => {
+    assert.deepEqual(S.noticeDuration(ZOUNDS), { n: 60, unit: 'day' });
+    assert.deepEqual(S.noticeDuration(BELLRING), { n: 12, unit: 'month' });
+    assert.deepEqual(S.noticeDuration(EDIETS), { n: 60, unit: 'day' });
+    assert.deepEqual(S.noticeDuration(NANOPHASE), { n: 6, unit: 'month' });
+  });
+
+  test('f226-12b and the old reading really did get all four wrong', () => {
+    /* Kept as a claim rather than a memory: parseDuration is still exported
+       and still used where the FIRST duration is the right one. If it ever
+       starts agreeing with noticeDuration here, one of the two has changed
+       and this section needs re-reading. */
+    for (const span of [ZOUNDS, BELLRING, EDIETS, NANOPHASE]) {
+      assert.notDeepEqual(S.parseDuration(span), S.noticeDuration(span),
+        'the fixture no longer reproduces the bug it was written for');
+    }
+    assert.deepEqual(S.parseDuration(ZOUNDS), { n: 1, unit: 'year' });   // the renewal term
+  });
+
+  test('f226-12c the term reading refuses a notice period', () => {
+    /* "one (1) year written notice" is not a one-year term, and treating it
+       as one invents an expiry the contract never states. */
+    assert.equal(S.termDuration(APOLLO_NOTICE), null);
+    assert.deepEqual(S.termDuration(BELLRING), { n: 5, unit: 'year' });
+    assert.deepEqual(S.termDuration(NANOPHASE), { n: 5, unit: 'year' });
+  });
+
+  test('f226-12d an evergreen agreement gets no expiry invented for it', () => {
+    const ever = [{ text: 'the term of this Agreement shall commence on the Effective Date and shall remain in effect until terminated by either Party on 30 days notice', answer_start: 0 }];
+    const eff = [{ text: 'March 11, 2015', answer_start: 0 }];
+    assert.equal(S.expiryTruth(ever, eff), null,
+      'a contract with no term must yield no truth, not effective-date-plus-30-days');
+  });
+
+  test('f226-12e a genuine term still computes, and still carries its tolerance', () => {
+    const spans = [{ text: 'The initial term of this Agreement shall be one (1) year from the Effective Date (the "Initial Term").', answer_start: 0 }];
+    const eff = [{ text: 'the 5th day of February, 2020', answer_start: 0 }];
+    const t = S.expiryTruth(spans, eff);
+    assert.equal(t.at, '2021-02-05');
+    assert.equal(t.computed, true);
+    assert.equal(S.expiryMatches(t, '2021-02-04'), true, 'one day of tolerance on a computed date');
+    assert.equal(S.expiryMatches(t, '2021-02-07'), false);
+  });
+
+  test('f226-12f a span with one duration reads the same either way', () => {
+    /* The commonest shape by far, and the reason this went unnoticed: where
+       there is nothing to choose between, both readings agree. Sixteen of the
+       thirty-four truths did not move. */
+    const plain = 'terminable by either party upon ninety (90) days written notice.';
+    assert.deepEqual(S.noticeDuration(plain), { n: 90, unit: 'day' });
+    assert.deepEqual(S.parseDuration(plain), { n: 90, unit: 'day' });
+  });
+
+  test('f226-12g nothing to read is null, on both readings', () => {
+    for (const bad of ['', null, undefined, 'no duration here at all']) {
+      assert.equal(S.noticeDuration(bad), null);
+      assert.equal(S.termDuration(bad), null);
+    }
+  });
 });

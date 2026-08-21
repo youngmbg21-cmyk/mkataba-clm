@@ -195,6 +195,37 @@ describe('F227 — the whole contract is read', () => {
 
   /* ---------- 6. and it says so when it finds nothing ---------- */
 
+  /* ---- 7. the two fields the owner asked about ---- */
+
+  test('noticePeriodDays names WHICH notice period, and ranks them', () => {
+    /* It read "Notice period in days for termination/non-renewal" — two
+       different clauses in one slot with no rule for which wins — while
+       renewalDecisionDate subtracts it from the expiry to get the renewal
+       deadline, the renewal card quotes its span as that deadline's source,
+       and the reminder emails fire off it. */
+    const d = SERVER_CODE.match(/noticePeriodDays: \{ type: 'number', description: '([^']*)'/)[1];
+    assert.ok(!/termination\/non-renewal/.test(d), 'the unranked slash is back');
+    assert.match(d, /return THIS one/, 'it must say which of the two wins');
+    assert.match(d, /a week is 7, a month 30, a year 365/,
+      'without a conversion rule "six months" can come back as 180, 182 or 6');
+    /* The trap that caught this project's own scorer, named in the prompt so
+       the model does not fall into it: the renewal clause states the renewal
+       TERM before the notice. */
+    assert.match(d, /successive one-year terms unless sixty \(60\) days notice/);
+  });
+
+  test('expiryDate refuses to estimate a date the document does not support', () => {
+    /* Of 49 contracts whose expiry a lawyer marked, only 9 STATE a date and
+       15 more can be derived. Asking for a date on the other 25 is asking for
+       an invention — and silent arithmetic is what this product refuses
+       everywhere else. */
+    const d = SERVER_CODE.match(/expiryDate: \{ type: 'string', description: '([^']*)'/)[1];
+    assert.match(d, /leave this EMPTY/);
+    assert.match(d, /never estimate one/);
+    assert.match(d, /a start date the document also states/,
+      'a term alone is not enough — the anchor has to be stated too');
+  });
+
   test('an empty obligations scan is visible, and speaks both languages', () => {
     assert.ok(!/toast\('No obligations detected'\)/.test(OBLIG),
       'the bare call is back — by this product\'s own rule it prints NOTHING');
