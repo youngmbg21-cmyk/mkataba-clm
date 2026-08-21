@@ -193,6 +193,7 @@ async function main() {
   const dump = [];
   const tallies = {}; for (const f of Object.keys(CAT)) tallies[f] = S.newTally();
   const oblig = {}; for (const c of OBLIGATION_CATS) oblig[c] = S.newTally();
+  const obWhy = {};
   const errors = [];
 
   try {
@@ -233,16 +234,13 @@ async function main() {
       /* The obligations reader is scored on LOCATION alone, per category.
          Obligations CUAD never marked are NOT counted against it — this
          measures what was missed, not what was invented. */
-      const items = (ob && (ob.obligations || ob.items)) || [];
+      const items = (ob && ob.obligations) || [];
       for (const cat of OBLIGATION_CATS) {
-        const key = spansOf(c, cat);
-        if (!key.length) { oblig[cat].excludedNotMarked++; continue; }
+        const v = S.obligationMatch(doc, items, spansOf(c, cat));
+        if (v === 'excluded') { oblig[cat].excludedNotMarked++; continue; }
         oblig[cat].foundOf++;
-        const hit = items.some(it => {
-          const q = it.sourceSpan || it.source || it.quote || it.text || '';
-          return q && S.foundVerdict(doc, q, key) === 'found';
-        });
-        if (hit) oblig[cat].found++;
+        if (v === 'found') oblig[cat].found++;
+        else obWhy[v] = (obWhy[v] || 0) + 1;      // WHY the zero, not just that it is one
       }
     }
     process.stdout.write(' '.repeat(90) + '\r');
@@ -256,14 +254,14 @@ async function main() {
     console.log('It holds only what HaTi answered about public SEC filings: no key, no customer data.');
   }
 
-  report(tallies, oblig, errors, chosen.length);
+  report(tallies, oblig, errors, chosen.length, obWhy);
 }
 
 /* ---------- the report ----------
    Every percentage carries its denominator; exclusions are named and counted;
    the unscoreable fields say WHY rather than printing blank or zero; and
    there is no single blended accuracy number. */
-function report(tallies, oblig, errors, n) {
+function report(tallies, oblig, errors, n, obWhy = {}) {
   const line = '-'.repeat(78);
   console.log(line);
   console.log('FIELD EXTRACTION'.padEnd(24) + 'FOUND'.padEnd(18) + 'CORRECT'.padEnd(18) + 'EXCLUDED');
@@ -279,6 +277,18 @@ function report(tallies, oblig, errors, n) {
   console.log(line);
   for (const [c, t] of Object.entries(oblig)) {
     console.log(c.padEnd(34) + S.pct(t.found, t.foundOf).padEnd(18) + `${t.excludedNotMarked} unmarked`);
+  }
+  /* A zero on its own says nothing. These three causes want three different
+     responses, so they are named rather than averaged into a percentage. */
+  const WHY = {
+    'elsewhere': 'the reader found real obligations, but about OTHER clauses — a scope difference, not a failure',
+    'no-quotes': 'obligations returned with NO quote — they cannot be traced back to the wording (a product defect)',
+    'none-returned': 'the reader returned nothing at all',
+  };
+  const missed = Object.entries(obWhy).filter(([, k]) => k);
+  if (missed.length) {
+    console.log('\n  why the misses:');
+    for (const [k, count] of missed) console.log(`    ${String(count).padStart(3)} x  ${WHY[k] || k}`);
   }
   console.log('\n' + line);
   console.log('NOT MEASURED');

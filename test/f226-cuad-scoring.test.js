@@ -422,3 +422,46 @@ test('f226-10e asking for more than exists returns everything, without looping',
   const small = [row('a', 'a0'), row('b', 'b0')];
   assert.equal(S.spreadAcrossGroups(small, 50).length, 2);
 });
+
+/* ---------- 11. the obligations reader, and WHY a zero happened ----------
+   The first live run scored 0% on all four categories. Three different causes
+   look identical from a zero, so they are told apart. Proved with fixtures in
+   the shape /api/ai/obligations really returns — {obligations:[{desc, quote}]} —
+   which is the check that should have run before any money was spent. */
+
+const OB_DOC =
+  'Section 8. AUDIT. Buyer may, on reasonable notice, audit the books and ' +
+  'records of Seller to verify compliance with this Agreement. ' +
+  'Section 9. PAYMENT. Buyer shall pay each invoice within thirty (30) days.';
+const OB_KEY = [span('Buyer may, on reasonable notice, audit the books and records of Seller', 21)];
+
+test('f226-11a a quoted obligation on the right clause registers as found', () => {
+  // The reader is NOT broken if this passes — which is what the free half of
+  // the diagnosis had to establish before asking anyone to pay for a re-run.
+  const items = [{ desc: 'Allow buyer audits', quote: 'audit the books and records of Seller' }];
+  assert.equal(S.obligationMatch(OB_DOC, items, OB_KEY), 'found');
+});
+
+test('f226-11b obligations about OTHER clauses are "elsewhere", not a failure', () => {
+  // A real and useful finding about scope: the reader found genuine
+  // obligations, they are simply not the four CUAD marks.
+  const items = [{ desc: 'Pay within 30 days', quote: 'pay each invoice within thirty (30) days' }];
+  assert.equal(S.obligationMatch(OB_DOC, items, OB_KEY), 'elsewhere');
+});
+
+test('f226-11c obligations with NO quote are their own answer', () => {
+  // `quote` is optional in the tool schema — required is ['desc'] alone — and
+  // js/obligations.js prints it only if present. An obligation that cannot be
+  // traced back to the wording is a product defect worth naming, not a miss.
+  const items = [{ desc: 'Allow buyer audits' }, { desc: 'Pay on time', quote: '  ' }];
+  assert.equal(S.obligationMatch(OB_DOC, items, OB_KEY), 'no-quotes');
+});
+
+test('f226-11d nothing returned at all is distinct from all of the above', () => {
+  assert.equal(S.obligationMatch(OB_DOC, [], OB_KEY), 'none-returned');
+  assert.equal(S.obligationMatch(OB_DOC, null, OB_KEY), 'none-returned');
+});
+
+test('f226-11e CUAD marked nothing -> excluded, ruling 3 again', () => {
+  assert.equal(S.obligationMatch(OB_DOC, [{ desc: 'x', quote: 'y' }], []), 'excluded');
+});

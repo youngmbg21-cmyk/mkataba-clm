@@ -362,6 +362,36 @@ function spreadAcrossGroups(rows, limit) {
   return out;
 }
 
+
+/* ---------- reading the obligations reader's answer ----------
+   The first live run scored this 0% across all four categories (0/3, 0/5,
+   0/2, 0/4), and the numbers could not say WHY. Three different things look
+   identical from a zero:
+
+     a) the reader returned nothing at all;
+     b) it returned obligations but with no `quote` — the field is optional
+        (the tool requires only `desc`, and js/obligations.js prints the quote
+        only `if (o.quote)`), so there is nothing to match on;
+     c) it returned quoted obligations that are simply about OTHER clauses —
+        payment terms and delivery rather than audit rights and insurance.
+
+   (c) is a real and useful finding about scope. (b) is a product defect worth
+   knowing on its own — an obligation HaTi cannot trace back to the wording.
+   (a) is a failure. Reporting all three as one zero tells nobody anything, so
+   they are counted apart. Same reasoning as not-verbatim beside missed. */
+function obligationMatch(doc, items, cuadSpans, min = OVERLAP_MIN) {
+  const list = Array.isArray(items) ? items : [];
+  if (!cuadSpans || !cuadSpans.length) return 'excluded';   // ruling 3
+  if (!list.length) return 'none-returned';
+  const quoted = list.filter(it => String(it && (it.quote || it.sourceSpan || it.source || '')).trim());
+  if (!quoted.length) return 'no-quotes';
+  const hit = quoted.some(it => {
+    const q = it.quote || it.sourceSpan || it.source;
+    return foundVerdict(doc, q, cuadSpans, min) === 'found';
+  });
+  return hit ? 'found' : 'elsewhere';
+}
+
 /* ---------- the tally ----------
    Every figure carries its denominator. A bare percentage hides that warranty
    duration rests on 20 contracts and notice period on 36, and this number
@@ -413,4 +443,5 @@ module.exports = {
   LIABILITY_STATES,
   addDuration, expiryTruth, expiryMatches, EXPIRY_ANCHOR,
   newTally, record, pct, headline, NOT_MEASURED, spreadAcrossGroups,
+  obligationMatch,
 };
