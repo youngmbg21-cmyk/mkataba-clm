@@ -185,16 +185,16 @@ themselves when the run ends.
 
 ## The fallback: run it from a laptop
 
-If Render proves awkward, the same run works anywhere Node is installed. The only
-extra step is getting the key: in the Render dashboard, **Environment** tab,
-reveal `ANTHROPIC_API_KEY` and copy it.
+If Render proves awkward, the same run works anywhere Node is installed — and
+since the key is supplied by hand either way, Render buys nothing here. A laptop
+is the simpler choice.
 
 ```
 git clone https://github.com/youngmbg21-cmyk/mkataba-clm
 cd mkataba-clm
 git checkout claude/github-repos-hati-review-h0c157
 npm install
-ANTHROPIC_API_KEY=<paste it here> node test/cuad/run.js --live --n 10
+ANTHROPIC_API_KEY="paste-the-key-here" node test/cuad/run.js --live --n 10
 ```
 
 Do not paste the key into a chat window, an email, or a file that gets committed.
