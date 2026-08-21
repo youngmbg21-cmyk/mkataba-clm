@@ -301,15 +301,32 @@ function counterpartyVerdict(hatiAnswer, partySpans) {
 }
 
 /* liabilityCapped is three states built from two CUAD categories.
-   Both marked -> 'yes': a cap with carve-outs is still a cap.
+   Both marked -> capped: a cap with carve-outs is still a cap.
    Neither marked -> null, EXCLUDED per ruling 3 — the annotator finding
    nothing is not the contract being silent, and scoring against that would
-   invent a wrong answer. */
+   invent a wrong answer.
+
+   THE WORDS ARE HaTi'S OWN, AND THEY HAVE TO BE.
+
+   This returned 'yes' / 'no' on the first live run and HaTi's field is an enum
+   of ['capped','uncapped','unclear']. So 'capped' === 'yes' was false every
+   single time and the scorecard reported CORRECT 0% (0/9) — a flat accusation
+   that HaTi cannot read a liability cap at all, produced entirely by MY
+   vocabulary and not by anything HaTi did. FOUND was 67% in the same run,
+   which is the tell: it kept locating the right passage and then "failing" to
+   read it.
+
+   A zero is the loudest thing this scorecard can print. Any field scoring 0%
+   while FOUND is healthy should be assumed a scorer bug until proven
+   otherwise. f226-6d pins the vocabulary to HaTi's enum, so a rename on either
+   side breaks the test rather than the number. */
+const LIABILITY_STATES = ['capped', 'uncapped', 'unclear'];
+
 function liabilityTruth(capSpans, uncappedSpans) {
   const cap = !!(capSpans && capSpans.length);
   const unc = !!(uncappedSpans && uncappedSpans.length);
-  if (cap) return 'yes';
-  if (unc) return 'no';
+  if (cap) return 'capped';
+  if (unc) return 'uncapped';
   return null;
 }
 
@@ -393,6 +410,7 @@ module.exports = {
   locate, overlaps, foundVerdict, OVERLAP_MIN,
   parseDuration, durationToDays, durationToMonths, parseDate,
   jurisdiction, JURISDICTIONS, normCompany, counterpartyVerdict, liabilityTruth,
+  LIABILITY_STATES,
   addDuration, expiryTruth, expiryMatches, EXPIRY_ANCHOR,
   newTally, record, pct, headline, NOT_MEASURED, spreadAcrossGroups,
 };

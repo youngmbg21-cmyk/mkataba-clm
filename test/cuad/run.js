@@ -42,6 +42,13 @@ const val = (f, d) => { const i = ARGS.indexOf(f); return i >= 0 ? ARGS[i + 1] :
 
 const LIVE = has('--live');
 const LIMIT = Number(val('--n', 0)) || 0;
+/* --dump writes every raw answer to a file, so a surprising number can be
+   DIAGNOSED rather than guessed at. The first live run reported the
+   obligations reader at 0% across all four categories, and there was no way
+   to tell a real failure from a scorer bug without seeing what came back.
+   Costs nothing extra — the calls were made anyway. */
+const DUMP = has('--dump') ? (val('--dump', '') && !val('--dump', '').startsWith('--')
+  ? val('--dump', '') : 'test/cuad/last-run.json') : '';
 
 /* THE 50 ARE COMMITTED; THE OTHER 460 ARE NOT.
 
@@ -183,6 +190,7 @@ async function main() {
   if (LIVE) { delete env.ANTHROPIC_BASE_URL; env.ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY; }
   const h = await startHati(LIVE ? { ...env, ANTHROPIC_BASE_URL: 'https://api.anthropic.com' } : env);
 
+  const dump = [];
   const tallies = {}; for (const f of Object.keys(CAT)) tallies[f] = S.newTally();
   const oblig = {}; for (const c of OBLIGATION_CATS) oblig[c] = S.newTally();
   const errors = [];
@@ -210,6 +218,8 @@ async function main() {
 
       const md = (ex && ex.metadata) || {};
       const spans = (ex && ex.sourceSpans) || {};
+      if (DUMP) dump.push({ title: c.title, metadata: md, sourceSpans: spans,
+                            obligations: (ob && ob.obligations) || null });
 
       for (const field of Object.keys(CAT)) {
         const key = spansOf(c, CAT[field]);
@@ -238,6 +248,12 @@ async function main() {
     process.stdout.write(' '.repeat(90) + '\r');
   } finally {
     await h.stop();
+  }
+
+  if (DUMP) {
+    fs.writeFileSync(DUMP, JSON.stringify(dump, null, 1));
+    console.log(`\nRaw answers written to ${DUMP} — ${dump.length} contracts.`);
+    console.log('It holds only what HaTi answered about public SEC filings: no key, no customer data.');
   }
 
   report(tallies, oblig, errors, chosen.length);

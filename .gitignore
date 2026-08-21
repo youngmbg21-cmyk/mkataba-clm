@@ -16,3 +16,4 @@ test/chromium/lang-coverage.json
 
 # Screenshot output — regenerated on demand by test/chromium/shots-*.js
 test/chromium/shots/
+last-run.json

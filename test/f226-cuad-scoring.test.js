@@ -197,11 +197,25 @@ test('f226-5e fewer than two named parties cannot apply the rule -> excluded', (
 /* ---------- 6. liabilityCapped: three states from two categories ---------- */
 
 test('f226-6a a cap with carve-outs is still a cap', () => {
-  assert.equal(S.liabilityTruth([span('cap', 0)], [span('uncapped for IP', 9)]), 'yes');
+  assert.equal(S.liabilityTruth([span('cap', 0)], [span('uncapped for IP', 9)]), 'capped');
 });
 
-test('f226-6b only uncapped marked reads as no', () => {
-  assert.equal(S.liabilityTruth([], [span('uncapped', 0)]), 'no');
+test('f226-6b only uncapped marked reads as uncapped', () => {
+  assert.equal(S.liabilityTruth([], [span('uncapped', 0)]), 'uncapped');
+});
+
+test("f226-6d the truth speaks HaTi's OWN vocabulary, not a synonym", () => {
+  // The first live run reported liabilityCapped CORRECT 0% (0/9) with FOUND
+  // at 67%. Not a failure of HaTi: this returned yes/no while HaTi's field is
+  // an enum of capped/uncapped/unclear, so every comparison was false. A zero
+  // beside a healthy FOUND is a scorer bug until proven otherwise.
+  for (const t of [S.liabilityTruth([span('c', 0)], []),
+                   S.liabilityTruth([], [span('u', 0)])]) {
+    assert.ok(S.LIABILITY_STATES.includes(t),
+      t + " is not one of HaTi's states — the comparison would always fail");
+  }
+  assert.deepEqual(S.LIABILITY_STATES, ['capped', 'uncapped', 'unclear'],
+    "must match the enum in /api/ai/extract's file_contract tool");
 });
 
 test('f226-6c neither marked is EXCLUDED, never "unclear"', () => {
