@@ -1,0 +1,291 @@
+{
+  "environment": {
+    "outboundInternet": "reachable (unexpected) status=403"
+  },
+  "registrationRefusals": [
+    {
+      "url": "http://example.com/hook",
+      "status": 400,
+      "error": "The address must start with https:// — a signed delivery over plain http is readable on the way"
+    },
+    {
+      "url": "https://localhost/hook",
+      "status": 400,
+      "error": "That address is inside a private network and cannot be reached from here"
+    },
+    {
+      "url": "https://localhost./hook",
+      "status": 400,
+      "error": "That address is inside a private network and cannot be reached from here"
+    },
+    {
+      "url": "https://LOCALHOST/hook",
+      "status": 400,
+      "error": "That address is inside a private network and cannot be reached from here"
+    },
+    {
+      "url": "https://db.internal/hook",
+      "status": 400,
+      "error": "That address is inside a private network and cannot be reached from here"
+    },
+    {
+      "url": "https://db.internal./hook",
+      "status": 400,
+      "error": "That address is inside a private network and cannot be reached from here"
+    },
+    {
+      "url": "https://thing.local/hook",
+      "status": 400,
+      "error": "That address is inside a private network and cannot be reached from here"
+    },
+    {
+      "url": "https://127.0.0.1/hook",
+      "status": 400,
+      "error": "That address is inside a private network and cannot be reached from here"
+    },
+    {
+      "url": "https://10.0.0.5/hook",
+      "status": 400,
+      "error": "That address is inside a private network and cannot be reached from here"
+    },
+    {
+      "url": "https://172.16.4.4/hook",
+      "status": 400,
+      "error": "That address is inside a private network and cannot be reached from here"
+    },
+    {
+      "url": "https://192.168.1.10/hook",
+      "status": 400,
+      "error": "That address is inside a private network and cannot be reached from here"
+    },
+    {
+      "url": "https://169.254.169.254/latest/meta-data/",
+      "status": 400,
+      "error": "That address is inside a private network and cannot be reached from here"
+    },
+    {
+      "url": "https://100.64.0.5/hook",
+      "status": 400,
+      "error": "That address is inside a private network and cannot be reached from here"
+    },
+    {
+      "url": "https://192.0.0.8/hook",
+      "status": 400,
+      "error": "That address is inside a private network and cannot be reached from here"
+    },
+    {
+      "url": "https://198.18.0.5/hook",
+      "status": 400,
+      "error": "That address is inside a private network and cannot be reached from here"
+    },
+    {
+      "url": "https://198.19.9.9/hook",
+      "status": 400,
+      "error": "That address is inside a private network and cannot be reached from here"
+    },
+    {
+      "url": "https://192.88.99.1/hook",
+      "status": 400,
+      "error": "That address is inside a private network and cannot be reached from here"
+    },
+    {
+      "url": "https://[::1]/hook",
+      "status": 400,
+      "error": "That address is inside a private network and cannot be reached from here"
+    },
+    {
+      "url": "https://[fe80::1]/hook",
+      "status": 400,
+      "error": "That address is inside a private network and cannot be reached from here"
+    },
+    {
+      "url": "https://[fc00::1]/hook",
+      "status": 400,
+      "error": "That address is inside a private network and cannot be reached from here"
+    },
+    {
+      "url": "https://[2002:7f00:1::]/hook",
+      "status": 400,
+      "error": "That address is inside a private network and cannot be reached from here"
+    },
+    {
+      "url": "https://[2001:0:5ef5:79fd:0:59fc:0:1]/hook",
+      "status": 400,
+      "error": "That address is inside a private network and cannot be reached from here"
+    },
+    {
+      "url": "https://user:pass@example.com/hook",
+      "status": 400,
+      "error": "Take the username and password out of the address — the signature is what proves it came from HaTi"
+    },
+    {
+      "url": "not-a-url",
+      "status": 400,
+      "error": "That is not a URL"
+    }
+  ],
+  "dnsRebindingProbe": {
+    "url": "https://127.0.0.1.nip.io:46673/hook",
+    "registrationStatus": 200,
+    "rowAfterTrigger": {
+      "id": "wh_3671283e3300",
+      "url": "https://127.0.0.1.nip.io:46673/hook",
+      "events": [
+        "contract.signed"
+      ],
+      "active": true,
+      "createdAt": "2026-08-21T06:32:10.537Z",
+      "createdBy": "WH Admin 4",
+      "lastAt": "2026-08-21T06:32:10.596Z",
+      "lastOk": false,
+      "lastStatus": "address refused",
+      "fails": 1
+    },
+    "sinkHitsGained": 0
+  },
+  "sourceVerification": {
+    "payloadKeysByEvent": {
+      "contract.signed": [
+        "contractId",
+        "status"
+      ],
+      "intake.requested": [
+        "requestId"
+      ],
+      "round.received": [
+        "contractId",
+        "action"
+      ],
+      "obligation.due": [
+        "contractId",
+        "obligationId"
+      ]
+    }
+  },
+  "triggerProof": [
+    {
+      "kind": "contract.signed",
+      "before": {
+        "id": "wh_j10_contract_signed",
+        "url": "https://127.0.0.1:46673/contract.signed",
+        "events": [
+          "contract.signed"
+        ],
+        "active": true,
+        "createdAt": "2026-08-21T06:32:11.461Z",
+        "createdBy": "j10",
+        "lastAt": null,
+        "lastOk": null,
+        "lastStatus": "",
+        "fails": 0
+      },
+      "after": {
+        "id": "wh_j10_contract_signed",
+        "url": "https://127.0.0.1:46673/contract.signed",
+        "events": [
+          "contract.signed"
+        ],
+        "active": true,
+        "createdAt": "2026-08-21T06:32:11.461Z",
+        "createdBy": "j10",
+        "lastAt": "2026-08-21T06:32:11.505Z",
+        "lastOk": false,
+        "lastStatus": "address refused",
+        "fails": 2
+      }
+    },
+    {
+      "kind": "round.received",
+      "before": {
+        "id": "wh_j10_round_received",
+        "url": "https://127.0.0.1:46673/round.received",
+        "events": [
+          "round.received"
+        ],
+        "active": true,
+        "createdAt": "2026-08-21T06:32:11.462Z",
+        "createdBy": "j10",
+        "lastAt": null,
+        "lastOk": null,
+        "lastStatus": "",
+        "fails": 0
+      },
+      "after": {
+        "id": "wh_j10_round_received",
+        "url": "https://127.0.0.1:46673/round.received",
+        "events": [
+          "round.received"
+        ],
+        "active": true,
+        "createdAt": "2026-08-21T06:32:11.462Z",
+        "createdBy": "j10",
+        "lastAt": "2026-08-21T06:32:11.494Z",
+        "lastOk": false,
+        "lastStatus": "address refused",
+        "fails": 1
+      }
+    },
+    {
+      "kind": "obligation.due",
+      "before": {
+        "id": "wh_j10_obligation_due",
+        "url": "https://127.0.0.1:46673/obligation.due",
+        "events": [
+          "obligation.due"
+        ],
+        "active": true,
+        "createdAt": "2026-08-21T06:32:11.463Z",
+        "createdBy": "j10",
+        "lastAt": null,
+        "lastOk": null,
+        "lastStatus": "",
+        "fails": 0
+      },
+      "after": {
+        "id": "wh_j10_obligation_due",
+        "url": "https://127.0.0.1:46673/obligation.due",
+        "events": [
+          "obligation.due"
+        ],
+        "active": true,
+        "createdAt": "2026-08-21T06:32:11.463Z",
+        "createdBy": "j10",
+        "lastAt": "2026-08-21T06:32:11.510Z",
+        "lastOk": false,
+        "lastStatus": "address refused",
+        "fails": 1
+      }
+    },
+    {
+      "kind": "intake.requested",
+      "before": {
+        "id": "wh_j10_intake_requested",
+        "url": "https://127.0.0.1:46673/intake.requested",
+        "events": [
+          "intake.requested"
+        ],
+        "active": true,
+        "createdAt": "2026-08-21T06:32:11.464Z",
+        "createdBy": "j10",
+        "lastAt": null,
+        "lastOk": null,
+        "lastStatus": "",
+        "fails": 0
+      },
+      "after": {
+        "id": "wh_j10_intake_requested",
+        "url": "https://127.0.0.1:46673/intake.requested",
+        "events": [
+          "intake.requested"
+        ],
+        "active": true,
+        "createdAt": "2026-08-21T06:32:11.464Z",
+        "createdBy": "j10",
+        "lastAt": "2026-08-21T06:32:11.718Z",
+        "lastOk": false,
+        "lastStatus": "address refused",
+        "fails": 1
+      }
+    }
+  ]
+}

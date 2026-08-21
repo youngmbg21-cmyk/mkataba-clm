@@ -1,0 +1,17 @@
+PASS  the refused card is on the page — Refused
+PASS  and it carries Reopen — the fault as reported was Edit alone — 66x30
+PASS  Reopen leads the row and Edit follows it — ["Reopen","Edit","Send a copy"]
+PASS  and no decision is offered on an answered ask — ["Reopen","Edit","Send a copy"]
+PASS  and the hover says what it costs before it is pressed — Take your refusal back — this ask returns to Accept or Reject, the clause goes back to the agreed wording, and their copy is brought up to date.
+PASS  Reopen is drawn exactly like Edit — background, border, weight, size — rgba(0, 0, 0, 0) / 0px rgb(51, 65, 85)
+PASS  and the same height, so the row reads as one set of verbs — 30px vs 30px
+PASS  no whose-move sentence was added to the card — 423 characters on the card
+PASS  the ask is pending again on the record — pending
+PASS  and the card is a decision again — Accept and Reject are back — ["Accept","Reject","Edit"]
+PASS  with Reopen gone, because there is no refusal left to undo
+PASS  and the status corner follows — Awaiting you
+PASS  refusing asks for a reason before it files anything
+PASS  refusing it again brings the way back with it — rejected, reopen true
+PASS  no page errors — clean
+
+15/15 passed

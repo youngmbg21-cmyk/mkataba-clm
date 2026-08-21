@@ -1,0 +1,107 @@
+[
+  {
+    "name": "ARM: three of our own asks are pending on the record",
+    "pass": true,
+    "detail": "[\"CHG-001:pending\",\"CHG-002:pending\",\"CHG-003:pending\"]"
+  },
+  {
+    "name": "a named colleague can be asked to review a chosen subset",
+    "pass": true,
+    "detail": "HTTP 200 {\"ok\":true,\"emailSent\":true,\"emailConfigured\":true,\"emailError\":null,\"outbox\":false,\"to\":\"everything@example.co.ke\",\"reviewer\":{\"id\":\"u_107bb11134815b69\",\"name\":\"Unrestricted Legal\"}}"
+  },
+  {
+    "name": "the email that tells the reviewer actually WENT, and says so honestly",
+    "pass": true,
+    "detail": "to everything@example.co.ke · \"Amina Otieno asked you to review \"Review probe\"\" · route said emailSent=true"
+  },
+  {
+    "name": "…and the reviewer's link lands on the contract, not on a generic page",
+    "pass": true,
+    "detail": "http://127.0.0.1:38433/#contract=MK-RV&tab=redline"
+  },
+  {
+    "name": "ARM: the review exists on the record with its chosen subset",
+    "pass": true,
+    "detail": "{\"id\":\"REV-1\",\"changeIds\":[\"CHG-001\",\"CHG-002\"],\"reviewer\":{\"id\":\"u_107bb11134815b69\",\"name\":\"Unrestricted Legal\",\"email\":\"everything@example.co.ke\"},\"status\":\"open\"}"
+  },
+  {
+    "name": "the named reviewer can HOLD a change",
+    "pass": true,
+    "detail": "HTTP 200 {\"ok\":true,\"version\":3}"
+  },
+  {
+    "name": "somebody who is not the named reviewer is REFUSED a verdict, in words",
+    "pass": true,
+    "detail": "HTTP 403 {\"error\":\"Only Unrestricted Legal can rule on #CHG-002.\"}"
+  },
+  {
+    "name": "ARM: CHG-001 really is held and CHG-002 really is still out for review",
+    "pass": true,
+    "detail": "[\"CHG-001:held\",\"CHG-002:none\",\"CHG-003:none\"]"
+  },
+  {
+    "name": "a hand-built payload carrying held changes is accepted but STRIPPED",
+    "pass": true,
+    "detail": "HTTP 200 withheldByReview=2"
+  },
+  {
+    "name": "WALL: the HELD change does not travel",
+    "pass": true,
+    "detail": "changes on the wire: [\"CHG-003\"]"
+  },
+  {
+    "name": "WALL: the change still OUT FOR REVIEW does not travel",
+    "pass": true,
+    "detail": "changes on the wire: [\"CHG-003\"]"
+  },
+  {
+    "name": "WALL: the untouched ask DOES travel",
+    "pass": true,
+    "detail": "[\"CHG-003\"]"
+  },
+  {
+    "name": "WALL: the reviewer's NAME is nowhere on the wire",
+    "pass": true,
+    "detail": "searched the whole payload for \"Unrestricted Legal\""
+  },
+  {
+    "name": "WALL: the word \"review\" as a verdict is nowhere on the wire",
+    "pass": true,
+    "detail": "not present"
+  },
+  {
+    "name": "WALL: the review request object does not travel",
+    "pass": true,
+    "detail": "searched for the reviewer note"
+  },
+  {
+    "name": "WALL: who RULED on a change (resolvedBy) does not travel",
+    "pass": true,
+    "detail": "searched for resolvedBy"
+  },
+  {
+    "name": "WALL: our own audit trail does not travel",
+    "pass": true,
+    "detail": "searched for an audit array"
+  },
+  {
+    "name": "WALL: the negotiation DESK roster does not travel",
+    "pass": true,
+    "detail": "searched for roster"
+  },
+  {
+    "name": "a colleague holding an open review is REFUSED a send, and told the way out",
+    "pass": true,
+    "detail": "HTTP 403 {\"error\":\"You are reviewing 2 changes on this contract for Amina Otieno. Hand the review back before sending anything to the counterparty.\",\"reviewing\":[\"REV-1\"]}"
+  },
+  {
+    "name": "J6/J7 crossing: the desk itself never travels either",
+    "pass": true,
+    "detail": "searched for a desk object"
+  },
+  {
+    "name": "the reviewer cannot delete the review off the record",
+    "pass": true,
+    "detail": "HTTP 403 {\"error\":\"Internal review REV-1 cannot be removed from the record.\"}"
+  }
+]

@@ -1,0 +1,70 @@
+PASS — environment check: outbound internet to an arbitrary public host "reachable (unexpected) status=403"
+PASS — REFUSED at registration: http://example.com/hook {"status":400,"error":"The address must start with https:// — a signed delivery over plain http is readable on the way"}
+PASS — REFUSED at registration: https://localhost/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://localhost./hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://LOCALHOST/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://db.internal/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://db.internal./hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://thing.local/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://127.0.0.1/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://10.0.0.5/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://172.16.4.4/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://192.168.1.10/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://169.254.169.254/latest/meta-data/ {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://100.64.0.5/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://192.0.0.8/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://198.18.0.5/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://198.19.9.9/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://192.88.99.1/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://[::1]/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://[fe80::1]/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://[fc00::1]/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://[2002:7f00:1::]/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://[2001:0:5ef5:79fd:0:59fc:0:1]/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://user:pass@example.com/hook {"status":400,"error":"Take the username and password out of the address — the signature is what proves it came from HaTi"}
+PASS — REFUSED at registration: not-a-url {"status":400,"error":"That is not a URL"}
+PASS — none of the refused addresses were stored 0
+PASS — EMPTY events list (field absent) is REFUSED at registration (fail closed) {"status":400,"error":"Name at least one event to send"}
+PASS — EMPTY ARRAY events is likewise REFUSED {"status":400}
+PASS — non-admin (unrestricted) refused GET /api/webhooks 403
+PASS — non-admin (unrestricted) refused POST /api/webhooks 403
+PASS — non-admin (novalues) refused GET /api/webhooks 403
+PASS — non-admin (novalues) refused POST /api/webhooks 403
+PASS — non-admin (restricted) refused GET /api/webhooks 403
+PASS — non-admin (restricted) refused POST /api/webhooks 403
+PASS — an unknown event name is DROPPED (never stored) ["contract.signed"]
+PASS — the 21st endpoint is REFUSED — WEBHOOK_MAX=20 is enforced {"status":400,"error":"That is as many addresses as HaTi will post to (20). Remove one first."}
+PASS — a real secret is handed over on registration 48
+PASS — the secret NEVER appears again in the list true
+PASS — DNS resolution to the public rebinding-test domain works from this sandbox true
+PASS — a NAME that resolves privately is ACCEPTED at REGISTRATION (the static guard cannot see DNS) {"status":200,"body":{"ok":true,"secret":"4150dcf68dbf36d793bac26f6babee477bb0051b5014595b","webhook":{"id":"wh_3671283e3300","url":"https://127.0.0.1.nip.io:46673/hook","events":["contract.signed"],"active":true,"createdAt":"2026-08-21T06:32:10.537Z","createdBy":"WH Admin 4","lastAt":null,"lastOk":null,"lastStatus":"","fails":0}}}
+PASS — AT SEND TIME the resolved-private address is REFUSED — the DYNAMIC lookup guard fires for real {"id":"wh_3671283e3300","url":"https://127.0.0.1.nip.io:46673/hook","events":["contract.signed"],"active":true,"createdAt":"2026-08-21T06:32:10.537Z","createdBy":"WH Admin 4","lastAt":"2026-08-21T06:32:10.596Z","lastOk":false,"lastStatus":"address refused","fails":1}
+PASS — ...and NOTHING reached the sink (real DNS resolution, real refusal, zero delivery) {"before":0,"after":0}
+(node:24876) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS — round.received TRIGGER: the counterparty response route accepted it {"status":200,"body":{"ok":true}}
+PASS — obligation.due TRIGGER: runReminders() executed {"checked":4,"queued":1}
+PASS — intake.requested TRIGGER: the request was created "REQ-B88873"
+PASS — EVENT FIRED FOR REAL: contract.signed (its own endpoint's counters moved, refused for the right reason) {"before":{"id":"wh_j10_contract_signed","url":"https://127.0.0.1:46673/contract.signed","events":["contract.signed"],"active":true,"createdAt":"2026-08-21T06:32:11.461Z","createdBy":"j10","lastAt":null,"lastOk":null,"lastStatus":"","fails":0},"after":{"id":"wh_j10_contract_signed","url":"https://127.0.0.1:46673/contract.signed","events":["contract.signed"],"active":true,"createdAt":"2026-08-21T06
+PASS — EVENT FIRED FOR REAL: round.received (its own endpoint's counters moved, refused for the right reason) {"before":{"id":"wh_j10_round_received","url":"https://127.0.0.1:46673/round.received","events":["round.received"],"active":true,"createdAt":"2026-08-21T06:32:11.462Z","createdBy":"j10","lastAt":null,"lastOk":null,"lastStatus":"","fails":0},"after":{"id":"wh_j10_round_received","url":"https://127.0.0.1:46673/round.received","events":["round.received"],"active":true,"createdAt":"2026-08-21T06:32:11
+PASS — EVENT FIRED FOR REAL: obligation.due (its own endpoint's counters moved, refused for the right reason) {"before":{"id":"wh_j10_obligation_due","url":"https://127.0.0.1:46673/obligation.due","events":["obligation.due"],"active":true,"createdAt":"2026-08-21T06:32:11.463Z","createdBy":"j10","lastAt":null,"lastOk":null,"lastStatus":"","fails":0},"after":{"id":"wh_j10_obligation_due","url":"https://127.0.0.1:46673/obligation.due","events":["obligation.due"],"active":true,"createdAt":"2026-08-21T06:32:11
+PASS — EVENT FIRED FOR REAL: intake.requested (its own endpoint's counters moved, refused for the right reason) {"before":{"id":"wh_j10_intake_requested","url":"https://127.0.0.1:46673/intake.requested","events":["intake.requested"],"active":true,"createdAt":"2026-08-21T06:32:11.464Z","createdBy":"j10","lastAt":null,"lastOk":null,"lastStatus":"","fails":0},"after":{"id":"wh_j10_intake_requested","url":"https://127.0.0.1:46673/intake.requested","events":["intake.requested"],"active":true,"createdAt":"2026-08
+PASS — across all four triggers, the real HTTP sink received ZERO requests (guard holds for every kind) 0
+PASS — the contract.signed endpoint fired exactly twice (MK-WH-1 + MK-WH-4 signing) and NOT for round.received/obligation.due/intake.requested (each row keyed to its own kind) {"signedRowFails":2}
+PASS — exactly four webhookQueue(...) call sites exist in the running server ["webhookQueue('contract.signed', () => ({ contractId: c.id, s","webhookQueue('intake.requested', () => ({ requestId: id })","webhookQueue('round.received', () => ({ contractId: s.contra","webhookQueue('obligation.due', () => ({ contractId: c.id, ob"]
+PASS — payload keys for contract.signed are ids/states ONLY (allow-list, independently checked) ["contractId","status"]
+PASS —   ...specifically NEVER a contract name or intake title key ["contractId","status"]
+PASS — payload keys for intake.requested are ids/states ONLY (allow-list, independently checked) ["requestId"]
+PASS —   ...specifically NEVER a contract name or intake title key ["requestId"]
+PASS — payload keys for round.received are ids/states ONLY (allow-list, independently checked) ["contractId","action"]
+PASS —   ...specifically NEVER a contract name or intake title key ["contractId","action"]
+PASS — payload keys for obligation.due are ids/states ONLY (allow-list, independently checked) ["contractId","obligationId"]
+PASS —   ...specifically NEVER a contract name or intake title key ["contractId","obligationId"]
+PASS — signature = HMAC-SHA256(secret, timestamp + "." + body) — verified against the live server binary on disk true
+PASS — X-HaTi-Timestamp / X-HaTi-Delivery headers are set in the fire function true
+PASS — an empty secret is refused BEFORE signing (never signs with nothing) true
+PASS — LIVE: an empty-secret endpoint is refused with "no signing secret" and gets nothing delivered {"id":"wh_j10_nosecret","url":"https://127.0.0.1:46673/nosecret","events":["contract.signed"],"active":true,"createdAt":"2026-08-21T06:32:12.928Z","createdBy":"j10","lastAt":"2026-08-21T06:32:12.944Z","lastOk":false,"lastStatus":"no signing secret","fails":1}
+PASS — LIVE: and the sink genuinely received nothing for it true
+
+=== WEBHOOKS SUMMARY ===
+65 checks, 0 failed

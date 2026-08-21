@@ -1,0 +1,14 @@
+PASS  the state staged — one adopted, one pending rival — CHG-001 adopted, CHG-007 pending
+PASS  IMAGE 3 — the paper shows the ADOPTED wording — dropped sentence still on the paper? no
+PASS  and the clause is marked as argued over, with both asks named in its panel
+PASS  the adopted change has no card — which is why "reopen it first" was unreachable
+PASS  pressing the clause's Edit pill opens its panel
+PASS  IMAGE 2 — and the panel offers a REACHABLE Reopen, as visible pixels — "Reopen" 61x24
+PASS  pressing it really reopens the change — pending
+PASS  and the clause goes back to the wording it had before
+PASS  THE LOOP CLOSES — the second ask can now be accepted — accepted
+PASS  IMAGE 1 — no "Counters #…" line anywhere on the cards
+PASS  their seat carries the panel and NEVER our reopen — {"open":false,"rows":0,"anyReopen":0} on cl_rsfvki
+PASS  no page errors in the whole run — clean
+
+12/12 passed

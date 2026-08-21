@@ -1,0 +1,26 @@
+PASS  B: the Agreement family card is drawn on a SIGNED contract — Agreement family Create an amendmentLink an existing documentLink to a parent agreement A 
+PASS  B: and the master states its own expiry to begin with — 2027-06-30
+PASS  B: the amendment is created against the executed master — MK-201 → MK-A1 (Draft, docs tab)
+PASS  B: its recital names the agreement it amends
+PASS  B: the master’s live expiry now comes from the amendment — 2029-12-31 from MK-201
+PASS  B: the family counts as one agreement, two documents — 4 agreements · 5 documents
+PASS  B: and the renewal decision date follows the amendment, not the master — 2029-12-31
+PASS  B: the master’s card says the live expiry and names where it came from — live expiry 2029-12-31 comes from MK-201, not from this document's own date of 2027-06-30.
+PASS  B: on the executed master, obligations stays pressable and the wording checks do not — {"oblig":true,"playbook":false,"risk":false}
+PASS  C: all three are on the roster with the roles they were given — Second Admin:admin · New Editor:legal · New Viewer:viewer
+PASS  C: admin — an account on its temporary password cannot act — HTTP 403
+PASS  C: legal — an account on its temporary password cannot act — HTTP 403
+PASS  C: viewer — an account on its temporary password cannot act — HTTP 403
+PASS  C: admin — signs in with the password they chose
+PASS  C: the second Admin gets the Settings door and admin rights — admin=true teamDoor=true
+PASS  C: legal — signs in with the password they chose
+PASS  C: an Editor can edit but is offered no Settings door — canEdit=true admin=false teamDoor=false
+PASS  C: and typing their way to Settings lands on their own account, not the roster — {"people":0,"tabs":0,"own":true}
+PASS  C: legal — their browser is not handed colleagues’ permission settings — user fields: none · settings: none
+PASS  C: viewer — signs in with the password they chose
+PASS  C: a Viewer cannot edit, and is offered no Settings door — canEdit=false nav=dashboard,register,redline,calendar,intel,templates,intake,directory,playbook,advice,migration
+PASS  C: but a Viewer CAN reach the People directory — dashboard,register,redline,calendar,intel,templates,intake,directory,playbook,advice,migration
+PASS  C: viewer — their browser is not handed colleagues’ permission settings — user fields: none · settings: none
+PASS  no page errors across all four sign-ins — 
+
+24/24 checks passed

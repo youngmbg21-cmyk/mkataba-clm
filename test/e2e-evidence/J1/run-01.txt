@@ -1,0 +1,248 @@
+
+=== SETUP OK ===
+admin, restricted(folder proc only), novalues(values hidden), unrestricted all created.
+
+--- 1. EXECUTED_IMMUTABLE attacks on MK-A1 (Signed) ---
+ASSERTED: MK-A1.status === "Signed" (real, from GET)
+ATTACK field=status (status rollback): before="Signed" attemptedNew="Draft" -> status=409 body={"error":"MK-A1 is executed — status cannot be changed after signature. Record an amendment instead.","immutable":["status"]}
+  post-check: stored status now = "Signed"; changed=false
+ATTACK field=name (name): before="Refined Sugar Supply" attemptedNew="RENAMED BY ATTACK" -> status=409 body={"error":"MK-A1 is executed — name cannot be changed after signature. Record an amendment instead.","immutable":["name"]}
+  post-check: stored name now = "Refined Sugar Supply"; changed=false
+ATTACK field=party (party): before=undefined attemptedNew="Attacker Corp" -> status=409 body={"error":"MK-A1 is executed — party cannot be changed after signature. Record an amendment instead.","immutable":["party"]}
+  post-check: stored party now = undefined; changed=false
+ATTACK field=expiry (expiry): before="2027-06-30" attemptedNew="2099-01-01" -> status=409 body={"error":"MK-A1 is executed — expiry cannot be changed after signature. Record an amendment instead.","immutable":["expiry"]}
+  post-check: stored expiry now = "2027-06-30"; changed=false
+ATTACK field=metadata (metadata): before={"value":48000000,"currency":"KES"} attemptedNew={"value":999,"currency":"USD","hacked":true} -> status=409 body={"error":"MK-A1 is executed — metadata cannot be changed after signature. Record an amendment instead.","immutable":["metadata"]}
+  post-check: stored metadata now = {"value":48000000,"currency":"KES"}; changed=false
+
+--- 2. Folder move: Editor refused, admin allowed ---
+ASSERTED: MK-A2.folder === "proc"
+EDITOR attempts folder move proc->sales: status=403 body={"error":"MK-A2 is filed under proc and only an admin can move it. Ask an admin to re-file it.","folderMove":{"from":"proc","to":"sales"}}
+  post-check folder = proc
+ADMIN attempts folder move proc->sales: status=200 body={"ok":true,"version":2}
+  post-check folder = sales
+
+--- 3. Forging a signature as somebody else ---
+ASSERTED: signerPlan named. counterparty signer={"id":"sg-cp-1","party":"counterparty","order":1,"name":"Grace Njeri","email":"grace@client.co.ke","role":"Director","signed":false}
+novalues (signed in as novalues@) tries to record a session-authenticated signature as "Amina Otieno"/admin@: status=403 body={"error":"A signature made in HaTi has to be made by the person signing. This save records Amina Otieno as having signed, but you are signed in as No Values Legal. Ask them to sign it themselves.","signatureNotYours":"Amina Otieno"}
+  post-check: forged signature present on record = false
+
+--- 4. Review verdict/cancel/hand-back by wrong person ---
+SEED: filed change + open review naming novalues as reviewer: status=200
+ASSERTED: review REV-atk-1 open, reviewerId=novalues.id, changeIds=[CHG-atk-1]
+WRONG PERSON (restricted, not named reviewer) gives verdict 'accepted' on CHG-atk-1: status=200 body={"ok":true,"version":6}
+  post-check: change status still pending = false
+WRONG PERSON (restricted, neither requester nor admin) cancels REV-atk-1: status=403 body={"error":"Only the person who asked, or an admin, can cancel internal review REV-atk-1."}
+  post-check: review still open = true
+WRONG PERSON (restricted, not the reviewer) hands back REV-atk-1: status=403 body={"error":"Only the reviewer can hand internal review REV-atk-1 back."}
+  post-check: review still open = true
+RIGHT PERSON (novalues, the named reviewer) gives verdict: status=200 body={"ok":true,"version":7}
+
+--- 5. Roster edits by non-admin (PATCH /api/users/:id) ---
+nonadmin-editor PATCHes /api/users/u_d3d8670e72efd953 with {"signCap":"1000000"}: status=403 body={"error":"Admin access required"}
+nonadmin-editor PATCHes /api/users/u_d3d8670e72efd953 with {"reviewChecked":false}: status=403 body={"error":"Admin access required"}
+nonadmin-editor PATCHes /api/users/u_d3d8670e72efd953 with {"reviewerId":"u_18ffdfbe1f37e00b"}: status=403 body={"error":"Admin access required"}
+nonadmin-editor PATCHes /api/users/u_d3d8670e72efd953 with {"overseerId":"u_18ffdfbe1f37e00b"}: status=403 body={"error":"Admin access required"}
+nonadmin-editor PATCHes /api/users/u_d3d8670e72efd953 with {"clearTwoStep":true}: status=403 body={"error":"Admin access required"}
+nonadmin-editor PATCHes /api/users/u_d3d8670e72efd953 with {"folderAccess":["sales"]}: status=400 body={"error":"Nothing to change"}
+ADMIN tries to set their own overseerId to themselves: status=400 body={"error":"Nobody oversees their own contracts."}
+ADMIN tries to set novalues.overseerId = novalues.id (self-oversee another way): status=400 body={"error":"Nobody oversees their own contracts."}
+ADMIN tries clearTwoStep on THEMSELVES: status=400 body={"error":"Turn off your own two-step sign-in from your account page — it needs a current code"}
+
+--- 6. Admin-only field leakage in bootstrap ---
+unrestricted(Editor)'s bootstrap: novalues user row keys present of ADMIN_ONLY = [] (full row: {"id":"u_d3d8670e72efd953","name":"No Values Legal","email":"novalues@example.co.ke","role":"legal","title":"","lang":null,"createdAt":"2026-08-21T06:07:11.904Z","prefs":{},"canViewValues":false})
+  unrestricted(Editor)'s bootstrap.settings.folderAccess present = false
+restricted(Editor)'s bootstrap: novalues user row keys present of ADMIN_ONLY = [] (full row: {"id":"u_d3d8670e72efd953","name":"No Values Legal","email":"novalues@example.co.ke","role":"legal","title":"","lang":null,"createdAt":"2026-08-21T06:07:11.904Z","prefs":{},"canViewValues":false})
+  restricted(Editor)'s bootstrap.settings.folderAccess present = false
+ADMIN's bootstrap: novalues row has ALL admin-only fields present = true (row: {"id":"u_d3d8670e72efd953","name":"No Values Legal","email":"novalues@example.co.ke","role":"legal","title":"","lang":null,"createdAt":"2026-08-21T06:07:11.904Z","prefs":{},"folderAccess":"*","canViewValues":false,"twoStep":false,"signCap":5000000,"reviewChecked":false,"reviewerId":"u_18ffdfbe1f37e00b","overseerId":"u_2665a9cb200f9f3d"})
+  ADMIN's bootstrap.settings.folderAccess present = true
+sign-folders PUT failed (may need different shape): PUT /api/settings/sign-folders → 400: {"error":"userId is required"}
+unrestricted bootstrap.settings.signFolders = undefined
+admin bootstrap.settings.signFolders = undefined
+
+--- 7. /api/ai/spend vs /api/ai/usage ---
+Editor GET /api/ai/spend: status=403 body={"error":"Admin access required"}
+Admin GET /api/ai/spend: status=200 body={"date":"2026-08-21","tz":"Africa/Nairobi","total":0,"requests":0,"dailySpendLimit":10,"dailyLimit":5000,"byFeature":[],"allowance":{"open":false,"bud
+Editor GET /api/ai/usage: status=200 body={"date":"2026-08-21","count":0,"dailyLimit":5000,"tz":"Africa/Nairobi","spend":0,"dailySpendLimit":10,"byFeature":{},"allowance":{"open":false,"budget
+Viewer GET /api/ai/usage: status=200 body={"date":"2026-08-21","count":0,"dailyLimit":5000,"tz":"Africa/Nairobi","spend":0,"dailySpendLimit":10,"byFeature":{},"allowance":{"open":false,"budget
+
+--- 8. Folder scope: restricted vs MK-B1/MK-B2 ---
+restricted GET /api/contracts -> ids: []. leaked B ids: []
+restricted GET /api/contracts/MK-B1: status=404 body={"error":"Contract not found"}
+restricted GET /api/search?q=Naivas: status=200 body={"hits":[],"fts":true,"snippets":true}
+restricted GET /api/stats: status=200 body={"totalValue":84000000,"pending":1,"signed":1,"declined":0,"drafts":0,"total":2,"expired":0,"expiredValue":0,"fxMissing":{},"byFolder":[{"folder":"proc","n":2,"val":84000000,"pending":1}]}
+restricted GET /api/analytics: status=200 body={"byStatus":[{"status":"Signed","n":1,"val":48000000},{"status":"Under Review","n":1,"val":36000000}],"byFolder":[{"folder":"proc","n":2,"val":84000000}],"byParty":[{"counterparty":"Kabras Sugar","n":1,"val":48000000},{"counterparty":"Nandi Dairy","n":1,"val":36000000}],"pipeline":{"2027-06":84000000},"pipelineCount":{"2027-06":2},"fxMissing":{}}
+restricted GET /api/shares/overview: status=200 body={"counts":{},"byContract":{},"items":[]}
+restricted POST /api/shares for MK-B1 (view): status=400 body={"error":"Invalid share payload"}
+restricted PUT /api/contracts/MK-B1 (write attempt): status=404 body={"error":"Contract not found"}
+
+=== FINDINGS SUMMARY (raw) ===
+[
+  {
+    "id": "exec-status",
+    "refused": true,
+    "changed": false
+  },
+  {
+    "id": "exec-name",
+    "refused": true,
+    "changed": false
+  },
+  {
+    "id": "exec-party",
+    "refused": true,
+    "changed": false
+  },
+  {
+    "id": "exec-expiry",
+    "refused": true,
+    "changed": false
+  },
+  {
+    "id": "exec-metadata",
+    "refused": true,
+    "changed": false
+  },
+  {
+    "id": "folder-move-editor",
+    "refused": true,
+    "moved": false
+  },
+  {
+    "id": "folder-move-admin",
+    "refused": false,
+    "moved": true
+  },
+  {
+    "id": "forge-signature",
+    "refused": true,
+    "forged": false
+  },
+  {
+    "id": "review-verdict-wrong-person",
+    "refused": false,
+    "held": false
+  },
+  {
+    "id": "review-cancel-wrong-person",
+    "refused": true,
+    "held": true
+  },
+  {
+    "id": "review-return-wrong-person",
+    "refused": true,
+    "held": true
+  },
+  {
+    "id": "review-verdict-right-person",
+    "accepted": true
+  },
+  {
+    "id": "roster-nonadmin-editor-signCap",
+    "refused": true
+  },
+  {
+    "id": "roster-nonadmin-editor-reviewChecked",
+    "refused": true
+  },
+  {
+    "id": "roster-nonadmin-editor-reviewerId",
+    "refused": true
+  },
+  {
+    "id": "roster-nonadmin-editor-overseerId",
+    "refused": true
+  },
+  {
+    "id": "roster-nonadmin-editor-clearTwoStep",
+    "refused": true
+  },
+  {
+    "id": "roster-nonadmin-editor-folderAccess",
+    "refused": true
+  },
+  {
+    "id": "overseer-self",
+    "refused": true
+  },
+  {
+    "id": "overseer-self-via-admin",
+    "refused": true
+  },
+  {
+    "id": "cleartwostep-self",
+    "refused": true
+  },
+  {
+    "id": "leak-unrestricted(Editor)",
+    "leaked": []
+  },
+  {
+    "id": "leak-settings-folderAccess-unrestricted(Editor)",
+    "leaked": false
+  },
+  {
+    "id": "leak-restricted(Editor)",
+    "leaked": []
+  },
+  {
+    "id": "leak-settings-folderAccess-restricted(Editor)",
+    "leaked": false
+  },
+  {
+    "id": "admin-sees-all",
+    "allPresent": true
+  },
+  {
+    "id": "admin-sees-folderAccess-settings",
+    "present": true
+  },
+  {
+    "id": "signfolders-by-leak-nonadmin",
+    "leaked": false
+  },
+  {
+    "id": "signfolders-by-present-admin",
+    "present": false
+  },
+  {
+    "id": "ai-spend-nonadmin-refused",
+    "refused": true
+  },
+  {
+    "id": "ai-spend-admin-ok",
+    "ok": true
+  },
+  {
+    "id": "ai-usage-nonadmin-ok",
+    "ok": true
+  },
+  {
+    "id": "ai-usage-viewer-ok",
+    "ok": true
+  },
+  {
+    "id": "scope-list",
+    "leaked": []
+  },
+  {
+    "id": "scope-get-b1",
+    "refused": true
+  },
+  {
+    "id": "scope-search",
+    "leaked": []
+  },
+  {
+    "id": "scope-analytics",
+    "leaked": []
+  },
+  {
+    "id": "scope-mint-share-b1",
+    "refused": true
+  },
+  {
+    "id": "scope-put-b1",
+    "refused": true
+  }
+]

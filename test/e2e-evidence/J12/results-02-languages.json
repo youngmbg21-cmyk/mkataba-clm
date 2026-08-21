@@ -1,0 +1,46 @@
+[
+  {
+    "name": "MK-A1 document body captured (EN)",
+    "pass": true,
+    "detail": "len=907"
+  },
+  {
+    "name": "Home hero title is CLM English before switch",
+    "pass": true,
+    "detail": "Contract Lifecycle Management"
+  },
+  {
+    "name": "Swedish toggle reachable in top bar at 1440",
+    "pass": true
+  },
+  {
+    "name": "Home hero title changed language",
+    "pass": true,
+    "detail": "EN=\"Contract Lifecycle Management\" SV=\"Hantering av avtalens livscykel\""
+  },
+  {
+    "name": "Home hero title follows the settled ng_clm wording (Hantering av avtalens livscykel)",
+    "pass": true,
+    "detail": "Hantering av avtalens livscykel"
+  },
+  {
+    "name": "MK-A1 contract wording (clauses) is BYTE IDENTICAL in English and Swedish UI",
+    "pass": true,
+    "detail": "EN len=379 SV len=379"
+  },
+  {
+    "name": "SEAL BLOCK (SV): \"Timestamp recorded\" placeholder is translated (NOT expected — records the fault)",
+    "pass": false,
+    "detail": "still hardcoded English"
+  },
+  {
+    "name": "SEAL BLOCK (SV): the signer-identity sentence is translated (NOT expected — records the fault)",
+    "pass": false,
+    "detail": "still hardcoded English"
+  },
+  {
+    "name": "SEAL BLOCK (SV): \"Not recorded\" (no signature) is translated (NOT expected — records the fault)",
+    "pass": false,
+    "detail": "still hardcoded English"
+  }
+]

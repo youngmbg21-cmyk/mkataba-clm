@@ -1,0 +1,26 @@
+PASS  1 THE BELL IS IN THEIR HEADER ROW, and it is visible pixels — {"on":true,"left":891,"right":931,"top":20,"w":40,"h":32}
+PASS  1 beside the reading verbs it was asked to sit with
+PASS  1 AND THE OWNER'S SHELL IS STILL HIDDEN — nothing was un-hidden to get a bell — shell hidden=true, owner bell drawn=false
+PASS  2 the count is drawn and is a number — 1
+PASS  6 ONE COUNT, MANY SURFACES — the bell agrees with the column — panel says 1, column draws 1
+PASS  3 pressing it slides a panel IN FROM THE RIGHT — {"on":true,"left":1080,"right":1440,"top":0,"w":360,"h":940}
+PASS  3 with a dimmed backdrop
+PASS  3 and a title saying what it is — Alerts
+PASS  4 the ✕ closes it
+PASS  4 the backdrop closes it
+PASS  4 Escape closes it
+PASS  5 a row is a door — it goes to the thing it names — {"kind":"answer","closed":true,"landedOn":"CHG-002","inView":true,"covered":false}
+PASS  5 AND THE PANEL CLOSES BEHIND IT — a door under a panel is not a door — true
+PASS  5 the thing it pointed at is on screen — true
+PASS  7 ONE BELL ON THEIR PAGE — the floating amber one is not drawn here — floating=0, header=1
+PASS  8 THE WALL LINE IS STILL DRAWN, UNFOLDED, under the header — 🔒Your table: Decisions and counter-proposals stay on this page until you press Send. A re
+PASS  8 and it is the first of its kind on the working area
+PASS  9 NOTHING INTERNAL IS ANYWHERE IN THE PANEL — Alerts × Waiting on you 1 change is waiting on your answer
+PASS  2b THE COUNT HIDES AT ZERO — a badge that is always on is one nobody reads — dot hidden=true
+PASS  2b and the panel has a real empty state — ✓ Nothing needs you right now. When something is waiting on you it wil
+PASS  11 OPENING THE LINK STARTED NO NEGOTIATION on a contract that had none — before=false, after=false
+PASS  10 NO BELL ON THE PHONE — the header there has no room for one — {"on":false,"left":0,"right":0,"top":0,"w":0,"h":0}
+PASS  no page errors — clean
+
+23/23 passed
+screenshots → test/chromium/shots/cpbell

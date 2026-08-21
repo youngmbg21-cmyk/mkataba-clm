@@ -1,0 +1,12 @@
+PASS  with nothing asked of us there is no band at all
+PASS  the band draws once they have asked for something — 366x66
+PASS  and it arrives SHUT — the column opens on the cards themselves
+PASS  pressing the bar OPENS it — rows drawn, not merely a flag flipped — 3 rows
+PASS  and the body is visible pixels — 366x345
+PASS  the bar says so to a screen reader too
+PASS  every row button carries a card attribute — no second decision path — data-rl-ask-review, data-rl-ask-review, data-nego-accept
+PASS  pressing it again shuts it
+PASS  a press on "Take it" settles that change through the ordinary funnel — CHG-002 → accepted
+PASS  no page errors anywhere in the journey — none
+
+10/10 checks passed

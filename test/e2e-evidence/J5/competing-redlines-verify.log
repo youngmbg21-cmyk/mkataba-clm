@@ -1,0 +1,15 @@
+PASS  the counter supersedes on a REAL page, linked both ways — {"ours":{"id":"CHG-001","status":"superseded","supersededBy":"CHG-002"},"theirs":{"id":"CHG-002","status":"pending","counterOf":"CHG-001"}}
+PASS  the superseded card has left the column — false
+PASS  the counter is the one live card
+PASS  and the card does NOT explain what it countered — the record does — no counter line drawn
+PASS  the panel names ONE live ask — one proposal on the table — ["CHG-002 · their ask · awaiting an answer · from Grace Wanjiru · 06:22\n        The Supplier shall supply an estimated 5000 metric tonnes per annum meeting the agreed specification and the applicable KEBS standard, delivered DDP to the Buyer's plant.Payment within ninety (90) days.\n        \n        \n        \n        \n        \n    Notes\n    \n    \n        🔒 Internal\n        🌐 Send to them\n      \n    \n    \n      Add noteSend this reply\n      Never sent to Nandi DairyNandi Dairy sees this on the same change — the contract wording is unchanged"]
+PASS  a legacy clause names BOTH asks in its panel — ["CHG-001 · your ask · awaiting an answer · from Amina Otieno · 06:22\n        The Supplier shall supply an estimated 5000 metric tonnes per annum meeting the agreed specification and the applicable KEBS standard, delivered DDP to the Buyer's plant.Payment within forty-five (45) days.\n        \n        \n        \n        \n        \n    Notes\n    \n    \n        🔒 Internal\n        🌐 Send to them\n      \n    \n    \n      Add noteSend this reply\n      Never sent to Nandi DairyNandi Dairy sees this on the same change — the contract wording is unchanged","CHG-002 · their ask · awaiting an answer · from Grace Wanjiru · 06:22\n        The Supplier shall supply an estimated 5000 metric tonnes per annum meeting the agreed specification and the applicable KEBS standard, delivered DDP to the Buyer's plant.Payment within ninety (90) days.\n        \n        \n        \n        \n        \n    Notes\n    \n    \n        🔒 Internal\n        🌐 Send to them\n      \n    \n    \n      Add noteSend this reply\n      Never sent to Nandi DairyNandi Dairy sees this on the same change — the contract wording is unchanged"]
+PASS  one clause, one anchor, both ids
+PASS  both cards are back in the column — ["CHG-002","CHG-001"]
+PASS  pressing the once-dead card now lands on its clause — {"moved":false,"linked":true}
+PASS  accepting the rival on an adopted clause is refused
+PASS  in words that name the adopted change and the way out — #CHG-001 was already adopted on this clause — reopen it first, or reject this one.
+PASS  and the adopted wording is untouched
+PASS  no page errors — 
+
+13/13 checks passed

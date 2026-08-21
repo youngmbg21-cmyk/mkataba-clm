@@ -1,0 +1,9 @@
+DARK THEME TOKENS: {
+  accent100: '#ccfbf1',
+  accent800: '#115e59',
+  accent900: '#134e4a',
+  neutral600: '#94a3b8',
+  bg: '#020617',
+  surface: '#0f172a'
+}
+ACTIVE SETTINGS TAB in dark: { text: 'People', color: 'rgb(17, 94, 89)', bg: 'rgba(0, 0, 0, 0)' }

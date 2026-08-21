@@ -1,0 +1,31 @@
+PASS — BEFORE: /api/stats {"totalValue":1000000,"pending":0,"signed":1,"declined":0,"drafts":0,"total":1,"expired":0,"expiredValue":0,"fxMissing":{},"byFolder":[{"folder":"proc","n":1,"val":1000000,"pending":0}]}
+PASS — BEFORE: /api/contracts total {"total":1}
+PASS — archiving a SIGNED contract is accepted (not refused as an executed-record edit) {"status":200}
+PASS — STATUS STAYS "Signed" — archived is a filing fact BESIDE status, not a status "Signed"
+PASS — c.archived = {at, by} is present {"at":"2026-08-21T06:32:07.811Z","by":"Amina Otieno"}
+PASS — the audit trail carries an ENGLISH "Archived" line [{"at":"2026-08-21T06:32:07.811Z","user":"Amina Otieno","action":"Archived","detail":"Moved to the archive shelf — off the live lists and counts, still searchable"}]
+PASS — OFF /api/stats: total count drops by exactly 1 {"before":1,"after":0}
+PASS — OFF /api/stats: signed count drops by exactly 1 (SQL SUM over zero matching rows is NULL, which is the correct/expected 0-rows case here) {"before":1,"after":null}
+PASS — OFF /api/stats: totalValue drops by the archived contract's value {"before":1000000,"after":0}
+PASS — OFF /api/analytics byStatus (the archived Signed row is gone from the Signed bucket) []
+PASS — GET /api/contracts still returns the archived row (client filters, server delivers) {"found":true}
+PASS — ...and the LIGHT-LIST row carries archived={at,by} (survives HEAVY projection) {"at":"2026-08-21T06:32:07.811Z","by":"Amina Otieno"}
+PASS — ...and _light is true on that row (confirms this IS the light-list projection) true
+PASS — an archived contract is STILL findable in full-text search [{"id":"MK-AR-1","name":"Archived Supply Deal","counterparty":"Kabras Sugar","snippet":"[Archived] [Supply] [Deal]  Kabras Sugar  MK-AR-1  KES"}]
+PASS — a VIEWER cannot even save the contract at all (server-side wall backstops the editor-only client gate) {"status":403,"body":{"error":"Viewers have read-only access"}}
+PASS — RESTORE: archived flag is gone 
+PASS — RESTORE: audit carries the "Restored" English line [{"at":"2026-08-21T06:32:08.042Z","user":"Amina Otieno","action":"Restored","detail":"Restored from the archive shelf to the live lists"}]
+PASS — RESTORE: back in /api/stats totals {"total":1}
+PASS — renewal signal computed for the parent (baseline call succeeded) {"status":200}
+PASS — BEFORE archiving the amendment: parent's EFFECTIVE expiry is the AMENDMENT's date (2028-06-30), not its own (2026-12-31) {"expiryBefore":"2028-06-30"}
+PASS — the executed amendment archives cleanly (still Signed) {"status":200,"contractStatus":"Signed"}
+PASS — THE SUBTLE CASE: AFTER archiving the executed amendment, the parent's term is STILL the amendment's date — filing a child is not un-signing it {"expiryAfter":"2028-06-30"}
+PASS — the archived amendment itself is off /api/stats counts too {"note":"both parent-term-still-set AND the archived record itself excluded from aggregates","stats":{"totalValue":1500000,"pending":0,"signed":2,"declined":0,"drafts":0,"total":2,"expired":0,"expiredValue":0,"fxMissing":{},"byFolder":[{"folder":"proc","n":2,"val":1500000,"pending":0}]}}
+PASS — runReminders() executed {"checked":5,"queued":1}
+PASS — the ARCHIVED contract is QUIET — no expiry-milestone mail names it {"newMailCount":1,"sampleSubjects":["Renewal in 30 days: Live Nearly-Expiring Deal"]}
+PASS — ...its LIVE twin (same shape) is NOT quiet — proves the sweep can fire, and the archived one's silence is the shelf, not a fluke {"mentionsLive":true}
+PASS — runDailyBriefs() executed {"day":"2026-08-21","sent":1}
+PASS — the daily brief NEVER names the archived contract's overdue obligation {"newBriefMailCount":1}
+
+=== ARCHIVE SHELF SUMMARY ===
+28 checks, 0 failed

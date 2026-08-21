@@ -1,0 +1,93 @@
+PASS  1 head draws no frame of its own — 0px quiet=false
+PASS  1 head has no card shadow — none
+PASS  1 head sits at the right of the tab row, and the title card is gone — inRow=true last=true shell=false
+PASS  1 Publish Round is the far-right control — publish
+PASS  1 and nothing hangs off the right edge — wrapped=false clipped=false
+PASS  2 the sheet is warm paper with its own hairline — 0.718391px at zoom 1.392
+PASS  2 and it does carry that shadow — rgba(38, 55, 74, 0.05) 0px 1px 2px 0px, rgba(38, 55, 74, 0.28) 0px 18px 44px -22px
+PASS  2 the sheet reads as paper against the column behind it — rgb(253, 252, 249) on rgba(0, 0, 0, 0)
+PASS  2 the sheet FILLS its column, the way the Document tab does — 919 of 925px
+PASS  2 and centred, with the spare width split evenly — 3px left / 3px right
+PASS  2b the text sits the same distance from both edges — 54px left / 54px right
+PASS  2b the text sits on the sheet's own padding, not a reserved gutter — 37px / 37px inside the sheet
+PASS  2b nothing is reserved inside the sheet beyond its own padding — 88.9% of the sheet
+PASS  2b the clause tool row is gone from the paper — 0 tool elements found
+PASS  2b the gaps between clauses are even and tight — [16,16,16,16,16,16,16,16,16,16]
+PASS  2b the Edit pill stands in its place, visible without a hover — opacity 1, pointer-events auto
+PASS  6 every heading is drawn exactly as the file wrote it — ["1.1 Definitions","4. Payment Terms","8.2(a) Termination for convenience","12. Governing Law","13. Insurance","14. Confidentiality","15. Data Protection","16. Force Majeure","17. Assignment","18. Notices","19. Entire Agreement"] vs ["1.1 Definitions","4. Payment Terms","8.2(a) Termination for convenience","12. Governing Law","13. Insurance","14. Confidentiality","15. Data Protection","16. Force Majeure","17. Assignment","18. Notices","19. Entire Agreement"]
+PASS  6 "1.1 Definitions" survives verbatim
+PASS  6 "8.2(a)" is not re-punctuated
+PASS  6 bold survives ingestion
+PASS  6 a numbered sub-clause list stays a list — 2
+PASS  6 a two-paragraph clause stays two blocks — 2
+PASS  7 the contract body reads at the Doc page scale — 15px
+PASS  7 the retired card token declares nothing — gone
+PASS  7 and the card head is set smaller still — 12px
+PASS  8 the document carries marked wording — 12
+PASS  8 every mark names who last touched it — 12/12 · Last updated by Amina Wanjiru · Nordfrakt Logistik AB at 06:21
+PASS  10 one card per live redline, not per clause — 6 cards · 6 live · 11 clauses
+PASS  11 Accept stays legible — contrast 5.47:1 (rgb(255, 255, 255) on rgb(15, 118, 110))
+PASS  11 Reject stays legible — contrast 6.47:1 (rgb(185, 28, 28) on rgb(255, 255, 255))
+PASS  11 Send stays legible — contrast 5.47:1 (rgb(255, 255, 255) on rgb(15, 118, 110))
+PASS  11 Edit stays legible — contrast 10.35:1 (rgb(51, 65, 85) on rgb(255, 255, 255))
+PASS  11 Accept is the one filled button on the card — rgb(15, 118, 110) / rgba(0, 0, 0, 0) / rgba(0, 0, 0, 0)
+PASS  11 Accept and Reject are tellable apart — rgb(255, 255, 255) vs rgb(185, 28, 28)
+PASS  14 a working card says what is being decided, clamped
+PASS  14 and names its clause — Clause 18 · Notices
+PASS  14 and the document still marks it, so nothing was lost — 12
+PASS  14 the card carries Open — the door to the clause panel
+PASS  14 a change needing nothing is a one-line receipt — no verbs, no copy, Open kept — verbs 0, diff false
+PASS  14 and the receipt is really SMALL — under half a working card — receipt 42px vs working 211px
+PASS  14b nothing is popped out to begin with — {"h":211,"col":1271,"panel":false}
+PASS  14b Open raises the clause panel — {"h":211,"col":1271,"panel":true}
+PASS  14b AND THE COLUMN DOES NOT MOVE — the whole point of the change — card 211→211px, column 1271→1271px
+PASS  14b the same press closes it — {"panel":false}
+PASS  14b pressing the card takes you to the clause and opens nothing — {"panel":false}
+PASS  14b and hovering opens nothing — the peek is gone
+PASS  14c no notice is drawn as a band above the document
+PASS  15 the clause was genuinely out of view first — {"clause":true,"card":true}
+PASS  15 card -> contract lights both ends
+PASS  15 card -> contract scrolls the clause into view
+PASS  15 contract -> card lights and scrolls the card
+PASS  15 exactly one pair is lit — 2 elements
+PASS  13 the engine's send is mounted in the column, out of the way — in the column: true, clipped: true
+PASS  13 and every door onto it is a proxy — one transport, no header copy — 0 copies, 2 proxies
+PASS  13 the toolbar is one of them, the unsent band the other — toolbar:true band:true
+PASS  13 the band's Send reaches the postbox exactly once — 1 presses
+PASS  13 and so does the toolbar's — one each, never two — 1 presses
+PASS  13 it counts the unsent drafts — ⚡ Send All (1) Redline
+PASS  13 it is animated — rlBlast
+PASS  13 it is emerald-600 — rgb(5, 150, 105)
+PASS  9 the document takes two thirds of the row — 0.666
+PASS  9 the one sidebar takes the other third — 0.334
+PASS  9 there is one face, and it is the cards — {"grid":1404,"doc":925,"side":463,"split":1388,"chg":true,"disc":false,"modeTabs":0}
+PASS  9 nothing can flip it away — an old stored preference included — {"grid":1404,"doc":925,"side":463,"split":1388,"chg":true,"disc":false,"modeTabs":0}
+PASS  9 and the split does not move when it is asked to — 925 vs 925
+PASS  9b dragging the handle narrows the document — 925 -> 773
+PASS  9b double-click puts the default split back — 925 vs 925
+PASS  12 Edit puts the clause on screen — the document fits the column
+PASS  12 the clause says it has arrived
+PASS  12 and NO editor opens on the clause — writing moved to the panel
+PASS  12 no modal was opened to do it — 0
+PASS  12b the ＋ opens the editor over "As it stands" — editor in the panel
+PASS  12b the wording wraps in the editor exactly as it did in the block it replaced — normal → normal
+PASS  12b and is set at the same size and leading — 14px/23.1px → 14px/23.1px
+PASS  12b a table in the editor fills its box — 409 of 409px
+PASS  12b a preformatted block scrolls inside the box rather than out of it — overflow-x:auto, spilling 0px
+PASS  12c landing on a clause does not shrink it — 817 -> 817px
+PASS  12c and does not hand it a dropdown's clamp or clipping — max-width:none, overflow-x:visible
+PASS  12c the heading still wraps rather than being cut off — normal
+PASS  12c and the clause still says it has arrived
+PASS  5 no clause carries a Copilot button — and no menu follows a highlight — menu false, items []
+PASS  5 but the wording still selects, so it can still be copied — 27 characters selected
+PASS  3 and a highlight opens no dialog either
+PASS  4 the Copilot panel opens
+PASS  4 docked, with no scrim over the document
+PASS  4 the document is still on screen beside it
+PASS  3 the hand-over lands in the panel, not in a popover — {"card":false,"dialogs":0}
+PASS  3 no modal anywhere on the redline route — 0
+PASS  5 the tag shortcut is gone — {"fnGone":true,"noteBtns":0}
+PASS  5 and the change can still be talked about
+
+90/90 checks passed
+screenshots → test/chromium/shots/redline

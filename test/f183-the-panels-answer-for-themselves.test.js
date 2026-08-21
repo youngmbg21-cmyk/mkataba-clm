@@ -32,6 +32,14 @@ const SERVER_SRC = fs.readFileSync(path.join(__dirname, '..', 'server', 'server.
 
 const day = off => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + off);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+/* A day inside THIS calendar month, counted from its first (1 = the 1st).
+   MK-2 below is the fixture's "runs inside a single month" case, and it used to
+   say so with day(1)/day(12) — offsets from TODAY, which straddle two calendar
+   months on the last stretch of every month and made the claim false on 132
+   days of the year. The intent was never "twelve days from now"; it was "starts
+   and ends inside one month", so the fixture states that directly. */
+const inThisMonth = n => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(n).padStart(2, '0')}`; };
 
 /* A book with a deliberate spike, and two different reasons for it: one big
    contract whose start defaulted to the day it was signed, and one that starts
@@ -41,8 +49,8 @@ const CONTRACTS = [
     value: 6000000, valueType: 'standard', expiry: day(150), signedAt: day(-3), audit: [],
     metadata: { category: 'works', retentionPct: 10, warrantyMonths: 12 } },
   { id: 'MK-2', name: 'One-month fit-out', counterparty: 'Siginon', folder: 'proc', status: 'Signed',
-    value: 4000000, valueType: 'standard', expiry: day(12), audit: [],
-    metadata: { category: 'works', effectiveDate: day(1), warrantyMonths: 6 } },
+    value: 4000000, valueType: 'standard', expiry: inThisMonth(28), audit: [],
+    metadata: { category: 'works', effectiveDate: inThisMonth(2), warrantyMonths: 6 } },
   { id: 'MK-3', name: 'Long refurbishment', counterparty: 'Britam', folder: 'corp', status: 'Under Review',
     value: 3000000, valueType: 'standard', expiry: day(300), audit: [],
     metadata: { category: 'works', effectiveDate: day(-10), retentionPct: 5 } },

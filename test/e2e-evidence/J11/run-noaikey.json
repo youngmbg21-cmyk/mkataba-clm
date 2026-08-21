@@ -1,0 +1,72 @@
+[
+  {
+    "name": "sanity: this world really has NO AI key (state.aiConfigured is false)",
+    "pass": true,
+    "detail": "false"
+  },
+  {
+    "name": "chat: a question STILL gets an answer (the local keyword engine), not a dead panel",
+    "pass": true,
+    "detail": "nt? I couldn't match that to your contract data. I can help with things like: \"show pending contracts\", \"total value of signed\", \"summarize MK-103\", or searching by counterparty name (e.g. \"Naivas\"). "
+  },
+  {
+    "name": "chat: the brain indicator honestly says \"Basic mode\" rather than pretending to be Copilot",
+    "pass": true,
+    "detail": "Basic mode — add a key for Copilot"
+  },
+  {
+    "name": "the selection menu still offers Simplify/Ask Copilot (the door stays; the honesty is behind it)",
+    "pass": true,
+    "detail": "{\"selMenuState\":{\"textFound\":true},\"menuRowsNK\":[\"✂️ Simplify\",\"✨ Ask Copilot\"]}"
+  },
+  {
+    "name": "pressing Simplify with no key opens the panel and says HONESTLY it is not connected — no dead press",
+    "pass": true,
+    "detail": "nt All invoices are payable within thirty (30) days from the date of issue, being KES 4,800,000 per annum.”\n      \n      \n        The Copilot is not connected yet. Connect it under Team & Settings → Copilot engine, then try again.\n        \n        \n      \n    "
+  },
+  {
+    "name": "the brief card teaser is drawn (not missing) before anything is pressed",
+    "pass": true,
+    "detail": "\n    \n      Contract brief\n      \n    \n    Not written yet. Copilot reads the wording and explains it in plain English.\n"
+  },
+  {
+    "name": "pressing \"Write the brief\" with no key returns null (no crash, no fake brief)",
+    "pass": true,
+    "detail": "{\"r\":null}"
+  },
+  {
+    "name": "and says so HONESTLY via toast (\"Copilot is not connected... the brief needs it\") — not a dead press",
+    "pass": true,
+    "detail": "\"Copilot is not connected, so there is nothing to read the contract with — the brief needs it.\""
+  },
+  {
+    "name": "renewal advice with no key: refused honestly, `_renewalAdviceError` carries the sentence for the card to print",
+    "pass": true,
+    "detail": "{\"r\":null,\"cardError\":\"Copilot is not connected, so there is nothing to weigh this up with. The dates above stand on their own.\"}"
+  },
+  {
+    "name": "the redline co-pilot band draws just the same with no AI key — it reads the playbook deterministically, no model involved",
+    "pass": true,
+    "detail": "{\"there\":true}"
+  },
+  {
+    "name": "and it opens with real rows, exactly as with a key configured",
+    "pass": true,
+    "detail": "1 rows"
+  },
+  {
+    "name": "the palette handoff still works with no key — opens the panel, prefills the question (the honesty lives in the panel, not the palette)",
+    "pass": true,
+    "detail": "{\"paletteGone\":true,\"prefill\":\"thirty days\"}"
+  },
+  {
+    "name": "the health report STILL works with no AI key (it is deterministic, computed, never modelled)",
+    "pass": true,
+    "detail": "Print / save as PDF\nPortfolio Health Report\n\nGenerated 21 August 2026 · 1 contracts · read from your live records\n\n97\nStrong\nout of 100\n1What changed "
+  },
+  {
+    "name": "no page errors anywhere in the no-AI-key journey",
+    "pass": true,
+    "detail": "clean"
+  }
+]

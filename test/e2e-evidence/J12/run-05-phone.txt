@@ -1,0 +1,26 @@
+PASS  grep "changes.push|negoFileChange" js/mobile*.js finds NOTHING — (no matches)
+PASS  phone shell (#m-root) is present at 390px
+PASS  bottom bar has 4 labels — [{"text":"Home","size":14},{"text":"Contracts","size":14},{"text":"Negotiate","size":14},{"text":"Approvals","size":14}]
+PASS  bottom bar label "Home" is >= 14px — 14px
+PASS  bottom bar label "Contracts" is >= 14px — 14px
+PASS  bottom bar label "Negotiate" is >= 14px — 14px
+PASS  bottom bar label "Approvals" is >= 14px — 14px
+PASS  Home: no horizontal overflow — over=0
+PASS  Contracts: no horizontal overflow — over=0
+PASS  Negotiate: no horizontal overflow — over=0
+PASS  Negotiate screen shows the three-band structure (waiting on you / other side / nothing outstanding) — Waiting on you
+        1 | Waiting on you | 1 | With the other side
+        0 | With the other side | 0 | Nothing outstanding
+        0 | Nothing outstanding | 0
+PASS  Approvals: no horizontal overflow — over=0
+PASS  tapping a contract row opens the phone contract screen — tapped=data-m-open=MK-A1
+PASS  Contract screen /terms: no horizontal overflow — over=0
+PASS  Contract screen /hist: no horizontal overflow — over=0
+PASS  share sheet opens on the phone
+PASS  People: no horizontal overflow — over=0
+PASS  People screen lists members (email addresses visible)
+PASS  More: no horizontal overflow — over=0
+
+--- page errors ---
+
+19/19 passed

@@ -1,0 +1,31 @@
+      · contract MK-201 created
+PASS  R1: two asks are filed as ours, both pending — 2 filed
+PASS  R1: before anything is sent, the move is OURS — {"k":"you","n":1}
+PASS  R1: a negotiate link is minted — 5e93c4a97e…
+PASS  WALL: the counterparty’s payload carries the wording — 4192 bytes
+PASS  WALL: an internal note does not travel — absent
+PASS  WALL: a colleague’s name in a review does not travel — absent
+PASS  WALL: the internal review’s existence does not travel — absent
+PASS  WALL: the negotiation desk roster does not travel — absent
+PASS  WALL: our own audit trail does not travel — absent
+PASS  WALL: the sender’s covering note is not in the payload
+PASS  R2: the counterparty sees both of our asks as cards — 2 cards
+PASS  R2: the wall line is on their page before they start — banner=true
+PASS  R2: nothing internal is on their screen either — Highland Corporate Ltd
+      · counterparty pressed: reject=true accept=null
+PASS  R2: their decisions are HELD — nothing has reached us yet — 2 on our copy, 0 settled
+PASS  R3: their answers arrive on our copy — CHG-001:rejected CHG-002:pending
+PASS  R3: a refusal we gave has a way back — Reopen — CHG-001 reopened
+      · round 4: accepted 0
+PASS  SIGN: anything still pending is our own ask, awaiting their answer — 1 pending, all ours: true
+PASS  SIGN: and the negotiation blocks signature while it is outstanding — ["1 change has not been answered (#CHG-001)"]
+PASS  SIGN: the contract executes and takes a seal
+PASS  RECORD: the trail covers creation and signature — Created → Negotiation desk → Negotiation → Negotiation → Negotiation → Negotiation → Negotiation → Negotiation → Negotiation → Negotiation → Signed
+PASS  RECORD: the negotiation timeline holds every event — 5 events
+PASS  RECORD: Verify integrity comes back clean — {}
+PASS  EXECUTED: the negotiation refuses a change to sealed wording — {"filed":false}
+PASS  EXECUTED: the SERVER refuses a direct PUT that rewrites sealed wording — HTTP 409 · wording unchanged
+PASS  EXECUTED: a negotiate link cannot sign, and the server says so — HTTP 409 {"error":"A response was already submitted for this link"}
+PASS  no page errors in the whole journey — 
+
+26/26 checks passed

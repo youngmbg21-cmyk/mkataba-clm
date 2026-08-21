@@ -1,0 +1,31 @@
+PASS — BEFORE: contract count {"total":4,"statsTotal":4}
+PASS — viewer raises a request {"ok":true,"request":{"id":"REQ-7944BE","title":"NDA with a new packaging supplier","need":"They want to see our volumes before quoting. Nothing signed yet.","counterparty":"Rift Packaging Ltd","folder":"proc","status":"open","by":{"id":"u_81e95c60e47fcd09","name":"Sales Colleague"},"contractId":null,"decidedBy":null,"decidedAt":null,"note":"","createdAt":"2026-08-21T06:32:04.136Z","updatedAt":null}}
+PASS — viewer cannot draft a contract (asking grants nothing) {"status":403,"body":{"error":"Viewers have read-only access"}}
+PASS — viewer cannot ACCEPT even their own request (only editors decide) {"status":403,"body":{"error":"Viewers can raise and withdraw requests, not decide them"}}
+PASS — raising a request creates NO contract row {"before":4,"after":4}
+PASS — raising a request moves NO /api/stats count {"before":4,"after":4}
+PASS — editor declines with a reason {"ok":true,"request":{"id":"REQ-4B1EE8","title":"Distribution deal — East region","need":"A distributor wants exclusivity for the east region.","counterparty":"","folder":"","status":"declined","by":{"id":"u_81e95c60e47fcd09","name":"Sales Colleague"},"contractId":null,"decidedBy":"Amina Otieno","decidedAt":"2026-08-21T06:32:04.156Z","note":"We already have an exclusive distributor there — check with Legal before re-asking.","createdAt":"2026-08-21T06:32:04.152Z","updatedAt":"2026-08-21T06:32:04.156Z"}}
+PASS — DECLINE notice actually sent to the viewer's OWN stored address {"to":"sales@example.co.ke","subject":"Din förfrågan avslogs: Distribution deal — East region"}
+PASS — the reason is carried WHOLE in the mail body "Hej Sales Colleague,\n\nAmina Otieno har avslagit din förfrågan ”Distribution deal — East region”.\n\nAngivet skäl: We already have an exclusive distributor there — check with Legal before re-asking.\n\nAlla dina förfrågningar finns under Förfrågningar i HaTi.\n\nDetta är ett automatiskt meddelande från HaTi CLM."
+PASS — the notice is in the RECIPIENT's own language (Swedish, not English) "Hej Sales Colleague,\n\nAmina Otieno har avslagit din förfrågan ”Distribution deal — East region”.\n\nAngivet skäl: We alrea"
+PASS — a DECLINED request leaves no orphan contract {"total":4}
+PASS — a body-supplied "email"/"to" field is NEVER read as the recipient {"sentTo":["sales@example.co.ke"]}
+PASS — ...but the REAL stored address still gets told (status genuinely moved) "sales@example.co.ke"
+PASS — viewer may withdraw their OWN request {"ok":true,"request":{"id":"REQ-F68A6C","title":"Third request, to be withdrawn","need":"Testing the silent-withdrawal rule.","counterparty":"","folder":"","status":"withdrawn","by":{"id":"u_81e95c60e47fcd09","name":"Sales Colleague"},"contractId":null,"decidedBy":"Sales Colleague","decidedAt":"2026-08-21T06:32:04.779Z","note":"","createdAt":"2026-08-21T06:32:04.775Z","updatedAt":"2026-08-21T06:32:04.779Z"}}
+PASS — a WITHDRAWAL sends NO mail (nobody is told about their own act) []
+PASS — editor deciding THEIR OWN request {"ok":true,"request":{"id":"REQ-D42D3F","title":"Admin-raised request","need":"Raised and decided by the same person.","counterparty":"","folder":"","status":"accepted","by":{"id":"u_4a3d5ccb08a8b79a","name":"Amina Otieno"},"contractId":null,"decidedBy":"Amina Otieno","decidedAt":"2026-08-21T06:32:05.091Z","note":"","createdAt":"2026-08-21T06:32:05.085Z","updatedAt":"2026-08-21T06:32:05.091Z"}}
+PASS — ...sends NO mail (actor === requester) []
+PASS — re-saving the SAME status sends no mail (status did not move) {"status":"done"}
+PASS — deleted the ghost user (to test "no account" path) {"status":200,"body":{"ok":true}}
+PASS — DECIDING A REQUEST FROM A DELETED USER: the decision still STANDS (200, not a failure) {"ok":true,"request":{"id":"REQ-343F75","title":"Ghost request","need":"This person will be deleted before the decision lands.","counterparty":"","folder":"","status":"accepted","by":{"id":"u_5efa80dea0845838","name":"Ghost Colleague"},"contractId":null,"decidedBy":"Amina Otieno","decidedAt":"2026-08-21T06:32:05.918Z","note":"","createdAt":"2026-08-21T06:32:05.908Z","updatedAt":"2026-08-21T06:32:05.918Z"}}
+PASS — ...and simply no mail goes anywhere (fact, not error) []
+PASS — filing INTO an unreachable stream is REFUSED (403) {"error":"You do not have access to that value stream"}
+PASS — a request filed into a stream the reader cannot see is INVISIBLE to them {"visibleIds":["REQ-343F75","REQ-D42D3F","REQ-F68A6C","REQ-4B1EE8","REQ-7944BE"]}
+PASS — ...but an unrestricted admin does see it true
+PASS — the request now POINTS at the contract via contractId {"id":"REQ-82970C","title":"Turn me into paper","need":"test the ordinary creation path","counterparty":"Paper Co","folder":"proc","status":"done","by":{"id":"u_4a3d5ccb08a8b79a","name":"Amina Otieno"},"contractId":"MK-FROM-REQ-1","decidedBy":"Amina Otieno","decidedAt":"2026-08-21T06:32:06.249Z","note":"","createdAt":"2026-08-21T06:32:06.239Z","updatedAt":"2026-08-21T06:32:06.249Z"}
+PASS — the contract exists as an ORDINARY contract (register-visible) "MK-FROM-REQ-1"
+PASS — an EDITOR (not the requester) may move status to accepted {"ok":true,"request":{"id":"REQ-33B1CE","title":"Accept me","need":"test","counterparty":"","folder":"","status":"accepted","by":{"id":"u_4a3d5ccb08a8b79a","name":"Amina Otieno"},"contractId":null,"decidedBy":"Restricted Legal","decidedAt":"2026-08-21T06:32:06.257Z","note":"","createdAt":"2026-08-21T06:32:06.254Z","updatedAt":"2026-08-21T06:32:06.257Z"}}
+PASS — ACCEPTED also notifies (not just declined/done) ["admin@example.co.ke"]
+
+=== INTAKE SUMMARY ===
+28 checks, 0 failed

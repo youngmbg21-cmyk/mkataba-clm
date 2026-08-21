@@ -1,0 +1,87 @@
+[
+  {
+    "name": "all three tabs share ONE-LINE head (title+sub same row)",
+    "pass": true,
+    "detail": "{\"frame\":{\"headH\":36,\"sameLine\":true,\"toTheRight\":true,\"title\":\"Insights\",\"sub\":\"portfolio frame · negotiation friction · Copilot contract graph\"},\"friction\":{\"headH\":36,\"sameLine\":true,\"toTheRight\":true,\"title\":\"Insights\",\"sub\":\"portfolio frame · negotiation friction · Copilot contract graph\"},\"map\":{\"headH\":36,\"sameLine\":true,\"toTheRight\":true,\"title\":\"Insights\",\"sub\":\"portfolio frame · negotiation friction · Copilot contract graph\"}}"
+  },
+  {
+    "name": "panel keys are stable English",
+    "pass": true,
+    "detail": "workload_runway,money_held_back,promises_live,won_and_lost,renewal_runway"
+  },
+  {
+    "name": "panel carries method/scope/measure/excluded",
+    "pass": true,
+    "detail": "{\"title\":\"The workload runway\",\"method\":\"each contract's value is spread evenly over every month between its start and end date, so a piece of work occupies the months it runs\",\"scope\":{\"category\":null,\"counterparty\":null,\"book\":\"live contracts (everything except Declined)\"},\"measure\":\"value\",\"hasExcluded\":true,\"excludedShape\":[\"couldNotPlace\",\"outsideTheWindow\",\"lostWork\"],\"rowsCap\":null}"
+  },
+  {
+    "name": "keys do not turn over when the language does",
+    "pass": true,
+    "detail": "workload_runway,money_held_back,promises_live,won_and_lost,renewal_runway"
+  },
+  {
+    "name": "but the reader-facing title DOES follow the language",
+    "pass": true,
+    "detail": "Arbetsbanan"
+  },
+  {
+    "name": "archived contract never appears in workload runway (drivers/excluded lists)",
+    "pass": true,
+    "detail": "{\"hasArchivedInRunway\":false,\"scopeBook\":\"live contracts (everything except Declined)\",\"wonLostScopeBook\":\"every contract of this shape, INCLUDING Declined\"}"
+  },
+  {
+    "name": "scope.book states the LIVE definition (everything except Declined)",
+    "pass": true,
+    "detail": "live contracts (everything except Declined)"
+  },
+  {
+    "name": "a novalues reader still gets panels — pfWeight falls to 1-per-contract when values hidden",
+    "pass": true,
+    "detail": "{\"measure\":\"contracts\",\"money\":{\"visible\":false,\"currency\":\"KES\"}}"
+  },
+  {
+    "name": "reports page renders with content",
+    "pass": true,
+    "detail": "4 card/canvas-ish elements"
+  },
+  {
+    "name": "weeklyData is deterministic — two calls agree byte for byte",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "slot 5 (\"what we did not look at\") always prints",
+    "pass": true,
+    "detail": "checked via structure below"
+  },
+  {
+    "name": "weekly review HTML built with no page errors and non-trivial content",
+    "pass": true,
+    "detail": "4030 bytes, ~6 heading-ish tags"
+  },
+  {
+    "name": "on a quiet week the doc still has real content (slot 5 present) rather than collapsing",
+    "pass": true,
+    "detail": "4047 bytes"
+  },
+  {
+    "name": "health report window opened and filled (not stuck on \"building\")",
+    "pass": true,
+    "detail": "Print / save as PDF\nPortfolio Health Report\n\nGenerated 21 August 2026 · 5 contracts · read from your live records\n\n98\nSt"
+  },
+  {
+    "name": "health report names its snapshot (a month/date appears)",
+    "pass": true,
+    "detail": "2026 · 5 contracts · read from your live rec"
+  },
+  {
+    "name": "health report body background is light (white-ish), not dark-theme",
+    "pass": true,
+    "detail": "rgb(255, 255, 255)"
+  },
+  {
+    "name": "no page errors on Insights/Reports/Weekly/Health journey",
+    "pass": true,
+    "detail": "clean"
+  }
+]

@@ -1,0 +1,82 @@
+[
+  {
+    "name": "stage: the master is Signed and states its own expiry",
+    "pass": true,
+    "detail": "Signed · 2026-09-20"
+  },
+  {
+    "name": "stage: the amendment exists as a DRAFT, filed against the master",
+    "pass": true,
+    "detail": "Draft → MK-FAM1"
+  },
+  {
+    "name": "DRAFT: the reminder sweep fires the 30-day renewal notice on the master",
+    "pass": true,
+    "detail": "1 message(s); subjects: Renewal in 30 days: Refined Sugar Supply Family"
+  },
+  {
+    "name": "DRAFT: the reminder email does NOT quote the draft amendment's later date",
+    "pass": true,
+    "detail": "looked for 2027-09-25 in the mail body"
+  },
+  {
+    "name": "stage: the amendment is now genuinely executed",
+    "pass": true,
+    "detail": "Signed"
+  },
+  {
+    "name": "SIGNED: the master no longer hits the 30-day mark once the amendment is signed",
+    "pass": true,
+    "detail": "no expiry mail — the term moved"
+  },
+  {
+    "name": "SIGNED: the daily brief does not list the master as expiring inside 30 days",
+    "pass": true,
+    "detail": "no brief sent (quiet day)"
+  },
+  {
+    "name": "the reminder sweep and the daily brief agree with each other",
+    "pass": true,
+    "detail": "sweep mailed=0 · brief names parent expiry=false"
+  },
+  {
+    "name": "BROWSER MODEL: the master's effective expiry is the amendment's date",
+    "pass": true,
+    "detail": "own=2026-09-20 effective=2027-09-25 from=MK-AMD1"
+  },
+  {
+    "name": "REGISTER ROW prints the effective (amended) date, not the master's own",
+    "pass": true,
+    "detail": "row=\"MK-FAM1 Refined Sugar Supply Family−1 Raw Material Supply Kabras Sugar Executed — KES 48M 25.09.2027 · 400 d View contract ⋯\" — want 25.09.2027, must not show 20.09.2026"
+  },
+  {
+    "name": "FAMILY CARD is drawn on Key terms",
+    "pass": true,
+    "detail": "Agreement family Create an amendment Link an existing document This is a master agreement with 1 linked document. The family counts as one agreement · 2 documents. The live expiry 2027-09-25 comes fro"
+  },
+  {
+    "name": "FAMILY CARD states the live expiry and names where it came from",
+    "pass": true,
+    "detail": "Agreement family Create an amendment Link an existing document This is a master agreement with 1 linked document. The family counts as one agreement · 2 documents. The live expiry 2027-09-25 comes from MK-AMD1, not from this document's own date of 2026-09-20. "
+  },
+  {
+    "name": "KEY TERMS shows the amended term, not the superseded one",
+    "pass": true,
+    "detail": "looked for 2027-09-25/25.09.2027"
+  },
+  {
+    "name": "DASHBOARD: the master is NOT counted as expiring soon once the amendment is signed",
+    "pass": true,
+    "detail": "expiring slice = []"
+  },
+  {
+    "name": "back on a DRAFT: the live date reverts and the proposal is stated beside it",
+    "pass": true,
+    "detail": "live=2026-09-20 proposed=2027-09-25 from MK-AMD1"
+  },
+  {
+    "name": "no page errors across the surfaces walk",
+    "pass": true,
+    "detail": "none"
+  }
+]

@@ -1,0 +1,28 @@
+{
+  "totalValue": 252000000,
+  "pending": 5,
+  "signed": 2,
+  "declined": 0,
+  "drafts": 0,
+  "total": 7,
+  "expired": 0,
+  "expiredValue": 0,
+  "fxMissing": {
+    "USD": 1,
+    "EUR": 1
+  },
+  "byFolder": [
+    {
+      "folder": "proc",
+      "n": 5,
+      "val": 89000000,
+      "pending": 4
+    },
+    {
+      "folder": "sales",
+      "n": 2,
+      "val": 163000000,
+      "pending": 1
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+PASS  default market is kenya — kenya
+PASS  MK-A1 Key Terms value shows KES with en-KE grouping (comma) — KES 48,000,000 
+PASS  Playbook (Kenya market) references Kenya governing law
+PASS  reader language explicitly pinned to English before the market switch — en
+PASS  market select shows kenya in the drawer — kenya
+PASS  pinned English reader stays English after a market switch — en
+PASS  SETTINGS PAGE HOLDS STILL — #set-page is the SAME DOM node after the market switch (patch, not re-render) — same node
+PASS  market switched to sweden — sweden
+PASS  market select reflects sweden after switch — sweden
+PASS  market facts line changed (currency/law facts updated) — before="Currency: KES · Governing law: Kenyan law
+    Signatures rest on: Electronic signatures under the Business Laws (Amendment) Act 2020 (Kenya)." after="Currency: SEK · Governing law: Swedish law
+    Signatures rest on: Electronic signatures under Regulation (EU) No 910/2014 (eIDAS)."
+PASS  market facts line now mentions SEK — Currency: SEK · Governing law: Swedish law
+    Signatures rest on: Electronic signatures under Regulation (EU) No 910/2014 (eIDAS).
+PASS  MK-A1 Key Terms value STILL shows KES (contract keeps its own currency under a Swedish market) — KES 48 000 000 
+PASS  MK-A1 value digit grouping is now sv-SE (space) — English UI, Swedish market, KES currency, Swedish grouping — KES 48 000 000 
+PASS  MK-A1 document wording unaffected by market switch
+PASS  Playbook (Sweden market) references Sweden/Stockholm governing law
+PASS  Playbook (Sweden market) no longer references Kenya
+PASS  Calendar month header is ENGLISH words under an English reader + Swedish market — August 2026
+PASS  Calendar month header turns Swedish once the READER (not just the market) is Swedish — EN reader="August 2026" SV reader="augusti 2026"
+
+--- page errors ---
+
+18/18 passed

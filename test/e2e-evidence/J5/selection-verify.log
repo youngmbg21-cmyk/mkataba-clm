@@ -1,0 +1,25 @@
+PASS  0 the retired clause toolbar is not drawn at all — 0 tool elements
+PASS  0 and the clause's Edit pill computes to user-select:none — none
+PASS  1 the stored clause carries list markers the screen does not print — "1. Either party may terminate by giving "
+PASS  1 a real selection across two sub-clauses contains no marker — "Either party may terminate by giving not less "
+PASS  2 a cross-sub-clause drag offers nothing on the paper — no menu
+PASS  2 and the markers are still forgiven — the reading finds it in the stored clause — located
+PASS  2 with no false refusal
+PASS  3 a real pointer drag from the heading selects the clause — "1.1 Definitions\n\nIn this Agreement, Business"
+PASS  3 and the real drag really did sweep the heading in — "1.1 Definitions\n\nIn "
+PASS  3 and the paper answers with nothing to press — no menu
+PASS  3 with no false refusal
+PASS  3 and the heading is not part of what the reading takes — "In this Agreement, Business Day means a day ot"
+PASS  3 nor is the Edit pill a real drag sweeps up
+PASS  4 an overshoot into the margin is not read as spanning two clauses — 1 clause(s) in the drag
+PASS  4 and the paper offers nothing on it either
+PASS  5 wording under a LIVE redline still reads as marked
+PASS  5 and nothing is offered or asked of the model — menu false, asked 0
+PASS  5 a genuine drag across two numbered clauses reads as two — 2 clause(s)
+PASS  5 and nothing is offered or asked of the model — menu false, asked 0
+PASS  6 the recital belongs to no clause — 0 clause(s)
+PASS  6 and the page says nothing about a menu it no longer offers
+PASS  6 while the words are still selectable, so they can be copied — "Between Wanjiru Catering"
+
+22/22 checks passed
+screenshots → test/chromium/shots/selection

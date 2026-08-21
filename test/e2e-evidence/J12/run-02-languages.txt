@@ -1,0 +1,13 @@
+PASS  MK-A1 document body captured (EN) — len=907
+PASS  Home hero title is CLM English before switch — Contract Lifecycle Management
+PASS  Swedish toggle reachable in top bar at 1440
+PASS  Home hero title changed language — EN="Contract Lifecycle Management" SV="Hantering av avtalens livscykel"
+PASS  Home hero title follows the settled ng_clm wording (Hantering av avtalens livscykel) — Hantering av avtalens livscykel
+PASS  MK-A1 contract wording (clauses) is BYTE IDENTICAL in English and Swedish UI — EN len=379 SV len=379
+FAIL  SEAL BLOCK (SV): "Timestamp recorded" placeholder is translated (NOT expected — records the fault) — still hardcoded English
+FAIL  SEAL BLOCK (SV): the signer-identity sentence is translated (NOT expected — records the fault) — still hardcoded English
+FAIL  SEAL BLOCK (SV): "Not recorded" (no signature) is translated (NOT expected — records the fault) — still hardcoded English
+
+--- page errors ---
+
+6/9 passed

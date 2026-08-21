@@ -1,0 +1,128 @@
+PASS  stage: a signed master with a term of its own — MK-A1
+PASS  create amendment — minted and filed against the parent — MK-201 rel=amendment
+PASS  create amendment — named "Amendment No. 1" — Amendment No. 1 to Refined Sugar Supply
+PASS  create amendment — a body is written — <p>This Amendment No. 1 is made on ____________ between <str
+PASS  create amendment — recital names the parent
+PASS  create amendment — recital carries the parent's real date — 31 July 2026 
+PASS  create amendment — counterparty carried — Kabras Sugar
+PASS  create amendment — party carried (the DOCUMENT's entity) — Highland Corporate Ltd (Kenya)
+PASS  create amendment — stream carried — proc
+PASS  create amendment — letterhead carried — {"letterhead":"HIGHLAND-LH-1"}
+PASS  create amendment — value NOT carried — 0
+PASS  create amendment — valueType IS inherited — standard
+PASS  create amendment — effective date NOT carried — md=undefined f=undefined
+PASS  create amendment — obligations NOT carried
+PASS  create amendment — signers NOT carried
+PASS  create amendment — stamped with an owner — {"id":"u_5cb728ff1eeae6ff","name":"Amina Otieno"}
+PASS  create addendum — minted and filed against the parent — MK-202 rel=addendum
+PASS  create addendum — named "Addendum No. 1" — Addendum No. 1 to Refined Sugar Supply
+PASS  create addendum — a body is written — <p>This Addendum No. 1 is made on ____________ between <stro
+PASS  create addendum — recital names the parent
+PASS  create addendum — recital carries the parent's real date — 31 July 2026 
+PASS  create addendum — counterparty carried — Kabras Sugar
+PASS  create addendum — party carried (the DOCUMENT's entity) — Highland Corporate Ltd (Kenya)
+PASS  create addendum — stream carried — proc
+PASS  create addendum — letterhead carried — {"letterhead":"HIGHLAND-LH-1"}
+PASS  create addendum — value NOT carried — 0
+PASS  create addendum — valueType IS inherited — standard
+PASS  create addendum — effective date NOT carried — md=undefined f=undefined
+PASS  create addendum — obligations NOT carried
+PASS  create addendum — signers NOT carried
+PASS  create addendum — stamped with an owner — {"id":"u_5cb728ff1eeae6ff","name":"Amina Otieno"}
+PASS  create variation — minted and filed against the parent — MK-203 rel=variation
+PASS  create variation — named "Variation No. 1" — Variation No. 1 to Refined Sugar Supply
+PASS  create variation — a body is written — <p>This Variation No. 1 is made on ____________ between <str
+PASS  create variation — recital names the parent
+PASS  create variation — recital carries the parent's real date — 31 July 2026 
+PASS  create variation — counterparty carried — Kabras Sugar
+PASS  create variation — party carried (the DOCUMENT's entity) — Highland Corporate Ltd (Kenya)
+PASS  create variation — stream carried — proc
+PASS  create variation — letterhead carried — {"letterhead":"HIGHLAND-LH-1"}
+PASS  create variation — value NOT carried — 0
+PASS  create variation — valueType IS inherited — standard
+PASS  create variation — effective date NOT carried — md=undefined f=undefined
+PASS  create variation — obligations NOT carried
+PASS  create variation — signers NOT carried
+PASS  create variation — stamped with an owner — {"id":"u_5cb728ff1eeae6ff","name":"Amina Otieno"}
+PASS  create renewal — minted and filed against the parent — MK-204 rel=renewal
+PASS  create renewal — named "Renewal No. 1" — Renewal No. 1 to Refined Sugar Supply
+PASS  create renewal — a body is written — <p>This Renewal No. 1 is made on ____________ between <stron
+PASS  create renewal — recital names the parent
+PASS  create renewal — recital carries the parent's real date — 31 July 2026 
+PASS  create renewal — counterparty carried — Kabras Sugar
+PASS  create renewal — party carried (the DOCUMENT's entity) — Highland Corporate Ltd (Kenya)
+PASS  create renewal — stream carried — proc
+PASS  create renewal — letterhead carried — {"letterhead":"HIGHLAND-LH-1"}
+PASS  create renewal — value NOT carried — 0
+PASS  create renewal — valueType IS inherited — standard
+PASS  create renewal — effective date NOT carried — md=undefined f=undefined
+PASS  create renewal — obligations NOT carried
+PASS  create renewal — signers NOT carried
+PASS  create renewal — stamped with an owner — {"id":"u_5cb728ff1eeae6ff","name":"Amina Otieno"}
+PASS  create sow — minted and filed against the parent — MK-205 rel=sow
+PASS  create sow — named "Statement of Work No. 1" — Statement of Work No. 1 to Refined Sugar Supply
+PASS  create sow — a body is written — <p>This Statement of Work No. 1 is made on ____________ betw
+PASS  create sow — recital names the parent
+PASS  create sow — recital carries the parent's real date — 31 July 2026 
+PASS  create sow — counterparty carried — Kabras Sugar
+PASS  create sow — party carried (the DOCUMENT's entity) — Highland Corporate Ltd (Kenya)
+PASS  create sow — stream carried — proc
+PASS  create sow — letterhead carried — {"letterhead":"HIGHLAND-LH-1"}
+PASS  create sow — value NOT carried — 0
+PASS  create sow — valueType IS inherited — standard
+PASS  create sow — effective date NOT carried — md=undefined f=undefined
+PASS  create sow — obligations NOT carried
+PASS  create sow — signers NOT carried
+PASS  create sow — stamped with an owner — {"id":"u_5cb728ff1eeae6ff","name":"Amina Otieno"}
+PASS  create annex — minted and filed against the parent — MK-206 rel=annex
+PASS  create annex — named "Annex No. 1" — Annex No. 1 to Refined Sugar Supply
+PASS  create annex — a body is written — <p>This Annex No. 1 is made on ____________ between <strong>
+PASS  create annex — recital names the parent
+PASS  create annex — recital carries the parent's real date — 31 July 2026 
+PASS  create annex — counterparty carried — Kabras Sugar
+PASS  create annex — party carried (the DOCUMENT's entity) — Highland Corporate Ltd (Kenya)
+PASS  create annex — stream carried — proc
+PASS  create annex — letterhead carried — {"letterhead":"HIGHLAND-LH-1"}
+PASS  create annex — value NOT carried — 0
+PASS  create annex — valueType IS inherited — standard
+PASS  create annex — effective date NOT carried — md=undefined f=undefined
+PASS  create annex — obligations NOT carried
+PASS  create annex — signers NOT carried
+PASS  create annex — stamped with an owner — {"id":"u_5cb728ff1eeae6ff","name":"Amina Otieno"}
+PASS  create side-letter — minted and filed against the parent — MK-207 rel=side-letter
+PASS  create side-letter — named "Side Letter No. 1" — Side Letter No. 1 to Refined Sugar Supply
+PASS  create side-letter — a body is written — <p>This Side Letter No. 1 is made on ____________ between <s
+PASS  create side-letter — recital names the parent
+PASS  create side-letter — recital carries the parent's real date — 31 July 2026 
+PASS  create side-letter — counterparty carried — Kabras Sugar
+PASS  create side-letter — party carried (the DOCUMENT's entity) — Highland Corporate Ltd (Kenya)
+PASS  create side-letter — stream carried — proc
+PASS  create side-letter — letterhead carried — {"letterhead":"HIGHLAND-LH-1"}
+PASS  create side-letter — value NOT carried — 0
+PASS  create side-letter — valueType IS inherited — standard
+PASS  create side-letter — effective date NOT carried — md=undefined f=undefined
+PASS  create side-letter — obligations NOT carried
+PASS  create side-letter — signers NOT carried
+PASS  create side-letter — stamped with an owner — {"id":"u_5cb728ff1eeae6ff","name":"Amina Otieno"}
+PASS  ordinal is PER KIND — the second addendum is "Addendum No. 2" — Addendum No. 2 to Refined Sugar Supply
+PASS  ordinal is PER KIND — the second amendment is "Amendment No. 2" — Amendment No. 2 to Refined Sugar Supply
+PASS  ordinal is PER KIND — annexes count annexes — Annex No. 2 to Refined Sugar Supply / Annex No. 3 to Refined Sugar Supply
+PASS  a blank amendment gets FAMILY_BLANK_BODY, never an empty string — "<p><br></p>"
+PASS  a Declined child keeps its number — the next is No. 2, not a reuse — Side Letter No. 1 to Refined Sugar Supply declined → next is Side Letter No. 2 to Refined Sugar Supply
+PASS  a contract cannot be its own parent — A contract cannot be its own parent.
+PASS  a document cannot be filed under a child (one level deep) — MK-213 is itself an amendment of MK-A1. Link to the master agreement instead — HaTi keeps families one level deep on purpose.
+PASS  a master cannot be filed under anything — MK-A1 already has 13 amendment(s) of its own, so it is a master agreement. Move those first if it should become an amendment.
+PASS  linking a standalone to a parent IS allowed — null
+PASS  no parent chosen is refused in words — Choose a parent agreement.
+PASS  link an existing document as a child — rel=annex audit="Linked: Filed as an annex / schedule of MK-A1"
+PASS  …and unlink it again, with an audit line — audit="Unlinked: No longer filed as an amendment of MK-A1 — recorded as a standalone agreement"
+PASS  a DRAFT amendment does NOT move the parent's end date — effective=2027-06-30 own=2027-06-30
+PASS  …but its proposal is stated, and names the document asking — proposes 2029-12-31 from MK-214
+PASS  a SIGNED amendment DOES move the parent's end date — effective=2029-12-31
+PASS  …and the proposal stands down once it is executed — null
+PASS  …and the parent names where the date came from — MK-214
+PASS  an ARCHIVED executed amendment still sets its parent's term — effective=2029-12-31 (child archived, status still Signed)
+PASS  children do not count as separate agreements — 4 agreements · 5 documents (1 children) — "4 agreements · 5 documents"
+PASS  no page errors across the family model walk — none
+
+126/126 checks passed

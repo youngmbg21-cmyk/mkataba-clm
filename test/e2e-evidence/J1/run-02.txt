@@ -1,0 +1,27 @@
+=== 02: corrected review-verdict guard ===
+SEED (properly shaped: rv.reviewer={id,name}, rv.by/byId set): status=200
+ASSERTED: REV-atk-2 open, reviewer.id === novalues.id, CHG-atk-2 present with authorSide=owner (side=ours -> verdicts cleared/held)
+WRONG PERSON (restricted, not the named reviewer) writes ch.review={verdict:'held',...}: status=403 body={"error":"Only No Values Legal can rule on #CHG-atk-2."}
+  post-check: ch.review still absent (no forged verdict landed) = true
+  FINDING review-verdict-wrong-person-CORRECTED: refused=true held=true
+ADMIN (not the named reviewer) writes ch.review verdict: status=403 body={"error":"Only No Values Legal can rule on #CHG-atk-2."}
+  post-check: ch.review still absent = true
+  FINDING review-verdict-admin-not-reviewer: refused=true held=true
+RIGHT PERSON (novalues, named reviewer) writes ch.review verdict 'held': status=200 body={"ok":true,"version":3}
+  post-check: verdict landed = true
+  FINDING review-verdict-right-person-CORRECTED: accepted=true landed=true
+
+=== cancel/hand-back with a properly shaped review (positive + negative controls) ===
+SEED REV-atk-3 (requester=unrestricted, reviewer=novalues): status=200
+WRONG PERSON (restricted, neither requester(unrestricted) nor admin) cancels REV-atk-3: status=403 body={"error":"Only Unrestricted Legal, or an admin, can cancel internal review REV-atk-3."}
+  post-check: still open = true
+RIGHT PERSON (unrestricted, the actual requester, byId matches) cancels REV-atk-3: status=200 body={"ok":true,"version":5}
+  post-check: cancelled = true
+  FINDING review-cancel-positive-control: accepted=true landed=true
+
+SEED REV-atk-4: status=200
+WRONG PERSON (restricted, not the reviewer=novalues) hands back REV-atk-4: status=403 body={"error":"Only No Values Legal can hand internal review REV-atk-4 back."}
+  post-check: still open = true
+RIGHT PERSON (novalues, actual reviewer) hands back REV-atk-4: status=200 body={"ok":true,"version":7}
+  post-check: returned = true
+  FINDING review-return-positive-control: accepted=true landed=true

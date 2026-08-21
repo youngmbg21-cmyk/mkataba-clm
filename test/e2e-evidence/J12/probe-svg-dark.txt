@@ -1,0 +1,65 @@
+{
+  "count": 34,
+  "texts": [
+    {
+      "content": "KES 247M",
+      "fill": "var(--color-neutral-600)"
+    },
+    {
+      "content": "0",
+      "fill": "var(--color-neutral-600)"
+    },
+    {
+      "content": "Aug 2026",
+      "fill": "var(--color-neutral-600)"
+    },
+    {
+      "content": "Nov 2026",
+      "fill": "var(--color-neutral-600)"
+    },
+    {
+      "content": "Feb 2027",
+      "fill": "var(--color-neutral-600)"
+    },
+    {
+      "content": "May 2027",
+      "fill": "var(--color-neutral-600)"
+    },
+    {
+      "content": "Aug 2027",
+      "fill": "var(--color-neutral-600)"
+    },
+    {
+      "content": "Nov 2027",
+      "fill": "var(--color-neutral-600)"
+    },
+    {
+      "content": "KES 85M",
+      "fill": "var(--color-neutral-600)"
+    },
+    {
+      "content": "0",
+      "fill": "var(--color-neutral-600)"
+    },
+    {
+      "content": "no rounds recorded",
+      "fill": "var(--color-neutral-600)"
+    },
+    {
+      "content": "3 rounds →",
+      "fill": "var(--color-neutral-600)"
+    },
+    {
+      "content": "Naivas Supermarkets",
+      "fill": "var(--color-text)"
+    },
+    {
+      "content": "Nandi Dairy",
+      "fill": "var(--color-text)"
+    },
+    {
+      "content": "Kabras Sugar",
+      "fill": "var(--color-text)"
+    }
+  ]
+}

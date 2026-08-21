@@ -1,0 +1,15 @@
+PASS  J3: the uploaded wording IS the page (the text was read and is drawn) — found "warehousing services": true
+PASS  J3: the file is named on the page (the file strip) — true
+PASS  J3: "Download original" is offered — true
+PASS  J3: "Re-read document" is offered — true
+PASS  J3: the wording is NOT boxed in a separately-scrolling card — boxed scrollers holding the wording: 0
+PASS  J3: a .docx with text draws no file preview frame — iframes=0
+PASS  J3: the received-upload Document tab renders without throwing (the OURS crash) — none
+PASS  J3: the text-size stepper is on the Document tab as visible pixels — present=true visible=true readout=15px
+PASS  J3: pressing A-plus really enlarges the UPLOADED wording — 15px -> 13px   then 20px -> 17.329px
+PASS  J3: pressing A-minus really shrinks it again — 20px -> 17.329px   then 8px -> 6.929px
+PASS  J3: a PDF keeps its file preview frame — frames=1 · HaTi CLM SME Contract Platform English Svenska ⌘K Ask Copilot 2 AO Amina Otieno Admin · Highland Corporate Ltd MENU Home Contracts 6 Negotia
+PASS  J3: nothing pretends to have read text a PDF does not carry — false
+PASS  J3: the PDF names its own file — true
+
+13/13 checks passed

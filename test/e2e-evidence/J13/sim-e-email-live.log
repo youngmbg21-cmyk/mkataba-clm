@@ -1,0 +1,50 @@
+
+· A provider is attached. Does the workspace know?
+PASS  E: the workspace reports email as configured — emailConfigured=true
+
+· A share link, sent by email.
+PASS  E: the share route reports the email as sent — {"emailSent":true,"emailError":null}
+PASS  E: and the provider was actually handed one message — 1 message(s)
+PASS  E: addressed to the person it was sent to — grace@client.co.ke
+PASS  E: sent from the workspace’s own configured address — HaTi <hello@hati.test>
+PASS  E: and the mail carries a working link to the contract — http://127.0.0.1:46137/#share=t:4ef89fc0a72b0d870f13e8f5
+PASS  E: the sender’s covering note travels in the EMAIL (which is where it belongs) — present
+
+· The outbox is the record. Does a delivered message land in it correctly?
+PASS  E: the delivered message is recorded as sent, by the real provider — sent=1 provider=resend
+
+· Now the provider starts refusing — the commonest real failure, an unverified sending domain.
+PASS  E: a refused send is reported as NOT sent — emailSent=false
+PASS  E: and the reason the provider gave is handed back, not swallowed — The hati.test domain is not verified. Please verify it. · sent from HaTi <hello@hati.test>
+PASS  E: the failed send is in the outbox as a failure, with the reason on it — provider=resend-http-403 detail=The hati.test domain is not verified. Please verify it. · sent from HaTi <hello@
+PASS  E: THE LINK STILL EXISTS after a failed send — the work is not lost — token issued
+
+· And now the provider cannot be reached at all — the other real failure.
+PASS  E: an unreachable provider does not take the request down with it — "no error"
+PASS  E: it is reported as not sent, with a reason — Could not reach Resend: fetch failed · sent from HaTi <hello@hati.test>
+
+· A password reset is the one email a locked-out person cannot work around.
+PASS  E: a reset request with a live provider actually sends the mail — 1 message(s) to restricted@example.co.ke
+PASS  E: and the reset link is in the message, not in the HTTP response — #reset=r_87cd01f7d643.8c30294694824dde20
+
+· An address nobody has must look identical — or the route is an account oracle.
+PASS  E: the reply is identical whether or not the address is on file — 200 {"ok":true,"emailSent":true} vs 200 {"ok":true,"emailSent":true}
+PASS  E: and only the real address actually generated a message — restricted@example.co.ke
+
+· The three routes that tell somebody an email is on its way. Provider refusing.
+PASS  E: adding a colleague — the refused welcome email is NOT reported as sent — emailSent=false
+PASS  E: …and the admin is told why, so they can pass the password another way — The hati.test domain is not verified. · sent from HaTi <hello@hati.test>
+PASS  E: the signing code — a refused send is NOT reported as sent — emailSent=false
+PASS  E: …and the signer is told it did not arrive rather than told to wait for it — The message could not be delivered. Ask the sender to send it another way.
+
+· The password reset must stay silent about WHO exists — but not about whether the mail works.
+PASS  E: the reset reply is STILL identical for a real and an unknown address — 200 {"ok":true,"emailSent":true} vs 200 {"ok":true,"emailSent":true}
+
+· And the workspace’s own health reading must not say "fine" while nothing is arriving.
+PASS  E: the outbox route reports the delivery health, not just the configuration — {"configured":true,"failing":true,"recent":10,"failed":6,"lastError":"The hati.test domain is not verified. · sent from HaTi <hello@hati.test>","lastFailedAt":"2026-08-21T06:05:08.819Z"}
+PASS  E: and it says mail is failing, because it is — {"configured":true,"failing":true,"recent":10,"failed":6,"lastError":"The hati.test domain is not verified. · sent from HaTi <hello@hati.test>","lastFailedAt":"2026-08-21T06:05:08.819Z"}
+
+· Every message leaves under one identity. Is it the right one?
+PASS  E: one configured sending identity, not a per-message guess — HaTi <hello@hati.test>
+
+26/26 checks passed

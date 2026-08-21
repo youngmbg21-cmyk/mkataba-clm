@@ -1,0 +1,195 @@
+=== TASK 4: a new draft opens on Key terms — the three properties ===
+PASS  control: an unregistered contract opens on docs — docs
+PASS  property 1: a registered draft lands on Key terms — terms
+PASS  property 1: it fires ONCE — the id is deleted on arrival — docs
+PASS  property 2: an executed (Signed) contract is excluded — docs
+PASS  property 2: a sealed/migrated contract excluded even if status is not literally Signed — docs
+PASS  property 2: an UPLOAD (Under Review, not executed) IS included — terms
+PASS  property 3: an explicit tab request (_wsTabWant) still wins — docs
+
+=== SITE 1/8: js/wizard.js — the guided wizard, real UI ===
+PASS  the Home page's "Draft new agreement" trigger (#hero-draft) exists on screen
+PASS  the picker opens on a STREAMS screen (not one flat grid) — Procurement & Raw Materials
+          2
+          Ingredient, commodity and packaging supply into the plants. | Manufacturing & Production
+          2
+          Co-packing, tolling and plant equipment agreements. | Warehousing & Distribution
+          2
+          3PL warehousing, cold chain and primary distribution. | Sales & Route-to-Market
+          2
+          Distributor, modern-trade and e-commerce supply deals. | Marketing & Brand
+          1
+          Agency, media, activation and sponsorship contracts. | Corporate & Compliance
+          3
+          NDAs, leases, audit, legal and IT / professional services.
+PASS  search sits on the front (streams) screen
+PASS  opening a stream shows a back door and its own templates — Raw Material Supply
+        Commodity & ingredient supply into the plants. | Packaging Supply
+        Bottles, cartons, films and labels.
+PASS  wizard: a new contract landed at the top of the register — n=5
+PASS  wizard: the new contract carries an OWNER stamp — {"id":"u_0072f9a0da9441a9","name":"Amina Otieno"}
+PASS  wizard: it opened the room on Key terms — terms
+PASS  wizard: filed under the stream it was picked from (proc) — proc
+
+=== SITE 2/8: js/app.js — createFromTemplate ===
+grep for createFromTemplate( callers:
+/home/user/mkataba-clm/js/views/intake.js:177:    createFromTemplate(tid);
+/home/user/mkataba-clm/js/app.js:509:function createFromTemplate(tid){
+callers beyond the function's own definition/export: ["/home/user/mkataba-clm/js/views/intake.js:177:    createFromTemplate(tid);"]
+PASS  a caller beyond createFromTemplate's own definition/export exists in source (js/views/intake.js) — /home/user/mkataba-clm/js/views/intake.js:177:    createFromTemplate(tid);
+PASS  an open request offers a "Draft" action to an editor/admin (the intake queue)
+PASS  SITE 2 (via Requests -> Draft): createFromTemplate created a contract through a REAL UI path — {"n":6,"owner":{"id":"u_0072f9a0da9441a9","name":"Amina Otieno"},"tab":"terms","template":"RM","intakeRequestId":"REQ-A4267B"}
+PASS  SITE 2: the contract carries an owner stamp — {"id":"u_0072f9a0da9441a9","name":"Amina Otieno"}
+PASS  SITE 2: it opened the room on Key terms — terms
+PASS  SITE 2: the contract is linked back to the request it came from — REQ-A4267B
+FINDING[Lying] js/app.js's own comment on createFromTemplate is stale :: The function is preceded by "No interface path calls this any more: both routes into a built-in template … go through openWizard()." That was true when written, but js/views/intake.js's Requests door (built later, per CLAUDE.md's W2-2 section) now calls createFromTemplate directly on "Draft" — confirmed live end to end: Requests -> Ask -> an editor presses Draft -> picks a template -> creates a contract that is owned, lands on Key terms, and is linked back to the request via intakeRequestId. The CODE is fine (createFromTemplate still does the right thing — owner stamp, roomOpenOnTerms, audit line); the comment inside js/app.js disagrees with the file that actually calls it. Two surfaces (a source comment and a live feature) say opposite things about the same function.
+
+=== SITE 3/8: js/views/library.js — createFromCustomTemplate, real UI ===
+PASS  a saved ("mine") template is reachable via the picker (found by search) — Acme Counterparty MSA
+        Saved from a contract
+PASS  picking a saved template opens the essentials form (ce-create)
+PASS  library.js: a contract was created from the saved template — Acme Counterparty MSA (Draft)
+PASS  library.js: it carries an owner stamp
+PASS  library.js: it lands on Key terms — terms
+
+=== SITE 4/8: js/views/templatelib.js — tplLibNewContract, real UI ===
+=== TASK 3: the picker streams, and "Other" for the unfiled ===
+stream buttons: [{"id":"proc","text":"Procurement & Raw Materials\n          3\n          Ingredient, commodity and packaging supply into the plants."},{"id":"mfg","text":"Manufacturing & Production\n          2\n          Co-packing, tolling and plant equipment agreements."},{"id":"dist","text":"Warehousing & Distribution\n          3\n          3PL warehousing, cold chain and primary distribution."},{"id":"sales","text":"Sales & Route-to-Market\n          2\n          Distributor, modern-trade and e-commerce supply deals."},{"id":"mktg","text":"Marketing & Brand\n          1\n          Agency, media, activation and sponsorship contracts."},{"id":"corp","text":"Corporate & Compliance\n          3\n          NDAs, leases, audit, legal and IT / professional services."},{"id":"__wz_other__","text":"Other\n          1\n          Templates with no value stream on them yet."}]
+PASS  a distinct "Other" stream card is drawn for the unfiled template — {"id":"__wz_other__","text":"Other\n          1\n          Templates with no value stream on them yet."}
+PASS  "Other" is never a real value stream in FOLDERS
+PASS  the filed company template is listed inside its own stream (dist) — Master Distribution Standard
+        v1 · pre-filled & branded
+PASS  the unfiled company template shows up under "Other" — Unfiled Company Standard
+        v1 · pre-filled & branded
+PASS  search on the front screen finds a template regardless of which stream it is filed under
+PASS  tplLibNewContract opens the essentials form
+PASS  templatelib.js: a contract was created from the company template
+PASS  templatelib.js: it carries an owner stamp
+PASS  templatelib.js: it lands on Key terms — terms
+PASS  an "Other" (unfiled) template still lands its contract in a real stream (never literally unfiled) — folder=sales
+PASS  a template's picker stream (folder) and its contracts' actual landing stream can DISAGREE — picker=mktg (Marketing & Brand — where the picker files and displays it) | actual=proc (where the resulting contract actually landed)
+FINDING[Lying] A company template's picker stream and its contracts' actual filing stream can silently disagree :: Reproduced against a real server: created a template with folder='mktg' (Marketing & Brand — the field js/wizard.js's streams picker groups and displays by, and the field tplLibCreateModal's own "Stream" dropdown writes) and category='procurement' (a separate dropdown on the SAME creation form, business-category only). The wizard picker correctly shows/files this template under Marketing & Brand. But POST /api/templates/:id/contracts (server/server.js, the route every tplLibNewContract press goes through) computes the landing folder as "b.folder && typeof b.folder==='string' ? b.folder : (TPL_CATEGORY_FOLDER[t.category] || 'corp')" — the CLIENT never sends b.folder (tplLibCreate's POST body only carries counterparty/value/dates), so it ALWAYS falls through to TPL_CATEGORY_FOLDER[t.category], landing the contract in "proc" (Procurement) — a different stream from the one the template is filed under and displayed under everywhere else. An admin who deliberately puts a template under one value stream in the Templates page/picker gets every contract from it silently filed under a different one whenever the (separate, easy to leave mismatched) business category disagrees. This is a genuine disagreement between two surfaces reading the "same" fact — not model-level: reproduced with a plain POST /api/templates then POST /api/templates/:id/contracts, i.e. exactly the request the real "Use" button sends.
+
+=== SITE 5/8: js/templatefields.js — createBulkFromTemplate, real UI (real CSV upload) ===
+PASS  a "Create in bulk" trigger exists for the Raw Material Supply built-in
+PASS  the bulk CSV parsed clean and enabled "Create drafts"
+PASS  templatefields.js: bulk creation produced the contract
+PASS  templatefields.js: the bulk-created contract carries an owner stamp — {"id":"u_0072f9a0da9441a9","name":"Amina Otieno"}
+PASS  templatefields.js registers roomOpenOnTerms for each bulk-created contract (source)
+
+=== SITE 6/8: js/views/contract.js — submitUpload, real UI (real .txt file) ===
+PASS  the upload pipeline reached the confirm step (up-go present)
+PASS  contract.js: the uploaded contract was created
+PASS  contract.js: the uploaded contract carries an owner stamp — {"id":"u_0072f9a0da9441a9","name":"Amina Otieno"}
+PASS  contract.js: an upload is filed Under Review (not Draft) — Under Review
+PASS  contract.js: an upload (not-yet-executed) still lands on Key terms — terms
+
+=== SITE 7/8: js/views/migration.js — migration importer, real UI (real .txt file) ===
+PASS  migration.js: the register grew after dropping a file — before=10 after=11
+PASS  migration.js: default import lands Signed/executed (the importer's own default) — {"n":11,"id":"MK-207","status":"Signed","hash":"MIGRATED","owner":{"id":"u_0072f9a0da9441a9","name":"Amina Otieno"}}
+PASS  migration.js: an executed migrated contract carries an owner stamp — {"id":"u_0072f9a0da9441a9","name":"Amina Otieno"}
+PASS  migration.js: an EXECUTED migrated contract stays on the Document tab (correctly excluded) — docs
+PASS  migration.js: a second import grew the register again — before=11 after=12
+PASS  migration.js: an "Under Review" migrated contract is NOT marked executed — {"n":12,"id":"MK-208","status":"Under Review","hash":null,"owner":{"id":"u_0072f9a0da9441a9","name":"Amina Otieno"}}
+PASS  migration.js: it carries an owner stamp — {"id":"u_0072f9a0da9441a9","name":"Amina Otieno"}
+PASS  migration.js: a freshly migrated (not executed) contract lands on Key terms — terms
+
+=== SITE 8/8 (deliberate exception): js/family.js — amendment writer opens on DOCUMENT ===
+PASS  js/family.js creates contracts (state.contracts.unshift(c))
+PASS  js/family.js does NOT call roomOpenOnTerms
+PASS  js/family.js still calls contractOwnerStamp
+PASS  an amendment (nothing registered, per source) lands on the Document tab — docs
+
+node page errors so far: 3
+[console] Failed to load resource: the server responded with a status of 404 (Not Found)
+[console] Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+[console] Failed to load resource: the server responded with a status of 409 (Conflict)
+
+=== TASK 2: all twelve built-in templates ===
+-- RM (Raw Material Supply Agreement) --
+PASS  RM: docBody rendered without throwing — ok
+PASS  RM: every asked field has somewhere to print (no orphans) — clean
+PASS  RM: payment answer prints on the paper (or none is expected) — pay=key+default(payDays)
+PASS  RM: term treatment matches DOC_TERM_IN_CLAUSE (recital) — len=3 years
+PASS  RM: our party prints through the recital
+PASS  RM: with no party set, falls back to the workspace name
+-- PK (Packaging Supply Agreement) --
+PASS  PK: docBody rendered without throwing — ok
+PASS  PK: every asked field has somewhere to print (no orphans) — clean
+PASS  PK: payment answer prints on the paper (or none is expected) — pay=key+default(payDays)
+PASS  PK: term treatment matches DOC_TERM_IN_CLAUSE (recital) — len=3 years
+PASS  PK: our party prints through the recital
+PASS  PK: with no party set, falls back to the workspace name
+-- CM (Contract Manufacturing (Co-Packing)) --
+PASS  CM: docBody rendered without throwing — ok
+PASS  CM: every asked field has somewhere to print (no orphans) — clean
+PASS  CM: payment answer prints on the paper (or none is expected) — pay=key+default(payDays)
+PASS  CM: term treatment matches DOC_TERM_IN_CLAUSE (recital) — len=3 years
+PASS  CM: our party prints through the recital
+PASS  CM: with no party set, falls back to the workspace name
+-- EQ (Equipment Lease & Maintenance) --
+PASS  EQ: docBody rendered without throwing — ok
+PASS  EQ: every asked field has somewhere to print (no orphans) — clean
+PASS  EQ: payment answer prints on the paper (or none is expected) — pay=null (no payment window)
+PASS  EQ: term treatment matches DOC_TERM_IN_CLAUSE (clause) — len=3 years
+PASS  EQ: our party prints through the recital
+PASS  EQ: with no party set, falls back to the workspace name
+-- WH (Warehousing & Cold-Chain Agreement) --
+PASS  WH: docBody rendered without throwing — ok
+PASS  WH: every asked field has somewhere to print (no orphans) — clean
+PASS  WH: payment answer prints on the paper (or none is expected) — pay=key+default(payDays)
+PASS  WH: term treatment matches DOC_TERM_IN_CLAUSE (recital) — len=3 years
+PASS  WH: our party prints through the recital
+PASS  WH: with no party set, falls back to the workspace name
+-- FF (Freight & Distribution Agreement) --
+PASS  FF: docBody rendered without throwing — ok
+PASS  FF: every asked field has somewhere to print (no orphans) — clean
+PASS  FF: payment answer prints on the paper (or none is expected) — pay=key+default(payDays)
+PASS  FF: term treatment matches DOC_TERM_IN_CLAUSE (recital) — len=3 years
+PASS  FF: our party prints through the recital
+PASS  FF: with no party set, falls back to the workspace name
+-- DA (Distributor Agreement) --
+PASS  DA: docBody rendered without throwing — ok
+PASS  DA: every asked field has somewhere to print (no orphans) — clean
+PASS  DA: payment answer prints on the paper (or none is expected) — pay=key+default(creditDays)
+PASS  DA: term treatment matches DOC_TERM_IN_CLAUSE (clause) — len=3 years
+PASS  DA: our party prints through the recital
+PASS  DA: with no party set, falls back to the workspace name
+-- RL (Retail Listing & Supply Agreement) --
+PASS  RL: docBody rendered without throwing — ok
+PASS  RL: every asked field has somewhere to print (no orphans) — clean
+PASS  RL: payment answer prints on the paper (or none is expected) — pay=key+default(payDays)
+PASS  RL: term treatment matches DOC_TERM_IN_CLAUSE (recital) — len=3 years
+PASS  RL: our party prints through the recital
+PASS  RL: with no party set, falls back to the workspace name
+-- MK (Marketing & Trade Promotion Services) --
+PASS  MK: docBody rendered without throwing — ok
+PASS  MK: every asked field has somewhere to print (no orphans) — clean
+PASS  MK: payment answer prints on the paper (or none is expected) — pay=key+default(payDays)
+PASS  MK: term treatment matches DOC_TERM_IN_CLAUSE (recital) — len=3 years
+PASS  MK: our party prints through the recital
+PASS  MK: with no party set, falls back to the workspace name
+-- ND (Mutual Non-Disclosure Agreement) --
+PASS  ND: docBody rendered without throwing — ok
+PASS  ND: every asked field has somewhere to print (no orphans) — clean
+PASS  ND: payment answer prints on the paper (or none is expected) — pay=null (no payment window)
+PASS  ND: term treatment matches DOC_TERM_IN_CLAUSE (clause) — len=3 years
+PASS  ND: our party prints through the recital
+PASS  ND: with no party set, falls back to the workspace name
+-- LE (Commercial Property Lease) --
+PASS  LE: docBody rendered without throwing — ok
+PASS  LE: every asked field has somewhere to print (no orphans) — clean
+PASS  LE: payment answer prints on the paper (or none is expected) — pay=null (no payment window)
+PASS  LE: term treatment matches DOC_TERM_IN_CLAUSE (clause) — len=3 years
+PASS  LE: our party prints through the recital
+PASS  LE: with no party set, falls back to the workspace name
+-- PS (Professional Services Agreement) --
+PASS  PS: docBody rendered without throwing — ok
+PASS  PS: every asked field has somewhere to print (no orphans) — clean
+PASS  PS: payment answer prints on the paper (or none is expected) — pay=key+default(payDays)
+PASS  PS: term treatment matches DOC_TERM_IN_CLAUSE (recital) — len=3 years
+PASS  PS: our party prints through the recital
+PASS  PS: with no party set, falls back to the workspace name
+
+--- screenshotting each template's paper ---
+FAIL  no uncaught page errors across the whole run — [console] Failed to load resource: the server responded with a status of 404 (Not Found) | [console] Failed to load resource: the server responded with a status of 502 (Bad Gateway) | [console] Failed to load resource: the server responded with a status of 409 (Conflict)

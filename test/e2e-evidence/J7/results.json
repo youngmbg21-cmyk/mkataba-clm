@@ -1,0 +1,122 @@
+[
+  {
+    "name": "ARM: the same envelope is accepted as a negotiate link (so the shape is right)",
+    "pass": true,
+    "detail": "HTTP 200 {\"ok\":true,\"token\":\"2eb05016287e62f1713f9d71\",\"link\":\"http://127.0.0.1:42179/#share=t:2eb05016287e62f1713f9d71\",\"expires"
+  },
+  {
+    "name": "a Sign link is REFUSED while nobody is named to sign",
+    "pass": true,
+    "detail": "HTTP 409 {\"error\":\"Nobody has been named to sign this contract, so a signing link cannot be issued. Add the signers on the Signing tab — that is what starts the signing "
+  },
+  {
+    "name": "…and the refusal is in WORDS, naming the way out",
+    "pass": true,
+    "detail": "{\"error\":\"Nobody has been named to sign this contract, so a signing link cannot be issued. Add the signers on the Signing tab — that is what starts the signing process — and send again.\",\"needsSigners"
+  },
+  {
+    "name": "naming one on each side opens signing",
+    "pass": true,
+    "detail": "[\"counterparty:Grace Njeri\",\"internal:Amina Otieno\"]"
+  },
+  {
+    "name": "a signing link is minted once a route exists",
+    "pass": true,
+    "detail": "38d1e3060baae6…"
+  },
+  {
+    "name": "a counterparty link cannot sign OUR internal row — the server rebinds it to the link",
+    "pass": true,
+    "detail": "HTTP 200 {\"ok\":true} · stored signerId=sg-cp-1 (body asked for sg-us-1)"
+  },
+  {
+    "name": "…and the stored response records how well it was verified",
+    "pass": true,
+    "detail": "verified=false method=\"unverified — this server cannot send verification codes\""
+  },
+  {
+    "name": "ARM: nothing is on the contract until the owner applies it",
+    "pass": true,
+    "detail": "signatures=0"
+  },
+  {
+    "name": "the owner applies the counterparty signature",
+    "pass": true,
+    "detail": "HTTP 200"
+  },
+  {
+    "name": "the signature lands on ITS OWN ROW",
+    "pass": true,
+    "detail": "{\"id\":\"sg-cp-1\",\"party\":\"counterparty\",\"order\":1,\"name\":\"Grace Njeri\",\"email\":\"grace@client.co.ke\",\"role\":\"Director\",\"signed\":true,\"signedAt\":\"2026-08-21T06:19:46.829Z\"}"
+  },
+  {
+    "name": "the signature carries an assurance rung stamped at the moment",
+    "pass": true,
+    "detail": "{\"name\":\"Grace Njeri\",\"role\":\"Director\",\"at\":\"2026-08-21T06:19:46.829Z\",\"method\":\"unverified — this server cannot send verification codes\",\"party\":\"counterparty\",\"assurance\":\"typed-name\"}"
+  },
+  {
+    "name": "the signing ROUTE is shut once anyone has signed",
+    "pass": true,
+    "detail": "HTTP 409 {\"error\":\"Somebody has already signed this contract, so the signing route cannot be changed. To change who signs, start the signing again — that discards the signatures already given and retires every"
+  },
+  {
+    "name": "the WORDING is frozen at the FIRST signature, not the last",
+    "pass": false,
+    "detail": "HTTP 200 · wording now: <p>Rewritten by the API.</p>"
+  },
+  {
+    "name": "the contract executes",
+    "pass": true,
+    "detail": "Signed · signatures=2"
+  },
+  {
+    "name": "an executed contract cannot be put back to Draft by a save",
+    "pass": true,
+    "detail": "HTTP 409 {\"error\":\"MK-S1 is executed — status cannot be changed after signature. Record an amendment instead.\",\"immutable\":[\"status\"]}"
+  },
+  {
+    "name": "an EDITOR is refused the same executed-immutable fields",
+    "pass": true,
+    "detail": "HTTP 409 {\"error\":\"MK-S1 is executed — name cannot be changed after signature. Record an amendment instead.\",\"immutable\":[\"name\"]}"
+  },
+  {
+    "name": "J14: every audit line names a person",
+    "pass": true,
+    "detail": "Amina Otieno: Created | Amina Otieno: Shared"
+  },
+  {
+    "name": "J14: the trail is in ENGLISH and covers creation through signature",
+    "pass": true,
+    "detail": "2 lines: Amina Otieno: Created | Amina Otieno: Shared"
+  },
+  {
+    "name": "J14: no audit line drifted into Swedish",
+    "pass": true,
+    "detail": "[]"
+  },
+  {
+    "name": "J8: an amendment can be shared and SIGNED through the real signing route",
+    "pass": true,
+    "detail": "HTTP 200"
+  },
+  {
+    "name": "J8: …and the executed amendment is genuinely executed",
+    "pass": true,
+    "detail": "Signed"
+  },
+  {
+    "name": "a counterparty cannot dictate the DATE on their own signature",
+    "pass": true,
+    "detail": "[]"
+  },
+  {
+    "name": "ARM: the same envelope is accepted for a non-signing action on the review link",
+    "pass": true,
+    "detail": "HTTP 200 {\"ok\":true}"
+  },
+  {
+    "name": "a REVIEW link cannot sign, and the server says so in words",
+    "pass": true,
+    "detail": "HTTP 403 {\"error\":\"This link was sent for review, not for signature. It can carry proposed changes, comments and an acceptance of the wording — but nothing can be signed on it. Ask the sender for a signing link.\",\"purpose\":\"negot"
+  }
+]

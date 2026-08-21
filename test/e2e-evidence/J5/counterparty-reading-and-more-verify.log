@@ -1,0 +1,43 @@
+PASS  12 the owner's own reading switch is untouched — three segments, still drawn — ["Redlined","As agreed","With changes"]
+PASS  1 THE READING SWITCH IS IN THEIR HEADER, as visible pixels — {"on":true,"left":942,"right":1195,"top":19,"bottom":53,"w":252,"h":34}
+PASS  1 three segments, each drawn — ["Redlined","As agreed","With changes"]
+PASS  1 exactly one of them reads as chosen — ["true","false","false"]
+PASS  3 the switch and the page agree about which reading is on — {"marks":["marks"],"agreed":["agreed"],"proposed":["proposed"]}
+PASS  2 REDLINED draws marks on the paper — 6 insertions, 6 deletions
+PASS  2 AS AGREED takes the marks off — 0 insertions, 0 deletions
+PASS  2 WITH CHANGES takes them off too, and is not the same wording as As agreed — the two clean readings differ, as they must
+PASS  2b a non-default reading says so on their page, in visible pixels — How you are reading it Reading the wording as it stands today — proposals are not applied.
+PASS  2b and the way back is on the notice itself
+PASS  4 the More button is visible pixels — {"on":true,"left":1317,"right":1409,"top":20,"bottom":52,"w":92,"h":32}
+PASS  4 IT IS A MENU, NOT A SELECT — these three rows are acts, not a setting — button=BUTTON, selects in the header=0
+PASS  4 and it starts shut
+PASS  5 it opens, under its own button and inside the window — {"on":true,"left":1157,"right":1409,"top":58,"bottom":236,"w":252,"h":178}
+PASS  5 aria-expanded turns over
+PASS  6 exactly three rows, every one of them drawn — pt-pdf, pt-word, pt-focus
+PASS  6 they are PDF, Word and Focus mode — PDFclean copy | Wordtracked changes | Focus modeEsc to leave
+PASS  6 in two named groups — ["Export","View"]
+PASS  7 none of the owner-only controls is drawn on their page — none
+PASS  7 and none of their words appears anywhere on it — none
+PASS  7 Compare versions is absent because Compare wording is present
+PASS  11 an outside press closes it
+PASS  11 Escape closes it, and does not fall through to focus mode — {"shut":true,"focused":false}
+PASS  8 focus mode hides their header — {"on":false,"left":0,"right":0,"top":0,"bottom":0,"w":0,"h":0}
+PASS  8 and the notice stack with it — {"on":false,"left":0,"right":0,"top":0,"bottom":0,"w":0,"h":0}
+PASS  8 the menu closed behind the press
+PASS  9 THE WALL LINE SURVIVES — a posture may not hide a promise — {"on":true,"left":26,"right":1414,"top":14,"bottom":48,"w":1388,"h":34}
+PASS  8 and the contract still has the window — {"on":true,"left":16,"right":1424,"top":6,"bottom":928,"w":1408,"h":922}
+PASS  8 ESCAPE IS THE WAY OUT — the header comes back — {"on":true,"left":16,"right":1424,"top":9,"bottom":105,"w":1408,"h":96} vs before {"on":true,"left":16,"right":1424,"top":9,"bottom":105,"w":1408,"h":96}
+PASS  10 at 1440px nothing leaves the window — none
+PASS  10 at 1440px nothing in the row overlaps — 0 overlaps
+PASS  10 at 1440px both new controls are still drawn — switch=true, more=true
+PASS  10 at 1180px nothing leaves the window — none
+PASS  10 at 1180px nothing in the row overlaps — 0 overlaps
+PASS  10 at 1180px both new controls are still drawn — switch=true, more=true
+PASS  10 at 980px nothing leaves the window — none
+PASS  10 at 980px nothing in the row overlaps — 0 overlaps
+PASS  10 at 980px both new controls are still drawn — switch=true, more=true
+PASS  12 the owner's switch is drawn by the same builder and did not move — ["Redlined","As agreed","With changes"] — 252px vs 252px
+PASS  12 and their menu is not on the owner's page
+PASS  13 no page errors during the whole run — none
+
+41/41 checks passed — shots in /home/user/mkataba-clm/test/chromium/shots/cpmore

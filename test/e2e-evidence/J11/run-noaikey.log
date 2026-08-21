@@ -1,0 +1,37 @@
+PASS  sanity: this world really has NO AI key (state.aiConfigured is false) — false
+PASS  chat: a question STILL gets an answer (the local keyword engine), not a dead panel — nt? I couldn't match that to your contract data. I can help with things like: "show pending contracts", "total value of signed", "summarize MK-103", or searching by counterparty name (e.g. "Naivas"). 
+PASS  chat: the brain indicator honestly says "Basic mode" rather than pretending to be Copilot — Basic mode — add a key for Copilot
+PASS  the selection menu still offers Simplify/Ask Copilot (the door stays; the honesty is behind it) — {"selMenuState":{"textFound":true},"menuRowsNK":["✂️ Simplify","✨ Ask Copilot"]}
+PASS  pressing Simplify with no key opens the panel and says HONESTLY it is not connected — no dead press — nt All invoices are payable within thirty (30) days from the date of issue, being KES 4,800,000 per annum.”
+      
+      
+        The Copilot is not connected yet. Connect it under Team & Settings → Copilot engine, then try again.
+        
+        
+      
+    
+PASS  the brief card teaser is drawn (not missing) before anything is pressed — 
+    
+      Contract brief
+      
+    
+    Not written yet. Copilot reads the wording and explains it in plain English.
+
+PASS  pressing "Write the brief" with no key returns null (no crash, no fake brief) — {"r":null}
+PASS  and says so HONESTLY via toast ("Copilot is not connected... the brief needs it") — not a dead press — "Copilot is not connected, so there is nothing to read the contract with — the brief needs it."
+PASS  renewal advice with no key: refused honestly, `_renewalAdviceError` carries the sentence for the card to print — {"r":null,"cardError":"Copilot is not connected, so there is nothing to weigh this up with. The dates above stand on their own."}
+PASS  the redline co-pilot band draws just the same with no AI key — it reads the playbook deterministically, no model involved — {"there":true}
+PASS  and it opens with real rows, exactly as with a key configured — 1 rows
+PASS  the palette handoff still works with no key — opens the panel, prefills the question (the honesty lives in the panel, not the palette) — {"paletteGone":true,"prefill":"thirty days"}
+PASS  the health report STILL works with no AI key (it is deterministic, computed, never modelled) — Print / save as PDF
+Portfolio Health Report
+
+Generated 21 August 2026 · 1 contracts · read from your live records
+
+97
+Strong
+out of 100
+1What changed 
+PASS  no page errors anywhere in the no-AI-key journey — clean
+
+14/14 passed

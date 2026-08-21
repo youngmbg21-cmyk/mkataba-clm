@@ -1,0 +1,47 @@
+
+· The box itself — is it reachable, and does it offer both routes?
+PASS  F: the import box offers the paste-a-code route AND the Word-file route — {"code":true,"go":true,"docx":true}
+
+· Rubbish in the box must be refused in words, not swallowed and not crash the page.
+PASS  F: a meaningless code is refused and the box stays open to try again — toast: That code is not a valid HaTi response
+PASS  F: an EMPTY box is refused the same way rather than doing something surprising
+
+· Now the real thing: the counterparty answers on their own page and produces a code.
+PASS  F: a negotiation link exists for them to answer on — 57ff10321078
+PASS  F: and our two asks are on it — CHG-001,CHG-002
+PASS  F: their page opened on the negotiation with our asks on it — {"portal":true,"cards":2}
+
+· They answer both asks, then the CODE route: no channel back, so their own page mints a code.
+PASS  F: both asks can be answered even with no live link, and are held on their page — 2 answered and held
+PASS  F: it is shown in a dialog of its own, with a way to copy it — {"dialog":true,"copy":true}
+PASS  F: and their answers are still held — the code IS the send, until it is imported — 2 still held
+PASS  F: their page produced a response code with no way back to the server — 455 characters
+PASS  F: it is shown in a dialog of its own, with a way to copy it — {"dialog":true,"copy":true}
+
+· The owner pastes it into the box. This is the route that had never been tested.
+PASS  F: the paste was accepted and the decisions landed — {"CHG-001":{"status":"accepted","reply":null},"CHG-002":{"status":"rejected","reply":"Our broker caps us at KES 20,000,000."}}
+PASS  F: the accepted ask is recorded as accepted — {"status":"accepted","reply":null}
+PASS  F: the refused ask is recorded as refused, WITH the reason they typed — {"status":"rejected","reply":"Our broker caps us at KES 20,000,000."}
+PASS  F: and each decision is in the contract’s own history, naming who made it — Negotiation: Grace Wanjiru decided 2 proposed changes — 1 accepted, 1 rejected (#CHG-001 accepted, #CHG-002 rejected) | Negotiation: Turn handed to owner by Grace Wanjiru
+
+· A REPLAY of the same code must not undo or double-apply anything — the first thing
+  somebody does when they are not sure the paste worked is paste it again.
+PASS  F: re-pasting the same code is safe — the contract ends in the state they decided — ["pending","pending"] → ["accepted","rejected"]
+
+· A code for a DIFFERENT contract must be refused — it is the one mix-up this route invites.
+PASS  F: a response for another contract is refused and changes nothing — {"ok":false,"unchanged":true}
+
+· And the Word file’s margin comments, posting over the network (API_MODE).
+PASS  F: a margin comment posts over the network and comes back on the thread — 1 message(s)
+PASS  F: it lands on the COUNTERPARTY’s side, under their own name — counterparty · Grace Wanjiru · via Word comment
+PASS  F: and it says the channel it came by, so nobody mistakes it for a typed reply — Grace Wanjiru · via Word comment
+
+· The server must not take an author’s word for the SIDE — that is our record.
+PASS  F: a Word-comment import is always filed as theirs, whatever the body asks for — {"side":"counterparty","author":"Amina Otieno · via Word comment"}
+
+· An executed contract cannot have a returned file read into it.
+PASS  F: (the fixture used for this is genuinely executed) — {"executed":false,"status":"Signed"}
+PASS  F: a pasted response cannot reopen an executed contract — false
+PASS  F: no page errors anywhere in the journey — 
+
+24/24 checks passed

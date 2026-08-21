@@ -1,0 +1,40 @@
+{
+  "PARENT_EXP": "2026-09-20",
+  "CHILD_EXP": "2027-09-25",
+  "model": {
+    "loaded": true,
+    "own": "2026-09-20",
+    "eff": "2027-09-25",
+    "src": "MK-AMD1",
+    "prop": null,
+    "PARENT_EXP": "2026-09-20",
+    "CHILD_EXP": "2027-09-25"
+  },
+  "reg": "MK-FAM1 Refined Sugar Supply Family−1 Raw Material Supply Kabras Sugar Executed — KES 48M 25.09.2027 · 400 d View contract ⋯",
+  "kt": {
+    "famText": "Agreement family Create an amendment Link an existing document This is a master agreement with 1 linked document. The family counts as one agreement · 2 documents. The live expiry 2027-09-25 comes from MK-AMD1, not from this document's own date of 2026-09-20. MK-AMD1 Amendment No. 1 to Refined Sugar Supply Amendment · term to 2027-09-25"
+  },
+  "dash": {
+    "expiringIds": [],
+    "text": "HaTi CLM SME Contract Platform English Svenska ⌘K Ask Copilot 2 AO Amina Otieno Admin · Highland Corporate Ltd MENU Home Contracts 6 Negotiations 0 Calendar 0 Insights New Templates 12 Requests 0 People ADMINISTRATION HaTi Copilot WORKSPACE STATUS Good morning, Amina Contract Lifecycle Management 6 contracts under management · KES 295M active value · 2 need you today Draft new agreement Customize these metrics ACTIVE CONTRACTS 6 +1 this week 2 in review · 4 executed AVG TURNAROUND TIME — — draft to signed, from the audit trail PENDING APPROVALS 2 Action required 2 waiting on you · 0 on others COMPLIANCE RATING 83% KICA / ODPC 5 of 6 live with no high-risk finding Active contract lifecycle pipeline View full register → 2 of 6 live Review & Redline 33% of the live book 1. Draft & Template 0 0% 2. Review & Redline 2 33% 3. Sign & Executed 4 67% Press a stage to list it 2. Review & Redline 2"
+  },
+  "rem1": {
+    "checked": 6,
+    "queued": 1
+  },
+  "rem2": {
+    "checked": 6,
+    "queued": 0
+  },
+  "db1": {
+    "day": "2026-08-21",
+    "sent": 0
+  },
+  "mailsDraft": [
+    {
+      "to": "admin@example.co.ke",
+      "subject": "Renewal in 30 days: Refined Sugar Supply Family"
+    }
+  ],
+  "mailsSigned": []
+}

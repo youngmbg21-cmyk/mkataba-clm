@@ -1,0 +1,14 @@
+counterparty signs -> 200
+
+ARMED STATE:
+  status              : Draft (NOT executed — that is the point)
+  signatures on record: 1 ["Grace Njeri"]
+  plan rows signed    : 1 of 2
+  wording             : <p>Clause 1. Liability is capped at KES 5,000,000.</p>
+
+CONTROL — change the signing route : 409 {"error":"Somebody has already signed this contract, so the signing route cannot be change
+ATTACK  — rewrite the wording       : 200 {"ok":true,"version":4}
+  wording now         : <p>Clause 1. Liability is UNLIMITED.</p>
+
+RESULT: REPRODUCED — a contract the counterparty has already signed had its wording rewritten through the API by an Editor.
+  executed with        : <p>Clause 1. Liability is UNLIMITED.</p> | status Signed

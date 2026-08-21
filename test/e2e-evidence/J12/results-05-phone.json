@@ -1,0 +1,94 @@
+[
+  {
+    "name": "grep \"changes.push|negoFileChange\" js/mobile*.js finds NOTHING",
+    "pass": true,
+    "detail": "(no matches)"
+  },
+  {
+    "name": "phone shell (#m-root) is present at 390px",
+    "pass": true
+  },
+  {
+    "name": "bottom bar has 4 labels",
+    "pass": true,
+    "detail": "[{\"text\":\"Home\",\"size\":14},{\"text\":\"Contracts\",\"size\":14},{\"text\":\"Negotiate\",\"size\":14},{\"text\":\"Approvals\",\"size\":14}]"
+  },
+  {
+    "name": "bottom bar label \"Home\" is >= 14px",
+    "pass": true,
+    "detail": "14px"
+  },
+  {
+    "name": "bottom bar label \"Contracts\" is >= 14px",
+    "pass": true,
+    "detail": "14px"
+  },
+  {
+    "name": "bottom bar label \"Negotiate\" is >= 14px",
+    "pass": true,
+    "detail": "14px"
+  },
+  {
+    "name": "bottom bar label \"Approvals\" is >= 14px",
+    "pass": true,
+    "detail": "14px"
+  },
+  {
+    "name": "Home: no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "Contracts: no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "Negotiate: no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "Negotiate screen shows the three-band structure (waiting on you / other side / nothing outstanding)",
+    "pass": true,
+    "detail": "Waiting on you\n        1 | Waiting on you | 1 | With the other side\n        0 | With the other side | 0 | Nothing outstanding\n        0 | Nothing outstanding | 0"
+  },
+  {
+    "name": "Approvals: no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "tapping a contract row opens the phone contract screen",
+    "pass": true,
+    "detail": "tapped=data-m-open=MK-A1"
+  },
+  {
+    "name": "Contract screen /terms: no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "Contract screen /hist: no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "share sheet opens on the phone",
+    "pass": true
+  },
+  {
+    "name": "People: no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "People screen lists members (email addresses visible)",
+    "pass": true
+  },
+  {
+    "name": "More: no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  }
+]

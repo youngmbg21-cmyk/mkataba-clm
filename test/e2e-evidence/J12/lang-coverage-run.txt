@@ -1,0 +1,96 @@
+=== ENGLISH STILL SHOWING, BY SCREEN ===
+
+--- contract (16) ---
+   [room-sub] MK-B2 · Sales & Route-to-Market · Runda 1
+   [text-[13px]] This Raw Material Supply Agreement is made on
+   [text-[13px]] between
+   [text-[13px]] (the "Buyer") and
+   [text-[13px]] (the "Supplier") for the supply of
+   [text-[13px]] into the Buyer's production facilities in Kenya.
+   [text-[13.5px]] The Supplier shall supply an estimated
+   [font-display] 2. Price & Contract Value
+   [text-[13.5px]] The estimated annual contract value is KES
+   [text-[13.5px]] days of receipt.
+   [text-[13.5px]] Consignments failing specification or Public Health / KEBS requirements may be rejected within
+   [text-[13.5px]] days of delivery, with replacement at the Supplier's cost.
+   [text-[13.5px]] This Agreement is governed by the laws of Kenya, with disputes referred to arbitration seated in Nairobi under
+   [span] live
+   [@title] Team
+   [@title] Arbetsytans status
+
+--- playbook (12) ---
+   [div] This Agreement is governed by the laws of Kenya and the parties submit to the exclusive jurisdiction of the co
+   [span] Payment terms
+   [span] Payment within 30 days
+   [div] The Buyer shall pay each undisputed invoice within thirty (30) days of receipt, in KES, exclusive of VAT.
+   [span] Liability cap at 12 months fees
+   [div] Each party’s aggregate liability under this Agreement is capped at the total fees paid in the twelve (12) mont
+   [div] Each party shall keep the other’s confidential information secret and use it only for this Agreement, for the 
+   [div] Where personal data is processed, each party complies with the Data Protection Act, 2019 and applicable ODPC g
+   [span] Termination on notice + cause
+   [div] Either party may terminate for material breach not remedied within thirty (30) days of notice, or for convenie
+   [@title] Team
+   [@title] Arbetsytans status
+
+--- templates (11) ---
+   [th] Version
+   [div] Commodity & ingredient supply into the plants.
+   [div] Office, depot and premises leases.
+   [span] Contract Manufacturing (Co-Packing)
+   [div] Regional route-to-market distributor terms.
+   [div] Plant machinery lease and servicing.
+   [div] Primary and last-mile distribution.
+   [div] Agency, media and activation services.
+   [div] Confidentiality for NPD & vendor onboarding.
+   [@title] Team
+   [@title] Arbetsytans status
+
+--- room:history (5) ---
+   [room-sub] MK-B2 · Sales & Route-to-Market · Runda 1
+   [span] Clause
+   [span] Person
+   [@title] Team
+   [@title] Arbetsytans status
+
+--- register (4) ---
+   [reg-th-sort] Status
+   [@title] Team
+   [@title] Arbetsytans status
+   [@title] Sortera efter Status
+
+--- team (3) ---
+   [st-person-name] No Values Legal
+   [@title] Team
+   [@title] Arbetsytans status
+
+--- reports (3) ---
+   [span] Sales & Route-to-Market
+   [@title] Team
+   [@title] Arbetsytans status
+
+--- migration (3) ---
+   [label] Arkivera under
+   [@title] Team
+   [@title] Arbetsytans status
+
+--- dashboard (2) ---
+   [@title] Team
+   [@title] Arbetsytans status
+
+--- calendar (2) ---
+   [@title] Team
+   [@title] Arbetsytans status
+
+--- intel (2) ---
+   [@title] Team
+   [@title] Arbetsytans status
+
+--- advice (2) ---
+   [@title] Team
+   [@title] Arbetsytans status
+
+--- queue (2) ---
+   [@title] Team
+   [@title] Arbetsytans status
+
+TOTAL still-English runs a Swedish reader sees: 67

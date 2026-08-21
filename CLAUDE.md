@@ -169,7 +169,7 @@ CLOSING A ROUND DOES NOT SETTLE A REFUSAL. `negoSigningBlockers` reads `negoOpen
 
 THE FINGERPRINT IS v4: fields are LENGTH-PREFIXED and `ops` is inside it. v2/v3 joined with `\n` and wording contains newlines, so moving a break across the old/new boundary gave a byte-identical input for a different change. `NEGO_HASH_VERIFIES` is a SET — every old format verifies forever, or a bump accuses existing contracts of tampering.
 
-AND THE FIVE DELIBERATE DECISIONS WERE RULED ON, not quietly kept: only a signed amendment moves the term (above); a signature image and an internal email address wait for EXECUTION in buildSharePayload (the name, capacity and date already say "waiting on you", which was the field report's whole complaint); `verifySeal` names a weak seal (`co_seal_weak`) as two other surfaces already did; the wording FREEZES AT THE FIRST SIGNATURE, not the last — `negoWordingFrozen = negoExecuted || negoAnySignature`, reading both stores like signingLocked, asked by both wording gates and ordered BEFORE the desk rule because it is the wider one; and colleagues' names GO ON TRAVELLING with each change — the code was right and this rulebook was wrong, see the correction under THE NEGOTIATION DESK.
+AND THE FIVE DELIBERATE DECISIONS WERE RULED ON, not quietly kept: only a signed amendment moves the term (above); a signature image and an internal email address wait for EXECUTION in buildSharePayload (the name, capacity and date already say "waiting on you", which was the field report's whole complaint); `verifySeal` names a weak seal (`co_seal_weak`) as two other surfaces already did; the wording FREEZES AT THE FIRST SIGNATURE, not the last — `negoWordingFrozen = negoExecuted || negoAnySignature`, reading both stores like signingLocked, asked by both wording gates and ordered BEFORE the desk rule because it is the wider one (**BUT THE BROWSER IS THE ONLY PLACE THAT IS TRUE — measured 21 Aug 2026, and it is an OPEN FINDING, not a decision.** PUT /api/contracts/:id gates EXECUTED_IMMUTABLE on `isExecutedRow(prev)`, which is FULLY EXECUTED, so between the counterparty's signature and the countersignature an ordinary Editor can rewrite `redlineText` through the API and the contract then executes carrying wording the counterparty never saw. The signing ROUTE is correctly shut at that same moment, which is what makes the gap easy to miss — something IS guarded there, just not this. Reproduction with a positive control: `test/e2e-evidence/J7/REPRO-wording-not-frozen-at-first-signature.js`); and colleagues' names GO ON TRAVELLING with each change — the code was right and this rulebook was wrong, see the correction under THE NEGOTIATION DESK.
 
 A SIGN-IN LIMITER COUNTS WRONG GUESSES, NOT PEOPLE ARRIVING AT WORK (found by the RE-audit, 14 Aug 2026, and reproduced before it was touched: a fresh workspace, ten members, each typing their OWN CORRECT PASSWORD once, and the tenth refused with a 429). The bucket is keyed by IP and an office shares one public address, so the limiter was rationing COLLEAGUES rather than GUESSES — Monday morning, the eleventh person through the door is locked out for a quarter of an hour by their own colleagues behaving correctly. THE CEILING AND THE WINDOW ARE UNCHANGED; what changed is WHAT COSTS. `rateLimit` gained `countFailuresOnly`: it still REFUSES off the middleware, before the handler, so a full bucket is still shut to the next guess (asserted with the RIGHT password, which must also be turned away — a lucky guess must not soften the wall); the route records the attempt itself, and `/api/login` records only its 401. THE OTHER TWO ROUTES LEFT THE SHARED BUCKET rather than inheriting the change, each for its own reason: `/api/setup` is a one-shot, and `/api/password/reset-request` HAS NO FAILURE TO COUNT — it must answer identically whether or not the address is on file, and what it rations is outbound MAIL, which every call spends. Three buckets, same ceiling, same window. Tests: f204.
 
@@ -887,6 +887,37 @@ A NAMED SHAPE IS NOW BINDING, NOT ADVISORY (owner-reported 13 Aug 2026: "I asked
 The Portfolio Health Report is DETERMINISTIC — the AI never writes a word. openHealthReport() opens the tab synchronously (popup rules), then fills; charts always on the LIGHT palette. Copilot merely opens it (aiWantsHealthReport in js/ai.js — works with no AI key); the Reports button reaches the SAME builder. Month-on-month reads hati.v1.monthlySnaps in browser localStorage — NO server copy; the report names its snapshot.
 
 The Copilot brief travels in TWO parts: ctx.guideRules (the rulebook) and ctx.guideLive (the snapshot); buildCopilotSystem (server/server.js) stacks two system blocks, cache_control on the first. Failure bubbles carry err:true and are EXCLUDED from aiChatMessages (a stored error poisons later turns). f151 is the drift test: snapshot, health report and recipes must agree with arithmetic over state.contracts — a new figure in the prompt wants a row there.
+
+## THREE BROWSER-TEST CLAIMS THAT ARE STALE, NOT REGRESSIONS (measured 21 Aug 2026)
+
+Recorded here for the same reason the theme-tokens note below exists: each one
+fails, each one has been chased to the bottom, and none of them is the product
+being wrong. **If you find a DIFFERENT reason these fail, that is new.**
+
+- **live-verify, four "reason:" checks.** They assert the author's reason is on
+  the CHANGE CARD. It is not, deliberately: the owner asked for it off the card
+  on 19 Aug 2026 and `whyBlock` is a `return ''`-style stub, with the fact
+  moved into the clause panel's row for that change. The rulebook says
+  "f137's reason claim re-pointed at the panel" — f137 and f210 were
+  re-pointed and both pass; live-verify's four were missed. Re-point them at
+  `.rl-cp-why` in the panel, do not restore the card block.
+- **live-verify, "fmt: a save with nothing changed says so IN the bar".** The
+  product branch is present and correct (`.nego-nofile`, built in the edit
+  bar). The TEST's selector is what went stale: it reaches "the other clause"
+  with `[data-rl-cp-open]` and takes the LAST match, and that attribute now
+  has THREE emitters — the clause pencil (`.rl-cp-pill`), the change card's
+  Open (`.rl-open-btn`) and the co-pilot band's "Open clause" row — so the
+  last match is a card's Open and the probe re-opens the clause that already
+  carries a pending draft, where the ＋ continues that draft instead of
+  filing nothing.
+- **queue-overlay-verify, "120px of pointer buys about 120px of column".**
+  MEASURED: the drag stops with the RIGHT column at exactly **300px**, which is
+  RL_RIGHT_MIN — the limit working as designed. It fits in 94px rather than
+  120px because the nav now RESTS OPEN at 256px above the 1500 line (the SAP
+  treatment, 20 Aug 2026, `railCollapsed()`'s null default flipped), which took
+  192px off the page at the 1500px viewport this file uses. The divider is not
+  broken; the assertion asks for more travel than the layout has left.
+  Reproduction: `test/e2e-evidence/J5/probe-divider-limit.js`.
 
 ## A NOTE ON theme-tokens-verify
 

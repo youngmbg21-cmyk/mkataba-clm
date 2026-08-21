@@ -1,0 +1,379 @@
+=== f212 (obligation nudges route to the assignee) ===
+TAP version 13
+# Subtest: F212 — obligation nudges route to the assignee
+    # Subtest: 7 days before the date, the assignee hears — in their own language
+    ok 1 - 7 days before the date, the assignee hears — in their own language
+      ---
+      duration_ms: 199.900433
+      type: 'test'
+      ...
+    # Subtest: on the day itself, a second nudge — and the admins still hear nothing
+    ok 2 - on the day itself, a second nudge — and the admins still hear nothing
+      ---
+      duration_ms: 189.199187
+      type: 'test'
+      ...
+    # Subtest: the day after, overdue goes to the assignee, not the admins
+    ok 3 - the day after, overdue goes to the assignee, not the admins
+      ---
+      duration_ms: 202.505532
+      type: 'test'
+      ...
+    # Subtest: still open three days later, the admins are brought in by name
+    ok 4 - still open three days later, the admins are brought in by name
+      ---
+      duration_ms: 203.376295
+      type: 'test'
+      ...
+    # Subtest: running the sweep again re-sends nothing
+    ok 5 - running the sweep again re-sends nothing
+      ---
+      duration_ms: 509.270688
+      type: 'test'
+      ...
+    # Subtest: an assignee written as an email address resolves the same member
+    ok 6 - an assignee written as an email address resolves the same member
+      ---
+      duration_ms: 207.898596
+      type: 'test'
+      ...
+    # Subtest: a name that matches nobody keeps the old admin mail, unchanged
+    ok 7 - a name that matches nobody keeps the old admin mail, unchanged
+      ---
+      duration_ms: 191.420335
+      type: 'test'
+      ...
+    # Subtest: an OUTSIDE address in the assignee box is never mailed (open-relay rule)
+    ok 8 - an OUTSIDE address in the assignee box is never mailed (open-relay rule)
+      ---
+      duration_ms: 526.485085
+      type: 'test'
+      ...
+    # Subtest: a refusing provider leaves the sweep alive and the outbox honest
+    ok 9 - a refusing provider leaves the sweep alive and the outbox honest
+      ---
+      duration_ms: 73.792722
+      type: 'test'
+      ...
+    1..9
+ok 1 - F212 — obligation nudges route to the assignee
+  ---
+  duration_ms: 3544.371568
+  type: 'suite'
+  ...
+1..1
+# tests 9
+# suites 1
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3684.631803
+=== f214 (the Daily Brief) ===
+TAP version 13
+# Subtest: F214 — the Daily Brief
+    # Subtest: one morning, one email per person, each carrying only what needs THEM
+    ok 1 - one morning, one email per person, each carrying only what needs THEM
+      ---
+      duration_ms: 258.120093
+      type: 'test'
+      ...
+    # Subtest: a second sweep the same day sends nobody a second brief
+    ok 2 - a second sweep the same day sends nobody a second brief
+      ---
+      duration_ms: 605.743609
+      type: 'test'
+      ...
+    # Subtest: turning the switch back on briefs the muted member the same day — scoped to their streams
+    ok 3 - turning the switch back on briefs the muted member the same day — scoped to their streams
+      ---
+      duration_ms: 241.774589
+      type: 'test'
+      ...
+    # Subtest: a value outside the three is refused, and nothing is stored
+    ok 4 - a value outside the three is refused, and nothing is stored
+      ---
+      duration_ms: 7.288778
+      type: 'test'
+      ...
+    # Subtest: weekly sends once, says "this week", and the second sweep that week is silent
+    ok 5 - weekly sends once, says "this week", and the second sweep that week is silent
+      ---
+      duration_ms: 946.261054
+      type: 'test'
+      ...
+    # Subtest: turning it off silences them, and daily brings them back the same day
+    ok 6 - turning it off silences them, and daily brings them back the same day
+      ---
+      duration_ms: 714.347124
+      type: 'test'
+      ...
+    # Subtest: the three answers, and the words for them, exist in both languages
+    ok 7 - the three answers, and the words for them, exist in both languages
+      ---
+      duration_ms: 15.257694
+      type: 'test'
+      ...
+    # Subtest: the account page offers three options and writes on change
+    ok 8 - the account page offers three options and writes on change
+      ---
+      duration_ms: 1.822958
+      type: 'test'
+      ...
+    # Subtest: the two hosts read the cadence by the same rule
+    ok 9 - the two hosts read the cadence by the same rule
+      ---
+      duration_ms: 4.663905
+      type: 'test'
+      ...
+    # Subtest: a refusing provider leaves the sweep alive and the attempt honestly recorded
+    ok 10 - a refusing provider leaves the sweep alive and the attempt honestly recorded
+      ---
+      duration_ms: 70.948873
+      type: 'test'
+      ...
+    1..10
+ok 1 - F214 — the Daily Brief
+  ---
+  duration_ms: 4122.728889
+  type: 'suite'
+  ...
+1..1
+# tests 10
+# suites 1
+# pass 10
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4238.167328
+=== f219 (the renewal adviser) ===
+TAP version 13
+# Subtest: F219 — the adviser, against a real server
+    # Subtest: the signals are computed from the record — the model is never asked for a date
+    ok 1 - the signals are computed from the record — the model is never asked for a date
+      ---
+      duration_ms: 100.373002
+      type: 'test'
+      ...
+    # Subtest: the recommendation comes back whole and is cached until the facts move
+    ok 2 - the recommendation comes back whole and is cached until the facts move
+      ---
+      duration_ms: 26.94676
+      type: 'test'
+      ...
+    # Subtest: it rides the record as transport, and a viewer may read it
+    ok 3 - it rides the record as transport, and a viewer may read it
+      ---
+      duration_ms: 5.459513
+      type: 'test'
+      ...
+    # Subtest: generating is editor-and-up, and scope is scope
+    ok 4 - generating is editor-and-up, and scope is scope
+      ---
+      duration_ms: 131.255194
+      type: 'test'
+      ...
+    # Subtest: our advice about their paper never travels to them
+    ok 5 - our advice about their paper never travels to them
+      ---
+      duration_ms: 18.444448
+      type: 'test'
+      ...
+    # Subtest: a forged recommendation pushed through a save is ignored
+    ok 6 - a forged recommendation pushed through a save is ignored
+      ---
+      duration_ms: 9.756515
+      type: 'test'
+      ...
+    1..6
+ok 1 - F219 — the adviser, against a real server
+  ---
+  duration_ms: 1462.251972
+  type: 'suite'
+  ...
+# Subtest: F219 — the window, and the card it draws
+    # Subtest: renewalWindow is the one reading, and it refuses what is not up for renewal
+    ok 1 - renewalWindow is the one reading, and it refuses what is not up for renewal
+      ---
+      duration_ms: 0.738006
+      type: 'test'
+      ...
+    # Subtest: the date names where it came from, and quotes the contract when it can (20 Aug 2026)
+    ok 2 - the date names where it came from, and quotes the contract when it can (20 Aug 2026)
+      ---
+      duration_ms: 1.877416
+      type: 'test'
+      ...
+    # Subtest: a failure states itself where the reader is looking, and cannot take the column down
+    ok 3 - a failure states itself where the reader is looking, and cannot take the column down
+      ---
+      duration_ms: 3.961567
+      type: 'test'
+      ...
+    # Subtest: the card draws from the dates, so no Copilot key still leaves it useful
+    ok 4 - the card draws from the dates, so no Copilot key still leaves it useful
+      ---
+      duration_ms: 1.356882
+      type: 'test'
+      ...
+    # Subtest: "Start the renewal" opens the family machinery, not a second creation path
+    ok 5 - "Start the renewal" opens the family machinery, not a second creation path
+      ---
+      duration_ms: 1.446639
+      type: 'test'
+      ...
+    # Subtest: the card is mounted on Key terms, above the family it belongs to
+    ok 6 - the card is mounted on Key terms, above the family it belongs to
+      ---
+      duration_ms: 2.049469
+      type: 'test'
+      ...
+    # Subtest: the feature is metered under its own name, and the words are in both languages
+    ok 7 - the feature is metered under its own name, and the words are in both languages
+      ---
+      duration_ms: 12.299139
+      type: 'test'
+      ...
+    1..7
+ok 2 - F219 — the window, and the card it draws
+  ---
+  duration_ms: 24.346097
+  type: 'suite'
+  ...
+# Subtest: F219 — asking for advice writes nothing to a sealed record
+    # Subtest: the ask goes through aiNoteRead and saves nothing itself
+    ok 1 - the ask goes through aiNoteRead and saves nothing itself
+      ---
+      duration_ms: 1.304514
+      type: 'test'
+      ...
+    1..1
+ok 3 - F219 — asking for advice writes nothing to a sealed record
+  ---
+  duration_ms: 1.420083
+  type: 'suite'
+  ...
+1..3
+# tests 14
+# suites 3
+# pass 14
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1604.715425
+=== f65 (server reminders survive bad dates) ===
+TAP version 13
+# Subtest: F65 — the reminder sweep survives a date a person typed
+    # Subtest: a malformed expiry does not take the whole sweep down
+    ok 1 - a malformed expiry does not take the whole sweep down
+      ---
+      duration_ms: 14.536884
+      type: 'test'
+      ...
+    # Subtest: and the contracts after it in the portfolio still get theirs
+    ok 2 - and the contracts after it in the portfolio still get theirs
+      ---
+      duration_ms: 15.507002
+      type: 'test'
+      ...
+    # Subtest: a hand-typed expiry earns its own milestone rather than being skipped
+    ok 3 - a hand-typed expiry earns its own milestone rather than being skipped
+      ---
+      duration_ms: 13.023908
+      type: 'test'
+      ...
+    # Subtest: and so does its renewal-decision deadline
+    ok 4 - and so does its renewal-decision deadline
+      ---
+      duration_ms: 17.17425
+      type: 'test'
+      ...
+    # Subtest: an obligation whose due date a person typed still goes overdue
+    ok 5 - an obligation whose due date a person typed still goes overdue
+      ---
+      duration_ms: 16.058003
+      type: 'test'
+      ...
+    # Subtest: a value that is no kind of date is simply not a date — no reminder, no crash
+    ok 6 - a value that is no kind of date is simply not a date — no reminder, no crash
+      ---
+      duration_ms: 13.999698
+      type: 'test'
+      ...
+    1..6
+ok 1 - F65 — the reminder sweep survives a date a person typed
+  ---
+  duration_ms: 1315.703272
+  type: 'suite'
+  ...
+1..1
+# tests 6
+# suites 1
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1428.139753
+=== J9-02 renewalWindow status walk + predatesRecord/missed ===
+PASS: Draft -> null
+PASS: Declined -> null
+PASS: archived -> null
+PASS: amendment (has parentId) -> null
+PASS: Under Review -> null
+PASS: migrated/executed-outside-HaTi, Signed -> offered (inWindow=true)
+J9-02 renewalWindow status walk: ALL PASS
+PASS: a notice deadline arithmetically before the filed date reads predatesRecord=true, missed=false. decideBy= 2026-03-04 filed= 2026-08-16
+PASS: a genuinely missed deadline (well after filing) reads missed=true, predatesRecord=false.
+PASS: decideBy is exactly expiry(75d) minus notice(30d) = 45d, both numbers traceable to the record.
+J9-02b predatesRecord/missed/traceability: ALL PASS
+=== J9-03 briefWeekOf algebra ===
+PASS: briefWeekOf(day) proves the catch-up rule algebraically — a Monday-missed Tuesday run reuses the same rkey as a Monday run would, so nothing is lost and nothing double-sends.
+=== J9-03b daily/weekly no shared dedupe ===
+PASS: daily brief #1 sent, subject= What needs you at HaTi today (1)
+PASS: 2nd same-day daily run sent nothing (dedupe holds)
+PASS: switching to weekly the SAME day still sent a brief — daily and weekly do not share a dedupe row. subject= What needs you at HaTi this week (1)
+J9-03b ALL PASS
+=== J9-03c admin-only run routes ===
+PASS: /api/daily-brief/run refuses restricted (legal, non-admin) with 403
+PASS: /api/daily-brief/run refuses novalues (legal, non-admin) with 403
+PASS: /api/reminders/run refuses restricted (legal, non-admin) with 403
+PASS: /api/reminders/run refuses novalues (legal, non-admin) with 403
+J9-03c ALL PASS
+=== J9-03d quiet day burns nothing ===
+PASS: quiet run #1 sent nothing to novalues
+PASS: an item landing later the SAME day still triggers a brief — the quiet run burned nothing.
+J9-03d ALL PASS
+=== J9-04 family expiry shared arithmetic (reminders sweep) ===
+PASS 4a: a SIGNED amendment moves the reminder-sweep date. subjects: [ 'Renewal in 60 days: Family fixture MK-FAM-P' ]
+PASS 4b: a DRAFT amendment does NOT move the reminder-sweep date. subjects touching MK-FAM-P2: []
+J9-04 ALL PASS
+=== calendar-day-verify.js (browser) ===
+PASS  a day carrying contracts is pressable
+PASS  an empty day is not — 28 quiet days
+PASS  and it says which door it is before you press it — Choose from the 3 contracts due on 12 August 2026
+PASS  a screen reader is told it is a button
+PASS  two marks from one contract is still one contract — Open Raw Milk Collection
+PASS  pressing a day of several lands on the register
+PASS  narrowed to exactly the contracts that were on that day — 3 row(s): CAL1, CAL2, CAL3
+PASS  the register says it has been narrowed, and why — Due on 12 August 2026 ×
+PASS  and the way back is on the chip
+PASS  a filter on top of the set narrows within it rather than replacing it — 0 row(s), chip still shown
+PASS  clearing it gives the whole register back — 9 rows
+PASS  a day with one contract opens that contract instead — workspace · CAL4
+PASS  the chips are still drawn — nothing was hidden — 3 chip(s)
+PASS  but they are no longer doors of their own — 0 data-sel, 0 button(s)
+PASS  and no keyboard stop inside the box leads nowhere new — 0 focusable inside, cell tabindex=0
+PASS  a chip that no longer goes where its label points stops promising it — on a many-contract day the cell’s own tooltip is what the reader sees
+PASS  and on a one-contract day it still names the event, because that is still where it goes — Expiry: Ogilvy EA
+PASS  pressing a chip on a many-contract day lands on the narrowed list — register · CAL1, CAL2, CAL3
+PASS  and that list still says what it is narrowed to, with the way back on it — Due on 12 August 2026 ×
+PASS  a chip on a one-contract day still opens that contract — CAL4
+PASS  a day marked twice by one contract still opens the contract — the count is of contracts, not marks — from the chip as well as the cell
+PASS  the agenda list beside the calendar still opens its own named contract — CAL4 (wanted CAL4), 2 row(s)
+PASS  no page errors — clean
+
+23/23 passed

@@ -1,0 +1,13 @@
+PASS  a template-drafted contract's read-only copy carries its wording — 1156 characters — it was an empty sheet
+PASS  and the recital names both parties — KENYA · NDA Mutual Non-Disclosure — Talib K Between Highland Corporate
+PASS  and the blanks are frozen to their values, not left as fields — KENYA · NDA Mutual Non-Disclosure — Talib K Between Highland Corporate Ltd and Talib K This Mutual Non-Disclosure Agreem
+PASS  a redlined contract's copy still carries its stored wording — SUPPLY AGREEMENT 1. Scope The Supplier shall deliver.
+PASS  the copy is served with the wording in it — wording present
+PASS  and still without the people — no author, no reason, no provenance — clean
+PASS  and it cannot answer — a view link responds to nothing — refuseIfViewOnly
+PASS  the document ends in ruled lines with the parties under them — 1 foot, 2 lines: For Highland Corporate Ltd | For Talib K
+PASS  and not in an instruction this reader cannot follow — the placeholder is for a contract with no parties named, and had been the only branch anyone saw
+PASS  a copy carrying no wording asks for a fresh one instead of showing a blank sheet — This copy could not be displayed. Ask Highland Corporate Ltd to send i
+PASS  no page errors — clean
+
+11/11 passed

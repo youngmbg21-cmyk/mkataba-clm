@@ -1,0 +1,30 @@
+KENYA · WORKING TEXT
+Refined Sugar Supply
+Between Highland Corporate Ltd and Kabras Sugar
+SUPPLY AGREEMENT
+This agreement is made between Highland Corporate Ltd and Kabras Sugar,
+whose email for notices is procurement@kabras.co.ke.
+
+Article 1 Payment
+
+The total contract value is KES 48,000,000 payable within thirty days.
+
+Article 2 Term
+
+This agreement expires on 2027-06-30.
+
+Article 3 Confidentiality
+
+Each party shall keep the terms of this agreement confidential.
+SEALED
+SHA-256
+Executed & Sealed
+Executed
+Electronic signatures under the Business Laws (Amendment) Act 2020 (Kenya).
+Not recorded
+SEALED TEXT FINGERPRINT (SHA-256)
+—
+DOCUMENT SEAL (SHA-256)
+sample-00000000000000000000000000000000
+Timestamp recorded
+Signer identity is verified by account session (first party) and email one-time code (counterparty). Government IPRS identity and CAK-accredited PKI are on the roadmap and not yet active.

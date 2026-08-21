@@ -1,0 +1,83 @@
+
+--- 800 x 700 ---
+PASS  800: it rests as the 64px rail — 64px
+PASS  800: nothing in the strip paints outside it — 0px over
+PASS  800: below the line it is a floating layer, not a column — fixed
+PASS  800: with a 64px track held under it — 64px minmax(0px, 1fr) · page at x64
+PASS  800: pressing the chevron widens it to the full 256 — 256px
+PASS  800: AND THE PAGE DOES NOT MOVE — 64,64,736,636 → 64,64,736,636
+PASS  800: a scrim gives a way out that is not the button that opened it
+PASS  800: and its chevron now offers to close, not to open again — M14.5 6 8.5 12l6 6
+PASS  800: it leaves the stored preference alone — stored null
+PASS  800: Escape closes it and the page still has not moved — 64,64,736,636
+PASS  800: on Insights both header buttons are live — bell off=false activity off=false
+PASS  800: and the alerts panel opens over it — at x536
+
+--- 1280 x 800 ---
+PASS  1280: it rests as the 64px rail — 64px
+PASS  1280: nothing in the strip paints outside it — 0px over
+PASS  1280: below the line it is a floating layer, not a column — fixed
+PASS  1280: with a 64px track held under it — 64px minmax(0px, 1fr) · page at x64
+PASS  1280: pressing the chevron widens it to the full 256 — 256px
+PASS  1280: AND THE PAGE DOES NOT MOVE — 64,64,1216,736 → 64,64,1216,736
+PASS  1280: a scrim gives a way out that is not the button that opened it
+PASS  1280: and its chevron now offers to close, not to open again — M14.5 6 8.5 12l6 6
+PASS  1280: it leaves the stored preference alone — stored null
+PASS  1280: Escape closes it and the page still has not moved — 64,64,1216,736
+PASS  1280: on Insights both header buttons are live — bell off=false activity off=false
+PASS  1280: and the alerts panel opens over it — at x1016
+
+--- 1366 x 768 ---
+PASS  1366: it rests as the 64px rail — 64px
+PASS  1366: nothing in the strip paints outside it — 0px over
+PASS  1366: below the line it is a floating layer, not a column — fixed
+PASS  1366: with a 64px track held under it — 64px minmax(0px, 1fr) · page at x64
+PASS  1366: pressing the chevron widens it to the full 256 — 256px
+PASS  1366: AND THE PAGE DOES NOT MOVE — 64,64,1302,704 → 64,64,1302,704
+PASS  1366: a scrim gives a way out that is not the button that opened it
+PASS  1366: and its chevron now offers to close, not to open again — M14.5 6 8.5 12l6 6
+PASS  1366: it leaves the stored preference alone — stored null
+PASS  1366: Escape closes it and the page still has not moved — 64,64,1302,704
+PASS  1366: on Insights both header buttons are live — bell off=false activity off=false
+PASS  1366: and the alerts panel opens over it — at x1102
+PASS  1366: Requests sits under Templates, in the everyday group — {"templates":299,"intake":335,"people":371,"section":"work"}
+PASS  1366: and its content starts where every other page's does — Requests at x82 · Templates at x82
+
+--- 1440 x 900 ---
+PASS  1440: it rests as the 64px rail — 64px
+PASS  1440: nothing in the strip paints outside it — 0px over
+PASS  1440: below the line it is a floating layer, not a column — fixed
+PASS  1440: with a 64px track held under it — 64px minmax(0px, 1fr) · page at x64
+PASS  1440: pressing the chevron widens it to the full 256 — 256px
+PASS  1440: AND THE PAGE DOES NOT MOVE — 64,64,1376,836 → 64,64,1376,836
+PASS  1440: a scrim gives a way out that is not the button that opened it
+PASS  1440: and its chevron now offers to close, not to open again — M14.5 6 8.5 12l6 6
+PASS  1440: it leaves the stored preference alone — stored null
+PASS  1440: Escape closes it and the page still has not moved — 64,64,1376,836
+PASS  1440: on Insights both header buttons are live — bell off=false activity off=false
+PASS  1440: and the alerts panel opens over it — at x1148
+
+--- 1512 x 945 ---
+PASS  1512: it rests as the open 256px column — 256px
+PASS  1512: nothing in the strip paints outside it — 0px over
+PASS  1512: above the line it is still a column — static
+PASS  1512: collapsing it gives the 64px rail — 64px
+PASS  1512: and up here it PUSHES the page, exactly as it always did — 256,64,1256,881 → 64,64,1448,881
+PASS  1512: no scrim — a column is not a layer
+PASS  1512: and the choice is remembered — stored "1"
+PASS  1512: on Insights both header buttons are live — bell off=false activity off=false
+PASS  1512: and the alerts panel opens over it — at x1220
+
+--- 1920 x 1080 ---
+PASS  1920: it rests as the open 256px column — 256px
+PASS  1920: nothing in the strip paints outside it — 0px over
+PASS  1920: above the line it is still a column — static
+PASS  1920: collapsing it gives the 64px rail — 64px
+PASS  1920: and up here it PUSHES the page, exactly as it always did — 256,64,1664,1016 → 64,64,1856,1016
+PASS  1920: no scrim — a column is not a layer
+PASS  1920: and the choice is remembered — stored "1"
+PASS  1920: on Insights both header buttons are live — bell off=false activity off=false
+PASS  1920: and the alerts panel opens over it — at x1600
+PASS  no page errors on the whole journey — clean
+
+69/69 passed

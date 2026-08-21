@@ -1,0 +1,116 @@
+[
+  {
+    "name": "light/home: low-contrast text elements",
+    "pass": false,
+    "detail": "6 of 48 — e.g. span.hm-banner-greet \"Good morning, Amina\" ratio=1.05 need=4.5 fg=rgba(255, 255, 255, 0.88) bg=rgb(248,250,252) | h2 \"Contract Lifecycle Management\" ratio=1.05 need=3 fg=rgb(255, 255, 255) bg=rgb(248,250,252) | p \"4 contracts under management · KES 247M \" ratio=1.05 need=4.5 fg=rgba(255, 255, 255, 0.85) bg=rgb(248,250,252)"
+  },
+  {
+    "name": "light/contracts: low-contrast text elements",
+    "pass": false,
+    "detail": "8 of 58 — e.g. td.reg-mk \"MK-B2\" ratio=3.74 need=4.5 fg=rgb(13, 148, 136) bg=rgb(255,255,255) | button.reg-actlink \"Review terms\" ratio=3.74 need=4.5 fg=rgb(13, 148, 136) bg=rgb(255,255,255) | td.reg-mk \"MK-B1\" ratio=3.74 need=4.5 fg=rgb(13, 148, 136) bg=rgb(255,255,255)"
+  },
+  {
+    "name": "light/negotiations: low-contrast text elements",
+    "pass": false,
+    "detail": "1 of 4 — e.g. button.ui-btn.ui-btn-primary \"Open the register\" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136)"
+  },
+  {
+    "name": "light/insights: low-contrast text elements",
+    "pass": false,
+    "detail": "3 of 66 — e.g. div \"Contracted value\" ratio=1.28 need=4.5 fg=rgb(189, 231, 225) bg=rgb(248,250,252) | div \"KES 247M\" ratio=1.05 need=3 fg=rgb(255, 255, 255) bg=rgb(248,250,252) | div \"4 live contracts\" ratio=1.28 need=4.5 fg=rgb(189, 231, 225) bg=rgb(248,250,252)"
+  },
+  {
+    "name": "light/settings: low-contrast text elements",
+    "pass": false,
+    "detail": "1 of 38 — e.g. button.ui-btn.ui-btn-primary \"Add member\" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136)"
+  },
+  {
+    "name": "light/people: low-contrast text elements",
+    "pass": false,
+    "detail": "4 of 24 — e.g. span.dir-none \"No job title on file\" ratio=2.56 need=4.5 fg=rgb(148, 163, 184) bg=rgb(255,255,255) | span.dir-none \"No job title on file\" ratio=2.56 need=4.5 fg=rgb(148, 163, 184) bg=rgb(255,255,255) | span.dir-none \"No job title on file\" ratio=2.56 need=4.5 fg=rgb(148, 163, 184) bg=rgb(255,255,255)"
+  },
+  {
+    "name": "light/room-terms: low-contrast text elements",
+    "pass": false,
+    "detail": "5 of 42 — e.g. button.ui-btn.ui-btn-primary \"Share\" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136) | button.ui-btn.ui-btn-primary \"Evidence pack\" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136) | button.ui-btn.ui-btn-primary \"Draft new agreement\" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136)"
+  },
+  {
+    "name": "light/room-docs: low-contrast text elements",
+    "pass": false,
+    "detail": "4 of 45 — e.g. button.ui-btn.ui-btn-primary \"Share\" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136) | button.ui-btn.ui-btn-primary \"Evidence pack\" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136) | button.ui-btn.ui-btn-primary \"Draft new agreement\" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136)"
+  },
+  {
+    "name": "light/room-sign: low-contrast text elements",
+    "pass": false,
+    "detail": "3 of 21 — e.g. button.ui-btn.ui-btn-primary \"Share\" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136) | button.ui-btn.ui-btn-primary \"Evidence pack\" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136) | button.ui-btn.ui-btn-primary \"Draft new agreement\" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136)"
+  },
+  {
+    "name": "light/room-history: low-contrast text elements",
+    "pass": false,
+    "detail": "3 of 28 — e.g. button.ui-btn.ui-btn-primary \"Share\" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136) | button.ui-btn.ui-btn-primary \"Evidence pack\" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136) | button.ui-btn.ui-btn-primary \"Draft new agreement\" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136)"
+  },
+  {
+    "name": "dark class applied to <html> after setTheme(\"dark\")",
+    "pass": true
+  },
+  {
+    "name": "dark/home: low-contrast text elements",
+    "pass": true,
+    "detail": "0 of 48"
+  },
+  {
+    "name": "dark/contracts: low-contrast text elements",
+    "pass": false,
+    "detail": "1 of 58 — e.g. button \"show a flat list\" ratio=3.26 need=4.5 fg=rgb(15, 118, 110) bg=rgb(15,23,42)"
+  },
+  {
+    "name": "dark/negotiations: low-contrast text elements",
+    "pass": false,
+    "detail": "1 of 4 — e.g. button.ui-btn.ui-btn-primary \"Open the register\" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136)"
+  },
+  {
+    "name": "dark/insights: low-contrast text elements",
+    "pass": true,
+    "detail": "0 of 66"
+  },
+  {
+    "name": "dark/settings: low-contrast text elements",
+    "pass": false,
+    "detail": "3 of 38 — e.g. button.st-tab.on \"People\" ratio=2.66 need=4.5 fg=rgb(17, 94, 89) bg=rgb(2,6,23) | button.st-tab \"Build & launch\" ratio=2.66 need=4.5 fg=rgb(17, 94, 89) bg=rgb(2,6,23) | button.ui-btn.ui-btn-primary \"Add member\" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136)"
+  },
+  {
+    "name": "dark/people: low-contrast text elements",
+    "pass": false,
+    "detail": "8 of 24 — e.g. span.dir-none \"No job title on file\" ratio=3.75 need=4.5 fg=rgb(100, 116, 139) bg=rgb(15,23,42) | a \"admin@example.co.ke\" ratio=3.26 need=4.5 fg=rgb(15, 118, 110) bg=rgb(15,23,42) | span.dir-none \"No job title on file\" ratio=3.75 need=4.5 fg=rgb(100, 116, 139) bg=rgb(15,23,42)"
+  },
+  {
+    "name": "dark/room-terms: low-contrast text elements",
+    "pass": false,
+    "detail": "5 of 42 — e.g. button.ui-btn.ui-btn-primary \"Share\" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136) | button.ui-btn.ui-btn-primary \"Evidence pack\" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136) | button.ui-btn.ui-btn-primary \"Draft new agreement\" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136)"
+  },
+  {
+    "name": "dark/room-docs: low-contrast text elements",
+    "pass": false,
+    "detail": "4 of 45 — e.g. button.ui-btn.ui-btn-primary \"Share\" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136) | button.ui-btn.ui-btn-primary \"Evidence pack\" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136) | button.ui-btn.ui-btn-primary \"Draft new agreement\" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136)"
+  },
+  {
+    "name": "dark/room-sign: low-contrast text elements",
+    "pass": false,
+    "detail": "3 of 21 — e.g. button.ui-btn.ui-btn-primary \"Share\" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136) | button.ui-btn.ui-btn-primary \"Evidence pack\" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136) | button.ui-btn.ui-btn-primary \"Draft new agreement\" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136)"
+  },
+  {
+    "name": "dark/room-history: low-contrast text elements",
+    "pass": false,
+    "detail": "3 of 28 — e.g. button.ui-btn.ui-btn-primary \"Share\" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136) | button.ui-btn.ui-btn-primary \"Evidence pack\" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136) | button.ui-btn.ui-btn-primary \"Draft new agreement\" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136)"
+  },
+  {
+    "name": "dark theme: status chips/badges on the register keep a distinct background",
+    "pass": true,
+    "detail": "checked 4 chips"
+  },
+  {
+    "name": "dark theme: Insights renders at least one non-empty chart canvas",
+    "pass": false,
+    "detail": "[]"
+  }
+]

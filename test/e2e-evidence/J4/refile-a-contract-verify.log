@@ -1,0 +1,28 @@
+PASS  the value-stream row is on screen — 527x34
+PASS  pressing it reveals a real picker, as visible pixels — 337x24
+PASS  it is a select, opened on the drawer the contract is actually in — proc
+PASS  it offers no "create a new folder" option — a custom folder lives in one browser — minting one mid-move files it where only one person can see it
+PASS  and it offers more than one drawer to move to — Procurement & Raw Materials · Manufacturing & Production · Warehousing & Distribution · Sales & Route-to-Market · Marketing & Brand · Corporate & Compliance
+PASS  choosing another stream asks before it moves anything — 1500x1000
+PASS  the question names the drawer it is in — Move to Sales & Route-to-Market? Raw material supply — Kericho is filed under Procurement & Raw Materials. Moving it to Sales & Route-to-Market change
+PASS  and the drawer it is going to
+PASS  and how many people can see it now
+PASS  and how many will be able to afterwards
+PASS  and which way that number goes — 1 fewer
+PASS  cancelling leaves the contract where it was — proc
+PASS  and puts the picker back to it — proc
+PASS  confirming moves it — sales
+PASS  the audit line names both drawers and the person — Re-filed from Procurement & Raw Materials to Sales & Route-to-Market by Amina Otieno
+PASS  the row itself now reads the new drawer — Value stream Sales Procurement & Raw MaterialsManufacturing & ProductionWarehousing & DistributionSales & Route-to-MarketMarketing & BrandCorporate & Compliance
+PASS  and so does the room's own sub-line under the contract name — MK-RF1 · Sales & Route-to-Market · Round 1 · KES 4,200,000 · updated 21 Aug 2026
+PASS  the server holds the move too — sales
+PASS  an executed contract can still be re-filed — filing is housekeeping
+PASS  while every other key-terms row on it has stood down — 0 of 7 still editable
+PASS  no page errors on the admin's side — clean
+PASS  the Editor still sees which drawer it is in — Value streamSales
+PASS  but there is no picker anywhere on their panel — a control that is drawn and refused is worse than one that is absent
+PASS  and no press on the row either
+PASS  their other key-terms rows are editable, so this is not a read-only page — 6 editable rows
+PASS  no page errors on the Editor's side — clean
+
+26/26 passed

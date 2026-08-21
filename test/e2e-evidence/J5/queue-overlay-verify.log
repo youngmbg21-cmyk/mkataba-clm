@@ -1,0 +1,29 @@
+PASS  the page arrives with the queue shut — nothing over the contract — x=-61 w=320
+PASS  and it is a layer anchored to the page, not a column — absolute
+PASS  THE GRID HAS TWO TRACKS, NOT THREE — 788px 394px
+PASS  the door is on screen and reads out the round — This round's queue 0/1
+PASS  THE RAIL SITS AGAINST THE PAGE'S LEFT BORDER, NOT THE WINDOW'S — rail at 275, page wall at 274
+PASS  and it reads DOWN the wall, the way a tab on a filing box does — vertical-rl
+PASS  a vertical rail costs the page almost no width — 31px thick
+PASS  the scrim is there and inert — fixed
+PASS  the door does not overlap the notices stack or the Copilot launcher — 2 checked, overlapping: none
+PASS  the panel is on screen — x=275 w=320
+PASS  THE CONTRACT DID NOT MOVE OR NARROW — was 788px at 275, now 788px at 275
+PASS  nor did the change column — was 394px, now 394px
+PASS  and the grid still has the same two tracks — 788px 394px
+PASS  a dimmed scrim sits behind it — 1
+PASS  it arrives from the page's own left edge, the rail's edge — panel at 275, page wall at 274
+PASS  Escape closes it
+PASS  a click outside closes it
+PASS  and so does its own close button
+PASS  the queue has a row to press
+PASS  pressing a row stands the panel down — a door must not open onto a wall — on=false
+PASS  the handle sits on the boundary between the two columns, not inside one — handle at 1063, contract ends at 1063
+FAIL  and 120px of pointer buys about 120px of column — 788 → 882 (94px)
+PASS  focus mode is on
+PASS  THE RAIL IS STILL THERE IN FOCUS MODE — x=19 w=31
+PASS  and still on the page's wall, which has moved with the page — rail at 19, wall at 18
+PASS  and it still opens the panel from in there — x=19 w=320
+PASS  no page errors on the whole journey — clean
+
+26/27 passed

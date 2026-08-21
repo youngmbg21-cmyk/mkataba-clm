@@ -1,0 +1,43 @@
+PASS  1 contract pane within 5% of the owner's — owner 925px · counterparty 928px · 0.3% apart
+PASS  2 change index within 5% of the owner's — owner 463px · counterparty 464px
+PASS  3 owner page fills the window and does not scroll — 940px in 940px
+PASS  3 counterparty page does not scroll either — 940px in 940px
+PASS  4 no sidebar switcher on their page — 0
+PASS  4 and the conversation is on the change instead — 6 change rows carry their notes in the panel
+PASS  5 no label truncated on the counterparty's page — none
+PASS  6 exactly one document surface on their page — 1 found
+PASS  6 the duplicate document and standalone editor are gone — none present
+PASS  7 no side toggle on their page — 0
+PASS  7 no back arrow — there is no page behind theirs — 0
+PASS  7 no Share or Import — distribution stays with the owner — none
+PASS  7 no round controls — none
+PASS  8 no AI or clause-library control on their side — none
+PASS  8 no risk-derived bulk verb on their side — none
+PASS  8 and NEITHER seat carries a bulk verb — theirs: none · ours: none
+PASS  9 owner: landing on a clause does not shrink it — 817 -> 817px
+PASS  9 owner: no dropdown clamp or clipping on the clause — max-width:none, overflow-x:visible
+PASS  9 owner: the clause heading wraps rather than being cut off — normal
+PASS  9 owner: the clause says it has arrived, without the picker's name — arrived:true wearsPickerClass:false
+PASS  9 owner: the editor opened in the panel, and the panel knows it — editor:true is-editing:true
+PASS  9 owner: the wording wraps in the editor as it does in the document — normal
+PASS  9 owner: the clause itself carries no editor and no tool row — clean: true
+PASS  9 owner: the editor continues the redline, it does not restart it — wants "forty", not "thirty" — All invoices are payable within forty-five (45) days from th
+PASS  9 counterparty: landing on a clause does not shrink it — 819 -> 819px
+PASS  9 counterparty: no dropdown clamp or clipping on the clause — max-width:none, overflow-x:visible
+PASS  9 counterparty: the clause heading wraps rather than being cut off — normal
+PASS  9 counterparty: the clause says it has arrived, without the picker's name — arrived:true wearsPickerClass:false
+PASS  9 counterparty: the editor opened in the panel, and the panel knows it — editor:true is-editing:true
+PASS  9 counterparty: the wording wraps in the editor as it does in the document — normal
+PASS  9 counterparty: the clause itself carries no editor and no tool row — clean: true
+PASS  9 counterparty: the editor continues the redline, it does not restart it — wants "courts", not "null" — This Agreement is governed by the laws of Kenya and the cour
+PASS  9 the two seats edit a clause identically — every measured property matches
+PASS  10 THE ORIGIN PILL IS GONE FROM THE HEAD — CHG-006 Awaiting youOpen
+PASS  10 and a monstrous company name no longer has anywhere to shove anything — status on row: true
+PASS  10 the coloured left edge still marks it as theirs — 3px rgb(245, 158, 11)
+PASS  10 and the name reads on the meta line's hover — Last updated by Amina Wanjiru · Nordfrakt Logistik AB · APEX LOGISTICS & WAREHOUSING KENYA LTD
+PASS  11 EVERY MEASURED PANEL SIZE IS IDENTICAL ON BOTH SEATS — {"h":"11px","stands":"14px","who":"12px","note":"12.5px","act":"12.5px","clname":"16px","segs":"11px","cardMeta":"12px","badge":"12.5px"}
+PASS  11 and the sizes are the bumped ones, not a stale copy — stands 14px · h 11px · meta 12px
+PASS  control — the owner DOES have the controls being checked for — nego-send
+
+40/40 checks passed
+screenshots → test/chromium/shots/parity

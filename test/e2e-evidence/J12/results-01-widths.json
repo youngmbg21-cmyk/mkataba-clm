@@ -1,0 +1,372 @@
+[
+  {
+    "name": "1920: Home — no horizontal overflow",
+    "pass": true,
+    "detail": "scrollW1920 clientW1920"
+  },
+  {
+    "name": "1920: Contracts — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1920: Room/terms — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1920: Room/docs — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1920: Room/sign — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1920: Room/history — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1920: Negotiations — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1920: Insights — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1920: Settings — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1920: People — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1920: nav rests at open 256px column above the line",
+    "pass": true,
+    "detail": "256px"
+  },
+  {
+    "name": "1500: Home — no horizontal overflow",
+    "pass": true,
+    "detail": "scrollW1500 clientW1500"
+  },
+  {
+    "name": "1500: Contracts — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1500: Room/terms — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1500: Room/docs — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1500: Room/sign — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1500: Room/history — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1500: Negotiations — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1500: Insights — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1500: Settings — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1500: People — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1500: nav rests at open 256px column above the line",
+    "pass": true,
+    "detail": "256px"
+  },
+  {
+    "name": "1440: Home — no horizontal overflow",
+    "pass": true,
+    "detail": "scrollW1440 clientW1440"
+  },
+  {
+    "name": "1440: Contracts — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1440: Room/terms — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1440: Room/docs — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1440: Room/sign — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1440: Room/history — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1440: Negotiations — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1440: Insights — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1440: Settings — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1440: People — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1440: sidebar is fixed (floats) below 1500",
+    "pass": true,
+    "detail": "fixed"
+  },
+  {
+    "name": "1440: page content box unchanged open vs before",
+    "pass": true,
+    "detail": "64,126,1376,874 vs 64,126,1376,874"
+  },
+  {
+    "name": "1440: page content box unchanged after close",
+    "pass": true,
+    "detail": "64,126,1376,874 vs 64,126,1376,874"
+  },
+  {
+    "name": "1366: Home — no horizontal overflow",
+    "pass": true,
+    "detail": "scrollW1366 clientW1366"
+  },
+  {
+    "name": "1366: Contracts — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1366: Room/terms — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1366: Room/docs — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1366: Room/sign — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1366: Room/history — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1366: Negotiations — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1366: Insights — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1366: Settings — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1366: People — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1366: sidebar is fixed (floats) below 1500",
+    "pass": true,
+    "detail": "fixed"
+  },
+  {
+    "name": "1366: page content box unchanged open vs before",
+    "pass": true,
+    "detail": "64,126,1302,874 vs 64,126,1302,874"
+  },
+  {
+    "name": "1366: page content box unchanged after close",
+    "pass": true,
+    "detail": "64,126,1302,874 vs 64,126,1302,874"
+  },
+  {
+    "name": "1280: Home — no horizontal overflow",
+    "pass": true,
+    "detail": "scrollW1280 clientW1280"
+  },
+  {
+    "name": "1280: Contracts — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1280: Room/terms — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1280: Room/docs — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1280: Room/sign — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1280: Room/history — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1280: Negotiations — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1280: Insights — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1280: Settings — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1280: People — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1280: sidebar is fixed (floats) below 1500",
+    "pass": true,
+    "detail": "fixed"
+  },
+  {
+    "name": "1280: page content box unchanged open vs before",
+    "pass": true,
+    "detail": "64,126,1216,874 vs 64,126,1216,874"
+  },
+  {
+    "name": "1280: page content box unchanged after close",
+    "pass": true,
+    "detail": "64,126,1216,874 vs 64,126,1216,874"
+  },
+  {
+    "name": "1024: Home — no horizontal overflow",
+    "pass": true,
+    "detail": "scrollW1024 clientW1024"
+  },
+  {
+    "name": "1024: Contracts — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1024: Room/terms — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1024: Room/docs — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1024: Room/sign — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1024: Room/history — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1024: Negotiations — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1024: Insights — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1024: Settings — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1024: People — no horizontal overflow",
+    "pass": true,
+    "detail": "over=0"
+  },
+  {
+    "name": "1024: sidebar is fixed (floats) below 1500",
+    "pass": true,
+    "detail": "fixed"
+  },
+  {
+    "name": "1024: page content box unchanged open vs before",
+    "pass": true,
+    "detail": "64,124,960,876 vs 64,124,960,876"
+  },
+  {
+    "name": "1024: page content box unchanged after close",
+    "pass": true,
+    "detail": "64,124,960,876 vs 64,124,960,876"
+  }
+]

@@ -1,0 +1,89 @@
+PASS  the fixture has an ask on a clause — CHG-001
+PASS  1a the pill is on the clause, as visible pixels — "" 35x32
+PASS  1b it is the pencil icon, and the word Edit survives for a screen reader — text "", svg true, aria "Edit"
+PASS  1c it wears the workspace ACCENT on a transparent face — visible, not too dark, measured — bg rgba(0, 0, 0, 0), ink rgb(13, 148, 136)
+PASS  1d it is ABOVE the wording — pill bottom vs body top
+PASS  1e it is on the RIGHT of the clause, not the left — 0px right / 817px left
+PASS  1f and it is visible with NOTHING hovered — a door you cannot see is not a door — opacity 1, visible
+PASS  1g every clause has one, including the ones nobody has asked about — 11 pills / 11 clauses
+PASS  2a a real press opens the panel — the delegated listener is armed — is-open true, true
+PASS  2b it is really on screen, with a real size — 483x857
+PASS  2c it hangs on the PAGE's own right wall, not the window's — right edge offset 483
+PASS  2d it opened on the clause that was pressed — cl_s428nc
+PASS  2e ONE clause at a time, though every clause's body is in the panel — 1 shown of 11
+PASS  2f the three sections are there — As it stands · Change this clause · On the table · History
+PASS  2g there is NO backdrop — the contract must stay lit
+PASS  2g′ and it is not dimmed or filtered
+PASS  2g″ and it is still reachable — the reader can read and press it
+PASS  2i it IS the cards column, to the pixel, on all four edges — [true,true,true,true]
+PASS  2i′ and NO WORD of the contract is behind it — text ends 928, panel starts 998
+PASS  2i″ every clause's Edit pill stays in the clear — 11/11
+PASS  2h AND THE CONTRACT UNDER IT DID NOT MOVE — the whole reason it is an overlay — 965px → 965px
+PASS  3a "As it stands" carries real wording — All invoices are payable within thirty (30) days from the da…
+PASS  3b the live ask is ON THE TABLE ONLY, never in the history as well — table 1, history 0
+PASS  3c the row names the ask, where it stands and who asked — CHG-001 · their ask · awaiting an answer · from Amina Wanjiru · Nordfrakt Logistik AB · 06:21
+PASS  3d the panel offers the ＋ and the Copilot, and Direct Edit is gone — + Propose new wording / ✨ Edit with Copilot
+PASS  3d″ and it does not close the panel it writes into — + Propose new wording:stays / ✨ Edit with Copilot:closes
+PASS  3d′ and they do NOT wear the sheet's tool-pill class — a control that is not on the paper must not answer to the paper's selectors — rl-cp-act rl-cp-act-new / rl-cp-act rl-cp-act-ai
+PASS  3e pressing the ＋ opens the editor INSIDE the panel
+PASS  3f …and the panel stays open, because that is what it opened into
+PASS  3f′ Cancel puts the panel back as it was, still open on the clause
+PASS  4a it opens again
+PASS  4b the ✕ closes it
+PASS  4c Escape closes it
+PASS  4d the contract behind the panel still scrolls — it stayed active — 0 → 240
+PASS  4e …and a pill still in the clear swaps the panel straight to its clause — cl_jvj3f2 → cl_jvj3f2
+PASS  4g dragging the divider LEFT widens the panel with the cards — 475 → 727
+PASS  4g′ …and it is still exactly the cards column
+PASS  4g″ …and the contract still has every word on the visible side — text ends 697, panel starts 754, pills 11/11
+PASS  4h dragging it RIGHT gives the width back to the contract — 727 → 319
+PASS  4h′ …still the cards column, still no words covered — text ends 1083, panel starts 1162
+PASS  4f THE PAGE DOES NOT SHAKE — no frame of the slide moves anything behind it — 44 frames, 0 moved
+PASS  5a a repaint leaves the panel open on the same clause — {"open":true,"forClause":"cl_s428nc"}
+PASS  6a their page draws the door too — the panel is built in the shared panes — 11 pills
+PASS  6b and a real press opens it there — the listener is armed at MODULE LOAD, so it belongs to no one page — ["As it stands","Change this clause","On the table","History"]
+PASS  6c their seat gets the ＋, and pressing it opens the editor in their panel — + Propose new wording, editor true
+PASS  7a the panel offers the ＋ and the Copilot; Direct Edit is not among them — + Propose new wording / ✨ Edit with Copilot
+PASS  7b the ＋ opens the engine's own editor, inside the panel, with real size — 289x147
+PASS  7c seeded with the wording as it stands — Either party may terminate by giving not less than
+PASS  7d it is the WHOLE editor — formatting bar and the two-step bar — Save change → / Cancel
+PASS  7e and the ＋ stands down while it is open
+PASS  7f the paper scales with the reader's type and the PANEL does not — paper 10.5→13.9965, panel 11→11
+PASS  7g a highlight in the panel's editor offers exactly Edit with Copilot — ✨ Edit with Copilot
+PASS  7h Save leads into the reason question, in the panel, exactly as on the clause — File change / Skip — file without a reason / ← Back to wording
+PASS  7i FILING FROM THE PANEL PUTS A REAL CHANGE ON THE RECORD — CHG-007 on Written in the panel: either party may t…
+PASS  7j …with the reason it was given — Thirty is our standard.
+PASS  7k …a card in the column, and the clause marked as changed on the paper — card true, marked true
+PASS  7l …the panel still open on the same clause, now showing it on the table — open true, table 1
+PASS  7m …and the ＋ now says it would continue that draft — + Continue your draft
+PASS  8a a settled ask leaves the table — 
+PASS  8b …and takes its place at the bottom of the history — CHG-007
+PASS  8c the Copilot is a real, pressable button in the panel — BUTTON "✨ Edit with Copilot" 144x32
+PASS  8d …and pressing it hands straight over, with no dropdown left in the corner — no stray menu
+PASS  8e their page holds NOTHING before they touch anything — 7 asks already on the payload
+PASS  8f …and after one edit it holds exactly ONE, not the whole round — band "1 not sent", cards 7 → 8
+PASS  9a the panel's additions are plain green — no bold, no underline, no rule — {"fw":"400","bb":0,"td":"none","col":"rgb(4, 120, 87)"}
+PASS  9b …and the PAPER now reads the same way — one fact, one rule — {"fw":"400","bb":0,"td":"none"}
+PASS  9b′ …while a DELETION keeps its strike — line-through
+PASS  9c the acts sit between "As it stands" and "On the table" — under true, above true
+PASS  9d the section headings and the change id are the page's own text colour — head rgb(30, 41, 59), id rgb(30, 41, 59), body rgb(30, 41, 59)
+PASS  9e …and the captions under them are NOT — only the signposts were lifted — note rgb(71, 85, 105), meta rgb(71, 85, 105)
+PASS  10a the lettered labels survive into the contract — (a)Manufacture all products in accordance with the written recipe, formulation a
+PASS  10b each limb is a hanging line — 39px / -39px
+PASS  10c THE WORDING STARTS ON ONE VERTICAL LINE — the first row and its wraps alike — [{"label":89,"word":[156,150,150]},{"label":89,"word":[156,150]}]
+PASS  10d …and past the label, which sits alone in the gutter — [{"label":89,"word":[156,150,150]},{"label":89,"word":[156,150]}]
+PASS  11a the switch is real pixels in the panel head — 116x26
+PASS  11b the default face hides the conversation — COMPUTED, not assumed — none
+PASS  11c “+ notes” shows it, with real height, without closing the panel — block @ 166.6875px, open=true
+PASS  11d and “History” is the way back — none
+PASS  13a the panel gives a numbered limb the same gutter the paper gives it — 2 hanging line(s), 36.4px / -36.4px
+PASS  13b …and its wording sits in ONE column, first row and wraps alike — [{"label":1189,"word":[1225,1225,1225]},{"label":1189,"word":[1225,1225,1225]}]
+PASS  10e their page hangs its limbs too — the same rule, the same mount — 39px / -39px
+PASS  12a the page has both a redlined clause and a plain one to compare — 8 marked / 3 plain
+PASS  12b every Edit pill sits on one rail, redlined or not — 1084px
+PASS  12c and the wording starts in one column, redlined or not — 82px
+PASS  12d the rail holds at 8px document type — 1084px
+PASS  12d the rail holds at 20px document type — 1084px
+PASS  no page errors — clean
+
+87/87 checks passed

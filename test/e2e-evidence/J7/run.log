@@ -1,0 +1,26 @@
+PASS  ARM: the same envelope is accepted as a negotiate link (so the shape is right) — HTTP 200 {"ok":true,"token":"2eb05016287e62f1713f9d71","link":"http://127.0.0.1:42179/#share=t:2eb05016287e62f1713f9d71","expires
+PASS  a Sign link is REFUSED while nobody is named to sign — HTTP 409 {"error":"Nobody has been named to sign this contract, so a signing link cannot be issued. Add the signers on the Signing tab — that is what starts the signing 
+PASS  …and the refusal is in WORDS, naming the way out — {"error":"Nobody has been named to sign this contract, so a signing link cannot be issued. Add the signers on the Signing tab — that is what starts the signing process — and send again.","needsSigners
+PASS  naming one on each side opens signing — ["counterparty:Grace Njeri","internal:Amina Otieno"]
+PASS  a signing link is minted once a route exists — 38d1e3060baae6…
+PASS  a counterparty link cannot sign OUR internal row — the server rebinds it to the link — HTTP 200 {"ok":true} · stored signerId=sg-cp-1 (body asked for sg-us-1)
+PASS  …and the stored response records how well it was verified — verified=false method="unverified — this server cannot send verification codes"
+PASS  ARM: nothing is on the contract until the owner applies it — signatures=0
+PASS  the owner applies the counterparty signature — HTTP 200
+PASS  the signature lands on ITS OWN ROW — {"id":"sg-cp-1","party":"counterparty","order":1,"name":"Grace Njeri","email":"grace@client.co.ke","role":"Director","signed":true,"signedAt":"2026-08-21T06:19:46.829Z"}
+PASS  the signature carries an assurance rung stamped at the moment — {"name":"Grace Njeri","role":"Director","at":"2026-08-21T06:19:46.829Z","method":"unverified — this server cannot send verification codes","party":"counterparty","assurance":"typed-name"}
+PASS  the signing ROUTE is shut once anyone has signed — HTTP 409 {"error":"Somebody has already signed this contract, so the signing route cannot be changed. To change who signs, start the signing again — that discards the signatures already given and retires every
+FAIL  the WORDING is frozen at the FIRST signature, not the last — HTTP 200 · wording now: <p>Rewritten by the API.</p>
+PASS  the contract executes — Signed · signatures=2
+PASS  an executed contract cannot be put back to Draft by a save — HTTP 409 {"error":"MK-S1 is executed — status cannot be changed after signature. Record an amendment instead.","immutable":["status"]}
+PASS  an EDITOR is refused the same executed-immutable fields — HTTP 409 {"error":"MK-S1 is executed — name cannot be changed after signature. Record an amendment instead.","immutable":["name"]}
+PASS  J14: every audit line names a person — Amina Otieno: Created | Amina Otieno: Shared
+PASS  J14: the trail is in ENGLISH and covers creation through signature — 2 lines: Amina Otieno: Created | Amina Otieno: Shared
+PASS  J14: no audit line drifted into Swedish — []
+PASS  J8: an amendment can be shared and SIGNED through the real signing route — HTTP 200
+PASS  J8: …and the executed amendment is genuinely executed — Signed
+PASS  a counterparty cannot dictate the DATE on their own signature — []
+PASS  ARM: the same envelope is accepted for a non-signing action on the review link — HTTP 200 {"ok":true}
+PASS  a REVIEW link cannot sign, and the server says so in words — HTTP 403 {"error":"This link was sent for review, not for signature. It can carry proposed changes, comments and an acceptance of the wording — but nothing can be signed on it. Ask the sender for a signing link.","purpose":"negot
+
+23/24 checks passed

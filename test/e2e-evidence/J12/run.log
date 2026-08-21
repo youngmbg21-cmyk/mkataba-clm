@@ -1,0 +1,519 @@
+
+--- 800 x 700 ---
+PASS  800: it rests as the 64px rail — 64px
+PASS  800: nothing in the strip paints outside it — 0px over
+PASS  800: below the line it is a floating layer, not a column — fixed
+PASS  800: with a 64px track held under it — 64px minmax(0px, 1fr) · page at x64
+PASS  800: pressing the chevron widens it to the full 256 — 256px
+PASS  800: AND THE PAGE DOES NOT MOVE — 64,64,736,636 → 64,64,736,636
+PASS  800: a scrim gives a way out that is not the button that opened it
+PASS  800: and its chevron now offers to close, not to open again — M14.5 6 8.5 12l6 6
+PASS  800: it leaves the stored preference alone — stored null
+PASS  800: Escape closes it and the page still has not moved — 64,64,736,636
+PASS  800: on Insights both header buttons are live — bell off=false activity off=false
+PASS  800: and the alerts panel opens over it — at x536
+
+--- 1280 x 800 ---
+PASS  1280: it rests as the 64px rail — 64px
+PASS  1280: nothing in the strip paints outside it — 0px over
+PASS  1280: below the line it is a floating layer, not a column — fixed
+PASS  1280: with a 64px track held under it — 64px minmax(0px, 1fr) · page at x64
+PASS  1280: pressing the chevron widens it to the full 256 — 256px
+PASS  1280: AND THE PAGE DOES NOT MOVE — 64,64,1216,736 → 64,64,1216,736
+PASS  1280: a scrim gives a way out that is not the button that opened it
+PASS  1280: and its chevron now offers to close, not to open again — M14.5 6 8.5 12l6 6
+PASS  1280: it leaves the stored preference alone — stored null
+PASS  1280: Escape closes it and the page still has not moved — 64,64,1216,736
+PASS  1280: on Insights both header buttons are live — bell off=false activity off=false
+PASS  1280: and the alerts panel opens over it — at x1016
+
+--- 1366 x 768 ---
+PASS  1366: it rests as the 64px rail — 64px
+PASS  1366: nothing in the strip paints outside it — 0px over
+PASS  1366: below the line it is a floating layer, not a column — fixed
+PASS  1366: with a 64px track held under it — 64px minmax(0px, 1fr) · page at x64
+PASS  1366: pressing the chevron widens it to the full 256 — 256px
+PASS  1366: AND THE PAGE DOES NOT MOVE — 64,64,1302,704 → 64,64,1302,704
+PASS  1366: a scrim gives a way out that is not the button that opened it
+PASS  1366: and its chevron now offers to close, not to open again — M14.5 6 8.5 12l6 6
+PASS  1366: it leaves the stored preference alone — stored null
+PASS  1366: Escape closes it and the page still has not moved — 64,64,1302,704
+PASS  1366: on Insights both header buttons are live — bell off=false activity off=false
+PASS  1366: and the alerts panel opens over it — at x1102
+PASS  1366: Requests sits under Templates, in the everyday group — {"templates":299,"intake":335,"people":371,"section":"work"}
+PASS  1366: and its content starts where every other page's does — Requests at x82 · Templates at x82
+
+--- 1440 x 900 ---
+PASS  1440: it rests as the 64px rail — 64px
+PASS  1440: nothing in the strip paints outside it — 0px over
+PASS  1440: below the line it is a floating layer, not a column — fixed
+PASS  1440: with a 64px track held under it — 64px minmax(0px, 1fr) · page at x64
+PASS  1440: pressing the chevron widens it to the full 256 — 256px
+PASS  1440: AND THE PAGE DOES NOT MOVE — 64,64,1376,836 → 64,64,1376,836
+PASS  1440: a scrim gives a way out that is not the button that opened it
+PASS  1440: and its chevron now offers to close, not to open again — M14.5 6 8.5 12l6 6
+PASS  1440: it leaves the stored preference alone — stored null
+PASS  1440: Escape closes it and the page still has not moved — 64,64,1376,836
+PASS  1440: on Insights both header buttons are live — bell off=false activity off=false
+PASS  1440: and the alerts panel opens over it — at x1148
+
+--- 1512 x 945 ---
+PASS  1512: it rests as the open 256px column — 256px
+PASS  1512: nothing in the strip paints outside it — 0px over
+PASS  1512: above the line it is still a column — static
+PASS  1512: collapsing it gives the 64px rail — 64px
+PASS  1512: and up here it PUSHES the page, exactly as it always did — 256,64,1256,881 → 64,64,1448,881
+PASS  1512: no scrim — a column is not a layer
+PASS  1512: and the choice is remembered — stored "1"
+PASS  1512: on Insights both header buttons are live — bell off=false activity off=false
+PASS  1512: and the alerts panel opens over it — at x1220
+
+--- 1920 x 1080 ---
+PASS  1920: it rests as the open 256px column — 256px
+PASS  1920: nothing in the strip paints outside it — 0px over
+PASS  1920: above the line it is still a column — static
+PASS  1920: collapsing it gives the 64px rail — 64px
+PASS  1920: and up here it PUSHES the page, exactly as it always did — 256,64,1664,1016 → 64,64,1856,1016
+PASS  1920: no scrim — a column is not a layer
+PASS  1920: and the choice is remembered — stored "1"
+PASS  1920: on Insights both header buttons are live — bell off=false activity off=false
+PASS  1920: and the alerts panel opens over it — at x1600
+PASS  no page errors on the whole journey — clean
+
+69/69 passed
+=== nav-floats-verify.js (existing suite, baseline corroboration) ===
+(re-run separately; see below for saved summary)
+
+=== 01-widths.js ===
+
+=== width 1920 ===
+PASS  1920: Home — no horizontal overflow — scrollW1920 clientW1920
+PASS  1920: Contracts — no horizontal overflow — over=0
+PASS  1920: Room/terms — no horizontal overflow — over=0
+PASS  1920: Room/docs — no horizontal overflow — over=0
+PASS  1920: Room/sign — no horizontal overflow — over=0
+PASS  1920: Room/history — no horizontal overflow — over=0
+PASS  1920: Negotiations — no horizontal overflow — over=0
+PASS  1920: Insights — no horizontal overflow — over=0
+PASS  1920: Settings — no horizontal overflow — over=0
+PASS  1920: People — no horizontal overflow — over=0
+PASS  1920: nav rests at open 256px column above the line — 256px
+
+=== width 1500 ===
+PASS  1500: Home — no horizontal overflow — scrollW1500 clientW1500
+PASS  1500: Contracts — no horizontal overflow — over=0
+PASS  1500: Room/terms — no horizontal overflow — over=0
+PASS  1500: Room/docs — no horizontal overflow — over=0
+PASS  1500: Room/sign — no horizontal overflow — over=0
+PASS  1500: Room/history — no horizontal overflow — over=0
+PASS  1500: Negotiations — no horizontal overflow — over=0
+PASS  1500: Insights — no horizontal overflow — over=0
+PASS  1500: Settings — no horizontal overflow — over=0
+PASS  1500: People — no horizontal overflow — over=0
+PASS  1500: nav rests at open 256px column above the line — 256px
+
+=== width 1440 ===
+PASS  1440: Home — no horizontal overflow — scrollW1440 clientW1440
+PASS  1440: Contracts — no horizontal overflow — over=0
+PASS  1440: Room/terms — no horizontal overflow — over=0
+PASS  1440: Room/docs — no horizontal overflow — over=0
+PASS  1440: Room/sign — no horizontal overflow — over=0
+PASS  1440: Room/history — no horizontal overflow — over=0
+PASS  1440: Negotiations — no horizontal overflow — over=0
+PASS  1440: Insights — no horizontal overflow — over=0
+PASS  1440: Settings — no horizontal overflow — over=0
+PASS  1440: People — no horizontal overflow — over=0
+PASS  1440: sidebar is fixed (floats) below 1500 — fixed
+PASS  1440: page content box unchanged open vs before — 64,126,1376,874 vs 64,126,1376,874
+PASS  1440: page content box unchanged after close — 64,126,1376,874 vs 64,126,1376,874
+
+=== width 1366 ===
+PASS  1366: Home — no horizontal overflow — scrollW1366 clientW1366
+PASS  1366: Contracts — no horizontal overflow — over=0
+PASS  1366: Room/terms — no horizontal overflow — over=0
+PASS  1366: Room/docs — no horizontal overflow — over=0
+PASS  1366: Room/sign — no horizontal overflow — over=0
+PASS  1366: Room/history — no horizontal overflow — over=0
+PASS  1366: Negotiations — no horizontal overflow — over=0
+PASS  1366: Insights — no horizontal overflow — over=0
+PASS  1366: Settings — no horizontal overflow — over=0
+PASS  1366: People — no horizontal overflow — over=0
+PASS  1366: sidebar is fixed (floats) below 1500 — fixed
+PASS  1366: page content box unchanged open vs before — 64,126,1302,874 vs 64,126,1302,874
+PASS  1366: page content box unchanged after close — 64,126,1302,874 vs 64,126,1302,874
+
+=== width 1280 ===
+PASS  1280: Home — no horizontal overflow — scrollW1280 clientW1280
+PASS  1280: Contracts — no horizontal overflow — over=0
+PASS  1280: Room/terms — no horizontal overflow — over=0
+PASS  1280: Room/docs — no horizontal overflow — over=0
+PASS  1280: Room/sign — no horizontal overflow — over=0
+PASS  1280: Room/history — no horizontal overflow — over=0
+PASS  1280: Negotiations — no horizontal overflow — over=0
+PASS  1280: Insights — no horizontal overflow — over=0
+PASS  1280: Settings — no horizontal overflow — over=0
+PASS  1280: People — no horizontal overflow — over=0
+PASS  1280: sidebar is fixed (floats) below 1500 — fixed
+PASS  1280: page content box unchanged open vs before — 64,126,1216,874 vs 64,126,1216,874
+PASS  1280: page content box unchanged after close — 64,126,1216,874 vs 64,126,1216,874
+
+=== width 1024 ===
+PASS  1024: Home — no horizontal overflow — scrollW1024 clientW1024
+PASS  1024: Contracts — no horizontal overflow — over=0
+PASS  1024: Room/terms — no horizontal overflow — over=0
+PASS  1024: Room/docs — no horizontal overflow — over=0
+PASS  1024: Room/sign — no horizontal overflow — over=0
+PASS  1024: Room/history — no horizontal overflow — over=0
+PASS  1024: Negotiations — no horizontal overflow — over=0
+PASS  1024: Insights — no horizontal overflow — over=0
+PASS  1024: Settings — no horizontal overflow — over=0
+PASS  1024: People — no horizontal overflow — over=0
+PASS  1024: sidebar is fixed (floats) below 1500 — fixed
+PASS  1024: page content box unchanged open vs before — 64,124,960,876 vs 64,124,960,876
+PASS  1024: page content box unchanged after close — 64,124,960,876 vs 64,124,960,876
+
+--- page errors collected ---
+1920: console.error: Failed to load resource: the server responded with a status of 404 (Not Found)
+
+74/74 passed
+
+=== 02-languages.js ===
+PASS  MK-A1 document body captured (EN) — len=907
+PASS  Home hero title is CLM English before switch — Contract Lifecycle Management
+PASS  Swedish toggle reachable in top bar at 1440
+PASS  Home hero title changed language — EN="Contract Lifecycle Management" SV="Hantering av avtalens livscykel"
+PASS  Home hero title follows the settled ng_clm wording (Hantering av avtalens livscykel) — Hantering av avtalens livscykel
+PASS  MK-A1 contract wording (clauses) is BYTE IDENTICAL in English and Swedish UI — EN len=379 SV len=379
+FAIL  SEAL BLOCK (SV): "Timestamp recorded" placeholder is translated (NOT expected — records the fault) — still hardcoded English
+FAIL  SEAL BLOCK (SV): the signer-identity sentence is translated (NOT expected — records the fault) — still hardcoded English
+FAIL  SEAL BLOCK (SV): "Not recorded" (no signature) is translated (NOT expected — records the fault) — still hardcoded English
+
+--- page errors ---
+
+6/9 passed
+
+=== 03-markets.js ===
+PASS  default market is kenya — kenya
+PASS  MK-A1 Key Terms value shows KES with en-KE grouping (comma) — KES 48,000,000 
+PASS  Playbook (Kenya market) references Kenya governing law
+PASS  reader language explicitly pinned to English before the market switch — en
+PASS  market select shows kenya in the drawer — kenya
+PASS  pinned English reader stays English after a market switch — en
+PASS  SETTINGS PAGE HOLDS STILL — #set-page is the SAME DOM node after the market switch (patch, not re-render) — same node
+PASS  market switched to sweden — sweden
+PASS  market select reflects sweden after switch — sweden
+PASS  market facts line changed (currency/law facts updated) — before="Currency: KES · Governing law: Kenyan law
+    Signatures rest on: Electronic signatures under the Business Laws (Amendment) Act 2020 (Kenya)." after="Currency: SEK · Governing law: Swedish law
+    Signatures rest on: Electronic signatures under Regulation (EU) No 910/2014 (eIDAS)."
+PASS  market facts line now mentions SEK — Currency: SEK · Governing law: Swedish law
+    Signatures rest on: Electronic signatures under Regulation (EU) No 910/2014 (eIDAS).
+PASS  MK-A1 Key Terms value STILL shows KES (contract keeps its own currency under a Swedish market) — KES 48 000 000 
+PASS  MK-A1 value digit grouping is now sv-SE (space) — English UI, Swedish market, KES currency, Swedish grouping — KES 48 000 000 
+PASS  MK-A1 document wording unaffected by market switch
+PASS  Playbook (Sweden market) references Sweden/Stockholm governing law
+PASS  Playbook (Sweden market) no longer references Kenya
+PASS  Calendar month header is ENGLISH words under an English reader + Swedish market — August 2026
+PASS  Calendar month header turns Swedish once the READER (not just the market) is Swedish — EN reader="August 2026" SV reader="augusti 2026"
+
+--- page errors ---
+
+18/18 passed
+
+=== 04-dark-theme.js ===
+FAIL  light/home: low-contrast text elements — 6 of 48 — e.g. span.hm-banner-greet "Good morning, Amina" ratio=1.05 need=4.5 fg=rgba(255, 255, 255, 0.88) bg=rgb(248,250,252) | h2 "Contract Lifecycle Management" ratio=1.05 need=3 fg=rgb(255, 255, 255) bg=rgb(248,250,252) | p "4 contracts under management · KES 247M " ratio=1.05 need=4.5 fg=rgba(255, 255, 255, 0.85) bg=rgb(248,250,252)
+FAIL  light/contracts: low-contrast text elements — 8 of 58 — e.g. td.reg-mk "MK-B2" ratio=3.74 need=4.5 fg=rgb(13, 148, 136) bg=rgb(255,255,255) | button.reg-actlink "Review terms" ratio=3.74 need=4.5 fg=rgb(13, 148, 136) bg=rgb(255,255,255) | td.reg-mk "MK-B1" ratio=3.74 need=4.5 fg=rgb(13, 148, 136) bg=rgb(255,255,255)
+FAIL  light/negotiations: low-contrast text elements — 1 of 4 — e.g. button.ui-btn.ui-btn-primary "Open the register" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136)
+FAIL  light/insights: low-contrast text elements — 3 of 66 — e.g. div "Contracted value" ratio=1.28 need=4.5 fg=rgb(189, 231, 225) bg=rgb(248,250,252) | div "KES 247M" ratio=1.05 need=3 fg=rgb(255, 255, 255) bg=rgb(248,250,252) | div "4 live contracts" ratio=1.28 need=4.5 fg=rgb(189, 231, 225) bg=rgb(248,250,252)
+FAIL  light/settings: low-contrast text elements — 1 of 38 — e.g. button.ui-btn.ui-btn-primary "Add member" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136)
+FAIL  light/people: low-contrast text elements — 4 of 24 — e.g. span.dir-none "No job title on file" ratio=2.56 need=4.5 fg=rgb(148, 163, 184) bg=rgb(255,255,255) | span.dir-none "No job title on file" ratio=2.56 need=4.5 fg=rgb(148, 163, 184) bg=rgb(255,255,255) | span.dir-none "No job title on file" ratio=2.56 need=4.5 fg=rgb(148, 163, 184) bg=rgb(255,255,255)
+FAIL  light/room-terms: low-contrast text elements — 5 of 42 — e.g. button.ui-btn.ui-btn-primary "Share" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136) | button.ui-btn.ui-btn-primary "Evidence pack" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136) | button.ui-btn.ui-btn-primary "Draft new agreement" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136)
+FAIL  light/room-docs: low-contrast text elements — 4 of 45 — e.g. button.ui-btn.ui-btn-primary "Share" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136) | button.ui-btn.ui-btn-primary "Evidence pack" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136) | button.ui-btn.ui-btn-primary "Draft new agreement" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136)
+FAIL  light/room-sign: low-contrast text elements — 3 of 21 — e.g. button.ui-btn.ui-btn-primary "Share" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136) | button.ui-btn.ui-btn-primary "Evidence pack" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136) | button.ui-btn.ui-btn-primary "Draft new agreement" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136)
+FAIL  light/room-history: low-contrast text elements — 3 of 28 — e.g. button.ui-btn.ui-btn-primary "Share" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136) | button.ui-btn.ui-btn-primary "Evidence pack" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136) | button.ui-btn.ui-btn-primary "Draft new agreement" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136)
+PASS  dark class applied to <html> after setTheme("dark")
+PASS  dark/home: low-contrast text elements — 0 of 48
+FAIL  dark/contracts: low-contrast text elements — 1 of 58 — e.g. button "show a flat list" ratio=3.26 need=4.5 fg=rgb(15, 118, 110) bg=rgb(15,23,42)
+FAIL  dark/negotiations: low-contrast text elements — 1 of 4 — e.g. button.ui-btn.ui-btn-primary "Open the register" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136)
+PASS  dark/insights: low-contrast text elements — 0 of 66
+FAIL  dark/settings: low-contrast text elements — 3 of 38 — e.g. button.st-tab.on "People" ratio=2.66 need=4.5 fg=rgb(17, 94, 89) bg=rgb(2,6,23) | button.st-tab "Build & launch" ratio=2.66 need=4.5 fg=rgb(17, 94, 89) bg=rgb(2,6,23) | button.ui-btn.ui-btn-primary "Add member" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136)
+FAIL  dark/people: low-contrast text elements — 8 of 24 — e.g. span.dir-none "No job title on file" ratio=3.75 need=4.5 fg=rgb(100, 116, 139) bg=rgb(15,23,42) | a "admin@example.co.ke" ratio=3.26 need=4.5 fg=rgb(15, 118, 110) bg=rgb(15,23,42) | span.dir-none "No job title on file" ratio=3.75 need=4.5 fg=rgb(100, 116, 139) bg=rgb(15,23,42)
+FAIL  dark/room-terms: low-contrast text elements — 5 of 42 — e.g. button.ui-btn.ui-btn-primary "Share" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136) | button.ui-btn.ui-btn-primary "Evidence pack" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136) | button.ui-btn.ui-btn-primary "Draft new agreement" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136)
+FAIL  dark/room-docs: low-contrast text elements — 4 of 45 — e.g. button.ui-btn.ui-btn-primary "Share" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136) | button.ui-btn.ui-btn-primary "Evidence pack" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136) | button.ui-btn.ui-btn-primary "Draft new agreement" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136)
+FAIL  dark/room-sign: low-contrast text elements — 3 of 21 — e.g. button.ui-btn.ui-btn-primary "Share" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136) | button.ui-btn.ui-btn-primary "Evidence pack" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136) | button.ui-btn.ui-btn-primary "Draft new agreement" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136)
+FAIL  dark/room-history: low-contrast text elements — 3 of 28 — e.g. button.ui-btn.ui-btn-primary "Share" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136) | button.ui-btn.ui-btn-primary "Evidence pack" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136) | button.ui-btn.ui-btn-primary "Draft new agreement" ratio=3.74 need=4.5 fg=rgb(255, 255, 255) bg=rgb(13,148,136)
+PASS  dark theme: status chips/badges on the register keep a distinct background — checked 4 chips
+FAIL  dark theme: Insights renders at least one non-empty chart canvas — []
+
+--- page errors ---
+
+4/23 passed
+
+=== 05-phone.js ===
+PASS  grep "changes.push|negoFileChange" js/mobile*.js finds NOTHING — (no matches)
+PASS  phone shell (#m-root) is present at 390px
+PASS  bottom bar has 4 labels — [{"text":"Home","size":14},{"text":"Contracts","size":14},{"text":"Negotiate","size":14},{"text":"Approvals","size":14}]
+PASS  bottom bar label "Home" is >= 14px — 14px
+PASS  bottom bar label "Contracts" is >= 14px — 14px
+PASS  bottom bar label "Negotiate" is >= 14px — 14px
+PASS  bottom bar label "Approvals" is >= 14px — 14px
+PASS  Home: no horizontal overflow — over=0
+PASS  Contracts: no horizontal overflow — over=0
+PASS  Negotiate: no horizontal overflow — over=0
+PASS  Negotiate screen shows the three-band structure (waiting on you / other side / nothing outstanding) — Waiting on you
+        1 | Waiting on you | 1 | With the other side
+        0 | With the other side | 0 | Nothing outstanding
+        0 | Nothing outstanding | 0
+PASS  Approvals: no horizontal overflow — over=0
+PASS  tapping a contract row opens the phone contract screen — tapped=data-m-open=MK-A1
+PASS  Contract screen /terms: no horizontal overflow — over=0
+PASS  Contract screen /hist: no horizontal overflow — over=0
+PASS  share sheet opens on the phone
+PASS  People: no horizontal overflow — over=0
+PASS  People screen lists members (email addresses visible)
+PASS  More: no horizontal overflow — over=0
+
+--- page errors ---
+
+19/19 passed
+
+=== lang-coverage.js (existing measure) ===
+=== ENGLISH STILL SHOWING, BY SCREEN ===
+
+--- contract (16) ---
+   [room-sub] MK-B2 · Sales & Route-to-Market · Runda 1
+   [text-[13px]] This Raw Material Supply Agreement is made on
+   [text-[13px]] between
+   [text-[13px]] (the "Buyer") and
+   [text-[13px]] (the "Supplier") for the supply of
+   [text-[13px]] into the Buyer's production facilities in Kenya.
+   [text-[13.5px]] The Supplier shall supply an estimated
+   [font-display] 2. Price & Contract Value
+   [text-[13.5px]] The estimated annual contract value is KES
+   [text-[13.5px]] days of receipt.
+   [text-[13.5px]] Consignments failing specification or Public Health / KEBS requirements may be rejected within
+   [text-[13.5px]] days of delivery, with replacement at the Supplier's cost.
+   [text-[13.5px]] This Agreement is governed by the laws of Kenya, with disputes referred to arbitration seated in Nairobi under
+   [span] live
+   [@title] Team
+   [@title] Arbetsytans status
+
+--- playbook (12) ---
+   [div] This Agreement is governed by the laws of Kenya and the parties submit to the exclusive jurisdiction of the co
+   [span] Payment terms
+   [span] Payment within 30 days
+   [div] The Buyer shall pay each undisputed invoice within thirty (30) days of receipt, in KES, exclusive of VAT.
+   [span] Liability cap at 12 months fees
+   [div] Each party’s aggregate liability under this Agreement is capped at the total fees paid in the twelve (12) mont
+   [div] Each party shall keep the other’s confidential information secret and use it only for this Agreement, for the 
+   [div] Where personal data is processed, each party complies with the Data Protection Act, 2019 and applicable ODPC g
+   [span] Termination on notice + cause
+   [div] Either party may terminate for material breach not remedied within thirty (30) days of notice, or for convenie
+   [@title] Team
+   [@title] Arbetsytans status
+
+--- templates (11) ---
+   [th] Version
+   [div] Commodity & ingredient supply into the plants.
+   [div] Office, depot and premises leases.
+   [span] Contract Manufacturing (Co-Packing)
+   [div] Regional route-to-market distributor terms.
+   [div] Plant machinery lease and servicing.
+   [div] Primary and last-mile distribution.
+   [div] Agency, media and activation services.
+   [div] Confidentiality for NPD & vendor onboarding.
+   [@title] Team
+   [@title] Arbetsytans status
+
+--- room:history (5) ---
+   [room-sub] MK-B2 · Sales & Route-to-Market · Runda 1
+   [span] Clause
+   [span] Person
+   [@title] Team
+   [@title] Arbetsytans status
+
+--- register (4) ---
+   [reg-th-sort] Status
+   [@title] Team
+   [@title] Arbetsytans status
+   [@title] Sortera efter Status
+
+--- team (3) ---
+   [st-person-name] No Values Legal
+   [@title] Team
+   [@title] Arbetsytans status
+
+--- reports (3) ---
+   [span] Sales & Route-to-Market
+   [@title] Team
+   [@title] Arbetsytans status
+
+--- migration (3) ---
+   [label] Arkivera under
+   [@title] Team
+   [@title] Arbetsytans status
+
+--- dashboard (2) ---
+   [@title] Team
+   [@title] Arbetsytans status
+
+--- calendar (2) ---
+   [@title] Team
+   [@title] Arbetsytans status
+
+--- intel (2) ---
+   [@title] Team
+   [@title] Arbetsytans status
+
+--- advice (2) ---
+   [@title] Team
+   [@title] Arbetsytans status
+
+--- queue (2) ---
+   [@title] Team
+   [@title] Arbetsytans status
+
+TOTAL still-English runs a Swedish reader sees: 67
+
+=== probe-scrim.js ===
+node:internal/process/promises:394
+    triggerUncaughtException(err, true /* fromPromise */);
+    ^
+
+page.click: Timeout 30000ms exceeded.
+Call log:
+[2m  - waiting for locator('#lang-switch [data-lang="sv"]')[22m
+[2m    - locator resolved to <button type="button" data-lang="sv" title="Svenska" class="lang-btn" aria-pressed="false">…</button>[22m
+[2m  - attempting click action[22m
+[2m    2 × waiting for element to be visible, enabled and stable[22m
+[2m      - element is visible, enabled and stable[22m
+[2m      - scrolling into view if needed[22m
+[2m      - done scrolling[22m
+[2m      - <div id="st-scrim" class="st-scrim open"></div> intercepts pointer events[22m
+[2m    - retrying click action[22m
+[2m    - waiting 20ms[22m
+[2m    2 × waiting for element to be visible, enabled and stable[22m
+[2m      - element is visible, enabled and stable[22m
+[2m      - scrolling into view if needed[22m
+[2m      - done scrolling[22m
+[2m      - <div id="st-scrim" class="st-scrim open"></div> intercepts pointer events[22m
+[2m    - retrying click action[22m
+[2m      - waiting 100ms[22m
+[2m    56 × waiting for element to be visible, enabled and stable[22m
+[2m       - element is visible, enabled and stable[22m
+[2m       - scrolling into view if needed[22m
+[2m       - done scrolling[22m
+[2m       - <div id="st-scrim" class="st-scrim open"></div> intercepts pointer events[22m
+[2m     - retrying click action[22m
+[2m       - waiting 500ms[22m
+
+    at /home/user/mkataba-clm/test/e2e-evidence/J12/scripts/probe-scrim.js:23:14 {
+  log: [
+    `  - waiting for locator('#lang-switch [data-lang="sv"]')`,
+    '    - locator resolved to <button type="button" data-lang="sv" title="Svenska" class="lang-btn" aria-pressed="false">…</button>',
+    '  - attempting click action',
+    '    2 × waiting for element to be visible, enabled and stable',
+    '      - element is visible, enabled and stable',
+    '      - scrolling into view if needed',
+    '      - done scrolling',
+    '      - <div id="st-scrim" class="st-scrim open"></div> intercepts pointer events',
+    '    - retrying click action',
+    '    - waiting 20ms',
+    '    2 × waiting for element to be visible, enabled and stable',
+    '      - element is visible, enabled and stable',
+    '      - scrolling into view if needed',
+    '      - done scrolling',
+    '      - <div id="st-scrim" class="st-scrim open"></div> intercepts pointer events',
+    '    - retrying click action',
+    '      - waiting 100ms',
+    '    56 × waiting for element to be visible, enabled and stable',
+    '       - element is visible, enabled and stable',
+    '       - scrolling into view if needed',
+    '       - done scrolling',
+    '       - <div id="st-scrim" class="st-scrim open"></div> intercepts pointer events',
+    '     - retrying click action',
+    '       - waiting 500ms'
+  ],
+  name: 'TimeoutError'
+}
+
+Node.js v22.22.2
+
+=== probe-accent-dark.js ===
+DARK THEME TOKENS: {
+  accent100: '#ccfbf1',
+  accent800: '#115e59',
+  accent900: '#134e4a',
+  neutral600: '#94a3b8',
+  bg: '#020617',
+  surface: '#0f172a'
+}
+ACTIVE SETTINGS TAB in dark: { text: 'People', color: 'rgb(17, 94, 89)', bg: 'rgba(0, 0, 0, 0)' }
+
+=== probe-svg-dark.js ===
+{
+  "count": 34,
+  "texts": [
+    {
+      "content": "KES 247M",
+      "fill": "var(--color-neutral-600)"
+    },
+    {
+      "content": "0",
+      "fill": "var(--color-neutral-600)"
+    },
+    {
+      "content": "Aug 2026",
+      "fill": "var(--color-neutral-600)"
+    },
+    {
+      "content": "Nov 2026",
+      "fill": "var(--color-neutral-600)"
+    },
+    {
+      "content": "Feb 2027",
+      "fill": "var(--color-neutral-600)"
+    },
+    {
+      "content": "May 2027",
+      "fill": "var(--color-neutral-600)"
+    },
+    {
+      "content": "Aug 2027",
+      "fill": "var(--color-neutral-600)"
+    },
+    {
+      "content": "Nov 2027",
+      "fill": "var(--color-neutral-600)"
+    },
+    {
+      "content": "KES 85M",
+      "fill": "var(--color-neutral-600)"
+    },
+    {
+      "content": "0",
+      "fill": "var(--color-neutral-600)"
+    },
+    {
+      "content": "no rounds recorded",
+      "fill": "var(--color-neutral-600)"
+    },
+    {
+      "content": "3 rounds →",
+      "fill": "var(--color-neutral-600)"
+    },
+    {
+      "content": "Naivas Supermarkets",
+      "fill": "var(--color-text)"
+    },
+    {
+      "content": "Nandi Dairy",
+      "fill": "var(--color-text)"
+    },
+    {
+      "content": "Kabras Sugar",
+      "fill": "var(--color-text)"
+    }
+  ]
+}
+
+=== probe-404.js (unreproduced) ===

@@ -1,0 +1,33 @@
+PASS — call sites found {"count":13,"lines":[2431,3691,3761,3818,3912,3968,4010,4086,4523,4566,5127,5405,10312]}
+PASS — EVERY metered call site names a person (who: aiWho(req), or forwards meter.who) {"total":13,"missing":[]}
+PASS — Phase 2 (per-person daily copilotCap) is NOT built anywhere in server/ or js/ []
+PASS — BEFORE: today's spend ledger {"date":"2026-08-21","tz":"Africa/Nairobi","total":0,"requests":0,"dailySpendLimit":10,"dailyLimit":5000,"byFeature":[],"allowance":{"open":false,"budget":0,"docs":0,"spent":0,"docsUsed":0,"openedAt":null,"openedBy":"","closedAt":null,"moneyLeft":null,"docsLeft":null,"exhausted":false},"rates":{"claude-opus-5":{"in":5,"out":25},"claude-opus-4-8":{"in":5,"out":25},"claude-opus-4-7":{"in":5,"out":25
+PASS — admin's chat call succeeded {"status":200}
+PASS — chatuser2's chat call succeeded {"status":200}
+PASS — AFTER: byFeature chat row requests increased (a 5-step tool loop per chat call, since the stub never happens to pick deliver_answer first) {"after":{"feature":"chat","label":"Copilot","cost":0.0035,"requests":10,"calls":10,"inputTokens":100,"outputTokens":50}}
+PASS — TWO DIFFERENT MEMBERS LAND ON TWO SEPARATE LINES (read via GET /api/ai/config's spend.byPerson) {"adminLine":{"userId":"u_1b20aaa37d883938","name":"Amina Otieno","gone":false,"cost":0.00175,"requests":5,"calls":5,"inputTokens":50,"outputTokens":25},"u2Line":{"userId":"u_4ae9636a4e15b2aa","name":"Chat User Two","gone":false,"cost":0.00175,"requests":5,"calls":5,"inputTokens":50,"outputTokens":25}}
+PASS — each line shows exactly 5 requests (their own call's whole tool loop, not the other member's) {"adminRequests":5,"u2Requests":5}
+PASS — byFeature chat requests (from /api/ai/spend) === sum of byPerson.requests (from /api/ai/config) — same calls, two ledgers, agreeing {"chatRequests":10,"perPersonSum":10}
+PASS — sum(byPerson.cost) ~= workspace total cost (nothing unattributed here — every call was a real member) {"perPersonCostSum":0.0035,"workspaceTotal":0.0035,"unattributed":0}
+PASS — unattributed is a NUMBER (a figure), not absent/undefined 0
+PASS — ...and it is ~0 here, because every metered route in this build requires auth (see below) 0
+PASS — every metered route requires `auth` (so req.user is always set — this is WHY unattributed cannot be exercised live today, matching the shipped test's own admission) []
+PASS — /api/ai/spend refuses a non-admin 403
+PASS — /api/ai/spend allows the admin 200
+PASS — /api/ai/usage is OPEN to a non-admin member (the sidebar figure) 200
+PASS — /api/ai/spend refuses restricted too 403
+PASS — /api/ai/spend refuses novalues too 403
+PASS — WORKSPACE SPEND CEILING: refused with 429 once reached {"status":429,"body":{"error":"Daily Copilot budget reached ($0.00 of $0.00 spent today). Waiting will not help — an admin needs to raise the budget in Team & Settings, or open an onboarding allowance for a migration.","spendLimit":true,"dailySpend":0.0035,"dailySpendLimit":0.001,"retryAfter":3600}}
+PASS — ...and the refusal IS IN WORDS naming the remedy (an admin must raise the budget) "Daily Copilot budget reached ($0.00 of $0.00 spent today). Waiting will not help — an admin needs to raise the budget in Team & Settings, or open an onboarding allowance for a migration."
+PASS — ...retryAfter is set 3600
+PASS — raising the ceiling lets Copilot answer again 200
+PASS — control: /api/ai/spend correctly refuses the Viewer (this route IS properly admin-gated) 403
+PASS — *** FINDING *** GET /api/ai/config is answered for a plain VIEWER (200, not 403) 200
+PASS — *** FINDING *** ...and its `spend.byPerson` array is populated with named colleagues' individual Copilot spend, visible to the Viewer [{"userId":"u_1b20aaa37d883938","name":"Amina Otieno","gone":false,"cost":0.0035,"requests":10,"calls":10,"inputTokens":100,"outputTokens":50},{"userId":"u_4ae9636a4e15b2aa","name":"Chat User Two","gone":false,"cost":0.00175,"requests":5,"calls":5,"inputTokens":50,"outputTokens":25}]
+PASS — *** FINDING *** meanwhile the PROPERLY admin-gated route (/api/ai/spend) carries no byPerson key AT ALL — the per-person data was simply never added there ["date","tz","total","requests","dailySpendLimit","dailyLimit","byFeature","allowance","rates","ratesMeta"]
+PASS — *** FINDING *** admin's own /api/ai/config.spend.byPerson matches what the Viewer got, byte for byte — same data, wrong door true
+PASS — *** FINDING *** unattributed is ALSO exposed to the Viewer via this route 0
+PASS — *** FINDING *** and this is not a theoretical curl target: the CONTRACT ROOM itself fetches ai/config with no role check around it (source line quoted) "if(API_MODE()&&!state.aiCfg){ try{ state.aiCfg=await api('ai/config'); }catch(e){} }"
+
+=== COPILOT SPEND SUMMARY ===
+30 checks, 0 failed

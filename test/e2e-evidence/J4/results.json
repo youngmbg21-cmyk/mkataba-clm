@@ -1,0 +1,102 @@
+[
+  {
+    "name": "an admin can set a rate through the FX route",
+    "pass": false,
+    "detail": "HTTP 400 {\"error\":\"code must be a three-letter currency code\"}"
+  },
+  {
+    "name": "an EDITOR is refused the FX rates route",
+    "pass": true,
+    "detail": "HTTP 403 {\"error\":\"Admin access required\"}"
+  },
+  {
+    "name": "the aggregate reports what it could NOT convert, rather than trimming silently",
+    "pass": true,
+    "detail": "fxMissing = {\"USD\":1,\"EUR\":1}"
+  },
+  {
+    "name": "…and it names EUR specifically (the currency with no rate on file)",
+    "pass": true,
+    "detail": "{\"USD\":1,\"EUR\":1}"
+  },
+  {
+    "name": "…and it does NOT name USD, which has a rate",
+    "pass": false,
+    "detail": "{\"USD\":1,\"EUR\":1}"
+  },
+  {
+    "name": "the analytics route reports the same omission",
+    "pass": true,
+    "detail": "fxMissing = {\"USD\":1,\"EUR\":1}"
+  },
+  {
+    "name": "a USD contract prints in USD on its own page",
+    "pass": true,
+    "detail": "USD 40,000"
+  },
+  {
+    "name": "a EUR contract prints in EUR on its own page",
+    "pass": true,
+    "detail": "EUR 30,000"
+  },
+  {
+    "name": "a workspace-currency contract still prints in KES",
+    "pass": true,
+    "detail": "KES 5,000,000"
+  },
+  {
+    "name": "the COMPACT print follows the contract's own currency too (the register row)",
+    "pass": true,
+    "detail": "USD 40K · EUR 30K"
+  },
+  {
+    "name": "a converted figure says it converted",
+    "pass": false,
+    "detail": "{\"v\":0,\"code\":\"USD\",\"converted\":false,\"missing\":true}"
+  },
+  {
+    "name": "an unconvertible figure says MISSING rather than guessing a rate",
+    "pass": true,
+    "detail": "{\"v\":0,\"code\":\"EUR\",\"converted\":false,\"missing\":true}"
+  },
+  {
+    "name": "the REGISTER row prints each contract in its own currency, not the workspace one",
+    "pass": true,
+    "detail": "USD row: MK-USD USD contract Raw Material Supply Kabras Sugar In Review — USD 40K 31.01.2028 · 528 d Review terms ⋯ || EUR row: MK-EUR EUR contract Raw Material Supply Kabras Sugar In Review — EUR 30K 31.01.2028 · 528 d Review terms ⋯"
+  },
+  {
+    "name": "the DASHBOARD says what it left out of the converted headline",
+    "pass": true,
+    "detail": "dline 5 71% 3. Sign & Executed 2 29% Press a stage to list it 2. Review & Redline 5 docs Retail Supply — Coast Action · Naivas Supermarkets EUR contract Kabras Sugar Raw Milk Collection Nandi Dairy USD contract Kabras Sugar"
+  },
+  {
+    "name": "most Key terms rows stand down on a SIGNED contract",
+    "pass": true,
+    "detail": "live on draft (7): party,counterparty,cpEmail,value,effDate,expiry,stream || live on signed (0): "
+  },
+  {
+    "name": "…but the STREAM picker deliberately stays live on a signed contract",
+    "pass": false,
+    "detail": "signed rows: []"
+  },
+  {
+    "name": "an EDITOR is refused a stream move at the server",
+    "pass": true,
+    "detail": "HTTP 403 {\"error\":\"MK-KES is filed under proc and only an admin can move it. Ask an admin to re-file it.\",\"folderMove\":{\"from\":\"proc\",\"to\":\"sales\"}}"
+  },
+  {
+    "name": "an ADMIN may re-file it",
+    "pass": true,
+    "detail": "HTTP 200"
+  },
+  {
+    "name": "…and the move is written to the record",
+    "pass": true,
+    "detail": "folder=sales"
+  },
+  {
+    "name": "no page errors across the money walk",
+    "pass": true,
+    "detail": "none"
+  }
+]

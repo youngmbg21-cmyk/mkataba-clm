@@ -1,0 +1,30 @@
+=== 04: go-live row facts ===
+ROW entity: bootstrap.org.name="Highland Corporate Ltd" branding.companyName=null
+VERIFIED: entity row source (org.name) is real and reachable via GET /api/bootstrap.
+ROW mail: emailConfigured=false emailHealth={"configured":false,"failing":false,"recent":0,"failed":0,"lastError":null}
+VERIFIED: mail row source reachable; with no provider configured it correctly reads unconfigured (not silently green).
+ROW key: bootstrap.aiConfigured=true /api/ai/config.configured=true
+VERIFIED: key row source reachable and consistent across bootstrap and /api/ai/config.
+ROW ceiling: dailySpendLimit=10 (row reads ok when >0; default 10 with no env override)
+  PUT /api/ai/config {dailySpendLimit:25}: status=200 body={"ok":true,"configured":true,"models":{"fast":"claude-haiku-4-5-20251001","deep":"claude-sonnet-5"},"limits":{"dailySpendLimit":25,"dailyLimit":5000},"rates":{"claude-opus-5":{"in":5,"out":25},"claude
+  after: dailySpendLimit=25
+VERIFIED: ceiling row source reachable; writable=true
+  non-admin PUT /api/ai/config: status=403 body={"error":"Admin access required"}
+ROW rule: bootstrap.settings.approvalRules = undefined
+  is an explicit array on the server: false
+FINDING go-live-rule-row-fallback: without an admin ever configuring one, the SERVER holds no approvalRules array (undefined), but js/approvals.js's approvalRules() synthesizes a default rule client-side (a 5,000,000 threshold rule) whenever settings.approvalRules is not an array -- so the go-live row would read 'ok:true, detail:1' on a workspace where nobody has ever set an approval rule.
+ROW samples: contracts with seeded===true in the light list = 0 (fixtures here were NOT stamped seeded:true by seedWorkspace's fixtureContract, so expect 0)
+  POST /api/demo/clear: status=200 body={"ok":true,"removed":[],"kept":4}
+  non-admin POST /api/demo/clear: status=403 body={"error":"Admin access required"}
+VERIFIED: samples row's underlying route (POST /api/demo/clear, admin-only) is real and reachable.
+ROW integrity: js/views/settings.js reads _stIntegrity, a value set ONLY by a client-side loop over state.contracts calling negoIntegrityReport() per contract -- there is no server route that runs or stores this. NOT independently verifiable at the API; this is a browser-only computation. NOT TESTED beyond confirming there is no server endpoint for it:
+  probe GET /api/integrity (expected 404, confirming no such route): status=404
+ROW caps: admin bootstrap users with signCap null/absent (role!=admin) = restricted@example.co.ke,novalues@example.co.ke,everything@example.co.ke
+VERIFIED: caps row source (per-user signCap, admin-visible) reachable at /api/bootstrap for an admin.
+ROW backup: GET /api/export/workspace.zip (the actual backup download): status=200 content-type=application/zip
+  non-admin GET /api/export/workspace.zip: status=403
+FINDING go-live-backup-row-is-per-browser: stLastBackup() (js/views/settings.js:1502) reads localStorage key 'hati.v1.lastBackup' -- there is no server-side record of when a backup was last taken. An admin who took a backup on one browser/device and opens Build & Launch on a different browser (or after clearing site data) would see 'Not set' even though a real backup exists, because the fact lives only in the browser that pressed the button, never on the server the workspace actually runs on.
+ROW firstsend: admin GET /api/activation: status=200 body={"workspaceCreatedAt":"2026-08-21T06:12:20.541Z","events":{"added":null,"scanned":null,"sent":null,"signed":null},"northStar":{"firstSendDays":null,"withinSevenDays":null}}
+  non-admin GET /api/activation: status=403 body={"error":"Admin access required"}
+VERIFIED: firstsend row source reachable for admin, correctly refused for non-admin.
+  workspaceCreatedAt=2026-08-21T06:12:20.541Z northStar={"firstSendDays":null,"withinSevenDays":null}

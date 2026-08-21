@@ -1,0 +1,48 @@
+PASS  negotiate: the reading buttons are on the page — 
+PASS  negotiate: #pt-hist is tinted, not surface-white — rgb(204, 251, 241)
+PASS  negotiate: #pt-hist carries the accent ink — rgb(17, 94, 89)
+PASS  negotiate: #pt-hist has a shape to aim at — svg
+PASS  negotiate: #pt-compare is tinted, not surface-white — rgb(204, 251, 241)
+PASS  negotiate: #pt-compare carries the accent ink — rgb(17, 94, 89)
+PASS  negotiate: #pt-compare has a shape to aim at — svg
+PASS  sign: the reading buttons are on the page — 
+PASS  sign: #pt-hist is tinted, not surface-white — rgb(204, 251, 241)
+PASS  sign: #pt-hist carries the accent ink — rgb(17, 94, 89)
+PASS  sign: #pt-hist has a shape to aim at — svg
+PASS  sign: #pt-compare is tinted, not surface-white — rgb(204, 251, 241)
+PASS  sign: #pt-compare carries the accent ink — rgb(17, 94, 89)
+PASS  sign: #pt-compare has a shape to aim at — svg
+PASS  sign: the door is drawn, and no workbench under it — door=true mount=false foot=false
+PASS  sign: pressing it puts the Negotiation history on screen — 818x294
+PASS  sign: and it paints OVER the page, not behind it
+PASS  sign: and still no read-only workbench is mounted
+PASS  editor: the pill and the ＋ open an editor in the panel
+PASS  editor: step one offers Save, not a reason box
+PASS  editor: the box has not moved on step one — 421px → 421px
+PASS  editor: step two asks why, and can be skipped — file:true skip:true back:true
+PASS  editor: the reason field is there
+PASS  editor: the panel body keeps its width — 421px before, 421px with the editor open
+PASS  editor: the reason field fills its box and no more — 421px in 421px
+PASS  editor: it is sized from the box, not from its own content — border-box
+PASS  editor: text wraps rather than running sideways — soft / anywhere
+PASS  editor: a long unbroken reason does not widen the box — 421px
+PASS  editor: and it wraps instead of scrolling sideways
+PASS  editor: the page still does not scroll sideways
+FAIL  reason: an edited clause carries its reason onto the card — the card shows no reason
+FAIL  reason: and the card names it
+FAIL  reason: the card clamps a long reason to two lines — no clamped block on the card
+FAIL  reason: Show more is offered, and unfolds it — 
+PASS  deletion: no clause offers Propose deletion any more — 
+PASS  fmt: the editor opens on the counterparty page
+PASS  fmt: the formatting-only change FILED — a card is on the index — 
+      
+      
+        
+        CHG-001
+          DraftOpen
+
+PASS  fmt: the clause wears the formatting-only chip
+PASS  fmt: the document shows the proposed markup, not an unmarked baseline
+FAIL  fmt: a save with nothing changed says so IN the bar, beside the button — no inline message rendered
+
+35/40 checks passed

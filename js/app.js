@@ -501,11 +501,15 @@ function openFolder(fid){
 }
 function openWorkspace(id){ state.activeId=id; state.selId=id; setView('workspace'); }
 /* Create a draft from a built-in template WITHOUT the guided fill — every field
-   left blank for the user to complete in the document. No interface path calls
-   this any more: both routes into a built-in template (the Templates page and
-   the + New contract menu) go through openWizard(), so the questions whose
-   answers become the contract's data get asked exactly once, the same way, in
-   both places. Kept because it is window-exported and produces a valid draft. */
+   left blank for the user to complete in the document. The two routes into a
+   built-in template that ASK QUESTIONS (the Templates page and the + New
+   contract menu) go through openWizard() instead, so the answers that become
+   the contract's data get asked exactly once, the same way, in both places.
+   ONE LIVE CALLER, and this comment used to deny it existed (found 21 Aug 2026,
+   and the caller is younger than the comment): js/views/intake.js's Requests
+   door calls this directly when an editor turns a request into paper — there
+   the questions were already answered on the request, so the guided fill would
+   ask them a second time. */
 function createFromTemplate(tid){
   if(!canEdit()){ toast(i18t('ap_viewers_no_create'),'err'); return; }
   const t=TEMPLATES[tid], u=currentUser();

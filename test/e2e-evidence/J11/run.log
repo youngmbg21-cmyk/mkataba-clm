@@ -1,0 +1,162 @@
+===== run-insights.js =====
+PASS  all three tabs share ONE-LINE head (title+sub same row) — {"frame":{"headH":36,"sameLine":true,"toTheRight":true,"title":"Insights","sub":"portfolio frame · negotiation friction · Copilot contract graph"},"friction":{"headH":36,"sameLine":true,"toTheRight":true,"title":"Insights","sub":"portfolio frame · negotiation friction · Copilot contract graph"},"map":{"headH":36,"sameLine":true,"toTheRight":true,"title":"Insights","sub":"portfolio frame · negotiation friction · Copilot contract graph"}}
+PASS  panel keys are stable English — workload_runway,money_held_back,promises_live,won_and_lost,renewal_runway
+PASS  panel carries method/scope/measure/excluded — {"title":"The workload runway","method":"each contract's value is spread evenly over every month between its start and end date, so a piece of work occupies the months it runs","scope":{"category":null,"counterparty":null,"book":"live contracts (everything except Declined)"},"measure":"value","hasExcluded":true,"excludedShape":["couldNotPlace","outsideTheWindow","lostWork"],"rowsCap":null}
+PASS  keys do not turn over when the language does — workload_runway,money_held_back,promises_live,won_and_lost,renewal_runway
+PASS  but the reader-facing title DOES follow the language — Arbetsbanan
+PASS  archived contract never appears in workload runway (drivers/excluded lists) — {"hasArchivedInRunway":false,"scopeBook":"live contracts (everything except Declined)","wonLostScopeBook":"every contract of this shape, INCLUDING Declined"}
+PASS  scope.book states the LIVE definition (everything except Declined) — live contracts (everything except Declined)
+PASS  a novalues reader still gets panels — pfWeight falls to 1-per-contract when values hidden — {"measure":"contracts","money":{"visible":false,"currency":"KES"}}
+PASS  reports page renders with content — 4 card/canvas-ish elements
+PASS  weeklyData is deterministic — two calls agree byte for byte
+PASS  slot 5 ("what we did not look at") always prints — checked via structure below
+PASS  weekly review HTML built with no page errors and non-trivial content — 4030 bytes, ~6 heading-ish tags
+PASS  on a quiet week the doc still has real content (slot 5 present) rather than collapsing — 4047 bytes
+PASS  health report window opened and filled (not stuck on "building") — Print / save as PDF
+Portfolio Health Report
+
+Generated 21 August 2026 · 5 contracts · read from your live records
+
+98
+St
+PASS  health report names its snapshot (a month/date appears) — 2026 · 5 contracts · read from your live rec
+PASS  health report body background is light (white-ish), not dark-theme — rgb(255, 255, 255)
+PASS  no page errors on Insights/Reports/Weekly/Health journey — clean
+
+17/17 passed
+
+===== run-charts.js =====
+PASS  baseline recipes all drew (fixture is sane) — statusBreakdown:true riskBands:true expiryTimeline:true valueByCounterparty:true
+PASS  asking for the status "in bar graph format" swaps the doughnut for a BAR — {"type":"bar","labels":["Draft","Under Review","Signed","Declined"],"data":[[2,1,2,1]]}
+PASS  and the FIGURES reproduce the doughnut exactly — same labels, same counts — bar: {"type":"bar","labels":["Draft","Under Review","Signed","Declined"],"data":[[2,1,2,1]]} | doughnut: {"type":"doughnut","labels":["Draft","Under Review","Signed","Declined"],"data":[[2,1,2,1]]}
+PASS  the live chat pipeline (typed question -> aiLastAsk -> aiFmt -> aiExtractCharts) really ran and produced a chart card — card=true offlineNote=true ::  can search, summarize and compare them, read what changed in a negotiation and who asked for it, and I know what's on your screen.I give guidance, not legal advice — I'll tell you what a contract says and what moved, and say when something needs your lawyer. give the status in bar graph format Here is the status breakdown.Charts need an internet connection, and this workspace has none right now. 
+PASS  asking risk bands "as a line chart" swaps the doughnut for a LINE — {"type":"line","labels":["Low","Medium","High"],"data":[[2,1,2]]}
+PASS  and the risk FIGURES are unmoved — line: {"type":"line","labels":["Low","Medium","High"],"data":[[2,1,2]]} | doughnut: {"type":"doughnut","labels":["Low","Medium","High"],"data":[[2,1,2]]}
+PASS  asking the expiry timeline "as a pie chart" swaps the bar for a PIE — {"type":"pie","labels":["Sept 2026","Oct 2026","Mar 2027"],"data":[[1,1,1]]}
+PASS  and the expiry FIGURES for every month that DOES appear are unmoved (zero months are a documented pie/doughnut convention, not a moved number) — pie(non-zero only): [["Sept 2026",1],["Oct 2026",1],["Mar 2027",1]] | bar non-zero months: [["Sept 2026",1],["Oct 2026",1],["Mar 2027",1]]
+PASS  asking for a shape it is ALREADY in leaves the ORIGINAL fixed kind untouched (no needless rewrite) — {"kind":"expiryTimeline","title":"Contracts expiring"}
+PASS  "valueByCounterparty" is NOT on the swap list — a pie request leaves its own fixed kind (never rewritten to breakdown/pie) — {"kind":"valueByCounterparty","title":"valueByCounterparty"}
+PASS  "valueStreamSplit" is NOT on the swap list — a pie request leaves its own fixed kind (never rewritten to breakdown/pie) — {"kind":"valueStreamSplit","title":"valueStreamSplit"}
+PASS  "renewalPipeline" is NOT on the swap list — a pie request leaves its own fixed kind (never rewritten to breakdown/pie) — {"kind":"renewalPipeline","title":"renewalPipeline"}
+PASS  "cycleTime" is NOT on the swap list — a pie request leaves its own fixed kind (never rewritten to breakdown/pie) — {"kind":"cycleTime","title":"cycleTime"}
+PASS  "obligationsDue" is NOT on the swap list — a pie request leaves its own fixed kind (never rewritten to breakdown/pie) — {"kind":"obligationsDue","title":"obligationsDue"}
+PASS  ordinary English is not read as a shape request: "barred by the limitation period" — null
+PASS  ordinary English is not read as a shape request: "the bar association requires notice" — null
+PASS  ordinary English is not read as a shape request: "please sign on the dotted line" — null
+PASS  shape phrase recognised: "give the status in bar graph format" -> bar — bar
+PASS  shape phrase recognised: "as a pie" -> pie — pie
+PASS  shape phrase recognised: "horizontal bar please" -> hbar — hbar
+PASS  shape phrase recognised: "as a line chart" -> line — line
+PASS  shape phrase recognised: "in doughnut form" -> doughnut — doughnut
+PASS  chart month labels follow the READER'S LANGUAGE (not the market) — en=Aug 2026|Sept 2026|Oct 2026|Nov 2026|Dec 2026|Jan 2027|Feb 2027|Mar 2027|Apr 2027|May 2027|Jun 2027|Jul 2027  sv=aug. 2026|sep. 2026|okt. 2026|nov. 2026|dec. 2026|jan. 2027|feb. 2027|mars 2027|apr. 2027|maj 2027|juni 2027|juli 2027
+PASS  no page errors during the chart-shape journey — clean
+
+24/24 passed
+
+===== run-copilot.js =====
+PASS  chat: a question gets a real answer in the panel —  say when something needs your lawyer.
+        
+        
+      
+    what governs this contract?
+      
+      
+        This contract runs to 30 June 2027 under Kenyan law.
+        
+        
+      
+    
+PASS  highlighting on the Document tab raises Simplify / Ask Copilot — {"selMenuState":{"canvasFound":true,"textFound":true},"menuRows":["✂️ Simplify","✨ Ask Copilot"]}
+PASS  pressing Simplify opens the panel and answers about the highlighted passage —     
+      
+    ✂️ Simplify“Charges and payment All invoices are payable within thirty (30) days from the date of issue, being KES 4,800,000 per annum, with 5% late fee.”
+      
+      
+        In plain English: pay within 30 days.
+        
+        
+      
+    
+PASS  runContractBrief produces a brief and it renders — {"ok":true,"overview":"Highland provides cold-chain distribution to Nordfrakt for KES 4,800,000 per year, expiring 30 June 2027."}
+PASS  the brief is a CARD IN THE KEY TERMS COLUMN, between Renewal and Agreement family — ["renewal-host","brief-card","family-section"]
+PASS  the Checks card is THREE rows (no brief row) — Obligations, Playbook review, Copilot risk scan
+PASS  the brief PANEL (opened from the card) carries a 500px max-width — {"maxWidth":"500px","hasText":true}
+PASS  and it is the brief prose actually showing inside it — {"maxWidth":"500px","hasText":true}
+PASS  briefMark ESCAPES before it marks — no raw <img>/<script> in the output — &lt;img src=x onerror=alert(1)&gt; paid <b class="br-fig">KES 1,200,000</b> within <b class="br-fig">60 days</b>, <b class="br-fig">5%</b>, on <b class="br-fig">2026-08-21</b>
+PASS  briefMark marks money/periods/dates deterministically (idempotent on identical input) — true
+PASS  briefMark marked the unusual entry's embedded script tag safely (rendered in the DOM, not executed) — no alert() fired
+PASS  the record we shared FROM did carry a brief (sanity, so the strip below actually proves something) — true
+PASS  the RAW share payload off the wire carries NO brief — not even an empty field — 944 bytes, brief-free: true
+PASS  the brief still arrives on a SIGNED contract (reading is allowed there) — {"ok":true,"auditBefore":1,"auditAfter":1,"status":"Signed"}
+PASS  aiNoteRead wrote NOTHING to the sealed record's audit trail — before=1 after=1
+PASS  no red "Save failed" toast appeared over advice that in fact arrived — "(none on screen)"
+PASS  precedentMine() runs and is deterministic (two calls agree byte for byte) — true
+PASS  withdrawn is counted as neither agreed nor refused (2 accepted, 1 refused, withdrawn excluded from both) — {"key":"payment","category":"Payment terms","clause":"cl-pay","unit":"days","ours":{"accepted":0,"refused":0},"theirs":{"accepted":2,"refused":1},"numbers":{"oursAccepted":[],"theirsAccepted":[60,60]},"examples":[{"contractId":"MK-CP1","contractName":"Cold Chain Distribution","counterparty":"Nordfrakt Logistik AB","side":"theirs","outcome":"accepted","clause":"Charges and payment","at":null,"why":null},{"contractId":"MK-CP1","contractName":"Cold Chain Distribution","counterparty":"Nordfrakt Logistik AB","side":"theirs","outcome":"accepted","clause":"Charges and payment","at":null,"why":null},{"contractId":"MK-CP1","contractName":"Cold Chain Distribution","counterparty":"Nordfrakt Logistik AB","side":"theirs","outcome":"refused","clause":"Charges and payment","at":null,"why":null}],"contracts":["MK-CP1"],"total":3}
+PASS  grep: js/precedent.js calls no api(/fetch(/ai/ — deterministic, no network — (verified by grep before this run)
+PASS  the clause edit pill (door to the panel) was found and pressed — true
+PASS  the precedent line CAN appear on the owner's clause panel (mid-negotiation) — true
+PASS  and building the IDENTICAL panel for side="counterparty" through the same real renderer carries NO precedent line — {"ownerHasPrecedent":true,"cpHasPrecedent":false}
+PASS  Cmd/Ctrl+K opens the palette (openCommandPalette) — true
+PASS  the SYNC matcher paints immediately (before any network round-trip) — first paint never waits — 1 rows painted within the same tick as typing
+PASS  "In the wording" rides GET /api/search, debounced (one call, not one per keystroke) — 1 calls: http://127.0.0.1:34393/api/search?q=thirty%20days&limit=8
+PASS  an "Ask Copilot: ..." row rides LAST, quoting the typed text — Executed Supply …Charges and payment All invoices are payable within thirty (30) days from… wording | Cold Chain Distribution …Charges and payment All invoices are payable within thirty (30) days from… wording | Ask Copilot: “thirty days” Opens the Copilot panel with this question ready to send ask
+PASS  the palette itself calls NO AI route (no /api/ai/*, no anthropic call) — http://127.0.0.1:34393/api/search?q=thirty%20days&limit=8
+PASS  pressing "Ask Copilot" is a HANDOFF — closes the palette, opens the Copilot panel with the question prefilled — {"paletteGone":true,"aiOpen":true,"prefill":"thirty days"}
+PASS  and the handoff itself made no AI call (nothing sent until the reader presses submit) — 
+PASS  no page errors during the whole Copilot-surfaces journey — clean
+
+30/30 passed
+
+===== copilot-band-verify.js (existing shipped test, reused as-is) =====
+PASS  with nothing asked of us there is no band at all
+PASS  the band draws once they have asked for something — 366x66
+PASS  and it arrives SHUT — the column opens on the cards themselves
+PASS  pressing the bar OPENS it — rows drawn, not merely a flag flipped — 3 rows
+PASS  and the body is visible pixels — 366x345
+PASS  the bar says so to a screen reader too
+PASS  every row button carries a card attribute — no second decision path — data-rl-ask-review, data-rl-ask-review, data-nego-accept
+PASS  pressing it again shuts it
+PASS  a press on "Take it" settles that change through the ordinary funnel — CHG-002 → accepted
+PASS  no page errors anywhere in the journey — none
+
+10/10 checks passed
+
+===== run-noaikey.js =====
+PASS  sanity: this world really has NO AI key (state.aiConfigured is false) — false
+PASS  chat: a question STILL gets an answer (the local keyword engine), not a dead panel — nt? I couldn't match that to your contract data. I can help with things like: "show pending contracts", "total value of signed", "summarize MK-103", or searching by counterparty name (e.g. "Naivas"). 
+PASS  chat: the brain indicator honestly says "Basic mode" rather than pretending to be Copilot — Basic mode — add a key for Copilot
+PASS  the selection menu still offers Simplify/Ask Copilot (the door stays; the honesty is behind it) — {"selMenuState":{"textFound":true},"menuRowsNK":["✂️ Simplify","✨ Ask Copilot"]}
+PASS  pressing Simplify with no key opens the panel and says HONESTLY it is not connected — no dead press — nt All invoices are payable within thirty (30) days from the date of issue, being KES 4,800,000 per annum.”
+      
+      
+        The Copilot is not connected yet. Connect it under Team & Settings → Copilot engine, then try again.
+        
+        
+      
+    
+PASS  the brief card teaser is drawn (not missing) before anything is pressed — 
+    
+      Contract brief
+      
+    
+    Not written yet. Copilot reads the wording and explains it in plain English.
+
+PASS  pressing "Write the brief" with no key returns null (no crash, no fake brief) — {"r":null}
+PASS  and says so HONESTLY via toast ("Copilot is not connected... the brief needs it") — not a dead press — "Copilot is not connected, so there is nothing to read the contract with — the brief needs it."
+PASS  renewal advice with no key: refused honestly, `_renewalAdviceError` carries the sentence for the card to print — {"r":null,"cardError":"Copilot is not connected, so there is nothing to weigh this up with. The dates above stand on their own."}
+PASS  the redline co-pilot band draws just the same with no AI key — it reads the playbook deterministically, no model involved — {"there":true}
+PASS  and it opens with real rows, exactly as with a key configured — 1 rows
+PASS  the palette handoff still works with no key — opens the panel, prefills the question (the honesty lives in the panel, not the palette) — {"paletteGone":true,"prefill":"thirty days"}
+PASS  the health report STILL works with no AI key (it is deterministic, computed, never modelled) — Print / save as PDF
+Portfolio Health Report
+
+Generated 21 August 2026 · 1 contracts · read from your live records
+
+97
+Strong
+out of 100
+1What changed 
+PASS  no page errors anywhere in the no-AI-key journey — clean
+
+14/14 passed
+

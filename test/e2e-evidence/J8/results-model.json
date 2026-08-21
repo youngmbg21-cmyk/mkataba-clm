@@ -1,0 +1,618 @@
+[
+  {
+    "name": "stage: a signed master with a term of its own",
+    "pass": true,
+    "detail": "MK-A1"
+  },
+  {
+    "name": "create amendment — minted and filed against the parent",
+    "pass": true,
+    "detail": "MK-201 rel=amendment"
+  },
+  {
+    "name": "create amendment — named \"Amendment No. 1\"",
+    "pass": true,
+    "detail": "Amendment No. 1 to Refined Sugar Supply"
+  },
+  {
+    "name": "create amendment — a body is written",
+    "pass": true,
+    "detail": "<p>This Amendment No. 1 is made on ____________ between <str"
+  },
+  {
+    "name": "create amendment — recital names the parent",
+    "pass": true,
+    "detail": null
+  },
+  {
+    "name": "create amendment — recital carries the parent's real date",
+    "pass": true,
+    "detail": "31 July 2026 "
+  },
+  {
+    "name": "create amendment — counterparty carried",
+    "pass": true,
+    "detail": "Kabras Sugar"
+  },
+  {
+    "name": "create amendment — party carried (the DOCUMENT's entity)",
+    "pass": true,
+    "detail": "Highland Corporate Ltd (Kenya)"
+  },
+  {
+    "name": "create amendment — stream carried",
+    "pass": true,
+    "detail": "proc"
+  },
+  {
+    "name": "create amendment — letterhead carried",
+    "pass": true,
+    "detail": "{\"letterhead\":\"HIGHLAND-LH-1\"}"
+  },
+  {
+    "name": "create amendment — value NOT carried",
+    "pass": true,
+    "detail": "0"
+  },
+  {
+    "name": "create amendment — valueType IS inherited",
+    "pass": true,
+    "detail": "standard"
+  },
+  {
+    "name": "create amendment — effective date NOT carried",
+    "pass": true,
+    "detail": "md=undefined f=undefined"
+  },
+  {
+    "name": "create amendment — obligations NOT carried",
+    "pass": true
+  },
+  {
+    "name": "create amendment — signers NOT carried",
+    "pass": true
+  },
+  {
+    "name": "create amendment — stamped with an owner",
+    "pass": true,
+    "detail": "{\"id\":\"u_5cb728ff1eeae6ff\",\"name\":\"Amina Otieno\"}"
+  },
+  {
+    "name": "create addendum — minted and filed against the parent",
+    "pass": true,
+    "detail": "MK-202 rel=addendum"
+  },
+  {
+    "name": "create addendum — named \"Addendum No. 1\"",
+    "pass": true,
+    "detail": "Addendum No. 1 to Refined Sugar Supply"
+  },
+  {
+    "name": "create addendum — a body is written",
+    "pass": true,
+    "detail": "<p>This Addendum No. 1 is made on ____________ between <stro"
+  },
+  {
+    "name": "create addendum — recital names the parent",
+    "pass": true,
+    "detail": null
+  },
+  {
+    "name": "create addendum — recital carries the parent's real date",
+    "pass": true,
+    "detail": "31 July 2026 "
+  },
+  {
+    "name": "create addendum — counterparty carried",
+    "pass": true,
+    "detail": "Kabras Sugar"
+  },
+  {
+    "name": "create addendum — party carried (the DOCUMENT's entity)",
+    "pass": true,
+    "detail": "Highland Corporate Ltd (Kenya)"
+  },
+  {
+    "name": "create addendum — stream carried",
+    "pass": true,
+    "detail": "proc"
+  },
+  {
+    "name": "create addendum — letterhead carried",
+    "pass": true,
+    "detail": "{\"letterhead\":\"HIGHLAND-LH-1\"}"
+  },
+  {
+    "name": "create addendum — value NOT carried",
+    "pass": true,
+    "detail": "0"
+  },
+  {
+    "name": "create addendum — valueType IS inherited",
+    "pass": true,
+    "detail": "standard"
+  },
+  {
+    "name": "create addendum — effective date NOT carried",
+    "pass": true,
+    "detail": "md=undefined f=undefined"
+  },
+  {
+    "name": "create addendum — obligations NOT carried",
+    "pass": true
+  },
+  {
+    "name": "create addendum — signers NOT carried",
+    "pass": true
+  },
+  {
+    "name": "create addendum — stamped with an owner",
+    "pass": true,
+    "detail": "{\"id\":\"u_5cb728ff1eeae6ff\",\"name\":\"Amina Otieno\"}"
+  },
+  {
+    "name": "create variation — minted and filed against the parent",
+    "pass": true,
+    "detail": "MK-203 rel=variation"
+  },
+  {
+    "name": "create variation — named \"Variation No. 1\"",
+    "pass": true,
+    "detail": "Variation No. 1 to Refined Sugar Supply"
+  },
+  {
+    "name": "create variation — a body is written",
+    "pass": true,
+    "detail": "<p>This Variation No. 1 is made on ____________ between <str"
+  },
+  {
+    "name": "create variation — recital names the parent",
+    "pass": true,
+    "detail": null
+  },
+  {
+    "name": "create variation — recital carries the parent's real date",
+    "pass": true,
+    "detail": "31 July 2026 "
+  },
+  {
+    "name": "create variation — counterparty carried",
+    "pass": true,
+    "detail": "Kabras Sugar"
+  },
+  {
+    "name": "create variation — party carried (the DOCUMENT's entity)",
+    "pass": true,
+    "detail": "Highland Corporate Ltd (Kenya)"
+  },
+  {
+    "name": "create variation — stream carried",
+    "pass": true,
+    "detail": "proc"
+  },
+  {
+    "name": "create variation — letterhead carried",
+    "pass": true,
+    "detail": "{\"letterhead\":\"HIGHLAND-LH-1\"}"
+  },
+  {
+    "name": "create variation — value NOT carried",
+    "pass": true,
+    "detail": "0"
+  },
+  {
+    "name": "create variation — valueType IS inherited",
+    "pass": true,
+    "detail": "standard"
+  },
+  {
+    "name": "create variation — effective date NOT carried",
+    "pass": true,
+    "detail": "md=undefined f=undefined"
+  },
+  {
+    "name": "create variation — obligations NOT carried",
+    "pass": true
+  },
+  {
+    "name": "create variation — signers NOT carried",
+    "pass": true
+  },
+  {
+    "name": "create variation — stamped with an owner",
+    "pass": true,
+    "detail": "{\"id\":\"u_5cb728ff1eeae6ff\",\"name\":\"Amina Otieno\"}"
+  },
+  {
+    "name": "create renewal — minted and filed against the parent",
+    "pass": true,
+    "detail": "MK-204 rel=renewal"
+  },
+  {
+    "name": "create renewal — named \"Renewal No. 1\"",
+    "pass": true,
+    "detail": "Renewal No. 1 to Refined Sugar Supply"
+  },
+  {
+    "name": "create renewal — a body is written",
+    "pass": true,
+    "detail": "<p>This Renewal No. 1 is made on ____________ between <stron"
+  },
+  {
+    "name": "create renewal — recital names the parent",
+    "pass": true,
+    "detail": null
+  },
+  {
+    "name": "create renewal — recital carries the parent's real date",
+    "pass": true,
+    "detail": "31 July 2026 "
+  },
+  {
+    "name": "create renewal — counterparty carried",
+    "pass": true,
+    "detail": "Kabras Sugar"
+  },
+  {
+    "name": "create renewal — party carried (the DOCUMENT's entity)",
+    "pass": true,
+    "detail": "Highland Corporate Ltd (Kenya)"
+  },
+  {
+    "name": "create renewal — stream carried",
+    "pass": true,
+    "detail": "proc"
+  },
+  {
+    "name": "create renewal — letterhead carried",
+    "pass": true,
+    "detail": "{\"letterhead\":\"HIGHLAND-LH-1\"}"
+  },
+  {
+    "name": "create renewal — value NOT carried",
+    "pass": true,
+    "detail": "0"
+  },
+  {
+    "name": "create renewal — valueType IS inherited",
+    "pass": true,
+    "detail": "standard"
+  },
+  {
+    "name": "create renewal — effective date NOT carried",
+    "pass": true,
+    "detail": "md=undefined f=undefined"
+  },
+  {
+    "name": "create renewal — obligations NOT carried",
+    "pass": true
+  },
+  {
+    "name": "create renewal — signers NOT carried",
+    "pass": true
+  },
+  {
+    "name": "create renewal — stamped with an owner",
+    "pass": true,
+    "detail": "{\"id\":\"u_5cb728ff1eeae6ff\",\"name\":\"Amina Otieno\"}"
+  },
+  {
+    "name": "create sow — minted and filed against the parent",
+    "pass": true,
+    "detail": "MK-205 rel=sow"
+  },
+  {
+    "name": "create sow — named \"Statement of Work No. 1\"",
+    "pass": true,
+    "detail": "Statement of Work No. 1 to Refined Sugar Supply"
+  },
+  {
+    "name": "create sow — a body is written",
+    "pass": true,
+    "detail": "<p>This Statement of Work No. 1 is made on ____________ betw"
+  },
+  {
+    "name": "create sow — recital names the parent",
+    "pass": true,
+    "detail": null
+  },
+  {
+    "name": "create sow — recital carries the parent's real date",
+    "pass": true,
+    "detail": "31 July 2026 "
+  },
+  {
+    "name": "create sow — counterparty carried",
+    "pass": true,
+    "detail": "Kabras Sugar"
+  },
+  {
+    "name": "create sow — party carried (the DOCUMENT's entity)",
+    "pass": true,
+    "detail": "Highland Corporate Ltd (Kenya)"
+  },
+  {
+    "name": "create sow — stream carried",
+    "pass": true,
+    "detail": "proc"
+  },
+  {
+    "name": "create sow — letterhead carried",
+    "pass": true,
+    "detail": "{\"letterhead\":\"HIGHLAND-LH-1\"}"
+  },
+  {
+    "name": "create sow — value NOT carried",
+    "pass": true,
+    "detail": "0"
+  },
+  {
+    "name": "create sow — valueType IS inherited",
+    "pass": true,
+    "detail": "standard"
+  },
+  {
+    "name": "create sow — effective date NOT carried",
+    "pass": true,
+    "detail": "md=undefined f=undefined"
+  },
+  {
+    "name": "create sow — obligations NOT carried",
+    "pass": true
+  },
+  {
+    "name": "create sow — signers NOT carried",
+    "pass": true
+  },
+  {
+    "name": "create sow — stamped with an owner",
+    "pass": true,
+    "detail": "{\"id\":\"u_5cb728ff1eeae6ff\",\"name\":\"Amina Otieno\"}"
+  },
+  {
+    "name": "create annex — minted and filed against the parent",
+    "pass": true,
+    "detail": "MK-206 rel=annex"
+  },
+  {
+    "name": "create annex — named \"Annex No. 1\"",
+    "pass": true,
+    "detail": "Annex No. 1 to Refined Sugar Supply"
+  },
+  {
+    "name": "create annex — a body is written",
+    "pass": true,
+    "detail": "<p>This Annex No. 1 is made on ____________ between <strong>"
+  },
+  {
+    "name": "create annex — recital names the parent",
+    "pass": true,
+    "detail": null
+  },
+  {
+    "name": "create annex — recital carries the parent's real date",
+    "pass": true,
+    "detail": "31 July 2026 "
+  },
+  {
+    "name": "create annex — counterparty carried",
+    "pass": true,
+    "detail": "Kabras Sugar"
+  },
+  {
+    "name": "create annex — party carried (the DOCUMENT's entity)",
+    "pass": true,
+    "detail": "Highland Corporate Ltd (Kenya)"
+  },
+  {
+    "name": "create annex — stream carried",
+    "pass": true,
+    "detail": "proc"
+  },
+  {
+    "name": "create annex — letterhead carried",
+    "pass": true,
+    "detail": "{\"letterhead\":\"HIGHLAND-LH-1\"}"
+  },
+  {
+    "name": "create annex — value NOT carried",
+    "pass": true,
+    "detail": "0"
+  },
+  {
+    "name": "create annex — valueType IS inherited",
+    "pass": true,
+    "detail": "standard"
+  },
+  {
+    "name": "create annex — effective date NOT carried",
+    "pass": true,
+    "detail": "md=undefined f=undefined"
+  },
+  {
+    "name": "create annex — obligations NOT carried",
+    "pass": true
+  },
+  {
+    "name": "create annex — signers NOT carried",
+    "pass": true
+  },
+  {
+    "name": "create annex — stamped with an owner",
+    "pass": true,
+    "detail": "{\"id\":\"u_5cb728ff1eeae6ff\",\"name\":\"Amina Otieno\"}"
+  },
+  {
+    "name": "create side-letter — minted and filed against the parent",
+    "pass": true,
+    "detail": "MK-207 rel=side-letter"
+  },
+  {
+    "name": "create side-letter — named \"Side Letter No. 1\"",
+    "pass": true,
+    "detail": "Side Letter No. 1 to Refined Sugar Supply"
+  },
+  {
+    "name": "create side-letter — a body is written",
+    "pass": true,
+    "detail": "<p>This Side Letter No. 1 is made on ____________ between <s"
+  },
+  {
+    "name": "create side-letter — recital names the parent",
+    "pass": true,
+    "detail": null
+  },
+  {
+    "name": "create side-letter — recital carries the parent's real date",
+    "pass": true,
+    "detail": "31 July 2026 "
+  },
+  {
+    "name": "create side-letter — counterparty carried",
+    "pass": true,
+    "detail": "Kabras Sugar"
+  },
+  {
+    "name": "create side-letter — party carried (the DOCUMENT's entity)",
+    "pass": true,
+    "detail": "Highland Corporate Ltd (Kenya)"
+  },
+  {
+    "name": "create side-letter — stream carried",
+    "pass": true,
+    "detail": "proc"
+  },
+  {
+    "name": "create side-letter — letterhead carried",
+    "pass": true,
+    "detail": "{\"letterhead\":\"HIGHLAND-LH-1\"}"
+  },
+  {
+    "name": "create side-letter — value NOT carried",
+    "pass": true,
+    "detail": "0"
+  },
+  {
+    "name": "create side-letter — valueType IS inherited",
+    "pass": true,
+    "detail": "standard"
+  },
+  {
+    "name": "create side-letter — effective date NOT carried",
+    "pass": true,
+    "detail": "md=undefined f=undefined"
+  },
+  {
+    "name": "create side-letter — obligations NOT carried",
+    "pass": true
+  },
+  {
+    "name": "create side-letter — signers NOT carried",
+    "pass": true
+  },
+  {
+    "name": "create side-letter — stamped with an owner",
+    "pass": true,
+    "detail": "{\"id\":\"u_5cb728ff1eeae6ff\",\"name\":\"Amina Otieno\"}"
+  },
+  {
+    "name": "ordinal is PER KIND — the second addendum is \"Addendum No. 2\"",
+    "pass": true,
+    "detail": "Addendum No. 2 to Refined Sugar Supply"
+  },
+  {
+    "name": "ordinal is PER KIND — the second amendment is \"Amendment No. 2\"",
+    "pass": true,
+    "detail": "Amendment No. 2 to Refined Sugar Supply"
+  },
+  {
+    "name": "ordinal is PER KIND — annexes count annexes",
+    "pass": true,
+    "detail": "Annex No. 2 to Refined Sugar Supply / Annex No. 3 to Refined Sugar Supply"
+  },
+  {
+    "name": "a blank amendment gets FAMILY_BLANK_BODY, never an empty string",
+    "pass": true,
+    "detail": "\"<p><br></p>\""
+  },
+  {
+    "name": "a Declined child keeps its number — the next is No. 2, not a reuse",
+    "pass": true,
+    "detail": "Side Letter No. 1 to Refined Sugar Supply declined → next is Side Letter No. 2 to Refined Sugar Supply"
+  },
+  {
+    "name": "a contract cannot be its own parent",
+    "pass": true,
+    "detail": "A contract cannot be its own parent."
+  },
+  {
+    "name": "a document cannot be filed under a child (one level deep)",
+    "pass": true,
+    "detail": "MK-213 is itself an amendment of MK-A1. Link to the master agreement instead — HaTi keeps families one level deep on purpose."
+  },
+  {
+    "name": "a master cannot be filed under anything",
+    "pass": true,
+    "detail": "MK-A1 already has 13 amendment(s) of its own, so it is a master agreement. Move those first if it should become an amendment."
+  },
+  {
+    "name": "linking a standalone to a parent IS allowed",
+    "pass": true,
+    "detail": "null"
+  },
+  {
+    "name": "no parent chosen is refused in words",
+    "pass": true,
+    "detail": "Choose a parent agreement."
+  },
+  {
+    "name": "link an existing document as a child",
+    "pass": true,
+    "detail": "rel=annex audit=\"Linked: Filed as an annex / schedule of MK-A1\""
+  },
+  {
+    "name": "…and unlink it again, with an audit line",
+    "pass": true,
+    "detail": "audit=\"Unlinked: No longer filed as an amendment of MK-A1 — recorded as a standalone agreement\""
+  },
+  {
+    "name": "a DRAFT amendment does NOT move the parent's end date",
+    "pass": true,
+    "detail": "effective=2027-06-30 own=2027-06-30"
+  },
+  {
+    "name": "…but its proposal is stated, and names the document asking",
+    "pass": true,
+    "detail": "proposes 2029-12-31 from MK-214"
+  },
+  {
+    "name": "a SIGNED amendment DOES move the parent's end date",
+    "pass": true,
+    "detail": "effective=2029-12-31"
+  },
+  {
+    "name": "…and the proposal stands down once it is executed",
+    "pass": true,
+    "detail": "null"
+  },
+  {
+    "name": "…and the parent names where the date came from",
+    "pass": true,
+    "detail": "MK-214"
+  },
+  {
+    "name": "an ARCHIVED executed amendment still sets its parent's term",
+    "pass": true,
+    "detail": "effective=2029-12-31 (child archived, status still Signed)"
+  },
+  {
+    "name": "children do not count as separate agreements",
+    "pass": true,
+    "detail": "4 agreements · 5 documents (1 children) — \"4 agreements · 5 documents\""
+  },
+  {
+    "name": "no page errors across the family model walk",
+    "pass": true,
+    "detail": "none"
+  }
+]

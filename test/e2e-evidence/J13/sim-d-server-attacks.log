@@ -1,0 +1,60 @@
+REFUTED    A1  sealed WORDING can be rewritten
+            HTTP 409
+REFUTED    A2  an executed contract can be RETITLED and its TERM moved
+            HTTP 409 · name="Refined Sugar Supply" expiry=2027-06-30 party="undefined"
+REFUTED    A3  an executed contract can be downgraded to Draft by a save
+            HTTP 409 · status now Signed
+REFUTED    A4  and once downgraded its sealed wording is rewritable
+            HTTP null · still refused
+REFUTED    B1  a contract can be filed under one that is itself filed under another
+            HTTP 400 · parentId=none (families are one level deep)
+REFUTED    B2  and it happens with nothing written to the audit trail
+            an audit line was written
+REFUTED    B3  a two-contract CYCLE can be created through the API
+            HTTP 400 · MK-A1→undefined, MK-A2→MK-A1
+REFUTED    C1  an Editor can record ANOTHER member’s in-app signature
+            HTTP 403 · signatures=[]
+REFUTED    D1  a capped signer clears the cap by zeroing the value in the same save
+            HTTP 403 · value now 36000000
+REFUTED    E1  an Editor can promote themselves to admin
+            HTTP 403 · role now legal
+REFUTED    E2  an Editor can lift their own signing cap
+            HTTP 403
+REFUTED    E3  an Editor can widen their own stream access
+            HTTP 400
+REFUTED    F1  a Viewer can write to a contract
+            read ok · write HTTP 403
+REFUTED    F2  a Viewer’s bootstrap leaks other members’ permissions
+            nothing leaked
+REFUTED    F3  a Viewer can read the workspace’s Copilot spend
+            HTTP 403
+REFUTED    G1  a counterparty can dictate the DATE on their own signature
+            HTTP 400 · stored at=no counterparty signature landed
+REFUTED    H1  a change held by an internal reviewer can be pushed to the counterparty via the payload-refresh route
+            HTTP 409 · stripped
+REFUTED    H2  the SAME payload through POST /api/shares is also let through
+            HTTP 200 · stripped or refused (the wall held here)
+
+0 of 18 attacks succeeded.
+
+CONFIRMED (these are real findings):
+
+REFUTED (the server held — NOT reported):
+  A1  sealed WORDING can be rewritten
+  A2  an executed contract can be RETITLED and its TERM moved
+  A3  an executed contract can be downgraded to Draft by a save
+  A4  and once downgraded its sealed wording is rewritable
+  B1  a contract can be filed under one that is itself filed under another
+  B2  and it happens with nothing written to the audit trail
+  B3  a two-contract CYCLE can be created through the API
+  C1  an Editor can record ANOTHER member’s in-app signature
+  D1  a capped signer clears the cap by zeroing the value in the same save
+  E1  an Editor can promote themselves to admin
+  E2  an Editor can lift their own signing cap
+  E3  an Editor can widen their own stream access
+  F1  a Viewer can write to a contract
+  F2  a Viewer’s bootstrap leaks other members’ permissions
+  F3  a Viewer can read the workspace’s Copilot spend
+  G1  a counterparty can dictate the DATE on their own signature
+  H1  a change held by an internal reviewer can be pushed to the counterparty via the payload-refresh route
+  H2  the SAME payload through POST /api/shares is also let through

@@ -1,0 +1,22 @@
+FAIL  an admin can set a rate through the FX route — HTTP 400 {"error":"code must be a three-letter currency code"}
+PASS  an EDITOR is refused the FX rates route — HTTP 403 {"error":"Admin access required"}
+PASS  the aggregate reports what it could NOT convert, rather than trimming silently — fxMissing = {"USD":1,"EUR":1}
+PASS  …and it names EUR specifically (the currency with no rate on file) — {"USD":1,"EUR":1}
+FAIL  …and it does NOT name USD, which has a rate — {"USD":1,"EUR":1}
+PASS  the analytics route reports the same omission — fxMissing = {"USD":1,"EUR":1}
+PASS  a USD contract prints in USD on its own page — USD 40,000
+PASS  a EUR contract prints in EUR on its own page — EUR 30,000
+PASS  a workspace-currency contract still prints in KES — KES 5,000,000
+PASS  the COMPACT print follows the contract's own currency too (the register row) — USD 40K · EUR 30K
+FAIL  a converted figure says it converted — {"v":0,"code":"USD","converted":false,"missing":true}
+PASS  an unconvertible figure says MISSING rather than guessing a rate — {"v":0,"code":"EUR","converted":false,"missing":true}
+PASS  the REGISTER row prints each contract in its own currency, not the workspace one — USD row: MK-USD USD contract Raw Material Supply Kabras Sugar In Review — USD 40K 31.01.2028 · 528 d Review terms ⋯ || EUR row: MK-EUR EUR contract Raw Material Supply Kabras Sugar In Review — EUR 30K 31.01.2028 · 528 d Review terms ⋯
+PASS  the DASHBOARD says what it left out of the converted headline — dline 5 71% 3. Sign & Executed 2 29% Press a stage to list it 2. Review & Redline 5 docs Retail Supply — Coast Action · Naivas Supermarkets EUR contract Kabras Sugar Raw Milk Collection Nandi Dairy USD contract Kabras Sugar
+PASS  most Key terms rows stand down on a SIGNED contract — live on draft (7): party,counterparty,cpEmail,value,effDate,expiry,stream || live on signed (0): 
+FAIL  …but the STREAM picker deliberately stays live on a signed contract — signed rows: []
+PASS  an EDITOR is refused a stream move at the server — HTTP 403 {"error":"MK-KES is filed under proc and only an admin can move it. Ask an admin to re-file it.","folderMove":{"from":"proc","to":"sales"}}
+PASS  an ADMIN may re-file it — HTTP 200
+PASS  …and the move is written to the record — folder=sales
+PASS  no page errors across the money walk — none
+
+16/20 checks passed

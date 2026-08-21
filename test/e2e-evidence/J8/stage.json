@@ -1,0 +1,209 @@
+{
+  "parentId": "MK-A1",
+  "kidId": "MK-214",
+  "made": [
+    {
+      "rel": "amendment",
+      "id": "MK-201",
+      "name": "Amendment No. 1 to Refined Sugar Supply",
+      "body": "<p>This Amendment No. 1 is made on ____________ between <strong>Highland Corporate Ltd (Kenya)</strong> and <strong>Kabras Sugar</strong>.</p><p>The parties entered into the <strong>Refined Sugar Supply</strong> dated 31 July 2026 (the &ldquo;Agreement&rdquo;). The parties now wish to amend it.</p><p>The parties agree that the Agreement is amended as follows:</p><p>Except as amended above, all other terms of the Agreement remain in full force and effect.</p>",
+      "counterparty": "Kabras Sugar",
+      "counterpartyEmail": "procurement@kabras.co.ke",
+      "party": "Highland Corporate Ltd (Kenya)",
+      "folder": "proc",
+      "branding": {
+        "letterhead": "HIGHLAND-LH-1"
+      },
+      "value": 0,
+      "valueType": "standard",
+      "expiry": null,
+      "signatures": [],
+      "owner": {
+        "id": "u_5cb728ff1eeae6ff",
+        "name": "Amina Otieno"
+      },
+      "parentId": "MK-A1",
+      "relation": "amendment",
+      "status": "Draft",
+      "template": null
+    },
+    {
+      "rel": "addendum",
+      "id": "MK-202",
+      "name": "Addendum No. 1 to Refined Sugar Supply",
+      "body": "<p>This Addendum No. 1 is made on ____________ between <strong>Highland Corporate Ltd (Kenya)</strong> and <strong>Kabras Sugar</strong>.</p><p>The parties entered into the <strong>Refined Sugar Supply</strong> dated 31 July 2026 (the &ldquo;Agreement&rdquo;). The parties now wish to add to it.</p><p>The parties agree that the following is added to the Agreement:</p><p>All other terms of the Agreement remain unchanged and in full force and effect.</p>",
+      "counterparty": "Kabras Sugar",
+      "counterpartyEmail": "procurement@kabras.co.ke",
+      "party": "Highland Corporate Ltd (Kenya)",
+      "folder": "proc",
+      "branding": {
+        "letterhead": "HIGHLAND-LH-1"
+      },
+      "value": 0,
+      "valueType": "standard",
+      "expiry": null,
+      "signatures": [],
+      "owner": {
+        "id": "u_5cb728ff1eeae6ff",
+        "name": "Amina Otieno"
+      },
+      "parentId": "MK-A1",
+      "relation": "addendum",
+      "status": "Draft",
+      "template": null
+    },
+    {
+      "rel": "variation",
+      "id": "MK-203",
+      "name": "Variation No. 1 to Refined Sugar Supply",
+      "body": "<p>This Variation No. 1 is made on ____________ between <strong>Highland Corporate Ltd (Kenya)</strong> and <strong>Kabras Sugar</strong>.</p><p>The parties entered into the <strong>Refined Sugar Supply</strong> dated 31 July 2026 (the &ldquo;Agreement&rdquo;). The parties now wish to amend it.</p><p>The parties agree that the Agreement is amended as follows:</p><p>Except as amended above, all other terms of the Agreement remain in full force and effect.</p>",
+      "counterparty": "Kabras Sugar",
+      "counterpartyEmail": "procurement@kabras.co.ke",
+      "party": "Highland Corporate Ltd (Kenya)",
+      "folder": "proc",
+      "branding": {
+        "letterhead": "HIGHLAND-LH-1"
+      },
+      "value": 0,
+      "valueType": "standard",
+      "expiry": null,
+      "signatures": [],
+      "owner": {
+        "id": "u_5cb728ff1eeae6ff",
+        "name": "Amina Otieno"
+      },
+      "parentId": "MK-A1",
+      "relation": "variation",
+      "status": "Draft",
+      "template": null
+    },
+    {
+      "rel": "renewal",
+      "id": "MK-204",
+      "name": "Renewal No. 1 to Refined Sugar Supply",
+      "body": "<p>This Renewal No. 1 is made on ____________ between <strong>Highland Corporate Ltd (Kenya)</strong> and <strong>Kabras Sugar</strong>.</p><p>The parties entered into the <strong>Refined Sugar Supply</strong> dated 31 July 2026 (the &ldquo;Agreement&rdquo;). The parties now wish to extend it.</p><p>The parties agree that the Agreement is extended as follows:</p><p>Except as extended above, all other terms of the Agreement remain in full force and effect.</p>",
+      "counterparty": "Kabras Sugar",
+      "counterpartyEmail": "procurement@kabras.co.ke",
+      "party": "Highland Corporate Ltd (Kenya)",
+      "folder": "proc",
+      "branding": {
+        "letterhead": "HIGHLAND-LH-1"
+      },
+      "value": 0,
+      "valueType": "standard",
+      "expiry": null,
+      "signatures": [],
+      "owner": {
+        "id": "u_5cb728ff1eeae6ff",
+        "name": "Amina Otieno"
+      },
+      "parentId": "MK-A1",
+      "relation": "renewal",
+      "status": "Draft",
+      "template": null
+    },
+    {
+      "rel": "sow",
+      "id": "MK-205",
+      "name": "Statement of Work No. 1 to Refined Sugar Supply",
+      "body": "<p>This Statement of Work No. 1 is made on ____________ between <strong>Highland Corporate Ltd (Kenya)</strong> and <strong>Kabras Sugar</strong>.</p><p>The parties entered into the <strong>Refined Sugar Supply</strong> dated 31 July 2026 (the &ldquo;Agreement&rdquo;). The parties now wish to record work ordered under it.</p><p>The parties agree that the following work is ordered under the Agreement:</p><p>This document is governed by the Agreement, whose terms apply to the work described above and remain in full force and effect.</p>",
+      "counterparty": "Kabras Sugar",
+      "counterpartyEmail": "procurement@kabras.co.ke",
+      "party": "Highland Corporate Ltd (Kenya)",
+      "folder": "proc",
+      "branding": {
+        "letterhead": "HIGHLAND-LH-1"
+      },
+      "value": 0,
+      "valueType": "standard",
+      "expiry": null,
+      "signatures": [],
+      "owner": {
+        "id": "u_5cb728ff1eeae6ff",
+        "name": "Amina Otieno"
+      },
+      "parentId": "MK-A1",
+      "relation": "sow",
+      "status": "Draft",
+      "template": null
+    },
+    {
+      "rel": "annex",
+      "id": "MK-206",
+      "name": "Annex No. 1 to Refined Sugar Supply",
+      "body": "<p>This Annex No. 1 is made on ____________ between <strong>Highland Corporate Ltd (Kenya)</strong> and <strong>Kabras Sugar</strong>.</p><p>The parties entered into the <strong>Refined Sugar Supply</strong> dated 31 July 2026 (the &ldquo;Agreement&rdquo;). The parties now wish to add to it.</p><p>The parties agree that the following is added to the Agreement:</p><p>All other terms of the Agreement remain unchanged and in full force and effect.</p>",
+      "counterparty": "Kabras Sugar",
+      "counterpartyEmail": "procurement@kabras.co.ke",
+      "party": "Highland Corporate Ltd (Kenya)",
+      "folder": "proc",
+      "branding": {
+        "letterhead": "HIGHLAND-LH-1"
+      },
+      "value": 0,
+      "valueType": "standard",
+      "expiry": null,
+      "signatures": [],
+      "owner": {
+        "id": "u_5cb728ff1eeae6ff",
+        "name": "Amina Otieno"
+      },
+      "parentId": "MK-A1",
+      "relation": "annex",
+      "status": "Draft",
+      "template": null
+    },
+    {
+      "rel": "side-letter",
+      "id": "MK-207",
+      "name": "Side Letter No. 1 to Refined Sugar Supply",
+      "body": "<p>This Side Letter No. 1 is made on ____________ between <strong>Highland Corporate Ltd (Kenya)</strong> and <strong>Kabras Sugar</strong>.</p><p>The parties entered into the <strong>Refined Sugar Supply</strong> dated 31 July 2026 (the &ldquo;Agreement&rdquo;). The parties now wish to amend it.</p><p>The parties agree that the Agreement is amended as follows:</p><p>Except as amended above, all other terms of the Agreement remain in full force and effect.</p>",
+      "counterparty": "Kabras Sugar",
+      "counterpartyEmail": "procurement@kabras.co.ke",
+      "party": "Highland Corporate Ltd (Kenya)",
+      "folder": "proc",
+      "branding": {
+        "letterhead": "HIGHLAND-LH-1"
+      },
+      "value": 0,
+      "valueType": "standard",
+      "expiry": null,
+      "signatures": [],
+      "owner": {
+        "id": "u_5cb728ff1eeae6ff",
+        "name": "Amina Otieno"
+      },
+      "parentId": "MK-A1",
+      "relation": "side-letter",
+      "status": "Draft",
+      "template": null
+    }
+  ],
+  "ordinals": {
+    "add2": "Addendum No. 2 to Refined Sugar Supply",
+    "amend2": "Amendment No. 2 to Refined Sugar Supply",
+    "annex2": "Annex No. 2 to Refined Sugar Supply",
+    "annex3": "Annex No. 3 to Refined Sugar Supply"
+  },
+  "term": {
+    "kidId": "MK-214",
+    "ownExpiry": "2027-06-30",
+    "asDraft": {
+      "eff": "2027-06-30",
+      "prop": "2029-12-31",
+      "propFrom": "MK-214",
+      "src": null
+    },
+    "asSigned": {
+      "eff": "2029-12-31",
+      "prop": null,
+      "src": "MK-214"
+    }
+  },
+  "counts": {
+    "agreements": 4,
+    "documents": 5,
+    "amendments": 1,
+    "label": "4 agreements · 5 documents",
+    "kids": 1
+  }
+}

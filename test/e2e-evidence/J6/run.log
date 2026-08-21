@@ -1,0 +1,23 @@
+PASS  ARM: three of our own asks are pending on the record — ["CHG-001:pending","CHG-002:pending","CHG-003:pending"]
+PASS  a named colleague can be asked to review a chosen subset — HTTP 200 {"ok":true,"emailSent":true,"emailConfigured":true,"emailError":null,"outbox":false,"to":"everything@example.co.ke","reviewer":{"id":"u_107bb11134815b69","name":"Unrestricted Legal"}}
+PASS  the email that tells the reviewer actually WENT, and says so honestly — to everything@example.co.ke · "Amina Otieno asked you to review "Review probe"" · route said emailSent=true
+PASS  …and the reviewer's link lands on the contract, not on a generic page — http://127.0.0.1:38433/#contract=MK-RV&tab=redline
+PASS  ARM: the review exists on the record with its chosen subset — {"id":"REV-1","changeIds":["CHG-001","CHG-002"],"reviewer":{"id":"u_107bb11134815b69","name":"Unrestricted Legal","email":"everything@example.co.ke"},"status":"open"}
+PASS  the named reviewer can HOLD a change — HTTP 200 {"ok":true,"version":3}
+PASS  somebody who is not the named reviewer is REFUSED a verdict, in words — HTTP 403 {"error":"Only Unrestricted Legal can rule on #CHG-002."}
+PASS  ARM: CHG-001 really is held and CHG-002 really is still out for review — ["CHG-001:held","CHG-002:none","CHG-003:none"]
+PASS  a hand-built payload carrying held changes is accepted but STRIPPED — HTTP 200 withheldByReview=2
+PASS  WALL: the HELD change does not travel — changes on the wire: ["CHG-003"]
+PASS  WALL: the change still OUT FOR REVIEW does not travel — changes on the wire: ["CHG-003"]
+PASS  WALL: the untouched ask DOES travel — ["CHG-003"]
+PASS  WALL: the reviewer's NAME is nowhere on the wire — searched the whole payload for "Unrestricted Legal"
+PASS  WALL: the word "review" as a verdict is nowhere on the wire — not present
+PASS  WALL: the review request object does not travel — searched for the reviewer note
+PASS  WALL: who RULED on a change (resolvedBy) does not travel — searched for resolvedBy
+PASS  WALL: our own audit trail does not travel — searched for an audit array
+PASS  WALL: the negotiation DESK roster does not travel — searched for roster
+PASS  a colleague holding an open review is REFUSED a send, and told the way out — HTTP 403 {"error":"You are reviewing 2 changes on this contract for Amina Otieno. Hand the review back before sending anything to the counterparty.","reviewing":["REV-1"]}
+PASS  J6/J7 crossing: the desk itself never travels either — searched for a desk object
+PASS  the reviewer cannot delete the review off the record — HTTP 403 {"error":"Internal review REV-1 cannot be removed from the record."}
+
+21/21 checks passed

@@ -1,0 +1,152 @@
+[
+  {
+    "name": "chat: a question gets a real answer in the panel",
+    "pass": true,
+    "detail": " say when something needs your lawyer.\n        \n        \n      \n    what governs this contract?\n      \n      \n        This contract runs to 30 June 2027 under Kenyan law.\n        \n        \n      \n    "
+  },
+  {
+    "name": "highlighting on the Document tab raises Simplify / Ask Copilot",
+    "pass": true,
+    "detail": "{\"selMenuState\":{\"canvasFound\":true,\"textFound\":true},\"menuRows\":[\"✂️ Simplify\",\"✨ Ask Copilot\"]}"
+  },
+  {
+    "name": "pressing Simplify opens the panel and answers about the highlighted passage",
+    "pass": true,
+    "detail": "    \n      \n    ✂️ Simplify“Charges and payment All invoices are payable within thirty (30) days from the date of issue, being KES 4,800,000 per annum, with 5% late fee.”\n      \n      \n        In plain English: pay within 30 days.\n        \n        \n      \n    "
+  },
+  {
+    "name": "runContractBrief produces a brief and it renders",
+    "pass": true,
+    "detail": "{\"ok\":true,\"overview\":\"Highland provides cold-chain distribution to Nordfrakt for KES 4,800,000 per year, expiring 30 June 2027.\"}"
+  },
+  {
+    "name": "the brief is a CARD IN THE KEY TERMS COLUMN, between Renewal and Agreement family",
+    "pass": true,
+    "detail": "[\"renewal-host\",\"brief-card\",\"family-section\"]"
+  },
+  {
+    "name": "the Checks card is THREE rows (no brief row)",
+    "pass": true,
+    "detail": "Obligations, Playbook review, Copilot risk scan"
+  },
+  {
+    "name": "the brief PANEL (opened from the card) carries a 500px max-width",
+    "pass": true,
+    "detail": "{\"maxWidth\":\"500px\",\"hasText\":true}"
+  },
+  {
+    "name": "and it is the brief prose actually showing inside it",
+    "pass": true,
+    "detail": "{\"maxWidth\":\"500px\",\"hasText\":true}"
+  },
+  {
+    "name": "briefMark ESCAPES before it marks — no raw <img>/<script> in the output",
+    "pass": true,
+    "detail": "&lt;img src=x onerror=alert(1)&gt; paid <b class=\"br-fig\">KES 1,200,000</b> within <b class=\"br-fig\">60 days</b>, <b class=\"br-fig\">5%</b>, on <b class=\"br-fig\">2026-08-21</b>"
+  },
+  {
+    "name": "briefMark marks money/periods/dates deterministically (idempotent on identical input)",
+    "pass": true,
+    "detail": "true"
+  },
+  {
+    "name": "briefMark marked the unusual entry's embedded script tag safely (rendered in the DOM, not executed)",
+    "pass": true,
+    "detail": "no alert() fired"
+  },
+  {
+    "name": "the record we shared FROM did carry a brief (sanity, so the strip below actually proves something)",
+    "pass": true,
+    "detail": "true"
+  },
+  {
+    "name": "the RAW share payload off the wire carries NO brief — not even an empty field",
+    "pass": true,
+    "detail": "944 bytes, brief-free: true"
+  },
+  {
+    "name": "the brief still arrives on a SIGNED contract (reading is allowed there)",
+    "pass": true,
+    "detail": "{\"ok\":true,\"auditBefore\":1,\"auditAfter\":1,\"status\":\"Signed\"}"
+  },
+  {
+    "name": "aiNoteRead wrote NOTHING to the sealed record's audit trail",
+    "pass": true,
+    "detail": "before=1 after=1"
+  },
+  {
+    "name": "no red \"Save failed\" toast appeared over advice that in fact arrived",
+    "pass": true,
+    "detail": "\"(none on screen)\""
+  },
+  {
+    "name": "precedentMine() runs and is deterministic (two calls agree byte for byte)",
+    "pass": true,
+    "detail": "true"
+  },
+  {
+    "name": "withdrawn is counted as neither agreed nor refused (2 accepted, 1 refused, withdrawn excluded from both)",
+    "pass": true,
+    "detail": "{\"key\":\"payment\",\"category\":\"Payment terms\",\"clause\":\"cl-pay\",\"unit\":\"days\",\"ours\":{\"accepted\":0,\"refused\":0},\"theirs\":{\"accepted\":2,\"refused\":1},\"numbers\":{\"oursAccepted\":[],\"theirsAccepted\":[60,60]},\"examples\":[{\"contractId\":\"MK-CP1\",\"contractName\":\"Cold Chain Distribution\",\"counterparty\":\"Nordfrakt Logistik AB\",\"side\":\"theirs\",\"outcome\":\"accepted\",\"clause\":\"Charges and payment\",\"at\":null,\"why\":null},{\"contractId\":\"MK-CP1\",\"contractName\":\"Cold Chain Distribution\",\"counterparty\":\"Nordfrakt Logistik AB\",\"side\":\"theirs\",\"outcome\":\"accepted\",\"clause\":\"Charges and payment\",\"at\":null,\"why\":null},{\"contractId\":\"MK-CP1\",\"contractName\":\"Cold Chain Distribution\",\"counterparty\":\"Nordfrakt Logistik AB\",\"side\":\"theirs\",\"outcome\":\"refused\",\"clause\":\"Charges and payment\",\"at\":null,\"why\":null}],\"contracts\":[\"MK-CP1\"],\"total\":3}"
+  },
+  {
+    "name": "grep: js/precedent.js calls no api(/fetch(/ai/ — deterministic, no network",
+    "pass": true,
+    "detail": "(verified by grep before this run)"
+  },
+  {
+    "name": "the clause edit pill (door to the panel) was found and pressed",
+    "pass": true,
+    "detail": "true"
+  },
+  {
+    "name": "the precedent line CAN appear on the owner's clause panel (mid-negotiation)",
+    "pass": true,
+    "detail": "true"
+  },
+  {
+    "name": "and building the IDENTICAL panel for side=\"counterparty\" through the same real renderer carries NO precedent line",
+    "pass": true,
+    "detail": "{\"ownerHasPrecedent\":true,\"cpHasPrecedent\":false}"
+  },
+  {
+    "name": "Cmd/Ctrl+K opens the palette (openCommandPalette)",
+    "pass": true,
+    "detail": "true"
+  },
+  {
+    "name": "the SYNC matcher paints immediately (before any network round-trip) — first paint never waits",
+    "pass": true,
+    "detail": "1 rows painted within the same tick as typing"
+  },
+  {
+    "name": "\"In the wording\" rides GET /api/search, debounced (one call, not one per keystroke)",
+    "pass": true,
+    "detail": "1 calls: http://127.0.0.1:34393/api/search?q=thirty%20days&limit=8"
+  },
+  {
+    "name": "an \"Ask Copilot: ...\" row rides LAST, quoting the typed text",
+    "pass": true,
+    "detail": "Executed Supply …Charges and payment All invoices are payable within thirty (30) days from… wording | Cold Chain Distribution …Charges and payment All invoices are payable within thirty (30) days from… wording | Ask Copilot: “thirty days” Opens the Copilot panel with this question ready to send ask"
+  },
+  {
+    "name": "the palette itself calls NO AI route (no /api/ai/*, no anthropic call)",
+    "pass": true,
+    "detail": "http://127.0.0.1:34393/api/search?q=thirty%20days&limit=8"
+  },
+  {
+    "name": "pressing \"Ask Copilot\" is a HANDOFF — closes the palette, opens the Copilot panel with the question prefilled",
+    "pass": true,
+    "detail": "{\"paletteGone\":true,\"aiOpen\":true,\"prefill\":\"thirty days\"}"
+  },
+  {
+    "name": "and the handoff itself made no AI call (nothing sent until the reader presses submit)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "no page errors during the whole Copilot-surfaces journey",
+    "pass": true,
+    "detail": "clean"
+  }
+]

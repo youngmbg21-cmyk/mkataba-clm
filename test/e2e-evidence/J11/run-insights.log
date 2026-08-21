@@ -1,0 +1,25 @@
+PASS  all three tabs share ONE-LINE head (title+sub same row) — {"frame":{"headH":36,"sameLine":true,"toTheRight":true,"title":"Insights","sub":"portfolio frame · negotiation friction · Copilot contract graph"},"friction":{"headH":36,"sameLine":true,"toTheRight":true,"title":"Insights","sub":"portfolio frame · negotiation friction · Copilot contract graph"},"map":{"headH":36,"sameLine":true,"toTheRight":true,"title":"Insights","sub":"portfolio frame · negotiation friction · Copilot contract graph"}}
+PASS  panel keys are stable English — workload_runway,money_held_back,promises_live,won_and_lost,renewal_runway
+PASS  panel carries method/scope/measure/excluded — {"title":"The workload runway","method":"each contract's value is spread evenly over every month between its start and end date, so a piece of work occupies the months it runs","scope":{"category":null,"counterparty":null,"book":"live contracts (everything except Declined)"},"measure":"value","hasExcluded":true,"excludedShape":["couldNotPlace","outsideTheWindow","lostWork"],"rowsCap":null}
+PASS  keys do not turn over when the language does — workload_runway,money_held_back,promises_live,won_and_lost,renewal_runway
+PASS  but the reader-facing title DOES follow the language — Arbetsbanan
+PASS  archived contract never appears in workload runway (drivers/excluded lists) — {"hasArchivedInRunway":false,"scopeBook":"live contracts (everything except Declined)","wonLostScopeBook":"every contract of this shape, INCLUDING Declined"}
+PASS  scope.book states the LIVE definition (everything except Declined) — live contracts (everything except Declined)
+PASS  a novalues reader still gets panels — pfWeight falls to 1-per-contract when values hidden — {"measure":"contracts","money":{"visible":false,"currency":"KES"}}
+PASS  reports page renders with content — 4 card/canvas-ish elements
+PASS  weeklyData is deterministic — two calls agree byte for byte
+PASS  slot 5 ("what we did not look at") always prints — checked via structure below
+PASS  weekly review HTML built with no page errors and non-trivial content — 4030 bytes, ~6 heading-ish tags
+PASS  on a quiet week the doc still has real content (slot 5 present) rather than collapsing — 4047 bytes
+PASS  health report window opened and filled (not stuck on "building") — Print / save as PDF
+Portfolio Health Report
+
+Generated 21 August 2026 · 5 contracts · read from your live records
+
+98
+St
+PASS  health report names its snapshot (a month/date appears) — 2026 · 5 contracts · read from your live rec
+PASS  health report body background is light (white-ish), not dark-theme — rgb(255, 255, 255)
+PASS  no page errors on Insights/Reports/Weekly/Health journey — clean
+
+17/17 passed

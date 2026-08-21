@@ -1,0 +1,31 @@
+PASS  Ready to sign is visible pixels — 109x32
+PASS  Ready to sign sits in the header row
+PASS  Decline is visible pixels — 73x32
+PASS  Decline sits in the header row
+PASS  Share a read-only copy is visible pixels — 162x32
+PASS  Share a read-only copy sits in the header row
+PASS  the one verb slot still exists — one transport, however many doors — 369x32
+PASS  and it is inside the header row rather than a band across the page
+PASS  so it no longer spans the page — bar 369px inside a 1408px header
+PASS  the contract starts immediately under the header — 63px between header and document
+PASS  Ready to sign is on the header's own line, right of Compare wording — compare right=866, ready left=1043
+PASS  the text-size stepper is still in the header, untouched — 100x34
+PASS  the YOU / name box is gone from the header
+PASS  the mirror is gone, not left as the survivor
+PASS  Ready to sign exists exactly once — 1 found
+PASS  and a reader sees the phrase exactly once — 1 buttons say it
+PASS  no focus button loose in the header row — what 12 Aug removed stays removed
+PASS  and focus mode is back where the owner asked for it: a row in the More menu
+PASS  shown, the verb is laid out rather than removed — flex
+PASS  hidden, the browser really removes it (beats .ui-btn display) — none
+PASS  the wall line is still on the page — 🔒Your table: Decisions and counter-proposals stay on this page until you press Send. A re
+PASS  and it is above the document, where it is read first — wall top=123, doc top=168
+PASS  Ready to sign is shut while the round is unanswered — disabled=true
+PASS  and explains why on the button itself — 6 changes still waiting on a decision
+PASS  a decision draws the Send, and it is visible pixels — 74px — "Send all 1"
+PASS  the Send is ON TOP OF THE REDLINE CARDS, in their own column — band bottom 258 · first card top 275 · same column true
+PASS  and it is a PROXY onto the one postbox, never a second transport — nego-send-decisions
+PASS  ONE SEND ALERT — the header draws no second one beside it — header 0, band 1
+PASS  and the card keeps its own Send, proxying the one postbox
+
+29/29 passed

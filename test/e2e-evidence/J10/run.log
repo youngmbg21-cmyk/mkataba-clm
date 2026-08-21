@@ -1,0 +1,165 @@
+PASS — BEFORE: contract count {"total":4,"statsTotal":4}
+PASS — viewer raises a request {"ok":true,"request":{"id":"REQ-7944BE","title":"NDA with a new packaging supplier","need":"They want to see our volumes before quoting. Nothing signed yet.","counterparty":"Rift Packaging Ltd","folder":"proc","status":"open","by":{"id":"u_81e95c60e47fcd09","name":"Sales Colleague"},"contractId":null,"decidedBy":null,"decidedAt":null,"note":"","createdAt":"2026-08-21T06:32:04.136Z","updatedAt":null}}
+PASS — viewer cannot draft a contract (asking grants nothing) {"status":403,"body":{"error":"Viewers have read-only access"}}
+PASS — viewer cannot ACCEPT even their own request (only editors decide) {"status":403,"body":{"error":"Viewers can raise and withdraw requests, not decide them"}}
+PASS — raising a request creates NO contract row {"before":4,"after":4}
+PASS — raising a request moves NO /api/stats count {"before":4,"after":4}
+PASS — editor declines with a reason {"ok":true,"request":{"id":"REQ-4B1EE8","title":"Distribution deal — East region","need":"A distributor wants exclusivity for the east region.","counterparty":"","folder":"","status":"declined","by":{"id":"u_81e95c60e47fcd09","name":"Sales Colleague"},"contractId":null,"decidedBy":"Amina Otieno","decidedAt":"2026-08-21T06:32:04.156Z","note":"We already have an exclusive distributor there — check with Legal before re-asking.","createdAt":"2026-08-21T06:32:04.152Z","updatedAt":"2026-08-21T06:32:04.156Z"}}
+PASS — DECLINE notice actually sent to the viewer's OWN stored address {"to":"sales@example.co.ke","subject":"Din förfrågan avslogs: Distribution deal — East region"}
+PASS — the reason is carried WHOLE in the mail body "Hej Sales Colleague,\n\nAmina Otieno har avslagit din förfrågan ”Distribution deal — East region”.\n\nAngivet skäl: We already have an exclusive distributor there — check with Legal before re-asking.\n\nAlla dina förfrågningar finns under Förfrågningar i HaTi.\n\nDetta är ett automatiskt meddelande från HaTi CLM."
+PASS — the notice is in the RECIPIENT's own language (Swedish, not English) "Hej Sales Colleague,\n\nAmina Otieno har avslagit din förfrågan ”Distribution deal — East region”.\n\nAngivet skäl: We alrea"
+PASS — a DECLINED request leaves no orphan contract {"total":4}
+PASS — a body-supplied "email"/"to" field is NEVER read as the recipient {"sentTo":["sales@example.co.ke"]}
+PASS — ...but the REAL stored address still gets told (status genuinely moved) "sales@example.co.ke"
+PASS — viewer may withdraw their OWN request {"ok":true,"request":{"id":"REQ-F68A6C","title":"Third request, to be withdrawn","need":"Testing the silent-withdrawal rule.","counterparty":"","folder":"","status":"withdrawn","by":{"id":"u_81e95c60e47fcd09","name":"Sales Colleague"},"contractId":null,"decidedBy":"Sales Colleague","decidedAt":"2026-08-21T06:32:04.779Z","note":"","createdAt":"2026-08-21T06:32:04.775Z","updatedAt":"2026-08-21T06:32:04.779Z"}}
+PASS — a WITHDRAWAL sends NO mail (nobody is told about their own act) []
+PASS — editor deciding THEIR OWN request {"ok":true,"request":{"id":"REQ-D42D3F","title":"Admin-raised request","need":"Raised and decided by the same person.","counterparty":"","folder":"","status":"accepted","by":{"id":"u_4a3d5ccb08a8b79a","name":"Amina Otieno"},"contractId":null,"decidedBy":"Amina Otieno","decidedAt":"2026-08-21T06:32:05.091Z","note":"","createdAt":"2026-08-21T06:32:05.085Z","updatedAt":"2026-08-21T06:32:05.091Z"}}
+PASS — ...sends NO mail (actor === requester) []
+PASS — re-saving the SAME status sends no mail (status did not move) {"status":"done"}
+PASS — deleted the ghost user (to test "no account" path) {"status":200,"body":{"ok":true}}
+PASS — DECIDING A REQUEST FROM A DELETED USER: the decision still STANDS (200, not a failure) {"ok":true,"request":{"id":"REQ-343F75","title":"Ghost request","need":"This person will be deleted before the decision lands.","counterparty":"","folder":"","status":"accepted","by":{"id":"u_5efa80dea0845838","name":"Ghost Colleague"},"contractId":null,"decidedBy":"Amina Otieno","decidedAt":"2026-08-21T06:32:05.918Z","note":"","createdAt":"2026-08-21T06:32:05.908Z","updatedAt":"2026-08-21T06:32:05.918Z"}}
+PASS — ...and simply no mail goes anywhere (fact, not error) []
+PASS — filing INTO an unreachable stream is REFUSED (403) {"error":"You do not have access to that value stream"}
+PASS — a request filed into a stream the reader cannot see is INVISIBLE to them {"visibleIds":["REQ-343F75","REQ-D42D3F","REQ-F68A6C","REQ-4B1EE8","REQ-7944BE"]}
+PASS — ...but an unrestricted admin does see it true
+PASS — the request now POINTS at the contract via contractId {"id":"REQ-82970C","title":"Turn me into paper","need":"test the ordinary creation path","counterparty":"Paper Co","folder":"proc","status":"done","by":{"id":"u_4a3d5ccb08a8b79a","name":"Amina Otieno"},"contractId":"MK-FROM-REQ-1","decidedBy":"Amina Otieno","decidedAt":"2026-08-21T06:32:06.249Z","note":"","createdAt":"2026-08-21T06:32:06.239Z","updatedAt":"2026-08-21T06:32:06.249Z"}
+PASS — the contract exists as an ORDINARY contract (register-visible) "MK-FROM-REQ-1"
+PASS — an EDITOR (not the requester) may move status to accepted {"ok":true,"request":{"id":"REQ-33B1CE","title":"Accept me","need":"test","counterparty":"","folder":"","status":"accepted","by":{"id":"u_4a3d5ccb08a8b79a","name":"Amina Otieno"},"contractId":null,"decidedBy":"Restricted Legal","decidedAt":"2026-08-21T06:32:06.257Z","note":"","createdAt":"2026-08-21T06:32:06.254Z","updatedAt":"2026-08-21T06:32:06.257Z"}}
+PASS — ACCEPTED also notifies (not just declined/done) ["admin@example.co.ke"]
+
+=== INTAKE SUMMARY ===
+28 checks, 0 failed
+PASS — BEFORE: /api/stats {"totalValue":1000000,"pending":0,"signed":1,"declined":0,"drafts":0,"total":1,"expired":0,"expiredValue":0,"fxMissing":{},"byFolder":[{"folder":"proc","n":1,"val":1000000,"pending":0}]}
+PASS — BEFORE: /api/contracts total {"total":1}
+PASS — archiving a SIGNED contract is accepted (not refused as an executed-record edit) {"status":200}
+PASS — STATUS STAYS "Signed" — archived is a filing fact BESIDE status, not a status "Signed"
+PASS — c.archived = {at, by} is present {"at":"2026-08-21T06:32:07.811Z","by":"Amina Otieno"}
+PASS — the audit trail carries an ENGLISH "Archived" line [{"at":"2026-08-21T06:32:07.811Z","user":"Amina Otieno","action":"Archived","detail":"Moved to the archive shelf — off the live lists and counts, still searchable"}]
+PASS — OFF /api/stats: total count drops by exactly 1 {"before":1,"after":0}
+PASS — OFF /api/stats: signed count drops by exactly 1 (SQL SUM over zero matching rows is NULL, which is the correct/expected 0-rows case here) {"before":1,"after":null}
+PASS — OFF /api/stats: totalValue drops by the archived contract's value {"before":1000000,"after":0}
+PASS — OFF /api/analytics byStatus (the archived Signed row is gone from the Signed bucket) []
+PASS — GET /api/contracts still returns the archived row (client filters, server delivers) {"found":true}
+PASS — ...and the LIGHT-LIST row carries archived={at,by} (survives HEAVY projection) {"at":"2026-08-21T06:32:07.811Z","by":"Amina Otieno"}
+PASS — ...and _light is true on that row (confirms this IS the light-list projection) true
+PASS — an archived contract is STILL findable in full-text search [{"id":"MK-AR-1","name":"Archived Supply Deal","counterparty":"Kabras Sugar","snippet":"[Archived] [Supply] [Deal]  Kabras Sugar  MK-AR-1  KES"}]
+PASS — a VIEWER cannot even save the contract at all (server-side wall backstops the editor-only client gate) {"status":403,"body":{"error":"Viewers have read-only access"}}
+PASS — RESTORE: archived flag is gone 
+PASS — RESTORE: audit carries the "Restored" English line [{"at":"2026-08-21T06:32:08.042Z","user":"Amina Otieno","action":"Restored","detail":"Restored from the archive shelf to the live lists"}]
+PASS — RESTORE: back in /api/stats totals {"total":1}
+PASS — renewal signal computed for the parent (baseline call succeeded) {"status":200}
+PASS — BEFORE archiving the amendment: parent's EFFECTIVE expiry is the AMENDMENT's date (2028-06-30), not its own (2026-12-31) {"expiryBefore":"2028-06-30"}
+PASS — the executed amendment archives cleanly (still Signed) {"status":200,"contractStatus":"Signed"}
+PASS — THE SUBTLE CASE: AFTER archiving the executed amendment, the parent's term is STILL the amendment's date — filing a child is not un-signing it {"expiryAfter":"2028-06-30"}
+PASS — the archived amendment itself is off /api/stats counts too {"note":"both parent-term-still-set AND the archived record itself excluded from aggregates","stats":{"totalValue":1500000,"pending":0,"signed":2,"declined":0,"drafts":0,"total":2,"expired":0,"expiredValue":0,"fxMissing":{},"byFolder":[{"folder":"proc","n":2,"val":1500000,"pending":0}]}}
+PASS — runReminders() executed {"checked":5,"queued":1}
+PASS — the ARCHIVED contract is QUIET — no expiry-milestone mail names it {"newMailCount":1,"sampleSubjects":["Renewal in 30 days: Live Nearly-Expiring Deal"]}
+PASS — ...its LIVE twin (same shape) is NOT quiet — proves the sweep can fire, and the archived one's silence is the shelf, not a fluke {"mentionsLive":true}
+PASS — runDailyBriefs() executed {"day":"2026-08-21","sent":1}
+PASS — the daily brief NEVER names the archived contract's overdue obligation {"newBriefMailCount":1}
+
+=== ARCHIVE SHELF SUMMARY ===
+28 checks, 0 failed
+PASS — environment check: outbound internet to an arbitrary public host "reachable (unexpected) status=403"
+PASS — REFUSED at registration: http://example.com/hook {"status":400,"error":"The address must start with https:// — a signed delivery over plain http is readable on the way"}
+PASS — REFUSED at registration: https://localhost/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://localhost./hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://LOCALHOST/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://db.internal/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://db.internal./hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://thing.local/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://127.0.0.1/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://10.0.0.5/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://172.16.4.4/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://192.168.1.10/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://169.254.169.254/latest/meta-data/ {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://100.64.0.5/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://192.0.0.8/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://198.18.0.5/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://198.19.9.9/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://192.88.99.1/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://[::1]/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://[fe80::1]/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://[fc00::1]/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://[2002:7f00:1::]/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://[2001:0:5ef5:79fd:0:59fc:0:1]/hook {"status":400,"error":"That address is inside a private network and cannot be reached from here"}
+PASS — REFUSED at registration: https://user:pass@example.com/hook {"status":400,"error":"Take the username and password out of the address — the signature is what proves it came from HaTi"}
+PASS — REFUSED at registration: not-a-url {"status":400,"error":"That is not a URL"}
+PASS — none of the refused addresses were stored 0
+PASS — EMPTY events list (field absent) is REFUSED at registration (fail closed) {"status":400,"error":"Name at least one event to send"}
+PASS — EMPTY ARRAY events is likewise REFUSED {"status":400}
+PASS — non-admin (unrestricted) refused GET /api/webhooks 403
+PASS — non-admin (unrestricted) refused POST /api/webhooks 403
+PASS — non-admin (novalues) refused GET /api/webhooks 403
+PASS — non-admin (novalues) refused POST /api/webhooks 403
+PASS — non-admin (restricted) refused GET /api/webhooks 403
+PASS — non-admin (restricted) refused POST /api/webhooks 403
+PASS — an unknown event name is DROPPED (never stored) ["contract.signed"]
+PASS — the 21st endpoint is REFUSED — WEBHOOK_MAX=20 is enforced {"status":400,"error":"That is as many addresses as HaTi will post to (20). Remove one first."}
+PASS — a real secret is handed over on registration 48
+PASS — the secret NEVER appears again in the list true
+PASS — DNS resolution to the public rebinding-test domain works from this sandbox true
+PASS — a NAME that resolves privately is ACCEPTED at REGISTRATION (the static guard cannot see DNS) {"status":200,"body":{"ok":true,"secret":"4150dcf68dbf36d793bac26f6babee477bb0051b5014595b","webhook":{"id":"wh_3671283e3300","url":"https://127.0.0.1.nip.io:46673/hook","events":["contract.signed"],"active":true,"createdAt":"2026-08-21T06:32:10.537Z","createdBy":"WH Admin 4","lastAt":null,"lastOk":null,"lastStatus":"","fails":0}}}
+PASS — AT SEND TIME the resolved-private address is REFUSED — the DYNAMIC lookup guard fires for real {"id":"wh_3671283e3300","url":"https://127.0.0.1.nip.io:46673/hook","events":["contract.signed"],"active":true,"createdAt":"2026-08-21T06:32:10.537Z","createdBy":"WH Admin 4","lastAt":"2026-08-21T06:32:10.596Z","lastOk":false,"lastStatus":"address refused","fails":1}
+PASS — ...and NOTHING reached the sink (real DNS resolution, real refusal, zero delivery) {"before":0,"after":0}
+(node:24876) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS — round.received TRIGGER: the counterparty response route accepted it {"status":200,"body":{"ok":true}}
+PASS — obligation.due TRIGGER: runReminders() executed {"checked":4,"queued":1}
+PASS — intake.requested TRIGGER: the request was created "REQ-B88873"
+PASS — EVENT FIRED FOR REAL: contract.signed (its own endpoint's counters moved, refused for the right reason) {"before":{"id":"wh_j10_contract_signed","url":"https://127.0.0.1:46673/contract.signed","events":["contract.signed"],"active":true,"createdAt":"2026-08-21T06:32:11.461Z","createdBy":"j10","lastAt":null,"lastOk":null,"lastStatus":"","fails":0},"after":{"id":"wh_j10_contract_signed","url":"https://127.0.0.1:46673/contract.signed","events":["contract.signed"],"active":true,"createdAt":"2026-08-21T06
+PASS — EVENT FIRED FOR REAL: round.received (its own endpoint's counters moved, refused for the right reason) {"before":{"id":"wh_j10_round_received","url":"https://127.0.0.1:46673/round.received","events":["round.received"],"active":true,"createdAt":"2026-08-21T06:32:11.462Z","createdBy":"j10","lastAt":null,"lastOk":null,"lastStatus":"","fails":0},"after":{"id":"wh_j10_round_received","url":"https://127.0.0.1:46673/round.received","events":["round.received"],"active":true,"createdAt":"2026-08-21T06:32:11
+PASS — EVENT FIRED FOR REAL: obligation.due (its own endpoint's counters moved, refused for the right reason) {"before":{"id":"wh_j10_obligation_due","url":"https://127.0.0.1:46673/obligation.due","events":["obligation.due"],"active":true,"createdAt":"2026-08-21T06:32:11.463Z","createdBy":"j10","lastAt":null,"lastOk":null,"lastStatus":"","fails":0},"after":{"id":"wh_j10_obligation_due","url":"https://127.0.0.1:46673/obligation.due","events":["obligation.due"],"active":true,"createdAt":"2026-08-21T06:32:11
+PASS — EVENT FIRED FOR REAL: intake.requested (its own endpoint's counters moved, refused for the right reason) {"before":{"id":"wh_j10_intake_requested","url":"https://127.0.0.1:46673/intake.requested","events":["intake.requested"],"active":true,"createdAt":"2026-08-21T06:32:11.464Z","createdBy":"j10","lastAt":null,"lastOk":null,"lastStatus":"","fails":0},"after":{"id":"wh_j10_intake_requested","url":"https://127.0.0.1:46673/intake.requested","events":["intake.requested"],"active":true,"createdAt":"2026-08
+PASS — across all four triggers, the real HTTP sink received ZERO requests (guard holds for every kind) 0
+PASS — the contract.signed endpoint fired exactly twice (MK-WH-1 + MK-WH-4 signing) and NOT for round.received/obligation.due/intake.requested (each row keyed to its own kind) {"signedRowFails":2}
+PASS — exactly four webhookQueue(...) call sites exist in the running server ["webhookQueue('contract.signed', () => ({ contractId: c.id, s","webhookQueue('intake.requested', () => ({ requestId: id })","webhookQueue('round.received', () => ({ contractId: s.contra","webhookQueue('obligation.due', () => ({ contractId: c.id, ob"]
+PASS — payload keys for contract.signed are ids/states ONLY (allow-list, independently checked) ["contractId","status"]
+PASS —   ...specifically NEVER a contract name or intake title key ["contractId","status"]
+PASS — payload keys for intake.requested are ids/states ONLY (allow-list, independently checked) ["requestId"]
+PASS —   ...specifically NEVER a contract name or intake title key ["requestId"]
+PASS — payload keys for round.received are ids/states ONLY (allow-list, independently checked) ["contractId","action"]
+PASS —   ...specifically NEVER a contract name or intake title key ["contractId","action"]
+PASS — payload keys for obligation.due are ids/states ONLY (allow-list, independently checked) ["contractId","obligationId"]
+PASS —   ...specifically NEVER a contract name or intake title key ["contractId","obligationId"]
+PASS — signature = HMAC-SHA256(secret, timestamp + "." + body) — verified against the live server binary on disk true
+PASS — X-HaTi-Timestamp / X-HaTi-Delivery headers are set in the fire function true
+PASS — an empty secret is refused BEFORE signing (never signs with nothing) true
+PASS — LIVE: an empty-secret endpoint is refused with "no signing secret" and gets nothing delivered {"id":"wh_j10_nosecret","url":"https://127.0.0.1:46673/nosecret","events":["contract.signed"],"active":true,"createdAt":"2026-08-21T06:32:12.928Z","createdBy":"j10","lastAt":"2026-08-21T06:32:12.944Z","lastOk":false,"lastStatus":"no signing secret","fails":1}
+PASS — LIVE: and the sink genuinely received nothing for it true
+
+=== WEBHOOKS SUMMARY ===
+65 checks, 0 failed
+PASS — call sites found {"count":13,"lines":[2431,3691,3761,3818,3912,3968,4010,4086,4523,4566,5127,5405,10312]}
+PASS — EVERY metered call site names a person (who: aiWho(req), or forwards meter.who) {"total":13,"missing":[]}
+PASS — Phase 2 (per-person daily copilotCap) is NOT built anywhere in server/ or js/ []
+PASS — BEFORE: today's spend ledger {"date":"2026-08-21","tz":"Africa/Nairobi","total":0,"requests":0,"dailySpendLimit":10,"dailyLimit":5000,"byFeature":[],"allowance":{"open":false,"budget":0,"docs":0,"spent":0,"docsUsed":0,"openedAt":null,"openedBy":"","closedAt":null,"moneyLeft":null,"docsLeft":null,"exhausted":false},"rates":{"claude-opus-5":{"in":5,"out":25},"claude-opus-4-8":{"in":5,"out":25},"claude-opus-4-7":{"in":5,"out":25
+PASS — admin's chat call succeeded {"status":200}
+PASS — chatuser2's chat call succeeded {"status":200}
+PASS — AFTER: byFeature chat row requests increased (a 5-step tool loop per chat call, since the stub never happens to pick deliver_answer first) {"after":{"feature":"chat","label":"Copilot","cost":0.0035,"requests":10,"calls":10,"inputTokens":100,"outputTokens":50}}
+PASS — TWO DIFFERENT MEMBERS LAND ON TWO SEPARATE LINES (read via GET /api/ai/config's spend.byPerson) {"adminLine":{"userId":"u_1b20aaa37d883938","name":"Amina Otieno","gone":false,"cost":0.00175,"requests":5,"calls":5,"inputTokens":50,"outputTokens":25},"u2Line":{"userId":"u_4ae9636a4e15b2aa","name":"Chat User Two","gone":false,"cost":0.00175,"requests":5,"calls":5,"inputTokens":50,"outputTokens":25}}
+PASS — each line shows exactly 5 requests (their own call's whole tool loop, not the other member's) {"adminRequests":5,"u2Requests":5}
+PASS — byFeature chat requests (from /api/ai/spend) === sum of byPerson.requests (from /api/ai/config) — same calls, two ledgers, agreeing {"chatRequests":10,"perPersonSum":10}
+PASS — sum(byPerson.cost) ~= workspace total cost (nothing unattributed here — every call was a real member) {"perPersonCostSum":0.0035,"workspaceTotal":0.0035,"unattributed":0}
+PASS — unattributed is a NUMBER (a figure), not absent/undefined 0
+PASS — ...and it is ~0 here, because every metered route in this build requires auth (see below) 0
+PASS — every metered route requires `auth` (so req.user is always set — this is WHY unattributed cannot be exercised live today, matching the shipped test's own admission) []
+PASS — /api/ai/spend refuses a non-admin 403
+PASS — /api/ai/spend allows the admin 200
+PASS — /api/ai/usage is OPEN to a non-admin member (the sidebar figure) 200
+PASS — /api/ai/spend refuses restricted too 403
+PASS — /api/ai/spend refuses novalues too 403
+PASS — WORKSPACE SPEND CEILING: refused with 429 once reached {"status":429,"body":{"error":"Daily Copilot budget reached ($0.00 of $0.00 spent today). Waiting will not help — an admin needs to raise the budget in Team & Settings, or open an onboarding allowance for a migration.","spendLimit":true,"dailySpend":0.0035,"dailySpendLimit":0.001,"retryAfter":3600}}
+PASS — ...and the refusal IS IN WORDS naming the remedy (an admin must raise the budget) "Daily Copilot budget reached ($0.00 of $0.00 spent today). Waiting will not help — an admin needs to raise the budget in Team & Settings, or open an onboarding allowance for a migration."
+PASS — ...retryAfter is set 3600
+PASS — raising the ceiling lets Copilot answer again 200
+PASS — control: /api/ai/spend correctly refuses the Viewer (this route IS properly admin-gated) 403
+PASS — *** FINDING *** GET /api/ai/config is answered for a plain VIEWER (200, not 403) 200
+PASS — *** FINDING *** ...and its `spend.byPerson` array is populated with named colleagues' individual Copilot spend, visible to the Viewer [{"userId":"u_1b20aaa37d883938","name":"Amina Otieno","gone":false,"cost":0.0035,"requests":10,"calls":10,"inputTokens":100,"outputTokens":50},{"userId":"u_4ae9636a4e15b2aa","name":"Chat User Two","gone":false,"cost":0.00175,"requests":5,"calls":5,"inputTokens":50,"outputTokens":25}]
+PASS — *** FINDING *** meanwhile the PROPERLY admin-gated route (/api/ai/spend) carries no byPerson key AT ALL — the per-person data was simply never added there ["date","tz","total","requests","dailySpendLimit","dailyLimit","byFeature","allowance","rates","ratesMeta"]
+PASS — *** FINDING *** admin's own /api/ai/config.spend.byPerson matches what the Viewer got, byte for byte — same data, wrong door true
+PASS — *** FINDING *** unattributed is ALSO exposed to the Viewer via this route 0
+PASS — *** FINDING *** and this is not a theoretical curl target: the CONTRACT ROOM itself fetches ai/config with no role check around it (source line quoted) "if(API_MODE()&&!state.aiCfg){ try{ state.aiCfg=await api('ai/config'); }catch(e){} }"
+
+=== COPILOT SPEND SUMMARY ===
+30 checks, 0 failed

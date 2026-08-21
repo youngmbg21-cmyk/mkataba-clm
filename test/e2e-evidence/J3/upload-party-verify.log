@@ -1,0 +1,16 @@
+PASS  the workspace DRAWS for a received, not-yet-signed upload — no error card
+PASS  with no entity on the record the banner names the workspace — the old fallback, out loud — Highland Corporate Ltd
+PASS  and it is the received-paper sentence, on the reported branch
+PASS  an entity on the record is the name the banner prints
+PASS  the field is on the popup from the first render, prefilled with the workspace — Highland Corporate Ltd
+PASS  the box is WIRED to its list — the browser's own datalist, not decoration
+PASS  the list offers the workspace AND an entity already used on a contract — Highland Corporate Ltd | Highland Juice Kenya Ltd
+PASS  File contract carries the typed entity onto the record — {"id":"MK-201","party":"Momo Beach Distillers Ltd","source":"upload"}
+PASS  and the freshly filed upload's page draws, naming that entity — the loop the owner was stuck in, closed
+PASS  1440 drawer: at least four counts are on screen to measure — 5
+PASS  1440 drawer: every count shares ONE right edge — spread 0px
+PASS  1440 drawer: and that edge is the drawer's own right padding, not mid-air — 26px in from the drawer's edge
+PASS  1920 column: the same straight line, as it always was — spread 0px
+PASS  no page errors on the whole journey — clean
+
+14/14 passed

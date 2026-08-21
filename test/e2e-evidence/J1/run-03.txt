@@ -1,0 +1,40 @@
+=== 03: rate limiter ===
+ASSERTED: 10 member accounts exist: ["restricted@example.co.ke","novalues@example.co.ke","everything@example.co.ke","colleague0@example.co.ke","colleague1@example.co.ke","colleague2@example.co.ke","colleague3@example.co.ke","colleague4@example.co.ke","colleague5@example.co.ke","colleague6@example.co.ke"]
+login restricted@example.co.ke with correct password: status=200
+login novalues@example.co.ke with correct password: status=200
+login everything@example.co.ke with correct password: status=200
+login colleague0@example.co.ke with correct password: status=200
+login colleague1@example.co.ke with correct password: status=200
+login colleague2@example.co.ke with correct password: status=200
+login colleague3@example.co.ke with correct password: status=200
+login colleague4@example.co.ke with correct password: status=200
+login colleague5@example.co.ke with correct password: status=200
+login colleague6@example.co.ke with correct password: status=200
+FINDING ten-correct-logins-all-succeed: allOk=true
+
+--- filling the bucket with wrong guesses ---
+  wrong guess #1: status=401
+  wrong guess #2: status=401
+  wrong guess #3: status=401
+  wrong guess #4: status=401
+  wrong guess #5: status=401
+  wrong guess #6: status=401
+  wrong guess #7: status=401
+  wrong guess #8: status=401
+  wrong guess #9: status=401
+  wrong guess #10: status=401
+11th guess (wrong) after 10 wrong: status=429 body={"error":"Too many attempts — please wait and try again","retryAfter":900}
+right password submitted while bucket is FULL (from wrong guesses): status=429 body={"error":"Too many attempts — please wait and try again","retryAfter":900}
+FINDING lucky-correct-guess-still-refused-when-bucket-full: refused=true
+
+--- /api/setup own bucket ---
+10 calls to /api/setup (already set up) from the SAME client whose auth bucket is already full: statuses=[409,409,409,409,409,409,409,409,409,429]
+FINDING setup-own-bucket: noneAre429=false (expect all 409, own bucket separate from 'auth')
+
+--- /api/password/reset-request own bucket + identical response ---
+reset-request known address (bucket 'auth' already full for this client): status=200 body={"ok":true,"emailSent":false}
+reset-request UNKNOWN address (same client): status=200 body={"ok":true,"emailSent":false}
+FINDING reset-request-not-429-from-auth-bucket: known!=429=true unknown!=429=true
+FINDING reset-request-identical-response: sameStatus=true sameBody=true
+12 more reset-request calls (own bucket, ceiling 10/15min): statuses=[200,200,200,200,200,200,200,200,429,429,429,429]
+FINDING reset-request-own-ceiling: last2are429=true
