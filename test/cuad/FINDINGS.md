@@ -121,6 +121,10 @@ features do it, and the reader is told nothing.
 > the spliced fragment it replaced. A fix in one place cost the answer in
 > another.
 >
+> A **partial** list is now kept and labelled, rather than thrown away —
+> degrading to partial beats degrading to silence, which was this finding's
+> own point. Only a list that is empty *and* cut off is refused.
+>
 > Fixed three ways: the flag is recorded once in `anthropicMessages` and
 > becomes a sentence on **all eleven** AI routes through `aiNotice`; the
 > obligations ceiling is 4,000; and an empty list from a cut-off call is now a

@@ -885,7 +885,10 @@ The obligations reader returned NOTHING on all ten contracts — the same 0% as 
 - **"NONE" AND "CUT OFF BEFORE IT COULD SAY" ARE DIFFERENT ANSWERS.** An empty list from a truncated call is now a refusal naming the reason, never an empty result.
 - STILL UNPROVEN, said out loud: a third run is what settles whether the reader now works. `test/cuad/run.js` records the notice and the refusal in its dump, and `inspect.js` prints them, so a third identical figure cannot be mistaken for either of the first two causes.
 
-Tests: f227 (19 — the flag recorded once, the sentence reaching every route, the ceiling measured against the schema's own maxItems, and the refusal).
+- **AND A PARTIAL ANSWER IS KEPT.** Degrading to partial beats degrading to silence — the original finding's own words. What arrived is real work and is handed over; the notice is what stops it reading as the complete picture. Only a list that is EMPTY *and* cut off is refused.
+- **THE STAND-IN COULD NOT REPRODUCE IT EITHER**, which is why the whole suite passed while the defect was live: `startScriptedAi` only ever produced COMPLETE answers. It takes `stopReason` now (both the JSON and the SSE path). A harness that cannot fail the way the provider really fails turns every test written on it into a description.
+
+Tests: f227 (19 — the source: the flag recorded once, the sentence reaching every route, the ceiling measured against the schema's own maxItems, and the refusal), f228 (6, against a real server and a provider that really cuts the answer short — the complete answer unmoved, a genuinely-empty answer still a real answer, the cut-off one refused in words, a partial one kept with its warning, and the warning inherited by a route that never mentions truncation; 4 of the 6 fail against the commit before).
 
 ## WHICH DURATION IN THE SENTENCE IS THE ANSWER (21 Aug 2026, owner-asked "fix the notice period and the expiry date")
 
