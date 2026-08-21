@@ -87,6 +87,39 @@ for (const [f, n] of Object.entries(byField).sort((a, b) => b[1] - a[1])) {
   console.log(`    ${String(n).padStart(2)} x ${f}`);
 }
 
+/* ---- 2b. WHY they are not verbatim ----
+   The first live run's samples all carried "..." — which says HaTi is not
+   paraphrasing so much as SPLICING: joining separate parts of a clause with
+   an ellipsis. That distinction decides the fix.
+
+   Spliced-from-real-text is a prompt problem and a small one: every fragment
+   is genuinely in the contract, the join is not. INVENTED text would be a
+   different and far more serious matter, so the two are told apart here
+   rather than assumed. */
+console.log('\n  Why they are not verbatim:');
+let spliced = 0, allPartsReal = 0, invented = 0, other = 0;
+for (const r of rows) {
+  const doc = docOf.get(r.title); if (!doc) continue;
+  for (const q of Object.values(r.sourceSpans || {})) {
+    if (!q || typeof q !== 'string' || S.locate(doc, q).length) continue;
+    if (/\.\.\.|…/.test(q)) {
+      spliced++;
+      const parts = q.split(/\s*(?:\.\.\.|…)\s*/).map(x => x.trim()).filter(x => x.length > 12);
+      if (parts.length && parts.every(pt => S.locate(doc, pt).length)) allPartsReal++;
+      else invented++;
+    } else other++;
+  }
+}
+console.log(`    ${String(spliced).padStart(2)} joined separate passages with an ellipsis ("...")`);
+console.log(`       of those, ${allPartsReal} had EVERY fragment genuinely in the contract`);
+if (invented) console.log(`       and ${invented} had a fragment that is NOT in the contract — check these`);
+console.log(`    ${String(other).padStart(2)} differed some other way (reworded, or a fragment altered)`);
+if (spliced && allPartsReal === spliced) {
+  console.log('\n    Every spliced span is built from real wording. HaTi is quoting');
+  console.log('    truthfully and joining the pieces — a prompt instruction, not a');
+  console.log('    reading fault. Nothing here was invented.');
+}
+
 /* ---- 3. is the threshold deciding anything? ---- */
 console.log('\n' + line + '\n3. IS THE HALF-OVERLAP THRESHOLD DOING REAL WORK?\n' + line);
 const CAT = { counterparty: 'Parties', contractType: 'Document Name',
