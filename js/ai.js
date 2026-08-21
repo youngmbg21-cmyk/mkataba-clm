@@ -2974,7 +2974,10 @@ async function runContractBrief(c,opts={}){
   if(!(typeof API_MODE==='function'&&API_MODE())||!state.aiConfigured){ toast(i18t('br_no_ai'),'warn'); return null; }
   const text=isUpload(c)?(c.upload&&c.upload.extractedText)||'':(window.contractPlainText?contractPlainText(c):'');
   try{
-    const r=await api('ai/brief','POST',{ id:c.id, text:String(text||'').slice(0,20000), force:!!opts.force });
+    // The whole wording goes — the server's aiDocChars is the one ceiling, and
+  // a brief written off the first 20,000 characters is a memo about the front
+  // of the contract wearing the whole contract's name.
+  const r=await api('ai/brief','POST',{ id:c.id, text:String(text||''), force:!!opts.force });
     if(r&&r.brief){
       c._brief=r.brief;
       // a cache hit changed nothing — only a real (re)write earns an audit line

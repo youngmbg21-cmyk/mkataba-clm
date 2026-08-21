@@ -57,8 +57,15 @@ without saying so is misleading in HaTi's disfavour.
 
 # THREE PRODUCT FINDINGS
 
-Each is in HaTi, not in the scorecard. **None has been fixed** — this is a
-measurement exercise and the fixes are the owner's call.
+Each is in HaTi, not in the scorecard.
+
+**FIXED 21 Aug 2026, owner-approved.** Findings 1 and 3 are fixed; finding 2 was
+a consequence of finding 1 and should follow it. The measurements below are left
+exactly as they were taken — they are the record of what was found, not a
+running score. **The figures have NOT been re-measured since the fix**, and
+nothing here should be read as describing HaTi today until they have been.
+See CLAUDE.md, "THE WHOLE CONTRACT IS READ, AND A QUOTE IS ONE PASSAGE", and
+test f227.
 
 ## 1. THREE AI FEATURES READ ONLY THE FRONT OF A LONG CONTRACT
 
@@ -71,6 +78,16 @@ measurement exercise and the fixes are the owner's call.
 
 A hard `String(text).slice(0, N)`, applied regardless of the input cap the
 route otherwise respects, and **not reported to the reader anywhere**.
+
+**And the browser sliced too** — found while fixing this, not while measuring
+it. `extractObligations`, the brief runner and the playbook runner each cut to
+20,000 characters *before posting*, so correcting the server alone would have
+corrected nothing. Six truncations, not three.
+
+> **FIXED.** One ceiling for one contract (200,000 characters, above the
+> longest of the 510 and settable), it marks the text and tells the reader when
+> it bites, and the portfolio-wide budget — which is where a cap genuinely
+> earns its place — is untouched.
 
 Eight of the ten contracts measured are longer than 20,000 characters. The
 median is 31,914 — so the obligations reader saw at most **63%** of a typical
@@ -96,7 +113,15 @@ Scored 0% on all four categories. That is **not** a reading failure:
 | Truncated contracts returning anything | **0 of 8** |
 
 Shown a whole contract it works well. Shown two thirds it returns **nothing**,
-rather than the obligations it did see. A feature that degrades to silence is
+rather than the obligations it did see.
+
+> **NOT FIXED DIRECTLY, AND DELIBERATELY.** Nothing was changed to make the
+> reader degrade gracefully, because with the truncation gone there is far less
+> to degrade from — and building a fallback for a state you have just stopped
+> creating is how a product grows machinery nobody needs. What WAS fixed is the
+> silence beside it: "No obligations detected" was a bare `toast()` call, which
+> in this product prints nothing at all, so the press had no visible outcome
+> whatever the answer. Re-measuring is what settles the rest. A feature that degrades to silence is
 worse than one that degrades to partial, because silence reads as "this
 contract has no obligations".
 
@@ -125,6 +150,11 @@ That distinction decides how serious it is:
 - **Not** a reading fault. It found the right words.
 - A **prompt instruction** — it needs telling to quote one continuous passage.
 
+> **FIXED.** One sentence, stated once and reaching all four tools that hand a
+> quote to a customer, carrying its own way forward for the case that caused
+> the splicing: where no single passage holds the whole answer, quote the one
+> that holds most of it.
+
 Worst affected: `retentionPct` (6), `liabilityCapped` (5), `warrantyMonths` (5),
 `category` (4), `retentionReleaseDays` (4). All fields whose answer is spread
 across a clause, which is exactly where splicing is tempting.
@@ -139,18 +169,24 @@ phrase a notice period was read from — presented as the contract's own words.
 
 Ordered by what it costs the business, not by effort.
 
+**~~2. The truncation.~~** and **~~3. The splicing~~** were fixed on
+21 Aug 2026. What is left:
+
 **1. The notice period, at 50% (5/10).** This feeds the renewal card's deadline
 and the reminder emails. Half of them wrong is a customer missing a renewal.
-The highest-consequence number in this document.
-
-**2. The truncation.** Three features silently reading part of a contract. The
-obligations reader is the worst of the three because it returns nothing at all.
-
-**3. The splicing.** Customer-facing, and probably the cheapest of the three —
-one instruction to quote a single continuous passage.
+The highest-consequence number in this document. **It may already be better
+than this** — a notice period is usually drafted in the termination clause,
+which is at the back of an agreement and was inside the truncated part. That is
+a reason to re-measure before working on it, not a reason to assume it is
+fixed.
 
 **4. The expiry date, at 50% (3/6).** Same family as the notice period, smaller
-sample, same consequence.
+sample, same consequence — and the same reason to re-measure first.
+
+**5. Re-run the scorecard.** Two of the three findings changed what the AI is
+shown, so every figure in this document now describes code that no longer
+exists. The same ten contracts, for about US$0.90 — more than the first run,
+because whole contracts are now being read.
 
 ---
 

@@ -1340,6 +1340,59 @@ const rlAiDeep  = rateLimit('ai-deep',  () => intSetting('aiRateDeep',  'AI_RATE
 // it reaches (and is billed by) Anthropic. Truncation sets req.aiInputCapped so
 // the endpoint can tell the user their input was shortened.
 const AI_TRUNC_MARK = '\n\n[…truncated by HaTi before sending to Copilot…]';
+
+/* A QUOTE IS A QUOTE — ONE CONTINUOUS PASSAGE, NEVER TWO SPLICED.
+   Measured against CUAD, 34 of 125 returned spans (27%) could not be found in
+   the contract at all. inspect.js split each one at its ellipsis and checked
+   every fragment: all of them were genuinely in the wording, and it was the
+   JOIN that was invented. So this is not hallucination and not a reading
+   fault — HaTi found the right words and stitched them together, because
+   nothing told it not to. It matters because these spans are printed to the
+   customer AS QUOTATIONS from their own contract: under every field on the
+   upload confirm screen, and on the renewal card as the phrase a notice
+   period was read out of. Worst affected were the fields whose answer is
+   spread across a clause — retention, liability caps, warranty periods —
+   which is exactly where splicing is tempting. One sentence, on every tool
+   that returns a quote, so the four cannot drift apart. */
+const AI_QUOTE_RULE = ' Quote ONE continuous run of text, copied character for character — never join two separate passages with "..." or an ellipsis. If no single passage carries the whole answer, quote the one that carries most of it.';
+
+/* ONE CEILING FOR ONE CONTRACT, AND IT SAYS SO WHEN IT BITES.
+
+   TWO DIFFERENT JOBS WERE WEARING ONE NUMBER, and a third number nobody
+   decided was quietly doing neither. aiMaxChars is a BULK budget — it bounds a
+   portfolio call carrying up to aiMaxContracts records and divides itself
+   across them, which is where a cap genuinely earns its place (400 contracts
+   is millions of characters and real money). Reading ONE agreement is not that
+   job: the deep tier holds a million tokens, the longest contract in a set of
+   510 professionally-drafted ones is ~74,000 characters, and reading a whole
+   one costs about two US cents.
+
+   So a single document gets its own ceiling, set ABOVE any real contract
+   rather than below most of them. What it is for is the runaway case a
+   contract manager really does meet — a master agreement with every annexe
+   bound in — and not the ordinary one.
+
+   IT WAS FOUR SILENT SLICES BEFORE THIS. Three routes carried a hard
+   slice(0, 20000) and one a slice(0, 12000), applied AFTER capAiInput had
+   already promised in writing that "defaults sit above what the client sends,
+   so genuine use is never trimmed" — and the browser sliced to 20,000 a
+   second time before posting, so fixing the server alone would have fixed
+   nothing. None of the four was recorded in the rulebook, in MAP-HISTORY or
+   in any work order; measured against CUAD, 41 of 50 real contracts were
+   longer than 20,000 characters and the obligations reader returned NOTHING
+   at all on every truncated one.
+
+   AND IT IS A FACT, NEVER A SILENT TRIM — this rulebook's own standing rule.
+   aiDocText marks the text for the model and sets req.aiInputCapped, which
+   aiNotice already turns into a sentence on every one of these routes. */
+const aiDocChars = () => intSetting('aiDocChars', 'AI_DOC_CHARS', 200000);
+function aiDocText(req, s) {
+  const t = String(s == null ? '' : s);
+  const max = aiDocChars();
+  if (t.length <= max) return t;
+  if (req) req.aiInputCapped = true;
+  return t.slice(0, max) + AI_TRUNC_MARK;
+}
 function capAiInput(req, res, next) {
   const b = req.body || {};
   let capped = false;
@@ -1348,7 +1401,11 @@ function capAiInput(req, res, next) {
   for (const f of ['contracts', 'candidates']) {
     if (Array.isArray(b[f]) && b[f].length > maxN) { b[f] = b[f].slice(0, maxN); capped = true; }
   }
-  if (typeof b.text === 'string' && b.text.length > maxC) { b.text = b.text.slice(0, maxC) + AI_TRUNC_MARK; capped = true; }
+  // b.text is a SINGLE document on every route that sends it (extract, blanks,
+  // obligations, playbook), so it takes the document ceiling. maxC below stays
+  // the BULK budget, divided across a contract list — a different question.
+  const maxDoc = aiDocChars();
+  if (typeof b.text === 'string' && b.text.length > maxDoc) { b.text = b.text.slice(0, maxDoc) + AI_TRUNC_MARK; capped = true; }
   for (const f of ['contracts', 'candidates']) {
     if (Array.isArray(b[f]) && b[f].length) {
       const per = Math.max(2000, Math.floor((maxC * 3) / b[f].length));
@@ -1936,6 +1993,7 @@ if (MAPPER_TOKEN) {
         aiRateDeep: intSetting('aiRateDeep', 'AI_RATE_DEEP', 15),
         aiDailyLimit: aiDailyLimit(),
         aiMaxChars: intSetting('aiMaxChars', 'AI_MAX_CHARS', 60000),
+        aiDocChars: aiDocChars(),
         aiMaxContracts: intSetting('aiMaxContracts', 'AI_MAX_CONTRACTS', 400),
         windowMinutes: Math.round(AI_WINDOW_MS / 60000),
       },
@@ -3514,6 +3572,7 @@ app.get('/api/ai/config', auth, (req, res) => {
       dailyLimit: aiDailyLimit(),             // 0 = disabled — blunt secondary guard
       estimateConfirmAt: numSetting('aiEstimateConfirmAt', 'AI_ESTIMATE_CONFIRM_AT', 1),
       maxChars: intSetting('aiMaxChars', 'AI_MAX_CHARS', 60000),
+      docChars: aiDocChars(),      // one contract read whole — see aiDocText
       maxContracts: intSetting('aiMaxContracts', 'AI_MAX_CONTRACTS', 400),
       ocrMaxPages: intSetting('ocrMaxPages', 'OCR_MAX_PAGES', 30),
       thoroughExtract: !!getSetting('aiThoroughExtract'),
@@ -3597,7 +3656,7 @@ app.post('/api/ai/allowance/document', auth, editor, (req, res) => {
 
 app.put('/api/ai/config', auth, admin, (req, res) => {
   const { key, model, modelFast, modelDeep, clear,
-    rateLight, rateDeep, rateOcr, dailyLimit, maxChars, maxContracts,
+    rateLight, rateDeep, rateOcr, dailyLimit, maxChars, docChars, maxContracts,
     dailySpendLimit, estimateConfirmAt, ocrMaxPages, thoroughExtract, rates } = req.body || {};
   if (clear) { setSetting('aiKey', ''); return res.json({ ok: true, configured: !!process.env.ANTHROPIC_API_KEY }); }
   if (typeof key === 'string' && key.trim()) setSetting('aiKey', key.trim());
@@ -3629,6 +3688,7 @@ app.put('/api/ai/config', auth, admin, (req, res) => {
   setNum('aiRateOcr', rateOcr, 1);
   setNum('aiDailyLimit', dailyLimit, 0);
   setNum('aiMaxChars', maxChars, 1000);
+  setNum('aiDocChars', docChars, 1000);
   setNum('aiMaxContracts', maxContracts, 1);
   setNum('ocrMaxPages', ocrMaxPages, 1);
   // Money settings are decimals, not whole numbers.
@@ -3841,7 +3901,7 @@ app.post('/api/ai/extract', auth, rlAiLight, aiFeature('extract'), aiBudgetGuard
   if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
   const today = new Date().toISOString().slice(0, 10);
   const conf = { type: 'string', enum: ['high', 'medium', 'low'], description: 'Confidence this field is correct.' };
-  const span = { type: 'string', description: 'The SHORT verbatim phrase from the document this value came from (under 140 characters, copied exactly). Omit if the field is empty.' };
+  const span = { type: 'string', description: 'The SHORT verbatim phrase from the document this value came from (under 140 characters, copied exactly).' + AI_QUOTE_RULE + ' Omit if the field is empty.' };
   const tool = {
     name: 'file_contract',
     description: 'Extract structured metadata from a contract document.',
@@ -3901,7 +3961,7 @@ Silence is an answer. If the contract holds nothing back, retentionPct is 0 — 
 
 The document may contain markers like "[... 12,000 characters omitted ...]". Those mark text that was deliberately elided to fit — do NOT infer anything from a gap, and do not treat the sections either side of one as adjacent.
 
-For every field you fill in, also return the short verbatim phrase it came from in sourceSpans, copied exactly from the document. Return via the file_contract tool.${partNote}
+For every field you fill in, also return the short verbatim phrase it came from in sourceSpans, copied exactly from the document — one continuous run of text, never two separate passages joined with "...". Return via the file_contract tool.${partNote}
 
 DOCUMENT:
 ${String(text)}`;
@@ -3999,13 +4059,13 @@ app.post('/api/ai/obligations', auth, rlAiDeep, aiFeature('obligations'), aiBudg
           desc: { type: 'string', description: 'Short obligation, e.g. "Pay 30 days from invoice" or "Submit quarterly sales report".' },
           due: { type: 'string', description: 'ISO yyyy-mm-dd if a concrete date is stated, else empty.' },
           recurring: { type: 'string', enum: ['none','monthly','quarterly','annual'], description: 'Recurrence if periodic.' },
-          quote: { type: 'string', description: 'Short verbatim clause snippet this came from.' },
+          quote: { type: 'string', description: 'Short verbatim clause snippet this came from.' + AI_QUOTE_RULE },
         }, required: ['desc'] } },
       },
       required: ['obligations'],
     },
   };
-  const prompt = `Extract the obligations this contract imposes (payment milestones, notice/termination deadlines, deliverables, reporting duties, insurance/indemnity upkeep). Quote the clause each came from. Only list obligations actually present. Return via list_obligations.\n\nDOCUMENT:\n${String(text).slice(0, 20000)}`;
+  const prompt = `Extract the obligations this contract imposes (payment milestones, notice/termination deadlines, deliverables, reporting duties, insurance/indemnity upkeep). Quote the clause each came from. Only list obligations actually present. Return via list_obligations.\n\nDOCUMENT:\n${aiDocText(req, text)}`;
   try {
     const resp = await anthropicMessages(key, 'deep', { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'list_obligations' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'obligations', who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
@@ -4044,7 +4104,12 @@ app.post('/api/ai/brief', auth, editor, rlAiDeep, aiFeature('brief'), aiBudgetGu
   let full = {}; try { full = JSON.parse(row.json) || {}; } catch (_) {}
   const body = (typeof text === 'string' && text.trim()) ? text : contractFullBody(full);
   if (!body || body.trim().length < 120) return res.status(400).json({ error: 'There is no wording to brief yet' });
-  const inputHash = sha(String(body).slice(0, 20000));
+  // The cache key is a hash of EXACTLY the text that was read — this route's
+  // own promise, three comments above. Clip once, hash and send the same value:
+  // hashing a different slice than was sent means a change past the cut never
+  // refreshes the brief.
+  const sent = aiDocText(req, body);
+  const inputHash = sha(sent);
   const prev = db.prepare('SELECT json FROM briefs WHERE contract_id=?').get(String(id));
   if (prev && !force) {
     try {
@@ -4072,7 +4137,7 @@ app.post('/api/ai/brief', auth, editor, rlAiDeep, aiFeature('brief'), aiBudgetGu
         } },
         watchouts: { type: 'array', maxItems: 6, items: { type: 'object', properties: {
           point: { type: 'string', description: 'A clause that bites, in one plain sentence — what it means in practice.' },
-          quote: { type: 'string', description: 'Short verbatim snippet it comes from.' },
+          quote: { type: 'string', description: 'Short verbatim snippet it comes from.' + AI_QUOTE_RULE },
         }, required: ['point'] } },
         unusual: { type: 'array', maxItems: 4, items: { type: 'string' },
           description: 'Terms unusual for this kind of contract, plainly put. Empty if none.' },
@@ -4081,7 +4146,7 @@ app.post('/api/ai/brief', auth, editor, rlAiDeep, aiFeature('brief'), aiBudgetGu
     },
   };
   const J = orgJx();
-  const prompt = `You are explaining a contract to a business owner who has no lawyer, under ${J.adjective} law. Read the DOCUMENT and return a short cover memo via contract_brief. Plain, everyday sentences — any unavoidable legal term gets an immediate plain explanation. Only state what the wording actually says: never invent, never guess, and never propose new wording — this is a reading aid, not a redraft. Keep every monetary amount in the money section only. If something is unusual for this kind of contract, say so plainly; if nothing is, return an empty unusual list.\n\nDOCUMENT:\n${String(body).slice(0, 20000)}`;
+  const prompt = `You are explaining a contract to a business owner who has no lawyer, under ${J.adjective} law. Read the DOCUMENT and return a short cover memo via contract_brief. Plain, everyday sentences — any unavoidable legal term gets an immediate plain explanation. Only state what the wording actually says: never invent, never guess, and never propose new wording — this is a reading aid, not a redraft. Keep every monetary amount in the money section only. If something is unusual for this kind of contract, say so plainly; if nothing is, return an empty unusual list.\n\nDOCUMENT:\n${sent}`;
   try {
     const resp = await anthropicMessages(key, 'deep', { max_tokens: 1400, tools: [tool], tool_choice: { type: 'tool', name: 'contract_brief' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'brief', who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
@@ -4518,7 +4583,7 @@ app.post('/api/ai/renewal', auth, editor, rlAiDeep, aiFeature('renewal'), aiBudg
       required: ['verdict', 'headline', 'because'],
     },
   };
-  const prompt = `You are advising a business owner on an agreement coming up for renewal, under ${orgJx().adjective} law. Recommend renew, renegotiate or lapse, using ONLY the SIGNALS below and the wording — every date and figure there is computed from the record, so use them as given and never restate a date differently. Where the signals are too thin to justify a recommendation, answer 'unclear' and say what is missing rather than guessing. Do not draft any wording. Plain, everyday sentences.\n\nSIGNALS:\n${JSON.stringify(signals)}\n\nDOCUMENT:\n${String(contractFullBody(full)).slice(0, 12000)}`;
+  const prompt = `You are advising a business owner on an agreement coming up for renewal, under ${orgJx().adjective} law. Recommend renew, renegotiate or lapse, using ONLY the SIGNALS below and the wording — every date and figure there is computed from the record, so use them as given and never restate a date differently. Where the signals are too thin to justify a recommendation, answer 'unclear' and say what is missing rather than guessing. Do not draft any wording. Plain, everyday sentences.\n\nSIGNALS:\n${JSON.stringify(signals)}\n\nDOCUMENT:\n${aiDocText(req, contractFullBody(full))}`;
   try {
     const resp = await anthropicMessages(key, 'deep', { max_tokens: 900, tools: [tool], tool_choice: { type: 'tool', name: 'renewal_advice' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'renewal', who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
@@ -4562,7 +4627,7 @@ async function aiPlaybookVerdicts(key, { text, playbook, kind }, meter) {
     },
   };
   const J = orgJx();
-  const prompt = `You are a contracts reviewer practising under ${J.adjective} law. Judge the DOCUMENT against the PLAYBOOK for a ${kind || 'contract'}. For every playbook position and range, return a verdict (aligned / deviation / missing) with a verbatim quote where present, the preferred position, and — for deviations or missing items — a suggested redline in the preferred wording. Mark escalate=true where the playbook flags Legal approval. Return via playbook_review.\n\nPLAYBOOK:\n${JSON.stringify(playbook || {})}\n\nDOCUMENT:\n${String(text).slice(0, 20000)}`;
+  const prompt = `You are a contracts reviewer practising under ${J.adjective} law. Judge the DOCUMENT against the PLAYBOOK for a ${kind || 'contract'}. For every playbook position and range, return a verdict (aligned / deviation / missing) with a verbatim quote where present — one continuous run of text copied exactly, never two passages joined with "..." — the preferred position, and — for deviations or missing items — a suggested redline in the preferred wording. Mark escalate=true where the playbook flags Legal approval. Return via playbook_review.\n\nPLAYBOOK:\n${JSON.stringify(playbook || {})}\n\nDOCUMENT:\n${aiDocText(null, text)}`;
   const resp = await anthropicMessages(key, 'deep', { max_tokens: 2500, tools: [tool], tool_choice: { type: 'tool', name: 'playbook_review' }, messages: [{ role: 'user', content: prompt }] }, { feature: (meter && meter.feature) || 'playbook', who: (meter && meter.who) || null });
   if (!resp.ok) return { ok: false, resp };
   const block = (resp.data.content || []).find(b => b.type === 'tool_use');
@@ -4835,7 +4900,7 @@ async function copilotPlaybookCheck(ctx, id, key, who) {
   const resolved = pb ? copilotResolvePlaybook(pb, copilotPlaybookKey(pb, c)) : null;
   if (!resolved) return { id: c.id, name: c.name || c.id, noPlaybook: true };
   const r = await aiPlaybookVerdicts(key,
-    { text: contractFullBody(c).slice(0, 20000), playbook: resolved, kind: resolved.label },
+    { text: contractFullBody(c), playbook: resolved, kind: resolved.label },
     { feature: 'chat', who: who || null });
   if (!r.ok) return { error: 'playbook review failed' + (r.resp && r.resp.status ? ' (provider ' + r.resp.status + ')' : '') };
   return { id: c.id, name: c.name || c.id, playbook: resolved.label, verdicts: r.verdicts };

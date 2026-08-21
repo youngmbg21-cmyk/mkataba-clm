@@ -228,7 +228,14 @@ async function extractObligations(c){
   const text = isUpload(c) ? (c.upload&&c.upload.extractedText)||'' : (window.contractPlainText?contractPlainText(c):'');
   if(!text || text.length<120){ toast(i18t('ob_no_readable'),'err'); return []; }
   if(API_MODE() && state.aiConfigured){
-    try{ const r=await api('ai/obligations','POST',{ text:text.slice(0,20000) }); return r.obligations||[]; }
+    /* THE WHOLE CONTRACT GOES. It used to slice to 20,000 characters here AND
+       again on the server, so obligations drafted at the BACK of an agreement
+       — audit rights, insurance, post-termination duties — were never seen.
+       Measured against CUAD, 41 of 50 real contracts are longer than that and
+       the reader returned NOTHING at all on every truncated one. The ceiling
+       is aiDocChars on the server now: one number, set above any real
+       contract, and it tells the reader when it bites. */
+    try{ const r=await api('ai/obligations','POST',{ text }); return r.obligations||[]; }
     catch(e){ toast(i18t('ob_scan_unavailable'),'err'); }
   }
   return heuristicObligations(text, c);
@@ -491,7 +498,12 @@ async function runFindObligations(c){
   const found=await extractObligations(c);
   if(btn){ btn.disabled=false; }
   renderObligationsSection(c);
-  if(!found.length){ toast('No obligations detected'); return; }
+  /* AND IT MUST SAY SO OUT LOUD. This was a BARE toast call, which by this
+     product's own rule is SILENT — so pressing Find obligations on a contract
+     that returned nothing did nothing visible at all, and the reader had no
+     way to tell a working scan from a broken button. It is a 'warn' now, and
+     it goes through the dictionary like every other message on this screen. */
+  if(!found.length){ toast(i18t('ob_none_found'),'warn'); return; }
   openObligationsReview(c, found);
 }
 function openObligationsReview(c, found){

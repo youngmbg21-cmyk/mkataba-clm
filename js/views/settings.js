@@ -2508,6 +2508,7 @@ function stEngineBodyHtml(){
         ${stLimitField('ai-daily',i18t('set_lim_daily_req'),i18t('set_lim_daily_req_sub'),0)}
         ${stLimitField('ai-ocr-pages',i18t('set_lim_ocr_pages'),i18t('set_lim_ocr_pages_sub'),1)}
         ${stLimitField('ai-maxchars',i18t('set_lim_chars'),i18t('set_lim_chars_sub'),1000)}
+        ${stLimitField('ai-docchars',i18t('set_lim_doc'),i18t('set_lim_doc_sub'),1000)}
         ${stLimitField('ai-maxcontracts',i18t('set_lim_contracts'),i18t('set_lim_contracts_sub'),1)}
       </div>
       <label style="display:flex;align-items:flex-start;gap:8px;margin-top:9px;font-size:11px;color:var(--color-neutral-700);line-height:1.45;cursor:pointer">
@@ -2640,7 +2641,7 @@ function stWireEngine(){
       fillN('ai-rate-light',lim.rateLight); fillN('ai-rate-deep',lim.rateDeep); fillN('ai-daily',lim.dailyLimit);
       fillN('ai-rate-ocr',lim.rateOcr); fillN('ai-ocr-pages',lim.ocrMaxPages);
       fillN('ai-daily-spend',lim.dailySpendLimit); fillN('ai-estimate-confirm',lim.estimateConfirmAt);
-      fillN('ai-maxchars',lim.maxChars); fillN('ai-maxcontracts',lim.maxContracts);
+      fillN('ai-maxchars',lim.maxChars); fillN('ai-docchars',lim.docChars); fillN('ai-maxcontracts',lim.maxContracts);
       const th=document.getElementById('ai-thorough'); if(th&&document.activeElement!==th) th.checked=!!lim.thoroughExtract;
       renderAllowancePanel(c.allowance||{});
       renderRateTable(c.rates||{}, c.ratesMeta||{});
@@ -2670,7 +2671,8 @@ function stWireEngine(){
   document.getElementById('ai-limits-save')?.addEventListener('click',async()=>{
     const num=id=>{ const el=document.getElementById(id); if(!el) return undefined; const v=el.value.trim(); return v===''?undefined:Number(v); };
     const whole={ rateLight:num('ai-rate-light'), rateDeep:num('ai-rate-deep'), rateOcr:num('ai-rate-ocr'),
-      dailyLimit:num('ai-daily'), maxChars:num('ai-maxchars'), maxContracts:num('ai-maxcontracts'), ocrMaxPages:num('ai-ocr-pages') };
+      dailyLimit:num('ai-daily'), maxChars:num('ai-maxchars'), docChars:num('ai-docchars'),
+      maxContracts:num('ai-maxcontracts'), ocrMaxPages:num('ai-ocr-pages') };
     for(const [k,v] of Object.entries(whole)) if(v!==undefined&&(!Number.isFinite(v)||v<0||Math.floor(v)!==v)){ stDrawerRefuse(i18t('set_t_whole_number',{k})); return; }
     const cash={ dailySpendLimit:num('ai-daily-spend'), estimateConfirmAt:num('ai-estimate-confirm') };
     for(const [k,v] of Object.entries(cash)) if(v!==undefined&&(!Number.isFinite(v)||v<0)){ stDrawerRefuse(i18t('set_t_non_negative',{k})); return; }
