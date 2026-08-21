@@ -142,7 +142,10 @@ describe('F95 — every menu row has a symbol, and the symbols are solid dark gr
     const rows = menu.split('<button').slice(1);
     assert.ok(rows.length >= 6, 'the whole menu is being read');
     for (const r of rows){
-      const id = (r.match(/id="([^"]+)"/) || [, '(unnamed)'])[1];
+      /* `[null, '(unnamed)']` rather than `[, '(unnamed)']`: the hole in the
+         middle of an array literal is legal and meant here, but it is also
+         exactly what a stray comma looks like, so it is written out. */
+      const id = (r.match(/id="([^"]+)"/) || [null, '(unnamed)'])[1];
       assert.match(r.slice(0, r.indexOf('</button>')), /<svg/, `${id} has no symbol`);
     }
   });

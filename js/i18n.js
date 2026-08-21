@@ -6642,7 +6642,6 @@ const STRINGS = {
     fa_name_hint_other: 'Räknat från de {n} dokument som redan finns i familjen.',
     fa_end_q: 'Ändrar detta slutdatumet?',
     fa_end_hint: 'Om du sätter det blir det hela familjens gällande slutdatum när dokumentet har signerats — och påminnelsen om förnyelse flyttar med. Fram till dess visas det som ett förslag.',
-    fa_proposed_term: 'A draft document proposes a term to <b>{date}</b> ({id}). It does not move the live expiry or the renewal reminder until it is signed.',
     fa_proposed_term: 'Ett utkast föreslår en löptid till <b>{date}</b> ({id}). Det flyttar inte det gällande slutdatumet eller påminnelsen om förnyelse förrän det är signerat.',
     fa_end_hint_kept: 'Noteras endast på detta dokument. Ett dokument av den här sorten flyttar inte avtalets gällande slutdatum eller påminnelsen om förnyelse — skriv ett ändringsavtal, en ändring, ett tillägg eller en förnyelse för det.',
     fa_end_unchanged: 'Lämna tomt om löptiden är oförändrad',
