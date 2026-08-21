@@ -5565,9 +5565,37 @@ function wireNegotiationTab(c, opts = {}){
   byId('nego-drawer')?.addEventListener('click', () =>
     byId('nego-index')?.classList.toggle('open'));
 
+  /* ---- THE ROUND'S EXPORT, WHICH HAD NEVER EXPORTED ANYTHING ----
+     This called `exportContractPdf`, and nothing in the product defines that
+     name — it is defined nowhere, called here, and reached through a
+     `window.` guard, so the guard was simply always false and the else branch
+     was the only branch that had ever run. The button was honest about it
+     (ng_export_unavailable says so in words rather than doing nothing), which
+     is the only reason it never read as broken; it was still a button that had
+     never once produced a file. Found by the proofreader added 21 Aug 2026 —
+     the rlPaperFootHtml fault exactly, and the reason that check exists.
+
+     THE EXPORTER WAS THERE ALL ALONG: exportPDF (js/views/portal.js) is the
+     one this product uses everywhere else — the Document tab's PDF, the sealed
+     Record, the counterparty's own clean copy — and it already carries every
+     rule this seat needs. It renders the branding, the execution block and the
+     seal; it writes the audit line and persists; and it refuses to write
+     anything from a counterparty's seat (PORTAL_MODE), which matters because
+     this component mounts there too. So the fix is to call the exporter that
+     exists rather than to build a second one.
+
+     A CLEAN COPY, DELIBERATELY. The press is refused while anything is still
+     pending, so by the time it works every ask is settled and the agreed
+     wording is what belongs on the page; tracked changes have their own
+     export (exportWordTracked). This matches the word the counterparty's own
+     menu already uses for it: "PDF (clean copy)".
+
+     The guard stays, and is not furniture: a stage that mounts this component
+     without js/views/portal.js genuinely has no exporter, and saying so is
+     better than a dead press. */
   byId('nego-export')?.addEventListener('click', () => {
     if (negoProgress(c).pending){ if (window.toast) toast(i18t('ng_resolve_before_export'), 'err'); return; }
-    if (window.exportContractPdf) exportContractPdf(c);
+    if (typeof exportPDF === 'function') exportPDF(c);
     else if (window.toast) toast(i18t('ng_export_unavailable'), 'err');
   });
   /* The hand-off. It closes the round — making the agreed wording the baseline

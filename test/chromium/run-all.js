@@ -36,13 +36,15 @@ const DIR = __dirname;
  * An entry here is a promise that somebody looked, not a shrug. Anything not
  * listed is required to pass, so a new failure cannot hide among old ones. */
 /* MEASURED 21 Aug 2026, all 55 run for the first time: 47 green, 8 red. SIX OF
- * THE EIGHT ARE ONE STORY — a deliberate design change updated the jsdom tests
+ * THE EIGHT WERE ONE STORY — a deliberate design change updated the jsdom tests
  * and sailed straight past the browser file that measured the same thing,
  * because that browser file was not in anybody's routine. That is word for word
- * the fault the workflow's own header describes. They are listed rather than
- * quietly deleted so the debt is named and countable; each says what the test
- * still expects and what the product now does, which is most of the work of
- * re-pointing it. */
+ * the fault the workflow's own header describes.
+ *
+ * FIVE OF THEM HAVE SINCE BEEN RE-POINTED and are off this list: designstep,
+ * live-verify, phone-verify, standard-paper-verify and queue-overlay-verify. The
+ * three that remain each say what is left to do, because a listed exception has
+ * to keep earning its place or it becomes the furniture. */
 const KNOWN_RED = {
   'theme-tokens-verify.js':
     'scores 20/40 against a recorded colour snapshot that predates the current ' +
@@ -50,34 +52,17 @@ const KNOWN_RED = {
     'the 20 that pass are the ones that matter and they still pass.',
 
   /* --- stale after a deliberate change: the product moved, the file did not --- */
-  'standard-paper-verify.js':
-    'STALE. Presses the clause tool row (Direct Edit / Copilot pills on the ' +
-    'paper) retired 16 Aug 2026 by NO EDITS ON THE PAPER — "every clause ' +
-    'carries Direct Edit, 0 of 11". CLAUDE.md already records this file as not ' +
-    're-pointed. The way in is the green Edit pill and the clause panel.',
   'six-round-audit.js':
-    'STALE, same retirement: "[R1] the owner files a redline through Direct ' +
-    'Edit — no edit tool", then the driver falls over on the missing element. ' +
-    'Also named in CLAUDE.md as not re-pointed. Walk pill → ＋ instead.',
-  'live-verify.js':
-    'STALE. Looks for the author\'s reason on the change card; the reason moved ' +
-    'to the clause panel on 19 Aug 2026 (THE REASON HAS LEFT THE CARD FOR THE ' +
-    'PANEL) and whyBlock is a stub. f137 was re-pointed at the panel that day ' +
-    'and this file was not.',
-  'phone-verify.js':
-    'STALE. "tapping a sentence selects it and opens the three-item menu — no ' +
-    'menu". The paper\'s highlight menu was removed on 19 Aug 2026 at the ' +
-    'owner\'s request; selection still works, the menu deliberately does not.',
-  'designstep-verify.js':
-    'STALE. Expects the text-size stepper to have a rounded corner and reads ' +
-    'radius=0px — every corner in the product was squared on 20 Aug 2026 ' +
-    '(SQUARE CORNERS EVERYWHERE). The test is right that the stepper is there; ' +
-    'only its radius claim is out of date.',
-  'queue-overlay-verify.js':
-    '26/27. "120px of pointer buys about 120px of column — 788 → 882 (94px)". ' +
-    'SUSPECTED, not confirmed: the divider gained a third limit on 16 Aug 2026 ' +
-    '(RL_LEFT_MAX — the doc column stops where the sheet does), which would ' +
-    'clamp exactly this drag. Worth ten minutes before re-pointing it.',
+    'ROUNDS 1-6 NOW PASS; the ENDGAME does not. Re-pointed 21 Aug 2026: the ' +
+    'clause tool row it filed through (pill -> panel -> plus now), the ask tag ' +
+    'it read a refusal reason off, the #rl-threads column that no longer ' +
+    'renders at all, a reply composer addressed as "whichever is first" when ' +
+    'the panel now renders one per clause, the readiness notice that arrives ' +
+    'folded behind a bell, a panel left open over the next button, and the ' +
+    'missing nameASigner the 11 Aug signing rule requires. WHAT IS LEFT: the ' +
+    'endgame issues a NEGOTIATE link where it wants a signing one, so the ' +
+    'share dialog opened by the readiness hand-off needs the same treatment. ' +
+    'Naming a signer was necessary and not sufficient.',
   'control-row-folds-verify.js':
     '18/19. The toolbar fold ladder settles on "full" where the check wants the ' +
     'cheapest rung (whitespace only). NOT DIAGNOSED: it is a pixel-level ' +

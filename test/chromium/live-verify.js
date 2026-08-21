@@ -180,7 +180,11 @@ const READ = () => {
        width must hold still is the PANEL body the editor opens in, not the
        clause behind it. Same claim, its new home. */
     const pillPressed = await page.evaluate(() => {
-      const pill = document.querySelector('[data-rl-cp-open]');
+      /* .rl-cp-pill, not any [data-rl-cp-open]: the CARD's Open button was given
+         the same attribute on 16 Aug 2026, so a bare selector now matches the
+         column as well as the paper and "the last one" is a card rather than a
+         clause. The pill is the paper's own door and is what this walk means. */
+      const pill = document.querySelector('.rl-clause .rl-cp-pill');
       if (!pill) return false; pill.click();
       return !!document.querySelector('.rl-cp-src.is-on');
     });
@@ -290,47 +294,59 @@ const READ = () => {
     await page.waitForTimeout(900);
     const edited = await page.evaluate(() => [...document.querySelectorAll('[data-nego-card]')]
       .map(e => e.textContent).join(''));
-    check('reason: an edited clause carries its reason onto the card',
-      edited.includes('LIVE-REASON'), edited.includes('LIVE-REASON') ? '' : 'the card shows no reason');
-    check('reason: and the card names it', /Why they asked/i.test(edited));
+    /* WHERE THE REASON LIVES NOW. These checks read the CARD until 19 Aug 2026,
+       when the owner asked for the reason to come off it — a refused ask whose
+       whole reason was the word "No" was spending a line of a card that already
+       carries eight. whyBlock in redlineChangeCardsHtml is a stub and the fact
+       moved to the clause panel's row for that change, on the clause the reason
+       is about, one press of Open away.
 
-    /* ---- THE CARD ARRIVES TWO LINES TALL, WHATEVER WAS WRITTEN ----
-       Agreed, rendered in the mockup, and then not built in the product — the
-       card showed the whole paragraph. Asserted on the painted node: the
-       clamped block genuinely overflows its two lines, Show more is offered
-       because of that measurement, and pressing it unfolds. */
-    const clamp = await page.evaluate(async () => {
-      /* THE CARD HAS TO BE OPEN TO MEASURE ANYTHING ON IT. Cards arrive shut
-         now (10 Aug 2026) and a shut card's body is display:none, so
-         scrollHeight and clientHeight are both 0 — the clamp cannot overflow
-         and negoWireWhyClamp has nothing to measure. Opened first, the way a
-         reader reaches the reason at all.
+       THE CLAIM IS UNCHANGED AND IS WHAT MATTERED ALL ALONG: the words the
+       author typed have to REACH A READER, not merely be stored. That was the
+       original defect — a reason written to two renderers and not the third — so
+       the walk still goes all the way from the box to the pixels, it just ends
+       one press further on. The card is read too and must NOT carry it, so the
+       removal is pinned rather than assumed. */
+    check('reason: it is off the change card, where it was asked to be',
+      !edited.includes('LIVE-REASON'),
+      edited.includes('LIVE-REASON') ? 'the card is still printing the reason' : '');
 
-         AND THE CARD THAT CARRIES THE REASON, not the first card on the
-         column: they are not the same one, and opening the wrong card leaves
-         the measurement exactly where it started. */
-      const withReason = [...document.querySelectorAll('[data-nego-card]')]
-        .find(x => x.querySelector('.nego-why-clamp'));
-      if (!withReason) return null;
-      const id = withReason.getAttribute('data-nego-card');
-      const head = withReason.querySelector('.rl-card-head');
-      if (head){ head.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-        await new Promise(r => setTimeout(r, 500)); }
-      /* Re-queried: the press repaints the column. */
-      const card = document.querySelector(`[data-nego-card="${CSS.escape(id)}"]`);
-      const el = card && card.querySelector('.nego-why-clamp');
-      if (!el) return null;
-      const btn = card.querySelector('.nego-why-more');
-      const clamped = el.scrollHeight > el.clientHeight + 1;
-      let opened = null;
-      if (btn){ btn.click(); opened = el.scrollHeight <= el.clientHeight + 1; }
-      return { found: true, clamped, hasBtn: !!btn, opened };
-    });
-    check('reason: the card clamps a long reason to two lines',
-      !!clamp && clamp.clamped, clamp ? '' : 'no clamped block on the card');
-    check('reason: Show more is offered, and unfolds it',
-      !!clamp && clamp.hasBtn && clamp.opened === true,
-      clamp ? `btn:${clamp.hasBtn} opened:${clamp.opened}` : '');
+    /* AND WHERE IT WENT IS PINNED SOMEWHERE ELSE, said out loud rather than
+       left as a gap. The obvious next check — press Open, read the reason off
+       the clause panel — cannot be answered HERE, and the reason is this
+       file's own fixture rather than the product: it hand-builds its share
+       payload (see mk() above) with no `negotiation` block at all, so no
+       baselineBody travels. The counterparty's page therefore has no durable
+       clause ids to read and mints its own on every rebuild — measured, the
+       paper's ids differ between one repaint and the next — so a change filed
+       a second ago already names a clause that no longer exists, and the panel
+       has nothing to show for it. buildSharePayload does carry baselineBody;
+       this fixture simply never asked it to.
+
+       So the claim lives on a stage that can hold it: clause-door-verify files
+       a change through the panel's own editor with a reason and reads that
+       reason back off the painted panel. What is asserted here is the half
+       this page can honestly answer — the reason is off the card, and no card
+       clamps one, because none carries one. */
+
+    /* ---- THE TWO-LINE CLAMP MOVED WITH THE REASON ----
+       This measured a clamped block on the change card: it genuinely overflowed
+       its two lines, Show more appeared because of that measurement, and
+       pressing it unfolded. All true, and none of it on this screen any more —
+       the reason left the card on 19 Aug 2026 and the panel above deliberately
+       shows it WHOLE, which the check above now pins.
+
+       THE CLAMP ITSELF IS NOT RETIRED and this is not a claim being dropped: it
+       is still drawn by negoLiveCardsHtml, wired by negoWireWhyClamp, on the
+       CONTRACT TAB's cards and in the closed-round history — screens this file
+       does not render, because it drives the counterparty's share link. Its home
+       is that renderer's own harness, not this one. What is asserted here is the
+       half this page can actually answer: nothing on this seat clamps a reason
+       any more, because no card on this seat carries one. */
+    const strayClamp = await page.evaluate(() =>
+      document.querySelectorAll('[data-nego-card] .nego-why-clamp').length);
+    check('reason: no card on this seat clamps a reason, because none carries one',
+      strayClamp === 0, strayClamp ? `${strayClamp} clamped blocks still on cards` : '');
 
     /* No deletion checks: the Propose deletion buttons were removed on both
        seats (Young, 03 Aug 2026). What must now be true is the opposite — no
@@ -376,7 +392,11 @@ const READ = () => {
     const opened = await page.evaluate(() => {
       /* The pill and the ＋, since 16 Aug 2026 — the clause's own Direct Edit
          retired with the tool row on this seat too. */
-      const pill = document.querySelector('[data-rl-cp-open]');
+      /* .rl-cp-pill, not any [data-rl-cp-open]: the CARD's Open button was given
+         the same attribute on 16 Aug 2026, so a bare selector now matches the
+         column as well as the paper and "the last one" is a card rather than a
+         clause. The pill is the paper's own door and is what this walk means. */
+      const pill = document.querySelector('.rl-clause .rl-cp-pill');
       if (!pill) return false; pill.click();
       const plus = document.querySelector('.rl-cp-src.is-on [data-rl-cp-edit]');
       if (!plus) return false; plus.click();
@@ -410,7 +430,11 @@ const READ = () => {
 
     /* And the true no-op: open the OTHER clause, change nothing, file. */
     const noop = await page.evaluate(async () => {
-      const pills = [...document.querySelectorAll('[data-rl-cp-open]')];
+      /* .rl-cp-pill, not any [data-rl-cp-open]: the CARD's Open button was given
+         the same attribute on 16 Aug 2026, so a bare selector now matches the
+         column as well as the paper and "the last one" is a card rather than a
+         clause. The pill is the paper's own door and is what this walk means. */
+      const pills = [...document.querySelectorAll('.rl-clause .rl-cp-pill')];
       const pill = pills[pills.length - 1];
       if (!pill) return null; pill.click();
       await new Promise(r => setTimeout(r, 250));

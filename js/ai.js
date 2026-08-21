@@ -572,7 +572,12 @@ function aiSetStyle(v){
   ai.style = v==='legal' ? 'legal' : 'plain';
   try{ lsSet(AI_STYLE_KEY, ai.style); }catch(_){}
   renderAIStyleToggle();
-  if(typeof persistUi==='function') try{ persistUi(); }catch(_){}
+  /* A call to persistUi stood here, guarded on typeof. Nothing in this product
+     defines persistUi — the guard has always been false, so the call has never
+     once run — and it bought nothing even in principle: the line above already
+     writes this preference with lsSet. Removed rather than left as a guarded
+     call to a name that does not exist, which is how the next reader comes to
+     believe there is a second save to keep in step with. */
   /* The toggle is not only a preference for NEXT time: if an explanation is
      on screen, flipping it restates that explanation in the register just
      chosen — see aiRestyleLastAnswer. Nothing to restate, nothing happens. */

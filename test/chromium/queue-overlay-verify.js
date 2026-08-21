@@ -186,22 +186,54 @@ const BOX = `(sel => { const el = document.querySelector(sel); if (!el) return n
     check('the handle sits on the boundary between the two columns, not inside one',
       Math.abs(drag.gap) < 20, `handle at ${drag.rez}, contract ends at ${drag.docRight}`);
 
-    /* And a one-pixel drag moves it by about one pixel, which is the fault the
-       three-track maths produced. */
-    const moved = await page.evaluate(async () => {
+    /* And the handle keeps up with the pointer, which is the fault the
+       three-track maths produced: the divider fell hundreds of pixels behind
+       the cursor and the drag had a dead band.
+
+       RE-POINTED 21 Aug 2026. This dragged a flat 120px and wanted 120px of
+       column, and at this viewport that walks straight into the RIGHT column's
+       minimum — measured, the cards end at 296px, which is the floor doing
+       exactly its job. So the drag is now sized to the room that is actually
+       there, and the clamp is asserted separately rather than tripped over:
+       a limit that bites is a feature, and a check that cannot tell it from a
+       lagging handle is testing neither. */
+    const geom = await page.evaluate(() => ({
+      doc: Math.round(document.querySelector('#rl-doc').getBoundingClientRect().width),
+      cards: Math.round(document.querySelector('#rl-changes').getBoundingClientRect().width),
+    }));
+    /* Stay clear of the floor by a comfortable margin: whatever the minimum is,
+       a drag this size cannot reach it. */
+    const STEP = Math.max(30, Math.min(120, geom.cards - 300 - 30));
+    const moved = await page.evaluate(async step => {
       const rez = document.querySelector('#rl-resizer');
       const r = rez.getBoundingClientRect();
       const x0 = r.left + r.width / 2, y0 = r.top + 40;
       const before = document.querySelector('#rl-doc').getBoundingClientRect().width;
       rez.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: x0, clientY: y0 }));
-      window.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: x0 + 120, clientY: y0 }));
-      window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientX: x0 + 120, clientY: y0 }));
+      window.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: x0 + step, clientY: y0 }));
+      window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientX: x0 + step, clientY: y0 }));
       const after = document.querySelector('#rl-doc').getBoundingClientRect().width;
       return { before: Math.round(before), after: Math.round(after) };
+    }, STEP);
+    check(`and ${STEP}px of pointer buys about ${STEP}px of column`,
+      Math.abs((moved.after - moved.before) - STEP) < 25,
+      `${moved.before} → ${moved.after} (${moved.after - moved.before}px, wanted ${STEP})`);
+
+    /* AND THE FLOOR HOLDS. Shove the handle far past where the cards column can
+       go and it stops, rather than squeezing the change cards to a sliver — the
+       behaviour the two minimums exist for, and the reason the drag above had to
+       be sized rather than fixed. */
+    const shoved = await page.evaluate(async () => {
+      const rez = document.querySelector('#rl-resizer');
+      const r = rez.getBoundingClientRect();
+      const x0 = r.left + r.width / 2, y0 = r.top + 40;
+      rez.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: x0, clientY: y0 }));
+      window.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: x0 + 900, clientY: y0 }));
+      window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientX: x0 + 900, clientY: y0 }));
+      return Math.round(document.querySelector('#rl-changes').getBoundingClientRect().width);
     });
-    check('and 120px of pointer buys about 120px of column',
-      Math.abs((moved.after - moved.before) - 120) < 25,
-      `${moved.before} → ${moved.after} (${moved.after - moved.before}px)`);
+    check('and shoving it far past the limit stops at the floor, not at a sliver',
+      shoved >= 250, `cards held at ${shoved}px`);
 
     /* ---- 8. FOCUS MODE KEEPS THE RAIL (owner-asked, 12 Aug 2026) ----
        There was a rule hiding it there, from when it rode the window's edge and

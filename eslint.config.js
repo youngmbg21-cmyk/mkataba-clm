@@ -113,22 +113,24 @@ for (const n of topLevelNames(path.join(__dirname, 'js'))) APP_GLOBALS[n] = 'wri
  * shape of the rlPaperFootHtml fault this file was written for — the guard
  * makes the absence quiet, which is what let it live.
  *
- * They are listed here rather than silenced at the call site so that this file
- * is the one place the outstanding set can be read, and so a NEW undefined
- * name anywhere still fails the run. When one is implemented, delete its line;
- * when one is confirmed dead, delete the call instead.
+ * THREE CAME OFF ON 21 Aug 2026, the day after the list was written, which is
+ * the list working as intended:
+ *   exportContractPdf  the round's Export button, which had never once produced
+ *                      a file. exportPDF was there the whole time and is what
+ *                      every other export in the product calls; the handler now
+ *                      calls it. (Owner: keep the button and make it work.)
+ *   wordVersionList    the version number in a Word round-trip's audit line.
+ *                      listedVersions() is the real reading; the sentence had
+ *                      always printed v2 whatever the truth was.
+ *   persistUi          deleted rather than pointed anywhere: the line above it
+ *                      already saved the preference, so the call bought nothing
+ *                      even in principle.
  *
- *   exportContractPdf  js/views/negotiation.js — the round's Export button.
- *                      Honest about it: with the function absent the handler
- *                      says ng_export_unavailable, so the button refuses in
- *                      words rather than doing nothing. Still a button that
- *                      has never once exported anything.
- *   wordVersionList    js/versioning.js — the version number inside a Word
- *                      round-trip's audit line. The empty branch is the only
- *                      branch, so that line has always printed v2.
- *   persistUi          js/ai.js — a belt-and-braces save after the Copilot
- *                      style toggle. No impact: the line above it already
- *                      writes the preference with lsSet.
+ * They are listed here rather than silenced at the call site so that this file
+ * is the one place the outstanding set can be read, and so a NEW undefined name
+ * anywhere still fails the run. When one is implemented, delete its line; when
+ * one is confirmed dead, delete the call instead.
+ *
  *   closeSidePanel     test/chromium/playbook-opens-read-verify.js — the
  *                      harness tries to shut the side panel before reading Key
  *                      terms. The guard is false, so it never shuts: the check
@@ -137,8 +139,7 @@ for (const n of topLevelNames(path.join(__dirname, 'js'))) APP_GLOBALS[n] = 'wri
  *                      of `PORTAL_OPTS.contract || (window.portalContract && …)`.
  *                      The first half is what has always answered.
  */
-const KNOWN_ABSENT = ['exportContractPdf', 'wordVersionList', 'persistUi',
-  'closeSidePanel', 'portalContract'];
+const KNOWN_ABSENT = ['closeSidePanel', 'portalContract'];
 for (const n of KNOWN_ABSENT) APP_GLOBALS[n] = 'readonly';
 
 /* The browser's own furniture. Kept short and explicit rather than pulled from
