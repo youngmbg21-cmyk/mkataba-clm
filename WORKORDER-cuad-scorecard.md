@@ -2,9 +2,18 @@
 
 Stage 1 of five: **choose the contracts.** Written 21 Aug 2026.
 
-The other four stages — match the vocabulary, agree what counts as correct, build
-the run, decide the cadence — are NOT done and are not described here beyond what
-stage 1 constrains.
+> **WHERE THIS GOT TO, added 21 Aug 2026.** Stages 2, 3 and 4 are done — the
+> vocabulary map is `test/cuad/MAPPING.md`, what counts as correct is
+> `test/cuad/SCORING.md`, and the runner is `test/cuad/run.js`. **Stage 5, the
+> cadence, is not done.** This document is left as the stage-1 record it was,
+> corrected only where it says something that is no longer true; the results
+> and what they cost are in `test/cuad/FINDINGS.md`.
+>
+> **Ten contracts have been run, not fifty.** The other forty were deliberately
+> held back: the first run found that three AI features were reading only the
+> front of a long contract, so running the rest would have measured that
+> truncation rather than the AI. It is fixed (CLAUDE.md, "THE WHOLE CONTRACT IS
+> READ, AND A QUOTE IS ONE PASSAGE"); the re-run is the next step.
 
 ## What this is for
 
@@ -234,9 +243,29 @@ For *can HaTi find the governing law clause* that is fine — the skill transfer
 For anything specific to Kenya or Sweden it says nothing, and no score from this
 set may be quoted as if it did.
 
-**A score is not a guarantee.** It reports how HaTi did on 50 contracts of a
-particular kind. The sales line is "measured at N% against 510 professionally
-reviewed contracts", never "N% accurate".
+**A score is not a guarantee.** It reports how HaTi did on however many
+contracts were actually run, of one particular kind.
+
+**AND THE SALES LINE HERE WAS WRONG — CORRECTED 21 Aug 2026.** It read
+*"measured at N% against 510 professionally reviewed contracts"*, in the very
+sentence written to keep the claim honest, and one line below "50 contracts".
+510 is the size of the SET; it is not the number measured, and quoting it as
+one would overstate a ten-contract run fiftyfold. The runner printed the same
+error into its own output on the first live run and it was caught by a person
+reading the screen, not by any test — f226 now pins it three ways.
+
+The line is:
+
+> measured on N contracts drawn from CUAD, a set of 510 marked up by commercial
+> lawyers
+
+where N is the number actually run. Never *"N% accurate"*. Never cite 510 as
+the number measured. Credit CUAD (CC BY 4.0).
 
 **The first result may be unflattering.** A feature assumed solid may score badly.
 That is the reason to do it, and it should surprise nobody.
+
+*It was, and it did.* The obligations reader scored zero on all four categories
+— not because it reads badly, but because it was being shown two thirds of the
+contract and answering with silence. Three product defects came out of the
+first ten contracts, all three now fixed. `test/cuad/FINDINGS.md`.
