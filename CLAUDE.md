@@ -1037,6 +1037,18 @@ With the whole contract reaching it and 4,000 tokens of room, three contracts re
 - **AND `maxItems` IS ADVISORY, NOT A CAP** — the model returned 40, 40, 36 and 28 against a stated 20, exactly as it had returned 18 against 12. Nothing in this product may rely on it to bound a list; where a bound has to hold, bound it after the answer arrives.
 - Five causes, five runs, each found only after the last was fixed: truncated input → a cut-off answer read as an empty one → a prompt too narrow to ask the right question → the room that prompt then needed → and then the measurement itself was the thing that had to be understood (below).
 
+## A GUARD THAT IS ALWAYS FALSE (owner-reported 21 Aug 2026: "when I click export nothing happens")
+
+The button was innocent. **`exportWordTracked` is defined in js/views/contract.js and was never published to window**, and two other modules reach it through `window.exportWordTracked && …` — so both guards had always been false, the call had never once run, and a false guard is SILENCE rather than an error. The Word export was dead on the Negotiations page AND on the counterparty's own share page; it works in the contract room, where the call is direct and in-scope, which is why nobody had reported it before.
+
+- **THE FILES ARE ES MODULES.** index.html loads ONE `type="module"` entry and imports the rest, so each file has its own scope: a top-level `function foo` is NOT a global. The only way one module reaches another's function is the explicit `Object.assign(window, {…})` each ends with. **A name missing from that list is unreachable, and every caller guarded on `window.foo` silently takes its fallback.**
+- **THIS IS THE rlPaperFootHtml FAULT AND IT IS THIS CODEBASE'S MOST REPEATED DEFECT.** That builder went unexported for a year while a placeholder drew in its place on every screen. It has now happened at least six times: exportContractPdf (the round's Export button, which had never produced a file), wordVersionList, persistUi — all three fixed 21 Aug — and these three. The reason is structural rather than careless: nothing fails, nothing logs, and the fallback branch is usually plausible enough to look like the feature.
+- **THE PROOFREADER CANNOT SEE IT.** eslint.config.js sweeps for names defined NOWHERE — the right net for a typo, the wrong one for this, because these names are all defined and merely unreachable from where they are called. Its `topLevelNames` pools every file's top-level names into one list, which was true of classic scripts and is not true of modules.
+- **TWO MORE FELL OUT OF THE SAME SWEEP.** `rlActorHeld` is defined in negotiation.js and called BARE at six sites in that file; two sites guarded it on window, so **a narrowed reviewer was offered the Copilot band and the batch Send** — two controls whose only outcome for them is a refusal. Those two now call it bare like their neighbours: one name reached two ways in one file is how the next reader comes to believe there is a reason for the difference. And `regionCodeFor` (js/app.js, read by settings.js) meant **changing the market never moved the region with it**.
+- **f232 IS THE NET**: every `window.foo` READ in js/**.js must be a name some module PUBLISHES. It reads both publish shapes — an object literal, and a named constant (jurisdiction.js ends `Object.assign(window, JX_API)`; reading only the literal reports ~60 false alarms including every money formatter, which is how a sweep gets switched off). Its `DELIBERATE` list is EMPTY today and a name joins it only when the absence is the design — CLAUDE.md's own example is `state`, which core.js declares as a const and every module must therefore read BARE.
+
+Tests: f232 (5 — the sweep, the three names pinned by name, rlActorHeld asked bare, the sweep proved able to catch its own founding example, and both publish shapes read). Three of the five fail against the code an hour before.
+
 ## THE OBLIGATIONS READER IS INCONSISTENT, NOT BLIND (21 Aug 2026, the fifty-contract run)
 
 **The ten-contract run's length diagnosis does not survive fifty.** It showed a clean split — answering contracts 14k–26k characters, silent ones 22k–52k — and that was the basis of the prompt rewrite. On fifty: silent contracts average **36,518** characters against **37,813** for answering ones, medians 39,588 against 37,876, ranges overlapping almost entirely, and both sides carrying maintenance, distribution, outsourcing and transport agreements alike. **The split at n=10 was noise, exactly as the noise band predicts.** The fix built on it still worked (0 obligations → 843, every one quoted) — for reasons that were not the reason given, and saying so is the point.
@@ -1128,17 +1140,23 @@ The Portfolio Health Report is DETERMINISTIC — the AI never writes a word. ope
 
 The Copilot brief travels in TWO parts: ctx.guideRules (the rulebook) and ctx.guideLive (the snapshot); buildCopilotSystem (server/server.js) stacks two system blocks, cache_control on the first. Failure bubbles carry err:true and are EXCLUDED from aiChatMessages (a stored error poisons later turns). f151 is the drift test: snapshot, health report and recipes must agree with arithmetic over state.contracts — a new figure in the prompt wants a row there.
 
-## A NOTE ON theme-tokens-verify
+## A NOTE ON theme-tokens-verify — RESOLVED 21 Aug 2026, KEPT AS THE LESSON
 
-It scores 20/40 and has done since well before this run — the recorded
-`theme-tokens-baseline.json` is a snapshot of every colour on twenty screens
-and this branch's design work has moved a great many of them. Checked by
-running the same file at the commit immediately before the 13 Aug 2026 batch:
-same 20/40, same screens. The twenty PASSING checks are the ones that matter
-and they still pass — switching to Navy repaints every screen, and no green
-survives the switch. Re-record the baseline (`--save`) when somebody is ready
-to own the current palette; until then it is a stale snapshot, not a
-regression, and it should not be read as one.
+This section stood for over a week saying the file "scores 20/40 and has done
+since well before this run", that the baseline was a stale snapshot rather
+than a regression, and that somebody should re-record it "when they are ready
+to own the current palette". **Somebody did.** It is 40/40, it is off the
+known-red list, and the standing rule is at THE NET above: re-record only when
+deliberately owning a palette change, never to make a red run go away.
+
+**The lesson is worth more than the note was.** A half-red file with a written
+excuse beside it is the most comfortable kind of debt in a codebase — the
+excuse was true, the reasoning was sound, and it still meant the one net built
+to catch a colour regression caught nothing for a week. `run-all.js` states
+the same rule in its own words now: an entry on KNOWN_RED is a promise that
+somebody looked, printed on every run so it stays something you have to keep
+reading rather than becoming the furniture. **Take a file off the list the day
+it goes green.**
 
 ## Line numbers drift
 

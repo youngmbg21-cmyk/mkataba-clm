@@ -5096,7 +5096,10 @@ function rlPlanBandHtml(c, opts = {}){
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   if (side === 'counterparty' || (typeof PORTAL_MODE !== 'undefined' && PORTAL_MODE)) return '';
   if (opts.readonly || (typeof redlinePlan !== 'function')) return '';
-  if (window.rlActorHeld && rlActorHeld(c, opts)) return '';
+  /* BARE, like the six other calls to this in this file. It was guarded on
+     window.rlActorHeld, which nothing publishes — so the guard was always
+     false and a narrowed reviewer was offered the band anyway. */
+  if (rlActorHeld(c, opts)) return '';
   const plan = redlinePlan(c);
   if (!plan.length) return '';
   const n = rlpCounts(plan);
@@ -5143,7 +5146,7 @@ function rlUnsentBandHtml(c, opts = {}){
   if (!n) return '';
   /* A reviewer holding somebody's clause cannot publish a round, so offering
      them the batch send would be a control whose one outcome is a refusal. */
-  if (window.rlActorHeld && rlActorHeld(c, opts)) return '';
+  if (rlActorHeld(c, opts)) return '';
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   const who = side === 'counterparty'
     ? (opts.org || (window.FIRST_PARTY) || i18t('ng_the_counterparty'))
