@@ -3,7 +3,9 @@
 **Goal:** a table of numbers showing how accurately HaTi's Copilot reads a
 contract, measured against 50 real contracts marked up by lawyers.
 
-**Cost:** about US$0.60 for the first run, about US$2.40 for all 50.
+**Cost:** about US$0.60 for ten contracts, about **US$6–7** for all fifty
+(the fifty figure was US$2.40 until 21 Aug 2026 — see step 7 for why it moved
+and how it is worked out).
 **Time:** ten minutes, most of it waiting.
 **Where:** a laptop or desktop. **Not Render** — see the last section for why.
 
@@ -137,13 +139,49 @@ nothing confidential.
 
 ---
 
-## Step 7: the remaining forty — only if step 5 looked sensible
+## Step 7: all fifty — only if step 5 looked sensible
 
 ```
-ANTHROPIC_API_KEY="paste-your-key-here" node test/cuad/run.js --live
+node test/cuad/run.js --live --dump --resume
 ```
 
-About ten minutes and roughly US$1.80 more.
+It asks for the key, the same way step 5 does. **This command carried the
+bash line above until 21 Aug 2026** — the one that leaked a key in a
+screenshot and does not run on Windows at all. Step 5 was fixed that morning
+and this was missed; both are the same command now.
+
+### What it costs, honestly
+
+**About US$6–7, and 25–40 minutes.** That is well above the US$1.80 this
+document used to claim, and the old figure was not wrong when it was written —
+it dates from before HaTi read whole contracts and before the obligations
+reader returned forty items apiece. Both changes are improvements and both
+cost tokens.
+
+The arithmetic, so it can be checked rather than trusted: 1.86M characters of
+contract is roughly 466k tokens, read **twice** (once to extract fields, once
+to read obligations) at $3 per million in; plus up to 8,000 output tokens per
+obligations answer at $15 per million.
+
+### Why all fifty and not just the forty
+
+One run over the whole set is a single consistent sample. Scoring forty now
+and bolting them onto ten measured a week ago mixes two samples, and the
+second thing this project learned is that the same code answers slightly
+differently each time (see the noise band in SCORING.md).
+
+### It survives a failure now
+
+A hundred large calls in half an hour is exactly the shape of run a provider
+rate-limits partway through. Three protections, added 21 Aug 2026:
+
+- **Retries** on a rate limit or an overloaded provider, backing off 2s, 6s,
+  18s, 45s. It does **not** retry "Copilot ran out of room" — that is an
+  answer, and retrying it four times would pay four times to be told the same.
+- **The dump is written after every contract**, so a run that dies at
+  contract 49 keeps 48 answers instead of nothing.
+- **`--resume`** reads those answers back and asks only for what is left. Run
+  the identical command again after any failure.
 
 ---
 

@@ -51,6 +51,12 @@ const LIMIT = Number(val('--n', 0)) || 0;
 const DUMP = has('--dump') ? (val('--dump', '') && !val('--dump', '').startsWith('--')
   ? val('--dump', '') : 'test/cuad/last-run.json') : '';
 
+/* --resume: pick up a run that died, reading answers already in the dump
+   rather than paying for them twice. Fifty contracts is a hundred large
+   calls and about half an hour; losing it at contract forty to a rate limit
+   and starting again is the expensive failure this exists to prevent. */
+const RESUME = has('--resume');
+
 /* THE 50 ARE COMMITTED; THE OTHER 460 ARE NOT.
 
    contracts.json holds only the selected 50, and only the 14 categories the
@@ -180,6 +186,49 @@ function askHidden(promptText) {
 }
 
 /* ---------- the run ---------- */
+/* ---- A FIFTY-CONTRACT RUN IS WORTH PROTECTING ----
+
+   Ten contracts is two minutes and pennies, so a failure halfway through
+   costs nothing but a re-run. Fifty is a hundred large calls, about half an
+   hour and real money — and the likeliest way to lose it is a provider rate
+   limit at contract thirty-five, which throws away everything before it.
+
+   Three cheap protections, in the order they matter:
+
+   1. RETRY WHAT IS WORTH RETRYING, AND NOTHING ELSE. A 429 or an overloaded
+      provider is a wait; "Copilot ran out of room" is an ANSWER (it is this
+      project's own refusal, added the day the obligations reader was fixed)
+      and retrying it four times would spend four times the money to be told
+      the same thing. The test is what the message SAYS, not the status.
+
+   2. THE DUMP IS WRITTEN AS IT GOES. It used to be written once at the end,
+      so a run that died at contract 49 kept nothing at all.
+
+   3. --resume PICKS UP WHERE IT STOPPED, reading the dump for titles already
+      answered. It re-scores those from the dump rather than re-asking, so a
+      resumed run costs only what is left. */
+const RETRY_WAIT_MS = [2000, 6000, 18000, 45000];
+const retryable = (e) => {
+  const st = e && e.status || 0;
+  const msg = String((e && e.message) || '');
+  if (/ran out of room/i.test(msg)) return false;      // our own refusal, not a wait
+  if (st === 429 || st === 529 || st === 503) return true;
+  // HaTi wraps a provider refusal in a 502; only the provider's own
+  // rate-limit and overload wording is worth waiting on.
+  return st === 502 && /rate.?limit|overloaded|too many requests|\b429\b|\b529\b/i.test(msg);
+};
+async function withRetry(label, fn) {
+  for (let i = 0; ; i++) {
+    try { return await fn(); }
+    catch (e) {
+      if (!retryable(e) || i >= RETRY_WAIT_MS.length) throw e;
+      const wait = RETRY_WAIT_MS[i];
+      process.stdout.write(`\n  ${label}: ${e.status || '?'} — waiting ${wait / 1000}s, then retry ${i + 1} of ${RETRY_WAIT_MS.length}\n`);
+      await new Promise(r => setTimeout(r, wait));
+    }
+  }
+}
+
 async function main() {
   const corpus = loadCorpus();
   const sel = JSON.parse(fs.readFileSync(path.join(HERE, 'selection.json'), 'utf8'));
@@ -220,7 +269,20 @@ async function main() {
     return Object.entries(c).map(([g, k]) => `${k} ${g.toLowerCase()}`).join(' · ');
   })();
   console.log(`${chosen.length} contracts` + (missing ? `  (${missing} in the manifest were not found in the corpus)` : ''));
-  console.log(`  ${spreadNote}\n`);
+  console.log(`  ${spreadNote}`);
+  /* WHAT IT WILL COST, BEFORE IT SPENDS IT. Ten contracts is pennies and
+     fifty is several dollars, and the difference is not obvious from the
+     command. Read off the real text being sent, at the deep tier's published
+     rates ($3/M in, $15/M out), and deliberately rounded UP — a run that
+     costs less than its estimate is a good surprise. */
+  if (LIVE) {
+    const chars = chosen.reduce((t, c) => t + c.paragraphs[0].context.length, 0);
+    const inTok = chars / 4;                       // ~4 characters a token
+    const est = (inTok * 2 * 3 + chosen.length * 5000 * 15) / 1e6;   // read twice, then written
+    console.log(`  about US$${est.toFixed(2)} and ${Math.max(1, Math.round(chosen.length * 0.6))}-${Math.round(chosen.length * 0.9)} minutes` +
+      (RESUME && DUMP ? ' (less whatever --resume already holds)' : ''));
+  }
+  console.log('');
 
   /* Settings raised for the TEST SERVER ONLY. The live workspace is untouched. */
   const env = { AI_MAX_CHARS: '200000', AI_RATE_DEEP: '100000', AI_RATE_LIGHT: '100000' };
@@ -228,6 +290,15 @@ async function main() {
   const h = await startHati(LIVE ? { ...env, ANTHROPIC_BASE_URL: 'https://api.anthropic.com' } : env);
 
   const dump = [];
+  /* Answers already held, keyed by title. A resumed run re-SCORES these from
+     the dump — never re-asks — so it costs only what is left. */
+  const held = new Map();
+  if (RESUME && DUMP && fs.existsSync(DUMP)) {
+    try {
+      for (const row of JSON.parse(fs.readFileSync(DUMP, 'utf8'))) held.set(row.title, row);
+      console.log(`Resuming: ${held.size} contract(s) already answered in ${DUMP}.`);
+    } catch (e) { console.log(`Could not read ${DUMP} to resume (${e.message}) — starting fresh.`); }
+  }
   const tallies = {}; for (const f of Object.keys(CAT)) tallies[f] = S.newTally();
   const oblig = {}; for (const c of OBLIGATION_CATS) oblig[c] = S.newTally();
   const obWhy = {};
@@ -249,14 +320,20 @@ async function main() {
       /* RULE 1: the exact text CUAD annotated. Never a PDF, never a
          re-extraction — CUAD's offsets index this string. */
       let ex = null, ob = null, obErr = null;
-      try { ex = await admin.json('/api/ai/extract', { method: 'POST', body: { text: doc } }); }
+      const prev = held.get(c.title);
+      if (prev) {
+        ex = { metadata: prev.metadata, sourceSpans: prev.sourceSpans };
+        ob = prev.obligations ? { obligations: prev.obligations, notice: prev.obligationsNotice } : null;
+        obErr = prev.obligationsError || null;
+      }
+      if (!prev) try { ex = await withRetry('extract', () => admin.json('/api/ai/extract', { method: 'POST', body: { text: doc } })); }
       catch (e) { errors.push(`extract ${c.title.slice(0, 40)}: ${e.message.slice(0, 90)}`); }
       /* THE REASON TRAVELS WITH THE RESULT. The first two runs could not tell
          "the reader found nothing" from "the reader was cut off before it
          could answer" — the route reported both as an empty list. It reports
          the second as a refusal now, so a caught error here IS that answer
          and must be kept rather than merely counted. */
-      try { ob = await admin.json('/api/ai/obligations', { method: 'POST', body: { text: doc } }); }
+      if (!prev) try { ob = await withRetry('obligations', () => admin.json('/api/ai/obligations', { method: 'POST', body: { text: doc } })); }
       catch (e) {
         obErr = e.message.slice(0, 120);
         errors.push(`obligations ${c.title.slice(0, 40)}: ${obErr.slice(0, 90)}`);
@@ -264,9 +341,12 @@ async function main() {
 
       const md = (ex && ex.metadata) || {};
       const spans = (ex && ex.sourceSpans) || {};
-      if (DUMP) dump.push({ title: c.title, metadata: md, sourceSpans: spans,
-                            obligations: (ob && ob.obligations) || null,
-                            obligationsNotice: (ob && ob.notice) || null, obligationsError: obErr || null });
+      dump.push({ title: c.title, metadata: md, sourceSpans: spans,
+                  obligations: (ob && ob.obligations) || null,
+                  obligationsNotice: (ob && ob.notice) || null, obligationsError: obErr || null });
+      /* Written after EVERY contract, not once at the end: a run that dies at
+         contract 49 used to keep nothing at all. */
+      if (DUMP) { try { fs.writeFileSync(DUMP, JSON.stringify(dump, null, 1)); } catch (_) {} }
 
       for (const field of Object.keys(CAT)) {
         const key = spansOf(c, CAT[field]);
