@@ -553,7 +553,22 @@ describe('f210 (10) — the twin renderer carried the MK-311 fault and now does 
        contract said. */
     assert.doesNotMatch(SRC, /const ch = Array\.isArray\(chs\) \? \(chs\.length \? chs\[chs\.length - 1\] : null\)/,
       'the old newest-wins line is gone from negoDocHtml');
-    assert.match(SRC, /for \(let i = _list\.length - 1; i >= 0 && !ch; i--\) if \(onStanding\(_list\[i\]\)\) ch = _list\[i\];/);
+    /* STRONGER SINCE 21 Aug 2026, and this is the point of that day's merge:
+       the rule is no longer WRITTEN TWICE and asserted to match in two places.
+       Both renderers ask negoLeadChange, which is the one reading, so they
+       cannot drift again — which is what they did for a day and what made the
+       contract on screen untrue. The renderers themselves stay separate on
+       purpose: they draw different surfaces. It is the READING that may never
+       be duplicated. */
+    assert.match(SRC, /function negoLeadChange\(c, cl, chs\)\{/,
+      'the one reading exists');
+    const asks = (SRC.match(/=\s*negoLeadChange\(c, cl, /g) || []).length;
+    assert.equal(asks, 2, 'and BOTH document renderers ask it — no more, no fewer');
+    /* Neither may keep a copy: the loops that used to sit inline are gone. */
+    assert.doesNotMatch(SRC, /measuredOnStanding/,
+      'redlineDocHtml keeps no private copy of the rule');
+    assert.doesNotMatch(SRC, /if \(_list\.length === 1\) ch = _list\[0\];/,
+      'and negoDocHtml keeps none either');
   });
 
   test('both renderers draw the adopted wording on a clause carrying a rival', async () => {

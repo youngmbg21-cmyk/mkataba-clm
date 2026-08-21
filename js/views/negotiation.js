@@ -672,6 +672,48 @@ function negoRenumberOpen(cId){
   });
 }
 
+/* ---------- WHICH CHANGE THE PAPER DRAWS, ONCE ----------
+   THE ONE READING BOTH DOCUMENT RENDERERS ASK, and it is one because the two
+   copies of it had already drifted apart and made the contract on screen untrue.
+   redlineDocHtml was corrected for MK-311 on 15 Aug 2026 — a sentence struck by
+   their ask, adopted by us, and still printed in full — and negoDocHtml, which
+   is what the contract tab and the room draw, went on making exactly the same
+   mistake for a day. Two renderers disagreeing about what the agreement SAYS is
+   the worst thing this product can do, and it is the duplication warning at the
+   top of the rulebook in its least obvious direction: the drawing differs
+   between those two surfaces on purpose, the READING never may.
+
+   THE RULE IS ABOUT MEASUREMENT, NOT AGE:
+     · Prefer the newest change measured against what NOW STANDS. A change
+       written on top of an adoption already contains it, so drawing that one
+       shows the adopted wording in its own un-struck text. That is every
+       ordinary sequential edit.
+     · Where nothing was measured against what stands — the rivals case, which
+       is the reported one — draw the LAST ADOPTED change instead. Its marks ARE
+       the standing wording, and the rival keeps its tag, which opens its own
+       wording where the detail belongs.
+     · With nothing adopted, "what stands" IS the baseline, so every change
+       qualifies and the newest is drawn: first rounds and legacy two-rival
+       clauses are untouched, byte for byte.
+
+   NO RE-DIFFING, deliberately: the stored ops are inside the fingerprint, and a
+   mark drawn from a fresh diff would not be the mark the other side verified.
+   This picks between changes already on the record; it never rewrites one. */
+function negoLeadChange(c, cl, chs){
+  const list = Array.isArray(chs) ? chs : (chs ? [chs] : []);
+  if (!list.length) return null;
+  const standing = (typeof negoClauseNowById === 'function')
+    ? (negoClauseNowById(c, cl.clauseId) || cl) : cl;
+  const stands = String(standing.text == null ? '' : standing.text);
+  const onStanding = x => (typeof negoMeasuredFrom === 'function')
+    ? negoMeasuredFrom(x) === stands
+    : String((x && x.oldText) == null ? '' : x.oldText) === stands;
+  for (let i = list.length - 1; i >= 0; i--) if (onStanding(list[i])) return list[i];
+  for (let i = list.length - 1; i >= 0; i--)
+    if (list[i] && list[i].status === 'accepted' && list[i].changeType !== 'insertClause') return list[i];
+  return list[list.length - 1];
+}
+
 function negoDocHtml(c, opts){
   const baseline = !!opts.baseline;
   const clauses = negoClauseList(c);
@@ -846,21 +888,7 @@ function negoDocHtml(c, opts){
        adopted, "what stands" is the baseline and every change qualifies — so
        first rounds and legacy two-rival clauses are untouched, byte for byte. */
     const _list = Array.isArray(chs) ? chs : (chs ? [chs] : []);
-    let ch = null;
-    if (_list.length === 1) ch = _list[0];
-    else if (_list.length){
-      const standing = (typeof negoClauseNowById === 'function')
-        ? (negoClauseNowById(c, cl.clauseId) || cl) : cl;
-      const stands = String(standing.text == null ? '' : standing.text);
-      const onStanding = x => (typeof negoMeasuredFrom === 'function')
-        ? negoMeasuredFrom(x) === stands
-        : String((x && x.oldText) == null ? '' : x.oldText) === stands;
-      for (let i = _list.length - 1; i >= 0 && !ch; i--) if (onStanding(_list[i])) ch = _list[i];
-      for (let i = _list.length - 1; i >= 0 && !ch; i--){
-        if (_list[i] && _list[i].status === 'accepted' && _list[i].changeType !== 'insertClause') ch = _list[i];
-      }
-      if (!ch) ch = _list[_list.length - 1];
-    }
+    const ch = negoLeadChange(c, cl, _list);
     const rest = _list.filter(x => x !== ch);
     if (baseline || !ch)
       return `<div class="nego-clause" id="${domPrefix}-${negoDomId(cl.clauseId)}" data-clause="${_ne(cl.clauseId)}">
@@ -8914,27 +8942,7 @@ function redlineDocHtml(c, opts = {}){
        inside the fingerprint and a mark drawn from a fresh diff would not be
        the mark the other side verified. This picks between changes already on
        the record; it never rewrites one. */
-    const standingNow = (typeof negoClauseNowById === 'function')
-      ? (negoClauseNowById(c, cl.clauseId) || cl) : cl;
-    const standsText = String(standingNow.text == null ? '' : standingNow.text);
-    const measuredOnStanding = x => (typeof negoMeasuredFrom === 'function')
-      ? negoMeasuredFrom(x) === standsText
-      : String((x && x.oldText) == null ? '' : x.oldText) === standsText;
-    let ch = null;
-    for (let i = chs.length - 1; i >= 0; i--){
-      if (measuredOnStanding(chs[i])){ ch = chs[i]; break; }
-    }
-    if (!ch){
-      /* Nothing composes with the standing text. The wording that STANDS is
-         what the last adoption made it, so that is the change whose marks the
-         paper carries. */
-      for (let i = chs.length - 1; i >= 0; i--){
-        if (chs[i] && chs[i].status === 'accepted' && chs[i].changeType !== 'insertClause'){
-          ch = chs[i]; break;
-        }
-      }
-    }
-    if (!ch) ch = chs.length ? chs[chs.length - 1] : null;
+    const ch = negoLeadChange(c, cl, chs);
     const rest = chs.filter(x => x !== ch);
     /* Lead first: three selection helpers read this attribute expecting one id
        and take the first token, and the first token must stay the change whose
@@ -11685,7 +11693,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
      builder was for. */
   rlPaperFootHtml,
   redlinePanesHtml, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, rlCardNotesHtml, negoWhen,
-  negoEnsureStyle, negoDocHtml, negoCardsHtml, negoStatusHtml, negoHeadHtml, negoReadyHtml,
+  negoEnsureStyle, negoDocHtml, negoLeadChange, negoCardsHtml, negoStatusHtml, negoHeadHtml, negoReadyHtml,
   negoTabHtml, renderNegotiationTab, wireNegotiationTab, negoFocus, negoResetView, negoDomId,
   negoPanesHtml, negoRoomHtml, negoRoomActionsHtml, negoLayout, negoSetLayout, wireNegoLayout,
   negoHistoryHtml, negoHistoryCardHtml, negoConfirmCloseRound, negoWhoseHtml,
