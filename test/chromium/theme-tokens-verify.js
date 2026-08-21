@@ -36,7 +36,13 @@ const { chromium } = require('playwright-core');
 const { startHati } = require('../helpers');
 
 const BASELINE = path.join(__dirname, 'theme-tokens-baseline.json');
-const EXEC = '/opt/pw-browsers/chromium';
+/* THE SAME LADDER EVERY OTHER HARNESS USES: an override, then the dev sandbox's
+   own copy IF IT EXISTS, then whatever playwright installed. The bare path was
+   true in exactly one place — on a CI runner playwright installs its own build
+   and /opt/pw-browsers does not exist, so the launch threw before a single
+   check ran. */
+const EXEC = process.env.CHROMIUM_BIN
+  || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
 const SAVE = process.argv.includes('--save');
 const pause = ms => new Promise(r => setTimeout(r, ms));
 
