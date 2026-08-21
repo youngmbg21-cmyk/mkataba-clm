@@ -114,6 +114,60 @@ Chrome and takes 2–5.
 
 ---
 
+## HELPERS — WHAT MAY BE SHARED OUT, AND WHAT MAY NOT
+
+You may hand some of this work to subagents running in parallel. Doing so is
+optional; doing it wrongly is worse than not doing it at all, because the
+faults that matter most in this product are **two screens disagreeing with each
+other**, and a helper only ever sees its own half.
+
+**May be delegated, up to four at a time:**
+- The five scripted audit simulations in `test/audit/` (J13's scripted half).
+- J12 — languages, markets, screen widths, the phone, dark theme.
+- J11 — insights, reports, charts, the weekly review, the health report.
+- J10 — intake requests, the archive shelf, webhooks, Copilot spend.
+- J1's role-and-permission attacks at the API.
+- J2's walk of the twelve built-in templates.
+- J9's date arithmetic — obligations, reminders, briefs.
+
+**You walk these yourself, sequentially, holding the whole picture:**
+- J5, the negotiation from both seats.
+- J8, the family — a signed amendment has to move the same date on the family
+  card, Key terms, the register, the calendar, the dashboard, the reminder
+  email and the daily brief. Split that across helpers and each reports a pass
+  on its own half while the product as a whole is wrong.
+- J7, approvals, signing and the execution lock.
+- J6, the internal review wall.
+- J3, imported paper.
+- J14, the record and the seal.
+- **Every cross-journey check** — anything of the form "this must say the same
+  thing on that screen and in that email".
+
+**Evidence, or it did not happen.** Each helper writes into
+`test/e2e-evidence/<journey>/`: screenshots, a log of what it actually pressed,
+the raw output of anything it ran, and a runnable reproduction for every
+finding it claims. You read the evidence rather than the helper's summary. **A
+"pass" with nothing behind it is recorded as NOT TESTED, not as a pass** — a
+helper that skimmed and a helper that verified read identically otherwise, and
+this is the whole reason the rule exists.
+
+**A helper never changes product code.** It reports; you fix. One hand has to
+own "fix it everywhere it appears", or a fix lands on one of the three screens
+that draw the thing.
+
+**Four browser journeys at once is the ceiling.** Each one starts a real Chrome;
+past four they compete for the machine and everything gets slower, not faster.
+The scripted audit simulations are cheap and can run alongside.
+
+**The speed is not the point.** Parallelism here is worth having because the
+mechanical sweeps — widths, languages, the audit scripts — are the ones that
+get done last and quickly when they sit at the bottom of a long queue. If the
+choice is between running them properly with helpers and running them badly
+alone, use helpers. If it is between helpers and doing the interlinked
+journeys properly yourself, do those yourself.
+
+---
+
 ## THE JOURNEYS
 
 Walk each one as a person, not as a test runner. For each, the question is
@@ -375,7 +429,8 @@ Write `E2E-VERIFICATION-REPORT.md` in the repository root, in this order:
    and specific; an untested area silently omitted is the one thing that
    destroys the value of this whole exercise.
 6. **The coverage table** — every journey J1–J14, what you actually walked,
-   and the result.
+   the result, and **who walked it**: you, or a named helper. A journey walked
+   by a helper whose evidence you could not check is listed as NOT TESTED.
 7. **Technical appendix** — reproductions, commands, and test output. Paths and
    line numbers belong here and nowhere else.
 
