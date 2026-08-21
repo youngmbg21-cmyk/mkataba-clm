@@ -41,13 +41,14 @@ const DIR = __dirname;
  * because that browser file was not in anybody's routine. That is word for word
  * the fault the workflow's own header describes.
  *
- * SIX OF THE EIGHT ARE NOW OFF THIS LIST: designstep, live-verify, phone-verify,
- * standard-paper-verify and queue-overlay-verify were re-pointed, and
- * theme-tokens-verify's baseline was re-recorded on 21 Aug 2026 when somebody
- * finally owned the palette — it is 40/40 and is the net the colour work is
- * measured against, so it had to stop being an exception. The two that remain
- * each say what is left to do, because a listed exception has to keep earning
- * its place or it becomes the furniture. */
+ * SEVEN OF THE EIGHT ARE NOW OFF THIS LIST. Re-pointed: designstep,
+ * live-verify, phone-verify, standard-paper-verify, queue-overlay-verify and
+ * control-row-folds-verify. Re-recorded: theme-tokens-verify, whose baseline had
+ * predated the current design — it is 40/40 and is the net the colour work is
+ * measured against, so it had to stop being an exception.
+ *
+ * ONE REMAINS, and it says what is left to do, because a listed exception has to
+ * keep earning its place or it becomes the furniture. */
 const KNOWN_RED = {
   /* --- stale after a deliberate change: the product moved, the file did not --- */
   'six-round-audit.js':
@@ -61,12 +62,6 @@ const KNOWN_RED = {
     'endgame issues a NEGOTIATE link where it wants a signing one, so the ' +
     'share dialog opened by the readiness hand-off needs the same treatment. ' +
     'Naming a signer was necessary and not sufficient.',
-  'control-row-folds-verify.js':
-    '18/19. The toolbar fold ladder settles on "full" where the check wants the ' +
-    'cheapest rung (whitespace only). NOT DIAGNOSED: it is a pixel-level ' +
-    'measurement of text width, so a headless font metric is as likely a cause ' +
-    'as a real regression. Needs a look on a real screen.',
-
   /* NOT LISTED, deliberately: analytics-verify.js, and the reasoning is worth
      keeping because it is two faults wearing one symptom.
      Its check is `canvases > 0 || bars > 0`. BOTH halves fail in a sandboxed
