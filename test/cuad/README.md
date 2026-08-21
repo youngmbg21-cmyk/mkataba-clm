@@ -38,3 +38,25 @@ this folder.
 These are public U.S. SEC filings, so nothing here is confidential. They are
 also American — Delaware and New York law, dollars, US drafting — so no score
 from this set describes how HaTi reads Kenyan or Swedish paper.
+
+## Running it
+
+    # dry run — proves the plumbing, spends nothing, every score is zero
+    node test/cuad/run.js --corpus /path/to/CUADv1.json
+
+    # the ten-contract calibration pass SCORING.md asks for first
+    ANTHROPIC_API_KEY=sk-... node test/cuad/run.js --live --n 10 --corpus ...
+
+    # the real thing
+    ANTHROPIC_API_KEY=sk-... node test/cuad/run.js --live --corpus ...
+
+`score.js` holds the rules and is PURE — no network, no server, no AI — which
+is what lets `test/f226-cuad-scoring.test.js` prove all 45 of them in
+milliseconds, for nothing, in the ordinary suite. It is deliberately not
+wired into `npm test` as a live run: a scorecard that spends money on every
+save is one somebody will switch off.
+
+**The product is not modified by any of this.** The three limits the run needs
+(`AI_MAX_CHARS`, `AI_RATE_DEEP`, `AI_RATE_LIGHT`) are handed to a throwaway
+test server as environment settings, on a temporary database, and the live
+workspace never sees them.

@@ -89,17 +89,44 @@ different fix.
 CUAD stores no normalised answers, so truth is derived by reading CUAD's own
 span. Measured on the 50, that works this often:
 
+**Re-measured at stage 4 with the scorer itself, not with a sketch of it.**
+The `expiryDate` row below first read 42 of 49 and that was wrong — see the
+correction under it.
+
 | Field | Derivable | Of marked | How |
 |---|---|---|---|
-| `governingLaw` | 48 | 48 | jurisdiction named in the span |
-| `noticePeriodDays` | 34 | 36 | duration parsed from the span |
-| `renewalType` | 36 | 39 | duration parsed from the span |
-| `expiryDate` | 42 | 49 | a date, or a duration from the start |
-| `warrantyMonths` | 15 | 20 | duration parsed from the span |
-| `effectiveDate` | 33 | 47 | a date in the span |
-| `liabilityCapped` | 42 | 42 | presence of the two categories |
 | `counterparty` | 50 | 50 | party names in the spans |
-| `contractType` | 50 | 50 | the document's own name |
+| `governingLaw` | 48 | 48 | jurisdiction named in the span |
+| `liabilityCapped` | 42 | 42 | presence of the two categories |
+| `noticePeriodDays` | 34 | 36 | duration parsed from the span |
+| `effectiveDate` | 33 | 47 | a date in the span |
+| `expiryDate` | **25** | 49 | a stated date, or a duration from a **stated** anchor |
+| `warrantyMonths` | 15 | 20 | duration parsed from the span |
+| `renewalType` | — | 39 | FOUND-only |
+| `contractType` | — | 50 | FOUND-only |
+
+### `expiryDate` WAS OVERSTATED, AND THE CORRECTION IS THE INTERESTING PART
+
+It first read 42 of 49, measured with a rough pattern that accepted "a date OR
+a duration". The scorer disagreed at 9 of 49, and the scorer was right: **only
+9 of the marked spans state a date at all.** Another 33 state a DURATION —
+*"commence on the Effective Date and continue for an Initial Term of five (5)
+years"* — which is simply how a term is drafted, and which cannot be compared
+to the calendar date HaTi's `expiryDate` holds.
+
+The recovery is arithmetic on two facts CUAD already marked: where the span
+**names its anchor** and that anchor's date is itself derivable, the expiry is
+computed. That lifts it to **25 of 49**.
+
+**The anchor must be stated, never assumed.** Ten spans give a duration with no
+anchor — *"a term of ten (10) years"*, from when? Assuming those run from the
+effective date would invent the TRUTH, and inventing the truth is worse than
+inventing an answer: it marks a correct reading wrong and the scorecard blames
+HaTi for the annotator's silence.
+
+A computed expiry carries **one day** of tolerance; a stated one carries none.
+"Five years from 1 March" does not settle whether the term ends on the
+anniversary or the day before, and that ambiguity belongs to the drafting.
 
 **Where the answer is not derivable, the contract leaves the CORRECT denominator
 and stays in the FOUND denominator.** This is ruling 3 applied one step further,
@@ -120,8 +147,13 @@ one stand for the other.
 - **Durations.** Normalised to days (`noticePeriodDays`) or months
   (`warrantyMonths`). Words and digits are the same answer — "ninety (90) days"
   is 90 — and legal drafting writes both. **Reuse `precedentFigure`'s existing
-  reading; do not grow a second one.** Months to days uses the contract's own
-  wording, so "3 months" notice is 3 months, not 90 days.
+  reading; do not grow a second one.**
+  **CORRECTED at stage 4 by f226-3d.** This first read *"'3 months' notice is 3
+  months, not 90 days"*, which reads well and is unusable: HaTi's field is
+  literally `noticePeriodDays` and must answer in days. A month has no fixed
+  length, so a period stated in months is compared as a RANGE — 3 months is
+  anything from 3x28 to 3x31 days. Demanding exactly 90 would mark a correct
+  reading wrong whenever the months are long.
 - **Governing law.** Correct if HaTi names the jurisdiction the span names.
   "New York", "State of New York" and "New York, USA" all pass against *"the laws
   of the State of New York"*. Naming a country where the span names a state
@@ -176,7 +208,7 @@ not a brief, and choosing what to leave out is the job.
 
 ## RULE 6 — HOW IT IS REPORTED
 
-- **Every percentage carries its denominator.** "84% (30/36)", never "84%".
+- **Every percentage carries its denominator.** "83% (30/36)", never "83%".
   Warranty duration rests on 20 contracts and notice period on 36; a bare
   percentage hides that.
 - **Excluded contracts are named and counted**, with which reason — not marked, or

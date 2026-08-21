@@ -1,0 +1,264 @@
+#!/usr/bin/env node
+/* CUAD scorecard — the runner.
+
+   Stage 4. Starts a THROWAWAY HaTi on a temporary database, feeds it the 50
+   selected contracts, scores the answers with score.js, and prints the
+   report. It never touches a live server and never writes to the product.
+
+   THE PRODUCT IS NOT MODIFIED. The three limits this needs are passed as
+   environment settings to the test server only — startHati already takes
+   them, which is why no HaTi code changes for any of this:
+
+     AI_MAX_CHARS   60,000 by default and 6 of the 50 are larger. Left alone,
+                    HaTi would read a TRIMMED contract and the scorecard would
+                    be measuring the trimming (SCORING.md rule 1).
+     AI_RATE_DEEP   15 per window. A 50-contract run stalls on it.
+     AI_RATE_LIGHT  40 per window. Same.
+
+   USAGE
+     node test/cuad/run.js                 dry run against the built-in stub:
+                                           proves the plumbing, spends nothing,
+                                           and every score will be zero
+     node test/cuad/run.js --live          the real thing. Needs a real key in
+                                           ANTHROPIC_API_KEY and SPENDS MONEY
+     node test/cuad/run.js --live --n 10   the ten-contract calibration pass
+                                           SCORING.md asks for before the first
+                                           full run
+
+   WHAT IT MUST NOT DO (SCORING.md): re-extract contracts from PDFs, run on
+   save, grow a second duration reader, report a CORRECT figure against a
+   FOUND denominator, or count an unmarked obligation as a false positive. */
+
+'use strict';
+const fs = require('node:fs');
+const path = require('node:path');
+const S = require('./score.js');
+const { startHati } = require('../helpers.js');
+
+const HERE = __dirname;
+const ARGS = process.argv.slice(2);
+const has = f => ARGS.includes(f);
+const val = (f, d) => { const i = ARGS.indexOf(f); return i >= 0 ? ARGS[i + 1] : d; };
+
+const LIVE = has('--live');
+const LIMIT = Number(val('--n', 0)) || 0;
+
+/* The corpus is NOT committed — it is 510 third-party contracts and it clones
+   in seconds. test/cuad/README.md carries the two commands. */
+const CORPUS = val('--corpus', process.env.CUAD_JSON || '');
+
+function loadCorpus() {
+  const tries = [CORPUS, path.join(HERE, 'CUADv1.json'),
+                 '/tmp/cuad/CUADv1.json'].filter(Boolean);
+  for (const p of tries) { if (p && fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, 'utf8')).data; }
+  console.error(
+`Cannot find CUADv1.json. It is deliberately not committed — 510 third-party
+contracts, reproducible in seconds:
+
+    git clone --depth 1 https://github.com/TheAtticusProject/cuad /tmp/cuad-repo
+    unzip /tmp/cuad-repo/data.zip -d /tmp/cuad
+
+then re-run, or pass --corpus <path to CUADv1.json>.`);
+  process.exit(2);
+}
+
+/* ---------- what is scored, and how ---------- */
+const CAT = {
+  counterparty:     'Parties',
+  contractType:     'Document Name',
+  effectiveDate:    'Effective Date',
+  expiryDate:       'Expiration Date',
+  noticePeriodDays: 'Notice Period To Terminate Renewal',
+  governingLaw:     'Governing Law',
+  warrantyMonths:   'Warranty Duration',
+  liabilityCapped:  'Cap On Liability',
+  renewalType:      'Renewal Term',
+};
+/* FOUND-only, each for its own reason (MAPPING.md): renewalType because CUAD
+   gives the term's wording and HaTi answers with a type — different questions;
+   contractType because HaTi answers in its own vocabulary of twelve and CUAD
+   gives the document's title, which no rule settles cleanly. */
+const FOUND_ONLY = new Set(['renewalType', 'contractType']);
+
+const OBLIGATION_CATS = ['Post-Termination Services', 'Audit Rights',
+                         'Minimum Commitment', 'Insurance'];
+
+const spansOf = (c, cat) => {
+  for (const q of c.paragraphs[0].qas) {
+    if (q.question.split('"')[1] === cat) return q.answers || [];
+  }
+  return [];
+};
+
+/* Truth is read out of CUAD's own span, and where it cannot be read the
+   contract leaves the CORRECT denominator and stays in the FOUND one — the
+   owner's ruling 3, extended by its own logic. */
+function truthFor(field, c) {
+  const sp = spansOf(c, CAT[field]);
+  if (field === 'liabilityCapped') {
+    return S.liabilityTruth(sp, spansOf(c, 'Uncapped Liability'));
+  }
+  if (!sp.length) return null;
+  const texts = sp.map(s => s.text);
+  switch (field) {
+    case 'effectiveDate': {
+      for (const t of texts) { const d = S.parseDate(t); if (d) return d; }
+      return null;
+    }
+    /* Mostly not written as a date at all — see expiryTruth. Computed from a
+       STATED anchor where there is one, never from an assumed one. */
+    case 'expiryDate': return S.expiryTruth(sp, spansOf(c, 'Effective Date'));
+    case 'noticePeriodDays': {
+      for (const t of texts) { const r = S.durationToDays(S.parseDuration(t)); if (r) return r; }
+      return null;
+    }
+    case 'warrantyMonths': {
+      for (const t of texts) { const r = S.durationToMonths(S.parseDuration(t)); if (r) return r; }
+      return null;
+    }
+    case 'governingLaw': {
+      for (const t of texts) { const j = S.jurisdiction(t); if (j) return j; }
+      return null;
+    }
+    case 'counterparty': return sp;          // the verdict function applies ruling 2
+    default: return null;
+  }
+}
+
+function compareFor(field) {
+  switch (field) {
+    case 'effectiveDate':    return (t, a) => !!a && S.parseDate(String(a)) === t;
+    case 'expiryDate':       return (t, a) => S.expiryMatches(t, a);
+    case 'noticePeriodDays':
+    case 'warrantyMonths':   return (t, a) => Number.isFinite(Number(a)) &&
+                                              Number(a) >= t.lo && Number(a) <= t.hi;
+    case 'governingLaw':     return (t, a) => S.jurisdiction(String(a || '')) === t;
+    case 'liabilityCapped':  return (t, a) => String(a || '').toLowerCase() === t;
+    case 'counterparty':     return (t, a) => S.counterpartyVerdict(a, t) === true;
+    default:                 return () => false;
+  }
+}
+
+/* ---------- the run ---------- */
+async function main() {
+  const corpus = loadCorpus();
+  const sel = JSON.parse(fs.readFileSync(path.join(HERE, 'selection.json'), 'utf8'));
+  const byTitle = new Map(corpus.map(c => [c.title, c]));
+  let chosen = sel.map(r => byTitle.get(r.title)).filter(Boolean);
+  const missing = sel.length - chosen.length;
+  if (LIMIT) chosen = chosen.slice(0, LIMIT);
+
+  if (LIVE && !process.env.ANTHROPIC_API_KEY) {
+    console.error('--live needs a real ANTHROPIC_API_KEY. Without one, drop --live for a dry run.');
+    process.exit(2);
+  }
+
+  console.log(`\nCUAD scorecard — ${LIVE ? 'LIVE (this spends money)' : 'DRY RUN (stub AI, every score will be zero)'}`);
+  console.log(`${chosen.length} contracts` + (missing ? `  (${missing} in the manifest were not found in the corpus)` : '') + '\n');
+
+  /* Settings raised for the TEST SERVER ONLY. The live workspace is untouched. */
+  const env = { AI_MAX_CHARS: '200000', AI_RATE_DEEP: '100000', AI_RATE_LIGHT: '100000' };
+  if (LIVE) { delete env.ANTHROPIC_BASE_URL; env.ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY; }
+  const h = await startHati(LIVE ? { ...env, ANTHROPIC_BASE_URL: 'https://api.anthropic.com' } : env);
+
+  const tallies = {}; for (const f of Object.keys(CAT)) tallies[f] = S.newTally();
+  const oblig = {}; for (const c of OBLIGATION_CATS) oblig[c] = S.newTally();
+  const errors = [];
+
+  try {
+    const admin = h.client('admin');
+    await admin.json('/api/setup', { method: 'POST', body: {
+      org: 'Scorecard', name: 'Scorecard Runner', email: 'scorecard@example.com',
+      password: 'scorecardpassword1', data: { uid: 1, contracts: [], settings: {} },
+    } });
+
+    let n = 0;
+    for (const c of chosen) {
+      n++;
+      const doc = c.paragraphs[0].context;
+      process.stdout.write(`  [${String(n).padStart(2)}/${chosen.length}] ${c.title.slice(0, 58)}\r`);
+
+      /* RULE 1: the exact text CUAD annotated. Never a PDF, never a
+         re-extraction — CUAD's offsets index this string. */
+      let ex = null, ob = null;
+      try { ex = await admin.json('/api/ai/extract', { method: 'POST', body: { text: doc } }); }
+      catch (e) { errors.push(`extract ${c.title.slice(0, 40)}: ${e.message.slice(0, 90)}`); }
+      try { ob = await admin.json('/api/ai/obligations', { method: 'POST', body: { text: doc } }); }
+      catch (e) { errors.push(`obligations ${c.title.slice(0, 40)}: ${e.message.slice(0, 90)}`); }
+
+      const md = (ex && ex.metadata) || {};
+      const spans = (ex && ex.sourceSpans) || {};
+
+      for (const field of Object.keys(CAT)) {
+        const key = spansOf(c, CAT[field]);
+        const foundV = S.foundVerdict(doc, spans[field], key);
+        const truth = FOUND_ONLY.has(field) ? null : truthFor(field, c);
+        S.record(tallies[field], {
+          foundV, truth, answer: md[field], compare: compareFor(field),
+        });
+      }
+
+      /* The obligations reader is scored on LOCATION alone, per category.
+         Obligations CUAD never marked are NOT counted against it — this
+         measures what was missed, not what was invented. */
+      const items = (ob && (ob.obligations || ob.items)) || [];
+      for (const cat of OBLIGATION_CATS) {
+        const key = spansOf(c, cat);
+        if (!key.length) { oblig[cat].excludedNotMarked++; continue; }
+        oblig[cat].foundOf++;
+        const hit = items.some(it => {
+          const q = it.sourceSpan || it.source || it.quote || it.text || '';
+          return q && S.foundVerdict(doc, q, key) === 'found';
+        });
+        if (hit) oblig[cat].found++;
+      }
+    }
+    process.stdout.write(' '.repeat(90) + '\r');
+  } finally {
+    await h.stop();
+  }
+
+  report(tallies, oblig, errors, chosen.length);
+}
+
+/* ---------- the report ----------
+   Every percentage carries its denominator; exclusions are named and counted;
+   the unscoreable fields say WHY rather than printing blank or zero; and
+   there is no single blended accuracy number. */
+function report(tallies, oblig, errors, n) {
+  const line = '-'.repeat(78);
+  console.log(line);
+  console.log('FIELD EXTRACTION'.padEnd(24) + 'FOUND'.padEnd(18) + 'CORRECT'.padEnd(18) + 'EXCLUDED');
+  console.log(line);
+  for (const [f, t] of Object.entries(tallies)) {
+    const corr = FOUND_ONLY.has(f) ? 'not comparable' : S.pct(t.correct, t.correctOf);
+    const exc = `${t.excludedNotMarked} unmarked, ${t.excludedNotDerivable} underivable`;
+    console.log(f.padEnd(24) + S.pct(t.found, t.foundOf).padEnd(18) + String(corr).padEnd(18) + exc);
+    if (t.notVerbatim) console.log(`${''.padEnd(24)}  ^ ${t.notVerbatim} not verbatim — HaTi paraphrased instead of quoting`);
+  }
+  console.log('\n' + line);
+  console.log('OBLIGATIONS READER'.padEnd(34) + 'FOUND'.padEnd(18) + 'EXCLUDED');
+  console.log(line);
+  for (const [c, t] of Object.entries(oblig)) {
+    console.log(c.padEnd(34) + S.pct(t.found, t.foundOf).padEnd(18) + `${t.excludedNotMarked} unmarked`);
+  }
+  console.log('\n' + line);
+  console.log('NOT MEASURED');
+  console.log(line);
+  for (const [f, why] of Object.entries(S.NOT_MEASURED)) console.log(`${f.padEnd(24)}${why}`);
+
+  console.log('\n' + line);
+  console.log(`Headline: ${S.headline(tallies)}`);
+  console.log(`Contracts: ${n}`);
+  console.log('Claim as "measured at N% against 510 professionally reviewed contracts",');
+  console.log('never "N% accurate". Credit CUAD (CC BY 4.0) wherever a figure is published.');
+  console.log(line);
+
+  if (errors.length) {
+    console.log(`\n${errors.length} request error(s) — these are NOT scored as wrong answers:`);
+    for (const e of errors.slice(0, 12)) console.log('  ' + e);
+    if (errors.length > 12) console.log(`  ...and ${errors.length - 12} more`);
+  }
+}
+
+main().catch(e => { console.error('\nscorecard failed:', e); process.exit(1); });
