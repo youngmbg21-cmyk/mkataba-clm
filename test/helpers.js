@@ -192,10 +192,17 @@ function startScriptedAi() {
       const content = spec.content || [{ type: 'tool_use', id: 'tu_default', name: 'deliver_answer',
         input: { answer: 'stubbed answer', citations: [] } }];
       const usage = { input_tokens: 10, output_tokens: 5 };
+      /* `stopReason` lets a test play back an answer the provider CUT SHORT.
+         Nothing could before, which is why "an answer cut short is not an
+         empty answer" (21 Aug 2026) shipped as a live defect: a tool call
+         stopped at max_tokens returns a partial input, and every route read
+         that as an empty result. A stand-in that can only produce complete
+         answers cannot fail the way the provider really fails. */
       if (!body.stream) {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ id: 'msg_stub', type: 'message', role: 'assistant',
-          model: body.model || 'stub', content, usage }));
+          model: body.model || 'stub', content, usage,
+          stop_reason: spec.stopReason || 'end_turn' }));
         return;
       }
       // --- streaming playback ---
@@ -214,7 +221,7 @@ function startScriptedAi() {
           }
           ev('content_block_stop', { index: i });
         });
-        ev('message_delta', { delta: { stop_reason: 'end_turn' }, usage: { output_tokens: usage.output_tokens } });
+        ev('message_delta', { delta: { stop_reason: spec.stopReason || 'end_turn' }, usage: { output_tokens: usage.output_tokens } });
         ev('message_stop', {});
         try { res.end(); } catch (_) {}
       };

@@ -2046,6 +2046,8 @@ const STRINGS = {
     ob_add_selected: 'Add selected',
     ob_no_readable: 'No readable clause text to scan for obligations',
     ob_scan_unavailable: 'Copilot obligation scan unavailable — using a basic scan',
+    ob_none_found: 'No obligations found — this scan is not always consistent, so it is worth trying once more',
+    ob_try_again: 'Scan again',
     ob_viewers_no_change: 'Viewers cannot change obligations',
 
     // ---- Copilot scan card ----
@@ -3581,6 +3583,8 @@ const STRINGS = {
     set_lim_ocr_pages_sub: 'pages past this are skipped, not failed',
     set_lim_chars: 'Max characters / request',
     set_lim_chars_sub: 'longer input is shortened first',
+    set_lim_doc: 'Max characters / contract',
+    set_lim_doc_sub: 'one agreement read whole — set above your longest',
     set_lim_contracts: 'Max contracts / request',
     set_lim_contracts_sub: 'portfolio-wide Copilot calls',
     set_thorough_body: '— read the whole contract in overlapping chunks instead of one pass.',
@@ -6245,6 +6249,8 @@ const STRINGS = {
     ob_add_selected: 'Lägg till valda',
     ob_no_readable: 'Ingen läsbar klausultext att skanna efter åtaganden',
     ob_scan_unavailable: 'Copilot-skanning av åtaganden otillgänglig — använder en grundskanning',
+    ob_none_found: 'Inga åtaganden hittades — skanningen är inte alltid konsekvent, så det är värt att försöka en gång till',
+    ob_try_again: 'Skanna igen',
     ob_viewers_no_change: 'Läsare kan inte ändra åtaganden',
 
     // ---- Copilot-granskningskort ----
@@ -7755,6 +7761,8 @@ const STRINGS = {
     set_lim_ocr_pages_sub: 'sidor därutöver hoppas över, de misslyckas inte',
     set_lim_chars: 'Högsta antal tecken / anrop',
     set_lim_chars_sub: 'längre indata kortas ned först',
+    set_lim_doc: 'Högsta antal tecken / avtal',
+    set_lim_doc_sub: 'ett avtal läst i sin helhet — sätt över ditt längsta',
     set_lim_contracts: 'Högsta antal avtal / anrop',
     set_lim_contracts_sub: 'Copilot-anrop över hela beståndet',
     set_thorough_body: '— läs hela avtalet i överlappande delar i stället för i en enda genomgång.',

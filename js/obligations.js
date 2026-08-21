@@ -228,7 +228,14 @@ async function extractObligations(c){
   const text = isUpload(c) ? (c.upload&&c.upload.extractedText)||'' : (window.contractPlainText?contractPlainText(c):'');
   if(!text || text.length<120){ toast(i18t('ob_no_readable'),'err'); return []; }
   if(API_MODE() && state.aiConfigured){
-    try{ const r=await api('ai/obligations','POST',{ text:text.slice(0,20000) }); return r.obligations||[]; }
+    /* THE WHOLE CONTRACT GOES. It used to slice to 20,000 characters here AND
+       again on the server, so obligations drafted at the BACK of an agreement
+       — audit rights, insurance, post-termination duties — were never seen.
+       Measured against CUAD, 41 of 50 real contracts are longer than that and
+       the reader returned NOTHING at all on every truncated one. The ceiling
+       is aiDocChars on the server now: one number, set above any real
+       contract, and it tells the reader when it bites. */
+    try{ const r=await api('ai/obligations','POST',{ text }); return r.obligations||[]; }
     catch(e){ toast(i18t('ob_scan_unavailable'),'err'); }
   }
   return heuristicObligations(text, c);
@@ -491,7 +498,30 @@ async function runFindObligations(c){
   const found=await extractObligations(c);
   if(btn){ btn.disabled=false; }
   renderObligationsSection(c);
-  if(!found.length){ toast('No obligations detected'); return; }
+  /* AND IT MUST SAY SO OUT LOUD, WITH A WAY FORWARD. This was a BARE toast
+     call, which by this product's own rule is SILENT — so pressing Find
+     obligations on a contract that returned nothing did nothing visible at
+     all, and the reader had no way to tell a working scan from a broken
+     button.
+
+     THE SECOND PRESS IS OFFERED BECAUSE IT OFTEN WORKS, and that is measured
+     rather than hoped: across the CUAD scorecard's five runs the same
+     contract returned 12, then 20, then 0, then 0, then 0 obligations, and
+     one that answered nothing on a fifty-contract run answered 24 on the
+     next. Silence here is INCONSISTENCY, not blindness — it is not the
+     length of the contract (measured on all fifty: silent contracts average
+     36,518 characters against 37,813 for answering ones, which is nothing)
+     and not its kind (maintenance, distribution, outsourcing and transport
+     agreements sit on both sides).
+
+     So the honest thing is neither to claim the contract has no obligations
+     nor to hide the result: say what happened and offer the retry, because a
+     refusal needs its way forward on the same screen. */
+  if(!found.length){
+    toast(i18t('ob_none_found'),'warn',{ action:{ label:i18t('ob_try_again'),
+      onClick:()=>runFindObligations(c) } });
+    return;
+  }
   openObligationsReview(c, found);
 }
 function openObligationsReview(c, found){
