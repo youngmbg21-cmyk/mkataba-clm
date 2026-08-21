@@ -1,22 +1,31 @@
 # HaTi — End-to-End Launch Audit
 
 **Run overnight, 20–21 August 2026. For the owner to read over coffee.**
-Nothing in the product was changed. This is a find-and-report run only.
+
+> **UPDATE, 21 August 2026 — all six bugs below are now FIXED.** The audit
+> itself was a find-and-report run; the owner then asked for the fixes, and they
+> were made, proved against the original reproductions, and locked in by a new
+> regression test file so none of them can return unnoticed. Each finding below
+> is kept as written — the record of what was wrong — with a **FIXED** note
+> saying what changed. The full reasoning is in `CLAUDE.md` under
+> "THE LAUNCH AUDIT'S FIXES".
 
 ---
 
 ## The verdict
 
-**READY ONCE A FEW FIXES ARE MADE.** Not "not ready" — the platform is in good
+**READY.** (The overnight run said "ready once a few fixes are made"; those
+fixes have since been made.) The platform is in good
 shape. Everything an SME does day to day works: making contracts, negotiating,
 reviewing, signing to completion, amendments, money in different currencies,
 reminders, requests, permissions, two languages. Thousands of automated checks
 and dozens of full screen-by-screen walkthroughs passed.
 
-But the audit found **6 real bugs**. None of them break normal daily use through
-the app's own screens. All of them are worth fixing before launch, because a
-few touch money, permissions, and the emails your customers receive. There are
-no launch-stoppers, so this is a short fix list, not a rebuild.
+The audit found **6 real bugs**. None broke normal daily use through the app's
+own screens, but several touched money, permissions and the emails your
+customers receive — so all six have now been fixed and locked in with tests.
+There were no launch-stoppers. One related question is left for you to rule on
+(see "Still open for your decision").
 
 ---
 
@@ -43,10 +52,11 @@ guarded, and metered correctly.
 
 ---
 
-## Bugs to fix before launch
+## The six bugs — all now fixed
 
-Ranked by how much they'd hurt. None is a blocker, but the first four deserve
-attention. Every one was reproduced at least twice from a clean system.
+Ranked by how much they'd have hurt. Every one was reproduced at least twice
+from a clean system before being touched, and each fix was proved against that
+same reproduction afterwards.
 
 ### 1. Signing limits can be dodged by claiming a cheaper currency *(Major)*
 
@@ -60,6 +70,9 @@ don't carry a stored currency to check against. The contract is also left
 mislabeled afterwards, so its reported value looks far smaller than it is.
 Only reachable by a technical shortcut, not the normal screens.
 
+
+> **FIXED.** The check now reads the currency from the saved contract *and* from the request, and always uses whichever gives the bigger figure — so claiming a cheap currency can no longer shrink a contract under someone's limit, and genuinely expensive foreign currency is no longer under-counted either. If any rate is missing, it refuses rather than guessing. One related question is left for you to decide: see "Still open for your decision" below.
+
 ### 2. A staff member's login can rewrite a contract after the first signature *(Major)*
 
 On a contract with more than one signer, there's a gap after the first person
@@ -71,6 +84,9 @@ never saw. Normal on-screen use is safe; this is the same kind of behind-the-
 scenes gap the recent legal audit closed for *fully*-signed contracts, not yet
 closed for *partly*-signed ones.
 
+
+> **FIXED.** The server now refuses any change to the contract's wording once anybody has signed, not just once everybody has. Everything else still works normally in that window — the remaining signature, obligations and notes all still save — so nobody gets stuck waiting for a second signer.
+
 ### 3. Everyone can see each colleague's daily AI spend *(Major, but low-sensitivity)*
 
 The list of who spent what on Copilot today is meant for admins only, and the
@@ -80,6 +96,9 @@ the same per-person spending list. So any Editor or Viewer can read each
 colleague's name and their AI cost for the day. Nothing can be changed with it
 and the figures are small, but it defeats the deliberate decision to keep this
 "league table" with admins.
+
+
+> **FIXED.** The per-person spending list is now removed before it leaves the server for anyone who isn't an admin. Workspace and by-feature totals are unchanged, since those were always meant to be visible.
 
 ### 4. Scheduled emails link to "localhost" on a normal deployment *(Major)*
 
@@ -94,6 +113,9 @@ outside reader gets an official-looking email whose only button leads nowhere,
 which reads as broken or suspicious. The fix is tiny — the deploy instructions
 just need to require that public-address setting.
 
+
+> **FIXED**, three ways. The deployment guide and the Render setup file now both require the app's public web address; the server prints a clear warning at start-up if it's missing; and the request-decision email was fixed outright — it never needed the setting in the first place. Verified: with the address set, all scheduled emails now carry real working links.
+
 ### 5. An editor can silently cancel a colleague's contract request *(Major)*
 
 Any editor can, through a raw request to the server (not any button the app
@@ -104,6 +126,9 @@ screen just reads "Withdrawn" as if they'd done it themselves. This sidesteps
 the proper "decline" path, which always requires a reason and emails the
 requester. The server's own refusal message even says only the requester can
 withdraw — but the check behind it lets any editor through.
+
+
+> **FIXED.** Only the person who raised a request (or an admin) can withdraw it. Editors can still decline it properly — which always requires a reason and always emails the requester.
 
 ### 6. Swedish users get a half-English, half-Swedish history line *(Minor)*
 
@@ -116,7 +141,22 @@ itself. Nothing breaks and the facts are right — it's a wording inconsistency 
 the record. (Small related quirk: switching language mid-session leaves the
 amendment panel's labels in the old language until the page is reloaded.)
 
+
+> **FIXED.** History lines are always written in English now, as the product's own rule requires. The related quirk is fixed too: switching language now updates the amendment labels immediately, with no page reload.
+
 ---
+
+## Still open for your decision
+
+**Changing a contract's currency is not restricted.** With the signing-limit fix
+in place, the one-step dodge is gone. But someone can still relabel a contract's
+currency in one save and sign it in the next — because by then the contract
+genuinely *says* it is in that currency, and the check correctly believes the
+record. Closing that means deciding who is allowed to restate a contract's
+currency at all, which changes every reported figure in the workspace. That is a
+product decision for you, not a late-night fix, so it was deliberately left
+alone. Low urgency: signing limits are off by default, and a relabelled contract
+shows its new currency on every screen and leaves a trail.
 
 ## Worth a conversation, not clearly a bug
 
@@ -148,7 +188,7 @@ These were already on record. The audit confirms none has got worse:
   (both still press an edit button that was deliberately removed on 16–19 Aug).
   These are stale tests, not product faults.
 
-## Housekeeping: a handful of tests need re-pointing
+## Housekeeping: a handful of tests still need re-pointing
 
 Not product bugs — six browser checks now cry wolf because the product moved on
 and the tests didn't follow. Worth a tidy-up so a real regression isn't lost in
@@ -225,6 +265,11 @@ twice from a fresh `startHati()` server. Confirmed against source below.
    also leaves the family panel's labels stale after a mid-session language
    switch until reload. Repro: `scratchpad/j4/p5-lang-sweeps.js` (final block).
 
+**Still open (owner's decision)** — a capped signer can relabel a contract's
+currency in one save and sign in the next; the guard then reads a stored record
+that genuinely says TZS. Not a guard failure — the open question is who may
+restate a contract's currency at all, which moves every reported figure.
+
 **Owner-conversation item**
 
 - `GET /api/shares/:token` (negotiate branch) returns `JSON.parse(s.payload)`
@@ -266,3 +311,28 @@ twice from a fresh `startHati()` server. Confirmed against source below.
   (the one being the queue-overlay stale expectation above). Browser shell
   (14 files): all green bar the two known/stale noted. Audit sims a/b/c/e/f/phone:
   all at expected pass.
+
+---
+
+## What the fixes changed (21 Aug 2026)
+
+Six defects fixed, all proved against the original reproductions:
+
+- `server/server.js` — the signing-cap currency reading; the wording freeze at
+  the first signature (`anySignatureRow` / `SIGNED_WORDING_FROZEN`); the
+  per-person spend stripped from `/api/ai/config` for non-admins; the intake
+  'withdrawn' guard narrowed to the requester or an admin; `appUrlWarn()` at
+  boot; `notifyIntakeDecision` given the `req` it always had.
+- `js/family.js` — the 'Linked' audit line takes `RELATION_DOC_WORD` (English
+  record); `RELATION_LABEL` rebuilt as live per-key getters rather than a
+  load-time snapshot.
+- `render.yaml`, `DEPLOYMENT.md` — `APP_URL` is now required and documented.
+- `test/f226-the-launch-audit-fixes.test.js` — 10 new regression tests, each
+  arming the state before attacking it. Proved to FAIL against the pre-fix code.
+- `test/f218-money-in-its-own-currency.test.js` — one claim reversed in place: it
+  pinned the exact buggy line while its stated claim was what the fix makes true.
+
+**Verified after the fixes:** node suite 4,110 of 4,111 (the one failure is the
+known date-fragile test, unchanged); the 18-attack security suite still reports
+**0 of 18** succeeding; amendment-journey 49/49, settings-tabs 65/65,
+register-category 14/14 in a real browser.
