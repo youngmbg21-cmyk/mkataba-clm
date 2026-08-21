@@ -147,7 +147,17 @@ const CENSUS = () => {
     const page = await ctx.newPage();
     page.on('pageerror', e => check('page error', false, e.message));
     await page.goto(h.base, { waitUntil: 'load' });
-    await page.waitForFunction(() => window.state && state.contracts && state.contracts.length);
+    /* WAIT FOR THE CONTRACT THIS PAGE IS ABOUT TO USE, not merely for "some
+       contracts arrived". The line under this one calls getContract('MK-82')
+       and hands the result straight to negoInit, so a bootstrap that has
+       delivered A list but not YET the one holding MK-82 satisfies the old
+       condition and then crashes with "Cannot read properties of undefined
+       (reading 'changes')" — which reads as a product fault and is a race in
+       the harness. It passed here every time and failed on every CI runner:
+       a timing window is exactly the kind of thing that is invisible on the
+       machine you wrote it on. */
+    await page.waitForFunction(() => window.state && Array.isArray(state.contracts)
+      && state.contracts.some(c => c && c.id === 'MK-82'));
     /* Frozen: an animated box-shadow resolves to a different colour on every
        frame, which is exactly the instability that sank the pixel version. */
     await page.addStyleTag({ content:
