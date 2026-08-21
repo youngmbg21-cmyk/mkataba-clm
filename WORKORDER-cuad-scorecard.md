@@ -183,11 +183,16 @@ shipping a group of nine. Manufacturing took 3, professional services 3.
 strike commercial terms out before filing — `[***]`, "confidential treatment
 requested". A further 18 carry no dollar figure at all.
 
-So **value and currency extraction cannot be fairly scored on much of this set.**
-Marking HaTi wrong for not finding a number that is not in the document would be
-a broken measurement. Stage 3 must either score value only on the subset that
-states one, or exclude value from the scorecard and say so. This is the single
-most important thing stage 1 turned up.
+So value extraction cannot be fairly scored on much of this set.
+
+**CORRECTED AT STAGE 2, 21 Aug 2026 — the redaction was real but it was not the
+problem.** CUAD has no value category at all: all 41 were read from
+`category_descriptions.csv` and not one asks what an agreement is worth. So even
+the 31 contracts that state a price have nothing to compare HaTi's answer
+against. The owner's ruling — score value only where a price exists — cannot be
+carried out against this key without hand-marking one. Same for `currency`,
+`paymentTerms`, `retentionPct` and `retentionReleaseDays`. See
+`test/cuad/MAPPING.md`.
 
 **2. The supply agreements skew pharmaceutical.** Public companies that file
 supply agreements as material contracts are mostly pharma and medical device
