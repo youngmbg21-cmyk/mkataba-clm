@@ -874,6 +874,19 @@ The first live measurement of Copilot against contracts HaTi did not write (`tes
 
 Tests: f227 (13 — the four slices swept on BOTH hosts so the next one fails here, the ceiling's two exclusions, the mark and the notice, the brief's key, the quoting rule proved to reach every tool, and the toast in both languages; 11 of the 13 fail against the code the morning before, which is what makes it a regression test rather than a description).
 
+## THE OBLIGATIONS READER WENT SILENT ON LONG AGREEMENTS (21 Aug 2026, the scorecard's third run)
+
+With the whole contract reaching it and 4,000 tokens of room, three contracts returned 12, 18 and 12 obligations — **all 42 carrying a quote** — and seven returned NOTHING. No truncation, no refusal, no cut-off: the model was asked and answered "nothing" about master supply agreements full of duties.
+
+- **THE LENGTH IS THE TELL AND IT IS A CLEAN SPLIT.** The three that answered are 14k–26k characters; the seven that did not are 22k–52k, averaging twice as long. Measured before anything was changed, which is what turned a fourth guess into a diagnosis.
+- **A ONE-SENTENCE PROMPT WAS THE FAULT.** It named five kinds of obligation, and **the two CUAD categories scoring ZERO were the two it never mentioned** (audit rights, minimum commitments) while the one it did name (insurance) scored. It also carried a RESTRAINT — "only list obligations actually present" — with nothing to balance it, and on a long document a restraint with no counterweight makes the empty list the cheapest safe answer. Rewritten: read to the END (the duties that matter — audit, insurance, survival, minimum commitments — are drafted at the back), ten named kinds, and an empty list called out as rare in a commercial agreement. **The restraint STAYS**: widening the ask must not licence inventing one.
+- **WIDENING THE LIST IS NOT TUNING TO THE ANSWER KEY**, and the distinction is the whole defence of this change. A minimum volume commitment is money a manufacturer loses by missing it; an audit right is something you must be ready for. They belong here whether or not CUAD marks them — that CUAD marks them is HOW the gap was found, never WHY it is being closed. Fitting a prompt to a scorer's categories would be marking our own homework in new clothes, which is the thing this whole exercise exists to stop.
+- **maxItems 12 → 20.** The model already ignored 12 and returned 18 on a distributor agreement; a cap the model does not honour only misleads whoever reads this schema next. The review dialog scrolls.
+- **AND AN ABSENCE IS NOT A QUOTATION.** The splicing is ENTIRELY GONE (0 of 16 remaining not-verbatim spans carry an ellipsis, down from 34 of 125) and what replaced it is smaller and different: the model writing a sentence ABOUT an absence into a field that holds a quotation — *"No retention provision in the contract"*, *"No express warranty period stated"*. Eight of the sixteen are the two retention fields, the ones most often genuinely absent. `AI_QUOTE_RULE` now closes with "if the document says nothing on the point, return nothing at all", and the span field names the exact failure — the old "Omit if the field is empty" lost the argument to the sentence in front of it.
+- **UNPROVEN UNTIL A FOURTH RUN**, said out loud. Three runs have each fixed a real cause and each been followed by a different one; nothing here entitles anybody to say the obligations reader works.
+
+Tests: f227 (22 — the ten named kinds, the read-to-the-end counterweight, the restraint still standing, the honest maxItems, and the absence rule stated twice).
+
 ## AN ANSWER CUT SHORT IS NOT AN EMPTY ANSWER (21 Aug 2026, found by the scorecard's second run)
 
 The obligations reader returned NOTHING on all ten contracts — the same 0% as before the truncation was lifted, which is what proved the truncation had never been the cause.

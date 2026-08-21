@@ -236,7 +236,52 @@ describe('F227 — the whole contract is read', () => {
     assert.match(body, /ran out of room/);
   });
 
-  /* ---- 8. the two fields the owner asked about ---- */
+  /* ---- 8. the reader went silent on long agreements ---- */
+
+  test('the obligations prompt names what a business actually has to track', () => {
+    /* Third run, with the whole contract reaching it and room to answer: the
+       three contracts that returned obligations were 14k-26k characters, the
+       seven that returned NOTHING were 22k-52k. No truncation, no refusal —
+       the model was asked and answered "nothing" about master supply
+       agreements full of duties, because the prompt was one sentence naming
+       five kinds. The two CUAD categories scoring ZERO were the two it never
+       mentioned; the one it did name scored. */
+    const at = SERVER_CODE.indexOf("app.post('/api/ai/obligations'");
+    const body = SERVER_CODE.slice(at, at + 5000);
+    for (const kind of ['audit and inspection rights', 'minimum volume or spend commitments',
+                        'SURVIVE termination', 'exclusivity']) {
+      assert.ok(body.includes(kind), `the prompt no longer asks for ${kind}`);
+    }
+    /* A restraint with no counterweight makes the empty list the cheapest
+       safe answer on a long document. */
+    assert.match(body, /Work through to the end/);
+    assert.match(body, /rare in a commercial agreement/);
+    /* And the restraint itself stays — widening the ask must not licence
+       inventing one. */
+    assert.match(body, /never invent one/);
+  });
+
+  test('the list may be as long as the contract really is', () => {
+    /* The model already ignored maxItems 12 and returned 18 on a distributor
+       agreement. A cap the model does not honour only misleads the reader of
+       this schema. */
+    const m = SERVER_CODE.match(/obligations: \{ type: 'array', maxItems: (\d+)/);
+    assert.ok(Number(m[1]) >= 18, `a 50k master supply agreement carries more than ${m[1]} duties`);
+  });
+
+  test('an absence is not a quotation', () => {
+    /* Third run: the SPLICING was entirely gone (0 of 16 not-verbatim spans
+       carried an ellipsis) and what replaced it was the model writing a
+       sentence ABOUT the absence into a field that holds a quotation — "No
+       retention provision in the contract". The old rule said "omit if the
+       field is empty" and lost the argument to the sentence in front of it. */
+    assert.match(SERVER_CODE, /never a sentence describing what is absent/);
+    const d = SERVER_CODE.match(/const span = \{ type: 'string', description: ([\s\S]*?) \};/)[1];
+    assert.match(d, /LEAVE THIS EMPTY/);
+    assert.match(d, /is not a quotation/);
+  });
+
+  /* ---- 9. the two fields the owner asked about ---- */
 
   test('noticePeriodDays names WHICH notice period, and ranks them', () => {
     /* It read "Notice period in days for termination/non-renewal" — two

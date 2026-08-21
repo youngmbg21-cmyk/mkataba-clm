@@ -128,9 +128,31 @@ features do it, and the reader is told nothing.
 > Fixed three ways: the flag is recorded once in `anthropicMessages` and
 > becomes a sentence on **all eleven** AI routes through `aiNotice`; the
 > obligations ceiling is 4,000; and an empty list from a cut-off call is now a
-> refusal rather than an answer. **Still unproven** — a third run is what
-> settles it, and the dump now carries the reason so a third identical figure
-> cannot be mistaken for either of the first two.
+> refusal rather than an answer.
+>
+> **THE THIRD RUN MOVED IT, AND THEN NAMED THE REAL CAUSE.** Two categories
+> came off zero, 42 obligations came back where 12 had before, and **all 42
+> carried a quote**. No cut-offs, no refusals — so the token ceiling had been
+> real and was no longer binding.
+>
+> What remained was a clean split by **length**: the three contracts that
+> answered are 14k–26k characters, the seven that returned nothing are
+> 22k–52k, averaging twice as long. The model was asked and answered
+> *"nothing"* about master supply agreements full of duties.
+>
+> **The one-sentence prompt was the fault.** It named five kinds of
+> obligation — and the two CUAD categories scoring **zero** were the two it
+> never mentioned (audit rights, minimum commitments) while the one it did
+> name (insurance) scored. It also carried a restraining instruction with
+> nothing to balance it, and on a long document a restraint with no
+> counterweight makes the empty list the cheapest safe answer.
+>
+> Rewritten: read to the end, the duties that matter are drafted at the back,
+> and ten named kinds including audit, minimum commitments, survival and
+> exclusivity. **Widening it is not tuning to the answer key** — a minimum
+> volume commitment is money a manufacturer loses by missing it, and belongs
+> here whether or not CUAD marks it. That CUAD marks it is how the gap was
+> found, not why it is being closed. **A fourth run is what settles this.**
 
 
 Scored 0% on all four categories. That is **not** a reading failure:
@@ -179,6 +201,16 @@ That distinction decides how serious it is:
 - **Not** invention. Nothing was made up.
 - **Not** a reading fault. It found the right words.
 - A **prompt instruction** — it needs telling to quote one continuous passage.
+
+> **FIXED, AND MEASURED — third run.** Splicing is **entirely gone**: 0 of 16
+> remaining not-verbatim spans carry an ellipsis, down from 34 of 125.
+>
+> What replaced it is smaller and different — the model writing a sentence
+> *about* an absence into a field that holds a quotation: *"No retention
+> provision in the contract"*, *"No express warranty period stated"*. Eight of
+> the sixteen are retention, the field most often genuinely absent. The rule
+> already said "omit if the field is empty" and lost the argument to the
+> sentence in front of it; it now says so twice and names this exact failure.
 
 > **FIXED.** One sentence, stated once and reaching all four tools that hand a
 > quote to a customer, carrying its own way forward for the case that caused

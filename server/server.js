@@ -1354,7 +1354,7 @@ const AI_TRUNC_MARK = '\n\n[…truncated by HaTi before sending to Copilot…]';
    spread across a clause — retention, liability caps, warranty periods —
    which is exactly where splicing is tempting. One sentence, on every tool
    that returns a quote, so the four cannot drift apart. */
-const AI_QUOTE_RULE = ' Quote ONE continuous run of text, copied character for character — never join two separate passages with "..." or an ellipsis. If no single passage carries the whole answer, quote the one that carries most of it.';
+const AI_QUOTE_RULE = ' Quote ONE continuous run of text, copied character for character — never join two separate passages with "..." or an ellipsis. If no single passage carries the whole answer, quote the one that carries most of it. If the document says nothing on the point, return nothing at all — never a sentence describing what is absent.';
 
 /* ONE CEILING FOR ONE CONTRACT, AND IT SAYS SO WHEN IT BITES.
 
@@ -3913,7 +3913,7 @@ app.post('/api/ai/extract', auth, rlAiLight, aiFeature('extract'), aiBudgetGuard
   if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
   const today = new Date().toISOString().slice(0, 10);
   const conf = { type: 'string', enum: ['high', 'medium', 'low'], description: 'Confidence this field is correct.' };
-  const span = { type: 'string', description: 'The SHORT verbatim phrase from the document this value came from (under 140 characters, copied exactly).' + AI_QUOTE_RULE + ' Omit if the field is empty.' };
+  const span = { type: 'string', description: 'The SHORT verbatim phrase from the document this value came from (under 140 characters, copied exactly).' + AI_QUOTE_RULE + ' LEAVE THIS EMPTY wherever the field itself is empty or zero: "No retention provision in the contract" is not a quotation, it is a sentence about the contract, and this field holds only the contract\'s own words.' };
   const tool = {
     name: 'file_contract',
     description: 'Extract structured metadata from a contract document.',
@@ -4096,7 +4096,7 @@ app.post('/api/ai/obligations', auth, rlAiDeep, aiFeature('obligations'), aiBudg
     input_schema: {
       type: 'object',
       properties: {
-        obligations: { type: 'array', maxItems: 12, items: { type: 'object', properties: {
+        obligations: { type: 'array', maxItems: 20, items: { type: 'object', properties: {
           desc: { type: 'string', description: 'Short obligation, e.g. "Pay 30 days from invoice" or "Submit quarterly sales report".' },
           due: { type: 'string', description: 'ISO yyyy-mm-dd if a concrete date is stated, else empty.' },
           recurring: { type: 'string', enum: ['none','monthly','quarterly','annual'], description: 'Recurrence if periodic.' },
@@ -4106,7 +4106,38 @@ app.post('/api/ai/obligations', auth, rlAiDeep, aiFeature('obligations'), aiBudg
       required: ['obligations'],
     },
   };
-  const prompt = `Extract the obligations this contract imposes (payment milestones, notice/termination deadlines, deliverables, reporting duties, insurance/indemnity upkeep). Quote the clause each came from. Only list obligations actually present. Return via list_obligations.\n\nDOCUMENT:\n${aiDocText(req, text)}`;
+  /* THE READER WENT SILENT ON LONG AGREEMENTS, AND THE LENGTH IS THE TELL.
+     Third scorecard run, with the whole contract reaching it and 4,000
+     tokens of room: three contracts returned 12, 18 and 12 obligations, and
+     seven returned NOTHING. The three that answered are 14k-26k characters;
+     the seven that did not are 22k-52k, averaging twice as long. No
+     truncation, no refusal, no cut-off — the model was asked and answered
+     "nothing" about master supply agreements full of duties.
+
+     So the one-sentence prompt was the fault. It named five kinds of
+     obligation, and the two CUAD categories scoring ZERO were the two it
+     never mentioned (audit rights, minimum commitments) while the one it
+     did name (insurance) scored. It also carried a RESTRAINING instruction
+     -- "only list obligations actually present" -- with nothing to balance
+     it, and on a long document a restraint with no counterweight makes the
+     empty list the cheapest safe answer.
+
+     WIDENING THE LIST IS NOT TUNING TO THE ANSWER KEY, and the distinction
+     matters: audit rights and minimum volume commitments are exactly what a
+     manufacturer needs tracked ("the Buyer may audit our records annually",
+     "the Distributor shall purchase not less than 10,000 cases a year" --
+     miss the second and there is money attached). They belong here whether
+     or not CUAD marks them; that CUAD marks them is how the gap was found,
+     not why it is being closed. */
+  const prompt = `Read the WHOLE document and list the continuing obligations it places on either party — what someone must do, allow, maintain, or refrain from, after signing.
+
+Cover at least these kinds, wherever the contract has them: payment milestones and credit terms; notice and termination deadlines; deliverables and delivery windows; reporting duties; insurance and indemnity upkeep; audit and inspection rights; minimum volume or spend commitments; exclusivity and non-compete restraints; obligations that SURVIVE termination (post-termination services, return of materials, continuing confidentiality); and price review or adjustment steps.
+
+A long agreement carries its obligations across the whole document, and the ones that matter most — audit, insurance, survival, minimum commitments — are usually drafted towards the BACK. Work through to the end.
+
+Only list what the wording actually imposes: never invent one, and never list a definition or a recital as an obligation. An empty list is the right answer only where the contract genuinely imposes no continuing duty on either side, which is rare in a commercial agreement — if you are returning an empty list, check that you read to the end first.
+
+Quote the clause each came from. Return via list_obligations.\n\nDOCUMENT:\n${aiDocText(req, text)}`;
   try {
     /* ROOM FOR THE ANSWER THE SCHEMA ALLOWS. maxItems is 12 and each item
        carries a description AND a verbatim quote, which is roughly 100 tokens
