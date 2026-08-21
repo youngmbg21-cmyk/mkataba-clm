@@ -7,11 +7,37 @@ be followed literally, top to bottom.
 **Cost:** about US$0.60 for the first run, about US$2.40 for the full one.
 **Time:** ten minutes, most of it waiting.
 
-## Why Render and not a laptop
+## CORRECTED 21 Aug 2026 — READ THIS BEFORE STEP 1
 
-The run needs HaTi's Anthropic API key. That key already lives in the Render
-service's environment — so on Render nobody has to copy, paste or handle it.
-That is the whole reason for doing it here.
+**The first version of this document was wrong about where HaTi keeps its key,
+and the mistake produced a false alarm.** It said that if `ANTHROPIC_API_KEY` is
+missing from the environment, HaTi's Copilot must be broken in production. That
+is not true.
+
+HaTi resolves its key like this:
+
+    aiKey() = getSetting('aiKey')  ||  process.env.ANTHROPIC_API_KEY
+
+**The stored setting is tried FIRST.** The owner enters the key by hand in
+HaTi's own Settings screen, where it is saved in the database. The environment
+variable is only a fallback, and on this deployment it was never needed.
+
+So `ANTHROPIC_API_KEY` being absent from Render proves nothing at all about
+whether Copilot works. It almost certainly works fine.
+
+**If you want to actually check**, ask HaTi rather than the environment: signed
+in, `GET /api/ai/config` reports `source: "settings"`, `"env"`, or `null`. That
+is the one honest test, and HaTi has had it all along.
+
+## Why this needs the key supplied by hand
+
+The scorecard does not use the live HaTi. It starts a **throwaway** HaTi on an
+empty temporary database — which is what makes it safe, and also means it has no
+stored settings and therefore no key.
+
+So the key has to be handed to that one command. It is typed into a terminal for
+a single run and is gone when the terminal closes. It is not pasted into a chat,
+not written to a file, and nothing in production changes.
 
 ## What this does NOT do
 
@@ -32,23 +58,25 @@ the **Shell** tab. Every command below runs in that shell.
 
 ---
 
-## Step 1 — check the key is there
+## Step 1 — have the key to hand
 
-```
-[ -n "$ANTHROPIC_API_KEY" ] && echo "KEY PRESENT" || echo "KEY MISSING"
-```
+Nothing to run. Get the Anthropic key ready — the same one the owner types into
+HaTi's Settings screen.
 
-**Expect:** `KEY PRESENT`.
+**Do not test for it with `[ -n "$ANTHROPIC_API_KEY" ]`.** That was the previous
+version's instruction and it is meaningless here, for the reason given above:
+HaTi reads its stored setting first, so the environment variable is expected to
+be absent on a healthy deployment.
 
-If it says `KEY MISSING`, stop — and note that this also means HaTi's Copilot
-features are not working in production, which is a bigger finding than anything
-the scorecard will produce. Add the key under the service's **Environment** tab
-first.
-
-**Never print the key itself.** The check above deliberately reports only
-whether it exists.
+**Never print the key, echo it, or write it into a file.** It goes on one
+command line, once (step 6).
 
 ## Step 2 — check there is room
+
+**First make sure you are actually in Render's shell.** A Render starter
+instance has about **512 MB** of memory. If `free -m` reports tens of gigabytes,
+you are not on Render — you are on your own machine, and any conclusion drawn
+about "the service" would be about the wrong computer.
 
 ```
 df -h /tmp | tail -1
@@ -109,8 +137,11 @@ If this fails, stop and send the error. Nothing has been spent.
 ## Step 6 — the real run, ten contracts
 
 ```
-node test/cuad/run.js --live --n 10
+ANTHROPIC_API_KEY="paste-the-key-here" node test/cuad/run.js --live --n 10
 ```
+
+The key is used by this command only. It is not saved, not exported to the
+shell, and nothing about the live service is altered.
 
 **Expect:** two or three minutes of quiet, then a table with real percentages.
 Cost: roughly US$0.60.
@@ -124,7 +155,7 @@ there is no key, no customer data and nothing confidential in it.
 ## Step 8 — the remaining forty (only if step 6 looked sensible)
 
 ```
-node test/cuad/run.js --live
+ANTHROPIC_API_KEY="paste-the-key-here" node test/cuad/run.js --live
 ```
 
 Roughly ten minutes and about US$1.80 more.
@@ -145,7 +176,7 @@ themselves when the run ends.
 
 | What you see | What it means | What to do |
 |---|---|---|
-| `--live needs a real ANTHROPIC_API_KEY` | The key is not in this shell's environment | Go back to step 1 |
+| `--live needs a real ANTHROPIC_API_KEY` | The key was not passed on the command line | Check it is inside the quotes, before `node`, on the same line |
 | `Cannot find CUADv1.json` | The worktree did not include the data file | Check `ls -la /tmp/scorecard/test/cuad/` — `contracts.json` should be there at ~2.2 MB |
 | `Cannot find module 'express'` | Step 4 did not take | Re-run the `ln -s` command and check with `ls -la /tmp/scorecard/node_modules` |
 | Lots of `request error` lines at the end | HaTi refused or the API rate-limited | Those are reported separately and are **not** counted as wrong answers. Send the output anyway — the errors are the finding |
