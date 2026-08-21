@@ -559,3 +559,74 @@ describe('f226-12 which duration in the sentence is the answer', () => {
     }
   });
 });
+
+/* ============================================================
+   SECTION 13 — A CALL THAT NEVER GOT AN ANSWER
+   ============================================================
+   The fifty-contract run found this, and it is the FOURTH instance of one
+   family: something that failed being counted as something that was wrong.
+
+   HaTi's own daily spend ceiling ($10) stopped the run at contract 45. Five
+   contracts never reached the extract route at all — and `spans[field]` is
+   undefined for every field when the call threw, which foundVerdict correctly
+   reads as "missed". Correct about the field, wrong about the contract:
+   nobody was asked. Up to 45 false misses in ~380 comparisons, every one of
+   them pulling the headline down.
+
+   THE OBLIGATIONS SIDE HAD THE VERDICT AND STILL GOT IT WRONG. 'call-failed'
+   was named there on the first diagnostic run, printed under "why the
+   misses" — and then counted into `foundOf` anyway, so the same 24 calls
+   were reported as failures and scored as misses in one breath. NAMED IS NOT
+   THE SAME AS EXCLUDED.
+
+   The rule, which this project's own rulebook already states: find every
+   place the thing you are changing appears, and fix all of them. */
+
+describe('f226-13 a failed call is not a wrong answer', () => {
+
+  const comp = () => () => true;
+
+  test('f226-13a call-failed is excluded, and counts in neither denominator', () => {
+    const t = S.newTally();
+    S.record(t, { foundV: 'call-failed', truth: 'x', answer: 'x', compare: comp() });
+    assert.equal(t.foundOf, 0, 'it must not sit in the FOUND denominator');
+    assert.equal(t.correctOf, 0, 'nor in the CORRECT one');
+    assert.equal(t.found, 0);
+    assert.equal(t.excludedCallFailed, 1, 'and it must be COUNTED, not dropped');
+  });
+
+  test('f226-13b it is told apart from the other two exclusions', () => {
+    /* Three different reasons a comparison does not happen, and a reader has
+       to be able to tell them apart: CUAD marked nothing, the answer cannot
+       be derived, and nobody was asked. */
+    const t = S.newTally();
+    S.record(t, { foundV: 'excluded', truth: null, answer: '', compare: comp() });
+    S.record(t, { foundV: 'found', truth: null, answer: 'x', compare: comp() });
+    S.record(t, { foundV: 'call-failed', truth: 'x', answer: '', compare: comp() });
+    assert.equal(t.excludedNotMarked, 1);
+    assert.equal(t.excludedNotDerivable, 1);
+    assert.equal(t.excludedCallFailed, 1);
+    assert.equal(t.foundOf, 1, 'only the answered one is in the denominator');
+  });
+
+  test('f226-13c a real miss is still a miss', () => {
+    /* The fix must not turn a genuine failure to find the passage into an
+       excuse. Only a call that never happened is excluded. */
+    const t = S.newTally();
+    S.record(t, { foundV: 'missed', truth: 'x', answer: 'wrong', compare: () => false });
+    assert.equal(t.foundOf, 1);
+    assert.equal(t.found, 0);
+    assert.equal(t.excludedCallFailed, 0);
+  });
+
+  test('f226-13d the headline ignores a field nobody was asked about', () => {
+    /* headline() averages found/foundOf over fields with foundOf > 0. A field
+       whose every call failed must simply not be in the average — never a 0%
+       dragging it down. */
+    const asked = S.newTally();
+    S.record(asked, { foundV: 'found', truth: null, answer: 'x', compare: comp() });
+    const never = S.newTally();
+    S.record(never, { foundV: 'call-failed', truth: 'x', answer: '', compare: comp() });
+    assert.match(S.headline({ asked, never }), /100% mean FOUND across 1 fields/);
+  });
+});

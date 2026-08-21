@@ -285,7 +285,15 @@ async function main() {
   console.log('');
 
   /* Settings raised for the TEST SERVER ONLY. The live workspace is untouched. */
-  const env = { AI_MAX_CHARS: '200000', AI_RATE_DEEP: '100000', AI_RATE_LIGHT: '100000' };
+  /* AI_DAILY_SPEND_LIMIT is the product's own $10 ceiling and it is a GOOD
+     rule — it is what stopped the first fifty-contract run at contract 45,
+     which is exactly what it is for on a real workspace. On this throwaway
+     server it is measuring the wrong thing: the operator has already been
+     told the estimate and chosen to spend it, and a ceiling that silently
+     turns the last five contracts into 45 missed fields makes the SCORE
+     wrong rather than the spending safe. 0 disables it. */
+  const env = { AI_MAX_CHARS: '200000', AI_RATE_DEEP: '100000', AI_RATE_LIGHT: '100000',
+                AI_DAILY_SPEND_LIMIT: '0' };
   if (LIVE) { delete env.ANTHROPIC_BASE_URL; env.ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY; }
   const h = await startHati(LIVE ? { ...env, ANTHROPIC_BASE_URL: 'https://api.anthropic.com' } : env);
 
@@ -320,7 +328,12 @@ async function main() {
       /* RULE 1: the exact text CUAD annotated. Never a PDF, never a
          re-extraction — CUAD's offsets index this string. */
       let ex = null, ob = null, obErr = null;
-      const prev = held.get(c.title);
+      /* A ROW WITH NO ANSWER IN IT IS NOT AN ANSWER. The dump records every
+         contract, including the ones whose call failed, so a naive resume
+         would skip exactly the contracts it exists to retry. */
+      const stored = held.get(c.title);
+      const prev = (stored && (stored.metadata && Object.keys(stored.metadata).length
+                   || stored.obligations)) ? stored : null;
       if (prev) {
         ex = { metadata: prev.metadata, sourceSpans: prev.sourceSpans };
         ob = prev.obligations ? { obligations: prev.obligations, notice: prev.obligationsNotice } : null;
@@ -348,9 +361,17 @@ async function main() {
          contract 49 used to keep nothing at all. */
       if (DUMP) { try { fs.writeFileSync(DUMP, JSON.stringify(dump, null, 1)); } catch (_) {} }
 
+      /* A FAILED EXTRACT IS NOT NINE WRONG ANSWERS. `ex` is null when the
+         request threw, and spans[field] is then undefined for every field —
+         which foundVerdict correctly reads as "missed". Correct per field,
+         wrong about the contract: nobody was asked. The obligations reader
+         has had this distinction since the first diagnostic run and the
+         field side never got it, which the fifty-contract run exposed when
+         the daily spend ceiling stopped the last five contracts. */
+      const exFailed = !ex;
       for (const field of Object.keys(CAT)) {
         const key = spansOf(c, CAT[field]);
-        const foundV = S.foundVerdict(doc, spans[field], key);
+        const foundV = exFailed ? 'call-failed' : S.foundVerdict(doc, spans[field], key);
         const truth = FOUND_ONLY.has(field) ? null : truthFor(field, c);
         S.record(tallies[field], {
           foundV, truth, answer: md[field], compare: compareFor(field),
@@ -372,6 +393,12 @@ async function main() {
       for (const cat of OBLIGATION_CATS) {
         const v = obFailed ? 'call-failed' : S.obligationMatch(doc, items, spansOf(c, cat));
         if (v === 'excluded') { oblig[cat].excludedNotMarked++; continue; }
+        /* AND HERE TOO. 'call-failed' was named on this side first and still
+           counted into the denominator — so the fifty-contract run's 24
+           budget-stopped calls sat inside every obligations percentage,
+           reported as "why the misses" and simultaneously scored as misses.
+           Named is not the same as excluded. */
+        if (v === 'call-failed') { oblig[cat].excludedCallFailed++; obWhy[v] = (obWhy[v] || 0) + 1; continue; }
         oblig[cat].foundOf++;
         if (v === 'found') oblig[cat].found++;
         else obWhy[v] = (obWhy[v] || 0) + 1;      // WHY the zero, not just that it is one
@@ -402,7 +429,10 @@ function report(tallies, oblig, errors, n, obWhy = {}) {
   console.log(line);
   for (const [f, t] of Object.entries(tallies)) {
     const corr = FOUND_ONLY.has(f) ? 'not comparable' : S.pct(t.correct, t.correctOf);
-    const exc = `${t.excludedNotMarked} unmarked, ${t.excludedNotDerivable} underivable`;
+    /* A call that never got an answer is stated, not hidden: a reader must be
+       able to tell "HaTi answered 45 of 50" from "HaTi was asked 45 times". */
+    const exc = `${t.excludedNotMarked} unmarked, ${t.excludedNotDerivable} underivable`
+      + (t.excludedCallFailed ? `, ${t.excludedCallFailed} NOT ASKED` : '');
     console.log(f.padEnd(24) + S.pct(t.found, t.foundOf).padEnd(18) + String(corr).padEnd(18) + exc);
     if (t.notVerbatim) console.log(`${''.padEnd(24)}  ^ ${t.notVerbatim} not verbatim — HaTi paraphrased instead of quoting`);
   }
@@ -410,7 +440,8 @@ function report(tallies, oblig, errors, n, obWhy = {}) {
   console.log('OBLIGATIONS READER'.padEnd(34) + 'FOUND'.padEnd(18) + 'EXCLUDED');
   console.log(line);
   for (const [c, t] of Object.entries(oblig)) {
-    console.log(c.padEnd(34) + S.pct(t.found, t.foundOf).padEnd(18) + `${t.excludedNotMarked} unmarked`);
+    console.log(c.padEnd(34) + S.pct(t.found, t.foundOf).padEnd(18) + `${t.excludedNotMarked} unmarked`
+      + (t.excludedCallFailed ? `, ${t.excludedCallFailed} NOT ASKED` : ''));
   }
   /* A zero on its own says nothing. These three causes want three different
      responses, so they are named rather than averaged into a percentage. */

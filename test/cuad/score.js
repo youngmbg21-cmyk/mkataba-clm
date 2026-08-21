@@ -493,10 +493,25 @@ function obligationMatch(doc, items, cuadSpans, min = OVERLAP_MIN) {
    ends up in a proposal. */
 function newTally() {
   return { found: 0, foundOf: 0, correct: 0, correctOf: 0,
-           notVerbatim: 0, excludedNotMarked: 0, excludedNotDerivable: 0 };
+           notVerbatim: 0, excludedNotMarked: 0, excludedNotDerivable: 0,
+           /* A CALL THAT NEVER GOT AN ANSWER IS NOT A WRONG ANSWER, and this
+              file already knew that — the obligations reader has had its own
+              'call-failed' verdict since the first diagnostic run. The FIELD
+              side never got the same treatment, and the fifty-contract run is
+              what found it: HaTi's own daily spend ceiling stopped the last
+              six contracts, five of them before the extract call, and every
+              one of those five scored as NINE missed fields. Up to 45 false
+              misses in a set of ~380 comparisons, all of them depressing the
+              headline.
+
+              Their own rulebook says it plainly: find every place the thing
+              you are changing appears, and fix them all. This is the place
+              that was missed. */
+           excludedCallFailed: 0 };
 }
 
 function record(t, { foundV, truth, answer, compare }) {
+  if (foundV === 'call-failed') { t.excludedCallFailed++; return; }
   if (foundV === 'excluded') { t.excludedNotMarked++; return; }
   t.foundOf++;
   if (foundV === 'found') t.found++;

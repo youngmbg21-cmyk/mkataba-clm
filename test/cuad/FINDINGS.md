@@ -7,6 +7,33 @@ my own bugs; these are the figures after both were fixed.
 Method and rules: `SCORING.md`. The set: `selection.json`. Raw answers from the
 run that produced this: `--dump`, then `inspect.js`.
 
+## THE FIGURES BELOW ARE THE TEN-CONTRACT RUNS — A FIFTY IS PENDING
+
+A fifty-contract run went out on 21 Aug 2026 and **its numbers are not yet
+trustworthy**, for a reason that is itself a finding.
+
+**It ran out of budget at contract 45.** HaTi's own daily Copilot ceiling —
+$10, and a good rule on a real workspace — stopped the last six contracts.
+Five never reached the extract route at all.
+
+**And a call that never happened was scored as a wrong answer.** `spans[field]`
+is undefined for every field when the call threw, which the scorer correctly
+read as "missed" — correct about the field, wrong about the contract, because
+nobody was asked. Five contracts × nine fields is up to **45 false misses** in
+about 380 comparisons, every one of them pulling the headline down. The
+obligations side had the same fault in a subtler form: it *named* those 24
+calls under "why the misses" and counted them in the denominator anyway.
+
+**This is the fourth scorer bug of one family** — something that failed being
+counted as something that was wrong. The corrected figures will be materially
+higher: counterparty read 88% (44/50) and is 44 of **45**.
+
+Fixed, and recoverable without paying again: `--resume` re-scores the 44 good
+contracts from the dump and re-asks only the six that failed. The throwaway
+test server now runs with the spend ceiling off, because on a run whose cost
+was estimated and accepted, a ceiling that silently turns five contracts into
+45 missed fields makes the score wrong rather than the spending safe.
+
 ## HOW BIG A MOVEMENT IS READABLE — READ THIS FIRST
 
 **On ten contracts, a change of fewer than about three contracts in a field is

@@ -889,6 +889,18 @@ With the whole contract reaching it and 4,000 tokens of room, three contracts re
 - **AND `maxItems` IS ADVISORY, NOT A CAP** — the model returned 40, 40, 36 and 28 against a stated 20, exactly as it had returned 18 against 12. Nothing in this product may rely on it to bound a list; where a bound has to hold, bound it after the answer arrives.
 - Five causes, five runs, each found only after the last was fixed: truncated input → a cut-off answer read as an empty one → a prompt too narrow to ask the right question → the room that prompt then needed → and then the measurement itself was the thing that had to be understood (below).
 
+## A CALL THAT NEVER GOT AN ANSWER IS NOT A WRONG ANSWER (21 Aug 2026, the fifty-contract run)
+
+**The fourth scorer bug of one family**, and the family is: something that FAILED being counted as something that was WRONG.
+
+- **THE RUN HIT HaTi'S OWN DAILY CEILING AT CONTRACT 45.** `aiDailySpendLimit` — $10, and a GOOD rule on a real workspace — stopped the last six contracts, five of them before the extract route. `spans[field]` is undefined for every field when the call threw, which `foundVerdict` correctly reads as "missed": correct about the FIELD, wrong about the CONTRACT, because nobody was asked. Five contracts × nine fields is up to **45 false misses** in ~380 comparisons, every one pulling the headline down.
+- **NAMED IS NOT THE SAME AS EXCLUDED.** The obligations side had had a `call-failed` verdict since the first diagnostic run — printed under "why the misses" — and counted those same 24 calls into `foundOf` anyway. Reported as failures and scored as misses in one breath. Both sides now exclude it, and both PRINT it ("N NOT ASKED"), because a reader must be able to tell "HaTi answered 45 of 50" from "HaTi was asked 45 times".
+- **THE CEILING IS OFF ON THE THROWAWAY SERVER ONLY** (`AI_DAILY_SPEND_LIMIT: '0'` in run.js's env). The rule itself is right and the product keeps it: on a run whose cost was estimated and accepted by the operator, a ceiling that silently turns five contracts into 45 missed fields makes the SCORE wrong rather than the spending safe.
+- **AND `--resume` NOW REFUSES A ROW WITH NO ANSWER IN IT.** The dump records every contract including the failures, so a naive resume would skip exactly the contracts it exists to retry.
+- Their rulebook's own Bug Fix Rule 3 is what this cost: find every place the thing you are changing appears, and fix them all. The obligations side was fixed first and the field side was never asked about.
+
+Tests: f226 section 13 (4 — excluded from both denominators, told apart from the other two exclusions, a real miss still a miss, and the headline ignoring a field nobody was asked about; all four fail against the scorer of an hour before).
+
 ## HOW BIG A MOVEMENT IS READABLE — THE SCORECARD'S OWN NOISE BAND (measured 21 Aug 2026, by accident)
 
 **On ten contracts, a change of fewer than about three contracts in a field is NOISE**, and this was MEASURED here rather than borrowed from a statistics book.
