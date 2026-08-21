@@ -18,11 +18,26 @@ const upField=(id,label,ph,type='text')=>`<label class="block"><span class="text
    "S e r v i c e   F e e s" soup with every line break lost. Works for standard
    text PDFs and .txt; image-only PDFs / Word fall back to the manual checklist. */
 async function inflateBytes(bytes){
+  const once=async(buf,fmt)=>{
+    const ds=new DecompressionStream(fmt);
+    const stream=new Blob([buf]).stream().pipeThrough(ds);
+    return new Uint8Array(await new Response(stream).arrayBuffer());
+  };
   for(const fmt of ['deflate','deflate-raw']){
-    try{ const ds=new DecompressionStream(fmt);
-      const stream=new Blob([bytes]).stream().pipeThrough(ds);
-      return new Uint8Array(await new Response(stream).arrayBuffer());
-    }catch(e){}
+    try{ return await once(bytes,fmt); }catch(e){}
+  }
+  /* A FEW TRAILING BYTES MUST NOT COST THE WHOLE STREAM. DecompressionStream
+     rejects a buffer with anything after the compressed data, and a PDF's
+     declared length is regularly a byte or two long — the end-of-line before
+     `endstream`, or simply a writer that counted wrong. Node's zlib tolerates
+     it silently, which is exactly why the fault was invisible until HaTi's own
+     reader was measured against another one. Bounded at four bytes: this is a
+     tolerance for a separator, never a search for a stream that is not there. */
+  for(let cut=1; cut<=4 && cut<bytes.length; cut++){
+    const shorter=bytes.slice(0, bytes.length-cut);
+    for(const fmt of ['deflate','deflate-raw']){
+      try{ return await once(shorter,fmt); }catch(e){}
+    }
   }
   return null;
 }
@@ -35,24 +50,52 @@ const PDF_WINANSI={128:'€',130:'‚',131:'ƒ',132:'„',133:'…',134:'†',13
 
 /* ---- indirect objects ---- */
 function pdfIndexObjects(bin){
-  const objs=new Map(); const re=/(\d+)\s+(\d+)\s+obj\b/g; let m;
+  const objs=new Map(); const pending=[]; const re=/(\d+)\s+(\d+)\s+obj\b/g; let m;
   while((m=re.exec(bin))){
     const num=Number(m[1]), start=m.index+m[0].length;
     const end=bin.indexOf('endobj', start);
     const body=bin.slice(start, end<0?Math.min(bin.length,start+400000):end);
     const sm=/\bstream\r?\n/.exec(body);
-    let dict=body, raw=null;
+    let dict=body, raw=null, sStart=-1, lenRef=null;
     if(sm){
       dict=body.slice(0, sm.index);
-      const sStart=start+sm.index+sm[0].length;
+      sStart=start+sm.index+sm[0].length;
       const lm=/\/Length\s+(\d+)(?!\s+\d+\s+R)/.exec(dict);
       let sEnd=lm?sStart+Number(lm[1]):-1;
       if(sEnd<0 || bin.slice(sEnd, sEnd+20).indexOf('endstream')<0){
-        const alt=bin.indexOf('endstream', sStart); sEnd=alt<0?sStart:alt;
+        /* NO DECLARED LENGTH WE CAN USE YET: fall back to the keyword, and
+           STOP BEFORE THE END-OF-LINE THAT PRECEDES IT. The bytes between the
+           stream data and `endstream` are a separator, not content, and
+           DecompressionStream refuses a buffer with anything after the
+           compressed data — one stray \n was enough to lose an entire
+           document. (zlib in Node tolerates it, which is why this never
+           showed up in a Node-side check.) */
+        const alt=bin.indexOf('endstream', sStart);
+        sEnd=alt<0?sStart:alt;
+        while(sEnd>sStart && (bin[sEnd-1]==='\n'||bin[sEnd-1]==='\r')) sEnd--;
+        /* And remember the reference, so the second pass can use the LENGTH
+           the file actually declares rather than this guess. */
+        const im=/\/Length\s+(\d+)\s+\d+\s+R/.exec(dict);
+        if(im) lenRef=Number(im[1]);
       }
       raw=bin.slice(sStart, sEnd);
     }
-    if(!objs.has(num)) objs.set(num,{dict,raw});
+    if(!objs.has(num)){ objs.set(num,{dict,raw}); if(lenRef!=null) pending.push({num,sStart,lenRef}); }
+  }
+  /* ---- SECOND PASS: /Length AS AN INDIRECT REFERENCE ----
+     LibreOffice, pdfkit and ImageMagick all write `/Length 3 0 R` rather than
+     a literal, because a compressing writer does not know the length until the
+     stream is written. It is ordinary, legal PDF. It cannot be resolved on the
+     first pass — object 3 may not be indexed yet — so it is resolved here,
+     once every object is known. MEASURED: six of the seven sample PDFs that
+     HaTi read NOTHING from wrote their lengths this way, every LibreOffice
+     file among them. */
+  for(const p of pending){
+    const holder=objs.get(p.lenRef); if(!holder) continue;
+    const lm=/^\s*(\d+)/.exec(holder.dict); if(!lm) continue;
+    const len=Number(lm[1]);
+    if(!Number.isFinite(len) || len<=0 || p.sStart+len>bin.length) continue;
+    const o=objs.get(p.num); if(o) o.raw=bin.slice(p.sStart, p.sStart+len);
   }
   return objs;
 }
@@ -438,6 +481,35 @@ function pdfTextRuns(content, fonts){
     const cp=ch.charCodeAt(0);
     return (cp>=0xE000&&cp<=0xF8FF)?'•':ch;      // private-use symbol glyph = list bullet
   };
+  /* ---- A SINGLE-BYTE CODE IS NOT ALWAYS THE CHARACTER ----
+
+     Both single-byte branches below assumed the code WAS the character, which
+     is true of a standard-encoded font and false of a SUBSET one. LibreOffice
+     — and anything exporting through it — embeds a subset TrueType font whose
+     codes are glyph numbers starting at 1, and states what they mean in a
+     /ToUnicode map. HaTi read that map correctly, attached it to the font
+     correctly, and then never asked it: the text came out as a run of control
+     characters, which every reader downstream strips, leaving NOTHING AT ALL.
+
+     Measured against pdf.js on 34 real-world PDFs: every LibreOffice file in
+     the set returned an empty document.
+
+     THE MAP WINS WHERE IT SPEAKS and falls back where it does not. A
+     /ToUnicode is the document's own statement of what a code means, so a
+     standard-encoded font that also carries one gives the same answer either
+     way, and a partial map leaves the old reading in place for the codes it
+     omits. Null means "the font offers no opinion".
+
+     Distinct from cidChar, which serves two-byte fonts and answers a bullet
+     for an unmapped code — there the map is the only reading there is; here
+     there is a fallback worth keeping. */
+  const mapChar=code=>{
+    if(!font||!font.map||!font.map.size) return null;
+    const ch=font.map.get(code);
+    if(ch===undefined||ch==='') return null;
+    const cp=ch.charCodeAt(0);
+    return (cp>=0xE000&&cp<=0xF8FF)?'•':ch;   // private-use symbol glyph = list bullet
+  };
   /* Decode a string token to text AND to the character codes behind it. The
      codes are what the font's width table is indexed by, so both travel
      together; a code whose glyph maps to nothing still advances the pen, which
@@ -451,7 +523,9 @@ function pdfTextRuns(content, fonts){
         return {text:s, codes};
       }
       for(let i=0;i<tok.v.length;i++){ const cc=tok.v.charCodeAt(i); codes.push(cc);
-        s+=(cc>=128&&cc<=173&&PDF_WINANSI[cc]!==undefined)?PDF_WINANSI[cc]:(cc>=128&&cc<=159?'':tok.v[i]); }
+        const mapped=mapChar(cc);
+        s+=mapped!==null?mapped
+          :(cc>=128&&cc<=173&&PDF_WINANSI[cc]!==undefined)?PDF_WINANSI[cc]:(cc>=128&&cc<=159?'':tok.v[i]); }
       return {text:s, codes};
     }
     const h=tok.v;
@@ -460,7 +534,9 @@ function pdfTextRuns(content, fonts){
       return {text:s, codes};
     }
     for(let i=0;i+1<h.length;i+=2){ const cc=parseInt(h.slice(i,i+2),16); codes.push(cc);
-      s+=(cc>=128&&cc<=173&&PDF_WINANSI[cc]!==undefined)?PDF_WINANSI[cc]:String.fromCharCode(cc); }
+      const mapped=mapChar(cc);
+      s+=mapped!==null?mapped
+        :(cc>=128&&cc<=173&&PDF_WINANSI[cc]!==undefined)?PDF_WINANSI[cc]:String.fromCharCode(cc); }
     return {text:s, codes};
   };
   /* `kernEm` is the net displacement the TJ array's own numbers contribute, in
