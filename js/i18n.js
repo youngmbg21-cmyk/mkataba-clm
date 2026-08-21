@@ -2046,7 +2046,8 @@ const STRINGS = {
     ob_add_selected: 'Add selected',
     ob_no_readable: 'No readable clause text to scan for obligations',
     ob_scan_unavailable: 'Copilot obligation scan unavailable — using a basic scan',
-    ob_none_found: 'No obligations found in this contract',
+    ob_none_found: 'No obligations found — this scan is not always consistent, so it is worth trying once more',
+    ob_try_again: 'Scan again',
     ob_viewers_no_change: 'Viewers cannot change obligations',
 
     // ---- Copilot scan card ----
@@ -6248,7 +6249,8 @@ const STRINGS = {
     ob_add_selected: 'Lägg till valda',
     ob_no_readable: 'Ingen läsbar klausultext att skanna efter åtaganden',
     ob_scan_unavailable: 'Copilot-skanning av åtaganden otillgänglig — använder en grundskanning',
-    ob_none_found: 'Inga åtaganden hittades i detta avtal',
+    ob_none_found: 'Inga åtaganden hittades — skanningen är inte alltid konsekvent, så det är värt att försöka en gång till',
+    ob_try_again: 'Skanna igen',
     ob_viewers_no_change: 'Läsare kan inte ändra åtaganden',
 
     // ---- Copilot-granskningskort ----

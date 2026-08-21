@@ -333,11 +333,29 @@ describe('F227 — the whole contract is read', () => {
   test('an empty obligations scan is visible, and speaks both languages', () => {
     assert.ok(!/toast\('No obligations detected'\)/.test(OBLIG),
       'the bare call is back — by this product\'s own rule it prints NOTHING');
-    assert.match(OBLIG, /toast\(i18t\('ob_none_found'\),'warn'\)/);
+    assert.match(OBLIG, /toast\(i18t\('ob_none_found'\),'warn'/);
     /* 'warn' and not 'err': nothing refused, nothing failed. */
     assert.ok(!/i18t\('ob_none_found'\),'err'/.test(OBLIG));
-    for (const lang of ['ob_none_found:'])
+    for (const lang of ['ob_none_found:', 'ob_try_again:'])
       assert.equal((I18N.match(new RegExp(lang, 'g')) || []).length, 2,
-        'the key must exist in BOTH dictionaries');
+        `${lang} must exist in BOTH dictionaries`);
+  });
+
+  test('and it offers the second press, because the second press often works', () => {
+    /* Measured across five scorecard runs rather than hoped: the same
+       contract returned 12, 20, 0, 0 and 0 obligations, and one that answered
+       nothing on a fifty-contract run answered 24 on the next. Silence here
+       is INCONSISTENCY, not blindness — on all fifty contracts the silent
+       ones average 36,518 characters against 37,813 for the answering ones,
+       which is nothing, and both sides carry maintenance, distribution,
+       outsourcing and transport agreements alike. */
+    assert.match(OBLIG, /action:\s*\{\s*label:i18t\('ob_try_again'\)/,
+      'a refusal needs its way forward on the same screen');
+    assert.match(OBLIG, /onClick:\(\)=>runFindObligations\(c\)/,
+      'and the way forward must be the same act, not a second path');
+    /* The words must not claim the contract is empty — that is the one thing
+       this scan has repeatedly been wrong about. */
+    const en = I18N.match(/ob_none_found: '([^']*)'/)[1];
+    assert.match(en, /not always consistent/);
   });
 });

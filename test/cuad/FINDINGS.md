@@ -1,38 +1,111 @@
 # What the scorecard found — 21 Aug 2026
 
-First live measurement of HaTi's Copilot against contracts it did not write.
-**Ten contracts, not fifty.** Two runs: the first produced two numbers that were
-my own bugs; these are the figures after both were fixed.
+**Fifty contracts, measured end to end.** HaTi's Copilot against commercial
+agreements it did not write, marked up by lawyers who had never seen it.
 
-Method and rules: `SCORING.md`. The set: `selection.json`. Raw answers from the
-run that produced this: `--dump`, then `inspect.js`.
+Method and rules: `SCORING.md`. The set: `selection.json`. Raw answers:
+`--dump`, then `inspect.js`.
 
-## THE FIGURES BELOW ARE THE TEN-CONTRACT RUNS — A FIFTY IS PENDING
+## THE RESULT
 
-A fifty-contract run went out on 21 Aug 2026 and **its numbers are not yet
-trustworthy**, for a reason that is itself a finding.
+| Field | FOUND | CORRECT |
+|---|---|---|
+| `governingLaw` | **100%** (48/48) | **100%** (48/48) |
+| `counterparty` | **98%** (49/50) | 88% (44/50) |
+| `renewalType` | 92% (36/39) | not comparable |
+| `liabilityCapped` | 90% (38/42) | **95%** (40/42) |
+| `noticePeriodDays` | 81% (29/36) | 85% (29/34) |
+| `contractType` | 80% (40/50) | not comparable |
+| `effectiveDate` | 79% (37/47) | **97%** (32/33) |
+| `expiryDate` | 71% (35/49) | 79% (19/24) |
+| `warrantyMonths` | 40% (8/20) | 80% (12/15) |
 
-**It ran out of budget at contract 45.** HaTi's own daily Copilot ceiling —
-$10, and a good rule on a real workspace — stopped the last six contracts.
-Five never reached the extract route at all.
+**81% mean FOUND across nine fields, on fifty contracts.**
 
-**And a call that never happened was scored as a wrong answer.** `spans[field]`
-is undefined for every field when the call threw, which the scorer correctly
-read as "missed" — correct about the field, wrong about the contract, because
-nobody was asked. Five contracts × nine fields is up to **45 false misses** in
-about 380 comparisons, every one of them pulling the headline down. The
-obligations side had the same fault in a subtler form: it *named* those 24
-calls under "why the misses" and counted them in the denominator anyway.
+**Obligations reader:** 843 obligations, **every one of them carrying a
+quote**. Minimum commitments 59%, insurance 55%, audit rights 41%,
+post-termination services 39%.
 
-**This is the fourth scorer bug of one family** — something that failed being
-counted as something that was wrong. The corrected figures will be materially
-higher: counterparty read 88% (44/50) and is 44 of **45**.
+**Quotes:** 31 of 561 spans (6%) not found verbatim in the contract.
 
-Fixed, and recoverable without paying again: `--resume` re-scores the 44 good
-contracts from the dump and re-asks only the six that failed. The throwaway
-test server now runs with the spend ceiling off, because on a run whose cost
-was estimated and accepted, a ceiling that silently turns five contracts into
-45 missed fields makes the score wrong rather than the spending safe.
+### Where it is weakest, and where it is strong
+
+`warrantyMonths` at 40% FOUND is the weak field by a distance, on 20 contracts.
+Note its CORRECT of 80%, which is the pattern across this table: **where HaTi's
+answer can be checked it is usually right, more often than it quotes the exact
+passage a lawyer highlighted.** Six of the nine CORRECT figures are 85% or
+better; three are at or above 95%.
+
+**Twenty-one of fifty contracts still return no obligations at all.** That is
+the largest open item and it is characterised below — it is inconsistency
+rather than blindness.
+
+## THE FIVE PRODUCT DEFECTS THIS FOUND, ALL FIXED
+
+1. **Three AI features read only the front of a long contract** (20,000
+   characters; renewal 12,000) — and the browser cut to 20,000 a second time
+   before posting. Six truncations, none of them ever a recorded decision.
+2. **A cut-off answer was reported as an empty one.** Nothing in the server
+   read `stop_reason`, so "I ran out of room" reached the screen as "no
+   obligations found in this contract".
+3. **Quotes were spliced**, separate passages joined with an ellipsis and
+   printed to customers as quotations.
+4. **The obligations prompt named five kinds of duty** and never mentioned
+   audit rights or minimum commitments — the two categories scoring zero.
+5. **"No obligations found" printed nothing at all**, being a bare `toast()`
+   call, which this product treats as silent.
+
+## AND FOUR OF MY OWN, WHICH BEAR ON TRUSTING THESE NUMBERS
+
+Every one was caught by reading real output, and none by any test:
+
+1. **`liabilityCapped` reported 0%** — the scorer compared `yes`/`no` against
+   HaTi's `capped`/`uncapped`. True figure 100%.
+2. **"Measured against 510 professionally reviewed contracts"** printed on a
+   ten-contract run. A fiftyfold overstatement, in the line written to keep
+   the claim honest.
+3. **The notice period read the renewal TERM, not the notice** — the first
+   duration in "successive one-year terms unless sixty (60) days notice".
+   **Wrong on 18 of 34 entries in the answer key**, marking HaTi wrong for
+   right answers.
+4. **A call that never happened was scored as a wrong answer.** The daily
+   budget stopped the run at contract 45 and five contracts became 45 false
+   misses. The headline read 74%; it is 81%.
+
+The rule that came out of the first, in `score.js`, is what caught the third
+and fourth: **a figure that disagrees with a healthy FOUND score is a scorer
+bug until proven otherwise.**
+
+---
+
+## WHY TWENTY-ONE CONTRACTS RETURN NOTHING — AND IT IS NOT LENGTH
+
+The ten-contract run showed a clean split: contracts that answered were
+14k–26k characters, silent ones 22k–52k. It looked decisive and it was the
+basis of a fix.
+
+**On fifty contracts it disappears.** Silent contracts average **36,518**
+characters; answering ones **37,813**. Medians 39,588 against 37,876. The
+ranges overlap almost entirely, and both sides carry maintenance,
+distribution, outsourcing and transport agreements alike. **The split at n=10
+was noise, exactly as the band below predicts** — and the prompt fix built on
+that diagnosis still worked (0 obligations to 843), for reasons that were not
+the reason given.
+
+What it looks like instead is **inconsistency**. The same contract returned 12,
+then 20, then 0, then 0, then 0 across five runs; four contracts that answered
+nothing when the budget cut them off answered 20–24 on the very next attempt.
+Twenty-one of fifty return nothing on any given run, and it is not the same
+twenty-one.
+
+**So the product now offers the second press.** "No obligations found" no
+longer claims the contract is empty — it says the scan is not always
+consistent and carries a *Scan again* button running the same act, not a
+second path. Neither hiding the result nor asserting something about the
+customer's paper that has repeatedly turned out to be untrue.
+
+**Not attempted:** scanning twice automatically and merging. It would double
+the cost of every scan to paper over a model behaviour, and nobody asked.
 
 ## HOW BIG A MOVEMENT IS READABLE — READ THIS FIRST
 
@@ -50,6 +123,15 @@ what varies is which passage it quotes.
 So: a fifteen-point move is real, a five-point move is not, and the way to
 narrow the band is more contracts rather than more runs. Full reasoning and
 the measurements are in SCORING.md.
+
+---
+
+# THE TEN-CONTRACT RECORD, KEPT AS IT WAS WRITTEN
+
+Everything below is the earlier ten-contract work, left in place rather than
+deleted: it is how each defect was found, in the order it was found, and the
+reasoning is worth more than the superseded figures. **Every number in it is
+superseded by the fifty-contract table at the top of this file.**
 
 ## HOW TO READ THIS
 
@@ -396,8 +478,10 @@ until proven otherwise.**
 
 ## THE CLAIM, IF A FIGURE IS EVER PUBLISHED
 
-> measured on 10 contracts drawn from CUAD, a set of 510 marked up by
+> measured on 50 contracts drawn from CUAD, a set of 510 marked up by
 > commercial lawyers
 
 Never *"N% accurate"*. Never cite 510 as the number measured. Credit CUAD
-(CC BY 4.0).
+(CC BY 4.0). And do not quote the headline without the FOUND/CORRECT split
+beside it — 81% is the share of answers read from the passage a lawyer
+marked, and it understates how often HaTi's answer is right.

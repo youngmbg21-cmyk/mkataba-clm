@@ -498,12 +498,30 @@ async function runFindObligations(c){
   const found=await extractObligations(c);
   if(btn){ btn.disabled=false; }
   renderObligationsSection(c);
-  /* AND IT MUST SAY SO OUT LOUD. This was a BARE toast call, which by this
-     product's own rule is SILENT — so pressing Find obligations on a contract
-     that returned nothing did nothing visible at all, and the reader had no
-     way to tell a working scan from a broken button. It is a 'warn' now, and
-     it goes through the dictionary like every other message on this screen. */
-  if(!found.length){ toast(i18t('ob_none_found'),'warn'); return; }
+  /* AND IT MUST SAY SO OUT LOUD, WITH A WAY FORWARD. This was a BARE toast
+     call, which by this product's own rule is SILENT — so pressing Find
+     obligations on a contract that returned nothing did nothing visible at
+     all, and the reader had no way to tell a working scan from a broken
+     button.
+
+     THE SECOND PRESS IS OFFERED BECAUSE IT OFTEN WORKS, and that is measured
+     rather than hoped: across the CUAD scorecard's five runs the same
+     contract returned 12, then 20, then 0, then 0, then 0 obligations, and
+     one that answered nothing on a fifty-contract run answered 24 on the
+     next. Silence here is INCONSISTENCY, not blindness — it is not the
+     length of the contract (measured on all fifty: silent contracts average
+     36,518 characters against 37,813 for answering ones, which is nothing)
+     and not its kind (maintenance, distribution, outsourcing and transport
+     agreements sit on both sides).
+
+     So the honest thing is neither to claim the contract has no obligations
+     nor to hide the result: say what happened and offer the retry, because a
+     refusal needs its way forward on the same screen. */
+  if(!found.length){
+    toast(i18t('ob_none_found'),'warn',{ action:{ label:i18t('ob_try_again'),
+      onClick:()=>runFindObligations(c) } });
+    return;
+  }
   openObligationsReview(c, found);
 }
 function openObligationsReview(c, found){

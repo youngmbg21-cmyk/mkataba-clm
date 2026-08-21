@@ -889,6 +889,17 @@ With the whole contract reaching it and 4,000 tokens of room, three contracts re
 - **AND `maxItems` IS ADVISORY, NOT A CAP** — the model returned 40, 40, 36 and 28 against a stated 20, exactly as it had returned 18 against 12. Nothing in this product may rely on it to bound a list; where a bound has to hold, bound it after the answer arrives.
 - Five causes, five runs, each found only after the last was fixed: truncated input → a cut-off answer read as an empty one → a prompt too narrow to ask the right question → the room that prompt then needed → and then the measurement itself was the thing that had to be understood (below).
 
+## THE OBLIGATIONS READER IS INCONSISTENT, NOT BLIND (21 Aug 2026, the fifty-contract run)
+
+**The ten-contract run's length diagnosis does not survive fifty.** It showed a clean split — answering contracts 14k–26k characters, silent ones 22k–52k — and that was the basis of the prompt rewrite. On fifty: silent contracts average **36,518** characters against **37,813** for answering ones, medians 39,588 against 37,876, ranges overlapping almost entirely, and both sides carrying maintenance, distribution, outsourcing and transport agreements alike. **The split at n=10 was noise, exactly as the noise band predicts.** The fix built on it still worked (0 obligations → 843, every one quoted) — for reasons that were not the reason given, and saying so is the point.
+
+- **WHAT IT ACTUALLY IS: INCONSISTENCY.** The same contract returned 12, then 20, then 0, then 0, then 0 across five runs; four contracts that answered nothing when the daily budget cut them off answered 20–24 on the very next attempt. 21 of 50 return nothing on any given run, and it is not the same 21.
+- **SO THE PRODUCT OFFERS THE SECOND PRESS.** `ob_none_found` no longer claims the contract is empty — it says the scan is not always consistent — and the warn toast carries a *Scan again* action calling `runFindObligations(c)`, the SAME act and never a second path. A refusal needs its way forward on the same screen, and this is a refusal wearing a finding's clothes: the one thing this scan has repeatedly been wrong about is asserting that a contract holds no duties.
+- **NOT BUILT, said out loud:** scanning twice automatically and merging. It would double the cost of every scan to paper over a model behaviour, and nobody has asked for it.
+- **AND THE MEASUREMENT IS DONE.** 81% mean FOUND across nine fields on fifty contracts; governing law 100/100, counterparty 98, liability cap 90/95, effective date 79/97. Where HaTi's answer can be checked it is usually right — more often than it quotes the exact passage a lawyer highlighted, which is what the FOUND/CORRECT split exists to show. Weakest field is warrantyMonths at 40% FOUND on 20 contracts. Five product defects found and fixed; four scorer bugs of my own found and fixed, every one caught by reading real output rather than by any test.
+
+Tests: f227 (24 — the retry offered, wired to the same act, and the words proved not to claim an empty contract).
+
 ## A CALL THAT NEVER GOT AN ANSWER IS NOT A WRONG ANSWER (21 Aug 2026, the fifty-contract run)
 
 **The fourth scorer bug of one family**, and the family is: something that FAILED being counted as something that was WRONG.
