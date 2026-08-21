@@ -1,5 +1,5 @@
 /* ============================================================
-   F227 — the whole contract is read, and a quote is one passage
+   F230 — the whole contract is read, and a quote is one passage
    ============================================================
    Written after the first live measurement of HaTi's Copilot against
    contracts it did not write (test/cuad — 50 real agreements marked up by
@@ -71,7 +71,7 @@ const stripComments = s => s
 
 const SERVER_CODE = stripComments(SERVER);
 
-describe('F227 — the whole contract is read', () => {
+describe('F230 — the whole contract is read', () => {
 
   /* ---------- 1. the four slices are gone, and stay gone ---------- */
 

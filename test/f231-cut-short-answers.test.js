@@ -1,7 +1,7 @@
 /* ============================================================
-   F228 — an answer cut short, end to end against a real server
+   F231 — an answer cut short, end to end against a real server
    ============================================================
-   f227 pins the SOURCE of this fix. This file proves the BEHAVIOUR, against
+   f230 pins the SOURCE of this fix. This file proves the BEHAVIOUR, against
    a running HaTi and a provider stand-in that cuts an answer short exactly
    as Anthropic does — because the whole defect was that a cut-off answer
    was indistinguishable from an empty one, and only something that can
@@ -57,9 +57,9 @@ after(async () => { await h.stop(); await ai.stop(); });
 
 const read = () => W.admin.json('/api/ai/obligations', { method: 'POST', body: { text: DOC } });
 
-describe('F228 — a cut-off answer is not an empty answer', () => {
+describe('F231 — a cut-off answer is not an empty answer', () => {
 
-  test('f228-1 a complete answer comes back whole, as it always did', async () => {
+  test('f231-1 a complete answer comes back whole, as it always did', async () => {
     ai.reset();
     ai.script(OBLIGATIONS([
       { desc: 'Deliver within 30 days of the purchase order', quote: 'deliver each consignment within thirty (30) days' },
@@ -70,7 +70,7 @@ describe('F228 — a cut-off answer is not an empty answer', () => {
     assert.equal(r.notice, undefined, 'a complete answer must carry no warning');
   });
 
-  test('f228-2 an EMPTY answer is still a real answer about the contract', async () => {
+  test('f231-2 an EMPTY answer is still a real answer about the contract', async () => {
     /* The contract genuinely holding no obligations must stay distinguishable
        from the two failures below — this is the case js/obligations.js is
        entitled to print "No obligations found in this contract" for. */
@@ -81,7 +81,7 @@ describe('F228 — a cut-off answer is not an empty answer', () => {
     assert.equal(r.notice, undefined);
   });
 
-  test('f228-3 a CUT-OFF answer is refused, never reported as empty', async () => {
+  test('f231-3 a CUT-OFF answer is refused, never reported as empty', async () => {
     /* The defect, reproduced. Before the fix this returned 200 with
        obligations: [] and the screen said the contract had none. */
     ai.reset();
@@ -94,7 +94,7 @@ describe('F228 — a cut-off answer is not an empty answer', () => {
       'and it must say WHY, not merely fail');
   });
 
-  test('f228-4 a PARTIAL list is kept, and says it is partial', async () => {
+  test('f231-4 a PARTIAL list is kept, and says it is partial', async () => {
     /* Degrading to partial beats degrading to silence — the whole point of
        the original finding. What arrived is real work and is handed over;
        the notice is what stops it reading as the complete picture. */
@@ -107,7 +107,7 @@ describe('F228 — a cut-off answer is not an empty answer', () => {
     assert.match(String(r.notice || ''), /cut short/i, 'and must not read as the whole answer');
   });
 
-  test('f228-5 the warning reaches OTHER routes too — one place, every route', async () => {
+  test('f231-5 the warning reaches OTHER routes too — one place, every route', async () => {
     /* The flag is recorded once in anthropicMessages and turned into a
        sentence once in aiNotice, so a route nobody thought about inherits it.
        Proved on a different route rather than asserted from the source. */
@@ -120,7 +120,7 @@ describe('F228 — a cut-off answer is not an empty answer', () => {
       'the extract route never mentions truncation itself — it inherits it');
   });
 
-  test('f228-6 the stand-in really can cut an answer short', async () => {
+  test('f231-6 the stand-in really can cut an answer short', async () => {
     /* A test that cannot fail the way the real thing fails is a description.
        startScriptedAi produced only COMPLETE answers until this fix, which is
        why the whole suite passed while the defect was live. */

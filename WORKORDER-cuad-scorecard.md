@@ -252,7 +252,7 @@ sentence written to keep the claim honest, and one line below "50 contracts".
 510 is the size of the SET; it is not the number measured, and quoting it as
 one would overstate a ten-contract run fiftyfold. The runner printed the same
 error into its own output on the first live run and it was caught by a person
-reading the screen, not by any test — f226 now pins it three ways.
+reading the screen, not by any test — f229 now pins it three ways.
 
 The line is:
 

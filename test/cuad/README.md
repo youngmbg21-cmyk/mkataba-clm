@@ -58,7 +58,7 @@ section of RUN-THE-SCORECARD.md.
     ANTHROPIC_API_KEY=sk-... node test/cuad/run.js --live --corpus ...
 
 `score.js` holds the rules and is PURE — no network, no server, no AI — which
-is what lets `test/f226-cuad-scoring.test.js` prove all 45 of them in
+is what lets `test/f229-cuad-scoring.test.js` prove all 45 of them in
 milliseconds, for nothing, in the ordinary suite. It is deliberately not
 wired into `npm test` as a live run: a scorecard that spends money on every
 save is one somebody will switch off.

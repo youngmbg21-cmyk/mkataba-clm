@@ -1,4 +1,4 @@
-/* f226 — the CUAD scorecard's scoring rules.
+/* f229 — the CUAD scorecard's scoring rules.
 
    The scorer is what turns "HaTi said X, CUAD marked Y" into a number that
    ends up in a proposal, so its rules are pinned here BEFORE any Copilot
@@ -18,54 +18,54 @@ const span = (text, at) => ({ text, answer_start: at });
 
 /* ---------- 1. locating HaTi's quote ---------- */
 
-test('f226-1a locate finds the phrase and reports its range', () => {
+test('f229-1a locate finds the phrase and reports its range', () => {
   const doc = 'This Agreement is governed by the laws of the State of New York.';
   const at = S.locate(doc, 'laws of the State of New York');
   assert.equal(at.length, 1);
   assert.equal(doc.slice(at[0][0], at[0][1]), 'laws of the State of New York');
 });
 
-test('f226-1b whitespace differs, the quote still matches — the document is never normalised', () => {
+test('f229-1b whitespace differs, the quote still matches — the document is never normalised', () => {
   // CUAD's offsets index the raw text. Flexibility goes in the PATTERN, or
   // every answer in the key would shift.
   const doc = 'terminate\nupon  ninety (90)   days   written notice';
   assert.equal(S.locate(doc, 'ninety (90) days written notice').length, 1);
 });
 
-test('f226-1c a phrase that is not in the document does not match', () => {
+test('f229-1c a phrase that is not in the document does not match', () => {
   assert.equal(S.locate('governed by the laws of Kenya', 'laws of Sweden').length, 0);
 });
 
 /* ---------- 2. FOUND: overlap by half the shorter span ---------- */
 
-test('f226-2a overlap is measured against the SHORTER span, so both directions work', () => {
+test('f229-2a overlap is measured against the SHORTER span, so both directions work', () => {
   // A party name is ~16 chars and a liability cap ~290 in the real key.
   // Containment in either direction fails at one end; this must not.
   assert.equal(S.overlaps([100, 116], [90, 380]), true, 'short inside long');
   assert.equal(S.overlaps([90, 380], [100, 116]), true, 'long around short');
 });
 
-test('f226-2b a single character of overlap is a near-miss, not a hit', () => {
+test('f229-2b a single character of overlap is a near-miss, not a hit', () => {
   assert.equal(S.overlaps([0, 100], [99, 400]), false);
 });
 
-test('f226-2c exactly half the shorter span passes', () => {
+test('f229-2c exactly half the shorter span passes', () => {
   assert.equal(S.overlaps([0, 100], [50, 400]), true);
 });
 
-test('f226-2d ANY of CUAD spans, not all — CUAD marks parties in several places', () => {
+test('f229-2d ANY of CUAD spans, not all — CUAD marks parties in several places', () => {
   const doc = 'x'.repeat(40) + 'REYNOLDS CONSUMER PRODUCTS LLC' + 'y'.repeat(40);
   const key = [span('Seller', 0), span('REYNOLDS CONSUMER PRODUCTS LLC', 40)];
   assert.equal(S.foundVerdict(doc, 'REYNOLDS CONSUMER PRODUCTS LLC', key), 'found');
 });
 
-test('f226-2e reading from the wrong passage is missed', () => {
+test('f229-2e reading from the wrong passage is missed', () => {
   const doc = 'AAAA governed by Kenya BBBB warranty lasts twelve months CCCC';
   const key = [span('governed by Kenya', 5)];
   assert.equal(S.foundVerdict(doc, 'warranty lasts twelve months', key), 'missed');
 });
 
-test('f226-2f a paraphrase is NOT-VERBATIM, never folded into missed', () => {
+test('f229-2f a paraphrase is NOT-VERBATIM, never folded into missed', () => {
   // Its own defect: those spans are printed as quotations on the upload
   // screen and the renewal card. But the ANSWER may be perfectly right.
   const doc = 'terminable upon ninety (90) days written notice';
@@ -74,32 +74,32 @@ test('f226-2f a paraphrase is NOT-VERBATIM, never folded into missed', () => {
   assert.equal(S.foundVerdict(doc, '90 days notice required', key), 'not-verbatim');
 });
 
-test("f226-2g CUAD marked nothing -> excluded, the owner's ruling 3", () => {
+test("f229-2g CUAD marked nothing -> excluded, the owner's ruling 3", () => {
   assert.equal(S.foundVerdict('any text', 'any quote', []), 'excluded');
   assert.equal(S.foundVerdict('any text', 'any quote', null), 'excluded');
 });
 
-test('f226-2h HaTi answered nothing where CUAD marked something -> missed', () => {
+test('f229-2h HaTi answered nothing where CUAD marked something -> missed', () => {
   assert.equal(S.foundVerdict('abc', '', [span('abc', 0)]), 'missed');
 });
 
 /* ---------- 3. deriving the truth out of the span ---------- */
 
-test('f226-3a "ninety (90) days" is 90 — the digits in the bracket win', () => {
+test('f229-3a "ninety (90) days" is 90 — the digits in the bracket win', () => {
   assert.deepEqual(S.parseDuration('at least ninety (90) days'), { n: 90, unit: 'day' });
 });
 
-test('f226-3b words alone and digits alone both read', () => {
+test('f229-3b words alone and digits alone both read', () => {
   assert.deepEqual(S.parseDuration('forty-five days'), { n: 45, unit: 'day' });
   assert.deepEqual(S.parseDuration('30 days'), { n: 30, unit: 'day' });
   assert.deepEqual(S.parseDuration('twelve months'), { n: 12, unit: 'month' });
 });
 
-test('f226-3c a span with no duration derives nothing rather than guessing', () => {
+test('f229-3c a span with no duration derives nothing rather than guessing', () => {
   assert.equal(S.parseDuration('terminable on reasonable notice'), null);
 });
 
-test('f226-3d months against a field measured in DAYS is a RANGE, not a number', () => {
+test('f229-3d months against a field measured in DAYS is a RANGE, not a number', () => {
   // CORRECTS SCORING.md, which said "3 months notice is 3 months, not 90
   // days". HaTi's field is noticePeriodDays and must answer in days; a month
   // has no fixed length, so 3 months is anything from 3x28 to 3x31.
@@ -111,18 +111,18 @@ test('f226-3d months against a field measured in DAYS is a RANGE, not a number',
   assert.equal(ok(30), false, 'a month is not three');
 });
 
-test('f226-3e days stay exact — no range is invented where the contract is exact', () => {
+test('f229-3e days stay exact — no range is invented where the contract is exact', () => {
   assert.deepEqual(S.durationToDays(S.parseDuration('60 days')), { lo: 60, hi: 60 });
 });
 
-test('f226-3f dates parse in the forms US filings actually use', () => {
+test('f229-3f dates parse in the forms US filings actually use', () => {
   assert.equal(S.parseDate('this 15th day of March, 2019'), '2019-03-15');
   assert.equal(S.parseDate('March 15, 2019'), '2019-03-15');
   assert.equal(S.parseDate('3/15/2019'), '2019-03-15');
   assert.equal(S.parseDate('2019-03-15'), '2019-03-15');
 });
 
-test('f226-3g a span naming only the defined term derives no date', () => {
+test('f229-3g a span naming only the defined term derives no date', () => {
   // Why effectiveDate derives on 33 of 47: CUAD often marks the term, not
   // the date. Those contracts leave the CORRECT denominator and stay in the
   // FOUND one.
@@ -131,7 +131,7 @@ test('f226-3g a span naming only the defined term derives no date', () => {
 
 /* ---------- 4. governing law: the list must not be short ---------- */
 
-test('f226-4a the four that a short list got wrong', () => {
+test('f229-4a the four that a short list got wrong', () => {
   // Scored as underivable on the first pass. The gap was the tooling, not
   // the data — and a short list silently UNDERSTATES the score.
   assert.equal(S.jurisdiction('the laws of Hong Kong'), 'Hong Kong');
@@ -140,34 +140,34 @@ test('f226-4a the four that a short list got wrong', () => {
   assert.equal(S.jurisdiction('the federal laws of Canada applicable therein'), 'Canada');
 });
 
-test('f226-4b longest name wins, so New York never reads as York', () => {
+test('f229-4b longest name wins, so New York never reads as York', () => {
   assert.equal(S.jurisdiction('the laws of the State of New York'), 'New York');
   assert.equal(S.jurisdiction('the Province of British Columbia'), 'British Columbia');
 });
 
-test('f226-4c the markets this product sells into are in the list', () => {
+test('f229-4c the markets this product sells into are in the list', () => {
   assert.equal(S.jurisdiction('governed by the laws of Kenya'), 'Kenya');
   assert.equal(S.jurisdiction('governed by Swedish law in Sweden'), 'Sweden');
 });
 
-test('f226-4d naming the wrong level fails — Kenyan and Swedish law are national', () => {
+test('f229-4d naming the wrong level fails — Kenyan and Swedish law are national', () => {
   const truth = S.jurisdiction('the laws of the State of New York');
   assert.notEqual(truth, S.jurisdiction('the laws of the United States'));
 });
 
 /* ---------- 5. the counterparty, under the owner's first-party rule ---------- */
 
-test('f226-5a any party but the first-named is accepted', () => {
+test('f229-5a any party but the first-named is accepted', () => {
   const key = [span('ACME HOLDINGS INC', 0), span('REYNOLDS CONSUMER PRODUCTS LLC', 40)];
   assert.equal(S.counterpartyVerdict('Reynolds Consumer Products', key), true);
 });
 
-test('f226-5b naming the first party fails — it is conventionally the drafting side', () => {
+test('f229-5b naming the first party fails — it is conventionally the drafting side', () => {
   const key = [span('ACME HOLDINGS INC', 0), span('REYNOLDS CONSUMER PRODUCTS LLC', 40)];
   assert.equal(S.counterpartyVerdict('Acme Holdings', key), false);
 });
 
-test('f226-5c role words are skipped, or everything would match something', () => {
+test('f229-5c role words are skipped, or everything would match something', () => {
   // CUAD interleaves role labels with company names — parties average 4.5
   // spans. The roles drop out first, so "first-named" means the first real
   // COMPANY, not the word "Seller".
@@ -178,33 +178,33 @@ test('f226-5c role words are skipped, or everything would match something', () =
   assert.equal(S.counterpartyVerdict('Buyer', key), false, 'a role is not a party');
 });
 
-test('f226-5c2 one company name and the rest roles cannot be judged -> excluded', () => {
+test('f229-5c2 one company name and the rest roles cannot be judged -> excluded', () => {
   // The single name IS the first-named, so the owner's rule has nothing to
   // accept. Excluded is the honest answer; guessing would invent a verdict.
   const key = [span('Seller', 0), span('Buyer', 8), span('NAIVAS LIMITED', 20)];
   assert.equal(S.counterpartyVerdict('Naivas', key), null);
 });
 
-test('f226-5d corporate suffixes are noise, not a wrong answer', () => {
+test('f229-5d corporate suffixes are noise, not a wrong answer', () => {
   assert.equal(S.normCompany('REYNOLDS CONSUMER PRODUCTS LLC'),
                S.normCompany('Reynolds Consumer Products, Inc.'));
 });
 
-test('f226-5e fewer than two named parties cannot apply the rule -> excluded', () => {
+test('f229-5e fewer than two named parties cannot apply the rule -> excluded', () => {
   assert.equal(S.counterpartyVerdict('Anyone', [span('Seller', 0)]), null);
 });
 
 /* ---------- 6. liabilityCapped: three states from two categories ---------- */
 
-test('f226-6a a cap with carve-outs is still a cap', () => {
+test('f229-6a a cap with carve-outs is still a cap', () => {
   assert.equal(S.liabilityTruth([span('cap', 0)], [span('uncapped for IP', 9)]), 'capped');
 });
 
-test('f226-6b only uncapped marked reads as uncapped', () => {
+test('f229-6b only uncapped marked reads as uncapped', () => {
   assert.equal(S.liabilityTruth([], [span('uncapped', 0)]), 'uncapped');
 });
 
-test("f226-6d the truth speaks HaTi's OWN vocabulary, not a synonym", () => {
+test("f229-6d the truth speaks HaTi's OWN vocabulary, not a synonym", () => {
   // The first live run reported liabilityCapped CORRECT 0% (0/9) with FOUND
   // at 67%. Not a failure of HaTi: this returned yes/no while HaTi's field is
   // an enum of capped/uncapped/unclear, so every comparison was false. A zero
@@ -218,7 +218,7 @@ test("f226-6d the truth speaks HaTi's OWN vocabulary, not a synonym", () => {
     "must match the enum in /api/ai/extract's file_contract tool");
 });
 
-test('f226-6c neither marked is EXCLUDED, never "unclear"', () => {
+test('f229-6c neither marked is EXCLUDED, never "unclear"', () => {
   // The annotator finding nothing is not the contract being silent, and
   // scoring against that would invent a wrong answer.
   assert.equal(S.liabilityTruth([], []), null);
@@ -226,7 +226,7 @@ test('f226-6c neither marked is EXCLUDED, never "unclear"', () => {
 
 /* ---------- 7. the tally, and how it is reported ---------- */
 
-test('f226-7a excluded contracts never enter a denominator', () => {
+test('f229-7a excluded contracts never enter a denominator', () => {
   const t = S.newTally();
   S.record(t, { foundV: 'excluded', truth: null, answer: null, compare: () => true });
   assert.equal(t.foundOf, 0);
@@ -234,7 +234,7 @@ test('f226-7a excluded contracts never enter a denominator', () => {
   assert.equal(t.excludedNotMarked, 1);
 });
 
-test('f226-7b FOUND and CORRECT keep SEPARATE denominators', () => {
+test('f229-7b FOUND and CORRECT keep SEPARATE denominators', () => {
   // The whole point of two figures: a field can be found and misread, and
   // one denominator must never stand for the other.
   const t = S.newTally();
@@ -245,7 +245,7 @@ test('f226-7b FOUND and CORRECT keep SEPARATE denominators', () => {
   assert.equal(t.excludedNotDerivable, 1);
 });
 
-test('f226-7c found-but-wrong is a real state and is visible', () => {
+test('f229-7c found-but-wrong is a real state and is visible', () => {
   const t = S.newTally();
   S.record(t, { foundV: 'found', truth: '2019-01-01', answer: '2019-02-01', compare: (a, b) => a === b });
   assert.equal(t.found, 1);
@@ -253,7 +253,7 @@ test('f226-7c found-but-wrong is a real state and is visible', () => {
   assert.equal(t.correctOf, 1);
 });
 
-test('f226-7d not-verbatim counts against FOUND and is reported on its own', () => {
+test('f229-7d not-verbatim counts against FOUND and is reported on its own', () => {
   const t = S.newTally();
   S.record(t, { foundV: 'not-verbatim', truth: 90, answer: 90, compare: (a, b) => a === b });
   assert.equal(t.found, 0);
@@ -261,13 +261,13 @@ test('f226-7d not-verbatim counts against FOUND and is reported on its own', () 
   assert.equal(t.correct, 1, 'the answer can still be right');
 });
 
-test('f226-7e every percentage carries its denominator', () => {
+test('f229-7e every percentage carries its denominator', () => {
   assert.equal(S.pct(30, 36), '83% (30/36)');
   assert.equal(S.pct(0, 0), 'no data');
   assert.ok(!/^\d+%$/.test(S.pct(30, 36)), 'a bare percentage must never be produced');
 });
 
-test('f226-7f the six unscoreable fields say WHY, and value names the ruling', () => {
+test('f229-7f the six unscoreable fields say WHY, and value names the ruling', () => {
   for (const k of ['value', 'currency', 'paymentTerms', 'retentionPct',
                    'retentionReleaseDays', 'category', 'priceReview']) {
     assert.ok(S.NOT_MEASURED[k], `${k} must state a reason`);
@@ -275,7 +275,7 @@ test('f226-7f the six unscoreable fields say WHY, and value names the ruling', (
   assert.match(S.NOT_MEASURED.value, /no value category/i);
 });
 
-test('f226-7g the headline states what it is and counts its fields', () => {
+test('f229-7g the headline states what it is and counts its fields', () => {
   const t1 = S.newTally(); t1.found = 9; t1.foundOf = 10;
   const t2 = S.newTally(); t2.found = 7; t2.foundOf = 10;
   const h = S.headline({ a: t1, b: t2 });
@@ -283,7 +283,7 @@ test('f226-7g the headline states what it is and counts its fields', () => {
   assert.match(h, /80%/);
 });
 
-test('f226-7h a field with nothing measured does not drag the headline', () => {
+test('f229-7h a field with nothing measured does not drag the headline', () => {
   const t1 = S.newTally(); t1.found = 9; t1.foundOf = 10;
   const empty = S.newTally();
   assert.match(S.headline({ a: t1, b: empty }), /across 1 fields/);
@@ -293,14 +293,14 @@ test('f226-7h a field with nothing measured does not drag the headline', () => {
    Measured on the 50: only 9 of 49 marked spans state a date. 33 state a
    duration instead, which is how a term is ordinarily drafted. */
 
-test('f226-8a a stated date wins and carries no tolerance', () => {
+test('f229-8a a stated date wins and carries no tolerance', () => {
   const t = S.expiryTruth([span('shall expire on March 15, 2024', 0)], []);
   assert.deepEqual(t, { at: '2024-03-15', computed: false });
   assert.equal(S.expiryMatches(t, '2024-03-15'), true);
   assert.equal(S.expiryMatches(t, '2024-03-16'), false, 'a stated date is exact');
 });
 
-test('f226-8b a duration ANCHORED to a known effective date is computed', () => {
+test('f229-8b a duration ANCHORED to a known effective date is computed', () => {
   const t = S.expiryTruth(
     [span('commence on the Effective Date and continue for an Initial Term of five (5) years', 0)],
     [span('dated as of March 1, 2019', 0)]);
@@ -308,7 +308,7 @@ test('f226-8b a duration ANCHORED to a known effective date is computed', () => 
   assert.equal(t.computed, true);
 });
 
-test('f226-8c a computed expiry allows one day — the ambiguity is the drafting\'s', () => {
+test('f229-8c a computed expiry allows one day — the ambiguity is the drafting\'s', () => {
   // "for five years from 1 March" does not settle whether the term ends on
   // the anniversary or the day before it. That is the contract's ambiguity,
   // not HaTi's, so it is not scored as an error.
@@ -320,7 +320,7 @@ test('f226-8c a computed expiry allows one day — the ambiguity is the drafting
   assert.equal(S.expiryMatches(t, '2024-03-08'), false, 'a week out does not');
 });
 
-test('f226-8d a duration with NO stated anchor derives nothing', () => {
+test('f229-8d a duration with NO stated anchor derives nothing', () => {
   // "a term of ten (10) years" — from when? Assuming the effective date
   // would invent the TRUTH, which is worse than inventing an answer: it
   // marks a correct reading wrong.
@@ -328,13 +328,13 @@ test('f226-8d a duration with NO stated anchor derives nothing', () => {
                              [span('March 1, 2019', 0)]), null);
 });
 
-test('f226-8e anchored but the effective date is unknown derives nothing', () => {
+test('f229-8e anchored but the effective date is unknown derives nothing', () => {
   assert.equal(S.expiryTruth(
     [span('for five (5) years from the Effective Date', 0)],
     [span('the Effective Date', 0)]), null);
 });
 
-test('f226-8f addDuration crosses month and year ends — including a known quirk', () => {
+test('f229-8f addDuration crosses month and year ends — including a known quirk', () => {
   // PINNED, NOT BLESSED: JS date arithmetic overflows, so one month from 31
   // January lands on 3 March rather than the end of February a lawyer would
   // read. Harmless here — expiry terms are drafted in years, and a computed
@@ -362,18 +362,18 @@ const RUNNER = fs.readFileSync(path.join(__dirname, 'cuad', 'run.js'), 'utf8');
 /* comments legitimately DISCUSS the old wording — strip them before asserting */
 const RUNNER_CODE = RUNNER.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
-test('f226-9a the runner never prints a hardcoded "against 510"', () => {
+test('f229-9a the runner never prints a hardcoded "against 510"', () => {
   assert.ok(!/against 510/i.test(RUNNER_CODE),
     'the claim must not name 510 as the number measured');
 });
 
-test('f226-9b the claim is built from the run\'s own contract count', () => {
+test('f229-9b the claim is built from the run\'s own contract count', () => {
   const claim = RUNNER_CODE.split('\n').filter(l => /Claim as/.test(l)).join('\n');
   assert.ok(claim, 'the runner must still print a suggested claim');
   assert.match(claim, /\$\{n\b/, 'the claim must interpolate the actual count');
 });
 
-test('f226-9c "N% accurate" is still refused, and CUAD still credited', () => {
+test('f229-9c "N% accurate" is still refused, and CUAD still credited', () => {
   assert.match(RUNNER_CODE, /never "N% accurate"/);
   assert.match(RUNNER_CODE, /CC BY 4\.0/);
 });
@@ -390,7 +390,7 @@ const BOOK = [
   ...Array.from({ length: 6 }, (_, i) => row('services', 's' + i)),
 ];
 
-test('f226-10a ten contracts reach every group, not ten of one', () => {
+test('f229-10a ten contracts reach every group, not ten of one', () => {
   // The fault: selection.json is group-ordered, so slice(0,10) returned ten
   // procurement contracts — the pharma-skewed ones stage 1 warned about.
   const got = S.spreadAcrossGroups(BOOK, 10);
@@ -400,25 +400,25 @@ test('f226-10a ten contracts reach every group, not ten of one', () => {
   assert.equal(new Set(naive.map(r => r.group)).size, 1, 'and the old way really did take one');
 });
 
-test('f226-10b the full run is untouched — same contracts, every one', () => {
+test('f229-10b the full run is untouched — same contracts, every one', () => {
   assert.equal(S.spreadAcrossGroups(BOOK, 0).length, BOOK.length);
   assert.equal(S.spreadAcrossGroups(BOOK, 999).length, BOOK.length);
   assert.deepEqual(S.spreadAcrossGroups(BOOK, 0), BOOK, 'no limit means no reordering at all');
 });
 
-test('f226-10c order within a group is preserved — best-covered first', () => {
+test('f229-10c order within a group is preserved — best-covered first', () => {
   // selection.json sorts each group by how much of the answer key it has.
   const got = S.spreadAcrossGroups(BOOK, 12).filter(r => r.group === 'procurement');
   assert.deepEqual(got.map(r => r.title), ['p0', 'p1']);
 });
 
-test('f226-10d a limit larger than one group still fills from the others', () => {
+test('f229-10d a limit larger than one group still fills from the others', () => {
   const small = [row('a', 'a0'), row('b', 'b0'), row('b', 'b1'), row('b', 'b2')];
   const got = S.spreadAcrossGroups(small, 3);
   assert.deepEqual(got.map(r => r.title), ['a0', 'b0', 'b1']);
 });
 
-test('f226-10e asking for more than exists returns everything, without looping', () => {
+test('f229-10e asking for more than exists returns everything, without looping', () => {
   const small = [row('a', 'a0'), row('b', 'b0')];
   assert.equal(S.spreadAcrossGroups(small, 50).length, 2);
 });
@@ -435,21 +435,21 @@ const OB_DOC =
   'Section 9. PAYMENT. Buyer shall pay each invoice within thirty (30) days.';
 const OB_KEY = [span('Buyer may, on reasonable notice, audit the books and records of Seller', 21)];
 
-test('f226-11a a quoted obligation on the right clause registers as found', () => {
+test('f229-11a a quoted obligation on the right clause registers as found', () => {
   // The reader is NOT broken if this passes — which is what the free half of
   // the diagnosis had to establish before asking anyone to pay for a re-run.
   const items = [{ desc: 'Allow buyer audits', quote: 'audit the books and records of Seller' }];
   assert.equal(S.obligationMatch(OB_DOC, items, OB_KEY), 'found');
 });
 
-test('f226-11b obligations about OTHER clauses are "elsewhere", not a failure', () => {
+test('f229-11b obligations about OTHER clauses are "elsewhere", not a failure', () => {
   // A real and useful finding about scope: the reader found genuine
   // obligations, they are simply not the four CUAD marks.
   const items = [{ desc: 'Pay within 30 days', quote: 'pay each invoice within thirty (30) days' }];
   assert.equal(S.obligationMatch(OB_DOC, items, OB_KEY), 'elsewhere');
 });
 
-test('f226-11c obligations with NO quote are their own answer', () => {
+test('f229-11c obligations with NO quote are their own answer', () => {
   // `quote` is optional in the tool schema — required is ['desc'] alone — and
   // js/obligations.js prints it only if present. An obligation that cannot be
   // traced back to the wording is a product defect worth naming, not a miss.
@@ -457,12 +457,12 @@ test('f226-11c obligations with NO quote are their own answer', () => {
   assert.equal(S.obligationMatch(OB_DOC, items, OB_KEY), 'no-quotes');
 });
 
-test('f226-11d nothing returned at all is distinct from all of the above', () => {
+test('f229-11d nothing returned at all is distinct from all of the above', () => {
   assert.equal(S.obligationMatch(OB_DOC, [], OB_KEY), 'none-returned');
   assert.equal(S.obligationMatch(OB_DOC, null, OB_KEY), 'none-returned');
 });
 
-test('f226-11e CUAD marked nothing -> excluded, ruling 3 again', () => {
+test('f229-11e CUAD marked nothing -> excluded, ruling 3 again', () => {
   assert.equal(S.obligationMatch(OB_DOC, [{ desc: 'x', quote: 'y' }], []), 'excluded');
 });
 
@@ -490,7 +490,7 @@ test('f226-11e CUAD marked nothing -> excluded, ruling 3 again', () => {
    same tell, and score.js states the rule: a figure that disagrees with a
    healthy FOUND score is a scorer bug until proven otherwise. */
 
-describe('f226-12 which duration in the sentence is the answer', () => {
+describe('f229-12 which duration in the sentence is the answer', () => {
 
   /* Verbatim from the CUAD answer key. Do not tidy them. */
   const ZOUNDS = 'This Agreement will renew automatically thereafter for successive one-year terms unless and until one Party gives notification of termination with at least sixty (60) days written notice.';
@@ -499,14 +499,14 @@ describe('f226-12 which duration in the sentence is the answer', () => {
   const NANOPHASE = 'The initial term of this Agreement shall be for a period of five (5) years from the date first set forth above and shall thereafter automatically renew for additional two (2) year terms unless a party provides the other party with notice of non-renewal no less than 6 months prior to the expiration of the initial term or any renewal term unless earlier terminated as follows:';
   const APOLLO_NOTICE = 'by either party with one (1) year written notice prior to the expiration of the initial period or any extension period thereof.';
 
-  test('f226-12a the notice reading takes the notice, not the renewal term', () => {
+  test('f229-12a the notice reading takes the notice, not the renewal term', () => {
     assert.deepEqual(S.noticeDuration(ZOUNDS), { n: 60, unit: 'day' });
     assert.deepEqual(S.noticeDuration(BELLRING), { n: 12, unit: 'month' });
     assert.deepEqual(S.noticeDuration(EDIETS), { n: 60, unit: 'day' });
     assert.deepEqual(S.noticeDuration(NANOPHASE), { n: 6, unit: 'month' });
   });
 
-  test('f226-12b and the old reading really did get all four wrong', () => {
+  test('f229-12b and the old reading really did get all four wrong', () => {
     /* Kept as a claim rather than a memory: parseDuration is still exported
        and still used where the FIRST duration is the right one. If it ever
        starts agreeing with noticeDuration here, one of the two has changed
@@ -518,7 +518,7 @@ describe('f226-12 which duration in the sentence is the answer', () => {
     assert.deepEqual(S.parseDuration(ZOUNDS), { n: 1, unit: 'year' });   // the renewal term
   });
 
-  test('f226-12c the term reading refuses a notice period', () => {
+  test('f229-12c the term reading refuses a notice period', () => {
     /* "one (1) year written notice" is not a one-year term, and treating it
        as one invents an expiry the contract never states. */
     assert.equal(S.termDuration(APOLLO_NOTICE), null);
@@ -526,14 +526,14 @@ describe('f226-12 which duration in the sentence is the answer', () => {
     assert.deepEqual(S.termDuration(NANOPHASE), { n: 5, unit: 'year' });
   });
 
-  test('f226-12d an evergreen agreement gets no expiry invented for it', () => {
+  test('f229-12d an evergreen agreement gets no expiry invented for it', () => {
     const ever = [{ text: 'the term of this Agreement shall commence on the Effective Date and shall remain in effect until terminated by either Party on 30 days notice', answer_start: 0 }];
     const eff = [{ text: 'March 11, 2015', answer_start: 0 }];
     assert.equal(S.expiryTruth(ever, eff), null,
       'a contract with no term must yield no truth, not effective-date-plus-30-days');
   });
 
-  test('f226-12e a genuine term still computes, and still carries its tolerance', () => {
+  test('f229-12e a genuine term still computes, and still carries its tolerance', () => {
     const spans = [{ text: 'The initial term of this Agreement shall be one (1) year from the Effective Date (the "Initial Term").', answer_start: 0 }];
     const eff = [{ text: 'the 5th day of February, 2020', answer_start: 0 }];
     const t = S.expiryTruth(spans, eff);
@@ -543,7 +543,7 @@ describe('f226-12 which duration in the sentence is the answer', () => {
     assert.equal(S.expiryMatches(t, '2021-02-07'), false);
   });
 
-  test('f226-12f a span with one duration reads the same either way', () => {
+  test('f229-12f a span with one duration reads the same either way', () => {
     /* The commonest shape by far, and the reason this went unnoticed: where
        there is nothing to choose between, both readings agree. Sixteen of the
        thirty-four truths did not move. */
@@ -552,7 +552,7 @@ describe('f226-12 which duration in the sentence is the answer', () => {
     assert.deepEqual(S.parseDuration(plain), { n: 90, unit: 'day' });
   });
 
-  test('f226-12g nothing to read is null, on both readings', () => {
+  test('f229-12g nothing to read is null, on both readings', () => {
     for (const bad of ['', null, undefined, 'no duration here at all']) {
       assert.equal(S.noticeDuration(bad), null);
       assert.equal(S.termDuration(bad), null);
@@ -582,11 +582,11 @@ describe('f226-12 which duration in the sentence is the answer', () => {
    The rule, which this project's own rulebook already states: find every
    place the thing you are changing appears, and fix all of them. */
 
-describe('f226-13 a failed call is not a wrong answer', () => {
+describe('f229-13 a failed call is not a wrong answer', () => {
 
   const comp = () => () => true;
 
-  test('f226-13a call-failed is excluded, and counts in neither denominator', () => {
+  test('f229-13a call-failed is excluded, and counts in neither denominator', () => {
     const t = S.newTally();
     S.record(t, { foundV: 'call-failed', truth: 'x', answer: 'x', compare: comp() });
     assert.equal(t.foundOf, 0, 'it must not sit in the FOUND denominator');
@@ -595,7 +595,7 @@ describe('f226-13 a failed call is not a wrong answer', () => {
     assert.equal(t.excludedCallFailed, 1, 'and it must be COUNTED, not dropped');
   });
 
-  test('f226-13b it is told apart from the other two exclusions', () => {
+  test('f229-13b it is told apart from the other two exclusions', () => {
     /* Three different reasons a comparison does not happen, and a reader has
        to be able to tell them apart: CUAD marked nothing, the answer cannot
        be derived, and nobody was asked. */
@@ -609,7 +609,7 @@ describe('f226-13 a failed call is not a wrong answer', () => {
     assert.equal(t.foundOf, 1, 'only the answered one is in the denominator');
   });
 
-  test('f226-13c a real miss is still a miss', () => {
+  test('f229-13c a real miss is still a miss', () => {
     /* The fix must not turn a genuine failure to find the passage into an
        excuse. Only a call that never happened is excluded. */
     const t = S.newTally();
@@ -619,7 +619,7 @@ describe('f226-13 a failed call is not a wrong answer', () => {
     assert.equal(t.excludedCallFailed, 0);
   });
 
-  test('f226-13d the headline ignores a field nobody was asked about', () => {
+  test('f229-13d the headline ignores a field nobody was asked about', () => {
     /* headline() averages found/foundOf over fields with foundOf > 0. A field
        whose every call failed must simply not be in the average — never a 0%
        dragging it down. */

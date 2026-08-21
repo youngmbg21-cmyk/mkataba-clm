@@ -148,7 +148,7 @@ one stand for the other.
   (`warrantyMonths`). Words and digits are the same answer — "ninety (90) days"
   is 90 — and legal drafting writes both. **Reuse `precedentFigure`'s existing
   reading; do not grow a second one.**
-  **CORRECTED at stage 4 by f226-3d.** This first read *"'3 months' notice is 3
+  **CORRECTED at stage 4 by f229-3d.** This first read *"'3 months' notice is 3
   months, not 90 days"*, which reads well and is unusable: HaTi's field is
   literally `noticePeriodDays` and must answer in days. A month has no fixed
   length, so a period stated in months is compared as a RANGE — 3 months is

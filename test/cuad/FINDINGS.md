@@ -191,7 +191,7 @@ exactly as they were taken — they are the record of what was found, not a
 running score. **The figures have NOT been re-measured since the fix**, and
 nothing here should be read as describing HaTi today until they have been.
 See CLAUDE.md, "THE WHOLE CONTRACT IS READ, AND A QUOTE IS ONE PASSAGE", and
-test f227.
+test f230.
 
 ## 1. THREE AI FEATURES READ ONLY THE FRONT OF A LONG CONTRACT
 
@@ -425,7 +425,7 @@ caught this one: *a figure that disagrees with a healthy FOUND score is a
 scorer bug until proven otherwise.* FOUND for the notice period was 70%.
 
 **None of the 59 existing tests caught it**, because every fixture in them held
-a single duration. Section 12 of f226 now carries the real sentences, verbatim
+a single duration. Section 12 of f229 now carries the real sentences, verbatim
 from the corpus.
 
 **HaTi's own two field definitions were hardened at the same time** — not
