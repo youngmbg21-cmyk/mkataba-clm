@@ -276,6 +276,108 @@ THE SPLIT IS THE WHOLE DESIGN: **a contract states its OWN currency; REPORTING c
 
 AND THE SHORT PRINT WAS LEFT BEHIND (found 19 Aug 2026, photographing the register): fmtMoneyOf got the rule the day W2-1 shipped and every COMPACT print — the register row, the flat list, the queue card, both intelligence maps, the migration preview, the contract row in the Copilot panel, components.js's row — went on stating the workspace currency over a foreign amount, so a euro contract read "KES 420K" while the aggregate beneath it (which converts) was right. **fmtMoneyShortOf(c)** is the compact twin of fmtMoneyOf, built on fmtMoneyShortIn(n, code); fmtMoneyShort(n) is unchanged and is still what a THRESHOLD, a signing cap and a fee estimate print in. The phone already had the rule (mMoney) — the duplication warning in its usual direction. Tests: f218 (24, including a sweep that fails on the next screen written the old way).
 
+## THE LAUNCH AUDIT'S FIXES (21 Aug 2026) — AUDIT-E2E-REPORT.md, WORKORDER-e2e-launch-audit.md
+
+An autonomous end-to-end audit drove a real server through an SME's whole
+working life and came back with six defects, every one reproduced twice from a
+fresh server before it was touched. FOUR OF THE SIX ARE ONE CLASS, and it is the
+class the legal audit closed everywhere else: **the browser is cosmetics, the
+server is the wall.** A rule enforced only in the pixels holds until somebody
+sends the request themselves. Tests: f226 (10), f218's server claim REVERSED IN
+PLACE.
+
+- **THE WORDING FREEZE HAD NO SERVER HALF.** This rulebook states it as an
+  implemented invariant — the wording freezes at the FIRST signature, not the
+  last — and it lived only in negoFileChange / negoResolve. `EXECUTED_IMMUTABLE`
+  engages on `isExecutedRow`, which is FULL execution, so between the first mark
+  and the last (status still Under Review, no seal) a raw PUT rewrote the
+  document under a signature already given: the first signer's mark stood over
+  wording they never saw, and their stored signature kept the docHash of text the
+  record no longer held. **anySignatureRow** is the server's twin of
+  negoAnySignature and reads BOTH stores for the same reason signingLocked does
+  (a counterparty's mark reaches c.signatures only when the owner's browser
+  applies it; an internal signer's lands on the plan row). **SIGNED_WORDING_FROZEN**
+  = body · redlineText · format · upload — a SUBSET of EXECUTED_IMMUTABLE, so a
+  record only ever gains protection. THE WORDING ONLY, mirroring the browser's
+  own scope out loud ("the point is that the words stop moving, not that the
+  contract stops working"): taking the remaining signature, obligations, notes
+  and every additive fact still pass, or an SME with two signers is stuck between
+  them. Asked as a DIFFERENCE, like every guard on that route.
+- **THE SIGNING CAP WAS DODGED BY RENAMING THE CURRENCY.** The guard's own
+  comment says the currency comes off the STORED record — "the half the person
+  being capped does not get to restate on the way past" — and the code read
+  `(prev && prev.metadata) || (c && c.metadata) || {}`, which does the opposite
+  the moment the stored record has NO metadata object: the ordinary shape of a
+  template-made contract, whose value is typed on Key terms and never writes a
+  metadata block. A capped editor sent their signature and
+  `metadata:{currency:'TZS'}` in ONE save and a sub-1 rate slipped a 10,000,000
+  contract under a 5,000,000 cap, leaving the record mislabelled besides. **BOTH
+  READINGS, LARGER WINS** — the value guard's own answer one line up, and safe in
+  BOTH directions: stored-only would close the reported hole and open its mirror
+  (a dearer currency named for the first time in that same save would be measured
+  in workspace money and under-counted). EITHER reading missing a rate REFUSES,
+  because a rate missing on the currency being claimed is exactly the state that
+  must not become a pass. **WHAT IS NOT CLOSED, said out loud:** the same signer
+  can still relabel the currency in one save and sign in the NEXT, because the
+  guard then reads a stored record that genuinely says TZS. That is not this
+  guard failing — it is the open question of *who may restate a contract's
+  currency at all*, which moves every reported figure in the workspace and is the
+  owner's to rule on, not a fix to make at the end of a night.
+- **THE PER-PERSON COPILOT SPEND LEAKED THROUGH A SECOND DOOR.** `/api/ai/spend`
+  carries `admin` precisely so the by-PERSON league table stays with admins — "a
+  route more open than the page it feeds is a permission that exists only in the
+  pixels". `/api/ai/config` is `auth` only, every signed-in browser calls it, and
+  it embedded the WHOLE `aiSpendToday()` object; when that object gained
+  `byPerson` on 14 Aug the leak came with it, unnoticed because f203 only ever
+  read it as the admin. `byPerson` and `unattributed` are stripped for a
+  non-admin the way the bootstrap strips ADMIN_ONLY_USER_FIELDS — the fact does
+  not travel, rather than the screen choosing not to draw it. The by-FEATURE and
+  workspace totals are UNTOUCHED: they are public by design through
+  `/api/ai/usage`, and the browser reads byPerson only on renderTeam.
+- **EVERY SCHEDULED MAIL LINKED TO localhost.** Mail composed without a live
+  request — obligation nudges, the daily and weekly briefs, intake decisions, and
+  the 3-day nudge that goes to the COUNTERPARTY — builds links from APP_URL, and
+  neither `render.yaml`'s env list nor `DEPLOYMENT.md`'s table ever asked for it,
+  so the documented way to deploy shipped dead links to real inboxes. Worst of
+  all to an outside reader, whose only button led nowhere. THREE HALVES: both
+  deploy files now require it, **appUrlWarn()** says so once at boot (and stands
+  down on an OS-assigned ephemeral port, which is the test harness — a warning
+  that cries wolf in the logs is one nobody reads on the day it is true), and
+  `notifyIntakeDecision` now takes the **`req` it always had** and never needed
+  APP_URL for at all. The sweeps genuinely have no request and are the reason the
+  setting is not optional.
+- **AN EDITOR COULD SILENTLY WITHDRAW A COLLEAGUE'S REQUEST.** PATCH
+  /api/intake/:id guarded 'withdrawn' with `(!isOwner && !isEditor)` — any
+  non-viewer passed for ANYBODY's request, the opposite of the sentence printed
+  beside it and of the route's own comment. It mattered because 'withdrawn' is
+  deliberately outside notifyIntakeDecision on the premise that nobody needs
+  telling about their own act: the request vanished from the queue with no mail,
+  no reason and no name on it, and the requester's row read "Withdrawn" as though
+  they had done it themselves — the exact silent-disappearance fault the notice
+  was built to close, and a quiet way around declining, which always costs a
+  reason and always mails. Now the requester or an ADMIN (who can already decide
+  it outright, and has to be able to tidy up after a member who has left).
+- **A RECORD WAS WRITTEN IN THE READER'S LANGUAGE.** `applyParentLink` built the
+  'Linked' audit line from RELATION_LABEL — the SCREEN's word — so a member
+  working in Swedish wrote "Filed as a ändringsavtal of MK-P1" into the trail: a
+  permanent record in two languages, the English a/an article computed over a
+  Swedish noun, beside a "Created" line from the same act that correctly stayed
+  English. RELATION_DOC_WORD is the record word and its own comment three hundred
+  lines down already said so. AND THE GETTER TRAP, a fourth time:
+  `Object.fromEntries(...r.label)` INVOKES each getter, so RELATION_LABEL was a
+  snapshot of whatever language was current at import — a reader who switched
+  mid-session kept the old word in the family panel, the register and the
+  migration preview until they reloaded. Per-key getters delegating to
+  CONTRACT_RELATIONS' own `label` keep the `RELATION_LABEL[k]` shape every caller
+  uses and answer at the moment they are read.
+
+NOT TAKEN, said out loud: the counterparty share payload is still served as the
+sender's browser built it — POST /api/shares strips reviewer-held changes off the
+STORED contract (that wall holds), but a hand-crafted `review` object,
+per-change `resolvedBy` or an owner-side `note` would be stored and served
+verbatim. Unreachable through the product, and closing it changes what the
+counterparty receives, which is the owner's call rather than a night's fix.
+
 ## "SENT" MUST MEAN SENT (14 Aug 2026 — the re-audit's second pass, owner-asked: "fix the email")
 
 THE FIRST AUDIT SAID IT HAD NOT COVERED REAL OUTBOUND EMAIL, and that absence was the finding. Every test ran with email OFF, so the OUTBOX branch was the only branch any of them had ever taken — nothing had executed the code that talks to a provider, reads its refusal, or reports what it said. `startMailStub` / `startHatiWithMail` (test/helpers.js) close it: RESEND_BASE_URL is overridable exactly as ANTHROPIC_BASE_URL is, so the whole live path runs for real against a stand-in that records what it was handed and can be told to refuse (`ok` / `refuse` / `dead`). Nothing fires at anybody's inbox.

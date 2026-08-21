@@ -1,5 +1,5 @@
 /* ============================================================
-   f226 — a browser harness must run somewhere other than this machine
+   f227 — a browser harness must run somewhere other than this machine
    ============================================================
    THIS FAULT HAS NOW BITTEN THREE TIMES, in three different files, and each
    time it was found by a CI run rather than by anything in this suite:
@@ -42,7 +42,7 @@ const read = f => fs.readFileSync(path.join(DIR, f), 'utf8');
 const SANDBOX_BROWSER = '/opt/pw-browsers/chromium';
 const SANDBOX_ROOT = '/home/user/mkataba-clm';
 
-describe('f226 — no browser harness is nailed to this machine', () => {
+describe('f227 — no browser harness is nailed to this machine', () => {
   test('every file that names the sandbox browser also guards on it existing', () => {
     const nailed = [];
     for (const f of FILES) {

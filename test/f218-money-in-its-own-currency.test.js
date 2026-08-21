@@ -289,9 +289,26 @@ describe('F218 — the guards compare like with like', () => {
   test('the server\'s own signing wall does the same, off the STORED record', () => {
     const srv = read('server/server.js');
     const guard = srv.slice(srv.indexOf('if (signCapOn() && req.user.role !==') ,
-      srv.indexOf('if (signCapOn() && req.user.role !==') + 2600);
-    assert.match(guard, /const meta = \(prev && prev\.metadata\) \|\| \(c && c\.metadata\) \|\| \{\};/,
-      'the currency comes off the stored record, like the value beside it');
+      /* Wide enough to reach the whole guard including its reasoning — the
+         window was 2600 and the fix's own comment pushed the code past it. */
+      srv.indexOf('if (signCapOn() && req.user.role !==') + 4200);
+    /* CLAIM REVERSED IN PLACE (launch audit, 21 Aug 2026). This pinned the exact
+       line `const meta = (prev && prev.metadata) || (c && c.metadata) || {};`,
+       and that line did the OPPOSITE of the claim printed beside it the moment
+       the stored record had no metadata object — the ordinary shape of a
+       template-made contract. The falsy stored half fell through to the
+       REQUEST's own currency, so a capped signer could send their signature and
+       `metadata:{currency:'TZS'}` together and a sub-1 rate shrank the contract
+       under their cap. The CLAIM was right and the code was wrong; the claim
+       stands and the pin now describes a guard that honours it. */
+    assert.ok(!/const meta = \(prev && prev\.metadata\) \|\| \(c && c\.metadata\) \|\| \{\};/.test(guard),
+      'the request\'s own currency must never be the sole source — that is the bypass');
+    assert.match(guard, /convStored = convOf\(prev && prev\.metadata\)/,
+      'the stored record is read, like the value beside it');
+    assert.match(guard, /convAsked = convOf\(c && c\.metadata\)/,
+      'and the incoming one too, so a dearer currency declared in this save is not under-counted');
+    assert.match(guard, /find\(x => x\.missing\)/,
+      'either reading missing a rate is a refusal — the claimed currency must not become a pass');
     assert.match(guard, /conv\.missing/, 'and an unconvertible contract is refused, not waved through');
   });
 
