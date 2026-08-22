@@ -3419,30 +3419,20 @@ function redlineLayoutCss(){
   html.dark .redline-page .rl-readwrap .rl-seg.on .rl-seg-n,
   html.dark .redline-page .rl-readwrap .rl-seg:hover,
   html.dark .redline-page #ws-head .room-name-id:hover,
-  html.dark .redline-page .rl-livelist,
-  html.dark .redline-page .rl-thread-foot button{color:var(--color-accent-300)}
+  html.dark .redline-page .rl-livelist{color:var(--color-accent-300)}
 
-  /* ---- 4 · THE PAGE MEASURE, AND THE SCROLLER THAT CARRIES THE PANELS ----
+  /* ---- 4 · THE PAGE MEASURE ----
      48px either side, which is this product's own page measure and what the
-     render draws. #redline-host takes exactly one screenful (height:100%), so
-     the contract and the change column still scroll inside themselves; the two
-     panels sit after it and the page scrolls to reach them. */
-  .redline-page .rl-scroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;
+     render draws. It sits on the MOUNT rather than on the page, because the
+     head and the control bar above are full-width white bands with their own
+     24px inset and one padding on #view-redline could not do both.
+     THE WORKING AREA IS THE WINDOW and nothing scrolls past it: the contract
+     and the change column fill it and each scrolls inside itself, which is the
+     rule this page has always had. */
+  .redline-page #redline-host{flex:1;min-height:0;display:flex;flex-direction:column;
     padding:16px 48px 26px}
-  ${''/* The panes take one screenful of the scroller — the contract and the
-         change column keep scrolling inside THEMSELVES, which is the rule this
-         page has always had — and the panels sit after them. height:100%
-         rather than flex:1: as a flex child they would share the space with the
-         panels and both would be crushed. */}
-  .redline-page .rl-scroll > .rl-root{flex:none;height:100%}
-  .redline-page .rl-below{margin-top:16px;display:grid;gap:16px;align-items:start;
-    grid-template-columns:320px minmax(0,1fr)}
-  .redline-page .rl-below:empty{display:none;margin:0}
-  @media (max-width:1199px){
-    .redline-page .rl-below{grid-template-columns:minmax(0,1fr)}
-  }
   @media (max-width:900px){
-    .redline-page .rl-scroll{padding:12px 16px 20px}
+    .redline-page #redline-host{padding:12px 16px 20px}
     .redline-page #ws-head,.redline-page .rl-tabrow{padding-left:16px;padding-right:16px}
   }
 
@@ -3499,70 +3489,7 @@ function redlineLayoutCss(){
          sent ask). The receipt keeps the card's type and earns its height back
          from its padding and its missing verbs. */}
 
-  /* ---- 7 · LIVE THREADS ----
-     Your other live negotiations, beside the one you are working. Each row says
-     whose move it is, in the same words and the same colours the Negotiations
-     list uses — negWhoseMove is the one reading, so a row here and a row there
-     cannot disagree. */
-  .redline-page .rl-panel{background:var(--color-surface);border:1px solid var(--color-divider);
-    min-width:0}
-  .redline-page .rl-panel-h{display:flex;align-items:center;gap:10px;padding:12px 16px;
-    box-shadow:inset 0 -1px var(--color-divider)}
-  .redline-page .rl-panel-h h3{margin:0;font-size:17px;font-weight:700;flex:none;white-space:nowrap}
-  .redline-page .rl-panel-n{margin-left:auto;flex:none;font-size:13px;color:var(--color-neutral-600);
-    font-variant-numeric:tabular-nums}
-  .redline-page .rl-panel-sub{padding:9px 16px;font-size:12.5px;color:var(--color-neutral-600);
-    box-shadow:inset 0 -1px var(--color-divider)}
-  .redline-page .rl-thread{display:block;width:100%;text-align:left;border:0;background:none;
-    font:inherit;cursor:pointer;padding:12px 14px;box-shadow:inset 0 -1px var(--color-divider);
-    border-left:3px solid transparent}
-  .redline-page .rl-thread:hover{background:var(--color-bg)}
-  .redline-page .rl-thread.on{background:color-mix(in srgb,var(--accent-solid) 6%,var(--color-surface));
-    border-left-color:var(--accent-solid);cursor:default}
-  .redline-page .rl-thread-nm{display:block;font-size:14px;font-weight:600;color:var(--color-text);
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .redline-page .rl-thread-cp{display:block;font-size:12px;color:var(--color-neutral-600);margin-top:2px;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .redline-page .rl-thread-mv{display:block;font-size:12px;font-weight:700;margin-top:5px}
-  .redline-page .rl-thread-foot{padding:12px 16px;display:flex}
-  .redline-page .rl-thread-foot button{border:0;background:none;font:inherit;font-size:13px;
-    font-weight:600;color:var(--color-accent-800);cursor:pointer;padding:0}
-  .redline-page .rl-thread-foot button:hover{text-decoration:underline}
-  .redline-page .rl-panel-empty{padding:16px;font-size:13px;color:var(--color-neutral-600)}
 
-  /* ---- 8 · PROPOSALS ON THE TABLE ----
-     The same changes as the column above, read side by side. It is drawn by the
-     card renderer under the proposal layout, so the list, the order, the wall,
-     the reviewer narrowing and every verb are the column's own — there is no
-     second reading to drift. What differs is the body: two boxes instead of a
-     two-line preview, and the author's reason under them. */
-  .redline-page .rl-prop{box-shadow:inset 0 -1px var(--color-divider);padding:14px 16px;
-    border:0;border-radius:0;background:none}
-  .redline-page .rl-prop:last-child{box-shadow:none}
-  .redline-page .rl-prop-top{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
-  .redline-page .rl-prop-cl{font-size:14px;font-weight:700;color:var(--color-text);min-width:0;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .redline-page .rl-prop-age{margin-left:auto;flex:none;font-size:12px;color:var(--color-neutral-600)}
-  .redline-page .rl-prop-tag{flex:none;font-size:11px;font-weight:700;padding:2px 7px;border-radius:0}
-  .redline-page .rl-prop-tag.us{background:var(--st-amber-bg);color:var(--st-amber-fg)}
-  .redline-page .rl-prop-tag.them{background:var(--color-neutral-100);color:var(--color-neutral-700)}
-  .redline-page .rl-versus{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px}
-  @media (max-width:760px){ .redline-page .rl-versus{grid-template-columns:minmax(0,1fr)} }
-  .redline-page .rl-vs{border:1px solid var(--color-divider);padding:10px 12px;min-width:0}
-  .redline-page .rl-vs-k{font-size:11px;letter-spacing:.09em;text-transform:uppercase;
-    color:var(--color-neutral-600);margin-bottom:5px}
-  ${''/* A clause can be long, and two of them side by side would let one
-         proposal take the whole panel. The box scrolls inside itself instead —
-         every word stays reachable, which a clamp could not promise, and the
-         row keeps a size a reader can scan past. */}
-  .redline-page .rl-vs-b{font-size:13px;line-height:1.6;color:var(--color-text);
-    overflow-wrap:anywhere;max-height:190px;overflow-y:auto}
-  /* Theirs sits on the warm ground the paper uses, so which box is whose is
-     readable before a word of it is. */
-  .redline-page .rl-vs.theirs{background:var(--color-doc-warm);border-color:var(--color-doc-warm-line)}
-  .redline-page .rl-prop-why{font-size:13px;color:var(--color-neutral-600);margin-bottom:10px}
-  .redline-page .rl-prop .rl-card-actions{margin:0}
-  .redline-page .rl-prop .rl-card-verbs{justify-content:flex-start}
   `;
   document.head.appendChild(s);
 }

@@ -933,46 +933,33 @@ was asking for.
   resting count and the accent-700 fill on the live one are measured contrast
   decisions six days older than this redesign and were not part of what it
   reversed. A first pass flattened all three and copilot-band-verify caught it.
-- **LIVE THREADS — NEW.** Your other live negotiations beside the one you are
-  working, so checking whether anything else has moved no longer means leaving
-  the round. It DECIDES NOTHING: `negoLiveList` is the population and
-  `negoMovePillHtml` the whose-move line, both the Negotiations table's own. The
-  row you are on is marked and is NOT a door (a press whose only outcome is
-  redrawing the page you are on is a dead button). A foot door leads to the
-  closed ones through `negoClosedList` — the other half of `negoIsLive`, reading
-  `c.changes` RAW for the same reason — and `regShowOnly`, this product's ONE way
-  of saying "show me exactly this list".
-- **PROPOSALS ON THE TABLE — NEW, AND IT IS THE CARD RENDERER.**
-  `redlineChangeCardsHtml(c, {...opts, layout:'proposal'})` — the same opts the
-  column is drawn with plus one flag, so the list, the order, the wall between
-  the seats, a reviewer's narrowing and **every verb** are the column's own.
-  That is not tidiness: two surfaces showing one set of changes with one set of
-  buttons is exactly how they come to disagree, and **the page says so in
-  words** under the heading, because two panels showing the same six changes
-  without a word about it reads as twelve. The body is two boxes — the wording
-  as it stands with the cuts struck, the wording as proposed with the additions
-  marked — built by filtering the STORED ops (never a fresh diff: the ops are
-  inside the fingerprint), plus the author's reason, which is where `why` reads
-  now that it is off the card. **IT CARRIES NO `data-nego-card`**: that is how
-  the page finds A card by id, and two elements answering to it would make "the
-  card for CHG-004" ambiguous. No receipts here — the column shrinks a change
-  that needs nothing because it is a list you scan, and this panel exists to show
-  the wording.
-- **BOTH PANELS LIVE INSIDE #redline-host, AND THAT IS LOAD-BEARING.**
-  wireNegotiationTab binds every verb THROUGH THE MOUNT, deliberately (the
-  counterparty's page carries two copies of the component and a document-wide
-  lookup wired the hidden one). A panel outside the mount gets no handlers:
-  measured, Accept in the proposals panel drew, pressed, and decided nothing.
-  So the host is the SCROLLER, the panes take one screenful inside it
-  (`height:100%`, so the contract and the cards still scroll inside themselves)
-  and the panels sit after them. **NEITHER IS DRAWN IN COUNTERPARTY VIEW** —
-  which other companies we are arguing with is the most internal list this
-  product holds, and that view is a window onto what THEY see.
+- **AND NOTHING SITS UNDER THE CONTRACT.** The render's own bottom half — two
+  panels, *Live threads* (your other live negotiations) and *Proposals on the
+  table* (the same changes read side by side) — was BUILT and then REMOVED the
+  same day on the owner's ask: *"You should not have the two new panels
+  underneath. The page should resemble the previous page."* The working area is
+  the window again: the contract and the change column fill it and each scrolls
+  inside ITSELF, which is the rule this page has always had and the one the
+  panels briefly broke (they made #redline-host a page scroller). **The builders
+  went with the pixels** — rlThreadsPanelHtml, rlProposalsPanelHtml,
+  negoClosedList, the card renderer's `layout:'proposal'` branch and every
+  dictionary key they used are gone rather than switched off, because a feature
+  left dormant is one caller away from being back. nego-redesign-verify asserts
+  the ABSENCE, both as pixels and as published names.
+
+  **WHAT THE ATTEMPT LEFT BEHIND, and both are worth keeping:** the CSS fallback
+  columns and the grid's ResizeObserver. Neither was about the panels — they came
+  out of measuring the two seats against each other while the panels were being
+  fitted (parity-verify caught the counterparty's change column at 492px against
+  the owner's 460), and they are what make a resting split expressed as a WIDTH
+  survive a bad first measurement.
 
 WHAT THE RENDER ASKED FOR AND DID NOT GET, each because it reverses a decision
 the owner had already made: the change column boxed in white, the Copilot band
 removed, the Render B count markers flattened, and the divider replaced by a
-fixed 460px column. All four are stated on the render itself.
+fixed 460px column. All four are stated on the render itself. **The two panels
+join that list**, by the owner's own reversal above — the difference being that
+those four were never built and the panels were built and taken out.
 
 **AND ONE PRE-EXISTING RED WAS MEASURED, NOT CAUSED, BY THIS WORK**:
 theme-tokens-verify is **26/40** on the tree BEFORE any of this (checked by
@@ -981,12 +968,12 @@ and its baseline was never re-recorded. The note under A NOTE ON
 theme-tokens-verify says 39/40 and is out of date. Re-recording it is a
 deliberate palette-ownership act and is nobody's to do in passing.
 
-Tests: nego-redesign-verify (57, browser — every size as a COMPUTED value
+Tests: nego-redesign-verify (44, browser — every size as a COMPUTED value
 because this redesign is written as a block at the end of a 3,500-line sheet and
-a rule that loses a cascade fight looks perfectly correct in the source; the two
-panels' lists proved identical to the column's by their ids; Accept pressed in
-the panel and followed through to the record; both panels proved ABSENT on the
-preview; the row proved unfolded at 1280/1366/1440; and the accent ink measured
+a rule that loses a cascade fight looks perfectly correct in the source; nothing proved
+to sit under the contract, as pixels AND as published names; the working area
+proved to fill the window with each column scrolling inside itself; the row
+proved unfolded at 1280/1366/1440; and the accent ink measured
 for contrast in dark, which is where this page has been caught before). Claims
 REVERSED IN PLACE rather than deleted: f89 (the sheet), f84 and f49 (the resting
 split), f184 and negotiations-door-verify (the door's word), f173 and f175 (the

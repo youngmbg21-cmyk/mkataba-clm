@@ -1,9 +1,15 @@
 /* Chromium verification: THE NEGOTIATION PAGE TAKES THE MOCK-UP'S TREATMENT.
    ============================================================
-   Owner-approved render, 22 Aug 2026. Eight marked places: two white bands at
-   the top, the reading tabs, the right-hand controls, a fluid contract, a
-   change column a size larger, the Copilot band kept, and two panels under the
-   contract that did not exist — Live threads and Proposals on the table.
+   Owner-approved render, 22 Aug 2026, as amended the same day. Six marked
+   places: two white bands at the top, the reading tabs, the right-hand
+   controls, a fluid contract, a change column a size larger, and the Copilot
+   band kept.
+
+   THE RENDER'S OWN BOTTOM HALF WAS REVERSED BY THE OWNER — two panels under the
+   contract (the other live negotiations, and the same changes read side by
+   side) were built and then removed on the ask: "the page should resemble the
+   previous page". Section 7 is now that absence, asserted, because a feature
+   taken out on request is the kind that comes back by accident.
 
    WHY THIS IS A BROWSER FILE AND NOT A NODE TEST. Every claim below is either
    a COMPUTED STYLE or a JOURNEY, and jsdom can answer neither:
@@ -15,9 +21,9 @@
        border-width 0 for a year, and a source-reading test passed on it
        throughout). Everything here reads getComputedStyle;
      · "the sheet fills its column" is a measurement against a neighbour;
-     · "the panels show the same list as the column" is only true if pressing a
-       verb in one moves the other, which needs a real click and a real repaint;
-     · "not on the counterparty's seat" is a claim about pixels that must be
+     · "the working area fills the window and nothing scrolls past it" is a
+       measurement against the viewport;
+     · "nothing sits under the contract" is a claim about pixels that must be
        ABSENT, and jsdom will happily report a hidden element as present.
 
    Screenshots go to test/chromium/shots/nego-redesign/.
@@ -276,147 +282,84 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     check('6 the Copilot band is still there, and so is the unsent band',
       col.copilot && col.band, `copilot ${col.copilot} · unsent ${col.band}`);
 
-    /* ---- 7. LIVE THREADS ---- */
-    await page.evaluate(() => { document.getElementById('redline-host').scrollTop = 99999; });
-    await pause(500);
-    await page.screenshot({ path: path.join(OUT, '02-panels.png') });
-    const threads = await page.evaluate(seen => {
-      const s = eval(seen);
-      const rows = [...document.querySelectorAll('#rl-below .rl-thread')];
-      return { panel: s('#rl-below .rl-threads'), n: rows.length,
-        here: rows.filter(r => r.classList.contains('on')).length,
-        hereIsInert: rows.filter(r => r.classList.contains('on'))
-          .every(r => !r.hasAttribute('data-rl-thread')),
-        moves: rows.map(r => (r.querySelector('.rl-thread-mv') || {}).textContent || ''),
-        closed: !!document.querySelector('#rl-below [data-rl-closed]'),
-        headCount: (document.querySelector('#rl-below .rl-threads .rl-panel-n') || {}).textContent,
-        listCount: String((window.negoLiveList ? negoLiveList().length : -1)) };
-    }, SEEN);
-    check('7 Live threads is on the page, under the contract',
-      !!threads.panel && threads.panel.on,
-      threads.panel ? `${threads.panel.w}x${threads.panel.h}` : 'MISSING');
-    check('7 it lists every live negotiation, and its count is the list\'s own',
-      threads.n >= 2 && String(threads.headCount).trim() === threads.listCount,
-      `${threads.n} rows · head "${threads.headCount}" · negoLiveList ${threads.listCount}`);
-    check('7 every row says whose move it is',
-      threads.moves.length === threads.n && threads.moves.every(m => m.trim().length > 0),
-      threads.moves.join(' | '));
-    /* THE ROW YOU ARE ON IS NOT A DOOR — a press whose only outcome is
-       redrawing the page you are already on reads as a dead button. */
-    check('7 the one you are reading is marked and is not pressable',
-      threads.here === 1 && threads.hereIsInert, `${threads.here} marked`);
+    /* ---- 7. NOTHING SITS UNDER THE CONTRACT ----
+       A first build put two panels here — the other live negotiations, and the
+       same changes read side by side — off the mock-up's own bottom half. The
+       owner reversed it: this page is the contract and the change column, and
+       nothing below them. So this section is the ABSENCE, asserted, because a
+       feature removed on request is exactly the kind that comes back through a
+       door nobody remembered. */
+    const under = await page.evaluate(() => ({
+      below: document.querySelectorAll('#rl-below, .rl-below').length,
+      threads: document.querySelectorAll('.rl-threads, .rl-thread-nm').length,
+      props: document.querySelectorAll('.rl-prop, .rl-versus, .rl-vs').length,
+      /* The builders themselves, not just their pixels: a name still published
+         is a panel one caller away from being back. */
+      builders: ['rlThreadsPanelHtml', 'rlProposalsPanelHtml', 'negoClosedList']
+        .filter(k => typeof window[k] === 'function') }));
+    check('7 the page draws nothing under the contract',
+      under.below === 0 && under.threads === 0 && under.props === 0,
+      `below ${under.below} · threads ${under.threads} · proposals ${under.props}`);
+    check('7 and the builders went with them, so nothing can call them back',
+      under.builders.length === 0, under.builders.join(', ') || 'none');
+    await page.screenshot({ path: path.join(OUT, '02-no-panels.png') });
 
-    /* ---- 7b. AND PRESSING ANOTHER ONE GOES THERE ---- */
-    const before = await page.evaluate(() => redlineHeldId());
-    await page.click('#rl-below .rl-thread[data-rl-thread]');
-    await pause(1800);
-    const after = await page.evaluate(() => redlineHeldId());
-    check('7b pressing another thread opens that negotiation',
-      after && after !== before, `${before} → ${after}`);
-    await page.evaluate(id => openRedlineWorkbench(id), cid);
-    await pause(1800);
-
-    /* ---- 8. PROPOSALS ON THE TABLE ---- */
-    await page.evaluate(() => { document.getElementById('redline-host').scrollTop = 99999; });
-    await pause(400);
-    const props = await page.evaluate(seen => {
-      const s = eval(seen);
-      const rows = [...document.querySelectorAll('#rl-below .rl-prop')];
-      return { panel: s('#rl-below .rl-props'), n: rows.length,
-        colN: document.querySelectorAll('#rl-changes .rl-card').length,
-        ids: rows.map(r => r.getAttribute('data-rl-prop')),
-        colIds: [...document.querySelectorAll('#rl-changes .rl-card')]
-          .map(r => r.getAttribute('data-nego-card')),
-        versus: rows.map(r => r.querySelectorAll('.rl-vs').length),
-        marks: rows.map(r => r.querySelectorAll('.rl-vs ins, .rl-vs del').length),
-        theirs: rows.map(r => !!r.querySelector('.rl-vs.theirs')),
-        tags: rows.map(r => (r.querySelector('.rl-prop-tag') || {}).textContent || ''),
-        why: rows.filter(r => r.querySelector('.rl-prop-why')).length,
-        verbs: rows.map(r => [...r.querySelectorAll('.rl-card-verbs button')]
-          .map(b => b.textContent.replace(/\s+/g, ' ').trim())),
-        /* AND NOT A SECOND CARD: the panel must not answer to the id the page
-           uses to find A card, or "the card for CHG-004" becomes ambiguous. */
-        dupCards: document.querySelectorAll('#rl-below [data-nego-card]').length,
-        sub: !!document.querySelector('#rl-below .rl-props .rl-panel-sub') };
-    }, SEEN);
-    check('8 Proposals on the table is on the page',
-      !!props.panel && props.panel.on,
-      props.panel ? `${props.panel.w}x${props.panel.h}` : 'MISSING');
-    /* THE CLAIM THE WHOLE PANEL RESTS ON. Two surfaces printing one set of
-       changes is how they come to disagree; this one IS the card renderer under
-       a layout flag, so the lists are the same list. Proved by their ids. */
-    check('8 it shows exactly the changes the column shows — one list, not two',
-      props.n === props.colN && props.ids.join() === props.colIds.join(),
-      `panel ${props.ids.join()} · column ${props.colIds.join()}`);
-    check('8 and it says so on the page, in words', props.sub);
-    check('8 each proposal draws two wordings side by side',
-      props.n > 0 && props.versus.every(v => v === 2), props.versus.join(', '));
-    check('8 with the marks on them — struck out on one side, inserted on the other',
-      props.marks.every(m => m > 0), props.marks.join(', '));
-    check('8 and the other side\'s box sits on the warm ground',
-      props.theirs.every(Boolean), props.theirs.join(', '));
-    check('8 each is tagged whose it is', props.tags.every(t => t.trim().length > 0),
-      props.tags.join(' | '));
-    check('8 the author\'s reason reads under them', props.why === props.n,
-      `${props.why} of ${props.n}`);
-    check('8 the panel carries no second card id', props.dupCards === 0, props.dupCards + ' found');
-    /* THE VERBS ARE THE CARD'S OWN — their asks get Accept/Reject, our unsent
-       draft gets Send. Not a second set built here. */
-    const flat = props.verbs.flat().join(' ');
-    check('8 the verbs follow the change, exactly as the column\'s do',
-      /Accept/.test(flat) && /Reject/.test(flat) && /Send/.test(flat),
-      props.verbs.map((v, i) => props.ids[i] + ': ' + v.join('/')).join(' | '));
-
-    /* ---- 8b. AND A PRESS IN THE PANEL RUNS THE ORDINARY FUNNEL ---- */
-    const beforeN = await page.evaluate(id =>
-      (getContract(id).changes || []).filter(x => x.status === 'pending').length, cid);
-    const accepted = await page.evaluate(() => {
-      const b = [...document.querySelectorAll('#rl-below .rl-prop .rl-card-verbs button')]
-        .find(x => x.hasAttribute('data-nego-accept'));
-      if (!b) return null;
-      const id = b.getAttribute('data-nego-accept'); b.click(); return id;
-    });
-    await pause(1800);
-    const afterN = await page.evaluate(id =>
-      (getContract(id).changes || []).filter(x => x.status === 'pending').length, cid);
-    const st = await page.evaluate(([id, ch]) =>
-      (getContract(id).changes.find(x => x.id === ch) || {}).status, [cid, accepted]);
-    check('8b Accept in the panel really decides the change — the ordinary funnel',
-      !!accepted && st === 'accepted' && afterN === beforeN - 1,
-      `${accepted} → ${st} · pending ${beforeN} → ${afterN}`);
-    await page.screenshot({ path: path.join(OUT, '03-after-accept.png') });
-
-    /* ---- 9. NOT ON THE COUNTERPARTY'S SEAT ---- */
+    /* ---- 9. AND THE PREVIEW STILL SHOWS THE OTHER SEAT ----
+       Counterparty View is a WINDOW, not a chair: the restyled row is drawn
+       from our chair either way and goes dead, which is what stops the controls
+       shuffling sideways on the one toggle whose purpose is comparing the two.
+       Measured here because the restyle rewrote that row. */
     await page.click('#view-redline [data-redline-side="counterparty"]');
     await pause(1600);
-    const preview = await page.evaluate(() => ({
-      below: (document.getElementById('rl-below') || {}).innerHTML || '',
-      threads: document.querySelectorAll('.rl-thread').length,
-      props: document.querySelectorAll('.rl-prop').length }));
-    /* WHICH OTHER COMPANIES WE ARE ARGUING WITH is the most internal list this
-       product holds. The preview is a window onto what THEY see. */
-    check('9 neither panel is drawn in Counterparty View',
-      preview.below.trim() === '' && preview.threads === 0 && preview.props === 0,
-      `threads ${preview.threads} · proposals ${preview.props}`);
+    const preview = await page.evaluate(() => {
+      const row = document.querySelector('#view-redline .rl-tabrow');
+      const dead = [...row.querySelectorAll('button')].filter(b => b.hasAttribute('data-rl-dead'));
+      return { seat: (document.querySelector('#view-redline .rl-actions .rl-segwrap .rl-seg.on') || {}).textContent,
+        rowText: (row.textContent || '').replace(/\s+/g, ' ').trim(),
+        deadN: dead.length, paper: !!document.querySelector('#view-redline .rl-paper') };
+    });
+    check('9 the toggle really moves the seat, and the paper still draws',
+      /Counterparty/i.test(preview.seat || '') && preview.paper, preview.seat);
+    /* THE ROW IS DRAWN FROM OUR CHAIR EITHER WAY. It used to swap every label
+       for the other seat's and drop four of our controls, so flipping the
+       toggle shuffled the row sideways and back — on the one control whose
+       purpose is comparing the two views. Its acts live in the HEAD now, which
+       is where the dead-in-preview treatment sits; what this checks is that the
+       row itself still says what it said. */
+    check('9 the row keeps its words and reads from our chair',
+      /Redlined/i.test(preview.rowText) && /All negotiations/i.test(preview.rowText),
+      preview.rowText.slice(0, 80));
     await page.screenshot({ path: path.join(OUT, '04-preview.png') });
     await page.click('#view-redline [data-redline-side="owner"]');
     await pause(1400);
 
-    /* ---- 10. THE WORKING AREA IS STILL ONE SCREENFUL ---- */
+    /* ---- 10. THE WORKING AREA IS THE WINDOW ----
+       The rule this page has always had, and the one the panels briefly broke:
+       the contract and the change column fill the window and each scrolls
+       inside ITSELF, so reading the paper never loses your place in the cards.
+       Nothing scrolls past the fold. */
     const geom = await page.evaluate(() => {
-      const s = document.getElementById('redline-host');
-      const panes = document.querySelector('#redline-host > .rl-root');
+      const host = document.getElementById('redline-host');
       const cards = document.getElementById('nego-cards');
-      return { scrollH: Math.round(s.clientHeight), hostH: Math.round(panes.getBoundingClientRect().height),
-        scrollable: s.scrollHeight > s.clientHeight + 20,
+      const doc = document.getElementById('nego-scroll-work');
+      const view = document.getElementById('view-redline');
+      return { hostH: Math.round(host.clientHeight),
+        hostScrolls: host.scrollHeight > host.clientHeight + 8,
+        viewH: Math.round(view.getBoundingClientRect().height),
+        winH: window.innerHeight,
         cardsScrollsItself: cards ? getComputedStyle(cards).overflowY : null,
+        docScrollsItself: doc ? getComputedStyle(doc).overflowY : null,
+        pageScrollsDown: document.documentElement.scrollHeight > document.documentElement.clientHeight + 8,
         pageScrollsSideways: document.documentElement.scrollWidth > document.documentElement.clientWidth };
     });
-    check('10 the contract and the cards still fill one screenful',
-      Math.abs(geom.hostH - geom.scrollH) <= 46, `panes ${geom.hostH} of ${geom.scrollH}`);
-    check('10 and the panels are a scroll away, not a squeeze', geom.scrollable);
-    check('10 the change column still scrolls inside itself',
-      /auto|scroll/.test(geom.cardsScrollsItself || ''), geom.cardsScrollsItself);
+    check('10 the page ends at the fold — nothing to scroll down to',
+      !geom.pageScrollsDown && !geom.hostScrolls,
+      `page ${geom.pageScrollsDown} · working area ${geom.hostScrolls}`);
+    check('10 the working area fills the window',
+      geom.viewH <= geom.winH + 2 && geom.hostH > 300, `${geom.viewH} of ${geom.winH}`);
+    check('10 the contract and the change column each scroll inside themselves',
+      /auto|scroll/.test(geom.cardsScrollsItself || '') && /auto|scroll/.test(geom.docScrollsItself || ''),
+      `cards ${geom.cardsScrollsItself} · contract ${geom.docScrollsItself}`);
     check('10 nothing makes the page scroll sideways', !geom.pageScrollsSideways);
 
     /* ---- 11. DARK, AND THE ACCENT INK SURVIVES IT ---- */

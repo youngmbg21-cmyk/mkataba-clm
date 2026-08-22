@@ -6200,21 +6200,6 @@ function negoLiveList(){
   return cs.filter(negoIsLive).sort((a, b) =>
     String(b.lastAction || '').localeCompare(String(a.lastAction || '')));
 }
-/* ---- AND THE ONES THAT ARE OVER ----
-   The other half of negoIsLive, for the door at the foot of Live threads. A
-   negotiation is CLOSED when it happened and is no longer live: the contract
-   carries changes and negoIsLive refuses it — signed, declined, archived, out
-   of reach. Built from the same two readings rather than from a third, so a
-   contract can never be on both lists or on neither.
-
-   IT READS c.changes RAW, exactly as negoIsLive does and for exactly the same
-   reason: negoChanges() runs negoInit(), which would start a negotiation on
-   every contract in the workspace merely by counting them. */
-function negoClosedList(){
-  const cs = (window.state && Array.isArray(state.contracts)) ? state.contracts : [];
-  return cs.filter(c => c && !negoIsLive(c)
-    && Array.isArray(c.changes) && c.changes.length);
-}
 /* How many changes are waiting on this reader across every live negotiation.
    The sidebar door's number. */
 function negoNeedsYouTotal(){
@@ -6379,93 +6364,6 @@ function negoListHeadHtml(shown){
     <p>${_ne(filtered ? i18t('ngl_sub_filtered', { n, live }) : i18t('ngl_sub'))}</p>
   </header>`;
 }
-/* ============================================================
-   LIVE THREADS — your other negotiations, beside the one you are working
-   ============================================================
-   (owner-approved render, 22 Aug 2026.) Until now the list and a negotiation
-   were two pages: pressing Negotiations gave you one OR the other, never both,
-   so checking whether anything else had moved meant leaving the round you were
-   in and coming back. This is the list, narrow, on the page.
-
-   IT DECIDES NOTHING OF ITS OWN. negoLiveList is the population — the same one
-   the door's count and the list page's heading print — and negoMovePillHtml is
-   the whose-move line, the same builder the Negotiations table draws in its
-   last column. So a row here and a row there cannot say different things about
-   the same agreement; there is one reading and this is a second place it is
-   drawn.
-
-   THE ROW YOU ARE ON IS NOT A DOOR. It is marked, and it says why — a control
-   whose only outcome is redrawing the page you are already on is furniture, and
-   worse, a press that appears to do nothing.
-
-   NOT ON THE COUNTERPARTY'S SEAT, and that is why it is built on the owner's
-   page rather than in the shared panes: which other companies we are arguing
-   with is the most internal list this product holds. A panel built in the
-   shared builder would have to be walled off on their seat; built here it can
-   never reach it. */
-function rlThreadsPanelHtml(c){
-  const live = (typeof negoLiveList === 'function') ? negoLiveList() : [];
-  const closed = (typeof negoClosedList === 'function') ? negoClosedList() : [];
-  const rows = live.map(x => {
-    const here = c && x.id === c.id;
-    const move = (typeof negoMovePillHtml === 'function') ? negoMovePillHtml(x) : '';
-    return `<button type="button" class="rl-thread${here ? ' on' : ''}"${
-      here ? ` aria-current="true" title="${_nea(i18t('ng_threads_here'))}"`
-        : ` data-rl-thread="${_nea(x.id)}" title="${_nea(String(x.name || ''))}"`}>
-      <span class="rl-thread-nm">${_ne(x.name || x.id)}</span>
-      <span class="rl-thread-cp">${_ne(x.counterparty || i18t('ng_the_counterparty'))}</span>
-      <span class="rl-thread-mv">${move}</span>
-    </button>`;
-  }).join('');
-  /* Only where there IS something else to look at. A panel headed "Live
-     threads" over the single row you are standing on is a box with your own
-     name in it. */
-  const only = live.length <= 1;
-  return `<section class="rl-panel rl-threads" aria-label="${_nea(i18t('ng_threads_head'))}">
-    <div class="rl-panel-h"><h3>${i18t('ng_threads_head')}</h3>
-      <span class="rl-panel-n">${live.length}</span></div>
-    ${only ? `<div class="rl-panel-empty">${i18t('ng_threads_none')}</div>` : rows}
-    ${''/* The way to the ones that are over. It is a real door — the Contracts
-           page narrowed to exactly those agreements, through regShowOnly, which
-           is this product's ONE way of saying "show me this list" and carries
-           its own chip and its own way back. Drawn only where there are any:
-           "Closed negotiations (0)" is a door onto an empty room. */}
-    ${closed.length ? `<div class="rl-thread-foot"><button type="button" data-rl-closed
-      title="${_nea(i18t('ng_threads_closed_label'))}">${
-      i18tn('ng_threads_closed', closed.length, { n: closed.length })}</button></div>` : ''}
-  </section>`;
-}
-
-/* ============================================================
-   PROPOSALS ON THE TABLE — the same changes, read side by side
-   ============================================================
-   (owner-approved render, 22 Aug 2026.) The change column says WHAT is on the
-   table; this says what each one would DO to the wording — our text against
-   theirs, in two boxes, with the reason underneath.
-
-   IT IS THE CARD RENDERER, NOT A SECOND ONE. redlineChangeCardsHtml is called
-   with the very opts the column is called with plus one flag, so the list, the
-   order, the wall between the seats, a reviewer's narrowing and every verb are
-   the column's own. That is not tidiness: two surfaces showing one set of
-   changes with one set of buttons is exactly how they come to disagree about
-   what is on the table, which is the fault this codebase has already paid for
-   twice. There is one reading here and one producer.
-
-   AND THE PAGE SAYS SO. The line under the heading tells the reader in plain
-   words that this is the same list as the column above — because two panels
-   showing the same six changes, without a word about it, reads as twelve. */
-function rlProposalsPanelHtml(c, opts = {}){
-  const body = (typeof redlineChangeCardsHtml === 'function')
-    ? redlineChangeCardsHtml(c, { ...opts, layout: 'proposal', cpPanel: false }) : '';
-  const n = (typeof redlineCardIds === 'function') ? redlineCardIds(c, opts).length : 0;
-  return `<section class="rl-panel rl-props" aria-label="${_nea(i18t('ng_props_head'))}">
-    <div class="rl-panel-h"><h3>${i18t('ng_props_head')}</h3>
-      <span class="rl-panel-n">${_ne(i18tn('ng_props_n', n, { n }))}</span></div>
-    ${n ? `<div class="rl-panel-sub">${i18t('ng_props_sub')}</div>` : ''}
-    ${n ? body : `<div class="rl-panel-empty">${i18t('ng_props_none')}</div>`}
-  </section>`;
-}
-
 function renderNegotiationsList(host){
   const el = host || document.getElementById('content');
   if (!el) return;
@@ -7051,15 +6949,12 @@ function renderRedline(){
              below and both would be crushed; as a definite 100% it takes one
              screenful and the panels sit past the fold, which is where the
              render puts them. */}
-      ${''/* #redline-host IS THE SCROLLER, and that is not a tidy-up — it is
-             what lets the two panels below be wired at all. wireNegotiationTab
-             binds every verb THROUGH THIS MOUNT, deliberately (the
-             counterparty's page carries two copies of the component and a
-             document-wide lookup wired the hidden one). A panel outside the
-             mount therefore gets no handlers: measured, Accept in the proposals
-             panel drew, pressed, and decided nothing. So the panels live inside
-             it, and the panes take one screenful with height:100%. */}
-      <div id="redline-host" class="rl-scroll" style="min-height:0;"></div>
+      ${''/* THE WORKING AREA IS THE WINDOW, and the page below it does not
+             scroll. It carries the product's page measure (48px, in the sheet)
+             because #view-redline has no padding of its own any more — the head
+             and the control bar above are full-width white bands with their own
+             24px inset, which one padding on the page could not do both of. */}
+      <div id="redline-host" style="flex:1;min-height:0;display:flex;flex-direction:column;"></div>
         ${''/* ---- THE TWO PANELS UNDER THE CONTRACT ----
                Built HERE and not in redlinePanesHtml, and the placement is the
                rule rather than a convenience: the panes are SHARED markup — the
@@ -7454,33 +7349,8 @@ function renderRedline(){
      BEFORE wireNegotiationTab, so the verbs inside are in the DOM when the
      per-paint handlers go looking for them — they are the cards' own
      attributes and are wired by the cards' own listeners. */
-  /* APPENDED, not written into the markup above: mount.innerHTML has just
-     replaced everything inside this host, so a slot placed there would be gone
-     by now. Inside the host because that is where the wiring reaches (see the
-     note at the host itself). */
-  if (side !== 'counterparty'){
-    const below = document.createElement('div');
-    below.id = 'rl-below'; below.className = 'rl-below';
-    below.innerHTML = rlThreadsPanelHtml(c) + rlProposalsPanelHtml(c, opts);
-    mount.appendChild(below);
-  }
   wireNegotiationTab(c, opts);
   negoAfterPaint(c, opts, mount);
-  /* The threads panel's own two doors. Both are ordinary navigations — a
-     negotiation, or the Contracts page narrowed to the closed ones — and both
-     go through this product's existing routes rather than a second one. */
-  host.querySelectorAll('[data-rl-thread]').forEach(el =>
-    el.addEventListener('click', () => openRedlineWorkbench(el.getAttribute('data-rl-thread'))));
-  host.querySelectorAll('[data-rl-closed]').forEach(el =>
-    el.addEventListener('click', () => {
-      const ids = (typeof negoClosedList === 'function') ? negoClosedList().map(x => x.id) : [];
-      if (!ids.length) return;
-      /* regShowOnly is the ONE door onto "show me exactly this list": it puts a
-         chip on the register saying what it is narrowed to and carries its own
-         way back. A second mechanism here would be a second answer. */
-      if (window.regShowOnly) regShowOnly(ids, i18t('ng_threads_closed_label'));
-      if (typeof setView === 'function') setView('register');
-    }));
   /* The counterparty postbox (#nego-send-decisions) is no longer bound here:
      Counterparty View is read-only, supplies no onSendDecisions, and renders
      no postbox to bind. The portal's own mount keeps its binding. */
@@ -10884,64 +10754,6 @@ function redlineChangeCardsHtml(c, opts = {}){
        Open away (the panel's ＋ reads "Continue your draft" on a pending ask
        of ours), and a receipt with a button it does not need is a card again.
        The body press still navigates to the clause, as on every card. */
-    /* ---- THE SAME CHANGE, READ SIDE BY SIDE (owner-approved render, 22 Aug
-       2026) ----
-       "Proposals on the table" is this renderer under one flag. Everything
-       above this line — which changes are in the list, their order, the wall
-       between the seats, a reviewer's narrowing, the badge, and every verb in
-       `actions` — has already been decided by the column's own code, so the two
-       surfaces cannot come to disagree about what is on the table. What the
-       flag changes is the BODY: two boxes instead of a two-line preview, and
-       the author's reason under them.
-
-       NO RECEIPTS HERE, deliberately. The column shrinks a change that needs
-       nothing to one line because it is a list you scan; this panel exists to
-       show the wording, and a row that showed none would be a gap in the middle
-       of it.
-
-       IT CARRIES NO data-nego-card. That attribute is how the page finds A
-       card by id — rlLinkFocus lights one, the pins forget one — and two
-       elements answering to it would make "the card for CHG-004" ambiguous.
-       The verbs inside carry their own data attributes and are wired by the
-       ordinary per-paint handlers, exactly as the Copilot band's are, so a
-       press here runs the same funnel a press in the column runs. */
-    if (opts.layout === 'proposal'){
-      /* Two readings of one set of ops, and neither is a fresh diff: the stored
-         ops are inside the fingerprint, so a re-diff would show the other side
-         wording they never verified. Left = the wording as it stands with the
-         proposed cuts struck; right = the wording as proposed with the
-         additions marked. */
-      const ops = Array.isArray(ch.ops) ? ch.ops : [];
-      const half = drop => {
-        const keep = ops.filter(o => o && o.op !== drop);
-        if (window.redlineOpsHtml && keep.length) return redlineOpsHtml(keep);
-        return _ne(String(drop === 'ins' ? (ch.oldText || '') : (ch.proposedText || ch.newText || '')));
-      };
-      const tag = theirs ? ['them', i18t('ng_prop_tag_them')]
-        : (mineUnsent ? ['us', i18t('ng_prop_tag_us_unsent')] : ['us', i18t('ng_prop_tag_us')]);
-      const when = ch.createdAt ? String(ch.createdAt).slice(0, 10) : '';
-      return `<article class="rl-prop" data-rl-prop="${_ne(ch.id)}" data-rl-origin="${theirs ? 'them' : 'us'}">
-        <div class="rl-prop-top">
-          ${''/* `who` is the clause label and is ALREADY escaped where it is
-                 built — escaping it again turns "Price & Contract Value" into
-                 "Price &amp;amp; Contract Value" on the screen. Caught by
-                 photographing the panel. */}
-          <span class="rl-prop-cl" title="${_nea(String(ch.clauseLabel || ch.clauseId || ''))}">${who}</span>
-          <span class="rl-prop-tag ${tag[0]}">${_ne(tag[1])}</span>
-          <span class="rl-prop-age">${_ne(ch.id)}${when ? ' &middot; ' + _ne(when) : ''}</span>
-        </div>
-        <div class="rl-versus">
-          <div class="rl-vs${theirs ? '' : ' theirs'}">
-            <div class="rl-vs-k">${i18t('ng_vs_current')}</div>
-            <div class="rl-vs-b">${half('ins')}</div></div>
-          <div class="rl-vs${theirs ? ' theirs' : ''}">
-            <div class="rl-vs-k">${theirs ? i18t('ng_vs_theirs') : i18t('ng_vs_ours')}</div>
-            <div class="rl-vs-b">${half('del')}</div></div>
-        </div>
-        ${ch.why ? `<div class="rl-prop-why"><b>${i18t('ng_prop_why_k')}</b> ${_ne(String(ch.why))}</div>` : ''}
-        ${actionBar}
-      </article>`;
-    }
     const receipt = !noCopyBlock && !rvStuckBlock && !dkInstead && !rvVerbs && !rvCancel && !infoHold
       && !rlCardNeedsYou(verbs)
       && !/data-nego-redecide|data-rl-reopen/.test(verbs.join(''));
@@ -12046,8 +11858,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
      so a top-level function in one is invisible to the next; see the note below
      about rlPaperFootHtml, which was declared, called, and silently absent for a
      year because nobody put it here. */
-  negoNeedsYouIds, negoNeedsYouTotal, negoIsLive, negoLiveList, negoClosedList,
-  rlThreadsPanelHtml, rlProposalsPanelHtml,
+  negoNeedsYouIds, negoNeedsYouTotal, negoIsLive, negoLiveList,
   negoLastOpened, negoRememberOpened, openNegotiations,
   renderNegotiationsList, negoListHeadHtml, negWhoseMove,
   /* ---- rlPaperFootHtml WAS NEVER ON WINDOW, SO IT NEVER DREW ----
