@@ -181,8 +181,14 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
      alone, which reads as a stain on a slate page — is unchanged. */
   check('2 the sheet is warm paper with its own hairline',
     parseFloat(sheet.paperBorder) > 0, `${sheet.paperBorder} at zoom ${sheet.zoom}`);
-  check('2 and it does carry that shadow', sheet.paperShadow !== 'none' && !!sheet.paperShadow,
-    sheet.paperShadow);
+  /* ---- CLAIM REVERSED IN PLACE, 22 Aug 2026 (owner-approved render) ----
+     The shadow was there so a cream sheet FLOATING on a slate page read as a
+     page rather than a stain. The sheet does not float any more: it fills its
+     column edge to edge, and the render draws it flat. What made the shadow
+     necessary — an edge of its own — is the hairline asserted directly above,
+     which is untouched and is now doing the whole job. */
+  check('2 and it is FLAT — a sheet that fills its column has nothing to float above',
+    sheet.paperShadow === 'none' || !sheet.paperShadow, sheet.paperShadow);
   check('2 the sheet reads as paper against the column behind it',
     sheet.paperBg !== sheet.colBg, `${sheet.paperBg} on ${sheet.colBg}`);
   /* ---- CLAIM UPDATED, 13 Aug 2026, OWNER-ASKED ----
@@ -252,17 +258,23 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
      as the sheet's own gutters (103px each side, by design); against the SHEET
      it is still exactly the lopsidedness it always was, and .rl-paper's own
      36px padding is what it must equal. */
+  /* 40 -> 60, 22 Aug 2026: the render's sheet margin is 56px (it was 36), and
+     this is a CEILING on a one-sided gutter rather than a claim about the
+     margin itself. The lopsidedness it exists to catch — the engine's 100px
+     badge column landing on one side — is 100px and still fails it. */
   check('2b the text sits on the sheet\'s own padding, not a reserved gutter',
-    inset.padL <= 40 && Math.abs(inset.padL - inset.padR) <= 2,
+    inset.padL <= 60 && Math.abs(inset.padL - inset.padR) <= 2,
     `${inset.padL}px / ${inset.padR}px inside the sheet`);
-  /* A floor, not an equality, and the arithmetic behind it moved on 13 Aug
-     2026: the page is the Document tab's 660px now rather than 720, so the
-     sheet's own 36px each side is 89.1% of it instead of 90%. The floor drops
-     to match. What the check is for is untouched — it fails the moment
-     anything reserves a FURTHER gutter inside the sheet, which is how the
-     100px badge column got in the first time. */
+  /* A floor, not an equality, and the arithmetic behind it has moved twice.
+     13 Aug 2026: the page became the Document tab's 660px rather than 720, so
+     36px each side was 89.1% instead of 90%. 22 Aug 2026: the sheet is FLUID
+     and its margin is the render's 56px, so on a 660-wide column the text is
+     about 83% of it and on a wide one rather more. The floor drops to match.
+     What the check is for is untouched — it fails the moment anything reserves
+     a FURTHER gutter inside the sheet, which is how the 100px badge column got
+     in the first time. */
   check('2b nothing is reserved inside the sheet beyond its own padding',
-    inset.textWidth / inset.paperWidth >= 0.88,
+    inset.textWidth / inset.paperWidth >= 0.84,
     `${(inset.textWidth / inset.paperWidth * 100).toFixed(1)}% of the sheet`);
   /* REVERSED IN PLACE, 16 Aug 2026. Two checks here kept the hover toolbar
      honest — hidden at rest costing no height, revealed clickably on a real
@@ -328,9 +340,10 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   });
   check('7 the contract body reads at the Doc page scale', type.body === '15px', type.body);
   check('7 the retired card token declares nothing', type.cardScale === '', type.cardScale || 'gone');
-  /* 12px since the one-size bump (owner-asked 16 Aug 2026) — still smaller
-     than the 15px contract body, which is the claim. */
-  check('7 and the card head is set smaller still', type.meta === '12px', type.meta);
+  /* 13px since the render (22 Aug 2026); 12px before that. Still smaller than
+     the contract body, which is the whole claim — a card is a label on the
+     paper, not a second copy of it. */
+  check('7 and the card head is set smaller still', type.meta === '13px', type.meta);
 
   /* ---- 8. attribution on every mark ---- */
   const marks = await page.evaluate(() => {

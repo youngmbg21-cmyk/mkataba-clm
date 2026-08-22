@@ -181,8 +181,14 @@ describe('f173 · the column head is a caption and a count', () => {
        800 is not one of them, so this caption was ALREADY rendering at 700 —
        measured, identical ink and identical width to a real 700. The claim is
        unchanged (the caption keeps its bold label type); only the source now
-       asks for the weight it was always getting. */
-    assert.ok(/\.rl-idx-k\{[^}]*font-size:10\.5px;font-weight:700;letter-spacing:\.12em/.test(css),
+       asks for the weight it was always getting.
+
+       AND 10.5 BECAME 12, 22 Aug 2026 (owner-approved render): the whole change
+       column went up a size. The WEIGHT and the TRACKING are deliberately
+       untouched — the render draws this caption at regular weight and HaTi's
+       own bold label type is the thing that makes it read as a label rather
+       than as a line of prose, so only the size moved. */
+    assert.ok(/\.rl-idx-k\{[^}]*font-size:12px;font-weight:700;letter-spacing:\.12em/.test(css),
       'the caption keeps its label type, one size up');
     const n = /\.rl-idx-n\{([^}]*)\}/.exec(css)[1];
     assert.match(n, /font-family:var\(--font-mono\)/,

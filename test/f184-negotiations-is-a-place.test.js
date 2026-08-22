@@ -172,7 +172,7 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
      The sidebar reopens the negotiation you are standing in — that is what it
      is for and it has not been touched. Inside a negotiation that left no way
      to the list at all, so the control row grew one at its far left. */
-  test('the negotiation page carries a "Live negotiations" door, at the end of its row', () => {
+  test('the negotiation page carries an "All negotiations" door, at the end of its row', () => {
     const b = world(['MK-1', 'MK-2']);
     theirAsk(b.byId('MK-1'), 'CHG-1');
     theirAsk(b.byId('MK-2'), 'CHG-2');
@@ -198,7 +198,13 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
     const acts = [...b.$('.redline-page .rl-actions').children];
     assert.equal(acts[acts.length - 1], door,
       'and it ends the row — the last thing on the line is where else you could go');
-    assert.match(door.textContent, /Live negotiations/);
+    /* ---- AND ITS WORD CHANGED, 22 Aug 2026 (owner-approved render) ----
+       "Live negotiations" named the POPULATION the count is of; the design
+       names the DESTINATION, which is the list. Both are true of the same door
+       and the second is what a reader is looking for when they want to leave.
+       The count beside it is unchanged and is still the live list's own — the
+       assertion below still proves that, which is the half that matters. */
+    assert.match(door.textContent, /All negotiations/);
   });
 
   test('THE COUNT ON THE DOOR IS THE COUNT IN THE LIST\'S HEADING', () => {
@@ -349,13 +355,13 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
     assert.ok((door.getAttribute('title') || '').length > 20, 'and the sentence is in the tooltip');
     /* Folding is CSS on a span, so the readable text is the same either way —
        which is what the rest of the suite reads labels with. */
-    assert.match(door.textContent.replace(/\s+/g, ' ').trim(), /^Live negotiations ?1$/);
+    assert.match(door.textContent.replace(/\s+/g, ' ').trim(), /^All negotiations ?1$/);
   });
 
   test('the door is worded in both languages', () => {
     const { STRINGS } = require('../js/i18n.js');
-    assert.equal(STRINGS.en.ng_live_list, 'Live negotiations');
-    assert.equal(STRINGS.sv.ng_live_list, 'Pågående förhandlingar');
+    assert.equal(STRINGS.en.ng_live_list, 'All negotiations');
+    assert.equal(STRINGS.sv.ng_live_list, 'Alla förhandlingar');
     ['en', 'sv'].forEach(l => {
       assert.ok(STRINGS[l].ng_live_list_title_one, `${l} has the singular sentence`);
       assert.ok(/\{n\}/.test(STRINGS[l].ng_live_list_title_other), `${l} counts in the plural`);

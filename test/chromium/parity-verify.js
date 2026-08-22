@@ -472,8 +472,12 @@ const CARD_EDIT = async () => {
       drift.length === 0,
       drift.length ? drift.map(k => `${k}: ${ownerType[k]} vs ${cpType[k]}`).join(', ')
         : JSON.stringify(ownerType));
+    /* cardMeta MOVED 12 -> 13px, 22 Aug 2026 (owner-approved render). It is the
+       clause name on a card, which the render sets at 13; the panel's own sizes
+       are untouched. The claim is unchanged — these are the bumped sizes and
+       not a stale copy — only the number it names. */
     check('11 and the sizes are the bumped ones, not a stale copy',
-      ownerType.stands === '14px' && ownerType.h === '11px' && ownerType.cardMeta === '12px',
+      ownerType.stands === '14px' && ownerType.h === '11px' && ownerType.cardMeta === '13px',
       `stands ${ownerType.stands} · h ${ownerType.h} · meta ${ownerType.cardMeta}`);
   }
 

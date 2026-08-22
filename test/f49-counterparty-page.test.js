@@ -112,7 +112,12 @@ describe('while there is something to negotiate, the link is the room', () => {
     const { c } = await negotiated();
     const v = theirPage(c);
     const css = v.win.document.getElementById('redline-layout-css').textContent;
-    assert.match(css, /\.redline-page \.rl-grid\{[^}]*grid-template-columns:minmax\(0,2fr\) minmax\(0,1fr\)/,
+    /* The number moved 22 Aug 2026 — a ratio became the width the cards are
+       drawn to; see f84, where the reasoning is written. The CLAIM here is
+       unchanged and is the one that matters on this seat: their page is drawn
+       from the owner's own stylesheet, so whatever that split is, it is the
+       same one on both sides of the glass. */
+    assert.match(css, /\.redline-page \.rl-grid\{[^}]*grid-template-columns:minmax\(0,1fr\) 460px/,
       'the same two-pane design the owner\'s page is measured against (f84)');
     assert.ok(v.$('#pt-nego .rl-embed').classList.contains('redline-page'),
       'drawn with the same stylesheet, not a lesser copy');

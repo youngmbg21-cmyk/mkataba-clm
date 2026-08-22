@@ -134,15 +134,29 @@ const SHEET = () => {
       const own = await page.evaluate(SHEET);
       check(`${w} · owner: the sheet is measured at all`, !!own, own && `${own.paper} of ${own.col}`);
       if (own){
-        /* FILLS IT, OR HAS REACHED THE CEILING. The 2x cap is the Document
-           tab's own and it bites on a very wide column — that is the ceiling
-           working, not the fault coming back, and section 3 measures it
-           separately. */
-        check(`${w} · owner: THE SHEET FILLS ITS COLUMN (or has hit the 2x cap)`,
-          own.paper >= own.col - 12 || own.zoom >= 1.999,
+        /* ---- CLAIM REVERSED IN PLACE, 22 Aug 2026 (owner-approved render) ----
+           THE SHEET STILL FILLS ITS COLUMN. What changed is HOW: it used to be
+           a fixed 660px page MAGNIFIED to fit, and it is fluid now — it takes
+           the column's width at a steady type size, up to the readable measure
+           its own rule caps it at (RL_SHEET_MAX, 860).
+
+           WHY THE REVERSAL, because the old claim was right about the page it
+           was written for. On the Document tab there is no divider: the
+           column's width is the window's, so a sheet that scales changes size
+           once, when you resize. HERE the divider is a control you move all
+           day, and a magnified sheet re-sized the WORDS on every drag — which
+           made the reader's own text-size stepper only half the answer to "how
+           big is this contract". Section 5 below still proves the stepper moves
+           the words, which is the half that had to survive.
+
+           SO: fills, or has reached its own cap. And zoom is pinned at 1 —
+           asserted, because a fit creeping back in is exactly the kind of thing
+           that would look right in a screenshot and be wrong. */
+        check(`${w} · owner: THE SHEET FILLS ITS COLUMN (or has hit its measure cap)`,
+          own.paper >= own.col - 12 || own.paper >= 858,
           `${own.paper} of ${own.col}, zoom ${own.zoom}`);
-        check(`${w} · owner: it is scaled, not merely widened`,
-          own.zoom > 1, `zoom ${own.zoom}`);
+        check(`${w} · owner: it is WIDENED, not scaled — the words hold their size`,
+          own.zoom === 1, `zoom ${own.zoom}`);
         check(`${w} · owner: still centred — any spare width splits evenly`,
           Math.abs(own.gutterL - own.gutterR) <= 2, `${own.gutterL} / ${own.gutterR}`);
       }
@@ -150,7 +164,7 @@ const SHEET = () => {
       await pause(500);
       const cp = await page.evaluate(SHEET);
       check(`${w} · counterparty: ONE FIX REACHES BOTH MOUNTS`,
-        !!cp && cp.zoom > 1 && (cp.paper >= cp.col - 12 || cp.zoom >= 1.999),
+        !!cp && cp.zoom === 1 && (cp.paper >= cp.col - 12 || cp.paper >= 858),
         cp ? `${cp.paper} of ${cp.col}, zoom ${cp.zoom}` : 'no sheet');
     }
     await page.setViewportSize({ width: 1920, height: 940 });
@@ -193,16 +207,32 @@ const SHEET = () => {
     check('dragging the divider was possible at all', !!dragged && !!after);
     if (before && after){
       check('THE COLUMN GREW', after.col > before.col, `${before.col} → ${after.col}`);
-      /* THE REPORTED FAULT, MEASURED ON THE RENDERED TEXT. The first attempt
-         at this passed a width check while the reader saw no change, because
-         widening a sheet is not the same as enlarging its wording. This reads
-         the height of a real line of the contract off its own rectangle. */
-      check('AND THE WORDING ITSELF GOT BIGGER — not just wider, bigger',
-        after.lineH > before.lineH && after.zoom > before.zoom,
-        `line ${before.lineH}px → ${after.lineH}px, zoom ${before.zoom} → ${after.zoom}`);
-      check('and the margin did not grow instead',
-        (after.gutterL - before.gutterL) < 6,
-        `gutter ${before.gutterL} → ${after.gutterL}`);
+      /* ---- CLAIM REVERSED IN PLACE, 22 Aug 2026 (owner-approved render) ----
+         THIS USED TO ASSERT THE OPPOSITE, and the history is worth keeping.
+         The original report was that dragging the divider did nothing visible;
+         the first fix widened the sheet and the owner reported the feature
+         still missing, because widening is not enlarging. So the sheet was
+         magnified, and this check read the rendered LINE HEIGHT to prove the
+         words themselves had grown.
+
+         The render reverses it: on a page whose divider is a working control,
+         type that changes on every drag makes the reader's own text-size
+         stepper only half the answer. So the sheet TAKES THE WIDTH and the
+         words hold — which is what the original report actually needed
+         (something visibly happens) without the cost.
+
+         WHAT IS ASSERTED NOW is that the same drag still changes the sheet, on
+         the axis it now changes: the paper is wider, the WORDS ARE THE SAME
+         SIZE, and a real line of the contract holds more of them. The last of
+         those is the one that would fail if the sheet had merely grown its
+         margins — the fault this check was written to catch, caught the same
+         way from the other side. */
+      check('THE SHEET GREW WITH IT — wider paper, same words',
+        after.paper > before.paper && after.lineH === before.lineH && after.zoom === 1,
+        `paper ${before.paper}→${after.paper}, line ${before.lineH}px → ${after.lineH}px, zoom ${after.zoom}`);
+      check('and the margin did not grow instead — the WORDING got the width',
+        after.words > before.words,
+        `text ${before.words}px → ${after.words}px (gutter ${before.gutterL} → ${after.gutterL})`);
     }
     /* AND IT SHRINKS AGAIN COMING BACK. "grows and shrinks as you slide the
        divider back and forth" is the whole report; a one-way check would pass
@@ -211,9 +241,9 @@ const SHEET = () => {
       window.rlLayoutResizer(document); });
     await pause(350);
     const back = await page.evaluate(SHEET);
-    check('AND IT SHRINKS AGAIN WHEN THE DIVIDER COMES BACK',
-      back && after && back.lineH < after.lineH && back.zoom < after.zoom,
-      back && `line ${after.lineH}px → ${back.lineH}px, zoom ${after.zoom} → ${back.zoom}`);
+    check('AND IT NARROWS AGAIN WHEN THE DIVIDER COMES BACK',
+      back && after && back.words < after.words && back.zoom === 1,
+      back && `text ${after.words}px → ${back.words}px, zoom ${back.zoom}`);
     await page.screenshot({ path: path.join(OUT, '02-owner-dragged.png') });
 
     /* AND AT A WIDTH WHERE THE CEILING IS THE BINDING CONSTRAINT, the honest
@@ -323,8 +353,14 @@ const SHEET = () => {
       && stepped.typeAfter / stepped.typeBefore > 1.28
       && stepped.typeAfter / stepped.typeBefore < 1.39,
       `${stepped.typeBefore}px → ${stepped.typeAfter}px inside the sheet`);
+    /* "or has reached its measure cap" since 22 Aug 2026: the sheet is fluid
+       and stops at RL_SHEET_MAX (860), so on a column wider than that filling
+       it would mean an unreadable line. The claim — the stepper never leaves
+       the page floating in white space — is unchanged, and the second half of
+       it (the sheet's width does not move with the type) is the load-bearing
+       one either way. */
     check('5 AND THE PAGE STILL FILLS ITS COLUMN — the reported half',
-      stepped.wAfter[0] >= stepped.wAfter[1] - 12
+      (stepped.wAfter[0] >= stepped.wAfter[1] - 12 || stepped.wAfter[0] >= 858)
       && stepped.wAfter[0] === stepped.wBefore[0],
       `${stepped.wBefore[0]} of ${stepped.wBefore[1]} → ${stepped.wAfter[0]} of ${stepped.wAfter[1]}`);
     check('5 and the front matter followed the body, so the sheet is one document',
@@ -362,7 +398,7 @@ const SHEET = () => {
       floored.at8 > 0 && floored.at8 < floored.at15 * 0.62,
       `${floored.at15}px → ${floored.at8}px`);
     check('5b AND THE PAGE STILL FILLS THE COLUMN — the whole point of the ask',
-      floored.sheet >= floored.col - 12,
+      floored.sheet >= floored.col - 12 || floored.sheet >= 858,
       `${floored.sheet} of ${floored.col}, zoom ${floored.zoom}`);
     await page.screenshot({ path: path.join(OUT, '04-owner-floor-8.png') });
 
@@ -627,7 +663,14 @@ const SHEET = () => {
     });
     await page.mouse.move(track.x, track.y);
     await page.mouse.down();
-    await page.mouse.move(track.x + 120, track.y, { steps: 12 });
+    /* DRAGGED LEFT, since 22 Aug 2026. The contract column's ceiling is the
+       sheet's own readable measure now (RL_LEFT_MAX = 860 + gutters) rather
+       than 660 × 2, and on this harness — which has no app sidebar — the
+       divider already rests AT that ceiling, so a rightward drag correctly
+       moves nothing and this check would be measuring the clamp instead of the
+       ratio. Leftward is unclamped here. The claim is about the DELTA and is
+       direction-blind. */
+    await page.mouse.move(track.x - 120, track.y, { steps: 12 });
     await pause(150);
     const landed = await page.evaluate(HANDLE);
     await page.mouse.up();
@@ -646,8 +689,8 @@ const SHEET = () => {
        this check is for. The fault it guards multiplied the ratio, not the
        remainder: the handle fell HUNDREDS of pixels behind. */
     check('6 THE RESIZER STILL TRACKS THE CURSOR ONE-TO-ONE',
-      Math.abs((landed - track.x) - 120) <= 10,
-      `cursor moved 120, handle moved ${landed - track.x}`);
+      Math.abs((landed - track.x) + 120) <= 10,
+      `cursor moved -120, handle moved ${landed - track.x}`);
     await page.screenshot({ path: path.join(OUT, '04-owner-geometry.png') });
 
     /* ---- 7. THE PHONE ----

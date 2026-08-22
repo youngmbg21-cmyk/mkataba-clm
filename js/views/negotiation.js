@@ -5692,10 +5692,20 @@ function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
    The presses are already delegated on `document` (see the [data-rl-read]
    listener), so a control drawn on any mounted page is live with nothing to
    wire — which is why the counterparty's costs no handler of its own. */
-function rlReadSegsHtml(){
+function rlReadSegsHtml(opts = {}){
+  /* ---- AND "REDLINED" SAYS HOW MANY (owner-approved render, 22 Aug 2026) ----
+     The design's first tab reads "Redlined 12". It is the same number the
+     change column's All tab prints — the caller passes it, because only the
+     caller knows which contract and which seat is being read, and a second
+     count worked out in here is a second answer waiting to disagree with the
+     first. Absent (the counterparty's header, a stage with no contract) the
+     tab draws no number rather than a zero. */
+  const n = Number(opts.n);
+  const cnt = (Number.isFinite(n) && n > 0)
+    ? `<span class="rl-seg-n">${n}</span>` : '';
   const seg = (v, label, tip) => `<button type="button" data-rl-read="${v}"
     class="rl-seg${rlReadMode() === v ? ' on' : ''}" aria-pressed="${rlReadMode() === v ? 'true' : 'false'}"
-    title="${_nea(tip)}">${_ne(label)}</button>`;
+    title="${_nea(tip)}">${_ne(label)}${v === 'marks' ? cnt : ''}</button>`;
   return `<div class="rl-segwrap rl-readwrap" role="group" aria-label="${_nea(i18t('ng_read_group'))}"
     title="${_nea(i18t('ng_read_group'))}">${
     seg('marks', i18t('ng_read_marks'), i18t('ng_read_marks_title'))}${
@@ -6190,6 +6200,21 @@ function negoLiveList(){
   return cs.filter(negoIsLive).sort((a, b) =>
     String(b.lastAction || '').localeCompare(String(a.lastAction || '')));
 }
+/* ---- AND THE ONES THAT ARE OVER ----
+   The other half of negoIsLive, for the door at the foot of Live threads. A
+   negotiation is CLOSED when it happened and is no longer live: the contract
+   carries changes and negoIsLive refuses it — signed, declined, archived, out
+   of reach. Built from the same two readings rather than from a third, so a
+   contract can never be on both lists or on neither.
+
+   IT READS c.changes RAW, exactly as negoIsLive does and for exactly the same
+   reason: negoChanges() runs negoInit(), which would start a negotiation on
+   every contract in the workspace merely by counting them. */
+function negoClosedList(){
+  const cs = (window.state && Array.isArray(state.contracts)) ? state.contracts : [];
+  return cs.filter(c => c && !negoIsLive(c)
+    && Array.isArray(c.changes) && c.changes.length);
+}
 /* How many changes are waiting on this reader across every live negotiation.
    The sidebar door's number. */
 function negoNeedsYouTotal(){
@@ -6354,6 +6379,93 @@ function negoListHeadHtml(shown){
     <p>${_ne(filtered ? i18t('ngl_sub_filtered', { n, live }) : i18t('ngl_sub'))}</p>
   </header>`;
 }
+/* ============================================================
+   LIVE THREADS — your other negotiations, beside the one you are working
+   ============================================================
+   (owner-approved render, 22 Aug 2026.) Until now the list and a negotiation
+   were two pages: pressing Negotiations gave you one OR the other, never both,
+   so checking whether anything else had moved meant leaving the round you were
+   in and coming back. This is the list, narrow, on the page.
+
+   IT DECIDES NOTHING OF ITS OWN. negoLiveList is the population — the same one
+   the door's count and the list page's heading print — and negoMovePillHtml is
+   the whose-move line, the same builder the Negotiations table draws in its
+   last column. So a row here and a row there cannot say different things about
+   the same agreement; there is one reading and this is a second place it is
+   drawn.
+
+   THE ROW YOU ARE ON IS NOT A DOOR. It is marked, and it says why — a control
+   whose only outcome is redrawing the page you are already on is furniture, and
+   worse, a press that appears to do nothing.
+
+   NOT ON THE COUNTERPARTY'S SEAT, and that is why it is built on the owner's
+   page rather than in the shared panes: which other companies we are arguing
+   with is the most internal list this product holds. A panel built in the
+   shared builder would have to be walled off on their seat; built here it can
+   never reach it. */
+function rlThreadsPanelHtml(c){
+  const live = (typeof negoLiveList === 'function') ? negoLiveList() : [];
+  const closed = (typeof negoClosedList === 'function') ? negoClosedList() : [];
+  const rows = live.map(x => {
+    const here = c && x.id === c.id;
+    const move = (typeof negoMovePillHtml === 'function') ? negoMovePillHtml(x) : '';
+    return `<button type="button" class="rl-thread${here ? ' on' : ''}"${
+      here ? ` aria-current="true" title="${_nea(i18t('ng_threads_here'))}"`
+        : ` data-rl-thread="${_nea(x.id)}" title="${_nea(String(x.name || ''))}"`}>
+      <span class="rl-thread-nm">${_ne(x.name || x.id)}</span>
+      <span class="rl-thread-cp">${_ne(x.counterparty || i18t('ng_the_counterparty'))}</span>
+      <span class="rl-thread-mv">${move}</span>
+    </button>`;
+  }).join('');
+  /* Only where there IS something else to look at. A panel headed "Live
+     threads" over the single row you are standing on is a box with your own
+     name in it. */
+  const only = live.length <= 1;
+  return `<section class="rl-panel rl-threads" aria-label="${_nea(i18t('ng_threads_head'))}">
+    <div class="rl-panel-h"><h3>${i18t('ng_threads_head')}</h3>
+      <span class="rl-panel-n">${live.length}</span></div>
+    ${only ? `<div class="rl-panel-empty">${i18t('ng_threads_none')}</div>` : rows}
+    ${''/* The way to the ones that are over. It is a real door — the Contracts
+           page narrowed to exactly those agreements, through regShowOnly, which
+           is this product's ONE way of saying "show me this list" and carries
+           its own chip and its own way back. Drawn only where there are any:
+           "Closed negotiations (0)" is a door onto an empty room. */}
+    ${closed.length ? `<div class="rl-thread-foot"><button type="button" data-rl-closed
+      title="${_nea(i18t('ng_threads_closed_label'))}">${
+      i18tn('ng_threads_closed', closed.length, { n: closed.length })}</button></div>` : ''}
+  </section>`;
+}
+
+/* ============================================================
+   PROPOSALS ON THE TABLE — the same changes, read side by side
+   ============================================================
+   (owner-approved render, 22 Aug 2026.) The change column says WHAT is on the
+   table; this says what each one would DO to the wording — our text against
+   theirs, in two boxes, with the reason underneath.
+
+   IT IS THE CARD RENDERER, NOT A SECOND ONE. redlineChangeCardsHtml is called
+   with the very opts the column is called with plus one flag, so the list, the
+   order, the wall between the seats, a reviewer's narrowing and every verb are
+   the column's own. That is not tidiness: two surfaces showing one set of
+   changes with one set of buttons is exactly how they come to disagree about
+   what is on the table, which is the fault this codebase has already paid for
+   twice. There is one reading here and one producer.
+
+   AND THE PAGE SAYS SO. The line under the heading tells the reader in plain
+   words that this is the same list as the column above — because two panels
+   showing the same six changes, without a word about it, reads as twelve. */
+function rlProposalsPanelHtml(c, opts = {}){
+  const body = (typeof redlineChangeCardsHtml === 'function')
+    ? redlineChangeCardsHtml(c, { ...opts, layout: 'proposal', cpPanel: false }) : '';
+  const n = (typeof redlineCardIds === 'function') ? redlineCardIds(c, opts).length : 0;
+  return `<section class="rl-panel rl-props" aria-label="${_nea(i18t('ng_props_head'))}">
+    <div class="rl-panel-h"><h3>${i18t('ng_props_head')}</h3>
+      <span class="rl-panel-n">${_ne(i18tn('ng_props_n', n, { n }))}</span></div>
+    ${n ? `<div class="rl-panel-sub">${i18t('ng_props_sub')}</div>` : ''}
+    ${n ? body : `<div class="rl-panel-empty">${i18t('ng_props_none')}</div>`}
+  </section>`;
+}
+
 function renderNegotiationsList(host){
   const el = host || document.getElementById('content');
   if (!el) return;
@@ -6665,8 +6777,16 @@ function renderRedline(){
         ${_rvPosture ? '' : `<button data-redline-proxy="${sendTarget}" class="rl-btn rl-btn-go"${deadAttrs || ` title="${_nea(sendTip)}"`}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
           ${_ne(sendVerb)}<span class="rl-send-detail">${_ne(sendCounts)}</span></button>`}
-        ${!_rvPosture && (typeof canEdit !== 'function' || canEdit()) ? `<button type="button" data-rl-pbreview class="rl-pb-btn"${
-          deadAttrs || ` title="${_nea(i18t('ng_review_every_clause'))}"`}><span class="rl-word">${i18t('ng_review_vs_playbook')}</span><span class="rl-glyph" aria-hidden="true">&#10022;</span></button>` : ''}
+        ${''/* ---- THE PLAYBOOK PASS HAS MOVED INTO THE MORE MENU ----
+               (owner-approved render, 22 Aug 2026.) The design's head carries
+               four buttons and this row had five plus the desk chip. Of the
+               five it is the one that belongs least: it runs across the WHOLE
+               contract once at the start of a round, which is a job, not one of
+               the acts you reach for while working the round. Its row is built
+               here — same attribute, same permission rules, same dead-in-preview
+               state — and PLACED by the head; see menuRow in roomHeadHtml.
+               data-rl-pbreview is unchanged, so its handler and every test that
+               presses it are untouched. */}
         ${''/* ALWAYS A WAY IN. This used to become "With John Wayne" the
                moment anything went out — a button that had stopped being a
                button, on the one control you need again the second you spot
@@ -6681,12 +6801,27 @@ function renderRedline(){
             data-rv-phase="${_nea(st.phase)}"${deadAttrs || ` title="${_nea(i18t('rv_head_title'))}"`}>&#128100;<span class="rl-word"> ${_ne(label)}</span></button>`;
         })() : ''}
   `;
+  /* The playbook pass's row, for the head's More menu — see the note where it
+     used to sit on the strip. Built here because this page owns its rules. */
+  const menuRow = (!_rvPosture && (typeof canEdit !== 'function' || canEdit()))
+    ? `<button type="button" data-rl-pbreview${preview ? ' disabled aria-disabled="true" data-rl-dead="1"' : ''}
+        title="${_nea(preview ? i18t('ng_preview_dead') : i18t('ng_review_every_clause'))}"
+      ><span aria-hidden="true">&#10022;</span>${i18t('ng_review_vs_playbook')}</button>` : '';
   host.innerHTML = `
     <!-- The reference is lg:h-full: the workbench fills the window and each of
          its three columns scrolls inside itself, rather than the page growing
          past the viewport and taking the whole thing with it. --view-h is the
          room the shell actually leaves, measured after the header renders. -->
-    <div id="view-redline" class="view-enter redline-page${_rlFocus ? ' rl-focus' : ''}" data-rl-side-mode="${rlSideMode()}" style="--rl-doc-type:${rlDocType()}px;--doc-scale:${rlDocScale()};height:var(--view-h);box-sizing:border-box;display:flex;flex-direction:column;gap:10px;padding:10px 18px 14px;min-height:0;">
+    ${''/* ---- THE PAGE HAS NO PADDING OF ITS OWN ANY MORE (owner-approved
+           render, 22 Aug 2026) ----
+           The head and the control bar are WHITE BANDS that run the full width
+           of the page and carry their own 24px inset; the working area below
+           them carries the page measure (48px). A single padding on this
+           element could not do both — it inset the bands as well, so they read
+           as two floating strips rather than as the top of a page. Nothing else
+           moved: --view-h, the flex column and min-height:0 are what make the
+           columns scroll inside themselves and are untouched. */}
+    <div id="view-redline" class="view-enter redline-page${_rlFocus ? ' rl-focus' : ''}" data-rl-side-mode="${rlSideMode()}" style="--rl-doc-type:${rlDocType()}px;--doc-scale:${rlDocScale()};height:var(--view-h);box-sizing:border-box;display:flex;flex-direction:column;gap:0;padding:0;min-height:0;">
       <!-- ---- THE SAME SHELL AS THE DOC PAGE ----
            The back arrow, the contract's name and status, and the document
            verbs (Share / Import / Compare), exactly where the Doc page puts
@@ -6720,7 +6855,7 @@ function renderRedline(){
              "a page's own primary act must not depend on another page's
              module". The verbs are built here either way; only their placement
              follows the head. */}
-      ${(window.roomHeadHtml ? roomHeadHtml(c,{primary:headVerbs,primaryFirst:true,previewing:side==='counterparty',backToContract:true}) : `<div class="room-acts">${headVerbs}</div>`)}
+      ${(window.roomHeadHtml ? roomHeadHtml(c,{primary:headVerbs,primaryFirst:true,previewing:side==='counterparty',backToContract:true,menuRow}) : `<div class="room-acts">${headVerbs}</div>`)}
       ${''/* THE ROOM'S OWN TAB ROW, NOT A SECOND ONE. This page carried a
              hand-written [Docs][Negotiate] pair while the contract page
              carried its own — two switchers for one room, in two files, free
@@ -6789,7 +6924,8 @@ function renderRedline(){
                Not a filter and not a mode the record knows about: the same
                clauses, drawn three ways. See rlReadMode for what each one
                means and why only LIVE proposals are affected. */}
-        ${rlReadSegsHtml()}
+        ${rlReadSegsHtml({ n: (typeof redlineCardIds === 'function')
+          ? redlineCardIds(c, { side: rowSide, countAll: true }).length : 0 })}
         <span class="rl-tabrow-gap"></span>
         <section class="rl-head">
           <div class="rl-head-id">
@@ -6901,7 +7037,40 @@ function renderRedline(){
           </div>
         </section>
       </div>
-      <div id="redline-host" style="flex:1;min-height:0;display:flex;flex-direction:column;"></div>
+      ${''/* ---- THE WORKING AREA IS ONE SCREENFUL; THE PANELS ARE A SCROLL
+             AWAY (owner-approved render, 22 Aug 2026) ----
+             #redline-host keeps height:100% of this scroller, so the contract
+             and the change column still fill the window and still scroll inside
+             THEMSELVES — the rule this page has always had, and the reason you
+             can read the paper without losing your place in the cards. What is
+             new is that the scroller carries something after them: Live threads
+             and Proposals on the table, reached by scrolling the page.
+
+             height:100% rather than flex:1 is what makes that work. As a flex
+             child of a column the host would share the space with the panels
+             below and both would be crushed; as a definite 100% it takes one
+             screenful and the panels sit past the fold, which is where the
+             render puts them. */}
+      ${''/* #redline-host IS THE SCROLLER, and that is not a tidy-up — it is
+             what lets the two panels below be wired at all. wireNegotiationTab
+             binds every verb THROUGH THIS MOUNT, deliberately (the
+             counterparty's page carries two copies of the component and a
+             document-wide lookup wired the hidden one). A panel outside the
+             mount therefore gets no handlers: measured, Accept in the proposals
+             panel drew, pressed, and decided nothing. So the panels live inside
+             it, and the panes take one screenful with height:100%. */}
+      <div id="redline-host" class="rl-scroll" style="min-height:0;"></div>
+        ${''/* ---- THE TWO PANELS UNDER THE CONTRACT ----
+               Built HERE and not in redlinePanesHtml, and the placement is the
+               rule rather than a convenience: the panes are SHARED markup — the
+               counterparty's own share page mounts them — and "your other live
+               negotiations" is the most internal list this product holds. A
+               panel built in the shared builder would have to be walled off on
+               their seat; built on the owner's page it can never reach it.
+
+               NOT IN COUNTERPARTY VIEW EITHER. That view is a window onto what
+               they see, and neither panel is something they see. */}
+
       ${''/* The way out of focus mode. Always in the DOM, shown only by the
              .rl-focus rule, because the button that turned focus ON is inside
              the strip focus mode stands down. */}
@@ -7276,8 +7445,42 @@ function renderRedline(){
     },
     rerender: () => renderRedline() };
   mount.innerHTML = redlinePanesHtml(c, opts);
+  /* ---- AND THE TWO PANELS UNDER THE CONTRACT ----
+     Filled HERE, from the same `opts` the panes were just built with. That is
+     the "one reading" rule made structural: the proposals panel is the change
+     column's own renderer, so handing it a different seat, a different wall or
+     a different reviewer narrowing is not merely untidy, it would put two
+     different lists of changes on one screen.
+     BEFORE wireNegotiationTab, so the verbs inside are in the DOM when the
+     per-paint handlers go looking for them — they are the cards' own
+     attributes and are wired by the cards' own listeners. */
+  /* APPENDED, not written into the markup above: mount.innerHTML has just
+     replaced everything inside this host, so a slot placed there would be gone
+     by now. Inside the host because that is where the wiring reaches (see the
+     note at the host itself). */
+  if (side !== 'counterparty'){
+    const below = document.createElement('div');
+    below.id = 'rl-below'; below.className = 'rl-below';
+    below.innerHTML = rlThreadsPanelHtml(c) + rlProposalsPanelHtml(c, opts);
+    mount.appendChild(below);
+  }
   wireNegotiationTab(c, opts);
   negoAfterPaint(c, opts, mount);
+  /* The threads panel's own two doors. Both are ordinary navigations — a
+     negotiation, or the Contracts page narrowed to the closed ones — and both
+     go through this product's existing routes rather than a second one. */
+  host.querySelectorAll('[data-rl-thread]').forEach(el =>
+    el.addEventListener('click', () => openRedlineWorkbench(el.getAttribute('data-rl-thread'))));
+  host.querySelectorAll('[data-rl-closed]').forEach(el =>
+    el.addEventListener('click', () => {
+      const ids = (typeof negoClosedList === 'function') ? negoClosedList().map(x => x.id) : [];
+      if (!ids.length) return;
+      /* regShowOnly is the ONE door onto "show me exactly this list": it puts a
+         chip on the register saying what it is narrowed to and carries its own
+         way back. A second mechanism here would be a second answer. */
+      if (window.regShowOnly) regShowOnly(ids, i18t('ng_threads_closed_label'));
+      if (typeof setView === 'function') setView('register');
+    }));
   /* The counterparty postbox (#nego-send-decisions) is no longer bound here:
      Counterparty View is read-only, supplies no onSendDecisions, and renders
      no postbox to bind. The portal's own mount keeps its binding. */
@@ -8434,11 +8637,25 @@ function rlToggleDiscussion(){
    claims no track of its own. */
 const RL_FMIN = 0.45, RL_F0 = 2 / 3, RL_FMAX = 0.80, RL_GAP = 14;
 const RL_LEFT_MIN = 380, RL_RIGHT_MIN = 300;
+/* ---- WHERE THE DIVIDER RESTS BEFORE ANYBODY HAS MOVED IT ----
+   (owner-approved render, 22 Aug 2026.) The default was two thirds of the
+   grid, which on a 1500px window opens the change column at 394px; the design
+   opens it at 460, which is what its cards are drawn to. A WIDTH and not a
+   fraction, because 460 is a fact about the CARDS — the id, the state, the Open
+   button and a two-line wording preview — and a fraction gives them a different
+   number on every monitor.
+   THE DIVIDER IS UNTOUCHED in every other respect: the stored fraction still
+   wins wherever there is one, the two minimums and the maximum still clamp, the
+   drag still writes a fraction, and the double-click still resets to RL_F0. */
+const RL_RIGHT_W0 = 460;
 const RL_SPLIT_KEY = 'hati.v1.rlLeftFrac';
+/* null = nobody has chosen, which is a different answer from "two thirds" and
+   is what lets the resting place be a width instead of a fraction. Every caller
+   that wants a number falls back to RL_F0 itself. */
 function _rlLeftFrac(){
   try { const v = Number(localStorage.getItem(RL_SPLIT_KEY));
-    return (v >= RL_FMIN - 0.001 && v <= RL_FMAX + 0.001) ? v : RL_F0; }
-  catch (e) { return RL_F0; }
+    return (v >= RL_FMIN - 0.001 && v <= RL_FMAX + 0.001) ? v : null; }
+  catch (e) { return null; }
 }
 /* WHAT THE CONTRACT COLUMN MUST KEEP. The sheet is typeset to the Doc page's
    720px measure so the two tabs set the contract to the same line length, and
@@ -8473,8 +8690,23 @@ function rlLayoutResizer(host){
   const grid = scope.querySelector('.redline-page .rl-grid');
   const rez = grid && grid.querySelector('#rl-resizer');
   if (!grid || !rez) return;
+  /* ---- THE WORKING AREA HAS A WIDTH, AND PAST IT THE PAGE CENTRES ----
+     Both tracks are bounded — the contract by what a line of an agreement can
+     be and still read (RL_LEFT_MAX), the cards by what they are drawn to
+     (RL_RIGHT_W0) — so on a monitor wider than the two of them the honest
+     answer is white either side of the whole working area, not one track
+     silently swallowing the surplus. It used to go to the cards, which put a
+     460px column at 492 on a 1440 screen and wider still on a 2560 one: the
+     cards are sized to their content and growing them buys nothing.
+     WRITTEN FROM JS, not the stylesheet, so the ceiling is the same arithmetic
+     as the clamp below rather than a number kept true by hand in two files. */
+  grid.style.maxWidth = (RL_LEFT_MAX + RL_GAP + RL_RIGHT_W0) + 'px';
+  grid.style.marginLeft = 'auto'; grid.style.marginRight = 'auto';
   const avail = _rlAvail(grid);
-  let left = Math.round(_rlLeftFrac() * avail);
+  /* A chosen fraction wins; with nothing chosen the change column opens at the
+     width its cards are drawn to. See RL_RIGHT_W0. */
+  const frac = _rlLeftFrac();
+  let left = frac == null ? Math.round(avail - RL_RIGHT_W0) : Math.round(frac * avail);
   if (avail >= RL_LEFT_MIN + RL_RIGHT_MIN)
     left = Math.min(Math.max(left, RL_LEFT_MIN), avail - RL_RIGHT_MIN, RL_LEFT_MAX);
   const s = { avail, left };
@@ -8562,54 +8794,56 @@ function rlSetDocType(px){
   if (window.dsApplyZoom) dsApplyZoom();
   return v;
 }
-/* ---- FIT THE SHEET TO THE COLUMN (owner-asked, 13 Aug 2026) ----
-   The Document tab's applyDocZoom, on this page: the same 660px page, the same
-   ceiling, the same "the stepper multiplies the fit" rule — so one stored
-   preference sizes the contract identically on all three screens and the two
-   screens cannot drift.
+/* ---- FIT THE SHEET TO THE COLUMN — REVERSED IN PLACE, 22 Aug 2026 ----
+   This page used to do what the Document tab does: take a fixed 660px page and
+   MAGNIFY it to fill whatever column the divider left it, up to 2×. The owner's
+   approved render reverses that for this screen only — the sheet is fluid and
+   the words hold their size — and the reasoning is worth keeping because it is
+   the reason the two screens may now differ.
 
-   IT REFUSES TO MEASURE A HIDDEN PANE. A width of zero is not a width: a pane
-   that is not laid out yet (a tab behind another, a mount being built) would
-   otherwise compute a zoom of nothing and pin the contract at its smallest
-   until something else forced a repaint. */
+   THE ARGUMENT FOR MAGNIFYING was that the contract should visibly grow as you
+   give it room, which is what the Document tab does and what was asked for on
+   13 Aug. THE ARGUMENT AGAINST is that on THIS page the divider is a working
+   control you move all day, and a control that re-sizes the words every time
+   you drag it makes the reader's own text-size setting only half the answer.
+   The sheet growing WIDER says the same thing without moving the type.
+
+   RL_PAGE_W and RL_ZOOM_MAX survive as EXPORTS and nothing on this page reads
+   them any more; the Document tab's own applyDocZoom keeps its own copy of the
+   idea, so removing them would break a name other files can still ask for. */
 const RL_PAGE_W = 660;
 const RL_ZOOM_MAX = 2.0;   // the Document tab's own ceiling: past this it stops being a contract
-/* ---- AND THE COLUMN STOPS WHERE THE SHEET DOES (owner-reported 16 Aug 2026,
-   from focus mode on a wide monitor) ----
-   The sheet can never use more than RL_PAGE_W × RL_ZOOM_MAX = 1320 visual
-   pixels; a doc column wider than that buys nothing but white either side of a
-   centred page, which was reported as a void beside the contract. FOCUS MODE
-   is where it showed — hiding the sidebar is what pushed the column past the
-   ceiling — but the fault was never focus's: the same width reached by a wide
-   monitor or a hard divider drag white-spaced identically. So the divider's
-   left column carries a MAX beside its two MINs, and the surplus goes to the
-   track that can use it — the cards, and the clause panel that takes that
-   track whole. The 40 covers the pane's own padding, the zoom's rounding
-   guard and a classic scrollbar, so the fit still reaches 2.0 inside the cap.
-   The stored fraction is READ, NEVER REWRITTEN, above the cap — the nav
-   drawer's own rule — so a narrower window gets the old split back. */
-const RL_LEFT_MAX = RL_PAGE_W * RL_ZOOM_MAX + 40;
+/* ---- AND THE COLUMN STOPS WHERE THE SHEET DOES ----
+   Same rule as before and a different number, because the sheet is a different
+   object now: it is FLUID and capped at RL_SHEET_MAX (860px, the .rl-paper
+   rule), so a doc column wider than that buys nothing but white either side of
+   a centred page — the void that was reported from focus mode on a wide
+   monitor. The 40 covers the pane's own padding and a classic scrollbar. */
+const RL_SHEET_MAX = 860;
+const RL_LEFT_MAX = RL_SHEET_MAX + 40;
+/* ---- THE CONTRACT IS NO LONGER MAGNIFIED (owner-approved render, 22 Aug 2026)
+   ----
+   This used to fit a fixed 660px page into whatever column it was given, up to
+   2×, so the WORDS changed size as the divider moved and a reader's chosen
+   text size was only half of what decided them. The design draws the sheet
+   fluid at a steady size: the paper takes its column (capped at a readable
+   measure), and --rl-doc-type is the only thing that changes the type.
+
+   IT IS PINNED RATHER THAN DELETED, and that is deliberate. `zoom` is written
+   on .rl-zoom by the STYLESHEET now (zoom:1); this function stays as the one
+   place that would set it otherwise, so the four callers that ask the layout to
+   re-fit — the divider's own drag, the pane observer, the type stepper and the
+   focus toggle — keep calling one named thing rather than each growing a
+   private opinion about what the sheet should do. Deleting it would scatter
+   that decision across four sites the day somebody wants a fit back.
+
+   THE DOCUMENT TAB IS UNTOUCHED: applyDocZoom is its own function in
+   js/views/contract.js and still magnifies its own sheet. This is the
+   negotiation page only. */
 function rlApplyDocZoom(host){
   const scope = (host && host.querySelectorAll) ? host : document;
-  const wraps = scope.querySelectorAll('.redline-page .rl-zoom');
-  wraps.forEach(wrap => {
-    const pane = wrap.parentElement;
-    if (!pane) return;
-    const cs = getComputedStyle(pane);
-    /* clientWidth already excludes the scrollbar; the 2px keeps a rounding
-       overshoot from tipping the pane into a horizontal scroll. */
-    const room = pane.clientWidth - (parseFloat(cs.paddingLeft) || 0)
-      - (parseFloat(cs.paddingRight) || 0) - 2;
-    if (!(room > 0)) return;
-    const fit = Math.min(RL_ZOOM_MAX, Math.max(1, room / RL_PAGE_W));
-    /* THE FIT ALONE (13 Aug 2026, owner-asked). The reader's text-size choice
-       used to multiply this, which sized the PAGE as well as the words — so
-       asking for small type gave back a small sheet in a wide column. The page
-       now always fills the column and the choice is the type inside it, which
-       is --rl-doc-type on the .redline-page root. On-screen text size is
-       unchanged at every setting: it was fit × preference before and it is fit
-       × preference now, from the other side of the multiplication. */
-    wrap.style.setProperty('--rl-zoom', fit.toFixed(3));
+  scope.querySelectorAll('.redline-page .rl-zoom').forEach(wrap => {
+    wrap.style.setProperty('--rl-zoom', '1');
   });
 }
 /* ---- AND IT FOLLOWS THE COLUMN WHATEVER MOVED IT ----
@@ -8704,9 +8938,38 @@ function rlWireResizer(host){
     document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none';
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp); });
+  /* ---- DOUBLE-CLICK PUTS THE DEFAULT BACK, AND THE DEFAULT IS NO LONGER A
+     FRACTION ---- It wrote RL_F0 into the store, which was the default while
+     the default WAS two thirds. The resting split is a width now (RL_RIGHT_W0),
+     and "reset" has to mean the same thing as "nobody has chosen" or the
+     control puts back a split the page never opens at. Clearing the key is
+     that, exactly. */
   rez.addEventListener('dblclick', () => {
-    try { localStorage.setItem(RL_SPLIT_KEY, String(RL_F0)); } catch (e2) {}
+    try { localStorage.removeItem(RL_SPLIT_KEY); } catch (e2) {}
     rlLayoutResizer(scope); });
+  /* ---- AND THE SPLIT FOLLOWS THE GRID, WHATEVER MOVED IT ----
+     The resting split is a WIDTH now (the change column opens at RL_RIGHT_W0),
+     and a width has to be recomputed from the grid's own size — where a
+     fraction survived a bad first measurement, this does not. Measured on the
+     counterparty's mount: the resizer ran while that page was still settling,
+     read a grid 32px narrower than it ended up, and left their change column
+     32px wider than the owner's for the life of the page. The zoom used to
+     absorb that; nothing does now.
+     A ResizeObserver on the GRID is the same answer rlObserveTabRow gives for
+     the same class of problem — ask the element rather than hunting the five
+     causes. No feedback loop: this writes the grid's TRACKS, never its width. */
+  if (typeof ResizeObserver === 'function' && !grid._rlGridObserved){
+    grid._rlGridObserved = true;
+    let last = -1;
+    try {
+      new ResizeObserver(() => {
+        const w = Math.round(grid.clientWidth);
+        if (w === last) return;
+        last = w;
+        rlLayoutResizer(scope);
+      }).observe(grid);
+    } catch (_) {}
+  }
   if (typeof window !== 'undefined' && !window._rlResizeBound){
     window._rlResizeBound = true;
     window.addEventListener('resize', () => rlLayoutResizer(document));
@@ -10621,6 +10884,64 @@ function redlineChangeCardsHtml(c, opts = {}){
        Open away (the panel's ＋ reads "Continue your draft" on a pending ask
        of ours), and a receipt with a button it does not need is a card again.
        The body press still navigates to the clause, as on every card. */
+    /* ---- THE SAME CHANGE, READ SIDE BY SIDE (owner-approved render, 22 Aug
+       2026) ----
+       "Proposals on the table" is this renderer under one flag. Everything
+       above this line — which changes are in the list, their order, the wall
+       between the seats, a reviewer's narrowing, the badge, and every verb in
+       `actions` — has already been decided by the column's own code, so the two
+       surfaces cannot come to disagree about what is on the table. What the
+       flag changes is the BODY: two boxes instead of a two-line preview, and
+       the author's reason under them.
+
+       NO RECEIPTS HERE, deliberately. The column shrinks a change that needs
+       nothing to one line because it is a list you scan; this panel exists to
+       show the wording, and a row that showed none would be a gap in the middle
+       of it.
+
+       IT CARRIES NO data-nego-card. That attribute is how the page finds A
+       card by id — rlLinkFocus lights one, the pins forget one — and two
+       elements answering to it would make "the card for CHG-004" ambiguous.
+       The verbs inside carry their own data attributes and are wired by the
+       ordinary per-paint handlers, exactly as the Copilot band's are, so a
+       press here runs the same funnel a press in the column runs. */
+    if (opts.layout === 'proposal'){
+      /* Two readings of one set of ops, and neither is a fresh diff: the stored
+         ops are inside the fingerprint, so a re-diff would show the other side
+         wording they never verified. Left = the wording as it stands with the
+         proposed cuts struck; right = the wording as proposed with the
+         additions marked. */
+      const ops = Array.isArray(ch.ops) ? ch.ops : [];
+      const half = drop => {
+        const keep = ops.filter(o => o && o.op !== drop);
+        if (window.redlineOpsHtml && keep.length) return redlineOpsHtml(keep);
+        return _ne(String(drop === 'ins' ? (ch.oldText || '') : (ch.proposedText || ch.newText || '')));
+      };
+      const tag = theirs ? ['them', i18t('ng_prop_tag_them')]
+        : (mineUnsent ? ['us', i18t('ng_prop_tag_us_unsent')] : ['us', i18t('ng_prop_tag_us')]);
+      const when = ch.createdAt ? String(ch.createdAt).slice(0, 10) : '';
+      return `<article class="rl-prop" data-rl-prop="${_ne(ch.id)}" data-rl-origin="${theirs ? 'them' : 'us'}">
+        <div class="rl-prop-top">
+          ${''/* `who` is the clause label and is ALREADY escaped where it is
+                 built — escaping it again turns "Price & Contract Value" into
+                 "Price &amp;amp; Contract Value" on the screen. Caught by
+                 photographing the panel. */}
+          <span class="rl-prop-cl" title="${_nea(String(ch.clauseLabel || ch.clauseId || ''))}">${who}</span>
+          <span class="rl-prop-tag ${tag[0]}">${_ne(tag[1])}</span>
+          <span class="rl-prop-age">${_ne(ch.id)}${when ? ' &middot; ' + _ne(when) : ''}</span>
+        </div>
+        <div class="rl-versus">
+          <div class="rl-vs${theirs ? '' : ' theirs'}">
+            <div class="rl-vs-k">${i18t('ng_vs_current')}</div>
+            <div class="rl-vs-b">${half('ins')}</div></div>
+          <div class="rl-vs${theirs ? ' theirs' : ''}">
+            <div class="rl-vs-k">${theirs ? i18t('ng_vs_theirs') : i18t('ng_vs_ours')}</div>
+            <div class="rl-vs-b">${half('del')}</div></div>
+        </div>
+        ${ch.why ? `<div class="rl-prop-why"><b>${i18t('ng_prop_why_k')}</b> ${_ne(String(ch.why))}</div>` : ''}
+        ${actionBar}
+      </article>`;
+    }
     const receipt = !noCopyBlock && !rvStuckBlock && !dkInstead && !rvVerbs && !rvCancel && !infoHold
       && !rlCardNeedsYou(verbs)
       && !/data-nego-redecide|data-rl-reopen/.test(verbs.join(''));
@@ -11725,7 +12046,8 @@ if (typeof window !== 'undefined') Object.assign(window, {
      so a top-level function in one is invisible to the next; see the note below
      about rlPaperFootHtml, which was declared, called, and silently absent for a
      year because nobody put it here. */
-  negoNeedsYouIds, negoNeedsYouTotal, negoIsLive, negoLiveList,
+  negoNeedsYouIds, negoNeedsYouTotal, negoIsLive, negoLiveList, negoClosedList,
+  rlThreadsPanelHtml, rlProposalsPanelHtml,
   negoLastOpened, negoRememberOpened, openNegotiations,
   renderNegotiationsList, negoListHeadHtml, negWhoseMove,
   /* ---- rlPaperFootHtml WAS NEVER ON WINDOW, SO IT NEVER DREW ----

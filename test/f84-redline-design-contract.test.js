@@ -197,10 +197,23 @@ describe('F84 — the port adds the design\'s names, it does not rename the wiri
 });
 
 describe('F84 — two panes, a drag handle, and a sidebar that shows one face', () => {
-  test('the resting grid is document two-thirds, sidebar one-third', async () => {
+  test('the resting grid opens the change column at the width its cards are drawn to', async () => {
     const p = await page();
-    assert.match(p.css(), /\.redline-page \.rl-grid\{[^}]*grid-template-columns:minmax\(0,2fr\) minmax\(0,1fr\)/,
-      'the Doc tab\'s own split — two thirds to the contract before the first drag');
+    /* ---- CLAIM REVERSED IN PLACE, 22 Aug 2026 (owner-approved render) ----
+       It was a RATIO — two thirds to the contract, the Document tab's own
+       split. The render opens the change column at 460px, and a width is the
+       honest form for it: 460 is a fact about the CARDS (an id, a state, an
+       Open button and two lines of wording) and a ratio gives them a different
+       number on every monitor.
+
+       WHY THE STYLESHEET CARRIES IT TOO, when rlLayoutResizer writes pixels
+       over these tracks the moment it runs: a mount the resizer has not reached
+       yet — the counterparty's own page, the first frame of a paint — drew the
+       old ratio while the owner's bench opened at 460, and parity-verify caught
+       the two seats measuring differently on markup whose whole claim is that
+       they measure alike. Same number, both places. */
+    assert.match(p.css(), /\.redline-page \.rl-grid\{[^}]*grid-template-columns:minmax\(0,1fr\) 460px/,
+      'the contract takes what is left; the cards open at the width they are drawn to');
   });
 
   /* ---- AND NOW THERE IS ONE FACE ----

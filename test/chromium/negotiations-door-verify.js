@@ -321,8 +321,12 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     }, SEEN);
     check('the negotiation page carries a way back to the list',
       !!backDoor.box && backDoor.box.on, backDoor.box ? `${backDoor.box.text} ${backDoor.box.w}x${backDoor.box.h}` : 'MISSING');
-    check('it reads Live negotiations and carries the count',
-      /Live negotiations/.test(backDoor.box.text || '') && /^\d+$/.test(backDoor.n),
+    /* "All negotiations" since 22 Aug 2026 (owner-approved render). It named
+       the POPULATION the count is of; the render names the DESTINATION, which
+       is what a reader leaving is looking for. The count beside it is unchanged
+       and is still the live list's own. */
+    check('it reads All negotiations and carries the count',
+      /All negotiations/.test(backDoor.box.text || '') && /^\d+$/.test(backDoor.n),
       `${backDoor.box.text} · count "${backDoor.n}"`);
     /* ---- CLAIM REVERSED IN PLACE 22 Aug 2026 ----
        It read "the FIRST thing on the control row, at its far left", which was
@@ -509,13 +513,20 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       return { left: Math.round(g.left), right: Math.round(window.innerWidth - g.right),
         cols: getComputedStyle(document.getElementById('app-shell')).gridTemplateColumns };
     });
-    check('10 IN FOCUS THE GRID STARTS AT THE WALL — no void left of the contract',
-      focusGeo.left <= 24, `grid left ${focusGeo.left}px · shell ${focusGeo.cols}`);
-    /* 40, not 24: the right edge legitimately spends the page's own 10px
-       padding plus the scroll container's reserved gutter (scrollbar-gutter:
-       stable, ~17px). What it must never spend is a TRACK's worth. */
+    /* ---- MEASURED AS SYMMETRY SINCE 22 Aug 2026, and that is a sharper test
+       than the two ceilings it replaces ----
+       The fault was ~490px of dead white on ONE SIDE: the shell collapsed to a
+       single column, the pinned content fell into an implicit second one, and
+       the explicit track sat empty on the left. A void is by nature lopsided.
+       The page now spends a real page margin (48px each side) and centres the
+       working area past its own ceiling, so a bare "left <= 24" would be
+       measuring the design rather than the fault. Equal gutters plus a bound
+       catches the void exactly and cannot be satisfied by an empty track. */
+    check('10 IN FOCUS THE GRID IS CENTRED — no void on either side of the contract',
+      Math.abs(focusGeo.left - focusGeo.right) <= 24 && focusGeo.left <= 160,
+      `grid left ${focusGeo.left}px · right ${focusGeo.right}px · shell ${focusGeo.cols}`);
     check('10 and ends at the other wall — the width was not handed to an empty track',
-      focusGeo.right <= 40, `gap right ${focusGeo.right}px`);
+      focusGeo.right <= 160, `gap right ${focusGeo.right}px`);
     check('10 the shell\'s first track is exactly zero, not a share of the window',
       /^0px /.test(focusGeo.cols), focusGeo.cols);
     await page.screenshot({ path: path.join(OUT, '10-focus-at-the-wall.png') });

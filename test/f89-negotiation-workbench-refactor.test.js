@@ -381,58 +381,57 @@ describe('F89 (2) — a centred sheet with gutters, like the Doc page', () => {
      bounded paper sheet with air on both sides, and this page now does the
      same — the paper carries its own chrome and the column behind it drops to
      the page background so the gutters read as page, not as card. */
-  test('the .rl-paper is the sheet: bounded, centred, shadowed', async () => {
+  test('the .rl-paper is the sheet: fluid, capped, flat', async () => {
     const p = await page();
     const r = p.rule('.redline-page .rl-paper');
     assert.ok(r, '.rl-paper must carry a rule');
-    /* ---- CLAIM UPDATED TWICE, 13 Aug 2026, AND THE SECOND TIME IS THE ONE
-       THAT COUNTS ----
-       It first asserted a flat max-width:720px. That was replaced by a measure
-       tied to the type, so the sheet grew toward the column — more WORDS per
-       line, same size words. The owner read that on the real page and reported
-       the feature still missing, and they were right: on the Document tab the
-       contract visibly grows and shrinks as the divider moves, because that
-       tab SCALES THE WHOLE SHEET.
+    /* ---- CLAIM REVERSED IN PLACE, 22 Aug 2026, OWNER-APPROVED RENDER ----
+       This claim has now been written three times and the history is the point,
+       because each version was right about the page it was written for.
 
-       So the sheet is a fixed page again — the Document tab's own 660px — and
-       a zoom wrapper fits it to the column. Same page, same mechanism, same
-       stored preference on all three screens. */
-    assert.match(r, /max-width:660px/, 'the Document tab\'s own page width');
-    assert.ok(!/max-width:720px/.test(r), 'not the old flat 720');
+       IT WAS a flat max-width:720px. Then a measure tied to the type, so the
+       sheet grew toward the column — more WORDS per line, same size words. Then
+       a fixed 660px page inside a ZOOM wrapper that magnified it to fill the
+       column, because on the Document tab the contract visibly grows as the
+       divider moves and the owner wanted the same here.
+
+       IT IS FLUID AGAIN, and the reason is what the divider IS on this page. On
+       the Document tab there is no divider: the column's width is the window's,
+       and a sheet that scales with it changes size once, when you resize. Here
+       the divider is a working control you move all day, and a sheet that
+       magnifies makes every drag re-size the words — so the reader's own
+       text-size stepper stops being the answer to "how big is this contract".
+       The sheet takes its column and the type holds.
+
+       WHAT IS ASSERTED, and each is a fact the render fixed:
+         · width:100% — it FILLS the column, which is the whole claim;
+         · max-width:860px — a line of a contract has a length past which it
+           stops being readable, whatever room the monitor has;
+         · margin:0 auto — centred past the cap, so the gutters split evenly;
+         · 56px side padding — the render's own margin;
+         · no box-shadow — with the sheet filling its column there is nothing
+           for a page to float above, and the render draws it flat;
+         · the zoom wrapper pinned at 1, in the stylesheet, so nothing can
+           magnify it by accident. */
+    assert.match(r, /width:100%/, 'the sheet fills its column');
+    assert.match(r, /max-width:860px/, 'up to a readable measure and no further');
+    assert.ok(!/max-width:660px/.test(r), 'not the fixed page it used to be');
+    assert.match(r, /margin:0 auto/, 'centred, so the gutters split evenly past the cap');
+    assert.match(r, /padding:30px 56px 34px/, "the render's own margins");
+    assert.match(r, /box-shadow:none/, 'and flat — a filled column has nothing to float above');
     const z = p.rule('.redline-page .rl-zoom') || '';
-    assert.match(z, /zoom:var\(--rl-zoom,1\)/, 'and a zoom layer fits it to the column');
-    assert.match(z, /max-width:660px/, 'wrapping a page of exactly that width');
-    /* ---- CLAIM REVERSED, 13 Aug 2026, OWNER-ASKED ----
-       THE PREFERENCE IS STILL APPLIED ONCE — that rule has not moved — but it
-       is applied on the other side of the multiplication. It used to ride in
-       the ZOOM, with --rl-doc-type pinned to 15px inside this wrapper so it
-       could not apply twice. The two are interchangeable for the TEXT (on
-       screen it is fit × preference either way) and not for the PAGE: with the
-       preference in the zoom, choosing the new floor of 8 shrank the sheet to
-       half its column and left it floating in white space. Asked for directly:
-       "lower it to 8 but keep the page filling the column."
-
-       So the zoom carries the FIT alone, the pin is gone, and the sheet
-       inherits --rl-doc-type from the .redline-page root — which is the one
-       place rlSetDocType writes it. Pinning it here again would take the
-       stepper off this page altogether. */
-    assert.ok(!/--rl-doc-type/.test(z),
-      'the pin is gone — the sheet inherits the reader\'s choice from the page root');
+    assert.match(z, /zoom:1/, 'the zoom layer is pinned, not fitted');
     const src89 = require('node:fs').readFileSync(
       require('node:path').join(__dirname, '..', 'js', 'views', 'negotiation.js'), 'utf8');
-    assert.match(src89, /setProperty\('--rl-zoom', fit\.toFixed/,
-      'and the zoom is the width-fit alone, so the page always fills its column');
+    assert.ok(!/setProperty\('--rl-zoom', fit\.toFixed/.test(src89),
+      'nothing computes a fit for this page any more');
     assert.match(src89, /root\.style\.setProperty\('--rl-doc-type', v \+ 'px'\)/,
       'one writer for the preference, still');
-    assert.match(r, /margin:0 auto/, 'centred, so the gutters split evenly as the window widens');
-    /* WARM PAPER, ON ITS OWN TOKENS. Not --color-surface any more: the sheet
-       and the cards beside it were the same white, so the paper never read as
-       paper. The three values are named in index.html because the Document
-       tab, the counterparty's page and the phone paint the same sheet — and
-       because the dark theme has to answer differently. */
+    /* WARM PAPER, ON ITS OWN TOKENS — untouched by the render. The sheet and
+       the cards beside it must not be the same white or the paper never reads
+       as paper. */
     assert.match(r, /background:var\(--color-doc-warm\)/, 'the sheet is paper, not another card');
     assert.match(r, /border:1px solid var\(--color-doc-warm-line\)/, 'with a warm hairline round it');
-    assert.match(r, /box-shadow:var\(--shadow-paper\)/, 'and it carries the paper shadow itself');
   });
 
   test('the column is nothing at all — the sheet is the object', async () => {
@@ -474,8 +473,12 @@ describe('F89 (2b) — the page sets the contract, it does not float it', () => 
     const p = await page();
     const r = p.rule('.redline-page .nego-pane.working .rl-paper');
     assert.ok(r, 'the override must exist, or the engine\'s gutter applies');
-    assert.match(r, /padding-left:36px/);
-    assert.match(r, /padding-right:36px/);
+    /* 56px SINCE 22 Aug 2026 (owner-approved render). The claim is unchanged —
+       the engine's one-sided 100px gutter must not apply here, and the sheet's
+       two sides must match — only the number moved, to the margin the design
+       draws. */
+    assert.match(r, /padding-left:56px/);
+    assert.match(r, /padding-right:56px/);
     /* Four classes deep, because the engine's rule is three and this
        stylesheet is inserted BEFORE #nego-style — a tie would lose on order. */
     const css = p.css();

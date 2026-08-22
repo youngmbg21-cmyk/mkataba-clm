@@ -1095,8 +1095,8 @@ function redlineLayoutCss(){
      (Young, 10 Aug 2026), which gives the contract a whole band of height
      back. No margin and no minimum height: the tabs set the row's height and
      the controls sit centred in it. */
-  .redline-page .rl-head{display:flex;flex-wrap:nowrap;align-items:center;gap:7px;
-    flex:none;align-self:center;padding-bottom:2px}
+  .redline-page .rl-head{display:flex;flex-wrap:nowrap;align-items:center;gap:7px;flex:none;
+    align-self:stretch;padding-bottom:0}
   /* The gap that pushes them right. Its own element rather than margin-left on
      the head, so the row still reads left-to-right in the markup. */
   .redline-page .rl-tabrow-gap{flex:1;min-width:8px}
@@ -1120,7 +1120,9 @@ function redlineLayoutCss(){
      underline is stranded in mid-air above them. The gap is already a
      full-width, zero-height element sitting exactly between the two lines,
      which makes it the honest place for that rule. */
-  .redline-page .rl-tabrow{flex-wrap:wrap}
+  .redline-page .rl-tabrow{flex-wrap:wrap;background:var(--color-surface);margin:0;padding:0 24px;
+    height:44px;gap:12px;align-items:stretch;box-shadow:inset 0 -1px var(--color-divider);
+    border-bottom:0}
   /* ---- BUT BEFORE IT WRAPS, IT TIGHTENS ----
      Reported off two laptops side by side (Young, 10 Aug 2026): on a ThinkPad
      the controls dropped to a second line below the tabs, and that line comes
@@ -1272,12 +1274,13 @@ function redlineLayoutCss(){
      A quiet button with an amber dot: the dot is the news, the words are the
      count and the arrow says it goes somewhere. Deliberately NOT filled — it
      is a way into the work, not the act that ends the round. */
-  .redline-page .rl-needs{display:flex;align-items:center;gap:8px;height:34px;flex:none;
-    border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;
-    padding:0 13px;font:inherit;font-size:12px;font-weight:400;color:var(--color-neutral-700);
-    cursor:pointer;white-space:nowrap}
-  .redline-page .rl-needs:hover{border-color:var(--color-neutral-400);color:var(--color-text)}
-  .redline-page .rl-needs-dot{width:7px;height:7px;border-radius:0;background:var(--st-amber-dot);flex:none}
+  .redline-page .rl-needs{display:flex;align-items:center;gap:8px;height:auto;flex:none;border:0;
+    background:none;border-radius:0;padding:0;font:inherit;font-size:13px;font-weight:400;
+    color:var(--st-amber-fg);cursor:pointer;white-space:nowrap}
+  .redline-page .rl-needs:hover{border-color:var(--color-neutral-400);color:var(--st-amber-fg);
+    background:none;text-decoration:underline}
+  .redline-page .rl-needs-dot{width:8px;height:8px;border-radius:0;background:var(--st-amber-dot);
+    flex:none;animation:none}
   .redline-page .rl-needs-go{color:var(--color-neutral-400)}
   /* ---- THE FLOATING NOTICES ----
      Bottom-right, over the page, never a band above the contract. See the note
@@ -1481,12 +1484,12 @@ function redlineLayoutCss(){
      one reading, negoLiveList, shared with the list's own heading.
      align-self:center because the row is align-items:stretch and a door has
      no business being as tall as the control group. */
-  .redline-page .rl-livelist{flex:none;align-self:center;display:inline-flex;align-items:center;gap:7px;
-    border:1px solid var(--color-divider);background:var(--color-surface);color:var(--color-neutral-700);
-    border-radius:0;padding:6px 11px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer;
+  .redline-page .rl-livelist{flex:none;align-self:center;display:inline-flex;align-items:center;
+    gap:7px;border:0;background:none;color:var(--color-accent-800);border-radius:0;padding:0;
+    font:inherit;font-size:13px;font-weight:400;cursor:pointer;
     transition:background .12s,border-color .12s,color .12s}
-  .redline-page .rl-livelist:hover{background:var(--color-neutral-100);
-    border-color:var(--color-neutral-400);color:var(--color-text)}
+  .redline-page .rl-livelist:hover{background:none;border-color:var(--color-neutral-400);
+    color:var(--color-text);border:0;text-decoration:underline}
   .redline-page .rl-livelist .rl-livelist-n{font-family:var(--font-mono);font-size:10px;font-weight:700;
     line-height:1.7;color:var(--color-neutral-600);background:var(--color-neutral-100);
     border:1px solid var(--color-divider);border-radius:0;padding:0 6px}
@@ -1513,7 +1516,7 @@ function redlineLayoutCss(){
   /* The presence pill's rules were here — .rl-presence and its green
      .rl-live-dot. Gone with the feature (10 Aug 2026); dead rules for a removed
      control are how one comes back by accident. */
-  .redline-page .rl-actions{display:flex;align-items:center;gap:8px;flex:none;flex-wrap:nowrap}
+  .redline-page .rl-actions{display:flex;align-items:center;gap:10px;flex:none;flex-wrap:nowrap}
   .redline-page .rl-btn{display:inline-flex;align-items:center;gap:6px}
   /* The wrap point is a fallback for genuinely narrow windows, not the
      ordinary laptop case — at 1400px this used to stack the actions into a
@@ -1678,14 +1681,20 @@ function redlineLayoutCss(){
      max-width:660 makes the wrapper min(column, 660) wide: below that the
      sheet simply fills the column at zoom 1, which is what a phone and a
      stacked layout get and what they had before. */
-  .redline-page .rl-zoom{zoom:var(--rl-zoom,1);max-width:660px;margin:0 auto}
+  ${''/* THE WRAPPER CAPS NOTHING NOW. It used to be a 660px page carrier —
+         the sheet inside it was exactly that wide and this element magnified
+         the pair — so its own max-width was the fixed page. With the sheet
+         fluid (see .rl-paper) a 660 cap here is the OLD page width quietly
+         still in force: the paper obeyed its 860 and the wrapper clipped it to
+         660, which is what "the sheet fills its column" was failing on. */}
+  .redline-page .rl-zoom{zoom:1;max-width:none;width:100%;margin:0 auto}
   ${''/* SQUARE CORNERS ON THE SHEET (owner-asked 16 Aug 2026, both seats): a
      contract page prints square, and the rounded sheet read as an app card
      rather than paper. The radius comes off the paper and off the clause
      panel ONLY — every other rounded control on this page keeps its own. */}
-  .redline-page .rl-paper{padding:34px 40px 44px;max-width:660px;
-    background:var(--color-doc-warm);border:1px solid var(--color-doc-warm-line);
-    border-radius:0;box-shadow:var(--shadow-paper);margin:0 auto}
+  .redline-page .rl-paper{padding:30px 56px 34px;max-width:860px;background:var(--color-doc-warm);
+    border:1px solid var(--color-doc-warm-line);border-radius:0;box-shadow:none;margin:0 auto;
+    width:100%}
   /* ---- THE HUNDRED-PIXEL GUTTER DOWN THE LEFT ----
      The engine reserves it — padding-left:100px on .nego-pane.working
      .nego-doc — because in the room the fingerprint badges hang there, outside
@@ -1698,7 +1707,7 @@ function redlineLayoutCss(){
      stylesheet is inserted BEFORE #nego-style in the head — at equal
      specificity the engine would win on order. Restores the sheet's own 36px,
      matching the Doc page's paper padding. */
-  .redline-page .nego-pane.working .rl-paper{padding-left:36px;padding-right:36px}
+  .redline-page .nego-pane.working .rl-paper{padding-left:56px;padding-right:56px}
   @media (max-width:1023px){
     .redline-page .nego-pane.working .rl-paper{padding-left:20px;padding-right:20px}
   }
@@ -1992,19 +2001,19 @@ function redlineLayoutCss(){
      became one line (Option 1, 16 Aug 2026) a flex item without a basis
      would try to share the caption's line. The band always takes a whole
      line of its own. */}
-  .redline-page .rl-unsent{display:flex;flex-basis:100%;align-items:center;gap:8px;
-    margin:8px 0 6px;padding:6px 8px 6px 10px;border-radius:0;
-    border:1px solid var(--st-amber-line);background:var(--st-amber-bg);
-    white-space:nowrap;overflow:hidden}
-  .redline-page .rl-unsent-dot{width:7px;height:7px;border-radius:0;
+  .redline-page .rl-unsent{display:flex;flex-basis:100%;align-items:center;gap:10px;
+    margin:0 0 12px;padding:9px 10px 9px 12px;border-radius:0;
+    border:1px solid var(--st-amber-line);background:var(--st-amber-bg);white-space:nowrap;
+    overflow:hidden}
+  .redline-page .rl-unsent-dot{width:9px;height:9px;border-radius:0;
     background:var(--st-amber-dot);flex:none}
-  .redline-page .rl-unsent-n{font-size:12px;font-weight:600;color:var(--st-amber-fg);flex:none}
-  .redline-page .rl-unsent-s{font-size:11.5px;color:var(--color-neutral-700);
-    flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .redline-page .rl-unsent-n{font-size:14px;font-weight:600;color:var(--st-amber-fg);flex:none}
+  .redline-page .rl-unsent-s{font-size:14px;color:var(--color-neutral-700);flex:1;min-width:0;
+    overflow:hidden;text-overflow:ellipsis}
   html.dark .redline-page .rl-unsent-s{color:var(--color-neutral-600)}
   .redline-page .rl-unsent-go{flex:none;border:0;border-radius:0;cursor:pointer;
-    background:var(--st-amber-fg);color:#fff;font:inherit;font-size:11.5px;font-weight:600;
-    padding:5px 10px;white-space:nowrap}
+    background:var(--st-amber-fg);color:#fff;font:inherit;font-size:14px;font-weight:700;
+    padding:0 12px;white-space:nowrap;height:30px;display:inline-flex;align-items:center}
   .redline-page .rl-unsent-go:hover:not(:disabled){filter:brightness(1.08)}
   /* ---- A DEAD CONTROL MUST NOT LOOK ALIVE ----
      redlineSyncProxies disables a proxy whose postbox is not on the page, and
@@ -2166,7 +2175,7 @@ function redlineLayoutCss(){
      it, so the three columns read as one set of objects (Young, 10 Aug 2026).
      The spine survives the reshape at 3px on the left — it is the fastest fact
      on the card and the radius does not soften it. */
-  .redline-page .rl-card{border:1px solid #e8ecf1;border-radius:0;padding:13px 15px;
+  .redline-page .rl-card{border:1px solid #e8ecf1;border-radius:0;padding:12px 14px 14px;
     margin-bottom:11px;background:var(--color-surface);cursor:pointer;
     box-shadow:0 1px 2px rgba(38,55,74,.06),0 4px 14px rgba(38,55,74,.06);
     transition:box-shadow .2s ease,border-color .2s ease;
@@ -2177,9 +2186,9 @@ function redlineLayoutCss(){
   .redline-page .rl-card:focus-visible{outline:2px solid var(--color-accent)}
   .redline-page .rl-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px}
   .redline-page .rl-card-lead{display:inline-flex;align-items:center;gap:6px;min-width:0}
-  .redline-page .rl-card-id{font-family:var(--font-mono);font-size:11.5px;font-weight:700;
-    background:var(--color-neutral-100);color:var(--color-neutral-700);
-    border-radius:0;padding:2px 7px;white-space:nowrap}
+  .redline-page .rl-card-id{font-family:var(--font-mono);font-size:12px;font-weight:600;
+    background:var(--color-neutral-100);color:var(--color-neutral-700);border-radius:0;
+    padding:2px 8px;white-space:nowrap}
   /* The round the ask belongs to, at the far right of the head — "R3" — so a
      card carried over from an earlier round says so without being opened. */
   .redline-page .rl-card-round{font-family:var(--font-mono);font-size:11px;font-weight:700;
@@ -2207,8 +2216,8 @@ function redlineLayoutCss(){
      The review mark beside it keeps its box on purpose: after this change it
      is the only enclosed shape left in the row, which is what makes it read
      as a mark rather than as another status. Do not tidy it away. */
-  .redline-page .rl-badge{font-size:12.5px;font-weight:700;white-space:nowrap;
-    padding:0;border:0;border-radius:0;background:none;line-height:1.3}
+  .redline-page .rl-badge{font-size:14px;font-weight:700;white-space:nowrap;padding:0;border:0;
+    border-radius:0;background:none;line-height:1.3}
   .redline-page .rl-badge-sent{color:var(--st-steel-fg)}
   .redline-page .rl-badge-draft{color:var(--st-amber-fg)}
   .redline-page .rl-badge-ok{color:var(--st-green-fg)}
@@ -2255,7 +2264,7 @@ function redlineLayoutCss(){
     text-transform:uppercase;color:var(--color-accent-800);margin-bottom:2px}
   /* A caption may shout; a name may not. This one is "Achieng Otieno said". */
   .redline-page .rl-said-k{text-transform:none;letter-spacing:.01em}
-  .redline-page .rl-card-meta{font-size:12px;color:var(--color-neutral-500);line-height:1.5}
+  .redline-page .rl-card-meta{font-size:13px;color:var(--color-neutral-500);line-height:1.5}
   .redline-page .rl-counterline{font-size:10.5px;color:var(--color-neutral-500);line-height:1.5;margin-top:2px}
   /* ---- WORK BIG, RECEIPTS SMALL (owner-asked 16 Aug 2026, Option 4) ----
      The two-line greyed preview is BACK on working cards — a card asking for
@@ -2263,9 +2272,10 @@ function redlineLayoutCss(){
      nothing shrinks to a one-line receipt instead of spending a card of
      height on finished business. See the receipt branch in
      redlineChangeCardsHtml for which is which. */
-  .redline-page .rl-card-diff{font-size:13.5px;line-height:1.6;color:var(--color-neutral-700);
-    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:7px}
-  .redline-page .rl-receipt{padding:7px 11px}
+  .redline-page .rl-card-diff{font-size:14px;line-height:1.6;color:var(--color-neutral-700);
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+    margin-top:7px}
+  .redline-page .rl-receipt{padding:9px 12px}
   .redline-page .rl-receipt-line{display:flex;align-items:center;gap:8px;min-width:0}
   .redline-page .rl-receipt-line .rl-card-lead{flex:none;min-width:0}
   .redline-page .rl-receipt-line .rl-badge{flex:none}
@@ -2281,11 +2291,11 @@ function redlineLayoutCss(){
      the reading surface). A word rather than a glyph, because the glyph was
      added to fix a caret nobody recognised as a control and a bare mark is the
      same fault one size up. */
-  .redline-page .rl-open-btn{flex:none;margin-left:2px;padding:3px 10px;
-    display:inline-flex;align-items:center;cursor:pointer;font:inherit;
-    font-size:11px;font-weight:700;line-height:1.6;
+  .redline-page .rl-open-btn{flex:none;margin-left:2px;padding:0 12px;display:inline-flex;
+    align-items:center;cursor:pointer;font:inherit;font-size:14px;font-weight:400;line-height:1.6;
     border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);
-    color:var(--color-neutral-600);transition:border-color .13s,color .13s,background .13s}
+    color:var(--color-neutral-600);transition:border-color .13s,color .13s,background .13s;
+    height:30px}
   .redline-page .rl-open-btn:hover{border-color:var(--color-accent);color:var(--color-accent-700);
     background:var(--color-accent-100)}
   .redline-page .rl-open-btn:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
@@ -2301,8 +2311,9 @@ function redlineLayoutCss(){
      card's information leads and the actions follow. flex:1 stretched them into
      a wall of colour that outweighed the change itself. */
   .redline-page .rl-card-verbs{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;margin-top:9px}
-  .redline-page .rl-card-verbs button{border:0;border-radius:0;padding:6px 13px;font:inherit;
-    font-size:11px;font-weight:700;line-height:1.6;cursor:pointer;transition:filter .15s}
+  .redline-page .rl-card-verbs button{border:0;border-radius:0;padding:0 12px;font:inherit;
+    font-size:14px;font-weight:400;line-height:1;cursor:pointer;transition:filter .15s;
+    height:30px;display:inline-flex;align-items:center}
   /* washes darken a touch on hover in light, lift in dark — a brightness
      bump on a near-white tint is invisible */
   .redline-page .rl-card-verbs button:hover{filter:brightness(.95)}
@@ -2442,9 +2453,9 @@ function redlineLayoutCss(){
      stopped short of its own caption would read as a broken line. The cards
      below keep their own 2px: they are bordered objects and the caption is a
      label, the same relationship a table header has to its rows. */}
-  .redline-page .rl-idx-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px;
-    background:none;border:0;border-bottom:1px solid var(--color-divider);
-    border-radius:0;padding:6px 12px 9px;margin:0 2px 10px}
+  .redline-page .rl-idx-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px;
+    background:none;border:0;border-bottom:1px solid var(--color-divider);border-radius:0;
+    padding:0 2px 10px;margin:0 0 12px}
   /* The tabs carry their own bottom padding down to the rule, so the head must
      not carry it too. :has() and not a class because the filter's absence is
      decided in the renderer (a reviewer's column has no filter — see the note
@@ -2452,13 +2463,12 @@ function redlineLayoutCss(){
      does not resolve, the fallback is the padding above: tabs sitting 9px
      clear of the rule rather than on it, which is a worse line and not a
      broken one. */
-  .redline-page .rl-idx-head:has(.rl-fsegwrap){padding-bottom:0}
+  .redline-page .rl-idx-head:has(.rl-fsegwrap){padding-bottom:10px}
   .redline-page .rl-idx-head [hidden]{display:none!important}
   ${''/* the read-only sentence also lives inside the head; on the one-line
      head it must never share the caption's line. */}
   .redline-page .rl-idx-head .nego-why{flex-basis:100%}
-  .redline-page .rl-idx-k{flex:1;min-width:0;font-size:10.5px;font-weight:700;letter-spacing:.12em;
-    text-transform:uppercase;color:var(--color-neutral-600)}
+  .redline-page .rl-idx-k{flex:1;min-width:0;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-600)}
   .redline-page .rl-idx-n{flex:none;font-family:var(--font-mono);font-size:11px;font-weight:700;
     letter-spacing:.01em;font-variant-numeric:tabular-nums;color:var(--color-neutral-500);
     background:none;border:0;border-radius:0;padding:0;line-height:1.2}
@@ -2517,13 +2527,18 @@ function redlineLayoutCss(){
      WHAT DID NOT CHANGE, because it is the safety of the control: three
      options and no more, every option showing its OWN count unmoved by the
      filter, and a row of choices rather than a dropdown. */}
-  .redline-page .rl-fsegwrap{flex:none;display:flex;gap:14px;padding:0;
-    background:none;border:0;border-radius:0}
-  .redline-page .rl-fseg{flex:none;min-width:0;display:flex;align-items:center;
-    gap:7px;border:0;border-bottom:2px solid transparent;background:none;font:inherit;
-    font-size:13.5px;font-weight:400;color:var(--color-neutral-500);padding:0 0 9px;
-    margin-bottom:-1px;border-radius:0;cursor:pointer;white-space:nowrap;
-    transition:color .12s,background .12s,border-color .12s}
+  .redline-page .rl-fsegwrap{flex:none;display:flex;gap:16px;padding:0;background:none;border:0;
+    border-radius:0}
+  ${''/* THE SIZE MOVED, THE DESIGN DID NOT (22 Aug 2026). The render bumps
+         these to 14px; the Render B decisions taken six days earlier — the
+         transparent underline that reserves the row's height, the hairline box
+         round a resting count, the accent-700 fill on the live one — are the
+         owner's own, chosen off four drawn options for measured contrast
+         reasons, and were NOT part of what the render reversed. They stay. */}
+  .redline-page .rl-fseg{flex:none;min-width:0;display:flex;align-items:center;gap:7px;border:0;
+    border-bottom:2px solid transparent;background:none;font:inherit;font-size:14px;font-weight:400;
+    color:var(--color-neutral-500);padding:0 0 4px;margin-bottom:-1px;border-radius:0;cursor:pointer;
+    white-space:nowrap;transition:color .12s,background .12s,border-color .12s}
   .redline-page .rl-fseg:hover{color:var(--color-text)}
   .redline-page .rl-fseg.on{background:none;color:var(--color-text);font-weight:700}
   /* A borderless button gets no focus ring from the browser worth having. */
@@ -2653,8 +2668,14 @@ function redlineLayoutCss(){
      minmax(0,·) on both tracks, not fr alone: a grid column holding a
      contract will not otherwise shrink below its longest unbroken line, and
      the sidebar gets pushed off the row instead of the text wrapping. */
+  ${''/* THE FALLBACK COLUMNS ARE THE RESTING SPLIT, NOT A RATIO. rlLayoutResizer
+         writes pixels over these the moment it runs, but a mount it has not
+         reached yet — the counterparty's own page, the first frame of a paint —
+         drew a 2:1 ratio while the owner's bench opened at a fixed 460px
+         change column. Two seats, two widths, on markup whose whole claim is
+         that they measure alike (parity-verify). Same number, both places. */}
   .redline-page .rl-grid{flex:1;min-height:0;position:relative;display:grid;gap:14px;
-    grid-template-columns:minmax(0,2fr) minmax(0,1fr);align-items:stretch;
+    grid-template-columns:minmax(0,1fr) 460px;align-items:stretch;
     /* ---- CLIP, NOT HIDDEN, AND THAT IS WHAT STOPPED THE PAGE SHAKING ----
        (owner-reported 16 Aug 2026: "the page shakes rather than have a smooth
        transition".) Reproduced and MEASURED before it was touched: with the
@@ -3252,6 +3273,296 @@ function redlineLayoutCss(){
      there), so the rules would style nothing — and dead rules for a removed
      control are how a control comes back by accident. The classic negotiation
      tab still draws .nego-bulk and still has its own rules, above. */
+
+  /* ==========================================================================
+     THE MOCK-UP'S TREATMENT (owner-approved render, 22 Aug 2026)
+     ==========================================================================
+     Everything below restyles this page to the design the owner signed off. It
+     is written as ONE BLOCK, at the end of the sheet, on purpose: the rules it
+     supersedes are scattered through three thousand lines, and a reader asking
+     "what did the redesign change?" can read it here instead of hunting. Every
+     selector below is at LEAST as specific as the rule it beats, so it wins on
+     order rather than on weight — no !important anywhere, which is the standing
+     rule at .rl-rej: weight wins the fight and hides the next one.
+
+     AND IT IS PROVED IN A BROWSER, NOT BY READING. Same rule, same reason:
+     redline-verify reads the COMPUTED value of the sizes named here, because a
+     declaration that loses a cascade fight looks perfectly correct in the file.
+
+     WHAT IS DELIBERATELY NOT HERE, each because the owner ruled on it:
+       · the change column is NOT boxed — the mock-up draws a white card round
+         it and this page keeps the transparent column (see .rl-col's own note);
+       · the Copilot band stays, folded, above the cards;
+       · the divider stays and only its resting place moves (see RL_RIGHT_W0).
+     ------------------------------------------------------------------------ */
+
+  /* ---- 1 · THE HEAD IS ONE WHITE BAND ----
+     Full width, its own 24px inset, a hairline under it. The page carries no
+     padding of its own any more (see renderRedline), so this band and the
+     control bar below it run edge to edge while the working area keeps the
+     product's page measure. */
+  .redline-page #ws-head{background:var(--color-surface);padding:9px 24px;margin:0;
+    flex:none;box-shadow:inset 0 -1px var(--color-divider);gap:12px;align-items:center}
+  .redline-page #ws-head .room-id{min-width:0;flex:1 1 auto}
+  .redline-page #ws-head .room-name{gap:10px;flex-wrap:nowrap;min-width:0}
+  /* The reference is the way back — a button wearing the render's quiet grey.
+     Its hover is the only sign it is one, which is what a crumb has always
+     been. */
+  .redline-page #ws-head .room-name-id{flex:none;border:0;background:none;font:inherit;
+    font-size:15px;font-weight:400;color:var(--color-neutral-600);padding:0;cursor:pointer;
+    display:inline-flex;align-items:center;gap:6px;line-height:1.3}
+  .redline-page #ws-head .room-name-id:hover{color:var(--color-accent-800)}
+  .redline-page #ws-head .room-name-id i{font-style:normal;color:var(--color-neutral-400)}
+  .redline-page #ws-head .room-name h1{font-size:15px;font-weight:600;letter-spacing:0;min-width:0;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .redline-page #ws-head .room-name h1 .room-title-back{font-size:15px;font-weight:600}
+  .redline-page #ws-head .room-stat{font-size:14px;font-weight:700}
+  .redline-page #ws-head .room-round{font-size:15px;font-weight:400;color:var(--color-neutral-600);
+    background:none;border:0;padding:0;letter-spacing:0}
+  /* Who leads this negotiation stays — it is the one place the page says it —
+     as quiet text with a hairline before the acts, which is the render's own
+     treatment. It is not a chip on this page. */
+  .redline-page #ws-head .dk-chip{background:none;border:0;padding:0 14px 0 0;margin-right:2px;
+    border-right:1px solid var(--color-divider);font-size:13px;color:var(--color-neutral-600);
+    box-shadow:none;height:auto}
+  .redline-page #ws-head .dk-chip .dk-who{font-size:13px;font-weight:400;color:var(--color-neutral-600)}
+  .redline-page #ws-head .room-acts{gap:6px;align-items:center}
+  ${''/* ---- ONE FILLED ACT, AND IT IS PUBLISH ROUND ----
+         The render draws four buttons of which exactly one is filled — the
+         platform's own button rule, which this head was breaking: the review
+         door wore .rl-pb-btn's fill and read as a second primary beside the act
+         that closes the round. Bordered here, filled nowhere. Scoped to this
+         head so the class keeps its own clothes wherever else it draws. */}
+  .redline-page #ws-head .rl-pb-btn{background:none;
+    border:1px solid color-mix(in srgb,var(--accent-solid) 50%,transparent);
+    color:var(--color-accent-800);font-weight:400;box-shadow:none}
+  .redline-page #ws-head .rl-pb-btn:hover:not(:disabled){
+    background:color-mix(in srgb,var(--accent-solid) 8%,transparent)}
+  html.dark .redline-page #ws-head .rl-pb-btn{color:var(--color-accent-300)}
+
+  /* ---- 2 · THE READING TABS ARE TABS ----
+     Full height of the bar, an underline on the live one, and a count on
+     Redlined. They were a grey pill group at 12px — the smallest control on a
+     row whose job is naming what the paper below is showing.
+     SCOPED TO .rl-readwrap, so the SEAT switch beside it (the same builder's
+     classes) keeps its own box: two controls, two shapes, one row. */
+
+  .redline-page .rl-readwrap{background:none;border:0;padding:0;height:auto;gap:2px;align-items:stretch}
+  .redline-page .rl-readwrap .rl-seg{height:auto;padding:0 14px;font-size:14px;font-weight:400;
+    color:var(--color-text);display:flex;align-items:center;gap:7px;box-shadow:none;background:none}
+  .redline-page .rl-readwrap .rl-seg:hover{color:var(--color-accent-800)}
+  .redline-page .rl-readwrap .rl-seg.on{font-weight:700;color:var(--color-accent-800);
+    background:none;box-shadow:inset 0 -2px var(--accent-solid)}
+  html.dark .redline-page .rl-readwrap .rl-seg.on{background:none}
+  .redline-page .rl-readwrap .rl-seg-n{font-family:var(--font-mono);font-size:12px;font-weight:400;
+    font-variant-numeric:tabular-nums;color:var(--color-neutral-500)}
+  .redline-page .rl-readwrap .rl-seg.on .rl-seg-n{color:var(--color-accent-800)}
+
+  /* ---- 3 · THE RIGHT-HAND CONTROLS QUIETEN DOWN ----
+     One box for the text size, a teal-filled seat switch, and a plain link back
+     to the list. "N needs you" keeps its dot and loses its box: it is a way
+     INTO the work, not an act, and a bordered amber chip beside four other
+     bordered things was the loudest thing on a row of quiet ones. */
+  ${''/* ---- AND THE HEAD STRETCHES, WHICH IS WHAT MAKES THE FIT LADDER
+         HONEST ----
+         It was align-self:center, which was harmless while the row had no
+         height of its own. The bar is a fixed 44px now, so a centred head sits
+         6px below the row's top merely by being SHORTER than the row — and the
+         ladder's "has the head dropped to a second line?" test measures exactly
+         that offset. Each rung made the head shorter, which pushed it further
+         down, which read as still-dropped: the row folded three rungs on a
+         window with 300px to spare. Stretched, the head's top IS the row's top
+         until it genuinely wraps, which is the only thing the test should ever
+         be answering. Its children keep centring themselves. */}
+
+  /* ONE BOX, NOT THREE BUTTONS. The A⁻/A⁺ presses are kept — they are the
+     control, they are what the suite drives, and the Document tab and the
+     counterparty's page draw the same builder — but the group now reads as the
+     single 28px bordered box the render draws, with the buttons as bare glyphs
+     inside it rather than three raised chips. */
+  .redline-page .rl-type-step{height:28px;padding:0;gap:0;background:var(--color-surface);
+    border:1px solid var(--color-divider);align-self:center}
+  .redline-page .rl-type-step button{width:26px;height:26px;background:none;border:0;
+    color:var(--color-neutral-600);font-size:12px}
+  .redline-page .rl-type-step button:hover{background:var(--color-neutral-100);border:0}
+  .redline-page .rl-type-step .rl-type-out{font-family:inherit;font-size:13px;font-weight:400;
+    color:var(--color-text);min-width:38px}
+  html.dark .redline-page .rl-type-step{background:var(--color-surface)}
+  html.dark .redline-page .rl-type-step button{background:none}
+  /* The seat switch: a bordered box whose live half FILLS. It is the one
+     two-state control on this row where the reader has to know at a glance
+     which chair they are in — the whole page draws differently — so it is the
+     one that earns the fill. accent-700, not --accent-solid: white on accent-600
+     is 3.74:1 and this text is 13px. The same measurement that fixed the change
+     column's count markers. */
+  .redline-page .rl-actions .rl-segwrap{height:28px;padding:0;gap:0;background:var(--color-surface);
+    border:1px solid var(--color-divider);align-self:center}
+  .redline-page .rl-actions .rl-segwrap .rl-seg{height:26px;padding:0 12px;font-size:13px;
+    box-shadow:none;background:none;color:var(--color-neutral-500)}
+  .redline-page .rl-actions .rl-segwrap .rl-seg.on{background:var(--color-accent-700);color:#fff;
+    font-weight:700;box-shadow:none}
+  html.dark .redline-page .rl-actions .rl-segwrap .rl-seg.on{background:var(--color-accent-700);color:#fff}
+  /* The way back is words, not a chip. It ends the row, so it needs no box to
+     be found — and a bordered control there read as a fifth button rather than
+     as the door it is. */
+
+  .redline-page .rl-livelist-n{font-family:var(--font-mono);font-size:12px;font-weight:400;
+    color:var(--color-neutral-500);background:none;border:0;padding:0}
+  ${''/* ---- AND THE ACCENT INK HAS TO SURVIVE THE NIGHT ----
+         The dark theme does not redefine the accent RAMP, so accent-800 is a
+         deep green — fine on white, about 2.4:1 on an almost-black bar, which
+         is the exact fault this page already recorded against the change
+         column's live count. Every place this block puts accent-800 on a dark
+         ground takes accent-300 instead. Found by photographing the page in
+         dark rather than by reading the rules. */}
+  html.dark .redline-page .rl-readwrap .rl-seg.on,
+  html.dark .redline-page .rl-readwrap .rl-seg.on .rl-seg-n,
+  html.dark .redline-page .rl-readwrap .rl-seg:hover,
+  html.dark .redline-page #ws-head .room-name-id:hover,
+  html.dark .redline-page .rl-livelist,
+  html.dark .redline-page .rl-thread-foot button{color:var(--color-accent-300)}
+
+  /* ---- 4 · THE PAGE MEASURE, AND THE SCROLLER THAT CARRIES THE PANELS ----
+     48px either side, which is this product's own page measure and what the
+     render draws. #redline-host takes exactly one screenful (height:100%), so
+     the contract and the change column still scroll inside themselves; the two
+     panels sit after it and the page scrolls to reach them. */
+  .redline-page .rl-scroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;
+    padding:16px 48px 26px}
+  ${''/* The panes take one screenful of the scroller — the contract and the
+         change column keep scrolling inside THEMSELVES, which is the rule this
+         page has always had — and the panels sit after them. height:100%
+         rather than flex:1: as a flex child they would share the space with the
+         panels and both would be crushed. */}
+  .redline-page .rl-scroll > .rl-root{flex:none;height:100%}
+  .redline-page .rl-below{margin-top:16px;display:grid;gap:16px;align-items:start;
+    grid-template-columns:320px minmax(0,1fr)}
+  .redline-page .rl-below:empty{display:none;margin:0}
+  @media (max-width:1199px){
+    .redline-page .rl-below{grid-template-columns:minmax(0,1fr)}
+  }
+  @media (max-width:900px){
+    .redline-page .rl-scroll{padding:12px 16px 20px}
+    .redline-page #ws-head,.redline-page .rl-tabrow{padding-left:16px;padding-right:16px}
+  }
+
+  /* ---- 5 · THE CONTRACT FILLS ITS COLUMN AT A STEADY SIZE ----
+     The sheet was a fixed 660px page MAGNIFIED to fit its column, so the words
+     changed size as the divider moved. It is fluid now: the paper takes the
+     column, the reader's own text-size choice is the only thing that changes
+     the words, and the margins are the render's 56px. The zoom wrapper is
+     pinned at 1 in the same breath; see rlApplyDocZoom, which no longer
+     computes a fit, and RL_LEFT_MAX, which now measures the sheet's own
+     readable ceiling rather than 660 × 2. */
+
+  ${''/* The paper keeps its own warm hairline — that border belongs to the
+         document, not to the page furniture. What it loses is the drop shadow:
+         with the sheet filling its column there is nothing for a sheet to float
+         above, and the render draws a flat page. */}
+
+  ${''/* A MIN-WIDTH, and that is not a style choice. The sheet's narrow
+         padding is set by an earlier phone-width block, and this sheet is
+         written later — an unconditional 56px here would beat it and squeeze
+         the phone. Writing the WIDE case behind min-width leaves that block the
+         last word below 1024, where it belongs. It also keeps the phone's
+         queue-unwind the LAST phone-width block in this file, which is how f95
+         finds it. */}
+  @media (min-width:1024px){
+
+  }
+  .redline-page .nego-pane.working{padding:0}
+  /* The front matter and the body take the render's own sizes. --doc-scale
+     still multiplies every one of them, so the reader's stepper reaches the
+     paper exactly as it did. */
+  .redline-page .rl-paper-title{font-size:calc(17px * var(--doc-scale,1));font-weight:700}
+  .redline-page .rl-paper-sub{font-size:calc(13px * var(--doc-scale,1))}
+  .redline-page .rl-clause h1,.redline-page .rl-clause h2,
+  .redline-page .rl-clause h3,.redline-page .rl-clause h4,
+  .redline-page .rl-clause h5,.redline-page .rl-clause h6{
+    font-size:calc(14px * var(--doc-scale,1));font-weight:700}
+  .redline-page .rl-doc .rl-paper p,.redline-page .rl-doc .rl-paper li{
+    font-size:calc(14px * var(--doc-scale,1));line-height:1.75}
+
+  /* ---- 6 · THE CHANGE COLUMN GROWS UP A SIZE ----
+     The caption, the filters, the amber band and the cards all take the
+     render's sizes. THE COLUMN ITSELF STAYS TRANSPARENT — the mock-up boxes it
+     and the owner's own earlier decision does not, because at the 300px the
+     divider allows a box round a column of boxes reads as clutter. */
+
+  .redline-page .rl-card-verbs .rl-acc,.redline-page .rl-card-verbs .rl-send{font-weight:700}
+
+  ${''/* A RECEIPT IS A SHAPE, NOT A TYPE SCALE. It shrank its id, its state and
+         its clause a size below the working card's, which read fine on the
+         owner's bench and broke the one rule this markup is built on: the same
+         change must measure the same on both seats, and the two seats
+         legitimately classify a change differently (their unsent draft is our
+         sent ask). The receipt keeps the card's type and earns its height back
+         from its padding and its missing verbs. */}
+
+  /* ---- 7 · LIVE THREADS ----
+     Your other live negotiations, beside the one you are working. Each row says
+     whose move it is, in the same words and the same colours the Negotiations
+     list uses — negWhoseMove is the one reading, so a row here and a row there
+     cannot disagree. */
+  .redline-page .rl-panel{background:var(--color-surface);border:1px solid var(--color-divider);
+    min-width:0}
+  .redline-page .rl-panel-h{display:flex;align-items:center;gap:10px;padding:12px 16px;
+    box-shadow:inset 0 -1px var(--color-divider)}
+  .redline-page .rl-panel-h h3{margin:0;font-size:17px;font-weight:700;flex:none;white-space:nowrap}
+  .redline-page .rl-panel-n{margin-left:auto;flex:none;font-size:13px;color:var(--color-neutral-600);
+    font-variant-numeric:tabular-nums}
+  .redline-page .rl-panel-sub{padding:9px 16px;font-size:12.5px;color:var(--color-neutral-600);
+    box-shadow:inset 0 -1px var(--color-divider)}
+  .redline-page .rl-thread{display:block;width:100%;text-align:left;border:0;background:none;
+    font:inherit;cursor:pointer;padding:12px 14px;box-shadow:inset 0 -1px var(--color-divider);
+    border-left:3px solid transparent}
+  .redline-page .rl-thread:hover{background:var(--color-bg)}
+  .redline-page .rl-thread.on{background:color-mix(in srgb,var(--accent-solid) 6%,var(--color-surface));
+    border-left-color:var(--accent-solid);cursor:default}
+  .redline-page .rl-thread-nm{display:block;font-size:14px;font-weight:600;color:var(--color-text);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .redline-page .rl-thread-cp{display:block;font-size:12px;color:var(--color-neutral-600);margin-top:2px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .redline-page .rl-thread-mv{display:block;font-size:12px;font-weight:700;margin-top:5px}
+  .redline-page .rl-thread-foot{padding:12px 16px;display:flex}
+  .redline-page .rl-thread-foot button{border:0;background:none;font:inherit;font-size:13px;
+    font-weight:600;color:var(--color-accent-800);cursor:pointer;padding:0}
+  .redline-page .rl-thread-foot button:hover{text-decoration:underline}
+  .redline-page .rl-panel-empty{padding:16px;font-size:13px;color:var(--color-neutral-600)}
+
+  /* ---- 8 · PROPOSALS ON THE TABLE ----
+     The same changes as the column above, read side by side. It is drawn by the
+     card renderer under the proposal layout, so the list, the order, the wall,
+     the reviewer narrowing and every verb are the column's own — there is no
+     second reading to drift. What differs is the body: two boxes instead of a
+     two-line preview, and the author's reason under them. */
+  .redline-page .rl-prop{box-shadow:inset 0 -1px var(--color-divider);padding:14px 16px;
+    border:0;border-radius:0;background:none}
+  .redline-page .rl-prop:last-child{box-shadow:none}
+  .redline-page .rl-prop-top{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+  .redline-page .rl-prop-cl{font-size:14px;font-weight:700;color:var(--color-text);min-width:0;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .redline-page .rl-prop-age{margin-left:auto;flex:none;font-size:12px;color:var(--color-neutral-600)}
+  .redline-page .rl-prop-tag{flex:none;font-size:11px;font-weight:700;padding:2px 7px;border-radius:0}
+  .redline-page .rl-prop-tag.us{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  .redline-page .rl-prop-tag.them{background:var(--color-neutral-100);color:var(--color-neutral-700)}
+  .redline-page .rl-versus{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px}
+  @media (max-width:760px){ .redline-page .rl-versus{grid-template-columns:minmax(0,1fr)} }
+  .redline-page .rl-vs{border:1px solid var(--color-divider);padding:10px 12px;min-width:0}
+  .redline-page .rl-vs-k{font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+    color:var(--color-neutral-600);margin-bottom:5px}
+  ${''/* A clause can be long, and two of them side by side would let one
+         proposal take the whole panel. The box scrolls inside itself instead —
+         every word stays reachable, which a clamp could not promise, and the
+         row keeps a size a reader can scan past. */}
+  .redline-page .rl-vs-b{font-size:13px;line-height:1.6;color:var(--color-text);
+    overflow-wrap:anywhere;max-height:190px;overflow-y:auto}
+  /* Theirs sits on the warm ground the paper uses, so which box is whose is
+     readable before a word of it is. */
+  .redline-page .rl-vs.theirs{background:var(--color-doc-warm);border-color:var(--color-doc-warm-line)}
+  .redline-page .rl-prop-why{font-size:13px;color:var(--color-neutral-600);margin-bottom:10px}
+  .redline-page .rl-prop .rl-card-actions{margin:0}
+  .redline-page .rl-prop .rl-card-verbs{justify-content:flex-start}
   `;
   document.head.appendChild(s);
 }

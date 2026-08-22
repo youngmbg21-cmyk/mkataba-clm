@@ -856,6 +856,144 @@ THE FEATURE ITSELF WAS VERIFIED BEFORE ANY OF THIS, in a browser, in the real ro
 
 Tests: history-head-verify (28, browser — the row as visible pixels with nothing pressed, the chips and the lid gone, the menu proved to be a menu and not a select, the count and the way back, and their own page's labels read off the real share link). f120/f121/f143/f144 unchanged.
 
+## THE NEGOTIATION PAGE TAKES THE MOCK-UP (owner-approved render, 22 Aug 2026)
+
+The owner's own HTML mock-up, measured against the running page in a browser at
+1500px, gave thirty-one differences across five regions. **EIGHT PLACES MOVED**
+and four decisions were deliberately NOT taken — each of the four reverses
+something the owner had already ruled on, and none of them was what the render
+was asking for.
+
+- **THE HEAD IS ONE WHITE BAND.** Full width, 24px inset, a hairline under it,
+  50px instead of 68. **THE BREADCRUMB STANDS DOWN ON THIS PAGE ONLY** — the
+  design draws one line and a crumb above it says the reference the line below
+  already says. **#ws-back IS NOT LOST, which is the whole condition on removing
+  it**: on this page it is the only way back to the agreement, so it MOVED into
+  the name row as the reference itself — same id, same title, same data-back,
+  same handler. The crumb's own trick of restyling the control rather than
+  replacing it, played once more. Four acts, exactly one filled (the platform
+  button rule, which this head was breaking: the review door wore a fill and
+  read as a second primary). **THE PLAYBOOK PASS MOVED INTO THE MORE MENU** — it
+  runs across the whole contract once at the start of a round, which is a job
+  rather than one of the acts you reach for while working one. Its row is BUILT
+  by the workbench and PLACED by the head (`menuRow`, beside `primary`), because
+  that page owns its label, its permission rules and its dead-in-preview state.
+  Who leads the negotiation stays, as quiet text with a hairline before the acts.
+- **REDLINED / AS AGREED / WITH CHANGES ARE TABS**, full height of a white 44px
+  bar, 14px, the live one bold accent on a 2px underline — they were a grey pill
+  group at 12px, the smallest control on a row whose job is naming what the paper
+  is showing. **REDLINED CARRIES A COUNT and the CALLER passes it** (`rlReadSegsHtml({n})`),
+  because only the caller knows which contract and which seat: a count worked out
+  inside the builder would be a second reading waiting to disagree with the
+  column's own. Absent, the tab draws no number rather than a zero.
+- **THE RIGHT-HAND CONTROLS QUIETEN DOWN.** The seat switch FILLS on the live
+  half (accent-700, not --accent-solid: white on accent-600 is 3.74:1 at 13px);
+  "N needs you" keeps its dot and loses its box (it is a way INTO the work, not
+  an act); the way back is plain words and reads **"All negotiations"** — it
+  named the POPULATION the count is of, the render names the DESTINATION, and
+  the count beside it is unchanged. The text size is ONE 28px bordered box with
+  the two presses inside it — the presses are kept because they ARE the control
+  and the Document tab draws the same builder.
+- **THE CONTRACT FILLS ITS COLUMN AT A STEADY SIZE, and this REVERSES 13 Aug.**
+  The sheet was a fixed 660px page MAGNIFIED to fit (up to 2×), so the words
+  changed size on every drag of the divider. It is fluid now: `width:100%`,
+  `max-width:860px` (a line of an agreement has a length past which it stops
+  being readable), 56px margins, flat — no shadow, because a sheet that fills
+  its column has nothing to float above. **WHY THE REVERSAL, since the old
+  decision was right about the page it was written for**: the Document tab has
+  no divider, so a scaled sheet there changes size once, when you resize; here
+  the divider is a control you move all day, and a magnified sheet makes the
+  reader's own text-size stepper only half the answer. `rlApplyDocZoom` is
+  PINNED at 1 rather than deleted — four callers ask the layout to re-fit and
+  one named thing is better than four private opinions. **RL_LEFT_MAX now
+  measures the SHEET's ceiling** (860 + 40) rather than 660 × 2, and the whole
+  working area carries a max-width and CENTRES past it: both tracks are bounded,
+  so the surplus on a wide monitor is white either side of the page rather than
+  one track swallowing it (it used to go to the cards, which put a 460px column
+  at 492 on a 1440 screen).
+- **THE DIVIDER RESTS AT 460px, AND THAT IS A WIDTH, NOT A FRACTION.**
+  `RL_RIGHT_W0` — 460 is a fact about the CARDS and a fraction gives them a
+  different number on every monitor. `_rlLeftFrac()` returns **null** where
+  nothing is stored ("nobody has chosen" is a different answer from "two
+  thirds"), the stored fraction still wins wherever there is one, both minimums
+  and the maximum still clamp, and **double-click CLEARS the key** rather than
+  writing RL_F0 — reset has to mean the same thing as "nobody has chosen". The
+  CSS fallback columns carry the same 460 so a mount the resizer has not reached
+  yet opens where the resizer would put it. **AND THE GRID IS OBSERVED**: a
+  resting split that is a width must be recomputed from the grid's own size,
+  where a fraction survived a bad first measurement — the counterparty's mount
+  ran the resizer while its page was still settling and kept a column 32px wide
+  for the life of the page.
+- **THE CHANGE COLUMN WENT UP A SIZE AND KEPT NO BOX.** Caption 12px, filters
+  14px, card wording 14px, meta 13px, verbs 30px tall, the amber band at 14. The
+  mock-up puts a white card round the lot; **it stays transparent**, because at
+  the 300px the divider allows a box round a column of boxes reads as clutter —
+  the owner's own earlier decision, kept. **AND RENDER B SURVIVED THE BUMP**: the
+  transparent underline that reserves the row's height, the hairline box round a
+  resting count and the accent-700 fill on the live one are measured contrast
+  decisions six days older than this redesign and were not part of what it
+  reversed. A first pass flattened all three and copilot-band-verify caught it.
+- **LIVE THREADS — NEW.** Your other live negotiations beside the one you are
+  working, so checking whether anything else has moved no longer means leaving
+  the round. It DECIDES NOTHING: `negoLiveList` is the population and
+  `negoMovePillHtml` the whose-move line, both the Negotiations table's own. The
+  row you are on is marked and is NOT a door (a press whose only outcome is
+  redrawing the page you are on is a dead button). A foot door leads to the
+  closed ones through `negoClosedList` — the other half of `negoIsLive`, reading
+  `c.changes` RAW for the same reason — and `regShowOnly`, this product's ONE way
+  of saying "show me exactly this list".
+- **PROPOSALS ON THE TABLE — NEW, AND IT IS THE CARD RENDERER.**
+  `redlineChangeCardsHtml(c, {...opts, layout:'proposal'})` — the same opts the
+  column is drawn with plus one flag, so the list, the order, the wall between
+  the seats, a reviewer's narrowing and **every verb** are the column's own.
+  That is not tidiness: two surfaces showing one set of changes with one set of
+  buttons is exactly how they come to disagree, and **the page says so in
+  words** under the heading, because two panels showing the same six changes
+  without a word about it reads as twelve. The body is two boxes — the wording
+  as it stands with the cuts struck, the wording as proposed with the additions
+  marked — built by filtering the STORED ops (never a fresh diff: the ops are
+  inside the fingerprint), plus the author's reason, which is where `why` reads
+  now that it is off the card. **IT CARRIES NO `data-nego-card`**: that is how
+  the page finds A card by id, and two elements answering to it would make "the
+  card for CHG-004" ambiguous. No receipts here — the column shrinks a change
+  that needs nothing because it is a list you scan, and this panel exists to show
+  the wording.
+- **BOTH PANELS LIVE INSIDE #redline-host, AND THAT IS LOAD-BEARING.**
+  wireNegotiationTab binds every verb THROUGH THE MOUNT, deliberately (the
+  counterparty's page carries two copies of the component and a document-wide
+  lookup wired the hidden one). A panel outside the mount gets no handlers:
+  measured, Accept in the proposals panel drew, pressed, and decided nothing.
+  So the host is the SCROLLER, the panes take one screenful inside it
+  (`height:100%`, so the contract and the cards still scroll inside themselves)
+  and the panels sit after them. **NEITHER IS DRAWN IN COUNTERPARTY VIEW** —
+  which other companies we are arguing with is the most internal list this
+  product holds, and that view is a window onto what THEY see.
+
+WHAT THE RENDER ASKED FOR AND DID NOT GET, each because it reverses a decision
+the owner had already made: the change column boxed in white, the Copilot band
+removed, the Render B count markers flattened, and the divider replaced by a
+fixed 460px column. All four are stated on the render itself.
+
+**AND ONE PRE-EXISTING RED WAS MEASURED, NOT CAUSED, BY THIS WORK**:
+theme-tokens-verify is **26/40** on the tree BEFORE any of this (checked by
+stashing) — the 22 Aug button and typography work moved colours on nine screens
+and its baseline was never re-recorded. The note under A NOTE ON
+theme-tokens-verify says 39/40 and is out of date. Re-recording it is a
+deliberate palette-ownership act and is nobody's to do in passing.
+
+Tests: nego-redesign-verify (57, browser — every size as a COMPUTED value
+because this redesign is written as a block at the end of a 3,500-line sheet and
+a rule that loses a cascade fight looks perfectly correct in the source; the two
+panels' lists proved identical to the column's by their ids; Accept pressed in
+the panel and followed through to the record; both panels proved ABSENT on the
+preview; the row proved unfolded at 1280/1366/1440; and the accent ink measured
+for contrast in dark, which is where this page has been caught before). Claims
+REVERSED IN PLACE rather than deleted: f89 (the sheet), f84 and f49 (the resting
+split), f184 and negotiations-door-verify (the door's word), f173 and f175 (the
+caption's size), paper-grows-verify (its whole subject — the magnification),
+redline-verify (the shadow, the sheet's margins, the card meta), parity-verify
+(the card meta), f95 (the phone block stays last in the sheet).
+
 ## NEGOTIATE IS A PLACE, NOT A TAB (owner-asked, 12 Aug 2026)
 
 Negotiate left the room's tab row for a door in the sidebar under Contracts, reading **Negotiations** (a noun among nouns; the Document tab's button keeps the verb — a place and an act must not share a word). renderRedline was always its own full-window view and only DRESSED as a tab.
@@ -1336,7 +1474,16 @@ to own the current palette". **Somebody did.** It went to 40/40, it came off
 the known-red list, and the standing rule is at THE NET above: re-record only
 when deliberately owning a palette change, never to make a red run go away.
 
-**IT IS 39/40 AGAIN AS OF 22 Aug 2026, and this is a note rather than a fix.**
+**IT IS 26/40 AS OF 22 Aug 2026 — MEASURED, and this is a note rather than a
+fix.** (This paragraph said 39/40 and named one lost shade; the real figure was
+taken by stashing an unrelated change and running the file on the clean tree.
+The 22 Aug button and typography work moved colours on nine of the twenty
+screens — the flat `.ui-btn` border and the accent ink are what the diff keeps
+naming — and the baseline was never re-recorded for it. Re-recording is a
+deliberate palette-ownership act, so it is reported rather than done in passing;
+the file stays OFF KNOWN_RED so a real colour regression cannot hide behind it.)
+
+**AND ONE SHADE WAS ALREADY GONE BEFORE THAT.**
 `negotiate--dark` lost one shade — `rgb(17, 94, 89)` is in the baseline and
 appears nowhere on that screen now. Found while checking the Inter swap for
 ripples, and **it predates that work**: the same single failure reproduces with

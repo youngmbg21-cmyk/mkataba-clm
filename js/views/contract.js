@@ -4856,11 +4856,23 @@ function roomHeadHtml(c,opts={}){
            before; what changed is that it now reads as the crumb it always
            behaved like. That is also why this is safe on the negotiation page,
            where this arrow is the ONLY way back to the agreement. */}
-    <nav class="room-crumb" aria-label="Breadcrumb">
-      <button id="ws-back" type="button" title="${esc(backTitle)}"${backC?' data-back="contract"':''}>${
-        backC ? esc(c.name) : esc(i18t('ct_back_register'))}</button>
+    ${''/* ---- THE WORKBENCH'S HEAD IS ONE LINE, SO IT CARRIES NO CRUMB
+           (owner-approved render, 22 Aug 2026) ----
+           The design draws the negotiation head as a single white band —
+           "MK-363 · Warehousing… · In Review · Round 1" and the acts — and a
+           breadcrumb above it is a second row saying the reference the line
+           below already says.
+
+           #ws-back IS NOT LOST, which is the whole condition on removing this:
+           on that page it is the only way back to the agreement. It moves INTO
+           the name row as the reference itself (see room-name-id below), same
+           id, same title, same data-back, same handler in wireRoomHead — the
+           crumb's own trick of restyling the control rather than replacing it,
+           played once more. On every other page the crumb is untouched. */}
+    ${backC?'':`<nav class="room-crumb" aria-label="Breadcrumb">
+      <button id="ws-back" type="button" title="${esc(backTitle)}">${esc(i18t('ct_back_register'))}</button>
       <i aria-hidden="true">/</i><span class="room-crumb-here">${esc(c.id)}</span>
-    </nav>
+    </nav>`}
     <div class="room-id">
       <div class="room-name">
         ${''/* THE NAME IS PART OF THE WAY BACK on the negotiation screen. It is
@@ -4877,7 +4889,12 @@ function roomHeadHtml(c,opts={}){
                sub-line goes, which is the height the contract gets back. On the
                contract page the id is in the breadcrumb and this would say it
                twice. */}
-        ${backC ? `<span class="room-name-id">${esc(c.id)}<i aria-hidden="true">&middot;</i></span>` : ''}
+        ${''/* AND ON THE WORKBENCH THE REFERENCE IS THE WAY BACK. It reads as
+               the quiet grey reference the render draws; it behaves as the
+               crumb it replaced. A button, so the keyboard and a screen reader
+               reach it too. */}
+        ${backC ? `<button type="button" id="ws-back" class="room-name-id" data-back="contract"
+          title="${esc(backTitle)}">${esc(c.id)}<i aria-hidden="true">&middot;</i></button>` : ''}
         ${backC
           ? `<h1><button type="button" id="ws-back-title" class="room-title-back" title="${esc(backTitle)}">${esc(c.name)}</button></h1>`
           : `<h1>${esc(c.name)}</h1>`}
@@ -4986,6 +5003,20 @@ function roomHeadHtml(c,opts={}){
                had. */}
         <div id="ws-more-menu" class="room-menu hidden">
           <div class="mgroup">${i18t('ct_this_contract')}</div>
+          ${''/* ---- A PAGE MAY PUT ONE OF ITS OWN ROWS IN HERE ----
+                 (owner-approved render, 22 Aug 2026: the negotiation head
+                 carries FOUR buttons.) The workbench had five plus a chip, and
+                 the one that had to give was the playbook pass — it is a check
+                 you run once at the start of a round, not an act you reach for
+                 while working one, and the More menu is where this product
+                 already keeps the once-a-round jobs.
+
+                 THE ROW IS BUILT BY THE PAGE, NOT BY THIS FILE. The workbench
+                 owns that button's label, its dead-in-preview state and its
+                 permission rules; a copy here would be a second opinion about
+                 all three. It is passed in and placed, exactly as `primary`
+                 already is. */}
+          ${opts.menuRow || ''}
           ${''/* NAMED FOR THE THING THE READER IS HOLDING (owner-asked, 13 Aug
                  2026). It read "Import their response", which says nothing
                  about a Word document the other side marked up and emailed
