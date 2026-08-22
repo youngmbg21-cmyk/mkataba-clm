@@ -212,8 +212,24 @@ describe('f175 · the Tracked Changes head is a rule, not a box', () => {
       'the All tab carries it instead');
     assert.ok(/\.rl-idx-n\.is-live\{[^}]*var\(--color-accent-800\)/.test(p.css()),
       'the count rules stay in the sheet for the reviewer head that still draws one');
-    assert.ok(/\.rl-fseg\.on \.rl-fseg-n\{[^}]*var\(--color-accent-800\)/.test(p.css()),
-      'and the pressed tab\'s count wears the same live accent');
+    /* REVERSED IN PLACE (owner-chose Render B, 22 Aug 2026). The pressed tab's
+       count used to be the same accent INK as the reviewer's live count. It is
+       a FILLED box now — the count carries the state and the underline is gone
+       — and the fill is accent-700 rather than --accent-solid because white on
+       accent-600 measures 3.74:1, under what a 10.5px number needs. The claim
+       is unchanged in what it protects: the live cut must be unmistakable. */
+    assert.ok(/\.rl-fseg\.on \.rl-fseg-n\{[^}]*background:var\(--color-accent-700\)/.test(p.css()),
+      'the pressed tab\'s count FILLS with the workspace accent');
+    assert.ok(/\.rl-fseg\.on \.rl-fseg-n\{[^}]*color:#fff/.test(p.css()),
+      'and takes white ink, which is the pair that was measured');
+    assert.ok(!/\.rl-fseg\.on\{[^}]*border-bottom-color/.test(p.css()),
+      'and the underline is gone — one mark for one fact, never two');
+    /* The count that is NOT live must stay readable, which is the property the
+       old opacity:.62 was quietly failing. */
+    const rest = /\.rl-fseg-n\{([^}]*)\}/.exec(p.css())[1];
+    assert.ok(!/opacity/.test(rest), 'a resting count is real ink, not a faded one');
+    assert.match(rest, /color:var\(--color-neutral-500\)/, 'set in the head\'s own quiet ink');
+    assert.match(rest, /border:1px solid var\(--color-divider\)/, 'in its own hairline box');
 
     /* Nothing on the table at all: the tabs still draw, reading zero. */
     const q = await stage();

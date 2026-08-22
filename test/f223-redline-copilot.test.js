@@ -216,6 +216,58 @@ describe('F223 — it decides nothing', () => {
       'said out loud, because wiring them here would be the second path');
   });
 
+  /* ============================================================
+     THE STEPPER DOES NOT REACH THE BAND (owner-reported 22 Aug 2026)
+     ============================================================
+     "The font adjuster should not adjust the fonts in the copilot's first
+     pass ... it should be stagnant like the cards but the fonts should be
+     bigger as it is barely legible." Every size in the band was written as
+     calc(px * var(--doc-scale,1)) and --doc-scale is what the A-/A+ stepper
+     writes on the page root, while the change cards below are plain px. At
+     the reported 11px setting that is a scale of 0.73: an 8.4px heading and
+     7.3px chips beside a 12.5px card badge.
+
+     Both halves are pinned here — nothing in the band may follow the stepper
+     again, and nothing in it may be smaller than the cards it reads. */
+  const planRules = () => {
+    const css = read('js/views/negotiation-css.js');
+    return css.split('\n').filter(l => /\.rl-plan/.test(l) && !/^\s*(\/\*|\*|.*\$\{'')/.test(l));
+  };
+
+  test('no size in the band follows the reader\'s document type', () => {
+    const bad = planRules().filter(l => /doc-scale/.test(l) && !/--doc-scale:1/.test(l));
+    assert.deepEqual(bad, [], 'the paper scales; the furniture does not');
+    assert.match(read('js/views/negotiation-css.js'),
+      /\.rl-plan\{[^}]*--doc-scale:1/,
+      'and the pin is there besides, so a rule added inside the band later cannot bring it back');
+  });
+
+  test('the shut band is one line: empty verdicts draw no chip, and the title gives', () => {
+    /* Four chips plus a title plus a caret do not fit a 300px column once the
+       band stops shrinking with the reader's document type — measured, the
+       title wrapped to four lines, and a folded band is meant to be one. A
+       chip reading zero is furniture (the alert dot's own rule), and the
+       verdict itself is not lost: every row below still names its own. */
+    assert.match(band, /const chip = v => \(n\[v\] \?/,
+      'a verdict with nothing in it draws no chip');
+    assert.ok(!/\$\{n\[v\] \|\| 0\}/.test(band), 'and never a zero');
+    assert.match(band, /class="rl-plan-bar"[\s\S]{0,220}title="/,
+      'the whole sentence rides on the bar\'s hover, since the title can ellipsise');
+    assert.match(read('js/views/negotiation-css.js'),
+      /\.rl-plan-title\{[^}]*white-space:nowrap/,
+      'the title gives and the chips do not — one line while it is shut');
+  });
+
+  test('and nothing in the band is smaller than the cards it is a reading of', () => {
+    /* The card's own type: id 11.5 mono, badge 12.5, meta 12. The band takes
+       that neighbourhood, so the two objects measure alike. */
+    const sizes = planRules().join('\n').match(/font-size:([\d.]+)px/g).map(m => parseFloat(m.slice(10)));
+    assert.ok(sizes.length >= 8, 'every piece of the band states a size — ' + sizes.length);
+    assert.equal(sizes.filter(n => n < 11.5).length, 0,
+      'nothing under the card id\'s 11.5 — ' + sizes.join(', '));
+    assert.ok(sizes.includes(13), 'the bar\'s heading leads at 13');
+  });
+
   test('the words exist in both languages', () => {
     const i18n = read('js/i18n.js');
     for (const k of ['rp_title', 'rp_note', 'rp_v_accept', 'rp_v_push', 'rp_v_escalate', 'rp_v_review',

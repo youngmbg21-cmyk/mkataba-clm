@@ -5104,7 +5104,15 @@ function rlPlanBandHtml(c, opts = {}){
   if (!plan.length) return '';
   const n = rlpCounts(plan);
   const open = !!_rlPlanOpen;
-  const chip = v => `<span class="rl-plan-chip rl-plan-${v}">${n[v] || 0} ${_nea(RLP_VERDICTS[v].label)}</span>`;
+  /* A CHIP READING ZERO IS FURNITURE, and at the band's own type it is
+     expensive furniture (22 Aug 2026). The bar carries a title, four chips and
+     a caret in a column that is 300px at its narrowest; once the band stopped
+     shrinking with the reader's document type, four chips left the title no
+     room and it wrapped to four lines — a folded band is meant to be ONE line.
+     Hiding an empty verdict is this product's own rule, the one the alert dot
+     already follows: the number appears when there is a number. What is not
+     lost is the verdict itself — every row below still names its own. */
+  const chip = v => (n[v] ? `<span class="rl-plan-chip rl-plan-${v}">${n[v]} ${_nea(RLP_VERDICTS[v].label)}</span>` : '');
   const row = r => {
     const acts = [];
     if (r.verdict === 'accept')
@@ -5125,7 +5133,8 @@ function rlPlanBandHtml(c, opts = {}){
     </div>`;
   };
   return `<div class="rl-plan" data-rl-plan>
-    <button type="button" class="rl-plan-bar" data-rl-plan-toggle aria-expanded="${open ? 'true' : 'false'}">
+    <button type="button" class="rl-plan-bar" data-rl-plan-toggle aria-expanded="${open ? 'true' : 'false'}"
+      title="${_nea(i18t('rp_title', { n: plan.length }))}">
       <span class="rl-plan-title">${i18t('rp_title', { n: plan.length })}</span>
       ${chip('escalate')}${chip('push')}${chip('review')}${chip('accept')}
       <span class="rl-plan-caret">${open ? '\u2013' : '+'}</span>
