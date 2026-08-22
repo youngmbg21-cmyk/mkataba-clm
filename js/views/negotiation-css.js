@@ -1999,38 +1999,66 @@ function redlineLayoutCss(){
      remains; the cards below are the work and this is a reading of them.
      Every colour is a status token already in the sheet, because a
      recommendation is a verdict and the product already has three. */
-  .redline-page .rl-plan{flex-basis:100%;margin-top:6px}
+  ${''/* ---- THE STEPPER DOES NOT REACH THIS BAND (owner-reported 22 Aug 2026)
+     ----
+     Reported off a screenshot at an 11px document setting: "the font adjuster
+     should not adjust the fonts in the copilot's first pass ... it should be
+     stagnant like the cards but the fonts should be bigger as it is barely
+     legible." Both halves were true and they are one fault.
+
+     EVERY SIZE IN HERE WAS calc(px * var(--doc-scale,1)), and --doc-scale is
+     written on the .redline-page ROOT by the A-/A+ stepper. The CHANGE CARDS
+     twelve pixels below are plain px and do not move. So the one thing on that
+     column still shrinking was a reading ABOUT the cards. MEASURED at the
+     reported setting (11 against a normal of 15, a scale of 0.73): the bar's
+     heading rendered at 8.4px and its four chips at 7.3px, beside a card badge
+     holding 12.5px; at the floor of 8 the band drops to about 5px.
+
+     THE PAPER SCALES, THE FURNITURE DOES NOT — the rule this page already
+     learned three times, and the clause panel's own pin (.rl-cp-src) is the
+     precedent this copies line for line. The pin is belt and braces beside the
+     plain px below: it is what stops a rule added inside this band later
+     quietly reintroducing the fault.
+
+     AND THE SIZES ARE THE CARDS' OWN, which is the second half of the report:
+     the id is the card id's 11.5 mono, the chips the badge's neighbourhood,
+     the reasoning the card meta's 12. The two objects finally measure alike. */}
+  .redline-page .rl-plan{flex-basis:100%;margin-top:6px;--doc-scale:1}
   .redline-page .rl-plan-bar{display:flex;align-items:center;gap:6px;width:100%;
     border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);
-    padding:6px 9px;cursor:pointer;font:inherit;text-align:left}
+    padding:7px 10px;cursor:pointer;font:inherit;text-align:left}
   .redline-page .rl-plan-bar:hover{border-color:var(--color-accent-300)}
   .redline-page .rl-plan-bar:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
-  .redline-page .rl-plan-title{font-size:calc(11.5px * var(--doc-scale,1));font-weight:700;flex:1;min-width:0}
-  .redline-page .rl-plan-caret{flex:none;font-family:var(--font-mono);font-size:12px;color:var(--color-neutral-600)}
-  .redline-page .rl-plan-chip{flex:none;font-size:calc(10px * var(--doc-scale,1));font-weight:700;
+  ${''/* ONE LINE WHILE IT IS SHUT — the band's own stated design. The title
+     gives (ellipsis, whole sentence on the bar's hover) and the chips do
+     not, which is the same arrangement the unsent band above it uses. */}
+  .redline-page .rl-plan-title{font-size:13px;font-weight:700;flex:1;min-width:0;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .redline-page .rl-plan-caret{flex:none;font-family:var(--font-mono);font-size:13px;color:var(--color-neutral-600)}
+  .redline-page .rl-plan-chip{flex:none;font-size:11.5px;font-weight:700;
     border-radius:0;padding:1px 7px;white-space:nowrap}
   .redline-page .rl-plan-accept{background:var(--st-green-bg);color:var(--st-green-fg)}
   .redline-page .rl-plan-push{background:var(--st-amber-bg);color:var(--st-amber-fg)}
   .redline-page .rl-plan-escalate{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
   .redline-page .rl-plan-review{background:var(--st-steel-bg);color:var(--st-steel-fg)}
   .redline-page .rl-plan-body{border:1px solid var(--color-divider);border-top:0;
-    border-radius:0;background:var(--color-surface);padding:8px 10px}
-  .redline-page .rl-plan-note{margin:0 0 8px;font-size:calc(10.5px * var(--doc-scale,1));
+    border-radius:0;background:var(--color-surface);padding:9px 10px 11px}
+  .redline-page .rl-plan-note{margin:0 0 8px;font-size:12px;
     color:var(--color-neutral-600);line-height:1.5}
   .redline-page .rl-plan-row{border-top:1px solid var(--color-divider);padding:8px 0 6px}
   .redline-page .rl-plan-row:first-of-type{border-top:0;padding-top:0}
   .redline-page .rl-plan-head{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap}
-  .redline-page .rl-plan-id{font-family:var(--font-mono);font-size:calc(10px * var(--doc-scale,1));
-    color:var(--color-neutral-500)}
-  .redline-page .rl-plan-clause{font-size:calc(11.5px * var(--doc-scale,1));font-weight:600;
+  .redline-page .rl-plan-id{font-family:var(--font-mono);font-size:11.5px;font-weight:700;
+    color:var(--color-neutral-600)}
+  .redline-page .rl-plan-clause{font-size:13px;font-weight:600;
     min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .redline-page .rl-plan-why{margin:4px 0 0;font-size:calc(11px * var(--doc-scale,1));line-height:1.5}
-  .redline-page .rl-plan-prec{margin:3px 0 0;font-size:calc(10.5px * var(--doc-scale,1));
+  .redline-page .rl-plan-why{margin:5px 0 0;font-size:12.5px;line-height:1.5}
+  .redline-page .rl-plan-prec{margin:3px 0 0;font-size:12px;
     line-height:1.5;color:var(--color-neutral-600);font-style:italic}
-  .redline-page .rl-plan-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .redline-page .rl-plan-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
   .redline-page .rl-plan-act{border:1px solid var(--color-divider);border-radius:0;
-    background:var(--color-bg);cursor:pointer;font:inherit;
-    font-size:calc(10.5px * var(--doc-scale,1));padding:3px 9px}
+    background:var(--color-bg);cursor:pointer;font:inherit;font-weight:600;
+    font-size:11.5px;color:var(--color-neutral-600);padding:4px 10px}
   .redline-page .rl-plan-act:hover{border-color:var(--color-accent-300);color:var(--color-accent-700)}
 
   /* ---- THE ASK TAG (OI-12) ----
@@ -2374,6 +2402,12 @@ function redlineLayoutCss(){
     letter-spacing:.01em;font-variant-numeric:tabular-nums;color:var(--color-neutral-500);
     background:none;border:0;border-radius:0;padding:0;line-height:1.2}
   .redline-page .rl-idx-n.is-live{color:var(--color-accent-800)}
+  ${''/* Found while measuring the row (22 Aug 2026): the dark theme does not
+     redefine the accent ramp, so accent-800 is a deep green sitting on an
+     almost-black panel — 2.4:1, under any readable threshold, and the live
+     count all but disappeared at night. The narrowed reviewer's head is the
+     one place this count still draws, so it is the one place to fix. */}
+  html.dark .redline-page .rl-idx-n.is-live{color:var(--color-accent-300)}
   /* ---- WHOSE ASKS: THE THREE-WAY CUT ----
      A segmented control, not a dropdown, so all three answers and the live one
      are readable without opening anything — the difference between a filter you
@@ -2398,26 +2432,52 @@ function redlineLayoutCss(){
      pushes the tabs to the right wall, and the head is one ruled line. On a
      column too narrow for both, flex-wrap drops the tabs to a second line —
      the old arrangement, as the fallback rather than the rule. */
-  .redline-page .rl-fsegwrap{flex:none;display:flex;gap:16px;padding:0;
+  ${''/* ---- THE COUNT IS THE MARKER (owner-chose Render B, 22 Aug 2026) ----
+     Four renders were drawn for this row and this is the one taken. WHAT WAS
+     WRONG: at 12px and 600 weight with an underline, the live cut and the two
+     resting ones were nearly the same object, and the number — the thing a
+     reader actually scans this row for — was set at opacity .62, which is
+     about 2.5:1 on white and the faintest text on the column.
+
+     SO THE NUMBER CARRIES THE STATE. Every count sits in its own square box:
+     resting boxes are a hairline outline, the live one FILLS. The underline is
+     gone entirely — the fill already says which cut is being read, and two
+     marks for one fact is how they come to disagree.
+
+     THE FILL IS accent-700, NOT --accent-solid, and the reason is measured
+     rather than aesthetic: white on accent-600 is 3.74:1, under the 4.5 a
+     10.5px number needs, while accent-700 is 5.5:1 in the teal workspace and
+     about 11:1 in the navy one. Both themes take the same fill for the same
+     reason, so there is no dark override to keep in step.
+
+     AND THE RESTING COUNTS GOT MORE LEGIBLE, not less: opacity .62 became a
+     real ink (neutral-500), which is 4.8:1 on white and 7:1 in the dark.
+
+     WHAT DID NOT CHANGE, because it is the safety of the control: three
+     options and no more, every option showing its OWN count unmoved by the
+     filter, and a row of choices rather than a dropdown. */}
+  .redline-page .rl-fsegwrap{flex:none;display:flex;gap:14px;padding:0;
     background:none;border:0;border-radius:0}
   .redline-page .rl-fseg{flex:none;min-width:0;display:flex;align-items:center;
-    gap:5px;border:0;border-bottom:2px solid transparent;background:none;font:inherit;
-    font-size:12px;font-weight:600;color:var(--color-neutral-500);padding:0 0 8px;
+    gap:7px;border:0;border-bottom:2px solid transparent;background:none;font:inherit;
+    font-size:12.5px;font-weight:600;color:var(--color-neutral-500);padding:0 0 9px;
     margin-bottom:-1px;border-radius:0;cursor:pointer;white-space:nowrap;
-    transition:color .12s,border-color .12s}
+    transition:color .12s,background .12s,border-color .12s}
   .redline-page .rl-fseg:hover{color:var(--color-text)}
-  .redline-page .rl-fseg.on{background:none;color:var(--color-text);font-weight:700;
-    border-bottom-color:var(--accent-solid)}
-  /* A borderless button gets no focus ring from the browser worth having, and
-     the underline it would otherwise be confused with is the PRESSED state,
-     not the focused one. */
+  .redline-page .rl-fseg.on{background:none;color:var(--color-text);font-weight:700}
+  /* A borderless button gets no focus ring from the browser worth having. */
   .redline-page .rl-fseg:focus-visible{outline:2px solid var(--color-accent);
     outline-offset:2px;border-radius:0}
   /* The count rides INSIDE its own tab: it is the thing that stops a filter
      hiding a change quietly, so it must be readable on the resting face too. */
   .redline-page .rl-fseg-n{flex:none;font-family:var(--font-mono);font-size:10.5px;font-weight:700;
-    opacity:.62}
-  .redline-page .rl-fseg.on .rl-fseg-n{opacity:1;color:var(--color-accent-800)}
+    font-variant-numeric:tabular-nums;line-height:1.35;padding:1px 6px;
+    color:var(--color-neutral-500);background:var(--color-surface);
+    border:1px solid var(--color-divider);border-radius:0}
+  .redline-page .rl-fseg:hover .rl-fseg-n{border-color:var(--color-accent-300)}
+  .redline-page .rl-fseg.on .rl-fseg-n{background:var(--color-accent-700);
+    border-color:var(--color-accent-700);color:#fff}
+  .redline-page .rl-fseg.on:hover .rl-fseg-n{border-color:var(--color-accent-700)}
   /* MOUNTED, UNSEEN, AND STILL CLICKABLE. Not display:none — a hidden control
      is one the browser may refuse to focus or dispatch to, and Publish Round
      works by clicking this one. Taken out of the flow and out of the reader's

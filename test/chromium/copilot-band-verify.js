@@ -157,6 +157,99 @@ const BODY = [
     else check('a press on "Take it" settles that change through the ordinary funnel', true,
       'nothing in this round was judged take-it — the engine chose escalate/read, which is its own answer');
 
+    /* ---- 7. THE STEPPER DOES NOT REACH THE BAND ----
+       Owner-reported 22 Aug 2026 off a screenshot at an 11px document setting:
+       the band was written in calc(px * --doc-scale) and the change cards
+       below it were not, so the one thing on that column still shrinking was
+       a reading ABOUT those cards. This is the check f223 cannot make: the
+       COMPUTED size, at both ends of the stepper, against a paper that is
+       genuinely moving. */
+    await page.evaluate(() => { rlPlanSetOpen(true); rlSetDocType(8); });
+    await pause(700);
+    const small = await page.evaluate(() => ({
+      title: parseFloat(getComputedStyle(document.querySelector('.rl-plan-title')).fontSize),
+      chip: parseFloat(getComputedStyle(document.querySelector('.rl-plan-chip')).fontSize),
+      why: parseFloat(getComputedStyle(document.querySelector('.rl-plan-why')).fontSize),
+      paper: parseFloat(getComputedStyle(document.querySelector('.rl-doc .rl-clause-h')
+        || document.querySelector('.rl-doc p')).fontSize),
+    }));
+    await page.evaluate(() => rlSetDocType(20));
+    await pause(700);
+    const big = await page.evaluate(() => ({
+      title: parseFloat(getComputedStyle(document.querySelector('.rl-plan-title')).fontSize),
+      chip: parseFloat(getComputedStyle(document.querySelector('.rl-plan-chip')).fontSize),
+      why: parseFloat(getComputedStyle(document.querySelector('.rl-plan-why')).fontSize),
+      paper: parseFloat(getComputedStyle(document.querySelector('.rl-doc .rl-clause-h')
+        || document.querySelector('.rl-doc p')).fontSize),
+    }));
+    check('the paper really does move with the stepper — the instrument works',
+      big.paper > small.paper + 4, small.paper + 'px \u2192 ' + big.paper + 'px');
+    check('and the band does not move with it, at either end',
+      small.title === big.title && small.chip === big.chip && small.why === big.why,
+      'at 8: ' + [small.title, small.chip, small.why].join('/')
+      + '  at 20: ' + [big.title, big.chip, big.why].join('/'));
+    check('the band reads at the cards\' own sizes, never below them',
+      big.title >= 13 && big.chip >= 11.5 && big.why >= 12.5,
+      'title ' + big.title + ', chip ' + big.chip + ', reasoning ' + big.why);
+    await page.evaluate(() => rlSetDocType(15));
+    await pause(500);
+
+    /* ---- 8. THE ALL / MINE / THEIRS ROW (Render B) ----
+       The count carries the state: resting counts are hairline boxes, the live
+       one fills, and the tab underline is gone. Computed, because a fill and a
+       border are exactly what jsdom cannot resolve. */
+    const seg = await page.evaluate(() => {
+      const one = b => {
+        const n = b.querySelector('.rl-fseg-n');
+        const cs = getComputedStyle(n), tab = getComputedStyle(b);
+        return {
+          k: b.getAttribute('data-rl-cardfilter'),
+          on: b.classList.contains('on'),
+          text: n.textContent.trim(),
+          bg: cs.backgroundColor, ink: cs.color, border: cs.borderTopWidth,
+          opacity: cs.opacity,
+          underline: tab.borderBottomWidth + ' ' + tab.borderBottomColor,
+          box: Math.round(n.getBoundingClientRect().width) + 'x' + Math.round(n.getBoundingClientRect().height),
+        };
+      };
+      return [...document.querySelectorAll('[data-rl-cardfilter]')].map(one);
+    });
+    const live = seg.find(x => x.on), rest = seg.filter(x => !x.on);
+    check('all three cuts draw, each with its own count',
+      seg.length === 3 && seg.every(x => x.text !== '' && x.box !== '0x0'),
+      seg.map(x => x.k + ' ' + x.text + ' (' + x.box + ')').join(', '));
+    check('the live count is FILLED — the marker is the number',
+      !!live && live.bg !== 'rgba(0, 0, 0, 0)' && live.ink === 'rgb(255, 255, 255)',
+      live && live.k + ': ' + live.bg + ' / ' + live.ink);
+    check('a resting count is a hairline box in real ink, never a faded one',
+      rest.every(x => x.opacity === '1' && parseFloat(x.border) >= 1
+        && x.bg !== live.bg),
+      rest.map(x => x.k + ': ' + x.bg + ' border ' + x.border).join(', '));
+    check('and the tab underline is gone — one mark for one fact',
+      seg.every(x => x.underline.indexOf('rgba(0, 0, 0, 0)') >= 0
+        || x.underline.indexOf('transparent') >= 0),
+      seg.map(x => x.k + ': ' + x.underline).join(' | '));
+
+    await page.click('[data-rl-cardfilter="theirs"]');
+    await pause(800);
+    const moved = await page.evaluate(() => {
+      const on = document.querySelector('.rl-fseg.on');
+      const n = on && on.querySelector('.rl-fseg-n');
+      return {
+        k: on && on.getAttribute('data-rl-cardfilter'),
+        bg: n && getComputedStyle(n).backgroundColor,
+        counts: [...document.querySelectorAll('[data-rl-cardfilter]')]
+          .map(b => b.getAttribute('data-rl-cardfilter') + ' ' + b.querySelector('.rl-fseg-n').textContent.trim()),
+      };
+    });
+    check('pressing a cut moves the fill to it',
+      moved.k === 'theirs' && moved.bg === (live && live.bg), moved.k + ' ' + moved.bg);
+    check('and every count still says its own number — a filter can hide nothing quietly',
+      moved.counts.join(', ') === seg.map(x => x.k + ' ' + x.text).join(', '),
+      moved.counts.join(', '));
+    await page.click('[data-rl-cardfilter="all"]');
+    await pause(500);
+
     check('no page errors anywhere in the journey', errors.length === 0, errors.join(' | ') || 'none');
   } finally {
     await browser.close();
