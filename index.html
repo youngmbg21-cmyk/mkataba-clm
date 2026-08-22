@@ -498,9 +498,11 @@
        is the design's ROOT and the ladder is measured from it. The sweep caught
        it once and took it to 15, which moved every inherited size a second
        time. */
-    font-size:14px; line-height:1.5; font-feature-settings:'cv11';
+    /* 1.4 is the design brief's INTERFACE line height (1.55 is for explanatory
+       paragraphs, 1.75 for contract prose — both set where they belong). */
+    font-size:14px; line-height:1.4; font-feature-settings:'cv11';
   }
-  h1,h2,h3,h4,h5,h6,.font-display{font-family:var(--font-heading);font-weight:600;letter-spacing:-0.01em;}
+  h1,h2,h3,h4,h5,h6,.font-display{font-family:var(--font-heading);font-weight:700;letter-spacing:-0.01em;}
 
   /* ---- THE TWO WEIGHT CLASSES THAT WERE NEVER DEFINED (20 Aug 2026) ----
      `font-600` and `font-700` are written on ~112 elements across this app
