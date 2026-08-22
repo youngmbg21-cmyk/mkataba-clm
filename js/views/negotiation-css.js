@@ -571,7 +571,7 @@ function negoStyleHtml(){
      document on every screen that draws one, so it follows the document's type.
      --doc-scale is 1 wherever nothing sets it, which is every surface without a
      stepper — a print, an export, a card. */
-  .nego-note{display:inline-block;font-family:var(--n-font-ui);font-size:calc(10.5px * var(--doc-scale,1));
+  .nego-note{display:inline-block;font-family:var(--n-font-ui);font-size:calc(11px * var(--doc-scale,1));
     font-weight:700;border-radius:0;
     padding:calc(1px * var(--doc-scale,1)) calc(7px * var(--doc-scale,1));
     margin-left:8px;vertical-align:1px;letter-spacing:.3px}
@@ -584,7 +584,7 @@ function negoStyleHtml(){
   /* The refusal that stays after formatting-only edits became fileable: a save
      where truly nothing changed. Inline beside the button that was pressed —
      a corner toast made the button read as dead. */
-  .nego-edit-bar .nego-nofile{font-family:var(--n-font-ui);font-size:calc(11.5px * var(--doc-scale,1));font-weight:600;
+  .nego-edit-bar .nego-nofile{font-family:var(--n-font-ui);font-size:calc(12px * var(--doc-scale,1));font-weight:600;
     color:var(--n-del-fg);align-self:center;margin-left:calc(6px * var(--doc-scale,1))}
 
   /* ---- the change index ---- */
@@ -660,7 +660,7 @@ function negoStyleHtml(){
   .nego-fmt-bar button{width:calc(28px * var(--doc-scale,1));height:calc(28px * var(--doc-scale,1));
     display:inline-grid;place-items:center;
     background:var(--n-paper,#fff);border:1px solid var(--n-line,#e2e8f0);border-radius:0;
-    font-family:inherit;font-size:calc(12.5px * var(--doc-scale,1));color:var(--n-ink,#1e293b);cursor:pointer;
+    font-family:inherit;font-size:calc(13px * var(--doc-scale,1));color:var(--n-ink,#1e293b);cursor:pointer;
     box-shadow:0 1px 2px rgba(15,23,42,.08);transition:background .12s,border-color .12s}
   .nego-fmt-bar button:hover{border-color:var(--n-ink-soft,#94a3b8);background:var(--n-well,#f8fafc)}
   .nego-fmt-bar button:active{box-shadow:none;transform:translateY(.5px)}
@@ -705,7 +705,7 @@ function negoStyleHtml(){
   .nego-reason textarea{display:block;box-sizing:border-box;width:100%;max-width:100%;
     min-height:calc(52px * var(--doc-scale,1));resize:vertical;border:1px solid var(--n-line);border-radius:0;
     padding:calc(7px * var(--doc-scale,1)) calc(9px * var(--doc-scale,1));
-    font:inherit;font-size:calc(11.5px * var(--doc-scale,1));line-height:1.6;
+    font:inherit;font-size:calc(12px * var(--doc-scale,1));line-height:1.6;
     background:var(--n-paper);color:var(--n-ink);outline:none;
     white-space:pre-wrap;overflow-wrap:anywhere}
   .nego-reason textarea:focus{border-color:var(--n-focus)}
@@ -1747,7 +1747,7 @@ function redlineLayoutCss(){
     border-top:1px solid var(--color-doc-rule)}
   .rl-sigline{flex:1;min-width:0}
   .rl-sigrule{display:block;height:36px;border-bottom:1px solid var(--color-doc-rule)}
-  .rl-sigfor{display:block;margin-top:8px;font-size:calc(11.5px * var(--doc-scale,1));color:var(--color-doc-muted);
+  .rl-sigfor{display:block;margin-top:8px;font-size:calc(12px * var(--doc-scale,1));color:var(--color-doc-muted);
     overflow-wrap:anywhere}
   @media (max-width:560px){ .rl-paper-foot{flex-direction:column;gap:22px} }
   .redline-page .rl-recital{margin:0 0 16px}
@@ -1952,7 +1952,7 @@ function redlineLayoutCss(){
     display:inline-flex;align-items:center;justify-content:center;
     border:1px solid transparent;background:transparent;color:var(--accent-solid,#0d9488);
     border-radius:0;padding:calc(3px * var(--doc-scale,1)) calc(4px * var(--doc-scale,1));
-    font:inherit;font-size:calc(10.5px * var(--doc-scale,1));font-weight:700;line-height:1;
+    font:inherit;font-size:calc(11px * var(--doc-scale,1));font-weight:700;line-height:1;
     cursor:pointer;white-space:nowrap;-webkit-user-select:none;user-select:none;
     transition:background .15s,color .15s}
   .redline-page .rl-cp-pill svg{width:calc(15px * var(--doc-scale,1));height:calc(15px * var(--doc-scale,1));display:block}
@@ -2091,7 +2091,7 @@ function redlineLayoutCss(){
      stretches with align-items:stretch, which is what makes it read as the
      change card's own left border rather than a dot. */
   .redline-page .rl-asktag{flex:none;display:inline-flex;align-items:stretch;
-    font:inherit;font-size:calc(10.5px * var(--doc-scale,1));
+    font:inherit;font-size:calc(11px * var(--doc-scale,1));
     font-weight:600;letter-spacing:.04em;cursor:pointer;
     border-radius:0;white-space:nowrap;overflow:hidden;
     background:var(--color-surface);color:var(--color-neutral-700);
@@ -2103,7 +2103,7 @@ function redlineLayoutCss(){
   .redline-page .rl-asktag-lb{display:inline-flex;align-items:center;gap:calc(5px * var(--doc-scale,1));
     padding:calc(3px * var(--doc-scale,1)) calc(9px * var(--doc-scale,1))
       calc(3px * var(--doc-scale,1)) calc(7px * var(--doc-scale,1))}
-  .redline-page .rl-asktag-g{font-weight:700;font-size:calc(11.5px * var(--doc-scale,1));line-height:1}
+  .redline-page .rl-asktag-g{font-weight:700;font-size:calc(12px * var(--doc-scale,1));line-height:1}
   .redline-page .rl-asktag:hover{border-color:var(--color-neutral-400)}
   .redline-page .rl-asktag:focus-visible{outline:2px solid var(--color-accent);outline-offset:1px}
   /* Open: the tag is the thing being read, and it carries its own way out. */
@@ -2128,7 +2128,7 @@ function redlineLayoutCss(){
   .redline-page .rl-askrv-who b{color:var(--color-neutral-700);font-family:var(--font-mono);letter-spacing:.02em}
   .redline-page .rl-askrv-wd{font-size:calc(13px * var(--doc-scale,1));line-height:1.6}
   .redline-page .rl-askrv-why{display:block;margin-top:calc(5px * var(--doc-scale,1));
-    font-size:calc(11.5px * var(--doc-scale,1));color:var(--st-ruby-fg);font-style:italic}
+    font-size:calc(12px * var(--doc-scale,1));color:var(--st-ruby-fg);font-style:italic}
   /* The way back out of a settled decision. It rides ON the clause, so it takes
      the sheet's own scale like every other piece of furniture there — the
      lesson of 13 and 15 Aug, applied at the point of writing this time rather

@@ -536,7 +536,7 @@ function renderDashboard(){
     <button data-kpi-id="${id}" draggable="true" class="hati-stat" style="position:relative;display:flex;flex-direction:column;gap:7px;align-items:stretch;border:1px solid var(--color-divider);border-top:3px solid ${TONE_EDGE[t]};border-radius:0;background:var(--color-surface);padding:12px 14px;font:inherit;color:inherit;cursor:grab;text-align:left;box-shadow:none;transition:transform .2s var(--ease),opacity .15s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
       <span style="display:block;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;line-height:1.3;color:var(--color-neutral-500);">${k.label}</span>
       <span style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;">
-        <span class="tnum" style="font-family:var(--font-mono);font-weight:300;font-size:clamp(20px,17px + 0.45vw,28px);line-height:1.1;letter-spacing:-.02em;color:var(--color-text);">${k.val}</span>
+        <span class="tnum" style="font-family:var(--font-mono);font-weight:300;font-size:22px;line-height:1.1;letter-spacing:-.02em;color:var(--color-text);">${k.val}</span>
         <span style="font-size:12px;font-weight:600;color:${TONE_FG[t]};text-align:right;">${k.delta}</span>
       </span>
       <span style="font-size:12px;color:var(--color-neutral-500);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${k.sub||''}</span>

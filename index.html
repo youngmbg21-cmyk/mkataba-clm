@@ -572,6 +572,24 @@
   html.dark .bg-indigo-100{background-color:rgba(99,102,241,.18);}
   html.dark .from-brand-50{--tw-gradient-from:rgb(var(--color-accent-500-rgb)/.10) var(--tw-gradient-from-position);--tw-gradient-to:rgb(var(--color-accent-500-rgb)/0) var(--tw-gradient-to-position);}
   html.dark .to-white{--tw-gradient-to:var(--color-surface) var(--tw-gradient-to-position);}
+  /* ink — THE LIGHT SIDE, and it has to be written HERE (22 Aug 2026, owner-reported
+     "the black fonts are darker in the html than in HaTi"). .text-ink is a COMPILED
+     Tailwind class and its value is the OLD slate rgb(30 41 59) baked into the blob,
+     so the 146 elements wearing it never saw the ink retune at all — the dark theme
+     re-pointed it below and the light theme never did. Never edit the blob: it is
+     generated and the next build drops the change (the font-600 lesson). Same
+     specificity, later in source, so it wins on order. The opacity steps keep their
+     literal percentages — only dark bumps them, because light text on a dark ground
+     needs more of itself to read. */
+  .text-ink{color:var(--color-text);}
+  .text-ink\/80{color:color-mix(in srgb,var(--color-text) 80%,transparent);}
+  .text-ink\/70{color:color-mix(in srgb,var(--color-text) 70%,transparent);}
+  .text-ink\/65{color:color-mix(in srgb,var(--color-text) 65%,transparent);}
+  .text-ink\/60{color:color-mix(in srgb,var(--color-text) 60%,transparent);}
+  .text-ink\/55{color:color-mix(in srgb,var(--color-text) 55%,transparent);}
+  .text-ink\/50{color:color-mix(in srgb,var(--color-text) 50%,transparent);}
+  .text-ink\/45{color:color-mix(in srgb,var(--color-text) 45%,transparent);}
+  .text-ink\/40{color:color-mix(in srgb,var(--color-text) 40%,transparent);}
   /* ink */
   html.dark .text-ink,html.dark .text-brand-900,html.dark .text-brand-800{color:var(--color-text);}
   html.dark .text-brand-800\/85{color:color-mix(in srgb,var(--color-text) 85%,transparent);}
@@ -971,8 +989,13 @@
     font-variant-numeric:tabular-nums; white-space:nowrap; }
   .room-name-id i{ font-style:normal; margin-left:7px; color:var(--color-neutral-400); }
   .room-round{ font-size:14px; color:var(--color-neutral-600); white-space:nowrap; }
-  .room-head h1{ font-family:var(--font-heading); font-weight:600; margin:0; line-height:1.2;
-    font-size:clamp(19px, 15px + 0.45vw, 24px); min-width:0;
+  /* 700 AND A FIXED 22px, both the design's (22 Aug 2026). It was weight 600
+     at clamp(19px, 15px + 0.45vw, 24px) — which resolves to 21.48px at 1440 and
+     to a different fraction at every other width, so the LARGEST text on the
+     page was the softest thing on it. The design has no fluid type at all: a
+     fixed rung on its ladder is whole at every width rather than at none. */
+  .room-head h1{ font-family:var(--font-heading); font-weight:700; margin:0; line-height:1.2;
+    font-size:22px; min-width:0;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .room-head .room-sub{ font-size:13px; color:var(--color-neutral-600); margin-top:3px;
     overflow-wrap:anywhere; }
@@ -993,7 +1016,7 @@
      flag any mention as stale. */
   .room-head{ position:relative; }
   .room-crumb{ flex-basis:100%; display:flex; align-items:center; gap:7px;
-    font-size:13px; color:var(--color-neutral-600); min-height:16px; margin-bottom:2px; }
+    font-size:12px; color:var(--color-neutral-500); min-height:16px; margin-bottom:2px; }
   .room-crumb button{ font:inherit; color:var(--color-accent-700); background:none;
     border:0; padding:0; cursor:pointer; max-width:40ch; overflow:hidden;
     text-overflow:ellipsis; white-space:nowrap; }
@@ -1002,7 +1025,7 @@
   .room-crumb-here{ font-variant-numeric:tabular-nums; }
   /* Status as words. The tone comes inline from STATUS_META, so this rule
      carries only the shape — see contractStatusTextHtml. */
-  .room-stat{ font-size:15px; font-weight:700; white-space:nowrap; flex:none; }
+  .room-stat{ font-size:14px; font-weight:700; white-space:nowrap; flex:none; }
   /* ---- THE FACT ROW ----
      Label above value, divided by hairlines, four across. The same treatment
      Key terms uses one screen down, which is the point: a reader who learns to
@@ -1019,7 +1042,7 @@
   .room-facet{ margin-right:28px; padding-right:28px;
     border-right:1px solid var(--color-divider); min-width:0; }
   .room-facet:last-child{ border-right:0; margin-right:0; padding-right:0; }
-  .room-facet .l{ font-size:13px; color:var(--color-neutral-600); line-height:16px; }
+  .room-facet .l{ font-size:12px; color:var(--color-neutral-500); line-height:16px; }
   .room-facet .v{ font-size:15px; line-height:20px; color:var(--color-text);
     max-width:34ch; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .room-facet-none{ color:var(--color-neutral-400); }
@@ -2805,7 +2828,7 @@
        document have three different bases and one shared setting; what travels
        between them is the proportion. Only the zoom wrappers define it (see
        applyDocZoom), so a print, an export and a portal copy take the 1. */
-    font-size:calc(13.5px * var(--doc-scale,1));
+    font-size:calc(14px * var(--doc-scale,1));
     line-height:1.75;
     /* a contract is read, not skimmed: open the letterfit very slightly and
        stop the browser from tightening it on the larger sizes */
@@ -2851,7 +2874,7 @@
   /* Same reading as .doc-surface above: --doc-scale is the reader's choice as a
      ratio, 1 where nobody has expressed one. Everything else in this block is
      in em, so that one number sizes the whole page. */
-  .hati-doc{font-size:calc(13.5px * var(--doc-scale,1));line-height:1.85;font-family:var(--font-doc);color:var(--color-doc-text);
+  .hati-doc{font-size:calc(14px * var(--doc-scale,1));line-height:1.85;font-family:var(--font-doc);color:var(--color-doc-text);
     print-color-adjust:exact;-webkit-print-color-adjust:exact;}
   .hati-doc>*:first-child{margin-top:0;}
   .hati-doc>*:last-child{margin-bottom:0;}
@@ -2998,7 +3021,7 @@
 
   [data-doc-body="compact-executive"] .doc-surface,
   [data-doc-body="compact-executive"] .doc-surface *:not(.hati-field):not(input):not(textarea){font-family:'Trebuchet MS','Segoe UI',Arial,sans-serif!important;}
-  [data-doc-body="compact-executive"] .doc-surface{font-size:calc(13.5px * var(--doc-scale,1) * .94);}
+  [data-doc-body="compact-executive"] .doc-surface{font-size:calc(14px * var(--doc-scale,1) * .94);}
   [data-doc-body="compact-executive"] .doc-surface p{line-height:1.55;}
   [data-doc-body="compact-executive"] .doc-surface h1{font-size:1.35em;}
 

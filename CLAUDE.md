@@ -622,6 +622,43 @@ The first pass rounded half-pixels and stopped there, and the owner's answer was
 
 **THE INK IS THE DESIGN'S TWO COLOURS.** Every text colour was a blue-leaning slate (`#1e293b` and the slate-400..900 ramp), which sat against a teal product and read cold. The design carries `--tx:#1B2A28` for body and `--label:#5F6D6B` for labels — a dark desaturated GREEN-black from the brand's own family. The ramp is re-hued onto it and **every step is at least as dark as the slate it replaces**, so nothing lost contrast: body 13.6:1 → 14.9:1 on white, and the label step 4.8:1 → 5.6:1, which was the one genuinely thin reading. THE NEUTRALS ARE A TYPE TOKEN HERE, not a surface one — they carry text in 638 places and a background or border in 6, which is what makes re-hueing them safe.
 
+**AND 146 ELEMENTS NEVER SAW ANY OF IT** (owner-reported 22 Aug 2026: *"why is
+that fonts in the html are sharper and black fonts are darker than in HaTi?"*).
+`.text-ink` is a COMPILED Tailwind class and its colour is the OLD slate
+`rgb(30 41 59)` baked into the blob, so the elements wearing it — the largest
+single population of body text in the product — kept the pre-retune ink. **The
+dark theme had re-pointed it and the light theme never had**, which is why it
+survived: at night it was right. The light-side rules are written in HaTi's own
+sheet, later in source at equal specificity — **never in the blob, which is
+generated and drops the change on the next build** (the `font-600` lesson).
+
+**AND THE LARGEST TEXT ON THE PAGE WAS THE SOFTEST.** The contract title was
+`clamp(19px, 15px + 0.45vw, 24px)` — which resolves to **21.48px** at 1440 and
+to a different fraction at every other width, so it was fractional at every
+width rather than at none. **The design has no fluid type at all**: a fixed rung
+on its ladder is whole everywhere. Five fluid headings took fixed sizes, and the
+room title took the design's own 22px/700 (it was 600).
+
+**THE CONTRACT PAPER'S OWN BASES WENT WHOLE TOO.** The half-pixel sweep skipped
+everything inside a `calc()` on the reasoning that the reader sets that size —
+right about the PREFERENCE, wrong about the BASE: 13.5, 12.5, 11.5 and 10.5
+multiply by the reader's ratio either way, and at the default of 1 they were the
+last half-pixels in the product. Rounded up one rung like everything else.
+MEASURED after: scanning every visible element on the dashboard, the contract
+room and the register turns up **no fractional font size anywhere**.
+
+**AND THE HEAD ROW WAS OVERSHOT BY THE BLANKET LIFT.** The crumb, the status
+word and the fact-row labels were authored directly FROM the mock-up, and the
+one-step sweep then moved them a step past it. They carry the design's own
+numbers again (12px/`--label` for the labels and crumb, 14px/700 for the
+status). **A value already taken from the design is not a value that was running
+small** — check before sweeping over one.
+
+MEASURED SIDE BY SIDE against the mock-up at 1440: root, fact label, fact value
+and title now match it exactly — size, weight, colour and family. The one
+remaining difference is the contract sheet's own ink, which is deliberately its
+own token.
+
 **THE COLOUR CENSUS WAS RE-RECORDED, and this is the one case the rule above allows it**: somebody deliberately owning a palette change. It went to 20/40 because every screen's text moved, which is the census working. **ONE THING WAS ABSORBED AND IS SAID OUT LOUD**: `negotiate--dark` had been missing `rgb(17, 94, 89)` since before this run (see the note below), and re-recording bakes that state in. That open question is now unanswerable from the baseline — if it matters, it has to be chased in the code.
 
 **WHAT A NUMBER IN A TEST COSTS.** 1,994 size changes cost five test updates, and four of them were tests pinning a literal px where the claim was a RELATION — the card head "smaller than the contract body", the phone's label FLOOR, the Tracked Changes count against its caption. Each is now written as the relation it always meant, so the next lift costs nothing. Pin the relation, not the number.

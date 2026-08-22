@@ -997,7 +997,7 @@ function intelFrictionHtml(){
   /* ---- left: the three sentences ---- */
   const top=st.clauses[0]||null;
   const hero=(num,tone,body)=>`<div style="display:flex;gap:14px;padding:9px 0;${RULE}">
-    <div style="flex:none;min-width:62px;font-size:clamp(20px,17px + 0.45vw,28px);font-weight:700;letter-spacing:-.02em;line-height:1.1;font-variant-numeric:tabular-nums;color:${tone}">${num}</div>
+    <div style="flex:none;min-width:62px;font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.1;font-variant-numeric:tabular-nums;color:${tone}">${num}</div>
     <div style="min-width:0;font-size:14px;line-height:1.55;color:var(--color-neutral-800)">${body}</div>
   </div>`;
   const clauseHero=top?hero(pct(top.share)+'%','var(--color-text)',

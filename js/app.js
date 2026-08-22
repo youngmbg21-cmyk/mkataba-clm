@@ -226,7 +226,7 @@ function renderPageHeader(view){
   host.innerHTML=`
     <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap">
       <div style="min-width:0${inlineSub?';display:flex;align-items:baseline;gap:10px;flex-wrap:wrap':''}">
-        <h1 style="margin:0;font-family:var(--font-heading);font-size:clamp(18px,16px + 0.35vw,24px);font-weight:700;letter-spacing:-.01em;color:var(--color-text);line-height:1.2">${esc(t)}</h1>
+        <h1 style="margin:0;font-family:var(--font-heading);font-size:19px;font-weight:700;letter-spacing:-.01em;color:var(--color-text);line-height:1.2">${esc(t)}</h1>
         ${sub?`<p style="margin:${inlineSub?'0':'3px 0 0'};font-size:13px;color:var(--color-neutral-500);line-height:1.5${inlineSub?';min-width:0':''}">${esc(sub)}</p>`:''}
       </div>
       ${acts?`<div style="display:flex;align-items:center;gap:8px;flex:none">${acts}</div>`:''}

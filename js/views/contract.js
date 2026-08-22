@@ -958,7 +958,7 @@ const trackedNote=t=>(t&&(t.ins||t.del))
    20 Aug 2026: on an uploaded contract the A- / A+ stepper did not move the
    wording) ----
    The stepper writes --doc-scale, and the sheet's own body reads it through
-   `calc(13.5px * var(--doc-scale,1))` — so a template contract scales by
+   `calc(14px * var(--doc-scale,1))` — so a template contract scales by
    inheritance. Text READ OUT OF A FILE is laid out here instead, and every
    block carried a bare pixel size, which overrides that inheritance: the
    preference moved (measured: 0.6 to 1.33) and the words stayed at 13px.
