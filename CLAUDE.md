@@ -143,7 +143,7 @@ Dialog clothes: reviewDialogHeadHtml builds every dialog head in this feature an
 
 Tracked Changes column head is ONE ruled LINE (owner-chose Option 1 of three renders, 16 Aug 2026): caption left, the All / Mine / Theirs filter right, both on the same hairline. THE SEPARATE "N on the table" COUNT STANDS DOWN WHEREVER THE TABS DRAW — it printed the All tab's number twice, twelve pixels apart, at the cost of a whole head row — and survives on exactly ONE head: a narrowed reviewer's, which draws no tabs (a one-outcome filter is furniture) and would otherwise carry no number at all. .rl-idx-n and its is-live accent stay in the sheet for that head; the pressed tab's count wears the same accent. On a column too narrow for one line, flex-wrap drops the tabs to a second line — the old arrangement as the fallback, not the rule. The band and the read-only sentence inside the head carry flex-basis:100% so neither ever shares the caption's line. Its TEXT IS INSET 12px as PADDING (owner-asked, same day: "too close to the edge") — never margin, so the rule still runs the column's width — and the whole head is UP ONE SIZE (caption 10.5, filter 12.5, filter counts 10.5; f173/f175/f84/f93 pin it).
 
-**THE COUNT IS THE MARKER — RENDER B (owner-chose it off four drawn renders, 22 Aug 2026: "it needs a far more elegant design").** What was wrong was contrast, not structure: at 12px/600 with a 2px accent underline the live cut and the two resting ones were nearly the same object, and the NUMBER — the thing anybody actually scans this row for — was set at `opacity:.62`, about 2.5:1 on white and the faintest text on the column. **So the number carries the state.** Every count sits in its own square hairline box; the live one FILLS and takes white ink; **the tab underline is gone entirely** (`.rl-fseg.on` no longer sets a border-bottom-color) — the fill already says which cut is being read, and two marks for one fact is how they come to disagree. **THE FILL IS accent-700, NOT --accent-solid, and that is measured rather than aesthetic**: white on accent-600 is 3.74:1, under what a 10.5px number needs, while accent-700 gives 5.5:1 in the teal workspace and about 11:1 in the navy one — so ONE rule serves both themes and both accents and there is no dark override to keep in step. **THE RESTING COUNTS GOT MORE LEGIBLE, not less**: the opacity became a real ink (neutral-500), 4.8:1 on white and 7:1 in the dark. The three safety properties below are untouched, which is the whole condition on redressing this control. **AND ONE DEFECT FELL OUT OF MEASURING IT**: dark does not redefine the accent ramp, so `.rl-idx-n.is-live` — the narrowed reviewer's own count, the one head that still draws one — was accent-800 on an almost-black panel at 2.4:1 and all but invisible at night; it takes accent-300 in dark now. The cards below keep their own 2px: bordered objects under a label, a table header's relationship to its rows. The pane under it stays transparent — the change column is not a card (rule at .rl-col). The filter was removed once (a control that hides a change can lose one) and came back with three safety properties — do not drop any: three options only (not states), every option shows its OWN count unmoved by the filter, SEGMENTED not a dropdown. A column emptied BY the filter says so and offers the way back. rlCardFilterPass is asked by redlineChangeCardsHtml AND redlineCardIds (the pill must count its own list); chip totals pass countAll. 'mine'/'theirs' read against the SEAT. In memory, reset by negoResetView. Not drawn for a narrowed reviewer (one-outcome control is furniture). f175.
+**THE COUNT IS THE MARKER — RENDER B (owner-chose it off four drawn renders, 22 Aug 2026: "it needs a far more elegant design").** What was wrong was contrast, not structure: at 12px/600 with a 2px accent underline the live cut and the two resting ones were nearly the same object, and the NUMBER — the thing anybody actually scans this row for — was set at `opacity:.62`, about 2.5:1 on white and the faintest text on the column. **So the number carries the state.** Every count sits in its own square hairline box; the live one FILLS and takes white ink; **the tab underline is gone entirely** (`.rl-fseg.on` no longer sets a border-bottom-color) — the fill already says which cut is being read, and two marks for one fact is how they come to disagree. **THE FILL IS accent-700, NOT --accent-solid, and that is measured rather than aesthetic**: white on accent-600 is 3.74:1, under what a 10.5px number needs, while accent-700 gives 5.5:1 in the teal workspace and about 11:1 in the navy one — so ONE rule serves both themes and both accents and there is no dark override to keep in step. **THE RESTING COUNTS GOT MORE LEGIBLE, not less**: the opacity became a real ink (neutral-500), 4.8:1 on white and 7:1 in the dark. The three safety properties below are untouched, which is the whole condition on redressing this control. **AND ONE DEFECT FELL OUT OF MEASURING IT**: dark does not redefine the accent ramp, so `.rl-idx-n.is-live` — the narrowed reviewer's own count, the one head that still draws one — was accent-800 on an almost-black panel at 2.4:1 and all but invisible at night; it takes accent-300 in dark now. The cards below keep their own 2px: bordered objects under a label, a table header's relationship to its rows. The pane under it stayed transparent for a fortnight — "the change column is not a card" — and that is REVERSED (owner-asked 22 Aug 2026, see FIVE FIXES AND A CALENDAR): the column wears .rl-col's own white card again, and this head's hairline is what separates the caption from the cards inside it rather than standing in for a box that was not there. The filter was removed once (a control that hides a change can lose one) and came back with three safety properties — do not drop any: three options only (not states), every option shows its OWN count unmoved by the filter, SEGMENTED not a dropdown. A column emptied BY the filter says so and offers the way back. rlCardFilterPass is asked by redlineChangeCardsHtml AND redlineCardIds (the pill must count its own list); chip totals pass countAll. 'mine'/'theirs' read against the SEAT. In memory, reset by negoResetView. Not drawn for a narrowed reviewer (one-outcome control is furniture). f175.
 
 THE SERVER IS THE AUTHORITY (server/server.js): its own read-only reading — rvOpenList / rvOpenFor / rvWithheldIds / rvActorHeld / rvUnreviewedIds. Every question is asked of the STORED contract, never the request body. rvUnsentOurs repeats negoUnsentAsks's arithmetic deliberately.
 - POST /api/shares, in order: refuses a sender holding an open review (403, names the way out), refuses when the gate is on and the payload carries unreviewed content, then STRIPS held/out-for-review from the envelope (a race is ordinary; losing a round over one clause is wrong) and returns withheldByReview.
@@ -764,11 +764,11 @@ NOTE FOR THE NEXT SWEEP: no test in the suite asserted a half-pixel font size, w
 
 "The theme of how the buttons are designed should continue across the platform." `.ui-btn` in index.html carries three strengths and every screen inherits them:
 
-- **`.ui-btn-primary`** — filled accent. **Exactly one per page.**
+- **`.ui-btn-primary`** — filled accent. **At most one per page** — the contract room's head gave its fill up on 22 Aug 2026 (owner-asked; see FIVE FIXES AND A CALENDAR) and now carries none, so "exactly one" is the ceiling rather than a quota.
 - **`.ui-btn`** — accent border on a transparent face. An ordinary verb, still plainly a button.
 - **`.ui-btn-plain`** — accent text, no border. For a head row where several verbs sit beside the one filled act.
 
-**WHAT CHANGED IS THE FILL, NOT THE METRICS.** The base used to wear an accent TINT and a small lift, so a row of four secondaries read as four competing buttons and the primary had nothing to stand against. Padding, font size and weight are untouched (13px/600) **on purpose**: every button in the product wears this class, and the negotiation control row's four-rung fold ladder is measured in pixels — a metrics change here moves screens nobody was looking at. `.ui-btn-lg` (30px/14px/400) is the mock-up's own button size, scoped to the head rows drawn to its design.
+**WHAT CHANGED IS THE FILL, NOT THE METRICS.** The base used to wear an accent TINT and a small lift, so a row of four secondaries read as four competing buttons and the primary had nothing to stand against. Padding, font size and weight are untouched (13px/600) **on purpose**: every button in the product wears this class, and the negotiation control row's four-rung fold ladder is measured in pixels — a metrics change here moves screens nobody was looking at. `.ui-btn-lg` is the head rows' own size — **14px in a 28px box** since 22 Aug 2026, one rung down from the 15/30 it arrived at (owner-asked: "reduce them by a size including the boxes").
 
 **THE 17 Aug LESSON IS KEPT AND IS THE REASON THIS IS SAFE.** That decision ("a secondary has to look pressable", reported twice) was about **GREY** — this product has learned three separate times that a neutral-grey control reads as furniture. **Flat is not grey**: border and ink are both the workspace accent. Only the tint behind them went. f175's claim was reversed in place and still fails on a neutral.
 
@@ -865,7 +865,7 @@ Tests: home-pipeline-ring-verify (54, browser — the card measured against Deci
 
 ## A CALENDAR DAY IS A DOOR
 
-Pressing ANYTHING in a day box goes to the register narrowed to that day's contracts; the document opens only when the day carries exactly ONE. It counts CONTRACTS, not events (renewalDecisionDate falls back to expiry and double-marks a day). THE CHIPS ARE NOT DOORS (owner-asked 2026-08-12, reversing 08-11): they were their own buttons, stopPropagation'd, opening their own contract however many the day held — and at 9.5px in a 90px column nine "Mutual Non-Discl…" chips are a guess between nine. They are SPANS now with no data-sel and no stopPropagation, falling through to openDay, which is the one place the count is asked. The cell keeps role="button", its tab stop and Enter/Space, and is the only focusable thing in the box. A chip carries the event tooltip only on a ONE-contract day (where the press still goes there); otherwise none, so the cell's own title shows. [data-sel] is the AGENDA's selector and nothing else — it is a list of EVENTS, not a day box, and a change scoped to that selector would break it. regShowOnly(ids, label) is the ONE door in; regState().only is applied FIRST (it is an ANSWER; every other filter is a question and narrows within it). Two safety properties: the chip SAYS what the list is narrowed to, and the way back is on the same chip. Cleared by its ✕, both Clear-all handlers, and the phone's. The phone draws no calendar (listed under More). Tests: calendar-day-verify (23, browser — the chips as spans, no focusable stop inside the box, the tooltip following the press, and the agenda row still opening its own contract).
+Pressing ANYTHING in a day box goes to the register narrowed to that day's contracts; the document opens only when the day carries exactly ONE. It counts CONTRACTS, not events (renewalDecisionDate falls back to expiry and double-marks a day). THE CHIPS ARE NOT DOORS (owner-asked 2026-08-12, reversing 08-11): they were their own buttons, stopPropagation'd, opening their own contract however many the day held — and at 9.5px in a 90px column nine "Mutual Non-Discl…" chips are a guess between nine. They are SPANS now with no data-sel and no stopPropagation, falling through to openDay, which is the one place the count is asked. The cell keeps role="button", its tab stop and Enter/Space, and is the only focusable thing in the box. A chip carries the event tooltip only on a ONE-contract day (where the press still goes there); otherwise none, so the cell's own title shows. [data-sel] is the AGENDA's selector and nothing else — it is a list of EVENTS, not a day box, and a change scoped to that selector would break it. regShowOnly(ids, label) is the ONE door in; regState().only is applied FIRST (it is an ANSWER; every other filter is a question and narrows within it). Two safety properties: the chip SAYS what the list is narrowed to, and the way back is on the same chip. Cleared by its ✕, both Clear-all handlers, and the phone's. **THE CELLS FLEX SINCE 22 Aug 2026** (the calendar took the mock-up — see FIVE FIXES AND A CALENDAR): a day shows at most two chips and says "+N more" past that, because a row that must always fit six weeks cannot promise room for a third. Nothing is hidden silently and the press still lands on all of them. The phone draws no calendar (listed under More). Tests: calendar-day-verify (23, browser — the chips as spans, no focusable stop inside the box, the tooltip following the press, and the agenda row still opening its own contract).
 
 ## SETTINGS & RULES — FOUR TABS AND ONE DRAWER (owner-asked, 13 Aug 2026)
 
@@ -1103,9 +1103,10 @@ was asking for.
   survive a bad first measurement.
 
 WHAT THE RENDER ASKED FOR AND DID NOT GET, each because it reverses a decision
-the owner had already made: the change column boxed in white, the Copilot band
-removed, the Render B count markers flattened, and the divider replaced by a
-fixed 460px column. All four are stated on the render itself. **The two panels
+the owner had already made: the change column boxed in white (**and the owner
+reversed this one the next morning — the card is in; see FIVE FIXES AND A
+CALENDAR**), the Copilot band removed, the Render B count markers flattened,
+and the divider replaced by a fixed 460px column. All four are stated on the render itself. **The two panels
 join that list**, by the owner's own reversal above — the difference being that
 those four were never built and the panels were built and taken out.
 
@@ -1134,6 +1135,169 @@ split), f184 and negotiations-door-verify (the door's word), f173 and f175 (the
 caption's size), paper-grows-verify (its whole subject — the magnification),
 redline-verify (the shadow, the sheet's margins, the card meta), parity-verify
 (the card meta), f95 (the phone block stays last in the sheet).
+
+## FIVE FIXES AND A CALENDAR (owner-reported 22 Aug 2026, off five screenshots)
+
+Four corrections to the negotiation and contract pages, and the calendar built
+from the owner's own HTML. **Three of the five reverse decisions already
+recorded here** — each is reversed IN PLACE below rather than quietly dropped.
+
+- **THE CHANGE COLUMN IS ONE WHITE CARD** ("tracked changes should be a large
+  white card that looks like the image with change cards laid over the larger
+  white card"). This REVERSES two standing decisions, both the owner's: 10 Aug
+  ("the pane stays transparent … the change column is not a card") and 22 Aug
+  (the mock-up drew this card and it was deliberately not taken). **The fact
+  that moved under both arguments is the WIDTH** — both rested on "at 300px a
+  box round a column of boxes reads as clutter", and the column rests at 460
+  now, which is what the mock-up's own rail is drawn at. `.rl-side` no longer
+  switches `.rl-col`'s card off; it only adds the rail's padding, so the
+  surface, the border and the corner still come from the one place the page
+  defines them. **The contents took a 16px inset** (they were at 2, which was
+  right against a transparent pane and wrong with a card edge two pixels away)
+  — caption, unsent band and every card now share one left edge.
+- **THE CARD'S BOTTOM VERBS HAVE NO LINES** ("the bottom buttons do not have
+  lines around them"). **This file's favourite trap, twice over.** `.rl-rej`
+  and `.rl-edit` were written with `border:1px solid` and described here as
+  outlines; MEASURED on 22 Aug both computed **0** — `.rl-card-verbs button`
+  sets `border:0` at (0,2,1) and a bare `.rl-rej` scores (0,2,0) and loses — so
+  the outline had never drawn, and the morning's fix was to write them at the
+  winning specificity. **The mock-up agrees with the accident, not the
+  intention**: its `.h-btn` carries `border:1px solid transparent` and only
+  Open (ghost) and Send (filled) show an edge. So the border goes and **the
+  three-class selectors STAY**, because that is what makes them win — the next
+  person who wants an edge here gets one. Each verb keeps its own INK (red for
+  the refusal, accent for the alternative), which with no border is the only
+  thing left saying it is a control; `html.dark .rl-edit` moved off the neutral
+  it wore to accent-300 for exactly that reason.
+- **THE NEXT ACT IS NO LONGER FILLED** ("complete key terms button should be
+  like the rest", reported off both the teal and the navy workspace). REVERSES
+  "one filled act per page" FOR THIS HEAD, and the owner was told the cost
+  before it was done: the contract room's head now carries no filled button at
+  all. **BOTH buttons in that slot changed** — Evidence pack occupies it on an
+  executed contract, and filling one and not the other would leave the head
+  filled on some contracts and flat on others. The slot still LEADS by
+  position; it just stopped shouting.
+- **THE DEAD STRIP BESIDE THE CARDS** ("the tracked changes cards are leaving
+  space on the right hand side so move the card to occupy the space"). MEASURED
+  before it was touched: the change column's right edge sat **49px** inside the
+  head's at every width. TWO CAUSES, both closed. (1) `#redline-host` carried
+  the render's own 48px `.h-content` measure while the head and the control bar
+  are full-width bands inset 24 — it is **24 on both sides** now, not just the
+  reported one, because fixing the right alone leaves a quieter version of the
+  same fault on the left and what the report is really about is the working
+  area lining up with the bands above it. (2) `rlLayoutResizer` capped the grid
+  at `RL_LEFT_MAX + gap + RL_RIGHT_W0` and centred it, so on a wide monitor the
+  bands ran edge to edge and the working area stopped short. **The surplus goes
+  to the CONTRACT, and the owner chose that**: the cards keep their approved
+  460, the doc track takes the rest, and the SHEET centres inside it at
+  RL_SHEET_MAX — so the bound moved from the TRACK to the PAGE INSIDE IT, which
+  is what a document reader looks like. That REVERSES 16 Aug's "the doc column
+  stops where the sheet does" and the fault that decision fixed does not come
+  back: the white it removed is now inside the doc column beside the page
+  rather than outside the whole working area beside nothing. `RL_LEFT_MAX`
+  survives as the sheet's measurement and clamps nothing.
+- **THE BIG BUTTONS WENT DOWN A RUNG** ("the big buttons should all be the same
+  font size but they are also too big so reduce them by a size including the
+  boxes they are in"). **THEY WERE ALREADY ONE SIZE** — measured on the
+  contract head, all four compute to 15px and differ only in weight and in
+  having a fill; what read as bigger was the fill, which the report above
+  answers separately. So what moved is the second half: `.ui-btn-lg` is
+  **14px in a 28px box** (was 15/30), one rung down this product's own ladder,
+  everywhere that class draws — the calendar head and the contract head
+  together, or the two would disagree.
+
+**THE CALENDAR IS BUILT FROM THE MOCK-UP** (js/views/calendar.js, rewritten):
+a one-line head carrying the title, how many decisions fall this week, the
+period and its acts; a 44px control bar with Month / Quarter / List, All dates
+| Mine and a period stepper; the month as a white card ruled by hairlines with
+tinted chips and a four-tone legend along its bottom; and "Next 30 days" down
+the right. `calendar` joined **PAGE_OWNS_HEADER** — two heads on one page is
+what that list exists to prevent.
+
+- **THE OWNER'S ONE CONSTRAINT** was "the calendar should fit with the page and
+  not a need to scroll within the page". The render's day boxes are a fixed
+  104px and six rows plus the head, bar and legend need more height than a
+  laptop has; the old grid met the same wall and answered it with a clamp and
+  two height media queries — a number kept true by hand. **THE ROWS FLEX**:
+  `.cal-weeks` is six `1fr` rows inside a `flex:1` card, so the month always
+  shows all six weeks and the CELLS give up height rather than the month giving
+  up a week. What a short cell gives up is chips, and it says so with "+N more".
+  Measured at 1500/1440/1366/1280: page scroll 0, grid scroll 0, six rows, no
+  cell past the edge. The only two things that scroll inside themselves are
+  LISTS — the panel's rows and the List view's — where there is no alternative.
+- **THE TONES ARE HaTi'S OWN, DELIBERATELY.** Four legend entries, which is the
+  feature; what was NOT taken is the render's hue assignment, which reds the
+  renewal decision and ambers the expiry — expiry is ruby everywhere else in
+  this product and re-pointing one screen's colours at a different meaning is
+  how two screens come to disagree about urgency. **AND THE FOURTH TONE WAS
+  WRONG FIRST TIME**: `--st-steel-dot` resolves to `var(--color-accent-500)`,
+  the WORKSPACE ACCENT, so negotiation activity and obligations drew as two
+  shades of one colour and the legend answered "green" twice — the pipeline
+  card's recorded trap met again. It is `--st-gray` (#94a3b8), which is also
+  the nearest thing this ramp has to the render's own #5C6B7F and holds when
+  the accent moves. Measured: closest pair 126 apart in light, 60+ in dark.
+- **NEGOTIATION ACTIVITY READS THE NEGOTIATION, NEVER THE AUDIT TRAIL.** In
+  server mode `state.contracts` is the LIGHT list and HEAVY strips `audit` out
+  of every row, so a calendar built on the trail would be full locally and
+  empty in production — the fault this codebase has already paid for twice, on
+  the dashboard's "Decisions due" and on Reports. `negotiation` survives the
+  light projection by construction. Read RAW, never through `negoChanges`,
+  which would start a negotiation on every contract on every repaint.
+- **THREE VIEWS.** Month; Quarter (three months side by side, chips give way to
+  dots because a cell a twenty-first of the page wide has no room for a word
+  and a truncated word is worse than a dot); List (a row per date, grouped by
+  month, scrolling inside its own card). `calPeriod()` is the ONE reading of
+  what the screen is showing and the grid, the counts, the Export file and the
+  Share summary all ask it — so what leaves the page is exactly what is on it.
+- **"ADD KEY DATE" WAS RULED OUT AND IS NOT DRAWN.** The render carries one;
+  the owner ruled it out the same day — every date here comes off a contract,
+  and a date belonging to nothing needs a store of its own. Not drawn rather
+  than drawn dead, and the browser file asserts its ABSENCE.
+- **EXPORT IS A REAL .ics**, hand-written (a dozen lines against a dependency
+  for a format unchanged since 1998), all-day events, escaped, a stable UID per
+  event so a re-import corrects rather than duplicates. It carries exactly the
+  period on screen and the scope in force.
+- **SHARE MAILS A COLLEAGUE, AND THE SPLIT IS THE DESIGN.** The LINES are built
+  in the browser by the same builder the panel draws from — the server already
+  computes renewal dates for its reminder sweeps and a second copy behind this
+  button is the recorded defect class. What the ROUTE owns is the half that
+  must never be the browser's: **WHO is written to**. `POST /api/calendar/share`
+  takes a member id and looks the address up itself; a body-supplied address is
+  not read at all (the open-relay rule the review-request route states in the
+  same words). `auth`, not `editor`: reading this calendar is open to every
+  role including a Viewer, and mailing a list they could open themselves grants
+  nothing. It answers with the same honest three-way shape every other mail
+  here uses — went / outbox / refused-and-why.
+- **TWO NEAR-MISSES ON "TODAY", both live at once.** `new Date().toISOString()`
+  is UTC and puts today on yesterday's cell for every reader west of Greenwich
+  after their afternoon; `todayStr()` READS like the answer and is a DISPLAY
+  string ("22 Aug 2026") that matched no cell at all, so today was simply never
+  marked. `calToday()` builds a local ISO the same way the cells are keyed.
+- **THREE HISTORIC ANCHORS WERE KEPT RATHER THAN MOVED**: `id="cal-agenda"` on
+  the panel's list (f83's four claims are all still true of it), `id="cal-grid"`
+  on the month view's weeks (laptops-verify names it to make the reported
+  defect's own claim — and only the MONTH view carries it, since three of them
+  in Quarter would be three elements sharing one id), and `window.regDotDate`
+  for the dotted date, read through window because a bare read of another
+  module's name throws rather than falling through.
+
+Tests: **calendar-redesign-verify** (39, browser — the shape, the fit measured
+at four window sizes, the four tones proved tellable apart as COMPUTED colours,
+all three views, the scope switch, the ruled-out button proved absent, a real
+.ics downloaded and read, and Share posted through to a real outbox row with
+the reader's own dates in it), **pages-read-alike-verify** and
+**calendar-day-verify** (two claims reversed in place: the chip cap is now a
+cap that says so, and the one-contract tooltip rule restored), f89 and
+redline-verify (the outline claim reversed in place on both sides — f89 keeps
+what the stylesheet SAYS, redline-verify what DRAWS, and they name each other),
+nego-redesign-verify (the page-measure claim rewritten as the RELATION it was
+always about), f148 (`cal_three_months` is punctuation and joins SAME_IN_BOTH).
+
+**THE COLOUR CENSUS IS 36/40 AND THE FOUR ARE THIS WORK**: calendar and
+negotiate, in both themes. That is two screens deliberately owning their
+colours, which is exactly what the census is for — reported here rather than
+re-recorded, because re-recording is a palette-ownership act and is nobody's to
+do in passing.
 
 ## THE TWO HEADS SAY THE NAME AT ONE SIZE (owner-reported 22 Aug 2026, off three screenshots)
 

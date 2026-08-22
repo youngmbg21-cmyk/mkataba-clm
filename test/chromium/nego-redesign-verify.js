@@ -231,15 +231,26 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
         pad: getComputedStyle(paper).padding,
         body: getComputedStyle(line).fontSize,
         grid: getComputedStyle(document.getElementById('rl-grid')).gridTemplateColumns,
-        scrollPad: getComputedStyle(document.getElementById('redline-host')).padding };
+        scrollPad: getComputedStyle(document.getElementById('redline-host')).paddingRight,
+        headPad: getComputedStyle(document.querySelector('#view-redline #ws-head')).paddingRight };
     });
     check('4 the sheet fills its column', sheet.paper >= sheet.col - 12,
       `${sheet.paper} of ${sheet.col}`);
     check('4 and is not magnified to do it', sheet.zoom === 1, `zoom ${sheet.zoom}`);
     check('4 the contract reads at 14px on the render\'s own margins',
       sheet.body === '14px' && sheet.pad === '30px 56px 34px', `${sheet.body} · ${sheet.pad}`);
-    check('4 the page carries the product\'s page measure',
-      /48px/.test(sheet.scrollPad), sheet.scrollPad);
+    /* ---- ONE INSET, SHARED WITH THE BANDS ABOVE (owner-reported 22 Aug 2026:
+       "the tracked changes cards are leaving space on the right hand side") ----
+       This asserted 48px — the render's own .h-content measure, which the
+       render also uses against a head and a bar inset 24. MEASURED, that
+       difference IS a dead strip: the change column's right edge sat 49px
+       inside the head's at every width, so the cards stopped short of a page
+       that carried on without them. The claim is now the RELATION the report
+       was really about — the working area lines up with the bands above it —
+       rather than a number, so the next change to the page measure costs no
+       test edit. pages-read-alike-verify holds the same claim as a geometry. */
+    check('4 the working area shares the bands\' own page inset',
+      sheet.scrollPad === sheet.headPad, `${sheet.scrollPad} vs head ${sheet.headPad}`);
     /* THE DIVIDER RESTS WHERE THE CARDS ARE DRAWN TO. A width, not a fraction:
        460 is a fact about the cards and a fraction gives them a different
        number on every monitor. */

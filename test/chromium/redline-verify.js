@@ -202,14 +202,27 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
 
      AND THE SECOND REVISION, the same day, is the one that matters. Letting
      the sheet grow gave more WORDS per line and not bigger words; the owner
-     reported the feature still absent. The sheet is a fixed 660px page again
-     and a zoom layer fits it to the column, exactly as the Document tab does —
-     so at any ordinary width it FILLS the column rather than sitting inside
-     it, and the wording grows and shrinks as the divider moves. The 2x
-     ceiling is the Document tab's own and only bites on a very wide column;
-     paper-grows-verify measures that separately. */
-  check('2 the sheet FILLS its column, the way the Document tab does',
-    sheet.paperWidth > 720 && sheet.paperWidth >= sheet.colWidth - 12
+     reported the feature still absent. The sheet was made a fixed 660px page
+     again with a zoom layer fitting it to the column, exactly as the Document
+     tab does.
+
+     ---- AND THE THIRD, 22 Aug 2026, with the owner-approved render: the
+     magnification is GONE and the sheet is FLUID, capped at RL_SHEET_MAX
+     (860px, .rl-paper's own rule) and centred past it. So "fills its column"
+     is true up to that cap and deliberately false beyond it — a line of an
+     agreement past 860px stops being readable, and the reader's own A⁻/A⁺
+     stepper is what changes the size of the words now.
+     THE CAP STARTED BITING ON AN ORDINARY WINDOW the same day, when the
+     working area's page inset went 48 → 24 to close the dead strip beside the
+     change column (owner-reported): the doc track gained those pixels and at
+     1500 it is 916 against a sheet of 860. That is the surplus going to the
+     contract side and turning into margin beside a centred page, which is what
+     the owner chose. So the claim is now the BOUND plus the centring, and the
+     centring check below — which was already the regression net for a sheet
+     pinned to one side — is what carries the weight. */
+  check('2 the sheet fills its column up to its readable measure, then stops',
+    sheet.paperWidth > 720
+      && (sheet.paperWidth >= sheet.colWidth - 12 || Math.round(sheet.paperWidth) === 860)
       && sheet.paperWidth <= sheet.colWidth + 1,
     `${Math.round(sheet.paperWidth)} of ${Math.round(sheet.colWidth)}px`);
   /* THE REGRESSION THIS SECTION IS NOW FOR. 6662667: the type-scale rule
@@ -1049,34 +1062,48 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     JSON.stringify({ fnGone: tagGone.fnGone, noteBtns: tagGone.noteBtns }));
   check('5 and the change can still be talked about', tagGone.starter);
 
-  /* ---- 6. THE CARD'S VERBS ARE VISIBLE BUTTONS, NOT COLOURED WORDS ----
+  /* ---- 6. ONE FILLED ACT, AND THE OTHERS ARE COLOURED WORDS ----
+     THE HISTORY IS WHY THIS CHECK EXISTS AT ALL, so it is kept whole.
      A CSS rule that loses on specificity is the visual twin of a guard that is
      always false: no error, no warning, and the stylesheet reads as though the
      thing were implemented. MEASURED 22 Aug 2026: ".redline-page
      .rl-card-verbs button" sets border:0 and scores (0,2,1), so the bare
-     ".redline-page .rl-rej" outline this file's own comment describes — "the no
-     and the alternative recede to an outline" — had never once drawn. Reject
-     and Edit were bare coloured words beside a filled Accept for as long as
-     they had existed.
+     ".redline-page .rl-rej" outline the stylesheet's own comment described —
+     "the no and the alternative recede to an outline" — had never once drawn.
+     Reject and Edit had been bare coloured words beside a filled Accept for as
+     long as they had existed, and f89 read the declaration and passed on it
+     throughout.
 
-     This is a COMPUTED-STYLE check on purpose. The rule is present and correct
-     in the source, so a source-reading test passes on the broken state; only
-     the browser can say which declaration won. */
+     REVERSED IN PLACE THE SAME DAY, owner-reported off the mock-up's own card:
+     "for the cards, the bottom buttons do not have lines around them". Its
+     .h-btn carries `border:1px solid transparent` and only Open (ghost) and
+     Send (filled) show an edge — so the accident was what the design wanted
+     and the intention was not. The border is gone deliberately now; the
+     three-class selectors stay, so a future edge would actually draw.
+
+     WHAT IS ASSERTED THEREFORE FLIPPED, AND THE CHECK DID NOT MOVE: still a
+     COMPUTED-STYLE read, still the only place either the old fault or this
+     decision can be seen, because the rule is present and correct in the
+     source either way and only the browser can say which declaration won. The
+     INK is what carries these two now and it is asserted here — with no
+     border, a verb that lost its colour would be indistinguishable from a
+     caption, which is the 17 Aug furniture lesson. */
   const verbs = await page.evaluate(() => {
     const g = (sel) => { const e = document.querySelector(sel); if (!e) return null;
       const cs = getComputedStyle(e);
       return { w: parseFloat(cs.borderTopWidth) || 0, col: cs.borderTopColor,
-               bg: cs.backgroundColor }; };
+               ink: cs.color, bg: cs.backgroundColor }; };
     return { acc: g('.rl-card-verbs .rl-acc'), rej: g('.rl-card-verbs .rl-rej'),
              edit: g('.rl-card-verbs .rl-edit') };
   });
   check('6 Accept is the card\'s one filled act',
     !!verbs.acc && verbs.acc.bg !== 'rgba(0, 0, 0, 0)', JSON.stringify(verbs.acc));
-  for (const [k, label] of [['rej', 'Reject'], ['edit', 'Edit']]) {
+  for (const [k, label, ink] of [['rej', 'Reject', /rgb\(185, 28, 28\)/], ['edit', 'Edit', /rgb\(15, 118, 110\)/]]) {
     const v = verbs[k];
-    check(`6 ${label} draws a real border, in its own ink`,
-      !!v && v.w >= 1 && v.bg === 'rgba(0, 0, 0, 0)' && !/rgba?\(0, 0, 0, 0\)/.test(v.col),
-      JSON.stringify(v));
+    check(`6 ${label} draws no line round it`,
+      !!v && v.w === 0 && v.bg === 'rgba(0, 0, 0, 0)', JSON.stringify(v));
+    check(`6 ${label} still carries its own ink, so it is not a caption`,
+      !!v && ink.test(v.ink || ''), JSON.stringify(v && v.ink));
   }
 
   await browser.close();

@@ -194,11 +194,23 @@ const check = (name, pass, detail) => {
         title: chips[0] ? chips[0].getAttribute('title') : 'MISSING',
         oneTitle: one.querySelector('.cal-chip')
           ? one.querySelector('.cal-chip').getAttribute('title') : 'MISSING',
+        more: (cell.querySelector('.cal-more') || {}).textContent || '',
         cellTab: cell.getAttribute('tabindex'), cellRole: cell.getAttribute('role'),
       };
     }, days);
-    check('the chips are still drawn — nothing was hidden', chipShape.n === 3,
-      `${chipShape.n} chip(s)`);
+    /* ---- REVERSED IN PLACE, 22 Aug 2026 (the calendar took the mock-up) ----
+       This asserted that all three chips draw and NOTHING is hidden. The cells
+       had a fixed floor then; they FLEX now, so the month always shows its six
+       weeks on any window and a cell cannot promise room for a third chip. The
+       cap is 2, and past it the day shows one chip and says how many more —
+       which is the same bargain the old "+N more" line struck, just reached
+       sooner.
+       WHAT THE CLAIM WAS REALLY FOR SURVIVES AND IS ASSERTED HERE: nothing is
+       hidden SILENTLY. A day holding more than it can show says so, and the
+       press still lands on all of them. */
+    check('a day shows what fits and says how many more',
+      chipShape.n >= 1 && chipShape.n <= 2 && /\+\s*\d+/.test(chipShape.more || ''),
+      `${chipShape.n} chip(s), more line: ${JSON.stringify(chipShape.more)}`);
     check('but they are no longer doors of their own',
       chipShape.selectors === 0 && chipShape.buttons === 0,
       `${chipShape.selectors} data-sel, ${chipShape.buttons} button(s)`);
