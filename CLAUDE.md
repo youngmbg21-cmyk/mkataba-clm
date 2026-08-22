@@ -612,6 +612,20 @@ THE 600 CUT IS THE SEMIBOLD DUPLEX AND IT STAYS. Measured: 24% more ink than Reg
 
 Tests: f173's caption weight reversed in place (800→700, the claim unchanged — it was already rendering 700).
 
+## THE TYPE IS THE DESIGN'S — SIZE AND INK (owner-asked 22 Aug 2026, twice)
+
+The first pass rounded half-pixels and stopped there, and the owner's answer was **"you haven't done anything with the font sizes and the colors of the fonts"** — which was fair. Rounding 11.5 to 12 moves half a pixel; it fixes softness and changes nothing anybody can see. The design's type is genuinely BIGGER and differently COLOURED, and neither had been touched.
+
+**HaTi WAS RUNNING ONE TO TWO STEPS SMALL.** Measured against the design's own stylesheet: its workhorse size is **14px** — root, nav items, table cells, buttons, search — with 12px for labels and 15px for facet values and tabs. HaTi's centre of gravity was 11-12px. So every size **at or below 14px moved up one rung** (9→10, 10→11, 11→12, 12→13, 13→14, 14→15): 1,994 declarations. Its distribution now centres on 12-14 like the design's. Sizes above 14 were left alone — headings were already close.
+
+**TWO THINGS ARE DELIBERATELY EXCLUDED.** Anything inside a `calc()` — that is the contract paper, whose size the reader sets with the A⁻/A⁺ stepper, and lifting it would overrule a preference. And the ROOT, which is a flat 14px: the sweep caught it once and took it to 15, which moved every inherited size a second time.
+
+**THE INK IS THE DESIGN'S TWO COLOURS.** Every text colour was a blue-leaning slate (`#1e293b` and the slate-400..900 ramp), which sat against a teal product and read cold. The design carries `--tx:#1B2A28` for body and `--label:#5F6D6B` for labels — a dark desaturated GREEN-black from the brand's own family. The ramp is re-hued onto it and **every step is at least as dark as the slate it replaces**, so nothing lost contrast: body 13.6:1 → 14.9:1 on white, and the label step 4.8:1 → 5.6:1, which was the one genuinely thin reading. THE NEUTRALS ARE A TYPE TOKEN HERE, not a surface one — they carry text in 638 places and a background or border in 6, which is what makes re-hueing them safe.
+
+**THE COLOUR CENSUS WAS RE-RECORDED, and this is the one case the rule above allows it**: somebody deliberately owning a palette change. It went to 20/40 because every screen's text moved, which is the census working. **ONE THING WAS ABSORBED AND IS SAID OUT LOUD**: `negotiate--dark` had been missing `rgb(17, 94, 89)` since before this run (see the note below), and re-recording bakes that state in. That open question is now unanswerable from the baseline — if it matters, it has to be chased in the code.
+
+**WHAT A NUMBER IN A TEST COSTS.** 1,994 size changes cost five test updates, and four of them were tests pinning a literal px where the claim was a RELATION — the card head "smaller than the contract body", the phone's label FLOOR, the Tracked Changes count against its caption. Each is now written as the relation it always meant, so the next lift costs nothing. Pin the relation, not the number.
+
 ## EVERY FONT SIZE SITS ON A WHOLE PIXEL (owner-asked 22 Aug 2026, from the design's own PDF)
 
 "Pay attention to the crispness and sharpness of the font colors and sizes as well. Mimic the font sizes and approach."

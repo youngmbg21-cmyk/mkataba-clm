@@ -187,7 +187,12 @@ describe('f173 · the column head is a caption and a count', () => {
        the glyph stems between device pixels and renders soft. The RELATION
        these two lines assert is the claim and it is unchanged — see the base
        rule in index.html for the whole sweep. */
-    assert.ok(/\.rl-idx-k\{[^}]*font-size:11px;font-weight:700;letter-spacing:\.12em/.test(css),
+    /* SIZES LIFTED ONE STEP 22 Aug 2026 (owner-asked: "mimic the font sizes
+       and approach"). HaTi's interface type was running one to two steps below
+       the design's — its workhorse is 14px where HaTi's was 11-12 — so every
+       size at or below 14px moved up one rung. The RELATION each of these
+       lines asserts is the claim and is unchanged. */
+    assert.ok(/\.rl-idx-k\{[^}]*font-size:12px;font-weight:700;letter-spacing:\.12em/.test(css),
       'the caption keeps its label type, on a whole pixel');
     const n = /\.rl-idx-n\{([^}]*)\}/.exec(css)[1];
     assert.match(n, /font-family:var\(--font-mono\)/,

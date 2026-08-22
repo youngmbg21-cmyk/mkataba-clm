@@ -686,9 +686,16 @@ describe('F184 (5) — the phone changes the same way', () => {
     assert.equal(STRINGS.en.ng_door_title, 'Negotiations', 'nor does the screen it opens');
     assert.equal(STRINGS.sv.m_negotiations, 'Förhandla');
     assert.equal(STRINGS.sv.nav_negotiations, 'Förhandlingar');
-    /* And the floor itself is not quietly lowered to make a longer word fit. */
+    /* And the floor itself is not quietly lowered to make a longer word fit.
+       IT ROSE TO 15px ON 22 Aug 2026 with the platform-wide one-step type lift
+       (owner-asked, from the design's own scale). The claim is a FLOOR — the
+       bar's labels must never be shrunk to make a longer word fit — so a lift
+       satisfies it and a drop below 14 would not. Asserted as >= 14 rather than
+       as a number, which is what the claim always meant. */
     const css = read('js/mobile.js');
-    assert.match(css.slice(css.indexOf('.m-tab span{')), /^\.m-tab span\{ font-size:14px/);
+    const px = /^\.m-tab span\{ font-size:(\d+)px/.exec(css.slice(css.indexOf('.m-tab span{')));
+    assert.ok(px && Number(px[1]) >= 14,
+      `the phone's bar labels sit at or above the 14px floor — got ${px && px[1]}`);
   });
 
   test('the bar press runs the same door, decided in the funnel', () => {

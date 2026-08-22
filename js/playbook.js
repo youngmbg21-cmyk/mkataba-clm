@@ -226,7 +226,7 @@ function pbVerdictLine(v){
    checked at all. So no verdicts, no pill, and the card says so in words. */
 function pbHeadPill(sm){
   if(!sm||!sm.total) return '';
-  const chip=(bg,fg,txt)=>`<span style="flex:none;font-size:10px;font-weight:700;border-radius:0;padding:2px 9px;background:${bg};color:${fg}">${txt}</span>`;
+  const chip=(bg,fg,txt)=>`<span style="flex:none;font-size:11px;font-weight:700;border-radius:0;padding:2px 9px;background:${bg};color:${fg}">${txt}</span>`;
   if(sm.ok) return chip('var(--st-green-bg)','var(--st-green-fg)','all aligned');
   if(sm.esc) return chip('var(--st-ruby-bg)','var(--st-ruby-fg)',`${sm.esc} to escalate`);
   const n=sm.dev+sm.miss;
@@ -253,7 +253,7 @@ function renderPlaybookSection(c){
      "Copilot review" over checks a regular expression made is a lie the reader
      has no way to catch. */
   const head = (r && r.source==='ai') ? 'Copilot review &middot; vs Our standards' : 'Playbook review &middot; vs Our standards';
-  const HEAD='font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);margin:0';
+  const HEAD='font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);margin:0';
   const rowsHtml = r ? r.verdicts.map((v,i)=>{
     const m=PB_MARK[v.status]||PB_MARK.missing;
     const id=pbFoldKey(c,v,i);
@@ -262,17 +262,17 @@ function renderPlaybookSection(c){
     return `
     <div style="border-top:1px solid var(--color-divider)">
       <button ${detail?`data-pb-row="${_pbEsc(id)}"`:''} style="display:flex;align-items:flex-start;gap:9px;width:100%;text-align:left;border:0;background:none;font:inherit;color:inherit;padding:9px 2px;${detail?'cursor:pointer':'cursor:default'}">
-        <span aria-hidden="true" style="flex:none;margin-top:1px;width:17px;height:17px;border-radius:50%;background:${m.bg};color:${m.fg};display:grid;place-items:center;font-size:10px;font-weight:700;line-height:1">${m.glyph}</span>
+        <span aria-hidden="true" style="flex:none;margin-top:1px;width:17px;height:17px;border-radius:50%;background:${m.bg};color:${m.fg};display:grid;place-items:center;font-size:11px;font-weight:700;line-height:1">${m.glyph}</span>
         <span style="flex:1;min-width:0">
-          <span style="display:block;font-size:13px;font-weight:600;color:var(--color-text);line-height:1.35">${_pbEsc(v.category)}</span>
-          <span style="display:block;font-size:11px;color:var(--color-neutral-600);line-height:1.45;margin-top:1px">${pbVerdictLine(v)}</span>
+          <span style="display:block;font-size:14px;font-weight:600;color:var(--color-text);line-height:1.35">${_pbEsc(v.category)}</span>
+          <span style="display:block;font-size:12px;color:var(--color-neutral-600);line-height:1.45;margin-top:1px">${pbVerdictLine(v)}</span>
         </span>
-        ${v.escalate&&v.status!=='aligned'?`<span title="${i18t('pb_needs_legal')}" style="flex:none;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--st-ruby-fg)">escalate</span>`:''}
+        ${v.escalate&&v.status!=='aligned'?`<span title="${i18t('pb_needs_legal')}" style="flex:none;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--st-ruby-fg)">escalate</span>`:''}
       </button>
       ${open&&detail?`<div style="padding:0 2px 10px 28px;display:flex;flex-direction:column;gap:6px">
-        ${v.quote?`<div style="font-size:11px;line-height:1.6;color:var(--color-neutral-700);border-left:2px solid var(--color-divider);padding-left:9px;font-style:italic">&ldquo;${_pbEsc(String(v.quote).slice(0,220))}${String(v.quote).length>220?'&hellip;':''}&rdquo;</div>`:''}
-        ${v.status!=='aligned'&&v.position?`<div style="font-size:11px;line-height:1.6;color:var(--color-neutral-700)"><b>${i18t('pb_our_standard')}</b> ${_pbEsc(v.position)}</div>`:''}
-        ${editable&&v.redline?`<button data-pb-apply="${i}" style="align-self:flex-start;border:0;background:none;padding:0;font:inherit;font-size:11px;font-weight:600;color:var(--color-accent-700);cursor:pointer">${i18t('pb_apply_suggested')}</button>`:''}
+        ${v.quote?`<div style="font-size:12px;line-height:1.6;color:var(--color-neutral-700);border-left:2px solid var(--color-divider);padding-left:9px;font-style:italic">&ldquo;${_pbEsc(String(v.quote).slice(0,220))}${String(v.quote).length>220?'&hellip;':''}&rdquo;</div>`:''}
+        ${v.status!=='aligned'&&v.position?`<div style="font-size:12px;line-height:1.6;color:var(--color-neutral-700)"><b>${i18t('pb_our_standard')}</b> ${_pbEsc(v.position)}</div>`:''}
+        ${editable&&v.redline?`<button data-pb-apply="${i}" style="align-self:flex-start;border:0;background:none;padding:0;font:inherit;font-size:12px;font-weight:600;color:var(--color-accent-700);cursor:pointer">${i18t('pb_apply_suggested')}</button>`:''}
       </div>`:''}
     </div>`;
   }).join('') : '';
@@ -284,10 +284,10 @@ function renderPlaybookSection(c){
         ${pbHeadPill(sm)}
       </div>
       ${!r
-        ? `<p style="font-size:12px;color:var(--color-neutral-700);line-height:1.55;margin:0">${i18t('pb_check_contract')}</p>`
+        ? `<p style="font-size:13px;color:var(--color-neutral-700);line-height:1.55;margin:0">${i18t('pb_check_contract')}</p>`
         : !r.verdicts.length
-        ? `<p style="font-size:12px;color:var(--color-neutral-700);line-height:1.55;margin:0">${i18t('pb_came_back_with')} <b>${i18t('pb_nothing_to_report')}</b> ${i18t('pb_not_same_as_passing')} <b>${_pbEsc(r.label)}</b> ${i18t('pb_may_have_no_positions')} <b>${i18t('nav_our_standards')}</b>${i18t('pb_then_rerun')}</p>`
-        : `<p style="font-size:11px;color:var(--color-neutral-500);margin:0 0 4px">${i18t('pb_against_the')} <b>${_pbEsc(r.label)}</b> playbook${r.source==='ai'?'':' &middot; basic checks'}</p>
+        ? `<p style="font-size:13px;color:var(--color-neutral-700);line-height:1.55;margin:0">${i18t('pb_came_back_with')} <b>${i18t('pb_nothing_to_report')}</b> ${i18t('pb_not_same_as_passing')} <b>${_pbEsc(r.label)}</b> ${i18t('pb_may_have_no_positions')} <b>${i18t('nav_our_standards')}</b>${i18t('pb_then_rerun')}</p>`
+        : `<p style="font-size:12px;color:var(--color-neutral-500);margin:0 0 4px">${i18t('pb_against_the')} <b>${_pbEsc(r.label)}</b> playbook${r.source==='ai'?'':' &middot; basic checks'}</p>
       <div>${rowsHtml}</div>`}
       ${ins.length?`<div style="margin-top:10px;border-top:1px solid var(--color-divider);padding-top:9px">
         ${''/* ---- THEY ARE PROPOSED, NOT INSERTED ----
@@ -300,18 +300,18 @@ function renderPlaybookSection(c){
                which by design does not contain a pending proposal. It could
                never find it, and reported that the clause "may have been
                edited or removed", which was untrue twice over. */}
-        <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:6px">${i18t('pb_clauses_proposed')}</div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:6px">${i18t('pb_clauses_proposed')}</div>
         ${ins.map((x,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:3px 0">
           <span style="flex:none;color:var(--color-accent)">${icon('plus','w-3 h-3')}</span>
           <span style="flex:1;min-width:0">
-            <span style="display:block;font-size:12px;font-weight:600;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_pbEsc(x.name||'Clause')}</span>
-            <span style="display:block;font-size:10px;color:var(--color-neutral-500)">${clauseInsertNote(x.where)}${x.by?' &middot; '+_pbEsc(x.by):''}${x.at?' &middot; '+fmtDT(x.at):''}</span>
+            <span style="display:block;font-size:13px;font-weight:600;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_pbEsc(x.name||'Clause')}</span>
+            <span style="display:block;font-size:11px;color:var(--color-neutral-500)">${clauseInsertNote(x.where)}${x.by?' &middot; '+_pbEsc(x.by):''}${x.at?' &middot; '+fmtDT(x.at):''}</span>
           </span>
-          <button data-pb-jump="${i}" class="ui-btn" style="flex:none;font-size:11px;padding:3px 9px">${i18t('pb_show_me')}</button>
+          <button data-pb-jump="${i}" class="ui-btn" style="flex:none;font-size:12px;padding:3px 9px">${i18t('pb_show_me')}</button>
         </div>`).join('')}
       </div>`:''}
       ${editable?`<div style="margin-top:10px">
-        <button id="pb-run" class="ui-btn" style="font-size:12px;padding:5px 11px;display:inline-flex;align-items:center;gap:6px">${icon('scan','w-3 h-3')} ${r?'Re-run':'Run'} playbook review</button>
+        <button id="pb-run" class="ui-btn" style="font-size:13px;padding:5px 11px;display:inline-flex;align-items:center;gap:6px">${icon('scan','w-3 h-3')} ${r?'Re-run':'Run'} playbook review</button>
       </div>`:''}
     </div>`;
   /* Expand/collapse is a repaint of this card only — the same shape the Scan

@@ -1070,7 +1070,7 @@ function _dkHead(glyph, title, sub){
   if (typeof window !== 'undefined' && window.reviewDialogHeadHtml)
     return window.reviewDialogHeadHtml(glyph, title, sub);
   return `<div style="padding:18px 20px 0"><h2 style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0 0 4px">${_dkE(title)}</h2>
-    <p style="font-size:12px;color:var(--color-neutral-700);margin:0;line-height:1.55">${_dkE(sub || '')}</p></div>`;
+    <p style="font-size:13px;color:var(--color-neutral-700);margin:0;line-height:1.55">${_dkE(sub || '')}</p></div>`;
 }
 
 function _dkPersonRow(p, right, cls){
@@ -1099,14 +1099,14 @@ function deskSheetHtml(c){
            tint the share dialog gives the option you have chosen — one thing
            on the panel reads as the subject and the rest as the list. */}
     ${_dkPersonRow({ name: lead.name, sub: d.by ? i18t('dk_started_by', { who: d.by, when: when(d.openedAt) }) : '' },
-      may ? `<button type="button" class="ui-btn" data-dk-handover="1" style="font-size:11px;padding:4px 9px">${_dkE(i18t('dk_handover_btn'))}</button>` : '',
+      may ? `<button type="button" class="ui-btn" data-dk-handover="1" style="font-size:12px;padding:4px 9px">${_dkE(i18t('dk_handover_btn'))}</button>` : '',
       'dk-row-lead')}
 
     <div style="${DK_LBL}margin-top:14px">${_dkE(i18tn('dk_contributors_n', others.length, { n: others.length }))}</div>
     ${others.length ? others.map(p => _dkPersonRow(
         { name: p.name, sub: i18t('dk_added_when', { when: when(p.at) }) },
-        may ? `<button type="button" class="ui-btn" data-dk-remove="${_dkE(p.id)}" style="font-size:11px;padding:4px 9px">${_dkE(i18t('dk_remove_btn'))}</button>` : '')).join('')
-      : `<p style="font-size:12px;color:var(--color-neutral-600);margin:0 0 6px">${_dkE(i18t('dk_no_contributors'))}</p>`}
+        may ? `<button type="button" class="ui-btn" data-dk-remove="${_dkE(p.id)}" style="font-size:12px;padding:4px 9px">${_dkE(i18t('dk_remove_btn'))}</button>` : '')).join('')
+      : `<p style="font-size:13px;color:var(--color-neutral-600);margin:0 0 6px">${_dkE(i18t('dk_no_contributors'))}</p>`}
 
     ${may ? `
     <div style="position:relative;margin-top:8px">
@@ -1115,13 +1115,13 @@ function deskSheetHtml(c){
         placeholder="${_dkE(i18t('dk_add_ph'))}" style="${DK_FLD}padding-right:30px"/>
       <button type="button" id="dk-who-caret" tabindex="-1" aria-label="${_dkE(i18t('dk_show_all'))}"
         style="position:absolute;right:1px;top:1px;bottom:1px;width:28px;border:0;background:transparent;
-        cursor:pointer;color:var(--color-neutral-600);font-size:10px;line-height:1">&#9662;</button>
+        cursor:pointer;color:var(--color-neutral-600);font-size:11px;line-height:1">&#9662;</button>
       <ul id="dk-who-list" role="listbox" hidden
         style="list-style:none;margin:2px 0 0;padding:0;position:absolute;left:0;right:0;top:100%;z-index:5;
         max-height:212px;overflow-y:auto;background:var(--color-surface);border:1px solid var(--color-divider);
         border-radius:0;box-shadow:var(--shadow-lg)"></ul>
     </div>
-    <div id="dk-who-say" style="font-size:12px;line-height:1.5;margin-top:5px;color:var(--color-neutral-600)">${_dkE(i18t('dk_add_hint'))}</div>
+    <div id="dk-who-say" style="font-size:13px;line-height:1.5;margin-top:5px;color:var(--color-neutral-600)">${_dkE(i18t('dk_add_hint'))}</div>
     <input type="hidden" id="dk-who-id" value=""/>
     <div style="display:flex;justify-content:flex-end;margin-top:8px">
       <button id="dk-add" class="ui-btn ui-btn-primary">${_dkE(i18t('dk_add_btn'))}</button>
@@ -1136,8 +1136,8 @@ function deskSheetHtml(c){
         ${r.why ? `<span class="dk-row-sub" title="${_dkE(r.why)}">“${_dkE(_dkClamp(r.why, 120))}”</span>` : ''}
       </span>
       <span style="display:flex;gap:6px;flex:none">
-        <button type="button" class="ui-btn ui-btn-primary" data-dk-approve="${_dkE(r.id)}" style="font-size:11px;padding:4px 9px">${_dkE(i18t('dk_approve_btn'))}</button>
-        <button type="button" class="ui-btn" data-dk-decline="${_dkE(r.id)}" style="font-size:11px;padding:4px 9px">${_dkE(i18t('dk_decline_btn'))}</button>
+        <button type="button" class="ui-btn ui-btn-primary" data-dk-approve="${_dkE(r.id)}" style="font-size:12px;padding:4px 9px">${_dkE(i18t('dk_approve_btn'))}</button>
+        <button type="button" class="ui-btn" data-dk-decline="${_dkE(r.id)}" style="font-size:12px;padding:4px 9px">${_dkE(i18t('dk_decline_btn'))}</button>
       </span></div>`).join('')}` : ''}
 
     ${''/* ---- WHAT THE OTHER SIDE KNOWS, ON THE PANEL THAT CHANGES IT ----
@@ -1223,13 +1223,13 @@ function openDeskHandover(c, opts = {}){
           placeholder="${_dkE(i18t('dk_add_ph'))}" style="${DK_FLD}padding-right:30px"/>
         <button type="button" id="dk-who-caret" tabindex="-1" aria-label="${_dkE(i18t('dk_show_all'))}"
           style="position:absolute;right:1px;top:1px;bottom:1px;width:28px;border:0;background:transparent;
-          cursor:pointer;color:var(--color-neutral-600);font-size:10px;line-height:1">&#9662;</button>
+          cursor:pointer;color:var(--color-neutral-600);font-size:11px;line-height:1">&#9662;</button>
         <ul id="dk-who-list" role="listbox" hidden
           style="list-style:none;margin:2px 0 0;padding:0;position:absolute;left:0;right:0;top:100%;z-index:5;
           max-height:212px;overflow-y:auto;background:var(--color-surface);border:1px solid var(--color-divider);
           border-radius:0;box-shadow:var(--shadow-lg)"></ul>
       </div>
-      <div id="dk-who-say" style="font-size:12px;line-height:1.5;margin-top:5px;color:var(--color-neutral-600)">${_dkE(i18t('dk_add_hint'))}</div>
+      <div id="dk-who-say" style="font-size:13px;line-height:1.5;margin-top:5px;color:var(--color-neutral-600)">${_dkE(i18t('dk_add_hint'))}</div>
       <input type="hidden" id="dk-who-id" value=""/>
       ${''/* ---- THE WHOLE "NO SURPRISES" QUESTION, IN ONE TICK BOX ----
              Internally a handover is instant, logged and announced. Externally
@@ -1238,15 +1238,15 @@ function openDeskHandover(c, opts = {}){
              page, which is exactly how a counterparty comes to feel handled.
              Ticked by default, because the polite thing should be the quiet
              path through the form. */}
-      <label style="display:flex;gap:9px;align-items:flex-start;font-size:12px;line-height:1.5;
+      <label style="display:flex;gap:9px;align-items:flex-start;font-size:13px;line-height:1.5;
         cursor:pointer;margin-top:12px;border:1px solid var(--color-divider);border-radius:0;
         padding:10px 12px;background:var(--color-bg)">
         <input id="dk-ho-tell" type="checkbox" checked style="margin-top:2px;flex:none"/>
         <span><b style="color:var(--color-text)">${_dkE(i18t('dk_tell_them', { cp: c.counterparty || i18t('dk_the_counterparty') }))}</b>
         <span style="display:block;color:var(--color-neutral-600);margin-top:2px">${_dkE(i18t('dk_tell_them_sub', { who: lead.name }))}</span>
-        <span style="display:block;font-family:var(--font-mono);font-size:11px;color:var(--color-accent-800);margin-top:5px">“${_dkE(i18t('dk_cp_notice', { who: '…' }))}”</span></span>
+        <span style="display:block;font-family:var(--font-mono);font-size:12px;color:var(--color-accent-800);margin-top:5px">“${_dkE(i18t('dk_cp_notice', { who: '…' }))}”</span></span>
       </label>
-      <p style="font-size:12px;color:var(--color-neutral-600);margin:12px 0 0;line-height:1.55">${_dkE(i18t('dk_ho_you_stay'))}</p>
+      <p style="font-size:13px;color:var(--color-neutral-600);margin:12px 0 0;line-height:1.55">${_dkE(i18t('dk_ho_you_stay'))}</p>
     </div>
     <div class="rvd-foot">
       <button id="dk-hocancel" class="ui-btn">${_dkE(i18t('act_cancel'))}</button>

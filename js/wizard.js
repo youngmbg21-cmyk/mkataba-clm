@@ -89,10 +89,10 @@ function openWizard(preTid){
     if(!tid){
       const card=t=>`<button data-wz-tid="${t.id}" style="text-align:left;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:12px;cursor:pointer;transition:border-color .15s,box-shadow .15s;" onmouseover="this.style.borderColor='var(--color-accent)';this.style.boxShadow='var(--shadow-sm)'" onmouseout="this.style.borderColor='var(--color-divider)';this.style.boxShadow='none'">
             <span style="display:flex;align-items:center;gap:8px;"><span style="width:28px;height:28px;display:grid;place-items:center;border-radius:0;background:var(--color-accent-100);color:var(--color-accent);flex:none;">${icon(t.ic||'file','w-3.5 h-3.5')}</span>
-            <span style="font-size:13px;font-weight:600;color:var(--color-text);font-family:var(--font-mono);">${t.kind}</span></span>
-            <span style="display:block;margin-top:5px;font-size:11px;color:var(--color-neutral-600);line-height:1.4;">${t.blurb||''}</span></button>`;
+            <span style="font-size:14px;font-weight:600;color:var(--color-text);font-family:var(--font-mono);">${t.kind}</span></span>
+            <span style="display:block;margin-top:5px;font-size:12px;color:var(--color-neutral-600);line-height:1.4;">${t.blurb||''}</span></button>`;
       const GRID='display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;';
-      const EYE='display:block;font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;color:var(--color-neutral-500);text-transform:uppercase;margin:0 0 6px;';
+      const EYE='display:block;font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;color:var(--color-neutral-500);text-transform:uppercase;margin:0 0 6px;';
       const forYou=forYouTemplates(tmpls);
       const curated=forYou.length>0;
       /* Company standard templates stay pinned on top — the whole point of
@@ -141,8 +141,8 @@ function openWizard(preTid){
       const esc2=x=>String(x==null?'':x).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
       const rowCard=r=>`<button data-wz-${r.pick}="${esc2(r.id)}" style="text-align:left;border:${r.std?'1.5px solid var(--color-accent)':'1px solid var(--color-divider)'};background:${r.std?'var(--color-accent-100)':'var(--color-surface)'};border-radius:0;padding:12px;cursor:pointer;">
         <span style="display:flex;align-items:center;gap:8px;"><span style="width:28px;height:28px;display:grid;place-items:center;border-radius:0;background:${r.std?'var(--color-accent)':'var(--color-accent-100)'};color:${r.std?'#fff':'var(--color-accent)'};flex:none;">${icon(r.ic,'w-3.5 h-3.5')}</span>
-        <span style="font-size:13px;font-weight:600;color:var(--color-text);">${esc2(r.name)}</span></span>
-        <span style="display:block;margin-top:5px;font-size:11px;color:var(--color-neutral-600);line-height:1.4;">${esc2(r.sub)}</span></button>`;
+        <span style="font-size:14px;font-weight:600;color:var(--color-text);">${esc2(r.name)}</span></span>
+        <span style="display:block;margin-top:5px;font-size:12px;color:var(--color-neutral-600);line-height:1.4;">${esc2(r.sub)}</span></button>`;
       /* Grouped once, and the ORDER is visibleFolders' — the same order every
          other stream list in the product uses, so this screen cannot present
          the streams differently from the register or the settings panel. */
@@ -163,23 +163,23 @@ function openWizard(preTid){
         const n=(byStream.get(k)||[]).length;
         return `<button data-wz-stream="${esc2(k)}" style="text-align:left;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:12px;cursor:pointer;border-left:3px solid ${fColor(k)};">
           <span style="display:flex;align-items:center;gap:8px;"><span style="width:28px;height:28px;display:grid;place-items:center;border-radius:0;background:color-mix(in srgb,${fColor(k)} 15%,transparent);color:${fColor(k)};flex:none;">${icon(fIcon(k),'w-3.5 h-3.5')}</span>
-          <span style="font-size:13px;font-weight:600;color:var(--color-text);flex:1;min-width:0;">${esc2(fName(k))}</span>
-          <span style="font-size:12px;font-weight:600;color:var(--color-neutral-500);flex:none;">${n}</span></span>
-          <span style="display:block;margin-top:5px;font-size:11px;color:var(--color-neutral-600);line-height:1.4;">${esc2(fDesc(k))}</span></button>`;
+          <span style="font-size:14px;font-weight:600;color:var(--color-text);flex:1;min-width:0;">${esc2(fName(k))}</span>
+          <span style="font-size:13px;font-weight:600;color:var(--color-neutral-500);flex:none;">${n}</span></span>
+          <span style="display:block;margin-top:5px;font-size:12px;color:var(--color-neutral-600);line-height:1.4;">${esc2(fDesc(k))}</span></button>`;
       };
       const inStream=wzStream&&byStream.has(wzStream)?byStream.get(wzStream):null;
       openModal(`<div style="padding:22px 24px;">
-        ${inStream?`<button id="wz-streams-back" style="font-size:11px;color:var(--color-accent-700);font-weight:600;font-family:var(--font-mono);background:none;border:0;cursor:pointer;margin-bottom:8px;padding:0;">← ${i18t('wz_all_streams')}</button>`:''}
+        ${inStream?`<button id="wz-streams-back" style="font-size:12px;color:var(--color-accent-700);font-weight:600;font-family:var(--font-mono);background:none;border:0;cursor:pointer;margin-bottom:8px;padding:0;">← ${i18t('wz_all_streams')}</button>`:''}
         <h3 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0 0 3px;">${inStream?esc2(fName(wzStream)):i18t('wz_new_from_template')}</h3>
-        <p style="font-size:12px;color:var(--color-neutral-600);margin:0 0 14px;line-height:1.5;">${inStream?i18tn('wz_n_in_stream',inStream.length,{n:inStream.length}):i18t('wz_pick_stream')}</p>
+        <p style="font-size:13px;color:var(--color-neutral-600);margin:0 0 14px;line-height:1.5;">${inStream?i18tn('wz_n_in_stream',inStream.length,{n:inStream.length}):i18t('wz_pick_stream')}</p>
         <div id="wz-pick" class="scroll-thin" style="max-height:62vh;overflow-y:auto;">
           ${inStream?`<div style="${GRID}">${inStream.map(rowCard).join('')}</div>`:`
           ${curated?`<div style="margin-bottom:14px">
             <span style="${EYE}">${i18t('wz_for_you')}${industry?` · ${INDUSTRY_LABEL[industry]}`:''}</span>
             <div style="${GRID}">${forYou.map(card).join('')}</div>
           </div>`:''}
-          ${admin?`<label style="display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:11px;color:var(--color-neutral-600)">${i18t('wz_line_of_business')}
-            <select id="wz-industry" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:4px 8px;font:inherit;font-size:12px;color:inherit">
+          ${admin?`<label style="display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:12px;color:var(--color-neutral-600)">${i18t('wz_line_of_business')}
+            <select id="wz-industry" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:4px 8px;font:inherit;font-size:13px;color:inherit">
               <option value="">${i18t('wz_not_set')}</option>
               ${Object.keys(INDUSTRY_TEMPLATES).map(k=>`<option value="${k}" ${industry===k?'selected':''}>${INDUSTRY_LABEL[k]}</option>`).join('')}
             </select></label>`:''}
@@ -188,7 +188,7 @@ function openWizard(preTid){
                  for when you do. Making the search obey the open folder would
                  make the faster of the two routes the narrower one. */}
           <input id="wz-search" type="search" placeholder="${i18t('wz_search_all')}" autocomplete="off"
-            style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:8px 12px;font:inherit;font-size:13px;color:inherit;outline:none;margin-bottom:10px"/>
+            style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:8px 12px;font:inherit;font-size:14px;color:inherit;outline:none;margin-bottom:10px"/>
           <div id="wz-hits" style="${GRID};margin-bottom:10px"></div>
           <span style="${EYE}">${i18t('wz_streams_head')}</span>
           <div style="${GRID}">${order.map(streamCard).join('')}</div>`}
@@ -220,7 +220,7 @@ function openWizard(preTid){
            built from, so a hit and a folder card cannot disagree. */
         const found=q?rows.filter(r=>`${r.name} ${r.sub}`.toLowerCase().includes(q)):[];
         hits.innerHTML=q?(found.length?found.map(rowCard).join('')
-          :`<div style="grid-column:1/-1;font-size:12px;color:var(--color-neutral-600);padding:6px 2px">${i18t('wz_nothing_matches_q',{q:q.replace(/</g,'&lt;')})}</div>`):'';
+          :`<div style="grid-column:1/-1;font-size:13px;color:var(--color-neutral-600);padding:6px 2px">${i18t('wz_nothing_matches_q',{q:q.replace(/</g,'&lt;')})}</div>`):'';
 
       });
       /* The one settings question, asked where its answer is used. Admin-only
@@ -245,17 +245,17 @@ function openWizard(preTid){
       if(!m || String(m).trim().toLowerCase()===String(v.label||'').trim().toLowerCase()) return '';
       return `<span style="font-weight:400;color:var(--color-neutral-500);text-transform:none;letter-spacing:0"> → ${m}</span>`; };
     const input=v=>{ const id='wz-'+String(v.key).replace(/[:]/g,'_');
-      const lbl=`<span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">${v.label}${v.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}${mapNote(v)}</span>`;
+      const lbl=`<span style="display:block;font-size:12px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">${v.label}${v.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}${mapNote(v)}</span>`;
       if(v.type==='select') return `<label style="display:block;">${lbl}
-        <select id="${id}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 11px;font-size:13px;color:var(--color-text);outline:none;">
+        <select id="${id}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 11px;font-size:14px;color:var(--color-text);outline:none;">
           ${(v.opts||[]).map(o=>`<option value="${String(o).replace(/"/g,'&quot;')}" ${v.def===o?'selected':''}>${o}</option>`).join('')}</select></label>`;
       const it=v.type==='date'?'date':(v.type==='num'?'number':'text');
       return `<label style="display:block;">${lbl}
-        <input id="${id}" type="${it}" value="${String(v.def||'').replace(/"/g,'&quot;')}" placeholder="${v.ph||''}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 11px;font-size:13px;font-family:var(--font-body);color:var(--color-text);outline:none;"/></label>`; };
+        <input id="${id}" type="${it}" value="${String(v.def||'').replace(/"/g,'&quot;')}" placeholder="${v.ph||''}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 11px;font-size:14px;font-family:var(--font-body);color:var(--color-text);outline:none;"/></label>`; };
     openModal(`<div style="padding:22px 24px;">
-      <button id="wz-back" style="font-size:11px;color:var(--color-accent-700);font-weight:600;font-family:var(--font-mono);background:none;border:0;cursor:pointer;margin-bottom:8px;padding:0;">← templates</button>
+      <button id="wz-back" style="font-size:12px;color:var(--color-accent-700);font-weight:600;font-family:var(--font-mono);background:none;border:0;cursor:pointer;margin-bottom:8px;padding:0;">← templates</button>
       <h3 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0 0 3px;">${t.kind}</h3>
-      <p style="font-size:12px;color:var(--color-neutral-600);margin:0 0 16px;line-height:1.5;">${t.blurb||''}</p>
+      <p style="font-size:13px;color:var(--color-neutral-600);margin:0 0 16px;line-height:1.5;">${t.blurb||''}</p>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">${vars.map(input).join('')}
         ${''/* ASKED HERE, WHERE YOU ARE ALREADY NAMING THEM, AND NOWHERE ELSE.
                The templates carry the counterparty's NAME; nothing carried the
@@ -264,8 +264,8 @@ function openWizard(preTid){
                Send. Three times for one fact, in one sitting. Once it is on the
                contract the strip never appears and the send goes straight out. */}
         <label style="display:block;">
-          <span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">${i18t('wz_their_email')}<span style="font-weight:400;color:var(--color-neutral-500);text-transform:none;letter-spacing:0"> → so you can send it to them</span></span>
-          <input id="wz-cpemail" type="email" placeholder="${(typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 11px;font-size:13px;font-family:var(--font-body);color:var(--color-text);outline:none;"/></label>
+          <span style="display:block;font-size:12px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">${i18t('wz_their_email')}<span style="font-weight:400;color:var(--color-neutral-500);text-transform:none;letter-spacing:0"> → so you can send it to them</span></span>
+          <input id="wz-cpemail" type="email" placeholder="${(typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 11px;font-size:14px;font-family:var(--font-body);color:var(--color-text);outline:none;"/></label>
       </div>
       <div style="display:flex;align-items:center;gap:8px;margin-top:20px;">
         <button id="wz-cancel" class="ui-btn">${i18t('act_cancel')}</button>

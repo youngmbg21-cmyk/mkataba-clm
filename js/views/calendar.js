@@ -119,7 +119,7 @@ function renderCalendar(){
     /* The day number is the one thing every reader looks for first, so it is
        set bold at every state — not only on today and on days that carry an
        event. A plain day used to be 10px at weight 400 and read as a whisper. */
-    const numStyle=`font-family:var(--font-mono);font-size:12px;line-height:1.15;color:${today?'var(--st-steel-fg)':(ev?ev.fg:'var(--color-neutral-600)')};font-weight:700`;
+    const numStyle=`font-family:var(--font-mono);font-size:13px;line-height:1.15;color:${today?'var(--st-steel-fg)':(ev?ev.fg:'var(--color-neutral-600)')};font-weight:700`;
     /* ---- THE CHIPS ARE NOT THEIR OWN DOORS (owner-asked, 12 Aug 2026) ----
        The rule, stated flat: pressing ANYTHING inside a day box goes to the
        register narrowed to that day's contracts, and the document opens only
@@ -153,12 +153,12 @@ function renderCalendar(){
        August" — which is where the press actually leads. */
     const chips=es.map(e=>{
       const ev=CAL_EVENT[e.type];
-      return `<span class="cal-chip"${cids.length===1?` title="${ev.label}: ${_esc(e.note)}"`:''} style="display:flex;align-items:center;gap:4px;width:100%;min-width:0;font-size:10px;line-height:1.25;overflow:hidden;${e.done?'opacity:.45;text-decoration:line-through':''}">`+
+      return `<span class="cal-chip"${cids.length===1?` title="${ev.label}: ${_esc(e.note)}"`:''} style="display:flex;align-items:center;gap:4px;width:100%;min-width:0;font-size:11px;line-height:1.25;overflow:hidden;${e.done?'opacity:.45;text-decoration:line-through':''}">`+
         _dot(ev.dot,6)+`<span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(e.cname)}</span></span>`;
     }).join('');
     /* It is not its own button — the cell it sits in already is one, and the
        thing it promises ("show me the rest") is exactly what the cell does. */
-    const moreLine=more>0?`<span style="font-size:9px;font-weight:600;color:var(--color-accent-700);padding-left:2px">${i18t('cal_n_more',{n:more})}</span>`:'';
+    const moreLine=more>0?`<span style="font-size:10px;font-weight:600;color:var(--color-accent-700);padding-left:2px">${i18t('cal_n_more',{n:more})}</span>`:'';
     return `<div class="cal-day"${cellAttrs} style="${cellStyle}"><span style="${numStyle}">${dnum}</span>${chips}${moreLine}</div>`;
   };
   const cells=[]; for(let i=0;i<42;i++) cells.push(cell(i-start+1));
@@ -191,32 +191,32 @@ function renderCalendar(){
         && (!window.canEdit || canEdit()))
       ? `<button data-ob-done="${_esc(e.obId)}" data-ob-cid="${_esc(e.cid)}" title="${i18t('cal_mark_complete')}"
            style="flex:none;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;
-             padding:2px 7px;font:inherit;font-size:10px;font-weight:600;color:var(--color-accent-700);cursor:pointer">${i18t('cal_done')}</button>`
+             padding:2px 7px;font:inherit;font-size:11px;font-weight:600;color:var(--color-accent-700);cursor:pointer">${i18t('cal_done')}</button>`
       : '';
     const theirsChip = (e.type==='obligation' && e.theirs)
-      ? `<span title="${i18t('cal_cp_owes')}" style="flex:none;font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:0;padding:1px 4px;background:var(--st-amber-bg);color:var(--st-amber-fg)">theirs</span>`
+      ? `<span title="${i18t('cal_cp_owes')}" style="flex:none;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:0;padding:1px 4px;background:var(--st-amber-bg);color:var(--st-amber-fg)">theirs</span>`
       : '';
     return `<div style="display:flex;align-items:center;gap:8px;width:100%;border-bottom:1px solid color-mix(in srgb,var(--color-text) 8%,transparent)" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">`+
       `<button data-sel="${e.cid}" style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;padding:6px 2px;border:0;background:none;cursor:pointer;font:inherit;text-align:left;color:inherit">`+
         _dot(ev.dot,7)+
         `<span style="flex:1;min-width:0">`+
-          `<span style="display:block;font-size:12px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(e.cname)}</span>`+
-          `<span style="display:block;font-size:10px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${kind}</span>`+
+          `<span style="display:block;font-size:13px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(e.cname)}</span>`+
+          `<span style="display:block;font-size:11px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${kind}</span>`+
         `</span>`+
       `</button>`+
       theirsChip+doneBtn+
-      `<span style="font-size:10px;font-weight:600;font-family:var(--font-mono);color:${ev.fg};flex:none;padding-right:2px">${inTxt}</span>`+
+      `<span style="font-size:11px;font-weight:600;font-family:var(--font-mono);color:${ev.fg};flex:none;padding-right:2px">${inTxt}</span>`+
     `</div>`;
   }).join(''):`<div style="text-align:center;padding:22px 8px">
       <div style="width:40px;height:40px;margin:0 auto 10px;display:grid;place-items:center;border-radius:0;background:var(--color-bg);color:var(--color-neutral-500)">${icon('calendar','w-5 h-5')}</div>
-      <div style="font-size:13px;font-weight:600;color:var(--color-text)">${i18t('cal_nothing_due')}</div>
-      <div style="font-size:11px;color:var(--color-neutral-600);margin:3px 0 12px;line-height:1.5">${i18t('cal_nothing_due_sub')}</div>
-      <button id="cal-empty-reg" style="font-size:12px;font-weight:600;color:var(--color-accent-700);background:none;border:1px solid var(--color-divider);border-radius:0;padding:6px 12px;cursor:pointer">${i18t('cal_open_register')}</button>
+      <div style="font-size:14px;font-weight:600;color:var(--color-text)">${i18t('cal_nothing_due')}</div>
+      <div style="font-size:12px;color:var(--color-neutral-600);margin:3px 0 12px;line-height:1.5">${i18t('cal_nothing_due_sub')}</div>
+      <button id="cal-empty-reg" style="font-size:13px;font-weight:600;color:var(--color-accent-700);background:none;border:1px solid var(--color-divider);border-radius:0;padding:6px 12px;cursor:pointer">${i18t('cal_open_register')}</button>
     </div>`;
 
   /* THE REFERENCE'S NAVIGATION, which sits in the page header beside the title
      rather than inside the month card. 32px squares with an 8px radius. */
-  const btnBase='width:32px;height:32px;display:grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-surface);box-shadow:var(--shadow-sm);border-radius:0;cursor:pointer;font-size:14px;color:var(--color-neutral-700);line-height:1';
+  const btnBase='width:32px;height:32px;display:grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-surface);box-shadow:var(--shadow-sm);border-radius:0;cursor:pointer;font-size:15px;color:var(--color-neutral-700);line-height:1';
 
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="height:var(--view-h);box-sizing:border-box;padding:14px 16px 18px;display:flex;flex-direction:column;gap:14px">
@@ -249,7 +249,7 @@ function renderCalendar(){
         .cal-card{padding:10px}
         .cal-day{min-height:32px!important}
       }
-      .cal-wk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;font-size:10px;
+      .cal-wk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;font-size:11px;
         font-weight:700;letter-spacing:.08em;text-transform:uppercase;
         color:var(--color-neutral-500);text-align:center;margin-bottom:4px;flex:none}
       @media (max-width:1023px){
@@ -263,7 +263,7 @@ function renderCalendar(){
       <div style="display:flex;gap:8px;flex:none">
         <button id="cal-prev" style="${btnBase}" title="${i18t('cal_prev_month')}">‹</button>
         <button id="cal-next" style="${btnBase}" title="${i18t('cal_next_month')}">›</button>
-        <button id="cal-today" style="height:32px;padding:0 12px;border:1px solid var(--color-divider);background:var(--color-surface);box-shadow:var(--shadow-sm);border-radius:0;cursor:pointer;font:inherit;font-size:12px;font-weight:600;color:var(--color-neutral-700)">${i18t('cal_today')}</button>
+        <button id="cal-today" style="height:32px;padding:0 12px;border:1px solid var(--color-divider);background:var(--color-surface);box-shadow:var(--shadow-sm);border-radius:0;cursor:pointer;font:inherit;font-size:13px;font-weight:600;color:var(--color-neutral-700)">${i18t('cal_today')}</button>
       </div>
     </div>
     <div class="cal-split">
@@ -279,7 +279,7 @@ function renderCalendar(){
          hiding a week behind the card's edge. A day you cannot reach is worse
          than a day you have to scroll to. -->
     <div id="cal-grid" style="flex:1;min-height:0;overflow-y:auto;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:repeat(6,1fr);gap:4px">${cells.join('')}</div>
-        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;padding-top:10px;border-top:1px solid var(--color-divider);font-size:10px;color:var(--color-neutral-500);flex:none">
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;padding-top:10px;border-top:1px solid var(--color-divider);font-size:11px;color:var(--color-neutral-500);flex:none">
           ${Object.values(CAL_EVENT).map(v=>`<span style="display:flex;align-items:center;gap:6px">${_dot(v.dot,8)}${v.label}</span>`).join('')}
         </div>
       </section>

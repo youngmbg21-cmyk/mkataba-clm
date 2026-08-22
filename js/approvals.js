@@ -536,8 +536,8 @@ function openSigningLockedNotice(c, opts){
   openModal(`<div class="p-6" style="max-width:520px">
     <h3 class="font-serif font-600 text-lg text-ink mb-1">${i18t('ap_signing_route')}</h3>
     <div style="border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:0;padding:11px 13px;margin:10px 0 12px">
-      <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--st-amber-fg);margin-bottom:5px">${icon('alert','w-3.5 h-3.5')} ${i18t('ap_route_locked')}</div>
-      <p style="margin:0;font-size:12px;line-height:1.6;color:var(--st-amber-fg)">${
+      <div style="display:flex;align-items:center;gap:6px;font-size:14px;font-weight:700;color:var(--st-amber-fg);margin-bottom:5px">${icon('alert','w-3.5 h-3.5')} ${i18t('ap_route_locked')}</div>
+      <p style="margin:0;font-size:13px;line-height:1.6;color:var(--st-amber-fg)">${
         esc(i18tn('ap_route_locked_why',Math.max(1,done.length||marks),{ who }))}</p>
     </div>
     <p class="text-xs text-ink/65 mb-1" style="line-height:1.6">${esc(i18t('ap_route_locked_restart'))}</p>

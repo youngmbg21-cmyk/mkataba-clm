@@ -92,7 +92,7 @@ const _esc = s => String(s==null?'':s).replace(/</g,'&lt;');
 function bar(label, value, max, valStr, color){
   const pct=max>0?Math.max(0,Math.min(100,Math.round(value/max*100))):0;
   return `<div style="margin-bottom:7px">
-    <div style="display:flex;justify-content:space-between;gap:10px;font-size:11px;margin-bottom:2px"><span style="color:var(--color-neutral-700);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(label)}</span><span style="font-weight:400;font-variant-numeric:tabular-nums;flex:none">${valStr}</span></div>
+    <div style="display:flex;justify-content:space-between;gap:10px;font-size:12px;margin-bottom:2px"><span style="color:var(--color-neutral-700);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(label)}</span><span style="font-weight:400;font-variant-numeric:tabular-nums;flex:none">${valStr}</span></div>
     <div style="height:7px;background:var(--color-neutral-200);border-radius:0;overflow:hidden"><div style="width:${pct}%;height:100%;background:${color};border-radius:0"></div></div>
   </div>`;
 }
@@ -123,7 +123,7 @@ function reportMetricSel(){
   for(let i=0;i<4;i++) if(!REPORT_METRICS.some(m=>m.k===s[i])) s[i]=DEFAULT_REPORT_METRICS[i];
   return s;
 }
-const emptyMsg = t => `<p style="font-size:12px;color:var(--color-neutral-600)">${_esc(t)}</p>`;
+const emptyMsg = t => `<p style="font-size:13px;color:var(--color-neutral-600)">${_esc(t)}</p>`;
 /* Chart catalogue for the four lower cards. Like the hero stat cards, each card
    follows a KPI the user picks — value isn't forced. `render(r)` returns the bar
    HTML from the computed report object. */
@@ -172,10 +172,10 @@ function reportDropdown(variant, kind, idx, catalog, selKey){
   const cur=catalog.find(x=>x.k===selKey)||catalog[idx];
   const hero=variant==='hero';
   const trig=hero
-    ? 'background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.42);color:#fff;font-size:10px;letter-spacing:.06em;text-transform:uppercase;font-weight:600'
-    : 'background:var(--color-bg);border:1px solid var(--color-divider);color:var(--color-text);font-size:14px;font-weight:600';
+    ? 'background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.42);color:#fff;font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:600'
+    : 'background:var(--color-bg);border:1px solid var(--color-divider);color:var(--color-text);font-size:15px;font-weight:600';
   const chev=hero?'#fff':'var(--color-neutral-500)';
-  const opts=catalog.map(x=>`<button type="button" data-rd-opt="${kind}:${idx}:${x.k}" class="rd-opt${x.k===cur.k?' rd-opt-on':''}" style="display:block;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:13px;padding:7px 11px;border-radius:0;cursor:pointer;white-space:nowrap">${_esc(x.label)}</button>`).join('');
+  const opts=catalog.map(x=>`<button type="button" data-rd-opt="${kind}:${idx}:${x.k}" class="rd-opt${x.k===cur.k?' rd-opt-on':''}" style="display:block;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:14px;padding:7px 11px;border-radius:0;cursor:pointer;white-space:nowrap">${_esc(x.label)}</button>`).join('');
   return `<div class="rd" style="position:relative;max-width:100%;${hero?'flex:1;min-width:0':'margin:0 0 10px'}">
     <button type="button" data-rd-trigger="${kind}:${idx}" class="rd-trigger rd-trigger-${hero?'hero':'card'}" title="${esc(hero?i18t('rep_choose_metric'):i18t('rep_choose_chart'))}" style="display:inline-flex;align-items:center;gap:8px;max-width:100%;border-radius:0;padding:4px 9px 4px 12px;cursor:pointer;line-height:1.25;transition:background .12s,border-color .12s;${trig}">
       <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(cur.label)}</span>
@@ -280,7 +280,7 @@ function renderReports(){
         ${reportDropdown('hero','metric',idx,REPORT_METRICS,sel[idx])}
       </span>
       <span class="tnum" style="font-family:var(--font-mono);font-weight:600;font-size:25px;line-height:1.0;color:#fff">${d.val}</span>
-      <span style="font-size:11px;color:rgba(255,255,255,.85)">${d.sub}</span>
+      <span style="font-size:12px;color:rgba(255,255,255,.85)">${d.sub}</span>
     </div>`;
   };
   const stats=[statSlot(0),statSlot(1),statSlot(2),statSlot(3)].join('');
@@ -313,7 +313,7 @@ function renderReports(){
     <style>
       .rd-trigger-hero:hover{background:rgba(255,255,255,.30)!important;border-color:rgba(255,255,255,.7)!important}
       .rd-trigger-card:hover{background:var(--color-neutral-100)!important;border-color:var(--color-accent)!important}
-      .rd-chev{font-size:14px;line-height:1}
+      .rd-chev{font-size:15px;line-height:1}
       .rd-menu{animation:rdIn .1s ease}
       .rd-opt{color:var(--color-text)}
       .rd-opt:hover{background:var(--color-bg)}
@@ -322,18 +322,18 @@ function renderReports(){
     </style>
     <div style="display:flex;flex-direction:column;gap:18px">
       <div style="display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap">
-        <button type="button" id="rep-export" style="display:inline-flex;align-items:center;gap:7px;border:1px solid var(--color-divider);background:var(--color-surface);color:var(--color-neutral-700);font:inherit;font-size:12px;font-weight:600;border-radius:0;padding:7px 12px;cursor:pointer">${icon('download','w-3.5 h-3.5')}${i18t('rep_export_btn')}</button>
+        <button type="button" id="rep-export" style="display:inline-flex;align-items:center;gap:7px;border:1px solid var(--color-divider);background:var(--color-surface);color:var(--color-neutral-700);font:inherit;font-size:13px;font-weight:600;border-radius:0;padding:7px 12px;cursor:pointer">${icon('download','w-3.5 h-3.5')}${i18t('rep_export_btn')}</button>
         ${''/* THE WEEKLY REVIEW sits beside the health report because they are the
                same kind of thing — a deterministic document, opened in a tab,
                with no model anywhere near it. The size lives next to the button
                rather than inside the document: choosing it afterwards would mean
                reading the wrong one first. */}
-        <label style="display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:600;color:var(--color-neutral-700)">${i18t('rep_weekly_size')}
-          <select id="rep-weekly-tier" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:6px 9px;font:inherit;font-size:12px;color:inherit;outline:none">
+        <label style="display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--color-neutral-700)">${i18t('rep_weekly_size')}
+          <select id="rep-weekly-tier" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:6px 9px;font:inherit;font-size:13px;color:inherit;outline:none">
             ${(typeof WK_TIERS!=='undefined'?WK_TIERS:['skinny','tower','full']).map(t=>`<option value="${t}"${(typeof wkTier==='function'&&wkTier()===t)?' selected':''}>${i18t('wk_tier_'+t)}</option>`).join('')}
           </select></label>
-        <button type="button" id="rep-weekly" style="display:inline-flex;align-items:center;gap:7px;border:1px solid var(--color-divider);background:var(--color-surface);color:var(--color-neutral-700);font:inherit;font-size:12px;font-weight:600;border-radius:0;padding:7px 12px;cursor:pointer">${icon('file','w-3.5 h-3.5')}${i18t('rep_weekly_btn')}</button>
-        <button type="button" id="rep-health" style="display:inline-flex;align-items:center;gap:7px;border:0;background:var(--color-accent);color:#fff;font:inherit;font-size:12px;font-weight:600;border-radius:0;padding:7px 12px;cursor:pointer">${icon('file','w-3.5 h-3.5')}${i18t('rep_health_btn')}</button>
+        <button type="button" id="rep-weekly" style="display:inline-flex;align-items:center;gap:7px;border:1px solid var(--color-divider);background:var(--color-surface);color:var(--color-neutral-700);font:inherit;font-size:13px;font-weight:600;border-radius:0;padding:7px 12px;cursor:pointer">${icon('file','w-3.5 h-3.5')}${i18t('rep_weekly_btn')}</button>
+        <button type="button" id="rep-health" style="display:inline-flex;align-items:center;gap:7px;border:0;background:var(--color-accent);color:#fff;font:inherit;font-size:13px;font-weight:600;border-radius:0;padding:7px 12px;cursor:pointer">${icon('file','w-3.5 h-3.5')}${i18t('rep_health_btn')}</button>
       </div>
       <section class="rp-stats" style="display:grid;gap:14px">
         ${stats}

@@ -148,30 +148,30 @@ const WK_CSS=`
   .wrap{max-width:820px;margin:0 auto;padding:34px 22px 70px}
   header{margin-bottom:22px}
   h1{margin:0;font-size:25px;letter-spacing:-.02em}
-  .sub{color:#64748b;font-size:13px;margin-top:4px}
+  .sub{color:#64748b;font-size:14px;margin-top:4px}
   .slot{background:#fff;border:1px solid #e3e8ee;border-radius:0;padding:17px 20px;margin-bottom:13px}
-  .slot h2{margin:0 0 3px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:#7c8794}
+  .slot h2{margin:0 0 3px;font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:#7c8794}
   .slot .lead{font-size:15px;line-height:1.65}
   .row{display:flex;gap:12px;align-items:baseline;padding:8px 0;border-bottom:1px solid #eef1f5}
   .row:last-child{border-bottom:0}
-  .row .when{flex:none;min-width:88px;font-weight:700;font-variant-numeric:tabular-nums;font-size:13px}
-  .row .what{flex:1;min-width:0;font-size:14px}
-  .row .val{flex:none;font-variant-numeric:tabular-nums;color:#64748b;font-size:13px}
+  .row .when{flex:none;min-width:88px;font-weight:700;font-variant-numeric:tabular-nums;font-size:14px}
+  .row .what{flex:1;min-width:0;font-size:15px}
+  .row .val{flex:none;font-variant-numeric:tabular-nums;color:#64748b;font-size:14px}
   .act{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid #eef1f5}
   .act:last-child{border-bottom:0}
-  .act .n{flex:none;width:22px;height:22px;border-radius:50%;background:#0d9488;color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center}
+  .act .n{flex:none;width:22px;height:22px;border-radius:50%;background:#0d9488;color:#fff;font-size:13px;font-weight:700;display:grid;place-items:center}
   .act b{display:block;font-size:15px}
-  .act span{color:#64748b;font-size:13px}
-  .quiet{color:#64748b;font-size:14px}
-  .left{background:#f8fafc;border:1px dashed #cbd5e1;color:#475569;font-size:13px;line-height:1.65}
+  .act span{color:#64748b;font-size:14px}
+  .quiet{color:#64748b;font-size:15px}
+  .left{background:#f8fafc;border:1px dashed #cbd5e1;color:#475569;font-size:14px;line-height:1.65}
   .left li{margin:4px 0}
-  .more{margin-top:9px;font-size:13px;color:#64748b}
+  .more{margin-top:9px;font-size:14px;color:#64748b}
   .extra h2{color:#0f766e}
-  table{width:100%;border-collapse:collapse;font-size:14px}
-  th{text-align:left;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:#7c8794;padding:5px 7px;border-bottom:1px solid #e3e8ee}
+  table{width:100%;border-collapse:collapse;font-size:15px}
+  th{text-align:left;font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:#7c8794;padding:5px 7px;border-bottom:1px solid #e3e8ee}
   td{padding:7px;border-bottom:1px solid #eef1f5}
   td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
-  footer{margin-top:20px;color:#7c8794;font-size:12px;line-height:1.65}
+  footer{margin-top:20px;color:#7c8794;font-size:13px;line-height:1.65}
   @media print{ body{background:#fff} .slot{break-inside:avoid} }
 `;
 
@@ -193,7 +193,7 @@ function buildWeeklyHtml(d){
   /* ---- 2 ---- */
   const soon=d.landing.filter(x=>x.d<=WK_HORIZON), rest=d.landing.filter(x=>x.d>WK_HORIZON);
   const rowOf=x=>`<div class="row"><span class="when">${x.d===0?T('wk_today'):i18tn('wk_in_days',x.d,{n:x.d})}</span>
-    <span class="what">${_wkEsc(x.c.name)}<br><span style="color:#7c8794;font-size:13px">${_wkEsc(x.c.counterparty||'')} · ${dateOf(x.e)}</span></span>
+    <span class="what">${_wkEsc(x.c.name)}<br><span style="color:#7c8794;font-size:14px">${_wkEsc(x.c.counterparty||'')} · ${dateOf(x.e)}</span></span>
     <span class="val">${d.canSee?_wkEsc(money(d.val(x.c))):''}</span></div>`;
   const s2=`<div class="slot"><h2>${T('wk_s2')}</h2>${
     d.landing.length
