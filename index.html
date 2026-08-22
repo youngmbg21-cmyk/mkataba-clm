@@ -1047,13 +1047,23 @@
     font-variant-numeric:tabular-nums; white-space:nowrap; }
   .room-name-id i{ font-style:normal; margin-left:7px; color:var(--color-neutral-400); }
   .room-round{ font-size:14px; color:var(--color-neutral-600); white-space:nowrap; }
-  /* 700 AND A FIXED 22px, both the design's (22 Aug 2026). It was weight 600
-     at clamp(19px, 15px + 0.45vw, 24px) — which resolves to 21.48px at 1440 and
-     to a different fraction at every other width, so the LARGEST text on the
-     page was the softest thing on it. The design has no fluid type at all: a
-     fixed rung on its ladder is whole at every width rather than at none. */
-  .room-head h1{ font-family:var(--font-heading); font-weight:700; margin:0; line-height:1.2;
-    font-size:22px; min-width:0;
+  /* ---- THE TWO HEADS SAY THE NAME AT ONE SIZE (owner-reported 22 Aug 2026,
+     off two screenshots side by side: "the font size in the documents page
+     header should be the same size as in the negotiations page") ----
+     This REVERSES the same day's "700 AND A FIXED 22px, both the design's" in
+     place, and the half of that decision worth keeping is kept: the size is a
+     FIXED rung, never fluid. It was weight 600 at
+     clamp(19px, 15px + 0.45vw, 24px), which resolves to 21.48px at 1440 and to
+     a different fraction at every other width, so the largest text on the page
+     was the softest thing on it — that fault does not come back.
+     WHAT MOVED IS WHICH RUNG. The negotiation page's head was drawn to the
+     owner's own approved render at 15px/600 and the room's to the mock-up's
+     22px/700, so one contract wore two title sizes depending on which of its
+     pages you were standing on. 15/600 is the one that was approved against a
+     render, so it is the one that wins. .redline-page's own block still states
+     it for that page; the two now agree rather than disagreeing. */
+  .room-head h1{ font-family:var(--font-heading); font-weight:600; margin:0; line-height:1.2;
+    font-size:15px; min-width:0;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .room-head .room-sub{ font-size:13px; color:var(--color-neutral-600); margin-top:3px;
     overflow-wrap:anywhere; }
@@ -1202,8 +1212,20 @@
      stops this page being mistaken for Contracts. NOT A ROW — no hover tint, no
      pointer, no cell padding, and the markup carries role="presentation" so it
      is never announced as one either. */
+  /* ---- THE BAND PINS TO THE HEADER, AND THE HEADER IS MEASURED (owner-
+     reported 22 Aug 2026: "when you scroll in the negotiations list of
+     contracts, it breaks") ----
+     It was `top:38px`, typed. MEASURED, the register's sticky header renders
+     35px tall, so there was a 3px slot between the two pinned things that
+     every row slid visibly through on the way past — the reported break. A
+     number that has to agree with another element's height is one that agrees
+     until somebody changes a padding or a type size, which this file did on
+     22 Aug and nothing said so. regFitBandOffset writes --reg-head-h off the
+     header's own box and re-reads it on a ResizeObserver, so the two cannot
+     come apart again. The fallback is today's measured 35px, for the one
+     reader that never runs script. */
   .ngl-band > td{ padding:0!important; border-bottom:0!important;
-    background:var(--color-bg); position:sticky; top:38px; z-index:2; }
+    background:var(--color-bg); position:sticky; top:var(--reg-head-h,35px); z-index:2; }
   .reg-table tbody tr.ngl-band:hover{ background:none; }
   .ngl-band-in{ display:flex; align-items:center; gap:9px; padding:7px 16px;
     border-top:1px solid var(--color-divider); border-bottom:1px solid var(--color-divider); }
@@ -1648,10 +1670,22 @@
      at all — the live tab was told apart by colour and the underline alone,
      and because 600 is the duplex cut it did not even gain width. Regular
      when resting, Bold when live, exactly as the render draws it. */
+  /* ---- A RESTING TAB IS DARK INK, NOT A CAPTION (owner-reported 22 Aug 2026:
+     "the font type for the tab navigation highlighted should also be similar to
+     what we have in the negotiations page") ----
+     MEASURED, the two rows already agreed on everything else — 14px resting,
+     700 live, the same teal, the same 2px underline — and differed on exactly
+     one value: a resting tab here was --color-neutral-500 (the LABEL shade)
+     while the negotiation page's reading tabs rest on --color-text. That is the
+     four-shades rule this file states elsewhere pointing the wrong way: a tab
+     is a thing you read and press, not metadata about one, and at the label
+     shade the three resting tabs read as captions under the live one. The live
+     state is what marks the live tab; the resting ones do not have to be faded
+     as well. */
   .room-tab{ display:flex; align-items:center; gap:6px; border:0; border-radius:0;
     border-bottom:2px solid transparent; background:none; margin-bottom:-1px;
     padding:9px 1px; font:inherit; font-size:14px; font-weight:400; cursor:pointer;
-    white-space:nowrap; color:var(--color-neutral-500);
+    white-space:nowrap; color:var(--color-text);
     transition:color .13s, border-color .13s; }
   .room-tab:hover{ color:var(--color-text); }
   .room-tab.on{ color:var(--accent-ink); border-bottom-color:var(--accent-solid,var(--color-accent)); font-weight:700; }

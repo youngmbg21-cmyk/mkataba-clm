@@ -3302,9 +3302,23 @@ function redlineLayoutCss(){
      padding of its own any more (see renderRedline), so this band and the
      control bar below it run edge to edge while the working area keeps the
      product's page measure. */
+  ${''/* ---- ONE LINE, AND IT MUST NOT WRAP (owner-reported 22 Aug 2026, off a
+         screenshot: "you have placed the buttons on the left side of the
+         screen") ----
+         The acts were not placed on the left — the head WRAPPED. .room-head is
+         flex-wrap:wrap for the contract page, which needs it (its breadcrumb
+         and its fact row are full-width items that take a line each); on this
+         page there is neither, so a long contract name simply pushed the four
+         buttons onto a second line, where they start at the left margin like
+         any wrapped flex item. MEASURED on the reported name — 84 characters —
+         at 1500px.
+         THE TITLE IS WHAT GIVES, not the row: it already carries the ellipsis
+         (see .room-head h1), and min-width:0 on the items around it is what
+         lets a flex child shrink below its content at all. */}
   .redline-page #ws-head{background:var(--color-surface);padding:9px 24px;margin:0;
-    flex:none;box-shadow:inset 0 -1px var(--color-divider);gap:12px;align-items:center}
-  .redline-page #ws-head .room-id{min-width:0;flex:1 1 auto}
+    flex:none;flex-wrap:nowrap;box-shadow:inset 0 -1px var(--color-divider);gap:12px;
+    align-items:center}
+  .redline-page #ws-head .room-id{min-width:0;flex:1 1 auto;overflow:hidden}
   .redline-page #ws-head .room-name{gap:10px;flex-wrap:nowrap;min-width:0}
   /* The reference is the way back — a button wearing the render's quiet grey.
      Its hover is the only sign it is one, which is what a crumb has always
@@ -3327,7 +3341,7 @@ function redlineLayoutCss(){
     border-right:1px solid var(--color-divider);font-size:13px;color:var(--color-neutral-600);
     box-shadow:none;height:auto}
   .redline-page #ws-head .dk-chip .dk-who{font-size:13px;font-weight:400;color:var(--color-neutral-600)}
-  .redline-page #ws-head .room-acts{gap:6px;align-items:center}
+  .redline-page #ws-head .room-acts{gap:6px;align-items:center;flex:none}
   ${''/* ---- ONE FILLED ACT, AND IT IS PUBLISH ROUND ----
          The render draws four buttons of which exactly one is filled — the
          platform's own button rule, which this head was breaking: the review

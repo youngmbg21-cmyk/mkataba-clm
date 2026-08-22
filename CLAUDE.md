@@ -706,7 +706,9 @@ generated and drops the change on the next build** (the `font-600` lesson).
 to a different fraction at every other width, so it was fractional at every
 width rather than at none. **The design has no fluid type at all**: a fixed rung
 on its ladder is whole everywhere. Five fluid headings took fixed sizes, and the
-room title took the design's own 22px/700 (it was 600).
+room title took the design's own 22px/700 (it was 600) — **the SIZE half of
+which was REVERSED the same day; see THE TWO HEADS SAY THE NAME AT ONE SIZE
+below. The half that stands is the one that mattered: fixed, never fluid.**
 
 **THE CONTRACT PAPER'S OWN BASES WENT WHOLE TOO.** The half-pixel sweep skipped
 everything inside a `calc()` on the reasoning that the reader sets that size —
@@ -820,7 +822,7 @@ Twenty-seven line symbols from the design mock-up, in a `<defs>` sprite at the t
 
 SQUARE CORNERS EVERYWHERE (owner-asked 20 Aug 2026, second pass — this completes what the first pass scoped to Home and the shell): ~810 rounded-rectangle radii swept to 0 across index.html and every js/ file — cards, dialogs, chips, badges, inputs, menus, toasts, the phone, exports. True circles stay circles, and the sweep PROVED each one rather than pattern-matching: `border-radius:50%` kept by rule, and a pill value (999/9999/99px) kept ONLY where the same style run declares equal width and height (13 dots and avatars wear pill values — a blanket `*{border-radius:0}` would have squared them). The compiled `.rounded-full` class is the circle class and stays; every other `.rounded*` utility is 0. The negotiation sheet's own radius tokens (--n-r-*) are 0. Emails in server.js are deliberately untouched — their own surface, like their Arial fallback.
 
-THE REGISTER WEARS THE LINE DESIGN (owner-approved mockup, 20 Aug 2026 — measured off the owner's own HTML, and it reaches Contracts AND Negotiations because both are ONE table, renderRegister): flat white table ruled by hairlines, uppercase 10.5/700 header on the surface itself (the grey band is gone), teal tracking numbers (.reg-mk), regular-weight titles with the document KIND on a quiet second line (.reg-kind — cKind, the same reading the stream drawer prints), the stream tick moved OFF the row's left edge to a 3px span BESIDE the title (.reg-tick), values regular weight, and the expiry cell in the mockup's own shape — a fixed numeric dotted date (regDotDate, "25.08.2026" — digits carry no month word, so the months-follow-the-language rule has nothing to translate; the stream drawer's folderExpiryCell reads the same helper) with the countdown as "· N d" at 10.5/700 in its urgency colour (red inside 30 days, amber to 90 — thresholds unchanged; reg_in_days is "{n} d" in BOTH languages and sits on f148's SAME_IN_BOTH list). The bands, the whose-move words, sorting, paging, every verb: untouched.
+THE REGISTER WEARS THE LINE DESIGN (owner-approved mockup, 20 Aug 2026 — measured off the owner's own HTML, and it reaches Contracts AND Negotiations because both are ONE table, renderRegister): flat white table ruled by hairlines, uppercase 10.5/700 header on the surface itself (the grey band is gone), teal tracking numbers (.reg-mk), regular-weight titles with the document KIND on a quiet second line (.reg-kind — cKind, the same reading the stream drawer prints), the stream tick moved OFF the row's left edge to a 3px span BESIDE the title (.reg-tick), values regular weight, and the expiry cell in the mockup's own shape — a fixed numeric dotted date (regDotDate, "25.08.2026" — digits carry no month word, so the months-follow-the-language rule has nothing to translate; the stream drawer's folderExpiryCell reads the same helper) with the countdown as "· N d" at 10.5/700 in its urgency colour (red inside 30 days, amber to 90 — thresholds unchanged; reg_in_days is "{n} d" in BOTH languages and sits on f148's SAME_IN_BOTH list). The bands, the whose-move words, sorting, paging, every verb: untouched. **WHERE A BAND PINS IS MEASURED, NEVER TYPED** — see THE TWO HEADS SAY THE NAME AT ONE SIZE: the header's height is written as `--reg-head-h` by regFitBandOffset, so a change to this header's padding or type cannot leave a slot for rows to scroll through.
 
 THE HOME PAGE opens on **THE HERO BANNER** (.hm-banner — owner-chose the "Hero B" render, 20 Aug 2026; this SUPERSEDES the same day's Portfolio strip, and the same day's bottom row went with it), and THE SAME DAY'S MARKED-UP SCREENSHOT CHANGED THREE THINGS ON IT (owner-asked): the readiness badge became a TIME-OF-DAY GREETING with the reader's first name (home_greet_* keys RE-ACTIVATED — morning <12, afternoon <17, evening; home_greet_there when nameless; .hm-banner-greet), the title reads **home_clm_title "Contract Lifecycle Management"** (the owner's exact words — home_hero_badge / home_hero_title are STALE, flag any mention) and **IT FOLLOWS THE READER'S LANGUAGE** — it was kept in English in both for one day and the owner reported the Swedish banner still reading English (20 Aug 2026, off a screenshot). A page's own title is read by the reader, so it turns over like every other heading; it takes the dictionary's OWN settled rendering of this phrase, the one `ng_clm` already used ("Hantering av avtalens livscykel"), rather than a second wording invented for this surface. Its f148 SAME_IN_BOTH exemption came off with it, and **IT STARTS AT THE SIDEBAR'S OWN COLOUR AND LIGHTENS RIGHTWARD** (owner-asked 20 Aug 2026, in those words): the left stop IS `--nav-bg` and the gradient mixes toward a neutral slate, so the banner follows the workspace (green, navy) and the dark theme for free from ONE rule — it was a fixed navy taken from the render, which met the green sidebar at an edge as two different colours. The right-hand stop lands MID-TONE, never pale: the two buttons sit there and white-on-pale would not read. (A parallel session read the same request as the ACCENT tokens; the nav-bg reading is the one kept, because "the same colour tone as the nav panel" is what was asked and it is measurable — nav-bg and the banner's first stop are the same rgb.) The sub-line states the LIVE FACTS the strip used to carry (contracts under management · active value · needs-you, numbers bold — the line is built from pre-wrapped values and NOT esc()'d, every piece our own arithmetic). Its two buttons wear .hm-banner-ghost / .hm-banner-cta rather than .ui-btn (the accent-tint dress is wrong on a dark ground): the ghost is translucent white, and **the CTA is WHITE** (owner-asked 20 Aug 2026) with `--nav-bg` as its ink — the strongest thing there is on a dark ground, and the ink is what keeps it part of the workspace rather than a plain white slab. NOT the retired hm-hero — that class stays stale; so are .hm-strip and home_portfolio now. **CUSTOMIZE IS NOT ON THE BANNER** (owner-asked 20 Aug 2026: "why did you put customize inside the card?" — and it was never a decision: it lived on the retired KEY METRICS caption row, moved to the Portfolio strip when that row went, and rode along when the strip became the banner). A quiet preference does not belong on the most prominent surface competing with the one primary act, and it belongs beside what it edits: `.hm-kpi-bar` is a 26px line directly above the KPI cards carrying `#kpi-customize` alone, right-aligned and dressed as a quiet LINK (`.hm-cz`, home_customize_metrics — "Customize these metrics"), matching this page's other links rather than adding a second button. **THE BANNER PAYS FOR IT** (owner-asked: "create the space by reducing the height of the banner"): padding 20→12 and the title 27→23px, MEASURED — banner 131→105px against a 26px line, so the cards and everything below them sit on exactly the pixel they did (143px from the banner's top, before and after). Nothing was removed to find the room. SAME IDS (#kpi-customize, #hero-draft) so the KPI picker's re-open-after-tick and the one new-contract menu are untouched — kpi-four-verify proves the picker against the moved button. **THE BOTTOM ROW IS GONE** (owner-asked, same message): its three cards repeated the page — Awaiting counterparty and Expiring are KPI cards, and the high-risk door rode a footer link under Decisions due for one day and CAME OFF AGAIN on 20 Aug (owner-asked: "remove any other shortcuts unrelated to decisions due") — **every link in that footer names where a row above it lives**, and that card holds renewal decisions and contracts sitting in review and nothing else. The number is not lost: the Compliance card opens the register sorted by risk, and Our standards is a door in the sidebar. hm-foot / hm-foot-card / data-foot-* / footTone / data-open-standards and the home_exp90_* / home_wait_* / home_risk_* keys are STALE — flag any mention. KPI cards are flat white hairline cards with a **3px top edge in the metric's own tone** (TONE_EDGE: steel→accent, amber, ruby, emerald — semantic, so the compliance card's edge follows its own percentage) — the hover must NEVER touch borderColor or it erases the edge. Figures wear Light 300; labels Bold 700. The pipeline pane lost its grey panel and vertical centring (background none, top-aligned); RING_MAX is 200.
 
@@ -1107,12 +1109,18 @@ fixed 460px column. All four are stated on the render itself. **The two panels
 join that list**, by the owner's own reversal above — the difference being that
 those four were never built and the panels were built and taken out.
 
-**AND ONE PRE-EXISTING RED WAS MEASURED, NOT CAUSED, BY THIS WORK**:
-theme-tokens-verify is **26/40** on the tree BEFORE any of this (checked by
-stashing) — the 22 Aug button and typography work moved colours on nine screens
-and its baseline was never re-recorded. The note under A NOTE ON
-theme-tokens-verify says 39/40 and is out of date. Re-recording it is a
-deliberate palette-ownership act and is nobody's to do in passing.
+**AND THE COLOUR CENSUS WAS MEASURED, NOT ASSUMED, AT EVERY STEP.** It read
+**26/40** on the tree BEFORE any of this (checked by stashing) — the 22 Aug
+button and typography work moved colours on nine screens and its baseline was
+never re-recorded. With this redesign in it reads **38/40**, and the two that
+fail are BOTH the negotiate screen in both themes, both on one value: the
+`.rl-pb-btn` accent border this section introduces
+(`color-mix(in srgb,var(--accent-solid) 50%,transparent)`) where a slate tint
+used to be. That is this redesign owning a colour on one page, which is exactly
+what the census is for — it is reported rather than re-recorded, because
+re-recording is a deliberate palette-ownership act and is nobody's to do in
+passing. The note under A NOTE ON theme-tokens-verify carries the older figure
+and is about a different tree.
 
 Tests: nego-redesign-verify (44, browser — every size as a COMPUTED value
 because this redesign is written as a block at the end of a 3,500-line sheet and
@@ -1126,6 +1134,70 @@ split), f184 and negotiations-door-verify (the door's word), f173 and f175 (the
 caption's size), paper-grows-verify (its whole subject — the magnification),
 redline-verify (the shadow, the sheet's margins, the card meta), parity-verify
 (the card meta), f95 (the phone block stays last in the sheet).
+
+## THE TWO HEADS SAY THE NAME AT ONE SIZE (owner-reported 22 Aug 2026, off three screenshots)
+
+Four reports the morning after the negotiation page took the mock-up's
+treatment, all four reproduced and MEASURED before anything was touched.
+
+- **"YOU HAVE PLACED THE BUTTONS ON THE LEFT SIDE OF THE SCREEN."** Nobody had
+  placed anything anywhere: **the head WRAPPED.** `.room-head` is
+  `flex-wrap:wrap` for the CONTRACT page, which needs it — its breadcrumb and
+  its fact row are full-width items that each take a line of their own — and
+  the negotiation page draws neither, so a long contract name simply pushed the
+  four acts onto a second line, where they start at the left margin like any
+  wrapped flex item. MEASURED on an 81-character name: the head went 52px →
+  85px and the acts moved **42px down and 581px away from its right edge**. It
+  is `flex-wrap:nowrap` on `.redline-page #ws-head` alone, so the contract page
+  keeps the wrap it depends on. **THE TITLE IS WHAT GIVES, NOT THE ROW** — it
+  already carries the ellipsis, and `min-width:0` on the items around it is
+  what lets a flex child shrink below its content at all.
+- **"THE FONT SIZE IN THE DOCUMENTS PAGE HEADER SHOULD BE THE SAME SIZE AS IN
+  THE NEGOTIATIONS PAGE."** One contract wore two title sizes depending on
+  which of its own pages you were standing on: the room's head was drawn to the
+  mock-up at 22px/700 and the negotiation head to the owner's approved render at
+  15px/600. **This REVERSES the 22 Aug "the room title took the design's own
+  22px/700" IN PLACE, and keeps the half of that decision that mattered** — the
+  size is a FIXED rung, never `clamp()`, so the fault that decision fixed (the
+  largest text on the page being the only fractional, softest thing on it) does
+  not come back. 15/600 wins because it is the one approved against a render.
+- **"THE FONT TYPE FOR THE TAB NAVIGATION HIGHLIGHTED SHOULD ALSO BE SIMILAR."**
+  MEASURED, the two rows already agreed on everything else — 14px resting, 700
+  live, the same teal, the same 2px underline — and differed on exactly ONE
+  value: a resting room tab was `--color-neutral-500`, the LABEL shade, while
+  the negotiation page's reading tabs rest on `--color-text`. That is the
+  four-shades rule pointing the wrong way: **a tab is a thing you read and
+  press, not metadata about one**, and at the label shade the three resting tabs
+  read as captions under the live one. The live state is what marks the live
+  tab; the resting ones do not have to be faded as well.
+- **"WHEN YOU SCROLL IN THE NEGOTIATIONS LIST OF CONTRACTS, IT BREAKS."**
+  `.ngl-band > td` pinned at `top:38px`, TYPED, against a register header that
+  renders **35px** — so a 3px slot sat between the two sticky things and every
+  row scrolled visibly through it. MEASURED: slot 2.7px, one row leaking. **A
+  number that has to agree with another element's height is one that agrees
+  until somebody changes a padding or a type size**, which this file did on
+  22 Aug and nothing said so. `regFitBandOffset` (js/views/register.js) reads
+  the header's own box and writes `--reg-head-h`; the rule is
+  `top:var(--reg-head-h,35px)`. TWO PROPERTIES, each already learned once here:
+  **a height of zero is not a height** (the pane can be `display:none` when a
+  sitting starts, and a 0 would pin every band to the top of the scroller), and
+  **it is OBSERVED, not measured once** — a ResizeObserver, bound once per
+  element, because the function is called from the full render AND every body
+  repaint.
+
+Tests: **pages-read-alike-verify** (20, browser — 9 of the 20 fail against the
+code of the morning before). A browser file because every claim is a computed
+value or a geometry: the two pages' rules live in two different sheets and one
+of them is a scoped block at the end of 3,500 lines, so what is asked is what
+each page DRAWS. **THE CLAIMS ARE RELATIONS, NOT NUMBERS** — "the same size on
+both pages", never "15px" — so the next type pass costs no test edits; the
+1,994-size sweep of 22 Aug cost five, four of them exactly this mistake. Two
+details worth keeping: the long name is FORCED into the live head (the seeded
+book's longest is 21 characters and a heavy record is re-read from the server on
+open, so the head is measured under the geometry actually reported), and the
+pinned band is found by PROXIMITY rather than by an exact match — matching
+exactly reports "nothing is pinned" for the very fault being measured, and then
+the slot below it is never counted.
 
 ## NEGOTIATE IS A PLACE, NOT A TAB (owner-asked, 12 Aug 2026)
 

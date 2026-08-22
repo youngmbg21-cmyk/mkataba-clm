@@ -1038,7 +1038,37 @@ function renderRegister(opts){
   document.getElementById('reg-only-clear')?.addEventListener('click',()=>{ R.only=null; R.page=1; regRepaint(); });
   document.getElementById('reg-clear-filters')?.addEventListener('click',()=>{ R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.category='all'; R.only=null; R.page=1; regRepaint(); });
 
+  regFitBandOffset();
   setActiveNav(_regOpts.nav);
+}
+
+/* ---- WHERE A BAND PINS IS THE HEADER'S HEIGHT, ASKED OF THE HEADER ----
+   The Negotiations list draws full-width bands between its rows and both they
+   and the column header are position:sticky inside #reg-scroll. The band's
+   offset was typed as 38px against a header that renders 35, so a 3px slot sat
+   between them and every row scrolled visibly through it — reported as the list
+   breaking on scroll (owner, 22 Aug 2026). The number is read off the header
+   now and written as --reg-head-h for the rule in index.html.
+   TWO PROPERTIES, each of which this codebase has learned once already:
+   A HEIGHT OF ZERO IS NOT A HEIGHT — the pane can be display:none when a
+   sitting starts, and writing 0 there would pin every band to the top of the
+   scroller — so a zero is refused and today's value stands.
+   AND IT IS OBSERVED, NOT MEASURED ONCE: the header's height follows the
+   reader's type and the window's width, so a ResizeObserver re-reads it. Bound
+   once per element (dataset.regHeadObserved), because this function is called
+   from the full render AND from every body repaint. */
+function regFitBandOffset(){
+  const sc=document.getElementById('reg-scroll'); if(!sc) return;
+  const hd=sc.querySelector('.reg-table thead tr'); if(!hd) return;
+  const apply=()=>{
+    const h=Math.round(hd.getBoundingClientRect().height);
+    if(h>0) sc.style.setProperty('--reg-head-h',h+'px');
+  };
+  apply();
+  if(!hd.dataset.regHeadObserved && typeof ResizeObserver==='function'){
+    hd.dataset.regHeadObserved='1';
+    try{ new ResizeObserver(apply).observe(hd); }catch(e){}
+  }
 }
 
 /* ---- E6-T1 full-text search dropdown (server mode) ---- */
@@ -1062,4 +1092,4 @@ function ftsSearch(q){
   },220);
 }
 Object.assign(window,{regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,regShowOnly,renderRegister,renderRegisterBody,wireRegRows,
-  regScope,regSetScope,regRepaint,regPageSize,NEGO_BANDS,NEGO_BAND_DOT,negoGroupByMove,negoBandCounts,negoMovePillHtml,negoBandRowHtml});
+  regScope,regSetScope,regRepaint,regPageSize,regFitBandOffset,NEGO_BANDS,NEGO_BAND_DOT,negoGroupByMove,negoBandCounts,negoMovePillHtml,negoBandRowHtml});
