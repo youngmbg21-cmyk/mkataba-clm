@@ -132,26 +132,36 @@ describe('f175 · every dialog in the feature wears the same head', () => {
     }
   });
 
-  test('a secondary button looks pressable — the .ui-btn dress, pinned', () => {
-    /* Reported TWICE (owner, 17 Aug 2026): "needs to be more visible that it
-       is a button", then "still not visible enough" after a first pass that
-       only darkened the grey border. Grey was the wrong axis — the folded
-       chip, the portal verbs and the Copilot launcher all learned the same
-       lesson — so the class wears the workspace ACCENT, mixed against the
-       surface so it holds in both themes. Pinned so a refactor cannot quietly
-       fade it back to furniture; the firmer hover border must never leak onto
-       the filled primary, which outranks it only at rest. */
+  test('a secondary button reads as a button, and only one act is filled', () => {
+    /* CLAIM REVERSED IN PLACE 22 Aug 2026 (owner-asked: "the theme of how the
+       buttons are designed should continue across the platform"). It pinned an
+       accent TINT and a lift, from the 17 Aug report ("needs to be more visible
+       that it is a button", twice). The design mock-up draws three strengths
+       and never more than ONE filled per page, so the tint came off: a row of
+       four tinted secondaries left the primary nothing to stand against.
+
+       THE 17 Aug LESSON IS WHAT THIS STILL PINS, and it is the half that
+       matters. That report was about GREY — the folded chip, the portal verbs
+       and the Copilot launcher all learned the same lesson. Flat is not grey:
+       the border and the ink are both the workspace accent, so the control
+       still announces itself. A refactor that fades either to a neutral fails
+       here exactly as it would have before. */
     const btn = /\.ui-btn\{([^}]*)\}/.exec(INDEX);
     assert.ok(btn, 'the class is defined');
-    assert.match(btn[1], /background:color-mix\(in srgb,var\(--accent-solid\) 10%,var\(--color-surface\)\)/,
-      'an accent tint at rest — a reader can see the control, in both themes');
-    assert.match(btn[1], /border:1px solid color-mix\(in srgb,var\(--accent-solid\) 45%,var\(--color-surface\)\)/,
-      'an accent border, mixed against the surface');
-    assert.match(btn[1], /color:color-mix\(in srgb,var\(--accent-solid\) 40%,var\(--color-text\)\)/,
-      'and accent-leaning ink that still follows the theme\'s text');
-    assert.match(btn[1], /box-shadow:0 1px 2px/, 'and a small crisp lift');
-    assert.match(INDEX, /\.ui-btn:not\(\.ui-btn-primary\):hover\{border-color:color-mix\(in srgb,var\(--accent-solid\) 70%,var\(--color-surface\)\)/,
+    assert.match(btn[1], /background:transparent/,
+      'flat at rest — the fill belongs to the page\'s one act');
+    assert.match(btn[1], /border:1px solid color-mix\(in srgb,var\(--accent-solid\) 45%,transparent\)/,
+      'an ACCENT border, never a neutral one — the 17 Aug lesson');
+    assert.match(btn[1], /color:var\(--color-accent-700\)/,
+      'and accent ink, so it never reads as furniture');
+    assert.doesNotMatch(btn[1], /box-shadow/,
+      'no lift: a flat control beside a filled one is the whole hierarchy');
+    assert.match(INDEX, /\.ui-btn:not\(\.ui-btn-primary\):hover\{border-color:var\(--accent-solid\)/,
       'the hover firms the border — and never over a filled primary');
+    /* The third level the mock-up draws: no border at all, for a head row where
+       several verbs sit beside one filled act. Still accent ink. */
+    assert.match(INDEX, /\.ui-btn-plain\{border-color:transparent;background:transparent;?\}/,
+      'the plain level exists for crowded head rows');
   });
 });
 

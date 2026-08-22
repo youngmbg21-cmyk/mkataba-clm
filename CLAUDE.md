@@ -612,6 +612,33 @@ THE 600 CUT IS THE SEMIBOLD DUPLEX AND IT STAYS. Measured: 24% more ink than Reg
 
 Tests: f173's caption weight reversed in place (800→700, the claim unchanged — it was already rendering 700).
 
+## THREE BUTTON LEVELS, ONE FILLED ACT PER PAGE (owner-asked 22 Aug 2026)
+
+"The theme of how the buttons are designed should continue across the platform." `.ui-btn` in index.html carries three strengths and every screen inherits them:
+
+- **`.ui-btn-primary`** — filled accent. **Exactly one per page.**
+- **`.ui-btn`** — accent border on a transparent face. An ordinary verb, still plainly a button.
+- **`.ui-btn-plain`** — accent text, no border. For a head row where several verbs sit beside the one filled act.
+
+**WHAT CHANGED IS THE FILL, NOT THE METRICS.** The base used to wear an accent TINT and a small lift, so a row of four secondaries read as four competing buttons and the primary had nothing to stand against. Padding, font size and weight are untouched (13px/600) **on purpose**: every button in the product wears this class, and the negotiation control row's four-rung fold ladder is measured in pixels — a metrics change here moves screens nobody was looking at. `.ui-btn-lg` (30px/14px/400) is the mock-up's own button size, scoped to the head rows drawn to its design.
+
+**THE 17 Aug LESSON IS KEPT AND IS THE REASON THIS IS SAFE.** That decision ("a secondary has to look pressable", reported twice) was about **GREY** — this product has learned three separate times that a neutral-grey control reads as furniture. **Flat is not grey**: border and ink are both the workspace accent. Only the tint behind them went. f175's claim was reversed in place and still fails on a neutral.
+
+**THREE FILLED BUTTONS BECAME ONE, and two of them reverse owner calls made earlier this month** — said out loud rather than slipped in: `ws-share` was filled on 09 Aug ("make the Share buttons visible in green"), `ws-new` was filled on the same call. Both are plain verbs now; the head's one fill goes to `wsNextAction`'s answer, which is the contract's own next act and therefore differs per contract. `ws-to-nego` (the Document tab's door onto the negotiation) dropped to the bordered level rather than to plain: it is the only way in from that tab, and the far right of a tab row is the one place a bare text verb genuinely gets missed. f91, f95 reversed in place.
+
+**THE NEGOTIATION ROW FOLLOWS THE SAME RULE FROM ITS OWN SHEET.** `.rl-btn` cannot simply BE `.ui-btn` — its metrics feed rlFitTabRow's ladder — so it keeps 11.5px/700 and takes the platform's FACE. Change one, change the other. `.rl-btn-go` is that page's single fill; `.rl-btn-alt` keeps its violet because the playbook pass is the one control there that changes nothing on the table.
+
+## THE CONTRACT ROOM'S HEAD IS A BREADCRUMB, A TITLE AND FOUR FACTS (owner-asked 22 Aug 2026)
+
+Redesigned to the mock-up, and the region was ringed in a screenshot: everything above the tab strip.
+
+- **A BREADCRUMB, NOT A BACK ARROW.** `#ws-back` **is still the button** — same id, same title, same `data-back`, same handler in wireRoomHead — restyled as the crumb it always behaved like. That is what makes it safe on the negotiation page, where this control is the only way back to the agreement. `.room-back` is STALE.
+- **STATUS IS COLOURED TEXT** — `contractStatusTextHtml` (js/core.js), sharing STATUS_META and the partially-signed and expired branches with `contractStatusChip` so word and tone can never disagree. **The chip is NOT retired**: every register row, card and list still wears it, and there it is right — a scanned column needs a shape to catch the eye, which is the opposite of a head row's problem.
+- **THE RUN-TOGETHER SUB-LINE BECAME A FACT ROW.** It opened "MK-B2 · Sales & Route-to-Market · Round 1 · KES 78,000,000 · updated 10 Jul 2026" — five kinds of fact in one grey sentence, none labelled. `roomFactsHtml` draws four label-above-value pairs divided by hairlines, the same treatment Key terms uses one screen down. It **borrows every reading**: negoMovePillHtml for whose move (the register's own builder), fmtMoneyOf for the amount in the contract's own currency, docTermSpan for the term. An absent fact is drawn and named with an em-dash, never omitted — a row that loses a column reads as a different page.
+- **A COLLAPSE CONTROL** overhangs the row's lower rule, centred. It folds the FACTS only: title, status and acts never move, because a head whose buttons jump when you fold it is one you stop folding. Per sitting, in memory, a class flip and never a repaint (the head is built once per render; a repaint would drop the acts' handlers).
+- **NOT DRAWN ON THE WORKBENCH** — that page's head is one compact row by the mock-up's own drawing, and the facts a negotiator needs (round, whose move) are already on its own row.
+- **AND THE FACT ROW SITS AFTER THE ACTS IN SOURCE ORDER**, which is load-bearing: `.room-head` wraps, and a full-width item placed before the acts pushes them onto a line of their own. Caught by photographing it.
+
 ## THE SHELL'S SYMBOLS ARE ONE SET, DEFINED ONCE (owner-asked 22 Aug 2026)
 
 Twenty-seven line symbols from the design mock-up, in a `<defs>` sprite at the top of index.html's body, referenced with `<use href="#i-…">`. One rule for all of them: a 16x16 box, a hairline stroke, `currentColor`, no fills except where a mark is genuinely solid (the Copilot spark, the overflow dots, the settings handles).

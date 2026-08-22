@@ -578,25 +578,52 @@
   html.dark .hover\:border-indigo-300:hover{border-color:rgba(99,102,241,.5);}
 
   /* buttons */
-  /* A SECONDARY BUTTON HAS TO LOOK PRESSABLE — reported TWICE (owner, 17 Aug
-     2026, off the Playbook panel's Re-run and the room's More: "needs to be
-     more visible that it is a button", then "they are both still not visible
-     enough for a user" after a first pass that only darkened the grey border).
-     Grey was the wrong axis: this product has already learned three times
-     that a neutral-grey control reads as furniture — the folded-notices chip,
-     the counterparty's reading verbs (.pt-verb) and the Copilot launcher all
-     ended up wearing the workspace ACCENT for exactly this reason. So the
-     base class now wears the same established treatment: an accent tint
-     mixed against the surface (holds in both themes without assuming either),
-     an accent border, accent-leaning ink, and a small crisp lift. One class,
-     once, for every secondary button in the product. The primary's filled
-     face overrides all of it and is untouched. */
-  .ui-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:13px;line-height:1.2;color:color-mix(in srgb,var(--accent-solid) 40%,var(--color-text));background:color-mix(in srgb,var(--accent-solid) 10%,var(--color-surface));border:1px solid color-mix(in srgb,var(--accent-solid) 45%,var(--color-surface));border-radius:0;padding:6px 12px;box-shadow:0 1px 2px rgba(15,23,42,.08);transition:background .15s,border-color .15s,color .15s;}
-  .ui-btn:hover{background:color-mix(in srgb,var(--accent-solid) 18%,var(--color-surface));}
+  /* ---- THREE LEVELS, ONE RULE, EVERY SCREEN (owner-asked 22 Aug 2026: "the
+     theme of how the buttons are designed should continue across the
+     platform") ----
+
+     The design mock-up draws buttons at three strengths and never more than
+     ONE filled per page:
+       .ui-btn-primary   filled accent      — the page's single act
+       .ui-btn           accent border      — an ordinary verb, still a button
+       .ui-btn-plain     accent text only   — a verb in a crowded head row
+
+     WHAT CHANGED IS THE FILL, NOT THE METRICS. The base used to carry an
+     accent TINT and a small lift, which made a row of four secondaries read as
+     four competing buttons and left nothing for the primary to stand against.
+     It is flat now: transparent face, accent border, accent ink.
+
+     THE 17 Aug LESSON IS KEPT, and this is the important half. That decision
+     ("a secondary has to look pressable", reported twice) was about GREY —
+     this product has learned three separate times that a neutral-grey control
+     reads as furniture. Flat is not grey: the border and the ink are both the
+     workspace accent, so the control still announces itself. What went is only
+     the tint behind it.
+
+     PADDING, FONT SIZE AND WEIGHT ARE DELIBERATELY UNTOUCHED (13px/600,
+     6px 12px). Every button in the product wears this class, so a change of
+     metrics here moves layout on screens nobody in this change is looking at —
+     including the negotiation control row, whose four-rung fold ladder is
+     measured in pixels. The head rows that wanted the mock-up's larger, lighter
+     button take .ui-btn-lg below rather than dragging the whole product with
+     them. */
+  .ui-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:13px;line-height:1.2;color:var(--color-accent-700);background:transparent;border:1px solid color-mix(in srgb,var(--accent-solid) 45%,transparent);border-radius:0;padding:6px 12px;transition:background .15s,border-color .15s,color .15s;}
+  .ui-btn:hover{background:color-mix(in srgb,var(--accent-solid) 10%,transparent);}
   /* :not(.ui-btn-primary): the hover rule outranks the primary's resting
      border on specificity, and a ring flashing over a filled navy button
      is the kind of leak that gets reported as flicker. */
-  .ui-btn:not(.ui-btn-primary):hover{border-color:color-mix(in srgb,var(--accent-solid) 70%,var(--color-surface));}
+  .ui-btn:not(.ui-btn-primary):hover{border-color:var(--accent-solid);}
+  /* PLAIN — no border at all, for a head row where three or four verbs sit
+     beside one filled act. Bordering every one of them turns the row into a
+     fence; the mock-up's contract-room head is drawn exactly this way. Still
+     accent ink, so it never becomes the grey furniture of the 17 Aug report. */
+  .ui-btn-plain{border-color:transparent;background:transparent;}
+  .ui-btn-plain:hover{background:color-mix(in srgb,var(--accent-solid) 10%,transparent);border-color:transparent;}
+  /* LARGE — the mock-up's own button metrics (30px tall, 14px, regular
+     weight), scoped to the head rows that were redesigned to its drawing.
+     Deliberately NOT the base: see the note above about the fold ladder. */
+  .ui-btn-lg{height:30px;padding:0 12px;font-size:14px;font-weight:400;}
+  .ui-btn-lg.ui-btn-primary{font-weight:700;}
   /* HIDING A BUTTON HAS TO ACTUALLY HIDE IT. The rule above sets a display, and
      an author rule beats the browser's own [hidden]{display:none} — so every
      `btn.hidden = true` in this app was leaving the button standing on screen,
@@ -606,11 +633,15 @@
      rules at all and cannot see either the fault or the fix — the proof lives
      in the browser verifies. */
   .ui-btn[hidden]{display:none!important;}
-  .ui-btn-primary{background:var(--accent-solid);color:#fff;border-color:var(--accent-solid);box-shadow:0 4px 14px -4px color-mix(in srgb,var(--accent-solid) 55%,transparent);}
+  /* The one filled act. Its glow came off with the tint above — a filled
+     accent face is already the strongest thing on any of these pages, and the
+     14px halo was what made two of them side by side read as equals. */
+  .ui-btn-primary{background:var(--accent-solid);color:#fff;border-color:var(--accent-solid);}
   .ui-btn-primary:hover{background:var(--accent-solid-hover);}
-  /* Secondary action beside a primary: outlined in the accent so it reads as
-     a button against the page background, without competing with the filled
-     primary next to it. */
+  /* Secondary action beside a primary. It now resolves to the same face as the
+     base class, which is the point — the base IS the outlined level since 22
+     Aug 2026. Kept as a name because ~40 call sites use it and a class that
+     agrees with the base is cheaper than a sweep that might miss one. */
   .ui-btn-secondary{color:var(--color-accent-700);border-color:color-mix(in srgb,var(--accent-solid) 45%,transparent);}
   .ui-btn-secondary:hover{background:color-mix(in srgb,var(--accent-solid) 9%,transparent);border-color:var(--accent-solid);}
   .ui-btn:disabled{opacity:.45;cursor:not-allowed;}
@@ -882,8 +913,53 @@
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .room-head .room-sub{ font-size:11.5px; color:var(--color-neutral-600); margin-top:3px;
     overflow-wrap:anywhere; }
-  .room-head .room-acts{ display:flex; align-items:center; gap:8px; flex:none; }
-  .room-back{ width:34px; height:34px; padding:0; flex:none; margin-top:2px; }
+  .room-head .room-acts{ display:flex; align-items:center; gap:6px; flex:none; }
+  /* ---- THE BREADCRUMB (22 Aug 2026) ----
+     #ws-back is still the button and still carries every route it carried as a
+     34px arrow; only its clothes changed. It sits on its own line ABOVE the
+     title, which is what makes the row below it a clean title-plus-acts line
+     rather than a title with a box bolted to its left. .room-back is retired —
+     flag any mention as stale. */
+  .room-head{ position:relative; }
+  .room-crumb{ flex-basis:100%; display:flex; align-items:center; gap:7px;
+    font-size:12px; color:var(--color-neutral-600); min-height:16px; margin-bottom:2px; }
+  .room-crumb button{ font:inherit; color:var(--color-accent-700); background:none;
+    border:0; padding:0; cursor:pointer; max-width:40ch; overflow:hidden;
+    text-overflow:ellipsis; white-space:nowrap; }
+  .room-crumb button:hover{ text-decoration:underline; }
+  .room-crumb i{ font-style:normal; color:var(--color-neutral-400); }
+  .room-crumb-here{ font-variant-numeric:tabular-nums; }
+  /* Status as words. The tone comes inline from STATUS_META, so this rule
+     carries only the shape — see contractStatusTextHtml. */
+  .room-stat{ font-size:13.5px; font-weight:700; white-space:nowrap; flex:none; }
+  /* ---- THE FACT ROW ----
+     Label above value, divided by hairlines, four across. The same treatment
+     Key terms uses one screen down, which is the point: a reader who learns to
+     read facts here reads them the same way there. */
+  .room-facts{ flex-basis:100%; position:relative; margin-top:10px; padding-bottom:12px;
+    box-shadow:inset 0 -1px var(--color-divider); }
+  .room-facets{ display:flex; flex-wrap:wrap; row-gap:10px; }
+  .room-facet{ margin-right:28px; padding-right:28px;
+    border-right:1px solid var(--color-divider); min-width:0; }
+  .room-facet:last-child{ border-right:0; margin-right:0; padding-right:0; }
+  .room-facet .l{ font-size:11.5px; color:var(--color-neutral-600); line-height:16px; }
+  .room-facet .v{ font-size:14px; line-height:20px; color:var(--color-text);
+    max-width:34ch; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .room-facet-none{ color:var(--color-neutral-400); }
+  /* The whose-move facet borrows the register's builder, which brings its own
+     class and colour; it must not also inherit the facet's ellipsis clamp. */
+  .room-facet .v .ngl-w{ font-weight:700; }
+  /* Overhangs the row's lower rule, centred — the mock-up's own placement. */
+  .room-snap{ position:absolute; left:0; right:0; bottom:-9px; height:18px;
+    display:flex; justify-content:center; pointer-events:none; }
+  .room-snap button{ pointer-events:auto; background:var(--color-surface);
+    border:1px solid var(--color-divider); height:18px; padding:0 10px; display:flex;
+    align-items:center; gap:6px; font:inherit; font-size:11px;
+    color:var(--color-neutral-600); cursor:pointer; line-height:1; }
+  .room-snap button:hover{ color:var(--color-text); border-color:var(--color-neutral-400); }
+  /* Folded: the FACTS go, the title, status and acts do not move. */
+  .room-facts.is-folded .room-facets{ display:none; }
+  .room-facts.is-folded{ padding-bottom:0; margin-top:6px; }
   /* ---- THE TITLE AS A DOOR, ON THE NEGOTIATION SCREEN ONLY ----
      That page has no tab row, so the head's arrow is the only way off it — and
      the name beside the arrow is the biggest target on the screen, which is

@@ -463,6 +463,26 @@ const contractStatusChip = c => contractPartiallySigned(c)
 const statusChip = s => { const m=STATUS_META[s]||STATUS_META.Draft;
   return `<span class="badge" style="background:${m.bg};color:${m.tx}">${m.label}</span>`; };
 
+/* ---- THE SAME STATUS, SAID AS WORDS (owner-asked 22 Aug 2026) ----
+   The design mock-up states a contract's stage as COLOURED TEXT beside the
+   title rather than as a filled badge, and the reason shows on a head row: a
+   badge is a small block of colour competing with the one filled button the
+   row is meant to lead with, and at the top of a page the reader is already
+   looking at the title, so the badge is shouting at somebody who is listening.
+
+   ONE READING, TWO DRESSES. This shares STATUS_META and the partially-signed
+   and expired branches with contractStatusChip above, so the word and the tone
+   can never disagree between a head that prints text and a table that prints a
+   chip. THE CHIP IS NOT RETIRED: every register row, card and list still wears
+   it, and there it is right — a scanned column needs a shape to catch the eye,
+   which is the opposite of a head row's problem. */
+const contractStatusTextHtml = c => {
+  const m = contractPartiallySigned(c) ? PARTIAL_META
+    : contractExpired(c) ? EXPIRED_META
+    : (STATUS_META[c && c.status] || STATUS_META.Draft);
+  return `<span class="room-stat" style="color:${m.tx}">${m.label}</span>`;
+};
+
 // ---- Share dispatch traffic lights ----
 // A share (one recipient's tracked link) moves sent → opened → signed /
 // changes / declined; expired and revoked are dead ends. State is derived
@@ -5615,4 +5635,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,isArchived,contractSetArchived,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,isArchived,contractSetArchived,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});

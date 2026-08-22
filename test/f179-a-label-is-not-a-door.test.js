@@ -103,7 +103,13 @@ describe('F179 — the desk chip states who, and does nothing else', () => {
 
 describe('F179 — "More" says it is a button and says what it opens', () => {
   test('it carries a word and a caret, not just a glyph', () => {
-    assert.match(CONTRACT, /id="ws-more" class="ui-btn ws-more-btn"/);
+    /* CLASS LIST WIDENED 22 Aug 2026 (the platform button treatment): the
+       button gained .ui-btn-lg .ui-btn-plain so it sits on the head row's own
+       baseline as a plain verb beside the one filled act. What this test is
+       really about — that the control carries a WORD and a CARET rather than
+       three bare dots — is unchanged, so the anchor is loosened to the two
+       classes that identify it rather than pinned to the whole list. */
+    assert.match(CONTRACT, /id="ws-more" class="ui-btn[^"]*\bws-more-btn\b/);
     assert.match(CONTRACT, /<span class="ws-more-word">\$\{i18t\('ct_more'\)\}<\/span>/,
       'the word answers "what is this for"');
     assert.match(CONTRACT, /<span class="ws-more-caret"/, 'the caret answers "is it a button"');

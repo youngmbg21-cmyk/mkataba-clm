@@ -1378,14 +1378,37 @@ function redlineLayoutCss(){
   .rl-notices .nego-readysig{margin:0!important;pointer-events:auto;
     box-shadow:0 16px 36px -14px rgba(15,23,42,.34)}
   .rl-notices .nego-readysig .nego-tbtn{align-self:flex-start}
-  .redline-page .rl-btn{border:1px solid transparent;font:inherit;font-size:11.5px;font-weight:700;padding:6px 12px;
+  /* ---- THIS ROW FOLLOWS THE PLATFORM'S BUTTON RULE (owner-asked 22 Aug 2026:
+     "the theme of how the buttons are designed should continue across the
+     platform") ----
+     Three levels, the same three .ui-btn carries in index.html: the ordinary
+     verb wears an accent border on a transparent face, and exactly ONE control
+     on the page is filled. This row cannot simply USE .ui-btn — its metrics are
+     load-bearing, because rlFitTabRow measures the row in pixels against a
+     four-rung fold ladder — so it keeps its own 11.5px/700 sizing and takes the
+     platform's FACE. Change one, change the other. */
+  .redline-page .rl-btn{border:1px solid color-mix(in srgb,var(--accent-solid) 45%,transparent);
+    background:transparent;color:var(--color-accent-700);
+    font:inherit;font-size:11.5px;font-weight:700;padding:6px 12px;
     border-radius:0;cursor:pointer;white-space:nowrap}
+  .redline-page .rl-btn:hover:not(:disabled){background:color-mix(in srgb,var(--accent-solid) 10%,transparent);
+    border-color:var(--accent-solid)}
   .redline-page .rl-btn:disabled{opacity:.45;cursor:not-allowed}
-  .redline-page .rl-btn-alt{background:color-mix(in srgb,#8b5cf6 12%,transparent);color:#6d28d9;
-    border-color:color-mix(in srgb,#8b5cf6 32%,transparent)}
+  /* The playbook pass keeps a colour of its own — it is the one control here
+     that is not about THIS negotiation's traffic, and the violet is what tells
+     a reader at a glance that pressing it changes nothing on the table. */
+  .redline-page .rl-btn-alt{background:transparent;color:#6d28d9;
+    border-color:color-mix(in srgb,#8b5cf6 45%,transparent)}
+  .redline-page .rl-btn-alt:hover:not(:disabled){background:color-mix(in srgb,#8b5cf6 10%,transparent);
+    border-color:#8b5cf6}
   html.dark .redline-page .rl-btn-alt{color:#c4b5fd}
+  /* THE PAGE'S ONE FILLED ACT. Its glow came off with the platform's — a filled
+     accent face is already the loudest thing on this row, and the halo was what
+     made it read as a third weight beside the amber batch send. */
   .redline-page .rl-btn-go{background:var(--accent-solid);color:#fff;
-    box-shadow:0 4px 14px -4px color-mix(in srgb,var(--accent-solid) 60%,transparent)}
+    border-color:var(--accent-solid)}
+  .redline-page .rl-btn-go:hover:not(:disabled){background:var(--accent-solid-hover);
+    border-color:var(--accent-solid-hover)}
 
   /* ---- THE BATCH SEND, AND WHY IT FLASHES ----
      An unsent draft is the one state in this workbench that looks finished and

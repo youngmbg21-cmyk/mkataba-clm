@@ -956,6 +956,15 @@ const STRINGS = {
     ct_not_set: 'Not set',
     ct_pick_a_date: 'Pick a date',
     ct_value_stream: 'Value stream',
+    /* THE ROOM HEAD'S FACT ROW (22 Aug 2026). The other three labels there are
+       borrowed from the register's own column headings, so the head and the
+       table name the same fact the same way; these two had no owner yet. */
+    ct_term_label: 'Term',
+    ct_term_span: '{len} to {to}',
+    ct_collapse: 'Collapse',
+    ct_collapse_facts_title: 'Hide these facts and give the height to the contract',
+    ct_expand_facts_title: 'Show the contract\u2019s key facts again',
+    ct_expand: 'Expand',
     /* Re-filing a contract — an admin's act, and the one edit on Key terms that
        changes who can open the record, so the confirm says so before it lands. */
     ct_refile_title: 'Move to {to}?',
@@ -5253,7 +5262,13 @@ const STRINGS = {
     ct_executed_sealed: 'Undertecknat och förseglat',
     ct_not_set: 'Inte angivet',
     ct_pick_a_date: 'Välj ett datum',
-    ct_value_stream: 'Värdeflöde',
+    ct_value_stream: 'V\u00e4rdefl\u00f6de',
+    ct_term_label: 'L\u00f6ptid',
+    ct_term_span: '{len} till {to}',
+    ct_collapse: 'F\u00e4ll ihop',
+    ct_collapse_facts_title: 'D\u00f6lj dessa uppgifter och ge h\u00f6jden till avtalet',
+    ct_expand_facts_title: 'Visa avtalets nyckeluppgifter igen',
+    ct_expand: 'Expandera',
     ct_refile_title: 'Flytta till {to}?',
     ct_refile_body: '{name} ligger under {from}. Att flytta det till {to} ändrar vilka som kan öppna det.',
     ct_refile_now: '{n} av {total} personer kan se det nu;',

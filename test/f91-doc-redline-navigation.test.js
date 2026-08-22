@@ -317,14 +317,24 @@ describe('F91 (1,2) — the Doc page header and its sub-navigation', () => {
     assert.match(end, /id="ws-to-nego"/, 'the door is what is in that slot');
     assert.ok(end.indexOf('rlTypeStepHtml()') < end.indexOf('id="ws-to-nego"'),
       'and it sits past the text-size stepper');
-    /* Shaded like Draft new agreement — which is ui-btn-primary, the head's
-       own solid fill. Read against that button rather than against a colour,
-       so restyling the primary restyles both. */
-    /* The amber dot after the fill is the "this press is owed" mark, not a
-       second style: the button is still the head's own primary underneath. */
-    assert.match(end, /id="ws-to-nego" class="ui-btn ui-btn-primary\$\{needs\?' ws-to-nego-due':''\}/);
-    assert.match(s, /id="ws-new" data-page-new class="ui-btn ui-btn-primary/,
-      'the button it is drawn to match');
+    /* ---- CLAIM REVERSED IN PLACE 22 Aug 2026 ----
+       It read "and FILLED", matched against Draft new agreement's own fill.
+       Both buttons lost that fill on the owner's ask ("the theme of how the
+       buttons are designed should continue across the platform"): the design
+       mock-up spends exactly ONE filled button per page, and the head above
+       spends it on the contract's own next act. Two equally loud greens on one
+       tab is the absence of a hierarchy, not the presence of two.
+
+       WHAT THE TEST STILL PINS is the half that was ever load-bearing — this
+       door is a real bordered button and not a bare text link, because it is
+       the only way onto the negotiation from this tab and the far right of a
+       tab row is where a plain verb genuinely can be missed. And the amber
+       "this press is owed" mark still outranks it. */
+    assert.match(end, /id="ws-to-nego" class="ui-btn\$\{needs\?' ws-to-nego-due':''\}/);
+    assert.doesNotMatch(end, /id="ws-to-nego" class="ui-btn ui-btn-primary/,
+      'not a second filled act: the head above already spends the page\'s one fill');
+    assert.match(s, /id="ws-new" data-page-new class="ui-btn ui-btn-lg ui-btn-plain/,
+      'Draft new agreement is a plain verb in the head now, for the same reason');
     /* Only on the Document tab — but ALWAYS on it. */
     assert.match(end, /_wsTab!=='docs'/);
     /* ---- IT MUST NOT HIDE ITSELF ANY MORE ----

@@ -2827,7 +2827,20 @@ function wsTabRowEndHtml(c){
   const label=!started ? i18t('ct_start_negotiating')
     : needs ? i18t('ct_open_negotiate_n',{n:needs})
     : i18t('ct_open_negotiate');
-  const door=`<button type="button" id="ws-to-nego" class="ui-btn ui-btn-primary${needs?' ws-to-nego-due':''}"
+  /* ---- NOT THE PAGE'S FILLED ACT (22 Aug 2026) ----
+     One filled button per page is the mock-up's rule, and the head above
+     already spends it on the contract's own next act (Send to counterparty,
+     Sign, Approve — whatever wsNextAction answers). This door was filled too,
+     so a reader arriving on the Document tab met two equally loud greens and
+     no hierarchy at all.
+
+     IT KEEPS ITS BORDER rather than going plain: it is the only door onto the
+     negotiation from this tab, and a bare text verb at the far right of a tab
+     row is the one place in this design a control genuinely can be missed.
+     Ghost is the level between — a button, plainly, but not competing.
+     The amber `ws-to-nego-due` face when changes need this reader is untouched,
+     and still outranks this. */
+  const door=`<button type="button" id="ws-to-nego" class="ui-btn${needs?' ws-to-nego-due':''}"
     style="flex:none;font-size:12.5px;padding:7px 14px" title="${esc(i18t('ct_open_negotiate_title'))}">${label}</button>`;
   return step+door;
 }
@@ -4683,6 +4696,61 @@ function wireWsFocus(c){
    reaches for from here: the overflow, Share, and whatever this contract needs
    done next. Every other verb is inside the "⋯", with the id it always had, so
    nothing was removed and nothing that pressed one of them has to change. */
+/* The head's fact row. One facet per question somebody opens a contract to
+   answer; every value is borrowed from the reading that already owns it, so
+   this row can never be the place two surfaces start disagreeing.
+
+   AN ABSENT FACT IS DRAWN AND NAMED, not omitted. A row that silently loses a
+   column when a contract has no value reads as a different page rather than as
+   the same page with one thing unanswered — and "not set" is exactly the prompt
+   somebody needs. The em-dash is the same projection the read-only document
+   uses for an unfilled blank. */
+/* Whether the head's fact row is folded. Per sitting, in memory — see the note
+   in wireRoomHead. */
+let _wsFactsFolded=false;
+function roomFactsHtml(c){
+  const dash='<span class="room-facet-none">&mdash;</span>';
+  const money=(typeof fmtMoney==='function'&&Number(c.value)>0)
+    ? esc(window.fmtMoneyOf?fmtMoneyOf(c):fmtMoney(c.value)) : dash;
+  /* docTermSpan is the ONE reading of this contract's term and returns
+     {from,to,len} — the same three the term clause itself is drafted from, so
+     the facet and the paper can never state different dates. Where it refuses
+     (no effective date, or a term that runs backwards, which it treats as a
+     typo rather than a term) the expiry alone is still worth saying, printed in
+     the register's own dotted form so a date reads the same in both places
+     rather than as a raw ISO string. */
+  const dot=iso=>(window.regDotDate?regDotDate(iso):String(iso||''));
+  const term=(()=>{ try{
+      const t=window.docTermSpan?docTermSpan(c):null;
+      if(t&&t.len&&t.to) return esc(i18t('ct_term_span',{len:t.len,to:dot(c.expiry||'')}));
+      if(t&&t.to) return esc(dot(c.expiry||''));
+    }catch(_){}
+    return c.expiry?esc(dot(c.expiry)):dash; })();
+  /* The register's own builder, markup and all — it already carries the four
+     answers (needs you / with them / nothing outstanding / no live copy) and
+     the colour each of them wears. */
+  const move=(window.negoMovePillHtml&&c.negotiation)?negoMovePillHtml(c):'';
+  const F=(typeof window!=='undefined'&&window.FOLDERS)||{};
+  const facets=[
+    [i18t('reg_col_counterparty'), c.counterparty?esc(c.counterparty):dash],
+    [i18t('reg_col_value'), money],
+    [i18t('ct_term_label'), term],
+    move ? [i18t('ngl_col_move'), move]
+         : [i18t('ct_value_stream'), F[c.folder]?esc(F[c.folder].name):dash],
+  ];
+  return `<div class="room-facts" id="ws-facts">
+    <div class="room-facets">${facets.map(([l,v])=>
+      `<div class="room-facet"><div class="l">${esc(l)}</div><div class="v">${v}</div></div>`).join('')}</div>
+    ${''/* The collapse control overhangs the row's lower edge, centred — the
+           mock-up's own placement, and it is where a reader looks for "make
+           this smaller" without it costing the row a slot. It hides the FACTS
+           only; the title, the status and the acts never move, because a head
+           whose buttons jump when you fold it is a head you stop folding. */}
+    <div class="room-snap"><button type="button" id="ws-facts-toggle" aria-expanded="true"
+      title="${esc(i18t('ct_collapse_facts_title'))}"><span class="room-snap-word">${
+      esc(i18t('ct_collapse'))}</span></button></div>
+  </div>`;
+}
 function roomHeadHtml(c,opts={}){
   const _wr=state.wsReturn||{};
   /* window.FOLDERS, not the bare global. The negotiation workbench calls this
@@ -4712,11 +4780,11 @@ function roomHeadHtml(c,opts={}){
   if(opts.primary===undefined){
     const na=(!locked&&may&&window.wsNextAction)?wsNextAction(c):null;
     primary=locked
-      ? `<button id="ws-evidence" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:7px 14px">${icon('download','w-3.5 h-3.5')} Evidence pack</button>`
+      ? `<button id="ws-evidence" class="ui-btn ui-btn-lg ui-btn-primary">${icon('download','w-3.5 h-3.5')} Evidence pack</button>`
       /* A next action may have no button of its own — see wsNextAction's
          intent-to-sign branch. It still answers the status line; it just does
          not earn the head's primary slot. */
-      : (na && !na.noButton) ? `<button id="ws-next-action" data-na="${na.kind}" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:7px 14px">${icon(na.ic,'w-3.5 h-3.5')} ${na.label}</button>`
+      : (na && !na.noButton) ? `<button id="ws-next-action" data-na="${na.kind}" class="ui-btn ui-btn-lg ui-btn-primary">${icon(na.ic,'w-3.5 h-3.5')} ${na.label}</button>`
       : '';
   }
   /* ---- DRAFT NEW AGREEMENT SITS AFTER THE CONTRACT'S OWN NEXT ACT ----
@@ -4736,7 +4804,7 @@ function roomHeadHtml(c,opts={}){
      its own (Publish Round) and is a working surface, not a landing — offering
      to start a different agreement mid-round is noise. */
   const newBtn=(opts.primary===undefined&&may&&!(typeof PORTAL_MODE!=='undefined'&&PORTAL_MODE))
-    ? `<button id="ws-new" data-page-new class="ui-btn ui-btn-primary room-new" style="font-size:12.5px;padding:7px 14px">${icon('plus','w-3.5 h-3.5')} ${i18t('home_draft_new')}</button>`
+    ? `<button id="ws-new" data-page-new class="ui-btn ui-btn-lg ui-btn-plain room-new">${icon('plus','w-3.5 h-3.5')} ${i18t('home_draft_new')}</button>`
     : '';
   /* ---- THE WAY OUT OF A NEGOTIATION IS BACK TO ITS AGREEMENT ----
      The negotiation screen carries no room tabs (owner's call, 12 Aug 2026), so
@@ -4757,7 +4825,24 @@ function roomHeadHtml(c,opts={}){
   const backC=!!opts.backToContract;
   const backTitle=backC?i18t('ct_back_to_agreement'):backLabel;
   return `<section class="room-head" id="ws-head">
-    <button id="ws-back" title="${esc(backTitle)}" class="ui-btn room-back"${backC?' data-back="contract"':''}>${icon('arrowLeft','w-4 h-4')}</button>
+    ${''/* ---- A BREADCRUMB, NOT A BACK ARROW (owner-asked 22 Aug 2026, off the
+           design mock-up) ----
+           The arrow was a 34px box holding a glyph, and it answered "where does
+           this go?" only by hovering it. A breadcrumb says where you are AND
+           where the way out lands, in words, in the place every other product
+           puts it.
+
+           #ws-back IS STILL THE BUTTON — restyled, not replaced. Its id, its
+           title, its data-back and its handler in wireRoomHead are untouched,
+           so every route and every test that presses it works exactly as
+           before; what changed is that it now reads as the crumb it always
+           behaved like. That is also why this is safe on the negotiation page,
+           where this arrow is the ONLY way back to the agreement. */}
+    <nav class="room-crumb" aria-label="Breadcrumb">
+      <button id="ws-back" type="button" title="${esc(backTitle)}"${backC?' data-back="contract"':''}>${
+        backC ? esc(c.name) : esc(i18t('ct_back_register'))}</button>
+      <i aria-hidden="true">/</i><span class="room-crumb-here">${esc(c.id)}</span>
+    </nav>
     <div class="room-id">
       <div class="room-name">
         ${''/* THE NAME IS PART OF THE WAY BACK on the negotiation screen. It is
@@ -4769,8 +4854,13 @@ function roomHeadHtml(c,opts={}){
         ${backC
           ? `<h1><button type="button" id="ws-back-title" class="room-title-back" title="${esc(backTitle)}">${esc(c.name)}</button></h1>`
           : `<h1>${esc(c.name)}</h1>`}
-        <span id="ws-status" style="flex:none">${window.contractStatusChip?contractStatusChip(c)
-          :(window.statusChip?statusChip(c.status):esc(c.status||''))}</span>
+        ${''/* COLOURED TEXT, NOT A BADGE — see contractStatusTextHtml. The chip
+               survives everywhere it is scanned in a column; a head row is read,
+               not scanned, and a block of colour here competes with the one
+               filled act the row is supposed to lead with. */}
+        <span id="ws-status" style="flex:none">${window.contractStatusTextHtml?contractStatusTextHtml(c)
+          :(window.contractStatusChip?contractStatusChip(c)
+          :(window.statusChip?statusChip(c.status):esc(c.status||'')))}</span>
       </div>
       ${''/* ---- THE ROUND READS WITH THE OTHER FACTS ABOUT THE CONTRACT ----
              It used to be an amber chip at the end of the workbench's tab row,
@@ -4780,7 +4870,7 @@ function roomHeadHtml(c,opts={}){
              reads here — on every tab, from one line (Young, 10 Aug 2026).
              Drawn only where there IS a negotiation: "Round 1" over a draft
              nobody has redlined is a number about nothing. */}
-      <div class="room-sub">${c.id}${F[c.folder]?' · '+esc(F[c.folder].name):''}${
+      <div class="room-sub">${F[c.folder]?esc(F[c.folder].name):''}${
         c.archived?' · '+i18t('ct_archived_tag'):''}${
         (c.negotiation&&window.negoRound)?' · '+i18t('ct_round_n',{n:negoRound(c)}):''}${
         ''/* What the Negotiate tab's amber count used to say, now that the tab
@@ -4836,7 +4926,7 @@ function roomHeadHtml(c,opts={}){
              purple buttons fold, without the button changing identity — its
              id, its title and its textContent-based tests are untouched. */}
       <div style="position:relative;flex:none">
-        <button id="ws-more" class="ui-btn ws-more-btn" aria-haspopup="true" aria-expanded="false"
+        <button id="ws-more" class="ui-btn ui-btn-lg ui-btn-plain ws-more-btn" aria-haspopup="true" aria-expanded="false"
           title="${i18t('ct_everything_else')}">
           <span aria-hidden="true" style="font-size:15px;line-height:1">&#8943;</span>
           <span class="ws-more-word">${i18t('ct_more')}</span>
@@ -4901,16 +4991,59 @@ function roomHeadHtml(c,opts={}){
              (Document, Key terms, Signing, History) AND by renderRedline
              (Negotiate) — there is no second Share markup anywhere, so this is
              the whole of the change. See THE MAP's five-tabs section. */}
-      ${may?`<button id="ws-share" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:7px 14px" title="${esc(i18t('ct_share_with_cp'))}">${icon('share','w-3.5 h-3.5')} ${i18t('ct_share')}</button>`:''}
+      ${may?`<button id="ws-share" class="ui-btn ui-btn-lg ui-btn-plain" title="${esc(i18t('ct_share_with_cp'))}">${icon('share','w-3.5 h-3.5')} ${i18t('ct_share')}</button>`:''}
       ${opts.primary===false?'':(typeof opts.primary==='string'?opts.primary:primary)}
       ${newBtn}
     </div>
+    ${''/* ---- FOUR FACTS, EACH WITH ITS OWN LABEL (owner-asked 22 Aug 2026) ----
+           The line above used to open with "MK-B2 · Sales & Route-to-Market ·
+           Round 1 · KES 78,000,000 · updated 10 Jul 2026" — five different
+           kinds of fact run together in one grey sentence, separated by
+           interpuncts, none of them labelled. A reader hunting the contract's
+           VALUE had to parse the sentence to find which number it was.
+
+           The mock-up states them as label-above-value pairs divided by rules,
+           which is the same treatment Key terms already uses one screen down.
+           FOUR, and the mock-up's own rule is five maximum: the ones somebody
+           opens a contract to check.
+
+           IT BORROWS EVERY READING — negoMovePillHtml for whose move (the same
+           builder the register's column and the phone's cards print, so the
+           three can never disagree), fmtMoneyOf for the amount in the
+           contract's OWN currency, docTermSpan for the term. Nothing here
+           computes anything of its own.
+
+           NOT DRAWN ON THE WORKBENCH: that page's head is one compact row by
+           the mock-up's own drawing, and the facts a negotiator needs are the
+           round and whose move, which its own row already carries. */}
+    ${opts.backToContract?'':roomFactsHtml(c)}
   </section>`;
 }
 /* Opening and closing the "⋯". The items themselves are wired where they
    always were — ws-share, ws-import, ws-compare and the exports keep their
    ids, so wireWorkspaceActions binds them without knowing they moved. */
 function wireRoomHead(c){
+  /* ---- FOLDING THE FACT ROW ----
+     Per SITTING and in memory, like every other posture in this product (the
+     notice stack's fold, the clause panel, the queue overlay). Deliberately not
+     persisted: a reader who folded the facts to read a long clause once should
+     not find the contract's value hidden on a different agreement next week.
+
+     A CLASS FLIP, never a repaint — the head is built once per render and a
+     repaint here would rebuild the acts and drop their handlers. */
+  const facts=document.getElementById('ws-facts');
+  const ftog=document.getElementById('ws-facts-toggle');
+  if(facts&&ftog){
+    const paint=()=>{ const shut=facts.classList.contains('is-folded');
+      ftog.setAttribute('aria-expanded',shut?'false':'true');
+      ftog.title=i18t(shut?'ct_expand_facts_title':'ct_collapse_facts_title');
+      const w=ftog.querySelector('.room-snap-word');
+      if(w) w.textContent=i18t(shut?'ct_expand':'ct_collapse'); };
+    if(_wsFactsFolded) facts.classList.add('is-folded');
+    paint();
+    ftog.addEventListener('click',e=>{ e.stopPropagation();
+      _wsFactsFolded=facts.classList.toggle('is-folded'); paint(); });
+  }
   const btn=document.getElementById('ws-more'), menu=document.getElementById('ws-more-menu');
   if(btn&&menu){
     const shut=()=>{ menu.classList.add('hidden'); btn.setAttribute('aria-expanded','false'); };

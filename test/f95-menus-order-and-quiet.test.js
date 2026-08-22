@@ -72,8 +72,18 @@ function form(filled = {}){
 
 describe('F95 — Draft new agreement is the filled green button', () => {
   test('it carries the primary fill, not an outline', () => {
+    /* ---- CLAIM REVERSED IN PLACE 22 Aug 2026 ----
+       It pinned the solid fill the owner asked for on 09 Aug. The owner has
+       since asked for the design mock-up's button theme across the platform,
+       and that theme spends exactly ONE fill per page — the head gives it to
+       the contract's own next act, so Draft new agreement is a plain verb
+       beside it. The row still leads with it; it is no longer shouting.
+       What has NOT changed, and is what this test was really protecting: the
+       button is still in the head on every tab, and the shell's delegated
+       handler still finds it by data-page-new. */
     const btn = head(contract()).html.match(/<button[^>]*id="ws-new"[^>]*>/)[0];
-    assert.match(btn, /ui-btn-primary/, 'solid, by the owner’s call');
+    assert.match(btn, /ui-btn-plain/, 'a plain verb — the page spends its one fill elsewhere');
+    assert.doesNotMatch(btn, /ui-btn-primary/, 'never a second filled act on one page');
     assert.match(btn, /data-page-new/, 'and the shell’s delegated handler still finds it');
   });
 
@@ -138,7 +148,13 @@ describe('F95 — every menu row has a symbol, and the symbols are solid dark gr
 
   test('every row of the room menu renders one', () => {
     const html = head(contract({ status: 'Draft' })).html;
-    const menu = html.slice(html.indexOf('id="ws-more-menu"'));
+    /* BOUNDED AT THE MENU'S OWN END (22 Aug 2026). This ran to the end of the
+       head, which was harmless while the menu was the last thing in it — then
+       the fact row moved below the acts and its Collapse button, which is a
+       control and carries no symbol, fell inside the slice and failed a claim
+       about menu rows. A slice that grows when the page grows is a test about
+       whatever happens to follow it. */
+    const menu = html.slice(html.indexOf('id="ws-more-menu"'), html.indexOf('room-facts'));
     const rows = menu.split('<button').slice(1);
     assert.ok(rows.length >= 6, 'the whole menu is being read');
     for (const r of rows){

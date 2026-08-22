@@ -1061,5 +1061,5 @@ function ftsSearch(q){
     }catch(e){ box.classList.add('hidden'); }
   },220);
 }
-Object.assign(window,{REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,regShowOnly,renderRegister,renderRegisterBody,wireRegRows,
+Object.assign(window,{regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,regShowOnly,renderRegister,renderRegisterBody,wireRegRows,
   regScope,regSetScope,regRepaint,regPageSize,NEGO_BANDS,NEGO_BAND_DOT,negoGroupByMove,negoBandCounts,negoMovePillHtml,negoBandRowHtml});
