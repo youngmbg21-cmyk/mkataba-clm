@@ -112,7 +112,14 @@ async function ocrPrepImage(dataUrl){
     const img=await new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=()=>rej(new Error('bad image')); i.src=dataUrl; });
     const longEdge=Math.max(img.width,img.height);
     if(longEdge<=OCR_MAX_EDGE && dataUrl.length < 3.5*1024*1024) return dataUrl;
-    const k=OCR_MAX_EDGE/longEdge;
+    /* MIN(1, …) — WITHOUT IT THE ONE PATH THAT EXISTS TO MAKE A FILE SMALLER
+       COULD MAKE IT BIGGER. A phone photo cropped tight, or a high-quality
+       scan of a small page, arrives under the edge cap and over the byte cap:
+       it falls through to here, and a bare OCR_MAX_EDGE/longEdge is then
+       GREATER than one. A 1000px page was being scaled UP to 2400px on its way
+       to being shrunk. Held at its own size it is still re-encoded as JPEG at
+       quality 0.72, which is what actually brings the bytes down. */
+    const k=Math.min(1, OCR_MAX_EDGE/longEdge);
     const canvas=document.createElement('canvas');
     canvas.width=Math.max(1,Math.round(img.width*k)); canvas.height=Math.max(1,Math.round(img.height*k));
     const ctx=canvas.getContext('2d',{alpha:false});
@@ -125,7 +132,12 @@ async function ocrPrepImage(dataUrl){
 /* ---------- recognise ---------- */
 async function ocrPageWithAi(pageDataUrl, { first=false, allowance=false }={}){
   const r=await api('ai/ocr','POST',{ pages:[pageDataUrl], first: !!first, allowance: !!allowance });
-  return { text: String(r.text||''), illegible: Number(r.illegible||0), confidence: r.confidence||'medium' };
+  /* `truncated` is carried, not dropped. The route keeps a page that was cut
+     short rather than throwing the readable half away, and this is the only
+     place that can tell the document it happened — without it the provenance
+     line says a page was read when half of it was not. */
+  return { text: String(r.text||''), illegible: Number(r.illegible||0),
+    confidence: r.confidence||'medium', truncated: !!r.truncated };
 }
 let _tessWorker=null;
 async function ocrTesseractWorker(){
@@ -138,13 +150,14 @@ async function ocrPageWithTesseract(pageDataUrl){
   const w=await ocrTesseractWorker();
   const { data }=await w.recognize(pageDataUrl);
   return { text: String((data&&data.text)||''), illegible: 0,
-    confidence: (data&&data.confidence>=80)?'medium':'low' };
+    confidence: (data&&data.confidence>=80)?'medium':'low', truncated:false };
 }
 /* Release the Tesseract worker — it holds a few tens of MB. */
 async function ocrRelease(){ if(_tessWorker){ try{ await _tessWorker.terminate(); }catch(e){} _tessWorker=null; } }
 
 /* ---------- the whole document ----------
-   Returns { text, textSource, pages, skippedPages, tier, illegible, error }.
+   Returns { text, textSource, pages, skippedPages, totalPages, tier, illegible,
+   partialPages, failedPages, error }.
    `textSource` is one of 'ocr-ai' | 'ocr-local' | 'none' and is what the record,
    the viewer banner and the confidence cap all key off.
 
@@ -159,55 +172,72 @@ async function ocrDocument(dataUrl, mime, opts={}){
   const canAi=!!(API_MODE()&&state.aiConfigured);
   const onProgress=typeof opts.onProgress==='function'?opts.onProgress:()=>{};
   const keepGoing=typeof opts.shouldContinue==='function'?opts.shouldContinue:()=>true;
-  const out={ text:'', textSource:'none', pages:0, skippedPages:0, totalPages:0, tier:null, illegible:0, error:null };
+  const out={ text:'', textSource:'none', pages:0, skippedPages:0, totalPages:0, tier:null,
+    illegible:0, partialPages:0, failedPages:0, error:null };
 
-  // ---- assemble the page images
-  let images=[];
+  // ---- open the document and decide how many pages there are to read
+  /* ONE PAGE IS RENDERED, THEN READ, THEN THE NEXT — never all of them first.
+     It used to rasterize every page into an array before recognising any, and
+     that cost three things at once. The PROGRESS STRIP ran twice: "page 1 of
+     12" up to 12 while rendering, then 1 to 12 again while reading, so a
+     reader watched the same counter fill, reset and fill again. MEMORY held
+     up to thirty JPEG data URLs — 150-250 KB each by this file's own
+     estimate, so several megabytes of base64 strings alive at once on a
+     machine that may be a cheap laptop. And a render failure on page 27 threw
+     away twenty-six pages that had already been rendered, before a single one
+     had been read. One loop answers all three. */
+  let getPage=null, take=0, doc=null;
   try{
     if(ocrIsImage(mime)){
-      images=[await ocrPrepImage(dataUrl)];
-      out.totalPages=1;
+      out.totalPages=1; take=1;
+      getPage=async()=>ocrPrepImage(dataUrl);
     } else {
       const pdfjs=await ocrLoadPdfjs();
-      const doc=await pdfjs.getDocument({ data: dataUrlBytes(dataUrl) }).promise;
+      doc=await pdfjs.getDocument({ data: dataUrlBytes(dataUrl) }).promise;
       out.totalPages=doc.numPages;
-      const take=Math.min(doc.numPages, maxPages);
+      take=Math.min(doc.numPages, maxPages);
       out.skippedPages=Math.max(0, doc.numPages-take);
-      for(let p=1;p<=take;p++){
-        if(!keepGoing()) break;
-        onProgress(p-1, take, canAi?'ai':'local');
-        images.push(await ocrRenderPage(doc, p));
-      }
-      try{ await doc.destroy(); }catch(e){}
+      getPage=async i=>ocrRenderPage(doc, i+1);
     }
   }catch(e){ out.error=e.message||'could not render the document'; return out; }
-  if(!images.length){ out.error=out.error||'no pages to read'; return out; }
+  if(!take){ out.error=out.error||'no pages to read'; return out; }
 
-  // ---- recognise, page by page
+  // ---- render and recognise, page by page
   const parts=[]; let usedAi=false, usedLocal=false;
   let tier=canAi?'ai':'local';
-  for(let i=0;i<images.length;i++){
-    if(!keepGoing()) break;
-    onProgress(i, images.length, tier);
-    let page=null;
-    if(tier==='ai'){
-      try{
-        page=await ocrPageWithAi(images[i], { first: i===0 && !usedAi, allowance: !!opts.allowance });
-        usedAi=true;
-      }catch(e){
-        // budget gone, rate limit, provider error — finish the document on the
-        // offline recogniser rather than abandoning it half-read
-        out.error=e.message||'Copilot OCR failed';
-        tier='local';
+  try{
+    for(let i=0;i<take;i++){
+      if(!keepGoing()) break;
+      onProgress(i, take, tier);
+      let img=null;
+      try{ img=await getPage(i); }
+      catch(e){
+        /* One unrenderable page is not an unreadable document. Recorded and
+           stepped over, so the other twenty-nine still reach the record. */
+        out.error=e.message||'could not render a page'; out.failedPages++; continue;
+      }
+      let page=null;
+      if(tier==='ai'){
+        try{
+          page=await ocrPageWithAi(img, { first: i===0 && !usedAi, allowance: !!opts.allowance });
+          usedAi=true;
+        }catch(e){
+          // budget gone, rate limit, provider error — finish the document on the
+          // offline recogniser rather than abandoning it half-read
+          out.error=e.message||'Copilot OCR failed';
+          tier='local';
+        }
+      }
+      if(!page && tier==='local'){
+        try{ page=await ocrPageWithTesseract(img); usedLocal=true; }
+        catch(e){ out.error=e.message||'offline OCR unavailable'; break; }
+      }
+      if(page){
+        parts.push(page.text); out.illegible+=page.illegible||0; out.pages++;
+        if(page.truncated) out.partialPages++;
       }
     }
-    if(!page && tier==='local'){
-      try{ page=await ocrPageWithTesseract(images[i]); usedLocal=true; }
-      catch(e){ out.error=e.message||'offline OCR unavailable'; break; }
-    }
-    if(page){ parts.push(page.text); out.illegible+=page.illegible||0; out.pages++; }
-  }
-  images.length=0;
+  } finally { if(doc){ try{ await doc.destroy(); }catch(e){} } }
 
   out.text=parts.join('\n\n').replace(/[ \t]+\n/g,'\n').replace(/\n{4,}/g,'\n\n\n').trim();
   // the *weakest* tier used decides the provenance — a document part-read by
@@ -237,8 +267,25 @@ const OCR_TIER_LABEL={ 'ocr-ai':'Copilot transcription', 'ocr-local':'offline re
 function ocrProvenanceLine(u){
   if(!u||!isOcrText(u.textSource)) return '';
   const pages=u.ocrPages?`${u.ocrPages} page${u.ocrPages===1?'':'s'}`:'the document';
-  const skipped=u.ocrSkippedPages?` Pages ${u.ocrPages+1}–${u.ocrPages+u.ocrSkippedPages} were not read (page limit).`:'';
-  return `This text was machine-read from a scan (${OCR_TIER_LABEL[u.textSource]}, ${pages}) and may contain errors — check dates and amounts against the original.${skipped}`;
+  /* THE SKIPPED PAGES ARE THE LAST N OF THE DOCUMENT, not the N after the ones
+     that were read, and the two are only the same number when nothing went
+     wrong in between. It counted from ocrPages — what actually came back — so
+     a 60-page scan capped at 30, of which the recogniser managed 20, reported
+     "Pages 21–50 were not read (page limit)": wrong at both ends, and wrong in
+     the direction that understates. Pages 21–30 were attempted and failed,
+     which is a different fact with a different remedy, and pages 51–60 were
+     silently unaccounted for. Counted off the TOTAL it states only what the
+     page limit is actually responsible for. */
+  const total=Number(u.ocrTotalPages||0), sk=Number(u.ocrSkippedPages||0);
+  const from=total&&sk?total-sk+1:u.ocrPages+1;
+  const to=total&&sk?total:u.ocrPages+sk;
+  const skipped=sk?` Pages ${from}–${to} were not read (page limit).`:'';
+  /* A PAGE THE TRANSCRIBER RAN OUT OF ROOM ON IS IN THE RECORD WITH ITS BOTTOM
+     MISSING, and this line is the only place that can say so — the viewer
+     banner, the audit detail and the clause-review warning all print it. */
+  const cut=Number(u.ocrPartialPages||0);
+  const partial=cut?` ${cut} page${cut===1?' was':'s were'} cut short and ${cut===1?'is':'are'} incomplete.`:'';
+  return `This text was machine-read from a scan (${OCR_TIER_LABEL[u.textSource]}, ${pages}) and may contain errors — check dates and amounts against the original.${partial}${skipped}`;
 }
 /* The banner shown above machine-read text in the document viewer. */
 function ocrBannerHtml(u){

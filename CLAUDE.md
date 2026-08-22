@@ -1039,6 +1039,108 @@ With the whole contract reaching it and 4,000 tokens of room, three contracts re
 - **AND `maxItems` IS ADVISORY, NOT A CAP** — the model returned 40, 40, 36 and 28 against a stated 20, exactly as it had returned 18 against 12. Nothing in this product may rely on it to bound a list; where a bound has to hold, bound it after the answer arrives.
 - Five causes, five runs, each found only after the last was fixed: truncated input → a cut-off answer read as an empty one → a prompt too narrow to ask the right question → the room that prompt then needed → and then the measurement itself was the thing that had to be understood (below).
 
+## THE SCANNING PATH IS DRIVEN FOR THE FIRST TIME (22 Aug 2026 — the work order's Part 2, finished)
+
+A scanned contract is the commonest way paper reaches this product, and
+**nothing had ever put one through it.** The transcription route had never been
+called by a test, `ocrDocument` had never been run, and the whole path was
+written from DESIGN-ocr.md and shipped unexercised. Six defects, every one
+reproduced before it was touched, and the last is the one that matters.
+
+- **THE HONEST LABEL HAD NOTHING BEHIND IT.** Every piece of the honesty chain
+  was present and correct and the chain did not connect: OCR reads a date, the
+  extractor is confident about the text it was given and marks it `high`,
+  `capConfidenceForOcr` honestly knocks every high down to **`medium`** — the
+  rule DESIGN-ocr.md calls load-bearing — and the batch import's review gate
+  (`migNeedsReview`) only ever tripped on **`low`**. So the flagship journey, a
+  drawer of scans imported in one batch, filed every one of them as
+  **complete**, with dates nobody had read, and the renewal reminders fired on
+  them. MEASURED before it was touched: on a page whose **word recall was
+  100%**, a 100 DPI scan read "28 February 2028" as "26 February 2028"; a phone
+  photo of the same page read it as "**28 February 2025**". Three years out, on
+  the one field the reminders fire on, in a reading that looks perfect.
+  DESIGN-ocr.md predicted exactly this in words — "3 for 8, 2026 for 2028" —
+  and then the gate let it past. A machine-read record now needs a human ONCE
+  (`applyReviewedMeta` clears the flag on confirmation, so it is not a
+  permanent amber), and a DIGITAL contract is not held — a rule that flags
+  everything is a rule nobody reads. **ASKED OF THE CONTRACT'S OWN
+  `textSource`, never of `meta._ocrCapped`**: the underscore is transport and
+  does not survive a save, so a later recompute would forget.
+- **A PAGE CUT SHORT WAS JOINED INTO THE WORDING SILENTLY.** f231's finding on
+  a route nobody had applied it to, and worse here than it was there: an
+  obligations list that comes back empty is visibly wrong, half a transcription
+  reads exactly like a whole one — and it becomes the contract's WORDING, so
+  the bottom of the page simply is not in the record. Empty **and** cut short
+  is now refused (a blank separator sheet mid-scan is a legitimate answer and
+  must not be what a failure looks like); a partial page is KEPT, flagged
+  `truncated`, counted as `partialPages`, and **said out loud in
+  `ocrProvenanceLine`** — the one sentence the viewer banner, the audit detail
+  and the clause-review warning all print.
+- **THE PROGRESS COUNTER RAN THE DOCUMENT TWICE**, because every page was
+  rasterized into an array before any was read and both loops reported. One
+  loop now — render, read, next — which also stops thirty JPEG data URLs being
+  alive at once, keeps a render failure on page 27 from throwing away
+  twenty-six pages already rendered, and makes DESIGN-ocr.md's own
+  cancellation claim true for the first time (stopping mid-rasterize used to
+  discard everything, because nothing had been recognised yet).
+- **THE ONE PATH THAT SHRINKS AN IMAGE COULD MAKE IT BIGGER.** `ocrPrepImage`'s
+  `k = OCR_MAX_EDGE/longEdge` is GREATER than one whenever the image is under
+  the edge cap and over the byte cap — a phone photo cropped tight, or a
+  high-quality scan of a small page. Measured in a browser: a 900px page was
+  scaled UP to 2400px on its way to being shrunk. `Math.min(1, …)`, and the
+  re-encode at JPEG 0.72 is what actually brings the bytes down. NOTE THE CAP
+  IS MEASURED ON THE BASE64 STRING, not the picture — the real threshold is
+  ~2.6 MB of image, not the 3.5 MB the constant reads as; left alone because it
+  errs toward shrinking sooner.
+- **"PAGES 21–50 WERE NOT READ (PAGE LIMIT)" ON A DOCUMENT WHOSE UNREAD PAGES
+  WERE 31–60.** The range counted from what came back rather than from the
+  total, so a 60-page scan capped at 30 of which the recogniser managed 20 was
+  wrong at both ends — and wrong in the direction that understates. Pages 21–30
+  were attempted and failed, a different fact with a different remedy; 51–60
+  went unmentioned. Counted off `ocrTotalPages` it states only what the page
+  limit is responsible for, and the migration record carries that field now
+  (it did not, and it is one of the two records that sentence reads).
+- **`ocrRelease` HAD NOT ONE CALLER.** The rlPaperFootHtml family in its other
+  direction — not a function nobody could reach, a function nobody reached for
+  — so the offline recogniser's tens of megabytes were held for the life of the
+  page. Called now at the end of the upload and the library import (one file is
+  the whole run) and at the end of a migration BATCH but never between its
+  files, because a new worker reloads the language data and paying that forty
+  times is worse than holding it once. **f232's sweep cannot catch this class**:
+  it checks `window.foo` READS against published names, and this is a published
+  name with no reader at all.
+
+WHAT IS DELIBERATELY NOT MEASURED, said plainly: **the Copilot vision tier**,
+which needs a paid key — every accuracy figure is the OFFLINE recogniser, which
+is the floor (what a workspace with no key gets, and what every workspace with
+one falls back to when a page fails); and **real paper**, because the pages are
+drawn on a canvas and degraded synthetically, and only one of an answer key and
+real paper can be had at a time. Closing the second needs scans from the
+business — `WORKORDER-testing-next.md`.
+
+AND THE HARNESS CAUGHT ITSELF TWICE, which is the part worth keeping. Its first
+degradations scored **100% on everything** because they added speckle and THEN
+thresholded, and a hard threshold removes exactly the noise just added — "faxed"
+paper came back cleaner than the original. The damage has to happen after the
+step that would repair it, which is also the order the real world does it in.
+And the counterparty read as MISSING on all four variants while recall was 100%,
+because "Nordkust Industri" straddles a line break IN THE SOURCE: the recogniser
+was right and the check was wrong, the fifth scorer bug of that family in this
+project. **A figure that disagrees with a healthy recall score is a harness bug
+until proven otherwise.**
+
+Tests: f234 (17 — the route, called for the first time: what it accepts, the
+four kinds of junk it must refuse before any spend, the forced tool, the four
+things the prompt forbids, and the cut-short pair), f235 (25 — detection, the
+one loop, the cap, the fallback, the weakest-tier rule, and the review gate both
+ways; 8 of them fail against the code of the morning before),
+scan-verify (12, browser — the upscale fix measured on real decoded pixels, a
+real image-only PDF reading as a scan, the amber banner as pixels),
+test/scan/measure.js (the measurement itself — a real Chromium, a real
+Tesseract, four kinds of damaged paper, and eight facts checked one at a time
+because a transcription that is 95% right with the wrong expiry date has failed
+at the one job the reminders depend on).
+
 ## THE PDF READER MEETS FILES HaTi DID NOT MAKE (21 Aug 2026 — the work order's Part 2, started)
 
 HaTi's PDF reader is hand-written and **had never been run against a PDF this project did not produce** — its fixtures are generated in `fixtures/generators`, which is the same marking-our-own-homework the CUAD scorecard exists to stop. Measured against Mozilla's pdf.js over 34 real-world PDFs from twelve producers: **54% of the words pdf.js read**, and **every LibreOffice file in the set returned an empty document**.

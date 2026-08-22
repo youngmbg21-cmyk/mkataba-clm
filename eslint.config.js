@@ -140,6 +140,12 @@ for (const n of topLevelNames(path.join(__dirname, 'js'))) APP_GLOBALS[n] = 'wri
  *                      The first half is what has always answered.
  */
 const KNOWN_ABSENT = ['closeSidePanel', 'portalContract'];
+/* SCAN is not the app's — it is the scan harness's page builders, injected
+   into the browser by test/scan/pagebuild.js through addInitScript, so the
+   names inside a page.evaluate callback resolve to it exactly as the app's own
+   globals do. Named here rather than left as two errors, because a proofreader
+   with known noise in it is one people stop reading. */
+KNOWN_ABSENT.push('SCAN');
 for (const n of KNOWN_ABSENT) APP_GLOBALS[n] = 'readonly';
 
 /* The browser's own furniture. Kept short and explicit rather than pulled from
