@@ -550,7 +550,7 @@ function shareLegendHtml(opts={}){
   const item = st => { const m=SHARE_META[st];
     return `<span style="display:inline-flex;align-items:center;gap:5px;white-space:nowrap"><span style="width:9px;height:9px;border-radius:50%;${shareDotStyle(st)};display:inline-block;flex:none"></span>${m.label}</span>`; };
   return `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-size:12px;color:var(--color-neutral-700);${opts.style||''}">
-    <span style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('co_link')}</span>
+    <span style="font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('co_link')}</span>
     ${SHARE_LEGEND.map(item).join('')}
     <span style="display:inline-flex;align-items:center;gap:5px;white-space:nowrap"><span style="color:var(--color-neutral-400)">&mdash;</span>${i18t('reg_not_sent')}</span>
   </div>`;
@@ -563,7 +563,7 @@ const questionCount = cid => {
   const hit=w.find(x=>x.contractId===cid);
   return hit?hit.count:0; };
 const questionDot = cid => { const n=questionCount(cid); if(!n) return '';
-  return `<span title="${i18tn('co_questions_waiting',n,{n})}" style="display:inline-block;margin-right:6px;vertical-align:middle;font-size:11px;font-weight:700;font-family:var(--font-mono);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:0;padding:1px 6px;flex:none">${n}&nbsp;?</span>`; };
+  return `<span title="${i18tn('co_questions_waiting',n,{n})}" style="display:inline-block;margin-right:6px;vertical-align:middle;font-size:12px;font-weight:700;font-family:var(--font-mono);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:0;padding:1px 6px;flex:none">${n}&nbsp;?</span>`; };
 
 // ---- Risk model: bands ≥60 ruby / 35–59 amber / <35 emerald ----
 const RISK_PAL = {
@@ -1344,7 +1344,7 @@ function renderAuth(mode){
         <div style="width:36px;height:36px;background:var(--color-accent-800);color:#fff;display:grid;place-items:center;font-family:var(--font-mono);font-weight:600;font-size:17px;letter-spacing:.02em;border-radius:0;">HT</div>
         <div style="line-height:1.15;">
           <div style="font-family:var(--font-mono);font-weight:600;font-size:20px;letter-spacing:.01em;color:var(--color-text);">HaTi</div>
-          <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-600);">${i18t('co_clm')}</div>
+          <div style="font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);">${i18t('co_clm')}</div>
         </div>
       </div>
       <div style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:0;padding:26px;">${inner}</div>
@@ -2610,13 +2610,13 @@ function shareSummaryStepHtml(c, opts={}){
   const s = (typeof negoChangeSummary==='function') ? negoChangeSummary(c) : null;
   const rows = s && s.lines.length ? s.lines.map(x=>`
     <li style="display:flex;gap:9px;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--color-divider)">
-      <span style="flex:none;font-family:var(--font-mono);font-size:11px;font-weight:700;border:1.5px solid var(--color-accent);
+      <span style="flex:none;font-family:var(--font-mono);font-size:12px;font-weight:700;border:1.5px solid var(--color-accent);
         color:var(--color-accent);border-radius:0;padding:1px 7px;margin-top:1px">#${esc(x.id)}</span>
       <span style="flex:1;min-width:0">
         <span style="display:block;font-size:14px;font-weight:600;color:var(--color-text);line-height:1.45">${esc(x.summary||x.kind)}</span>
         <span style="display:block;font-size:12px;color:var(--color-neutral-600);margin-top:1px">${esc(x.clause)} · ${esc(x.kind)} · ${esc(x.mine?'yours':x.author)}</span>
       </span>
-      <span style="flex:none;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:0;padding:2px 6px;margin-top:1px;
+      <span style="flex:none;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;border-radius:0;padding:2px 6px;margin-top:1px;
         background:${x.status==='accepted'?'var(--st-green-bg)':x.status==='rejected'?'var(--st-ruby-bg)':'var(--st-amber-bg)'};
         color:${x.status==='accepted'?'var(--st-green-fg)':x.status==='rejected'?'var(--st-ruby-dot)':'var(--st-amber-fg)'}">${esc(x.status)}</span>
     </li>`).join('') : '';
@@ -2774,14 +2774,14 @@ function shareSignerRowsHtml(c, sel){
       style="display:flex;align-items:flex-start;gap:8px;width:100%;text-align:left;font:inherit;border:1px solid ${on?'var(--color-accent)':'var(--color-divider)'};
         background:${on?'var(--color-accent-100)':'var(--color-surface)'};border-radius:0;padding:7px 9px;margin-bottom:5px;
         cursor:${pickable?'pointer':'default'};opacity:${pickable||s.signed?'1':'.7'}">
-      <span style="flex:none;width:17px;height:17px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;
+      <span style="flex:none;width:17px;height:17px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;
         background:${on?'var(--color-accent)':'var(--color-neutral-100)'};color:${on?'#fff':'var(--color-neutral-700)'}">${i+1}</span>
       <span style="flex:1;min-width:0">
         <span style="display:block;font-size:13px;font-weight:600;color:var(--color-text)">${esc(s.name||'—')}${
           s.role?`<span style="font-weight:400;color:var(--color-neutral-600)"> · ${esc(s.role)}</span>`:''}</span>
         <span style="display:block;font-size:12px;color:var(--color-neutral-600);line-height:1.45">${note}</span>
       </span>
-      ${on?`<span style="flex:none;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--color-accent-800)">${i18t('co_signer_this_link')}</span>`:''}
+      ${on?`<span style="flex:none;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-accent-800)">${i18t('co_signer_this_link')}</span>`:''}
     </${pickable?'button':'div'}>`;
   }).join('');
   return { plan, html };
@@ -2806,8 +2806,8 @@ function shareSignerPickHtml(c, sel){
   return `<div id="share-signers-box" data-need-signers="${need?'1':'0'}" style="margin:0 0 14px;${box};border-radius:0;padding:11px 12px">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
       ${need?`<span style="flex:none;display:inline-flex;color:var(--st-amber-fg)">${icon('alert','w-3.5 h-3.5')}</span>`:''}
-      <span style="flex:1;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${need?'var(--st-amber-fg)':'var(--color-neutral-600)'}">${i18t('co_who_signs')}</span>
-      ${plan.length?`<span style="flex:none;font-size:11px;color:var(--color-neutral-600)">${plan.filter(s=>s.signed).length} of ${plan.length} signed</span>`:''}
+      <span style="flex:1;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:${need?'var(--st-amber-fg)':'var(--color-neutral-600)'}">${i18t('co_who_signs')}</span>
+      ${plan.length?`<span style="flex:none;font-size:12px;color:var(--color-neutral-600)">${plan.filter(s=>s.signed).length} of ${plan.length} signed</span>`:''}
     </div>
     <div id="share-signer-rows">${html}</div>
     <button type="button" id="share-signer-edit" class="${need?'ui-btn ui-btn-primary':'ui-btn'}" style="width:100%;justify-content:center;font-size:13px;padding:${need?'8px 12px':'6px 12px'};margin-top:${plan.length?'3px':'8px'}">${
@@ -2849,7 +2849,7 @@ function readinessPanelHtml(c){
     <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:${tone.fg};margin-bottom:6px;">${icon('alert','w-3.5 h-3.5')} ${tone.head}</div>
     ${blocks.length?list(blocks,tone.fg):''}
     ${notes.length?`<div style="${blocks.length?'margin-top:9px;padding-top:8px;border-top:1px solid '+tone.line+';':''}">
-      ${blocks.length?`<div style="font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:4px">${i18t('co_also_worth_knowing')}</div>`:''}
+      ${blocks.length?`<div style="font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:4px">${i18t('co_also_worth_knowing')}</div>`:''}
       ${list(notes,blocks.length?'var(--color-neutral-700)':tone.fg)}
     </div>`:''}
     ${blocks.length?`<label style="display:flex;align-items:flex-start;gap:7px;margin-top:9px;font-size:13px;color:${tone.fg};cursor:pointer;">
@@ -4734,7 +4734,7 @@ function shareJourneyHtml(c, shares){
         <span style="flex:none;width:11px;height:11px;border-radius:50%;background:${col};border:2px solid ${s.on?col:'var(--color-neutral-400)'}"></span>
         <span style="font-size:12px;font-weight:${cur?'700':'600'};color:${s.on?'var(--color-text)':'var(--color-neutral-500)'}">${s.label}</span>
       </div>
-      <div style="font-size:11px;color:var(--color-neutral-600);margin:3px 0 0 18px;line-height:1.45">${esc(s.words)}</div>
+      <div style="font-size:12px;color:var(--color-neutral-600);margin:3px 0 0 18px;line-height:1.45">${esc(s.words)}</div>
     </div>`;
   };
   return `<div id="share-journey" style="border:1px solid ${j.stale?'var(--st-amber-line)':'var(--color-divider)'};background:${j.stale?'var(--st-amber-bg)':'var(--color-bg)'};border-radius:0;padding:11px 13px;margin-bottom:12px">
@@ -4822,10 +4822,10 @@ async function renderSharesSection(c){
           <div style="display:flex;align-items:center;gap:8px;min-width:0">
             ${shareChip(s.state)}
             <span style="flex:1;min-width:0;font-size:13px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${who}">${who}</span>
-            <span style="font-size:11px;color:var(--color-neutral-500);font-family:var(--font-mono);flex:none">${chLabel[s.channel]||'Link'}</span>
+            <span style="font-size:12px;color:var(--color-neutral-500);font-family:var(--font-mono);flex:none">${chLabel[s.channel]||'Link'}</span>
           </div>
           ${s.responseBy?`<div style="font-size:12px;color:var(--color-neutral-700);margin-top:3px">by ${esc(s.responseBy)}</div>`:''}
-          <div style="font-size:11px;color:var(--color-neutral-600);font-family:var(--font-mono);margin-top:3px">${meta}</div>
+          <div style="font-size:12px;color:var(--color-neutral-600);font-family:var(--font-mono);margin-top:3px">${meta}</div>
           ${(live(s)&&canEdit())?`<div style="display:flex;gap:10px;margin-top:5px">
             <button data-sh-copy="${s.token}" style="border:0;background:none;padding:0;font:inherit;font-size:12px;font-weight:600;color:var(--color-accent-700);cursor:pointer">${i18t('co_copy_link')}</button>
             ${s.channel==='email'?`<button data-sh-resend="${s.token}" style="border:0;background:none;padding:0;font:inherit;font-size:12px;font-weight:600;color:var(--color-accent-700);cursor:pointer">${i18t('co_resend')}</button>`:''}

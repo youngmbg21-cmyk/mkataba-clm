@@ -147,7 +147,7 @@ function templateBrandingFooterHtml(c) {
   }
   const b = c && c.branding;
   if (!c || !c.templateForm || !b || !b.footerText) return '';
-  return `<div style="margin-top:22px;padding-top:10px;border-top:1px solid var(--color-doc-rule,#d8d5cd);font-size:11px;color:var(--color-doc-muted,#6b6f76);text-align:center">${TPLFORM_ESC(b.footerText)}</div>`;
+  return `<div style="margin-top:22px;padding-top:10px;border-top:1px solid var(--color-doc-rule,#d8d5cd);font-size:12px;color:var(--color-doc-muted,#6b6f76);text-align:center">${TPLFORM_ESC(b.footerText)}</div>`;
 }
 
 if (typeof module !== 'undefined' && module.exports)

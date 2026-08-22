@@ -396,7 +396,7 @@ function docDesignHeaderHtml(b, c, opts = {}) {
     return `<div data-doc-design="classic-letterhead" style="text-align:${align};padding-bottom:12px;margin-bottom:22px;border-bottom:4px double ${BR_RULE};font-family:${BR_SERIF};color:${BR_INK}">
       ${logoTop ? `<div style="margin-bottom:7px">${logoTop}</div>` : ''}
       ${name ? `<div style="font-size:17px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">${name}</div>` : ''}
-      ${ident ? `<div style="font-size:11px;color:${BR_SOFT};letter-spacing:.05em;margin-top:2px">${ident}</div>` : ''}
+      ${ident ? `<div style="font-size:12px;color:${BR_SOFT};letter-spacing:.05em;margin-top:2px">${ident}</div>` : ''}
     </div>`;
   }
 
@@ -411,7 +411,7 @@ function docDesignHeaderHtml(b, c, opts = {}) {
         ${row}
         <div style="text-align:right;flex:none">
           ${name ? `<div style="font-size:14px;font-weight:600">${name}</div>` : ''}
-          ${ident ? `<div style="font-size:11px;color:${BR_SOFT};line-height:1.5">${ident}</div>` : ''}
+          ${ident ? `<div style="font-size:12px;color:${BR_SOFT};line-height:1.5">${ident}</div>` : ''}
         </div>
       </div>
       <div style="width:46px;height:3px;background:${brAccent(b)};border-radius:0;margin-top:14px"></div>
@@ -420,17 +420,17 @@ function docDesignHeaderHtml(b, c, opts = {}) {
 
   if (d.id === 'formal-legal') {
     const left = pos === 'top-left' ? logoTop
-      : `<span style="font-size:11px;letter-spacing:.22em;color:${BR_SOFT};text-transform:uppercase">${name || '&nbsp;'}</span>`;
+      : `<span style="font-size:12px;letter-spacing:.22em;color:${BR_SOFT};text-transform:uppercase">${name || '&nbsp;'}</span>`;
     const right = pos === 'top-left'
-      ? `<span style="font-size:11px;letter-spacing:.22em;color:${BR_SOFT};text-transform:uppercase">${name || '&nbsp;'}</span>`
-      : (logoTop || `<span style="font-size:11px;letter-spacing:.22em;color:${BR_SOFT}">&nbsp;</span>`);
+      ? `<span style="font-size:12px;letter-spacing:.22em;color:${BR_SOFT};text-transform:uppercase">${name || '&nbsp;'}</span>`
+      : (logoTop || `<span style="font-size:12px;letter-spacing:.22em;color:${BR_SOFT}">&nbsp;</span>`);
     const centered = pos === 'top-center' && logoTop ? `<div style="text-align:center;margin-bottom:8px">${logoTop}</div>` : '';
     return `<div data-doc-design="formal-legal" style="margin-bottom:20px;font-family:${BR_SERIF};color:${BR_INK}">
       ${centered}
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:9px;border-bottom:1px solid ${BR_RULE}">
-        ${pos === 'top-center' ? `<span style="font-size:11px;letter-spacing:.22em;color:${BR_SOFT};text-transform:uppercase">${name || '&nbsp;'}</span><span style="font-size:11px;letter-spacing:.22em;color:${BR_SOFT}">${ident || '&nbsp;'}</span>` : `${left}${right}`}
+        ${pos === 'top-center' ? `<span style="font-size:12px;letter-spacing:.22em;color:${BR_SOFT};text-transform:uppercase">${name || '&nbsp;'}</span><span style="font-size:12px;letter-spacing:.22em;color:${BR_SOFT}">${ident || '&nbsp;'}</span>` : `${left}${right}`}
       </div>
-      ${pos !== 'top-center' && ident ? `<div style="font-size:11px;color:${BR_SOFT};margin-top:4px;letter-spacing:.04em">${ident}</div>` : ''}
+      ${pos !== 'top-center' && ident ? `<div style="font-size:12px;color:${BR_SOFT};margin-top:4px;letter-spacing:.04em">${ident}</div>` : ''}
     </div>`;
   }
 
@@ -445,7 +445,7 @@ function docDesignHeaderHtml(b, c, opts = {}) {
         ${chip}
         <div style="min-width:0">
           ${name ? `<div style="font-size:15px;font-weight:700;letter-spacing:.01em">${name}</div>` : ''}
-          ${ident ? `<div style="font-size:11px;opacity:.85;margin-top:1px">${ident}</div>` : ''}
+          ${ident ? `<div style="font-size:12px;opacity:.85;margin-top:1px">${ident}</div>` : ''}
         </div>
       </div>
     </div>`;
@@ -475,7 +475,7 @@ function docDesignHeaderHtml(b, c, opts = {}) {
     const tag = `<span style="font-size:10px;letter-spacing:.22em;color:${brAccent(b)};text-transform:uppercase;border:1px solid ${BR_SOFT}40;border-radius:0;padding:4px 10px;white-space:nowrap;align-self:flex-start">Commercial Agreement</span>`;
     const identity = `<div style="min-width:0">
         ${name ? `<div style="font-size:15px;font-weight:700;letter-spacing:.01em">${name}</div>` : ''}
-        ${ident ? `<div style="font-size:11px;color:${BR_SOFT};margin-top:2px">${ident}</div>` : ''}
+        ${ident ? `<div style="font-size:12px;color:${BR_SOFT};margin-top:2px">${ident}</div>` : ''}
       </div>`;
     const centered = pos === 'top-center' && logoTop ? `<div style="text-align:center;margin-bottom:10px">${logoTop}</div>` : '';
     const row = pos === 'top-right'
@@ -502,7 +502,7 @@ function docDesignHeaderHtml(b, c, opts = {}) {
     return `<div data-doc-design="ceremonial" style="text-align:center;margin-bottom:22px;font-family:${BR_SERIF};color:${BR_INK}">
       ${crest}
       ${name ? `<div style="font-size:15px;font-weight:700;letter-spacing:.26em;text-transform:uppercase">${name}</div>` : ''}
-      ${ident ? `<div style="font-size:11px;letter-spacing:.14em;color:${BR_SOFT};margin-top:5px;text-transform:uppercase">${ident}</div>` : ''}
+      ${ident ? `<div style="font-size:12px;letter-spacing:.14em;color:${BR_SOFT};margin-top:5px;text-transform:uppercase">${ident}</div>` : ''}
       <div style="display:flex;align-items:center;gap:12px;justify-content:center;margin-top:14px">
         <span style="height:1px;width:150px;background:${BR_INK}"></span>
         <span style="width:7px;height:7px;border:1px solid ${BR_INK};transform:rotate(45deg)"></span>
@@ -523,7 +523,7 @@ function docDesignHeaderHtml(b, c, opts = {}) {
       if (c.id) facts.push(['Ref', String(c.id)]);
       if (c.expiry) facts.push(['Expires', String(c.expiry)]);
     }
-    const metaLine = facts.length ? `<div style="display:flex;gap:22px;margin-top:12px;padding-top:10px;border-top:1px dashed #cfd8dc;font-size:11px;color:${BR_SOFT}">
+    const metaLine = facts.length ? `<div style="display:flex;gap:22px;margin-top:12px;padding-top:10px;border-top:1px dashed #cfd8dc;font-size:12px;color:${BR_SOFT}">
         ${facts.map(([k, v]) => `<span>${BR_ESC(k)} <b style="color:${brAccent(b)}">${BR_ESC(v)}</b></span>`).join('')}
       </div>` : '';
     const cp = c && c.counterparty ? BR_ESC(c.counterparty) : '';
@@ -535,12 +535,12 @@ function docDesignHeaderHtml(b, c, opts = {}) {
         <div style="display:flex;gap:18px;align-items:center">
           <div style="flex:1;min-width:0">
             ${name ? `<div style="font-size:15px;font-weight:700">${name}</div>` : ''}
-            ${ident ? `<div style="font-size:11px;color:${BR_SOFT};margin-top:3px;line-height:1.5">${ident}</div>` : ''}
+            ${ident ? `<div style="font-size:12px;color:${BR_SOFT};margin-top:3px;line-height:1.5">${ident}</div>` : ''}
           </div>
           ${cp ? `<div style="flex:none;width:30px;height:30px;border-radius:50%;background:${brAccent(b)};color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;letter-spacing:.05em;font-weight:700">AND</div>
           <div style="flex:1;min-width:0;text-align:right">
             <div style="font-size:15px;font-weight:700">${cp}</div>
-            <div style="font-size:11px;color:${BR_SOFT};margin-top:3px">as per the signature page</div>
+            <div style="font-size:12px;color:${BR_SOFT};margin-top:3px">as per the signature page</div>
           </div>` : ''}
         </div>
         ${metaLine}
@@ -559,11 +559,11 @@ function docDesignFooterHtml(b, c) {
   const line = [b.companyName ? BR_ESC(b.companyName) : '', foot].filter(Boolean).join(' · ');
 
   if (d.id === 'classic-letterhead')
-    return `<div style="margin-top:26px;padding-top:10px;border-top:1px solid ${BR_RULE};text-align:center;font-family:${BR_SERIF};font-size:11px;color:${BR_SOFT}">${logoFoot ? logoFoot + '<br>' : ''}${line}</div>`;
+    return `<div style="margin-top:26px;padding-top:10px;border-top:1px solid ${BR_RULE};text-align:center;font-family:${BR_SERIF};font-size:12px;color:${BR_SOFT}">${logoFoot ? logoFoot + '<br>' : ''}${line}</div>`;
   if (d.id === 'formal-legal')
-    return `<div style="margin-top:26px;padding-top:9px;border-top:1px solid ${BR_RULE};text-align:center;font-family:${BR_SERIF};font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:${BR_SOFT}">${logoFoot ? logoFoot + '<br>' : ''}${line}</div>`;
+    return `<div style="margin-top:26px;padding-top:9px;border-top:1px solid ${BR_RULE};text-align:center;font-family:${BR_SERIF};font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:${BR_SOFT}">${logoFoot ? logoFoot + '<br>' : ''}${line}</div>`;
   if (d.id === 'bold-corporate')
-    return `<div style="margin-top:26px;padding-top:10px;border-top:3px solid ${brAccent(b)};display:flex;align-items:center;gap:10px;font-family:${BR_SANS};font-size:11px;color:${BR_SOFT}">${logoFoot}<span style="flex:1">${line}</span></div>`;
+    return `<div style="margin-top:26px;padding-top:10px;border-top:3px solid ${brAccent(b)};display:flex;align-items:center;gap:10px;font-family:${BR_SANS};font-size:12px;color:${BR_SOFT}">${logoFoot}<span style="flex:1">${line}</span></div>`;
   if (d.id === 'ceremonial')
     return `<div style="margin-top:30px;text-align:center;font-family:${BR_SERIF};font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:${BR_SOFT}"><span style="display:block;width:150px;height:1px;background:${BR_INK};margin:0 auto 10px"></span>${logoFoot ? logoFoot + '<br>' : ''}${line}</div>`;
   if (d.id === 'facing-parties')
@@ -683,7 +683,7 @@ function docDesignCoverPageHtml(b, c) {
   const u = c.upload || {};
   const between = [b.companyName, c.counterparty].filter(Boolean).map(BR_ESC).join(' &amp; ');
   return `<div data-doc-design-cover="1" style="page-break-after:always;font-family:${font};color:${BR_INK};padding-top:60px;text-align:center">
-    <div style="font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:${BR_SOFT};margin-bottom:18px">${BR_T('br_contract_record', 'Contract record')}</div>
+    <div style="font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:${BR_SOFT};margin-bottom:18px">${BR_T('br_contract_record', 'Contract record')}</div>
     <div style="font-size:24px;font-weight:700;line-height:1.3;max-width:540px;margin:0 auto">${BR_ESC(c.name || 'Contract')}</div>
     ${between ? `<div style="font-size:13px;color:${BR_SOFT};margin-top:10px">between ${between}</div>` : ''}
     <div style="width:52px;height:3px;background:${brAccent(b)};margin:26px auto"></div>
@@ -692,7 +692,7 @@ function docDesignCoverPageHtml(b, c) {
       ${u.fileName ? `<tr><td style="padding:3px 14px 3px 0;color:${BR_SOFT}">${BR_T('br_original_file', 'Original file')}</td><td style="font-weight:600">${BR_ESC(u.fileName)}</td></tr>` : ''}
       ${c.status ? `<tr><td style="padding:3px 14px 3px 0;color:${BR_SOFT}">Status</td><td style="font-weight:600">${BR_ESC(c.status)}</td></tr>` : ''}
     </table>
-    <p style="font-size:11px;color:${BR_SOFT};margin-top:34px;max-width:440px;margin-left:auto;margin-right:auto;line-height:1.6">This cover page was added by ${BR_ESC(b.companyName || 'the contract owner')}. The document that follows is reproduced from the file as it was received — its own layout and formatting are unchanged.</p>
+    <p style="font-size:12px;color:${BR_SOFT};margin-top:34px;max-width:440px;margin-left:auto;margin-right:auto;line-height:1.6">This cover page was added by ${BR_ESC(b.companyName || 'the contract owner')}. The document that follows is reproduced from the file as it was received — its own layout and formatting are unchanged.</p>
   </div>`;
 }
 

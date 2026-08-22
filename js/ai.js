@@ -2403,7 +2403,7 @@ function aiProposalPlacementHtml(p){
   const e = _aiEsc;
   const current = aiNormalizePlacement(p.placement);
   return `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-    <span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    <span style="font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
       color:var(--color-neutral-500)">${i18t('ai_where')}</span>
     ${AI_PLACEMENTS.map(x => {
       const on = x === current;
@@ -2430,11 +2430,11 @@ function aiProposalCardHtml(p){
     style="border:1px solid ${done ? 'var(--color-divider)' : 'rgba(99,102,241,.35)'};background:${done ? 'var(--color-bg)' : 'var(--color-surface)'};
       border-radius:0;padding:12px 14px;display:flex;flex-direction:column;gap:9px;${done ? 'opacity:.72' : ''}">
     <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
-      <span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+      <span style="font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
         background:rgba(99,102,241,.18);color:color-mix(in srgb,#6366f1 55%,var(--color-text));border-radius:0;padding:2px 8px">${i18t('ai_proposed_wording')}</span>
       ${p.clauseLabel ? `<span style="font-size:12px;color:var(--color-neutral-600);font-family:var(--font-mono)">${e(p.clauseLabel)}</span>` : ''}
       ${p.strict === false ? `<span title="The Copilot did not return the structured shape, so this is its whole reply treated as wording."
-        style="font-size:11px;color:var(--st-amber-fg)">${i18t('ai_unstructured_reply')}</span>` : ''}
+        style="font-size:12px;color:var(--st-amber-fg)">${i18t('ai_unstructured_reply')}</span>` : ''}
     </div>
     ${p.editing
       ? `<textarea data-ai-prop-edit="${e(p.id)}" class="ai-suggestion-editor" spellcheck="true" rows="6"
@@ -2456,7 +2456,7 @@ function aiProposalCardHtml(p){
               with the theme, so this stays a whisper in dark mode too — and
               the field itself keeps the surface colour: the WRAPPER warns,
               the box invites. */}
-        <span style="display:block;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:3px">${i18t('ai_why_change_optional')}</span>
+        <span style="display:block;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:3px">${i18t('ai_why_change_optional')}</span>
         <textarea data-ai-prop-why="${e(p.id)}" rows="2" wrap="soft" spellcheck="true"
           placeholder="${_aiEsc(i18t('ng_ph_reason_example'))}"
           style="box-sizing:border-box;width:100%;max-width:100%;min-height:44px;resize:vertical;border:1px solid var(--color-divider);border-radius:0;padding:7px 9px;font:inherit;font-size:13px;line-height:1.6;background:var(--color-surface);color:var(--color-text);outline:none;white-space:pre-wrap;overflow-wrap:anywhere">${e(p.why || '')}</textarea>
@@ -3082,7 +3082,7 @@ function renderBriefSection(c){
       #brief-section .br-facts{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;
         margin:12px 0;padding:11px 13px;background:var(--color-bg);border-radius:0;
         border:1px solid var(--color-divider)}
-      #brief-section .br-facts dt{font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;
+      #brief-section .br-facts dt{font-family:var(--font-mono);font-size:11px;letter-spacing:.09em;
         text-transform:uppercase;color:var(--color-neutral-600);padding-top:2px}
       #brief-section .br-facts dd{margin:0;font-size:14px;line-height:1.6;color:var(--color-text)}
     </style>

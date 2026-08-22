@@ -92,7 +92,7 @@ function openWizard(preTid){
             <span style="font-size:14px;font-weight:600;color:var(--color-text);font-family:var(--font-mono);">${t.kind}</span></span>
             <span style="display:block;margin-top:5px;font-size:12px;color:var(--color-neutral-600);line-height:1.4;">${t.blurb||''}</span></button>`;
       const GRID='display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;';
-      const EYE='display:block;font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;color:var(--color-neutral-500);text-transform:uppercase;margin:0 0 6px;';
+      const EYE='display:block;font-family:var(--font-mono);font-size:11px;letter-spacing:.09em;color:var(--color-neutral-500);text-transform:uppercase;margin:0 0 6px;';
       const forYou=forYouTemplates(tmpls);
       const curated=forYou.length>0;
       /* Company standard templates stay pinned on top — the whole point of

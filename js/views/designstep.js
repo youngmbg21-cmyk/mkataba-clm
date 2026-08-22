@@ -171,12 +171,12 @@ function dsPaint(opts) {
         ${extra || ''}
         <span style="flex:1;min-width:0">
           <b style="font-size:14px">${esc(o.name)}</b>
-          ${o.blockedWhy ? '<span style="font-size:11px;color:var(--color-neutral-500)"> · unavailable</span>' : ''}
+          ${o.blockedWhy ? '<span style="font-size:12px;color:var(--color-neutral-500)"> · unavailable</span>' : ''}
         </span>
         ${sel ? `<span class="badge" style="background:var(--color-accent-700);color:#fff;font-size:10px">${i18t('ds_selected')}</span>` : ''}
       </span>
       <span style="display:block;font-size:12px;color:var(--color-neutral-600);line-height:1.45;margin-top:3px">${esc(o.blurb)}</span>
-      <span style="display:block;font-size:11px;color:var(--color-neutral-500);margin-top:3px">${i18t('ds_best_for',{what:esc(o.bestFor)})}</span>
+      <span style="display:block;font-size:12px;color:var(--color-neutral-500);margin-top:3px">${i18t('ds_best_for',{what:esc(o.bestFor)})}</span>
     </button>`;
 
   /* A miniature of the page each structure builds. Drawn in CSS rather than
@@ -228,7 +228,7 @@ function dsPaint(opts) {
       border:${sel ? '2px solid var(--color-accent-700)' : '1px solid var(--color-divider)'};
       border-radius:0;padding:${sel ? '8px 9px' : '9px 10px'}">
       <b style="display:block;font-size:13px">${esc(label)}</b>
-      <span style="display:block;font-size:11px;color:var(--color-neutral-600);line-height:1.4;margin-top:3px">${esc(sub)}</span>
+      <span style="display:block;font-size:12px;color:var(--color-neutral-600);line-height:1.4;margin-top:3px">${esc(sub)}</span>
     </button>`;
   };
   const contentsChoice = `
@@ -239,7 +239,7 @@ function dsPaint(opts) {
         ${contentsBtn(false, 'Not included', 'Opens on the first clause.')}
         ${contentsBtn(true, 'At the front', 'Built from the clause headings.')}
       </div>
-      <p style="font-size:11px;color:var(--color-neutral-500);line-height:1.45;margin:7px 0 0">
+      <p style="font-size:12px;color:var(--color-neutral-500);line-height:1.45;margin:7px 0 0">
         It rebuilds itself when a clause is added, and stays off a document with fewer than three headings.
         The clause wording and numbering are untouched either way.</p>
     </div>`;
@@ -311,13 +311,13 @@ function dsPaint(opts) {
           style="width:92px;font-family:var(--font-code);font-size:13px;text-transform:uppercase;border:1px solid var(--color-divider);
           background:var(--color-surface);color:var(--color-text);border-radius:0;padding:5px 8px;outline:none">
       </div>
-      ${!design.usesAccent ? `<div style="font-size:11px;line-height:1.5;margin-top:8px;padding:6px 8px;border-radius:0;
+      ${!design.usesAccent ? `<div style="font-size:12px;line-height:1.5;margin-top:8px;padding:6px 8px;border-radius:0;
         background:var(--st-amber-bg,#fef3c7);border:1px solid var(--st-amber-line,#fcd34d);color:var(--st-amber-fg,#b45309)">
         Saved, but <b>${esc(design.name)}</b> is monochrome — this colour will not appear on the document. It shows in Modern Minimal, Bold Corporate, Modern Editorial and Facing Parties.</div>` : ''}
-      ${darkened ? `<div style="font-size:11px;line-height:1.5;margin-top:8px;padding:6px 8px;border-radius:0;
+      ${darkened ? `<div style="font-size:12px;line-height:1.5;margin-top:8px;padding:6px 8px;border-radius:0;
         background:var(--st-amber-bg,#fef3c7);border:1px solid var(--st-amber-line,#fcd34d);color:var(--st-amber-fg,#b45309)">
         ${esc(rawPick.toUpperCase())} is too light to read as a rule or a band on white paper, so it is darkened to <b>${esc(accentNow.toUpperCase())}</b>${i18t('ds_hue_unchanged')}</div>`
-      : design.usesAccent ? `<div style="font-size:11px;color:var(--color-neutral-500);line-height:1.5;margin-top:6px">${
+      : design.usesAccent ? `<div style="font-size:12px;color:var(--color-neutral-500);line-height:1.5;margin-top:6px">${
           b.accentSource !== 'manual' && !b.accentColor
             ? (b.logoUrl ? 'No strong colour found in the logo — a dark neutral is used instead.' : 'Upload a logo and HaTi picks its colour automatically.')
             : 'Colours the rule, the band and the clause headings.'}</div>` : ''}
@@ -338,7 +338,7 @@ function dsPaint(opts) {
         state === 'on' ? 'background:var(--color-accent-100);color:var(--color-accent-700)'
         : state === 'done' ? 'color:var(--color-good-fg,#047857)'
         : 'color:var(--color-neutral-500)'}">
-      <span style="width:19px;height:19px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;flex:none;${
+      <span style="width:19px;height:19px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;flex:none;${
         state === 'on' ? 'background:var(--accent-solid);color:#fff'
         : state === 'done' ? 'background:var(--st-green-bg);color:var(--st-green-fg);border:1px solid var(--st-green-line)'
         : 'background:var(--color-neutral-100);color:var(--color-neutral-500)'}">${state === 'done' ? '&check;' : n}</span>${label}</span>`;
@@ -372,12 +372,12 @@ function dsPaint(opts) {
   const stepAction = step === 1
     ? `<button id="ds-next" class="ui-btn ui-btn-primary" style="width:100%;font-size:14px;padding:8px">
          Next: choose a structure ${icon('arrowRight', 'w-3.5 h-3.5')}</button>
-       <p style="font-size:11px;color:var(--color-neutral-500);line-height:1.5;margin:7px 0 0;text-align:center">${publish ? i18t('ds_step_2_then_publish') : i18t('ds_step_2_then_save')}</p>`
+       <p style="font-size:12px;color:var(--color-neutral-500);line-height:1.5;margin:7px 0 0;text-align:center">${publish ? i18t('ds_step_2_then_publish') : i18t('ds_step_2_then_save')}</p>`
     : publish
       ? `<button id="ds-publish" class="ui-btn ui-btn-primary" style="width:100%;font-size:14px;padding:8px">Publish v${_ds.versionNumber}</button>
-         <p style="font-size:11px;color:var(--color-neutral-500);line-height:1.5;margin:7px 0 0">Publishing freezes this version forever and makes it what the whole team creates contracts from. Contracts already created from earlier versions are not touched.</p>`
+         <p style="font-size:12px;color:var(--color-neutral-500);line-height:1.5;margin:7px 0 0">Publishing freezes this version forever and makes it what the whole team creates contracts from. Contracts already created from earlier versions are not touched.</p>`
       : `<button id="ds-save" class="ui-btn ui-btn-primary" style="width:100%;font-size:14px;padding:8px">${i18t('ds_save_design')}</button>
-         <p style="font-size:11px;color:var(--color-neutral-500);line-height:1.5;margin:7px 0 0">${i18t('ds_applies_future')}</p>`;
+         <p style="font-size:12px;color:var(--color-neutral-500);line-height:1.5;margin:7px 0 0">${i18t('ds_applies_future')}</p>`;
 
   document.getElementById('content').innerHTML = `
   <div class="view-enter ds-page${_ds.focus ? ' ds-focus' : ''}" style="${VIEW};padding:12px 16px 14px;display:flex;flex-direction:column;gap:11px">
@@ -405,7 +405,7 @@ function dsPaint(opts) {
           <div data-ds-step="${rh.n}" style="display:flex;align-items:center;gap:7px;font-family:var(--font-heading);font-size:12px;
             font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--color-accent-700)">
             <span style="width:17px;height:17px;border-radius:50%;background:var(--accent-solid);color:#fff;
-              display:grid;place-items:center;font-size:11px;font-weight:700">${rh.n}</span> ${i18t('ds_step_n_of_2',{n:rh.n})}</div>
+              display:grid;place-items:center;font-size:12px;font-weight:700">${rh.n}</span> ${i18t('ds_step_n_of_2',{n:rh.n})}</div>
           <h4 data-ds-step-title style="font-family:var(--font-heading);font-size:15px;margin:6px 0 3px;letter-spacing:-.015em">${rh.title}</h4>
           <p style="font-size:12px;color:var(--color-neutral-500);line-height:1.45;margin:0">${rh.hint}</p>
         </div>
@@ -447,12 +447,12 @@ function dsPaint(opts) {
         <h4 style="font-family:var(--font-heading);font-weight:700;font-size:13px;margin:0 0 10px;text-transform:uppercase;letter-spacing:.06em;color:var(--color-neutral-600)">${i18t('ds_company_branding')}</h4>
         <div style="display:flex;gap:10px;align-items:center">
           <div style="width:86px;height:48px;border:1px dashed var(--color-divider);border-radius:0;display:grid;place-items:center;overflow:hidden;background:var(--color-bg);flex:none">
-            ${b.logoUrl ? `<img src="${b.logoUrl}" alt="logo" style="max-width:100%;max-height:100%">` : `<span style="font-size:11px;color:var(--color-neutral-500)">${i18t('tb_no_logo')}</span>`}
+            ${b.logoUrl ? `<img src="${b.logoUrl}" alt="logo" style="max-width:100%;max-height:100%">` : `<span style="font-size:12px;color:var(--color-neutral-500)">${i18t('tb_no_logo')}</span>`}
           </div>
           <div>
             <input type="file" id="ds-logo-file" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="display:none">
             <button id="ds-logo-btn" class="ui-btn" style="font-size:12px;padding:3px 9px">${icon('upload', 'w-3 h-3')} ${b.logoUrl ? 'Replace logo' : 'Upload logo'}</button>
-            <span style="display:block;font-size:11px;color:var(--color-neutral-500);margin-top:3px">${i18t('ds_png_jpg')}</span>
+            <span style="display:block;font-size:12px;color:var(--color-neutral-500);margin-top:3px">${i18t('ds_png_jpg')}</span>
           </div>
         </div>
         <div style="margin-top:14px">
@@ -479,7 +479,7 @@ function dsPaint(opts) {
                design choice about what prints at the bottom of a page. */}
         <div style="margin-top:14px;display:grid;gap:7px">
           <input id="ds-b-footer" style="${INP}" placeholder="${i18t('ds_footer_placeholder')}" value="${esc(b.footerText)}">
-          <p style="font-size:11px;color:var(--color-neutral-500);line-height:1.5;margin:0">${
+          <p style="font-size:12px;color:var(--color-neutral-500);line-height:1.5;margin:0">${
             esc(i18t('ds_identity_moved',{name:b.companyName||i18t('st_not_set')}))}</p>
         </div>
         ${publish && step === 2 ? `

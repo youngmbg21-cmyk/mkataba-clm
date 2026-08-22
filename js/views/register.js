@@ -166,7 +166,7 @@ function folderExpiryCell(c){
     else if(d<30){ col='var(--st-ruby-fg)'; weight=600; hint=`${i18t('reg_in_days',{n:d})}${from?' · from '+from.id:''}`; }
     else if(d<=90){ col='var(--st-amber-fg)'; hint=`${i18t('reg_in_days',{n:d})}${from?' · from '+from.id:''}`; }
   }
-  return `<span style="color:${col};font-weight:${weight}">${dt}</span>${hint?`<span style="display:block;font-size:11px;color:${col};opacity:.85">${hint}</span>`:''}`;
+  return `<span style="color:${col};font-weight:${weight}">${dt}</span>${hint?`<span style="display:block;font-size:12px;color:${col};opacity:.85">${hint}</span>`:''}`;
 }
 // Render up to state.folderShown rows as a table body, with a "Show more" pager.
 function folderRowsHtml(cs){
@@ -693,7 +693,7 @@ function regRowsHtml(cs){
         <span style="display:flex;align-items:center;gap:9px;min-width:0">
         <span class="reg-tick" style="background:${folderColor(c)}"></span>
         <span style="min-width:0;flex:1">
-        <span class="reg-title" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:12px;font-weight:400" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc(c.parentId)}">↳ </span>`:''}${regTitleOf(c)}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:400;font-size:11px;font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
+        <span class="reg-title" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:12px;font-weight:400" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc(c.parentId)}">↳ </span>`:''}${regTitleOf(c)}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:400;font-size:12px;font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
         <span class="reg-kind">${cKind(c)}</span>
         ${c._famChild?`<span style="display:block;font-size:12px;font-weight:400;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${RELATION_LABEL[c.relation]||'Amendment'} of ${c.parentId}</span>`:''}
         </span></span>
@@ -1053,7 +1053,7 @@ function ftsSearch(q){
       const r=await api('search?q='+encodeURIComponent(q)+'&limit=12');
       if(!r.hits||!r.hits.length){ box.innerHTML=`<div style="padding:10px 12px;font-size:13px;color:var(--color-neutral-600)">${i18t('reg_no_fulltext')}</div>`; box.classList.remove('hidden'); return; }
       box.innerHTML=r.hits.map(h=>`<button data-fts-open="${h.id}" style="display:block;width:100%;text-align:left;padding:8px 12px;border:0;border-bottom:1px solid var(--color-divider);background:none;cursor:pointer;font:inherit">
-        <div style="font-size:14px;font-weight:600;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(h.name||h.id)} <span style="font-family:var(--font-mono);font-size:11px;color:var(--color-neutral-500)">${h.id}</span></div>
+        <div style="font-size:14px;font-weight:600;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(h.name||h.id)} <span style="font-family:var(--font-mono);font-size:12px;color:var(--color-neutral-500)">${h.id}</span></div>
         ${h.snippet?`<div style="font-size:12px;color:var(--color-neutral-600);margin-top:2px">${h.snippet.replace(/</g,'&lt;').replace(/\[/g,'<mark style="background:var(--st-amber-bg);border-radius:0;padding:0 2px">').replace(/\]/g,'</mark>')}</div>`:(h.counterparty?`<div style="font-size:12px;color:var(--color-neutral-500)">${h.counterparty}</div>`:'')}
       </button>`).join('');
       box.classList.remove('hidden');

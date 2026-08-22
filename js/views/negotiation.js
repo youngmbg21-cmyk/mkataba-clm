@@ -395,7 +395,7 @@ function negoTimelineScreenHtml(c, f = {}, opts = {}){
       .ht h3{font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0 0 2px}
       .ht .ht-sub{font-size:13px;color:var(--color-neutral-600);margin:0 0 12px}
       .ht .ht-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--color-divider)}
-      .ht .ht-f{display:flex;flex-direction:column;gap:2px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--color-neutral-600)}
+      .ht .ht-f{display:flex;flex-direction:column;gap:2px;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)}
       .ht .ht-f select{font:inherit;font-size:13px;font-weight:400;text-transform:none;letter-spacing:0;border:1px solid var(--color-divider);border-radius:0;padding:4px 6px;background:var(--color-surface);color:var(--color-text);max-width:180px}
       .ht .ht-ev{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid color-mix(in srgb,var(--color-divider) 55%,transparent)}
       .ht .ht-mark{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--color-bg);border:1px solid var(--color-divider);font-size:12px}
@@ -1394,7 +1394,7 @@ function negoLiveCardsHtml(c, opts){
           title="${_ne(i18t('ng_revised_title'))} — ${_ne(String(ch.revisedBy))} / ${_ne(String(ch.author))}"><span aria-hidden="true">&#9998;</span> ${
           i18t('ng_revised_by_after',{who:_ne(_liveShort(ch.revisedBy)),author:_ne(_liveShort(ch.author))})}</div>` : ''}
         ${(ch.why || ch.note) ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:0;padding:6px 9px;margin-bottom:8px">
-          <span style="display:block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--n-slate)">${i18t('ng_why_they_asked')}</span>
+          <span style="display:block;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--n-slate)">${i18t('ng_why_they_asked')}</span>
           <span class="nego-why-clamp" style="font-size:13px;line-height:1.5;color:var(--n-ink)">${_ne(ch.why || ch.note)}</span></div>` : ''}
         ${ch.reply ? `<div style="border-left:2px solid var(--n-line);padding:6px 9px;margin-bottom:8px;font-size:13px;line-height:1.5;color:var(--n-ink)"><b>${i18t('ng_reply')}</b> ${_ne(ch.reply)}</div>` : ''}
         ${(() => { if (!window.reviewSeatShowsReview || !reviewSeatShowsReview(opts)) return '';
@@ -1407,7 +1407,7 @@ function negoLiveCardsHtml(c, opts){
                    read as a caption; "ACHIENG OTIENO SAID" reads as shouting,
                    and a long name in caps outgrows the card. Same rule as the
                    review chip beside it. */}
-            <span style="display:block;font-size:11px;font-weight:700;letter-spacing:.01em;color:var(--st-amber-fg)" title="${_ne(String(sayBy))}">${i18t('rv_reviewer_said', { who: _ne(_liveShort(sayBy)) })}</span>
+            <span style="display:block;font-size:12px;font-weight:700;letter-spacing:.01em;color:var(--st-amber-fg)" title="${_ne(String(sayBy))}">${i18t('rv_reviewer_said', { who: _ne(_liveShort(sayBy)) })}</span>
             <span style="font-size:13px;line-height:1.5;color:var(--n-ink)">${_ne(v.note)}</span></div>` : ''; })()}
         <div class="nego-hash" title="${_ne(ch.hash || '')}"><span aria-hidden="true">🔒</span> SHA-256: ${_ne(negoShortHash(ch.hash))}</div>
         ${acts}
@@ -1558,7 +1558,7 @@ function negoHistoryCardHtml(c, ch, r, opts){
     <div style="font-size:12px;color:var(--n-ink-soft);margin-bottom:7px">${_ne(ch.clauseLabel || ch.clauseId)}</div>
     <div style="font-size:12px;color:var(--n-ink-soft);margin-bottom:7px">${i18t('ng_author')} <b style="color:var(--n-ink);font-weight:600">${_ne(ch.author)}</b></div>
     ${(ch.why || ch.note) ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:0;padding:6px 9px;margin-bottom:8px">
-      <span style="display:block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--n-slate)">${i18t('ng_why_they_asked')}</span>
+      <span style="display:block;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--n-slate)">${i18t('ng_why_they_asked')}</span>
       <span class="nego-why-clamp" style="font-size:13px;line-height:1.5;color:var(--n-ink)">${_ne(ch.why || ch.note)}</span></div>` : ''}
     ${ch.reply ? `<div style="border-left:2px solid var(--n-line);padding:6px 9px;margin-bottom:8px;font-size:13px;line-height:1.5;color:var(--n-ink)"><b>${i18t('ng_reply')}</b> ${_ne(ch.reply)}</div>` : ''}
     <div class="nego-hash" title="${_ne(ch.hash || '')}"><span aria-hidden="true">🔒</span> SHA-256: ${_ne(negoShortHash(ch.hash))}</div>
@@ -1799,7 +1799,7 @@ function negoStatusHtml(c, opts){
       <div class="seg" id="nego-resolved">Resolved: ${p.done} / ${p.total}</div>
       ${negoIntegritySeg(c)}
       <span class="spacer"></span>
-      <span class="seg" style="font-family:var(--n-font-mono);font-size:11px;opacity:.6">${_ne(String(opts.side === 'counterparty' ? 'counterparty view' : 'owner view'))} · fingerprinted redline</span>
+      <span class="seg" style="font-family:var(--n-font-mono);font-size:12px;opacity:.6">${_ne(String(opts.side === 'counterparty' ? 'counterparty view' : 'owner view'))} · fingerprinted redline</span>
     </div>`;
 }
 
@@ -9381,7 +9381,7 @@ async function rlOpenPlaybookReview(c, again){
   const itemHtml = (it, i) => `<div id="pbr-item-${i}" style="border:1px solid var(--color-divider);border-radius:0;padding:12px 14px;margin-bottom:10px;background:var(--color-surface)">
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <b style="font-size:14px">${_ne(it.v.category)}</b>${chip(it)}
-      <span style="font-size:11px;color:var(--color-neutral-500)">${it.v.status === 'missing'
+      <span style="font-size:12px;color:var(--color-neutral-500)">${it.v.status === 'missing'
         ? 'missing — files as a new clause at the end'
         : (it.clauseLabel ? `deviation &middot; ${_ne(it.clauseLabel)}` : 'deviation')}</span>
     </div>

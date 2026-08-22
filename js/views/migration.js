@@ -1016,14 +1016,14 @@ function renderMigration(){
     .map(([v,l])=>`<option value="${v}" ${M.defaults.status===v?'selected':''}>${l}</option>`).join('');
   const kpi=(n,label,color)=>`<div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;padding:18px 20px;box-shadow:var(--shadow-sm)">
       <div style="font-family:var(--font-mono);font-size:24px;font-weight:700;color:${color||'var(--color-text)'};line-height:1;font-variant-numeric:tabular-nums">${n}</div>
-      <div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500);margin-top:6px">${label}</div></div>`;
+      <div style="font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-top:6px">${label}</div></div>`;
   const selStyle='font:inherit;font-size:13px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:5px 7px;color:inherit;cursor:pointer';
 
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="padding:14px 16px 28px">
     <style>
       .mig-table{width:100%;border-collapse:collapse;font-size:14px}
-      .mig-table th{text-align:left;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500);padding:12px 14px;border-bottom:1px solid var(--color-divider);white-space:nowrap;background:var(--color-neutral-100)}
+      .mig-table th{text-align:left;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);padding:12px 14px;border-bottom:1px solid var(--color-divider);white-space:nowrap;background:var(--color-neutral-100)}
       .mig-table td{padding:12px 14px;border-bottom:1px solid var(--color-divider);vertical-align:middle}
       /* The reference's KPI strip: two up on a phone, four on a tablet, five on
          a desktop — a real grid, so the tiles line up instead of flexing to
@@ -1120,8 +1120,8 @@ function renderMigration(){
                 <td style="font-size:13px;white-space:nowrap">${c.expiry||m.expiryDate||(m.renewalType==='evergreen'?'evergreen':'<span style="color:var(--st-ruby-fg)">—</span>')}</td>
                 <td>${statusChip(c.status)}</td>
                 <td><span style="display:inline-flex;gap:3px;align-items:center">${migGateDots(c)}</span>
-                  ${c.migration.blocked?`<span style="display:block;font-size:11px;color:var(--st-ruby-fg)">no readable text${c.migration.ocrTotalPages?' (OCR tried)':''}</span>`:need?`<span style="display:block;font-size:11px;color:var(--st-amber-fg)">${c.migration.aiSource==='ai'?'low-confidence fields':'pattern-matched only'}</span>`:''}
-                  ${isOcrText(c.migration.textSource)?`<span style="display:block;font-size:11px;color:var(--st-amber-fg)" title="${migEsc(ocrProvenanceLine(c.upload||c.migration))}">machine-read from a scan${c.migration.ocrSkippedPages?` · ${c.migration.ocrSkippedPages} page${c.migration.ocrSkippedPages===1?'':'s'} skipped`:''}</span>`:''}</td>
+                  ${c.migration.blocked?`<span style="display:block;font-size:12px;color:var(--st-ruby-fg)">no readable text${c.migration.ocrTotalPages?' (OCR tried)':''}</span>`:need?`<span style="display:block;font-size:12px;color:var(--st-amber-fg)">${c.migration.aiSource==='ai'?'low-confidence fields':'pattern-matched only'}</span>`:''}
+                  ${isOcrText(c.migration.textSource)?`<span style="display:block;font-size:12px;color:var(--st-amber-fg)" title="${migEsc(ocrProvenanceLine(c.upload||c.migration))}">machine-read from a scan${c.migration.ocrSkippedPages?` · ${c.migration.ocrSkippedPages} page${c.migration.ocrSkippedPages===1?'':'s'} skipped`:''}</span>`:''}</td>
                 <td style="text-align:right;padding-right:12px;white-space:nowrap" onclick="event.stopPropagation()">
                   ${(c.linkSuggestions&&c.linkSuggestions.length&&!c.parentId&&!c.linkConfirmed&&canEdit())?`<button data-mig-link="${c.id}" class="ui-btn" style="font-size:12px;padding:3.5px 10px;border-color:var(--color-accent);color:var(--color-accent-800)">${i18t('mig_col_link')}</button>`:''}
                   ${need&&canEdit()?`<button data-mig-review="${c.id}" class="ui-btn ui-btn-primary" style="font-size:12px;padding:3.5px 10px">${i18t('mig_review')}</button>`:''}

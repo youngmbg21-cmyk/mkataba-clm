@@ -226,7 +226,7 @@ function pbVerdictLine(v){
    checked at all. So no verdicts, no pill, and the card says so in words. */
 function pbHeadPill(sm){
   if(!sm||!sm.total) return '';
-  const chip=(bg,fg,txt)=>`<span style="flex:none;font-size:11px;font-weight:700;border-radius:0;padding:2px 9px;background:${bg};color:${fg}">${txt}</span>`;
+  const chip=(bg,fg,txt)=>`<span style="flex:none;font-size:12px;font-weight:700;border-radius:0;padding:2px 9px;background:${bg};color:${fg}">${txt}</span>`;
   if(sm.ok) return chip('var(--st-green-bg)','var(--st-green-fg)','all aligned');
   if(sm.esc) return chip('var(--st-ruby-bg)','var(--st-ruby-fg)',`${sm.esc} to escalate`);
   const n=sm.dev+sm.miss;
@@ -262,7 +262,7 @@ function renderPlaybookSection(c){
     return `
     <div style="border-top:1px solid var(--color-divider)">
       <button ${detail?`data-pb-row="${_pbEsc(id)}"`:''} style="display:flex;align-items:flex-start;gap:9px;width:100%;text-align:left;border:0;background:none;font:inherit;color:inherit;padding:9px 2px;${detail?'cursor:pointer':'cursor:default'}">
-        <span aria-hidden="true" style="flex:none;margin-top:1px;width:17px;height:17px;border-radius:50%;background:${m.bg};color:${m.fg};display:grid;place-items:center;font-size:11px;font-weight:700;line-height:1">${m.glyph}</span>
+        <span aria-hidden="true" style="flex:none;margin-top:1px;width:17px;height:17px;border-radius:50%;background:${m.bg};color:${m.fg};display:grid;place-items:center;font-size:12px;font-weight:700;line-height:1">${m.glyph}</span>
         <span style="flex:1;min-width:0">
           <span style="display:block;font-size:14px;font-weight:600;color:var(--color-text);line-height:1.35">${_pbEsc(v.category)}</span>
           <span style="display:block;font-size:12px;color:var(--color-neutral-600);line-height:1.45;margin-top:1px">${pbVerdictLine(v)}</span>
@@ -305,7 +305,7 @@ function renderPlaybookSection(c){
           <span style="flex:none;color:var(--color-accent)">${icon('plus','w-3 h-3')}</span>
           <span style="flex:1;min-width:0">
             <span style="display:block;font-size:13px;font-weight:600;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_pbEsc(x.name||'Clause')}</span>
-            <span style="display:block;font-size:11px;color:var(--color-neutral-500)">${clauseInsertNote(x.where)}${x.by?' &middot; '+_pbEsc(x.by):''}${x.at?' &middot; '+fmtDT(x.at):''}</span>
+            <span style="display:block;font-size:12px;color:var(--color-neutral-500)">${clauseInsertNote(x.where)}${x.by?' &middot; '+_pbEsc(x.by):''}${x.at?' &middot; '+fmtDT(x.at):''}</span>
           </span>
           <button data-pb-jump="${i}" class="ui-btn" style="flex:none;font-size:12px;padding:3px 9px">${i18t('pb_show_me')}</button>
         </div>`).join('')}

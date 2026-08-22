@@ -31,8 +31,8 @@ function adviceCard(r){
       <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
         <span style="font-family:var(--font-mono);font-size:12px;color:var(--color-neutral-600)">${r.id}</span>
         <span style="display:flex;align-items:center;gap:4px;flex:none">
-          ${r.urgency==='priority'?`<span style="background:var(--st-amber-bg);color:var(--st-amber-fg);font-size:11px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:0">${i18t('adv_priority')}</span>`:''}
-          <span style="font-size:11px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:0;font-variant-numeric:tabular-nums;background:color-mix(in srgb,${etaCol} 12%,#fff);color:${etaCol}">${etaTxt}</span>
+          ${r.urgency==='priority'?`<span style="background:var(--st-amber-bg);color:var(--st-amber-fg);font-size:12px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:0">${i18t('adv_priority')}</span>`:''}
+          <span style="font-size:12px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:0;font-variant-numeric:tabular-nums;background:color-mix(in srgb,${etaCol} 12%,#fff);color:${etaCol}">${etaTxt}</span>
         </span>
       </div>
       <div style="display:flex;align-items:center;gap:6px;font-size:14px;font-weight:400;line-height:1.3"><span style="display:inline-flex;color:var(--color-accent-700);flex:none">${icon(svc.ic,'w-3.5 h-3.5')}</span><span style="min-width:0">${esc(svc.name)}</span></div>
@@ -41,7 +41,7 @@ function adviceCard(r){
       <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;border-top:1px solid color-mix(in srgb,var(--color-text) 8%,transparent);padding-top:5px;margin-top:1px">
         <span style="font-size:12px;font-weight:400;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--color-text)">${fee}</span>
         ${ini?`<span title="${esc(r.assignee)}" style="width:20px;height:20px;border-radius:50%;background:var(--color-accent-200);color:var(--color-accent-800);display:inline-grid;place-items:center;font-size:10px;font-weight:700;font-family:var(--font-mono);flex:none">${ini}</span>`
-            :`<span style="font-size:11px;color:var(--color-neutral-400)">unassigned</span>`}
+            :`<span style="font-size:12px;color:var(--color-neutral-400)">unassigned</span>`}
       </div>
     </div>`;
 }
@@ -54,7 +54,7 @@ function renderAdviceDesk(){
   const delivered30=rs.filter(r=>r.status==='Delivered'&&(Date.now()-Date.parse((r.history||[]).find(h=>h.to==='Delivered')?.at||r.submittedAt))<30*86400000).length;
   const projected=active.reduce((s,r)=>s+((r.quote?.rate||0)*(((r.quote?.hoursMin||0)+(r.quote?.hoursMax||0))/2)),0);
   const kpi=(label,val,col)=>`<div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;padding:8px 14px;min-width:0">
-      <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600)">${label}</div>
+      <div style="font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)">${label}</div>
       <div style="font-size:17px;font-weight:600;font-variant-numeric:tabular-nums;color:${col||'var(--color-text)'}">${val}</div></div>`;
 
   const groups=ADVICE_STAGES.map(col=>({col, list:rs.filter(r=>r.status===col.k)}));
@@ -153,12 +153,12 @@ function openAdviceModal(id){
     <div style="display:flex;gap:8px;padding:4px 0;font-size:12px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent)">
       <span style="width:8px;height:8px;border-radius:50%;background:${adviceStage(h.to).color};flex:none;margin-top:3px"></span>
       <span style="min-width:0;flex:1"><strong>${adviceStage(h.to).label}</strong>${h.by?` <span style="color:var(--color-neutral-600)">— ${esc(h.by)}</span>`:''}
-        <span style="display:block;font-size:11px;color:var(--color-neutral-500);font-family:var(--font-mono)">${fmtDT(h.at)}</span></span>
+        <span style="display:block;font-size:12px;color:var(--color-neutral-500);font-family:var(--font-mono)">${fmtDT(h.at)}</span></span>
     </div>`).join('');
   const notes=(r.notes||[]).slice().reverse().map(n=>`
     <div style="border:1px solid var(--color-divider);border-radius:0;background:var(--color-bg);padding:8px 10px;margin-bottom:6px">
       <div style="font-size:13px;line-height:1.5">${esc(n.text)}</div>
-      <div style="font-size:11px;color:var(--color-neutral-500);font-family:var(--font-mono);margin-top:2px">${esc(n.by)} · ${fmtDT(n.at)}</div>
+      <div style="font-size:12px;color:var(--color-neutral-500);font-family:var(--font-mono);margin-top:2px">${esc(n.by)} · ${fmtDT(n.at)}</div>
     </div>`).join('')||`<div style="font-size:12px;color:var(--color-neutral-500)">${i18t('adv_no_notes')}</div>`;
   const members=getUsers().filter(u=>u.role!=='viewer');
   const selStyle='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:6px 9px;font:inherit;font-size:13px;color:inherit;outline:none';
@@ -184,11 +184,11 @@ function openAdviceModal(id){
       ${r.description&&r.description!=='Seeded as sample data'?`<div style="margin-top:10px;border:1px solid var(--color-divider);border-radius:0;background:var(--color-bg);padding:9px 11px;font-size:13px;line-height:1.55;white-space:pre-wrap">${esc(r.description)}</div>`:''}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
         <div>
-          <h6 style="margin:0 0 6px;font-size:11px;color:var(--color-neutral-600);letter-spacing:.08em;text-transform:uppercase">${i18t('adv_pipeline_history')}</h6>
+          <h6 style="margin:0 0 6px;font-size:11px;color:var(--color-neutral-600);letter-spacing:.09em;text-transform:uppercase">${i18t('adv_pipeline_history')}</h6>
           <div class="scroll-thin" style="max-height:150px;overflow-y:auto">${hist}</div>
         </div>
         <div>
-          <h6 style="margin:0 0 6px;font-size:11px;color:var(--color-neutral-600);letter-spacing:.08em;text-transform:uppercase">${i18t('adv_internal_notes')}</h6>
+          <h6 style="margin:0 0 6px;font-size:11px;color:var(--color-neutral-600);letter-spacing:.09em;text-transform:uppercase">${i18t('adv_internal_notes')}</h6>
           <div class="scroll-thin" style="max-height:150px;overflow-y:auto">${notes}</div>
         </div>
       </div>
@@ -248,7 +248,7 @@ function openRateCardModal(){
         <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0">${i18t('adv_published_rates')}</h2></div>
       <p style="font-size:13px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55">These hourly rates and turnaround targets are shown to customers on the public intake page. ${editable?'Changes publish immediately.':'Only an admin can change them.'}</p>
       <div class="table-scroll"><table style="width:100%;border-collapse:collapse">
-        <thead><tr style="text-align:left;border-bottom:1px solid var(--color-divider);color:var(--color-neutral-600);font-size:11px;letter-spacing:.08em;text-transform:uppercase">
+        <thead><tr style="text-align:left;border-bottom:1px solid var(--color-divider);color:var(--color-neutral-600);font-size:11px;letter-spacing:.09em;text-transform:uppercase">
           <th style="padding:6px 10px 6px 0;font-weight:600">${i18t('adv_service')}</th><th style="padding:6px;font-weight:600">${jxCurrency()} / hr</th><th style="padding:6px;font-weight:600">${i18t('adv_hrs_min')}</th><th style="padding:6px;font-weight:600">${i18t('adv_hrs_max')}</th><th style="padding:6px 0 6px 6px;font-weight:600">${i18t('adv_days')}</th>
         </tr></thead>
         <tbody>${rows}</tbody>

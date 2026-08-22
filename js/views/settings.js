@@ -155,8 +155,8 @@ function renderRateTable(rates, meta){
   host.innerHTML=models.map(m=>`
     <div data-rate-model="${PB_ATTR(m)}" style="display:flex;align-items:center;gap:8px;padding:3px 2px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent)">
       <span style="flex:1;min-width:0;font-size:12px;font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis${m==='default'?';color:var(--color-neutral-500);font-style:italic':''}">${PB_ESC(m)}</span>
-      <label style="font-size:11px;color:var(--color-neutral-500)">${i18t('set_rate_in')} <input data-rate="in" type="number" min="0" step="0.01" value="${Number(rates[m].in)}" style="${inp}"/></label>
-      <label style="font-size:11px;color:var(--color-neutral-500)">${i18t('set_rate_out')} <input data-rate="out" type="number" min="0" step="0.01" value="${Number(rates[m].out)}" style="${inp}"/></label>
+      <label style="font-size:12px;color:var(--color-neutral-500)">${i18t('set_rate_in')} <input data-rate="in" type="number" min="0" step="0.01" value="${Number(rates[m].in)}" style="${inp}"/></label>
+      <label style="font-size:12px;color:var(--color-neutral-500)">${i18t('set_rate_out')} <input data-rate="out" type="number" min="0" step="0.01" value="${Number(rates[m].out)}" style="${inp}"/></label>
     </div>`).join('');
   const metaEl=document.getElementById('ai-rates-meta');
   if(metaEl) metaEl.textContent = meta && meta.verifiedOn
@@ -268,9 +268,9 @@ const ST_TAG='display:inline-flex;align-items:center;font-size:12px;font-weight:
 const ST_AV='width:24px;height:24px;border-radius:50%;background:var(--color-accent-200);color:var(--color-accent-800);display:inline-grid;place-items:center;font-size:10px;font-weight:700;flex:none;font-family:var(--font-mono)';
 const stRoleTag=r=>{ const map={admin:['var(--st-steel-bg)','var(--st-steel-fg)'],legal:['var(--st-amber-bg)','var(--st-amber-fg)'],viewer:['var(--st-gray-bg)','var(--st-gray-fg)']};
   const [bg,fg]=map[r]||map.viewer;
-  return `display:inline-flex;align-items:center;font-size:11px;font-weight:600;letter-spacing:.04em;padding:3px 10px;border-radius:0;background:${bg};color:${fg}`; };
+  return `display:inline-flex;align-items:center;font-size:12px;font-weight:600;letter-spacing:.04em;padding:3px 10px;border-radius:0;background:${bg};color:${fg}`; };
 const stLimitField=(id,label,sub,min)=>`<label style="display:block">
-    <span style="display:block;font-size:11px;color:var(--color-neutral-600);line-height:1.4">${label}<br><span style="color:var(--color-neutral-400)">${sub}</span></span>
+    <span style="display:block;font-size:12px;color:var(--color-neutral-600);line-height:1.4">${label}<br><span style="color:var(--color-neutral-400)">${sub}</span></span>
     <input id="${id}" type="number" min="${min}" style="margin-top:3px;${ST_MONO}"/></label>`;
 
 /* ---- WHAT A NON-ADMIN LOST, SAID OUT LOUD ----
@@ -2460,14 +2460,14 @@ function stEngineBodyHtml(){
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:6px">
         <div style="border:1px solid var(--color-divider);border-radius:0;padding:8px">
           <div style="font-size:12px;font-weight:600;color:var(--color-text)">${i18t('set_fast_tier')}</div>
-          <div style="font-size:11px;color:var(--color-neutral-500);margin:2px 0 4px">${i18t('set_fast_sub')}</div>
-          <div style="font-size:11px;color:var(--color-neutral-700);margin-bottom:4px">${i18t('set_current')} <span id="ai-model-fast-cur" style="font-family:var(--font-mono)">—</span></div>
+          <div style="font-size:12px;color:var(--color-neutral-500);margin:2px 0 4px">${i18t('set_fast_sub')}</div>
+          <div style="font-size:12px;color:var(--color-neutral-700);margin-bottom:4px">${i18t('set_current')} <span id="ai-model-fast-cur" style="font-family:var(--font-mono)">—</span></div>
           <input id="ai-model-fast" type="text" placeholder="${esc(i18t('set_ph_default_rec'))}" style="${ST_MONO}"/>
         </div>
         <div style="border:1px solid var(--color-divider);border-radius:0;padding:8px">
           <div style="font-size:12px;font-weight:600;color:var(--color-text)">${i18t('set_deep_tier')}</div>
-          <div style="font-size:11px;color:var(--color-neutral-500);margin:2px 0 4px">${i18t('set_deep_sub')}</div>
-          <div style="font-size:11px;color:var(--color-neutral-700);margin-bottom:4px">${i18t('set_current')} <span id="ai-model-deep-cur" style="font-family:var(--font-mono)">—</span></div>
+          <div style="font-size:12px;color:var(--color-neutral-500);margin:2px 0 4px">${i18t('set_deep_sub')}</div>
+          <div style="font-size:12px;color:var(--color-neutral-700);margin-bottom:4px">${i18t('set_current')} <span id="ai-model-deep-cur" style="font-family:var(--font-mono)">—</span></div>
           <input id="ai-model-deep" type="text" placeholder="${esc(i18t('set_ph_default_rec'))}" style="${ST_MONO}"/>
         </div>
       </div>
@@ -2475,7 +2475,7 @@ function stEngineBodyHtml(){
         <summary style="cursor:pointer;color:var(--color-neutral-600)">${i18t('set_advanced_override')}</summary>
         <div style="margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;gap:8px">
           <input id="ai-model-global" type="text" placeholder="${esc(i18t('set_ph_none'))}" style="${ST_MONO};width:220px"/>
-          <span style="font-size:11px;color:var(--color-neutral-500)">${i18t('set_forces_one_model')}</span>
+          <span style="font-size:12px;color:var(--color-neutral-500)">${i18t('set_forces_one_model')}</span>
         </div>
       </details>
       <button id="ai-model-save" style="margin-top:8px;${ST_BTN_SM}">${i18t('set_save_model')}</button>
@@ -2536,7 +2536,7 @@ function stEngineBodyHtml(){
     <div class="st-sec">
       <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
         <div style="font-size:13px;font-weight:600;color:var(--color-text)">${i18t('set_rate_table')}</div>
-        <span id="ai-rates-meta" style="font-size:11px;color:var(--color-neutral-500)"></span>
+        <span id="ai-rates-meta" style="font-size:12px;color:var(--color-neutral-500)"></span>
       </div>
       <p class="st-note">${i18t('set_usd_per')} ${i18t('set_per_million')}</p>
       <div id="ai-rates-table" style="max-height:220px;overflow-y:auto" class="scroll-thin"></div>
@@ -2606,7 +2606,7 @@ function stWireEngine(){
         bdHost.innerHTML=rows.length?`<div style="border:1px solid var(--color-divider);border-radius:0;overflow:hidden">
           ${rows.map(r=>`<div style="display:flex;align-items:center;gap:8px;padding:4px 8px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent);font-size:12px">
             <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${PB_ESC(r.label||r.k)}</span>
-            <span style="color:var(--color-neutral-500);font-family:var(--font-mono);font-size:11px">${Number(r.requests||0).toLocaleString(jxLocale())} req</span>
+            <span style="color:var(--color-neutral-500);font-family:var(--font-mono);font-size:12px">${Number(r.requests||0).toLocaleString(jxLocale())} req</span>
             <span style="font-family:var(--font-mono);font-weight:600;min-width:62px;text-align:right">${'$'+Number(r.cost||0).toFixed(4)}</span>
           </div>`).join('')}</div>`
           :`<div style="font-size:12px;color:var(--color-neutral-500)">${i18t('set_no_spend')}</div>`;
@@ -2616,13 +2616,13 @@ function stWireEngine(){
         const people=Array.isArray(spend.byPerson)?spend.byPerson:[];
         const un=Number(spend.unattributed||0);
         pHost.innerHTML=`
-          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);margin:0 0 4px">${
+          <div style="font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin:0 0 4px">${
             esc(i18t('set_spend_people'))}</div>
           ${people.length?`<div style="border:1px solid var(--color-divider);border-radius:0;overflow:hidden">
             ${people.map(p=>`<div style="display:flex;align-items:center;gap:8px;padding:4px 8px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent);font-size:12px">
               <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${PB_ESC(p.name||'—')}${
-                p.gone?` <span style="color:var(--color-neutral-500);font-size:11px">${esc(i18t('set_spend_left'))}</span>`:''}</span>
-              <span style="color:var(--color-neutral-500);font-family:var(--font-mono);font-size:11px">${Number(p.requests||0).toLocaleString(jxLocale())} req</span>
+                p.gone?` <span style="color:var(--color-neutral-500);font-size:12px">${esc(i18t('set_spend_left'))}</span>`:''}</span>
+              <span style="color:var(--color-neutral-500);font-family:var(--font-mono);font-size:12px">${Number(p.requests||0).toLocaleString(jxLocale())} req</span>
               <span style="font-family:var(--font-mono);font-weight:600;min-width:62px;text-align:right">${'$'+Number(p.cost||0).toFixed(4)}</span>
             </div>`).join('')}</div>`
           :`<div style="font-size:12px;color:var(--color-neutral-500)">${esc(i18t('set_spend_people_none'))}</div>`}
@@ -2634,7 +2634,7 @@ function stWireEngine(){
                  furniture. */}
           ${un>0.000001?`<div style="font-size:12px;color:var(--st-amber-fg);margin-top:4px">${
             esc(i18t('set_spend_unattributed',{amount:'$'+un.toFixed(4)}))}</div>`:''}
-          <div style="font-size:11px;color:var(--color-neutral-500);line-height:1.5;margin-top:5px">${
+          <div style="font-size:12px;color:var(--color-neutral-500);line-height:1.5;margin-top:5px">${
             esc(i18t('set_spend_people_note'))}</div>`;
       }
       const fillN=(id,v)=>{ const n=document.getElementById(id); if(n&&document.activeElement!==n&&v!==undefined) n.value=v; };
@@ -2848,7 +2848,7 @@ function stLoadActivation(){
           ${Object.entries(STEP).map(([k,label])=>{ const e=r.events&&r.events[k];
             return `<div style="border:1px solid var(--color-divider);border-radius:0;padding:9px 11px;background:${e?'var(--st-green-bg)':'var(--color-bg)'}">
               <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:${e?'var(--st-green-fg)':'var(--color-neutral-600)'}">${e?icon('check2','w-3 h-3'):''}${label}</div>
-              <div style="font-size:11px;font-family:var(--font-mono);color:var(--color-neutral-600);margin-top:3px">${e?`${fmtDT(e.first)} · ${e.count}×`:i18t('set_not_yet')}</div>
+              <div style="font-size:12px;font-family:var(--font-mono);color:var(--color-neutral-600);margin-top:3px">${e?`${fmtDT(e.first)} · ${e.count}×`:i18t('set_not_yet')}</div>
             </div>`; }).join('')}
         </div>
         <div style="font-size:13px;line-height:1.5;color:${r.northStar.withinSevenDays===true?'var(--st-green-fg)':r.northStar.withinSevenDays===false?'var(--st-amber-fg)':'var(--color-neutral-700)'}">
@@ -2976,7 +2976,7 @@ function renderClauseLibrary(){
   host.innerHTML=lib.map((cl,i)=>`
     <div style="border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);padding:11px 13px">
       <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:11px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;color:var(--color-neutral-500)">${cl.category}</span>
+        <span style="font-size:11px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.09em;color:var(--color-neutral-500)">${cl.category}</span>
         <span style="font-size:14px;font-weight:600;color:var(--color-text)">${cl.name}</span>
         ${canEditLib?`<span style="margin-left:auto;display:flex;gap:10px;font-size:12px;font-weight:600">
           <button data-cl-edit="${i}" style="background:none;border:0;cursor:pointer;color:var(--color-accent-700)">${i18t('set_edit_lower')}</button>
@@ -2996,9 +2996,9 @@ const PB_ATTR = s => String(s==null?'':s).replace(/"/g,'&quot;');
 // position chip — red for required/forbidden, steel for preferred; ⚑ = escalate
 function pbPosChip(pos){
   const hard=pos.pos==='required'||pos.pos==='forbidden';
-  return `<span style="font-size:11px;font-family:var(--font-mono);border-radius:0;padding:2px 9px;${hard?'background:var(--st-ruby-bg);color:var(--st-ruby-fg)':'background:var(--st-steel-bg);color:var(--st-steel-fg)'}">${PB_ESC(pos.category)}${pos.escalate?' ⚑':''}</span>`;
+  return `<span style="font-size:12px;font-family:var(--font-mono);border-radius:0;padding:2px 9px;${hard?'background:var(--st-ruby-bg);color:var(--st-ruby-fg)':'background:var(--st-steel-bg);color:var(--st-steel-fg)'}">${PB_ESC(pos.category)}${pos.escalate?' ⚑':''}</span>`;
 }
-const pbRangeChip = rg => `<span style="font-size:11px;font-family:var(--font-mono);border-radius:0;padding:2px 9px;background:var(--st-amber-bg);color:var(--st-amber-fg)">${PB_ESC(rg.label)} ${rg.op} ${rg.value}${rg.escalate?' ⚑':''}</span>`;
+const pbRangeChip = rg => `<span style="font-size:12px;font-family:var(--font-mono);border-radius:0;padding:2px 9px;background:var(--st-amber-bg);color:var(--st-amber-fg)">${PB_ESC(rg.label)} ${rg.op} ${rg.value}${rg.escalate?' ⚑':''}</span>`;
 function renderPlaybookView(){
   const pv=document.getElementById('playbook-view'); if(!pv) return;
   const canEditPb=isAdmin()||currentUser()?.role==='legal';
@@ -3014,7 +3014,7 @@ function renderPlaybookView(){
           ${removable?`<button data-pb-del="${key}" style="background:none;border:0;cursor:pointer;color:var(--st-ruby-dot)">${i18t('set_remove_lower')}</button>`:''}
         </span>`:''}
       </div>
-      ${baseline?`<div style="font-size:11px;color:var(--color-accent-800);margin-bottom:7px">${i18t('set_default_positions')}</div>`:''}
+      ${baseline?`<div style="font-size:12px;color:var(--color-accent-800);margin-bottom:7px">${i18t('set_default_positions')}</div>`:''}
       <div style="display:flex;flex-wrap:wrap;gap:5px">${positions.map(pbPosChip).join('')}${ranges.map(pbRangeChip).join('')||(positions.length?'':`<span style="font-size:12px;color:var(--color-neutral-500)">${i18t('set_no_positions')}</span>`)}</div>
     </div>`;
   const baseCard=card('_default',i18t('set_all_contracts_baseline'), base.positions||[], base.ranges||[], false, true);
@@ -3028,7 +3028,7 @@ function renderPlaybookView(){
       </span>`:''}
     </div>
     ${baseCard}${typeCards}
-    <p style="font-size:11px;color:var(--color-neutral-500);margin-top:4px">${i18t('set_flag_legend')}${canEditPb?i18t('set_flag_legend_more'):''}</p>`;
+    <p style="font-size:12px;color:var(--color-neutral-500);margin-top:4px">${i18t('set_flag_legend')}${canEditPb?i18t('set_flag_legend_more'):''}</p>`;
   if(!canEditPb) return;
   pv.querySelectorAll('[data-pb-edit]').forEach(b=>b.addEventListener('click',()=>openPlaybookEditor(b.getAttribute('data-pb-edit'))));
   pv.querySelectorAll('[data-pb-del]').forEach(b=>b.addEventListener('click',async()=>{
@@ -3160,7 +3160,7 @@ function renderApprovalRules(){
   host.innerHTML=rules.length?rules.map((r,i)=>`
     <div style="border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);padding:10px 12px;margin-bottom:8px">
       <div style="display:flex;align-items:center;gap:8px">
-        <span style="width:22px;height:22px;display:inline-grid;place-items:center;border-radius:50%;background:var(--tile-steel-bg);font-size:11px;font-weight:700;color:var(--tile-steel-fg);flex:none">${r.order||1}</span>
+        <span style="width:22px;height:22px;display:inline-grid;place-items:center;border-radius:50%;background:var(--tile-steel-bg);font-size:12px;font-weight:700;color:var(--tile-steel-fg);flex:none">${r.order||1}</span>
         <span style="font-size:13px;color:var(--color-text)"><b>${i18t('set_if')}</b> ${condLabel(r.cond)} <b>${i18t('set_then')}</b> ${approverLabelOf(r.approver)}</span>
         ${isAdmin()?`<span style="margin-left:auto;display:flex;gap:10px;font-size:12px;font-weight:600"><button data-ar-edit="${i}" style="background:none;border:0;cursor:pointer;color:var(--color-accent-700)">${i18t('set_edit_lower')}</button><button data-ar-del="${i}" style="background:none;border:0;cursor:pointer;color:var(--st-ruby-dot)">${i18t('set_remove_lower')}</button></span>`:''}
       </div>
@@ -3320,7 +3320,7 @@ async function loadSessions(){
       const dev=/mobile/i.test(ua)?i18t('set_dev_mobile'):/chrome/i.test(ua)?'Chrome':/firefox/i.test(ua)?'Firefox':/safari/i.test(ua)?'Safari':i18t('set_dev_browser');
       return `<div style="display:flex;align-items:center;gap:8px;border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);padding:7px 10px">
         <span style="min-width:0"><span style="font-size:13px;font-weight:600;color:var(--color-text)">${dev}${s.current?` <span style="font-size:10px;font-family:var(--font-mono);color:var(--color-accent-700)">${i18t('set_this_device')}</span>`:''}</span>
-        <span style="display:block;font-size:11px;font-family:var(--font-mono);color:var(--color-neutral-500)">${s.ip||'—'} · ${i18t('set_last_seen',{when:s.lastSeen?fmtDT(s.lastSeen):'—'})}</span></span>
+        <span style="display:block;font-size:12px;font-family:var(--font-mono);color:var(--color-neutral-500)">${s.ip||'—'} · ${i18t('set_last_seen',{when:s.lastSeen?fmtDT(s.lastSeen):'—'})}</span></span>
         ${s.current?'':`<button data-sess-revoke="${s.id}" style="margin-left:auto;font-size:12px;font-weight:600;color:var(--st-ruby-dot);background:none;border:0;cursor:pointer">${i18t('set_revoke')}</button>`}
       </div>`; }).join('')}</div>`:`<p style="font-size:12px;color:var(--color-neutral-500)">${i18t('set_no_active_sessions')}</p>`;
     host.querySelectorAll('[data-sess-revoke]').forEach(b=>b.addEventListener('click',async()=>{

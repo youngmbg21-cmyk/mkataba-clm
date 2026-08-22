@@ -723,7 +723,7 @@ function reviewProposedRound(c, n){
         ${b.after.trim()?`<ins style="background:var(--st-green-bg);color:var(--st-green-fg);text-decoration:none;border-radius:0;padding:0 2px">${e(b.after.trim())}</ins>`:''}
       </div>
       ${ask?`<div style="margin-top:8px;border-left:2px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:0;padding:7px 10px">
-        <span style="display:block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-accent-800);margin-bottom:2px">${i18t('ve_why_they_asked')}</span>
+        <span style="display:block;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-accent-800);margin-bottom:2px">${i18t('ve_why_they_asked')}</span>
         <span style="font-size:13px;line-height:1.55;color:var(--color-neutral-800)">${e(ask)}</span></div>`:''}
       <div style="display:flex;gap:6px;margin-top:9px;align-items:center">
         <button data-dec="accept" data-for="${b.id}" class="ui-btn" style="font-size:13px;padding:5px 12px">${i18t('ve_accept')}</button>
@@ -739,7 +739,7 @@ function reviewProposedRound(c, n){
           <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
             <span style="color:var(--st-amber-dot);display:inline-flex">${icon('history','w-4 h-4')}</span>
             <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Changes proposed by ${e(r.by||'the counterparty')}</h3>
-            <span style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:0;padding:3px 9px">${i18t('ve_round_open',{n})}</span>
+            <span style="font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:0;padding:3px 9px">${i18t('ve_round_open',{n})}</span>
           </div>
           <p style="font-size:13px;color:var(--color-neutral-600);margin:7px 0 0;display:flex;flex-wrap:wrap;gap:10px;align-items:center">${fmtDT(r.at)} · ${_statLine(st)} · ${_diffLegend}</p>
         </div>
@@ -754,13 +754,13 @@ function reviewProposedRound(c, n){
               <button id="pr-all-rej" class="ui-btn" style="font-size:13px;padding:5px 11px">${i18t('ve_reject_all')}</button>
             </div>
             <div id="pr-blocks" style="display:flex;flex-direction:column;gap:9px;margin-bottom:18px">${blocks.map(blockRow).join('')}</div>`:''}
-          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:7px">${i18t('ve_doc_with_changes')}</div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:7px">${i18t('ve_doc_with_changes')}</div>
           <div style="background:var(--color-doc-surface);box-shadow:var(--shadow-md);border-radius:0;padding:30px 36px;font-size:15px;line-height:1.95;color:var(--color-doc-text);white-space:pre-wrap;font-family:var(--font-body)">${diffHtml(base, r.proposedText)}</div>
           ${r.comment?`<div style="margin-top:14px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:12px 16px">
-            <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:5px">${i18t('ve_their_comment')}</div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:5px">${i18t('ve_their_comment')}</div>
             <div style="font-size:14px;line-height:1.6;color:var(--color-neutral-800)">${e(r.comment)}</div></div>`:''}
           <label style="display:block;margin-top:14px">
-            <span style="display:block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:5px">${i18t('ve_your_reply_to',{who:e(r.by||i18t('ve_them'))})}</span>
+            <span style="display:block;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:5px">${i18t('ve_your_reply_to',{who:e(r.by||i18t('ve_them'))})}</span>
             <textarea id="pr-reply" rows="2" placeholder="${e(i18t('ve_ph_reply'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:9px 11px;font:inherit;font-size:14px;outline:none"></textarea>
           </label>
         </div>

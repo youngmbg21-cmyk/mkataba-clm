@@ -1183,11 +1183,11 @@ function uploadConfirmHtml(ext, meta){
   const has=k=>meta!=null&&m[k]!=null&&m[k]!==''&&!(typeof m[k]==='number'&&!(m[k]>0));
   const MARK=`<span style="font-family:var(--font-mono);font-size:10px;color:var(--color-accent-700);letter-spacing:.05em"> ✦ ${i18t('ct_read_from_doc').toUpperCase()}</span>`;
   const found=k=>{ const q=spans[k]; if(!q) return '';
-    return `<span style="display:block;margin-top:2px;font-size:11px;line-height:1.4;color:var(--color-neutral-600)">found: <i>“${esc2(String(q).replace(/\s+/g,' ').trim().slice(0,140))}”</i></span>`; };
+    return `<span style="display:block;margin-top:2px;font-size:12px;line-height:1.4;color:var(--color-neutral-600)">found: <i>“${esc2(String(q).replace(/\s+/g,' ').trim().slice(0,140))}”</i></span>`; };
   const fld=(id,label,opts={})=>{
     const read=!!opts.read;
     return `<label class="block"><span class="text-xs font-medium text-brand-800/70">${label}${read?MARK:''}</span>
-      <input id="${id}" type="${opts.type||'text'}" value="${attr(opts.value||'')}" placeholder="${attr(opts.ph||'')}"${opts.list?` list="${opts.list}"`:''} class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400"${read?' style="border-color:var(--color-accent);background:var(--color-accent-100)"':''}/>${read?found(opts.foundKey||''):''}${opts.sub?`<span style="display:block;margin-top:2px;font-size:11px;color:var(--color-neutral-600)">${opts.sub}</span>`:''}</label>`;
+      <input id="${id}" type="${opts.type||'text'}" value="${attr(opts.value||'')}" placeholder="${attr(opts.ph||'')}"${opts.list?` list="${opts.list}"`:''} class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400"${read?' style="border-color:var(--color-accent);background:var(--color-accent-100)"':''}/>${read?found(opts.foundKey||''):''}${opts.sub?`<span style="display:block;margin-top:2px;font-size:12px;color:var(--color-neutral-600)">${opts.sub}</span>`:''}</label>`;
   };
   const fileBase=ext?String(ext.file.name||'').replace(/\.[^.]+$/,''):'';
   const nameFromDoc=has('contractType')&&has('counterparty');
@@ -1611,9 +1611,9 @@ function discussPointsSectionHtml(c){
       <div style="display:flex;flex-direction:column;gap:8px">
         ${pts.map((pt,i)=>`
           <div style="border:1px solid #e8d5ad;background:var(--color-surface);border-radius:0;padding:9px 12px;font-size:13px;line-height:1.6">
-            ${pt.before?`<div><span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('ct_contract_says')}</span>
+            ${pt.before?`<div><span style="font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('ct_contract_says')}</span>
               <div style="color:var(--color-neutral-800)">${e(pt.before)}</div></div>`:''}
-            ${pt.after?`<div style="margin-top:5px"><span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('ct_they_asked_for')}</span>
+            ${pt.after?`<div style="margin-top:5px"><span style="font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('ct_they_asked_for')}</span>
               <div style="color:var(--st-ruby-fg)">${e(pt.after)}</div></div>`:''}
             ${pt.ask?`<div style="margin-top:5px;font-size:13px;color:var(--color-neutral-700)"><b>${i18t('ct_they_said')}</b> ${e(pt.ask)}</div>`:''}
             ${pt.reason?`<div style="margin-top:4px;font-size:13px;color:var(--color-neutral-700)"><b>${i18t('ct_you_replied')}</b> ${e(pt.reason)}</div>`:''}
@@ -4021,7 +4021,7 @@ function openNegoProposeModal(c){
         <div style="${COL}">
           <textarea id="nego-prop-text" spellcheck="false" style="width:100%;min-height:52vh;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:14px 16px;font:inherit;font-family:var(--font-mono);font-size:14px;line-height:1.8;outline:none;resize:vertical">${esc(base)}</textarea>
           <label style="display:block;margin-top:12px">
-            <span style="display:block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:5px">${i18t('ct_why_asking')}</span>
+            <span style="display:block;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:5px">${i18t('ct_why_asking')}</span>
             <input id="nego-prop-why" type="text" placeholder="${esc(i18t('ct_ph_reason'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:9px 11px;font:inherit;font-size:14px;outline:none"/>
           </label>
         </div>
@@ -4469,7 +4469,7 @@ function returnedChangesStrip(c){
   const who=esc(latest.by||'The counterparty');
   return `
     <div id="changes-strip" style="flex:none;display:flex;align-items:center;gap:11px;flex-wrap:wrap;padding:9px 16px;background:var(--st-amber-bg);border-top:1px solid var(--st-amber-line);border-bottom:1px solid var(--st-amber-line)">
-      <span class="changes-pip" style="flex:none;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--st-amber-dot);color:#fff;border-radius:0;padding:3px 10px">${i18t('ct_changes_returned')}</span>
+      <span class="changes-pip" style="flex:none;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;background:var(--st-amber-dot);color:#fff;border-radius:0;padding:3px 10px">${i18t('ct_changes_returned')}</span>
       <span style="font-size:14px;color:var(--st-amber-fg);min-width:0"><b>${who}</b> ${withText?'proposed edits':'requested changes'} — ${open.length} round${open.length===1?'':'s'} awaiting your decision.</span>
       <span style="flex:1"></span>
       <button id="changes-review" style="flex:none;font:inherit;font-size:13px;font-weight:600;border:1px solid var(--st-amber-dot);background:var(--color-surface);color:var(--st-amber-fg);border-radius:0;padding:6px 13px;cursor:pointer">${withText?'Review changes':'Read the request'}</button>
@@ -4537,7 +4537,7 @@ function readyToSignStrip(c){
   const stale=!!sig.stale;
   return `
     <div id="ready-strip" data-stale="${stale?'1':'0'}" style="flex:none;display:flex;align-items:center;gap:11px;flex-wrap:wrap;padding:9px 16px;background:${stale?'var(--st-amber-bg)':'var(--st-green-bg)'};border-top:1px solid ${stale?'var(--st-amber-line)':'var(--st-green-line)'};border-bottom:1px solid ${stale?'var(--st-amber-line)':'var(--st-green-line)'}">
-      <span style="flex:none;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:${stale?'var(--st-amber-dot)':'var(--st-green-fg)'};color:#fff;border-radius:0;padding:3px 10px">${i18t('ct_ready_to_sign')}</span>
+      <span style="flex:none;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;background:${stale?'var(--st-amber-dot)':'var(--st-green-fg)'};color:#fff;border-radius:0;padding:3px 10px">${i18t('ct_ready_to_sign')}</span>
       <span style="font-size:14px;color:${stale?'var(--st-amber-fg)':'var(--st-green-fg)'};min-width:0"><b>${esc(sig.by||c.counterparty||i18t('ct_the_counterparty_cap'))}</b> ${i18t('ct_ready_to_sign_signal',{when:esc(when)})}${bits.length?` · ${esc(bits.join(', '))}`:''}. <b>${i18t('ct_nothing_signed')}</b>${stale?' Something has been reopened since, so this no longer describes where the deal stands.':''}</span>
       <span style="flex:1"></span>
       ${canEdit()&&!stale?`<button id="ready-issue" style="flex:none;font:inherit;font-size:13px;font-weight:600;border:1px solid var(--st-green-fg);background:var(--st-green-fg);color:#fff;border-radius:0;padding:6px 13px;cursor:pointer">${i18t('ct_issue_signing_link')}</button>`:''}
@@ -5198,7 +5198,7 @@ function renderWorkspace(){
      Negotiate tab: the two tabs are one room and their objects should be the
      same objects (Young, 10 Aug 2026). */
   const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:0 1px 2px rgba(15,23,42,.05);border-radius:0';
-  const H6='margin:0;font-size:11px;font-weight:700;color:var(--color-neutral-600);text-transform:uppercase;letter-spacing:.1em';
+  const H6='margin:0;font-size:11px;font-weight:700;color:var(--color-neutral-600);text-transform:uppercase;letter-spacing:.09em';
   const KROW='display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);font-size:13px';
   const KKEY='color:var(--color-neutral-600);flex:none';
   const kv=(k,v)=>`<div style="${KROW}"><span style="${KKEY}">${k}</span><span style="font-weight:400;text-align:right;min-width:0">${v}</span></div>`;
@@ -5377,7 +5377,7 @@ function renderWorkspace(){
           <section style="${CARD};padding:12px 14px">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
               <h6 style="${H6};flex:1">${i18t('ct_activity_comments')}</h6>
-              <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--st-green-fg);font-weight:600"><span class="live-dot" style="height:6px;width:6px;border-radius:0;background:var(--st-green-dot);display:inline-block"></span>${i18t('ct_live')}</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--st-green-fg);font-weight:600"><span class="live-dot" style="height:6px;width:6px;border-radius:0;background:var(--st-green-dot);display:inline-block"></span>${i18t('ct_live')}</span>
             </div>
             <div id="feed" class="scroll-thin" style="max-height:300px;overflow-y:auto;padding-right:4px;display:flex;flex-direction:column;gap:14px"></div>
             <div style="margin-top:12px;padding-top:11px;border-top:1px solid var(--color-divider)">
@@ -6066,7 +6066,7 @@ function renderFeed(c){
     const when=esc((window.relTime?relTime(m.at||m.ts):'') || m.ts || '');
     return `
     <div style="display:flex;gap:10px">
-      <div style="flex:none;height:28px;width:28px;display:grid;place-items:center;border-radius:50%;font-size:11px;font-weight:700;
+      <div style="flex:none;height:28px;width:28px;display:grid;place-items:center;border-radius:50%;font-size:12px;font-weight:700;
         background:${internal?'var(--color-accent-100)':'var(--st-amber-bg)'};color:${internal?'var(--color-accent-800)':'var(--st-amber-fg)'}">${initials}</div>
       <div style="min-width:0;flex:1">
         <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;line-height:1.4">

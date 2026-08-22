@@ -31,12 +31,12 @@ function pipeCard(c){
     <div data-card="${c.id}" class="q-card" style="background:var(--color-surface);border:1px solid var(--color-divider);border-left:4px solid ${folderColor(c)};border-radius:0;box-shadow:var(--shadow-sm);padding:11px 12px;cursor:pointer;display:flex;flex-direction:column;gap:5px">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
         <span style="font-family:var(--font-mono);font-size:12px;color:var(--color-neutral-600)">${c.id}</span>
-        <span style="background:${rp.bg};color:${rp.fg};font-size:11px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:0;font-variant-numeric:tabular-nums;flex:none">R ${r}</span>
+        <span style="background:${rp.bg};color:${rp.fg};font-size:12px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:0;font-variant-numeric:tabular-nums;flex:none">R ${r}</span>
       </div>
       <div style="font-size:14px;font-weight:400;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cPrimary(c)}</div>
       <div style="font-size:12px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cSecondary(c)}</div>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;border-top:1px solid color-mix(in srgb,var(--color-text) 8%,transparent);padding-top:5px;margin-top:1px">
-        <span style="font-size:11px;color:var(--color-neutral-600);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${stream}</span>
+        <span style="font-size:12px;color:var(--color-neutral-600);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${stream}</span>
         <span style="font-size:12px;font-weight:400;font-variant-numeric:tabular-nums;white-space:nowrap;flex:none;color:${isMonetary(c)?'var(--color-text)':'var(--color-neutral-500)'}">${val}</span>
       </div>
     </div>`;

@@ -115,7 +115,7 @@ function openKpiCustomizer(anchor){
   };
   pop.innerHTML=`
     <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:4px 8px 6px;">
-      <span style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);font-weight:700;">${i18t('home_show_metrics')}</span>
+      <span style="font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);font-weight:700;">${i18t('home_show_metrics')}</span>
       ${''/* The count is the rule, stated without being pressed: a reader who
              sees "4 of 4" never has to discover the ceiling by hitting it. */}
       <span id="kpi-cust-count" style="font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;color:${full?'var(--color-accent-700)':'var(--color-neutral-500)'};">${i18t('home_metrics_count',{n:sel.length,max:KPI_MAX})}</span>
@@ -250,7 +250,7 @@ function gettingStartedHtml(){
   const done=steps.filter(s=>s.done).length;
   const all=done===steps.length;
   const cur=steps.find(s=>!s.done);
-  const CIRCLE='width:20px;height:20px;flex:none;display:grid;place-items:center;border-radius:50%;font-size:11px;font-weight:700;font-family:var(--font-mono)';
+  const CIRCLE='width:20px;height:20px;flex:none;display:grid;place-items:center;border-radius:50%;font-size:12px;font-weight:700;font-family:var(--font-mono)';
   const rows=steps.map((s,i)=>{
     const isCur=!all&&cur&&s.k===cur.k;
     const dot=s.done
@@ -817,9 +817,9 @@ function renderDashboard(){
       <span style="flex:1;min-width:0;">
         <span style="display:flex;align-items:baseline;gap:8px;">
           <span style="flex:1;min-width:0;font-size:13px;line-height:1.4;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${it.txt}</span>
-          <span style="flex:none;font-size:11px;font-weight:600;font-family:var(--font-mono);color:${fg};">${esc(it.tag)}</span>
+          <span style="flex:none;font-size:12px;font-weight:600;font-family:var(--font-mono);color:${fg};">${esc(it.tag)}</span>
         </span>
-        <span style="display:block;margin-top:2px;font-size:11px;color:var(--color-neutral-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${it.meta}</span>
+        <span style="display:block;margin-top:2px;font-size:12px;color:var(--color-neutral-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${it.meta}</span>
       </span>
     </button>`; }).join('')
     || `<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--color-neutral-500);padding:12px 2px;"><span style="color:var(--st-green-fg);display:inline-flex;">${icon('check2','w-4 h-4')}</span>${i18t('home_nothing_to_decide')}</div>`;
@@ -852,7 +852,7 @@ function renderDashboard(){
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex:none;">
         <h4 style="font-size:15px;margin:0;font-weight:700;">${i18t('home_decisions_due')}</h4>
         <span class="live-ping" style="width:7px;height:7px;border-radius:50%;background:${decisionItems.length?'var(--st-amber-dot)':'var(--st-green-dot)'};flex:none;"></span>
-        ${decisionItems.length?`<span style="margin-left:auto;font-size:11px;font-weight:700;padding:2px 8px;background:var(--st-amber-bg);color:var(--st-amber-fg);">${decisionItems.length}</span>`:''}
+        ${decisionItems.length?`<span style="margin-left:auto;font-size:12px;font-weight:700;padding:2px 8px;background:var(--st-amber-bg);color:var(--st-amber-fg);">${decisionItems.length}</span>`:''}
       </div>
       <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;">${decisionRows}</div>
       ${decisionFooter}

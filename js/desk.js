@@ -1115,7 +1115,7 @@ function deskSheetHtml(c){
         placeholder="${_dkE(i18t('dk_add_ph'))}" style="${DK_FLD}padding-right:30px"/>
       <button type="button" id="dk-who-caret" tabindex="-1" aria-label="${_dkE(i18t('dk_show_all'))}"
         style="position:absolute;right:1px;top:1px;bottom:1px;width:28px;border:0;background:transparent;
-        cursor:pointer;color:var(--color-neutral-600);font-size:11px;line-height:1">&#9662;</button>
+        cursor:pointer;color:var(--color-neutral-600);font-size:12px;line-height:1">&#9662;</button>
       <ul id="dk-who-list" role="listbox" hidden
         style="list-style:none;margin:2px 0 0;padding:0;position:absolute;left:0;right:0;top:100%;z-index:5;
         max-height:212px;overflow-y:auto;background:var(--color-surface);border:1px solid var(--color-divider);
@@ -1223,7 +1223,7 @@ function openDeskHandover(c, opts = {}){
           placeholder="${_dkE(i18t('dk_add_ph'))}" style="${DK_FLD}padding-right:30px"/>
         <button type="button" id="dk-who-caret" tabindex="-1" aria-label="${_dkE(i18t('dk_show_all'))}"
           style="position:absolute;right:1px;top:1px;bottom:1px;width:28px;border:0;background:transparent;
-          cursor:pointer;color:var(--color-neutral-600);font-size:11px;line-height:1">&#9662;</button>
+          cursor:pointer;color:var(--color-neutral-600);font-size:12px;line-height:1">&#9662;</button>
         <ul id="dk-who-list" role="listbox" hidden
           style="list-style:none;margin:2px 0 0;padding:0;position:absolute;left:0;right:0;top:100%;z-index:5;
           max-height:212px;overflow-y:auto;background:var(--color-surface);border:1px solid var(--color-divider);

@@ -435,12 +435,12 @@ async function intelComplianceScan(q){
   let html=`<b>${i18t('int_compliance_review')}</b> ${rows.length} of ${cs.length} live contracts carry clauses worth a closer look — ${totalFindings} potential issue${totalFindings===1?'':'s'} in all (risks, missing protections or ambiguous terms), ranked by severity. This is a first-pass review to raise with counsel, not legal advice.`;
   html+=top.map(r=>{
     const items=r.findings.slice(0,3).map(f=>`<li style="margin:2px 0"><b>${igEsc(f.title)}</b>${f.why?` — ${igEsc(f.why)}`:''}</li>`).join('');
-    const more=r.findings.length>3?`<div style="font-size:11px;color:var(--color-neutral-500);margin-top:1px">+${r.findings.length-3} more</div>`:'';
+    const more=r.findings.length>3?`<div style="font-size:12px;color:var(--color-neutral-500);margin-top:1px">+${r.findings.length-3} more</div>`:'';
     return `<div style="margin-top:10px;padding-top:9px;border-top:1px solid color-mix(in srgb,var(--color-text) 9%,transparent)">
       <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px;flex-wrap:wrap">
         <button data-ig-ws="${r.c.id}" data-ig-hoverid="${r.c.id}" title="Open ${igEsc(r.c.name)}" style="font-size:14px;font-weight:600;color:var(--color-accent-800);background:none;border:0;padding:0;cursor:pointer;text-align:left">${igEsc(r.c.name)}</button>
         ${sevPill(r.worst)}
-        <span style="font-size:11px;color:var(--color-neutral-500);font-family:var(--font-mono)">${igEsc(r.c.id)}</span>
+        <span style="font-size:12px;color:var(--color-neutral-500);font-family:var(--font-mono)">${igEsc(r.c.id)}</span>
       </div>
       <ul style="margin:0;padding-left:16px;font-size:13px;color:var(--color-neutral-700);line-height:1.45">${items}</ul>${more}
     </div>`;
@@ -767,7 +767,7 @@ function renderIntel(){
       ${intel.tab==='map'?`<span class="ig-hd-sub" style="font-size:13px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;min-width:0">${state.contracts.length.toLocaleString(jxLocale())} contracts · ask the panel to read, summarise, quote or flag risky clauses</span>`:''}
       <span style="flex:1"></span>
       ${intel.tab==='friction'?frictionControls:''}
-      ${intel.tab==='map'?`<label style="display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600);flex:none">Group by
+      ${intel.tab==='map'?`<label style="display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);flex:none">Group by
         <span style="position:relative;display:inline-flex;align-items:center">
           <select id="ig-group" style="appearance:none;-webkit-appearance:none;-moz-appearance:none;border:1.5px solid var(--color-accent);background:var(--color-accent-100);color:var(--color-accent-800);font-family:var(--font-heading);font-weight:600;font-size:14px;letter-spacing:0;text-transform:none;padding:5px 26px 5px 11px;border-radius:0;cursor:pointer;outline:none">
             ${groupOpts.map(([k,l])=>`<option value="${k}" ${intel.groupBy===k?'selected':''}>${l}</option>`).join('')}
@@ -1017,7 +1017,7 @@ function intelFrictionHtml(){
   const slowHero=(sl&&st.counterparties.length>1)?hero(sl.avgRounds.toFixed(1),'var(--color-text)',
     `rounds per deal with <b>${igEsc(sl.name)}</b>, against ${st.avgRounds.toFixed(1)} across the book — the slowest counterparty you negotiate with${sl.acceptUs!=null?`, and they accept <b>${pct(sl.acceptUs)}%</b> of what you ask`:''}.
      ${f&&f.counterparty===sl.name?'':`<br><button data-igf-cp="${igEsc(sl.name)}" style="${LINK}">Filter the page to ${igEsc(sl.name)} →</button>`}`):'';
-  const mini=(n,t)=>`<div style="min-width:0"><div style="font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em">${n}</div><div style="font-size:11px;color:var(--color-neutral-600);font-weight:600;line-height:1.35">${t}</div></div>`;
+  const mini=(n,t)=>`<div style="min-width:0"><div style="font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em">${n}</div><div style="font-size:12px;color:var(--color-neutral-600);font-weight:600;line-height:1.35">${t}</div></div>`;
   const minis=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:9px 18px;padding-top:10px">
     ${st.medianDays!=null?mini(st.medianDays<1?'&lt;1 day':Math.round(st.medianDays)+' days','median to signature'):''}
     ${st.medianDecisionMs!=null?mini(hrs(st.medianDecisionMs),'median decision time'):''}
@@ -1054,10 +1054,10 @@ function intelFrictionHtml(){
   const th=t=>`<th style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500);text-align:left;padding:5px 8px;${RULE}">${t}</th>`;
   const right=`<div style="padding:12px 18px;border-left:1px solid var(--color-divider);min-width:0">
     <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:14px;font-weight:700">${i18t('int_most_contested')}</span>
-      <span style="font-size:11px;color:var(--color-neutral-500);margin-left:auto;white-space:nowrap">% of ${st.deals} negotiation${st.deals===1?'':'s'} · extra rounds</span></div>
+      <span style="font-size:12px;color:var(--color-neutral-500);margin-left:auto;white-space:nowrap">% of ${st.deals} negotiation${st.deals===1?'':'s'} · extra rounds</span></div>
     <div role="img" aria-label="${i18t('int_bar_chart_aria')}" style="display:grid;grid-template-columns:minmax(120px,170px) 1fr 40px 40px;gap:5px 9px;align-items:center;margin:8px 0 12px">${bars}</div>
     <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:14px;font-weight:700">${i18t('int_friction_by_cp')}</span>
-      <span style="font-size:11px;color:var(--color-accent-700);margin-left:auto;white-space:nowrap">${i18t('int_click_row_filter')}</span></div>
+      <span style="font-size:12px;color:var(--color-accent-700);margin-left:auto;white-space:nowrap">${i18t('int_click_row_filter')}</span></div>
     <div style="overflow-x:auto;margin-top:6px"><table style="border-collapse:collapse;width:100%"><tr>${th('Counterparty')}${th('Deals')}${th('Rounds')}${th('Accept us')}${th('')}</tr>${cpRows}</table></div>
     <div style="font-size:12px;color:var(--st-amber-fg,#b45309);opacity:.85;margin-top:9px;line-height:1.55">Counted from the fingerprinted tracked changes in each negotiation's record. Ask the Copilot to probe any of these numbers — it carries the same figures.</div>
   </div>`;
@@ -1117,7 +1117,7 @@ function intelFrictionCopilotHtml(st){
       <span class="live-ping" style="width:7px;height:7px;border-radius:50%;background:var(--accent-solid,var(--color-accent));flex:none"></span>${i18t('int_reading_figures')}</div>`;
   }else if(ai&&ai.html&&ai.key===key){
     body=`<div class="igf-ai-read" style="font-size:14px;line-height:1.7;color:var(--color-neutral-800)">${ai.html}</div>
-      <div style="display:flex;align-items:center;gap:10px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--color-divider);font-size:11px;color:var(--color-neutral-500)">
+      <div style="display:flex;align-items:center;gap:10px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--color-divider);font-size:12px;color:var(--color-neutral-500)">
         <span style="flex:none;font-size:10px;font-weight:700;padding:1px 7px;border-radius:0;background:var(--st-amber-bg);color:var(--st-amber-fg)">${i18t('int_ai_commentary')}</span>
         <span style="min-width:0">Generated at ${igEsc(ai.at||'')} from the counted figures below — the numbers are the app's, the interpretation is Copilot's.</span>
         <button id="igf-ai-regen" style="margin-left:auto;border:0;background:none;cursor:pointer;font:inherit;font-size:12px;font-weight:700;color:var(--color-accent-700);flex:none;white-space:nowrap">↻ Regenerate</button>

@@ -122,12 +122,12 @@ function tplCompanySectionHtml() {
         <span style="width:32px;height:32px;flex:none;display:grid;place-items:center;border-radius:0;background:var(--tile-steel-bg);color:var(--tile-steel-fg)">${icon('copy', 'w-3.5 h-3.5')}</span>
         <span style="min-width:0;flex:1">
           <span style="display:block;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.name)}</span>
-          <span style="display:block;font-size:11px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${TPLLIB_CATEGORIES[t.category] || 'Other'} · ${esc(TPLLIB_ORIGIN[t.origin] || '')}</span>
+          <span style="display:block;font-size:12px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${TPLLIB_CATEGORIES[t.category] || 'Other'} · ${esc(TPLLIB_ORIGIN[t.origin] || '')}</span>
         </span>
         <span style="flex:none">${tplLibStatusBadge(t.status)}</span>
       </div>
-      <div data-tpllib-open="${t.id}" style="font-size:11px;color:var(--color-neutral-500);cursor:pointer">Last used ${fmtDay(t.lastUsedAt)}</div>
-      <div data-tpllib-open="${t.id}" style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-600);cursor:pointer">
+      <div data-tpllib-open="${t.id}" style="font-size:12px;color:var(--color-neutral-500);cursor:pointer">Last used ${fmtDay(t.lastUsedAt)}</div>
+      <div data-tpllib-open="${t.id}" style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--color-neutral-600);cursor:pointer">
         <span style="font-family:var(--font-mono);font-weight:600;color:var(--color-accent-700)" title="${i18t('tl_current_published')}">${t.publishedVersion ? 'v' + t.publishedVersion : (canManage ? 'v' + t.latestVersion + ' draft' : '—')}</span>
         <span>·</span><span title="${i18t('tl_contracts_created')}">${t.contractsCreated} contract${t.contractsCreated === 1 ? '' : 's'}</span>
       </div>
@@ -259,7 +259,7 @@ function tplConfirmPaint() {
       <input data-tc-label="${i}" value="${esc(f.label)}" style="${INP};flex:2;min-width:120px" maxlength="200">
       <select data-tc-type="${i}" style="${INP};flex:1;min-width:110px">${types.map(([k, tt]) => `<option value="${k}"${f.fieldType === k ? ' selected' : ''}>${tt.label}</option>`).join('')}</select>
       <label style="flex:none;display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" data-tc-req="${i}" ${f.required ? 'checked' : ''}>required</label>
-      <button data-tc-del="${i}" class="ui-btn" style="flex:none;font-size:11px;padding:2px 7px;border-color:var(--st-ruby-line);color:var(--st-ruby-fg)">${icon('x', 'w-3 h-3')}</button>
+      <button data-tc-del="${i}" class="ui-btn" style="flex:none;font-size:12px;padding:2px 7px;border-color:var(--st-ruby-line);color:var(--st-ruby-fg)">${icon('x', 'w-3 h-3')}</button>
     </div>`;
   }).join('');
   const blockRows = s.blocks.map(b => `
@@ -608,7 +608,7 @@ function tplFormInputHtml(f, value, idx) {
     return `<div style="display:flex;align-items:center;gap:8px">
       ${v ? (lib.input === 'image' ? `<img src="${v}" alt="" style="height:34px;border-radius:0;border:1px solid var(--color-divider)">` : `<span class="badge" style="background:var(--color-neutral-100);color:var(--color-neutral-700)">attached</span>`) : ''}
       <input type="file" data-tplf-file="${idx}" accept="${lib.input === 'image' ? 'image/png,image/jpeg,image/webp' : '*/*'}" style="font-size:12px">
-      ${v ? `<button data-tplf-clear="${idx}" class="ui-btn" style="font-size:11px;padding:2px 7px">Clear</button>` : ''}
+      ${v ? `<button data-tplf-clear="${idx}" class="ui-btn" style="font-size:12px;padding:2px 7px">Clear</button>` : ''}
     </div>`;
   const type = { email: 'email', tel: 'tel', date: 'date' }[lib.input] || 'text';
   return `<input type="${type}" data-tplf="${idx}" value="${esc(v)}" placeholder="${esc(lib.hint)}" style="${INP}">`;
@@ -650,12 +650,12 @@ function renderTemplateFormSection(c) {
     <div style="display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--color-divider)">
       <h6 style="font-family:var(--font-heading);font-weight:600;font-size:13px;margin:0;flex:1">Contract form
         <span style="font-weight:400;color:var(--color-neutral-500)">${i18t('tl_from_template_v',{name:esc(form.templateName || '')})}${form.versionNumber || ''}</span></h6>
-      <span style="font-size:11px;color:${filled.length === required.length ? 'var(--st-green-fg)' : 'var(--st-amber-fg)'};font-weight:600">${filled.length}/${required.length} required filled</span>
+      <span style="font-size:12px;color:${filled.length === required.length ? 'var(--st-green-fg)' : 'var(--st-amber-fg)'};font-weight:600">${filled.length}/${required.length} required filled</span>
     </div>
     <div style="padding:10px 14px;display:flex;flex-direction:column;gap:10px">
       ${locked ? `<div style="font-size:12px;color:var(--color-neutral-600)">${i18t('tl_executed_sealed')}</div>` : ''}
       ${bySection.map(g => `
-        ${g.name ? `<div style="font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--color-neutral-500);margin-top:2px">${esc(g.name)}</div>` : ''}
+        ${g.name ? `<div style="font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-top:2px">${esc(g.name)}</div>` : ''}
         ${g.fields.map(f => {
           const idx = form.fields.indexOf(f);
           const problem = String(values[f.fieldKey] || '').trim() !== '' ? problemOf(f.fieldKey) : null;
@@ -663,7 +663,7 @@ function renderTemplateFormSection(c) {
             <span style="display:block;font-size:12px;font-weight:600;margin-bottom:3px">${esc(f.label || f.fieldKey)}${f.required ? ' <span style="color:var(--st-ruby-fg)">*</span>' : ''}</span>
             ${editable ? tplFormInputHtml(f, values[f.fieldKey], idx)
               : `<span style="display:block;font-size:13px;color:var(--color-neutral-800)">${esc(values[f.fieldKey] || '—')}</span>`}
-            ${f.helpText ? `<span style="display:block;font-size:11px;color:var(--color-neutral-500);margin-top:2px">${esc(f.helpText)}</span>` : ''}
+            ${f.helpText ? `<span style="display:block;font-size:12px;color:var(--color-neutral-500);margin-top:2px">${esc(f.helpText)}</span>` : ''}
             <span data-tplf-err="${idx}" style="display:${problem ? 'block' : 'none'};font-size:12px;color:var(--st-ruby-fg);margin-top:2px">${esc(problem || '')}</span>
           </label>`;
         }).join('')}`).join('')}
@@ -769,7 +769,7 @@ function tplFormPopover(c, idx, anchor) {
   pop.innerHTML = `
     <div style="font-size:12px;font-weight:600;margin-bottom:5px">${esc(f.label || f.fieldKey)}${f.required ? ' <span style="color:var(--st-ruby-fg)">*</span>' : ''}</div>
     ${tplFormInputHtml(f, (form.values || {})[f.fieldKey], idx)}
-    ${f.helpText ? `<div style="font-size:11px;color:var(--color-neutral-500);margin-top:4px">${esc(f.helpText)}</div>` : ''}
+    ${f.helpText ? `<div style="font-size:12px;color:var(--color-neutral-500);margin-top:4px">${esc(f.helpText)}</div>` : ''}
     <div data-tplf-pop-err style="display:none;font-size:12px;color:var(--st-ruby-fg);margin-top:4px"></div>`;
   document.body.appendChild(pop);
   const input = pop.querySelector('[data-tplf]');

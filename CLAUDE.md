@@ -622,6 +622,37 @@ The first pass rounded half-pixels and stopped there, and the owner's answer was
 
 **THE INK IS THE DESIGN'S TWO COLOURS.** Every text colour was a blue-leaning slate (`#1e293b` and the slate-400..900 ramp), which sat against a teal product and read cold. The design carries `--tx:#1B2A28` for body and `--label:#5F6D6B` for labels — a dark desaturated GREEN-black from the brand's own family. The ramp is re-hued onto it and **every step is at least as dark as the slate it replaces**, so nothing lost contrast: body 13.6:1 → 14.9:1 on white, and the label step 4.8:1 → 5.6:1, which was the one genuinely thin reading. THE NEUTRALS ARE A TYPE TOKEN HERE, not a surface one — they carry text in 638 places and a background or border in 6, which is what makes re-hueing them safe.
 
+**THE SURFACES AND THE 11px LABELS, OFF THE DESIGN'S OWN BRIEF** (owner-asked
+22 Aug 2026, "make the paper exactly match how the html is designed and fix the
+11px labels").
+
+**THE CREAM PAPER IS THE DESIGN'S AND WAS NOT REMOVED** — measured before
+touching it: the mock-up's own redline sheet is `#FDFCF6` against HaTi's
+`#FDFCF9`, three units apart in one channel. It is matched exactly rather than
+stripped. WHAT WAS ACTUALLY WRONG WAS EVERY OTHER SURFACE, and all of it the
+same blue leaning the ink retune left behind: the page ground `#f8fafc`
+(slate-50) → the design's neutral `#F4F6F6`, the plain document panel `#fbfbfc`
+→ flat white, and the one hairline `#e2e8f0` → `#DFE4E3`. **AND THE CONTRAST
+MATHS DOES NOT SUPPORT THE OBVIOUS THEORY**, which is why it is written down:
+cream costs 14.53:1 against white's 14.91:1, and HaTi's tinted page was
+HIGHER contrast than the design's grey one. The shading was off-spec and was
+never why the type read pale.
+
+**11px IS A LABEL SIZE, NEVER SMALL BODY COPY** — the brief's rule, and HaTi
+obeyed it in 7 rules out of 273. Applied mechanically, on the one question that
+decides it: a rule that is uppercase is a micro label and takes the brief's
+single `.09em` tracking (75 rules, several of which carried .04/.07/.08/.1em —
+four different answers to one question); a rule that is NOT uppercase is small
+body copy, which this size may not be, and moves up one rung to 12px (190
+rules). MEASURED AFTER on three screens: every painted 11px element obeys, and
+nothing is left at 11px as a sentence.
+
+**THE SCOPE WAS MEASURED BEFORE IT WAS SWEPT.** 273 rules sounded like a
+week's work; the elements actually PAINTED at 11px were about ten per screen —
+the sidebar's caption and role line, activity rows, a couple of counts. Reading
+the rendered page first is what turned this from a guess about 273 declarations
+into a sweep with a check at the end of it.
+
 **FOUR SHADES CARRY ALL READING TEXT** (owner-asked 22 Aug 2026, twice — "you
 are still not meeting the dark sharp fonts", pointing back at the design's own
 typography note). The note is explicit and mechanical: `#1B2A28` PRIMARY for

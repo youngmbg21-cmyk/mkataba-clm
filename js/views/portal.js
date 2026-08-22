@@ -154,7 +154,7 @@ function openPortalCompare(p){
         <div style="${COL}">
           <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
             <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">What ${esc(p.org||'the sender')} changed</h3>
-            <span style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:0;padding:3px 9px">${i18t('po_since_your_copy',{when:fmtDT(ch.openedAt||ch.at)})}</span>
+            <span style="font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:0;padding:3px 9px">${i18t('po_since_your_copy',{when:fmtDT(ch.openedAt||ch.at)})}</span>
           </div>
           <p style="font-size:13px;color:var(--color-neutral-600);margin:7px 0 0">+${st.add} added · −${st.del} removed ·
             <span style="background:var(--st-green-bg);color:var(--st-green-fg);padding:0 4px;border-radius:0">added</span>
@@ -772,7 +772,7 @@ function portalThreadHtml(c, p){
   const org=(p&&p.org)||'The other side';
   const bubble=(who,when,text,mine)=>`
     <div style="display:flex;flex-direction:column;gap:2px;align-items:${mine?'flex-end':'flex-start'}">
-      <div style="font-size:11px;color:var(--color-neutral-500);font-family:var(--font-mono)">${esc(who)}${when?` · ${fmtDT(when)}`:''}</div>
+      <div style="font-size:12px;color:var(--color-neutral-500);font-family:var(--font-mono)">${esc(who)}${when?` · ${fmtDT(when)}`:''}</div>
       <div style="max-width:92%;border:1px solid ${mine?'var(--color-divider)':'var(--color-accent-300)'};background:${mine?'var(--color-bg)':'var(--color-accent-100)'};border-radius:0;padding:8px 11px;font-size:13px;line-height:1.55;color:var(--color-neutral-800)">${esc(text)}</div>
     </div>`;
   /* What was said about individual clauses, under the round it belonged to.
@@ -786,7 +786,7 @@ function portalThreadHtml(c, p){
         <div style="font-size:13px;line-height:1.55;color:var(--color-neutral-800)">
           ${b.before?`<span style="text-decoration:line-through;color:var(--st-ruby-fg)">${esc(String(b.before).trim())}</span> `:''}
           ${b.after?`<span style="color:var(--st-green-fg)">${esc(String(b.after).trim())}</span>`:''}
-          <span style="font-size:11px;font-weight:700;margin-left:6px;color:${b.decision==='accept'?'var(--st-green-fg)':'var(--st-ruby-fg)'}">${b.decision==='accept'?'ADOPTED':'NOT ADOPTED'}</span>
+          <span style="font-size:12px;font-weight:700;margin-left:6px;color:${b.decision==='accept'?'var(--st-green-fg)':'var(--st-ruby-fg)'}">${b.decision==='accept'?'ADOPTED':'NOT ADOPTED'}</span>
         </div>
         ${b.note?`<div style="margin-top:4px;font-size:12px;color:var(--color-neutral-700)"><b>${i18t('po_you_said')}</b> ${esc(b.note)}</div>`:''}
         ${b.reply?`<div style="margin-top:3px;font-size:12px;color:var(--color-neutral-700)"><b>${esc(orgName)}:</b> ${esc(b.reply)}</div>`:''}
@@ -807,7 +807,7 @@ function portalThreadHtml(c, p){
       <div style="display:flex;flex-direction:column;gap:12px">
         ${said.map(r=>`
           <div style="display:flex;flex-direction:column;gap:6px;border-left:2px solid var(--color-divider);padding-left:11px">
-            <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('po_round_n',{n:esc(String(r.n))})}</div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('po_round_n',{n:esc(String(r.n))})}</div>
             ${r.comment?bubble(r.by||'You', r.at, r.comment, true):''}
             ${r.resolution&&r.resolution.comment?bubble(org, r.resolution.at, r.resolution.comment, false):''}
             ${clauseExchanges(r, org)}
@@ -855,9 +855,9 @@ function portalOpenPointsHtml(c, p){
       <div style="display:flex;flex-direction:column;gap:8px">
         ${pts.map((pt,i)=>`
           <div style="border:1px solid var(--st-amber-line);background:var(--color-surface);border-radius:0;padding:9px 12px;font-size:13px;line-height:1.6">
-            ${pt.before?`<div><span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('po_contract_says')}</span>
+            ${pt.before?`<div><span style="font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('po_contract_says')}</span>
               <div style="color:var(--color-neutral-800)">${esc(pt.before)}</div></div>`:''}
-            ${pt.after?`<div style="margin-top:5px"><span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('po_you_asked_for')}</span>
+            ${pt.after?`<div style="margin-top:5px"><span style="font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('po_you_asked_for')}</span>
               <div style="color:var(--st-ruby-fg)">${esc(pt.after)}</div></div>`:''}
             ${pt.ask?`<div style="margin-top:5px;font-size:13px;color:var(--color-neutral-700)"><b>${i18t('po_you_said')}</b> ${esc(pt.ask)}</div>`:''}
             ${pt.reason?`<div style="margin-top:4px;font-size:13px;color:var(--color-neutral-700)"><b>${i18t('po_their_reply')}</b> ${esc(pt.reason)}</div>`:''}
@@ -2712,7 +2712,7 @@ function portalAlertsStyle(){
     .pt-bell{position:relative;}
     .pt-bell-dot{position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;padding:0 4px;
       border-radius:0;background:var(--st-amber-fg);color:var(--color-surface);
-      font-family:var(--font-mono);font-size:11px;font-weight:700;line-height:16px;text-align:center;}
+      font-family:var(--font-mono);font-size:12px;font-weight:700;line-height:16px;text-align:center;}
     .pt-alerts-scrim{position:fixed;inset:0;background:rgba(15,23,42,.38);z-index:70;}
     .pt-alerts{position:fixed;top:0;right:0;bottom:0;width:min(360px,88vw);z-index:71;
       background:var(--color-surface);border-left:1px solid var(--color-divider);
@@ -2732,7 +2732,7 @@ function portalAlertsStyle(){
        they need nothing but room to be a block. */
     .pt-alerts-notices{display:grid;gap:8px;margin-bottom:10px;}
     .pt-alerts-notices>*{max-width:100%;position:static;}
-    .pt-alerts-scope{font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    .pt-alerts-scope{font-size:11px;letter-spacing:.09em;text-transform:uppercase;
       color:var(--color-neutral-600);margin-bottom:8px;}
     .pt-alert{display:flex;gap:9px;width:100%;padding:9px 2px;border:0;
       border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);
@@ -3821,7 +3821,7 @@ function portalOfferResponseCode(p, response, label){
       <div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:0;padding:13px;">
         <div style="display:flex;align-items:center;gap:6px;color:var(--color-accent-800);font-size:13px;font-weight:600;margin-bottom:6px;">${icon('check2','w-3.5 h-3.5')} ${head}</div>
         <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.5;">${lead}</p>
-        <textarea id="pt-code" readonly rows="4" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:10px;font-size:11px;font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all;">${code}</textarea>
+        <textarea id="pt-code" readonly rows="4" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:10px;font-size:12px;font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all;">${code}</textarea>
         <button id="pt-copy" class="ui-btn ui-btn-primary" style="margin-top:8px;width:100%;padding:8px;font-size:13px;">${icon('copy','w-3 h-3')} ${i18t('po_copy_response_code')}</button>
       </div>`;
     document.getElementById('pt-copy').addEventListener('click',async()=>{
@@ -3840,7 +3840,7 @@ function portalOfferResponseCode(p, response, label){
       style="position:relative;width:100%;max-width:33rem;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:0;padding:22px 24px">
       <h3 id="pt-code-t" style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0 0 4px;line-height:1.3">${head}</h3>
       <p style="font-size:14px;color:var(--color-neutral-700);line-height:1.55;margin:0 0 12px">${lead}</p>
-      <textarea id="pt-code" readonly rows="5" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:10px;font-size:11px;font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all;">${code}</textarea>
+      <textarea id="pt-code" readonly rows="5" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:10px;font-size:12px;font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all;">${code}</textarea>
       <p style="font-size:12px;color:var(--color-neutral-600);line-height:1.55;margin:10px 0 16px">${i18t('po_code_only_showing')}</p>
       <div style="display:flex;justify-content:flex-end;gap:8px">
         <button id="pt-copy" class="ui-btn ui-btn-primary" style="font-size:13px;padding:7px 13px">${icon('copy','w-3 h-3')} ${i18t('po_copy_response_code')}</button>
@@ -3912,17 +3912,17 @@ function portalTemplateFormHtml(c,p){
     <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--color-divider)">
       <span style="font-family:var(--font-heading);font-weight:600;font-size:14px;flex:1">${i18t('po_fill_details')}</span>
       <span style="font-size:12px;color:${filled.length===required.length?'var(--st-green-fg)':'var(--st-amber-fg)'};font-weight:600">${filled.length}/${required.length} required</span>
-      <span id="pt-tplform-state" style="font-size:11px;color:var(--color-neutral-500)"></span>
+      <span id="pt-tplform-state" style="font-size:12px;color:var(--color-neutral-500)"></span>
     </div>
     <div style="padding:12px 16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">
       ${groups.map(g=>`
-        ${g.name?`<div style="grid-column:1/-1;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--color-neutral-500)">${esc(g.name)}</div>`:''}
+        ${g.name?`<div style="grid-column:1/-1;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">${esc(g.name)}</div>`:''}
         ${g.fields.map(f=>{
           const idx=form.fields.indexOf(f);
           return `<label style="display:block;min-width:0">
             <span style="display:block;font-size:12px;font-weight:600;margin-bottom:3px">${esc(f.label||f.fieldKey)}${f.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}</span>
             ${inputFor(f,idx)}
-            ${f.helpText?`<span style="display:block;font-size:11px;color:var(--color-neutral-500);margin-top:2px">${esc(f.helpText)}</span>`:''}
+            ${f.helpText?`<span style="display:block;font-size:12px;color:var(--color-neutral-500);margin-top:2px">${esc(f.helpText)}</span>`:''}
             <span data-ptf-err="${idx}" style="display:none;font-size:12px;color:var(--st-ruby-fg);margin-top:2px"></span>
           </label>`; }).join('')}`).join('')}
     </div>
@@ -4015,7 +4015,7 @@ function wirePortalTemplateForm(p){
       pop.innerHTML=`
         <div style="font-size:12px;font-weight:600;margin-bottom:5px">${esc(f.label||f.fieldKey)}${f.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}</div>
         ${inputHtml}
-        ${f.helpText?`<div style="font-size:11px;color:var(--color-neutral-500);margin-top:4px">${esc(f.helpText)}</div>`:''}
+        ${f.helpText?`<div style="font-size:12px;color:var(--color-neutral-500);margin-top:4px">${esc(f.helpText)}</div>`:''}
         <div data-ptf-pop-err style="display:none;font-size:12px;color:var(--st-ruby-fg);margin-top:4px"></div>`;
       document.body.appendChild(pop);
       const input=pop.querySelector('[data-ptf-pop]');
@@ -4251,7 +4251,7 @@ function printExecutionBlock(c){
         <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#666;margin-bottom:3px;">${esc(partyLabel(s))}</div>
         ${s.image?`<img src="${s.image}" alt="" style="height:38px;max-width:190px;object-fit:contain;display:block;margin:2px 0 5px;"/>`:''}
         <div style="font-weight:600;font-size:13px;">${esc(s.name||'—')}${cap(s)?', '+esc(cap(s)):''}</div>
-        <div style="font-size:11px;color:#666;line-height:1.5;">${esc([s.email,s.form?s.form+' signature':s.method,s.at?fmtDT(s.at):''].filter(Boolean).join(' · '))}</div>
+        <div style="font-size:12px;color:#666;line-height:1.5;">${esc([s.email,s.form?s.form+' signature':s.method,s.at?fmtDT(s.at):''].filter(Boolean).join(' · '))}</div>
       </div>
     </td>`;
   const rows=[];
@@ -4279,12 +4279,12 @@ function printExecutionBlock(c){
           ${external?'':sigTable}
           ${(!external&&!isUpload(c))?`<div style="margin-top:10px;border:1px solid var(--color-divider);border-radius:0;padding:9px 11px;">
             <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#666;margin-bottom:3px;">${i18t('po_sealed_fingerprint')}</div>
-            <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;word-break:break-all;">${esc((c.execution&&c.execution.textHash)||'—')}</div>
+            <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;word-break:break-all;">${esc((c.execution&&c.execution.textHash)||'—')}</div>
           </div>`:''}
           <div style="margin-top:10px;border-radius:0;padding:10px 12px;background:#1d1f20;color:#f4f5f6;">
             <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;letter-spacing:.08em;color:#c79a3e;margin-bottom:3px;">${external?'ORIGINAL FILE FINGERPRINT (SHA-256)':'DOCUMENT SEAL (SHA-256)'}</div>
-            <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;word-break:break-all;">${esc(hash)}</div>
-            <div style="font-size:11px;color:#b9bec4;margin-top:4px;">${esc(c.signedAt||'Timestamp recorded')}</div>
+            <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;word-break:break-all;">${esc(hash)}</div>
+            <div style="font-size:12px;color:#b9bec4;margin-top:4px;">${esc(c.signedAt||'Timestamp recorded')}</div>
           </div>
         </td>
       </tr></table>
@@ -4395,15 +4395,15 @@ function exportPDF(c, opts){
     <div${printDesign&&window.docDesignPaperAttr?docDesignPaperAttr(printDesign):''} style="font-family:Inter,system-ui,-apple-system,'Segoe UI',Arial,sans-serif;max-width:760px;margin:0 auto;padding:32px 24px;color:#1d1f20;${printDesign&&window.docDesignPaperStyle?docDesignPaperStyle(printDesign):''}">
       ${record?`<div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--color-accent);padding-bottom:10px;margin-bottom:24px;">
         <div style="font-family:Inter,system-ui,-apple-system,'Segoe UI',Arial,sans-serif;font-weight:700;font-size:18px;">HaTi <span style="font-weight:400;font-size:12px;color:#666;">${i18t('po_contract_lifecycle')}</span></div>
-        <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#666;">${c.id} · generated ${fmtDT(nowISO())}</div>
+        <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#666;">${c.id} · generated ${fmtDT(nowISO())}</div>
       </div>`:''}
       ${window.templateBrandingHeaderHtml?templateBrandingHeaderHtml(c,record?{}:{bleedX:24,bleedY:32}):''}
       ${printCover}
       <div class="doc-surface">${printDesign&&window.docStructureBodyHtml?docStructureBodyHtml(printDesign,bodyHtml):bodyHtml}</div>
       ${window.templateBrandingFooterHtml?templateBrandingFooterHtml(c):''}
       ${execBlock}
-      ${marks&&(!execBlock)&&c.hash&&c.hash!=='PRE-SEEDED'?`<div style="margin-top:24px;padding:12px;border:1px solid var(--color-divider);border-radius:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;word-break:break-all;"><strong>${isExternallyExecuted(c)?'SHA-256 ORIGINAL FILE FINGERPRINT':'SHA-256 DOCUMENT SEAL'}</strong><br/>${isExternallyExecuted(c)?((c.upload&&c.upload.fileHash)||'—'):c.hash}<br/><span style="color:#666;">${c.signedAt||''}${isExternallyExecuted(c)?' · executed outside HaTi':''}</span></div>`:''}
-      ${marks&&audit?`<div style="margin-top:24px;page-break-inside:avoid;"><div style="font-family:Inter,system-ui,-apple-system,'Segoe UI',Arial,sans-serif;font-weight:600;font-size:14px;border-bottom:1px solid var(--color-divider);padding-bottom:6px;margin-bottom:8px;">${i18t('po_audit_trail')}</div><table style="font-size:11px;border-collapse:collapse;width:100%;">${audit}</table></div>`:''}
+      ${marks&&(!execBlock)&&c.hash&&c.hash!=='PRE-SEEDED'?`<div style="margin-top:24px;padding:12px;border:1px solid var(--color-divider);border-radius:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;word-break:break-all;"><strong>${isExternallyExecuted(c)?'SHA-256 ORIGINAL FILE FINGERPRINT':'SHA-256 DOCUMENT SEAL'}</strong><br/>${isExternallyExecuted(c)?((c.upload&&c.upload.fileHash)||'—'):c.hash}<br/><span style="color:#666;">${c.signedAt||''}${isExternallyExecuted(c)?' · executed outside HaTi':''}</span></div>`:''}
+      ${marks&&audit?`<div style="margin-top:24px;page-break-inside:avoid;"><div style="font-family:Inter,system-ui,-apple-system,'Segoe UI',Arial,sans-serif;font-weight:600;font-size:14px;border-bottom:1px solid var(--color-divider);padding-bottom:6px;margin-bottom:8px;">${i18t('po_audit_trail')}</div><table style="font-size:12px;border-collapse:collapse;width:100%;">${audit}</table></div>`:''}
       ${record?`<div style="margin-top:24px;font-size:10px;color:#999;text-align:center;">Generated by HaTi CLM · ${FIRST_PARTY}</div>`:''}
     </div>`;
   /* ---- A READER'S OWN COPY IS NOT AN ENTRY IN OUR RECORD (15 Aug 2026) ----

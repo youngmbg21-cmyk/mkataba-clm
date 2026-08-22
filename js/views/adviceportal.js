@@ -82,7 +82,7 @@ function renderAdviceIntake(){
         <span style="margin-left:auto;flex:none;font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--color-accent-800);white-space:nowrap">${fmtMoney(r.rate)}<span style="font-weight:400;color:var(--color-neutral-500)">/hr</span></span>
       </div>
       <p style="font-size:12px;color:var(--color-neutral-600);margin:7px 0 8px;line-height:1.5">${s.blurb}</p>
-      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11px">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px">
         <span style="background:var(--color-bg);border:1px solid var(--color-divider);border-radius:0;padding:2px 8px;color:var(--color-neutral-700);font-variant-numeric:tabular-nums">typically ${r.hoursMin}–${r.hoursMax} hrs · ${fmtMoneyShort(r.rate*r.hoursMin)}–${fmtMoneyShort(r.rate*r.hoursMax)}</span>
         <span style="background:var(--st-green-bg);border:1px solid var(--st-green-line);border-radius:0;padding:2px 8px;color:var(--st-green-fg);font-variant-numeric:tabular-nums">feedback in ~${r.days} business day${r.days===1?'':'s'}</span>
       </div>
@@ -200,9 +200,9 @@ function renderAdviceTracking(r){
           ${i<path.length-1?`<span style="width:2px;flex:1;min-height:26px;background:${reached(path[i+1])?adviceStage(path[i+1]).color:'var(--color-divider)'}"></span>`:''}
         </div>
         <div style="padding-bottom:${i<path.length-1?'18px':'0'};min-width:0">
-          <div style="font-size:14px;font-weight:600;color:${state_==='todo'?'var(--color-neutral-500)':'var(--color-text)'}">${s.label}${state_==='now'?` <span style="font-size:11px;font-weight:600;color:${s.color}">${i18t('apo_current_stage')}</span>`:''}</div>
+          <div style="font-size:14px;font-weight:600;color:${state_==='todo'?'var(--color-neutral-500)':'var(--color-text)'}">${s.label}${state_==='now'?` <span style="font-size:12px;font-weight:600;color:${s.color}">${i18t('apo_current_stage')}</span>`:''}</div>
           <div style="font-size:12px;color:var(--color-neutral-600);line-height:1.45">${s.desc}</div>
-          ${hit?`<div style="font-size:11px;color:var(--color-neutral-500);font-family:var(--font-mono);margin-top:2px">${fmtDT(hit.at)}</div>`:''}
+          ${hit?`<div style="font-size:12px;color:var(--color-neutral-500);font-family:var(--font-mono);margin-top:2px">${fmtDT(hit.at)}</div>`:''}
         </div>
       </div>`;
   }).join('');
@@ -224,7 +224,7 @@ function renderAdviceTracking(r){
           <span style="margin-left:auto;flex:none">${adviceStageChip(r.status)}</span>
         </div>
         ${etaBanner}
-        <h3 style="font-size:11px;color:var(--color-neutral-600);letter-spacing:.1em;text-transform:uppercase;margin:18px 0 12px">${i18t('apo_where_request')}</h3>
+        <h3 style="font-size:11px;color:var(--color-neutral-600);letter-spacing:.09em;text-transform:uppercase;margin:18px 0 12px">${i18t('apo_where_request')}</h3>
         ${steps}
       </div>
       <aside style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;box-shadow:var(--shadow-sm);padding:18px" class="portal-aside">

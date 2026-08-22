@@ -64,15 +64,15 @@ function tbPaint() {
     return `
     <div style="display:flex;gap:8px;padding:10px 14px;border-bottom:1px solid var(--color-divider);align-items:flex-start" data-tb-row="${i}">
       <div style="flex:none;display:flex;flex-direction:column;gap:2px;padding-top:2px">
-        <button data-tb-up="${i}" class="ui-btn" style="padding:1px 6px;font-size:11px" ${i === 0 ? 'disabled' : ''} title="${i18t('tb_move_up')}">↑</button>
-        <button data-tb-down="${i}" class="ui-btn" style="padding:1px 6px;font-size:11px" ${i === _tb.blocks.length - 1 ? 'disabled' : ''} title="${i18t('tb_move_down')}">↓</button>
+        <button data-tb-up="${i}" class="ui-btn" style="padding:1px 6px;font-size:12px" ${i === 0 ? 'disabled' : ''} title="${i18t('tb_move_up')}">↑</button>
+        <button data-tb-down="${i}" class="ui-btn" style="padding:1px 6px;font-size:12px" ${i === _tb.blocks.length - 1 ? 'disabled' : ''} title="${i18t('tb_move_down')}">↓</button>
       </div>
       <div style="min-width:0;flex:1">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
           <span class="badge" style="background:var(--color-neutral-100);color:var(--color-neutral-600)" title="${esc(meta.tip)}">${meta.label}</span>
-          ${b.blockType === 'field_group' && !/\{\{[a-z0-9_]+\}\}/.test(b.content) ? `<span style="font-size:11px;color:var(--st-amber-fg)">no {{placeholder}} yet</span>` : ''}
+          ${b.blockType === 'field_group' && !/\{\{[a-z0-9_]+\}\}/.test(b.content) ? `<span style="font-size:12px;color:var(--st-amber-fg)">no {{placeholder}} yet</span>` : ''}
           <span style="flex:1"></span>
-          <button data-tb-del="${i}" class="ui-btn" style="padding:2px 7px;font-size:11px;border-color:var(--st-ruby-line);color:var(--st-ruby-fg)" title="${i18t('tb_remove_block')}">${icon('x', 'w-3 h-3')}</button>
+          <button data-tb-del="${i}" class="ui-btn" style="padding:2px 7px;font-size:12px;border-color:var(--st-ruby-line);color:var(--st-ruby-fg)" title="${i18t('tb_remove_block')}">${icon('x', 'w-3 h-3')}</button>
         </div>
         ${editor}
       </div>
@@ -92,11 +92,11 @@ function tbPaint() {
           ${f.required ? '<span style="color:var(--st-ruby-fg);font-size:12px" title="Required">*</span>' : ''}
           ${conf}
         </span>
-        <span style="display:block;font-size:11px;color:var(--color-neutral-600);font-family:var(--font-mono)">{{${esc(f.fieldKey)}}} · ${esc(lib.label)}${f.control === 'guided' ? ` · guided (${f.options.length})` : ''}${f.defaultValue ? ' · default set' : ''} · ${uses ? `in ${uses} block${uses === 1 ? '' : 's'}` : '<span style="color:var(--st-amber-fg)">unplaced</span>'}</span>
+        <span style="display:block;font-size:12px;color:var(--color-neutral-600);font-family:var(--font-mono)">{{${esc(f.fieldKey)}}} · ${esc(lib.label)}${f.control === 'guided' ? ` · guided (${f.options.length})` : ''}${f.defaultValue ? ' · default set' : ''} · ${uses ? `in ${uses} block${uses === 1 ? '' : 's'}` : '<span style="color:var(--st-amber-fg)">unplaced</span>'}</span>
       </span>
-      <button data-tb-fcopy="${i}" class="ui-btn" style="font-size:11px;padding:2px 8px" title="${i18t('tb_copy_placeholder')}">${icon('copy', 'w-3 h-3')}</button>
-      <button data-tb-fedit="${i}" class="ui-btn" style="font-size:11px;padding:2px 8px">${i18t('act_edit')}</button>
-      <button data-tb-fdel="${i}" class="ui-btn" style="font-size:11px;padding:2px 7px;border-color:var(--st-ruby-line);color:var(--st-ruby-fg)">${icon('x', 'w-3 h-3')}</button>
+      <button data-tb-fcopy="${i}" class="ui-btn" style="font-size:12px;padding:2px 8px" title="${i18t('tb_copy_placeholder')}">${icon('copy', 'w-3 h-3')}</button>
+      <button data-tb-fedit="${i}" class="ui-btn" style="font-size:12px;padding:2px 8px">${i18t('act_edit')}</button>
+      <button data-tb-fdel="${i}" class="ui-btn" style="font-size:12px;padding:2px 7px;border-color:var(--st-ruby-line);color:var(--st-ruby-fg)">${icon('x', 'w-3 h-3')}</button>
     </div>`;
   }).join('');
 
@@ -330,7 +330,7 @@ async function tbPaintBranding() {
     <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">
       <div style="flex:none;display:flex;flex-direction:column;gap:6px;align-items:center">
         <div style="width:120px;height:64px;border:1px dashed var(--color-divider);border-radius:0;display:grid;place-items:center;overflow:hidden;background:var(--color-bg)">
-          ${b.logoUrl ? `<img src="${b.logoUrl}" alt="logo" style="max-width:100%;max-height:100%">` : `<span style="font-size:11px;color:var(--color-neutral-500)">${i18t('tb_no_logo')}</span>`}
+          ${b.logoUrl ? `<img src="${b.logoUrl}" alt="logo" style="max-width:100%;max-height:100%">` : `<span style="font-size:12px;color:var(--color-neutral-500)">${i18t('tb_no_logo')}</span>`}
         </div>
         <input type="file" id="tb-logo-file" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="display:none">
         <button id="tb-logo-btn" class="ui-btn" style="font-size:12px;padding:3px 9px">${icon('upload', 'w-3 h-3')} ${b.logoUrl ? 'Replace logo' : 'Upload logo'}</button>

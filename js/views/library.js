@@ -565,7 +565,7 @@ function openBlanksEditor(tid){
         <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--color-neutral-600);white-space:nowrap"><input data-f="required" type="checkbox" ${f.required?'checked':''} style="accent-color:var(--color-accent)"/>req</label>
         <button data-del="${i}" title="${i18t('lb_remove_blank')}" style="border:1px solid var(--st-ruby-line);background:none;color:var(--st-ruby-fg);border-radius:0;font:inherit;font-size:12px;padding:2px 7px;cursor:pointer">×</button>
         ${f.type==='select'?`<input data-f="opts" value="${String((f.opts||[]).join(', ')).replace(/"/g,'&quot;')}" placeholder="${i18t('lb_choices_comma')}" style="${st};grid-column:1 / -1"/>`:''}
-        <div style="grid-column:1 / -1;font-size:11px;color:var(--color-neutral-500);font-family:var(--font-mono)">{{${f.key}}}${orphanFields.includes(f)?` <span style="color:var(--st-ruby-fg)">${i18t('lib_blank_unused')}</span>`:''}</div>
+        <div style="grid-column:1 / -1;font-size:12px;color:var(--color-neutral-500);font-family:var(--font-mono)">{{${f.key}}}${orphanFields.includes(f)?` <span style="color:var(--st-ruby-fg)">${i18t('lib_blank_unused')}</span>`:''}</div>
       </div>`).join('');
     const host=document.getElementById('be-fields');
     if(host){
@@ -873,7 +873,7 @@ function openTemplateEditor(tid){
         <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--color-neutral-600);white-space:nowrap"><input data-f="required" type="checkbox" ${f.required?'checked':''} style="accent-color:var(--color-accent)"/>req</label>
         <button data-del="${i}" title="${i18t('lb_remove_blank')}" style="border:1px solid var(--st-ruby-line);background:none;color:var(--st-ruby-fg);border-radius:0;font:inherit;font-size:12px;padding:2px 7px;cursor:pointer">×</button>
         ${f.type==='select'?`<input data-f="opts" value="${String((f.opts||[]).join(', ')).replace(/"/g,'&quot;')}" placeholder="${i18t('lb_choices_comma')}" style="${stl};grid-column:1 / -1"/>`:''}
-        <div style="grid-column:1 / -1;font-size:11px;color:var(--color-neutral-500);font-family:var(--font-mono)">{{${f.key}}}${orphanFields.includes(f)?` <span style="color:var(--st-ruby-fg)">${i18t('lib_not_used_above')}</span>`:''}</div>
+        <div style="grid-column:1 / -1;font-size:12px;color:var(--color-neutral-500);font-family:var(--font-mono)">{{${f.key}}}${orphanFields.includes(f)?` <span style="color:var(--st-ruby-fg)">${i18t('lib_not_used_above')}</span>`:''}</div>
       </div>`).join('')
       :`<div style="font-size:13px;color:var(--color-neutral-600);padding:6px 0">${i18t('lib_no_blanks_press')} <b>${i18t('lib_make_selection_blank')}</b>.</div>`;
     host2.querySelectorAll('[data-fld]').forEach(row=>{
@@ -1044,7 +1044,7 @@ function openTemplateVersions(tid){
           <span style="font-family:var(--font-mono);font-weight:600;font-size:13px;color:var(--color-accent-700);flex:none">v${v.n}</span>
           <span style="min-width:0;flex:1">
             <span style="display:block;font-size:13px;color:var(--color-neutral-800);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(v.note||'Saved')}${v.name!==rec.name?` <span style="color:var(--color-neutral-500)">· named “${_tplEsc(v.name)}”</span>`:''}</span>
-            <span style="display:block;font-size:11px;color:var(--color-neutral-500);font-family:var(--font-mono)">${v.by?_tplEsc(v.by)+' · ':''}${v.at?fmtDT(v.at):''} · ${(v.fields||[]).length} blank${(v.fields||[]).length===1?'':'s'} · ${(v.format==='rich'?'formatted':'plain text')}</span>
+            <span style="display:block;font-size:12px;color:var(--color-neutral-500);font-family:var(--font-mono)">${v.by?_tplEsc(v.by)+' · ':''}${v.at?fmtDT(v.at):''} · ${(v.fields||[]).length} blank${(v.fields||[]).length===1?'':'s'} · ${(v.format==='rich'?'formatted':'plain text')}</span>
           </span>
           ${v.n===current.n?`<span class="badge" style="flex:none;background:var(--color-accent-200);color:var(--color-accent-800)">current</span>`
             :`<button data-tv-view="${v.n}" class="ui-btn" style="flex:none;font-size:12px;padding:3px 9px">${i18t('lib_view')}</button>
@@ -1427,7 +1427,7 @@ function renderTemplatesPage(){
   const lib=(typeof tplLibAll==='function')?tplLibAll():{canManage:false,loaded:true};
   const canManage=tplCanManage();
   const railIt=(key,label,n)=>`<button data-tpl-group="${key}" style="display:flex;align-items:center;gap:8px;width:100%;border:0;background:${_tplPage.group===key?'var(--color-accent-100)':'none'};color:${_tplPage.group===key?'var(--color-accent-800)':'var(--color-neutral-700)'};font:inherit;font-size:14px;font-weight:600;padding:7px 11px;border-radius:0;cursor:pointer;text-align:left">
-    <span style="flex:1">${label}</span><span style="font-family:var(--font-mono);font-size:11px;color:${_tplPage.group===key?'var(--color-accent-700)':'var(--color-neutral-500)'}">${n}</span></button>`;
+    <span style="flex:1">${label}</span><span style="font-family:var(--font-mono);font-size:12px;color:${_tplPage.group===key?'var(--color-accent-700)':'var(--color-neutral-500)'}">${n}</span></button>`;
   const streamIt=f=>`<button data-tpl-stream="${f.id}" style="display:flex;align-items:center;gap:9px;width:100%;border:0;background:${_tplPage.stream===f.id?'var(--color-accent-100)':'none'};color:var(--color-neutral-700);font:inherit;font-size:13px;font-weight:600;padding:6px 11px;border-radius:0;cursor:pointer;text-align:left">
     <span style="flex:none;width:8px;height:14px;border-radius:0;background:${folderColor(f.id)}"></span><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(f.name.split(' & ')[0].split(' — ')[0])}</span></button>`;
   const HEAD='font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;color:var(--color-neutral-500);text-transform:uppercase;padding:0 11px;margin:0 0 6px';
@@ -1516,7 +1516,7 @@ function renderPlaybookPage(){
     <button data-dev-open="${x.c.id}" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 2px;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
       <span style="flex:1;min-width:0">
         <span style="display:block;font-size:13px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${x.c.name}</span>
-        <span style="display:block;font-size:11px;color:var(--color-neutral-600)">${x.c.id} · ${x.c.counterparty||'—'}</span>
+        <span style="display:block;font-size:12px;color:var(--color-neutral-600)">${x.c.id} · ${x.c.counterparty||'—'}</span>
       </span>
       <span class="badge" style="background:var(--st-amber-bg);color:var(--st-amber-fg);flex:none">${x.s.dev+x.s.miss} deviation${x.s.dev+x.s.miss===1?'':'s'}</span>
     </button>`).join('')

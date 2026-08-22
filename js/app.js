@@ -538,7 +538,7 @@ function renderNewMenu(){
   const item=(ic,bg,fg,title,sub,attrs='')=>`
     <button ${attrs} class="new-menu-item" style="width:100%;display:flex;align-items:center;gap:10px;border:0;background:none;cursor:pointer;padding:8px;border-radius:0;text-align:left;color:inherit;" onmouseover="this.style.background='rgb(var(--color-accent-600-rgb)/.09)'" onmouseout="this.style.background='none'">
       <span style="width:30px;height:30px;flex:none;display:grid;place-items:center;border-radius:0;background:${bg};color:${fg};">${icon(ic,'w-[15px] h-[15px]')}</span>
-      <span style="min-width:0;"><span style="display:block;font-size:13px;font-weight:600;">${title}</span><span style="display:block;font-size:11px;color:var(--color-neutral-600);">${sub}</span></span>
+      <span style="min-width:0;"><span style="display:block;font-size:13px;font-weight:600;">${title}</span><span style="display:block;font-size:12px;color:var(--color-neutral-600);">${sub}</span></span>
     </button>`;
   /* WO N1: the three ways a contract gets INTO HaTi, in one menu, named for
      what they do. "Import many at once" reaches the same bulk-import page the
@@ -648,7 +648,7 @@ function openCommandPalette(){
       <div style="display:flex;align-items:center;gap:9px;padding:12px 14px;border-bottom:1px solid var(--color-divider)">
         <span style="color:var(--color-neutral-500);display:inline-flex">${icon('search','w-4 h-4')}</span>
         <input id="cp-input" placeholder="${i18t('ap_search_placeholder')}" autocomplete="off" style="flex:1;border:0;outline:0;background:transparent;font:inherit;font-size:15px;color:inherit"/>
-        <span style="font-size:11px;border:1px solid var(--color-divider);padding:2px 6px;border-radius:0;color:var(--color-neutral-600);font-family:var(--font-mono)">ESC</span>
+        <span style="font-size:12px;border:1px solid var(--color-divider);padding:2px 6px;border-radius:0;color:var(--color-neutral-600);font-family:var(--font-mono)">ESC</span>
       </div>
       <div id="cp-list" class="scroll-thin" style="max-height:52vh;overflow-y:auto;padding:6px"></div>
     </div>`;
@@ -708,7 +708,7 @@ function openCommandPalette(){
           <span style="display:block;font-size:14px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(r.title||'').replace(/</g,'&lt;')}</span>
           <span style="display:block;font-size:12px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(r.sub||'').replace(/</g,'&lt;')}</span>
         </span>
-        ${r.kind==='contract'&&window.statusChip?`<span style="flex:none">${statusChip(r.status)}</span>`:`<span style="flex:none;font-size:11px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--color-neutral-500)">${r.tag||r.kind}</span>`}
+        ${r.kind==='contract'&&window.statusChip?`<span style="flex:none">${statusChip(r.status)}</span>`:`<span style="flex:none;font-size:11px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.09em;color:var(--color-neutral-500)">${r.tag||r.kind}</span>`}
       </button>`).join('');
     list.querySelectorAll('[data-cp-i]').forEach(b=>{
       const i=+b.getAttribute('data-cp-i');
@@ -1190,7 +1190,7 @@ function activityPanelHtml(){
   const feed=buildActivityFeed();
   return `
       <div style="padding:10px 12px;">
-        <div style="display:flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:8px;">
           <span class="live-ping" style="width:6px;height:6px;border-radius:50%;background:var(--st-green-dot);"></span>${i18t('ap_scope_workspace')}
         </div>
         ${feed.length?feed.map(a=>`
@@ -1198,7 +1198,7 @@ function activityPanelHtml(){
             <span style="width:8px;height:8px;border-radius:50%;background:${CAT_DOT[a.cat]};flex:none;margin-top:4px;"></span>
             <span style="flex:1;min-width:0;">
               <span style="display:block;font-size:13px;line-height:1.4;">${a.txt}</span>
-              <span style="display:block;font-size:11px;color:var(--color-neutral-500);margin-top:1px;font-family:var(--font-mono);">${a.id} · ${a.when}</span>
+              <span style="display:block;font-size:12px;color:var(--color-neutral-500);margin-top:1px;font-family:var(--font-mono);">${a.id} · ${a.when}</span>
             </span>
           </button>`).join(''):`<div style="font-size:13px;color:var(--color-neutral-600);padding:12px 2px;">${i18t('ap_no_activity')}</div>`}
       </div>`;
@@ -1209,7 +1209,7 @@ function alertsPanelHtml(){
   const rows=buildAlerts();
   return `
       <div style="padding:10px 12px;">
-        <div style="display:flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:8px;">
           <span style="width:6px;height:6px;border-radius:50%;background:${rows.length?'var(--st-amber-dot)':'var(--st-green-dot)'};"></span>${i18t('ap_scope_you')}
         </div>
         ${rows.length?rows.map((a,i)=>`
@@ -1218,7 +1218,7 @@ function alertsPanelHtml(){
             <span style="flex:1;min-width:0;">
               <span style="display:block;font-size:13px;line-height:1.4;font-weight:600;">${esc(a.text)}</span>
               <span style="display:block;font-size:12px;color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(a.name)}</span>
-              <span style="display:block;font-size:11px;color:var(--color-neutral-500);font-family:var(--font-mono);">${esc(a.id)}</span>
+              <span style="display:block;font-size:12px;color:var(--color-neutral-500);font-family:var(--font-mono);">${esc(a.id)}</span>
             </span>
           </button>`).join(''):`
           <div style="padding:26px 6px;text-align:center;">

@@ -1176,7 +1176,7 @@ function reviewVerbsHtml(c, ch, opts = {}){
        btn('advise-discuss', 'rv-adv', i18t('rv_v_adv_discuss'), i18t('rv_advice_title'))];
   return `<div class="rv-verbs" data-rv-for="${_rvE(ch.id)}"
     style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:7px;padding-top:7px;border-top:1px dashed var(--color-divider)">
-    <span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-600)">${_rvE(i18t('rv_your_verdict'))}</span>
+    <span style="font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)">${_rvE(i18t('rv_your_verdict'))}</span>
     ${verbs.join('')}
     <button type="button" class="rv-btn rv-note" data-rv-note="${_rvE(ch.id)}"
       title="${_rvE(i18t('rv_note_title'))}"
@@ -1434,7 +1434,7 @@ function reviewPersonRowHtml(u, active, prefix){
     <span style="flex:none;font-size:14px;font-weight:600;color:var(--color-text)">${_rvE(u.name)}</span>
     <span style="flex:1;min-width:0;font-size:12px;font-family:var(--font-mono);color:var(--color-neutral-600);
       overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_rvE(u.email || '')}</span>
-    <span style="flex:none;font-size:11px;color:var(--color-neutral-500)">${
+    <span style="flex:none;font-size:12px;color:var(--color-neutral-500)">${
       _rvE(u.role ? (window.roleName ? window.roleName(u.role) : u.role) : '')}</span>
   </li>`;
 }
@@ -1476,7 +1476,7 @@ function reviewAskModalHtml(c, opts = {}){
   const row = ch => `<li style="display:flex;gap:9px;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--color-divider)">
     <input type="checkbox" class="rv-pickch" data-rv-ch="${_rvE(ch.id)}"${on(ch) ? ' checked' : ''}
       aria-label="${_rvE(i18t('rv_include_aria', { id: ch.id }))}" style="margin-top:3px;flex:none"/>
-    <span style="flex:none;font-family:var(--font-mono);font-size:11px;font-weight:700;border:1.5px solid var(--color-accent);
+    <span style="flex:none;font-family:var(--font-mono);font-size:12px;font-weight:700;border:1.5px solid var(--color-accent);
       color:var(--color-accent);border-radius:0;padding:1px 6px;margin-top:1px">#${_rvE(ch.id)}</span>
     <span style="flex:1;min-width:0">
       <span style="display:block;font-size:13px;font-weight:600;line-height:1.4">${_rvE(ch.summary || '')}</span>
@@ -1503,7 +1503,7 @@ function reviewAskModalHtml(c, opts = {}){
           style="${RV_FLD}padding-right:30px"/>
         <button type="button" id="rv-who-caret" tabindex="-1" aria-label="${_rvE(i18t('rv_who_show_all'))}"
           style="position:absolute;right:1px;top:1px;bottom:1px;width:28px;border:0;background:transparent;
-          cursor:pointer;color:var(--color-neutral-600);font-size:11px;line-height:1">&#9662;</button>
+          cursor:pointer;color:var(--color-neutral-600);font-size:12px;line-height:1">&#9662;</button>
         <ul id="rv-who-list" role="listbox" hidden
           style="list-style:none;margin:2px 0 0;padding:0;position:absolute;left:0;right:0;top:100%;z-index:5;
           max-height:212px;overflow-y:auto;background:var(--color-surface);border:1px solid var(--color-divider);
@@ -1528,7 +1528,7 @@ function reviewAskModalHtml(c, opts = {}){
 
     <div style="border:1px solid var(--color-divider);border-radius:0;padding:11px 13px;background:var(--color-bg);margin-bottom:14px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-        <span style="flex:1;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--color-neutral-600)">${_rvE(i18t('rv_in_scope'))}</span>
+        <span style="flex:1;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)">${_rvE(i18t('rv_in_scope'))}</span>
         ${scope.all.length > 1 ? `<button type="button" id="rv-pick-all"
           style="border:0;background:none;padding:0;font:inherit;font-size:12px;font-weight:600;
           color:var(--color-accent);cursor:pointer;text-decoration:underline;text-underline-offset:2px">${_rvE(i18t('rv_pick_none'))}</button>` : ''}

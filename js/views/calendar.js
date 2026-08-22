@@ -153,7 +153,7 @@ function renderCalendar(){
        August" — which is where the press actually leads. */
     const chips=es.map(e=>{
       const ev=CAL_EVENT[e.type];
-      return `<span class="cal-chip"${cids.length===1?` title="${ev.label}: ${_esc(e.note)}"`:''} style="display:flex;align-items:center;gap:4px;width:100%;min-width:0;font-size:11px;line-height:1.25;overflow:hidden;${e.done?'opacity:.45;text-decoration:line-through':''}">`+
+      return `<span class="cal-chip"${cids.length===1?` title="${ev.label}: ${_esc(e.note)}"`:''} style="display:flex;align-items:center;gap:4px;width:100%;min-width:0;font-size:12px;line-height:1.25;overflow:hidden;${e.done?'opacity:.45;text-decoration:line-through':''}">`+
         _dot(ev.dot,6)+`<span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(e.cname)}</span></span>`;
     }).join('');
     /* It is not its own button — the cell it sits in already is one, and the
@@ -191,7 +191,7 @@ function renderCalendar(){
         && (!window.canEdit || canEdit()))
       ? `<button data-ob-done="${_esc(e.obId)}" data-ob-cid="${_esc(e.cid)}" title="${i18t('cal_mark_complete')}"
            style="flex:none;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;
-             padding:2px 7px;font:inherit;font-size:11px;font-weight:600;color:var(--color-accent-700);cursor:pointer">${i18t('cal_done')}</button>`
+             padding:2px 7px;font:inherit;font-size:12px;font-weight:600;color:var(--color-accent-700);cursor:pointer">${i18t('cal_done')}</button>`
       : '';
     const theirsChip = (e.type==='obligation' && e.theirs)
       ? `<span title="${i18t('cal_cp_owes')}" style="flex:none;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:0;padding:1px 4px;background:var(--st-amber-bg);color:var(--st-amber-fg)">theirs</span>`
@@ -201,11 +201,11 @@ function renderCalendar(){
         _dot(ev.dot,7)+
         `<span style="flex:1;min-width:0">`+
           `<span style="display:block;font-size:13px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(e.cname)}</span>`+
-          `<span style="display:block;font-size:11px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${kind}</span>`+
+          `<span style="display:block;font-size:12px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${kind}</span>`+
         `</span>`+
       `</button>`+
       theirsChip+doneBtn+
-      `<span style="font-size:11px;font-weight:600;font-family:var(--font-mono);color:${ev.fg};flex:none;padding-right:2px">${inTxt}</span>`+
+      `<span style="font-size:12px;font-weight:600;font-family:var(--font-mono);color:${ev.fg};flex:none;padding-right:2px">${inTxt}</span>`+
     `</div>`;
   }).join(''):`<div style="text-align:center;padding:22px 8px">
       <div style="width:40px;height:40px;margin:0 auto 10px;display:grid;place-items:center;border-radius:0;background:var(--color-bg);color:var(--color-neutral-500)">${icon('calendar','w-5 h-5')}</div>
@@ -250,7 +250,7 @@ function renderCalendar(){
         .cal-day{min-height:32px!important}
       }
       .cal-wk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;font-size:11px;
-        font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+        font-weight:700;letter-spacing:.09em;text-transform:uppercase;
         color:var(--color-neutral-500);text-align:center;margin-bottom:4px;flex:none}
       @media (max-width:1023px){
         .cal-split{grid-template-columns:minmax(0,1fr);height:auto}
@@ -279,7 +279,7 @@ function renderCalendar(){
          hiding a week behind the card's edge. A day you cannot reach is worse
          than a day you have to scroll to. -->
     <div id="cal-grid" style="flex:1;min-height:0;overflow-y:auto;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:repeat(6,1fr);gap:4px">${cells.join('')}</div>
-        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;padding-top:10px;border-top:1px solid var(--color-divider);font-size:11px;color:var(--color-neutral-500);flex:none">
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;padding-top:10px;border-top:1px solid var(--color-divider);font-size:12px;color:var(--color-neutral-500);flex:none">
           ${Object.values(CAL_EVENT).map(v=>`<span style="display:flex;align-items:center;gap:6px">${_dot(v.dot,8)}${v.label}</span>`).join('')}
         </div>
       </section>

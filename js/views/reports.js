@@ -172,7 +172,7 @@ function reportDropdown(variant, kind, idx, catalog, selKey){
   const cur=catalog.find(x=>x.k===selKey)||catalog[idx];
   const hero=variant==='hero';
   const trig=hero
-    ? 'background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.42);color:#fff;font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:600'
+    ? 'background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.42);color:#fff;font-size:11px;letter-spacing:.09em;text-transform:uppercase;font-weight:600'
     : 'background:var(--color-bg);border:1px solid var(--color-divider);color:var(--color-text);font-size:15px;font-weight:600';
   const chev=hero?'#fff':'var(--color-neutral-500)';
   const opts=catalog.map(x=>`<button type="button" data-rd-opt="${kind}:${idx}:${x.k}" class="rd-opt${x.k===cur.k?' rd-opt-on':''}" style="display:block;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:14px;padding:7px 11px;border-radius:0;cursor:pointer;white-space:nowrap">${_esc(x.label)}</button>`).join('');
