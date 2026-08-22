@@ -190,8 +190,35 @@
     --color-divider:#e2e8f0;
 
     --color-neutral-100:#f1f5f9; --color-neutral-200:#e2e8f0; --color-neutral-300:#cbd5e1;
-    --color-neutral-400:#93A09E; --color-neutral-500:#5F6D6B; --color-neutral-600:#43524F;
-    --color-neutral-700:#2F3E3C; --color-neutral-800:#1B2A28; --color-neutral-900:#0E1B19;
+    /* FOUR SHADES CARRY ALL READING TEXT, and this ramp is how (22 Aug 2026,
+       from the design's own typography note, owner-reported twice as "still
+       not meeting the dark sharp fonts"). The note is explicit: #1B2A28
+       PRIMARY for headings, body copy, table values and clause text; #5F6D6B
+       SECONDARY for labels, counts, breadcrumbs and column heads; #A9B3B1 for
+       disabled; white on dark. THREE greys, not nine — and it states the rule
+       mechanically: "Primary text is 14 px or larger; secondary shade is where
+       11-13 px lives."
+       MEASURED before this: 10-13 text colours on a single page, with 600
+       (#43524F) and 700 (#2F3E3C) carrying 600 declarations between them —
+       body copy and every register cell sitting on a MID grey, lighter than
+       primary and darker than the label. That in-between grey is the whole of
+       the washed-out look; nothing was wrong with the token, the token was
+       simply not being read.
+       THE SPLIT IS 600 vs 700 AND IT FOLLOWS THIS CODEBASE'S OWN CONVENTION,
+       measured rather than guessed: 600 is what every caption in the product
+       already wears (.room-sub, .ngl-sub, .dk-row-sub, .st-tabsub, the clause
+       panel's meta line) and 700 is what body and table text wears. So 600
+       becomes SECONDARY and 700-900 become PRIMARY, and each HaTi habit lands
+       on the design role it was already serving. A first pass sent 600 to
+       primary as well and turned every caption in the product black — caught
+       by clause-door-verify 9e, which exists to say that the captions under a
+       signpost are not the signpost.
+       400 IS DELIBERATELY LEFT ALONE: it carries 20 borders and backgrounds
+       against 39 text uses, so it is the one step in this ramp that is not a
+       type token, and the rulebook's "re-hueing the neutrals is safe" argument
+       does not cover it. */
+    --color-neutral-400:#93A09E; --color-neutral-500:#5F6D6B; --color-neutral-600:#5F6D6B;
+    --color-neutral-700:#1B2A28; --color-neutral-800:#1B2A28; --color-neutral-900:#1B2A28;
 
     --color-accent-100:#ccfbf1; --color-accent-200:#99f6e4; --color-accent-300:#5eead4;
     --color-accent-400:#2dd4bf; --color-accent-500:#14b8a6; --color-accent-600:#0d9488;
@@ -307,12 +334,20 @@
        under AA's 4.5:1. Opacity also means the same class reads differently on
        every background it lands on, which is why the fix is a colour and not a
        smaller number. Measured ratios are in SUMMARY.md.
-         --color-doc-text  #15181a on #fbfbfc = 17.25:1  (17.84:1 on white)
-         --color-doc-muted #4a4f54 on #fbfbfc =  8.00:1
+       RE-HUED ONTO THE GREEN-GREY FAMILY (22 Aug 2026). Both were blue-greys
+       and the last two shades in the product still pulling that way — the
+       design's typography note lists CLAUSE TEXT under its one primary ink
+       (#1B2A28), so the contract's own words were the biggest block of type
+       still on a colour of their own. THE CONTRAST WAS THE CONDITION, not an
+       afterthought: the primary drops 17.84:1 to 14.91:1, still more than
+       double AAA's 7:1 for body copy, and the muted moves 8.28:1 to 8.21:1 —
+       the same reading, a different hue.
+         --color-doc-text  #1B2A28 on #fbfbfc = 14.42:1  (14.91:1 on white)
+         --color-doc-muted #43524F on #fbfbfc =  7.94:1  ( 8.21:1 on white)
        Both are measured with the WCAG relative-luminance formula, not judged
        by eye. See also print-color-adjust, further down. */
-    --color-doc-text:#15181a;
-    --color-doc-muted:#4a4f54;         /* secondary document copy only */
+    --color-doc-text:#1B2A28;
+    --color-doc-muted:#43524F;         /* secondary document copy only */
     --color-doc-rule:#c9ccd1;
     /* The sheet itself. Views must paint the paper with this token — never a
        literal #fbfbfc — so the document joins the theme flip. Print pins it
@@ -2965,15 +3000,15 @@
        its measured light value here, so a dark-mode session prints the same
        page a light-mode session does. */
     html.dark,html.dark #print-root,#print-root{
-      --color-doc-text:#15181a; --color-doc-muted:#4a4f54; --color-doc-rule:#c9ccd1;
+      --color-doc-text:#1B2A28; --color-doc-muted:#43524F; --color-doc-rule:#c9ccd1;
       --color-doc-surface:#fff; --color-bg:#fff; --color-surface:#fff;
       /* Paper prints white, warm or not — cream is a screen affordance and an
          inkjet would render it as a grey wash across every page. */
       --color-doc-warm:#fff; --color-doc-warm-line:#e2e8f0; --shadow-paper:none;
       --color-text:#1B2A28; --color-divider:#e2e8f0;
       --color-neutral-100:#f1f5f9; --color-neutral-200:#e2e8f0; --color-neutral-300:#cbd5e1;
-      --color-neutral-400:#93A09E; --color-neutral-500:#5F6D6B; --color-neutral-600:#43524F;
-      --color-neutral-700:#2F3E3C; --color-neutral-800:#1B2A28; --color-neutral-900:#0E1B19;
+      --color-neutral-400:#93A09E; --color-neutral-500:#5F6D6B; --color-neutral-600:#5F6D6B;
+      --color-neutral-700:#1B2A28; --color-neutral-800:#1B2A28; --color-neutral-900:#1B2A28;
     }
     /* Print the ink that was measured, not whatever the print pipeline decides
        is economical. Without this, browsers and drivers lighten body text and

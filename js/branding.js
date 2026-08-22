@@ -666,7 +666,7 @@ function docStructureBodyHtml(b, bodyHtml) {
 
   return `<nav data-doc-contents="1" style="page-break-after:always;break-after:page;margin:0 0 1.6em">
     <div style="font-size:.82em;font-weight:700;letter-spacing:.13em;text-transform:uppercase;
-      color:var(--doc-design-accent,var(--color-doc-muted,#4a4f54));padding-bottom:.35em;
+      color:var(--doc-design-accent,var(--color-doc-muted,#43524F));padding-bottom:.35em;
       margin-bottom:.7em;border-bottom:1px solid var(--color-doc-rule,#c9ccd1)">${BR_T('br_contents', 'Contents')}</div>
     <ol style="list-style:none;margin:0;padding:0">${rows}</ol>
   </nav>${html}`;

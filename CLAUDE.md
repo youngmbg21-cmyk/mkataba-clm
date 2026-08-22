@@ -622,6 +622,44 @@ The first pass rounded half-pixels and stopped there, and the owner's answer was
 
 **THE INK IS THE DESIGN'S TWO COLOURS.** Every text colour was a blue-leaning slate (`#1e293b` and the slate-400..900 ramp), which sat against a teal product and read cold. The design carries `--tx:#1B2A28` for body and `--label:#5F6D6B` for labels — a dark desaturated GREEN-black from the brand's own family. The ramp is re-hued onto it and **every step is at least as dark as the slate it replaces**, so nothing lost contrast: body 13.6:1 → 14.9:1 on white, and the label step 4.8:1 → 5.6:1, which was the one genuinely thin reading. THE NEUTRALS ARE A TYPE TOKEN HERE, not a surface one — they carry text in 638 places and a background or border in 6, which is what makes re-hueing them safe.
 
+**FOUR SHADES CARRY ALL READING TEXT** (owner-asked 22 Aug 2026, twice — "you
+are still not meeting the dark sharp fonts", pointing back at the design's own
+typography note). The note is explicit and mechanical: `#1B2A28` PRIMARY for
+headings, body copy, table values and clause text; `#5F6D6B` SECONDARY for
+labels, counts, breadcrumbs, column heads and metadata; `#A9B3B1` disabled;
+white on dark. And the rule that assigns them — **"Primary text is 14 px or
+larger; secondary shade is where 11-13 px lives."**
+
+**MEASURED: HaTi ran 10-13 text colours on a single page.** The damage was two
+MID greys — `#2F3E3C` (neutral-700) and `#43524F` (neutral-600) — carrying 600
+declarations between them: lighter than primary, darker than the label, and
+wearing every cell in the register. **That in-between grey is the whole of the
+washed-out look**; the ink token was already `#1B2A28` and simply was not being
+read. The ramp now carries the design's shades and nothing between them, split
+on this codebase's own convention (600 = every caption in the product, 700 =
+body and table text), so each HaTi habit lands on the role it was already
+serving. Register 10 colours → 8, contract room 13 → 10.
+
+**AND THE SHEET HAD A BLACK OF ITS OWN.** `--color-doc-text:#15181a` was a
+BLUE-grey, so the biggest block of text anybody reads was the last thing still
+pulling away from the palette — while the note lists clause text under its one
+primary ink. Re-hued with `--color-doc-muted`, **and contrast was the condition
+rather than an afterthought**: primary 17.84:1 → 14.91:1 (AAA wants 7:1), muted
+8.28:1 → 8.21:1, the same reading in a different hue.
+
+**WHAT IS DELIBERATELY LEFT, and each has a reason.** neutral-400 carries 20
+borders and backgrounds against 39 text uses — the one step in this ramp that
+is not a type token, so the "re-hueing the neutrals is safe" argument does not
+cover it. Every colour still above 14px and not on primary is a STATUS or
+ACTION shade (amber "In Review", teal links and active tabs), which the note
+calls for by name. And the teal is the WORKSPACE ACCENT: pinning it to the
+design's `#0B7C6B` would stop it following the workspace.
+
+**A FIRST PASS SENT BOTH MID-GREYS TO PRIMARY AND TURNED EVERY CAPTION BLACK.**
+Caught by clause-door-verify 9e, which exists to say that the captions under a
+signpost are not the signpost — the mirror of the fault being fixed, and the
+reason the rule has TWO halves rather than one.
+
 **AND 146 ELEMENTS NEVER SAW ANY OF IT** (owner-reported 22 Aug 2026: *"why is
 that fonts in the html are sharper and black fonts are darker than in HaTi?"*).
 `.text-ink` is a COMPILED Tailwind class and its colour is the OLD slate
