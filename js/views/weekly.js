@@ -144,7 +144,7 @@ function weeklyData(){
 /* ------------------------------------------------------------- the page --- */
 const WK_CSS=`
   *{box-sizing:border-box}
-  body{margin:0;background:#f5f7f9;color:#1f2933;font:15px/1.6 -apple-system,'Segoe UI',Roboto,Arial,sans-serif}
+  body{margin:0;background:#f5f7f9;color:#1f2933;font:15px/1.6 Inter,-apple-system,'Segoe UI',Roboto,Arial,sans-serif}
   .wrap{max-width:820px;margin:0 auto;padding:34px 22px 70px}
   header{margin-bottom:22px}
   h1{margin:0;font-size:25px;letter-spacing:-.02em}
@@ -288,7 +288,7 @@ function openWeeklyReview(){
   if(!w){ if(typeof toast==='function') toast(i18t('hr_popup_blocked'),'err'); return false; }
   let html='';
   try{ html=buildWeeklyHtml(weeklyData()); }
-  catch(e){ html=`<!doctype html><body style="font:15px -apple-system,Arial;padding:40px;color:#374151">${_wkEsc(i18t('wk_failed'))}</body>`; }
+  catch(e){ html=`<!doctype html><body style="font:15px Inter,-apple-system,Arial;padding:40px;color:#374151">${_wkEsc(i18t('wk_failed'))}</body>`; }
   try{ w.document.open(); w.document.write(html); w.document.close(); }catch(_){}
   return true;
 }

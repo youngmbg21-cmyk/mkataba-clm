@@ -476,6 +476,10 @@ const STRINGS = {
     home_pipe_of_live: 'of {n} live',
     home_pipe_share: '{n}% of the live book',
     home_pipe_pick: 'Press a stage to list it',
+    /* RETIRED 22 Aug 2026 (owner-asked): the pipeline card's head is the
+       heading alone now. Left inert rather than deleted, the way ng_pop_* and
+       ct_back_queue were, so the two dictionaries stay the same shape and
+       nothing has to be re-numbered. Flag any new use as stale. */
     home_view_register: 'View full register →',
     home_nothing_to_decide: "Nothing to decide — you're all caught up.",
     home_decisions_due: 'Decisions due',
@@ -4783,6 +4787,7 @@ const STRINGS = {
     home_pipe_of_live: 'av {n} aktiva',
     home_pipe_share: '{n}% av den aktiva portföljen',
     home_pipe_pick: 'Tryck på ett steg för att lista det',
+    /* RETIRED 22 Aug 2026 — see the English side. */
     home_view_register: 'Visa hela registret →',
     home_nothing_to_decide: 'Inget att besluta — du är ikapp.',
     home_decisions_due: 'Beslut att fatta',

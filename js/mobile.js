@@ -810,12 +810,12 @@ function mTabsHtml(){
              door the sidebar does. The count is negoNeedsYouTotal, the same
              number the desktop's door shows. */}
       <button class="m-tab${on('negotiations')}${nn?' m-tab-due':''}" data-m-tab="negotiations">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg>
+        <svg width="24" height="24" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.15" aria-hidden="true"><use href="#i-nego"/></svg>
         <span>${i18t('m_negotiations')}</span>
         ${nn?`<span class="m-tab-badge">${nn>99?'99+':nn}</span>`:''}
       </button>
       <button class="m-tab${on('approvals')}" data-m-tab="approvals">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.7 9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1 1 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+        <svg width="24" height="24" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.15" aria-hidden="true"><use href="#i-shield"/></svg>
         <span>${i18t('m_approvals')}</span>
         ${n?`<span class="m-tab-badge">${n>99?'99+':n}</span>`:''}
       </button>

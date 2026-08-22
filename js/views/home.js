@@ -630,9 +630,11 @@ function renderDashboard(){
 
      It is a ring on two thirds and ONE list on one third now: press a segment,
      or its row in the key, and the list beside it swaps to that stage. NOTHING
-     ABOUT THE CARD CHANGED — same box, same padding, same heading, same "View
-     full register", and it is still exactly as tall as Decisions due beside it.
-     Only what is painted inside it.
+     ABOUT THE CARD CHANGED — same box, same padding, same heading — and it is
+     still exactly as tall as Decisions due beside it. Only what is painted
+     inside it. (The head also carried a "View full register" link until 22 Aug
+     2026, when the owner asked for it to go; the head is the heading alone
+     now. See the note on the head itself.)
 
      IT IS ALL IN THE MARKUP, NOT PAINTED ON AFTER. The first build filled the
      ring and the list from script once the card was in the DOM, which left the
@@ -719,9 +721,18 @@ function renderDashboard(){
 
   const lifecycleSection=`
     <section class="hm-pipe-card" style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:none;border-radius:0;padding:16px 18px;min-width:0;">
-      <div style="flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;">
+      <!-- ONE HEADING, NO LINK (owner-asked, 22 Aug 2026). The head carried a
+           "View full register →" button on its right. It went because the card
+           is already made of doors and that one was the vaguest of them: every
+           legend row opens its own stage in the register, the "+ N more" under
+           the list opens the stage being read, and Contracts is a permanent
+           door in the sidebar three inches to the left. A fourth route, to the
+           unfiltered list, sat above three that each carry a filter — so the
+           one that said least took the most prominent corner of the card.
+           Nothing is stranded: data-stage still reaches the register from the
+           rows and the more-button, and both still clear the selection. -->
+      <div style="flex:none;display:flex;align-items:center;gap:10px;margin-bottom:12px;">
         <h4 style="font-size:14px;margin:0;font-weight:700;">${i18t('home_pipeline_aria')}</h4>
-        <button data-open-register style="border:0;background:none;cursor:pointer;font:inherit;font-size:11.5px;color:var(--color-accent-600);font-weight:600;padding:0;">${i18t('home_view_register')}</button>
       </div>
       <div class="hm-pipe-cols" style="display:grid;gap:11px;">
         <div class="hm-pipe-chart" id="hm-pipe-chart">
@@ -899,10 +910,15 @@ function renderDashboard(){
       <!-- ---- THE THIN LINE THAT CARRIES CUSTOMIZE (owner-chose render A,
            20 Aug 2026) ---- Right-aligned, because a way OUT of a row reads at
            its end rather than at its start, and dressed as a quiet link rather
-           than a button: it is a small preference, and it matches the "View
-           full register →" links this page already uses. It is paid for by the
-           banner above, which lost the same height it takes — measured, so the
-           cards and everything below them do not move. -->
+           than a button: it is a small preference, and it matches the quiet
+           arrow links this page already uses under Decisions due ("16 renewal
+           decisions in the calendar →"). It is paid for by the banner above,
+           which lost the same height it takes — measured, so the cards and
+           everything below them do not move.
+
+           (It used to name the pipeline card's "View full register →" as the
+           thing it matched; that link was removed 22 Aug 2026 on the owner's
+           ask, so the comparison now names the links that are still there.) -->
       <div class="hm-kpi-bar">
         <button id="kpi-customize" class="hm-cz" title="${i18t('home_choose_metrics')}">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
@@ -980,7 +996,9 @@ function renderDashboard(){
     e.stopPropagation(); gsHide(); renderDashboard(); });
   document.getElementById('fr-explore')?.addEventListener('click',()=>{ const R=regState(); R.stage='all'; R.type='all'; R.sel={}; setView('register'); });
   document.querySelectorAll('[data-stage]').forEach(el=>el.addEventListener('click',()=>{ const R=regState(); R.stage=el.getAttribute('data-stage'); R.type='all'; R.sel={}; setView('register'); }));
-  document.querySelectorAll('[data-open-register]').forEach(el=>el.addEventListener('click',()=>{ const R=regState(); R.stage='all'; R.sel={}; setView('register'); }));
+  /* [data-open-register] is retired with the pipeline head's link (22 Aug
+     2026) — flag any mention as stale. The register is still reached from this
+     page by [data-stage] above, which carries the stage it was pressed from. */
   document.getElementById('dd-ask-ai')?.addEventListener('click',e=>{
     e.preventDefault(); e.stopPropagation();
     if(typeof openAI==='function') openAI('What needs my attention in the next 90 days — renewals, expiries and anything overdue?');

@@ -2234,7 +2234,7 @@ function externalExecutionBlock(c){
           <circle cx="48" cy="48" r="46" fill="#fff"/>
           <circle cx="48" cy="48" r="46" fill="none" style="stroke:var(--color-accent)" stroke-width="2"/>
           <circle cx="48" cy="48" r="38" fill="color-mix(in srgb,var(--color-accent) 11%,transparent)" stroke="#8fa8c2" stroke-width="1.5"/>
-          <text x="48" y="45" text-anchor="middle" font-family="&#39;72&#39;, Arial, Helvetica, sans-serif" font-weight="700" font-size="12.5" fill="#3f6087">${i18t('ct_on_file')}</text>
+          <text x="48" y="45" text-anchor="middle" font-family="Inter, system-ui, Arial, Helvetica, sans-serif" font-weight="700" font-size="12.5" fill="#3f6087">${i18t('ct_on_file')}</text>
           <text x="48" y="58" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="7" style="fill:var(--color-accent)">${i18t('ct_migrated')}</text>
         </svg>
         <div class="flex-1 min-w-0">
@@ -2288,7 +2288,7 @@ function signatureBlock(c){
           <circle cx="48" cy="48" r="46" fill="#fff"/>
           <circle cx="48" cy="48" r="46" fill="none" stroke="#086B54" stroke-width="2"/>
           <circle cx="48" cy="48" r="38" fill="rgba(8,107,84,.10)" stroke="#C79A3E" stroke-width="1.5"/>
-          <text x="48" y="45" text-anchor="middle" font-family="&#39;72&#39;, Arial, Helvetica, sans-serif" font-weight="700" font-size="12.5" style="fill:var(--st-green-dot)">${i18t('ct_sealed')}</text>
+          <text x="48" y="45" text-anchor="middle" font-family="Inter, system-ui, Arial, Helvetica, sans-serif" font-weight="700" font-size="12.5" style="fill:var(--st-green-dot)">${i18t('ct_sealed')}</text>
           <text x="48" y="58" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="7" style="fill:var(--st-green-fg)">SHA-256</text>
         </svg>
         <div class="flex-1 min-w-0">

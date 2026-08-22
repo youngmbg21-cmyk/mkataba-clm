@@ -4,8 +4,8 @@
    A silent, total, design-wide regression, and one that no test in this suite
    could have caught.
 
-   The design's two typefaces — "72" for the platform, Inter for
-   headings — are carried in fonts/fonts.css, which index.html links. But
+   The design's typeface — Inter, one family for the platform and the contract
+   paper alike — is carried in fonts/fonts.css, which index.html links. But
    server.js served exactly two static trees, /js and /sample-contracts, and
    /fonts was not among them. So on the deployed platform that link 404'd, no
    @font-face ever registered, and EVERY SCREEN rendered in whatever sans the
@@ -57,20 +57,33 @@ describe('F85 — the design\'s assets reach the browser', () => {
     assert.match(r.headers.get('content-type') || '', /text\/css/);
   });
 
-  test('and it actually carries both of the design\'s faces', async () => {
-    /* CLAIM RE-POINTED 20 Aug 2026 (the SAP treatment): the design's two
-       faces are now "72" (the platform) and Inter (the document face,
-       --font-doc). Plus Jakarta Sans retired with the old design. */
+  test('and it actually carries the design\'s face', async () => {
+    /* CLAIM REVERSED IN PLACE 22 Aug 2026 (owner-asked: "let's use Inter
+       everywhere"). It read "both of the design's faces" and named "72" as the
+       platform's — there is ONE family now, Inter, carrying the chrome and the
+       paper. "72" is SAP's and licensed around SAP's own software; Inter is
+       SIL Open Font Licensed, which is the whole reason for the swap.
+       Jakarta Sans retired earlier, with the design before last. */
     const css = await (await get('/fonts/fonts.css')).text();
-    assert.match(css, /font-family:\s*'72'/,
-      'the platform face is missing from the served stylesheet');
     assert.match(css, /font-family:\s*'Inter'/,
-      'the document face is missing from the served stylesheet');
+      'the platform face is missing from the served stylesheet');
+    assert.doesNotMatch(css, /font-family:\s*'72'/,
+      '"72" is retired — a face nothing asks for is 316 KB every reader downloads');
     // The faces are inlined as data URIs; a stylesheet of @font-face rules
     // pointing at files the server does not have would pass the check above
     // and still render nothing.
     assert.match(css, /src:\s*url\(data:font\/woff2;base64,/,
-      'the faces must be inlined, not linked to files that are not served');
+      'the face must be inlined, not linked to files that are not served');
+    /* THE COVERAGE THE SWAP COULD HAVE QUIETLY LOST. "72" shipped its -full
+       cuts: extended Latin, Greek and Cyrillic. Inter was bundled for the
+       DOCUMENT alone and carried Latin and Latin-ext only, so promoting it
+       without widening it would have dropped a counterparty or colleague named
+       in Greek or Cyrillic to a system sans mid-sentence — the silent kind of
+       regression this whole file exists for. */
+    const ranges = css.match(/unicode-range:[^;]+;/g) || [];
+    const joined = ranges.join(' ');
+    assert.match(joined, /U\+0400-045F/, 'Cyrillic coverage was lost with "72"');
+    assert.match(joined, /U\+1F00-1FFF/, 'Greek coverage was lost with "72"');
   });
 
   test('the ES module entry point is served', async () => {
