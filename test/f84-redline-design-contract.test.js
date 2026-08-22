@@ -450,7 +450,15 @@ describe('F84 — the header actions press the engine, not a lookalike', () => {
        onto the engine's own #nego-send. Accept All and Reject All are gone
        outright — deciding the other side's wording is a press per clause. */
     const p = await page();
-    const strip = p.$$('.rl-head button').map(b => b.textContent.trim());
+    /* ---- WIDENED 22 Aug 2026: THE ACTS MOVED UP INTO THE HEAD ----
+       Publish Round, the playbook pass and the review door now sit on the
+       head's own line beside the title (owner-asked, off the design mock-up),
+       while the second row keeps the ways of LOOKING. They are still built in
+       js/views/negotiation.js and handed to the shared head as a string — the
+       rule that a page's own act must not depend on another page's module is
+       unchanged — so this reads BOTH rows to check the same population. */
+    const strip = [...p.$$('.rl-head button'), ...p.$$('.room-acts button')]
+      .map(b => b.textContent.trim());
     /* "Internal View | Counterparty View" spent 260px of the row saying the
        same word twice. The group carries that sentence now (its aria-label and
        title), which is also what the mockup's own toggle does. */
@@ -491,7 +499,10 @@ describe('F84 — the header actions press the engine, not a lookalike', () => {
        whose purpose is comparing the two views. It is drawn now and DEAD.
        WHAT THIS TEST PROTECTS IS UNCHANGED and is asserted directly instead of
        through an absence: nothing on their chair can publish our round. */
-    const pub = p.$$('.rl-head button').find(b => /Publish Round/.test(b.textContent));
+    /* It moved to the head's own line on 22 Aug 2026 — see the note on the
+       strip test above. Still drawn, still dead here, which is the claim. */
+    const pub = [...p.$$('.rl-head button'), ...p.$$('.room-acts button')]
+      .find(b => /Publish Round/.test(b.textContent));
     assert.ok(pub, 'it keeps its place, so the row does not move when the view is flipped');
     assert.ok(pub.hasAttribute('disabled') && pub.hasAttribute('data-rl-dead'),
       'and it is dead there — publishing a round is not done from the preview');

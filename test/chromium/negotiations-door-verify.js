@@ -313,6 +313,8 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       const row = document.querySelector('.redline-page .rl-tabrow');
       return { box: eval(seen)('.redline-page [data-rl-live-list]'),
         first: !!b && !!row && row.children[0] === b,
+        last: (() => { const acts = document.querySelector('.rl-actions');
+          return !!b && !!acts && acts.children[acts.children.length - 1] === b; })(),
         flush: (!b || !row) ? null : Math.round(b.getBoundingClientRect().left
           - row.getBoundingClientRect().left),
         n: ((document.querySelector('.rl-livelist-n') || {}).textContent || '').trim() };
@@ -322,9 +324,18 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     check('it reads Live negotiations and carries the count',
       /Live negotiations/.test(backDoor.box.text || '') && /^\d+$/.test(backDoor.n),
       `${backDoor.box.text} · count "${backDoor.n}"`);
-    check('and it is the FIRST thing on the control row, at its far left',
-      backDoor.first && backDoor.flush != null && backDoor.flush < 6,
-      `first=${backDoor.first}, ${backDoor.flush}px from the row's left`);
+    /* ---- CLAIM REVERSED IN PLACE 22 Aug 2026 ----
+       It read "the FIRST thing on the control row, at its far left", which was
+       right on 12 Aug when this row began with the acts. The design mock-up
+       leads the row with the three reading tabs — they name what the paper
+       below is showing — and ends it with the way out, so a door at the far
+       left would sit ahead of the thing it is a way out OF.
+
+       WHAT STILL MATTERS AND IS STILL PINNED: it is on the control row, it is
+       the LAST thing on it, and (above) it says what it is and carries its
+       count. Only the end of the line it sits at has changed. */
+    check('and it ENDS the control row — the way out reads last',
+      backDoor.last, `last=${backDoor.last}, ${backDoor.flush}px from the row's left`)
 
     /* Press it: the LIST, not the negotiation it was pressed from. */
     await page.click('[data-rl-live-list]');

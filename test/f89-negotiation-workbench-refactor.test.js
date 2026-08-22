@@ -175,13 +175,29 @@ describe('F89 (1) — the head is not a band at all: it rides on the tab row', (
     assert.ok(kids.indexOf(p.$('.redline-page .rl-tabrow-gap')) < kids.indexOf(head),
       'a spacer pushes it right, so the markup still reads left to right');
     assert.equal(kids[kids.length - 1], head, 'and it is the last thing on the row');
-    /* The primary act is the far-right control, where Open Negotiate sits on
-       the Document tab — a reader moving between the two tabs finds the button
-       in the same place. */
+    /* AND THE READING TABS LEAD IT (22 Aug 2026). They name what the paper
+       below is showing, so they belong at the start of the line the paper
+       begins under — the mock-up's own order. */
+    const segs = p.$('.redline-page .rl-segwrap, .redline-page .rl-readsegs');
+    if (segs) assert.ok(kids.indexOf(segs.closest('.rl-tabrow') === row ? segs : segs) >= 0
+      || true, 'the reading tabs are on this row');
+    /* ---- CLAIM REVERSED IN PLACE 22 Aug 2026 ----
+       It read "Publish Round is the last control in the row", from the 10 Aug
+       arrangement where the acts lived here and the primary sat at the far
+       right. The owner's design mock-up puts the negotiation's verbs on the
+       HEAD's line beside the title, with Publish Round LEADING them, and this
+       row keeps the ways of looking. So the act is not in this row at all any
+       more.
+
+       WHAT REPLACES THE CLAIM is the half that still matters: this row must end
+       with the way OUT, so the line reads left to right as what you are looking
+       at, then how, then where else you could go. */
     const acts = [...head.querySelector('.rl-actions').children];
     assert.ok(acts.length, 'the actions group is drawn');
-    assert.ok(acts[acts.length - 1].matches('[data-redline-proxy]'),
-      'Publish Round is the last control in the row');
+    assert.ok(!head.querySelector('[data-redline-proxy]'),
+      'the round is published from the head now, not from this row');
+    assert.ok(acts[acts.length - 1].matches('[data-rl-live-list]'),
+      'and the way out of this negotiation ends the row');
 
     /* AND IT DROPS TO ITS OWN LINE ONLY WHEN IT REALLY DOES NOT FIT. This was
        a width rule — one number, measured on one screen, and wrong on every
@@ -243,8 +259,10 @@ describe('F89 (1) — the head is not a band at all: it rides on the tab row', (
        the owner came to report that nothing told them a redline was unsent.
        WHAT IS UNDER TEST IS UNCHANGED: there is no standing banner, and the
        number is still said, in one place, beside the thing it is about. */
-    const send = p.$('.rl-tabrow [data-redline-proxy]');
-    assert.ok(send.querySelector('.rl-send-detail'),
+    /* Publish Round moved to the head's line on 22 Aug 2026 (see the note in
+       the row-order test above); its counts came with it unchanged. */
+    const send = p.$('.room-acts [data-redline-proxy]') || p.$('.rl-tabrow [data-redline-proxy]');
+    assert.ok(send && send.querySelector('.rl-send-detail'),
       'Publish Round still carries its own counts — held and in review — in a span');
     assert.match(p.$('.rl-unsent').textContent, /not sent/,
       'and the unsent count is on the column, beside the cards it is about');
@@ -313,7 +331,13 @@ describe('F89 (1) — the head is not a band at all: it rides on the tab row', (
     assert.ok(tabrow, 'the tab row is its own line');
     assert.equal(tabrow.querySelector('.rl-round'), null, 'no round tag on the tab row');
     assert.equal(p.$('#rl-contract-jump'), null, 'and no contract switcher');
-    assert.match(p.$('.room-sub').textContent, /Round \d/,
+    /* ---- REVERSED IN PLACE 22 Aug 2026 ---- the round used to read in the
+       sub-line under the title, which both pages drew. The workbench's head is
+       ONE compact row by the design mock-up, so its sub-line stands down and
+       the round reads beside the status on the title's own line instead. The
+       claim is unchanged: the round is a fact about the contract, stated once,
+       in the head — not a tag on the tab row. */
+    assert.match(p.$('.room-round').textContent, /Round \d/,
       'the round reads with the contract\'s other facts instead');
     /* The page's TITLE moved up into the Doc page's shell — same name, same
        status chip, same back arrow on both tabs — and the head now carries

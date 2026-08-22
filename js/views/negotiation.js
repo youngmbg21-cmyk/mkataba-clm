@@ -6646,6 +6646,41 @@ function renderRedline(){
     ? ` disabled aria-disabled="true" data-rl-dead="1" title="${_nea(i18t('ng_preview_dead'))}"` : '';
   const closer = (!prog.pending && prog.total && !_rvPosture)
     ? `<button data-rl-close-round class="rl-btn rl-btn-go"${deadAttrs || ` title="${_nea(i18t('ng_close_round_title'))}"`}>&#10003; ${i18t('ng_close_round_n',{n:negoRound(c)})}</button>` : '';
+  /* ---- THE PAGE'S OWN VERBS, PLACED BY THE SHARED HEAD (owner-asked 22 Aug
+     2026, off the mock-up: the negotiation head carries Publish round, Internal
+     review, Share and More on one line with the title) ----
+
+     THEY ARE STILL BUILT HERE, which is the constraint that governed the old
+     arrangement and still does: "a page's own primary act must not depend on
+     another page's module". roomHeadHtml's `primary` option already accepts a
+     STRING for exactly this — the head PLACES what this file BUILDS. Nothing
+     was moved into js/views/contract.js, and a stage that renders this page
+     without the head draws no head at all, so there is nothing left to lose.
+
+     Publish Round is this page's ONE filled act; the playbook pass and the
+     review door are ordinary verbs beside it, which is the platform's button
+     rule. Their order is the mock-up's: the act first, then the two things you
+     might do instead of it. */
+  const headVerbs = `
+        ${_rvPosture ? '' : `<button data-redline-proxy="${sendTarget}" class="rl-btn rl-btn-go"${deadAttrs || ` title="${_nea(sendTip)}"`}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+          ${_ne(sendVerb)}<span class="rl-send-detail">${_ne(sendCounts)}</span></button>`}
+        ${!_rvPosture && (typeof canEdit !== 'function' || canEdit()) ? `<button type="button" data-rl-pbreview class="rl-pb-btn"${
+          deadAttrs || ` title="${_nea(i18t('ng_review_every_clause'))}"`}><span class="rl-word">${i18t('ng_review_vs_playbook')}</span><span class="rl-glyph" aria-hidden="true">&#10022;</span></button>` : ''}
+        ${''/* ALWAYS A WAY IN. This used to become "With John Wayne" the
+               moment anything went out — a button that had stopped being a
+               button, on the one control you need again the second you spot
+               something else worth escalating. Who is holding what belongs
+               on the cards, where the changes are; this row's job is to open
+               the door. Its word follows the state, because the reviewer and
+               the requester press the same place for opposite acts. */}
+        ${(typeof canEdit !== 'function' || canEdit()) && window.reviewState ? (() => {
+          const st = reviewState(c);
+          const label = st.phase === 'yours' ? i18t('rv_head_return') : i18t('rv_head_ask');
+          return `<button type="button" data-rl-review class="rl-pb-btn"
+            data-rv-phase="${_nea(st.phase)}"${deadAttrs || ` title="${_nea(i18t('rv_head_title'))}"`}>&#128100;<span class="rl-word"> ${_ne(label)}</span></button>`;
+        })() : ''}
+  `;
   host.innerHTML = `
     <!-- The reference is lg:h-full: the workbench fills the window and each of
          its three columns scrolls inside itself, rather than the page growing
@@ -6676,7 +6711,16 @@ function renderRedline(){
              what it did. */}
       ${''/* backToContract: this page has no tab row any more, so the head's
              arrow — and its title — are the only way off it. See roomHeadHtml. */}
-      ${(window.roomHeadHtml ? roomHeadHtml(c,{primary:false,previewing:side==='counterparty',backToContract:true}) : '')}
+      ${''/* ---- AND IF THERE IS NO HEAD, THE VERBS COME HOME ----
+             The head is built by js/views/contract.js, and this page can be
+             rendered without that file (some test stages do). Handing it the
+             verbs is safe only if their absence is caught: without this branch
+             a stage with no head would draw no Publish Round at all, which is
+             precisely what the old arrangement's comment warned against —
+             "a page's own primary act must not depend on another page's
+             module". The verbs are built here either way; only their placement
+             follows the head. */}
+      ${(window.roomHeadHtml ? roomHeadHtml(c,{primary:headVerbs,primaryFirst:true,previewing:side==='counterparty',backToContract:true}) : `<div class="room-acts">${headVerbs}</div>`)}
       ${''/* THE ROOM'S OWN TAB ROW, NOT A SECOND ONE. This page carried a
              hand-written [Docs][Negotiate] pair while the contract page
              carried its own — two switchers for one room, in two files, free
@@ -6727,43 +6771,25 @@ function renderRedline(){
              own controls and its bottom rule, and the fit ladder (rlFitTabRow)
              measures it. Only roomTabsHtml's call is gone. */}
       <div class="room-tabrow rl-tabrow">
-        ${''/* ---- THE WAY BACK TO THE OTHER NEGOTIATIONS ----
-               Owner-asked, 12 Aug 2026: once you are inside one, there is no
-               door to the LIST. The sidebar's Negotiations is not it — it
-               reopens the negotiation you are standing in, which is what the
-               sidebar is for and is not being changed.
+        ${''/* ---- THE ROW READS LEFT TO RIGHT: WHAT YOU ARE LOOKING AT,
+               THEN HOW, THEN THE WAY OUT (owner-asked 22 Aug 2026, off the
+               mock-up) ----
+               The three reading tabs led the row in the design and now lead it
+               here: they name what the paper below is showing, so they belong
+               at the start of the line the paper begins under. The view
+               controls follow, and the door to the other negotiations ends it.
 
-               FAR LEFT OF THE ROW, ahead of the spacer that pushes this page's
-               own controls right: a way OUT reads at the start of a line, and
-               the acts read at the end. It presses openNegotiations({list:true})
-               — the sidebar's own door with one argument, never a second route
-               to the list, because the list is not a view of its own.
-
-               THE COUNT IS negoLiveList's, which is the same reading the list's
-               heading prints, so the number on the button and the number above
-               the table cannot disagree. And it READS WITHOUT WRITING: negoIsLive
-               looks at c.changes raw. Asking negoChanges() would run negoInit()
-               and start a negotiation on every contract in the workspace —
-               the trap the sidebar count is already written around.
-
-               ITS WORD FOLDS one rung BEFORE the purple buttons' — on the half
-               step of the fit ladder (see .rl-tabrow-half; it used to fold with
-               them, until the ladder was graded on 13 Aug 2026). The icon and
-               the COUNT stay, the word stands down, the title carries the
-               sentence: a door reading "3" still says what is behind it, which
-               is why it can afford to lose its word before a verb can.
-               textContent never changes, which is what the suite reads. */
-        }${(() => {
-          const liveN = (typeof negoLiveList === 'function') ? negoLiveList().length : 0;
-          const tip = i18tn('ng_live_list_title', liveN, { n: liveN });
-          return `<button type="button" data-rl-live-list class="rl-livelist"
-            title="${_nea(tip)}" aria-label="${_nea(tip)}">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
-            ><path d="m15 18-6-6 6-6"/></svg
-            ><span class="rl-word">${i18t('ng_live_list')}</span
-            ><span class="rl-livelist-n">${liveN}</span></button>`;
-        })()}
+               THIS IS WHERE "All negotiations" MOVED TO, and it reverses the
+               12 Aug placement ("a way OUT reads at the start of a line"). That
+               was right while this row began with the acts; with the tabs
+               leading, a way out at the far left sits ahead of the thing it is
+               a way out OF. The mock-up puts it last and so does this. Its own
+               rules are untouched: same door, same count, same fold rung. */}
+        ${''/* ---- HOW THE CONTRACT READS, AS THREE WORDS ----
+               Not a filter and not a mode the record knows about: the same
+               clauses, drawn three ways. See rlReadMode for what each one
+               means and why only LIVE proposals are affected. */}
+        ${rlReadSegsHtml()}
         <span class="rl-tabrow-gap"></span>
         <section class="rl-head">
           <div class="rl-head-id">
@@ -6778,26 +6804,7 @@ function renderRedline(){
                    ThinkPad-width window (Young, 10 Aug 2026: "the highlight
                    buttons do not descend to a second line") the row compresses
                    to glyphs before it ever wraps — the title says the rest. */}
-            ${!_rvPosture && (typeof canEdit !== 'function' || canEdit()) ? `<button type="button" data-rl-pbreview class="rl-pb-btn"${
-              deadAttrs || ` title="${_nea(i18t('ng_review_every_clause'))}"`}><span class="rl-word">${i18t('ng_review_vs_playbook')}</span><span class="rl-glyph" aria-hidden="true">&#10022;</span></button>` : ''}
-            ${''/* ALWAYS A WAY IN. This used to become "With John Wayne" the
-                   moment anything went out — a button that had stopped being a
-                   button, on the one control you need again the second you spot
-                   something else worth escalating. Who is holding what belongs
-                   on the cards, where the changes are; this row's job is to open
-                   the door. Its word follows the state, because the reviewer and
-                   the requester press the same place for opposite acts. */}
-            ${(typeof canEdit !== 'function' || canEdit()) && window.reviewState ? (() => {
-              const st = reviewState(c);
-              const label = st.phase === 'yours' ? i18t('rv_head_return') : i18t('rv_head_ask');
-              return `<button type="button" data-rl-review class="rl-pb-btn"
-                data-rv-phase="${_nea(st.phase)}"${deadAttrs || ` title="${_nea(i18t('rv_head_title'))}"`}>&#128100;<span class="rl-word"> ${_ne(label)}</span></button>`;
-            })() : ''}
-            ${''/* ---- HOW THE CONTRACT READS, AS THREE WORDS ----
-                   Not a filter and not a mode the record knows about: the same
-                   clauses, drawn three ways. See rlReadMode for what each one
-                   means and why only LIVE proposals are affected. */}
-            ${rlReadSegsHtml()}
+
             ${''/* ---- THE WAY INTO THE WORK ----
                    A count of what is waiting on THIS reader, and a press that
                    goes to the first of them. The number is the same set the
@@ -6853,10 +6860,44 @@ function renderRedline(){
                    column used to draw its own copy beside the cards and this one
                    proxied onto it; the column's copy is gone and the engine's
                    #nego-send survives, hidden, as the control this presses. */}
-            ${_rvPosture ? '' : `<button data-redline-proxy="${sendTarget}" class="rl-btn rl-btn-go"${deadAttrs || ` title="${_nea(sendTip)}"`}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
-              ${_ne(sendVerb)}<span class="rl-send-detail">${_ne(sendCounts)}</span></button>`}
             ${closer}
+        ${''/* ---- THE WAY BACK TO THE OTHER NEGOTIATIONS ----
+               Owner-asked, 12 Aug 2026: once you are inside one, there is no
+               door to the LIST. The sidebar's Negotiations is not it — it
+               reopens the negotiation you are standing in, which is what the
+               sidebar is for and is not being changed.
+
+               FAR LEFT OF THE ROW, ahead of the spacer that pushes this page's
+               own controls right: a way OUT reads at the start of a line, and
+               the acts read at the end. It presses openNegotiations({list:true})
+               — the sidebar's own door with one argument, never a second route
+               to the list, because the list is not a view of its own.
+
+               THE COUNT IS negoLiveList's, which is the same reading the list's
+               heading prints, so the number on the button and the number above
+               the table cannot disagree. And it READS WITHOUT WRITING: negoIsLive
+               looks at c.changes raw. Asking negoChanges() would run negoInit()
+               and start a negotiation on every contract in the workspace —
+               the trap the sidebar count is already written around.
+
+               ITS WORD FOLDS one rung BEFORE the purple buttons' — on the half
+               step of the fit ladder (see .rl-tabrow-half; it used to fold with
+               them, until the ladder was graded on 13 Aug 2026). The icon and
+               the COUNT stay, the word stands down, the title carries the
+               sentence: a door reading "3" still says what is behind it, which
+               is why it can afford to lose its word before a verb can.
+               textContent never changes, which is what the suite reads. */
+        }${(() => {
+          const liveN = (typeof negoLiveList === 'function') ? negoLiveList().length : 0;
+          const tip = i18tn('ng_live_list_title', liveN, { n: liveN });
+          return `<button type="button" data-rl-live-list class="rl-livelist"
+            title="${_nea(tip)}" aria-label="${_nea(tip)}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+            ><path d="m15 18-6-6 6-6"/></svg
+            ><span class="rl-word">${i18t('ng_live_list')}</span
+            ><span class="rl-livelist-n">${liveN}</span></button>`;
+        })()}
           </div>
         </section>
       </div>

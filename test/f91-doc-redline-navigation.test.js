@@ -186,7 +186,10 @@ describe('F91 (4) — the COLUMN-HIDING focus mode stays gone from the workbench
     /* The whole strip, not just .rl-actions: the acts lead the row and the
        view toggle sits at its quiet end, so "what does this page offer" is the
        two together (10 Aug 2026). */
-    const labels = [...b.$('#view-redline').querySelectorAll('.rl-head button')]
+    /* Publish Round moved onto the head's own line with the title (22 Aug 2026,
+       the design mock-up). It is still BUILT by this page and handed to the
+       shared head as a string, so both rows are read here. */
+    const labels = [...b.$('#view-redline').querySelectorAll('.rl-head button, .room-acts button')]
       .map(x => x.textContent.trim()).join(' | ');
     for (const want of ['Internal', 'Counterparty', 'Publish Round'])
       assert.ok(labels.includes(want), `${want} must still be there — got ${labels}`);
@@ -333,8 +336,13 @@ describe('F91 (1,2) — the Doc page header and its sub-navigation', () => {
     assert.match(end, /id="ws-to-nego" class="ui-btn\$\{needs\?' ws-to-nego-due':''\}/);
     assert.doesNotMatch(end, /id="ws-to-nego" class="ui-btn ui-btn-primary/,
       'not a second filled act: the head above already spends the page\'s one fill');
-    assert.match(s, /id="ws-new" data-page-new class="ui-btn ui-btn-lg ui-btn-plain/,
-      'Draft new agreement is a plain verb in the head now, for the same reason');
+    /* UPDATED 22 Aug 2026 (owner-asked, off a marked screenshot: "put lines on
+       the buttons for share and draft new agreement"). It went plain in the
+       morning's pass and is bordered now — the level between, which is what
+       .ui-btn's base carries. The claim this line protects is unchanged: it is
+       not a second FILLED act. */
+    assert.match(s, /id="ws-new" data-page-new class="ui-btn ui-btn-lg room-new"/,
+      'Draft new agreement is an outlined verb, not a second fill');
     /* Only on the Document tab — but ALWAYS on it. */
     assert.match(end, /_wsTab!=='docs'/);
     /* ---- IT MUST NOT HIDE ITSELF ANY MORE ----

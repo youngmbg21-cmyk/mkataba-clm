@@ -112,7 +112,14 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('1 head sits at the right of the tab row, and the title card is gone',
     head.inRow && head.lastInRow && !head.hasShell,
     `inRow=${head.inRow} last=${head.lastInRow} shell=${head.hasShell}`);
-  check('1 Publish Round is the far-right control', head.lastAct === 'publish', head.lastAct);
+  /* ---- CLAIM REVERSED IN PLACE 22 Aug 2026 ----
+     Publish Round moved onto the head's own line beside the title, on the
+     owner's ask off the design mock-up, where it LEADS the verb group instead
+     of ending the control row. So this row's last control is the way OUT —
+     the line reads left to right as what you are looking at, then how, then
+     where else you could go. */
+  check('1 the way out of this negotiation ends the row',
+    /rl-livelist/.test(head.lastAct), head.lastAct);
   /* Whether it wrapped here depends on this fixture's controls, and that is
      the point — the row wraps on content, not on a guessed width. What must
      never happen at any width is the controls running off the right edge. */
@@ -644,7 +651,10 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       clippedAway: !!b.closest('.rl-sendslot-hidden'),
       headerCopies: document.querySelectorAll('.rl-head [data-rl-blast]').length,
       proxies: document.querySelectorAll('[data-redline-proxy="nego-send"]').length,
-      toolbarProxy: !!document.querySelector('.rl-tabrow [data-redline-proxy="nego-send"]'),
+      /* Publish Round moved to the head's line on 22 Aug 2026; it is the same
+         proxy onto the same postbox, so this looks for it in either place. */
+      toolbarProxy: !!document.querySelector(
+        '.room-acts [data-redline-proxy="nego-send"], .rl-tabrow [data-redline-proxy="nego-send"]'),
       bandProxy: !!document.querySelector('.rl-unsent [data-redline-proxy="nego-send"]'),
       unsent: negoUnsentAsks(CONTRACT, 'owner').length };
   });
@@ -660,9 +670,9 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('13 and every door onto it is a proxy — one transport, no header copy',
     !!blast && blast.headerCopies === 0 && blast.proxies >= 1,
     blast && `${blast.headerCopies} copies, ${blast.proxies} proxies`);
-  check('13 the toolbar is one of them, the unsent band the other',
+  check('13 the head\'s Publish Round is one of them, the unsent band the other',
     !!blast && blast.toolbarProxy && blast.bandProxy,
-    blast && `toolbar:${blast.toolbarProxy} band:${blast.bandProxy}`);
+    blast && `head:${blast.toolbarProxy} band:${blast.bandProxy}`);
   /* ---- AND EVERY DOOR ACTUALLY REACHES THE POSTBOX (15 Aug 2026) ----
      The proxy click was wired by scanning #content at a point BEFORE the panes
      are mounted, so a proxy in the page shell got its handler and one painted
@@ -684,7 +694,8 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     const count = ev => { n++; ev.stopImmediatePropagation(); ev.preventDefault(); };
     post.addEventListener('click', count, true);
     const band = document.querySelector('.rl-unsent [data-redline-proxy]');
-    const bar = document.querySelector('.rl-tabrow [data-redline-proxy]');
+    const bar = document.querySelector('.room-acts [data-redline-proxy]')
+      || document.querySelector('.rl-tabrow [data-redline-proxy]');
     if (band) band.click();
     const afterBand = n; n = 0;
     if (bar) bar.click();

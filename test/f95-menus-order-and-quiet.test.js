@@ -82,7 +82,11 @@ describe('F95 — Draft new agreement is the filled green button', () => {
        button is still in the head on every tab, and the shell's delegated
        handler still finds it by data-page-new. */
     const btn = head(contract()).html.match(/<button[^>]*id="ws-new"[^>]*>/)[0];
-    assert.match(btn, /ui-btn-plain/, 'a plain verb — the page spends its one fill elsewhere');
+    /* UPDATED 22 Aug 2026 — owner-asked for a line on this button ("put lines
+       on the buttons for share and draft new agreement"). It spent the morning
+       plain; it is outlined now, which is .ui-btn's own base level. The claim
+       is the same one either way: it is not a second FILLED act. */
+    assert.doesNotMatch(btn, /ui-btn-plain/, 'it carries a line — an outlined verb');
     assert.doesNotMatch(btn, /ui-btn-primary/, 'never a second filled act on one page');
     assert.match(btn, /data-page-new/, 'and the shell’s delegated handler still finds it');
   });

@@ -120,7 +120,7 @@ describe('f172 · the alerts arrive folded and are summoned at will', () => {
   test('the reading notice never folds — it stands beside the bell', async () => {
     const w = world();
     await mounted(w, 'news');
-    press(w, '.rl-head [data-rl-read="agreed"]');
+    press(w, '.rl-tabrow [data-rl-read="agreed"]');
     assert.ok($(w, '.rl-note-card'), 'a non-default reading always says so (f84\'s rule)');
     assert.ok($(w, '[data-rl-notices-open]'), 'while the alerts stay folded behind the bell');
     press(w, '.rl-note-card [data-rl-read="marks"]');

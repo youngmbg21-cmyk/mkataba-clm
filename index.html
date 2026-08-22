@@ -907,13 +907,40 @@
   .room-head{ display:flex; align-items:flex-start; gap:12px; flex:none; flex-wrap:wrap;
     padding:2px 2px 0; }
   .room-head .room-id{ flex:1; min-width:min(100%,240px); }
-  .room-head .room-name{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  /* ---- THE STATUS SHARES THE TITLE'S LINE, ALWAYS (owner-reported 22 Aug
+     2026: "the words drafting, in review etc should always be in the same line
+     as the name of the contract ... the feature should never take a second
+     line because that is space taken from the contract") ----
+     It was flex-wrap:wrap, so a long name pushed the status word onto a line of
+     its own and the head grew by ~26px — height the document below it pays for.
+     NOWRAP, and the TITLE is the thing that gives: it already carries
+     ellipsis, so the name shortens and the status keeps its place. min-width:0
+     on the h1 is what actually lets a flex item shrink below its content —
+     without it the ellipsis never engages and the row overflows instead. */
+  .room-head .room-name{ display:flex; align-items:center; gap:10px; flex-wrap:nowrap; min-width:0; }
+  .room-head .room-name > *{ flex:none; }
+  .room-head .room-name h1{ flex:0 1 auto; min-width:0; }
+  /* The workbench's one-row head: the reference leads the title, the round
+     follows the status. Both quiet — they are facts, and the title and the
+     status are what the row is for. */
+  .room-name-id{ font-size:15px; color:var(--color-neutral-600);
+    font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .room-name-id i{ font-style:normal; margin-left:7px; color:var(--color-neutral-400); }
+  .room-round{ font-size:13px; color:var(--color-neutral-600); white-space:nowrap; }
   .room-head h1{ font-family:var(--font-heading); font-weight:600; margin:0; line-height:1.2;
     font-size:clamp(19px, 15px + 0.45vw, 24px); min-width:0;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .room-head .room-sub{ font-size:11.5px; color:var(--color-neutral-600); margin-top:3px;
     overflow-wrap:anywhere; }
   .room-head .room-acts{ display:flex; align-items:center; gap:6px; flex:none; }
+  /* ---- THE MENU ENDS THE GROUP WHERE THE ACT LEADS IT ----
+     On the workbench the mock-up draws Publish round, then the alternatives,
+     then Share, then More — the act first and the overflow last. The head
+     builds its children in the contract page's order, so the two are
+     reconciled with `order` rather than by writing the group twice: one
+     arrangement in the markup, two readings of it. Everything else stays at
+     the default 0 and therefore keeps source order. */
+  .room-acts-lead > div:has(#ws-more){ order:3; }
   /* ---- THE BREADCRUMB (22 Aug 2026) ----
      #ws-back is still the button and still carries every route it carried as a
      34px arrow; only its clothes changed. It sits on its own line ABOVE the
@@ -936,8 +963,14 @@
      Label above value, divided by hairlines, four across. The same treatment
      Key terms uses one screen down, which is the point: a reader who learns to
      read facts here reads them the same way there. */
-  .room-facts{ flex-basis:100%; position:relative; margin-top:10px; padding-bottom:12px;
-    box-shadow:inset 0 -1px var(--color-divider); }
+  /* RULED TOP AND BOTTOM (owner-asked 22 Aug 2026, marked on a screenshot).
+     It carried only the lower rule, so the facts ran straight on from the
+     sub-line above with nothing to say they were a different kind of thing.
+     Two hairlines make it a band — which is what it is — and they are the same
+     divider, so it reads as one object rather than as a box. */
+  .room-facts{ flex-basis:100%; position:relative; margin-top:10px;
+    padding-top:12px; padding-bottom:12px;
+    box-shadow:inset 0 1px var(--color-divider), inset 0 -1px var(--color-divider); }
   .room-facets{ display:flex; flex-wrap:wrap; row-gap:10px; }
   .room-facet{ margin-right:28px; padding-right:28px;
     border-right:1px solid var(--color-divider); min-width:0; }
@@ -959,7 +992,10 @@
   .room-snap button:hover{ color:var(--color-text); border-color:var(--color-neutral-400); }
   /* Folded: the FACTS go, the title, status and acts do not move. */
   .room-facts.is-folded .room-facets{ display:none; }
-  .room-facts.is-folded{ padding-bottom:0; margin-top:6px; }
+  /* Folded, the band has no content, so it keeps ONE rule rather than two —
+     a 1px-tall box with a line top and bottom reads as a mistake. */
+  .room-facts.is-folded{ padding-top:0; padding-bottom:0; margin-top:6px;
+    box-shadow:inset 0 -1px var(--color-divider); }
   /* ---- THE TITLE AS A DOOR, ON THE NEGOTIATION SCREEN ONLY ----
      That page has no tab row, so the head's arrow is the only way off it — and
      the name beside the arrow is the biggest target on the screen, which is

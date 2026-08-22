@@ -51,6 +51,15 @@ const READ = () => {
   const vis = sel => [...row.querySelectorAll(sel)]
     .every(el => getComputedStyle(el).display !== 'none');
   const any = sel => row.querySelectorAll(sel).length > 0;
+  /* ---- THE CONTROLS NOW SIT ON TWO ROWS (22 Aug 2026) ----
+     Publish Round, the playbook pass and the review door moved onto the head's
+     own line beside the title, on the owner's ask off the design mock-up; this
+     row kept the ways of LOOKING and the way out. So "what can a reader still
+     see" has to be asked of the head as well, or every claim about the purple
+     buttons reads false because they are simply somewhere else. */
+  const headRow = document.querySelector('#ws-head .room-acts');
+  const visAny = sel => { const els = [...document.querySelectorAll(sel)];
+    return els.length > 0 && els.every(el => getComputedStyle(el).display !== 'none'); };
   return {
     rung: on('wrap') ? 'wrap' : on('tight') ? 'tight' : on('half') ? 'half'
       : on('lite') ? 'lite' : on('trim') ? 'trim' : 'full',
@@ -59,14 +68,29 @@ const READ = () => {
     gapW: Math.round(gap.getBoundingClientRect().width),
     /* One line means the controls sit on the same line as the way out. */
     oneLine: Math.abs(head.getBoundingClientRect().top - first.getBoundingClientRect().top) < 6,
-    purpleWords: any('.rl-pb-btn .rl-word') && vis('.rl-pb-btn .rl-word'),
+    purpleWords: visAny('.rl-pb-btn .rl-word'),
+    /* The head must never wrap its acts onto a second line: that height comes
+       straight off the contract, which is the rule the whole redesign turns on. */
+    headOneLine: !headRow ? null : (() => {
+      const tops = [...headRow.children].filter(c => c.getBoundingClientRect().height > 0)
+        .map(c => Math.round(c.getBoundingClientRect().top));
+      return tops.length ? (Math.max(...tops) - Math.min(...tops)) < 10 : true;
+    })(),
+    headFits: !headRow ? null :
+      Math.round(headRow.getBoundingClientRect().right
+        - document.querySelector('#ws-head').getBoundingClientRect().right) <= 2,
     livelistWord: any('.rl-livelist .rl-word') && vis('.rl-livelist .rl-word'),
-    sendDetail: any('.rl-send-detail') && vis('.rl-send-detail'),
+    /* Publish Round's counts moved to the head with the button. */
+    sendDetail: visAny('.rl-send-detail'),
     typeOut: any('.rl-type-out') && vis('.rl-type-out'),
     /* The count on the way-out door NEVER folds — it is what the door says. */
     livelistN: any('.rl-livelist-n') && vis('.rl-livelist-n'),
     /* textContent is untouched at every rung: this is a paint decision. */
-    text: row.textContent.replace(/\s+/g, ' ').trim(),
+    /* BOTH ROWS. Folding is a paint decision and textContent never changes at
+       any rung — the property half this suite relies on — but the words that
+       prove it are now split across the head and the row. */
+    text: ((headRow ? headRow.textContent : '') + ' ' + row.textContent)
+      .replace(/\s+/g, ' ').trim(),
   };
 };
 
@@ -102,7 +126,7 @@ const OPEN = async page => {
     let m = await page.evaluate(READ);
     check('at the reported width the row is one line', m && m.oneLine,
       m ? `${m.rowH}px tall, rung "${m.rung}"` : 'no row');
-    check('THE FAULT AS REPORTED: the purple buttons keep their words', m.purpleWords,
+    check('THE FAULT AS REPORTED: the purple buttons keep their words (now on the head)', m.purpleWords,
       `rung "${m.rung}", ${m.gapW}px of gap`);
     check('and so does the way out', m.livelistWord);
     /* RE-POINTED 21 Aug 2026. This demanded exactly 'trim'. It now settles on
@@ -121,8 +145,20 @@ const OPEN = async page => {
        way; the exact rung never could. */
     check('it settled no more expensively than the whitespace-only rung',
       m.rung === 'full' || m.rung === 'trim', m.rung);
-    check('so the empty gap is small, not the 402px in the photograph',
-      m.gapW < 120, `${m.gapW}px`);
+    /* ---- CLAIM REVERSED IN PLACE 22 Aug 2026 ----
+       It read "the empty gap is small, not the 402px in the photograph", from
+       the 13 Aug report where the whole row's words folded at once and left a
+       hole. THREE CONTROLS HAVE SINCE LEFT THIS ROW for the head's own line —
+       Publish Round, the playbook pass, the review door — so a large gap here
+       is now the DESIGN rather than a fault: the row carries the ways of
+       looking and the way out, and they do not fill a 1280px line.
+
+       WHAT REPLACES IT is the claim that actually protects the reader now: the
+       controls that moved must not have made the HEAD wrap, because a second
+       line up there is height taken straight off the contract — the rule the
+       owner stated when this arrangement was asked for. */
+    check('the head keeps its acts on one line', m.headOneLine !== false, String(m.headOneLine));
+    check('and they do not spill out of it', m.headFits !== false, String(m.headFits));
 
     /* ---- 2: THE WIDTHS CUSTOMERS ACTUALLY HAVE ----
        Every one of these must stay on ONE line — a second line comes straight
@@ -158,9 +194,17 @@ const OPEN = async page => {
     check('the counts go before the way-out word does',
       seen.every(r => r.rung === 'wrap' || r.livelistWord || !r.sendDetail),
       seen.map(r => `${r.w}:${r.sendDetail ? 'counts' : '-'}/${r.livelistWord ? 'word' : '-'}`).join(' '));
-    check('and the way-out word goes before the purple verbs do',
-      seen.every(r => r.rung === 'wrap' || r.purpleWords || !r.livelistWord),
-      seen.map(r => `${r.w}:${r.livelistWord ? 'word' : '-'}/${r.purpleWords ? 'verbs' : '-'}`).join(' '));
+    /* ---- REVERSED IN PLACE 22 Aug 2026 ---- the purple verbs are on the
+       head's line now and that line has no fold ladder, so an ordering between
+       them and this row's words is no longer a thing that can be true or
+       false. What is asserted instead is stronger: they keep their words at
+       EVERY width, because the head does not fold and must not need to. */
+    check('the purple verbs keep their words at every width',
+      seen.every(r => r.purpleWords),
+      seen.map(r => `${r.w}:${r.purpleWords ? 'verbs' : '-'}`).join(' '));
+    check('and the head never wraps its acts, at any width',
+      seen.every(r => r.headOneLine !== false),
+      seen.map(r => `${r.w}:${r.headOneLine ? '1' : '2'}`).join(' '));
     check('the door keeps its count at every rung — a bare arrow says nothing',
       seen.every(r => r.livelistN));
     check('and the row stays one line all the way down to the wrap',

@@ -172,21 +172,32 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
      The sidebar reopens the negotiation you are standing in — that is what it
      is for and it has not been touched. Inside a negotiation that left no way
      to the list at all, so the control row grew one at its far left. */
-  test('the negotiation page carries a "Live negotiations" door, far left of its row', () => {
+  test('the negotiation page carries a "Live negotiations" door, at the end of its row', () => {
     const b = world(['MK-1', 'MK-2']);
     theirAsk(b.byId('MK-1'), 'CHG-1');
     theirAsk(b.byId('MK-2'), 'CHG-2');
     b.win.openRedlineWorkbench('MK-1');
     const door = b.$('.redline-page [data-rl-live-list]');
     assert.ok(door, 'the door is drawn on the workbench');
+    /* ---- CLAIM REVERSED IN PLACE 22 Aug 2026 ----
+       It read "far left of its row — a way out reads at the start of a line",
+       which was right on 12 Aug, when this row BEGAN with the acts. The design
+       mock-up puts the three reading tabs at the start (they name what the
+       paper below is showing) and the way out at the END, so a door at the far
+       left would now sit ahead of the thing it is a way out of.
+
+       WHAT THE TEST STILL PINS is everything that made the door matter: it is
+       drawn on the workbench, it is on the control row, it says what it is, and
+       (below) its count is the list's own. Only its position moved. */
     const row = b.$('.redline-page .rl-tabrow');
-    assert.equal(door.parentElement, row, 'it is a child of the control row');
-    assert.equal(row.children[0], door, 'and the FIRST thing on it — a way out reads at the start');
-    /* The spacer still pushes this page's own controls right, and the head is
-       still the last thing on the row. */
+    assert.ok(row.contains(door), 'it is on the control row');
     const kids = [...row.children];
-    assert.ok(kids.indexOf(b.$('.redline-page .rl-tabrow-gap')) > 0);
+    assert.ok(kids.indexOf(b.$('.redline-page .rl-tabrow-gap')) > 0,
+      'the spacer still splits the row');
     assert.ok(kids[kids.length - 1].classList.contains('rl-head'));
+    const acts = [...b.$('.redline-page .rl-actions').children];
+    assert.equal(acts[acts.length - 1], door,
+      'and it ends the row — the last thing on the line is where else you could go');
     assert.match(door.textContent, /Live negotiations/);
   });
 

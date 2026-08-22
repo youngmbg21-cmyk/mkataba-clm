@@ -2417,8 +2417,26 @@ function wsNextAction(c){
        platform that reads the paper, and they are one press away; the ladder
        now stops here until they have run. Once they have, it moves on — this
        is a rung, not a gate, and Share is still in the head throughout. */
+    /* ---- THIS RUNG DRAWS NO BUTTON (owner-asked 22 Aug 2026: "delete the read
+       through & run the checks") ----
+       It is a rung with `noButton`, not a deleted rung, and the difference is
+       the whole point: the ladder still STOPS here, the status line still says
+       the wording has not been read, and everything downstream (the guide
+       sentence, the readiness reading) is untouched. What goes is the button.
+
+       IT WAS THE ONE ACT ON THE HEAD THAT DUPLICATED ITS OWN PAGE. The Checks
+       card sits four inches to the right offering the three runs by name —
+       Obligations, Playbook review, Copilot risk scan — each pinning its
+       findings to the clause it concerns. A filled button that says "run the
+       checks" and lands you on the card that runs them is a press spent
+       arriving somewhere you can already see. Same reasoning that took "View
+       full register" off the pipeline card.
+
+       The intent-to-sign branch below already used noButton for its own
+       reasons, so this is an established shape rather than a new one. */
     if(window.checkVerdict && !checkVerdict(c,'risk') && !checkVerdict(c,'playbook'))
       return { get label(){ return i18t('ct_read_through_checks'); }, ic:'scan', kind:'checks',
+        noButton:true,
         guide:'The facts are in. Read the wording and run the checks before it goes out.' };
     return { get label(){ return i18t('ct_send_for_review'); }, ic:'check2', guide:'Key terms are set and the checks have run — move it into review.', kind:'review' };
   }
@@ -4804,7 +4822,7 @@ function roomHeadHtml(c,opts={}){
      its own (Publish Round) and is a working surface, not a landing — offering
      to start a different agreement mid-round is noise. */
   const newBtn=(opts.primary===undefined&&may&&!(typeof PORTAL_MODE!=='undefined'&&PORTAL_MODE))
-    ? `<button id="ws-new" data-page-new class="ui-btn ui-btn-lg ui-btn-plain room-new">${icon('plus','w-3.5 h-3.5')} ${i18t('home_draft_new')}</button>`
+    ? `<button id="ws-new" data-page-new class="ui-btn ui-btn-lg room-new">${icon('plus','w-3.5 h-3.5')} ${i18t('home_draft_new')}</button>`
     : '';
   /* ---- THE WAY OUT OF A NEGOTIATION IS BACK TO ITS AGREEMENT ----
      The negotiation screen carries no room tabs (owner's call, 12 Aug 2026), so
@@ -4851,6 +4869,15 @@ function roomHeadHtml(c,opts={}){
                press twice and then give up on. A <button> so the keyboard and a
                screen reader get it too — .room-title-back keeps the h1's own
                type, so nothing about it looks different. */}
+        ${''/* THE ID LEADS THE TITLE ON THE WORKBENCH (owner-asked 22 Aug
+               2026, off the mock-up: "MK-363 · Warehousing and Transportation
+               Services Agreement"). That page's head is ONE compact row by the
+               design's own drawing, so the reference that would otherwise sit
+               in a sub-line below rides on the title's line instead — and the
+               sub-line goes, which is the height the contract gets back. On the
+               contract page the id is in the breadcrumb and this would say it
+               twice. */}
+        ${backC ? `<span class="room-name-id">${esc(c.id)}<i aria-hidden="true">&middot;</i></span>` : ''}
         ${backC
           ? `<h1><button type="button" id="ws-back-title" class="room-title-back" title="${esc(backTitle)}">${esc(c.name)}</button></h1>`
           : `<h1>${esc(c.name)}</h1>`}
@@ -4858,9 +4885,19 @@ function roomHeadHtml(c,opts={}){
                survives everywhere it is scanned in a column; a head row is read,
                not scanned, and a block of colour here competes with the one
                filled act the row is supposed to lead with. */}
+        ${''/* Round beside the status, workbench only — the mock-up's own
+               "In Review  Round 1". Quiet, because it is a fact rather than a
+               state: negoRound is guarded because a stage without the
+               negotiation model must not take the head down. */}
         <span id="ws-status" style="flex:none">${window.contractStatusTextHtml?contractStatusTextHtml(c)
           :(window.contractStatusChip?contractStatusChip(c)
           :(window.statusChip?statusChip(c.status):esc(c.status||'')))}</span>
+        ${''/* Round AFTER the status, workbench only — the mock-up's own
+               "In Review  Round 1": the state first, then the count of rounds
+               it has taken. negoRound is guarded because a stage without the
+               negotiation model must not take the head down. */}
+        ${(backC && c.negotiation && window.negoRound)
+          ? `<span class="room-round">${esc(i18t('ct_round_n',{n:negoRound(c)}))}</span>` : ''}
       </div>
       ${''/* ---- THE ROUND READS WITH THE OTHER FACTS ABOUT THE CONTRACT ----
              It used to be an amber chip at the end of the workbench's tab row,
@@ -4870,7 +4907,12 @@ function roomHeadHtml(c,opts={}){
              reads here — on every tab, from one line (Young, 10 Aug 2026).
              Drawn only where there IS a negotiation: "Round 1" over a draft
              nobody has redlined is a number about nothing. */}
-      <div class="room-sub">${F[c.folder]?esc(F[c.folder].name):''}${
+      ${''/* The sub-line is the CONTRACT page's. On the workbench the facts it
+             carried are either on the title line now (id, round) or on the
+             contract page a press away (stream, value, updated), and a second
+             grey line under a one-row head is the height the mock-up spends on
+             the agreement instead. */}
+      ${backC?'':`<div class="room-sub">${F[c.folder]?esc(F[c.folder].name):''}${
         c.archived?' · '+i18t('ct_archived_tag'):''}${
         (c.negotiation&&window.negoRound)?' · '+i18t('ct_round_n',{n:negoRound(c)}):''}${
         ''/* What the Negotiate tab's amber count used to say, now that the tab
@@ -4893,9 +4935,9 @@ function roomHeadHtml(c,opts={}){
               and friends. A bare call from a stage that has not loaded that
               file is a ReferenceError that takes the whole head down. */}${
         (typeof fmtMoney==='function'&&Number(c.value)>0)?' · '+esc(window.fmtMoneyOf?fmtMoneyOf(c):fmtMoney(c.value)):''}${
-        c.lastAction?' · '+i18t('ct_updated_on',{when:esc(c.lastAction)}):''}</div>
+        c.lastAction?' · '+i18t('ct_updated_on',{when:esc(c.lastAction)}):''}</div>`}
     </div>
-    <div class="room-acts">
+    <div class="room-acts${opts.primaryFirst?' room-acts-lead':''}">
       ${''/* ---- THE DESK, AND IT COSTS THE PAGE ONE CONTROL ----
              Who leads this negotiation is a FACT about the contract, like its
              value and its stream, so it sits with the other facts rather than
@@ -4991,8 +5033,16 @@ function roomHeadHtml(c,opts={}){
              (Document, Key terms, Signing, History) AND by renderRedline
              (Negotiate) — there is no second Share markup anywhere, so this is
              the whole of the change. See THE MAP's five-tabs section. */}
-      ${may?`<button id="ws-share" class="ui-btn ui-btn-lg ui-btn-plain" title="${esc(i18t('ct_share_with_cp'))}">${icon('share','w-3.5 h-3.5')} ${i18t('ct_share')}</button>`:''}
-      ${opts.primary===false?'':(typeof opts.primary==='string'?opts.primary:primary)}
+      ${''/* ---- WHERE THE ONE FILLED ACT SITS ----
+             The mock-up's third rule is that the primary LEADS the group, left
+             to right by importance, and its negotiation head draws exactly
+             that: Publish round, then the two things you might do instead, then
+             Share and More. The contract page keeps the order it was drawn with
+             (the owner's own screenshot of it asked only for the borders), so
+             this is a per-page choice rather than a rewrite of both. */}
+      ${opts.primaryFirst?(typeof opts.primary==='string'?opts.primary:primary):''}
+      ${may?`<button id="ws-share" class="ui-btn ui-btn-lg" title="${esc(i18t('ct_share_with_cp'))}">${icon('share','w-3.5 h-3.5')} ${i18t('ct_share')}</button>`:''}
+      ${opts.primaryFirst?'':(opts.primary===false?'':(typeof opts.primary==='string'?opts.primary:primary))}
       ${newBtn}
     </div>
     ${''/* ---- FOUR FACTS, EACH WITH ITS OWN LABEL (owner-asked 22 Aug 2026) ----
