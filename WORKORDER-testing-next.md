@@ -63,16 +63,31 @@ most worth having, and it is done.
 
 ## 2.1 The PDF and OCR chain has no real-world test at all
 
-> **STARTED 21 Aug 2026 — the reading half is measured, the scanning half is
-> not.** `test/pdf/` compares HaTi's reader against Mozilla's pdf.js over 34
-> real-world PDFs from twelve producers. It scored **54%**, with every
-> LibreOffice file returning an empty document; three faults were found and
-> fixed and it now scores **80%**. See CLAUDE.md, "THE PDF READER MEETS FILES
-> HaTi DID NOT MAKE", and test f233.
+> **BOTH HALVES ARE NOW MEASURED — 21 and 22 Aug 2026 — and what is left is
+> smaller and more specific than this item says.**
 >
-> **What that does NOT cover, and is the rest of this item:** none of those 34
-> files is a contract, and none is a photographed or faxed scan. The OCR route
-> has still never seen one. Everything below stands.
+> *The reading half.* `test/pdf/` compares HaTi's reader against Mozilla's
+> pdf.js over 34 real-world PDFs from twelve producers. It scored **54%**, with
+> every LibreOffice file returning an empty document; three faults were found
+> and fixed and it now scores **80%**. CLAUDE.md, "THE PDF READER MEETS FILES
+> HaTi DID NOT MAKE"; test f233.
+>
+> *The scanning half.* `test/scan/` puts a real scan through the real path — a
+> real Chromium, the real `ocrDocument`, the real pdf.js rasterizer and the real
+> Tesseract — against a page drawn from known text, so there is an answer key.
+> **Six defects**, the worst of them silent: a machine-read scan was filed by
+> the batch importer as *complete*, needing no human, because the honest
+> confidence cap produced `medium` and the review gate only tripped on `low` —
+> so a phone photo whose expiry date read three years wrong went into the
+> register with the renewal reminders pointing at it. CLAUDE.md, "THE SCANNING
+> PATH IS DRIVEN FOR THE FIRST TIME"; tests f234, f235, `scan-verify`.
+>
+> **What neither covers, and is what is left of this item:** nothing in either
+> corpus is a **contract**, and the scan pages are **drawn and degraded
+> synthetically** rather than photographed off real paper. The Copilot **vision
+> tier** is unmeasured because it needs a paid key. Everything below still
+> stands, and the paragraph about five poor scans is now the single most useful
+> thing anybody could hand over.
 
 **This is the largest gap in the product's testing, and the scorecard made it
 visible rather than closing it.**
@@ -100,8 +115,14 @@ repository's `data.zip`), which does not contain them. **Somebody has to fetch
 that bundle outside this environment** and put it somewhere reachable.
 
 **Also needed and not in CUAD:** five genuinely poor scans — photographed,
-skewed, faxed — to give the OCR route its first honest test. Selection rule 6
-of the original work order asked for exactly this and could not be satisfied.
+skewed, faxed — off real paper. Selection rule 6 of the original work order
+asked for exactly this and could not be satisfied. It still cannot: the scan
+harness had to DRAW its pages in order to have an answer key, and synthetic
+damage is a floor for the recogniser and a ceiling for realism — real paper
+carries texture, ink bleed, staple shadows and dust that no canvas filter
+produces. **Five photographs of five real contracts is a ten-minute job for
+somebody with the paper, and it is the single highest-value thing left on this
+list.**
 
 **Done looks like:** a score for the PDF reader with the same two-figure
 honesty as the AI one, and a named list of what it cannot read.

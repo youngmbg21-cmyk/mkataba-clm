@@ -69,6 +69,13 @@ const MODULES = [
    needs something living in that file — paper execution, for one — asks for it
    and accepts the heavier stage; every other test keeps the light one. */
 const CONTRACT_VIEW = 'js/views/contract.js';
+/* js/ocr.js — the scanning path (buildWorld({ocr:true})). It sits beside the
+   contract view rather than under it: it decides whether a document is a scan,
+   drives the two recognisers, and states where a document's words came from.
+   It is loaded on request because nothing that does not scan should carry it,
+   and AFTER the contract view where both are asked for, because ocrDocument
+   calls dataUrlBytes — which js/views/contract.js declares and publishes. */
+const OCR = 'js/ocr.js';
 /* The Negotiation tab renderer. Loaded on request like the contract view, and
    independently of it: a test can assert on the three panes without dragging in
    the whole workspace screen (buildWorld({negotiationView:true})), which is
@@ -316,6 +323,7 @@ function buildWorld(opts = {}) {
   const files = [...MODULES];
   if (opts.negotiationView) files.push(...NEGOTIATION_VIEW);
   if (opts.contractView) files.push(CONTRACT_VIEW);
+  if (opts.ocr) files.push(OCR);
   if (opts.playbook) files.push(PLAYBOOK);
   if (opts.homeView) files.push(HOME_VIEW);
   /* The family model and the obligations record (buildWorld({family:true}) /

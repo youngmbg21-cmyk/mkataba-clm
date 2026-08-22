@@ -3931,11 +3931,28 @@ app.post('/api/ai/ocr', auth, rlAiOcr, aiFeature('ocr'), aiBudgetGuard, async (r
     const block = (resp.data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Copilot returned no transcription' });
     const out = block.input || {};
+    const text = typeof out.text === 'string' ? out.text : '';
+    /* A PAGE THAT RAN OUT OF ROOM IS NOT A BLANK PAGE, and a page cut in half
+       is not a page. This is f231's finding on a route nobody had thought to
+       apply it to, and it is worse here than it was there: an obligations
+       list that comes back empty is visibly wrong, whereas half a
+       transcription reads exactly like a whole one. It becomes the
+       contract's WORDING — so the bottom of the page simply is not in the
+       record, and nothing downstream can tell.
+
+       Blank is a legitimate answer (a separator sheet mid-scan) and the
+       prompt asks for it, which is precisely why it must not be what a
+       failure looks like. Empty AND cut short is refused; a partial page is
+       KEPT and says so, because degrading to partial beats degrading to
+       silence — the customer's own words for it. */
+    if (resp.truncated && !text.trim())
+      return res.status(502).json({ error: 'Copilot ran out of room before it could transcribe this page. Try again, or lower the render quality.' });
     res.json({
-      text: typeof out.text === 'string' ? out.text : '',
+      text,
       illegible: Number(out.illegible || 0),
       confidence: ['high', 'medium', 'low'].includes(out.confidence) ? out.confidence : 'medium',
       pages: list.length, source: 'ocr-ai',
+      ...(resp.truncated ? { truncated: true } : {}),
       cost: resp.spend ? resp.spend.cost : 0,
       ...aiNotice(req, resp),
     });

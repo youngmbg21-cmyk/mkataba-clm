@@ -379,6 +379,30 @@ async function migExtract(text, seed){
 /* Does the extraction need a human? Any critical field missing or low-conf. */
 function migNeedsReview(meta, c){
   const conf=(meta&&meta.confidence)||{};
+  /* A MACHINE-READ SCAN ALWAYS NEEDS A HUMAN, ONCE — and until 22 Aug 2026 it
+     did not, which made the whole honesty chapter of DESIGN-ocr.md a label
+     with nothing behind it.
+
+     The chain: OCR reads a date, the extractor is confident about the text it
+     was given and marks it `high`, capConfidenceForOcr honestly knocks every
+     high down to `medium` — and this gate only ever tripped on `low`. So a
+     scan came through the batch marked "complete", nobody was asked to look,
+     and the register carried a date no person had ever seen.
+
+     MEASURED, not argued (test/scan/measure.js, the first time a scan was put
+     through this product): on a page whose word recall was 100%, a 100 DPI
+     scan read "28 February 2028" as "26 February 2028", and a phone photo of
+     the same page read it as "28 February 2025". Three years out, on the
+     field the renewal reminders fire on, in a reading that looks perfect.
+     DESIGN-ocr.md predicted exactly this in words — "3 for 8, 2026 for 2028"
+     — and then the gate let it past.
+
+     ASKED OF THE CONTRACT, NOT OF meta._ocrCapped: the provenance is durable
+     and the underscore is transport, so a later recompute (migRerunAi) still
+     gets the right answer. It says a human must look ONCE, not for ever —
+     applyReviewedMeta clears the flag the moment somebody confirms. */
+  const src=(c&&c.upload&&c.upload.textSource)||(c&&c.migration&&c.migration.textSource)||'';
+  if(isOcrText(src)) return true;
   return MIG_CRITICAL.some(k=>{
     const v=meta?meta[k]:null;
     if(k==='value' && c.valueType==='none') return false;
@@ -434,6 +458,12 @@ async function migBuildAndSave(ctx){
     // `no-text` may only fire AFTER OCR has been attempted and failed
     blocked: readable?null:'no-text',
     textSource, ocrPages: ocr?ocr.pages:0, ocrSkippedPages: ocr?ocr.skippedPages:0,
+    /* ocrTotalPages is what the "pages N-M were not read" sentence counts back
+       from, and this record is read by that sentence (the queue row's hover)
+       whenever there is no upload beside it. Without it the range is computed
+       off what came back, which is the fault this pass fixed in one place and
+       would otherwise have left standing in the other. */
+    ocrTotalPages: ocr?ocr.totalPages:0, ocrPartialPages: ocr?ocr.partialPages:0,
     manifest: !!manifest, executedOutside,
     aiSource:(meta&&meta._source)||'none' };
   if(manifest) manifest.matchedId=c.id;
@@ -614,7 +644,8 @@ async function migProcessFiles(fileList, opts={}){
       const upload={ fileName:file.name, mime, size:file.size, fileHash, uploadedAt:nowISO(),
         uploadedBy:u?.name||'System', extractedText:extractedText||'', textChars:(extractedText||'').length, dataUrl,
         textSource, ocrPages: ocr?ocr.pages:0, ocrSkippedPages: ocr?ocr.skippedPages:0,
-        ocrTotalPages: ocr?ocr.totalPages:0, ocrIllegible: ocr?ocr.illegible:0 };
+        ocrTotalPages: ocr?ocr.totalPages:0, ocrIllegible: ocr?ocr.illegible:0,
+        ocrPartialPages: ocr?ocr.partialPages:0 };
       // Near-duplicate signals, computed once and stored on the contract.
       if(readable) await attachDupSignals(upload, extractedText);
       // Then the three fuzzy checks. A flag does NOT silently skip the file —
@@ -642,6 +673,13 @@ async function migProcessFiles(fileList, opts={}){
     }catch(e){ errors++; step('error', e.message||'failed'); }
   }
   M.running=false;
+  /* THE WORKER SURVIVES THE FILES AND NOT THE BATCH. Here — and only here —
+     ocrRelease is deliberately NOT called per document: the offline recogniser
+     reloads its language data on every worker, so terminating it between the
+     files of one batch would pay that cost forty times. It is released once
+     the batch is over, which the upload and library paths reach immediately
+     because one file is the whole run. */
+  try{ await ocrRelease(); }catch(e){}
   await migLoadAiState();
   if(API_MODE()){ try{ await flushSaves(); }catch(e){} }
   updateSidebarCounts();

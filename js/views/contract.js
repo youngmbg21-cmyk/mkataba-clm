@@ -1329,12 +1329,18 @@ async function runUploadPipeline(file){
     });
     if(ocr.text){ extractedText=ocr.text.slice(0,EXTRACT_MAX_CHARS); textSource=ocr.textSource; }
     else if(ocr.error) toast(i18t('ct_could_not_read_scan')+ocr.error,'err');
+    /* THE OFFLINE RECOGNISER HOLDS TENS OF MEGABYTES and ocrRelease existed to
+       hand them back, with NOT ONE CALLER anywhere in the product — the
+       rlPaperFootHtml family again, in its other direction: not a function
+       nobody could reach, a function nobody reached for. One upload is one
+       document, so the worker's work is finished here. */
+    try{ await ocrRelease(); }catch(e){}
   }
   const u=currentUser();
   const upload={ fileName:file.name, mime, size:file.size, fileHash, uploadedAt:nowISO(), uploadedBy:u?.name||'System',
     docKind:word||null, extractedText, textChars:extractedText.length, dataUrl, textSource,
     ocrPages: ocr?ocr.pages:0, ocrSkippedPages: ocr?ocr.skippedPages:0, ocrTotalPages: ocr?ocr.totalPages:0,
-    ocrIllegible: ocr?ocr.illegible:0 };
+    ocrIllegible: ocr?ocr.illegible:0, ocrPartialPages: ocr?ocr.partialPages:0 };
   // E1, flipped (WO N2): the machine reads BEFORE the person types. No seed —
   // there is nothing typed yet to seed with; the person corrects on the card.
   let meta=null;
