@@ -63,6 +63,17 @@ most worth having, and it is done.
 
 ## 2.1 The PDF and OCR chain has no real-world test at all
 
+> **STARTED 21 Aug 2026 — the reading half is measured, the scanning half is
+> not.** `test/pdf/` compares HaTi's reader against Mozilla's pdf.js over 34
+> real-world PDFs from twelve producers. It scored **54%**, with every
+> LibreOffice file returning an empty document; three faults were found and
+> fixed and it now scores **80%**. See CLAUDE.md, "THE PDF READER MEETS FILES
+> HaTi DID NOT MAKE", and test f233.
+>
+> **What that does NOT cover, and is the rest of this item:** none of those 34
+> files is a contract, and none is a photographed or faxed scan. The OCR route
+> has still never seen one. Everything below stands.
+
 **This is the largest gap in the product's testing, and the scorecard made it
 visible rather than closing it.**
 

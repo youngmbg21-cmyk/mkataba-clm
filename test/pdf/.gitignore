@@ -1,0 +1,7 @@
+# Fetched, never committed: somebody else's PDFs, a measuring instrument, and
+# the two readings they produce.
+corpus/
+node_modules/
+package-lock.json
+pdfjs.json
+hati.json
