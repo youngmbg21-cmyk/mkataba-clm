@@ -639,6 +639,27 @@ Redesigned to the mock-up, and the region was ringed in a screenshot: everything
 - **NOT DRAWN ON THE WORKBENCH** — that page's head is one compact row by the mock-up's own drawing, and the facts a negotiator needs (round, whose move) are already on its own row.
 - **AND THE FACT ROW SITS AFTER THE ACTS IN SOURCE ORDER**, which is load-bearing: `.room-head` wraps, and a full-width item placed before the acts pushes them onto a line of their own. Caught by photographing it.
 
+## A CSS RULE THAT LOSES ON SPECIFICITY IS A FEATURE THAT WAS NEVER BUILT (22 Aug 2026)
+
+**The visual twin of the always-false guard, and it had been on screen — or rather not on screen — for as long as the change cards have existed.**
+
+`.rl-rej` and `.rl-edit` (Reject and Edit on every change card) each declared `border:1px solid …`, and this rulebook, the stylesheet's own comment and a test all described the result: *"the no and the alternative recede to an outline"*. **MEASURED: both computed `border-width: 0px`.** `.redline-page .rl-card-verbs button` sets `border:0` and scores (0,2,1); a bare `.redline-page .rl-rej` scores (0,2,0) and loses. Both verbs were bare coloured words beside a filled Accept.
+
+- **NOTHING CATCHES IT.** No error, no warning, and the rule sits in the file looking correct. **f89 asserted that very outline by READING the declaration** and passed on the broken state throughout — a source-reading test cannot know another rule beat the one it found.
+- **THE NET IS A COMPUTED-STYLE CHECK IN A REAL BROWSER** — redline-verify section 6 reads `getComputedStyle().borderTopWidth`. That is the only place the question can be answered; jsdom resolves no cascade at all. f89 keeps the claim about what the stylesheet SAYS, redline-verify the claim about what DRAWS, and the two are now written to name each other.
+- **THE FIX IS SCOPE, NOT WEIGHT**: `.redline-page .rl-card-verbs .rl-rej`. Never `!important` — that wins the fight and hides the next one.
+- **AND THE INK IS THE VERB'S OWN**, never a neutral: red for the refusal, accent for the alternative. The 17 Aug lesson, and the same rule `.ui-btn` took the same morning.
+
+**WHEN A RULE LOOKS RIGHT AND THE SCREEN LOOKS WRONG, MEASURE THE COMPUTED VALUE BEFORE EDITING THE DECLARATION.** The declaration is usually fine; something above it is winning.
+
+## THE TRACKED-CHANGES COLUMN TOOK THE MOCK-UP'S SIZES (owner-asked 22 Aug 2026)
+
+The structure was already the mock-up's — a caption and All/Mine/Theirs with count markers, an amber unsent band, cards carrying id, status, Open, clause, wording and verbs. What differed was scale, and it ran the wrong way:
+
+- **The card's wording preview was 12px** — the smallest text on a card whose entire job is showing wording. 13.5 now, ink neutral-700 rather than 600.
+- **The filter tabs** 12.5/600 → 13.5/400 (live stays 700, which is what marks it) and their **counts 10.5 → 12**, the mock-up's own figure. Render B's structure and its contrast reasoning (accent-700 fill, neutral-500 resting ink) are untouched — only the sizes moved.
+- **THE CAUTION STRIP STOPPED SHOUTING.** "Entered by X on behalf of Y" was 600-weight amber across two lines, which made a provenance note the loudest thing on the card. Regular weight: the amber rule and tint are what carry a caution, and bolding every word as well is the third signal for one fact this file keeps warning about. The claim and the colour are unchanged.
+
 ## THE SHELL'S SYMBOLS ARE ONE SET, DEFINED ONCE (owner-asked 22 Aug 2026)
 
 Twenty-seven line symbols from the design mock-up, in a `<defs>` sprite at the top of index.html's body, referenced with `<use href="#i-…">`. One rule for all of them: a 16x16 box, a hairline stroke, `currentColor`, no fills except where a mark is genuinely solid (the Copilot spark, the overflow dots, the settings handles).
