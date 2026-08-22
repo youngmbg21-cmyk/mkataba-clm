@@ -2236,9 +2236,16 @@ function redlineLayoutCss(){
      words twice over. */
   /* The on-behalf stamp reads as a CAUTION, not as decoration: it is the line
      that stops a card being taken as something the other side sent. */
+  /* REGULAR WEIGHT, 22 Aug 2026. It was 600, and on a two-line name ("Entered
+     by Wanjiru K. on behalf of Amina Wanjiru · Nordfrakt Logistik AB") that
+     made a provenance note the loudest thing on the card — louder than the
+     WORDING the card exists to show. The caution is carried by the amber rule
+     and the tint, which is what a caution is for; bolding every word of the
+     sentence as well is the third signal for one fact this file keeps warning
+     about. The claim it makes is unchanged and so is its colour. */
   .redline-page .rl-card-behalf{margin-top:6px;border-left:2px solid var(--st-amber-dot);
     background:var(--st-amber-bg);border-radius:0;padding:5px 9px;
-    font-size:11.5px;font-weight:600;line-height:1.5;color:var(--st-amber-fg);
+    font-size:12px;font-weight:400;line-height:1.5;color:var(--st-amber-fg);
     overflow-wrap:anywhere}
   .redline-page .rl-card-why{margin-top:6px;border-left:2px solid var(--color-accent);
     background:color-mix(in srgb,var(--color-accent) 6%,transparent);border-radius:0;
@@ -2256,7 +2263,7 @@ function redlineLayoutCss(){
      nothing shrinks to a one-line receipt instead of spending a card of
      height on finished business. See the receipt branch in
      redlineChangeCardsHtml for which is which. */
-  .redline-page .rl-card-diff{font-size:12px;line-height:1.6;color:var(--color-neutral-600);
+  .redline-page .rl-card-diff{font-size:13.5px;line-height:1.6;color:var(--color-neutral-700);
     display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:7px}
   .redline-page .rl-receipt{padding:7px 11px}
   .redline-page .rl-receipt-line{display:flex;align-items:center;gap:8px;min-width:0}
@@ -2318,9 +2325,40 @@ function redlineLayoutCss(){
      looks the same from a foot away. */
   .redline-page .rl-acc,.redline-page .rl-send{background:var(--color-accent-700);color:#fff;font-weight:700}
   .redline-page .rl-acc:hover,.redline-page .rl-send:hover{background:var(--color-accent-800)}
-  .redline-page .rl-rej{background:none;border:1px solid var(--color-divider);color:var(--danger-hover)}
-  .redline-page .rl-rej:hover{border-color:var(--danger-hover)}
-  .redline-page .rl-edit{background:none;border:1px solid var(--color-divider);color:var(--color-neutral-700)}
+  /* ---- AND THE OUTLINE IS THE VERB'S OWN INK, NOT A NEUTRAL (22 Aug 2026) ----
+     Both of these were bordered in --color-divider, which is a hairline meant
+     for separating rows: at 11px beside a filled Accept it disappeared, and the
+     two verbs read as bare words rather than as the buttons they are. That is
+     the 17 Aug lesson exactly — a neutral-grey control reads as furniture — and
+     it is the rule the whole platform's .ui-btn took on this morning: an
+     ordinary verb wears a border in its OWN colour.
+
+     THE COLOUR CODE IS UNCHANGED and is still deliberate: red for the refusal,
+     accent for the alternative. What changed is that you can now see where each
+     one ends. */
+  /* ---- .rl-card-verbs .rl-rej, NOT .rl-rej — AND THAT IS THE WHOLE FIX ----
+     MEASURED 22 Aug 2026: these two computed a border-width of 0px, and had
+     done since they were written. ".redline-page .rl-card-verbs button" sets
+     border:0 and scores (0,2,1); a bare ".redline-page .rl-rej" scores
+     (0,2,0) and loses, so the outline this file's own comment describes ("the
+     no and the alternative recede to an outline") has never once drawn. Both
+     verbs have been bare coloured words beside a filled Accept.
+
+     Nothing catches this: no error, no warning, and the rule is right there in
+     the stylesheet looking correct. It is the CSS twin of the always-false
+     guard — a thing that reads as implemented and is not.
+
+     The ink is each verb's OWN, never a neutral (the 17 Aug lesson, and the
+     rule the platform's .ui-btn took this morning): red for the refusal,
+     accent for the alternative. */
+  .redline-page .rl-card-verbs .rl-rej{background:none;
+    border:1px solid color-mix(in srgb,var(--danger-hover) 45%,transparent);
+    color:var(--danger-hover)}
+  .redline-page .rl-card-verbs .rl-rej:hover{border-color:var(--danger-hover)}
+  .redline-page .rl-card-verbs .rl-edit{background:none;
+    border:1px solid color-mix(in srgb,var(--accent-solid) 40%,transparent);
+    color:var(--color-accent-700)}
+  .redline-page .rl-card-verbs .rl-edit:hover{border-color:var(--accent-solid)}
   .redline-page .rl-edit:hover{border-color:var(--color-neutral-400);color:var(--color-text)}
   html.dark .redline-page .rl-rej{color:#fda4af}
   html.dark .redline-page .rl-edit{color:var(--color-neutral-700)}
@@ -2483,7 +2521,7 @@ function redlineLayoutCss(){
     background:none;border:0;border-radius:0}
   .redline-page .rl-fseg{flex:none;min-width:0;display:flex;align-items:center;
     gap:7px;border:0;border-bottom:2px solid transparent;background:none;font:inherit;
-    font-size:12.5px;font-weight:600;color:var(--color-neutral-500);padding:0 0 9px;
+    font-size:13.5px;font-weight:400;color:var(--color-neutral-500);padding:0 0 9px;
     margin-bottom:-1px;border-radius:0;cursor:pointer;white-space:nowrap;
     transition:color .12s,background .12s,border-color .12s}
   .redline-page .rl-fseg:hover{color:var(--color-text)}
@@ -2493,7 +2531,7 @@ function redlineLayoutCss(){
     outline-offset:2px;border-radius:0}
   /* The count rides INSIDE its own tab: it is the thing that stops a filter
      hiding a change quietly, so it must be readable on the resting face too. */
-  .redline-page .rl-fseg-n{flex:none;font-family:var(--font-mono);font-size:10.5px;font-weight:700;
+  .redline-page .rl-fseg-n{flex:none;font-family:var(--font-mono);font-size:12px;font-weight:600;
     font-variant-numeric:tabular-nums;line-height:1.35;padding:1px 6px;
     color:var(--color-neutral-500);background:var(--color-surface);
     border:1px solid var(--color-divider);border-radius:0}

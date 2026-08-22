@@ -1019,6 +1019,36 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     JSON.stringify({ fnGone: tagGone.fnGone, noteBtns: tagGone.noteBtns }));
   check('5 and the change can still be talked about', tagGone.starter);
 
+  /* ---- 6. THE CARD'S VERBS ARE VISIBLE BUTTONS, NOT COLOURED WORDS ----
+     A CSS rule that loses on specificity is the visual twin of a guard that is
+     always false: no error, no warning, and the stylesheet reads as though the
+     thing were implemented. MEASURED 22 Aug 2026: ".redline-page
+     .rl-card-verbs button" sets border:0 and scores (0,2,1), so the bare
+     ".redline-page .rl-rej" outline this file's own comment describes — "the no
+     and the alternative recede to an outline" — had never once drawn. Reject
+     and Edit were bare coloured words beside a filled Accept for as long as
+     they had existed.
+
+     This is a COMPUTED-STYLE check on purpose. The rule is present and correct
+     in the source, so a source-reading test passes on the broken state; only
+     the browser can say which declaration won. */
+  const verbs = await page.evaluate(() => {
+    const g = (sel) => { const e = document.querySelector(sel); if (!e) return null;
+      const cs = getComputedStyle(e);
+      return { w: parseFloat(cs.borderTopWidth) || 0, col: cs.borderTopColor,
+               bg: cs.backgroundColor }; };
+    return { acc: g('.rl-card-verbs .rl-acc'), rej: g('.rl-card-verbs .rl-rej'),
+             edit: g('.rl-card-verbs .rl-edit') };
+  });
+  check('6 Accept is the card\'s one filled act',
+    !!verbs.acc && verbs.acc.bg !== 'rgba(0, 0, 0, 0)', JSON.stringify(verbs.acc));
+  for (const [k, label] of [['rej', 'Reject'], ['edit', 'Edit']]) {
+    const v = verbs[k];
+    check(`6 ${label} draws a real border, in its own ink`,
+      !!v && v.w >= 1 && v.bg === 'rgba(0, 0, 0, 0)' && !/rgba?\(0, 0, 0, 0\)/.test(v.col),
+      JSON.stringify(v));
+  }
+
   await browser.close();
   srv.close();
   const failed = results.filter(r => !r.pass);

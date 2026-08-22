@@ -889,14 +889,27 @@ describe('F89 (11,12) — the card verbs, their colours, and where Edit lands', 
     const p = await page();
     assert.match(p.rule('.redline-page .rl-acc,.redline-page .rl-send') || '', /background:var\(--color-accent-700\)/);
     assert.match(p.rule('.redline-page .rl-acc,.redline-page .rl-send') || '', /color:#fff/);
-    assert.match(p.rule('.redline-page .rl-rej') || '', /background:none/);
+    /* ---- SELECTORS RE-POINTED 22 Aug 2026, AND THE REASON MATTERS ----
+       These two rules were written as a bare ".redline-page .rl-rej", which
+       scores (0,2,0) — and ".redline-page .rl-card-verbs button" sets border:0
+       at (0,2,1). So the OUTLINE this very test asserts had never once drawn:
+       the rule was in the stylesheet, this test read it and passed, and on
+       screen both verbs were bare coloured words. They are scoped under
+       .rl-card-verbs now so they actually win.
+
+       A SOURCE-READING TEST CANNOT SEE THIS CLASS OF FAULT — it read the
+       declaration and had no way to know another rule beat it. redline-verify
+       section 6 measures the COMPUTED border in a real browser, which is the
+       only place the question can be answered. This test keeps the claim about
+       what the stylesheet SAYS; that one keeps the claim about what draws. */
+    assert.match(p.rule('.redline-page .rl-card-verbs .rl-rej') || '', /background:none/);
     /* AND THE SAME AGAIN FOR THE NO, 21 Aug 2026. #b91c1c is --danger-hover and
        is now named that way for exactly the reason the paragraph above gives.
        The colour did not move: measured across 20 screens in both themes, the
        census is identical. */
-    assert.match(p.rule('.redline-page .rl-rej') || '', /color:var\(--danger-hover\)/);
-    assert.match(p.rule('.redline-page .rl-edit') || '', /background:none/);
-    assert.match(p.rule('.redline-page .rl-edit') || '', /border:1px solid/);
+    assert.match(p.rule('.redline-page .rl-card-verbs .rl-rej') || '', /color:var\(--danger-hover\)/);
+    assert.match(p.rule('.redline-page .rl-card-verbs .rl-edit') || '', /background:none/);
+    assert.match(p.rule('.redline-page .rl-card-verbs .rl-edit') || '', /border:1px solid/);
   });
 
   test('the buttons on a live card carry those classes', async () => {
