@@ -167,8 +167,8 @@ const WK_CSS=`
   .left li{margin:4px 0}
   .more{margin-top:9px;font-size:13px;color:#64748b}
   .extra h2{color:#0f766e}
-  table{width:100%;border-collapse:collapse;font-size:13.5px}
-  th{text-align:left;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:#7c8794;padding:5px 7px;border-bottom:1px solid #e3e8ee}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th{text-align:left;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:#7c8794;padding:5px 7px;border-bottom:1px solid #e3e8ee}
   td{padding:7px;border-bottom:1px solid #eef1f5}
   td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
   footer{margin-top:20px;color:#7c8794;font-size:12px;line-height:1.65}
@@ -193,7 +193,7 @@ function buildWeeklyHtml(d){
   /* ---- 2 ---- */
   const soon=d.landing.filter(x=>x.d<=WK_HORIZON), rest=d.landing.filter(x=>x.d>WK_HORIZON);
   const rowOf=x=>`<div class="row"><span class="when">${x.d===0?T('wk_today'):i18tn('wk_in_days',x.d,{n:x.d})}</span>
-    <span class="what">${_wkEsc(x.c.name)}<br><span style="color:#7c8794;font-size:12.5px">${_wkEsc(x.c.counterparty||'')} · ${dateOf(x.e)}</span></span>
+    <span class="what">${_wkEsc(x.c.name)}<br><span style="color:#7c8794;font-size:13px">${_wkEsc(x.c.counterparty||'')} · ${dateOf(x.e)}</span></span>
     <span class="val">${d.canSee?_wkEsc(money(d.val(x.c))):''}</span></div>`;
   const s2=`<div class="slot"><h2>${T('wk_s2')}</h2>${
     d.landing.length

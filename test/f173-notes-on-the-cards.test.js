@@ -182,8 +182,13 @@ describe('f173 · the column head is a caption and a count', () => {
        measured, identical ink and identical width to a real 700. The claim is
        unchanged (the caption keeps its bold label type); only the source now
        asks for the weight it was always getting. */
-    assert.ok(/\.rl-idx-k\{[^}]*font-size:10\.5px;font-weight:700;letter-spacing:\.12em/.test(css),
-      'the caption keeps its label type, one size up');
+    /* SIZES ROUNDED 22 Aug 2026: every font-size in the product moved off the
+       half pixel onto a whole one (10.5 -> 11), because a fractional size puts
+       the glyph stems between device pixels and renders soft. The RELATION
+       these two lines assert is the claim and it is unchanged — see the base
+       rule in index.html for the whole sweep. */
+    assert.ok(/\.rl-idx-k\{[^}]*font-size:11px;font-weight:700;letter-spacing:\.12em/.test(css),
+      'the caption keeps its label type, on a whole pixel');
     const n = /\.rl-idx-n\{([^}]*)\}/.exec(css)[1];
     assert.match(n, /font-family:var\(--font-mono\)/,
       'and the count is mono — it is the one part of the head that is a number');

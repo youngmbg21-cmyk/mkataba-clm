@@ -63,8 +63,8 @@ function ikRowHtml(r, opts={}){
   if(isMine&&IK_LIVE.includes(r.status)) acts.push(`<button class="ui-btn" data-ik-withdraw="${esc(r.id)}" style="font-size:11px;padding:4px 10px">${i18t('ik_act_withdraw')}</button>`);
   return `<article class="ik-row" style="border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);padding:12px 14px;display:flex;flex-direction:column;gap:6px">
     <div style="display:flex;align-items:baseline;gap:9px;flex-wrap:wrap">
-      <span style="font-family:var(--font-mono);font-size:10.5px;color:var(--color-neutral-500)">${esc(r.id)}</span>
-      <span style="font-size:13.5px;font-weight:600;flex:1;min-width:0">${esc(r.title)}</span>
+      <span style="font-family:var(--font-mono);font-size:11px;color:var(--color-neutral-500)">${esc(r.id)}</span>
+      <span style="font-size:14px;font-weight:600;flex:1;min-width:0">${esc(r.title)}</span>
       ${ikChip(r.status)}
     </div>
     <p style="margin:0;font-size:12px;line-height:1.55;color:var(--color-neutral-700);white-space:pre-wrap">${esc(r.need)}</p>
@@ -87,7 +87,7 @@ function openIntakeForm(){
   const LBL='display:block;font-size:11px;font-weight:600;margin-bottom:4px';
   openModal(`<div style="padding:20px 22px;max-width:520px">
     <h3 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0 0 4px">${i18t('ik_ask_title')}</h3>
-    <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 14px;line-height:1.55">${i18t('ik_ask_sub')}</p>
+    <p style="font-size:12px;color:var(--color-neutral-600);margin:0 0 14px;line-height:1.55">${i18t('ik_ask_sub')}</p>
     <label style="display:block;margin-bottom:10px"><span style="${LBL}">${i18t('ik_f_title')}</span>
       <input id="ik-title" style="${FLD}" placeholder="${esc(i18t('ik_f_title_ph'))}" maxlength="200"/></label>
     <label style="display:block;margin-bottom:10px"><span style="${LBL}">${i18t('ik_f_need')}</span>
@@ -101,7 +101,7 @@ function openIntakeForm(){
           ${streams.map(f=>`<option value="${esc(f.id)}">${esc(f.name)}</option>`).join('')}
         </select></label>
     </div>
-    <p id="ik-err" style="font-size:11.5px;color:var(--st-ruby-fg);min-height:16px;margin:8px 0 0"></p>
+    <p id="ik-err" style="font-size:12px;color:var(--st-ruby-fg);min-height:16px;margin:8px 0 0"></p>
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
       <button id="ik-cancel" class="ui-btn" style="font-size:12px;padding:7px 14px">${i18t('act_cancel')}</button>
       <button id="ik-send" class="ui-btn ui-btn-primary" style="font-size:12px;padding:7px 14px">${i18t('ik_send')}</button>
@@ -150,10 +150,10 @@ async function intakeDraft(id){
   const FLD='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:8px 10px;font:inherit;font-size:13px';
   openModal(`<div style="padding:20px 22px;max-width:520px">
     <h3 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0 0 4px">${i18t('ik_draft_title')}</h3>
-    <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.55">${esc(r.title)}</p>
+    <p style="font-size:12px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.55">${esc(r.title)}</p>
     ${pick?`<p style="font-size:12px;line-height:1.55;margin:0 0 10px;padding:9px 11px;background:var(--st-green-bg);color:var(--st-green-fg);border-radius:0">
       ${esc(i18t('ik_suggested',{name:TEMPLATES[pick.id].name}))}${pick.why?' '+esc(pick.why):''}</p>`
-      :`<p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 10px">${esc(i18t('ik_no_suggestion'))}</p>`}
+      :`<p style="font-size:12px;color:var(--color-neutral-600);margin:0 0 10px">${esc(i18t('ik_no_suggestion'))}</p>`}
     <label style="display:block;margin-bottom:12px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">${i18t('ik_pick_template')}</span>
       <select id="ik-tpl" style="${FLD}">
         ${ids.map(t=>`<option value="${esc(t)}"${pick&&pick.id===t?' selected':''}>${esc(TEMPLATES[t].name)}</option>`).join('')}
@@ -225,7 +225,7 @@ function renderIntake(){
   const host=document.getElementById('content'); if(!host) return;
   const may=(typeof canEdit==='function'&&canEdit());
   const mine=intakeMine(), queue=intakeQueue();
-  const empty=t=>`<p style="font-size:12.5px;color:var(--color-neutral-600);line-height:1.6;margin:0">${esc(t)}</p>`;
+  const empty=t=>`<p style="font-size:13px;color:var(--color-neutral-600);line-height:1.6;margin:0">${esc(t)}</p>`;
   host.innerHTML=`
     ${''/* ---- THE PAGE HAS A MARGIN (owner-reported 19 Aug 2026, off a
            screenshot with the left edge ringed: "space is needed between the
@@ -237,9 +237,9 @@ function renderIntake(){
     <div class="view-enter" style="padding:16px 18px 28px;display:flex;flex-direction:column;gap:22px;max-width:894px">
       <section style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap">
         <div style="flex:1;min-width:220px">
-          <p style="font-size:12.5px;color:var(--color-neutral-600);line-height:1.6;margin:0">${esc(may?i18t('ik_lead_editor'):i18t('ik_lead_asker'))}</p>
+          <p style="font-size:13px;color:var(--color-neutral-600);line-height:1.6;margin:0">${esc(may?i18t('ik_lead_editor'):i18t('ik_lead_asker'))}</p>
         </div>
-        <button id="ik-new" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:8px 15px;flex:none">${i18t('ik_ask_btn')}</button>
+        <button id="ik-new" class="ui-btn ui-btn-primary" style="font-size:13px;padding:8px 15px;flex:none">${i18t('ik_ask_btn')}</button>
       </section>
       ${may?`<section>
         <h3 style="font-size:13px;font-weight:700;font-family:var(--font-heading);margin:0 0 9px">${i18t('ik_queue_head',{n:queue.length})}</h3>

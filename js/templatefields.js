@@ -412,7 +412,7 @@ function openContractEssentials(opts){
   };
   openModal(`<div style="padding:20px 22px">
     <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0 0 3px">${esc(o.title||'New contract')}</h3>
-    <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 14px;line-height:1.55">${
+    <p style="font-size:12px;color:var(--color-neutral-600);margin:0 0 14px;line-height:1.55">${
       esc(o.blurb||'')} Everything here is filed as contract data — the register, the calendar and the reports all read it. You can skip and fill it in later.</p>
     <div class="ce-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${fs.map(input).join('')}</div>
     <div id="ce-err" style="font-size:11px;color:var(--st-ruby-fg);min-height:15px;margin-top:8px"></div>

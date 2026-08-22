@@ -64,12 +64,12 @@ const M_AI_CSS = `
   #ai-feed{ font-size:15px; padding-left:14px!important; padding-right:14px!important; }
   #ai-feed .ai-p, #ai-feed .ai-list li{ font-size:15px; line-height:1.55; }
   #ai-feed .ai-h{ font-size:15px; }
-  #ai-feed .ai-table{ font-size:13.5px; }
+  #ai-feed .ai-table{ font-size:14px; }
   #ai-feed .ai-target-body{ font-size:15px; }
   #ai-feed .ai-target-head{ font-size:12px; }
   #ai-panel #ai-input{ font-size:16px!important; padding:13px!important; }
   #ai-panel #ai-send{ height:48px!important; width:48px!important; }
-  #ai-panel #ai-style button{ min-height:36px; font-size:13.5px!important; padding:0 13px!important; }
+  #ai-panel #ai-style button{ min-height:36px; font-size:14px!important; padding:0 13px!important; }
   /* The "Answers" caption above the register toggle. */
   #ai-panel #ai-style, #ai-panel #ai-style ~ *{ font-size:14px; }
   #ai-panel .text-\\[10px\\]{ font-size:12px!important; }
@@ -84,7 +84,7 @@ const M_AI_CSS = `
      or under 44px any more. */
   #ai-feed .ai-proposal{ padding:13px 14px!important; gap:10px!important; }
   #ai-feed .ai-proposal > div:first-child > span:first-child{ font-size:12px!important; padding:3px 9px!important; }
-  #ai-feed .ai-proposal > div:first-child > span:nth-child(2){ font-size:13.5px!important; }
+  #ai-feed .ai-proposal > div:first-child > span:nth-child(2){ font-size:14px!important; }
   #ai-feed .ai-proposal-text{ font-size:15px!important; line-height:1.65!important; }
   #ai-feed .ai-suggestion-editor{ font-size:15px!important; line-height:1.6!important; }
   #ai-feed .ai-proposal [data-ai-prop-why]{ font-size:15px!important; min-height:48px!important; padding:9px 11px!important; }
@@ -92,8 +92,8 @@ const M_AI_CSS = `
   #ai-feed .ai-proposal .ui-btn{ min-height:44px!important; font-size:15px!important; padding:0 14px!important; }
   #ai-feed .ai-proposal [data-ai-prop-apply]{ flex:1; min-width:130px; }
   /* The placement chips and the anchor line under them. */
-  #ai-feed .ai-proposal [data-ai-placement]{ min-height:38px!important; font-size:13.5px!important; padding:0 12px!important; }
-  #ai-feed .ai-proposal .ai-anchor, #ai-feed .ai-prop-anchor{ font-size:13.5px!important; }
+  #ai-feed .ai-proposal [data-ai-placement]{ min-height:38px!important; font-size:14px!important; padding:0 12px!important; }
+  #ai-feed .ai-proposal .ai-anchor, #ai-feed .ai-prop-anchor{ font-size:14px!important; }
 
   /* THE LAUNCHER.
      A pill rather than a circle: "Copilot" said in words is the difference

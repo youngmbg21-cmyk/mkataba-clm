@@ -201,9 +201,20 @@ describe('f175 · the Tracked Changes head is a rule, not a box', () => {
     const n = /\.rl-idx-n\{([^}]*)\}/.exec(css)[1];
     /* One size up across the head (owner-asked 16 Aug 2026); the RELATION is
        the claim — the count stays a hair above the caption and no more. */
-    assert.match(k, /font-size:10\.5px/, 'the caption is the queue label\'s type');
+    /* SIZES ROUNDED 22 Aug 2026: every font-size in the product moved off the
+       half pixel onto a whole one (10.5 -> 11), because a fractional size puts
+       the glyph stems between device pixels and renders soft. The RELATION
+       these two lines assert is the claim and it is unchanged — see the base
+       rule in index.html for the whole sweep. */
+    assert.match(k, /font-size:11px/, 'the caption is the queue label\'s type');
+    /* ---- AND THE HALF-STEP BETWEEN THEM IS GONE, FOR A REAL REASON ----
+       The count used to be set a hair larger than the caption "because mono
+       runs small at the same size". That stopped being true on 22 Aug 2026,
+       when --font-mono was pointed at Inter with the rest of the platform:
+       label and figure are ONE FAMILY now, so at the same px they are the same
+       size, and the compensation was compensating for nothing. Both 11px. */
     assert.match(n, /font-size:11px/,
-      'and the count is a hair larger only because mono runs small at the same size');
+      'the count matches the caption — one family, so no compensation is owed');
     assert.match(n, /color:var\(--color-neutral-500\)/,
       'set below the caption in ink, which is what keeps it quieter');
   });

@@ -291,7 +291,7 @@ function ocrProvenanceLine(u){
 function ocrBannerHtml(u){
   const line=ocrProvenanceLine(u);
   if(!line) return '';
-  return `<div style="display:flex;align-items:flex-start;gap:8px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:0;padding:8px 11px;font-size:11.5px;line-height:1.55;margin-bottom:12px">
+  return `<div style="display:flex;align-items:flex-start;gap:8px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:0;padding:8px 11px;font-size:12px;line-height:1.55;margin-bottom:12px">
     <span style="flex:none;margin-top:1px">${icon('scan','w-3.5 h-3.5')}</span><span>${_ocrEsc(line)}</span></div>`;
 }
 

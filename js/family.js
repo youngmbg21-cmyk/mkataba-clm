@@ -293,12 +293,12 @@ function openLinkModal(c, onDone, opts={}){
     <div style="padding:20px 22px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="color:var(--color-accent)">${icon('link','w-4 h-4')}</span>
         <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">${mode==='child'?i18t('fa_link_parent'):i18t('fa_link_existing')}</h3></div>
-      <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.55">${mode==='child'
+      <p style="font-size:12px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.55">${mode==='child'
         ? `File <b>${_famEsc(c.id)}</b> as part of an existing agreement. The parent's renewal date, risk and KPI count then reflect the family — a master agreement plus its amendments is <b>one</b> agreement, not several.`
         : `Attach an existing document to <b>${_famEsc(c.id)}</b> as an amendment. Families are one level deep: an amendment cannot itself have amendments.`}</p>
       ${suggested.length?`<div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:0;padding:9px 11px;margin-bottom:12px">
         <div style="font-size:11px;font-weight:600;color:var(--color-accent-800);margin-bottom:5px">${i18t('fa_hati_suggests')}</div>
-        ${suggested.map(x=>`<label style="display:flex;align-items:flex-start;gap:8px;font-size:11.5px;padding:3px 0;cursor:pointer">
+        ${suggested.map(x=>`<label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;padding:3px 0;cursor:pointer">
           <input type="radio" name="lk-sug" value="${_famAttr(x.id)}" style="margin-top:3px;accent-color:var(--color-accent)"/>
           <span><b style="font-family:var(--font-mono)">${_famEsc(x.id)}</b> ${_famEsc(x.c.name)}
           <span style="display:block;color:var(--color-neutral-600)">${_famEsc(x.why||'')}</span></span></label>`).join('')}
@@ -322,11 +322,11 @@ function openLinkModal(c, onDone, opts={}){
   const draw=(q)=>{
     const t=String(q||'').toLowerCase();
     const list=candidates.filter(x=>!t || (x.name+' '+(x.counterparty||'')+' '+x.id).toLowerCase().includes(t)).slice(0,40);
-    results.innerHTML=list.length?list.map(x=>`<button type="button" data-lk-pick="${_famAttr(x.id)}" style="display:flex;width:100%;gap:8px;align-items:baseline;text-align:left;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent);background:${picked===x.id?'var(--color-accent-100)':'none'};padding:6px 9px;cursor:pointer;font:inherit;font-size:11.5px">
+    results.innerHTML=list.length?list.map(x=>`<button type="button" data-lk-pick="${_famAttr(x.id)}" style="display:flex;width:100%;gap:8px;align-items:baseline;text-align:left;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent);background:${picked===x.id?'var(--color-accent-100)':'none'};padding:6px 9px;cursor:pointer;font:inherit;font-size:12px">
         <b style="font-family:var(--font-mono);flex:none">${_famEsc(x.id)}</b>
         <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_famEsc(x.name)}</span>
         <span style="flex:none;color:var(--color-neutral-600)">${_famEsc(x.counterparty||'')}</span></button>`).join('')
-      :`<div style="padding:8px 9px;font-size:11.5px;color:var(--color-neutral-600)">${i18t('fa_no_matching')}</div>`;
+      :`<div style="padding:8px 9px;font-size:12px;color:var(--color-neutral-600)">${i18t('fa_no_matching')}</div>`;
     results.querySelectorAll('[data-lk-pick]').forEach(b=>b.addEventListener('click',()=>{ picked=b.getAttribute('data-lk-pick'); draw(document.getElementById('lk-search').value); }));
   };
   draw('');
@@ -363,11 +363,11 @@ function renderFamilySection(c){
   const kids=familyChildren(c.id), parent=familyParent(c);
   const suggested=(c.linkSuggestions||[]).filter(s=>getContract(s.id));
   const eff=effectiveExpiry(c), from=expirySource(c), prop=proposedExpiry(c);
-  const btn='font:inherit;font-size:11.5px;font-weight:600;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:5px 11px;cursor:pointer';
+  const btn='font:inherit;font-size:12px;font-weight:600;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:5px 11px;cursor:pointer';
   const row=(x,note)=>`<button type="button" data-fam-open="${_famAttr(x.id)}" style="display:flex;width:100%;gap:8px;align-items:baseline;text-align:left;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;padding:6px 0;cursor:pointer;font:inherit;font-size:12px;color:inherit">
       <b style="font-family:var(--font-mono);font-size:11px;color:var(--color-accent-700);flex:none">${_famEsc(x.id)}</b>
       <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_famEsc(x.name)}</span>
-      <span style="flex:none;font-size:10.5px;color:var(--color-neutral-600)">${_famEsc(note||'')}</span></button>`;
+      <span style="flex:none;font-size:11px;color:var(--color-neutral-600)">${_famEsc(note||'')}</span></button>`;
   /* ---- THE BUTTONS ARE A ROW OF THEIR OWN, UNDER THE HEAD ----
      They were in the head beside the title, which was room enough for two. A
      standalone agreement now offers three acts — write one, attach one, file
@@ -382,7 +382,7 @@ function renderFamilySection(c){
      neither: families are one level deep, so the only act on it is Unlink. */
   const acts=[];
   if(canEdit() && !parent){
-    acts.push(`<button id="fam-create" class="ui-btn ui-btn-primary" style="font-size:11.5px;padding:5px 11px">${icon('file-plus','w-3 h-3')} ${i18t('fa_create_amendment')}</button>`);
+    acts.push(`<button id="fam-create" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 11px">${icon('file-plus','w-3 h-3')} ${i18t('fa_create_amendment')}</button>`);
     acts.push(`<button id="fam-add" style="${btn}">${i18t('fa_link_existing')}</button>`);
     if(!kids.length) acts.push(`<button id="fam-link" style="${btn}">${i18t('fa_link_parent')}</button>`);
   }
@@ -402,17 +402,17 @@ function renderFamilySection(c){
            ("a addendum", "a annex") and Swedish en/ett by the noun's own
            gender, and the seven relations split both ways. Read as a filing
            designation — "filed as Addendum of MK-1042" — neither needs one. */
-        ? `<p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.55">${i18t('fa_filed_as')} <b>${_famEsc(RELATION_LABEL[c.relation]||'Amendment')}</b> of <b>${_famEsc(parent.id)}</b>${c.relationNote?` — ${_famEsc(c.relationNote)}`:''}. It does not count as a separate agreement in the KPIs, and its renewal reminder fires on the parent.</p>
+        ? `<p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.55">${i18t('fa_filed_as')} <b>${_famEsc(RELATION_LABEL[c.relation]||'Amendment')}</b> of <b>${_famEsc(parent.id)}</b>${c.relationNote?` — ${_famEsc(c.relationNote)}`:''}. It does not count as a separate agreement in the KPIs, and its renewal reminder fires on the parent.</p>
            <div class="fam-list">${row(parent,'parent agreement')}</div>`
         : kids.length
-        ? `<p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.55">${i18t('fa_this_is_a')} ${i18tn('fa_master_with',kids.length,{n:kids.length})} The family counts as <b>one agreement · ${kids.length+1} documents</b>.${from?` The live expiry <b>${_famEsc(eff)}</b> comes from <b>${_famEsc(from.id)}</b>, not from this document's own date${ownExpiry(c)?` of ${_famEsc(ownExpiry(c))}`:''}.`:''}</p>
-           ${prop?`<p style="font-size:11.5px;color:var(--st-amber-fg);margin:0 0 8px;line-height:1.55">${i18t('fa_proposed_term',{date:_famEsc(prop.date),id:_famEsc(prop.id)})}</p>`:''}
+        ? `<p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.55">${i18t('fa_this_is_a')} ${i18tn('fa_master_with',kids.length,{n:kids.length})} The family counts as <b>one agreement · ${kids.length+1} documents</b>.${from?` The live expiry <b>${_famEsc(eff)}</b> comes from <b>${_famEsc(from.id)}</b>, not from this document's own date${ownExpiry(c)?` of ${_famEsc(ownExpiry(c))}`:''}.`:''}</p>
+           ${prop?`<p style="font-size:12px;color:var(--st-amber-fg);margin:0 0 8px;line-height:1.55">${i18t('fa_proposed_term',{date:_famEsc(prop.date),id:_famEsc(prop.id)})}</p>`:''}
            <div class="fam-list">${kids.map(k=>row(k, `${RELATION_LABEL[k.relation]||'Amendment'}${ownExpiry(k)?' · term to '+ownExpiry(k):''}`)).join('')}</div>`
-        : `<p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.55">${i18t('fa_standalone_desc')}</p>`}
+        : `<p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.55">${i18t('fa_standalone_desc')}</p>`}
       ${(suggested.length&&!c.parentId&&!c.linkConfirmed)?`
         <div style="margin-top:10px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:0;padding:9px 11px">
           <div style="font-size:11px;font-weight:600;color:var(--st-amber-fg);margin-bottom:3px">${i18t('fa_reads_like_amendment')}</div>
-          <div style="font-size:11.5px;color:var(--st-amber-fg);line-height:1.5">${i18t('fa_hati_proposed',{ids:suggested.map(s=>`<b>${_famEsc(s.id)}</b>`).join(', ')})} <b>${i18t('fa_nothing_linked')}</b>${i18t('fa_confirm_or_standalone')}</div>
+          <div style="font-size:12px;color:var(--st-amber-fg);line-height:1.5">${i18t('fa_hati_proposed',{ids:suggested.map(s=>`<b>${_famEsc(s.id)}</b>`).join(', ')})} <b>${i18t('fa_nothing_linked')}</b>${i18t('fa_confirm_or_standalone')}</div>
           ${canEdit()?`<div style="display:flex;gap:6px;margin-top:8px"><button id="fam-confirm" style="${btn};border-color:var(--color-accent);color:var(--color-accent-800)">${i18t('fa_review_suggestion')}</button>
             <button id="fam-standalone" style="${btn}">${i18t('fa_its_standalone')}</button></div>`:''}
         </div>`:''}
@@ -640,13 +640,13 @@ function openCreateAmendmentModal(parent, onDone, opts){
   const FLD='width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:7px 10px;font:inherit;font-size:13px;outline:none';
   const SEL='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 8px;font:inherit;font-size:13px';
   const LBL='display:block;font-size:11px;font-weight:600;margin-bottom:4px';
-  const HINT='display:block;font-size:10.5px;font-weight:400;color:var(--color-neutral-600);margin-top:4px;line-height:1.45';
+  const HINT='display:block;font-size:11px;font-weight:400;color:var(--color-neutral-600);margin-top:4px;line-height:1.45';
   const kids=familyChildren(parent.id).length;
   openModal(`
     <div style="padding:20px 22px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="color:var(--color-accent)">${icon('filenew','w-4 h-4')}</span>
         <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">${i18t('fa_create_amendment')}</h3></div>
-      <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.55">${i18t('fa_create_sub',{ref:`<b>${_famEsc(parent.id)} ${_famEsc(parent.name||'')}</b>`})}</p>
+      <p style="font-size:12px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.55">${i18t('fa_create_sub',{ref:`<b>${_famEsc(parent.id)} ${_famEsc(parent.name||'')}</b>`})}</p>
 
       <label style="display:block;margin-bottom:10px"><span style="${LBL}">${i18t('fa_kind_q')}</span>
         <select id="am-rel" style="${SEL}">${CONTRACT_RELATIONS.map(r=>
@@ -679,7 +679,7 @@ function openCreateAmendmentModal(parent, onDone, opts){
              default, and unticking gives exactly the blank page. */}
       <label style="display:flex;align-items:flex-start;gap:8px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:9px 11px;margin-bottom:14px;cursor:pointer">
         <input type="checkbox" id="am-skeleton" checked style="margin-top:2px;flex:none;accent-color:var(--color-accent)"/>
-        <span style="font-size:11.5px"><b>${i18t('fa_skeleton')}</b>
+        <span style="font-size:12px"><b>${i18t('fa_skeleton')}</b>
           <span style="display:block;color:var(--color-neutral-600);line-height:1.5;margin-top:2px">${i18t('fa_skeleton_hint')}</span></span>
       </label>
 

@@ -59,7 +59,7 @@ const advicePortalShell = inner => `
       </div>
     </header>
     <div style="max-width:1100px;margin:0 auto;padding:28px 24px;">${inner}</div>
-    <p style="max-width:1100px;margin:0 auto;padding:0 24px 28px;font-size:10.5px;color:var(--color-neutral-500);line-height:1.6">
+    <p style="max-width:1100px;margin:0 auto;padding:0 24px 28px;font-size:11px;color:var(--color-neutral-500);line-height:1.6">
       Advice is provided by ${pesc(ADVICE_PORTAL.org)}'s legal counsel. Hourly rates and typical hours are indicative — a fixed fee estimate is
       confirmed with you at the Scoping stage before any billable work begins. Submitting a request does not by itself create an
       advocate–client relationship; that is established at engagement.
@@ -92,8 +92,8 @@ function renderAdviceIntake(){
     <div style="display:grid;gap:22px;align-items:start" class="portal-grid">
       <div>
         <h1 style="font-family:var(--font-heading);font-weight:600;font-size:22px;margin:0 0 4px;color:var(--color-text)">${i18t('apo_what_help')}</h1>
-        <p style="font-size:12.5px;color:var(--color-neutral-700);margin:0 0 16px;line-height:1.55">Pick a service — the hourly rate, typical effort and turnaround are published up front. After you submit, you get a tracking link that shows exactly where your request sits in the pipeline.</p>
-        <div id="adv-queue-note" style="margin-bottom:14px;border:1px solid var(--color-divider);border-radius:0;background:var(--color-accent-100);padding:10px 13px;font-size:11.5px;color:var(--color-accent-800);line-height:1.5;display:flex;align-items:center;gap:8px">${icon('clock','w-4 h-4')}<span id="adv-queue-text">${i18t('apo_select_service')}</span></div>
+        <p style="font-size:13px;color:var(--color-neutral-700);margin:0 0 16px;line-height:1.55">Pick a service — the hourly rate, typical effort and turnaround are published up front. After you submit, you get a tracking link that shows exactly where your request sits in the pipeline.</p>
+        <div id="adv-queue-note" style="margin-bottom:14px;border:1px solid var(--color-divider);border-radius:0;background:var(--color-accent-100);padding:10px 13px;font-size:12px;color:var(--color-accent-800);line-height:1.5;display:flex;align-items:center;gap:8px">${icon('clock','w-4 h-4')}<span id="adv-queue-text">${i18t('apo_select_service')}</span></div>
         <div style="display:grid;grid-template-columns:1fr;gap:10px" class="adv-svc-grid">${Object.values(ADVICE_SERVICES).map(svcCard).join('')}</div>
       </div>
       <aside style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;box-shadow:var(--shadow-sm);padding:18px" class="portal-aside">
@@ -105,7 +105,7 @@ function renderAdviceIntake(){
         ${field('ap-contract','Contract concerned','e.g. Distribution Agreement — Coast Region')}
         <label style="display:block;margin-bottom:12px"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em">${i18t('apo_describe')}</span>
           <textarea id="ap-desc" rows="4" placeholder="${esc(i18t('po_ph_advice_example'))}" style="${inputStyle}min-height:0"></textarea></label>
-        <label style="display:flex;align-items:flex-start;gap:9px;font-size:11.5px;color:var(--color-neutral-700);margin-bottom:14px;line-height:1.45"><input id="ap-priority" type="checkbox" style="width:15px;height:15px;accent-color:var(--color-accent);margin-top:1px"/><span><strong>${i18t('apo_priority')}</strong> ${i18t('apo_priority_note')}</span></label>
+        <label style="display:flex;align-items:flex-start;gap:9px;font-size:12px;color:var(--color-neutral-700);margin-bottom:14px;line-height:1.45"><input id="ap-priority" type="checkbox" style="width:15px;height:15px;accent-color:var(--color-accent);margin-top:1px"/><span><strong>${i18t('apo_priority')}</strong> ${i18t('apo_priority_note')}</span></label>
         <button id="ap-go" class="ui-btn ui-btn-primary" style="width:100%;padding:10px;font-size:13px">${icon('send','w-4 h-4')} Submit request</button>
         <div id="ap-result" style="margin-top:14px"></div>
       </aside>
@@ -155,7 +155,7 @@ function renderAdviceIntake(){
       <div style="border:1px solid color-mix(in srgb,var(--st-green-dot) 30%,transparent);background:var(--st-green-bg);border-radius:0;padding:14px">
         <div style="display:flex;align-items:center;gap:6px;color:var(--st-green-fg);font-size:13px;font-weight:600;margin-bottom:4px">${icon('check2','w-4 h-4')} Request ${pesc(req.id)} submitted</div>
         <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.5">${i18t('apo_estimated_by')} <strong>${fmtDay(req.eta)}</strong>${i18t('apo_follow_stage')}</p>
-        <textarea id="ap-link" readonly rows="2" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:9px;font-size:10.5px;font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all">${link}</textarea>
+        <textarea id="ap-link" readonly rows="2" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:9px;font-size:11px;font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all">${link}</textarea>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
           <button id="ap-copy" class="ui-btn" style="padding:8px;font-size:12px">${icon('copy','w-3 h-3')} ${i18t('po_copy_link')}</button>
           <button id="ap-open" class="ui-btn ui-btn-primary" style="padding:8px;font-size:12px">${i18t('apo_open_tracking')}</button>
@@ -234,7 +234,7 @@ function renderAdviceTracking(r){
         ${row('Estimate range', q.rate?`${fmtMoneyShort(q.rate*q.hoursMin)}–${fmtMoneyShort(q.rate*q.hoursMax)}`:'—')}
         ${row('Urgency', r.urgency==='priority'?'Priority':'Standard')}
         ${r.contractName?row('Contract', pesc(r.contractName)):''}
-        <p style="font-size:10.5px;color:var(--color-neutral-500);margin:10px 0 0;line-height:1.55">The final fee is confirmed with you at Scoping before billable work starts — you will never be invoiced beyond what is agreed there.</p>
+        <p style="font-size:11px;color:var(--color-neutral-500);margin:10px 0 0;line-height:1.55">The final fee is confirmed with you at Scoping before billable work starts — you will never be invoiced beyond what is agreed there.</p>
         <button id="at-new" class="ui-btn" style="width:100%;margin-top:14px;padding:8px;font-size:12px">${icon('plus','w-3.5 h-3.5')} Submit another request</button>
       </aside>
     </div>

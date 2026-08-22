@@ -105,7 +105,7 @@ function discussVisBadgeHtml(m){
   const pal = internal
     ? 'background:var(--st-amber-bg);color:var(--st-amber-fg);border:1px solid rgba(138,106,42,.3)'
     : 'background:var(--color-accent-100);color:var(--color-accent-800);border:1px solid var(--color-accent-300)';
-  return `<span style="display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:700;
+  return `<span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;
     letter-spacing:.04em;border-radius:0;padding:2px 7px;white-space:nowrap;${pal}">${
     internal ? '🔒 Internal only' : '🌐 Shared with counterparty'}</span>`;
 }
@@ -183,17 +183,17 @@ function discussPanelHtml(opts){
           ${g.messages.map(m => discussBubbleHtml(m, mine)).join('')}
         </div>`).join('')}
     </div>` : `
-    <p style="margin:0 0 13px;font-size:11.5px;line-height:1.55;color:var(--color-neutral-600)">Nothing here yet. Use this to ask a question or answer one — it does not change the contract and it does not open a round.</p>`;
+    <p style="margin:0 0 13px;font-size:12px;line-height:1.55;color:var(--color-neutral-600)">Nothing here yet. Use this to ask a question or answer one — it does not change the contract and it does not open a round.</p>`;
   const options = (topics || []).map(t =>
     `<option value="${e(t.value)}">${e(t.label)}</option>`).join('');
   const composer = disabled ? `
-    <div style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:9px 12px;font-size:11.5px;line-height:1.55;color:var(--color-neutral-600)">${e(disabledNote || 'This conversation is closed.')}</div>` : `
+    <div style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:9px 12px;font-size:12px;line-height:1.55;color:var(--color-neutral-600)">${e(disabledNote || 'This conversation is closed.')}</div>` : `
     <div style="border-top:1px solid var(--color-divider);padding-top:12px">
       <label style="display:block;margin-bottom:7px">
         <span style="display:block;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:4px">${i18t('di_what_about')}</span>
         <select id="${idp}-topic" style="width:100%;font:inherit;font-size:12px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 9px;color:inherit">${options}</select>
       </label>
-      <textarea id="${idp}-body" rows="2" placeholder="${e(i18t('di_ph_would_you'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:8px 11px;font:inherit;font-size:12.5px;outline:none;resize:vertical"></textarea>
+      <textarea id="${idp}-body" rows="2" placeholder="${e(i18t('di_ph_would_you'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:8px 11px;font:inherit;font-size:13px;outline:none;resize:vertical"></textarea>
       <div style="display:flex;align-items:center;gap:9px;margin-top:8px;flex-wrap:wrap">
         <span style="flex:1;min-width:140px;font-size:11px;color:var(--color-neutral-600);line-height:1.45">${i18t('di_sends_message')}</span>
         <button id="${idp}-send" class="ui-btn ui-btn-primary" style="flex:none;font-size:12px;padding:7px 14px">${i18t('di_send')}</button>
@@ -206,9 +206,9 @@ function discussPanelHtml(opts){
         <span style="flex:none;color:var(--color-accent);display:inline-flex">${window.icon ? icon('msg', 'w-4 h-4') : ''}</span>
         <span style="font-size:13px;font-weight:600">${e(title || 'Open points — talk it through')}</span>
         ${waiting ? `<span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:0;padding:2px 9px">${waiting} awaiting your reply</span>` : ''}
-        <span style="margin-left:auto;font-size:10.5px;color:var(--color-neutral-500);font-family:var(--font-mono)">${(messages || []).length} message${(messages || []).length === 1 ? '' : 's'}</span>
+        <span style="margin-left:auto;font-size:11px;color:var(--color-neutral-500);font-family:var(--font-mono)">${(messages || []).length} message${(messages || []).length === 1 ? '' : 's'}</span>
       </div>
-      ${blurb ? `<p style="margin:0 0 11px;font-size:11.5px;line-height:1.55;color:var(--color-neutral-600)">${e(blurb)}</p>` : ''}
+      ${blurb ? `<p style="margin:0 0 11px;font-size:12px;line-height:1.55;color:var(--color-neutral-600)">${e(blurb)}</p>` : ''}
       ${body}
       ${composer}
     </div>`;
@@ -240,11 +240,11 @@ function discussPointReplyHtml(topic, messages, opts){
   return `${thread}
     <div style="display:flex;gap:6px;align-items:center;margin-top:8px;flex-wrap:wrap">
       <textarea data-point-body="${e(idp)}" class="chat-field" rows="1" placeholder="${e(placeholder || 'Reply on this point — a sentence, not a redraft')}"
-        style="flex:1;min-width:150px;border:1px solid var(--color-divider);border-radius:0;padding:7px 10px;font:inherit;font-size:11.5px;background:var(--color-surface);outline:none"></textarea>
+        style="flex:1;min-width:150px;border:1px solid var(--color-divider);border-radius:0;padding:7px 10px;font:inherit;font-size:12px;background:var(--color-surface);outline:none"></textarea>
       <button data-point-send="${e(idp)}" data-point-topic="${e(topic)}" data-point-label="${e((opts&&opts.label)||'')}" class="ui-btn" style="flex:none;font-size:11px;padding:6px 12px">${i18t('di_send')}</button>
     </div>
     <div data-point-out="${e(idp)}" style="margin-top:6px"></div>
-    ${on.length && !theirTurn ? `<div style="margin-top:5px;font-size:10.5px;color:var(--color-neutral-500)">${i18t('di_sent_waiting')}</div>` : ''}`;
+    ${on.length && !theirTurn ? `<div style="margin-top:5px;font-size:11px;color:var(--color-neutral-500)">${i18t('di_sent_waiting')}</div>` : ''}`;
 }
 /* Wire every point card on the page at once. `send` is the same function the
    general composer uses, so a reply from here and a reply from there are the
@@ -299,7 +299,7 @@ function wireDiscussPanel(opts){
       if (onSent) onSent(res);
     } catch (e){
       // nothing was recorded, so the box keeps what they wrote
-      if (out) out.innerHTML = `<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:0;padding:9px 11px;font-size:11.5px;line-height:1.5;color:var(--st-ruby-fg)"><b>${i18t('di_not_sent')}</b> ${(window.esc ? esc(e.message) : e.message) || 'Something went wrong.'} Your message is still in the box.</div>`;
+      if (out) out.innerHTML = `<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:0;padding:9px 11px;font-size:12px;line-height:1.5;color:var(--st-ruby-fg)"><b>${i18t('di_not_sent')}</b> ${(window.esc ? esc(e.message) : e.message) || 'Something went wrong.'} Your message is still in the box.</div>`;
       if (window.toast) toast(e.message || 'Could not send that message', 'err');
     }
     btn.disabled = false; btn.innerHTML = restore;
@@ -350,7 +350,7 @@ function discussDiscardBtnHtml(change, opts){
   return `<button type="button" class="discuss-discard ui-btn" data-discuss-discard="${id}"
     title="${e(i18t('di_discard_title',{id}))}"
     aria-label="${e(i18t('di_discard_aria',{id}))}"
-    style="margin-left:auto;flex:none;font-size:10.5px;padding:3px 8px;line-height:1.4;
+    style="margin-left:auto;flex:none;font-size:11px;padding:3px 8px;line-height:1.4;
       border:1px solid rgba(143,50,43,.28);background:rgba(244,63,94,.08);color:var(--st-ruby-fg);border-radius:0;cursor:pointer">🗑️ Discard</button>`;
 }
 

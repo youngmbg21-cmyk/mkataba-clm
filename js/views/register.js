@@ -65,7 +65,7 @@ function renderFolder(){
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="padding:14px 16px 28px">
     <style>
-      .fold-table{width:100%;border-collapse:collapse;font-size:12.5px}
+      .fold-table{width:100%;border-collapse:collapse;font-size:13px}
       .fold-table th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:color-mix(in srgb,var(--color-text) 60%,transparent);padding:6.8px;border-bottom:1px solid var(--color-divider);white-space:nowrap;background:var(--color-neutral-100)}
       .fold-table td{padding:6.8px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 8%,transparent);vertical-align:middle}
       .fold-table tbody tr:hover{background:color-mix(in srgb,var(--color-text) 4%,transparent)}
@@ -91,8 +91,8 @@ function renderFolder(){
       <div id="fold-selbar" class="flex hidden items-center justify-between" style="gap:12px;border:1px solid var(--color-accent-800);background:var(--color-accent-800);color:#fff;border-radius:0;padding:8px 12px">
         <span id="fold-sel-count" style="font-size:12px;font-weight:600">${i18t('reg_n_selected',{n:0})}</span>
         <div style="display:flex;align-items:center;gap:8px">
-          <button id="fold-export" style="display:inline-flex;align-items:center;gap:6px;border:0;background:rgba(255,255,255,.16);color:#fff;border-radius:0;padding:5px 10px;font:inherit;font-size:11.5px;font-weight:600;cursor:pointer">${icon('download','w-3.5 h-3.5')} Export CSV</button>
-          <button id="fold-clear" style="border:0;background:none;color:rgba(255,255,255,.72);padding:5px 8px;font:inherit;font-size:11.5px;font-weight:600;cursor:pointer">${i18t('reg_clear')}</button>
+          <button id="fold-export" style="display:inline-flex;align-items:center;gap:6px;border:0;background:rgba(255,255,255,.16);color:#fff;border-radius:0;padding:5px 10px;font:inherit;font-size:12px;font-weight:600;cursor:pointer">${icon('download','w-3.5 h-3.5')} Export CSV</button>
+          <button id="fold-clear" style="border:0;background:none;color:rgba(255,255,255,.72);padding:5px 8px;font:inherit;font-size:12px;font-weight:600;cursor:pointer">${i18t('reg_clear')}</button>
         </div>
       </div>
 
@@ -120,7 +120,7 @@ function renderFolder(){
                column of coloured marks and no key is the thing that prompted
                all of this. */}
         <div style="border-top:1px solid var(--color-divider);padding:6px 12px">
-          ${window.shareLegendHtml?shareLegendHtml({style:'font-size:10.5px'}):''}
+          ${window.shareLegendHtml?shareLegendHtml({style:'font-size:11px'}):''}
         </div>
       </section>
     </div>
@@ -172,7 +172,7 @@ function folderExpiryCell(c){
 function folderRowsHtml(cs){
   if(!cs.length) return `<tr><td colspan="8" style="padding:44px 20px;text-align:center">
       <div style="font-size:13px;font-weight:600;color:var(--color-text)">${(state.folderQuery||'').trim()?`No contracts match "${state.folderQuery}"`:'No contracts in this value stream yet'}</div>
-      <div style="font-size:11.5px;color:var(--color-neutral-600);margin-top:4px">${(state.folderQuery||'').trim()?'Clear the search, or ask HaTi Copilot to look across all folders.':'Create one with New contract, or upload received paper.'}</div>
+      <div style="font-size:12px;color:var(--color-neutral-600);margin-top:4px">${(state.folderQuery||'').trim()?'Clear the search, or ask HaTi Copilot to look across all folders.':'Create one with New contract, or upload received paper.'}</div>
     </td></tr>`;
   const shown=Math.min(cs.length, state.folderShown||FOLDER_PAGE);
   const sel=state.folderSel||{};
@@ -186,19 +186,19 @@ function folderRowsHtml(cs){
         <span style="width:26px;height:26px;flex:none;display:grid;place-items:center;border-radius:0;border:1px solid var(--color-divider);background:${isUpload(c)?'var(--color-accent-200)':'var(--color-bg)'};color:${isUpload(c)?'var(--color-accent-800)':'var(--color-neutral-600)'}" ${isUpload(c)?`title="${i18t('reg_uploaded_from_cp')}"`:''}>${icon(cIcon(c),'w-3.5 h-3.5')}</span>
         <span style="min-width:0">
           <span style="display:block;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.name)}</span>
-          <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="font-family:var(--font-mono)">${esc(c.id)}</span> · ${esc(c.counterparty||'No counterparty yet')}</span>
+          <span style="display:block;font-size:11px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="font-family:var(--font-mono)">${esc(c.id)}</span> · ${esc(c.counterparty||'No counterparty yet')}</span>
         </span>
       </div></td>
-      <td style="font-size:11.5px;color:var(--color-neutral-700);white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:6px">${icon(cIcon(c),'w-4 h-4')}${cKind(c)}</span>${scan}</td>
+      <td style="font-size:12px;color:var(--color-neutral-700);white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:6px">${icon(cIcon(c),'w-4 h-4')}${cKind(c)}</span>${scan}</td>
       <td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:400;white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}" ${!isMonetary(c)?`title="${i18t('reg_non_monetary')}"`:''}>${!isMonetary(c)?'n/m':(c.value?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):'—')}</td>
-      <td style="font-size:11.5px;font-variant-numeric:tabular-nums;white-space:nowrap">${folderExpiryCell(c)}</td>
+      <td style="font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap">${folderExpiryCell(c)}</td>
       <td style="font-size:11px;color:var(--color-neutral-600);white-space:nowrap">${c.lastAction||'—'}</td>
       ${''/* Same split as the register: the link mark to its own column, the
              question pill left with the stage it qualifies. */}
       <td style="text-align:center;white-space:nowrap">${window.shareLinkCell?shareLinkCell(c.id):''}</td>
       <td style="text-align:right;padding-right:12px;white-space:nowrap">${window.questionDot?questionDot(c.id):''}${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}</td>
     </tr>`; }).join('') + (cs.length>shown
-      ? `<tr><td colspan="8" style="padding:0"><button id="folder-more" style="width:100%;padding:11px;font-size:12.5px;font-weight:600;color:var(--color-accent-700);background:none;border:0;border-top:1px solid var(--color-divider);cursor:pointer">Show ${Math.min(FOLDER_PAGE,cs.length-shown)} more · ${cs.length-shown} remaining</button></td></tr>`
+      ? `<tr><td colspan="8" style="padding:0"><button id="folder-more" style="width:100%;padding:11px;font-size:13px;font-weight:600;color:var(--color-accent-700);background:none;border:0;border-top:1px solid var(--color-divider);cursor:pointer">Show ${Math.min(FOLDER_PAGE,cs.length-shown)} more · ${cs.length-shown} remaining</button></td></tr>`
       : '');
 }
 function folderSelCount(){ const s=state.folderSel||{}; return Object.keys(s).filter(k=>s[k]).length; }
@@ -669,7 +669,7 @@ function regRowsHtml(cs){
     return out;
   };
   let lastBand=null;
-  const actBtns=c=>REG_ROW_ACTIONS.filter(a=>!a.when||a.when(c)).map(a=>`<button data-act="${a.k}" data-id="${c.id}" class="reg-act${a.ruby?' danger':''}" style="display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;font:inherit;font-size:11.5px;text-align:left;padding:6px 9px;border-radius:0;cursor:pointer;color:${a.ruby?'var(--st-ruby-fg)':'inherit'}">${window.icon?icon(a.ic,'w-3.5 h-3.5'):''}${a.label}</button>`).join('');
+  const actBtns=c=>REG_ROW_ACTIONS.filter(a=>!a.when||a.when(c)).map(a=>`<button data-act="${a.k}" data-id="${c.id}" class="reg-act${a.ruby?' danger':''}" style="display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;font:inherit;font-size:12px;text-align:left;padding:6px 9px;border-radius:0;cursor:pointer;color:${a.ruby?'var(--st-ruby-fg)':'inherit'}">${window.icon?icon(a.ic,'w-3.5 h-3.5'):''}${a.label}</button>`).join('');
   return pageRows.map((c,i)=>{
     const eff=effectiveExpiry(c);
     const din=eff?daysUntil(eff):null;
@@ -693,9 +693,9 @@ function regRowsHtml(cs){
         <span style="display:flex;align-items:center;gap:9px;min-width:0">
         <span class="reg-tick" style="background:${folderColor(c)}"></span>
         <span style="min-width:0;flex:1">
-        <span class="reg-title" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:10.5px;font-weight:400" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc(c.parentId)}">↳ </span>`:''}${regTitleOf(c)}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:400;font-size:9.5px;font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
+        <span class="reg-title" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:11px;font-weight:400" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc(c.parentId)}">↳ </span>`:''}${regTitleOf(c)}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:400;font-size:10px;font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
         <span class="reg-kind">${cKind(c)}</span>
-        ${c._famChild?`<span style="display:block;font-size:10.5px;font-weight:400;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${RELATION_LABEL[c.relation]||'Amendment'} of ${c.parentId}</span>`:''}
+        ${c._famChild?`<span style="display:block;font-size:11px;font-weight:400;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${RELATION_LABEL[c.relation]||'Amendment'} of ${c.parentId}</span>`:''}
         </span></span>
       </td>
       <td style="color:var(--color-neutral-700);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.counterparty||'—')}</td>
@@ -708,7 +708,7 @@ function regRowsHtml(cs){
       <td style="text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:400;white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}">${val}</td>
       ${''/* The mockup's expiry cell: the date, then "· in Nd" in the urgency
             colour — red inside 30 days, amber to 90 — carrying its weight. */}
-      <td style="white-space:nowrap"><span style="font-weight:${renUrgent?700:400};color:${renDateColor}">${renDate}</span>${renIn?` <span style="font-size:10.5px;font-weight:700;color:${renColor}">· ${renIn}</span>`:''}</td>
+      <td style="white-space:nowrap"><span style="font-weight:${renUrgent?700:400};color:${renDateColor}">${renDate}</span>${renIn?` <span style="font-size:11px;font-weight:700;color:${renColor}">· ${renIn}</span>`:''}</td>
       ${''/* ---- THE LAST COLUMN IS A STATE, NOT AN ACTION ----
              On Contracts it is the row's own verb plus the ⋯ menu. On
              Negotiations it is whose move it is, and the ⋯ IS GONE with the
@@ -855,7 +855,7 @@ function renderRegister(opts){
      regShowOnly. It leads the bar because it is the widest statement on it:
      every dropdown beside it narrows within this set. */
   const onlyChip=R.only?`<span id="reg-only-chip" title="${esc(i18t('reg_only_title'))}"
-      style="display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;border-radius:0;padding:5px 6px 5px 10px;
+      style="display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;border-radius:0;padding:5px 6px 5px 10px;
         background:var(--color-accent-100);border:1px solid var(--color-accent-300);color:var(--color-accent-800)">
       <span>${esc(R.only.label||i18t('reg_only_fallback'))}</span>
       <button id="reg-only-clear" title="${esc(i18t('reg_only_clear'))}" aria-label="${esc(i18t('reg_only_clear'))}"
@@ -867,7 +867,7 @@ function renderRegister(opts){
      chose. It leads the bar so everything to its right is plainly a narrowing
      WITHIN live negotiations. */
   const lockChip=neg?`<span id="reg-lock-chip" title="${esc(i18t('ngl_locked_title'))}"
-      style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;border-radius:0;padding:5px 10px;
+      style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;border-radius:0;padding:5px 10px;
         background:var(--color-accent-100);border:1px solid var(--color-accent-300);color:var(--color-accent-800)">
       <span aria-hidden="true">&#128274;</span><span>${esc(i18t('ngl_locked_chip'))}</span>
     </span>`:'';
@@ -912,9 +912,9 @@ function renderRegister(opts){
          grey band), teal tracking numbers, regular-weight titles with the
          document KIND on a quiet second line, the stream tick beside the
          title rather than on the row's edge, and a tighter row. */
-      .reg-table{width:100%;border-collapse:collapse;font-size:12.5px}
+      .reg-table{width:100%;border-collapse:collapse;font-size:13px}
       .reg-table thead th{position:sticky;top:0;z-index:3}
-      .reg-table th{text-align:left;font-size:10.5px;font-weight:700;letter-spacing:.06em;
+      .reg-table th{text-align:left;font-size:11px;font-weight:700;letter-spacing:.06em;
         text-transform:uppercase;color:var(--color-neutral-500);padding:9px 12px;
         border-bottom:1px solid var(--color-divider);white-space:nowrap;
         background:var(--color-surface)}
@@ -928,14 +928,14 @@ function renderRegister(opts){
       .reg-mk{font-family:var(--font-mono);font-size:12px;font-weight:600;
         color:var(--color-accent-600);white-space:nowrap;font-variant-numeric:tabular-nums}
       .reg-title{font-weight:400;color:var(--color-text)}
-      .reg-kind{display:block;font-size:10.5px;color:var(--color-neutral-500);
+      .reg-kind{display:block;font-size:11px;color:var(--color-neutral-500);
         white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       /* The stream tick spans the title's two lines. A SPAN, not a border on
          the id cell: the mockup puts the colour beside the words it files. */
       .reg-tick{flex:none;width:3px;align-self:stretch;min-height:26px}
       /* The prototype's row action is a text link, not a button. The ⋯ beside it
          keeps the rest of the engine's actions reachable. */
-      .reg-actlink{border:0;background:none;font:inherit;font-size:11.5px;font-weight:700;
+      .reg-actlink{border:0;background:none;font:inherit;font-size:12px;font-weight:700;
         color:var(--color-accent-600);cursor:pointer;padding:0}
       .reg-actlink:hover{text-decoration:underline}
       .reg-th-sort:hover{color:var(--color-accent-700)!important}
@@ -965,7 +965,7 @@ function renderRegister(opts){
         ${''/* SORTING RUNS INSIDE A GROUP HERE, and the same control on Contracts
                sorts the whole page. A control that quietly means something else
                is a lie by omission, so the page says it beside the control. */}
-        ${neg?`<span id="reg-sort-note" style="flex:none;font-size:10.5px;color:var(--color-neutral-500)">${esc(i18t('ngl_sort_note'))}</span>`:''}
+        ${neg?`<span id="reg-sort-note" style="flex:none;font-size:11px;color:var(--color-neutral-500)">${esc(i18t('ngl_sort_note'))}</span>`:''}
         ${ftsBlock}
       </div>
 
@@ -1006,7 +1006,7 @@ function renderRegister(opts){
                  on hover, so it explains itself where a reader is already
                  looking. The folder page keeps its link key — there the strip
                  holds nothing else, and the marks are why it exists. */}
-          ${folderLegendHtml({style:'font-size:10.5px'})}
+          ${folderLegendHtml({style:'font-size:11px'})}
           <span>${neg?esc(i18t('ngl_no_paging')):i18t('reg_per_page',{n:REG_PAGE})}</span>
         </div>
       </section>
@@ -1053,7 +1053,7 @@ function ftsSearch(q){
       const r=await api('search?q='+encodeURIComponent(q)+'&limit=12');
       if(!r.hits||!r.hits.length){ box.innerHTML=`<div style="padding:10px 12px;font-size:12px;color:var(--color-neutral-600)">${i18t('reg_no_fulltext')}</div>`; box.classList.remove('hidden'); return; }
       box.innerHTML=r.hits.map(h=>`<button data-fts-open="${h.id}" style="display:block;width:100%;text-align:left;padding:8px 12px;border:0;border-bottom:1px solid var(--color-divider);background:none;cursor:pointer;font:inherit">
-        <div style="font-size:12.5px;font-weight:600;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(h.name||h.id)} <span style="font-family:var(--font-mono);font-size:10px;color:var(--color-neutral-500)">${h.id}</span></div>
+        <div style="font-size:13px;font-weight:600;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(h.name||h.id)} <span style="font-family:var(--font-mono);font-size:10px;color:var(--color-neutral-500)">${h.id}</span></div>
         ${h.snippet?`<div style="font-size:11px;color:var(--color-neutral-600);margin-top:2px">${h.snippet.replace(/</g,'&lt;').replace(/\[/g,'<mark style="background:var(--st-amber-bg);border-radius:0;padding:0 2px">').replace(/\]/g,'</mark>')}</div>`:(h.counterparty?`<div style="font-size:11px;color:var(--color-neutral-500)">${h.counterparty}</div>`:'')}
       </button>`).join('');
       box.classList.remove('hidden');

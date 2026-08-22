@@ -76,7 +76,7 @@ function openFolderAccessEditor(userId){
   const isAll=(cur==null||cur==='*'||(Array.isArray(cur)&&!cur.length));
   const set=new Set(Array.isArray(cur)?cur:[]);
   const folders=Object.values(FOLDERS);
-  const fRow=f=>`<label style="display:flex;align-items:center;gap:9px;padding:7px 9px;border:1px solid var(--color-divider);border-radius:0;cursor:pointer;font-size:12.5px">
+  const fRow=f=>`<label style="display:flex;align-items:center;gap:9px;padding:7px 9px;border:1px solid var(--color-divider);border-radius:0;cursor:pointer;font-size:13px">
       <input type="checkbox" data-fa-folder="${f.id}" ${set.has(f.id)?'checked':''} style="width:15px;height:15px;accent-color:var(--color-accent);flex:none"/>
       <span style="width:9px;height:9px;border-radius:0;background:${f.color};flex:none"></span>
       <span style="flex:1;min-width:0">${esc(f.name)}</span></label>`;
@@ -155,8 +155,8 @@ function renderRateTable(rates, meta){
   host.innerHTML=models.map(m=>`
     <div data-rate-model="${PB_ATTR(m)}" style="display:flex;align-items:center;gap:8px;padding:3px 2px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent)">
       <span style="flex:1;min-width:0;font-size:11px;font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis${m==='default'?';color:var(--color-neutral-500);font-style:italic':''}">${PB_ESC(m)}</span>
-      <label style="font-size:9.5px;color:var(--color-neutral-500)">${i18t('set_rate_in')} <input data-rate="in" type="number" min="0" step="0.01" value="${Number(rates[m].in)}" style="${inp}"/></label>
-      <label style="font-size:9.5px;color:var(--color-neutral-500)">${i18t('set_rate_out')} <input data-rate="out" type="number" min="0" step="0.01" value="${Number(rates[m].out)}" style="${inp}"/></label>
+      <label style="font-size:10px;color:var(--color-neutral-500)">${i18t('set_rate_in')} <input data-rate="in" type="number" min="0" step="0.01" value="${Number(rates[m].in)}" style="${inp}"/></label>
+      <label style="font-size:10px;color:var(--color-neutral-500)">${i18t('set_rate_out')} <input data-rate="out" type="number" min="0" step="0.01" value="${Number(rates[m].out)}" style="${inp}"/></label>
     </div>`).join('');
   const metaEl=document.getElementById('ai-rates-meta');
   if(metaEl) metaEl.textContent = meta && meta.verifiedOn
@@ -258,13 +258,13 @@ function settingsPaintShapeBoxes(){
    place a control's clothes are decided. */
 const ST_CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:0;padding:16px';
 const ST_H4='font-family:var(--font-mono);font-weight:600;font-size:14px;margin:0 0 6px;color:var(--color-text)';
-const ST_INPUT='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:6px 9px;font:inherit;font-size:12.5px;color:inherit;outline:none';
+const ST_INPUT='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:6px 9px;font:inherit;font-size:13px;color:inherit;outline:none';
 const ST_MONO='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:5px 8px;font-family:var(--font-mono);font-size:11px;color:inherit;outline:none';
-const ST_BTN='font-family:var(--font-mono);font-weight:600;font-size:12.5px;padding:6px 14px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);border-radius:0;cursor:pointer;white-space:nowrap';
+const ST_BTN='font-family:var(--font-mono);font-weight:600;font-size:13px;padding:6px 14px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);border-radius:0;cursor:pointer;white-space:nowrap';
 const ST_BTN_SM='font-family:var(--font-mono);font-weight:600;font-size:12px;padding:5px 12px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);border-radius:0;cursor:pointer';
 const ST_BTN2='display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-weight:600;font-size:12px;padding:5px 11px;background:var(--color-surface);color:var(--color-accent-800);border:1px solid var(--color-divider);border-radius:0;cursor:pointer';
 const ST_BTN_DANGER='display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-weight:600;font-size:12px;padding:5px 11px;background:var(--color-surface);color:var(--st-ruby-dot);border:1px solid var(--st-ruby-line);border-radius:0;cursor:pointer';
-const ST_TAG='display:inline-flex;align-items:center;font-size:10.5px;font-weight:600;letter-spacing:.04em;padding:3px 10px;border-radius:0;background:var(--color-accent-200);color:var(--color-accent-800)';
+const ST_TAG='display:inline-flex;align-items:center;font-size:11px;font-weight:600;letter-spacing:.04em;padding:3px 10px;border-radius:0;background:var(--color-accent-200);color:var(--color-accent-800)';
 const ST_AV='width:24px;height:24px;border-radius:50%;background:var(--color-accent-200);color:var(--color-accent-800);display:inline-grid;place-items:center;font-size:9px;font-weight:700;flex:none;font-family:var(--font-mono)';
 const stRoleTag=r=>{ const map={admin:['var(--st-steel-bg)','var(--st-steel-fg)'],legal:['var(--st-amber-bg)','var(--st-amber-fg)'],viewer:['var(--st-gray-bg)','var(--st-gray-fg)']};
   const [bg,fg]=map[r]||map.viewer;
@@ -523,7 +523,7 @@ function stPeopleHtml(){
     const miss=stPersonMissing(u);
     const acc=stAccessOf(u);
     return `<button class="st-person" data-st-panel="person:${PB_ATTR(u.id)}">
-      <span style="${ST_AV};width:30px;height:30px;font-size:10.5px">${esc(ini)}</span>
+      <span style="${ST_AV};width:30px;height:30px;font-size:11px">${esc(ini)}</span>
       <span class="st-person-main">
         <span class="st-person-name">${esc(u.name||u.email)}${u.id===me.id?` <span style="font-weight:400;color:var(--color-neutral-500);font-size:11px">${i18t('set_you')}</span>`:''}</span>
         <span class="st-person-sub">
@@ -623,7 +623,7 @@ function stSignFolderHtml(u, isNew, folders){
       <option value="pick"${all?'':' selected'}>${esc(i18t('st_folders_pick'))}</option>
     </select>
     <div id="tm-sign-list" style="display:${all?'none':'grid'};grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;margin-top:8px">
-      ${folders.map(f=>`<label style="display:flex;align-items:center;gap:7px;padding:6px 8px;border:1px solid var(--color-divider);border-radius:0;cursor:pointer;font-size:11.5px">
+      ${folders.map(f=>`<label style="display:flex;align-items:center;gap:7px;padding:6px 8px;border:1px solid var(--color-divider);border-radius:0;cursor:pointer;font-size:12px">
         <input type="checkbox" data-tm-signfolder="${PB_ATTR(f.id)}"${set.has(f.id)?' checked':''} style="width:14px;height:14px;accent-color:var(--color-accent);flex:none"/>
         <span style="width:8px;height:8px;border-radius:0;background:${f.color};flex:none"></span>
         <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.name)}</span></label>`).join('')}
@@ -836,7 +836,7 @@ function settingsPersonDrawer(idOrNew){
           <option value="pick"${(!isNew&&!acc.all)?' selected':''}>${esc(i18t('st_folders_pick'))}</option>
         </select>
         <div id="tm-access-list" style="display:${(!isNew&&!acc.all)?'grid':'none'};grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;margin-top:8px">
-          ${folders.map(f=>`<label style="display:flex;align-items:center;gap:7px;padding:6px 8px;border:1px solid var(--color-divider);border-radius:0;cursor:pointer;font-size:11.5px">
+          ${folders.map(f=>`<label style="display:flex;align-items:center;gap:7px;padding:6px 8px;border:1px solid var(--color-divider);border-radius:0;cursor:pointer;font-size:12px">
             <input type="checkbox" data-tm-folder="${PB_ATTR(f.id)}"${set.has(f.id)?' checked':''} style="width:14px;height:14px;accent-color:var(--color-accent);flex:none"/>
             <span style="width:8px;height:8px;border-radius:0;background:${f.color};flex:none"></span>
             <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.name)}</span></label>`).join('')}
@@ -1170,7 +1170,7 @@ function stAccountBodyHtml(){
              like every other setting in this drawer: a choice that only
              saves if you remember to press Save is a choice that is wrong
              when it matters. */}
-      <div class="st-sec-lead" style="margin-top:12px;font-weight:600;font-size:12.5px;color:var(--color-text)">${i18t('set_brief_how_often')}</div>
+      <div class="st-sec-lead" style="margin-top:12px;font-weight:600;font-size:13px;color:var(--color-text)">${i18t('set_brief_how_often')}</div>
       ${''/* THE GROUP NAME IS UNIQUE PER RENDERING, and that is not decoration:
              this section is drawn on the You tab AND again inside the drawer
              that opens over it, so a shared radio name would make the two
@@ -1284,7 +1284,7 @@ async function stHooksLoad(){
   host.innerHTML=rows.map(w=>{
     const tone=w.lastOk===false?'ruby':(w.lastOk?'green':'steel');
     const said=w.lastAt?`${w.lastOk?i18t('st_hooks_ok'):i18t('st_hooks_bad')} · ${esc(w.lastStatus||'')}`:i18t('st_hooks_never');
-    return `<div style="display:flex;align-items:center;gap:9px;font-size:11.5px">
+    return `<div style="display:flex;align-items:center;gap:9px;font-size:12px">
       <span class="pill-x" style="background:var(--st-${tone}-bg);color:var(--st-${tone}-fg);flex:none">${w.active?i18t('st_hooks_live'):i18t('st_hooks_off')}</span>
       <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(w.url)}
         <span class="st-note" style="margin:0">${esc(said)}</span></span>
@@ -1314,7 +1314,7 @@ async function stHooksAdd(){
     openModal(`<div style="padding:20px 22px;max-width:470px">
       <h3 style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0 0 6px">${i18t('st_hooks_secret_title')}</h3>
       <p class="st-note" style="margin:0 0 10px">${esc(i18t('st_hooks_secret_msg'))}</p>
-      <div style="font-family:var(--font-mono);font-size:12.5px;background:var(--color-bg);border:1px solid var(--color-divider);border-radius:0;padding:10px 12px;word-break:break-all;user-select:all">${esc(r.secret)}</div>
+      <div style="font-family:var(--font-mono);font-size:13px;background:var(--color-bg);border:1px solid var(--color-divider);border-radius:0;padding:10px 12px;word-break:break-all;user-select:all">${esc(r.secret)}</div>
       <div style="display:flex;justify-content:flex-end;margin-top:12px">
         <button id="wh-done" class="ui-btn ui-btn-primary" style="font-size:12px;padding:7px 14px">${i18t('ts_done')}</button>
       </div></div>`,{maxWidth:'490px'});
@@ -1416,7 +1416,7 @@ async function stTwoStepToggle(){
   openModal(`<div style="padding:22px;max-width:470px">
     <h3 style="margin:0 0 6px;font-size:15px;font-weight:700;font-family:var(--font-heading)">${esc(i18t('ts_enrol_title'))}</h3>
     <p class="st-note" style="margin:0 0 4px">${esc(i18t('ts_enrol_msg'))}</p>
-    <div style="font-family:var(--font-mono);font-size:14.5px;letter-spacing:.14em;background:var(--color-bg);border:1px solid var(--color-divider);border-radius:0;padding:10px 12px;margin:8px 0;word-break:break-all;user-select:all">${esc(start.secret)}</div>
+    <div style="font-family:var(--font-mono);font-size:15px;letter-spacing:.14em;background:var(--color-bg);border:1px solid var(--color-divider);border-radius:0;padding:10px 12px;margin:8px 0;word-break:break-all;user-select:all">${esc(start.secret)}</div>
     <p class="st-note" style="margin:8px 0 4px">${esc(i18t('ts_enrol_code_msg'))}</p>
     <input id="ts-code" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" style="${window.RV_FLD||ST_INPUT}"/>
     <p id="ts-err" class="st-note" style="color:var(--st-ruby-fg);min-height:16px;margin:6px 0 0"></p>
@@ -1529,7 +1529,7 @@ const SET_PANELS={
           <select id="set-market" style="min-width:190px;${window.RV_FLD||ST_INPUT}width:auto">
             ${jxList().map(p=>`<option value="${p.id}"${p.id===jxId()?' selected':''}>${esc(p.name)}</option>`).join('')}
           </select>
-          <div id="set-market-facts" style="font-size:10.5px;color:var(--color-neutral-600);line-height:1.6">${settingsMarketFactsHtml()}</div>
+          <div id="set-market-facts" style="font-size:11px;color:var(--color-neutral-600);line-height:1.6">${settingsMarketFactsHtml()}</div>
         </div>
       </section>
       ${''/* ---- THE LEGAL IDENTITY LIVES HERE NOW (C, 14 Aug 2026) ----
@@ -1872,8 +1872,8 @@ const SET_PANELS={
       const cfg=wsCfg(), det=wsDetect();
       const box=(k,title,sub)=>`<label data-ws-box="${k}" style="display:flex;gap:9px;align-items:flex-start;padding:9px 11px;border:1px solid ${cfg.shapes.includes(k)?WS_BOX_ON.line:WS_BOX_OFF.line};border-radius:0;cursor:pointer;background:${cfg.shapes.includes(k)?WS_BOX_ON.fill:WS_BOX_OFF.fill};flex:1 1 240px;min-width:0">
         <input type="checkbox" data-ws-shape="${k}" ${cfg.shapes.includes(k)?'checked':''} style="margin-top:2px;flex:none"/>
-        <span style="min-width:0"><span style="display:block;font-size:12.5px;font-weight:600">${title}</span>
-        <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);line-height:1.5;margin-top:2px">${sub}</span></span></label>`;
+        <span style="min-width:0"><span style="display:block;font-size:13px;font-weight:600">${title}</span>
+        <span style="display:block;font-size:11px;color:var(--color-neutral-600);line-height:1.5;margin-top:2px">${sub}</span></span></label>`;
       return `<p class="st-note" style="margin-bottom:10px">${i18t('set_workshape_sub')}</p>
       <div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:12px">
         ${box('standing',i18t('set_shape_standing'),i18t('set_shape_standing_sub'))}
@@ -1888,7 +1888,7 @@ const SET_PANELS={
       </div>
       <div class="st-quiet"><b>${i18t('set_workshape_detect')}.</b> ${det.total
         ? esc(i18t('set_workshape_seen',{p:det.project,s:det.standing,u:det.unknown}))
-          +` <button id="ws-use-detected" style="border:0;background:none;padding:0;font:inherit;font-size:10.5px;font-weight:700;color:var(--color-accent-700);cursor:pointer;text-decoration:underline">${i18t('set_workshape_use')}</button>`
+          +` <button id="ws-use-detected" style="border:0;background:none;padding:0;font:inherit;font-size:11px;font-weight:700;color:var(--color-accent-700);cursor:pointer;text-decoration:underline">${i18t('set_workshape_use')}</button>`
         : i18t('set_workshape_seen_none')}</div>`;
     },
     wire(){
@@ -1956,7 +1956,7 @@ const SET_PANELS={
           ${ob&&ob.logoUrl?`<img src="${ob.logoUrl}" alt="logo" style="max-width:100%;max-height:100%">`:`<span style="font-size:9px;color:var(--color-neutral-500)">${i18t('set_no_logo')}</span>`}
         </div>
         <div style="flex:1;min-width:150px">
-          ${d?`<div style="font-size:12.5px;font-weight:700">${esc(d.name)}</div>
+          ${d?`<div style="font-size:13px;font-weight:700">${esc(d.name)}</div>
             <div class="st-note">${i18t('set_logo_pos',{pos:esc({'top-left':i18t('set_pos_top_left'),'top-center':i18t('set_pos_top_center'),'top-right':i18t('set_pos_top_right'),footer:i18t('set_pos_footer')}[ob.logoPosition]||ob.logoPosition||'—')})}</div>`
           :`<div style="font-size:12px;color:var(--color-neutral-600)">${i18t('set_no_design')}</div>`}
         </div>
@@ -2012,9 +2012,9 @@ const SET_PANELS={
              ticked because that is what somebody adding an address means. */}
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:5px;margin-bottom:9px">
         ${(state.webhookEvents||['contract.signed','round.received','obligation.due','intake.requested']).map(ev=>
-          `<label style="display:flex;align-items:center;gap:7px;font-size:11.5px">
+          `<label style="display:flex;align-items:center;gap:7px;font-size:12px">
             <input type="checkbox" data-wh-ev="${esc(ev)}" checked style="width:14px;height:14px;accent-color:var(--color-accent)"/>
-            <span style="font-family:var(--font-mono);font-size:10.5px">${esc(ev)}</span></label>`).join('')}
+            <span style="font-family:var(--font-mono);font-size:11px">${esc(ev)}</span></label>`).join('')}
       </div>
       <div style="display:flex;justify-content:flex-end">
         <button id="wh-add" style="${ST_BTN_SM}">${i18t('st_hooks_add')}</button>
@@ -2484,7 +2484,7 @@ function stEngineBodyHtml(){
     <div class="st-sec">
       <div style="font-size:12px;font-weight:600;color:var(--color-text)">${i18t('set_spend_controls')}</div>
       <p class="st-note">${i18t('set_spend_governed')} ${i18t('set_spend_money')}</p>
-      <div id="ai-usage" style="font-size:11.5px;color:var(--color-neutral-700);margin:6px 0 4px">${i18t('set_today_dash')}</div>
+      <div id="ai-usage" style="font-size:12px;color:var(--color-neutral-700);margin:6px 0 4px">${i18t('set_today_dash')}</div>
       <div style="height:6px;background:var(--color-neutral-200);border-radius:0;overflow:hidden;margin-bottom:8px"><div id="ai-usage-bar" style="width:0%;height:100%;background:var(--color-accent);transition:width .3s"></div></div>
       <div id="ai-spend-breakdown" style="margin-bottom:10px"></div>
       ${''/* ---- AND THE SAME MONEY BY PERSON ----
@@ -2521,15 +2521,15 @@ function stEngineBodyHtml(){
     <div class="st-sec">
       <div style="font-size:12px;font-weight:600;color:var(--color-text)">${i18t('set_onboarding_allowance')}</div>
       <p class="st-note">${i18t('set_allowance_sub')}</p>
-      <div id="ai-allowance-state" style="font-size:11.5px;color:var(--color-neutral-700);margin:6px 0">—</div>
+      <div id="ai-allowance-state" style="font-size:12px;color:var(--color-neutral-700);margin:6px 0">—</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">
         ${stLimitField('ai-allow-budget',i18t('set_lim_allow_budget'),i18t('set_lim_allow_budget_sub'),0)}
         ${stLimitField('ai-allow-docs',i18t('set_lim_allow_docs'),i18t('set_lim_allow_docs_sub'),0)}
       </div>
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
         <button id="ai-allow-open" style="${ST_BTN_SM}">${i18t('set_open_allowance')}</button>
-        <button id="ai-allow-topup" style="${ST_BTN2};font-size:11.5px;padding:5px 10px">${i18t('set_top_up')}</button>
-        <button id="ai-allow-close" style="${ST_BTN2};font-size:11.5px;padding:5px 10px">${i18t('act_close')}</button>
+        <button id="ai-allow-topup" style="${ST_BTN2};font-size:12px;padding:5px 10px">${i18t('set_top_up')}</button>
+        <button id="ai-allow-close" style="${ST_BTN2};font-size:12px;padding:5px 10px">${i18t('act_close')}</button>
       </div>
     </div>
 
@@ -2542,7 +2542,7 @@ function stEngineBodyHtml(){
       <div id="ai-rates-table" style="max-height:220px;overflow-y:auto" class="scroll-thin"></div>
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
         <button id="ai-rates-save" style="${ST_BTN_SM}">${i18t('set_save_rates')}</button>
-        <button id="ai-rates-reset" style="${ST_BTN2};font-size:11.5px;padding:5px 10px">${i18t('set_reset_defaults')}</button>
+        <button id="ai-rates-reset" style="${ST_BTN2};font-size:12px;padding:5px 10px">${i18t('set_reset_defaults')}</button>
       </div>
     </div>
 
@@ -2609,7 +2609,7 @@ function stWireEngine(){
             <span style="color:var(--color-neutral-500);font-family:var(--font-mono);font-size:10px">${Number(r.requests||0).toLocaleString(jxLocale())} req</span>
             <span style="font-family:var(--font-mono);font-weight:600;min-width:62px;text-align:right">${'$'+Number(r.cost||0).toFixed(4)}</span>
           </div>`).join('')}</div>`
-          :`<div style="font-size:10.5px;color:var(--color-neutral-500)">${i18t('set_no_spend')}</div>`;
+          :`<div style="font-size:11px;color:var(--color-neutral-500)">${i18t('set_no_spend')}</div>`;
       }
       const pHost=document.getElementById('ai-spend-people');
       if(pHost){
@@ -2625,14 +2625,14 @@ function stWireEngine(){
               <span style="color:var(--color-neutral-500);font-family:var(--font-mono);font-size:10px">${Number(p.requests||0).toLocaleString(jxLocale())} req</span>
               <span style="font-family:var(--font-mono);font-weight:600;min-width:62px;text-align:right">${'$'+Number(p.cost||0).toFixed(4)}</span>
             </div>`).join('')}</div>`
-          :`<div style="font-size:10.5px;color:var(--color-neutral-500)">${esc(i18t('set_spend_people_none'))}</div>`}
+          :`<div style="font-size:11px;color:var(--color-neutral-500)">${esc(i18t('set_spend_people_none'))}</div>`}
           ${''/* THE GAP IS A FIGURE, NOT A DISCOVERY. Anything running outside
                  a signed-in request counts toward the workspace total and
                  against nobody, so the two lists need not agree — and an admin
                  must not have to subtract to find that out. Drawn only when
                  there IS a gap; an always-on "$0.0000 not attributed" is
                  furniture. */}
-          ${un>0.000001?`<div style="font-size:10.5px;color:var(--st-amber-fg);margin-top:4px">${
+          ${un>0.000001?`<div style="font-size:11px;color:var(--st-amber-fg);margin-top:4px">${
             esc(i18t('set_spend_unattributed',{amount:'$'+un.toFixed(4)}))}</div>`:''}
           <div style="font-size:10px;color:var(--color-neutral-500);line-height:1.5;margin-top:5px">${
             esc(i18t('set_spend_people_note'))}</div>`;
@@ -2851,7 +2851,7 @@ function stLoadActivation(){
               <div style="font-size:10px;font-family:var(--font-mono);color:var(--color-neutral-600);margin-top:3px">${e?`${fmtDT(e.first)} · ${e.count}×`:i18t('set_not_yet')}</div>
             </div>`; }).join('')}
         </div>
-        <div style="font-size:11.5px;line-height:1.5;color:${r.northStar.withinSevenDays===true?'var(--st-green-fg)':r.northStar.withinSevenDays===false?'var(--st-amber-fg)':'var(--color-neutral-700)'}">
+        <div style="font-size:12px;line-height:1.5;color:${r.northStar.withinSevenDays===true?'var(--st-green-fg)':r.northStar.withinSevenDays===false?'var(--st-amber-fg)':'var(--color-neutral-700)'}">
           ${r.northStar.firstSendDays==null
             ? i18t('set_north_star_none')
             : r.northStar.withinSevenDays
@@ -2930,7 +2930,7 @@ function renderPrecedentPanel(){
   const mayAdopt=isAdmin()||currentUser()?.role==='legal';
   host.innerHTML=`
     <div style="border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);padding:12px 14px">
-      <h4 style="margin:0 0 3px;font-size:12.5px;font-weight:700;font-family:var(--font-heading)">${esc(i18t('pc_title'))}</h4>
+      <h4 style="margin:0 0 3px;font-size:13px;font-weight:700;font-family:var(--font-heading)">${esc(i18t('pc_title'))}</h4>
       <p class="st-note" style="margin:0 0 9px">${esc(i18t('pc_sub'))}</p>
       ${sug.map(x=>`
         <div style="border-top:1px solid var(--color-divider);padding:9px 0 3px">
@@ -2976,8 +2976,8 @@ function renderClauseLibrary(){
   host.innerHTML=lib.map((cl,i)=>`
     <div style="border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);padding:11px 13px">
       <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:9.5px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;color:var(--color-neutral-500)">${cl.category}</span>
-        <span style="font-size:12.5px;font-weight:600;color:var(--color-text)">${cl.name}</span>
+        <span style="font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;color:var(--color-neutral-500)">${cl.category}</span>
+        <span style="font-size:13px;font-weight:600;color:var(--color-text)">${cl.name}</span>
         ${canEditLib?`<span style="margin-left:auto;display:flex;gap:10px;font-size:11px;font-weight:600">
           <button data-cl-edit="${i}" style="background:none;border:0;cursor:pointer;color:var(--color-accent-700)">${i18t('set_edit_lower')}</button>
           <button data-cl-del="${i}" style="background:none;border:0;cursor:pointer;color:var(--st-ruby-dot)">${i18t('set_remove_lower')}</button></span>`:''}
@@ -2996,9 +2996,9 @@ const PB_ATTR = s => String(s==null?'':s).replace(/"/g,'&quot;');
 // position chip — red for required/forbidden, steel for preferred; ⚑ = escalate
 function pbPosChip(pos){
   const hard=pos.pos==='required'||pos.pos==='forbidden';
-  return `<span style="font-size:9.5px;font-family:var(--font-mono);border-radius:0;padding:2px 9px;${hard?'background:var(--st-ruby-bg);color:var(--st-ruby-fg)':'background:var(--st-steel-bg);color:var(--st-steel-fg)'}">${PB_ESC(pos.category)}${pos.escalate?' ⚑':''}</span>`;
+  return `<span style="font-size:10px;font-family:var(--font-mono);border-radius:0;padding:2px 9px;${hard?'background:var(--st-ruby-bg);color:var(--st-ruby-fg)':'background:var(--st-steel-bg);color:var(--st-steel-fg)'}">${PB_ESC(pos.category)}${pos.escalate?' ⚑':''}</span>`;
 }
-const pbRangeChip = rg => `<span style="font-size:9.5px;font-family:var(--font-mono);border-radius:0;padding:2px 9px;background:var(--st-amber-bg);color:var(--st-amber-fg)">${PB_ESC(rg.label)} ${rg.op} ${rg.value}${rg.escalate?' ⚑':''}</span>`;
+const pbRangeChip = rg => `<span style="font-size:10px;font-family:var(--font-mono);border-radius:0;padding:2px 9px;background:var(--st-amber-bg);color:var(--st-amber-fg)">${PB_ESC(rg.label)} ${rg.op} ${rg.value}${rg.escalate?' ⚑':''}</span>`;
 function renderPlaybookView(){
   const pv=document.getElementById('playbook-view'); if(!pv) return;
   const canEditPb=isAdmin()||currentUser()?.role==='legal';
@@ -3007,8 +3007,8 @@ function renderPlaybookView(){
   const card=(key,label,positions,ranges,removable,baseline)=>`
     <div style="margin-bottom:${baseline?'12px':'8px'};border:1px solid ${baseline?'var(--color-accent-300)':'var(--color-divider)'};border-left:3px solid ${baseline?'var(--color-accent)':'var(--color-divider)'};border-radius:0;background:${baseline?'var(--color-accent-100)':'var(--color-surface)'};padding:${baseline?'11px 13px':'10px 12px'}">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:${baseline?'2px':'6px'}">
-        <span style="font-size:11.5px;font-weight:${baseline?700:600};color:${baseline?'var(--color-accent-900)':'var(--color-text)'}">${PB_ESC(label)}</span>
-        ${baseline?`<span style="font-size:8.5px;font-family:var(--font-mono);letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:#fff;background:var(--color-accent);border-radius:0;padding:2px 8px">${i18t('set_applies_all')}</span>`:''}
+        <span style="font-size:12px;font-weight:${baseline?700:600};color:${baseline?'var(--color-accent-900)':'var(--color-text)'}">${PB_ESC(label)}</span>
+        ${baseline?`<span style="font-size:9px;font-family:var(--font-mono);letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:#fff;background:var(--color-accent);border-radius:0;padding:2px 8px">${i18t('set_applies_all')}</span>`:''}
         ${canEditPb?`<span style="margin-left:auto;display:flex;gap:10px;font-size:11px;font-weight:600">
           <button data-pb-edit="${key}" style="background:none;border:0;cursor:pointer;color:var(--color-accent-700)">${i18t('set_edit_lower')}</button>
           ${removable?`<button data-pb-del="${key}" style="background:none;border:0;cursor:pointer;color:var(--st-ruby-dot)">${i18t('set_remove_lower')}</button>`:''}
@@ -3053,14 +3053,14 @@ function openPlaybookEditor(key){
   const e=pb[key]; e.positions=e.positions||[]; e.ranges=e.ranges||[]; e.match=e.match||[];
   const inherited=(!isBase)?resolvePlaybook('_default'):null;
   const POS=[['required',i18t('set_pos_required')],['preferred',i18t('set_pos_preferred')],['forbidden',i18t('set_pos_forbidden')]];
-  const inp='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:6px 8px;font:inherit;font-size:12.5px;color:inherit;outline:none';
+  const inp='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:6px 8px;font:inherit;font-size:13px;color:inherit;outline:none';
   openModal(`<div style="padding:20px 22px">
     <h3 style="font-family:var(--font-heading);font-weight:600;font-size:16px;margin:0 0 12px">${isNew?i18t('set_add_contract_type'):isBase?i18t('set_edit_baseline'):i18t('set_edit_playbook_for',{label:PB_ESC(e.label||key)})}</h3>
     <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-text);margin-bottom:3px">${isBase?i18t('set_name'):i18t('set_type_name')}</span>
       <input id="pb-f-label" value="${PB_ATTR(e.label||'')}" placeholder="${isBase?esc(i18t('set_ph_baseline')):esc(i18t('set_ph_eg_distribution'))}" style="${inp}"></label>
     ${!isBase?`<label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-text);margin-bottom:3px">${i18t('set_applies_matching')} <span style="font-weight:400;color:var(--color-neutral-500)">${i18t('set_comma_keywords')}</span></span>
       <input id="pb-f-match" value="${PB_ATTR(e.match.join(', '))}" placeholder="${esc(i18t('set_ph_eg_keywords'))}" style="${inp}"></label>
-    <div style="font-size:10.5px;color:var(--color-neutral-600);background:var(--color-bg);border:1px solid var(--color-divider);border-radius:0;padding:7px 9px;margin-bottom:12px">${i18t('set_inherited_baseline')} <span style="display:inline-flex;flex-wrap:wrap;gap:4px;vertical-align:middle">${inherited.positions.map(pbPosChip).join('')}${inherited.ranges.map(pbRangeChip).join('')}</span></div>`:''}
+    <div style="font-size:11px;color:var(--color-neutral-600);background:var(--color-bg);border:1px solid var(--color-divider);border-radius:0;padding:7px 9px;margin-bottom:12px">${i18t('set_inherited_baseline')} <span style="display:inline-flex;flex-wrap:wrap;gap:4px;vertical-align:middle">${inherited.positions.map(pbPosChip).join('')}${inherited.ranges.map(pbRangeChip).join('')}</span></div>`:''}
 
     <div style="display:flex;align-items:center;margin:0 0 6px"><span style="font-size:11px;font-weight:600;color:var(--color-text)">${isBase?i18t('set_positions'):i18t('set_positions_for_type')}</span><button id="pb-add-pos" style="margin-left:auto;font-size:11px;font-weight:600;color:var(--color-accent-700);background:none;border:0;cursor:pointer">${i18t('set_add_position')}</button></div>
     <div id="pb-pos-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px"></div>
@@ -3075,14 +3075,14 @@ function openPlaybookEditor(key){
   </div>`, {maxWidth:'34rem'});
 
   const seg=(i)=>POS.map(([v,l])=>{ const on=e.positions[i].pos===v; const hard=v==='required'||v==='forbidden';
-    return `<button data-pb-pos="${i}" data-v="${v}" style="font-size:10.5px;font-weight:600;border:1px solid ${on?(hard?'var(--st-ruby-line)':'var(--color-accent)'):'var(--color-divider)'};background:${on?(hard?'var(--st-ruby-bg)':'var(--color-accent-100)'):'var(--color-surface)'};color:${on?(hard?'var(--st-ruby-fg)':'var(--color-accent-800)'):'var(--color-neutral-600)'};padding:4px 9px;border-radius:0;cursor:pointer">${l}</button>`; }).join('');
+    return `<button data-pb-pos="${i}" data-v="${v}" style="font-size:11px;font-weight:600;border:1px solid ${on?(hard?'var(--st-ruby-line)':'var(--color-accent)'):'var(--color-divider)'};background:${on?(hard?'var(--st-ruby-bg)':'var(--color-accent-100)'):'var(--color-surface)'};color:${on?(hard?'var(--st-ruby-fg)':'var(--color-accent-800)'):'var(--color-neutral-600)'};padding:4px 9px;border-radius:0;cursor:pointer">${l}</button>`; }).join('');
   const paint=()=>{
     const pl=document.getElementById('pb-pos-list');
     pl.innerHTML=e.positions.length?e.positions.map((p,i)=>`
       <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;border:1px solid var(--color-divider);border-radius:0;padding:7px 8px;background:var(--color-bg)">
         <input data-pb-cat="${i}" value="${PB_ATTR(p.category||'')}" placeholder="${esc(i18t('set_ph_category'))}" style="flex:1;min-width:150px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:5px 7px;font:inherit;font-size:12px;outline:none">
         <span style="display:inline-flex;gap:3px">${seg(i)}</span>
-        <label style="display:inline-flex;align-items:center;gap:4px;font-size:10.5px;color:var(--color-neutral-700);white-space:nowrap"><input type="checkbox" data-pb-esc="${i}" ${p.escalate?'checked':''} style="accent-color:var(--color-accent)">${i18t('set_flag_legal')}</label>
+        <label style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--color-neutral-700);white-space:nowrap"><input type="checkbox" data-pb-esc="${i}" ${p.escalate?'checked':''} style="accent-color:var(--color-accent)">${i18t('set_flag_legal')}</label>
         <button data-pb-rmpos="${i}" title="${i18t('act_remove')}" style="background:none;border:0;cursor:pointer;color:var(--color-neutral-500);font-size:15px;line-height:1;padding:0 2px">×</button>
       </div>`).join(''):`<p style="font-size:11px;color:var(--color-neutral-500);margin:0">${isBase?i18t('set_no_specific_positions'):i18t('set_no_specific_inherits')}</p>`;
     const rl=document.getElementById('pb-rng-list');
@@ -3091,7 +3091,7 @@ function openPlaybookEditor(key){
         <input data-pb-rlabel="${i}" value="${PB_ATTR(r.label||'')}" placeholder="${esc(i18t('set_ph_label_payment'))}" style="flex:1;min-width:120px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:5px 7px;font:inherit;font-size:12px;outline:none">
         <select data-pb-rop="${i}" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:5px 6px;font:inherit;font-size:12px;cursor:pointer"><option value="<=" ${r.op==='<='?'selected':''}>≤</option><option value=">=" ${r.op==='>='?'selected':''}>≥</option></select>
         <input data-pb-rval="${i}" type="number" value="${r.value}" style="width:74px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:5px 7px;font:inherit;font-size:12px;outline:none">
-        <label style="display:inline-flex;align-items:center;gap:4px;font-size:10.5px;color:var(--color-neutral-700);white-space:nowrap"><input type="checkbox" data-pb-resc="${i}" ${r.escalate?'checked':''} style="accent-color:var(--color-accent)">${i18t('set_flag_legal')}</label>
+        <label style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--color-neutral-700);white-space:nowrap"><input type="checkbox" data-pb-resc="${i}" ${r.escalate?'checked':''} style="accent-color:var(--color-accent)">${i18t('set_flag_legal')}</label>
         <button data-pb-rmrng="${i}" title="${i18t('act_remove')}" style="background:none;border:0;cursor:pointer;color:var(--color-neutral-500);font-size:15px;line-height:1;padding:0 2px">×</button>
       </div>`).join(''):`<p style="font-size:11px;color:var(--color-neutral-500);margin:0">${i18t('set_no_numeric_limits')}</p>`;
     // wire row inputs → live working copy

@@ -136,7 +136,7 @@ function templateBrandingHeaderHtml(c, opts) {
     ${logoOk ? `<img src="${b.logoUrl}" alt="" style="max-height:52px;max-width:160px;flex:none">` : ''}
     <div style="min-width:0;flex:1">
       ${b.companyName ? `<div style="font-family:var(--font-heading,inherit);font-weight:700;font-size:15px">${TPLFORM_ESC(b.companyName)}</div>` : ''}
-      ${b.registrationNumber || b.address ? `<div style="font-size:10.5px;color:var(--color-doc-muted,#6b6f76);line-height:1.45">${[b.registrationNumber, b.address].filter(Boolean).map(TPLFORM_ESC).join(' · ')}</div>` : ''}
+      ${b.registrationNumber || b.address ? `<div style="font-size:11px;color:var(--color-doc-muted,#6b6f76);line-height:1.45">${[b.registrationNumber, b.address].filter(Boolean).map(TPLFORM_ESC).join(' · ')}</div>` : ''}
     </div>
   </div>`;
 }
@@ -147,7 +147,7 @@ function templateBrandingFooterHtml(c) {
   }
   const b = c && c.branding;
   if (!c || !c.templateForm || !b || !b.footerText) return '';
-  return `<div style="margin-top:22px;padding-top:10px;border-top:1px solid var(--color-doc-rule,#d8d5cd);font-size:9.5px;color:var(--color-doc-muted,#6b6f76);text-align:center">${TPLFORM_ESC(b.footerText)}</div>`;
+  return `<div style="margin-top:22px;padding-top:10px;border-top:1px solid var(--color-doc-rule,#d8d5cd);font-size:10px;color:var(--color-doc-muted,#6b6f76);text-align:center">${TPLFORM_ESC(b.footerText)}</div>`;
 }
 
 if (typeof module !== 'undefined' && module.exports)

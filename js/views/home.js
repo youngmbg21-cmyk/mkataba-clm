@@ -106,7 +106,7 @@ function openKpiCustomizer(anchor){
     const on=sel.includes(id), shut=full&&!on;
     return `
     <label ${shut?`title="${esc(i18t('home_max_metrics',{max:KPI_MAX}))}"`:''}
-      style="display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:0;font-size:12.5px;${
+      style="display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:0;font-size:13px;${
         shut?'cursor:default;opacity:.45;':'cursor:pointer;'}"${
         shut?'':` onmouseover="this.style.background='color-mix(in srgb,var(--color-accent) 9%,transparent)'" onmouseout="this.style.background='none'"`}>
       <input type="checkbox" data-kpi-toggle="${id}" ${on?'checked':''} ${shut?'disabled':''} style="width:15px;height:15px;accent-color:var(--color-accent);flex:none;"/>
@@ -118,11 +118,11 @@ function openKpiCustomizer(anchor){
       <span style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);font-weight:700;">${i18t('home_show_metrics')}</span>
       ${''/* The count is the rule, stated without being pressed: a reader who
              sees "4 of 4" never has to discover the ceiling by hitting it. */}
-      <span id="kpi-cust-count" style="font-size:10.5px;font-weight:700;font-variant-numeric:tabular-nums;color:${full?'var(--color-accent-700)':'var(--color-neutral-500)'};">${i18t('home_metrics_count',{n:sel.length,max:KPI_MAX})}</span>
+      <span id="kpi-cust-count" style="font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;color:${full?'var(--color-accent-700)':'var(--color-neutral-500)'};">${i18t('home_metrics_count',{n:sel.length,max:KPI_MAX})}</span>
     </div>
     ${kpiCatalogOrder().map(row).join('')}
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid var(--color-divider);margin-top:6px;padding:8px 8px 4px;">
-      <span style="font-size:10.5px;color:var(--color-neutral-500);">${full?esc(i18t('home_max_metrics',{max:KPI_MAX})):i18t('home_drag_reorder')}</span>
+      <span style="font-size:11px;color:var(--color-neutral-500);">${full?esc(i18t('home_max_metrics',{max:KPI_MAX})):i18t('home_drag_reorder')}</span>
       <button data-kpi-reset style="border:0;background:none;color:var(--color-accent-700);font-weight:600;font-size:11px;cursor:pointer;padding:0;flex:none;">${i18t('home_reset')}</button>
     </div>`;
   anchor.parentElement.style.position='relative';
@@ -181,9 +181,9 @@ function readyToSignRowsHtml(items){
         <button data-sel="${esc(r.c.id)}" style="display:flex;align-items:flex-start;gap:9px;width:100%;padding:7px 4px;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
           <span style="flex:1;min-width:0">
             <span style="display:block;font-size:12px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.c.name)}</span>
-            <span style="display:block;font-size:10.5px;color:var(--color-neutral-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.sig.by||r.c.counterparty||'They')} signalled ready — nothing is signed yet</span>
+            <span style="display:block;font-size:11px;color:var(--color-neutral-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.sig.by||r.c.counterparty||'They')} signalled ready — nothing is signed yet</span>
           </span>
-          <span style="font-size:10.5px;font-weight:600;font-family:var(--font-mono);color:var(--st-green-fg);flex:none">issue link</span>
+          <span style="font-size:11px;font-weight:600;font-family:var(--font-mono);color:var(--st-green-fg);flex:none">issue link</span>
         </button>`).join('')}
     </div>`;
 }
@@ -259,10 +259,10 @@ function gettingStartedHtml(){
     const tone=s.done?'var(--color-neutral-500)':isCur?'var(--color-text)':'var(--color-neutral-500)';
     const body=`${dot}
       <span style="min-width:0;flex:1">
-        <span style="display:block;font-size:12.5px;font-weight:600;color:${tone};${s.done?'text-decoration:line-through;text-decoration-color:var(--color-neutral-400);':''}">${s.t}</span>
+        <span style="display:block;font-size:13px;font-weight:600;color:${tone};${s.done?'text-decoration:line-through;text-decoration-color:var(--color-neutral-400);':''}">${s.t}</span>
         ${isCur?`<span style="display:block;font-size:11px;color:var(--color-neutral-600);line-height:1.45">${s.d}</span>`:''}
       </span>
-      ${isCur&&(s.k!=='sign'||gsGoTargetExists(s.k))?`<span style="flex:none;font-size:11.5px;font-weight:600;color:var(--color-accent-700)">${i18t('home_go')}</span>`:''}`;
+      ${isCur&&(s.k!=='sign'||gsGoTargetExists(s.k))?`<span style="flex:none;font-size:12px;font-weight:600;color:var(--color-accent-700)">${i18t('home_go')}</span>`:''}`;
     /* The whole current row is the button — a target the size of the step,
        not a link the size of an arrow. */
     return isCur&&(s.k!=='sign'||gsGoTargetExists(s.k))
@@ -272,7 +272,7 @@ function gettingStartedHtml(){
   return `
     <section id="gs-card" style="border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);padding:16px 18px 14px;">
       <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:8px">
-        <h2 style="margin:0;font-family:var(--font-heading);font-weight:700;font-size:14.5px;color:var(--color-text)">${all?'You’re set up — first contract signed ⚡':'Getting started'}</h2>
+        <h2 style="margin:0;font-family:var(--font-heading);font-weight:700;font-size:15px;color:var(--color-text)">${all?'You’re set up — first contract signed ⚡':'Getting started'}</h2>
         <span style="font-size:11px;color:var(--color-neutral-600);font-family:var(--font-mono)">${done} of ${steps.length} done</span>
         <span style="flex:1"></span>
         <button id="gs-dismiss" class="ui-btn" title="${i18t('home_hide_checklist')}" style="font-size:11px;padding:3px 10px">${all?'Done — hide this':'Hide'}</button>
@@ -496,10 +496,10 @@ function emailSetupLineHtml(){
   if(typeof emailOff!=='function' || !emailOff()) return '';
   const admin=(typeof isAdmin==='function')&&isAdmin();
   return `
-    <div id="email-setup-banner" style="display:flex;align-items:center;gap:9px;padding:8px 13px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:0;font-size:11.5px;color:var(--st-amber-fg);line-height:1.45;">
+    <div id="email-setup-banner" style="display:flex;align-items:center;gap:9px;padding:8px 13px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:0;font-size:12px;color:var(--st-amber-fg);line-height:1.45;">
       <span style="flex:none;display:inline-flex;color:var(--st-amber-dot);">${icon('alert','w-3.5 h-3.5')}</span>
       <span style="flex:1;min-width:0;">${i18t('home_email_not_setup')}</span>
-      ${admin?`<button id="email-setup-go" style="flex:none;border:0;background:none;padding:0;font:inherit;font-size:11.5px;font-weight:700;color:var(--st-amber-fg);cursor:pointer;text-decoration:underline;text-underline-offset:2px;">${i18t('home_set_it_up')}</button>`:''}
+      ${admin?`<button id="email-setup-go" style="flex:none;border:0;background:none;padding:0;font:inherit;font-size:12px;font-weight:700;color:var(--st-amber-fg);cursor:pointer;text-decoration:underline;text-underline-offset:2px;">${i18t('home_set_it_up')}</button>`:''}
     </div>`;
 }
 
@@ -534,7 +534,7 @@ function renderDashboard(){
   const TONE_EDGE={steel:'var(--color-accent-600)',emerald:'var(--st-green-dot)',amber:'var(--st-amber-dot)',ruby:'var(--st-ruby-dot)'};
   const kpiCard=id=>{ const k=KPI_CATALOG[id], t=TONE_OF(k.grad); return `
     <button data-kpi-id="${id}" draggable="true" class="hati-stat" style="position:relative;display:flex;flex-direction:column;gap:7px;align-items:stretch;border:1px solid var(--color-divider);border-top:3px solid ${TONE_EDGE[t]};border-radius:0;background:var(--color-surface);padding:12px 14px;font:inherit;color:inherit;cursor:grab;text-align:left;box-shadow:none;transition:transform .2s var(--ease),opacity .15s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
-      <span style="display:block;font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;line-height:1.3;color:var(--color-neutral-500);">${k.label}</span>
+      <span style="display:block;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;line-height:1.3;color:var(--color-neutral-500);">${k.label}</span>
       <span style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;">
         <span class="tnum" style="font-family:var(--font-mono);font-weight:300;font-size:clamp(20px,17px + 0.45vw,28px);line-height:1.1;letter-spacing:-.02em;color:var(--color-text);">${k.val}</span>
         <span style="font-size:11px;font-weight:600;color:${TONE_FG[t]};text-align:right;">${k.delta}</span>
@@ -816,13 +816,13 @@ function renderDashboard(){
       <span style="width:30px;height:30px;flex:none;border-radius:50%;background:${bg};color:${fg};display:grid;place-items:center;">${icon(it.ic,'w-3.5 h-3.5',1.8)}</span>
       <span style="flex:1;min-width:0;">
         <span style="display:flex;align-items:baseline;gap:8px;">
-          <span style="flex:1;min-width:0;font-size:11.5px;line-height:1.4;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${it.txt}</span>
+          <span style="flex:1;min-width:0;font-size:12px;line-height:1.4;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${it.txt}</span>
           <span style="flex:none;font-size:10px;font-weight:600;font-family:var(--font-mono);color:${fg};">${esc(it.tag)}</span>
         </span>
         <span style="display:block;margin-top:2px;font-size:10px;color:var(--color-neutral-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${it.meta}</span>
       </span>
     </button>`; }).join('')
-    || `<div style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--color-neutral-500);padding:12px 2px;"><span style="color:var(--st-green-fg);display:inline-flex;">${icon('check2','w-4 h-4')}</span>${i18t('home_nothing_to_decide')}</div>`;
+    || `<div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--color-neutral-500);padding:12px 2px;"><span style="color:var(--st-green-fg);display:inline-flex;">${icon('check2','w-4 h-4')}</span>${i18t('home_nothing_to_decide')}</div>`;
   /* The footer link has to lead where the rows actually live, and this card
      holds two different kinds of item. A renewal decision is a date, so the
      calendar is its home; a contract sitting in review is not on any calendar —
@@ -873,19 +873,19 @@ function renderDashboard(){
   const firstRunBanner = countAll===0 ? `
     <section style="border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);padding:22px 22px 20px;">
       <h2 style="margin:0 0 4px;font-family:var(--font-heading);font-weight:700;font-size:19px;color:var(--color-text);">${i18t('home_welcome')}</h2>
-      <p style="margin:0 0 16px;font-size:12.5px;color:var(--color-neutral-600);max-width:64ch;line-height:1.55;">${i18t('home_welcome_sub')}</p>
+      <p style="margin:0 0 16px;font-size:13px;color:var(--color-neutral-600);max-width:64ch;line-height:1.55;">${i18t('home_welcome_sub')}</p>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;">
         <button id="fr-draft" style="text-align:left;border:1px solid var(--color-divider);border-radius:0;background:var(--color-bg);padding:15px;cursor:pointer;font:inherit;">
           <div style="font-weight:700;font-size:13px;color:var(--color-text);margin-bottom:3px;">${i18t('home_draft_contract')}</div>
-          <div style="font-size:11.5px;color:var(--color-neutral-600);line-height:1.5;">Fill in the blanks on a ${regionNow} template — the register, filters and reminders populate as you type.</div>
+          <div style="font-size:12px;color:var(--color-neutral-600);line-height:1.5;">Fill in the blanks on a ${regionNow} template — the register, filters and reminders populate as you type.</div>
         </button>
         <button id="fr-import" style="text-align:left;border:1px solid var(--color-divider);border-radius:0;background:var(--color-bg);padding:15px;cursor:pointer;font:inherit;">
           <div style="font-weight:700;font-size:13px;color:var(--color-text);margin-bottom:3px;">${i18t('home_import_existing')}</div>
-          <div style="font-size:11.5px;color:var(--color-neutral-600);line-height:1.5;">${i18t('home_import_sub')}</div>
+          <div style="font-size:12px;color:var(--color-neutral-600);line-height:1.5;">${i18t('home_import_sub')}</div>
         </button>
         <button id="fr-explore" style="text-align:left;border:1px solid var(--color-divider);border-radius:0;background:var(--color-bg);padding:15px;cursor:pointer;font:inherit;">
           <div style="font-weight:700;font-size:13px;color:var(--color-text);margin-bottom:3px;">${i18t('home_explore_register')}</div>
-          <div style="font-size:11.5px;color:var(--color-neutral-600);line-height:1.5;">${i18t('home_explore_sub')}</div>
+          <div style="font-size:12px;color:var(--color-neutral-600);line-height:1.5;">${i18t('home_explore_sub')}</div>
         </button>
       </div>
     </section>` : '';

@@ -89,7 +89,7 @@ const PF_CARD='background:var(--color-surface);border:1px solid var(--color-divi
 const PF_H='display:flex;align-items:baseline;gap:8px;margin-bottom:9px;flex-wrap:wrap';
 const PF_TITLE='font-size:13px;font-weight:700;letter-spacing:-.01em';
 const PF_HINT='font-size:11px;color:var(--color-neutral-600)';
-const PF_FOOT='margin-top:auto;padding-top:10px;font-size:10.5px;line-height:1.5;color:var(--color-neutral-600)';
+const PF_FOOT='margin-top:auto;padding-top:10px;font-size:11px;line-height:1.5;color:var(--color-neutral-600)';
 const pfCard=(title,hint,body,foot)=>`<div style="${PF_CARD}">
   <div style="${PF_H}"><span style="${PF_TITLE}">${title}</span>${hint?`<span style="${PF_HINT}">${hint}</span>`:''}</div>
   <div style="flex:1 1 auto;min-height:0;display:flex;flex-direction:column;justify-content:center">${body}</div>
@@ -101,7 +101,7 @@ function pfChipsHtml(){
   if(F.cp) chips.push({k:'cp', l:F.cp});
   if(!chips.length) return '';
   return `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
-    <span style="font-size:10.5px;color:var(--color-neutral-600)">${i18t('pf_focused_on')}</span>
+    <span style="font-size:11px;color:var(--color-neutral-600)">${i18t('pf_focused_on')}</span>
     ${chips.map(c=>`<button data-pf-unfilter="${c.k}" style="display:inline-flex;align-items:center;gap:6px;border:0;border-radius:0;padding:3px 10px;font:inherit;font-size:11px;font-weight:700;cursor:pointer;background:var(--color-accent);color:#fff">${pfEsc(c.l)} ✕</button>`).join('')}
     <button data-pf-clear style="border:0;background:none;cursor:pointer;font:inherit;font-size:11px;font-weight:600;color:var(--color-accent-700);text-decoration:underline">${i18t('reg_clear')}</button>
   </div>`;
@@ -135,9 +135,9 @@ function pfFigures(){
   if(!cand.length) cand.push({k:i18t('pf_carrying_finding'), v:'0', d:i18t('pf_nothing_flagged')});
 
   const tile=(k,v,d,hero)=>`<div style="${PF_CARD};padding:12px 14px;gap:1px${hero?';background:var(--brand-hero,var(--color-accent-700));border-color:transparent;color:#fff':''}">
-    <div style="font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:${hero?'var(--brand-hero-sub,#bde7e1)':'var(--color-neutral-600)'}">${k}</div>
+    <div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:${hero?'var(--brand-hero-sub,#bde7e1)':'var(--color-neutral-600)'}">${k}</div>
     <div style="font-family:var(--font-heading);font-size:22px;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1.2">${v}</div>
-    <div style="font-size:10.5px;color:${hero?'var(--brand-hero-sub,#bde7e1)':'var(--color-neutral-600)'}">${d}</div></div>`;
+    <div style="font-size:11px;color:${hero?'var(--brand-hero-sub,#bde7e1)':'var(--color-neutral-600)'}">${d}</div></div>`;
 
   const heroLabel = pfMoneyOk() ? i18t('pf_contracted_value') : i18t('pf_contracts_live');
   const heroValue = pfMoneyOk() ? pfMoney(pfSum(rs)) : String(rs.length);
@@ -259,7 +259,7 @@ function pfBiggest(){
   if(!keys.length) return pfCard(i18t('pf_biggest'),'',
     `<div style="font-size:12px;color:var(--color-neutral-600);padding:10px 0">${i18t('pf_nothing_here')}</div>`,'');
   const max=per.get(keys[0]).v||1;
-  const th='text-align:left;font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--color-neutral-600);padding:5px 8px;border-bottom:1px solid var(--color-divider);white-space:nowrap';
+  const th='text-align:left;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--color-neutral-600);padding:5px 8px;border-bottom:1px solid var(--color-divider);white-space:nowrap';
   const td='padding:7px 8px;border-bottom:1px solid var(--color-divider);vertical-align:middle';
   const rows=keys.map(k=>{
     const e=per.get(k), sel=F.cp===k;
@@ -270,7 +270,7 @@ function pfBiggest(){
       <td style="${td};text-align:right;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap">${pfMoneyOk()?pfEsc(pfMoney(e.v)):e.n}</td>
       <td style="${td};text-align:right;white-space:nowrap">${e.find
         ? `<span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:0;background:var(--st-amber-bg);color:var(--st-amber-fg)">${e.find}</span>`
-        : `<span style="font-size:10.5px;color:var(--color-neutral-500)">—</span>`}</td></tr>`;
+        : `<span style="font-size:11px;color:var(--color-neutral-500)">—</span>`}</td></tr>`;
   }).join('');
   return pfCard(i18t('pf_biggest'),'',
     `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">
@@ -332,7 +332,7 @@ function pfReadout(){
   const dot=t=>t==='bad'?'var(--st-ruby-dot)':t==='warn'?'var(--st-amber-dot)':'var(--color-accent)';
   const body = L.length
     ? `<div style="display:flex;flex-direction:column;gap:8px">${L.slice(0,6).map(l=>
-        `<div style="display:flex;gap:9px;align-items:flex-start;font-size:12.5px;line-height:1.6">
+        `<div style="display:flex;gap:9px;align-items:flex-start;font-size:13px;line-height:1.6">
           <span style="flex:none;width:6px;height:6px;border-radius:50%;margin-top:7px;background:${dot(l.tone)}"></span>
           <span style="min-width:0">${l.t}</span></div>`).join('')}</div>`
     : `<div style="font-size:12px;color:var(--color-neutral-600);padding:10px 0">${i18t('pf_nothing_to_say')}</div>`;
@@ -350,7 +350,7 @@ function pfFindings(){
   items.sort((a,b)=>(PF_SEV_RANK[a.f.sev]??3)-(PF_SEV_RANK[b.f.sev]??3) || pfWeight(b.c)-pfWeight(a.c));
   const scanned=rs.filter(c=>!!c.scan).length;
   if(!items.length){
-    const body=`<div style="font-size:12.5px;color:var(--color-neutral-600);padding:10px 0;line-height:1.6">${
+    const body=`<div style="font-size:13px;color:var(--color-neutral-600);padding:10px 0;line-height:1.6">${
       scanned ? i18t('pf_clean_corner') : i18t('pf_none_reviewed')}</div>`;
     return pfCard(i18t('pf_needs_attention'),'',body,
       `${scanned} ${i18t('pf_of')} ${pfN(rs.length,'contracts')} ${i18t('pf_have_been_read')}`);
@@ -362,7 +362,7 @@ function pfFindings(){
   const body=`<div style="display:flex;flex-direction:column">${shown.map(({c,f})=>{
     const t=tone(f.sev);
     return `<button data-pf-open="${pfEsc(c.id)}" style="display:flex;gap:9px;align-items:flex-start;width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;padding:8px 2px;border-bottom:1px dashed var(--color-divider)">
-      <span style="flex:none;margin-top:2px;font-size:9.5px;font-weight:700;padding:1px 7px;border-radius:0;background:${t.bg};color:${t.fg};text-transform:uppercase;letter-spacing:.04em">${pfEsc(f.sev||'low')}</span>
+      <span style="flex:none;margin-top:2px;font-size:10px;font-weight:700;padding:1px 7px;border-radius:0;background:${t.bg};color:${t.fg};text-transform:uppercase;letter-spacing:.04em">${pfEsc(f.sev||'low')}</span>
       <span style="min-width:0;flex:1">
         <b style="display:block;font-size:12px;font-weight:700">${pfEsc(f.title||i18t('pf_a_finding'))}</b>
         <span style="font-size:11px;color:var(--color-neutral-600)">${pfEsc(c.name)}${pfWeight(c)>0?' · '+pfEsc(pfMoney(pfWeight(c))):''}</span></span>
@@ -398,7 +398,7 @@ function portfolioFrameHtml(){
   const nudge = uncounted.length ? `
     <div style="display:flex;gap:11px;align-items:flex-start;flex-wrap:wrap;margin-bottom:10px;padding:10px 13px;border-radius:0;background:var(--st-amber-bg);border:1px solid var(--st-amber-line);color:var(--st-amber-fg);font-size:12px;line-height:1.55">
       <span style="flex:1;min-width:220px"><b>${i18t('pf_uncounted_head',{n:uncounted.length})}</b> ${i18t('pf_uncounted_body')}</span>
-      ${(typeof canEdit!=='function'||canEdit())?`<button data-pf-fixcats style="flex:none;border:1px solid currentColor;background:none;color:inherit;border-radius:0;padding:5px 11px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer">${i18t('pf_uncounted_fix')}</button>`:''}
+      ${(typeof canEdit!=='function'||canEdit())?`<button data-pf-fixcats style="flex:none;border:1px solid currentColor;background:none;color:inherit;border-radius:0;padding:5px 11px;font:inherit;font-size:12px;font-weight:700;cursor:pointer">${i18t('pf_uncounted_fix')}</button>`:''}
     </div>` : '';
 
   return `<style>
@@ -418,7 +418,7 @@ function portfolioFrameHtml(){
     ${row(tail)}
     <div class="pf-grid">${pfBiggest()}</div>
     <div class="pf-grid pf-6-6">${pfReadout()}${pfFindings()}</div>
-    <div style="margin-top:2px;padding:9px 13px;border-radius:0;background:var(--color-neutral-100);font-size:10.5px;line-height:1.55;color:var(--color-neutral-600)">
+    <div style="margin-top:2px;padding:9px 13px;border-radius:0;background:var(--color-neutral-100);font-size:11px;line-height:1.55;color:var(--color-neutral-600)">
       ${i18t('pf_honesty_note')}
     </div>
   </div>`;
@@ -755,9 +755,9 @@ function pfMoneyHeld(){
         <td style="${td};font-weight:600">${pfEsc(r.name)}
           <div style="font-size:10px;color:var(--color-neutral-600);font-weight:400">${r.retentionPct}% ${i18t('pf_ret_held_lc')}${due?' · '+i18t('pf_ret_due_back')+' '+pfEsc(pfDate(due)):''}</div></td>
         <td style="${td};text-align:right;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap">${pfEsc(pfMoney(r.held))}</td>
-        <td style="${td};width:1%"><span style="font-size:9.5px;font-weight:700;padding:1px 7px;border-radius:0;background:${pal.bg};color:${pal.fg};white-space:nowrap">${st.t}</span></td></tr>`;
+        <td style="${td};width:1%"><span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:0;background:${pal.bg};color:${pal.fg};white-space:nowrap">${st.t}</span></td></tr>`;
     }).join('')}</tbody></table></div>`;
-  const head=`<div style="display:flex;align-items:baseline;gap:8px;font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:6px">
+  const head=`<div style="display:flex;align-items:baseline;gap:8px;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:6px">
     <span>${i18t('pf_on_n_jobs',{n:_wsCount(rows.length)})}</span>
     <span style="margin-left:auto;font-size:12px;font-weight:700;letter-spacing:0;text-transform:none;color:var(--color-text);font-variant-numeric:tabular-nums">${pfEsc(pfMoney(d.totals.held))}</span></div>`;
   return pfCard(i18t('pf_money_held'), i18t('pf_money_held_hint'), head+body,
@@ -814,13 +814,13 @@ function pfPromisesLive(){
   const body=`<div>${rows.slice(0,PF_PROMISE_ROWS).map(r=>{
     const a=r.endMonth, b=r.promiseEndMonth;
     return `<button data-pf-open="${pfEsc(r.id)}" style="display:grid;grid-template-columns:1fr 104px;gap:9px;align-items:center;width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;padding:5px 3px;border-radius:0">
-      <span style="min-width:0"><span style="display:block;font-size:11.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${pfEsc(r.name)}</span>
+      <span style="min-width:0"><span style="display:block;font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${pfEsc(r.name)}</span>
         <span style="display:block;position:relative;height:10px;margin-top:4px">
           <span style="position:absolute;left:${at(a)}%;width:${Math.max(at(b)-at(a),2)}%;top:2px;height:6px;border-radius:0;background:var(--color-accent-500,var(--color-accent))"></span>
           <span style="position:absolute;left:${at(0)}%;top:-2px;height:14px;border-left:1px dashed var(--color-neutral-400)"></span></span></span>
-      <span style="text-align:right;font-size:10.5px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums">${i18t('pf_yours_to')} ${pfEsc(pfMonthLabel(b))}</span></button>`;
+      <span style="text-align:right;font-size:11px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums">${i18t('pf_yours_to')} ${pfEsc(pfMonthLabel(b))}</span></button>`;
   }).join('')}</div>`;
-  const head=`<div style="display:flex;align-items:baseline;gap:8px;font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:6px">
+  const head=`<div style="display:flex;align-items:baseline;gap:8px;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:6px">
     <span>${i18t('pf_finished_carried')}</span>
     <span style="margin-left:auto;font-size:12px;font-weight:700;letter-spacing:0;text-transform:none;color:var(--color-text)">${_wsCount(rows.length)}</span></div>`;
   return pfCard(i18t('pf_promises_live'), i18t('pf_promises_hint'), head+body,
@@ -871,7 +871,7 @@ function pfWonLost(){
   const byCount=d.winRate.byCount, byValue=d.winRate.byValue;
   const seg=(v,col)=>`<span style="display:block;height:100%;width:${v/tot*100}%;background:${col}"></span>`;
   const stat=(k,v,d,col)=>`<div style="background:var(--color-neutral-100);border-left:3px solid ${col};border-radius:0;padding:7px 10px">
-    <div style="font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-600)">${k}</div>
+    <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-600)">${k}</div>
     <div style="font-family:var(--font-heading);font-size:15px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums">${v}</div>
     <div style="font-size:10px;color:var(--color-neutral-600)">${d}</div></div>`;
   const body=`<div style="display:flex;height:22px;border-radius:0;overflow:hidden;border:1px solid var(--color-divider);margin-bottom:9px">

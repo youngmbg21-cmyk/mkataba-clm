@@ -612,6 +612,32 @@ THE 600 CUT IS THE SEMIBOLD DUPLEX AND IT STAYS. Measured: 24% more ink than Reg
 
 Tests: f173's caption weight reversed in place (800→700, the claim unchanged — it was already rendering 700).
 
+## EVERY FONT SIZE SITS ON A WHOLE PIXEL (owner-asked 22 Aug 2026, from the design's own PDF)
+
+"Pay attention to the crispness and sharpness of the font colors and sizes as well. Mimic the font sizes and approach."
+
+**865 SIZES LANDED ON A HALF PIXEL — 41% of every font-size in the product.** 11.5px (348 uses), 10.5px (202), 12.5px (164), 9.5px (94), and five more. A fractional size puts the glyph stems between device pixels and the renderer interpolates them, so the same face at 11.5px reads measurably softer than at 11 or 12. That was the softness; nothing about the face or the colour.
+
+**THE BASE WAS FRACTIONAL TOO, AND AT EVERY WIDTH A DIFFERENT FRACTION.** `clamp(12.5px, 12px + 0.12vw, 14px)` resolves to 13.73px at 1440 and to something else everywhere else, so no descendant using a relative size could land clean either. It is a flat **14px**, which is the design's own root.
+
+**THE DESIGN'S SCALE IS WHOLE NUMBERS ONLY**: 10, 11, 12, 13, 14, 15, 17, 19, 22, 30, 34, 42, in three weights (400, 600, 700). Every half was rounded UP to the next whole, which also moves HaTi toward that ladder — it was running about one step small throughout.
+
+**`font-feature-settings:'cv11'`** is on the body with the antialiasing that was already there. It is Inter's alternate letterform set, which the design turns on: the forms that keep similar characters apart at small sizes.
+
+**THE OLD COMMENT SAID THE OPPOSITE and was wrong**: "the dense 10-13px interface type is deliberately NOT scaled — that density is the design." Density was never what the halves bought. They cost sharpness and bought nothing.
+
+NOTE FOR THE NEXT SWEEP: no test in the suite asserted a half-pixel font size, which is why 865 replacements cost two test updates rather than fifty. Both were about the Tracked Changes caption, and one of them recorded a real consequence — the count used to be set a hair larger than the caption "because mono runs small at the same size", and that stopped being true when --font-mono was pointed at Inter with everything else. One family, no compensation owed, both 11px.
+
+## THE CONTRACT GETS THE SPACE BACK (owner-asked 22 Aug 2026)
+
+"HaTi is not efficiently using the space to give the contracts a proper space."
+
+**MEASURED at 1440x900 before the change: 291px sat above the first line of the agreement on the Document tab** — a third of the window — and 148px on the negotiation page. The design spends about 230 and 134.
+
+- **291 → 249 on the Document tab, 148 → 140 on the negotiation.** The savings came out of three joins in the CHROME: `.room-head`'s gap was doing double duty (it separated the crumb from the title AND the title from the fact band, so one number spent 24px on two joins that want different amounts) — 12px to 6; the fact band's own margin 10 to 2 and its padding 12 to 10; and the room wrapper's 14px top padding and 12px gap to 6 and 8.
+- **NOTHING CAME OUT OF THE PAPER.** The sheet keeps its 34px top margin, because that is the DOCUMENT's margin and it is what makes it read as a document rather than as text in a box — the design gives its own sheet 32px for the same reason. A page that reclaims space by cropping the contract has answered the wrong complaint.
+- WHERE IT STANDS AGAINST THE DESIGN: the negotiation page is now within 6px of it, the Document tab within about 18. The remainder is the sub-line, which the design's own head does not draw — it is the obvious next cut if the owner wants one, and it is left in place because its stream, round and updated-on facts are not in the fact row.
+
 ## THREE BUTTON LEVELS, ONE FILLED ACT PER PAGE (owner-asked 22 Aug 2026)
 
 "The theme of how the buttons are designed should continue across the platform." `.ui-btn` in index.html carries three strengths and every screen inherits them:

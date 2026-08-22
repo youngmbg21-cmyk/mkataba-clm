@@ -30,10 +30,10 @@ function pipeCard(c){
   return `
     <div data-card="${c.id}" class="q-card" style="background:var(--color-surface);border:1px solid var(--color-divider);border-left:4px solid ${folderColor(c)};border-radius:0;box-shadow:var(--shadow-sm);padding:11px 12px;cursor:pointer;display:flex;flex-direction:column;gap:5px">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
-        <span style="font-family:var(--font-mono);font-size:10.5px;color:var(--color-neutral-600)">${c.id}</span>
-        <span style="background:${rp.bg};color:${rp.fg};font-size:9.5px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:0;font-variant-numeric:tabular-nums;flex:none">R ${r}</span>
+        <span style="font-family:var(--font-mono);font-size:11px;color:var(--color-neutral-600)">${c.id}</span>
+        <span style="background:${rp.bg};color:${rp.fg};font-size:10px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:0;font-variant-numeric:tabular-nums;flex:none">R ${r}</span>
       </div>
-      <div style="font-size:12.5px;font-weight:400;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cPrimary(c)}</div>
+      <div style="font-size:13px;font-weight:400;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cPrimary(c)}</div>
       <div style="font-size:11px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cSecondary(c)}</div>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;border-top:1px solid color-mix(in srgb,var(--color-text) 8%,transparent);padding-top:5px;margin-top:1px">
         <span style="font-size:10px;color:var(--color-neutral-600);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${stream}</span>
@@ -56,10 +56,10 @@ function renderPipeline(){
     <div style="min-width:0;display:flex;flex-direction:column;min-height:0">
       <div style="display:flex;align-items:center;gap:6px;padding:0 2px 8px;min-width:0;flex:none">
         <span style="width:9px;height:9px;border-radius:50%;background:${g.col.color};flex:none;display:inline-block"></span>
-        <span style="font-family:var(--font-mono);font-weight:700;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap">${g.col.label}</span>
-        <span style="font-size:10.5px;background:color-mix(in srgb,var(--color-accent) 11%,transparent);padding:1px 8px;border-radius:0;color:var(--color-neutral-700);flex:none;font-variant-numeric:tabular-nums">${g.list.length}</span>
+        <span style="font-family:var(--font-mono);font-weight:700;font-size:13px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap">${g.col.label}</span>
+        <span style="font-size:11px;background:color-mix(in srgb,var(--color-accent) 11%,transparent);padding:1px 8px;border-radius:0;color:var(--color-neutral-700);flex:none;font-variant-numeric:tabular-nums">${g.list.length}</span>
         <span style="flex:1;min-width:4px"></span>
-        <span style="font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;flex:none;font-variant-numeric:tabular-nums">${fmtMoneyShort(g.val)}</span>
+        <span style="font-size:11px;color:var(--color-neutral-600);white-space:nowrap;flex:none;font-variant-numeric:tabular-nums">${fmtMoneyShort(g.val)}</span>
       </div>
       <div class="pipe-col scroll-thin" style="background:color-mix(in srgb,var(--color-accent) 6%,transparent);border:1px solid var(--color-divider);border-radius:0;padding:8px;display:flex;flex-direction:column;gap:8px;flex:1;min-height:0;overflow-y:auto">
         ${pipeColumnInner(g.col, g.list)}

@@ -122,10 +122,10 @@ function portalRevisedBanner(){
     <div id="pt-revised" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-left:4px solid var(--st-amber-dot);border-radius:0;padding:13px 17px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
       <span class="pt-pip" style="flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--st-amber-dot);color:#fff;font-size:14px;font-weight:700">!</span>
       <span style="flex:1;min-width:220px;line-height:1.45">
-        <span style="display:block;font-size:13.5px;font-weight:600;color:var(--st-amber-fg)">${headline}</span>
-        <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);font-family:var(--font-mono)">${sub}</span>
+        <span style="display:block;font-size:14px;font-weight:600;color:var(--st-amber-fg)">${headline}</span>
+        <span style="display:block;font-size:12px;color:var(--color-neutral-600);font-family:var(--font-mono)">${sub}</span>
       </span>
-      <button id="pt-see-changes" style="flex:none;font:inherit;font-size:12.5px;font-weight:600;border:0;border-radius:0;padding:9px 16px;cursor:pointer;background:var(--st-amber-dot);color:#fff">${i18t('po_see_what_changed')}</button>
+      <button id="pt-see-changes" style="flex:none;font:inherit;font-size:13px;font-weight:600;border:0;border-radius:0;padding:9px 16px;cursor:pointer;background:var(--st-amber-dot);color:#fff">${i18t('po_see_what_changed')}</button>
       <button id="pt-revised-dismiss" title="${i18t('po_mark_read_wont_come_back')}"
         aria-label="${i18t('po_mark_read_dismiss')}"
         style="flex:none;width:28px;height:28px;display:grid;place-items:center;border:1px solid var(--st-amber-line);background:transparent;color:var(--st-amber-fg);border-radius:0;cursor:pointer;font:inherit;font-size:15px;line-height:1">&times;</button>
@@ -156,7 +156,7 @@ function openPortalCompare(p){
             <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">What ${esc(p.org||'the sender')} changed</h3>
             <span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:0;padding:3px 9px">${i18t('po_since_your_copy',{when:fmtDT(ch.openedAt||ch.at)})}</span>
           </div>
-          <p style="font-size:11.5px;color:var(--color-neutral-600);margin:7px 0 0">+${st.add} added · −${st.del} removed ·
+          <p style="font-size:12px;color:var(--color-neutral-600);margin:7px 0 0">+${st.add} added · −${st.del} removed ·
             <span style="background:var(--st-green-bg);color:var(--st-green-fg);padding:0 4px;border-radius:0">added</span>
             <span style="background:var(--st-ruby-bg);color:var(--st-ruby-dot);text-decoration:line-through;padding:0 4px;border-radius:0">removed</span></p>
         </div>
@@ -182,7 +182,7 @@ function openPortalCompare(p){
                  put the notice down, and a way to pick it back up if they were
                  not finished. Nothing here is sent to the sender and nothing is
                  written to the record. */}
-          <span style="font-size:11.5px;color:var(--color-neutral-600);min-width:150px;flex:1">${i18t('po_marking_read_only')}</span>
+          <span style="font-size:12px;color:var(--color-neutral-600);min-width:150px;flex:1">${i18t('po_marking_read_only')}</span>
           <button id="pc-unread" class="ui-btn">${i18t('po_mark_unread')}</button>
           <button id="pc-read" class="ui-btn ui-btn-primary">${i18t('po_mark_read')}</button>
         </div>
@@ -265,11 +265,11 @@ function portalCompareBar(){
   return `
     <div id="pt-history" style="display:flex;align-items:center;gap:11px;flex-wrap:wrap;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:11px 16px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
       <span style="flex:none;display:inline-flex;color:var(--color-accent)">${icon('history','w-4 h-4')}</span>
-      <span style="flex:1;min-width:180px;font-size:12.5px;color:var(--color-neutral-700);line-height:1.5">${line}</span>
-      ${hist?`<button id="pt-hist" class="ui-btn pt-verb" style="flex:none;font-size:12.5px;padding:8px 14px"
+      <span style="flex:1;min-width:180px;font-size:13px;color:var(--color-neutral-700);line-height:1.5">${line}</span>
+      ${hist?`<button id="pt-hist" class="ui-btn pt-verb" style="flex:none;font-size:13px;padding:8px 14px"
         title="${i18t('po_every_change_oldest')}">${
         icon('history','w-3.5 h-3.5',2)}Negotiation history</button>`:''}
-      ${cmp?`<button id="pt-compare" class="ui-btn pt-verb" style="flex:none;font-size:12.5px;padding:8px 14px"
+      ${cmp?`<button id="pt-compare" class="ui-btn pt-verb" style="flex:none;font-size:13px;padding:8px 14px"
         title="${i18t('po_two_versions_side')}">${
         icon('columns','w-3.5 h-3.5',2)}Compare wording</button>`:''}
     </div>`;
@@ -574,7 +574,7 @@ function openPortalVersionCompare(p){
   }catch(_){ /* one malformed change must not take Compare down */ }
   if(items.length<2) return;
   const opts=items.map((it,i)=>`<option value="${i}">${esc(it.label)}</option>`).join('');
-  const SEL='font:inherit;font-size:12.5px;border:1px solid var(--color-divider);background:var(--color-surface);padding:7px 9px;border-radius:0;color:inherit;min-width:0;flex:1';
+  const SEL='font:inherit;font-size:13px;border:1px solid var(--color-divider);background:var(--color-surface);padding:7px 9px;border-radius:0;color:inherit;min-width:0;flex:1';
   const COL='width:100%;max-width:860px;margin-left:auto;margin-right:auto';
   openModal(`
     <div style="height:100%;display:flex;flex-direction:column;min-height:0">
@@ -587,15 +587,15 @@ function openPortalVersionCompare(p){
             <select id="pv-b" style="${SEL}">${opts}</select>
             <button id="pv-go" class="ui-btn ui-btn-primary" style="flex:none">${i18t('po_compare')}</button>
           </div>
-          <p id="pv-legend" style="font-size:11.5px;color:var(--color-neutral-600);margin:9px 0 0"></p>
+          <p id="pv-legend" style="font-size:12px;color:var(--color-neutral-600);margin:9px 0 0"></p>
         </div>
       </div>
       <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:22px 26px;background:var(--color-bg)">
-        <div id="pv-out" style="${COL};font-size:12.5px;color:var(--color-neutral-600)">${i18t('po_pick_two_press')} <b>${i18t('po_compare')}</b>.</div>
+        <div id="pv-out" style="${COL};font-size:13px;color:var(--color-neutral-600)">${i18t('po_pick_two_press')} <b>${i18t('po_compare')}</b>.</div>
       </div>
       <div style="flex:none;padding:14px 26px;border-top:1px solid var(--color-divider)">
         <div style="${COL};display:flex;align-items:center;gap:9px">
-          <span style="font-size:11.5px;color:var(--color-neutral-600);flex:1">${i18t('po_nothing_sends')}</span>
+          <span style="font-size:12px;color:var(--color-neutral-600);flex:1">${i18t('po_nothing_sends')}</span>
           <button id="pv-close" class="ui-btn">${i18t('act_close')}</button>
         </div>
       </div>
@@ -605,7 +605,7 @@ function openPortalVersionCompare(p){
   const run=()=>{
     const a=items[Number(A.value)], b=items[Number(B.value)];
     if(!a||!b) return;
-    if(a===b){ document.getElementById('pv-out').innerHTML=`<div style="font-size:12.5px;color:var(--color-neutral-600)">${i18t('po_same_version')}</div>`; return; }
+    if(a===b){ document.getElementById('pv-out').innerHTML=`<div style="font-size:13px;color:var(--color-neutral-600)">${i18t('po_same_version')}</div>`; return; }
     const st=(window.diffStats?diffStats(a.text,b.text):{add:0,del:0});
     document.getElementById('pv-legend').innerHTML=`+${st.add} added · −${st.del} removed ·
       <span style="background:var(--st-green-bg);color:var(--st-green-fg);padding:0 4px;border-radius:0">added</span>
@@ -680,8 +680,8 @@ function portalMarkSigned(p, info){
   band.innerHTML=`
     <span style="flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--st-green-dot);color:#fff;font-size:14px;font-weight:700" aria-hidden="true">✓</span>
     <span style="flex:1;min-width:220px;line-height:1.5">
-      <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:15.5px;color:var(--st-green-fg)">${i18t('po_signed_this',{who})}</span>
-      <span style="display:block;font-size:11.5px;color:var(--color-neutral-700);margin-top:2px">${fmtDT(nowISO())} · sent to ${esc((p&&p.sharedBy)||'the sender')} at ${esc((p&&p.org)||'their organisation')}. There is nothing further for you to do here — keep this link to read the contract.</span>
+      <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:16px;color:var(--st-green-fg)">${i18t('po_signed_this',{who})}</span>
+      <span style="display:block;font-size:12px;color:var(--color-neutral-700);margin-top:2px">${fmtDT(nowISO())} · sent to ${esc((p&&p.sharedBy)||'the sender')} at ${esc((p&&p.org)||'their organisation')}. There is nothing further for you to do here — keep this link to read the contract.</span>
     </span>`;
 }
 /* IS THE DEAL OVER? The one question this page could not ask.
@@ -714,7 +714,7 @@ function portalClosedBanner(){
     <div id="pt-executed" style="display:flex;align-items:flex-start;gap:12px;border:1px solid var(--st-green-line);background:var(--st-green-bg);border-left:4px solid var(--st-green-fg);border-radius:0;padding:13px 17px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
       <span style="flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--st-green-dot);color:#fff;font-size:12px;font-weight:700" aria-hidden="true">✓</span>
       <span style="flex:1;min-width:0;line-height:1.5">
-        <span style="display:block;font-size:13.5px;font-weight:600;color:var(--st-green-fg)">${i18t('po_executed_sealed')}</span>
+        <span style="display:block;font-size:14px;font-weight:600;color:var(--st-green-fg)">${i18t('po_executed_sealed')}</span>
         <span style="display:block;font-size:12px;color:var(--st-green-fg);margin-top:2px">The wording is final and read-only${done.at?` — signed ${fmtDT(done.at)}`:''}. You can still read this copy and keep this link. Nothing further can be proposed, decided or signed here; if something has to change, ask ${esc((PORTAL_OPTS.payload&&PORTAL_OPTS.payload.sharedBy)||'the sender')} to record an amendment.</span>
       </span>
     </div>`;
@@ -724,7 +724,7 @@ function portalClosedBanner(){
     <div id="pt-superseded" style="display:flex;align-items:flex-start;gap:12px;border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-left:4px solid var(--st-ruby-dot);border-radius:0;padding:13px 17px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
       <span style="flex:none;margin-top:1px;color:var(--st-ruby-fg);display:inline-flex">${icon('alert','w-4 h-4')}</span>
       <span style="flex:1;min-width:0;line-height:1.5">
-        <span style="display:block;font-size:13.5px;font-weight:600;color:var(--st-ruby-fg)">${i18t('po_older_copy')}</span>
+        <span style="display:block;font-size:14px;font-weight:600;color:var(--st-ruby-fg)">${i18t('po_older_copy')}</span>
         <span style="display:block;font-size:12px;color:var(--st-ruby-fg);margin-top:2px">A newer version of this contract was sent to you on ${fmtDT(sup.at)}. You can still read this copy and compare it, but signing or responding has to happen on the most recent link. If you cannot find it, ask ${esc((PORTAL_OPTS.payload&&PORTAL_OPTS.payload.sharedBy)||'the sender')} to send it again.</span>
       </span>
     </div>`;
@@ -743,10 +743,10 @@ function portalRoundBanner(c, p){
     <div id="pt-banner" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-left:4px solid var(--st-amber-dot);border-radius:0;padding:13px 17px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
       <span class="pt-pip" style="flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--st-amber-dot);color:#fff;font-size:14px;font-weight:700">!</span>
       <span style="flex:1;min-width:200px;line-height:1.45">
-        <span style="display:block;font-size:13.5px;font-weight:600;color:var(--st-amber-fg)">${org} ${verb}</span>
-        <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);font-family:var(--font-mono)">${i18t('po_round_tally',{n:latest.n,tally,when:fmtDT(latest.resolution.at||latest.at)})}</span>
+        <span style="display:block;font-size:14px;font-weight:600;color:var(--st-amber-fg)">${org} ${verb}</span>
+        <span style="display:block;font-size:12px;color:var(--color-neutral-600);font-family:var(--font-mono)">${i18t('po_round_tally',{n:latest.n,tally,when:fmtDT(latest.resolution.at||latest.at)})}</span>
       </span>
-      ${latest.resolution.decision==='accepted'?`<span style="flex:none;font-size:11.5px;color:var(--st-amber-fg)">${i18t('po_wording_reflects')}</span>`:''}
+      ${latest.resolution.decision==='accepted'?`<span style="flex:none;font-size:12px;color:var(--st-amber-fg)">${i18t('po_wording_reflects')}</span>`:''}
     </div>
     <style>
       @keyframes pt-pulse{0%,100%{box-shadow:0 0 0 0 rgba(184,134,43,.55)}50%{box-shadow:0 0 0 6px rgba(184,134,43,0)}}
@@ -783,7 +783,7 @@ function portalThreadHtml(c, p){
     if(!parts.length) return '';
     return `<div style="display:flex;flex-direction:column;gap:7px;margin-top:2px">${parts.map(b=>`
       <div style="border:1px solid var(--color-divider);border-radius:0;padding:7px 10px;background:var(--color-bg)">
-        <div style="font-size:11.5px;line-height:1.55;color:var(--color-neutral-800)">
+        <div style="font-size:12px;line-height:1.55;color:var(--color-neutral-800)">
           ${b.before?`<span style="text-decoration:line-through;color:var(--st-ruby-fg)">${esc(String(b.before).trim())}</span> `:''}
           ${b.after?`<span style="color:var(--st-green-fg)">${esc(String(b.after).trim())}</span>`:''}
           <span style="font-size:10px;font-weight:700;margin-left:6px;color:${b.decision==='accept'?'var(--st-green-fg)':'var(--st-ruby-fg)'}">${b.decision==='accept'?'ADOPTED':'NOT ADOPTED'}</span>
@@ -795,14 +795,14 @@ function portalThreadHtml(c, p){
   const verdict=r=>{
     if(!r.resolution||!r.resolution.decision) return '';
     const ok=r.resolution.decision==='accepted';
-    return `<div style="font-size:10.5px;font-weight:600;color:${ok?'var(--st-green-fg)':'var(--st-ruby-fg)'};margin-left:2px">${ok?'Adopted':'Not adopted'}${r.resolution.at?` · ${fmtDT(r.resolution.at)}`:''}</div>`;
+    return `<div style="font-size:11px;font-weight:600;color:${ok?'var(--st-green-fg)':'var(--st-ruby-fg)'};margin-left:2px">${ok?'Adopted':'Not adopted'}${r.resolution.at?` · ${fmtDT(r.resolution.at)}`:''}</div>`;
   };
   return `
     <div id="pt-thread" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:14px 18px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px">
         <span style="flex:none;color:var(--color-accent);display:inline-flex">${icon('history','w-4 h-4')}</span>
         <span style="font-size:13px;font-weight:600">${i18t('po_discussion_so_far')}</span>
-        <span style="margin-left:auto;font-size:10.5px;color:var(--color-neutral-500);font-family:var(--font-mono)">${said.length} round${said.length===1?'':'s'}</span>
+        <span style="margin-left:auto;font-size:11px;color:var(--color-neutral-500);font-family:var(--font-mono)">${said.length} round${said.length===1?'':'s'}</span>
       </div>
       <div style="display:flex;flex-direction:column;gap:12px">
         ${said.map(r=>`
@@ -841,14 +841,14 @@ function portalOpenPointsHtml(c, p){
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
         <span style="flex:none;color:var(--st-amber-dot);display:inline-flex">${icon('alert','w-4 h-4')}</span>
         <span style="font-size:13px;font-weight:600;color:var(--st-amber-fg)">${i18t('po_still_open_between')}</span>
-        <span style="margin-left:auto;font-size:10.5px;color:var(--st-amber-fg);font-family:var(--font-mono)">${pts.length} point${pts.length===1?'':'s'}</span>
+        <span style="margin-left:auto;font-size:11px;color:var(--st-amber-fg);font-family:var(--font-mono)">${pts.length} point${pts.length===1?'':'s'}</span>
       </div>
       ${''/* NAME A CONTROL THAT IS ACTUALLY ON THIS SCREEN. This said "press
              Propose edits", which no button has been called since the respond
              panel was rewritten, and which does not exist at all on a link
              issued for signature — so the one card carrying the live
              disagreement pointed at nothing. */}
-      <p style="margin:0 0 10px;font-size:11.5px;line-height:1.55;color:var(--st-amber-fg)">${org} did not adopt ${pts.length===1?'this change':'these changes'}. The wording below is unchanged in the contract. ${
+      <p style="margin:0 0 10px;font-size:12px;line-height:1.55;color:var(--st-amber-fg)">${org} did not adopt ${pts.length===1?'this change':'these changes'}. The wording below is unchanged in the contract. ${
         portalIssuedForSigning(p)
           ? `This link was sent to you for signature, so the wording cannot be edited on it — press <b>${i18t('po_not_ready_sign')}</b> and tell ${org} what you want changed.`
           : `Press <b>${i18t('po_not_ready_sign')}</b> and then <b>Change the wording yourself</b> to come back on ${pts.length===1?'it':'them'}.`}</p>
@@ -859,8 +859,8 @@ function portalOpenPointsHtml(c, p){
               <div style="color:var(--color-neutral-800)">${esc(pt.before)}</div></div>`:''}
             ${pt.after?`<div style="margin-top:5px"><span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('po_you_asked_for')}</span>
               <div style="color:var(--st-ruby-fg)">${esc(pt.after)}</div></div>`:''}
-            ${pt.ask?`<div style="margin-top:5px;font-size:11.5px;color:var(--color-neutral-700)"><b>${i18t('po_you_said')}</b> ${esc(pt.ask)}</div>`:''}
-            ${pt.reason?`<div style="margin-top:4px;font-size:11.5px;color:var(--color-neutral-700)"><b>${i18t('po_their_reply')}</b> ${esc(pt.reason)}</div>`:''}
+            ${pt.ask?`<div style="margin-top:5px;font-size:12px;color:var(--color-neutral-700)"><b>${i18t('po_you_said')}</b> ${esc(pt.ask)}</div>`:''}
+            ${pt.reason?`<div style="margin-top:4px;font-size:12px;color:var(--color-neutral-700)"><b>${i18t('po_their_reply')}</b> ${esc(pt.reason)}</div>`:''}
             ${canReply?discussPointReplyHtml('point:'+pt.id, PORTAL_OPTS.messages||[], {
               idp:'pt-op-'+i, mine:'counterparty',
               label:'Still open — '+discussTrim(pt.after||pt.before,60),
@@ -961,10 +961,10 @@ function portalClauseEditorHtml(c){
           <span style="flex:1;min-width:0;font-size:${heading?'13.5px':'13px'};line-height:1.7;${heading?'font-weight:700;letter-spacing:.02em;':''}color:var(--color-doc-text);white-space:pre-wrap">${esc(shown)}</span>
           <button data-cl-edit="${u.i}" class="ui-btn" style="flex:none;font-size:11px;padding:4px 10px">${edited?'Edit again':'Change'}</button>
         </div>
-        ${edited?`<div style="margin-top:6px;font-size:10.5px;color:var(--st-amber-fg);display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+        ${edited?`<div style="margin-top:6px;font-size:11px;color:var(--st-amber-fg);display:flex;align-items:center;gap:7px;flex-wrap:wrap">
           <span>${i18t('po_you_changed_this')}</span>
           ${PORTAL_CLAUSE_NOTES[u.i]?`<span style="color:var(--color-neutral-700);font-size:11px">“${esc(PORTAL_CLAUSE_NOTES[u.i])}”</span>`:''}
-          <button data-cl-undo="${u.i}" style="border:0;background:none;padding:0;font:inherit;font-size:10.5px;font-weight:600;color:var(--st-amber-fg);cursor:pointer;text-decoration:underline">${i18t('po_undo')}</button></div>`:''}
+          <button data-cl-undo="${u.i}" style="border:0;background:none;padding:0;font:inherit;font-size:11px;font-weight:600;color:var(--st-amber-fg);cursor:pointer;text-decoration:underline">${i18t('po_undo')}</button></div>`:''}
       </div>`;
   }).join('');
   const n=Object.keys(PORTAL_CLAUSE_EDITS).length;
@@ -972,7 +972,7 @@ function portalClauseEditorHtml(c){
     <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:11px">
       <span style="font-size:12px;color:var(--color-neutral-700)">${i18t('po_press')} <b>${i18t('po_change')}</b> ${i18t('po_on_any_clause')}</span>
       <span style="flex:1"></span>
-      <span id="pt-cl-count" style="font-size:11.5px;font-weight:600;color:${n?'var(--st-amber-fg)':'var(--color-neutral-500)'}">${n?`${n} change${n===1?'':'s'}`:'No changes yet'}</span>
+      <span id="pt-cl-count" style="font-size:12px;font-weight:600;color:${n?'var(--st-amber-fg)':'var(--color-neutral-500)'}">${n?`${n} change${n===1?'':'s'}`:'No changes yet'}</span>
     </div>
     <div id="pt-cl-list" style="display:flex;flex-direction:column;gap:7px">${rows}</div>`;
 }
@@ -988,7 +988,7 @@ function wirePortalClauseEditor(c, p){
       row.innerHTML=`
         <textarea data-cl-input="${i}" spellcheck="false" style="width:100%;min-height:78px;border:1px solid var(--color-accent);border-radius:0;padding:9px 11px;font:inherit;font-size:13px;line-height:1.7;color:var(--color-doc-text);background:var(--color-surface);outline:none;resize:vertical">${esc(cur)}</textarea>
         <label style="display:block;margin-top:7px">
-          <span style="display:block;font-size:10.5px;font-weight:600;color:var(--color-neutral-600);margin-bottom:3px">${i18t('po_why_optional')}</span>
+          <span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-600);margin-bottom:3px">${i18t('po_why_optional')}</span>
           <textarea data-cl-note="${i}" class="chat-field" rows="1" placeholder="e.g. Net-60 is our standard payment term." style="width:100%;border:1px solid var(--color-divider);border-radius:0;padding:7px 10px;font:inherit;font-size:12px;background:var(--color-surface);outline:none">${esc(PORTAL_CLAUSE_NOTES[i]||'')}</textarea>
         </label>
         <div style="display:flex;gap:7px;justify-content:flex-end;margin-top:7px">
@@ -1523,7 +1523,7 @@ function portalNegoHtml(p){
       box-shadow:var(--shadow-sm);overflow:hidden;margin:0 0 18px">
       <div style="padding:14px 18px;border-bottom:1px solid var(--color-divider);background:var(--color-bg)">
         <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:16px">${i18t('po_the_negotiation')}</span>
-        <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);line-height:1.55;margin-top:3px">The same workbench ${esc((p&&p.org)||'the sender')} works on — the contract with every change marked, the tracked changes beside it, and the discussion beside those. Accept or reject what they have proposed, press <b>${i18t('po_direct_edit')}</b> ${i18t('po_under_clause_counter')}</span>
+        <span style="display:block;font-size:12px;color:var(--color-neutral-600);line-height:1.55;margin-top:3px">The same workbench ${esc((p&&p.org)||'the sender')} works on — the contract with every change marked, the tracked changes beside it, and the discussion beside those. Accept or reject what they have proposed, press <b>${i18t('po_direct_edit')}</b> ${i18t('po_under_clause_counter')}</span>
       </div>
       <div id="pt-nego" style="padding:12px"></div>
       <div id="pt-nego-foot" style="padding:12px 18px;border-top:1px solid var(--color-divider);background:var(--color-bg);display:flex;align-items:center;gap:10px;flex-wrap:wrap"></div>
@@ -1535,7 +1535,7 @@ function portalNegoHtml(p){
       <div style="padding:14px 18px;border-bottom:1px solid var(--color-divider);background:var(--color-bg);display:flex;align-items:flex-start;gap:11px;flex-wrap:wrap">
         <span style="flex:1;min-width:200px">
           <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:16px">${i18t('po_the_negotiation')}</span>
-          <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);line-height:1.55;margin-top:3px">Every change on this contract, with its own fingerprint. This is the same screen ${esc((p&&p.org)||'the sender')} is looking at — same clauses, same changes, same statuses. Accept or reject the ones they have proposed, or discuss any of them without changing the contract.</span>
+          <span style="display:block;font-size:12px;color:var(--color-neutral-600);line-height:1.55;margin-top:3px">Every change on this contract, with its own fingerprint. This is the same screen ${esc((p&&p.org)||'the sender')} is looking at — same clauses, same changes, same statuses. Accept or reject the ones they have proposed, or discuss any of them without changing the contract.</span>
         </span>
         ${''/* the workbench mounts below, already visible — there is no room and no door */}
       </div>
@@ -1576,9 +1576,9 @@ function portalAgreedHtml(p){
                carries is still true and still worth saying: there is nothing
                outstanding between the two sides. Only the heading moves, and
                only on the state where it would be a lie. */}
-        <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:15.5px;color:var(--st-green-fg)">${
+        <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:16px;color:var(--st-green-fg)">${
           (p&&p.signingOpen===false)?i18t('po_nothing_outstanding'):i18t('po_ready_to_sign')}</span>
-        <span style="display:block;font-size:11.5px;color:var(--color-neutral-700);margin-top:2px">${line} ${
+        <span style="display:block;font-size:12px;color:var(--color-neutral-700);margin-top:2px">${line} ${
           (p&&p.signingOpen===false)?i18t('po_read_then_respond'):i18t('po_read_then_act')}</span>
       </span>
       ${''/* ---- IT OPENS THE RECORD, NOT A SECOND WORKBENCH ----
@@ -1624,7 +1624,7 @@ function portalNegoFootHtml(p){
      the same sentence travels to the workbench as readonlyWhy and is said
      once, where the verbs would have been — see renderShareWorkbench. */
   if(!live && PORTAL_FOOT_COMPACT) return '';
-  if(!live) return `<span id="nego-readonly-why" style="font-size:11.5px;color:var(--color-neutral-600)">${esc(
+  if(!live) return `<span id="nego-readonly-why" style="font-size:12px;color:var(--color-neutral-600)">${esc(
     portalExecuted() ? 'This contract has been executed and sealed — the wording is final.'
     : PORTAL_OPTS.superseded ? 'This copy has been superseded — a newer link was sent to you. Open that one to answer.'
     : PORTAL_OPTS.responded ? 'This link has already been answered. Ask the sender for a fresh one if you need to reply again.'
@@ -1662,7 +1662,7 @@ function portalNegoFootHtml(p){
      down the left, which names the outstanding clause rather than counting it. */
   const words=PORTAL_FOOT_COMPACT?'':`
     <span style="flex:1;min-width:150px;display:grid;gap:2px">
-      <span style="font-size:11.5px;color:${n?'var(--st-amber-fg)':'var(--color-neutral-600)'}">
+      <span style="font-size:12px;color:${n?'var(--st-amber-fg)':'var(--color-neutral-600)'}">
         ${n?`<b>${n} decision${n===1?'':'s'} ready to send.</b> Nothing has reached ${esc((p&&p.org)||'the sender')} yet.`
           :'Your decisions are held here until you send them. Comments send immediately and change nothing.'}
       </span>
@@ -1684,7 +1684,7 @@ function portalNegoFootHtml(p){
            reader holding decisions there would otherwise have no batch send at
            all. Same reasoning as the sentences this flag already stands down.
            The per-card Send is untouched on both. */}
-    ${n && !PORTAL_FOOT_COMPACT?`<button id="pt-nego-send" class="ui-btn ui-btn-primary nego-pulse" style="flex:none;font-size:12.5px;padding:8px 15px">Send ${n} decision${n===1?'':'s'}</button>`:''}
+    ${n && !PORTAL_FOOT_COMPACT?`<button id="pt-nego-send" class="ui-btn ui-btn-primary nego-pulse" style="flex:none;font-size:13px;padding:8px 15px">Send ${n} decision${n===1?'':'s'}</button>`:''}
     <button id="pt-nego-ready" class="ui-btn" ${readyOk&&!spent?'':'disabled'}
       title="${esc(spent?'You have told them you are ready — they issue the signing link.':readyOk?'Tell them you are ready to sign':whyNot)}"
       style="flex:none;font-size:12px;padding:8px 14px">${spent?'Readiness sent &#10003;':'Ready to sign'}</button>
@@ -1725,7 +1725,7 @@ function openDerivedLinkDialog(d, org){
     <div class="modal-in" role="dialog" aria-modal="true" aria-labelledby="pt-derive-t"
       style="position:relative;width:100%;max-width:31rem;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:0;padding:22px 24px">
       <h3 id="pt-derive-t" style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0 0 4px;line-height:1.3">${i18t('po_readonly_created')}</h3>
-      <p style="font-size:12.5px;color:var(--color-neutral-700);line-height:1.55;margin:0 0 14px">${
+      <p style="font-size:13px;color:var(--color-neutral-700);line-height:1.55;margin:0 0 14px">${
         who?`For <b>${esc(who)}</b>. `:''}${i18t('po_readonly_copy_now')}</p>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px">
         <input readonly value="${esc(link)}" id="pt-derived-link"
@@ -2170,7 +2170,7 @@ function portalPollDecide(d, prevSig){
    reloads under somebody's hands. */
 function portalUpdatedNoticeHtml(){
   return `<div id="pt-updated" role="status" style="position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:12px;
-      border-bottom:1px solid var(--st-amber-line);background:var(--st-amber-bg);padding:10px 24px;font-size:12.5px;color:var(--st-amber-fg);box-shadow:var(--shadow-sm)">
+      border-bottom:1px solid var(--st-amber-line);background:var(--st-amber-bg);padding:10px 24px;font-size:13px;color:var(--st-amber-fg);box-shadow:var(--shadow-sm)">
     <span style="flex:none;display:inline-flex">${icon('alert','w-4 h-4')}</span>
     <span style="flex:1;min-width:0;line-height:1.5"><b>${i18t('po_contract_updated')}</b>
       Your unsent work is still here — send it or set it aside, then refresh to see the new copy.</span>
@@ -2324,7 +2324,7 @@ function portalViewerStyle(){
     .pv-wrap{min-height:100vh;background:var(--color-bg);}
     .pv-banner{background:var(--color-accent-900);color:#fff;padding:13px 24px;}
     .pv-banner b{font-family:var(--font-mono);font-weight:600;}
-    .pv-banner .pv-sub{display:block;font-size:11.5px;color:var(--color-accent-200);margin-top:3px;line-height:1.5;}
+    .pv-banner .pv-sub{display:block;font-size:12px;color:var(--color-accent-200);margin-top:3px;line-height:1.5;}
     .pv-page{max-width:920px;margin:0 auto;padding:26px 24px 60px;}
     .pv-sheet{position:relative;background:var(--color-doc-surface);box-shadow:var(--shadow-md);border-radius:0;padding:34px 40px;overflow:hidden;}
     /* The watermark is behind the words and never on top of them: a copy an
@@ -2335,14 +2335,14 @@ function portalViewerStyle(){
     .pv-sheet>*{position:relative;z-index:1;}
     .pv-changes{margin-top:22px;}
     .pv-changes h2{font-family:var(--font-heading);font-size:16px;font-weight:600;margin:0 0 4px;}
-    .pv-note{font-size:11.5px;color:var(--color-neutral-600);line-height:1.55;margin:0 0 12px;}
+    .pv-note{font-size:12px;color:var(--color-neutral-600);line-height:1.55;margin:0 0 12px;}
     .pv-list{list-style:none;margin:0;padding:0;display:grid;gap:10px;}
     .pv-chg{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;padding:11px 13px;}
     .pv-chg-head{display:flex;gap:10px;align-items:baseline;margin-bottom:5px;}
-    .pv-chg-where{font-family:var(--font-mono);font-size:11.5px;font-weight:600;}
-    .pv-chg-state{font-size:10.5px;color:var(--color-neutral-600);}
-    .pv-chg-body{font-size:13.5px;line-height:1.75;color:var(--color-doc-text);}
-    .pv-foot{margin-top:26px;font-size:11.5px;color:var(--color-neutral-600);line-height:1.6;}
+    .pv-chg-where{font-family:var(--font-mono);font-size:12px;font-weight:600;}
+    .pv-chg-state{font-size:11px;color:var(--color-neutral-600);}
+    .pv-chg-body{font-size:14px;line-height:1.75;color:var(--color-doc-text);}
+    .pv-foot{margin-top:26px;font-size:12px;color:var(--color-neutral-600);line-height:1.6;}
     @media print{
       .pv-banner,.pv-foot{display:none!important;}
       .pv-wrap,.pv-page{background:#fff;padding:0;max-width:none;}
@@ -2393,7 +2393,7 @@ function renderShareViewer(p, opts={}){
   const src=c.redlineText || c.viewBody || '';
   const body=src
     ? (window.readOnlyDocHtml?readOnlyDocHtml(src):esc(src))
-    : `<p style="font-size:12.5px;line-height:1.6;color:var(--st-ruby-fg)">${
+    : `<p style="font-size:13px;line-height:1.6;color:var(--st-ruby-fg)">${
         esc(i18t('po_view_body_failed',{ org }))}</p>`;
   root.innerHTML=`
   <div class="pv-wrap">
@@ -2712,7 +2712,7 @@ function portalAlertsStyle(){
     .pt-bell{position:relative;}
     .pt-bell-dot{position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;padding:0 4px;
       border-radius:0;background:var(--st-amber-fg);color:var(--color-surface);
-      font-family:var(--font-mono);font-size:9.5px;font-weight:700;line-height:16px;text-align:center;}
+      font-family:var(--font-mono);font-size:10px;font-weight:700;line-height:16px;text-align:center;}
     .pt-alerts-scrim{position:fixed;inset:0;background:rgba(15,23,42,.38);z-index:70;}
     .pt-alerts{position:fixed;top:0;right:0;bottom:0;width:min(360px,88vw);z-index:71;
       background:var(--color-surface);border-left:1px solid var(--color-divider);
@@ -2722,7 +2722,7 @@ function portalAlertsStyle(){
     .pt-alerts.open{transform:none;visibility:visible;transition:transform .22s ease;}
     .pt-alerts-head{flex:none;display:flex;align-items:center;gap:8px;
       padding:12px 14px;border-bottom:1px solid var(--color-divider);}
-    .pt-alerts-title{flex:1;font-size:10.5px;font-weight:700;letter-spacing:.12em;
+    .pt-alerts-title{flex:1;font-size:11px;font-weight:700;letter-spacing:.12em;
       text-transform:uppercase;color:var(--color-neutral-600);}
     .pt-alerts-x{border:0;background:none;font:inherit;font-size:19px;line-height:1;cursor:pointer;
       color:var(--color-neutral-600);padding:0 4px;}
@@ -2745,7 +2745,7 @@ function portalAlertsStyle(){
     .pt-alerts-tick{width:38px;height:38px;margin:0 auto 10px;display:grid;place-items:center;
       border-radius:50%;background:var(--st-green-bg);color:var(--st-green-fg);}
     .pt-alerts-none{font-size:13px;font-weight:600;color:var(--color-text);}
-    .pt-alerts-sub{font-size:11.5px;color:var(--color-neutral-600);margin-top:4px;line-height:1.5;}
+    .pt-alerts-sub{font-size:12px;color:var(--color-neutral-600);margin-top:4px;line-height:1.5;}
     /* ---- NO BELL ON THE PHONE, AND THAT IS DELIBERATE ----
        Below 768px this page draws its notices in flow and the header has no
        room for another control. The phone keeps what it has. */
@@ -2785,7 +2785,7 @@ function portalWorkbenchStyle(){
     .pw-id-badge{width:30px;height:30px;flex:none;border-radius:0;background:var(--color-accent);
       color:#fff;display:grid;place-items:center;font-family:var(--font-mono);font-weight:600;font-size:13px;}
     .pw-id-main{min-width:0;line-height:1.3;}
-    .pw-id-main h1{margin:0;font-family:var(--font-heading);font-weight:600;font-size:15.5px;
+    .pw-id-main h1{margin:0;font-family:var(--font-heading);font-weight:600;font-size:16px;
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .pw-id-sub{display:block;font-size:11px;color:var(--color-neutral-600);font-family:var(--font-mono);
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -2830,7 +2830,7 @@ function portalWorkbenchStyle(){
     /* Two classes here too, and for the same reason: .ui-btn sets its own
        font-size and padding, so a single-class rule loses the tie wherever
        this sheet happens to land. */
-    .ui-btn.pw-id-verb{flex:none;font-size:11.5px;padding:7px 12px;min-height:32px;}
+    .ui-btn.pw-id-verb{flex:none;font-size:12px;padding:7px 12px;min-height:32px;}
     /* Verbs on the left of it, reading controls on the right. Without this the
        row is one undifferentiated run of pills. */
     .pw-id-rule{width:1px;height:22px;flex:none;background:var(--color-divider);margin:0 1px;}
@@ -3108,7 +3108,7 @@ function renderShareHistory(p, opts={}){
             <span style="width:30px;height:30px;flex:none;border-radius:0;background:var(--color-accent);
               color:#fff;display:grid;place-items:center;font-family:var(--font-mono);font-weight:600;font-size:13px;">HT</span>
             <span style="min-width:0">
-              <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:15.5px;
+              <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:16px;
                 white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(c.name||'Contract')}</span>
               <span style="display:block;font-size:11px;color:var(--color-neutral-600);font-family:var(--font-mono);
                 white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(c.id||'')}${
@@ -3131,7 +3131,7 @@ function renderShareHistory(p, opts={}){
                    component changes, and no event's side value moves. */}
             <div id="pt-hist-mount">${window.negoTimelineScreenHtml
               ? negoTimelineScreenHtml(c, f, { seat:'counterparty' })
-              : `<div style="padding:20px;font-size:12.5px;color:var(--color-neutral-600)">${i18t('po_history_unavailable')}</div>`}</div>
+              : `<div style="padding:20px;font-size:13px;color:var(--color-neutral-600)">${i18t('po_history_unavailable')}</div>`}</div>
           </div>
         </div>
       </div>`;
@@ -3294,7 +3294,7 @@ function renderSharePortal(p, opts={}){
           <div style="padding:16px 22px;border-bottom:1px solid var(--color-divider);display:flex;align-items:flex-start;gap:12px;background:var(--color-bg)">
             <span style="flex:1;min-width:0">
               <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:16px;">${i18t('po_propose_your_edits')}</span>
-              <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);line-height:1.5;margin-top:3px;">Change the clauses you want to change. ${esc(p.org)} sees your edits as a tracked redline — additions and deletions highlighted — and can accept or reject each one on its own. The document's headings, numbering and layout are kept; you are editing the words, not the formatting.</span>
+              <span style="display:block;font-size:12px;color:var(--color-neutral-600);line-height:1.5;margin-top:3px;">Change the clauses you want to change. ${esc(p.org)} sees your edits as a tracked redline — additions and deletions highlighted — and can accept or reject each one on its own. The document's headings, numbering and layout are kept; you are editing the words, not the formatting.</span>
             </span>
             <button id="pt-redline-cancel" class="ui-btn" style="flex:none;font-size:12px;padding:7px 14px">${i18t('act_cancel')}</button>
           </div>
@@ -3303,8 +3303,8 @@ function renderSharePortal(p, opts={}){
             <textarea id="pt-redline-text" class="scroll-thin" spellcheck="false" style="display:block;width:100%;height:min(62vh,620px);border:0;outline:none;resize:vertical;padding:26px 32px;font:inherit;font-size:15px;line-height:1.95;color:var(--color-doc-text);background:var(--color-doc-surface);"></textarea>
           </div>
           <div style="padding:14px 22px;border-top:1px solid var(--color-divider);display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--color-bg)">
-            <span id="pt-redline-count" style="font-size:11.5px;color:var(--color-neutral-600)">${i18t('po_name_from_panel')}</span>
-            <button id="pt-plain-toggle" style="border:0;background:none;padding:0;font:inherit;font-size:11.5px;color:var(--color-accent-700);cursor:pointer;text-decoration:underline">${i18t('po_edit_whole_doc')}</button>
+            <span id="pt-redline-count" style="font-size:12px;color:var(--color-neutral-600)">${i18t('po_name_from_panel')}</span>
+            <button id="pt-plain-toggle" style="border:0;background:none;padding:0;font:inherit;font-size:12px;color:var(--color-accent-700);cursor:pointer;text-decoration:underline">${i18t('po_edit_whole_doc')}</button>
             <span style="flex:1"></span>
             <button id="pt-redline-submit" class="ui-btn ui-btn-primary" style="font-size:13px;padding:10px 20px">${i18t('po_submit_edits')}</button>
           </div>
@@ -3381,10 +3381,10 @@ function renderSharePortal(p, opts={}){
                negotiation, which is what it is. */}
         ${(p&&p.signingOpen===false)?`<div style="margin:0 0 12px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:0;padding:10px 12px;">
           <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--st-amber-fg);margin-bottom:5px">${icon('alert','w-3.5 h-3.5')} ${i18t('po_review_only')}</div>
-          <p style="margin:0;font-size:11.5px;line-height:1.55;color:var(--st-amber-fg)">${esc(i18t('po_no_signers_yet',{org:(p&&p.org)||'the sender'}))}</p>
+          <p style="margin:0;font-size:12px;line-height:1.55;color:var(--st-amber-fg)">${esc(i18t('po_no_signers_yet',{org:(p&&p.org)||'the sender'}))}</p>
         </div>`:''}
         <div style="display:flex;flex-direction:column;gap:8px;">
-          <button id="pt-sign" class="ui-btn ui-btn-primary" style="width:100%;padding:11px;font-size:13.5px;">${icon('finger','w-4 h-4')} ${i18t('po_sign_this_contract')}</button>
+          <button id="pt-sign" class="ui-btn ui-btn-primary" style="width:100%;padding:11px;font-size:14px;">${icon('finger','w-4 h-4')} ${i18t('po_sign_this_contract')}</button>
           <button id="pt-other-toggle" aria-expanded="false" aria-controls="pt-other"
             style="width:100%;background:none;border:0;padding:6px 0;font:inherit;font-size:12px;color:var(--color-accent-700);cursor:pointer;text-align:center;text-decoration:underline">${i18t('po_not_ready_sign')}</button>
           <div id="pt-other" class="hidden" style="display:flex;flex-direction:column;gap:9px;border-top:1px solid var(--color-divider);padding-top:11px">
@@ -3411,11 +3411,11 @@ function renderSharePortal(p, opts={}){
                    : 'Describe it in the comment box above. The wording stays as it is for now.'],
                ['pt-accept','check2','Agree to the wording — but don’t sign yet','Tells them you are happy with the text. Nothing is signed and nothing is binding.']]
               .map(([id,ic,label,why])=>`<div>
-                <button id="${id}" class="ui-btn" style="width:100%;padding:9px;font-size:12.5px;text-align:left;display:flex;align-items:center;gap:7px">${icon(ic,'w-3.5 h-3.5')} ${label}</button>
+                <button id="${id}" class="ui-btn" style="width:100%;padding:9px;font-size:13px;text-align:left;display:flex;align-items:center;gap:7px">${icon(ic,'w-3.5 h-3.5')} ${label}</button>
                 <span style="display:block;font-size:11px;line-height:1.5;color:var(--color-neutral-600);margin:4px 2px 0">${why}</span>
               </div>`).join('')}
             <div style="border-top:1px solid var(--color-divider);padding-top:9px">
-              <button id="pt-decline" class="ui-btn" style="width:100%;padding:9px;font-size:12.5px;color:var(--st-ruby-dot);border-color:color-mix(in srgb,var(--st-ruby-dot) 40%,transparent);">${i18t('po_decline_contract')}</button>
+              <button id="pt-decline" class="ui-btn" style="width:100%;padding:9px;font-size:13px;color:var(--st-ruby-dot);border-color:color-mix(in srgb,var(--st-ruby-dot) 40%,transparent);">${i18t('po_decline_contract')}</button>
               <span style="display:block;font-size:11px;line-height:1.5;color:var(--color-neutral-600);margin:4px 2px 0">${i18t('po_ends_the_deal')}</span>
             </div>
           </div>
@@ -3839,7 +3839,7 @@ function portalOfferResponseCode(p, response, label){
     <div class="modal-in" role="dialog" aria-modal="true" aria-labelledby="pt-code-t"
       style="position:relative;width:100%;max-width:33rem;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:0;padding:22px 24px">
       <h3 id="pt-code-t" style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0 0 4px;line-height:1.3">${head}</h3>
-      <p style="font-size:12.5px;color:var(--color-neutral-700);line-height:1.55;margin:0 0 12px">${lead}</p>
+      <p style="font-size:13px;color:var(--color-neutral-700);line-height:1.55;margin:0 0 12px">${lead}</p>
       <textarea id="pt-code" readonly rows="5" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:10px;font-size:10px;font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all;">${code}</textarea>
       <p style="font-size:11px;color:var(--color-neutral-600);line-height:1.55;margin:10px 0 16px">${i18t('po_code_only_showing')}</p>
       <div style="display:flex;justify-content:flex-end;gap:8px">
@@ -3884,7 +3884,7 @@ function portalTemplateFormHtml(c,p){
   if(!fields.length) return '';
   const values=form.values||{};
   const editable=!portalExecuted()&&!portalReadOnly();
-  const INP='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 10px;font:inherit;font-size:12.5px;outline:none';
+  const INP='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 10px;font:inherit;font-size:13px;outline:none';
   const required=fields.filter(f=>f.required);
   const filled=required.filter(f=>String(values[f.fieldKey]||'').trim()!=='');
   const inputFor=(f,idx)=>{
@@ -3911,7 +3911,7 @@ function portalTemplateFormHtml(c,p){
   <div id="pt-tplform" style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;box-shadow:var(--shadow-sm);margin-bottom:18px;overflow:hidden">
     <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--color-divider)">
       <span style="font-family:var(--font-heading);font-weight:600;font-size:13px;flex:1">${i18t('po_fill_details')}</span>
-      <span style="font-size:10.5px;color:${filled.length===required.length?'var(--st-green-fg)':'var(--st-amber-fg)'};font-weight:600">${filled.length}/${required.length} required</span>
+      <span style="font-size:11px;color:${filled.length===required.length?'var(--st-green-fg)':'var(--st-amber-fg)'};font-weight:600">${filled.length}/${required.length} required</span>
       <span id="pt-tplform-state" style="font-size:10px;color:var(--color-neutral-500)"></span>
     </div>
     <div style="padding:12px 16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">
@@ -3923,7 +3923,7 @@ function portalTemplateFormHtml(c,p){
             <span style="display:block;font-size:11px;font-weight:600;margin-bottom:3px">${esc(f.label||f.fieldKey)}${f.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}</span>
             ${inputFor(f,idx)}
             ${f.helpText?`<span style="display:block;font-size:10px;color:var(--color-neutral-500);margin-top:2px">${esc(f.helpText)}</span>`:''}
-            <span data-ptf-err="${idx}" style="display:none;font-size:10.5px;color:var(--st-ruby-fg);margin-top:2px"></span>
+            <span data-ptf-err="${idx}" style="display:none;font-size:11px;color:var(--st-ruby-fg);margin-top:2px"></span>
           </label>`; }).join('')}`).join('')}
     </div>
   </div>`;
@@ -4005,7 +4005,7 @@ function wirePortalTemplateForm(p){
       const pop=document.createElement('div');
       pop.id='ptf-pop';
       pop.style.cssText=`position:fixed;z-index:80;top:${Math.round(r.bottom+6)}px;left:${Math.round(Math.min(Math.max(8,r.left),(window.innerWidth||1200)-296))}px;width:284px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;box-shadow:var(--shadow-md);padding:10px 12px`;
-      const INP='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 10px;font:inherit;font-size:12.5px;outline:none';
+      const INP='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 10px;font:inherit;font-size:13px;outline:none';
       const v=(form.values||{})[f.fieldKey]==null?'':String(form.values[f.fieldKey]);
       const inputHtml=(f.control==='guided'||f.fieldType==='select')
         ? `<select data-ptf-pop style="${INP}"><option value="">${i18t('po_choose')}</option>${(f.options||[]).map(o=>`<option value="${esc(o)}"${v===o?' selected':''}>${esc(o)}</option>`).join('')}</select>`
@@ -4016,7 +4016,7 @@ function wirePortalTemplateForm(p){
         <div style="font-size:11px;font-weight:600;margin-bottom:5px">${esc(f.label||f.fieldKey)}${f.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}</div>
         ${inputHtml}
         ${f.helpText?`<div style="font-size:10px;color:var(--color-neutral-500);margin-top:4px">${esc(f.helpText)}</div>`:''}
-        <div data-ptf-pop-err style="display:none;font-size:10.5px;color:var(--st-ruby-fg);margin-top:4px"></div>`;
+        <div data-ptf-pop-err style="display:none;font-size:11px;color:var(--st-ruby-fg);margin-top:4px"></div>`;
       document.body.appendChild(pop);
       const input=pop.querySelector('[data-ptf-pop]');
       let done=false; // Enter commits, then the focused input's blur fires change — one door only
@@ -4049,7 +4049,7 @@ async function portalSignUnverified(p, info){
   box.innerHTML=`
     <div style="border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:0;padding:13px;">
       <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--st-amber-fg);margin-bottom:5px;">${icon('alert','w-3.5 h-3.5')} Signing without an email check</div>
-      <p style="font-size:11.5px;color:var(--st-amber-fg);margin:0 0 10px;line-height:1.55;">${i18t('po_cannot_verify',{email:esc(info.email),how:i18t('po_not_independently_verified')})}</p>
+      <p style="font-size:12px;color:var(--st-amber-fg);margin:0 0 10px;line-height:1.55;">${i18t('po_cannot_verify',{email:esc(info.email),how:i18t('po_not_independently_verified')})}</p>
       <button id="pt-unver-go" class="ui-btn ui-btn-primary" style="width:100%;padding:9px;font-size:13px;">${icon('finger','w-4 h-4')} ${i18t('po_sign_anyway')}</button>
       <button id="pt-unver-cancel" style="margin-top:6px;width:100%;background:none;border:0;font-size:11px;color:var(--color-neutral-600);cursor:pointer;font-family:var(--font-body);">${i18t('act_cancel')}</button>
     </div>`;
@@ -4106,7 +4106,7 @@ async function portalStartOtp(p, info){
     <div style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:13px;">
       <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--color-text);margin-bottom:4px;">${icon('key','w-3.5 h-3.5')} ${i18t('po_verify_to_sign')}</div>
       <p style="font-size:11px;color:var(--color-neutral-600);margin:0 0 8px;line-height:1.5;">${i18t('po_sent_code_to',{email:esc(sentTo)})}</p>
-      ${(sentTo&&info.email&&sentTo.toLowerCase()!==String(info.email||'').toLowerCase())?`<p style="margin:0 0 8px;font-size:10.5px;border-radius:0;background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border:1px solid color-mix(in srgb,var(--st-amber-dot) 30%,transparent);color:var(--st-amber-fg);padding:6px 10px;line-height:1.5;">${i18t('po_code_goes_only_to')} <strong>${esc(sentTo)}</strong>, the address the sender invited — not to the address typed above. If somebody else should be signing, ask the sender to add them to the signing route so they get their own link.</p>`:''}
+      ${(sentTo&&info.email&&sentTo.toLowerCase()!==String(info.email||'').toLowerCase())?`<p style="margin:0 0 8px;font-size:11px;border-radius:0;background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border:1px solid color-mix(in srgb,var(--st-amber-dot) 30%,transparent);color:var(--st-amber-fg);padding:6px 10px;line-height:1.5;">${i18t('po_code_goes_only_to')} <strong>${esc(sentTo)}</strong>, the address the sender invited — not to the address typed above. If somebody else should be signing, ask the sender to add them to the signing route so they get their own link.</p>`:''}
       ${emailSent?'':`<p style="margin:0 0 8px;font-size:11px;border-radius:0;background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border:1px solid color-mix(in srgb,var(--st-amber-dot) 30%,transparent);color:var(--st-amber-fg);padding:6px 10px;line-height:1.5;">Email delivery is not configured on this server, so the code could not be sent. Ask <strong>${esc((PORTAL_OPTS.payload&&PORTAL_OPTS.payload.sharedBy)||'the sender')}</strong> for it — they can read it in HaTi under Team &amp; Settings.</p>`}
       <input id="pt-otp" inputmode="numeric" maxlength="6" placeholder="______" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:8px 11px;text-align:center;font-size:18px;font-family:var(--font-mono);letter-spacing:.4em;color:var(--color-text);outline:none;"/>
       <button id="pt-otp-go" class="ui-btn ui-btn-primary" style="margin-top:8px;width:100%;padding:9px;font-size:13px;">${icon('finger','w-4 h-4')} ${i18t('po_verify_and_sign')}</button>
@@ -4251,7 +4251,7 @@ function printExecutionBlock(c){
         <div style="font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#666;margin-bottom:3px;">${esc(partyLabel(s))}</div>
         ${s.image?`<img src="${s.image}" alt="" style="height:38px;max-width:190px;object-fit:contain;display:block;margin:2px 0 5px;"/>`:''}
         <div style="font-weight:600;font-size:12px;">${esc(s.name||'—')}${cap(s)?', '+esc(cap(s)):''}</div>
-        <div style="font-size:9.5px;color:#666;line-height:1.5;">${esc([s.email,s.form?s.form+' signature':s.method,s.at?fmtDT(s.at):''].filter(Boolean).join(' · '))}</div>
+        <div style="font-size:10px;color:#666;line-height:1.5;">${esc([s.email,s.form?s.form+' signature':s.method,s.at?fmtDT(s.at):''].filter(Boolean).join(' · '))}</div>
       </div>
     </td>`;
   const rows=[];
@@ -4273,18 +4273,18 @@ function printExecutionBlock(c){
         </td>
         <td style="vertical-align:top;">
           <div style="font-family:Inter,system-ui,-apple-system,'Segoe UI',Arial,sans-serif;font-weight:700;font-size:16px;">${external?'Executed outside HaTi':'Executed &amp; Sealed'}</div>
-          <div style="font-size:10.5px;color:#666;margin-top:2px;line-height:1.5;">${external
+          <div style="font-size:11px;color:#666;margin-top:2px;line-height:1.5;">${external
             ? `Signed before it was migrated into HaTi. <strong>${i18t('po_no_esig_here')}</strong> — the signatures are on the original document.`
             : ((c.execution&&c.execution.esignature)||jxEsignatureShort())}</div>
           ${external?'':sigTable}
           ${(!external&&!isUpload(c))?`<div style="margin-top:10px;border:1px solid var(--color-divider);border-radius:0;padding:9px 11px;">
             <div style="font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#666;margin-bottom:3px;">${i18t('po_sealed_fingerprint')}</div>
-            <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9.5px;word-break:break-all;">${esc((c.execution&&c.execution.textHash)||'—')}</div>
+            <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;word-break:break-all;">${esc((c.execution&&c.execution.textHash)||'—')}</div>
           </div>`:''}
           <div style="margin-top:10px;border-radius:0;padding:10px 12px;background:#1d1f20;color:#f4f5f6;">
             <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9px;letter-spacing:.08em;color:#c79a3e;margin-bottom:3px;">${external?'ORIGINAL FILE FINGERPRINT (SHA-256)':'DOCUMENT SEAL (SHA-256)'}</div>
             <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;word-break:break-all;">${esc(hash)}</div>
-            <div style="font-size:9.5px;color:#b9bec4;margin-top:4px;">${esc(c.signedAt||'Timestamp recorded')}</div>
+            <div style="font-size:10px;color:#b9bec4;margin-top:4px;">${esc(c.signedAt||'Timestamp recorded')}</div>
           </div>
         </td>
       </tr></table>

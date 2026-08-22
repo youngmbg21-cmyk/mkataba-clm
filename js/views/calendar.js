@@ -153,7 +153,7 @@ function renderCalendar(){
        August" — which is where the press actually leads. */
     const chips=es.map(e=>{
       const ev=CAL_EVENT[e.type];
-      return `<span class="cal-chip"${cids.length===1?` title="${ev.label}: ${_esc(e.note)}"`:''} style="display:flex;align-items:center;gap:4px;width:100%;min-width:0;font-size:9.5px;line-height:1.25;overflow:hidden;${e.done?'opacity:.45;text-decoration:line-through':''}">`+
+      return `<span class="cal-chip"${cids.length===1?` title="${ev.label}: ${_esc(e.note)}"`:''} style="display:flex;align-items:center;gap:4px;width:100%;min-width:0;font-size:10px;line-height:1.25;overflow:hidden;${e.done?'opacity:.45;text-decoration:line-through':''}">`+
         _dot(ev.dot,6)+`<span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(e.cname)}</span></span>`;
     }).join('');
     /* It is not its own button — the cell it sits in already is one, and the
@@ -194,13 +194,13 @@ function renderCalendar(){
              padding:2px 7px;font:inherit;font-size:10px;font-weight:600;color:var(--color-accent-700);cursor:pointer">${i18t('cal_done')}</button>`
       : '';
     const theirsChip = (e.type==='obligation' && e.theirs)
-      ? `<span title="${i18t('cal_cp_owes')}" style="flex:none;font-size:8.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:0;padding:1px 4px;background:var(--st-amber-bg);color:var(--st-amber-fg)">theirs</span>`
+      ? `<span title="${i18t('cal_cp_owes')}" style="flex:none;font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:0;padding:1px 4px;background:var(--st-amber-bg);color:var(--st-amber-fg)">theirs</span>`
       : '';
     return `<div style="display:flex;align-items:center;gap:8px;width:100%;border-bottom:1px solid color-mix(in srgb,var(--color-text) 8%,transparent)" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">`+
       `<button data-sel="${e.cid}" style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;padding:6px 2px;border:0;background:none;cursor:pointer;font:inherit;text-align:left;color:inherit">`+
         _dot(ev.dot,7)+
         `<span style="flex:1;min-width:0">`+
-          `<span style="display:block;font-size:11.5px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(e.cname)}</span>`+
+          `<span style="display:block;font-size:12px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(e.cname)}</span>`+
           `<span style="display:block;font-size:10px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${kind}</span>`+
         `</span>`+
       `</button>`+
@@ -209,9 +209,9 @@ function renderCalendar(){
     `</div>`;
   }).join(''):`<div style="text-align:center;padding:22px 8px">
       <div style="width:40px;height:40px;margin:0 auto 10px;display:grid;place-items:center;border-radius:0;background:var(--color-bg);color:var(--color-neutral-500)">${icon('calendar','w-5 h-5')}</div>
-      <div style="font-size:12.5px;font-weight:600;color:var(--color-text)">${i18t('cal_nothing_due')}</div>
+      <div style="font-size:13px;font-weight:600;color:var(--color-text)">${i18t('cal_nothing_due')}</div>
       <div style="font-size:11px;color:var(--color-neutral-600);margin:3px 0 12px;line-height:1.5">${i18t('cal_nothing_due_sub')}</div>
-      <button id="cal-empty-reg" style="font-size:11.5px;font-weight:600;color:var(--color-accent-700);background:none;border:1px solid var(--color-divider);border-radius:0;padding:6px 12px;cursor:pointer">${i18t('cal_open_register')}</button>
+      <button id="cal-empty-reg" style="font-size:12px;font-weight:600;color:var(--color-accent-700);background:none;border:1px solid var(--color-divider);border-radius:0;padding:6px 12px;cursor:pointer">${i18t('cal_open_register')}</button>
     </div>`;
 
   /* THE REFERENCE'S NAVIGATION, which sits in the page header beside the title
@@ -263,7 +263,7 @@ function renderCalendar(){
       <div style="display:flex;gap:8px;flex:none">
         <button id="cal-prev" style="${btnBase}" title="${i18t('cal_prev_month')}">‹</button>
         <button id="cal-next" style="${btnBase}" title="${i18t('cal_next_month')}">›</button>
-        <button id="cal-today" style="height:32px;padding:0 12px;border:1px solid var(--color-divider);background:var(--color-surface);box-shadow:var(--shadow-sm);border-radius:0;cursor:pointer;font:inherit;font-size:11.5px;font-weight:600;color:var(--color-neutral-700)">${i18t('cal_today')}</button>
+        <button id="cal-today" style="height:32px;padding:0 12px;border:1px solid var(--color-divider);background:var(--color-surface);box-shadow:var(--shadow-sm);border-radius:0;cursor:pointer;font:inherit;font-size:12px;font-weight:600;color:var(--color-neutral-700)">${i18t('cal_today')}</button>
       </div>
     </div>
     <div class="cal-split">

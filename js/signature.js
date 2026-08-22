@@ -68,10 +68,10 @@ function openSignaturePad(opts={}){
             <span style="color:${ACC};display:inline-flex">${icon('finger','w-4 h-4')}</span>
             <h2 style="font-family:var(--font-heading);font-weight:600;font-size:16px;color:${TXT};margin:0;">${i18t('si_adopt')}</h2>
           </div>
-          <p style="font-size:11.5px;color:${N6};margin:6px 0 12px;line-height:1.5;">${i18t('si_draw_type_upload')}</p>
+          <p style="font-size:12px;color:${N6};margin:6px 0 12px;line-height:1.5;">${i18t('si_draw_type_upload')}</p>
           <div id="sig-tabs" style="display:flex;gap:4px;border-bottom:1px solid ${C};">
-            ${['draw','type','upload'].map((k,i)=>`<button data-sig-tab="${k}" style="flex:0 0 auto;padding:8px 14px;font:inherit;font-size:12.5px;font-weight:600;font-family:var(--font-mono);letter-spacing:.02em;cursor:pointer;background:none;border:0;border-bottom:2px solid transparent;color:${N6};">${k==='draw'?'✎ Draw':k==='type'?'⌨ Type':'⭱ Upload'}</button>`).join('')}
-            ${saved?`<button data-sig-tab="saved" style="margin-left:auto;padding:8px 14px;font:inherit;font-size:12.5px;font-weight:600;font-family:var(--font-mono);cursor:pointer;background:none;border:0;border-bottom:2px solid transparent;color:${N6};">★ Saved</button>`:''}
+            ${['draw','type','upload'].map((k,i)=>`<button data-sig-tab="${k}" style="flex:0 0 auto;padding:8px 14px;font:inherit;font-size:13px;font-weight:600;font-family:var(--font-mono);letter-spacing:.02em;cursor:pointer;background:none;border:0;border-bottom:2px solid transparent;color:${N6};">${k==='draw'?'✎ Draw':k==='type'?'⌨ Type':'⭱ Upload'}</button>`).join('')}
+            ${saved?`<button data-sig-tab="saved" style="margin-left:auto;padding:8px 14px;font:inherit;font-size:13px;font-weight:600;font-family:var(--font-mono);cursor:pointer;background:none;border:0;border-bottom:2px solid transparent;color:${N6};">★ Saved</button>`:''}
           </div>
         </div>
         <div style="padding:16px 20px 4px">
@@ -100,7 +100,7 @@ function openSignaturePad(opts={}){
           </div>`:''}
         </div>
         <div style="display:flex;align-items:center;gap:12px;padding:12px 20px 18px;flex-wrap:wrap;border-top:1px solid ${C};margin-top:8px">
-          <label style="display:flex;align-items:center;gap:7px;font-size:11.5px;color:${N7};cursor:pointer">
+          <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:${N7};cursor:pointer">
             <input id="sig-adopt" type="checkbox" ${saved?'checked':''} style="width:15px;height:15px;accent-color:${ACC}"/> Save my signature for next time
           </label>
           <div style="margin-left:auto;display:flex;gap:8px">

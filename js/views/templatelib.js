@@ -121,7 +121,7 @@ function tplCompanySectionHtml() {
       <div data-tpllib-open="${t.id}" style="display:flex;align-items:center;gap:8px;cursor:pointer" title="${esc(i18t('tl_open_named',{name:t.name}))}">
         <span style="width:32px;height:32px;flex:none;display:grid;place-items:center;border-radius:0;background:var(--tile-steel-bg);color:var(--tile-steel-fg)">${icon('copy', 'w-3.5 h-3.5')}</span>
         <span style="min-width:0;flex:1">
-          <span style="display:block;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.name)}</span>
+          <span style="display:block;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.name)}</span>
           <span style="display:block;font-size:10px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${TPLLIB_CATEGORIES[t.category] || 'Other'} · ${esc(TPLLIB_ORIGIN[t.origin] || '')}</span>
         </span>
         <span style="flex:none">${tplLibStatusBadge(t.status)}</span>
@@ -133,8 +133,8 @@ function tplCompanySectionHtml() {
       </div>
       <div style="display:flex;gap:6px;margin-top:2px;flex-wrap:wrap">
         ${t.status === 'published' && typeof canEdit === 'function' && canEdit()
-          ? `<button data-tpllib-use="${t.id}" class="ui-btn ui-btn-primary" style="font-size:11.5px;padding:4px 10px;flex:1">${icon('plus', 'w-3 h-3')} ${i18t('tl_new_contract')}</button>` : ''}
-        <button data-tpllib-open="${t.id}" class="ui-btn" style="font-size:11.5px;padding:4px 10px;${t.status === 'published' && typeof canEdit === 'function' && canEdit() ? '' : 'flex:1'}">${i18t('act_open')}</button>
+          ? `<button data-tpllib-use="${t.id}" class="ui-btn ui-btn-primary" style="font-size:12px;padding:4px 10px;flex:1">${icon('plus', 'w-3 h-3')} ${i18t('tl_new_contract')}</button>` : ''}
+        <button data-tpllib-open="${t.id}" class="ui-btn" style="font-size:12px;padding:4px 10px;${t.status === 'published' && typeof canEdit === 'function' && canEdit() ? '' : 'flex:1'}">${i18t('act_open')}</button>
       </div>
     </div>`).join('');
   /* The section itself now matches Counterparty Templates too: a padded card holding a
@@ -145,7 +145,7 @@ function tplCompanySectionHtml() {
     <section style="${CARD};padding:16px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:${list.length ? '12px' : '6px'}">
         <h4 style="font-family:var(--font-heading);font-weight:600;font-size:15px;margin:0">${i18t('tl_company_standards')}</h4>
-        <span style="font-size:10.5px;color:var(--color-neutral-600)">${i18tn('tl_in_library',list.length,{n:list.length})}</span>
+        <span style="font-size:11px;color:var(--color-neutral-600)">${i18tn('tl_in_library',list.length,{n:list.length})}</span>
         <span style="flex:1"></span>
         ${canManage ? `<button id="tpllib-upload" class="ui-btn ui-btn-secondary" style="font-size:12px;padding:5px 12px">${icon('upload', 'w-3.5 h-3.5')} Convert a document</button>
         <button id="tpllib-new" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 12px">${icon('plus', 'w-3.5 h-3.5')} ${i18t('lib_new_template_plain')}</button>` : ''}
@@ -156,7 +156,7 @@ function tplCompanySectionHtml() {
         ${canManage
           ? 'No standard templates yet. Convert an uploaded Word document, save an existing contract as a template, or build one from scratch.'
           : 'No published company templates yet — a template manager (Admin or Legal) publishes them here.'}</p>`}
-      ${canManage && cards ? `<p style="margin:12px 0 0;font-size:10.5px;color:var(--color-neutral-500);line-height:1.5">
+      ${canManage && cards ? `<p style="margin:12px 0 0;font-size:11px;color:var(--color-neutral-500);line-height:1.5">
         Contracts created from a published version stay independent — publishing an edit makes a new version and never changes contracts already created.</p>` : ''}
     </section>`;
 }
@@ -167,7 +167,7 @@ function tplLibUploadModal() {
   openModal(`
     <div style="padding:20px 22px;max-width:470px">
       <h3 style="margin:0 0 4px;font-family:var(--font-heading);font-size:16px;font-weight:700">${i18t('tl_convert_doc')}</h3>
-      <p style="margin:0 0 14px;font-size:11.5px;color:var(--color-neutral-600);line-height:1.5">
+      <p style="margin:0 0 14px;font-size:12px;color:var(--color-neutral-600);line-height:1.5">
         Upload your standard contract as a Word (.docx) or PDF file — including a scan of a paper form.
         HaTi reads it, works out which parts are fixed wording and which are blanks to fill in, and
         rebuilds it as a draft template — HaTi's layout, your branding. The original file's formatting
@@ -263,7 +263,7 @@ function tplConfirmPaint() {
     </div>`;
   }).join('');
   const blockRows = s.blocks.map(b => `
-    <div style="display:flex;gap:8px;padding:6px 14px;border-bottom:1px solid var(--color-divider);font-size:11.5px">
+    <div style="display:flex;gap:8px;padding:6px 14px;border-bottom:1px solid var(--color-divider);font-size:12px">
       <span class="badge" style="flex:none;background:var(--color-neutral-100);color:var(--color-neutral-600)">${((window.TB_BLOCK_META || {})[b.blockType] || { label: b.blockType }).label}</span>
       <span style="min-width:0;color:var(--color-neutral-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(b.content.slice(0, 160))}</span>
     </div>`).join('');
@@ -381,7 +381,7 @@ function tplLibCreateModal() {
   openModal(`
     <div style="padding:20px 22px;max-width:460px">
       <h3 style="margin:0 0 4px;font-family:var(--font-heading);font-size:16px;font-weight:700">${i18t('tl_new_standard')}</h3>
-      <p style="margin:0 0 14px;font-size:11.5px;color:var(--color-neutral-600);line-height:1.5">
+      <p style="margin:0 0 14px;font-size:12px;color:var(--color-neutral-600);line-height:1.5">
         Starts as a draft only template managers can see. Add its content in the builder, then publish
         to make it available to the whole team.</p>
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">${i18t('tl_name')}</span>
@@ -428,7 +428,7 @@ function saveContractToLibrary(c) {
   openModal(`
     <div style="padding:20px 22px;max-width:470px">
       <h3 style="margin:0 0 4px;font-family:var(--font-heading);font-size:16px;font-weight:700">${i18t('tl_save_as_standard')}</h3>
-      <p style="margin:0 0 14px;font-size:11.5px;color:var(--color-neutral-600);line-height:1.5">
+      <p style="margin:0 0 14px;font-size:12px;color:var(--color-neutral-600);line-height:1.5">
         HaTi copies this contract's wording into a new draft template. Party-specific values it can
         recognise — names, emails, amounts, dates — become empty typed fields; everything else stays
         fixed wording. You review and publish from the builder; nothing changes on ${esc(c.id)} itself.</p>
@@ -465,7 +465,7 @@ async function openTemplateLibDetail(id) {
 
   const vRows = versions.slice().reverse().map(v => `
     <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 16px;border-bottom:1px solid var(--color-divider)">
-      <span style="flex:none;font-family:var(--font-mono);font-size:11.5px;font-weight:600;color:var(--color-accent-700);border:1px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:0;padding:1px 7px;margin-top:1px">v${v.versionNumber}</span>
+      <span style="flex:none;font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--color-accent-700);border:1px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:0;padding:1px 7px;margin-top:1px">v${v.versionNumber}</span>
       <span style="min-width:0;flex:1">
         <span style="display:block;font-size:12px">${v.status === 'published' ? `Published ${fmtAt(v.publishedAt)}${v.publishedBy ? ' by ' + esc(v.publishedBy) : ''}` : v.status === 'superseded' ? `Superseded — was published ${fmtAt(v.publishedAt)}` : 'Draft in progress'}</span>
         ${v.changeNote ? `<span style="display:block;font-size:11px;color:var(--color-neutral-600);margin-top:2px">“${esc(v.changeNote)}”</span>` : ''}
@@ -478,7 +478,7 @@ async function openTemplateLibDetail(id) {
   document.getElementById('content').innerHTML = `
   <div class="view-enter" style="padding:16px 18px 28px;display:flex;flex-direction:column;gap:14px;max-width:860px">
     <div>
-      <button id="tpllib-back" class="ui-btn" style="font-size:11.5px;padding:4px 10px">${icon('arrowLeft', 'w-3.5 h-3.5')} Library</button>
+      <button id="tpllib-back" class="ui-btn" style="font-size:12px;padding:4px 10px">${icon('arrowLeft', 'w-3.5 h-3.5')} Library</button>
     </div>
     <section style="${CARD};padding:18px">
       <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap">
@@ -493,20 +493,20 @@ async function openTemplateLibDetail(id) {
             · ${t.contractsCreated} contract${t.contractsCreated === 1 ? '' : 's'} created${t.lastUsedAt ? ` · last used ${fmtAt(t.lastUsedAt)}` : ''}</p>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;flex:none">
-          ${t.status === 'published' && typeof canEdit === 'function' && canEdit() ? `<button id="tpllib-use" class="ui-btn ui-btn-primary" style="font-size:11.5px;padding:4px 12px">${icon('plus', 'w-3 h-3')} ${i18t('tl_new_contract')}</button>` : ''}
-          ${canManage ? `<button id="tpllib-edit-meta" class="ui-btn" style="font-size:11.5px;padding:4px 10px">${icon('pencil', 'w-3 h-3')} Rename / describe</button>` : ''}
-          ${canManage && t.status !== 'archived' ? `<button id="tpllib-archive" class="ui-btn" style="font-size:11.5px;padding:4px 10px">${icon('box', 'w-3 h-3')} Archive</button>` : ''}
-          ${canManage && t.status === 'archived' ? `<button id="tpllib-restore" class="ui-btn" style="font-size:11.5px;padding:4px 10px">${i18t('tl_restore')}</button>` : ''}
-          ${canManage && !t.contractsCreated ? `<button id="tpllib-delete" class="ui-btn" style="font-size:11.5px;padding:4px 10px;border-color:var(--st-ruby-line);color:var(--st-ruby-fg)">${icon('trash', 'w-3 h-3')} Delete</button>` : ''}
+          ${t.status === 'published' && typeof canEdit === 'function' && canEdit() ? `<button id="tpllib-use" class="ui-btn ui-btn-primary" style="font-size:12px;padding:4px 12px">${icon('plus', 'w-3 h-3')} ${i18t('tl_new_contract')}</button>` : ''}
+          ${canManage ? `<button id="tpllib-edit-meta" class="ui-btn" style="font-size:12px;padding:4px 10px">${icon('pencil', 'w-3 h-3')} Rename / describe</button>` : ''}
+          ${canManage && t.status !== 'archived' ? `<button id="tpllib-archive" class="ui-btn" style="font-size:12px;padding:4px 10px">${icon('box', 'w-3 h-3')} Archive</button>` : ''}
+          ${canManage && t.status === 'archived' ? `<button id="tpllib-restore" class="ui-btn" style="font-size:12px;padding:4px 10px">${i18t('tl_restore')}</button>` : ''}
+          ${canManage && !t.contractsCreated ? `<button id="tpllib-delete" class="ui-btn" style="font-size:12px;padding:4px 10px;border-color:var(--st-ruby-line);color:var(--st-ruby-fg)">${icon('trash', 'w-3 h-3')} Delete</button>` : ''}
         </div>
       </div>
       ${t.status === 'archived' ? `<p style="margin:12px 0 0;font-size:11px;color:var(--color-neutral-600);background:var(--color-neutral-100);border-radius:0;padding:8px 12px">
         Archived — no new contracts can be created from it, but it stays here because ${t.contractsCreated ? 'its contracts permanently cite it' : 'its history matters'}.</p>` : ''}
-      ${canManage && t.status === 'published' && !openDraft ? `<div style="margin-top:12px"><button id="tpllib-newversion" class="ui-btn" style="font-size:11.5px;padding:4px 10px">${icon('plus', 'w-3 h-3')} New draft version</button></div>` : ''}
+      ${canManage && t.status === 'published' && !openDraft ? `<div style="margin-top:12px"><button id="tpllib-newversion" class="ui-btn" style="font-size:12px;padding:4px 10px">${icon('plus', 'w-3 h-3')} New draft version</button></div>` : ''}
     </section>
     <section style="${CARD}">
       <div style="padding:12px 16px;border-bottom:1px solid var(--color-divider)">
-        <h4 style="font-family:var(--font-heading);font-weight:600;font-size:13.5px;margin:0">${i18t('tl_version_history')}</h4>
+        <h4 style="font-family:var(--font-heading);font-weight:600;font-size:14px;margin:0">${i18t('tl_version_history')}</h4>
       </div>
       ${vRows || `<div style="padding:22px;text-align:center;color:var(--color-neutral-500);font-size:12px">${i18t('tl_no_versions')}</div>`}
     </section>
@@ -664,7 +664,7 @@ function renderTemplateFormSection(c) {
             ${editable ? tplFormInputHtml(f, values[f.fieldKey], idx)
               : `<span style="display:block;font-size:12px;color:var(--color-neutral-800)">${esc(values[f.fieldKey] || '—')}</span>`}
             ${f.helpText ? `<span style="display:block;font-size:10px;color:var(--color-neutral-500);margin-top:2px">${esc(f.helpText)}</span>` : ''}
-            <span data-tplf-err="${idx}" style="display:${problem ? 'block' : 'none'};font-size:10.5px;color:var(--st-ruby-fg);margin-top:2px">${esc(problem || '')}</span>
+            <span data-tplf-err="${idx}" style="display:${problem ? 'block' : 'none'};font-size:11px;color:var(--st-ruby-fg);margin-top:2px">${esc(problem || '')}</span>
           </label>`;
         }).join('')}`).join('')}
     </div>`;
@@ -770,7 +770,7 @@ function tplFormPopover(c, idx, anchor) {
     <div style="font-size:11px;font-weight:600;margin-bottom:5px">${esc(f.label || f.fieldKey)}${f.required ? ' <span style="color:var(--st-ruby-fg)">*</span>' : ''}</div>
     ${tplFormInputHtml(f, (form.values || {})[f.fieldKey], idx)}
     ${f.helpText ? `<div style="font-size:10px;color:var(--color-neutral-500);margin-top:4px">${esc(f.helpText)}</div>` : ''}
-    <div data-tplf-pop-err style="display:none;font-size:10.5px;color:var(--st-ruby-fg);margin-top:4px"></div>`;
+    <div data-tplf-pop-err style="display:none;font-size:11px;color:var(--st-ruby-fg);margin-top:4px"></div>`;
   document.body.appendChild(pop);
   const input = pop.querySelector('[data-tplf]');
   let done = false; // Enter commits, then the focused input's blur fires change — one door only

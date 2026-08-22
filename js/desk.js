@@ -1106,7 +1106,7 @@ function deskSheetHtml(c){
     ${others.length ? others.map(p => _dkPersonRow(
         { name: p.name, sub: i18t('dk_added_when', { when: when(p.at) }) },
         may ? `<button type="button" class="ui-btn" data-dk-remove="${_dkE(p.id)}" style="font-size:11px;padding:4px 9px">${_dkE(i18t('dk_remove_btn'))}</button>` : '')).join('')
-      : `<p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 6px">${_dkE(i18t('dk_no_contributors'))}</p>`}
+      : `<p style="font-size:12px;color:var(--color-neutral-600);margin:0 0 6px">${_dkE(i18t('dk_no_contributors'))}</p>`}
 
     ${may ? `
     <div style="position:relative;margin-top:8px">
@@ -1121,7 +1121,7 @@ function deskSheetHtml(c){
         max-height:212px;overflow-y:auto;background:var(--color-surface);border:1px solid var(--color-divider);
         border-radius:0;box-shadow:var(--shadow-lg)"></ul>
     </div>
-    <div id="dk-who-say" style="font-size:11.5px;line-height:1.5;margin-top:5px;color:var(--color-neutral-600)">${_dkE(i18t('dk_add_hint'))}</div>
+    <div id="dk-who-say" style="font-size:12px;line-height:1.5;margin-top:5px;color:var(--color-neutral-600)">${_dkE(i18t('dk_add_hint'))}</div>
     <input type="hidden" id="dk-who-id" value=""/>
     <div style="display:flex;justify-content:flex-end;margin-top:8px">
       <button id="dk-add" class="ui-btn ui-btn-primary">${_dkE(i18t('dk_add_btn'))}</button>
@@ -1229,7 +1229,7 @@ function openDeskHandover(c, opts = {}){
           max-height:212px;overflow-y:auto;background:var(--color-surface);border:1px solid var(--color-divider);
           border-radius:0;box-shadow:var(--shadow-lg)"></ul>
       </div>
-      <div id="dk-who-say" style="font-size:11.5px;line-height:1.5;margin-top:5px;color:var(--color-neutral-600)">${_dkE(i18t('dk_add_hint'))}</div>
+      <div id="dk-who-say" style="font-size:12px;line-height:1.5;margin-top:5px;color:var(--color-neutral-600)">${_dkE(i18t('dk_add_hint'))}</div>
       <input type="hidden" id="dk-who-id" value=""/>
       ${''/* ---- THE WHOLE "NO SURPRISES" QUESTION, IN ONE TICK BOX ----
              Internally a handover is instant, logged and announced. Externally
@@ -1238,7 +1238,7 @@ function openDeskHandover(c, opts = {}){
              page, which is exactly how a counterparty comes to feel handled.
              Ticked by default, because the polite thing should be the quiet
              path through the form. */}
-      <label style="display:flex;gap:9px;align-items:flex-start;font-size:11.5px;line-height:1.5;
+      <label style="display:flex;gap:9px;align-items:flex-start;font-size:12px;line-height:1.5;
         cursor:pointer;margin-top:12px;border:1px solid var(--color-divider);border-radius:0;
         padding:10px 12px;background:var(--color-bg)">
         <input id="dk-ho-tell" type="checkbox" checked style="margin-top:2px;flex:none"/>
@@ -1246,7 +1246,7 @@ function openDeskHandover(c, opts = {}){
         <span style="display:block;color:var(--color-neutral-600);margin-top:2px">${_dkE(i18t('dk_tell_them_sub', { who: lead.name }))}</span>
         <span style="display:block;font-family:var(--font-mono);font-size:11px;color:var(--color-accent-800);margin-top:5px">“${_dkE(i18t('dk_cp_notice', { who: '…' }))}”</span></span>
       </label>
-      <p style="font-size:11.5px;color:var(--color-neutral-600);margin:12px 0 0;line-height:1.55">${_dkE(i18t('dk_ho_you_stay'))}</p>
+      <p style="font-size:12px;color:var(--color-neutral-600);margin:12px 0 0;line-height:1.55">${_dkE(i18t('dk_ho_you_stay'))}</p>
     </div>
     <div class="rvd-foot">
       <button id="dk-hocancel" class="ui-btn">${_dkE(i18t('act_cancel'))}</button>

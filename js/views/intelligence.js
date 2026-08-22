@@ -429,7 +429,7 @@ async function intelComplianceScan(q){
   }
   const sevPill=s=>{ const lbl=((typeof SEV_META==='object'&&SEV_META&&SEV_META[s]&&SEV_META[s].label)||s);
     const col=s==='high'?['var(--st-ruby-bg)','var(--st-ruby-fg)']:s==='med'?['var(--st-amber-bg)','var(--st-amber-fg)']:['var(--st-gray-bg)','var(--st-gray-fg)'];
-    return `<span style="display:inline-flex;align-items:center;font-size:8.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:1px 7px;border-radius:0;background:${col[0]};color:${col[1]}">${igEsc(lbl)}</span>`; };
+    return `<span style="display:inline-flex;align-items:center;font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:1px 7px;border-radius:0;background:${col[0]};color:${col[1]}">${igEsc(lbl)}</span>`; };
   const top=rows.slice(0,8);
   const totalFindings=rows.reduce((n,r)=>n+r.findings.length,0);
   let html=`<b>${i18t('int_compliance_review')}</b> ${rows.length} of ${cs.length} live contracts carry clauses worth a closer look — ${totalFindings} potential issue${totalFindings===1?'':'s'} in all (risks, missing protections or ambiguous terms), ranked by severity. This is a first-pass review to raise with counsel, not legal advice.`;
@@ -438,11 +438,11 @@ async function intelComplianceScan(q){
     const more=r.findings.length>3?`<div style="font-size:10px;color:var(--color-neutral-500);margin-top:1px">+${r.findings.length-3} more</div>`:'';
     return `<div style="margin-top:10px;padding-top:9px;border-top:1px solid color-mix(in srgb,var(--color-text) 9%,transparent)">
       <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px;flex-wrap:wrap">
-        <button data-ig-ws="${r.c.id}" data-ig-hoverid="${r.c.id}" title="Open ${igEsc(r.c.name)}" style="font-size:12.5px;font-weight:600;color:var(--color-accent-800);background:none;border:0;padding:0;cursor:pointer;text-align:left">${igEsc(r.c.name)}</button>
+        <button data-ig-ws="${r.c.id}" data-ig-hoverid="${r.c.id}" title="Open ${igEsc(r.c.name)}" style="font-size:13px;font-weight:600;color:var(--color-accent-800);background:none;border:0;padding:0;cursor:pointer;text-align:left">${igEsc(r.c.name)}</button>
         ${sevPill(r.worst)}
         <span style="font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono)">${igEsc(r.c.id)}</span>
       </div>
-      <ul style="margin:0;padding-left:16px;font-size:11.5px;color:var(--color-neutral-700);line-height:1.45">${items}</ul>${more}
+      <ul style="margin:0;padding-left:16px;font-size:12px;color:var(--color-neutral-700);line-height:1.45">${items}</ul>${more}
     </div>`;
   }).join('');
   if(rows.length>top.length) html+=`<div style="font-size:11px;color:var(--color-neutral-600);margin-top:9px">…and ${rows.length-top.length} more flagged contract${rows.length-top.length===1?'':'s'}. Ask me about any one by name or id for the detail, or open it and run <b>${i18t('int_copilot_review')}</b>.</div>`;
@@ -735,7 +735,7 @@ function renderIntel(){
      always lands on the strip's own hairline, and -1px puts the two on the
      same line instead of stacking them. */
   const TABROW='display:flex;align-items:stretch;align-self:stretch;flex:none';
-  const tabBtn=(k,label)=>`<button data-ig-tab="${k}" style="${UNDERTAB};border-bottom:2px solid ${intel.tab===k?'var(--accent-solid,var(--color-accent))':'transparent'};font-size:12.5px;font-weight:${intel.tab===k?700:400};color:${intel.tab===k?'var(--accent-ink,var(--color-accent))':'var(--color-neutral-500)'}">${label}</button>`;
+  const tabBtn=(k,label)=>`<button data-ig-tab="${k}" style="${UNDERTAB};border-bottom:2px solid ${intel.tab===k?'var(--accent-solid,var(--color-accent))':'transparent'};font-size:13px;font-weight:${intel.tab===k?700:400};color:${intel.tab===k?'var(--accent-ink,var(--color-accent))':'var(--color-neutral-500)'}">${label}</button>`;
   const tabsHtml=`<div style="${TABROW};gap:20px">${tabBtn('frame',i18t('pf_tab'))}${tabBtn('friction',i18t('int_negotiation_friction'))}${tabBtn('map',i18t('int_contract_graph'))}</div>`;
   /* The friction levers live IN the header strip (the approved comp): the
      period toggle and the counterparty select sit beside the tabs, so the
@@ -745,7 +745,7 @@ function renderIntel(){
      it is done by clicking a name in the report itself (data-igf-cp), and Clear
      below still lifts it — so the strip carries one lever, not two. */
   const ffOn=days=>days==null?!(ff&&ff.days):(ff&&ff.days)===days;
-  const ffSeg=(days,label)=>`<button data-igf-days="${days==null?'':days}" style="${UNDERTAB};border-bottom:2px solid ${ffOn(days)?'var(--accent-solid,var(--color-accent))':'transparent'};font-size:11.5px;font-weight:${ffOn(days)?700:400};color:${ffOn(days)?'var(--accent-ink,var(--color-accent))':'var(--color-neutral-500)'}">${label}</button>`;
+  const ffSeg=(days,label)=>`<button data-igf-days="${days==null?'':days}" style="${UNDERTAB};border-bottom:2px solid ${ffOn(days)?'var(--accent-solid,var(--color-accent))':'transparent'};font-size:12px;font-weight:${ffOn(days)?700:400};color:${ffOn(days)?'var(--accent-ink,var(--color-accent))':'var(--color-neutral-500)'}">${label}</button>`;
   const frictionControls=`
       <div style="${TABROW};gap:16px">${ffSeg(null,i18t('int_all_time'))}${ffSeg(90,i18t('int_last_90'))}</div>
       ${ff&&(ff.counterparty||ff.days||ff.clause)?`<button id="ig-friction-clear" style="border:0;background:none;cursor:pointer;font:inherit;font-size:11px;font-weight:700;color:var(--color-accent);flex:none">✕ Clear</button>`:''}`;
@@ -764,7 +764,7 @@ function renderIntel(){
          it is trimmed with a "…" or not shown. Friction has no caption. -->
     <header style="flex:none;display:flex;align-items:center;gap:0 14px;padding:0 16px;background:var(--color-surface);border-bottom:1px solid var(--color-divider)">
       ${tabsHtml}
-      ${intel.tab==='map'?`<span class="ig-hd-sub" style="font-size:11.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;min-width:0">${state.contracts.length.toLocaleString(jxLocale())} contracts · ask the panel to read, summarise, quote or flag risky clauses</span>`:''}
+      ${intel.tab==='map'?`<span class="ig-hd-sub" style="font-size:12px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;min-width:0">${state.contracts.length.toLocaleString(jxLocale())} contracts · ask the panel to read, summarise, quote or flag risky clauses</span>`:''}
       <span style="flex:1"></span>
       ${intel.tab==='friction'?frictionControls:''}
       ${intel.tab==='map'?`<label style="display:flex;align-items:center;gap:8px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600);flex:none">Group by
@@ -829,7 +829,7 @@ function renderIntel(){
   document.getElementById('content').innerHTML = `
   <div class="view-enter" style="height:var(--view-h);display:flex;flex-direction:column;min-height:0">
     ${headerHtml}
-    <div id="ig-note" style="flex:none;padding:0 16px 4px;font-size:11.5px"></div>
+    <div id="ig-note" style="flex:none;padding:0 16px 4px;font-size:12px"></div>
     <div class="relative flex-1 min-h-0 bg-canvas flex" style="flex:1;min-height:0;display:flex;position:relative;background:var(--color-bg)">
       <div class="relative flex-1 min-w-0" style="flex:1;min-width:0;position:relative">
         <svg id="ig-svg" class="w-full h-full block cursor-grab" style="width:100%;height:100%;display:block"><defs>
@@ -992,13 +992,13 @@ function intelFrictionHtml(){
     <b style="color:var(--color-text)">${f?i18t('int_nothing_matches'):i18t('int_no_negotiations')}</b><br/>${f?i18t('int_clear_filters'):i18t('int_once_contracts')}</div></div>`;
   const hrs=ms=>{ if(ms==null) return null; const h=ms/3600000; return h<1?'&lt;1h':h<48?Math.round(h)+'h':Math.round(h/24)+'d'; };
   const RULE='border-bottom:1px solid var(--color-divider)';
-  const LINK='display:inline-block;margin-top:6px;font-size:11.5px;font-weight:700;color:var(--color-accent-700);cursor:pointer;background:none;border:0;padding:0;font-family:inherit';
+  const LINK='display:inline-block;margin-top:6px;font-size:12px;font-weight:700;color:var(--color-accent-700);cursor:pointer;background:none;border:0;padding:0;font-family:inherit';
 
   /* ---- left: the three sentences ---- */
   const top=st.clauses[0]||null;
   const hero=(num,tone,body)=>`<div style="display:flex;gap:14px;padding:9px 0;${RULE}">
     <div style="flex:none;min-width:62px;font-size:clamp(20px,17px + 0.45vw,28px);font-weight:700;letter-spacing:-.02em;line-height:1.1;font-variant-numeric:tabular-nums;color:${tone}">${num}</div>
-    <div style="min-width:0;font-size:12.5px;line-height:1.55;color:var(--color-neutral-800)">${body}</div>
+    <div style="min-width:0;font-size:13px;line-height:1.55;color:var(--color-neutral-800)">${body}</div>
   </div>`;
   const clauseHero=top?hero(pct(top.share)+'%','var(--color-text)',
     `of negotiations get stuck on <b>${igEsc(top.label)}</b>${top.extra!=null&&top.extra>0
@@ -1011,13 +1011,13 @@ function intelFrictionHtml(){
     st.deadlocks
       ?`change${st.deadlocks===1?' is':'s are'} <b>${i18t('int_refused_open')}</b> — nobody withdrew ${st.deadlocks===1?'it':'them'}, so ${dealCount===1?'one deal is':dealCount+' deals are'} waiting on a decision somebody has to make.
         <br><button data-igf-deadlocks style="${LINK}">See the ${st.deadlocks<=12?['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve'][st.deadlocks]:st.deadlocks} →</button>
-        <div id="igf-deadlist" class="hidden" style="margin-top:8px">${dl.map(x=>`<button data-igf-open="${igEsc(x.id)}" style="display:flex;gap:8px;width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;font-size:11.5px;padding:4px 0;color:var(--color-neutral-700)"><b style="color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px">${igEsc(x.name)}</b><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${igEsc(x.clause)}</span><span style="margin-left:auto;color:var(--color-accent-700);font-weight:700;white-space:nowrap">open →</span></button>`).join('')}</div>`
+        <div id="igf-deadlist" class="hidden" style="margin-top:8px">${dl.map(x=>`<button data-igf-open="${igEsc(x.id)}" style="display:flex;gap:8px;width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;font-size:12px;padding:4px 0;color:var(--color-neutral-700)"><b style="color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px">${igEsc(x.name)}</b><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${igEsc(x.clause)}</span><span style="margin-left:auto;color:var(--color-accent-700);font-weight:700;white-space:nowrap">open →</span></button>`).join('')}</div>`
       :`changes are refused and still open — every refusal on the book has been answered or withdrawn. Nothing is deadlocked.`);
   const sl=st.slowest;
   const slowHero=(sl&&st.counterparties.length>1)?hero(sl.avgRounds.toFixed(1),'var(--color-text)',
     `rounds per deal with <b>${igEsc(sl.name)}</b>, against ${st.avgRounds.toFixed(1)} across the book — the slowest counterparty you negotiate with${sl.acceptUs!=null?`, and they accept <b>${pct(sl.acceptUs)}%</b> of what you ask`:''}.
      ${f&&f.counterparty===sl.name?'':`<br><button data-igf-cp="${igEsc(sl.name)}" style="${LINK}">Filter the page to ${igEsc(sl.name)} →</button>`}`):'';
-  const mini=(n,t)=>`<div style="min-width:0"><div style="font-size:16.5px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em">${n}</div><div style="font-size:10px;color:var(--color-neutral-600);font-weight:600;line-height:1.35">${t}</div></div>`;
+  const mini=(n,t)=>`<div style="min-width:0"><div style="font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em">${n}</div><div style="font-size:10px;color:var(--color-neutral-600);font-weight:600;line-height:1.35">${t}</div></div>`;
   const minis=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:9px 18px;padding-top:10px">
     ${st.medianDays!=null?mini(st.medianDays<1?'&lt;1 day':Math.round(st.medianDays)+' days','median to signature'):''}
     ${st.medianDecisionMs!=null?mini(hrs(st.medianDecisionMs),'median decision time'):''}
@@ -1037,18 +1037,18 @@ function intelFrictionHtml(){
     :cl.extra<-0.05?`<span style="color:var(--st-green-fg,#047857);font-weight:700">−${Math.abs(cl.extra).toFixed(1)}</span>`
     :`<span style="color:var(--color-neutral-500)">0.0</span>`;
   const bars=st.clauses.map(cl=>`
-    <span style="font-size:11.5px;font-weight:600;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${igEsc(cl.label)}">${igEsc(cl.label)}</span>
+    <span style="font-size:12px;font-weight:600;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${igEsc(cl.label)}">${igEsc(cl.label)}</span>
     <span style="position:relative;height:13px;border-radius:0;background:var(--color-neutral-100);min-width:0"><span style="position:absolute;inset:0 auto 0 0;width:${Math.max(2,pct(cl.share))}%;background:${cl.extra!=null&&cl.extra>0.05?'var(--accent-solid,var(--color-accent))':'var(--color-neutral-400)'};border-radius:0"></span></span>
-    <span style="font-size:11.5px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums;text-align:right">${pct(cl.share)}%</span>
+    <span style="font-size:12px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums;text-align:right">${pct(cl.share)}%</span>
     <span style="font-size:11px;font-variant-numeric:tabular-nums;text-align:right">${extraTxt(cl)}</span>`).join('');
   const cpRows=st.counterparties.map(cp=>{
     const chip=cp.avgRounds>=st.avgRounds+0.5?`<span style="font-size:9px;font-weight:700;padding:1px 7px;border-radius:0;background:var(--st-amber-bg,#fef3c7);color:var(--st-amber-fg,#b45309)">slow</span>`
       :cp.avgRounds<=Math.max(1,st.avgRounds-0.3)?`<span style="font-size:9px;font-weight:700;padding:1px 7px;border-radius:0;background:var(--st-green-bg,#d1fae5);color:var(--st-green-fg,#047857)">smooth</span>`:'';
     return `<tr data-igf-cp="${igEsc(cp.name)}" style="cursor:pointer" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 4%,transparent)'" onmouseout="this.style.background='none'">
-      <td style="padding:6px 8px;${RULE};font-size:11.5px;font-weight:600">${igEsc(cp.name)}</td>
-      <td style="padding:6px 8px;${RULE};font-size:11.5px;font-variant-numeric:tabular-nums">${cp.deals}</td>
-      <td style="padding:6px 8px;${RULE};font-size:11.5px;font-variant-numeric:tabular-nums">${cp.avgRounds.toFixed(1)}</td>
-      <td style="padding:6px 8px;${RULE};font-size:11.5px;font-variant-numeric:tabular-nums">${cp.acceptUs!=null?pct(cp.acceptUs)+'%':'—'}</td>
+      <td style="padding:6px 8px;${RULE};font-size:12px;font-weight:600">${igEsc(cp.name)}</td>
+      <td style="padding:6px 8px;${RULE};font-size:12px;font-variant-numeric:tabular-nums">${cp.deals}</td>
+      <td style="padding:6px 8px;${RULE};font-size:12px;font-variant-numeric:tabular-nums">${cp.avgRounds.toFixed(1)}</td>
+      <td style="padding:6px 8px;${RULE};font-size:12px;font-variant-numeric:tabular-nums">${cp.acceptUs!=null?pct(cp.acceptUs)+'%':'—'}</td>
       <td style="padding:6px 8px;${RULE}">${chip}</td></tr>`;
   }).join('');
   const th=t=>`<th style="font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500);text-align:left;padding:5px 8px;${RULE}">${t}</th>`;
@@ -1059,7 +1059,7 @@ function intelFrictionHtml(){
     <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:13px;font-weight:700">${i18t('int_friction_by_cp')}</span>
       <span style="font-size:10px;color:var(--color-accent-700);margin-left:auto;white-space:nowrap">${i18t('int_click_row_filter')}</span></div>
     <div style="overflow-x:auto;margin-top:6px"><table style="border-collapse:collapse;width:100%"><tr>${th('Counterparty')}${th('Deals')}${th('Rounds')}${th('Accept us')}${th('')}</tr>${cpRows}</table></div>
-    <div style="font-size:10.5px;color:var(--st-amber-fg,#b45309);opacity:.85;margin-top:9px;line-height:1.55">Counted from the fingerprinted tracked changes in each negotiation's record. Ask the Copilot to probe any of these numbers — it carries the same figures.</div>
+    <div style="font-size:11px;color:var(--st-amber-fg,#b45309);opacity:.85;margin-top:9px;line-height:1.55">Counted from the fingerprinted tracked changes in each negotiation's record. Ask the Copilot to probe any of these numbers — it carries the same figures.</div>
   </div>`;
 
   /* ---- HALF THE DEAD SPACE, AT EVERY WINDOW WIDTH ----
@@ -1108,7 +1108,7 @@ function intelFrictionCopilotHtml(st){
   const on=(typeof copilotAvailable==='function')&&copilotAvailable();
   const head=`<div style="display:flex;align-items:center;gap:8px">
     <span style="width:22px;height:22px;flex:none;display:grid;place-items:center;border-radius:0;background:var(--color-accent-100);color:var(--color-accent-700)">${icon('sparkle','w-3 h-3',2)}</span>
-    <span style="font-size:12.5px;font-weight:700">${i18t('int_copilots_read')}</span>
+    <span style="font-size:13px;font-weight:700">${i18t('int_copilots_read')}</span>
     <span style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:0;background:var(--color-accent-100);color:var(--color-accent-700)">${i18t('int_optional_ai')}</span>
   </div>`;
   let body;
@@ -1116,7 +1116,7 @@ function intelFrictionCopilotHtml(st){
     body=`<div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--color-neutral-600);padding:2px 0">
       <span class="live-ping" style="width:7px;height:7px;border-radius:50%;background:var(--accent-solid,var(--color-accent));flex:none"></span>${i18t('int_reading_figures')}</div>`;
   }else if(ai&&ai.html&&ai.key===key){
-    body=`<div class="igf-ai-read" style="font-size:12.5px;line-height:1.7;color:var(--color-neutral-800)">${ai.html}</div>
+    body=`<div class="igf-ai-read" style="font-size:13px;line-height:1.7;color:var(--color-neutral-800)">${ai.html}</div>
       <div style="display:flex;align-items:center;gap:10px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--color-divider);font-size:10px;color:var(--color-neutral-500)">
         <span style="flex:none;font-size:9px;font-weight:700;padding:1px 7px;border-radius:0;background:var(--st-amber-bg);color:var(--st-amber-fg)">${i18t('int_ai_commentary')}</span>
         <span style="min-width:0">Generated at ${igEsc(ai.at||'')} from the counted figures below — the numbers are the app's, the interpretation is Copilot's.</span>
@@ -1125,7 +1125,7 @@ function intelFrictionCopilotHtml(st){
   }else if(ai&&ai.err&&ai.key===key){
     body=`<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <span style="font-size:12px;color:var(--st-ruby-fg)">${igEsc(ai.err)}</span>
-      <button id="igf-ai-ask" style="border:0;background:none;cursor:pointer;font:inherit;font-size:11.5px;font-weight:700;color:var(--color-accent-700)">${i18t('int_try_again')}</button>
+      <button id="igf-ai-ask" style="border:0;background:none;cursor:pointer;font:inherit;font-size:12px;font-weight:700;color:var(--color-accent-700)">${i18t('int_try_again')}</button>
     </div>`;
   }else{
     const stale=!!(ai&&ai.html);

@@ -175,7 +175,7 @@ function reportDropdown(variant, kind, idx, catalog, selKey){
     ? 'background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.42);color:#fff;font-size:10px;letter-spacing:.06em;text-transform:uppercase;font-weight:600'
     : 'background:var(--color-bg);border:1px solid var(--color-divider);color:var(--color-text);font-size:14px;font-weight:600';
   const chev=hero?'#fff':'var(--color-neutral-500)';
-  const opts=catalog.map(x=>`<button type="button" data-rd-opt="${kind}:${idx}:${x.k}" class="rd-opt${x.k===cur.k?' rd-opt-on':''}" style="display:block;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:12.5px;padding:7px 11px;border-radius:0;cursor:pointer;white-space:nowrap">${_esc(x.label)}</button>`).join('');
+  const opts=catalog.map(x=>`<button type="button" data-rd-opt="${kind}:${idx}:${x.k}" class="rd-opt${x.k===cur.k?' rd-opt-on':''}" style="display:block;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:13px;padding:7px 11px;border-radius:0;cursor:pointer;white-space:nowrap">${_esc(x.label)}</button>`).join('');
   return `<div class="rd" style="position:relative;max-width:100%;${hero?'flex:1;min-width:0':'margin:0 0 10px'}">
     <button type="button" data-rd-trigger="${kind}:${idx}" class="rd-trigger rd-trigger-${hero?'hero':'card'}" title="${esc(hero?i18t('rep_choose_metric'):i18t('rep_choose_chart'))}" style="display:inline-flex;align-items:center;gap:8px;max-width:100%;border-radius:0;padding:4px 9px 4px 12px;cursor:pointer;line-height:1.25;transition:background .12s,border-color .12s;${trig}">
       <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(cur.label)}</span>
@@ -280,7 +280,7 @@ function renderReports(){
         ${reportDropdown('hero','metric',idx,REPORT_METRICS,sel[idx])}
       </span>
       <span class="tnum" style="font-family:var(--font-mono);font-weight:600;font-size:25px;line-height:1.0;color:#fff">${d.val}</span>
-      <span style="font-size:10.5px;color:rgba(255,255,255,.85)">${d.sub}</span>
+      <span style="font-size:11px;color:rgba(255,255,255,.85)">${d.sub}</span>
     </div>`;
   };
   const stats=[statSlot(0),statSlot(1),statSlot(2),statSlot(3)].join('');

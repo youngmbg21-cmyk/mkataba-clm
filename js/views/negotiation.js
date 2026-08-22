@@ -393,17 +393,17 @@ function negoTimelineScreenHtml(c, f = {}, opts = {}){
     <style>
       .ht{padding:20px 22px;max-width:820px;max-height:82vh;overflow-y:auto}
       .ht h3{font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0 0 2px}
-      .ht .ht-sub{font-size:11.5px;color:var(--color-neutral-600);margin:0 0 12px}
+      .ht .ht-sub{font-size:12px;color:var(--color-neutral-600);margin:0 0 12px}
       .ht .ht-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--color-divider)}
       .ht .ht-f{display:flex;flex-direction:column;gap:2px;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--color-neutral-600)}
       .ht .ht-f select{font:inherit;font-size:12px;font-weight:400;text-transform:none;letter-spacing:0;border:1px solid var(--color-divider);border-radius:0;padding:4px 6px;background:var(--color-surface);color:var(--color-text);max-width:180px}
       .ht .ht-ev{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid color-mix(in srgb,var(--color-divider) 55%,transparent)}
       .ht .ht-mark{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--color-bg);border:1px solid var(--color-divider);font-size:11px}
       .ht .ht-body{flex:1;min-width:0}
-      .ht .ht-text{font-size:12.5px;line-height:1.5;color:var(--color-text)}
-      .ht .ht-meta{font-size:10.5px;color:var(--color-neutral-600);margin-top:1px}
+      .ht .ht-text{font-size:13px;line-height:1.5;color:var(--color-text)}
+      .ht .ht-meta{font-size:11px;color:var(--color-neutral-600);margin-top:1px}
       .ht .ht-clause{font-weight:600}
-      .ht .ht-redline{border:1px solid var(--color-divider);border-radius:0;padding:7px 9px;margin-top:6px;font-size:11.5px;line-height:1.55;background:var(--color-surface)}
+      .ht .ht-redline{border:1px solid var(--color-divider);border-radius:0;padding:7px 9px;margin-top:6px;font-size:12px;line-height:1.55;background:var(--color-surface)}
       .ht .ht-redline ins{background:var(--st-green-bg);text-decoration:none}
       .ht .ht-redline del{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
       .ht .ht-note{font-size:11px;color:var(--color-neutral-700);margin-top:4px;border-left:2px solid var(--color-divider);padding-left:8px}
@@ -462,7 +462,7 @@ function openHistoryTimeline(c, f = {}, opts = {}){
   document.getElementById('ht-verify')?.addEventListener('click', async () => {
     const box = document.getElementById('ht-verify-result');
     if (!box || !window.negoIntegrityReport) return;
-    box.innerHTML = `<div style="font-size:11.5px;color:var(--color-neutral-600);padding:8px 0">${i18t('ng_recomputing')}</div>`;
+    box.innerHTML = `<div style="font-size:12px;color:var(--color-neutral-600);padding:8px 0">${i18t('ng_recomputing')}</div>`;
     const r = await negoIntegrityReport(c);
     box.innerHTML = negoVerifyResultHtml(r);
   });
@@ -548,12 +548,12 @@ function negoHistoryExportHtml(c, report){
 <style>
   body{font:13px/1.55 Georgia,serif;color:#1c2126;max-width:760px;margin:32px auto;padding:0 18px}
   h1{font-size:21px;margin:0 0 2px} .sub{color:#5a6470;font-size:12px;margin:0 0 18px}
-  .integrity{border:1.5px solid ${report.ok ? '#10b981' : '#f43f5e'};border-radius:0;padding:12px 14px;margin:0 0 20px;font-size:12.5px}
+  .integrity{border:1.5px solid ${report.ok ? '#10b981' : '#f43f5e'};border-radius:0;padding:12px 14px;margin:0 0 20px;font-size:13px}
   .ht-ev{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #e3e7ea;page-break-inside:avoid}
   .ht-mark{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;border:1px solid #cdd4da;font-size:11px}
-  .ht-body{flex:1;min-width:0} .ht-text{font-size:12.5px} .ht-meta{font-size:10.5px;color:#5a6470}
+  .ht-body{flex:1;min-width:0} .ht-text{font-size:13px} .ht-meta{font-size:11px;color:#5a6470}
   .ht-clause{font-weight:600}
-  .ht-redline{border:1px solid #e3e7ea;border-radius:0;padding:7px 9px;margin-top:6px;font-size:11.5px}
+  .ht-redline{border:1px solid #e3e7ea;border-radius:0;padding:7px 9px;margin-top:6px;font-size:12px}
   /* added wording — LITERAL ON PURPOSE, and f143 is the test that says so. This
      stylesheet is written into a STANDALONE .html file the counterparty saves
      and opens on their own machine; it carries none of the app's :root, so a
@@ -576,13 +576,13 @@ function negoHistoryExportHtml(c, report){
  · ${ev.length} events, oldest first · generated ${_ne(String(report.at).slice(0, 19).replace('T', ' '))} UTC by HaTi CLM</p>
 <div class="integrity">
   <b>${report.ok ? '✓ Record verified' : '✗ Integrity check FAILED'}</b> — ${_ne(report.detail)}<br>
-  Run ${_ne(String(report.at).slice(0, 19).replace('T', ' '))} UTC · ${report.chain.checked} chained record${report.chain.checked === 1 ? '' : 's'} recomputed${c.hash ? ` · document seal (SHA-256): <span style="font-family:monospace;font-size:10.5px;word-break:break-all">${_ne(c.hash)}</span>` : ' · not yet executed, so no seal to check'}
+  Run ${_ne(String(report.at).slice(0, 19).replace('T', ' '))} UTC · ${report.chain.checked} chained record${report.chain.checked === 1 ? '' : 's'} recomputed${c.hash ? ` · document seal (SHA-256): <span style="font-family:monospace;font-size:11px;word-break:break-all">${_ne(c.hash)}</span>` : ' · not yet executed, so no seal to check'}
 </div>
 <p class="ht-key">${i18t('ng_in_redlines_below')} <ins>${i18t('ng_underlined_green')}</ins> and
  <del>${i18t('ng_struck_red')}</del>.</p>
 ${sigs ? `<p style="font-size:12px"><b>${i18t('ng_sigs_on_record')}</b></p><ul style="font-size:12px">${sigs}</ul>` : ''}
 ${ev.map(e => negoTimelineEventHtml(c, e)).join('')}
-<p style="font-size:10.5px;color:#5a6470;margin-top:22px">This report stands alone: every sentence above was generated from the stored
+<p style="font-size:11px;color:#5a6470;margin-top:22px">This report stands alone: every sentence above was generated from the stored
 negotiation record, labels read as they were when each event happened, and the integrity statement applies to the record as it stood at the
 generation time shown. HaTi retains the master copy.</p>
 </body></html>`;
@@ -1088,8 +1088,8 @@ function negoCardsHtml(c, opts){
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;flex-wrap:wrap">
           <span class="nego-st ${r.state === 'added' ? 'accepted' : r.state === 'removed' ? 'rejected' : 'pending'}">${_ne(r.state)}</span>
         </div>
-        <div style="font-size:12.5px;font-weight:600;line-height:1.45;margin-bottom:4px">${_ne(r.label || r.clauseId)}</div>
-        <div style="font-size:11.5px;line-height:1.55;color:var(--n-ink)">${
+        <div style="font-size:13px;font-weight:600;line-height:1.45;margin-bottom:4px">${_ne(r.label || r.clauseId)}</div>
+        <div style="font-size:12px;line-height:1.55;color:var(--n-ink)">${
           window.redlineOpsHtml ? redlineOpsHtml(r.ops) : _ne(r.newText)}</div>
       </div>`).join('');
   }
@@ -1287,7 +1287,7 @@ function negoLiveCardsHtml(c, opts){
               shared ? '\uD83C\uDF10 Shared with counterparty' : '\uD83D\uDD12 Internal only'}</span>`;
             const bubble = window.discussBubbleHtml
               ? discussBubbleHtml({ author: m.who, at: m.at, body: m.text, side: m.side }, side)
-              : `<div style="font-size:11.5px;margin-bottom:6px"><b>${_ne(m.who)}</b> ${_ne(m.text)}</div>`;
+              : `<div style="font-size:12px;margin-bottom:6px"><b>${_ne(m.who)}</b> ${_ne(m.text)}</div>`;
             return `<div class="nego-msg${shared ? '' : ' is-internal'}">
               <div style="margin-bottom:3px">${badge}</div>${bubble}</div>`;
           }).join('')
@@ -1376,7 +1376,7 @@ function negoLiveCardsHtml(c, opts){
           (!mine && _liveNoCopy)
             ? _ne(i18t('ng_nocopy_say', { who: c.counterparty || i18t('ng_the_counterparty') }))
             : `It stops being outstanding when ${mine ? 'you withdraw it' : `${_ne(_liveShort(ch.author))} withdraws it`} — until then neither side can signal readiness to sign.`}</div>` : ''}
-        <div style="font-size:12.5px;font-weight:600;line-height:1.45;margin-bottom:4px">${_ne(ch.summary)}</div>
+        <div style="font-size:13px;font-weight:600;line-height:1.45;margin-bottom:4px">${_ne(ch.summary)}</div>
         <div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:7px">${_ne(ch.clauseLabel || ch.clauseId)}</div>
         ${''/* The "(your side)" italic that used to live here is gone. It was
                 the only thing on the card saying whose ask this was: grey, small,
@@ -1394,9 +1394,9 @@ function negoLiveCardsHtml(c, opts){
           title="${_ne(i18t('ng_revised_title'))} — ${_ne(String(ch.revisedBy))} / ${_ne(String(ch.author))}"><span aria-hidden="true">&#9998;</span> ${
           i18t('ng_revised_by_after',{who:_ne(_liveShort(ch.revisedBy)),author:_ne(_liveShort(ch.author))})}</div>` : ''}
         ${(ch.why || ch.note) ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:0;padding:6px 9px;margin-bottom:8px">
-          <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--n-slate)">${i18t('ng_why_they_asked')}</span>
-          <span class="nego-why-clamp" style="font-size:11.5px;line-height:1.5;color:var(--n-ink)">${_ne(ch.why || ch.note)}</span></div>` : ''}
-        ${ch.reply ? `<div style="border-left:2px solid var(--n-line);padding:6px 9px;margin-bottom:8px;font-size:11.5px;line-height:1.5;color:var(--n-ink)"><b>${i18t('ng_reply')}</b> ${_ne(ch.reply)}</div>` : ''}
+          <span style="display:block;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--n-slate)">${i18t('ng_why_they_asked')}</span>
+          <span class="nego-why-clamp" style="font-size:12px;line-height:1.5;color:var(--n-ink)">${_ne(ch.why || ch.note)}</span></div>` : ''}
+        ${ch.reply ? `<div style="border-left:2px solid var(--n-line);padding:6px 9px;margin-bottom:8px;font-size:12px;line-height:1.5;color:var(--n-ink)"><b>${i18t('ng_reply')}</b> ${_ne(ch.reply)}</div>` : ''}
         ${(() => { if (!window.reviewSeatShowsReview || !reviewSeatShowsReview(opts)) return '';
           const v = window.reviewOn ? reviewOn(ch) : null;
           /* Same rule as the workbench's twin: the note names its author. */
@@ -1407,8 +1407,8 @@ function negoLiveCardsHtml(c, opts){
                    read as a caption; "ACHIENG OTIENO SAID" reads as shouting,
                    and a long name in caps outgrows the card. Same rule as the
                    review chip beside it. */}
-            <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.01em;color:var(--st-amber-fg)" title="${_ne(String(sayBy))}">${i18t('rv_reviewer_said', { who: _ne(_liveShort(sayBy)) })}</span>
-            <span style="font-size:11.5px;line-height:1.5;color:var(--n-ink)">${_ne(v.note)}</span></div>` : ''; })()}
+            <span style="display:block;font-size:10px;font-weight:700;letter-spacing:.01em;color:var(--st-amber-fg)" title="${_ne(String(sayBy))}">${i18t('rv_reviewer_said', { who: _ne(_liveShort(sayBy)) })}</span>
+            <span style="font-size:12px;line-height:1.5;color:var(--n-ink)">${_ne(v.note)}</span></div>` : ''; })()}
         <div class="nego-hash" title="${_ne(ch.hash || '')}"><span aria-hidden="true">🔒</span> SHA-256: ${_ne(negoShortHash(ch.hash))}</div>
         ${acts}
         ${''/* ---- THE GAP WHERE A VERB WOULD HAVE BEEN ----
@@ -1554,19 +1554,19 @@ function negoHistoryCardHtml(c, ch, r, opts){
       <span class="nego-st past" data-past-round="${_ne(ch.id)}"
         title="${_ne(i18t('ng_decided_archived',{n:r.n}))}">${i18t('ng_round_lower',{n:_ne(r.n)})}</span>
     </div>
-    <div style="font-size:12.5px;font-weight:600;line-height:1.45;margin-bottom:4px">${_ne(ch.summary)}</div>
+    <div style="font-size:13px;font-weight:600;line-height:1.45;margin-bottom:4px">${_ne(ch.summary)}</div>
     <div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:7px">${_ne(ch.clauseLabel || ch.clauseId)}</div>
     <div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:7px">${i18t('ng_author')} <b style="color:var(--n-ink);font-weight:600">${_ne(ch.author)}</b></div>
     ${(ch.why || ch.note) ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:0;padding:6px 9px;margin-bottom:8px">
-      <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--n-slate)">${i18t('ng_why_they_asked')}</span>
-      <span class="nego-why-clamp" style="font-size:11.5px;line-height:1.5;color:var(--n-ink)">${_ne(ch.why || ch.note)}</span></div>` : ''}
-    ${ch.reply ? `<div style="border-left:2px solid var(--n-line);padding:6px 9px;margin-bottom:8px;font-size:11.5px;line-height:1.5;color:var(--n-ink)"><b>${i18t('ng_reply')}</b> ${_ne(ch.reply)}</div>` : ''}
+      <span style="display:block;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--n-slate)">${i18t('ng_why_they_asked')}</span>
+      <span class="nego-why-clamp" style="font-size:12px;line-height:1.5;color:var(--n-ink)">${_ne(ch.why || ch.note)}</span></div>` : ''}
+    ${ch.reply ? `<div style="border-left:2px solid var(--n-line);padding:6px 9px;margin-bottom:8px;font-size:12px;line-height:1.5;color:var(--n-ink)"><b>${i18t('ng_reply')}</b> ${_ne(ch.reply)}</div>` : ''}
     <div class="nego-hash" title="${_ne(ch.hash || '')}"><span aria-hidden="true">🔒</span> SHA-256: ${_ne(negoShortHash(ch.hash))}</div>
     ${msgs.length ? `<div class="nego-past-thread">
       <div class="nego-tlabel">${i18tn('ng_discussion_closed',msgs.length,{id:_ne(ch.id),n:msgs.length})}</div>
       ${msgs.map(m => (window.discussBubbleHtml
         ? discussBubbleHtml({ author: m.who, at: m.at, body: m.text, side: m.side }, side)
-        : `<div style="font-size:11.5px;margin-bottom:6px"><b>${_ne(m.who)}</b> ${_ne(m.text)}</div>`)).join('')}
+        : `<div style="font-size:12px;margin-bottom:6px"><b>${_ne(m.who)}</b> ${_ne(m.text)}</div>`)).join('')}
     </div>` : ''}
   </div>`;
 }
@@ -1799,7 +1799,7 @@ function negoStatusHtml(c, opts){
       <div class="seg" id="nego-resolved">Resolved: ${p.done} / ${p.total}</div>
       ${negoIntegritySeg(c)}
       <span class="spacer"></span>
-      <span class="seg" style="font-family:var(--n-font-mono);font-size:9.5px;opacity:.6">${_ne(String(opts.side === 'counterparty' ? 'counterparty view' : 'owner view'))} · fingerprinted redline</span>
+      <span class="seg" style="font-family:var(--n-font-mono);font-size:10px;opacity:.6">${_ne(String(opts.side === 'counterparty' ? 'counterparty view' : 'owner view'))} · fingerprinted redline</span>
     </div>`;
 }
 
@@ -1834,17 +1834,17 @@ function negoHeadHtml(c, opts){
     ${negoModeHtml(c, opts)}
     <div style="flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;
       background:var(--n-paper);border:1px solid var(--n-line);border-radius:0;box-shadow:var(--shadow-sm)">
-      <span style="font-size:12.5px;font-weight:700;color:var(--n-ink)">${i18t('ng_negotiation')}</span>
+      <span style="font-size:13px;font-weight:700;color:var(--n-ink)">${i18t('ng_negotiation')}</span>
       <span class="nego-ver">${i18t('ng_round_n',{n:negoRound(c)})}</span>
-      <span style="font-size:11.5px;color:var(--n-ink-soft);min-width:0;flex:1">
+      <span style="font-size:12px;color:var(--n-ink-soft);min-width:0;flex:1">
         ${p.total
           ? `${p.done} of ${p.total} change${p.total === 1 ? '' : 's'} resolved — every change carries its own fingerprint.`
           : 'No changes on the table yet. Propose wording and each change becomes a fingerprint on this list.'}
       </span>
       ${canAct && p.pending ? `
-        <button id="nego-all-acc" class="ui-btn" title="${i18t('ng_accept_nonrisk_title')}" style="flex:none;font-size:11.5px;padding:5px 11px;border-color:var(--st-green-fg);color:var(--st-green-fg)">${i18t('ng_accept_all_nonrisk')}</button>
-        <button id="nego-all-rej" class="ui-btn" title="${i18t('ng_reject_all_title')}" style="flex:none;font-size:11.5px;padding:5px 11px;border-color:var(--st-ruby-dot);color:var(--st-ruby-dot)">${i18t('ng_reject_all_cp')}</button>` : ''}
-      ${side === 'owner' ? `<button id="nego-export" class="ui-btn" style="flex:none;font-size:11.5px;padding:5px 11px"
+        <button id="nego-all-acc" class="ui-btn" title="${i18t('ng_accept_nonrisk_title')}" style="flex:none;font-size:12px;padding:5px 11px;border-color:var(--st-green-fg);color:var(--st-green-fg)">${i18t('ng_accept_all_nonrisk')}</button>
+        <button id="nego-all-rej" class="ui-btn" title="${i18t('ng_reject_all_title')}" style="flex:none;font-size:12px;padding:5px 11px;border-color:var(--st-ruby-dot);color:var(--st-ruby-dot)">${i18t('ng_reject_all_cp')}</button>` : ''}
+      ${side === 'owner' ? `<button id="nego-export" class="ui-btn" style="flex:none;font-size:12px;padding:5px 11px"
         title="${p.pending ? 'Pending changes must be resolved first' : 'Export the agreed wording'}"${p.pending ? ' disabled' : ''}>${i18t('ng_export_clean_pdf')}</button>` : ''}
     </div>
     ${ready ? negoReadyHtml(c, opts) : ''}`;
@@ -1866,12 +1866,12 @@ function negoReadyHtml(c, opts){
       padding:12px 16px;box-shadow:var(--shadow-sm)">
       <span style="flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--st-green-fg);color:#fff;font-size:14px;font-weight:700" aria-hidden="true">✓</span>
       <span style="flex:1;min-width:200px;line-height:1.45">
-        <span style="display:block;font-size:13.5px;font-weight:600;color:var(--st-green-fg)">${i18t('ng_ready_every_resolved')}</span>
-        <span style="display:block;font-size:11.5px;color:var(--n-ink-soft);margin-top:1px">All ${p.total} change${p.total === 1 ? '' : 's'} on the table ${p.total === 1 ? 'has' : 'have'} an answer${accepted ? ` · ${accepted} adopted into the wording` : ''}${withdrawn ? ` · ${withdrawn} ask${withdrawn === 1 ? '' : 's'} withdrawn` : ''}. Nothing is outstanding between the parties.</span>
+        <span style="display:block;font-size:14px;font-weight:600;color:var(--st-green-fg)">${i18t('ng_ready_every_resolved')}</span>
+        <span style="display:block;font-size:12px;color:var(--n-ink-soft);margin-top:1px">All ${p.total} change${p.total === 1 ? '' : 's'} on the table ${p.total === 1 ? 'has' : 'have'} an answer${accepted ? ` · ${accepted} adopted into the wording` : ''}${withdrawn ? ` · ${withdrawn} ask${withdrawn === 1 ? '' : 's'} withdrawn` : ''}. Nothing is outstanding between the parties.</span>
       </span>
       ${side === 'owner'
         ? `<button id="nego-to-docs" class="ui-btn ui-btn-primary nego-go" style="flex:none">${i18t('ng_send_to_docs')}</button>`
-        : `<span style="flex:none;font-size:11.5px;color:var(--n-ink-soft)">${i18t('ng_will_send_signature',{who:_ne(window.FIRST_PARTY || i18t('ng_other_side'))})}</span>`}
+        : `<span style="flex:none;font-size:12px;color:var(--n-ink-soft)">${i18t('ng_will_send_signature',{who:_ne(window.FIRST_PARTY || i18t('ng_other_side'))})}</span>`}
     </div>`;
 }
 
@@ -2021,7 +2021,7 @@ function negoTurnBannerHtml(c, opts){
       style="flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-radius:0;padding:9px 14px;
       border:1px solid ${mine ? 'var(--st-green-line)' : 'var(--n-line)'};background:${mine ? 'var(--st-green-bg)' : 'var(--n-badge-bg)'};
       border-left:4px solid ${mine ? 'var(--n-accept)' : 'var(--n-slate-soft)'}">
-    <span style="flex:1;min-width:200px;font-size:12.5px;font-weight:600;color:${mine ? 'var(--st-green-fg)' : 'var(--n-ink)'}">
+    <span style="flex:1;min-width:200px;font-size:13px;font-weight:600;color:${mine ? 'var(--st-green-fg)' : 'var(--n-ink)'}">
       ${_ne(b.text)}${!mine && when ? ` <span style="font-weight:400;color:var(--n-ink-soft)">— sent ${_ne(when)}</span>` : ''}</span>
     ${''/* THE BUTTON THAT DID NOTHING, and only ever could have done nothing.
 
@@ -2246,7 +2246,7 @@ function negoPanesHtml(c, opts = {}){
     <aside class="nego-pane index" id="nego-index" aria-label="${i18t('ng_fingerprinted_index')}">
       <div class="nego-index-head">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
-          <h3 style="font-size:12.5px;font-weight:700;margin:0;flex:1;min-width:0">${i18t('ng_change_index')}</h3>
+          <h3 style="font-size:13px;font-weight:700;margin:0;flex:1;min-width:0">${i18t('ng_change_index')}</h3>
           <span class="nego-count" id="nego-count">${cmp && !cmp.live ? cmp.moved : (p.pending || p.total)}</span>
           <button class="nego-fold" id="nego-fold" title="${i18t('ng_fold_index')}">${i18t('ng_hide')}</button>
         </div>
@@ -2986,7 +2986,7 @@ async function negoBatchConfirm(c, kind, split){
       x.why ? ` <span style="color:var(--st-ruby-fg)">— ${e(x.why.join('; '))}</span>` : ''}</li>`;
   }).join('') + (arr.length > 12 ? `<li style="color:var(--color-neutral-600)">${i18t('ng_and_more',{n:arr.length - 12})}</li>` : '');
   const body = `
-    <div style="font-size:12.5px;line-height:1.6">
+    <div style="font-size:13px;line-height:1.6">
       <p style="margin:0 0 8px"><b>${take.length} change${take.length === 1 ? '' : 's'}</b> will be ${kind === 'accept' ? 'accepted and merged into the wording' : 'rejected, reverting those clauses to the baseline'}.</p>
       <ul style="margin:0 0 12px;padding-left:18px">${list(take)}</ul>
       ${kind === 'accept' && split.held.length ? `
@@ -3230,17 +3230,17 @@ async function negoAiPropose(c, ctx){
   pop.querySelector('.nego-aiwait')?.remove();
   const body = document.createElement('div');
   body.className = 'nego-aibody';
-  body.innerHTML = (note ? `<p style="font-family:var(--n-font-ui);font-size:12.5px;line-height:1.6;margin:0 0 10px;padding:9px 11px;background:var(--n-canvas);border-radius:0">${e(note)}</p>` : '')
+  body.innerHTML = (note ? `<p style="font-family:var(--n-font-ui);font-size:13px;line-height:1.6;margin:0 0 10px;padding:9px 11px;background:var(--n-canvas);border-radius:0">${e(note)}</p>` : '')
     + (canApply
       ? `<div class="nego-redline">${structured || e(proposed)}</div>`
-      : `<p style="font-family:var(--n-font-ui);font-size:12.5px;color:var(--n-ink-soft);margin:0">${note ? i18t('ng_no_wording_note_is_all') : i18t('ng_no_wording_change')}</p>`);
+      : `<p style="font-family:var(--n-font-ui);font-size:13px;color:var(--n-ink-soft);margin:0">${note ? i18t('ng_no_wording_note_is_all') : i18t('ng_no_wording_change')}</p>`);
   pop.insertBefore(body, pop.querySelector('header').nextSibling);
   const foot = document.createElement('footer');
   foot.innerHTML = `
     ${canApply ? `<button type="button" data-ai-apply class="ui-btn ui-btn-primary" style="font-size:12px">${i18t('ng_apply_redline')}</button>` : ''}
     <button type="button" data-ai-cancel class="ui-btn" style="font-size:12px">${i18t('act_cancel')}</button>
     <span style="flex:1"></span>
-    <span style="font-family:var(--n-font-ui);font-size:10.5px;color:var(--n-ink-soft);align-self:center">${i18t('ng_nothing_changed_yet')}</span>`;
+    <span style="font-family:var(--n-font-ui);font-size:11px;color:var(--n-ink-soft);align-self:center">${i18t('ng_nothing_changed_yet')}</span>`;
   pop.appendChild(foot);
   place();
   foot.querySelector('[data-ai-cancel]').addEventListener('click', () => pop.remove());
@@ -3464,7 +3464,7 @@ function reviewConfirmSend(c, warn, handlers){
   openModal(`
     <div style="padding:18px 20px 16px">
       <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0 0 6px">${e(i18t('rv_warn_title'))}</h2>
-      <p style="font-size:12.5px;line-height:1.6;color:var(--color-neutral-700);margin:0 0 12px">${e(warn.text)}</p>
+      <p style="font-size:13px;line-height:1.6;color:var(--color-neutral-700);margin:0 0 12px">${e(warn.text)}</p>
       <ul style="list-style:none;margin:0 0 14px;padding:0;display:flex;flex-direction:column;gap:4px">
         ${warn.ids.map(id => `<li style="font-family:var(--font-mono);font-size:11px;color:var(--color-neutral-700)">#${e(id)}</li>`).join('')}
       </ul>
@@ -9380,12 +9380,12 @@ async function rlOpenPlaybookReview(c, again){
     : `<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:0;background:var(--st-amber-bg,var(--st-amber-bg));color:var(--st-amber-fg,var(--st-amber-fg))">${i18t('ng_medium')}</span>`;
   const itemHtml = (it, i) => `<div id="pbr-item-${i}" style="border:1px solid var(--color-divider);border-radius:0;padding:12px 14px;margin-bottom:10px;background:var(--color-surface)">
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <b style="font-size:12.5px">${_ne(it.v.category)}</b>${chip(it)}
+      <b style="font-size:13px">${_ne(it.v.category)}</b>${chip(it)}
       <span style="font-size:10px;color:var(--color-neutral-500)">${it.v.status === 'missing'
         ? 'missing — files as a new clause at the end'
         : (it.clauseLabel ? `deviation &middot; ${_ne(it.clauseLabel)}` : 'deviation')}</span>
     </div>
-    ${it.v.position ? `<div style="font-size:11.5px;color:var(--color-neutral-600);margin-top:5px;line-height:1.5">${_ne(String(it.v.position))}</div>` : ''}
+    ${it.v.position ? `<div style="font-size:12px;color:var(--color-neutral-600);margin-top:5px;line-height:1.5">${_ne(String(it.v.position))}</div>` : ''}
     ${it.oldText && window.redlineStructuredHtml
       ? `<div style="margin-top:8px;font-size:12px;line-height:1.7;border:1px solid var(--color-divider);border-radius:0;padding:8px 10px;max-height:150px;overflow:auto">${redlineStructuredHtml(it.oldText, it.preferred)}</div>`
       : `<div style="margin-top:8px;font-size:12px;line-height:1.6;border:1px solid var(--color-divider);border-radius:0;padding:8px 10px;max-height:150px;overflow:auto">${_ne(it.preferred)}</div>`}
@@ -9404,7 +9404,7 @@ async function rlOpenPlaybookReview(c, again){
   const root = document.getElementById('modal-root') || document;
   const settle = (i, text, tone) => {
     const verbs = root.querySelector(`[data-pbr-verbs="${i}"]`);
-    if (verbs) verbs.innerHTML = `<span style="font-size:11.5px;font-weight:600;color:${tone}">${text}</span>`;
+    if (verbs) verbs.innerHTML = `<span style="font-size:12px;font-weight:600;color:${tone}">${text}</span>`;
   };
   const fileFrom = async (b, attr, wordingOf) => {
     const i = Number(b.getAttribute(attr));

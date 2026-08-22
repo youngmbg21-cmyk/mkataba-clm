@@ -379,7 +379,7 @@ function renderFailedHtml(view, e, cid){
   return `<div style="max-width:640px;margin:40px auto;border:1px solid var(--st-ruby-line);border-left:4px solid var(--st-ruby-dot);
       background:var(--st-ruby-bg);border-radius:0;padding:16px 20px">
     <div style="font-size:14px;font-weight:600;color:var(--st-ruby-fg);margin-bottom:6px">${esc(VIEW_LABEL[view]||view)} could not be drawn</div>
-    <div style="font-size:12.5px;line-height:1.6;color:var(--color-neutral-800)">
+    <div style="font-size:13px;line-height:1.6;color:var(--color-neutral-800)">
       Something in the portfolio stopped this screen from rendering${cid?` — the record involved is <b>${esc(cid)}</b>`:''}.
       Every other screen still works, and nothing has been changed or lost.
     </div>
@@ -648,7 +648,7 @@ function openCommandPalette(){
       <div style="display:flex;align-items:center;gap:9px;padding:12px 14px;border-bottom:1px solid var(--color-divider)">
         <span style="color:var(--color-neutral-500);display:inline-flex">${icon('search','w-4 h-4')}</span>
         <input id="cp-input" placeholder="${i18t('ap_search_placeholder')}" autocomplete="off" style="flex:1;border:0;outline:0;background:transparent;font:inherit;font-size:14px;color:inherit"/>
-        <span style="font-size:9.5px;border:1px solid var(--color-divider);padding:2px 6px;border-radius:0;color:var(--color-neutral-600);font-family:var(--font-mono)">ESC</span>
+        <span style="font-size:10px;border:1px solid var(--color-divider);padding:2px 6px;border-radius:0;color:var(--color-neutral-600);font-family:var(--font-mono)">ESC</span>
       </div>
       <div id="cp-list" class="scroll-thin" style="max-height:52vh;overflow-y:auto;padding:6px"></div>
     </div>`;
@@ -700,15 +700,15 @@ function openCommandPalette(){
         get sub(){ return i18t('ap_ask_copilot_sub'); },ic:'sparkle'});
     }
     if(active>=results.length) active=Math.max(0,results.length-1);
-    if(!results.length){ list.innerHTML=`<div style="padding:22px 12px;text-align:center;font-size:12.5px;color:var(--color-neutral-600)">No matches${input.value.trim()?` for “${input.value.replace(/</g,'&lt;')}”`:''}.</div>`; return; }
+    if(!results.length){ list.innerHTML=`<div style="padding:22px 12px;text-align:center;font-size:13px;color:var(--color-neutral-600)">No matches${input.value.trim()?` for “${input.value.replace(/</g,'&lt;')}”`:''}.</div>`; return; }
     list.innerHTML=results.map((r,i)=>`
       <button data-cp-i="${i}" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:0;border-radius:0;cursor:pointer;padding:8px 10px;font:inherit;color:inherit;background:${i===active?'color-mix(in srgb,var(--color-accent) 13%,transparent)':'none'}">
         <span style="width:28px;height:28px;flex:none;display:grid;place-items:center;border-radius:0;border:1px solid var(--color-divider);background:var(--color-bg);color:var(--color-neutral-600)">${icon(r.ic,'w-3.5 h-3.5')}</span>
         <span style="min-width:0;flex:1">
           <span style="display:block;font-size:13px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(r.title||'').replace(/</g,'&lt;')}</span>
-          <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(r.sub||'').replace(/</g,'&lt;')}</span>
+          <span style="display:block;font-size:11px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(r.sub||'').replace(/</g,'&lt;')}</span>
         </span>
-        ${r.kind==='contract'&&window.statusChip?`<span style="flex:none">${statusChip(r.status)}</span>`:`<span style="flex:none;font-size:9.5px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--color-neutral-500)">${r.tag||r.kind}</span>`}
+        ${r.kind==='contract'&&window.statusChip?`<span style="flex:none">${statusChip(r.status)}</span>`:`<span style="flex:none;font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--color-neutral-500)">${r.tag||r.kind}</span>`}
       </button>`).join('');
     list.querySelectorAll('[data-cp-i]').forEach(b=>{
       const i=+b.getAttribute('data-cp-i');
@@ -1197,10 +1197,10 @@ function activityPanelHtml(){
           <button data-sel-act="${a.id}" style="display:flex;gap:9px;width:100%;padding:7px 2px;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
             <span style="width:8px;height:8px;border-radius:50%;background:${CAT_DOT[a.cat]};flex:none;margin-top:4px;"></span>
             <span style="flex:1;min-width:0;">
-              <span style="display:block;font-size:11.5px;line-height:1.4;">${a.txt}</span>
+              <span style="display:block;font-size:12px;line-height:1.4;">${a.txt}</span>
               <span style="display:block;font-size:10px;color:var(--color-neutral-500);margin-top:1px;font-family:var(--font-mono);">${a.id} · ${a.when}</span>
             </span>
-          </button>`).join(''):`<div style="font-size:11.5px;color:var(--color-neutral-600);padding:12px 2px;">${i18t('ap_no_activity')}</div>`}
+          </button>`).join(''):`<div style="font-size:12px;color:var(--color-neutral-600);padding:12px 2px;">${i18t('ap_no_activity')}</div>`}
       </div>`;
 }
 /* "NOTHING NEEDS YOU RIGHT NOW" IS A REAL MESSAGE and a good one — an empty
@@ -1216,15 +1216,15 @@ function alertsPanelHtml(){
           <button data-alert-i="${i}" data-alert-kind="${a.kind}" style="display:flex;gap:9px;width:100%;padding:9px 2px;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
             <span style="width:8px;height:8px;border-radius:50%;background:${ALERT_TONE[a.tone]};flex:none;margin-top:5px;"></span>
             <span style="flex:1;min-width:0;">
-              <span style="display:block;font-size:11.5px;line-height:1.4;font-weight:600;">${esc(a.text)}</span>
-              <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(a.name)}</span>
+              <span style="display:block;font-size:12px;line-height:1.4;font-weight:600;">${esc(a.text)}</span>
+              <span style="display:block;font-size:11px;color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(a.name)}</span>
               <span style="display:block;font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono);">${esc(a.id)}</span>
             </span>
           </button>`).join(''):`
           <div style="padding:26px 6px;text-align:center;">
             <div style="width:38px;height:38px;margin:0 auto 10px;display:grid;place-items:center;border-radius:50%;background:var(--st-green-bg);color:var(--st-green-fg);">&#10003;</div>
             <div style="font-size:13px;font-weight:600;color:var(--color-text);">${i18t('ap_nothing_needs_you')}</div>
-            <div style="font-size:11.5px;color:var(--color-neutral-600);margin-top:4px;line-height:1.5;">${i18t('ap_nothing_needs_you_sub')}</div>
+            <div style="font-size:12px;color:var(--color-neutral-600);margin-top:4px;line-height:1.5;">${i18t('ap_nothing_needs_you_sub')}</div>
           </div>`}
       </div>`;
 }
