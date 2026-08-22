@@ -1,0 +1,1 @@
+{"name":"hati-scan-harness","private":true,"version":"0.0.0","dependencies":{"@tesseract.js-data/eng":"^1.0.0","pdfjs-dist":"^4.6.82","tesseract.js":"^5.1.1","tesseract.js-core":"^5.1.1"}}

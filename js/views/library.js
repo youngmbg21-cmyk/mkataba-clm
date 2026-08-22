@@ -447,6 +447,7 @@ function openCreateTemplateModal(mode){
           onProgress:(done,total,tier)=>{ st(`Reading page ${Math.min(done+1,total)} of ${total}${tier==='local'?' (offline recogniser)':''}…`); } });
         // OCR returns words with no type information, so a scan is plain text
         if(ocr.text){ text=ocr.text; rich={ html:'', text, format:TEXT_FORMAT, summary:null }; }
+        try{ await ocrRelease(); }catch(e){}   // one file, one document — see the upload path
       }
       if(!text||text.length<40){ st('<span style="color:var(--st-ruby-fg)">Could not extract readable text from this file — try a text-based PDF, re-scan it at a higher resolution, or paste the document instead.</span>'); return; }
       const isRichBody = isRich(rich.format) && !!rich.html;
