@@ -4248,17 +4248,17 @@ function printExecutionBlock(c){
   const cell=s=>`
     <td style="vertical-align:top;padding:0 10px 10px 0;width:50%;">
       <div style="border:1px solid var(--color-divider);border-radius:0;padding:9px 11px;">
-        <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#666;margin-bottom:3px;">${esc(partyLabel(s))}</div>
+        <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#5F6D6B;margin-bottom:3px;">${esc(partyLabel(s))}</div>
         ${s.image?`<img src="${s.image}" alt="" style="height:38px;max-width:190px;object-fit:contain;display:block;margin:2px 0 5px;"/>`:''}
         <div style="font-weight:600;font-size:13px;">${esc(s.name||'—')}${cap(s)?', '+esc(cap(s)):''}</div>
-        <div style="font-size:12px;color:#666;line-height:1.5;">${esc([s.email,s.form?s.form+' signature':s.method,s.at?fmtDT(s.at):''].filter(Boolean).join(' · '))}</div>
+        <div style="font-size:12px;color:#5F6D6B;line-height:1.5;">${esc([s.email,s.form?s.form+' signature':s.method,s.at?fmtDT(s.at):''].filter(Boolean).join(' · '))}</div>
       </div>
     </td>`;
   const rows=[];
   for(let i=0;i<sigs.length;i+=2) rows.push(`<tr>${cell(sigs[i])}${sigs[i+1]?cell(sigs[i+1]):'<td></td>'}</tr>`);
   const sigTable=sigs.length
     ? `<table style="width:100%;border-collapse:collapse;margin-top:10px;">${rows.join('')}</table>`
-    : `<div style="margin-top:10px;border:1px solid var(--color-divider);border-radius:0;padding:9px 11px;font-size:12px;color:#666;">${c.signatory?('Signed by '+esc(c.signatory)):'Signatories not recorded'}</div>`;
+    : `<div style="margin-top:10px;border:1px solid var(--color-divider);border-radius:0;padding:9px 11px;font-size:12px;color:#5F6D6B;">${c.signatory?('Signed by '+esc(c.signatory)):'Signatories not recorded'}</div>`;
   return `
     <div style="margin-top:26px;page-break-inside:avoid;border:1px solid ${external?'#8fa8c2':'var(--st-green-line)'};border-radius:0;padding:16px 18px;background:${external?'#f2f6fa':'#f2f8f4'};">
       <table style="width:100%;border-collapse:collapse;"><tr>
@@ -4273,12 +4273,12 @@ function printExecutionBlock(c){
         </td>
         <td style="vertical-align:top;">
           <div style="font-family:Inter,system-ui,-apple-system,'Segoe UI',Arial,sans-serif;font-weight:700;font-size:16px;">${external?'Executed outside HaTi':'Executed &amp; Sealed'}</div>
-          <div style="font-size:12px;color:#666;margin-top:2px;line-height:1.5;">${external
+          <div style="font-size:12px;color:#5F6D6B;margin-top:2px;line-height:1.5;">${external
             ? `Signed before it was migrated into HaTi. <strong>${i18t('po_no_esig_here')}</strong> — the signatures are on the original document.`
             : ((c.execution&&c.execution.esignature)||jxEsignatureShort())}</div>
           ${external?'':sigTable}
           ${(!external&&!isUpload(c))?`<div style="margin-top:10px;border:1px solid var(--color-divider);border-radius:0;padding:9px 11px;">
-            <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#666;margin-bottom:3px;">${i18t('po_sealed_fingerprint')}</div>
+            <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#5F6D6B;margin-bottom:3px;">${i18t('po_sealed_fingerprint')}</div>
             <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;word-break:break-all;">${esc((c.execution&&c.execution.textHash)||'—')}</div>
           </div>`:''}
           <div style="margin-top:10px;border-radius:0;padding:10px 12px;background:#1d1f20;color:#f4f5f6;">
@@ -4328,15 +4328,15 @@ function exportPDF(c, opts){
     bodyHtml=`
       <div style="border:1px solid var(--color-divider);border-radius:0;padding:16px;margin-bottom:16px;">
         <div style="font-family:Inter,system-ui,-apple-system,'Segoe UI',Arial,sans-serif;font-weight:700;font-size:15px;margin-bottom:2px;">${esc(c.name)}</div>
-        <div style="font-size:12px;color:#666;margin-bottom:10px;">${i18t('po_external_received',{who:c.counterparty||'—',folder:FOLDERS[c.folder].name})}</div>
+        <div style="font-size:12px;color:#5F6D6B;margin-bottom:10px;">${i18t('po_external_received',{who:c.counterparty||'—',folder:FOLDERS[c.folder].name})}</div>
         <table style="font-size:12px;border-collapse:collapse;">
-          <tr><td style="padding:2px 12px 2px 0;color:#666;">${i18t('po_original_file')}</td><td style="font-weight:600;">${u.fileName||'—'} (${u.size?Math.round(u.size/1024):0} KB)</td></tr>
-          <tr><td style="padding:2px 12px 2px 0;color:#666;">${i18t('po_value')}</td><td style="font-weight:600;">${!isMonetary(c)?'Non-monetary':(c.value?(window.fmtMoneyOf?fmtMoneyOf(c):fmtMoney(c.value)):'—')}</td></tr>
-          <tr><td style="padding:2px 12px 2px 0;color:#666;">Status</td><td style="font-weight:600;">${c.status}</td></tr>
-          <tr><td style="padding:2px 12px 2px 0;color:#666;">${i18t('po_file_fingerprint')}</td><td style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;word-break:break-all;">${u.fileHash||'—'}</td></tr>
+          <tr><td style="padding:2px 12px 2px 0;color:#5F6D6B;">${i18t('po_original_file')}</td><td style="font-weight:600;">${u.fileName||'—'} (${u.size?Math.round(u.size/1024):0} KB)</td></tr>
+          <tr><td style="padding:2px 12px 2px 0;color:#5F6D6B;">${i18t('po_value')}</td><td style="font-weight:600;">${!isMonetary(c)?'Non-monetary':(c.value?(window.fmtMoneyOf?fmtMoneyOf(c):fmtMoney(c.value)):'—')}</td></tr>
+          <tr><td style="padding:2px 12px 2px 0;color:#5F6D6B;">Status</td><td style="font-weight:600;">${c.status}</td></tr>
+          <tr><td style="padding:2px 12px 2px 0;color:#5F6D6B;">${i18t('po_file_fingerprint')}</td><td style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;word-break:break-all;">${u.fileHash||'—'}</td></tr>
         </table>
       </div>
-      <p style="font-size:12px;color:#444;line-height:1.6;">${isExternallyExecuted(c)
+      <p style="font-size:12px;color:#1B2A28;line-height:1.6;">${isExternallyExecuted(c)
         ? `This is a HaTi <strong>filing record</strong> for a contract executed outside HaTi and migrated in. No electronic signature was taken in HaTi — the signatures are on the original document (<strong>${u.fileName||'the attached file'}</strong>), which is retained here and travels with this record. The fingerprint below identifies that exact file; it is not a signature.`
         : `This is a HaTi signing certificate for an externally-supplied contract. The original document (<strong>${u.fileName||'the attached file'}</strong>) is retained in HaTi and travels with this certificate. The seal below binds this certificate to that exact file by its SHA-256 fingerprint.`}</p>
       ${uploadedTextForPrint(c)}`;
@@ -4353,13 +4353,13 @@ function exportPDF(c, opts){
        run, never the on-screen grey box and never the field's label. */
     holder.querySelectorAll('.hati-field').forEach(n=>{
       const line=document.createElement('span');
-      line.style.cssText='display:inline-block;min-width:130px;border-bottom:1px solid #777;';
+      line.style.cssText='display:inline-block;min-width:130px;border-bottom:1px solid #5F6D6B;';
       line.innerHTML='&nbsp;';
       n.replaceWith(line);
     });
     holder.querySelectorAll('input').forEach(inp=>{
       const span=document.createElement('span');
-      span.style.cssText="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:600;border-bottom:1px solid #999;padding:0 3px;";
+      span.style.cssText="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:600;border-bottom:1px solid #A9B3B1;padding:0 3px;";
       span.textContent=(window.fieldDisplayValue?fieldDisplayValue(inp):(inp.value||inp.getAttribute('value')||''))||'________';
       inp.replaceWith(span);
     });
@@ -4375,9 +4375,9 @@ function exportPDF(c, opts){
      in the contract, and on a document we did not execute we had none. */
   const marks=printIsHatiExecuted(c) && record;
   const audit=(c.audit||[]).map(e=>`
-    <tr><td style="padding:3px 10px 3px 0;white-space:nowrap;color:#666;">${fmtDT(e.at)}</td>
+    <tr><td style="padding:3px 10px 3px 0;white-space:nowrap;color:#5F6D6B;">${fmtDT(e.at)}</td>
     <td style="padding:3px 10px 3px 0;font-weight:600;">${e.action}</td>
-    <td style="padding:3px 0;">${e.detail} <span style="color:#888;">(${e.user})</span></td></tr>`).join('');
+    <td style="padding:3px 0;">${e.detail} <span style="color:#5F6D6B;">(${e.user})</span></td></tr>`).join('');
   // The masthead, the audit trail and the contract now share one family — the
   // platform runs on the design's two faces throughout. The contract is still a
   // document surface and still carries the document ink, measure and leading,
@@ -4394,17 +4394,17 @@ function exportPDF(c, opts){
   document.getElementById('print-root').innerHTML=`
     <div${printDesign&&window.docDesignPaperAttr?docDesignPaperAttr(printDesign):''} style="font-family:Inter,system-ui,-apple-system,'Segoe UI',Arial,sans-serif;max-width:760px;margin:0 auto;padding:32px 24px;color:#1d1f20;${printDesign&&window.docDesignPaperStyle?docDesignPaperStyle(printDesign):''}">
       ${record?`<div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--color-accent);padding-bottom:10px;margin-bottom:24px;">
-        <div style="font-family:Inter,system-ui,-apple-system,'Segoe UI',Arial,sans-serif;font-weight:700;font-size:18px;">HaTi <span style="font-weight:400;font-size:12px;color:#666;">${i18t('po_contract_lifecycle')}</span></div>
-        <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#666;">${c.id} · generated ${fmtDT(nowISO())}</div>
+        <div style="font-family:Inter,system-ui,-apple-system,'Segoe UI',Arial,sans-serif;font-weight:700;font-size:18px;">HaTi <span style="font-weight:400;font-size:12px;color:#5F6D6B;">${i18t('po_contract_lifecycle')}</span></div>
+        <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#5F6D6B;">${c.id} · generated ${fmtDT(nowISO())}</div>
       </div>`:''}
       ${window.templateBrandingHeaderHtml?templateBrandingHeaderHtml(c,record?{}:{bleedX:24,bleedY:32}):''}
       ${printCover}
       <div class="doc-surface">${printDesign&&window.docStructureBodyHtml?docStructureBodyHtml(printDesign,bodyHtml):bodyHtml}</div>
       ${window.templateBrandingFooterHtml?templateBrandingFooterHtml(c):''}
       ${execBlock}
-      ${marks&&(!execBlock)&&c.hash&&c.hash!=='PRE-SEEDED'?`<div style="margin-top:24px;padding:12px;border:1px solid var(--color-divider);border-radius:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;word-break:break-all;"><strong>${isExternallyExecuted(c)?'SHA-256 ORIGINAL FILE FINGERPRINT':'SHA-256 DOCUMENT SEAL'}</strong><br/>${isExternallyExecuted(c)?((c.upload&&c.upload.fileHash)||'—'):c.hash}<br/><span style="color:#666;">${c.signedAt||''}${isExternallyExecuted(c)?' · executed outside HaTi':''}</span></div>`:''}
+      ${marks&&(!execBlock)&&c.hash&&c.hash!=='PRE-SEEDED'?`<div style="margin-top:24px;padding:12px;border:1px solid var(--color-divider);border-radius:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;word-break:break-all;"><strong>${isExternallyExecuted(c)?'SHA-256 ORIGINAL FILE FINGERPRINT':'SHA-256 DOCUMENT SEAL'}</strong><br/>${isExternallyExecuted(c)?((c.upload&&c.upload.fileHash)||'—'):c.hash}<br/><span style="color:#5F6D6B;">${c.signedAt||''}${isExternallyExecuted(c)?' · executed outside HaTi':''}</span></div>`:''}
       ${marks&&audit?`<div style="margin-top:24px;page-break-inside:avoid;"><div style="font-family:Inter,system-ui,-apple-system,'Segoe UI',Arial,sans-serif;font-weight:600;font-size:14px;border-bottom:1px solid var(--color-divider);padding-bottom:6px;margin-bottom:8px;">${i18t('po_audit_trail')}</div><table style="font-size:12px;border-collapse:collapse;width:100%;">${audit}</table></div>`:''}
-      ${record?`<div style="margin-top:24px;font-size:10px;color:#999;text-align:center;">Generated by HaTi CLM · ${FIRST_PARTY}</div>`:''}
+      ${record?`<div style="margin-top:24px;font-size:10px;color:#A9B3B1;text-align:center;">Generated by HaTi CLM · ${FIRST_PARTY}</div>`:''}
     </div>`;
   /* ---- A READER'S OWN COPY IS NOT AN ENTRY IN OUR RECORD (15 Aug 2026) ----
      The counterparty can print from their link now, and this is the one
