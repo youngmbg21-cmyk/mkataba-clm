@@ -958,7 +958,7 @@ const trackedNote=t=>(t&&(t.ins||t.del))
    20 Aug 2026: on an uploaded contract the A- / A+ stepper did not move the
    wording) ----
    The stepper writes --doc-scale, and the sheet's own body reads it through
-   `calc(13.5px * var(--doc-scale,1))` — so a template contract scales by
+   `calc(14px * var(--doc-scale,1))` — so a template contract scales by
    inheritance. Text READ OUT OF A FILE is laid out here instead, and every
    block carried a bare pixel size, which overrides that inheritance: the
    preference moved (measured: 0.6 to 1.33) and the words stayed at 13px.
@@ -1134,13 +1134,13 @@ function openUploadModal(){
         <p class="text-xs text-brand-800/70 mb-4">A contract another company sent you — on their own paper. Drop the file: HaTi reads the counterparty, value and dates out of the document, and you check them before anything is filed.</p>
         <div id="up-drop" role="button" tabindex="0" aria-label="${i18t('ct_drop_file_here')}" style="border:2px dashed var(--color-accent);border-radius:0;background:var(--color-bg);padding:34px 20px;text-align:center;cursor:pointer;transition:background .15s">
           <div style="font-size:15px;font-weight:600;color:var(--color-text)">${i18t('ct_drop_here')}</div>
-          <div style="font-size:11.5px;color:var(--color-neutral-600);margin-top:5px">${i18t('ct_upload_hint',{max:uploadMaxLabel()})}</div>
-          <div style="font-size:11.5px;color:var(--color-accent-700);margin-top:8px;font-weight:600">${i18t('ct_thats_all')}</div>
+          <div style="font-size:13px;color:var(--color-neutral-600);margin-top:5px">${i18t('ct_upload_hint',{max:uploadMaxLabel()})}</div>
+          <div style="font-size:13px;color:var(--color-accent-700);margin-top:8px;font-weight:600">${i18t('ct_thats_all')}</div>
         </div>
         <input id="up-file" type="file" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg" class="hidden"/>
         <div id="up-steps" class="hidden" style="margin-top:12px"></div>
         <div style="display:flex;align-items:center;gap:8px;margin-top:14px">
-          <button id="up-bulk" style="border:0;background:none;padding:0;font:inherit;font-size:11px;color:var(--color-neutral-600);cursor:pointer" title="${i18t('ct_bulk_importer')}">${i18t('ct_whole_catalogue')} <u>${i18t('ct_import_many')}</u></button>
+          <button id="up-bulk" style="border:0;background:none;padding:0;font:inherit;font-size:12px;color:var(--color-neutral-600);cursor:pointer" title="${i18t('ct_bulk_importer')}">${i18t('ct_whole_catalogue')} <u>${i18t('ct_import_many')}</u></button>
           <span style="flex:1"></span>
           <button id="up-cancel" class="rounded-lg border border-brand-200 px-4 py-2 text-sm text-brand-700 hover:bg-brand-50 transition">${i18t('act_cancel')}</button>
         </div>
@@ -1181,13 +1181,13 @@ function uploadConfirmHtml(ext, meta){
   const esc2=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
   const attr=s=>esc2(s).replace(/"/g,'&quot;');
   const has=k=>meta!=null&&m[k]!=null&&m[k]!==''&&!(typeof m[k]==='number'&&!(m[k]>0));
-  const MARK=`<span style="font-family:var(--font-mono);font-size:8.5px;color:var(--color-accent-700);letter-spacing:.05em"> ✦ ${i18t('ct_read_from_doc').toUpperCase()}</span>`;
+  const MARK=`<span style="font-family:var(--font-mono);font-size:10px;color:var(--color-accent-700);letter-spacing:.05em"> ✦ ${i18t('ct_read_from_doc').toUpperCase()}</span>`;
   const found=k=>{ const q=spans[k]; if(!q) return '';
-    return `<span style="display:block;margin-top:2px;font-size:10px;line-height:1.4;color:var(--color-neutral-600)">found: <i>“${esc2(String(q).replace(/\s+/g,' ').trim().slice(0,140))}”</i></span>`; };
+    return `<span style="display:block;margin-top:2px;font-size:12px;line-height:1.4;color:var(--color-neutral-600)">found: <i>“${esc2(String(q).replace(/\s+/g,' ').trim().slice(0,140))}”</i></span>`; };
   const fld=(id,label,opts={})=>{
     const read=!!opts.read;
     return `<label class="block"><span class="text-xs font-medium text-brand-800/70">${label}${read?MARK:''}</span>
-      <input id="${id}" type="${opts.type||'text'}" value="${attr(opts.value||'')}" placeholder="${attr(opts.ph||'')}"${opts.list?` list="${opts.list}"`:''} class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400"${read?' style="border-color:var(--color-accent);background:var(--color-accent-100)"':''}/>${read?found(opts.foundKey||''):''}${opts.sub?`<span style="display:block;margin-top:2px;font-size:10px;color:var(--color-neutral-600)">${opts.sub}</span>`:''}</label>`;
+      <input id="${id}" type="${opts.type||'text'}" value="${attr(opts.value||'')}" placeholder="${attr(opts.ph||'')}"${opts.list?` list="${opts.list}"`:''} class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400"${read?' style="border-color:var(--color-accent);background:var(--color-accent-100)"':''}/>${read?found(opts.foundKey||''):''}${opts.sub?`<span style="display:block;margin-top:2px;font-size:12px;color:var(--color-neutral-600)">${opts.sub}</span>`:''}</label>`;
   };
   const fileBase=ext?String(ext.file.name||'').replace(/\.[^.]+$/,''):'';
   const nameFromDoc=has('contractType')&&has('counterparty');
@@ -1215,7 +1215,7 @@ function uploadConfirmHtml(ext, meta){
       <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('sparkle','w-4 h-4')}</span>
         <h2 class="font-display font-700 text-brand-900">${i18t('ct_check_what_read')}</h2></div>
       ${intro?`<p class="text-xs text-brand-800/70 mb-3" style="line-height:1.55">${intro}</p>`:''}
-      ${ext&&isOcrText(ext.textSource)?`<div style="display:flex;align-items:flex-start;gap:8px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:0;padding:8px 11px;font-size:11.5px;line-height:1.55;margin:0 0 12px">
+      ${ext&&isOcrText(ext.textSource)?`<div style="display:flex;align-items:flex-start;gap:8px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:0;padding:8px 11px;font-size:13px;line-height:1.55;margin:0 0 12px">
         <span style="flex:none;margin-top:1px">${icon('scan','w-3.5 h-3.5')}</span>
         <span>${esc2(ocrProvenanceLine(ext.upload))} ${i18t('ct_capped_at')} <b>${i18t('ct_medium')}</b> ${i18t('ct_confidence_until')}</span></div>`:''}
       <div class="grid sm:grid-cols-2 gap-2 mb-3">
@@ -1237,10 +1237,10 @@ function uploadConfirmHtml(ext, meta){
         ${fld('up-expiry','Expiry date (optional)',{value:has('expiryDate')?m.expiryDate:'', type:'date', read:has('expiryDate'), foundKey:'expiryDate'})}
       </div>
       ${extras.length?`<details style="margin:0 0 12px;border:1px solid var(--color-divider);border-radius:0;padding:8px 12px">
-        <summary style="cursor:pointer;font-size:11.5px;font-weight:600;color:var(--color-neutral-700)">More details HaTi read (${extras.length}) — renewal, notice, governing law…</summary>
+        <summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--color-neutral-700)">More details HaTi read (${extras.length}) — renewal, notice, governing law…</summary>
         <div class="grid sm:grid-cols-2 gap-2" style="margin-top:10px">${extras.map(extraFld).join('')}</div>
       </details>`:''}
-      ${ext&&readCount?`<p style="margin:0 0 10px;font-size:11px;color:var(--color-neutral-600)">Everything ✦ came from the document${meta&&meta._source==='ai'?', read by Copilot':', pattern-matched'}. Nothing is saved until you press <b>${i18t('ct_file_contract')}</b>.</p>`:''}
+      ${ext&&readCount?`<p style="margin:0 0 10px;font-size:12px;color:var(--color-neutral-600)">Everything ✦ came from the document${meta&&meta._source==='ai'?', read by Copilot':', pattern-matched'}. Nothing is saved until you press <b>${i18t('ct_file_contract')}</b>.</p>`:''}
       <div class="flex items-center gap-2">
         <button id="up-back" class="rounded-lg border border-brand-200 px-3 py-2 text-sm text-brand-700 hover:bg-brand-50 transition">← Another file</button>
         <span style="flex:1"></span>
@@ -1261,13 +1261,13 @@ function renderUploadSteps(active, note){
    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
     ${UPLOAD_STEPS.map((s,i)=>{ const n=i+1; const done=n<active, cur=n===active;
       const dot=done?`<span style="width:16px;height:16px;flex:none;display:grid;place-items:center;border-radius:50%;background:var(--st-green-dot);color:#fff">${icon('check2','w-2.5 h-2.5')}</span>`
-        :cur?`<span class="scan-pulse" style="width:16px;height:16px;flex:none;display:grid;place-items:center;border-radius:50%;background:var(--color-accent);color:#fff;font-size:9px;font-weight:700;font-family:var(--font-mono)">${n}</span>`
-        :`<span style="width:16px;height:16px;flex:none;display:grid;place-items:center;border-radius:50%;background:var(--color-neutral-200);color:var(--color-neutral-600);font-size:9px;font-weight:700;font-family:var(--font-mono)">${n}</span>`;
+        :cur?`<span class="scan-pulse" style="width:16px;height:16px;flex:none;display:grid;place-items:center;border-radius:50%;background:var(--color-accent);color:#fff;font-size:10px;font-weight:700;font-family:var(--font-mono)">${n}</span>`
+        :`<span style="width:16px;height:16px;flex:none;display:grid;place-items:center;border-radius:50%;background:var(--color-neutral-200);color:var(--color-neutral-600);font-size:10px;font-weight:700;font-family:var(--font-mono)">${n}</span>`;
       const col=done?'var(--st-green-fg)':cur?'var(--color-accent-800)':'var(--color-neutral-500)';
-      return `<span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:${cur?600:500};color:${col}">${dot}${s}</span>`
+      return `<span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:${cur?600:500};color:${col}">${dot}${s}</span>`
         + (n<UPLOAD_STEPS.length?`<span style="color:var(--color-neutral-400);margin:0 1px">→</span>`:''); }).join('')}
    </div>
-   ${note?`<div id="up-step-note" style="margin-top:7px;font-size:11px;color:var(--color-neutral-600);display:flex;align-items:center;gap:6px">
+   ${note?`<div id="up-step-note" style="margin-top:7px;font-size:12px;color:var(--color-neutral-600);display:flex;align-items:center;gap:6px">
      <span class="scan-pulse" style="width:6px;height:6px;border-radius:50%;background:var(--color-accent);flex:none"></span>${String(note).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</div>`:''}
   </div>`;
 }
@@ -1289,7 +1289,7 @@ async function runUploadPipeline(file){
     toast(msg,'err');
     const steps=document.getElementById('up-steps');
     if(steps){ steps.classList.remove('hidden');
-      steps.innerHTML=`<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);color:var(--st-ruby-fg);border-radius:0;padding:10px 12px;font-size:11.5px;line-height:1.55">${msg}</div>`; }
+      steps.innerHTML=`<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);color:var(--st-ruby-fg);border-radius:0;padding:10px 12px;font-size:13px;line-height:1.55">${msg}</div>`; }
     revive();
   };
   renderUploadSteps(1);   // Step 1 — Reading document
@@ -1531,21 +1531,21 @@ function openEditDocModal(c){
       <div style="${COL};padding:0 26px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="color:var(--color-accent)">${icon('pencil','w-4 h-4')}</span>
           <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">${i18t('ct_edit_document',{id:c.id})}</h3></div>
-        <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 10px;line-height:1.5">${i18t('ct_change_and_save')} <b>new version</b> ${i18t('ct_review_under')} <b>${i18t('ct_compare')}</b> and share the updated text with the counterparty as usual.${firstEdit?` <b>${i18t('ct_note')}</b> the first edit converts the drafted layout into working text; the highlighted quick-fill fields no longer apply after that.`:''}</p>
-        ${wasRich?`<div style="display:flex;gap:7px;align-items:flex-start;border:1px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:0;padding:8px 11px;margin:0 0 10px;font-size:11.5px;line-height:1.5;color:var(--color-accent-800)">
+        <p style="font-size:13px;color:var(--color-neutral-600);margin:0 0 10px;line-height:1.5">${i18t('ct_change_and_save')} <b>new version</b> ${i18t('ct_review_under')} <b>${i18t('ct_compare')}</b> and share the updated text with the counterparty as usual.${firstEdit?` <b>${i18t('ct_note')}</b> the first edit converts the drafted layout into working text; the highlighted quick-fill fields no longer apply after that.`:''}</p>
+        ${wasRich?`<div style="display:flex;gap:7px;align-items:flex-start;border:1px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:0;padding:8px 11px;margin:0 0 10px;font-size:13px;line-height:1.5;color:var(--color-accent-800)">
           <span style="flex:none;margin-top:1px">${icon('alert','w-3.5 h-3.5')}</span>
           <span>${i18t('ct_doc_carries')} <b>formatting</b> ${i18t('ct_headings_bold')} <b>${i18t('ct_converts_plain')}</b>${i18t('ct_clause_numbers_text')}</span></div>`:''}
       </div>
       <textarea id="ed-text" class="scroll-thin" spellcheck="false" style="${COL};flex:1 1 auto;min-height:0;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:22px 26px;font:inherit;font-size:15px;line-height:1.95;resize:none;outline:none">${esc(cur)}</textarea>
       <div style="${COL};padding:0 26px;margin-top:12px">
-        <label style="display:flex;align-items:flex-start;gap:8px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:9px 11px;font-size:11.5px;cursor:pointer">
+        <label style="display:flex;align-items:flex-start;gap:8px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:9px 11px;font-size:13px;cursor:pointer">
           <input type="checkbox" id="ed-from-cp" style="margin-top:2px;flex:none"/>
           <span><b>${i18t('ct_changes_came_from',{who:esc(c.counterparty||i18t('ng_the_counterparty'))})}</b>
           <span style="display:block;color:var(--color-neutral-600);line-height:1.5;margin-top:2px">${i18t('ct_tick_when_typing')} <b>${i18t('ct_in_their_name')}</b> ${i18t('ct_waits_for_decision')}</span></span>
         </label>
       </div>
       <div style="${COL};padding:0 26px;display:flex;justify-content:space-between;align-items:center;margin-top:10px">
-        <span id="ed-count" style="font-size:10.5px;color:var(--color-neutral-500)">${cur.length.toLocaleString()} characters</span>
+        <span id="ed-count" style="font-size:12px;color:var(--color-neutral-500)">${cur.length.toLocaleString()} characters</span>
         <span style="display:flex;gap:8px">
           <button id="ed-cancel" class="ui-btn">${i18t('act_cancel')}</button>
           <button id="ed-save" class="ui-btn ui-btn-primary">${icon('check2','w-3.5 h-3.5')} Save changes</button>
@@ -1604,19 +1604,19 @@ function discussPointsSectionHtml(c){
     <div id="ws-openpoints" style="border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:0;padding:14px 18px;margin:0 0 14px;box-shadow:var(--shadow-sm)">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
         <span style="flex:none;color:var(--st-amber-dot);display:inline-flex">${icon('alert','w-4 h-4')}</span>
-        <span style="font-size:13px;font-weight:600;color:var(--st-amber-fg)">${i18t('ct_still_open')}</span>
-        <span style="margin-left:auto;font-size:10.5px;color:var(--st-amber-fg);font-family:var(--font-mono)">${pts.length} point${pts.length===1?'':'s'}</span>
+        <span style="font-size:14px;font-weight:600;color:var(--st-amber-fg)">${i18t('ct_still_open')}</span>
+        <span style="margin-left:auto;font-size:12px;color:var(--st-amber-fg);font-family:var(--font-mono)">${pts.length} point${pts.length===1?'':'s'}</span>
       </div>
-      <p style="margin:0 0 10px;font-size:11.5px;line-height:1.55;color:var(--st-amber-fg)">${i18t('ct_not_adopted',{who})}</p>
+      <p style="margin:0 0 10px;font-size:13px;line-height:1.55;color:var(--st-amber-fg)">${i18t('ct_not_adopted',{who})}</p>
       <div style="display:flex;flex-direction:column;gap:8px">
         ${pts.map((pt,i)=>`
-          <div style="border:1px solid #e8d5ad;background:var(--color-surface);border-radius:0;padding:9px 12px;font-size:12px;line-height:1.6">
-            ${pt.before?`<div><span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('ct_contract_says')}</span>
+          <div style="border:1px solid #e8d5ad;background:var(--color-surface);border-radius:0;padding:9px 12px;font-size:13px;line-height:1.6">
+            ${pt.before?`<div><span style="font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('ct_contract_says')}</span>
               <div style="color:var(--color-neutral-800)">${e(pt.before)}</div></div>`:''}
-            ${pt.after?`<div style="margin-top:5px"><span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('ct_they_asked_for')}</span>
+            ${pt.after?`<div style="margin-top:5px"><span style="font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('ct_they_asked_for')}</span>
               <div style="color:var(--st-ruby-fg)">${e(pt.after)}</div></div>`:''}
-            ${pt.ask?`<div style="margin-top:5px;font-size:11.5px;color:var(--color-neutral-700)"><b>${i18t('ct_they_said')}</b> ${e(pt.ask)}</div>`:''}
-            ${pt.reason?`<div style="margin-top:4px;font-size:11.5px;color:var(--color-neutral-700)"><b>${i18t('ct_you_replied')}</b> ${e(pt.reason)}</div>`:''}
+            ${pt.ask?`<div style="margin-top:5px;font-size:13px;color:var(--color-neutral-700)"><b>${i18t('ct_they_said')}</b> ${e(pt.ask)}</div>`:''}
+            ${pt.reason?`<div style="margin-top:4px;font-size:13px;color:var(--color-neutral-700)"><b>${i18t('ct_you_replied')}</b> ${e(pt.reason)}</div>`:''}
             ${discussPointReplyHtml('point:'+pt.id, c._messages||[], {
               idp:'ws-op-'+i, mine:'owner',
               label:'Still open — '+discussTrim(pt.after||pt.before,60),
@@ -1702,7 +1702,7 @@ function uploadDocBody(c){
        came from is worth one line and no border. PDFs keep their file preview:
        there is no text to lay out, so a frame is the honest rendering. */
     : (isDocx&&!c.redlineText&&(u.extractedText||'').length>40)
-    ? `<div style="font-size:10.5px;color:var(--color-neutral-600);margin:0 0 14px">${i18t('ct_reading_view')}</div>
+    ? `<div style="font-size:12px;color:var(--color-neutral-600);margin:0 0 14px">${i18t('ct_reading_view')}</div>
        ${documentTextHtml(u.extractedText,{size:'13px',lh:'1.85'})}`
     : `<div class="rounded-xl border border-dashed border-brand-200 bg-brand-50/40 p-10 text-center">
          <div class="text-brand-300 mb-2 flex justify-center">${icon('file','w-8 h-8')}</div>
@@ -1730,7 +1730,7 @@ function uploadDocBody(c){
          above the paper it describes. NOTHING WAS DROPPED: every fact and
          both buttons are here, and data-reread still carries the same
          handler. */}
-    <div class="mb-4" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--color-neutral-600);border-bottom:1px solid var(--color-divider);padding-bottom:9px">
+    <div class="mb-4" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--color-neutral-600);border-bottom:1px solid var(--color-divider);padding-bottom:9px">
       <span style="display:inline-flex;align-items:center;gap:5px;min-width:0">
         ${icon('file','w-3.5 h-3.5')}<b style="font-weight:600;color:var(--color-text)">${esc(u.fileName||'—')}</b>${sizeKB?` · ${sizeKB} KB`:''}
       </span>
@@ -1741,8 +1741,8 @@ function uploadDocBody(c){
         ? `${Number(u.textChars).toLocaleString()} characters ${isOcrText(u.textSource)?`machine-read from ${u.ocrPages||'the'} scanned page${u.ocrPages===1?'':'s'}`:'read'}`
         : 'Text not machine-readable'}</span>
       <span style="flex:1 1 auto"></span>
-      <a href="${fileUrl}" download="${(u.fileName||'contract').replace(/"/g,'')}" class="ui-btn" style="font-size:11px;padding:4px 9px;display:inline-flex;align-items:center;gap:5px;flex:none">${icon('download','w-3.5 h-3.5')} Download original</a>
-      ${canEdit()?`<button type="button" data-reread class="ui-btn" style="font-size:11px;padding:4px 9px;display:inline-flex;align-items:center;gap:5px;flex:none" title="${i18t('ct_read_original_again')}">${icon('history','w-3.5 h-3.5')} Re-read document</button>`:''}
+      <a href="${fileUrl}" download="${(u.fileName||'contract').replace(/"/g,'')}" class="ui-btn" style="font-size:12px;padding:4px 9px;display:inline-flex;align-items:center;gap:5px;flex:none">${icon('download','w-3.5 h-3.5')} Download original</a>
+      ${canEdit()?`<button type="button" data-reread class="ui-btn" style="font-size:12px;padding:4px 9px;display:inline-flex;align-items:center;gap:5px;flex:none" title="${i18t('ct_read_original_again')}">${icon('history','w-3.5 h-3.5')} Re-read document</button>`:''}
     </div>`}
     <!-- Everything above is the owner's own handling of the file: the Word
          round-trip control, who uploaded it and when, and how well the text
@@ -1753,10 +1753,10 @@ function uploadDocBody(c){
     <div class="mb-4" data-anchor="redline">
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
         <span style="color:var(--color-accent)">${icon('history','w-3.5 h-3.5')}</span>
-        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--color-neutral-600)">${i18t('ct_working_text')}</span>
+        <span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--color-neutral-600)">${i18t('ct_working_text')}</span>
       </div>
       <div style="border:1px solid var(--color-accent-300);background:var(--color-surface);border-radius:0;padding:12px 14px;color:var(--color-doc-text)">${docBodyHtml(c,{size:'13px',lh:'1.7'})}</div>
-      <div style="font-size:10.5px;color:var(--color-neutral-600);margin-top:4px">This edited text is what versions, Compare and the seal operate on — the original file below is retained unchanged as the received source.</div>
+      <div style="font-size:12px;color:var(--color-neutral-600);margin-top:4px">This edited text is what versions, Compare and the seal operate on — the original file below is retained unchanged as the received source.</div>
     </div>`:''}
     ${preview}
     ${signatureBlock(c)}`;
@@ -2027,7 +2027,7 @@ function docBody(c){
   const clause=(n,title,body)=>{
     const p=flags['c'+n]?FLAGPAL[flags['c'+n].sev]:null;
     const wrap=p?` style="background:${p.box};outline:1px solid ${p.line};border-radius:0;padding:6px 10px;margin-bottom:14px"`:'';
-    const tag=p?`<span style="font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:${p.bg};color:${p.fg};padding:1px 6px;border-radius:0;flex:none">${p.tag}</span>`:'';
+    const tag=p?`<span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:${p.bg};color:${p.fg};padding:1px 6px;border-radius:0;flex:none">${p.tag}</span>`:'';
     return `<div class="${p?'py-1':'mb-5 px-2 -mx-2 py-1'}" data-anchor="c${n}"${wrap}><div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px"><h4 class="font-display font-600 text-brand-900 text-[13px]" style="margin:0">${n}. ${title}</h4>${tag}</div><p class="text-[13.5px] leading-[1.85]" style="margin:0;color:var(--color-doc-text)">${body}</p></div>`;
   };
   const f=c.fields;
@@ -2206,7 +2206,7 @@ function templateProvenanceHtml(c){
   /* A CARD IN THE COLUMN, not a band over the sheet. The 660px width and the
      auto margins were centring it on the paper it sat above; here it takes the
      column's width and wears the column's shape. */
-  return `<div style="display:flex;align-items:flex-start;gap:7px;font-size:11px;line-height:1.5;color:var(--color-neutral-700);border:1px solid var(--color-divider);background:var(--color-surface);box-shadow:0 1px 2px rgba(15,23,42,.05);border-radius:0;padding:10px 13px">
+  return `<div style="display:flex;align-items:flex-start;gap:7px;font-size:12px;line-height:1.5;color:var(--color-neutral-700);border:1px solid var(--color-divider);background:var(--color-surface);box-shadow:0 1px 2px rgba(15,23,42,.05);border-radius:0;padding:10px 13px">
     <span style="flex:none;margin-top:1px;color:var(--color-accent)">${icon('copy','w-3.5 h-3.5')}</span>
     <span>${i18t('ct_created_from')} <b>${esc(label)}</b>.${moved
       ? ` That template has since been revised — it is now <b>v${liveV}</b>. <b>${i18t('ct_keeps_wording')}</b>; editing a template never changes a contract already made from it.`
@@ -2508,7 +2508,7 @@ function wsNextAction(c){
    explanatory strips above a document is one more than a document needs. */
 function actionBarHtml(c){
   const locked=c.status==='Signed';
-  const line=t=>`<span style="font-size:12px;color:var(--color-neutral-700)">${t}</span>`;
+  const line=t=>`<span style="font-size:13px;color:var(--color-neutral-700)">${t}</span>`;
   /* ---- NO SECOND NEXT-STEP BUTTON ON THIS STRIP ----
      "Go to Negotiate →" lived here. It was a THIRD control claiming to say
      what happens next, next to the head's own primary and the right column's
@@ -2536,7 +2536,7 @@ function actionBarHtml(c){
      a description of the page, it is the contract's next step — which is what
      this strip is for and why it repaints per tab (see applyWsTabs). */
   if(_wsTab==='docs') return '';
-  if(locked) return `<span style="display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;padding:2px 9px;border-radius:0;background:var(--st-green-bg);color:var(--st-green-fg)"><span style="width:6px;height:6px;border-radius:50%;background:var(--st-green-dot)"></span>${i18t('ct_executed_sealed')}</span>${line('Executed &amp; sealed. This document is locked and fields are read-only.')}`;
+  if(locked) return `<span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:2px 9px;border-radius:0;background:var(--st-green-bg);color:var(--st-green-fg)"><span style="width:6px;height:6px;border-radius:50%;background:var(--st-green-dot)"></span>${i18t('ct_executed_sealed')}</span>${line('Executed &amp; sealed. This document is locked and fields are read-only.')}`;
   if(!canEdit()) return `${statusChip(c.status)}${line('You have viewer access — the document is read-only for your role.')}${tail}`;
   /* On the Document tab the sentence is about READING, because that is what
      this tab is now for; the status guidance is on every other tab, where a
@@ -2859,7 +2859,7 @@ function wsTabRowEndHtml(c){
      The amber `ws-to-nego-due` face when changes need this reader is untouched,
      and still outranks this. */
   const door=`<button type="button" id="ws-to-nego" class="ui-btn${needs?' ws-to-nego-due':''}"
-    style="flex:none;font-size:12.5px;padding:7px 14px" title="${esc(i18t('ct_open_negotiate_title'))}">${label}</button>`;
+    style="flex:none;font-size:14px;padding:7px 14px" title="${esc(i18t('ct_open_negotiate_title'))}">${label}</button>`;
   return step+door;
 }
 /* ---- THE ROOM'S OWN FLOATING NOTICES ----
@@ -3145,7 +3145,7 @@ function ktRouteEmailRowHtml(c){
   if(recorded && recorded.toLowerCase()===routeEmail.toLowerCase()) return '';
   const who=String((route&&route.name)||'').trim();
   return ktRowHtml('cpRouteEmail', i18t('ct_signing_route_email'),
-    `${esc(routeEmail)}<span style="display:block;font-size:10.5px;color:var(--color-neutral-600);line-height:1.4">${
+    `${esc(routeEmail)}<span style="display:block;font-size:12px;color:var(--color-neutral-600);line-height:1.4">${
       who?esc(who)+' · ':''}${i18t('ct_signing_route_email_note')}</span>`, '', false);
 }
 /* ---- WHICH DRAWER THIS CONTRACT IS FILED IN, AND WHO MAY CHANGE IT ----
@@ -3184,7 +3184,7 @@ function ktStreamRowHtml(c){
      rule, kept. An admin holds every folder, so this is for the day the control
      is widened. */
   if(c.folder && FOLDERS[c.folder] && !opts.some(f=>f.id===c.folder)) opts.unshift(FOLDERS[c.folder]);
-  const SEL='min-width:0;width:100%;border:1px solid var(--color-accent);background:var(--color-bg);border-radius:0;padding:4px 8px;font:inherit;font-size:11.5px;text-align:right;outline:none';
+  const SEL='min-width:0;width:100%;border:1px solid var(--color-accent);background:var(--color-bg);border-radius:0;padding:4px 8px;font:inherit;font-size:13px;text-align:right;outline:none';
   return ktRowHtml('stream', i18t('ct_value_stream'), read,
     `<select data-kt-folder style="${SEL}">${
       opts.map(f=>`<option value="${esc(f.id)}"${f.id===c.folder?' selected':''}>${esc(f.name)}</option>`).join('')
@@ -3192,7 +3192,7 @@ function ktStreamRowHtml(c){
 }
 function ktTermsRowsHtml(c,opts={}){
   const ed=!!opts.editable;
-  const KIN='min-width:0;width:100%;border:1px solid var(--color-accent);background:var(--color-bg);border-radius:0;padding:4px 8px;font:inherit;font-size:11.5px;text-align:right;outline:none';
+  const KIN='min-width:0;width:100%;border:1px solid var(--color-accent);background:var(--color-bg);border-radius:0;padding:4px 8px;font:inherit;font-size:13px;text-align:right;outline:none';
   const dash=`<span class="kt-none" data-kt-none="1">${i18t('ct_not_set')}</span>`;
   /* A DATE ROW SAYS SO IN WORDS AS WELL AS IN ITS ICON. "Not set" is a state;
      "Pick a date" is an instruction, and the two date rows are the ones a
@@ -3242,9 +3242,9 @@ function ktTermsRowsHtml(c,opts={}){
     ktRouteEmailRowHtml(c),
     ktRowHtml('value','Contract value', `<span style="font-family:var(--font-mono)">${money}</span>`,
       `<span style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
-         <span style="font-size:11px;color:var(--color-neutral-500);flex:none">${jxCurrency()}</span>
+         <span style="font-size:12px;color:var(--color-neutral-500);flex:none">${jxCurrency()}</span>
          <input data-kt="value" type="text" inputmode="numeric" value="${isMonetary(c)&&c.value?Number(c.value).toLocaleString(jxLocale()):''}" placeholder="0" ${isMonetary(c)?'':'disabled'} style="${KIN};font-family:var(--font-mono)"/>
-         <label style="display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--color-neutral-600);flex:none;white-space:nowrap">
+         <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--color-neutral-600);flex:none;white-space:nowrap">
            <input data-kt="nonmonetary" type="checkbox" ${!isMonetary(c)?'checked':''} style="width:14px;height:14px;accent-color:var(--color-accent)"/>none</label></span>`, ed),
     ktRowHtml('effDate','Effective', day(c.fields&&c.fields.effDate),
       `<input data-kt="effDate" type="date" value="${(c.fields&&c.fields.effDate)||''}" style="${KIN}"/>`, ed, 'calendar'),
@@ -3366,7 +3366,7 @@ function renderKeyTerms(c){
    either way. */
 function readTermsHtml(c){
   return `<div style="margin-top:13px;padding-top:11px;border-top:1px solid var(--color-divider)">
-      <p style="margin:0;font-size:11.5px;line-height:1.55;color:var(--color-neutral-600)">${i18t('ct_terms_in_wording')}</p>
+      <p style="margin:0;font-size:13px;line-height:1.55;color:var(--color-neutral-600)">${i18t('ct_terms_in_wording')}</p>
     </div>`;
 }
 /* ---- RISK: A READ OF THE CHECKS YOU HAVE RUN, NOT A NEW NUMBER ----
@@ -3400,17 +3400,17 @@ function riskRead(c){
   return { score, bars, ranPb:!!pb, ranScan:!!c.scan };
 }
 function riskCardHtml(c){
-  const H='margin:0;font-size:13px;font-weight:700;font-family:var(--font-heading)';
+  const H='margin:0;font-size:14px;font-weight:700;font-family:var(--font-heading)';
   const r=riskRead(c);
   if(!r) return `<h6 style="${H};margin-bottom:7px">${i18t('ct_risk')}</h6>
-    <p style="margin:0 0 9px;font-size:11.5px;line-height:1.55;color:var(--color-neutral-600)">${i18t('ct_nothing_checked')}</p>
+    <p style="margin:0 0 9px;font-size:13px;line-height:1.55;color:var(--color-neutral-600)">${i18t('ct_nothing_checked')}</p>
     ${''/* Reported with the obligations pair (Young, 10 Aug 2026): almost
            transparent. A bare .ui-btn is a hairline border on a white
            background, which is fine on a toolbar full of other buttons and
            invisible alone at the foot of a paragraph. It takes the accent
            outline the design already keeps for a secondary act — the same
            treatment, and the same restraint, as Add obligation beside it. */}
-    <button id="kt-gocheck" class="ui-btn ob-btn-add" style="font-size:11.5px;padding:5px 11px">${i18t('ct_go_to_checks')}</button>`;
+    <button id="kt-gocheck" class="ui-btn ob-btn-add" style="font-size:13px;padding:5px 11px">${i18t('ct_go_to_checks')}</button>`;
   const tone=r.score>=60?'var(--st-ruby-fg)':r.score>=35?'var(--st-amber-fg)':'var(--st-green-fg)';
   const bg=r.score>=60?'var(--st-ruby-bg)':r.score>=35?'var(--st-amber-bg)':'var(--st-green-bg)';
   return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
@@ -3420,7 +3420,7 @@ function riskCardHtml(c){
     ${r.bars.map(b=>`<div class="risk-row"><span class="risk-k">${esc(b.label)}</span>
       <span class="risk-bar"><i style="width:${b.n}%;background:${b.n>=60?'var(--st-ruby-dot)':b.n>=35?'var(--st-amber-dot)':'var(--st-green-dot)'}"></i></span>
       <span class="risk-n">${b.n}</span></div>`).join('')}
-    <p style="margin:8px 0 0;font-size:10.5px;line-height:1.5;color:var(--color-neutral-500)">Scored from ${[r.ranPb?'the playbook review':'',r.ranScan?'the Copilot scan':''].filter(Boolean).join(' and ')}. Anything above 60 needs Legal sign-off before signing.</p>`;
+    <p style="margin:8px 0 0;font-size:12px;line-height:1.5;color:var(--color-neutral-500)">Scored from ${[r.ranPb?'the playbook review':'',r.ranScan?'the Copilot scan':''].filter(Boolean).join(' and ')}. Anything above 60 needs Legal sign-off before signing.</p>`;
 }
 /* ---- ONE CARD BESIDE KEY TERMS, AND IT MATCHES IT ----
    The Risk card is gone from this tab (Young, 10 Aug 2026). It was the third
@@ -3469,17 +3469,17 @@ function ktBriefCardHtml(c,CARD){
   const v=(typeof checkVerdict==='function')?checkVerdict(c,'brief'):null;
   const may=(typeof canEdit==='function'?canEdit():true);
   const act=v
-    ? `<button type="button" data-kt-brief="open" class="ui-btn" style="font-size:11px;padding:5px 11px">${i18t('br_open')}</button>`
-    : (may?`<button type="button" data-kt-brief="run" class="ui-btn" style="font-size:11px;padding:5px 11px">${i18t('br_write')}</button>`:'');
+    ? `<button type="button" data-kt-brief="open" class="ui-btn" style="font-size:12px;padding:5px 11px">${i18t('br_open')}</button>`
+    : (may?`<button type="button" data-kt-brief="run" class="ui-btn" style="font-size:12px;padding:5px 11px">${i18t('br_write')}</button>`:'');
   /* flex-direction:row said out loud: the column's own `.kt-side-card > div`
      rule makes every direct child a flex COLUMN, which stacks a head row's
      title and pill and reads as centred. Same reason on the renewal card. */
   return `<section id="brief-card" class="kt-side-card" style="${CARD}">
     <div style="display:flex;flex-direction:row;align-items:center;gap:8px;margin-bottom:6px;flex:none">
-      <h6 style="margin:0;font-size:13px;font-weight:700;font-family:var(--font-heading);flex:1">${i18t('br_title')}</h6>
+      <h6 style="margin:0;font-size:14px;font-weight:700;font-family:var(--font-heading);flex:1">${i18t('br_title')}</h6>
       ${v?`<span class="pill-x" style="background:var(--st-green-bg);color:var(--st-green-fg)">${esc(v.label)}</span>`:''}
     </div>
-    <p style="margin:0 0 9px;font-size:11.5px;line-height:1.55;color:var(--color-neutral-600)">${
+    <p style="margin:0 0 9px;font-size:13px;line-height:1.55;color:var(--color-neutral-600)">${
       v?i18t('br_kt_sub'):(may?i18t('br_kt_none'):i18t('br_kt_none_viewer'))}</p>
     ${act?`<div style="display:flex;flex-direction:row;gap:7px;flex:none">${act}</div>`:''}
   </section>`;
@@ -3690,19 +3690,19 @@ function roomHistoryHtml(c,f={}){
      Export and Print are acts, and a select would sit there afterwards wearing
      the last act as though it were a setting. */
   return `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-      <h6 style="margin:0;font-size:13px;font-weight:700;font-family:var(--font-heading);flex:1">History</h6>
+      <h6 style="margin:0;font-size:14px;font-weight:700;font-family:var(--font-heading);flex:1">History</h6>
       <span class="pill-x" style="background:var(--color-neutral-100);color:var(--color-neutral-600)">${on?`${evs.length} of ${all}`:`${all} events`}</span>
       ${''/* The long reading. Named for what pressing it does, not for the mode
              it is in — "Detailed" tells you nothing about which way you are
              about to go. */}
       <button id="hist-detail" class="ui-btn" aria-pressed="${_histDetail?'true':'false'}"
         title="${esc(_histDetail?i18t('ct_hist_back_short'):i18t('ct_hist_print_wording'))}"
-        style="font-size:11px;padding:4px 10px">${_histDetail?i18t('ct_hist_hide_wording'):i18t('ct_hist_show_wording')}</button>
+        style="font-size:12px;padding:4px 10px">${_histDetail?i18t('ct_hist_hide_wording'):i18t('ct_hist_show_wording')}</button>
       <div style="position:relative">
         <button id="hist-more" class="ui-btn" aria-haspopup="true" aria-expanded="false"
           title="${esc(i18t('ct_hist_more_title'))}"
-          style="font-size:11px;padding:4px 10px;display:inline-flex;align-items:center;gap:5px">
-          <span aria-hidden="true" style="font-size:13px;line-height:1">&#8943;</span>${i18t('ct_more')}<span aria-hidden="true">&#9662;</span></button>
+          style="font-size:12px;padding:4px 10px;display:inline-flex;align-items:center;gap:5px">
+          <span aria-hidden="true" style="font-size:14px;line-height:1">&#8943;</span>${i18t('ct_more')}<span aria-hidden="true">&#9662;</span></button>
         <div id="hist-more-menu" class="room-menu hidden" style="min-width:250px">
           <button type="button" id="ht-verify">${icon('shield','w-3.5 h-3.5')}Verify integrity<span class="mnote">${i18t('ct_recompute_fingerprints')}</span></button>
           <button type="button" id="ht-export">${icon('download','w-3.5 h-3.5')}${i18t('ct_export_history')}<span class="mnote">${i18t('ct_standalone_file')}</span></button>
@@ -3713,7 +3713,7 @@ function roomHistoryHtml(c,f={}){
     <div id="hist-filters" style="margin-bottom:10px">${roomHistoryFiltersHtml(c,f)}</div>
     <div id="ht-verify-result"></div>
     <div class="hist-rail">${evs.length?evs.map(row).join('')
-      :`<p style="margin:6px 0;font-size:12px;color:var(--color-neutral-600)">${on?'Nothing matches these filters.':'Nothing has happened to this contract yet.'}</p>`}</div>`;
+      :`<p style="margin:6px 0;font-size:13px;color:var(--color-neutral-600)">${on?'Nothing matches these filters.':'Nothing has happened to this contract yet.'}</p>`}</div>`;
 }
 function roomHistoryFiltersHtml(c,f){
   const all=window.negoTimeline?negoTimeline(c):[];
@@ -3731,18 +3731,18 @@ function roomHistoryFiltersHtml(c,f){
     ${sel('side','Side',[['owner','Ours'],['counterparty','Theirs']])}
     ${sel('round','Round',uniq(all.filter(e=>e.round!=null&&e.round!=='').map(e=>[e.round,'Round '+e.round])))}
     ${sel('outcome','Outcome',[['accepted','Accepted'],['rejected','Rejected'],['pending','Pending'],['withdrawn','Withdrawn']])}
-    <button id="ht-clear" class="ui-btn" style="align-self:flex-end;font-size:11px;padding:5px 10px">${i18t('ct_clear2')}</button>
+    <button id="ht-clear" class="ui-btn" style="align-self:flex-end;font-size:12px;padding:5px 10px">${i18t('ct_clear2')}</button>
   </div>`;
 }
 function roomVersionsHtml(c){
   const vs=(window.listedVersions?listedVersions(c):(c.versions||[])).slice().reverse();
-  return `<h6 style="margin:0 0 9px;font-size:13px;font-weight:700;font-family:var(--font-heading)">${i18t('ct_versions')}</h6>
+  return `<h6 style="margin:0 0 9px;font-size:14px;font-weight:700;font-family:var(--font-heading)">${i18t('ct_versions')}</h6>
     ${vs.length?vs.map((v,i)=>`<div class="check-row" style="border-top:${i?'1px solid var(--color-divider)':'0'}">
       <span class="ci">${icon('file','w-3.5 h-3.5')}</span>
-      <span class="cn">v${v.n} ${i===0?'· current':''}<span style="display:block;font-weight:400;font-size:10.5px;color:var(--color-neutral-500)">${esc(String(v.label||'Saved'))} · ${window.fmtDT?fmtDT(v.at):esc(String(v.at||'').slice(0,10))}</span></span>
-      <button class="ui-btn" data-hist-compare="${v.n}" style="flex:none;font-size:11px;padding:4px 10px">${i18t('ct_compare')}</button>
+      <span class="cn">v${v.n} ${i===0?'· current':''}<span style="display:block;font-weight:400;font-size:12px;color:var(--color-neutral-500)">${esc(String(v.label||'Saved'))} · ${window.fmtDT?fmtDT(v.at):esc(String(v.at||'').slice(0,10))}</span></span>
+      <button class="ui-btn" data-hist-compare="${v.n}" style="flex:none;font-size:12px;padding:4px 10px">${i18t('ct_compare')}</button>
     </div>`).join('')
-    :`<p style="margin:0;font-size:11.5px;line-height:1.55;color:var(--color-neutral-600)">${i18t('ct_no_saved_versions')}</p>`}`;
+    :`<p style="margin:0;font-size:13px;line-height:1.55;color:var(--color-neutral-600)">${i18t('ct_no_saved_versions')}</p>`}`;
 }
 function roomPaintHistory(c,f={}){
   const host=document.getElementById('ws-history-pane');
@@ -3793,7 +3793,7 @@ function roomPaintHistory(c,f={}){
   host.querySelector('#ht-verify')?.addEventListener('click',async()=>{
     const box=host.querySelector('#ht-verify-result');
     if(!box||!window.negoIntegrityReport) return;
-    box.innerHTML=`<div style="font-size:11.5px;color:var(--color-neutral-600);padding:8px 0">${i18t('ct_recomputing')}</div>`;
+    box.innerHTML=`<div style="font-size:13px;color:var(--color-neutral-600);padding:8px 0">${i18t('ct_recomputing')}</div>`;
     box.innerHTML=negoVerifyResultHtml(await negoIntegrityReport(c));
   });
   /* Export runs the verification FIRST and carries the result inside the file,
@@ -4014,21 +4014,21 @@ function openNegoProposeModal(c){
       <div style="flex:none;padding:20px 26px 14px;border-bottom:1px solid var(--color-divider)">
         <div style="${COL}">
           <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">${i18t('ct_propose_changes_to',{who:esc(c.counterparty||i18t('ng_the_counterparty'))})}</h3>
-          <p style="font-size:11.5px;color:var(--color-neutral-600);margin:7px 0 0;line-height:1.55">Edit the wording below. Each clause you change becomes its own fingerprinted change on the index, for them to accept, reject or discuss. <b>${i18t('ct_nothing_changes_contract')}</b> ${i18t('ct_moves_when_accepted')}</p>
+          <p style="font-size:13px;color:var(--color-neutral-600);margin:7px 0 0;line-height:1.55">Edit the wording below. Each clause you change becomes its own fingerprinted change on the index, for them to accept, reject or discuss. <b>${i18t('ct_nothing_changes_contract')}</b> ${i18t('ct_moves_when_accepted')}</p>
         </div>
       </div>
       <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:20px 26px;background:var(--color-bg)">
         <div style="${COL}">
-          <textarea id="nego-prop-text" spellcheck="false" style="width:100%;min-height:52vh;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:14px 16px;font:inherit;font-family:var(--font-mono);font-size:12.5px;line-height:1.8;outline:none;resize:vertical">${esc(base)}</textarea>
+          <textarea id="nego-prop-text" spellcheck="false" style="width:100%;min-height:52vh;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:14px 16px;font:inherit;font-family:var(--font-mono);font-size:14px;line-height:1.8;outline:none;resize:vertical">${esc(base)}</textarea>
           <label style="display:block;margin-top:12px">
-            <span style="display:block;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:5px">${i18t('ct_why_asking')}</span>
-            <input id="nego-prop-why" type="text" placeholder="${esc(i18t('ct_ph_reason'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:9px 11px;font:inherit;font-size:12.5px;outline:none"/>
+            <span style="display:block;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:5px">${i18t('ct_why_asking')}</span>
+            <input id="nego-prop-why" type="text" placeholder="${esc(i18t('ct_ph_reason'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:9px 11px;font:inherit;font-size:14px;outline:none"/>
           </label>
         </div>
       </div>
       <div style="flex:none;padding:14px 26px;border-top:1px solid var(--color-divider)">
         <div style="${COL};display:flex;align-items:center;gap:9px;flex-wrap:wrap">
-          <span style="flex:1;min-width:150px;font-size:11.5px;color:var(--color-neutral-600)">${i18t('ct_changed_become_pending')}</span>
+          <span style="flex:1;min-width:150px;font-size:13px;color:var(--color-neutral-600)">${i18t('ct_changed_become_pending')}</span>
           <button id="nego-prop-cancel" class="ui-btn">${i18t('act_cancel')}</button>
           <button id="nego-prop-go" class="ui-btn ui-btn-primary">${i18t('ct_propose_changes')}</button>
         </div>
@@ -4061,10 +4061,10 @@ function openNegoProposeModal(c){
   });
 }
 function topTabBtn(k,label,ic){
-  return `<button data-top-tab="${k}" title="${label}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:0;background:none;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600;color:var(--color-neutral-600);padding:8px 4px;white-space:nowrap;transition:background .12s,color .12s">${icon(ic,'w-4 h-4')}<span>${label}</span></button>`;
+  return `<button data-top-tab="${k}" title="${label}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:0;background:none;cursor:pointer;font:inherit;font-size:14px;font-weight:600;color:var(--color-neutral-600);padding:8px 4px;white-space:nowrap;transition:background .12s,color .12s">${icon(ic,'w-4 h-4')}<span>${label}</span></button>`;
 }
 function innerTabBtn(k,label,ic){
-  return `<button data-inner-tab="${k}" title="${label}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;border:0;border-radius:0;background:none;cursor:pointer;font:inherit;font-size:11.5px;font-weight:600;color:var(--color-neutral-600);padding:7px 4px;white-space:nowrap;transition:background .12s,color .12s">${icon(ic,'w-3.5 h-3.5')}<span>${label}</span></button>`;
+  return `<button data-inner-tab="${k}" title="${label}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;border:0;border-radius:0;background:none;cursor:pointer;font:inherit;font-size:13px;font-weight:600;color:var(--color-neutral-600);padding:7px 4px;white-space:nowrap;transition:background .12s,color .12s">${icon(ic,'w-3.5 h-3.5')}<span>${label}</span></button>`;
 }
 function applyDocTabs(){
   const root=document.getElementById('doc-right'); if(!root) return;
@@ -4259,7 +4259,7 @@ function openCheckPanel(c,kind){
      rather than a normal path — but a panel that can open blank will. */
   const host=document.getElementById(id);
   if(host && !host.innerHTML.trim()){
-    host.innerHTML=`<p style="margin:0;font-size:12px;line-height:1.6;color:var(--color-neutral-600)">
+    host.innerHTML=`<p style="margin:0;font-size:13px;line-height:1.6;color:var(--color-neutral-600)">
       Nothing has been ${kind==='playbook'?'reviewed against the playbook':kind==='oblig'?'tracked on this contract':kind==='brief'?'briefed':'scanned'} on this contract yet.
       Close this and press <b>${kind==='playbook'?i18t('ct_playbook_review'):kind==='oblig'?i18t('ob_obligations'):kind==='brief'?i18t('br_title'):i18t('ct_copilot_risk_scan')}</b> ${i18t('ct_in_checks_card')}</p>`;
   }
@@ -4469,10 +4469,10 @@ function returnedChangesStrip(c){
   const who=esc(latest.by||'The counterparty');
   return `
     <div id="changes-strip" style="flex:none;display:flex;align-items:center;gap:11px;flex-wrap:wrap;padding:9px 16px;background:var(--st-amber-bg);border-top:1px solid var(--st-amber-line);border-bottom:1px solid var(--st-amber-line)">
-      <span class="changes-pip" style="flex:none;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--st-amber-dot);color:#fff;border-radius:0;padding:3px 10px">${i18t('ct_changes_returned')}</span>
-      <span style="font-size:12.5px;color:var(--st-amber-fg);min-width:0"><b>${who}</b> ${withText?'proposed edits':'requested changes'} — ${open.length} round${open.length===1?'':'s'} awaiting your decision.</span>
+      <span class="changes-pip" style="flex:none;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;background:var(--st-amber-dot);color:#fff;border-radius:0;padding:3px 10px">${i18t('ct_changes_returned')}</span>
+      <span style="font-size:14px;color:var(--st-amber-fg);min-width:0"><b>${who}</b> ${withText?'proposed edits':'requested changes'} — ${open.length} round${open.length===1?'':'s'} awaiting your decision.</span>
       <span style="flex:1"></span>
-      <button id="changes-review" style="flex:none;font:inherit;font-size:12px;font-weight:600;border:1px solid var(--st-amber-dot);background:var(--color-surface);color:var(--st-amber-fg);border-radius:0;padding:6px 13px;cursor:pointer">${withText?'Review changes':'Read the request'}</button>
+      <button id="changes-review" style="flex:none;font:inherit;font-size:13px;font-weight:600;border:1px solid var(--st-amber-dot);background:var(--color-surface);color:var(--st-amber-fg);border-radius:0;padding:6px 13px;cursor:pointer">${withText?'Review changes':'Read the request'}</button>
     </div>
     <style>
       @keyframes changes-pulse{0%,100%{box-shadow:0 0 0 0 rgba(184,134,43,.55)}50%{box-shadow:0 0 0 6px rgba(184,134,43,0)}}
@@ -4537,10 +4537,10 @@ function readyToSignStrip(c){
   const stale=!!sig.stale;
   return `
     <div id="ready-strip" data-stale="${stale?'1':'0'}" style="flex:none;display:flex;align-items:center;gap:11px;flex-wrap:wrap;padding:9px 16px;background:${stale?'var(--st-amber-bg)':'var(--st-green-bg)'};border-top:1px solid ${stale?'var(--st-amber-line)':'var(--st-green-line)'};border-bottom:1px solid ${stale?'var(--st-amber-line)':'var(--st-green-line)'}">
-      <span style="flex:none;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:${stale?'var(--st-amber-dot)':'var(--st-green-fg)'};color:#fff;border-radius:0;padding:3px 10px">${i18t('ct_ready_to_sign')}</span>
-      <span style="font-size:12.5px;color:${stale?'var(--st-amber-fg)':'var(--st-green-fg)'};min-width:0"><b>${esc(sig.by||c.counterparty||i18t('ct_the_counterparty_cap'))}</b> ${i18t('ct_ready_to_sign_signal',{when:esc(when)})}${bits.length?` · ${esc(bits.join(', '))}`:''}. <b>${i18t('ct_nothing_signed')}</b>${stale?' Something has been reopened since, so this no longer describes where the deal stands.':''}</span>
+      <span style="flex:none;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;background:${stale?'var(--st-amber-dot)':'var(--st-green-fg)'};color:#fff;border-radius:0;padding:3px 10px">${i18t('ct_ready_to_sign')}</span>
+      <span style="font-size:14px;color:${stale?'var(--st-amber-fg)':'var(--st-green-fg)'};min-width:0"><b>${esc(sig.by||c.counterparty||i18t('ct_the_counterparty_cap'))}</b> ${i18t('ct_ready_to_sign_signal',{when:esc(when)})}${bits.length?` · ${esc(bits.join(', '))}`:''}. <b>${i18t('ct_nothing_signed')}</b>${stale?' Something has been reopened since, so this no longer describes where the deal stands.':''}</span>
       <span style="flex:1"></span>
-      ${canEdit()&&!stale?`<button id="ready-issue" style="flex:none;font:inherit;font-size:12px;font-weight:600;border:1px solid var(--st-green-fg);background:var(--st-green-fg);color:#fff;border-radius:0;padding:6px 13px;cursor:pointer">${i18t('ct_issue_signing_link')}</button>`:''}
+      ${canEdit()&&!stale?`<button id="ready-issue" style="flex:none;font:inherit;font-size:13px;font-weight:600;border:1px solid var(--st-green-fg);background:var(--st-green-fg);color:#fff;border-radius:0;padding:6px 13px;cursor:pointer">${i18t('ct_issue_signing_link')}</button>`:''}
     </div>`;
 }
 /* The strip's one action: open the redline if there is one, otherwise take the
@@ -4661,7 +4661,7 @@ function wsFocusChip(){
   chip.type='button';
   chip.className='ui-btn ui-btn-primary';
   chip.title='Exit focus mode and bring the header back (Esc)';
-  chip.style.cssText='position:fixed;right:18px;bottom:18px;z-index:70;font-size:12px;padding:8px 14px;box-shadow:var(--shadow-md)';
+  chip.style.cssText='position:fixed;right:18px;bottom:18px;z-index:70;font-size:13px;padding:8px 14px;box-shadow:var(--shadow-md)';
   chip.innerHTML='Exit focus &middot; Esc';
   chip.addEventListener('click',()=>{ _wsFocus=false; applyWsFocus(); });
   document.body.appendChild(chip);
@@ -5229,11 +5229,11 @@ function renderWorkspace(){
      Negotiate tab: the two tabs are one room and their objects should be the
      same objects (Young, 10 Aug 2026). */
   const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:0 1px 2px rgba(15,23,42,.05);border-radius:0';
-  const H6='margin:0;font-size:10px;font-weight:700;color:var(--color-neutral-600);text-transform:uppercase;letter-spacing:.1em';
-  const KROW='display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);font-size:11.5px';
+  const H6='margin:0;font-size:11px;font-weight:700;color:var(--color-neutral-600);text-transform:uppercase;letter-spacing:.09em';
+  const KROW='display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);font-size:13px';
   const KKEY='color:var(--color-neutral-600);flex:none';
   const kv=(k,v)=>`<div style="${KROW}"><span style="${KKEY}">${k}</span><span style="font-weight:400;text-align:right;min-width:0">${v}</span></div>`;
-  const KIN='min-width:0;max-width:62%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:3px 7px;font:inherit;font-size:11.5px;text-align:right;outline:none';
+  const KIN='min-width:0;max-width:62%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:3px 7px;font:inherit;font-size:13px;text-align:right;outline:none';
   const tmplLabel=c.template?((window.TEMPLATES&&TEMPLATES[c.template]&&TEMPLATES[c.template].name)||c.template):(isUpload(c)?'Uploaded document':'—');
   // Key terms stay editable until the seal binds them (sealString folds
   // counterparty/value/valueType in), and only for roles that can edit.
@@ -5247,7 +5247,7 @@ function renderWorkspace(){
     ? i18t('ct_back_to',{where:FOLDERS[_wr.folderId].name})
     : i18t('ct_back_to',{where:i18t('ct_back_register')});
   content.innerHTML=`
-  <div class="view-enter" style="height:var(--view-h);box-sizing:border-box;padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px">
+  <div class="view-enter" style="height:var(--view-h);box-sizing:border-box;padding:6px 16px 12px;display:flex;flex-direction:column;gap:8px">
 
     <!-- ============ THE ROOM'S HEAD ============
          Built by roomHeadHtml, which the negotiation workbench calls too, so
@@ -5388,8 +5388,8 @@ function renderWorkspace(){
                  the contracts already made from it. */}
           ${templateProvenanceHtml(c)}
           <section id="checks-card" style="${CARD};padding:13px 15px">
-            <h6 style="margin:0;font-size:13px;font-weight:700;font-family:var(--font-heading)">${i18t('ct_checks')}</h6>
-            <p data-checks-note style="font-size:11.5px;color:var(--color-neutral-600);margin:4px 0 2px;line-height:1.5">${checksNoteHtml(c)}</p>
+            <h6 style="margin:0;font-size:14px;font-weight:700;font-family:var(--font-heading)">${i18t('ct_checks')}</h6>
+            <p data-checks-note style="font-size:13px;color:var(--color-neutral-600);margin:4px 0 2px;line-height:1.5">${checksNoteHtml(c)}</p>
             <div data-checks-rows>${checksRowsHtml(c)}</div>
           </section>
           ${''/* THE RESULTS CARDS HAVE LEFT THIS COLUMN. They open over the
@@ -5408,13 +5408,13 @@ function renderWorkspace(){
           <section style="${CARD};padding:12px 14px">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
               <h6 style="${H6};flex:1">${i18t('ct_activity_comments')}</h6>
-              <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--st-green-fg);font-weight:600"><span class="live-dot" style="height:6px;width:6px;border-radius:0;background:var(--st-green-dot);display:inline-block"></span>${i18t('ct_live')}</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--st-green-fg);font-weight:600"><span class="live-dot" style="height:6px;width:6px;border-radius:0;background:var(--st-green-dot);display:inline-block"></span>${i18t('ct_live')}</span>
             </div>
             <div id="feed" class="scroll-thin" style="max-height:300px;overflow-y:auto;padding-right:4px;display:flex;flex-direction:column;gap:14px"></div>
             <div style="margin-top:12px;padding-top:11px;border-top:1px solid var(--color-divider)">
-              <div style="font-size:10.5px;color:var(--color-neutral-500);margin-bottom:7px">${i18t('ct_commenting_as')} <span style="font-weight:600;color:var(--color-text)">${currentUser()?.name||'you'}</span> · internal</div>
+              <div style="font-size:12px;color:var(--color-neutral-500);margin-bottom:7px">${i18t('ct_commenting_as')} <span style="font-weight:600;color:var(--color-text)">${currentUser()?.name||'you'}</span> · internal</div>
               <div style="display:flex;gap:7px">
-                <textarea id="comment-input" class="chat-field" rows="1" placeholder="${i18t('ct_add_comment')}" title="${i18t('ct_internal_to_team')}" style="flex:1;min-width:0;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:8px 11px;font-size:12px;outline:none"></textarea>
+                <textarea id="comment-input" class="chat-field" rows="1" placeholder="${i18t('ct_add_comment')}" title="${i18t('ct_internal_to_team')}" style="flex:1;min-width:0;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:8px 11px;font-size:13px;outline:none"></textarea>
                 <button id="comment-send" class="ui-btn ui-btn-primary" style="width:36px;height:36px;padding:0;flex:none;border-radius:0">${icon('send','w-4 h-4')}</button>
               </div>
             </div>
@@ -5493,9 +5493,9 @@ function renderWorkspace(){
              — scrolls inside its own bounds. See renderKeyTermsSide. */}
       <div style="${CARD};padding:16px 18px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-          <h6 style="margin:0;flex:1;font-size:13px;font-weight:700;font-family:var(--font-heading)">${i18t('tab_key_terms')}</h6>
+          <h6 style="margin:0;flex:1;font-size:14px;font-weight:700;font-family:var(--font-heading)">${i18t('tab_key_terms')}</h6>
           ${(!ktEditable)?`<span class="pill-x" style="background:var(--st-green-bg);color:var(--st-green-fg)">${i18t('ct_confirmed')}</span>`:''}
-          ${ktEditable&&ktReadable?`<button id="kt-fill" class="ui-btn" style="font-size:10.5px;padding:3px 8px" title="${i18t('ct_read_out_details')}">${icon('sparkle','w-3 h-3')} Fill from document</button>`:''}
+          ${ktEditable&&ktReadable?`<button id="kt-fill" class="ui-btn" style="font-size:12px;padding:3px 8px" title="${i18t('ct_read_out_details')}">${icon('sparkle','w-3 h-3')} Fill from document</button>`:''}
         </div>
         <div id="kt-rows">${ktTermsRowsHtml(c,{editable:ktEditable})}</div>
         ${readTermsHtml(c)}
@@ -5529,7 +5529,7 @@ function renderWorkspace(){
           ${(!locked&&canEdit())?`
           <label style="display:flex;align-items:flex-start;gap:9px;border:1px solid var(--color-divider);border-radius:0;padding:10px;cursor:pointer">
             <input type="checkbox" data-comp="consent" ${c.compliance.consent?'checked':''} class="mt-0.5 h-4 w-4" style="accent-color:var(--color-accent);flex:none"/>
-            <span style="font-size:11.5px"><span style="font-weight:600;display:block">${i18t('ct_intend_to_sign')}</span><span style="color:var(--color-neutral-700);display:block;line-height:1.4">${jxEsignature()}</span></span>
+            <span style="font-size:13px"><span style="font-weight:600;display:block">${i18t('ct_intend_to_sign')}</span><span style="color:var(--color-neutral-700);display:block;line-height:1.4">${jxEsignature()}</span></span>
           </label>`:''}
           <div id="sign-wrap"></div>
         </div>
@@ -5734,7 +5734,7 @@ async function docAiRead(c,action,text){
      whole in the DOM, because aiChatMessages() reads the text of this bubble
      into the next request's history. A truncated display string would hand the
      model a truncated passage. */
-  const quote=`<div style="font-size:11px;margin-top:4px;opacity:.85;font-style:italic;max-height:76px;overflow-y:auto">“${esc(text)}”</div>`;
+  const quote=`<div style="font-size:12px;margin-top:4px;opacity:.85;font-style:italic;max-height:76px;overflow-y:auto">“${esc(text)}”</div>`;
   if(window.aiPush) aiPush('user',{text:`${esc(action.label)}${quote}`});
   if(!window.copilotAvailable||!copilotAvailable()){
     if(window.aiPush) aiPush('assistant',{text:'The Copilot is not connected yet. Connect it under Team &amp; Settings &rarr; Copilot engine, then try again.'});
@@ -6097,14 +6097,14 @@ function renderFeed(c){
     const when=esc((window.relTime?relTime(m.at||m.ts):'') || m.ts || '');
     return `
     <div style="display:flex;gap:10px">
-      <div style="flex:none;height:28px;width:28px;display:grid;place-items:center;border-radius:50%;font-size:10px;font-weight:700;
+      <div style="flex:none;height:28px;width:28px;display:grid;place-items:center;border-radius:50%;font-size:12px;font-weight:700;
         background:${internal?'var(--color-accent-100)':'var(--st-amber-bg)'};color:${internal?'var(--color-accent-800)':'var(--st-amber-fg)'}">${initials}</div>
       <div style="min-width:0;flex:1">
         <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;line-height:1.4">
-          <span style="font-size:12.5px;font-weight:600;color:var(--color-text)">${esc(m.author)}</span>
-          <span style="font-size:10.5px;color:var(--color-neutral-500)">${role}${role&&when?' · ':''}${when}</span>
+          <span style="font-size:14px;font-weight:600;color:var(--color-text)">${esc(m.author)}</span>
+          <span style="font-size:12px;color:var(--color-neutral-500)">${role}${role&&when?' · ':''}${when}</span>
         </div>
-        <p style="font-size:12px;color:var(--color-neutral-700);margin:3px 0 0;line-height:1.55">${esc(m.text)}</p>
+        <p style="font-size:13px;color:var(--color-neutral-700);margin:3px 0 0;line-height:1.55">${esc(m.text)}</p>
       </div>
     </div>`;
   }).join('');
@@ -6197,7 +6197,7 @@ function signBlockHtml(c){
         b.signed&&b.at?`<br><span class="sig-at">${window.fmtDT?fmtDT(b.at):esc(b.at)}</span>`:''}</div>
     </div>`;
   return `<div style="display:flex;align-items:center;gap:9px;margin-bottom:11px">
-      <h6 style="margin:0;flex:1;font-size:13px;font-weight:700;font-family:var(--font-heading)">${i18t('ct_signature_block')}</h6>${chip}
+      <h6 style="margin:0;flex:1;font-size:14px;font-weight:700;font-family:var(--font-heading)">${i18t('ct_signature_block')}</h6>${chip}
     </div>
     <div class="sig-grid">${boxes.map(box).join('')}</div>`;
 }
@@ -6318,7 +6318,7 @@ function renderSignSide(c){
   const plan=(window.signerPlan?signerPlan(c):[]);
   const may=canEdit()&&c.status!=='Signed';
   const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:0;padding:13px 15px';
-  const H='margin:0;font-size:13px;font-weight:700;font-family:var(--font-heading)';
+  const H='margin:0;font-size:14px;font-weight:700;font-family:var(--font-heading)';
   const chain=window.approvalChainHtml?approvalChainHtml(c,{bare:true}):'';
   const route=window.signerRouteHtml?signerRouteHtml(c,{bare:true}):'';
   host.innerHTML=`
@@ -6335,10 +6335,10 @@ function renderSignSide(c){
              carry a signature (see signingRouteOpen in js/approvals.js). A
              sentence describing an arrangement that does not exist is how
              somebody sends a contract out believing it can be signed. */}
-      ${route||`<p style="margin:0 0 10px;font-size:11.5px;line-height:1.55;color:var(--st-amber-fg)">${
+      ${route||`<p style="margin:0 0 10px;font-size:13px;line-height:1.55;color:var(--st-amber-fg)">${
         esc(i18t('ct_no_route_blocks',{them:c.counterparty||i18t('ct_a_counterparty')}))}</p>`}
-      ${may?`<button id="sp-add-signer" class="ui-btn" style="width:100%;justify-content:center;font-size:12px;padding:7px 12px;margin-top:${route?'8px':'0'}">${icon('users','w-3.5 h-3.5')} ${plan.length?'Add or reorder signers':'Add signers'}</button>`:''}
-      ${may?`<p style="margin:7px 0 0;font-size:10.5px;line-height:1.5;color:var(--color-neutral-500)">Internal signers sign here; each counterparty signer gets their own link, held until every internal signature is in. The seal lands with the last one.</p>`:''}
+      ${may?`<button id="sp-add-signer" class="ui-btn" style="width:100%;justify-content:center;font-size:13px;padding:7px 12px;margin-top:${route?'8px':'0'}">${icon('users','w-3.5 h-3.5')} ${plan.length?'Add or reorder signers':'Add signers'}</button>`:''}
+      ${may?`<p style="margin:7px 0 0;font-size:12px;line-height:1.5;color:var(--color-neutral-500)">Internal signers sign here; each counterparty signer gets their own link, held until every internal signature is in. The seal lands with the last one.</p>`:''}
     </section>`;
   host.querySelector('#sp-add-signer')?.addEventListener('click',()=>openSignerPlanEditor(c));
 }
@@ -6669,15 +6669,15 @@ function openPaperSignatureModal(c){
     <div style="padding:22px 24px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="color:var(--color-accent);display:inline-flex">${icon('finger')}</span>
         <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0">${i18t('ct_signed_on_paper')}</h2></div>
-      <p style="font-size:12.5px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55">
+      <p style="font-size:14px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55">
         Attach the signed copy to <b>this</b> contract, so the ${(c.rounds||[]).length} round${(c.rounds||[]).length===1?'':'s'} of negotiation stay with the document they produced.
         HaTi records it as <b>${i18t('ct_executed_outside')}</b> ${i18t('ct_no_esig_scan')}</p>
-      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">${i18t('ct_date_signed')}</span>
-        <input id="ps-date" type="date" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 10px;font:inherit;font-size:13px;outline:none"/></label>
-      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">${i18t('ct_note_optional')}</span>
-        <input id="ps-note" type="text" placeholder="${esc(i18t('ct_ph_signed_note'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 10px;font:inherit;font-size:13px;outline:none"/></label>
-      <label style="display:block"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">${i18t('ct_the_signed_copy')}</span>
-        <input id="ps-file" type="file" accept=".pdf,image/*" style="width:100%;font-size:12.5px"/></label>
+      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:12px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">${i18t('ct_date_signed')}</span>
+        <input id="ps-date" type="date" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 10px;font:inherit;font-size:14px;outline:none"/></label>
+      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:12px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">${i18t('ct_note_optional')}</span>
+        <input id="ps-note" type="text" placeholder="${esc(i18t('ct_ph_signed_note'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 10px;font:inherit;font-size:14px;outline:none"/></label>
+      <label style="display:block"><span style="display:block;font-size:12px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">${i18t('ct_the_signed_copy')}</span>
+        <input id="ps-file" type="file" accept=".pdf,image/*" style="width:100%;font-size:14px"/></label>
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
         <button id="ps-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="ps-go" class="ui-btn ui-btn-primary">${i18t('ct_file_as_executed')}</button>

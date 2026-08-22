@@ -64,15 +64,15 @@ const M_AI_CSS = `
   #ai-feed{ font-size:15px; padding-left:14px!important; padding-right:14px!important; }
   #ai-feed .ai-p, #ai-feed .ai-list li{ font-size:15px; line-height:1.55; }
   #ai-feed .ai-h{ font-size:15px; }
-  #ai-feed .ai-table{ font-size:13.5px; }
+  #ai-feed .ai-table{ font-size:15px; }
   #ai-feed .ai-target-body{ font-size:15px; }
-  #ai-feed .ai-target-head{ font-size:12px; }
+  #ai-feed .ai-target-head{ font-size:13px; }
   #ai-panel #ai-input{ font-size:16px!important; padding:13px!important; }
   #ai-panel #ai-send{ height:48px!important; width:48px!important; }
-  #ai-panel #ai-style button{ min-height:36px; font-size:13.5px!important; padding:0 13px!important; }
+  #ai-panel #ai-style button{ min-height:36px; font-size:15px!important; padding:0 13px!important; }
   /* The "Answers" caption above the register toggle. */
-  #ai-panel #ai-style, #ai-panel #ai-style ~ *{ font-size:14px; }
-  #ai-panel .text-\\[10px\\]{ font-size:12px!important; }
+  #ai-panel #ai-style, #ai-panel #ai-style ~ *{ font-size:15px; }
+  #ai-panel .text-\\[10px\\]{ font-size:13px!important; }
   #ai-panel .px-5{ padding-left:14px!important; padding-right:14px!important; }
 
   /* THE PROPOSAL CARD, at phone size.
@@ -83,17 +83,17 @@ const M_AI_CSS = `
      something it cannot do. What changes is that nothing on it is under 14px
      or under 44px any more. */
   #ai-feed .ai-proposal{ padding:13px 14px!important; gap:10px!important; }
-  #ai-feed .ai-proposal > div:first-child > span:first-child{ font-size:12px!important; padding:3px 9px!important; }
-  #ai-feed .ai-proposal > div:first-child > span:nth-child(2){ font-size:13.5px!important; }
+  #ai-feed .ai-proposal > div:first-child > span:first-child{ font-size:13px!important; padding:3px 9px!important; }
+  #ai-feed .ai-proposal > div:first-child > span:nth-child(2){ font-size:15px!important; }
   #ai-feed .ai-proposal-text{ font-size:15px!important; line-height:1.65!important; }
   #ai-feed .ai-suggestion-editor{ font-size:15px!important; line-height:1.6!important; }
   #ai-feed .ai-proposal [data-ai-prop-why]{ font-size:15px!important; min-height:48px!important; padding:9px 11px!important; }
-  #ai-feed .ai-proposal label > span:first-child{ font-size:12px!important; }
+  #ai-feed .ai-proposal label > span:first-child{ font-size:13px!important; }
   #ai-feed .ai-proposal .ui-btn{ min-height:44px!important; font-size:15px!important; padding:0 14px!important; }
   #ai-feed .ai-proposal [data-ai-prop-apply]{ flex:1; min-width:130px; }
   /* The placement chips and the anchor line under them. */
-  #ai-feed .ai-proposal [data-ai-placement]{ min-height:38px!important; font-size:13.5px!important; padding:0 12px!important; }
-  #ai-feed .ai-proposal .ai-anchor, #ai-feed .ai-prop-anchor{ font-size:13.5px!important; }
+  #ai-feed .ai-proposal [data-ai-placement]{ min-height:38px!important; font-size:15px!important; padding:0 12px!important; }
+  #ai-feed .ai-proposal .ai-anchor, #ai-feed .ai-prop-anchor{ font-size:15px!important; }
 
   /* THE LAUNCHER.
      A pill rather than a circle: "Copilot" said in words is the difference
@@ -127,8 +127,8 @@ const M_AI_CSS = `
     box-shadow:var(--shadow-lg)!important;
   }
   .nego-selmenu button{ min-height:48px!important; font-size:16px!important; }
-  .nego-selmenu .nego-selquote{ font-size:14px!important; }
-  .nego-selmenu .nego-selhead{ font-size:12px!important; }
+  .nego-selmenu .nego-selquote{ font-size:15px!important; }
+  .nego-selmenu .nego-selhead{ font-size:13px!important; }
 
   /* The sentence a tap can reach, marked so it looks reachable. Underlined
      rather than boxed: a box around every sentence turns a contract into a

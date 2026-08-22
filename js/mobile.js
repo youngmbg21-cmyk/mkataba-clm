@@ -145,9 +145,9 @@ const M_CSS = `
   .m-head-mark{
     width:32px; height:32px; flex:none; border-radius:0;
     background:var(--brand-grad); color:#fff; display:grid; place-items:center;
-    font-weight:700; font-size:13px; font-family:var(--font-heading,inherit);
+    font-weight:700; font-size:14px; font-family:var(--font-heading,inherit);
   }
-  .m-head-org{ flex:1; min-width:0; font-size:14px; font-weight:600;
+  .m-head-org{ flex:1; min-width:0; font-size:15px; font-weight:600;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .m-head-btn{
     flex:none; width:44px; height:44px; border:0; background:none; cursor:pointer;
@@ -172,10 +172,10 @@ const M_CSS = `
     flex:none; background:var(--color-surface); border-bottom:1px solid var(--color-divider);
     padding:14px 16px;
   }
-  .m-eyebrow{ font-size:14px; font-weight:600; color:var(--color-neutral-600); }
+  .m-eyebrow{ font-size:15px; font-weight:600; color:var(--color-neutral-600); }
   .m-title{ font-size:22px; font-weight:600; letter-spacing:-.01em; margin-top:1px;
     font-family:var(--font-heading,inherit); color:var(--color-text); }
-  .m-sub{ font-size:14px; color:var(--color-neutral-600); margin-top:2px; line-height:1.45; }
+  .m-sub{ font-size:15px; color:var(--color-neutral-600); margin-top:2px; line-height:1.45; }
 
   /* ---- the card, the row, the list ---- */
   .m-card{ background:var(--color-surface); border:1px solid var(--color-divider);
@@ -189,11 +189,11 @@ const M_CSS = `
   }
   .m-row:active{ background:var(--color-neutral-100); }
   .m-row-name{ display:block; font-size:16px; font-weight:600; line-height:1.3; color:var(--color-text); }
-  .m-row-sub{ display:block; font-size:14px; color:var(--color-neutral-600); margin-top:2px; }
+  .m-row-sub{ display:block; font-size:15px; color:var(--color-neutral-600); margin-top:2px; }
   .m-chev{ flex:none; color:var(--color-neutral-400); }
-  .m-note{ font-size:14px; color:var(--color-neutral-600); line-height:1.55; }
-  .m-lbl{ font-size:14px; font-weight:600; color:var(--color-neutral-600); }
-  .m-capline{ font-size:14px; font-weight:600; color:var(--color-neutral-600);
+  .m-note{ font-size:15px; color:var(--color-neutral-600); line-height:1.55; }
+  .m-lbl{ font-size:15px; font-weight:600; color:var(--color-neutral-600); }
+  .m-capline{ font-size:15px; font-weight:600; color:var(--color-neutral-600);
     letter-spacing:.04em; text-transform:uppercase; }
 
   /* ---- buttons ---- */
@@ -216,7 +216,7 @@ const M_CSS = `
   .m-chips{ scrollbar-width:none; }
   .m-chip{
     flex:none; display:flex; align-items:center; gap:7px; height:44px; padding:0 15px;
-    border-radius:0; cursor:pointer; font:inherit; font-size:14px; font-weight:600;
+    border-radius:0; cursor:pointer; font:inherit; font-size:15px; font-weight:600;
     white-space:nowrap; border:1px solid var(--color-divider);
     background:var(--color-surface); color:var(--color-text);
   }
@@ -274,7 +274,7 @@ const M_CSS = `
      label is always the short form of the place it opens. Nowrap and ellipsis
      stay as a backstop for a longer translation: a label that breaks onto two
      lines lifts the whole row and shunts the page above it. */
-  .m-tab span{ font-size:14px; font-weight:400; max-width:100%;
+  .m-tab span{ font-size:15px; font-weight:400; max-width:100%;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .m-tab.on span{ font-weight:600; }
   /* Something is owed on a negotiation. Amber here for the same reason it is
@@ -283,7 +283,7 @@ const M_CSS = `
   .m-tab-due{ color:var(--st-amber-fg); }
   .m-tab-badge{
     position:absolute; top:0; right:20%; min-width:21px; height:21px; border-radius:0;
-    background:var(--danger); color:#fff; font-size:14px; font-weight:700; line-height:1;
+    background:var(--danger); color:#fff; font-size:15px; font-weight:700; line-height:1;
     display:grid; place-items:center; padding:0 5px;
   }
 
@@ -302,7 +302,7 @@ const M_CSS = `
   .m-sheet::-webkit-scrollbar{ display:none; }
   .m-grab{ width:36px; height:4px; border-radius:0; background:var(--color-neutral-300); margin:0 auto 10px; }
   .m-sheet-title{ font-size:18px; font-weight:600; font-family:var(--font-heading,inherit); }
-  .m-sheet-note{ font-size:14px; color:var(--color-neutral-600); margin:2px 0 12px; line-height:1.45; }
+  .m-sheet-note{ font-size:15px; color:var(--color-neutral-600); margin:2px 0 12px; line-height:1.45; }
   @keyframes mSheetUp{ from{ transform:translateY(48px); opacity:0 } to{ transform:none; opacity:1 } }
   @keyframes mFadeIn{ from{ opacity:0 } to{ opacity:1 } }
 
@@ -317,11 +317,11 @@ const M_CSS = `
   }
   .m-input{ height:48px; padding:0 12px; }
   .m-area{ resize:none; }
-  .m-err{ font-size:14px; color:var(--danger); margin-top:5px; }
+  .m-err{ font-size:15px; color:var(--danger); margin-top:5px; }
 
   /* ---- the status pill, at phone size ---- */
   .m-pill{
-    flex:none; font-size:14px; font-weight:600; padding:3px 10px; border-radius:0;
+    flex:none; font-size:15px; font-weight:600; padding:3px 10px; border-radius:0;
     white-space:nowrap;
   }
 
@@ -335,10 +335,10 @@ const M_CSS = `
     border-radius:0; padding:12px 14px; cursor:pointer; font:inherit; color:inherit;
     box-shadow:var(--shadow-sm); min-height:44px;
   }
-  .m-kpi-label{ display:block; font-size:14px; color:var(--color-neutral-600);
+  .m-kpi-label{ display:block; font-size:15px; color:var(--color-neutral-600);
     line-height:1.3; overflow:hidden; text-overflow:ellipsis; }
   .m-kpi-val{ display:block; font-size:20px; font-weight:700; margin-top:2px; letter-spacing:-.02em; }
-  .m-kpi-sub{ display:block; font-size:14px; color:var(--color-neutral-600); margin-top:1px;
+  .m-kpi-sub{ display:block; font-size:15px; color:var(--color-neutral-600); margin-top:1px;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .m-kpi-gear{
     flex:none; width:44px; height:44px; border:0; background:none; cursor:pointer;
@@ -367,9 +367,9 @@ const M_CSS = `
      pressable — a heading between two stacks of cards. */
   .m-ngband{ display:flex; align-items:center; gap:9px; padding:0 16px 7px; }
   .m-ngband-dot{ width:9px; height:9px; border-radius:50%; flex:none; }
-  .m-ngband-k{ font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+  .m-ngband-k{ font-size:13px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
     color:var(--color-neutral-600); }
-  .m-ngband-n{ font-family:var(--font-mono); font-size:12px; font-weight:700;
+  .m-ngband-n{ font-family:var(--font-mono); font-size:13px; font-weight:700;
     color:var(--color-neutral-600); background:var(--color-surface);
     border:1px solid var(--color-divider); border-radius:0; padding:0 8px; }
 
@@ -456,7 +456,7 @@ const M_CSS = `
   .m-paper h1{ font-size:20px!important; }
   .m-paper h2{ font-size:18px!important; }
   .m-paper h3, .m-paper h4, .m-paper h5, .m-paper h6{ font-size:16px!important; }
-  .m-paper pre, .m-paper code{ font-size:14px!important; }
+  .m-paper pre, .m-paper code{ font-size:15px!important; }
   /* The quick-fill fields inside a generated body are the one thing in the
      paper a finger has to hit. */
   .m-paper input, .m-paper select, .m-paper textarea, .m-paper .field{
@@ -587,7 +587,7 @@ const M_CSS = `
     bottom:calc(env(safe-area-inset-bottom,0px) + 158px)!important;
     display:flex; flex-direction:column; align-items:center; pointer-events:none;
   }
-  body.m-on #toast-root > *{ max-width:100%; font-size:14px!important; }
+  body.m-on #toast-root > *{ max-width:100%; font-size:15px!important; }
 
   /* ---- the desk handoff ---- */
   .m-handoff{ margin:16px; padding:22px 18px; text-align:center; }
@@ -772,7 +772,7 @@ function mAccountSheetHtml(){
            The checkboxes it replaced were wired to nothing. */}
     <div class="m-capline" style="margin:14px 0 6px">${i18t('st_acct_email')}</div>
     <div class="m-card" style="padding:12px">
-      <div style="font-size:13px;font-weight:600">${i18t('set_still_emailed')}</div>
+      <div style="font-size:14px;font-weight:600">${i18t('set_still_emailed')}</div>
       <div class="m-note" style="margin-top:4px">${i18t('set_three_events')}</div>
     </div>`:''}
 
@@ -839,7 +839,7 @@ function mMoreHtml(){
         <span class="m-row-name" style="font-weight:400">${mEsc(d.label)}</span>
         <span class="m-row-sub">${mEsc(d.note)}</span>
       </span>
-      <span style="flex:none;font-size:14px;color:var(--color-neutral-600)">${i18t('m_computer')}</span>
+      <span style="flex:none;font-size:15px;color:var(--color-neutral-600)">${i18t('m_computer')}</span>
     </button>`).join('');
   const people = `
     <button class="m-row" data-m-go="people">

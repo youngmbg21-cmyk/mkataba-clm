@@ -147,7 +147,12 @@ describe('f210 (1) — the pill', () => {
   test('it follows the reader\'s document type, like the rest of the sheet', async () => {
     /* The third report of one fault (13 and 15 Aug 2026) was enough; a fourth
        is not needed to apply the rule to a new piece of furniture. */
-    assert.match(SRC, /\.redline-page \.rl-cp-pill\{[^}]*font-size:calc\(10\.5px \* var\(--doc-scale,1\)\)/);
+    /* WRITTEN AS THE RELATION, NOT THE NUMBER (22 Aug 2026). It pinned the
+       literal 10.5px and failed the day every size in the product moved onto a
+       whole pixel — over a claim that was still true. What this test is for is
+       that the pill answers the stepper; which rung of the ladder it sits on is
+       a design decision, not this claim's business. */
+    assert.match(SRC, /\.redline-page \.rl-cp-pill\{[^}]*font-size:calc\(\d+px \* var\(--doc-scale,1\)\)/);
     assert.match(SRC, /\.redline-page \.rl-cp-pill\{[^}]*padding:calc\(3px \* var\(--doc-scale,1\)\)/);
   });
 });

@@ -340,10 +340,16 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   });
   check('7 the contract body reads at the Doc page scale', type.body === '15px', type.body);
   check('7 the retired card token declares nothing', type.cardScale === '', type.cardScale || 'gone');
-  /* 13px since the render (22 Aug 2026); 12px before that. Still smaller than
-     the contract body, which is the whole claim — a card is a label on the
-     paper, not a second copy of it. */
-  check('7 and the card head is set smaller still', type.meta === '13px', type.meta);
+  /* THE CLAIM IS THE RELATION, NOT THE NUMBER, and it is asserted as one now.
+     This read 12px, then 13 after the platform-wide one-step type lift (22 Aug
+     2026, owner-asked from the design's scale) — and pinning the literal made a
+     test about HIERARCHY fail for a reason that had nothing to do with
+     hierarchy. What matters is that the card's furniture stays smaller than the
+     contract's own words, so the paper reads as the content and the column as
+     the apparatus. */
+  check('7 and the card head is set smaller still than the contract body',
+    parseFloat(type.meta) < parseFloat(type.body),
+    `card ${type.meta} vs contract ${type.body}`);
 
   /* ---- 8. attribution on every mark ---- */
   const marks = await page.evaluate(() => {

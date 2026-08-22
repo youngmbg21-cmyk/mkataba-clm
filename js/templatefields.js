@@ -402,20 +402,20 @@ function openContractEssentials(opts){
   const esc = s => String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
   const fs = essentialFields();
   const ST = 'width:100%;min-height:36px;border:1px solid var(--color-divider);'
-    + 'background:var(--color-surface);border-radius:0;padding:7px 11px;font:inherit;font-size:13px;outline:none;color:inherit';
+    + 'background:var(--color-surface);border-radius:0;padding:7px 11px;font:inherit;font-size:14px;outline:none;color:inherit';
   const input = f => {
     const it = f.type==='date' ? 'date' : (f.type==='num' ? 'number' : (f.type==='email' ? 'email' : 'text'));
     return `<label style="display:block">
-      <span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">${esc(f.label)}${
+      <span style="display:block;font-size:12px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">${esc(f.label)}${
         f.hint ? `<span style="font-weight:400;color:var(--color-neutral-500)"> → ${esc(f.hint)}</span>` : ''}</span>
       <input id="ce-${f.key}" type="${it}" value="${esc(f.def||'').replace(/"/g,'&quot;')}" placeholder="${esc(f.ph||'')}" style="${ST}"></label>`;
   };
   openModal(`<div style="padding:20px 22px">
     <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0 0 3px">${esc(o.title||'New contract')}</h3>
-    <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 14px;line-height:1.55">${
+    <p style="font-size:13px;color:var(--color-neutral-600);margin:0 0 14px;line-height:1.55">${
       esc(o.blurb||'')} Everything here is filed as contract data — the register, the calendar and the reports all read it. You can skip and fill it in later.</p>
     <div class="ce-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${fs.map(input).join('')}</div>
-    <div id="ce-err" style="font-size:11px;color:var(--st-ruby-fg);min-height:15px;margin-top:8px"></div>
+    <div id="ce-err" style="font-size:12px;color:var(--st-ruby-fg);min-height:15px;margin-top:8px"></div>
     <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
       <button id="ce-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <span style="flex:1"></span>

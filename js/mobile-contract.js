@@ -50,7 +50,7 @@ function mContractHeadHtml(c){
           <div style="font-size:17px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${mEsc(c.name||c.id)}</div>
           <div style="display:flex;align-items:center;gap:8px;margin-top:1px">
             ${mPill(c)}
-            <span style="flex:1;min-width:0;font-size:14px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${mEsc(c.id)} · ${mEsc(party)}</span>
+            <span style="flex:1;min-width:0;font-size:15px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${mEsc(c.id)} · ${mEsc(party)}</span>
           </div>
           ${mDeskLineHtml(c)}
         </div>
@@ -160,7 +160,7 @@ function mDeskNoticeHtml(c){
       <div style="font-size:15px;font-weight:600;color:var(--st-amber-fg)">${mEsc(i18t('dk_reading',{who:lead.name}))}</div>
       <div class="m-note" style="margin-top:3px">${mEsc(asked?i18t('dk_asked_already'):i18t('dk_phone_ask'))}</div>
     </span>
-    ${asked?'':`<button type="button" data-dk-join="1" style="flex:none;font:inherit;font-size:13px;font-weight:700;
+    ${asked?'':`<button type="button" data-dk-join="1" style="flex:none;font:inherit;font-size:14px;font-weight:700;
       border:1.5px solid currentColor;background:transparent;color:inherit;border-radius:0;padding:5px 11px">${mEsc(i18t('dk_ask_to_join'))}</button>`}
   </div>`;
 }
@@ -177,14 +177,14 @@ function mDocNoticesHtml(c){
   if(mLocked(c)) return `
     <div class="m-notice" style="background:var(--st-gray-bg);border-color:var(--st-gray-line)">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--color-neutral-600)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-      <span style="font-size:14px;color:var(--color-neutral-700);line-height:1.45">${i18t('mc_executed_sealed')}</span>
+      <span style="font-size:15px;color:var(--color-neutral-700);line-height:1.45">${i18t('mc_executed_sealed')}</span>
     </div>`;
 
   const blocked = (typeof negoRenumberBlocked==='function') ? negoRenumberBlocked(c) : 'locked';
   if(blocked==='locked' && typeof negoLiveNumbered==='function' && negoLiveNumbered(c)) return rv + `
     <div class="m-notice" style="background:var(--st-steel-bg);border-color:var(--st-steel-line)">
       <span style="width:8px;height:8px;border-radius:50%;background:var(--st-steel-dot);flex:none"></span>
-      <span style="font-size:14px;color:var(--st-steel-fg);line-height:1.45">${i18t('mc_numbers_live')}</span>
+      <span style="font-size:15px;color:var(--st-steel-fg);line-height:1.45">${i18t('mc_numbers_live')}</span>
     </div>`;
   if(blocked) return rv;
 
@@ -292,9 +292,9 @@ function mTermsHtml(c){
     background:color-mix(in srgb,var(--color-accent) 12%,transparent);border-radius:0;padding:0 3px}</style>`;
   const briefBlock = b ? `${briefFig}
       <div class="m-card m-brief" style="margin:16px 16px 0;padding:14px">
-        <div style="font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:6px">${mEsc(i18t('br_title'))}</div>
-        <div style="font-size:14px;line-height:1.6">${mk(b.overview||'')}</div>
-        ${(b.watchouts||[]).length?`<ul style="margin:8px 0 0;padding-left:18px;list-style:none">${(b.watchouts||[]).map(w=>`<li style="font-size:13px;line-height:1.55;margin:6px 0;padding:8px 10px;border-radius:0;background:var(--st-amber-bg);border-left:3px solid var(--st-amber-dot)">${mk(w.point||'')}</li>`).join('')}</ul>`:''}
+        <div style="font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:6px">${mEsc(i18t('br_title'))}</div>
+        <div style="font-size:15px;line-height:1.6">${mk(b.overview||'')}</div>
+        ${(b.watchouts||[]).length?`<ul style="margin:8px 0 0;padding-left:18px;list-style:none">${(b.watchouts||[]).map(w=>`<li style="font-size:14px;line-height:1.55;margin:6px 0;padding:8px 10px;border-radius:0;background:var(--st-amber-bg);border-left:3px solid var(--st-amber-dot)">${mk(w.point||'')}</li>`).join('')}</ul>`:''}
       </div>` : '';
   return `
     <div class="m-scroll">
@@ -303,7 +303,7 @@ function mTermsHtml(c){
         ${rows.map(r=>{
           const empty = !String(r.value||'').trim();
           return `<div style="display:flex;align-items:baseline;justify-content:space-between;gap:14px;padding:13px 14px">
-            <span style="font-size:14px;color:var(--color-neutral-600);flex:none">${mEsc(r.label)}</span>
+            <span style="font-size:15px;color:var(--color-neutral-600);flex:none">${mEsc(r.label)}</span>
             <span style="font-size:16px;font-weight:400;text-align:right;min-width:0;color:${empty&&r.miss?'var(--danger)':'var(--color-text)'}">${mEsc(empty?(r.miss?'Not set':'—'):r.value)}</span>
           </div>`;
         }).join('')}
@@ -350,14 +350,14 @@ function mHistHtml(c){
       <span style="min-width:0;flex:1">
         <span style="display:flex;align-items:baseline;gap:8px">
           <span style="flex:1;min-width:0;font-size:15px;font-weight:600;line-height:1.35">${mEsc(e.text)}</span>
-          ${e.round?`<span style="flex:none;font-size:14px;color:var(--color-neutral-600)">Round ${mEsc(e.round)}</span>`:''}
+          ${e.round?`<span style="flex:none;font-size:15px;color:var(--color-neutral-600)">Round ${mEsc(e.round)}</span>`:''}
         </span>
-        ${e.clauseLabel?`<span style="display:block;font-size:14px;color:var(--color-neutral-600);margin-top:2px">${mEsc(e.clauseLabel)}</span>`:''}
-        ${reason?`<span style="display:block;font-size:14px;color:var(--color-neutral-700);margin-top:5px;padding-left:9px;border-left:2px solid var(--color-neutral-300);line-height:1.5">“${mEsc(reason)}”</span>`:''}
-        <span style="display:block;font-size:14px;color:var(--color-neutral-600);margin-top:4px">${mEsc([e.actor, when(e.at)].filter(Boolean).join(' · '))}</span>
+        ${e.clauseLabel?`<span style="display:block;font-size:15px;color:var(--color-neutral-600);margin-top:2px">${mEsc(e.clauseLabel)}</span>`:''}
+        ${reason?`<span style="display:block;font-size:15px;color:var(--color-neutral-700);margin-top:5px;padding-left:9px;border-left:2px solid var(--color-neutral-300);line-height:1.5">“${mEsc(reason)}”</span>`:''}
+        <span style="display:block;font-size:15px;color:var(--color-neutral-600);margin-top:4px">${mEsc([e.actor, when(e.at)].filter(Boolean).join(' · '))}</span>
       </span>
     </div>`;
-  }).join('') : `<div style="padding:22px 2px;text-align:center;font-size:14px;color:var(--color-neutral-600)">${
+  }).join('') : `<div style="padding:22px 2px;text-align:center;font-size:15px;color:var(--color-neutral-600)">${
     s.hist==='all'
       ? 'Nothing has happened on this contract yet — its story starts with the first change or the first share.'
       : "Nothing of that kind in this contract's story yet."}</div>`;
@@ -448,7 +448,7 @@ function mOverflowSheetHtml(){
     ${items.map(i=>`
       <button class="m-row" data-m-act="${i.k}" style="padding:0 12px;border-radius:0">
         <span style="flex:1;font-size:16px;font-weight:400;color:${i.muted?'var(--color-neutral-400)':'var(--color-text)'}">${mEsc(i.label)}</span>
-        ${i.desk?`<span style="flex:none;font-size:14px;color:var(--color-neutral-600)">${i18t('m_computer')}</span>`:''}
+        ${i.desk?`<span style="flex:none;font-size:15px;color:var(--color-neutral-600)">${i18t('m_computer')}</span>`:''}
       </button>`).join('')}
     <button class="m-btn m-btn-quiet" style="margin-top:6px" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
 }

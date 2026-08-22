@@ -47,12 +47,12 @@ const M_PORTAL_CSS = `
   .pw-id-main{ flex:1 1 100%!important; order:1; }
   .pw-id-badge{ order:0; }
   .pw-id-main h1{ font-size:17px!important; white-space:normal!important; }
-  .pw-id-sub{ font-size:13.5px!important; }
+  .pw-id-sub{ font-size:15px!important; }
   .pw-id-read{ order:2; flex:1 1 100%!important; }
   .pw-id .nego-who{ order:3; margin-left:0!important; flex:1 1 100%!important; }
   .pw-id .nego-who input{ min-width:0!important; width:100%; font-size:16px!important; min-height:44px!important; }
   .pw-id-rule{ display:none!important; }
-  .ui-btn.pw-id-verb{ flex:1 1 auto!important; min-height:44px!important; font-size:14px!important; }
+  .ui-btn.pw-id-verb{ flex:1 1 auto!important; min-height:44px!important; font-size:15px!important; }
 
   /* ---- the panes ---- */
   .pw-mount{ min-height:0!important; }
@@ -103,9 +103,9 @@ const M_PORTAL_CSS = `
      readable-through rather than becoming a wall at 320px. */
   .pv-sheet::before{ font-size:clamp(20px,9vw,34px)!important; }
   .pv-banner{ padding:12px 14px!important; }
-  .pv-banner .pv-sub{ font-size:13.5px!important; }
+  .pv-banner .pv-sub{ font-size:15px!important; }
   .pv-chg-body{ font-size:15px!important; }
-  .pv-note, .pv-foot, .pv-chg-state{ font-size:13.5px!important; }
+  .pv-note, .pv-foot, .pv-chg-state{ font-size:15px!important; }
   .pv-changes h2{ font-size:17px!important; }
 
   /* ---- the signing surface ----

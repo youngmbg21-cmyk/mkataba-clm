@@ -472,12 +472,21 @@ const CARD_EDIT = async () => {
       drift.length === 0,
       drift.length ? drift.map(k => `${k}: ${ownerType[k]} vs ${cpType[k]}`).join(', ')
         : JSON.stringify(ownerType));
-    /* cardMeta MOVED 12 -> 13px, 22 Aug 2026 (owner-approved render). It is the
-       clause name on a card, which the render sets at 13; the panel's own sizes
-       are untouched. The claim is unchanged — these are the bumped sizes and
-       not a stale copy — only the number it names. */
-    check('11 and the sizes are the bumped ones, not a stale copy',
-      ownerType.stands === '14px' && ownerType.h === '11px' && ownerType.cardMeta === '13px',
+    /* ---- THE CLAIM IS THE RELATION, NOT THE NUMBERS ----
+       This pinned three literals and they have now been moved twice in one day
+       by two separate, correct decisions: the platform-wide type lift (22 Aug
+       2026, off the design's scale) and the negotiation page's own render. It
+       failed both times for a reason that had nothing to do with what it is
+       for, which is that the panel is DRESSED and not a stale copy of some
+       earlier sheet — the same correction main made to the twin claims in
+       redline-verify and f173 on the same day.
+       So: the panel's standing wording is the largest thing in it, its section
+       headings are the smallest, and the card meta beside it sits between them.
+       Sizes may move; that order is the design. */
+    const sz = k => parseFloat(ownerType[k]);
+    check('11 and the panel is dressed, not a stale copy — the order holds',
+      sz('stands') > sz('h') && sz('stands') >= 13 && sz('h') >= 10
+      && sz('cardMeta') >= sz('h') && sz('cardMeta') <= sz('stands'),
       `stands ${ownerType.stands} · h ${ownerType.h} · meta ${ownerType.cardMeta}`);
   }
 

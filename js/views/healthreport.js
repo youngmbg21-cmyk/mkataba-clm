@@ -274,48 +274,48 @@ function buildHealthReportHtml(d, imgs){
 <title>${_hrEsc(t('hr_title'))}</title>
 <style>
   body{font-family:Georgia,'Times New Roman',serif;color:#1f2937;background:#fff;margin:0;
-    font-size:14px;line-height:1.6}
+    font-size:15px;line-height:1.6}
   .page{max-width:820px;margin:0 auto;padding:36px 28px 64px}
   .toolbar{display:flex;justify-content:flex-end;gap:10px;padding:14px 0;border-bottom:1px solid #e5e7eb;
     font-family:Inter,-apple-system,'Segoe UI',Arial,sans-serif}
-  .toolbar button{border:0;background:#0d9488;color:#fff;font:inherit;font-size:13px;font-weight:600;
+  .toolbar button{border:0;background:#0d9488;color:#fff;font:inherit;font-size:14px;font-weight:600;
     border-radius:0;padding:8px 16px;cursor:pointer}
   h1{font-size:26px;margin:26px 0 4px}
-  .sub{color:#6b7280;font-size:12.5px;margin:0 0 22px;font-family:Inter,-apple-system,'Segoe UI',Arial,sans-serif}
+  .sub{color:#6b7280;font-size:14px;margin:0 0 22px;font-family:Inter,-apple-system,'Segoe UI',Arial,sans-serif}
   h2{font-size:16px;margin:30px 0 8px;padding-top:14px;border-top:1px solid #e5e7eb}
   h2 .no{display:inline-block;width:22px;height:22px;border-radius:50%;background:#0d9488;color:#fff;
-    text-align:center;line-height:22px;font-size:12px;font-weight:600;margin-right:10px;
+    text-align:center;line-height:22px;font-size:13px;font-weight:600;margin-right:10px;
     font-family:Inter,-apple-system,'Segoe UI',Arial,sans-serif}
   .pos{color:#0f7a58;font-weight:600}
   .amb{color:#b45309;font-weight:600}
   .neg{color:#b91c1c;font-weight:600}
   .ok{color:#0f7a58}
-  .chip{display:inline-block;border-radius:0;padding:3px 12px;font-size:13.5px;font-weight:700;
+  .chip{display:inline-block;border-radius:0;padding:3px 12px;font-size:15px;font-weight:700;
     font-family:Inter,-apple-system,'Segoe UI',Arial,sans-serif}
   .chip.c-strong,.chip.c-good{background:#e6f4ef;color:#0f7a58}
   .chip.c-fair{background:#fdf3e0;color:#b45309}
   .chip.c-weak{background:#fdeaea;color:#b91c1c}
-  h3{font-size:13px;margin:14px 0 6px;font-family:Inter,-apple-system,'Segoe UI',Arial,sans-serif;
+  h3{font-size:14px;margin:14px 0 6px;font-family:Inter,-apple-system,'Segoe UI',Arial,sans-serif;
     text-transform:uppercase;letter-spacing:.05em;color:#4b5563}
   .muted{color:#6b7280}
   .scorebox{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;margin:6px 0 10px}
   .score{font-size:54px;font-weight:700;line-height:1}
   .score.s-strong{color:#0f7a58}.score.s-good{color:#0f7a58}.score.s-fair{color:#b8791b}.score.s-weak{color:#b91c1c}
   .grade{font-size:16px;font-weight:600}
-  table{border-collapse:collapse;width:100%;margin:8px 0 14px;font-size:13px;
+  table{border-collapse:collapse;width:100%;margin:8px 0 14px;font-size:14px;
     font-family:Inter,-apple-system,'Segoe UI',Arial,sans-serif}
-  th{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;text-align:left;
+  th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;text-align:left;
     border-bottom:1px solid #d1d5db;padding:5px 10px 5px 0}
   td{border-bottom:1px solid #f3f4f6;padding:6px 10px 6px 0;vertical-align:top}
   figure{margin:14px 0;page-break-inside:avoid}
-  figcaption{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;margin-bottom:6px;
+  figcaption{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;margin-bottom:6px;
     font-family:Inter,-apple-system,'Segoe UI',Arial,sans-serif}
   figure img{max-width:100%;border:1px solid #e5e7eb;border-radius:0}
   ul{margin:6px 0 14px;padding-left:20px}
   li{margin:3px 0}
-  .foot{margin-top:34px;padding-top:12px;border-top:1px solid #e5e7eb;color:#6b7280;font-size:11.5px;
+  .foot{margin-top:34px;padding-top:12px;border-top:1px solid #e5e7eb;color:#6b7280;font-size:13px;
     font-family:Inter,-apple-system,'Segoe UI',Arial,sans-serif}
-  @media print{ .toolbar{display:none} .page{padding:0} body{font-size:12.5px} }
+  @media print{ .toolbar{display:none} .page{padding:0} body{font-size:14px} }
 </style>
 </head>
 <body>
@@ -334,7 +334,7 @@ function buildHealthReportHtml(d, imgs){
   <h2><span class="no">1</span>${_hrEsc(t('hr_s1'))}</h2>
   ${delta}
   <h3>${_hrEsc(t('hr_workings'))}</h3>
-  <p class="muted" style="font-size:12px">${_hrEsc(t('hr_workings_note'))}</p>
+  <p class="muted" style="font-size:13px">${_hrEsc(t('hr_workings_note'))}</p>
   ${workings}
 
   <h2><span class="no">2</span>${_hrEsc(t('hr_s2'))}</h2>

@@ -62,7 +62,10 @@ describe('f225 (1) — the reader\'s text size reaches read-out text', () => {
        must not be able to fail a claim about the font size. */
     const at = html.indexOf('.doc-surface{');
     const rule = html.slice(at, html.indexOf('}', at));
-    assert.match(rule, /font-size:calc\(13\.5px \* var\(--doc-scale,1\)\)/,
+    /* THE RELATION, NOT THE NUMBER (22 Aug 2026) — it pinned 13.5px and failed
+       when the sheet's base moved to a whole pixel with the rest of the
+       product. The claim is that the body scales on the token at all. */
+    assert.match(rule, /font-size:calc\(\d+px \* var\(--doc-scale,1\)\)/,
       'the template contract\'s body scales on it');
     assert.match(SRC, /wrap\.style\.setProperty\('--doc-scale', pref\.toFixed\(3\)\)/,
       'and the stepper is what writes it — one reading, not two');

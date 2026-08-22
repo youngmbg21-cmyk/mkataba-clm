@@ -387,7 +387,11 @@ describe('F70 — the sends are prominent, and there is one of each', () => {
     const { win, c } = await played();
     ownerRoom(win, c);
     const css = win.document.getElementById('nego-style').textContent;
-    assert.match(css, /\.nego-go\{[^}]*font-size:13px/);
+    /* 13 -> 14 with the platform-wide one-step type lift (22 Aug 2026). What
+       this test is about is that the weight is REAL — a size and a shadow the
+       browser acts on, rather than a class name nothing reads — so the number
+       moving is not the claim. */
+    assert.match(css, /\.nego-go\{[^}]*font-size:14px/);
     assert.match(css, /\.nego-go\{[^}]*box-shadow:/);
   });
 

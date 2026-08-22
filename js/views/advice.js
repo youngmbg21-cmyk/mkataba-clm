@@ -29,19 +29,19 @@ function adviceCard(r){
   return `
     <div data-adv-card="${r.id}" ${drag?'draggable="true"':''} class="q-card" style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;box-shadow:var(--shadow-sm);padding:11px 12px;cursor:${drag?'grab':'pointer'};display:flex;flex-direction:column;gap:5px">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
-        <span style="font-family:var(--font-mono);font-size:10.5px;color:var(--color-neutral-600)">${r.id}</span>
+        <span style="font-family:var(--font-mono);font-size:12px;color:var(--color-neutral-600)">${r.id}</span>
         <span style="display:flex;align-items:center;gap:4px;flex:none">
-          ${r.urgency==='priority'?`<span style="background:var(--st-amber-bg);color:var(--st-amber-fg);font-size:9.5px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:0">${i18t('adv_priority')}</span>`:''}
-          <span style="font-size:9.5px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:0;font-variant-numeric:tabular-nums;background:color-mix(in srgb,${etaCol} 12%,#fff);color:${etaCol}">${etaTxt}</span>
+          ${r.urgency==='priority'?`<span style="background:var(--st-amber-bg);color:var(--st-amber-fg);font-size:12px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:0">${i18t('adv_priority')}</span>`:''}
+          <span style="font-size:12px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:0;font-variant-numeric:tabular-nums;background:color-mix(in srgb,${etaCol} 12%,#fff);color:${etaCol}">${etaTxt}</span>
         </span>
       </div>
-      <div style="display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:400;line-height:1.3"><span style="display:inline-flex;color:var(--color-accent-700);flex:none">${icon(svc.ic,'w-3.5 h-3.5')}</span><span style="min-width:0">${esc(svc.name)}</span></div>
-      <div style="font-size:11px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.name)}${r.company?' · '+esc(r.company):''}</div>
-      ${r.contractName?`<div style="font-size:10.5px;color:var(--color-neutral-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.contractName)}</div>`:''}
+      <div style="display:flex;align-items:center;gap:6px;font-size:14px;font-weight:400;line-height:1.3"><span style="display:inline-flex;color:var(--color-accent-700);flex:none">${icon(svc.ic,'w-3.5 h-3.5')}</span><span style="min-width:0">${esc(svc.name)}</span></div>
+      <div style="font-size:12px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.name)}${r.company?' · '+esc(r.company):''}</div>
+      ${r.contractName?`<div style="font-size:12px;color:var(--color-neutral-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.contractName)}</div>`:''}
       <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;border-top:1px solid color-mix(in srgb,var(--color-text) 8%,transparent);padding-top:5px;margin-top:1px">
-        <span style="font-size:11px;font-weight:400;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--color-text)">${fee}</span>
-        ${ini?`<span title="${esc(r.assignee)}" style="width:20px;height:20px;border-radius:50%;background:var(--color-accent-200);color:var(--color-accent-800);display:inline-grid;place-items:center;font-size:8.5px;font-weight:700;font-family:var(--font-mono);flex:none">${ini}</span>`
-            :`<span style="font-size:10px;color:var(--color-neutral-400)">unassigned</span>`}
+        <span style="font-size:12px;font-weight:400;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--color-text)">${fee}</span>
+        ${ini?`<span title="${esc(r.assignee)}" style="width:20px;height:20px;border-radius:50%;background:var(--color-accent-200);color:var(--color-accent-800);display:inline-grid;place-items:center;font-size:10px;font-weight:700;font-family:var(--font-mono);flex:none">${ini}</span>`
+            :`<span style="font-size:12px;color:var(--color-neutral-400)">unassigned</span>`}
       </div>
     </div>`;
 }
@@ -54,7 +54,7 @@ function renderAdviceDesk(){
   const delivered30=rs.filter(r=>r.status==='Delivered'&&(Date.now()-Date.parse((r.history||[]).find(h=>h.to==='Delivered')?.at||r.submittedAt))<30*86400000).length;
   const projected=active.reduce((s,r)=>s+((r.quote?.rate||0)*(((r.quote?.hoursMin||0)+(r.quote?.hoursMax||0))/2)),0);
   const kpi=(label,val,col)=>`<div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;padding:8px 14px;min-width:0">
-      <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600)">${label}</div>
+      <div style="font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)">${label}</div>
       <div style="font-size:17px;font-weight:600;font-variant-numeric:tabular-nums;color:${col||'var(--color-text)'}">${val}</div></div>`;
 
   const groups=ADVICE_STAGES.map(col=>({col, list:rs.filter(r=>r.status===col.k)}));
@@ -62,11 +62,11 @@ function renderAdviceDesk(){
     <div style="min-width:0;display:flex;flex-direction:column;min-height:0">
       <div style="display:flex;align-items:center;gap:6px;padding:0 2px 8px;min-width:0;flex:none">
         <span style="width:9px;height:9px;border-radius:50%;background:${g.col.color};flex:none;display:inline-block"></span>
-        <span style="font-family:var(--font-mono);font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap">${g.col.label}</span>
-        <span style="font-size:10.5px;background:color-mix(in srgb,var(--color-accent) 11%,transparent);padding:1px 8px;border-radius:0;color:var(--color-neutral-700);flex:none;font-variant-numeric:tabular-nums">${g.list.length}</span>
+        <span style="font-family:var(--font-mono);font-weight:700;font-size:13px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap">${g.col.label}</span>
+        <span style="font-size:12px;background:color-mix(in srgb,var(--color-accent) 11%,transparent);padding:1px 8px;border-radius:0;color:var(--color-neutral-700);flex:none;font-variant-numeric:tabular-nums">${g.list.length}</span>
       </div>
       <div data-adv-drop="${g.col.k}" class="pipe-col scroll-thin" style="background:color-mix(in srgb,var(--color-accent) 6%,transparent);border:1px solid var(--color-divider);border-radius:0;padding:8px;display:flex;flex-direction:column;gap:8px;flex:1;min-height:0;overflow-y:auto">
-        ${g.list.map(adviceCard).join('')||`<div style="border:1px dashed var(--color-divider);border-radius:0;padding:22px 10px;text-align:center;font-size:11px;color:var(--color-neutral-500)">${i18t('adv_nothing_here')}</div>`}
+        ${g.list.map(adviceCard).join('')||`<div style="border:1px dashed var(--color-divider);border-radius:0;padding:22px 10px;text-align:center;font-size:12px;color:var(--color-neutral-500)">${i18t('adv_nothing_here')}</div>`}
       </div>
     </div>`).join('');
 
@@ -139,7 +139,7 @@ function wireAdviceBoard(){
   document.getElementById('adv-link')?.addEventListener('click',async()=>{
     const link=adviceIntakeLink();
     try{ await navigator.clipboard.writeText(link); toast(i18t('adv_intake_copied')); }
-    catch(e){ openModal(`<div style="padding:22px 24px"><h2 style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0 0 8px">${i18t('adv_public_intake')}</h2><textarea readonly rows="2" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:10px;font-size:11px;font-family:var(--font-mono);word-break:break-all">${link}</textarea><div style="margin-top:12px;text-align:right"><button class="ui-btn" onclick="closeModal()">${i18t('act_close')}</button></div></div>`); }
+    catch(e){ openModal(`<div style="padding:22px 24px"><h2 style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0 0 8px">${i18t('adv_public_intake')}</h2><textarea readonly rows="2" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:10px;font-size:12px;font-family:var(--font-mono);word-break:break-all">${link}</textarea><div style="margin-top:12px;text-align:right"><button class="ui-btn" onclick="closeModal()">${i18t('act_close')}</button></div></div>`); }
   });
 }
 
@@ -148,27 +148,27 @@ function openAdviceModal(id){
   const r=getAdviceRequest(id); if(!r) return;
   const svc=ADVICE_SERVICES[r.service]||{name:r.service,ic:'msg'};
   const q=r.quote||{};
-  const row=(k,v)=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);font-size:12px"><span style="color:var(--color-neutral-600);flex:none">${k}</span><span style="font-weight:400;text-align:right;min-width:0">${v}</span></div>`;
+  const row=(k,v)=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);font-size:13px"><span style="color:var(--color-neutral-600);flex:none">${k}</span><span style="font-weight:400;text-align:right;min-width:0">${v}</span></div>`;
   const hist=(r.history||[]).slice().reverse().map(h=>`
-    <div style="display:flex;gap:8px;padding:4px 0;font-size:11px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent)">
+    <div style="display:flex;gap:8px;padding:4px 0;font-size:12px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent)">
       <span style="width:8px;height:8px;border-radius:50%;background:${adviceStage(h.to).color};flex:none;margin-top:3px"></span>
       <span style="min-width:0;flex:1"><strong>${adviceStage(h.to).label}</strong>${h.by?` <span style="color:var(--color-neutral-600)">— ${esc(h.by)}</span>`:''}
-        <span style="display:block;font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono)">${fmtDT(h.at)}</span></span>
+        <span style="display:block;font-size:12px;color:var(--color-neutral-500);font-family:var(--font-mono)">${fmtDT(h.at)}</span></span>
     </div>`).join('');
   const notes=(r.notes||[]).slice().reverse().map(n=>`
     <div style="border:1px solid var(--color-divider);border-radius:0;background:var(--color-bg);padding:8px 10px;margin-bottom:6px">
-      <div style="font-size:11.5px;line-height:1.5">${esc(n.text)}</div>
-      <div style="font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono);margin-top:2px">${esc(n.by)} · ${fmtDT(n.at)}</div>
-    </div>`).join('')||`<div style="font-size:11px;color:var(--color-neutral-500)">${i18t('adv_no_notes')}</div>`;
+      <div style="font-size:13px;line-height:1.5">${esc(n.text)}</div>
+      <div style="font-size:12px;color:var(--color-neutral-500);font-family:var(--font-mono);margin-top:2px">${esc(n.by)} · ${fmtDT(n.at)}</div>
+    </div>`).join('')||`<div style="font-size:12px;color:var(--color-neutral-500)">${i18t('adv_no_notes')}</div>`;
   const members=getUsers().filter(u=>u.role!=='viewer');
-  const selStyle='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:6px 9px;font:inherit;font-size:12px;color:inherit;outline:none';
+  const selStyle='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:6px 9px;font:inherit;font-size:13px;color:inherit;outline:none';
   openModal(`
     <div style="padding:22px 24px">
       <div style="display:flex;align-items:center;gap:9px;margin-bottom:2px">
         <span style="width:32px;height:32px;flex:none;display:grid;place-items:center;border-radius:0;background:var(--color-accent-100);color:var(--color-accent-800)">${icon(svc.ic,'w-4 h-4')}</span>
         <div style="min-width:0">
           <h2 style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0;line-height:1.25">${esc(svc.name)}</h2>
-          <div style="font-family:var(--font-mono);font-size:11px;color:var(--color-neutral-600)">${r.id} · submitted ${fmtDT(r.submittedAt)}</div>
+          <div style="font-family:var(--font-mono);font-size:12px;color:var(--color-neutral-600)">${r.id} · submitted ${fmtDT(r.submittedAt)}</div>
         </div>
         <span style="margin-left:auto;flex:none">${adviceStageChip(r.status)}</span>
       </div>
@@ -181,26 +181,26 @@ function openAdviceModal(id){
         ${row('Estimate', q.rate?`${q.hoursMin}–${q.hoursMax} hrs ≈ ${fmtMoneyShort(q.rate*q.hoursMin)}–${fmtMoneyShort(q.rate*q.hoursMax)}`:'—')}
         ${row('Feedback due', `<span style="font-family:var(--font-mono)">${fmtDay(r.eta)}</span>`)}
       </div>
-      ${r.description&&r.description!=='Seeded as sample data'?`<div style="margin-top:10px;border:1px solid var(--color-divider);border-radius:0;background:var(--color-bg);padding:9px 11px;font-size:12px;line-height:1.55;white-space:pre-wrap">${esc(r.description)}</div>`:''}
+      ${r.description&&r.description!=='Seeded as sample data'?`<div style="margin-top:10px;border:1px solid var(--color-divider);border-radius:0;background:var(--color-bg);padding:9px 11px;font-size:13px;line-height:1.55;white-space:pre-wrap">${esc(r.description)}</div>`:''}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
         <div>
-          <h6 style="margin:0 0 6px;font-size:10px;color:var(--color-neutral-600);letter-spacing:.08em;text-transform:uppercase">${i18t('adv_pipeline_history')}</h6>
+          <h6 style="margin:0 0 6px;font-size:11px;color:var(--color-neutral-600);letter-spacing:.09em;text-transform:uppercase">${i18t('adv_pipeline_history')}</h6>
           <div class="scroll-thin" style="max-height:150px;overflow-y:auto">${hist}</div>
         </div>
         <div>
-          <h6 style="margin:0 0 6px;font-size:10px;color:var(--color-neutral-600);letter-spacing:.08em;text-transform:uppercase">${i18t('adv_internal_notes')}</h6>
+          <h6 style="margin:0 0 6px;font-size:11px;color:var(--color-neutral-600);letter-spacing:.09em;text-transform:uppercase">${i18t('adv_internal_notes')}</h6>
           <div class="scroll-thin" style="max-height:150px;overflow-y:auto">${notes}</div>
         </div>
       </div>
       ${canEdit()?`
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px">
-        <label style="display:block"><span style="display:block;font-size:10.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">${i18t('adv_assigned_counsel')}</span>
+        <label style="display:block"><span style="display:block;font-size:12px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">${i18t('adv_assigned_counsel')}</span>
           <select id="adv-assignee" style="${selStyle}"><option value="">${i18t('adv_unassigned')}</option>
             ${members.map(u=>`<option value="${esc(u.name)}" ${r.assignee===u.name?'selected':''}>${esc(u.name)} (${roleName(u.role)})</option>`).join('')}</select></label>
-        <label style="display:block"><span style="display:block;font-size:10.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">${i18t('adv_stage')}</span>
+        <label style="display:block"><span style="display:block;font-size:12px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">${i18t('adv_stage')}</span>
           <select id="adv-status" style="${selStyle}">${ADVICE_STAGES.map(s=>`<option value="${s.k}" ${r.status===s.k?'selected':''}>${s.label}</option>`).join('')}</select></label>
       </div>
-      <label style="display:block;margin-top:10px"><span style="display:block;font-size:10.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">${i18t('adv_add_note')}</span>
+      <label style="display:block;margin-top:10px"><span style="display:block;font-size:12px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">${i18t('adv_add_note')}</span>
         <textarea id="adv-note" rows="2" placeholder="Scope confirmed with customer…" style="${selStyle}"></textarea></label>`:''}
       <div style="margin-top:14px;display:flex;align-items:center;gap:8px">
         <button id="adv-copy-track" class="ui-btn">${icon('copy','w-3.5 h-3.5')} Customer tracking link</button>
@@ -231,11 +231,11 @@ function openAdviceModal(id){
 /* ---------- rate card (published fees; admin edits, everyone reads) ---------- */
 function openRateCardModal(){
   const editable=isAdmin();
-  const inp=(id,v)=>`<input id="${id}" type="number" min="1" value="${v}" ${editable?'':'disabled'} style="width:100%;border:1px solid var(--color-divider);background:${editable?'var(--color-surface)':'var(--color-bg)'};border-radius:0;padding:5px 7px;font-family:var(--font-mono);font-size:11.5px;color:inherit;outline:none"/>`;
+  const inp=(id,v)=>`<input id="${id}" type="number" min="1" value="${v}" ${editable?'':'disabled'} style="width:100%;border:1px solid var(--color-divider);background:${editable?'var(--color-surface)':'var(--color-bg)'};border-radius:0;padding:5px 7px;font-family:var(--font-mono);font-size:13px;color:inherit;outline:none"/>`;
   const rows=Object.values(ADVICE_SERVICES).map(s=>{
     const r=adviceRateFor(s.id);
     return `<tr style="border-bottom:1px solid var(--color-divider)">
-      <td style="padding:8px 10px 8px 0;min-width:0"><span style="display:flex;align-items:center;gap:7px"><span style="display:inline-flex;color:var(--color-accent-700)">${icon(s.ic,'w-3.5 h-3.5')}</span><span style="font-size:12px;font-weight:400">${s.name}</span></span></td>
+      <td style="padding:8px 10px 8px 0;min-width:0"><span style="display:flex;align-items:center;gap:7px"><span style="display:inline-flex;color:var(--color-accent-700)">${icon(s.ic,'w-3.5 h-3.5')}</span><span style="font-size:13px;font-weight:400">${s.name}</span></span></td>
       <td style="padding:8px 6px;width:92px">${inp('rt-rate-'+s.id,r.rate)}</td>
       <td style="padding:8px 6px;width:64px">${inp('rt-min-'+s.id,r.hoursMin)}</td>
       <td style="padding:8px 6px;width:64px">${inp('rt-max-'+s.id,r.hoursMax)}</td>
@@ -246,14 +246,14 @@ function openRateCardModal(){
     <div style="padding:22px 24px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="display:inline-flex;color:var(--color-accent)">${icon('coins')}</span>
         <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0">${i18t('adv_published_rates')}</h2></div>
-      <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55">These hourly rates and turnaround targets are shown to customers on the public intake page. ${editable?'Changes publish immediately.':'Only an admin can change them.'}</p>
+      <p style="font-size:13px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55">These hourly rates and turnaround targets are shown to customers on the public intake page. ${editable?'Changes publish immediately.':'Only an admin can change them.'}</p>
       <div class="table-scroll"><table style="width:100%;border-collapse:collapse">
-        <thead><tr style="text-align:left;border-bottom:1px solid var(--color-divider);color:var(--color-neutral-600);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase">
+        <thead><tr style="text-align:left;border-bottom:1px solid var(--color-divider);color:var(--color-neutral-600);font-size:11px;letter-spacing:.09em;text-transform:uppercase">
           <th style="padding:6px 10px 6px 0;font-weight:600">${i18t('adv_service')}</th><th style="padding:6px;font-weight:600">${jxCurrency()} / hr</th><th style="padding:6px;font-weight:600">${i18t('adv_hrs_min')}</th><th style="padding:6px;font-weight:600">${i18t('adv_hrs_max')}</th><th style="padding:6px 0 6px 6px;font-weight:600">${i18t('adv_days')}</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table></div>
-      <p style="font-size:10.5px;color:var(--color-neutral-500);margin:10px 0 0;line-height:1.5">${i18t('adv_rate_note')}</p>
+      <p style="font-size:12px;color:var(--color-neutral-500);margin:10px 0 0;line-height:1.5">${i18t('adv_rate_note')}</p>
       <div style="margin-top:14px;display:flex;justify-content:flex-end;gap:8px">
         <button class="ui-btn" onclick="closeModal()">${editable?'Cancel':'Close'}</button>
         ${editable?`<button id="rt-save" class="ui-btn ui-btn-primary">${i18t('adv_publish_rates')}</button>`:''}
@@ -277,13 +277,13 @@ function openRateCardModal(){
 
 /* ---------- internal intake (log a request on a customer's behalf) ---------- */
 function openAdviceIntakeModal(){
-  const inputStyle='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 10px;font:inherit;font-size:12.5px;color:inherit;outline:none';
-  const field=(id,label,ph,type='text')=>`<label style="display:block;margin-bottom:10px"><span style="display:block;font-size:10.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">${label}</span><input id="${id}" type="${type}" placeholder="${ph}" style="${inputStyle}"/></label>`;
+  const inputStyle='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 10px;font:inherit;font-size:14px;color:inherit;outline:none';
+  const field=(id,label,ph,type='text')=>`<label style="display:block;margin-bottom:10px"><span style="display:block;font-size:12px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">${label}</span><input id="${id}" type="${type}" placeholder="${ph}" style="${inputStyle}"/></label>`;
   openModal(`
     <div style="padding:22px 24px">
       <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0 0 4px">${i18t('adv_log_request')}</h2>
-      <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 14px;line-height:1.5">${i18t('adv_log_sub')}</p>
-      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:10.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">${i18t('adv_service')}</span>
+      <p style="font-size:13px;color:var(--color-neutral-700);margin:0 0 14px;line-height:1.5">${i18t('adv_log_sub')}</p>
+      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:12px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">${i18t('adv_service')}</span>
         <select id="ai-service" style="${inputStyle}">${Object.values(ADVICE_SERVICES).map(s=>{const r=adviceRateFor(s.id);return `<option value="${s.id}">${s.name} — ${fmtMoney(r.rate)}/hr</option>`;}).join('')}</select></label>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         ${field('ai-name','Customer name *','e.g. Grace Njeri')}
@@ -293,9 +293,9 @@ function openAdviceIntakeModal(){
         ${field('ai-company','Company','e.g. Tamu Beverages Ltd')}
         ${field('ai-contract','Contract concerned','e.g. Distribution Agreement')}
       </div>
-      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:10.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">${i18t('adv_what_need')}</span>
+      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:12px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">${i18t('adv_what_need')}</span>
         <textarea id="ai-desc" rows="3" style="${inputStyle}"></textarea></label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--color-neutral-700);margin-bottom:4px"><input id="ai-priority" type="checkbox" style="width:15px;height:15px;accent-color:var(--color-accent)"/> ${i18t('adv_priority_option')}</label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--color-neutral-700);margin-bottom:4px"><input id="ai-priority" type="checkbox" style="width:15px;height:15px;accent-color:var(--color-accent)"/> ${i18t('adv_priority_option')}</label>
       <div style="margin-top:12px;display:flex;justify-content:flex-end;gap:8px">
         <button class="ui-btn" onclick="closeModal()">${i18t('act_cancel')}</button>
         <button id="ai-go" class="ui-btn ui-btn-primary">${i18t('adv_create_request')}</button>

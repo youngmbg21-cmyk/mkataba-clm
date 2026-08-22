@@ -181,15 +181,19 @@ describe('f173 · the column head is a caption and a count', () => {
        800 is not one of them, so this caption was ALREADY rendering at 700 —
        measured, identical ink and identical width to a real 700. The claim is
        unchanged (the caption keeps its bold label type); only the source now
-       asks for the weight it was always getting.
-
-       AND 10.5 BECAME 12, 22 Aug 2026 (owner-approved render): the whole change
-       column went up a size. The WEIGHT and the TRACKING are deliberately
-       untouched — the render draws this caption at regular weight and HaTi's
-       own bold label type is the thing that makes it read as a label rather
-       than as a line of prose, so only the size moved. */
+       asks for the weight it was always getting. */
+    /* SIZES ROUNDED 22 Aug 2026: every font-size in the product moved off the
+       half pixel onto a whole one (10.5 -> 11), because a fractional size puts
+       the glyph stems between device pixels and renders soft. The RELATION
+       these two lines assert is the claim and it is unchanged — see the base
+       rule in index.html for the whole sweep. */
+    /* SIZES LIFTED ONE STEP 22 Aug 2026 (owner-asked: "mimic the font sizes
+       and approach"). HaTi's interface type was running one to two steps below
+       the design's — its workhorse is 14px where HaTi's was 11-12 — so every
+       size at or below 14px moved up one rung. The RELATION each of these
+       lines asserts is the claim and is unchanged. */
     assert.ok(/\.rl-idx-k\{[^}]*font-size:12px;font-weight:700;letter-spacing:\.12em/.test(css),
-      'the caption keeps its label type, one size up');
+      'the caption keeps its label type, on a whole pixel');
     const n = /\.rl-idx-n\{([^}]*)\}/.exec(css)[1];
     assert.match(n, /font-family:var\(--font-mono\)/,
       'and the count is mono — it is the one part of the head that is a number');
