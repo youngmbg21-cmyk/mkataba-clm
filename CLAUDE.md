@@ -870,7 +870,11 @@ Tests: home-pipeline-ring-verify (54, browser — the card measured against Deci
 
 ## A CALENDAR DAY IS A DOOR
 
-Pressing ANYTHING in a day box goes to the register narrowed to that day's contracts; the document opens only when the day carries exactly ONE. It counts CONTRACTS, not events (renewalDecisionDate falls back to expiry and double-marks a day). THE CHIPS ARE NOT DOORS (owner-asked 2026-08-12, reversing 08-11): they were their own buttons, stopPropagation'd, opening their own contract however many the day held — and at 9.5px in a 90px column nine "Mutual Non-Discl…" chips are a guess between nine. They are SPANS now with no data-sel and no stopPropagation, falling through to openDay, which is the one place the count is asked. The cell keeps role="button", its tab stop and Enter/Space, and is the only focusable thing in the box. A chip carries the event tooltip only on a ONE-contract day (where the press still goes there); otherwise none, so the cell's own title shows. [data-sel] is the AGENDA's selector and nothing else — it is a list of EVENTS, not a day box, and a change scoped to that selector would break it. regShowOnly(ids, label) is the ONE door in; regState().only is applied FIRST (it is an ANSWER; every other filter is a question and narrows within it). Two safety properties: the chip SAYS what the list is narrowed to, and the way back is on the same chip. Cleared by its ✕, both Clear-all handlers, and the phone's. **THE CELLS FLEX SINCE 22 Aug 2026** (the calendar took the mock-up — see FIVE FIXES AND A CALENDAR): a day shows at most two chips and says "+N more" past that, because a row that must always fit six weeks cannot promise room for a third. Nothing is hidden silently and the press still lands on all of them. The phone draws no calendar (listed under More). Tests: calendar-day-verify (23, browser — the chips as spans, no focusable stop inside the box, the tooltip following the press, and the agenda row still opening its own contract).
+Pressing ANYTHING in a day box goes to the register narrowed to that day's contracts; the document opens only when the day carries exactly ONE. It counts CONTRACTS, not events (renewalDecisionDate falls back to expiry and double-marks a day). THE CHIPS ARE NOT DOORS (owner-asked 2026-08-12, reversing 08-11): they were their own buttons, stopPropagation'd, opening their own contract however many the day held — and at 9.5px in a 90px column nine "Mutual Non-Discl…" chips are a guess between nine. They are SPANS now with no data-sel and no stopPropagation, falling through to openDay, which is the one place the count is asked. The cell keeps role="button", its tab stop and Enter/Space, and is the only focusable thing in the box. A chip carries the event tooltip only on a ONE-contract day (where the press still goes there); otherwise none, so the cell's own title shows. [data-sel] is the AGENDA's selector and nothing else — it is a list of EVENTS, not a day box, and a change scoped to that selector would break it. regShowOnly(ids, label) is the ONE door in; regState().only is applied FIRST (it is an ANSWER; every other filter is a question and narrows within it). Two safety properties: the chip SAYS what the list is narrowed to, and the way back is on the same chip. Cleared by its ✕, both Clear-all handlers, and the phone's. **THE CELLS FLEX SINCE 22 Aug 2026** (the calendar took the mock-up — see FIVE FIXES AND A CALENDAR): a day shows at most two chips and says "+N more" past that, because a row that must always fit six weeks cannot promise room for a third. Nothing is hidden silently and the press still lands on all of them. The phone draws no calendar (listed under More).
+
+**AND THE PANEL BESIDE IT NAMED TWO DIFFERENT WINDOWS (found 23 Aug 2026, chasing an unrelated red).** It is headed `cal_next_30` ("Next 30 days"), it filters through `calUpcoming`, whose default window is 30 — and its empty state said "Nothing due in the next **60** days", in both languages. The one reader who ever sees that sentence is the one with nothing in the panel, and it told them a different number from the heading directly above it. Pinned as a RELATION in f148 rather than as a literal: the two strings must agree with each other AND with `calUpcoming`'s own default, so moving the window to 45 is one edit in the code and the test names the words that have to follow.
+
+**THE FIXTURE FOR THIS SCREEN WAS DATE-DEPENDENT, AND IT IS THE f183 SHAPE AGAIN.** calendar-day-verify pinned its contracts to the 12th, 18th and 22nd of the CURRENT month. That is fine for the grid, which draws a whole month whether a day is past or future — every day-cell check passes on any date. It is fatal for the panel: MEASURED on 23 Aug 2026 those dates were 11, 5 and 1 days in the PAST, `calUpcoming` dropped all three, the panel drew its empty state, and the agenda check reported "no agenda rows to press". Green on the 1st to the 11th of a month, red for the rest of it. The agenda now gets a date of its OWN, offset from today rather than pinned to a day number, stepping past the three grid days so a sixth mark cannot turn "three contracts share a day" into four; it may fall in next month, which is correct, because the panel is not month-scoped and only the grid is. **SIMULATED OVER 730 DAYS: 0 failures.** Tests: calendar-day-verify (23, browser — the chips as spans, no focusable stop inside the box, the tooltip following the press, and the agenda row still opening its own contract), f148 (the panel's two windows, both languages).
 
 ## SETTINGS & RULES — FOUR TABS AND ONE DRAWER (owner-asked, 13 Aug 2026)
 
@@ -1926,16 +1930,30 @@ checks — `rgba(245,158,11,.26)` and `rgba(255,255,255,.24)` leaving, and
 `rgb(253,230,138)` arriving. That is somebody deliberately owning a palette
 change, which is the one case the rule above allows, so the baseline was saved.
 
-**IT READS 36/40 ON THE MERGED TREE, NOT 40/40, AND THAT IS NOT THIS WORK.**
-The re-record was taken on this branch before it caught up with main, and main
-had meanwhile landed the calendar redesign and the head-row button pass —
-neither of which re-recorded the census. MEASURED on `origin/main` itself:
-**36/40**, failing on `calendar--light`, `calendar--dark`, `negotiate--light`
-and `negotiate--dark`. This branch measures the same 36/40 on the same four, so
-it adds nothing red: its own 18 checks are recorded, and those four stay with
-the changes that moved them. **Whoever owns the calendar redesign and the
-button pass should re-record and name what they absorb**, exactly as this note
-does below.
+**AND THE LAST FOUR WERE RECORDED 23 Aug 2026, so the file is 40/40 and is a
+working net again.** It had sat at 36/40 because the calendar redesign and the
+head-row button pass both landed without re-recording. **EACH DIFFERENCE WAS
+MEASURED AND CHECKED BEFORE IT WAS SAVED, not waved through** — re-recording is
+how a real regression gets buried, so the rule is that you look at every value
+first:
+
+- `negotiate--light` and `--dark` lost `color(srgb .72549 .10980 .10980 / .45)`
+  — the Reject button's 45%-alpha BORDER, removed by the owner-asked "the
+  bottom buttons do not have lines around them". Checked that the verb kept its
+  own ink rather than going quiet with its border: Reject still draws
+  `rgb(185,28,28)` at 6.47:1, Edit `rgb(15,118,110)`, both with `border-width:0`.
+  Only the semi-transparent border value left the census; the opaque ink is
+  still in it.
+- `calendar--light` and `--dark` moved on the redesign's own tones and
+  surfaces — teal .11 → .45, the page tint re-hued to the design's neutral, and
+  `rgb(148,163,184)` / `rgb(100,116,139)` arriving, which is `--st-gray` in each
+  theme. That last one is the value that section records as the redesign's own
+  caught defect (`--st-steel-dot` resolved to the workspace accent and drew two
+  slices of one colour), so its presence is the FIX being recorded, not a drift.
+  Re-checked that the four legend tones are still tellable apart: closest pair
+  126 in light, and four distinct values in dark.
+
+**NOTHING WAS ABSORBED SILENTLY** — the four values above are the whole of it.
 
 **TWO CHECKS WERE ALREADY RED BEFORE IT AND ARE NOW BAKED IN — NAMED HERE SO
 THEY ARE NOT LOST.** MEASURED on the clean tree immediately before re-recording:

@@ -61,11 +61,43 @@ const check = (name, pass, detail) => {
     await page.click('#li-go');
     await page.waitForTimeout(2400);
 
-    /* Three days inside the month the calendar opens on. */
+    /* Three days inside the month the calendar opens on — and a FOURTH date
+       that is always in the future.
+
+       ---- A FIXTURE WHOSE ANSWER DEPENDS ON THE DAY IT RUNS (found 23 Aug
+       2026) ---- The three grid days are pinned to the 12th, 18th and 22nd of
+       the CURRENT month, which is fine for the month grid: it draws the whole
+       month whether a day is past or future, so every day-cell check here
+       passes on any date. The panel beside it does not. "Next 30 days" is
+       calUpcoming, which keeps `daysUntil(e.date) >= 0`, so on the 23rd all
+       three fixture dates were 11, 5 and 1 days in the PAST, the panel drew its
+       empty state, and the agenda check reported "no agenda rows to press".
+       MEASURED on 23 Aug 2026: daysUntil came back -11 and -5.
+
+       It would have passed on the 1st to the 11th of any month and failed for
+       the rest of it — the exact shape this suite already records for f183,
+       whose fixture counted days from today and was broken on 264 days of 730.
+       A red run nobody can trust teaches the reader to discount red runs.
+
+       So the agenda gets a date of its OWN, offset from today rather than
+       pinned to a day number, which is inside the 30-day window on every date
+       there is. It steps past the three grid days if it lands on one: a sixth
+       mark on the 12th would turn the "three contracts share a day" check into
+       four. It may fall in next month, which is correct and deliberate — the
+       panel is not month-scoped, only the grid is. */
     const days = await page.evaluate(() => {
       const d = new Date(), y = d.getFullYear(), m = d.getMonth();
       const iso = n => `${y}-${String(m + 1).padStart(2, '0')}-${String(n).padStart(2, '0')}`;
-      return { many: iso(12), one: iso(18), twice: iso(22) };
+      const grid = { many: iso(12), one: iso(18), twice: iso(22) };
+      const pinned = [grid.many, grid.one, grid.twice];
+      let soon = null;
+      for (let off = 4; off <= 10 && !soon; off++){
+        const t = new Date(); t.setDate(t.getDate() + off);
+        const c = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}`
+          + `-${String(t.getDate()).padStart(2, '0')}`;
+        if (!pinned.includes(c)) soon = c;
+      }
+      return { ...grid, soon };
     });
     /* Three contracts sharing one day, one alone on another, and a fifth that
        puts TWO marks on its own day — the expiry plus the renewal decision,
@@ -82,6 +114,11 @@ const check = (name, pass, detail) => {
       state.contracts.push(mk('CAL4', 'Marketing Retainer', 'Ogilvy EA', d.one));
       state.contracts.push(mk('CAL5', 'Raw Milk Collection', 'Nandi Dairy', d.twice,
         { expiryDate: d.twice, noticePeriodDays: 0 }));
+      /* THE PANEL'S OWN ROW — see the note on `soon` above. Nothing in the grid
+         checks depends on it, and the register check it shares a page with
+         counts a RELATION ("more than 3 rows"), not a literal, so a sixth
+         contract costs nothing there. */
+      state.contracts.push(mk('CAL6', 'Depot Lease — Mombasa', 'Kilindini Holdings', d.soon));
     }, days);
     await page.evaluate(() => setView('calendar'));
     await page.waitForTimeout(1200);

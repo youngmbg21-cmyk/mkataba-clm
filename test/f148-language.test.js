@@ -672,3 +672,46 @@ describe('f148 — a browser that refuses to remember still boots', () => {
     assert.equal(win.t('nav_home'), 'Home');
   });
 });
+
+/* ---------------------------------------------------------------------------
+   THE PANEL'S HEADING AND ITS EMPTY STATE NAME THE SAME WINDOW
+   ---------------------------------------------------------------------------
+   Found 23 Aug 2026, while chasing an unrelated calendar failure. The "Next 30
+   days" panel is headed cal_next_30, filters through calUpcoming — whose
+   default window is 30 — and its empty state said "Nothing due in the next 60
+   days", in BOTH languages. So the one reader who sees that sentence is the one
+   reader with nothing in the panel, and the panel told them a different number
+   from the heading directly above it.
+
+   PINNED AS A RELATION, NOT A LITERAL: the two strings must agree with each
+   other and with the code's own default, so moving the window to 45 or 60 is
+   one edit in calUpcoming and this test says which words have to follow. A
+   literal 30 here would have to be edited too, which is how a test stops being
+   a check and becomes a copy of the code. */
+describe('f148 — the upcoming panel names one window, in both languages', () => {
+  const CAL = fs.readFileSync(path.join(ROOT, 'js/views/calendar.js'), 'utf8');
+
+  /* calUpcoming(evs, days){ const n = days || 30; ... } — the default IS the
+     window the panel draws, because calPanelHtml calls it with one argument. */
+  const defWindow = (() => {
+    const m = CAL.match(/function\s+calUpcoming\s*\([^)]*\)\s*\{[^}]*?days\s*\|\|\s*(\d+)/s);
+    return m ? Number(m[1]) : null;
+  })();
+
+  test('calUpcoming states a default window, and the panel uses it', () => {
+    assert.ok(defWindow, 'calUpcoming still carries a default window');
+    assert.match(CAL, /calPanelHtml\(evs\)\{[\s\S]*?calUpcoming\(evs\)/,
+      'the panel asks for that default rather than passing its own number');
+  });
+
+  for (const lang of ['en', 'sv']){
+    test(`${lang}: the heading and the empty state name the same number`, () => {
+      const dict = i18n.STRINGS[lang];
+      const head = String(dict.cal_next_30 || '');
+      const none = String(dict.cal_nothing_due || '');
+      const n = String(defWindow);
+      assert.ok(head.includes(n), `cal_next_30 names ${n} — got "${head}"`);
+      assert.ok(none.includes(n), `cal_nothing_due names ${n} — got "${none}"`);
+    });
+  }
+});
