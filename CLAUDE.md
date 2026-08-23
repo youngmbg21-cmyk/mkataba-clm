@@ -759,6 +759,165 @@ own token.
 
 NOTE FOR THE NEXT SWEEP: no test in the suite asserted a half-pixel font size, which is why 865 replacements cost two test updates rather than fifty. Both were about the Tracked Changes caption, and one of them recorded a real consequence — the count used to be set a hair larger than the caption "because mono runs small at the same size", and that stopped being true when --font-mono was pointed at Inter with everything else. One family, no compensation owed, both 11px.
 
+## THE DESIGN SYSTEM GREW ITS OTHER HALF (23 Aug 2026 — the launch design audit)
+
+An exhaustive design-system audit, measured in a real browser across 23 screens
+in both themes, found ONE structural fact under almost every complaint: **HaTi
+had a mature COLOUR system and essentially nothing else.** Of 120 `:root`
+tokens, 91 were colour. font-size, line-height, font-weight, z-index,
+transition-duration and border-width had **zero tokens between them**, against
+2,300 / 523 / 1,029 / 78 / 114 hand-typed declarations. And the fifteen
+non-colour tokens that DID exist — six `--space-*`, three `--radius-*`, four
+`--sh*`, `--ring` — had **exactly zero consumers each**.
+
+**THE CLEAREST EVIDENCE THAT A SCALE WAS WANTED AND COULD NOT BE REACHED:**
+`--space-2` was declared `6.8px`, and somebody had hand-typed `padding:6.8px`
+— that dead token's raw value — into js/views/register.js rather than use it.
+The whole ladder was a 0.85x scaling of 4/8/12/16/24/32, so every rung landed
+on a FRACTION of a device pixel: the same softness the 22 Aug type sweep spent
+865 replacements removing from font sizes.
+
+**WHAT LANDED.** One token block in `:root` — spacing, page measure, cards,
+rows, control heights, gaps, the type ladder with its ROLES, weights, a
+five-rung leading ladder, tracking, borders, focus, fields, z-index and icons.
+It reaches all four style sources, because every JS-injected stylesheet lands
+in the same document head. Declared in **px, never rem**: the flat 14px is on
+`body`, not `html`, so rem still resolves against 16 and a rem scale would have
+introduced a SECOND grid beside the 5,142 existing px declarations.
+
+- **ONE PAGE MEASURE.** 11 page roots carried 3 measures and the leftmost ink
+  landed on 6 different verticals; `#page-head` padded to 20px while the bodies
+  under it padded to 16, 18, 20 or 0, so on 10 of 11 screens the page TITLE and
+  its own content did not line up. All of them read `--page-pad` now, header
+  included. The contract room's 6px top is UNTOUCHED — owner-ruled, 22 Aug.
+- **THE ROW IS THE DENSITY LEVER.** The register measured 55.39px against
+  Fluent 44, AG Grid / Atlassian 40-42, Material compact / Salesforce 32-36.
+  It is 45px, DECLARED rather than emergent: `--pad-row` plus two stated line
+  boxes, because with no line-height the two lines inherited 1.5 and padding
+  could not reach the number alone. 12 contracts on a 1440x900 laptop became 17.
+- **LEADING IS OWNED.** 78.2% of font-size declarations carried none, and the
+  product's only base leading was `html{line-height:1.5}` inherited from the
+  GENERATED Tailwind blob nobody may edit. `--lh-base` is declared in HaTi's own
+  sheet at equal specificity and later in source, so it wins without !important.
+- **WEIGHT 500 IS REAL.** `.font-medium` was pinned to 400 because "72" had no
+  500 cut; its own note called the pin "one edit to undo when somebody wants
+  Medium on purpose". Inter carries 300-800. 37 elements were already authored
+  as medium and rendering as regular. Inter is not duplex — measured, nothing
+  reflows; the widest effect is a truncating cell clipping one character earlier.
+
+**CONTRAST — ROUGHLY 300 AA FAILURES CLOSED BY THREE EDITS.**
+- **THE ACCENT WAS BRAND-AWARE BUT NOT THEME-AWARE.** `html.dark` redefines the
+  surface, the ink and the whole neutral ramp and never redefines the accent, so
+  160 declarations setting accent-700/800 as TEXT had no dark answer: every
+  ordinary button and every link measured **3.26:1 at night in teal and 1.58:1
+  in navy**. `--accent-ink` already existed WITH a correct dark value and the
+  raw carriers simply never read it. `.ui-btn` and `a` read it now — measured
+  3.26:1 -> **9.59:1**. This file had already diagnosed it for exactly one
+  selector (`.rl-idx-n.is-live`) and never swept it.
+- **AN OPACITY IS NOT AN INK.** `.text-ink/40…/60` put 54 elements of ordinary
+  reading text between **2.36:1 and 4.11:1** — five rungs under AA. The design
+  carries two reading inks, so the ladder collapses onto them: the two heavy
+  rungs take PRIMARY, the six light ones SECONDARY. Hierarchy is carried by size
+  and weight, which survive a background change; a fade does not.
+- **THE ONE FILLED ACT.** White on `--accent-solid` (accent-600) is **3.74:1**
+  on 114 elements. `.ui-btn-primary` takes accent-700: 5.47:1 teal, 11.30:1
+  navy, so one value serves both and there is no dark override to keep in step.
+  `--accent-solid` ITSELF IS UNCHANGED — it is the nav's fill and this file
+  records it as a brand fill that must not flip.
+
+**THE FOCUS RING REACHED NOTHING.** 91 inline `outline:none` declarations,
+carried in by the field constants, defeated the product's one focus rule — and
+an inline declaration cannot be beaten without !important. Measured: both
+SIGN-IN fields returned outlineWidth 0px / boxShadow none while focused, while
+the Sign in button beside them drew the ring correctly. **The fix is the second
+declaration**: not one of those 91 sites sets box-shadow, so `box-shadow:var(--focus)`
+reaches all of them without !important. The outline stays for everything else.
+
+**ONE FIELD SYSTEM.** Three disagreeing `FLD` constants — two in js/core.js
+1,300 lines apart — on 8px/10px vs 6px/10px padding, 13px vs 14px type, one with
+no min-height at all; plus `RV_FLD`, which carried a note saying it was a
+deliberate copy to be kept in step and **had already drifted 2px from what it
+quoted**. All five read the tokens now, so the copy cannot drift again.
+
+**THE BUTTON LAYER IS PART UNREACHABLE, AND THAT IS SAID OUT LOUD.** `.ui-btn`
+computed 30.8px from `padding:6px 12px` against `.ui-btn-lg`'s fixed 28, under a
+comment calling the large one the larger; height comes from `--ctl-h` now and
+padding is horizontal-only. A head row takes one height scoped BY CONTAINER, not
+by class, because the measured fault was four classes meeting in one row — a
+rule naming today's classes is one the next button walks past. **176 buttons
+still carry an INLINE padding or font-size (10 paddings, 4 type sizes) and no
+stylesheet can reach them.** `.ui-btn-sm` now exists as the rung they were
+hand-rolling; migrating those call sites is a separate VISUAL pass — each is a
+hand-tuned dense row and wants an eye, not a regex.
+
+**AND FOUR DEFECTS FELL OUT OF MEASURING, none of them a spacing value:**
+- **CTRL+P PRINTED A BLANK PAGE ON EVERY OWNER-SIDE SCREEN.** `body>*{display:none!important}`
+  with `#print-root` the one escape, and the only code that ever filled it was
+  the COUNTERPARTY's side. Measured on the Document tab: 2,092 characters on
+  screen, **0 in print** — and the calendar shipped a Print row calling straight
+  into it. A `beforeprint` handler fills #print-root from the surface on screen
+  and `afterprint` clears it; it never overwrites a deliberate fill, so
+  portal.js's own path is untouched. Now 1,192 printable characters.
+- **THE READER'S A-/A+ CONTROL DID NOT REACH THE CONTRACT'S WORDS.** Measured at
+  the 8, 15 and 20px settings: `.doc-surface` moved 7.46 -> 14 -> 18.66px while
+  every clause paragraph stayed a flat **15px**, so at the small setting the
+  clause TITLE (10.66px) drew SMALLER than the body beneath it. The cause is a
+  class that lies: the paper carried `text-[13.5px]` and `text-[13px]`, and the
+  22 Aug sweep moved their COMPILED values to 15px and 14px while leaving the
+  NAMES saying 13.5 and 13 — a fixed size that overrode the sheet's own scaling.
+  The body inherits the sheet now and the heading takes a RATIO of it. Swept and
+  re-measured: **14 elements on the paper, 0 not following the reader.**
+- **THE SIGNED-OUT SCREEN ADVERTISED THE SESSION IT DID NOT HAVE.** `#context-panel`
+  and `#ai-panel` mount at page load as body-level siblings, so the sign-in
+  page's own text read "… Sign in … ACTIVITY / HaTi Copilot / Searching your
+  live contract data / ANSWERS". `body.pre-auth` hides them by CSS rather than
+  per element, so a panel added later cannot forget.
+- **NO DIALOG SAID IT WAS ONE.** The share dialog — the most-used in the
+  product, 31 focusables behind a scrim at z-index 70 — reported role null,
+  aria-modal null, no accessible name, and focus never moved into it. `openModal`
+  now sets role/aria-modal/aria-label, moves focus in, cycles Tab inside, and
+  returns focus to the opener. Escape already worked and is untouched.
+- **TARGET SIZE.** "Forgot password?" — the only route back into a locked-out
+  account — measured 366x17px, 7px under the WCAG 2.5.8 floor at every width.
+  LINKBTN carries a floor now.
+
+**TWO PRE-EXISTING REDS WERE CLEARED and both were the INSTRUMENT, not the
+product.** `test/chromium/_edge.js` hard-coded one session's scratchpad path and
+was the only thing keeping f227 red. And F96's token reader anchored on the
+literal `:root{\n    --color-bg:` and sliced to the first `\n  }` in the FILE —
+so the day a comment was written between the brace and the first token (22 Aug),
+the anchor stopped matching, the slice came back EMPTY, all three tokens read
+undefined, and the test failed on a claim that was still perfectly true. It
+brace-matches now. **A fragile anchor accusing the product of a fault it does
+not have is worse than no test.**
+
+**WHAT IS DELIBERATELY NOT DONE, said out loud:** the 176 inline button
+overrides (above); the ~3,978 inline `style=""` attributes carrying 69% of all
+spacing, which no stylesheet can reach; the icon sweep onto `--icon-*` (the
+tokens exist, the sprite does not read them yet — measured, five painted box
+sizes and six stroke widths on ONE screen); the counterparty portal's own
+density (54.9% chrome before the contract at 1440); and the 200%-zoom shell swap,
+which could not be reproduced cleanly and is UNPROVEN rather than fixed.
+
+**THE COLOUR CENSUS WAS RE-RECORDED, and this is the one case the rule allows**
+— somebody deliberately owning a palette change. It went to 28/40, and EVERY
+ONE of the twelve was the SAME two values leaving with NOTHING arriving:
+`#1B2A28` at 50% and at 60% alpha — `.text-ink/50` and `/60`, the faded
+reading inks replaced above. Nothing new appeared because their replacement
+(--color-neutral-600) was already in the census as the label ink. Checked
+value by value before it was saved, which is the whole condition on saving
+it; it is 40/40 again and is a working net.
+
+Tests: f238 (NEW, 18 — the ratchet: the ladders exist, one page measure, no
+opacity ink survives, the accent carriers read the token with a dark answer,
+the focus ring is a box-shadow, no field constant types its own height, no
+fixed-size utility on the paper, and the four broken things stay fixed),
+f236, f227 and F96 (the last two re-pointed at the INSTRUMENT rather than the
+product), f156 / f175 / F220 reversed in place, plus a live browser pass
+measuring all twelve claims. Node 4,388/4,388. Browser: settings-tabs 65,
+pages-read-alike 38, redline 95, clause-door 89, nav-floats 69,
+home-pipeline 54, calendar 39, kpi-four 19, theme-tokens 40 — all green.
+
 ## THE CONTRACT GETS THE SPACE BACK (owner-asked 22 Aug 2026)
 
 "HaTi is not efficiently using the space to give the contracts a proper space."

@@ -1390,11 +1390,11 @@ function reviewWhen(at){
    they are two string constants declared inside openShareModal and not exported,
    and a copy that says where it came from is better than a shared token nobody
    can find. If the share dialog's fields are restyled, restyle these. */
-const RV_FLD = 'width:100%;min-height:34px;border:1px solid var(--color-divider);'
-  + 'background:var(--color-surface);border-radius:0;padding:8px 10px;font-size:14px;'
-  + 'font-family:var(--font-body);color:var(--color-text);outline:none;line-height:1.5;';
-const RV_LBL = 'display:block;font-size:12px;font-weight:600;color:var(--color-neutral-700);'
-  + 'margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;';
+/* These were a deliberate COPY of core.js's FLD/LBL, with a note saying to
+   restyle them together — and they had already drifted 2px from what they
+   quoted. Both now read the same tokens, so the copy cannot drift again. */
+const RV_FLD = 'width:100%;min-height:var(--field-h);border:1px solid var(--field-line);background:var(--color-surface);border-radius:0;padding:var(--field-pad-y) var(--field-pad-x);font-size:var(--field-size);font-family:var(--font-body);color:var(--color-text);line-height:var(--field-lh);';
+const RV_LBL = 'display:block;font-size:var(--field-label-size);font-weight:var(--field-label-weight);color:var(--color-neutral-600);margin-bottom:var(--field-label-gap);font-family:var(--font-body);letter-spacing:var(--ls-base);';
 
 /* ---- AND THE DIALOGS LOOK LIKE THE PRODUCT'S DIALOGS ----
    Eight of them across this file and js/desk.js opened as a heading, a grey

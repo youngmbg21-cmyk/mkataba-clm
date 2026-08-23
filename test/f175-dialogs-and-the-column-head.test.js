@@ -152,8 +152,19 @@ describe('f175 · every dialog in the feature wears the same head', () => {
       'flat at rest — the fill belongs to the page\'s one act');
     assert.match(btn[1], /border:1px solid color-mix\(in srgb,var\(--accent-solid\) 45%,transparent\)/,
       'an ACCENT border, never a neutral one — the 17 Aug lesson');
-    assert.match(btn[1], /color:var\(--color-accent-700\)/,
+    /* REVERSED IN PLACE 23 Aug 2026, CLAIM UNCHANGED AND STRENGTHENED. This
+       read the raw ramp step, which had NO dark answer: html.dark redefines
+       the surface, the ink and the whole neutral ramp and never redefines the
+       accent, so every ordinary button in the product measured 3.26:1 at
+       night in teal and 1.58:1 in navy. --accent-ink is the same accent ink
+       and already carried a correct dark value; this class simply never read
+       it. Measured after: 9.59:1. The second assertion is the claim this test
+       is really making — never a neutral — pinned so a refactor that fades it
+       to grey still fails here exactly as it would have before. */
+    assert.match(btn[1], /color:var\(--accent-ink\)/,
       'and accent ink, so it never reads as furniture');
+    assert.doesNotMatch(btn[1], /color:var\(--color-neutral/,
+      'never a neutral ink — the 17 Aug lesson, three times learned');
     assert.doesNotMatch(btn[1], /box-shadow/,
       'no lift: a flat control beside a filled one is the whole hierarchy');
     assert.match(INDEX, /\.ui-btn:not\(\.ui-btn-primary\):hover\{border-color:var\(--accent-solid\)/,

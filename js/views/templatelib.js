@@ -268,7 +268,7 @@ function tplConfirmPaint() {
       <span style="min-width:0;color:var(--color-neutral-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(b.content.slice(0, 160))}</span>
     </div>`).join('');
   document.getElementById('content').innerHTML = `
-  <div class="view-enter" style="padding:16px 18px 28px;display:flex;flex-direction:column;gap:14px;max-width:920px">
+  <div class="view-enter" style="padding:var(--page-pad);display:flex;flex-direction:column;gap:14px;max-width:920px">
     <section style="${CARD};padding:16px 18px">
       <h3 style="margin:0 0 4px;font-family:var(--font-heading);font-size:17px;font-weight:700">${i18t('tl_check_found')}</h3>
       <p style="margin:0;font-size:13px;color:var(--color-neutral-600);line-height:1.55">
@@ -476,7 +476,7 @@ async function openTemplateLibDetail(id) {
     </div>`).join('');
 
   document.getElementById('content').innerHTML = `
-  <div class="view-enter" style="padding:16px 18px 28px;display:flex;flex-direction:column;gap:14px;max-width:860px">
+  <div class="view-enter" style="padding:var(--page-pad);display:flex;flex-direction:column;gap:14px;max-width:860px">
     <div>
       <button id="tpllib-back" class="ui-btn" style="font-size:13px;padding:4px 10px">${icon('arrowLeft', 'w-3.5 h-3.5')} Library</button>
     </div>
