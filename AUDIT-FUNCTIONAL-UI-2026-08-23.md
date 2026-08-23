@@ -1,11 +1,101 @@
 # HaTi — Functional, UI/UX and Operational Audit
 **Date:** 23 August 2026 · **Scope:** functional / UI / UX / operational. **Not** a security or penetration audit.
 
+> ### Revision — deeper sweeps completed
+> The first pass of this report carried 14 findings I had personally reproduced. A twelve-dimension
+> adversarial sweep (206 agents, every finding put to two independent skeptics) then completed and
+> returned **85 confirmed findings — 10 critical, 47 major, 28 minor**, listed in the appendix.
+> Three new criticals are added below and **one earlier finding is corrected**. The verdict moves
+> from *Pass with minor fixes* to **Pass with fixes required**.
+
+---
+
+## 0. Corrections and additions
+
+### Correction — the health report does **not** leak money
+My earlier row 8 said "text hides money, charts show it." **That was wrong**, and the correction
+matters because it changes what you would do about it. The value-bearing charts are built, but
+`buildHealthReportHtml` re-gates every emission on the *correct* reading, so **no figure ever
+reaches a restricted reader.** The cost is two Chart.js renders that are computed and thrown away.
+It is worth fixing as hygiene — the guard that was meant to be the primary gate can never fire —
+but it is **not a live disclosure**, and it should not be treated as urgent.
+
+### Three new criticals, each measured
+
+**C-1 · The Requests page freezes the browser tab in local (no-server) mode.**
+`loadIntake()` returns early without setting `_intake.loaded` when there is no server, and
+`renderIntake()` ends by calling `loadIntake().then(() => renderIntake())`. The flag never
+becomes true, so the page re-renders itself through an unbounded microtask chain that starves
+the event loop. **Measured from outside the page: responsive before, then completely
+unresponsive — the tab stops answering at all.** `js/views/intake.js:262`
+
+```js
+// js/views/intake.js — the loop
+if(!_intake.loaded) loadIntake().then(()=>{ if(state.view==='intake') renderIntake(); });
+
+// js/views/intake.js:44 — why the flag never lands
+async function loadIntake(){
+  if(!(typeof API_MODE==='function'&&API_MODE())) return;   // ← no server: returns, flag untouched
+  try{ …; _intake.loaded=true; } catch(e){ _intake.loaded=true; }
+}
+```
+**Fix — set the flag on the one path that does not:**
+```js
+async function loadIntake(){
+  if(!(typeof API_MODE==='function'&&API_MODE())){ _intake.loaded=true; return; }
+  …
+}
+```
+
+**C-2 · "Evidence pack" downloads once per tab you have visited.**
+`wireActionBar` binds `#ws-evidence` and `#ws-next-action` with no guard, and it runs again on
+every tab press — while those two buttons live in the room *head*, which a tab press does not
+redraw. So the handlers stack on surviving elements. The function's own comment proves the author
+knew it re-runs: `ws-to-nego` is deliberately *not* wired here for exactly this reason.
+**Measured: the element survived six tab presses, and one click produced 8 downloads.**
+`js/views/contract.js:2593`
+
+```js
+// BEFORE — stacks one handler per tab press
+document.getElementById('ws-evidence')?.addEventListener('click',()=>downloadEvidence(c));
+document.getElementById('ws-next-action')?.addEventListener('click',e=>{ … });
+
+// AFTER — bind once per element, resolve the contract at press time
+const ev=document.getElementById('ws-evidence');
+if(ev && !ev.dataset.wsEvBound){ ev.dataset.wsEvBound='1';
+  ev.addEventListener('click',()=>downloadEvidence(getContract(state.activeId)||c)); }
+const na=document.getElementById('ws-next-action');
+if(na && !na.dataset.wsNaBound){ na.dataset.wsNaBound='1';
+  na.addEventListener('click',e=>{ /* …existing body, reading the contract fresh… */ }); }
+```
+
+**C-3 · The phone says "Executed" on a contract that is only partially signed.**
+`contractStage()` correctly returns `'Partially signed'` / `'Expired'` / `'Ready to sign'`, but
+`STATUS_META` holds only four keys — `Draft`, `Under Review`, `Signed`, `Declined`. `mPill`'s
+defensive `|| STATUS_META[c.status]` fallback therefore discards the correct stage and reads the
+raw status instead. The desktop escapes this because it uses `PARTIAL_META` / `EXPIRED_META`
+explicitly. **Measured side by side on one record: stage `Partially signed` → desktop
+"Partially signed" → phone "Executed".** In a contract product this is a trust failure: the phone
+says a deal is done while it is still waiting on the counterparty's signature. The same fallback
+hits `Expired` and `Ready to sign`. `js/mobile.js:640`
+
+```js
+// AFTER — the overlays carry their own meta, exactly as the desktop chip does
+function mPill(c){
+  const st = (typeof contractStage==='function' && contractStage(c)) || (c && c.status) || 'Draft';
+  const OVERLAY = { 'Partially signed': (typeof PARTIAL_META!=='undefined') && PARTIAL_META,
+                    'Expired':          (typeof EXPIRED_META!=='undefined') && EXPIRED_META,
+                    'Ready to sign':    (typeof READY_META_SHORT!=='undefined') && READY_META_SHORT };
+  const meta = OVERLAY[st] || (typeof STATUS_META==='object' && STATUS_META[st]) || null;
+  …                                   // never fall back to STATUS_META[c.status]
+}
+```
+
 ---
 
 ## 1. Executive Functional Verdict
 
-### **PASS WITH MINOR FIXES — but two CRITICAL items should be fixed before the next release.**
+### **PASS WITH FIXES REQUIRED — five criticals, none of them a design decision.**
 
 The product is in far better functional health than a codebase this size normally is. The
 defect classes this repository has historically paid for — the always-false cross-module
@@ -322,3 +412,221 @@ call chain, a browser measurement, or both.
 *Deeper adversarial sweeps across forms/modals, CSS computed styles, server-route
 semantics, mobile parity and repaint lifecycle were still running when this report was
 written; anything material from them is a follow-up, not a revision.*
+
+
+---
+
+## Appendix — the full confirmed set
+
+**85 findings survived adversarial verification** across twelve dimensions (10 critical · 47 major
+· 28 minor). Each was put to two independent skeptics instructed to refute it; 12 further
+candidates were refuted and are excluded. The findings in sections 1–3 above are the ones I
+reproduced or measured personally; the remainder below are listed so nothing is lost, and should
+be re-confirmed before anyone acts on them.
+
+### Silent feedback  ·  11
+
+- **CRITICAL** — Three model refusals draw a red box FOREVER from the background poller — the exact negoSignalReady fault CLAUDE.md claims is unique  
+  `js/negotiation.js:1883`
+- **CRITICAL** — Phone's green primary "Add signers" is a completely dead press — no branch, no toast, nothing  
+  `js/mobile-contract.js:641`
+- **MAJOR** — The one notice the code says must not be silent, is silent — an arriving counter sets aside your unsent draft with no word  
+  `js/negotiation.js:1372`
+- **MAJOR** — "Verify integrity" on a migrated contract does nothing at all — the one branch a real customer hits is the only silent one  
+  `js/core.js:2263`
+- **MAJOR** — Register row "Run scan" gives no feedback at all on a clean contract, and no progress feedback ever  
+  `js/ai.js:260`
+- **MAJOR** — Pressing a signature field in the document does nothing, on both the owner's and the counterparty's seat  
+  `js/views/portal.js:4199`
+- **MAJOR** — "Restore this version" is a dead press when the contract already reads like that version  
+  `js/versioning.js:234`
+- **MAJOR** — The locked and desk-only rows on the phone's ⋯ sheet explain themselves with a message that never prints  
+  `js/mobile-contract.js:585`
+- **MINOR** — "Stop after current" on a running import, and the metadata backfill's own outcome sentence, both print nothing  
+  `js/views/migration.js:967`
+- **MINOR** — Eleven of the twelve copy-to-clipboard buttons confirm silently; four have no other feedback whatsoever  
+  `js/views/advice.js:141`
+- **MINOR** — Wording refused because the contract is signed is recorded and reported as "does not match any clause"  
+  `js/core.js:5224`
+
+### Buttons & handlers  ·  5
+
+- **CRITICAL** — "Fill from document" fires one paid Copilot extraction per Key-terms repaint — measured 3 calls for one press  
+  `js/views/contract.js:6096`
+- **MAJOR** — A successful round resend says nothing while a failed one shouts — three send buttons confirm with a bare toast, which prints nothing  
+  `js/core.js:1932`
+- **MINOR** — Publish Round and "Send all N" stay lit and do nothing while a round is in flight; the card's Send in the same state says "nothing to send", which is untrue  
+  `js/views/negotiation.js:7261`
+- **MINOR** — renderRegister adds an unguarded document-level click listener on every repaint, and the register repaints on every filter press  
+  `js/views/register.js:1030`
+- **MINOR** — Five handlers are bound to selectors no markup emits any more — half-finished retirements  
+  `js/views/negotiation.js:7015`
+
+### Listener lifecycle  ·  6
+
+- **CRITICAL** — wireActionBar re-binds the room head's lead button on every tab press — one press of "Evidence pack" downloads the file twice or more  
+  `js/views/contract.js:2593`
+- **MAJOR** — wireKeyTerms stacks a handler on "Fill from document" per key-term edit — one press fires N billed Copilot calls and shows a red "Nothing new found" over a fill that worked  
+  `js/views/contract.js:6096`
+- **MINOR** — renderRegister arms a document click listener per repaint; a stale copy closes the search dropdown when you click back into the search box  
+  `js/views/register.js:1030`
+- **MINOR** — wireNegotiationTab arms two unguarded document listeners per paint — the negotiation page accumulates them for the life of the sitting  
+  `js/views/negotiation.js:4369`
+- **MINOR** — wireCalendar arms two unguarded document listeners per calendar render  
+  `js/views/calendar.js:739`
+- **MINOR** — renderIntel adds a permanent window pointermove listener each time the Insights map is drawn  
+  `js/views/intelligence.js:868`
+
+### Journeys & state  ·  8
+
+- **CRITICAL** — The Requests page freezes the tab in local (no-server) mode — an unbounded microtask loop  
+  `js/views/intake.js:262`
+- **MAJOR** — A background repaint destroys an open clause editor and everything typed into it  
+  `js/views/negotiation.js:7465`
+- **MAJOR** — Two of the four default Home KPI cards are dead in server mode — they read c.audit, which the light list strips  
+  `js/views/home.js:397`
+- **MAJOR** — "Run Copilot scan" from a register row gives no feedback at all, start to finish  
+  `js/ai.js:260`
+- **MAJOR** — "Review vs Playbook" says nothing when the review finds nothing to propose  
+  `js/views/negotiation.js:9562`
+- **MAJOR** — Importing the counterparty's Word file closes the dialog and confirms nothing — including when nothing was filed  
+  `js/core.js:5002`
+- **MINOR** — A failing /api/templates puts the Templates page into a permanent re-render-and-re-fetch loop  
+  `js/views/library.js:1486`
+- **MINOR** — The register adds a new document-level click listener on every repaint, and the stale ones close the search dropdown  
+  `js/views/register.js:1030`
+
+### Server routes  ·  8
+
+- **CRITICAL** — Dashboard "Avg turnaround time" KPI — a DEFAULT card — is permanently "—" in server mode  
+  `js/views/home.js:416`
+- **MAJOR** — "+N this week" on the Active-contracts KPI always reads "+0" in server mode  
+  `js/views/home.js:397`
+- **MAJOR** — Copilot's cycle-time chart tells the user their portfolio has no data, when the data was stripped by the list projection  
+  `js/aichart.js:290`
+- **MAJOR** — Signing cap: the browser exempts non-monetary contracts and the server does not — a live Sign button that 403s and loses the signature  
+  `server/server.js:3001`
+- **MAJOR** — /api/stats calls a contract expired from the raw expiry column, ignoring the family-aware term the rest of the product uses — the dashboard's Active-value headline under-reports  
+  `server/server.js:2318`
+- **MAJOR** — A Viewer's internal comment is drawn into the feed and then silently discarded — no save, no refusal, no message  
+  `js/views/contract.js:5487`
+- **MINOR** — The phone's Approvals card can never name who raised the contract in server mode  
+  `js/mobile-screens.js:448`
+- **MINOR** — Pressing Resend on a share link produces no confirmation, and the sent-vs-outbox distinction the route reports never reaches the user  
+  `js/core.js:4895`
+
+### The phone shell  ·  12
+
+- **CRITICAL** — The phone never hydrates a light contract, so uploads, history and the brief are silently empty in production  
+  `js/mobile.js:1070`
+- **CRITICAL** — mPill loses all three status overlays — the phone says "Executed" on a partially-signed and on an expired contract  
+  `js/mobile.js:640`
+- **CRITICAL** — Typing in the phone's contract search doubles its own handler on every keystroke  
+  `js/mobile-screens.js:600`
+- **MAJOR** — The phone's share sheet mints a link and says nothing — including when nothing was emailed  
+  `js/mobile-contract.js:700`
+- **MAJOR** — "Name who signs" is a live primary button on the phone with no handler at all  
+  `js/mobile-contract.js:641`
+- **MAJOR** — The "Sign" button is dead on the phone in exactly the state that says signing is the only thing left  
+  `js/mobile-contract.js:672`
+- **MAJOR** — The greyed rows in the phone's overflow sheet refuse in silence — the explanation is built and discarded  
+  `js/mobile-contract.js:586`
+- **MAJOR** — The phone's tap-a-sentence Copilot gesture is dead, and every clause is still underlined to advertise it  
+  `js/mobile-copilot.js:136`
+- **MAJOR** — The counterparty's decision bar has no sticky treatment on a phone — all three selectors match nothing  
+  `js/mobile-portal.js:83`
+- **MAJOR** — The phone's Approvals card never names who asked, because it reads a field the light list strips  
+  `js/mobile-screens.js:448`
+- **MINOR** — mMoney is a second copy of the money rule and prints foreign amounts in a different format and locale from the rest of the app  
+  `js/mobile.js:655`
+- **MINOR** — Requests has no door on the phone, breaking M_DESK's own rule for the one page every role may press  
+  `js/mobile.js:85`
+
+### Copilot end-to-end  ·  6
+
+- **CRITICAL** — A Copilot chat answer cut short at max_tokens is served as a complete answer — the truncation notice is dropped by both chat routes, and the streaming path never computes it at all  
+  `server/server.js:5438`
+- **MAJOR** — A truncated contract brief or renewal recommendation is written to the server-side cache and every later read serves it as complete, with no notice  
+  `server/server.js:4310`
+- **MAJOR** — The Intelligence dock feeds its own error bubbles back into the conversation history, the exact poisoning the main panel guards against  
+  `js/views/intelligence.js:341`
+- **MAJOR** — Copilot silently cuts every message to 4,000 characters, which defeats the documented guarantee that a highlighted passage reaches the model whole  
+  `server/server.js:5386`
+- **MAJOR** — There is no way to cancel a Copilot request, and closing the panel mid-request leaves ai.busy set — reopening gives a dead Send button with no typing indicator and no message  
+  `js/ai.js:2840`
+- **MINOR** — Every Save on the Copilot engine settings panel confirms with a bare toast(), which prints nothing — the presses look dead  
+  `js/views/settings.js:2680`
+
+### Email & dispatch  ·  5
+
+- **MAJOR** — The monthly report says "sent to N recipients" without ever looking at what the provider did  
+  `server/server.js:9288`
+- **MAJOR** — The counterparty's signing-turn email is always English — signerTurnEmail's senderLang is never passed by any caller  
+  `server/server.js:7054`
+- **MAJOR** — Three share-email paths stamp sent_at even when the provider refused, and never write send_error  
+  `server/server.js:7515`
+- **MAJOR** — The counterparty's "code could not be sent" banner always blames configuration and is the one English sentence on a translated page  
+  `js/views/portal.js:4312`
+- **MAJOR** — The share panel's Resend press is silent, and calls a provider refusal "queued to the outbox"  
+  `js/core.js:4895`
+
+### Forms, modals & validation  ·  6
+
+- **MAJOR** — Escape and backdrop click bypass a modal's own unsaved-work guard  
+  `js/core.js:1991`
+- **MAJOR** — confirmDialog's Escape leaks to the modal underneath, so "Keep editing" still destroys the editor  
+  `js/core.js:2073`
+- **MAJOR** — Editing an approval rule silently rewrites an orphaned named approver to "Any admin"  
+  `js/views/settings.js:3186`
+- **MAJOR** — Signing-route status badges have no fill and no colour — four undefined Tailwind utilities  
+  `js/approvals.js:832`
+- **MINOR** — "Go back to v3" is a dead button when the wording already matches that version  
+  `js/versioning.js:234`
+- **MINOR** — openModal dialogs are not announced as dialogs and never take focus  
+  `js/core.js:1985`
+
+### Bilingual coverage  ·  12
+
+- **MAJOR** — confirmDialog and promptDialog default their buttons to English — 50 dialogs across both shells show "Cancel", including on the counterparty's page  
+  `js/core.js:2047`
+- **MAJOR** — The share dialog's first step is entirely hardcoded English under a translated heading  
+  `js/core.js:2578`
+- **MAJOR** — SHARE_PURPOSE_COPY: two members are plain English strings while their siblings are dictionary getters  
+  `js/core.js:2536`
+- **MAJOR** — The counterparty's deal-verb row draws two English buttons beside two Swedish ones — and po_ready_to_sign already exists, unused  
+  `js/views/portal.js:1805`
+- **MAJOR** — The counterparty's send outcome — success banner, spent button labels and the two send confirmations — is hardcoded English  
+  `js/views/portal.js:3977`
+- **MAJOR** — 306 server error strings are English and are printed verbatim, half of them glued to a translated prefix  
+  `js/core.js:981`
+- **MAJOR** — The forced password-change gate — the first screen an invited colleague sees — has an English body and English refusals inside a translated frame  
+  `js/core.js:1563`
+- **MAJOR** — The signing-code panel mixes Swedish and English inside one sentence, in a warning about who may sign  
+  `js/views/portal.js:4311`
+- **MINOR** — The Contracts page draws "+ New contract" in English while its own header button draws the same phrase in Swedish  
+  `js/views/register.js:636`
+- **MINOR** — The template-library paste report builds one sentence out of alternating Swedish and English fragments  
+  `js/views/library.js:353`
+- **MINOR** — Chart legend and axis labels are hardcoded English inside charts whose own buttons are translated  
+  `js/aichart.js:168`
+- **MINOR** — Four Copilot panel tooltips and the panel's live sub-line carry no data-i18n attribute in index.html  
+  `index.html:3954`
+
+### CSS that does not draw  ·  3
+
+- **MAJOR** — `.rl-wall` is styled only under `.redline-page`, and js/views/portal.js draws it twice OUTSIDE that ancestor — both notices render as completely unstyled text  
+  `js/views/portal.js:3323`
+- **MINOR** — `.nego-readysig`'s green accent comes from `--n-accept`, which is undefined in the counterparty's alerts panel — the ✓ renders white-on-white and the left accent bar disappears  
+  `js/views/negotiation-css.js:150`
+- **MINOR** — The 22-Aug text-size stepper redesign is scoped `.redline-page .rl-type-step`, so three of `rlTypeStepHtml`'s five homes still draw the pre-redesign grey pill — including the counterparty's header, which the rule's own comment claims it covers  
+  `js/views/negotiation-css.js:3578`
+
+### Always-false guards  ·  3
+
+- **MINOR** — Health report's chart builder reads kpiMoneyOk, which no module publishes — the guard is always false and falls back to "show money"  
+  `js/views/healthreport.js:133`
+- **MINOR** — contractReadiness's "no named signatory" warning is behind window.SIGN_ROUTE_ON, which nothing in the product ever sets — the check can never run, and the fields it reads are never written  
+  `js/core.js:2463`
+- **MINOR** — f232's window-read regex is lowercase-only, so no CamelCase or UPPER_CASE always-false guard can ever be caught by the test that exists to catch them  
+  `test/f232-a-guard-that-is-always-false.test.js:106`
+
