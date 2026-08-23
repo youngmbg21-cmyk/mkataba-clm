@@ -47,9 +47,12 @@ function mNeedsYou(D){
   };
 
   (D.myApprovals||[]).filter(x=>x.mine).forEach(x=>{
-    const who = (x.c.audit||[]).find(a=>/creat/i.test(a.action||''));
+    /* Off the ROW, not the trail — HEAVY strips `audit` in server mode, so this
+       silently dropped the name on every real workspace. Same reading as the
+       Approvals card below. */
+    const whoName = (typeof contractOwnerName==='function') ? contractOwnerName(x.c) : null;
     push(x.c, 'var(--st-amber-dot)',
-      i18t('m_waiting_your_approval') + (who&&who.user?i18t('m_requested_by',{who:who.user}):''), 'var(--st-amber-fg)');
+      i18t('m_waiting_your_approval') + (whoName?i18t('m_requested_by',{who:whoName}):''), 'var(--st-amber-fg)');
   });
 
   /* The counterparty is waiting on an answer. wsNextAction is the authority on
@@ -445,7 +448,16 @@ function mApprovalsHtml(){
     const c = x.c;
     const open = s.apprOpen===c.id;
     const rejecting = s.apprReject===c.id;
-    const requested = (c.audit||[]).find(a=>/creat/i.test(a.action||''));
+    /* ---- WHO RAISED IT COMES OFF THE ROW, NOT THE TRAIL ----
+       In server mode HEAVY strips `audit` off every light row, and the phone is
+       reading light rows, so this was always undefined — and the card's LABEL
+       flips with it, so an approver saw "Waiting · 4 days ago" instead of
+       "Requested by · Ilana Mwangi · 4 days ago". The name and the date are
+       carried on the row for exactly this (contractOwnerName reads the stored
+       owner first, then the server's _raisedBy stop-gap). */
+    const reqBy = (typeof contractOwnerName==='function') ? contractOwnerName(c) : null;
+    const reqAt = (typeof repRaisedAt==='function') ? repRaisedAt(c) : null;
+    const requested = (reqBy||reqAt) ? { user:reqBy, at:reqAt?new Date(reqAt).toISOString():null } : null;
     return `
     <div class="m-card" style="margin-bottom:12px">
       <button class="m-row" data-m-appr="${mEsc(c.id)}" style="align-items:flex-start;padding:14px">

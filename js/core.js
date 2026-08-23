@@ -5253,7 +5253,20 @@ async function applyResponse(c, r, opts={}){
       const withdrawn=Array.isArray(r.negoWithdrawn)?r.negoWithdrawn.length:0;
       if(!proposed || decided || withdrawn) return false;
       c.lastAction=todayStr(); persist(c);
-      toast(`${r.name||'The counterparty'} sent wording that does not match any clause on ${c.id} — nothing was filed. Their exact words are in this contract's history.`,'err');
+      /* ---- SAY WHY IT WAS REFUSED, AND ONLY WHERE SOMEBODY IS WATCHING ----
+         This was unguarded, so a background poll drew a red box on whatever page
+         the reader happened to be standing on, about a contract they were not
+         looking at — the sibling refusal twenty lines up has carried
+         !opts.background all along.
+         And the sentence was a diagnosis rather than a fact. "Does not match any
+         clause" is true of an unplaceable clause id; where the funnel refused
+         because the wording is FROZEN — somebody has signed — the clause matched
+         perfectly and the stated remedy cannot work. negoLastRefusal carries the
+         real reason from whichever guard turned it away; the general sentence
+         stays for the case it was written for. */
+      if(!opts.background)
+        toast(window.negoLastRefusal
+          || `${r.name||'The counterparty'} sent wording that does not match any clause on ${c.id} — nothing was filed. Their exact words are in this contract's history.`,'err');
       return true;
     }
     const acc=done.filter(x=>x.status==='accepted').length;
@@ -5622,8 +5635,13 @@ async function applyNegoProposals(c, r, who){
      text they wrote is kept verbatim in the trail, so the round is recoverable
      by hand rather than lost. */
   if(unplaced.length)
+    /* The REASON, where the funnel gave one. This said "could not be matched to
+       a clause" of everything it turned away, including wording refused because
+       the contract is frozen — a permanent record of the wrong reason, which is
+       worse than a vague one. */
     logAudit(c,'Negotiation',`${unplaced.length} change${unplaced.length===1?'':'s'} proposed by ${who}`
-      +` through their link could NOT be matched to a clause on this contract and ${unplaced.length===1?'was':'were'} not filed`
+      +` through their link ${window.negoLastRefusal ? `could not be filed — ${window.negoLastRefusal} —` : 'could NOT be matched to a clause on this contract and'}`
+      +` ${unplaced.length===1?'was':'were'} not filed`
       +` — ${unplaced.map(p=>`${p.clauseLabel||p.clauseId||'an unnamed clause'}: “${String(p.newText||'').slice(0,300)}”`).join(' | ')}`);
   return filed;
 }

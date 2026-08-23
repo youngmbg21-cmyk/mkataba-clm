@@ -287,10 +287,22 @@ const AI_CHART_RECIPES = {
      a contract moved. A contract whose trail does not carry both ends is left
      out rather than guessed at; if none of them do, there is no chart. */
   cycleTime(){
+    /* ---- THE TRAIL IS NOT THERE TO BE READ IN SERVER MODE ----
+       HEAVY strips `audit` off every light row, so on a real workspace this
+       found nothing and the chart answered "there is no data in your portfolio
+       for that chart yet" — a statement about the customer's own records that
+       was false. The two ENDS are carried on the row (_raisedAt / _signedAt),
+       and repRaisedAt / repSignedAt are the shared readers that prefer them and
+       fall back to the trail wherever there is one. The MIDDLE stamp has no
+       carried twin, so where the trail is absent this now draws the one span it
+       can honestly measure rather than claiming the book is empty. */
     const at = (c, re) => { const e = (c.audit || []).find(x => re.test(x.action || '')); return e ? Date.parse(e.at) : NaN; };
-    const spans = { 'Draft → review': [], 'Review → signed': [] };
+    const raised = c => (typeof repRaisedAt === 'function' ? repRaisedAt(c) : null) ?? at(c, /^Created$/i);
+    const signed = c => (typeof repSignedAt === 'function' ? repSignedAt(c) : null) ?? at(c, /^Signed$|^Countersigned$/i);
+    const spans = { 'Draft → review': [], 'Review → signed': [], 'Raised → signed': [] };
     for (const c of _acAll()){
-      const made = at(c, /^Created$/i), rev = at(c, /^Status changed$|^Shared$/i), sig = at(c, /^Signed$|^Countersigned$/i);
+      const made = raised(c), rev = at(c, /^Status changed$|^Shared$/i), sig = signed(c);
+      if (made && sig && sig >= made && !rev) spans['Raised → signed'].push((sig - made) / 86400000);
       if (made && rev && rev >= made) spans['Draft → review'].push((rev - made) / 86400000);
       if (rev && sig && sig >= rev) spans['Review → signed'].push((sig - rev) / 86400000);
     }

@@ -93,6 +93,17 @@ function published() {
     }
     const re2 = /window\.([A-Za-z_$][\w$]*)\s*=(?!=)/g;
     while ((m = re2.exec(s))) out.add(m[1]);
+    /* ---- A THIRD PUBLISH SHAPE: Object.defineProperty ----
+       A name whose VALUE changes — a last-refusal reason, a live counter — has
+       to be published as a getter, or every reader gets the snapshot taken at
+       load. That is a real export and this sweep could not see it, so the first
+       one written failed here as an always-false guard: the sweep reporting a
+       correctly-published name is exactly the false alarm that gets a sweep
+       switched off. Both quote styles, because the codebase uses both. */
+    const re3 = /Object\.defineProperty\(\s*window\s*,\s*['"]([A-Za-z_$][\w$]*)['"]/g;
+    while ((m = re3.exec(s))) out.add(m[1]);
+    const re4 = /window\[\s*['"]([A-Za-z_$][\w$]*)['"]\s*\]\s*=(?!=)/g;
+    while ((m = re4.exec(s))) out.add(m[1]);
   }
   return out;
 }
@@ -191,5 +202,9 @@ describe('F232 — every window.foo a module reads is one some module publishes'
       assert.ok(pub.has(n), `${n} rides a named export object and must still be seen`);
     for (const n of ['negoFileChange', 'reviewAsk'])
       assert.ok(pub.has(n), `${n} rides an object literal and must still be seen`);
+    /* The third shape, added 23 Aug 2026 when the first getter-published name
+       was written and this sweep called it dead. */
+    assert.ok(pub.has('negoLastRefusal'),
+      'a getter published with Object.defineProperty is published, and must be seen as such');
   });
 });

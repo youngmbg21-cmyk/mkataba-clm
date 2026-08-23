@@ -2300,7 +2300,7 @@ app.get('/api/stats', auth, (req, res) => {
      LEFT OUT, and `fxMissing` rides back so the dashboard can say so rather
      than quietly under-reporting. Read in JS for the same reason the expiry
      loop below already is: the fact lives in the record, not a column. */
-  const valued = db.prepare(`SELECT id, folder, status, expiry, value, json FROM contracts ${w}`).all(...f.args)
+  const valued = db.prepare(`SELECT id, folder, status, expiry, value, parent_id, json FROM contracts ${w}`).all(...f.args)
     .map(r => { let c = {}; try { c = JSON.parse(r.json) || {}; } catch (_) {} return { r, c }; });
   let totalHome = 0; const folderHome = {};
   for (const { r, c } of valued) {
@@ -2311,10 +2311,20 @@ app.get('/api/stats', auth, (req, res) => {
   }
   g.totalValue = totalHome;
   for (const row of byFolder) row.val = folderHome[row.folder || ''] || 0;
+  /* ---- THE TERM IS THE FAMILY'S, NOT THE COLUMN'S ----
+     This read the raw `expiry` column, so a master supply agreement extended to
+     2028 by a SIGNED amendment was still counted expired on its own 2025 date —
+     and its whole value was then subtracted from the headline below. The
+     register badged it live, the calendar ran it to 2028, and the dashboard
+     under-reported the book. effExpiryReader is the one family-aware reading
+     the reminder sweeps and the daily brief already share; only this route was
+     still asking the column. */
+  const parsedFam = new Map(valued.map(({ r, c }) => [r.id, c]));
+  const { eff: effExpiry } = effExpiryReader(valued.map(({ r }) => r), parsedFam);
   let expired = 0, expiredValue = 0;
   for (const { r, c } of valued) {
     if (r.status !== 'Signed') continue;
-    const day = dateOnly(r.expiry);
+    const day = effExpiry(r);
     if (day && day < today) { expired++; expiredValue += fxHome({ value: r.value, metadata: c.metadata }).v; }
   }
   g.expired = expired;
@@ -3644,6 +3654,10 @@ async function anthropicMessages(key, tier, payload, meter = {}) {
 
 // A user-facing notice to fold into a response: combines the input-was-shortened
 // warning (FIX 2) and the model-fell-back warning into one `notice` string.
+/* One conversation turn's ceiling. Above any real highlighted clause and far
+   below aiDocChars, which bounds a whole document rather than one message. */
+const COPILOT_TURN_CHARS = 20000;
+
 const aiNotice = (req, out) => {
   const parts = [];
   if (req && req.aiInputCapped) parts.push('Your input was large, so it was shortened before being sent to the Copilot.');
@@ -4363,9 +4377,22 @@ app.post('/api/ai/brief', auth, editor, rlAiDeep, aiFeature('brief'), aiBudgetGu
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const block = (resp.data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
-    const brief = { v: 1, at: now(), by: (req.user && req.user.name) || '', inputHash, data: block.input || {} };
-    db.prepare('INSERT INTO briefs (contract_id,json,created_at) VALUES (?,?,?) ON CONFLICT(contract_id) DO UPDATE SET json=excluded.json, created_at=excluded.created_at')
-      .run(String(id), JSON.stringify(brief), now());
+    /* ---- A CUT-SHORT BRIEF IS NOT CACHED AS A WHOLE ONE ----
+       max_tokens here is 1400 against a schema asking for an overview, term,
+       money, up to six watchouts each carrying a verbatim quote and up to four
+       unusual terms. When it runs out, block.input arrives with some of the
+       lists missing — and this wrote it to the briefs table as though it were
+       finished, so EVERY later read served the truncated memo as complete, for
+       ever, with no notice. The notice on this response is the only place the
+       cut was ever mentioned, and a cached read does not carry it.
+       So the flag travels with the record, and a cut-short brief is not written
+       at all: the reader is told, and the next press asks again rather than
+       being handed a permanent half-answer. */
+    const brief = { v: 1, at: now(), by: (req.user && req.user.name) || '', inputHash,
+      truncated: !!resp.truncated, data: block.input || {} };
+    if (!resp.truncated)
+      db.prepare('INSERT INTO briefs (contract_id,json,created_at) VALUES (?,?,?) ON CONFLICT(contract_id) DO UPDATE SET json=excluded.json, created_at=excluded.created_at')
+        .run(String(id), JSON.stringify(brief), now());
     res.json({ brief, ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
@@ -4822,9 +4849,13 @@ app.post('/api/ai/renewal', auth, editor, rlAiDeep, aiFeature('renewal'), aiBudg
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const block = (resp.data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
-    const advice = { v: 1, at: now(), by: (req.user && req.user.name) || '', inputHash, signals, data: block.input || {} };
-    db.prepare('INSERT INTO renewal_advice (contract_id,json,created_at) VALUES (?,?,?) ON CONFLICT(contract_id) DO UPDATE SET json=excluded.json, created_at=excluded.created_at')
-      .run(String(id), JSON.stringify(advice), now());
+    /* Same rule as the contract brief above: a cut-short recommendation is not
+       written to the cache, or every later read serves it as complete. */
+    const advice = { v: 1, at: now(), by: (req.user && req.user.name) || '', inputHash, signals,
+      truncated: !!resp.truncated, data: block.input || {} };
+    if (!resp.truncated)
+      db.prepare('INSERT INTO renewal_advice (contract_id,json,created_at) VALUES (?,?,?) ON CONFLICT(contract_id) DO UPDATE SET json=excluded.json, created_at=excluded.created_at')
+        .run(String(id), JSON.stringify(advice), now());
     res.json({ advice, ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
@@ -5401,7 +5432,20 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
   // Keep only clean user/assistant text turns; cap history and per-turn size.
   const convo = messages
     .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
-    .slice(-10).map(m => ({ role: m.role, content: m.content.slice(0, 4000) }));
+    .slice(-10).map(m => {
+      /* ---- THE PER-TURN CAP IS NOT SMALLER THAN THE THING IT CARRIES ----
+         4,000 characters silently cut every message, breaking a promise the
+         product makes in writing elsewhere: "the FULL passage reaches the model
+         — the display bubble clamps the quote, never a slice". A highlighted
+         liability-and-indemnity clause with sub-paragraphs runs well past 4,000,
+         so "Simplify" was handed two thirds of a clause and answered
+         confidently about the part it could see. COPILOT_TURN_CHARS sits above
+         any real passage and far under the document ceiling, and the cut is now
+         a FACT rather than a silent trim: aiInputCapped is what aiNotice turns
+         into a sentence, and both chat routes already fold that in. */
+      if (m.content.length > COPILOT_TURN_CHARS) req.aiInputCapped = true;
+      return { role: m.role, content: m.content.slice(0, COPILOT_TURN_CHARS) };
+    });
   if (!convo.length || convo[convo.length - 1].role !== 'user') return res.status(400).json({ error: 'the last message must be from the user' });
 
   const system = buildCopilotSystem(context, cx);
@@ -5418,6 +5462,15 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
      throttle every ordinary question; the spend ceiling governs these deep
      calls instead (see SUMMARY.md). */
   let compared = false;
+  /* ---- A CUT-SHORT ANSWER IS NOT A COMPLETE ONE ----
+     anthropicMessages returns `truncated` when the provider stopped at
+     max_tokens, and aiNotice already turns that into a sentence — but both chat
+     routes built their notice from a FRESH object carrying only the fell-back
+     fields, so the flag was computed and dropped. A broad question ran past the
+     ceiling, the partial text was accepted as the answer at the plain-text
+     branch, and the reader was served half a thought with nothing saying so.
+     Tracked across every turn, because the cut can happen on any of them. */
+  let truncated = false;
   let final = null, fellBack = false, rejectedModel = null, usedModel = aiModelForTier('fast');
   try {
     for (let step = 0; step < 5; step++) {
@@ -5430,6 +5483,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
       }
       usedModel = resp.model || usedModel;
       if (resp.fellBack) { fellBack = true; rejectedModel = resp.rejectedModel; }
+      if (resp.truncated) truncated = true;
       const content = resp.data.content || [];
       const toolUses = content.filter(b => b.type === 'tool_use');
       working.push({ role: 'assistant', content });
@@ -5453,7 +5507,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
     final.citations.forEach(c => { if (!cardIds.includes(c.id)) cardIds.push(c.id); });
     if (final.compare) final.compare.columns.forEach(col => { if (!cardIds.includes(col.id)) cardIds.push(col.id); });
     const cards = cardIds.map(id => copilotCard(cx, id)).filter(Boolean);
-    let notice = aiNotice(req, { fellBack, rejectedModel, model: usedModel });
+    let notice = aiNotice(req, { fellBack, rejectedModel, model: usedModel, truncated });
     if (final.quoteDrops) {
       const drop = final.quoteDrops === 1
         ? 'One quoted excerpt could not be matched to the contract text and was removed — treat that point with care.'
@@ -5673,7 +5727,20 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
   const cx = copilotCtx(req);
   const convo = messages
     .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
-    .slice(-10).map(m => ({ role: m.role, content: m.content.slice(0, 4000) }));
+    .slice(-10).map(m => {
+      /* ---- THE PER-TURN CAP IS NOT SMALLER THAN THE THING IT CARRIES ----
+         4,000 characters silently cut every message, breaking a promise the
+         product makes in writing elsewhere: "the FULL passage reaches the model
+         — the display bubble clamps the quote, never a slice". A highlighted
+         liability-and-indemnity clause with sub-paragraphs runs well past 4,000,
+         so "Simplify" was handed two thirds of a clause and answered
+         confidently about the part it could see. COPILOT_TURN_CHARS sits above
+         any real passage and far under the document ceiling, and the cut is now
+         a FACT rather than a silent trim: aiInputCapped is what aiNotice turns
+         into a sentence, and both chat routes already fold that in. */
+      if (m.content.length > COPILOT_TURN_CHARS) req.aiInputCapped = true;
+      return { role: m.role, content: m.content.slice(0, COPILOT_TURN_CHARS) };
+    });
   if (!convo.length || convo[convo.length - 1].role !== 'user') return res.status(400).json({ error: 'the last message must be from the user' });
 
   // From here on the response is an event stream — errors travel as events.
@@ -5692,6 +5759,15 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
   const question = convo[convo.length - 1].content;
   const toolsUsed = [];
   let steps = 0, compared = false;
+  /* ---- A CUT-SHORT ANSWER IS NOT A COMPLETE ONE ----
+     anthropicMessages returns `truncated` when the provider stopped at
+     max_tokens, and aiNotice already turns that into a sentence — but both chat
+     routes built their notice from a FRESH object carrying only the fell-back
+     fields, so the flag was computed and dropped. A broad question ran past the
+     ceiling, the partial text was accepted as the answer at the plain-text
+     branch, and the reader was served half a thought with nothing saying so.
+     Tracked across every turn, because the cut can happen on any of them. */
+  let truncated = false;
   let final = null, fellBack = false, rejectedModel = null, usedModel = aiModelForTier('fast');
   try {
     for (let step = 0; step < 5; step++) {
@@ -5712,6 +5788,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
       }
       usedModel = resp.model || usedModel;
       if (resp.fellBack) { fellBack = true; rejectedModel = resp.rejectedModel; }
+      if (resp.truncated) truncated = true;
       const content = resp.data.content || [];
       const toolUses = content.filter(b => b.type === 'tool_use');
       working.push({ role: 'assistant', content });
@@ -5734,7 +5811,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
     final.citations.forEach(c => { if (!cardIds.includes(c.id)) cardIds.push(c.id); });
     if (final.compare) final.compare.columns.forEach(col => { if (!cardIds.includes(col.id)) cardIds.push(col.id); });
     const cards = cardIds.map(id => copilotCard(cx, id)).filter(Boolean);
-    let notice = aiNotice(req, { fellBack, rejectedModel, model: usedModel });
+    let notice = aiNotice(req, { fellBack, rejectedModel, model: usedModel, truncated });
     if (final.quoteDrops) {
       const drop = final.quoteDrops === 1
         ? 'One quoted excerpt could not be matched to the contract text and was removed — treat that point with care.'

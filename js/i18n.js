@@ -3155,6 +3155,9 @@ const STRINGS = {
     // ---- the Copilot's own replies ----
     ai_go_to_wording: 'Go to the wording',
     ai_show_all_one: 'Show all {n} contract ▾',
+    ai_add_key_for_full: 'Add your Anthropic API key in Team & Settings → Copilot engine to unlock the full assistant.',
+    ai_engine_unavailable: 'The Copilot engine could not be reached just now, so this is a basic answer. Try again in a moment.',
+    ai_answer_unreadable: 'The Copilot answered, but HaTi could not read the reply — so this is a basic answer. Please report it if it keeps happening.',
     ai_show_all_other: 'Show all {n} contracts ▾',
     ai_compare_help: 'Happy to compare — tell me which ones. Try <em>"compare MK-101 and MK-104"</em>, name a counterparty (<em>"compare the Naivas contracts"</em>), or say <em>"compare my two highest-value contracts"</em>.',
     ai_an_external_doc: 'an uploaded <strong>external document</strong>',
@@ -7405,6 +7408,9 @@ const STRINGS = {
     // ---- the Copilot's own replies ----
     ai_go_to_wording: 'Gå till formuleringen',
     ai_show_all_one: 'Visa alla {n} avtal ▾',
+    ai_add_key_for_full: 'Lägg till din Anthropic API-nyckel under Team och inställningar → Copilot-motorn för att låsa upp hela assistenten.',
+    ai_engine_unavailable: 'Copilot-motorn kunde inte nås just nu, så det här är ett enkelt svar. Försök igen om en stund.',
+    ai_answer_unreadable: 'Copilot svarade, men HaTi kunde inte tolka svaret — så det här är ett enkelt svar. Rapportera gärna om det upprepas.',
     ai_show_all_other: 'Visa alla {n} avtal ▾',
     ai_compare_help: 'Gärna en jämförelse — säg vilka. Prova <em>”jämför MK-101 och MK-104”</em>, ange en motpart (<em>”jämför avtalen med Naivas”</em>), eller säg <em>”jämför mina två avtal med högst värde”</em>.',
     ai_an_external_doc: 'ett uppladdat <strong>externt dokument</strong>',

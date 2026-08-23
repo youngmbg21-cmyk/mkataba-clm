@@ -1387,6 +1387,9 @@ function aiChatContext(){
    answer text, an optional compare table, and cited contract cards resolved
    from live state (so they're clickable and always in sync). */
 function aiRenderServerAnswer(res){
+  /* A malformed or empty body must not throw a TypeError into the message the
+     customer reads — see aiDegrade. */
+  if(!res || typeof res!=='object') throw new Error('malformed answer');
   const list=(res.cards||[]).map(cd=>getContract(cd.id)).filter(Boolean);
   let extra='';
   if(res.compare) extra+=aiCompareTable(res.compare);
@@ -2916,17 +2919,25 @@ async function aiSubmit(){
   // mode, browser-direct in local mode. Otherwise the built-in keyword engine
   // keeps the panel working (with a nudge toward adding a key).
   if(copilotAvailable()){
+    /* ---- TWO DIFFERENT FAILURES, TWO DIFFERENT SENTENCES, NEITHER OF THEM RAW ----
+       This wrapped the ASK and the RENDER in one catch and printed e.message
+       into the page. So a fault in our own renderer — aiRenderServerAnswer read
+       res.cards with no guard on res itself — was reported to the customer as
+       "the Copilot engine is unavailable", which is a lie about somebody else's
+       service, with a JavaScript TypeError quoted inside it:
+         "…unavailable right now (Cannot read properties of null (reading 'cards'))".
+       A provider's own sentence is worth showing; a stack-trace fragment is not.
+       And all three sentences were hardcoded English in a product that
+       translates everything else it says. */
+    let res=null;
     try{
-      const res=await copilotAsk(aiChatMessages(), aiChatContext(), aiStreamRenderer());
+      res=await copilotAsk(aiChatMessages(), aiChatContext(), aiStreamRenderer());
+    }catch(e){ finish(aiDegrade(q,e,true)); return; }
+    try{
       finish(aiRenderServerAnswer(res));
     }catch(e){
-      // Graceful degrade: answer from the keyword engine, note why.
-      const local=aiAnswer(q);
-      const why=(e.needsKey||/key|configure|401|needsKey/i.test(e.message||''))
-        ? 'Add your Anthropic API key in Team & Settings → Copilot engine to unlock the full assistant.'
-        : 'The Copilot engine is unavailable right now ('+(e.message||'error')+'), so this is a basic answer.';
-      local.text=(local.text||'')+`<div class="text-[11px] text-amber-700 mt-2">${_aiEsc(why)}</div>`;
-      finish(local);
+      try{ console.error('[hati] Copilot answer could not be rendered', e); }catch(_){}
+      finish(aiDegrade(q,e,false));
     }
     return;
   }
@@ -2934,6 +2945,21 @@ async function aiSubmit(){
   const ans=aiAnswer(q);
   await new Promise(r=>setTimeout(r,300));
   finish(ans);
+}
+
+/* One place that decides what a failed Copilot turn SAYS. Transport failures may
+   quote the server's own sentence — that is a message written for a person and
+   often names the real problem. A RENDER failure is ours, and says so without
+   pretending the engine was down. */
+function aiDegrade(q, e, transport){
+  const local = aiAnswer(q);
+  const why = (e && (e.needsKey || /key|configure|401|needsKey/i.test(e.message||'')))
+    ? i18t('ai_add_key_for_full')
+    : transport
+      ? i18t('ai_engine_unavailable')
+      : i18t('ai_answer_unreadable');
+  local.text = (local.text||'') + `<div class="text-[11px] text-amber-700 mt-2">${_aiEsc(why)}</div>`;
+  return local;
 }
 
 document.getElementById('ai-send').addEventListener('click',aiSubmit);

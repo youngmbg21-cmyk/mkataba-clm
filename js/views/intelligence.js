@@ -340,8 +340,16 @@ function applyTemplateResult(ranked, answer){
 // Map the dock conversation to the server's message shape (role + plain text).
 function intelChatMessages(){
   const strip=s=>String(s||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+  /* ---- AN ERROR BUBBLE IS NOT PART OF THE CONVERSATION ----
+     The dock pushes its own failures into `intel.history` as assistant turns —
+     "Copilot error: Daily Copilot budget reached…" — and then sent them back to
+     the model as though the assistant had said them. So one failure went on
+     poisoning every later answer for the rest of the sitting, long after the
+     budget was raised or the network came back. The main Copilot panel has
+     excluded `err` from its own history all along (js/ai.js); this is the same
+     guard, and the two now read alike. */
   return intel.history
-    .filter(m=>(m.role==='user'||m.role==='assistant') && m.text)
+    .filter(m=>(m.role==='user'||m.role==='assistant') && m.text && !m.err)
     .map(m=>({ role:m.role, content:strip(m.text) }))
     .filter(m=>m.content).slice(-8);
 }
