@@ -98,7 +98,11 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
          never actually meets. */
       const payload = buildSharePayload(full, await sha256(canonicalDoc(full)), null, { purpose: 'negotiate' });
       const r = await api('shares', 'POST', { payload, channel: 'link',
-        recipient: { name: 'Saw Sawa LLC', email: 'ola@sawsawa.se' }, purpose: 'negotiate' });
+        /* DURABLE, because that is what a negotiate link IS: the standing
+           channel to this counterparty, which takes the next round through the
+           same URL. A one-shot link is spent by its first answer and its whole
+           verb row stands down, which stages a page the product does not make. */
+        recipient: { name: 'Saw Sawa LLC', email: 'ola@sawsawa.se' }, purpose: 'negotiate', durable: true });
       return r && r.token || null;
     }, cid);
     const cp = await ctx.newPage();
@@ -182,12 +186,22 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     });
 
     /* ---------- 4. THEIR PAGE SAYS IT HAS NOT BEEN PICKED UP YET ---------- */
+    /* REVERSED IN PLACE 23 Aug 2026, owner-asked: "keep the alerts in the bell
+       ... because they are now popping up and staying on screen which is
+       distracting." This read the sentence off `.pw-delivery` in the wall band,
+       which is drawn on every paint and never goes away. The FACT is unchanged
+       and still asserted; where it is drawn moved to the bell, which is the
+       shelf this page already keeps for a status worth a glance. */
+    const delivery = pg => pg.evaluate(() => ({ state: portalDeliveryState(),
+      onPage: document.querySelectorAll('.pw-delivery').length,
+      row: ((typeof portalAlerts === 'function' ? portalAlerts() : [])
+        .find(r => r.kind === 'delivered' || r.kind === 'in-flight') || {}).text || '' }));
     await cp.evaluate(() => portalRefreshNow('asked')); await pause(1600);
-    const waiting = await cp.evaluate(() => ({ state: portalDeliveryState(),
-      line: (document.querySelector('.pw-delivery') || {}).textContent || '' }));
-    check('4 before it is collected, their page says so — in pixels',
-      waiting.state === 'waiting' && /waiting for/i.test(waiting.line),
+    const waiting = await delivery(cp);
+    check('4 before it is collected, their bell says so',
+      waiting.state === 'waiting' && /waiting for/i.test(waiting.row),
       JSON.stringify(waiting));
+    check('4 and it is not standing on the page', waiting.onPage === 0, waiting.onPage);
 
     /* ---------- 5. THE REPORTED BUG: the page catches up by itself ---------- */
     const seen = () => own.evaluate(id => {
@@ -217,10 +231,9 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
 
     /* ---------- 6. AND THEIR PAGE TURNS OVER ---------- */
     await cp.evaluate(() => portalRefreshNow('asked')); await pause(1800);
-    const received = await cp.evaluate(() => ({ state: portalDeliveryState(),
-      line: (document.querySelector('.pw-delivery') || {}).textContent || '' }));
-    check('6 once collected, their page says it was received',
-      received.state === 'received' && /has received/i.test(received.line),
+    const received = await delivery(cp);
+    check('6 once collected, their bell says it was received',
+      received.state === 'received' && /has received/i.test(received.row),
       JSON.stringify(received));
     check('6 without a reload — it turns over under the reader',
       received.state === 'received', received.state);
@@ -251,13 +264,30 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       const full = await api('contracts/' + id);
       const payload = buildSharePayload(full, await sha256(canonicalDoc(full)), null, { purpose: 'negotiate' });
       const r = await api('shares', 'POST', { payload, channel: 'link',
-        recipient: { name: 'Juno Limited', email: 'ola@juno.se' }, purpose: 'negotiate' });
+        recipient: { name: 'Juno Limited', email: 'ola@juno.se' }, purpose: 'negotiate', durable: true });
       return r && r.token || null;
     }, other);
     const cp2 = await ctx.newPage();
     cp2.on('pageerror', e => errors.push('cp2: ' + e.message));
     await cp2.goto(h.base + '/#share=t:' + tok2, { waitUntil: 'networkidle' });
     await pause(2600);
+    /* ---------- 8a. THE TWO READING BUTTONS FOLLOW THE CONTRACT ----------
+       Owner-reported 23 Aug 2026: "in the counterparty page, 2 buttons are
+       missing (negotiation history and compare wording)." They are not missing:
+       `other` has nothing negotiated on it, so there is no history to open and
+       no second text to measure against — and the audit trail never reaches
+       this seat, so their timeline really is empty. The pair is asserted BOTH
+       WAYS in one run, which is the only form of this claim worth having: the
+       same page, one contract with changes and one without. */
+    const btns = pg => pg.evaluate(() => ({ hist: !!document.getElementById('pt-hist'),
+      cmp: !!document.getElementById('pt-compare') }));
+    const bare = await btns(cp2), busy = await btns(cp);
+    check('8a with nothing negotiated, neither reading button is drawn',
+      bare.hist === false && bare.cmp === false, JSON.stringify(bare));
+    check('8a and on a contract with a change, both are',
+      busy.hist === true && busy.cmp === true,
+      JSON.stringify(busy) + ' — so they follow the contract, not a regression');
+
     const readyBtn = await cp2.evaluate(() => {
       const b = document.getElementById('pt-nego-ready');
       if (!b || b.disabled) return false;
@@ -266,6 +296,26 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     await pause(2400);
     check('7 the counterparty could press Ready — the deal was settled when they did',
       readyBtn === true, readyBtn ? 'pressed' : 'the button was disabled; the stage is wrong');
+
+    /* ---------- 8b. AND IT STAYS PRESSED THROUGH A RELOAD ----------
+       Owner-reported the same day: "when i click ready to sign button it greys
+       out correctly but when I refresh the page, the ready to sign is back to
+       normal." It was PORTAL_READY_SENT alone — a flag in this sitting's memory
+       — so a reload offered the same claim a second time. Measured here at the
+       hardest moment: the claim has been sent and the owner has NOT collected
+       it, so the record cannot know yet and only the server can. */
+    const readyState = pg => pg.evaluate(() => {
+      const b = document.getElementById('pt-nego-ready');
+      return b ? { on: !b.disabled, text: b.textContent.replace(/\s+/g, ' ').trim() } : null;
+    });
+    check('8b pressing it spends it', (await readyState(cp2) || {}).on === false,
+      JSON.stringify(await readyState(cp2)));
+    await cp2.reload({ waitUntil: 'networkidle' });
+    await pause(2600);
+    const afterReload = await readyState(cp2);
+    check('8b and a RELOAD finds it still spent, before the owner has collected it',
+      afterReload && afterReload.on === false,
+      JSON.stringify(afterReload) + ' — it came back live before the fix');
 
     /* The owner files one more change before collecting it — the claim is now
        stale, through no fault of anyone. */
@@ -302,6 +352,34 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       lines + ' audit line(s) — four against the prior code');
     check('7 the claim stops arriving, so it cannot come back',
       (await own.evaluate(async () => (await api('shares/pending')).length)) === 0);
+
+    /* ---------- 8c. AND A REFUSED READINESS BRINGS IT BACK ----------
+       The other half of the same reading, and the reason it is three questions
+       rather than "did I send one": the claim just refused was never recorded,
+       so the reader has to be able to say it again once what is outstanding is
+       settled. A button spent over a signal nobody holds strands them. */
+    await cp2.reload({ waitUntil: 'networkidle' });
+    await pause(2600);
+    const afterRefusal = await readyState(cp2);
+    check('8c once the claim is refused, the button is live again',
+      afterRefusal && afterRefusal.on === true,
+      JSON.stringify(afterRefusal) + ' — spent here would strand them');
+
+    /* ---------- 8d. THE DELIVERY STATUS IS IN THE BELL ----------
+       Owner-reported: "keep the alerts in the bell ... because they are now
+       popping up and staying on screen which is distracting." It shipped the
+       day before as a sentence in the wall band, which is drawn on every paint
+       and never goes away. It is a status, not a standing instruction. */
+    const shelf = await cp.evaluate(() => ({
+      onPage: document.querySelectorAll('.pw-delivery').length,
+      rows: (typeof portalAlerts === 'function' ? portalAlerts() : [])
+        .filter(r => r.kind === 'delivered' || r.kind === 'in-flight')
+        .map(r => r.kind + ':' + r.tone) }));
+    check('8d nothing stands on the page saying it', shelf.onPage === 0, shelf.onPage);
+    check('8d and the bell carries it instead', shelf.rows.length === 1, JSON.stringify(shelf.rows));
+    check('8d in a tone that does not read as work owed',
+      /:(green|gray)$/.test(shelf.rows[0] || ''),
+      shelf.rows[0] + ' — amber on this panel means something is owed by THIS reader');
 
     check('no page errors on either seat', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {

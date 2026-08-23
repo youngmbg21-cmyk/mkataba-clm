@@ -184,14 +184,31 @@ describe('f238 (3) — their page learns whether the round landed', () => {
   });
 
   test('an unknown is never printed as a "no"', () => {
-    const body = fn(PORTAL, 'portalDeliveryLine');
-    assert.match(body, /if\(!st\) return ''/);
+    /* RE-POINTED 23 Aug 2026 with the move into the bell: the guard used to sit
+       in portalDeliveryLine and now sits on the push. The claim is the same one
+       — a third reading that says nothing must add nothing. */
+    assert.match(PORTAL, /const dlv = portalDeliveryState\(\);\s*\n\s*if \(dlv\) push\(/);
   });
 
-  test('the sentence draws on BOTH wall branches', () => {
-    assert.equal((PORTAL.match(/\$\{portalDeliveryLine\(p\)\}/g) || []).length, 2,
-      'the read-only branch is the one that needs it most: the page can flip ' +
-      'read-only at exactly the moment the answer lands');
+  test('IT IS IN THE BELL, NOT STANDING ON THE PAGE', () => {
+    /* REVERSED IN PLACE 23 Aug 2026, owner-reported: "keep the alerts in the
+       bell ... because they are now popping up and staying on screen which is
+       distracting." This asserted the sentence drew on BOTH wall branches — and
+       the wall band is drawn on every paint and never goes away, so the one
+       thing added to that page was also the one thing permanently in front of
+       the reader. It is a STATUS, and the bell is the shelf this page already
+       keeps for one. The FACT is unchanged; only its shelf moved. */
+    assert.ok(!/portalDeliveryLine/.test(PORTAL),
+      'the standing sentence and its builder are gone, not merely hidden');
+    assert.ok(!/pw-delivery/.test(PORTAL), 'and so is its dress');
+  });
+
+  test('the row never wears amber — that means work owed by THIS reader', () => {
+    const m = PORTAL.match(/if \(dlv\) push\([\s\S]{0,300}/);
+    assert.ok(m, 'the push is there');
+    const head = m[0].split('\n').slice(0, 4).join('\n');
+    assert.match(head, /'green' : 'gray'/);
+    assert.ok(!/amber/.test(head), head);
   });
 
   test('it turns over live — the signature carries the flip', () => {
@@ -254,5 +271,40 @@ describe('f238 (5) — a refusal that must not draw, and must not loop', () => {
     const body = branch('decisions');
     assert.match(body, /if\(!done\.length && !filed\.length && !withdrew\.length\)/,
       'f163 taught it there first: wording that cannot land must still stop arriving');
+  });
+});
+
+describe('f238 (6) — the counterparty page tells the truth about its own state', () => {
+  /* Three owner reports off one screenshot, 23 Aug 2026. */
+  test('the spent Ready button has THREE readings, in order', () => {
+    const body = fn(PORTAL, 'portalReadySpent');
+    assert.match(body, /if\(PORTAL_READY_SENT\) return true/,
+      'this sitting first — the record lags the press by up to a beat');
+    assert.match(body, /n\.ready && n\.ready\.counterparty/,
+      'then the RECORD, which survives any reload');
+    assert.match(body, /lr\.action==='ready' && lr\.applied!==true/,
+      'then the server, for the window where only it knows');
+  });
+
+  test('AND A REFUSED READINESS LEAVES THE BUTTON LIVE', () => {
+    const body = fn(PORTAL, 'portalReadySpent');
+    assert.match(body, /applied!==true/,
+      'marked applied with no readiness on the record means it was REFUSED; ' +
+      'spent there would strand the reader behind a signal nobody holds');
+  });
+
+  test('the gate reads the predicate, not the sitting flag', () => {
+    assert.match(PORTAL, /const spent=portalReadySpent\(\)/);
+    assert.ok(!/const spent=PORTAL_READY_SENT/.test(PORTAL));
+  });
+
+  test('the two reading buttons follow the contract, and always did', () => {
+    /* Reported as "2 buttons are missing". They are drawn when there is
+       something behind them and not when there is not — the product's own
+       standing rule that a verb which cannot work is not drawn. Pinned so a
+       future change to either predicate is a decision rather than a surprise. */
+    assert.match(fn(PORTAL, 'portalHasHistory'), /chs\.length>0/);
+    assert.match(PORTAL, /\$\{hist\?`<button id="pt-hist"/);
+    assert.match(PORTAL, /\$\{cmp\?`<button id="pt-compare"/);
   });
 });
