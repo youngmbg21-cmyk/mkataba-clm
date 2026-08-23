@@ -2590,8 +2590,28 @@ function wireActionBar(c){
      roomTabsHtml's row in renderWorkspace) and is wired with it — this
      function runs again on every tab change, and the tab row is not redrawn
      by one, so binding it here would stack a handler per tab press. */
-  document.getElementById('ws-evidence')?.addEventListener('click',()=>downloadEvidence(c));
-  document.getElementById('ws-next-action')?.addEventListener('click',e=>{
+  /* ---- AND NEITHER IS THESE TWO, FOR THE SAME REASON THE COMMENT ABOVE GIVES ----
+     The comment above names the trap and these two then committed it: both
+     buttons moved into the room HEAD in the 22 Aug redesign, the head is built
+     once per renderWorkspace and is NOT redrawn by a tab change, and this
+     function runs again on every tab press — so each press left another live
+     handler on a surviving element. Measured in a real browser: the element
+     survived six tab presses and ONE click on "Evidence pack" produced EIGHT
+     downloads.
+     Bound once per element, and the contract is resolved at PRESS time so a
+     once-bound listener never acts on the record some earlier paint held. */
+  const cAtWire=c;
+  const live=()=>(window.getContract&&getContract(state.activeId))||cAtWire;
+  const ev=document.getElementById('ws-evidence');
+  if(ev && !ev.dataset.wsEvBound){
+    ev.dataset.wsEvBound='1';
+    ev.addEventListener('click',()=>downloadEvidence(live()));
+  }
+  const na=document.getElementById('ws-next-action');
+  if(na && !na.dataset.wsNaBound){
+    na.dataset.wsNaBound='1';
+    na.addEventListener('click',e=>{
+    const c=live();
     const kind=e.currentTarget.getAttribute('data-na');
     if(kind==='evidence'){ downloadEvidence(c); return; }
     /* Deliberately the same code path as the returned-changes strip's own
@@ -2652,7 +2672,8 @@ function wireActionBar(c){
       setTimeout(()=>signDocument(c),180);
       return;
     }
-  });
+    });
+  }
 }
 /* "Complete key terms" — put the cursor where the terms can actually be typed.
    That is the Key terms TAB now, not a panel behind a sub-tab on the right:
@@ -6093,7 +6114,23 @@ function wireKeyTerms(c){
       persist(c); renderAuditSection(c);
     });
   });
-  document.getElementById('kt-fill')?.addEventListener('click',()=>fillKeyTermsFromDocument(c));
+  /* ---- BOUND ONCE, LIKE THE TWO BESIDE IT ----
+     wireKeyTerms runs from renderKeyTerms AND from the room's own wiring, and
+     #kt-fill lives OUTSIDE the #kt-rows host renderKeyTerms replaces — so it
+     survives every repaint and collected one more listener per call. Each one
+     fires its own PAID extraction: measured in a real browser, one press after
+     a few key-term edits produced NINE concurrent POST /api/ai/extract calls,
+     whose answers then race to write the same fields.
+     ktWireSplit and wireKtFolder immediately around this already carry
+     dataset.ktSplitBound / dataset.ktFolderBound for exactly this reason. */
+  const fill=document.getElementById('kt-fill');
+  if(fill && !fill.dataset.ktFillBound){
+    fill.dataset.ktFillBound='1';
+    /* The contract is read at PRESS time: a listener bound once must not close
+       over the record this paint happened to hold. */
+    fill.addEventListener('click',()=>fillKeyTermsFromDocument(
+      (window.getContract&&getContract(state.activeId))||c));
+  }
   wireKtFolder(c);
 }
 /* Read what the document itself says and drop it into the EMPTY fields — never
