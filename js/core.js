@@ -4923,15 +4923,26 @@ async function renderSharesSection(c){
     toast(i18t('co_share_copied'));
   }));
   host.querySelectorAll('[data-sh-resend]').forEach(b=>b.addEventListener('click',async()=>{
+    /* ---- THREE OUTCOMES, NOT TWO, AND SAID OUT LOUD ----
+       This was a bare toast, so the press drew NOTHING and read as dead; and
+       its message was a binary over the route's three answers, so a provider
+       REFUSAL was reported as "queued to the outbox" — a queue it is not in and
+       will never leave. The route answers with mailReport: sent / outbox /
+       refused-and-why, and all three now reach the person who pressed. */
+    const was=b.textContent; b.disabled=true; b.textContent=i18t('co_sending');
     try{ const r=await api('shares/'+b.getAttribute('data-sh-resend')+'/resend','POST',{});
-      toast(r.emailSent?'Reminder email sent':'Reminder queued to the outbox'); renderSharesSection(c);
+      if(r.emailSent) toast(i18t('co_resend_sent'),'ok');
+      else if(r.outbox||r.emailConfigured===false) toast(i18t('co_resend_outbox'),'warn');
+      else toast(i18t('co_resend_refused',{why:r.emailError||''}),'err');
+      renderSharesSection(c);
     }catch(e){ toast(e.message,'err'); }
+    finally{ b.disabled=false; b.textContent=was; }
   }));
   host.querySelectorAll('[data-sh-revoke]').forEach(b=>b.addEventListener('click',async()=>{
     if(!await confirmDialog({get title(){ return i18t('co_revoke_share_q'); }, message:'The recipient will no longer be able to open the contract from this link. You can share again at any time.', confirmLabel:'Revoke link', danger:true})) return;
     try{ await api('shares/'+b.getAttribute('data-sh-revoke')+'/revoke','POST',{});
       logAudit(c,'Share revoked','A counterparty share link was revoked'); persist(c); renderAuditSection(c);
-      toast(i18t('co_share_revoked')); renderSharesSection(c); refreshShareOverview();
+      toast(i18t('co_share_revoked'),'ok'); renderSharesSection(c); refreshShareOverview();
     }catch(e){ toast(e.message,'err'); }
   }));
 }

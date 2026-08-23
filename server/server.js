@@ -7337,7 +7337,14 @@ async function releaseNextSignerLink(req, contractId) {
     if (!/.+@.+\..+/.test(String(ns.recipient_email || ''))) return;
     let p = {}; try { p = JSON.parse(ns.payload) || {}; } catch (_) {}
     const mail = signerTurnEmail({ signer: next, plan: rt.plan, payload: p,
-      link: shareUrl(req, ns.token), expiresAt: ns.expires_at });
+      link: shareUrl(req, ns.token), expiresAt: ns.expires_at,
+      /* ---- THE COUNTERPARTY'S EMAIL FOLLOWS THE SENDER'S LANGUAGE ----
+         signerTurnEmail destructures senderLang and NO caller passed it, so
+         langForEmail — whose member lookup always misses for a counterparty,
+         who has no account — fell to the default and every signing email went
+         out in English, including from a Swedish workspace. The internal
+         signer's own notification has passed this all along. */
+      senderLang: req && req.user && req.user.lang });
     const r = await sendEmail(ns.recipient_email, mail.subject, mail.body, `sign turn (external): ${ns.token}`);
     if (r.sent) db.prepare('UPDATE shares SET sent_at=?, send_error=NULL WHERE token=?').run(now(), ns.token);
     else db.prepare('UPDATE shares SET send_error=? WHERE token=?')
@@ -7507,7 +7514,8 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
       const sendTo = email || existing.recipient_email;
       if (!heldForTurn && !existing.sent_at && /.+@.+\..+/.test(String(sendTo || ''))) {
         const mail = signerTurnEmail({ signer: signerRow, plan: rt.plan, payload,
-          link: exLink, expiresAt: existing.expires_at });
+          link: exLink, expiresAt: existing.expires_at,
+          senderLang: req && req.user && req.user.lang });   /* see the note above */
         const r2 = await sendEmail(sendTo, mail.subject, mail.body, `sign turn (external): ${existing.token}`);
         exSent = !!r2.sent; exErr = r2.detail || null;
         // sent_at means the provider ACCEPTED it; a failed attempt records why.
@@ -7578,7 +7586,8 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
      signs. Emailing it now would invite a signature the respond route is
      going to refuse. */
   if (ch === 'email' && signerId && !heldForTurn) {
-    const mail = signerTurnEmail({ signer: signerRow, plan: signerPlanAll, payload, link, expiresAt: expires });
+    const mail = signerTurnEmail({ signer: signerRow, plan: signerPlanAll, payload, link, expiresAt: expires,
+      senderLang: req && req.user && req.user.lang });   /* see the note above */
     const r = await sendEmail(email, mail.subject, mail.body, `sign turn (external): ${token}`);
     emailSent = !!r.sent; emailError = r.detail || null;
     // sent_at means the provider ACCEPTED it; a failed attempt records why,
@@ -7607,7 +7616,16 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
         : `${req.user.name} shared "${cName}" for your review`,
       body, `share link: ${link}`);
     emailSent = !!r.sent; emailError = r.detail || null;
-    db.prepare('UPDATE shares SET sent_at=? WHERE token=?').run(now(), token);
+    /* ---- THE RECORD SAYS WHAT ACTUALLY HAPPENED ----
+       This stamped sent_at whatever the provider did, and never wrote
+       send_error. The dialog told the truth AT THE MOMENT of sending — it has
+       the three-outcome box — and then the page was reloaded and the shares
+       panel read sentAt:<now>, sendError:null, so a refused message showed as
+       delivered for the rest of that contract's life. Three sibling sends in
+       this file already guard on r.sent; these three did not. */
+    if (r.sent) db.prepare('UPDATE shares SET sent_at=?, send_error=NULL WHERE token=?').run(now(), token);
+    else db.prepare('UPDATE shares SET send_error=? WHERE token=?')
+      .run(String(emailError || (EMAIL_ON() ? 'The email provider refused the message.' : 'Email is not configured on this server — the message is in the outbox.')).slice(0, 300), token);
   }
   res.json({ ok: true, token, link, expiresAt: expires, channel: ch, durable: !!isDurable,
     signerId: signerId || undefined, heldForTurn: signerId ? heldForTurn : undefined,
@@ -8266,7 +8284,10 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
     ].filter(Boolean).join('\n');
     const r = await sendEmail(s.recipient_email, `Updated: "${cName}" is ready for your review`, body, `share refresh: ${link}`);
     emailSent = !!r.sent; emailError = r.detail || null;
-    db.prepare('UPDATE shares SET sent_at=? WHERE token=?').run(now(), s.token);
+    /* See the note on the mint route above: only a real send is recorded as one. */
+    if (r.sent) db.prepare('UPDATE shares SET sent_at=?, send_error=NULL WHERE token=?').run(now(), s.token);
+    else db.prepare('UPDATE shares SET send_error=? WHERE token=?')
+      .run(String(emailError || (EMAIL_ON() ? 'The email provider refused the message.' : 'Email is not configured on this server — the message is in the outbox.')).slice(0, 300), s.token);
   }
   res.json({ ok: true, token: s.token, link, channel: s.channel || 'link', silent,
     notifySkipped: !silent && !notify,
@@ -8328,7 +8349,10 @@ app.post('/api/shares/:token/resend', auth, editor, rlShareSend, async (req, res
       `${req.user.name} at ${p.org || 'HaTi'} is waiting for your response on "${cName}".\n\nReview it here — no account needed:\n${link}\n\n${s.expires_at ? `This link expires on ${String(s.expires_at).slice(0, 10)}.` : ''}`,
       `share resend: ${link}`);
     emailSent = !!r.sent; emailError = r.detail || null;
-    db.prepare('UPDATE shares SET sent_at=? WHERE token=?').run(now(), s.token);
+    /* See the note on the mint route above: only a real send is recorded as one. */
+    if (r.sent) db.prepare('UPDATE shares SET sent_at=?, send_error=NULL WHERE token=?').run(now(), s.token);
+    else db.prepare('UPDATE shares SET send_error=? WHERE token=?')
+      .run(String(emailError || (EMAIL_ON() ? 'The email provider refused the message.' : 'Email is not configured on this server — the message is in the outbox.')).slice(0, 300), s.token);
   }
   res.json({ ok: true, link, channel: s.channel || 'link', emailSent, emailConfigured: EMAIL_ON(), emailError });
 });
@@ -9365,7 +9389,15 @@ function recordMonthlyReportRun(patch) {
    the same order fire() uses — so a crash mid-send costs one report, never
    doubles one. `force` (the manual Send-now) bypasses the claim check but
    still records it, so a manual send also satisfies the schedule. */
-function runMonthlyReport(month, opts = {}) {
+/* ---- "SENT" MUST MEAN SENT — THE ONE ROUTE THAT WAS MISSED ----
+   This was SYNCHRONOUS, so it could not await sendEmail even if it had wanted
+   to: it fired three messages into the void, reported `sent: to.length` — the
+   number ATTEMPTED — and wrote lastError:null, actively clearing any earlier
+   failure. A workspace whose sending domain is unverified therefore recorded a
+   clean success every month while every message bounced, which is the exact
+   fault the three routes named in "SENT MUST MEAN SENT" were fixed for. This
+   one simply never got it. */
+async function runMonthlyReport(month, opts = {}) {
   const key = `monthly-report:${month}`;
   const claimed = db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(key);
   if (claimed && !opts.force) return { sent: 0, month, alreadySent: true };
@@ -9380,15 +9412,30 @@ function runMonthlyReport(month, opts = {}) {
   }
   const report = buildMonthlyReport(month);
   if (!claimed) db.prepare('INSERT INTO reminders (rkey,created_at) VALUES (?,?)').run(key, now());
-  for (const addr of to) sendEmail(addr, report.subject, report.body, 'monthly report');
-  recordMonthlyReportRun({ lastSentMonth: month, lastSentAt: now(), lastSentTo: to.length,
-    lastError: null, lastErrorAt: null });
-  return { sent: to.length, to, month, facts: report.facts };
+  const results = [];
+  for (const addr of to) results.push(await sendEmail(addr, report.subject, report.body, 'monthly report'));
+  /* THE OUTBOX IS DELIVERY, NOT A FAILURE, and that is the whole care needed
+     here: with no provider configured the message queues where an admin can
+     read it, which is exactly what this product promises. Counting an outbox
+     row as a failure would report `sent: 0` and write "the provider refused"
+     on a workspace that has no provider — two warnings for one state, which
+     the mail-health rule already forbids. A FAILURE is a message that really
+     was handed to a provider and turned away. */
+  const outboxOnly = !EMAIL_ON();
+  const delivered = r => !!(r && (r.sent || outboxOnly));
+  const sent = results.filter(delivered).length;
+  const failed = results.filter(r => !delivered(r));
+  recordMonthlyReportRun({ lastSentMonth: month, lastSentAt: now(), lastSentTo: sent,
+    /* Only a real success clears the error record. */
+    lastError: failed.length ? ((failed[0] && failed[0].detail) || 'the email provider refused the message') : null,
+    lastErrorAt: failed.length ? now() : null });
+  return { sent, attempted: to.length, to, month, facts: report.facts,
+    emailConfigured: EMAIL_ON(), outbox: !EMAIL_ON() };
 }
-function monthlyReportSweep() {
+async function monthlyReportSweep() {
   try {
     if (!monthlyReportSettings().enabled) return;
-    runMonthlyReport(mrPrevMonth());
+    await runMonthlyReport(mrPrevMonth());   /* awaited now: it reports what really went */
   } catch (e) {
     const msg = (e && e.message) || String(e);
     console.warn('[monthly-report] sweep failed, the report did not go out this cycle:', msg);
@@ -9430,9 +9477,10 @@ app.put('/api/reports/monthly/settings', auth, admin, (req, res) => {
 });
 // Send now, without waiting for the sweep — the same builder, the same path,
 // so what the button sends is what the schedule would have sent.
-app.post('/api/reports/monthly/run', auth, admin, (req, res) => {
+app.post('/api/reports/monthly/run', auth, admin, async (req, res) => {
   const month = /^\d{4}-\d{2}$/.test(String((req.body || {}).month || '')) ? req.body.month : mrPrevMonth();
-  res.json(runMonthlyReport(month, { force: true }));
+  try { res.json(await runMonthlyReport(month, { force: true })); }
+  catch (e) { res.status(502).json({ error: 'The monthly report could not be sent: ' + ((e && e.message) || e) }); }
 });
 
 app.post('/api/shares/:token/applied', auth, editor, (req, res) => {

@@ -4291,11 +4291,18 @@ async function portalStartOtp(p, info){
   _ptLastOtpSend=Date.now();
   const invited=(PORTAL_OPTS.share&&PORTAL_OPTS.share.recipientEmail)||'';
   box.innerHTML=`<div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:0;padding:13px;font-size:12px;color:var(--color-neutral-700);">${i18t('po_sending_code_to')} <strong>${esc(invited||'the address this link was issued to')}</strong>…</div>`;
-  let emailSent=true, sentTo=invited;
+  let emailSent=true, sentTo=invited, emailWhy='';
   try{
     const r=await api('shares/'+PORTAL_OPTS.token+'/otp','POST',{});
     emailSent=r.emailSent!==false;
     sentTo=r.sentTo||invited;
+    /* ---- THE REAL REASON, NOT ALWAYS "NOT CONFIGURED" ----
+       The banner below blamed configuration whatever had happened. The route
+       answers with mailReportPublic, which distinguishes "no provider on this
+       server" from "the provider refused it" — the commonest real failure — and
+       that sentence was being thrown away, so a workspace WITH email set up was
+       told it had none. */
+    emailWhy=r.emailError||'';
   }catch(e){
     /* The one refusal with no way forward on this page: the link records no
        address to verify against. Said in full, with the way out, rather than
@@ -4309,7 +4316,7 @@ async function portalStartOtp(p, info){
       <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--color-text);margin-bottom:4px;">${icon('key','w-3.5 h-3.5')} ${i18t('po_verify_to_sign')}</div>
       <p style="font-size:12px;color:var(--color-neutral-600);margin:0 0 8px;line-height:1.5;">${i18t('po_sent_code_to',{email:esc(sentTo)})}</p>
       ${(sentTo&&info.email&&sentTo.toLowerCase()!==String(info.email||'').toLowerCase())?`<p style="margin:0 0 8px;font-size:12px;border-radius:0;background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border:1px solid color-mix(in srgb,var(--st-amber-dot) 30%,transparent);color:var(--st-amber-fg);padding:6px 10px;line-height:1.5;">${i18t('po_code_goes_only_to')} <strong>${esc(sentTo)}</strong>, the address the sender invited — not to the address typed above. If somebody else should be signing, ask the sender to add them to the signing route so they get their own link.</p>`:''}
-      ${emailSent?'':`<p style="margin:0 0 8px;font-size:12px;border-radius:0;background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border:1px solid color-mix(in srgb,var(--st-amber-dot) 30%,transparent);color:var(--st-amber-fg);padding:6px 10px;line-height:1.5;">Email delivery is not configured on this server, so the code could not be sent. Ask <strong>${esc((PORTAL_OPTS.payload&&PORTAL_OPTS.payload.sharedBy)||'the sender')}</strong> for it — they can read it in HaTi under Team &amp; Settings.</p>`}
+      ${emailSent?'':`<p style="margin:0 0 8px;font-size:12px;border-radius:0;background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border:1px solid color-mix(in srgb,var(--st-amber-dot) 30%,transparent);color:var(--st-amber-fg);padding:6px 10px;line-height:1.5;">${esc(emailWhy||i18t('po_code_not_sent_generic'))} ${i18t('po_ask_sender_for_code',{who:esc((PORTAL_OPTS.payload&&PORTAL_OPTS.payload.sharedBy)||i18t('po_the_sender'))})}</p>`}
       <input id="pt-otp" inputmode="numeric" maxlength="6" placeholder="______" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:8px 11px;text-align:center;font-size:18px;font-family:var(--font-mono);letter-spacing:.4em;color:var(--color-text);outline:none;"/>
       <button id="pt-otp-go" class="ui-btn ui-btn-primary" style="margin-top:8px;width:100%;padding:9px;font-size:14px;">${icon('finger','w-4 h-4')} ${i18t('po_verify_and_sign')}</button>
       <button id="pt-otp-resend" style="margin-top:6px;width:100%;background:none;border:0;font-size:12px;color:var(--color-neutral-600);cursor:pointer;font-family:var(--font-body);">${i18t('po_resend_code')}</button>
