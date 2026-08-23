@@ -389,7 +389,20 @@ function portalMoreMenuHtml(){
   const canWord=!!(window.docxExportTracked&&window.redlineDocHtml);
   return `
     <div class="pw-more-wrap">
-      <button id="pt-more" class="ui-btn pt-verb pw-id-verb" type="button"
+      ${''/* ---- MORE IS WHITE INSIDE, LIKE ITS NEIGHBOURS (owner-asked 23 Aug
+             2026) ---- It carried .pt-verb, which fills the face with
+             --color-accent-100: MEASURED rgb(204,251,241) against the
+             transparent faces of Ready to sign, Share a read-only copy and
+             Decline, all three of which are plain .ui-btn. So the least
+             important control in the row was the only filled one and read as
+             its primary act.
+
+             THE CLASS IS DROPPED FROM THIS BUTTON, NOT CHANGED. .pt-verb is
+             the SIGNING screen's reading verbs, and it wears the workspace
+             accent for a reason this rulebook records three times over — a
+             neutral control there reads as furniture. Gutting the class to fix
+             one button in another row would take that with it. */}
+      <button id="pt-more" class="ui-btn pw-id-verb" type="button"
         aria-haspopup="true" aria-expanded="false" title="${i18t('po_more_title')}">
         <span aria-hidden="true" style="font-size:15px;line-height:1">&#8943;</span>
         <span class="pw-more-word">${i18t('ct_more')}</span>
@@ -449,6 +462,22 @@ function wirePortalMore(c,p){
   }
   if(_ptMoreWired) return;
   _ptMoreWired=true;
+  /* ---- THE WAY OUT OF FOCUS MODE, WIRED ONCE ON THE DOCUMENT ----
+     DELEGATED, and armed inside the same once-only guard as the outside-press
+     listener above, for the reason this page has already learned twice: this
+     header is repainted by portalPaintAlerts and by every verb-slot refill, so
+     a listener bound to the element stacks one per paint. Delegation also
+     means the button works whichever render put it there.
+
+     rlSetFocus(false) rather than a toggle: this button only ever means LEAVE.
+     It cannot be pressed when focus is off, because it is not shown then, and
+     a toggle here would turn focus back on if the class ever fell out of step
+     with the button's visibility. */
+  document.addEventListener('click',ev=>{
+    const x=ev.target&&ev.target.closest&&ev.target.closest('[data-rl-focus-exit]');
+    if(!x) return;
+    if(window.rlSetFocus) rlSetFocus(false);
+  });
   document.addEventListener('click',ev=>{
     const m=document.getElementById('pt-more-menu'), b=document.getElementById('pt-more');
     if(!m||!b||m.classList.contains('hidden')) return;
@@ -2820,6 +2849,14 @@ function portalWorkbenchStyle(){
     body.pw-focused .pw-id{display:none;}
     body.pw-focused .pw-notes{display:none;}
     body.pw-focused .pw-page{padding-top:6px;}
+    /* THE WAY OUT. The negotiation page shows its own copy through
+       .redline-page.rl-focus; this page is not that page, so it shows the same
+       button through its own posture class. The LOOK is not repeated here —
+       the .rl-focus-exit rule in the negotiation stylesheet is unscoped for
+       position, colour and type, so one dress serves both. Hidden by default,
+       because the button lives in the DOM the whole time. */
+    .rl-focus-exit{display:none;}
+    body.pw-focused .rl-focus-exit{display:inline-flex;}
     /* The two reading verbs — see portalReadingBtnsHtml for why they stopped
        being ui-btn-secondary. The tint is mixed against whatever surface is
        under it, so the pair reads the same in either theme. */
@@ -2937,6 +2974,25 @@ function renderShareWorkbench(p, opts={}){
     ? `<div class="rl-wall" role="status"><span class="rl-wall-ic">&#128100;</span><span>${esc(p.leadNotice)}</span></div>` : '';
   root.innerHTML=`
   <div class="pw-page" id="pw-page">
+    ${''/* ---- THE WAY OUT OF FOCUS MODE (owner-asked 23 Aug 2026) ----
+           Focus mode stands this page's header down, and the header is where
+           the More menu that turned it on lives — so a reader who pressed it
+           had NO visible way back, only Escape, which nobody would guess.
+           MEASURED before: .rl-focus-exit did not exist on this page at all.
+
+           THE SAME BUTTON THE NEGOTIATION PAGE USES — same class, same data
+           attribute — so it inherits that page's dressing and its handler
+           rather than growing a second way to leave one posture. It is always
+           in the DOM and shown only while focus is on, for the reason the
+           negotiation page states: the control that turns focus ON is inside
+           the strip focus mode hides.
+
+           BOTTOM RIGHT, owner-chosen off three options: match the negotiation
+           page exactly rather than give the two pages different corners.
+           Nothing else is pinned there on this page — the floating notices
+           stack draws no bell on the counterparty's seat. */}
+    <button type="button" class="rl-focus-exit" data-rl-focus-exit
+      title="${i18t('ng_leave_focus')}">${i18t('ng_exit_focus')}</button>
     <section class="pw-id">
       <span class="pw-id-badge">HT</span>
       <span class="pw-id-main">

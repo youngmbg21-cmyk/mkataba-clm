@@ -1596,10 +1596,18 @@ function redlineLayoutCss(){
   /* The way out. The button that turned it on is inside the strip that has just
      stood down — a control that hides itself cannot be pressed again — so the
      chip is the exit, and Esc still works beside it. */
-  .redline-page.rl-focus .rl-focus-exit{position:fixed;right:18px;bottom:18px;z-index:70;
-    display:inline-flex;align-items:center;gap:7px;border:0;border-radius:0;cursor:pointer;
+  /* ---- ONE DRESS, TWO PAGES (owner-asked 23 Aug 2026) ----
+     The counterparty's page has this button too now, and it must not have a
+     second look: the LOOK is unscoped, and each page keeps its own rule for
+     WHEN to show it — this page on .rl-focus, theirs on body.pw-focused, which
+     are genuinely different postures on genuinely different shells. Written
+     the other way round (the look scoped, the showing shared) their copy draws
+     as an unstyled word in the corner, which is what the first attempt did. */
+  .rl-focus-exit{position:fixed;right:18px;bottom:18px;z-index:70;
+    align-items:center;gap:7px;border:0;border-radius:0;cursor:pointer;
     font:inherit;font-size:13px;font-weight:700;padding:9px 15px;
     background:var(--accent-solid,var(--color-accent));color:#fff;box-shadow:var(--shadow-md)}
+  .redline-page.rl-focus .rl-focus-exit{display:inline-flex}
   .redline-page:not(.rl-focus) .rl-focus-exit{display:none}
 
   /* the wall — one line, replacing the engine's two banners */
@@ -3443,18 +3451,60 @@ function redlineLayoutCss(){
      Redlined. They were a grey pill group at 12px — the smallest control on a
      row whose job is naming what the paper below is showing.
      SCOPED TO .rl-readwrap, so the SEAT switch beside it (the same builder's
-     classes) keeps its own box: two controls, two shapes, one row. */
+     classes) keeps its own box: two controls, two shapes, one row.
 
-  .redline-page .rl-readwrap{background:none;border:0;padding:0;height:auto;gap:2px;align-items:stretch}
-  .redline-page .rl-readwrap .rl-seg{height:auto;padding:0 14px;font-size:14px;font-weight:400;
+     ---- AND NOT SCOPED TO ONE PAGE (owner-asked 23 Aug 2026: "in the
+     counterparty page, the redlined, agreed and with changes should be similar
+     to what is in image 2 from the negotiations page") ----
+     THE CLOTHES FOLLOW THE BUILDER, NOT ONE OF ITS HOMES. rlReadSegsHtml is
+     the ONE builder and it has TWO homes: this page's control bar, and the
+     counterparty's own .pw-id header. This block was written scoped to
+     .redline-page .rl-readwrap, so their copy fell through to the base
+     .rl-seg rule and drew the grey pill group these tabs replaced — MEASURED:
+     13px in a bordered box with background rgb(241,245,249), the live one a
+     white FILL, resting ink the label shade.
+
+     THIS IS THE SAME TRAP, ONE LAYER ALONG. On 15 Aug the base .rl-segwrap /
+     .rl-seg rules were scoped to .redline-page and their header rendered as
+     one run of unstyled text; the fix then was to unscope them, and the note
+     recorded it as "the clothes follow the builder". The 22 Aug redesign then
+     added THIS dress and scoped it the same way, so the counterparty was left
+     on the old one. Unscoped now, which is safe because .rl-readwrap wraps the
+     reading switch and nothing else — the seat switch is .rl-segwrap and keeps
+     its box, which is what the paragraph above is protecting.
+
+     THE HEIGHT IS DELIBERATELY auto RATHER THAN A NUMBER, and that is what
+     lets one dress fit both rows: on this page align-items:stretch takes the
+     44px control bar's full height, and in their compact header it takes the
+     header's. Pinning 44 here would push their header open.
+
+     AND NO BACKTICKS IN THIS FILE'S COMMENTS: the stylesheet is returned from
+     a JS template literal, so one ends the string and the file stops parsing.
+     Caught by the linter the moment this note was written.
+
+     THE WRAP IS .rl-segwrap.rl-readwrap, NOT A BARE .rl-readwrap, AND THAT IS
+     THE WHOLE OF WHY THIS WORKS. Unscoping is not free: it DROPS specificity.
+     The element carries both classes, and line 1266 declares the pill box
+     twice — once bare and once as .redline-page .rl-segwrap. A bare
+     .rl-readwrap scores the same as that first one and LESS than the second,
+     so the first attempt at this fix dressed the counterparty correctly and
+     handed the OWNER's tabs their grey box back. Measured, and caught by the
+     browser file comparing the two pages against each other rather than
+     against a typed colour. Matching on both classes scores the same as the
+     scoped rule and sits later in the sheet, so it wins on both pages without
+     reaching for !important — which would win this fight and hide the next. */
+
+  .rl-segwrap.rl-readwrap{background:none;border:0;padding:0;height:auto;gap:2px;
+    align-items:stretch}
+  .rl-readwrap .rl-seg{height:auto;padding:0 14px;font-size:14px;font-weight:400;
     color:var(--color-text);display:flex;align-items:center;gap:7px;box-shadow:none;background:none}
-  .redline-page .rl-readwrap .rl-seg:hover{color:var(--color-accent-800)}
-  .redline-page .rl-readwrap .rl-seg.on{font-weight:700;color:var(--color-accent-800);
+  .rl-readwrap .rl-seg:hover{color:var(--color-accent-800)}
+  .rl-readwrap .rl-seg.on{font-weight:700;color:var(--color-accent-800);
     background:none;box-shadow:inset 0 -2px var(--accent-solid)}
-  html.dark .redline-page .rl-readwrap .rl-seg.on{background:none}
-  .redline-page .rl-readwrap .rl-seg-n{font-family:var(--font-mono);font-size:12px;font-weight:400;
+  html.dark .rl-readwrap .rl-seg.on{background:none}
+  .rl-readwrap .rl-seg-n{font-family:var(--font-mono);font-size:12px;font-weight:400;
     font-variant-numeric:tabular-nums;color:var(--color-neutral-500)}
-  .redline-page .rl-readwrap .rl-seg.on .rl-seg-n{color:var(--color-accent-800)}
+  .rl-readwrap .rl-seg.on .rl-seg-n{color:var(--color-accent-800)}
 
   /* ---- 3 · THE RIGHT-HAND CONTROLS QUIETEN DOWN ----
      One box for the text size, a teal-filled seat switch, and a plain link back
