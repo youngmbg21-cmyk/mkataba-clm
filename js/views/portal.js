@@ -306,9 +306,24 @@ function portalVerbStyle(){
      Two classes beats one, whatever the order, so the sheet can be injected
      whenever and by whichever screen gets there first. */
   el.textContent=`
-    .ui-btn.pt-verb{color:var(--color-accent-800);background:var(--color-accent-100);
-      border-color:var(--color-accent);}
-    .ui-btn.pt-verb:hover{background:var(--color-accent-200);border-color:var(--color-accent-700);}
+    /* ---- NO FILL: THEY MATCH THE DEAL VERBS BESIDE THEM (owner-reported
+       23 Aug 2026: "the highlighted buttons should not be shaded inside and
+       should resemble the ready to sign button") ----
+       These carried an accent TINT while Ready to sign, Decline and Share a
+       read-only copy — the deal verbs on the same row — are plain .ui-btn on a
+       transparent face. So the READING controls were the loudest things on a
+       row whose actual acts sat beside them unshaded, which is the weighting
+       upside down.
+       Flat is not grey, which is the lesson this product has learned three
+       times: the border and the ink stay the workspace accent, so they are
+       still plainly controls. Only the wash goes. Reaches pt-hist, pt-compare,
+       pt-more and pt-bell — every button that wears this class — because a row
+       where three lose the tint and one keeps it is the report coming straight
+       back. */
+    .ui-btn.pt-verb{color:var(--color-accent-800);background:transparent;
+      border-color:color-mix(in srgb,var(--accent-solid) 45%,transparent);}
+    .ui-btn.pt-verb:hover{background:color-mix(in srgb,var(--accent-solid) 10%,transparent);
+      border-color:var(--accent-solid);}
     .ui-btn.pt-verb svg{flex:none;}`;
   document.head.appendChild(el);
 }
@@ -2796,6 +2811,13 @@ function portalWorkbenchStyle(){
        group to the right-hand end, which is the corner the reader's eye already
        goes to for an act on this page. */
     .pw-id .pw-foot{margin-left:auto;}
+    /* ---- THE SECOND LINE: READING ON THE LEFT, ACTS ON THE RIGHT ----
+       flex-basis:100% is what makes it a LINE rather than more items in the
+       wrapping run above — the pair used to arrive there only when the row
+       happened to overflow, which depended on the length of the contract's
+       name. See the note at the markup. */
+    .pw-id-row2{flex:0 0 100%;display:flex;align-items:center;gap:10px;
+      flex-wrap:wrap;row-gap:9px;min-width:0;}
     /* ---- THE OVERFLOW MENU, AND THE ROW IT HAS TO LIVE IN ----
        position:relative on the wrapper, not on .pw-id: the menu is absolutely
        placed and .pw-id is a wrapping flex row, so hanging it off the row would
@@ -2970,15 +2992,6 @@ function renderShareWorkbench(p, opts={}){
              not a seat-relative fact. The stepper is the shared component
              (rlSetDocType updates every mounted .redline-page, this embed
              included). */}
-      ${''/* ---- HOW THE CONTRACT READS (owner-asked, 15 Aug 2026) ----
-             Redlined / As agreed / With changes, the owner's own switch through
-             the one shared builder (rlReadSegsHtml) rather than a second copy.
-             Their document renderer has ALWAYS honoured this setting — it asks
-             rlReadMode like the owner's does — so the page could draw all three
-             readings and simply had no way to ask for them. Beside the text
-             stepper because both answer "how am I reading this", and neither is
-             a verb: the deal verbs are on the other side of the row. */}
-      ${window.rlReadSegsHtml ? rlReadSegsHtml() : ''}
       ${window.rlTypeStepHtml ? rlTypeStepHtml() : ''}
       ${''/* Their own overflow: a clean PDF, a Word file with the marks, and
              focus mode. See portalMoreMenuHtml for the six rows it deliberately
@@ -2998,7 +3011,28 @@ function renderShareWorkbench(p, opts={}){
              page, inside its own card — is untouched. NEVER hidden: see the
              .pw-foot note in portalWorkbenchStyle for the week this bar spent
              as [hidden] and what that cost. */}
-      <div id="pt-nego-foot" class="pw-foot"></div>
+      ${''/* ---- HOW THE CONTRACT READS, ON ITS OWN LINE (owner-reported
+             23 Aug 2026: "the redlined, as agreed and with changes should move
+             to the highlighted area just like how it is in the negotiations
+             page") ----
+             Redlined / As agreed / With changes is the owner's own switch
+             through the one shared builder (rlReadSegsHtml) — never a second
+             copy — and their document renderer has always honoured the setting.
+             It used to sit up among the identity row's controls; the deal verbs
+             wrapped to a second line beneath and left that line empty on its
+             left. So the two now share that line the way the negotiation page's
+             control bar does: how you are READING on the left, what you can DO
+             on the right.
+             ONE ROW ELEMENT, so the pair cannot come apart: flex-basis:100%
+             forces the break rather than relying on the identity row happening
+             to wrap, which depended on how long the contract's name was.
+             #pt-nego-foot keeps its id, its class and its builder — every
+             refill site, portalSetBusy and f180's roll call reach it exactly as
+             before; only its parent changed. */}
+      <div class="pw-id-row2">
+        ${window.rlReadSegsHtml ? rlReadSegsHtml() : ''}
+        <div id="pt-nego-foot" class="pw-foot"></div>
+      </div>
     </section>
     <div class="pw-notes">
       ${portalClosedBanner()}

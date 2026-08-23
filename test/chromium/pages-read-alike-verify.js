@@ -285,11 +285,22 @@ const SEED = async () => {
       uniq(heads.nego, 'top').length === 1, uniq(heads.nego, 'top'));
     check('5 at the same size',
       uniq(heads.nego, 'fs').length === 1, uniq(heads.nego, 'fs'));
-    /* WEIGHT IS THE ONE THING ALLOWED TO DIFFER, and only on the filled act —
-       the render draws its .emph at 700 and everything else at 400. */
-    check('5 and only the one filled act is bold',
-      heads.nego.every(b => (b.fw === '700') === b.filled),
-      heads.nego.map(b => `${b.t}:${b.fw}${b.filled ? ' filled' : ''}`));
+    /* WEIGHT IS THE ONE THING ALLOWED TO DIFFER, and exactly one act may carry
+       it. REVERSED IN PLACE 23 Aug 2026, owner-asked ("the publish round 1
+       button should also not be shaded"): this used to read "only the FILLED
+       act is bold", because .rl-btn-go was this page's single fill. It is not
+       filled any more — so weight is now the whole of what marks the round's
+       own next step, and the claim is written as the relation it was always
+       about: exactly one bold act, and nothing on the row filled. The third
+       time "one filled act per page" has been reversed on the owner's ask; see
+       FIVE FIXES AND A CALENDAR, where the contract room's head gave its fill
+       up the day before for the same reason. */
+    check('5 nothing on the row is filled',
+      heads.nego.every(b => !b.filled),
+      heads.nego.map(b => `${b.t}:${b.filled ? 'FILLED' : 'flat'}`));
+    check('5 and exactly one act is bold — that is what leads now',
+      heads.nego.filter(b => b.fw === '700').length === 1,
+      heads.nego.map(b => `${b.t}:${b.fw}`));
 
     await page.evaluate(id => openWorkspace(id), cid);
     await pause(1800);
@@ -337,6 +348,50 @@ const SEED = async () => {
       chipRoom.bd === chipNego.bd && chipRoom.bg === chipNego.bg
         && chipRoom.h === chipNego.h && chipRoom.pad === chipNego.pad,
       { room: chipRoom, nego: chipNego });
+
+    /* ---- 7 · EVERY BUTTON IN A HEAD ROW WEARS THE SAME OUTLINE ----
+       Owner-reported 23 Aug 2026, off two screenshots: "the more buttons
+       should have the same color outline like the other buttons", and "the
+       publish round 1 button should also not be shaded."
+
+       MEASURED before it was touched: .ws-more-btn named a GREY border of its
+       own — the one button in the row not wearing .ui-btn's accent — while
+       .rl-btn-go carried the accent FILL. So the row had two odd men out, at
+       opposite ends: one too quiet to read as a button and one loud enough to
+       read as a second primary. Both are the same defect this file has already
+       recorded twice in other clothes: a control dressing itself instead of
+       inheriting the class every other control on the row inherits.
+
+       A RELATION AGAIN, not a colour: every button in the row agrees, and the
+       one they agree on is not "no outline". Both heads, because .ws-more-btn
+       draws on the contract room's too and only the negotiation head was in
+       the screenshot. */
+    const outlines = async () => page.evaluate(sel =>
+      [...document.querySelectorAll(sel)]
+        .filter(b => b.getBoundingClientRect().height > 0)
+        .map(b => { const c = getComputedStyle(b);
+          return { t: (b.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 18),
+            bd: c.borderTopColor, bw: c.borderTopWidth,
+            bg: c.backgroundColor }; }),
+      '#ws-head .room-acts button, .room-head .room-acts button');
+
+    const oNego = await outlines();
+    check('7 the negotiation head draws its row', oNego.length >= 4, oNego.map(b => b.t));
+    check('7 every button in it has an outline', oNego.every(b => parseFloat(b.bw) > 0),
+      oNego.map(b => `${b.t}:${b.bw}`));
+    check('7 and they are all the same colour — More included',
+      [...new Set(oNego.map(b => b.bd))].length === 1, [...new Set(oNego.map(b => b.bd))]);
+    check('7 none of them is shaded inside',
+      oNego.every(b => b.bg === 'rgba(0, 0, 0, 0)'), oNego.map(b => `${b.t}:${b.bg}`));
+
+    await page.evaluate(id => openWorkspace(id), cid);
+    await pause(1800);
+    const oRoom = await outlines();
+    check('7 the contract room\'s head agrees with itself the same way',
+      oRoom.length >= 3 && [...new Set(oRoom.map(b => b.bd))].length === 1
+        && oRoom.every(b => parseFloat(b.bw) > 0), oRoom);
+    check('7 and both heads settled on the SAME outline — one class, two pages',
+      oRoom[0].bd === oNego[0].bd, { room: oRoom[0].bd, nego: oNego[0].bd });
 
     check('no page errors', errors.length === 0, errors.slice(0, 3));
   } finally {

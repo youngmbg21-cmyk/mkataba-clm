@@ -5030,7 +5030,7 @@ function roomHeadHtml(c,opts={}){
              purple buttons fold, without the button changing identity — its
              id, its title and its textContent-based tests are untouched. */}
       <div style="position:relative;flex:none">
-        <button id="ws-more" class="ui-btn ui-btn-lg ui-btn-plain ws-more-btn" aria-haspopup="true" aria-expanded="false"
+        <button id="ws-more" class="ui-btn ui-btn-lg ws-more-btn" aria-haspopup="true" aria-expanded="false"
           title="${i18t('ct_everything_else')}">
           <span aria-hidden="true" style="font-size:15px;line-height:1">&#8943;</span>
           <span class="ws-more-word">${i18t('ct_more')}</span>

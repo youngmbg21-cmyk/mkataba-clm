@@ -1736,8 +1736,17 @@
      is where that number lives, and one class quietly overriding it is how a
      row of four ends up with three heights. The padding and the size stay —
      they are this control's own and they do not fight anything. */
-  .ws-more-btn{ padding:0 10px; gap:6px; font-size:14px;
-    border-color:var(--color-neutral-300); }
+  /* ---- IT WEARS THE ROW'S OWN OUTLINE (owner-reported 23 Aug 2026: "the more
+     buttons should have the same color outline like the other buttons") ----
+     It carried .ui-btn-plain (no border) and then took a NEUTRAL grey one back,
+     so in a row of accent-outlined buttons it was the one grey box. That is
+     this product's most-repeated lesson — a neutral-grey control reads as
+     furniture — and it applies to an outline as much as to a face.
+     BOTH halves go: the class comes off the button in js/views/contract.js and
+     the grey override comes off here, so it simply inherits .ui-btn's accent
+     border like Share and Draft new agreement beside it. Reaches the contract
+     room's head and the negotiation page's, which draw one builder. */
+  .ws-more-btn{ padding:0 10px; gap:6px; font-size:14px; }
   .ws-more-btn:hover{ border-color:var(--color-accent); color:var(--color-accent-800); }
   .ws-more-btn .ws-more-caret{ display:inline-flex; transition:transform .15s; }
   .ws-more-btn[aria-expanded="true"]{ border-color:var(--color-accent);

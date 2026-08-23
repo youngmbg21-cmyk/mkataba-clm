@@ -129,6 +129,69 @@ const PAPER = `(() => {
     check('1 exactly one of them reads as chosen',
       sw.pressed.filter(x => x === 'true').length === 1, JSON.stringify(sw.pressed));
 
+    /* ---- 1b. AND IT SITS WHERE THE NEGOTIATION PAGE PUTS IT ----
+       Owner-asked 23 Aug 2026, off a screenshot: "the redlined, as agreed and
+       with changes should move to the highlighted area just like how it is in
+       the negotiations page." On the owner's own page the three readings are a
+       tab row on the LEFT of the control bar with the acts at its right end;
+       here they had been dropped into the middle of the identity line, between
+       the contract's name and the reading buttons, so the same three words did
+       a different job on each page.
+
+       They are their own row now — `.pw-id-row2`, a full-width flex item
+       inside the same header — with the deal verbs (#pt-nego-foot) at its
+       right end, which is the negotiation page's arrangement exactly.
+
+       ASSERTED AS A GEOMETRY, not as a class: on ONE line with the verbs, to
+       the LEFT of them, and BELOW the title. A markup check would pass on a
+       wrapper that had been styled back into the wrong place. */
+    const row2 = await page.evaluate(() => {
+      const bx = e => e ? { y: Math.round(e.getBoundingClientRect().top),
+        l: Math.round(e.getBoundingClientRect().left) } : null;
+      return { segs: bx(document.querySelector('.pw-id .rl-readwrap')),
+        foot: bx(document.getElementById('pt-nego-foot')),
+        title: bx(document.querySelector('.pw-id-main')) };
+    });
+    check('1b the readings and the deal verbs share one line',
+      !!row2.segs && !!row2.foot && Math.abs(row2.segs.y - row2.foot.y) <= 6,
+      JSON.stringify(row2));
+    check('1b with the readings on its LEFT, as on the negotiation page',
+      !!row2.segs && !!row2.foot && row2.segs.l < row2.foot.l,
+      JSON.stringify({ segs: row2.segs && row2.segs.l, foot: row2.foot && row2.foot.l }));
+    check('1b and that line sits BELOW the contract\'s name',
+      !!row2.title && !!row2.segs && row2.segs.y > row2.title.y,
+      JSON.stringify({ title: row2.title && row2.title.y, segs: row2.segs && row2.segs.y }));
+
+    /* ---- 1c. AND THE READING BUTTONS ARE NOT SHADED ----
+       Same message: "the highlighted buttons in image 2 should not be shaded
+       inside and should resemble the ready to sign button." .ui-btn's accent
+       TINT was doing it — measured, the four controls at the head's right
+       (Negotiation history, Compare wording, the bell, More) each drew a
+       filled face while the deal verbs beside them drew flat, so one header
+       carried two treatments of the same kind of control.
+
+       THE FLAT TREATMENT IS THE ACCENT ONE, not a grey one — this product has
+       learned three times that a neutral control reads as furniture, and that
+       lesson is kept: border and ink stay the workspace accent, only the fill
+       goes. Asserted as a RELATION against the deal verbs the owner named. */
+    const dress = await page.evaluate(() => {
+      const read = sel => [...document.querySelectorAll(sel)]
+        .filter(b => b.getBoundingClientRect().height > 0)
+        .map(b => { const c = getComputedStyle(b);
+          return { t: (b.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 18),
+            bg: c.backgroundColor, bd: c.borderTopColor, bw: c.borderTopWidth }; });
+      return { verbs: read('.pw-id-verb'), deal: read('#pt-nego-foot button') };
+    });
+    const flat = b => b.bg === 'rgba(0, 0, 0, 0)' || /,\s*0\)$/.test(b.bg);
+    check('1c the reading buttons and the bell carry no fill',
+      dress.verbs.length >= 3 && dress.verbs.every(flat),
+      JSON.stringify(dress.verbs));
+    check('1c so they resemble the deal verbs beside them, as asked',
+      dress.deal.length >= 1 && dress.deal.every(flat), JSON.stringify(dress.deal));
+    check('1c but they are still plainly buttons — accent outline, never grey',
+      dress.verbs.every(b => parseFloat(b.bw) > 0 && !/rgb\(2\d\d, 2\d\d, 2\d\d\)/.test(b.bd)),
+      JSON.stringify(dress.verbs.map(b => `${b.t}:${b.bd}`)));
+
     /* ---- 2 & 3. PRESSING ONE CHANGES THE PAPER ----
        The claim that matters. Their document renderer has always honoured the
        setting; what was missing was any way to set it. So the proof is not

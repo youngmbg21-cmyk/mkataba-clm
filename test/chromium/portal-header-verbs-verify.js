@@ -130,6 +130,8 @@ const VERBS = [
       foot: box(foot), head: box(head), doc: box(doc),
       footInHead: !!(head && foot && head.contains(foot)),
       compare: box(byId('pt-compare')),
+      /* The reading switch, which shares the deal verbs' row since 23 Aug 2026. */
+      segs: box(document.querySelector('.pw-id .rl-readwrap')),
       stepper: box(document.querySelector('.pw-id .rl-type-step')),
       /* What the request deleted, and what it must not have deleted. */
       nameBoxGone: !byId('nego-cp-name') && !document.querySelector('.pw-id .nego-who'),
@@ -181,11 +183,27 @@ const VERBS = [
     !!m.doc && !!m.head && m.doc.top - m.head.bottom < 90,
     m.doc && m.head ? `${m.doc.top - m.head.bottom}px between header and document` : 'missing one');
 
-  /* ---- 4. beside Compare wording, and the stepper stayed put ---- */
-  check('Ready to sign is on the header\'s own line, right of Compare wording',
+  /* ---- 4. in the header, and the stepper stayed put ----
+     REVERSED IN PLACE 23 Aug 2026, owner-asked ("the redlined, as agreed and
+     with changes should move to the highlighted area just like how it is in
+     the negotiations page"). This read "right of Compare wording", which was
+     true while the whole header was one line. The reading switch now has a row
+     of its own inside that header — `.pw-id-row2`, switch at its left and the
+     deal verbs at its right, which is the negotiation page's arrangement — so
+     the deal verbs sit BELOW Compare wording rather than beside it.
+
+     WHAT THE CLAIM WAS ALWAYS ABOUT SURVIVES AND IS STILL PINNED: the verbs are
+     in the header (check 2 above), not a band across the page, and they are at
+     the RIGHT END of whatever line they are on. That is the relation; which
+     line it is was never the point. */
+  check('the deal verbs are at the right end of their row, with the readings at its left',
     (() => { const r = m.verbs[0].box;
-      return !!r && !!m.compare && r.left >= m.compare.right - 2; })(),
-    m.compare ? `compare right=${m.compare.right}, ready left=${m.verbs[0].box && m.verbs[0].box.left}` : 'no compare');
+      return !!r && !!m.segs && r.left >= m.segs.right - 2; })(),
+    m.segs ? `readings right=${m.segs.right}, ready left=${m.verbs[0].box && m.verbs[0].box.left}` : 'no readings');
+  check('and that row is below the identity line Compare wording sits on',
+    (() => { const r = m.verbs[0].box;
+      return !!r && !!m.compare && r.top >= m.compare.bottom - 2; })(),
+    m.compare ? `compare bottom=${m.compare.bottom}, ready top=${m.verbs[0].box && m.verbs[0].box.top}` : 'no compare');
   check('the text-size stepper is still in the header, untouched',
     !!m.stepper && m.stepper.w > 0, m.stepper ? `${m.stepper.w}x${m.stepper.h}` : 'absent');
 

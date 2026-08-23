@@ -824,6 +824,9 @@ const ALERT_KINDS = [
   { k:'review-out',  tone:'gray',  ic:'&#8987;'  },
   { k:'approval',    tone:'amber', ic:'&#9989;'  },
   { k:'signature',   tone:'green', ic:'&#9997;'  },
+  /* GREEN, and the same green the status word and the bell take when they say
+     this — three surfaces, one signal, one colour. */
+  { k:'cp-ready',    tone:'green', ic:'&#128077;'},
   { k:'renewal',     tone:'gray',  ic:'&#128197;'},
 ];
 const ALERT_TONE = { amber:'var(--st-amber-dot)', green:'var(--st-green-dot)',
@@ -846,6 +849,26 @@ function buildAlerts(){
     cs.filter(c=>{ try{ return negoIsLive(c); }catch(_){ return false; } }).forEach(c=>{
       let n=0; try{ n=negoNeedsYouIds(c).length; }catch(_){ n=0; }
       if(n) push('negotiation',c,i18tn('al_nego',n,{n}),()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); });
+    });
+  }
+  /* 1b. THE COUNTERPARTY HAS SAID THEY ARE READY TO SIGN (owner-reported
+         23 Aug 2026: it was not appearing on this panel at all).
+         It belongs under "waiting on you" and near the top, because it IS: they
+         have done their part and the next move is issuing the signing link.
+         BORROWED, NEVER DERIVED — cpReadyToSign is the one predicate the status
+         word and the register chip also ask, so the panel cannot come to
+         disagree with the page it opens. It answers false on a stale signal
+         (anything reopened) and on a contract already signed, so this row goes
+         away by itself exactly when the fact does.
+         READ WITHOUT WRITING, like every count on this panel: cpReadyToSign
+         reaches negoReadySignal, which reads c.negotiation raw and never calls
+         negoChanges — that would start a negotiation on every contract asked
+         about, on every repaint. */
+  if(window.cpReadyToSign){
+    cs.forEach(c=>{
+      let ready=false; try{ ready=cpReadyToSign(c); }catch(_){ ready=false; }
+      if(ready) push('cp-ready',c,i18t('al_cp_ready'),
+        ()=>{ if(window.openWorkspace) openWorkspace(c.id); });
     });
   }
   /* 2. Reviews: what I owe a verdict on, and what I am waiting on. Both from

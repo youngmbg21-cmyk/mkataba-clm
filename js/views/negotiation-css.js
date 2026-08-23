@@ -1336,6 +1336,27 @@ function redlineLayoutCss(){
     display:flex;align-items:center;justify-content:center;
     box-shadow:0 16px 36px -14px rgba(15,23,42,.34)}
   .rl-notices-fab:hover{filter:brightness(.97)}
+  ${''/* ---- GREEN AND BLINKING WHILE THERE IS NEWS (owner-asked 23 Aug 2026) ----
+         The bell is amber for WORK and green for NEWS YOU HAVE NOT SEEN — see
+         rlBellIsNews for why those are two different things and only one of
+         them is settled by looking.
+         IT STOPS. Three seconds of pulse and then it holds the green: a control
+         that flashes all afternoon is one the reader learns to look away from,
+         which is the opposite of what it is for. The COLOUR stays until the
+         bell is opened, so nothing is lost by the animation ending.
+         AND IT RESPECTS THE READER'S OWN SETTING. Somebody who has asked their
+         computer for reduced motion gets the green and no pulse at all — the
+         signal is in the colour, and the movement is only an amplifier. */}
+  .rl-notices-fab.is-news{border-color:var(--st-green-line);background:var(--st-green-bg);
+    color:var(--st-green-fg);animation:rl-bell-news 1s ease-in-out 0s 3}
+  .rl-notices-fab.is-news .rl-fab-dot{background:var(--st-green-dot)}
+  @keyframes rl-bell-news{
+    0%,100%{box-shadow:0 16px 36px -14px rgba(15,23,42,.34),0 0 0 0 color-mix(in srgb,var(--st-green-dot) 55%,transparent)}
+    50%{box-shadow:0 16px 36px -14px rgba(15,23,42,.34),0 0 0 9px color-mix(in srgb,var(--st-green-dot) 0%,transparent)}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .rl-notices-fab.is-news{animation:none}
+  }
   .rl-fab-dot{position:absolute;top:1px;right:1px;width:10px;height:10px;
     border-radius:0;background:var(--st-amber-dot);border:2px solid var(--color-surface)}
   /* ---- AND HIDE IS A CONTROL, SO IT IS COLOURED LIKE ONE ----
@@ -1413,13 +1434,26 @@ function redlineLayoutCss(){
   .redline-page .rl-btn-alt:hover:not(:disabled){background:color-mix(in srgb,#8b5cf6 10%,transparent);
     border-color:#8b5cf6}
   html.dark .redline-page .rl-btn-alt{color:#c4b5fd}
-  /* THE PAGE'S ONE FILLED ACT. Its glow came off with the platform's — a filled
-     accent face is already the loudest thing on this row, and the halo was what
-     made it read as a third weight beside the amber batch send. */
-  .redline-page .rl-btn-go{background:var(--accent-solid);color:#fff;
+  /* ---- AND THE FILL CAME OFF TOO (owner-reported 23 Aug 2026: "the publish
+     round button should also not be shaded") ----
+     This was the page's ONE filled act, and it is the third time that rule has
+     been reversed by the same hand: the contract room's lead button gave its
+     fill up on 22 Aug for the same reason. The pattern is settled now — this
+     owner reads a filled face as shouting, not as leading, and every head row
+     in the product is flat.
+     BOTH BUTTONS THAT WEAR THIS CLASS CHANGE, not just the one in the
+     screenshot: Publish Round and Close Round are both .rl-btn-go, and filling
+     one while flattening the other would leave the row inconsistent in a new
+     way — which is exactly the report that came back last time.
+     WHAT IT KEEPS is .rl-btn's accent border and ink plus its own 700 weight,
+     so the act still LEADS its row by weight and position. The glow came off
+     earlier for its own reason and stays off. */
+  .redline-page .rl-btn-go{background:none;color:var(--color-accent-800);
     border-color:var(--accent-solid)}
-  .redline-page .rl-btn-go:hover:not(:disabled){background:var(--accent-solid-hover);
-    border-color:var(--accent-solid-hover)}
+  .redline-page .rl-btn-go:hover:not(:disabled){
+    background:color-mix(in srgb,var(--accent-solid) 10%,transparent);
+    border-color:var(--accent-solid)}
+  html.dark .redline-page .rl-btn-go{color:var(--color-accent-300)}
 
   /* ---- THE BATCH SEND, AND WHY IT FLASHES ----
      An unsent draft is the one state in this workbench that looks finished and
@@ -3426,7 +3460,20 @@ function redlineLayoutCss(){
          at a fixed height does not centre its own words. Colour, border, fill
          and the filled act's 700 are each button's own and are left alone. */}
   .redline-page #ws-head .room-acts button{height:28px;padding:0 11px;font-size:14px;
-    line-height:1.2;display:inline-flex;align-items:center;box-sizing:border-box}
+    line-height:1.2;display:inline-flex;align-items:center;box-sizing:border-box;
+    ${''/* ONE OUTLINE FOR THE WHOLE ROW (owner-asked 23 Aug 2026: "the more
+           buttons should have the same color outline like the other buttons").
+           MEASURED before it was touched, this row drew THREE accent borders:
+           .ui-btn's 45% mix on More and Share, .rl-pb-btn's own 50% mix on
+           Internal review, and .rl-btn-go's opaque --accent-solid on Publish
+           Round. Three near-identical teals is worse than one wrong one — it
+           reads as a rendering fault rather than as a decision.
+           IT IS SETTLED HERE RATHER THAN IN EACH CLASS because two of those
+           classes also draw on the CONTROL BAR, whose metrics feed
+           rlFitTabRow's fold ladder; this selector is (0,3,1) and beats all
+           three, and it reaches neither .rl-tabrow nor .rl-head. Same scope,
+           same reason, as the height pin it sits inside. */}
+    border-color:color-mix(in srgb,var(--accent-solid) 45%,transparent)}
   ${''/* The one filled act keeps its weight; the rest read as the render's
          ordinary verbs. */}
   .redline-page #ws-head .room-acts button:not(.rl-btn-go):not(.ui-btn-primary){font-weight:400}

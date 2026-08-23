@@ -449,13 +449,48 @@ function contractPartiallySigned(c){
    Partially-signed outranks Expired: a contract missing a signature was
    never fully in force, and "Expired" would read as "it was". */
 const contractStage = c => contractPartiallySigned(c) ? 'Partially signed'
-  : contractExpired(c) ? 'Expired' : (c&&c.status);
+  : contractExpired(c) ? 'Expired'
+  : cpReadyToSign(c) ? 'Ready to sign' : (c&&c.status);
+/* ---- THEY HAVE SAID THEY ARE READY (owner-asked 23 Aug 2026) ----
+   A THIRD DISPLAY OVERLAY, on exactly the footing of the two beside it: the
+   STORED status is untouched, so every filter, every query and the server go on
+   seeing Under Review. Only the word on screen changes.
+
+   `cpReadyToSign` asks negoReadySignal, which is the ONE reading of this fact
+   and already computes `stale` — true the moment anything is reopened. So "it
+   reverts to In Review if you resume negotiating" needs no machinery of its
+   own: a stale signal simply is not shown. It also returns null once that side
+   has signed, which is what keeps this from standing over a signed contract.
+
+   IT OUTRANKS NOTHING. Partially-signed and Expired are both facts about a
+   contract that has moved PAST negotiation, and either of them is the more
+   important thing to say — so this is asked last, and only of a contract still
+   in review.
+
+   TWO WORDS, ONE READING. The head prints the whole sentence; a table chip gets
+   the short one, because a register column cannot afford five words and the two
+   dresses of this reading have always been allowed to differ in length (see
+   contractStatusTextHtml). What they may never differ on is WHETHER they say
+   it, which is why both ask this one predicate. */
+function cpReadyToSign(c){
+  if(!c || (c.status!=='Under Review' && c.status!=='In Review')) return false;
+  if(typeof window==='undefined' || typeof window.negoReadySignal!=='function') return false;
+  let sig=null; try{ sig=window.negoReadySignal(c,'counterparty'); }catch(_){ sig=null; }
+  return !!(sig && !sig.stale);
+}
+const READY_META = _stMeta('status_cp_ready', 'Counterparty ready to sign', 'var(--st-green-dot)', 'var(--st-green-bg)', 'var(--st-green-fg)', 'var(--st-green-line)');
+const READY_META_SHORT = _stMeta('status_cp_ready_short', 'Ready to sign', 'var(--st-green-dot)', 'var(--st-green-bg)', 'var(--st-green-fg)', 'var(--st-green-line)');
 const EXPIRED_META = _stMeta('status_expired', 'Expired', 'var(--st-gray-dot)', 'var(--st-gray-bg)', 'var(--st-gray-fg)', 'var(--st-gray-line)');
 const PARTIAL_META = _stMeta('status_partially_signed', 'Partially signed', 'var(--st-amber-dot)', 'var(--st-amber-bg)', 'var(--st-amber-fg)', 'var(--st-amber-line)');
 const contractStatusChip = c => contractPartiallySigned(c)
   ? `<span class="badge" title="${typeof t==='function'?i18t('status_partially_signed_title'):"Sealed — awaiting the counterparty's signature. Copies go out when every party has signed."}" style="background:${PARTIAL_META.bg};color:${PARTIAL_META.tx}">${PARTIAL_META.label}</span>`
   : contractExpired(c)
   ? `<span class="badge" style="background:${EXPIRED_META.bg};color:${EXPIRED_META.tx}">${EXPIRED_META.label}</span>`
+  /* THE SHORT WORD IN A TABLE (owner-chose it, 23 Aug 2026): a register column
+     cannot afford "Counterparty ready to sign", and the title carries the whole
+     sentence for anybody who hovers. */
+  : cpReadyToSign(c)
+  ? `<span class="badge" title="${i18t('status_cp_ready')}" style="background:${READY_META.bg};color:${READY_META.tx}">${READY_META_SHORT.label}</span>`
   : statusChip(c&&c.status);
 // Pill status chip: wash bg + tone fg, 999px radius. No inner dot — the chip's
 // own colour carries the stage; the separate share dot (shareDot) sits outside
@@ -479,6 +514,7 @@ const statusChip = s => { const m=STATUS_META[s]||STATUS_META.Draft;
 const contractStatusTextHtml = c => {
   const m = contractPartiallySigned(c) ? PARTIAL_META
     : contractExpired(c) ? EXPIRED_META
+    : cpReadyToSign(c) ? READY_META
     : (STATUS_META[c && c.status] || STATUS_META.Draft);
   return `<span class="room-stat" style="color:${m.tx}">${m.label}</span>`;
 };
@@ -5635,4 +5671,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,isArchived,contractSetArchived,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{cpReadyToSign,READY_META,READY_META_SHORT,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,isArchived,contractSetArchived,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});
