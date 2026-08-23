@@ -1,4 +1,4 @@
-/* f238 — A GAP IS A GAP: the two Compare windows read both sides in one shape
+/* f239 — A GAP IS A GAP: the two Compare windows read both sides in one shape
    ============================================================
    Owner-reported 23 Aug 2026, off two screenshots of the SAME window: "The
    original" against "Proposed" read perfectly; "The original" against a saved
@@ -68,7 +68,7 @@ const STRUCTURED = [
 
 const marks = (a, b) => wordDiff(a, b).filter(p => p.t !== 'eq');
 
-test('f238 — a gap is a gap', async t => {
+test('f239 — a gap is a gap', async t => {
 
   /* ---- 1. THE FAULT, REPRODUCED ---- */
 

@@ -2057,7 +2057,7 @@ character.** `diffCompareText` (js/versioning.js, beside the diff) is a reading
 of two texts on their way to a SCREEN: per line, collapse the runs and trim —
 which is the treatment BOTH serialisers already apply — then drop the blank
 lines they disagree about. Nothing stored moves, no fingerprint moves, and
-f238 asserts both engines still reproduce their texts byte for byte.
+f239 asserts both engines still reproduce their texts byte for byte.
 
 **IT COSTS LESS THAN IT LOOKS.** The obvious worry — "a paragraph genuinely
 split in two would stop showing" — does not hold: a split turns a SPACE into a
@@ -2078,12 +2078,12 @@ exported and dead; left alone rather than deleted in passing.
 **THE FALLBACK IS THE TRAP TO WATCH.** portal.js reads the helper through
 `window` with the raw text as its fallback, so a missing import would put the
 bug straight back **silently** — the rlPaperFootHtml class, six times paid for.
-f232 proves the name is published; f238 additionally pins that `js/app.js`
+f232 proves the name is published; f239 additionally pins that `js/app.js`
 imports versioning.js, which is what puts it on window for the share page.
 
 **AND NOTHING HAD EVER DRIVEN EITHER WINDOW.** No test in the suite named
 `openCompareModal`, `openPortalVersionCompare`, or any control inside them
-before f238 — which is why a fault this visible survived. Tests: f238 (19 — the
+before f239 — which is why a fault this visible survived. Tests: f239 (19 — the
 fault reproduced with its own counter as the tell, the reading, the four kinds
 of real change proved to still show, both engines proved byte-exact, both
 windows' call sites, the import, and the edges; **12 of the 19 fail against the
