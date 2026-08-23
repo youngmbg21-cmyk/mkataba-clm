@@ -343,6 +343,70 @@ const ROUTE = [
       live.disabled === false && !live.blockers.length && !/^Sign — /.test(live.label),
       `${live.label} · [${live.blockers.join(', ')}]`);
 
+    /* ---- AN EXECUTED CONTRACT KEEPS ITS SIGNING COLUMN (owner-reported
+       22 Aug 2026: "the signing order card should not be deleted once a
+       contract has been executed. It should stay intact but … non responsive
+       with words alluding to the contract having been executed and closed") ----
+       renderSignButton returns early on a signed contract and renderSignSide —
+       which draws the WHOLE right-hand column, both the approval gate and the
+       signing order — is called at the foot of that function, so on an
+       executed contract the column was never built. MEASURED on a real
+       executed record before the fix: the host existed, was 0px wide and held
+       nothing.
+       IT IS THE RECORD OF HOW THE THING WAS SIGNED, which is what somebody
+       opens a closed contract to read. Drawn, and INERT: the controls are
+       genuinely disabled, not merely dimmed, so the browser refuses the press
+       and a keyboard reader is told rather than led to one that does nothing.
+       The contract is executed THROUGH THE APP'S OWN SAVE so the server keeps
+       it — an in-memory status flip is overwritten by the refetch on open, and
+       a fixture that quietly un-executes itself proves nothing. */
+    const execId = await page.evaluate(async () => {
+      const c = state.contracts.find(x => x.status !== 'Signed' && x.status !== 'Declined');
+      await ensureFull(c);
+      c.status = 'Signed';
+      c.signatures = [{ name: 'Young Mbagaya', party: 'us', at: '2026-08-01T09:00:00.000Z', method: 'in-app' },
+        { name: 'Ola Nordmann', party: 'counterparty', at: '2026-08-02T09:00:00.000Z', method: 'link' }];
+      c.signerPlan = [{ id: 's1', name: 'Young Mbagaya', party: 'us', order: 1, signed: true, at: '2026-08-01T09:00:00.000Z' },
+        { id: 's2', name: 'Ola Nordmann', party: 'counterparty', order: 2, signed: true, at: '2026-08-02T09:00:00.000Z' }];
+      c.execution = { at: '2026-08-02T09:00:00.000Z', seal: 'abc123', html: '<p>frozen</p>' };
+      persist(c); await flushSaves();
+      return c.id;
+    });
+    await page.waitForTimeout(1200);
+    await page.evaluate(id => openWorkspace(id), execId);
+    await page.waitForTimeout(2000);
+    await page.evaluate(() => { const b = document.querySelector('#ws-tabs [data-room-tab="sign"]'); if (b) b.click(); });
+    await page.waitForTimeout(1400);
+    const closed = await page.evaluate(() => {
+      const side = document.getElementById('sign-side');
+      const c = state.contracts.find(x => x.id === state.activeId);
+      const r = side && side.getBoundingClientRect();
+      const ctrls = side ? [...side.querySelectorAll('button,select,input,textarea')] : [];
+      return { executed: c.status === 'Signed',
+        visible: !!(r && r.width > 0 && r.height > 0),
+        cards: side ? side.querySelectorAll('section').length : 0,
+        saysOrder: !!(side && /Signing order/i.test(side.innerText || '')),
+        note: side && side.querySelector('.sign-closed-note')
+          ? side.querySelector('.sign-closed-note').textContent.replace(/\s+/g, ' ').trim() : null,
+        controls: ctrls.length,
+        anyLive: ctrls.some(b => !b.disabled),
+        liveLinks: side ? side.querySelectorAll('a[href]').length : 0,
+        addSigner: !!(side && side.querySelector('#sp-add-signer')) };
+    });
+    check('executed: the fixture really is executed', closed.executed, JSON.stringify(closed));
+    check('executed: the signing column is still drawn',
+      closed.visible && closed.cards >= 1 && closed.saysOrder, JSON.stringify(closed));
+    check('executed: and it says the contract is executed and closed',
+      !!closed.note && /executed and closed/i.test(closed.note), closed.note);
+    /* NOT "there are controls and none is live": a contract with no approval
+       rule and no add-signer button legitimately draws none, and requiring one
+       would fail on the quietest record for no reason. The claim is that
+       whatever IS drawn cannot act. */
+    check('executed: nothing in it can be pressed',
+      !closed.anyLive && closed.liveLinks === 0, JSON.stringify(closed));
+    check('executed: and it offers no way to add a signer',
+      !closed.addSigner, closed.addSigner);
+
     check('no page errors', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {
     await browser.close();

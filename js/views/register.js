@@ -84,7 +84,7 @@ function renderFolder(){
         </label>
         <div style="position:relative">
           <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--color-neutral-500);display:inline-flex">${icon('search','w-3.5 h-3.5')}</span>
-          <input id="folder-search" value="${(state.folderQuery||'').replace(/"/g,'&quot;')}" type="text" placeholder="${i18t('reg_search_folder')}" style="width:230px;max-width:60vw;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:6px 9px 6px 30px;font:inherit;font-size:13px;outline:none;color:inherit">
+          <input id="folder-search" value="${(state.folderQuery||'').replace(/"/g,'&quot;')}" type="text" placeholder="${i18t('reg_search_folder')}" style="width:230px;max-width:60vw;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:6px 9px 6px 30px;font:inherit;font-size:13px;outline:none;color:inherit">
         </div>
       </div>
 
@@ -891,7 +891,14 @@ function renderRegister(opts){
   const ftsBlock=API_MODE()?`
     <div style="position:relative;flex:1;min-width:200px;max-width:340px">
       <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--color-neutral-500);display:inline-flex">${icon('search','w-3.5 h-3.5')}</span>
-      <input id="reg-search" value="${R.query.replace(/"/g,'&quot;')}" placeholder="${esc(i18t('reg_search_ph'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:6px 9px 6px 30px;font:inherit;font-size:13px;outline:none;color:inherit">
+      ${''/* WHITE, LIKE EVERY CONTROL BESIDE IT (owner-reported 22 Aug 2026).
+             It was --color-bg, the PAGE's grey, while all six dropdowns on the
+             same row are --color-surface — so the one box a reader types into
+             was the only sunk thing in a row of raised ones. The stream page's
+             own search box took the same correction in the same breath: two
+             search boxes in one product disagreeing about their own colour is
+             how the next screen picks the wrong one. */}
+      <input id="reg-search" value="${R.query.replace(/"/g,'&quot;')}" placeholder="${esc(i18t('reg_search_ph'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:6px 9px 6px 30px;font:inherit;font-size:13px;outline:none;color:inherit">
       <div id="reg-fts" class="hidden" style="position:absolute;z-index:40;margin-top:4px;width:100%;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:0;max-height:320px;overflow-y:auto"></div>
     </div>`:'';
 

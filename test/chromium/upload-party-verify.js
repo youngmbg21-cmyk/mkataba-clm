@@ -190,6 +190,52 @@ const check = (name, pass, detail) => {
     spread = b.rights.length ? Math.max(...b.rights) - Math.min(...b.rights) : -1;
     check('1920 column: the same straight line, as it always was', spread >= 0 && spread <= 1, `spread ${spread}px`);
 
+    /* ---- THE TWO COLUMNS OF FIELDS STAY LEVEL (owner-reported 22 Aug 2026:
+       "the right and left entry fields should never be misaligned") ----
+       Each field is label · box · hint stacked in its own cell, and HaTi
+       appends "✦ READ FROM THE DOCUMENT" to anything it read out of the file —
+       so the left label routinely wraps to two lines while its neighbour stays
+       on one, and the box under it dropped a whole line. MEASURED against the
+       code of that morning: level at a wide dialog, 20px out at 560px, 20px
+       out on two rows at 480px.
+       DRIVEN AT THREE WIDTHS because the fault only appears once something
+       wraps, and a check at one comfortable width would have passed on the
+       broken build. The dialog is opened directly with a read-out record
+       rather than through a file, so the labels carry their ✦ marks — which is
+       the whole cause. */
+    for (const mw of ['720px', '560px', '480px']) {
+      await page.evaluate(w => {
+        const meta = { counterparty: 'AIT Worldwide Logistics Norway AS',
+          contractType: 'Warehousing and Transportation Services Agreement',
+          value: 2500000, expiryDate: '2026-12-31',
+          sourceSpans: { counterparty: 'AIT Worldwide Logistics Norway AS', value: 'SEK 2,500,000' },
+          confidence: {} };
+        openModal(uploadConfirmHtml({ file: { name: 'AIT.docx' }, textSource: 'docx', upload: {} }, meta),
+          { maxWidth: w });
+      }, mw);
+      await page.waitForTimeout(400);
+      const rows = await page.evaluate(() => {
+        const pairs = [['up-name', 'up-party'], ['up-cp', 'up-cpemail'], ['up-value', 'up-expiry']];
+        return pairs.map(([a, b]) => {
+          const A = document.getElementById(a), B = document.getElementById(b);
+          if (!A || !B) return { pair: a + '/' + b, missing: true };
+          const la = A.previousElementSibling, lb = B.previousElementSibling;
+          return { pair: a.replace('up-', '') + '/' + b.replace('up-', ''),
+            off: Math.round(A.getBoundingClientRect().top - B.getBoundingClientRect().top),
+            labels: [Math.round(la.getBoundingClientRect().height),
+                     Math.round(lb.getBoundingClientRect().height)] };
+        });
+      });
+      check(`upload confirm at ${mw}: every pair of boxes is level`,
+        rows.every(r => !r.missing && r.off === 0), JSON.stringify(rows));
+      /* The narrow widths must actually PRODUCE the wrap, or this proves
+         nothing: a row whose labels are both one line was never at risk. */
+      if (mw !== '720px') check(`upload confirm at ${mw}: and a label really did wrap`,
+        rows.some(r => r.labels && r.labels[0] !== r.labels[1]), JSON.stringify(rows.map(r => r.labels)));
+      await page.evaluate(() => closeModal());
+      await page.waitForTimeout(150);
+    }
+
     check('no page errors on the whole journey', errors.length === 0, errors.join(' | ') || 'clean');
   } catch (e) {
     check('journey completed', false, e.message);

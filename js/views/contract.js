@@ -1184,10 +1184,27 @@ function uploadConfirmHtml(ext, meta){
   const MARK=`<span style="font-family:var(--font-mono);font-size:10px;color:var(--color-accent-700);letter-spacing:.05em"> ✦ ${i18t('ct_read_from_doc').toUpperCase()}</span>`;
   const found=k=>{ const q=spans[k]; if(!q) return '';
     return `<span style="display:block;margin-top:2px;font-size:12px;line-height:1.4;color:var(--color-neutral-600)">found: <i>“${esc2(String(q).replace(/\s+/g,' ').trim().slice(0,140))}”</i></span>`; };
+  /* ---- THREE CHILDREN, ALWAYS, AND THAT IS WHAT KEEPS THE BOXES LEVEL ----
+     (owner-reported 22 Aug 2026: "the right and left entry fields should never
+     be misaligned.")
+     Every cell here is label · control · hint, and the cells are laid out with
+     `grid-template-rows:subgrid` (see .up-grid in index.html) so the two cells
+     in a row share the parent's rows: labels line up with labels, boxes with
+     boxes, hints with hints, whatever any of them wraps to.
+     THE HINT IS EMITTED EVEN WHEN EMPTY. Subgrid places children by ROW, so a
+     cell with only two children puts its control in the label's row and the
+     whole column shifts — the very fault this is fixing, in a new costume. An
+     empty span costs nothing and keeps every cell the same shape.
+     WHY NOT A MIN-HEIGHT ON THE LABEL: it fixes the two-line case and breaks
+     again on three, and it reserves a blank line on every wide screen where
+     nothing wraps at all. This holds at every width by construction. */
+  const cell=(labelHtml, controlHtml, hintHtml)=>
+    `<label class="block up-f"><span class="up-l text-xs font-medium text-brand-800/70">${labelHtml}</span>${controlHtml}<span class="up-h">${hintHtml||''}</span></label>`;
   const fld=(id,label,opts={})=>{
     const read=!!opts.read;
-    return `<label class="block"><span class="text-xs font-medium text-brand-800/70">${label}${read?MARK:''}</span>
-      <input id="${id}" type="${opts.type||'text'}" value="${attr(opts.value||'')}" placeholder="${attr(opts.ph||'')}"${opts.list?` list="${opts.list}"`:''} class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400"${read?' style="border-color:var(--color-accent);background:var(--color-accent-100)"':''}/>${read?found(opts.foundKey||''):''}${opts.sub?`<span style="display:block;margin-top:2px;font-size:12px;color:var(--color-neutral-600)">${opts.sub}</span>`:''}</label>`;
+    return cell(`${label}${read?MARK:''}`,
+      `<input id="${id}" type="${opts.type||'text'}" value="${attr(opts.value||'')}" placeholder="${attr(opts.ph||'')}"${opts.list?` list="${opts.list}"`:''} class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400"${read?' style="border-color:var(--color-accent);background:var(--color-accent-100)"':''}/>`,
+      `${read?found(opts.foundKey||''):''}${opts.sub?`<span style="display:block;margin-top:2px;font-size:12px;color:var(--color-neutral-600)">${opts.sub}</span>`:''}`);
   };
   const fileBase=ext?String(ext.file.name||'').replace(/\.[^.]+$/,''):'';
   const nameFromDoc=has('contractType')&&has('counterparty');
@@ -1205,11 +1222,11 @@ function uploadConfirmHtml(ext, meta){
     .filter(f=>!['counterparty','value','expiryDate'].includes(f.k)&&has(f.k));
   const extraFld=f=>{
     const v=m[f.k];
-    if(f.type==='select') return `<label class="block"><span class="text-xs font-medium text-brand-800/70">${f.label}${MARK}</span>
-      <select data-umf="${f.k}" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400">
-        ${f.opts.map(o=>`<option value="${o}" ${v===o?'selected':''}>${typeof metaOptLabel==='function'?metaOptLabel(o):o}</option>`).join('')}</select>${found(f.k)}</label>`;
-    return `<label class="block"><span class="text-xs font-medium text-brand-800/70">${f.label}${MARK}</span>
-      <input data-umf="${f.k}" type="${f.type==='date'?'date':f.type==='num'?'number':'text'}" value="${attr(v)}" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400"/>${found(f.k)}</label>`;
+    if(f.type==='select') return cell(`${f.label}${MARK}`,
+      `<select data-umf="${f.k}" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400">
+        ${f.opts.map(o=>`<option value="${o}" ${v===o?'selected':''}>${typeof metaOptLabel==='function'?metaOptLabel(o):o}</option>`).join('')}</select>`, found(f.k));
+    return cell(`${f.label}${MARK}`,
+      `<input data-umf="${f.k}" type="${f.type==='date'?'date':f.type==='num'?'number':'text'}" value="${attr(v)}" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400"/>`, found(f.k));
   };
   return `
       <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('sparkle','w-4 h-4')}</span>
@@ -1218,27 +1235,27 @@ function uploadConfirmHtml(ext, meta){
       ${ext&&isOcrText(ext.textSource)?`<div style="display:flex;align-items:flex-start;gap:8px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:0;padding:8px 11px;font-size:13px;line-height:1.55;margin:0 0 12px">
         <span style="flex:none;margin-top:1px">${icon('scan','w-3.5 h-3.5')}</span>
         <span>${esc2(ocrProvenanceLine(ext.upload))} ${i18t('ct_capped_at')} <b>${i18t('ct_medium')}</b> ${i18t('ct_confidence_until')}</span></div>`:''}
-      <div class="grid sm:grid-cols-2 gap-2 mb-3">
+      <div class="grid sm:grid-cols-2 gap-2 mb-3 up-grid">
         ${fld('up-name','Contract name',{value:suggestedName, ph:'e.g. Supply Agreement — Acme', read:nameFromDoc, sub:(ext&&!nameFromDoc)?'from the file name — rename it to what it is':''})}
         ${fld('up-party',i18t('tf_our_party'),{value:(typeof window!=='undefined'&&window.FIRST_PARTY)||'', ph:i18t('tf_our_party_ph'), list:'up-party-list', sub:i18t('tf_our_party_hint')})}
         <datalist id="up-party-list">${uploadPartyOptions().map(p=>`<option value="${attr(p)}"></option>`).join('')}</datalist>
         ${fld('up-cp','Received from (counterparty)',{value:has('counterparty')?m.counterparty:'', ph:'e.g. Acme Ltd', read:has('counterparty'), foundKey:'counterparty'})}
         ${fld('up-cpemail','Their email (so you can send it back)',{ph:'them@company.co.ke', type:'email', sub:ext?'the one thing a document never carries — add it and the first send is one click':''})}
       </div>
-      <div class="grid sm:grid-cols-2 gap-2 mb-3">
-        <label class="block"><span class="text-xs font-medium text-brand-800/70">${i18t('ct_file_under')}</span>
-          <select id="up-folder" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2.5 text-sm outline-none focus:border-brand-400">${folderOptionsHtml(null, false)}</select></label>
-        <label class="block"><span class="text-xs font-medium text-brand-800/70">${i18t('ct_value_type')}</span>
-          <select id="up-vtype" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2.5 text-sm outline-none focus:border-brand-400">
-            <option value="estimated">${i18t('ct_estimated_value')}</option><option value="fixed">${i18t('ct_fixed_value')}</option><option value="none">Non-monetary</option></select></label>
+      <div class="grid sm:grid-cols-2 gap-2 mb-3 up-grid">
+        ${cell(i18t('ct_file_under'),
+          `<select id="up-folder" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2.5 text-sm outline-none focus:border-brand-400">${folderOptionsHtml(null, false)}</select>`)}
+        ${cell(i18t('ct_value_type'),
+          `<select id="up-vtype" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2.5 text-sm outline-none focus:border-brand-400">
+            <option value="estimated">${i18t('ct_estimated_value')}</option><option value="fixed">${i18t('ct_fixed_value')}</option><option value="none">Non-monetary</option></select>`)}
       </div>
-      <div class="grid sm:grid-cols-2 gap-2 mb-3">
+      <div class="grid sm:grid-cols-2 gap-2 mb-3 up-grid">
         ${fld('up-value',`Contract value (${jxCurrency()})`,{value:has('value')?m.value:'', ph:'e.g. 2500000', type:'number', read:has('value'), foundKey:'value'})}
         ${fld('up-expiry','Expiry date (optional)',{value:has('expiryDate')?m.expiryDate:'', type:'date', read:has('expiryDate'), foundKey:'expiryDate'})}
       </div>
       ${extras.length?`<details style="margin:0 0 12px;border:1px solid var(--color-divider);border-radius:0;padding:8px 12px">
         <summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--color-neutral-700)">More details HaTi read (${extras.length}) — renewal, notice, governing law…</summary>
-        <div class="grid sm:grid-cols-2 gap-2" style="margin-top:10px">${extras.map(extraFld).join('')}</div>
+        <div class="grid sm:grid-cols-2 gap-2 up-grid" style="margin-top:10px">${extras.map(extraFld).join('')}</div>
       </details>`:''}
       ${ext&&readCount?`<p style="margin:0 0 10px;font-size:12px;color:var(--color-neutral-600)">Everything ✦ came from the document${meta&&meta._source==='ai'?', read by Copilot':', pattern-matched'}. Nothing is saved until you press <b>${i18t('ct_file_contract')}</b>.</p>`:''}
       <div class="flex items-center gap-2">
@@ -6228,6 +6245,18 @@ function renderSignButton(c){
     document.getElementById('evidence-dl').addEventListener('click',()=>downloadEvidence(c));
     // pressed deliberately, so it goes now — see distributeExecuted's `force`
     document.getElementById('dist-send')?.addEventListener('click',()=>{ if(c.distribution) delete c.distribution; distributeExecuted(c,{force:true}); });
+    /* ---- THE COLUMN BESIDE IT SURVIVES EXECUTION (owner-reported 22 Aug
+       2026: "the signing order card should not be deleted once a contract has
+       been executed") ----
+       This branch used to `return` here, and renderSignSide — which draws the
+       whole right-hand column, BOTH the approval gate and the signing order —
+       is called at the foot of this function. So on an executed contract the
+       column was never built at all. MEASURED on a real executed record: the
+       host existed, was 0px wide and held nothing.
+       It is the finished record of who signed and in what order, which is
+       exactly what somebody opens a closed contract to read. It is drawn and
+       made INERT rather than dropped; see renderSignSide. */
+    renderSignSide(c);
     return;
   }
   if(!canEdit()){
@@ -6329,12 +6358,24 @@ function renderSignButton(c){
 function renderSignSide(c){
   const host=document.getElementById('sign-side'); if(!host) return;
   const plan=(window.signerPlan?signerPlan(c):[]);
-  const may=canEdit()&&c.status!=='Signed';
+  /* ---- CLOSED IS THE WIDER READING, NOT status==='Signed' ALONE ----
+     Paper executed outside HaTi arrives by migration and is every bit as
+     finished; negoExecuted is the reading the rest of the product uses for
+     exactly that reason. Guarded through window because this file is staged in
+     the node tests without the negotiation module on the floor. */
+  const closed=c.status==='Signed'||!!(window.negoExecuted&&negoExecuted(c));
+  const may=canEdit()&&!closed;
   const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:0;padding:13px 15px';
   const H='margin:0;font-size:14px;font-weight:700;font-family:var(--font-heading)';
   const chain=window.approvalChainHtml?approvalChainHtml(c,{bare:true}):'';
   const route=window.signerRouteHtml?signerRouteHtml(c,{bare:true}):'';
   host.innerHTML=`
+    ${''/* ---- ONE LINE ABOVE BOTH CARDS ----
+           It sits at the TOP of the column rather than inside the signing card,
+           because BOTH cards below it are records now — the approval gate as
+           much as the order — and a note tucked into the lower one reads as
+           being about that one alone. */}
+    ${closed?`<p class="sign-closed-note">${esc(i18t('ct_signing_closed'))}</p>`:''}
     ${chain?`<section style="${CARD}"><h6 style="${H};margin-bottom:9px">${i18t('ct_approval_gate')}</h6>${chain}</section>`:''}
     <section style="${CARD}">
       <div style="display:flex;align-items:center;gap:9px;margin-bottom:9px">
@@ -6354,6 +6395,25 @@ function renderSignSide(c){
       ${may?`<p style="margin:7px 0 0;font-size:12px;line-height:1.5;color:var(--color-neutral-500)">Internal signers sign here; each counterparty signer gets their own link, held until every internal signature is in. The seal lands with the last one.</p>`:''}
     </section>`;
   host.querySelector('#sp-add-signer')?.addEventListener('click',()=>openSignerPlanEditor(c));
+  /* ---- AND ON A CLOSED CONTRACT NOTHING IN IT IS PRESSABLE ----
+     The cards are built by two other modules (approvalChainHtml,
+     signerRouteHtml) and neither takes a read-only flag; threading one through
+     both to serve this screen would put the same decision in three places.
+     The controls are DISABLED here instead — genuinely disabled, not merely
+     dimmed, so the browser itself refuses the press and a keyboard reader is
+     told rather than led to one that does nothing. Anchors lose their href for
+     the same reason: a disabled attribute does nothing to a link. */
+  if(closed){
+    host.classList.add('sign-side-closed');
+    host.querySelectorAll('button,select,input,textarea').forEach(el=>{
+      el.disabled=true; el.tabIndex=-1; el.setAttribute('aria-disabled','true');
+    });
+    host.querySelectorAll('a[href]').forEach(el=>{
+      el.removeAttribute('href'); el.tabIndex=-1; el.setAttribute('aria-disabled','true');
+    });
+  } else {
+    host.classList.remove('sign-side-closed');
+  }
 }
 /* ---- WHICH BLOCKERS ARE A BLANK TO FILL IN ----
    readinessBlocks mixes categories — a missing field, an outstanding approval,

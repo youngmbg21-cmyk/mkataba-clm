@@ -539,6 +539,27 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     check('10 leaving focus brings the sidebar and the old geometry back',
       backGeo.left > 60, `grid left ${backGeo.left}px`);
 
+    /* ---- 11 · THE SEARCH BOX IS WHITE, LIKE EVERYTHING BESIDE IT ----
+       Owner-reported 22 Aug 2026 off this very list. It was --color-bg, the
+       PAGE's own grey, while all six dropdowns on the same row are
+       --color-surface — so the one box a reader types into was the only sunk
+       thing in a row of raised ones.
+       ASSERTED AS A RELATION, against its own neighbours rather than against
+       the word "white": if this product ever re-tones its controls, the claim
+       that still matters is that this row agrees with itself. */
+    await page.evaluate(() => openNegotiations({ list: true }));
+    await page.waitForTimeout(1600);
+    const box = await page.evaluate(() => {
+      const s = document.getElementById('reg-search');
+      const sels = [...document.querySelectorAll('#reg-stage-sel,#reg-type-sel,#reg-category,#reg-renewal')];
+      const g = e => e ? getComputedStyle(e).backgroundColor : null;
+      return { drew: !!document.querySelector('.reg-table'), found: !!s,
+        search: g(s), neighbours: [...new Set(sels.map(g))] };
+    });
+    check('11 the list and its search box really drew', box.drew && box.found, JSON.stringify(box));
+    check('11 the search box is the same colour as the controls beside it',
+      box.neighbours.length === 1 && box.search === box.neighbours[0], JSON.stringify(box));
+
     check('no page errors on the whole journey', errors.length === 0, errors.join(' | ') || 'clean');
   } catch (e) {
     check('the run completed', false, e.message);

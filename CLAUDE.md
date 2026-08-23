@@ -443,7 +443,7 @@ PROPOSING IS NOT REACHING. Four seats: Initiator (stamped once, grants nothing),
 - CORRECTED 14 Aug 2026 — this line used to read "exactly one thing about our side travels", and that was not what the code did. INDIVIDUAL COLLEAGUES ARE NAMED to the counterparty: the author of each change, version authors (`by`), and shared-comment authors. The audit put it to the owner and the owner kept the CODE and corrected the RULEBOOK — drafters are normally named, and the author is inside the change's fingerprint, so redacting it on the way out would leave their copy unable to verify the chain. What is genuinely walled is narrower and holds: the internal review entire (existence, verdict, reviewer), and who RULED on a change (`resolvedBy`, stripped). A rule that misdescribes the code is worse than no rule.
 - deskStale / deskStaleInboxFor (counterparty waiting longer than the setting allows — OUR dashboard only); deskLedBy (leaver check).
 
-THE PEOPLE CHIP IS A STATEMENT ON BOTH HALVES (owner-asked, 13 Aug 2026 — finishing the 11 Aug job that turned the CLAIMED half into a span and left the empty half a button). The unclaimed state was a button reading "Start negotiation" that opened the desk sheet. Two faults: it wore almost the words of the REAL door (the green "Start negotiating" on the Document tab — NOT this button, untouched), and it made the one place the product states this fact the one place the fact is changed. Now a SPAN saying dk_none_yet ("Nobody assigned yet"), title dk_none_yet_title — what it SAYS, not what pressing it would do. dk_claim / dk_claim_title RETIRED (flag stale), and data-dk-open left the delegated selector with it; deskOpenFromChip STAYS — the Internal review chooser's "Assign contributors" calls it to claim the desk for the presser, which is the one door assigning ever needed. THREE GATES DECIDED OUT LOUD: the assignment RULE is not asked (and never was — the claimed half does not ask either, so asking here would make one chip disagree with itself); canEdit is NO LONGER asked (a fact is a fact from every chair, and a viewer staring at an empty corner reads it as a fault); Signed/executed still draws nothing ("yet" is untrue once the paper is executed). CSS: .dk-chip-empty now carries .dk-chip-static too, and the 720px rule that hides .dk-who is UNDONE for it — the empty chip has no faces to fall back on, so dropping the word leaves a blank pill. THE PHONE says the same fact in its own line (mDeskLineHtml), where it used to be silent. Nothing about our side travels to the counterparty — deskSeatShowsDesk refuses first, unchanged. Tests: f165's two claims reversed, f179's "keeps its press" reversed plus a new no-dead-selector claim.
+THE PEOPLE CHIP IS A STATEMENT ON BOTH HALVES (owner-asked, 13 Aug 2026 — finishing the 11 Aug job that turned the CLAIMED half into a span and left the empty half a button). The unclaimed state was a button reading "Start negotiation" that opened the desk sheet. Two faults: it wore almost the words of the REAL door (the green "Start negotiating" on the Document tab — NOT this button, untouched), and it made the one place the product states this fact the one place the fact is changed. Now a SPAN saying dk_none_yet ("Nobody assigned yet"), title dk_none_yet_title — what it SAYS, not what pressing it would do. dk_claim / dk_claim_title RETIRED (flag stale), and data-dk-open left the delegated selector with it; deskOpenFromChip STAYS — the Internal review chooser's "Assign contributors" calls it to claim the desk for the presser, which is the one door assigning ever needed. THREE GATES DECIDED OUT LOUD: the assignment RULE is not asked (and never was — the claimed half does not ask either, so asking here would make one chip disagree with itself); canEdit is NO LONGER asked (a fact is a fact from every chair, and a viewer staring at an empty corner reads it as a fault); Signed/executed still draws nothing ("yet" is untrue once the paper is executed). CSS: .dk-chip-empty now carries .dk-chip-static too, and the 720px rule that hides .dk-who is UNDONE for it — the empty chip has no faces to fall back on, so dropping the word leaves a blank pill. THE PHONE says the same fact in its own line (mDeskLineHtml), where it used to be silent. Nothing about our side travels to the counterparty — deskSeatShowsDesk refuses first, unchanged. **AND IT LOST ITS BOX ON 22 Aug 2026** (owner-reported: "do not put a grey box around it similar to negotiations page") — no border, no fill, no pointer, no hover, and the negotiation page's own scoped override deleted so ONE base rule dresses both heads. `.dk-chip-static` still draws and now styles nothing: its rules existed only to take the base's pointer and hover back, and the base has neither. See FOUR OFF FOUR SCREENSHOTS. Tests: f165's two claims reversed, f179's "keeps its press" reversed plus a new no-dead-selector claim.
 
 THE DESK GATES REDLINING AND SENDING, NEVER SIGNING (owner-reported 2026-08-12). contractReadiness folds deskSendBlock in as a 'block', readinessBlocks returns every 'block', and signDocument refused on readinessBlocks — and deskSendBlock is deskMaySend, TRUE FOR THE LEAD ALONE. So with the rule on and a desk claimed, only the negotiation lead could ever sign: a named internal signer marked SIGNING NOW under "Approved and ready" was told "You are not on this negotiation", and a roster CONTRIBUTOR was refused too. The sign path stops asking the desk. NOT fixed by granting signers a seat — deskMaySend answers for the lead only, so a properly-seated contributor would still be refused. The REVIEW GATE went with it, deliberately and for its own reason: by this rulebook it gates SENDING, and an open review always holds a PENDING change (reviewInPlay), which negoSigningBlockers already refuses in words that name the clauses — two refusals for one state, one about a colleague's inbox, is worse than one. THE SERVER ALREADY AGREED: its desk guard asks ourChangesTouched, and a signature moves signatures/plan rows without touching a change — so this is a browser-only fix, pinned in f168 both ways.
 - ONE LIST, TWO READERS: signBlockers(c) (js/views/contract.js, BESIDE its two readers — a gate that lives in another module and is called through window is one a stage without that module does not have). renderSignButton disables and wears blockers[0].short; signDocument refuses with signBlockMessage. It asks: intent, approval, whose turn, the negotiation, the readiness BLANKS, the template form. Never desk, never review.
@@ -1135,6 +1135,84 @@ split), f184 and negotiations-door-verify (the door's word), f173 and f175 (the
 caption's size), paper-grows-verify (its whole subject — the magnification),
 redline-verify (the shadow, the sheet's margins, the card meta), parity-verify
 (the card meta), f95 (the phone block stays last in the sheet).
+
+## FOUR OFF FOUR SCREENSHOTS (owner-reported 22 Aug 2026)
+
+Every one reproduced and MEASURED before it was touched, and each fix is
+pinned in the browser file whose subject it already belongs to rather than in a
+new file of its own.
+
+- **THE UPLOAD CONFIRM'S TWO COLUMNS STAY LEVEL** ("the right and left entry
+  fields should never be misaligned"). Each field is label · box · hint stacked
+  in its own cell of a two-column grid, and HaTi appends "✦ READ FROM THE
+  DOCUMENT" to anything it read out of the file — so the left label routinely
+  wraps to two lines while its neighbour stays on one, and the box under it
+  dropped a whole line. MEASURED: level at a wide dialog, **20px out at 560px**
+  on the counterparty row, 20px out on two rows at 480px.
+  **SUBGRID IS THE FIX** (`grid-template-rows:subgrid` over three rows): the
+  cells take the parent's own rows, so labels share a row with labels and boxes
+  with boxes however long either wraps — at every width, not at the two that
+  were reported. **THE HINT ROW IS EMITTED EVEN WHEN EMPTY**, because subgrid
+  places children by ROW and a cell with two children would put its box in the
+  label's row — the same fault in a new costume. A `min-height` on the label
+  was refused: it fixes the two-line case, breaks again on three, and reserves
+  a blank line on every wide screen where nothing wraps at all. Where subgrid
+  is unsupported the declaration is ignored and the dialog degrades to exactly
+  what it did before, which is the right shape for a layout nicety.
+- **AN EXECUTED CONTRACT KEEPS ITS SIGNING COLUMN** ("the signing order card
+  should not be deleted once a contract has been executed … it should stay
+  intact but non responsive with words alluding to the contract having been
+  executed and closed"). `renderSignButton` returns early on a signed contract
+  and `renderSignSide` — which draws the WHOLE right-hand column — is called at
+  the foot of that function, so on an executed contract the column was never
+  built. MEASURED on a real executed record: the host existed, was 0px wide and
+  held nothing. **BOTH CARDS WENT, not just the reported one**: the approval
+  gate disappears by the same line, and a page that kept one and dropped the
+  other would be broken in a different way — so both come back.
+  **DRAWN AND INERT.** The controls are GENUINELY DISABLED, not merely dimmed,
+  so the browser itself refuses the press and a keyboard reader is told rather
+  than led to one that does nothing; anchors lose their `href`, because
+  `disabled` does nothing to a link. It is done in `renderSignSide` rather than
+  by threading a read-only flag through `approvalChainHtml` and
+  `signerRouteHtml` — two other modules' builders, and one decision in three
+  places is how they come to disagree. **`closed` READS negoExecuted, not
+  `status==='Signed'` alone**: paper executed outside HaTi arrives by migration
+  and is every bit as finished. One line above both cards says so
+  (`ct_signing_closed`), at the TOP of the column, because a note tucked into
+  the lower card reads as being about that card alone.
+- **THE PEOPLE CHIP IS ONE CHIP** ("the nobody assigned yet should resemble the
+  negotiations page … also, do not put a grey box around it"). **THE WORDS
+  ALREADY AGREED** — both pages call deskChipHtml, and measured on one contract
+  both read "AO You lead". Only the DRESS differed: the negotiation page had
+  stripped the box in a scoped rule of its own while the contract room kept a
+  bordered grey pill **34px tall against buttons of 28**.
+  **THE FLAT TREATMENT MOVED TO THE BASE RULE** and the scoped one is deleted —
+  one rule, both heads, nothing to keep in step. It is a STATEMENT, not a
+  control (both halves stopped being buttons in August), so the pointer and the
+  hover went with the box; the focus ring stays for a keyboard reader tabbing
+  past. `.dk-chip-static` is still emitted and now styles nothing — the rules it
+  needed were rules that took the base's own hover and pointer back, and there
+  is nothing left to take back. The negotiation page's `#ws-head .dk-chip`
+  override is GONE — flag any mention as stale.
+- **THE SEARCH BOX IS WHITE** ("highlighted search field should be in white").
+  It was `--color-bg`, the PAGE's grey, while all six dropdowns on the same row
+  are `--color-surface` — so the one box a reader types into was the only sunk
+  thing in a row of raised ones. The value-stream page's own search box took
+  the same correction in the same breath: two search boxes in one product
+  disagreeing about their own colour is how the next screen picks the wrong one.
+
+Tests, each in the file that already owns its subject: **upload-party-verify**
+(the fields driven at three widths, with a check that the narrow ones really do
+make a label wrap — a check at one comfortable width would have passed on the
+broken build), **sign-links-verify** (the contract executed THROUGH THE APP'S
+OWN SAVE so the server keeps it — an in-memory status flip is overwritten by
+the refetch on open, and a fixture that quietly un-executes itself proves
+nothing), **pages-read-alike-verify** section 6 (the chip's words AND its dress,
+on both heads), **negotiations-door-verify** section 11 (the search box against
+its own neighbours rather than against the word "white"). Each set was proved
+to fail against the code of an hour before. f179's cursor claim REVERSED IN
+PLACE — unchanged in meaning, read off the base rule now, and stated as an
+absence too: no rule anywhere may hand this chip a pointer.
 
 ## FIVE FIXES AND A CALENDAR (owner-reported 22 Aug 2026, off five screenshots)
 

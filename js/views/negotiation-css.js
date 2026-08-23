@@ -3376,10 +3376,13 @@ function redlineLayoutCss(){
   /* Who leads this negotiation stays — it is the one place the page says it —
      as quiet text with a hairline before the acts, which is the render's own
      treatment. It is not a chip on this page. */
-  .redline-page #ws-head .dk-chip{background:none;border:0;padding:0 14px 0 0;margin-right:2px;
-    border-right:1px solid var(--color-divider);font-size:13px;color:var(--color-neutral-600);
-    box-shadow:none;height:auto}
-  .redline-page #ws-head .dk-chip .dk-who{font-size:13px;font-weight:400;color:var(--color-neutral-600)}
+  ${''/* THE CHIP'S OWN RULE MOVED TO index.html, 22 Aug 2026 (owner-reported:
+         "do not put a grey box around it similar to negotiations page"). This
+         page had stripped the box in a scoped rule of its own while the
+         contract room kept the pill, so one contract wore two chips depending
+         on which of its pages you stood on. The flat treatment — no box, the
+         hairline before the acts, quiet ink — is the BASE rule now, so both
+         heads read it from one place and there is nothing to keep in step. */}
   .redline-page #ws-head .room-acts{gap:6px;align-items:center;flex:none}
   ${''/* ---- ONE FILLED ACT, AND IT IS PUBLISH ROUND ----
          The render draws four buttons of which exactly one is filled — the

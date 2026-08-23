@@ -56,6 +56,17 @@ const OUT = path.join(__dirname, 'shots', 'pages-read-alike');
 const EXEC = process.env.CHROMIUM_BIN
   || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
 
+/* The chip, as it DRAWS — the question is its dress as much as its words, and
+   a stylesheet cannot answer either. */
+const READ_CHIP = () => {
+  const e = document.getElementById('dk-chip');
+  if (!e) return { absent: true };
+  const cs = getComputedStyle(e), r = e.getBoundingClientRect();
+  return { text: (e.textContent || '').replace(/\s+/g, ' ').trim(),
+    h: Math.round(r.height), bg: cs.backgroundColor,
+    bd: cs.borderTopWidth, pad: cs.padding, cursor: cs.cursor };
+};
+
 const results = [];
 const check = (name, pass, detail) => {
   results.push({ name, pass: !!pass });
@@ -297,6 +308,35 @@ const SEED = async () => {
     check('5 and no button height is a fraction of a pixel',
       [...heads.nego, ...room2].every(b => Number.isInteger(b.h)),
       [...heads.nego, ...room2].map(b => b.h));
+
+    /* ---- 6 · THE PEOPLE CHIP IS ONE CHIP (owner-reported 22 Aug 2026: "the
+       nobody assigned yet should resemble the negotiations page … also, do not
+       put a grey box around it") ----
+       Both pages call deskChipHtml, so the WORDS already agreed — measured on
+       one contract, both read "AO You lead". What differed was the dress: the
+       negotiation page had stripped the box in a scoped rule of its own, and
+       the contract room kept a bordered grey pill 34px tall against buttons of
+       28. The flat treatment is the BASE rule now and the scoped one is gone.
+       ASSERTED AS A RELATION on both halves — same words AND same dress — so
+       this catches a future page that re-boxes it as readily as one that makes
+       it say something else. */
+    await page.evaluate(id => openWorkspace(id), cid);
+    await pause(1800);
+    const chipRoom = await page.evaluate(READ_CHIP);
+    await page.evaluate(id => openRedlineWorkbench(id), cid);
+    await pause(2200);
+    const chipNego = await page.evaluate(READ_CHIP);
+    check('6 the chip really drew on both pages',
+      !chipRoom.absent && !chipNego.absent, { room: chipRoom, nego: chipNego });
+    check('6 and says the same thing on both',
+      chipRoom.text === chipNego.text, { room: chipRoom.text, nego: chipNego.text });
+    check('6 with no box round it — no border, no fill',
+      chipRoom.bd === '0px' && chipRoom.bg === 'rgba(0, 0, 0, 0)',
+      { border: chipRoom.bd, background: chipRoom.bg });
+    check('6 and it is dressed identically on both pages',
+      chipRoom.bd === chipNego.bd && chipRoom.bg === chipNego.bg
+        && chipRoom.h === chipNego.h && chipRoom.pad === chipNego.pad,
+      { room: chipRoom, nego: chipNego });
 
     check('no page errors', errors.length === 0, errors.slice(0, 3));
   } finally {

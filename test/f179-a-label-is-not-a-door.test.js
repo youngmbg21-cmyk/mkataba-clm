@@ -53,10 +53,27 @@ describe('F179 — the desk chip states who, and does nothing else', () => {
   });
 
   test('and it stops inviting the press it no longer answers', () => {
-    assert.match(INDEX, /\.dk-chip\.dk-chip-static\{ cursor:default; \}/,
-      'the pointer stays an arrow');
-    assert.match(INDEX, /\.dk-chip\.dk-chip-static:hover\{[^}]*background:var\(--color-bg\)/,
-      'and the shared hover is taken back — a thing that lights up is a thing people press');
+    /* ---- THE CLAIM IS UNCHANGED; THE RULE THAT CARRIES IT MOVED (22 Aug 2026)
+       ----
+       This read the two .dk-chip-static rules, which existed because the BASE
+       .dk-chip was still dressed as a control — a bordered grey pill with a
+       pointer and a hover — and the static class took each of those back for
+       the half that had stopped being a door.
+       The owner then reported the box itself ("do not put a grey box around it
+       similar to negotiations page"), and the base rule went flat: no border,
+       no fill, cursor:default, and no hover to take back. So the -static
+       rules had nothing left to undo and are gone.
+       WHAT IS ASSERTED IS WHAT IT ALWAYS MEANT: the chip does not invite a
+       press. Read off the BASE rule now, and stated as an absence too — no
+       rule anywhere may hand this chip a pointer. */
+    const base = /\.dk-chip\{[^}]*\}/.exec(INDEX);
+    assert.ok(base, 'the chip has a base rule');
+    assert.match(base[0], /cursor:default/, 'the pointer stays an arrow');
+    assert.match(base[0], /border:0/, 'and it carries no box to press');
+    assert.ok(!/\.dk-chip[^{]*\{[^}]*cursor:pointer/.test(INDEX),
+      'no rule anywhere gives this chip a pointer — it is a statement, not a door');
+    assert.ok(!/\.dk-chip:hover\{/.test(INDEX),
+      'and nothing lights up under the pointer — a thing that does is a thing people press');
   });
 
   test('CLAIM REVERSED — the EMPTY chip is not a control either', () => {
