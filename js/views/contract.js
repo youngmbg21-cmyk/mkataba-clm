@@ -5249,6 +5249,27 @@ function renderWorkspace(){
   content.innerHTML=`
   <div class="view-enter" style="height:var(--view-h);box-sizing:border-box;padding:6px 16px 12px;display:flex;flex-direction:column;gap:8px">
 
+    <!-- ============ THE HEAD IS ONE WHITE BAND (owner-asked 23 Aug 2026) ====
+         "The highlighted area should be white just like in the attached html."
+         The mock-up paints its three head strips — .h-title, .h-hc and
+         .h-anchor — on the white surface and reserves the grey for the page
+         BELOW them; this room painted none of them, so the crumb, the title,
+         the acts, the fact band and the tab row all sat on the page ground and
+         the head read as a gap above the contract rather than as the object it
+         is. MEASURED before: #ws-head computed rgba(0,0,0,0) over a body of
+         rgb(244,246,246).
+
+         IT IS A WRAPPER, NOT A BACKGROUND ON EACH STRIP. Painting the three
+         separately leaves the 8px flex gap between them showing grey — three
+         white bars, not one band — and the wrapper is also what lets the band
+         bleed to the shell's own edge: the negative margin cancels the view's
+         16px side padding and the 6px above it, and the padding inside puts
+         both back, so the band spans the full width while nothing it contains
+         moves by a pixel. The negotiation page has drawn its head this way
+         since 22 Aug; this is the same treatment on the page that shares its
+         builder. -->
+    <div class="room-band">
+
     <!-- ============ THE ROOM'S HEAD ============
          Built by roomHeadHtml, which the negotiation workbench calls too, so
          the furniture holds still while the tabs change what is under it. The
@@ -5297,6 +5318,10 @@ function renderWorkspace(){
              the lesson was applied there and not here. */}
       <div id="ws-tabrow-end" style="display:flex;align-items:center;gap:14px;flex:none">${wsTabRowEndHtml(c)}</div>
     </div>
+
+    </div><!-- /.room-band — the white band ends at the tab row's own rule; the
+         status line and the contract below it sit on the page ground, which is
+         where the mock-up puts its .h-content too. -->
 
     <!-- The quiet line under the tabs: where this contract stands, what it
          needs next, and the one button that does it. Its own row, because five

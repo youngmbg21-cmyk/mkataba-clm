@@ -735,7 +735,18 @@ function renderIntel(){
      always lands on the strip's own hairline, and -1px puts the two on the
      same line instead of stacking them. */
   const TABROW='display:flex;align-items:stretch;align-self:stretch;flex:none';
-  const tabBtn=(k,label)=>`<button data-ig-tab="${k}" style="${UNDERTAB};border-bottom:2px solid ${intel.tab===k?'var(--accent-solid,var(--color-accent))':'transparent'};font-size:14px;font-weight:${intel.tab===k?700:400};color:${intel.tab===k?'var(--accent-ink,var(--color-accent))':'var(--color-neutral-500)'}">${label}</button>`;
+  /* ---- A RESTING TAB IS DARK INK, NOT A CAPTION (owner-asked 23 Aug 2026) ----
+     "The font I have highlighted should also be the font used in the tab
+     navigation panels within the insights page." The same correction .room-tab
+     took on 22 Aug, in the owner's same words, never swept past that one row.
+     MEASURED, this row already matched the negotiation page's reading tabs on
+     Inter, 14px, 400 resting, 700 + accent live and the 2px underline, and
+     differed on one value: it rested on --color-neutral-500, the LABEL shade,
+     where the reference rests on --color-text. A tab is a thing you read and
+     press, not metadata about one. The FRICTION SEGMENTS below take the same
+     ink for the same reason — they are the same control at 13px, and leaving
+     them faded would put the fault back one row down. */
+  const tabBtn=(k,label)=>`<button data-ig-tab="${k}" style="${UNDERTAB};border-bottom:2px solid ${intel.tab===k?'var(--accent-solid,var(--color-accent))':'transparent'};font-size:14px;font-weight:${intel.tab===k?700:400};color:${intel.tab===k?'var(--accent-ink,var(--color-accent))':'var(--color-text)'}">${label}</button>`;
   const tabsHtml=`<div style="${TABROW};gap:20px">${tabBtn('frame',i18t('pf_tab'))}${tabBtn('friction',i18t('int_negotiation_friction'))}${tabBtn('map',i18t('int_contract_graph'))}</div>`;
   /* The friction levers live IN the header strip (the approved comp): the
      period toggle and the counterparty select sit beside the tabs, so the
@@ -745,7 +756,7 @@ function renderIntel(){
      it is done by clicking a name in the report itself (data-igf-cp), and Clear
      below still lifts it — so the strip carries one lever, not two. */
   const ffOn=days=>days==null?!(ff&&ff.days):(ff&&ff.days)===days;
-  const ffSeg=(days,label)=>`<button data-igf-days="${days==null?'':days}" style="${UNDERTAB};border-bottom:2px solid ${ffOn(days)?'var(--accent-solid,var(--color-accent))':'transparent'};font-size:13px;font-weight:${ffOn(days)?700:400};color:${ffOn(days)?'var(--accent-ink,var(--color-accent))':'var(--color-neutral-500)'}">${label}</button>`;
+  const ffSeg=(days,label)=>`<button data-igf-days="${days==null?'':days}" style="${UNDERTAB};border-bottom:2px solid ${ffOn(days)?'var(--accent-solid,var(--color-accent))':'transparent'};font-size:13px;font-weight:${ffOn(days)?700:400};color:${ffOn(days)?'var(--accent-ink,var(--color-accent))':'var(--color-text)'}">${label}</button>`;
   const frictionControls=`
       <div style="${TABROW};gap:16px">${ffSeg(null,i18t('int_all_time'))}${ffSeg(90,i18t('int_last_90'))}</div>
       ${ff&&(ff.counterparty||ff.days||ff.clause)?`<button id="ig-friction-clear" style="border:0;background:none;cursor:pointer;font:inherit;font-size:12px;font-weight:700;color:var(--color-accent);flex:none">✕ Clear</button>`:''}`;

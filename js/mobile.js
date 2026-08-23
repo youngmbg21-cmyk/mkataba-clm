@@ -374,9 +374,17 @@ const M_CSS = `
     border:1px solid var(--color-divider); border-radius:0; padding:0 8px; }
 
   /* ---- the contract screen ---- */
+  /* ---- A RESTING TAB IS DARK INK, NOT A CAPTION (owner-asked 23 Aug 2026) ----
+     The phone's twin of .room-tab, and it carried the same fault the laptop's
+     row was corrected for on 22 Aug: a resting tab rested on the LABEL shade,
+     so the three you have not chosen read as captions under the one you have.
+     Only the INK moves. The 15px and the 600 are this shell's own — a touch
+     target is not a pointer target — and dropping the phone out of the sweep
+     because its size differs is the duplication warning in its usual
+     direction: a fix in a desktop rule does not reach here. */
   .m-ctab{
     flex:1; height:44px; background:none; border:0; cursor:pointer; font:inherit;
-    font-size:15px; font-weight:600; color:var(--color-neutral-600);
+    font-size:15px; font-weight:600; color:var(--color-text);
     border-bottom:2px solid transparent;
   }
   .m-ctab.on{ color:var(--color-accent-900); border-bottom-color:var(--accent-solid); }

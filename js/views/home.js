@@ -705,15 +705,41 @@ function renderDashboard(){
   /* EIGHT IN THE BOX, THE REST BEHIND THE LINK — and the box takes the height
      that is left rather than asking for one, so the card cannot grow when the
      stage changes. */
+  /* ---- THE STAGE NAME SITS ON THE CARD-HEADING LINE (owner-asked 23 Aug 2026)
+     "Draft and template should be in the same line as the decisions due, not
+     below it."  MEASURED before: both card headings drew at y=395.4 and this
+     head at y=429.4 — 34px below the line it is meant to share, and 43px to
+     its title's own text.
+
+     SO THE HEAD IS ITS OWN THING NOW, not the first row inside the bordered
+     list box: it is placed in the pipeline grid's FIRST row, beside the card's
+     own <h4>, while the box below holds the list and the foot. That is the
+     only arrangement that puts the two on one line — leaving the head inside
+     the box and pulling the box up aligns the box's TOP EDGE with the heading
+     and still drops the words nine pixels, which is not what was asked for.
+
+     TWO BUILDERS, BOTH USED TWICE. The card's markup calls each of these and
+     so does hmPaint, because this file's own standing rule is that the card
+     renders complete in the HTML — the dashboard's node tests read the counts
+     out of the rendered markup, and a card that is blank until script runs is
+     a card that is blank if script never does. Splitting the head out means
+     hmPaint has two targets rather than one; it must fill BOTH or a stage
+     press moves the list and leaves the old stage's name above it.
+
+     SAID OUT LOUD: the mock-up does not do this — its own stage list starts
+     below the heading row. This is the owner's call, made after being told
+     that, and the reason it is safe is that the head still sits directly above
+     the list it names, in the same column, reading as that column's header. */
+  const hmSideHeadHtml=()=>{
+    const i=hmIdx(), st=PIPE_DEF[i];
+    return `<h5 class="hm-side-title" style="color:${st.fg};">${st.n}. ${esc(st.title)}</h5>
+      <button class="hm-side-count" type="button" data-stage="${st.k}" style="background:${st.chip};color:${st.fg};">${i18tn('home_docs',hmCounts[i],{n:hmCounts[i]})}</button>`;
+  };
   const hmSideHtml=()=>{
     const i=hmIdx(), st=PIPE_DEF[i];
     const list=cs.filter(c=>c.status===st.k);
     const shown=(st.k==='Under Review'?list.slice().sort((a,b)=>contractRisk(b)-contractRisk(a)):list).slice(0,8);
-    return `<div class="hm-side-head">
-        <h5 class="hm-side-title" style="color:${st.fg};">${st.n}. ${esc(st.title)}</h5>
-        <button class="hm-side-count" type="button" data-stage="${st.k}" style="background:${st.chip};color:${st.fg};">${i18tn('home_docs',hmCounts[i],{n:hmCounts[i]})}</button>
-      </div>
-      <div class="hm-pipe-list scroll-thin" id="hm-list">${
+    return `<div class="hm-pipe-list scroll-thin" id="hm-list">${
         shown.map(c=>pipeRow(c,st)).join('')||`<div class="hm-row-none">${i18t('home_nothing_at_stage')}</div>`}</div>
       <div class="hm-side-foot">${list.length>shown.length
         ? `<button data-stage="${st.k}" class="hm-side-more" type="button">${i18t('home_more_arrow',{n:list.length-shown.length})}</button>` : ''}</div>`;
@@ -731,10 +757,14 @@ function renderDashboard(){
            one that said least took the most prominent corner of the card.
            Nothing is stranded: data-stage still reaches the register from the
            rows and the more-button, and both still clear the selection. -->
-      <div style="flex:none;display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-        <h4 style="font-size:15px;margin:0;font-weight:700;">${i18t('home_pipeline_aria')}</h4>
-      </div>
-      <div class="hm-pipe-cols" style="display:grid;gap:11px;">
+      <div class="hm-pipe-cols" style="display:grid;">
+        <!-- ROW 1 — the card's own name, and the stage being listed beside it.
+             Both are placed by CSS into the grid's first row so they share a
+             line with "Decisions due" in the card next door. -->
+        <div class="hm-pipe-title">
+          <h4 style="font-size:15px;margin:0;font-weight:700;">${i18t('home_pipeline_aria')}</h4>
+        </div>
+        <div class="hm-side-head" id="hm-side-head">${hmSideHeadHtml()}</div>
         <div class="hm-pipe-chart" id="hm-pipe-chart">
           <div class="hm-ring-row" id="hm-ring-row">
             <div class="hm-ring-block">
@@ -1020,6 +1050,11 @@ function renderDashboard(){
       hmSegs.innerHTML=hmArcsHtml();
       hmKey.innerHTML=hmKeyHtml();
       hmSide.innerHTML=hmSideHtml();
+      /* THE HEAD IS A SECOND TARGET since it left the list's box for the
+         card's heading line — fill both, or a stage press moves the list and
+         leaves the previous stage's name and count standing above it. */
+      const hmSideHead=document.getElementById('hm-side-head');
+      if(hmSideHead) hmSideHead.innerHTML=hmSideHeadHtml();
       document.getElementById('hm-fig').textContent=hmCounts[i];
       document.getElementById('hm-what').innerHTML=
         esc(PIPE_DEF[i].title)+'<small>'+esc(i18t('home_pipe_share',{n:hmPct(i)}))+'</small>';

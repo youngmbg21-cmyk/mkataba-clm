@@ -1205,10 +1205,18 @@ function redlineLayoutCss(){
      readable. Removed. Nothing referenced them; the head is styled once, in
      index.html, where the contract page styles it too. */
   /* The room's tab row on this page. The tabs themselves are styled once, in
-     index.html, because the contract page draws the same row — all this line
-     does is give it the same 2px side padding the strip below it has, so the
-     first tab and the first verb start on the same vertical. */
-  .redline-page .rl-tabrow{margin:0 2px 2px;flex:none;align-items:stretch;gap:8px}
+     index.html, because the contract page draws the same row.
+
+     ---- THE 2px MARGIN WAS A GREY SEAM (owner-asked 23 Aug 2026) ----
+     It read "the same 2px side padding the strip below it has", and that stopped
+     being true when this page took the mock-up's white head on 22 Aug: the head
+     above went full-bleed (measured x=256 w=1234) and this row kept margin
+     0 2px 2px, so it drew at x=258 w=1230 with two pixels of page ground down
+     each side and two more beneath it — a grey hairline framing the lower half
+     of a band that is meant to read as one white object. The row is flush now,
+     and the first tab still starts on the head's own vertical because both
+     carry the same 24px padding. Set no margin here again. */
+  .redline-page .rl-tabrow{margin:0;flex:none;align-items:stretch;gap:8px}
   .redline-page .rl-tabrow #rl-contract-jump{align-self:center;max-width:260px}
   /* The tab group is the only thing in this row that stretches; the round tag
      rides at its centre rather than being pulled to the row's full height. */
