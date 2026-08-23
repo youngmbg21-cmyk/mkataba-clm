@@ -334,7 +334,7 @@ const STRINGS = {
 
     // ---- calendar ----
     cal_done: 'Done',
-    cal_nothing_due: 'Nothing due in the next 60 days',
+    cal_nothing_due: 'Nothing due in the next 30 days',
     cal_nothing_due_sub: 'Expiry and renewal dates on your contracts show up here automatically.',
     cal_open_register: 'Open the register',
     cal_today: 'Today',
@@ -4697,7 +4697,7 @@ const STRINGS = {
 
     // ---- kalender ----
     cal_done: 'Klart',
-    cal_nothing_due: 'Inget att göra de närmaste 60 dagarna',
+    cal_nothing_due: 'Inget att göra de närmaste 30 dagarna',
     cal_nothing_due_sub: 'Slut- och förnyelsedatum på dina avtal visas här automatiskt.',
     cal_open_register: 'Öppna avtalsregistret',
     cal_today: 'Idag',

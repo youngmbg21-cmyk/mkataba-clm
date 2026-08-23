@@ -278,9 +278,21 @@ describe('F91 (1,2) — the Doc page header and its sub-navigation', () => {
     const s = code();
     /* actionBarHtml returns nothing on this tab. The status is a chip beside
        the contract's name on every tab, and the sentence described a reading
-       rule the page demonstrates by having no marks on it. */
-    assert.match(s, /if\(_wsTab==='docs'\) return '';/,
-      'the strip says nothing on the tab whose space it was taking');
+       rule the page demonstrates by having no marks on it.
+
+       CLAIM REVERSED IN PLACE, 23 Aug 2026, OWNER-ASKED ("remove the
+       highlighted strip in all the tabs and move the cards up"). It used to
+       read `if(_wsTab==='docs') return '';` — the Document tab alone. The
+       whole builder is a `return ''` stub now, so this tab's claim is still
+       true and true for a STRONGER reason: no tab draws it. Asserted as the
+       stub rather than as the old branch, and the old branch is asserted GONE
+       so a per-tab exception cannot creep back in beside it. */
+    const body = s.slice(s.indexOf('function actionBarHtml'),
+      s.indexOf('function renderActionBar'));
+    assert.match(body, /\n\s*return '';\n\}/,
+      'actionBarHtml is a stub — the strip says nothing on any tab');
+    assert.ok(!/if\(_wsTab==='docs'\) return '';/.test(s),
+      'and the per-tab exception it replaced is gone, not sitting beside it');
     /* And the empty element must not keep the row's height.
 
        CLAIM REVERSED, 13 Aug 2026, OWNER-ASKED. This used to require BOTH the

@@ -2552,18 +2552,33 @@ function actionBarHtml(c){
      The other tabs keep the strip. On Key terms, Signing and History it is not
      a description of the page, it is the contract's next step — which is what
      this strip is for and why it repaints per tab (see applyWsTabs). */
-  if(_wsTab==='docs') return '';
-  if(locked) return `<span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:2px 9px;border-radius:0;background:var(--st-green-bg);color:var(--st-green-fg)"><span style="width:6px;height:6px;border-radius:50%;background:var(--st-green-dot)"></span>${i18t('ct_executed_sealed')}</span>${line('Executed &amp; sealed. This document is locked and fields are read-only.')}`;
-  if(!canEdit()) return `${statusChip(c.status)}${line('You have viewer access — the document is read-only for your role.')}${tail}`;
-  /* On the Document tab the sentence is about READING, because that is what
-     this tab is now for; the status guidance is on every other tab, where a
-     next step is what the reader came for. */
-  if(_wsTab==='docs'&&!docFillable(c))
-    return `${statusChip(c.status)}${line(i18t('ct_clean_read'))}${tail}`;
-  if(_wsTab==='docs'&&docFillable(c))
-    return `${statusChip(c.status)}${line('This draft still has blanks — fill the highlighted fields below. Once it goes for review, wording changes happen on <b>Negotiate</b>.')}${tail}`;
-  const na=wsNextAction(c);
-  return `${statusChip(c.status)}${line(na?na.guide:'All key terms are set.')}`;
+  /* ---- AND NOW IT SAYS NOTHING ON ANY TAB (owner-asked 23 Aug 2026: "remove
+     the highlighted strip in all the tabs and move the cards up") ----
+     The Document tab gave this strip up on 10 Aug for the contract's sake;
+     Key terms, Signing and History give it up now for the cards'. It is a
+     `return ''` STUB rather than a deletion, because the builder is called
+     from renderWorkspace AND from renderActionBar and a third caller must not
+     be able to bring the band back through a door nobody remembered — the same
+     reason negoCounterLineHtml and portalChangeSummaryHtml are stubs.
+
+     THE CARDS MOVE UP BY THEMSELVES: the host hides when it is empty (one line
+     in applyWsTabs, and it has always meant exactly this), so with nothing to
+     draw it stops being a flex item and takes neither its height nor the
+     column's 8px gap with it.
+
+     WHAT WENT WITH IT, checked before it was removed rather than after. The
+     STATUS is untouched — contractStatusTextHtml prints it beside the
+     contract's name on every tab, which is why the Document tab could already
+     spare this. The NEXT STEP is untouched: wsNextAction still drives the
+     head's lead button, which names the act. Two sentences really do go, and
+     only one of them mattered: "Executed and sealed" restated a status the
+     head already shows, but "You have viewer access — the document is
+     read-only for your role" was the one place a VIEWER was told why nothing
+     on the page can be typed in. That is a real loss and it is reported rather
+     than quietly absorbed; if it should come back it wants its own quiet line
+     on the pages it applies to, not this band on every tab. */
+  void locked; void line; void tail;
+  return '';
 }
 function renderActionBar(c){
   const host=document.getElementById('ws-actionbar'); if(!host) return;
@@ -5279,6 +5294,27 @@ function renderWorkspace(){
   content.innerHTML=`
   <div class="view-enter" style="height:var(--view-h);box-sizing:border-box;padding:6px 16px 12px;display:flex;flex-direction:column;gap:8px">
 
+    <!-- ============ THE HEAD IS ONE WHITE BAND (owner-asked 23 Aug 2026) ====
+         "The highlighted area should be white just like in the attached html."
+         The mock-up paints its three head strips — .h-title, .h-hc and
+         .h-anchor — on the white surface and reserves the grey for the page
+         BELOW them; this room painted none of them, so the crumb, the title,
+         the acts, the fact band and the tab row all sat on the page ground and
+         the head read as a gap above the contract rather than as the object it
+         is. MEASURED before: #ws-head computed rgba(0,0,0,0) over a body of
+         rgb(244,246,246).
+
+         IT IS A WRAPPER, NOT A BACKGROUND ON EACH STRIP. Painting the three
+         separately leaves the 8px flex gap between them showing grey — three
+         white bars, not one band — and the wrapper is also what lets the band
+         bleed to the shell's own edge: the negative margin cancels the view's
+         16px side padding and the 6px above it, and the padding inside puts
+         both back, so the band spans the full width while nothing it contains
+         moves by a pixel. The negotiation page has drawn its head this way
+         since 22 Aug; this is the same treatment on the page that shares its
+         builder. -->
+    <div class="room-band">
+
     <!-- ============ THE ROOM'S HEAD ============
          Built by roomHeadHtml, which the negotiation workbench calls too, so
          the furniture holds still while the tabs change what is under it. The
@@ -5327,6 +5363,10 @@ function renderWorkspace(){
              the lesson was applied there and not here. */}
       <div id="ws-tabrow-end" style="display:flex;align-items:center;gap:14px;flex:none">${wsTabRowEndHtml(c)}</div>
     </div>
+
+    </div><!-- /.room-band — the white band ends at the tab row's own rule; the
+         status line and the contract below it sit on the page ground, which is
+         where the mock-up puts its .h-content too. -->
 
     <!-- The quiet line under the tabs: where this contract stands, what it
          needs next, and the one button that does it. Its own row, because five

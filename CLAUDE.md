@@ -197,6 +197,10 @@ An imported third-party .docx took the whole contract workspace down with "OURS 
 
 THE OWNER'S CHOSEN FIX RIDES WITH IT: the upload popup asks WHO WE ARE. `up-party` on uploadConfirmHtml, prefilled with FIRST_PARTY (the CONTRACT_ESSENTIALS reasoning — the assumption made out loud, overtypeable), datalist `up-party-list` built by **uploadPartyOptions()** — the FX picker's rule, OFFERS NEVER REFUSES: the workspace name first, then every entity already on a contract (case-insensitive dedupe; the list grows by use, nothing for an admin to maintain — the AUTOMATIC option, owner-chosen over a managed Settings list). Any typed name is accepted; blank files as absent and the reading falls back to the workspace, so nothing filed before the field existed reads differently. submitUpload stores it as `c.party`. `party` survives the light list by construction (HEAVY spreads the record), so the datalist works in server mode. The phone's "upload received" row calls the same openUploadModal — one dialog, both shells. The migration importer was deliberately left alone: migrated paper is executed-outside, the other (working) branch, and Key terms stays its door.
 
+**THE COUNTS ARE NUMBERS, NOT TAGS (owner-asked 23 Aug 2026: "the numbers should be white and nothing boxing them").** Every count wore a translucent box and a tinted ink — MEASURED, `rgba(255,255,255,.14)` behind `rgb(159,216,209)` — so nine tinted capsules ran down the drawer and the figures were the palest text on it. Box gone, ink white. **AMBER STAYS, AND IT IS THE ONE EXCEPTION** (asked and owner-ruled before it was built): amber is how this drawer says a door is waiting on you, `NAV_COUNT_TONE` gives it only to a count above zero so it never cries wolf over an empty queue, and white would take the signal off the sidebar entirely. TEAL DOES NOT STAY — it marked the SIZE of the book rather than anything owed, and with the box gone a third ink is decoration. **`#nav-intel-new` KEEPS ITS PILL**: it shares the class because it shares the slot, but "New" is a tag announcing a page worth visiting, not a number, and stripped to bare white text it reads as a word that has wandered into the count column. **AND THE `.active` RULE HAD TO GO, WHICH IS THE FIX RATHER THAN AN OMISSION**: `#side-nav .nav-item.active .nav-count` scored (1,3,0) against the amber rule's (1,2,0) and WON — measured, opening Negotiations turned its own amber count white, so the one door whose warning you were looking at was the one door that stopped warning. A tone is about the work, never about where the reader happens to be. The new browser file stands on the Negotiations page on purpose for that check; run it from anywhere else and it passes against the broken build.
+
+**THE DOORS ARE WHITE AND THE LIVE ONE SITS DEEPER (owner-asked 23 Aug 2026: "the names of the tabs plus the menu needs to be pure white and when you select a tab, the highlighted tab should not be a lighter green but an even dark green").** Every door read `--nav-ink` — a pale teal, #9fd8d1 in the green workspace and #a5bde0 in the navy one — so the whole column was set in a tint of its own background and only the door you were standing on was white. They all take `--nav-ink-strong` now (the token that already means "the strong nav ink" and is #ffffff in both workspaces) rather than a hard-coded white, so the dark theme keeps its own near-white with no second rule. **THE LIVE STATE WAS A WHITE VEIL** — `rgba(255,255,255,.15)`, which LIGHTENS the panel, the opposite of the ask; **the mock-up agrees with the owner**, its own nav setting `--nav-act:#0D332F` under a `--nav:#123F3A`. It darkens through `color-mix(in srgb, black 30%, var(--nav-bg))` — **a mix rather than a token per theme**, so the green workspace, the navy one and the dark theme all follow from one line and none can drift. HOVER DARKENS TOO, more gently (12%): it used to lighten while the active state lightened harder, and with the live door going deeper a hover going the other way makes the column read as two unrelated signals. **THE TWO HALVES HAD TO SHIP TOGETHER** — with every door white, the background is the only thing left marking the live one. MEASURED: every label rgb(255,255,255) at 12.05:1 on the panel, the live door 20.98:1 on a ground darker than the panel. **THE SECTION CAPTION IS DELIBERATELY NOT SWEPT** ("ADMINISTRATION", `rgba(255,255,255,.62)`): it is a caption over the doors, not one of them, and at full white it would compete with what it labels.
+
 AND THE SIDEBAR COUNTS SIT ON ONE LINE (owner-asked same day, off a screenshot). The floating drawer's open state gave every nav button `width:auto` — each shrank to its own text, so the count badges landed ragged mid-drawer. It is `width:100%` now, so the label's flex:1 pushes every badge to one straight column at the drawer's right edge — the same line the open column above 1500 always drew. Never width:auto there again.
 
 Tests: upload-party-verify (14, browser — the crash on the reported state, proved to fail 4 ways on the old code; the popup with a REAL .docx through the real file input; a typed entity landing on the record and the page drawing it; badge right-edges measured at 1440 drawer and 1920 column), n2 section 4 (the field, the prefill, the list's order and dedupe, text-box-never-select), nav-floats-verify unchanged at 69.
@@ -786,6 +790,21 @@ Redesigned to the mock-up, and the region was ringed in a screenshot: everything
 - **A COLLAPSE CONTROL** overhangs the row's lower rule, centred. It folds the FACTS only: title, status and acts never move, because a head whose buttons jump when you fold it is one you stop folding. Per sitting, in memory, a class flip and never a repaint (the head is built once per render; a repaint would drop the acts' handlers).
 - **NOT DRAWN ON THE WORKBENCH** — that page's head is one compact row by the mock-up's own drawing, and the facts a negotiator needs (round, whose move) are already on its own row.
 - **AND THE FACT ROW SITS AFTER THE ACTS IN SOURCE ORDER**, which is load-bearing: `.room-head` wraps, and a full-width item placed before the acts pushes them onto a line of their own. Caught by photographing it.
+- **THE WHOLE HEAD IS A WHITE BAND (owner-asked 23 Aug 2026** — "the highlighted area should be white just like highlighted in the attached html"). The mock-up paints all three of its head strips — `.h-title`, `.h-hc`, `.h-anchor` — on `var(--surface)` and keeps the grey for the page BELOW them; this room painted **none** of them, so the crumb, title, acts, fact band and tab row all sat on the page ground. MEASURED: `#ws-head` computed `rgba(0,0,0,0)` over a body of `rgb(244,246,246)`. **`.room-band` IS A WRAPPER, NOT A BACKGROUND ON EACH STRIP** — painting the three separately leaves the 8px flex gap between them grey and gives three bars instead of one band — and the wrapper is also what lets it bleed: `margin:-6px -16px 0` cancels the view's own padding, `padding:6px 16px 0` puts it back inside, so the white runs to the shell's edge while nothing it contains moves by a pixel (the head still starts at x=272, asserted). **IT ENDS AT THE TAB ROW'S OWN HAIRLINE** — no bottom padding — and `#ws-actionbar` is deliberately OUTSIDE it, because the mock-up's `.h-content` sits on the grey too. `#ws-strips` is inside it: it is `display:contents`, so its children become the band's flex children, and closing the wrapper early would drop any strip onto the grey.
+
+## A COMMENT CAN SWALLOW THE RULE UNDER IT (23 Aug 2026)
+
+**The third member of this family, after the always-false guard and the rule that loses a cascade fight — and the only one where the rule is not merely beaten but ABSENT.**
+
+Found from an owner report that the Settings and Our-standards tab rows looked cramped. They were: **`.st-tab` had no rule at all.** MEASURED in a real browser, it computed `padding:0px` off the button reset, and the page's own parsed stylesheet listed `.st-tabs`, `.st-tab:hover`, `.st-tab.on` and `.st-tabsub` while `.st-tab` itself was **not in it**.
+
+**THE CAUSE WAS A COMMENT.** Two explanatory notes were written into that rule in separate passes (22 and 23 Aug) and the second was inserted AFTER the first had already been closed, leaving eight lines of prose and an orphaned terminator sitting in the stylesheet as raw CSS. **A CSS parser recovers from garbage by skipping to the end of the next block — and the next block was the rule itself**, so the whole thing went. Nothing errors, nothing warns, and the source looks perfectly correct.
+
+**IT HAPPENED TWICE IN ONE SITTING.** Writing the note that explains it reproduced it: spelling the terminator out inside a comment closes the comment on the spot. **Never write that token inside a CSS comment** — say "terminator" instead.
+
+**THE TEST THAT EXISTED DID NOT CATCH IT, and why is the useful part.** white-band-and-tabs-verify asked whether the resting tabs' INK matched the reference. It did — **by accident**, because a tab with no rule of its own inherits `--color-text` from the body. A check that reads one property cannot see a rule that vanished; it can only see the properties it thought to ask about.
+
+**TWO NETS, ON PURPOSE.** f236 walks every `<style>` block in index.html and negotiation-css.js and fails on a comment opened inside another or closed with none open, naming the line — that is the CAUSE, it is cheap, and it catches every rule the next stray terminator would swallow rather than the one somebody happened to notice. white-band-and-tabs-verify 6a asks the LIVE page whether `.st-tab` is in `document.styleSheets` with a non-zero padding — that is the EFFECT, and a browser is the only place it can be asked. Proved to fail against the reintroduced bug before either was trusted.
 
 ## A CSS RULE THAT LOSES ON SPECIFICITY IS A FEATURE THAT WAS NEVER BUILT (22 Aug 2026)
 
@@ -861,11 +880,17 @@ The chosen stage is _hmStage — per sitting, in memory, a working preference an
 
 AND ONCE THE TWO CARDS STACK, THE PAGE SCROLLS (owner-asked, 13 Aug 2026 — a fault the ring did not cause and inherited). Below 1200px there is no room for the pipeline card beside Decisions due, so .hm-main-row stacks them — and .hm-page is exactly --view-h tall and refused to scroll, so the SAME leftover height had to be SPLIT between two cards instead of shared by two. .hm-decisions holds a min-height of its own, so the pipeline card was the one that gave: MEASURED at 1024x768 it collapsed to 26px, a sliver with a slice of chart in it, and at 1024x600 to nothing. THE THREE-COLUMN CARD DID EXACTLY THE SAME (its headings cut in half), so this was never the ring's doing — it was simply never fixed. Below the breakpoint .hm-page is height:auto with min-height:var(--view-h) and .hm-main-row is flex:0 0 auto, so a tall window looks exactly as it does now and a short one SCROLLS rather than crushing what is on it; .hm-pipe-card asks for 440px (560 once its own inside stacks). THE CARD'S INSIDE KEEPS ITS TWO COLUMNS DOWN TO 880px, not 1199: with the row already stacked the card is the full width of the page there — 728px at a 1024 window — which is MORE room for the ring beside its list than it has at 1440. Above the breakpoint nothing moved: the dashboard still fits one screen at 1920/1440/1280, asserted alongside.
 
+**THE STAGE NAME SHARES THE CARD-HEADING LINE (owner-asked 23 Aug 2026: "draft and template should be in the same line as the decisions due not below it").** MEASURED before: both card headings drew at y=395.4 and `.hm-side-head` at y=429.4 — 34px below the line it is meant to share, 43px to its own title's text. So the head LEFT the bordered list box and became a cell in the pipeline grid's FIRST row, beside the card's own `<h4>`; the box below keeps the list and the foot. **That is the only arrangement that answers the ask** — leaving the head inside the box and pulling the box up aligns the box's TOP EDGE with the heading and still drops the words nine pixels. `.hm-pipe-cols` is `auto minmax(0,1fr)` with explicit placement and `align-self:center` on the two row-1 cells (the h4 and the stage title are different sizes and would otherwise sit on their own tops); the head's 10px left padding is the box's own content inset, so the stage name still starts on the same vertical as the rows it names (asserted, 807 = 807). **STACKED BELOW 880px THE PLACEMENT IS RELEASED AND `order` PUTS IT BACK** — heading, ring, stage name, list — because one column has no line to share and the head would otherwise print directly under the card's heading with the whole ring between it and its rows. **TWO BUILDERS NOW, AND hmPaint MUST FILL BOTH**: `hmSideHeadHtml` and `hmSideHtml`, each used by the template AND by the paint, keeping this card's standing rule that it renders complete in the markup; fill only one and a stage press moves the list while the previous stage's name stands over it (home-pipeline-ring-verify's six presses are what prove it, and the new file presses a stage and asserts the NAME followed). **SAID OUT LOUD: the mock-up does not do this** — its own stage list starts below the heading row. The owner was told that and asked for it anyway.
+
 Tests: home-pipeline-ring-verify (54, browser — the card measured against Decisions due at four window sizes, every stage pressed twice round with all 152 elements outside the card re-measured after each press, nothing spilling or clipped, the key never crushed, the figure proved to be in the app's own heading face, and dark). The dashboard's own node tests are unchanged and still read the card's counts out of the rendered HTML.
 
 ## A CALENDAR DAY IS A DOOR
 
-Pressing ANYTHING in a day box goes to the register narrowed to that day's contracts; the document opens only when the day carries exactly ONE. It counts CONTRACTS, not events (renewalDecisionDate falls back to expiry and double-marks a day). THE CHIPS ARE NOT DOORS (owner-asked 2026-08-12, reversing 08-11): they were their own buttons, stopPropagation'd, opening their own contract however many the day held — and at 9.5px in a 90px column nine "Mutual Non-Discl…" chips are a guess between nine. They are SPANS now with no data-sel and no stopPropagation, falling through to openDay, which is the one place the count is asked. The cell keeps role="button", its tab stop and Enter/Space, and is the only focusable thing in the box. A chip carries the event tooltip only on a ONE-contract day (where the press still goes there); otherwise none, so the cell's own title shows. [data-sel] is the AGENDA's selector and nothing else — it is a list of EVENTS, not a day box, and a change scoped to that selector would break it. regShowOnly(ids, label) is the ONE door in; regState().only is applied FIRST (it is an ANSWER; every other filter is a question and narrows within it). Two safety properties: the chip SAYS what the list is narrowed to, and the way back is on the same chip. Cleared by its ✕, both Clear-all handlers, and the phone's. **THE CELLS FLEX SINCE 22 Aug 2026** (the calendar took the mock-up — see FIVE FIXES AND A CALENDAR): a day shows at most two chips and says "+N more" past that, because a row that must always fit six weeks cannot promise room for a third. Nothing is hidden silently and the press still lands on all of them. The phone draws no calendar (listed under More). Tests: calendar-day-verify (23, browser — the chips as spans, no focusable stop inside the box, the tooltip following the press, and the agenda row still opening its own contract).
+Pressing ANYTHING in a day box goes to the register narrowed to that day's contracts; the document opens only when the day carries exactly ONE. It counts CONTRACTS, not events (renewalDecisionDate falls back to expiry and double-marks a day). THE CHIPS ARE NOT DOORS (owner-asked 2026-08-12, reversing 08-11): they were their own buttons, stopPropagation'd, opening their own contract however many the day held — and at 9.5px in a 90px column nine "Mutual Non-Discl…" chips are a guess between nine. They are SPANS now with no data-sel and no stopPropagation, falling through to openDay, which is the one place the count is asked. The cell keeps role="button", its tab stop and Enter/Space, and is the only focusable thing in the box. A chip carries the event tooltip only on a ONE-contract day (where the press still goes there); otherwise none, so the cell's own title shows. [data-sel] is the AGENDA's selector and nothing else — it is a list of EVENTS, not a day box, and a change scoped to that selector would break it. regShowOnly(ids, label) is the ONE door in; regState().only is applied FIRST (it is an ANSWER; every other filter is a question and narrows within it). Two safety properties: the chip SAYS what the list is narrowed to, and the way back is on the same chip. Cleared by its ✕, both Clear-all handlers, and the phone's. **THE CELLS FLEX SINCE 22 Aug 2026** (the calendar took the mock-up — see FIVE FIXES AND A CALENDAR): a day shows at most two chips and says "+N more" past that, because a row that must always fit six weeks cannot promise room for a third. Nothing is hidden silently and the press still lands on all of them. The phone draws no calendar (listed under More).
+
+**AND THE PANEL BESIDE IT NAMED TWO DIFFERENT WINDOWS (found 23 Aug 2026, chasing an unrelated red).** It is headed `cal_next_30` ("Next 30 days"), it filters through `calUpcoming`, whose default window is 30 — and its empty state said "Nothing due in the next **60** days", in both languages. The one reader who ever sees that sentence is the one with nothing in the panel, and it told them a different number from the heading directly above it. Pinned as a RELATION in f148 rather than as a literal: the two strings must agree with each other AND with `calUpcoming`'s own default, so moving the window to 45 is one edit in the code and the test names the words that have to follow.
+
+**THE FIXTURE FOR THIS SCREEN WAS DATE-DEPENDENT, AND IT IS THE f183 SHAPE AGAIN.** calendar-day-verify pinned its contracts to the 12th, 18th and 22nd of the CURRENT month. That is fine for the grid, which draws a whole month whether a day is past or future — every day-cell check passes on any date. It is fatal for the panel: MEASURED on 23 Aug 2026 those dates were 11, 5 and 1 days in the PAST, `calUpcoming` dropped all three, the panel drew its empty state, and the agenda check reported "no agenda rows to press". Green on the 1st to the 11th of a month, red for the rest of it. The agenda now gets a date of its OWN, offset from today rather than pinned to a day number, stepping past the three grid days so a sixth mark cannot turn "three contracts share a day" into four; it may fall in next month, which is correct, because the panel is not month-scoped and only the grid is. **SIMULATED OVER 730 DAYS: 0 failures.** Tests: calendar-day-verify (23, browser — the chips as spans, no focusable stop inside the box, the tooltip following the press, and the agenda row still opening its own contract), f148 (the panel's two windows, both languages).
 
 ## SETTINGS & RULES — FOUR TABS AND ONE DRAWER (owner-asked, 13 Aug 2026)
 
@@ -1094,6 +1119,16 @@ was asking for.
   dictionary key they used are gone rather than switched off, because a feature
   left dormant is one caller away from being back. nego-redesign-verify asserts
   the ABSENCE, both as pixels and as published names.
+
+  **AND THE TAB ROW KEPT A 2px GREY SEAM FOR A DAY** (owner-asked 23 Aug 2026,
+  alongside the room's band above). `.redline-page .rl-tabrow` carried
+  `margin:0 2px 2px` on a comment reading "the same 2px side padding the strip
+  below it has" — true when it was written, and false the moment this redesign
+  sent the head full-bleed: MEASURED, the head drew at x=256 w=1234 and the row
+  beneath it at x=258 w=1230, so two pixels of page ground ran down each side and
+  two more beneath, framing the lower half of a band meant to read as one white
+  object. It is `margin:0` now and the first tab still starts on the head's own
+  vertical, because both carry the same 24px padding. **Set no margin here again.**
 
   **WHAT THE ATTEMPT LEFT BEHIND, and both are worth keeping:** the CSS fallback
   columns and the grid's ResizeObserver. Neither was about the panels — they came
@@ -1441,6 +1476,50 @@ treatment, all four reproduced and MEASURED before anything was touched.
   press, not metadata about one**, and at the label shade the three resting tabs
   read as captions under the live one. The live state is what marks the live
   tab; the resting ones do not have to be faded as well.
+
+  **AND IT WAS FIXED ON ONE ROW AND LEFT ON FOUR** — reported again 23 Aug 2026
+  in almost the same words ("the font I have highlighted should also be the font
+  used in the tab navigation panels within the insights page and others
+  navigation panels within the administration tabs"). The correction above was
+  applied to `.room-tab` and swept no further, so the Insights tabs, the
+  friction segments beside them, the Settings & Rules tabs and the phone's own
+  contract tabs all still rested on the label shade. All four take
+  `--color-text` now. **THE FULL INVENTORY OF THIS CONTROL, so the next sweep is
+  a check rather than a hunt:** `.room-tab` · `.rl-readwrap .rl-seg` (the
+  REFERENCE — the row the owner points at) · `[data-ig-tab]` · `[data-igf-days]`
+  · `.st-tab` · `.m-ctab` (the phone's, which keeps its own 15px/600 — a touch
+  target is not a pointer target, so only the INK is swept). **`.rl-fseg` IS
+  DELIBERATELY NOT ON THAT LIST** and the owner was told: it is the Tracked
+  Changes All/Mine/Theirs FILTER, not page navigation, its Render B dress was
+  chosen off four drawn options six days earlier for measured contrast reasons,
+  and it sits on the very page being held up as the model. One word reverses it.
+
+  **AND THE BOX FOLLOWED THE INK, 23 Aug 2026** (owner-asked: "the design of
+  images 1 and 2 need to resemble how image 3 was designed" — image 3 being the
+  room's tab row). The ink sweep above matched the COLOUR and left the geometry
+  alone: `.st-tab` padded each tab 14px a side with a 2px row gap, so every tab
+  was a slab and the live underline ran the slab's full width, while `.room-tab`
+  hugs its text (`9px 1px`) and lets a `22px` gap separate them — words with
+  space between them, and an underline exactly as wide as the word. `.st-tab`
+  and `.st-tabs` now carry the room's own numbers, and its `.on` takes
+  `--accent-ink` / `--accent-solid` like the room's. **They stay two rules**
+  because the two rows sit in different containers; f236 pins them to each
+  other so they cannot drift.
+  **`.st-tab` ALSO LOST A REDUNDANT `font-family`**: it declared `font:inherit`
+  and then overrode it with `var(--font-heading)`, which is the same face but a
+  different FALLBACK ORDER — the two rows agreed only for as long as Inter
+  loads.
+
+  **AND THE LIST TITLES WERE ALREADY RIGHT, which is the other half of that same
+  report and is worth writing down because the obvious move was to change
+  something.** The owner asked for this font on "the main sentences in the list
+  of contracts in the contracts page and in the negotiations page" too. MEASURED
+  across seventeen typographic properties on both pages, `.reg-title` was
+  already byte-identical to the reference — same family, size, weight, ink,
+  tracking, leading, `cv11` and smoothing. Nothing was changed there and the
+  owner was told so plainly; the claim is PINNED instead (5d/5e), so a later
+  type pass cannot quietly pull them off the reference while everybody believes
+  the item was settled.
 - **"WHEN YOU SCROLL IN THE NEGOTIATIONS LIST OF CONTRACTS, IT BREAKS."**
   `.ngl-band > td` pinned at `top:38px`, TYPED, against a register header that
   renders **35px** — so a 3px slot sat between the two sticky things and every
@@ -1655,7 +1734,11 @@ NOTHING BANDS THE TOP OF THE CONTRACT (owner rule, 2026-08-12) — neither seat,
 
 NOTICES: rlFloatingNoticesHtml is the one stack, built in redlinePanesHtml NOT renderRedline (the counterparty embed needs it; a copy in both draws twice). Folded by default behind one amber bell bottom-right (rlNoticesFolded / rlSetNoticesFolded — per contract, in memory, never persisted); bell/Hide wired by ONE delegated listener on document; per-notice ✕ clears one for the sitting; no alerts, no bell. THE READING NOTICE NEVER FOLDS (quietly hiding the strikes is the expensive mistake). Phone notice is in-flow with its own ✕. The wall line stays in #rl-banner (the counterparty must read it before starting). The three reading buttons are wired by delegation on document — one lives on the later-painted notice. f172.
 
-Document tab space: actionBarHtml returns NOTHING on 'docs' (still speaks on Key terms/Signing/History); the empty strip is hidden outright by style so it keeps no height. data-ws-fold / data-ws-display are STALE — flag any mention (they existed only for the header-fold toggle, deleted 13 Aug 2026; see THE ⋯ MENU below). Provenance is a right-column card. The one door off the tab and the text-size stepper ride at the right of the TAB ROW in slot #ws-tabrow-end, built by wsTabRowEndHtml and REPAINTED by applyWsTabs on every tab change (wsPaintTabRowEnd) — built once per render it described whichever tab was current then, which is why that corner came up empty on a Document tab a reader had switched to. Wired where it is PAINTED, never also in wireWsTabs or wireActionBar (both re-run — handlers stack). f91, room-order-and-notices-verify.
+**THE STATUS STRIP IS RETIRED ON EVERY TAB (owner-asked 23 Aug 2026: "remove the highlighted strip in all the tabs and move the cards up").** The Document tab gave it up on 10 Aug for the contract's sake; Key terms, Signing and History give it up now for the cards'. `actionBarHtml` is a `return ''` STUB rather than a deletion — it is called from renderWorkspace AND renderActionBar, and a third caller must not be able to bring the band back through a door nobody remembered (the negoCounterLineHtml precedent). **THE CARDS MOVE UP BY THEMSELVES**: `#ws-actionbar` hides when its html is empty (one line in applyWsTabs, which has always meant exactly this), so with nothing to draw it stops being a flex item and takes neither its height nor the column's 8px gap with it — measured, the cards now start 10px under the tab row's rule. **WHAT WENT WITH IT, checked before rather than after**: the STATUS is untouched (contractStatusTextHtml prints it beside the name on every tab — which is why the Document tab could already spare this), and the NEXT STEP is untouched (wsNextAction still drives the head's lead button). Two sentences really go, and only one mattered: "Executed and sealed" restated a status the head already shows, but **"You have viewer access — the document is read-only for your role" was the one place a VIEWER was told why nothing on the page can be typed in.** That is a real loss, reported rather than absorbed; if it comes back it wants its own quiet line on the pages it applies to, not this band on every tab.
+
+**AND THE KEY-TERMS CARDS FILL THE PAGE MEASURE** (same ask: "widen the cards to resemble the width of the cards in the html in the same page"). The mock-up's own two-card grid on this page is `.h-c2{grid-template-columns:minmax(0,58fr) minmax(0,42fr)}` inside `.h-content`, with NO cap of its own — as wide as the page minus its padding, 1104px at the mock-up's 1440. `.terms-grid` was capped at **1040 and centred**, so on a 1500 window it left ~80px of empty page down each side and drew NARROWER cards than the design on a WIDER screen than the design. The cap is raised to **1440 — the design's own page width** — rather than deleted: an artboard is 1440 wide and a real window is not, and a key-terms row stretched across an ultra-wide monitor is a label at one end and its value at the other. Measured at 1500: the grid is 1198 of a 1202 pane. The divider, its stored fraction and KT_LEFT_MIN/KT_RIGHT_MIN are untouched — the resizer measures whatever the grid is.
+
+Document tab space: actionBarHtml is a stub on EVERY tab now (see above); the empty strip is hidden outright by style so it keeps no height. data-ws-fold / data-ws-display are STALE — flag any mention (they existed only for the header-fold toggle, deleted 13 Aug 2026; see THE ⋯ MENU below). Provenance is a right-column card. The one door off the tab and the text-size stepper ride at the right of the TAB ROW in slot #ws-tabrow-end, built by wsTabRowEndHtml and REPAINTED by applyWsTabs on every tab change (wsPaintTabRowEnd) — built once per render it described whichever tab was current then, which is why that corner came up empty on a Document tab a reader had switched to. Wired where it is PAINTED, never also in wireWsTabs or wireActionBar (both re-run — handlers stack). f91, room-order-and-notices-verify.
 
 Negotiate's control row: .rl-head is a group inside .rl-tabrow after a .rl-tabrow-gap spacer (the row carries NO tabs since 12 Aug 2026 — it kept its name, its spacer and its bottom rule because it is still what carries this page's controls) (kept its class name — half the suite reaches controls via .rl-head button; lost room-quiet). FIT LADDER, asked of the browser, never a media query: the row wraps on content (flex-wrap); rlFitTabRow only RECORDS the decision (.rl-tabrow-wrap), ALWAYS measuring with its own classes OFF (an observer reading its own effect never recovers). THE MIDDLE STEP IS FOUR RUNGS, NOT ONE (owner-reported 13 Aug 2026: "even though I have significant space where I have highlighted, the buttons should not be minimized"). It was one, and it was a cliff — MEASURED at 1280px the row is 1166 wide and wants 1167, and that one pixel took every word off the row at once, freeing 402px that became the empty gap in the photograph. Now, cumulative, cheapest loss first, each rung measured before the next: .rl-tabrow-trim (whitespace only — NOTHING disappears on it, which is the rung that answers the report), .rl-tabrow-lite (the commentary: .rl-send-detail, .rl-type-out), .rl-tabrow-half (the way-out button's word — its COUNT never folds), .rl-tabrow-tight (the two review buttons to glyphs, LAST because these are the words that were reported — they wore violet until 20 Aug 2026, when the owner asked for the "N needs you" chip's neutral clothes: surface, hairline, bold word, tokens so dark comes free; the violet dark override went with the violet). Words are <span class="rl-word">, tooltips carry the rest; textContent never changes, so tests still read labels. A new control on this row joins a rung by what losing it costs. rlObserveTabRow puts a ResizeObserver on the ROW itself (catches the nav rail, zoom, the next cause) — re-attached on EVERY paint (renderRedline rebuilds the row) and compares WIDTHS before acting (its classes change height; height-compare oscillates forever). The spacer carries the tab-row's bottom rule when wrapped. The view toggle reads Internal | Counterparty (group carries the sentence, ng_view_group). **THE COUNTERPARTY VIEW IS A PREVIEW, NOT A DIFFERENT CHAIR** (owner-asked 19 Aug 2026): flipping it used to REMOVE our four controls (Review vs Playbook, Internal review, Publish Round, Close Round) and swap every label on the row for the other seat's — so the row emptied by ~130px and everything left of the gap shuffled sideways and back, on the one control whose whole purpose is comparing the two views. **rowSide** (`preview ? 'owner' : side`) pins every label the row prints — needsYou, sendTarget, sendVerb, sendTip — while `side` still decides what the DOCUMENT and the cards draw. The four controls stay drawn, in the same place, and go DEAD: `disabled` + `data-rl-dead` + ng_preview_dead on hover. THE MARKER IS ITS OWN because `.rl-pb-btn:disabled` already means "the playbook pass is running" (cursor:wait) — two states, two looks. A NARROWED REVIEWER KEEPS THE HIDING: `preview` asks `!_rvPosture` first, because that absence is a permission, not a posture. This does not weaken f152's rule — the window still files nothing, and `disabled` is the browser refusing to dispatch the click rather than a decision about pixels; f152's click-sweep is what proves it. **AND THE CARDS TOOK THE SAME RULE, 20 Aug 2026** (owner-reported off two screenshots: the preview showed bare receipt rows where the counterparty's real link shows full cards with Accept/Reject/Edit and the wording preview). The preview mounts read-only — correct, a window must not act as them — and read-only killed canAct, which killed the verbs, which made every card classify as a "needs nothing" RECEIPT: the preview showed LESS than their page, on the control whose purpose is showing exactly what they see. `previewSeat` in redlineChangeCardsHtml (opts.preview + side counterparty + not executed — set ONLY by renderRedline's mount, so the portal's real seat is untouched) flips the two DRAWING flags to the counterparty page's own answers, and the finished action bar is deadened WHOLESALE after classification (disabled + data-rl-dead), so the receipt/full-card decision and the needs-you reading stay their page's own. WHAT STILL DIFFERS, deliberately: their HELD/SENT local answers cannot be mirrored (they live in their browser and never left it), and the paper's Edit pill and the panel's writing acts stay down in the preview (a window can't write; the dead-verb treatment covers the cards, where the mismatch was reported). f152 gained the crossed-ask test; its "no Accept/Reject anywhere" narrowed in place to "no LIVE decide verb". f152 (12). f89, f178, f184; laptops-verify passes at every laptop width; control-row-folds-verify (19, browser — WHERE the fold lands, which no node test can see: every word on screen at 1280–1920, one line all the way down, the rungs never taken out of order, and the words coming back when the width does).
 
@@ -1950,8 +2033,63 @@ to own the current palette". **Somebody did.** It went to 40/40, it came off
 the known-red list, and the standing rule is at THE NET above: re-record only
 when deliberately owning a palette change, never to make a red run go away.
 
-**IT IS 26/40 AS OF 22 Aug 2026 — MEASURED, and this is a note rather than a
-fix.** (This paragraph said 39/40 and named one lost shade; the real figure was
+**RE-RECORDED 23 Aug 2026, AND HERE IS EXACTLY WHAT THAT ABSORBED.** The
+sidebar-count change (boxes off, numbers white, amber kept) is a palette change
+on a strip that is on EVERY screen, so it moved the census on 18 of the 40
+checks — `rgba(245,158,11,.26)` and `rgba(255,255,255,.24)` leaving, and
+`rgb(253,230,138)` arriving. That is somebody deliberately owning a palette
+change, which is the one case the rule above allows, so the baseline was saved.
+
+**AND THE LAST FOUR WERE RECORDED 23 Aug 2026, so the file is 40/40 and is a
+working net again.** It had sat at 36/40 because the calendar redesign and the
+head-row button pass both landed without re-recording. **EACH DIFFERENCE WAS
+MEASURED AND CHECKED BEFORE IT WAS SAVED, not waved through** — re-recording is
+how a real regression gets buried, so the rule is that you look at every value
+first:
+
+- `negotiate--light` and `--dark` lost `color(srgb .72549 .10980 .10980 / .45)`
+  — the Reject button's 45%-alpha BORDER, removed by the owner-asked "the
+  bottom buttons do not have lines around them". Checked that the verb kept its
+  own ink rather than going quiet with its border: Reject still draws
+  `rgb(185,28,28)` at 6.47:1, Edit `rgb(15,118,110)`, both with `border-width:0`.
+  Only the semi-transparent border value left the census; the opaque ink is
+  still in it.
+- `calendar--light` and `--dark` moved on the redesign's own tones and
+  surfaces — teal .11 → .45, the page tint re-hued to the design's neutral, and
+  `rgb(148,163,184)` / `rgb(100,116,139)` arriving, which is `--st-gray` in each
+  theme. That last one is the value that section records as the redesign's own
+  caught defect (`--st-steel-dot` resolved to the workspace accent and drew two
+  slices of one colour), so its presence is the FIX being recorded, not a drift.
+  Re-checked that the four legend tones are still tellable apart: closest pair
+  126 in light, and four distinct values in dark.
+
+**NOTHING WAS ABSORBED SILENTLY** — the four values above are the whole of it.
+
+**RE-RECORDED AGAIN 23 Aug 2026 for the sidebar's own change**, and it moved all
+20 screens because the drawer is on every one of them. Checked before saving,
+and it is one change and nothing else: `rgb(159,216,209)` (the pale-teal door
+ink) and `rgba(255,255,255,.15)` (the old white veil on the live door) leaving,
+`color(srgb .0302 .1675 .1592)` — the darker green mix — arriving, identically
+on every screen, and the same pair in dark against its own ground. The
+`.st-tab.on` swap from `--color-accent-800` to `--accent-ink` moved NO colour:
+`--accent-ink` IS `--color-accent-800` in light, and following the token is what
+makes it right in dark. 40/40.
+
+**TWO CHECKS WERE ALREADY RED BEFORE IT AND ARE NOW BAKED IN — NAMED HERE SO
+THEY ARE NOT LOST.** MEASURED on the clean tree immediately before re-recording:
+**38/40**, the two failures being `negotiate--light` and `negotiate--dark`, both
+on one value — the `.rl-pb-btn` accent border
+`color(srgb 0.0509804 0.580392 0.533333 / 0.5)`
+(`color-mix(in srgb,var(--accent-solid) 50%,transparent)`) standing where a
+slate tint used to be. That is the 22 Aug redesign owning a colour on one page;
+its author reported it rather than re-recording, and re-recording now is what
+turns "reported" into "recorded". It is not a defect and needs no chase.
+
+**AND THE FIGURE BELOW WAS WRONG.** This paragraph read 26/40 and the note under
+it read 39/40; the tree actually measured 38/40. A number nobody re-measures is
+the fault this whole file exists to stop, so: re-measure before quoting one.
+
+**THE OLD NOTE, KEPT FOR ITS LESSON — it read 26/40 as of 22 Aug 2026.** (This paragraph said 39/40 and named one lost shade; the real figure was
 taken by stashing an unrelated change and running the file on the clean tree.
 The 22 Aug button and typography work moved colours on nine of the twenty
 screens — the flat `.ui-btn` border and the accent ink are what the diff keeps
