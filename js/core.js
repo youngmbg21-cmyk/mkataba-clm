@@ -2296,7 +2296,10 @@ function sealString(c){
 async function verifySeal(c){
   if(!c.hash){ toast(i18t('co_not_sealed'),'err'); return; }
   if(c.hash==='PRE-SEEDED'){ toast(i18t('co_sample_presealed'),'err'); return; }
-  if(c.hash==='MIGRATED'){ toast(`Migrated contract — executed outside HaTi. The uploaded file's own SHA-256 (${(c.upload?.fileHash||'').slice(0,16)}…) is the evidence of record`); return; }
+  /* 'ok', never a bare call. THIS IS THE BRANCH A REAL CUSTOMER HITS — paper
+     executed outside HaTi and imported — and it was the only one that printed
+     nothing, so on the commonest kind of sealed record the button was silent. */
+  if(c.hash==='MIGRATED'){ toast(i18t('co_seal_migrated',{h:(c.upload?.fileHash||'').slice(0,16)}),'ok'); return; }
   if(!isUpload(c)){
     if(!c.execution?.html){ toast(i18t('co_no_snapshot'),'err'); return; }
     const th=await sha256(execHashInput(c.execution));
@@ -2334,9 +2337,12 @@ async function verifySeal(c){
      because sha256IsReal() answers for the fallback having been used at all,
      not only for this call. */
   const weak=(typeof sha256IsReal==='function')&&!sha256IsReal();
-  const ok=isUpload(c)?'Seal valid — file and parties are intact':'Seal valid — sealed text, parties and value are intact';
+  const ok=isUpload(c)?i18t('co_seal_valid_file'):i18t('co_seal_valid_text');
   if(weak){ toast(`${ok}. ${i18t('co_seal_weak')}`,'err'); return; }
-  toast(ok);
+  /* And the GOOD verdict is a verdict too. Bare, it printed nothing — so a
+     reader who pressed Verify integrity on an intact contract got the same
+     answer a broken button would have given them. */
+  toast(ok,'ok');
 }
 function downloadFile(name, content, type='application/json'){
   const a=document.createElement('a');
@@ -4330,7 +4336,7 @@ async function openShareModal(c, opts={}){
   const wireCopy=()=>document.getElementById('share-copy')?.addEventListener('click',async()=>{
     const ta=document.getElementById('share-link'); ta.select();
     try{ await navigator.clipboard.writeText(ta.value); }catch(e){ document.execCommand('copy'); }
-    toast(i18t('co_share_copied'));
+    toast(i18t('co_share_copied'),'ok');
   });
 
   /* ONE SEND, TWO DOORS (WO N4). The form's Send button and the quick panel's
@@ -4711,7 +4717,7 @@ function reshareNotSentModal(c, out, who){
   document.getElementById('rs-copy').addEventListener('click',async()=>{
     const ta=document.getElementById('rs-link'); ta.select();
     try{ await navigator.clipboard.writeText(ta.value); }catch(e){ document.execCommand('copy'); }
-    toast(i18t('co_link_copied'));
+    toast(i18t('co_link_copied'),'ok');
   });
 }
 
@@ -4927,7 +4933,7 @@ async function renderSharesSection(c){
   host.querySelectorAll('[data-sh-copy]').forEach(b=>b.addEventListener('click',async()=>{
     const link=location.origin+location.pathname+'#share=t:'+b.getAttribute('data-sh-copy');
     try{ await navigator.clipboard.writeText(link); }catch(e){}
-    toast(i18t('co_share_copied'));
+    toast(i18t('co_share_copied'),'ok');
   }));
   host.querySelectorAll('[data-sh-resend]').forEach(b=>b.addEventListener('click',async()=>{
     /* ---- THREE OUTCOMES, NOT TWO, AND SAID OUT LOUD ----

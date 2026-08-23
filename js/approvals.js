@@ -247,7 +247,10 @@ function resubmitApproval(c, note){
   const st=approvalState(c);
   if(!st.required) return false;
   const back=st.chain.filter(s=>s.status==='rejected'||s.status==='stale');
-  if(!back.length){ toast(i18t('ap_nothing_resubmit')); return false; }
+  /* 'warn', never bare: a bare toast prints nothing, so this refusal — the one
+     the greyed button above makes unreachable through the interface — said
+     nothing at all to anybody who reached it another way. */
+  if(!back.length){ toast(i18t('ap_nothing_resubmit'),'warn'); return false; }
   if(!canEdit()){ toast(i18t('ap_viewers_no_resubmit'),'err'); return false; }
   const u=currentUser();
   c.approvalChain=st.chain.map(s=> (s.status==='rejected'||s.status==='stale')
@@ -762,7 +765,18 @@ function approvalChainHtml(c, opts){
         <button id="ap-approve" class="rounded-lg bg-brand-900 text-white px-3 py-1.5 text-[11px] font-600 hover:bg-brand-800">${st.next.status==='pending'?'Approve':'Approve again'} “${esc1(st.next.name)}”</button>
         <button id="ap-reject" class="rounded-lg border border-rose-200 text-rose-600 px-3 py-1.5 text-[11px] font-600 hover:bg-rose-50">${i18t('ve_reject')}</button></div>`
         :st.next?`<div class="mt-1.5 text-[10px] text-ink/55">${i18t('ap_waiting_on',{who:approverLabelOf(st.next.approver)})}</div>`:''}
-      ${owner?`<button id="ap-resubmit" class="mt-2 w-full rounded-lg border border-brand-200 text-brand-700 px-3 py-1.5 text-[11px] font-600 hover:bg-brand-50">${i18t('ap_revise_send_back')}</button>`:''}
+      ${''/* ---- GREY WHEN THERE IS NOTHING TO SEND BACK ----
+             This drew for the owner whatever the chain said, and the act behind
+             it refuses unless some step is rejected or stale — the same set the
+             two blocks directly above are built from. So on a chain that is
+             simply waiting on the next approver, the owner was offered a button
+             whose only outcome was a refusal. ONE reading (the chain's own
+             rejected/stale steps) now decides both, and the reason is on hover
+             because a dimmed control that cannot explain itself is a wall. */}
+      ${owner?(()=>{ const back=(st.chain||[]).filter(x=>x.status==='rejected'||x.status==='stale');
+        const why=back.length?'':i18t('ap_nothing_resubmit');
+        return `<button id="ap-resubmit"${why?' disabled aria-disabled="true"':''} title="${esc1(why)}"
+          class="mt-2 w-full rounded-lg border border-brand-200 text-brand-700 px-3 py-1.5 text-[11px] font-600 hover:bg-brand-50${why?' opacity-50 cursor-not-allowed':''}">${i18t('ap_revise_send_back')}</button>`; })():''}
     </div>`;
   }
   return html;

@@ -1870,7 +1870,7 @@ function openDerivedLinkDialog(d, org){
   ov.querySelector('#pt-derive-copy').addEventListener('click',async()=>{
     box?.select?.();
     try{ await navigator.clipboard.writeText(link); }catch(e){ try{ document.execCommand('copy'); }catch(_){} }
-    toast(i18t('po_readonly_copied'));
+    toast(i18t('po_readonly_copied'),'ok');
   });
   /* NOT dismissed by a click on the backdrop, unlike confirmDialog. This is
      the one and only sight of the link; a stray click outside the card must
@@ -2169,7 +2169,7 @@ function wirePortalNegoFoot(c, p){
     const box=document.querySelector(`[data-pt-derived="${i}"]`); if(!box) return;
     box.select?.();
     try{ await navigator.clipboard.writeText(box.value); }catch(e){ try{ document.execCommand('copy'); }catch(_){} }
-    toast(i18t('po_readonly_copied'));
+    toast(i18t('po_readonly_copied'),'ok');
   }));
   document.getElementById('pt-nego-decline')?.addEventListener('click',async()=>{
     /* A refusal the other side cannot understand is a refusal they will argue
@@ -4030,7 +4030,7 @@ function portalOfferResponseCode(p, response, label){
     document.getElementById('pt-copy').addEventListener('click',async()=>{
       const ta=document.getElementById('pt-code'); ta.select();
       try{ await navigator.clipboard.writeText(ta.value); }catch(e){ document.execCommand('copy'); }
-      toast(i18t('po_response_code_copied'));
+      toast(i18t('po_response_code_copied'),'ok');
     });
     return code;
   }
@@ -4058,7 +4058,7 @@ function portalOfferResponseCode(p, response, label){
   ov.querySelector('#pt-copy').addEventListener('click',async()=>{
     const ta=ov.querySelector('#pt-code'); ta.select();
     try{ await navigator.clipboard.writeText(ta.value); }catch(e){ try{ document.execCommand('copy'); }catch(_){} }
-    toast(i18t('po_response_code_copied'));
+    toast(i18t('po_response_code_copied'),'ok');
   });
   /* Deliberately no backdrop-click close — see the note above. */
   return code;

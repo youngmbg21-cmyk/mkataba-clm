@@ -257,13 +257,16 @@ const savedResultLang = r => (r && r.lang) || 'en';
    the full record first, then save the result and say what was found. */
 async function runScanFor(c){
   if(!canEdit()){ toast(i18t('ai_viewers_no_scan'),'err'); return; }
-  toast(i18t('ai_scanning'));
+  toast(i18t('ai_scanning'),'ok');   /* progress: the scan takes seconds and nothing else moves */
   try{ await ensureFull(c); }catch(e){ toast(i18t('ai_could_not_load')+e.message,'err'); return; }
   runScan(c);
   const n=openFindings(c).length;
   logAudit(c,'Scanned',`Copilot contract scan run — ${n} open finding${n===1?'':'s'}`);
   c.lastAction=todayStr(); persist(c);
-  toast(n?`Scan complete — ${n} finding${n===1?'':'s'} · open the contract to read them`:'Scan complete — no issues found');
+  /* 'ok' rather than a bare call, and the clean case says so. A bare toast
+     prints NOTHING — so on a clean contract, which is the commonest outcome,
+     the scan ran, cost money, wrote an audit line and answered with silence. */
+  toast(n ? i18tn('ai_scan_found',n,{n}) : i18t('ai_scan_clean'), 'ok');
   if(state.view==='register'&&window.renderRegister) renderRegister();
   else if(state.view==='folder'&&window.renderFolder) renderFolder();
   if(window.updateSidebarCounts) updateSidebarCounts();
@@ -286,7 +289,10 @@ function runScanAct(c){
        still completes normally. */
     if(window.renderChecksCard) renderChecksCard(c);
     if(window.openCheckPanel && document.getElementById('checks-card')) openCheckPanel(c,'risk');
-    toast(n?`Scan complete — ${n} finding${n===1?'':'s'} pinned to clauses`:'Scan complete — no issues found');
+    /* The SECOND scan site, and it had the same fault: the clean case rode a
+       bare toast and printed nothing. Two doors onto one act, and only one of
+       them was fixed would be the duplication warning in its usual direction. */
+    toast(n ? i18tn('ai_scan_pinned',n,{n}) : i18t('ai_scan_clean'), 'ok');
   }, 1100);
 }
 function renderScanSection(c){

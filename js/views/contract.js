@@ -1574,7 +1574,10 @@ function openEditDocModal(c){
   document.getElementById('ed-cancel').addEventListener('click',closeModal);
   document.getElementById('ed-save').addEventListener('click',()=>{
     const txt=ta.value;
-    if(txt.trim()===cur.trim()){ toast(i18t('ct_no_changes_made')); closeModal(); return; }
+    /* 'warn', never bare. The editor CLOSES on this branch and nothing is
+       saved, which looks identical to a save that worked — so the one outcome
+       the reader needs told about was the one that printed nothing. */
+    if(txt.trim()===cur.trim()){ toast(i18t('ct_no_changes_made'),'warn'); closeModal(); return; }
     if(!txt.trim()){ toast(i18t('ct_text_not_empty'),'err'); return; }
     const fromCp=!!document.getElementById('ed-from-cp')?.checked;
     if(fromCp){

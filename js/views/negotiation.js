@@ -257,9 +257,22 @@ function negoNumberingNoticeHtml(c, opts = {}){
     : 'Numbers are printed exactly as the document carries them, so nothing else moved '
       + 'and no reference to another clause was repointed. Renumbering is a separate, '
       + 'deliberate act — and once this contract is signed its numbering is final.';
-  /* Two clicks to close the gap: this one, then the preview's confirm. */
+  /* Two clicks to close the gap: this one, then the preview's confirm.
+     GREY WHEN THE PLAN WOULD MOVE NOTHING, with the reason on hover — the door
+     asked only "are there gaps", while negoRenumberOpen behind it asks the
+     narrower question "would renumbering actually change a number", and the
+     two can disagree (a gap at the very end moves nothing above it). One
+     reading now decides whether the door draws live and what pressing it does. */
+  let renumWhy = '';
+  if (!locked && opts.offer){
+    try {
+      const plan = window.negoRenumberPlan ? negoRenumberPlan(c) : null;
+      if (plan && !plan.changed) renumWhy = i18t('ng_renumber_no_gaps');
+    } catch (e) { /* unreadable is not "nothing to do" — leave the door live */ }
+  }
   const door = (!locked && opts.offer)
-    ? `<button type="button" class="renum" data-renumber-open="${_ne(c.id)}"
+    ? `<button type="button" class="renum" data-renumber-open="${_ne(c.id)}"${renumWhy ? ' disabled aria-disabled="true"' : ''}
+        title="${_ne(renumWhy)}"
         onclick="window.negoRenumberOpen&&negoRenumberOpen(this.getAttribute('data-renumber-open'))">${i18t('ng_renumber_ellipsis')}</button>`
     : '';
   return `<div class="nego-gaps" id="${_ne(opts.noticeId || 'nego-gaps')}" data-locked="${locked ? '1' : '0'}"
@@ -683,7 +696,10 @@ function negoRenumberOpen(cId){
   }
   const plan = window.negoRenumberPlan ? negoRenumberPlan(c) : null;
   if (!plan || !plan.changed){
-    if (window.toast) toast(i18t('ng_nothing_to_renumber'));
+    /* 'warn', never a bare call: a bare toast prints nothing at all, so this
+       refusal — the one the greyed door above is meant to make unreachable —
+       was silent for anybody who got past it. */
+    if (window.toast) toast(i18t('ng_nothing_to_renumber'), 'warn');
     return;
   }
   if (typeof window.openModal !== 'function') return;
@@ -1876,9 +1892,17 @@ function negoHeadHtml(c, opts){
           ? `${p.done} of ${p.total} change${p.total === 1 ? '' : 's'} resolved — every change carries its own fingerprint.`
           : 'No changes on the table yet. Propose wording and each change becomes a fingerprint on this list.'}
       </span>
-      ${canAct && p.pending ? `
-        <button id="nego-all-acc" class="ui-btn" title="${i18t('ng_accept_nonrisk_title')}" style="flex:none;font-size:13px;padding:5px 11px;border-color:var(--st-green-fg);color:var(--st-green-fg)">${i18t('ng_accept_all_nonrisk')}</button>
-        <button id="nego-all-rej" class="ui-btn" title="${i18t('ng_reject_all_title')}" style="flex:none;font-size:13px;padding:5px 11px;border-color:var(--st-ruby-dot);color:var(--st-ruby-dot)">${i18t('ng_reject_all_cp')}</button>` : ''}
+      ${''/* THE PAIR THE LIVE PAGE REALLY DRAWS, and it had the fault twice:
+             it HID them when nothing was pending, and left them lit whenever
+             anything was — including a round where nothing was theirs to
+             reject or nothing was clear to accept. Same one reading as the
+             other two surfaces; drawn and greyed rather than hidden, so the
+             reader can see what would be there and read why it is not. */}
+      ${canAct ? (() => { const bs = negoBulkState(c, side, canAct); return `
+        <button id="nego-all-acc" class="ui-btn"${bs.acc.ok ? '' : ' disabled aria-disabled="true"'}
+          title="${_ne(bs.acc.why || i18t('ng_accept_nonrisk_title'))}" style="flex:none;font-size:13px;padding:5px 11px;border-color:var(--st-green-fg);color:var(--st-green-fg)">${i18t('ng_accept_all_nonrisk')}</button>
+        <button id="nego-all-rej" class="ui-btn"${bs.rej.ok ? '' : ' disabled aria-disabled="true"'}
+          title="${_ne(bs.rej.why || i18t('ng_reject_all_title'))}" style="flex:none;font-size:13px;padding:5px 11px;border-color:var(--st-ruby-dot);color:var(--st-ruby-dot)">${i18t('ng_reject_all_cp')}</button>`; })() : ''}
       ${side === 'owner' ? `<button id="nego-export" class="ui-btn" style="flex:none;font-size:13px;padding:5px 11px"
         title="${p.pending ? 'Pending changes must be resolved first' : 'Export the agreed wording'}"${p.pending ? ' disabled' : ''}>${i18t('ng_export_clean_pdf')}</button>` : ''}
     </div>
@@ -2310,15 +2334,19 @@ function negoPanesHtml(c, opts = {}){
                already carries. "I agree to all of it" is a real and common
                answer, and withholding the button would not withhold the
                decision, only make them press Accept six times to say it. */}
-        ${canAct ? `<div class="nego-bulk">
-          <button class="b-acc" id="nego-bulk-acc"${p.pending ? '' : ' disabled'}
-            title="${side === 'owner'
-              ? 'Accepts only the pending changes that trip no playbook, scan or review signal'
-              : `Accepts every change ${_ne(negoOtherSideName(opts))} has proposed. Your own asks are untouched.`}"
+        ${canAct ? (() => {
+          const bs = negoBulkState(c, side, canAct);   /* see negoBulkState */
+          const accWhy = bs.acc.why || (side === 'owner'
+            ? 'Accepts only the pending changes that trip no playbook, scan or review signal'
+            : `Accepts every change ${negoOtherSideName(opts)} has proposed. Your own asks are untouched.`);
+          const rejWhy = bs.rej.why || i18t('ng_reject_all_who_title',{who:negoOtherSideName(opts)});
+          return `<div class="nego-bulk">
+          <button class="b-acc" id="nego-bulk-acc"${bs.acc.ok ? '' : ' disabled aria-disabled="true"'}
+            title="${_ne(accWhy)}"
             >${side === 'owner' ? 'Accept All Non-Risk' : 'Accept all'}</button>
-          <button class="b-rej" id="nego-bulk-rej"${p.pending ? '' : ' disabled'}
-            title="${_ne(i18t('ng_reject_all_who_title',{who:negoOtherSideName(opts)}))}">${side === 'owner' ? i18t('ng_reject_all_cp2') : i18t('ng_reject_all2')}</button>
-        </div>` : ''}
+          <button class="b-rej" id="nego-bulk-rej"${bs.rej.ok ? '' : ' disabled aria-disabled="true"'}
+            title="${_ne(rejWhy)}">${side === 'owner' ? i18t('ng_reject_all_cp2') : i18t('ng_reject_all2')}</button>
+        </div>`; })() : ''}
         ${negoIndexSendHtml(c, opts)}`}
       </div>
       <div class="nego-index-scroll" id="nego-cards">${negoLinkedBarHtml()}${negoCardsHtml(c, opts)}</div>
@@ -2555,10 +2583,12 @@ function negoRoomActionsHtml(c, opts){
             right place for — a third party, a re-send, a link for signature. */}
     <button class="nego-tbtn ghost" id="nego-copilot" title="${i18t('ng_ask_about_contract')}">✦ Ask Copilot</button>
     ${canAct ? `<button class="nego-tbtn ghost" id="nego-insert-lib" title="${i18t('ng_insert_preferred')}">+ Insert clause</button>` : ''}
-    <button class="nego-tbtn acc" id="nego-all-acc"${p.pending && canAct ? '' : ' disabled'}
-      title="${comparing ? 'Not while you are comparing versions' : 'Accepts only the pending changes that trip no playbook, scan or review signal — the rest are held back for you'}">${i18t('ng_accept_all_nonrisk_btn')}</button>
-    <button class="nego-tbtn rej" id="nego-all-rej"${p.pending && canAct ? '' : ' disabled'}
-      title="${comparing ? 'Not while you are comparing versions' : 'Rejects every pending change proposed by the other side. Your own asks are untouched.'}">${i18t('ng_reject_all_cp_btn')}</button>
+    ${(() => { const bs = negoBulkState(c, side, canAct);   /* see negoBulkState */
+      const t = (own, dflt) => comparing ? 'Not while you are comparing versions' : (own || dflt);
+      return `<button class="nego-tbtn acc" id="nego-all-acc"${bs.acc.ok && !comparing ? '' : ' disabled aria-disabled="true"'}
+      title="${_ne(t(bs.acc.why, 'Accepts only the pending changes that trip no playbook, scan or review signal — the rest are held back for you'))}">${i18t('ng_accept_all_nonrisk_btn')}</button>
+    <button class="nego-tbtn rej" id="nego-all-rej"${bs.rej.ok && !comparing ? '' : ' disabled aria-disabled="true"'}
+      title="${_ne(t(bs.rej.why, 'Rejects every pending change proposed by the other side. Your own asks are untouched.'))}">${i18t('ng_reject_all_cp_btn')}</button>`; })()}
     <button class="nego-tbtn ghost" id="nego-export"${p.pending ? ' disabled' : ''}
       title="${p.pending ? 'Pending changes must be resolved first' : 'Export the agreed wording'}">${i18t('ng_export_clean_pdf_btn')}</button>`;
 }
@@ -3002,6 +3032,34 @@ function negoBatchSplit(c, side){
   return { pending, clear, held, theirs };
 }
 
+/* ---- WHETHER THE TWO BATCH BUTTONS CAN DO ANYTHING, AND WHY NOT ----
+   THREE SURFACES DRAW THIS PAIR — negoHeadHtml (the live negotiation page's
+   own head), negoAllHtml (the room's toolbar) and the index column — and all
+   three asked a WIDER question than the act behind them: "is anything pending
+   at all". bulk() asks negoBatchSplit, which is narrower on each button —
+   Accept takes only what trips no playbook, scan or review signal; Reject only
+   what came from the other side. So on a round where every pending change
+   tripped the playbook, or where all of them were ours, the buttons were lit
+   and both answered with a refusal.
+
+   ONE READING now decides whether each draws live AND what pressing it does,
+   so the two cannot disagree — and it carries the REASON, because a dimmed
+   control that cannot explain itself is a wall, which is worse than a silent
+   press: the reader cannot even try. */
+function negoBulkState(c, side, canAct){
+  if (!canAct) return { acc:{ ok:false, why:'' }, rej:{ ok:false, why:'' } };
+  const sp = negoBatchSplit(c, side);
+  return {
+    split: sp,
+    acc: { ok: !!sp.clear.length,
+      why: sp.clear.length ? '' : (sp.held.length
+        ? i18tn('ng_bulk_none_clear', sp.held.length, { n: sp.held.length })
+        : i18t('ng_bulk_none_pending')) },
+    rej: { ok: !!sp.theirs.length,
+      why: sp.theirs.length ? '' : i18t('ng_bulk_none_theirs') },
+  };
+}
+
 /* The preview. A batch that moves contract wording says exactly what it will
    move and exactly what it is holding back, BEFORE it moves anything — the
    alternative is a button whose blast radius a person can only learn by
@@ -3305,7 +3363,7 @@ async function negoAiPropose(c, ctx){
 }
 
 if (typeof window !== 'undefined') Object.assign(window, {
-  negoRiskOf, negoBatchSplit, negoBatchConfirm, NEGO_AI_ACTIONS,
+  negoRiskOf, negoBatchSplit, negoBulkState, negoBatchConfirm, NEGO_AI_ACTIONS,
   negoAiPropose, negoLinkedBarHtml, negoModeHtml
 });
 
@@ -9598,9 +9656,12 @@ async function rlOpenPlaybookReview(c, again){
   const items = rlPlaybookProposals(c, rev);
   const aligned = rev.verdicts.filter(v => v.status === 'aligned').length;
   if (!items.length){
+    /* 'ok' on the aligned case, 'warn' on the other: a bare call prints
+       nothing, so the pass's BEST outcome — the contract agrees with every one
+       of our own positions — was the one the reader never heard. */
     if (window.toast) toast(aligned === rev.verdicts.length
-      ? `Every playbook position is aligned — nothing to propose`
-      : 'The review found points to watch but no proposable wording — see Draft & Review on the Doc page');
+      ? i18t('ng_pb_all_aligned') : i18t('ng_pb_nothing_proposable'),
+      aligned === rev.verdicts.length ? 'ok' : 'warn');
     if (again) again();
     return;
   }

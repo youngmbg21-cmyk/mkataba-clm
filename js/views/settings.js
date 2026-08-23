@@ -2647,13 +2647,20 @@ function stWireEngine(){
       renderRateTable(c.rates||{}, c.ratesMeta||{});
     }catch(e){ el.textContent='Could not read Copilot config.'; } };
   refreshAiCfg();
+  /* ---- THE COPILOT ENGINE PANEL'S FOUR SAVES SAY 'SAVED' ----
+     Every refusal here goes into the drawer's foot and every SUCCESS was a
+     bare toast, which prints nothing — so a real Save button on a panel
+     whose fields do not visibly change answered a correct press with
+     silence. This is a 'save' panel, not a 'done' one: it has a button
+     that has to report. The ~250 quiet confirmations elsewhere on this
+     page stay quiet — they are panels that already wrote what changed. */
   // basic shape check mirroring the server (blank = clear override)
   const okModel=(s)=>s===''||(!/\s/.test(s)&&/^claude-[a-z0-9][a-z0-9.\-]*$/i.test(s));
   document.getElementById('ai-key-save')?.addEventListener('click',async()=>{
     const key=document.getElementById('ai-key').value.trim();
     if(!key){ stDrawerRefuse(i18t('set_enter_key')); return; }
     try{ await api('ai/config','PUT',{ key }); document.getElementById('ai-key').value='';
-      stDrawerClearRefusal(); toast(i18t('set_key_saved')); refreshAiCfg(); }
+      stDrawerClearRefusal(); toast(i18t('set_key_saved'),'ok'); refreshAiCfg(); }
     catch(e){ stDrawerRefuse(e.message); }
   });
   document.getElementById('ai-model-save')?.addEventListener('click',async()=>{
@@ -2661,12 +2668,12 @@ function stWireEngine(){
     const modelDeep=document.getElementById('ai-model-deep').value.trim();
     const model=document.getElementById('ai-model-global').value.trim();
     for(const m of [modelFast,modelDeep,model]) if(!okModel(m)){ stDrawerRefuse(i18t('set_t_bad_model',{m})); return; }
-    try{ await api('ai/config','PUT',{ modelFast, modelDeep, model }); stDrawerClearRefusal(); toast(i18t('set_model_saved')); refreshAiCfg(); }
+    try{ await api('ai/config','PUT',{ modelFast, modelDeep, model }); stDrawerClearRefusal(); toast(i18t('set_model_saved'),'ok'); refreshAiCfg(); }
     catch(e){ stDrawerRefuse(e.message); }
   });
   document.getElementById('ai-key-clear')?.addEventListener('click',async()=>{
     if(!await confirmDialog({title:'Remove the stored Copilot key?', message:'Copilot features will fall back to the built-in interpreter until a new key is added.', confirmLabel:'Remove key', danger:true})) return;
-    try{ await api('ai/config','PUT',{ clear:true }); toast(i18t('set_key_removed')); refreshAiCfg(); }catch(e){ stDrawerRefuse(e.message); }
+    try{ await api('ai/config','PUT',{ clear:true }); toast(i18t('set_key_removed'),'ok'); refreshAiCfg(); }catch(e){ stDrawerRefuse(e.message); }
   });
   document.getElementById('ai-limits-save')?.addEventListener('click',async()=>{
     const num=id=>{ const el=document.getElementById(id); if(!el) return undefined; const v=el.value.trim(); return v===''?undefined:Number(v); };
@@ -2677,7 +2684,7 @@ function stWireEngine(){
     const cash={ dailySpendLimit:num('ai-daily-spend'), estimateConfirmAt:num('ai-estimate-confirm') };
     for(const [k,v] of Object.entries(cash)) if(v!==undefined&&(!Number.isFinite(v)||v<0)){ stDrawerRefuse(i18t('set_t_non_negative',{k})); return; }
     const body={ ...whole, ...cash, thoroughExtract: !!document.getElementById('ai-thorough')?.checked };
-    try{ await api('ai/config','PUT',body); stDrawerClearRefusal(); toast(i18t('set_limits_saved')); refreshAiCfg(); }
+    try{ await api('ai/config','PUT',body); stDrawerClearRefusal(); toast(i18t('set_limits_saved'),'ok'); refreshAiCfg(); }
     catch(e){ stDrawerRefuse(e.message); }
   });
   const allowBody=()=>{

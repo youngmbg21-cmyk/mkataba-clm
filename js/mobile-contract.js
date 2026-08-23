@@ -582,9 +582,16 @@ function mContractAct(k, btn){
   if(k==='share'){ mOpenShareSheet(); return; }
   if(k==='history'){ mCloseSheet(); s.tab='hist'; mRender(); return; }
   if(k==='copilot'){ mCloseSheet(); if(window.openAI) openAI(); return; }
-  if(k==='edit'||k==='compare'||k==='template'){ mCloseSheet(); if(window.toast) toast(M_DESK_MSG); return; }
-  if(k==='edit-locked'){ mCloseSheet(); if(window.toast) toast(i18t('mc_sealed_no_edit')); return; }
-  if(k==='renumber-locked'){ mCloseSheet(); if(window.toast) toast(i18t('mc_never_renumber')); return; }
+  /* ---- ON A PHONE A GREY ROW CANNOT EXPLAIN ITSELF, SO IT TALKS ----
+     These three rows are already drawn dimmed, and each explained itself with
+     a BARE toast — which prints nothing. So the reader tapped a grey row and
+     got exactly what a broken row gives: no movement and no word. Touch has no
+     hover, so the desktop's answer (a title attribute) is not available here
+     and the message IS the explanation. 'warn' rather than 'err': nothing
+     failed and nothing was refused unexpectedly — this is a rule, stated. */
+  if(k==='edit'||k==='compare'||k==='template'){ mCloseSheet(); if(window.toast) toast(M_DESK_MSG,'warn'); return; }
+  if(k==='edit-locked'){ mCloseSheet(); if(window.toast) toast(i18t('mc_sealed_no_edit'),'warn'); return; }
+  if(k==='renumber-locked'){ mCloseSheet(); if(window.toast) toast(i18t('mc_never_renumber'),'warn'); return; }
 
   if(k==='verify'){
     mCloseSheet(); s.tab='hist'; mRender();
@@ -649,7 +656,7 @@ function mDoNextAction(kind){
        column and because rebuilding where wording is argued over is the most
        expensive thing in this app to get subtly wrong. */
     if(window.openRedlineWorkbench){ openRedlineWorkbench(c.id); return; }
-    if(window.toast) toast(i18t('mc_nego_on_computer'));
+    if(window.toast) toast(i18t('mc_nego_on_computer'),'warn');   /* same rule as the three rows above */
     return;
   }
   if(kind==='share'){ mOpenShareSheet(); return; }

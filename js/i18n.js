@@ -750,6 +750,11 @@ const STRINGS = {
     mig_viewers_no_import: 'Viewers cannot import contracts',
     mig_batch_running: 'A batch is already running — let it finish first',
     mig_nothing_waiting: 'Nothing waiting for review',
+    mig_review_pass_done_one: 'Review pass finished — 1 confirmed',
+    mig_review_pass_done_other: 'Review pass finished — {n} confirmed',
+    mig_rerun_stopped: 'Copilot re-run stopped ({why}) — {n} done, try again later',
+    mig_rerun_done_one: 'Copilot re-ran on 1 contract',
+    mig_rerun_done_other: 'Copilot re-ran on {n} contracts',
     mig_connect_key: 'Connect an Copilot key in Team & Settings first',
     mig_no_pattern_left: 'No pattern-matched contracts left to re-run',
     mig_nothing_migrated: 'Nothing migrated yet',
@@ -833,6 +838,7 @@ const STRINGS = {
     adv_create_request: 'Create request',
     adv_viewers_no_move: 'Viewers cannot move requests',
     adv_intake_copied: 'Public intake link copied — share it with customers',
+    adv_track_copied: 'Tracking link copied — send it to {who}',
     adv_could_not_copy: 'Could not copy',
     adv_positive_number: 'Every value must be a positive number',
     adv_rates_published: 'Rate card published',
@@ -2377,6 +2383,20 @@ const STRINGS = {
     ng_clause_no_wording: 'That clause has no wording to work on',
     ng_write_reply_first: 'Write your reply first',
     ng_nothing_pending: 'Nothing pending — every change is already resolved',
+    /* ---- WHY A GREY BUTTON IS GREY ----
+       A dimmed control that cannot explain itself is a wall. Each of these
+       is the reason on hover, and each is the same sentence the handler
+       behind the button would have said if it had been pressed. */
+    ng_bulk_none_pending: 'Nothing is pending — there is nothing to accept',
+    /* THE PLAYBOOK PASS'S BEST OUTCOME WAS ITS QUIETEST. Both of these rode a
+       bare toast, which prints nothing — so a contract that agrees with every
+       one of the company's own positions answered the press with silence. */
+    ng_pb_all_aligned: 'Every playbook position is aligned — nothing to propose',
+    ng_pb_nothing_proposable: 'The review found points to watch but no proposable wording — see Draft & Review on the Doc page',
+    ng_bulk_none_clear_one: 'Nothing is clear to accept — the one pending change tripped a risk signal, so it needs a person',
+    ng_bulk_none_clear_other: 'Nothing is clear to accept — all {n} pending changes tripped a risk signal, so each needs a person',
+    ng_bulk_none_theirs: 'No changes from the other side are pending',
+    ng_renumber_no_gaps: 'The numbering already runs without gaps — there is nothing to renumber',
     ng_nothing_moved: 'Nothing moved — those changes are not yours to decide',
     ng_resolve_before_export: 'Pending changes must be resolved before a clean export',
     ng_export_unavailable: 'Export is unavailable on this page',
@@ -2478,6 +2498,15 @@ const STRINGS = {
     co_enter_full_name: 'Enter your full name',
     co_enter_work_email: 'Enter a valid work email — it is your sign-in and your password-reset route',
     co_not_sealed: 'Document is not sealed yet',
+    /* ---- VERIFY INTEGRITY SAYS ITS VERDICT, INCLUDING THE GOOD ONE ----
+       Every refusal on this button was loud and every SUCCESS was a bare
+       toast, which prints nothing. So the two outcomes a real customer meets
+       — a valid seal, and a migrated contract whose evidence is the file's
+       own hash — were the two that said nothing at all, and the button read
+       as dead on exactly the contracts it was pressed on most. */
+    co_seal_valid_file: 'Seal valid — file and parties are intact',
+    co_seal_valid_text: 'Seal valid — sealed text, parties and value are intact',
+    co_seal_migrated: "Migrated contract — executed outside HaTi. The uploaded file's own SHA-256 ({h}…) is the evidence of record",
     co_sample_presealed: 'Sample contract — sealed before evidence hashing existed',
     co_no_snapshot: 'No frozen snapshot on this record',
     co_seal_mismatch_text: 'Seal MISMATCH — the sealed text was altered',
@@ -2671,6 +2700,16 @@ const STRINGS = {
     ai_could_not_turn: 'I could not turn that into a proposal. Say it another way, or decline and select the passage again.',
     ai_viewers_no_scan: 'Viewers cannot run a scan',
     ai_scanning: 'Scanning…',
+    /* ---- THE SCAN SAYS WHAT IT FOUND, INCLUDING NOTHING ----
+       'Scan complete' rode a BARE toast, which prints nothing — so a clean
+       contract answered the press with silence, which is exactly what a
+       broken button looks like. A clean result is the commonest outcome and
+       is worth saying out loud: it is the answer the reader wanted. */
+    ai_scan_clean: 'Scan complete — no issues found',
+    ai_scan_pinned_one: 'Scan complete — 1 finding pinned to a clause',
+    ai_scan_pinned_other: 'Scan complete — {n} findings pinned to clauses',
+    ai_scan_found_one: 'Scan complete — 1 finding · open the contract to read it',
+    ai_scan_found_other: 'Scan complete — {n} findings · open the contract to read them',
     ai_could_not_load: 'Could not load that contract — ',
     fo_value_streams: 'Value streams',
     fo_auto_route: 'Auto — route by contract type',
@@ -5302,6 +5341,11 @@ const STRINGS = {
     mig_viewers_no_import: 'Läsare kan inte importera avtal',
     mig_batch_running: 'En omgång pågår redan — låt den bli klar först',
     mig_nothing_waiting: 'Inget väntar på granskning',
+    mig_review_pass_done_one: 'Granskningsomgången är klar — 1 bekräftad',
+    mig_review_pass_done_other: 'Granskningsomgången är klar — {n} bekräftade',
+    mig_rerun_stopped: 'Copilot-omkörningen stoppades ({why}) — {n} klara, försök igen senare',
+    mig_rerun_done_one: 'Copilot kördes om på 1 avtal',
+    mig_rerun_done_other: 'Copilot kördes om på {n} avtal',
     mig_connect_key: 'Anslut först en Copilot-nyckel under Team och inställningar',
     mig_no_pattern_left: 'Inga mönstermatchade avtal kvar att köra om',
     mig_nothing_migrated: 'Inget migrerat ännu',
@@ -5385,6 +5429,7 @@ const STRINGS = {
     adv_create_request: 'Skapa förfrågan',
     adv_viewers_no_move: 'Läsare kan inte flytta förfrågningar',
     adv_intake_copied: 'Publik ingångslänk kopierad — dela den med kunder',
+    adv_track_copied: 'Spårningslänken är kopierad — skicka den till {who}',
     adv_could_not_copy: 'Kunde inte kopiera',
     adv_positive_number: 'Varje värde måste vara ett positivt tal',
     adv_rates_published: 'Prislistan publicerad',
@@ -6809,6 +6854,13 @@ const STRINGS = {
     ng_clause_no_wording: 'Klausulen har ingen formulering att arbeta med',
     ng_write_reply_first: 'Skriv ditt svar först',
     ng_nothing_pending: 'Inget väntar — varje ändring är redan avgjord',
+    ng_bulk_none_pending: 'Inget väntar — det finns inget att godkänna',
+    ng_pb_all_aligned: 'Varje position i förhandlingsguiden stämmer — inget att föreslå',
+    ng_pb_nothing_proposable: 'Granskningen hittade punkter att hålla ögonen på men ingen formulering att föreslå — se Utkast och granskning på dokumentsidan',
+    ng_bulk_none_clear_one: 'Inget kan godkännas direkt — den enda väntande ändringen utlöste en risksignal och behöver en person',
+    ng_bulk_none_clear_other: 'Inget kan godkännas direkt — alla {n} väntande ändringar utlöste en risksignal och var och en behöver en person',
+    ng_bulk_none_theirs: 'Inga ändringar från motparten väntar',
+    ng_renumber_no_gaps: 'Numreringen löper redan utan luckor — det finns inget att numrera om',
     ng_nothing_moved: 'Inget flyttades — de ändringarna är inte dina att avgöra',
     ng_resolve_before_export: 'Väntande ändringar måste avgöras före en ren export',
     ng_export_unavailable: 'Export är inte tillgänglig på den här sidan',
@@ -6907,6 +6959,9 @@ const STRINGS = {
     co_enter_full_name: 'Ange ditt fullständiga namn',
     co_enter_work_email: 'Ange en giltig jobbe-postadress — den är din inloggning och din väg att återställa lösenordet',
     co_not_sealed: 'Dokumentet är inte förseglat ännu',
+    co_seal_valid_file: 'Förseglingen är giltig — filen och parterna är oförändrade',
+    co_seal_valid_text: 'Förseglingen är giltig — den förseglade texten, parterna och värdet är oförändrade',
+    co_seal_migrated: 'Migrerat avtal — undertecknat utanför HaTi. Den uppladdade filens egen SHA-256 ({h}…) är beviset i registret',
     co_sample_presealed: 'Exempelavtal — förseglat innan bevishashning fanns',
     co_no_snapshot: 'Ingen fryst ögonblicksbild på den här handlingen',
     co_seal_mismatch_text: 'FÖRSEGLINGEN STÄMMER INTE — den förseglade texten har ändrats',
@@ -7088,6 +7143,11 @@ const STRINGS = {
     ai_could_not_turn: 'Jag kunde inte göra ett förslag av det. Formulera om, eller avbryt och markera stycket igen.',
     ai_viewers_no_scan: 'Läsare kan inte köra en granskning',
     ai_scanning: 'Granskar…',
+    ai_scan_clean: 'Skanningen är klar — inga problem hittades',
+    ai_scan_pinned_one: 'Skanningen är klar — 1 fynd kopplat till en klausul',
+    ai_scan_pinned_other: 'Skanningen är klar — {n} fynd kopplade till klausuler',
+    ai_scan_found_one: 'Skanningen är klar — 1 fynd · öppna avtalet för att läsa det',
+    ai_scan_found_other: 'Skanningen är klar — {n} fynd · öppna avtalet för att läsa dem',
     ai_could_not_load: 'Kunde inte läsa in avtalet — ',
     fo_value_streams: 'Värdeflöden',
     fo_auto_route: 'Automatiskt — styr efter avtalstyp',

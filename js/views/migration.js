@@ -720,10 +720,14 @@ async function openMigReview(c, opts={}){
    settings backfill — cancel skips to the next, so a stuck doc never blocks). */
 function migReviewAll(){
   const todo=migContracts().filter(c=>c.migration.needsReview);
-  if(!todo.length){ toast(i18t('mig_nothing_waiting')); return; }
+  /* Every confirmation on this screen was a BARE call, which prints nothing:
+     the reader pressed a button, the screen did not visibly change, and the
+     product said the same as a dead button would have. Each of these reports
+     a real outcome now, in the kind that matches it. */
+  if(!todo.length){ toast(i18t('mig_nothing_waiting'),'warn'); return; }
   let done=0;
   const next=()=>{ const c=todo.shift();
-    if(!c){ renderMigration(); toast(`Review pass finished — ${done} confirmed`); return; }
+    if(!c){ renderMigration(); toast(i18tn('mig_review_pass_done',done,{n:done}),'ok'); return; }
     openMigReview(c,{ saveLabel:`Save & next (${todo.length} left)`, onDone:ok=>{ if(ok) done++; next(); } });
   };
   next();
@@ -758,7 +762,10 @@ async function migRerunAi(){
     persist(c); done++;
   }
   if(API_MODE()){ try{ await flushSaves(); }catch(e){} }
-  toast(migState().aiDown?`Copilot re-run stopped (${migState().aiDownMsg}) — ${done} done, try again later`:`Copilot re-ran on ${done} contract${done===1?'':'s'}`);
+  toast(migState().aiDown
+    ? i18t('mig_rerun_stopped',{why:migState().aiDownMsg||'',n:done})
+    : i18tn('mig_rerun_done',done,{n:done}),
+    migState().aiDown ? 'warn' : 'ok');
   window.refreshAiUsage&&refreshAiUsage();
   updateSidebarCounts(); renderMigration();
 }
@@ -964,7 +971,10 @@ function migWireDupes(host){
   }));
 }
 function migWireCancel(){
-  document.getElementById('mig-cancel')?.addEventListener('click',()=>{ migState().running=false; toast(i18t('mig_stopping')); });
+  /* "Stop after current" sets a flag and nothing on screen moves until the
+     file in flight finishes, so a bare (silent) toast made the one control
+     that stops a long import read as a dead press. */
+  document.getElementById('mig-cancel')?.addEventListener('click',()=>{ migState().running=false; toast(i18t('mig_stopping'),'warn'); });
 }
 function migGateDots(c){
   return migGates(c).map(g=>`<span title="${g.label}${g.ok?'':' — missing'}" style="width:8px;height:8px;border-radius:50%;display:inline-block;background:${g.ok?'var(--st-green-dot)':'var(--color-neutral-300)'};border:1px solid ${g.ok?'var(--st-green-dot)':'var(--color-neutral-400)'}"></span>`).join('');

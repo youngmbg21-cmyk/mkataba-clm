@@ -161,7 +161,7 @@ function renderAdviceIntake(){
           <button id="ap-open" class="ui-btn ui-btn-primary" style="padding:8px;font-size:13px">${i18t('apo_open_tracking')}</button>
         </div>
       </div>`;
-    document.getElementById('ap-copy').addEventListener('click',async()=>{ try{ await navigator.clipboard.writeText(link); }catch(e){ document.getElementById('ap-link').select(); document.execCommand('copy'); } toast(i18t('apo_tracking_copied')); });
+    document.getElementById('ap-copy').addEventListener('click',async()=>{ try{ await navigator.clipboard.writeText(link); }catch(e){ document.getElementById('ap-link').select(); document.execCommand('copy'); } toast(i18t('apo_tracking_copied'),'ok'); });
     document.getElementById('ap-open').addEventListener('click',()=>{ location.hash='#advice='+(ADVICE_PORTAL.remote?'t:':'')+req.token; location.reload(); });
     document.getElementById('ap-go').disabled=true;
   });
