@@ -7436,6 +7436,27 @@ function renderRedline(){
    that changes what the reader sees. */
 const RL_LIVE_MS = 12000;
 let _rlLiveTimer = null, _rlLiveBusy = false;
+/* An arrival collected while an editor was open, waiting for the editor to
+   close before it is drawn. Per sitting, in memory: a reload shows the fresh
+   record anyway, because the row was already replaced. */
+let _rlLivePending = false;
+/* Is somebody typing into a clause right now? [data-nego-editor] is the one
+   marker the engine puts on the live editor holder, on the paper and in the
+   clause panel alike, so this asks the same question both homes answer. */
+function rlEditorOpen(){
+  try{ return !!document.querySelector('[data-nego-editor]'); }catch(_){ return false; }
+}
+/* Draw a held-back arrival once the editor is gone. Asked at the top of each
+   poll tick rather than hooked onto the editor's own close paths: those are
+   several (save, file, cancel, Escape, a clause swap) and one missed hook would
+   strand the page on stale wording with nothing to shake it loose. A tick that
+   finds no editor and something pending simply draws it — self-healing, and
+   there is nothing for a future close path to remember to call. */
+function rlLiveFlush(){
+  if(!_rlLivePending || rlEditorOpen()) return;
+  _rlLivePending = false;
+  renderRedline();
+}
 function rlStartLivePoll(c){
   if (typeof setInterval !== 'function' || !c || !c.id) return;
   /* The harness's off switch. The node worlds run with API_MODE() true, and
@@ -7450,6 +7471,7 @@ function rlStartLivePoll(c){
     if (!window.state || state.view !== 'redline' || state.activeId !== id){
       clearInterval(_rlLiveTimer); _rlLiveTimer = null; return;
     }
+    rlLiveFlush();          /* an arrival held back while somebody was typing */
     if (_rlLiveBusy) return;
     _rlLiveBusy = true;
     try{
@@ -7459,11 +7481,28 @@ function rlStartLivePoll(c){
          version back onto the record (c._v), so only SOMEBODY ELSE's write
          leaves the two numbers apart. */
       if (st && cur && st.version != null && cur._v != null && st.version !== cur._v){
+        /* ---- A BACKGROUND REPAINT MAY NOT TAKE SOMEBODY'S TYPING WITH IT ----
+           This repainted unconditionally. An owner part-way through a clause —
+           replacement wording typed, the "why this change" reason half written
+           — lost the lot the moment the counterparty published their round or a
+           colleague saved the record, with no warning and nothing recoverable.
+           Nobody pressed anything; a timer did it.
+           The ARRIVAL is still collected either way: the fresh record replaces
+           the row, so nothing is missed and no round is lost. What waits is the
+           REDRAW, until the editor is closed — by saving, filing or cancelling
+           — at which point the ordinary repaint that follows shows everything
+           that landed. The reader is told, so a page that has deliberately
+           stopped moving under them never reads as a page that has stalled. */
         const fresh = await api('contracts/' + id);
         const i = state.contracts.findIndex(x => x && x.id === id);
         if (i >= 0) state.contracts[i] = fresh;
-        renderRedline();
-        if (window.toast) toast(`Updated just now — new activity on ${id}`);
+        if (rlEditorOpen()){
+          _rlLivePending = true;
+          if (window.toast) toast(i18t('ng_live_held_for_editor', { id }), 'warn');
+        } else {
+          renderRedline();
+          if (window.toast) toast(`Updated just now — new activity on ${id}`);
+        }
       }
     }catch(_){ /* transient — the next tick retries */ }
     _rlLiveBusy = false;

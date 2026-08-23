@@ -1988,16 +1988,43 @@ function openModal(html, opts={}){
     <div id="modal-scrim" style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 50%,transparent);"></div>
     <div class="modal-in scroll-thin" style="position:relative;width:100%;max-width:${maxw};${sized}background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:0;">${html}</div>
   </div>`;
-  document.getElementById('modal-scrim').addEventListener('click',closeModal);
+  /* ---- THE TWO QUIET WAYS OUT ASK THE SAME QUESTION THE ✕ DOES ----
+     Both of these called closeModal() straight, so a modal that had put its own
+     "Discard these changes?" behind its Cancel button was walked past by
+     Escape and by a click on the scrim — ten minutes of editing gone with no
+     prompt. opts.onBeforeClose is that guard: return false (or a promise of
+     false) and the dialog stays. A modal that sets none behaves exactly as it
+     always has. */
+  _modalGuard = (typeof opts.onBeforeClose==='function') ? opts.onBeforeClose : null;
+  document.getElementById('modal-scrim').addEventListener('click',()=>closeModalGuarded());
   // Esc closes, exactly like the scrim click — some modals (Compare, share)
   // otherwise strand keyboard users with no visible way out
   document.addEventListener('keydown',function esc(e){
     if(e.key!=='Escape'){ if(!document.getElementById('modal-scrim')) document.removeEventListener('keydown',esc); return; }
-    document.removeEventListener('keydown',esc); closeModal();
+    /* ---- AND ESCAPE BELONGS TO THE TOP LAYER ONLY ----
+       confirmDialog and promptDialog append to <body> ABOVE this panel and
+       register their own Escape afterwards — and two listeners on `document`
+       both fire whatever either does about propagation, this one first because
+       it was added first. So pressing Escape on the "Discard these changes?"
+       guard resolved it as "Keep editing" AND closed the editor underneath in
+       the same keystroke: the answer was honoured and ignored at once.
+       While a top overlay is up, Escape is not ours. */
+    if(document.querySelector('[data-top-overlay]')) return;
+    document.removeEventListener('keydown',esc); closeModalGuarded();
   });
   return root;
 }
-function closeModal(){ document.getElementById('modal-root').innerHTML=''; }
+/* The guard the current modal registered, if any. One value because only one
+   #modal-root panel is ever open; cleared on every close so it can never
+   outlive the dialog that set it. */
+let _modalGuard=null;
+async function closeModalGuarded(){
+  const g=_modalGuard;
+  if(g){ let ok=true; try{ ok=await g(); }catch(_){ ok=true; }
+    if(ok===false) return; }
+  closeModal();
+}
+function closeModal(){ _modalGuard=null; document.getElementById('modal-root').innerHTML=''; }
 
 /* ---- A PANEL THAT DOES NOT STAND IN FRONT OF WHAT IT IS TALKING ABOUT ----
 
@@ -2051,6 +2078,10 @@ function confirmDialog(opts={}){
     const prev=document.getElementById('confirm-overlay'); if(prev) prev.remove();
     const ov=document.createElement('div');
     ov.id='confirm-overlay';
+    /* Marks this as the layer Escape belongs to while it is up — openModal's own
+       Escape stands down for it, so answering this guard cannot also close the
+       dialog the guard is protecting. */
+    ov.setAttribute('data-top-overlay','1');
     ov.style.cssText='position:fixed;inset:0;z-index:90;display:grid;place-items:center;padding:16px';
     const btnFg=danger?'#fff':'#fff';
     const btnBg=danger?'var(--danger)':'var(--color-accent)';
@@ -2097,6 +2128,7 @@ function promptDialog(opts={}){
     const prev=document.getElementById('prompt-overlay'); if(prev) prev.remove();
     const ov=document.createElement('div');
     ov.id='prompt-overlay';
+    ov.setAttribute('data-top-overlay','1');   /* see confirmDialog above */
     ov.style.cssText='position:fixed;inset:0;z-index:92;display:grid;place-items:center;padding:16px';
     ov.innerHTML=`
       <div style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 50%,transparent)"></div>

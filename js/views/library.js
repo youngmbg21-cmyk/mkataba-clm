@@ -616,7 +616,13 @@ function openBlanksEditor(tid){
     <div style="display:flex;justify-content:flex-end;gap:8px">
       <button id="be-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <button id="be-save" class="ui-btn ui-btn-primary">${i18t('lib_save_blanks')}</button>
-    </div></div>`, {maxWidth:'760px'});
+    </div></div>`, {maxWidth:'760px',
+    /* Escape and the scrim ask the SAME question Cancel does. Without this they
+       walked straight past the guard below and took every unsaved blank with
+       them. */
+    onBeforeClose:async()=>!dirty || await confirmDialog({ title:'Discard these changes?',
+      message:'The blanks you added, renamed or removed since opening this editor will be lost. The template itself is unchanged.',
+      confirmLabel:'Discard changes', cancelLabel:'Keep editing', danger:true })});
   draw();
 
   const bodyEl=document.getElementById('be-body');
@@ -830,7 +836,12 @@ function openTemplateEditor(tid){
         <button id="te-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="te-save" class="ui-btn ui-btn-primary" style="white-space:nowrap">${icon('check2','w-3.5 h-3.5')} Save as v${templateVersionNo(rec)+1}</button>
       </span>
-    </div></div>`, {maxWidth:'880px'});
+    </div></div>`, {maxWidth:'880px',
+    /* Same as the blanks editor above: the quiet ways out ask the same question
+       the Cancel button asks, or ten minutes of editing goes without a word. */
+    onBeforeClose:async()=>!dirty || await confirmDialog({ title:'Discard these changes?',
+      message:'The edits you have made since opening this editor will be lost.',
+      confirmLabel:'Discard changes', cancelLabel:'Keep editing', danger:true })});
 
   const st=m=>{ const el=document.getElementById('te-status'); if(el) el.innerHTML=m||''; };
   bindFolderSelect(document.getElementById('te-folder'));

@@ -5502,13 +5502,23 @@ function renderWorkspace(){
               <span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--st-green-fg);font-weight:600"><span class="live-dot" style="height:6px;width:6px;border-radius:0;background:var(--st-green-dot);display:inline-block"></span>${i18t('ct_live')}</span>
             </div>
             <div id="feed" class="scroll-thin" style="max-height:300px;overflow-y:auto;padding-right:4px;display:flex;flex-direction:column;gap:14px"></div>
+            ${''/* ---- A VIEWER IS NOT OFFERED A BOX THAT DISCARDS WHAT THEY TYPE ----
+                 The composer was drawn for everybody. A Viewer typed, pressed
+                 send, watched the comment appear in the feed and in the audit
+                 panel — and nothing was saved and nothing said so. The refusal
+                 lived in the save, which is too late to be a refusal at all.
+                 A Viewer reads; that is what the role is, and every other
+                 surface in this product already draws no verb for them. So the
+                 composer stands down and the feed stays, because reading the
+                 conversation is exactly what a Viewer is here to do. */}
+            ${(typeof canEdit==='function' && !canEdit()) ? '' : `
             <div style="margin-top:12px;padding-top:11px;border-top:1px solid var(--color-divider)">
               <div style="font-size:12px;color:var(--color-neutral-500);margin-bottom:7px">${i18t('ct_commenting_as')} <span style="font-weight:600;color:var(--color-text)">${currentUser()?.name||'you'}</span> · internal</div>
               <div style="display:flex;gap:7px">
                 <textarea id="comment-input" class="chat-field" rows="1" placeholder="${i18t('ct_add_comment')}" title="${i18t('ct_internal_to_team')}" style="flex:1;min-width:0;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:8px 11px;font-size:13px;outline:none"></textarea>
                 <button id="comment-send" class="ui-btn ui-btn-primary" style="width:36px;height:36px;padding:0;flex:none;border-radius:0">${icon('send','w-4 h-4')}</button>
               </div>
-            </div>
+            </div>`}
           </section>
           <div id="shares-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
           ${''/* the general discussion panel is removed — see js/views/portal.js */}
@@ -6220,6 +6230,11 @@ function renderFeed(c){
 function wireComments(c){
   const input=document.getElementById('comment-input');
   const send=document.getElementById('comment-send');
+  /* A Viewer is drawn the feed and no composer (see renderFeed's section), so
+     there is nothing here to wire. This function is called unconditionally from
+     renderWorkspace, and without this it threw on the first Viewer to open a
+     contract — taking the whole room down with it. */
+  if(!input || !send) return;
   const post=()=>{
     const text=input.value.trim(); if(!text) return;
     const u=currentUser();

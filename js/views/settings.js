@@ -3172,6 +3172,17 @@ function openApprovalRuleEditor(idx){
   const rules=approvalRules().slice();
   const r=idx>=0?JSON.parse(JSON.stringify(rules[idx])):{ id:'r_'+Math.random().toString(36).slice(2,7), order:rules.length+1, cond:{type:'value',op:'>=',value:5000000}, approver:{kind:'role',role:'admin'} };
   const members=(getUsers()||[]);
+  /* ---- A NAMED APPROVER WHO HAS LEFT IS NOT QUIETLY REPLACED ----
+     The select lists the two roles and the CURRENT members. A rule naming
+     somebody who has since been removed matched no option, so the browser
+     selected the first one — "Any admin" — and pressing Save wrote that,
+     silently widening who may approve contracts above a threshold, with
+     nothing on screen saying it had happened.
+     The name is kept and shown for what it is, and the save refuses until a
+     person actually chooses. Naming the departed member is the point: an admin
+     who can see WHO it used to be can pick the right replacement. */
+  const orphan = r.approver && r.approver.kind==='member'
+    && !members.some(m=>m.name===r.approver.name) ? r.approver.name : null;
   openModal(`<div class="p-6">
     <h3 class="font-serif font-600 text-lg text-ink mb-3">${idx>=0?i18t('set_edit_rule'):i18t('set_add_rule')}</h3>
     <label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">${i18t('set_order_lower_first')}</span>
@@ -3183,8 +3194,10 @@ function openApprovalRuleEditor(idx){
       <select id="ar-approver" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm">
         <option value="role:admin" ${r.approver.kind==='role'&&r.approver.role==='admin'?'selected':''}>${i18t('set_any_admin')}</option>
         <option value="role:legal" ${r.approver.kind==='role'&&r.approver.role==='legal'?'selected':''}>${i18t('set_any_legal')}</option>
+        ${orphan?`<option value="orphan" selected>${esc(orphan)} — ${i18t('set_approver_gone')}</option>`:''}
         ${members.map(m=>`<option value="member:${m.name}" ${r.approver.kind==='member'&&r.approver.name===m.name?'selected':''}>${m.name} (${roleName(m.role)})</option>`).join('')}
-      </select></label>
+      </select>
+      ${orphan?`<span style="display:block;margin-top:6px;font-size:12px;color:var(--st-amber-fg);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);padding:6px 9px">${i18t('set_approver_gone_note',{name:esc(orphan)})}</span>`:''}</label>
     <div class="flex justify-end gap-2 mt-2"><button id="ar-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_cancel')}</button>
       <button id="ar-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${i18t('set_save_rule')}</button></div>
   </div>`);
@@ -3198,7 +3211,10 @@ function openApprovalRuleEditor(idx){
   document.getElementById('ar-save').addEventListener('click',()=>{
     const t=document.getElementById('ar-cond').value; const cv=document.getElementById('ar-cv');
     const cond={type:t}; if(t==='value'){ cond.op='>='; cond.value=Number(cv.value||0); } else if(t==='folder'||t==='kind'){ cond.value=cv.value.trim?cv.value.trim():cv.value; }
-    const ap=document.getElementById('ar-approver').value.split(':');
+    const apRaw=document.getElementById('ar-approver').value;
+    /* The refusal, rather than a silent widening. */
+    if(apRaw==='orphan'){ toast(i18t('set_pick_approver'),'err'); return; }
+    const ap=apRaw.split(':');
     r.order=Math.max(1,Number(document.getElementById('ar-order').value||1)); r.cond=cond;
     r.approver = ap[0]==='member'?{kind:'member',name:ap.slice(1).join(':')}:{kind:'role',role:ap[1]};
     r.name = condLabel(cond);

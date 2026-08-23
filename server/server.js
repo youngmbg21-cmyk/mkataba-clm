@@ -3016,6 +3016,24 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
          may legitimately RAISE the value in the same breath as signing, and a
          cap that only ever looked backwards would miss it. */
       const raw = Math.max(Number((prev && prev.value) || 0), Number(c.value || 0));
+      /* ---- MONEY ONLY WHERE MONEY PASSES, WHICH THIS GUARD SAID AND DID NOT DO ----
+         The comment above already states the rule — "a contract carrying no
+         value cannot be over anybody's limit, so an unvalued or non-monetary
+         agreement passes" — and the code only ever asked about `value`. So a
+         contract ticked "no money passes under this contract" on Key terms, or
+         an NDA carrying a figure, was exempt in the browser (signCapBlocker
+         asks isMonetary first) and capped here. The browser drew a live Sign
+         button, the person pressed it, this route answered 403 and the
+         signature was lost.
+         Read from the STORED record first, for the same reason the value and
+         the currency are: valueType is a fact about the contract, not something
+         the person being capped restates on the way past. Where the save is
+         also the first to declare it, the incoming answer is honoured — a
+         record that has never said anything reads as ordinary money, exactly as
+         contractCurrency falls back for the currency beside it. */
+      const vType = (prev && prev.valueType != null) ? prev.valueType
+                  : (c && c.valueType != null) ? c.valueType : null;
+      const moneyPasses = vType !== 'none' && raw > 0;
       /* ---- AND IN THE SAME CURRENCY AS THE LIMIT (W2-1) ----
          The cap is written in the workspace currency. The currency comes off
          the STORED record where there is one — the same reason the value does:
@@ -3048,13 +3066,13 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
          refused if EITHER reading cannot be made, because a rate missing on the
          currency being claimed is exactly the state that must not become a pass. */
       const conv = [convStored, convAsked].find(x => x.missing) || (convAsked.v > convStored.v ? convAsked : convStored);
-      if (cap.answered && cap.limit != null && conv.missing)
+      if (cap.answered && cap.limit != null && moneyPasses && conv.missing)
         return res.status(403).json({
           error: `This contract is in ${conv.code} and no exchange rate for it has been set, `
             + 'so it cannot be measured against your signing limit. Ask an admin to set the rate.',
           signCap: cap.limit, fxMissing: conv.code });
       const value = conv.v;
-      if (cap.answered && cap.limit != null && value > cap.limit)
+      if (cap.answered && cap.limit != null && moneyPasses && value > cap.limit)
         return res.status(403).json({
           error: `This contract is ${value} and your signing limit is ${cap.limit}. `
             + 'Ask somebody with a higher limit to sign it, or ask an admin to raise yours.',
