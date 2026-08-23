@@ -1986,6 +1986,74 @@ HaTi's PDF reader is hand-written and **had never been run against a PDF this pr
 
 Tests: f233 (9 — each fault as the smallest hand-built PDF that reproduces it, the two controls, junk still yielding nothing rather than noise, the trim bound, and the map's fallback branch; 5 of the 9 fail against the reader of that morning).
 
+## A GAP IS A GAP — TWO WRITERS, ONE COMPARISON (owner-reported 23 Aug 2026)
+
+Two screenshots of the SAME Compare window: "The original" against "Proposed"
+read perfectly; "The original" against a saved version spaced every paragraph
+out and put a thin coloured sliver on each gap.
+
+**THE DIFF WAS FINE. THE TWO SIDES WERE WRITTEN DOWN BY DIFFERENT SERIALISERS.**
+The comparables on that list come from three writers and they do not agree
+about whether a blank line sits between blocks: **`richToText` joins with ONE
+newline** — which is what `negotiation.baselineText` ("the original") and the
+Proposed reading are both built from, and exactly why that pairing looked
+right; **`htmlToStructuredText` keeps a BLANK LINE** — what `docPlainText`
+falls to for a template contract, and therefore what `captureVersion` stores in
+every captured version; and the filed paper arrives spaced however the file
+was, carriage returns and all. `wordDiff` tokenises on `(\s+)` and KEEPS each
+whitespace run as a token of its own, so `\n` and `\n\n` are different tokens
+and every separator between two writers reads as a change.
+
+**THE TELL WAS THE LEGEND DISAGREEING WITH THE PICTURE** — "+1 added · −0
+removed" over a document covered in marks. `diffStats` counts only tokens that
+survive a trim, so it was right and the document was wrong. MEASURED on the two
+conventions before anything was touched: **eight marks emitted, all eight
+whitespace-only, stats 0/0.** Two readings of one comparison disagreeing is
+what said the fault was in the spacing rather than in the words; chase that
+first.
+
+**THE FIX IS AT THE WINDOWS, NEVER IN THE DIFF, and that is the load-bearing
+half.** `wordDiff` is ALSO what `_diffSegments` reconstructs change blocks from
+and that reconstruction is required to be exact — a block that rebuilds wording
+nobody proposed is the fault that whole mechanism exists to prevent; and
+`redlineBlocks`, one layer along, is what `redlineOpsStructured` files into the
+record, inside the fingerprint. **Neither may be taught to overlook a
+character.** `diffCompareText` (js/versioning.js, beside the diff) is a reading
+of two texts on their way to a SCREEN: per line, collapse the runs and trim —
+which is the treatment BOTH serialisers already apply — then drop the blank
+lines they disagree about. Nothing stored moves, no fingerprint moves, and
+f238 asserts both engines still reproduce their texts byte for byte.
+
+**IT COSTS LESS THAN IT LOOKS.** The obvious worry — "a paragraph genuinely
+split in two would stop showing" — does not hold: a split turns a SPACE into a
+LINE BREAK, the line count moves, and the diff still has something to say.
+Joining two still shows for the same reason. What stops showing is only the
+difference between one break and two, which neither writer regards as content
+and which **the product already discounts itself**, in `normText` and in
+`docCanonical`, when it decides whether two versions are the same version.
+
+**BOTH WINDOWS HAD IT — the duplication warning in its usual direction.** The
+owner's Compare and the counterparty's are two renderings of one question. The
+owner's shows it differently (its structured renderer draws inserted BLANK ROWS
+rather than slivers) and its cumulative view pairs the same two writers, so all
+three call sites read the pair. The phone's Compare is a desk-only row that
+toasts, so there is no fourth. `openDiffModal` has **no callers at all** —
+exported and dead; left alone rather than deleted in passing.
+
+**THE FALLBACK IS THE TRAP TO WATCH.** portal.js reads the helper through
+`window` with the raw text as its fallback, so a missing import would put the
+bug straight back **silently** — the rlPaperFootHtml class, six times paid for.
+f232 proves the name is published; f238 additionally pins that `js/app.js`
+imports versioning.js, which is what puts it on window for the share page.
+
+**AND NOTHING HAD EVER DRIVEN EITHER WINDOW.** No test in the suite named
+`openCompareModal`, `openPortalVersionCompare`, or any control inside them
+before f238 — which is why a fault this visible survived. Tests: f238 (19 — the
+fault reproduced with its own counter as the tell, the reading, the four kinds
+of real change proved to still show, both engines proved byte-exact, both
+windows' call sites, the import, and the edges; **12 of the 19 fail against the
+code of an hour before**).
+
 ## A GUARD THAT IS ALWAYS FALSE (owner-reported 21 Aug 2026: "when I click export nothing happens")
 
 The button was innocent. **`exportWordTracked` is defined in js/views/contract.js and was never published to window**, and two other modules reach it through `window.exportWordTracked && …` — so both guards had always been false, the call had never once run, and a false guard is SILENCE rather than an error. The Word export was dead on the Negotiations page AND on the counterparty's own share page; it works in the contract room, where the call is direct and in-scope, which is why nobody had reported it before.

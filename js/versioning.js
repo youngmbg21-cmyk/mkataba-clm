@@ -260,6 +260,56 @@ async function restoreVersion(c, n, after){
   return nv;
 }
 
+/* ---- A GAP IS A GAP — the shape both sides are read in before comparing ----
+   (owner-reported 23 Aug 2026: comparing "The original" against a saved
+   version spaced every paragraph out and slivered a coloured mark onto each
+   gap, while the same window comparing "The original" against "Proposed" read
+   perfectly.)
+
+   THE TWO SIDES ARE WRITTEN DOWN BY TWO DIFFERENT SERIALISERS AND THEY SPACE
+   BLOCKS DIFFERENTLY. `richToText` joins its lines with ONE newline — which is
+   what negotiation.baselineText ("the original") and the Proposed reading are
+   both built from, and why that pairing looked right. `htmlToStructuredText`
+   keeps a BLANK LINE between blocks — which is what docPlainText falls to for
+   a template contract, and therefore what every captured version holds. Pair
+   one against the other and the diff, whose tokeniser keeps whitespace runs as
+   tokens of their own, reports every separator as a change.
+
+   THE TELL IS THAT THE LEGEND DISAGREED WITH THE PICTURE: diffStats counts
+   only tokens that survive a trim, so it read "+1 added" over a document
+   covered in marks. MEASURED on the two conventions: six marks emitted, all
+   six whitespace-only, stats 0/0.
+
+   SO BOTH SIDES ARE READ IN ONE SHAPE FIRST, and the shape is not invented
+   here — it is the per-line treatment BOTH serialisers already apply (trim the
+   line, collapse runs inside it), plus dropping the blank lines they disagree
+   about. Nothing about a comparison changes except that spacing stops being
+   mistaken for content.
+
+   WHAT IT DELIBERATELY DOES NOT COST: a paragraph genuinely SPLIT in two still
+   shows, because that turns a space into a line break and the line count
+   changes; joining two still shows for the same reason. What stops showing is
+   only the difference between one break and two, which no reader ever asked
+   for and neither serialiser regards as content — the product already takes
+   that view itself, in normText and in docCanonical, when it decides whether
+   two versions are the same version.
+
+   IT IS APPLIED AT THE COMPARE WINDOWS, NEVER INSIDE THE DIFF. wordDiff is
+   also what _diffSegments reconstructs change blocks from, and that
+   reconstruction is required to be exact; redlineBlocks, one layer along, is
+   what redlineOpsStructured files into the record. Neither may be taught to
+   overlook a character. This is a reading of two texts on their way to a
+   screen and nothing else asks for it. */
+function diffCompareText(s){
+  return String(s == null ? '' : s)
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .map(l => l.replace(/[ \t]+/g, ' ').trim())
+    .filter(l => l !== '')
+    .join('\n')
+    .trim();
+}
+
 /* ---- word-level diff (E2-T2): LCS over whitespace tokens ---- */
 function tokenize(s){ return String(s||'').split(/(\s+)/).filter(x=>x!==''); }
 function wordDiff(aStr, bStr){
@@ -654,7 +704,14 @@ function openCompareModal(c){
   const run=()=>{
     const a=items[Number(document.getElementById('cmp-a').value)], b=items[Number(document.getElementById('cmp-b').value)];
     if(!a||!b) return;
-    if(a.text===b.text){
+    /* Read both sides in one shape before anything is measured or drawn — a
+       captured version and the negotiation's baseline space their blocks
+       differently, and without this every gap between them reads as a change.
+       The equality below is asked of the READ texts too, so a pair that
+       differs only in spacing is reported as identical wording rather than
+       diffed into confetti. */
+    const aText=diffCompareText(a.text), bText=diffCompareText(b.text);
+    if(aText===bText){
       document.getElementById('cmp-legend').innerHTML='';
       // Same words, different shape. A word diff has nothing to show, but the
       // document DID change — headings, emphasis, clause numbering or table
@@ -664,9 +721,9 @@ function openCompareModal(c){
         ? `<div style="font-size:13px;line-height:1.6;color:var(--color-neutral-700);border:1px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:0;padding:10px 12px"><b>${i18t('ve_formatting_changed')}</b> ${i18t('ve_the_wording_of')} <b>${a.short}</b> and <b>${b.short}</b> is word-for-word identical, but the document's structure is not — headings, emphasis, clause numbering, indentation or table layout differ. Word-level comparison has nothing to highlight; open the two versions to see the difference.</div>`
         : `<div style="font-size:13px;color:var(--color-neutral-500)">${i18t('ve_identical')} <b>${a.short}</b> and <b>${b.short}</b>.</div>`;
       return; }
-    const st=diffStats(a.text,b.text);
+    const st=diffStats(aText,bText);
     document.getElementById('cmp-legend').innerHTML=`${_statLine(st)} · ${_diffLegend}`;
-    document.getElementById('cmp-out').innerHTML=structuredBox(a.text,b.text);
+    document.getElementById('cmp-out').innerHTML=structuredBox(aText,bText);
     foldUnchanged();
   };
   document.getElementById('cmp-go').addEventListener('click',run);
@@ -674,13 +731,16 @@ function openCompareModal(c){
      clauses that moved and how many times — counted from the accepted
      changes the engine already archived, not re-derived from the diff. */
   const runCum=()=>{
-    const st=diffStats(orig,live);
+    /* The same pairing in its other costume: `orig` is richToText's single
+       newline, `live` is whatever docPlainText gives this contract. */
+    const origR=diffCompareText(orig), liveR=diffCompareText(live);
+    const st=diffStats(origR,liveR);
     const moved=(window.negoClauseJourney?negoClauseJourney(c):[]);
     const trail=moved.length
       ? `<div style="font-size:13px;line-height:1.9;color:var(--color-neutral-700);border:1px solid var(--color-divider);border-radius:0;padding:9px 12px;margin-bottom:10px"><b>${i18t('ve_clauses_moved')}</b> ${moved.slice(0,8).map(m=>`${m.label} ×${m.n}`).join(' · ')}${moved.length>8?` · +${moved.length-8} more`:''}</div>`
       : '';
     document.getElementById('cmp-legend').innerHTML=`${_statLine(st)} · everything since the negotiation opened, as one redline · ${_diffLegend}`;
-    document.getElementById('cmp-out').innerHTML=trail+structuredBox(orig,live);
+    document.getElementById('cmp-out').innerHTML=trail+structuredBox(origR,liveR);
     foldUnchanged();
   };
   document.querySelectorAll('[data-cmp-mode]').forEach(b=>b.addEventListener('click',()=>{
@@ -994,4 +1054,4 @@ function fileCounterpartyEdit(c, text, opts={}){
 /* Guard used by signDocument: any open round carrying proposed edits? */
 function unresolvedRedlines(c){ return (c.rounds||[]).filter(r=>r.status==='open' && r.proposedText).length; }
 
-Object.assign(window,{applyOwnerEdit,listedVersions,takeNamedSnapshot,restoreVersion,restoreBlockedWhy,fileCounterpartyEdit,resolveRound,noteForBlock,diffBlocks,applyBlockDecisions,openPointsFor,docPlainText,docCanonical,htmlToStructuredText,reflowWorkingText,captureVersion,wordDiff,diffHtml,diffStats,tokenize,openDiffModal,openCompareModal,reviewProposedRound,acceptProposedRound,unresolvedRedlines});
+Object.assign(window,{applyOwnerEdit,listedVersions,takeNamedSnapshot,restoreVersion,restoreBlockedWhy,fileCounterpartyEdit,resolveRound,noteForBlock,diffBlocks,applyBlockDecisions,openPointsFor,docPlainText,docCanonical,htmlToStructuredText,reflowWorkingText,captureVersion,wordDiff,diffHtml,diffStats,diffCompareText,tokenize,openDiffModal,openCompareModal,reviewProposedRound,acceptProposedRound,unresolvedRedlines});

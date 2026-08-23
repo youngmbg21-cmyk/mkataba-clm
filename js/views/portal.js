@@ -650,11 +650,24 @@ function openPortalVersionCompare(p){
     const a=items[Number(A.value)], b=items[Number(B.value)];
     if(!a||!b) return;
     if(a===b){ document.getElementById('pv-out').innerHTML=`<div style="font-size:14px;color:var(--color-neutral-600)">${i18t('po_same_version')}</div>`; return; }
-    const st=(window.diffStats?diffStats(a.text,b.text):{add:0,del:0});
+    /* BOTH SIDES ARE READ IN ONE SHAPE FIRST (owner-reported 23 Aug 2026).
+       The comparables on this list come from three different serialisers — the
+       negotiation's baseline and the Proposed reading through richToText, a
+       captured version through docPlainText, the filed paper straight out of
+       the upload — and they do not agree about whether a blank line sits
+       between blocks. The diff keeps whitespace runs as tokens, so a pair from
+       two different writers reported every gap as a change while the counter
+       above it, which ignores whitespace, said almost nothing had moved.
+       diffCompareText is the shared reading; through window because it lives
+       in another module, with the raw text as the fallback so a stage without
+       versioning.js still compares rather than throwing. */
+    const rd=window.diffCompareText||(x=>String(x==null?'':x));
+    const aText=rd(a.text), bText=rd(b.text);
+    const st=(window.diffStats?diffStats(aText,bText):{add:0,del:0});
     document.getElementById('pv-legend').innerHTML=`+${st.add} added · −${st.del} removed ·
       <span style="background:var(--st-green-bg);color:var(--st-green-fg);padding:0 4px;border-radius:0">added</span>
       <span style="background:var(--st-ruby-bg);color:var(--st-ruby-dot);text-decoration:line-through;padding:0 4px;border-radius:0">removed</span>`;
-    document.getElementById('pv-out').innerHTML=`<div style="background:var(--color-doc-surface);box-shadow:var(--shadow-md);border-radius:0;padding:30px 36px;font-size:15px;line-height:1.95;color:var(--color-doc-text);white-space:pre-wrap;font-family:var(--font-body)">${diffHtml(a.text,b.text)}</div>`;
+    document.getElementById('pv-out').innerHTML=`<div style="background:var(--color-doc-surface);box-shadow:var(--shadow-md);border-radius:0;padding:30px 36px;font-size:15px;line-height:1.95;color:var(--color-doc-text);white-space:pre-wrap;font-family:var(--font-body)">${diffHtml(aText,bText)}</div>`;
   };
   document.getElementById('pv-go').addEventListener('click',run);
   document.getElementById('pv-close').addEventListener('click',closeModal);
