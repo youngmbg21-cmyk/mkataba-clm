@@ -9833,6 +9833,66 @@ function rlSetNoticesFolded(cOrId, v){
   const k = (cOrId && typeof cOrId === 'object') ? String(cOrId.id || '') : String(cOrId || '');
   _rlNoticeFold.set(k, !!v);
 }
+/* ============================================================
+   THE BELL GOES GREEN WHEN THEY SAY THEY ARE READY (owner-asked 23 Aug 2026)
+   ============================================================
+   "When the counterparty has signalled that they are ready to sign, the bell
+   should loudly turn green and blink. You can click on the bell to see the
+   alert then it goes back to yellow."
+
+   TWO DIFFERENT THINGS, AND KEEPING THEM APART IS THE WHOLE DESIGN. Amber means
+   THERE IS WORK — it clears when the work does, and this codebase's standing
+   rule is that nothing marks an alert as seen, because a dot cleared by looking
+   is how the old header dot became invisible. Green means THERE IS NEWS YOU
+   HAVE NOT SEEN, and news is precisely the thing that a look does settle. So
+   the green clears on a press and the amber bell, with the notice still behind
+   it, does not.
+
+   REMEMBERED AGAINST THE SIGNAL ITSELF, not against the contract (owner-chose,
+   23 Aug 2026). The key carries the moment they signalled, so seeing THIS one
+   silences it for good — and if the deal reopens and they later signal again,
+   that is a new moment, a new key, and the bell goes green again for it. A
+   per-contract flag could not tell the second signal from the first.
+
+   IN localStorage, not in memory: "until they signal again" has to outlive a
+   reload or the bell cries wolf every morning. Guarded, because a browser with
+   storage disabled must still draw the page — it simply forgets, which is the
+   safe direction (it goes green once more, never silently never). */
+const RL_READ_SEEN_KEY = 'hati.v1.cpReadySeen';
+function _rlReadySig(c){
+  if (!window.negoReadySignal) return null;
+  let sig = null;
+  try { sig = negoReadySignal(c, 'counterparty'); } catch(_){ sig = null; }
+  return (sig && !sig.stale) ? sig : null;
+}
+/* The signal's own identity: the contract and the moment. */
+const _rlReadyKey = (c, sig) => String((c && c.id) || '') + '|' + String((sig && sig.at) || '');
+function rlReadySeen(c){
+  const sig = _rlReadySig(c);
+  if (!sig) return true;                       // nothing to have seen
+  try {
+    const raw = localStorage.getItem(RL_READ_SEEN_KEY);
+    const seen = raw ? JSON.parse(raw) : {};
+    return !!seen[_rlReadyKey(c, sig)];
+  } catch(_){ return false; }
+}
+function rlMarkReadySeen(c){
+  const sig = _rlReadySig(c);
+  if (!sig) return;
+  try {
+    const raw = localStorage.getItem(RL_READ_SEEN_KEY);
+    const seen = raw ? JSON.parse(raw) : {};
+    seen[_rlReadyKey(c, sig)] = 1;
+    /* A workspace runs for years and this map only ever grows. Trimmed to the
+       most recent entries — losing an old one costs one extra green bell on a
+       contract nobody has touched in months, which is the harmless direction. */
+    const ks = Object.keys(seen);
+    if (ks.length > 200) ks.slice(0, ks.length - 200).forEach(k => { delete seen[k]; });
+    localStorage.setItem(RL_READ_SEEN_KEY, JSON.stringify(seen));
+  } catch(_){}
+}
+/* Is the bell shouting? Only while there is an unseen, un-stale signal. */
+const rlBellIsNews = c => !!_rlReadySig(c) && !rlReadySeen(c);
 /* Wired ONCE, by delegation on the document — the same pattern (and reason) as
    the reading buttons above: the stack is painted into the mount after the
    page wires itself, and repainted by several paths, so an element-bound
@@ -9845,8 +9905,18 @@ if (typeof document !== 'undefined' && !document._rlNoticeFoldWired){
     const shut = !open && t && t.closest && t.closest('[data-rl-notices-min]');
     if (!open && !shut) return;
     ev.preventDefault();
-    rlSetNoticesFolded(open ? open.getAttribute('data-rl-notices-open')
-      : shut.getAttribute('data-rl-notices-min'), !open);
+    const cid = open ? open.getAttribute('data-rl-notices-open')
+      : shut.getAttribute('data-rl-notices-min');
+    /* ---- OPENING IT IS SEEING IT ----
+       Only on the way OPEN, and only for the green half: the reader has now
+       been shown the notice, so the NEWS is settled. The amber bell and the
+       notice behind it are untouched — they are about the WORK, which is
+       settled by issuing the signing link, not by looking. */
+    if (open && typeof rlMarkReadySeen === 'function'){
+      const c = (typeof getContract === 'function') ? getContract(cid) : null;
+      if (c) rlMarkReadySeen(c);
+    }
+    rlSetNoticesFolded(cid, !open);
     rlRepaintFrom(open || shut);
   });
 }
@@ -9937,9 +10007,16 @@ function rlNoticeStackHtml(c, alerts, note, id, opts){
   const theirs = !!(opts && opts.side === 'counterparty');
   if (theirs) stack = n;
   else if (!a) stack = n;
-  else if (rlNoticesFolded(c))
-    stack = n + `<button type="button" class="rl-notices-fab" data-rl-notices-open="${cid}"
-      aria-label="${_nea(i18t('ng_notices_fab'))}" title="${_nea(i18t('ng_notices_fab'))}">&#128276;<span class="rl-fab-dot"></span></button>`;
+  else if (rlNoticesFolded(c)) {
+    /* NEWS, not work — see rlBellIsNews. The class is what turns it green and
+       sets it blinking; the LABEL changes with it, because a bell that has
+       changed colour to say something specific and still reads "notices" has
+       told a screen reader nothing. */
+    const news = (typeof rlBellIsNews === 'function') && rlBellIsNews(c);
+    const lbl = _nea(i18t(news ? 'ng_notices_fab_ready' : 'ng_notices_fab'));
+    stack = n + `<button type="button" class="rl-notices-fab${news ? ' is-news' : ''}" data-rl-notices-open="${cid}"
+      aria-label="${lbl}" title="${lbl}">&#128276;<span class="rl-fab-dot"></span></button>`;
+  }
   else
     stack = `<button type="button" class="rl-notices-min" data-rl-notices-min="${cid}"
       aria-label="${_nea(i18t('ng_notices_min_title'))}" title="${_nea(i18t('ng_notices_min_title'))}">${i18t('ng_notices_min')} &#9662;</button>`
@@ -11848,7 +11925,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlDocType, rlDocScale, rlSetDocType, rlTypeStepHtml, rlWireTypeStep,
   rlApplyDocZoom, rlObserveDocPane, RL_PAGE_W, RL_ZOOM_MAX,
   rlFocusOn, rlSetFocus, rlResetFocus, rlWireFocusKey, rlPaintFocusBtn, rlFocusPage,
-  rlReadSegsHtml, rlPaintReadSegs,
+  rlReadSegsHtml, rlPaintReadSegs, rlBellIsNews, rlReadySeen, rlMarkReadySeen,
   rlAskTagHtml, rlAskRevealHtml, rlAskGlyph, rlAskWord, rlAskOpenId, rlAskSetOpen, rlAskResetOpen,
   rlChangeWordingHtml, rlClauseEditPillHtml, rlClausePanelBodyHtml, rlClausePanelHtml,
   rlHangRichHtml,

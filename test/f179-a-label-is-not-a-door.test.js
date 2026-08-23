@@ -139,8 +139,24 @@ describe('F179 — "More" says it is a button and says what it opens', () => {
   });
 
   test('it has a border a reader can actually see, and shows when it is open', () => {
-    assert.match(INDEX, /\.ws-more-btn\{[^}]*border-color:var\(--color-neutral-300\)/,
-      'not the hairline it shared with dividers');
+    /* REVERSED IN PLACE 23 Aug 2026, owner-asked ("the more buttons should have
+       the same color outline like the other buttons"). This demanded
+       --color-neutral-300 — a step up from the hairline it once shared with
+       dividers, and right at the time, but it left More the ONE button in a
+       head row not wearing .ui-btn's accent. MEASURED, the negotiation head
+       drew three different outlines because of it and two other self-dressing
+       classes.
+
+       WHAT THE CLAIM IS ABOUT IS UNCHANGED — a reader must be able to see this
+       is a button — and it is now asserted the stronger way: .ws-more-btn names
+       NO border of its own at all, so it can only wear the row's. A button in a
+       head row has no business dressing itself; the same sentence took its
+       hard-coded height away the day before. The colour itself is pinned where
+       it can actually be measured — pages-read-alike-verify section 7, on both
+       heads. */
+    const rule = INDEX.match(/\.ws-more-btn\{[^}]*\}/)[0];
+    assert.ok(!/border/.test(rule),
+      'it must inherit .ui-btn\'s outline, never name one: ' + rule);
     assert.match(INDEX, /\.ws-more-btn\[aria-expanded="true"\]\{[^}]*background:var\(--color-accent-100\)/,
       'open is a state the button shows');
     assert.match(INDEX, /\.ws-more-btn\[aria-expanded="true"\] \.ws-more-caret\{ transform:rotate\(180deg\); \}/,

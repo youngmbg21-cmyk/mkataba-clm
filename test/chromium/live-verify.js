@@ -34,12 +34,26 @@ const check = (name, pass, detail) => {
   console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail != null ? ' — ' + detail : ''}`);
 };
 
-/* The tinted reading verb: --color-accent-100 on --color-accent, accent-800
-   text. Written as the computed values a browser reports, because that is the
-   only form of this claim that cannot be satisfied by a rule that loses. */
-const TINT = 'rgb(204, 251, 241)';
+/* The reading verb's dress, written as the computed values a browser reports,
+   because that is the only form of this claim that cannot be satisfied by a
+   rule that loses.
+
+   REVERSED IN PLACE 23 Aug 2026, owner-asked ("the highlighted buttons in
+   image 2 should not be shaded inside and should resemble the ready to sign
+   button"). This used to demand the accent TINT — .ui-btn's filled face — and
+   the fault it was guarding against was a button rendering SURFACE-WHITE and
+   so vanishing into the header it sits in. That fault has not gone away and is
+   still pinned; what changed is which dress counts as the fix. The fill came
+   off, so the ink and the accent OUTLINE are now the whole of what says
+   "button", and the claim is asked as those two rather than as the fill.
+
+   THE FLAT FACE IS NOT A GREY ONE, and that half is asserted too: this product
+   has learned three separate times that a neutral-grey control reads as
+   furniture. */
 const INK = 'rgb(17, 94, 89)';
 const SURFACE_WHITE = 'rgb(255, 255, 255)';
+const TRANSPARENT = 'rgba(0, 0, 0, 0)';
+const GREY = /rgb\(2[0-9]\d, 2[0-9]\d, 2[0-9]\d\)/;
 
 function contract(){
   return { id: 'MK-LIVE', name: 'Mutual Non-Disclosure Agreement — Juno Limited',
@@ -61,7 +75,8 @@ const READ = () => {
     const el = document.getElementById(id);
     if (!el){ out[id] = null; continue; }
     const cs = getComputedStyle(el);
-    out[id] = { bg: cs.backgroundColor, color: cs.color, icon: !!el.querySelector('svg') };
+    out[id] = { bg: cs.backgroundColor, color: cs.color, icon: !!el.querySelector('svg'),
+      bd: cs.borderTopColor, bw: cs.borderTopWidth };
   }
   return out;
 };
@@ -102,8 +117,11 @@ const READ = () => {
     if (seen){
       for (const [id, v] of Object.entries(m)){
         if (!v) continue;
-        check(`${purpose}: #${id} is tinted, not surface-white`,
-          v.bg === TINT, `${v.bg}${v.bg === SURFACE_WHITE ? ' — this is the bug' : ''}`);
+        check(`${purpose}: #${id} is not shaded inside`,
+          v.bg === TRANSPARENT, v.bg);
+        check(`${purpose}: #${id} still reads as a button — an accent outline, never grey`,
+          parseFloat(v.bw) > 0 && v.bd !== SURFACE_WHITE && !GREY.test(v.bd),
+          `${v.bw} ${v.bd}${v.bd === SURFACE_WHITE ? ' — this is the bug it always guarded' : ''}`);
         check(`${purpose}: #${id} carries the accent ink`, v.color === INK, v.color);
         check(`${purpose}: #${id} has a shape to aim at`, v.icon, v.icon ? 'svg' : 'no icon');
       }

@@ -143,8 +143,18 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
         pbInMenu: !!document.querySelector('#view-redline #ws-more-menu [data-rl-pbreview]') };
     });
     check('1b the head carries four acts, no more', acts.n === 4, acts.onRow.join(' | '));
-    check('1b exactly one of them is filled — the platform button rule',
-      acts.filled.length === 1 && /Publish/i.test(acts.filled[0] || ''), acts.filled.join(', '));
+    /* REVERSED IN PLACE 23 Aug 2026, owner-asked ("the publish round 1 button
+       should also not be shaded"). This read "exactly one of them is filled —
+       the platform button rule", and Publish Round was that one fill. It is the
+       THIRD time that rule has been reversed by the same hand: the contract
+       room's head gave its fill up the day before for the same reason, and the
+       pattern is settled — this owner reads a filled face as shouting rather
+       than leading. WHAT THE CLAIM IS REALLY ABOUT SURVIVES: the row must speak
+       with ONE voice, so the number of fills is pinned at zero rather than left
+       unasserted, and the act still leads by WEIGHT and position (pinned in
+       pages-read-alike-verify section 5, which owns the two heads together). */
+    check('1b none of them is filled — the row leads by weight, not by fill',
+      acts.filled.length === 0, acts.filled.join(', ') || 'all flat');
     check('1b the playbook pass moved into the More menu, and is still reachable',
       !acts.pbOnRow && acts.pbInMenu, `on row ${acts.pbOnRow} · in menu ${acts.pbInMenu}`);
 
