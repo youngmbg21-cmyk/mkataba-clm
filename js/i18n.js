@@ -2303,6 +2303,15 @@ const STRINGS = {
     co_share_revoked: 'Share link revoked',
     co_invalid_response_code: 'That code is not a valid HaTi response',
     co_could_not_load_full: 'Could not load the full contract to record the response — try again',
+    /* The answer is safe on the server and this browser keeps trying — the box
+       says what is stuck and what has been shown to clear it, never that
+       anything is lost. */
+    co_answer_stuck: "An answer from {who} on {id} is waiting and this page cannot take it in. Nothing is lost — it is safe on the server and will keep trying.",
+    co_answer_stuck_act: 'Reload',
+    /* Their page, telling them whether their round actually reached us. Three
+       readings and the third says nothing — see portalDeliveryState. */
+    po_answer_received: '{who} has received your answer.',
+    po_answer_waiting: 'Sent — waiting for {who} to pick it up.',
     co_doc_changed_after: 'Note: the document changed after this share link was created',
     co_no_decisions: 'That response carried no decisions this contract recognises',
     co_readiness_mismatch: 'That readiness signal does not match this contract — something is still outstanding',
@@ -6557,6 +6566,10 @@ const STRINGS = {
     co_share_revoked: 'Delningslänken återkallad',
     co_invalid_response_code: 'Koden är inte ett giltigt HaTi-svar',
     co_could_not_load_full: 'Kunde inte läsa in hela avtalet för att registrera svaret — försök igen',
+    co_answer_stuck: 'Ett svar från {who} på {id} väntar och den här sidan kan inte ta emot det. Inget är förlorat — det ligger kvar på servern och försöket upprepas.',
+    co_answer_stuck_act: 'Ladda om',
+    po_answer_received: '{who} har tagit emot ditt svar.',
+    po_answer_waiting: 'Skickat — väntar på att {who} ska hämta det.',
     co_doc_changed_after: 'Obs: dokumentet ändrades efter att delningslänken skapades',
     co_no_decisions: 'Svaret innehöll inga beslut som avtalet känner igen',
     co_readiness_mismatch: 'Signalen om att avtalet är klart matchar inte — något är fortfarande öppet',

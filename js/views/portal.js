@@ -1657,6 +1657,36 @@ function portalAgreedHtml(p){
    A flag rather than a DOM probe: the builder must give the same answer
    whether or not the slot happens to be mounted when it runs. */
 let PORTAL_FOOT_COMPACT=false;
+/* ---- DID OUR ROUND REACH THEM? (owner-reported 23 Aug 2026, MK-349) ----
+   This page has always stamped a change "Sent" off its own memory of pressing
+   the button, and had no way to learn what happened next — so it went on
+   saying "Sent" whether the owner had collected the round or not, and a reader
+   whose acceptance was sitting uncollected could not tell.
+
+   THREE READINGS, AND THE THIRD IS SILENCE. 'received' and 'waiting' are facts
+   the server reports off the answer's own row; null is an older link whose row
+   records nothing, and an unknown must not be printed as a "no" — the same
+   rule negoTheirCopy states for the mirror of this question on the owner's
+   side. Silence changes nothing and claims nothing.
+
+   IT COMES BACK LIVE. The page re-fetches the share while it is open, so this
+   turns over from "waiting" to "received" under the reader without a reload —
+   which is the whole point: the moment their round lands is the moment they
+   want to stop wondering. */
+function portalDeliveryState(){
+  const lr=PORTAL_OPTS && PORTAL_OPTS.lastResponse;
+  if(!lr || !lr.at) return null;              // nothing sent from here yet
+  if(lr.applied===true) return 'received';
+  if(lr.applied===false) return 'waiting';
+  return null;                                 // an older link: unknown, so nothing is said
+}
+function portalDeliveryLine(p){
+  const st=portalDeliveryState();
+  if(!st) return '';
+  const who=(p&&p.org)||'the sender';
+  return `<span class="pw-delivery is-${st}">${
+    esc(i18t(st==='received'?'po_answer_received':'po_answer_waiting',{who}))}</span>`;
+}
 function portalNegoFootHtml(p){
   const n=Object.keys(PORTAL_NEGO_DECISIONS).length;
   /* The token is NOT part of this. See renderShareWorkbench: a copy with no way
@@ -1902,11 +1932,20 @@ function wirePortalNego(c, p){
         /* THE PROMISE IS THE SAME; WHAT SEND DOES IS DIFFERENT, and the reader
            has to know that before they start rather than after they press it. */
         : esc(i18t('po_wall_no_channel'))
-      } <span id="pt-nego-facts" style="opacity:.75">${facts}</span></span></div>`
+      } <span id="pt-nego-facts" style="opacity:.75">${facts}</span>${portalDeliveryLine(p)}</span></div>`
+    /* THE DELIVERY SENTENCE IS ON BOTH BRANCHES, and the read-only one is the
+       branch that needs it MOST — which is why it is not an afterthought here.
+       Measured: the moment the owner collects their round the negotiation can
+       come into alignment, this page flips read-only, and that is exactly the
+       moment the reader wants to be told their answer landed. Drawn on the
+       live branch only, the sentence would appear while it still said
+       "waiting" and vanish on the tick that turned it to "received".
+       Whether this copy can still be answered is a different question from
+       whether their last answer arrived; the fact is theirs either way. */
     : `<div class="rl-wall" role="status"><span class="rl-wall-ic">&#128274;</span><span>${esc(
         portalExecuted() ? 'This contract has been executed and sealed — the wording is final.'
         : PORTAL_OPTS.superseded ? 'This copy has been superseded — a newer link was sent to you.'
-        : 'This copy is read-only.')}</span></div>`;
+        : 'This copy is read-only.')}${portalDeliveryLine(p)}</span></div>`;
   redlineEmbed(host, c, {
     side:'counterparty',
     readonly:!live,
@@ -2138,6 +2177,9 @@ function portalPollDelay(){ return (Date.now()-_ptLastActivity) < 120000 ? PORTA
    and every refresh after it cannot drift apart. */
 function portalRenderOpts(token, d){
   return { token, responded:d.responded, share:d.share||{},
+    /* Whether the LAST answer this reader sent has reached the owner's record.
+       See portalDeliveryState — three readings, and the third says nothing. */
+    lastResponse:d.lastResponse||null,
     prior:d.prior||null, superseded:d.superseded||null,
     /* Read LIVE, not from the payload: a signature that landed after this link
        was last refreshed is precisely the case that matters. */
@@ -2177,6 +2219,12 @@ function portalSignature(d){
     d.executed?`x:${d.executed.at||'1'}`:'', d.superseded?`s:${d.superseded.at||'1'}`:'',
     d.responded?'r':'', String((d.messages||[]).length),
     String((d.share&&d.share.expiresAt)||''),
+    /* THE ONE EXCEPTION TO "CONTENT ONLY", and it earns it. Whether the last
+       answer this reader sent has been COLLECTED is not content, but unlike
+       payload.at it is a fact about THEIR OWN act, it is drawn on this page,
+       and it flips exactly once per round. Left out, the sentence saying
+       "waiting to be picked up" would go on saying it after it had been. */
+    (d.lastResponse&&d.lastResponse.applied!=null)?`ap${d.lastResponse.applied?1:0}`:'',
   ].join('');
   let h=0; for(let i=0;i<parts.length;i++) h=(h*31+parts.charCodeAt(i))>>>0;
   return parts.length+'.'+h.toString(16);
@@ -2853,6 +2901,13 @@ function portalWorkbenchStyle(){
        put it at the row's corner rather than under its own button once the row
        wrapped. Right-aligned because this control sits at the right-hand end of
        the reading group and a left-aligned panel would run off the edge. */
+    /* The delivery sentence in their wall band: whether the round they last
+       sent has been picked up. A quiet fact and it reads as one — the band is
+       already talking and this is the last clause of it. Its two tones are the
+       product's own status greens and ambers, so dark comes free. */
+    .pw-delivery{margin-left:8px;padding-left:8px;border-left:1px solid var(--color-divider);font-weight:600;}
+    .pw-delivery.is-received{color:var(--st-green-fg);}
+    .pw-delivery.is-waiting{color:var(--st-amber-fg);}
     .pw-more-wrap{position:relative;flex:none;}
     .pw-more-wrap .room-menu{right:0;left:auto;top:calc(100% + 6px);}
     .pw-more-caret{display:inline-flex;transition:transform .15s ease;}
@@ -4542,6 +4597,6 @@ async function refreshStats(){
   try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard(); }catch(e){}
 }
 
-Object.assign(window,{portalAlerts,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
+Object.assign(window,{portalDeliveryState,portalDeliveryLine,portalAlerts,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
   portalAlertsOpen,portalAlertsClose,portalPaintAlerts,wirePortalAlerts,portalAlertsStyle,
   portalGoToChange,portalPressSend,PT_READ_KEY,ptReadMap,ptRevisionKey,ptRevisionRead,ptSetRevisionRead,portalHideRevisedBanner,portalShowRevisedBanner,portalWireRevisedBanner,portalRevisedBanner,portalChangedText,openPortalCompare,PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,renderShareHistory,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,openDerivedLinkDialog,portalReadingBtnsHtml,portalEnsureResponderName});

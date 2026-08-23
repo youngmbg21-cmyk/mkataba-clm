@@ -416,6 +416,10 @@ function markViewTransition(view){
   if(fresh&&typeof setTimeout==='function')
     _viewAnimTimer=setTimeout(()=>host.classList.add('no-view-anim'),450);
 }
+/* The views that watch a contract for the other side's answer. Read by setView
+   below; pollWaitingOnThem (js/core.js) asks the same question of the same two
+   and the pair must not drift. */
+const POLL_ON_ARRIVAL = ['workspace','redline'];
 function setView(view){
   /* Focus mode belongs to the negotiation bench. Leaving it must give the
      navigation back — a reader who exits in focus mode and lands on the
@@ -480,7 +484,39 @@ function setView(view){
   /* Opening a contract that is out with the other side is the moment to start
      watching closely, and leaving it is the moment to stop. */
   if(window.schedulePolling) schedulePolling();
-  if(view==='workspace' && window.pollNow) pollNow('opened a contract');
+  /* ---- CATCHING UP ON ARRIVAL, AND THE PAGE THAT NEVER DID ----
+     (owner-reported 23 Aug 2026, on MK-349, and reproduced end to end: the
+     counterparty accepted an ask and sent one of their own, both reached the
+     server, and the owner sat on the negotiation page watching a screen that
+     did not move.)
+
+     This read `view==='workspace'` — written when Negotiate was a TAB on the
+     contract workspace. It became its own view on 12 Aug 2026 and this line
+     was never told, so the ONE page in the product built for watching a live
+     round was the only page that never asked whether anything had arrived.
+     Measured: opening it fired no catch-up, RE-opening it fired none either,
+     and the reader waited on the slow beat with nothing to press.
+
+     A LIST, NOT AN `if`, for the reason PAGE_HEAD_INLINE_SUB is one: the next
+     page that watches a contract joins the list rather than growing a second
+     branch here. pollWaitingOnThem carries the same pair and the two must
+     agree — a page that catches up on arrival and is then not counted as
+     watching is half a fix.
+
+     EVERY ENTRY COUNTS, which is how the workspace has always behaved and is
+     the behaviour being extended rather than a new one. A first draft keyed
+     this on the view AND the contract so a repaint would not poll — and it was
+     measured doing the wrong thing: re-opening the SAME negotiation, which is
+     exactly what a reader does when the page looks stale, was read as a
+     repaint and asked for nothing. Pressing a door is a deliberate "show me
+     this" and must always catch up.
+
+     THE GUARD IS pollNow's OWN FOUR-SECOND THROTTLE, which is what has
+     protected the workspace since this line was written. It matters here
+     because applyResponse re-enters setView on a background landing: without
+     the throttle that would poll from inside the poll. With it the re-entrant
+     call returns on its first line. */
+  if(POLL_ON_ARRIVAL.includes(view) && window.pollNow) pollNow('opened '+view);
   const sc=document.getElementById('content-scroll');
   if(sc){
     if(_sameView){ sc.scrollTop=_keepTop;
@@ -1660,5 +1696,5 @@ if(state.panelOpen===undefined) state.panelOpen=false;
 // which calls startApp() directly.
 wireShell();
 
-Object.assign(window,{createFromTemplate,regionCodeFor,keepScroll,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,
+Object.assign(window,{POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,
   buildAlerts,alertCount,updateAlertBadge,panelSuppressed,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,railCollapsed,applyRail,toggleRail,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
