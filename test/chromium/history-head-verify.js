@@ -281,6 +281,95 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
       check('the workspace shell is still nowhere on their page', !theirs.shell, String(theirs.shell));
     }
 
+    /* ================================================================
+       PRINT HISTORY: ONE DIALOG, AND IT GOES AWAY WHEN YOU DISMISS IT
+       ================================================================
+       Owner-reported 23 Aug 2026: "you click on print history then decide to
+       click cancel, there is a bug because it flashes then the whole page
+       reappears again without cancelling."
+
+       TWO FAULTS. print() was called TWICE on the report window — once from its
+       load handler and once from a 350ms timer, both of which fired — so Cancel
+       dismissed the first dialog and the second re-opened it. MEASURED against
+       the code before the fix: 2. And nothing ever closed the window, so the
+       report stood there afterwards whatever you chose.
+
+       WHY THE STUB IS HONEST. A real print dialog cannot be driven from a test
+       runner, so print() is replaced by something that does what Cancel does:
+       record the call, then fire afterprint. That is the whole of the contract
+       this fix relies on, and it lets the run assert the two things the report
+       was actually about — how many dialogs, and whether the window goes.
+
+       THE TALLY IS KEPT ON THE OPENER, not in the popup: with the fix in, the
+       window closes so fast that reading a counter inside it races the close
+       and comes back empty. That is the fix working, and it would have read as
+       a broken test. */
+    await page.goto(h.base + '/', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(2200);
+    await page.evaluate(id => window.openWorkspace(id), built.id);
+    await page.waitForTimeout(1800);
+    await page.click('#ws-tabs [data-room-tab="history"]');
+    await page.waitForTimeout(1400);
+
+    /* PRINT LIVES BEHIND THE "..." MENU, which starts shut — the button is in
+       the DOM the whole time, so a presence check alone passes while the press
+       times out on an invisible element. Open the menu, then assert it can
+       actually be seen. */
+    await page.click('#hist-more');
+    await page.waitForTimeout(500);
+    const hasPrint = await page.evaluate(() => {
+      const b = document.getElementById('ht-print'); if (!b) return false;
+      const r = b.getBoundingClientRect();
+      return r.width > 0 && r.height > 0 && getComputedStyle(b).visibility !== 'hidden';
+    });
+    check('Print history is on the History tab to press, as visible pixels',
+      hasPrint, String(hasPrint));
+
+    if (hasPrint) {
+      await page.evaluate(() => {
+        window.__tally = 0;
+        /* Stand in for the dialog on whichever window the report lands in. */
+        const stub = w => { try {
+          w.print = function (){
+            try { if (w.opener) w.opener.__tally = (w.opener.__tally || 0) + 1; } catch (_) {}
+            try { w.dispatchEvent(new Event('afterprint')); } catch (_) {}
+          };
+        } catch (_) {} };
+        const realOpen = window.open;
+        window.open = function (...a){ const w = realOpen.apply(window, a); if (w) stub(w); return w; };
+      });
+      const popupP = ctx.waitForEvent('page', { timeout: 8000 }).catch(() => null);
+      await page.click('#ht-print');
+      const popup = await popupP;
+      /* Past the 350ms fallback, so the SECOND trigger has had its chance. */
+      await page.waitForTimeout(2200);
+      const tally = await page.evaluate(() => window.__tally || 0);
+
+      check('the report window really opened', !!popup, popup ? 'yes' : 'no popup');
+      check('ONE dialog, not two — the second trigger finds the latch shut',
+        tally === 1, `print() called ${tally} time(s) (was 2 before the fix)`);
+      check('and dismissing it closes the report window',
+        !popup || popup.isClosed(), popup ? String(popup.isClosed()) : 'n/a');
+    }
+
+    /* THE FALLBACK IS STILL THERE, and it is a source claim because the path it
+       covers is the one where `load` never reaches the handler — which is
+       precisely what a test cannot stage. Both triggers must remain, and both
+       must go through the SAME latched call, or the fix trades a double dialog
+       for a button that sometimes does nothing. */
+    const src = fs.readFileSync(path.join(__dirname, '..', '..', 'js', 'views', 'negotiation.js'), 'utf8');
+    const fn = src.slice(src.indexOf('async function negoHistoryPrintRun'),
+      src.indexOf('function negoVerifyResultHtml'));
+    check('both triggers survive — the load handler and the timed fallback',
+      /w\.onload\s*=\s*ask/.test(fn) && /setTimeout\(ask,\s*350\)/.test(fn),
+      fn.includes('setTimeout(ask') ? 'both wired to ask()' : 'MISSING');
+    check('and each goes through the one latched call, not its own print()',
+      (fn.match(/w\.print\(\)/g) || []).length === 1,
+      `${(fn.match(/w\.print\(\)/g) || []).length} print() call site(s)`);
+    check('the close is registered BEFORE print, which blocks until dismissed',
+      fn.indexOf("addEventListener('afterprint'") < fn.indexOf('w.print()'),
+      'listener first');
+
     check('no page error', errors.length === 0, errors.slice(0, 2).join(' | ') || 'none');
   } catch (e) {
     check('the run completed', false, e.message);
