@@ -57,6 +57,19 @@ const PORTAL = read('js/views/portal.js');
 const SERVER = read('server/server.js');
 const I18N = read('js/i18n.js');
 
+/* One branch of applyResponse's action ladder, cut from the RAW source and
+   stripped afterwards — stripping first collapses the comments the markers sit
+   between and the slice stops matching. */
+const branch = (action) => {
+  /* The BRANCH, not the first mention: `r.action==='ready'` also appears in the
+     docChanged guard forty lines above the ladder, and slicing from there
+     returns the whole of the sign branch instead. */
+  const start = CORE.indexOf("} else if(r.action==='" + action + "'){");
+  assert.ok(start > 0, 'no ' + action + ' branch');
+  const rest = CORE.slice(start + 2);
+  const end = rest.indexOf("} else if(r.action===", 10);
+  return strip(end > 0 ? rest.slice(0, end) : rest);
+};
 const fn = (src, name) => {
   const m = strip(src).match(new RegExp('function\\s+' + name + '\\s*\\([\\s\\S]*?\\n\\}'));
   assert.ok(m, name + ' not found');
@@ -171,14 +184,31 @@ describe('f238 (3) — their page learns whether the round landed', () => {
   });
 
   test('an unknown is never printed as a "no"', () => {
-    const body = fn(PORTAL, 'portalDeliveryLine');
-    assert.match(body, /if\(!st\) return ''/);
+    /* RE-POINTED 23 Aug 2026 with the move into the bell: the guard used to sit
+       in portalDeliveryLine and now sits on the push. The claim is the same one
+       — a third reading that says nothing must add nothing. */
+    assert.match(PORTAL, /const dlv = portalDeliveryState\(\);\s*\n\s*if \(dlv\) push\(/);
   });
 
-  test('the sentence draws on BOTH wall branches', () => {
-    assert.equal((PORTAL.match(/\$\{portalDeliveryLine\(p\)\}/g) || []).length, 2,
-      'the read-only branch is the one that needs it most: the page can flip ' +
-      'read-only at exactly the moment the answer lands');
+  test('IT IS IN THE BELL, NOT STANDING ON THE PAGE', () => {
+    /* REVERSED IN PLACE 23 Aug 2026, owner-reported: "keep the alerts in the
+       bell ... because they are now popping up and staying on screen which is
+       distracting." This asserted the sentence drew on BOTH wall branches — and
+       the wall band is drawn on every paint and never goes away, so the one
+       thing added to that page was also the one thing permanently in front of
+       the reader. It is a STATUS, and the bell is the shelf this page already
+       keeps for one. The FACT is unchanged; only its shelf moved. */
+    assert.ok(!/portalDeliveryLine/.test(PORTAL),
+      'the standing sentence and its builder are gone, not merely hidden');
+    assert.ok(!/pw-delivery/.test(PORTAL), 'and so is its dress');
+  });
+
+  test('the row never wears amber — that means work owed by THIS reader', () => {
+    const m = PORTAL.match(/if \(dlv\) push\([\s\S]{0,300}/);
+    assert.ok(m, 'the push is there');
+    const head = m[0].split('\n').slice(0, 4).join('\n');
+    assert.match(head, /'green' : 'gray'/);
+    assert.ok(!/amber/.test(head), head);
   });
 
   test('it turns over live — the signature carries the flip', () => {
@@ -198,4 +228,83 @@ describe('f238 (4) — the words exist in both languages', () => {
       assert.ok(hits >= 2, k + ' appears ' + hits + ' time(s)');
     });
   }
+});
+
+describe('f238 (5) — a refusal that must not draw, and must not loop', () => {
+  /* Owner-reported 23 Aug 2026: "the bottom right says something needs to be
+     settled when there were absolutely nothing negotiated ... the same alert is
+     also appearing on the insights page and in other pages and it keeps popping
+     up." Reproduced on a real server before it was touched: a readiness claim
+     that goes stale between the press and the collection was refused, drawn,
+     and NOT marked handled — so it came back on every beat, drew a red box on
+     whatever page the reader was on about a contract they were not looking at,
+     and wrote a duplicate audit line each time. Four polls, four boxes, four
+     lines. */
+  test('negoSignalReady no longer toasts — a model must not draw', () => {
+    const body = fn(read('js/negotiation.js'), 'negoSignalReady');
+    assert.ok(!/toast\(/.test(body),
+      'its one caller runs from the background poller; a model that draws ' +
+      'draws in the background');
+    assert.match(body, /if \(!a\.aligned\) return null/,
+      'it refuses by returning null and lets the caller decide what to say');
+  });
+
+  test('and the caller still has the sentence, guarded by whether anyone is watching', () => {
+    const body = branch('ready');
+    assert.match(body, /if\(!opts\.background\) toast\(i18t\('co_readiness_mismatch'\),'err'\)/);
+  });
+
+  test('A REFUSED READINESS IS RECORDED ONCE — it is reported handled', () => {
+    const body = branch('ready');
+    assert.ok(!/return !!\(done\.length\|\|withdrew\.length\)/.test(body),
+      'reported unhandled, the poller re-fetches and re-records it for ever — ' +
+      'which is what the comment beside it has always said must not happen');
+    assert.match(body, /return true;/);
+  });
+
+  test('the branch still writes its one audit line, so nothing is hidden', () => {
+    const body = branch('ready');
+    assert.match(body, /logAudit\(c,'Negotiation',`\$\{who\} signalled ready to sign, but this contract is not settled/);
+  });
+
+  test('the decisions branch already had this rule — the two now agree', () => {
+    const body = branch('decisions');
+    assert.match(body, /if\(!done\.length && !filed\.length && !withdrew\.length\)/,
+      'f163 taught it there first: wording that cannot land must still stop arriving');
+  });
+});
+
+describe('f238 (6) — the counterparty page tells the truth about its own state', () => {
+  /* Three owner reports off one screenshot, 23 Aug 2026. */
+  test('the spent Ready button has THREE readings, in order', () => {
+    const body = fn(PORTAL, 'portalReadySpent');
+    assert.match(body, /if\(PORTAL_READY_SENT\) return true/,
+      'this sitting first — the record lags the press by up to a beat');
+    assert.match(body, /n\.ready && n\.ready\.counterparty/,
+      'then the RECORD, which survives any reload');
+    assert.match(body, /lr\.action==='ready' && lr\.applied!==true/,
+      'then the server, for the window where only it knows');
+  });
+
+  test('AND A REFUSED READINESS LEAVES THE BUTTON LIVE', () => {
+    const body = fn(PORTAL, 'portalReadySpent');
+    assert.match(body, /applied!==true/,
+      'marked applied with no readiness on the record means it was REFUSED; ' +
+      'spent there would strand the reader behind a signal nobody holds');
+  });
+
+  test('the gate reads the predicate, not the sitting flag', () => {
+    assert.match(PORTAL, /const spent=portalReadySpent\(\)/);
+    assert.ok(!/const spent=PORTAL_READY_SENT/.test(PORTAL));
+  });
+
+  test('the two reading buttons follow the contract, and always did', () => {
+    /* Reported as "2 buttons are missing". They are drawn when there is
+       something behind them and not when there is not — the product's own
+       standing rule that a verb which cannot work is not drawn. Pinned so a
+       future change to either predicate is a decision rather than a surprise. */
+    assert.match(fn(PORTAL, 'portalHasHistory'), /chs\.length>0/);
+    assert.match(PORTAL, /\$\{hist\?`<button id="pt-hist"/);
+    assert.match(PORTAL, /\$\{cmp\?`<button id="pt-compare"/);
+  });
 });

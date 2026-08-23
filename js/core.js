@@ -5290,7 +5290,29 @@ async function applyResponse(c, r, opts={}){
       if(!opts.background) toast(i18t('co_readiness_mismatch'),'err');
       c.lastAction=todayStr(); persist(c);
       if(opts.background) setView(state.view||'dashboard'); else renderWorkspace();
-      return !!(done.length||withdrew.length);
+      /* ---- RECORDED ONCE MEANS ONCE (owner-reported 23 Aug 2026) ----
+         The comment above has said "it is recorded once, as a fact" since the
+         day it was written, and this line said `!!(done.length||withdrew.length)`
+         — false whenever the envelope carried nothing but the claim, which is
+         the ordinary shape of a bare Ready to sign. So the poller never marked
+         it applied, re-fetched it on every beat, and re-recorded it: MEASURED on
+         a real server, four polls wrote FOUR duplicate audit lines into the
+         contract's permanent history and drew four red boxes, on a page about
+         another contract entirely. On the live twelve-second beat that is five
+         lines a minute, for ever.
+
+         The 'decisions' branch fifty lines up learned exactly this in f163 and
+         says so in its own words — "wording that cannot land must still stop
+         arriving". This is that lesson, in the branch that was written with the
+         comment and without the code.
+
+         TRUE IS HONEST HERE, not a shrug: the claim WAS handled. It was read,
+         it was judged against the contract, it was refused, and the refusal is
+         in the trail with its reason. What is not recorded is the readiness
+         itself — and it should not be, because it was untrue when it was made.
+         The deal moves the way it always does: somebody settles what is
+         outstanding and the other side says so again. */
+      return true;
     }
     const acc=done.filter(x=>x.status==='accepted').length;
     const parts=[];
