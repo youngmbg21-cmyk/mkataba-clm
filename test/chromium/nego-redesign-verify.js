@@ -151,9 +151,11 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        pattern is settled — this owner reads a filled face as shouting rather
        than leading. WHAT THE CLAIM IS REALLY ABOUT SURVIVES: the row must speak
        with ONE voice, so the number of fills is pinned at zero rather than left
-       unasserted, and the act still leads by WEIGHT and position (pinned in
-       pages-read-alike-verify section 5, which owns the two heads together). */
-    check('1b none of them is filled — the row leads by weight, not by fill',
+       unasserted. THE WEIGHT WENT THE SAME MORNING ("publish round should not
+       be bold"), so the act now leads by POSITION and its accent outline alone
+       — pinned in pages-read-alike-verify section 5 and measured against its
+       neighbours in flat-rows-and-alerts-verify section 3. */
+    check('1b none of them is filled — the row leads by position, not by fill',
       acts.filled.length === 0, acts.filled.join(', ') || 'all flat');
     check('1b the playbook pass moved into the More menu, and is still reachable',
       !acts.pbOnRow && acts.pbInMenu, `on row ${acts.pbOnRow} · in menu ${acts.pbInMenu}`);

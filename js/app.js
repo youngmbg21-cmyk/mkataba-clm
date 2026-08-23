@@ -859,15 +859,33 @@ function selectContract(id){ openWorkspace(id); }
    filtered it on the way out (folderScopeFor) — so an alert can never name a
    contract this reader is not allowed to open. That is by construction, and it
    is why this reads state.contracts rather than assembling its own list. */
+/* ---- THIS LIST IS THE RUNNING ORDER (owner-asked 23 Aug 2026: "your turn
+       should always be at the top of the alert") ----
+   The panel had NO order at all: rows came out in whatever sequence buildAlerts
+   happened to assemble them, and the signing sweep is written last — so "It is
+   your turn to sign", the one row nobody else in the workspace can clear, sat
+   underneath however many "Term ends in 7 days" the book threw up.
+
+   THE FIX IS AN ORDER, NOT A SPECIAL CASE FOR ONE ROW. A rule that lifts
+   signing alone leaves every other row still in build order, which is how the
+   next one ends up at the bottom. The list below IS the order — read top to
+   bottom it is "what only you can do" first and "what a date did by itself"
+   last — and buildAlerts sorts by each kind's place in it, so adding a kind is
+   deciding where it ranks rather than discovering where it landed.
+
+   THE SORT IS STABLE, so rows WITHIN one kind keep the order their own sweep
+   produced (contracts in bootstrap order) — this reorders the groups and
+   nothing inside them. */
 const ALERT_KINDS = [
-  { k:'negotiation', tone:'amber', ic:'&#9998;' },
-  { k:'review-mine', tone:'amber', ic:'&#128100;' },
-  { k:'review-out',  tone:'gray',  ic:'&#8987;'  },
-  { k:'approval',    tone:'amber', ic:'&#9989;'  },
+  /* Your own signature: nobody else in the workspace can do this for you. */
   { k:'signature',   tone:'green', ic:'&#9997;'  },
   /* GREEN, and the same green the status word and the bell take when they say
-     this — three surfaces, one signal, one colour. */
+     this — three surfaces, one signal, one colour. They have finished; the
+     next move is yours and it is one press. */
   { k:'cp-ready',    tone:'green', ic:'&#128077;'},
+  { k:'negotiation', tone:'amber', ic:'&#9998;' },
+  { k:'review-mine', tone:'amber', ic:'&#128100;' },
+  { k:'approval',    tone:'amber', ic:'&#9989;'  },
   /* ---- AN ANSWER THAT WILL NOT LAND (owner-asked 23 Aug 2026) ----
      A REGISTERED KIND, not a special case at the draw. It arrived as a warn
      toast and on a real workspace that meant four orange boxes stacked over the
@@ -877,8 +895,15 @@ const ALERT_KINDS = [
      AMBER, because it is work owed rather than a failure: nothing is lost, the
      answer is safe on the server and this browser keeps trying. */
   { k:'answer-stuck',tone:'amber', ic:'&#8635;' },
+  /* Waiting on somebody else, and last of all a date that moved by itself —
+     neither is a thing this reader can clear this minute. */
+  { k:'review-out',  tone:'gray',  ic:'&#8987;'  },
   { k:'renewal',     tone:'gray',  ic:'&#128197;'},
 ];
+/* Where a kind ranks. An unregistered kind sorts last rather than first, so a
+   row nobody has ranked can never displace one somebody did. */
+const alertRank = k => { const i=ALERT_KINDS.findIndex(x=>x.k===k);
+  return i<0 ? ALERT_KINDS.length : i; };
 const ALERT_TONE = { amber:'var(--st-amber-dot)', green:'var(--st-green-dot)',
   ruby:'var(--st-ruby-dot)', gray:'var(--st-gray-dot)' };
 /* Every alert is a DOOR — it goes to the thing that needs doing, not to a list.
@@ -888,8 +913,17 @@ function buildAlerts(){
   // archived contracts alert nobody (WO-5) — the shelf is quiet
   const cs=(state.contracts||[]).filter(c=>!c.archived);
   const me=(typeof currentUser==='function')?currentUser():null;
+  /* ---- A ROW NAMES A CONTRACT ONCE (owner-reported 23 Aug 2026, off a
+         screenshot of five rows each reading "MK-324 / MK-324") ----
+     `name` fell back to `c.id`, and the row underneath prints the id on a line
+     of its own — so a contract with no name saved printed its reference twice,
+     twelve pixels apart, and the fallback was buying nothing the next line was
+     not already saying. It answers '' now, and the row skips the line.
+     THE EQUALITY IS CHECKED TOO, not just the absence: a contract genuinely
+     NAMED "MK-324" is the same duplicate wearing different clothes. */
   const push=(kind,c,text,go,extra)=>{ const d=ALERT_KINDS.find(x=>x.k===kind)||ALERT_KINDS[0];
-    out.push({ kind, id:c?c.id:'', name:c?(c.name||c.id):'', text, tone:d.tone, ic:d.ic, go,
+    const nm=c?String(c.name||''):'';
+    out.push({ kind, id:c?c.id:'', name:(nm && nm!==(c&&c.id))?nm:'', text, tone:d.tone, ic:d.ic, go,
       ...(extra||{}) }); };
 
   /* 1. THE COUNTERPARTY HAS SAID THEY ARE READY TO SIGN (owner-reported
@@ -1001,6 +1035,12 @@ function buildAlerts(){
         ()=>{ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} });
     });
   }
+  /* THE ORDER IS APPLIED ONCE, HERE — see ALERT_KINDS. Sorted at the end rather
+     than by rearranging the sweeps above, because the sweeps are grouped by
+     what they have to READ (one pass over the book per question, several of
+     them sharing hmDashSlices) and reordering them to suit the panel would cost
+     the readings, not just the rows. */
+  out.sort((a,b)=>alertRank(a.kind)-alertRank(b.kind));
   return out;
 }
 /* THE DOT COUNTS WHAT THE PANEL WOULD SHOW, and it is not cleared by looking.
@@ -1375,7 +1415,7 @@ function alertsPanelHtml(){
             <span style="width:8px;height:8px;border-radius:50%;background:${ALERT_TONE[a.tone]};flex:none;margin-top:5px;"></span>
             <span style="flex:1;min-width:0;">
               <span class="al-t" style="display:block;font-size:13px;line-height:1.4;font-weight:600;">${esc(a.text)}</span>
-              <span style="display:block;font-size:12px;color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(a.name)}</span>
+              ${a.name?`<span style="display:block;font-size:12px;color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(a.name)}</span>`:''}
               <span style="display:block;font-size:12px;color:var(--color-neutral-500);font-family:var(--font-mono);">${esc(a.id)}</span>
             </span>
           </button>`).join(''):`
@@ -1832,4 +1872,4 @@ if (typeof window !== 'undefined' && window.addEventListener){
 }
 
 Object.assign(window,{printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,
-  buildAlerts,alertCount,updateAlertBadge,panelSuppressed,openPanel,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,railCollapsed,applyRail,toggleRail,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
+  buildAlerts,alertCount,updateAlertBadge,panelSuppressed,openPanel,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});

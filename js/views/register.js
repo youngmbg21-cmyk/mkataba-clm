@@ -693,9 +693,9 @@ function regRowsHtml(cs){
         <span style="display:flex;align-items:center;gap:9px;min-width:0">
         <span class="reg-tick" style="background:${folderColor(c)}"></span>
         <span style="min-width:0;flex:1">
-        <span class="reg-title" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:12px;font-weight:400" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc(c.parentId)}">↳ </span>`:''}${regTitleOf(c)}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:400;font-size:12px;font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
+        <span class="reg-title" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:14px;font-weight:400" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc(c.parentId)}">↳ </span>`:''}${regTitleOf(c)}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:400;font-size:14px;font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
         <span class="reg-kind">${cKind(c)}</span>
-        ${c._famChild?`<span style="display:block;font-size:12px;font-weight:400;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${RELATION_LABEL[c.relation]||'Amendment'} of ${c.parentId}</span>`:''}
+        ${c._famChild?`<span style="display:block;font-size:14px;font-weight:400;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${RELATION_LABEL[c.relation]||'Amendment'} of ${c.parentId}</span>`:''}
         </span></span>
       </td>
       <td style="color:var(--color-neutral-700);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.counterparty||'—')}</td>
@@ -708,7 +708,7 @@ function regRowsHtml(cs){
       <td style="text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:400;white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}">${val}</td>
       ${''/* The mockup's expiry cell: the date, then "· in Nd" in the urgency
             colour — red inside 30 days, amber to 90 — carrying its weight. */}
-      <td style="white-space:nowrap;font-variant-numeric:tabular-nums"><span style="font-weight:${renUrgent?700:400};color:${renDateColor}">${renDate}</span>${renIn?` <span style="font-size:12px;font-weight:700;color:${renColor}">· ${renIn}</span>`:''}</td>
+      <td style="white-space:nowrap;font-variant-numeric:tabular-nums"><span style="font-weight:400;color:${renDateColor}">${renDate}</span>${renIn?` <span style="font-size:14px;font-weight:400;color:${renColor}">· ${renIn}</span>`:''}</td>
       ${''/* ---- THE LAST COLUMN IS A STATE, NOT AN ACTION ----
              On Contracts it is the row's own verb plus the ⋯ menu. On
              Negotiations it is whose move it is, and the ⋯ IS GONE with the
@@ -721,7 +721,7 @@ function regRowsHtml(cs){
       ${neg ? `<td style="text-align:right;white-space:nowrap">${negoMovePillHtml(c)}</td>` : `
       <td style="position:relative;text-align:right;white-space:nowrap" onclick="event.stopPropagation()">
         <button class="reg-actlink" data-act="open" data-id="${c.id}">${regPrimaryAction(c)}</button>
-        <button data-menu="${c.id}" style="border:0;background:none;cursor:pointer;padding:2px 4px;margin-left:6px;color:var(--color-neutral-600);font-size:15px;letter-spacing:1px;vertical-align:middle" title="${i18t('reg_more_actions')}">⋯</button>
+        <button data-menu="${c.id}" style="border:0;background:none;cursor:pointer;padding:2px 4px;margin-left:6px;color:var(--color-neutral-600);font-size:14px;letter-spacing:1px;vertical-align:middle" title="${i18t('reg_more_actions')}">⋯</button>
         <div data-menu-pop="${c.id}" style="display:none;position:absolute;right:8px;top:34px;z-index:30;width:180px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:0;padding:4px;flex-direction:column;text-align:left">${actBtns(c)}</div>
       </td>`}
     </tr>`;}).join('')
@@ -940,8 +940,32 @@ function renderRegister(opts){
       /* The tracking number leads the row, so it is set in the figure face and
          never wraps — an id that breaks across two lines stops being an id.
          Teal, like the mockup: the id is the row's own link-coloured handle. */
-      .reg-mk{font-family:var(--font-mono);font-size:13px;font-weight:600;
+      /* ---- ONE SIZE, ONE WEIGHT, EVERY COLOUR KEPT (owner-asked 23 Aug 2026,
+         off a render: "apart from the headers, the letters and numbers in the
+         rows are all not bold and the same font size but the font colour
+         differences are still intact") ----
+         SEVEN things in a row were set larger or bolder than their neighbours
+         and every one of them is 14px regular now: this reference, the status
+         word, the urgent expiry date, the "· 7 d" countdown, the row's verb,
+         the ⋯ and — on Negotiations — the whose-move words. NOT ONE COLOUR
+         MOVED: the teal reference, the three status washes, the ruby and amber
+         countdowns, the three whose-move inks and the stream tick are all
+         exactly what they were.
+         THE HEADERS ARE THE EXCEPTION AND THAT IS THE POINT — the column heads
+         and the three group headings on Negotiations keep their 700 and their
+         letter-spacing, because with every row reading at one weight they are
+         the only thing left telling a heading from a row.
+         THE DOCUMENT KIND STAYS AT 12px (owner-chosen off the render, having
+         been shown it at 14): it is a second line under the title, and at the
+         title's own size it competes with the title and costs every row four
+         pixels of height. It is the one place in a row where a size difference
+         is carrying something. */
+      .reg-mk{font-family:var(--font-mono);font-size:14px;font-weight:400;
         color:var(--color-accent-600);white-space:nowrap;font-variant-numeric:tabular-nums}
+      /* The status chip, flattened HERE and not at .badge — that class dresses
+         every card, list and panel in the product, and this is a decision about
+         a table row. The wash and the ink are untouched. */
+      .reg-table .badge{font-size:14px;font-weight:400}
       .reg-title{font-weight:400;color:var(--color-text);line-height:var(--row-line-1)}
       .reg-kind{display:block;font-size:12px;line-height:var(--row-line-2);color:var(--color-neutral-500);
         white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -950,7 +974,7 @@ function renderRegister(opts){
       .reg-tick{flex:none;width:3px;align-self:stretch;min-height:26px}
       /* The prototype's row action is a text link, not a button. The ⋯ beside it
          keeps the rest of the engine's actions reachable. */
-      .reg-actlink{border:0;background:none;font:inherit;font-size:13px;font-weight:700;
+      .reg-actlink{border:0;background:none;font:inherit;font-size:14px;font-weight:400;
         color:var(--color-accent-600);cursor:pointer;padding:0}
       .reg-actlink:hover{text-decoration:underline}
       .reg-th-sort:hover{color:var(--color-accent-700)!important}

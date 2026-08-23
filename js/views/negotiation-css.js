@@ -2059,19 +2059,30 @@ function redlineLayoutCss(){
      became one line (Option 1, 16 Aug 2026) a flex item without a basis
      would try to share the caption's line. The band always takes a whole
      line of its own. */}
-  .redline-page .rl-unsent{display:flex;flex-basis:100%;align-items:center;gap:10px;
-    margin:0 0 12px;padding:9px 10px 9px 12px;border-radius:0;
+  ${''/* ---- A THIRD SHORTER (owner-asked 23 Aug 2026, off a screenshot) ----
+         MEASURED before it was touched: 50px — a 30px button with 9px of
+         padding above and below it and a 1px border each side. The BUTTON was
+         what set that height, so trimming the padding alone could not have
+         bought a third; it is 22px now against 4px of padding, which measures
+         32 and is 36% off. The type comes down one rung with it (14 to 13), or
+         a 14px sentence in a 32px band sits with 2px of air above and below
+         and reads as clipped rather than as compact.
+         WHAT IS NOT TOUCHED: the amber, the border, the wording, the dot and
+         the 12px gap to the cards below — this is a height, not a redesign, and
+         the band still has to read as the one warning on the column. */}
+  .redline-page .rl-unsent{display:flex;flex-basis:100%;align-items:center;gap:9px;
+    margin:0 0 12px;padding:4px 8px 4px 10px;border-radius:0;
     border:1px solid var(--st-amber-line);background:var(--st-amber-bg);white-space:nowrap;
     overflow:hidden}
-  .redline-page .rl-unsent-dot{width:9px;height:9px;border-radius:0;
+  .redline-page .rl-unsent-dot{width:8px;height:8px;border-radius:0;
     background:var(--st-amber-dot);flex:none}
-  .redline-page .rl-unsent-n{font-size:14px;font-weight:600;color:var(--st-amber-fg);flex:none}
-  .redline-page .rl-unsent-s{font-size:14px;color:var(--color-neutral-700);flex:1;min-width:0;
+  .redline-page .rl-unsent-n{font-size:13px;font-weight:600;color:var(--st-amber-fg);flex:none}
+  .redline-page .rl-unsent-s{font-size:13px;color:var(--color-neutral-700);flex:1;min-width:0;
     overflow:hidden;text-overflow:ellipsis}
   html.dark .redline-page .rl-unsent-s{color:var(--color-neutral-600)}
   .redline-page .rl-unsent-go{flex:none;border:0;border-radius:0;cursor:pointer;
-    background:var(--st-amber-fg);color:#fff;font:inherit;font-size:14px;font-weight:700;
-    padding:0 12px;white-space:nowrap;height:30px;display:inline-flex;align-items:center}
+    background:var(--st-amber-fg);color:#fff;font:inherit;font-size:13px;font-weight:700;
+    padding:0 10px;white-space:nowrap;height:22px;display:inline-flex;align-items:center}
   .redline-page .rl-unsent-go:hover:not(:disabled){filter:brightness(1.08)}
   /* ---- A DEAD CONTROL MUST NOT LOOK ALIVE ----
      redlineSyncProxies disables a proxy whose postbox is not on the page, and
@@ -2539,14 +2550,28 @@ function redlineLayoutCss(){
   ${''/* the read-only sentence also lives inside the head; on the one-line
      head it must never share the caption's line. */}
   .redline-page .rl-idx-head .nego-why{flex-basis:100%}
-  ${''/* ---- THE CAPTION TAKES A LINE OF ITS OWN, AND THE PRIMARY INK ----
-     (owner-chose render B1 off five drawn heads, 23 Aug 2026.) It used to sit
-     on ONE line with the tabs at the right wall — Option 1 of 16 Aug, which was
-     right while the tabs were three small words and wrong once the count became
-     the headline: a 19px figure cannot share a line with a 12px caption without
-     one of them looking like a mistake. So flex-basis:100% and the tabs drop
-     underneath it, which is the shape the head had before 16 Aug and is now the
-     rule rather than the narrow-column fallback.
+  ${''/* ---- THE CAPTION SHARES THE TABS' LINE AGAIN (owner-asked 23 Aug 2026:
+     "move the all, mine, their to sit next to tracked changes as opposed to
+     below it") ----
+     THIS REVERSES render B1 of the same day, IN PLACE. B1's reasoning was that
+     "a 19px figure cannot share a line with a 12px caption without one of them
+     looking like a mistake", and it is a real argument — the owner has looked
+     at both and wants the line back, so the size difference is the price and it
+     was named before this was built. The 19px count is UNTOUCHED, deliberately:
+     shrinking it to make the row sit comfortably would be reversing a second
+     decision nobody asked about, and it is one word to do later.
+
+     flex:1 1 auto, so the caption takes what is left and the tabs (flex:none)
+     are pushed to the right wall — the arrangement of 16 Aug. THE WRAP IS THE
+     FALLBACK AND IS DELIBERATELY KEPT: .rl-idx-head is still flex-wrap:wrap, so
+     a column dragged narrow drops the tabs to their own line rather than
+     crushing the caption. That is what makes this safe at the 300px the divider
+     still allows.
+
+     THE padding-top WENT WITH THE LINE. It existed to push a caption sitting
+     ABOVE the tabs down toward them; beside them the head's own
+     align-items:center is what lines the two up, and the padding would push the
+     caption off that centre. Its two short-window overrides went with it.
 
      AND IT IS BLACK. B1 is "all of it black" — the caption, the counts and the
      words. This is a DELIBERATE EXCEPTION to the four-shades rule (primary is
@@ -2556,8 +2581,8 @@ function redlineLayoutCss(){
      not sweep this outward — the captions under a signpost are not the
      signpost, and a pass that took every mid-grey to primary was reverted once
      already for exactly that. */}
-  .redline-page .rl-idx-k{flex:1 0 100%;min-width:0;font-size:12px;font-weight:700;letter-spacing:.12em;
-    text-transform:uppercase;color:var(--color-text);padding-top:11px}
+  .redline-page .rl-idx-k{flex:1 1 auto;min-width:0;font-size:12px;font-weight:700;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--color-text)}
   .redline-page .rl-idx-n{flex:none;font-family:var(--font-mono);font-size:12px;font-weight:700;
     letter-spacing:.01em;font-variant-numeric:tabular-nums;color:var(--color-neutral-500);
     background:none;border:0;border-radius:0;padding:0;line-height:1.2}
@@ -3213,13 +3238,11 @@ function redlineLayoutCss(){
      it or a short window pays 20px it has not got. */}
   @media (max-height:820px){
     .redline-page .rl-idx-head{padding:4px 12px 8px;gap:6px}
-    .redline-page .rl-idx-k{padding-top:5px}
     .redline-page .rl-fseg{padding-bottom:6px}
     .redline-page .rl-paper{padding:26px 30px 30px}
   }
   @media (max-height:680px){
     .redline-page .rl-idx-head{padding:2px 12px 6px;gap:5px}
-    .redline-page .rl-idx-k{padding-top:2px}
     .redline-page .rl-fseg{padding-bottom:4px}
     .redline-page .rl-paper{padding:20px 26px 24px}
   }
@@ -3533,9 +3556,21 @@ function redlineLayoutCss(){
            three, and it reaches neither .rl-tabrow nor .rl-head. Same scope,
            same reason, as the height pin it sits inside. */}
     border-color:color-mix(in srgb,var(--accent-solid) 45%,transparent)}
-  ${''/* The one filled act keeps its weight; the rest read as the render's
-         ordinary verbs. */}
-  .redline-page #ws-head .room-acts button:not(.rl-btn-go):not(.ui-btn-primary){font-weight:400}
+  ${''/* ---- AND THE LAST BOLD ONE FLATTENED TOO (owner-asked 23 Aug 2026:
+         "publish round should not be bold") ----
+         .rl-btn-go was excluded from this rule the day the fill came off, so
+         the act would still LEAD the row by weight. The owner has now taken
+         the weight as well, which is the fourth time this head has been asked
+         to quieten down and the same answer each time: this reader reads
+         emphasis as shouting. The row leads by POSITION and by the accent
+         outline alone; nothing in it is bold.
+         BOTH BUTTONS WEARING THE CLASS GO, exactly as when the fill came off —
+         Publish Round and Close Round are both .rl-btn-go, and flattening one
+         while leaving the other is the inconsistency the last report was about.
+         SCOPED TO THE HEAD, which is what keeps it safe: .rl-btn and .rl-btn-go
+         also draw on the CONTROL BAR, whose metrics feed rlFitTabRow's fold
+         ladder, and this selector reaches neither .rl-tabrow nor .rl-head. */}
+  .redline-page #ws-head .room-acts button:not(.ui-btn-primary){font-weight:400}
 
   .redline-page #ws-head .rl-pb-btn{background:none;
     border:1px solid color-mix(in srgb,var(--accent-solid) 50%,transparent);

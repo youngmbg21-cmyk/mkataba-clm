@@ -1457,7 +1457,12 @@
      page gives its action text, on the page that is the contracts table. The
      press is unchanged and is the row's, so pressing the words still opens the
      negotiation; the underline on hover says so. */
-  .ngl-w{ flex:none; font-size:13px; font-weight:700; white-space:nowrap;
+  /* ---- THE WHOSE-MOVE WORDS READ LIKE THE REST OF THE ROW (owner-asked
+     23 Aug 2026) ---- 14px regular, like every other cell on Negotiations; the
+     THREE INKS below are what carry the state and none of them moved. The
+     contract room's fact row sets its own 700 a few rules up
+     (.room-facet .v .ngl-w) and is untouched — that is a head, not a row. */
+  .ngl-w{ flex:none; font-size:14px; font-weight:400; white-space:nowrap;
     background:none; border:0; padding:0; border-radius:0; }
   .ngl-w-you{ color:var(--st-amber-fg); }
   .ngl-w-them{ color:var(--st-gray-fg); }

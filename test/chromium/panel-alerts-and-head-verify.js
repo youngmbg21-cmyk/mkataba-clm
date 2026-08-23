@@ -156,10 +156,28 @@ const px = v => Number(String(v || '').replace('px', ''));
       head.tabs.every(t => px(t.num.bd) === 0 && /rgba\(0, 0, 0, 0\)/.test(t.num.bg)),
       head.tabs.map(t => t.num.bd + '/' + t.num.bg).join(' '));
 
-    check('the caption sits on its own line above the tabs',
-      head.cap.y + head.cap.h <= live.y + 2, `${head.cap.y}+${head.cap.h} vs ${live.y}`);
-    check('and they share one left edge, so the head reads as one column',
-      Math.abs(head.cap.x - head.tabs[0].x) <= 1, `${head.cap.x} vs ${head.tabs[0].x}`);
+    /* ---- BOTH CLAIMS REVERSED IN PLACE, 23 Aug 2026 (owner-asked: "move the
+       all, mine, their to sit next to tracked changes as opposed to below it")
+       ----
+       These pinned render B1 of the day before, whose reasoning was that "a
+       19px figure cannot share a line with a 12px caption without one of them
+       looking like a mistake". The owner has now seen both and wants the line
+       back, so the size difference is the price and it was named before it was
+       built. THE 19px COUNT IS DELIBERATELY UNTOUCHED — shrinking it to make
+       the row sit comfortably would be reversing a second decision nobody
+       asked about.
+       WHAT THE PAIR IS REALLY ABOUT SURVIVES, which is why they are rewritten
+       rather than deleted: the caption and the tabs must read as ONE head
+       rather than as two unrelated things. On one line that is "same line,
+       caption left, tabs right" instead of "stacked, one left edge".
+       AND THE WRAP IS NOT ASSERTED AWAY: .rl-idx-head is still flex-wrap:wrap,
+       so a column dragged to its 300px minimum may still drop the tabs to
+       their own line. This is measured at the resting split, where they fit. */
+    check('the caption shares ONE line with the tabs',
+      Math.abs((head.cap.y + head.cap.h / 2) - (live.y + live.h / 2)) <= 12,
+      `caption mid ${Math.round(head.cap.y + head.cap.h / 2)} vs tab mid ${Math.round(live.y + live.h / 2)}`);
+    check('caption at the left wall, tabs at the right',
+      head.tabs[0].x > head.cap.x, `${head.cap.x} vs ${head.tabs[0].x}`);
 
     /* AND IT STILL FILTERS. The three safety properties this control has
        carried since it came back are not a design decision anybody may drop:
