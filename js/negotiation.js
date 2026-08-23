@@ -2535,10 +2535,28 @@ function negoSignalReady(c, opts = {}){
   negoInit(c);
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   const a = negoAlignment(c);
-  if (!a.aligned){
-    if (window.toast) toast('Not everything is settled yet — ' + negoAlignmentWhy(c, side), 'err');
-    return null;
-  }
+  /* ---- THE REFUSAL SAYS NOTHING, AND THE CALLER SPEAKS ----
+     (owner-reported 23 Aug 2026: "the bottom right says something needs to be
+     settled when there were absolutely nothing negotiated ... it keeps popping
+     up.")
+
+     This drew a toast, from inside the MODEL, unguarded. Its one caller is
+     applyResponse's readiness branch, which runs from the BACKGROUND POLLER —
+     so a stale readiness claim retried on every beat put a red box on whatever
+     page the reader happened to be standing on, about a contract they were not
+     looking at. Measured on a real server: four polls, four boxes, on Insights.
+
+     THE SENTENCE IS NOT LOST — the caller already had its own, guarded by
+     `!opts.background`, and that is the one place that knows whether a person
+     is watching. A model function that draws is a model function that draws in
+     the background, and this is the second time that has cost this product a
+     report; a refusal returns null and the caller decides what to say about it.
+
+     THE COUNTERPARTY'S OWN PAGE NEEDS NOTHING HERE: its Ready button is
+     disabled while anything is unsettled (see readyOk in js/views/portal.js),
+     with the reason on its own tooltip, so nobody can press into this refusal
+     from a screen. */
+  if (!a.aligned) return null;
   const who = String(opts.by || (window.currentUser && window.currentUser()?.name)
     || (side === 'counterparty' ? (c.counterparty || 'The counterparty') : 'This workspace'));
   const n = c.negotiation;

@@ -57,6 +57,19 @@ const PORTAL = read('js/views/portal.js');
 const SERVER = read('server/server.js');
 const I18N = read('js/i18n.js');
 
+/* One branch of applyResponse's action ladder, cut from the RAW source and
+   stripped afterwards — stripping first collapses the comments the markers sit
+   between and the slice stops matching. */
+const branch = (action) => {
+  /* The BRANCH, not the first mention: `r.action==='ready'` also appears in the
+     docChanged guard forty lines above the ladder, and slicing from there
+     returns the whole of the sign branch instead. */
+  const start = CORE.indexOf("} else if(r.action==='" + action + "'){");
+  assert.ok(start > 0, 'no ' + action + ' branch');
+  const rest = CORE.slice(start + 2);
+  const end = rest.indexOf("} else if(r.action===", 10);
+  return strip(end > 0 ? rest.slice(0, end) : rest);
+};
 const fn = (src, name) => {
   const m = strip(src).match(new RegExp('function\\s+' + name + '\\s*\\([\\s\\S]*?\\n\\}'));
   assert.ok(m, name + ' not found');
@@ -198,4 +211,48 @@ describe('f238 (4) — the words exist in both languages', () => {
       assert.ok(hits >= 2, k + ' appears ' + hits + ' time(s)');
     });
   }
+});
+
+describe('f238 (5) — a refusal that must not draw, and must not loop', () => {
+  /* Owner-reported 23 Aug 2026: "the bottom right says something needs to be
+     settled when there were absolutely nothing negotiated ... the same alert is
+     also appearing on the insights page and in other pages and it keeps popping
+     up." Reproduced on a real server before it was touched: a readiness claim
+     that goes stale between the press and the collection was refused, drawn,
+     and NOT marked handled — so it came back on every beat, drew a red box on
+     whatever page the reader was on about a contract they were not looking at,
+     and wrote a duplicate audit line each time. Four polls, four boxes, four
+     lines. */
+  test('negoSignalReady no longer toasts — a model must not draw', () => {
+    const body = fn(read('js/negotiation.js'), 'negoSignalReady');
+    assert.ok(!/toast\(/.test(body),
+      'its one caller runs from the background poller; a model that draws ' +
+      'draws in the background');
+    assert.match(body, /if \(!a\.aligned\) return null/,
+      'it refuses by returning null and lets the caller decide what to say');
+  });
+
+  test('and the caller still has the sentence, guarded by whether anyone is watching', () => {
+    const body = branch('ready');
+    assert.match(body, /if\(!opts\.background\) toast\(i18t\('co_readiness_mismatch'\),'err'\)/);
+  });
+
+  test('A REFUSED READINESS IS RECORDED ONCE — it is reported handled', () => {
+    const body = branch('ready');
+    assert.ok(!/return !!\(done\.length\|\|withdrew\.length\)/.test(body),
+      'reported unhandled, the poller re-fetches and re-records it for ever — ' +
+      'which is what the comment beside it has always said must not happen');
+    assert.match(body, /return true;/);
+  });
+
+  test('the branch still writes its one audit line, so nothing is hidden', () => {
+    const body = branch('ready');
+    assert.match(body, /logAudit\(c,'Negotiation',`\$\{who\} signalled ready to sign, but this contract is not settled/);
+  });
+
+  test('the decisions branch already had this rule — the two now agree', () => {
+    const body = branch('decisions');
+    assert.match(body, /if\(!done\.length && !filed\.length && !withdrew\.length\)/,
+      'f163 taught it there first: wording that cannot land must still stop arriving');
+  });
 });

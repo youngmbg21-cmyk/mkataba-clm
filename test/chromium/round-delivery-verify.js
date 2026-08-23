@@ -93,7 +93,10 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     /* ---------- the counterparty answers ---------- */
     const tok = await own.evaluate(async id => {
       const full = await api('contracts/' + id);
-      const payload = buildSharePayload(full, 'Highland Corporate Ltd', null, { purpose: 'negotiate' });
+      /* The second argument IS the document hash. Passing anything else makes
+         every later docChanged reading true, and stages a journey the product
+         never actually meets. */
+      const payload = buildSharePayload(full, await sha256(canonicalDoc(full)), null, { purpose: 'negotiate' });
       const r = await api('shares', 'POST', { payload, channel: 'link',
         recipient: { name: 'Saw Sawa LLC', email: 'ola@sawsawa.se' }, purpose: 'negotiate' });
       return r && r.token || null;
@@ -221,6 +224,84 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       JSON.stringify(received));
     check('6 without a reload — it turns over under the reader',
       received.state === 'received', received.state);
+
+    /* ---------- 7. A REFUSED READINESS IS RECORDED ONCE ----------
+       Owner-reported 23 Aug 2026: "the bottom right says something needs to be
+       settled when there were absolutely nothing negotiated ... the same alert
+       is also appearing on the insights page and in other pages and it keeps
+       popping up."
+
+       Staged as the journey that produces it: the counterparty presses Ready to
+       sign while the deal IS settled, and the owner files one more change
+       before their browser has collected the claim. It is stale on arrival —
+       and what used to happen then was a red box on EVERY beat, on whatever
+       page the reader was standing on, plus a duplicate audit line each time.
+       Measured against the prior code: four polls, four boxes, four lines.
+
+       DRIVEN FROM THE INSIGHTS PAGE ON PURPOSE. The point of the report is that
+       the alert appears where nothing is being negotiated; a check run on the
+       negotiation page would pass against the broken build. */
+    const other = await own.evaluate(async id => {
+      const c = state.contracts.find(x => x.id !== id && x.status !== 'Signed' && x.status !== 'Declined');
+      await ensureFull(c); negoInit(c); persist(c); await flushSaves();
+      return c.id;
+    });
+    await pause(1200);
+    const tok2 = await own.evaluate(async id => {
+      const full = await api('contracts/' + id);
+      const payload = buildSharePayload(full, await sha256(canonicalDoc(full)), null, { purpose: 'negotiate' });
+      const r = await api('shares', 'POST', { payload, channel: 'link',
+        recipient: { name: 'Juno Limited', email: 'ola@juno.se' }, purpose: 'negotiate' });
+      return r && r.token || null;
+    }, other);
+    const cp2 = await ctx.newPage();
+    cp2.on('pageerror', e => errors.push('cp2: ' + e.message));
+    await cp2.goto(h.base + '/#share=t:' + tok2, { waitUntil: 'networkidle' });
+    await pause(2600);
+    const readyBtn = await cp2.evaluate(() => {
+      const b = document.getElementById('pt-nego-ready');
+      if (!b || b.disabled) return false;
+      b.click(); return true;
+    });
+    await pause(2400);
+    check('7 the counterparty could press Ready — the deal was settled when they did',
+      readyBtn === true, readyBtn ? 'pressed' : 'the button was disabled; the stage is wrong');
+
+    /* The owner files one more change before collecting it — the claim is now
+       stale, through no fault of anyone. */
+    await own.evaluate(async id => {
+      const c = state.contracts.find(x => x.id === id);
+      await ensureFull(c);
+      const cl = negoClauseList(c);
+      await negoEditClause(c, cl[0].clauseId,
+        cl[0].bodyHtml.replace(/\b(\d[\d,]*)\b/, m => String(+String(m).replace(/,/g, '') + 500)),
+        { author: 'Young Mbagaya', side: 'owner', why: 'One more.' });
+      persist(c); await flushSaves();
+    }, other);
+    await pause(1500);
+
+    await own.evaluate(() => setView('intel'));
+    await pause(1500);
+    check('7 the reader is on a page about no contract at all', 
+      (await own.evaluate(() => state.view)) === 'intel');
+
+    const seenBoxes = [];
+    for (let i = 0; i < 4; i++){
+      await own.evaluate(() => { const r = document.getElementById('toast-root'); if (r) r.innerHTML = ''; });
+      await own.evaluate(() => pollPendingResponses());
+      await pause(1300);
+      seenBoxes.push((await boxes()).join(' | '));
+    }
+    check('7 no box on any of four polls — the reported pop-up is gone',
+      seenBoxes.every(b => !/settled yet/i.test(b)),
+      JSON.stringify(seenBoxes).slice(0, 160));
+
+    const lines = await own.evaluate(async id => ((await api('contracts/' + id)).audit || [])
+      .filter(a => /signalled ready to sign, but/.test(String(a.detail || ''))).length, other);
+    check('7 and it is recorded ONCE, not once per beat', lines === 1,
+      lines + ' audit line(s) — four against the prior code');
+    check('7 the claim stops arriving, so it cannot come back',
+      (await own.evaluate(async () => (await api('shares/pending')).length)) === 0);
 
     check('no page errors on either seat', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {
