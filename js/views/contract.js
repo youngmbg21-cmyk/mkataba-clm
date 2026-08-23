@@ -2535,18 +2535,33 @@ function actionBarHtml(c){
      The other tabs keep the strip. On Key terms, Signing and History it is not
      a description of the page, it is the contract's next step — which is what
      this strip is for and why it repaints per tab (see applyWsTabs). */
-  if(_wsTab==='docs') return '';
-  if(locked) return `<span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:2px 9px;border-radius:0;background:var(--st-green-bg);color:var(--st-green-fg)"><span style="width:6px;height:6px;border-radius:50%;background:var(--st-green-dot)"></span>${i18t('ct_executed_sealed')}</span>${line('Executed &amp; sealed. This document is locked and fields are read-only.')}`;
-  if(!canEdit()) return `${statusChip(c.status)}${line('You have viewer access — the document is read-only for your role.')}${tail}`;
-  /* On the Document tab the sentence is about READING, because that is what
-     this tab is now for; the status guidance is on every other tab, where a
-     next step is what the reader came for. */
-  if(_wsTab==='docs'&&!docFillable(c))
-    return `${statusChip(c.status)}${line(i18t('ct_clean_read'))}${tail}`;
-  if(_wsTab==='docs'&&docFillable(c))
-    return `${statusChip(c.status)}${line('This draft still has blanks — fill the highlighted fields below. Once it goes for review, wording changes happen on <b>Negotiate</b>.')}${tail}`;
-  const na=wsNextAction(c);
-  return `${statusChip(c.status)}${line(na?na.guide:'All key terms are set.')}`;
+  /* ---- AND NOW IT SAYS NOTHING ON ANY TAB (owner-asked 23 Aug 2026: "remove
+     the highlighted strip in all the tabs and move the cards up") ----
+     The Document tab gave this strip up on 10 Aug for the contract's sake;
+     Key terms, Signing and History give it up now for the cards'. It is a
+     `return ''` STUB rather than a deletion, because the builder is called
+     from renderWorkspace AND from renderActionBar and a third caller must not
+     be able to bring the band back through a door nobody remembered — the same
+     reason negoCounterLineHtml and portalChangeSummaryHtml are stubs.
+
+     THE CARDS MOVE UP BY THEMSELVES: the host hides when it is empty (one line
+     in applyWsTabs, and it has always meant exactly this), so with nothing to
+     draw it stops being a flex item and takes neither its height nor the
+     column's 8px gap with it.
+
+     WHAT WENT WITH IT, checked before it was removed rather than after. The
+     STATUS is untouched — contractStatusTextHtml prints it beside the
+     contract's name on every tab, which is why the Document tab could already
+     spare this. The NEXT STEP is untouched: wsNextAction still drives the
+     head's lead button, which names the act. Two sentences really do go, and
+     only one of them mattered: "Executed and sealed" restated a status the
+     head already shows, but "You have viewer access — the document is
+     read-only for your role" was the one place a VIEWER was told why nothing
+     on the page can be typed in. That is a real loss and it is reported rather
+     than quietly absorbed; if it should come back it wants its own quiet line
+     on the pages it applies to, not this band on every tab. */
+  void locked; void line; void tail;
+  return '';
 }
 function renderActionBar(c){
   const host=document.getElementById('ws-actionbar'); if(!host) return;

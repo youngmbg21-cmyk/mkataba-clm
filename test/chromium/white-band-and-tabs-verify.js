@@ -368,6 +368,142 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
       mTabs.length > 0 && mTabs.some(t => t.color === ref.color),
       mTabs.map(t => `${t._txt}: ${t.color}`));
 
+    /* ================= 6 · THE ADMIN TAB ROWS ARE DRAWN LIKE THE ROOM'S =====
+       Owner-asked 23 Aug 2026, off two screenshots: "the design of images 1
+       and 2 need to resemble how image 3 was designed" — image 3 being the
+       contract room's tab row. The difference was the BOX: these rows padded
+       each tab 14px a side with a 2px gap, so every tab was a slab and its
+       underline ran the full slab; .room-tab hugs its text and lets a 22px gap
+       separate them. Pinned as a RELATION against the room's own row, read
+       live, so a later change to either has to move both.
+
+       AND CHECK 6a IS THE ONE THAT MATTERS MOST. `.st-tab` had NO RULE AT ALL
+       on main: two comments written in separate passes left an orphaned
+       terminator in the stylesheet, and the parser's error recovery swallowed
+       the whole block. It computed padding:0 from the button reset, which is
+       exactly what "cramped" looked like. f236 catches the CAUSE in the file;
+       this asks the live page whether the rule survived to the screen, which
+       is the only place that question can be answered. */
+    await page.setViewportSize({ width: 1500, height: 1000 });
+    await pause(600);
+    await page.evaluate(() => setView('team'));
+    await pause(2400);
+    await page.screenshot({ path: path.join(OUT, '08-settings-tabs.png') });
+
+    const roomBox = await page.evaluate(() => {
+      /* Read the reference off the room's own row — the page it was asked to
+         resemble — rather than off a number typed here. */
+      const t = document.createElement('button'); t.className = 'room-tab';
+      const row = document.createElement('div'); row.className = 'room-tabs';
+      row.appendChild(t); document.body.appendChild(row);
+      const s = getComputedStyle(t), rs = getComputedStyle(row);
+      const out = { padding: s.padding, gap: rs.gap };
+      row.remove(); return out;
+    });
+    const stBox = await page.evaluate(() => {
+      const t = document.querySelector('.st-tab'); if (!t) return null;
+      const row = document.querySelector('.st-tabs');
+      const s = getComputedStyle(t);
+      return { padding: s.padding, gap: getComputedStyle(row).gap,
+        inParsedSheet: (() => {
+          for (const sheet of document.styleSheets){
+            let rules; try { rules = sheet.cssRules; } catch (_) { continue; }
+            for (const r of rules) if (r.selectorText === '.st-tab') return true;
+          }
+          return false;
+        })() };
+    });
+
+    check('6a THE RULE IS IN THE PARSED STYLESHEET — no comment swallowed it',
+      stBox && stBox.inParsedSheet && stBox.padding !== '0px',
+      stBox && { inSheet: stBox.inParsedSheet, padding: stBox.padding });
+    check('6b the admin tab hugs its text exactly as the room\'s does',
+      stBox && stBox.padding === roomBox.padding,
+      { admin: stBox && stBox.padding, room: roomBox.padding });
+    check('6c and the row spaces them the same way',
+      stBox && stBox.gap === roomBox.gap,
+      { admin: stBox && stBox.gap, room: roomBox.gap });
+
+    /* ================= 7 · THE SIDEBAR'S DOORS ============================= */
+    const nav = await page.evaluate(() => {
+      const lum = c => {
+        const m = String(c).match(/[\d.]+/g); if (!m) return null;
+        const f = [0, 1, 2].map(i => { const v = +m[i] / 255;
+          return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+        return 0.2126 * f[0] + 0.7152 * f[1] + 0.0722 * f[2];
+      };
+      const panel = getComputedStyle(document.querySelector('#side-nav')).backgroundColor;
+      const items = [...document.querySelectorAll('#side-nav .nav-item')]
+        .filter(n => n.offsetParent).map(n => {
+          const s = getComputedStyle(n);
+          return { txt: n.textContent.trim().slice(0, 14),
+            active: n.classList.contains('active'), bg: s.backgroundColor,
+            ink: s.color, bgLum: s.backgroundColor === 'rgba(0, 0, 0, 0)' ? null : lum(s.backgroundColor) };
+        });
+      return { panel, panelLum: lum(panel), items };
+    });
+    const live = nav.items.filter(i => i.active);
+
+    check('7a every door in the drawer is pure white',
+      nav.items.length > 2 && nav.items.every(i => i.ink === 'rgb(255, 255, 255)'),
+      nav.items.map(i => `${i.txt}:${i.ink}`).slice(0, 6));
+    check('7b a door IS live, or 7c proves nothing', live.length === 1,
+      live.map(i => i.txt));
+    check('7c THE LIVE DOOR SITS DEEPER THAN THE PANEL, not lighter',
+      live.length === 1 && live[0].bgLum != null && live[0].bgLum < nav.panelLum,
+      { panel: nav.panel, live: live[0] && live[0].bg,
+        deeper: live[0] && live[0].bgLum < nav.panelLum });
+
+    /* ================= 8 · THE STRIP IS GONE AND THE CARDS MOVED UP ======== */
+    await page.evaluate(id => openWorkspace(id), cid);
+    await pause(2200);
+    const tabsSeen = [];
+    for (const want of ['Key terms', 'Signing', 'History', 'Document']){
+      await page.evaluate(w => {
+        const t = [...document.querySelectorAll('.room-tab')]
+          .find(x => x.textContent.trim().startsWith(w));
+        if (t) t.click();
+      }, want);
+      await pause(1100);
+      tabsSeen.push(await page.evaluate(w => {
+        const bar = document.getElementById('ws-actionbar');
+        return { tab: w, present: !!bar,
+          drawn: !!(bar && getComputedStyle(bar).display !== 'none'),
+          text: bar ? bar.textContent.trim().length : 0 };
+      }, want));
+    }
+    check('8a the status strip draws on NO tab', tabsSeen.every(t => !t.drawn && !t.text),
+      tabsSeen.map(t => `${t.tab}:${t.drawn ? 'drawn' : 'hidden'}/${t.text}`));
+
+    await page.evaluate(() => {
+      const t = [...document.querySelectorAll('.room-tab')]
+        .find(x => /key terms/i.test(x.textContent)); if (t) t.click();
+    });
+    await pause(1600);
+    await page.screenshot({ path: path.join(OUT, '09-keyterms.png') });
+    const kt = await page.evaluate(() => {
+      const bx = s => { const e = document.querySelector(s); if (!e) return null;
+        const r = e.getBoundingClientRect();
+        return { x: Math.round(r.x), w: Math.round(r.width), y: Math.round(r.y) }; };
+      const row = document.querySelector('.room-tabrow');
+      return { grid: bx('.terms-grid'), pane: bx('[data-ws-pane="terms"]'),
+        tabrowBottom: row ? Math.round(row.getBoundingClientRect().bottom) : null };
+    });
+
+    check('8b the cards start right under the tab row, with no band between',
+      kt.grid && kt.tabrowBottom != null && (kt.grid.y - kt.tabrowBottom) < 24,
+      { tabrowBottom: kt.tabrowBottom, cardsTop: kt.grid && kt.grid.y,
+        gap: kt.grid && (kt.grid.y - kt.tabrowBottom) });
+
+    /* THE CARDS FILL THE PAGE MEASURE, like the mock-up's own .h-c2 — a
+       RELATION against the pane they sit in, never a pixel count, so the next
+       change to the page's padding costs no test edit. It was capped at 1040
+       and centred, leaving ~80px of empty page down each side at this width. */
+    check('8c and they fill the page measure rather than sitting in a narrow column',
+      kt.grid && kt.pane && (kt.pane.w - kt.grid.w) <= 8,
+      { pane: kt.pane && kt.pane.w, cards: kt.grid && kt.grid.w,
+        slackEachSide: kt.grid && kt.pane ? (kt.pane.w - kt.grid.w) / 2 : null });
+
     check('no page errors anywhere in the journey', errors.length === 0, errors);
   } catch (e) {
     check('the journey ran to the end', false, String(e && e.message || e));

@@ -1417,7 +1417,17 @@
      It is the Activity panel's own mechanism: transform, a dimmed scrim, and
      dismissed by scrim / Escape / its own ✕. */
   .st-page{ padding:16px 18px 28px; }
-  .st-tabs{ display:flex; gap:2px; border-bottom:1px solid var(--color-divider); }
+  /* ---- THE ADMIN TAB ROWS ARE DRAWN LIKE THE ROOM'S (owner-asked 23 Aug
+     2026: "the design of images 1 and 2 need to resemble how image 3 was
+     designed") ---- Image 3 is the contract room's tab row, and the difference
+     was the BOX, not the type: .room-tab hugs its text (padding 9px 1px) and
+     lets a 22px gap do the separating, so the words read as words and the live
+     underline is exactly as wide as the word above it. These rows padded each
+     tab 14px a side and left a 2px gap, so every tab was a slab and the
+     underline ran the full slab. Same numbers as .room-tab now — one control,
+     three pages. .st-tabs and .room-tabs are still two rules because the two
+     rows sit in different containers; change one, change the other. */
+  .st-tabs{ display:flex; gap:22px; border-bottom:1px solid var(--color-divider); }
   /* ---- A RESTING TAB IS DARK INK, NOT A CAPTION (owner-asked 23 Aug 2026) --
      "The font I have highlighted should also be the font used in the tab
      navigation panels within the administration tabs."
@@ -1429,20 +1439,43 @@
      differed on exactly one value: they rested on --color-neutral-600, the
      LABEL shade, against the reference's --color-text. A tab is a thing you
      read and press, not metadata about one; the live state is what marks the
-     live tab, and the resting ones do not have to be faded as well. */
+     live tab, and the resting ones do not have to be faded as well.
+
      AND THE STACK IS THE PAGE'S OWN. It declared font:inherit and then
      overrode it with var(--font-heading) — which resolves to the SAME face
      (both tokens are Inter-first, one family end to end since 22 Aug) but to a
      different fallback ORDER, so the two rows agreed only for as long as Inter
      loads. The override is dropped rather than re-pointed: `font:inherit` on
      the line above already says what this row wants, and the reference tabs
-     take the body stack by inheriting it too. */
+     take the body stack by inheriting it too.
+
+     ---- AND THIS RULE WAS UNPARSEABLE FOR A DAY (found 23 Aug 2026) ----
+     The two notes above were written in separate passes and the second was
+     inserted AFTER the first one had already been closed, so eight lines of
+     prose and an orphaned comment-terminator sat in the stylesheet as raw CSS.
+     (Do not write that terminator inside a comment to describe this — spelling
+     it out closes the comment on the spot, which is how this was reproduced a
+     second time while the note was being written.) A CSS parser recovers from
+     garbage by skipping to the end of the next block — which was `.st-tab`
+     itself, so THE WHOLE RULE WAS DROPPED: no padding, no size, no
+     border-bottom, no transparent underline reserving the row's height.
+     MEASURED on main: `.st-tab` computed `padding:0px` from the button reset,
+     and the browser's own stylesheet listed `.st-tabs`, `.st-tab:hover`,
+     `.st-tab.on` and `.st-tabsub` while `.st-tab` was absent entirely. That is
+     what made these tabs read as cramped, and it is the whole of the owner's
+     report on the Settings and Our-standards rows.
+
+     THE TEST DID NOT CATCH IT, and the reason is worth keeping: it asked about
+     the resting tabs' INK, which was still correct — by accident, because a
+     tab with no rule of its own inherits --color-text from the body. A check
+     that reads one property cannot see a rule that vanished. */
   .st-tab{ appearance:none; border:0; background:none; cursor:pointer; font:inherit;
-    font-weight:400; font-size:14px; padding:8px 14px;
+    font-weight:400; font-size:14px; padding:9px 1px;
     color:var(--color-text); border-bottom:2px solid transparent; margin-bottom:-1px;
     white-space:nowrap; }
-  .st-tab:hover{ color:var(--color-accent-800); }
-  .st-tab.on{ color:var(--color-accent-800); border-bottom-color:var(--color-accent); font-weight:700; }
+  .st-tab:hover{ color:var(--color-text); }
+  .st-tab.on{ color:var(--accent-ink); border-bottom-color:var(--accent-solid,var(--color-accent));
+    font-weight:700; }
   .st-tabsub{ font-size:13px; line-height:1.55; color:var(--color-neutral-600);
     margin:10px 0 14px; }
   /* A ROW STATES WHAT THE SETTING IS RIGHT NOW — status dot, name, one line of
@@ -1810,9 +1843,25 @@
      reversing the "the two cards square off" rule for this grid: squaring off
      was right when both cards were short lists, and it is what would stretch
      Key terms to the height of whatever the right-hand card has to say. */
+  /* ---- THE CARDS FILL THE PAGE MEASURE (owner-asked 23 Aug 2026: "widen the
+     cards to resemble the width of the cards in the html in the same page")
+     ---- The mock-up's own two-card grid on this page is
+     `.h-c2{grid-template-columns:minmax(0,58fr) minmax(0,42fr)}` inside
+     `.h-content`, with NO cap of its own: it is as wide as the page minus the
+     page's padding, and at the mock-up's 1440 that is 1104px of cards. This
+     grid was capped at 1040 and centred, so on a 1500 window it left about
+     80px of empty page down each side and the cards were narrower than the
+     design's on a wider screen than the design's.
+
+     THE CEILING IS KEPT AND RAISED, not deleted. The mock-up needs no cap
+     because an artboard is 1440 wide; a real window is not, and a key-terms
+     row stretched across an ultra-wide monitor is a label at one end and its
+     value at the other. 1440 is the design's own page width, so the cards fill
+     the measure on every laptop this product is used on and stop growing
+     exactly where the design stops describing them. */
   .terms-grid{ display:grid;
     grid-template-columns:minmax(0,1.15fr) var(--kt-gap,14px) minmax(0,1fr);
-    gap:0; max-width:1040px; width:100%; margin:0 auto;
+    gap:0; max-width:1440px; width:100%; margin:0 auto;
     /* A DEFINITE HEIGHT IS WHAT MAKES THE RIGHT COLUMN SCROLL. The pane is a
        flex column; taking its height (flex:1, min-height:0) gives the grid a
        bound to scroll inside instead of a height derived from its own tallest
@@ -2100,11 +2149,41 @@
      teal and a grey smudge on near-black, so the dark theme turns it most of
      the way down rather than off — the band keeps its top-right lift without
      looking like a stain. */
-  #side-nav .nav-item{ color:var(--nav-ink); }
+  /* ---- THE DOORS ARE WHITE, AND THE LIVE ONE SITS DEEPER (owner-asked
+     23 Aug 2026: "the names of the tabs plus the menu needs to be pure white
+     and when you select a tab, the highlighted tab should not be a lighter
+     green but an even dark green") ----
+
+     THE INK. Every door read --nav-ink, a pale teal (#9fd8d1 in the green
+     workspace, #a5bde0 in the navy one), so the whole column was set in a tint
+     of its own background and only the one you were standing on was white.
+     They all take --nav-ink-strong now — the token that already means "the
+     strong nav ink" and is #ffffff in both workspaces — rather than a
+     hard-coded white, so the dark theme keeps its own near-white and nothing
+     needs a second rule.
+
+     THE LIVE STATE. It was rgba(255,255,255,.15) — a white veil, which LIGHTENS
+     the panel, and the ask is the opposite. It darkens now, and the mock-up
+     agrees: its own nav sets --nav-act #0D332F under a --nav of #123F3A, a
+     deeper green for the door you are on. A BLACK MIX RATHER THAN A NEW TOKEN
+     PER THEME: color-mix darkens whatever --nav-bg happens to be, so the green
+     workspace, the navy one and the dark theme all follow from one line and
+     none of them can drift.
+
+     HOVER DARKENS TOO, more gently. It used to lighten while the active state
+     lightened harder; with the live door going deeper, a hover that goes the
+     other way makes the column read as two unrelated signals. One direction:
+     the further in, the deeper it sits.
+
+     WITH EVERY DOOR NOW WHITE, THE BACKGROUND IS WHAT MARKS THE LIVE ONE —
+     which is why the ink change and the depth change had to ship together. */
+  #side-nav .nav-item{ color:var(--nav-ink-strong); }
   #side-nav .nav-item svg{ opacity:.9; }
-  #side-nav .nav-item:hover{ background:rgba(255,255,255,.08); color:var(--nav-ink-strong); border-color:transparent; }
+  #side-nav .nav-item:hover{ background:color-mix(in srgb, black 12%, var(--nav-bg));
+    color:var(--nav-ink-strong); border-color:transparent; }
   #side-nav .nav-item:hover svg{ opacity:1; }
-  #side-nav .nav-item.active{ background:rgba(255,255,255,.15); color:var(--nav-ink-strong); border-color:transparent; }
+  #side-nav .nav-item.active{ background:color-mix(in srgb, black 30%, var(--nav-bg));
+    color:var(--nav-ink-strong); border-color:transparent; }
   html.dark #side-nav .nav-item.active{ color:var(--nav-ink-strong); }
   /* Insights kept a teal glyph to mark itself out on white; on teal it needs
      the opposite treatment or it disappears into its own background. */
