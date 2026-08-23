@@ -696,6 +696,20 @@ async function mShareCreate(){
     const payload = buildSharePayload(c, docHash, who, { purpose:s.share });
     const r = await api('shares','POST',{ payload, channel:'email', recipient:who,
       expiryDays: s.share==='view'?30:14, durable:s.share!=='sign', purpose:s.share });
+    /* ---- THE PHONE IS A THIRD SEND DOOR, and it had the same gap ----
+       (owner-reported 23 Aug 2026, on the desktop; found here by walking every
+       door rather than only the one reported.) This sheet posts to /api/shares
+       itself rather than going through the desktop dialog, so a contract shared
+       from a phone stayed "Drafting" exactly as a published round did.
+       ONE ACT, SHARED WITH BOTH DESKTOP DOORS — contractLeavesDrafting, reached
+       through window like everything else this shell borrows. AFTER the send,
+       so a failure moves nothing; the catch below owns that path.
+       IT DOES NOT BRANCH ON PURPOSE, matching the desktop dialog: a read-only
+       adviser copy and a signing link both put this wording in front of
+       somebody outside the building, which is what the rule is about. */
+    let left=false;
+    if(window.contractLeavesDrafting) left=contractLeavesDrafting(c, `shared with ${email}`);
+    if(left && window.persist) persist(c);
     mCloseSheet();
     if(window.toast) toast(r && r.emailSent
       ? `${s.share==='view'?'Read-only':s.share==='sign'?'Signing':'Negotiation'} link sent to ${email}`

@@ -3679,6 +3679,43 @@ function reviewSendBlock(c){
   toast(msg,'err');
   return true;
 }
+/* ---- A CONTRACT STOPS BEING A DRAFT WHEN IT GOES TO THE OTHER SIDE ----
+   (owner-reported 23 Aug 2026, on a contract that had been negotiated for a
+   week and still called itself "Drafting" on every screen.)
+
+   THE RULE WAS RIGHT AND ONLY ONE DOOR OBEYED IT. The share dialog has moved
+   Draft → Under Review since the day it was written, on exactly this reasoning:
+   sending it to somebody outside the building IS the transition. But the round
+   send does not go through that dialog — it refreshes the standing link the
+   counterparty already holds — so a contract negotiated entirely from the
+   negotiation page could go through six rounds of real proposals, refusals and
+   counter-wording and never leave Drafting. Reported as "the counterparty is
+   ready to sign but the top still says Drafting", and it also meant the
+   register, the filters, the dashboard pipeline and the reports were all
+   counting live negotiations as drafts.
+
+   SO IT IS ONE ACT WITH TWO DOORS, rather than a second copy of the line. Both
+   sends call this, which is what stops them drifting apart again — and it is
+   where a third door added later will land, for the same reason holdUnsent is
+   written once.
+
+   IT DOES NOT PERSIST. Every caller is mid-send and saves once at the end of
+   its own work; saving here would make it twice. It DOES repaint, guarded,
+   because the status word sits in the room's head and on the negotiation page's
+   head and a status that moves without the head following reads as a stale
+   page — the same fault the share dialog's own block already fixed once.
+
+   ONLY FROM DRAFT. Under Review, Signed and Declined are all somebody's
+   decision and none of them is this function's to overturn. */
+function contractLeavesDrafting(c, why){
+  if(!c || c.status!=='Draft') return false;
+  c.status='Under Review';
+  c.lastAction=todayStr();
+  logAudit(c,'Status changed',`Draft \u2192 Under Review \u2014 ${why}`);
+  try{ if(typeof updateStatusUI==='function') updateStatusUI(c); }catch(_){}
+  try{ if(typeof renderActionBar==='function') renderActionBar(c); }catch(_){}
+  return true;
+}
 async function reshareToLastRecipient(c, opts={}){
   if(!canEdit()) throw new Error('Viewers cannot share contracts');
   /* THE ROUND-SEND IS A SEND. This is the route every negotiation after the
@@ -3756,6 +3793,25 @@ async function reshareToLastRecipient(c, opts={}){
       : ch==='email'
         ? `Updated version published to ${who}'s link${reused?' (existing link)':''} — NOT emailed${r.emailConfigured===false?': this workspace has no mail provider configured':r.emailError?': '+r.emailError:''}`
         : `Updated version published to ${who}'s link${reused?' (existing link)':''} — send it to them by ${ch==='whatsapp'?'WhatsApp':'link'}; nothing was sent automatically`;
+    /* ---- AND IT IS NOT A DRAFT ANY MORE (owner-reported 23 Aug 2026) ----
+       The round send never moved the status at all; only the share DIALOG did,
+       and a round published onto the standing link the counterparty already
+       holds does not go through it. So a contract negotiated entirely from the
+       negotiation page went round after round still calling itself Drafting —
+       on its own head, in the register, in every filter, in the dashboard's
+       pipeline and in the reports.
+
+       IT GOES HERE, IN record(), RATHER THAN AT THE PRESS. Four doors reach
+       this function — the negotiation page's Publish Round, the contract tab's
+       resend, the seen-state resend and the negotiation section's own — and a
+       promotion written at one of them is three doors that still disagree,
+       which is the exact shape of the fault being fixed.
+
+       AFTER THE SEND, NEVER BEFORE: record() runs only once something has
+       actually left, the same rule the turn stamp follows, so a send that
+       throws moves no status. And it sits above the persist that was already
+       here, so the whole act is still ONE save. */
+    contractLeavesDrafting(c, `sent to ${who}`);
     logAudit(c,'Shared',detail+stranded);
     persist(c);
     return { share:r, recipient:last, reused:!!reused, delivered, quiet, channel:ch,
@@ -4598,16 +4654,10 @@ async function openShareModal(c, opts={}){
       if(payloadObj.purpose!=='sign' && c.status!=='Signed' && window.negoHandOver){
         try{ negoHandOver(c, { to:'counterparty', by:currentUser()?.name }); }catch(_){}
       }
-      if(c.status==='Draft'){
-        c.status='Under Review';
-        logAudit(c,'Status changed',`Draft → Under Review — sent to ${rcptLabel}`);
-        /* The chip AND the bar. Changing the status without repainting the bar
-           left it still reading "Key terms are set — move it into review", with
-           a button offering to do the thing that had just been done — the same
-           stale-bar fault as after signing, in a different place. */
-        try{ if(typeof updateStatusUI==='function') updateStatusUI(c); }catch(_){}
-        try{ if(typeof renderActionBar==='function') renderActionBar(c); }catch(_){}
-      }
+      /* ONE ACT, TWO DOORS — see contractLeavesDrafting. The line used to live
+         here and only here, which is how the round send came to be sending
+         contracts to the counterparty that still called themselves drafts. */
+      contractLeavesDrafting(c, `sent to ${rcptLabel}`);
       // H-7: record the EXACT destination address on the audit trail, not just a
       // display label — so "who was this sent to" is provable later, especially
       // for a signing link where the address is what a signature rests on.
@@ -5844,4 +5894,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{cpReadyToSign,READY_META,READY_META_SHORT,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,isArchived,contractSetArchived,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{cpReadyToSign,READY_META,READY_META_SHORT,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,isArchived,contractSetArchived,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});

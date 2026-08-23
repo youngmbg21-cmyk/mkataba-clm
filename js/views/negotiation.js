@@ -6002,25 +6002,41 @@ function redlineRoundLabel(c){
        explain to their counterparty. */
 let _redlineHeldId = null;
 const redlineHeldId = () => _redlineHeldId;
-/* Statuses that are still ours to move. Anything else has left our hands. */
-const RL_DEMOTABLE = new Set(['Under Review']);
-function redlineEvict(nextId, opts = {}){
-  const prev = _redlineHeldId;
-  if (!prev || prev === nextId) return null;
-  const c = (typeof getContract === 'function') ? getContract(prev) : null;
-  if (!c) return null;
-  if (!RL_DEMOTABLE.has(c.status)) return null;
-  const from = c.status;
-  c.status = 'Draft';
-  c.lastAction = (window.todayStr ? todayStr() : c.lastAction);
-  if (window.logAudit) logAudit(c, 'Lifecycle',
-    `Moved from ${from} back to Draft — the redline workbench took on ${nextId || 'another contract'},`
-    + ' and the bench holds one agreement at a time');
-  if (opts.persist !== false && window.persist) persist(c);
-  if (window.toast) toast(`${c.name} moved back to Draft — the workbench now holds ${
-    (typeof getContract === 'function' && getContract(nextId) || {}).name || 'another contract'}`);
-  return c;
-}
+/* ---- NOTHING IS DEMOTED FOR ARRIVING SECOND (owner-reported 23 Aug 2026) ----
+   This function used to move the PREVIOUS occupant of the bench from Under
+   Review back to Draft, on the premise that "the bench holds one agreement at a
+   time" and the dashboard pipeline should read as what is actually being worked
+   on. THE PREMISE WAS FALSE ABOUT THIS BUSINESS: this workspace runs eighteen
+   live negotiations, so clicking through them demoted them one at a time, and
+   the fifteen doors that open a negotiation — the list, the contract tab, the
+   alerts panel, a playbook finding, the dashboard, the phone — were all
+   eviction doors without saying so.
+
+   THREE THINGS MADE IT WORSE THAN IT SOUNDS, and they are why this is a removal
+   rather than a narrowing:
+
+     · IT WAS ASYMMETRIC. Eviction demoted; arrival promoted nothing. So once a
+       contract had been bumped, coming back and negotiating for an hour left it
+       still calling itself Drafting.
+     · IT WAS SILENT, despite being built not to be. The announcement was a BARE
+       toast call, and a bare call draws nothing by design (see toast in
+       js/core.js) — so the pop-up this feature rested on had never appeared
+       once. Only the audit line recorded it.
+     · AND THE TEST COULD NOT SEE THAT. test/world.js's toast stub records every
+       call and defaults a missing kind to 'ok', so f91 asserted the message was
+       SENT and passed throughout on a product that said nothing. The stub is
+       the opposite of the rule the real function follows.
+
+   A STAGE IS A CLAIM ABOUT A CONTRACT, and which page you last had open is not
+   evidence for it. What moves a contract out of Drafting is somebody sending it
+   to the other side — contractLeavesDrafting, one act behind both send doors.
+
+   KEPT AS A STUB RATHER THAN DELETED, the way negoCounterLineHtml and
+   actionBarHtml are kept: it is published on window and openRedlineWorkbench
+   calls it, so a caller must not be able to bring the demotion back through a
+   door nobody remembered. RL_DEMOTABLE went with the body and is STALE — flag
+   any mention. */
+function redlineEvict(){ return null; }
 /* Bring a contract to the bench. The one entry point, so the eviction cannot
    be skipped by a caller that sets state.activeId and calls setView itself. */
 function openRedlineWorkbench(id, opts = {}){
@@ -12019,7 +12035,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlCpTypePx, rlCpSetType, rlCpZoom,
   rlUnsentBandHtml, rlUnsentCount,
   rlFitTabRow, rlWireFitTabRow, rlObserveTabRow,
-  redlineHeldId, redlineEvict, openRedlineWorkbench, RL_DEMOTABLE,
+  redlineHeldId, redlineEvict, openRedlineWorkbench,
   rlOwnerOpenActions, rlOwnerOpenTotal, rlJumpHtml,
   rlPbFindClause, rlPlaybookProposals, rlFilePlaybookProposal, rlOpenPlaybookReview,
   rlHiddenFrom, rlMsgVisible, redlineEmbed, negoIsRedeciding, rlSeatAlertsHtml,
