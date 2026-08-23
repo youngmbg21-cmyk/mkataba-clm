@@ -1501,8 +1501,18 @@ function renderTemplatesPage(){
   });
   /* Company templates come from the server cache; the first visit renders
      before it is warm, so refresh and repaint the rows when the list moves. */
+  /* ---- A FAILED FETCH MUST NOT ASK FOR ANOTHER RENDER ----
+     This read `changed || !lib.loaded`, and a failed load never sets `loaded`
+     — so one bad response re-rendered the page, which re-fetched, which failed,
+     for ever, as fast as the round trip allowed. tplLibRefresh answers `null`
+     on a failure now, which is neither "changed" nor "still not loaded": the
+     page stops, and SAYS SO rather than looping in silence. */
   if(API_MODE()&&typeof tplLibRefresh==='function')
-    tplLibRefresh().then(changed=>{ if(state.view==='templates'&&(changed||!lib.loaded)) renderTemplatesPage(); });
+    tplLibRefresh().then(changed=>{
+      if(state.view!=='templates') return;
+      if(changed===null){ if(window.toast) toast(i18t('lb_templates_load_failed'),'warn'); return; }
+      if(changed||!lib.loaded) renderTemplatesPage();
+    });
   setActiveNav('templates');
 }
 

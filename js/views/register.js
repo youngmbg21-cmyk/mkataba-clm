@@ -1026,8 +1026,26 @@ function renderRegister(opts){
   if(si){
     si.addEventListener('input',()=>{ R.query=si.value; R.page=1; renderRegisterBody(); if(API_MODE()) ftsSearch(si.value); });
   }
-  // outside click closes the FTS dropdown and any open row ⋯ menu
-  document.addEventListener('click',e=>{ const box=document.getElementById('reg-fts'); if(box&&!box.contains(e.target)&&e.target!==si) box.classList.add('hidden'); if(!e.target.closest('[data-menu-pop]')&&!e.target.closest('[data-menu]')) regCloseMenus(); });
+  /* ---- OUTSIDE CLICK: ARMED ONCE ON THE DOCUMENT, NOT PER PAINT ----
+     This closes the search dropdown and any open row ⋯ menu, and it was bound
+     inside the wiring — which runs on EVERY filter press, every sort, every
+     page. So a reader who used the filters twenty times had twenty copies of
+     it, all firing on every click for the life of the sitting.
+
+     The house pattern: a flag on `document`, and the live element resolved AT
+     PRESS TIME rather than captured. The search box is looked up by id inside
+     the handler for exactly that reason — the `si` this paint closed over is
+     replaced by the next one, and a listener holding the old node would stop
+     recognising the box the reader is typing in. */
+  if(!document._regOutsideWired){
+    document._regOutsideWired=true;
+    document.addEventListener('click',e=>{
+      const box=document.getElementById('reg-fts');
+      const live=document.getElementById('reg-search');
+      if(box&&!box.contains(e.target)&&e.target!==live) box.classList.add('hidden');
+      if(!e.target.closest('[data-menu-pop]')&&!e.target.closest('[data-menu]')) regCloseMenus();
+    });
+  }
   document.getElementById('reg-sort')?.addEventListener('change',e=>{ R.sort=e.target.value; R.dir=REG_SORT_DEFDIR[R.sort]||-1; R.page=1; regRepaint(); });
   // Column-header sorting: click a header to sort by it; click the active header
   // again to flip ascending/descending. First click uses the column's natural

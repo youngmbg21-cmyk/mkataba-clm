@@ -7065,13 +7065,16 @@ function renderRedline(){
       <button type="button" class="rl-focus-exit" data-rl-focus-exit
         title="${i18t('ng_leave_focus')}">${i18t('ng_exit_focus')}</button>
     </div>`;
-  host.querySelectorAll('[data-redline-open-doc]').forEach(el =>
-    el.addEventListener('click', () => { if (window.openWorkspace) openWorkspace(c.id); }));
-  /* The shell's controls press the WORKSPACE's own handlers — one share
-     modal, one import flow, one compare, however you arrived at them. Back
-     and the Docs tab are the same door: the workspace, on this contract. */
-  host.querySelectorAll('[data-rl-back]').forEach(el =>
-    el.addEventListener('click', () => { if (window.openWorkspace) openWorkspace(c.id); }));
+  /* ---- TWO HANDLERS FOR BUTTONS THAT NO LONGER EXIST, REMOVED (23 Aug 2026) ----
+     data-redline-open-doc and data-rl-back were this page's own way back to the
+     agreement, and both retired when the head took the mock-up (22 Aug 2026)
+     and #ws-back became the one door. NOTHING IN THE PRODUCT EMITS EITHER —
+     checked across every js file and index.html — so both loops ran on every
+     paint and found nothing, for ever.
+
+     A handler bound to a selector no markup emits is not harmless: it is the
+     always-false guard wearing different clothes. The next reader takes it as
+     evidence that such a button exists somewhere, and goes looking. */
   /* THE WAY BACK TO THE OTHER NEGOTIATIONS — the sidebar's own door, told to
      land on the list rather than to reopen what is remembered (which is this
      page). One route, one argument; see openNegotiations. */
@@ -8603,11 +8606,13 @@ const RL_SIDE_KEY = 'hati.v1.rlSideMode';
 function rlSideMode(){ return 'changes'; }
 function rlApplySideMode(root, m){
   root.setAttribute('data-rl-side-mode', m);
-  root.querySelectorAll('[data-rl-mode]').forEach(b => {
-    const on = b.getAttribute('data-rl-mode') === m;
-    b.classList.toggle('on', on);
-    b.setAttribute('aria-selected', on ? 'true' : 'false');
-  });
+  /* THE [data-rl-mode] PAINT LOOP WENT WITH THE TOGGLE IT PAINTED (23 Aug
+     2026). It set an `on` class and aria-selected on the Changes/Discussion
+     buttons; the Discussion column left this page on 10 Aug 2026 and the pair
+     went with it, so nothing has emitted that attribute since. The attribute
+     ABOVE stays and still does its job: an old root left carrying
+     data-rl-side-mode="disc" is corrected rather than left with its card
+     column hidden. */
 }
 /* Setting it can only ever settle on "changes" now, and it still paints —
    an old root left carrying data-rl-side-mode="disc" is corrected rather than

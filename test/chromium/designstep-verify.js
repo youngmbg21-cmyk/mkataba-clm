@@ -110,7 +110,10 @@ const READ = () => {
       const e = document.querySelector('.rl-type-step'); if (!e) return null;
       const s = getComputedStyle(e);
       return { radius: s.borderRadius, bg: s.backgroundColor,
-               border: parseFloat(s.borderTopWidth) || 0, pad: parseFloat(s.paddingTop) || 0 };
+               border: parseFloat(s.borderTopWidth) || 0, pad: parseFloat(s.paddingTop) || 0,
+               /* The redesign's box has its own HEIGHT and no padding of its
+                  own — the buttons inside it carry that now. */
+               h: Math.round(e.getBoundingClientRect().height) };
     })(),
     focusBtn: !!document.getElementById('ds-focus'),
     railsVisible: document.querySelectorAll('.ds-rail-pane').length > 0
@@ -192,8 +195,16 @@ const READ = () => {
     m.swatches === 8 && m.hexField && m.colourWheel,
     `${m.swatches} swatches, hex=${m.hexField}, wheel=${m.colourWheel}`);
   /* ---- the sheet is a page, and the type on it is the document's own ---- */
+  /* ---- READ AS A RELATION, NOT A LITERAL (re-pointed 23 Aug 2026) ----
+     This pinned '13.5px', and the 22 Aug type pass moved every base size onto
+     a whole pixel — so it reported a fault about a sheet that had not changed
+     and was, if anything, more correct than before. The claim was never the
+     number: it is that the preview draws a REAL PAGE at the DOCUMENT's own
+     size rather than at the interface's. Pinned that way, the next type pass
+     costs no test edit. */
   check('5 · the sheet is a real page at the document\'s own type size',
-    m.sheet && m.sheet.layoutW === 680 && m.sheet.docFont === '13.5px',
+    m.sheet && m.sheet.layoutW === 680
+      && parseFloat(m.sheet.docFont) >= 13 && parseFloat(m.sheet.docFont) <= 16,
     m.sheet ? `${m.sheet.layoutW}px page, ${m.sheet.docFont} text` : 'no sheet');
   /* THE DEFECT THIS CATCHES. The sheet was shrunk while the words were left at
      their absolute size, so a title that belongs on one line took four. A page
@@ -203,11 +214,19 @@ const READ = () => {
   check('5 · the page is scaled to fit the pane it is in',
     m.sheet && m.sheet.zoom > 0 && Math.abs(m.sheet.onScreenW - m.sheet.paneW) < 40,
     m.sheet ? `zoom ${m.sheet.zoom} → ${m.sheet.onScreenW}px in a ${m.sheet.paneW}px pane` : '');
+  /* ---- THE SAME CLAIM IN THE REDESIGN'S CLOTHES (re-pointed 23 Aug 2026) ----
+     It required pad > 0, which was how the pre-redesign THREE-CHIP pill said
+     "styled". The 22 Aug redesign makes it ONE 28px bordered box with the
+     buttons as bare glyphs inside it, so the group's own padding is 0 and the
+     buttons carry it — and the rule was scoped to .redline-page, so this page
+     kept the old dress until that scope came off (23 Aug). What the check has
+     always meant is that the control is a BOX and not a bare run of buttons:
+     a real background, a real border, and a real height. */
   check('5 · the workbench\'s own text-size stepper is here, styled',
     m.stepper && !!m.stepperStyled
       && m.stepperStyled.bg !== 'rgba(0, 0, 0, 0)' && m.stepperStyled.bg !== 'transparent'
-      && m.stepperStyled.border > 0 && m.stepperStyled.pad > 0,
-    m.stepperStyled ? `bg=${m.stepperStyled.bg}, border=${m.stepperStyled.border}px, pad=${m.stepperStyled.pad}px`
+      && m.stepperStyled.border > 0 && (m.stepperStyled.h || 0) >= 24,
+    m.stepperStyled ? `bg=${m.stepperStyled.bg}, border=${m.stepperStyled.border}px, h=${m.stepperStyled.h}px`
                     : `stepper=${m.stepper}`);
   check('5 · and its corners are square, like every other control',
     !!m.stepperStyled && m.stepperStyled.radius === '0px',

@@ -3192,6 +3192,7 @@ const STRINGS = {
     lb_paste_or_type: 'Paste the contract here, or type it.',
     lb_edit_blanks_bulk: 'Edit, blanks, bulk, versions, delete',
     lb_search_templates: 'Search templates…',
+    lb_templates_load_failed: 'The template list could not be loaded — the ones already on screen are what was last read.',
 
     // ---- advice services, shell menus, change decisions ----
     ad_svc_review: 'Contract Review & Risk Report',
@@ -7618,6 +7619,7 @@ const STRINGS = {
     lb_paste_or_type: 'Klistra in avtalet här, eller skriv det.',
     lb_edit_blanks_bulk: 'Redigera, luckor, massa, versioner, radera',
     lb_search_templates: 'Sök mallar…',
+    lb_templates_load_failed: 'Mallistan kunde inte läsas in — de som redan visas är det som lästes senast.',
 
     // ---- advice services, shell menus, change decisions ----
     ad_svc_review: 'Avtalsgranskning och riskrapport',

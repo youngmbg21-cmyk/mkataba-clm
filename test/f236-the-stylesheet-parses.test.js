@@ -83,6 +83,78 @@ describe('f236 — the stylesheet parses', () => {
     });
   }
 
+  /* ---- A BACKTICK IN A COMMENT ENDS THE STYLESHEET (23 Aug 2026) ----
+     The same family as the swallowed rule above, in the ENCLOSING language.
+     js/views/negotiation-css.js returns its CSS from a JS template literal, so
+     a backtick anywhere inside it — including inside what looks like a comment,
+     because a comment inside a template literal is just text — CLOSES the
+     string. What follows is parsed as JavaScript.
+
+     IT COSTS TWO DIFFERENT WAYS AND BOTH WERE MET IN ONE SITTING. An ODD
+     backtick on a line is a SyntaxError, which is loud. A BALANCED PAIR is
+     worse: the file parses perfectly, and the words between the two backticks
+     are EVALUATED at call time — so `.redline-page` became a read of a
+     variable named `page` and redlineLayoutCss() threw a ReferenceError the
+     moment the negotiation page was drawn. Five such pairs were live in the
+     file, written across two days, and nothing caught them: the linter passes,
+     and only a test that actually CALLS the function can see it.
+
+     So this checks both halves — no stray backticks, and the function really
+     runs. CLAUDE.md already carried the rule in words ("no backticks in
+     js/views/negotiation-css.js comments"); this is the net under it. */
+  test('js/views/negotiation-css.js carries no backtick but its own two literals', () => {
+    const rel = 'js/views/negotiation-css.js';
+    const src = fs.readFileSync(path.join(ROOT, rel), 'utf8');
+    const lines = src.split('\n');
+    /* The only legitimate backticks are the ones opening and closing each
+       template literal, and each of those sits alone at the end or start of
+       its line. Anything else is inside the CSS text. */
+    const stray = [];
+    lines.forEach((l, i) => {
+      if (!l.includes('`')) return;
+      const t = l.trim();
+      if (t === '`;' || t === '`' || t === '</style>`;' || /^(return|.*=)\s*`$/.test(t)) return;
+      stray.push(`${rel}:${i + 1} — ${t.slice(0, 70)}`);
+    });
+    assert.deepEqual(stray, [], stray.join('\n'));
+  });
+
+  test('and its builders really run, which is where a balanced pair shows', () => {
+    /* A balanced pair leaves the file PARSING and breaks it at CALL time, so
+       reading the source is not enough — the function has to be run. */
+    const vm = require('node:vm');
+    const src = fs.readFileSync(path.join(ROOT, 'js/views/negotiation-css.js'), 'utf8');
+    /* Enough of a document for the builders to reach the end of themselves.
+       They inject a <style> element; nothing here asserts on that, only that
+       the function completes and hands back a stylesheet. */
+    /* Enough of a document for the builders to reach the end of themselves.
+       redlineLayoutCss INJECTS a <style> rather than returning one, so what is
+       captured is the text it assigned — which is the proof that wants making:
+       the whole literal was evaluated without the string ending early. */
+    const made = [];
+    const el = () => { const e = { id: '', textContent: '', setAttribute(){},
+      appendChild(){}, remove(){}, style: {}, classList: { add(){}, remove(){}, toggle(){} } };
+      made.push(e); return e; };
+    const ctx = { window: {},
+      document: { getElementById: () => null, createElement: el, head: el(), body: el() },
+      console, i18t: k => k, esc: x => x };
+    vm.createContext(ctx);
+    vm.runInContext(src, ctx);
+
+    const layout = ctx.redlineLayoutCss || ctx.window.redlineLayoutCss;
+    assert.equal(typeof layout, 'function', 'redlineLayoutCss is defined');
+    layout();
+    const sheet = made.map(e => e.textContent).join('');
+    assert.ok(sheet.length > 500, 'redlineLayoutCss injected a whole stylesheet');
+    assert.match(sheet, /\.rl-type-step\{/, 'and it reached the end of the file');
+
+    const head = ctx.negoStyleHtml || ctx.window.negoStyleHtml;
+    assert.equal(typeof head, 'function', 'negoStyleHtml is defined');
+    const out = head();
+    assert.ok(typeof out === 'string' && out.length > 500,
+      'negoStyleHtml() returns a stylesheet');
+  });
+
   /* THE RULE THIS WAS FOUND THROUGH, pinned by name. The check above would
      catch the cause anywhere; this one says the specific casualty is back, so
      a future edit that drops the rule some OTHER way still fails here. */

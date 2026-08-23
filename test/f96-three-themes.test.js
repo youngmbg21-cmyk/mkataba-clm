@@ -234,16 +234,25 @@ describe('F96 — the Copilot is a layer, not a hole', () => {
 
   /* Read the value out of each palette block rather than trusting one
      definition: a theme that overrides --color-bg and forgets this is exactly
-     how the blend comes back. */
-  const tokenIn = (blockStart, name) => {
-    const at = css.indexOf(blockStart);
+     how the blend comes back.
+
+     ---- FOUND BY ITS SELECTOR, NOT BY WHAT FOLLOWS IT (re-pointed 23 Aug
+     2026) ---- This used to anchor on the literal string ":root{\n
+     --color-bg:", which is a claim about ADJACENCY rather than about the
+     palette. The 22 Aug ground retune put an explanatory comment between those
+     two lines and the anchor stopped matching, so this test reported "the
+     light palette is still there" as a failure about a palette that had never
+     moved. The block is located by its SELECTOR and the token by its NAME, so
+     a comment, a reordering or a new token between them costs nothing. */
+  const tokenIn = (selector, name) => {
+    const at = css.search(new RegExp('^\\s*' + selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*\\{', 'm'));
     assert.ok(at > 0, 'the ' + name + ' palette is still there');
     const block = css.slice(at, css.indexOf('\n  }', at));
     const grab = k => (block.match(new RegExp('--' + k + ':\\s*(#[0-9a-fA-F]{3,8})')) || [])[1];
     return { bg: grab('color-bg'), surface: grab('color-surface'), chat: grab('color-chat-bg') };
   };
 
-  for (const [start, name] of [['  :root{\n    --color-bg:', 'light'], ['  html.dark{\n    --color-bg:', 'dark']]) {
+  for (const [start, name] of [[':root', 'light'], ['html.dark', 'dark']]) {
     test(`${name}: the chat backdrop is its own tone, apart from the page and the panel`, () => {
       const t = tokenIn(start, name);
       assert.ok(t.bg && t.surface && t.chat, `${name} defines all three`);

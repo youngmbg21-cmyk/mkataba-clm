@@ -736,8 +736,25 @@ function wireCalendar(evs, byDay, p){
     const shut=()=>{ mm.hidden=true; mb.setAttribute('aria-expanded','false'); };
     mb.addEventListener('click',e=>{ e.stopPropagation();
       mm.hidden=!mm.hidden; mb.setAttribute('aria-expanded', mm.hidden?'false':'true'); });
-    document.addEventListener('click',e=>{ if(!mm.hidden&&!mm.contains(e.target)&&e.target!==mb) shut(); });
-    document.addEventListener('keydown',e=>{ if(e.key==='Escape') shut(); });
+    /* ARMED ONCE, and the menu resolved AT PRESS TIME. These were bound per
+       render — this page repaints on every month step, every view switch and
+       every scope change — so the pair stacked all sitting, and each stale
+       copy went on holding a menu node that had been thrown away. The same
+       lesson the negotiation page's proxy listener already carries. */
+    if(!document._calMoreWired){
+      document._calMoreWired=true;
+      const liveShut=()=>{
+        const menu=document.getElementById('cal-more-menu');
+        const btn=document.getElementById('cal-more');
+        if(menu){ menu.hidden=true; if(btn) btn.setAttribute('aria-expanded','false'); }
+      };
+      document.addEventListener('click',e=>{
+        const menu=document.getElementById('cal-more-menu');
+        const btn=document.getElementById('cal-more');
+        if(menu&&!menu.hidden&&!menu.contains(e.target)&&e.target!==btn) liveShut();
+      });
+      document.addEventListener('keydown',e=>{ if(e.key==='Escape') liveShut(); });
+    }
     mm.querySelectorAll('[data-cal-act]').forEach(b=>b.addEventListener('click',()=>{
       shut();
       const a=b.getAttribute('data-cal-act');

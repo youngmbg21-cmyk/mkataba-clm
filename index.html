@@ -535,6 +535,24 @@
      without a single box moving. */
   .font-600{font-weight:600}
   .font-700{font-weight:700}
+  /* ---- FOUR MORE CLASSES NOTHING EVER DEFINED (23 Aug 2026) ----
+     The `font-600` fault again, and found the same way — by reading the
+     rendered page rather than the source. The signing-order card tags each
+     signer with a small status badge, and five of its eight states wear
+     `bg-gold-100 text-gold-700`, `bg-gold-50` or `bg-slate-100` — none of
+     which the compiled blob emits. So TOLD, SIGNING NOW, OPENED, SENT and
+     LINK READY drew with NO FILL AND NO COLOUR: bare grey micro-type where
+     every other state on the same card is a coloured pill.
+
+     THEY POINT AT THE PRODUCT'S OWN STATUS TOKENS rather than at invented
+     golds, so they follow the theme and the workspace accent for free and
+     cannot drift from the amber every other "waiting on somebody" surface
+     already uses. HERE, in HaTi's own sheet, never in the blob — which is
+     generated and would drop them on the next build. */
+  .bg-gold-100{background:var(--st-amber-bg)}
+  .bg-gold-50{background:var(--st-amber-bg)}
+  .text-gold-700{color:var(--st-amber-fg)}
+  .bg-slate-100{background:var(--color-neutral-100)}
   /* ---- .font-medium IS PINNED TO 400, AND THE REASON CHANGED ON 22 Aug 2026 ----
      It was a FACT about the family: "72" shipped four cuts (300/400/600/700),
      so 500 rendered as 400 and 800 as 700 — measured, identical ink and

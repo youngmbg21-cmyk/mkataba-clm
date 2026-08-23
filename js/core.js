@@ -2501,8 +2501,22 @@ function contractReadiness(c){
     }
   }catch(_){ /* same: an unreadable gate must not take the panel down with it */ }
   if(c.status==='Draft') add('warn','status','This contract is still a Draft.');
-  const sig=(c.signatories||c.signers||[]).filter(s=>s&&(s.name||s.email));
-  if(window.SIGN_ROUTE_ON && !sig.length) add('warn','signatory','No named signatory is set on the signature block.');
+  /* ---- A WARNING THAT COULD NEVER FIRE, REMOVED (23 Aug 2026) ----
+     It was `if(window.SIGN_ROUTE_ON && !sig.length)`, and SIGN_ROUTE_ON is set
+     by NOTHING in this product — so the guard was always false and the check
+     never ran once. Dead twice over, in fact: the fields it read
+     (c.signatories / c.signers) are written by nothing either, so even with
+     the flag on it would have warned about every contract in the workspace.
+
+     THE CONCERN IT NAMED IS COVERED, which is the condition on removing a
+     check rather than fixing it: naming the signers is what OPENS signing
+     (11 Aug 2026), signingRouteOpen / signingRouteMissing are the live
+     predicates, and signBlockers refuses the signature in words that say which
+     side is missing. A second, quieter warning about the same fact — one that
+     had never been seen by anybody — adds nothing.
+
+     Found by widening f232's sweep, which had been blind to every CamelCase
+     and UPPER_CASE window read. */
   return p;
 }
 const readinessBlocks = c => contractReadiness(c).filter(x=>x.severity==='block');

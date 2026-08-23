@@ -79,10 +79,19 @@ const KNOWN_RED = {
 
 /* NOT A TEST. These live in the same folder and are run by hand for their
    output — a screenshot, a coverage readout — and have no pass or fail. */
+/* NOT TESTS. A file here makes no claim and asserts nothing — it measures, or
+   it takes pictures — so running it in the suite would report a pass or a fail
+   about nothing. THIS LIST IS THE ONE COPY: test/f227 reads it out of this file
+   rather than keeping its own, because two lists of the same thing drift and
+   the drift shows up as a red suite nobody can explain. */
 const NOT_TESTS = new Set([
   'run-all.js',
   'lang-coverage.js',      // a MEASURE: over-reports on purpose, a human reads it
   'lang-shots.js', 'lang-shots-phone.js', 'shots-feature.js', 'shots-room.js',
+  /* A one-off glyph-edge measurement written during the font work, pinned to
+     that session's own scratchpad. Kept because the measurement is worth
+     repeating and the numbers are in its head; it is not a test and never was. */
+  '_edge.js',
 ]);
 
 const argv = process.argv.slice(2);

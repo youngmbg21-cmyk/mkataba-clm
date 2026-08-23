@@ -673,9 +673,15 @@ function mMoney(c){
   if(typeof canViewValues==='function' && !canViewValues()) return '';
   const v = Number((c&&c.value)||0);
   if(!v) return '—';
-  // W2-1: the row states the contract's own currency; the dashboards convert
-  if(typeof contractCurrency==='function' && typeof fxHomeCode==='function' && contractCurrency(c)!==fxHomeCode())
-    return `${contractCurrency(c)} ${v.toLocaleString()}`;
+  /* ---- THE SHARED COMPACT FORMATTER, NOT A SECOND ARITHMETIC ----
+     W2-1's rule is right — the row states the CONTRACT's own currency and only
+     the dashboards convert — and this file was carrying its own copy of it,
+     which had already drifted: a foreign amount printed in FULL here
+     ("EUR 4,800,000") where fmtMoneyShortOf prints "EUR 4.8M", so the phone
+     and the laptop disagreed about one number and the long form did not fit a
+     320px row besides. fmtMoneyShortOf is the compact twin built for exactly
+     this and it answers for both cases, home and foreign, in one call. */
+  if(typeof fmtMoneyShortOf==='function') return fmtMoneyShortOf(c);
   return typeof fmtMoneyShort==='function' ? fmtMoneyShort(v) : String(v);
 }
 

@@ -2233,6 +2233,8 @@ first:
 
 **NOTHING WAS ABSORBED SILENTLY** — the four values above are the whole of it.
 
+**RE-RECORDED AGAIN 23 Aug 2026, for the text-size stepper — and it is the SMALLEST re-record yet, which is what an audited one looks like.** Two values leave, on exactly two screens (`contract--dark` and `signing--dark`), and **nothing arrives**: `rgba(148,163,184,.14)` and `rgba(15,23,42,.5)`, which are the base `.rl-type-step` dark rules — the PRE-REDESIGN grey pill. They leave because the 22 Aug redesign's own block was scoped `.redline-page` and has now been unscoped, so the Document tab and the Signing tab finally wear the box the negotiation page has worn for a day. Nothing new appears because the redesign's dark background IS `--color-surface`, which was already in the census on every panel of those screens. The light halves never failed, because both rules resolve to white there. Audited before saving, as the rule requires; 40/40.
+
 **RE-RECORDED ONCE MORE 23 Aug 2026** for the head row's outline (see FOUR OFF FOUR MORE SCREENSHOTS). AUDITED BEFORE SAVING, and it is one value: `color(srgb .0509804 .580392 .533333 / .5)` — `.rl-pb-btn`'s own 50% accent mix — gone from `negotiate--light` and `negotiate--dark`, with **nothing new arriving and no other screen touched**, because the button stopped naming its own outline and took the row's 45%, which the census already held. 40/40.
 
 **RE-RECORDED AGAIN 23 Aug 2026 for the sidebar's own change**, and it moved all
