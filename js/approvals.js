@@ -571,6 +571,42 @@ function openSigningLockedNotice(c, opts){
     if(back) back(); else if(window.renderWorkspace) renderWorkspace();
   });
 }
+/* ---- SAVING A SIGNING ROUTE: ONE AUTHORITY, TWO EDITORS (23 Aug 2026) ----
+   The phone gained a signer picker of its own, and the one thing it must NOT
+   gain is a second copy of what saving a route means. This is that meaning,
+   lifted out of the desktop editor's Save handler byte for byte and now asked
+   by both: the row shape (ids minted, order renumbered, every signature fact
+   carried over from the prior row), the refusal — A ROUTE WITH ONE SIDE ON IT
+   IS NOT A ROUTE, named by the side that is missing rather than restated as a
+   rule — the audit line, and the persist.
+
+   RETURNS the reason it refused, or null when it saved. The CALLER decides how
+   to say it, because a toast is right on the desktop and a sheet's own error
+   line is right on a phone; what neither may decide is WHETHER.
+
+   It is deliberately not asked to check signingLocked: both editors refuse
+   before they open, which is where a locked route belongs — a form drawn and
+   then refused on Save is a form that wasted the reader's typing. */
+function saveSignerPlan(c, rows){
+  const out=[];
+  (rows||[]).forEach(s=>{ if(!s || !s.name) return;
+    const prior=(c.signerPlan||[]).find(p=>p.id===s.id);
+    out.push({ id:s.id||'sg_'+Math.random().toString(36).slice(2,7), party:s.party, name:s.name, role:s.role||'',
+      email:s.email, memberId:s.party==='internal'?(s.memberId||''):'', order:out.length+1,
+      signed:prior?!!prior.signed:false, at:prior?prior.at:null, by:prior?prior.by:null, signature:prior?prior.signature:null }); });
+  const ourN=out.filter(s=>s.party!=='counterparty').length;
+  const theirN=out.filter(s=>s.party==='counterparty').length;
+  if(!ourN || !theirN){
+    return i18t(!ourN&&!theirN?'ap_need_both_sides'
+      :!ourN?'ap_need_our_side':'ap_need_their_side',
+      { them:c.counterparty||i18t('ct_a_counterparty') });
+  }
+  c.signerPlan=out;
+  logAudit(c,'Signing route',`Set ${out.length} signer(s) in order`);
+  persist(c);
+  return null;
+}
+
 function openSignerPlanEditor(c, opts){
   const back = opts && typeof opts.onDone === 'function' ? opts.onDone : null;
   /* ---- SHUT ONCE ANYBODY HAS SIGNED ----
@@ -690,28 +726,13 @@ function openSignerPlanEditor(c, opts){
   document.getElementById('sp-cancel').addEventListener('click',()=>{ closeModal(); if(back) back(); });
   document.getElementById('sp-save').addEventListener('click',()=>{
     syncPlanFromDom();
-    const out=[]; plan.forEach(s=>{ if(!s.name) return;
-      const prior=(c.signerPlan||[]).find(p=>p.id===s.id);
-      out.push({ id:s.id||'sg_'+Math.random().toString(36).slice(2,7), party:s.party, name:s.name, role:s.role||'',
-        email:s.email, memberId:s.party==='internal'?(s.memberId||''):'', order:out.length+1,
-        signed:prior?!!prior.signed:false, at:prior?prior.at:null, by:prior?prior.by:null, signature:prior?prior.signature:null }); });
-    /* ---- A ROUTE WITH ONE SIDE ON IT IS NOT A ROUTE ----
-       Refused here as well as counted above, because the tally is a reading of
-       the form and this is a reading of what is about to be SAVED — blank rows
-       have been dropped by now, and a row whose name was deleted counts in
-       neither place. It names the missing side rather than restating the rule:
-       "one more thing to do" is not an instruction. */
-    const ourN=out.filter(s=>s.party!=='counterparty').length;
-    const theirN=out.filter(s=>s.party==='counterparty').length;
-    if(!ourN || !theirN){
-      toast(i18t(!ourN&&!theirN?'ap_need_both_sides'
-        :!ourN?'ap_need_our_side':'ap_need_their_side',
-        { them:c.counterparty||i18t('ct_a_counterparty') }),'err');
-      return;
-    }
-    c.signerPlan=out; logAudit(c,'Signing route',`Set ${out.length} signer(s) in order`); persist(c); closeModal();
+    /* The rule lives in saveSignerPlan and is shared with the phone's picker.
+       This decides only HOW to say a refusal — a toast, here. */
+    const why=saveSignerPlan(c, plan);
+    if(why){ toast(why,'err'); return; }
+    closeModal();
     if(back) back(); else renderWorkspace();
-    toast(i18t('ap_route_saved'));
+    toast(i18t('ap_route_saved'),'ok');
   });
 }
 
@@ -976,7 +997,7 @@ function wireApprovalPanel(c){
    "have they seen it" — it reads shares.first_opened_at, which is stamped once
    on the first real open and never re-counted. */
 
-Object.assign(window,{overseerCfg,saveOverseerCfg,overseerEnforced,overseerFor,OVERSEER_STEP_ID,approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,approvalPanelHtml,approvalChainHtml,signerRouteHtml,wireApprovalPanel});
+Object.assign(window,{overseerCfg,saveOverseerCfg,overseerEnforced,overseerFor,OVERSEER_STEP_ID,approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,saveSignerPlan,approvalPanelHtml,approvalChainHtml,signerRouteHtml,wireApprovalPanel});
 
 /* ============================================================
    HOW MUCH MAY THIS PERSON SIGN FOR

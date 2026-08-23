@@ -1072,6 +1072,7 @@ function mSheetHtml(){
   else if(s.sheet==='overflow') inner = mOverflowSheetHtml();
   else if(s.sheet==='share')    inner = mShareSheetHtml();
   else if(s.sheet==='renumber') inner = mRenumberSheetHtml();
+  else if(s.sheet==='signers')  inner = mSignersSheetHtml();
   else if(s.sheet==='kpis')     inner = mKpiSheetHtml();
   else return '';
   return `<div class="m-sheet-wrap"><button class="m-scrim" data-m-act="close-sheet" aria-label="${i18t('act_close')}"></button><div class="m-sheet">${inner}</div></div>`;
@@ -1172,6 +1173,9 @@ function mWire(){
     if(k==='theme'){ if(window.toggleTheme) toggleTheme(); mRender(); return; }
     if(k==='account'){ mOpenSheet('account'); return; }
     if(k==='close-sheet'){ mCloseSheet(); return; }
+    /* The signer picker's Save. It hands two rows to the DESKTOP's own
+       saveSignerPlan; what belongs here is only how a refusal is said. */
+    if(k==='signers-save'){ if(window.mSignersSave) mSignersSave(); return; }
     if(k==='back'){ mBack(); return; }
     if(k==='logout'){ mCloseSheet(); if(window.logout) logout(); return; }
     /* ---- the account sheet's own rows ----
