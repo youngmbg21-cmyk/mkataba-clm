@@ -40,6 +40,8 @@ const SAME_IN_BOTH = new Set([
      is read by the reader, so it follows the reader's language like every
      other heading. It takes the dictionary's OWN settled rendering of this
      phrase — the one ng_clm already used — rather than a second wording. */
+  'cal_three_months',     // '{from} — {to}' — two slots and an em dash; the
+                          // month names inside them turn over on their own
   'nav_administration',   // identical spelling in Swedish
   'reg_col_status',       // ditto
   'reg_in_days',          // '{n} d' — a number and a unit, no words (the

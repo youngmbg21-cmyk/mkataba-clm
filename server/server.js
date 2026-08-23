@@ -6592,6 +6592,52 @@ app.post('/api/contracts/:id/review-request', auth, editor, async (req, res) => 
     reviewer: { id: u.id, name: u.name } });
 });
 
+/* ---------- the calendar's Share (22 Aug 2026) ----------
+   A reader emails a colleague what is coming up on their calendar.
+
+   THE LINES COME FROM THE BROWSER AND THAT IS DELIBERATE. This server already
+   computes renewal and notice dates for its own reminder sweeps, and a second
+   copy of that arithmetic behind this button is the recorded defect class in
+   this codebase — two readings of one date, drifting. The browser sends the
+   rows it is DRAWING, so what a colleague receives is exactly what the sender
+   was looking at.
+
+   WHAT THE ROUTE OWNS IS WHO IS WRITTEN TO, which must never be the browser's
+   to decide: a member id, looked up here. A body-supplied address is not read
+   at all — the open-relay rule the review-request route above states in the
+   same words. Auth only, not editor: reading the calendar is open to every
+   role including a Viewer, and mailing a colleague a list they could open for
+   themselves grants nothing. */
+const CAL_SHARE_MAX_LINES = 60;
+app.post('/api/calendar/share', auth, async (req, res) => {
+  const b = req.body || {};
+  const u = b.toId ? db.prepare('SELECT * FROM users WHERE id=?').get(String(b.toId)) : null;
+  if (!u) return res.status(404).json({ error: 'That colleague is not a member of this workspace' });
+  if (!u.email) return res.status(409).json({ error: `${u.name} has no email address on file` });
+  const lines = (Array.isArray(b.lines) ? b.lines : [])
+    .map(l => clean(l).slice(0, 200)).filter(Boolean).slice(0, CAL_SHARE_MAX_LINES);
+  if (!lines.length) return res.status(400).json({ error: 'There is nothing to send' });
+  const note = clean(b.note).slice(0, 1000);
+  /* The workspace's own front door, not a contract's: this mail is about a
+     LIST. contractUrl would build `#contract=` with nothing after it. */
+  const url = APP_URL() || (req ? `${req.protocol}://${req.get('host')}` : '');
+  const sent = await sendEmail(u.email,
+    `${req.user.name} shared the contract calendar with you`,
+    `Hello ${u.name},\n\n`
+    + `${req.user.name} thought you should see what is coming up on the contract calendar.\n`
+    + (note ? `\n"${note}"\n` : '')
+    + `\n${lines.join('\n')}\n`
+    + (url ? `\nOpen HaTi:\n${url}\n` : '')
+    + `\nThis is an automated message from HaTi.`,
+    `calendar share: ${req.user.name} -> ${u.email}`);
+  /* The same honest three-way answer every other mail in this product gives:
+     it went, it queued in the outbox because no provider is configured, or the
+     provider refused and said why. "Sent" has to mean sent. */
+  res.json({ ok: true, emailSent: !!(sent && sent.sent), emailConfigured: EMAIL_ON(),
+    emailError: (sent && sent.detail) || null, outbox: !EMAIL_ON(),
+    to: u.email, n: lines.length });
+});
+
 /* ---------- team management ---------- */
 app.post('/api/users', auth, admin, async (req, res) => {
   const b = req.body || {};

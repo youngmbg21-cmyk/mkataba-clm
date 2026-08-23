@@ -727,10 +727,22 @@
      accent ink, so it never becomes the grey furniture of the 17 Aug report. */
   .ui-btn-plain{border-color:transparent;background:transparent;}
   .ui-btn-plain:hover{background:color-mix(in srgb,var(--accent-solid) 10%,transparent);border-color:transparent;}
-  /* LARGE — the mock-up's own button metrics (30px tall, 14px, regular
-     weight), scoped to the head rows that were redesigned to its drawing.
-     Deliberately NOT the base: see the note above about the fold ladder. */
-  .ui-btn-lg{height:30px;padding:0 12px;font-size:15px;font-weight:400;}
+  /* LARGE — the head rows that were redesigned to the mock-up's drawing.
+     Deliberately NOT the base: see the note above about the fold ladder.
+     ---- ONE SIZE, AND ONE RUNG SMALLER (owner-reported 22 Aug 2026, off the
+     calendar head: "the big buttons should all be the same font size but they
+     are also too big so reduce them by a size including the boxes they are
+     in") ----
+     THEY WERE ALREADY ONE SIZE — measured on the contract head, all four
+     compute to 15px and differ only in weight (700 on the filled one) and in
+     having a fill at all. What reads as bigger is the fill, not the type; the
+     fill is answered separately (see wsNextAction, which no longer takes one).
+     So what actually moved is the second half of the report: one rung down
+     this product's own ladder, 15 → 14, and the box with it, 30 → 28. Still
+     larger and lighter than the base .ui-btn (14px/600) — the difference is
+     now the WEIGHT and the box, which is what a head row wanted from this
+     class in the first place. */
+  .ui-btn-lg{height:28px;padding:0 11px;font-size:14px;font-weight:400;}
   .ui-btn-lg.ui-btn-primary{font-weight:700;}
   /* HIDING A BUTTON HAS TO ACTUALLY HIDE IT. The rule above sets a display, and
      an author rule beats the browser's own [hidden]{display:none} — so every
@@ -1621,7 +1633,18 @@
      It was a bare glyph on a hairline square beside two filled buttons, which
      is how a control comes to read as punctuation. A word, a chevron and a
      border that is actually visible; the caret turns over with the menu. */
-  .ws-more-btn{ height:34px; padding:0 10px; gap:6px; font-size:14px;
+  /* ---- IT TAKES .ui-btn-lg's HEIGHT, IT DOES NOT SET ITS OWN (owner-reported
+     22 Aug 2026: "the height of the buttons for more, internal review, share,
+     publish round should be the same height") ----
+     This carried height:34px against .ui-btn-lg's 28 — and against its 30
+     before that, so More has been the odd one out on both head rows for as
+     long as this class has existed. MEASURED: 34 beside 28, on the contract
+     room's head and the negotiation page's alike.
+     A BUTTON IN A HEAD ROW HAS NO BUSINESS NAMING ITS OWN HEIGHT. .ui-btn-lg
+     is where that number lives, and one class quietly overriding it is how a
+     row of four ends up with three heights. The padding and the size stay —
+     they are this control's own and they do not fight anything. */
+  .ws-more-btn{ padding:0 10px; gap:6px; font-size:14px;
     border-color:var(--color-neutral-300); }
   .ws-more-btn:hover{ border-color:var(--color-accent); color:var(--color-accent-800); }
   .ws-more-btn .ws-more-caret{ display:inline-flex; transition:transform .15s; }

@@ -2167,7 +2167,7 @@ function redlineLayoutCss(){
   /* No padding: the cards sit straight on the page like the sheet does, and
      a little room down the right so their shadows are not clipped by the
      scroller. */
-  .redline-page .rl-cards{padding:0 2px 2px}
+  .redline-page .rl-cards{padding:0 16px 16px}   /* one left edge with the head above — see .rl-idx-head */
   .redline-page .rl-cards-empty{padding:6px 2px;font-size:13px;line-height:1.6;color:var(--color-neutral-500);
     display:flex;flex-direction:column;gap:6px}
   .redline-page .rl-cards-empty b{color:var(--color-text)}
@@ -2344,43 +2344,50 @@ function redlineLayoutCss(){
      looks the same from a foot away. */
   .redline-page .rl-acc,.redline-page .rl-send{background:var(--color-accent-700);color:#fff;font-weight:700}
   .redline-page .rl-acc:hover,.redline-page .rl-send:hover{background:var(--color-accent-800)}
-  /* ---- AND THE OUTLINE IS THE VERB'S OWN INK, NOT A NEUTRAL (22 Aug 2026) ----
-     Both of these were bordered in --color-divider, which is a hairline meant
-     for separating rows: at 11px beside a filled Accept it disappeared, and the
-     two verbs read as bare words rather than as the buttons they are. That is
-     the 17 Aug lesson exactly — a neutral-grey control reads as furniture — and
-     it is the rule the whole platform's .ui-btn took on this morning: an
-     ordinary verb wears a border in its OWN colour.
+  ${''/* ---- NO LINES ROUND THE CARD'S OWN VERBS (owner-reported 22 Aug 2026,
+         off the mock-up's card: "for the cards, the bottom buttons do not have
+         lines around them") ----
+         This REVERSES the same day's "the outline is the verb's own ink" IN
+         PLACE, and the story is worth keeping because it is this file's
+         favourite trap twice over.
 
-     THE COLOUR CODE IS UNCHANGED and is still deliberate: red for the refusal,
-     accent for the alternative. What changed is that you can now see where each
-     one ends. */
-  /* ---- .rl-card-verbs .rl-rej, NOT .rl-rej — AND THAT IS THE WHOLE FIX ----
-     MEASURED 22 Aug 2026: these two computed a border-width of 0px, and had
-     done since they were written. ".redline-page .rl-card-verbs button" sets
-     border:0 and scores (0,2,1); a bare ".redline-page .rl-rej" scores
-     (0,2,0) and loses, so the outline this file's own comment describes ("the
-     no and the alternative recede to an outline") has never once drawn. Both
-     verbs have been bare coloured words beside a filled Accept.
+         These two rules were written with `border:1px solid …` and this file's
+         own comment described the result — "the no and the alternative recede
+         to an outline". MEASURED that morning, both computed border-width 0:
+         ".redline-page .rl-card-verbs button" sets border:0 and scores
+         (0,2,1), and a bare ".redline-page .rl-rej" scores (0,2,0) and loses.
+         So the outline had never once drawn, and the fix was to write them at
+         the winning specificity. THE MOCK-UP AGREES WITH THE ACCIDENT, not
+         with the intention: its .h-btn carries `border:1px solid transparent`
+         and only the one `ghost` (Open) and the one filled act (Send) show an
+         edge. A row of four bordered verbs at the foot of a small card is the
+         fence .ui-btn-plain exists to avoid.
 
-     Nothing catches this: no error, no warning, and the rule is right there in
-     the stylesheet looking correct. It is the CSS twin of the always-false
-     guard — a thing that reads as implemented and is not.
+         SO THE BORDER GOES AND THE SPECIFICITY STAYS. The rules keep their
+         three-class selector deliberately: it is what makes them win, so the
+         next person who wants to give these verbs an edge gets one, and a rule
+         that looks right here now really is right. What each verb keeps is its
+         own INK — red for the refusal, accent for the alternative — which is
+         the 17 Aug lesson (a neutral-grey control reads as furniture) and is
+         untouched by this.
 
-     The ink is each verb's OWN, never a neutral (the 17 Aug lesson, and the
-     rule the platform's .ui-btn took this morning): red for the refusal,
-     accent for the alternative. */
-  .redline-page .rl-card-verbs .rl-rej{background:none;
-    border:1px solid color-mix(in srgb,var(--danger-hover) 45%,transparent);
+         redline-verify section 6 measures the computed border-width, which is
+         the only place either the old fault or this decision can be seen at
+         all; f89 holds the claim about what the stylesheet SAYS. */}
+  .redline-page .rl-card-verbs .rl-rej{background:none;border:0;
     color:var(--danger-hover)}
-  .redline-page .rl-card-verbs .rl-rej:hover{border-color:var(--danger-hover)}
-  .redline-page .rl-card-verbs .rl-edit{background:none;
-    border:1px solid color-mix(in srgb,var(--accent-solid) 40%,transparent);
+  .redline-page .rl-card-verbs .rl-rej:hover{background:color-mix(in srgb,var(--danger-hover) 10%,transparent)}
+  .redline-page .rl-card-verbs .rl-edit{background:none;border:0;
     color:var(--color-accent-700)}
-  .redline-page .rl-card-verbs .rl-edit:hover{border-color:var(--accent-solid)}
-  .redline-page .rl-edit:hover{border-color:var(--color-neutral-400);color:var(--color-text)}
+  .redline-page .rl-card-verbs .rl-edit:hover{background:color-mix(in srgb,var(--accent-solid) 10%,transparent)}
   html.dark .redline-page .rl-rej{color:#fda4af}
-  html.dark .redline-page .rl-edit{color:var(--color-neutral-700)}
+  ${''/* Accent, not the neutral it carried while it had a border to hold it
+     together. A bare grey word at night IS the furniture the 17 Aug report was
+     about; with the outline gone the ink is the only thing left saying this is
+     a control. Dark does not redefine the accent ramp, so -300 is the step
+     that reads on an almost-black panel — the same correction .rl-idx-n took
+     when Render B was measured. */}
+  html.dark .redline-page .rl-edit{color:var(--color-accent-300)}
   /* ---- THE SPENT SEND MARKER IS GONE FROM THE CARD (owner-asked, 13 Aug) ----
      .rl-sent, .rl-sent-tick, .rl-sent-cap and the two rules that kept the
      marker at full strength and unhovered are all DELETED — flag any mention
@@ -2458,12 +2465,18 @@ function redlineLayoutCss(){
   ${''/* The head's text sits INSET from the column edge (owner-asked 16 Aug
      2026, off a screenshot: "too close to the edge of the page"). The inset is
      PADDING so the bottom rule still runs the column's width — a rule that
-     stopped short of its own caption would read as a broken line. The cards
-     below keep their own 2px: they are bordered objects and the caption is a
-     label, the same relationship a table header has to its rows. */}
+     stopped short of its own caption would read as a broken line, and that is
+     still exactly why it is padding rather than margin.
+     THE INSET IS 16px SINCE THE COLUMN BECAME A CARD (22 Aug 2026). It was 2,
+     which was right against a transparent pane sitting on the page and wrong
+     the moment there is a card edge two pixels away — the mock-up's own rail
+     insets its contents 16. The cards below take the same 16 rather than their
+     old 2, so the caption, the unsent band and every card share one left edge,
+     which is what the mock-up draws and what makes the column read as one
+     object. The head's rule still runs the card's full inner width. */}
   .redline-page .rl-idx-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px;
     background:none;border:0;border-bottom:1px solid var(--color-divider);border-radius:0;
-    padding:0 2px 10px;margin:0 0 12px}
+    padding:0 16px 10px;margin:0 0 12px}
   /* The tabs carry their own bottom padding down to the rule, so the head must
      not carry it too. :has() and not a class because the filter's absence is
      decided in the renderer (a reviewer's column has no filter — see the note
@@ -3249,7 +3262,33 @@ function redlineLayoutCss(){
      classes so the square corner wins on specificity, not on position
      (owner-asked 16 Aug 2026: square, both seats). */}
   .redline-page .rl-col.rl-cp{border-radius:0}
-  .redline-page .rl-side{background:none;border:0;box-shadow:none;border-radius:0;overflow:visible}
+  ${''/* ---- THE CHANGE COLUMN IS ONE WHITE CARD AGAIN (owner-reported 22 Aug
+         2026, off the mock-up's own rail: "tracked changes should be a large
+         white card that looks like the image with change cards laid over the
+         larger white card") ----
+         This REVERSES two standing decisions, both of them the owner's own and
+         both recorded rather than quietly dropped:
+           · 10 Aug 2026 — the strip came off and "the pane stays transparent
+             … the change column is not a card". The reasoning was three nested
+             frames at 300px (band, card, card body) reading as heavy;
+           · 22 Aug 2026 — the mock-up drew this card and it was DELIBERATELY
+             not taken, on the same reasoning ("at the 300px the divider allows,
+             a box round a column of boxes reads as clutter").
+         The column rests at 460px now, not 300, which is the fact that moved
+         under both of those arguments: the mock-up's rail is drawn at that
+         width and it does not read as clutter there.
+
+         IT IS .rl-col's OWN CARD, NOT A SECOND ONE. This rule used to switch
+         .rl-col's card off for this column; it now only ADDS the rail's own
+         padding, so the surface, the border and the corner all come from the
+         one place the page already defines them and there is nothing to keep
+         in step. overflow stays visible — the clause panel and the queue slide
+         out of this column's box and clipping them would park them behind it.
+
+         THE HEAD'S HAIRLINE SURVIVES AND STILL MEANS WHAT IT MEANT: it
+         separates the caption row from the cards. What it no longer has to do
+         is stand in for a box that was not there. */}
+  .redline-page .rl-side{border-radius:0;overflow:visible;padding:12px 0 0}
   ${''/* radius 0, not 14: the doc column clips (overflow:hidden), so a radius
      here rounds the sheet's own corners even with no border of its own —
      see the square-corners note on .rl-paper. */}
@@ -3356,6 +3395,39 @@ function redlineLayoutCss(){
          door wore .rl-pb-btn's fill and read as a second primary beside the act
          that closes the round. Bordered here, filled nowhere. Scoped to this
          head so the class keeps its own clothes wherever else it draws. */}
+  ${''/* ---- FOUR BUTTONS, ONE HEIGHT (owner-reported 22 Aug 2026: "the height
+         of the buttons for more, internal review, share, publish round should
+         be the same height") ----
+         MEASURED, this row drew THREE heights: More at 34 (its own class set
+         one — fixed at .ws-more-btn), Share at 28 (.ui-btn-lg's), and Publish
+         Round and Internal review at **32.1875** — a fraction, because
+         .rl-btn and .rl-pb-btn name no height at all and theirs fell out of
+         13px type plus 6px of padding plus a border. Two of the four were also
+         a size smaller than the other two.
+
+         THE CAUSE IS THE REDESIGN'S OWN DOING and worth stating: these two
+         buttons belong to the CONTROL BAR, where .rl-btn's metrics feed
+         rlFitTabRow's four-rung fold ladder and must not move. The 22 Aug
+         redesign moved them up into the head, where the platform's .ui-btn-lg
+         governs — so they arrived wearing the wrong row's measurements.
+
+         SO IT IS PINNED HERE, IN THE HEAD, AND NOWHERE ELSE. rlFitTabRow
+         measures `.rl-tabrow` and its `.rl-head`; this selector cannot reach
+         either, so the ladder is untouched — and the same classes keep their
+         own metrics wherever else they draw (a narrowed reviewer's bar, the
+         counterparty's mount).
+         EVERY button in the row, not the two reported: a rule naming the two
+         that happened to be wrong today is one the next button added here
+         walks straight past.
+         DISPLAY IS PART OF THE FIX — .rl-pb-btn computes `block`, and a block
+         at a fixed height does not centre its own words. Colour, border, fill
+         and the filled act's 700 are each button's own and are left alone. */}
+  .redline-page #ws-head .room-acts button{height:28px;padding:0 11px;font-size:14px;
+    line-height:1.2;display:inline-flex;align-items:center;box-sizing:border-box}
+  ${''/* The one filled act keeps its weight; the rest read as the render's
+         ordinary verbs. */}
+  .redline-page #ws-head .room-acts button:not(.rl-btn-go):not(.ui-btn-primary){font-weight:400}
+
   .redline-page #ws-head .rl-pb-btn{background:none;
     border:1px solid color-mix(in srgb,var(--accent-solid) 50%,transparent);
     color:var(--color-accent-800);font-weight:400;box-shadow:none}
@@ -3444,16 +3516,28 @@ function redlineLayoutCss(){
   html.dark .redline-page #ws-head .room-name-id:hover,
   html.dark .redline-page .rl-livelist{color:var(--color-accent-300)}
 
-  /* ---- 4 · THE PAGE MEASURE ----
-     48px either side, which is this product's own page measure and what the
-     render draws. It sits on the MOUNT rather than on the page, because the
-     head and the control bar above are full-width white bands with their own
-     24px inset and one padding on #view-redline could not do both.
+  /* ---- 4 · ONE PAGE INSET, SHARED WITH THE BANDS ABOVE (owner-reported
+     22 Aug 2026: "the tracked changes cards are leaving space on the right
+     hand side so move the card to occupy the space") ----
+     This was 48px either side — the render's own .h-content measure — while
+     the head and the control bar above are full-width white bands inset 24.
+     MEASURED, that 24px difference IS the reported strip: the change column's
+     right edge sat 49px inside the head's at every width, so the cards stopped
+     short of a page that carried on without them.
+     IT IS 24 ON BOTH SIDES, not just the reported one. Fixing the right alone
+     would leave a quieter version of the same fault on the left, and what the
+     report is really about is the working area lining up with the bands above
+     it — which only one shared inset can promise. The contract loses nothing:
+     its sheet is capped at RL_SHEET_MAX and centres inside its own track, so
+     the extra 24px becomes margin beside a centred page rather than a longer
+     line of text.
+     It still sits on the MOUNT rather than on the page, because the bands are
+     full-width and one padding on #view-redline could not do both.
      THE WORKING AREA IS THE WINDOW and nothing scrolls past it: the contract
      and the change column fill it and each scrolls inside itself, which is the
      rule this page has always had. */
   .redline-page #redline-host{flex:1;min-height:0;display:flex;flex-direction:column;
-    padding:16px 48px 26px}
+    padding:16px 24px 26px}
   @media (max-width:900px){
     .redline-page #redline-host{padding:12px 16px 20px}
     .redline-page #ws-head,.redline-page .rl-tabrow{padding-left:16px;padding-right:16px}

@@ -8560,25 +8560,37 @@ function rlLayoutResizer(host){
   const grid = scope.querySelector('.redline-page .rl-grid');
   const rez = grid && grid.querySelector('#rl-resizer');
   if (!grid || !rez) return;
-  /* ---- THE WORKING AREA HAS A WIDTH, AND PAST IT THE PAGE CENTRES ----
-     Both tracks are bounded — the contract by what a line of an agreement can
-     be and still read (RL_LEFT_MAX), the cards by what they are drawn to
-     (RL_RIGHT_W0) — so on a monitor wider than the two of them the honest
-     answer is white either side of the whole working area, not one track
-     silently swallowing the surplus. It used to go to the cards, which put a
-     460px column at 492 on a 1440 screen and wider still on a 2560 one: the
-     cards are sized to their content and growing them buys nothing.
-     WRITTEN FROM JS, not the stylesheet, so the ceiling is the same arithmetic
-     as the clamp below rather than a number kept true by hand in two files. */
-  grid.style.maxWidth = (RL_LEFT_MAX + RL_GAP + RL_RIGHT_W0) + 'px';
-  grid.style.marginLeft = 'auto'; grid.style.marginRight = 'auto';
+  /* ---- THE WORKING AREA RUNS THE PAGE'S OWN WIDTH (owner-reported 22 Aug
+     2026: "the tracked changes cards are leaving space on the right hand side
+     so move the card to occupy the space") ----
+     It used to be capped at RL_LEFT_MAX + gap + RL_RIGHT_W0 and centred, so on
+     a wide window the head row and the control bar ran edge to edge and the
+     working area under them stopped short. MEASURED before it was touched: the
+     change column's right edge sat 58px inside the head's at a 1500 window and
+     92px inside it at 1920 — a dead strip beside the cards on every screen.
+
+     THE SURPLUS GOES TO THE CONTRACT, AND THE OWNER CHOSE THAT: the cards keep
+     the 460px resting width they were approved at (RL_RIGHT_W0), the doc track
+     takes whatever is over, and the SHEET centres inside it at RL_SHEET_MAX.
+     So a line of the agreement still never grows past a readable measure — the
+     bound moved from the TRACK to the PAGE INSIDE IT, which is what a document
+     reader looks like anyway and is why RL_LEFT_MAX no longer clamps the
+     split. That REVERSES 16 Aug's "the doc column stops where the sheet does",
+     and the fault that decision fixed does not come back: the white it was
+     removing is now inside the doc column beside the page rather than outside
+     the whole working area beside nothing. RL_LEFT_MAX is no longer a clamp
+     on either side of this arithmetic; see its own note.
+
+     The divider still governs: drag it and the cards take as much as the
+     reader wants, up to what RL_LEFT_MIN leaves. */
+  grid.style.maxWidth = ''; grid.style.marginLeft = ''; grid.style.marginRight = '';
   const avail = _rlAvail(grid);
   /* A chosen fraction wins; with nothing chosen the change column opens at the
      width its cards are drawn to. See RL_RIGHT_W0. */
   const frac = _rlLeftFrac();
   let left = frac == null ? Math.round(avail - RL_RIGHT_W0) : Math.round(frac * avail);
   if (avail >= RL_LEFT_MIN + RL_RIGHT_MIN)
-    left = Math.min(Math.max(left, RL_LEFT_MIN), avail - RL_RIGHT_MIN, RL_LEFT_MAX);
+    left = Math.min(Math.max(left, RL_LEFT_MIN), avail - RL_RIGHT_MIN);
   const s = { avail, left };
   /* Unmeasured (a stage with no layout) or stacked to one column: the CSS
      fallback columns hold, and writing 0px here would break them. */
@@ -8593,7 +8605,7 @@ function rlLayoutResizer(host){
      somebody was pushing hardest at it. A splitter at its limit should look
      like one. */
   const atMin = s.left <= RL_LEFT_MIN,
-    atMax = s.left >= Math.min(s.avail - RL_RIGHT_MIN, RL_LEFT_MAX);
+    atMax = s.left >= s.avail - RL_RIGHT_MIN;
   if (atMin || atMax) rez.setAttribute('data-rl-at-limit', atMin ? 'min' : 'max');
   else rez.removeAttribute('data-rl-at-limit');
   /* THE CONTRACT FOLLOWS THE DIVIDER IN THE SAME PASS. The observer below
@@ -8683,14 +8695,24 @@ function rlSetDocType(px){
    idea, so removing them would break a name other files can still ask for. */
 const RL_PAGE_W = 660;
 const RL_ZOOM_MAX = 2.0;   // the Document tab's own ceiling: past this it stops being a contract
-/* ---- AND THE COLUMN STOPS WHERE THE SHEET DOES ----
-   Same rule as before and a different number, because the sheet is a different
-   object now: it is FLUID and capped at RL_SHEET_MAX (860px, the .rl-paper
-   rule), so a doc column wider than that buys nothing but white either side of
-   a centred page — the void that was reported from focus mode on a wide
-   monitor. The 40 covers the pane's own padding and a classic scrollbar. */
+/* ---- THE SHEET STOPS; THE COLUMN NO LONGER HAS TO ----
+   RL_SHEET_MAX is the .rl-paper rule's own cap: a line of an agreement past
+   860px stops being readable, so the page is that wide and CENTRES in whatever
+   column it is given.
+   RL_LEFT_MAX WAS the doc column's ceiling as well — 16 Aug 2026, to stop a
+   wide monitor putting dead white either side of the working area. It stopped
+   clamping the split on 22 Aug 2026, when the owner reported the other half of
+   that same trade: with the working area bounded, the CHANGE COLUMN stopped
+   short of the page and left a dead strip beside the cards (see
+   rlLayoutResizer). The surplus goes to the doc track now, where the sheet's
+   own cap turns it into margin beside a centred page — which is what a
+   document reader looks like — instead of margin beside nothing.
+   THE NAME IS KEPT rather than deleted: it is the one place this measurement
+   is written down, negotiation-css.js's own note points at it, and
+   paper-grows-verify reads it as the sheet's readable measure plus its
+   gutters. The 40 covers the pane's padding and a classic scrollbar. */
 const RL_SHEET_MAX = 860;
-const RL_LEFT_MAX = RL_SHEET_MAX + 40;
+const RL_LEFT_MAX = RL_SHEET_MAX + 40;   // the sheet's measure + gutters; no longer clamps the split
 /* ---- THE CONTRACT IS NO LONGER MAGNIFIED (owner-approved render, 22 Aug 2026)
    ----
    This used to fit a fixed 660px page into whatever column it was given, up to

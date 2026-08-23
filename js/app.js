@@ -191,7 +191,11 @@ function pageActionHtml(kind){
 
    Everything else is a list or a tool with no name of its own, and says who it
    is here. */
-const PAGE_OWNS_HEADER = ['dashboard', 'redline', 'workspace', 'templates'];
+const PAGE_OWNS_HEADER = ['dashboard', 'redline', 'workspace', 'templates', 'calendar'];
+/* 'calendar' joined on 22 Aug 2026 with the mock-up's own head: the page
+   draws a one-line white band carrying its title, how many decisions fall
+   this week, the period and its three acts. Two heads on one page is the
+   thing this list exists to prevent. */
 /* ---- WHERE THE SUBTITLE SITS, AND WHAT THAT COSTS THE PAGE ----
    Owner-asked, 13 Aug 2026, of Insights: "move the highlighted sentence to be
    next to the word Insights, and move the page up so the dashboards have more

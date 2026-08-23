@@ -231,6 +231,73 @@ const SEED = async () => {
       band.slot !== null && band.slot < 1, band);
     check('4 and no row shows through between them', band.leak === 0, band);
 
+    /* ---- 5 · EVERY BUTTON IN A HEAD ROW IS ONE HEIGHT ----
+       Owner-reported 22 Aug 2026: "the height of the buttons for more,
+       internal review, share, publish round should be the same height. Confirm
+       this is the case because I saw differences previously." They had seen
+       it: MEASURED on the negotiation head, THREE heights in one row of four —
+       More at 34 (.ws-more-btn set its own), Share at 28 (.ui-btn-lg's), and
+       Publish Round and Internal review at 32.1875, a FRACTION, because
+       .rl-btn and .rl-pb-btn name no height and theirs fell out of 13px type
+       plus 6px of padding. Two of the four were a size smaller as well.
+
+       THE CLAIM IS A RELATION, NOT A NUMBER — "they all agree", never "28px" —
+       so a future change to .ui-btn-lg costs no test edit. And it is asked of
+       EVERY button the row draws rather than of the four that were reported:
+       a check naming today's four is one that the next button added there
+       walks straight past.
+
+       BOTH HEADS, because .ws-more-btn was wrong on the contract room's too
+       and only one of them was in the screenshot. And the TOPS as well as the
+       heights: two buttons of equal height sitting on different baselines is
+       the same complaint wearing different clothes. */
+    /* Section 4 left the page on the Negotiations LIST — reopen the bench, or
+       this reads an empty row and passes on nothing. */
+    await page.evaluate(id => openRedlineWorkbench(id), cid);
+    await pause(2200);
+    const heads = await page.evaluate(() => {
+      const read = sel => [...document.querySelectorAll(sel)]
+        .filter(b => b.getBoundingClientRect().height > 0)
+        .map(b => { const c = getComputedStyle(b), r = b.getBoundingClientRect();
+          return { t: (b.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 20),
+            h: +r.height.toFixed(2), top: +r.top.toFixed(1),
+            fs: c.fontSize, fw: c.fontWeight,
+            filled: c.backgroundColor !== 'rgba(0, 0, 0, 0)' }; });
+      return { nego: read('#view-redline #ws-head .room-acts button') };
+    });
+    const uniq = (rows, k) => [...new Set(rows.map(r => r[k]))];
+    check('5 the negotiation head really draws the four that were reported',
+      heads.nego.length >= 4, heads.nego.map(b => b.t));
+    check('5 every button in it is the same height',
+      uniq(heads.nego, 'h').length === 1, uniq(heads.nego, 'h'));
+    check('5 on the same baseline',
+      uniq(heads.nego, 'top').length === 1, uniq(heads.nego, 'top'));
+    check('5 at the same size',
+      uniq(heads.nego, 'fs').length === 1, uniq(heads.nego, 'fs'));
+    /* WEIGHT IS THE ONE THING ALLOWED TO DIFFER, and only on the filled act —
+       the render draws its .emph at 700 and everything else at 400. */
+    check('5 and only the one filled act is bold',
+      heads.nego.every(b => (b.fw === '700') === b.filled),
+      heads.nego.map(b => `${b.t}:${b.fw}${b.filled ? ' filled' : ''}`));
+
+    await page.evaluate(id => openWorkspace(id), cid);
+    await pause(1800);
+    const room2 = await page.evaluate(() => [...document.querySelectorAll('.room-head .room-acts button')]
+      .filter(b => b.getBoundingClientRect().height > 0)
+      .map(b => { const r = b.getBoundingClientRect();
+        return { t: (b.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 20),
+          h: +r.height.toFixed(2), top: +r.top.toFixed(1) }; }));
+    check('5 the contract room\'s head agrees with itself too',
+      room2.length >= 3 && [...new Set(room2.map(b => b.h))].length === 1
+        && [...new Set(room2.map(b => b.top))].length === 1,
+      room2);
+    /* AND NO HEIGHT IN EITHER ROW IS A FRACTION. A button whose height falls
+       out of type plus padding lands between device pixels and reads soft —
+       the same fault the 22 Aug type sweep spent 865 replacements on. */
+    check('5 and no button height is a fraction of a pixel',
+      [...heads.nego, ...room2].every(b => Number.isInteger(b.h)),
+      [...heads.nego, ...room2].map(b => b.h));
+
     check('no page errors', errors.length === 0, errors.slice(0, 3));
   } finally {
     await browser.close();

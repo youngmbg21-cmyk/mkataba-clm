@@ -4794,15 +4794,28 @@ function roomHeadHtml(c,opts={}){
      half the app to answer — so asking it for a button that is about to be
      thrown away is both waste and, on a stage that has not loaded that half,
      a crash. */
+  /* ---- THE NEXT ACT IS NO LONGER FILLED (owner-reported 22 Aug 2026, off two
+     screenshots — the teal workspace and the navy one — pointing at the same
+     button: "complete key terms button should be like the rest") ----
+     This REVERSES "one filled act per page" FOR THIS HEAD, and the owner was
+     told what it costs before it was done: with the fill gone the contract
+     room's head carries no filled button at all. The fill was the loudest
+     thing on a row of four and read as a block dropped into the middle of it.
+     BOTH BUTTONS IN THIS SLOT CHANGED, not just the one reported. Evidence
+     pack occupies exactly the same slot on an executed contract, so filling
+     one and not the other would leave the head filled on some contracts and
+     flat on others — which is worse than either answer on its own. The slot is
+     still the head's LEAD (it is built first and `order` keeps More last); it
+     leads by position now rather than by shouting. */
   let primary='';
   if(opts.primary===undefined){
     const na=(!locked&&may&&window.wsNextAction)?wsNextAction(c):null;
     primary=locked
-      ? `<button id="ws-evidence" class="ui-btn ui-btn-lg ui-btn-primary">${icon('download','w-3.5 h-3.5')} Evidence pack</button>`
+      ? `<button id="ws-evidence" class="ui-btn ui-btn-lg">${icon('download','w-3.5 h-3.5')} Evidence pack</button>`
       /* A next action may have no button of its own — see wsNextAction's
          intent-to-sign branch. It still answers the status line; it just does
-         not earn the head's primary slot. */
-      : (na && !na.noButton) ? `<button id="ws-next-action" data-na="${na.kind}" class="ui-btn ui-btn-lg ui-btn-primary">${icon(na.ic,'w-3.5 h-3.5')} ${na.label}</button>`
+         not earn the head's lead slot. */
+      : (na && !na.noButton) ? `<button id="ws-next-action" data-na="${na.kind}" class="ui-btn ui-btn-lg">${icon(na.ic,'w-3.5 h-3.5')} ${na.label}</button>`
       : '';
   }
   /* ---- DRAFT NEW AGREEMENT SITS AFTER THE CONTRACT'S OWN NEXT ACT ----
