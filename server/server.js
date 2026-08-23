@@ -7781,11 +7781,32 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
     return res.json({ payload: hp, historyOnly: true, purpose: 'history',
       share: { recipientName: s.recipient_name || '', expiresAt: s.expires_at || null } });
   }
+  /* ---- DID IT ACTUALLY LAND? (owner-reported 23 Aug 2026, on MK-349) ----
+     Their page stamps a change "Sent" the moment this server accepts it, which
+     is true and is not the question they are asking. Getting it onto the
+     owner's record is a SECOND step — their browser collects it and applies it
+     — and until now nothing on either side could tell the difference between
+     "delivered" and "sitting here uncollected". The counterparty waited on an
+     answer the owner could not see, and the owner saw nothing to wait on.
+
+     `applied` is the exact fact and it is already recorded: the owner's browser
+     posts /applied only once applyResponse has returned true, so the column IS
+     "this reached their record". Reported as it stands rather than inferred
+     from anything, and an older row where the column says nothing reports
+     `null` — the reader's page prints nothing at all for that, because an
+     unknown is not a "no" (the negoTheirCopy rule).
+
+     A ONE-SHOT LINK GETS THE SAME FACT from its own row. It carried none at
+     all before — lastResponse was durable-only — so the screen that most needs
+     it, a link answered exactly once, was the one screen that could not say
+     anything. */
   const lastR = s.durable
-    ? db.prepare('SELECT response, at FROM share_responses WHERE token=? ORDER BY id DESC LIMIT 1').get(s.token)
-    : null;
+    ? db.prepare('SELECT response, at, applied FROM share_responses WHERE token=? ORDER BY id DESC LIMIT 1').get(s.token)
+    : (s.response ? { response: s.response, at: s.responded_at || null, applied: s.applied } : null);
   let lastResponse = null;
-  if (lastR) { try { const r = JSON.parse(lastR.response); lastResponse = { action: r.action, at: lastR.at, name: r.name }; } catch (_) {} }
+  if (lastR) { try { const r = JSON.parse(lastR.response);
+    lastResponse = { action: r.action, at: lastR.at, name: r.name,
+      applied: lastR.applied == null ? null : lastR.applied === 1 }; } catch (_) {} }
   res.json({
     payload: JSON.parse(s.payload),
     // whether this server can send a verification code at all — the portal
