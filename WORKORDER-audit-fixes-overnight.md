@@ -2,79 +2,71 @@
 
 **Raised:** 23 Aug 2026 · **Source:** `FIX-LIST-plain-english.md`, `AUDIT-FUNCTIONAL-UI-2026-08-23.md`
 **Branch:** `claude/hati-functional-ui-audit-eiqwud`
-**Status:** ⏸ AWAITING OWNER SIGN-OFF ON SEVEN QUESTIONS (§1). Everything else is ready to run.
+**Status:** ✅ ALL DECISIONS TAKEN — ready to run on the owner's go.
 
 ---
 
-## 1. SEVEN THINGS THAT NEED THE OWNER FIRST
+## 1. OWNER DECISIONS — SETTLED
 
-**Do not guess any of these.** Each has two or more defensible answers and only the owner can
-pick. Everything in §3 can run without them; the items below stay untouched until answered.
+| # | Question | Decision |
+| :-- | :--- | :--- |
+| **D1** | How talkative should HaTi become? | **Grey out 7, speak on 3, message on 7.** See §1a. |
+| **D2** | The phone's dead signing buttons | **Build the real signer picker on the phone**, tonight. Owner reaffirmed after the cost was stated. |
+| **D3** | May a Viewer comment? | **No — hide the box from Viewers.** |
+| **D4** | The 306 English server messages | **Translate the ~40 a normal user actually meets.** |
 
-### Q1 — How talkative should the app become? *(blocks 16 fixes)*
-Roughly 16 presses today produce no message because the message was written and left silent.
-The product deliberately keeps **about 250** other confirmations quiet, and the owner has twice
-asked for *less* on-screen noise. So this is a judgement, not a bug fix.
+### 1a. D1 in full — the dividing line is "can HaTi know before the press?"
 
-- **(a) Refusals and dead-looking presses only** — a message appears only where the press
-  produces no other visible change ("nothing to renumber", the phone's sealed-contract refusals,
-  the Copy buttons). About **16 messages**. ← *recommended*
-- **(b) (a) plus successful sends** — resend, share resend, Word import, phone share sheet also
-  confirm. About **22 messages**.
-- **(c) Leave it exactly as it is** and fix nothing in section C.
+**GREY OUT (7).** HaTi can answer this when it draws the button. Dimmed, unclickable, **with the
+reason on hover** — the pattern the KPI picker and the negotiation page's preview mode already
+use. Each one needs a test proving it goes live again when there *is* work; a button wrongly
+greyed is worse than a silent press, because the reader cannot even try.
 
-### Q2 — The phone's two dead signing buttons — what should they do?
-The phone deliberately **files no changes of its own**. Naming signers *is* a change, so wiring
-it is a real widening of what the phone does.
-- **(a) Send them to a computer** — keep the button, tap it, get "Name who signs on a computer".
-  Smallest change, keeps the phone's rule. ← *recommended*
-- **(b) Draw no button at all**, just the guidance line — which is what the desktop does in the
-  neighbouring state.
-- **(c) Build a real signer picker on the phone.** Biggest job; changes what the phone is for.
+1. Renumber clauses — grey when the numbering already runs without gaps
+2. Accept all — grey when nothing is clear to accept
+3. Reject all — grey when nothing of theirs is pending
+4. Resubmit for approval — grey when nothing is waiting
+5. Restore this version — grey when the wording already matches it
+6. Migration → review — grey when nothing is waiting
+7. Migration → re-run — grey when none are left
 
-### Q3 — May a Viewer leave an internal comment?
-Today the box is drawn for them, they type, it posts to the feed, and it is silently discarded.
-- **(a) No — stop drawing the box for Viewers.** ← *recommended, matches every other Viewer rule*
-- **(b) Yes — let them comment.** A permissions change; internal comments never reach the
-  counterparty, so it is defensible.
+**SPEAK, DO NOT GREY (3, phone only).** Touch has no hover, so a grey row on a phone cannot
+explain itself. These are *already* drawn grey and simply say nothing when tapped — keep them
+tappable and let them talk.
 
-### Q4 — What happens when a named approver has left the company?
-A rule reading "Jane approves" where Jane is gone silently becomes "Any admin" the next time
-anyone edits that rule. Whatever we choose governs who may approve contracts.
-- **(a) Keep the name, show it in amber as unassigned, refuse to save until it is re-pointed.** ← *recommended*
-- **(b) Fall back to "Any admin" but say so plainly on screen and in the record.**
-- **(c) Leave as is.**
+8. Edit a sealed contract → "Executed and sealed — no seat can edit it now"
+9. Renumber a sealed contract → "Executed contracts never renumber, by any path"
+10. Edit / Compare / Save-as-template → "Open HaTi on a computer to do this."
 
-### Q5 — Should the counterparty be able to click a signature line in the document?
-Every other field on their page responds; the signature line does nothing. **This may be
-correct** — the product's own rule is that the document is *"not a signing surface; nothing here
-is pressable"*, and signing lives on its own screen.
-- **(a) Leave it — it is by design.** Then close this item, no code change. ← *recommended*
-- **(b) Make it flash and scroll to the signing panel**, like the other fields do.
+**MESSAGE, BECAUSE GREYING IS IMPOSSIBLE (7).** The answer does not exist until the work runs,
+or the press did something real and invisible.
 
-### Q6 — The 306 English server messages — how far do we go?
-These are the sentences that explain *why* something was refused. Today a Swedish reader gets a
-Swedish "it failed" glued to an English explanation.
-- **(a) Translate the ~40 a normal user actually meets** (save refused, permission, validation).
-  A night's work. ← *recommended*
-- **(b) All 306.** Several days, and most are unreachable in normal use.
-- **(c) Show a translated general sentence and keep the English detail underneath**, clearly
-  marked as technical detail.
+11. Run scan → "All clear — no findings"
+12. Review vs Playbook → "Every playbook position is aligned — nothing to propose"
+13. Verify integrity → the verdict, including on an imported contract (today: silence)
+14. Edit document → Save → "No changes made"
+15. The 11 Copy buttons → "Copied" (the clipboard is invisible; nothing else can confirm it)
+16. Stop after current → "Stopping after this file"
+17. Copilot settings → Save → "Saved"
 
-### Q7 — Who checks the new Swedish?
-These fixes add roughly **40–60 new Swedish strings**. There is an existing
-`SWEDISH-TERMS-TO-REVIEW.md`, so the precedent is that a human checks.
-- **(a) Write them, ship them, and list every new one in `SWEDISH-TERMS-TO-REVIEW.md` for
-  review afterwards.** ← *recommended — nothing is blocked overnight*
-- **(b) Hold every Swedish string until reviewed.** Then §3 Batch 5 does not run tonight.
+**NOT IN SCOPE:** the ~250 confirmations that are deliberately quiet stay quiet, and no
+successful send gains a box. Chattiness is capped at the 10 above.
 
-**Also worth a yes/no, lower stakes:**
-- **Requests on the phone** — it has no door there at all. Build one, or is it deliberately
-  desktop-only? *(Default if unanswered: leave it, and note it.)*
-- **Copilot's 4,000-character message cut** — raising it makes long clauses work properly and
-  costs slightly more per request. *(Default if unanswered: raise it to 20,000 and say so.)*
-- **A Cancel button on Copilot** — a new control. *(Default if unanswered: build it — today a
-  closed panel leaves Copilot permanently stuck, which is worse.)*
+### 1b. Three left to the run's judgement — defaults stated, all reversible
+
+- **An approval rule whose named approver has left** → keep the name, show it in amber as no
+  longer in the workspace, and require an explicit re-pick before that rule can be saved. Never
+  silently switch it to "Any admin".
+- **Clicking a signature line in the document** → **leave it alone.** The product's own rule is
+  that the document is not a signing surface and nothing on it is pressable. Close the item, no
+  code change.
+- **New Swedish wording** → write it, ship it, and list every new phrase in
+  `SWEDISH-TERMS-TO-REVIEW.md` for the owner to check afterwards. Nothing is blocked overnight.
+- **Requests on the phone** → leave it; note it as a product question, do not build a door.
+- **Copilot's 4,000-character message cut** → raise to 20,000 so a long clause reaches the model
+  whole, and say so where it bites.
+- **A Cancel button on Copilot** → build it. Today closing the panel mid-question leaves Copilot
+  permanently stuck, which is worse than the missing control.
 
 ---
 
@@ -138,13 +130,14 @@ Ordered so the most valuable, least risky work lands first. Each ends with a com
 - The counterparty's "code didn't arrive" banner gives the real reason.
 - The signing email follows the sender's language.
 
-### Batch 5 — Swedish *(scope set by Q6, gating set by Q7)*
+### Batch 5 — Swedish *(D4: the ~40 a normal user meets)*
 Dialog buttons, the share dialog's first two steps, the counterparty's button row and send
 confirmation, the password-change gate, the mixed-language signing warning, and the smaller ones.
 Every new key goes into both dictionaries and is listed in `SWEDISH-TERMS-TO-REVIEW.md`.
 
-### Batch 6 — the silent messages *(scope set by Q1)*
-Whatever Q1 selects. One mechanical change per site; no rewording beyond adding the missing kind.
+### Batch 6 — the greying and the messages *(D1, §1a)*
+Seven buttons grey out with a hover reason and a test each. Three phone rows keep their tap and
+speak. Seven keep a message. Nothing else gains a box.
 
 ### Batch 7 — leaks and tidy-up
 - Four screens stop leaving listeners behind (calendar, contracts list, negotiation page,
@@ -172,9 +165,24 @@ Whatever Q1 selects. One mechanical change per site; no rewording beyond adding 
 
 ---
 
+### Batch 8 — the phone's signer picker *(D2)*
+A new screen: pick who signs for us and for them, in order, from the workspace roster and the
+counterparty's contacts. It goes through the same signing-route machinery the desktop uses — one
+authority, never a second copy of the rule — and it reverses the phone's standing rule that it
+files no changes of its own, which is a deliberate owner decision recorded here.
+
+**Runs LAST**, because it is the only item that adds a screen rather than correcting one. If the
+night runs out before it, the dead button gets the honest "on a computer" message as a stop-gap
+so that nothing is left looking broken either way.
+
+---
+
 ## 5. HONEST NOTE ON SCOPE
 
-58 items is a lot for one night. The batches are ordered so that **stopping after any batch still
-leaves the product better than it was**, and so the riskiest work (the negotiation engine, the
-editor lifecycle) sits behind the safest. If the night runs out, Batches 1–3 are the ones that
-matter; 5, 6 and 7 are safe to carry over.
+58 fixes plus a new screen is more than one night. The batches are ordered so that **stopping
+after any batch still leaves the product better than it was**, and so the riskiest work — the
+negotiation engine, the editor lifecycle, and the new picker — sits behind the safest.
+
+**The owner chose the full signer picker with the cost stated.** It sits in Batch 8 rather than
+Batch 1 so it cannot consume the night before the proven breakages are fixed. Realistically
+Batches 1–4 and 6 land; 5 and 7 may carry over; 8 lands or leaves its stop-gap.
