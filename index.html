@@ -1595,7 +1595,18 @@
      It was a bare glyph on a hairline square beside two filled buttons, which
      is how a control comes to read as punctuation. A word, a chevron and a
      border that is actually visible; the caret turns over with the menu. */
-  .ws-more-btn{ height:34px; padding:0 10px; gap:6px; font-size:14px;
+  /* ---- IT TAKES .ui-btn-lg's HEIGHT, IT DOES NOT SET ITS OWN (owner-reported
+     22 Aug 2026: "the height of the buttons for more, internal review, share,
+     publish round should be the same height") ----
+     This carried height:34px against .ui-btn-lg's 28 — and against its 30
+     before that, so More has been the odd one out on both head rows for as
+     long as this class has existed. MEASURED: 34 beside 28, on the contract
+     room's head and the negotiation page's alike.
+     A BUTTON IN A HEAD ROW HAS NO BUSINESS NAMING ITS OWN HEIGHT. .ui-btn-lg
+     is where that number lives, and one class quietly overriding it is how a
+     row of four ends up with three heights. The padding and the size stay —
+     they are this control's own and they do not fight anything. */
+  .ws-more-btn{ padding:0 10px; gap:6px; font-size:14px;
     border-color:var(--color-neutral-300); }
   .ws-more-btn:hover{ border-color:var(--color-accent); color:var(--color-accent-800); }
   .ws-more-btn .ws-more-caret{ display:inline-flex; transition:transform .15s; }

@@ -3387,6 +3387,39 @@ function redlineLayoutCss(){
          door wore .rl-pb-btn's fill and read as a second primary beside the act
          that closes the round. Bordered here, filled nowhere. Scoped to this
          head so the class keeps its own clothes wherever else it draws. */}
+  ${''/* ---- FOUR BUTTONS, ONE HEIGHT (owner-reported 22 Aug 2026: "the height
+         of the buttons for more, internal review, share, publish round should
+         be the same height") ----
+         MEASURED, this row drew THREE heights: More at 34 (its own class set
+         one — fixed at .ws-more-btn), Share at 28 (.ui-btn-lg's), and Publish
+         Round and Internal review at **32.1875** — a fraction, because
+         .rl-btn and .rl-pb-btn name no height at all and theirs fell out of
+         13px type plus 6px of padding plus a border. Two of the four were also
+         a size smaller than the other two.
+
+         THE CAUSE IS THE REDESIGN'S OWN DOING and worth stating: these two
+         buttons belong to the CONTROL BAR, where .rl-btn's metrics feed
+         rlFitTabRow's four-rung fold ladder and must not move. The 22 Aug
+         redesign moved them up into the head, where the platform's .ui-btn-lg
+         governs — so they arrived wearing the wrong row's measurements.
+
+         SO IT IS PINNED HERE, IN THE HEAD, AND NOWHERE ELSE. rlFitTabRow
+         measures `.rl-tabrow` and its `.rl-head`; this selector cannot reach
+         either, so the ladder is untouched — and the same classes keep their
+         own metrics wherever else they draw (a narrowed reviewer's bar, the
+         counterparty's mount).
+         EVERY button in the row, not the two reported: a rule naming the two
+         that happened to be wrong today is one the next button added here
+         walks straight past.
+         DISPLAY IS PART OF THE FIX — .rl-pb-btn computes `block`, and a block
+         at a fixed height does not centre its own words. Colour, border, fill
+         and the filled act's 700 are each button's own and are left alone. */}
+  .redline-page #ws-head .room-acts button{height:28px;padding:0 11px;font-size:14px;
+    line-height:1.2;display:inline-flex;align-items:center;box-sizing:border-box}
+  ${''/* The one filled act keeps its weight; the rest read as the render's
+         ordinary verbs. */}
+  .redline-page #ws-head .room-acts button:not(.rl-btn-go):not(.ui-btn-primary){font-weight:400}
+
   .redline-page #ws-head .rl-pb-btn{background:none;
     border:1px solid color-mix(in srgb,var(--accent-solid) 50%,transparent);
     color:var(--color-accent-800);font-weight:400;box-shadow:none}

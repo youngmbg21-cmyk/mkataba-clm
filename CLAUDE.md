@@ -1196,6 +1196,30 @@ recorded here** — each is reversed IN PLACE below rather than quietly dropped.
   back: the white it removed is now inside the doc column beside the page
   rather than outside the whole working area beside nothing. `RL_LEFT_MAX`
   survives as the sheet's measurement and clamps nothing.
+- **AND THEN THEY WERE MEASURED, AND THREE OF THEM DISAGREED** (owner-asked
+  the same day: "the height of the buttons for more, internal review, share,
+  publish round should be the same height. Confirm this is the case because I
+  saw differences previously"). They had: MEASURED on the negotiation head,
+  **THREE heights in one row of four** — More at **34** (`.ws-more-btn` set its
+  own, and had done since it was written, so it was the odd one out against
+  `.ui-btn-lg`'s 30 before it was against its 28), Share at **28**, and Publish
+  Round and Internal review at **32.1875** — a FRACTION, because `.rl-btn` and
+  `.rl-pb-btn` name no height at all and theirs fell out of 13px type plus 6px
+  of padding plus a border. Two of the four were a size smaller as well, and
+  the row sat on three baselines.
+  **THE CAUSE IS THE REDESIGN'S OWN DOING**: those two belong to the CONTROL
+  BAR, where `.rl-btn`'s metrics feed rlFitTabRow's four-rung fold ladder and
+  must not move — and the 22 Aug redesign lifted them into the head, where the
+  platform's `.ui-btn-lg` governs, so they arrived wearing the wrong row's
+  measurements. The pin is scoped to `.redline-page #ws-head .room-acts button`
+  and reaches neither `.rl-tabrow` nor `.rl-head`, so the ladder is untouched
+  (control-row-folds-verify, unchanged at 21/21) and the same classes keep
+  their own metrics wherever else they draw. `.ws-more-btn` simply stopped
+  naming a height: **a button in a head row has no business setting its own**,
+  and one class quietly overriding `.ui-btn-lg` is how a row of four ends up
+  with three. Scoped to EVERY button the row draws, not the four reported — a
+  rule naming today's four is one the next button added there walks past.
+  Weight is the one thing still allowed to differ, and only on the filled act.
 - **THE BIG BUTTONS WENT DOWN A RUNG** ("the big buttons should all be the same
   font size but they are also too big so reduce them by a size including the
   boxes they are in"). **THEY WERE ALREADY ONE SIZE** — measured on the
@@ -1281,7 +1305,12 @@ what that list exists to prevent.
   for the dotted date, read through window because a bare read of another
   module's name throws rather than falling through.
 
-Tests: **calendar-redesign-verify** (39, browser — the shape, the fit measured
+Tests: **pages-read-alike-verify** gained section 5 — every button in a head
+row measured for one height, one baseline and one size on BOTH heads, with the
+claims written as RELATIONS rather than numbers so the next type pass costs no
+test edit, and a check that no height is a fraction of a pixel; 5 of its 7 new
+checks fail against the code an hour before, reporting `[34, 32.19, 28]`.
+**calendar-redesign-verify** (39, browser — the shape, the fit measured
 at four window sizes, the four tones proved tellable apart as COMPUTED colours,
 all three views, the scope switch, the ruled-out button proved absent, a real
 .ics downloaded and read, and Share posted through to a real outbox row with
