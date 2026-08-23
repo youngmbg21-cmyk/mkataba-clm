@@ -419,6 +419,183 @@ const PAPER = `(() => {
     check('12 and their menu is not on the owner\'s page', !ownerAfter.theirMore);
     await page.screenshot({ path: path.join(OUT, '07-owner-unchanged.png') });
 
+    /* ================================================================
+       14-16 · THREE OWNER ASKS OFF ONE SCREENSHOT, 23 Aug 2026
+       ================================================================
+       "In the counterparty page, the redlined, agreed and with changes should
+       be similar to what is in image 2 from the negotiations page. Also, the
+       More button should be white inside just like the other buttons. When you
+       are on focus mode, there should be an exit focus mode button ... like in
+       the negotiations page as well."
+
+       EVERY CLAIM HERE IS A RELATION READ LIVE OFF THE OWNER'S OWN PAGE, never
+       a literal: "the same as the negotiations page" is what was asked, and a
+       pinned rgb would cost a test edit on the next type or palette pass while
+       proving less. The reference is captured on the owner's page first and
+       the counterparty's is compared to it. */
+
+    /* ---- 14. THE READING SWITCH WEARS THE NEGOTIATION PAGE'S DRESS ----
+       The dress was written `.redline-page .rl-readwrap`, and their copy sits
+       in the .pw-id header, which is not that page — so it fell through to the
+       base .rl-seg rule and drew the grey pill group these tabs replaced.
+       MEASURED before the fix: 13px in a bordered box on rgb(241,245,249) with
+       a white fill on the live one, against the reference's 14px, 700, accent
+       and a 2px underline on nothing.
+
+       THE HEIGHT IS DELIBERATELY NOT COMPARED. On the owner's page the row
+       stretches to a 44px control bar; their header is compact and the same
+       segments measure ~20px. That difference is correct and pinning it would
+       be pinning the wrong thing. */
+    const READ_SEG = ({ sel }) => {
+      const segs = [...document.querySelectorAll(sel)];
+      if (!segs.length) return null;
+      const wrap = segs[0].parentElement;
+      const ws = getComputedStyle(wrap);
+      const one = e => { const c = getComputedStyle(e);
+        return { fs: c.fontSize, fw: c.fontWeight, color: c.color, bg: c.backgroundColor,
+          pad: c.padding, shadow: c.boxShadow }; };
+      const on = segs.find(e => e.getAttribute('aria-pressed') === 'true');
+      const off = segs.find(e => e.getAttribute('aria-pressed') !== 'true');
+      return { wrap: { bg: ws.backgroundColor, border: ws.borderStyle, pad: ws.padding },
+        on: on && one(on), off: off && one(off), n: segs.length };
+    };
+
+    await page.evaluate(() => window.SHOW_OWNER());
+    await pause(800);
+    const refSeg = await page.evaluate(READ_SEG, { sel: '#view-redline .rl-readwrap .rl-seg' });
+    await page.evaluate(() => window.SHOW_COUNTERPARTY());
+    await pause(900);
+    const cpSeg = await page.evaluate(READ_SEG, { sel: '.pw-id .rl-readwrap .rl-seg' });
+    await page.screenshot({ path: path.join(OUT, '08-their-reading-tabs.png') });
+
+    const sameSeg = (a, b, keys) => a && b && keys.every(k => String(a[k]) === String(b[k]));
+    check('14 their reading switch has no box of its own, like the reference',
+      refSeg && cpSeg && sameSeg(refSeg.wrap, cpSeg.wrap, ['bg', 'border', 'pad']),
+      JSON.stringify({ ref: refSeg && refSeg.wrap, theirs: cpSeg && cpSeg.wrap }));
+    check('14 the LIVE segment reads the same on both pages',
+      sameSeg(refSeg && refSeg.on, cpSeg && cpSeg.on,
+        ['fs', 'fw', 'color', 'bg', 'pad', 'shadow']),
+      JSON.stringify({ ref: refSeg && refSeg.on, theirs: cpSeg && cpSeg.on }));
+    check('14 and so does a RESTING one',
+      sameSeg(refSeg && refSeg.off, cpSeg && cpSeg.off,
+        ['fs', 'fw', 'color', 'bg', 'pad']),
+      JSON.stringify({ ref: refSeg && refSeg.off, theirs: cpSeg && cpSeg.off }));
+    check('14 the live one carries the underline, and it is not a fill',
+      cpSeg && cpSeg.on && /inset/.test(cpSeg.on.shadow)
+      && cpSeg.on.bg === 'rgba(0, 0, 0, 0)',
+      cpSeg && cpSeg.on && `${cpSeg.on.shadow} on ${cpSeg.on.bg}`);
+
+    /* ---- 15. MORE IS WHITE INSIDE, LIKE THE THREE BESIDE IT ----
+       It carried .pt-verb, which fills the face with --color-accent-100 —
+       measured rgb(204,251,241) against three transparent neighbours. Compared
+       against those neighbours rather than against a colour, because "like the
+       other buttons" is the ask. */
+    const verbs = await page.evaluate(() => {
+      const g = id => { const e = document.getElementById(id); if (!e) return null;
+        const s = getComputedStyle(e);
+        return { id, bg: s.backgroundColor, cls: e.className }; };
+      return ['pt-more', 'pt-nego-ready', 'pt-derive', 'pt-nego-decline'].map(g).filter(Boolean);
+    });
+    const more = verbs.find(v => v.id === 'pt-more');
+    const others = verbs.filter(v => v.id !== 'pt-more');
+    check('15 the three plain verbs really are on screen to compare against',
+      others.length >= 2, others.map(v => v.id).join(', '));
+    check('15 More has no fill, exactly like them',
+      more && others.length >= 2 && others.every(v => v.bg === more.bg),
+      JSON.stringify(verbs.map(v => `${v.id}:${v.bg}`)));
+    check('15 and it no longer carries the signing screen\'s verb class',
+      more && !/\bpt-verb\b/.test(more.cls), more && more.cls);
+
+    /* ---- 16. THERE IS A WAY OUT OF FOCUS MODE ----
+       Focus mode stands this page's header down, and the header is where the
+       More menu that turned it on lives — so before this there was no visible
+       way back at all, only Escape. MEASURED: .rl-focus-exit did not exist on
+       this page.
+
+       OWNER-CHOSEN OPTION (a): the same corner as the negotiation page, not a
+       different one. So the corner is read off the owner's page and compared,
+       never typed here. */
+    await page.evaluate(() => window.SHOW_OWNER());
+    await pause(700);
+    const refExit = await page.evaluate(() => {
+      if (window.rlSetFocus) rlSetFocus(true);
+      const e = document.querySelector('.rl-focus-exit'); if (!e) return null;
+      const r = e.getBoundingClientRect(), s = getComputedStyle(e);
+      return { on: r.width > 0 && r.height > 0 && s.display !== 'none',
+        fromRight: Math.round(window.innerWidth - r.right),
+        fromBottom: Math.round(window.innerHeight - r.bottom),
+        bg: s.backgroundColor, fs: s.fontSize };
+    });
+    await page.evaluate(() => { if (window.rlSetFocus) rlSetFocus(false); });
+    await pause(400);
+
+    await page.evaluate(() => window.SHOW_COUNTERPARTY());
+    await pause(900);
+    const cpExit = await page.evaluate(() => {
+      if (window.rlSetFocus) rlSetFocus(true);
+      const e = document.querySelector('.rl-focus-exit');
+      const head = document.querySelector('.pw-id');
+      if (!e) return { missing: true, headHidden: head ? getComputedStyle(head).display === 'none' : null };
+      const r = e.getBoundingClientRect(), s = getComputedStyle(e);
+      return { on: r.width > 0 && r.height > 0 && s.display !== 'none',
+        fromRight: Math.round(window.innerWidth - r.right),
+        fromBottom: Math.round(window.innerHeight - r.bottom),
+        bg: s.backgroundColor, fs: s.fontSize,
+        headHidden: head ? getComputedStyle(head).display === 'none' : null };
+    });
+    await page.screenshot({ path: path.join(OUT, '09-their-focus.png') });
+
+    check('16 focus mode really is on and their header really is down',
+      cpExit && cpExit.headHidden === true, JSON.stringify(cpExit));
+    check('16 THERE IS A WAY OUT, as visible pixels',
+      cpExit && !cpExit.missing && cpExit.on, JSON.stringify(cpExit));
+    check('16 in the same corner as the negotiation page — option (a)',
+      refExit && cpExit && !cpExit.missing
+      && Math.abs(refExit.fromRight - cpExit.fromRight) <= 2
+      && Math.abs(refExit.fromBottom - cpExit.fromBottom) <= 2,
+      JSON.stringify({ ref: refExit && [refExit.fromRight, refExit.fromBottom],
+        theirs: cpExit && [cpExit.fromRight, cpExit.fromBottom] }));
+    check('16 and wearing the same dress, not an unstyled word',
+      refExit && cpExit && !cpExit.missing
+      && refExit.bg === cpExit.bg && refExit.fs === cpExit.fs,
+      JSON.stringify({ ref: refExit && [refExit.bg, refExit.fs],
+        theirs: cpExit && [cpExit.bg, cpExit.fs] }));
+
+    /* THE PRESS IS THE CLAIM. A button that shows and does nothing is the
+       fault this suite has recorded more than once. */
+    const left = await page.evaluate(async () => {
+      const e = document.querySelector('.rl-focus-exit'); if (e) e.click();
+      await new Promise(r => setTimeout(r, 500));
+      const head = document.querySelector('.pw-id');
+      return { cls: document.body.className,
+        headBack: head ? getComputedStyle(head).display !== 'none' : null,
+        exitGone: (() => { const x = document.querySelector('.rl-focus-exit');
+          return x ? getComputedStyle(x).display === 'none' : true; })() };
+    });
+    check('16 pressing it leaves focus and brings their header back',
+      left.headBack === true && !/pw-focused/.test(left.cls) && left.exitGone,
+      JSON.stringify(left));
+
+    /* ---- AND THE COLLISION THAT WAS WORRIED ABOUT DOES NOT EXIST ----
+       The floating notices stack is pinned to the same corner, which is why
+       the owner was offered a bottom-LEFT option. It never coexists with this
+       button: .redline-page.rl-focus hides the stack outright, and the
+       counterparty's seat draws no floating bell at all. Asserted rather than
+       assumed, because "they do not overlap" was the reason for choosing (a). */
+    const clash = await page.evaluate(() => {
+      if (window.rlSetFocus) rlSetFocus(true);
+      const bx = e => { if (!e) return null; const r = e.getBoundingClientRect(), s = getComputedStyle(e);
+        return { on: r.width > 0 && r.height > 0 && s.display !== 'none',
+          l: r.left, t: r.top, r: r.right, b: r.bottom }; };
+      const ex = bx(document.querySelector('.rl-focus-exit'));
+      const no = bx(document.querySelector('.rl-notices'));
+      const hit = !(!ex || !no || !ex.on || !no.on || ex.r < no.l || no.r < ex.l || ex.b < no.t || no.b < ex.t);
+      return { exit: !!(ex && ex.on), notices: !!(no && no.on), overlap: hit };
+    });
+    check('16 the exit never sits on top of the notices stack',
+      clash.exit && !clash.overlap, JSON.stringify(clash));
+    await page.evaluate(() => { if (window.rlSetFocus) rlSetFocus(false); });
+
     check('13 no page errors during the whole run', errors.length === 0, errors.join(' | ') || 'none');
   } finally {
     await browser.close();
