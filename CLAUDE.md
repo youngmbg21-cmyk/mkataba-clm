@@ -1924,8 +1924,18 @@ sidebar-count change (boxes off, numbers white, amber kept) is a palette change
 on a strip that is on EVERY screen, so it moved the census on 18 of the 40
 checks — `rgba(245,158,11,.26)` and `rgba(255,255,255,.24)` leaving, and
 `rgb(253,230,138)` arriving. That is somebody deliberately owning a palette
-change, which is the one case the rule above allows, so the baseline was saved
-and the file is 40/40.
+change, which is the one case the rule above allows, so the baseline was saved.
+
+**IT READS 36/40 ON THE MERGED TREE, NOT 40/40, AND THAT IS NOT THIS WORK.**
+The re-record was taken on this branch before it caught up with main, and main
+had meanwhile landed the calendar redesign and the head-row button pass —
+neither of which re-recorded the census. MEASURED on `origin/main` itself:
+**36/40**, failing on `calendar--light`, `calendar--dark`, `negotiate--light`
+and `negotiate--dark`. This branch measures the same 36/40 on the same four, so
+it adds nothing red: its own 18 checks are recorded, and those four stay with
+the changes that moved them. **Whoever owns the calendar redesign and the
+button pass should re-record and name what they absorb**, exactly as this note
+does below.
 
 **TWO CHECKS WERE ALREADY RED BEFORE IT AND ARE NOW BAKED IN — NAMED HERE SO
 THEY ARE NOT LOST.** MEASURED on the clean tree immediately before re-recording:
