@@ -739,13 +739,30 @@ describe('the owner receives it', () => {
     assert.equal(ok, true, 'something landed, so the response is done with');
   });
 
-  test('and a readiness claim carrying nothing at all is simply not applied', async () => {
+  test('and a readiness claim carrying nothing at all is recorded once and done with', async () => {
+    /* REVERSED IN PLACE 23 Aug 2026, owner-reported: "the same alert is also
+       appearing on the insights page and in other pages and it keeps popping
+       up." This asserted `ok === false` — and the test DIRECTLY ABOVE it argues
+       the opposite in its own words: "an unhandled response is re-fetched and
+       re-applied by the poller on every cycle, so a claim that can never
+       succeed would be retried forever." A bare readiness claim is exactly that
+       case, and it was the one left unhandled. MEASURED on a real server before
+       it was touched: four polls, four red boxes on a page about another
+       contract, and FOUR duplicate audit lines into the record.
+
+       WHAT THE CLAIM WAS REALLY ABOUT IS UNCHANGED and still asserted below:
+       the readiness is NOT recorded. Only the answer to the poller moves —
+       from "come back and refuse this again" to "read, judged, refused, and
+       the refusal is in the trail". */
     const { c } = await ownerProposed();
     const rec = ownerRecord();
     const ok = await rec.applyResponse(c, { v: 1, kind: 'hati-response', id: c.id, action: 'ready',
       name: 'Erik Lindqvist', negoDecisions: [], at: '2026-07-27T10:00:00Z' }, { background: true });
-    assert.equal(ok, false, 'nothing true arrived with it');
-    assert.equal(rec.negoReadySignal(c, 'counterparty'), null);
+    assert.equal(ok, true, 'handled — it can never succeed, so it must stop arriving');
+    assert.equal(rec.negoReadySignal(c, 'counterparty'), null,
+      'and the readiness itself is still not recorded, which is the point');
+    assert.match(auditText(c), /signalled ready to sign, but this contract is not settled/,
+      'refused in the open, once');
   });
 });
 
@@ -931,9 +948,16 @@ describe('the mirror: we refuse their ask, and they withdraw it', () => {
     const rec = ownerRecord();
     const res = { v: 1, kind: 'hati-response', id: c.id, action: 'ready', name: 'Erik Lindqvist',
       negoDecisions: [], negoWithdrawn: [filed[1].id], at: '2026-07-27T10:00:00Z' };
-    assert.equal(await rec.applyResponse(c, res, { background: true }), false,
+    /* THE SECURITY CLAIM IS THE SECOND LINE, and it is untouched: our own
+       objection is NOT cleared. The first line asserted the value handed back
+       to the POLLER, which is a different question — reversed in place 23 Aug
+       2026 with the readiness branch (see the note on the bare-claim test
+       above). Nothing here can ever succeed on a retry, so re-delivering it for
+       ever buys nothing and costs a duplicate audit line per beat. */
+    assert.equal(await rec.applyResponse(c, res, { background: true }), true,
+      'handled: read, judged, refused — and it must stop arriving');
+    assert.equal(rec.negoChangeById(c, filed[1].id).withdrawn, undefined,
       'clearing our own objection on our behalf would let one side declare the deal aligned');
-    assert.equal(rec.negoChangeById(c, filed[1].id).withdrawn, undefined);
   });
 });
 

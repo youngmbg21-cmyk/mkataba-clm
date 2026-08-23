@@ -1670,6 +1670,67 @@ function portalAgreedHtml(p){
    A flag rather than a DOM probe: the builder must give the same answer
    whether or not the slot happens to be mounted when it runs. */
 let PORTAL_FOOT_COMPACT=false;
+/* ---- DID OUR ROUND REACH THEM? (owner-reported 23 Aug 2026, MK-349) ----
+   This page has always stamped a change "Sent" off its own memory of pressing
+   the button, and had no way to learn what happened next — so it went on
+   saying "Sent" whether the owner had collected the round or not, and a reader
+   whose acceptance was sitting uncollected could not tell.
+
+   THREE READINGS, AND THE THIRD IS SILENCE. 'received' and 'waiting' are facts
+   the server reports off the answer's own row; null is an older link whose row
+   records nothing, and an unknown must not be printed as a "no" — the same
+   rule negoTheirCopy states for the mirror of this question on the owner's
+   side. Silence changes nothing and claims nothing.
+
+   IT COMES BACK LIVE. The page re-fetches the share while it is open, so this
+   turns over from "waiting" to "received" under the reader without a reload —
+   which is the whole point: the moment their round lands is the moment they
+   want to stop wondering. */
+/* ---- HAVE THEY ALREADY SAID THEY ARE READY? (owner-reported 23 Aug 2026:
+   "when i click ready to sign button it greys out correctly but when I refresh
+   the page, the ready to sign is back to normal") ----
+   The spent state was PORTAL_READY_SENT alone — a flag in THIS SITTING's
+   memory, which a reload wipes. So the button came back live over a readiness
+   that had already gone, and the obvious thing to do with a live button is
+   press it again.
+
+   THE RECORD IS THE DURABLE HALF, and it already travels: buildSharePayload
+   carries `negotiation.ready` for BOTH sides, so their own signal comes back
+   with the next copy of the link and survives any reload. The sitting's flag
+   stays in front of it because the record lags — it is written when the owner
+   collects the round, and between the press and that moment only this page
+   knows.
+
+   A REFUSED READINESS CORRECTLY LEAVES THE BUTTON LIVE, and that is the reason
+   this reads the record rather than "did I send one": a claim that went stale
+   between the press and the collection is not recorded, and the reader must be
+   able to say it again once whatever was outstanding is settled. */
+function portalReadySpent(){
+  if(PORTAL_READY_SENT) return true;                       // this sitting, ahead of everything
+  const n=(PORTAL_OPTS.payload&&PORTAL_OPTS.payload.contract&&PORTAL_OPTS.payload.contract.negotiation)||null;
+  if(n && n.ready && n.ready.counterparty) return true;    // the RECORD has it — definitive
+  /* IN FLIGHT. The record lags: it is written when the owner's browser collects
+     the round, which on the live beat is up to forty-five seconds after the
+     press. Between those two moments the server is the only thing that knows,
+     and it says so on lastResponse — so a reload in that window still finds the
+     button spent instead of offering the same claim a second time.
+
+     AND `applied` IS WHAT TELLS A REFUSAL FROM A DELIVERY. Marked applied while
+     the record still shows no readiness means it was read, judged and REFUSED
+     (it went stale between the press and the collection). That claim was never
+     recorded, so the button must come back — the reader has to be able to say
+     it again once whatever was outstanding is settled. Anything else strands
+     them behind a spent button over a signal nobody holds. */
+  const lr=PORTAL_OPTS.lastResponse;
+  return !!(lr && lr.action==='ready' && lr.applied!==true);
+}
+function portalDeliveryState(){
+  const lr=PORTAL_OPTS && PORTAL_OPTS.lastResponse;
+  if(!lr || !lr.at) return null;              // nothing sent from here yet
+  if(lr.applied===true) return 'received';
+  if(lr.applied===false) return 'waiting';
+  return null;                                 // an older link: unknown, so nothing is said
+}
 function portalNegoFootHtml(p){
   const n=Object.keys(PORTAL_NEGO_DECISIONS).length;
   /* The token is NOT part of this. See renderShareWorkbench: a copy with no way
@@ -1702,7 +1763,7 @@ function portalNegoFootHtml(p){
   const readyOk=!!(al&&al.aligned);
   const whyNot=(window.negoAlignmentWhy&&c)?(negoAlignmentWhy(c,'counterparty')||'Changes are still waiting on a decision.')
     :'Changes are still waiting on a decision.';
-  const spent=PORTAL_READY_SENT;
+  const spent=portalReadySpent();
   /* ONE CELL FOR THE WORDS, the verbs beside it. The two sentences used to be
      siblings of the buttons with the second forced onto its own line
      (flex-basis:100%), which was three stacked rows before a reader had
@@ -1916,6 +1977,15 @@ function wirePortalNego(c, p){
            has to know that before they start rather than after they press it. */
         : esc(i18t('po_wall_no_channel'))
       } <span id="pt-nego-facts" style="opacity:.75">${facts}</span></span></div>`
+    /* THE DELIVERY SENTENCE IS ON BOTH BRANCHES, and the read-only one is the
+       branch that needs it MOST — which is why it is not an afterthought here.
+       Measured: the moment the owner collects their round the negotiation can
+       come into alignment, this page flips read-only, and that is exactly the
+       moment the reader wants to be told their answer landed. Drawn on the
+       live branch only, the sentence would appear while it still said
+       "waiting" and vanish on the tick that turned it to "received".
+       Whether this copy can still be answered is a different question from
+       whether their last answer arrived; the fact is theirs either way. */
     : `<div class="rl-wall" role="status"><span class="rl-wall-ic">&#128274;</span><span>${esc(
         portalExecuted() ? 'This contract has been executed and sealed — the wording is final.'
         : PORTAL_OPTS.superseded ? 'This copy has been superseded — a newer link was sent to you.'
@@ -2151,6 +2221,9 @@ function portalPollDelay(){ return (Date.now()-_ptLastActivity) < 120000 ? PORTA
    and every refresh after it cannot drift apart. */
 function portalRenderOpts(token, d){
   return { token, responded:d.responded, share:d.share||{},
+    /* Whether the LAST answer this reader sent has reached the owner's record.
+       See portalDeliveryState — three readings, and the third says nothing. */
+    lastResponse:d.lastResponse||null,
     prior:d.prior||null, superseded:d.superseded||null,
     /* Read LIVE, not from the payload: a signature that landed after this link
        was last refreshed is precisely the case that matters. */
@@ -2190,6 +2263,12 @@ function portalSignature(d){
     d.executed?`x:${d.executed.at||'1'}`:'', d.superseded?`s:${d.superseded.at||'1'}`:'',
     d.responded?'r':'', String((d.messages||[]).length),
     String((d.share&&d.share.expiresAt)||''),
+    /* THE ONE EXCEPTION TO "CONTENT ONLY", and it earns it. Whether the last
+       answer this reader sent has been COLLECTED is not content, but unlike
+       payload.at it is a fact about THEIR OWN act, it is drawn on this page,
+       and it flips exactly once per round. Left out, the sentence saying
+       "waiting to be picked up" would go on saying it after it had been. */
+    (d.lastResponse&&d.lastResponse.applied!=null)?`ap${d.lastResponse.applied?1:0}`:'',
   ].join('');
   let h=0; for(let i=0;i<parts.length;i++) h=(h*31+parts.charCodeAt(i))>>>0;
   return parts.length+'.'+h.toString(16);
@@ -2581,6 +2660,26 @@ function portalAlerts(c, p){
     + Object.keys(PORTAL_NEGO_PROPOSED).length;
   if (held) push('held', 'amber', i18tn('pa_held', held, { n:held }),
     () => portalPressSend());
+  /* ---- DID OUR ROUND REACH THEM — IN THE BELL, NOT ON THE PAGE ----
+     (owner-reported 23 Aug 2026: "keep the alerts in the bell ... because they
+     are now popping up and staying on screen which is distracting.")
+
+     This shipped the day before as a sentence in the wall band, which is drawn
+     on every paint and never goes away — so the one thing added to this page
+     was also the one thing permanently in front of the reader. It is a STATUS,
+     not a standing instruction: worth a glance, worth being able to find, and
+     not worth a line of the header for the life of the sitting. The bell is
+     the shelf this product already keeps for exactly that.
+
+     GREEN FOR ARRIVED, GREY FOR IN FLIGHT — never amber. Amber on this panel
+     means work owed by THIS reader and neither of these is: one is good news,
+     the other is somebody else's turn. portalDeliveryState still answers three
+     ways and the third says nothing, so an older link adds no row at all. */
+  const dlv = portalDeliveryState();
+  if (dlv) push(dlv === 'received' ? 'delivered' : 'in-flight',
+    dlv === 'received' ? 'green' : 'gray',
+    i18t(dlv === 'received' ? 'po_answer_received' : 'po_answer_waiting',
+      { who: (PORTAL_OPTS.payload && PORTAL_OPTS.payload.org) || 'the sender' }), null);
   /* 3. THE WORDING MOVED SINCE THEY LAST LOOKED — the Compare button's own
         reading, so the alert and the button cannot disagree about whether
         there is anything to compare. */
@@ -4555,6 +4654,6 @@ async function refreshStats(){
   try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard(); }catch(e){}
 }
 
-Object.assign(window,{portalAlerts,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
+Object.assign(window,{portalDeliveryState,portalReadySpent,portalAlerts,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
   portalAlertsOpen,portalAlertsClose,portalPaintAlerts,wirePortalAlerts,portalAlertsStyle,
   portalGoToChange,portalPressSend,PT_READ_KEY,ptReadMap,ptRevisionKey,ptRevisionRead,ptSetRevisionRead,portalHideRevisedBanner,portalShowRevisedBanner,portalWireRevisedBanner,portalRevisedBanner,portalChangedText,openPortalCompare,PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,renderShareHistory,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,openDerivedLinkDialog,portalReadingBtnsHtml,portalEnsureResponderName});

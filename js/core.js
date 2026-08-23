@@ -5013,6 +5013,11 @@ function openImportModal(c){
 }
 async function applyResponse(c, r, opts={}){
   if(!r || r.kind!=='hati-response'){ if(!opts.background) toast(i18t('co_invalid_response_code'),'err'); return false; }
+  /* 'err', not a bare call — a bare call is SILENT by this product's own rule
+     (see toast), so this refusal has been invisible since the day the three
+     kinds landed. It cannot fire from the poller, which looks the contract up
+     by this very id; it fires on the paste-a-code path, where the reader has
+     just handed us the wrong code and is owed the sentence. */
   if(r.id!==c.id){ toast(`This response is for ${r.id}, not ${c.id}`,'err'); return false; }
   // The caller may hand us a LIGHT register row — the list endpoint strips
   // audit, comments, execution.html and the upload's text off every row. This
@@ -5285,7 +5290,29 @@ async function applyResponse(c, r, opts={}){
       if(!opts.background) toast(i18t('co_readiness_mismatch'),'err');
       c.lastAction=todayStr(); persist(c);
       if(opts.background) setView(state.view||'dashboard'); else renderWorkspace();
-      return !!(done.length||withdrew.length);
+      /* ---- RECORDED ONCE MEANS ONCE (owner-reported 23 Aug 2026) ----
+         The comment above has said "it is recorded once, as a fact" since the
+         day it was written, and this line said `!!(done.length||withdrew.length)`
+         — false whenever the envelope carried nothing but the claim, which is
+         the ordinary shape of a bare Ready to sign. So the poller never marked
+         it applied, re-fetched it on every beat, and re-recorded it: MEASURED on
+         a real server, four polls wrote FOUR duplicate audit lines into the
+         contract's permanent history and drew four red boxes, on a page about
+         another contract entirely. On the live twelve-second beat that is five
+         lines a minute, for ever.
+
+         The 'decisions' branch fifty lines up learned exactly this in f163 and
+         says so in its own words — "wording that cannot land must still stop
+         arriving". This is that lesson, in the branch that was written with the
+         comment and without the code.
+
+         TRUE IS HONEST HERE, not a shrug: the claim WAS handled. It was read,
+         it was judged against the contract, it was refused, and the refusal is
+         in the trail with its reason. What is not recorded is the readiness
+         itself — and it should not be, because it was untrue when it was made.
+         The deal moves the way it always does: somebody settles what is
+         outstanding and the other side says so again. */
+      return true;
     }
     const acc=done.filter(x=>x.status==='accepted').length;
     const parts=[];
@@ -5570,22 +5597,68 @@ async function applyNegoProposals(c, r, who){
 }
 
 /* poll the server for counterparty responses and apply them */
+/* ---- A ROUND THAT WILL NOT LAND MUST SAY SO (owner-reported 23 Aug 2026) ----
+   This loop had three silent holes, and they compounded into the worst shape a
+   hand-off can take: the counterparty's page says "Sent", the owner's page
+   shows nothing, and NOTHING ANYWHERE says why.
+
+     · a response naming a contract this browser does not hold was skipped with
+       `continue` — for ever, without a word;
+     · applyResponse returning false left the row unmarked, so it was re-fetched
+       and re-refused on every beat, silently, until the tab was closed;
+     · and the whole loop sat inside one catch that swallowed everything,
+       including a fault in the applying rather than in the network.
+
+   RETRYING IS RIGHT AND STAYS. What was wrong is that it was invisible. So the
+   retry is untouched and the SECOND consecutive failure on the same answer is
+   reported, once per sitting — the second, not the first, because one miss is
+   ordinarily a page that has not finished loading its contracts and crying wolf
+   on that would teach the reader to ignore this box.
+
+   IT WRITES NOTHING TO THE RECORD. An audit line would mean persisting a
+   contract we have just failed to apply an answer to, which is the one moment
+   not to be writing to it. The toast plus the standing retry is the whole
+   report.
+
+   THE NETWORK IS STILL SILENT, deliberately: a fetch that fails between beats
+   is ordinary and the next beat fixes it. Only the applying speaks. */
+const POLL_TROUBLE_AT = 2;
+const _pollTrouble = new Map();   // answer key -> consecutive failures
+const _pollTold = new Set();      // reported once per sitting, never nagged
 async function pollPendingResponses(){
   if(!API_MODE() || !canEdit()) return;
-  try{
-    const list=await api('shares/pending');
-    for(const item of list){
-      const c=getContract(item.response?.id);
-      if(!c) continue;
-      const ok=await applyResponse(c, item.response, {background:true});
+  let list;
+  try{ list=await api('shares/pending'); }
+  catch(e){ return; }             // transient network — the next beat retries
+  for(const item of list){
+    const key=String(item.responseId||item.token||'');
+    const c=getContract(item.response&&item.response.id);
+    let ok=false;
+    if(c){ try{ ok=await applyResponse(c, item.response, {background:true}); }
+           catch(e){ ok=false; } }
+    if(ok){
+      _pollTrouble.delete(key); _pollTold.delete(key);
       // A durable link carries one row per round, so the acknowledgement names
       // the answer just applied. Marking the whole link applied would silence
       // every later round on it.
-      if(ok){ await api('shares/'+item.token+'/applied','POST',
-                item.responseId?{ responseId:item.responseId }:{});
-              refreshShareOverview(); }
+      try{ await api('shares/'+item.token+'/applied','POST',
+             item.responseId?{ responseId:item.responseId }:{});
+           refreshShareOverview(); }catch(e){ /* the row stays unmarked; next beat re-acknowledges */ }
+      continue;
     }
-  }catch(e){ /* transient network issues — next poll retries */ }
+    const n=(_pollTrouble.get(key)||0)+1;
+    _pollTrouble.set(key,n);
+    if(n>=POLL_TROUBLE_AT && !_pollTold.has(key)){
+      _pollTold.add(key);
+      const id=(item.response&&item.response.id)||'';
+      const who=(item.response&&item.response.name)||'';
+      /* 'warn', not 'err': nothing is lost and nothing was refused — the
+         answer is safe on the server and this browser keeps trying. The action
+         is the one thing that has been shown to clear it. */
+      toast(i18t('co_answer_stuck',{ id:esc(id), who:esc(who) }),'warn',
+        { action:{ label:i18t('co_answer_stuck_act'), onClick:()=>location.reload() } });
+    }
+  }
 }
 /* ---------- how often to look ----------
    Answers arrive by polling; there is no channel from the server that can tap
@@ -5606,8 +5679,32 @@ async function pollPendingResponses(){
 const POLL_SLOW=45000, POLL_FAST=12000;
 let _pollTimer=null, _pollEvery=0, _pollLastAt=0;
 function pollWaitingOnThem(){
-  if(state.view!=='workspace') return false;
-  const c=getContract(state.activeId);
+  /* ---- THE NEGOTIATION PAGE IS A PAGE THAT WATCHES (owner-reported 23 Aug
+     2026, MK-349) ----
+     This asked `state.view!=='workspace'` — written when Negotiate was a TAB
+     on the contract workspace, and never told when it became its own view on
+     12 Aug 2026. So the one screen in the product built for watching a live
+     round answered "nobody is waiting on anything" about itself, and sat on
+     the slow 45-second beat while the reader watched it. Reproduced end to
+     end: their round reached the server, the owner's page showed nothing for
+     half a minute, and re-opening the page did not help either (see
+     POLL_ON_ARRIVAL in js/app.js, the other half of this fix — the two lists
+     must agree or the page catches up on arrival and is then not watched).
+
+     WHICH CONTRACT, on that page, is redlineHeldId() and not state.activeId:
+     the held id is the contract actually PAINTED, recorded on the paint, while
+     activeId is a global that survives whatever was last opened anywhere. On
+     the negotiations LIST it is null — several negotiations, no single one to
+     be waiting on — and this answers false there, which is what the comment
+     above the function has always claimed ("the open contract"). Read through
+     `window`, because this module cannot see the negotiation view's own
+     names. */
+  if(state.view!=='workspace' && state.view!=='redline') return false;
+  const id = state.view==='redline'
+    ? (typeof window!=='undefined' && window.redlineHeldId ? redlineHeldId() : null)
+    : state.activeId;
+  if(!id) return false;
+  const c=getContract(id);
   if(!c || c.status==='Signed' || c.status==='Declined') return false;
   if((c.rounds||[]).some(r=>r&&r.status==='open')) return false;   // it is OUR move
   const turn=window.negoTurn ? negoTurn(c) : (c.negotiation&&c.negotiation.turn);
