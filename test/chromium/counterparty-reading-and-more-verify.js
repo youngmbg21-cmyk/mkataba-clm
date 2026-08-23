@@ -145,15 +145,23 @@ const PAPER = `(() => {
        ASSERTED AS A GEOMETRY, not as a class: on ONE line with the verbs, to
        the LEFT of them, and BELOW the title. A markup check would pass on a
        wrapper that had been styled back into the wrong place. */
+    /* MEASURED ON CENTRES, NOT TOPS, and that correction is worth its comment.
+       The first draft of this check compared the two elements' TOP edges — fine
+       only while they happened to be the same height. The tabs are 20px tall
+       and the deal verbs 34, so on a correctly centred row their tops differ by
+       7px and a top-comparison reports a fault that is not there. What "share
+       one line" means is that their CENTRES agree; the heights are allowed to
+       differ and do. */
     const row2 = await page.evaluate(() => {
-      const bx = e => e ? { y: Math.round(e.getBoundingClientRect().top),
-        l: Math.round(e.getBoundingClientRect().left) } : null;
+      const bx = e => { if (!e) return null; const r = e.getBoundingClientRect();
+        return { y: Math.round(r.top), mid: Math.round(r.top + r.height / 2),
+          l: Math.round(r.left), h: Math.round(r.height) }; };
       return { segs: bx(document.querySelector('.pw-id .rl-readwrap')),
         foot: bx(document.getElementById('pt-nego-foot')),
         title: bx(document.querySelector('.pw-id-main')) };
     });
-    check('1b the readings and the deal verbs share one line',
-      !!row2.segs && !!row2.foot && Math.abs(row2.segs.y - row2.foot.y) <= 6,
+    check('1b the readings and the deal verbs share one line, centred on it',
+      !!row2.segs && !!row2.foot && Math.abs(row2.segs.mid - row2.foot.mid) <= 2,
       JSON.stringify(row2));
     check('1b with the readings on its LEFT, as on the negotiation page',
       !!row2.segs && !!row2.foot && row2.segs.l < row2.foot.l,
