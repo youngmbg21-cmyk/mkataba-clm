@@ -171,8 +171,8 @@ function folderExpiryCell(c){
 // Render up to state.folderShown rows as a table body, with a "Show more" pager.
 function folderRowsHtml(cs){
   if(!cs.length) return `<tr><td colspan="8" style="padding:44px 20px;text-align:center">
-      <div style="font-size:14px;font-weight:600;color:var(--color-text)">${(state.folderQuery||'').trim()?`No contracts match "${state.folderQuery}"`:'No contracts in this value stream yet'}</div>
-      <div style="font-size:13px;color:var(--color-neutral-600);margin-top:4px">${(state.folderQuery||'').trim()?'Clear the search, or ask HaTi Copilot to look across all folders.':'Create one with New contract, or upload received paper.'}</div>
+      <div style="font-size:14px;font-weight:600;color:var(--color-text)">${(state.folderQuery||'').trim()?i18t('reg_stream_none_match',{q:state.folderQuery}):i18t('reg_stream_none_yet')}</div>
+      <div style="font-size:13px;color:var(--color-neutral-600);margin-top:4px">${(state.folderQuery||'').trim()?i18t('reg_stream_widen'):i18t('reg_stream_create_hint')}</div>
     </td></tr>`;
   const shown=Math.min(cs.length, state.folderShown||FOLDER_PAGE);
   const sel=state.folderSel||{};
@@ -633,7 +633,7 @@ function regRowsHtml(cs){
     const sub  = filtered ? i18t('reg_widen') : i18t('reg_create_from_template');
     const btn  = filtered
       ? `<button id="reg-empty-clear" class="ui-btn" style="font-size:13px;padding:6px 14px">${i18t('reg_clear_all_filters')}</button>`
-      : `<button id="reg-empty-new" class="ui-btn ui-btn-primary" style="font-size:13px;padding:6px 14px">+ New contract</button>`;
+      : `<button id="reg-empty-new" class="ui-btn ui-btn-primary" style="font-size:13px;padding:6px 14px">${i18t('pg_new_contract')}</button>`;
     return `<tr><td colspan="8" style="padding:48px 12px;text-align:center">
       <div style="max-width:340px;margin:0 auto">
         <div style="width:44px;height:44px;margin:0 auto 12px;display:grid;place-items:center;border-radius:0;background:var(--color-bg);color:var(--color-neutral-500)">${icon('list','w-5 h-5')}</div>

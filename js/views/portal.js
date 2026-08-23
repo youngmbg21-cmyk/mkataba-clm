@@ -697,7 +697,7 @@ function portalSetBusy(pressedId, label){
   for(const b of portalActionButtons()){
     if(!b.dataset.idle) b.dataset.idle=b.innerHTML;
     b.disabled=true; b.style.opacity='.5'; b.style.cursor='default';
-    if(b.id===pressedId) b.innerHTML=esc(label||'Sending…');
+    if(b.id===pressedId) b.innerHTML=esc(label||i18t('po_sending'));
   }
 }
 function portalSetIdle(){
@@ -1802,10 +1802,10 @@ function portalNegoFootHtml(p){
            reader holding decisions there would otherwise have no batch send at
            all. Same reasoning as the sentences this flag already stands down.
            The per-card Send is untouched on both. */}
-    ${n && !PORTAL_FOOT_COMPACT?`<button id="pt-nego-send" class="ui-btn ui-btn-primary nego-pulse" style="flex:none;font-size:14px;padding:8px 15px">Send ${n} decision${n===1?'':'s'}</button>`:''}
+    ${n && !PORTAL_FOOT_COMPACT?`<button id="pt-nego-send" class="ui-btn ui-btn-primary nego-pulse" style="flex:none;font-size:14px;padding:8px 15px">${i18tn('po_send_n_decisions',n,{n})}</button>`:''}
     <button id="pt-nego-ready" class="ui-btn" ${readyOk&&!spent?'':'disabled'}
-      title="${esc(spent?'You have told them you are ready — they issue the signing link.':readyOk?'Tell them you are ready to sign':whyNot)}"
-      style="flex:none;font-size:13px;padding:8px 14px">${spent?'Readiness sent &#10003;':'Ready to sign'}</button>
+      title="${esc(spent?i18t('po_ready_spent_title'):readyOk?i18t('po_ready_tell_title'):whyNot)}"
+      style="flex:none;font-size:13px;padding:8px 14px">${spent?i18t('po_readiness_sent'):i18t('po_ready_to_sign')}</button>
     <button id="pt-nego-decline" class="ui-btn" style="flex:none;font-size:13px;padding:8px 14px;color:var(--st-ruby-dot);border-color:color-mix(in srgb,var(--st-ruby-dot) 40%,transparent)">${i18t('po_decline')}</button>
     ${portalCanDerive()?`<button id="pt-derive" class="ui-btn" style="flex:none;font-size:13px;padding:8px 14px"
       title="${i18t('po_mint_readonly')}">${i18t('po_share_readonly')}</button>`:''}`;
@@ -3847,7 +3847,7 @@ async function portalRespond(p, action, extra){
     const pressed=action==='ready'
       ? (document.getElementById('pt-nego-ready') ? 'pt-nego-ready' : 'nego-cp-ready')
       : (document.getElementById('nego-send-decisions') ? 'nego-send-decisions' : 'pt-nego-send');
-    portalSetBusy(pressed, action==='ready'?'Sending…':'Sending…');
+    portalSetBusy(pressed, i18t('po_sending'));
     try{
       /* THE RESPONSE IS THE BODY, as it is for every other action on this
          route — the server reads req.body.kind directly. This one call wrapped
@@ -3868,9 +3868,9 @@ async function portalRespond(p, action, extra){
          this could produce, so a reader who had sent nothing but their own
          proposed wording was told a number that did not describe it. */
       const sentBits=[];
-      if(np) sentBits.push(`${np} change${np===1?'':'s'} you asked for`);
-      if(n) sentBits.push(`${n} decision${n===1?'':'s'}`);
-      const sentWhat=sentBits.join(' and ')||'your answer';
+      if(np) sentBits.push(i18tn('po_n_proposals',np,{n:np}));
+      if(n) sentBits.push(i18tn('po_n_decisions',n,{n}));
+      const sentWhat=sentBits.join(` ${i18t('po_and')} `)||i18t('po_your_answer');
       /* ---- 'ok', NOT A BARE CALL (15 Aug 2026, OI-10) ----
          These two confirm an act that has LEFT THIS PAGE and reached the other
          company, which is the test for whether a toast is owed: it travels and
@@ -3880,12 +3880,12 @@ async function portalRespond(p, action, extra){
          that. The button's own label changes too (portalSetDone), but a label
          on the control you pressed is not a confirmation you notice. */
       if(action==='ready'){
-        portalSetDone(pressed,'Sent — they know you are ready');
-        toast(`${p.org||'The sender'} has been told you are ready to sign`
-          +`${sentBits.length?` — ${sentWhat} sent with it`:''}. Nothing is signed yet; they will send a signing link.`,'ok');
+        portalSetDone(pressed,i18t('po_ready_done'));
+        toast(i18t('po_ready_toast',{ org:p.org||i18t('po_the_sender_generic'),
+          extra:sentBits.length?i18t('po_ready_toast_extra',{what:sentWhat}):'' }),'ok');
       } else {
-        portalSetDone(pressed,`${sentWhat} sent`);
-        toast(`${sentWhat} sent to ${p.org||'the sender'} — it is now their turn.`,'ok');
+        portalSetDone(pressed,i18t('po_answer_done',{what:sentWhat}));
+        toast(i18t('po_answer_toast',{what:sentWhat,org:p.org||i18t('po_the_sender_generic')}),'ok');
       }
       /* Repaint, so the room shows the decisions as sent rather than still
          waiting to be. The room is their page — there is nowhere else for the
@@ -3955,14 +3955,15 @@ async function portalRespond(p, action, extra){
     clauseNotes: (clauseNotes&&clauseNotes.length)?clauseNotes:null,
     signatureForm:sig?sig.form:null, signatureImage:sig?sig.image:null, signatureImageHash:sig?sig.imageHash:null,
     signatureTypedName:sig?sig.typedName:null, signatureFont:sig?sig.font:null };
-  const label={sign:'signature',accept:'acceptance',changes:'change request',decline:'decline notice'}[sendAction];
+  const label={sign:i18t('po_lab_signature'),accept:i18t('po_lab_acceptance'),
+    changes:i18t('po_lab_change_request'),decline:i18t('po_lab_decline_notice')}[sendAction];
   // Which control the reader actually pressed, so it is the one that reports back.
   const pressed={sign:'pt-sign',accept:'pt-accept',redline:'pt-redline-submit',
     changes:'pt-changes',decline:'pt-decline'}[action] || null;
-  const doneLabel={sign:'Signed and sent',accept:'Acceptance sent',
-    changes:'Change request sent',decline:'Decline sent'}[sendAction]||'Sent';
+  const doneLabel={sign:i18t('po_done_signed_sent'),accept:i18t('po_done_acceptance_sent'),
+    changes:i18t('po_done_changes_sent'),decline:i18t('po_done_decline_sent')}[sendAction]||i18t('po_done_sent');
   if(PORTAL_OPTS.token){
-    portalSetBusy(pressed,'Sending…');
+    portalSetBusy(pressed,i18t('po_sending'));
     try{
       await api('shares/'+PORTAL_OPTS.token+'/respond','POST',response);
       portalSetDone(pressed, doneLabel);
@@ -3973,7 +3974,7 @@ async function portalRespond(p, action, extra){
       if(action==='redline'){ PORTAL_CLAUSE_EDITS={}; PORTAL_CLAUSE_NOTES={}; }
       document.getElementById('portal-result').innerHTML=`
         <div style="border:1px solid color-mix(in srgb,var(--st-green-dot) 30%,transparent);background:var(--st-green-bg);border-radius:0;padding:16px;text-align:center;">
-          <div style="display:flex;align-items:center;justify-content:center;gap:6px;color:var(--st-green-fg);font-size:14px;font-weight:600;margin-bottom:4px;">${icon('check2','w-4 h-4')} ${label[0].toUpperCase()+label.slice(1)} delivered</div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:6px;color:var(--st-green-fg);font-size:14px;font-weight:600;margin-bottom:4px;">${icon('check2','w-4 h-4')} ${i18t('po_delivered',{what:label[0].toUpperCase()+label.slice(1)})}</div>
           <p style="font-size:12px;color:var(--color-neutral-700);margin:0;">${i18t('po_notified_done',{who:esc(p.sharedBy),org:esc(p.org)})}</p>
         </div>`;
     }catch(e){
@@ -3982,7 +3983,7 @@ async function portalRespond(p, action, extra){
       portalSetIdle();
       toast(e.message,'err');
       const box=document.getElementById('portal-result');
-      if(box) box.innerHTML=`<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:0;padding:12px 14px;font-size:13px;line-height:1.55;color:var(--st-ruby-fg)"><b>${i18t('po_not_sent')}</b> ${esc(e.message||'Something went wrong.')}</div>`;
+      if(box) box.innerHTML=`<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:0;padding:12px 14px;font-size:13px;line-height:1.55;color:var(--st-ruby-fg)"><b>${i18t('po_not_sent')}</b> ${esc(e.message||i18t('po_something_went_wrong'))}</div>`;
     }
     return;
   }
@@ -4315,7 +4316,7 @@ async function portalStartOtp(p, info){
     <div style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:13px;">
       <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--color-text);margin-bottom:4px;">${icon('key','w-3.5 h-3.5')} ${i18t('po_verify_to_sign')}</div>
       <p style="font-size:12px;color:var(--color-neutral-600);margin:0 0 8px;line-height:1.5;">${i18t('po_sent_code_to',{email:esc(sentTo)})}</p>
-      ${(sentTo&&info.email&&sentTo.toLowerCase()!==String(info.email||'').toLowerCase())?`<p style="margin:0 0 8px;font-size:12px;border-radius:0;background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border:1px solid color-mix(in srgb,var(--st-amber-dot) 30%,transparent);color:var(--st-amber-fg);padding:6px 10px;line-height:1.5;">${i18t('po_code_goes_only_to')} <strong>${esc(sentTo)}</strong>, the address the sender invited — not to the address typed above. If somebody else should be signing, ask the sender to add them to the signing route so they get their own link.</p>`:''}
+      ${(sentTo&&info.email&&sentTo.toLowerCase()!==String(info.email||'').toLowerCase())?`<p style="margin:0 0 8px;font-size:12px;border-radius:0;background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border:1px solid color-mix(in srgb,var(--st-amber-dot) 30%,transparent);color:var(--st-amber-fg);padding:6px 10px;line-height:1.5;">${i18t('po_code_goes_only_to_full',{email:esc(sentTo)})}</p>`:''}
       ${emailSent?'':`<p style="margin:0 0 8px;font-size:12px;border-radius:0;background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border:1px solid color-mix(in srgb,var(--st-amber-dot) 30%,transparent);color:var(--st-amber-fg);padding:6px 10px;line-height:1.5;">${esc(emailWhy||i18t('po_code_not_sent_generic'))} ${i18t('po_ask_sender_for_code',{who:esc((PORTAL_OPTS.payload&&PORTAL_OPTS.payload.sharedBy)||i18t('po_the_sender'))})}</p>`}
       <input id="pt-otp" inputmode="numeric" maxlength="6" placeholder="______" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:8px 11px;text-align:center;font-size:18px;font-family:var(--font-mono);letter-spacing:.4em;color:var(--color-text);outline:none;"/>
       <button id="pt-otp-go" class="ui-btn ui-btn-primary" style="margin-top:8px;width:100%;padding:9px;font-size:14px;">${icon('finger','w-4 h-4')} ${i18t('po_verify_and_sign')}</button>
@@ -4330,8 +4331,8 @@ async function portalStartOtp(p, info){
   let _cd=null;
   const tickCooldown=()=>{
     const left=Math.ceil((RESEND_COOLDOWN-(Date.now()-_ptLastOtpSend))/1000);
-    if(left>0){ resendBtn.disabled=true; resendBtn.style.opacity='.55'; resendBtn.style.cursor='default'; resendBtn.textContent=`Resend code in ${left}s`; }
-    else { resendBtn.disabled=false; resendBtn.style.opacity=''; resendBtn.style.cursor='pointer'; resendBtn.textContent='Resend code'; if(_cd){ clearInterval(_cd); _cd=null; } }
+    if(left>0){ resendBtn.disabled=true; resendBtn.style.opacity='.55'; resendBtn.style.cursor='default'; resendBtn.textContent=i18t('po_resend_code_in',{n:left}); }
+    else { resendBtn.disabled=false; resendBtn.style.opacity=''; resendBtn.style.cursor='pointer'; resendBtn.textContent=i18t('po_resend_code'); if(_cd){ clearInterval(_cd); _cd=null; } }
   };
   tickCooldown(); _cd=setInterval(tickCooldown, 1000);
   resendBtn.addEventListener('click',()=>{

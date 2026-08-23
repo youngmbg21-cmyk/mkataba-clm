@@ -165,7 +165,7 @@ const AI_CHART_RECIPES = {
     if (!cs.length) return null;
     const counts = order.map(s => cs.filter(c => c.status === s).length);
     if (!counts.some(Boolean)) return null;
-    return _acConfig('doughnut', { labels: order, datasets: [{ label: 'Contracts', data: counts,
+    return _acConfig('doughnut', { labels: order, datasets: [{ get label(){ return _acT('ch_s_contracts','Contracts'); }, data: counts,
       backgroundColor: [ AC_MUTED, AC_WARN, AC_GOOD, AC_BAD ], borderWidth: 0 }] });
   },
 
@@ -184,7 +184,7 @@ const AI_CHART_RECIPES = {
     }
     if (!bands.Low && !bands.Medium && !bands.High) return null;
     return _acConfig('doughnut', { labels: Object.keys(bands),
-      datasets: [{ label: 'Contracts', data: Object.values(bands),
+      datasets: [{ get label(){ return _acT('ch_s_contracts','Contracts'); }, data: Object.values(bands),
         backgroundColor: [ AC_GOOD, AC_WARN, AC_BAD ], borderWidth: 0 }] });
   },
 
@@ -203,7 +203,7 @@ const AI_CHART_RECIPES = {
        quarter is the one somebody has to act on this month. */
     const colour = (_, i) => i < 3 ? AC_BAD : i < 6 ? AC_WARN : AC_ACCENT;
     return _acConfig('bar', { labels: months.map(_acMonthLabel),
-      datasets: [{ label: 'Contracts expiring', data: months.map(m => buckets[m]),
+      datasets: [{ get label(){ return _acT('ch_s_contracts_expiring','Contracts expiring'); }, data: months.map(m => buckets[m]),
         backgroundColor: months.map(colour), borderRadius: 4 }] }, { legend: false });
   },
 
@@ -218,7 +218,7 @@ const AI_CHART_RECIPES = {
     /* Horizontal, because counterparty names are words and a vertical bar chart
        turns them into rotated stubs nobody reads. */
     const cfg = _acConfig('bar', { labels: top.map(x => x[0]),
-      datasets: [{ label: 'Contract value', data: top.map(x => x[1]),
+      datasets: [{ get label(){ return _acT('ch_s_contract_value','Contract value'); }, data: top.map(x => x[1]),
         backgroundColor: AC_ACCENT, borderRadius: 4, _unit: 'money' }] },
       { legend: false, unit: 'money', scales: {
         x: { beginAtZero: true, grid: _acGrid,
@@ -242,9 +242,9 @@ const AI_CHART_RECIPES = {
     }
     if (!any) return null;
     const cfg = _acConfig('bar', { labels: months.map(_acMonthLabel), datasets: [
-      { type: 'bar', label: 'Value up for renewal', data: months.map(m => value[m]),
+      { type: 'bar', label: _acT('ch_s_value_up_for_renewal','Value up for renewal'), data: months.map(m => value[m]),
         backgroundColor: AC_ACCENT, borderRadius: 4, yAxisID: 'y', _unit: 'money' },
-      { type: 'line', label: 'Decisions due', data: months.map(m => count[m]),
+      { type: 'line', label: _acT('ch_s_decisions_due','Decisions due'), data: months.map(m => count[m]),
         borderColor: AC_WARN, backgroundColor: AC_WARN, tension: .3, yAxisID: 'y1' },
     ] }, { unit: 'money' });
     cfg.options.scales = {
@@ -270,8 +270,8 @@ const AI_CHART_RECIPES = {
     const value = ids.map(id => cs.filter(c => c.folder === id).reduce((s, c) => s + _acVal(c), 0));
     if (!count.some(Boolean)) return null;
     const cfg = _acConfig('bar', { labels: ids.map(id => F[id].name), datasets: [
-      { type: 'bar', label: 'Contracts', data: count, backgroundColor: AC_ACCENT, borderRadius: 4, yAxisID: 'y' },
-      { type: 'line', label: 'Value', data: value, borderColor: AC_GOOD, backgroundColor: AC_GOOD,
+      { type: 'bar', label: _acT('ch_s_contracts','Contracts'), data: count, backgroundColor: AC_ACCENT, borderRadius: 4, yAxisID: 'y' },
+      { type: 'line', label: _acT('ch_s_value','Value'), data: value, borderColor: AC_GOOD, backgroundColor: AC_GOOD,
         tension: .3, yAxisID: 'y1', _unit: 'money' },
     ] });
     cfg.options.scales = {
@@ -309,7 +309,7 @@ const AI_CHART_RECIPES = {
     const labels = Object.keys(spans).filter(k => spans[k].length);
     if (!labels.length) return null;
     const avg = labels.map(k => Math.round(spans[k].reduce((a, b) => a + b, 0) / spans[k].length));
-    return _acConfig('bar', { labels, datasets: [{ label: 'Average days', data: avg,
+    return _acConfig('bar', { labels, datasets: [{ get label(){ return _acT('ch_s_average_days','Average days'); }, data: avg,
       backgroundColor: AC_ACCENT, borderRadius: 4 }] }, { legend: false });
   },
 
@@ -334,7 +334,7 @@ const AI_CHART_RECIPES = {
     if (!any) return null;
     const labels = ['Overdue'].concat(months.map(_acMonthLabel));
     const data = [overdue].concat(months.map(m => open[m]));
-    return _acConfig('bar', { labels, datasets: [{ label: 'Open obligations', data,
+    return _acConfig('bar', { labels, datasets: [{ get label(){ return _acT('ch_s_open_obligations','Open obligations'); }, data,
       backgroundColor: labels.map((_, i) => i === 0 ? AC_BAD : AC_ACCENT), borderRadius: 4 }] },
       { legend: false });
   },
@@ -345,17 +345,23 @@ const AI_CHART_RECIPES = {
    are always comparable. The unit is declared here and enforced at build time:
    a chart mixing KES with a count has two different meanings on one axis, which
    is a chart that lies without stating a single false number. */
+/* EVERY LABEL HERE IS A GETTER, and it has to be twice over: this is a
+   top-level object literal, so a plain call would freeze the label at the
+   language current when the file loaded (the getter trap, met a fifth time) —
+   and _acT is declared further down the file, so a load-time call is inside its
+   temporal dead zone and throws outright. A getter body runs when the label is
+   read, which answers both. */
 const AI_SERIES = {
-  'contracts.signed':    { label: 'Contracts signed',       unit: 'count',
+  'contracts.signed':    { get label(){ return _acT('ch_s_contracts_signed','Contracts signed'); },       unit: 'count',
     at: (cs, k) => cs.filter(c => c.status === 'Signed' && String(c.signedAt || '').slice(0, 7) === k).length },
-  'contracts.expiring':  { label: 'Contracts expiring',     unit: 'count',
+  'contracts.expiring':  { get label(){ return _acT('ch_s_contracts_expiring','Contracts expiring'); },     unit: 'count',
     at: (cs, k) => cs.filter(c => String(_acExpiry(c) || '').slice(0, 7) === k).length },
-  'value.expiring':      { label: 'Value expiring',         unit: 'money',
+  'value.expiring':      { get label(){ return _acT('ch_s_value_expiring','Value expiring'); },         unit: 'money',
     at: (cs, k) => cs.filter(c => String(_acExpiry(c) || '').slice(0, 7) === k).reduce((s, c) => s + _acVal(c), 0) },
-  'renewals.due':        { label: 'Renewal decisions due',  unit: 'count',
+  'renewals.due':        { get label(){ return _acT('ch_s_renewal_decisions_due','Renewal decisions due'); },  unit: 'count',
     at: (cs, k) => typeof window.renewalDecisionDate === 'function'
       ? cs.filter(c => String(renewalDecisionDate(c) || '').slice(0, 7) === k).length : 0 },
-  'obligations.due':     { label: 'Obligations due',        unit: 'count',
+  'obligations.due':     { get label(){ return _acT('ch_s_obligations_due','Obligations due'); },        unit: 'count',
     at: (_, k) => typeof window.allObligations === 'function'
       ? allObligations().filter(o => _acObState(o) !== 'done'
           && String(_acDue(o) || '').slice(0, 7) === k).length : 0 },
@@ -769,7 +775,7 @@ function _acBreakdownRows(group, measure){
     if (rows.length <= AC_BD_TOPN) return rows;
     const top = rows.slice(0, AC_BD_TOPN);
     const rest = rows.slice(AC_BD_TOPN).reduce((s, r) => s + r.value, 0);
-    if (rest) top.push({ label: 'Other', value: rest });
+    if (rest) top.push({ get label(){ return _acT('ch_s_other_slice','Other'); }, value: rest });
     return top;
   }
   if (group === 'status'){

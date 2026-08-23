@@ -42,6 +42,8 @@ const SAME_IN_BOTH = new Set([
      phrase — the one ng_clm already used — rather than a second wording. */
   'cal_three_months',     // '{from} — {to}' — two slots and an em dash; the
                           // month names inside them turn over on their own
+  'act_ok',               // 'OK' is 'OK' — the one dialog button that needs
+                          // no translating in either language
   'nav_administration',   // identical spelling in Swedish
   'reg_col_status',       // ditto
   'reg_in_days',          // '{n} d' — a number and a unit, no words (the

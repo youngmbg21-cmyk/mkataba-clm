@@ -346,11 +346,19 @@ function openCreateTemplateModal(mode){
       const lists=(editor.get().match(/<(ol|ul)\b/g)||[]).length;
       const heads=(editor.get().match(/<h[1-4]\b/g)||[]).length;
       const tables=(editor.get().match(/<table\b/g)||[]).length;
-      const kept=[ heads?`${heads} heading${heads===1?'':'s'}`:'',
-                   lists?`${lists} list${lists===1?'':'s'}`:'',
-                   tables?`${tables} table${tables===1?'':'s'}`:'' ].filter(Boolean).join(' · ');
+      const kept=[ heads?i18tn('lib_kept_headings',heads,{n:heads}):'',
+                   lists?i18tn('lib_kept_lists',lists,{n:lists}):'',
+                   tables?i18tn('lib_kept_tables',tables,{n:tables}):'' ].filter(Boolean).join(' · ');
       if(report.ok){
-        rep(`<span style="color:var(--color-neutral-700)">${i18t('lib_converted')} <b>${t.length.toLocaleString()}</b> characters${kept?` — ${kept} kept`:''}${res.via==='text'?' · pasted as plain text (the source offered no formatting)':''}. <b>${i18t('lib_preview')}</b> ${i18t('lib_it_before_saving')}</span>`);
+        /* ONE SENTENCE WITH NAMED HOLES. It used to be six fragments glued
+           together — half translated, half not — which is a shape no
+           translator can put right, because word order is not the same in
+           both languages. */
+        rep(`<span style="color:var(--color-neutral-700)">${i18t('lib_paste_report',{
+          n: t.length.toLocaleString(),
+          kept: kept?i18t('lib_paste_kept',{what:kept}):'',
+          via: res.via==='text'?i18t('lib_paste_via_text'):'',
+          preview: i18t('lib_preview') })}</span>`);
       } else {
         rep(`<span style="display:block;border:1px solid var(--st-ruby-line);background:rgba(176,69,60,.06);border-radius:0;padding:8px 10px;color:var(--st-ruby-fg)">
           <b>${i18t('lib_did_not_come_across')}</b> ${_tplEsc(report.reason)}

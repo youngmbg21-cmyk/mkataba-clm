@@ -618,7 +618,17 @@ function toggleAIExpand(force){
   if(typeof aiSyncDock==='function') aiSyncDock();
   const b=document.getElementById('ai-expand');
   if(b){
-    b.title=want?'Shrink the panel':'Expand the panel';
+    /* ---- AND THE ATTRIBUTE MOVES WITH THE TITLE ----
+       This wrote an English literal, and it runs on every open (the stored
+       expanded state is restored there), so it OVERWROTE the data-i18n-title
+       the markup carries: the tooltip was correct in the markup, correct after
+       a language switch, and English again the moment the panel was opened.
+       Only a real browser could see that, and one did. The attribute is
+       rewritten too, or the next applyLanguage puts back the word for the
+       state the panel is no longer in. */
+    const tk = want ? 'ai_shrink_panel' : 'ai_expand_panel';
+    b.setAttribute('data-i18n-title', tk);
+    b.title = i18t(tk);
     // chevrons flip: « to grow leftward, » to shrink back
     b.innerHTML=want
       ?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 17l5-5-5-5"/><path d="M6 17l5-5-5-5"/></svg>'
@@ -1611,9 +1621,12 @@ function copilotAvailable(){
    answering. */
 function copilotBrainInfo(){
   const server = typeof API_MODE==='function' && API_MODE();
-  if(server && state.aiConfigured) return { live:true,  label:'Claude Copilot · via server',    hint:'Answers come from Claude, routed through your HaTi server.' };
-  if(!server && _localAiKey())     return { live:true,  label:'Claude Copilot · this browser',  hint:'Answers come from Claude, called directly from this browser with your saved key.' };
-  return { live:false, label:'Basic mode — add a key for Copilot', hint:'No Copilot key found — answers use the built-in keyword interpreter. Add an Anthropic key in Team & Settings → Copilot engine.' };
+  /* Read at CALL time, never frozen into a table: this function is re-run on
+     every panel open, so a reader who changes language mid-session gets the
+     new words without a reload (the getter trap, avoided by construction). */
+  if(server && state.aiConfigured) return { live:true,  label:i18t('ai_brain_server'),  hint:i18t('ai_brain_server_hint') };
+  if(!server && _localAiKey())     return { live:true,  label:i18t('ai_brain_browser'), hint:i18t('ai_brain_browser_hint') };
+  return { live:false, label:i18t('ai_brain_basic'), hint:i18t('ai_brain_basic_hint') };
 }
 /* Refresh the main panel's header subtitle to show the live brain. */
 function updateAiBrainPill(){

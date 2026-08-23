@@ -1578,7 +1578,7 @@ function renderMustChangePassword(){
     <div style="min-height:100vh;display:grid;place-items:center;background:var(--color-bg);padding:0 16px;">
       <div style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:0;padding:30px;max-width:25rem;width:100%;">
         <h1 style="font-family:var(--font-heading);font-weight:600;font-size:20px;color:var(--color-text);margin:0 0 6px;">${i18t('co_choose_own_password')}</h1>
-        <p style="font-size:14px;color:var(--color-neutral-700);margin:0 0 16px;line-height:1.55;">Your account was created with a temporary password someone else chose. Set your own before you continue — anything you sign has to be attributable to you alone.</p>
+        <p style="font-size:14px;color:var(--color-neutral-700);margin:0 0 16px;line-height:1.55;">${i18t('co_temp_password_body')}</p>
         <input id="cp-current" type="password" placeholder="${i18t('co_temporary_password')}" style="${F}"/>
         <input id="cp-new" type="password" placeholder="${i18t('co_new_password_min')}" style="${F}"/>
         <input id="cp-again" type="password" placeholder="${i18t('co_repeat_password')}" style="${F}"/>
@@ -1591,12 +1591,12 @@ function renderMustChangePassword(){
     const again=document.getElementById('cp-again').value;
     const err=document.getElementById('cp-err');
     const fail=m=>{ err.textContent=m; err.classList.remove('hidden'); };
-    if(nw.length<8) return fail('The new password must be at least 8 characters.');
-    if(nw!==again) return fail('The two new passwords do not match.');
+    if(nw.length<8) return fail(i18t('co_password_too_short'));
+    if(nw!==again) return fail(i18t('co_passwords_differ'));
     try{
       await api('password/change','POST',{ current:cur, password:nw });
       if(REMOTE&&REMOTE.me&&REMOTE.me.prefs) delete REMOTE.me.prefs.mustChangePassword;
-      toast('Password updated — karibu');
+      toast(i18t('co_password_updated'));
       startApp();
     }catch(e){ fail(e.message); }
   });
@@ -2068,10 +2068,14 @@ function openSidePanel(html, opts={}){
    never clobbers an open modal in #modal-root. Usage:
      if(!await confirmDialog({title, message})) return; */
 function confirmDialog(opts={}){
-  const title=opts.title||'Are you sure?';
+  /* THE DEFAULTS ARE WHAT MOST CALLERS GET, so a hardcoded English default is
+     not a small gap: about fifty dialogs across both shells took these words
+     without passing their own, and a Swedish reader met "Cancel" under a
+     translated heading — on the counterparty's page too. */
+  const title=opts.title||i18t('act_are_you_sure');
   const message=opts.message||'';
-  const confirmLabel=opts.confirmLabel||'Confirm';
-  const cancelLabel=opts.cancelLabel||'Cancel';
+  const confirmLabel=opts.confirmLabel||i18t('act_confirm');
+  const cancelLabel=opts.cancelLabel||i18t('act_cancel');
   const danger=!!opts.danger;
   const esc=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
   return new Promise(resolve=>{
@@ -2121,8 +2125,8 @@ function promptDialog(opts={}){
   const message=opts.message||'';
   const label=opts.label||'';
   const placeholder=opts.placeholder||'';
-  const confirmLabel=opts.confirmLabel||'OK';
-  const cancelLabel=opts.cancelLabel||'Cancel';
+  const confirmLabel=opts.confirmLabel||i18t('act_ok');   /* see confirmDialog above */
+  const cancelLabel=opts.cancelLabel||i18t('act_cancel');
   const esc=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
   return new Promise(resolve=>{
     const prev=document.getElementById('prompt-overlay'); if(prev) prev.remove();
@@ -2565,12 +2569,17 @@ function defaultSharePurpose(c){
   return settled?'sign':'negotiate';
 }
 const SHARE_PURPOSE_COPY={
-  negotiate:{ label:'Negotiate', get title(){ return i18t('co_purpose_negotiate'); },
+  /* EVERY MEMBER IS A GETTER, so the whole row turns over together. Two of
+     these were plain English literals while their siblings were getters — one
+     card in a row of three in the wrong language, which reads as a rendering
+     fault rather than as a missing translation. AND THEY MUST STAY GETTERS:
+     an object literal freezes load-time language (the getter trap). */
+  negotiate:{ get label(){ return i18t('co_purpose_negotiate_label'); }, get title(){ return i18t('co_purpose_negotiate'); },
     get blurb(){ return i18t('co_purpose_negotiate_sub'); } },
   sign:{ get label(){ return i18t('act_sign'); }, get title(){ return i18t('co_purpose_sign'); },
     get blurb(){ return i18t('co_purpose_sign_sub'); } },
   view:{ get label(){ return i18t('co_purpose_view'); }, get title(){ return i18t('co_purpose_view_sub'); },
-    blurb:'For an advisor, an insurer, a lawyer being asked whether this is normal. They see the wording and the redlines as they stand today, and cannot respond, edit or sign. Your comments and internal notes never leave this workspace.' },
+    get blurb(){ return i18t('co_purpose_view_blurb'); } },
 };
 /* ---------- THE FIRST QUESTION, WHICH USED NOT TO BE ASKED ----------
    Share opened straight into "what is this link for?" and offered Sign and
@@ -2607,13 +2616,11 @@ function shareKindOptionsHtml(c, sel){
     </button>`;
   return `
     <div id="share-kind" style="display:flex;flex-direction:column;gap:9px">
-      ${card('contract','The contract',
-        'The wording, with whatever they are allowed to do to it — sign it, propose changes to it, or read it and nothing more.',
+      ${card('contract',i18t('co_share_kind_contract'),
+        i18t('co_share_kind_contract_sub'),
         sel!=='history', false)}
-      ${card('history','The negotiation history',
-        hasHistory
-          ? 'The Negotiation history screen, opened by somebody with no account — every change, who asked, and what was decided. Read-only: the agreement itself does not travel and there is nothing on it to sign.'
-          : 'Nothing has been proposed on this contract yet, so there is no record to send.',
+      ${card('history',i18t('co_share_kind_history'),
+        hasHistory ? i18t('co_share_kind_history_sub') : i18t('co_share_kind_history_none'),
         sel==='history', !hasHistory)}
     </div>`;
 }
@@ -2626,7 +2633,7 @@ function shareKindStepHtml(c, sel){
       ${shareKindOptionsHtml(c, sel)}
       <div style="margin-top:14px;display:flex;align-items:center;gap:8px;justify-content:flex-end;">
         <button id="share-close-kind" class="ui-btn">${i18t('act_close')}</button>
-        <button id="share-kind-next" class="ui-btn ui-btn-primary">Next ${icon('arrow-right','w-3.5 h-3.5')}</button>
+        <button id="share-kind-next" class="ui-btn ui-btn-primary">${i18t('act_next')} ${icon('arrow-right','w-3.5 h-3.5')}</button>
       </div>
     </div>`;
 }
@@ -2782,7 +2789,7 @@ function shareSummaryStepHtml(c, opts={}){
       <div style="margin-top:14px;display:flex;align-items:center;gap:8px;justify-content:flex-end;">
         <button id="share-back-kind" class="ui-btn">${icon('arrow-right','w-3.5 h-3.5')} Back</button>
         <button id="share-close-1" class="ui-btn">${i18t('act_close')}</button>
-        <button id="share-next" class="ui-btn ui-btn-primary">Next ${icon('arrow-right','w-3.5 h-3.5')}</button>
+        <button id="share-next" class="ui-btn ui-btn-primary">${i18t('act_next')} ${icon('arrow-right','w-3.5 h-3.5')}</button>
       </div>
     </div>`;
 }

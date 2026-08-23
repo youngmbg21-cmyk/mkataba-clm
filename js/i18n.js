@@ -105,6 +105,13 @@ const STRINGS = {
     act_save: 'Save',
     act_cancel: 'Cancel',
     act_close: 'Close',
+    /* THE DEFAULT ANSWERS ON EVERY DIALOG IN THE PRODUCT. confirmDialog and
+       promptDialog defaulted their two buttons to English literals, so about
+       fifty dialogs across both shells — the counterparty's page included —
+       drew "Cancel" under a translated heading. A default is what MOST
+       callers get, so a hardcoded one is not a small gap. */
+    act_ok: 'OK',
+    act_are_you_sure: 'Are you sure?',
     act_delete: 'Delete',
     act_edit: 'Edit',
     act_open: 'Open',
@@ -206,6 +213,22 @@ const STRINGS = {
     lib_pasting_more_faithful: 'pasting is still more faithful',
     lib_because_clipboard: ', because the clipboard carries the structure outright instead of leaving it to be inferred.',
     lib_document_file: 'Document file',
+    /* ---- ONE SENTENCE, NOT SIX FRAGMENTS ----
+       The paste report was built by alternating translated words with English
+       ones — "Konverterade 4 312 characters — 3 headings kept · pasted as
+       plain text. Förhandsgranska it before saving." Fragments cannot be
+       translated: word order differs between languages, and a sentence
+       assembled from pieces is a sentence no translator can fix. Whole
+       sentences with named holes instead. */
+    lib_paste_report: 'Converted <b>{n}</b> characters{kept}{via}. <b>{preview}</b> it before saving.',
+    lib_paste_kept: ' — {what} kept',
+    lib_paste_via_text: ' · pasted as plain text (the source offered no formatting)',
+    lib_kept_headings_one: '{n} heading',
+    lib_kept_headings_other: '{n} headings',
+    lib_kept_lists_one: '{n} list',
+    lib_kept_lists_other: '{n} lists',
+    lib_kept_tables_one: '{n} table',
+    lib_kept_tables_other: '{n} tables',
     lib_converted: 'Converted',
     lib_it_before_saving: 'it before saving.',
     lib_did_not_come_across: 'That did not come across properly.',
@@ -401,7 +424,119 @@ const STRINGS = {
     rep_export_btn: 'Download CSV',
     rep_health_btn: 'Portfolio health report',
     // -- charts leave the screen: the copy/PNG/CSV toolbar (js/aichart.js) --
+    /* THE STREAM DRAWER'S EMPTY STATE. Four English sentences on a page whose
+       every other word turns over — including the button, which the page
+       header two rows up already draws in Swedish from pg_new_contract. */
+    reg_stream_none_match: 'No contracts match "{q}"',
+    reg_stream_none_yet: 'No contracts in this value stream yet',
+    reg_stream_widen: 'Clear the search, or ask HaTi Copilot to look across all folders.',
+    reg_stream_create_hint: 'Create one with New contract, or upload received paper.',
+    /* THE COPILOT PANEL'S OWN CHROME. Four tooltips and the live sub-line
+       carried no data-i18n attribute at all, so the panel that answers in the
+       reader's language was framed entirely in English. */
+    ai_expand_panel: 'Expand the panel',
+    ai_shrink_panel: 'Shrink the panel',
+    ai_delete_conversation: 'Delete conversation',
+    ai_minimize_hint: "Minimize — you'll be notified when an answer arrives",
+    ai_searching_live: 'Searching your live contract data',
+    /* THE SUB-LINE IS REPAINTED BY SCRIPT, so the words that matter are these
+       three pairs rather than the markup — which is only what shows before the
+       panel is first opened. */
+    ai_brain_server: 'Claude Copilot · via server',
+    ai_brain_server_hint: 'Answers come from Claude, routed through your HaTi server.',
+    ai_brain_browser: 'Claude Copilot · this browser',
+    ai_brain_browser_hint: 'Answers come from Claude, called directly from this browser with your saved key.',
+    ai_brain_basic: 'Basic mode — add a key for Copilot',
+    ai_brain_basic_hint: 'No Copilot key found — answers use the built-in keyword interpreter. Add an Anthropic key in Team & Settings → Copilot engine.',
+    /* ---- WHAT THE SERVER SAYS, IN THE READER'S LANGUAGE ----
+       See SRV_MSG at the foot of this file for what is here and what is
+       deliberately not. The English side is the server's own sentence,
+       character for character, because that is the lookup key. */
+    srv_bad_credentials: 'Email or password is incorrect',
+    srv_not_signed_in: 'Not signed in',
+    srv_sign_in_again: 'Sign in again',
+    srv_session_expired: 'Session expired — please sign in again',
+    srv_code_window_closed: 'Sign in again — the code window has closed',
+    srv_current_password_wrong: 'Your current password is incorrect',
+    srv_password_min: 'Password must be at least 8 characters',
+    srv_password_reused: 'Choose a password you have not used here before',
+    srv_set_own_password_first: 'Set your own password before making changes',
+    srv_code_wrong: 'That code is not right',
+    srv_code_wrong_app: 'That code is not right — check the app and try again',
+    srv_code_expired: 'Code expired — request a new one',
+    srv_request_code_first: 'Request a code first',
+    srv_two_step_off_needs_code: 'A current code — or an unused recovery code — is needed to turn this off',
+    srv_admin_required: 'Admin access required',
+    srv_admin_or_editor_required: 'Admin or Editor access required',
+    srv_viewer_cannot_approve: 'A Viewer cannot approve a contract.',
+    srv_viewer_cannot_rule: 'A Viewer cannot rule on a change.',
+    srv_viewer_cannot_review: 'A viewer cannot rule on a review',
+    srv_no_stream_access: 'You do not have access to that value stream',
+    srv_not_own_role: 'You cannot change your own role',
+    srv_not_own_access: 'You cannot change your own access',
+    srv_not_remove_self: 'You cannot remove yourself',
+    srv_no_self_review: 'Nobody reviews their own work.',
+    srv_no_self_oversee: 'Nobody oversees their own contracts.',
+    srv_only_asker_withdraws: 'Only the person who asked can withdraw it',
+    srv_contract_not_found: 'Contract not found',
+    srv_executed_sealed: 'This contract has been executed and sealed',
+    srv_executed_no_change: 'This contract is executed — its record can no longer change',
+    srv_route_locked: 'Somebody has already signed this contract, so the signing route cannot be changed.',
+    srv_no_self_parent: 'A contract cannot be filed under itself.',
+    srv_nothing_to_change: 'Nothing to change',
+    srv_record_unreadable: 'The contract record could not be read',
+    srv_share_gone: 'Share link not found or expired',
+    srv_share_inactive: 'This share link is no longer active',
+    srv_link_revoked: 'This link was revoked',
+    srv_already_answered: 'A response was already submitted for this link',
+    srv_recipient_email_required: 'A valid recipient email is required to send by email',
+    srv_work_email_required: 'A work email is required to sign',
+    srv_verify_before_signing: 'Email verification required before signing',
+    srv_nothing_to_send: 'There is nothing to send',
+    srv_contract_gone: 'This contract is no longer available',
+    srv_contract_gone_ask: 'This contract is no longer available. Ask the sender for an up-to-date copy.',
+    srv_contract_gone_response_lost: 'This contract is no longer available — your response could not be recorded. Contact the sender.',
+    srv_route_moved: 'The signing route on this contract was changed and this link no longer belongs to it. Ask the sender for a fresh signing link.',
+    srv_parent_link_closed: 'The link this reading copy was created from is no longer active, so this copy has closed with it.',
+    srv_no_discussion_here: 'This link cannot carry a discussion',
+    srv_not_durable: 'Only a durable link can be refreshed — create a new share instead',
+    srv_not_docx_or_pdf: 'That is not a Word (.docx) or PDF file — the converter reads those two kinds',
+    srv_pdf_locked: 'That PDF is password-protected. Remove the password and upload it again, or upload the Word version.',
+    srv_pdf_damaged: 'That PDF could not be read — it may be damaged. Try re-saving it, or upload the Word version.',
+    srv_no_readable_text: 'No readable text found in the document',
+    srv_file_undecodable: 'The file could not be decoded',
+    srv_no_copilot_key: 'Copilot engine not configured',
+    srv_copilot_no_result: 'Copilot returned no structured result',
+    srv_member_email_taken: 'A member with that email already exists',
+    srv_valid_email_required: 'A valid email is required',
+    srv_work_email_explained: 'Enter a valid work email address — it is your sign-in and your password-reset route',
+    srv_full_name_required: 'Your full name is required',
+    srv_not_a_member: 'That person is not a member of this workspace.',
+    srv_reviewer_not_a_member: 'That reviewer is not a member of this workspace.',
+    srv_copilot_failed: 'Copilot request failed: ',
+    srv_copilot_provider: 'Copilot provider error (',
+    srv_ocr_failed: 'Reading the page failed: ',
+    srv_monthly_failed: 'The monthly report could not be sent: ',
     ch_copy_img: 'Copy as image',
+    /* ---- THE SERIES NAMES INSIDE A CHART ----
+       Every button around these charts is translated and the legend inside
+       them was English. The CATEGORY labels are deliberately not swept here:
+       statusBreakdown's array doubles as the FILTER over c.status and
+       riskBands' as the counting keys, so translating those in place would
+       silently empty the chart. That is its own piece of work. */
+    ch_s_contracts: 'Contracts',
+    ch_s_contracts_expiring: 'Contracts expiring',
+    ch_s_contract_value: 'Contract value',
+    ch_s_value_up_for_renewal: 'Value up for renewal',
+    ch_s_decisions_due: 'Decisions due',
+    ch_s_value: 'Value',
+    ch_s_average_days: 'Average days',
+    ch_s_open_obligations: 'Open obligations',
+    ch_s_contracts_signed: 'Contracts signed',
+    ch_s_value_expiring: 'Value expiring',
+    ch_s_renewal_decisions_due: 'Renewal decisions due',
+    ch_s_obligations_due: 'Obligations due',
+    ch_s_other_slice: 'Other',
     ch_dl_png: 'Download as PNG',
     ch_dl_csv: 'Download the data (CSV)',
     ch_copied: 'Chart copied — paste it into your slide or document',
@@ -1428,6 +1563,48 @@ const STRINGS = {
     po_direct_edit: 'Direct Edit',
     po_under_clause_counter: 'under a clause to counter-propose, or discuss without changing anything.',
     po_ready_to_sign: 'Ready to sign',
+    /* A WARNING ABOUT WHO MAY SIGN, HALF IN EACH LANGUAGE. The sentence opened
+       with a translated fragment and then ran on in English — the worst shape
+       a translation gap can take, because it reads as a rendering fault rather
+       than as an untranslated screen, and it is a warning. One key, one
+       sentence, with the address in the middle of it. */
+    po_code_goes_only_to_full: 'The code goes only to <strong>{email}</strong>, the address the sender invited — not to the address typed above. If somebody else should be signing, ask the sender to add them to the signing route so they get their own link.',
+    po_resend_code_in: 'Resend code in {n}s',
+    /* ---- THE COUNTERPARTY'S OWN BUTTON ROW AND WHAT IT SAYS AFTERWARDS ----
+       Two of the four verbs were English literals beside two translated ones,
+       and po_ready_to_sign above already existed and was not being used. The
+       whole outcome — the success banner, the spent labels and both send
+       confirmations — was English too. This is the ONE page in the product a
+       reader outside the company ever sees. */
+    po_send_n_decisions_one: 'Send {n} decision',
+    po_send_n_decisions_other: 'Send {n} decisions',
+    po_readiness_sent: 'Readiness sent ✓',
+    po_ready_spent_title: 'You have told them you are ready — they issue the signing link.',
+    po_ready_tell_title: 'Tell them you are ready to sign',
+    po_sending: 'Sending…',
+    po_lab_signature: 'signature',
+    po_lab_acceptance: 'acceptance',
+    po_lab_change_request: 'change request',
+    po_lab_decline_notice: 'decline notice',
+    po_done_signed_sent: 'Signed and sent',
+    po_done_acceptance_sent: 'Acceptance sent',
+    po_done_changes_sent: 'Change request sent',
+    po_done_decline_sent: 'Decline sent',
+    po_done_sent: 'Sent',
+    po_delivered: '{what} delivered',
+    po_n_proposals_one: '{n} proposal',
+    po_n_proposals_other: '{n} proposals',
+    po_n_decisions_one: '{n} decision',
+    po_n_decisions_other: '{n} decisions',
+    po_your_answer: 'your answer',
+    po_ready_done: 'Sent — they know you are ready',
+    po_ready_toast: '{org} has been told you are ready to sign{extra}. Nothing is signed yet; they will send a signing link.',
+    po_ready_toast_extra: ' — {what} sent with it',
+    po_answer_done: '{what} sent',
+    po_answer_toast: '{what} sent to {org} — it is now their turn.',
+    po_the_sender_generic: 'The sender',
+    po_something_went_wrong: 'Something went wrong.',
+    po_and: 'and',
     po_review_what_changed: 'Review what changed',
     po_decline: 'Decline',
     po_share_readonly: 'Share a read-only copy',
@@ -1524,6 +1701,14 @@ const STRINGS = {
     co_choose_new_password: 'Choose a new password for your account.',
     co_save_new_password: 'Save new password',
     co_choose_own_password: 'Choose your own password',
+    /* THE FIRST SCREEN AN INVITED COLLEAGUE EVER SEES, and its body and all
+       three refusals were English inside a translated frame. A Swedish
+       colleague's first impression of this product was a half-translated
+       wall they cannot get past without reading it. */
+    co_temp_password_body: 'Your account was created with a temporary password someone else chose. Set your own before you continue — anything you sign has to be attributable to you alone.',
+    co_password_too_short: 'The new password must be at least 8 characters.',
+    co_passwords_differ: 'The two new passwords do not match.',
+    co_password_updated: 'Password updated — karibu',
     co_set_my_password: 'Set my password',
     co_audit_trail: 'Audit trail',
     co_no_events: 'No events recorded yet.',
@@ -2349,6 +2534,21 @@ const STRINGS = {
     co_purpose_sign_sub: 'They land on the signing panel. Use this only when there is nothing left to argue about — proposing changes is not what this link is for.',
     co_purpose_view: 'View only',
     co_purpose_view_sub: 'They read it, and can do nothing else',
+    /* SHARE_PURPOSE_COPY had two members as plain English literals while their
+       four siblings were dictionary getters — so one card in a row of three
+       was in the wrong language, which reads as a rendering fault. */
+    co_purpose_negotiate_label: 'Negotiate',
+    co_purpose_view_blurb: 'For an advisor, an insurer, a lawyer being asked whether this is normal. They see the wording and the redlines as they stand today, and cannot respond, edit or sign. Your comments and internal notes never leave this workspace.',
+    /* ---- THE SHARE DIALOG'S FIRST STEP ----
+       Entirely hardcoded English under a translated heading: the two option
+       cards, their descriptions and the Next button. It is the first screen of
+       the commonest outward-facing act in the product. */
+    co_share_kind_contract: 'The contract',
+    co_share_kind_contract_sub: 'The wording, with whatever they are allowed to do to it — sign it, propose changes to it, or read it and nothing more.',
+    co_share_kind_history: 'The negotiation history',
+    co_share_kind_history_sub: 'The Negotiation history screen, opened by somebody with no account — every change, who asked, and what was decided. Read-only: the agreement itself does not travel and there is nothing on it to sign.',
+    co_share_kind_history_none: 'Nothing has been proposed on this contract yet, so there is no record to send.',
+    act_next: 'Next',
     co_send_signing_q: 'Send the signing link to this address?',
     co_responded: 'Responded',
     co_revoke_share_q: 'Revoke this share link?',
@@ -4498,6 +4698,8 @@ const STRINGS = {
     act_save: 'Spara',
     act_cancel: 'Avbryt',
     act_close: 'Stäng',
+    act_ok: 'OK',
+    act_are_you_sure: 'Är du säker?',
     act_delete: 'Radera',
     act_edit: 'Redigera',
     act_open: 'Öppna',
@@ -4589,6 +4791,15 @@ const STRINGS = {
     lib_bring_standard_paper: 'Ta in företagets standardpapper i HaTi så att nya utkast utgår från er egen formulering.',
     lib_paste_contract_here: 'Klistra in avtalet här',
     lib_preview: 'Förhandsgranska',
+    lib_paste_report: 'Konverterade <b>{n}</b> tecken{kept}{via}. <b>{preview}</b> det innan du sparar.',
+    lib_paste_kept: ' — {what} behölls',
+    lib_paste_via_text: ' · inklistrat som oformaterad text (källan erbjöd ingen formatering)',
+    lib_kept_headings_one: '{n} rubrik',
+    lib_kept_headings_other: '{n} rubriker',
+    lib_kept_lists_one: '{n} lista',
+    lib_kept_lists_other: '{n} listor',
+    lib_kept_tables_one: '{n} tabell',
+    lib_kept_tables_other: '{n} tabeller',
     lib_pdf_or_text: 'PDF eller text (Word-filer måste först sparas som PDF). HaTi läser filen och',
     lib_rebuilds_structure: 'bygger om dess struktur',
     lib_pasting_more_faithful: 'att klistra in är ändå mer trogent',
@@ -4789,7 +5000,100 @@ const STRINGS = {
     rep_export_btn: 'Ladda ner CSV',
     rep_health_btn: 'Portföljens hälsorapport',
     // -- diagrammen lämnar skärmen: kopiera/PNG/CSV-verktygen (js/aichart.js) --
+    reg_stream_none_match: 'Inga avtal matchar "{q}"',
+    reg_stream_none_yet: 'Inga avtal i den här värdeströmmen ännu',
+    reg_stream_widen: 'Rensa sökningen, eller be HaTi Copilot leta i alla mappar.',
+    reg_stream_create_hint: 'Skapa ett med Nytt avtal, eller ladda upp mottagna handlingar.',
+    ai_expand_panel: 'Utöka panelen',
+    ai_shrink_panel: 'Förminska panelen',
+    ai_delete_conversation: 'Radera konversationen',
+    ai_minimize_hint: 'Minimera — du får en avisering när ett svar kommer',
+    ai_searching_live: 'Söker i dina aktuella avtalsdata',
+    ai_brain_server: 'Claude Copilot · via servern',
+    ai_brain_server_hint: 'Svaren kommer från Claude, via din HaTi-server.',
+    ai_brain_browser: 'Claude Copilot · den här webbläsaren',
+    ai_brain_browser_hint: 'Svaren kommer från Claude, anropade direkt från den här webbläsaren med din sparade nyckel.',
+    ai_brain_basic: 'Enkelt läge — lägg till en nyckel för Copilot',
+    ai_brain_basic_hint: 'Ingen Copilot-nyckel hittades — svaren använder den inbyggda nyckelordstolken. Lägg till en Anthropic-nyckel under Team och inställningar → Copilot-motor.',
+    srv_bad_credentials: 'E-postadressen eller lösenordet är felaktigt',
+    srv_not_signed_in: 'Inte inloggad',
+    srv_sign_in_again: 'Logga in igen',
+    srv_session_expired: 'Sessionen har gått ut — logga in igen',
+    srv_code_window_closed: 'Logga in igen — tidsfönstret för koden har stängts',
+    srv_current_password_wrong: 'Ditt nuvarande lösenord är felaktigt',
+    srv_password_min: 'Lösenordet måste vara minst 8 tecken',
+    srv_password_reused: 'Välj ett lösenord du inte har använt här tidigare',
+    srv_set_own_password_first: 'Ange ditt eget lösenord innan du gör ändringar',
+    srv_code_wrong: 'Koden stämmer inte',
+    srv_code_wrong_app: 'Koden stämmer inte — kontrollera appen och försök igen',
+    srv_code_expired: 'Koden har gått ut — begär en ny',
+    srv_request_code_first: 'Begär en kod först',
+    srv_two_step_off_needs_code: 'En aktuell kod — eller en oanvänd återställningskod — krävs för att stänga av detta',
+    srv_admin_required: 'Administratörsbehörighet krävs',
+    srv_admin_or_editor_required: 'Administratörs- eller redigeringsbehörighet krävs',
+    srv_viewer_cannot_approve: 'En läsare kan inte godkänna ett avtal.',
+    srv_viewer_cannot_rule: 'En läsare kan inte besluta om en ändring.',
+    srv_viewer_cannot_review: 'En läsare kan inte besluta om en granskning',
+    srv_no_stream_access: 'Du har inte åtkomst till den värdeströmmen',
+    srv_not_own_role: 'Du kan inte ändra din egen roll',
+    srv_not_own_access: 'Du kan inte ändra din egen åtkomst',
+    srv_not_remove_self: 'Du kan inte ta bort dig själv',
+    srv_no_self_review: 'Ingen granskar sitt eget arbete.',
+    srv_no_self_oversee: 'Ingen är överordnad sina egna avtal.',
+    srv_only_asker_withdraws: 'Bara den som frågade kan dra tillbaka det',
+    srv_contract_not_found: 'Avtalet hittades inte',
+    srv_executed_sealed: 'Det här avtalet är undertecknat och förseglat',
+    srv_executed_no_change: 'Det här avtalet är undertecknat — dess handling kan inte längre ändras',
+    srv_route_locked: 'Någon har redan undertecknat det här avtalet, så signeringsordningen kan inte ändras.',
+    srv_no_self_parent: 'Ett avtal kan inte arkiveras under sig självt.',
+    srv_nothing_to_change: 'Inget att ändra',
+    srv_record_unreadable: 'Avtalshandlingen kunde inte läsas',
+    srv_share_gone: 'Delningslänken hittades inte eller har gått ut',
+    srv_share_inactive: 'Den här delningslänken är inte längre aktiv',
+    srv_link_revoked: 'Den här länken har återkallats',
+    srv_already_answered: 'Ett svar har redan lämnats för den här länken',
+    srv_recipient_email_required: 'En giltig mottagaradress krävs för att skicka via e-post',
+    srv_work_email_required: 'En arbetsmejladress krävs för att underteckna',
+    srv_verify_before_signing: 'E-postverifiering krävs innan undertecknande',
+    srv_nothing_to_send: 'Det finns inget att skicka',
+    srv_contract_gone: 'Det här avtalet är inte längre tillgängligt',
+    srv_contract_gone_ask: 'Det här avtalet är inte längre tillgängligt. Be avsändaren om en aktuell kopia.',
+    srv_contract_gone_response_lost: 'Det här avtalet är inte längre tillgängligt — ditt svar kunde inte registreras. Kontakta avsändaren.',
+    srv_route_moved: 'Signeringsordningen för det här avtalet har ändrats och den här länken hör inte längre till den. Be avsändaren om en ny signeringslänk.',
+    srv_parent_link_closed: 'Länken som den här läskopian skapades från är inte längre aktiv, så kopian har stängts med den.',
+    srv_no_discussion_here: 'Den här länken kan inte bära någon diskussion',
+    srv_not_durable: 'Bara en beständig länk kan uppdateras — skapa en ny delning i stället',
+    srv_not_docx_or_pdf: 'Det är varken en Word-fil (.docx) eller en PDF — konverteraren läser de två sorterna',
+    srv_pdf_locked: 'Den PDF-filen är lösenordsskyddad. Ta bort lösenordet och ladda upp den igen, eller ladda upp Word-versionen.',
+    srv_pdf_damaged: 'Den PDF-filen kunde inte läsas — den kan vara skadad. Prova att spara om den, eller ladda upp Word-versionen.',
+    srv_no_readable_text: 'Ingen läsbar text hittades i dokumentet',
+    srv_file_undecodable: 'Filen kunde inte avkodas',
+    srv_no_copilot_key: 'Copilot-motorn är inte konfigurerad',
+    srv_copilot_no_result: 'Copilot returnerade inget strukturerat resultat',
+    srv_member_email_taken: 'Det finns redan en medlem med den e-postadressen',
+    srv_valid_email_required: 'En giltig e-postadress krävs',
+    srv_work_email_explained: 'Ange en giltig arbetsmejladress — den är din inloggning och din väg till lösenordsåterställning',
+    srv_full_name_required: 'Ditt fullständiga namn krävs',
+    srv_not_a_member: 'Den personen är inte medlem i den här arbetsytan.',
+    srv_reviewer_not_a_member: 'Den granskaren är inte medlem i den här arbetsytan.',
+    srv_copilot_failed: 'Copilot-förfrågan misslyckades: ',
+    srv_copilot_provider: 'Fel från Copilot-leverantören (',
+    srv_ocr_failed: 'Läsningen av sidan misslyckades: ',
+    srv_monthly_failed: 'Månadsrapporten kunde inte skickas: ',
     ch_copy_img: 'Kopiera som bild',
+    ch_s_contracts: 'Avtal',
+    ch_s_contracts_expiring: 'Avtal som löper ut',
+    ch_s_contract_value: 'Avtalsvärde',
+    ch_s_value_up_for_renewal: 'Värde upp för förnyelse',
+    ch_s_decisions_due: 'Beslut som ska fattas',
+    ch_s_value: 'Värde',
+    ch_s_average_days: 'Genomsnittligt antal dagar',
+    ch_s_open_obligations: 'Öppna åtaganden',
+    ch_s_contracts_signed: 'Undertecknade avtal',
+    ch_s_value_expiring: 'Värde som löper ut',
+    ch_s_renewal_decisions_due: 'Förnyelsebeslut som ska fattas',
+    ch_s_obligations_due: 'Åtaganden som förfaller',
+    ch_s_other_slice: 'Övrigt',
     ch_dl_png: 'Ladda ner som PNG',
     ch_dl_csv: 'Ladda ner siffrorna (CSV)',
     ch_copied: 'Diagrammet kopierat — klistra in det i din presentation eller ditt dokument',
@@ -5768,6 +6072,37 @@ const STRINGS = {
     po_direct_edit: 'Direktredigering',
     po_under_clause_counter: 'under en klausul för att lämna motförslag, eller diskutera utan att ändra något.',
     po_ready_to_sign: 'Klart att underteckna',
+    po_code_goes_only_to_full: 'Koden skickas bara till <strong>{email}</strong>, adressen som avsändaren bjöd in — inte till adressen som angetts ovan. Om någon annan ska underteckna, be avsändaren lägga till den personen i signeringsordningen så att de får en egen länk.',
+    po_resend_code_in: 'Skicka koden igen om {n} s',
+    po_send_n_decisions_one: 'Skicka {n} beslut',
+    po_send_n_decisions_other: 'Skicka {n} beslut',
+    po_readiness_sent: 'Besked skickat ✓',
+    po_ready_spent_title: 'Du har meddelat att du är klar — de utfärdar signeringslänken.',
+    po_ready_tell_title: 'Meddela att du är klar att underteckna',
+    po_sending: 'Skickar…',
+    po_lab_signature: 'underskrift',
+    po_lab_acceptance: 'godkännande',
+    po_lab_change_request: 'ändringsbegäran',
+    po_lab_decline_notice: 'avböjande',
+    po_done_signed_sent: 'Undertecknat och skickat',
+    po_done_acceptance_sent: 'Godkännande skickat',
+    po_done_changes_sent: 'Ändringsbegäran skickad',
+    po_done_decline_sent: 'Avböjande skickat',
+    po_done_sent: 'Skickat',
+    po_delivered: '{what} levererat',
+    po_n_proposals_one: '{n} förslag',
+    po_n_proposals_other: '{n} förslag',
+    po_n_decisions_one: '{n} beslut',
+    po_n_decisions_other: '{n} beslut',
+    po_your_answer: 'ditt svar',
+    po_ready_done: 'Skickat — de vet att du är klar',
+    po_ready_toast: '{org} har fått veta att du är klar att underteckna{extra}. Inget är undertecknat ännu; de skickar en signeringslänk.',
+    po_ready_toast_extra: ' — {what} skickades med',
+    po_answer_done: '{what} skickat',
+    po_answer_toast: '{what} skickat till {org} — nu är det deras tur.',
+    po_the_sender_generic: 'Avsändaren',
+    po_something_went_wrong: 'Något gick fel.',
+    po_and: 'och',
     po_review_what_changed: 'Granska vad som ändrats',
     po_decline: 'Avböj',
     po_share_readonly: 'Dela en skrivskyddad kopia',
@@ -5864,6 +6199,10 @@ const STRINGS = {
     co_choose_new_password: 'Välj ett nytt lösenord för ditt konto.',
     co_save_new_password: 'Spara nytt lösenord',
     co_choose_own_password: 'Välj ditt eget lösenord',
+    co_temp_password_body: 'Ditt konto skapades med ett tillfälligt lösenord som någon annan valde. Ange ditt eget innan du fortsätter — allt du undertecknar måste kunna hänföras till dig ensam.',
+    co_password_too_short: 'Det nya lösenordet måste vara minst 8 tecken.',
+    co_passwords_differ: 'De två nya lösenorden stämmer inte överens.',
+    co_password_updated: 'Lösenordet är uppdaterat — karibu',
     co_set_my_password: 'Ange mitt lösenord',
     co_audit_trail: 'Granskningslogg',
     co_no_events: 'Inga händelser registrerade ännu.',
@@ -6619,6 +6958,14 @@ const STRINGS = {
     co_purpose_sign_sub: 'De hamnar på signeringspanelen. Använd detta bara när det inte finns något kvar att diskutera — länken är inte till för att föreslå ändringar.',
     co_purpose_view: 'Endast läsa',
     co_purpose_view_sub: 'De läser det, och kan inte göra något annat',
+    co_purpose_negotiate_label: 'Förhandla',
+    co_purpose_view_blurb: 'För en rådgivare, en försäkringsgivare eller en jurist som får frågan om detta är normalt. De ser formuleringen och ändringsmarkeringarna som de ser ut i dag, och kan inte svara, redigera eller underteckna. Dina kommentarer och interna anteckningar lämnar aldrig den här arbetsytan.',
+    co_share_kind_contract: 'Avtalet',
+    co_share_kind_contract_sub: 'Formuleringen, med det de får göra med den — underteckna den, föreslå ändringar i den, eller bara läsa den.',
+    co_share_kind_history: 'Förhandlingshistoriken',
+    co_share_kind_history_sub: 'Skärmen Förhandlingshistorik, öppnad av någon utan konto — varje ändring, vem som bad om den och vad som beslutades. Skrivskyddad: själva avtalet följer inte med och det finns inget att underteckna.',
+    co_share_kind_history_none: 'Inget har föreslagits på det här avtalet ännu, så det finns ingen historik att skicka.',
+    act_next: 'Nästa',
     co_send_signing_q: 'Skicka signeringslänken till den här adressen?',
     co_responded: 'Svarat',
     co_revoke_share_q: 'Återkalla delningslänken?',
@@ -8868,10 +9215,129 @@ function langEditingNow() {
    failure is silent until something renders. The renderers therefore call it
    i18t / i18tn, which nothing else is ever named. `t` and `tn` stay exported
    for the console and for anything written by hand outside a map. */
+
+/* ---------- THE SERVER SPEAKS ONE LANGUAGE, AND THE SCREEN SPEAKS THE READER'S ----------
+
+   The server answers a refusal with a plain English sentence — 184 distinct
+   ones — and js/api.js turns it into an Error whose message is printed
+   verbatim, half the time glued to a TRANSLATED prefix. So a Swedish reader who
+   tried to save a signed contract met "Det gick inte att spara: This contract
+   has been executed and sealed." That is worse than an untranslated screen: a
+   sentence in two languages reads as a rendering fault.
+
+   WHERE THE FIX GOES IS THE WHOLE POINT. It is not on the server — a message
+   answers a REQUEST, and the server has no reliable business knowing which
+   human is looking at the reply (a share link has no account at all). It is not
+   at each of the ~200 call sites either. It is at the ONE place a server
+   sentence becomes an Error: api(). One lookup there, and every caller
+   inherits it.
+
+   WHAT IS TRANSLATED, and it is a decision rather than a budget: the ~40
+   sentences a NORMAL USER MEETS in ordinary use — signing in, changing a
+   password, saving, sharing, signing, being refused by a permission, uploading
+   a file, and every refusal on the counterparty's own page, which is the one
+   screen in this product a reader outside the company ever sees. What is
+   deliberately left is the developer-shaped validation the interface cannot
+   reach ("values must be an object of field_key → value"): translating those
+   would be work nobody can check, on sentences nobody sees.
+
+   AN UNKNOWN SENTENCE FALLS THROUGH UNCHANGED, which is what makes this safe to
+   extend one message at a time and impossible to break by adding a message on
+   the server. */
+const SRV_MSG = {
+  /* signing in, and the account */
+  'Email or password is incorrect': 'srv_bad_credentials',
+  'Not signed in': 'srv_not_signed_in',
+  'Sign in again': 'srv_sign_in_again',
+  'Session expired — please sign in again': 'srv_session_expired',
+  'Sign in again — the code window has closed': 'srv_code_window_closed',
+  'Your current password is incorrect': 'srv_current_password_wrong',
+  'Password must be at least 8 characters': 'srv_password_min',
+  'Choose a password you have not used here before': 'srv_password_reused',
+  'Set your own password before making changes': 'srv_set_own_password_first',
+  'That code is not right': 'srv_code_wrong',
+  'That code is not right — check the app and try again': 'srv_code_wrong_app',
+  'Code expired — request a new one': 'srv_code_expired',
+  'Request a code first': 'srv_request_code_first',
+  'A current code — or an unused recovery code — is needed to turn this off': 'srv_two_step_off_needs_code',
+  /* permissions */
+  'Admin access required': 'srv_admin_required',
+  'Admin or Editor access required': 'srv_admin_or_editor_required',
+  'A Viewer cannot approve a contract.': 'srv_viewer_cannot_approve',
+  'A Viewer cannot rule on a change.': 'srv_viewer_cannot_rule',
+  'A viewer cannot rule on a review': 'srv_viewer_cannot_review',
+  'You do not have access to that value stream': 'srv_no_stream_access',
+  'You cannot change your own role': 'srv_not_own_role',
+  'You cannot change your own access': 'srv_not_own_access',
+  'You cannot remove yourself': 'srv_not_remove_self',
+  'Nobody reviews their own work.': 'srv_no_self_review',
+  'Nobody oversees their own contracts.': 'srv_no_self_oversee',
+  'Only the person who asked can withdraw it': 'srv_only_asker_withdraws',
+  /* saving and the record */
+  'Contract not found': 'srv_contract_not_found',
+  'This contract has been executed and sealed': 'srv_executed_sealed',
+  'This contract is executed — its record can no longer change': 'srv_executed_no_change',
+  'Somebody has already signed this contract, so the signing route cannot be changed.': 'srv_route_locked',
+  'A contract cannot be filed under itself.': 'srv_no_self_parent',
+  'Nothing to change': 'srv_nothing_to_change',
+  'The contract record could not be read': 'srv_record_unreadable',
+  /* sharing and signing */
+  'Share link not found or expired': 'srv_share_gone',
+  'This share link is no longer active': 'srv_share_inactive',
+  'This link was revoked': 'srv_link_revoked',
+  'A response was already submitted for this link': 'srv_already_answered',
+  'A valid recipient email is required to send by email': 'srv_recipient_email_required',
+  'A work email is required to sign': 'srv_work_email_required',
+  'Email verification required before signing': 'srv_verify_before_signing',
+  'There is nothing to send': 'srv_nothing_to_send',
+  'This contract is no longer available': 'srv_contract_gone',
+  'This contract is no longer available. Ask the sender for an up-to-date copy.': 'srv_contract_gone_ask',
+  'This contract is no longer available — your response could not be recorded. Contact the sender.': 'srv_contract_gone_response_lost',
+  'The signing route on this contract was changed and this link no longer belongs to it. Ask the sender for a fresh signing link.': 'srv_route_moved',
+  'The link this reading copy was created from is no longer active, so this copy has closed with it.': 'srv_parent_link_closed',
+  'This link cannot carry a discussion': 'srv_no_discussion_here',
+  'Only a durable link can be refreshed — create a new share instead': 'srv_not_durable',
+  /* files */
+  'That is not a Word (.docx) or PDF file — the converter reads those two kinds': 'srv_not_docx_or_pdf',
+  'That PDF is password-protected. Remove the password and upload it again, or upload the Word version.': 'srv_pdf_locked',
+  'That PDF could not be read — it may be damaged. Try re-saving it, or upload the Word version.': 'srv_pdf_damaged',
+  'No readable text found in the document': 'srv_no_readable_text',
+  'The file could not be decoded': 'srv_file_undecodable',
+  /* Copilot */
+  'Copilot engine not configured': 'srv_no_copilot_key',
+  'Copilot returned no structured result': 'srv_copilot_no_result',
+  /* people */
+  'A member with that email already exists': 'srv_member_email_taken',
+  'A valid email is required': 'srv_valid_email_required',
+  'Enter a valid work email address — it is your sign-in and your password-reset route': 'srv_work_email_explained',
+  'Your full name is required': 'srv_full_name_required',
+  'That colleague is not a member of this workspace': 'srv_not_a_member',
+  'That person is not a member of this workspace.': 'srv_not_a_member',
+  'That reviewer is not a member of this workspace.': 'srv_reviewer_not_a_member',
+};
+/* Sentences that carry a detail after them. The PREFIX is translated and the
+   detail — a provider's own words, a file name — is kept verbatim, because it
+   is the half that says what to do next and it is not ours to rewrite. */
+const SRV_MSG_PREFIX = [
+  ['Copilot request failed: ', 'srv_copilot_failed'],
+  ['Copilot provider error (', 'srv_copilot_provider'],
+  ['OCR request failed: ', 'srv_ocr_failed'],
+  ['The monthly report could not be sent: ', 'srv_monthly_failed'],
+];
+function srvMsg(msg) {
+  const raw = String(msg == null ? '' : msg);
+  if (!raw) return raw;
+  const key = SRV_MSG[raw];
+  if (key) return t(key);
+  for (const [pre, k] of SRV_MSG_PREFIX) {
+    if (raw.startsWith(pre)) return t(k) + raw.slice(pre.length);
+  }
+  return raw;   /* unknown sentences pass through untouched — see the note above */
+}
 const i18t = t, i18tn = tn;
 
 const I18N_API = { STRINGS, LANGUAGES, I18N_DEFAULT, I18N_LS,
-  t, tn, i18t, i18tn, langId, langSet, langList, langIs, langName, langPromptName, langLocale,
+  t, tn, i18t, i18tn, srvMsg, langId, langSet, langList, langIs, langName, langPromptName, langLocale,
   langMissingKeys, applyLanguage, langEditingNow };
 /* Two hosts, one dictionary: the browser gets globals like every other module,
    and server/server.js requires this file so an email can be written in the
