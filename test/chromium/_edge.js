@@ -2,10 +2,15 @@
    edge quality. A crisp glyph is mostly full-ink or full-paper; a soft one
    spends its pixels in the greys between. smear = mid-tones per dark pixel. */
 const fs=require('node:fs');
+const path=require('node:path');
+const os=require('node:os');
 const {chromium}=require('playwright-core');
 const {startHati,seedWorkspace}=require('../helpers');
-const V3='/tmp/claude-0/-home-user-mkataba-clm/cf4134ec-0f3e-56f6-9a8a-e4c5cc67e218/scratchpad/v3-localfont.html';
-const SHOTS='/tmp/claude-0/-home-user-mkataba-clm/cf4134ec-0f3e-56f6-9a8a-e4c5cc67e218/scratchpad/';
+/* PATHS COME FROM THE ENVIRONMENT, NOT FROM ONE MACHINE. These were absolute
+   paths into one session's scratchpad, which is a directory that exists on
+   exactly one computer — this file was the only thing keeping f227 red. */
+const V3 = process.env.HATI_REF_HTML || path.join(os.tmpdir(), 'v3-localfont.html');
+const SHOTS = process.env.HATI_SHOTS || path.join(os.tmpdir(), 'hati-shots') + path.sep;
 async function measure(p,sel,name,file){
   const el=p.locator(sel).first();
   if(!await el.count()){ console.log(name+'  (no '+sel+')'); return; }
@@ -29,7 +34,12 @@ async function measure(p,sel,name,file){
   console.log(name.padEnd(22)+JSON.stringify(r));
 }
 (async()=>{
-  const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium',args:['--no-sandbox']});
+  /* The sandbox browser when it is there, the bundled one otherwise — the
+     guarded ladder every other harness in this directory uses. */
+  const EXEC = process.env.CHROMIUM_BIN
+    || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
+  fs.mkdirSync(SHOTS, {recursive:true});
+  const b=await chromium.launch({executablePath:EXEC,args:['--no-sandbox']});
   const p1=await b.newPage({viewport:{width:1440,height:900},deviceScaleFactor:1});
   await p1.goto('file://'+V3,{waitUntil:'load'}); await p1.evaluate(()=>document.fonts.ready);
   await p1.waitForTimeout(600);

@@ -196,9 +196,15 @@ describe('F220 — the screen, pinned at the source', () => {
     /* Owner-reported 19 Aug 2026: "space is needed between the content and the
        edge of the page to look more professional." It drew at padding:0, so
        every row sat flush against the sidebar. The measure is this product's
-       own page measure, which is why it is asserted as that exact string and
-       not merely as "some padding". */
-    assert.match(src, /class="view-enter" style="padding:16px 18px 28px/,
+       own page measure — the CLAIM, unchanged.
+       REVERSED IN PLACE 23 Aug 2026: that measure is now a TOKEN rather than
+       a literal. It was typed at 11 page roots in 3 different values, and the
+       leftmost ink landed on 6 different verticals across the product; the
+       comment above says the point is that this page uses the product's own
+       measure and not a number of its own, which is exactly what --page-pad
+       is. Pinned as the token, so the next time the measure moves this test
+       does not have to. */
+    assert.match(src, /class="view-enter" style="padding:var\(--page-pad\)/,
       'the same measure Templates, Reports and the template library use');
   });
 

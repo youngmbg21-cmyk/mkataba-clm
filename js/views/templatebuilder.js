@@ -101,7 +101,7 @@ function tbPaint() {
   }).join('');
 
   document.getElementById('content').innerHTML = `
-  <div class="view-enter" style="padding:16px 18px 28px;display:flex;flex-direction:column;gap:14px;max-width:980px">
+  <div class="view-enter" style="padding:var(--page-pad);display:flex;flex-direction:column;gap:14px;max-width:980px">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       <button id="tb-back" class="ui-btn" style="font-size:13px;padding:4px 10px">${icon('arrowLeft', 'w-3.5 h-3.5')} ${esc(t.name)}</button>
       <span style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--color-accent-700);border:1px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:0;padding:1px 7px">${i18t('tb_v_draft',{n:_tb.versionNumber})}</span>

@@ -226,7 +226,12 @@ function renderPageHeader(view){
   const [t,sub]=commandMeta(view);
   const acts=(PAGE_ACTIONS[view]||[]).map(pageActionHtml).join('');
   const inlineSub=PAGE_HEAD_INLINE_SUB.includes(view);
-  host.style.padding=inlineSub?'10px 20px 0':'16px 20px 0';
+  /* THE HEADER LINES UP WITH THE PAGE UNDER IT. It padded to 20px while the
+     eleven view bodies beneath it padded to 16, 18, 20 or 0 — so on 10 of the
+     11 screens that use this shared header, the page TITLE and the content
+     under it did not start on the same vertical. Both now read --page-pad-x,
+     so the two can never drift again. */
+  host.style.padding=inlineSub?'10px var(--page-pad-x) 0':'16px var(--page-pad-x) 0';
   host.innerHTML=`
     <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap">
       <div style="min-width:0${inlineSub?';display:flex;align-items:baseline;gap:10px;flex-wrap:wrap':''}">
@@ -1766,5 +1771,65 @@ if(state.panelOpen===undefined) state.panelOpen=false;
 // which calls startApp() directly.
 wireShell();
 
-Object.assign(window,{POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,
+/* ═══ CTRL+P PRINTS THE PAGE YOU ARE LOOKING AT ═══
+   MEASURED before this existed, with emulateMedia({media:'print'}) on a real
+   server: on the contract room's Document tab, on the calendar and on the
+   negotiation page, document.body.innerText came back as THE EMPTY STRING —
+   2,092 characters on screen and 0 in print. The cause is the print sheet's
+   own isolation: `body>*{display:none!important}` with #print-root the single
+   escape, and the ONLY code that ever filled #print-root was the counterparty's
+   side (js/views/portal.js) and the branding preview. The owner's side never
+   filled it, so every owner-side screen printed a blank sheet — and the
+   calendar shipped a Print row calling window.print() straight into it.
+
+   THE MECHANISM IS THE ONE PORTAL.JS ALREADY USES, not a second one: fill
+   #print-root, print, clear it. It runs on `beforeprint`, so it covers Ctrl+P,
+   the browser menu and every existing window.print() caller at once.
+
+   IT NEVER OVERWRITES A DELIBERATE FILL. portal.js and the branding preview
+   compose their own print sheet and then call window.print(); this only acts
+   when #print-root is EMPTY, so those paths are untouched.
+
+   WHAT IT PRINTS: the contract surface if one is on screen — that is what
+   somebody printing from a contract wants — and otherwise the view's own
+   content, so the register and the calendar print as the list they are. */
+function printSurface(){
+  const pick = ['.rl-paper','.doc-surface','.hati-doc','#print-doc'];
+  for (const sel of pick){
+    const el = document.querySelector(sel);
+    if (el && el.getClientRects().length) return el;
+  }
+  return document.getElementById('content-scroll')
+      || document.getElementById('content')
+      || null;
+}
+function fillPrintRoot(){
+  try{
+    const root = document.getElementById('print-root');
+    if (!root || root.innerHTML.trim()) return;      // a deliberate fill wins
+    const src = printSurface();
+    if (!src) return;
+    const title = (document.querySelector('.room-name h1,#page-head h1,h1')||{}).textContent||'';
+    root.dataset.autofill = '1';
+    root.innerHTML =
+      '<div style="font-family:var(--font-body);padding:24px;color:#1B2A28">'
+      + (title ? '<h1 style="font-size:19px;font-weight:700;margin:0 0 16px">'
+                 + String(title).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))
+                 + '</h1>' : '')
+      + src.innerHTML
+      + '</div>';
+  }catch(e){ /* printing must never take the page down */ }
+}
+function clearPrintRoot(){
+  try{
+    const root = document.getElementById('print-root');
+    if (root && root.dataset.autofill === '1'){ root.innerHTML=''; delete root.dataset.autofill; }
+  }catch(e){}
+}
+if (typeof window !== 'undefined' && window.addEventListener){
+  window.addEventListener('beforeprint', fillPrintRoot);
+  window.addEventListener('afterprint', clearPrintRoot);
+}
+
+Object.assign(window,{printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,
   buildAlerts,alertCount,updateAlertBadge,panelSuppressed,openPanel,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,railCollapsed,applyRail,toggleRail,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});

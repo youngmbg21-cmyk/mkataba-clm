@@ -1020,7 +1020,7 @@ function renderMigration(){
   const selStyle='font:inherit;font-size:13px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:5px 7px;color:inherit;cursor:pointer';
 
   document.getElementById('content').innerHTML=`
-  <div class="view-enter" style="padding:14px 16px 28px">
+  <div class="view-enter" style="padding:var(--page-pad)">
     <style>
       .mig-table{width:100%;border-collapse:collapse;font-size:14px}
       .mig-table th{text-align:left;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);padding:12px 14px;border-bottom:1px solid var(--color-divider);white-space:nowrap;background:var(--color-neutral-100)}

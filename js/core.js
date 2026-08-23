@@ -1372,6 +1372,14 @@ const hashPassword = (pw,salt) => sha256(`${salt}::${pw}`);
 
 function renderAuth(mode){
   document.getElementById('app-shell').classList.add('hidden');
+  /* NOTHING SIGNED-IN MAY SHOW ON THE SIGN-IN SCREEN. #context-panel and
+     #ai-panel are mounted at page load as body-level siblings, so before this
+     class existed the signed-out page's own text read "… Sign in … ACTIVITY /
+     HaTi Copilot / Searching your live contract data / ANSWERS" to a visitor
+     with no session. A first-impression and a trust problem, and it was in the
+     accessibility tree as well as on screen. Hidden by CSS on this class
+     rather than per-element, so a panel added later cannot forget. */
+  document.body.classList.add('pre-auth');
   const root=document.getElementById('auth-root');
   const shell = inner => `
   <div style="min-height:100vh;display:grid;place-items:center;background:var(--color-bg);padding:40px 16px;">
@@ -1394,7 +1402,11 @@ function renderAuth(mode){
   const H1='font-family:var(--font-mono);font-weight:600;font-size:22px;letter-spacing:-0.01em;color:var(--color-text);margin:0;';
   const SUB='font-size:13px;color:var(--color-neutral-700);margin:4px 0 18px;line-height:1.5;';
   const PBTN='width:100%;padding:9px;font-size:14px;margin-top:2px;';
-  const LINKBTN='margin-top:14px;width:100%;background:none;border:0;font-size:12px;color:var(--color-neutral-600);cursor:pointer;font-family:var(--font-body);';
+  /* min-height is WCAG 2.5.8 (target size, AA): measured at 366x17px, this is
+     the only route back into a locked-out account and it was 7px under the
+     24px floor at every width. The flex centring keeps the label where a
+     plain <button> put it. */
+  const LINKBTN='margin-top:14px;width:100%;min-height:var(--tap-min);display:inline-flex;align-items:center;justify-content:center;background:none;border:0;font-size:12px;color:var(--color-neutral-600);cursor:pointer;font-family:var(--font-body);';
   if(mode==='setup'){
     root.innerHTML = shell(`
       <h1 style="${H1}">${i18t('co_create_workspace_h')}</h1>
@@ -1614,6 +1626,7 @@ function startApp(){
   window.applyLanguage && applyLanguage({repaint:false});
   document.getElementById('auth-root').innerHTML='';
   const shell=document.getElementById('app-shell');
+  document.body.classList.remove('pre-auth');
   shell.classList.remove('hidden');   // renderAuth hides the shell; .hidden is !important so the class must go
   shell.style.display='grid';
   renderSideUser(); renderSideFolders();
@@ -1986,9 +1999,33 @@ function openModal(html, opts={}){
   root.innerHTML=`
   <div style="position:fixed;inset:0;z-index:70;display:grid;place-items:center;padding:16px">
     <div id="modal-scrim" style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 50%,transparent);"></div>
-    <div class="modal-in scroll-thin" style="position:relative;width:100%;max-width:${maxw};${sized}background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:0;">${html}</div>
+    <div class="modal-in scroll-thin" role="dialog" aria-modal="true"${opts.label?` aria-label="${String(opts.label).replace(/"/g,'&quot;')}"`:''} tabindex="-1" style="position:relative;width:100%;max-width:${maxw};${sized}background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:0;">${html}</div>
   </div>`;
   document.getElementById('modal-scrim').addEventListener('click',closeModal);
+  /* ---- A DIALOG SAYS IT IS ONE, AND KEEPS THE KEYBOARD INSIDE IT ----
+     MEASURED before this: the share dialog — the most-used dialog in the
+     product, 31 focusable controls behind a scrim at z-index 70 — reported
+     role null, aria-modal null and no accessible name, and focus never moved
+     into it. A screen reader was never told it had opened, and Tab walked
+     straight out of it into the page underneath.
+     The panel takes focus on open (or its first control, which is what a
+     sighted keyboard user expects), Tab cycles inside it, and focus returns to
+     whatever opened it on close. Escape already worked and is untouched. */
+  const panel=root.querySelector('[role="dialog"]');
+  if(panel){
+    _modalOpener = document.activeElement;
+    const focusables = () => [...panel.querySelectorAll(
+      'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')]
+      .filter(e=>e.getClientRects().length);
+    setTimeout(()=>{ const f=focusables(); (f[0]||panel).focus({preventScroll:true}); },0);
+    panel.addEventListener('keydown',e=>{
+      if(e.key!=='Tab') return;
+      const f=focusables(); if(!f.length) return;
+      const first=f[0], last=f[f.length-1];
+      if(e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); }
+      else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
+    });
+  }
   // Esc closes, exactly like the scrim click — some modals (Compare, share)
   // otherwise strand keyboard users with no visible way out
   document.addEventListener('keydown',function esc(e){
@@ -1997,7 +2034,14 @@ function openModal(html, opts={}){
   });
   return root;
 }
-function closeModal(){ document.getElementById('modal-root').innerHTML=''; }
+let _modalOpener=null;
+function closeModal(){
+  document.getElementById('modal-root').innerHTML='';
+  /* Focus goes back where it came from, or a keyboard user is dropped at the
+     top of the document every time they dismiss a dialog. */
+  try{ if(_modalOpener && _modalOpener.isConnected) _modalOpener.focus({preventScroll:true}); }catch(e){}
+  _modalOpener=null;
+}
 
 /* ---- A PANEL THAT DOES NOT STAND IN FRONT OF WHAT IT IS TALKING ABOUT ----
 
@@ -2203,7 +2247,7 @@ function freezeContractHtml(c){
       return `<div class="hati-doc" data-anchor="redline">${sanitizeRich(c.redlineText)}</div>`;
     }
     const d=document.createElement('div');
-    d.innerHTML=`<div class="text-[13.5px] leading-[1.9] text-brand-800/85 whitespace-pre-wrap" data-anchor="redline">${String(c.redlineText).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</div>`;
+    d.innerHTML=`<div class="text-brand-800/85 whitespace-pre-wrap" style="line-height:var(--lh-doc)" data-anchor="redline">${String(c.redlineText).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</div>`;
     return d.innerHTML;
   }
   const tmp=document.createElement('div');
@@ -2656,7 +2700,13 @@ function shareSummaryStepHtml(c, opts={}){
         background:${x.status==='accepted'?'var(--st-green-bg)':x.status==='rejected'?'var(--st-ruby-bg)':'var(--st-amber-bg)'};
         color:${x.status==='accepted'?'var(--st-green-fg)':x.status==='rejected'?'var(--st-ruby-dot)':'var(--st-amber-fg)'}">${esc(x.status)}</span>
     </li>`).join('') : '';
-  const FLD='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:8px 10px;font-size:13px;font-family:var(--font-body);color:var(--color-text);outline:none;line-height:1.5;';
+  /* THE ONE FIELD SYSTEM. This was one of THREE disagreeing FLD constants —
+     two of them in this file 1,300 lines apart, on 8px/10px vs 6px/10px
+     padding, 13px vs 14px type, and one with no min-height at all. They all
+     read the same tokens now, so a field cannot be 34px in one dialog and
+     39px in another. `outline:none` is GONE: it is what defeated the
+     product's only focus ring on every dialog and on the sign-in form. */
+  const FLD='width:100%;min-height:var(--field-h);border:1px solid var(--field-line);background:var(--color-surface);border-radius:0;padding:var(--field-pad-y) var(--field-pad-x);font-size:var(--field-size);font-family:var(--font-body);color:var(--color-text);line-height:var(--field-lh);';
   /* Which of the two things the first step chose. Both branches render, and the
      wiring shows one — repainting in place rather than rebuilding, because the
      summary textarea below may already carry words the sender typed. */
@@ -3984,8 +4034,8 @@ async function openShareModal(c, opts={}){
      wanted later. */
   const quickOk = false;
   let qsActive=quickOk;
-  const FLD='width:100%;min-height:34px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:6px 10px;font-size:14px;font-family:var(--font-body);color:var(--color-text);outline:none;';
-  const LBL='display:block;font-size:12px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;';
+  const FLD='width:100%;min-height:var(--field-h);border:1px solid var(--field-line);background:var(--color-surface);border-radius:0;padding:var(--field-pad-y) var(--field-pad-x);font-size:var(--field-size);font-family:var(--font-body);color:var(--color-text);line-height:var(--field-lh);';
+  const LBL='display:block;font-size:var(--field-label-size);font-weight:var(--field-label-weight);color:var(--color-neutral-600);margin-bottom:var(--field-label-gap);font-family:var(--font-body);letter-spacing:var(--ls-base);';
   const tab=(k,label,active)=>`<button data-share-ch="${k}" style="flex:1;padding:7px 4px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;border:1px solid ${active?'var(--color-accent)':'var(--color-divider)'};background:${active?'var(--color-accent)':'var(--color-surface)'};color:${active?'#fff':'var(--color-neutral-700)'};border-radius:0">${label}</button>`;
   let ch=pre.channel||'email';
   const attr=s=>String(s==null?'':s).replace(/"/g,'&quot;');

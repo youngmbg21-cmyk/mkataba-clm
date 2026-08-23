@@ -380,17 +380,160 @@
        resting on a desk, not a card floating over one. */
     --shadow-paper:0 1px 2px rgba(38,55,74,.05), 0 18px 44px -22px rgba(38,55,74,.28);
 
-    --space-1:3.4px; --space-2:6.8px; --space-3:10.2px; --space-4:13.6px; --space-6:20.4px; --space-8:27.2px;
-    --radius-sm:8px; --radius-md:12px; --radius-lg:12px;
+    /* ═══ THE SPACING LADDER — one place, all four style sources ═══
+       WHAT WAS HERE AND WHY IT WENT: --space-1..8 was a 0.85x scaling of
+       4/8/12/16/24/32, so every rung landed on a FRACTION of a device pixel
+       (3.4 / 6.8 / 10.2 / 13.6 / 20.4 / 27.2px) — the same softness the 22 Aug
+       type sweep spent 865 replacements removing from font sizes. It had ZERO
+       consumers, and its value had already been hand-inlined once as
+       `padding:6.8px` (js/views/register.js), which is the clearest evidence
+       in this codebase that a scale was wanted and could not be reached.
+       MEASURED before this block existed: 6,480 spacing values, only 32.9% of
+       the non-zero ones on the strict scale, with 5/6/7/8/9/10/11/12/13/14px
+       all in simultaneous use as a continuum rather than a ladder.
+       THE PRIMITIVES ARE NUMBERS. THE ALIASES BELOW ARE WHAT YOU WRITE. */
+    --s-0:0; --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px;
+    --s-6:24px; --s-8:32px; --s-10:40px; --s-12:48px;
+
+    /* THE PAGE MEASURE — one value, every view. This replaces the literal
+       `16px 18px 28px` that js/views/intake.js calls "this product's own page
+       measure": the decision that comment records is that a view must not pick
+       a number of its own, and one measure on the ladder keeps that decision
+       while putting it on the grid. MEASURED before: 8 page paddings across 9
+       view roots, with the leftmost ink landing on 6 different verticals. */
+    --page-pad-x:var(--s-4); --page-pad-t:var(--s-4); --page-pad-b:var(--s-6);
+    --page-pad:var(--page-pad-t) var(--page-pad-x) var(--page-pad-b);
+    /* A full-bleed BAND is not a padded page — the room's head, the negotiation
+       head, the calendar head. Its own inset, deliberately wider. */
+    --band-pad-x:var(--s-6);
+
+    /* CARDS — square, never 16/18. The 2px axis difference in `16px 18px` is
+       why the KPI row (12/14) and the pipeline card (16/18) sat out of column. */
+    --pad-card:var(--s-4); --pad-card-sm:var(--s-3); --pad-card-lg:var(--s-6);
+
+    /* ROWS — table cells and list rows. THIS IS THE DENSITY LEVER: with the two
+       line boxes below it the register row goes 55.39px -> 45px, which is why a
+       1440x900 laptop shows 17 contracts instead of 12. */
+    --pad-row-y:var(--s-1); --pad-row-x:var(--s-3);
+    --pad-row:var(--pad-row-y) var(--pad-row-x);
+    --row-line-1:20px; --row-line-2:16px;
+
+    /* CONTROLS — the VERTICAL comes from a height rung, never from padding.
+       That is what stops a control inventing a half-rung box: .ui-btn's
+       `padding:6px 12px` computed to 30.8px against .ui-btn-lg's fixed 28,
+       under a comment claiming the large one was the larger. */
+    --pad-ctl-x:var(--s-3);
+    --ctl-h-sm:24px; --ctl-h:28px; --ctl-h-lg:32px;
+    /* A PLATFORM CONSTANT, NOT A SPACING VALUE — deliberately off the ladder
+       and exempt from any sweep. 44px is the phone touch minimum. */
+    --ctl-h-touch:44px;
+    /* WCAG 2.5.8 target minimum. A text-styled button still has to be pressable. */
+    --tap-min:24px;
+
+    /* GAPS and vertical rhythm. */
+    --gap-tight:var(--s-1); --gap-row:var(--s-2);
+    --gap-card:var(--s-3); --gap-section:var(--s-6);
+    --stack-1:var(--s-1); --stack-2:var(--s-2); --stack-3:var(--s-3);
+    --stack-4:var(--s-4); --stack-6:var(--s-6);
+    /* The gutter of every resizable split — RL_GAP and KT_GAP both read 14px
+       in JS; naming it is what lets the CSS fallback and the JS agree. */
+    --split-gutter:var(--s-3);
+
+    /* ═══ TYPE — nine rungs against the 16 sizes painted before this ═══
+       The design's ladder is 10,11,12,13,14,15,17,19,22,30,34,42; 16 and 18 are
+       the two it deliberately skips. Each rung here carries the ROLE it serves,
+       because a size with no role is a size the next author re-picks. */
+    --t-display:30px;   /* hero only */
+    --t-page:19px;      /* the h1 of a view */
+    --t-section:17px;   /* drawer head, dialog title */
+    --t-card:15px;      /* card title, contract room title */
+    --t-body:14px;      /* body copy and table cell — the design's root */
+    --t-meta:13px;      /* secondary metadata, a sub-line */
+    --t-label:12px;     /* field label, table header */
+    --t-micro:11px;     /* UPPERCASE micro label ONLY — never a sentence */
+    --t-figure:10px;    /* a count in a chip. The floor. */
+
+    /* WEIGHT. 500 is REAL on Inter (variable 300-800); it was not real on "72",
+       which is the whole reason .font-medium was pinned to 400 and the pin's
+       own comment called it "one edit to undo when somebody wants Medium on
+       purpose". See the .font-medium rule below. */
+    --w-body:400; --w-label:500; --w-strong:600; --w-title:700;
+
+    /* LEADING — the largest gap this audit found: 78.2% of the product's 2,300
+       font-size declarations carried none, and the only base leading in the
+       product was html{line-height:1.5} inherited from the GENERATED Tailwind
+       blob nobody is allowed to edit. Five rungs, and the base is declared in
+       HaTi's own sheet (below the ramp) so this product owns its own rhythm. */
+    --lh-tight:1.2;     /* single-line controls: buttons, chips, tabs, counts */
+    --lh-snug:1.35;     /* headings and titles — two lines at most */
+    --lh-base:1.5;      /* THE BASE */
+    --lh-relaxed:1.6;   /* multi-line body copy, notices, panel prose */
+    --lh-doc:1.8;       /* the contract paper, and one value for it */
+
+    /* TRACKING — three answers, against 25 letter-spacing values in circulation. */
+    --ls-micro:.09em;   /* uppercase micro labels — the brief's single value */
+    --ls-title:-0.01em; /* page and section titles */
+    --ls-base:0;        /* everything else, named so it reads as a decision */
+
+    /* ═══ BORDERS ═══ --color-divider stays the name 600 declarations already
+       use; --rule is the new name and they resolve to one value, so nothing has
+       to be swept and nothing can drift. MEASURED before: 70 distinct
+       structural hairline colours across the product, three of them the same
+       rule asked at 6%, 7% and 8%. */
+    --rule:var(--color-divider);
+    --rule-strong:#C6CFCD;   /* where one REGION ends: head band, tab baseline */
+    --rule-faint:#ECEFEE;    /* repeated rules inside one dense table */
+    --field-line:#8A9795;    /* WCAG 1.4.11 wants 3:1 on a control's boundary */
+    --border-w:1px; --border-w-strong:2px;
+
+    /* ═══ LAYERS ═══ 78 hand-typed z-index values and no ladder, which is how
+       the toast came to sit below the panel that raises it. */
+    --z-base:0; --z-sticky:20; --z-drawer:40; --z-scrim:60;
+    --z-modal:70; --z-menu:80; --z-toast:90;
+
+    /* ═══ ICONS ═══ measured on ONE screen: five painted box sizes
+       (13/14/15/16/19px) and six stroke widths against a sprite documented as
+       one 16x16 hairline family. */
+    --icon-sm:14px; --icon:16px; --icon-lg:20px; --icon-stroke:1.5;
+
+    /* RADIUS IS ZERO AND THAT IS OWNER-RULED (20 Aug 2026, ~810 radii swept).
+       Named rather than deleted so a new component reaches for the token and
+       gets the product's answer instead of inventing 8px. True circles use
+       border-radius:50% and are not this token. */
+    --radius:0; --radius-sm:0; --radius-md:0; --radius-lg:0;
 
     --shadow-sm:0 1px 2px rgba(15,23,42,.05), 0 10px 26px -12px rgba(15,23,42,.18);
     --shadow-md:0 4px 10px rgba(15,23,42,.07), 0 18px 40px -14px rgba(15,23,42,.25);
     --shadow-lg:0 12px 32px color-mix(in srgb,#0f172a 22%,transparent);
 
-    /* legacy elevation aliases kept so un-migrated views still separate cleanly */
-    --ring:0 0 0 1px var(--color-divider);
-    --sh1:var(--shadow-sm); --sh2:var(--shadow-sm); --sh3:var(--shadow-md); --sh4:var(--shadow-lg);
-    --focus:0 0 0 2px color-mix(in srgb,var(--color-accent) 45%,transparent);
+    /* Elevation aliases. --sh1..4 and --ring had ZERO consumers and are gone;
+       --shadow-sm/md/lg are the ladder and are used 109 times between them. */
+    --ring:0 0 0 1px var(--rule);
+
+    /* ═══ FOCUS — one ring, decided once ═══
+       accent-700 rather than accent-600 because SC 1.4.11 wants 3:1 for a focus
+       indicator and accent-600 measures 2.04:1 on a dark navy surface.
+       THE BOX-SHADOW FORM IS LOAD-BEARING, not decoration: 91 inline
+       `outline:none` declarations across js/ defeat any outline rule ever
+       written, and an inline declaration cannot be beaten without !important —
+       but not one of those 91 sites sets box-shadow, so the shadow reaches all
+       of them. See the :focus-visible rule further down. */
+    --focus-color:var(--color-accent-700);
+    --focus-width:2px; --focus-offset:1px;
+    --focus:0 0 0 var(--focus-width) var(--focus-color);
+
+    /* ═══ FIELDS — one system, replacing eight drifting constants ═══
+       MEASURED before: three FLD definitions (two in one file 1,300 lines
+       apart) disagreeing on padding, size, height and leading, and a fourth
+       (RV_FLD) carrying a comment saying it was a deliberate copy that must be
+       kept in step — which had already drifted 2px from what it quoted. */
+    --field-h:36px; --field-size:var(--t-body); --field-lh:20px;
+    /* DERIVED, never typed, so it cannot drift from --field-h: the remainder
+       after the line box and the two borders. */
+    --field-pad-y:calc((var(--field-h) - var(--field-lh) - 2px) / 2);
+    --field-pad-x:10px;
+    --field-label-size:var(--t-label); --field-label-weight:var(--w-label);
+    --field-label-gap:var(--s-1); --field-row-gap:var(--s-4);
     --ease:cubic-bezier(.2,.7,.3,1);
 
     /* danger / destructive-action tone (used by confirmDialog, delete, decline) */
@@ -475,7 +618,11 @@
      pins that). Classed marks only, so Word-imported or hand-written
      del/ins in stored content are left exactly as authored. */
   del[class]+ins[class]{margin-inline-start:.3em;}
-  html{scroll-behavior:smooth;}
+/* THE PRODUCT'S READING RHYTHM, OWNED. Before this line the only base
+     leading anywhere was html{line-height:1.5} inside the GENERATED Tailwind
+     blob, a file this project is told never to edit. Equal specificity and
+     later in source, so it wins without !important. */
+  html{scroll-behavior:smooth;line-height:var(--lh-base);}
   body{
     margin:0;
     color:var(--color-text);
@@ -553,8 +700,19 @@
 
      The contract paper's bold-corporate heading keeps its 800 and no longer
      needs an exception written for it: the whole product is Inter now. */
-  .font-medium{font-weight:400}
-  a{color:var(--color-accent-700);}
+/* ---- UNPINNED, 23 Aug 2026 ----
+     This was 400, and the pin was correct when it was written: SAP's "72"
+     shipped 300/400/600/700, so a 500 rendered byte-identical to 400 and the
+     source would have claimed a weight the screen could not draw. Its own note
+     called the pin "one edit to undo when somebody wants Medium on purpose".
+     Inter is a VARIABLE face carrying 300-800, so 500 is real, and 37 elements
+     in this product are already authored as .font-medium and were rendering as
+     regular. THE ONE COST, named: Inter is not duplex, so a 500 is fractionally
+     wider than a 400 — measured across the shell and the register, nothing
+     reflows and nothing wraps; the widest effect is a truncating cell clipping
+     one character earlier. */
+  .font-medium{font-weight:var(--w-label)}
+  a{color:var(--accent-ink);}
   a:hover{color:var(--color-accent-800);}
   ::selection{background:color-mix(in srgb,var(--color-accent) 30%,transparent);}
   input::placeholder,textarea::placeholder{color:var(--color-neutral-500);}
@@ -566,7 +724,43 @@
   .lift:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
   .tnum{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
   button,[role=button]{transition:background .15s,color .15s,box-shadow .15s,border-color .15s}
-  button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--color-accent);outline-offset:1px;}
+/* ═══ ONE RING, AND IT HAS TO REACH THE FIELDS THAT REFUSE AN OUTLINE ═══
+     MEASURED: 91 inline `style="…outline:none…"` declarations across js/, most
+     of them carried in by the shared field constants. An inline declaration
+     outranks every selector, and nothing in this product puts !important on a
+     focus rule — so this rule had never drawn on the SIGN-IN FORM, the share
+     dialog, the review dialog, the settings drawers, the wizard, the template
+     library or the counterparty portal. Verified live: both sign-in fields
+     returned outlineWidth 0px / outlineStyle none / boxShadow none while
+     focused, while the Sign in button beside them (which sets no inline
+     outline) drew the ring correctly.
+     THE SECOND DECLARATION IS THE FIX, not decoration: not one of those 91
+     sites sets box-shadow, so the shadow reaches every one of them WITHOUT
+     !important. The outline stays for everything else, because it is what
+     tracks a non-rectangular control's real shape. */
+  /* ---- THE SIGN-IN SCREEN SHOWS NOTHING FROM A SESSION IT DOES NOT HAVE ----
+     See renderAuth in js/core.js for what this was reading before. */
+  body.pre-auth #context-panel,
+  body.pre-auth #ai-panel,
+  body.pre-auth #ai-launch,
+  body.pre-auth #cmd-scrim{display:none!important;}
+
+  /* ---- TARGET SIZE (WCAG 2.5.8, AA) ----
+     MEASURED: "Forgot password?" — the only route back into an account —
+     rendered 366x17px at 1440 and 304x17px at 390, and the register's pager
+     link 95x17px. Both are text-styled buttons, which is why every finding
+     aimed at .ui-btn missed them. A floor, not a box: they still read as links. */
+  .linkbtn,button.linkbtn,[data-reg-flat]{
+    min-height:var(--tap-min);display:inline-flex;align-items:center;}
+
+  button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,
+  textarea:focus-visible,[contenteditable]:focus-visible,[tabindex]:focus-visible{
+    outline:var(--focus-width) solid var(--focus-color);
+    outline-offset:var(--focus-offset);
+    box-shadow:var(--focus);
+  }
+  /* A control that owns an elevation keeps it and gains the ring beside it. */
+  .lift:focus-visible,.hati-card:focus-visible{box-shadow:var(--focus),var(--shadow-md);}
 
   /* ---- soft card frame: the old "blueprint" corner-registration marks are
      retired in favour of larger radii + diffuse layered shadows. The corner
@@ -640,26 +834,31 @@
      lesson). html takes the token too, so there is one answer. */
   html{font-family:var(--font-body);}
   .text-ink{color:var(--color-text);}
-  .text-ink\/80{color:color-mix(in srgb,var(--color-text) 80%,transparent);}
-  .text-ink\/70{color:color-mix(in srgb,var(--color-text) 70%,transparent);}
-  .text-ink\/65{color:color-mix(in srgb,var(--color-text) 65%,transparent);}
-  .text-ink\/60{color:color-mix(in srgb,var(--color-text) 60%,transparent);}
-  .text-ink\/55{color:color-mix(in srgb,var(--color-text) 55%,transparent);}
-  .text-ink\/50{color:color-mix(in srgb,var(--color-text) 50%,transparent);}
-  .text-ink\/45{color:color-mix(in srgb,var(--color-text) 45%,transparent);}
-  .text-ink\/40{color:color-mix(in srgb,var(--color-text) 40%,transparent);}
+  /* ---- AN OPACITY IS NOT AN INK ----
+     MEASURED, composited over white: /80 7.76:1, /70 5.60, /65 4.75, then
+     /60 4.11, /55 3.53, /50 3.06, /45 2.70, /40 2.36 — five rungs under the
+     4.5 AA floor, carrying 54 elements of ordinary reading text. It is the
+     fault --color-doc-text was created to escape, solved for the contract
+     paper and nowhere else.
+     THE DESIGN CARRIES TWO READING INKS, so the ladder collapses onto them:
+     the two heavy rungs take PRIMARY, the six light ones take SECONDARY.
+     Hierarchy is carried by size and weight, which survive a background
+     change; a fade does not. */
+  .text-ink\/80,.text-ink\/70{color:var(--color-text);}
+  .text-ink\/65,.text-ink\/60,.text-ink\/55,
+  .text-ink\/50,.text-ink\/45,.text-ink\/40{color:var(--color-neutral-600);}
   /* ink */
   html.dark .text-ink,html.dark .text-brand-900,html.dark .text-brand-800{color:var(--color-text);}
   html.dark .text-brand-800\/85{color:color-mix(in srgb,var(--color-text) 85%,transparent);}
-  html.dark .text-brand-800\/80,html.dark .text-ink\/80{color:color-mix(in srgb,var(--color-text) 80%,transparent);}
-  html.dark .text-brand-800\/75{color:color-mix(in srgb,var(--color-text) 75%,transparent);}
-  html.dark .text-brand-800\/70,html.dark .text-ink\/70{color:color-mix(in srgb,var(--color-text) 72%,transparent);}
-  html.dark .text-brand-800\/65,html.dark .text-ink\/65{color:color-mix(in srgb,var(--color-text) 68%,transparent);}
-  html.dark .text-brand-800\/60,html.dark .text-ink\/60{color:color-mix(in srgb,var(--color-text) 64%,transparent);}
-  html.dark .text-ink\/55{color:color-mix(in srgb,var(--color-text) 58%,transparent);}
-  html.dark .text-ink\/50{color:color-mix(in srgb,var(--color-text) 54%,transparent);}
-  html.dark .text-brand-800\/45,html.dark .text-ink\/45{color:color-mix(in srgb,var(--color-text) 50%,transparent);}
-  html.dark .text-ink\/40{color:color-mix(in srgb,var(--color-text) 46%,transparent);}
+  /* The same collapse at night: --color-neutral-600 answers #93A09E under
+     html.dark, 6.60:1 on the dark surface. */
+  html.dark .text-brand-800\/80,html.dark .text-ink\/80,
+  html.dark .text-brand-800\/70,html.dark .text-ink\/70{color:var(--color-text);}
+  html.dark .text-brand-800\/65,html.dark .text-ink\/65,
+  html.dark .text-brand-800\/60,html.dark .text-ink\/60,
+  html.dark .text-ink\/55,html.dark .text-ink\/50,
+  html.dark .text-brand-800\/45,html.dark .text-ink\/45,
+  html.dark .text-ink\/40{color:var(--color-neutral-600);}
   html.dark .text-brand-800\/35{color:color-mix(in srgb,var(--color-text) 42%,transparent);}
   html.dark .text-brand-700,html.dark .text-brand-600{color:var(--color-accent-400);}
   html.dark .text-gold-600{color:var(--st-amber-fg);}
@@ -715,7 +914,14 @@
      measured in pixels. The head rows that wanted the mock-up's larger, lighter
      button take .ui-btn-lg below rather than dragging the whole product with
      them. */
-  .ui-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:14px;line-height:1.2;color:var(--color-accent-700);background:transparent;border:1px solid color-mix(in srgb,var(--accent-solid) 45%,transparent);border-radius:0;padding:6px 12px;transition:background .15s,border-color .15s,color .15s;}
+  .ui-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:14px;line-height:var(--lh-tight);color:var(--accent-ink);background:transparent;border:1px solid color-mix(in srgb,var(--accent-solid) 45%,transparent);border-radius:0;
+    /* HEIGHT COMES FROM A RUNG, NEVER FROM PADDING. `padding:6px 12px` on a
+       14px/1.2 label computes to 30.8px — 2.8px TALLER than .ui-btn-lg's fixed
+       28, under a source comment calling the large one the larger. A rung plus
+       horizontal-only padding is what stops a control inventing a half-rung
+       box. min-height rather than height, so a two-line label still grows. */
+    min-height:var(--ctl-h);padding:0 var(--pad-ctl-x);
+    transition:background .15s,border-color .15s,color .15s;}
   .ui-btn:hover{background:color-mix(in srgb,var(--accent-solid) 10%,transparent);}
   /* :not(.ui-btn-primary): the hover rule outranks the primary's resting
      border on specificity, and a ring flashing over a filled navy button
@@ -742,7 +948,24 @@
      larger and lighter than the base .ui-btn (14px/600) — the difference is
      now the WEIGHT and the box, which is what a head row wanted from this
      class in the first place. */
-  .ui-btn-lg{height:28px;padding:0 11px;font-size:14px;font-weight:400;}
+  .ui-btn-lg{min-height:var(--ctl-h);padding:0 var(--pad-ctl-x);font-size:var(--t-body);font-weight:var(--w-body);}
+  /* THE SMALL RUNG. It did not exist, which is why 176 buttons carry an INLINE
+     padding or font-size instead — 10 distinct paddings and 4 type sizes typed
+     at the call site, none of which any stylesheet can reach, because an inline
+     declaration outranks every selector. A dense control now has a class to
+     reach for. Migrating those 176 call sites is a separate, visual pass: each
+     one is a hand-tuned dense row and they want a human eye, not a regex. */
+  .ui-btn-sm{min-height:var(--ctl-h-sm);padding:0 var(--s-2);font-size:var(--t-meta);}
+
+  /* ═══ A HEAD ROW HAS ONE HEIGHT AND ONE BASELINE, WHATEVER CLASS THE BUTTON
+     CAME FROM ═══ Scoped to the CONTAINER, not to a class, because the measured
+     fault was buttons arriving from four different classes (.ui-btn, .rl-btn,
+     .ws-more-btn, a bare <button>) into one row and disagreeing — 34, 32.19 and
+     28px in a single row of four, on three baselines. A rule naming today's
+     classes is one the next button added there walks straight past.
+     Weight is deliberately still free: the one filled act may carry its own. */
+  .room-acts button,.room-acts .ui-btn,#ws-head .room-acts button{
+    min-height:var(--ctl-h);line-height:var(--lh-tight);}
   .ui-btn-lg.ui-btn-primary{font-weight:700;}
   /* HIDING A BUTTON HAS TO ACTUALLY HIDE IT. The rule above sets a display, and
      an author rule beats the browser's own [hidden]{display:none} — so every
@@ -756,7 +979,12 @@
   /* The one filled act. Its glow came off with the tint above — a filled
      accent face is already the strongest thing on any of these pages, and the
      14px halo was what made two of them side by side read as equals. */
-  .ui-btn-primary{background:var(--accent-solid);color:#fff;border-color:var(--accent-solid);}
+  /* WHITE ON accent-600 MEASURES 3.74:1 — under the 4.5 AA floor, on 114
+     elements. accent-700 gives 5.47:1 in teal and 11.30:1 in navy, so ONE
+     value serves both workspaces and there is no dark override to keep in
+     step. --accent-solid itself is UNCHANGED: it is the nav's active fill and
+     is documented as a brand fill that must not flip with the theme. */
+  .ui-btn-primary{background:var(--color-accent-700);color:#fff;border-color:var(--color-accent-700);}
   .ui-btn-primary:hover{background:var(--accent-solid-hover);}
   /* Secondary action beside a primary. It now resolves to the same face as the
      base class, which is the point — the base IS the outlined level since 22
@@ -1201,7 +1429,7 @@
      the .ngl-row / .ngl-list rules survive because the EMPTY state (no live
      negotiation anywhere) is still a page of its own rather than an empty table
      under a filter bar. */
-  .ngl-wrap{ padding:18px 20px 32px; max-width:900px; }
+  .ngl-wrap{ padding:var(--page-pad); max-width:900px; }
   .ngl-head h2{ font-family:var(--font-heading); font-weight:600; font-size:20px;
     margin:0 0 4px; line-height:1.2; }
   .ngl-head p{ margin:0 0 18px; font-size:14px; color:var(--color-neutral-600); }
@@ -1475,7 +1703,7 @@
      "Your account" opens the same drawer from views that are not this page.
      It is the Activity panel's own mechanism: transform, a dimmed scrim, and
      dismissed by scrim / Escape / its own ✕. */
-  .st-page{ padding:16px 18px 28px; }
+  .st-page{ padding:var(--page-pad); }
   /* ---- THE ADMIN TAB ROWS ARE DRAWN LIKE THE ROOM'S (owner-asked 23 Aug
      2026: "the design of images 1 and 2 need to resemble how image 3 was
      designed") ---- Image 3 is the contract room's tab row, and the difference
