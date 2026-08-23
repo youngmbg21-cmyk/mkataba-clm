@@ -121,8 +121,13 @@ describe('f191 (4) — one bell on their page, and the owner keeps theirs', () =
       NEGO.indexOf('function rlFloatingNoticesHtml'));
     assert.match(fn, /opts\.side === 'counterparty'/,
       'the stack asks whose seat it is drawing on');
-    assert.match(fn, /if \(theirs\) stack = n;/,
-      'and on theirs it draws the reading notice alone — no bell');
+    /* REVERSED IN PLACE 23 Aug 2026 — the stack stopped folding and the line
+       that expressed this changed shape with it. The CLAIM is untouched: on
+       their seat the body is the reading notice alone and no bell is built. */
+    assert.match(fn, /const body = theirs \? n : \(a \+ n\);/,
+      'on theirs the body is the reading notice alone');
+    assert.match(fn, /const bell = theirs \? '' : rlAlertsBellHtml\(c\);/,
+      'and no bell is built for it');
     assert.match(NEGO, /rlNoticeStackHtml\(c, rlSeatAlertsHtml\(c, opts\), rlReadNoticeHtml\(\) \|\| '', 'rl-notices', opts\)/,
       'the seat actually reaches the stack');
     /* AND THE NOTICES IT STOPS FOLDING ARE STILL REACHABLE. Standing the bell
@@ -133,14 +138,18 @@ describe('f191 (4) — one bell on their page, and the owner keeps theirs', () =
       'and the header panel reads that same population');
   });
 
-  test('the OWNER\'s workbench still folds its notices behind a bell', () => {
-    /* There they are genuinely two questions — the header bell is about the
-       whole workspace, the floating one is about this contract. On the
-       counterparty's page there is only one contract, so one door. */
-    const fn = NEGO.slice(NEGO.indexOf('function rlNoticeStackHtml'),
-      NEGO.indexOf('function rlFloatingNoticesHtml'));
-    assert.match(fn, /rl-notices-fab/, 'the fab still exists');
-    assert.match(fn, /rlNoticesFolded\(c\)/, 'and the owner\'s fold still decides');
+  test('REVERSED — the owner\'s workbench keeps its bell, as a door onto the panel', () => {
+    /* The reason for the split has not changed: on their page there is one
+       contract and therefore one question, so one door. What changed on 23 Aug
+       2026 is what the OWNER's bell does — it opened a fold of its own and now
+       opens the workspace alerts panel (owner-asked). The claim this test has
+       always made is that the two seats differ, and they still do. */
+    assert.match(NEGO, /function rlAlertsBellHtml/, 'the owner\'s bell has its own builder');
+    assert.match(NEGO, /rl-notices-fab/, 'the fab still exists');
+    assert.match(NEGO, /data-rl-alerts-open=/, 'and it carries the door onto the panel');
+    /* The fold predicate is not dead: the phone still folds, and it has no
+       panel to send anybody to. */
+    assert.match(NEGO, /function rlNoticesFolded/, 'the fold survives for the phone');
   });
 
   test('the wall line is untouched — it is not an alert and never folds', () => {

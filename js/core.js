@@ -5611,25 +5611,43 @@ async function applyNegoProposals(c, r, who){
 
    RETRYING IS RIGHT AND STAYS. What was wrong is that it was invisible. So the
    retry is untouched and the SECOND consecutive failure on the same answer is
-   reported, once per sitting — the second, not the first, because one miss is
-   ordinarily a page that has not finished loading its contracts and crying wolf
-   on that would teach the reader to ignore this box.
+   reported — the second, not the first, because one miss is ordinarily a page
+   that has not finished loading its contracts, and crying wolf on that teaches
+   the reader to ignore the report.
+
+   ---- AND IT IS NOT A POP-UP (owner-reported 23 Aug 2026) ----
+   It shipped as a warn toast, and on a real workspace with four answers in this
+   state the reader got FOUR orange boxes stacked over the change column, each
+   sitting for eight seconds, coming back on the next sitting. "I never want to
+   see this in the platform again." Fair: a toast is for something that has just
+   happened because of a press, and this is a standing condition — it is true
+   until somebody reloads, and it stays true while they read the page.
+
+   SO IT IS A FACT THIS MODULE RECORDS AND THE ALERTS PANEL READS. _pollStuck is
+   the whole of it: one entry per answer that has failed twice running, deleted
+   the moment one lands. buildAlerts turns each into an ordinary row beside
+   everything else waiting on this reader. Nothing jumps in front of anybody and
+   nothing is lost — which was the objection to simply deleting the boxes.
 
    IT WRITES NOTHING TO THE RECORD. An audit line would mean persisting a
    contract we have just failed to apply an answer to, which is the one moment
-   not to be writing to it. The toast plus the standing retry is the whole
-   report.
+   not to be writing to it. The row plus the standing retry is the whole report.
 
    THE NETWORK IS STILL SILENT, deliberately: a fetch that fails between beats
    is ordinary and the next beat fixes it. Only the applying speaks. */
 const POLL_TROUBLE_AT = 2;
 const _pollTrouble = new Map();   // answer key -> consecutive failures
-const _pollTold = new Set();      // reported once per sitting, never nagged
+const _pollStuck   = new Map();   // answer key -> {key,id,name,who} for the panel
+/* THE ONE READING. Returns plain data — buildAlerts must be able to ask this
+   without reaching into a Map that belongs to the poller, and a screen that
+   derived its own answer from _pollTrouble would count the first miss too. */
+function pollStuckAnswers(){ return [..._pollStuck.values()]; }
 async function pollPendingResponses(){
   if(!API_MODE() || !canEdit()) return;
   let list;
   try{ list=await api('shares/pending'); }
   catch(e){ return; }             // transient network — the next beat retries
+  const before=_pollStuck.size;
   for(const item of list){
     const key=String(item.responseId||item.token||'');
     const c=getContract(item.response&&item.response.id);
@@ -5637,7 +5655,7 @@ async function pollPendingResponses(){
     if(c){ try{ ok=await applyResponse(c, item.response, {background:true}); }
            catch(e){ ok=false; } }
     if(ok){
-      _pollTrouble.delete(key); _pollTold.delete(key);
+      _pollTrouble.delete(key); _pollStuck.delete(key);
       // A durable link carries one row per round, so the acknowledgement names
       // the answer just applied. Marking the whole link applied would silence
       // every later round on it.
@@ -5648,16 +5666,24 @@ async function pollPendingResponses(){
     }
     const n=(_pollTrouble.get(key)||0)+1;
     _pollTrouble.set(key,n);
-    if(n>=POLL_TROUBLE_AT && !_pollTold.has(key)){
-      _pollTold.add(key);
-      const id=(item.response&&item.response.id)||'';
-      const who=(item.response&&item.response.name)||'';
-      /* 'warn', not 'err': nothing is lost and nothing was refused — the
-         answer is safe on the server and this browser keeps trying. The action
-         is the one thing that has been shown to clear it. */
-      toast(i18t('co_answer_stuck',{ id:esc(id), who:esc(who) }),'warn',
-        { action:{ label:i18t('co_answer_stuck_act'), onClick:()=>location.reload() } });
+    if(n>=POLL_TROUBLE_AT){
+      const id=String((item.response&&item.response.id)||'');
+      /* THE NAME IS BEST EFFORT AND THE ID IS NOT. The commonest reason an
+         answer will not land is that this browser does not hold the contract at
+         all, so there is usually no name to give — and a row headed by a blank
+         is worse than one headed by the reference the reader can search for. */
+      const named=id?getContract(id):null;
+      _pollStuck.set(key,{ key, id, name:(named&&(named.name||named.id))||id,
+        who:String((item.response&&item.response.name)||'') });
     }
+  }
+  /* The panel is not repainted on a beat that changed nothing — this loop runs
+     every twelve seconds on a watched contract, and rebuilding the open panel
+     each time would fight a reader scrolling it. */
+  if(_pollStuck.size!==before){
+    try{ if(window.updateAlertBadge) updateAlertBadge(); }catch(_){}
+    try{ if(window.renderContextPanel && state.panelOpen && window.panelFace
+      && panelFace()==='alerts') renderContextPanel(); }catch(_){}
   }
 }
 /* ---------- how often to look ----------
@@ -5768,4 +5794,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{cpReadyToSign,READY_META,READY_META_SHORT,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,isArchived,contractSetArchived,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{cpReadyToSign,READY_META,READY_META_SHORT,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,isArchived,contractSetArchived,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});

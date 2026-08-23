@@ -1766,15 +1766,34 @@ function uploadDocBody(c){
          could be read for Copilot review. None of it is the counterparty's business,
          and shown to them it produced a second Download button competing with
          the portal's own, under copy addressed to somebody else. -->
+    ${''/* ---- THE SAME FIX AS THE BRANCH ABOVE, ONE BRANCH LATE (owner-asked
+         23 Aug 2026: "I do not understand the need for the highlighted alert.
+         Get rid of it") ----
+         On 20 Aug the extracted-text box lost its border and became the page,
+         on the reasoning that this tab already renders inside the standard
+         sheet and a bordered card on it is a contract inside a contract. THIS
+         box is the same thing for an upload whose wording has since been
+         EDITED, and it was missed: an uppercase caption with an icon, an accent
+         border, a padded card, and a sentence underneath explaining what the
+         box was for.
+
+         THE WORDING STAYS AND IS THE PAGE. Deleting the block outright was the
+         obvious reading of the ask and would have been wrong: once c.redlineText
+         exists the branch above stops drawing the file's own text, so this is
+         the ONLY place the agreement's current wording appears on this tab.
+         What goes is the lid, not the contract.
+
+         AND ONE SENTENCE REALLY IS LOST, said out loud rather than absorbed:
+         "This edited text is what versions, Compare and the seal operate on"
+         was the only place in the product that said so. It is a fact about how
+         the seal works rather than about this document, it was being told to
+         every reader of every edited upload for ever, and nothing acts on it.
+         If it is wanted back it wants a home of its own — the evidence pack or
+         the seal's own panel — not a caption over the contract.
+         ct_working_text is STALE. */}
     ${c.redlineText?`
-    <div class="mb-4" data-anchor="redline">
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-        <span style="color:var(--color-accent)">${icon('history','w-3.5 h-3.5')}</span>
-        <span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--color-neutral-600)">${i18t('ct_working_text')}</span>
-      </div>
-      <div style="border:1px solid var(--color-accent-300);background:var(--color-surface);border-radius:0;padding:12px 14px;color:var(--color-doc-text)">${docBodyHtml(c,{size:'13px',lh:'1.7'})}</div>
-      <div style="font-size:12px;color:var(--color-neutral-600);margin-top:4px">This edited text is what versions, Compare and the seal operate on — the original file below is retained unchanged as the received source.</div>
-    </div>`:''}
+    <div class="mb-4" data-anchor="redline" style="color:var(--color-doc-text)">${
+      docBodyHtml(c,{size:'13px',lh:'1.7'})}</div>`:''}
     ${preview}
     ${signatureBlock(c)}`;
 }

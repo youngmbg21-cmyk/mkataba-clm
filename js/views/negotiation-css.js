@@ -1357,8 +1357,16 @@ function redlineLayoutCss(){
   @media (prefers-reduced-motion:reduce){
     .rl-notices-fab.is-news{animation:none}
   }
-  .rl-fab-dot{position:absolute;top:1px;right:1px;width:10px;height:10px;
-    border-radius:0;background:var(--st-amber-dot);border:2px solid var(--color-surface)}
+  ${''/* IT CARRIES THE NUMBER SINCE 23 Aug 2026, because the bell now opens the
+     workspace alerts panel and a door has to say how much is behind it. It was
+     a bare 10px square — a dot that said "something", on a control whose whole
+     job is now "how many". Sized off the digits with a min-width so 1 and 9+
+     are the same object, and the surface-coloured ring is what keeps it legible
+     over the bell's own amber or green face. */}
+  .rl-fab-dot{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;padding:0 3px;
+    border-radius:0;background:var(--st-amber-dot);border:2px solid var(--color-surface);
+    color:#fff;font-size:11px;font-weight:700;line-height:13px;text-align:center;
+    font-variant-numeric:tabular-nums}
   /* ---- AND HIDE IS A CONTROL, SO IT IS COLOURED LIKE ONE ----
      Reported (Young, 12 Aug 2026): "the hide button needs to be more visible".
      It was grey on white at the corner of a floating card and read as a caption
@@ -2526,13 +2534,30 @@ function redlineLayoutCss(){
      does not resolve, the fallback is the padding above: tabs sitting 9px
      clear of the rule rather than on it, which is a worse line and not a
      broken one. */
-  .redline-page .rl-idx-head:has(.rl-fsegwrap){padding-bottom:10px}
+  .redline-page .rl-idx-head:has(.rl-fsegwrap){padding-bottom:0}
   .redline-page .rl-idx-head [hidden]{display:none!important}
   ${''/* the read-only sentence also lives inside the head; on the one-line
      head it must never share the caption's line. */}
   .redline-page .rl-idx-head .nego-why{flex-basis:100%}
-  .redline-page .rl-idx-k{flex:1;min-width:0;font-size:12px;font-weight:700;letter-spacing:.12em;
-    text-transform:uppercase;color:var(--color-neutral-600)}
+  ${''/* ---- THE CAPTION TAKES A LINE OF ITS OWN, AND THE PRIMARY INK ----
+     (owner-chose render B1 off five drawn heads, 23 Aug 2026.) It used to sit
+     on ONE line with the tabs at the right wall — Option 1 of 16 Aug, which was
+     right while the tabs were three small words and wrong once the count became
+     the headline: a 19px figure cannot share a line with a 12px caption without
+     one of them looking like a mistake. So flex-basis:100% and the tabs drop
+     underneath it, which is the shape the head had before 16 Aug and is now the
+     rule rather than the narrow-column fallback.
+
+     AND IT IS BLACK. B1 is "all of it black" — the caption, the counts and the
+     words. This is a DELIBERATE EXCEPTION to the four-shades rule (primary is
+     14px and up; the secondary shade is where 11-13px lives), taken knowingly
+     and scoped to this one row: the owner was shown B3, which keeps the caption
+     and the small word grey and blacks only the 19px count, and chose B1. Do
+     not sweep this outward — the captions under a signpost are not the
+     signpost, and a pass that took every mid-grey to primary was reverted once
+     already for exactly that. */}
+  .redline-page .rl-idx-k{flex:1 0 100%;min-width:0;font-size:12px;font-weight:700;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--color-text);padding-top:11px}
   .redline-page .rl-idx-n{flex:none;font-family:var(--font-mono);font-size:12px;font-weight:700;
     letter-spacing:.01em;font-variant-numeric:tabular-nums;color:var(--color-neutral-500);
     background:none;border:0;border-radius:0;padding:0;line-height:1.2}
@@ -2591,7 +2616,7 @@ function redlineLayoutCss(){
      WHAT DID NOT CHANGE, because it is the safety of the control: three
      options and no more, every option showing its OWN count unmoved by the
      filter, and a row of choices rather than a dropdown. */}
-  .redline-page .rl-fsegwrap{flex:none;display:flex;gap:16px;padding:0;background:none;border:0;
+  .redline-page .rl-fsegwrap{flex:none;display:flex;gap:26px;padding:0;background:none;border:0;
     border-radius:0}
   ${''/* THE SIZE MOVED, THE DESIGN DID NOT (22 Aug 2026). The render bumps
          these to 14px; the Render B decisions taken six days earlier — the
@@ -2599,25 +2624,43 @@ function redlineLayoutCss(){
          round a resting count, the accent-700 fill on the live one — are the
          owner's own, chosen off four drawn options for measured contrast
          reasons, and were NOT part of what the render reversed. They stay. */}
-  .redline-page .rl-fseg{flex:none;min-width:0;display:flex;align-items:center;gap:7px;border:0;
-    border-bottom:2px solid transparent;background:none;font:inherit;font-size:14px;font-weight:400;
-    color:var(--color-neutral-500);padding:0 0 4px;margin-bottom:-1px;border-radius:0;cursor:pointer;
-    white-space:nowrap;transition:color .12s,background .12s,border-color .12s}
-  .redline-page .rl-fseg:hover{color:var(--color-text)}
-  .redline-page .rl-fseg.on{background:none;color:var(--color-text);font-weight:700}
+  .redline-page .rl-fseg{flex:none;min-width:0;display:flex;flex-direction:column;align-items:flex-start;
+    gap:1px;border:0;border-bottom:2px solid transparent;background:none;font:inherit;
+    color:var(--color-text);padding:0 0 9px;margin-bottom:-1px;border-radius:0;cursor:pointer;
+    white-space:nowrap;transition:color .12s,border-color .12s}
+  ${''/* ONE COLOUR DECLARATION FOR THE WHOLE TAB, and the number and the word
+     INHERIT it. That is what makes B1 a two-line change rather than six: the
+     resting state, the hover and the live state each set `color` once on the
+     button and both children follow. Give either child a colour of its own and
+     the state stops reaching it — which is exactly how Render B's live count
+     and its live word came to be set in two places. */}
+  .redline-page .rl-fseg:hover{color:var(--accent-ink)}
+  .redline-page .rl-fseg.on{background:none;color:var(--accent-ink);
+    border-bottom-color:var(--accent-solid)}
   /* A borderless button gets no focus ring from the browser worth having. */
   .redline-page .rl-fseg:focus-visible{outline:2px solid var(--color-accent);
     outline-offset:2px;border-radius:0}
   /* The count rides INSIDE its own tab: it is the thing that stops a filter
      hiding a change quietly, so it must be readable on the resting face too. */
-  .redline-page .rl-fseg-n{flex:none;font-family:var(--font-mono);font-size:13px;font-weight:600;
-    font-variant-numeric:tabular-nums;line-height:1.35;padding:1px 6px;
-    color:var(--color-neutral-500);background:var(--color-surface);
-    border:1px solid var(--color-divider);border-radius:0}
-  .redline-page .rl-fseg:hover .rl-fseg-n{border-color:var(--color-accent-300)}
-  .redline-page .rl-fseg.on .rl-fseg-n{background:var(--color-accent-700);
-    border-color:var(--color-accent-700);color:#fff}
-  .redline-page .rl-fseg.on:hover .rl-fseg-n{border-color:var(--color-accent-700)}
+  ${''/* ---- THE COUNT IS THE HEADLINE AND THE WORD IS ITS CAPTION ----
+     Render B's own arrangement: the figure at 19px with the cut's name in
+     11px underneath it. The box round each count is GONE and so is the fill on
+     the live one — those were Render B-of-22-Aug's answer to a row where the
+     number was the faintest thing on the column, and the number is now the
+     largest thing on it, so a box round it is a second mark for a fact the size
+     already carries. THE SAFETY PROPERTIES ARE UNTOUCHED, and they are the
+     condition on redressing this control at all: three options and no more,
+     every option showing its OWN count unmoved by the filter, and a row of
+     choices rather than a dropdown.
+
+     NO font-family HERE. It used to name --font-mono to keep the digits even;
+     every face in this product resolves to Inter now, so the declaration said
+     nothing, and font-variant-numeric is what actually lines the digits up. */}
+  .redline-page .rl-fseg-n{flex:none;font-size:19px;font-weight:600;line-height:1.1;
+    letter-spacing:-.01em;font-variant-numeric:tabular-nums;
+    padding:0;background:none;border:0;border-radius:0}
+  .redline-page .rl-fseg-w{flex:none;font-size:11px;font-weight:600;letter-spacing:.05em;
+    text-transform:uppercase;line-height:1.35}
   /* MOUNTED, UNSEEN, AND STILL CLICKABLE. Not display:none — a hidden control
      is one the browser may refuse to focus or dispatch to, and Publish Round
      works by clicking this one. Taken out of the flow and out of the reader's
@@ -3164,12 +3207,20 @@ function redlineLayoutCss(){
      one decision. The shell, the tab strip and the heading are furniture; the
      list and the contract are the page. On a short window the furniture gives
      way. Nothing is hidden. */
+  ${''/* The caption and the tabs carry their own vertical padding since B1
+     (the caption's top, the tabs' bottom down to the rule), so trimming the
+     HEAD alone no longer trims the head — both children have to give way with
+     it or a short window pays 20px it has not got. */}
   @media (max-height:820px){
     .redline-page .rl-idx-head{padding:4px 12px 8px;gap:6px}
+    .redline-page .rl-idx-k{padding-top:5px}
+    .redline-page .rl-fseg{padding-bottom:6px}
     .redline-page .rl-paper{padding:26px 30px 30px}
   }
   @media (max-height:680px){
     .redline-page .rl-idx-head{padding:2px 12px 6px;gap:5px}
+    .redline-page .rl-idx-k{padding-top:2px}
+    .redline-page .rl-fseg{padding-bottom:4px}
     .redline-page .rl-paper{padding:20px 26px 24px}
   }
   /* ---- THE HANDLE ----

@@ -143,6 +143,12 @@ const STRINGS = {
     status_cp_ready: 'Counterparty ready to sign',
     status_cp_ready_short: 'Ready to sign',
     al_cp_ready: 'The counterparty is ready to sign',
+    /* A ROW, NOT A POP-UP (owner-asked 23 Aug 2026). Short, because the panel
+       row prints the agreement and its reference on the two lines underneath —
+       the toast this replaces had to carry all three in one sentence, which is
+       why it ran to four lines and stacked four deep. */
+    al_answer_stuck: 'An answer from {who} is waiting — press to reload',
+    al_answer_stuck_them: 'the other side',
     status_expired: 'Expired',
     status_partially_signed: 'Partially signed',
     status_partially_signed_title: "Sealed — awaiting the counterparty's signature. Copies go out when every party has signed.",
@@ -2306,6 +2312,10 @@ const STRINGS = {
     /* The answer is safe on the server and this browser keeps trying — the box
        says what is stuck and what has been shown to clear it, never that
        anything is lost. */
+    /* RETIRED 23 Aug 2026 — this was the warn toast, and on a real workspace it
+       meant four orange boxes stacked over the change column. The fact is a row
+       in the alerts panel now: al_answer_stuck. Left inert rather than deleted,
+       the way this dictionary retires a key. */
     co_answer_stuck: "An answer from {who} on {id} is waiting and this page cannot take it in. Nothing is lost — it is safe on the server and will keep trying.",
     co_answer_stuck_act: 'Reload',
     /* Their page, telling them whether their round actually reached us. Three
@@ -4519,6 +4529,8 @@ const STRINGS = {
     status_cp_ready: 'Motparten är redo att signera',
     status_cp_ready_short: 'Redo att signera',
     al_cp_ready: 'Motparten är redo att signera',
+    al_answer_stuck: 'Ett svar från {who} väntar — tryck för att ladda om',
+    al_answer_stuck_them: 'motparten',
     status_expired: 'Utgånget',
     status_partially_signed: 'Delvis undertecknat',
     status_partially_signed_title: 'Förseglat — väntar på motpartens underskrift. Kopior skickas ut när alla parter har undertecknat.',
