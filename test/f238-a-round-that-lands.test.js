@@ -135,13 +135,34 @@ describe('f238 (2) — a failure that repeats says so', () => {
     assert.match(body, /n>=POLL_TROUBLE_AT/);
   });
 
-  test('and it is reported once per sitting, never nagged', () => {
-    assert.match(body, /_pollTold\.has\(key\)/);
-    assert.match(body, /_pollTold\.add\(key\)/);
+  /* ---- REVERSED IN PLACE 23 Aug 2026, owner-asked ----
+     This shipped as a warn toast, and on a real workspace with four answers in
+     this state the reader got FOUR orange boxes stacked over the change column:
+     "I never want to see this in the platform again." The three claims below
+     used to pin the toast — once per sitting, its 'warn' kind, and its action.
+     What they were really protecting is that the fact is REPORTED and that
+     nothing is lost, and both survive: it is a row in the alerts panel now,
+     recorded by this loop and read by buildAlerts. */
+  test('REVERSED — the failure is RECORDED for the panel, not thrown at the reader', () => {
+    assert.ok(!/toast\(/.test(body),
+      'nothing in this loop draws — a poller running every twelve seconds must not');
+    assert.match(body, /_pollStuck\.set\(key,/, 'it records the answer instead');
+    assert.match(CORE, /function pollStuckAnswers\(\)\{ return \[\.\.\._pollStuck\.values\(\)\]; \}/,
+      'behind ONE reading the panel can ask for');
+    assert.match(CORE, /Object\.assign\(window,\{[\s\S]*?pollStuckAnswers,/,
+      'and it is published, or nothing can read it (the ES-module rule)');
   });
 
   test('a success clears the memory, so a later failure is news again', () => {
-    assert.match(body, /_pollTrouble\.delete\(key\);\s*_pollTold\.delete\(key\)/);
+    assert.match(body, /_pollTrouble\.delete\(key\); _pollStuck\.delete\(key\)/);
+  });
+
+  test('the panel is repainted only on a beat that changed something', () => {
+    /* This loop runs every twelve seconds on a watched contract; rebuilding an
+       open panel each time would fight a reader scrolling it. */
+    assert.match(body, /const before=_pollStuck\.size;/);
+    assert.match(body, /if\(_pollStuck\.size!==before\)\{/);
+    assert.match(body, /window\.updateAlertBadge/);
   });
 
   test('IT WRITES NOTHING TO THE RECORD on the failure path', () => {
@@ -150,14 +171,32 @@ describe('f238 (2) — a failure that repeats says so', () => {
       'one moment not to be writing to it');
   });
 
-  test('the toast is a warn with a way forward, never a dead end', () => {
-    assert.match(body, /'warn'/);
-    assert.match(body, /action:\{ label:i18t\('co_answer_stuck_act'\)/);
+  test('the row is a registered kind, amber, and names the contract', () => {
+    const APP = read('js/app.js');
+    assert.match(APP, /\{ k:'answer-stuck',tone:'amber'/,
+      'a registered kind, never a special case at the draw');
+    assert.match(APP, /stuck\.forEach\(sk=>push\('answer-stuck',\{ id:sk\.id, name:sk\.name\|\|sk\.id \}/,
+      'and the row carries the contract it is about');
+  });
+
+  test('the rows are NOT scoped to state.contracts, and that is the point', () => {
+    /* The commonest reason an answer will not land is that this browser does
+       not hold the contract at all, so filtering by the list would drop exactly
+       the rows worth drawing. It is safe because the SERVER scoped it: these
+       come off shares/pending, which answers for the caller's own links. */
+    const APP = read('js/app.js');
+    const blk = APP.slice(APP.indexOf("if(window.pollStuckAnswers)"),
+      APP.indexOf('/* 2. Changes waiting on this reader'));
+    assert.ok(blk.length > 40, 'the block was found');
+    assert.ok(!/\bcs\b/.test(blk), 'it never reaches for the scoped contract list');
   });
 
   test('and it never claims anything was lost', () => {
-    const en = I18N.match(/co_answer_stuck: "([^"]*)"/)[1];
-    assert.match(en, /Nothing is lost/i);
+    /* The panel row is short because the two lines under it name the agreement
+       and its reference; what it must never do is read as a failure. */
+    const en = I18N.match(/al_answer_stuck: '([^']*)'/)[1];
+    assert.ok(!/fail|lost|error/i.test(en), 'nothing is lost and nothing was refused: ' + en);
+    assert.match(en, /reload/i, 'and it says the one thing shown to clear it');
   });
 
   test('the id-mismatch refusal is no longer a silent bare toast', () => {
@@ -222,7 +261,10 @@ describe('f238 (3) — their page learns whether the round landed', () => {
 });
 
 describe('f238 (4) — the words exist in both languages', () => {
-  for (const k of ['co_answer_stuck', 'co_answer_stuck_act', 'po_answer_received', 'po_answer_waiting']){
+  /* co_answer_stuck / co_answer_stuck_act were the toast's and are RETIRED —
+     left inert in the dictionary, the way this codebase retires a key, so a
+     caller reaching for one still gets English rather than a blank. */
+  for (const k of ['al_answer_stuck', 'al_answer_stuck_them', 'po_answer_received', 'po_answer_waiting']){
     test(k + ' is in both dictionaries', () => {
       const hits = I18N.split('\n').filter(l => l.trim().startsWith(k + ':')).length;
       assert.ok(hits >= 2, k + ' appears ' + hits + ' time(s)');

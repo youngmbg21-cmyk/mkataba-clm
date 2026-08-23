@@ -3081,6 +3081,30 @@
     transition:transform .3s cubic-bezier(.22,.61,.36,1);
   }
   #context-panel.open{transform:none;}
+  /* ---- AN ALERT ROW'S TONE, AND WHETHER IT IS NEWS (owner-asked 23 Aug 2026)
+     Two classes, two facts. `al-good` is the TONE and lasts as long as the row:
+     green ink on the title and a green edge down the left, so the one piece of
+     good news on a list of chores cannot be mistaken for one more of them.
+     `al-news` is whether this reader has SEEN it, and it is over in three
+     seconds — the floating bell's own rule (see .rl-notices-fab.is-news), the
+     same count, so the two say one thing about one signal.
+     THE FLASH IS THE BACKGROUND AND THAT IS DELIBERATE. The row carries inline
+     onmouseover/onmouseout handlers that write style.background directly, and a
+     CSS animation outranks a style attribute for as long as it runs — so the
+     flash plays over the hover and hands the row back afterwards, with nothing
+     to undo and no !important anywhere. */
+  #panel-body .al-row.al-good{padding-left:9px!important;
+    box-shadow:inset 3px 0 0 var(--st-green-dot);}
+  #panel-body .al-row.al-good .al-t{color:var(--st-green-fg);}
+  #panel-body .al-row.al-news{animation:al-row-news 1s ease-in-out 0s 3;}
+  @keyframes al-row-news{
+    0%,100%{background:transparent;}
+    35%{background:var(--st-green-bg);}
+  }
+  @media (prefers-reduced-motion:reduce){
+    /* Not "no signal" — a steady wash says the same thing without moving. */
+    #panel-body .al-row.al-news{animation:none;background:var(--st-green-bg);}
+  }
   /* ---- THE SCRIM STARTS BELOW THE HEADER, AND THAT IS THE WHOLE POINT ----
      It was inset:0, so with the panel open it lay across the top bar and
      swallowed clicks on the two icons that control the panel — measured in the

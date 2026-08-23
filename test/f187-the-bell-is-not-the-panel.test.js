@@ -48,12 +48,27 @@ describe('f187 (1) — two buttons, two jobs', () => {
   });
 
   test('pressing one while the other is showing SWAPS the content', () => {
+    /* openPanel MOVED TO MODULE SCOPE on 23 Aug 2026 and is exported, because
+       it grew a third door: the negotiation page's floating bell now opens the
+       alerts face rather than unfolding a stack of its own (owner-asked). It
+       was a closure inside wireShell, which is exactly the shape that makes
+       another module build its own half-copy. The claim is unchanged. */
     const app = read('js/app.js');
-    const fn = app.slice(app.indexOf('const openPanel=face=>'));
-    const body = fn.slice(0, fn.indexOf('\n  };'));
+    const fn = app.slice(app.indexOf('function openPanel(face){'));
+    const body = fn.slice(0, fn.indexOf('\n}'));
     /* Only a press of the face already showing closes it; the other swaps. */
     assert.match(body, /const same=state\.panelOpen&&panelFace\(\)===face;/);
     assert.match(body, /state\.panelOpen=!same;/);
+  });
+
+  test('and it is PUBLISHED, or the third door cannot reach it', () => {
+    /* These are ES modules: a top-level function is not a global, so the
+       negotiation page's bell reaching for window.openPanel gets undefined
+       unless app.js says so. The rlPaperFootHtml fault, and f232's subject. */
+    const app = read('js/app.js');
+    assert.match(app, /Object\.assign\(window,\{[\s\S]*?openPanel,/);
+    assert.match(read('js/views/negotiation.js'), /window\.openPanel !== 'function'/,
+      'and the caller guards on it, for the stages that have no shell');
   });
 
   test('THE HARD-CODED DOT IS GONE, and its replacement is hidden at zero', () => {
@@ -202,8 +217,8 @@ describe('f187 (3) — the suppression is a shape, and nothing wears it', () => 
     const show = lay.slice(lay.indexOf('const show'), lay.indexOf('\n', lay.indexOf('const show')));
     assert.match(show, /!panelSuppressed\(\)/, 'it asks the one predicate');
     assert.ok(!/view!==/.test(show), 'and carries no second copy of the rule');
-    const open = app.slice(app.indexOf('const openPanel=face=>'));
-    assert.match(open.slice(0, open.indexOf('\n  };')), /if\(panelSuppressed\(\)\) return;/);
+    const open = app.slice(app.indexOf('function openPanel(face){'));
+    assert.match(open.slice(0, open.indexOf('\n}')), /if\(panelSuppressed\(\)\) return;/);
     const badge = app.slice(app.indexOf('function updateAlertBadge'));
     const body = badge.slice(0, badge.indexOf('\n}'));
     assert.match(body, /btn\.disabled=off/, 'a disabled control, not a live one that does nothing');

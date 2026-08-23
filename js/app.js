@@ -863,6 +863,15 @@ const ALERT_KINDS = [
   /* GREEN, and the same green the status word and the bell take when they say
      this — three surfaces, one signal, one colour. */
   { k:'cp-ready',    tone:'green', ic:'&#128077;'},
+  /* ---- AN ANSWER THAT WILL NOT LAND (owner-asked 23 Aug 2026) ----
+     A REGISTERED KIND, not a special case at the draw. It arrived as a warn
+     toast and on a real workspace that meant four orange boxes stacked over the
+     change column — "I never want to see this in the platform again". The fact
+     behind them is real and is not being thrown away with them: it is a row
+     here, like everything else waiting on this reader.
+     AMBER, because it is work owed rather than a failure: nothing is lost, the
+     answer is safe on the server and this browser keeps trying. */
+  { k:'answer-stuck',tone:'amber', ic:'&#8635;' },
   { k:'renewal',     tone:'gray',  ic:'&#128197;'},
 ];
 const ALERT_TONE = { amber:'var(--st-amber-dot)', green:'var(--st-green-dot)',
@@ -874,10 +883,56 @@ function buildAlerts(){
   // archived contracts alert nobody (WO-5) — the shelf is quiet
   const cs=(state.contracts||[]).filter(c=>!c.archived);
   const me=(typeof currentUser==='function')?currentUser():null;
-  const push=(kind,c,text,go)=>{ const d=ALERT_KINDS.find(x=>x.k===kind)||ALERT_KINDS[0];
-    out.push({ kind, id:c?c.id:'', name:c?(c.name||c.id):'', text, tone:d.tone, ic:d.ic, go }); };
+  const push=(kind,c,text,go,extra)=>{ const d=ALERT_KINDS.find(x=>x.k===kind)||ALERT_KINDS[0];
+    out.push({ kind, id:c?c.id:'', name:c?(c.name||c.id):'', text, tone:d.tone, ic:d.ic, go,
+      ...(extra||{}) }); };
 
-  /* 1. Changes waiting on this reader in a negotiation. THE SAME number the
+  /* 1. THE COUNTERPARTY HAS SAID THEY ARE READY TO SIGN (owner-reported
+        23 Aug 2026: it was not appearing on this panel at all).
+        FIRST IN THE LIST, owner-chosen off a drawn render: they have done their
+        part and the next move is yours, so it outranks the chores under it. It
+        is also the only GREEN thing here, which is what stops it reading as one
+        more of them — amber on this panel means work you owe, green means good
+        news.
+        BORROWED, NEVER DERIVED — cpReadyToSign is the one predicate the status
+        word and the register chip also ask, so the panel cannot come to
+        disagree with the page it opens. It answers false on a stale signal
+        (anything reopened) and on a contract already signed, so this row goes
+        away by itself exactly when the fact does.
+        READ WITHOUT WRITING, like every count on this panel: cpReadyToSign
+        reaches negoReadySignal, which reads c.negotiation raw and never calls
+        negoChanges — that would start a negotiation on every contract asked
+        about, on every repaint.
+        `news` IS THE FLASH, and it is the BELL'S OWN READING (rlBellIsNews):
+        one fact, so the two cannot say different things about the same signal.
+        Absent the negotiation module — the phone, a bare stage — it is simply
+        false and the row draws calm, which is the safe direction. */
+  if(window.cpReadyToSign){
+    cs.forEach(c=>{
+      let ready=false; try{ ready=cpReadyToSign(c); }catch(_){ ready=false; }
+      if(!ready) return;
+      let news=false; try{ news=!!(window.rlBellIsNews && rlBellIsNews(c)); }catch(_){ news=false; }
+      push('cp-ready',c,i18t('al_cp_ready'),
+        ()=>{ if(window.openWorkspace) openWorkspace(c.id); },{ news });
+    });
+  }
+  /* 1b. AN ANSWER FROM THE OTHER SIDE THAT THIS BROWSER CANNOT TAKE IN.
+         NOT SCOPED TO state.contracts, and that is the point rather than an
+         oversight: the commonest reason an answer will not land is that this
+         browser does not hold the contract at all, so filtering by the list
+         would drop exactly the rows worth drawing. It is safe because the
+         SERVER scoped it — these come off `shares/pending`, which answers for
+         the caller's own links and nobody else's.
+         pollStuckAnswers is core.js's one reading and counts only an answer
+         that has failed TWICE running; a single miss is ordinarily a page that
+         has not finished loading. */
+  if(window.pollStuckAnswers){
+    let stuck=[]; try{ stuck=pollStuckAnswers()||[]; }catch(_){ stuck=[]; }
+    stuck.forEach(sk=>push('answer-stuck',{ id:sk.id, name:sk.name||sk.id },
+      i18t('al_answer_stuck',{ who: sk.who || i18t('al_answer_stuck_them') }),
+      ()=>{ try{ location.reload(); }catch(_){} }));
+  }
+  /* 2. Changes waiting on this reader in a negotiation. THE SAME number the
         Negotiations door and the round line print — negoNeedsYouIds — read off
         c.changes raw, because negoChanges() would START a negotiation on every
         contract it was asked about. */
@@ -887,27 +942,7 @@ function buildAlerts(){
       if(n) push('negotiation',c,i18tn('al_nego',n,{n}),()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); });
     });
   }
-  /* 1b. THE COUNTERPARTY HAS SAID THEY ARE READY TO SIGN (owner-reported
-         23 Aug 2026: it was not appearing on this panel at all).
-         It belongs under "waiting on you" and near the top, because it IS: they
-         have done their part and the next move is issuing the signing link.
-         BORROWED, NEVER DERIVED — cpReadyToSign is the one predicate the status
-         word and the register chip also ask, so the panel cannot come to
-         disagree with the page it opens. It answers false on a stale signal
-         (anything reopened) and on a contract already signed, so this row goes
-         away by itself exactly when the fact does.
-         READ WITHOUT WRITING, like every count on this panel: cpReadyToSign
-         reaches negoReadySignal, which reads c.negotiation raw and never calls
-         negoChanges — that would start a negotiation on every contract asked
-         about, on every repaint. */
-  if(window.cpReadyToSign){
-    cs.forEach(c=>{
-      let ready=false; try{ ready=cpReadyToSign(c); }catch(_){ ready=false; }
-      if(ready) push('cp-ready',c,i18t('al_cp_ready'),
-        ()=>{ if(window.openWorkspace) openWorkspace(c.id); });
-    });
-  }
-  /* 2. Reviews: what I owe a verdict on, and what I am waiting on. Both from
+  /* 3. Reviews: what I owe a verdict on, and what I am waiting on. Both from
         reviewState, which answers from the READER's chair. */
   if(window.reviewState && window.reviewSeatShowsReview){
     cs.forEach(c=>{
@@ -934,7 +969,7 @@ function buildAlerts(){
         ()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); }));
     });
   }
-  /* 3. Approvals sitting with this person — the dashboard's own queue, so the
+  /* 4. Approvals sitting with this person — the dashboard's own queue, so the
         bell and the Home card cannot disagree. And 4/5 ride on the same read. */
   let D=null; try{ D=(window.hmDashSlices?hmDashSlices():null); }catch(_){ D=null; }
   if(D){
@@ -947,7 +982,7 @@ function buildAlerts(){
     (D.expiring||[]).filter(x=>x.d<=30).forEach(x=>push('renewal',x.c,
       i18tn('al_expiring_in',x.d,{n:x.d}),()=>openWorkspace(x.c.id)));
   }
-  /* 4. A signature where it is actually THEIR turn. nextSigner is the route's
+  /* 5. A signature where it is actually THEIR turn. nextSigner is the route's
         own answer about whose turn it is; matching by member record first and
         address second is the same order internalSignerRecipient uses. */
   if(me && window.nextSigner){
@@ -1184,6 +1219,33 @@ function closeContextPanel(){
   if(!state.panelOpen) return;
   state.panelOpen=false; applyPanelLayout();
 }
+/* ---- TWO ICONS, TWO QUESTIONS, ONE PANEL ----
+   The bell used to literally press the activity button (`document
+   .getElementById('cmd-panel')?.click()`), so the two header icons did the same
+   thing and the product had no way at all to say "these four things are waiting
+   on you". They share the shell and differ only in content — and pressing one
+   while the OTHER is showing swaps the content rather than closing the panel,
+   which is what makes them read as two views of one thing.
+
+   AT MODULE SCOPE AND EXPORTED SINCE 23 Aug 2026, because it grew a THIRD door:
+   the negotiation page's floating bell now opens the alerts face rather than
+   unfolding a stack of its own (owner-asked). It was a closure inside
+   wireShell, which is exactly the shape that makes another module build its own
+   half-copy — and two ways of opening one panel is how they come to disagree
+   about what "open" means. */
+function openPanel(face){
+  /* A PAGE MAY REFUSE TO HOST THE LAYER, and if one ever does, this is where
+     the press stops — with both buttons disabled and a tooltip saying which
+     page took the space (see panelSuppressed / updateAlertBadge), never a live
+     control that does nothing. Nothing answers true today: Insights used to,
+     and no longer does, because the panel stopped being a column. */
+  if(panelSuppressed()) return;
+  const same=state.panelOpen&&panelFace()===face;
+  setPanelFace(face);
+  state.panelOpen=!same;
+  applyPanelLayout();
+  if(state.panelOpen){ if(face==='activity') refreshActivityFeed(true); renderContextPanel(); }
+}
 /* The floating nav — everything below NAV_DRAWER_W, which since 13 Aug 2026 is
    every laptop rather than only the phone. Restyling, not rebuilding: the same
    <aside> with the same buttons simply widens over the page instead of taking
@@ -1244,6 +1306,21 @@ function renderContextPanel(){
       closeContextPanel();
       if(a&&typeof a.go==='function') a.go();
     }));
+    /* ---- SEEING IT IS OPENING THE PANEL, AND IT IS MARKED AFTER THE PAINT ----
+       (owner-asked 23 Aug 2026.) Order is the whole of it: the rows are built
+       and written while the signal is still unseen, so the green one gets to
+       flash exactly once — then the fact moves, and the next time this panel is
+       opened the row is calm. Marked here rather than in the bell's own handler
+       because there are three doors onto this panel (the header bell, the
+       floating one on a negotiation, and a swap from Activity) and a rule
+       living in one of them would be a rule the other two do not follow.
+       It settles the NEWS only. The row itself, the amber count and the work
+       behind them are untouched — those clear when the work does, which is this
+       panel's standing rule. */
+    if(window.rlMarkReadySeen && window.getContract){
+      rows.forEach(a=>{ if(!a.news||!a.id) return;
+        try{ const c=getContract(a.id); if(c) rlMarkReadySeen(c); }catch(_){} });
+    }
   } else {
     body.querySelectorAll('[data-sel-act]').forEach(el=>el.addEventListener('click',()=>selectContract(el.getAttribute('data-sel-act'))));
   }
@@ -1267,7 +1344,20 @@ function activityPanelHtml(){
       </div>`;
 }
 /* "NOTHING NEEDS YOU RIGHT NOW" IS A REAL MESSAGE and a good one — an empty
-   panel reads as a panel that failed to load. */
+   panel reads as a panel that failed to load.
+
+   ---- GREEN IS NEWS AND IT ANNOUNCES ITSELF ONCE (owner-asked 23 Aug 2026) ----
+   "The ready to sign alert will flash green just like the bell flashes green,
+   but in this case it will also flash in the alert panel."
+   TWO CLASSES, and they are two different facts: `al-good` is the row's TONE
+   (green ink and a green edge — it stays for as long as the row does), `al-news`
+   is whether this reader has seen it yet (three blinks, then nothing). The
+   colour is not the announcement and the announcement is not the colour; the
+   bell has kept those apart since the day it went green and this row has to
+   agree with it or the two say different things about one signal.
+   The inline styles stay inline: this panel has been written that way since it
+   was built, the classes carry only what a stylesheet can say and a style
+   attribute cannot — a state, an animation, and a media query. */
 function alertsPanelHtml(){
   const rows=buildAlerts();
   return `
@@ -1276,10 +1366,10 @@ function alertsPanelHtml(){
           <span style="width:6px;height:6px;border-radius:50%;background:${rows.length?'var(--st-amber-dot)':'var(--st-green-dot)'};"></span>${i18t('ap_scope_you')}
         </div>
         ${rows.length?rows.map((a,i)=>`
-          <button data-alert-i="${i}" data-alert-kind="${a.kind}" style="display:flex;gap:9px;width:100%;padding:9px 2px;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
+          <button data-alert-i="${i}" data-alert-kind="${a.kind}" class="al-row${a.tone==='green'?' al-good':''}${a.news?' al-news':''}" style="display:flex;gap:9px;width:100%;padding:9px 2px;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
             <span style="width:8px;height:8px;border-radius:50%;background:${ALERT_TONE[a.tone]};flex:none;margin-top:5px;"></span>
             <span style="flex:1;min-width:0;">
-              <span style="display:block;font-size:13px;line-height:1.4;font-weight:600;">${esc(a.text)}</span>
+              <span class="al-t" style="display:block;font-size:13px;line-height:1.4;font-weight:600;">${esc(a.text)}</span>
               <span style="display:block;font-size:12px;color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(a.name)}</span>
               <span style="display:block;font-size:12px;color:var(--color-neutral-500);font-family:var(--font-mono);">${esc(a.id)}</span>
             </span>
@@ -1540,26 +1630,6 @@ function wireShell(){
     if(w&&w.classList.contains('open')) footSet(false);
   });
 
-  /* ---- TWO ICONS, TWO QUESTIONS, ONE PANEL ----
-     The bell used to literally press this button (`document.getElementById
-     ('cmd-panel')?.click()`), so the two header icons did the same thing and
-     the product had no way at all to say "these four things are waiting on
-     you". They share the shell and differ only in content — and pressing one
-     while the OTHER is showing swaps the content rather than closing the
-     panel, which is what makes them read as two views of one thing. */
-  const openPanel=face=>{
-    /* A PAGE MAY REFUSE TO HOST THE LAYER, and if one ever does, this is where
-       the press stops — with both buttons disabled and a tooltip saying which
-       page took the space (see panelSuppressed / updateAlertBadge), never a
-       live control that does nothing. Nothing answers true today: Insights used
-       to, and no longer does, because the panel stopped being a column. */
-    if(panelSuppressed()) return;
-    const same=state.panelOpen&&panelFace()===face;
-    setPanelFace(face);
-    state.panelOpen=!same;
-    applyPanelLayout();
-    if(state.panelOpen){ if(face==='activity') refreshActivityFeed(true); renderContextPanel(); }
-  };
   document.getElementById('cmd-panel')?.addEventListener('click',()=>openPanel('activity'));
   document.getElementById('hdr-notify')?.addEventListener('click',()=>openPanel('alerts'));
   /* A layer needs a way out that is not the button that opened it — the reader
@@ -1697,4 +1767,4 @@ if(state.panelOpen===undefined) state.panelOpen=false;
 wireShell();
 
 Object.assign(window,{POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,
-  buildAlerts,alertCount,updateAlertBadge,panelSuppressed,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,railCollapsed,applyRail,toggleRail,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
+  buildAlerts,alertCount,updateAlertBadge,panelSuppressed,openPanel,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,railCollapsed,applyRail,toggleRail,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});

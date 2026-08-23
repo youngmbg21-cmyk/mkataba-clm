@@ -171,13 +171,33 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       one.length === 0, JSON.stringify(one));
     await own.evaluate(() => pollPendingResponses()); await pause(1100);
     const two = await boxes();
-    check('3 the SECOND says so, as visible pixels',
-      two.length === 1 && /cannot take it in/i.test(two[0]), JSON.stringify(two).slice(0, 130));
-    check('3 and it says nothing is lost, because nothing is',
-      two.length === 1 && /nothing is lost/i.test(two[0]), two[0] && two[0].slice(0, 90));
+    /* ---- REVERSED IN PLACE 23 Aug 2026, owner-asked ----
+       These three read the report off #toast-root: the second failure drew a
+       warn box, further ones never nagged. On a real workspace with four
+       answers in this state that meant four orange boxes stacked over the
+       change column — "I never want to see this in the platform again". The
+       report is a row in the alerts panel now, and the claims underneath are
+       exactly the ones this file has always made: one miss is quiet, the second
+       says so, and nothing is ever described as lost. */
+    check('3 REVERSED — the second failure is RECORDED, and draws no box',
+      two.length === 0, JSON.stringify(two).slice(0, 130));
+    const stuckNow = await own.evaluate(() => ({
+      stuck: (window.pollStuckAnswers ? pollStuckAnswers() : []).map(x => x.id),
+      rows: buildAlerts().filter(r => r.kind === 'answer-stuck')
+        .map(r => ({ id: r.id, tone: r.tone, text: r.text })) }));
+    check('3 the SECOND says so — as a row in the panel, naming its contract',
+      stuckNow.rows.length === 1 && stuckNow.rows[0].id === cid,
+      JSON.stringify(stuckNow));
+    check('3 and it says nothing was lost, because nothing is',
+      stuckNow.rows.length === 1 && !/fail|lost|error/i.test(stuckNow.rows[0].text)
+        && stuckNow.rows[0].tone === 'amber',
+      stuckNow.rows[0] && stuckNow.rows[0].text);
     await own.evaluate(() => pollPendingResponses());
     await own.evaluate(() => pollPendingResponses()); await pause(1100);
-    check('3 further failures never nag', (await boxes()).length === 1);
+    check('3 further failures never multiply it — one answer, one row',
+      (await boxes()).length === 0
+        && (await own.evaluate(() =>
+          buildAlerts().filter(r => r.kind === 'answer-stuck').length)) === 1);
     check('3 and the answer is still queued — it keeps trying',
       (await own.evaluate(async () => (await api('shares/pending')).length)) === 1);
     await own.evaluate(() => {
