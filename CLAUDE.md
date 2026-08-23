@@ -792,6 +792,25 @@ Redesigned to the mock-up, and the region was ringed in a screenshot: everything
 - **AND THE FACT ROW SITS AFTER THE ACTS IN SOURCE ORDER**, which is load-bearing: `.room-head` wraps, and a full-width item placed before the acts pushes them onto a line of their own. Caught by photographing it.
 - **THE WHOLE HEAD IS A WHITE BAND (owner-asked 23 Aug 2026** — "the highlighted area should be white just like highlighted in the attached html"). The mock-up paints all three of its head strips — `.h-title`, `.h-hc`, `.h-anchor` — on `var(--surface)` and keeps the grey for the page BELOW them; this room painted **none** of them, so the crumb, title, acts, fact band and tab row all sat on the page ground. MEASURED: `#ws-head` computed `rgba(0,0,0,0)` over a body of `rgb(244,246,246)`. **`.room-band` IS A WRAPPER, NOT A BACKGROUND ON EACH STRIP** — painting the three separately leaves the 8px flex gap between them grey and gives three bars instead of one band — and the wrapper is also what lets it bleed: `margin:-6px -16px 0` cancels the view's own padding, `padding:6px 16px 0` puts it back inside, so the white runs to the shell's edge while nothing it contains moves by a pixel (the head still starts at x=272, asserted). **IT ENDS AT THE TAB ROW'S OWN HAIRLINE** — no bottom padding — and `#ws-actionbar` is deliberately OUTSIDE it, because the mock-up's `.h-content` sits on the grey too. `#ws-strips` is inside it: it is `display:contents`, so its children become the band's flex children, and closing the wrapper early would drop any strip onto the grey.
 
+## ONE PRINT DIALOG, AND IT GOES AWAY WHEN YOU DISMISS IT (owner-reported 23 Aug 2026)
+
+"You click on print history then decide to click cancel, there is a bug because it flashes then the whole page reappears again without cancelling."
+
+**TWO FAULTS IN negoHistoryPrintRun, and together they are the whole report.**
+
+- **print() RAN TWICE.** The report window was asked to print from its `load` handler AND from a 350ms timer, and MEASURED by counting the calls on the popup, **both fired: 2**. Cancel dismissed the first dialog and the second re-opened it a beat later — the "flash", exactly as described.
+- **AND NOTHING EVER CLOSED THE WINDOW.** `w.close()` existed only on the build-failure path, so whatever the reader chose, the report stood there afterwards at about:blank. That is the other half of "the whole page reappears".
+
+**BOTH TRIGGERS STAY, BEHIND A ONE-SHOT LATCH — the timer is NOT redundant.** `load` can fire between `document.close()` and the line that assigns the handler, and then the timer is the only thing that prints; delete it and the button silently does nothing on exactly the runs hardest to reproduce. So whichever arrives first prints and the other finds the latch shut. **ONE print() CALL SITE**, asserted, so a third trigger cannot be added beside it without going through the latch.
+
+**THE WINDOW CLOSES ON `afterprint`, AND THE LISTENER IS REGISTERED BEFORE print()** — print() blocks until the dialog goes, so registering after it is registering too late. Chrome fires `afterprint` for **Save and Cancel alike**; we cannot tell them apart and deliberately do not try — either way the reader is done with it, and the report rebuilds in one press. Where `afterprint` never arrives the window simply stays open, which is today's behaviour, so the fallback is the status quo rather than a new failure.
+
+**THE STUB IN THE TEST IS THE HONEST PART.** A real print dialog cannot be driven from a runner, so print() is replaced by what Cancel actually does: record the call, then fire `afterprint`. And **the tally is kept on the OPENER** — with the fix in, the window closes so fast that a counter inside it races the close and reads empty, which is the fix working and would have read as a broken test.
+
+**NOTHING ELSE IN THE PRODUCT HAS THIS SHAPE**, checked rather than assumed: `exportPDF` prints the page you are on (one call, no window), the health report puts a Print button inside itself for the reader to press, and the calendar prints its own page. This popup-and-print pattern exists once.
+
+Tests: history-head-verify (35 — the menu opened first because the button is in the DOM the whole time and a presence check alone passes while the press times out; then one dialog not two, the window proved closed, both triggers proved still wired to the same latched call, and the listener proved to come before the print. Four of them fail against the code of an hour before, reporting "print() called 2 time(s)").
+
 ## THE CLOTHES FOLLOW THE BUILDER — THREE FIXES ON THE COUNTERPARTY'S PAGE (owner-asked 23 Aug 2026)
 
 Three asks off one screenshot of their page, and the first two are the same fault in two costumes: **a control drawn by a shared builder was dressed by a rule scoped to ONE of the builder's homes.**

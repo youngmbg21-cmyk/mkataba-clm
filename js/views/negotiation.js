@@ -505,10 +505,45 @@ async function negoHistoryPrintRun(c){
     w.document.open();
     w.document.write(negoHistoryExportHtml(c, r));
     w.document.close();
-    /* Give the document its own turn to lay out before the dialog freezes it —
-       print() on a document written this instant can measure nothing. */
-    w.onload = () => { try { w.focus(); w.print(); } catch (e) {} };
-    setTimeout(() => { try { w.focus(); w.print(); } catch (e) {} }, 350);
+    /* ---- ONE DIALOG, AND IT GOES AWAY WHEN YOU DISMISS IT ----
+       (owner-reported 23 Aug 2026: "you click on print history then decide to
+       click cancel, there is a bug because it flashes then the whole page
+       reappears again without cancelling")
+
+       TWO FAULTS, AND TOGETHER THEY ARE THE REPORT. MEASURED before the fix by
+       counting the calls on the popup: print() ran TWICE. Both triggers below
+       fired — the load handler AND the 350ms timer — so pressing Cancel closed
+       the first dialog and the second re-opened it a moment later. That is the
+       flash. And nothing ever closed the window, so the report itself was still
+       standing behind it, which is the other half of what was reported.
+
+       BOTH TRIGGERS STAY, BEHIND A ONE-SHOT LATCH. The timer is not redundant
+       and must not simply be deleted: `load` can fire between document.close()
+       and the line that assigns the handler, and then the timer is the only
+       thing that prints — delete it and the button silently does nothing on
+       exactly the runs that are hardest to reproduce. So whichever arrives
+       first prints, and the other finds the latch closed.
+
+       THE WINDOW CLOSES WHEN THE DIALOG IS DISMISSED, and the listener is
+       registered BEFORE print() because print() blocks until the dialog goes.
+       Chrome fires afterprint for Save and for Cancel alike, so we cannot tell
+       them apart and do not try: either way the reader is finished with it, and
+       the report is one press away from being rebuilt. Where afterprint never
+       arrives the window simply stays open — which is exactly today's
+       behaviour, so the fallback is the status quo rather than a new failure. */
+    let asked = false;
+    const ask = () => {
+      if (asked) return;
+      asked = true;
+      try {
+        try { w.addEventListener('afterprint',
+          () => { try { w.close(); } catch (e2) {} }, { once: true }); } catch (e3) {}
+        w.focus();
+        w.print();
+      } catch (e) {}
+    };
+    w.onload = ask;
+    setTimeout(ask, 350);
   } catch (e){
     try { w.close(); } catch (e2) {}
     if (window.toast) toast(i18t('ng_could_not_build_history'), 'err');
