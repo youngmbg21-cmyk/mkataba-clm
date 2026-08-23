@@ -899,8 +899,24 @@ sizes and six stroke widths on ONE screen); the counterparty portal's own
 density (54.9% chrome before the contract at 1440); and the 200%-zoom shell swap,
 which could not be reproduced cleanly and is UNPROVEN rather than fixed.
 
-Tests: f236 (the stylesheet parses), f227 and F96 (both re-pointed at the
-instrument), plus a live browser pass measuring all twelve claims above.
+**THE COLOUR CENSUS WAS RE-RECORDED, and this is the one case the rule allows**
+— somebody deliberately owning a palette change. It went to 28/40, and EVERY
+ONE of the twelve was the SAME two values leaving with NOTHING arriving:
+`#1B2A28` at 50% and at 60% alpha — `.text-ink/50` and `/60`, the faded
+reading inks replaced above. Nothing new appeared because their replacement
+(--color-neutral-600) was already in the census as the label ink. Checked
+value by value before it was saved, which is the whole condition on saving
+it; it is 40/40 again and is a working net.
+
+Tests: f238 (NEW, 18 — the ratchet: the ladders exist, one page measure, no
+opacity ink survives, the accent carriers read the token with a dark answer,
+the focus ring is a box-shadow, no field constant types its own height, no
+fixed-size utility on the paper, and the four broken things stay fixed),
+f236, f227 and F96 (the last two re-pointed at the INSTRUMENT rather than the
+product), f156 / f175 / F220 reversed in place, plus a live browser pass
+measuring all twelve claims. Node 4,388/4,388. Browser: settings-tabs 65,
+pages-read-alike 38, redline 95, clause-door 89, nav-floats 69,
+home-pipeline 54, calendar 39, kpi-four 19, theme-tokens 40 — all green.
 
 ## THE CONTRACT GETS THE SPACE BACK (owner-asked 22 Aug 2026)
 
