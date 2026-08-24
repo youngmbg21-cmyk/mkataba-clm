@@ -703,9 +703,6 @@ function openAI(prefill,opts){
   // restore the remembered width preference
   try{ toggleAIExpand(!!(typeof lsGet==='function'&&lsGet('hati.v1.aiExpanded'))); }catch(_){}
   aiSyncDock();
-  if(!ai.history.length){
-    aiPush('assistant',{text:aiWelcomeHtml()});
-  }
   renderAIFeed(); renderAISuggest();
   const inp=document.getElementById('ai-input');
   if(prefill){ inp.value=prefill; aiSubmit(); } else inp.focus();
@@ -747,7 +744,6 @@ function clearAIHistory(){
   if(typeof aiProposals!=='undefined') aiProposals.clear();
   ai.activeProposal=null;
   if(typeof aiCloseRephraseSession==='function') aiCloseRephraseSession();
-  aiPush('assistant',{text:aiWelcomeHtml()});
   renderAIFeed();
   toast(i18t('ai_conversation_deleted'));
 }
@@ -770,6 +766,27 @@ function updateAIBadge(){
    the product's own voice in English, and a Swedish reader is met in Swedish.
    The disclaimer under it was already translated; only the sentence above it
    was not. */
+/* ---- THE GREETING IS THE PANEL'S, NOT THE CONVERSATION'S (owner-reported
+   24 Aug 2026: "when i switch to swedish, copilot should greet me in swedish
+   not english") ----
+   THE SWEDISH GREETING ALWAYS EXISTED AND WAS ALWAYS CORRECT. The fault was
+   WHERE IT LIVED: it was pushed into ai.history as a message the first time the
+   panel opened, and a conversation is never re-translated — rightly, because an
+   answer has to stay as it was written. So anybody who had ever opened Copilot
+   in English carried that English greeting for good.
+   TWO MORE THINGS FELL OUT OF THE SAME FAULT. It was also SENT to the model as
+   one of the last eight messages, so on a Swedish screen the model was shown an
+   English line it had supposedly just said — pulling against the very rule the
+   owner was asking for. And the panel did not repaint its own wording when the
+   language changed while it was open.
+   IT IS AN EMPTY STATE NOW, drawn by renderAIFeed when there is no
+   conversation — exactly how the Insights notebook has always done it, so this
+   follows a pattern the product already has rather than inventing one. It
+   follows the reader's language for free and never reaches the model.
+   OWNER'S RULING, 24 Aug 2026: the greeting follows the INTERFACE language and
+   is only ever Swedish or English, because those are the two the interface
+   offers; the ANSWER follows the language the question was asked in, which is
+   already what the prompt says on both hosts and is untouched here. */
 function aiWelcomeHtml(){
   return `${i18t('ai_welcome')}<div class="text-[11px] mt-2 leading-relaxed" style="color:var(--color-neutral-600)">${i18t('ai_i_give')} <b>${i18t('ai_guidance_not_advice')}</b> ${i18t('ai_ill_tell_you')}</div>`;
 }
@@ -824,6 +841,20 @@ function renderAIFeed(typing=false){
     const pr = aiProposals.get(t.getAttribute('data-ai-prop-why'));
     if (pr && pr.status === AI_PROPOSAL_OPEN) pr.why = String(t.value || '').trim();
   });
+  /* THE GREETING IS DRAWN HERE, from nothing — see aiWelcomeHtml. An empty
+     conversation shows it in whatever language is being read RIGHT NOW; a
+     conversation with anything in it shows the conversation. It is never a
+     message, so it never travels to the model and never freezes. */
+  if(!ai.history.length){
+    feed.innerHTML=`<div class="ai-msg flex gap-2.5">
+      <div class="h-7 w-7 shrink-0 grid place-items-center rounded-lg bg-gold-500/15 text-gold-600 mt-0.5">${icon('sparkle','w-3.5 h-3.5')}</div>
+      <div class="max-w-[88%] space-y-2">
+        <div class="rounded-2xl rounded-tl-md bg-canvas border border-brand-100 px-4 py-2.5 text-sm text-brand-900 leading-relaxed">${aiWelcomeHtml()}</div>
+      </div>
+    </div>`;
+    if(typeof aiChartSweep==='function') aiChartSweep();
+    return;
+  }
   feed.innerHTML=ai.history.map(m=>{
     if(m.role==='user'){
       return `<div class="ai-msg flex justify-end"><div class="max-w-[85%] rounded-2xl rounded-br-md bg-brand-900 text-white px-4 py-2.5 text-sm">${m.text}</div></div>`;

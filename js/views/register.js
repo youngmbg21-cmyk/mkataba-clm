@@ -61,12 +61,12 @@ function renderFolder(){
      exactly what happened: the arrow vanished entirely. Base64 has no quotes
      in it, so it survives the trip into the attribute. */
   const selChevron='url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0ibTYgOSA2IDYgNi02Ii8+PC9zdmc+)';
-  const selStyle='font:inherit;font-size:13px;border:1px solid var(--color-divider);background-color:var(--color-surface);border-radius:0;padding:5px 26px 5px 9px;color:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:'+selChevron+';background-repeat:no-repeat;background-position:right 8px center;background-size:12px';
+  const selStyle='font:inherit;font-size:13px;border:1px solid var(--field-edge);background-color:var(--color-surface);border-radius:0;padding:5px 26px 5px 9px;color:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:'+selChevron+';background-repeat:no-repeat;background-position:right 8px center;background-size:12px';
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="padding:var(--page-pad)">
     <style>
       .fold-table{width:100%;border-collapse:collapse;font-size:14px}
-      .fold-table th{text-align:left;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:color-mix(in srgb,var(--color-text) 60%,transparent);padding:6.8px;border-bottom:1px solid var(--color-divider);white-space:nowrap;background:var(--color-neutral-100)}
+      .fold-table th{text-align:left;font-size:12px;color:color-mix(in srgb,var(--color-text) 60%,transparent);padding:6.8px;border-bottom:1px solid var(--color-divider);white-space:nowrap;background:var(--color-neutral-100)}
       .fold-table td{padding:6.8px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 8%,transparent);vertical-align:middle}
       .fold-table tbody tr:hover{background:color-mix(in srgb,var(--color-text) 4%,transparent)}
     </style>
@@ -879,7 +879,7 @@ function renderRegister(opts){
      exactly what happened: the arrow vanished entirely. Base64 has no quotes
      in it, so it survives the trip into the attribute. */
   const selChevron='url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0ibTYgOSA2IDYgNi02Ii8+PC9zdmc+)';
-  const selStyle='font:inherit;font-size:13px;border:1px solid var(--color-divider);background-color:var(--color-surface);border-radius:0;padding:5px 26px 5px 9px;color:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:'+selChevron+';background-repeat:no-repeat;background-position:right 8px center;background-size:12px';
+  const selStyle='font:inherit;font-size:13px;border:1px solid var(--field-edge);background-color:var(--color-surface);border-radius:0;padding:5px 26px 5px 9px;color:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:'+selChevron+';background-repeat:no-repeat;background-position:right 8px center;background-size:12px';
   /* ---- ONE FILTER BAR, NOT THREE TIERS OF PILLS ----
      Stages, streams and saved views used to be three full-width rows of pills
      (plus a legend band and an export band) stacked above the table — the
@@ -915,11 +915,17 @@ function renderRegister(opts){
      has no ✕ because there is nothing to remove: it is not a filter the reader
      chose. It leads the bar so everything to its right is plainly a narrowing
      WITHIN live negotiations. */
-  const lockChip=neg?`<span id="reg-lock-chip" title="${esc(i18t('ngl_locked_title'))}"
-      style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;border-radius:0;padding:5px 10px;
-        background:var(--color-accent-100);border:1px solid var(--color-accent-300);color:var(--color-accent-800)">
-      <span aria-hidden="true">&#128274;</span><span>${esc(i18t('ngl_locked_chip'))}</span>
-    </span>`:'';
+  /* ---- NO LOCKED CHIP (owner-asked 24 Aug 2026: "delete the highlighted
+     filters so that there is enough space for all the filters to be on one
+     line") ----
+     It was never a filter — a padlock with no way to clear it, saying what the
+     page IS. THE BETTER REASON TO REMOVE IT IS NOT THE SPACE: the heading
+     directly above already reads "Negotiations" with a live count beside it,
+     and the sentence under that says the same thing again, so the chip was a
+     third statement of one fact. The SCOPE is untouched — it belongs to the
+     page, not to the chip, and regFiltered applies it first whatever the bar
+     draws. `lockChip` and `#reg-lock-chip` are retired — flag any mention. */
+  const lockChip='';
   const sortOpts=visibleSorts(REG_SORTS).map(s=>`<option value="${s.k}" ${R.sort===s.k?'selected':''}>${s.label}</option>`).join('');
   // Clickable, sortable column header: shows a dim ↕ when inactive and a solid
   // ▲/▼ for the active sort direction. Clicking toggles asc/desc (see wiring below).
@@ -935,9 +941,14 @@ function renderRegister(opts){
      reads as one row of filters rather than two conventions. */
   const categorySel=`<label class="reg-f"><span class="reg-f-l">${esc(i18t('me_category'))}</span>
     <select id="reg-category" style="${selStyle}${catActive?';border-color:var(--color-accent);color:var(--color-accent-800);font-weight:600':''}">${catOpts.map(([k,l])=>`<option value="${k}" ${(R.category||'all')===k?'selected':''}>${l}</option>`).join('')}</select></label>`;
-  const renewalActive=!!(R.renewal&&R.renewal!=='all');
-  const renewalSel=`<label class="reg-f"><span class="reg-f-l">${esc(i18t('reg_renewal'))}</span>
-    <select id="reg-renewal" style="${selStyle}${renewalActive?';border-color:var(--color-accent);color:var(--color-accent-800);font-weight:600':''}">${[['all',i18t('reg_any')],['auto-renew',i18t('reg_renew_auto')],['fixed',i18t('reg_fixed')],['evergreen',i18t('reg_evergreen')]].map(([k,l])=>`<option value="${k}" ${(R.renewal||'all')===k?'selected':''}>${l}</option>`).join('')}</select></label>`;
+  /* ---- NO RENEWAL FILTER (owner-asked 24 Aug 2026, twice: "delete ... the
+     filter i have highlighted", and again for the Negotiations seat) ----
+     THE CONTROL GOES AND THE READING STAYS. regFiltered still knows how to
+     narrow by renewal type, which costs nothing and keeps the shape two other
+     files read; what is gone is the only thing that ever SET it, so the filter
+     can never be quietly on. `renewalSel` is retired — flag any mention.
+     DIVERGES FROM THE DESIGN REFERENCE, which draws Renewal type as one of its
+     five filter chips and shows it in its active state. The owner's ruling. */
   // Server-mode full-text search + semantic ask live in a secondary strip (the
   // command bar owns the primary search); kept here so FTS wiring stays intact.
   /* ---- SEARCH IS THE FIRST FILTER, NOT A STRIP OF ITS OWN (owner-asked
@@ -963,7 +974,7 @@ function renderRegister(opts){
              plainly wrong once it joined the row, which is the head-row lesson
              of 22 Aug in a smaller costume. Matched to selStyle's own padding
              rather than given a height of its own, so the two cannot drift. */}
-      <input id="reg-search" value="${R.query.replace(/"/g,'&quot;')}" placeholder="${esc(i18t('reg_search_ph'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:5px 9px 5px 30px;font:inherit;font-size:13px;outline:none;color:inherit">
+      <input id="reg-search" value="${R.query.replace(/"/g,'&quot;')}" placeholder="${esc(i18t('reg_search_ph'))}" style="width:100%;border:1px solid var(--field-edge);background:var(--color-surface);border-radius:0;padding:5px 9px 5px 30px;font:inherit;font-size:13px;outline:none;color:inherit">
       <div id="reg-fts" class="hidden" style="position:absolute;z-index:40;margin-top:4px;width:100%;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:0;max-height:320px;overflow-y:auto"></div>
     </label>`:'';
 
@@ -986,8 +997,21 @@ function renderRegister(opts){
          title rather than on the row's edge, and a tighter row. */
       .reg-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:14px}
       .reg-table thead th{position:sticky;top:0;z-index:3}
-      .reg-table th{text-align:left;font-size:12px;font-weight:700;letter-spacing:.06em;
-        text-transform:uppercase;color:var(--color-neutral-500);padding:var(--s-2) var(--pad-row-x);
+      /* ---- THE COLUMN HEADS ARE NOT SHOUTED (owner-asked 24 Aug 2026: "the
+         headers highlighted should not be in capital letters apart from the
+         first letters of the words", then ruled: only the first) ----
+         The capitals were never typed — this rule forced them. The tracking
+         goes with them: letter-spacing exists to make capitals readable and
+         reads loose on ordinary words.
+         SENTENCE CASE IS THE SIMPLER RULING, and it costs Swedish nothing:
+         Swedish already writes these heads with one capital, so it does not
+         move at all, and only two English heads change. One rule, both
+         languages, nothing to keep in step.
+         DIVERGES FROM THE DESIGN REFERENCE, which states uppercase column
+         headers twice — in its type scale and again in its letter-spacing
+         rule. The owner has seen both and ruled. Recorded, not drift. */
+      .reg-table th{text-align:left;font-size:12px;font-weight:700;
+        color:var(--color-neutral-500);padding:var(--s-2) var(--pad-row-x);
         border-bottom:1px solid var(--color-divider);white-space:nowrap;
         background:var(--color-surface)}
       /* ---- THE ROW IS THE DENSITY LEVER ----
@@ -1123,7 +1147,6 @@ function renderRegister(opts){
                     ran to 460px and pushed the whole bar off the row. */}
         ${selFilter('reg-view-sel',viewOpts,!!R.view,i18t('reg_saved_views_title'),i18t('reg_saved_views'))}
         ${categorySel}
-        ${renewalSel}
         ${filtered?`<button id="reg-clear-filters" style="font-size:12px;font-weight:600;color:var(--color-accent-700);background:none;border:0;cursor:pointer;padding:2px 4px">${i18t('reg_clear')}</button>`:''}
         <span style="flex:1;min-width:8px"></span>
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--color-neutral-700);flex:none">${i18t('reg_sort')}

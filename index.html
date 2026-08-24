@@ -958,7 +958,22 @@
      measured in pixels. The head rows that wanted the mock-up's larger, lighter
      button take .ui-btn-lg below rather than dragging the whole product with
      them. */
-  .ui-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:14px;line-height:var(--lh-tight);color:var(--accent-ink);background:transparent;border:1px solid color-mix(in srgb,var(--accent-solid) 45%,transparent);border-radius:0;
+  /* ---- A FILTER BOX IS OUTLINED LIKE A BUTTON (owner-asked 24 Aug 2026: "the
+     outline of the filter boxes should be similar to the outline of the buttons
+     in the contract and negotiation pages") ----
+     ONE VALUE, READ BY BOTH, so the two can never drift: `.ui-btn` below and
+     the register's filter bar both take --field-edge. It is the button's own
+     accent mix, not a colour invented for the filters.
+     THE DESIGN REFERENCE AGREES THAT THEY SHOULD MATCH and picks a strong grey
+     for both (--field-line). HaTi's buttons went accent in August after the
+     owner reported TWICE that a grey control reads as furniture, so matching
+     them here means matching what the buttons actually are. Recorded as a
+     divergence rather than left to look like drift.
+     AND THE ACTIVE FILTER MUST STILL BE TELLABLE APART: it keeps the FULL
+     accent border plus 600 weight plus accent ink — three carriers, so colour
+     is never the only one. */
+  :root{ --field-edge:color-mix(in srgb,var(--accent-solid) 45%,transparent); }
+  .ui-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:14px;line-height:var(--lh-tight);color:var(--accent-ink);background:transparent;border:1px solid var(--field-edge);border-radius:0;
     /* HEIGHT COMES FROM A RUNG, NEVER FROM PADDING. `padding:6px 12px` on a
        14px/1.2 label computes to 30.8px — 2.8px TALLER than .ui-btn-lg's fixed
        28, under a source comment calling the large one the larger. A rung plus

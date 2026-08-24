@@ -120,7 +120,15 @@ function commandMeta(view){
         : i18tn('pg_dash_managed',count,{n:count.toLocaleString(jxLocale())});
       return [i18t('pg_portfolio'), i18t('pg_dash_sub',{head,value:totalV})];
     }
-    case 'register':  return [i18t('nav_contracts'), i18t('pg_contracts_sub')];
+    /* NO SENTENCE UNDER "Contracts" (owner-asked 24 Aug 2026: "delete the
+       notes ... so we can have more spacing"). ONLY THIS PAGE — every other
+       page keeps its own line, which is the owner's own ruling of the same
+       day; most of them are sentences that genuinely explain what the page is,
+       and this one restated a filter bar the reader can see. pg_contracts_sub
+       stays in the dictionary, inert, so nothing can bring it back by accident.
+       DIVERGES FROM THE DESIGN REFERENCE, which draws a subtitle on every
+       screen header — recorded as the owner's ruling, not as drift. */
+    case 'register':  return [i18t('nav_contracts'), ''];
     case 'templates': return [i18t('nav_templates'), i18t('pg_templates_sub')];
     case 'playbook':  return [i18t('nav_our_standards'), i18t('pg_standards_sub')];
     case 'pipeline':  return [i18t('pg_queue'), i18t('pg_queue_sub')];
@@ -1907,6 +1915,19 @@ if(typeof window!=='undefined') window.onLanguageChange=function(){
     window.renderSideFolders && renderSideFolders();
     updateSidebarCounts();
     renderPageHeader&&renderPageHeader();
+    /* THE COPILOT PANEL IS FURNITURE TOO, and no view redraws it — it is a
+       body-level layer, not part of the page. Its greeting, its suggested
+       questions and its style toggle are the panel's own wording and must
+       follow the reader; the CONVERSATION is a record and is deliberately left
+       exactly as it was written. Guarded, because a stage without the panel
+       still calls this. */
+    try{
+      if(window.ai && ai.open){
+        window.renderAIFeed && renderAIFeed();
+        window.renderAISuggest && renderAISuggest();
+        window.renderAIStyleToggle && renderAIStyleToggle();
+      }
+    }catch(e){}
     /* Re-entering the SAME view, which setView already treats as a repaint and
        not a navigation — it puts the scroll position back afterwards, so the
        reader stays exactly where they were rather than being thrown to the top

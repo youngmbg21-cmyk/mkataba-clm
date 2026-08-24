@@ -4030,8 +4030,8 @@ const STRINGS = {
     set_edit_lower: 'edit',
 
     // ---- the register: columns, filters and row actions ----
-    reg_col_title: 'Contract Title',
-    reg_col_expiry: 'Expiry Date',
+    reg_col_title: 'Contract title',
+    reg_col_expiry: 'Expiry date',
     reg_sort_by: 'Sort by {col}',
     reg_untitled: 'Untitled contract',
     reg_act_view: 'View contract',
