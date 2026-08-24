@@ -1,6 +1,6 @@
-# WORK ORDER — ten fixes off the owner's screenshots
+# WORK ORDER — eleven fixes off the owner's screenshots
 
-**Raised by:** Young, 24 Aug 2026, across four messages of annotated
+**Raised by:** Young, 24 Aug 2026, across five messages of annotated
 screenshots ("Do not code but review and create a plan to fix…", then two more
 batches, then "create a work order for the other fixes and updates we have
 discussed and wait for my word to begin the fixes").
@@ -511,6 +511,106 @@ so a future six-cell facts strip moves them in one line.
 
 ---
 
+### WO-12 · The page moves when it should land
+*Owner, 24 Aug 2026: "when i flip from tab to tab or page to page in the html,
+the landing page appears like a flash or like a picture and very stable. In
+hati, it is like a moving picture."*
+
+**MEASURED ON BOTH SIDES, which is what makes this one unarguable.**
+
+| | The reference demo | HaTi |
+|---|---|---|
+| Elements carrying a transition, one screen | **0** | **75** |
+| Named animations in the whole product | **1** (`hx-pulse`, the status dot) | **26** |
+| Animations running while idle | **1** | **4** |
+| Animations running on a page switch | **1** — nothing plays | **6&ndash;12** |
+
+Clicking through the reference's own pages, the running-animation count never
+moves off 1. Nothing plays on navigation at all. That is the "flash, like a
+picture" the owner is describing, and it is not an impression — it is the
+literal measurement.
+
+**WHAT PLAYS IN HaTi ON EVERY NAVIGATION**, measured going to four different
+pages:
+
+- **`viewIn`, 240ms** &mdash; the WHOLE page fades up from `opacity:0` and
+  slides 6px. This is the fault. Every page, every time.
+- **`rowIn`, 340ms, once per row** &mdash; the register's rows slide in
+  staggered underneath it. Measured at 4 running simultaneously.
+- **the nav item's own 120ms transition** &mdash; `background`, `color` and
+  `border-color`, so the sidebar's active marker FADES from the door you left
+  to the door you pressed instead of snapping. 4&ndash;5 of these run at once.
+
+And two ambient loops run for ever, on several elements at a time:
+**`livePing` 2.4s** (a box-shadow ripple) and **`ping` 1.8s** (a scaling one) —
+two names, two durations, both marking "live", where the reference has exactly
+one looping animation in the entire console.
+
+**THE REFERENCE IS EXPLICIT AND GIVES THE REASON:** *"Animation — the only
+motion in the app is the status dot's `hx-pulse 2.4s ease-in-out infinite`.
+Everything else is instant. **Do not add transitions; the density reads as
+sluggish with them.**"*
+
+#### BUILD — in three tiers, because "delete all 26" is not the answer
+
+**Tier 1 — the reported fault. Do this and the complaint is answered.**
+- Delete `viewIn` and `rowIn`, and the `.stagger` class with them.
+- **The whole suppression machinery goes with them, which is the tidy part:**
+  `markViewTransition`, `_lastRenderedView`, `_viewAnimTimer`, the 450ms
+  re-arm and the `.no-view-anim` class exist ONLY to stop an animation that
+  will no longer exist. Its own comment says so: *"the whole screen replayed
+  the fade-and-slide, reading as a flash of reload."* The animation was the
+  problem; the machinery was the patch.
+- Take `background` and `color` off the nav item's transition so the active
+  marker snaps. **Leave the item's HOVER as it is for now** — that is tier 3.
+
+**Tier 2 — one looping animation, not four.**
+- The reference allows exactly one, on the status dot, at 2.4s. Reduce to one
+  and put it where the reference puts it. Everything else that currently
+  pulses states its liveness in words or colour already, or should.
+- **A small defect falls out of this:** `.live-dot::after` scales to 2.1&times;
+  and carries `border-radius:0` — squared by the 20 Aug corner sweep — so what
+  was designed as an expanding ring now draws as an expanding SQUARE. Either
+  it goes with this tier, or it gets its circle back.
+
+**Tier 3 — the 111 transition declarations. A separate decision, not this
+order's to take.**
+- The reference's answer is zero, with a stated reason. HaTi's are almost all
+  hover states, which do not fire on navigation and are not what the owner
+  reported.
+- **Recommendation: do it, but as its own pass with the owner's word**, because
+  it touches every screen and is the kind of change that should be looked at
+  once rather than discovered.
+
+#### WHAT KEEPS MOVING, said out loud
+
+- **Spinners** (`spin`, `nego-spin`) — work genuinely in progress.
+- **The green bell blink** (`hdr-bell-news`, `al-row-news`, `rl-bell-news`) —
+  owner-asked, 23 Aug, three blinks then stop. Not motion for decoration.
+- **The slide-over panels** (`sidePanelIn`, the queue, the clause panel, the
+  phone's sheets). A panel that slides in FROM somewhere is saying where it
+  came from; the reference has no slide-overs at all, so it holds no opinion
+  here.
+- **The land-here flashes** (`rlJump`, `clauseFlash`, `anchorFlash`) — they fire
+  once, on a jump, and answer "where did I land". That is information.
+- **`prefers-reduced-motion`** — untouched, and the tier-1 deletions make more
+  of the product honest under it by construction.
+
+#### TESTS
+
+A browser file that counts, because this is the one claim a source read cannot
+make: navigate between four pages and assert `document.getAnimations()` holds
+**nothing from the view-entry family** immediately after each switch, and that
+the idle count is at most one looping animation. It must fail against today's
+code, reporting `viewIn` and four `rowIn`s.
+
+**And pin the RELATION, not the number:** the claim is "nothing plays when you
+change page", never "there are exactly N animations" — a page that legitimately
+gains a spinner must not fail it.
+
+
+---
+
 ## Open decisions
 
 | # | Question | Blocks | Recommendation |
@@ -562,16 +662,20 @@ change rather than one large one. Everything after the rebase.
 
 0. Rebase onto `origin/main`; re-measure WO-1 … WO-7 on it.
 1. **WO-1** the collapse button's colours (+ the white-on-white sweep)
-2. **WO-3** delete the Copilot strip
-3. **WO-8** move the "All" filter into its slot
-4. **WO-11** the Copilot greeting
-5. **WO-2** the note and the Renewal filter
-6. **WO-7** friction margins
-7. **WO-6** the Home headings
-8. **WO-4** outlines and headers — *after decision 2*
-9. **WO-10** the three check symbols
-10. **WO-5** where the sidebar floats — *after decision 3*
-11. **WO-9** the sideways-scrolling table
+2. **WO-12 tier 1** stop the page moving on navigation
+3. **WO-3** delete the Copilot strip
+4. **WO-8** move the "All" filter into its slot
+5. **WO-11** the Copilot greeting
+6. **WO-2** the note and the Renewal filter
+7. **WO-7** friction margins
+8. **WO-6** the Home headings
+9. **WO-4** outlines and headers — *after decision 2*
+10. **WO-10** the three check symbols
+11. **WO-5** where the sidebar floats — *after decision 3*
+12. **WO-9** the sideways-scrolling table
+
+WO-12's tier 2 (one looping animation) rides with tier 1 if the owner wants it;
+tier 3 (the 111 transitions) is explicitly NOT in this order.
 
 WO-5 and WO-9 are last together on purpose: WO-5 can move the width at which
 WO-9's table is narrowest, and measuring WO-9 against a line that is about to
