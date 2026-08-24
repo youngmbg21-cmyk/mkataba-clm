@@ -885,21 +885,121 @@ is deliberate rather than accidental, and that stays true.
 
 ---
 
-## Open decisions
+## The owner's rulings
 
-| # | Question | Blocks | Recommendation |
-|---|---|---|---|
-| 1 | Contracts only loses its subtitle, or every page? | no | Contracts only |
-| 2 | Headers: every word capitalised, or only the first? | **WO-4** | English every word; Swedish only the first |
-| 3 | How wide is the owner's screen — where does the float line go? | **WO-5** | back to 1500 |
-| 4 | Should Copilot always answer in the interface language, even for an English question? | no | leave as is — the rule already exists and follows the question |
-| 5 | Home tiles: does colour mean something, or does it tell the cards apart? | **WO-13** | keep the meaning; adopt the demo's own numeral rule |
-| 6 | The greyed change column: remove it, wake it, or mark it? | **WO-14** | mark it — a padlock, the sentence on hover |
-| 7 | 13px rows, below the design's own 14px? | **WO-16** (size half) | build WO-9 first, then look and decide |
+Given 24 Aug 2026. Six of the seven are answered; one is waiting on an
+explanation of the question, not on the owner.
 
-**Decision 4's item is already built and is not in this order** — the Copilot
-language rule is in place on both hosts and the reported fault was a frozen
-greeting, which is WO-11 below.
+| # | Question | Ruling |
+|---|---|---|
+| 1 | Contracts only loses its subtitle, or every page? | **Contracts only.** Every other page keeps its own line. |
+| 2 | Headers: every word capitalised, or only the first? | **Only the first.** Sentence case, both languages. |
+| 3 | Copilot's language rule | **Greet in the interface language; answer in the language the question was asked in.** |
+| 4 | Where does the sidebar start floating? | **Derived from the screen sizes HaTi is built for — see below.** Not from anybody's own monitor. |
+| 5 | Home tiles: does colour mean something, or tell the cards apart? | **Tell them apart.** |
+| 6 | The greyed change column: remove it, wake it, or mark it? | **STILL OPEN** — the owner asked what the greyed column is before ruling. |
+| 7 | Rows a size smaller, below the design's own 14px? | **Yes.** |
+
+### Ruling 2, in full — sentence case, and it costs less than expected
+
+Every column head takes a capital on its FIRST word only: *Contract title ·
+Counterparty · Value stream · Value · Expiry date · Status · Whose move*.
+
+**THIS IS SIMPLER THAN THE RECOMMENDATION IT OVERRULES.** The order proposed
+title case for English and sentence case for Swedish, because title-casing is a
+grammatical error in Swedish. The owner's answer removes the split entirely:
+**Swedish already writes these in sentence case, so it does not move at all**,
+and English changes two heads (`Contract Title` → `Contract title`,
+`Expiry Date` → `Expiry date`). One rule, both languages, nothing to keep in
+step.
+
+### Ruling 3, in full — and half of it is already built
+
+> *"It should greet you in the language mode you have chosen but it should
+> answer your questions based on the language you ask in. If I ask in swahili
+> then answer in swahili but greetings should be between swedish and english."*
+
+Two halves, and they are already the two halves the product has:
+
+- **The ANSWER follows the question.** Already built and already correct on both
+  hosts — *"Reply in the language the user wrote their question in."* A Swahili
+  question already gets a Swahili answer. **Nothing to change**, and the order
+  should not touch it.
+- **The GREETING follows the interface.** That is WO-11, and the owner's wording
+  settles its one open edge: the greeting is only ever **Swedish or English**,
+  because those are the two the interface offers. It never tries to greet in a
+  third language just because the last question was asked in one.
+
+### Ruling 4, in full — the number is DERIVED, and the owner is right that the rule already exists
+
+> *"I do not understand the questions regarding how wide my screen is. The rule
+> we have been working on is hati should be built on a number of screen sizes
+> which means hati respects those screen sizes. This rule should be in the code
+> somewhere."*
+
+**IT IS, AND ASKING FOR A PERSONAL SCREEN SIZE WAS THE WRONG QUESTION.** The
+supported set is declared in `test/chromium/laptops-verify.js`:
+
+| Machine | CSS width |
+|---|---|
+| 1080p at 150% (ThinkPad) | **1280** |
+| 1366 x 768 | 1366 |
+| MacBook 1440 | 1440 |
+| 1080p at 125% | 1536 |
+| 1080p at 100% | 1920 |
+
+**SO THE LINE FALLS OUT OF ARITHMETIC RATHER THAN TASTE.** The design draws its
+console at 1280 with a 240px column and **1040px of page**. MEASURED at 1280
+with the column pushed open, HaTi's page is **1030px** — under the design's own
+measure — and the Contracts table needs **1054px** in Swedish (WO-9). So on the
+smallest machine HaTi supports, a pushed column leaves less page than either
+the design assumes or the table needs.
+
+**THE RULE: float at 1280 and below; push above it.** Every supported size is
+then honoured — the smallest floats so nothing is squeezed, and 1366 and up
+keep the pushed column with room to spare (1366 leaves 1126, 1440 leaves 1200).
+
+**AND IT EXPLAINS THE REPORT.** Today the product floats *below* 1280 and
+pushes *at* 1280 — so the ThinkPad sits exactly ON the line and gets the shove.
+The change is one pixel in a constant and one in a matching stylesheet rule;
+what matters is that the number is now derived from the supported set and is
+commented as derived, so the next person moves the SET rather than the number.
+
+### Ruling 5, in full — and what it costs
+
+Each Home tile takes its own colour and its number takes that colour too.
+
+**THE COST WAS PUT TO THE OWNER BEFORE THEY RULED AND THEY RULED ANYWAY, so it
+is recorded rather than re-argued:** Home's tile colour stops meaning
+anything. Amber will no longer mean "this needs you" on that page, so a reader
+cannot tell an urgent tile from a calm one by its colour — only by reading it.
+
+**FOUR OTHER SURFACES KEEP THE OLD MEANING** and must not be swept with it: the
+sidebar's amber counts, the alerts panel's amber rows, the register's status
+tones and the calendar's legend. **CLAUDE.md must say out loud that Home is now
+the exception**, or the next person reads the mismatch as drift and "fixes" one
+of them.
+
+**WHAT STAYS:** the zero-count grey numeral, already out of scope in both this
+order and `docs/WORKORDER-black-ink.md`. With every other number coloured it
+becomes the only grey one, which makes it a stronger signal than it is today,
+not a weaker one.
+
+### Ruling 7, in full
+
+Rows drop one rung, to 13px, on both Contracts and Negotiations.
+
+**RECORDED AS THE OWNER'S RULING**: the design's own type scale puts table row
+text at 14px, so this is a deliberate step below the reference.
+
+**AND IT DOES NOT REPLACE WO-9.** The disappearing words are the sideways-scroll
+fault and only the declared column ladder fixes them at every width. Build WO-9;
+this is a density choice sitting on top of it.
+
+**THE TRAP:** every cell drops together, and the document kind must stay smaller
+than the row, or `flat-rows-and-alerts-verify`'s one-size claim fails honestly.
+
+**ONE ITEM IS STILL BLOCKED: WO-14.** Everything else is ruled on and ready.
 
 ---
 
@@ -949,15 +1049,15 @@ change rather than one large one. Everything after the rebase.
 7. **WO-2** the note and the Renewal filter
 8. **WO-7** friction margins
 9. **WO-6** the Home headings
-10. **WO-4** outlines and headers — *after decision 2*
+10. **WO-4** outlines and headers
 11. **WO-10** the three check symbols
-12. **WO-5** where the sidebar floats — *after decision 3*
+12. **WO-5** where the sidebar floats
 13. **WO-9** the sideways-scrolling table
 14. **WO-15** the two filters off the bar (the Renewal half rides WO-2)
 15. **WO-17** the Negotiations door opens the list
-16. **WO-14** the reading strip — *after decision 6*
-17. **WO-13** the Home tile colours — *after decision 5*
-18. **WO-16** the row type — *after WO-9 is built and looked at, then decision 7*
+16. **WO-14** the reading strip — *STILL BLOCKED: ruling 6*
+17. **WO-13** the Home tile colours
+18. **WO-16** the row type — *after WO-9, so the two are looked at together*
 
 WO-12's tier 2 (one looping animation) rides with tier 1 if the owner wants it;
 tier 3 (the 111 transitions) is explicitly NOT in this order.
