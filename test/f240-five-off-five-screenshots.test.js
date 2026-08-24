@@ -223,9 +223,16 @@ describe('f240 (5) — the rows read at one size and one weight', () => {
      the ⋯ was restating the stage two columns along. What this claim was really
      about survives on the reference, and the verb's absence is asserted below
      so nothing can quietly put a second weight back in the row. */
+  /* THE SIZE REVERSED IN PLACE 24 Aug 2026 (WO-16, owner-ruled: "reduce the
+     font by a size ... so that there is enough room in the card"). The CLAIM is
+     unchanged and is the one that matters — the reference is regular weight and
+     reads at the ROW's size, whatever that size is. Pinned as the row's own
+     value rather than a literal, so the next density ruling costs no test edit:
+     that is the lesson the 1,994-size sweep of 22 Aug paid five times. */
   test('the reference is regular weight, and the row draws no verb', () => {
+    const rowSize = css.match(/\.reg-table\{[^}]*font-size:(\d+)px/)[1];
     const r = css.match(/\.reg-mk\{[\s\S]*?\}/)[0];
-    assert.match(r, /font-size:14px/);
+    assert.match(r, new RegExp('font-size:' + rowSize + 'px'));
     assert.match(r, /font-weight:400/);
     assert.ok(!/class="reg-actlink"/.test(rowsFn), 'the row carries no text verb');
     assert.ok(!/\.reg-actlink\{/.test(css), 'and no rule is left dressing one');
@@ -240,7 +247,10 @@ describe('f240 (5) — the rows read at one size and one weight', () => {
   });
 
   test('the status chip is flattened HERE, never at .badge', () => {
-    assert.match(css, /\.reg-table \.badge\{font-size:14px;font-weight:400\}/,
+    /* Size reversed in place with the row (WO-16); read from .reg-table so the
+       chip can never drift away from the cells beside it. */
+    const rowSize = css.match(/\.reg-table\{[^}]*font-size:(\d+)px/)[1];
+    assert.match(css, new RegExp('\\.reg-table \\.badge\\{font-size:' + rowSize + 'px;font-weight:400\\}'),
       'a table row is not every card, list and panel in the product');
     const badge = IDX.match(/\.badge\{[^}]*\}/)[0];
     assert.match(badge, /font-weight:700/, 'the global chip keeps its own dress');
@@ -271,17 +281,26 @@ describe('f240 (5) — the rows read at one size and one weight', () => {
     assert.deepEqual(bold, [], 'still bold in a row: ' + JSON.stringify(bold));
   });
 
+  /* Read from .reg-table rather than pinned at a literal (WO-16 reversal): the
+     claim is that no INLINE cell sets a size of its own, whatever the row's
+     size currently is. Five of these cells are inline styles a class rule
+     cannot reach, so this sweep is what stops the next density ruling leaving
+     one of them behind. */
   test('nor set smaller than the row, the kind line excepted', () => {
+    const rowSize = Number(css.match(/\.reg-table\{[^}]*font-size:(\d+)px/)[1]);
     const small = [...rowsFn.matchAll(/font-size:(\d+)px/g)]
-      .map(m => Number(m[1])).filter(px => px !== 14);
+      .map(m => Number(m[1])).filter(px => px !== rowSize);
     assert.deepEqual(small, [], 'off the row’s size: ' + JSON.stringify(small));
   });
 
   test('the whose-move words follow the row, and their three inks do not', () => {
     /* NOT the first .ngl-w in the file — .room-facet .v .ngl-w sits above it
        and is the contract room's fact row, which keeps its own 700. */
+    /* Size reversed in place with the row (WO-16) — the whose-move words are a
+       CELL and the 23 Aug ruling is that every cell reads at one size. */
     const w = IDX.match(/(^|\n)\s*\.ngl-w\{[\s\S]*?\}/)[0];
-    assert.match(w, /font-size:14px/);
+    const rowSize = css.match(/\.reg-table\{[^}]*font-size:(\d+)px/)[1];
+    assert.match(w, new RegExp('font-size:' + rowSize + 'px'));
     assert.match(w, /font-weight:400/);
     for (const [cls, tok] of [['ngl-w-you', '--st-amber-fg'],
       ['ngl-w-them', '--st-gray-fg'], ['ngl-w-clear', '--st-green-fg']])

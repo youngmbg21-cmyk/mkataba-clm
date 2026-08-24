@@ -497,9 +497,14 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
     R.stage = 'all'; R.type = 'all'; R.view = null; R.renewal = 'all'; R.category = 'all';
     R.only = null; R.query = '';
     assert.equal(b.win.regFiltered().length, 1, 'still one — the scope is the page, not a filter');
-    /* And the chip that says so is not removable: no ✕ on it. */
-    assert.ok(b.$('#reg-lock-chip'), 'the locked chip is drawn');
-    assert.equal(b.$('#reg-lock-chip').querySelector('button'), null, 'and it carries no way out');
+    /* REVERSED IN PLACE 24 Aug 2026 (WO-15, owner-asked: "delete the
+       highlighted filters so that there is enough space for all the filters to
+       be on one line"). The chip is gone; what it used to SAY is said louder by
+       the heading above it, which reads "Negotiations" with a live count, and
+       by the sentence under that. THE CLAIM THAT MATTERED SURVIVES AND IS THE
+       four lines above: the scope is a property of the PAGE, not of the chip,
+       so clearing every filter still leaves the page narrowed. */
+    assert.equal(b.$('#reg-lock-chip'), null, 'the chip is gone with WO-15');
   });
 
   test('the two filter states do not leak into each other', () => {
@@ -540,7 +545,11 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
     /* And the nav press asks the DOOR, not setView — state.activeId still holds
        whatever contract was last opened anywhere in the app, so a bare
        setView('redline') would open a draft nobody has ever redlined. */
-    assert.match(app, /if\(v==='redline'&&window\.openNegotiations\) openNegotiations\(\)/);
+    /* REVERSED IN PLACE 24 Aug 2026 (WO-17): the door now names the LIST, on the
+       owner's ask that pressing Negotiations answer the way pressing Contracts
+       does. The claim that mattered is unchanged — the press asks the DOOR and
+       never setView. */
+    assert.match(app, /if\(v==='redline'&&window\.openNegotiations\) openNegotiations\(\{list:true\}\)/);
     /* The door exists in the markup, under Contracts and above Calendar. */
     const html = read('index.html');
     /* Anchored on the nav MARKUP, not on the first mention of a view name —
@@ -704,12 +713,24 @@ describe('F184 (5) — the phone changes the same way', () => {
       `the phone's bar labels sit at or above the 14px floor — got ${px && px[1]}`);
   });
 
-  test('the bar press runs the same door, decided in the funnel', () => {
+  test('the bar press runs the same door, and it opens the list', () => {
     const s = read('js/mobile.js');
     const go = s.slice(s.indexOf('function mGo('), s.indexOf('function mWire'));
-    assert.match(go, /screen==='negotiations'/);
-    assert.match(go, /negoLastOpened/, 'reopen the last one');
-    assert.match(go, /openRedlineWorkbench\(last\.id\)/);
+    /* REVERSED IN PLACE 24 Aug 2026 (WO-17). The phone's bar item is the SAME
+       door as the desktop's sidebar and now answers the same way: the list,
+       always. The claim that survives is the one that mattered — the decision
+       is made in the FUNNEL, not in the bar's click handler, so a second way to
+       reach this screen inherits it. */
+    assert.ok(!/openRedlineWorkbench\(last\.id\)/.test(go),
+      'the phone no longer reopens the last negotiation');
+    /* NO SPECIAL CASE SURVIVES IN THE FUNNEL and that is what makes it safe:
+       the screen simply draws its list, so a second door inherits the answer
+       rather than having to remember it. */
+    assert.ok(!/screen==='negotiations'/.test(go),
+      'the funnel branches on nothing — the screen itself draws the list');
+    const scr = read('js/mobile-screens.js');
+    assert.match(scr, /function mNegotiationsHtml/,
+      'and the list is what that screen is');
   });
 
   test('the phone gets a PHONE-SHAPED screen over the same data', () => {

@@ -186,12 +186,27 @@ describe('F223 — it decides nothing', () => {
   const neg = read('js/views/negotiation.js');
   const band = neg.slice(neg.indexOf('function rlPlanBandHtml'), neg.indexOf('function rlUnsentBandHtml'));
 
-  test('THE BUTTONS ARE THE CARDS OWN — no second decision path', () => {
-    assert.match(band, /data-nego-accept="/, 'accept is the card\'s accept');
-    assert.match(band, /data-rl-ask-review="/, 'escalate is the existing internal-review door');
-    assert.match(band, /data-rl-cp-open="/, 'and pushing back opens the clause panel');
+  /* REVERSED IN PLACE 24 Aug 2026 (WO-3, owner-asked: "delete the copilot first
+     pass feature completely", then "Just delete the strip for now"). The band
+     draws nothing at all — rlPlanBandHtml is a `return ''` STUB, kept rather
+     than deleted because it is published on window and a third caller must not
+     be able to bring the strip back through a door nobody remembered.
+     WHAT THE THREE MARKUP CLAIMS BELOW USED TO PIN is recorded here rather than
+     deleted, because it is the reason removing this took no capability away:
+     every button the band drew carried the CARDS' OWN attributes
+     (data-nego-accept, data-rl-ask-review, data-rl-cp-open) and was picked up
+     by the ordinary per-paint handlers, so a press ran the ordinary funnel —
+     desk rule, review gate, accept guard, live-link catch-up. It decided
+     nothing and filed nothing. The engine claim below is untouched and is the
+     half that still has something to guard. */
+  test('the band draws nothing, so there is no second decision path at all', () => {
+    assert.match(band, /return '';/, 'the builder is a stub');
     for (const forbidden of ['negoResolve(', 'negoFileChange(', 'changes.push', 'persist('])
       assert.ok(!band.includes(forbidden), 'the band must not ' + forbidden);
+    /* And nothing mounts it: the one call site went with the strip. */
+    const mounts = neg.split('\n').filter(l => /rlPlanBandHtml\(/.test(l)
+      && !/function rlPlanBandHtml/.test(l) && !/^\s*(\/\*|\*|.*\*\/)/.test(l));
+    assert.deepEqual(mounts, [], 'no caller draws it — ' + mounts.join(' | '));
   });
 
   test('the plan engine writes nothing at all', () => {
@@ -201,12 +216,15 @@ describe('F223 — it decides nothing', () => {
     assert.ok(!/ai\//.test(src), 'and it calls no model — the judging is deterministic and explainable');
   });
 
-  test('the band is never drawn on their seat, or for a narrowed reviewer', () => {
-    assert.match(band, /if \(side === 'counterparty' \|\| \(typeof PORTAL_MODE !== 'undefined' && PORTAL_MODE\)\) return '';/,
-      'our playbook and our history, read aloud — never to the other side');
-    assert.match(band, /if \(opts\.readonly/, 'nor over a read-only copy');
-    assert.match(band, /rlActorHeld\(c, opts\)\) return '';/,
-      'nor to a reviewer whose hands are narrowed');
+  test('the band is never drawn on ANY seat now', () => {
+    /* REVERSED IN PLACE (WO-3). This used to pin three refusals — the
+       counterparty's seat, a read-only copy, a narrowed reviewer — because our
+       playbook and our history read aloud must never reach the other side.
+       The strongest form of all three is that it draws for nobody. */
+    const body = band.slice(0, band.indexOf('let _rlPlanOpen'))
+      .replace(/\/\*[\s\S]*?\*\//g, '').replace(/\s/g, '');
+    assert.equal(body, "functionrlPlanBandHtml(){return'';}",
+      'the whole body is a stub — ' + body);
   });
 
   test('the fold is a posture, and its rows are deliberately not wired', () => {
@@ -248,11 +266,10 @@ describe('F223 — it decides nothing', () => {
        title wrapped to four lines, and a folded band is meant to be one. A
        chip reading zero is furniture (the alert dot's own rule), and the
        verdict itself is not lost: every row below still names its own. */
-    assert.match(band, /const chip = v => \(n\[v\] \?/,
-      'a verdict with nothing in it draws no chip');
-    assert.ok(!/\$\{n\[v\] \|\| 0\}/.test(band), 'and never a zero');
-    assert.match(band, /class="rl-plan-bar"[\s\S]{0,220}title="/,
-      'the whole sentence rides on the bar\'s hover, since the title can ellipsise');
+    /* REVERSED IN PLACE (WO-3): the band draws nothing, so its three markup
+       claims — a zero verdict drawing no chip, never a literal 0, the whole
+       sentence on the bar's hover — have nothing to measure. The SHEET half
+       survives and is still checkable, and is what a restore would need. */
     assert.match(read('js/views/negotiation-css.js'),
       /\.rl-plan-title\{[^}]*white-space:nowrap/,
       'the title gives and the chips do not — one line while it is shut');

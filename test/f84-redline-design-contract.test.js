@@ -350,16 +350,23 @@ describe('F84 — how the contract reads, as three words', () => {
     assert.equal(p.$('.rl-note-card'), null,
       'and the band across the top of the contract is gone');
     /* THE FACT IS NOT LOST — it is on the column, which is where the reader is
-       being told they cannot act. */
+       being told they cannot act.
+       REVERSED IN PLACE 24 Aug 2026 (WO-14, owner-asked: "delete the strip for
+       now"). The STRIP of words went; the GREYING stayed, which is the half
+       that says a reading cannot be acted on. The way back was never only on
+       the strip — the three reading tabs are drawn on every paint, they are
+       where the reader pressed to get here, and they are what the strip's own
+       button was a proxy for. So the claim is now: the column says it, and the
+       way back is the tab that is always on screen. */
     assert.ok(p.$('.rl-side.is-reading'), 'a non-default reading says so on the column');
-    assert.ok(p.$('.rl-idx-reading'), 'in words');
-    assert.match(p.$('.rl-idx-reading').textContent, /redlined/i);
-    assert.ok(p.$('.rl-idx-reading [data-rl-read="marks"]'), 'with the way back on it');
+    assert.equal(p.$('.rl-idx-reading'), null, 'the strip of words is gone (WO-14)');
+    assert.ok(p.$('.rl-tabrow [data-rl-read="marks"]'),
+      'and the way back is the reading tab, drawn on every paint');
     /* AND NOTHING ON THE PAPER OFFERS TO WRITE. The pencil is the one door
        into the clause panel, and the panel is where a change is filed. */
     assert.equal(p.$('.rl-cp-pill'), null, 'no clause offers an edit on a reading');
 
-    p.$('.rl-idx-reading [data-rl-read="marks"]').click();
+    p.$('.rl-tabrow [data-rl-read="marks"]').click();
     assert.equal(p.win.rlReadMode(), 'marks', 'and the way back works');
     assert.equal(p.$('.rl-side.is-reading'), null);
     assert.ok(p.$('.rl-cp-pill'), 'and the clause offers its edit again');

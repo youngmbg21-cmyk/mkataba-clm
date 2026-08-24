@@ -150,8 +150,18 @@ describe('f175 · every dialog in the feature wears the same head', () => {
     assert.ok(btn, 'the class is defined');
     assert.match(btn[1], /background:transparent/,
       'flat at rest — the fill belongs to the page\'s one act');
-    assert.match(btn[1], /border:1px solid color-mix\(in srgb,var\(--accent-solid\) 45%,transparent\)/,
-      'an ACCENT border, never a neutral one — the 17 Aug lesson');
+    /* REVERSED IN PLACE 24 Aug 2026 (WO-4, owner-asked: "the outline of the
+       filter boxes should be similar to the outline of the buttons in the
+       contract and negotiation pages"). The mix moved out of this rule and
+       into a TOKEN, --field-edge, so a filter box and a button read the same
+       edge from one place and cannot drift. THE CLAIM IS UNCHANGED and is
+       asserted in two halves now — the button reads the token, and the token
+       IS the accent mix — so a refactor that fades either to a neutral fails
+       here exactly as it would have before. */
+    assert.match(btn[1], /border:1px solid var\(--field-edge\)/,
+      'the edge comes from the shared token');
+    assert.match(INDEX, /--field-edge:\s*color-mix\(in srgb,var\(--accent-solid\) 45%,transparent\)/,
+      'and that token is an ACCENT mix, never a neutral one — the 17 Aug lesson');
     /* REVERSED IN PLACE 23 Aug 2026, CLAIM UNCHANGED AND STRENGTHENED. This
        read the raw ramp step, which had NO dark answer: html.dark redefines
        the surface, the ink and the whole neutral ramp and never redefines the
@@ -303,12 +313,36 @@ describe('f175 · the Tracked Changes head is a rule, not a box', () => {
       'the number leads by a clear step — it is the thing being scanned');
     assert.match(word, /text-transform:uppercase/, 'and the word reads as its label');
 
-    /* Nothing on the table at all: the tabs still draw, reading zero. */
+    /* REVERSED IN PLACE 24 Aug 2026 (WO-8). This read "the tabs still draw,
+       reading zero" — right while the cut was a segmented control on a line of
+       its own. The filter is now a dropdown IN THE PROGRESS FOOT, at the head's
+       top right where the owner asked for it, and that foot is drawn only where
+       there is progress to report. So on a genuinely empty book the filter
+       stands down, which is the alert dot's own rule: a control whose three
+       outcomes are all "nothing" is furniture.
+       THE SAFETY PROPERTY IS UNTOUCHED AND IS THE REASON THIS IS SAFE — the
+       foot's total counts EVERY change, not the filtered ones, so a column
+       narrowed to "Mine" over a book that holds only theirs still draws the
+       control with their count on it. Nobody can conclude the other side has
+       asked for nothing while an ask exists. Asserted both ways below. */
     const q = await stage();
     q.c.changes = [];
     q.win.renderRedline();
-    assert.match(q.win.document.querySelector('#rl-cardfilter option').textContent, /\(0\)/,
-      'an empty book reads zero on the filter, not a missing head');
+    assert.equal(q.win.document.querySelector('#rl-cardfilter'), null,
+      'an empty book draws no filter — three ways of showing nothing is furniture');
+    assert.ok(q.win.document.querySelector('.rl-idx-title'),
+      'but the head itself still draws, so the column is never a blank');
+    /* And the moment there IS an ask, the control is back with its own count,
+       whichever cut the reader happens to be sitting on. */
+    const r = await stage();
+    r.win.rlSetCardFilter && r.win.rlSetCardFilter('mine');
+    r.win.renderRedline();
+    assert.ok(r.win.document.querySelector('#rl-cardfilter'),
+      'a narrowed column still draws the control');
+    assert.match([...r.win.document.querySelectorAll('#rl-cardfilter option')]
+      .map(o => o.textContent).join(' '), /\(1\)/,
+      'and its counts are the whole book, not the cut being shown');
+    r.win.rlSetCardFilter && r.win.rlSetCardFilter('all');
   });
 });
 

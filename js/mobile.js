@@ -1085,15 +1085,21 @@ function mCloseSheet(){ mS().sheet=null; mRender(); }
    twin, so the two shells never disagree about where the reader is. */
 function mGo(screen, extra){
   const s = mS();
-  /* ---- THE NEGOTIATIONS DOOR BEHAVES THE SAME ON BOTH SHELLS ----
-     Reopen the last negotiation; with nothing to reopen, fall through to the
-     list. Decided in the FUNNEL rather than in the bar's click handler, so a
-     second way to reach this screen inherits the behaviour instead of quietly
-     landing on an empty page. */
-  if(screen==='negotiations' && window.negoLastOpened && window.openRedlineWorkbench){
-    const last = (()=>{ try{ return negoLastOpened(); }catch(_){ return null; } })();
-    if(last){ s.sheet=null; openRedlineWorkbench(last.id); return; }
-  }
+  /* ---- THE NEGOTIATIONS DOOR OPENS THE LIST, ALWAYS (WO-17, 24 Aug 2026) ----
+     The desktop's Negotiations door was changed on the owner's ask — "when i
+     click on the contracts tab on the nav panel, i get a list of contracts.
+     This should be the same when i click on the negotiation tab" — and THIS IS
+     THE SAME DOOR ON THE OTHER SHELL. Left reopening the last negotiation, the
+     two shells would answer one press two different ways, which is the
+     duplication warning in its most obvious form.
+     THE MEMORY IS KEPT, NOT DELETED: negoRememberOpened and negoLastOpened
+     still record and still answer, so this is one argument to put back.
+     CORRECTION TO THE WORK ORDER, which said the phone already landed on the
+     list — it did not, and f184 is what said so.
+     THERE IS NO SPECIAL CASE LEFT IN THIS FUNNEL, and that is the point: the
+     screen simply draws mNegotiationsHtml, so every door onto it — the bar,
+     a deep link, whatever is added next — lands on the same list without
+     having to remember to. */
   Object.assign(s, extra||{}, { screen, sheet:null });
   const view = M_VIEW_FOR_SCREEN[screen];
   if(view && state.view!==view) state.view = view;
