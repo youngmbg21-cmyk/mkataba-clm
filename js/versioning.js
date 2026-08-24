@@ -224,14 +224,31 @@ function restoreBlockedWhy(c){
   if(open) return `${open} returned round${open===1?' is':'s are'} still awaiting your decision. Resolve ${open===1?'it':'them'} first.`;
   return '';
 }
+/* ---- DOES GOING BACK TO THIS VERSION CHANGE ANYTHING? ----
+   ONE reading, asked twice: by the button when it decides whether to draw
+   live, and by the act itself when it decides whether to refuse. It was only
+   ever asked by the act, so "Go back to v3" stood there lit and answered a
+   press with "the contract already reads like that" — a dead press the reader
+   could only discover by making it. Returns the REASON it would do nothing,
+   or '' when it really would change the wording. */
+function restoreNoOpWhy(c, n){
+  const v = ((c && c.versions) || []).find(x => x.n === n);
+  if (!v) return i18t('ve_version_gone');
+  try {
+    if (normText(v.text || '') === normText(docPlainText(c) || '')) return i18t('ve_already_reads');
+  } catch (e) { /* unreadable is not "the same" — let the act try and say so */ }
+  return '';
+}
 async function restoreVersion(c, n, after){
   const why=restoreBlockedWhy(c);
   if(why){ toast(why,'err'); return null; }
   const v=(c.versions||[]).find(x=>x.n===n);
   if(!v){ toast(i18t('ve_version_gone'),'err'); return null; }
-  const now=docPlainText(c);
-  if(normText(v.text||'')===normText(now||'')){
-    toast(i18t('ve_already_reads')); return null; }
+  /* The same reading the button asks, so a press can never contradict what the
+     button was drawn to say. 'warn' rather than a bare call: this refuses the
+     act, and a bare call prints nothing at all. */
+  const noop=restoreNoOpWhy(c,n);
+  if(noop){ toast(noop,'warn'); return null; }
   const label=(v.label||'').trim();
   if(window.confirmDialog){
     const ok=await confirmDialog({
@@ -685,7 +702,16 @@ function openCompareModal(c){
     restoreBtn.hidden=!n;
     if(n){
       restoreBtn.innerHTML=`${icon('history','w-3 h-3')} Go back to v${n}`;
-      restoreBtn.title=`Make the contract read as it did in v${n} — the wording you have now is saved as its own version first`;
+      /* GREY WHEN IT WOULD DO NOTHING, WITH THE REASON ON HOVER. The wording
+         can already read exactly like the version being offered — after a
+         restore, or after an edit and an undo — and then this was a live
+         button whose only outcome was a refusal. */
+      const noop=restoreNoOpWhy(c,n);
+      restoreBtn.disabled=!!noop;
+      if(noop) restoreBtn.setAttribute('aria-disabled','true');
+      else restoreBtn.removeAttribute('aria-disabled');
+      restoreBtn.title=noop
+        || `Make the contract read as it did in v${n} — the wording you have now is saved as its own version first`;
       restoreBtn.setAttribute('data-cmp-restore',String(n));
     }
   };
@@ -1054,4 +1080,4 @@ function fileCounterpartyEdit(c, text, opts={}){
 /* Guard used by signDocument: any open round carrying proposed edits? */
 function unresolvedRedlines(c){ return (c.rounds||[]).filter(r=>r.status==='open' && r.proposedText).length; }
 
-Object.assign(window,{applyOwnerEdit,listedVersions,takeNamedSnapshot,restoreVersion,restoreBlockedWhy,fileCounterpartyEdit,resolveRound,noteForBlock,diffBlocks,applyBlockDecisions,openPointsFor,docPlainText,docCanonical,htmlToStructuredText,reflowWorkingText,captureVersion,wordDiff,diffHtml,diffStats,diffCompareText,tokenize,openDiffModal,openCompareModal,reviewProposedRound,acceptProposedRound,unresolvedRedlines});
+Object.assign(window,{applyOwnerEdit,listedVersions,takeNamedSnapshot,restoreVersion,restoreBlockedWhy,restoreNoOpWhy,fileCounterpartyEdit,resolveRound,noteForBlock,diffBlocks,applyBlockDecisions,openPointsFor,docPlainText,docCanonical,htmlToStructuredText,reflowWorkingText,captureVersion,wordDiff,diffHtml,diffStats,diffCompareText,tokenize,openDiffModal,openCompareModal,reviewProposedRound,acceptProposedRound,unresolvedRedlines});

@@ -1575,7 +1575,10 @@ function openEditDocModal(c){
   document.getElementById('ed-cancel').addEventListener('click',closeModal);
   document.getElementById('ed-save').addEventListener('click',()=>{
     const txt=ta.value;
-    if(txt.trim()===cur.trim()){ toast(i18t('ct_no_changes_made')); closeModal(); return; }
+    /* 'warn', never bare. The editor CLOSES on this branch and nothing is
+       saved, which looks identical to a save that worked — so the one outcome
+       the reader needs told about was the one that printed nothing. */
+    if(txt.trim()===cur.trim()){ toast(i18t('ct_no_changes_made'),'warn'); closeModal(); return; }
     if(!txt.trim()){ toast(i18t('ct_text_not_empty'),'err'); return; }
     const fromCp=!!document.getElementById('ed-from-cp')?.checked;
     if(fromCp){
@@ -2641,8 +2644,28 @@ function wireActionBar(c){
      roomTabsHtml's row in renderWorkspace) and is wired with it — this
      function runs again on every tab change, and the tab row is not redrawn
      by one, so binding it here would stack a handler per tab press. */
-  document.getElementById('ws-evidence')?.addEventListener('click',()=>downloadEvidence(c));
-  document.getElementById('ws-next-action')?.addEventListener('click',e=>{
+  /* ---- AND NEITHER IS THESE TWO, FOR THE SAME REASON THE COMMENT ABOVE GIVES ----
+     The comment above names the trap and these two then committed it: both
+     buttons moved into the room HEAD in the 22 Aug redesign, the head is built
+     once per renderWorkspace and is NOT redrawn by a tab change, and this
+     function runs again on every tab press — so each press left another live
+     handler on a surviving element. Measured in a real browser: the element
+     survived six tab presses and ONE click on "Evidence pack" produced EIGHT
+     downloads.
+     Bound once per element, and the contract is resolved at PRESS time so a
+     once-bound listener never acts on the record some earlier paint held. */
+  const cAtWire=c;
+  const live=()=>(window.getContract&&getContract(state.activeId))||cAtWire;
+  const ev=document.getElementById('ws-evidence');
+  if(ev && !ev.dataset.wsEvBound){
+    ev.dataset.wsEvBound='1';
+    ev.addEventListener('click',()=>downloadEvidence(live()));
+  }
+  const na=document.getElementById('ws-next-action');
+  if(na && !na.dataset.wsNaBound){
+    na.dataset.wsNaBound='1';
+    na.addEventListener('click',e=>{
+    const c=live();
     const kind=e.currentTarget.getAttribute('data-na');
     if(kind==='evidence'){ downloadEvidence(c); return; }
     /* Deliberately the same code path as the returned-changes strip's own
@@ -2709,7 +2732,8 @@ function wireActionBar(c){
       setTimeout(()=>signDocument(c),180);
       return;
     }
-  });
+    });
+  }
 }
 /* "Complete key terms" — put the cursor where the terms can actually be typed.
    That is the Key terms TAB now, not a panel behind a sub-tab on the right:
@@ -5558,13 +5582,23 @@ function renderWorkspace(){
               <span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--st-green-fg);font-weight:600"><span class="live-dot" style="height:6px;width:6px;border-radius:0;background:var(--st-green-dot);display:inline-block"></span>${i18t('ct_live')}</span>
             </div>
             <div id="feed" class="scroll-thin" style="max-height:300px;overflow-y:auto;padding-right:4px;display:flex;flex-direction:column;gap:14px"></div>
+            ${''/* ---- A VIEWER IS NOT OFFERED A BOX THAT DISCARDS WHAT THEY TYPE ----
+                 The composer was drawn for everybody. A Viewer typed, pressed
+                 send, watched the comment appear in the feed and in the audit
+                 panel — and nothing was saved and nothing said so. The refusal
+                 lived in the save, which is too late to be a refusal at all.
+                 A Viewer reads; that is what the role is, and every other
+                 surface in this product already draws no verb for them. So the
+                 composer stands down and the feed stays, because reading the
+                 conversation is exactly what a Viewer is here to do. */}
+            ${(typeof canEdit==='function' && !canEdit()) ? '' : `
             <div style="margin-top:12px;padding-top:11px;border-top:1px solid var(--color-divider)">
               <div style="font-size:12px;color:var(--color-neutral-500);margin-bottom:7px">${i18t('ct_commenting_as')} <span style="font-weight:600;color:var(--color-text)">${currentUser()?.name||'you'}</span> · internal</div>
               <div style="display:flex;gap:7px">
                 <textarea id="comment-input" class="chat-field" rows="1" placeholder="${i18t('ct_add_comment')}" title="${i18t('ct_internal_to_team')}" style="flex:1;min-width:0;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:8px 11px;font-size:13px;outline:none"></textarea>
                 <button id="comment-send" class="ui-btn ui-btn-primary" style="width:36px;height:36px;padding:0;flex:none;border-radius:0">${icon('send','w-4 h-4')}</button>
               </div>
-            </div>
+            </div>`}
           </section>
           <div id="shares-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
           ${''/* the general discussion panel is removed — see js/views/portal.js */}
@@ -6170,7 +6204,23 @@ function wireKeyTerms(c){
       persist(c); renderAuditSection(c);
     });
   });
-  document.getElementById('kt-fill')?.addEventListener('click',()=>fillKeyTermsFromDocument(c));
+  /* ---- BOUND ONCE, LIKE THE TWO BESIDE IT ----
+     wireKeyTerms runs from renderKeyTerms AND from the room's own wiring, and
+     #kt-fill lives OUTSIDE the #kt-rows host renderKeyTerms replaces — so it
+     survives every repaint and collected one more listener per call. Each one
+     fires its own PAID extraction: measured in a real browser, one press after
+     a few key-term edits produced NINE concurrent POST /api/ai/extract calls,
+     whose answers then race to write the same fields.
+     ktWireSplit and wireKtFolder immediately around this already carry
+     dataset.ktSplitBound / dataset.ktFolderBound for exactly this reason. */
+  const fill=document.getElementById('kt-fill');
+  if(fill && !fill.dataset.ktFillBound){
+    fill.dataset.ktFillBound='1';
+    /* The contract is read at PRESS time: a listener bound once must not close
+       over the record this paint happened to hold. */
+    fill.addEventListener('click',()=>fillKeyTermsFromDocument(
+      (window.getContract&&getContract(state.activeId))||c));
+  }
   wireKtFolder(c);
 }
 /* Read what the document itself says and drop it into the EMPTY fields — never
@@ -6260,6 +6310,11 @@ function renderFeed(c){
 function wireComments(c){
   const input=document.getElementById('comment-input');
   const send=document.getElementById('comment-send');
+  /* A Viewer is drawn the feed and no composer (see renderFeed's section), so
+     there is nothing here to wire. This function is called unconditionally from
+     renderWorkspace, and without this it threw on the first Viewer to open a
+     contract — taking the whole room down with it. */
+  if(!input || !send) return;
   const post=()=>{
     const text=input.value.trim(); if(!text) return;
     const u=currentUser();

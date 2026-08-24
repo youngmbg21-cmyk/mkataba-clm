@@ -47,8 +47,15 @@ const check = (ok, what) => {
   await page.waitForTimeout(2500);   // chart lib fetch + hydrate, or fallback
   check(await page.locator('#rep-export').count() === 1, 'Reports has the Download CSV button');
   check(await page.locator('#rep-health').count() === 1, 'Reports has the health report button');
+  /* ---- THE FALLBACK IS FOUND BY WHAT IT IS, NOT BY A RADIUS (re-pointed
+     23 Aug 2026) ---- This looked for `border-radius:999px`, which is how the
+     CSS strips were drawn until the 20 Aug SQUARE CORNERS sweep set every
+     rounded rectangle in the product to 0. The bars were still there and still
+     correct; the selector simply stopped describing them, so a screen that was
+     working reported as broken. Matched on the strip's own SHAPE now — a
+     7px-tall track inside the charts grid — which is what makes it a bar. */
   const canvases = await page.locator('.rp-charts canvas').count();
-  const bars = await page.locator('.rp-charts section div[style*="border-radius:999px"]').count();
+  const bars = await page.locator('.rp-charts div[style*="height:7px"]').count();
   check(canvases > 0 || bars > 0, `Reports cards draw charts (${canvases} canvases) or fall back to bars (${bars})`);
   if (canvases > 0)
     check(await page.locator('.rp-charts .ai-chart-btn').count() >= 3, 'chart cards carry the copy/PNG/CSV toolbar');

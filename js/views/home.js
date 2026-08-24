@@ -394,7 +394,22 @@ function hmDashSlices(){
   }).filter(Boolean).sort((a,b)=>b.idle-a.idle);
 
   // ---- KPIs (customizable catalog) ----
-  const newThisWeek=cs.filter(c=>(c.audit||[]).some(a=>/creat/i.test(a.action||'')&&(Date.now()-Date.parse(a.at||0))<7*864e5)).length;
+  /* ---- THE DATES COME OFF THE ROW, NOT THE TRAIL (audit fix, 23 Aug 2026) ----
+     Both figures below read c.audit, and in server mode state.contracts is the
+     LIGHT list whose every row has had `audit` stripped by HEAVY. So on a real
+     workspace "+N this week" was permanently "+0" — a confident wrong number a
+     manager reads as "nothing was raised all week" — and "Avg turnaround time"
+     was permanently a dash. Both are DEFAULT cards, so this was the first thing
+     most people saw. Locally, where records are whole, both worked, which is
+     why it survived.
+     The server already carries _raisedAt / _signedAt on every row for exactly
+     this, and Reports already reads them through repRaisedAt / repSignedAt.
+     The dashboard now asks the same two functions — one reading, three
+     surfaces — and they fall back to the trail wherever there is one, so local
+     mode and an opened contract are untouched. */
+  const _raised=c=>(window.repRaisedAt?repRaisedAt(c):null);
+  const _signed=c=>(window.repSignedAt?repSignedAt(c):null);
+  const newThisWeek=cs.filter(c=>{ const t=_raised(c); return t!=null&&(Date.now()-t)<7*864e5; }).length;
   const stalled=awaiting.filter(s=>{ const t=Date.parse(s.at); return !isNaN(t)&&(Date.now()-t)>14*864e5; }).length;
   const onExecuted=highRisk.filter(x=>x.c.status==='Signed').length;
   // Expiry views: nearest-first buckets at 30 / 60 / 90 days (expiring is 0–90, sorted).
@@ -413,8 +428,8 @@ function hmDashSlices(){
   const expSub=arr=>arr.length?`soonest ${arr[0].d===0?'today':'in '+arr[0].d+' days'} · ${esc(arr[0].c.counterparty||arr[0].c.name)}`:'nothing inside the window';
   // avg cycle draft→signed from audit where both stamps exist
   const cycles=cs.filter(c=>c.status==='Signed').map(c=>{
-    const a=(c.audit||[]); const cr=a.find(x=>/creat/i.test(x.action||'')), sg=a.find(x=>/sign|execut|seal/i.test(x.action||''));
-    if(cr&&sg){ const d=(Date.parse(sg.at)-Date.parse(cr.at))/864e5; return d>0?d:null; } return null;
+    const cr=_raised(c), sg=_signed(c);          /* see the note above the KPIs */
+    if(cr!=null&&sg!=null){ const d=(sg-cr)/864e5; return d>0?d:null; } return null;
   }).filter(x=>x!=null);
   const avgCycle=cycles.length?(cycles.reduce((s,x)=>s+x,0)/cycles.length).toFixed(1)+'d':'—';
 

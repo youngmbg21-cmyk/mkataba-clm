@@ -60,16 +60,30 @@ function tplStreamOpts(cur){
   return fs.map(f => `<option value="${esc(f.id)}"${f.id === cu ? ' selected' : ''}>${esc(f.name)}</option>`).join('');
 }
 const tplLibCount = () => (_tplLib.loaded ? tplLibPublished().length : 0);
-/* Refresh the cache; resolves true when the list changed (callers re-render). */
+/* Refresh the cache. THREE ANSWERS, and the third is what stops a loop:
+     true  — the list changed, so a caller should re-render
+     false — it is the same list, so nothing needs redrawing
+     null  — THE FETCH FAILED and the cache is unchanged
+
+   It used to answer `false` for both "no change" and "it failed", and the
+   Templates page then re-rendered on `changed || !lib.loaded` — which is TRUE
+   for ever on a failure, because a failed load never sets `loaded`. So one bad
+   response put the page into a permanent render-and-refetch loop, hammering
+   the server as fast as the round trip allowed, with nothing on screen saying
+   anything was wrong. A caller must be able to tell a quiet success from a
+   failure, or it cannot know when to stop. */
 async function tplLibRefresh() {
   if (!API_MODE()) return false;
   try {
     const before = JSON.stringify((_tplLib.list || []).map(t => t.id + t.status + t.latestVersion));
     const d = await api('templates');
-    _tplLib = { list: d.templates || [], canManage: !!d.canManage, loaded: true };
+    _tplLib = { list: d.templates || [], canManage: !!d.canManage, loaded: true, failed: false };
     if (typeof updateSidebarCounts === 'function') updateSidebarCounts();
     return JSON.stringify(_tplLib.list.map(t => t.id + t.status + t.latestVersion)) !== before;
-  } catch (_) { return false; }
+  } catch (e) {
+    _tplLib = { ..._tplLib, failed: (e && e.message) || 'the template list could not be loaded' };
+    return null;
+  }
 }
 
 async function renderCompanyTemplatesSection() {
@@ -802,7 +816,7 @@ Object.assign(window, {
   /* The whole cached list, drafts included, for surfaces that render company
      templates as rows of their own (the Templates page's library table)
      rather than through renderCompanyTemplatesSection's card grid. */
-  tplLibAll: () => ({ list: _tplLib.list.slice(), canManage: _tplLib.canManage, loaded: _tplLib.loaded }),
+  tplLibAll: () => ({ list: _tplLib.list.slice(), canManage: _tplLib.canManage, loaded: _tplLib.loaded, failed: _tplLib.failed || false }),
   tplLibUploadModal, tplLibCreateModal,
   renderCompanyTemplatesSection, tplLibPublished, tplLibCount, tplLibRefresh,
   openTemplateLibDetail, tplLibCanManage, tplLibCancelPending,

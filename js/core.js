@@ -1590,7 +1590,7 @@ function renderMustChangePassword(){
     <div style="min-height:100vh;display:grid;place-items:center;background:var(--color-bg);padding:0 16px;">
       <div style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:0;padding:30px;max-width:25rem;width:100%;">
         <h1 style="font-family:var(--font-heading);font-weight:600;font-size:20px;color:var(--color-text);margin:0 0 6px;">${i18t('co_choose_own_password')}</h1>
-        <p style="font-size:14px;color:var(--color-neutral-700);margin:0 0 16px;line-height:1.55;">Your account was created with a temporary password someone else chose. Set your own before you continue — anything you sign has to be attributable to you alone.</p>
+        <p style="font-size:14px;color:var(--color-neutral-700);margin:0 0 16px;line-height:1.55;">${i18t('co_temp_password_body')}</p>
         <input id="cp-current" type="password" placeholder="${i18t('co_temporary_password')}" style="${F}"/>
         <input id="cp-new" type="password" placeholder="${i18t('co_new_password_min')}" style="${F}"/>
         <input id="cp-again" type="password" placeholder="${i18t('co_repeat_password')}" style="${F}"/>
@@ -1603,12 +1603,12 @@ function renderMustChangePassword(){
     const again=document.getElementById('cp-again').value;
     const err=document.getElementById('cp-err');
     const fail=m=>{ err.textContent=m; err.classList.remove('hidden'); };
-    if(nw.length<8) return fail('The new password must be at least 8 characters.');
-    if(nw!==again) return fail('The two new passwords do not match.');
+    if(nw.length<8) return fail(i18t('co_password_too_short'));
+    if(nw!==again) return fail(i18t('co_passwords_differ'));
     try{
       await api('password/change','POST',{ current:cur, password:nw });
       if(REMOTE&&REMOTE.me&&REMOTE.me.prefs) delete REMOTE.me.prefs.mustChangePassword;
-      toast('Password updated — karibu');
+      toast(i18t('co_password_updated'));
       startApp();
     }catch(e){ fail(e.message); }
   });
@@ -2001,7 +2001,15 @@ function openModal(html, opts={}){
     <div id="modal-scrim" style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 50%,transparent);"></div>
     <div class="modal-in scroll-thin" role="dialog" aria-modal="true"${opts.label?` aria-label="${String(opts.label).replace(/"/g,'&quot;')}"`:''} tabindex="-1" style="position:relative;width:100%;max-width:${maxw};${sized}background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:0;">${html}</div>
   </div>`;
-  document.getElementById('modal-scrim').addEventListener('click',closeModal);
+  /* ---- THE TWO QUIET WAYS OUT ASK THE SAME QUESTION THE ✕ DOES ----
+     Both of these called closeModal() straight, so a modal that had put its own
+     "Discard these changes?" behind its Cancel button was walked past by
+     Escape and by a click on the scrim — ten minutes of editing gone with no
+     prompt. opts.onBeforeClose is that guard: return false (or a promise of
+     false) and the dialog stays. A modal that sets none behaves exactly as it
+     always has. */
+  _modalGuard = (typeof opts.onBeforeClose==='function') ? opts.onBeforeClose : null;
+  document.getElementById('modal-scrim').addEventListener('click',()=>closeModalGuarded());
   /* ---- A DIALOG SAYS IT IS ONE, AND KEEPS THE KEYBOARD INSIDE IT ----
      MEASURED before this: the share dialog — the most-used dialog in the
      product, 31 focusable controls behind a scrim at z-index 70 — reported
@@ -2030,15 +2038,37 @@ function openModal(html, opts={}){
   // otherwise strand keyboard users with no visible way out
   document.addEventListener('keydown',function esc(e){
     if(e.key!=='Escape'){ if(!document.getElementById('modal-scrim')) document.removeEventListener('keydown',esc); return; }
-    document.removeEventListener('keydown',esc); closeModal();
+    /* ---- AND ESCAPE BELONGS TO THE TOP LAYER ONLY ----
+       confirmDialog and promptDialog append to <body> ABOVE this panel and
+       register their own Escape afterwards — and two listeners on `document`
+       both fire whatever either does about propagation, this one first because
+       it was added first. So pressing Escape on the "Discard these changes?"
+       guard resolved it as "Keep editing" AND closed the editor underneath in
+       the same keystroke: the answer was honoured and ignored at once.
+       While a top overlay is up, Escape is not ours. */
+    if(document.querySelector('[data-top-overlay]')) return;
+    document.removeEventListener('keydown',esc); closeModalGuarded();
   });
   return root;
 }
+/* The guard the current modal registered, if any. One value because only one
+   #modal-root panel is ever open; cleared on every close so it can never
+   outlive the dialog that set it. */
+let _modalGuard=null;
+async function closeModalGuarded(){
+  const g=_modalGuard;
+  if(g){ let ok=true; try{ ok=await g(); }catch(_){ ok=true; }
+    if(ok===false) return; }
+  closeModal();
+}
 let _modalOpener=null;
+/* TWO THINGS ON THE WAY OUT, and both were added on the same day by different
+   hands: the guard is cleared so it cannot outlive its dialog, and focus goes
+   back where it came from — without which a keyboard user is dropped at the
+   top of the document every time they dismiss a dialog. */
 function closeModal(){
+  _modalGuard=null;
   document.getElementById('modal-root').innerHTML='';
-  /* Focus goes back where it came from, or a keyboard user is dropped at the
-     top of the document every time they dismiss a dialog. */
   try{ if(_modalOpener && _modalOpener.isConnected) _modalOpener.focus({preventScroll:true}); }catch(e){}
   _modalOpener=null;
 }
@@ -2085,16 +2115,24 @@ function openSidePanel(html, opts={}){
    never clobbers an open modal in #modal-root. Usage:
      if(!await confirmDialog({title, message})) return; */
 function confirmDialog(opts={}){
-  const title=opts.title||'Are you sure?';
+  /* THE DEFAULTS ARE WHAT MOST CALLERS GET, so a hardcoded English default is
+     not a small gap: about fifty dialogs across both shells took these words
+     without passing their own, and a Swedish reader met "Cancel" under a
+     translated heading — on the counterparty's page too. */
+  const title=opts.title||i18t('act_are_you_sure');
   const message=opts.message||'';
-  const confirmLabel=opts.confirmLabel||'Confirm';
-  const cancelLabel=opts.cancelLabel||'Cancel';
+  const confirmLabel=opts.confirmLabel||i18t('act_confirm');
+  const cancelLabel=opts.cancelLabel||i18t('act_cancel');
   const danger=!!opts.danger;
   const esc=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
   return new Promise(resolve=>{
     const prev=document.getElementById('confirm-overlay'); if(prev) prev.remove();
     const ov=document.createElement('div');
     ov.id='confirm-overlay';
+    /* Marks this as the layer Escape belongs to while it is up — openModal's own
+       Escape stands down for it, so answering this guard cannot also close the
+       dialog the guard is protecting. */
+    ov.setAttribute('data-top-overlay','1');
     ov.style.cssText='position:fixed;inset:0;z-index:90;display:grid;place-items:center;padding:16px';
     const btnFg=danger?'#fff':'#fff';
     const btnBg=danger?'var(--danger)':'var(--color-accent)';
@@ -2134,13 +2172,14 @@ function promptDialog(opts={}){
   const message=opts.message||'';
   const label=opts.label||'';
   const placeholder=opts.placeholder||'';
-  const confirmLabel=opts.confirmLabel||'OK';
-  const cancelLabel=opts.cancelLabel||'Cancel';
+  const confirmLabel=opts.confirmLabel||i18t('act_ok');   /* see confirmDialog above */
+  const cancelLabel=opts.cancelLabel||i18t('act_cancel');
   const esc=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
   return new Promise(resolve=>{
     const prev=document.getElementById('prompt-overlay'); if(prev) prev.remove();
     const ov=document.createElement('div');
     ov.id='prompt-overlay';
+    ov.setAttribute('data-top-overlay','1');   /* see confirmDialog above */
     ov.style.cssText='position:fixed;inset:0;z-index:92;display:grid;place-items:center;padding:16px';
     ov.innerHTML=`
       <div style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 50%,transparent)"></div>
@@ -2304,7 +2343,10 @@ function sealString(c){
 async function verifySeal(c){
   if(!c.hash){ toast(i18t('co_not_sealed'),'err'); return; }
   if(c.hash==='PRE-SEEDED'){ toast(i18t('co_sample_presealed'),'err'); return; }
-  if(c.hash==='MIGRATED'){ toast(`Migrated contract — executed outside HaTi. The uploaded file's own SHA-256 (${(c.upload?.fileHash||'').slice(0,16)}…) is the evidence of record`); return; }
+  /* 'ok', never a bare call. THIS IS THE BRANCH A REAL CUSTOMER HITS — paper
+     executed outside HaTi and imported — and it was the only one that printed
+     nothing, so on the commonest kind of sealed record the button was silent. */
+  if(c.hash==='MIGRATED'){ toast(i18t('co_seal_migrated',{h:(c.upload?.fileHash||'').slice(0,16)}),'ok'); return; }
   if(!isUpload(c)){
     if(!c.execution?.html){ toast(i18t('co_no_snapshot'),'err'); return; }
     const th=await sha256(execHashInput(c.execution));
@@ -2342,9 +2384,12 @@ async function verifySeal(c){
      because sha256IsReal() answers for the fallback having been used at all,
      not only for this call. */
   const weak=(typeof sha256IsReal==='function')&&!sha256IsReal();
-  const ok=isUpload(c)?'Seal valid — file and parties are intact':'Seal valid — sealed text, parties and value are intact';
+  const ok=isUpload(c)?i18t('co_seal_valid_file'):i18t('co_seal_valid_text');
   if(weak){ toast(`${ok}. ${i18t('co_seal_weak')}`,'err'); return; }
-  toast(ok);
+  /* And the GOOD verdict is a verdict too. Bare, it printed nothing — so a
+     reader who pressed Verify integrity on an intact contract got the same
+     answer a broken button would have given them. */
+  toast(ok,'ok');
 }
 function downloadFile(name, content, type='application/json'){
   const a=document.createElement('a');
@@ -2503,8 +2548,22 @@ function contractReadiness(c){
     }
   }catch(_){ /* same: an unreadable gate must not take the panel down with it */ }
   if(c.status==='Draft') add('warn','status','This contract is still a Draft.');
-  const sig=(c.signatories||c.signers||[]).filter(s=>s&&(s.name||s.email));
-  if(window.SIGN_ROUTE_ON && !sig.length) add('warn','signatory','No named signatory is set on the signature block.');
+  /* ---- A WARNING THAT COULD NEVER FIRE, REMOVED (23 Aug 2026) ----
+     It was `if(window.SIGN_ROUTE_ON && !sig.length)`, and SIGN_ROUTE_ON is set
+     by NOTHING in this product — so the guard was always false and the check
+     never ran once. Dead twice over, in fact: the fields it read
+     (c.signatories / c.signers) are written by nothing either, so even with
+     the flag on it would have warned about every contract in the workspace.
+
+     THE CONCERN IT NAMED IS COVERED, which is the condition on removing a
+     check rather than fixing it: naming the signers is what OPENS signing
+     (11 Aug 2026), signingRouteOpen / signingRouteMissing are the live
+     predicates, and signBlockers refuses the signature in words that say which
+     side is missing. A second, quieter warning about the same fact — one that
+     had never been seen by anybody — adds nothing.
+
+     Found by widening f232's sweep, which had been blind to every CamelCase
+     and UPPER_CASE window read. */
   return p;
 }
 const readinessBlocks = c => contractReadiness(c).filter(x=>x.severity==='block');
@@ -2577,12 +2636,17 @@ function defaultSharePurpose(c){
   return settled?'sign':'negotiate';
 }
 const SHARE_PURPOSE_COPY={
-  negotiate:{ label:'Negotiate', get title(){ return i18t('co_purpose_negotiate'); },
+  /* EVERY MEMBER IS A GETTER, so the whole row turns over together. Two of
+     these were plain English literals while their siblings were getters — one
+     card in a row of three in the wrong language, which reads as a rendering
+     fault rather than as a missing translation. AND THEY MUST STAY GETTERS:
+     an object literal freezes load-time language (the getter trap). */
+  negotiate:{ get label(){ return i18t('co_purpose_negotiate_label'); }, get title(){ return i18t('co_purpose_negotiate'); },
     get blurb(){ return i18t('co_purpose_negotiate_sub'); } },
   sign:{ get label(){ return i18t('act_sign'); }, get title(){ return i18t('co_purpose_sign'); },
     get blurb(){ return i18t('co_purpose_sign_sub'); } },
   view:{ get label(){ return i18t('co_purpose_view'); }, get title(){ return i18t('co_purpose_view_sub'); },
-    blurb:'For an advisor, an insurer, a lawyer being asked whether this is normal. They see the wording and the redlines as they stand today, and cannot respond, edit or sign. Your comments and internal notes never leave this workspace.' },
+    get blurb(){ return i18t('co_purpose_view_blurb'); } },
 };
 /* ---------- THE FIRST QUESTION, WHICH USED NOT TO BE ASKED ----------
    Share opened straight into "what is this link for?" and offered Sign and
@@ -2619,13 +2683,11 @@ function shareKindOptionsHtml(c, sel){
     </button>`;
   return `
     <div id="share-kind" style="display:flex;flex-direction:column;gap:9px">
-      ${card('contract','The contract',
-        'The wording, with whatever they are allowed to do to it — sign it, propose changes to it, or read it and nothing more.',
+      ${card('contract',i18t('co_share_kind_contract'),
+        i18t('co_share_kind_contract_sub'),
         sel!=='history', false)}
-      ${card('history','The negotiation history',
-        hasHistory
-          ? 'The Negotiation history screen, opened by somebody with no account — every change, who asked, and what was decided. Read-only: the agreement itself does not travel and there is nothing on it to sign.'
-          : 'Nothing has been proposed on this contract yet, so there is no record to send.',
+      ${card('history',i18t('co_share_kind_history'),
+        hasHistory ? i18t('co_share_kind_history_sub') : i18t('co_share_kind_history_none'),
         sel==='history', !hasHistory)}
     </div>`;
 }
@@ -2638,7 +2700,7 @@ function shareKindStepHtml(c, sel){
       ${shareKindOptionsHtml(c, sel)}
       <div style="margin-top:14px;display:flex;align-items:center;gap:8px;justify-content:flex-end;">
         <button id="share-close-kind" class="ui-btn">${i18t('act_close')}</button>
-        <button id="share-kind-next" class="ui-btn ui-btn-primary">Next ${icon('arrow-right','w-3.5 h-3.5')}</button>
+        <button id="share-kind-next" class="ui-btn ui-btn-primary">${i18t('act_next')} ${icon('arrow-right','w-3.5 h-3.5')}</button>
       </div>
     </div>`;
 }
@@ -2800,7 +2862,7 @@ function shareSummaryStepHtml(c, opts={}){
       <div style="margin-top:14px;display:flex;align-items:center;gap:8px;justify-content:flex-end;">
         <button id="share-back-kind" class="ui-btn">${icon('arrow-right','w-3.5 h-3.5')} Back</button>
         <button id="share-close-1" class="ui-btn">${i18t('act_close')}</button>
-        <button id="share-next" class="ui-btn ui-btn-primary">Next ${icon('arrow-right','w-3.5 h-3.5')}</button>
+        <button id="share-next" class="ui-btn ui-btn-primary">${i18t('act_next')} ${icon('arrow-right','w-3.5 h-3.5')}</button>
       </div>
     </div>`;
 }
@@ -4397,7 +4459,7 @@ async function openShareModal(c, opts={}){
   const wireCopy=()=>document.getElementById('share-copy')?.addEventListener('click',async()=>{
     const ta=document.getElementById('share-link'); ta.select();
     try{ await navigator.clipboard.writeText(ta.value); }catch(e){ document.execCommand('copy'); }
-    toast(i18t('co_share_copied'));
+    toast(i18t('co_share_copied'),'ok');
   });
 
   /* ONE SEND, TWO DOORS (WO N4). The form's Send button and the quick panel's
@@ -4772,7 +4834,7 @@ function reshareNotSentModal(c, out, who){
   document.getElementById('rs-copy').addEventListener('click',async()=>{
     const ta=document.getElementById('rs-link'); ta.select();
     try{ await navigator.clipboard.writeText(ta.value); }catch(e){ document.execCommand('copy'); }
-    toast(i18t('co_link_copied'));
+    toast(i18t('co_link_copied'),'ok');
   });
 }
 
@@ -4988,18 +5050,29 @@ async function renderSharesSection(c){
   host.querySelectorAll('[data-sh-copy]').forEach(b=>b.addEventListener('click',async()=>{
     const link=location.origin+location.pathname+'#share=t:'+b.getAttribute('data-sh-copy');
     try{ await navigator.clipboard.writeText(link); }catch(e){}
-    toast(i18t('co_share_copied'));
+    toast(i18t('co_share_copied'),'ok');
   }));
   host.querySelectorAll('[data-sh-resend]').forEach(b=>b.addEventListener('click',async()=>{
+    /* ---- THREE OUTCOMES, NOT TWO, AND SAID OUT LOUD ----
+       This was a bare toast, so the press drew NOTHING and read as dead; and
+       its message was a binary over the route's three answers, so a provider
+       REFUSAL was reported as "queued to the outbox" — a queue it is not in and
+       will never leave. The route answers with mailReport: sent / outbox /
+       refused-and-why, and all three now reach the person who pressed. */
+    const was=b.textContent; b.disabled=true; b.textContent=i18t('co_sending');
     try{ const r=await api('shares/'+b.getAttribute('data-sh-resend')+'/resend','POST',{});
-      toast(r.emailSent?'Reminder email sent':'Reminder queued to the outbox'); renderSharesSection(c);
+      if(r.emailSent) toast(i18t('co_resend_sent'),'ok');
+      else if(r.outbox||r.emailConfigured===false) toast(i18t('co_resend_outbox'),'warn');
+      else toast(i18t('co_resend_refused',{why:r.emailError||''}),'err');
+      renderSharesSection(c);
     }catch(e){ toast(e.message,'err'); }
+    finally{ b.disabled=false; b.textContent=was; }
   }));
   host.querySelectorAll('[data-sh-revoke]').forEach(b=>b.addEventListener('click',async()=>{
     if(!await confirmDialog({get title(){ return i18t('co_revoke_share_q'); }, message:'The recipient will no longer be able to open the contract from this link. You can share again at any time.', confirmLabel:'Revoke link', danger:true})) return;
     try{ await api('shares/'+b.getAttribute('data-sh-revoke')+'/revoke','POST',{});
       logAudit(c,'Share revoked','A counterparty share link was revoked'); persist(c); renderAuditSection(c);
-      toast(i18t('co_share_revoked')); renderSharesSection(c); refreshShareOverview();
+      toast(i18t('co_share_revoked'),'ok'); renderSharesSection(c); refreshShareOverview();
     }catch(e){ toast(e.message,'err'); }
   }));
 }
@@ -5321,7 +5394,20 @@ async function applyResponse(c, r, opts={}){
       const withdrawn=Array.isArray(r.negoWithdrawn)?r.negoWithdrawn.length:0;
       if(!proposed || decided || withdrawn) return false;
       c.lastAction=todayStr(); persist(c);
-      toast(`${r.name||'The counterparty'} sent wording that does not match any clause on ${c.id} — nothing was filed. Their exact words are in this contract's history.`,'err');
+      /* ---- SAY WHY IT WAS REFUSED, AND ONLY WHERE SOMEBODY IS WATCHING ----
+         This was unguarded, so a background poll drew a red box on whatever page
+         the reader happened to be standing on, about a contract they were not
+         looking at — the sibling refusal twenty lines up has carried
+         !opts.background all along.
+         And the sentence was a diagnosis rather than a fact. "Does not match any
+         clause" is true of an unplaceable clause id; where the funnel refused
+         because the wording is FROZEN — somebody has signed — the clause matched
+         perfectly and the stated remedy cannot work. negoLastRefusal carries the
+         real reason from whichever guard turned it away; the general sentence
+         stays for the case it was written for. */
+      if(!opts.background)
+        toast(window.negoLastRefusal
+          || `${r.name||'The counterparty'} sent wording that does not match any clause on ${c.id} — nothing was filed. Their exact words are in this contract's history.`,'err');
       return true;
     }
     const acc=done.filter(x=>x.status==='accepted').length;
@@ -5690,8 +5776,13 @@ async function applyNegoProposals(c, r, who){
      text they wrote is kept verbatim in the trail, so the round is recoverable
      by hand rather than lost. */
   if(unplaced.length)
+    /* The REASON, where the funnel gave one. This said "could not be matched to
+       a clause" of everything it turned away, including wording refused because
+       the contract is frozen — a permanent record of the wrong reason, which is
+       worse than a vague one. */
     logAudit(c,'Negotiation',`${unplaced.length} change${unplaced.length===1?'':'s'} proposed by ${who}`
-      +` through their link could NOT be matched to a clause on this contract and ${unplaced.length===1?'was':'were'} not filed`
+      +` through their link ${window.negoLastRefusal ? `could not be filed — ${window.negoLastRefusal} —` : 'could NOT be matched to a clause on this contract and'}`
+      +` ${unplaced.length===1?'was':'were'} not filed`
       +` — ${unplaced.map(p=>`${p.clauseLabel||p.clauseId||'an unnamed clause'}: “${String(p.newText||'').slice(0,300)}”`).join(' | ')}`);
   return filed;
 }

@@ -42,7 +42,17 @@ function intakeCount(){
   return intakeMine().filter(r=>IK_LIVE.includes(r.status)).length;
 }
 async function loadIntake(){
-  if(!(typeof API_MODE==='function'&&API_MODE())) return;
+  /* ---- THE FLAG LANDS ON EVERY PATH, INCLUDING THE ONE THAT FETCHES NOTHING ----
+     renderIntake ends with `if(!_intake.loaded) loadIntake().then(renderIntake)`,
+     which is a re-render chained onto a promise. In local mode API_MODE() is
+     false and this returned on its first line WITHOUT setting the flag, so the
+     promise resolved immediately, the render ran again, the flag was still
+     false, and it chained again — an unbounded microtask loop that starves the
+     event loop and FREEZES THE TAB. Measured from outside the page: responsive
+     before, answering nothing at all after.
+     "Loaded" here means "we have asked as far as this deployment can ask",
+     which in local mode is answered the moment we know there is no server. */
+  if(!(typeof API_MODE==='function'&&API_MODE())){ _intake.loaded=true; return; }
   try{ const r=await api('intake'); _intake.list=(r&&r.requests)||[]; _intake.loaded=true; }
   catch(e){ _intake.loaded=true; }
 }

@@ -11,12 +11,21 @@ async function api(path, method='GET', body){
   // Rate-limit / daily-ceiling responses (429) carry a friendly message —
   // surface it centrally so every caller shows it, even ones that otherwise
   // fall back silently to a heuristic.
-  if(res.status===429&&data&&data.error&&typeof toast==='function') toast(data.error,'err');
+  /* ---- THE SERVER'S SENTENCE, IN THE READER'S LANGUAGE ----
+     The server answers in English — a message answers a REQUEST, and a share
+     link carries no account for it to read a language off. This is the ONE
+     place a server sentence becomes an Error, so one lookup here reaches all
+     ~200 callers and there is no second place it could be done differently.
+     srvMsg passes an unknown sentence through untouched, so adding a message
+     on the server can never break this. Read through window: js/api.js loads
+     before js/i18n.js on some stages, and a bare cross-module read throws. */
+  const _sm = m => (typeof window!=='undefined' && typeof window.srvMsg==='function') ? srvMsg(m) : m;
+  if(res.status===429&&data&&data.error&&typeof toast==='function') toast(_sm(data.error),'err');
   if(!res.ok){
     // Carry the structured flags onto the Error so callers can tell "wait a
     // few minutes" (rate limit) from "an admin has to raise a budget"
     // (spendLimit / allowanceExhausted) and degrade accordingly.
-    const err=new Error(data?.error||('Request failed ('+res.status+')'));
+    const err=new Error(_sm(data?.error)||('Request failed ('+res.status+')'));
     err.status=res.status; err.data=data||null;
     if(data){ err.spendLimit=!!data.spendLimit; err.dailyLimit=!!data.dailyLimit; err.allowanceExhausted=!!data.allowanceExhausted; err.needsKey=!!data.needsKey; }
     throw err;

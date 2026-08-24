@@ -36,7 +36,19 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const DIR = path.join(__dirname, 'chromium');
-const FILES = fs.readdirSync(DIR).filter(f => f.endsWith('.js'));
+/* ---- THE SAME FILES run-all.js RUNS, AND ITS LIST IS THE ONE COPY ----
+   This read every .js in the directory, so a one-off measuring script pinned
+   to somebody's scratchpad — which run-all.js already knows to skip — failed
+   here as though a real harness were nailed to this machine. A second list of
+   "what is not a test" would drift from the first; read it out of the file
+   that owns it instead. */
+const NOT_TESTS = (() => {
+  const src = fs.readFileSync(path.join(DIR, 'run-all.js'), 'utf8');
+  const m = src.match(/const NOT_TESTS = new Set\(\[([\s\S]*?)\]\)/);
+  assert.ok(m, 'run-all.js still declares NOT_TESTS');
+  return new Set([...m[1].matchAll(/'([^']+\.js)'/g)].map(x => x[1]));
+})();
+const FILES = fs.readdirSync(DIR).filter(f => f.endsWith('.js') && !NOT_TESTS.has(f));
 const read = f => fs.readFileSync(path.join(DIR, f), 'utf8');
 
 const SANDBOX_BROWSER = '/opt/pw-browsers/chromium';

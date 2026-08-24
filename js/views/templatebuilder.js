@@ -173,7 +173,7 @@ function tbPaint() {
     const f = _tb.fields[Number(el.getAttribute('data-tb-fcopy'))];
     const ph = `{{${f.fieldKey}}}`;
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ph);
-    toast(`${ph} copied — paste it into a wording block`);
+    toast(`${ph} copied — paste it into a wording block`,'ok');
   }));
   document.querySelectorAll('[data-tb-fdel]').forEach(el => el.addEventListener('click', async () => {
     const i = Number(el.getAttribute('data-tb-fdel'));

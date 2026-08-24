@@ -288,10 +288,18 @@ describe('F218 — the guards compare like with like', () => {
 
   test('the server\'s own signing wall does the same, off the STORED record', () => {
     const srv = read('server/server.js');
-    const guard = srv.slice(srv.indexOf('if (signCapOn() && req.user.role !==') ,
-      /* Wide enough to reach the whole guard including its reasoning — the
-         window was 2600 and the fix's own comment pushed the code past it. */
-      srv.indexOf('if (signCapOn() && req.user.role !==') + 4200);
+    /* ---- THE WINDOW ENDS WHERE THE GUARD ENDS, NOT AT A ROUND NUMBER ----
+       This was a character count, and it has now been outgrown TWICE: 2600, then
+       4200, each time by a fix writing down its own reasoning inside the guard —
+       which is exactly what this codebase asks a fix to do. A window measured in
+       characters fails for the one reason that should never fail a test: somebody
+       explained themselves at length.
+       Anchored on the guard's own closing refusal instead. Every claim below is
+       unchanged; only what counts as "the guard" is now read off the code rather
+       than guessed. */
+    const gStart = srv.indexOf('if (signCapOn() && req.user.role !==');
+    const gEnd = srv.indexOf('contractValue', gStart);
+    const guard = srv.slice(gStart, gEnd > gStart ? gEnd + 200 : gStart + 6000);
     /* CLAIM REVERSED IN PLACE (launch audit, 21 Aug 2026). This pinned the exact
        line `const meta = (prev && prev.metadata) || (c && c.metadata) || {};`,
        and that line did the OPPOSITE of the claim printed beside it the moment

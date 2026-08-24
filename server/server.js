@@ -2300,7 +2300,7 @@ app.get('/api/stats', auth, (req, res) => {
      LEFT OUT, and `fxMissing` rides back so the dashboard can say so rather
      than quietly under-reporting. Read in JS for the same reason the expiry
      loop below already is: the fact lives in the record, not a column. */
-  const valued = db.prepare(`SELECT id, folder, status, expiry, value, json FROM contracts ${w}`).all(...f.args)
+  const valued = db.prepare(`SELECT id, folder, status, expiry, value, parent_id, json FROM contracts ${w}`).all(...f.args)
     .map(r => { let c = {}; try { c = JSON.parse(r.json) || {}; } catch (_) {} return { r, c }; });
   let totalHome = 0; const folderHome = {};
   for (const { r, c } of valued) {
@@ -2311,10 +2311,20 @@ app.get('/api/stats', auth, (req, res) => {
   }
   g.totalValue = totalHome;
   for (const row of byFolder) row.val = folderHome[row.folder || ''] || 0;
+  /* ---- THE TERM IS THE FAMILY'S, NOT THE COLUMN'S ----
+     This read the raw `expiry` column, so a master supply agreement extended to
+     2028 by a SIGNED amendment was still counted expired on its own 2025 date —
+     and its whole value was then subtracted from the headline below. The
+     register badged it live, the calendar ran it to 2028, and the dashboard
+     under-reported the book. effExpiryReader is the one family-aware reading
+     the reminder sweeps and the daily brief already share; only this route was
+     still asking the column. */
+  const parsedFam = new Map(valued.map(({ r, c }) => [r.id, c]));
+  const { eff: effExpiry } = effExpiryReader(valued.map(({ r }) => r), parsedFam);
   let expired = 0, expiredValue = 0;
   for (const { r, c } of valued) {
     if (r.status !== 'Signed') continue;
-    const day = dateOnly(r.expiry);
+    const day = effExpiry(r);
     if (day && day < today) { expired++; expiredValue += fxHome({ value: r.value, metadata: c.metadata }).v; }
   }
   g.expired = expired;
@@ -3016,6 +3026,24 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
          may legitimately RAISE the value in the same breath as signing, and a
          cap that only ever looked backwards would miss it. */
       const raw = Math.max(Number((prev && prev.value) || 0), Number(c.value || 0));
+      /* ---- MONEY ONLY WHERE MONEY PASSES, WHICH THIS GUARD SAID AND DID NOT DO ----
+         The comment above already states the rule — "a contract carrying no
+         value cannot be over anybody's limit, so an unvalued or non-monetary
+         agreement passes" — and the code only ever asked about `value`. So a
+         contract ticked "no money passes under this contract" on Key terms, or
+         an NDA carrying a figure, was exempt in the browser (signCapBlocker
+         asks isMonetary first) and capped here. The browser drew a live Sign
+         button, the person pressed it, this route answered 403 and the
+         signature was lost.
+         Read from the STORED record first, for the same reason the value and
+         the currency are: valueType is a fact about the contract, not something
+         the person being capped restates on the way past. Where the save is
+         also the first to declare it, the incoming answer is honoured — a
+         record that has never said anything reads as ordinary money, exactly as
+         contractCurrency falls back for the currency beside it. */
+      const vType = (prev && prev.valueType != null) ? prev.valueType
+                  : (c && c.valueType != null) ? c.valueType : null;
+      const moneyPasses = vType !== 'none' && raw > 0;
       /* ---- AND IN THE SAME CURRENCY AS THE LIMIT (W2-1) ----
          The cap is written in the workspace currency. The currency comes off
          the STORED record where there is one — the same reason the value does:
@@ -3048,13 +3076,13 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
          refused if EITHER reading cannot be made, because a rate missing on the
          currency being claimed is exactly the state that must not become a pass. */
       const conv = [convStored, convAsked].find(x => x.missing) || (convAsked.v > convStored.v ? convAsked : convStored);
-      if (cap.answered && cap.limit != null && conv.missing)
+      if (cap.answered && cap.limit != null && moneyPasses && conv.missing)
         return res.status(403).json({
           error: `This contract is in ${conv.code} and no exchange rate for it has been set, `
             + 'so it cannot be measured against your signing limit. Ask an admin to set the rate.',
           signCap: cap.limit, fxMissing: conv.code });
       const value = conv.v;
-      if (cap.answered && cap.limit != null && value > cap.limit)
+      if (cap.answered && cap.limit != null && moneyPasses && value > cap.limit)
         return res.status(403).json({
           error: `This contract is ${value} and your signing limit is ${cap.limit}. `
             + 'Ask somebody with a higher limit to sign it, or ask an admin to raise yours.',
@@ -3626,6 +3654,10 @@ async function anthropicMessages(key, tier, payload, meter = {}) {
 
 // A user-facing notice to fold into a response: combines the input-was-shortened
 // warning (FIX 2) and the model-fell-back warning into one `notice` string.
+/* One conversation turn's ceiling. Above any real highlighted clause and far
+   below aiDocChars, which bounds a whole document rather than one message. */
+const COPILOT_TURN_CHARS = 20000;
+
 const aiNotice = (req, out) => {
   const parts = [];
   if (req && req.aiInputCapped) parts.push('Your input was large, so it was shortened before being sent to the Copilot.');
@@ -4345,9 +4377,22 @@ app.post('/api/ai/brief', auth, editor, rlAiDeep, aiFeature('brief'), aiBudgetGu
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const block = (resp.data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
-    const brief = { v: 1, at: now(), by: (req.user && req.user.name) || '', inputHash, data: block.input || {} };
-    db.prepare('INSERT INTO briefs (contract_id,json,created_at) VALUES (?,?,?) ON CONFLICT(contract_id) DO UPDATE SET json=excluded.json, created_at=excluded.created_at')
-      .run(String(id), JSON.stringify(brief), now());
+    /* ---- A CUT-SHORT BRIEF IS NOT CACHED AS A WHOLE ONE ----
+       max_tokens here is 1400 against a schema asking for an overview, term,
+       money, up to six watchouts each carrying a verbatim quote and up to four
+       unusual terms. When it runs out, block.input arrives with some of the
+       lists missing — and this wrote it to the briefs table as though it were
+       finished, so EVERY later read served the truncated memo as complete, for
+       ever, with no notice. The notice on this response is the only place the
+       cut was ever mentioned, and a cached read does not carry it.
+       So the flag travels with the record, and a cut-short brief is not written
+       at all: the reader is told, and the next press asks again rather than
+       being handed a permanent half-answer. */
+    const brief = { v: 1, at: now(), by: (req.user && req.user.name) || '', inputHash,
+      truncated: !!resp.truncated, data: block.input || {} };
+    if (!resp.truncated)
+      db.prepare('INSERT INTO briefs (contract_id,json,created_at) VALUES (?,?,?) ON CONFLICT(contract_id) DO UPDATE SET json=excluded.json, created_at=excluded.created_at')
+        .run(String(id), JSON.stringify(brief), now());
     res.json({ brief, ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
@@ -4804,9 +4849,13 @@ app.post('/api/ai/renewal', auth, editor, rlAiDeep, aiFeature('renewal'), aiBudg
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const block = (resp.data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
-    const advice = { v: 1, at: now(), by: (req.user && req.user.name) || '', inputHash, signals, data: block.input || {} };
-    db.prepare('INSERT INTO renewal_advice (contract_id,json,created_at) VALUES (?,?,?) ON CONFLICT(contract_id) DO UPDATE SET json=excluded.json, created_at=excluded.created_at')
-      .run(String(id), JSON.stringify(advice), now());
+    /* Same rule as the contract brief above: a cut-short recommendation is not
+       written to the cache, or every later read serves it as complete. */
+    const advice = { v: 1, at: now(), by: (req.user && req.user.name) || '', inputHash, signals,
+      truncated: !!resp.truncated, data: block.input || {} };
+    if (!resp.truncated)
+      db.prepare('INSERT INTO renewal_advice (contract_id,json,created_at) VALUES (?,?,?) ON CONFLICT(contract_id) DO UPDATE SET json=excluded.json, created_at=excluded.created_at')
+        .run(String(id), JSON.stringify(advice), now());
     res.json({ advice, ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
@@ -5383,7 +5432,20 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
   // Keep only clean user/assistant text turns; cap history and per-turn size.
   const convo = messages
     .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
-    .slice(-10).map(m => ({ role: m.role, content: m.content.slice(0, 4000) }));
+    .slice(-10).map(m => {
+      /* ---- THE PER-TURN CAP IS NOT SMALLER THAN THE THING IT CARRIES ----
+         4,000 characters silently cut every message, breaking a promise the
+         product makes in writing elsewhere: "the FULL passage reaches the model
+         — the display bubble clamps the quote, never a slice". A highlighted
+         liability-and-indemnity clause with sub-paragraphs runs well past 4,000,
+         so "Simplify" was handed two thirds of a clause and answered
+         confidently about the part it could see. COPILOT_TURN_CHARS sits above
+         any real passage and far under the document ceiling, and the cut is now
+         a FACT rather than a silent trim: aiInputCapped is what aiNotice turns
+         into a sentence, and both chat routes already fold that in. */
+      if (m.content.length > COPILOT_TURN_CHARS) req.aiInputCapped = true;
+      return { role: m.role, content: m.content.slice(0, COPILOT_TURN_CHARS) };
+    });
   if (!convo.length || convo[convo.length - 1].role !== 'user') return res.status(400).json({ error: 'the last message must be from the user' });
 
   const system = buildCopilotSystem(context, cx);
@@ -5400,6 +5462,15 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
      throttle every ordinary question; the spend ceiling governs these deep
      calls instead (see SUMMARY.md). */
   let compared = false;
+  /* ---- A CUT-SHORT ANSWER IS NOT A COMPLETE ONE ----
+     anthropicMessages returns `truncated` when the provider stopped at
+     max_tokens, and aiNotice already turns that into a sentence — but both chat
+     routes built their notice from a FRESH object carrying only the fell-back
+     fields, so the flag was computed and dropped. A broad question ran past the
+     ceiling, the partial text was accepted as the answer at the plain-text
+     branch, and the reader was served half a thought with nothing saying so.
+     Tracked across every turn, because the cut can happen on any of them. */
+  let truncated = false;
   let final = null, fellBack = false, rejectedModel = null, usedModel = aiModelForTier('fast');
   try {
     for (let step = 0; step < 5; step++) {
@@ -5412,6 +5483,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
       }
       usedModel = resp.model || usedModel;
       if (resp.fellBack) { fellBack = true; rejectedModel = resp.rejectedModel; }
+      if (resp.truncated) truncated = true;
       const content = resp.data.content || [];
       const toolUses = content.filter(b => b.type === 'tool_use');
       working.push({ role: 'assistant', content });
@@ -5435,7 +5507,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
     final.citations.forEach(c => { if (!cardIds.includes(c.id)) cardIds.push(c.id); });
     if (final.compare) final.compare.columns.forEach(col => { if (!cardIds.includes(col.id)) cardIds.push(col.id); });
     const cards = cardIds.map(id => copilotCard(cx, id)).filter(Boolean);
-    let notice = aiNotice(req, { fellBack, rejectedModel, model: usedModel });
+    let notice = aiNotice(req, { fellBack, rejectedModel, model: usedModel, truncated });
     if (final.quoteDrops) {
       const drop = final.quoteDrops === 1
         ? 'One quoted excerpt could not be matched to the contract text and was removed — treat that point with care.'
@@ -5655,7 +5727,20 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
   const cx = copilotCtx(req);
   const convo = messages
     .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
-    .slice(-10).map(m => ({ role: m.role, content: m.content.slice(0, 4000) }));
+    .slice(-10).map(m => {
+      /* ---- THE PER-TURN CAP IS NOT SMALLER THAN THE THING IT CARRIES ----
+         4,000 characters silently cut every message, breaking a promise the
+         product makes in writing elsewhere: "the FULL passage reaches the model
+         — the display bubble clamps the quote, never a slice". A highlighted
+         liability-and-indemnity clause with sub-paragraphs runs well past 4,000,
+         so "Simplify" was handed two thirds of a clause and answered
+         confidently about the part it could see. COPILOT_TURN_CHARS sits above
+         any real passage and far under the document ceiling, and the cut is now
+         a FACT rather than a silent trim: aiInputCapped is what aiNotice turns
+         into a sentence, and both chat routes already fold that in. */
+      if (m.content.length > COPILOT_TURN_CHARS) req.aiInputCapped = true;
+      return { role: m.role, content: m.content.slice(0, COPILOT_TURN_CHARS) };
+    });
   if (!convo.length || convo[convo.length - 1].role !== 'user') return res.status(400).json({ error: 'the last message must be from the user' });
 
   // From here on the response is an event stream — errors travel as events.
@@ -5674,6 +5759,15 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
   const question = convo[convo.length - 1].content;
   const toolsUsed = [];
   let steps = 0, compared = false;
+  /* ---- A CUT-SHORT ANSWER IS NOT A COMPLETE ONE ----
+     anthropicMessages returns `truncated` when the provider stopped at
+     max_tokens, and aiNotice already turns that into a sentence — but both chat
+     routes built their notice from a FRESH object carrying only the fell-back
+     fields, so the flag was computed and dropped. A broad question ran past the
+     ceiling, the partial text was accepted as the answer at the plain-text
+     branch, and the reader was served half a thought with nothing saying so.
+     Tracked across every turn, because the cut can happen on any of them. */
+  let truncated = false;
   let final = null, fellBack = false, rejectedModel = null, usedModel = aiModelForTier('fast');
   try {
     for (let step = 0; step < 5; step++) {
@@ -5694,6 +5788,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
       }
       usedModel = resp.model || usedModel;
       if (resp.fellBack) { fellBack = true; rejectedModel = resp.rejectedModel; }
+      if (resp.truncated) truncated = true;
       const content = resp.data.content || [];
       const toolUses = content.filter(b => b.type === 'tool_use');
       working.push({ role: 'assistant', content });
@@ -5716,7 +5811,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
     final.citations.forEach(c => { if (!cardIds.includes(c.id)) cardIds.push(c.id); });
     if (final.compare) final.compare.columns.forEach(col => { if (!cardIds.includes(col.id)) cardIds.push(col.id); });
     const cards = cardIds.map(id => copilotCard(cx, id)).filter(Boolean);
-    let notice = aiNotice(req, { fellBack, rejectedModel, model: usedModel });
+    let notice = aiNotice(req, { fellBack, rejectedModel, model: usedModel, truncated });
     if (final.quoteDrops) {
       const drop = final.quoteDrops === 1
         ? 'One quoted excerpt could not be matched to the contract text and was removed — treat that point with care.'
@@ -7242,7 +7337,14 @@ async function releaseNextSignerLink(req, contractId) {
     if (!/.+@.+\..+/.test(String(ns.recipient_email || ''))) return;
     let p = {}; try { p = JSON.parse(ns.payload) || {}; } catch (_) {}
     const mail = signerTurnEmail({ signer: next, plan: rt.plan, payload: p,
-      link: shareUrl(req, ns.token), expiresAt: ns.expires_at });
+      link: shareUrl(req, ns.token), expiresAt: ns.expires_at,
+      /* ---- THE COUNTERPARTY'S EMAIL FOLLOWS THE SENDER'S LANGUAGE ----
+         signerTurnEmail destructures senderLang and NO caller passed it, so
+         langForEmail — whose member lookup always misses for a counterparty,
+         who has no account — fell to the default and every signing email went
+         out in English, including from a Swedish workspace. The internal
+         signer's own notification has passed this all along. */
+      senderLang: req && req.user && req.user.lang });
     const r = await sendEmail(ns.recipient_email, mail.subject, mail.body, `sign turn (external): ${ns.token}`);
     if (r.sent) db.prepare('UPDATE shares SET sent_at=?, send_error=NULL WHERE token=?').run(now(), ns.token);
     else db.prepare('UPDATE shares SET send_error=? WHERE token=?')
@@ -7412,7 +7514,8 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
       const sendTo = email || existing.recipient_email;
       if (!heldForTurn && !existing.sent_at && /.+@.+\..+/.test(String(sendTo || ''))) {
         const mail = signerTurnEmail({ signer: signerRow, plan: rt.plan, payload,
-          link: exLink, expiresAt: existing.expires_at });
+          link: exLink, expiresAt: existing.expires_at,
+          senderLang: req && req.user && req.user.lang });   /* see the note above */
         const r2 = await sendEmail(sendTo, mail.subject, mail.body, `sign turn (external): ${existing.token}`);
         exSent = !!r2.sent; exErr = r2.detail || null;
         // sent_at means the provider ACCEPTED it; a failed attempt records why.
@@ -7483,7 +7586,8 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
      signs. Emailing it now would invite a signature the respond route is
      going to refuse. */
   if (ch === 'email' && signerId && !heldForTurn) {
-    const mail = signerTurnEmail({ signer: signerRow, plan: signerPlanAll, payload, link, expiresAt: expires });
+    const mail = signerTurnEmail({ signer: signerRow, plan: signerPlanAll, payload, link, expiresAt: expires,
+      senderLang: req && req.user && req.user.lang });   /* see the note above */
     const r = await sendEmail(email, mail.subject, mail.body, `sign turn (external): ${token}`);
     emailSent = !!r.sent; emailError = r.detail || null;
     // sent_at means the provider ACCEPTED it; a failed attempt records why,
@@ -7512,7 +7616,16 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
         : `${req.user.name} shared "${cName}" for your review`,
       body, `share link: ${link}`);
     emailSent = !!r.sent; emailError = r.detail || null;
-    db.prepare('UPDATE shares SET sent_at=? WHERE token=?').run(now(), token);
+    /* ---- THE RECORD SAYS WHAT ACTUALLY HAPPENED ----
+       This stamped sent_at whatever the provider did, and never wrote
+       send_error. The dialog told the truth AT THE MOMENT of sending — it has
+       the three-outcome box — and then the page was reloaded and the shares
+       panel read sentAt:<now>, sendError:null, so a refused message showed as
+       delivered for the rest of that contract's life. Three sibling sends in
+       this file already guard on r.sent; these three did not. */
+    if (r.sent) db.prepare('UPDATE shares SET sent_at=?, send_error=NULL WHERE token=?').run(now(), token);
+    else db.prepare('UPDATE shares SET send_error=? WHERE token=?')
+      .run(String(emailError || (EMAIL_ON() ? 'The email provider refused the message.' : 'Email is not configured on this server — the message is in the outbox.')).slice(0, 300), token);
   }
   res.json({ ok: true, token, link, expiresAt: expires, channel: ch, durable: !!isDurable,
     signerId: signerId || undefined, heldForTurn: signerId ? heldForTurn : undefined,
@@ -8171,7 +8284,10 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
     ].filter(Boolean).join('\n');
     const r = await sendEmail(s.recipient_email, `Updated: "${cName}" is ready for your review`, body, `share refresh: ${link}`);
     emailSent = !!r.sent; emailError = r.detail || null;
-    db.prepare('UPDATE shares SET sent_at=? WHERE token=?').run(now(), s.token);
+    /* See the note on the mint route above: only a real send is recorded as one. */
+    if (r.sent) db.prepare('UPDATE shares SET sent_at=?, send_error=NULL WHERE token=?').run(now(), s.token);
+    else db.prepare('UPDATE shares SET send_error=? WHERE token=?')
+      .run(String(emailError || (EMAIL_ON() ? 'The email provider refused the message.' : 'Email is not configured on this server — the message is in the outbox.')).slice(0, 300), s.token);
   }
   res.json({ ok: true, token: s.token, link, channel: s.channel || 'link', silent,
     notifySkipped: !silent && !notify,
@@ -8233,7 +8349,10 @@ app.post('/api/shares/:token/resend', auth, editor, rlShareSend, async (req, res
       `${req.user.name} at ${p.org || 'HaTi'} is waiting for your response on "${cName}".\n\nReview it here — no account needed:\n${link}\n\n${s.expires_at ? `This link expires on ${String(s.expires_at).slice(0, 10)}.` : ''}`,
       `share resend: ${link}`);
     emailSent = !!r.sent; emailError = r.detail || null;
-    db.prepare('UPDATE shares SET sent_at=? WHERE token=?').run(now(), s.token);
+    /* See the note on the mint route above: only a real send is recorded as one. */
+    if (r.sent) db.prepare('UPDATE shares SET sent_at=?, send_error=NULL WHERE token=?').run(now(), s.token);
+    else db.prepare('UPDATE shares SET send_error=? WHERE token=?')
+      .run(String(emailError || (EMAIL_ON() ? 'The email provider refused the message.' : 'Email is not configured on this server — the message is in the outbox.')).slice(0, 300), s.token);
   }
   res.json({ ok: true, link, channel: s.channel || 'link', emailSent, emailConfigured: EMAIL_ON(), emailError });
 });
@@ -9270,7 +9389,15 @@ function recordMonthlyReportRun(patch) {
    the same order fire() uses — so a crash mid-send costs one report, never
    doubles one. `force` (the manual Send-now) bypasses the claim check but
    still records it, so a manual send also satisfies the schedule. */
-function runMonthlyReport(month, opts = {}) {
+/* ---- "SENT" MUST MEAN SENT — THE ONE ROUTE THAT WAS MISSED ----
+   This was SYNCHRONOUS, so it could not await sendEmail even if it had wanted
+   to: it fired three messages into the void, reported `sent: to.length` — the
+   number ATTEMPTED — and wrote lastError:null, actively clearing any earlier
+   failure. A workspace whose sending domain is unverified therefore recorded a
+   clean success every month while every message bounced, which is the exact
+   fault the three routes named in "SENT MUST MEAN SENT" were fixed for. This
+   one simply never got it. */
+async function runMonthlyReport(month, opts = {}) {
   const key = `monthly-report:${month}`;
   const claimed = db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(key);
   if (claimed && !opts.force) return { sent: 0, month, alreadySent: true };
@@ -9285,15 +9412,30 @@ function runMonthlyReport(month, opts = {}) {
   }
   const report = buildMonthlyReport(month);
   if (!claimed) db.prepare('INSERT INTO reminders (rkey,created_at) VALUES (?,?)').run(key, now());
-  for (const addr of to) sendEmail(addr, report.subject, report.body, 'monthly report');
-  recordMonthlyReportRun({ lastSentMonth: month, lastSentAt: now(), lastSentTo: to.length,
-    lastError: null, lastErrorAt: null });
-  return { sent: to.length, to, month, facts: report.facts };
+  const results = [];
+  for (const addr of to) results.push(await sendEmail(addr, report.subject, report.body, 'monthly report'));
+  /* THE OUTBOX IS DELIVERY, NOT A FAILURE, and that is the whole care needed
+     here: with no provider configured the message queues where an admin can
+     read it, which is exactly what this product promises. Counting an outbox
+     row as a failure would report `sent: 0` and write "the provider refused"
+     on a workspace that has no provider — two warnings for one state, which
+     the mail-health rule already forbids. A FAILURE is a message that really
+     was handed to a provider and turned away. */
+  const outboxOnly = !EMAIL_ON();
+  const delivered = r => !!(r && (r.sent || outboxOnly));
+  const sent = results.filter(delivered).length;
+  const failed = results.filter(r => !delivered(r));
+  recordMonthlyReportRun({ lastSentMonth: month, lastSentAt: now(), lastSentTo: sent,
+    /* Only a real success clears the error record. */
+    lastError: failed.length ? ((failed[0] && failed[0].detail) || 'the email provider refused the message') : null,
+    lastErrorAt: failed.length ? now() : null });
+  return { sent, attempted: to.length, to, month, facts: report.facts,
+    emailConfigured: EMAIL_ON(), outbox: !EMAIL_ON() };
 }
-function monthlyReportSweep() {
+async function monthlyReportSweep() {
   try {
     if (!monthlyReportSettings().enabled) return;
-    runMonthlyReport(mrPrevMonth());
+    await runMonthlyReport(mrPrevMonth());   /* awaited now: it reports what really went */
   } catch (e) {
     const msg = (e && e.message) || String(e);
     console.warn('[monthly-report] sweep failed, the report did not go out this cycle:', msg);
@@ -9335,9 +9477,10 @@ app.put('/api/reports/monthly/settings', auth, admin, (req, res) => {
 });
 // Send now, without waiting for the sweep — the same builder, the same path,
 // so what the button sends is what the schedule would have sent.
-app.post('/api/reports/monthly/run', auth, admin, (req, res) => {
+app.post('/api/reports/monthly/run', auth, admin, async (req, res) => {
   const month = /^\d{4}-\d{2}$/.test(String((req.body || {}).month || '')) ? req.body.month : mrPrevMonth();
-  res.json(runMonthlyReport(month, { force: true }));
+  try { res.json(await runMonthlyReport(month, { force: true })); }
+  catch (e) { res.status(502).json({ error: 'The monthly report could not be sent: ' + ((e && e.message) || e) }); }
 });
 
 app.post('/api/shares/:token/applied', auth, editor, (req, res) => {

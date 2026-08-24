@@ -171,8 +171,8 @@ function folderExpiryCell(c){
 // Render up to state.folderShown rows as a table body, with a "Show more" pager.
 function folderRowsHtml(cs){
   if(!cs.length) return `<tr><td colspan="8" style="padding:44px 20px;text-align:center">
-      <div style="font-size:14px;font-weight:600;color:var(--color-text)">${(state.folderQuery||'').trim()?`No contracts match "${state.folderQuery}"`:'No contracts in this value stream yet'}</div>
-      <div style="font-size:13px;color:var(--color-neutral-600);margin-top:4px">${(state.folderQuery||'').trim()?'Clear the search, or ask HaTi Copilot to look across all folders.':'Create one with New contract, or upload received paper.'}</div>
+      <div style="font-size:14px;font-weight:600;color:var(--color-text)">${(state.folderQuery||'').trim()?i18t('reg_stream_none_match',{q:state.folderQuery}):i18t('reg_stream_none_yet')}</div>
+      <div style="font-size:13px;color:var(--color-neutral-600);margin-top:4px">${(state.folderQuery||'').trim()?i18t('reg_stream_widen'):i18t('reg_stream_create_hint')}</div>
     </td></tr>`;
   const shown=Math.min(cs.length, state.folderShown||FOLDER_PAGE);
   const sel=state.folderSel||{};
@@ -633,7 +633,7 @@ function regRowsHtml(cs){
     const sub  = filtered ? i18t('reg_widen') : i18t('reg_create_from_template');
     const btn  = filtered
       ? `<button id="reg-empty-clear" class="ui-btn" style="font-size:13px;padding:6px 14px">${i18t('reg_clear_all_filters')}</button>`
-      : `<button id="reg-empty-new" class="ui-btn ui-btn-primary" style="font-size:13px;padding:6px 14px">+ New contract</button>`;
+      : `<button id="reg-empty-new" class="ui-btn ui-btn-primary" style="font-size:13px;padding:6px 14px">${i18t('pg_new_contract')}</button>`;
     return `<tr><td colspan="8" style="padding:48px 12px;text-align:center">
       <div style="max-width:340px;margin:0 auto">
         <div style="width:44px;height:44px;margin:0 auto 12px;display:grid;place-items:center;border-radius:0;background:var(--color-bg);color:var(--color-neutral-500)">${icon('list','w-5 h-5')}</div>
@@ -1058,8 +1058,26 @@ function renderRegister(opts){
   if(si){
     si.addEventListener('input',()=>{ R.query=si.value; R.page=1; renderRegisterBody(); if(API_MODE()) ftsSearch(si.value); });
   }
-  // outside click closes the FTS dropdown and any open row ⋯ menu
-  document.addEventListener('click',e=>{ const box=document.getElementById('reg-fts'); if(box&&!box.contains(e.target)&&e.target!==si) box.classList.add('hidden'); if(!e.target.closest('[data-menu-pop]')&&!e.target.closest('[data-menu]')) regCloseMenus(); });
+  /* ---- OUTSIDE CLICK: ARMED ONCE ON THE DOCUMENT, NOT PER PAINT ----
+     This closes the search dropdown and any open row ⋯ menu, and it was bound
+     inside the wiring — which runs on EVERY filter press, every sort, every
+     page. So a reader who used the filters twenty times had twenty copies of
+     it, all firing on every click for the life of the sitting.
+
+     The house pattern: a flag on `document`, and the live element resolved AT
+     PRESS TIME rather than captured. The search box is looked up by id inside
+     the handler for exactly that reason — the `si` this paint closed over is
+     replaced by the next one, and a listener holding the old node would stop
+     recognising the box the reader is typing in. */
+  if(!document._regOutsideWired){
+    document._regOutsideWired=true;
+    document.addEventListener('click',e=>{
+      const box=document.getElementById('reg-fts');
+      const live=document.getElementById('reg-search');
+      if(box&&!box.contains(e.target)&&e.target!==live) box.classList.add('hidden');
+      if(!e.target.closest('[data-menu-pop]')&&!e.target.closest('[data-menu]')) regCloseMenus();
+    });
+  }
   document.getElementById('reg-sort')?.addEventListener('change',e=>{ R.sort=e.target.value; R.dir=REG_SORT_DEFDIR[R.sort]||-1; R.page=1; regRepaint(); });
   // Column-header sorting: click a header to sort by it; click the active header
   // again to flip ascending/descending. First click uses the column's natural

@@ -513,6 +513,113 @@ function mShareSheetHtml(){
     <button class="m-btn m-btn-quiet" style="margin-top:8px" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
 }
 
+/* --------------------------------------------------- THE SIGNER PICKER ------
+   (owner-decided, 23 Aug 2026, after the cost was stated twice.)
+
+   THE FAULT IT CLOSES. The phone's green primary read "Add signers" — because
+   wsNextAction says so, and that action is right: naming the signers is what
+   OPENS signing, so on a contract with no route it is genuinely the next thing
+   to do. mDoNextAction had no branch for it. No sheet, no toast, no navigation:
+   a filled primary button, the loudest control on the screen, that did
+   absolutely nothing. The worst shape a dead press can take, because the
+   reader has been told this is the one thing left.
+
+   IT REVERSES THE PHONE'S STANDING RULE, and that is the owner's call recorded
+   in the work order rather than a drift: "the phone files NO changes of its
+   own" has held since the mobile shell was built, and a signing route is a
+   change. What makes it survivable is that it files that change through the
+   DESKTOP'S OWN AUTHORITY — saveSignerPlan in js/approvals.js, extracted from
+   the editor's Save handler and now asked by both — so the row shape, the
+   refusal, the audit line and the persist are one piece of code with two
+   editors. The phone decides how a refusal is SAID and nothing else. It still
+   files no NEGOTIATION changes: grep the mobile files for negoFileChange and
+   changes.push and find nothing, which is the half of the rule that was really
+   about wording.
+
+   TWO ROWS, NOT N. The desktop editor is a reorderable list with member
+   pickers, a contacts datalist and per-row roles; a phone screen that tried to
+   be that would be a form nobody finishes with a thumb. This asks the question
+   the route actually needs — WHO SIGNS FOR US, AND WHO SIGNS FOR THEM — with
+   both slots prefilled from the record exactly as the desktop prefills them,
+   and says plainly that reordering and extra signers live on a computer. A
+   route of two is what almost every contract has; the desktop is one sentence
+   away for the rest. */
+function mSignersState(c){
+  const s = mS();
+  if(s.signers && s.signersFor === c.id) return s.signers;
+  const plan = (c.signerPlan || []).slice();
+  const mine = plan.find(x => x && x.party !== 'counterparty');
+  const theirs = plan.find(x => x && x.party === 'counterparty');
+  const me = (typeof currentUser === 'function' && currentUser()) || null;
+  const them = (typeof counterpartyContact === 'function' ? counterpartyContact(c) : null) || {};
+  s.signersFor = c.id;
+  s.signers = {
+    ours: { id: mine && mine.id, party: 'internal',
+      name: (mine && mine.name) || (me ? me.name : ''),
+      email: (mine && mine.email) || (me ? me.email : ''),
+      role: (mine && mine.role) || '',
+      memberId: (mine && mine.memberId) || (me ? me.id : '') },
+    theirs: { id: theirs && theirs.id, party: 'counterparty',
+      name: (theirs && theirs.name) || them.name || c.counterparty || '',
+      email: (theirs && theirs.email) || them.email || c.counterpartyEmail || '',
+      role: (theirs && theirs.role) || '', memberId: '' },
+  };
+  return s.signers;
+}
+function mSignersSheetHtml(){
+  const c = mContract();
+  if(!c) return '';
+  /* SHUT ONCE ANYBODY HAS SIGNED — the desktop editor's own first line, and
+     for its own reason: a signature is given to a specific arrangement. The
+     phone says so and offers the computer, because restarting a route is not
+     a thumb-sized decision. */
+  if(typeof signingLocked === 'function' && signingLocked(c)) return `
+    <div class="m-grab"></div>
+    <div class="m-sheet-title">${i18t('mc_signers_title')}</div>
+    <div class="m-sheet-note">${i18t('mc_signers_locked')}</div>
+    <button class="m-btn m-btn-quiet" style="margin-top:12px" data-m-act="close-sheet">${i18t('act_close')}</button>`;
+  const st = mSignersState(c);
+  const extra = Math.max(0, (c.signerPlan || []).length - 2);
+  const slot = (k, cap, who) => `
+    <div style="border:1px solid var(--color-divider);padding:13px 14px;margin-top:10px">
+      <div class="m-capline" style="margin-bottom:6px">${cap}</div>
+      <input class="m-input" data-m-signer="${k}.name" inputmode="text" autocomplete="off"
+        placeholder="${i18t('mc_signer_name_ph')}" value="${mEsc(who.name || '')}">
+      <input class="m-input" style="margin-top:8px" data-m-signer="${k}.email" inputmode="email" autocomplete="off"
+        placeholder="${i18t('mc_signer_email_ph')}" value="${mEsc(who.email || '')}">
+      <input class="m-input" style="margin-top:8px" data-m-signer="${k}.role" inputmode="text" autocomplete="off"
+        placeholder="${i18t('mc_signer_role_ph')}" value="${mEsc(who.role || '')}">
+    </div>`;
+  return `
+    <div class="m-grab"></div>
+    <div class="m-sheet-title">${i18t('mc_signers_title')}</div>
+    <div class="m-sheet-note">${i18t('mc_signers_note')}</div>
+    ${slot('ours', i18t('mc_signs_for_us', { us: mEsc((typeof contractParty === 'function' ? contractParty(c) : '') || i18t('mc_our_side')) }), st.ours)}
+    ${slot('theirs', i18t('mc_signs_for_them', { them: mEsc(c.counterparty || i18t('ct_a_counterparty')) }), st.theirs)}
+    ${extra ? `<div class="m-note" style="margin-top:10px">${i18t('mc_signers_more_on_computer', { n: extra })}</div>`
+            : `<div class="m-note" style="margin-top:10px">${i18t('mc_signers_reorder_on_computer')}</div>`}
+    ${mS().signersErr ? `<div class="m-err">${mEsc(mS().signersErr)}</div>` : ''}
+    <button class="m-btn m-btn-primary" style="margin-top:12px" data-m-act="signers-save">${i18t('mc_signers_save')}</button>
+    <button class="m-btn m-btn-quiet" style="margin-top:8px" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
+}
+/* THE SAVE IS THE DESKTOP'S. This builds two rows and hands them over; every
+   rule about what a route IS — the shape, the refusal, the audit line, the
+   persist — belongs to saveSignerPlan and is not repeated here. */
+function mSignersSave(){
+  const c = mContract();
+  if(!c) return;
+  const s = mS();
+  const st = mSignersState(c);
+  if(typeof window.saveSignerPlan !== 'function'){
+    s.signersErr = i18t('mc_signers_unavailable'); mRender(); return;
+  }
+  const why = saveSignerPlan(c, [st.ours, st.theirs]);
+  if(why){ s.signersErr = why; mRender(); return; }
+  s.signersErr = ''; s.signers = null; s.signersFor = null;
+  mCloseSheet();
+  if(window.toast) toast(i18t('ap_route_saved'), 'ok');
+}
+
 /* -------------------------------------------------------- RENUMBER SHEET ---
    Old number → new number, and the references that move with them. Nothing
    happens until Confirm, and the plan shown is the plan applied — both come
@@ -582,9 +689,16 @@ function mContractAct(k, btn){
   if(k==='share'){ mOpenShareSheet(); return; }
   if(k==='history'){ mCloseSheet(); s.tab='hist'; mRender(); return; }
   if(k==='copilot'){ mCloseSheet(); if(window.openAI) openAI(); return; }
-  if(k==='edit'||k==='compare'||k==='template'){ mCloseSheet(); if(window.toast) toast(M_DESK_MSG); return; }
-  if(k==='edit-locked'){ mCloseSheet(); if(window.toast) toast(i18t('mc_sealed_no_edit')); return; }
-  if(k==='renumber-locked'){ mCloseSheet(); if(window.toast) toast(i18t('mc_never_renumber')); return; }
+  /* ---- ON A PHONE A GREY ROW CANNOT EXPLAIN ITSELF, SO IT TALKS ----
+     These three rows are already drawn dimmed, and each explained itself with
+     a BARE toast — which prints nothing. So the reader tapped a grey row and
+     got exactly what a broken row gives: no movement and no word. Touch has no
+     hover, so the desktop's answer (a title attribute) is not available here
+     and the message IS the explanation. 'warn' rather than 'err': nothing
+     failed and nothing was refused unexpectedly — this is a rule, stated. */
+  if(k==='edit'||k==='compare'||k==='template'){ mCloseSheet(); if(window.toast) toast(M_DESK_MSG,'warn'); return; }
+  if(k==='edit-locked'){ mCloseSheet(); if(window.toast) toast(i18t('mc_sealed_no_edit'),'warn'); return; }
+  if(k==='renumber-locked'){ mCloseSheet(); if(window.toast) toast(i18t('mc_never_renumber'),'warn'); return; }
 
   if(k==='verify'){
     mCloseSheet(); s.tab='hist'; mRender();
@@ -656,9 +770,12 @@ function mDoNextAction(kind){
        column and because rebuilding where wording is argued over is the most
        expensive thing in this app to get subtly wrong. */
     if(window.openRedlineWorkbench){ openRedlineWorkbench(c.id); return; }
-    if(window.toast) toast(i18t('mc_nego_on_computer'));
+    if(window.toast) toast(i18t('mc_nego_on_computer'),'warn');   /* same rule as the three rows above */
     return;
   }
+  /* ---- THE DEAD PRESS, CLOSED ---- The head's green primary reads "Add
+     signers" whenever the route is not open, and nothing here answered it. */
+  if(kind==='add-signers'){ mOpenSheet('signers', { signersErr: '' }); return; }
   if(kind==='share'){ mOpenShareSheet(); return; }
   if(kind==='terms'){ mS().tab='terms'; mRender(); if(window.toast) toast(i18t('mc_fill_on_computer')); return; }
   if(kind==='review'){
@@ -744,9 +861,24 @@ function mWireContract(root){
   }));
   const em = root.querySelector('#m-share-email');
   if(em) em.addEventListener('input',()=>{ s.shareEmail = em.value; });
+  /* ---- THE SIGNER PICKER'S SIX FIELDS ----
+     Kept in the sheet's own state on every keystroke, exactly as the share
+     sheet keeps its address, so a repaint — the error line appearing, the
+     keyboard opening — never throws away what has been typed. Bound to the
+     ELEMENT rather than delegated because these fields are rebuilt with the
+     sheet and there is nothing to arm once. */
+  root.querySelectorAll('[data-m-signer]').forEach(inp=>{
+    inp.addEventListener('input',()=>{
+      const c = mContract(); if(!c) return;
+      const [slot, field] = String(inp.getAttribute('data-m-signer')||'').split('.');
+      const st = mSignersState(c);
+      if(st[slot] && field) st[slot][field] = inp.value;
+    });
+  });
 }
 
 Object.assign(window,{ mContract, mLocked, mContractHtml, mDocHtml, mTermsHtml, mHistHtml,
   mActionBarHtml, mOverflowSheetHtml, mShareSheetHtml, mRenumberSheetHtml,
+  mSignersSheetHtml, mSignersSave, mSignersState,
   mContractAct, mWireContract, mDoNextAction, mShareCreate, mOpenShareSheet, mNoticeStackHtml,
   M_HIST_GROUP, M_SHARE_KINDS });

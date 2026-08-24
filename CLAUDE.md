@@ -1879,7 +1879,7 @@ TWO BUILDERS every document body goes through: docPaperHeadHtml (front matter) a
 
 READ-ONLY COPY: renderShareViewer must NOT read c.redlineText — template-built and uploaded contracts have none stored (wording regenerates on demand). The owner's side renders the body ONCE at link-mint into viewBody; viewerPayload passes that one field through and still none of the people (the outside reader gets the argument, not the arguers). A copy with neither form says so and asks for a fresh link (covers every older view link). Tests: readonly-copy-verify (11, browser — words arrive AND people still don't, read off the raw payload).
 
-WHAT LEFT the Negotiate page (nothing is hiding): the Discussion column (threads read on each change's card via rlCardNotesHtml; redlineDiscussionHtml deleted), our column's Accept All / Reject All (their seat keeps them — "I agree to all of it" is a real answer), the visible Send All (#nego-send survives MOUNTED AND VISUALLY HIDDEN — .rl-sendslot-hidden, clipped never display:none — Publish Round is a proxy that clicks it), the text-size stepper (Document tab), fullscreen (#ws-focus in the room head's "⋯"), the contract switcher and round chip (the round reads in room-sub on all four tabs), and — 12 Aug 2026 — the room tab row itself.
+WHAT LEFT the Negotiate page (nothing is hiding): the Discussion column (threads read on each change's card via rlCardNotesHtml; redlineDiscussionHtml deleted), our column's Accept All / Reject All (**CORRECTED 23 Aug 2026 — "their seat keeps them" was stale and had been for a fortnight**: MEASURED in a real browser, the batch pair is drawn on NEITHER seat. It left the owner's page and the counterparty's page on the same day, 10 Aug 2026, and js/views/portal.js's own note records the second half in its own words. The three builders that still emit it — negoHeadHtml, negoAllHtml and the index column — are reached only through openNegotiationRoom, whose one live caller fires solely when that room is already open, so nothing in the shipped product mounts them. Their guard was repaired anyway on 23 Aug and is right; it reaches no live screen, and grey-not-dead-verify asserts the ABSENCE so nobody reads the fix as covering one), the visible Send All (#nego-send survives MOUNTED AND VISUALLY HIDDEN — .rl-sendslot-hidden, clipped never display:none — Publish Round is a proxy that clicks it), the text-size stepper (Document tab), fullscreen (#ws-focus in the room head's "⋯"), the contract switcher and round chip (the round reads in room-sub on all four tabs), and — 12 Aug 2026 — the room tab row itself.
 
 EVERY DOOR ONTO THE POSTBOX IS DELEGATED (15 Aug 2026, found the day the band shipped). The [data-redline-proxy] click was wired by scanning #content inside renderRedline — at a line BEFORE the panes are mounted a few lines below. Every proxy in the page shell got its handler; a proxy painted into the MOUNT got nothing. Harmless while the toolbar was the only one, and it made "Send all N" a dead button the moment the unsent band arrived in the change column: the toolbar pressed #nego-send once, the band pressed it zero times. Now ONE delegated listener on document, armed once — and the element-bound scan is GONE rather than kept beside it, because a proxy reachable by both would publish the round TWICE. redlineSyncProxies still runs per paint: deciding whether a proxy is usable is a different job and has always had to re-run on fresh markup. redline-verify counts the presses on both doors rather than inferring them from a handler being attached.
 
@@ -2425,6 +2425,8 @@ first:
 
 **RE-RECORDED AGAIN 23 Aug 2026 for render B1's live tab.** AUDITED BEFORE SAVING and it is **one value on one screen**: `rgb(45, 212, 191)` — `--accent-ink` in dark, which the Tracked Changes live tab now takes — ARRIVING on `negotiate--dark`, with **nothing leaving and no other screen moving**. `negotiate--light` did not move at all, because `--accent-ink` resolves to accent-800 there and the census already held it. The fill and the white ink that Render B put on the live count are still in the census: they draw elsewhere on that screen. 40/40.
 
+**RE-RECORDED AGAIN 23 Aug 2026, for the text-size stepper — and it is the SMALLEST re-record yet, which is what an audited one looks like.** Two values leave, on exactly two screens (`contract--dark` and `signing--dark`), and **nothing arrives**: `rgba(148,163,184,.14)` and `rgba(15,23,42,.5)`, which are the base `.rl-type-step` dark rules — the PRE-REDESIGN grey pill. They leave because the 22 Aug redesign's own block was scoped `.redline-page` and has now been unscoped, so the Document tab and the Signing tab finally wear the box the negotiation page has worn for a day. Nothing new appears because the redesign's dark background IS `--color-surface`, which was already in the census on every panel of those screens. The light halves never failed, because both rules resolve to white there. Audited before saving, as the rule requires; 40/40.
+
 **RE-RECORDED ONCE MORE 23 Aug 2026** for the head row's outline (see FOUR OFF FOUR MORE SCREENSHOTS). AUDITED BEFORE SAVING, and it is one value: `color(srgb .0509804 .580392 .533333 / .5)` — `.rl-pb-btn`'s own 50% accent mix — gone from `negotiate--light` and `negotiate--dark`, with **nothing new arriving and no other screen touched**, because the button stopped naming its own outline and took the row's 45%, which the census already held. 40/40.
 
 **RE-RECORDED AGAIN 23 Aug 2026 for the sidebar's own change**, and it moved all
@@ -2477,6 +2479,115 @@ the same rule in its own words now: an entry on KNOWN_RED is a promise that
 somebody looked, printed on every run so it stays something you have to keep
 reading rather than becoming the furniture. **Take a file off the list the day
 it goes green.**
+
+## THE OVERNIGHT RUN OFF THE FUNCTIONAL AUDIT (23 Aug 2026 — WORKORDER-audit-fixes-overnight.md)
+
+Fifty-five of the audit's fifty-eight items, in eight batches. Read the work
+order before extending any of them; what follows is the rules that came out of
+it.
+
+- **"SENT" MUST MEAN SENT, THE FIVE PLACES THAT NEVER GOT IT.** f205 fixed three
+  routes; five more carried the same untruth. The monthly report was
+  SYNCHRONOUS, so it could not have awaited a result even if it had wanted to —
+  it reported the number ATTEMPTED and wrote lastError:null, actively clearing
+  an earlier failure. Three share sends stamped `sent_at` whatever the provider
+  did, so the dialog told the truth at the moment of sending and the panel
+  showed a refused message as delivered for the rest of that contract's life.
+  **AND THE OUTBOX IS DELIVERY, NOT A FAILURE** — the care this needed: with no
+  provider the message queues where an admin can read it, which is what the
+  product promises, and a first pass counting an outbox row as a miss wrote
+  "the provider refused" on a workspace that has no provider. Tests: f240.
+
+- **ONE LANGUAGE PER SCREEN, AND THE SERVER'S SENTENCE IS TRANSLATED AT ONE
+  DOOR.** The server answers in English — 184 distinct sentences — and js/api.js
+  printed them verbatim, half the time glued to a TRANSLATED prefix, which
+  reads as a rendering fault rather than as a missing translation. **srvMsg is a
+  lookup in api(), the ONE place a server sentence becomes an Error**, so all
+  ~200 callers inherit it and there is no second place. Sixty-five sentences —
+  the ones a normal person meets — are translated; an unknown sentence passes
+  through untouched, so this is safe to extend one message at a time and
+  impossible to break by adding a message on the server. Eleven other screens
+  went with it, including confirmDialog's DEFAULTS (about fifty dialogs across
+  both shells drew "Cancel" under a translated heading — a default is what MOST
+  callers get). Tests: f241, one-language-per-screen-verify.
+
+- **GREY WHERE HaTi CAN KNOW BEFORE THE PRESS; SPEAK WHERE IT CANNOT** (owner's
+  ruling). A dimmed control that cannot explain itself is a wall, so the reason
+  goes on the hover — and a button WRONGLY greyed is worse than a silent press,
+  because the reader cannot even try, which is why every one is asserted BOTH
+  ways. **AND THE RULE THAT MAKES IT ALL NECESSARY: `toast(msg)` with no kind
+  PRINTS NOTHING.** Most of these were one bare call each — a clean scan, an
+  aligned playbook pass, a valid seal, a migrated contract's verdict, eleven
+  copy buttons, "Stop after current". The phone's three dimmed rows keep their
+  tap and TALK, because touch has no hover. Tests: f242, grey-not-dead-verify.
+
+- **THE BATCH ACCEPT/REJECT PAIR IS ON NO SEAT — MEASURED, NOT ASSUMED.** See
+  the correction under WHAT LEFT the Negotiate page. Its guard was repaired and
+  the absence is asserted, so nobody reads the fix as covering a live screen.
+
+- **A SWEEP WITH A BLIND SPOT IS WORSE THAN NO SWEEP, BECAUSE IT IS TRUSTED.**
+  f232's window-read pattern started at `[a-z]`, so every CamelCase and
+  UPPER_CASE read was invisible to the one check built to catch an unreachable
+  name. Widened, it found SIGN_ROUTE_ON — a readiness warning dead twice over
+  (nothing sets the flag, and the fields it read are written by nothing) — now
+  removed, its concern already covered by signingRouteOpen and signBlockers.
+
+- **A BACKTICK IN js/views/negotiation-css.js COSTS TWO DIFFERENT WAYS, and
+  both were met in one sitting.** That file returns CSS from a template
+  literal, so a backtick in a comment ends the string. An ODD one is a loud
+  SyntaxError. **A BALANCED PAIR IS WORSE: the file parses, and the words
+  between the backticks are EVALUATED** — `.redline-page` became a read of a
+  variable named `page` and redlineLayoutCss() threw the moment the page was
+  drawn. Five such pairs were live. The linter does not catch it and neither
+  can a source read; **f236 now checks both halves — no stray backticks, and
+  the builders proved to RUN**, which is the only place a balanced pair shows.
+
+- **THE CLOTHES FOLLOW THE BUILDER, three more times.** `.rl-wall` is drawn
+  three times and one sits outside `.redline-page` (unstyled text on the
+  counterparty's page); `--n-accept` is defined on the negotiation page's own
+  group and the readiness notice is also drawn in the counterparty's alerts
+  panel (**white tick on white**); and the 22 Aug text-size stepper redesign
+  was scoped `.redline-page` while **its own comment said the Document tab and
+  the counterparty's page draw the same builder**. Plus four Tailwind classes
+  nothing defines, so five signing-order badges drew with no fill — the
+  `font-600` lesson, and they are defined in HaTi's own sheet, never the blob.
+
+- **THREE LISTENERS ARMED ONCE INSTEAD OF PER PAINT** (the register's
+  outside-click, the calendar's More menu, the Insights map's pan pair), each
+  resolving the LIVE element at press time — a listener holding the node its
+  own paint closed over stops recognising the one the reader is using. And
+  **tplLibRefresh answers THREE things now**: changed, unchanged, and FAILED —
+  it answered `false` for the last two, and the Templates page re-rendered on
+  `changed || !lib.loaded`, which is true for ever after a failure.
+
+- **A STALE TEST IS USUALLY A STALE ASSERTION, NOT A STALE TOOL.** Both
+  known-reds were literals that a later, correct change had moved: f227 read
+  every file in the browser directory including one run-all.js already skips
+  (it reads run-all's own list now — one copy, no drift), and f96-three-themes
+  anchored on ADJACENCY that a comment broke. Two browser files the same:
+  analytics-verify looked for fallback bars by a border-radius the squaring
+  sweep removed; designstep-verify pinned a font size the type pass moved.
+  **Pin the relation, not the number** — this run paid that lesson four more
+  times.
+
+- **THE PHONE NAMES THE SIGNERS, AND IT REVERSES ITS OWN STANDING RULE**
+  (owner-decided). The green primary read "Add signers" and mDoNextAction had
+  no branch for it — a filled primary doing nothing, which is the worst shape a
+  dead press can take. **saveSignerPlan (js/approvals.js) is now the ONE
+  authority and both editors ask it**: the row shape, the refusal naming the
+  MISSING side, the audit line and the persist. It returns the reason or null;
+  the caller decides only how to SAY it. The phone edits TWO SLOTS and says
+  plainly that reordering and extra signers live on a computer; a longer route
+  is KEPT and counted, and the sheet shuts entirely once anybody has signed.
+  **The half of the old rule that mattered still holds** and is asserted: the
+  phone files no NEGOTIATION changes. Tests: f243,
+  signers-on-a-phone-verify.
+
+**NOT FIXED, said out loud:** the audit's items 35 and 37 were excluded by the
+owner before the run started, and the two "five dead handlers" candidates my
+own static sweep could not confirm were left alone rather than reported — the
+instrument gave 24 candidates and five spot-checks showed all five were emitted
+through paths it could not see, so it was discarded rather than trusted.
 
 ## Line numbers drift
 

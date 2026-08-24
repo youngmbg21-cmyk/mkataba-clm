@@ -146,11 +146,25 @@ function negoStyleHtml(){
   .nego-tbtn:disabled{opacity:1;cursor:not-allowed;filter:none;background:transparent;
     color:rgba(230,236,242,.62);border:1px dashed rgba(255,255,255,.34)}
   .nego-why{flex:0 1 auto;max-width:300px;font-size:12px;line-height:1.35;color:#c3cfda}
+  /* ---- A TOKEN THAT DOES NOT REACH THE ELEMENT USING IT (23 Aug 2026) ----
+     The same fault as the selection menu's transparent background, in a
+     different room. --n-accept is defined on the nego-room / nego-root /
+     nego-selmenu / nego-aipop group, and this readiness notice is ALSO drawn
+     inside the counterparty's own alerts panel, which is none of those. There
+     it resolved to nothing, so the left accent bar disappeared and the tick
+     rendered WHITE ON WHITE: an invisible tick on the one notice that says the
+     deal is ready.
+
+     A FALLBACK is exactly what the second argument of var() is for, and adding
+     one where there is none is not the thing this file warns against — that
+     warning is about REWRITING a fallback that already answers. --st-green-fg
+     is what --n-accept itself resolves to, so nothing moves where the token
+     does reach. */
   .nego-readysig{display:flex;align-items:flex-start;gap:11px;flex-wrap:wrap;margin:10px 14px 0;
-    border:1px solid var(--st-green-line);border-left:4px solid var(--n-accept);background:var(--st-green-bg);
+    border:1px solid var(--st-green-line);border-left:4px solid var(--n-accept,var(--st-green-fg));background:var(--st-green-bg);
     border-radius:0;padding:10px 14px}
   .nego-readysig .tick{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;
-    background:var(--n-accept);color:#fff;font-size:12px;font-weight:700}
+    background:var(--n-accept,var(--st-green-fg));color:#fff;font-size:12px;font-weight:700}
   .nego-readysig .body{flex:1;min-width:220px;font-size:13px;line-height:1.5;color:var(--st-green-fg)}
   .nego-readysig .row{display:block}
   .nego-readysig .row+.row{margin-top:3px;color:var(--n-ink-soft)}
@@ -1680,11 +1694,20 @@ function redlineLayoutCss(){
   .redline-page:not(.rl-focus) .rl-focus-exit{display:none}
 
   /* the wall — one line, replacing the engine's two banners */
-  .redline-page .rl-wall{display:flex;align-items:flex-start;gap:9px;flex:none;
+  /* ---- THE CLOTHES FOLLOW THE BUILDER, NOT ONE OF ITS HOMES ----
+     Third time in this file. .rl-wall is drawn THREE times and one of them —
+     the counterparty's handover notice — sits in .pw-page, outside the
+     .redline-page wrapper the other two are mounted in, so it rendered as
+     completely unstyled text: no band, no border, no icon colour. The page
+     scope stays (the negotiation page's own rules sit at that weight); the
+     counterparty's page is named beside it rather than the rule being
+     unscoped, because unscoping drops specificity and this file has already
+     lost that fight once. */
+  .redline-page .rl-wall, .pw-page .rl-wall{display:flex;align-items:flex-start;gap:9px;flex:none;
     background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:0;
     padding:7px 12px;font-size:13px;line-height:1.55;color:var(--color-neutral-700)}
-  .redline-page .rl-wall-ic{flex:none;color:var(--st-amber-fg)}
-  .redline-page .rl-wall b{color:var(--color-text)}
+  .redline-page .rl-wall-ic, .pw-page .rl-wall-ic{flex:none;color:var(--st-amber-fg)}
+  .redline-page .rl-wall b, .pw-page .rl-wall b{color:var(--color-text)}
   /* the design carries one banner. The turn strip stays in the DOM but out of
      sight: it holds #nego-send, which the header's Publish Round presses. */
   .redline-page .rl-turnwrap{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
@@ -2439,15 +2462,15 @@ function redlineLayoutCss(){
          PLACE, and the story is worth keeping because it is this file's
          favourite trap twice over.
 
-         These two rules were written with `border:1px solid …` and this file's
+         These two rules were written with 'border:1px solid …' and this file's
          own comment described the result — "the no and the alternative recede
          to an outline". MEASURED that morning, both computed border-width 0:
          ".redline-page .rl-card-verbs button" sets border:0 and scores
          (0,2,1), and a bare ".redline-page .rl-rej" scores (0,2,0) and loses.
          So the outline had never once drawn, and the fix was to write them at
          the winning specificity. THE MOCK-UP AGREES WITH THE ACCIDENT, not
-         with the intention: its .h-btn carries `border:1px solid transparent`
-         and only the one `ghost` (Open) and the one filled act (Send) show an
+         with the intention: its .h-btn carries 'border:1px solid transparent'
+         and only the one 'ghost' (Open) and the one filled act (Send) show an
          edge. A row of four bordered verbs at the foot of a small card is the
          fence .ui-btn-plain exists to avoid.
 
@@ -2682,7 +2705,7 @@ function redlineLayoutCss(){
     white-space:nowrap;transition:color .12s,border-color .12s}
   ${''/* ONE COLOUR DECLARATION FOR THE WHOLE TAB, and the number and the word
      INHERIT it. That is what makes B1 a two-line change rather than six: the
-     resting state, the hover and the live state each set `color` once on the
+     resting state, the hover and the live state each set 'color' once on the
      button and both children follow. Give either child a colour of its own and
      the state stops reaching it — which is exactly how Render B's live count
      and its live word came to be set in two places. */}
@@ -3558,14 +3581,14 @@ function redlineLayoutCss(){
          governs — so they arrived wearing the wrong row's measurements.
 
          SO IT IS PINNED HERE, IN THE HEAD, AND NOWHERE ELSE. rlFitTabRow
-         measures `.rl-tabrow` and its `.rl-head`; this selector cannot reach
+         measures '.rl-tabrow' and its '.rl-head'; this selector cannot reach
          either, so the ladder is untouched — and the same classes keep their
          own metrics wherever else they draw (a narrowed reviewer's bar, the
          counterparty's mount).
          EVERY button in the row, not the two reported: a rule naming the two
          that happened to be wrong today is one the next button added here
          walks straight past.
-         DISPLAY IS PART OF THE FIX — .rl-pb-btn computes `block`, and a block
+         DISPLAY IS PART OF THE FIX — .rl-pb-btn computes 'block', and a block
          at a fixed height does not centre its own words. Colour, border, fill
          and the filled act's 700 are each button's own and are left alone. */}
   .redline-page #ws-head .room-acts button{height:28px;padding:0 11px;font-size:14px;
@@ -3688,15 +3711,30 @@ function redlineLayoutCss(){
      counterparty's page draw the same builder — but the group now reads as the
      single 28px bordered box the render draws, with the buttons as bare glyphs
      inside it rather than three raised chips. */
-  .redline-page .rl-type-step{height:28px;padding:0;gap:0;background:var(--color-surface);
+  /* ---- UNSCOPED 23 Aug 2026 — THE CLOTHES FOLLOW THE BUILDER ----
+     The comment above already said it in its own words: the Document tab and
+     the counterparty's page draw the same builder. The RULE then said
+     .redline-page, so those two homes and the design step's preview went on
+     drawing the pre-redesign three-chip grey pill — one builder, two looks,
+     with the note claiming otherwise. Third time this exact trap has been paid
+     for in this file.
+
+     UNSCOPING IS SAFE HERE and it is worth saying why, because it is not
+     always: .rl-type-step is a single class, the base rule sits 2,350 lines
+     ABOVE this one, and equal specificity is settled by source order — so this
+     block wins wherever it applies, with no !important, which would win the
+     fight and hide the next one. The dark pair keeps its html.dark prefix,
+     which is one class heavier than the base's own dark rule and later
+     besides. */
+  .rl-type-step{height:28px;padding:0;gap:0;background:var(--color-surface);
     border:1px solid var(--color-divider);align-self:center}
-  .redline-page .rl-type-step button{width:26px;height:26px;background:none;border:0;
+  .rl-type-step button{width:26px;height:26px;background:none;border:0;
     color:var(--color-neutral-600);font-size:12px}
-  .redline-page .rl-type-step button:hover{background:var(--color-neutral-100);border:0}
-  .redline-page .rl-type-step .rl-type-out{font-family:inherit;font-size:13px;font-weight:400;
+  .rl-type-step button:hover{background:var(--color-neutral-100);border:0}
+  .rl-type-step .rl-type-out{font-family:inherit;font-size:13px;font-weight:400;
     color:var(--color-text);min-width:38px}
-  html.dark .redline-page .rl-type-step{background:var(--color-surface)}
-  html.dark .redline-page .rl-type-step button{background:none}
+  html.dark .rl-type-step{background:var(--color-surface)}
+  html.dark .rl-type-step button{background:none}
   /* The seat switch: a bordered box whose live half FILLS. It is the one
      two-state control on this row where the reader has to know at a glance
      which chair they are in — the whole page draws differently — so it is the

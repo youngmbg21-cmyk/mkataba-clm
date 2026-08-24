@@ -138,7 +138,7 @@ function wireAdviceBoard(){
   document.getElementById('adv-new')?.addEventListener('click',openAdviceIntakeModal);
   document.getElementById('adv-link')?.addEventListener('click',async()=>{
     const link=adviceIntakeLink();
-    try{ await navigator.clipboard.writeText(link); toast(i18t('adv_intake_copied')); }
+    try{ await navigator.clipboard.writeText(link); toast(i18t('adv_intake_copied'),'ok'); }
     catch(e){ openModal(`<div style="padding:22px 24px"><h2 style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0 0 8px">${i18t('adv_public_intake')}</h2><textarea readonly rows="2" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:10px;font-size:12px;font-family:var(--font-mono);word-break:break-all">${link}</textarea><div style="margin-top:12px;text-align:right"><button class="ui-btn" onclick="closeModal()">${i18t('act_close')}</button></div></div>`); }
   });
 }
@@ -210,7 +210,7 @@ function openAdviceModal(id){
       </div>
     </div>`,{maxWidth:'40rem'});
   document.getElementById('adv-copy-track').addEventListener('click',async()=>{
-    try{ await navigator.clipboard.writeText(adviceTrackLink(r)); toast('Tracking link copied — send it to '+r.name); }catch(e){ toast(i18t('adv_could_not_copy'),'err'); }
+    try{ await navigator.clipboard.writeText(adviceTrackLink(r)); toast(i18t('adv_track_copied',{who:r.name}),'ok'); }catch(e){ toast(i18t('adv_could_not_copy'),'err'); }
   });
   document.getElementById('adv-save')?.addEventListener('click',async()=>{
     const patch={};

@@ -286,10 +286,17 @@ describe('f209 · a toast says which of three things happened', () => {
        screen — the confirmation was a bare call, and a bare call is silent. A
        batch send that clears the cards and says nothing reads as a dead button,
        which is the same complaint arriving by a different road. */
+    /* ---- WRITTEN AS THE KIND, NOT THE SENTENCE (23 Aug 2026) ----
+       This used to match the English words inside each toast. The claim was
+       never about the words — it is that these two acts pass a KIND, because a
+       bare call is silent by design. The sentences moved into the dictionary
+       when the counterparty's page was translated, and a test pinned to the
+       English half would have to be edited every time one of them is reworded.
+       Pinned as the relation instead: each of the two confirmations is 'ok'. */
     const portal = read('js/views/portal.js');
-    assert.match(portal, /it is now their turn\.`,\s*'ok'\)/,
+    assert.match(portal, /toast\(i18t\('po_answer_toast'[\s\S]{0,200}?\),'ok'\)/,
       'sending decisions to the other company confirms itself');
-    assert.match(portal, /they will send a signing link\.`,\s*'ok'\)/,
+    assert.match(portal, /toast\(i18t\('po_ready_toast'[\s\S]{0,300}?\),'ok'\)/,
       'and so does telling them you are ready');
     const nego = (read('js/views/negotiation.js') + read('js/views/negotiation-css.js'));
     assert.match(nego, /the new baseline for round \$\{negoRound\(c\)\}`, 'ok'\)/,

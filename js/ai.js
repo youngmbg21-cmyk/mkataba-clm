@@ -257,13 +257,16 @@ const savedResultLang = r => (r && r.lang) || 'en';
    the full record first, then save the result and say what was found. */
 async function runScanFor(c){
   if(!canEdit()){ toast(i18t('ai_viewers_no_scan'),'err'); return; }
-  toast(i18t('ai_scanning'));
+  toast(i18t('ai_scanning'),'ok');   /* progress: the scan takes seconds and nothing else moves */
   try{ await ensureFull(c); }catch(e){ toast(i18t('ai_could_not_load')+e.message,'err'); return; }
   runScan(c);
   const n=openFindings(c).length;
   logAudit(c,'Scanned',`Copilot contract scan run — ${n} open finding${n===1?'':'s'}`);
   c.lastAction=todayStr(); persist(c);
-  toast(n?`Scan complete — ${n} finding${n===1?'':'s'} · open the contract to read them`:'Scan complete — no issues found');
+  /* 'ok' rather than a bare call, and the clean case says so. A bare toast
+     prints NOTHING — so on a clean contract, which is the commonest outcome,
+     the scan ran, cost money, wrote an audit line and answered with silence. */
+  toast(n ? i18tn('ai_scan_found',n,{n}) : i18t('ai_scan_clean'), 'ok');
   if(state.view==='register'&&window.renderRegister) renderRegister();
   else if(state.view==='folder'&&window.renderFolder) renderFolder();
   if(window.updateSidebarCounts) updateSidebarCounts();
@@ -286,7 +289,10 @@ function runScanAct(c){
        still completes normally. */
     if(window.renderChecksCard) renderChecksCard(c);
     if(window.openCheckPanel && document.getElementById('checks-card')) openCheckPanel(c,'risk');
-    toast(n?`Scan complete — ${n} finding${n===1?'':'s'} pinned to clauses`:'Scan complete — no issues found');
+    /* The SECOND scan site, and it had the same fault: the clean case rode a
+       bare toast and printed nothing. Two doors onto one act, and only one of
+       them was fixed would be the duplication warning in its usual direction. */
+    toast(n ? i18tn('ai_scan_pinned',n,{n}) : i18t('ai_scan_clean'), 'ok');
   }, 1100);
 }
 function renderScanSection(c){
@@ -618,7 +624,17 @@ function toggleAIExpand(force){
   if(typeof aiSyncDock==='function') aiSyncDock();
   const b=document.getElementById('ai-expand');
   if(b){
-    b.title=want?'Shrink the panel':'Expand the panel';
+    /* ---- AND THE ATTRIBUTE MOVES WITH THE TITLE ----
+       This wrote an English literal, and it runs on every open (the stored
+       expanded state is restored there), so it OVERWROTE the data-i18n-title
+       the markup carries: the tooltip was correct in the markup, correct after
+       a language switch, and English again the moment the panel was opened.
+       Only a real browser could see that, and one did. The attribute is
+       rewritten too, or the next applyLanguage puts back the word for the
+       state the panel is no longer in. */
+    const tk = want ? 'ai_shrink_panel' : 'ai_expand_panel';
+    b.setAttribute('data-i18n-title', tk);
+    b.title = i18t(tk);
     // chevrons flip: « to grow leftward, » to shrink back
     b.innerHTML=want
       ?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 17l5-5-5-5"/><path d="M6 17l5-5-5-5"/></svg>'
@@ -1387,6 +1403,9 @@ function aiChatContext(){
    answer text, an optional compare table, and cited contract cards resolved
    from live state (so they're clickable and always in sync). */
 function aiRenderServerAnswer(res){
+  /* A malformed or empty body must not throw a TypeError into the message the
+     customer reads — see aiDegrade. */
+  if(!res || typeof res!=='object') throw new Error('malformed answer');
   const list=(res.cards||[]).map(cd=>getContract(cd.id)).filter(Boolean);
   let extra='';
   if(res.compare) extra+=aiCompareTable(res.compare);
@@ -1608,9 +1627,12 @@ function copilotAvailable(){
    answering. */
 function copilotBrainInfo(){
   const server = typeof API_MODE==='function' && API_MODE();
-  if(server && state.aiConfigured) return { live:true,  label:'Claude Copilot · via server',    hint:'Answers come from Claude, routed through your HaTi server.' };
-  if(!server && _localAiKey())     return { live:true,  label:'Claude Copilot · this browser',  hint:'Answers come from Claude, called directly from this browser with your saved key.' };
-  return { live:false, label:'Basic mode — add a key for Copilot', hint:'No Copilot key found — answers use the built-in keyword interpreter. Add an Anthropic key in Team & Settings → Copilot engine.' };
+  /* Read at CALL time, never frozen into a table: this function is re-run on
+     every panel open, so a reader who changes language mid-session gets the
+     new words without a reload (the getter trap, avoided by construction). */
+  if(server && state.aiConfigured) return { live:true,  label:i18t('ai_brain_server'),  hint:i18t('ai_brain_server_hint') };
+  if(!server && _localAiKey())     return { live:true,  label:i18t('ai_brain_browser'), hint:i18t('ai_brain_browser_hint') };
+  return { live:false, label:i18t('ai_brain_basic'), hint:i18t('ai_brain_basic_hint') };
 }
 /* Refresh the main panel's header subtitle to show the live brain. */
 function updateAiBrainPill(){
@@ -2916,17 +2938,25 @@ async function aiSubmit(){
   // mode, browser-direct in local mode. Otherwise the built-in keyword engine
   // keeps the panel working (with a nudge toward adding a key).
   if(copilotAvailable()){
+    /* ---- TWO DIFFERENT FAILURES, TWO DIFFERENT SENTENCES, NEITHER OF THEM RAW ----
+       This wrapped the ASK and the RENDER in one catch and printed e.message
+       into the page. So a fault in our own renderer — aiRenderServerAnswer read
+       res.cards with no guard on res itself — was reported to the customer as
+       "the Copilot engine is unavailable", which is a lie about somebody else's
+       service, with a JavaScript TypeError quoted inside it:
+         "…unavailable right now (Cannot read properties of null (reading 'cards'))".
+       A provider's own sentence is worth showing; a stack-trace fragment is not.
+       And all three sentences were hardcoded English in a product that
+       translates everything else it says. */
+    let res=null;
     try{
-      const res=await copilotAsk(aiChatMessages(), aiChatContext(), aiStreamRenderer());
+      res=await copilotAsk(aiChatMessages(), aiChatContext(), aiStreamRenderer());
+    }catch(e){ finish(aiDegrade(q,e,true)); return; }
+    try{
       finish(aiRenderServerAnswer(res));
     }catch(e){
-      // Graceful degrade: answer from the keyword engine, note why.
-      const local=aiAnswer(q);
-      const why=(e.needsKey||/key|configure|401|needsKey/i.test(e.message||''))
-        ? 'Add your Anthropic API key in Team & Settings → Copilot engine to unlock the full assistant.'
-        : 'The Copilot engine is unavailable right now ('+(e.message||'error')+'), so this is a basic answer.';
-      local.text=(local.text||'')+`<div class="text-[11px] text-amber-700 mt-2">${_aiEsc(why)}</div>`;
-      finish(local);
+      try{ console.error('[hati] Copilot answer could not be rendered', e); }catch(_){}
+      finish(aiDegrade(q,e,false));
     }
     return;
   }
@@ -2934,6 +2964,21 @@ async function aiSubmit(){
   const ans=aiAnswer(q);
   await new Promise(r=>setTimeout(r,300));
   finish(ans);
+}
+
+/* One place that decides what a failed Copilot turn SAYS. Transport failures may
+   quote the server's own sentence — that is a message written for a person and
+   often names the real problem. A RENDER failure is ours, and says so without
+   pretending the engine was down. */
+function aiDegrade(q, e, transport){
+  const local = aiAnswer(q);
+  const why = (e && (e.needsKey || /key|configure|401|needsKey/i.test(e.message||'')))
+    ? i18t('ai_add_key_for_full')
+    : transport
+      ? i18t('ai_engine_unavailable')
+      : i18t('ai_answer_unreadable');
+  local.text = (local.text||'') + `<div class="text-[11px] text-amber-700 mt-2">${_aiEsc(why)}</div>`;
+  return local;
 }
 
 document.getElementById('ai-send').addEventListener('click',aiSubmit);

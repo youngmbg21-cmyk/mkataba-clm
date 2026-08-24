@@ -634,11 +634,33 @@ const M_CHEV = `<svg class="m-chev" width="18" height="18" viewBox="0 0 24 24" f
 
 /* The status pill, reading its colours from the same STATUS_META the desktop
    chip reads — so a contract badged amber on a laptop is amber on a phone, and
-   a change to that table moves both. */
+   a change to that table moves both.
+
+   ---- AND THE THREE DISPLAY OVERLAYS CARRY THEIR OWN META, AS THE DESKTOP'S DO ----
+   contractStage answers 'Partially signed', 'Expired' or 'Ready to sign' before
+   it ever reaches the stored status, and NONE of those three is a key in
+   STATUS_META — that table holds Draft, Under Review, Signed and Declined and
+   nothing else. So the lookup missed and the defensive `|| STATUS_META[c.status]`
+   fallback threw the correct stage away and read the raw status instead.
+   MEASURED side by side on one record: stage 'Partially signed', desktop
+   "Partially signed", phone "EXECUTED" — the phone telling a reader a deal is
+   done while it waits on the counterparty's signature. The same fallback hit an
+   expired contract and the ready-to-sign signal.
+   contractStatusChip escapes it by naming PARTIAL_META / EXPIRED_META /
+   READY_META_SHORT explicitly; this now reads the same three, so one change to
+   any of them still moves both shells. The fallback to the RAW STATUS is gone:
+   an unknown stage takes the neutral grey rather than borrowing another
+   stage's word. */
+const M_STAGE_META = () => ({
+  'Partially signed': (typeof PARTIAL_META!=='undefined') && PARTIAL_META,
+  'Expired':          (typeof EXPIRED_META!=='undefined') && EXPIRED_META,
+  'Ready to sign':    (typeof READY_META_SHORT!=='undefined') && READY_META_SHORT,
+});
 function mPill(c){
   const st = (typeof contractStage==='function' && contractStage(c)) || (c && c.status) || 'Draft';
-  const meta = (typeof STATUS_META==='object' && (STATUS_META[st]||STATUS_META[c&&c.status])) || null;
-  const label = meta ? meta.label : (typeof statusLabel==='function' ? statusLabel(c&&c.status) : st);
+  const meta = M_STAGE_META()[st]
+    || ((typeof STATUS_META==='object' && STATUS_META[st]) || null);
+  const label = meta ? meta.label : (typeof statusLabel==='function' ? statusLabel(st) : st);
   const bg = meta ? meta.bg : 'var(--st-gray-bg)';
   const tx = meta ? meta.tx : 'var(--st-gray-fg)';
   return `<span class="m-pill" style="background:${bg};color:${tx}">${mEsc(label)}</span>`;
@@ -651,9 +673,15 @@ function mMoney(c){
   if(typeof canViewValues==='function' && !canViewValues()) return '';
   const v = Number((c&&c.value)||0);
   if(!v) return '—';
-  // W2-1: the row states the contract's own currency; the dashboards convert
-  if(typeof contractCurrency==='function' && typeof fxHomeCode==='function' && contractCurrency(c)!==fxHomeCode())
-    return `${contractCurrency(c)} ${v.toLocaleString()}`;
+  /* ---- THE SHARED COMPACT FORMATTER, NOT A SECOND ARITHMETIC ----
+     W2-1's rule is right — the row states the CONTRACT's own currency and only
+     the dashboards convert — and this file was carrying its own copy of it,
+     which had already drifted: a foreign amount printed in FULL here
+     ("EUR 4,800,000") where fmtMoneyShortOf prints "EUR 4.8M", so the phone
+     and the laptop disagreed about one number and the long form did not fit a
+     320px row besides. fmtMoneyShortOf is the compact twin built for exactly
+     this and it answers for both cases, home and foreign, in one call. */
+  if(typeof fmtMoneyShortOf==='function') return fmtMoneyShortOf(c);
   return typeof fmtMoneyShort==='function' ? fmtMoneyShort(v) : String(v);
 }
 
@@ -1044,6 +1072,7 @@ function mSheetHtml(){
   else if(s.sheet==='overflow') inner = mOverflowSheetHtml();
   else if(s.sheet==='share')    inner = mShareSheetHtml();
   else if(s.sheet==='renumber') inner = mRenumberSheetHtml();
+  else if(s.sheet==='signers')  inner = mSignersSheetHtml();
   else if(s.sheet==='kpis')     inner = mKpiSheetHtml();
   else return '';
   return `<div class="m-sheet-wrap"><button class="m-scrim" data-m-act="close-sheet" aria-label="${i18t('act_close')}"></button><div class="m-sheet">${inner}</div></div>`;
@@ -1069,6 +1098,31 @@ function mGo(screen, extra){
   const view = M_VIEW_FOR_SCREEN[screen];
   if(view && state.view!==view) state.view = view;
   mRender();
+  if(screen==='contract') mHydrate(state.activeId);
+}
+
+/* ---- THE PHONE READS A LIGHT ROW UNLESS SOMEBODY FETCHES THE REST ----
+   In server mode state.contracts is the LIGHT list: the server's HEAVY()
+   projection strips audit, upload, versions and the rest off every row. The
+   desktop fills them in through ensureFull, which runs from renderWorkspace —
+   and the phone never calls renderWorkspace at all. It assigns state.view
+   directly and paints itself, so ensureFull had NO caller on this shell and the
+   uploaded document, the history tab and the contract brief were silently EMPTY
+   in production while looking perfectly fine locally, where records are whole.
+
+   In the FUNNEL rather than in the two click handlers that open a contract, so
+   a third door inherits it instead of quietly shipping the same hole.
+
+   Fire-and-forget, and the repaint is guarded on the reader still being on that
+   contract: a fetch that lands after they have moved on must not drag the
+   screen back. A failure leaves the light row exactly as it is today. */
+async function mHydrate(id){
+  if(typeof ensureFull!=='function' || !id) return;
+  const c = (typeof getContract==='function') ? getContract(id) : null;
+  if(!c || c._loaded) return;
+  try{ await ensureFull(c); }catch(_){ return; }
+  const s = mS();
+  if(s && s.screen==='contract' && state.activeId===id) mRender();
 }
 
 /* ------------------------------------------------------------------ WIRE ---
@@ -1119,6 +1173,9 @@ function mWire(){
     if(k==='theme'){ if(window.toggleTheme) toggleTheme(); mRender(); return; }
     if(k==='account'){ mOpenSheet('account'); return; }
     if(k==='close-sheet'){ mCloseSheet(); return; }
+    /* The signer picker's Save. It hands two rows to the DESKTOP's own
+       saveSignerPlan; what belongs here is only how a refusal is said. */
+    if(k==='signers-save'){ if(window.mSignersSave) mSignersSave(); return; }
     if(k==='back'){ mBack(); return; }
     if(k==='logout'){ mCloseSheet(); if(window.logout) logout(); return; }
     /* ---- the account sheet's own rows ----

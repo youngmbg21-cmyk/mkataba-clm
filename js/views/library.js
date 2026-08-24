@@ -346,11 +346,19 @@ function openCreateTemplateModal(mode){
       const lists=(editor.get().match(/<(ol|ul)\b/g)||[]).length;
       const heads=(editor.get().match(/<h[1-4]\b/g)||[]).length;
       const tables=(editor.get().match(/<table\b/g)||[]).length;
-      const kept=[ heads?`${heads} heading${heads===1?'':'s'}`:'',
-                   lists?`${lists} list${lists===1?'':'s'}`:'',
-                   tables?`${tables} table${tables===1?'':'s'}`:'' ].filter(Boolean).join(' · ');
+      const kept=[ heads?i18tn('lib_kept_headings',heads,{n:heads}):'',
+                   lists?i18tn('lib_kept_lists',lists,{n:lists}):'',
+                   tables?i18tn('lib_kept_tables',tables,{n:tables}):'' ].filter(Boolean).join(' · ');
       if(report.ok){
-        rep(`<span style="color:var(--color-neutral-700)">${i18t('lib_converted')} <b>${t.length.toLocaleString()}</b> characters${kept?` — ${kept} kept`:''}${res.via==='text'?' · pasted as plain text (the source offered no formatting)':''}. <b>${i18t('lib_preview')}</b> ${i18t('lib_it_before_saving')}</span>`);
+        /* ONE SENTENCE WITH NAMED HOLES. It used to be six fragments glued
+           together — half translated, half not — which is a shape no
+           translator can put right, because word order is not the same in
+           both languages. */
+        rep(`<span style="color:var(--color-neutral-700)">${i18t('lib_paste_report',{
+          n: t.length.toLocaleString(),
+          kept: kept?i18t('lib_paste_kept',{what:kept}):'',
+          via: res.via==='text'?i18t('lib_paste_via_text'):'',
+          preview: i18t('lib_preview') })}</span>`);
       } else {
         rep(`<span style="display:block;border:1px solid var(--st-ruby-line);background:rgba(176,69,60,.06);border-radius:0;padding:8px 10px;color:var(--st-ruby-fg)">
           <b>${i18t('lib_did_not_come_across')}</b> ${_tplEsc(report.reason)}
@@ -616,7 +624,13 @@ function openBlanksEditor(tid){
     <div style="display:flex;justify-content:flex-end;gap:8px">
       <button id="be-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <button id="be-save" class="ui-btn ui-btn-primary">${i18t('lib_save_blanks')}</button>
-    </div></div>`, {maxWidth:'760px'});
+    </div></div>`, {maxWidth:'760px',
+    /* Escape and the scrim ask the SAME question Cancel does. Without this they
+       walked straight past the guard below and took every unsaved blank with
+       them. */
+    onBeforeClose:async()=>!dirty || await confirmDialog({ title:'Discard these changes?',
+      message:'The blanks you added, renamed or removed since opening this editor will be lost. The template itself is unchanged.',
+      confirmLabel:'Discard changes', cancelLabel:'Keep editing', danger:true })});
   draw();
 
   const bodyEl=document.getElementById('be-body');
@@ -830,7 +844,12 @@ function openTemplateEditor(tid){
         <button id="te-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="te-save" class="ui-btn ui-btn-primary" style="white-space:nowrap">${icon('check2','w-3.5 h-3.5')} Save as v${templateVersionNo(rec)+1}</button>
       </span>
-    </div></div>`, {maxWidth:'880px'});
+    </div></div>`, {maxWidth:'880px',
+    /* Same as the blanks editor above: the quiet ways out ask the same question
+       the Cancel button asks, or ten minutes of editing goes without a word. */
+    onBeforeClose:async()=>!dirty || await confirmDialog({ title:'Discard these changes?',
+      message:'The edits you have made since opening this editor will be lost.',
+      confirmLabel:'Discard changes', cancelLabel:'Keep editing', danger:true })});
 
   const st=m=>{ const el=document.getElementById('te-status'); if(el) el.innerHTML=m||''; };
   bindFolderSelect(document.getElementById('te-folder'));
@@ -1482,8 +1501,18 @@ function renderTemplatesPage(){
   });
   /* Company templates come from the server cache; the first visit renders
      before it is warm, so refresh and repaint the rows when the list moves. */
+  /* ---- A FAILED FETCH MUST NOT ASK FOR ANOTHER RENDER ----
+     This read `changed || !lib.loaded`, and a failed load never sets `loaded`
+     — so one bad response re-rendered the page, which re-fetched, which failed,
+     for ever, as fast as the round trip allowed. tplLibRefresh answers `null`
+     on a failure now, which is neither "changed" nor "still not loaded": the
+     page stops, and SAYS SO rather than looping in silence. */
   if(API_MODE()&&typeof tplLibRefresh==='function')
-    tplLibRefresh().then(changed=>{ if(state.view==='templates'&&(changed||!lib.loaded)) renderTemplatesPage(); });
+    tplLibRefresh().then(changed=>{
+      if(state.view!=='templates') return;
+      if(changed===null){ if(window.toast) toast(i18t('lb_templates_load_failed'),'warn'); return; }
+      if(changed||!lib.loaded) renderTemplatesPage();
+    });
   setActiveNav('templates');
 }
 

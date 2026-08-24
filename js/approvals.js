@@ -247,7 +247,10 @@ function resubmitApproval(c, note){
   const st=approvalState(c);
   if(!st.required) return false;
   const back=st.chain.filter(s=>s.status==='rejected'||s.status==='stale');
-  if(!back.length){ toast(i18t('ap_nothing_resubmit')); return false; }
+  /* 'warn', never bare: a bare toast prints nothing, so this refusal — the one
+     the greyed button above makes unreachable through the interface — said
+     nothing at all to anybody who reached it another way. */
+  if(!back.length){ toast(i18t('ap_nothing_resubmit'),'warn'); return false; }
   if(!canEdit()){ toast(i18t('ap_viewers_no_resubmit'),'err'); return false; }
   const u=currentUser();
   c.approvalChain=st.chain.map(s=> (s.status==='rejected'||s.status==='stale')
@@ -568,6 +571,42 @@ function openSigningLockedNotice(c, opts){
     if(back) back(); else if(window.renderWorkspace) renderWorkspace();
   });
 }
+/* ---- SAVING A SIGNING ROUTE: ONE AUTHORITY, TWO EDITORS (23 Aug 2026) ----
+   The phone gained a signer picker of its own, and the one thing it must NOT
+   gain is a second copy of what saving a route means. This is that meaning,
+   lifted out of the desktop editor's Save handler byte for byte and now asked
+   by both: the row shape (ids minted, order renumbered, every signature fact
+   carried over from the prior row), the refusal — A ROUTE WITH ONE SIDE ON IT
+   IS NOT A ROUTE, named by the side that is missing rather than restated as a
+   rule — the audit line, and the persist.
+
+   RETURNS the reason it refused, or null when it saved. The CALLER decides how
+   to say it, because a toast is right on the desktop and a sheet's own error
+   line is right on a phone; what neither may decide is WHETHER.
+
+   It is deliberately not asked to check signingLocked: both editors refuse
+   before they open, which is where a locked route belongs — a form drawn and
+   then refused on Save is a form that wasted the reader's typing. */
+function saveSignerPlan(c, rows){
+  const out=[];
+  (rows||[]).forEach(s=>{ if(!s || !s.name) return;
+    const prior=(c.signerPlan||[]).find(p=>p.id===s.id);
+    out.push({ id:s.id||'sg_'+Math.random().toString(36).slice(2,7), party:s.party, name:s.name, role:s.role||'',
+      email:s.email, memberId:s.party==='internal'?(s.memberId||''):'', order:out.length+1,
+      signed:prior?!!prior.signed:false, at:prior?prior.at:null, by:prior?prior.by:null, signature:prior?prior.signature:null }); });
+  const ourN=out.filter(s=>s.party!=='counterparty').length;
+  const theirN=out.filter(s=>s.party==='counterparty').length;
+  if(!ourN || !theirN){
+    return i18t(!ourN&&!theirN?'ap_need_both_sides'
+      :!ourN?'ap_need_our_side':'ap_need_their_side',
+      { them:c.counterparty||i18t('ct_a_counterparty') });
+  }
+  c.signerPlan=out;
+  logAudit(c,'Signing route',`Set ${out.length} signer(s) in order`);
+  persist(c);
+  return null;
+}
+
 function openSignerPlanEditor(c, opts){
   const back = opts && typeof opts.onDone === 'function' ? opts.onDone : null;
   /* ---- SHUT ONCE ANYBODY HAS SIGNED ----
@@ -687,28 +726,13 @@ function openSignerPlanEditor(c, opts){
   document.getElementById('sp-cancel').addEventListener('click',()=>{ closeModal(); if(back) back(); });
   document.getElementById('sp-save').addEventListener('click',()=>{
     syncPlanFromDom();
-    const out=[]; plan.forEach(s=>{ if(!s.name) return;
-      const prior=(c.signerPlan||[]).find(p=>p.id===s.id);
-      out.push({ id:s.id||'sg_'+Math.random().toString(36).slice(2,7), party:s.party, name:s.name, role:s.role||'',
-        email:s.email, memberId:s.party==='internal'?(s.memberId||''):'', order:out.length+1,
-        signed:prior?!!prior.signed:false, at:prior?prior.at:null, by:prior?prior.by:null, signature:prior?prior.signature:null }); });
-    /* ---- A ROUTE WITH ONE SIDE ON IT IS NOT A ROUTE ----
-       Refused here as well as counted above, because the tally is a reading of
-       the form and this is a reading of what is about to be SAVED — blank rows
-       have been dropped by now, and a row whose name was deleted counts in
-       neither place. It names the missing side rather than restating the rule:
-       "one more thing to do" is not an instruction. */
-    const ourN=out.filter(s=>s.party!=='counterparty').length;
-    const theirN=out.filter(s=>s.party==='counterparty').length;
-    if(!ourN || !theirN){
-      toast(i18t(!ourN&&!theirN?'ap_need_both_sides'
-        :!ourN?'ap_need_our_side':'ap_need_their_side',
-        { them:c.counterparty||i18t('ct_a_counterparty') }),'err');
-      return;
-    }
-    c.signerPlan=out; logAudit(c,'Signing route',`Set ${out.length} signer(s) in order`); persist(c); closeModal();
+    /* The rule lives in saveSignerPlan and is shared with the phone's picker.
+       This decides only HOW to say a refusal — a toast, here. */
+    const why=saveSignerPlan(c, plan);
+    if(why){ toast(why,'err'); return; }
+    closeModal();
     if(back) back(); else renderWorkspace();
-    toast(i18t('ap_route_saved'));
+    toast(i18t('ap_route_saved'),'ok');
   });
 }
 
@@ -762,7 +786,18 @@ function approvalChainHtml(c, opts){
         <button id="ap-approve" class="rounded-lg bg-brand-900 text-white px-3 py-1.5 text-[11px] font-600 hover:bg-brand-800">${st.next.status==='pending'?'Approve':'Approve again'} “${esc1(st.next.name)}”</button>
         <button id="ap-reject" class="rounded-lg border border-rose-200 text-rose-600 px-3 py-1.5 text-[11px] font-600 hover:bg-rose-50">${i18t('ve_reject')}</button></div>`
         :st.next?`<div class="mt-1.5 text-[10px] text-ink/55">${i18t('ap_waiting_on',{who:approverLabelOf(st.next.approver)})}</div>`:''}
-      ${owner?`<button id="ap-resubmit" class="mt-2 w-full rounded-lg border border-brand-200 text-brand-700 px-3 py-1.5 text-[11px] font-600 hover:bg-brand-50">${i18t('ap_revise_send_back')}</button>`:''}
+      ${''/* ---- GREY WHEN THERE IS NOTHING TO SEND BACK ----
+             This drew for the owner whatever the chain said, and the act behind
+             it refuses unless some step is rejected or stale — the same set the
+             two blocks directly above are built from. So on a chain that is
+             simply waiting on the next approver, the owner was offered a button
+             whose only outcome was a refusal. ONE reading (the chain's own
+             rejected/stale steps) now decides both, and the reason is on hover
+             because a dimmed control that cannot explain itself is a wall. */}
+      ${owner?(()=>{ const back=(st.chain||[]).filter(x=>x.status==='rejected'||x.status==='stale');
+        const why=back.length?'':i18t('ap_nothing_resubmit');
+        return `<button id="ap-resubmit"${why?' disabled aria-disabled="true"':''} title="${esc1(why)}"
+          class="mt-2 w-full rounded-lg border border-brand-200 text-brand-700 px-3 py-1.5 text-[11px] font-600 hover:bg-brand-50${why?' opacity-50 cursor-not-allowed':''}">${i18t('ap_revise_send_back')}</button>`; })():''}
     </div>`;
   }
   return html;
@@ -962,7 +997,7 @@ function wireApprovalPanel(c){
    "have they seen it" — it reads shares.first_opened_at, which is stamped once
    on the first real open and never re-counted. */
 
-Object.assign(window,{overseerCfg,saveOverseerCfg,overseerEnforced,overseerFor,OVERSEER_STEP_ID,approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,approvalPanelHtml,approvalChainHtml,signerRouteHtml,wireApprovalPanel});
+Object.assign(window,{overseerCfg,saveOverseerCfg,overseerEnforced,overseerFor,OVERSEER_STEP_ID,approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,saveSignerPlan,approvalPanelHtml,approvalChainHtml,signerRouteHtml,wireApprovalPanel});
 
 /* ============================================================
    HOW MUCH MAY THIS PERSON SIGN FOR

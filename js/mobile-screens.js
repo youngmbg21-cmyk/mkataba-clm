@@ -47,9 +47,12 @@ function mNeedsYou(D){
   };
 
   (D.myApprovals||[]).filter(x=>x.mine).forEach(x=>{
-    const who = (x.c.audit||[]).find(a=>/creat/i.test(a.action||''));
+    /* Off the ROW, not the trail — HEAVY strips `audit` in server mode, so this
+       silently dropped the name on every real workspace. Same reading as the
+       Approvals card below. */
+    const whoName = (typeof contractOwnerName==='function') ? contractOwnerName(x.c) : null;
     push(x.c, 'var(--st-amber-dot)',
-      i18t('m_waiting_your_approval') + (who&&who.user?i18t('m_requested_by',{who:who.user}):''), 'var(--st-amber-fg)');
+      i18t('m_waiting_your_approval') + (whoName?i18t('m_requested_by',{who:whoName}):''), 'var(--st-amber-fg)');
   });
 
   /* The counterparty is waiting on an answer. wsNextAction is the authority on
@@ -445,7 +448,16 @@ function mApprovalsHtml(){
     const c = x.c;
     const open = s.apprOpen===c.id;
     const rejecting = s.apprReject===c.id;
-    const requested = (c.audit||[]).find(a=>/creat/i.test(a.action||''));
+    /* ---- WHO RAISED IT COMES OFF THE ROW, NOT THE TRAIL ----
+       In server mode HEAVY strips `audit` off every light row, and the phone is
+       reading light rows, so this was always undefined — and the card's LABEL
+       flips with it, so an approver saw "Waiting · 4 days ago" instead of
+       "Requested by · Ilana Mwangi · 4 days ago". The name and the date are
+       carried on the row for exactly this (contractOwnerName reads the stored
+       owner first, then the server's _raisedBy stop-gap). */
+    const reqBy = (typeof contractOwnerName==='function') ? contractOwnerName(c) : null;
+    const reqAt = (typeof repRaisedAt==='function') ? repRaisedAt(c) : null;
+    const requested = (reqBy||reqAt) ? { user:reqBy, at:reqAt?new Date(reqAt).toISOString():null } : null;
     return `
     <div class="m-card" style="margin-bottom:12px">
       <button class="m-row" data-m-appr="${mEsc(c.id)}" style="align-items:flex-start;padding:14px">
@@ -575,14 +587,30 @@ function mWireScreen(root){
   }));
 
   /* The register's chip groups write straight into regState(). */
-  root.querySelectorAll('[data-m-stage]').forEach(b=>b.addEventListener('click',()=>{
+  /* ---- THE PAGE HEAD SURVIVES A SEARCH KEYSTROKE, SO ITS CONTROLS BIND ONCE ----
+     The search handler below replaces only `.m-scroll` and then re-wires the
+     WHOLE root. Everything in `.m-pagehead` — the search box and all three chip
+     rows — is outside that swap and therefore survives, collecting one more
+     listener on every keystroke. The tenth letter typed ran the handler ten
+     times, each doing its own rebuild and its own re-wire.
+     The `.m-scroll` bindings below are deliberately NOT guarded: that markup is
+     genuinely new after each swap and must be wired again.
+     Safe to bind once because every one of these reads regState() fresh inside
+     the handler rather than closing over this paint's copy. */
+  const mHeadOnce=(el,key,type,fn)=>{
+    if(!el||!el.dataset) return;
+    if(el.dataset[key]) return;
+    el.dataset[key]='1';
+    el.addEventListener(type,fn);
+  };
+  root.querySelectorAll('[data-m-stage]').forEach(b=>mHeadOnce(b,'mbStage','click',()=>{
     const R = regState(); R.stage = b.getAttribute('data-m-stage'); R.page = 1; mRender();
   }));
-  root.querySelectorAll('[data-m-stream]').forEach(b=>b.addEventListener('click',()=>{
+  root.querySelectorAll('[data-m-stream]').forEach(b=>mHeadOnce(b,'mbStream','click',()=>{
     const R = regState(); const k = b.getAttribute('data-m-stream');
     R.type = (R.type===k) ? 'all' : k; R.page = 1; mRender();
   }));
-  root.querySelectorAll('[data-m-cat]').forEach(b=>b.addEventListener('click',()=>{
+  root.querySelectorAll('[data-m-cat]').forEach(b=>mHeadOnce(b,'mbCat','click',()=>{
     const R = regState(); const k = b.getAttribute('data-m-cat');
     R.category = (R.category===k) ? 'all' : k; R.page = 1; mRender();
   }));
@@ -590,7 +618,7 @@ function mWireScreen(root){
   /* Search: repaint the list only, and put the caret back where it was. A full
      repaint on every keystroke would otherwise take the keyboard down. */
   const q = root.querySelector('#m-reg-q');
-  if(q) q.addEventListener('input', ()=>{
+  mHeadOnce(q,'mbQuery','input', ()=>{
     const R = regState(); R.query = q.value; R.page = 1;
     const host = root.querySelector('.m-scroll');
     if(host){

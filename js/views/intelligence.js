@@ -340,8 +340,16 @@ function applyTemplateResult(ranked, answer){
 // Map the dock conversation to the server's message shape (role + plain text).
 function intelChatMessages(){
   const strip=s=>String(s||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+  /* ---- AN ERROR BUBBLE IS NOT PART OF THE CONVERSATION ----
+     The dock pushes its own failures into `intel.history` as assistant turns —
+     "Copilot error: Daily Copilot budget reached…" — and then sent them back to
+     the model as though the assistant had said them. So one failure went on
+     poisoning every later answer for the rest of the sitting, long after the
+     budget was raised or the network came back. The main Copilot panel has
+     excluded `err` from its own history all along (js/ai.js); this is the same
+     guard, and the two now read alike. */
   return intel.history
-    .filter(m=>(m.role==='user'||m.role==='assistant') && m.text)
+    .filter(m=>(m.role==='user'||m.role==='assistant') && m.text && !m.err)
     .map(m=>({ role:m.role, content:strip(m.text) }))
     .filter(m=>m.content).slice(-8);
 }
@@ -863,10 +871,31 @@ function renderIntel(){
   const svg=document.getElementById('ig-svg');
   svg.addEventListener('wheel',e=>{ e.preventDefault(); if(!IG)return; const s=Math.exp(-e.deltaY*0.0012),nk=Math.max(0.35,Math.min(2.4,IG.view.k*s));
     const r=svg.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top; IG.view.x=mx-(mx-IG.view.x)*(nk/IG.view.k); IG.view.y=my-(my-IG.view.y)*(nk/IG.view.k); IG.view.k=nk; igApplyView(); },{passive:false});
-  let pan=null;
-  svg.addEventListener('pointerdown',e=>{ if(e.target.closest('.ig-node'))return; if(!IG)return; pan={x:e.clientX-IG.view.x,y:e.clientY-IG.view.y}; svg.classList.add('cursor-grabbing'); });
-  window.addEventListener('pointermove',e=>{ if(pan&&IG){ IG.view.x=e.clientX-pan.x; IG.view.y=e.clientY-pan.y; igApplyView(); } });
-  window.addEventListener('pointerup',()=>{ pan=null; svg.classList.remove('cursor-grabbing'); });
+  window._igPan=null;
+  svg.addEventListener('pointerdown',e=>{ if(e.target.closest('.ig-node'))return; if(!IG)return;
+    window._igPan={x:e.clientX-IG.view.x,y:e.clientY-IG.view.y}; svg.classList.add('cursor-grabbing'); });
+  /* ---- THE PAN PAIR IS ARMED ONCE, ON THE WINDOW ----
+     Bound per render, and this map is re-rendered on every grouping change and
+     every return to Insights, so the pair stacked for the life of the sitting
+     — each copy holding an svg node that had been replaced. The drag handler
+     forty lines up gets this right already: it removes its own pair on
+     pointerup. This one had no way to.
+
+     `pan` therefore lives on the window flag rather than in the closure, so
+     the one surviving listener works with whatever the CURRENT render set —
+     a closure variable would belong to the first paint for ever. */
+  if(!window._igPanWired){
+    window._igPanWired=true;
+    window.addEventListener('pointermove',e=>{
+      const p=window._igPan; if(!p||!IG) return;
+      IG.view.x=e.clientX-p.x; IG.view.y=e.clientY-p.y; igApplyView();
+    });
+    window.addEventListener('pointerup',()=>{
+      window._igPan=null;
+      const live=document.getElementById('ig-svg');
+      if(live) live.classList.remove('cursor-grabbing');
+    });
+  }
 
   // controls
   document.getElementById('ig-group').addEventListener('change',e=>{ intel.groupBy=e.target.value; intel.groups=null; rebuildIntelGraph(); });

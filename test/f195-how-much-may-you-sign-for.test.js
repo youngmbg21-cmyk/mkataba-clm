@@ -361,3 +361,58 @@ describe('f195 — the server refuses, and only when it is told to', () => {
     await setSwitch(false);
   });
 });
+
+/* ---------------------------------------------------------------------------
+   MONEY ONLY WHERE MONEY PASSES — ON THE SERVER TOO (audit fix, 23 Aug 2026)
+
+   The guard's own comment has always stated the rule: "a contract carrying no
+   value cannot be over anybody's limit, so an unvalued or non-monetary
+   agreement passes." The code only ever asked about `value`, never valueType.
+   So a contract ticked "no money passes under this contract" on Key terms — or
+   an NDA carrying a figure — was exempt in the BROWSER (signCapBlocker asks
+   isMonetary first, pinned above) and capped HERE. The two disagreed, and the
+   disagreement cost a signature: the page drew a live Sign button, the person
+   pressed it, this route answered 403, and their signature was gone.
+
+   Asserted as the PAIR, because either half alone is the wrong fix — a guard
+   that lets everything through is not an improvement on one that refuses too
+   much. --------------------------------------------------------------------*/
+describe('f195 — the server asks whether money passes at all', () => {
+  const setType = async (id, valueType) => {
+    const full = await W.admin.json('/api/contracts/' + id);
+    const baseVersion = full._v; delete full._v;
+    full.valueType = valueType;
+    const r = await W.admin.raw('/api/contracts/' + id, { method: 'PUT', body: { contract: full, baseVersion } });
+    assert.equal(r.status, 200, 'the admin could record what kind of contract this is');
+  };
+
+  test('a contract that carries no money is not over anybody\'s limit', async () => {
+    await setSwitch(true);
+    await W.admin.json('/api/users/' + W.users.unrestricted.id, { method: 'PATCH', body: { signCap: 1000 } });
+    await setType('MK-A2', 'none');            /* "no money passes under this contract" */
+    const r = await trySign(W.unrestricted, 'MK-A2');
+    assert.equal(r.status, 200,
+      'the guard\'s own comment says a non-monetary agreement passes — now the code does too');
+  });
+
+  test('and the same contract, carrying money, is still refused', async () => {
+    await setType('MK-A2', 'standard');
+    const r = await trySign(W.unrestricted, 'MK-A2');
+    assert.equal(r.status, 403, 'the cap still bites where money really does pass');
+    assert.match(r.json.error, /signing limit/i);
+    await W.admin.json('/api/users/' + W.users.unrestricted.id, { method: 'PATCH', body: { signCap: null } });
+    await setSwitch(false);
+  });
+
+  test('the browser and the server now answer the same question', () => {
+    const srv = fs.readFileSync(path.join(__dirname, '..', 'server', 'server.js'), 'utf8');
+    const gStart = srv.indexOf('if (signCapOn() && req.user.role !==');
+    const guard = srv.slice(gStart, srv.indexOf('contractValue', gStart) + 200);
+    assert.match(guard, /valueType/,
+      'the server reads valueType, as signCapBlocker reads isMonetary');
+    assert.match(guard, /moneyPasses/,
+      'and both refusals are gated on it — the rate one as well as the limit one');
+    assert.ok(/prev && prev\.valueType != null/.test(guard),
+      'read from the STORED record first, like the value and the currency beside it');
+  });
+});

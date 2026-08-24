@@ -1092,6 +1092,13 @@ function _negoFormattingMoved(c, draft, live){
    their own chip through i18t instead. */
 const NEGO_FMT_ONLY_SUMMARY = 'Formatting changed — the wording is unchanged';
 
+/* ---- WHY THE LAST FILING OR DECISION WAS REFUSED ----
+   Set by the guards below and read by applyResponse, which otherwise reports
+   every unfiled proposal as "does not match any clause" — true of an unplaceable
+   clause id and untrue of a contract whose wording is frozen, with a remedy the
+   reader cannot act on. Per sitting, in memory, overwritten by each refusal: it
+   is read immediately by the one caller that asks. */
+let negoLastRefusal = null;
 async function negoFileChange(c, draft, opts = {}){
   /* ---------- AN EXECUTED CONTRACT TAKES NO NEW CHANGES ----------
      The signed door in negoResolve refused to DECIDE on an executed contract
@@ -1114,7 +1121,21 @@ async function negoFileChange(c, draft, opts = {}){
      negoInit, because a refusal must not leave initialisation behind as its
      only trace. */
   if (negoWordingFrozen(c)){
-    if (window.toast) toast(i18t(negoExecuted(c) ? 'ne_executed_amend' : 'ne_signed_frozen'), 'err');
+    /* ---- QUIET MEANS QUIET, AND THE REASON GOES BACK TO THE CALLER ----
+       opts.quiet guarded only logAudit, so this drew a red box even from the
+       BACKGROUND POLLER — applyResponse reaches both this and negoResolve with
+       quiet:true for exactly this reason and never got it. An owner working
+       anywhere in the app got a refusal about a contract they were not looking
+       at: the negoSignalReady fault, which this rulebook records as unique and
+       is not.
+       And the reason is REMEMBERED rather than only shouted, because the
+       caller's own message for this case said the wording "does not match any
+       clause" — a different and untrue diagnosis, whose stated remedy (fix the
+       clause reference) cannot work. The clause matched perfectly; the contract
+       is locked because somebody has signed. */
+    const why = i18t(negoExecuted(c) ? 'ne_executed_amend' : 'ne_signed_frozen');
+    negoLastRefusal = why;
+    if (!opts.quiet && window.toast) toast(why, 'err');
     return null;
   }
   negoInit(c);
@@ -1880,7 +1901,21 @@ function negoResolve(c, id, status, opts = {}){
      expression out a second time — two copies is how one of them comes to be
      the narrowed version this comment exists to warn about. */
   if (negoWordingFrozen(c)){
-    if (window.toast) toast(i18t(negoExecuted(c) ? 'ne_executed_amend' : 'ne_signed_frozen'), 'err');
+    /* ---- QUIET MEANS QUIET, AND THE REASON GOES BACK TO THE CALLER ----
+       opts.quiet guarded only logAudit, so this drew a red box even from the
+       BACKGROUND POLLER — applyResponse reaches both this and negoResolve with
+       quiet:true for exactly this reason and never got it. An owner working
+       anywhere in the app got a refusal about a contract they were not looking
+       at: the negoSignalReady fault, which this rulebook records as unique and
+       is not.
+       And the reason is REMEMBERED rather than only shouted, because the
+       caller's own message for this case said the wording "does not match any
+       clause" — a different and untrue diagnosis, whose stated remedy (fix the
+       clause reference) cannot work. The clause matched perfectly; the contract
+       is locked because somebody has signed. */
+    const why = i18t(negoExecuted(c) ? 'ne_executed_amend' : 'ne_signed_frozen');
+    negoLastRefusal = why;
+    if (!opts.quiet && window.toast) toast(why, 'err');
     return null;
   }
   /* ---- NO SECOND ACCEPTANCE SILENTLY DISCARDS A FIRST (15 Aug 2026) ----
@@ -3546,6 +3581,10 @@ function cardName(name, org){
   return parts[0] + ' ' + letter.toUpperCase() + '.';
 }
 
+/* Read at press time, never cached: a getter, because the value changes on every
+   refusal and a copied snapshot would report the wrong one. */
+if (typeof window !== 'undefined' && !Object.getOwnPropertyDescriptor(window,'negoLastRefusal'))
+  Object.defineProperty(window, 'negoLastRefusal', { get: () => negoLastRefusal, configurable: true });
 if (typeof window !== 'undefined') Object.assign(window, {
   cardName, negoTheirCopy,
   negoClauseLabel, negoClauses, negoClauseList, negoClauseById, negoClauseNowById,

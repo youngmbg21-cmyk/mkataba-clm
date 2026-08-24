@@ -93,6 +93,17 @@ function published() {
     }
     const re2 = /window\.([A-Za-z_$][\w$]*)\s*=(?!=)/g;
     while ((m = re2.exec(s))) out.add(m[1]);
+    /* ---- A THIRD PUBLISH SHAPE: Object.defineProperty ----
+       A name whose VALUE changes — a last-refusal reason, a live counter — has
+       to be published as a getter, or every reader gets the snapshot taken at
+       load. That is a real export and this sweep could not see it, so the first
+       one written failed here as an always-false guard: the sweep reporting a
+       correctly-published name is exactly the false alarm that gets a sweep
+       switched off. Both quote styles, because the codebase uses both. */
+    const re3 = /Object\.defineProperty\(\s*window\s*,\s*['"]([A-Za-z_$][\w$]*)['"]/g;
+    while ((m = re3.exec(s))) out.add(m[1]);
+    const re4 = /window\[\s*['"]([A-Za-z_$][\w$]*)['"]\s*\]\s*=(?!=)/g;
+    while ((m = re4.exec(s))) out.add(m[1]);
   }
   return out;
 }
@@ -102,7 +113,12 @@ function readThroughWindow() {
   const out = new Map();
   for (const f of files) {
     const s = blank(fs.readFileSync(f, 'utf8'));
-    const re = /(?<![.\w$])window\.([a-z][A-Za-z0-9_$]*)\b(?!\s*=(?!=))/g;
+    /* ---- THE BLIND SPOT THIS SWEEP HAD, AND IT LET TWO REAL BUGS THROUGH ----
+       The pattern started `[a-z]`, so every CamelCase and UPPER_CASE read —
+       window.FIRST_PARTY, window.SIGN_ROUTE_ON, window.M_DESK_MSG — was
+       invisible to the one check built to catch an unreachable name. A sweep
+       with a blind spot is worse than no sweep, because it is trusted. */
+    const re = /(?<![.\w$])window\.([A-Za-z_$][A-Za-z0-9_$]*)\b(?!\s*=(?!=))/g;
     let m;
     while ((m = re.exec(s))) {
       const k = m[1];
@@ -129,6 +145,14 @@ const BROWSER = new Set([
   'devicePixelRatio', 'onerror', 'onbeforeunload', 'getSelection', 'btoa', 'atob',
   'isSecureContext', 'visualViewport', 'speechSynthesis', 'indexedDB',
   'frameElement', 'closed', 'focus', 'blur', 'postMessage', 'showOpenFilePicker',
+  /* CamelCase browser furniture, which only became visible when this sweep
+     stopped starting its pattern at [a-z] — see readThroughWindow. */
+  'CSS', 'MutationObserver', 'ResizeObserver', 'IntersectionObserver',
+  'FileReader', 'DataTransfer', 'AbortController', 'Intl', 'Notification',
+  /* Third-party libraries loaded from a script tag rather than imported: they
+     land on window by construction, and the guards on them are the honest
+     "is it here yet" question. */
+  'Chart', 'Tesseract', 'pdfjsLib', 'html2canvas', 'jspdf',
 ]);
 
 /* DELIBERATELY ABSENT, and each must say why it is not a bug. Empty today.
@@ -136,7 +160,19 @@ const BROWSER = new Set([
    example is `state`, which core.js declares as a const and which every module
    must therefore read BARE, because `window.state && …` silently disabled the
    review gate once. Anything else on this list is debt with a note on it. */
-const DELIBERATE = {};
+const DELIBERATE = {
+  /* ---- SETTINGS A DEPLOYMENT MAY OVERRIDE, AND USUALLY DOES NOT ----
+     Each of these is read as `window.X || <the built-in default>`, so ABSENCE
+     IS THE NORMAL CASE and the guard is doing exactly its job. They are set
+     from outside this codebase — an operator's script tag, or a test harness —
+     which is why no module publishes them and why publishing them would break
+     the thing they are for. */
+  HATI_OCR_PDFJS: 'an operator may point the PDF reader at their own copy instead of the CDN',
+  HATI_OCR_PDFJS_WORKER: 'ditto, for its worker',
+  HATI_OCR_TESSERACT: 'ditto, for the offline recogniser',
+  HATI_OCR_TESSERACT_OPTS: 'ditto, for its options',
+  RL_LIVE_POLL: 'set to false by test/world.js so a harness page does not open a live poll; absent in the product, which is what turns polling ON',
+};
 
 describe('F232 — every window.foo a module reads is one some module publishes', () => {
 
@@ -191,5 +227,9 @@ describe('F232 — every window.foo a module reads is one some module publishes'
       assert.ok(pub.has(n), `${n} rides a named export object and must still be seen`);
     for (const n of ['negoFileChange', 'reviewAsk'])
       assert.ok(pub.has(n), `${n} rides an object literal and must still be seen`);
+    /* The third shape, added 23 Aug 2026 when the first getter-published name
+       was written and this sweep called it dead. */
+    assert.ok(pub.has('negoLastRefusal'),
+      'a getter published with Object.defineProperty is published, and must be seen as such');
   });
 });
