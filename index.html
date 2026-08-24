@@ -1546,7 +1546,11 @@
      THREE INKS below are what carry the state and none of them moved. The
      contract room's fact row sets its own 700 a few rules up
      (.room-facet .v .ngl-w) and is untouched — that is a head, not a row. */
-  .ngl-w{ flex:none; font-size:14px; font-weight:400; white-space:nowrap;
+  /* 13px with the rest of the row — WO-16. The whose-move words are a CELL
+     like any other and the 23 Aug ruling is that every cell reads at one size.
+     .room-facet .v .ngl-w keeps its own weight: one builder, two homes, and
+     only the LIST was in the ask. */
+  .ngl-w{ flex:none; font-size:13px; font-weight:400; white-space:nowrap;
     background:none; border:0; padding:0; border-radius:0; }
   .ngl-w-you{ color:var(--st-amber-fg); }
   .ngl-w-them{ color:var(--st-gray-fg); }

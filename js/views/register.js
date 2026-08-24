@@ -710,7 +710,7 @@ function regRowsHtml(cs){
               in full width. */}
         <span style="display:flex;align-items:center;gap:9px;min-width:0">
         <span class="reg-tick" style="background:${folderColor(c)}"></span>
-        <span class="reg-title" style="min-width:0;flex:1;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(regTitleOf(c))} · ${esc(cKind(c))}">${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:14px;font-weight:400" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc(c.parentId)}">↳ </span>`:''}${regTitleOf(c)}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:400;font-size:14px;font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
+        <span class="reg-title" style="min-width:0;flex:1;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(regTitleOf(c))} · ${esc(cKind(c))}">${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:13px;font-weight:400" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc(c.parentId)}">↳ </span>`:''}${regTitleOf(c)}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:400;font-size:13px;font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
         </span>
       </td>
       <td style="color:var(--color-neutral-700);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.counterparty||'—')}</td>
@@ -727,7 +727,7 @@ function regRowsHtml(cs){
       <td style="text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:400;white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}">${val}</td>
       ${''/* The mockup's expiry cell: the date, then "· in Nd" in the urgency
             colour — red inside 30 days, amber to 90 — carrying its weight. */}
-      <td style="white-space:nowrap;font-variant-numeric:tabular-nums"><span style="font-weight:400;color:${renDateColor}">${renDate}</span>${renIn?` <span style="font-size:14px;font-weight:400;color:${renColor}">· ${renIn}</span>`:''}</td>
+      <td style="white-space:nowrap;font-variant-numeric:tabular-nums"><span style="font-weight:400;color:${renDateColor}">${renDate}</span>${renIn?` <span style="font-size:13px;font-weight:400;color:${renColor}">· ${renIn}</span>`:''}</td>
       ${''/* ---- THE STAGE IS A DOT AND A WORD (owner-approved render, 24 Aug
              2026) ---- It was a filled chip, and five of them running down the
              middle of the page read as five buttons. The dot is the shape a
@@ -762,7 +762,7 @@ function regRowsHtml(cs){
              no verb. */}
       ${neg ? `<td style="text-align:right;white-space:nowrap">${negoMovePillHtml(c)}</td>` : `
       <td style="position:relative;text-align:right;white-space:nowrap" onclick="event.stopPropagation()">
-        <button data-menu="${c.id}" style="border:0;background:none;cursor:pointer;padding:0 4px;line-height:var(--row-line-1);color:var(--color-neutral-600);font-size:14px;letter-spacing:1px;vertical-align:middle" title="${i18t('reg_more_actions')}">⋯</button>
+        <button data-menu="${c.id}" style="border:0;background:none;cursor:pointer;padding:0 4px;line-height:var(--row-line-1);color:var(--color-neutral-600);font-size:13px;letter-spacing:1px;vertical-align:middle" title="${i18t('reg_more_actions')}">⋯</button>
         <div data-menu-pop="${c.id}" style="display:none;position:absolute;right:8px;top:34px;z-index:30;width:180px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:0;padding:4px;flex-direction:column;text-align:left">${actBtns(c)}</div>
       </td>`}
     </tr>`;}).join('')
@@ -995,7 +995,18 @@ function renderRegister(opts){
          grey band), teal tracking numbers, regular-weight titles with the
          document KIND on a quiet second line, the stream tick beside the
          title rather than on the row's edge, and a tighter row. */
-      .reg-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:14px}
+      /* ---- THE ROWS COME DOWN ONE RUNG (owner-asked 24 Aug 2026: "reduce
+         the font by a size in the contracts page list of contracts and the
+         negotiations page list of contracts", ruled yes when told the cost) ----
+         14px to 13. EVERY CELL DROPS TOGETHER — the 23 Aug ruling flattened
+         this row to one size and one weight and flat-rows-and-alerts-verify
+         pins exactly that, so a partial drop would fail it honestly. Five of
+         those cells are INLINE styles and had to move in the markup; a class
+         rule cannot reach them. The document kind stays SMALLER than the row,
+         which is that check's other half.
+         DIVERGES FROM THE DESIGN REFERENCE, whose type scale puts table row
+         text at 14px. Recorded as the owner's ruling. */
+      .reg-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:13px}
       .reg-table thead th{position:sticky;top:0;z-index:3}
       /* ---- THE COLUMN HEADS ARE NOT SHOUTED (owner-asked 24 Aug 2026: "the
          headers highlighted should not be in capital letters apart from the
@@ -1056,12 +1067,12 @@ function renderRegister(opts){
          pixels of height. It is the one place in a row where a size difference
          is carrying something. */
       .reg-table{--reg-row-h:36px}
-      .reg-mk{font-family:var(--font-mono);font-size:14px;font-weight:400;
+      .reg-mk{font-family:var(--font-mono);font-size:13px;font-weight:400;
         color:var(--color-accent-600);white-space:nowrap;font-variant-numeric:tabular-nums}
       /* The status chip, flattened HERE and not at .badge — that class dresses
          every card, list and panel in the product, and this is a decision about
          a table row. The wash and the ink are untouched. */
-      .reg-table .badge{font-size:14px;font-weight:400}
+      .reg-table .badge{font-size:13px;font-weight:400}
       .reg-title{font-weight:400;color:var(--color-text);line-height:var(--row-line-1)}
       /* ---- THE ROW IS ONE LINE AND 36px (owner-ruled 24 Aug 2026) ----
          The cell padding is what sets it: 8px above and below a 20px line box
@@ -1078,7 +1089,25 @@ function renderRegister(opts){
          inline-flex child sits on the BASELINE and the strut adds its descender
          space underneath. Measured at each step rather than assumed. This is
          also the design's own rule (--row-h). */
-      .reg-table td{height:var(--reg-row-h);padding:0 var(--pad-row-x);line-height:var(--row-line-1)}
+      /* ---- A CUT CELL SAYS SO (WO-9, 24 Aug 2026) ----
+         The sideways scroll is gone — table-layout:fixed above bounds the
+         table to its container, measured at 0 overflow at 1152/1280/1366/1440/
+         1920 in both languages. WHAT WAS LEFT IS THE OTHER HALF OF THE OWNER'S
+         REPORT: "words disappear to the right of the tables". A fixed layout
+         cuts a cell whose content is too wide, and with no text-overflow the
+         words simply STOP — measured, 8 to 16 cells a page at laptop widths,
+         which is exactly the cut-off WHOSE MOVE column in the screenshot.
+         THE REFERENCE'S OWN RULE, TYPOGRAPHY.md section 6: "Every table cell
+         that holds a name, a title or free text: min-width:0; white-space:
+         nowrap; overflow:hidden; text-overflow:ellipsis on the cell", and
+         "Column header cells: same three properties, so a header label can
+         never overlap its neighbour when tracks compress." So this is a
+         correction toward the design, not a workaround.
+         NOTHING IS LOST SILENTLY: every cell that can be cut already carries
+         its full text on hover, and the ellipsis is what says there is more. */
+      .reg-table td{height:var(--reg-row-h);padding:0 var(--pad-row-x);line-height:var(--row-line-1);
+        overflow:hidden;text-overflow:ellipsis}
+      .reg-table th{overflow:hidden;text-overflow:ellipsis}
       .reg-table td > span{vertical-align:middle}
       /* The tick no longer spans two lines, so it stops stretching and takes a
          height of its own beside the one line it marks. */
