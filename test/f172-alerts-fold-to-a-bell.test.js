@@ -159,13 +159,32 @@ describe('f172 · the notices draw in place and the bell opens the panel', () =>
     }
   });
 
-  test('the reading notice never folds — it stands beside the bell', async () => {
+  test('a reading is said on the COLUMN, and the stack is not where it lives', async () => {
+    /* REVERSED IN PLACE 24 Aug 2026, and it took two removals to get here —
+       this claim outlived both of them, which is why it stood red.
+       IT ASKED FOR `.rl-note-card`, the floating band that explained a
+       non-default reading. That went on 23 Aug with "nothing floats over the
+       page"; what replaced it was a strip inside the change column, and the
+       STRIP went on 24 Aug (WO-14, owner-asked: "Just delete the strip for
+       now"). So the notice this test is named after does not exist on either
+       surface any more.
+       WHAT SAYS IT NOW is the column itself: on a non-default reading it greys
+       and REFUSES THE PRESS, which is a stronger statement than a sentence —
+       and f84 and redline-verify both measure that. What is left for THIS file,
+       which is about the notice stack, is the half it can still answer: the
+       stack is not where a reading is explained, and taking the reading notice
+       out of it did not take the stack's own notices with it. */
     const w = world();
     await mounted(w, 'news');
     press(w, '.rl-tabrow [data-rl-read="agreed"]');
-    assert.ok($(w, '.rl-note-card'), 'a non-default reading always says so (f84\'s rule)');
-    press(w, '.rl-note-card [data-rl-read="marks"]');
-    assert.equal($(w, '.rl-note-card'), null, 'and the way back on it still works');
+    assert.equal($(w, '.rl-note-card'), null, 'no floating band explains it');
+    assert.equal($(w, '.rl-idx-reading'), null, 'and no strip in the column either');
+    assert.ok($(w, '.rl-notices .rv-banner'),
+      'the stack still draws what it is for — a reading did not take it with it');
+    /* And the way back is the tab, which is drawn on every paint. */
+    assert.ok($(w, '.rl-tabrow [data-rl-read="marks"]'), 'the way back is on the tab row');
+    press(w, '.rl-tabrow [data-rl-read="marks"]');
+    assert.equal(w.win.rlReadMode(), 'marks', 'and pressing it lands back on the redline');
   });
 
   test('REVERSED — nothing waiting and no news means no bell', async () => {

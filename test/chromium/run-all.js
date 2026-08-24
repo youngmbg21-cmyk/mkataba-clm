@@ -52,7 +52,12 @@ const DIR = __dirname;
 const KNOWN_RED = {
   /* --- stale after a deliberate change: the product moved, the file did not --- */
   'white-band-and-tabs-verify.js':
-    '34 of 36 PASS. The two that do not are 5d/5e, and they are NOT the home ' +
+    '36 of 38 PASS. The two that do not are 5d/5e. WIDENED 24 Aug 2026 (WO-16): ' +
+    'the list titles are now deliberately ONE RUNG under the reference on the ' +
+    'owner\'s ask, so the size left that comparison and is pinned separately as ' +
+    'the relation, with both lists pinned to each other so there can never be a ' +
+    'third size. Those two new checks pass. WHAT IS STILL RED is unchanged and ' +
+    'is NOT the home page rebuild of 24 Aug — MEASURED on a clean tree before ' +
     'page rebuild of 24 Aug — MEASURED on a clean tree before that work and ' +
     'they fail there identically. The register list titles compute a 20px ' +
     'line box against the reading switch\'s 19.6px, and the claim compares ' +
@@ -63,6 +68,18 @@ const KNOWN_RED = {
     'gives — the row rhythm or the shared type — and that is a density ' +
     'decision, not a drive-by fix. Everything else in the file, including the ' +
     'white column and the reversed count rules, is green.',
+  /* --- retired feature, net kept for the restore --- */
+  'copilot-band-verify.js':
+    'THE BAND IT MEASURES NO LONGER DRAWS. WO-3, 24 Aug 2026, owner-asked: ' +
+    '"delete the copilot first pass feature completely", then "Just delete the ' +
+    'strip for now". rlPlanBandHtml is a `return \'\'` stub and nothing mounts ' +
+    'it; js/redlineplan.js, the rp_* wording and the .rl-plan rules are ' +
+    'untouched and dormant. THE FILE IS KEPT RATHER THAN DELETED because ' +
+    'restoring the band is putting one function body back, and this is the only ' +
+    'thing that would prove the restore worked — it presses the bar for real, ' +
+    'counts the rows as visible pixels and drives "Take it" through to an ' +
+    'accepted change. Green again the day the body returns; delete it the day ' +
+    'the owner says the feature is not coming back.',
   'six-round-audit.js':
     'ROUNDS 1-6 NOW PASS; the ENDGAME does not. Re-pointed 21 Aug 2026: the ' +
     'clause tool row it filed through (pill -> panel -> plus now), the ask tag ' +
