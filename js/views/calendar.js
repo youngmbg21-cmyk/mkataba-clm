@@ -43,11 +43,14 @@ let calState = { ym:null, view:'month', scope:'all' };
    in order, which the agenda beside the month already does for the window a
    reader can act on. What replaces them each answer something nothing in HaTi
    did — when the book runs out, and what is owed. calQuarterHtml and
-   calListHtml go with them.
+   calListHtml go with them, and so does every rule that dressed them.
+   OBLIGATIONS FOLLOWED THEM THE SAME EVENING (owner-ruled, 24 Aug 2026): its
+   rows are still events on the month grid and in the agenda beside it, which is
+   where an obligation sits next to the date it falls on.
    THE KEYS STAY READABLE FROM AN OLD BROWSER: calView() falls back to 'month'
    for anything not on this list, so a reader whose stored tab was 'list' lands
    on the month rather than on a blank page. */
-const CAL_VIEWS = ['month','horizon','obligations'];
+const CAL_VIEWS = ['month','horizon'];
 const CAL_AGENDA_DAYS = 14;
 
 function calMonth(){ if(!calState.ym){ const d=new Date(); calState.ym={y:d.getFullYear(), m:d.getMonth()}; } return calState.ym; }
@@ -508,107 +511,6 @@ function calHorizonHtml(){
   </section>`;
 }
 
-/* ---- OBLIGATIONS: WHAT IS OWED, AND BY WHOM (owner-ruled 24 Aug 2026) ----
-   The design's third tab. Every other surface in this product shows an
-   obligation beside the ONE contract it belongs to; this is the only place the
-   whole book's obligations sit in one list, which is the question an operations
-   person actually opens the calendar with.
-   IT BORROWS EVERY READING: the rows come off calendarEvents' own obligation
-   events — the same builder the month grid and the agenda draw from, carrying
-   obligationDue, obligationOwner and obligationIsTheirs — so a fourth reading
-   of "what is owed" cannot come to disagree with the other three. */
-function calObligationRows(evs){
-  return evs.filter(e=>e.type==='obligation')
-    .sort((a,b)=>String(a.date).localeCompare(String(b.date)));
-}
-/* ---- THE WHAT COLUMN IS A LABEL, NOT A SENTENCE (owner-reported 24 Aug 2026:
-       "make the obligation a bullet point not an entire sentence which congests
-       the table") ----
-   The design's own rows read "Rebate reconciliation", "Quarterly volume
-   report" -- three words, weight 600, one line. HaTi's obligation carries
-   whatever Copilot read out of the wording or whatever somebody typed, which is
-   regularly a whole drafted sentence.
-   IT IS A READING, NOT A REWRITE. Nothing here invents a shorter label: it
-   collapses the whitespace and drops a trailing full stop, which is the whole
-   of the difference between a sentence and a label, and the untouched text
-   stays on the row's own hover. Cutting at the first comma was tried on paper
-   and refused -- "Within 30 days of the end of each quarter, submit a volume
-   report" would keep the TIMING and throw away the act, which is worse than
-   showing the sentence. The congestion is fixed by BOUNDING THE COLUMN (see
-   .cal-obt below), so one long note can no longer squeeze the other five. */
-function calObLabel(note){
-  const t=String(note||'').replace(/\s+/g,' ').trim();
-  return t.replace(/[.\u3002]+$/,'');
-}
-function calObligationsHtml(evs){
-  const rows=calObligationRows(evs);
-  const today=calToday();
-  const overdue=rows.filter(r=>!r.done && r.date<today).length;
-  const week=rows.filter(r=>{ const d=daysUntil(r.date); return !r.done && d>=0 && d<=7; }).length;
-  const may=(!window.canEdit||canEdit());
-  const body=rows.length ? rows.map(r=>{
-    const d=daysUntil(r.date);
-    const late=!r.done && d!=null && d<0;
-    const tone=r.done?'var(--color-neutral-500)':late?'var(--st-ruby-fg)'
-      :(d!=null&&d<=7)?'var(--st-amber-fg)':'var(--color-text)';
-    const state=r.done?i18t('cal_ob_done'):late?i18t('cal_ob_overdue')
-      :(d!=null&&d<=7)?i18t('cal_ob_soon'):i18t('cal_ob_open');
-    return `<tr data-sel="${_esc(r.cid)}">
-      <td class="ob-w" title="${_esc(r.note||i18t('cal_ob_untitled'))}">${_esc(calObLabel(r.note)||i18t('cal_ob_untitled'))}</td>
-      <td class="ob-c">${_esc(r.cname)}</td>
-      <td class="ob-o">${_esc(r.owner||i18t('cal_unassigned'))}${r.theirs
-        ? ` <span class="cal-theirs">${_esc(i18t('cal_k_theirs'))}</span>`:''}</td>
-      <td class="ob-d" style="color:${tone}">${_esc(window.regDotDate?regDotDate(r.date):r.date)}</td>
-      <td class="ob-cad">${_esc(r.cadence||i18t('cal_ob_once'))}</td>
-      <td class="ob-s"><span style="color:${tone}">${_esc(state)}</span>${(!r.done&&r.obId&&may&&window.toggleObligationById)
-        ? ` <button class="cal-upn-done" data-ob-done="${_esc(r.obId)}" data-ob-cid="${_esc(r.cid)}"
-            title="${_esc(i18t('cal_mark_complete'))}">${_esc(i18t('cal_done'))}</button>`:''}</td>
-    </tr>`;
-  }).join('') : `<tr><td colspan="6"><div class="cal-empty">
-      <div class="cal-empty-t">${_esc(i18t('cal_ob_none'))}</div>
-      <div class="cal-empty-s">${_esc(i18t('cal_ob_none_sub'))}</div></div></td></tr>`;
-  return `<section class="cal-card cal-grid">
-    <div class="cal-obwrap scroll-thin"><table class="cal-obt">
-      ${''/* With table-layout:fixed the widths are read off the FIRST row, so
-             they have to be on the head cells -- a width stated only on a td is
-             a width the table never sees. */}
-      <thead><tr>
-        <th class="ob-w">${_esc(i18t('cal_ob_col'))}</th><th class="ob-c">${_esc(i18t('cal_ob_contract'))}</th>
-        <th class="ob-o">${_esc(i18t('cal_ob_owner'))}</th><th class="ob-d r">${_esc(i18t('cal_ob_due'))}</th>
-        <th class="ob-cad">${_esc(i18t('cal_ob_cadence'))}</th><th class="ob-s">${_esc(i18t('cal_ob_status'))}</th>
-      </tr></thead><tbody>${body}</tbody></table></div>
-    ${''/* The foot states the two facts somebody scans this list for. It draws
-           no verbs: Reassign and Chase owner do not exist in this product, and
-           a button that refuses is worse than no button — the row's own Done is
-           the one act, and it is on the row it acts on. */}
-    <div class="cal-obfoot">${_esc(i18tn('cal_ob_overdue_n',overdue,{n:overdue}))} &middot; ${_esc(i18tn('cal_ob_week_n',week,{n:week}))}</div>
-  </section>`;
-}
-
-/* The List view: every date in the period, in order, with its own row. It is
-   the one view that can say the whole sentence — kind, agreement, counterparty
-   and how long there is — so it does, and it scrolls inside its own card. */
-function calListHtml(evs, p){
-  const rows=evs.filter(e=>calInPeriod(e,p)).sort((a,b)=>a.date.localeCompare(b.date));
-  if(!rows.length) return `<div class="cal-empty">${_esc(i18t('cal_none_in_period'))}</div>`;
-  let lastMonth='';
-  return `<div class="cal-list">`+rows.map(e=>{
-    const ev=CAL_EVENT[e.type], d=daysUntil(e.date);
-    const mk=e.date.slice(0,7);
-    const head=mk!==lastMonth?(lastMonth=mk, `<div class="cal-list-mh">${_esc(calMonthName(+mk.slice(0,4),+mk.slice(5,7)-1))}</div>`):'';
-    const when=d<0?i18t('cal_days_ago',{n:Math.abs(d)}):(d===0?i18t('cal_today'):i18t('cal_in_days',{n:d}));
-    return head+`<button class="cal-list-row" data-sel="${_esc(e.cid)}">
-      <span class="dt">${_esc(window.regDotDate?regDotDate(e.date):e.date)}</span>
-      ${_dot(ev.dot,7)}
-      <span class="g">
-        <span class="n2${e.done?' is-done':''}">${_esc(e.type==='obligation'&&e.note?e.note:e.cname)}</span>
-        <span class="m3">${_esc(ev.label)} · ${_esc(e.cid)}${e.type==='obligation'?' · '+_esc(e.owner||i18t('cal_unassigned')):(e.note&&e.type==='expiry'?' · '+_esc(e.note):'')}</span>
-      </span>
-      <span class="lft" style="color:${ev.fg}">${_esc(when)}</span>
-    </button>`;
-  }).join('')+`</div>`;
-}
-
 /* "Next 30 days" — the render's own panel. Its rows are doors; an obligation
    also carries Done, which is the verb people come to this screen wanting and
    which used to mean opening the contract and scrolling to its own panel. */
@@ -667,10 +569,8 @@ function renderCalendar(){
   let main='';
   if(view==='month'){
     main=`<section class="cal-card cal-grid">${calCardBarHtml(y,m)}${calMonthGridHtml(y,m,byDay,{id:'cal-grid'})}</section>`;
-  } else if(view==='horizon'){
-    main=calHorizonHtml();
   } else {
-    main=calObligationsHtml(evs);
+    main=calHorizonHtml();
   }
 
   document.getElementById('content').innerHTML=`
@@ -701,7 +601,6 @@ function renderCalendar(){
       <div class="views">
         ${seg('month',i18t('cal_v_month'),view==='month'?inPeriod:null)}
         ${seg('horizon',i18t('cal_v_horizon'),null)}
-        ${seg('obligations',i18t('cal_v_obligations'),null)}
       </div>
       <span class="g"></span>
       <span class="cal-seg">${scopeSeg('all',i18t('cal_all_dates'))}${scopeSeg('mine',i18t('cal_mine'))}</span>
@@ -709,11 +608,8 @@ function renderCalendar(){
     <div class="cal-body">
       ${''/* ---- THE AGENDA IS THE MONTH'S COMPANION, NOT THE PAGE'S ----
              The design pairs "Next 14 days" with the month grid alone (its
-             Month tab is the only one drawn as `1fr 304px`), and the two other
-             tabs need the width: the obligations table has a 1040px minimum and
-             was losing its Due, Cadence and Status columns to a panel that was
-             LISTING THE SAME OBLIGATIONS a few pixels to the right. Horizon
-             wants every pixel for its twelve months. */}
+             Month tab is the only one drawn as 1fr 304px), and Horizon wants
+             every pixel it can get for its twelve months. */}
       <div class="cal-split${view==='month'?'':' is-wide'}">${main}${view==='month'?calPanelHtml(evs):''}</div>
     </div>
   </div>`;
@@ -728,9 +624,16 @@ function renderCalendar(){
    ------------------------------------------------------------------------- */
 function calStyleCss(){ return `
   .cal-page{height:var(--view-h);box-sizing:border-box;display:flex;flex-direction:column;min-height:0}
-  /* ---- THE HEAD IS ONE WHITE BAND ---- */
+  ${''/* ---- THE HEAD IS ONE WHITE BAND, AND THE TAB ROW IS PART OF IT ----
+         (owner-reported 24 Aug 2026, off a screenshot with the strip between
+         the two ringed: "remove the line in the highlighted area")
+         The head and the control bar are two elements and each carried its own
+         bottom hairline, so a band meant to read as one white card was ruled
+         across the middle. The design draws BOTH rows inside one white box with
+         a single rule under the tabs, which is what the bar's own hairline
+         already is. So the head draws none: no box-shadow here. */}
   .cal-head{flex:none;background:var(--color-surface);padding:9px 24px;display:flex;align-items:center;
-    gap:12px;flex-wrap:nowrap;box-shadow:inset 0 -1px var(--color-divider);min-width:0}
+    gap:12px;flex-wrap:nowrap;min-width:0}
   .cal-head .ttl{font-family:var(--font-heading);font-size:15px;font-weight:600;color:var(--color-text);flex:none}
   .cal-head .g{flex:1;min-width:0}
   .cal-stat{font-size:14px;font-weight:700;white-space:nowrap;flex:none}
@@ -846,64 +749,6 @@ function calStyleCss(){ return `
   .cal-lad-k{font-size:12px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .cal-lad-n{font-size:19px;font-weight:700;line-height:1.2;font-variant-numeric:tabular-nums}
   .cal-lad-v{font-size:12px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums}
-  ${''/* ---- OBLIGATIONS ---- One shared minimum width and a sticky header, so
-         the six columns keep their meaning on a narrow window instead of
-         crushing; the scroller is the card's own, never the page's. */}
-  .cal-obwrap{flex:1;min-height:0;overflow:auto}
-  ${''/* table-layout:FIXED, and that is the half that stops the congestion.
-         An auto table sizes a column to its content, so `max-width` on a cell is
-         not honoured and one long obligation pushed the table wide and squeezed
-         the five columns beside it. Fixed layout makes the stated widths bite,
-         which is what turns overflow:hidden and the ellipsis below from
-         decoration into a rule. The two flexible columns are percentages in the
-         design's own 2.2 : 1.6 proportion and the four narrow ones are its own
-         pixel values, so the table behaves exactly as its grid does: the fixed
-         columns hold, the flexible ones take the surplus. */}
-  .cal-obt{width:100%;min-width:1040px;table-layout:fixed;border-collapse:collapse;font-size:14px}
-  .cal-obt th{position:sticky;top:0;z-index:2;text-align:left;padding:7px 12px;
-    background:var(--color-neutral-100);font-size:11px;font-weight:700;letter-spacing:.06em;
-    text-transform:uppercase;color:var(--color-neutral-500);white-space:nowrap;
-    box-shadow:inset 0 -1px var(--color-divider)}
-  .cal-obt th.r{text-align:right}
-  .cal-obt td{padding:0 12px;height:36px;box-shadow:inset 0 -1px var(--rule);white-space:nowrap;
-    overflow:hidden;text-overflow:ellipsis}
-  .cal-obt tbody tr{cursor:pointer}
-  .cal-obt tbody tr:hover td{background:color-mix(in srgb,var(--color-text) 4%,transparent)}
-  ${''/* WIDTH IS SHARED WITH THE HEAD, EVERYTHING ELSE IS THE BODY'S. A bare
-         `.cal-obt .ob-w` scores (0,2,0) and beats `.cal-obt th` at (0,1,1), so
-         a size or a weight written here would quietly restyle the column heads
-         -- the cascade fight this codebase keeps losing. The presentational half
-         is scoped to td. */}
-  ${''/* The four narrow columns are the design's own pixel values and hold them
-         at every window width. THE OBLIGATION COLUMN STATES NO WIDTH AT ALL,
-         which is what makes that true: in a fixed layout the surplus goes to
-         the columns that named none, so all of it lands on the column carrying
-         the sentence rather than being shared out over Due and Cadence, which
-         need not one pixel of it. Measured — a percentage there let Chrome
-         spread the surplus across every column and the design's 150 / 104 /
-         112 / 128 came back as 175 / 121 / 131 / 149. */}
-  .cal-obt .ob-c{width:22%}.cal-obt .ob-o{width:150px}
-  .cal-obt .ob-d{width:104px}.cal-obt .ob-cad{width:112px}
-  ${''/* 160, where the design says 128, and the difference is HaTi's own doing:
-         the design puts Reassign, Mark complete and Chase owner in the card's
-         foot, and this product draws none of them because none of them exists
-         here -- the row's own Done is the one act, on the row it acts on. So
-         this column carries a word AND a button where the design carries only
-         the word. MEASURED at 128 with the columns finally holding their
-         widths: "This week" plus Done wants 137, so the button was clipped
-         away and the one control on the row could not be pressed. Swedish is
-         longer again ("Denna vecka", "Klart"). A stated width has to fit what
-         the column really carries, in both languages, or fixing the layout
-         just hides a control instead of a sentence. */}
-  .cal-obt .ob-s{width:160px}
-  .cal-obt td.ob-w{font-weight:600}
-  .cal-obt td.ob-c{font-size:13px;color:var(--color-neutral-600)}
-  .cal-obt td.ob-o{font-size:13px}
-  .cal-obt td.ob-d{font-size:13px;text-align:right;font-variant-numeric:tabular-nums}
-  .cal-obt td.ob-cad{font-size:13px;color:var(--color-neutral-600)}
-  .cal-obt td.ob-s{font-size:13px}
-  .cal-obfoot{flex:none;padding:9px 12px;font-size:13px;color:var(--color-neutral-600);
-    box-shadow:inset 0 1px var(--color-divider)}
   .cal-split.is-wide{grid-template-columns:minmax(0,1fr)}
   .cal-cardbar{flex:none;display:flex;align-items:center;gap:10px;padding:9px 12px;
     box-shadow:inset 0 -1px var(--color-divider)}
@@ -941,36 +786,6 @@ function calStyleCss(){ return `
   .cal-more{font-size:11px;font-weight:600;color:var(--color-accent-700);flex:none}
   html.dark .cal-more{color:var(--color-accent-300)}
   .cal-dots{display:flex;gap:3px;flex-wrap:wrap;flex:none}
-  /* ---- QUARTER: three months, side by side ---- */
-  .cal-q{flex:1;min-height:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
-  .cal-q-m{display:flex;flex-direction:column;min-height:0;min-width:0;
-    box-shadow:inset -1px 0 var(--color-divider)}
-  .cal-q-m:last-child{box-shadow:none}
-  .cal-q-h{flex:none;padding:8px 10px;font-size:12px;font-weight:700;color:var(--color-text);
-    box-shadow:inset 0 -1px var(--color-divider);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .cal-q .cal-dow span{padding:5px 6px;font-size:10px;letter-spacing:.04em}
-  .cal-q .cal-day{padding:4px 5px}
-  .cal-q .cal-dn{font-size:11px}
-  .cal-q .cal-day.is-today .cal-dn{width:18px;height:18px;font-size:11px}
-  /* ---- LIST ---- */
-  .cal-list{flex:1;min-height:0;overflow-y:auto}
-  .cal-list-mh{padding:9px 14px 7px;font-size:11px;font-weight:700;letter-spacing:.09em;
-    text-transform:uppercase;color:var(--color-neutral-600);
-    background:color-mix(in srgb,var(--color-text) 3%,transparent);
-    box-shadow:inset 0 -1px var(--color-divider);position:sticky;top:0;z-index:1}
-  .cal-list-row{display:flex;align-items:center;gap:11px;width:100%;text-align:left;font:inherit;
-    border:0;background:none;cursor:pointer;color:inherit;padding:9px 14px;
-    box-shadow:inset 0 -1px var(--color-divider)}
-  .cal-list-row:hover{background:color-mix(in srgb,var(--color-text) 4%,transparent)}
-  .cal-list-row .dt{width:88px;flex:none;font-size:12px;color:var(--color-neutral-600);
-    font-variant-numeric:tabular-nums}
-  .cal-list-row .g{flex:1;min-width:0}
-  .cal-list-row .n2{display:block;font-size:14px;color:var(--color-text);
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .cal-list-row .n2.is-done{opacity:.55;text-decoration:line-through}
-  .cal-list-row .m3{display:block;font-size:12px;color:var(--color-neutral-600);
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
-  .cal-list-row .lft{margin-left:auto;font-size:12px;font-weight:700;white-space:nowrap;flex:none}
   /* ---- THE LEGEND ---- */
   .cal-legend{flex:none;display:flex;gap:18px;flex-wrap:wrap;padding:10px 14px;
     box-shadow:inset 0 1px var(--color-divider)}
@@ -1019,7 +834,6 @@ function calStyleCss(){ return `
     .cal-head,.cal-bar{padding-left:16px;padding-right:16px}
     .cal-split{grid-template-columns:minmax(0,1fr);height:auto}
     .cal-card{min-height:380px}
-    .cal-q{grid-template-columns:minmax(0,1fr)}
   }
   @media print{
     .cal-head .cal-acts,.cal-bar,.cal-panel{display:none!important}
@@ -1201,5 +1015,5 @@ function openCalendarShare(evs){
 
 Object.assign(window,{calState,calMonth,calView,calScope,CAL_VIEWS,CAL_EVENT,CAL_PRIORITY,
   calendarEvents,calEventMine,calPeriod,calVisible,calDecisionsThisWeek,calWeekBounds,
-  calToday,calChipText,calIcsFor,calUpcoming,calSummaryLines,calMonthGridHtml,calListHtml,calPanelHtml,
+  calToday,calChipText,calIcsFor,calUpcoming,calSummaryLines,calMonthGridHtml,calPanelHtml,
   calSetView,calSetScope,calStep,openCalendarShare,renderCalendar});

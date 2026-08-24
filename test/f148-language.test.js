@@ -46,10 +46,6 @@ const SAME_IN_BOTH = new Set([
                           // no translating in either language
   'nav_administration',   // identical spelling in Swedish
   'reg_col_status',       // ditto
-  'cal_ob_status',        // 'Status' — the same word in both languages, and
-                          // the obligations table's own column head. Swedish
-                          // borrowed it whole; inventing a different word here
-                          // would be translating for the sake of the test.
   'reg_in_days',          // '{n} d' — a number and a unit, no words (the
                           // mockup's countdown shape, 20 Aug 2026; 'd' is
                           // the ordinary Swedish day abbreviation too)

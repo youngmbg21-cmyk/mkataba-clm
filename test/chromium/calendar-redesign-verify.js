@@ -146,8 +146,31 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
     check('1 the title is the nav\'s own word, not a second name for the page',
       shape.title.trim() === 'Calendar', shape.title);
     check('1 it says how many decisions fall this week', /decision|Nothing to decide/i.test(shape.stat), shape.stat);
-    check('1 three views, and the live one carries a count',
-      shape.tabs.length === 3 && /Month\s*\d+/.test(shape.tabs[0]), shape.tabs);
+    check('1 two views, and the live one carries a count',
+      shape.tabs.length === 2 && /Month\s*\d+/.test(shape.tabs[0]), shape.tabs);
+    /* ---- ONE WHITE BAND, NOT TWO (owner-reported 24 Aug 2026: "remove the
+           line in the highlighted area") ----
+       The head and the control bar are two elements, both white and touching,
+       and each carried its own bottom hairline — so a band meant to read as one
+       card was ruled across the middle. The rule under the TABS stays; the one
+       between the title and the tabs goes. Written as a relation: the head must
+       draw no bottom edge of any kind, and the bar must still draw one. */
+    const band = await page.evaluate(() => {
+      const edge = el => { const cs = getComputedStyle(el);
+        return { sh: cs.boxShadow, bb: cs.borderBottomWidth, bg: cs.backgroundColor,
+          y: Math.round(el.getBoundingClientRect().y),
+          bottom: Math.round(el.getBoundingClientRect().bottom) }; };
+      const h = document.querySelector('.cal-head'), b = document.querySelector('.cal-bar');
+      return h && b ? { head: edge(h), bar: edge(b) } : null;
+    });
+    check('1 the head draws no rule between itself and the tabs',
+      band && band.head.sh === 'none' && band.head.bb === '0px',
+      band && { shadow: band.head.sh, border: band.head.bb });
+    check('1 and the tab row still closes the band with one',
+      band && band.bar.sh !== 'none', band && band.bar.sh);
+    check('1 both halves are the same white, and they touch',
+      band && band.head.bg === band.bar.bg && band.head.bottom === band.bar.y,
+      band && { head: band.head.bg, bar: band.bar.bg, gap: band && band.bar.y - band.head.bottom });
     check('1 the scope is two options, not two states', shape.scope.length === 2, shape.scope);
     check('1 the month grid and a panel beside it',
       shape.grid && shape.panel && shape.panel.w >= 300 && shape.grid.w > shape.panel.w,
@@ -259,123 +282,27 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
     check('4a every notice date sits clear of its bar, on the card',
       notes.n > 0 && notes.over.length === 0, notes);
 
-    await page.click('[data-cal-view="obligations"]');
-    await pause(900);
-    await page.screenshot({ path: path.join(OUT, '03-obligations.png') });
-    const ob = await page.evaluate(() => {
-      const sc = document.getElementById('content-scroll');
-      const t = document.querySelector('.cal-obt');
-      const th = [...document.querySelectorAll('.cal-obt th')];
-      const wrap = document.querySelector('.cal-obwrap');
-      return { cols: th.length, heads: th.map(e => e.textContent.trim()),
-        rows: document.querySelectorAll('.cal-obt tbody tr').length,
-        sticky: th[0] ? getComputedStyle(th[0]).position : null,
-        /* the six columns must all be ON SCREEN — this table lost three of
-           them to the agenda panel before that panel was scoped to Month */
-        lastVisible: th.length ? th[th.length - 1].getBoundingClientRect().right
-          <= (wrap ? wrap.getBoundingClientRect().right + 1 : 0) : false,
-        foot: (document.querySelector('.cal-obfoot') || {}).textContent || '',
-        pageScroll: sc ? sc.scrollHeight - sc.clientHeight : null };
-    });
-    check('4 Obligations draws its six columns', ob.cols === 6, ob.heads.join(' · '));
-    check('4 with a sticky header', ob.sticky === 'sticky', String(ob.sticky));
-    check('4 a row per obligation', ob.rows > 0, String(ob.rows));
-    check('4 and every column is on screen at 1440',
-      ob.lastVisible, ob.heads[ob.heads.length - 1]);
-    check('4 the foot states what is overdue and what is due this week',
-      /overdue/i.test(ob.foot) && /week/i.test(ob.foot), ob.foot.trim());
-    check('4 and Obligations never scrolls the page', ob.pageScroll === 0, String(ob.pageScroll));
-
-    /* ---- 4b. A LONG OBLIGATION DOES NOT CONGEST THE TABLE ----
-       Owner-reported 24 Aug 2026: "make the obligation a bullet point not an
-       entire sentence which congests the table." The design's own rows are
-       three-word labels at weight 600 on one line; HaTi's note is whatever was
-       read out of the wording.
-       THE CLAIM IS A RELATION, NOT A NUMBER: the sentence cell must be no wider
-       than the header says it is, and the five columns beside it must keep the
-       widths the design gives them however long the note runs. Measured against
-       the seeded sentence above, which is what a real one looks like. */
-    const wide = await page.evaluate(() => {
-      const rows = [...document.querySelectorAll('.cal-obt tbody tr')];
-      const cellOf = r => r.querySelector('td.ob-w');
-      /* the longest note on screen — the one that used to blow the column out */
-      let row = null, len = -1;
-      for (const r of rows){ const c = cellOf(r); if (!c) continue;
-        const n = (c.getAttribute('title') || '').length; if (n > len){ len = n; row = r; } }
-      if (!row) return null;
-      const cell = cellOf(row);
-      const box = e => { const b = e.getBoundingClientRect(); return Math.round(b.width); };
-      const head = [...document.querySelectorAll('.cal-obt th')];
-      const cells = [...row.querySelectorAll('td')];
-      return {
-        titleLen: len,
-        shown: cell.textContent.trim(),
-        title: cell.getAttribute('title') || '',
-        weight: getComputedStyle(cell).fontWeight,
-        /* one line, clipped: the rendered box must be shorter than the text */
-        oneLine: cell.scrollWidth > cell.clientWidth,
-        clip: getComputedStyle(cell).textOverflow,
-        layout: getComputedStyle(document.querySelector('.cal-obt')).tableLayout,
-        headW: head.map(box), cellW: cells.map(box),
-        /* the design's four fixed columns, in its own order */
-        fixed: cells.slice(2).map(box),
-      };
-    });
-    check('4b the longest note is a whole sentence, so the claim can fail',
-      wide && wide.titleLen > 120, wide && wide.titleLen);
-    check('4b the table lays out fixed, so a stated width bites',
-      wide && wide.layout === 'fixed', wide && wide.layout);
-    check('4b the sentence is clipped to one line, not wrapped',
-      wide && wide.oneLine && wide.clip === 'ellipsis',
-      wide && { oneLine: wide.oneLine, clip: wide.clip });
-    check('4b and the whole sentence stays on the row\'s hover',
-      wide && wide.title.length > wide.shown.length, wide && wide.title.slice(0, 60) + '…');
-    check('4b the label reads at the design\'s weight',
-      wide && Number(wide.weight) === 600, wide && wide.weight);
-    /* THE CONGESTION ITSELF: the four narrow columns are the design's own
-       150 / 104 / 112 / 128, and a sentence in the first column may not take a
-       pixel off any of them. */
-    /* 160 on the last one, where the design says 128, and the difference is
-       HaTi's own: the design's three foot buttons do not exist in this product,
-       so the row's own Done is the one act and this column carries a word AND a
-       button. At 128 the button was clipped away — fixing the layout would have
-       hidden a control instead of a sentence. */
-    check('4b and the four narrow columns keep the design\'s widths',
-      wide && String(wide.fixed) === String([150, 104, 112, 160]), wide && wide.fixed);
-    /* AND THE SURPLUS GOES WHERE THE SENTENCE IS. The column that has to hold
-       a drafted paragraph must be the widest on the row — this is what a
-       percentage there got wrong, spreading the spare width over Due and
-       Cadence, which need none of it. */
-    check('4b and the obligation column is the widest on the row',
-      wide && wide.cellW[0] === Math.max(...wide.cellW), wide && wide.cellW);
-    /* AND NOTHING BUT THE SENTENCE IS CLIPPED. The obligation column clips on
-       purpose; every other cell must fit what it carries, or a stated width has
-       simply moved the congestion somewhere quieter — which is what took the
-       Done button off eight rows the first time these widths were made to bite. */
-    const clipped = await page.evaluate(() => {
-      const out = [];
-      document.querySelectorAll('.cal-obt tbody tr').forEach(r => {
-        r.querySelectorAll('td').forEach(c => {
-          if (c.classList.contains('ob-w')) return;
-          if (c.scrollWidth > c.clientWidth)
-            out.push(c.className + ': ' + c.textContent.trim().slice(0, 24));
-        });
-      });
-      return [...new Set(out)];
-    });
-    check('4b and no other column clips what it carries', clipped.length === 0, clipped);
-    check('4b head and body agree column for column',
-      wide && String(wide.headW) === String(wide.cellW),
-      wide && { head: wide.headW, body: wide.cellW });
-
-    /* THE RETIRED PAIR IS GONE, as controls and as markup. */
+    /* ---- THE RETIRED VIEWS ARE GONE, as controls and as markup ----
+       Quarter and List went on 24 Aug 2026 when Horizon and Obligations
+       replaced them; OBLIGATIONS went the same evening, owner-ruled off a
+       screenshot ("delete the obligations page"). Its rows are not lost — an
+       obligation is still an event on the month grid and in the agenda beside
+       it, which is where it sits next to the date it falls on. What went is the
+       third tab and the whole-book table behind it. */
     const retired = await page.evaluate(() => ({
       q: document.querySelectorAll('[data-cal-view="quarter"]').length,
       l: document.querySelectorAll('[data-cal-view="list"]').length,
+      o: document.querySelectorAll('[data-cal-view="obligations"]').length,
       qm: document.querySelectorAll('.cal-q-m').length,
-      lr: document.querySelectorAll('.cal-list-row').length }));
-    check('4 Quarter and List are retired, control and markup alike',
-      !retired.q && !retired.l && !retired.qm && !retired.lr, JSON.stringify(retired));
+      lr: document.querySelectorAll('.cal-list-row').length,
+      ot: document.querySelectorAll('.cal-obt,.cal-obwrap,.cal-obfoot').length,
+      /* and the tab row is exactly the two that are left */
+      tabs: [...document.querySelectorAll('[data-cal-view]')].map(e => e.getAttribute('data-cal-view')) }));
+    check('4 Quarter, List and Obligations are retired, control and markup alike',
+      !retired.q && !retired.l && !retired.o && !retired.qm && !retired.lr && !retired.ot,
+      JSON.stringify(retired));
+    check('4 and the tab row is exactly Month and Horizon',
+      String(retired.tabs) === String(['month', 'horizon']), retired.tabs);
 
     /* ---- 5. ALL DATES / MINE ---- */
     await page.click('[data-cal-view="month"]');

@@ -768,7 +768,21 @@ function renderIntel(){
   const frictionControls=`
       <div style="${TABROW};gap:16px">${ffSeg(null,i18t('int_all_time'))}${ffSeg(90,i18t('int_last_90'))}</div>
       ${ff&&(ff.counterparty||ff.days||ff.clause)?`<button id="ig-friction-clear" style="border:0;background:none;cursor:pointer;font:inherit;font-size:12px;font-weight:700;color:var(--color-accent);flex:none">✕ Clear</button>`:''}`;
-  const headerHtml=`
+  /* ---- THE HEAD AND THE TABS ARE ONE WHITE CARD (owner-reported 24 Aug 2026:
+         "the highlighted area should just be one big white card not divided
+         into grey and white") ----
+     The tab strip below has always painted itself on --color-surface; the
+     TITLE line above it is the shell's #page-head, which paints nothing and so
+     sat on the page's grey ground. Measured: a transparent 33px band directly
+     on top of a white 42px one, with no gap between them — two halves of what
+     reads as one header, in two different colours.
+     WRITTEN HERE, NOT IN THE SHELL, and that is deliberate: this style block
+     lives inside #content, so it is thrown away the moment the reader leaves
+     Insights and cannot quietly repaint the header of a page that has not asked
+     for it. It is the register's own precedent, which paints the same element
+     the same way for the same reason. */
+  const headStyle=`<style>#page-head{background:var(--color-surface)}</style>`;
+  const headerHtml=headStyle+`
     <!-- No vertical padding: the tab buttons carry it themselves, so their
          underline lands on the strip's own hairline.
 

@@ -285,6 +285,62 @@ const QUESTION = 'why do I have a big workload runway today?';
       ['frame', 'friction', 'map'].map(t =>
         `${t}: ${heads[t].headH}px/${heads[t].scrollH}px`).join(' · '));
 
+    /* ---- 5b. THE HEAD AND THE TABS ARE ONE WHITE CARD ----
+       Owner-reported 24 Aug 2026, off a screenshot with both rows ringed: "the
+       highlighted area should just be one big white card not divided into grey
+       and white." The tab strip painted itself on the surface; the title line
+       above it is the shell's #page-head, which painted nothing and so sat on
+       the page's grey ground — two touching halves of one header in two
+       colours. WRITTEN AS A RELATION: whatever the surface token resolves to,
+       the two must resolve to the SAME thing, and there must be no gap between
+       them for the ground to show through. Asked on every tab, because the
+       strip is rebuilt per tab and the header is not. */
+    const cards = {};
+    for (const tab of ['frame', 'friction', 'map']){
+      await page.evaluate(t => { intel.tab = t; renderIntel(); }, tab);
+      await page.waitForTimeout(700);
+      cards[tab] = await page.evaluate(() => {
+        const head = document.getElementById('page-head');
+        const strip = document.querySelector('#content header');
+        if (!head || !strip) return null;
+        const hb = head.getBoundingClientRect(), sb = strip.getBoundingClientRect();
+        const surface = getComputedStyle(document.documentElement)
+          .getPropertyValue('--color-surface').trim();
+        return { head: getComputedStyle(head).backgroundColor,
+          strip: getComputedStyle(strip).backgroundColor,
+          surface, gap: Math.round(sb.top - hb.bottom),
+          transparent: /rgba\(0, 0, 0, 0\)|transparent/.test(getComputedStyle(head).backgroundColor) };
+      });
+    }
+    await page.evaluate(() => { intel.tab = 'frame'; renderIntel(); });
+    await page.waitForTimeout(700);
+    const c = cards.frame;
+    check('5b the title line is painted, not the page ground showing through',
+      c && !c.transparent, c && c.head);
+    check('5b and it is the same colour as the tab strip under it',
+      c && c.head === c.strip, c && { head: c.head, strip: c.strip });
+    check('5b with nothing between them for the grey to come through',
+      c && c.gap === 0, c && c.gap);
+    check('5b on every tab, because the strip is rebuilt and the header is not',
+      ['frame', 'friction', 'map'].every(t => cards[t] && cards[t].head === cards[t].strip
+        && cards[t].gap === 0),
+      ['frame', 'friction', 'map'].map(t => `${t}: ${cards[t] && cards[t].head}`).join(' · '));
+    /* AND IT DOES NOT FOLLOW THE READER OFF THE PAGE. The rule is written into
+       a style block inside #content, so leaving Insights takes it with it —
+       otherwise one page would quietly repaint every other page's header. */
+    await page.evaluate(() => setView('register'));
+    await page.waitForTimeout(900);
+    await page.evaluate(() => setView('templates'));
+    await page.waitForTimeout(900);
+    const elsewhere = await page.evaluate(() => {
+      const head = document.getElementById('page-head');
+      return head ? getComputedStyle(head).backgroundColor : null;
+    });
+    check('5b and the rule does not follow the reader to another page',
+      /rgba\(0, 0, 0, 0\)|transparent/.test(elsewhere || ''), elsewhere);
+    await page.evaluate(() => { setView('intel'); });
+    await page.waitForTimeout(900);
+
     /* IT STILL WRAPS RATHER THAN HIDING. Narrow the window until the two cannot
        share a line: the sentence must come back on its own line, not vanish. */
     await page.setViewportSize({ width: 720, height: 950 });

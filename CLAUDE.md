@@ -557,6 +557,8 @@ Tests: f183 (the split, the drivers, the keys in all three lists, caps/scope/mon
 
 THE HEAD IS ONE LINE (owner-asked, 13 Aug 2026: "move the highlighted sentence to be next to the word Insights, and move the page up so the dashboards across the tabs have more screen space"). Both halves are ONE change: #page-head is its own flex row ABOVE #body-grid, so every pixel it takes is a pixel #content-scroll does not get — and all three Insights tabs size themselves against exactly that (height:var(--view-h), set by syncViewHeight off the scroll container). Subtitle on the title's own line + a trimmed lead: 63px of header became 36px, and each tab gained those 27px of chart. PAGE_HEAD_INLINE_SUB (js/app.js) is A LIST, NOT AN `if` — Insights is its only member today and the next page joins the list rather than growing a second branch in the markup. NOT the default: most subtitles here are sentences rather than three words, and on the title's line a long one either wraps straight back to two lines or gets cut. IT STILL WRAPS on a narrow window — a header that HID the page's own description to save a line would be trading the wrong thing. The three tabs share one header (it is the shell's, the tabs are the page's), so the claim is really that switching tabs never redraws it differently — asserted per tab. Tests: insights-panels-verify section 5 (30, browser — the two boxes on one line with the sentence to the RIGHT, the header's height, the chart room it bought, all three tabs, and the wrap).
 
+**AND THE HEADER AND THE TABS ARE ONE WHITE CARD** (owner-reported 24 Aug 2026, off a screenshot with both rows ringed: *"the highlighted area should just be one big white card not divided into grey and white"*). The tab strip has always painted itself on `--color-surface`; the TITLE line above it is the shell's `#page-head`, which paints nothing and so sat on the page's grey ground. MEASURED: a transparent 33px band directly on top of a white 42px one, **with no gap between them** — two halves of what reads as one header, in two different colours. **WRITTEN IN THE PAGE, NOT IN THE SHELL**, and that is what keeps it safe: the rule rides a `<style>` block inside `#content`, so it is thrown away the moment the reader leaves Insights and cannot quietly repaint the header of a page that has not asked for it — the register's own precedent, painting the same element the same way for the same reason. The claim is a RELATION (the two resolve to the same colour, whatever the token is, and nothing sits between them) plus one that the rule does NOT follow the reader to another page. Tests: insights-panels-verify section 5b (35 — 3 of them fail against the code of an hour before).
+
 Insights has three tabs, opens on Portfolio (js/views/portfolio.js, rendered by renderIntel): six panels every business gets. LIVE = everything except Declined — the same definition aiPortfolioSnapshot uses; f151 pins that all surfaces count the same book. NOT on the phone — deliberate (listed under More; note lives in M_DESK).
 
 THE SHAPED FILL: project-shaped panels (workload runway, money held back, live promises, won/lost) or a renewal runway for standing agreements. Which shapes, and the word for a piece of work, are COMPANY settings (js/workshape.js; org record, browser fallback, PUT /api/org/workshape). wsIsProject() is the ONE classification rule — the Settings suggestion, the panels and their counts all call it. Won/lost is the one panel past the live book: won = Signed, lost = Declined, still out = Under Review or draft with a live share; no new status invented.
@@ -1821,7 +1823,7 @@ recorded here** — each is reversed IN PLACE below rather than quietly dropped.
 ## THE CALENDAR TAKES THE DESIGN, LIKE FOR LIKE (owner-ruled 24 Aug 2026)
 
 Fourth page of the page-by-page pass, and the only one so far that RETIRES
-features: **Month · Horizon · Obligations**, with Quarter and List gone.
+features: **Month · Horizon**, with Quarter, List and Obligations gone.
 
 **WHY THE TWO WENT, and it was put to the owner before it was built.** Quarter
 drew the month grid three times, which answers no question Month does not. List
@@ -1845,14 +1847,21 @@ rather than twelve elements per row. Five ladder cards beneath count the whole
 book, including rows past the ruler, because it is a count of the book rather
 than of what is drawn.
 
-**OBLIGATIONS IS THE ONLY PLACE THE WHOLE BOOK'S OBLIGATIONS SIT TOGETHER.**
-Every other surface shows one beside the single contract it belongs to. IT
-BORROWS EVERY READING: the rows come off `calendarEvents`' own obligation
-events — carrying `obligationDue`, `obligationOwner`, `obligationIsTheirs` — so
-a fourth reading of "what is owed" cannot disagree with the other three. **THE
-FOOT DRAWS NO VERBS**: the design's Reassign and Chase owner do not exist in
-this product, and a button that refuses is worse than no button; the row's own
-Done is the one act and it sits on the row it acts on.
+**AND OBLIGATIONS LASTED ONE EVENING** (owner-ruled 24 Aug 2026, off a
+screenshot: *"delete the obligations page"*). It was built the same day on the
+same ruling that retired Quarter and List, as the one place the whole book's
+obligations sat together; the owner looked at it and did not want it. **NOTHING
+IS LOST, which is the condition on removing a surface**: an obligation is still
+an event on the month grid and in the agenda beside it — the same
+`calendarEvents` reading the table borrowed — which is where it sits next to the
+date it falls on, and the contract's own page still lists its own. What went is
+the third tab and the whole-book table behind it: `calObligationRows`,
+`calObligationsHtml`, `calObLabel`, the `.cal-obt` block and every `cal_ob_*`
+key in both languages. **DELETED RATHER THAN STUBBED, following Quarter and
+List's own precedent on this page** — none of them was exported, so there is no
+door a third caller could bring them back through. `calView()` still falls back
+to `'month'` for an unknown key, so a reader whose stored tab was `obligations`
+lands on the month rather than on a blank page.
 
 **THE AGENDA IS THE MONTH'S COMPANION, NOT THE PAGE'S.** The design pairs "Next
 14 days" with the month grid alone, and the other two need the width — MEASURED,
@@ -1930,13 +1939,24 @@ USED to sit.**
   what the column really carries, in both languages, or it has just moved the
   congestion somewhere quieter.
 
+**AND THE HEAD IS ONE BAND, NOT TWO** (owner-reported 24 Aug 2026: *"remove
+the line in the highlighted area"*). The title row and the control bar are two
+elements, both white and touching, and **each carried its own bottom hairline**
+— so a band meant to read as one card was ruled across the middle. The design
+draws both rows inside one white box with a single rule under the tabs, which is
+what the bar's own hairline already is; the head now draws none. **The claim is
+written as a relation** — the head draws no bottom edge of any kind, the bar
+still draws one, and the two are the same colour with no gap — so a later type
+or palette pass costs no test edit.
+
 Tests: f148 (strengthened — the constant, not two literals; `cal_ob_status`
-joins SAME_IN_BOTH, "Status" being the same word in Swedish), f83 unchanged,
-calendar-redesign-verify (57 — its Quarter and List section REWRITTEN to the
-same shape for the two views that replaced them, plus the claim the Horizon
-exists for: the bars grow with the time left, soonest first; and sections 4a/4b
-for the morning's four, **7 of which fail against the code of an hour before**,
-4a reporting the long bar by name), calendar-day unchanged.
+retired with the column it headed), f83 unchanged,
+calendar-redesign-verify (46 — its retired-views section now names all THREE
+and asserts the tab row is exactly Month and Horizon, plus the claim the Horizon
+exists for: the bars grow with the time left, soonest first; section 4a for the
+invisible date; and the one-band claim above. **4 of them fail against the code
+of an hour before**, one reporting `cal_v_obligations` as an untranslated tab
+label), calendar-day unchanged.
 
 **THE CALENDAR IS BUILT FROM THE MOCK-UP** (js/views/calendar.js, rewritten):
 a one-line head carrying the title, how many decisions fall this week, the
@@ -2030,11 +2050,28 @@ what the stylesheet SAYS, redline-verify what DRAWS, and they name each other),
 nego-redesign-verify (the page-measure claim rewritten as the RELATION it was
 always about), f148 (`cal_three_months` is punctuation and joins SAME_IN_BOTH).
 
-**THE COLOUR CENSUS IS 36/40 AND THE FOUR ARE THIS WORK**: calendar and
-negotiate, in both themes. That is two screens deliberately owning their
-colours, which is exactly what the census is for — reported here rather than
-re-recorded, because re-recording is a palette-ownership act and is nobody's to
-do in passing.
+**THE COLOUR CENSUS WAS LEFT AT 36/40 AND IT IS RECORDED NOW (24 Aug 2026).**
+This paragraph said the four failures were calendar and negotiate deliberately
+owning their colours, and reported rather than re-recorded "because
+re-recording is a palette-ownership act and is nobody's to do in passing". That
+was right about the act and wrong about the outcome: **a half-red net catches
+nothing, and by the next evening it was the only thing standing between a real
+colour regression and nobody noticing.** Negotiate was re-recorded by somebody
+else in the meantime; the calendar's two were still open.
+
+**WHOSE THEY WERE WAS PROVED BEFORE THE BASELINE WAS TOUCHED**, which is the
+only thing that makes re-recording legitimate. A worktree at `b20c3fb` — the
+commit that landed this redesign, before any of the following evening's work —
+scores the **identical 38/40, same two screens, same two values**. So the
+evening's fixes neither caused it nor widened it.
+
+**AUDITED AS A SET DIFFERENCE, and it is one swap**: `--color-text` at 2.5%
+alpha GONE, `--color-neutral-100` ARRIVED, on `calendar--light`; the same
+translucent value gone on `calendar--dark` with **nothing arriving**, because
+the neutral resolves there to a value that row already held. That is
+`.cal-dow`, the weekday header, re-pointed from a translucent text mix to the
+token by this redesign. **No other screen moved and nothing unexplained
+appeared.** 40/40, and it is a working net again.
 
 ## A ROUND THAT LANDS, AND ONE THAT SAYS WHY IT HAS NOT (owner-reported 23 Aug 2026, MK-349)
 
