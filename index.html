@@ -194,7 +194,21 @@
        the label step 4.8:1 -> 5.6:1, which is the one that was genuinely thin.
        The neutrals carry TEXT in 638 places and a background or border in 6,
        which is why re-hueing them is a type change and not a surface one. */
-    --color-text:#1B2A28;
+    /* ---- THE INK IS THE DESIGN'S OWN, TO THE BYTE (owner-reported 24 Aug
+       2026: "the html has a very beautiful design on how they use the black
+       fonts ... but HaTi uses grey fonts instead which is not striking") ----
+       The 22 Aug retune re-hued this ramp onto the brand's green-black family
+       and got the HUE right and the DEPTH wrong: every step landed a shade
+       lighter than the design's. MEASURED against tokens.css, step for step —
+       primary #1B2A28 against its #0E1A18, label #5F6D6B against #54635F,
+       quiet #93A09E against #8A9997 — so the whole product read one notch
+       softer than the reference on every screen at once. They are the design's
+       values now, which is a change of DEPTH and not of hue: contrast on white
+       goes 14.91:1 to 17.80:1 on the primary, and nothing gets lighter — in
+       BOTH themes, re-measured with the WCAG formula rather than carried over:
+       light 8.21->9.30 (doc muted), 5.40->6.31 (label), 2.71->2.96 (quiet);
+       dark, on the panel, 14.35->15.39, 11.43->11.53, 6.52->7.79, 3.26->4.29. */
+    --color-text:#0E1A18;
     /* The one-word accent IS step 600 of the ramp — the two were the same
        colour typed twice, which is how a theme moves one and forgets the other. */
     --color-accent:var(--color-accent-600);
@@ -232,8 +246,8 @@
        against 39 text uses, so it is the one step in this ramp that is not a
        type token, and the rulebook's "re-hueing the neutrals is safe" argument
        does not cover it. */
-    --color-neutral-400:#93A09E; --color-neutral-500:#5F6D6B; --color-neutral-600:#5F6D6B;
-    --color-neutral-700:#1B2A28; --color-neutral-800:#1B2A28; --color-neutral-900:#1B2A28;
+    --color-neutral-400:#8A9997; --color-neutral-500:#54635F; --color-neutral-600:#54635F;
+    --color-neutral-700:#0E1A18; --color-neutral-800:#0E1A18; --color-neutral-900:#0E1A18;
 
     --color-accent-100:#ccfbf1; --color-accent-200:#99f6e4; --color-accent-300:#5eead4;
     --color-accent-400:#2dd4bf; --color-accent-500:#14b8a6; --color-accent-600:#0d9488;
@@ -361,8 +375,11 @@
          --color-doc-muted #43524F on #fbfbfc =  7.94:1  ( 8.21:1 on white)
        Both are measured with the WCAG relative-luminance formula, not judged
        by eye. See also print-color-adjust, further down. */
-    --color-doc-text:#1B2A28;
-    --color-doc-muted:#43524F;         /* secondary document copy only */
+    /* The paper takes the same two, and the muted step is the design's OWN
+       second ink (--ink2, #3B4A48) rather than a shade invented for it: the
+       design uses that value for exactly this — prose inside a panel. */
+    --color-doc-text:#0E1A18;
+    --color-doc-muted:#3B4A48;         /* secondary document copy only */
     --color-doc-rule:#c9ccd1;
     /* The sheet itself. Views must paint the paper with this token — never a
        literal #fbfbfc — so the document joins the theme flip. Print pins it
@@ -584,7 +601,7 @@
        Lifted BETWEEN the page and the panel's surface — raised enough to read
        as a layer without becoming a light patch in a dark room. */
     --color-chat-bg:#0a1122;
-    --color-text:#E3E9E8;
+    --color-text:#EAF1EF;
     --color-divider:#1e293b;
 
     --color-doc-text:#e2e8f0;
@@ -597,8 +614,10 @@
     --shadow-paper:0 1px 2px rgba(0,0,0,.4), 0 18px 44px -22px rgba(0,0,0,.6);
 
     --color-neutral-100:#1e293b; --color-neutral-200:#334155; --color-neutral-300:#475569;
-    --color-neutral-400:#5F6D6B; --color-neutral-500:#93A09E; --color-neutral-600:#93A09E;
-    --color-neutral-700:#C9D2D0; --color-neutral-800:#E3E9E8; --color-neutral-900:#F0F4F3;
+    /* The design's dark ramp, step for step (tokens.css html.dark): ink
+       #EAF1EF, ink2 #C6D4D0, ink3 #9FB0AC, ink4 #6F817C. */
+    --color-neutral-400:#6F817C; --color-neutral-500:#9FB0AC; --color-neutral-600:#9FB0AC;
+    --color-neutral-700:#C6D4D0; --color-neutral-800:#EAF1EF; --color-neutral-900:#F0F4F3;
 
     --shadow-sm:0 1px 2px rgba(0,0,0,.4), 0 10px 26px -12px rgba(0,0,0,.55);
     --shadow-md:0 4px 10px rgba(0,0,0,.45), 0 18px 40px -14px rgba(0,0,0,.6);
@@ -3013,7 +3032,11 @@
      illegibility, so nobody presses it to reach an empty list. */
   .hm-tile.is-dead{cursor:default;}
   .hm-tile.is-dead:hover{background:var(--color-surface);}
-  .hm-tile.is-dead .hm-n{color:var(--color-neutral-400);}
+  /* The zero-count grey is a DELIBERATE SIGNAL — a tile counting zero is not
+     a door — and the unit joins the numeral in it. Without this the unit would
+     have gone primary with the rule above and left a black "docs" beside a
+     grey nought, which is the one state this grey exists to mark. */
+  .hm-tile.is-dead .hm-n,.hm-tile.is-dead .hm-u{color:var(--color-neutral-400);}
   .hm-tile.is-life{cursor:default;}
   .hm-tile.is-life:hover{background:var(--color-surface);}
   .hm-t{font-size:14px;font-weight:600;color:var(--color-text);padding-right:18px;}
@@ -3025,7 +3048,12 @@
   .hm-big{display:flex;align-items:baseline;gap:7px;min-width:0;}
   .hm-n{font-size:32px;font-weight:700;line-height:1.05;color:var(--color-text);
     font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .hm-u{font-size:14px;color:var(--color-neutral-500);font-weight:400;}
+  /* ---- THE UNIT TAKES ITS NUMERAL'S INK (the black ink, 24 Aug 2026) ----
+     "13 agreements", "8 docs", "74 %" — the figure and its unit are one
+     reading, and the unit was 14px text on the secondary shade beside a
+     numeral in the primary one. The design gives both the same ink. Matched to
+     .hm-n rather than given a colour of its own, so the two cannot drift. */
+  .hm-u{font-size:14px;color:var(--color-text);font-weight:400;}
   .hm-foot{margin-top:7px;padding-top:7px;border-top:1px solid var(--color-divider);
     font-size:12px;color:var(--color-neutral-500);line-height:1.35;}
   .hm-foot.crit{color:var(--st-amber-fg);}

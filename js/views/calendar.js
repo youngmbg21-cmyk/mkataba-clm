@@ -638,8 +638,16 @@ function calStyleCss(){ return `
   .cal-head .g{flex:1;min-width:0}
   .cal-stat{font-size:14px;font-weight:700;white-space:nowrap;flex:none}
   .cal-stat.crit{color:var(--st-amber-fg)}
-  .cal-stat.neu{color:var(--color-neutral-600);font-weight:400}
-  .cal-when{font-size:14px;color:var(--color-neutral-600);flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* ---- THE HEAD'S SUB-FACTS ARE 13px (the black ink, 24 Aug 2026) ----
+     Both sit on the secondary ink at 14px, which this product's four-shades
+     rule reserves for 11–13px — primary is 14 and up. The design draws its
+     own calendar sub-line at 13px in that same shade, so DROPPING THE SIZE is
+     what makes these compliant and the colour never has to move.
+     .cal-stat.crit IS DELIBERATELY NOT IN THIS RULE: it is amber, a STATUS
+     colour rather than the secondary ink, so it never broke the rule, and at
+     14px/700 it is the one thing on this line that is meant to be an alarm. */
+  .cal-stat.neu{font-size:13px;color:var(--color-neutral-600);font-weight:400}
+  .cal-when{font-size:13px;color:var(--color-neutral-600);flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .cal-acts{display:flex;align-items:center;gap:4px;flex:none;position:relative}
   .cal-menu{position:absolute;right:0;top:calc(100% + 4px);z-index:40;min-width:200px;
     background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);

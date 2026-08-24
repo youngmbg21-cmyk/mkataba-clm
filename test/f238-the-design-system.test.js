@@ -97,6 +97,47 @@ describe('f238 — the design system has its other half', () => {
   });
 
   /* ---------- 3 · CONTRAST ---------- */
+  /* ---- THE READING INKS ARE THE DESIGN'S OWN VALUES ----
+     Owner-reported 24 Aug 2026: "the html has a very beautiful design on how
+     they use the black fonts across the different pages but HaTi uses grey
+     fonts instead which is not striking."
+     THE 22 Aug RETUNE GOT THE HUE RIGHT AND THE DEPTH WRONG. It re-hued this
+     ramp onto the brand's green-black family — which was correct and is kept —
+     and every step landed a shade LIGHTER than the reference, so the whole
+     product read one notch softer than the design on every screen at once.
+     PINNED AS THE DESIGN'S LITERAL VALUES, deliberately and unlike almost every
+     other check in this suite: these four are not "a dark ink" and "a label
+     ink", they are the four the handover's own tokens.css declares, and the
+     failure this guards against is exactly a well-meant retune drifting off
+     them again. tokens.css: --ink #0E1A18, --ink2 #3B4A48, --ink3 #54635F,
+     --ink4 #8A9997; and in dark #EAF1EF / #C6D4D0 / #9FB0AC / #6F817C. */
+  test('the reading inks are the design\'s own, to the byte', () => {
+    /* ANCHORED FORWARD FROM :root, not from the top of the file — "html.dark"
+       appears in prose long before either block, and slicing on the first hit
+       gives an empty root and seven false misses. */
+    const r0 = SHEET.indexOf(':root{');
+    const d0 = SHEET.indexOf('html.dark{', r0);
+    const root = SHEET.slice(r0, d0);
+    const dark = SHEET.slice(d0);
+    const has = (src, decl) => src.includes(decl);
+    for (const decl of ['--color-text:#0E1A18', '--color-neutral-600:#54635F',
+                        '--color-neutral-500:#54635F', '--color-neutral-400:#8A9997',
+                        '--color-neutral-700:#0E1A18', '--color-doc-text:#0E1A18',
+                        '--color-doc-muted:#3B4A48'])
+      assert.ok(has(root, decl), `light theme is missing ${decl}`);
+    for (const decl of ['--color-text:#EAF1EF', '--color-neutral-600:#9FB0AC',
+                        '--color-neutral-500:#9FB0AC', '--color-neutral-400:#6F817C',
+                        '--color-neutral-700:#C6D4D0'])
+      assert.ok(has(dark, decl), `dark theme is missing ${decl}`);
+    /* AND NOTHING KEPT THE OLD ONES. A stray literal is how one screen comes
+       to read a shade lighter than the rest of the product; the standalone
+       documents (the evidence pack, the print root, the branding preview) are
+       the deliberate exception, because they carry no stylesheet and a token
+       there resolves to nothing. */
+    assert.equal(/#1B2A28/i.test(root.replace(/\/\*[\s\S]*?\*\//g, '')), false,
+      'the old primary ink is still declared somewhere in :root');
+  });
+
   test('no text opacity ladder survives — an opacity is not an ink', () => {
     /* .text-ink/40…/60 put 54 elements of reading text between 2.36:1 and
        4.11:1 — five rungs under the AA floor. */

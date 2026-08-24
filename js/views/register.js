@@ -677,7 +677,17 @@ function regRowsHtml(cs){
     const renIn=din==null?'':(din<0?i18t('reg_days_over',{n:Math.abs(din)}):i18t('reg_in_days',{n:din}));
     // urgency colour: red under 30 days (and overdue), gold under 90, else neutral
     const renUrgent=din!=null&&din<30, renSoon=din!=null&&din>=30&&din<=90;
-    const renColor=din==null?'transparent':(renUrgent?'var(--st-ruby-fg)':renSoon?'var(--st-amber-fg)':'var(--color-neutral-500)');
+    /* ---- ONE COLOUR PER EXPIRY CELL (the black ink, 24 Aug 2026) ----
+       The date and its "· N d" suffix are one fact read as one glance, and
+       the design draws the whole cell in one colour. HaTi drew the date in the
+       primary ink and the suffix in the LABEL ink, so an ordinary row carried
+       two greys inside a single cell — and the suffix was 14px text sitting on
+       the secondary shade, which this product's own four-shades rule reserves
+       for 11–13px. Urgent and soon already agreed (both halves ruby, both
+       amber); only the ordinary branch disagreed, and it now matches the date
+       beside it. THE URGENCY TONES ARE UNTOUCHED — the whole point of the cell
+       is that ruby and amber still mean what they mean. */
+    const renColor=din==null?'transparent':(renUrgent?'var(--st-ruby-fg)':renSoon?'var(--st-amber-fg)':'var(--color-neutral-700)');
     const renDateColor=renUrgent?'var(--st-ruby-fg)':renSoon?'var(--st-amber-fg)':'var(--color-neutral-700)';
     const val=!isMonetary(c)?'n/m':(c.value?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):'—');
     /* The band header for the group this row opens, drawn once, ahead of it. */
