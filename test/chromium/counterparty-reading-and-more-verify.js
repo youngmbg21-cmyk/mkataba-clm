@@ -237,28 +237,40 @@ const PAPER = `(() => {
        The standing rule, and the most expensive thing this page could get
        wrong: a document silently missing its strikes looks like a document
        with nothing on the table.
-       REVERSED IN PLACE 24 Aug 2026 (owner-reported: "remove the strip from the
-       top of the contract in both as agreed and with changes pages"). THE CLAIM
-       IS UNCHANGED AND THE SURFACE MOVED: the band across the top of the
-       contract is gone; the CHANGE COLUMN greys itself, says this is a reading,
-       and carries the one way back. It is built into the shared panes, so it
-       arrives on their seat by construction — which is the claim, not the
-       proof, and the proof is that it is VISIBLE PIXELS on their page. */
+       REVERSED IN PLACE TWICE, and the second time is the one that matters.
+       23 Aug 2026: the band across the top of the contract went, and the CHANGE
+       COLUMN took over — greying itself, saying in a strip that this is a
+       reading, and carrying the way back.
+       24 Aug 2026 (WO-14, owner-asked: "Just delete the strip for now"): the
+       STRIP went too. WHAT SAYS IT NOW is the column itself — it greys AND
+       REFUSES THE PRESS, which is a stronger statement than a sentence, and no
+       clause offers a pencil. THE WAY BACK IS NOT LOST, which is the condition
+       on removing it: the reading switch in their own header is drawn on every
+       paint, it is where they pressed to get here, and the strip's button was a
+       proxy for it. Measured on THEIR page rather than assumed from "it is in
+       the shared panes" — this seat is where a silently-clean document would
+       cost the most. */
     await page.click('.pw-id .rl-readwrap [data-rl-read="agreed"]');
     await pause(600);
     const notice = await page.evaluate(([seen]) => {
       const s = eval(seen);
-      const n = document.querySelector('.rl-idx-reading');
-      return { box: s(n), text: n ? (n.textContent || '').replace(/\s+/g, ' ').trim() : '',
-        back: !!document.querySelector('.rl-idx-reading [data-rl-read="marks"]'),
+      const col = document.querySelector('.rl-side.is-reading');
+      const back = document.querySelector('.pw-id .rl-readwrap [data-rl-read="marks"]');
+      const pane = document.getElementById('rl-changes-col');
+      return { strip: !!document.querySelector('.rl-idx-reading'),
         band: !!document.getElementById('rl-read-note'),
-        greyed: !!document.querySelector('.rl-side.is-reading'),
+        greyed: !!col,
+        inert: pane ? getComputedStyle(pane).pointerEvents : 'auto',
+        backBox: s(back),
         pills: document.querySelectorAll('.rl-cp-pill').length };
     }, [SEEN]);
     check('2b a non-default reading says so on their page, in visible pixels',
-      notice.box && notice.box.on, notice.text.slice(0, 90));
-    check('2b and the way back is on the notice itself', notice.back);
+      notice.greyed && notice.inert === 'none',
+      `greyed ${notice.greyed} · pointer-events ${notice.inert}`);
+    check('2b and the way back is on their own reading switch, drawn on every paint',
+      notice.backBox && notice.backBox.on);
     check('2b the band across the top of the contract is gone', !notice.band);
+    check('2b and so is the strip that replaced it (WO-14)', !notice.strip);
     check('2b the change column is stood down, so nothing decides against a clean page',
       notice.greyed && notice.pills === 0,
       `greyed ${notice.greyed} · ${notice.pills} clause pencils`);

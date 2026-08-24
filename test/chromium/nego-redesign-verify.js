@@ -335,8 +335,15 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        opening the control. */
     check('5 every cut still states its own count, unopened',
       ((col.filterText || '').match(/\(\d+\)/g) || []).length >= 3, col.filterText);
-    check('6 the Copilot band is still there, and so is the unsent band',
-      col.copilot && col.band, `copilot ${col.copilot} · unsent ${col.band}`);
+    /* REVERSED IN PLACE 24 Aug 2026 (WO-3, owner-asked: "delete the copilot
+       first pass feature completely", then "Just delete the strip for now").
+       This pinned that the 22 Aug redesign had not quietly taken the band with
+       it — a real claim then, and the owner has now asked for it to go. The
+       UNSENT band is a different object and is untouched, which is the half
+       still worth pinning: two bands went out of this column on two different
+       days for two different reasons, and only one of them was asked for. */
+    check('6 the Copilot band is gone (WO-3) and the unsent band is not',
+      !col.copilot && col.band, `copilot ${col.copilot} · unsent ${col.band}`);
 
     /* ---- 7. NOTHING SITS UNDER THE CONTRACT ----
        A first build put two panels here — the other live negotiations, and the
@@ -459,6 +466,85 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
         `${fit.h}px · ${fit.cls} · ${fit.hidden} words folded`);
     }
     await page.setViewportSize({ width: 1500, height: 1000 });
+    await pause(500);
+
+    /* ---- 13 · THE THREE CHECK SYMBOLS (WO-10, owner-asked 24 Aug 2026) ----
+       "add the red highlighted symbols to where image 3 shows in the
+       negotiation page. They should then act like buttons so you can click on
+       them to run the respective scans but if they were already ran while in
+       the documents page, then the results simply appear from the panel on the
+       right hand side."
+       IN A BROWSER because the two things that could be wrong here cannot be
+       asked anywhere else: whether a NEW control is a dead press — the fault
+       this codebase records more than any other — and whether it lands on the
+       facts line or takes one of its own, which is a cascade question and looks
+       perfectly correct in the source either way. */
+    const checks = await page.evaluate(() => {
+      const g = e => e ? getComputedStyle(e) : null;
+      const box = e => { if (!e) return null; const r = e.getBoundingClientRect();
+        return { t: Math.round(r.top), b: Math.round(r.bottom), l: Math.round(r.left),
+          r: Math.round(r.right), w: Math.round(r.width), h: Math.round(r.height) }; };
+      const wrap = document.querySelector('#view-redline .room-checks');
+      const btns = [...document.querySelectorAll('#view-redline .room-check')];
+      return { wrap: box(wrap), facets: box(document.querySelector('#view-redline .room-facets')),
+        facts: box(document.querySelector('#view-redline .room-facts')),
+        head: box(document.querySelector('#view-redline #ws-head')),
+        n: btns.length,
+        kinds: btns.map(b => b.getAttribute('data-room-check')),
+        titled: btns.every(b => (b.getAttribute('title') || '').trim().length > 3),
+        labelled: btns.every(b => (b.getAttribute('aria-label') || '').trim().length > 3),
+        /* SYMBOLS ONLY — the owner's ruling. A button carrying a word here
+           would be the strip this page just lost, in new clothes. */
+        wordless: btns.every(b => (b.textContent || '').trim() === ''),
+        painted: btns.every(b => { const r = b.getBoundingClientRect();
+          return r.width > 0 && r.height > 0 && g(b).visibility !== 'hidden'; }) };
+    });
+    check('13 three symbols, one per check, in the order they are worked in',
+      checks.n === 3 && checks.kinds.join(',') === 'oblig,playbook,risk',
+      checks.kinds.join(','));
+    check('13 they are drawn as visible pixels', !!checks.wrap && checks.painted);
+    check('13 symbols only — the name lives on the hover, per the ruling',
+      checks.wordless && checks.titled && checks.labelled,
+      JSON.stringify({ wordless: checks.wordless, titled: checks.titled }));
+    /* THEY SHARE THE FACTS' LINE AND SIT AT ITS RIGHT WALL. `.room-facts` was a
+       plain block when this shipped, so its two children stacked and the
+       `margin-left:auto` had nothing to push against — MEASURED, the symbols
+       took a whole line at the LEFT wall and added 28px to a head meant to be
+       compact. Both halves are pinned, as RELATIONS. */
+    const onLine = checks.wrap && checks.facets
+      && checks.wrap.t < checks.facets.b && checks.wrap.b > checks.facets.t;
+    check('13 they share the facts line rather than taking one of their own',
+      onLine, JSON.stringify({ checks: checks.wrap, facets: checks.facets }));
+    check('13 and they sit at that line\'s right wall',
+      checks.wrap && checks.facts && Math.abs(checks.wrap.r - checks.facts.r) <= 2,
+      `${checks.wrap && checks.wrap.r} vs ${checks.facts && checks.facts.r}`);
+
+    /* ---- AND THE PRESS REALLY LANDS ---- */
+    const before = await page.evaluate(() =>
+      !!document.querySelector('#side-panel, .side-panel'));
+    await page.evaluate(() => { window.__cvBefore =
+      (typeof checkVerdict === 'function')
+        ? !!checkVerdict(getContract(state.activeId), 'oblig') : null; });
+    await page.click('#view-redline .room-check[data-room-check="oblig"]');
+    await pause(2500);
+    const after = await page.evaluate(() => {
+      const p = document.querySelector('#side-panel, .side-panel');
+      const on = p && p.getBoundingClientRect().width > 0;
+      return { on: !!on, ran: window.__cvBefore,
+        /* the panel BORROWS the obligations card by its element id — the same
+           trick openCheckPanel already plays, so it is the card moved whole and
+           never a second rendering */
+        borrowed: !!document.querySelector('#side-panel #obligations-section, .side-panel #obligations-section'),
+        toast: (document.querySelector('#toast-root') || {}).textContent || '' };
+    });
+    void before;
+    check('13 pressing one is not a dead press — something happens',
+      after.on || /\S/.test(after.toast),
+      JSON.stringify({ panel: after.on, alreadyRun: after.ran, toast: after.toast.slice(0, 60) }));
+    check('13 and where the check had already run, the panel shows its findings',
+      after.ran === false || after.borrowed || after.on,
+      JSON.stringify({ alreadyRun: after.ran, borrowed: after.borrowed }));
+    await page.keyboard.press('Escape');
     await pause(500);
 
     check('no page errors anywhere in the journey', errors.length === 0, errors.slice(0, 3).join(' | '));

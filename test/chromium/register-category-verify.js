@@ -76,7 +76,12 @@ const IDS = () => window.regFiltered().map(c => c.id).sort();
       const bar = sel.closest('div');
       const order = [...bar.querySelectorAll('select')].map(s => s.id);
       return { opts: [...sel.options].map(o => o.value), labels: [...sel.options].map(o => o.textContent.trim()),
-        order, beforeRenewal: order.indexOf('reg-category') < order.indexOf('reg-renewal') };
+        order,
+        /* Its neighbours, and whether it is labelled — WO-4 gave every filter a
+           visible label because a title attribute is not one. */
+        labelled: (() => { const l = sel.closest('label');
+          const t = l && l.querySelector('.reg-f-l');
+          return !!(t && t.textContent.trim()); })() };
     });
     check('the register offers a category filter', !!bar, bar ? bar.opts.join(', ') : 'no #reg-category');
     check('it lists every category the metadata records',
@@ -84,7 +89,22 @@ const IDS = () => window.regFiltered().map(c => c.id).sort();
         .every(k => bar.opts.includes(k)));
     check('and a way back to the ones with no category yet',
       bar && bar.opts.includes('none') && bar.labels.some(l => /No category yet/i.test(l)));
-    check('it sits beside the renewal filter', bar && bar.beforeRenewal, bar ? bar.order.join(' → ') : '');
+    /* REVERSED IN PLACE 24 Aug 2026 (WO-2, owner-asked: "delete the notes and
+       the filter i have highlighted so we can have more spacing"). This pinned
+       the category filter's POSITION relative to the Renewal one, and Renewal
+       is gone — so the claim would have had to become "it comes before nothing",
+       which is not a claim. WHAT IS PINNED INSTEAD is what the position was
+       really about: this control is one of the register's own filters, on the
+       one bar with the rest of them, and NOT off on its own — plus the label
+       WO-4 gave it, since a filter whose only name is a tooltip is the fault
+       that whole item was about. */
+    check('it is on the register\'s own filter bar, with the others',
+      bar && bar.order.includes('reg-category') && bar.order.length >= 3,
+      bar ? bar.order.join(' → ') : '');
+    check('and the Renewal filter it used to sit beside is gone (WO-2)',
+      bar && !bar.order.includes('reg-renewal'), bar ? bar.order.join(' → ') : '');
+    check('and it says what it filters, rather than hiding it in a tooltip',
+      bar && bar.labelled);
 
     /* ---- it actually filters ---- */
     const all = await page.evaluate(COUNT);

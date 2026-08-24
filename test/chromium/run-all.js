@@ -68,6 +68,18 @@ const KNOWN_RED = {
     'gives — the row rhythm or the shared type — and that is a density ' +
     'decision, not a drive-by fix. Everything else in the file, including the ' +
     'white column and the reversed count rules, is green.',
+  'panel-alerts-and-head-verify.js':
+    'ITS HEAD CLAIMS ARE STALE, NOT THIS BRANCH\'S. It asks for render B1 — ' +
+    'three .rl-fseg cuts, the 19px count as the headline with its uppercase ' +
+    'caption underneath, the live one the only coloured thing on the row. That ' +
+    'head became a <select> in "The negotiation page takes the render" ' +
+    '(f3bc058) and this file was never re-pointed; PROVED by running it in a ' +
+    'worktree at unmodified origin/main, where the identical 7 checks fail and ' +
+    'it throws in the same place. WO-8 of the screenshot work order only MOVED ' +
+    'that control into the slot the owner drew and did not choose its shape. ' +
+    'WHAT IT NEEDS is whoever owns that render saying what B1\'s claims become ' +
+    'now the cuts are options — everything else in the file (the alerts rows, ' +
+    'the WORKING TEXT lid) is green and worth keeping.',
   /* --- retired feature, net kept for the restore --- */
   'copilot-band-verify.js':
     'THE BAND IT MEASURES NO LONGER DRAWS. WO-3, 24 Aug 2026, owner-asked: ' +
