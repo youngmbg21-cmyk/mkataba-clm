@@ -26,6 +26,13 @@ this says do not go and fix the other things you find on the way. Read in the
 other order the two can be made to argue. The finding still gets written down —
 BUGLOG.md is where, and it is one line, not a fix.
 
+**BUGLOG.md ALREADY EXISTS AND IS 7,000 LINES OF RUN HISTORY — APPEND, NEVER
+WRITE.** Its convention is one section per run, newest at the bottom, with the
+defects found and then a "Noticed, not fixed" list. The first run under these
+rules OVERWROTE it, on the assumption that an instruction to write a file meant
+the file was free; nothing was lost, git had it, and it was caught by reading a
+diffstat rather than by any test. `ls` costs nothing.
+
 ## Bug Fix Rules
 
 1. DUPLICATION WARNING: This app draws the same UI in several places. Never assume a fix in one place fixes them all.
