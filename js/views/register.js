@@ -686,29 +686,49 @@ function regRowsHtml(cs){
     return band + `
     <tr data-row="${c.id}"${neg?' data-nego-row="1"':''} style="cursor:pointer;animation-delay:${Math.min(i,14)*22}ms">
       <td class="reg-mk">${c.id}</td>
-      <td style="max-width:280px${c._famChild?';padding-left:30px':''}">
-        ${''/* The line design's title block: the stream tick beside the words
-              it files, the title in regular weight, and the document KIND on
-              a quiet second line — the mockup's own arrangement. */}
+      <td style="max-width:300px${c._famChild?';padding-left:30px':''}">
+        ${''/* ---- ONE LINE PER CONTRACT (owner-ruled 24 Aug 2026) ----
+              The document KIND used to sit on a quiet second line under the
+              title, and that second line was the whole of this row's height:
+              the owner chose to drop it and take the design's 36px row, which
+              turns about 17 contracts on a laptop into about 24. THE FACT IS
+              NOT LOST — the kind rides the title's own hover, and the VALUE
+              STREAM it used to sit beside is now a column of its own rather
+              than a colour with a legend at the foot of the page.
+              A CHILD ROW IS THE SAME ONE LINE: the indent and the arrow say it
+              is filed under the row above, and the arrow's hover names the
+              relation and the parent, which is what the old second line said
+              in full width. */}
         <span style="display:flex;align-items:center;gap:9px;min-width:0">
         <span class="reg-tick" style="background:${folderColor(c)}"></span>
-        <span style="min-width:0;flex:1">
-        <span class="reg-title" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:14px;font-weight:400" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc(c.parentId)}">↳ </span>`:''}${regTitleOf(c)}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:400;font-size:14px;font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
-        <span class="reg-kind">${cKind(c)}</span>
-        ${c._famChild?`<span style="display:block;font-size:14px;font-weight:400;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${RELATION_LABEL[c.relation]||'Amendment'} of ${c.parentId}</span>`:''}
-        </span></span>
+        <span class="reg-title" style="min-width:0;flex:1;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(regTitleOf(c))} · ${esc(cKind(c))}">${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:14px;font-weight:400" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc(c.parentId)}">↳ </span>`:''}${regTitleOf(c)}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:400;font-size:14px;font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
+        </span>
       </td>
       <td style="color:var(--color-neutral-700);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.counterparty||'—')}</td>
-      ${''/* The link dot has left this cell for a column of its own — it was
-             answering a different question from the chip beside it under a
-             heading that said Status. The question pill stays: an unanswered
-             question IS about where the contract stands. */}
-      <td style="white-space:nowrap"><span style="display:inline-flex;align-items:center">${window.questionDot?questionDot(c.id):''}${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}</span></td>
-      <td style="text-align:center;white-space:nowrap">${window.shareLinkCell?shareLinkCell(c.id):''}</td>
+      ${''/* ---- THE STREAM IS A WORD NOW, NOT ONLY A COLOUR ----
+             The 3px tick beside the title stays — it is the fastest thing on
+             the row — but it was the ONLY carrier, explained by a legend at the
+             very bottom of the page, and this file's own standing rule is that
+             colour is never the only carrier. The column it takes is the one
+             the LINK column gave up: that column answered "what happened to the
+             link you sent them", which is a fact about one contract rather than
+             something you scan a register for, and it drew an em-dash on every
+             row of an ordinary workspace. It is on the contract's own page. */}
+      <td style="color:var(--color-neutral-600);max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc((window.FOLDERS&&FOLDERS[c.folder]&&FOLDERS[c.folder].name)||'')}">${esc((window.FOLDERS&&FOLDERS[c.folder]&&FOLDERS[c.folder].name)||'—')}</td>
       <td style="text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:400;white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}">${val}</td>
       ${''/* The mockup's expiry cell: the date, then "· in Nd" in the urgency
             colour — red inside 30 days, amber to 90 — carrying its weight. */}
       <td style="white-space:nowrap;font-variant-numeric:tabular-nums"><span style="font-weight:400;color:${renDateColor}">${renDate}</span>${renIn?` <span style="font-size:14px;font-weight:400;color:${renColor}">· ${renIn}</span>`:''}</td>
+      ${''/* ---- THE STAGE IS A DOT AND A WORD (owner-approved render, 24 Aug
+             2026) ---- It was a filled chip, and five of them running down the
+             middle of the page read as five buttons. The dot is the shape a
+             scanned column needs and the word beside it is what keeps the
+             colour from being the only carrier; contractStatusDotHtml shares
+             its branch with the chip and the head's sentence, so no two of the
+             three can disagree about which stage this is. THE QUESTION PILL
+             STAYS beside it — an unanswered question IS about where the
+             contract stands. */}
+      <td style="white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:6px">${window.questionDot?questionDot(c.id):''}${window.contractStatusDotHtml?contractStatusDotHtml(c):(window.contractStatusChip?contractStatusChip(c):statusChip(c.status))}</span></td>
       ${''/* ---- THE LAST COLUMN IS A STATE, NOT AN ACTION ----
              On Contracts it is the row's own verb plus the ⋯ menu. On
              Negotiations it is whose move it is, and the ⋯ IS GONE with the
@@ -718,10 +738,22 @@ function regRowsHtml(cs){
              destination is not in doubt. Every one of those verbs is a press
              away on Contracts, where the row press already means "open the
              contract". */}
+      ${''/* ---- THE ROW'S VERB IS THE ROW (owner-approved render, 24 Aug 2026)
+             ---- The last column used to carry a text verb — "Review terms",
+             "View contract" — beside the ⋯. Pressing the row already opens the
+             contract, so that verb was mostly restating the stage two columns
+             along. The ⋯ STAYS and keeps every act it had: it is the only way
+             to archive, export or delete from this page, and its own first row
+             ("Open workspace") is what the verb did.
+             regPrimaryAction — the reading that chose the verb's WORD per
+             status — now has NO caller. It is left exported rather than
+             deleted, on this file's own convention for a builder whose feature
+             has gone: a third caller must not be able to bring the column back
+             through a door nobody remembered, and f240 pins that the row draws
+             no verb. */}
       ${neg ? `<td style="text-align:right;white-space:nowrap">${negoMovePillHtml(c)}</td>` : `
       <td style="position:relative;text-align:right;white-space:nowrap" onclick="event.stopPropagation()">
-        <button class="reg-actlink" data-act="open" data-id="${c.id}">${regPrimaryAction(c)}</button>
-        <button data-menu="${c.id}" style="border:0;background:none;cursor:pointer;padding:2px 4px;margin-left:6px;color:var(--color-neutral-600);font-size:14px;letter-spacing:1px;vertical-align:middle" title="${i18t('reg_more_actions')}">⋯</button>
+        <button data-menu="${c.id}" style="border:0;background:none;cursor:pointer;padding:0 4px;line-height:var(--row-line-1);color:var(--color-neutral-600);font-size:14px;letter-spacing:1px;vertical-align:middle" title="${i18t('reg_more_actions')}">⋯</button>
         <div data-menu-pop="${c.id}" style="display:none;position:absolute;right:8px;top:34px;z-index:30;width:180px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:0;padding:4px;flex-direction:column;text-align:left">${actBtns(c)}</div>
       </td>`}
     </tr>`;}).join('')
@@ -845,7 +877,15 @@ function renderRegister(opts){
      register's own data started below the fold. Each filter is now a compact
      dropdown on a single row; an active one carries the accent border so a
      narrowed set is still visible at a glance, and Clear puts everything back. */
-  const selFilter=(id,opts,active,title)=>`<select id="${id}" title="${title}" style="${selStyle};max-width:180px${active?';border-color:var(--color-accent);color:var(--color-accent-800);font-weight:600':''}">${opts}</select>`;
+  /* ---- A FILTER SAYS WHAT IT FILTERS (owner-approved render, 24 Aug 2026) ----
+     These were five bare dropdowns whose only label was a title attribute, so
+     two of them reading "Any" sat side by side meaning different things and the
+     only way to tell was to hover. The label is drawn above the control, which
+     is the design's own arrangement; the SELECT keeps its id, its options and
+     its title, so every handler and every test that reaches for it is
+     untouched. The row aligns on flex-end, so a labelled control and a bare one
+     (the clear button, the sort) still sit on one baseline. */
+  const selFilter=(id,opts,active,title,label)=>`<label class="reg-f"><span class="reg-f-l">${esc(label||title)}</span><select id="${id}" title="${title}" style="${selStyle};max-width:180px${active?';border-color:var(--color-accent);color:var(--color-accent-800);font-weight:600':''}">${opts}</select></label>`;
   const stageOpts=REG_STAGES.map(s=>`<option value="${s.k}" ${R.stage===s.k?'selected':''}>${s.label}</option>`).join('');
   const typeOpts=regTypes().map(t=>`<option value="${t.k}" ${R.type===t.k?'selected':''}>${t.label}</option>`).join('');
   const viewOpts=`<option value="" ${R.view?'':'selected'}>${i18t('reg_saved_views')}</option>`
@@ -881,16 +921,27 @@ function renderRegister(opts){
   const catActive=!!(R.category&&R.category!=='all');
   const catOpts=[['all',i18t('reg_any')]].concat(regCategories().map(k=>[k,regCatLabel(k)]))
     .concat([['none',i18t('reg_uncategorised')]]);
-  const categorySel=`<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--color-neutral-700)">${i18t('me_category')}
+  /* These two already carried a visible label, inline to the left of the
+     control. They take the same stacked label as the three above so the bar
+     reads as one row of filters rather than two conventions. */
+  const categorySel=`<label class="reg-f"><span class="reg-f-l">${esc(i18t('me_category'))}</span>
     <select id="reg-category" style="${selStyle}${catActive?';border-color:var(--color-accent);color:var(--color-accent-800);font-weight:600':''}">${catOpts.map(([k,l])=>`<option value="${k}" ${(R.category||'all')===k?'selected':''}>${l}</option>`).join('')}</select></label>`;
   const renewalActive=!!(R.renewal&&R.renewal!=='all');
-  const renewalSel=`<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--color-neutral-700)">${i18t('reg_renewal')}
+  const renewalSel=`<label class="reg-f"><span class="reg-f-l">${esc(i18t('reg_renewal'))}</span>
     <select id="reg-renewal" style="${selStyle}${renewalActive?';border-color:var(--color-accent);color:var(--color-accent-800);font-weight:600':''}">${[['all',i18t('reg_any')],['auto-renew',i18t('reg_renew_auto')],['fixed',i18t('reg_fixed')],['evergreen',i18t('reg_evergreen')]].map(([k,l])=>`<option value="${k}" ${(R.renewal||'all')===k?'selected':''}>${l}</option>`).join('')}</select></label>`;
   // Server-mode full-text search + semantic ask live in a secondary strip (the
   // command bar owns the primary search); kept here so FTS wiring stays intact.
+  /* ---- SEARCH IS THE FIRST FILTER, NOT A STRIP OF ITS OWN (owner-asked
+     24 Aug 2026, off the design's own filter bar) ----
+     It sat on a second row under the five dropdowns, which made a reader scan
+     two lines to find out how the list was narrowed and left the box looking
+     like a leftover. It is a labelled control in the same row now, FIRST,
+     which is where the design puts it. The dropdown it opens (#reg-fts) is
+     absolutely positioned against this wrapper, so the wrapper keeps
+     position:relative and the whole suggestion list follows it unchanged. */
   const ftsBlock=API_MODE()?`
-    <div style="position:relative;flex:1;min-width:200px;max-width:340px">
-      <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--color-neutral-500);display:inline-flex">${icon('search','w-3.5 h-3.5')}</span>
+    <label class="reg-f" style="position:relative;flex:1 1 220px;min-width:180px;max-width:300px"><span class="reg-f-l">${esc(i18t('reg_search'))}</span>
+      <span style="position:absolute;left:9px;bottom:8px;color:var(--color-neutral-500);display:inline-flex">${icon('search','w-3.5 h-3.5')}</span>
       ${''/* WHITE, LIKE EVERY CONTROL BESIDE IT (owner-reported 22 Aug 2026).
              It was --color-bg, the PAGE's grey, while all six dropdowns on the
              same row are --color-surface — so the one box a reader types into
@@ -898,9 +949,14 @@ function renderRegister(opts){
              own search box took the same correction in the same breath: two
              search boxes in one product disagreeing about their own colour is
              how the next screen picks the wrong one. */}
-      <input id="reg-search" value="${R.query.replace(/"/g,'&quot;')}" placeholder="${esc(i18t('reg_search_ph'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:6px 9px 6px 30px;font:inherit;font-size:13px;outline:none;color:inherit">
+      ${''/* THE SAME HEIGHT AS THE SELECTS BESIDE IT. It padded 6px against
+             their 5px, which is 2px taller — invisible on its own line and
+             plainly wrong once it joined the row, which is the head-row lesson
+             of 22 Aug in a smaller costume. Matched to selStyle's own padding
+             rather than given a height of its own, so the two cannot drift. */}
+      <input id="reg-search" value="${R.query.replace(/"/g,'&quot;')}" placeholder="${esc(i18t('reg_search_ph'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:5px 9px 5px 30px;font:inherit;font-size:13px;outline:none;color:inherit">
       <div id="reg-fts" class="hidden" style="position:absolute;z-index:40;margin-top:4px;width:100%;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:0;max-height:320px;overflow-y:auto"></div>
-    </div>`:'';
+    </label>`:'';
 
   const hostEl=document.getElementById(_regOpts.hostId)||document.getElementById('content');
   if(!hostEl) return;
@@ -960,6 +1016,7 @@ function renderRegister(opts){
          title's own size it competes with the title and costs every row four
          pixels of height. It is the one place in a row where a size difference
          is carrying something. */
+      .reg-table{--reg-row-h:36px}
       .reg-mk{font-family:var(--font-mono);font-size:14px;font-weight:400;
         color:var(--color-accent-600);white-space:nowrap;font-variant-numeric:tabular-nums}
       /* The status chip, flattened HERE and not at .badge — that class dresses
@@ -967,33 +1024,89 @@ function renderRegister(opts){
          a table row. The wash and the ink are untouched. */
       .reg-table .badge{font-size:14px;font-weight:400}
       .reg-title{font-weight:400;color:var(--color-text);line-height:var(--row-line-1)}
-      .reg-kind{display:block;font-size:12px;line-height:var(--row-line-2);color:var(--color-neutral-500);
-        white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-      /* The stream tick spans the title's two lines. A SPAN, not a border on
-         the id cell: the mockup puts the colour beside the words it files. */
-      .reg-tick{flex:none;width:3px;align-self:stretch;min-height:26px}
-      /* The prototype's row action is a text link, not a button. The ⋯ beside it
-         keeps the rest of the engine's actions reachable. */
-      .reg-actlink{border:0;background:none;font:inherit;font-size:14px;font-weight:400;
-        color:var(--color-accent-600);cursor:pointer;padding:0}
-      .reg-actlink:hover{text-decoration:underline}
+      /* ---- THE ROW IS ONE LINE AND 36px (owner-ruled 24 Aug 2026) ----
+         The cell padding is what sets it: 8px above and below a 20px line box
+         is 36, which is the design's own --row-h. It was 4px above and below
+         TWO line boxes (20 + 16) and measured 45. THE NUMBER IS NOT TYPED ON
+         THE ROW — it falls out of the padding and the line, so a type change
+         moves the row with it instead of clipping inside a fixed height.
+         .reg-kind is RETIRED with the second line — flag any mention as stale. */
+      /* THE HEIGHT IS STATED, AND ON A TABLE CELL THAT IS A FLOOR RATHER THAN A
+         CAP — a td grows past its own height when its content needs to, which
+         is what makes this safe where it would not be on a div. It is stated
+         because the arithmetic alone does not land: with 8px of padding above
+         and below a 20px line the row still measured 38.2, because an
+         inline-flex child sits on the BASELINE and the strut adds its descender
+         space underneath. Measured at each step rather than assumed. This is
+         also the design's own rule (--row-h). */
+      .reg-table td{height:var(--reg-row-h);padding:0 var(--pad-row-x);line-height:var(--row-line-1)}
+      .reg-table td > span{vertical-align:middle}
+      /* The tick no longer spans two lines, so it stops stretching and takes a
+         height of its own beside the one line it marks. */
+      .reg-tick{flex:none;width:3px;height:14px;align-self:center}
+      /* The stage, as a dot and a word. The dot is the shape a scanned column
+         needs; the word is what stops the colour being the only carrier. BOTH
+         come from contractStatusDotHtml, which shares its branch with the chip
+         and the head's sentence — the dot takes the tone's brighter dot shade
+         and the word its darker text shade, which is what every chip in this product
+         already does and what keeps a 14px word readable while an 8px circle
+         still catches the eye. currentColor here is only the fallback for a
+         stage that somehow draws without its inline tone. */
+      /* ---- THE WHOLE FILTER AREA IS ONE WHITE BAND (owner-asked 24 Aug 2026,
+         off the design's own bar) ----
+         The title, the filters and the search sat on the PAGE ground while the
+         table below them was a white card, so the controls read as loose
+         furniture floating above the thing they govern. The design draws them
+         on --surf with a hairline under, and the contract room's head already
+         does exactly this (.room-band) — one treatment, two pages, rather than
+         a second convention here.
+         IT IS A WRAPPER, NOT A BACKGROUND ON EACH PART: painting them
+         separately leaves the flex gap between them grey and gives two bars
+         where the design has one band. The negative margin cancels the view's
+         own padding so the white runs to the shell's edge, and the padding
+         puts it back inside so nothing it contains moves by a pixel — the
+         room band's own trick, and asserted rather than assumed. */
+      .reg-band{background:var(--color-surface);border-bottom:1px solid var(--color-divider);
+        margin:calc(var(--page-pad-t) * -1) calc(var(--page-pad-x) * -1) 0;
+        padding:var(--page-pad-t) var(--page-pad-x) 10px;
+        display:flex;flex-direction:column;gap:8px}
+      /* AND THE PAGE'S NAME IS ON THE BAND WITH IT. The title, its sentence and
+         the one act are drawn by the SHELL into #page-head, which is a sibling
+         ABOVE #content and cannot be wrapped from in here — so it is painted
+         rather than moved. This rule lives in the register's own <style>, which
+         is injected with the register's markup and goes with it, so no other
+         view ever sees it: the page after this one gets its grey back with
+         nothing to remember. The two boxes butt exactly (the head's bottom IS
+         the content's top, measured), and the head runs 10px wider because it
+         sits outside the scroller — that 10px is the scrollbar gutter. */
+      #page-head{background:var(--color-surface)}
+      .reg-f{display:flex;flex-direction:column;min-width:0}
+      .reg-f-l{font-size:12px;color:var(--color-neutral-600);margin-bottom:3px;white-space:nowrap}
+      .reg-stg{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;font-weight:400;vertical-align:middle}
+      .reg-stg i{width:8px;height:8px;border-radius:50%;flex:none;background:currentColor}
       .reg-th-sort:hover{color:var(--color-accent-700)!important}
       .reg-th-sort:hover .reg-sort-idle{color:var(--color-accent-700)}
       .reg-th-sort.active{color:var(--color-accent-800)!important}
     </style>
     <div style="display:flex;flex-direction:column;gap:8px;flex:1;min-height:0">
+      ${''/* THE BAND — the page's own name, its filters and its search on one
+             white ground, with the table's card below it on the page grey. */}
+      <div class="reg-band">
       ${headHtml}
       <!-- THE ONE FILTER BAR: stage · stream · saved view · category · renewal ·
            clear,
            then sort, full-text search (server mode) and the export — a single
            compact strip where three tiers of pills used to stack, so the table
            itself starts above the fold. -->
-      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+      <div class="reg-filterbar" style="display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-end">
         ${lockChip}
         ${onlyChip}
-        ${selFilter('reg-stage-sel',stageOpts,R.stage!=='all','Lifecycle stage')}
+        ${ftsBlock}
+        ${selFilter('reg-stage-sel',stageOpts,R.stage!=='all',i18t('reg_lifecycle_stage'))}
         ${selFilter('reg-type-sel',typeOpts,R.type!=='all',i18t('reg_value_stream'))}
-        ${selFilter('reg-view-sel',viewOpts,!!R.view,i18t('reg_saved_views_title'))}
+        ${''/* The long sentence is the TOOLTIP, not the label — used as a label it
+                    ran to 460px and pushed the whole bar off the row. */}
+        ${selFilter('reg-view-sel',viewOpts,!!R.view,i18t('reg_saved_views_title'),i18t('reg_saved_views'))}
         ${categorySel}
         ${renewalSel}
         ${filtered?`<button id="reg-clear-filters" style="font-size:12px;font-weight:600;color:var(--color-accent-700);background:none;border:0;cursor:pointer;padding:2px 4px">${i18t('reg_clear')}</button>`:''}
@@ -1005,7 +1118,7 @@ function renderRegister(opts){
                sorts the whole page. A control that quietly means something else
                is a lie by omission, so the page says it beside the control. */}
         ${neg?`<span id="reg-sort-note" style="flex:none;font-size:12px;color:var(--color-neutral-500)">${esc(i18t('ngl_sort_note'))}</span>`:''}
-        ${ftsBlock}
+      </div>
       </div>
 
       <section class="blueprint bp-round" style="background:var(--color-surface);box-shadow:var(--shadow-sm);flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden">
@@ -1022,11 +1135,11 @@ function renderRegister(opts){
                 <th style="width:96px">MK</th>
                 ${sortableTh('name',i18t('reg_col_title'))}
                 <th>${i18t('reg_col_counterparty')}</th>
-                ${sortableTh('stage',i18t('reg_col_status'))}
-                <th style="width:58px;text-align:center" title="${i18t('reg_link_title')}">${i18t('reg_col_link')}</th>
+                <th>${i18t('reg_value_stream')}</th>
                 ${sortableTh('value',i18t('reg_col_value'),'text-align:right')}
                 ${sortableTh('expiry',i18t('reg_col_expiry'))}
-                <th style="text-align:right">${neg?i18t('ngl_col_move'):i18t('reg_col_actions')}</th>
+                ${sortableTh('stage',i18t('reg_col_status'))}
+                <th style="text-align:right;width:${neg?'auto':'40px'}">${neg?i18t('ngl_col_move'):''}</th>
               </tr>
             </thead>
             <tbody id="reg-tbody" class="stagger">${regRowsHtml(cs)}</tbody>

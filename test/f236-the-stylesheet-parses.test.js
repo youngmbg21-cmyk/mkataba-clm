@@ -119,6 +119,48 @@ describe('f236 — the stylesheet parses', () => {
     assert.deepEqual(stray, [], stray.join('\n'));
   });
 
+  /* ---- AND THE SWEEP HAD A HOLE, PAID FOR ON 24 Aug 2026 ----
+     This file swept negotiation-css.js and index.html and NOT the other view
+     files, several of which also emit a <style> block from inside a template
+     literal. A comment written into js/views/register.js's CSS carried two
+     backtick PAIRS — balanced, so the file still parsed — and the words between
+     them were EVALUATED: "Unexpected identifier 'dot'", the whole app dead at
+     sign-in, 27 browser files red. Exactly the fault this file exists for, one
+     file along.
+
+     WHY NOT A BLANKET RULE: 521 ordinary JS block comments in js/ contain a
+     backtick and every one is harmless — banning them would be 521 false
+     alarms. The danger is narrow and so is this: CSS never needs a backtick,
+     so inside a <style> region there must not be one. Scoped to the regions a
+     file really EMITS (found as markup, not as the word "<style>" in prose,
+     which over-matched on a first pass and reported two comments in
+     negotiation.js that were describing the technique). */
+  test('no <style> block in js/views/ carries a backtick — CSS never needs one', () => {
+    const files = fs.readdirSync(path.join(ROOT, 'js/views'))
+      .filter(f => f.endsWith('.js'));
+    const stray = [];
+    for (const f of files){
+      const src = fs.readFileSync(path.join(ROOT, 'js/views', f), 'utf8');
+      const lines = src.split('\n');
+      let inside = false;
+      lines.forEach((l, i) => {
+        const t = l.trim();
+        /* ANY line carrying the closing tag ends the region, whatever rides
+           with it — a first draft matched only two exact spellings, missed
+           "</style>`);" in adviceportal.js, and swept the rest of that file as
+           though it were CSS. A boundary check has to be as loose as the
+           closings really are. */
+        const opens = /<style>\s*$/.test(t);
+        const closes = l.includes('</style>');
+        if (closes) { inside = false; return; }
+        if (opens) { inside = true; return; }
+        if (inside && l.includes('`'))
+          stray.push(`js/views/${f}:${i + 1} — ${t.slice(0, 70)}`);
+      });
+    }
+    assert.deepEqual(stray, [], stray.join('\n'));
+  });
+
   test('and its builders really run, which is where a balanced pair shows', () => {
     /* A balanced pair leaves the file PARSING and breaks it at CALL time, so
        reading the source is not enough — the function has to be run. */

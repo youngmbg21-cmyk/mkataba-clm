@@ -49,9 +49,21 @@ describe('F97 — one builder, so the two tables cannot disagree', () => {
     assert.match(core, /shareLinkCell/, 'and it is exported');
   });
 
-  test('both tables use it — neither hand-rolls its own', () => {
+  /* REVERSED IN PLACE 24 Aug 2026 (owner-approved render). The REGISTER's link
+     column is gone: it answered "what happened to the link you sent them",
+     which is a fact about ONE contract rather than something you scan a
+     register for, and it drew an em-dash on every row of an ordinary
+     workspace. The column it freed is the value stream's, which every row
+     really does carry. THE FACT IS NOT LOST, and this pins where it went: the
+     contract's own shares section draws the whole journey (renderSharesSection
+     / shareJourneyHtml). The STREAM DRAWER keeps its column — a drawer is one
+     stream's worth of contracts, where "have I sent this one out" is exactly
+     what you are scanning for. One builder still, so the two cannot drift. */
+  test('the one table that still draws it uses the builder, never its own', () => {
     const uses = reg.match(/shareLinkCell\(c\.id\)/g) || [];
-    assert.equal(uses.length, 2, 'the register and the folder page, one each');
+    assert.equal(uses.length, 1, 'the stream drawer — the register dropped the column');
+    assert.match(core, /shareJourneyHtml/,
+      'and the link’s journey is still drawn on the contract itself');
   });
 
   test('and neither still puts the mark inside the Status cell', () => {
@@ -67,9 +79,12 @@ describe('F97 — one builder, so the two tables cannot disagree', () => {
        reader's language. What this test is about is that BOTH tables carry
        them, which has not changed. */
     const heads = reg.match(/<th[^>]*>\$\{i18t\('reg_col_link'\)\}<\/th>/g) || [];
-    assert.equal(heads.length, 2);
+    assert.equal(heads.length, 1, 'the stream drawer’s — the register’s went with the column');
     const titled = reg.match(/title="\$\{i18t\('reg_link_title'\)\}"/g) || [];
-    assert.equal(titled.length, 2, 'a column heading of one word earns a sentence');
+    assert.equal(titled.length, 1, 'a column heading of one word earns a sentence');
+    /* AND THE REGISTER PUTS THE FREED COLUMN TO WORK — the stream, written out,
+       so the 3px tick beside the title stops being the only carrier. */
+    assert.match(reg, /<th>\$\{i18t\('reg_value_stream'\)\}<\/th>/);
   });
 
   /* ONE LEGEND, AND IT IS THE FOLDER PAGE'S. Both tables used to carry it. The

@@ -218,18 +218,22 @@ describe('f240 (5) — the rows read at one size and one weight', () => {
     return s.slice(i, s.indexOf('</tr>', i)); })();
   const css = strip(REG).match(/\.reg-table\{[\s\S]*?\.reg-th-sort\.active/)[0];
 
-  test('the reference and the row verb are regular weight', () => {
-    for (const cls of ['reg-mk', 'reg-actlink']){
-      const r = css.match(new RegExp('\\.' + cls + '\\{[\\s\\S]*?\\}'))[0];
-      assert.match(r, /font-size:14px/, cls);
-      assert.match(r, /font-weight:400/, cls);
-    }
+  /* REVERSED IN PLACE 24 Aug 2026 — the row VERB is gone (owner-approved
+     render): pressing the row already opens the contract, so a text verb beside
+     the ⋯ was restating the stage two columns along. What this claim was really
+     about survives on the reference, and the verb's absence is asserted below
+     so nothing can quietly put a second weight back in the row. */
+  test('the reference is regular weight, and the row draws no verb', () => {
+    const r = css.match(/\.reg-mk\{[\s\S]*?\}/)[0];
+    assert.match(r, /font-size:14px/);
+    assert.match(r, /font-weight:400/);
+    assert.ok(!/class="reg-actlink"/.test(rowsFn), 'the row carries no text verb');
+    assert.ok(!/\.reg-actlink\{/.test(css), 'and no rule is left dressing one');
   });
 
   test('AND EVERY COLOUR IS EXACTLY WHAT IT WAS', () => {
     assert.match(css.match(/\.reg-mk\{[\s\S]*?\}/)[0], /var\(--color-accent-600\)/,
       'the reference is still the row’s teal handle');
-    assert.match(css.match(/\.reg-actlink\{[\s\S]*?\}/)[0], /var\(--color-accent-600\)/);
     assert.match(rowsFn, /renDateColor/, 'the expiry still carries its urgency colour');
     assert.match(rowsFn, /\$\{renColor\}/, 'and so does the countdown');
     assert.match(rowsFn, /folderColor\(c\)/, 'the stream tick is untouched');
@@ -242,12 +246,23 @@ describe('f240 (5) — the rows read at one size and one weight', () => {
     assert.match(badge, /font-weight:700/, 'the global chip keeps its own dress');
   });
 
-  test('THE DOCUMENT KIND STAYS SMALL — owner-chosen, having been shown 14px', () => {
-    const kind = css.match(/\.reg-kind\{[\s\S]*?\}/)[0];
-    assert.match(kind, /font-size:12px/,
-      'at the title’s own size the second line competes with the title '
-      + 'and costs every row four pixels of height');
-    assert.match(kind, /var\(--color-neutral-500\)/, 'and keeps its grey');
+  /* REVERSED IN PLACE 24 Aug 2026 (owner-ruled: "drop the document type and go
+     with 36px rows"). The kind's second line WAS the row's height — dropping it
+     is what buys the design's 36px row, and the owner was shown that trade and
+     took it. THE FACT IS NOT LOST and that is what this now pins: the kind
+     rides the title's hover, and the VALUE STREAM it used to sit beside is a
+     column of its own rather than a colour with a legend at the foot. */
+  test('THE ROW IS ONE LINE — the kind rides the hover, the stream is a column', () => {
+    assert.ok(!/\.reg-kind\{/.test(css), '.reg-kind is retired with the second line');
+    assert.ok(!/reg-kind/.test(rowsFn), 'and no row draws one');
+    assert.match(rowsFn, /title="\$\{esc\(regTitleOf\(c\)\)\} · \$\{esc\(cKind\(c\)\)\}"/,
+      'the kind is still said — on the title’s own hover');
+    assert.match(rowsFn, /FOLDERS\[c\.folder\]/,
+      'and the stream it sat beside is written out in a column');
+    /* The height is stated on the CELL, which for a td is a floor rather than a
+       cap — content taller than it still expands the row. */
+    assert.match(css, /\.reg-table\{--reg-row-h:36px\}/);
+    assert.match(css, /\.reg-table td\{height:var\(--reg-row-h\)/);
   });
 
   test('NO CELL IN A ROW IS BOLD ANY MORE — the sweep that catches the next one', () => {

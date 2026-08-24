@@ -129,7 +129,10 @@ const AMBER_BG = 'rgb(245, 158, 11)';    /* --st-amber-dot */
     const row = await page.evaluate(id => {
       const tr = [...document.querySelectorAll('#reg-tbody tr')].find(r => r.textContent.includes(id));
       if (!tr) return null;
-      const chip = tr.querySelector('.badge[title]');
+      /* RE-POINTED 24 Aug 2026 — the register's row states its stage as a dot
+         and a word (.reg-stg) rather than a filled chip. The claim is
+         unchanged: the CELL says the short form, the hover says the sentence. */
+      const chip = tr.querySelector('.reg-stg[title]') || tr.querySelector('.badge[title]');
       return { text: tr.textContent, title: chip && chip.getAttribute('title') };
     }, cid);
     check('the register row says the SHORT form — a column has no room for a sentence',

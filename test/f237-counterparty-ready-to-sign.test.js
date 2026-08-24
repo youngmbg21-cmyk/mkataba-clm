@@ -142,9 +142,28 @@ describe('f237 (2) — ONE predicate, asked by three surfaces', () => {
       'every filter, query and server guard reads c.status; drawing must not move it');
   });
 
-  test('all three status builders ask it rather than repeating it', async () => {
-    for (const fn of ['contractStage', 'contractStatusChip', 'contractStatusTextHtml']){
-      const body = strip(CORE).match(new RegExp(fn + '[\\s\\S]{0,1400}'))[0];
+  /* WIDENED 24 Aug 2026, and the claim is STRONGER rather than reversed. The
+     register's row states its stage as a dot now, which made a FOURTH dress for
+     this one reading — so the branch that chooses the meta was lifted into
+     contractStatusMeta and every dress asks that. What this test has always
+     been about is that no surface works the fact out for itself; it now pins
+     the shape that makes that structurally true. */
+  test('one branch chooses the meta, and every dress asks it', async () => {
+    const src = strip(CORE);
+    const meta = src.match(/const contractStatusMeta[\s\S]{0,400}/)[0];
+    assert.match(meta, /cpReadyToSign\(/, 'the one branch asks the predicate');
+    assert.match(meta, /contractPartiallySigned\(/);
+    assert.match(meta, /contractExpired\(/);
+    for (const fn of ['contractStatusTextHtml', 'contractStatusDotHtml']){
+      const body = src.match(new RegExp('const ' + fn + '[\\s\\S]{0,600}'))[0];
+      assert.match(body, /contractStatusMeta\(/, fn + ' does not ask the one branch');
+      assert.ok(!/cpReadyToSign\(/.test(body), fn + ' repeats the branch instead of asking');
+    }
+    /* contractStage and the CHIP keep their own literal branch: the chip's is
+       its own markup with the SHORT word, and both predate this. What matters
+       is that they ask the same predicate, which is what this always said. */
+    for (const fn of ['contractStage', 'contractStatusChip']){
+      const body = src.match(new RegExp(fn + '[\\s\\S]{0,1400}'))[0];
       assert.match(body, /cpReadyToSign\(/, fn + ' does not ask the predicate');
     }
   });

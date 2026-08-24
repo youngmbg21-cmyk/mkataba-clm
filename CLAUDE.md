@@ -1049,6 +1049,28 @@ Three asks off one screenshot of their page, and the first two are the same faul
 
 Tests: counterparty-reading-and-more-verify (54 — every claim a RELATION read live off the owner's own page, never a literal: the wrap, the live segment and a resting one compared property for property, More compared against its three neighbours, the exit's corner and dress read off the negotiation page, the press proved to leave focus, and the notices overlap proved absent).
 
+**AND THE NET HAD A HOLE, PAID FOR ON 24 Aug 2026 — IN THE SAME SESSION THAT
+FIXED SOMEBODY ELSE'S INSTANCE OF IT.** f236 swept index.html and
+negotiation-css.js and NOT the other view files, several of which also emit a
+`<style>` block from inside a template literal. Writing the Contracts page's own
+CSS comment, I put two backtick PAIRS in it — describing the very tokens the
+rule is about. Balanced, so the file still PARSED; the words between them were
+EVALUATED. **"Unexpected identifier 'dot'", the whole app dead at sign-in, and
+27 of 69 browser files red**, almost all of them reporting nothing more useful
+than "page.fill: Timeout" because the sign-in form never drew.
+
+**THE NODE SUITE WAS GREEN THROUGHOUT**, which is the part worth remembering: it
+loads modules, and this file parses. Only running the page finds it.
+
+**WHY THE SWEEP IS NARROW AND NOT BLANKET**: 521 ordinary JS block comments in
+js/ contain a backtick and every one is harmless, so banning them would be 521
+false alarms. CSS never needs a backtick, so the rule is scoped to what a file
+really EMITS between `<style>` and `</style>`. Two drafts were wrong before it
+was trusted — matching the word "<style>" in PROSE flagged two comments in
+negotiation.js that were describing the technique, and matching only two exact
+spellings of the closing tag missed `</style>`);` in adviceportal.js and swept
+that whole file as CSS. **Proved by reintroducing the bug and watching it fail.**
+
 ## A COMMENT CAN SWALLOW THE RULE UNDER IT (23 Aug 2026)
 
 **The third member of this family, after the always-false guard and the rule that loses a cascade fight — and the only one where the rule is not merely beaten but ABSENT.**
@@ -1097,6 +1119,93 @@ Twenty-seven line symbols from the design mock-up, in a `<defs>` sprite at the t
 **THE FAILURE MODE IS SILENCE, which is why this has a browser file.** A `<use>` pointing at a symbol that does not exist renders an EMPTY BOX — no error, no warning, a button with a hole in it — and jsdom builds no shadow tree for `<use>` at all, so it cannot tell a resolved reference from a dead one. **type-and-symbols-verify** measures each icon's painted `getBBox()`, which is non-zero only if the reference really resolved. It also tells "not painted" apart from "broken": Insights is hidden until the portfolio is big enough, and four doors live in the Administration fold, which starts shut — the file opens the fold, and for a door the app itself hides it asserts the reference is sound and says so in the output rather than counting it as a pass.
 
 SQUARE CORNERS EVERYWHERE (owner-asked 20 Aug 2026, second pass — this completes what the first pass scoped to Home and the shell): ~810 rounded-rectangle radii swept to 0 across index.html and every js/ file — cards, dialogs, chips, badges, inputs, menus, toasts, the phone, exports. True circles stay circles, and the sweep PROVED each one rather than pattern-matching: `border-radius:50%` kept by rule, and a pill value (999/9999/99px) kept ONLY where the same style run declares equal width and height (13 dots and avatars wear pill values — a blanket `*{border-radius:0}` would have squared them). The compiled `.rounded-full` class is the circle class and stays; every other `.rounded*` utility is 0. The negotiation sheet's own radius tokens (--n-r-*) are 0. Emails in server.js are deliberately untouched — their own surface, like their Arial fallback.
+
+## THE CONTRACTS PAGE TAKES THE ENTERPRISE DESIGN (owner-approved render, 24 Aug 2026)
+
+The second page of the page-by-page pass, and the one every home tile lands on.
+It reaches **Contracts AND Negotiations, because both are ONE table** —
+renderRegister — so every line below was checked on both seats.
+
+**THE ROW IS ONE LINE AND 36px, AND THAT IS THE OWNER'S OWN TRADE** ("drop the
+document type and go with 36px rows"). The document KIND sat on a quiet second
+line under the title and **that second line WAS the row's height**: 4px of
+padding above and below TWO line boxes (20 + 16) measured 45. It is 36 now,
+which turns about 17 contracts on a 1440x900 laptop into about 24. The trade was
+named before it was built, because 23 Aug had deliberately KEPT that line as
+"the one place in a row where a size difference is still carrying something" —
+this REVERSES that IN PLACE, on the owner's ruling, and the fact is not lost:
+the kind rides the title's own hover, and the VALUE STREAM it used to sit beside
+is now a column.
+
+**THE HEIGHT IS STATED ON THE CELL, AND MEASURED AT EVERY STEP.** The arithmetic
+alone does not land — with 8px of padding above and below a 20px line the row
+still came back **38.2**, because an inline-flex child sits on the BASELINE and
+the strut adds its descender space underneath. Two intermediate fixes (the ⋯
+button's own padding at 23.6px, then `vertical-align:middle`) each moved it and
+neither reached 36. `--reg-row-h:36px` on `.reg-table` with `height` on the td
+is the design's own rule, **and on a table cell a stated height is a FLOOR
+rather than a cap** — a td grows past it when content needs to, which is what
+makes it safe here where it would not be on a div.
+
+**THE STAGE IS A DOT AND A WORD, AND THAT MADE A FOURTH DRESS FOR ONE READING.**
+It was a filled chip, and five running down the middle of the page read as five
+buttons. So `contractStatusMeta(c)` is the branch — partially-signed, expired,
+counterparty-ready, else the status — and **every dress asks it**:
+contractStatusTextHtml (the room head's sentence), contractStatusDotHtml (this
+row), with the chip and contractStage still asking the same predicate. Three
+copies of "which branch applies" is how they come to disagree; f237's claim was
+WIDENED to pin the shape rather than the old literal.
+
+**THE LINK COLUMN GAVE ITS PLACE TO THE VALUE STREAM.** The link column answered
+"what happened to the link you sent them" — a fact about ONE contract rather
+than something you scan a register for, and it drew an em-dash on every row of
+an ordinary workspace. **THE FACT IS NOT LOST**: the contract's own shares
+section draws the whole journey (renderSharesSection / shareJourneyHtml), and
+**the STREAM DRAWER keeps its column** — a drawer is one stream's contracts,
+where "have I sent this one out" IS what you are scanning for. One builder
+still (shareLinkCell), so the two cannot drift. In its place the stream is
+written out, because the 3px tick was the ONLY carrier and was explained by a
+legend at the very foot of the page — this file's own standing rule is that
+colour is never the only carrier. The tick stays; it is the fastest thing on the
+row. f97's "both tables" claims were reversed in place.
+
+**THE ROW'S TEXT VERB IS GONE, THE ⋯ STAYS.** "Review terms" / "View contract"
+sat beside the ⋯ while pressing the row already opened the contract, so the verb
+mostly restated the stage two columns along. The ⋯ keeps every act — it is the
+only way to archive, export or delete from this page — and its own first row
+("Open workspace") is what the verb did. **`regPrimaryAction` now has NO
+CALLER**: left exported rather than deleted, on this file's convention for a
+builder whose feature has gone, so a third caller cannot bring the column back
+through a door nobody remembered. `.reg-actlink` and `.reg-kind` are STALE —
+flag any mention.
+
+**A FILTER SAYS WHAT IT FILTERS.** Five bare dropdowns whose only label was a
+title attribute, so two of them reading "Any" sat side by side meaning different
+things. The label is drawn above; the select keeps its id, options and title, so
+every handler and test is untouched. **THE LABEL AND THE TOOLTIP ARE TWO
+STRINGS** — the first draft used `reg_saved_views_title` as the label and its
+sentence ran to 460px and pushed the bar off the row; `reg_saved_views` is the
+label, the sentence stays the hover. `reg_lifecycle_stage` is NEW in both
+languages: it was a hardcoded English tooltip and is now visible text.
+
+**WHAT WAS DELIBERATELY NOT TAKEN FROM THE DESIGN**, each said out loud: its
+footer's "Create" button (this page already has "+ New contract" at the top, and
+two ways to create one contract is how a reader stops trusting either), and its
+row height applied to the STREAM DRAWER, which is a different screen and was not
+in the ask.
+
+**THE COLOUR CENSUS WAS RE-RECORDED FOR IT, AUDITED FIRST**, and it is the
+smallest kind of re-record: **one screen, both themes, and every value
+explained.** GONE are the chip's BACKGROUND WASHES — `rgb(209,250,229)` and
+`rgb(241,245,249)` in light, their two dark twins — which left with the chip;
+ARRIVED is the grey DOT's ink in each theme. The word's inks did not move at
+all, which is why only the washes went: the stage still says its tone in text.
+Read as a SET DIFFERENCE, never as a diff — the baseline re-orders, so every
+value appears on both sides of the patch and reading it tells you nothing.
+
+Tests: f240's three claims REVERSED IN PLACE (the verb's absence, the kind's,
+and the stated height), f97's two reversed (one table draws the link column
+now), f237 WIDENED to the one-branch shape, contracts-page-verify (browser).
 
 THE REGISTER WEARS THE LINE DESIGN (owner-approved mockup, 20 Aug 2026 — measured off the owner's own HTML, and it reaches Contracts AND Negotiations because both are ONE table, renderRegister): flat white table ruled by hairlines, uppercase 10.5/700 header on the surface itself (the grey band is gone), teal tracking numbers (.reg-mk), regular-weight titles with the document KIND on a quiet second line (.reg-kind — cKind, the same reading the stream drawer prints), the stream tick moved OFF the row's left edge to a 3px span BESIDE the title (.reg-tick), values regular weight, and the expiry cell in the mockup's own shape — a fixed numeric dotted date (regDotDate, "25.08.2026" — digits carry no month word, so the months-follow-the-language rule has nothing to translate; the stream drawer's folderExpiryCell reads the same helper) with the countdown as "· N d" at 10.5/700 in its urgency colour (red inside 30 days, amber to 90 — thresholds unchanged; reg_in_days is "{n} d" in BOTH languages and sits on f148's SAME_IN_BOTH list). The bands, sorting, paging and every verb: untouched.
 

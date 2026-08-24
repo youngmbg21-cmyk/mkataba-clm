@@ -139,10 +139,15 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     /* IT REACHES THE LIST TOO — the register is where this was most wrong. */
     await page.evaluate(() => setView('register'));
     await pause(1800);
+    /* RE-POINTED 24 Aug 2026 — the register's row states its stage as a dot and
+       a word (.reg-stg) rather than a filled chip, so .badge finds nothing
+       there now. The CLAIM is unchanged and is the one that matters: the LIST
+       agrees the contract left Drafting. */
     const row = await page.evaluate(id => {
       const tr = document.querySelector(`#reg-tbody tr[data-row="${id}"]`);
       if (!tr) return { absent: true };
-      return { chip: (tr.querySelector('.badge') || {}).textContent || '' };
+      const st = tr.querySelector('.reg-stg') || tr.querySelector('.badge');
+      return { chip: st ? st.textContent.trim() : '' };
     }, staged.id);
     check('1h and the contracts list agrees',
       !row.absent && /review/i.test(row.chip), row);
