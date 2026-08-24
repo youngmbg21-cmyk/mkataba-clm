@@ -20,6 +20,28 @@ THIS FILE IS THE CONDENSED RULEBOOK (condensed 2026-08-11, owner-approved). The 
 
 ## HOW TO TEST ECONOMICALLY (owner-asked 16 Aug 2026, after a session spent mostly waiting on test runs)
 
+**THE RULE, IN THE OWNER'S OWN WORDS (24 Aug 2026): "Do not run the full test
+suite during incremental edits. Only run the specific test file directly
+related to the changed code."**
+
+**IT IS RESTATED HERE BECAUSE A VERSION OF IT ALREADY EXISTED AND I BROKE IT
+ANYWAY**, which is the only fact that earns it a second telling. The paragraphs
+below have said "run only the test files the feature's own section names" since
+16 Aug; on the negotiation-page build of 24 Aug I ran the whole suite after
+nearly every edit, and the owner asked twice why the work was taking so long
+before saying it as a rule. Each full run is five and a quarter minutes and
+tells you nothing a targeted file has not already told you.
+
+**WHAT IT MEANS IN PRACTICE, since "incremental edit" is the part that gets
+argued with:** every edit before you believe you are finished is incremental —
+including the ones that fix a test you have just broken. When a change breaks
+several files, run those files, together, in ONE command
+(`node --test --test-reporter=dot test/<a>.test.js test/<b>.test.js`), and keep
+running only those until they pass. Only then does the full suite run, ONCE, to
+catch what you did not think to look at. That last run is not negotiable and is
+not what this rule is about; it is the twelve before it that are.
+
+
 The full suite takes **5m17s** a run — MEASURED 21 Aug 2026, 4,101 tests in 873 suites; the "3+ minutes" that stood here was an estimate and had drifted. A browser file starts a real Chrome and costs 11–40 SECONDS, not the 2–5 minutes claimed here (measured the same day across all 55 of them; the minutes were a guess nobody had timed). That second number is what made `run-all.js` possible. The recipe for any change:
 - **THE PROOFREADER RUNS FIRST AND COSTS SECONDS**: `npm run lint`. It answers the one question nothing else in this project asked — is every name being called a name that exists — and it is the check that would have caught rlPaperFootHtml in a second rather than in a year. Zero errors is the bar; the ~137 warnings are unused locals and are a tidy-up list, deliberately not an alarm (see eslint.config.js, which explains every rule and holds KNOWN_ABSENT — the standing list of functions this app calls that nothing defines).
 - WHILE WORKING, run only the test files the feature's own section names ("Tests: f210, clause-door-verify" — every section ends with that list): `node --test test/<file>.test.js`, seconds each.
