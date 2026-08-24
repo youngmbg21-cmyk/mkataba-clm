@@ -1,4 +1,4 @@
-# WORK ORDER — thirteen fixes off the owner's screenshots
+# WORK ORDER — seventeen fixes off the owner's screenshots
 
 **Raised by:** Young, 24 Aug 2026, across five messages of annotated
 screenshots ("Do not code but review and create a plan to fix…", then two more
@@ -724,6 +724,167 @@ door"), and which `docs/WORKORDER-black-ink.md` also names as out of scope.
 
 ---
 
+### WO-14 · The "Reading only" strip comes off the two other readings
+*Owner, 24 Aug 2026: "delete this strip from the as agreed and with changes
+tabs."*
+
+The strip reads *"Reading only — go back to Redlined to make a change"* with a
+**Back to redlined** button, above the change column, whenever the page is on
+"As agreed" or "With changes".
+
+**IT IS NOT DECORATION, AND THIS IS THE WHOLE OF THE ITEM.** MEASURED on main:
+in those two readings the change column is not merely dimmed, it is
+**switched off** — `opacity:.45`, `filter:grayscale(1)` and, decisively,
+`pointer-events:none`. The strip is a SIBLING of that pane precisely so its own
+button stays pressable, and it is the only thing on the page that says why
+nothing in the column responds.
+
+**So deleting the strip alone leaves a greyed-out column that refuses every
+press and explains nothing** — which is the exact fault this codebase records
+over and over ("a control that looks live and does nothing is the fault a
+reader blames themselves for"), and it reverses a standing rule in CLAUDE.md:
+*"A NON-DEFAULT READING ALWAYS SAYS SO … with the way back"*, and
+*"THE READING NOTICE NEVER FOLDS — quietly hiding the strikes is the expensive
+mistake."*
+
+**OPEN DECISION 6 — BLOCKS THIS ITEM.** Three ways to give the owner what they
+asked for, and they are different products:
+
+- **(a) Strip goes, and the column goes with it.** In those two readings the
+  column is not drawn at all. Honest — nothing dead is left on screen — and the
+  page gains the width. **The cost:** the round's shape disappears while you
+  read the clean wording, which is the reason the column was greyed rather than
+  removed in the first place.
+- **(b) Strip goes, and the column comes ALIVE.** Deciding works in all three
+  readings; nothing is disabled, so nothing needs explaining. The cleanest
+  screen. **The cost:** you can accept a change while looking at a document
+  that does not show the marks — which is what the disabling was built to
+  prevent.
+- **(c) Strip shrinks to a mark, not a sentence.** The column stays greyed; a
+  small padlock or a one-word tag replaces the strip and carries the sentence
+  on hover. **The cost:** the reason is a hover away, and the way back moves
+  to the tab row (where it already exists).
+
+**Recommendation: (c).** It is what the owner is really reacting to — a
+two-line sentence in a box, at the top of the column, on every non-default
+reading — without leaving a dead column unexplained. **If the owner wants (a)
+or (b), say so and it is a small change either way**; both are honest, and
+neither should be picked by me.
+
+---
+
+### WO-15 · Two filters go, so the row fits one line
+*Owner, 24 Aug 2026: "delete the highlighted filters so that there is enough
+space for all the filters to be on one line." (The **Live negotiations** locked
+chip and the **Renewal** filter.)*
+
+**The Renewal half is already WO-2** and reaches this page by construction:
+Contracts and Negotiations are one renderer, so removing the control there
+removes it here. Nothing extra to build.
+
+**The locked chip is new, and it is not a filter.** It carries a padlock, has
+no ✕, and cannot be cleared — CLAUDE.md records why: *"it says what the page
+is … there is nothing to remove: it is not a filter the reader chose. It leads
+the bar so everything to its right is plainly a narrowing WITHIN live
+negotiations."*
+
+**WHAT ITS REMOVAL COSTS, and it is small here:** the page already says what it
+is, twice and more loudly — the heading reads **Negotiations** with an
+**18 live** badge beside it, and the sentence under it says *"Every agreement
+being argued over right now."* The chip is a third statement of a fact the two
+lines above it already make. That is a better reason to remove it than the
+space, and it is why this one needs no decision.
+
+**BUILD:** the chip stands down. The scope itself is untouched — it is a
+property of the page, not of the chip, and `regFiltered` applies it first
+whatever the bar draws.
+
+**AND MEASURE THE ROW AFTERWARDS.** The ask is "one line", which is a
+GEOMETRY, not two removals: at 1280 with the sidebar open the bar has ~996px,
+and the remaining five controls plus Sort must be proved to sit on one line
+there, not merely to look right at 1440.
+
+---
+
+### WO-16 · The row type comes down a size
+*Owner, 24 Aug 2026: "reduce the font by a size in the contracts page list of
+contracts and the negotiations page list of contracts so that there is enough
+room in the card and words to no disappear to the right of the tables."*
+
+**TWO ASKS IN ONE SENTENCE, and they want separating** because one of them is
+already WO-9 and the other is a taste decision.
+
+**The disappearing words ARE WO-9.** The owner's screenshot shows the WHOSE
+MOVE column cut off at the right edge — that is the sideways-scroll fault,
+measured at 58px over in Swedish and 4px in English at 1280. **A smaller font
+does not fix it and must not be relied on to.** WO-9 probed five smaller-is-
+better remedies and every one left the table over; only a declared column
+ladder fits at every width. **Build WO-9 and the words stop disappearing
+whatever size the type is.**
+
+**The size itself is a separate, legitimate ask.** The rows are 14px today.
+One rung down is 13px.
+
+**WHAT IT REVERSES, said out loud:** the 22 Aug type pass lifted every size at
+or below 14px one rung, on the finding that HaTi ran one to two steps small
+against the design — and the design's own type scale puts **table row primary
+text at 14px/600**. So 13px rows are a step back below the reference. The owner
+has seen both and may still want it; it must be recorded as their ruling, not
+left looking like drift.
+
+**AND IT MUST NOT REVERSE THE 23 Aug RULING**, which is the trap: that day
+flattened every cell in the row to ONE size and ONE weight, with the document
+kind as the single exception. `flat-rows-and-alerts-verify` pins exactly that —
+*"every cell but the document kind is ONE size"*, and separately that the rows
+still carry **at least three inks**. Dropping the row to 13px means dropping
+**every** cell together, and the document kind (12px today) must stay smaller
+than the row or that check fails honestly.
+
+**OPEN DECISION 7 — BLOCKS THE SIZE HALF ONLY.** Does the owner want 13px rows
+knowing it steps below the design's own 14px, now that WO-9 will fix the
+disappearing words on its own? **Recommendation: build WO-9 first, look at the
+page, then decide** — the ask was made to solve a problem WO-9 solves, and the
+type may look right at 14 once nothing is being cut off.
+
+---
+
+### WO-17 · The Negotiations door opens a list, like Contracts
+*Owner, 24 Aug 2026: "when i click on the contracts tab on the nav panel, i get
+a list of contracts. This should be the same when i click on the negotiation
+tab."*
+
+**MEASURED, and the owner is describing it exactly.** Pressing the sidebar's
+Negotiations item lands on a **single negotiation's workbench** — whichever one
+was open last — not on the list. Contracts always lands on the list.
+
+**IT IS DELIBERATE TODAY**, and CLAUDE.md records the reasoning: the door
+answers `'reopen'`, reading `negoLastOpened`, so a reader who was working on
+one deal is put back into it. The list is one press further, on the page's own
+**All negotiations** button.
+
+**The owner is reversing that.** It is their call and it is a small change —
+the door answers `'list'` instead of `'reopen'` — but three things go with it
+and each must be decided rather than discovered:
+
+- **The memory itself.** `negoRememberOpened` / `negoLastOpened` would have no
+  caller left. **Keep the reading, drop the door** — the machinery is written,
+  it is one line to re-point, and deleting it makes the decision hard to undo.
+- **The way back in.** Every other door into a negotiation (a decision card, a
+  returned-changes notice, a playbook finding, the phone) is untouched — they
+  name their contract and still open it. Only the SIDEBAR changes.
+- **The phone already does what the owner wants.** Its bottom-bar Negotiate
+  item lands on the list, so this makes the two shells agree rather than
+  diverge — worth saying, because it is evidence the owner's reading is the
+  more natural one.
+
+**BUILD:** the sidebar's Negotiations press asks for the list. No new door, no
+second route — the door already takes an answer and this changes which one it
+gives. `negotiations-door-verify` has claims about the reopen behaviour that
+are **reversed in place**, not deleted: what they really pin is that the door
+is deliberate rather than accidental, and that stays true.
+
+---
+
 ## Open decisions
 
 | # | Question | Blocks | Recommendation |
@@ -733,6 +894,8 @@ door"), and which `docs/WORKORDER-black-ink.md` also names as out of scope.
 | 3 | How wide is the owner's screen — where does the float line go? | **WO-5** | back to 1500 |
 | 4 | Should Copilot always answer in the interface language, even for an English question? | no | leave as is — the rule already exists and follows the question |
 | 5 | Home tiles: does colour mean something, or does it tell the cards apart? | **WO-13** | keep the meaning; adopt the demo's own numeral rule |
+| 6 | The greyed change column: remove it, wake it, or mark it? | **WO-14** | mark it — a padlock, the sentence on hover |
+| 7 | 13px rows, below the design's own 14px? | **WO-16** (size half) | build WO-9 first, then look and decide |
 
 **Decision 4's item is already built and is not in this order** — the Copilot
 language rule is in place on both hosts and the reported fault was a frozen
@@ -790,7 +953,11 @@ change rather than one large one. Everything after the rebase.
 11. **WO-10** the three check symbols
 12. **WO-5** where the sidebar floats — *after decision 3*
 13. **WO-9** the sideways-scrolling table
-14. **WO-13** the Home tile colours — *after decision 5*
+14. **WO-15** the two filters off the bar (the Renewal half rides WO-2)
+15. **WO-17** the Negotiations door opens the list
+16. **WO-14** the reading strip — *after decision 6*
+17. **WO-13** the Home tile colours — *after decision 5*
+18. **WO-16** the row type — *after WO-9 is built and looked at, then decision 7*
 
 WO-12's tier 2 (one looping animation) rides with tier 1 if the owner wants it;
 tier 3 (the 111 transitions) is explicitly NOT in this order.
