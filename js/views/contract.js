@@ -4886,7 +4886,81 @@ function wireWsFocus(c){
 /* Whether the head's fact row is folded. Per sitting, in memory — see the note
    in wireRoomHead. */
 let _wsFactsFolded=false;
-function roomFactsHtml(c){
+/* ---- THE THREE CHECKS AS SYMBOLS, ON THE NEGOTIATION HEAD ----
+   Owner-asked 24 Aug 2026: "add the red highlighted symbols to where image 3
+   shows in the negotiation page. They should then act like buttons so you can
+   click on them to run the respective scans but if they were already ran while
+   in the documents page, then the results simply appear from the panel on the
+   right hand side." Ruled the same day: symbols only, the name on hover, and
+   NO state dot.
+   ONE READING OF "HAS THIS RUN", shared with the Checks card: both ask
+   checkVerdict. Three copies of that question is how two surfaces come to
+   disagree about one contract.
+   NO DOT, SO THE HOVER CARRIES THE STATE. With nothing marking a check that has
+   already run, a symbol cannot say whether pressing it starts a fresh scan —
+   which spends Copilot money — or merely opens what is already there. The name
+   says which: "Copilot risk scan · 3 open" against "Copilot risk scan · run
+   it". One word, as asked, and nothing extra drawn.
+   THE SAME RULES AS THE CARD IT COMES FROM, asked of the same predicate: a
+   viewer, or anyone on an executed contract, may still OPEN what was found but
+   not re-run it — except Obligations, which are deliberately exempt because a
+   quarterly report starts mattering AFTER signature.
+   NOT DRAWN ON THE CONTRACT ROOM'S OWN HEAD: that page carries the Checks card
+   on its Document tab, and two doors onto one act on one page is the
+   duplication this product keeps removing. */
+function roomChecksHtml(c){
+  if(typeof checkVerdict!=='function') return '';
+  const may=(typeof canEdit!=='function'||canEdit());
+  const rows=[['oblig','calendar','ob_obligations'],
+              ['playbook','shield','ct_playbook_review'],
+              ['risk','scan','ct_copilot_risk_scan']];
+  return `<div class="room-checks">${rows.map(([kind,ic,key])=>{
+    let v=null; try{ v=checkVerdict(c,kind); }catch(_){}
+    const editable=may&&(kind==='oblig'||c.status!=='Signed');
+    const dead=!v&&!editable;
+    const name=i18t(key);
+    const tip=v?`${name} · ${v.label}`:(editable?`${name} · ${i18t('ct_run_check')}`:name);
+    return `<button type="button" class="room-check${v?' has-run':''}" data-room-check="${kind}"
+      ${dead?'disabled aria-disabled="true"':''} title="${esc(tip)}" aria-label="${esc(tip)}"
+      >${icon(ic,'w-4 h-4')}</button>`;
+  }).join('')}</div>`;
+}
+/* Bound ONCE on the document, not per paint: this head is rebuilt on every
+   render and a listener per paint stacks one per render. The press mirrors the
+   Checks card's own handler — already run opens the panel, otherwise it runs —
+   and calls the SAME acts, so there is no second path to a scan. */
+function wireRoomChecks(){
+  if(typeof document==='undefined'||!document.addEventListener) return;
+  if(document._roomChecksWired) return;
+  document._roomChecksWired=true;
+  document.addEventListener('click',async e=>{
+    const b=e.target&&e.target.closest&&e.target.closest('[data-room-check]');
+    if(!b||b.disabled) return;
+    const kind=b.getAttribute('data-room-check');
+    const c=(typeof getContract==='function')?getContract(state.activeId):null;
+    if(!c) return;
+    let ran=null; try{ ran=checkVerdict(c,kind); }catch(_){}
+    if(ran) return openCheckPanel(c,kind);
+    const may=(typeof canEdit!=='function'||canEdit());
+    if(!(may&&(kind==='oblig'||c.status!=='Signed'))) return;
+    b.disabled=true;
+    try{
+      if(kind==='risk'){ if(!window.runScanAct) throw new Error('unavailable'); runScanAct(c); return; }
+      if(kind==='playbook'){
+        if(!window.runPlaybookReview) throw new Error('unavailable');
+        const res=await runPlaybookReview(c);
+        if(res){ c.playbook=res; logAudit(c,'Playbook',`Reviewed against ${res.label} — ${deviationSummary(c).dev} deviation(s), ${deviationSummary(c).miss} missing`); persist(c); }
+        openCheckPanel(c,'playbook'); return;
+      }
+      if(kind==='oblig'){
+        if(!window.runFindObligations) throw new Error('unavailable');
+        await runFindObligations(c); return;
+      }
+    }catch(_){ toast(i18t('ct_check_unavailable'),'err'); }
+    finally{ b.disabled=false; }
+  },false);
+}
+function roomFactsHtml(c,opts={}){
   const dash='<span class="room-facet-none">&mdash;</span>';
   const money=(typeof fmtMoney==='function'&&Number(c.value)>0)
     ? esc(window.fmtMoneyOf?fmtMoneyOf(c):fmtMoney(c.value)) : dash;
@@ -4924,6 +4998,12 @@ function roomFactsHtml(c){
            this smaller" without it costing the row a slot. It hides the FACTS
            only; the title, the status and the acts never move, because a head
            whose buttons jump when you fold it is a head you stop folding. */}
+    ${''/* OUTSIDE THE FOLD, DELIBERATELY. `.room-facts.is-folded .room-facets`
+           is what Collapse hides, and this group is a SIBLING of that — so it
+           sits on the same line and never disappears when the facts do.
+           Controls that vanish when you tidy the heading are controls you stop
+           trusting. */}
+    ${opts.checks?roomChecksHtml(c):''}
     <div class="room-snap"><button type="button" id="ws-facts-toggle" aria-expanded="true"
       title="${esc(i18t('ct_collapse_facts_title'))}"><span class="room-snap-word">${
       esc(i18t('ct_collapse'))}</span></button></div>
@@ -5335,13 +5415,14 @@ function roomHeadHtml(c,opts={}){
            than a second one, so the two heads cannot come to disagree about
            what a fact is. */}
     ${backC ? roomHeadSubHtml(c) : ''}
-    ${roomFactsHtml(c)}
+    ${roomFactsHtml(c,{checks:backC})}
   </section>`;
 }
 /* Opening and closing the "⋯". The items themselves are wired where they
    always were — ws-share, ws-import, ws-compare and the exports keep their
    ids, so wireWorkspaceActions binds them without knowing they moved. */
 function wireRoomHead(c){
+  wireRoomChecks();
   /* ---- FOLDING THE FACT ROW ----
      Per SITTING and in memory, like every other posture in this product (the
      notice stack's fold, the clause panel, the queue overlay). Deliberately not
@@ -7282,7 +7363,7 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
+Object.assign(window,{roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never
      reached the window. This file's globals are not automatic; the assign

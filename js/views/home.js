@@ -623,6 +623,33 @@ function renderDashboard(){
      THE HOVER MUST NOT TOUCH borderColor ANY MORE: resetting it would paint
      all four sides the divider grey and erase the top edge. */
   const TONE_EDGE={steel:'var(--color-accent-600)',emerald:'var(--st-green-dot)',amber:'var(--st-amber-dot)',ruby:'var(--st-ruby-dot)'};
+  /* ---- EVERY CARD ITS OWN COLOUR, AND ITS NUMBER TO MATCH (owner-asked
+     24 Aug 2026: "the colors of the top of the cards should all be different
+     for each card and the number inside the cards should reflect that color as
+     well", ruled: "just to tell them apart") ----
+     HaTi coloured a tile by what its metric MEANT — amber attention, ruby
+     overdue, green good — so two metrics that both mean "needs attention" drew
+     the same amber side by side, which is what the owner's screenshot shows.
+     THE COLOUR IS NOW POSITIONAL: the four tiles in a row take four different
+     tones whatever the metrics happen to be, and the numeral takes its tile's
+     tone.
+     WHAT THIS COSTS, put to the owner before they ruled and recorded rather
+     than re-argued: colour no longer MEANS anything on this page. Amber here
+     does not say "this needs you". FOUR OTHER SURFACES KEEP THE OLD MEANING
+     and must not be swept with it — the sidebar's amber counts, the alerts
+     panel's amber rows, the register's status tones and the calendar legend.
+     Home is the exception, deliberately.
+     THE DEMO'S OWN RULE WAS NARROWER, and it is worth knowing which half was
+     adopted: it colours a numeral only on a STATUS tone and leaves its
+     brand-teal tiles' numbers black — three of its seven. The owner asked for
+     every number to follow its card and that is what this does.
+     THE ZERO-COUNT GREY IS UNTOUCHED — a tile counting zero is not a door, and
+     with every other number coloured it is now the only grey one, which makes
+     it a stronger signal rather than a weaker one. */
+  const HM_ROW_TONES=['var(--color-accent-600)','var(--st-amber-dot)',
+    'var(--st-ruby-dot)','var(--st-green-dot)'];
+  const HM_ROW_INKS =['var(--color-accent-700)','var(--st-amber-fg)',
+    'var(--st-ruby-fg)','var(--st-green-fg)'];
   const kpiCard=id=>{ const k=KPI_CATALOG[id], t=TONE_OF(k.grad); return `
     <button data-kpi-id="${id}" draggable="true" class="hati-stat" style="position:relative;display:flex;flex-direction:column;gap:7px;align-items:stretch;border:1px solid var(--color-divider);border-top:3px solid ${TONE_EDGE[t]};border-radius:0;background:var(--color-surface);padding:12px 14px;font:inherit;color:inherit;cursor:grab;text-align:left;box-shadow:none;transition:transform .2s var(--ease),opacity .15s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
       <span style="display:block;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;line-height:1.3;color:var(--color-neutral-500);">${k.label}</span>
@@ -895,17 +922,17 @@ function renderDashboard(){
       <span class="hm-t">${o.t}</span>
       <span class="hm-s">${o.s||''}</span>
       <span class="hm-sp"></span>
-      <span class="hm-big"><span class="hm-n">${o.n}</span>${o.u?`<span class="hm-u">${o.u}</span>`:''}</span>
+      <span class="hm-big"><span class="hm-n"${o.ink&&!dead?` style="color:${o.ink}"`:''}>${o.n}</span>${o.u?`<span class="hm-u">${o.u}</span>`:''}</span>
       <span class="hm-foot${o.fc?' '+o.fc:''}">${o.f||''}</span>
     </button>`;
   };
 
   /* MY WORK — the four the reader chooses. Same ids and the same drag-to-
      reorder as before; only the dress and the door are new. */
-  const workTiles=kpiSel.map(id=>{
-    const k=KPI_CATALOG[id], t=TONE_OF(k.grad);
+  const workTiles=kpiSel.map((id,i)=>{
+    const k=KPI_CATALOG[id];
     return hmTile({ t:esc(k.label), s:esc(k.sub||''), n:esc(String(k.val)), u:'',
-      f:esc(String(k.delta||'')), fc:'', edge:TONE_EDGE[t], go:'kpi:'+id,
+      f:esc(String(k.delta||'')), fc:'', edge:HM_ROW_TONES[i%4], ink:HM_ROW_INKS[i%4], go:'kpi:'+id,
       attrs:`data-kpi-id="${id}" draggable="true"`,
       /* An average has no number to test — "—" is not zero, it is "not yet
          measurable" — so the tile is dead when there is nothing behind it. */
@@ -954,18 +981,18 @@ function renderDashboard(){
     + hmTile({ t:esc(KPI_META.compliance), s:i18t('home_playbook_conformance'),
         n:compliancePct+'<span class="hm-u">%</span>', u:'',
         f:i18t('home_clean_of_live',{clean,live:live.length}),
-        fc:compliancePct>=90?'':'crit', edge:compliancePct>=90?'var(--st-green-dot)':'var(--st-amber-dot)',
+        fc:compliancePct>=90?'':'crit', edge:HM_ROW_TONES[1], ink:HM_ROW_INKS[1],
         go:'fails', tall:true, dead:false })
     + hmTile({ t:i18t('home_import_queue'), s:i18t('home_back_catalogue'),
         n:Number(importQ).toLocaleString(jxLocale()), u:i18t('home_docs'),
         f:importQ?i18t('home_import_waiting',{n:importQ}):i18t('home_import_none'),
-        fc:'', edge:'var(--color-accent-600)', go:'nav:migration', tall:true })
+        fc:'', edge:HM_ROW_TONES[2], ink:HM_ROW_INKS[2], go:'nav:migration', tall:true })
     + hmTile({ t:i18t('home_copilot_coverage'), s:i18t('home_copilot_coverage_sub'),
         n:Number(cov.unread).toLocaleString(jxLocale()), u:i18t('home_still_to_read'),
         f:cov.total?[i18t('home_understood',{read:cov.read,total:cov.total}),
                      cov.stale?i18t('home_changed_since',{n:cov.stale}):''].filter(Boolean).join(' · ')
                   :i18t('home_copilot_nothing_live'),
-        fc:cov.stale?'crit':'', edge:'var(--color-accent-600)', go:'copilot:unread', tall:true });
+        fc:cov.stale?'crit':'', edge:HM_ROW_TONES[3], ink:HM_ROW_INKS[3], go:'copilot:unread', tall:true });
 
   /* NEEDS YOUR DECISION — four rows, then a link that carries the count. It is
      not drawn at or below four, because pressing it would open the list you

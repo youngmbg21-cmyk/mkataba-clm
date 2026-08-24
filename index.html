@@ -1470,6 +1470,20 @@
   .room-snap button:hover{ color:var(--color-text); border-color:var(--color-neutral-400); }
   /* Folded: the FACTS go, the title, status and acts do not move. */
   .room-facts.is-folded .room-facets{ display:none; }
+  /* ---- THE THREE CHECK SYMBOLS (WO-10) ----
+     margin-left:auto puts them at the right wall of the fact line, which is
+     where the owner drew them. They are OUTSIDE .room-facets, so Collapse
+     never takes them away. Symbols only — the name and the state live on the
+     hover, per the owner's ruling that no state dot is wanted. */
+  .room-checks{ display:flex; align-items:center; gap:2px; margin-left:auto; flex:none; }
+  .room-check{ width:28px; height:28px; display:grid; place-items:center; padding:0;
+    border:1px solid transparent; border-radius:0; background:transparent; cursor:pointer;
+    color:var(--color-neutral-600); }
+  .room-check:hover{ background:var(--nav-well); color:var(--accent-ink); }
+  .room-check.has-run{ color:var(--accent-ink); }
+  .room-check:disabled{ opacity:.4; cursor:default; }
+  .room-check:disabled:hover{ background:transparent; color:var(--color-neutral-600); }
+  .room-check:focus-visible{ outline:2px solid var(--color-accent-600); outline-offset:-2px; }
   /* Folded, the band has no content, so it keeps ONE rule rather than two —
      a 1px-tall box with a line top and bottom reads as a mistake. */
   .room-facts.is-folded{ padding-top:0; padding-bottom:0; margin-top:6px;
