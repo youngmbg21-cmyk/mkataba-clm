@@ -1875,12 +1875,68 @@ this file has already been caught with a panel headed 30 whose empty state said
 60; both take the window as a VALUE now, so they cannot disagree even in
 principle. f148's claim moved up a level to match.
 
+**FOUR FIXES OFF FIVE SCREENSHOTS THE NEXT MORNING (owner-reported 24 Aug
+2026), and three of them are one fault: a value written for the place a thing
+USED to sit.**
+
+- **NO DATE IS WRITTEN ON A BAR** (*"you keep using fonts that are
+  invisible"*). The horizon's notice date was placed INSIDE the bar whenever
+  the bar was long enough to hold it — grey text on a saturated fill, and the
+  longer the bar the worse it read. The design puts it below the bar every
+  time, so the track is 56px, the bar sits at the top of it and the note has a
+  line of its own beneath: **one rule, no branch**, and no bar length can make
+  it disappear. `.in` / `.out` survive and now decide only which SIDE of the
+  bar's end the date hangs from, so a bar ending near the right wall does not
+  run its date off the ruler. **THE OLD RULE WAS A BRANCH, WHICH IS WHY THE
+  FIXTURE HAD TO CHANGE TOO**: every seeded expiry was weeks away, every bar
+  was short, and a check written against it passed on the broken build. The
+  file now seeds one contract ten months out, counted from TODAY rather than
+  typed (the f183 lesson), and sweeps EVERY row.
+- **AND THE CARD BAR CARRIED A FAINT GREY LINE OVER ITS OWN WORDS** (*"remove
+  the faint grey line above the words"*). `.cal-legend` carries an inset TOP
+  rule from the days it sat at the card's FOOT and needed a line above it; the
+  scoped toolbar rule cleared `border` and not `box-shadow`, which is what let
+  it survive the move. **Clear the property that draws it, not the one that
+  sounds like it.**
+- **THE HORIZON SAYS WHAT IT IS**, in the design's own words: a 14px/700
+  "Twelve-month expiry horizon" on the toolbar and an AGREEMENT head over the
+  name column, which was an empty box.
+- **THE OBLIGATION COLUMN IS A LABEL, NOT A SENTENCE** (*"make the obligation a
+  bullet point not an entire sentence which congests the table"*). The design's
+  rows read "Rebate reconciliation" — three words, weight 600, one line; HaTi's
+  note is whatever Copilot read out of the wording, regularly a whole drafted
+  paragraph. **TWO HALVES, and the second is the one that fixes the
+  congestion.** `calObLabel` is a READING, not a rewrite: it collapses the
+  whitespace and drops a trailing full stop, which is the whole of the
+  difference between a sentence and a label, and the untouched text stays on the
+  row's hover. Cutting at the first comma was considered and refused — "Within
+  30 days of the end of each quarter, submit a volume report" would keep the
+  TIMING and throw away the act. **The congestion itself was `table-layout`**:
+  an auto table sizes a column to its content, so `max-width` on a cell was
+  never honoured and one long note pushed the table wide and squeezed the five
+  columns beside it. Fixed layout makes the stated widths bite — and the widths
+  go on the HEAD row, because a fixed table reads them off the first row and a
+  width stated only on a `td` is a width the table never sees.
+- **THE SURPLUS GOES WHERE THE SENTENCE IS.** The obligation column states NO
+  width at all: in a fixed layout the spare space lands on the columns that
+  named none. Measured — a percentage there let Chrome spread it over every
+  column and the design's 150 / 104 / 112 came back as 175 / 121 / 131.
+- **AND FIXING A LAYOUT CAN HIDE A CONTROL.** With the widths finally biting,
+  the status column at the design's 128px clipped its Done button away on eight
+  rows: "This week" plus Done wants 137, and Swedish wants more again. It is
+  160 — **HaTi's column carries a word AND a button where the design carries
+  only the word**, because the design's three foot verbs (Reassign, Mark
+  complete, Chase owner) do not exist in this product. A stated width has to fit
+  what the column really carries, in both languages, or it has just moved the
+  congestion somewhere quieter.
+
 Tests: f148 (strengthened — the constant, not two literals; `cal_ob_status`
 joins SAME_IN_BOTH, "Status" being the same word in Swedish), f83 unchanged,
-calendar-redesign-verify (47 — its Quarter and List section REWRITTEN to the
+calendar-redesign-verify (57 — its Quarter and List section REWRITTEN to the
 same shape for the two views that replaced them, plus the claim the Horizon
-exists for: the bars grow with the time left, soonest first), calendar-day
-unchanged.
+exists for: the bars grow with the time left, soonest first; and sections 4a/4b
+for the morning's four, **7 of which fail against the code of an hour before**,
+4a reporting the long bar by name), calendar-day unchanged.
 
 **THE CALENDAR IS BUILT FROM THE MOCK-UP** (js/views/calendar.js, rewritten):
 a one-line head carrying the title, how many decisions fall this week, the

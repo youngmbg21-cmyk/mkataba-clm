@@ -47,6 +47,14 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
    decision), obligations open and done, and a closed negotiation round. */
 const SEED = () => {
   const D = ['2026-08-25', '2026-08-28', '2026-09-10', '2026-09-02'];
+  /* ---- A LONG BAR, OR SECTION 4a CANNOT FAIL ----
+     Every seeded expiry below is weeks away, so every horizon bar is short and
+     its date hangs OUTSIDE the bar whatever the rule says. The fault reported
+     on 24 Aug 2026 was a date written on top of a LONG bar, so the fixture has
+     to carry one. It is given no notice period and no obligations, and its
+     expiry falls outside the month on screen, so it adds an event to nothing
+     but the horizon. */
+  const far = state.contracts[0] && JSON.parse(JSON.stringify(state.contracts[0]));
   state.contracts.forEach((c, i) => {
     c.expiry = D[i % D.length];
     c.metadata = Object.assign({}, c.metadata, { expiryDate: D[i % D.length], noticePeriodDays: 7 });
@@ -54,10 +62,33 @@ const SEED = () => {
       { id: 'ob' + i + 'a', desc: 'Insurance certificate', due: '2026-08-' + String(24 + i).padStart(2, '0'),
         status: 'open', assignee: 'Amina Otieno' },
       { id: 'ob' + i + 'b', desc: 'Quarterly volume report', due: '2026-08-' + String(10 + i).padStart(2, '0'),
-        status: i === 0 ? 'done' : 'open', assignee: 'Bull' }];
+        status: i === 0 ? 'done' : 'open', assignee: 'Bull' },
+      /* ---- THE ONE THAT MADE THE REPORT (owner, 24 Aug 2026) ----
+         A real obligation is whatever Copilot read out of the wording, and that
+         is regularly a whole drafted sentence. With only the two short descs
+         above, the table looked fine and a check written against it would have
+         passed on the congested build. It shares ob-a's DATE on purpose, so the
+         month grid's per-day contract counts are not disturbed by adding it. */
+      { id: 'ob' + i + 'c', status: 'open', assignee: 'Amina Otieno',
+        due: '2026-08-' + String(24 + i).padStart(2, '0'),
+        desc: 'The Supplier shall maintain in force throughout the Term product '
+          + 'liability insurance with a reputable insurer for not less than KES '
+          + '50,000,000 per occurrence and shall furnish a certificate of currency '
+          + 'to the Buyer on each anniversary of the Effective Date.' }];
     c.negotiation = Object.assign({ round: 2, turnAt: '2026-08-12T09:00:00.000Z' }, c.negotiation,
       { rounds: [{ n: 1, at: '2026-08-04T09:00:00.000Z', changes: [] }] });
   });
+  if (far){
+    /* Ten months out, counted from TODAY rather than typed, so this fixture
+       cannot go stale the way a pinned calendar date does. */
+    const d = new Date(); d.setMonth(d.getMonth() + 10);
+    const iso = d.toISOString().slice(0, 10);
+    far.id = 'MK-HZ1'; far.name = 'Long-dated supply agreement';
+    far.expiry = iso;
+    far.metadata = { expiryDate: iso };
+    far.obligations = []; far.negotiation = null; far.audit = [];
+    state.contracts.push(far);
+  }
 };
 
 /* Two colours are tellable apart when they differ by more than a shade. Plain
@@ -200,6 +231,34 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
     check('4 the expiry ladder shows its five bands', hz.bands === 5, String(hz.bands));
     check('4 and Horizon fits the page', hz.scroll === 0, String(hz.scroll));
 
+    /* ---- 4a. NO DATE IS EVER WRITTEN ON A BAR (owner-reported 24 Aug 2026:
+           "you keep using fonts that are invisible") ----
+       The notice date used to be placed INSIDE the bar whenever the bar was
+       long enough to hold it, which put grey text on a saturated teal fill —
+       and the longer the bar, the worse it read. The design puts it below the
+       bar every time. THE CLAIM IS GEOMETRY, not a colour name: no note may
+       overlap the bar it belongs to, on any row, whatever the bar's length.
+       Written as a sweep over every row on purpose — the old rule was a BRANCH,
+       so a check on one row could pass while the long rows were unreadable. */
+    const notes = await page.evaluate(() => {
+      const rows = [...document.querySelectorAll('.cal-hz-row')];
+      const over = [];
+      let n = 0;
+      for (const r of rows){
+        const bar = r.querySelector('.cal-hz-bar');
+        const note = r.querySelector('.cal-hz-note');
+        if (!bar || !note) continue;
+        n++;
+        const b = bar.getBoundingClientRect(), t = note.getBoundingClientRect();
+        const hit = t.left < b.right - 1 && t.right > b.left + 1
+          && t.top < b.bottom - 1 && t.bottom > b.top + 1;
+        if (hit) over.push(r.querySelector('.cal-hz-lab') ? r.querySelector('.cal-hz-lab').textContent.trim() : '?');
+      }
+      return { n, over };
+    });
+    check('4a every notice date sits clear of its bar, on the card',
+      notes.n > 0 && notes.over.length === 0, notes);
+
     await page.click('[data-cal-view="obligations"]');
     await pause(900);
     await page.screenshot({ path: path.join(OUT, '03-obligations.png') });
@@ -226,6 +285,88 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
     check('4 the foot states what is overdue and what is due this week',
       /overdue/i.test(ob.foot) && /week/i.test(ob.foot), ob.foot.trim());
     check('4 and Obligations never scrolls the page', ob.pageScroll === 0, String(ob.pageScroll));
+
+    /* ---- 4b. A LONG OBLIGATION DOES NOT CONGEST THE TABLE ----
+       Owner-reported 24 Aug 2026: "make the obligation a bullet point not an
+       entire sentence which congests the table." The design's own rows are
+       three-word labels at weight 600 on one line; HaTi's note is whatever was
+       read out of the wording.
+       THE CLAIM IS A RELATION, NOT A NUMBER: the sentence cell must be no wider
+       than the header says it is, and the five columns beside it must keep the
+       widths the design gives them however long the note runs. Measured against
+       the seeded sentence above, which is what a real one looks like. */
+    const wide = await page.evaluate(() => {
+      const rows = [...document.querySelectorAll('.cal-obt tbody tr')];
+      const cellOf = r => r.querySelector('td.ob-w');
+      /* the longest note on screen — the one that used to blow the column out */
+      let row = null, len = -1;
+      for (const r of rows){ const c = cellOf(r); if (!c) continue;
+        const n = (c.getAttribute('title') || '').length; if (n > len){ len = n; row = r; } }
+      if (!row) return null;
+      const cell = cellOf(row);
+      const box = e => { const b = e.getBoundingClientRect(); return Math.round(b.width); };
+      const head = [...document.querySelectorAll('.cal-obt th')];
+      const cells = [...row.querySelectorAll('td')];
+      return {
+        titleLen: len,
+        shown: cell.textContent.trim(),
+        title: cell.getAttribute('title') || '',
+        weight: getComputedStyle(cell).fontWeight,
+        /* one line, clipped: the rendered box must be shorter than the text */
+        oneLine: cell.scrollWidth > cell.clientWidth,
+        clip: getComputedStyle(cell).textOverflow,
+        layout: getComputedStyle(document.querySelector('.cal-obt')).tableLayout,
+        headW: head.map(box), cellW: cells.map(box),
+        /* the design's four fixed columns, in its own order */
+        fixed: cells.slice(2).map(box),
+      };
+    });
+    check('4b the longest note is a whole sentence, so the claim can fail',
+      wide && wide.titleLen > 120, wide && wide.titleLen);
+    check('4b the table lays out fixed, so a stated width bites',
+      wide && wide.layout === 'fixed', wide && wide.layout);
+    check('4b the sentence is clipped to one line, not wrapped',
+      wide && wide.oneLine && wide.clip === 'ellipsis',
+      wide && { oneLine: wide.oneLine, clip: wide.clip });
+    check('4b and the whole sentence stays on the row\'s hover',
+      wide && wide.title.length > wide.shown.length, wide && wide.title.slice(0, 60) + '…');
+    check('4b the label reads at the design\'s weight',
+      wide && Number(wide.weight) === 600, wide && wide.weight);
+    /* THE CONGESTION ITSELF: the four narrow columns are the design's own
+       150 / 104 / 112 / 128, and a sentence in the first column may not take a
+       pixel off any of them. */
+    /* 160 on the last one, where the design says 128, and the difference is
+       HaTi's own: the design's three foot buttons do not exist in this product,
+       so the row's own Done is the one act and this column carries a word AND a
+       button. At 128 the button was clipped away — fixing the layout would have
+       hidden a control instead of a sentence. */
+    check('4b and the four narrow columns keep the design\'s widths',
+      wide && String(wide.fixed) === String([150, 104, 112, 160]), wide && wide.fixed);
+    /* AND THE SURPLUS GOES WHERE THE SENTENCE IS. The column that has to hold
+       a drafted paragraph must be the widest on the row — this is what a
+       percentage there got wrong, spreading the spare width over Due and
+       Cadence, which need none of it. */
+    check('4b and the obligation column is the widest on the row',
+      wide && wide.cellW[0] === Math.max(...wide.cellW), wide && wide.cellW);
+    /* AND NOTHING BUT THE SENTENCE IS CLIPPED. The obligation column clips on
+       purpose; every other cell must fit what it carries, or a stated width has
+       simply moved the congestion somewhere quieter — which is what took the
+       Done button off eight rows the first time these widths were made to bite. */
+    const clipped = await page.evaluate(() => {
+      const out = [];
+      document.querySelectorAll('.cal-obt tbody tr').forEach(r => {
+        r.querySelectorAll('td').forEach(c => {
+          if (c.classList.contains('ob-w')) return;
+          if (c.scrollWidth > c.clientWidth)
+            out.push(c.className + ': ' + c.textContent.trim().slice(0, 24));
+        });
+      });
+      return [...new Set(out)];
+    });
+    check('4b and no other column clips what it carries', clipped.length === 0, clipped);
+    check('4b head and body agree column for column',
+      wide && String(wide.headW) === String(wide.cellW),
+      wide && { head: wide.headW, body: wide.cellW });
 
     /* THE RETIRED PAIR IS GONE, as controls and as markup. */
     const retired = await page.evaluate(() => ({

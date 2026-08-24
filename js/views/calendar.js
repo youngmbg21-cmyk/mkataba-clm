@@ -473,9 +473,12 @@ function calHorizonHtml(){
     const end=calHorizonPos(r.exp), beyond=r.days>365;
     const tone=r.days<=30?'var(--st-ruby-fg)':r.days<=90?'var(--st-amber-fg)':'var(--color-accent-700)';
     const note=`${_esc(window.regDotDate?regDotDate(r.exp):r.exp)} · ${_esc(i18t('reg_in_days',{n:r.days}))}`;
-    /* The note sits INSIDE the bar when there is room and outside when there is
-       not, so a short bar's date is never clipped and a long one's never runs
-       off the ruler. */
+    /* WHICH SIDE OF THE BAR'S END THE NOTE HANGS FROM — never whether it sits
+       ON the bar. It used to mean exactly that, and grey text on a saturated
+       fill is what the owner reported as an invisible font on 24 Aug 2026; the
+       note has a line of its own under the bar now (see .cal-hz-note). All this
+       decides is that a bar ending near the right wall carries its date to the
+       LEFT of that end, so the date never runs off the ruler. */
     const inside = end > .55;
     const nip = r.notice ? `<i class="cal-hz-nip" style="left:${(calHorizonPos(r.notice)*100).toFixed(2)}%"
       title="${_esc(i18t('cal_hz_notice',{d:window.regDotDate?regDotDate(r.notice):r.notice}))}">&#9662;</i>` : '';
@@ -495,9 +498,10 @@ function calHorizonHtml(){
       <div class="cal-empty-t">${_esc(i18t('cal_hz_none'))}</div>
       <div class="cal-empty-s">${_esc(i18t('cal_hz_none_sub'))}</div></div>`;
   return `<section class="cal-card cal-grid">
-    <div class="cal-cardbar"><span class="cal-hz-h">${_esc(i18t('cal_hz_head'))}</span></div>
+    <div class="cal-cardbar"><span class="cal-hz-t">${_esc(i18t('cal_hz_title'))}</span>
+      <span class="cal-hz-h">${_esc(i18t('cal_hz_head'))}</span></div>
     <div class="cal-hz scroll-thin">
-      <div class="cal-hz-ruler"><span></span><div class="cal-hz-months">${heads.join('')}</div></div>
+      <div class="cal-hz-ruler"><span class="cal-hz-col">${_esc(i18t('cal_hz_agreement'))}</span><div class="cal-hz-months">${heads.join('')}</div></div>
       <div class="cal-hz-rows">${body}</div>
     </div>
     <div class="cal-ladder">${bands}</div>
@@ -517,6 +521,25 @@ function calObligationRows(evs){
   return evs.filter(e=>e.type==='obligation')
     .sort((a,b)=>String(a.date).localeCompare(String(b.date)));
 }
+/* ---- THE WHAT COLUMN IS A LABEL, NOT A SENTENCE (owner-reported 24 Aug 2026:
+       "make the obligation a bullet point not an entire sentence which congests
+       the table") ----
+   The design's own rows read "Rebate reconciliation", "Quarterly volume
+   report" -- three words, weight 600, one line. HaTi's obligation carries
+   whatever Copilot read out of the wording or whatever somebody typed, which is
+   regularly a whole drafted sentence.
+   IT IS A READING, NOT A REWRITE. Nothing here invents a shorter label: it
+   collapses the whitespace and drops a trailing full stop, which is the whole
+   of the difference between a sentence and a label, and the untouched text
+   stays on the row's own hover. Cutting at the first comma was tried on paper
+   and refused -- "Within 30 days of the end of each quarter, submit a volume
+   report" would keep the TIMING and throw away the act, which is worse than
+   showing the sentence. The congestion is fixed by BOUNDING THE COLUMN (see
+   .cal-obt below), so one long note can no longer squeeze the other five. */
+function calObLabel(note){
+  const t=String(note||'').replace(/\s+/g,' ').trim();
+  return t.replace(/[.\u3002]+$/,'');
+}
 function calObligationsHtml(evs){
   const rows=calObligationRows(evs);
   const today=calToday();
@@ -531,7 +554,7 @@ function calObligationsHtml(evs){
     const state=r.done?i18t('cal_ob_done'):late?i18t('cal_ob_overdue')
       :(d!=null&&d<=7)?i18t('cal_ob_soon'):i18t('cal_ob_open');
     return `<tr data-sel="${_esc(r.cid)}">
-      <td class="ob-w">${_esc(r.note||i18t('cal_ob_untitled'))}</td>
+      <td class="ob-w" title="${_esc(r.note||i18t('cal_ob_untitled'))}">${_esc(calObLabel(r.note)||i18t('cal_ob_untitled'))}</td>
       <td class="ob-c">${_esc(r.cname)}</td>
       <td class="ob-o">${_esc(r.owner||i18t('cal_unassigned'))}${r.theirs
         ? ` <span class="cal-theirs">${_esc(i18t('cal_k_theirs'))}</span>`:''}</td>
@@ -546,10 +569,13 @@ function calObligationsHtml(evs){
       <div class="cal-empty-s">${_esc(i18t('cal_ob_none_sub'))}</div></div></td></tr>`;
   return `<section class="cal-card cal-grid">
     <div class="cal-obwrap scroll-thin"><table class="cal-obt">
+      ${''/* With table-layout:fixed the widths are read off the FIRST row, so
+             they have to be on the head cells -- a width stated only on a td is
+             a width the table never sees. */}
       <thead><tr>
-        <th>${_esc(i18t('cal_ob_col'))}</th><th>${_esc(i18t('cal_ob_contract'))}</th>
-        <th>${_esc(i18t('cal_ob_owner'))}</th><th class="r">${_esc(i18t('cal_ob_due'))}</th>
-        <th>${_esc(i18t('cal_ob_cadence'))}</th><th>${_esc(i18t('cal_ob_status'))}</th>
+        <th class="ob-w">${_esc(i18t('cal_ob_col'))}</th><th class="ob-c">${_esc(i18t('cal_ob_contract'))}</th>
+        <th class="ob-o">${_esc(i18t('cal_ob_owner'))}</th><th class="ob-d r">${_esc(i18t('cal_ob_due'))}</th>
+        <th class="ob-cad">${_esc(i18t('cal_ob_cadence'))}</th><th class="ob-s">${_esc(i18t('cal_ob_status'))}</th>
       </tr></thead><tbody>${body}</tbody></table></div>
     ${''/* The foot states the two facts somebody scans this list for. It draws
            no verbs: Reassign and Chase owner do not exist in this product, and
@@ -771,7 +797,10 @@ function calStyleCss(){ return `
          background, not by twelve elements per row: one gradient, repeated,
          so a row costs one box however many months it spans. */}
   .cal-hz{flex:1;min-height:0;overflow:auto}
+  .cal-hz-t{font-size:14px;font-weight:700;color:var(--color-text)}
   .cal-hz-h{font-size:12px;color:var(--color-neutral-600)}
+  .cal-hz-col{padding:7px 12px;font-size:11px;font-weight:700;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--color-neutral-500)}
   .cal-hz-ruler{display:grid;grid-template-columns:300px minmax(0,1fr);position:sticky;top:0;z-index:2;
     background:var(--color-surface);box-shadow:inset 0 -1px var(--color-divider)}
   .cal-hz-months{display:grid;grid-template-columns:repeat(12,minmax(0,1fr))}
@@ -787,16 +816,27 @@ function calStyleCss(){ return `
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .cal-hz-lab .m{display:block;font-size:12px;color:var(--color-neutral-600);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .cal-hz-track{position:relative;height:44px;
+  ${''/* ---- THE NOTE NEVER SITS ON THE BAR (owner-reported 24 Aug 2026: "you
+         keep using fonts that are invisible") ----
+         It was placed INSIDE the bar whenever the bar was long enough to hold
+         it, which put grey text on a saturated teal fill — unreadable, and the
+         longer the bar the worse it got. The design's own horizon puts the note
+         BELOW the bar, on the white, every time. So the track is taller, the
+         bar sits at the top of it and the note has a line of its own beneath:
+         one rule, no branch, and no bar length can make it disappear. */}
+  .cal-hz-track{position:relative;height:56px;
     background:repeating-linear-gradient(to right,var(--rule) 0 1px,transparent 1px calc(100%/12))}
-  .cal-hz-bar{position:absolute;left:0;top:15px;height:14px;opacity:.85}
-  .cal-hz-end{position:absolute;top:12px;width:2px;height:20px;background:var(--color-text);
+  .cal-hz-bar{position:absolute;left:0;top:9px;height:14px;opacity:.9}
+  .cal-hz-end{position:absolute;top:6px;width:2px;height:20px;background:var(--color-text);
     transform:translateX(-1px)}
-  .cal-hz-nip{position:absolute;top:1px;font-style:normal;font-size:11px;color:var(--st-amber-fg);
+  .cal-hz-nip{position:absolute;top:-2px;font-style:normal;font-size:11px;color:var(--st-amber-fg);
     transform:translateX(-50%);line-height:1}
-  .cal-hz-note{position:absolute;top:14px;font-size:11px;white-space:nowrap;color:var(--color-neutral-600)}
-  .cal-hz-note.in{transform:translateX(calc(-100% - 8px))}
-  .cal-hz-note.out{transform:translateX(8px)}
+  .cal-hz-note{position:absolute;top:30px;font-size:11px;white-space:nowrap;
+    color:var(--color-neutral-700)}
+  ${''/* Right-aligned to the bar's end once the end is far enough across that a
+         left-aligned note would run off the ruler. Both sit on white. */}
+  .cal-hz-note.in{transform:translateX(calc(-100% - 4px))}
+  .cal-hz-note.out{transform:translateX(4px)}
   ${''/* The ladder: five bands under the ruler, each keeping its own tone on a
          top edge rather than as a fill, so five cards do not read as five
          alarms. */}
@@ -810,7 +850,16 @@ function calStyleCss(){ return `
          the six columns keep their meaning on a narrow window instead of
          crushing; the scroller is the card's own, never the page's. */}
   .cal-obwrap{flex:1;min-height:0;overflow:auto}
-  .cal-obt{width:100%;min-width:1040px;border-collapse:collapse;font-size:14px}
+  ${''/* table-layout:FIXED, and that is the half that stops the congestion.
+         An auto table sizes a column to its content, so `max-width` on a cell is
+         not honoured and one long obligation pushed the table wide and squeezed
+         the five columns beside it. Fixed layout makes the stated widths bite,
+         which is what turns overflow:hidden and the ellipsis below from
+         decoration into a rule. The two flexible columns are percentages in the
+         design's own 2.2 : 1.6 proportion and the four narrow ones are its own
+         pixel values, so the table behaves exactly as its grid does: the fixed
+         columns hold, the flexible ones take the surplus. */}
+  .cal-obt{width:100%;min-width:1040px;table-layout:fixed;border-collapse:collapse;font-size:14px}
   .cal-obt th{position:sticky;top:0;z-index:2;text-align:left;padding:7px 12px;
     background:var(--color-neutral-100);font-size:11px;font-weight:700;letter-spacing:.06em;
     text-transform:uppercase;color:var(--color-neutral-500);white-space:nowrap;
@@ -820,16 +869,51 @@ function calStyleCss(){ return `
     overflow:hidden;text-overflow:ellipsis}
   .cal-obt tbody tr{cursor:pointer}
   .cal-obt tbody tr:hover td{background:color-mix(in srgb,var(--color-text) 4%,transparent)}
-  .cal-obt .ob-w{max-width:280px}.cal-obt .ob-c{max-width:220px;color:var(--color-neutral-600)}
-  .cal-obt .ob-o{width:150px}.cal-obt .ob-d{width:104px;text-align:right;font-variant-numeric:tabular-nums}
-  .cal-obt .ob-cad{width:112px;color:var(--color-neutral-600)}.cal-obt .ob-s{width:128px}
+  ${''/* WIDTH IS SHARED WITH THE HEAD, EVERYTHING ELSE IS THE BODY'S. A bare
+         `.cal-obt .ob-w` scores (0,2,0) and beats `.cal-obt th` at (0,1,1), so
+         a size or a weight written here would quietly restyle the column heads
+         -- the cascade fight this codebase keeps losing. The presentational half
+         is scoped to td. */}
+  ${''/* The four narrow columns are the design's own pixel values and hold them
+         at every window width. THE OBLIGATION COLUMN STATES NO WIDTH AT ALL,
+         which is what makes that true: in a fixed layout the surplus goes to
+         the columns that named none, so all of it lands on the column carrying
+         the sentence rather than being shared out over Due and Cadence, which
+         need not one pixel of it. Measured — a percentage there let Chrome
+         spread the surplus across every column and the design's 150 / 104 /
+         112 / 128 came back as 175 / 121 / 131 / 149. */}
+  .cal-obt .ob-c{width:22%}.cal-obt .ob-o{width:150px}
+  .cal-obt .ob-d{width:104px}.cal-obt .ob-cad{width:112px}
+  ${''/* 160, where the design says 128, and the difference is HaTi's own doing:
+         the design puts Reassign, Mark complete and Chase owner in the card's
+         foot, and this product draws none of them because none of them exists
+         here -- the row's own Done is the one act, on the row it acts on. So
+         this column carries a word AND a button where the design carries only
+         the word. MEASURED at 128 with the columns finally holding their
+         widths: "This week" plus Done wants 137, so the button was clipped
+         away and the one control on the row could not be pressed. Swedish is
+         longer again ("Denna vecka", "Klart"). A stated width has to fit what
+         the column really carries, in both languages, or fixing the layout
+         just hides a control instead of a sentence. */}
+  .cal-obt .ob-s{width:160px}
+  .cal-obt td.ob-w{font-weight:600}
+  .cal-obt td.ob-c{font-size:13px;color:var(--color-neutral-600)}
+  .cal-obt td.ob-o{font-size:13px}
+  .cal-obt td.ob-d{font-size:13px;text-align:right;font-variant-numeric:tabular-nums}
+  .cal-obt td.ob-cad{font-size:13px;color:var(--color-neutral-600)}
+  .cal-obt td.ob-s{font-size:13px}
   .cal-obfoot{flex:none;padding:9px 12px;font-size:13px;color:var(--color-neutral-600);
     box-shadow:inset 0 1px var(--color-divider)}
   .cal-split.is-wide{grid-template-columns:minmax(0,1fr)}
   .cal-cardbar{flex:none;display:flex;align-items:center;gap:10px;padding:9px 12px;
     box-shadow:inset 0 -1px var(--color-divider)}
   .cal-cardbar .g{flex:1}
-  .cal-cardbar .cal-legend{margin:0;padding:0;border:0;flex:none}
+  ${''/* box-shadow, NOT just border — the base .cal-legend carries an inset
+         top rule from the days when it sat at the card's FOOT and needed a line
+         above it. In the toolbar that rule draws a faint grey line over the
+         words with nothing above it to separate. Clearing `border` alone left
+         it, which is why it survived the move. */}
+  .cal-cardbar .cal-legend{margin:0;padding:0;border:0;box-shadow:none;flex:none}
   .cal-dow{flex:none;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));
     background:var(--color-neutral-100);box-shadow:inset 0 -1px var(--color-divider)}
   .cal-dow span{padding:7px 8px;font-size:11px;font-weight:700;letter-spacing:.06em;
