@@ -1448,8 +1448,15 @@
      divider, so it reads as one object rather than as a box. */
   .room-facts{ flex-basis:100%; position:relative; margin-top:2px;
     padding-top:10px; padding-bottom:10px;
-    box-shadow:inset 0 1px var(--color-divider), inset 0 -1px var(--color-divider); }
-  .room-facets{ display:flex; flex-wrap:wrap; row-gap:10px; }
+    box-shadow:inset 0 1px var(--color-divider), inset 0 -1px var(--color-divider);
+    /* A ROW, SO THE CHECK SYMBOLS SHARE THE FACTS' LINE (WO-10, 24 Aug 2026).
+       This was a plain block, so its two children stacked and the symbols took
+       a whole line of their own — MEASURED, 28px added to a head that is meant
+       to be compact, with the symbols at the left wall rather than the right
+       where the owner drew them. margin-left:auto on a block pushes nothing;
+       it needs a flex parent to push against. */
+    display:flex; align-items:center; gap:12px; }
+  .room-facets{ display:flex; flex-wrap:wrap; row-gap:10px; flex:1; min-width:0; }
   .room-facet{ margin-right:28px; padding-right:28px;
     border-right:1px solid var(--color-divider); min-width:0; }
   .room-facet:last-child{ border-right:0; margin-right:0; padding-right:0; }

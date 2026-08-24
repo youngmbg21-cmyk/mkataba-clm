@@ -189,22 +189,35 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       roomBack.view === 'register', roomBack.view);
     check('7b and its label says so', /contracts/i.test(roomBack.title), roomBack.title);
 
-    /* ---- 8. THE DOOR REOPENS THE LAST ONE, FROM ANYWHERE ---- */
+    /* ---- 8. THE DOOR OPENS THE LIST, FROM ANYWHERE ----
+       REVERSED IN PLACE 24 Aug 2026 (WO-17, owner-asked: "when i click on the
+       contracts tab on the nav panel, i get a list of contracts. This should be
+       the same when i click on the negotiation tab"). It used to reopen the
+       negotiation you were last in, which is why this is measured with one
+       freshly remembered — the reopen would fire here if it were still there.
+       THE MEMORY IS KEPT, NOT DELETED: negoRememberOpened still records and
+       negoLastOpened still answers, so this is one argument to put back. */
     await page.evaluate(() => setView('calendar'));
     await page.waitForTimeout(900);
     await page.click('.nav-item[data-view="redline"]');
     await page.waitForTimeout(1600);
     const back = await page.evaluate(() => ({ view: state.view, held: redlineHeldId(),
-      list: !!document.querySelector('.ngl-wrap') }));
-    check('the sidebar door reopens the negotiation you were last in',
-      back.view === 'redline' && back.held === cid && !back.list, `${back.view} / ${back.held}`);
+      /* The list is the CONTRACTS TABLE under its own head — `.ngl-wrap` is
+         the EMPTY state's wrapper and is not drawn on this path. */
+      list: !!document.querySelector('.ngl-head-table') && !!document.querySelector('.reg-table'),
+      remembered: typeof negoLastOpened === 'function' ? !!negoLastOpened() : null }));
+    check('the sidebar door opens the list, even with one remembered',
+      back.view === 'redline' && back.list && !back.held,
+      `${back.view} / held ${back.held} / list ${back.list}`);
+    check('and the memory is still recorded, so the reopen is one argument away',
+      back.remembered === true, String(back.remembered));
     await page.screenshot({ path: path.join(OUT, '05-reopened.png') });
 
-    /* ---- 9. AND FALLS THROUGH TO THE LIST WHEN THERE IS NOTHING TO REOPEN ----
-       Which since 12 Aug 2026 is the CONTRACTS TABLE, grouped by whose move it
-       is. Everything below is about pixels for the reason the header of this
-       file gives: the bands have to be real full-width rows in the real table,
-       and the locked chip has to be a chip a reader cannot press away. */
+    /* ---- 9. AND THE LIST IS THE CONTRACTS TABLE ----
+       Since 12 Aug 2026, grouped by whose move it is. Everything below is about
+       pixels for the reason the header of this file gives: the bands have to be
+       real full-width rows in the real table. Measured here with the memory
+       CLEARED as well, so the shape is proved from both directions. */
     await page.evaluate(() => { try{ localStorage.removeItem(
       'hati.v1.lastNegotiation.' + (currentUser().id || currentUser().email)); }catch(e){} });
     await page.evaluate(() => setView('dashboard'));
@@ -258,9 +271,15 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       /needs you/i.test((list.rows[0] || {}).state || ''), (list.rows[0] || {}).state);
     check('the filter bar is there — this page IS the register now',
       list.filters === 3, list.filters + ' controls');
-    check('led by a LOCKED chip with no way out of it',
-      !!list.lock && list.lock.on && list.lockOut === 0,
-      list.lock ? `${list.lock.text} · ${list.lockOut} buttons` : 'MISSING');
+    /* REVERSED IN PLACE 24 Aug 2026 (WO-15, owner-asked: "delete the filters i
+       have highlighted so all the filters can fit in one line"). The chip is
+       gone from the bar. WHAT IT PINNED IS NOT LOST and is the stronger claim
+       anyway: the narrowing is a property of the PAGE — regScope — not a filter
+       a reader can press away, so there was never anything for that chip's
+       missing ✕ to do. Asserted as the absence plus the scope, and 9b below
+       presses Clear for real and proves the page does not widen. */
+    check('no locked chip on the bar — the scope is the page, not a filter',
+      !list.lock, list.lock ? `${list.lock.text} still drawn` : 'gone');
     check('and the footer counts contract rows, never a band',
       /1/.test(list.showing || '') && !/of 4/.test(list.showing || ''), list.showing);
     await page.screenshot({ path: path.join(OUT, '06-list.png') });
@@ -279,10 +298,9 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       scope: regScope(),
       rows: document.querySelectorAll('#reg-tbody tr[data-row]').length,
       total: state.contracts.length,
-      lock: !!document.getElementById('reg-lock-chip'),
     }));
     check('pressing Clear puts the reader\'s filters back and leaves the page alone',
-      after.scope === 'negotiations' && after.rows === 1 && after.rows < after.total && after.lock,
+      after.scope === 'negotiations' && after.rows === 1 && after.rows < after.total,
       `${after.rows} of ${after.total} rows · scope ${after.scope}`);
 
     /* Pressing a row goes in — to the NEGOTIATION, not the contract page. */

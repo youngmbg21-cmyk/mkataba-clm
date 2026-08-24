@@ -357,23 +357,45 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
       stRest.length > 0 && stRest.every(t => sameAsRef(t).ok),
       stRest.map(t => `${t._txt}: ${sameAsRef(t).why || 'match'}`));
 
-    /* 5d — THE CLAIM THAT NOTHING MOVED. Both list pages the owner named
-       already drew their row titles in exactly this font; pinning it is what
-       stops a later type pass pulling them off the reference. */
+    /* 5d — THE CLAIM THAT NOTHING MOVED, REVERSED ON ONE PROPERTY 24 Aug 2026
+       (WO-16, owner-asked: "reduce the font by a size in the contracts and
+       negotiations lists"). The rows really are one rung down from the
+       reference now, deliberately and by name. EVERY OTHER PROPERTY IS STILL
+       PINNED — family, weight, ink, tracking, cv11, smoothing — so a later
+       type pass still cannot pull these titles off the reference in any way
+       nobody asked for; and the SIZE is pinned as the RELATION the owner
+       asked for (one rung down) rather than left unpinned, which would be the
+       claim quietly disappearing. */
+    const TYPE_NOT_SIZE = TYPE.filter(p => p !== 'fontSize');
+    const sameButSize = (got) => {
+      if (!ref || !got) return { ok: false, why: 'missing' };
+      const bad = TYPE_NOT_SIZE.filter(p => String(got[p]) !== String(ref[p]));
+      return { ok: bad.length === 0, why: bad.map(p => `${p}: ${got[p]} vs ${ref[p]}`) };
+    };
+    const oneRungDown = (got) => ref && got
+      && parseFloat(got.fontSize) < parseFloat(ref.fontSize)
+      && parseFloat(got.fontSize) >= parseFloat(ref.fontSize) - 2;
     await page.evaluate(() => setView('register'));
     await pause(2400);
     const regTitles = await page.evaluate(READ_TYPE, { sel: '.reg-table tbody .reg-title', props: TYPE });
-    check('5d the CONTRACTS list titles are the reference font, property for property',
-      regTitles.length > 0 && regTitles.slice(0, 3).every(t => sameAsRef(t).ok),
-      regTitles.slice(0, 3).map(t => `${t._txt}: ${sameAsRef(t).why || 'match'}`));
+    check('5d the CONTRACTS list titles are the reference font in every property but size',
+      regTitles.length > 0 && regTitles.slice(0, 3).every(t => sameButSize(t).ok),
+      regTitles.slice(0, 3).map(t => `${t._txt}: ${sameButSize(t).why || 'match'}`));
+    check('5d and their size is one rung under it, which is what was asked for',
+      regTitles.length > 0 && regTitles.slice(0, 3).every(oneRungDown),
+      regTitles.slice(0, 1).map(t => `${t.fontSize} vs ref ${ref && ref.fontSize}`));
 
     await page.evaluate(() => openNegotiations({ list: true }));
     await pause(2400);
     await page.screenshot({ path: path.join(OUT, '06-negolist.png') });
     const nglTitles = await page.evaluate(READ_TYPE, { sel: '.reg-table tbody .reg-title', props: TYPE });
-    check('5e and so are the NEGOTIATIONS list titles',
-      nglTitles.length > 0 && nglTitles.slice(0, 3).every(t => sameAsRef(t).ok),
-      nglTitles.slice(0, 3).map(t => `${t._txt}: ${sameAsRef(t).why || 'match'}`));
+    check('5e and so are the NEGOTIATIONS list titles — one table, one answer',
+      nglTitles.length > 0 && nglTitles.slice(0, 3).every(t => sameButSize(t).ok),
+      nglTitles.slice(0, 3).map(t => `${t._txt}: ${sameButSize(t).why || 'match'}`));
+    check('5e and they are the same rung as the Contracts list, never a third size',
+      nglTitles.length > 0 && regTitles.length > 0
+        && nglTitles[0].fontSize === regTitles[0].fontSize,
+      `${nglTitles[0] && nglTitles[0].fontSize} vs ${regTitles[0] && regTitles[0].fontSize}`);
 
     /* 5f — THE PHONE'S CONTRACT TABS. Its own size and weight (a touch target
        is not a pointer target), so the claim is the INK alone. */

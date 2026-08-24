@@ -1172,7 +1172,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     readings[mode] = await page.evaluate(() => {
       const pane = document.getElementById('rl-changes-col');
       const cs = pane && getComputedStyle(pane);
-      const note = document.querySelector('.rl-idx-reading');
+      const strip = document.querySelector('.rl-idx-reading');
       const seen = el => { if (!el) return false; const r = el.getBoundingClientRect();
         return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'; };
       return {
@@ -1182,11 +1182,10 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
         opacity: cs ? Number(cs.opacity) : 1,
         inert: cs ? cs.pointerEvents : 'auto',
         cards: document.querySelectorAll('#rl-changes .rl-card').length,
-        noteSeen: seen(note),
-        noteText: note ? (note.textContent || '').replace(/\s+/g, ' ').trim() : '',
+        stripSeen: seen(strip),
         /* the way out must be OUTSIDE the inert pane, or it is a button
            nobody can press */
-        backLive: (() => { const b = document.querySelector('.rl-idx-reading [data-rl-read="marks"]');
+        backLive: (() => { const b = document.querySelector('.rl-tabrow [data-rl-read="marks"]');
           return !!b && getComputedStyle(b).pointerEvents !== 'none'
             && !b.closest('#rl-changes-col'); })(),
       };
@@ -1202,12 +1201,20 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       r.inert === 'none', r.inert);
     check(`17 ${mode}: the cards still draw, so the round's shape is readable`,
       r.cards > 0, `${r.cards} cards`);
-    check(`17 ${mode}: it says why, in visible pixels`,
-      r.noteSeen && /redlined/i.test(r.noteText), r.noteText.slice(0, 70));
+    /* REVERSED IN PLACE 24 Aug 2026 (WO-14, owner-asked: "Just delete the
+       strip for now"). The STRIP of words went; the GREYING above stayed,
+       and it is the half that carries the claim — a column that refuses the
+       press is a column that has said a reading cannot be acted on.
+       THE WAY BACK IS NOT LOST, which is the condition on removing it: the
+       three reading tabs are drawn on every paint, they are where the reader
+       pressed to get here, and the strip's own button was a proxy for them.
+       Measured for the same two properties as before — pressable, and outside
+       the inert pane. */
+    check(`17 ${mode}: the strip of words is gone (WO-14)`, !r.stripSeen);
     check(`17 ${mode}: and the way back is pressable, outside the inert pane`, r.backLive);
   }
   /* AND THE WAY BACK REALLY WORKS — pressed for real, not inferred. */
-  await page.evaluate(() => { document.querySelector('.rl-idx-reading [data-rl-read="marks"]').click(); });
+  await page.evaluate(() => { document.querySelector('.rl-tabrow [data-rl-read="marks"]').click(); });
   await pause(500);
   const back = await page.evaluate(() => ({
     mode: window.rlReadMode(),
