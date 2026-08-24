@@ -359,6 +359,27 @@ function calLegendHtml(){
   return `<div class="cal-legend">`+CAL_PRIORITY.map(k=>
     `<span><i style="background:${CAL_EVENT[k].dot}"></i>${_esc(CAL_EVENT[k].label)}</span>`).join('')+`</div>`;
 }
+/* ---- THE CARD HEADS ITSELF (owner-asked 24 Aug 2026, "like for like") ----
+   The design puts the period stepper, the period's name and the four-tone key
+   on ONE row at the top of the month panel. They were in two other places: the
+   stepper out on the page's control bar, and the key along the card's foot,
+   which put the thing that explains the colours as far from them as the card
+   allows.
+   ONE HOME, NOT TWO — the stepper is drawn here for EVERY view rather than
+   here for Month and out there for the others, because a control with two
+   homes is how the two come to disagree. The ids are unchanged, so every
+   handler and every test still reaches exactly what it reached before. */
+function calCardBarHtml(y, m){
+  return `<div class="cal-cardbar">
+    <span class="cal-sel">
+      <button id="cal-prev" title="${_esc(i18t('cal_prev_month'))}" aria-label="${_esc(i18t('cal_prev_month'))}">&lsaquo;</button>
+      <button id="cal-today" class="cal-sel-now">${_esc(calMonthName(y,m))}</button>
+      <button id="cal-next" title="${_esc(i18t('cal_next_month'))}" aria-label="${_esc(i18t('cal_next_month'))}">&rsaquo;</button>
+    </span>
+    <span class="g"></span>
+    ${calLegendHtml()}
+  </div>`;
+}
 
 /* The List view: every date in the period, in order, with its own row. It is
    the one view that can say the whole sentence — kind, agreement, counterparty
@@ -434,14 +455,14 @@ function renderCalendar(){
 
   let main='';
   if(view==='month'){
-    main=`<section class="cal-card cal-grid">${calMonthGridHtml(y,m,byDay,{id:'cal-grid'})}${calLegendHtml()}</section>`;
+    main=`<section class="cal-card cal-grid">${calCardBarHtml(y,m)}${calMonthGridHtml(y,m,byDay,{id:'cal-grid'})}</section>`;
   } else if(view==='quarter'){
-    main=`<section class="cal-card cal-grid"><div class="cal-q">`+p.months.map(mm=>
+    main=`<section class="cal-card cal-grid">${calCardBarHtml(y,m)}<div class="cal-q">`+p.months.map(mm=>
       `<div class="cal-q-m"><div class="cal-q-h">${_esc(calMonthName(mm.y,mm.m))}</div>`
       +calMonthGridHtml(mm.y,mm.m,byDay,{compact:true})+`</div>`).join('')
-      +`</div>${calLegendHtml()}</section>`;
+      +`</div></section>`;
   } else {
-    main=`<section class="cal-card cal-grid">${calListHtml(evs,p)}${calLegendHtml()}</section>`;
+    main=`<section class="cal-card cal-grid">${calCardBarHtml(y,m)}${calListHtml(evs,p)}</section>`;
   }
 
   document.getElementById('content').innerHTML=`
@@ -476,11 +497,6 @@ function renderCalendar(){
       </div>
       <span class="g"></span>
       <span class="cal-seg">${scopeSeg('all',i18t('cal_all_dates'))}${scopeSeg('mine',i18t('cal_mine'))}</span>
-      <span class="cal-sel">
-        <button id="cal-prev" title="${_esc(i18t('cal_prev_month'))}" aria-label="${_esc(i18t('cal_prev_month'))}">‹</button>
-        <button id="cal-today" class="cal-sel-now">${_esc(view==='month'?calMonthName(y,m):calMonthName(y,m))}</button>
-        <button id="cal-next" title="${_esc(i18t('cal_next_month'))}" aria-label="${_esc(i18t('cal_next_month'))}">›</button>
-      </span>
     </div>
     <div class="cal-body">
       <div class="cal-split">${main}${calPanelHtml(evs)}</div>
@@ -547,24 +563,46 @@ function calStyleCss(){ return `
      CELLS give up height, never the month a week. That is the owner's one
      constraint ("fit the page, no scrolling within it") answered by the layout
      rather than by a clamp and two height media queries kept true by hand. */
-  .cal-dow{flex:none;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));
+  ${''/* ---- THE DESIGN'S OWN GRID (owner-asked 24 Aug 2026: "implement the
+         calendar like for like") ----
+         THE GAP DRAWS THE RULES. The cells sat on inset shadows, which is one
+         rule per cell and four of them meeting at every corner; the design puts
+         a 1px gap over a --line ground so the LINE is the background showing
+         through, and every rule is exactly one pixel with no doubling. It also
+         means an out-of-month cell can carry its own ground without breaking
+         the ruling.
+         THE WEEKDAY HEADER SITS ON --surf2, the design's own tint, so the row
+         of names reads as a header rather than as a seventh week. */}
+  ${''/* The card's own toolbar: the stepper at the left, the period's name in
+         it, and the key at the right — the design's own row, and the key is
+         now beside the colours it explains rather than at the foot of the
+         card. */}
+  .cal-cardbar{flex:none;display:flex;align-items:center;gap:10px;padding:9px 12px;
     box-shadow:inset 0 -1px var(--color-divider)}
-  .cal-dow span{padding:8px 10px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;
-    color:var(--color-neutral-600);white-space:nowrap;overflow:hidden}
+  .cal-cardbar .g{flex:1}
+  .cal-cardbar .cal-legend{margin:0;padding:0;border:0;flex:none}
+  .cal-dow{flex:none;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));
+    background:var(--color-neutral-100);box-shadow:inset 0 -1px var(--color-divider)}
+  .cal-dow span{padding:7px 8px;font-size:11px;font-weight:700;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--color-neutral-500);white-space:nowrap;overflow:hidden}
   .cal-weeks{flex:1;min-height:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));
-    grid-template-rows:repeat(6,minmax(0,1fr))}
-  .cal-day{box-shadow:inset -1px -1px var(--color-divider);padding:6px 7px 7px;display:flex;
+    grid-template-rows:repeat(6,minmax(0,1fr));gap:1px;background:var(--color-divider)}
+  .cal-day{background:var(--color-surface);padding:4px 4px 6px;display:flex;
     flex-direction:column;gap:3px;min-width:0;min-height:0;overflow:hidden}
-  .cal-day.is-mute{background:color-mix(in srgb,var(--color-text) 2.5%,transparent)}
+  .cal-day.is-mute{background:var(--color-neutral-100)}
   .cal-day[data-cal-day]{cursor:pointer}
   .cal-day[data-cal-day]:hover{background:color-mix(in srgb,var(--accent-solid) 7%,transparent)}
   .cal-day[data-cal-day]:focus-visible{outline:2px solid var(--accent-solid);outline-offset:-2px}
-  .cal-dn{font-size:13px;color:var(--color-text);font-variant-numeric:tabular-nums;flex:none;line-height:1.2}
+  ${''/* THE NUMERAL IS A CHIP, so today's filled square is the same shape as
+         every other day rather than a box that appears from nowhere. Tabular,
+         so 9 and 30 hold one column down the week. */}
+  .cal-dn{font-size:11px;font-weight:700;color:var(--color-text);font-variant-numeric:tabular-nums;
+    flex:none;line-height:20px;min-width:20px;height:20px;display:inline-flex;
+    align-items:center;justify-content:center;align-self:flex-start;padding:0 4px}
   .cal-day.is-mute .cal-dn{color:var(--color-neutral-400)}
-  .cal-day.is-today .cal-dn{background:var(--color-accent-700);color:#fff;width:22px;height:22px;
-    display:flex;align-items:center;justify-content:center;font-weight:700}
-  .cal-chips{display:flex;flex-direction:column;gap:3px;min-height:0;overflow:hidden}
-  .cal-chip{font-size:12px;line-height:1.35;padding:2px 6px;border-left:3px solid;flex:none;
+  .cal-day.is-today .cal-dn{background:var(--color-accent-800);color:#fff}
+  .cal-chips{display:flex;flex-direction:column;gap:2px;min-height:0;overflow:hidden}
+  .cal-chip{font-size:11px;line-height:1.25;padding:2px 4px;border-left:3px solid;flex:none;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .cal-chip.is-done{opacity:.55;text-decoration:line-through}
   .cal-more{font-size:11px;font-weight:600;color:var(--color-accent-700);flex:none}
