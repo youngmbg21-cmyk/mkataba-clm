@@ -167,35 +167,74 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
     }
     check('3 no two legend tones are the same colour', worst > 60, `closest pair ${worst}: ${pair}`);
 
-    /* ---- 4. THE THREE VIEWS ---- */
-    await page.click('[data-cal-view="quarter"]');
-    await pause(800);
-    await page.screenshot({ path: path.join(OUT, '02-quarter.png') });
-    const q = await page.evaluate(() => {
+    /* ---- 4. THE THREE VIEWS ----
+       REWRITTEN 24 Aug 2026 (owner-ruled: build Horizon and Obligations, retire
+       Quarter and List). Quarter drew the month grid three times and answered
+       no question Month does not; List printed every date in order, which the
+       agenda beside the month already does for the window a reader can act on.
+       What replaces them each answers something nothing in HaTi did — when the
+       book runs out, and what is owed. The claims below are the same SHAPE as
+       the ones they replace: the view draws its own thing, and it fits. */
+    await page.click('[data-cal-view="horizon"]');
+    await pause(900);
+    await page.screenshot({ path: path.join(OUT, '02-horizon.png') });
+    const hz = await page.evaluate(() => {
       const sc = document.getElementById('content-scroll');
-      return { months: document.querySelectorAll('.cal-q-m').length,
-        heads: [...document.querySelectorAll('.cal-q-h')].map(e => e.textContent.trim()),
-        days: document.querySelectorAll('.cal-q .cal-day').length,
+      const bars = [...document.querySelectorAll('.cal-hz-bar')];
+      return { rows: document.querySelectorAll('.cal-hz-row').length,
+        months: document.querySelectorAll('.cal-hz-months span').length,
+        bands: document.querySelectorAll('.cal-lad').length,
+        /* a bar is time remaining, so a nearer expiry must be a SHORTER bar */
+        widths: bars.map(b => Math.round(b.getBoundingClientRect().width)),
+        ends: document.querySelectorAll('.cal-hz-end').length,
         scroll: sc ? sc.scrollHeight - sc.clientHeight : null };
     });
-    check('4 Quarter draws three months side by side', q.months === 3, q.heads);
-    check('4 each a whole month, and it still fits the page',
-      q.days === 126 && q.scroll === 0, q);
+    check('4 Horizon draws twelve months and a row per contract',
+      hz.months === 12 && hz.rows > 0, `${hz.rows} rows · ${hz.months} months`);
+    check('4 every row carries a bar and an end marker',
+      hz.ends === hz.rows && hz.widths.length === hz.rows, hz);
+    /* THE BAR IS TIME REMAINING — the rows are sorted soonest-first, so the
+       widths must not decrease. This is the claim the view exists for. */
+    check('4 and the bars grow with the time left, soonest first',
+      hz.widths.every((w, i) => i === 0 || w >= hz.widths[i - 1] - 1), hz.widths);
+    check('4 the expiry ladder shows its five bands', hz.bands === 5, String(hz.bands));
+    check('4 and Horizon fits the page', hz.scroll === 0, String(hz.scroll));
 
-    await page.click('[data-cal-view="list"]');
-    await pause(800);
-    await page.screenshot({ path: path.join(OUT, '03-list.png') });
-    const l = await page.evaluate(() => {
+    await page.click('[data-cal-view="obligations"]');
+    await pause(900);
+    await page.screenshot({ path: path.join(OUT, '03-obligations.png') });
+    const ob = await page.evaluate(() => {
       const sc = document.getElementById('content-scroll');
-      const box = document.querySelector('.cal-list');
-      return { rows: document.querySelectorAll('.cal-list-row').length,
-        months: document.querySelectorAll('.cal-list-mh').length,
-        pageScroll: sc ? sc.scrollHeight - sc.clientHeight : null,
-        listScrolls: box ? box.scrollHeight > box.clientHeight : null };
+      const t = document.querySelector('.cal-obt');
+      const th = [...document.querySelectorAll('.cal-obt th')];
+      const wrap = document.querySelector('.cal-obwrap');
+      return { cols: th.length, heads: th.map(e => e.textContent.trim()),
+        rows: document.querySelectorAll('.cal-obt tbody tr').length,
+        sticky: th[0] ? getComputedStyle(th[0]).position : null,
+        /* the six columns must all be ON SCREEN — this table lost three of
+           them to the agenda panel before that panel was scoped to Month */
+        lastVisible: th.length ? th[th.length - 1].getBoundingClientRect().right
+          <= (wrap ? wrap.getBoundingClientRect().right + 1 : 0) : false,
+        foot: (document.querySelector('.cal-obfoot') || {}).textContent || '',
+        pageScroll: sc ? sc.scrollHeight - sc.clientHeight : null };
     });
-    check('4 List draws a row per date, grouped by month', l.rows > 5 && l.months >= 1, l);
-    check('4 and it scrolls inside its own card, never the page',
-      l.pageScroll === 0, l);
+    check('4 Obligations draws its six columns', ob.cols === 6, ob.heads.join(' · '));
+    check('4 with a sticky header', ob.sticky === 'sticky', String(ob.sticky));
+    check('4 a row per obligation', ob.rows > 0, String(ob.rows));
+    check('4 and every column is on screen at 1440',
+      ob.lastVisible, ob.heads[ob.heads.length - 1]);
+    check('4 the foot states what is overdue and what is due this week',
+      /overdue/i.test(ob.foot) && /week/i.test(ob.foot), ob.foot.trim());
+    check('4 and Obligations never scrolls the page', ob.pageScroll === 0, String(ob.pageScroll));
+
+    /* THE RETIRED PAIR IS GONE, as controls and as markup. */
+    const retired = await page.evaluate(() => ({
+      q: document.querySelectorAll('[data-cal-view="quarter"]').length,
+      l: document.querySelectorAll('[data-cal-view="list"]').length,
+      qm: document.querySelectorAll('.cal-q-m').length,
+      lr: document.querySelectorAll('.cal-list-row').length }));
+    check('4 Quarter and List are retired, control and markup alike',
+      !retired.q && !retired.l && !retired.qm && !retired.lr, JSON.stringify(retired));
 
     /* ---- 5. ALL DATES / MINE ---- */
     await page.click('[data-cal-view="month"]');

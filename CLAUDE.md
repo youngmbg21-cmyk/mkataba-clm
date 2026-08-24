@@ -1818,6 +1818,70 @@ recorded here** — each is reversed IN PLACE below rather than quietly dropped.
   everywhere that class draws — the calendar head and the contract head
   together, or the two would disagree.
 
+## THE CALENDAR TAKES THE DESIGN, LIKE FOR LIKE (owner-ruled 24 Aug 2026)
+
+Fourth page of the page-by-page pass, and the only one so far that RETIRES
+features: **Month · Horizon · Obligations**, with Quarter and List gone.
+
+**WHY THE TWO WENT, and it was put to the owner before it was built.** Quarter
+drew the month grid three times, which answers no question Month does not. List
+printed every date in the period in order, which the agenda beside the month
+already does for the window a reader can act on. What replaced them each answers
+something nothing in HaTi did: **when the book runs out**, and **what is owed**.
+`calQuarterHtml` and `calListHtml` went with them. `calView()` still falls back
+to 'month' for an unknown key, so a reader whose stored tab was 'list' lands on
+the month rather than on a blank page.
+
+**THE HORIZON IS A SHAPE, NOT A LIST.** Twelve months across, one row per
+contract, and **the bar is time remaining** — the thing it exists to make
+obvious is the cliff: four rows ending in the same column is a quarter with four
+renewals in it, and no list of dates says that as fast. IT INVENTS NO DATES —
+every row reads `effectiveExpiry` (family-aware, so a signed amendment moves the
+bar) and `renewalDecisionDate`, the same two readings the month grid, the
+reminder sweeps and the renewal card use. A contract with no expiry has no row:
+an em-dash bar would be a lie. The gridlines are the TRACK'S OWN background —
+one repeating gradient, so a row costs one box however many months it spans,
+rather than twelve elements per row. Five ladder cards beneath count the whole
+book, including rows past the ruler, because it is a count of the book rather
+than of what is drawn.
+
+**OBLIGATIONS IS THE ONLY PLACE THE WHOLE BOOK'S OBLIGATIONS SIT TOGETHER.**
+Every other surface shows one beside the single contract it belongs to. IT
+BORROWS EVERY READING: the rows come off `calendarEvents`' own obligation
+events — carrying `obligationDue`, `obligationOwner`, `obligationIsTheirs` — so
+a fourth reading of "what is owed" cannot disagree with the other three. **THE
+FOOT DRAWS NO VERBS**: the design's Reassign and Chase owner do not exist in
+this product, and a button that refuses is worse than no button; the row's own
+Done is the one act and it sits on the row it acts on.
+
+**THE AGENDA IS THE MONTH'S COMPANION, NOT THE PAGE'S.** The design pairs "Next
+14 days" with the month grid alone, and the other two need the width — MEASURED,
+the obligations table was losing its Due, Cadence and Status columns to a panel
+that was LISTING THE SAME OBLIGATIONS a few pixels to its right.
+
+**AND THE MONTH PANEL TOOK THE DESIGN'S OWN GRID.** The rules are drawn by a 1px
+GAP over a `--line` ground rather than by an inset shadow per cell — one pixel
+per rule, no doubling at the corners, and an out-of-month cell can carry its own
+tint without breaking the ruling. The numeral is a chip, so today's filled
+square is the same shape as every other day. The stepper and the four-tone key
+moved into the card's own toolbar: the key used to sit at the card's FOOT, as
+far from the colours it explains as the card allows. ONE HOME, NOT TWO — the bar
+draws for every view rather than here for Month and out on the page's control
+bar for the others.
+
+**THE AGENDA WINDOW IS ONE NAMED CONSTANT** (`CAL_AGENDA_DAYS`, 14 — the
+design's own). The heading and the empty state used to spell a number each, and
+this file has already been caught with a panel headed 30 whose empty state said
+60; both take the window as a VALUE now, so they cannot disagree even in
+principle. f148's claim moved up a level to match.
+
+Tests: f148 (strengthened — the constant, not two literals; `cal_ob_status`
+joins SAME_IN_BOTH, "Status" being the same word in Swedish), f83 unchanged,
+calendar-redesign-verify (47 — its Quarter and List section REWRITTEN to the
+same shape for the two views that replaced them, plus the claim the Horizon
+exists for: the bars grow with the time left, soonest first), calendar-day
+unchanged.
+
 **THE CALENDAR IS BUILT FROM THE MOCK-UP** (js/views/calendar.js, rewritten):
 a one-line head carrying the title, how many decisions fall this week, the
 period and its acts; a 44px control bar with Month / Quarter / List, All dates

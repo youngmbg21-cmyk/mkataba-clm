@@ -36,7 +36,18 @@
    settings: a reader who looked at the quarter once must not find the calendar
    on Quarter next week with no memory of asking. */
 let calState = { ym:null, view:'month', scope:'all' };
-const CAL_VIEWS = ['month','quarter','list'];
+/* ---- THREE TABS, THE DESIGN'S OWN (owner-ruled 24 Aug 2026) ----
+   Month · Horizon · Obligations. 'quarter' and 'list' are RETIRED: Quarter drew
+   three compact months of the same grid, which is the Month view three times
+   and answers no question Month does not; List printed every date in the period
+   in order, which the agenda beside the month already does for the window a
+   reader can act on. What replaces them each answer something nothing in HaTi
+   did — when the book runs out, and what is owed. calQuarterHtml and
+   calListHtml go with them.
+   THE KEYS STAY READABLE FROM AN OLD BROWSER: calView() falls back to 'month'
+   for anything not on this list, so a reader whose stored tab was 'list' lands
+   on the month rather than on a blank page. */
+const CAL_VIEWS = ['month','horizon','obligations'];
 const CAL_AGENDA_DAYS = 14;
 
 function calMonth(){ if(!calState.ym){ const d=new Date(); calState.ym={y:d.getFullYear(), m:d.getMonth()}; } return calState.ym; }
@@ -391,6 +402,163 @@ function calCardBarHtml(y, m){
   </div>`;
 }
 
+
+/* ---- THE HORIZON: WHEN THE BOOK RUNS OUT (owner-ruled 24 Aug 2026) ----
+   Twelve months across, one row per contract, and the BAR IS TIME REMAINING —
+   not a schedule of work, which is what every other view here draws. The thing
+   it exists to make obvious is the shape of the cliff: four rows ending in the
+   same column is a quarter with four renewals in it, and no list of dates says
+   that as fast.
+   IT INVENTS NO DATES. Every row reads effectiveExpiry (the family-aware term,
+   so a signed amendment moves the bar) and renewalDecisionDate (the notice
+   deadline), which are the same two readings the month grid, the reminder
+   sweeps and the renewal card all use. A contract with no expiry has no row —
+   there is nothing to draw and an em-dash bar would be a lie. */
+const CAL_HORIZON_MONTHS = 12;
+function calHorizonRows(){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const rows = [];
+  (state.contracts||[]).forEach(c=>{
+    if(c.status==='Declined' || c.archived) return;
+    const raw=(window.effectiveExpiry?effectiveExpiry(c):null)||(c.metadata&&c.metadata.expiryDate)||c.expiry;
+    const exp=window.dateOnly?dateOnly(raw):raw;
+    if(!exp) return;
+    const d=daysUntil(exp);
+    if(d==null || d<0) return;                       /* already gone: not a horizon */
+    const dd=renewalDecisionDate(c);
+    rows.push({ c, exp, days:d, notice:(dd&&dd!==exp)?dd:null,
+      value:(window.fxHomeValue?fxHomeValue(c):Number(c.value||0)) });
+  });
+  return rows.sort((a,b)=>a.days-b.days);
+}
+/* Which of the twelve columns a date lands in, as a FRACTION so a bar ends
+   where the date is rather than at a month boundary. Past the twelfth month it
+   is clamped and the row says "beyond" — a bar that runs off the ruler tells
+   the reader nothing about how far. */
+function calHorizonPos(iso){
+  const t=new Date(); t.setHours(0,0,0,0);
+  const d=new Date(iso+'T00:00:00');
+  const months=(d.getFullYear()-t.getFullYear())*12 + (d.getMonth()-t.getMonth())
+    + (d.getDate()-1)/Math.max(1,new Date(d.getFullYear(),d.getMonth()+1,0).getDate());
+  return Math.max(0, Math.min(CAL_HORIZON_MONTHS, months)) / CAL_HORIZON_MONTHS;
+}
+const CAL_LADDER = [
+  { k:'d30',  max:30,  get label(){ return i18t('cal_lad_30'); },  tone:'var(--st-ruby-fg)' },
+  { k:'d60',  max:60,  get label(){ return i18t('cal_lad_60'); },  tone:'var(--st-amber-fg)' },
+  { k:'d90',  max:90,  get label(){ return i18t('cal_lad_90'); },  tone:'var(--st-amber-fg)' },
+  { k:'d180', max:180, get label(){ return i18t('cal_lad_180'); }, tone:'var(--color-accent-700)' },
+  { k:'d365', max:365, get label(){ return i18t('cal_lad_365'); }, tone:'var(--color-accent-700)' },
+];
+function calHorizonHtml(){
+  const rows=calHorizonRows();
+  const t=new Date();
+  const heads=[];
+  for(let i=0;i<CAL_HORIZON_MONTHS;i++){
+    const d=new Date(t.getFullYear(), t.getMonth()+i, 1);
+    heads.push(`<span>${_esc(d.toLocaleDateString(langLocale(),{month:'short'}))}</span>`);
+  }
+  /* The ladder counts EVERY row, including those past the ruler, because it is
+     a count of the book rather than of what is drawn. */
+  const bands=CAL_LADDER.map((b,i)=>{
+    const lo=i?CAL_LADDER[i-1].max:-1;
+    const inBand=rows.filter(r=>r.days>lo && r.days<=b.max);
+    const val=inBand.reduce((s,r)=>s+(r.value||0),0);
+    return `<div class="cal-lad" style="border-top-color:${b.tone}">
+      <div class="cal-lad-k">${_esc(b.label)}</div>
+      <div class="cal-lad-n" style="color:${b.tone}">${inBand.length}</div>
+      <div class="cal-lad-v">${val?_esc(window.fmtMoneyShort?fmtMoneyShort(val):String(val)):'&mdash;'}</div>
+    </div>`;
+  }).join('');
+  const body = rows.length ? rows.map(r=>{
+    const end=calHorizonPos(r.exp), beyond=r.days>365;
+    const tone=r.days<=30?'var(--st-ruby-fg)':r.days<=90?'var(--st-amber-fg)':'var(--color-accent-700)';
+    const note=`${_esc(window.regDotDate?regDotDate(r.exp):r.exp)} · ${_esc(i18t('reg_in_days',{n:r.days}))}`;
+    /* The note sits INSIDE the bar when there is room and outside when there is
+       not, so a short bar's date is never clipped and a long one's never runs
+       off the ruler. */
+    const inside = end > .55;
+    const nip = r.notice ? `<i class="cal-hz-nip" style="left:${(calHorizonPos(r.notice)*100).toFixed(2)}%"
+      title="${_esc(i18t('cal_hz_notice',{d:window.regDotDate?regDotDate(r.notice):r.notice}))}">&#9662;</i>` : '';
+    return `<div class="cal-hz-row" data-sel="${_esc(r.c.id)}" role="button" tabindex="0">
+      <div class="cal-hz-lab">
+        <span class="n">${_esc(r.c.name)}</span>
+        <span class="m">${_esc(r.c.id)}${r.c.counterparty?' · '+_esc(r.c.counterparty):''}</span>
+      </div>
+      <div class="cal-hz-track">
+        <span class="cal-hz-bar" style="width:${(end*100).toFixed(2)}%;background:${tone}"></span>
+        <span class="cal-hz-end" style="left:${(end*100).toFixed(2)}%"></span>
+        ${nip}
+        <span class="cal-hz-note ${inside?'in':'out'}" style="left:${(end*100).toFixed(2)}%">${note}${beyond?' ·&nbsp;'+_esc(i18t('cal_hz_beyond')):''}</span>
+      </div>
+    </div>`;
+  }).join('') : `<div class="cal-empty">
+      <div class="cal-empty-t">${_esc(i18t('cal_hz_none'))}</div>
+      <div class="cal-empty-s">${_esc(i18t('cal_hz_none_sub'))}</div></div>`;
+  return `<section class="cal-card cal-grid">
+    <div class="cal-cardbar"><span class="cal-hz-h">${_esc(i18t('cal_hz_head'))}</span></div>
+    <div class="cal-hz scroll-thin">
+      <div class="cal-hz-ruler"><span></span><div class="cal-hz-months">${heads.join('')}</div></div>
+      <div class="cal-hz-rows">${body}</div>
+    </div>
+    <div class="cal-ladder">${bands}</div>
+  </section>`;
+}
+
+/* ---- OBLIGATIONS: WHAT IS OWED, AND BY WHOM (owner-ruled 24 Aug 2026) ----
+   The design's third tab. Every other surface in this product shows an
+   obligation beside the ONE contract it belongs to; this is the only place the
+   whole book's obligations sit in one list, which is the question an operations
+   person actually opens the calendar with.
+   IT BORROWS EVERY READING: the rows come off calendarEvents' own obligation
+   events — the same builder the month grid and the agenda draw from, carrying
+   obligationDue, obligationOwner and obligationIsTheirs — so a fourth reading
+   of "what is owed" cannot come to disagree with the other three. */
+function calObligationRows(evs){
+  return evs.filter(e=>e.type==='obligation')
+    .sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+}
+function calObligationsHtml(evs){
+  const rows=calObligationRows(evs);
+  const today=calToday();
+  const overdue=rows.filter(r=>!r.done && r.date<today).length;
+  const week=rows.filter(r=>{ const d=daysUntil(r.date); return !r.done && d>=0 && d<=7; }).length;
+  const may=(!window.canEdit||canEdit());
+  const body=rows.length ? rows.map(r=>{
+    const d=daysUntil(r.date);
+    const late=!r.done && d!=null && d<0;
+    const tone=r.done?'var(--color-neutral-500)':late?'var(--st-ruby-fg)'
+      :(d!=null&&d<=7)?'var(--st-amber-fg)':'var(--color-text)';
+    const state=r.done?i18t('cal_ob_done'):late?i18t('cal_ob_overdue')
+      :(d!=null&&d<=7)?i18t('cal_ob_soon'):i18t('cal_ob_open');
+    return `<tr data-sel="${_esc(r.cid)}">
+      <td class="ob-w">${_esc(r.note||i18t('cal_ob_untitled'))}</td>
+      <td class="ob-c">${_esc(r.cname)}</td>
+      <td class="ob-o">${_esc(r.owner||i18t('cal_unassigned'))}${r.theirs
+        ? ` <span class="cal-theirs">${_esc(i18t('cal_k_theirs'))}</span>`:''}</td>
+      <td class="ob-d" style="color:${tone}">${_esc(window.regDotDate?regDotDate(r.date):r.date)}</td>
+      <td class="ob-cad">${_esc(r.cadence||i18t('cal_ob_once'))}</td>
+      <td class="ob-s"><span style="color:${tone}">${_esc(state)}</span>${(!r.done&&r.obId&&may&&window.toggleObligationById)
+        ? ` <button class="cal-upn-done" data-ob-done="${_esc(r.obId)}" data-ob-cid="${_esc(r.cid)}"
+            title="${_esc(i18t('cal_mark_complete'))}">${_esc(i18t('cal_done'))}</button>`:''}</td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="6"><div class="cal-empty">
+      <div class="cal-empty-t">${_esc(i18t('cal_ob_none'))}</div>
+      <div class="cal-empty-s">${_esc(i18t('cal_ob_none_sub'))}</div></div></td></tr>`;
+  return `<section class="cal-card cal-grid">
+    <div class="cal-obwrap scroll-thin"><table class="cal-obt">
+      <thead><tr>
+        <th>${_esc(i18t('cal_ob_col'))}</th><th>${_esc(i18t('cal_ob_contract'))}</th>
+        <th>${_esc(i18t('cal_ob_owner'))}</th><th class="r">${_esc(i18t('cal_ob_due'))}</th>
+        <th>${_esc(i18t('cal_ob_cadence'))}</th><th>${_esc(i18t('cal_ob_status'))}</th>
+      </tr></thead><tbody>${body}</tbody></table></div>
+    ${''/* The foot states the two facts somebody scans this list for. It draws
+           no verbs: Reassign and Chase owner do not exist in this product, and
+           a button that refuses is worse than no button — the row's own Done is
+           the one act, and it is on the row it acts on. */}
+    <div class="cal-obfoot">${_esc(i18tn('cal_ob_overdue_n',overdue,{n:overdue}))} &middot; ${_esc(i18tn('cal_ob_week_n',week,{n:week}))}</div>
+  </section>`;
+}
+
 /* The List view: every date in the period, in order, with its own row. It is
    the one view that can say the whole sentence — kind, agreement, counterparty
    and how long there is — so it does, and it scrolls inside its own card. */
@@ -473,13 +641,10 @@ function renderCalendar(){
   let main='';
   if(view==='month'){
     main=`<section class="cal-card cal-grid">${calCardBarHtml(y,m)}${calMonthGridHtml(y,m,byDay,{id:'cal-grid'})}</section>`;
-  } else if(view==='quarter'){
-    main=`<section class="cal-card cal-grid">${calCardBarHtml(y,m)}<div class="cal-q">`+p.months.map(mm=>
-      `<div class="cal-q-m"><div class="cal-q-h">${_esc(calMonthName(mm.y,mm.m))}</div>`
-      +calMonthGridHtml(mm.y,mm.m,byDay,{compact:true})+`</div>`).join('')
-      +`</div></section>`;
+  } else if(view==='horizon'){
+    main=calHorizonHtml();
   } else {
-    main=`<section class="cal-card cal-grid">${calCardBarHtml(y,m)}${calListHtml(evs,p)}</section>`;
+    main=calObligationsHtml(evs);
   }
 
   document.getElementById('content').innerHTML=`
@@ -509,14 +674,21 @@ function renderCalendar(){
     <div class="cal-bar">
       <div class="views">
         ${seg('month',i18t('cal_v_month'),view==='month'?inPeriod:null)}
-        ${seg('quarter',i18t('cal_v_quarter'),view==='quarter'?inPeriod:null)}
-        ${seg('list',i18t('cal_v_list'),view==='list'?inPeriod:null)}
+        ${seg('horizon',i18t('cal_v_horizon'),null)}
+        ${seg('obligations',i18t('cal_v_obligations'),null)}
       </div>
       <span class="g"></span>
       <span class="cal-seg">${scopeSeg('all',i18t('cal_all_dates'))}${scopeSeg('mine',i18t('cal_mine'))}</span>
     </div>
     <div class="cal-body">
-      <div class="cal-split">${main}${calPanelHtml(evs)}</div>
+      ${''/* ---- THE AGENDA IS THE MONTH'S COMPANION, NOT THE PAGE'S ----
+             The design pairs "Next 14 days" with the month grid alone (its
+             Month tab is the only one drawn as `1fr 304px`), and the two other
+             tabs need the width: the obligations table has a 1040px minimum and
+             was losing its Due, Cadence and Status columns to a panel that was
+             LISTING THE SAME OBLIGATIONS a few pixels to the right. Horizon
+             wants every pixel for its twelve months. */}
+      <div class="cal-split${view==='month'?'':' is-wide'}">${main}${view==='month'?calPanelHtml(evs):''}</div>
     </div>
   </div>`;
 
@@ -594,6 +766,66 @@ function calStyleCss(){ return `
          it, and the key at the right — the design's own row, and the key is
          now beside the colours it explains rather than at the foot of the
          card. */}
+
+  ${''/* ---- THE HORIZON ---- The ruler's gridlines are drawn by the TRACK's own
+         background, not by twelve elements per row: one gradient, repeated,
+         so a row costs one box however many months it spans. */}
+  .cal-hz{flex:1;min-height:0;overflow:auto}
+  .cal-hz-h{font-size:12px;color:var(--color-neutral-600)}
+  .cal-hz-ruler{display:grid;grid-template-columns:300px minmax(0,1fr);position:sticky;top:0;z-index:2;
+    background:var(--color-surface);box-shadow:inset 0 -1px var(--color-divider)}
+  .cal-hz-months{display:grid;grid-template-columns:repeat(12,minmax(0,1fr))}
+  .cal-hz-months span{padding:7px 6px;font-size:11px;font-weight:700;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--color-neutral-500);border-left:1px solid var(--rule);
+    white-space:nowrap;overflow:hidden}
+  .cal-hz-row{display:grid;grid-template-columns:300px minmax(0,1fr);align-items:center;
+    box-shadow:inset 0 -1px var(--rule);cursor:pointer}
+  .cal-hz-row:hover{background:color-mix(in srgb,var(--color-text) 4%,transparent)}
+  .cal-hz-row:focus-visible{outline:2px solid var(--accent-solid);outline-offset:-2px}
+  .cal-hz-lab{padding:7px 12px;min-width:0}
+  .cal-hz-lab .n{display:block;font-size:13px;font-weight:600;color:var(--color-accent-700);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cal-hz-lab .m{display:block;font-size:12px;color:var(--color-neutral-600);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cal-hz-track{position:relative;height:44px;
+    background:repeating-linear-gradient(to right,var(--rule) 0 1px,transparent 1px calc(100%/12))}
+  .cal-hz-bar{position:absolute;left:0;top:15px;height:14px;opacity:.85}
+  .cal-hz-end{position:absolute;top:12px;width:2px;height:20px;background:var(--color-text);
+    transform:translateX(-1px)}
+  .cal-hz-nip{position:absolute;top:1px;font-style:normal;font-size:11px;color:var(--st-amber-fg);
+    transform:translateX(-50%);line-height:1}
+  .cal-hz-note{position:absolute;top:14px;font-size:11px;white-space:nowrap;color:var(--color-neutral-600)}
+  .cal-hz-note.in{transform:translateX(calc(-100% - 8px))}
+  .cal-hz-note.out{transform:translateX(8px)}
+  ${''/* The ladder: five bands under the ruler, each keeping its own tone on a
+         top edge rather than as a fill, so five cards do not read as five
+         alarms. */}
+  .cal-ladder{flex:none;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1px;
+    background:var(--color-divider);box-shadow:inset 0 1px var(--color-divider)}
+  .cal-lad{background:var(--color-surface);padding:9px 12px;border-top:3px solid}
+  .cal-lad-k{font-size:12px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cal-lad-n{font-size:19px;font-weight:700;line-height:1.2;font-variant-numeric:tabular-nums}
+  .cal-lad-v{font-size:12px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums}
+  ${''/* ---- OBLIGATIONS ---- One shared minimum width and a sticky header, so
+         the six columns keep their meaning on a narrow window instead of
+         crushing; the scroller is the card's own, never the page's. */}
+  .cal-obwrap{flex:1;min-height:0;overflow:auto}
+  .cal-obt{width:100%;min-width:1040px;border-collapse:collapse;font-size:14px}
+  .cal-obt th{position:sticky;top:0;z-index:2;text-align:left;padding:7px 12px;
+    background:var(--color-neutral-100);font-size:11px;font-weight:700;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--color-neutral-500);white-space:nowrap;
+    box-shadow:inset 0 -1px var(--color-divider)}
+  .cal-obt th.r{text-align:right}
+  .cal-obt td{padding:0 12px;height:36px;box-shadow:inset 0 -1px var(--rule);white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis}
+  .cal-obt tbody tr{cursor:pointer}
+  .cal-obt tbody tr:hover td{background:color-mix(in srgb,var(--color-text) 4%,transparent)}
+  .cal-obt .ob-w{max-width:280px}.cal-obt .ob-c{max-width:220px;color:var(--color-neutral-600)}
+  .cal-obt .ob-o{width:150px}.cal-obt .ob-d{width:104px;text-align:right;font-variant-numeric:tabular-nums}
+  .cal-obt .ob-cad{width:112px;color:var(--color-neutral-600)}.cal-obt .ob-s{width:128px}
+  .cal-obfoot{flex:none;padding:9px 12px;font-size:13px;color:var(--color-neutral-600);
+    box-shadow:inset 0 1px var(--color-divider)}
+  .cal-split.is-wide{grid-template-columns:minmax(0,1fr)}
   .cal-cardbar{flex:none;display:flex;align-items:center;gap:10px;padding:9px 12px;
     box-shadow:inset 0 -1px var(--color-divider)}
   .cal-cardbar .g{flex:1}
