@@ -3198,20 +3198,27 @@ function redlineLayoutCss(){
      page now, and focus mode is the mode in which a reader is working THROUGH
      the round — the one place the reading order matters most. Hidden, the queue
      was unreachable in it, which is the fault. */
+  /* ---- THE LABEL DOES NOT WRAP, AND THE STRIP IS SHORTER (owner-reported
+     24 Aug 2026: "the highlighted words in this rounds queue should not wrap
+     text and the strip should be shorter") ----
+     In a vertical writing mode the LINE runs down the page, so the label broke
+     into two columns of text and the strip grew a second track to hold them.
+     white-space:nowrap keeps it to one, which is most of the height back on its
+     own; the padding and the gap come down with it. */
   .redline-page .rl-q-tab{
     position:absolute;left:0;top:50%;transform:translateY(-50%);z-index:54;
-    writing-mode:vertical-rl;
-    display:flex;align-items:center;gap:8px;
+    writing-mode:vertical-rl;white-space:nowrap;
+    display:flex;align-items:center;gap:6px;
     font:inherit;font-size:12px;font-weight:700;cursor:pointer;
-    padding:13px 7px 13px 6px;border:1px solid var(--color-divider);border-left:0;
+    padding:9px 6px 9px 5px;border:1px solid var(--color-divider);border-left:0;
     border-radius:0;background:var(--color-surface);color:var(--color-text);
     box-shadow:var(--shadow-md);transition:background .12s,padding .12s;
   }
   /* Outward, away from the wall — padding-left would push it INTO the page's
      border, which is the one edge it is fixed to. */
   .redline-page .rl-q-tab:hover{background:var(--color-neutral-100);padding-right:11px}
-  .redline-page .rl-q-tab .rl-q-tab-k{letter-spacing:.09em;text-transform:uppercase;
-    font-size:11px;color:var(--color-neutral-600)}
+  .redline-page .rl-q-tab .rl-q-tab-k{letter-spacing:.06em;text-transform:uppercase;
+    font-size:11px;white-space:nowrap;color:var(--color-neutral-600)}
   .redline-page .rl-q-tab .rl-q-tab-n{font-family:var(--font-mono);font-size:12px;
     font-weight:700;color:var(--color-text)}
   /* The door is a door only while it is shut — with the panel open the panel's
@@ -3300,6 +3307,28 @@ function redlineLayoutCss(){
      carrying the other value cannot hide this column. */
   .redline-page .rl-side{min-width:0}
   .redline-page #rl-changes-col{flex:1;min-height:0;display:flex;flex-direction:column}
+
+  /* ---- THE COLUMN STANDS DOWN ON A READING (owner-asked 24 Aug 2026) ----
+     On 'As agreed' and 'With changes' the paper is drawn without its marks, so
+     nothing here may decide a change. The cards still DRAW, faded: the round's
+     shape beside the clean wording is the reason for standing here at all.
+     pointer-events:none is what actually refuses the press — an opacity alone
+     is a dimmed control that still works, which is worse than no signal. The
+     sentence above is a SIBLING of the pane rather than inside it, so it keeps
+     its own pointer and its button is pressable. */
+  .redline-page .rl-side.is-reading #rl-changes-col{
+    opacity:.45;pointer-events:none;user-select:none;filter:grayscale(1)}
+  .redline-page .rl-idx-reading{
+    flex:none;display:flex;align-items:center;gap:10px;
+    padding:9px 11px;margin:0 0 8px;
+    background:var(--color-surface);border:1px solid var(--color-divider);
+    font-size:12px;color:var(--color-neutral-600)}
+  .redline-page .rl-idx-reading span{flex:1;min-width:0}
+  .redline-page .rl-idx-reading button{
+    flex:none;border:1px solid var(--color-divider);background:var(--color-surface);
+    font:inherit;font-size:12px;font-weight:700;padding:4px 9px;cursor:pointer;
+    color:var(--accent-ink,var(--color-accent-800))}
+  .redline-page .rl-idx-reading button:hover{background:var(--color-neutral-100)}
 
   /* ---- A SHORT WINDOW SPENDS ITS HEIGHT ON THE WORK ----
      Placed AFTER the rules it argues with: these are the same two classes

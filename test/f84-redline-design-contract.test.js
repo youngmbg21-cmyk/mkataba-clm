@@ -328,26 +328,41 @@ describe('F84 — how the contract reads, as three words', () => {
     assert.equal(p.win.rlReadMode(), 'marks', 'and the ordinary reading is the default');
   });
 
+  /* ---- REVERSED IN PLACE, 24 Aug 2026 (owner-reported: "remove the strip
+     from the top of the contract in both as agreed and with changes pages") ----
+     THE SAFETY CLAIM IS KEPT AND RE-POINTED, which is the whole of this edit:
+     a document quietly missing its strikes looks like a document with nothing
+     on the table, so a non-default reading must still SAY so and must still
+     offer the way back. What moved is where. The band across the top of the
+     contract is gone; the CHANGE COLUMN beside it now greys itself, states that
+     this is a reading, and carries the one way back. */
   test('a clean reading takes the marks off, and says so', async () => {
     const p = await page();
     assert.ok(p.$('#rl-doc del, #rl-doc .nego-del'), 'redlined shows the strike');
     assert.equal(p.$('.rl-note-card'), null, 'and owes no explanation');
+    assert.equal(p.$('.rl-side.is-reading'), null, 'the column is live on the redline');
 
     p.$('[data-rl-read="agreed"]').click();
     assert.equal(p.win.rlReadMode(), 'agreed');
     assert.equal(p.$('#rl-doc del, #rl-doc .nego-del'), null,
       'as agreed: the proposal is not applied and not marked');
     assert.equal(p.$('#rl-doc ins, #rl-doc .nego-ins'), null);
-    /* A DOCUMENT QUIETLY MISSING ITS STRIKES LOOKS LIKE A DOCUMENT WITH
-       NOTHING ON THE TABLE. The notice is the whole safety argument for
-       offering these readings at all. */
-    assert.ok(p.$('.rl-note-card'), 'a non-default reading always says so');
-    assert.match(p.$('.rl-note-card').textContent, /as it stands/i);
-    assert.ok(p.$('.rl-note-card [data-rl-read="marks"]'), 'with the way back on it');
+    assert.equal(p.$('.rl-note-card'), null,
+      'and the band across the top of the contract is gone');
+    /* THE FACT IS NOT LOST — it is on the column, which is where the reader is
+       being told they cannot act. */
+    assert.ok(p.$('.rl-side.is-reading'), 'a non-default reading says so on the column');
+    assert.ok(p.$('.rl-idx-reading'), 'in words');
+    assert.match(p.$('.rl-idx-reading').textContent, /redlined/i);
+    assert.ok(p.$('.rl-idx-reading [data-rl-read="marks"]'), 'with the way back on it');
+    /* AND NOTHING ON THE PAPER OFFERS TO WRITE. The pencil is the one door
+       into the clause panel, and the panel is where a change is filed. */
+    assert.equal(p.$('.rl-cp-pill'), null, 'no clause offers an edit on a reading');
 
-    p.$('.rl-note-card [data-rl-read="marks"]').click();
+    p.$('.rl-idx-reading [data-rl-read="marks"]').click();
     assert.equal(p.win.rlReadMode(), 'marks', 'and the way back works');
-    assert.equal(p.$('.rl-note-card'), null);
+    assert.equal(p.$('.rl-side.is-reading'), null);
+    assert.ok(p.$('.rl-cp-pill'), 'and the clause offers its edit again');
   });
 
   test('nothing about the record moves when the reading does', async () => {

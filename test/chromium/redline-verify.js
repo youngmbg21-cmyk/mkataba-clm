@@ -1120,6 +1120,104 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       !!v && ink.test(v.ink || ''), JSON.stringify(v && v.ink));
   }
 
+  /* ---- 16. THE QUEUE DOOR IS ONE LINE, AND SHORTER (owner-reported 24 Aug
+         2026: "the highlighted words in this rounds queue should not wrap text
+         and the strip should be shorter") ----
+     The door is a VERTICAL tab, so its line runs down the page and the label
+     broke into two columns of text whenever the working area was short, growing
+     the strip a second track to hold them. THE CLAIM IS THE GUARANTEE, not a
+     height: the label may never wrap at any window size, which is what
+     white-space:nowrap buys, and it is asked by counting the LINE BOXES the
+     text really paints — a range over the text node returns one rect per line,
+     which is the only way to ask "did this wrap" without knowing the height. */
+  await page.evaluate(() => { document.querySelector('[data-rl-read="marks"]').click(); });
+  await pause(300);
+  const rail = await page.evaluate(() => {
+    const tab = document.querySelector('.rl-q-tab');
+    const k = tab && tab.querySelector('.rl-q-tab-k');
+    const n = tab && tab.querySelector('.rl-q-tab-n');
+    if (!tab || !k) return null;
+    const lines = el => { const r = document.createRange(); r.selectNodeContents(el);
+      return r.getClientRects().length; };
+    const h = el => el ? Math.round(el.getBoundingClientRect().height) : 0;
+    /* every direct child, the chevron included — the strip's height is its
+       contents plus the padding and the gaps, and it is the padding that was
+       trimmed */
+    const content = [...tab.children].reduce((a, e) => a + h(e), 0);
+    return { lines: lines(k), ws: getComputedStyle(k).whiteSpace,
+      tab: h(tab), label: h(k), count: h(n), content };
+  });
+  check('16 the queue label paints on one line, never two',
+    rail && rail.lines === 1, rail && `${rail.lines} line(s)`);
+  check('16 and it cannot wrap at any window size',
+    rail && rail.ws === 'nowrap', rail && rail.ws);
+  /* SHORTER, AS A RELATION: the strip is its contents plus padding, and the
+     padding is what was trimmed — so it must not exceed them by much. */
+  check('16 the strip is no taller than what it carries',
+    rail && rail.tab - rail.content <= 34,
+    rail && `${rail.tab}px for ${rail.content}px of content`);
+
+  /* ---- 17. A READING IS NOT A WORKING POSTURE (owner-asked 24 Aug 2026) ----
+     "Remove the strip from the top of the contract in both as agreed and with
+     changes pages. Beyond that, remove the ability to edit in those pages and
+     grey out the change index card ... which should indicate that to make any
+     edits they need to go back to redline page."
+     Measured on the OWNER's bench, in both non-default readings, because the
+     fault would be a control that looks alive and decides a change against a
+     document the reader is not being shown. */
+  const readings = {};
+  for (const mode of ['agreed', 'proposed']){
+    await page.evaluate(m => { document.querySelector(`[data-rl-read="${m}"]`).click(); }, mode);
+    await pause(400);
+    readings[mode] = await page.evaluate(() => {
+      const pane = document.getElementById('rl-changes-col');
+      const cs = pane && getComputedStyle(pane);
+      const note = document.querySelector('.rl-idx-reading');
+      const seen = el => { if (!el) return false; const r = el.getBoundingClientRect();
+        return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'; };
+      return {
+        band: !!document.getElementById('rl-read-note'),
+        pills: document.querySelectorAll('.rl-cp-pill').length,
+        greyed: !!document.querySelector('.rl-side.is-reading'),
+        opacity: cs ? Number(cs.opacity) : 1,
+        inert: cs ? cs.pointerEvents : 'auto',
+        cards: document.querySelectorAll('#rl-changes .rl-card').length,
+        noteSeen: seen(note),
+        noteText: note ? (note.textContent || '').replace(/\s+/g, ' ').trim() : '',
+        /* the way out must be OUTSIDE the inert pane, or it is a button
+           nobody can press */
+        backLive: (() => { const b = document.querySelector('.rl-idx-reading [data-rl-read="marks"]');
+          return !!b && getComputedStyle(b).pointerEvents !== 'none'
+            && !b.closest('#rl-changes-col'); })(),
+      };
+    });
+  }
+  for (const mode of ['agreed', 'proposed']){
+    const r = readings[mode];
+    check(`17 ${mode}: the band across the top of the contract is gone`, !r.band);
+    check(`17 ${mode}: no clause offers an edit`, r.pills === 0, `${r.pills} pencils`);
+    check(`17 ${mode}: the change column is greyed`,
+      r.greyed && r.opacity < 1, `opacity ${r.opacity}`);
+    check(`17 ${mode}: and it really refuses the press, not merely dims`,
+      r.inert === 'none', r.inert);
+    check(`17 ${mode}: the cards still draw, so the round's shape is readable`,
+      r.cards > 0, `${r.cards} cards`);
+    check(`17 ${mode}: it says why, in visible pixels`,
+      r.noteSeen && /redlined/i.test(r.noteText), r.noteText.slice(0, 70));
+    check(`17 ${mode}: and the way back is pressable, outside the inert pane`, r.backLive);
+  }
+  /* AND THE WAY BACK REALLY WORKS — pressed for real, not inferred. */
+  await page.evaluate(() => { document.querySelector('.rl-idx-reading [data-rl-read="marks"]').click(); });
+  await pause(500);
+  const back = await page.evaluate(() => ({
+    mode: window.rlReadMode(),
+    greyed: !!document.querySelector('.rl-side.is-reading'),
+    pills: document.querySelectorAll('.rl-cp-pill').length,
+    inert: getComputedStyle(document.getElementById('rl-changes-col')).pointerEvents }));
+  check('17 pressing it lands back on the redline, with the column live again',
+    back.mode === 'marks' && !back.greyed && back.pills > 0 && back.inert !== 'none',
+    JSON.stringify(back));
+
   await browser.close();
   srv.close();
   const failed = results.filter(r => !r.pass);

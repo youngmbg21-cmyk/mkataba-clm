@@ -4895,6 +4895,20 @@ function rlPaintReadSegs(){
     b.setAttribute('aria-pressed', on ? 'true' : 'false');
   });
 }
+/* ---- A READING IS NOT A WORKING POSTURE (owner-asked 24 Aug 2026) ----
+   "Remove the ability to edit in those pages and grey out the change index card
+   when you go to those pages, which should then indicate to the user that to
+   make any edits they need to go back to redline page."
+
+   THE REASON IT IS ONE PREDICATE AND NOT A FLAG IN THREE PLACES: 'As agreed'
+   and 'With changes' draw the paper WITHOUT its marks — one shows the wording
+   as it stands, the other the wording if every proposal landed — so any control
+   that files a change there would be measured against a document the reader is
+   not being shown. That was already true of the selection menu, which this page
+   shut on 19 Aug; the clause pencil and the change column are the rest of it.
+   The way back is the tab row, which is on screen the whole time and says which
+   reading you are in. */
+function rlReadOnlyReading(){ return rlReadMode() !== 'marks'; }
 /* The sentence the floating notice prints, and the one place that decides
    whether a notice is owed at all — an empty string means the page is on its
    ordinary reading and has nothing to explain. */
@@ -5088,19 +5102,24 @@ if (typeof document !== 'undefined' && !document._rlReadWired){
   });
 }
 
-/* THE NOTICE IS OWED, NOT OPTIONAL. A document silently missing its strikes
-   looks like a document with nothing on the table — the most expensive thing
-   this page could get wrong — so a non-default reading always says so, and the
-   way back is on the notice itself rather than only in the toolbar. */
-function rlReadNoticeHtml(){
-  const note = rlReadNote();
-  if (!note) return '';
-  return `<div class="rl-note-card" id="rl-read-note">
-    <div class="rl-note-k"><span class="rl-note-dot"></span>${i18t('ng_read_note_k')}</div>
-    <p class="rl-note-t">${_ne(note)}</p>
-    <button type="button" data-rl-read="marks" class="rl-note-btn">${i18t('ng_read_back')}</button>
-  </div>`;
-}
+/* ---- THE STRIP IS RETIRED, AND THE FACT IS NOT (owner-reported 24 Aug 2026,
+       off a screenshot with the band ringed: "remove the strip from the top of
+       the contract in both as agreed and with changes pages") ----
+   THIS REVERSES "THE NOTICE IS OWED, NOT OPTIONAL", and the standing rule
+   behind it is kept rather than dropped: a document silently missing its
+   strikes looks like a document with nothing on the table, so a non-default
+   reading must still SAY so and must still offer the way back. What changed is
+   where. When this was written the reading switch was a grey pill group in a
+   toolbar; since the 22 Aug redesign it is the TAB ROW at the top of the page —
+   Redlined / As agreed / With changes, the live one bold and underlined,
+   permanently on screen — and the change column beside it now greys itself and
+   names the way back in words (see rlReadOnlyReading). Two more statements of
+   one fact, one of them a band across the top of the contract, is what the
+   owner was looking at.
+   KEPT AS A BUILDER WITH NO CONTENT rather than deleted: it is exported and
+   called from the notice stack, and a third caller must not be able to bring
+   the band back through a door nobody remembered. */
+function rlReadNoticeHtml(){ return ''; }
 
 /* ---------- THE REDLINE PAGE ----------
    The workbench as a top-level destination, not only a tab inside a contract
@@ -5449,6 +5468,9 @@ function rlAskRevealHtml(c, ch, side, opts = {}){
    chip, .ui-btn), and lighter than the nav-bg fill it replaces. */
 function rlClauseEditPillHtml(cl, opts = {}){
   if (!cl || opts.editable === false || !opts.hasPanel) return '';
+  /* NOT ON A READING. Asked here rather than at the three call sites, so the
+     three clause branches cannot come to disagree about it. */
+  if (rlReadOnlyReading()) return '';
   const id = _ne(cl.clauseId);
   return `<button type="button" class="rl-cp-pill" data-rl-cp-open="${id}"
     aria-expanded="${rlCpOpenId() === String(cl.clauseId) ? 'true' : 'false'}"
@@ -11956,8 +11978,24 @@ function redlinePanesHtml(c, opts = {}){
 
              What survives is the engine's own #nego-send, kept mounted and
              visually hidden: it is the control Publish Round presses. */}
-      <aside class="rl-col rl-side" id="rl-side" aria-label="${_nea(i18t('ng_tracked_changes'))}">
-        <div class="nego-pane index" id="rl-changes-col" aria-label="${i18t('ng_tracked_changes')}">
+      <aside class="rl-col rl-side${rlReadOnlyReading() ? ' is-reading' : ''}" id="rl-side" aria-label="${_nea(i18t('ng_tracked_changes'))}">
+        ${''/* ---- THE COLUMN STANDS DOWN ON A READING (owner-asked 24 Aug
+               2026) ---- On 'As agreed' and 'With changes' the paper is drawn
+               without its marks, so a verb here would decide a change against a
+               document the reader is not being shown. The cards still DRAW —
+               greying them keeps the round's shape readable, which is the whole
+               point of standing beside the clean wording — and the sentence
+               names the one way back.
+               IT SITS OUTSIDE THE GREYED PANE ON PURPOSE: the pane takes
+               pointer-events:none, and a way forward inside it would be a
+               button nobody could press. It presses data-rl-read, the tab
+               row's OWN attribute, so this is the existing door rather than a
+               second one. */}
+        ${rlReadOnlyReading() ? `<div class="rl-idx-reading">
+          <span>${_ne(i18t('ng_reading_no_edit'))}</span>
+          <button type="button" data-rl-read="marks">${_ne(i18t('ng_read_back'))}</button>
+        </div>` : ''}
+        <div class="nego-pane index" id="rl-changes-col" aria-label="${i18t('ng_tracked_changes')}" ${rlReadOnlyReading() ? 'aria-disabled="true"' : ''}>
           ${''/* ---- THE CHANGE INDEX (owner-approved render, 24 Aug 2026) ----
                  The head said "TRACKED CHANGES" and a count of what is OPEN,
                  which never told a reader how far through the round they were.

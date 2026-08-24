@@ -2365,6 +2365,70 @@ FIVE THINGS OFF FIVE SCREENSHOTS (owner-asked 16 Aug 2026). Together they finish
 - **AND THE REOPEN MOVED WITH THEM, OR THE REMEDY WOULD BE UNREACHABLE.** The tag's reveal carried the way back from a settled decision, and the accept guard refuses IN WORDS naming reopening as the way out. The two had to move together — a refusal whose stated remedy cannot be reached is worse than no remedy, which is the exact fault f208 exists for. It is in the panel's History rows now (`mayReopen`), on the same rules: settled only, our seat only, never PORTAL_MODE, never read-only.
 - ABOUT TWENTY TEST CLAIMS NAMED THE TAGS and every one was REVERSED IN PLACE rather than deleted — f207, f208, f209, f37, f70, f93, f96, and four browser files. What each was really pinning is still true and still worth pinning; they are re-pointed at the surface that carries it now (the panel row, or `is-changed` on the clause).
 
+## A READING IS NOT A WORKING POSTURE (owner-asked 24 Aug 2026)
+
+Three asks off two screenshots of the negotiation page, and two of them are one
+rule.
+
+- **THE QUEUE DOOR IS ONE LINE, AND SHORTER** (*"the highlighted words in this
+  rounds queue should not wrap text and the strip should be shorter"*). The door
+  is a VERTICAL tab, so its LINE runs down the page: the label broke into two
+  columns of text whenever the working area was short, and the strip grew a
+  second track to hold them. `white-space:nowrap` is the fix and it is a
+  GUARANTEE rather than a measurement — no window height can wrap it — and the
+  padding and gap come down with it (13/8 to 9/6), which is the rest of the
+  height. **The claim is pinned by counting LINE BOXES**: a range over the text
+  node returns one rect per line, which is the only way to ask "did this wrap"
+  without knowing what the height happens to be today.
+
+- **'AS AGREED' AND 'WITH CHANGES' DECIDE NOTHING** (*"remove the strip from the
+  top of the contract in both … remove the ability to edit in those pages and
+  grey out the change index card … which should then indicate to the user that
+  to make any edits they need to go back to redline page"*). **`rlReadOnlyReading()`
+  is the ONE predicate** — `rlReadMode() !== 'marks'` — and the reasoning is why
+  it is one rather than a flag in three places: those two readings draw the
+  paper WITHOUT its marks, so any control that filed a change there would be
+  measured against a document the reader is not being shown. That was already
+  true of the selection menu, which this page shut on 19 Aug; the clause pencil
+  and the change column are the rest of it.
+  - **THE PENCIL IS ASKED IN THE BUILDER**, not at the three clause branches, so
+    they cannot come to disagree.
+  - **THE CARDS STILL DRAW, FADED.** The round's shape beside the clean wording
+    is the reason for standing there at all. **`pointer-events:none` is what
+    actually refuses the press** — an opacity alone is a dimmed control that
+    still works, which is worse than no signal at all.
+  - **THE SENTENCE IS A SIBLING OF THE PANE, NOT INSIDE IT.** The pane is inert,
+    so a way forward inside it would be a button nobody could press. It presses
+    `data-rl-read`, the tab row's OWN attribute, so this is the existing door
+    rather than a second one.
+
+- **THE READING BAND IS RETIRED, AND ITS RULE IS KEPT.** This REVERSES "THE
+  NOTICE IS OWED, NOT OPTIONAL" — and the reasoning behind that rule survives
+  intact: a document quietly missing its strikes looks like a document with
+  nothing on the table, so a non-default reading must still SAY so and must
+  still offer the way back. **What changed is where.** When the band was written
+  the reading switch was a grey pill group in a toolbar; since the 22 Aug
+  redesign it is the TAB ROW at the top of the page, permanently on screen with
+  the live cut bold and underlined, and the column beside it now says it in
+  words. Two more statements of one fact, one of them a band across the top of
+  the contract, is what the owner was looking at. `rlReadNoticeHtml` is a
+  `return ''` STUB rather than a deletion — it is exported and called from the
+  notice stack, and a third caller must not bring the band back through a door
+  nobody remembered. `.rl-note-card` / `#rl-read-note` are STALE on this page.
+
+**BOTH SEATS, DELIBERATELY.** The counterparty's page mounts the same panes and
+has the same tab row, so the greying, the sentence and the missing pencil arrive
+there by construction — and 'As agreed' is a reading on their seat for exactly
+the same reason it is on ours. Keeping one seat and not the other is the drift
+this rulebook opens by warning about.
+
+Tests: f84's reading claim REVERSED IN PLACE (the safety claim kept and
+re-pointed at the column), counterparty-reading-and-more-verify 2b reversed the
+same way and widened, room-order-and-notices-verify's filter claim RE-POINTED at
+the dropdown it became (it had been red since that control changed),
+redline-verify sections 16 and 17 (**14 of them fail against the code of an hour
+before**, reporting eleven clause pencils on a page showing no marks).
+
 A CONTRACT LIMB KEEPS ITS LABEL, AND ITS WRAPS HANG (owner-reported 16 Aug 2026, off a Copilot proposal: the wording came back reading "(a) Manufacture all products…" and what landed in the contract was "• Manufacture all products…"). Two separate faults, both reproduced.
 
 - **`(a)` WAS BEING READ AS A BULLET AND THROWN AWAY.** `DOC_BULLET` (js/docx.js) matched `(a)`, `a)` and `(iv)` along with the true marks, and the branch that uses it STRIPS what it matched — so every lettered limb the Copilot drafted, and every one in an uploaded contract, arrived with its label gone and a bullet in its place. **The file already stated the rule three lines away**, for numbers: *"Both keep their number: it is the citation."* A lettered limb is cited exactly the same way — clause 1(b). `DOC_BULLET` is now the true marks only (`• ● ▪ ◦ ‣ ·`, `- – —`) and **DOC_LABEL** is its own pattern whose match is KEPT. A labelled limb becomes a PARAGRAPH carrying its label, not a list item — no browser draws "(a)" as a list marker, so making a list means throwing the label away, which is the fault. As a paragraph it also inherits `docLineWraps`, so a wrapped continuation still joins. The label is asked for BEFORE the mark, so a pattern widened later cannot quietly turn a citation back into a bullet.

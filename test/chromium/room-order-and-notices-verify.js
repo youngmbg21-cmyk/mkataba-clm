@@ -147,16 +147,24 @@ const seen = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
       ranks.every((r, i) => i === 0 || ranks[i - 1] <= r),
       order.cards.map((id, i) => `${id}:${order.states[i]}`).join(' · '));
 
+    /* ---- RE-POINTED 24 Aug 2026, claim unchanged ----
+       The All / Mine / Theirs control became a DROPDOWN on the owner's ask,
+       so reading it as three chips reported a fault that was not there. What
+       this check is really about is untouched and is what it still asks: the
+       filter offers all three cuts and every one carries its OWN count, so a
+       sort can never be mistaken for something that hides a change. */
     const counts = await page.evaluate(() => {
-      const t = (document.querySelector('.rl-cardfilter, #rl-changes') || document.body).ownerDocument;
-      const chips = [...t.querySelectorAll('[data-rl-cardfilter]')]
-        .map(b => b.textContent.replace(/\s+/g, ' ').trim());
+      const sel = document.querySelector('#rl-cardfilter, [data-rl-cardfilter]');
+      const opts = sel && sel.options
+        ? [...sel.options].map(o => o.textContent.replace(/\s+/g, ' ').trim())
+        : [...document.querySelectorAll('[data-rl-cardfilter]')]
+            .map(b => b.textContent.replace(/\s+/g, ' ').trim());
       const c = getContract(state.activeId);
       const all = redlineCardIds(c, { side: 'owner', countAll: true }).length;
-      return { chips, all };
+      return { chips: opts, all };
     });
-    check('the All / Mine / Theirs chips are untouched — this is a sort, not a filter',
-      counts.chips.length >= 3 && counts.chips.join(' ').match(/\d/),
+    check('the All / Mine / Theirs cuts are untouched — this is a sort, not a filter',
+      counts.chips.length >= 3 && counts.chips.every(t => /\d/.test(t)),
       counts.chips.join(' | '));
     check('and the column still holds every card the record says it should',
       order.cards.length === counts.all, `${order.cards.length} of ${counts.all}`);

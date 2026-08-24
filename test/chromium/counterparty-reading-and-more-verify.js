@@ -236,20 +236,32 @@ const PAPER = `(() => {
     /* ---- 2b. AND A NON-DEFAULT READING SAYS SO, WITH THE WAY BACK ----
        The standing rule, and the most expensive thing this page could get
        wrong: a document silently missing its strikes looks like a document
-       with nothing on the table. The notice is built into the shared panes, so
-       it SHOULD arrive by construction on their seat — which is the claim, not
-       the proof. */
+       with nothing on the table.
+       REVERSED IN PLACE 24 Aug 2026 (owner-reported: "remove the strip from the
+       top of the contract in both as agreed and with changes pages"). THE CLAIM
+       IS UNCHANGED AND THE SURFACE MOVED: the band across the top of the
+       contract is gone; the CHANGE COLUMN greys itself, says this is a reading,
+       and carries the one way back. It is built into the shared panes, so it
+       arrives on their seat by construction — which is the claim, not the
+       proof, and the proof is that it is VISIBLE PIXELS on their page. */
     await page.click('.pw-id .rl-readwrap [data-rl-read="agreed"]');
     await pause(600);
     const notice = await page.evaluate(([seen]) => {
       const s = eval(seen);
-      const n = document.getElementById('rl-read-note');
+      const n = document.querySelector('.rl-idx-reading');
       return { box: s(n), text: n ? (n.textContent || '').replace(/\s+/g, ' ').trim() : '',
-        back: !!document.querySelector('#rl-read-note [data-rl-read="marks"]') };
+        back: !!document.querySelector('.rl-idx-reading [data-rl-read="marks"]'),
+        band: !!document.getElementById('rl-read-note'),
+        greyed: !!document.querySelector('.rl-side.is-reading'),
+        pills: document.querySelectorAll('.rl-cp-pill').length };
     }, [SEEN]);
     check('2b a non-default reading says so on their page, in visible pixels',
       notice.box && notice.box.on, notice.text.slice(0, 90));
     check('2b and the way back is on the notice itself', notice.back);
+    check('2b the band across the top of the contract is gone', !notice.band);
+    check('2b the change column is stood down, so nothing decides against a clean page',
+      notice.greyed && notice.pills === 0,
+      `greyed ${notice.greyed} · ${notice.pills} clause pencils`);
 
     /* back to the default before the rest of the run */
     await page.click('.pw-id .rl-readwrap [data-rl-read="marks"]');
