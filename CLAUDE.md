@@ -1227,6 +1227,38 @@ all, which is why only the washes went: the stage still says its tone in text.
 Read as a SET DIFFERENCE, never as a diff — the baseline re-orders, so every
 value appears on both sides of the patch and reading it tells you nothing.
 
+**THE COLUMNS DO NOT MOVE WHEN YOU TURN THE PAGE (owner-reported 24 Aug 2026:
+"when you click through the pages, the columns move which is not how i want it …
+there should be no scrolling from left to right to see the whole page").** An
+AUTO table sizes each column to the content of the rows it is CURRENTLY showing,
+so a page of long names widened the title and shifted every column beside it.
+MEASURED on a 150-contract book: the title column was 217px on page 1 and 306px
+on page 3, all seven others moved with it, and pages 2 to 4 scrolled sideways by
+27 to 36px. `table-layout:fixed` reads the widths off the head row and holds
+them whatever the page shows — the same fix, and the same lesson, as the
+calendar's obligation table.
+
+**EVERY WIDTH IS A PERCENTAGE AND THEY SUM TO 100**, which is what turns "no
+left-right scrolling" into a guarantee rather than something that happens to
+hold at today's window: the table is exactly its pane, at every width, on every
+page. **`overflow:hidden` ON THE CELL IS THE OTHER HALF** — several cells carry
+nowrap content, and in a fixed layout a child wider than its column spills over
+the one beside it rather than widening the table. The two per-cell `max-width`
+values on counterparty and stream went with it: the COLUMN is what governs now,
+and a cap on the cell would fight it.
+
+**SIX OF THE EIGHT ARE IDENTICAL ON BOTH PAGES.** Only the title and the last
+column differ, and only because the last holds a ⋯ on Contracts and a sentence
+about whose move it is on Negotiations — the title is the column with the give.
+The type size was already one value for both (one builder), so no reduction was
+needed and none was made.
+
+Tests: f97's source claim RE-POINTED (the stream heading is no longer a bare
+th), contracts-page-verify sections 10 and 11 (**5 of them fail against the code
+of an hour before, and reproduce the reported sideways scroll at 27-36px**),
+flat-rows-and-alerts-verify 2d REVERSED IN PLACE and 2e/2f re-pointed — that
+head was rebuilt on the 24 Aug render and the file had been red for it since.
+
 Tests: f240's three claims REVERSED IN PLACE (the verb's absence, the kind's,
 and the stated height), f97's two reversed (one table draws the link column
 now), f237 WIDENED to the one-branch shape, contracts-page-verify (browser).

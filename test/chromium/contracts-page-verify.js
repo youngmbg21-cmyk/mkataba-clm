@@ -270,6 +270,91 @@ const check = (name, ok, detail) => {
       left.bg !== 'rgb(255, 255, 255)', left.bg);
     check('9b and the band is gone from the document', left.rules === 0, String(left.rules));
 
+    /* ============ 10. THE COLUMNS DO NOT MOVE WHEN YOU TURN THE PAGE ============
+       Owner-reported 24 Aug 2026: "when you click through the pages, the
+       columns move which is not how i want it … there should be no scrolling
+       from left to right to see the whole page."
+
+       THE FIXTURE HAS TO BE RAGGED OR THE CHECK CANNOT FAIL. A seeded book of
+       four similar contracts sizes the same on every page whatever the table
+       layout is, so this stages 150 with deliberately uneven names and
+       counterparties — short ones on the first pages, long ones on the last —
+       which is what made the columns move on the owner's own register. */
+    await page.evaluate(() => setView('register'));
+    await page.waitForTimeout(1200);
+    await page.evaluate(() => {
+      const base = state.contracts[0];
+      const NM = ['NDA', 'Warehousing and Transportation Services Agreement — AIT Worldwide Norway AS'];
+      const CP = ['Juno', 'Naivas Supermarkets Kenya Limited'];
+      for (let i = 0; i < 150; i++){
+        const c = JSON.parse(JSON.stringify(base));
+        c.id = 'MK-W' + i; c.name = NM[i < 75 ? 0 : 1]; c.counterparty = CP[i < 75 ? 0 : 1];
+        c.value = i % 3 ? 12345678 * (i % 7 + 1) : 0; c.negotiation = null; c.audit = [];
+        state.contracts.push(c);
+      }
+      renderRegister();
+    });
+    await page.waitForTimeout(1400);
+    const READ = `(() => {
+      const t = document.querySelector('.reg-table');
+      const sc = document.getElementById('reg-scroll');
+      if (!t || !sc) return null;
+      return { w: [...t.querySelectorAll('thead th')].map(e => Math.round(e.getBoundingClientRect().width)),
+        layout: getComputedStyle(t).tableLayout,
+        fs: getComputedStyle(t).fontSize,
+        sideways: sc.scrollWidth - sc.clientWidth,
+        first: ((document.querySelector('#reg-tbody tr td') || {}).textContent || '').trim() };
+    })()`;
+    const pages = [];
+    for (const n of [1, 2, 3, 4]){
+      if (n > 1){
+        await page.evaluate(k => { const b = [...document.querySelectorAll('#reg-pager button')]
+          .find(x => x.textContent.trim() === String(k)); b && b.click(); }, n);
+        await page.waitForTimeout(900);
+      }
+      pages.push(await page.evaluate(READ));
+    }
+    check('10a the fixture really turns the page, so the claim can fail',
+      new Set(pages.map(p => p.first)).size === 4, pages.map(p => p.first).join(' · '));
+    check('10b every column is the same width on every page',
+      pages.every(p => String(p.w) === String(pages[0].w)),
+      pages.map(p => p.w.join(',')).join('  |  '));
+    check('10c and it is a guarantee — the table lays out fixed',
+      pages[0].layout === 'fixed', pages[0].layout);
+    check('10d nothing scrolls left to right, on any page',
+      pages.every(p => p.sideways === 0), pages.map(p => p.sideways).join(','));
+
+    /* ============ 11. AND THE NEGOTIATIONS TABLE READS THE SAME ============
+       One builder draws both, so the two may not come to disagree about how big
+       their type is or how their shared columns are cut. Six of the eight are
+       identical by construction; the title and the last column differ, because
+       the last holds a ⋯ here and a sentence about whose move it is there. */
+    await page.evaluate(() => {
+      state.contracts.filter(c => /^MK-W/.test(c.id)).slice(0, 40).forEach((c, i) => {
+        negoInit(c);
+        negoFileChange(c, { clauseId: (clauseSegment(negoBaseBody(c))[0] || {}).id || 'c1',
+          kind: 'edit', authorSide: i % 2 ? 'counterparty' : 'owner', author: 'E L',
+          before: 'thirty (30) days', after: 'sixty (60) days', why: 'why' });
+      });
+    });
+    await page.waitForTimeout(2500);
+    await page.evaluate(() => { const b = [...document.querySelectorAll('#side-nav .nav-item')]
+      .find(x => /Negotiation/i.test(x.textContent)); b && b.click(); });
+    await page.waitForTimeout(2500);
+    const nego = await page.evaluate(READ);
+    check('11a the negotiations list draws the same table', !!nego && nego.w.length === 8,
+      nego && nego.w.join(','));
+    check('11b at the same type size as Contracts',
+      nego && nego.fs === pages[0].fs, `${nego && nego.fs} vs ${pages[0].fs}`);
+    check('11c its columns are fixed too, and it does not scroll sideways',
+      nego && nego.layout === 'fixed' && nego.sideways === 0,
+      nego && `${nego.layout} · ${nego.sideways}px`);
+    /* THE SIX SHARED COLUMNS — MK, counterparty, stream, value, expiry, status */
+    const SHARED = [0, 2, 3, 4, 5, 6];
+    check('11d and the six columns both tables share are cut identically',
+      nego && SHARED.every(i => nego.w[i] === pages[0].w[i]),
+      nego && SHARED.map(i => `${pages[0].w[i]}/${nego.w[i]}`).join(' '));
+
     check('the page threw nothing', errors.length === 0, errors.join(' | '));
   } finally {
     await browser.close();

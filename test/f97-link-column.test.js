@@ -84,7 +84,10 @@ describe('F97 — one builder, so the two tables cannot disagree', () => {
     assert.equal(titled.length, 1, 'a column heading of one word earns a sentence');
     /* AND THE REGISTER PUTS THE FREED COLUMN TO WORK — the stream, written out,
        so the 3px tick beside the title stops being the only carrier. */
-    assert.match(reg, /<th>\$\{i18t\('reg_value_stream'\)\}<\/th>/);
+    /* RE-POINTED 24 Aug 2026, claim unchanged: every column carries a stated
+       width now (table-layout:fixed, so the columns hold from page to page), so
+       the heading is no longer a bare <th>. */
+    assert.match(reg, /<th[^>]*>\$\{i18t\('reg_value_stream'\)\}<\/th>/);
   });
 
   /* ONE LEGEND, AND IT IS THE FOLDER PAGE'S. Both tables used to carry it. The

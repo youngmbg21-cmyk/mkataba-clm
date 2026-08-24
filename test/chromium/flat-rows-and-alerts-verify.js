@@ -210,9 +210,15 @@ const SEED_UNSENT = async () => {
           mid: Math.round(r.y + r.height / 2) }; };
       const band = document.querySelector('.rl-unsent');
       const go = document.querySelector('.rl-unsent-go');
-      const cap = document.querySelector('.rl-idx-k');
-      const tabs = document.querySelector('.rl-fsegwrap');
-      const segs = [...document.querySelectorAll('.rl-fseg')];
+      /* RE-POINTED 24 Aug 2026. The head was rebuilt on the owner's approved
+         render — the caption is .rl-idx-title in .rl-idx-top, and the three
+         cuts became a dropdown. The CLAIMS are unchanged: the caption and the
+         filter share one line with the caption at the left, and all three cuts
+         are offered with exactly one of them live. */
+      const cap = document.querySelector('.rl-idx-title, .rl-idx-k');
+      const tabs = document.querySelector('#rl-cardfilter, .rl-fsegwrap');
+      const sel = document.querySelector('#rl-cardfilter');
+      const segs = sel ? [...sel.options] : [...document.querySelectorAll('.rl-fseg')];
       const cs = e => e ? getComputedStyle(e) : null;
       return {
         band: band ? box(band) : null,
@@ -223,7 +229,8 @@ const SEED_UNSENT = async () => {
         tabs: tabs ? box(tabs) : null,
         capText: cap ? (cap.textContent || '').trim() : null,
         segText: segs.map(s => (s.textContent || '').replace(/\s+/g, ' ').trim()),
-        segLive: segs.filter(s => s.classList.contains('on')).length,
+        segLive: sel ? segs.filter(o => o.selected).length
+          : segs.filter(s => s.classList.contains('on')).length,
       };
     });
 
@@ -239,9 +246,19 @@ const SEED_UNSENT = async () => {
       amber.every(v => v && v !== 'rgba(0, 0, 0, 0)') && new Set(amber).size === 3,
       { bg: head.bandBg, border: head.bandBorder, send: head.goBg });
 
-    check('2d the caption and the filter share ONE line',
-      !!head.cap && !!head.tabs && Math.abs(head.cap.mid - head.tabs.mid) <= 12,
-      { caption: head.cap, tabs: head.tabs });
+    /* ---- REVERSED IN PLACE, 24 Aug 2026 ----
+       This asked that the caption and the filter share one ruled line, which
+       was the 16 Aug arrangement and saved the head a row. The owner-approved
+       Change index render of 24 Aug supersedes it: the head now states the
+       SHAPE of the round — caption, how many are open, a progress bar — and the
+       filter sits on its own line beneath. Demanding one line here would be
+       asserting the opposite of what was approved.
+       WHAT THE CHECK IS REALLY ABOUT SURVIVES: the two belong to one head, in
+       reading order, with nothing between them but the head's own content. */
+    check('2d the filter sits under the caption, in the same head',
+      !!head.cap && !!head.tabs && head.tabs.y > head.cap.y
+        && head.tabs.y - (head.cap.y + head.cap.h) < 90,
+      { caption: head.cap, filter: head.tabs });
     check('2e caption at the left, filter at the right',
       !!head.cap && !!head.tabs && head.tabs.x > head.cap.x,
       { capX: head.cap && head.cap.x, tabsX: head.tabs && head.tabs.x });

@@ -704,7 +704,7 @@ function regRowsHtml(cs){
         <span class="reg-title" style="min-width:0;flex:1;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(regTitleOf(c))} · ${esc(cKind(c))}">${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:14px;font-weight:400" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc(c.parentId)}">↳ </span>`:''}${regTitleOf(c)}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:400;font-size:14px;font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
         </span>
       </td>
-      <td style="color:var(--color-neutral-700);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.counterparty||'—')}</td>
+      <td style="color:var(--color-neutral-700);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.counterparty||'—')}</td>
       ${''/* ---- THE STREAM IS A WORD NOW, NOT ONLY A COLOUR ----
              The 3px tick beside the title stays — it is the fastest thing on
              the row — but it was the ONLY carrier, explained by a legend at the
@@ -714,7 +714,7 @@ function regRowsHtml(cs){
              link you sent them", which is a fact about one contract rather than
              something you scan a register for, and it drew an em-dash on every
              row of an ordinary workspace. It is on the contract's own page. */}
-      <td style="color:var(--color-neutral-600);max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc((window.FOLDERS&&FOLDERS[c.folder]&&FOLDERS[c.folder].name)||'')}">${esc((window.FOLDERS&&FOLDERS[c.folder]&&FOLDERS[c.folder].name)||'—')}</td>
+      <td style="color:var(--color-neutral-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc((window.FOLDERS&&FOLDERS[c.folder]&&FOLDERS[c.folder].name)||'')}">${esc((window.FOLDERS&&FOLDERS[c.folder]&&FOLDERS[c.folder].name)||'—')}</td>
       <td style="text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:400;white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}">${val}</td>
       ${''/* The mockup's expiry cell: the date, then "· in Nd" in the urgency
             colour — red inside 30 days, amber to 90 — carrying its weight. */}
@@ -975,7 +975,7 @@ function renderRegister(opts){
          grey band), teal tracking numbers, regular-weight titles with the
          document KIND on a quiet second line, the stream tick beside the
          title rather than on the row's edge, and a tighter row. */
-      .reg-table{width:100%;border-collapse:collapse;font-size:14px}
+      .reg-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:14px}
       .reg-table thead th{position:sticky;top:0;z-index:3}
       .reg-table th{text-align:left;font-size:12px;font-weight:700;letter-spacing:.06em;
         text-transform:uppercase;color:var(--color-neutral-500);padding:var(--s-2) var(--pad-row-x);
@@ -989,7 +989,13 @@ function renderRegister(opts){
          it is DECLARED rather than emergent: the two line boxes below are what
          make the arithmetic hold, because with no line-height the two lines
          inherited 1.5 and the padding could not reach the number on its own. */
-      .reg-table td{padding:var(--pad-row);border-bottom:1px solid var(--rule);vertical-align:middle}
+      ${''/* overflow:hidden is what makes a stated width bite. Several cells
+             carry nowrap content, and in a fixed layout a child wider than its
+             column spills over the one beside it rather than widening the
+             table — so the clip is not decoration, it is the other half of the
+             rule above. */}
+      .reg-table td{padding:var(--pad-row);border-bottom:1px solid var(--rule);vertical-align:middle;
+        overflow:hidden}
       .reg-table tbody tr:last-child td{border-bottom:0}
       .reg-table tbody tr{transition:background .12s}
       .reg-table tbody tr:hover{background:color-mix(in srgb,var(--color-text) 4%,transparent)}
@@ -1131,15 +1137,35 @@ function renderRegister(opts){
                    the reference has no sort affordance, but losing the ability
                    to order a register by value or renewal date would be losing
                    a tool, not a decoration. -->
+              ${''/* ---- THE COLUMNS DO NOT MOVE WHEN YOU TURN THE PAGE
+                     (owner-reported 24 Aug 2026: "when you click through the
+                     pages, the columns move which is not how i want it … there
+                     should be no scrolling from left to right") ----
+                     An AUTO table sizes each column to the content of the rows
+                     it is currently showing, so a page of long names widened the
+                     title and every column beside it moved. MEASURED on a
+                     150-contract book: the title column was 217px on page 1 and
+                     306px on page 3, and all seven others shifted with it.
+                     table-layout:fixed reads the widths off THIS row and holds
+                     them, whatever the page shows — the same fix, and the same
+                     lesson, as the calendar's obligation table.
+                     EVERY WIDTH IS A PERCENTAGE AND THEY SUM TO 100, which is
+                     what makes "no left-right scrolling" a guarantee rather than
+                     something that happens to hold at today's window: the table
+                     is exactly its pane, at every width, on every page.
+                     SIX OF THE EIGHT ARE THE SAME ON BOTH PAGES. Only the title
+                     and the last column differ, because the last one holds a ⋯
+                     on Contracts and a sentence about whose move it is on
+                     Negotiations, and the title is the column with the give. */}
               <tr>
-                <th style="width:96px">MK</th>
-                ${sortableTh('name',i18t('reg_col_title'))}
-                <th>${i18t('reg_col_counterparty')}</th>
-                <th>${i18t('reg_value_stream')}</th>
-                ${sortableTh('value',i18t('reg_col_value'),'text-align:right')}
-                ${sortableTh('expiry',i18t('reg_col_expiry'))}
-                ${sortableTh('stage',i18t('reg_col_status'))}
-                <th style="text-align:right;width:${neg?'auto':'40px'}">${neg?i18t('ngl_col_move'):''}</th>
+                <th style="width:8%">MK</th>
+                ${sortableTh('name',i18t('reg_col_title'),`width:${neg?17:23}%`)}
+                <th style="width:17%">${i18t('reg_col_counterparty')}</th>
+                <th style="width:15%">${i18t('reg_value_stream')}</th>
+                ${sortableTh('value',i18t('reg_col_value'),'text-align:right;width:10%')}
+                ${sortableTh('expiry',i18t('reg_col_expiry'),'width:13%')}
+                ${sortableTh('stage',i18t('reg_col_status'),'width:11%')}
+                <th style="text-align:right;width:${neg?9:3}%">${neg?i18t('ngl_col_move'):''}</th>
               </tr>
             </thead>
             <tbody id="reg-tbody" class="stagger">${regRowsHtml(cs)}</tbody>
