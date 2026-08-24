@@ -1,4 +1,4 @@
-# WORK ORDER — eleven fixes off the owner's screenshots
+# WORK ORDER — thirteen fixes off the owner's screenshots
 
 **Raised by:** Young, 24 Aug 2026, across five messages of annotated
 screenshots ("Do not code but review and create a plan to fix…", then two more
@@ -148,6 +148,49 @@ one check that costs seconds stops being read.
 ## The items
 
 Numbered by the order they will be worked, not by the order they were asked.
+
+---
+
+### WO-0 · The scope rules go into CLAUDE.md — FIRST, before any other item
+*Owner, 24 Aug 2026, supplying the text verbatim and asking that the work order
+start with it.*
+
+**BUILD:** add this section to CLAUDE.md, word for word as the owner wrote it,
+and create `BUGLOG.md` with the `Noticed, not fixed` heading it refers to so
+the first person to need it is not inventing a format.
+
+```
+## Scope rules
+
+- Do only what the current request asks. Nothing else.
+- If you notice a separate problem (broken test, bad code,
+  missing file, outdated dependency): DO NOT fix it.
+  Write one line in BUGLOG.md under "Noticed, not fixed"
+  and carry on with the original task.
+- Broken tests that were already failing before this session
+  are not your problem. Leave them red.
+- If the request is unclear, stop and ask. Do not pick
+  the wider interpretation.
+- At the end, list anything you touched that was outside
+  the request. If that list isn't empty, you broke this rule.
+```
+
+**WHERE IT GOES:** at the TOP of CLAUDE.md, above the Bug Fix Rules. It governs
+them — Bug Fix Rule 2 says find every place a thing appears, and this says do
+not go and fix the other things you find on the way. Read in the other order
+they can be made to argue.
+
+**IT IS FIRST FOR A REASON, and the reason is this file.** Several items below
+found a second fault while the first was being measured — the white-on-white
+sweep in WO-1, the four inherited lint errors, the squared-off ripple in WO-12.
+Under these rules those are BUGLOG lines, not work. **Where an item in this
+order already names such a thing as part of its own build, that naming is the
+owner's approval and it stays in scope.** Anything found from here on that is
+not named in this file goes to BUGLOG.md.
+
+**DO NOT paraphrase, tidy or re-word the owner's text.** It is a standing
+instruction in their own voice, like the Bug Fix Rules above it, and this file's
+own convention is that the terse rule goes in CLAUDE.md verbatim.
 
 ---
 
@@ -611,6 +654,76 @@ gains a spinner must not fail it.
 
 ---
 
+### WO-13 · Every card a different colour, and the number to match
+*Owner, 24 Aug 2026: "The colors of the top of the cards should all be
+different for each card and the number inside the cards should reflect that
+color as well. This is also reflected in the demo html attached in the file
+previously provided."*
+
+**WHY IT LOOKS WRONG TODAY.** HaTi colours a Home tile by what its metric
+MEANS — green good, amber needs attention, ruby overdue, steel neutral. Two
+metrics that both mean "needs attention" therefore draw the same amber, which
+is exactly what the owner's screenshot shows: **Pending approvals and Awaiting
+counterparty are both amber**, side by side.
+
+**AND THE DEMO WAS CHECKED RATHER THAN TAKEN ON TRUST.** It is half what the
+owner remembers, and the half that differs matters:
+
+| Demo tile | Top edge | Its numeral |
+|---|---|---|
+| Waiting on you | amber | **amber** |
+| Live negotiations | brand teal | **black** |
+| Expiring soon | red | **red** |
+| Turnaround | green | **green** |
+| Compliance | amber | **amber** |
+| Import queue | brand teal | **black** |
+| Copilot spend | brand teal | **black** |
+
+Three findings, all measured off the demo's own data:
+
+1. **The four "My work" edges ARE four different colours** — the owner is right
+   about that row.
+2. **The Portfolio row is NOT all different.** Import queue and Copilot spend
+   are both brand teal, and Compliance repeats the amber from the row above.
+3. **The numeral does NOT always follow the edge.** It follows it on the three
+   STATUS colours and stays BLACK on all three brand-teal tiles. The rule the
+   demo is actually running is *colour means this needs attention; the brand
+   colour is not an alarm, so its number stays black.* Three of its seven
+   numerals are black.
+
+So the demo's four different colours are a consequence of its four illustrative
+metrics happening to mean four different things — not a rule that each card
+gets its own colour by position.
+
+**OPEN DECISION 5 — BLOCKS THIS ITEM.** Two readings, and they lead to
+different products:
+
+- **(a) Keep colour meaning something.** Amber always means "needs you", ruby
+  always "overdue". Two amber cards side by side stay possible, and the fix is
+  to give the CATALOGUE better-spread tones so the common four rarely collide.
+  This is what the demo does and what HaTi does today.
+- **(b) Colour tells the cards apart.** Each of the four positions takes its own
+  colour whatever the metric means, and the number takes it too. The owner's
+  words read this way. **The cost, said plainly: the page stops being able to
+  say "this one is urgent" with colour** — every card is coloured, so none of
+  them stands out, and the amber-means-attention rule the sidebar counts and the
+  alert rows both use would no longer agree with Home.
+
+**Recommendation: (a), plus the numeral rule the demo actually runs** — a status
+tile colours its number, a brand-teal tile keeps it black. That answers the
+complaint the owner is really making (two identical amber cards) without
+spending the one signal the page has.
+
+**IF THE OWNER RULES (b), it must be said out loud in CLAUDE.md** that Home's
+tile colour no longer carries meaning, because four other surfaces read the same
+tone table.
+
+**NOT IN SCOPE EITHER WAY:** the zero-count tile's grey numeral, which is a
+deliberate signal already recorded in CLAUDE.md ("a tile counting zero is not a
+door"), and which `docs/WORKORDER-black-ink.md` also names as out of scope.
+
+---
+
 ## Open decisions
 
 | # | Question | Blocks | Recommendation |
@@ -619,6 +732,7 @@ gains a spinner must not fail it.
 | 2 | Headers: every word capitalised, or only the first? | **WO-4** | English every word; Swedish only the first |
 | 3 | How wide is the owner's screen — where does the float line go? | **WO-5** | back to 1500 |
 | 4 | Should Copilot always answer in the interface language, even for an English question? | no | leave as is — the rule already exists and follows the question |
+| 5 | Home tiles: does colour mean something, or does it tell the cards apart? | **WO-13** | keep the meaning; adopt the demo's own numeral rule |
 
 **Decision 4's item is already built and is not in this order** — the Copilot
 language rule is in place on both hosts and the reported fault was a frozen
@@ -661,18 +775,22 @@ Smallest and most self-contained first, so each arrives as its own reviewable
 change rather than one large one. Everything after the rebase.
 
 0. Rebase onto `origin/main`; re-measure WO-1 … WO-7 on it.
-1. **WO-1** the collapse button's colours (+ the white-on-white sweep)
-2. **WO-12 tier 1** stop the page moving on navigation
-3. **WO-3** delete the Copilot strip
-4. **WO-8** move the "All" filter into its slot
-5. **WO-11** the Copilot greeting
-6. **WO-2** the note and the Renewal filter
-7. **WO-7** friction margins
-8. **WO-6** the Home headings
-9. **WO-4** outlines and headers — *after decision 2*
-10. **WO-10** the three check symbols
-11. **WO-5** where the sidebar floats — *after decision 3*
-12. **WO-9** the sideways-scrolling table
+1. **WO-0** the scope rules into CLAUDE.md, and BUGLOG.md beside it —
+   **before any other item**, because it changes what the rest of the run is
+   allowed to touch.
+2. **WO-1** the collapse button's colours (+ the white-on-white sweep)
+3. **WO-12 tier 1** stop the page moving on navigation
+4. **WO-3** delete the Copilot strip
+5. **WO-8** move the "All" filter into its slot
+6. **WO-11** the Copilot greeting
+7. **WO-2** the note and the Renewal filter
+8. **WO-7** friction margins
+9. **WO-6** the Home headings
+10. **WO-4** outlines and headers — *after decision 2*
+11. **WO-10** the three check symbols
+12. **WO-5** where the sidebar floats — *after decision 3*
+13. **WO-9** the sideways-scrolling table
+14. **WO-13** the Home tile colours — *after decision 5*
 
 WO-12's tier 2 (one looping animation) rides with tier 1 if the owner wants it;
 tier 3 (the 111 transitions) is explicitly NOT in this order.
