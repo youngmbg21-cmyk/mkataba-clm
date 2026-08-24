@@ -882,6 +882,40 @@ hand-tuned dense row and wants an eye, not a regex.
   account — measured 366x17px, 7px under the WCAG 2.5.8 floor at every width.
   LINKBTN carries a floor now.
 
+**RE-RECORDED AGAIN 24 Aug 2026, ON THE MERGE, FOR SOMEBODY ELSE'S DELIBERATE
+CHANGE — and the "whose is it" question was ANSWERED BEFORE THE BASELINE WAS
+TOUCHED, which is the only thing that makes this legitimate.** The home page
+merged into main, and the census came back **30/40**: contract, keyterms,
+signing, history and menu, in BOTH themes. It looked like the merge's fault and
+was not. MEASURED on main as it stood BEFORE the merge — a worktree at that
+commit, the file run there — main scored the **identical 30/40, same five
+screens, same three values**. `b45fcb3` removed the floating bell and the
+floating notices card on the owner's ask ("I do not want anything floating over
+the page") and never re-recorded, so main had been red on its own net since that
+commit. The merge neither caused it nor widened it.
+
+**THE AUDIT, AS A SET DIFFERENCE RATHER THAN A DIFF** — reading the baseline's
+own text is useless here, because the file re-orders and every value appears on
+both sides of the patch. Three values GONE, **nothing arrived**:
+`rgb(224,196,138)` (light) and `rgba(245,158,11,.35)` (dark) are the two themes'
+`--st-amber-line`, the amber notice card's BORDER; `rgba(15,23,42,.34)` is that
+card's drop SHADOW. All three are the floating furniture that was deliberately
+removed. Pure removal on five screens is the safest shape a re-record can have.
+
+**AND THE SEMANTIC WAS PROVED STILL ALIVE BEFORE IT WAS SAVED**, which is the
+check that stops a real regression being baked in: amber has not left the
+product, it is simply not drawn on five screens that have nothing to say —
+`.rl-notices:empty` draws nothing at all now. `negotiate--light` and
+`negotiate--dark` both PASSED throughout, and that is the screen that always
+carries a notice. A value that disappears everywhere is a regression; one that
+disappears exactly where the thing drawing it was removed is the change.
+
+**THE STANDING RULE THIS PAYS FOR:** a deliberate palette change that is not
+re-recorded leaves the one net for colour regressions catching nothing, and the
+next person reads the red as furniture. Re-record in the same commit as the
+change, or the person who finds it has to prove it was yours before they can
+clear it.
+
 **RE-RECORDED 24 Aug 2026 for the shell's swap of grounds, and this is the one
 case the rule allows — somebody deliberately owning a palette change.** It went
 to 20/40, which is the census working: the dark column and the 64px header
