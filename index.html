@@ -2886,7 +2886,11 @@
         hiding every door behind a press is the worse trade. One behaviour from
         768 to 1279 now, rather than two systems doing the same job. -- */
   @media (max-width:899px){ #nav-toggle{ display:grid!important; } }
-  @media (max-width:1279px){
+  /* 1280 INCLUSIVE — it must match navDrawerActive()'s `<=` exactly, and that
+     number is derived from the supported screen sizes; see the note beside
+     NAV_DRAWER_W in js/app.js. The ThinkPad at 1280 is the smallest machine
+     HaTi supports and is the one that was getting shoved. */
+  @media (max-width:1280px){
     #side-nav{
       position:fixed; top:var(--shell-head-h,64px); left:0; bottom:0; z-index:55;
       width:64px; transition:width .22s var(--ease);
@@ -3078,9 +3082,23 @@
   /* A SECTION HEADING IS A WORD, A RULE AND — where there is one — its own
      act at the far end. Customize sits on My work's line because that is the
      row it edits; See all sits on Needs your decision's for the same reason. */
-  .hm-sec{display:flex;align-items:center;gap:10px;margin:14px 0 8px;}
+  /* ---- A THIRD OFF (owner-asked 24 Aug 2026: "reduce the highlighted space
+     by 1 third") ----
+     MEASURED: each heading took 41.6px — 14 above, a 19.6 line, 8 below — and
+     My work 44.2 because it carries the Customize link. Three of them, 127px.
+     It is not only tidiness: the Home page ALREADY ran off the bottom of a real
+     laptop, 50px too tall at 1366x768 and 98px on a 1280 ThinkPad at 150%.
+     Taken out of the space above and below AND the heading's own line, measured
+     at each step rather than typed: 9 + 17.5 + 4 is about 30.5, a third off.
+     ALL THREE MOVE, including "My work" which the owner did not highlight:
+     they are one builder drawn three times and leaving one taller reads as a
+     fault rather than a decision.
+     DIVERGES FROM THE DESIGN REFERENCE, which specifies these exact margins
+     (14px 0 8px, h2 14/700) — so what HaTi drew was the design's own number.
+     The owner's ruling, recorded. */
+  .hm-sec{display:flex;align-items:center;gap:10px;margin:9px 0 4px;}
   .hm-sec h2{margin:0;font-family:var(--font-heading);font-size:14px;font-weight:700;flex:none;
-    color:var(--color-text);}
+    line-height:1.25;color:var(--color-text);}
   .hm-rule{flex:1 1 auto;height:1px;background:var(--color-divider);}
 
   .hm-tiles{display:grid;gap:12px;}

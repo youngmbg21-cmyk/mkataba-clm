@@ -1286,9 +1286,26 @@ function toggleRail(){
    with the room asked for. Their stored preference is never overwritten by
    the width; it simply is not honoured below the line, and comes straight back
    above it. */
+/* ---- THE LINE IS DERIVED FROM THE SCREEN SIZES HaTi IS BUILT FOR ----
+   Owner, 24 Aug 2026, asked what screen they were on and answered with the
+   rule instead: "hati should be built on a number of screen sizes which means
+   hati respects those screen sizes. This rule should be in the code somewhere."
+   IT IS — test/chromium/laptops-verify.js declares the supported set: 1280
+   (1080p at 150%, the ThinkPad), 1366, 1440, 1536 and 1920.
+   SO THE NUMBER IS ARITHMETIC, NOT TASTE. The design draws its console at 1280
+   with a 240px column and 1040px of page. MEASURED at 1280 with the column
+   pushed open, HaTi's page is 1030 — under the design's own measure — and the
+   Contracts table needs 1054 in Swedish. On the smallest machine HaTi supports,
+   a pushed column leaves less page than either the design assumes or the table
+   needs. So the smallest supported size FLOATS and everything above it pushes:
+   1366 leaves 1126, 1440 leaves 1200, both comfortably clear.
+   AND IT EXPLAINS THE REPORT. The line was `< 1280`, so a 1280 machine sat
+   exactly ON it and got the shove. It is `<=` now.
+   MOVE THE SET, NOT THIS NUMBER: if a smaller machine is ever supported, this
+   follows from laptops-verify's list rather than being re-guessed. */
 const NAV_DRAWER_W = 1280;
 function navDrawerActive(){
-  return typeof innerWidth === 'number' ? innerWidth < NAV_DRAWER_W : false;
+  return typeof innerWidth === 'number' ? innerWidth <= NAV_DRAWER_W : false;
 }
 /* TWO QUESTIONS THAT USED TO SHARE ONE ANSWER. "Is the sidebar a floating
    layer?" moved from 900 to 1500; "has the header run out of room for the
@@ -1730,8 +1747,19 @@ function wireShell(){
          has an answer state.activeId cannot give: it still holds whatever
          contract the reader last opened anywhere in the app, so a bare
          setView('redline') would have opened a draft nobody has ever redlined.
-         openNegotiations reopens the last negotiation, or lands on the list. */
-      if(v==='redline'&&window.openNegotiations) openNegotiations();
+         IT OPENS THE LIST, ALWAYS (owner-asked 24 Aug 2026: "when i click on
+         the contracts tab on the nav panel, i get a list of contracts. This
+         should be the same when i click on the negotiation tab"). It used to
+         reopen whichever negotiation was open last, which was deliberate — put
+         the reader back where they were working — and the owner has reversed
+         it. THE MEMORY IS KEPT, NOT DELETED: negoRememberOpened and
+         negoLastOpened still record and still answer, so this is one argument
+         to put back if it is ever wanted. Every OTHER door into a negotiation
+         is untouched — a decision card, a returned-changes notice, a playbook
+         finding — because each of those names its contract. And the phone's
+         own bottom bar already landed on the list, so the two shells agree
+         now rather than differ. */
+      if(v==='redline'&&window.openNegotiations) openNegotiations({list:true});
       else setView(v);
       // On a phone the nav is a drawer over the page: having chosen a
       // destination, get out of the way of it.

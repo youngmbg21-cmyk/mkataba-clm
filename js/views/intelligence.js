@@ -1078,7 +1078,11 @@ function intelFrictionHtml(){
     ${(st.oursAcceptShare!=null||st.theirsAcceptShare!=null)?mini(`${st.oursAcceptShare!=null?pct(st.oursAcceptShare)+'%':'—'} / ${st.theirsAcceptShare!=null?pct(st.theirsAcceptShare)+'%':'—'}`,'our asks / their asks accepted'):''}
     ${st.round1Share!=null?mini(pct(st.round1Share)+'%','signed within round 1'):''}
   </div>`;
-  const left=`<div style="padding:12px 18px;min-width:0">
+  /* THE READING COLUMN STOPS AT A READABLE MEASURE. With the card filling the
+     width (see below), these paragraphs ran ~130 characters a line on a wide
+     monitor — past the point where prose is comfortable. The CARD is full
+     width, as the owner asked; the SENTENCES are not. */
+  const left=`<div style="padding:12px 18px;min-width:0;max-width:78ch">
     <div style="font-size:16px;font-weight:700;letter-spacing:-.01em">${i18t('int_what_slowing')}</div>
     <div style="font-size:12px;color:var(--color-neutral-600);margin-top:2px">${st.deals} negotiation${st.deals===1?'':'s'}${st.openedThisMonth?` · ${st.openedThisMonth} opened this month`:''} · ${st.avgRounds.toFixed(1)} rounds each on average</div>
     ${clauseHero}${deadHero}${slowHero}
@@ -1130,7 +1134,21 @@ function intelFrictionHtml(){
      constant carries the host's own 20px side padding too — 1120/2 + 20 = 580.
      max-width:100% keeps it honest on a window narrower than the old cap,
      where there was no gutter to halve in the first place. */
-  return `<div style="width:calc(50% + 580px);max-width:100%;margin:0 auto">
+  /* ---- THE CARD FILLS ITS HOST, LIKE PORTFOLIO (owner-asked 24 Aug 2026:
+     "the space between the card and the edge in the negotiation friction tab
+     should be the same as the distance in the portfolio tab") ----
+     MEASURED before: 20px each side at 1280 and 1440 — already matching — then
+     58 at 1600, 138 at 1920 and 298 at 2560. This was the only screen in
+     Insights with a width rule of its own: capped once, given back half the
+     dead space later, and the owner is asking for the other half. The design
+     reference draws these panels full width with no gutter, so this is a
+     correction toward it. Measured after: 20px each side at every width.
+     AND THE PROSE IS HELD, which is why the cap existed. At full width on a
+     2560 monitor the left column's paragraphs ran about 130 characters a line.
+     The CARD fills the width as asked; the SENTENCES inside it stop at a
+     readable measure, and the bars and the counterparty table take the extra
+     room, which is where it is useful. */
+  return `<div>
     <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;box-shadow:var(--shadow-sm);overflow:hidden">
       ${intelFrictionCopilotHtml(st)}
       <div class="igf-split" style="display:grid">${left}${right}</div>
