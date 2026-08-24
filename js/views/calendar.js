@@ -37,6 +37,7 @@
    on Quarter next week with no memory of asking. */
 let calState = { ym:null, view:'month', scope:'all' };
 const CAL_VIEWS = ['month','quarter','list'];
+const CAL_AGENDA_DAYS = 14;
 
 function calMonth(){ if(!calState.ym){ const d=new Date(); calState.ym={y:d.getFullYear(), m:d.getMonth()}; } return calState.ym; }
 function calView(){ return CAL_VIEWS.includes(calState.view)?calState.view:'month'; }
@@ -250,8 +251,17 @@ function calIcsFor(evs){
 
 /* One row of the "Next 30 days" panel, and of the Share summary. ONE builder,
    so what a colleague is emailed is what the reader was looking at. */
+/* ---- FOURTEEN DAYS, NOT THIRTY (owner-asked 24 Aug 2026, "like for like") ----
+   The design's agenda is "Next 14 days". Thirty was HaTi's own number and it
+   made the panel a second list of the month beside the month; a fortnight is
+   what a reader can act on. THE DEFAULT IS THE ONLY THING THAT MOVED — the
+   parameter is untouched, so any caller naming its own window still gets it.
+   The heading and its empty state read this same number rather than stating
+   one of their own: two places naming a window is how they come to disagree,
+   which this file has already been caught doing once (a panel headed 30 whose
+   empty state said 60). */
 function calUpcoming(evs, days){
-  const n=days||30;
+  const n=days||CAL_AGENDA_DAYS;
   return evs.filter(e=>{ const d=daysUntil(e.date); return d>=0 && d<=n && !e.done; })
     .sort((a,b)=>a.date.localeCompare(b.date));
 }
@@ -418,8 +428,15 @@ function calPanelHtml(evs){
       : '';
     const theirs=(e.type==='obligation'&&e.theirs)
       ? `<span class="cal-theirs" title="${_esc(i18t('cal_cp_owes'))}">${_esc(i18t('cal_k_theirs'))}</span>` : '';
-    return `<div class="cal-upn">
-      <span class="dt">${_esc(window.regDotDate?regDotDate(e.date):e.date)}</span>
+    /* THE DATE IS A STACK, the design's own 44px cell: the day over the month,
+       so a column of dates reads down rather than across. The row carries the
+       kind's colour on its left edge, which is what lets the eye group a run of
+       expiries without reading a word of them. */
+    const dt=new Date(e.date+'T00:00:00');
+    const dd=String(dt.getDate()).padStart(2,'0');
+    const mo=dt.toLocaleDateString(langLocale(),{month:'short'});
+    return `<div class="cal-upn" style="border-left-color:${ev.dot}">
+      <span class="dt"><b>${_esc(dd)}</b><i>${_esc(mo)}</i></span>
       <button class="g" data-sel="${_esc(e.cid)}">
         <span class="n2">${_esc(ev.label)} — ${_esc(e.cname)}</span>
         <span class="m3">${_esc(e.type==='obligation'?(e.note||'')+' · '+(e.owner||i18t('cal_unassigned')):(e.note||e.cid))}</span>
@@ -428,7 +445,7 @@ function calPanelHtml(evs){
     </div>`;
   }).join('');
   return `<section class="cal-card cal-panel">
-    <div class="cal-panel-head"><h5>${_esc(i18t('cal_next_30'))}</h5><span class="g"></span><span class="cal-cnt">${up.length}</span></div>
+    <div class="cal-panel-head"><h5>${_esc(i18t('cal_next_30',{n:CAL_AGENDA_DAYS}))}</h5><span class="g"></span><span class="cal-cnt">${up.length}</span></div>
     ${''/* id="cal-agenda" is KEPT from the screen this panel replaces: it is
            still the agenda, and f83's four claims about it — a Done on an
            obligation and not on an expiry, a theirs row marked, no button for a
@@ -436,7 +453,7 @@ function calPanelHtml(evs){
            still true of it. An anchor moved for no reason is a test rewritten
            for no reason. */}
     <div id="cal-agenda" class="cal-upn-list scroll-thin">${rows||`<div class="cal-empty">
-      <div class="cal-empty-t">${_esc(i18t('cal_nothing_due'))}</div>
+      <div class="cal-empty-t">${_esc(i18t('cal_nothing_due',{n:CAL_AGENDA_DAYS}))}</div>
       <div class="cal-empty-s">${_esc(i18t('cal_nothing_due_sub'))}</div></div>`}</div>
     <div class="cal-panel-foot"><button class="cal-link" id="cal-open-reg">${_esc(i18t('cal_open_register'))} →</button></div>
   </section>`;
@@ -651,13 +668,16 @@ function calStyleCss(){ return `
   .cal-cnt{font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--color-neutral-600);
     font-variant-numeric:tabular-nums}
   .cal-upn-list{flex:1;min-height:0;overflow-y:auto}
-  .cal-upn{display:flex;align-items:center;gap:11px;padding:9px 14px;
-    box-shadow:inset 0 -1px var(--color-divider)}
+  .cal-upn{display:flex;align-items:center;gap:11px;padding:8px 12px;
+    border-left:3px solid transparent;box-shadow:inset 0 -1px var(--color-divider)}
   .cal-upn:hover{background:color-mix(in srgb,var(--color-text) 4%,transparent)}
-  .cal-upn .dt{width:78px;flex:none;font-size:12px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums}
+  .cal-upn .dt{width:44px;flex:none;display:flex;flex-direction:column;line-height:1.15;
+    font-variant-numeric:tabular-nums}
+  .cal-upn .dt b{font-size:12px;font-weight:700;color:var(--color-text)}
+  .cal-upn .dt i{font-size:12px;font-style:normal;color:var(--color-neutral-400)}
   .cal-upn .g{flex:1;min-width:0;border:0;background:none;font:inherit;text-align:left;cursor:pointer;
     color:inherit;padding:0}
-  .cal-upn .n2{display:block;font-size:13px;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cal-upn .n2{display:block;font-size:13px;font-weight:600;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .cal-upn .m3{display:block;font-size:12px;color:var(--color-neutral-600);margin-top:2px;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .cal-upn .lft{margin-left:auto;font-size:12px;font-weight:700;white-space:nowrap;flex:none}

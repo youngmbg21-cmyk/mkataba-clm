@@ -693,27 +693,38 @@ describe('f148 — a browser that refuses to remember still boots', () => {
 describe('f148 — the upcoming panel names one window, in both languages', () => {
   const CAL = fs.readFileSync(path.join(ROOT, 'js/views/calendar.js'), 'utf8');
 
-  /* calUpcoming(evs, days){ const n = days || 30; ... } — the default IS the
-     window the panel draws, because calPanelHtml calls it with one argument. */
+  /* ---- STRENGTHENED 24 Aug 2026 ---- The window is a NAMED CONSTANT now
+     (CAL_AGENDA_DAYS, 14 — the design's own agenda) and the two sentences take
+     it as a VALUE rather than spelling a number of their own. That is a better
+     answer to the fault this block was written for — a panel headed 30 whose
+     empty state said 60 — because they can no longer disagree even in
+     principle. So the claim moves up a level: the constant exists, the panel
+     asks for the default, and neither sentence hard-codes a number. */
   const defWindow = (() => {
-    const m = CAL.match(/function\s+calUpcoming\s*\([^)]*\)\s*\{[^}]*?days\s*\|\|\s*(\d+)/s);
+    const m = CAL.match(/const\s+CAL_AGENDA_DAYS\s*=\s*(\d+)/);
     return m ? Number(m[1]) : null;
   })();
 
-  test('calUpcoming states a default window, and the panel uses it', () => {
-    assert.ok(defWindow, 'calUpcoming still carries a default window');
+  test('the window is one named constant, and the panel uses it', () => {
+    assert.ok(defWindow, 'CAL_AGENDA_DAYS names the window');
+    assert.match(CAL, /function\s+calUpcoming[\s\S]{0,200}days\s*\|\|\s*CAL_AGENDA_DAYS/,
+      'calUpcoming defaults to it rather than to a literal');
     assert.match(CAL, /calPanelHtml\(evs\)\{[\s\S]*?calUpcoming\(evs\)/,
       'the panel asks for that default rather than passing its own number');
   });
 
   for (const lang of ['en', 'sv']){
-    test(`${lang}: the heading and the empty state name the same number`, () => {
+    test(`${lang}: neither sentence can name a different window`, () => {
       const dict = i18n.STRINGS[lang];
-      const head = String(dict.cal_next_30 || '');
-      const none = String(dict.cal_nothing_due || '');
-      const n = String(defWindow);
-      assert.ok(head.includes(n), `cal_next_30 names ${n} — got "${head}"`);
-      assert.ok(none.includes(n), `cal_nothing_due names ${n} — got "${none}"`);
+      for (const k of ['cal_next_30', 'cal_nothing_due']){
+        const v = String(dict[k] || '');
+        assert.match(v, /\{n\}/, `${k} takes the window as a value — got "${v}"`);
+        assert.ok(!/\b\d{2}\b/.test(v), `${k} spells no number of its own — got "${v}"`);
+      }
+    });
+    test(`${lang}: and both are passed it`, () => {
+      assert.match(CAL, new RegExp("cal_next_30'\\s*,\\s*\\{\\s*n\\s*:\\s*CAL_AGENDA_DAYS"));
+      assert.match(CAL, new RegExp("cal_nothing_due'\\s*,\\s*\\{\\s*n\\s*:\\s*CAL_AGENDA_DAYS"));
     });
   }
 });

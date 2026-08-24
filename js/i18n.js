@@ -367,7 +367,7 @@ const STRINGS = {
 
     // ---- calendar ----
     cal_done: 'Done',
-    cal_nothing_due: 'Nothing due in the next 30 days',
+    cal_nothing_due: 'Nothing due in the next {n} days',
     cal_nothing_due_sub: 'Expiry and renewal dates on your contracts show up here automatically.',
     cal_open_register: 'Open the register',
     cal_today: 'Today',
@@ -387,7 +387,7 @@ const STRINGS = {
     cal_k_theirs: 'theirs',
     cal_nego_activity: 'Negotiation activity',
     cal_round_n: 'Round {n}',
-    cal_next_30: 'Next 30 days',
+    cal_next_30: 'Next {n} days',
     cal_in_days: 'in {n}d',
     cal_days_ago: '{n}d ago',
     cal_unassigned: 'unassigned',
@@ -5050,7 +5050,7 @@ const STRINGS = {
 
     // ---- kalender ----
     cal_done: 'Klart',
-    cal_nothing_due: 'Inget att göra de närmaste 30 dagarna',
+    cal_nothing_due: 'Inget att göra de närmaste {n} dagarna',
     cal_nothing_due_sub: 'Slut- och förnyelsedatum på dina avtal visas här automatiskt.',
     cal_open_register: 'Öppna avtalsregistret',
     cal_today: 'Idag',
@@ -5070,7 +5070,7 @@ const STRINGS = {
     cal_k_theirs: 'deras',
     cal_nego_activity: 'Förhandlingsaktivitet',
     cal_round_n: 'Runda {n}',
-    cal_next_30: 'Kommande 30 dagar',
+    cal_next_30: 'Kommande {n} dagar',
     cal_in_days: 'om {n} d',
     cal_days_ago: 'för {n} d sedan',
     cal_unassigned: 'ingen ansvarig',
