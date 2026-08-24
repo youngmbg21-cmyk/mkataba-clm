@@ -324,6 +324,49 @@ const check = (name, ok, detail) => {
     check('10d nothing scrolls left to right, on any page',
       pages.every(p => p.sideways === 0), pages.map(p => p.sideways).join(','));
 
+    /* ---- 10e · AND IT HOLDS IN SWEDISH, WHICH IS WHAT WAS REPORTED ----
+       WO-9's whole ask was "when I switch to swedish language, in all tables I
+       should not have to scroll right to see the entire table". Every check
+       above runs in English, where the words are shorter — measuring the fix
+       only there is measuring the case that was never broken.
+       SWITCHED BY CLICKING, never window.langSet: the lesson swedish-verify
+       records, that driving the app through JavaScript proves the engine and
+       not the button. And the column widths are asserted UNMOVED, because
+       `table-layout:fixed` is what makes this true and a longer heading must
+       not be able to push a column wider. */
+    const svBtn = page.locator('[data-lang-set="sv"], [data-set-lang="sv"]').first();
+    if (await svBtn.count()) await svBtn.click();
+    else await page.evaluate(() => window.langSet('sv'));
+    await page.waitForTimeout(1600);
+    const sv = await page.evaluate(READ);
+    check('10e the app really is in Swedish before the table is measured',
+      (await page.evaluate(() => document.documentElement.lang)) === 'sv'
+        && !!sv && sv.w.length === pages[0].w.length,
+      await page.evaluate(() => document.documentElement.lang));
+    check('10e and nothing scrolls left to right in Swedish either',
+      sv && sv.sideways === 0, sv && String(sv.sideways));
+    check('10e the columns are the same widths as in English — fixed means fixed',
+      sv && String(sv.w) === String(pages[0].w),
+      `${sv && sv.w.join(',')}  vs  ${pages[0].w.join(',')}`);
+    /* AND A CELL TOO NARROW FOR ITS WORDS SAYS SO. Fixed columns without this
+       is the honest half of the fault: nothing scrolls, and the text is cut
+       mid-word with nothing to show it was. */
+    const cut = await page.evaluate(() => {
+      const g = e => getComputedStyle(e);
+      const cells = [...document.querySelectorAll('.reg-table tbody td')];
+      const heads = [...document.querySelectorAll('.reg-table thead th')];
+      const ok = e => g(e).textOverflow === 'ellipsis' && ['hidden', 'clip'].includes(g(e).overflowX);
+      return { cells: cells.length, badCells: cells.filter(e => !ok(e)).length,
+        heads: heads.length, badHeads: heads.filter(e => !ok(e)).length };
+    });
+    check('10e every cell and every header cuts with an ellipsis, not mid-word',
+      cut.cells > 0 && cut.badCells === 0 && cut.heads > 0 && cut.badHeads === 0,
+      JSON.stringify(cut));
+    const svEn = page.locator('[data-lang-set="en"], [data-set-lang="en"]').first();
+    if (await svEn.count()) await svEn.click();
+    else await page.evaluate(() => window.langSet('en'));
+    await page.waitForTimeout(1200);
+
     /* ============ 11. AND THE NEGOTIATIONS TABLE READS THE SAME ============
        One builder draws both, so the two may not come to disagree about how big
        their type is or how their shared columns are cut. Six of the eight are
