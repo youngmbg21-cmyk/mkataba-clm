@@ -212,10 +212,40 @@ describe('F93 (2) — the origin filter is gone, and nothing hides a card', () =
      table, and every one of those failure modes was a way of LOSING a change
      behind a control. So the rule worth keeping is the simple one underneath
      all of them: what is on the table is what is in the column. */
-  test('the dropdown has gone', async () => {
+  /* ---- REVERSED IN PLACE 24 Aug 2026, AND THE HISTORY IS THE POINT ----
+     (owner-asked, pointing at where the control should sit.) The ORIGINAL
+     origin dropdown — #rl-card-filter, five views of the round — is still gone
+     and must stay gone: that is the object this file was written about and
+     every failure mode above was a way of losing a change behind it.
+     What is back is NOT that control. It is the three-way cut, which has been
+     on this column since 10 Aug, moved from a segmented strip into a <select>
+     on the change index's own line. It keeps the two safety properties that
+     made the segmented version acceptable — three options only, and every
+     option carrying its OWN count so the split is readable without opening it
+     — and the third, which the collapse is exactly what made necessary: while
+     the column is narrowed it SAYS so and offers the way back. All three are
+     asserted here, because a dropdown is the shape this file distrusts. */
+  test('the ORIGINAL origin dropdown is still gone', async () => {
     const p = await page({ myChange: true });
-    assert.equal(p.doc.getElementById('rl-card-filter'), null, 'no filter in the head');
-    assert.equal(p.$('.rl-idx-head select'), null, 'and nothing else to slice the round with');
+    assert.equal(p.doc.getElementById('rl-card-filter'), null,
+      'the five-view filter this file was written about stays retired');
+  });
+
+  test('and the three-way cut, as a dropdown, cannot hide a change quietly', async () => {
+    const p = await page({ myChange: true });
+    const sel = p.doc.getElementById('rl-cardfilter');
+    assert.ok(sel, 'the cut is drawn');
+    assert.deepEqual([...sel.options].map(o => o.value), ['all', 'mine', 'theirs'],
+      'three options only — not five views of the round');
+    for (const o of sel.options) assert.match(o.textContent, /\(\d+\)/,
+      'every option carries its own count, so the split reads without opening it');
+    /* and while it is narrowed the column says so, with the way back */
+    p.win.rlSetCardFilter('mine');
+    p.win.renderRedline();
+    const band = p.$('.rl-idx-narrowed');
+    assert.ok(band, 'a narrowed column says it is narrowed');
+    assert.ok(band.querySelector('[data-rl-cardfilter="all"]'), 'and offers the way back');
+    p.win.rlSetCardFilter('all');
   });
 
   test('ours and theirs sit in the column together', async () => {
@@ -235,10 +265,10 @@ describe('F93 (2) — the origin filter is gone, and nothing hides a card', () =
        number twice and cost the head a row. Same claim, read off the tab. */
     const p = await page({ myChange: true });
     assert.equal(p.$('.rl-idx-n'), null,
-      'the separate count is gone where the tabs draw');
+      'the separate count is gone where the filter draws');
     assert.equal(
-      p.$('[data-rl-cardfilter="all"] .rl-fseg-n').textContent.trim(),
-      String(p.cardIds().length), 'All carries the count instead');
+      (p.doc.getElementById('rl-cardfilter').options[0].textContent.match(/\((\d+)\)/) || [])[1],
+      String(p.cardIds().length), 'the All option carries the count instead');
   });
 });
 
@@ -345,14 +375,14 @@ describe('F93 (5) — the counterparty link gets the same column, seat-flipped',
     const box = p.doc.createElement('div');
     box.innerHTML = p.win.redlinePanesHtml(p.c,
       { side: 'counterparty', org: 'Wanjiru Catering Ltd', hiddenIds: [] });
-    const head = box.querySelector('.rl-idx-head');
+    const head = box.querySelector('.rl-idx');
     assert.ok(head, 'same head, no portal-shaped copy');
-    assert.match(head.textContent, /Tracked changes/i);
+    assert.match(head.textContent, /change index/i);
     /* Option 1 (16 Aug 2026): the count rides the All tab on every seat that
        draws the tabs — "on the table" survives only on a narrowed reviewer's
        head, which their seat never is. */
-    assert.ok(head.querySelector('[data-rl-cardfilter="all"] .rl-fseg-n'),
-      'the All tab carries the count on their seat too');
+    assert.match(box.querySelector('#rl-cardfilter').textContent, /\(\d+\)/,
+      'the filter carries the count on their seat too');
     assert.equal(box.querySelector('#rl-card-filter'), null, 'and no filter dropdown on their seat either');
   });
 });

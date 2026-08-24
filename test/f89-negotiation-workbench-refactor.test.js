@@ -337,7 +337,13 @@ describe('F89 (1) — the head is not a band at all: it rides on the tab row', (
        the round reads beside the status on the title's own line instead. The
        claim is unchanged: the round is a fact about the contract, stated once,
        in the head — not a tag on the tab row. */
-    assert.match(p.$('.room-round').textContent, /Round \d/,
+    /* RE-POINTED 24 Aug 2026 — the round moved OFF the title line onto the
+       quiet sub-line beneath it, with the counterparty and the document kind
+       (owner-asked, off the design's object head: type on top, company below
+       in smaller type, and the buttons never wrapping). THE CLAIM IS
+       UNCHANGED: the round is a fact about the contract, stated once, in the
+       head — not a tag on the tab row. */
+    assert.match(p.$('.room-headsub').textContent, /Round \d/,
       'the round reads with the contract\'s other facts instead');
     /* The page's TITLE moved up into the Doc page's shell — same name, same
        status chip, same back arrow on both tabs — and the head now carries
@@ -914,8 +920,22 @@ describe('F89 (11,12) — the card verbs, their colours, and where Edit lands', 
        moved an inch — Accept is the one filled button, filled with the brand's
        own colour — so it now names that colour the way the stylesheet does. */
     const p = await page();
-    assert.match(p.rule('.redline-page .rl-acc,.redline-page .rl-send') || '', /background:var\(--color-accent-700\)/);
-    assert.match(p.rule('.redline-page .rl-acc,.redline-page .rl-send') || '', /color:#fff/);
+    /* ---- REVERSED IN PLACE 24 Aug 2026 (owner-asked: "all the buttons should
+       have a similar border line like share and more have in the platform
+       right now") ---- MEASURED first: the head row's Share and More carry 1px
+       of the accent at 45%, and these verbs carried border:0 — Accept filled,
+       Reject and Edit bare words. So a card offered three KINDS of control
+       where the head offers one. THE FILL HAD TO GO for the border to exist at
+       all: an outline the colour of the fill behind it is not an outline.
+       What the old claim was really about — the row says which verb leads —
+       survives as the 700 weight, asserted here. And --accent-ink is the ink
+       because it is the one token with a dark answer. */
+    const acc = p.rule('.redline-page .rl-card-verbs .rl-acc,.redline-page .rl-card-verbs .rl-send') || '';
+    assert.match(acc, /background:transparent/, 'flat, so its outline can be seen');
+    assert.match(acc, /color:var\(--accent-ink\)/, 'and an ink that answers in dark');
+    assert.match(acc, /font-weight:700/, 'the row still says which verb leads');
+    assert.match(p.rule('.redline-page .rl-card-verbs button') || '',
+      /border:1px solid var\(--rl-btn-line\)/, 'every verb wears the head row\'s own line');
     /* ---- AND THE OUTLINE IS GONE AGAIN, REVERSED IN PLACE (owner-reported
        22 Aug 2026, off the mock-up's own card: "for the cards, the bottom
        buttons do not have lines around them") ----
@@ -942,16 +962,21 @@ describe('F89 (11,12) — the card verbs, their colours, and where Edit lands', 
        the only place the question can be answered at all. This test keeps the
        claim about what the stylesheet SAYS; that one keeps the claim about
        what DRAWS. Neither is sufficient alone and they name each other. */
-    assert.match(p.rule('.redline-page .rl-card-verbs .rl-rej') || '', /background:none/);
+    /* REVERSED IN PLACE 24 Aug 2026 with the rest of the row (owner-asked).
+       These two re-declared border:0 at three classes, which BEAT the base
+       rule and would have kept them bare while every other button gained a
+       line — the cascade trap this very test was written about, one more time.
+       They carry the same variable as the base, so the two cannot drift. */
+    assert.match(p.rule('.redline-page .rl-card-verbs .rl-rej') || '', /background:transparent/);
     /* THE INK IS EACH VERB'S OWN AND IS UNTOUCHED BY ANY OF THIS — red for the
        refusal, accent for the alternative. #b91c1c is --danger-hover and is
        named that way so a theme can move it. With the border gone the ink is
        the only thing left saying these are controls, which is the 17 Aug
        lesson (a neutral-grey control reads as furniture) still standing. */
     assert.match(p.rule('.redline-page .rl-card-verbs .rl-rej') || '', /color:var\(--danger-hover\)/);
-    assert.match(p.rule('.redline-page .rl-card-verbs .rl-rej') || '', /border:0/);
-    assert.match(p.rule('.redline-page .rl-card-verbs .rl-edit') || '', /background:none/);
-    assert.match(p.rule('.redline-page .rl-card-verbs .rl-edit') || '', /border:0/);
+    assert.match(p.rule('.redline-page .rl-card-verbs .rl-rej') || '', /border:1px solid var\(--rl-btn-line\)/);
+    assert.match(p.rule('.redline-page .rl-card-verbs .rl-edit') || '', /background:transparent/);
+    assert.match(p.rule('.redline-page .rl-card-verbs .rl-edit') || '', /border:1px solid var\(--rl-btn-line\)/);
     assert.match(p.rule('.redline-page .rl-card-verbs .rl-edit') || '', /color:var\(--color-accent-700\)/);
   });
 

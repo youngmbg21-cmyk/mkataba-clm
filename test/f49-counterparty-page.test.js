@@ -255,11 +255,17 @@ describe('what is ours stays ours', () => {
       { side: 'counterparty', author: 'Erik Lindqvist' });
     const v = theirPage(c);
     const cards = () => v.$$('#pt-nego [data-nego-card]').length;
-    const tab = k => v.$(`#pt-nego [data-rl-cardfilter="${k}"]`);
-    const press = k => tab(k).dispatchEvent(
-      new v.win.Event('click', { bubbles: true, cancelable: true }));
+    /* RE-POINTED 24 Aug 2026 — the three-way cut is a <select> on the change
+       index's own line now (owner-asked). A select answers to CHANGE, never to
+       click. THE CLAIM IS UNCHANGED and is the one that matters here: the
+       control really narrows THEIR column, seat-flipped, not just its own
+       state. */
+    const filt = () => v.$('#pt-nego #rl-cardfilter');
+    const tab = k => { const s = filt(); return s && [...s.options].find(o => o.value === k); };
+    const press = k => { const s = filt(); s.value = k;
+      s.dispatchEvent(new v.win.Event('change', { bubbles: true, cancelable: true })); };
 
-    assert.ok(tab('mine'), 'the tabs are drawn on their page at all');
+    assert.ok(tab('mine'), 'the filter is drawn on their page at all');
     const all = cards();
     assert.equal(all, 3, 'three asks on the table to begin with');
     press('mine');

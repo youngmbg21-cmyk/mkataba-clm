@@ -109,6 +109,8 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
         crumb: !!document.querySelector('#view-redline .room-crumb'),
         back: s('#view-redline #ws-back'),
         title: s('#view-redline #ws-back-title'),
+        facts: !!document.querySelector('#view-redline #ws-head .room-facts'),
+        sub: !!document.querySelector('#view-redline #ws-head .room-headsub'),
         acts: [...document.querySelectorAll('#view-redline #ws-head .room-acts > *')]
           .filter(e => getComputedStyle(e).display !== 'none')
           .sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left)
@@ -117,8 +119,17 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     check('1 the head is a white band', head.bg === 'rgb(255, 255, 255)', head.bg);
     check('1 with a hairline under it and the page measure inside it',
       /inset/.test(head.rule || '') && head.pad === '9px 24px', `${head.pad} · ${head.rule}`);
-    check('1 it is ONE LINE — the head is under 60px tall',
-      head.box && head.box.h <= 60, head.box && head.box.h + 'px');
+    /* ---- REVERSED IN PLACE 24 Aug 2026 (owner-approved render) ----
+       The head was one line because the render it was built from drew one. The
+       owner's new render gives this page the design's FACTS STRIP and a quiet
+       sub-line under the title — you could argue a contract's wording all week
+       without once seeing what it is worth or when it expires. So the head is
+       three rows now, and what this claim was really guarding moved with it:
+       the ACTS must never wrap, which was the 22 Aug report and is what the
+       one-line rule was standing in for. That is asserted directly below, at
+       three widths and on a long name, which is stronger than a height. */
+    check('1 the head carries the facts strip and its sub-line',
+      !!head.facts && !!head.sub, `facts ${!!head.facts} · sub ${!!head.sub}`);
     check('1 the breadcrumb has stood down on this page', !head.crumb);
     /* THE HALF THAT MATTERS. #ws-back is the only way off this page — it moved
        into the name row as the reference and must still be a real, pressable
@@ -173,7 +184,9 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       const n = document.querySelector('#view-redline .rl-readwrap .rl-seg.on .rl-seg-n');
       const all = document.querySelector('#view-redline .rl-fseg[data-rl-cardfilter="all"] .rl-fseg-n');
       return { bg: rcs.backgroundColor, h: Math.round(row.getBoundingClientRect().height),
-        rule: rcs.boxShadow, segs, count: n && n.textContent.trim(), allCount: all && all.textContent.trim() };
+        rule: rcs.boxShadow, segs, count: n && n.textContent.trim(),
+        allCount: (() => { const f = document.getElementById('rl-cardfilter');
+          return f ? ((f.options[0].textContent.match(/\((\d+)\)/) || [])[1] || null) : null; })() };
     });
     check('2 the control bar is a white band 44px tall',
       tabs.bg === 'rgb(255, 255, 255)' && tabs.h === 44, `${tabs.bg} ${tabs.h}px`);
@@ -193,6 +206,10 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     /* ONE COUNT, TWO SURFACES. The tab's number is passed in by the caller
        precisely so it cannot be a second reading — proved by comparing it with
        the change column's own All tab. */
+    /* RE-POINTED 24 Aug 2026 — the column's own count is carried by the
+       filter's All option ("All (2)") rather than a segmented tab. The claim is
+       the one that matters and is unchanged: the tab's number is the COLUMN's
+       number, not a second reading. */
     check('2 Redlined carries a count, and it is the column\'s own',
       !!tabs.count && tabs.count === tabs.allCount,
       `tab "${tabs.count}" · column All "${tabs.allCount}"`);
@@ -274,8 +291,9 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
         return el ? getComputedStyle(el) : null; };
       const pane = cs('.nego-pane.index');
       return { paneBg: pane && pane.backgroundColor, paneBorder: pane && pane.borderTopWidth,
-        cap: cs('.rl-idx-k') && cs('.rl-idx-k').fontSize,
-        filter: cs('.rl-fseg') && cs('.rl-fseg').fontSize,
+        cap: cs('.rl-idx-title') && cs('.rl-idx-title').fontSize,
+        filterText: (document.getElementById('rl-cardfilter') || {}).textContent || '',
+        filter: cs('#rl-cardfilter') && cs('#rl-cardfilter').fontSize,
         restCount: cs('.rl-fseg:not(.on) .rl-fseg-n') && cs('.rl-fseg:not(.on) .rl-fseg-n').borderTopWidth,
         cardWording: cs('.rl-card-diff') && cs('.rl-card-diff').fontSize,
         cardMeta: cs('.rl-card-meta') && cs('.rl-card-meta').fontSize,
@@ -287,8 +305,10 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     check('5 the wording preview reads at 14px, the card meta at 13',
       col.cardWording === '14px' && col.cardMeta === '13px',
       `${col.cardWording} / ${col.cardMeta}`);
-    check('5 the caption and the filter took the render\'s sizes',
-      col.cap === '12px' && col.filter === '14px', `${col.cap} / ${col.filter}`);
+    /* RE-POINTED 24 Aug 2026 — the caption is the change index's title and the
+       filter is a select on its own line. Their sizes are the index's now. */
+    check('5 the index names itself and carries the filter',
+      col.cap === '15px' && !!col.filter, `${col.cap} / ${col.filter}`);
     check('5 the verbs are 30px tall', col.verb === '30px', col.verb);
     /* THE OWNER'S OWN DECISION, KEPT AGAINST THE MOCK-UP. The render boxes this
        column in white; at the 300px the divider allows, a box round a column of
@@ -308,8 +328,14 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        the live cut must be unmistakable and the resting counts must stay
        readable. panel-alerts-and-head-verify measures both in full; here it is
        the one line that used to say the opposite. */
-    check('5 REVERSED — a resting count wears no box; the size is the marker',
-      parseFloat(col.restCount) === 0, col.restCount);
+    /* REVERSED AGAIN 24 Aug 2026 — there are no resting counts to box: the
+       three cuts are a dropdown's options, and each carries its count in its
+       own words. What the claim protects is unchanged and is asserted where it
+       can be: every option states its number, so the split reads without
+       opening the control. */
+    check('5 every cut still states its own count, unopened',
+      (col.filterText || '').match(/\(\d+\)/g || []) &&
+      (col.filterText.match(/\(\d+\)/g) || []).length >= 1, col.filterText);
     check('6 the Copilot band is still there, and so is the unsent band',
       col.copilot && col.band, `copilot ${col.copilot} · unsent ${col.band}`);
 

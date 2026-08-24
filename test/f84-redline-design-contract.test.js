@@ -273,12 +273,18 @@ describe('F84 — the Tracked Changes head is a caption and a count', () => {
        duplicate cost the head a row. The claim is unchanged — the head still
        answers both questions — the count is just read off the tab now. */
     const p = await page();
-    const head = p.$('.rl-idx-head');
+    /* RE-POINTED 24 Aug 2026 — the column is headed by the CHANGE INDEX now
+       (owner-approved render): what it is, how many are open, a bar, and
+       "N of M decided", with the three-way cut as a dropdown on that line.
+       The claim is the one this always made: the column heads itself, and it
+       says how much is in it exactly once. */
+    const head = p.$('.rl-idx');
     assert.ok(head, 'the column heads itself');
-    assert.match(head.textContent, /Tracked changes/i, 'what it is');
-    const all = head.querySelector('[data-rl-cardfilter="all"] .rl-fseg-n');
-    assert.ok(all && /^\d+$/.test(all.textContent.trim()),
-      'and how much is in it — on the All tab, said once');
+    assert.match(head.textContent, /change index/i, 'what it is');
+    const all = p.$('#rl-cardfilter');
+    assert.ok(all && /\(\d+\)/.test(all.textContent),
+      'and how much is in it — carried by the filter, said once');
+    assert.match(head.textContent, /\d+ of \d+/, 'and how far through the round it is');
   });
 
   test('the controls that used to crowd it are gone', async () => {

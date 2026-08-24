@@ -203,10 +203,15 @@ describe('f173 · the column head is a caption and a count', () => {
        count and the separate .rl-idx-n stands down — it survives only on a
        narrowed reviewer's head, which draws no tabs. The caption is always
        there; the count is there exactly once, in one form or the other. */
-    assert.ok(p.$('.rl-idx-head .rl-idx-k'), 'the caption is drawn');
-    assert.ok(p.$('.rl-idx-head .rl-idx-n') === null
-      ? !!p.$('.rl-idx-head .rl-fsegwrap')
-      : !p.$('.rl-idx-head .rl-fsegwrap'),
-      'the count appears exactly once — on the tabs, or as its own span, never both');
+    /* RE-POINTED 24 Aug 2026 — the column is headed by the change index now
+       (owner-approved render): a title, how many are open, a bar and "N of M
+       decided", with the three-way cut as a dropdown on that line. THE CLAIM
+       IS UNCHANGED and is what this always guarded: the number is said ONCE.
+       The old .rl-idx-k caption is stood down where the index draws. */
+    assert.ok(p.$('.rl-idx-title'), 'the index names itself');
+    assert.ok(p.$('.rl-idx-n') === null
+      ? !!p.$('#rl-cardfilter')
+      : !p.$('#rl-cardfilter'),
+      'the count appears exactly once — in the filter, or as its own span, never both');
   });
 });

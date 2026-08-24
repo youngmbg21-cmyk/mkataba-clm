@@ -4929,6 +4929,51 @@ function roomFactsHtml(c){
       esc(i18t('ct_collapse'))}</span></button></div>
   </div>`;
 }
+/* ---- THE TITLE IS THE AGREEMENT, NOT THE AGREEMENT PLUS THE COMPANY ----
+   (owner-asked 24 Aug 2026, off the design's object head.) Contract names in
+   this book routinely end with the counterparty — "… Agreement — Saw Sawa
+   Limited (Nairobi)" — and the head says the company again on the line below,
+   so on one line it is both too long and said twice.
+   THE STRIP IS DELIBERATELY TIMID: only a trailing separator followed by the
+   counterparty, and only when what is left is still a real title. A name that
+   does NOT carry the company is returned untouched, which is most of them, and
+   nothing is ever stripped from the middle. The full name always survives as
+   the h1's own title attribute, so this changes what is DRAWN and never what
+   the contract is called. */
+function roomHeadTitle(c){
+  const name = String((c && c.name) || '');
+  const cp = String((c && c.counterparty) || '').trim();
+  if (!cp) return name;
+  /* THE LAST SEPARATOR, AND ONLY ONE WITH SPACE ROUND IT. A non-greedy match
+     took the FIRST one, which in "Mutual Non-Disclosure Agreement — Saw Sawa
+     LLC" is the hyphen inside "Non-Disclosure" — so the split produced "Mutual
+     Non" and the rule then correctly refused it, leaving the commonest shape in
+     this book unhandled. Greedy, and the spaces are what tell a separator from
+     a hyphenated word. */
+  const m = name.match(/^(.*)\s[—–\-·|]\s(.+)$/);
+  if (!m) return name;
+  const tail = m[2].trim();
+  const head = m[1].trim();
+  /* the tail has to BE the company (allowing a trailing "(Nairobi)" or "Ltd"),
+     and the half that remains has to be worth reading on its own */
+  const norm = x => x.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const looksLikeCp = norm(tail).startsWith(norm(cp)) || norm(cp).startsWith(norm(tail));
+  return (looksLikeCp && head.length >= 8) ? head : name;
+}
+/* The quiet line under the title: who it is with, what kind of paper it is, and
+   which round — the design's own "Kabras Sugar Ltd · Raw material supply ·
+   Round 3 of negotiation". Every part is BORROWED (c.counterparty, cKind,
+   negoRound) and each is dropped when absent rather than drawn as an em-dash:
+   this is a sentence, not a facts row, and the facts row is directly below it. */
+function roomHeadSubHtml(c){
+  const bits = [];
+  if (c && c.counterparty) bits.push(esc(c.counterparty));
+  const kind = (typeof cKind === 'function') ? cKind(c) : '';
+  if (kind) bits.push(esc(kind));
+  if (c && c.negotiation && typeof window !== 'undefined' && window.negoRound)
+    bits.push(esc(i18t('ct_round_n_of_neg', { n: negoRound(c) })));
+  return bits.length ? `<div class="room-headsub">${bits.join(' &middot; ')}</div>` : '';
+}
 function roomHeadHtml(c,opts={}){
   const _wr=state.wsReturn||{};
   /* window.FOLDERS, not the bare global. The negotiation workbench calls this
@@ -5068,8 +5113,19 @@ function roomHeadHtml(c,opts={}){
                reach it too. */}
         ${backC ? `<button type="button" id="ws-back" class="room-name-id" data-back="contract"
           title="${esc(backTitle)}">${esc(c.id)}<i aria-hidden="true">&middot;</i></button>` : ''}
+        ${''/* ---- THE NAME SPLITS: TYPE ON TOP, COMPANY BENEATH (owner-asked
+               24 Aug 2026, off the design's own object head) ----
+               A real contract name is "Mutual Non-Disclosure and
+               Confidentiality Agreement — Saw Sawa Limited (Nairobi)", and on
+               one line that is 84 characters competing with four buttons. The
+               design puts the AGREEMENT on the title line and the COMPANY on a
+               quiet line under it, which is also the only half a reader needs
+               twice. roomHeadTitle strips the counterparty off the end when the
+               name carries it, so the company is said once, below, and never
+               twice. THE FULL NAME IS NEVER LOST — it is the title attribute,
+               so an ellipsised head still hovers to the whole thing. */}
         ${backC
-          ? `<h1><button type="button" id="ws-back-title" class="room-title-back" title="${esc(backTitle)}">${esc(c.name)}</button></h1>`
+          ? `<h1 title="${esc(c.name)}"><button type="button" id="ws-back-title" class="room-title-back" title="${esc(backTitle)}">${esc(roomHeadTitle(c))}</button></h1>`
           : `<h1>${esc(c.name)}</h1>`}
         ${''/* COLOURED TEXT, NOT A BADGE — see contractStatusTextHtml. The chip
                survives everywhere it is scanned in a column; a head row is read,
@@ -5086,8 +5142,9 @@ function roomHeadHtml(c,opts={}){
                "In Review  Round 1": the state first, then the count of rounds
                it has taken. negoRound is guarded because a stage without the
                negotiation model must not take the head down. */}
-        ${(backC && c.negotiation && window.negoRound)
-          ? `<span class="room-round">${esc(i18t('ct_round_n',{n:negoRound(c)}))}</span>` : ''}
+        ${''/* The round moved to the sub-line with the company — the design
+               states it there ("… · Round 3 of negotiation"), and the title
+               line is what has to stop competing with the buttons. */}
       </div>
       ${''/* ---- THE ROUND READS WITH THE OTHER FACTS ABOUT THE CONTRACT ----
              It used to be an amber chip at the end of the workbench's tab row,
@@ -5267,10 +5324,18 @@ function roomHeadHtml(c,opts={}){
            contract's OWN currency, docTermSpan for the term. Nothing here
            computes anything of its own.
 
-           NOT DRAWN ON THE WORKBENCH: that page's head is one compact row by
-           the mock-up's own drawing, and the facts a negotiator needs are the
-           round and whose move, which its own row already carries. */}
-    ${opts.backToContract?'':roomFactsHtml(c)}
+           DRAWN ON THE WORKBENCH TOO SINCE 24 Aug 2026, which REVERSES the
+           line that stood here IN PLACE (owner-approved render). The old
+           reasoning was that a negotiator needs the round and whose move and
+           its own row already carries those — true, and it missed what a
+           negotiator ALSO needs: you could argue a contract's wording all week
+           without once seeing what it is worth or when it expires. The design's
+           own negotiation page carries a facts strip for exactly that reason.
+           ONE BUILDER, TWO HOMES — the workbench draws this same row rather
+           than a second one, so the two heads cannot come to disagree about
+           what a fact is. */}
+    ${backC ? roomHeadSubHtml(c) : ''}
+    ${roomFactsHtml(c)}
   </section>`;
 }
 /* Opening and closing the "⋯". The items themselves are wired where they
@@ -7238,5 +7303,5 @@ Object.assign(window,{applyDocZoom,exportWordTracked,renderDiscussSection,discus
      I walked it on re-rendered the workspace, which measures on the way in. */
   layoutDocResizer,renderSignButton,renderSignSide,signBlockHtml,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsPaintRoundNeeds,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,reviewReturnedRound,docWorkingTextNoteHtml,docNothingWrittenHtml,docHasNoWording,negoRoundNeedsHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
-  ROOM_TABS,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomCurrentTab,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,roomVersionsHtml,docFillable,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,openCheckPanel,roomHeadHtml,wireRoomHead,
+  ROOM_TABS,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomCurrentTab,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,roomVersionsHtml,docFillable,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,openCheckPanel,roomHeadHtml,wireRoomHead,
   DOC_SEL_ACTIONS,wireDocCopilotSel,docAiRead,docSelKill});

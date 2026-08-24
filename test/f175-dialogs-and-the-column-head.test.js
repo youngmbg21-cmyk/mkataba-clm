@@ -245,8 +245,11 @@ describe('f175 · the Tracked Changes head is a rule, not a box', () => {
     const p = await stage();
     assert.equal(p.$('.rl-idx-n'), null,
       'no separate count beside a drawn filter — one number, said once');
-    assert.equal(p.$('[data-rl-cardfilter="all"] .rl-fseg-n').textContent.trim(), '1',
-      'the All tab carries it instead');
+    /* RE-POINTED 24 Aug 2026 — the cut is an OPTION now, and its count rides
+       in the option's words ("All (1)"). The claim is the same: the number is
+       said once, by the filter. */
+    assert.match(p.win.document.querySelector('#rl-cardfilter option').textContent, /\(1\)/,
+      'the All option carries it instead');
     assert.ok(/\.rl-idx-n\.is-live\{[^}]*var\(--color-accent-800\)/.test(p.css()),
       'the count rules stay in the sheet for the reviewer head that still draws one');
     /* ---- REVERSED IN PLACE AGAIN (owner-chose render B1, 23 Aug 2026) ----
@@ -304,8 +307,8 @@ describe('f175 · the Tracked Changes head is a rule, not a box', () => {
     const q = await stage();
     q.c.changes = [];
     q.win.renderRedline();
-    assert.equal(q.$('[data-rl-cardfilter="all"] .rl-fseg-n').textContent.trim(), '0',
-      'an empty book reads zero on the tab, not a missing head');
+    assert.match(q.win.document.querySelector('#rl-cardfilter option').textContent, /\(0\)/,
+      'an empty book reads zero on the filter, not a missing head');
   });
 });
 
@@ -335,20 +338,30 @@ async function withBoth(){
   p.win.renderRedline();
   return p;
 }
-const chips = p => [...p.win.document.querySelectorAll('[data-rl-cardfilter]')];
+/* RE-POINTED 24 Aug 2026 — the filter is a <select> on the change index's own
+   line (owner-asked, pointing at where it should sit). What this file is about
+   is unchanged and is asserted below: three options, each carrying its OWN
+   count, and picking one really narrows the column. A select answers to CHANGE,
+   never to click, so the helper drives it as the control it now is. The
+   filtered-empty state's "show me all of them" button still carries the
+   ATTRIBUTE, so both doors are still exercised. */
+const filterSel = p => p.win.document.getElementById('rl-cardfilter');
+const chips = p => { const s = filterSel(p); return s ? [...s.options] : []; };
 const press = (p, k) => {
-  const b = chips(p).find(x => x.getAttribute('data-rl-cardfilter') === k);
-  assert.ok(b, 'the ' + k + ' chip is drawn');
-  b.dispatchEvent(new p.win.Event('click', { bubbles: true, cancelable: true }));
+  const s = filterSel(p);
+  assert.ok(s, 'the filter is drawn');
+  const o = [...s.options].find(x => x.value === k);
+  assert.ok(o, 'the ' + k + ' option is drawn');
+  s.value = k;
+  s.dispatchEvent(new p.win.Event('change', { bubbles: true, cancelable: true }));
 };
 
 describe('f175 · the strip filters by who asked', () => {
   test('three options, each carrying its own count', async () => {
     const p = await withBoth();
-    assert.deepEqual(chips(p).map(b => b.getAttribute('data-rl-cardfilter')),
+    assert.deepEqual(chips(p).map(b => b.value),
       ['all', 'mine', 'theirs'], 'all three, in that order');
-    const n = k => chips(p).find(b => b.getAttribute('data-rl-cardfilter') === k)
-      .querySelector('.rl-fseg-n').textContent;
+    const n = k => (chips(p).find(b => b.value === k).textContent.match(/\((\d+)\)/) || [])[1];
     assert.equal(n('all'), '2');
     assert.equal(n('mine'), '1');
     assert.equal(n('theirs'), '1');
@@ -356,8 +369,7 @@ describe('f175 · the strip filters by who asked', () => {
        a change quietly. Reading "Theirs 1" while you are on Mine is the whole
        safety property. */
     press(p, 'mine');
-    const after = k => chips(p).find(b => b.getAttribute('data-rl-cardfilter') === k)
-      .querySelector('.rl-fseg-n').textContent;
+    const after = k => (chips(p).find(b => b.value === k).textContent.match(/\((\d+)\)/) || [])[1];
     assert.equal(after('theirs'), '1', 'still says one is over there');
     assert.equal(after('all'), '2');
   });
@@ -372,9 +384,17 @@ describe('f175 · the strip filters by who asked', () => {
     /* The head no longer carries a filtered count (Option 1 — the tab counts
        deliberately do NOT move with the filter; that is their safety). What
        says "you are reading the Mine cut" is the pressed tab itself. */
-    const on = p.$('.rl-fseg.on');
-    assert.equal(on && on.getAttribute('data-rl-cardfilter'), 'mine',
-      'the pressed tab names the cut');
+    /* RE-POINTED 24 Aug 2026 — the pressed TAB is a selected OPTION now. And
+       because a collapsed control can hide a change quietly, the column also
+       SAYS it is narrowed and offers the way back: that band is the third of
+       this filter's three safety properties and is asserted here, since the
+       dropdown is what made it necessary. */
+    assert.equal(p.win.document.getElementById('rl-cardfilter').value, 'mine',
+      'the filter names the cut it is showing');
+    const band = p.$('.rl-idx-narrowed');
+    assert.ok(band, 'and the column says it is showing one side only');
+    assert.ok(band.querySelector('[data-rl-cardfilter="all"]'),
+      'with the way back on the same band');
     assert.equal(p.win.document.querySelectorAll('#rl-changes [data-nego-card]').length, 1,
       'one card on screen');
   });

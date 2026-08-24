@@ -1096,12 +1096,26 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     return { acc: g('.rl-card-verbs .rl-acc'), rej: g('.rl-card-verbs .rl-rej'),
              edit: g('.rl-card-verbs .rl-edit') };
   });
-  check('6 Accept is the card\'s one filled act',
-    !!verbs.acc && verbs.acc.bg !== 'rgba(0, 0, 0, 0)', JSON.stringify(verbs.acc));
-  for (const [k, label, ink] of [['rej', 'Reject', /rgb\(185, 28, 28\)/], ['edit', 'Edit', /rgb\(15, 118, 110\)/]]) {
+  /* ---- REVERSED IN PLACE 24 Aug 2026 (owner-asked: "all the buttons should
+     have a similar border line like share and more have in the platform right
+     now") ---- The card offered three KINDS of control — a filled Accept, two
+     bare coloured words — where the head row offers one. Every verb wears the
+     head's own line now, and the FILL had to go for that line to exist at all:
+     an outline the colour of the fill behind it is not an outline.
+     THIS IS STILL THE ONLY PLACE THE QUESTION CAN BE ASKED, which is why the
+     claim is reversed here rather than deleted: the rule is present and
+     correct in the source whichever way it goes, and only a browser can say
+     which declaration won. The INK claim is untouched and is now doing MORE
+     work, not less — it is what still tells the three verbs apart. */
+  const HEAD_LINE = /0\.0509804 0\.580392 0\.533333 \/ 0\.45|rgba\(13, 148, 136, 0\.45\)/;
+  for (const [k, label, ink] of [['acc', 'Accept', /rgb\(17, 94, 89\)/],
+                                 ['rej', 'Reject', /rgb\(185, 28, 28\)/],
+                                 ['edit', 'Edit', /rgb\(15, 118, 110\)/]]) {
     const v = verbs[k];
-    check(`6 ${label} draws no line round it`,
-      !!v && v.w === 0 && v.bg === 'rgba(0, 0, 0, 0)', JSON.stringify(v));
+    check(`6 ${label} wears the head row's own line, and no fill`,
+      !!v && v.w === 1 && v.bg === 'rgba(0, 0, 0, 0)', JSON.stringify(v));
+    check(`6 ${label} draws that line in the row's own colour`,
+      !!v && HEAD_LINE.test(v.col || ''), JSON.stringify(v && v.col));
     check(`6 ${label} still carries its own ink, so it is not a caption`,
       !!v && ink.test(v.ink || ''), JSON.stringify(v && v.ink));
   }

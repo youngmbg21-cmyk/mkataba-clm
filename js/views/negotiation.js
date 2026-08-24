@@ -10122,6 +10122,20 @@ if (typeof document !== 'undefined' && !document._rlCardFilterWired){
     rlSetCardFilter(b.getAttribute('data-rl-cardfilter'));
     rlRepaintFrom(b);
   });
+  /* ---- AND THE DROPDOWN'S OWN DOOR (24 Aug 2026) ----
+     The filter is a <select> now, and a select answers to CHANGE, never to
+     click — the button handler above would never have seen it. Delegated on
+     document and armed once for the reason stated above: this control is
+     painted into a mount that several paths repaint, so an element-bound
+     listener is dropped by the first of them. The "show me all of them" button
+     on the filtered-empty state still carries the ATTRIBUTE, so it stays on the
+     click door and both roads reach one setter. */
+  document.addEventListener('change', ev => {
+    const sel = ev.target;
+    if (!sel || sel.id !== 'rl-cardfilter') return;
+    rlSetCardFilter(sel.value);
+    rlRepaintFrom(sel);
+  });
 }
 
 /* ---- SHOW MORE / SHOW LESS ON A CLAMPED NOTE ----
@@ -11944,8 +11958,43 @@ function redlinePanesHtml(c, opts = {}){
              visually hidden: it is the control Publish Round presses. */}
       <aside class="rl-col rl-side" id="rl-side" aria-label="${_nea(i18t('ng_tracked_changes'))}">
         <div class="nego-pane index" id="rl-changes-col" aria-label="${i18t('ng_tracked_changes')}">
+          ${''/* ---- THE CHANGE INDEX (owner-approved render, 24 Aug 2026) ----
+                 The head said "TRACKED CHANGES" and a count of what is OPEN,
+                 which never told a reader how far through the round they were.
+                 It states the whole shape now: how many are still open, a bar,
+                 and "N of M decided". IT INVENTS NO ARITHMETIC — negoProgress
+                 has computed done/total/pct all along and this head is where it
+                 finally draws; the same numbers were already in this markup,
+                 hidden, feeding the header proxies. */}
+          <div class="rl-idx">
+            <div class="rl-idx-top">
+              <span class="rl-idx-title">${_ne(i18t('ng_idx_head'))}</span>
+              ${p.pending ? `<span class="rl-idx-open">${_ne(i18tn('ng_n_open', p.pending, {n:p.pending}))}</span>` : ''}
+            </div>
+            ${p.total ? `<div class="rl-idx-bar" role="img"
+              aria-label="${_nea(i18t('ng_n_of_m_decided',{done:p.done,total:p.total}))}"><i
+              style="width:${p.pct}%"></i></div>
+            <div class="rl-idx-foot">
+              <span class="rl-idx-sub">${_ne(i18t('ng_n_of_m_decided',{done:p.done,total:p.total}))}</span>
+              <span style="flex:1;min-width:6px"></span>
+              <span id="rl-idx-filter-slot"></span>
+            </div>` : ''}
+            ${''/* ---- AND IT SAYS WHEN IT IS NARROWED ----
+                   The third of the filter's three safety properties, kept now
+                   that the control is a dropdown: a collapsed control can hide
+                   changes quietly, so while the column is showing one side it
+                   states that and offers the way back. The button carries
+                   data-rl-cardfilter, so this is the page's existing door
+                   rather than a second one. Drawn only when narrowed — an
+                   always-on band is furniture. */}
+            ${rlCardFilter() !== 'all' ? `<div class="rl-idx-narrowed">
+              <span>${_ne(i18t('ng_filter_narrowed'))}</span>
+              <span style="flex:1"></span>
+              <button type="button" data-rl-cardfilter="all">${_ne(i18t('ng_filter_show_all'))}</button>
+            </div>` : ''}
+          </div>
           <div class="nego-index-head rl-idx-head">
-          <span class="rl-idx-k">${i18t('ng_tracked_changes_head')}</span>
+          <span class="rl-idx-k" hidden>${i18t('ng_tracked_changes_head')}</span>
           ${''/* ---- THE COUNT DRAWS ONLY WHERE THE TABS DO NOT ----
                  (owner-chose Option 1, 16 Aug 2026.) "2 on the table" and the
                  filter's "All 2" said the same number twice, twelve pixels
@@ -11978,11 +12027,27 @@ function redlinePanesHtml(c, opts = {}){
             const n = k => (k === 'all' ? totals.length : bySide(k));
             const tip = { all: 'ng_filter_all_t',
               mine: 'ng_filter_mine_t', theirs: 'ng_filter_theirs_t' };
-            return `<div class="rl-fsegwrap" role="group" aria-label="${_nea(i18t('ng_filter_group'))}">${
-              RL_CARD_FILTERS.map(([k, key]) => `<button type="button" data-rl-cardfilter="${k}"
-                class="rl-fseg${rlCardFilter() === k ? ' on' : ''}" aria-pressed="${rlCardFilter() === k ? 'true' : 'false'}"
-                title="${_nea(i18t(tip[k], { who: c.counterparty || i18t('ng_the_counterparty') }))}"><span
-                class="rl-fseg-n">${n(k)}</span><span class="rl-fseg-w">${_ne(i18t(key))}</span></button>`).join('')}</div>`;
+            /* ---- A DROPDOWN, ON THE INDEX'S OWN LINE (owner-asked 24 Aug
+                   2026, pointing at where it should sit) ----
+                   THIS REVERSES "SEGMENTED, NOT A DROPDOWN", and that reversal
+                   was put to the owner with its reason before it was built: the
+                   segmented control came back, after the filter had once been
+                   removed altogether, with three safety properties, and one of
+                   them was that a control which HIDES changes must not be
+                   collapsible — a reader can sit on "Mine" without registering
+                   it and conclude the other side has asked for nothing.
+                   THE OTHER TWO PROPERTIES ARE KEPT AND ARE WHAT MAKE THIS
+                   SAFE: three options only, and every option still carries its
+                   OWN count, unmoved by the filter — so the number of theirs is
+                   readable without opening the control. The third is answered
+                   by rlCardFilterNoteHtml below: while the column is narrowed
+                   it SAYS so and offers the way back, which is the same
+                   mechanism the page already uses when a filter empties it. */
+            return `<select id="rl-cardfilter" class="rl-idx-filter"
+                aria-label="${_nea(i18t('ng_filter_group'))}"
+                title="${_nea(i18t(tip[rlCardFilter()] || tip.all, { who: c.counterparty || i18t('ng_the_counterparty') }))}">${
+              RL_CARD_FILTERS.map(([k, key]) => `<option value="${k}"${rlCardFilter() === k ? ' selected' : ''}
+                >${_ne(i18t(key))} (${n(k)})</option>`).join('')}</select>`;
           })()}
           ${''/* kept for the engine's wiring and the header proxies; the design
                  carries these controls in the page header instead */}

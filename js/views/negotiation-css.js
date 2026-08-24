@@ -2430,9 +2430,24 @@ function redlineLayoutCss(){
      card's information leads and the actions follow. flex:1 stretched them into
      a wall of colour that outweighed the change itself. */
   .redline-page .rl-card-verbs{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;margin-top:9px}
-  .redline-page .rl-card-verbs button{border:0;border-radius:0;padding:0 12px;font:inherit;
+  ${''/* ---- EVERY BUTTON WEARS THE HEAD ROW'S OWN LINE (owner-asked 24 Aug
+         2026: "all the buttons should have a similar border line like share
+         and more have in the platform right now") ----
+         MEASURED first: Share and More carry 1px of the accent at 45%, and
+         these verbs carried border:0 — Accept and Send were filled washes,
+         Reject and Edit bare coloured words. So a card offered three different
+         KINDS of control where the head row offers one.
+         THE SAME VALUE, WRITTEN ONCE: --rl-btn-line is declared beside the head
+         row's own rule and read here, so the two cannot drift the way this
+         row's three accent borders once did.
+         THE INK IS UNTOUCHED and is what still tells the verbs apart — accept
+         green, refuse red, edit grey. What goes is the FILL: a border the same
+         colour as the fill behind it is not a border, so the outline the owner
+         asked for is only visible on a flat face. */}
+  .redline-page .rl-card-verbs button{border:1px solid var(--rl-btn-line);border-radius:0;
+    padding:0 12px;font:inherit;
     font-size:14px;font-weight:400;line-height:1;cursor:pointer;transition:filter .15s;
-    height:30px;display:inline-flex;align-items:center}
+    height:30px;display:inline-flex;align-items:center;background:transparent}
   /* washes darken a touch on hover in light, lift in dark — a brightness
      bump on a near-white tint is invisible */
   .redline-page .rl-card-verbs button:hover{filter:brightness(.95)}
@@ -2453,8 +2468,19 @@ function redlineLayoutCss(){
   /* accent-700, not accent-600: white on the lighter shade
      measures 3.74:1, and these labels are 11px. The darker step is 5.5:1 and
      looks the same from a foot away. */
-  .redline-page .rl-acc,.redline-page .rl-send{background:var(--color-accent-700);color:#fff;font-weight:700}
-  .redline-page .rl-acc:hover,.redline-page .rl-send:hover{background:var(--color-accent-800)}
+  ${''/* THE PRIMARY VERB GOES FLAT SO ITS OUTLINE CAN BE SEEN. It was a filled
+         accent face with white ink; a border the colour of the fill behind it
+         is not a border. It keeps its 700 — the row still says which verb
+         leads — and takes --accent-ink, the token that HAS a dark answer, so
+         the night theme needs no second rule. WHITE INK WOULD HAVE SURVIVED
+         THE FILL: this rule scores (0,2,0) and the base (0,2,1), so the base's
+         transparent background wins while color:#fff here would not have
+         been beaten — white on a clear face. Caught by reading the cascade,
+         not by looking. */}
+  .redline-page .rl-card-verbs .rl-acc,.redline-page .rl-card-verbs .rl-send{
+    background:transparent;color:var(--accent-ink);font-weight:700}
+  .redline-page .rl-card-verbs .rl-acc:hover,.redline-page .rl-card-verbs .rl-send:hover{
+    background:color-mix(in srgb,var(--accent-solid) 10%,transparent)}
   ${''/* ---- NO LINES ROUND THE CARD'S OWN VERBS (owner-reported 22 Aug 2026,
          off the mock-up's card: "for the cards, the bottom buttons do not have
          lines around them") ----
@@ -2485,10 +2511,13 @@ function redlineLayoutCss(){
          redline-verify section 6 measures the computed border-width, which is
          the only place either the old fault or this decision can be seen at
          all; f89 holds the claim about what the stylesheet SAYS. */}
-  .redline-page .rl-card-verbs .rl-rej{background:none;border:0;
+  ${''/* border:0 here was written when the row had none; at three classes it
+         beats the base and would keep these two bare. They carry the row's own
+         line now — the same variable, so nothing can drift. */}
+  .redline-page .rl-card-verbs .rl-rej{background:transparent;border:1px solid var(--rl-btn-line);
     color:var(--danger-hover)}
   .redline-page .rl-card-verbs .rl-rej:hover{background:color-mix(in srgb,var(--danger-hover) 10%,transparent)}
-  .redline-page .rl-card-verbs .rl-edit{background:none;border:0;
+  .redline-page .rl-card-verbs .rl-edit{background:transparent;border:1px solid var(--rl-btn-line);
     color:var(--color-accent-700)}
   .redline-page .rl-card-verbs .rl-edit:hover{background:color-mix(in srgb,var(--accent-solid) 10%,transparent)}
   html.dark .redline-page .rl-rej{color:#fda4af}
@@ -3528,10 +3557,54 @@ function redlineLayoutCss(){
          THE TITLE IS WHAT GIVES, not the row: it already carries the ellipsis
          (see .room-head h1), and min-width:0 on the items around it is what
          lets a flex child shrink below its content at all. */}
+  ${''/* WRAP IS BACK, AND THE FAULT ABOVE DOES NOT COME WITH IT (24 Aug 2026).
+         This page draws the fact row now, and .room-facts is flex-basis:100% —
+         a full-width item CANNOT take its own line in a nowrap row, so with
+         nowrap the six facts were crushed in beside the buttons and the
+         contract's name was squeezed out of the head entirely. MEASURED before
+         it was touched.
+         WHAT ACTUALLY FIXED THE 22 Aug REPORT IS KEPT and is the two rules
+         below: the title carries the ellipsis and min-width:0 is what lets a
+         flex child shrink under its content. nowrap was belt AND braces; the
+         braces are what hold. Re-measured on the same 84-character name at
+         1500px — the acts stay on line one and the facts take line two, which
+         is exactly what the contract room has always done with this markup.
+         align-items:center would centre the fact row against the title row, so
+         the head aligns to its top and each row centres its own contents. */}
   .redline-page #ws-head{background:var(--color-surface);padding:9px 24px;margin:0;
-    flex:none;flex-wrap:nowrap;box-shadow:inset 0 -1px var(--color-divider);gap:12px;
+    flex:none;flex-wrap:wrap;box-shadow:inset 0 -1px var(--color-divider);gap:0 12px;
     align-items:center}
-  .redline-page #ws-head .room-id{min-width:0;flex:1 1 auto;overflow:hidden}
+  .redline-page #ws-head .room-facts{flex-basis:100%}
+  ${''/* ---- THE COMPANY, THE KIND AND THE ROUND, UNDER THE TITLE ----
+         Its own line, so the title line carries the agreement and the buttons
+         and nothing else. Full width, so it can never be drawn into the title
+         row however short it is. */}
+  .redline-page #ws-head .room-headsub{flex-basis:100%;order:1;margin:1px 0 0;
+    font-size:13px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;
+    text-overflow:ellipsis}
+  .redline-page #ws-head .room-facts{order:2}
+  ${''/* ---- AND THE BUTTONS NEVER WRAP (owner-asked 24 Aug 2026) ----
+         flex:none was already on .room-acts, which stops them SHRINKING; what
+         let them fall to a second line was the title demanding its content
+         width beside them. The title ellipsises into whatever is left (basis 0
+         above, and these three properties are what actually cut the words), so
+         line one always fits. The whole name is on the h1's own hover. */}
+  .redline-page #ws-head .room-acts{flex:none;flex-wrap:nowrap}
+  .redline-page #ws-head .room-name{min-width:0}
+  .redline-page #ws-head h1{min-width:0;overflow:hidden}
+  .redline-page #ws-head h1 .room-title-back{display:block;max-width:100%;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left}
+  ${''/* flex-basis 0, NOT auto — and that one word is what lets the head both
+         wrap the fact row and keep the acts on line one. With basis auto the
+         name block DEMANDS its content width, so an 84-character contract name
+         made line one wider than the head and the acts wrapped underneath it,
+         starting at the left margin: the exact fault of 22 Aug, back the moment
+         wrap returned. With basis 0 it takes only what is left over and the h1
+         ellipsises into it, so line one always fits and only the full-width
+         fact row ever takes a line of its own. .room-acts is already flex:none,
+         so it never gives up a pixel. MEASURED on that same name at 1500, 1440
+         and 1280. */}
+  .redline-page #ws-head .room-id{min-width:0;flex:1 1 0;overflow:hidden}
   .redline-page #ws-head .room-name{gap:10px;flex-wrap:nowrap;min-width:0}
   /* The reference is the way back — a button wearing the render's quiet grey.
      Its hover is the only sign it is one, which is what a crumb has always
@@ -3605,7 +3678,50 @@ function redlineLayoutCss(){
            rlFitTabRow's fold ladder; this selector is (0,3,1) and beats all
            three, and it reaches neither .rl-tabrow nor .rl-head. Same scope,
            same reason, as the height pin it sits inside. */}
-    border-color:color-mix(in srgb,var(--accent-solid) 45%,transparent)}
+    border-color:var(--rl-btn-line)}
+  ${''/* THE ROW'S LINE, AS A VALUE ANY OTHER BUTTON ON THIS PAGE CAN READ
+         (owner-asked 24 Aug 2026: every button should carry the line Share and
+         More carry). It was written inline here; declared on the page root it
+         is one value with several readers, so the card verbs and this row can
+         no longer drift the way this row's own three accent borders once did.
+         Declared on .redline-page rather than :root because it is this page's
+         decision, and the counterparty's mount carries that class too. */}
+  .redline-page{--rl-btn-line:color-mix(in srgb,var(--accent-solid) 45%,transparent)}
+  ${''/* ---- THE CHANGE INDEX (owner-approved render, 24 Aug 2026) ---- */}
+  .redline-page .rl-idx{padding:12px 12px 11px;border-bottom:1px solid var(--color-divider)}
+  .redline-page .rl-idx-top{display:flex;align-items:center;gap:10px}
+  .redline-page .rl-idx-title{flex:1;font-size:15px;font-weight:700;color:var(--color-text);
+    letter-spacing:-.01em}
+  ${''/* The open count is the one dark object on this column, which is what
+         makes it readable at a glance. It takes the nav's own deep ground
+         rather than a new slate, so it follows the workspace brand and the
+         dark theme with no second rule. */}
+  .redline-page .rl-idx-open{flex:none;font-size:12px;font-weight:700;color:#fff;
+    background:var(--nav-bg);padding:2px 9px}
+  .redline-page .rl-idx-bar{margin-top:9px;height:8px;background:var(--color-neutral-200);
+    position:relative;overflow:hidden}
+  .redline-page .rl-idx-bar i{position:absolute;left:0;top:0;bottom:0;display:block;
+    background:var(--accent-solid)}
+  .redline-page .rl-idx-foot{display:flex;align-items:center;gap:10px;margin-top:7px}
+  .redline-page .rl-idx-sub{font-size:13px;color:var(--color-neutral-600)}
+  ${''/* The filter. Small, on the index's own line, and it keeps every option's
+         count in its words so the split is readable without opening it. */}
+  .redline-page .rl-idx-filter{font:inherit;font-size:12.5px;height:24px;
+    border:1px solid var(--rl-btn-line);background:var(--color-surface);color:var(--color-text);
+    padding:0 24px 0 8px;cursor:pointer;border-radius:0;appearance:none;-webkit-appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235F6D6B' stroke-width='2'><path d='M6 9l6 6 6-6'/></svg>");
+    background-repeat:no-repeat;background-position:right 6px center}
+  ${''/* WHILE THE COLUMN IS NARROWED IT SAYS SO. This is the third of the
+         filter's three safety properties, kept when the control became a
+         dropdown: a collapsed control can hide changes quietly, so the column
+         states the narrowing and offers the way back. The button carries
+         data-rl-cardfilter, so it is the page's existing door, not a second. */}
+  .redline-page .rl-idx-narrowed{display:flex;align-items:center;gap:8px;margin:10px 12px 0;
+    padding:5px 9px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);
+    font-size:12.5px;color:var(--st-amber-fg)}
+  .redline-page .rl-idx-narrowed button{border:0;background:none;font:inherit;font-size:12.5px;
+    font-weight:700;color:var(--st-amber-fg);text-decoration:underline;cursor:pointer;padding:0}
+
   ${''/* ---- AND THE LAST BOLD ONE FLATTENED TOO (owner-asked 23 Aug 2026:
          "publish round should not be bold") ----
          .rl-btn-go was excluded from this rule the day the fill came off, so
