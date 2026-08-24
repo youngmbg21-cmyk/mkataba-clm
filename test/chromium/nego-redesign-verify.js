@@ -334,8 +334,7 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        can be: every option states its number, so the split reads without
        opening the control. */
     check('5 every cut still states its own count, unopened',
-      (col.filterText || '').match(/\(\d+\)/g || []) &&
-      (col.filterText.match(/\(\d+\)/g) || []).length >= 1, col.filterText);
+      ((col.filterText || '').match(/\(\d+\)/g) || []).length >= 3, col.filterText);
     check('6 the Copilot band is still there, and so is the unsent band',
       col.copilot && col.band, `copilot ${col.copilot} · unsent ${col.band}`);
 
