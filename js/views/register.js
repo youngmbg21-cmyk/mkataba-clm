@@ -112,7 +112,7 @@ function renderFolder(){
                 <th style="text-align:right;padding-right:12px">${i18t('reg_col_status')}</th>
               </tr>
             </thead>
-            <tbody id="fold-tbody" class="stagger">${folderRowsHtml(cs)}</tbody>
+            <tbody id="fold-tbody">${folderRowsHtml(cs)}</tbody>
           </table>
         </div>
         ${''/* The legend belongs WITH the table it explains, so this page grew
@@ -236,7 +236,6 @@ function renderFolderListOnly(){
   const cs=folderFiltered();
   const tb=document.getElementById('fold-tbody'); if(!tb) return;
   /* Same as renderRegisterBody: the intro played when the page arrived. */
-  if(tb.classList) tb.classList.remove('stagger');
   tb.innerHTML=folderRowsHtml(cs);
   const cnt=document.getElementById('fold-count'); if(cnt) cnt.textContent=cs.length;
   const all=document.getElementById('fold-selall'); if(all){ const shownIds=cs.slice(0,Math.min(cs.length,state.folderShown||FOLDER_PAGE)); all.checked=shownIds.length>0 && shownIds.every(c=>state.folderSel&&state.folderSel[c.id]); }
@@ -778,7 +777,7 @@ function renderRegisterBody(){
   /* The stagger intro belongs to arriving at the page; this body re-renders on
      every search keystroke, sort and pager press, and rows that replay their
      fade-in per keystroke read as a flickering table. One intro, then still. */
-  const tb=document.getElementById('reg-tbody'); if(tb){ if(tb.classList) tb.classList.remove('stagger'); tb.innerHTML=regRowsHtml(cs); wireRegRows(); }
+  const tb=document.getElementById('reg-tbody'); if(tb){ tb.innerHTML=regRowsHtml(cs); wireRegRows(); }
   const sh=document.getElementById('reg-showing'); if(sh){ sh.innerHTML=regFooterText(cs);
     document.getElementById('reg-flat')?.addEventListener('click',()=>{ const R=regState(); R.flat=!R.flat; renderRegisterBody(); }); }
   const pgr=document.getElementById('reg-pager'); if(pgr){ pgr.innerHTML=regPager(cs); wireRegPager(); }
@@ -1178,7 +1177,7 @@ function renderRegister(opts){
                 <th style="text-align:right;width:${neg?9:3}%">${neg?i18t('ngl_col_move'):''}</th>
               </tr>
             </thead>
-            <tbody id="reg-tbody" class="stagger">${regRowsHtml(cs)}</tbody>
+            <tbody id="reg-tbody">${regRowsHtml(cs)}</tbody>
           </table>
         </div>
         <div style="flex:none;border-top:1px solid var(--color-divider);display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;padding:5px 12px;font-size:12px;color:var(--color-neutral-600)">

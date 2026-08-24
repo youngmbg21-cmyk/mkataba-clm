@@ -422,32 +422,11 @@ function renderFailedHtml(view, e, cid){
     <div style="margin-top:10px;font-family:var(--font-mono);font-size:12px;color:var(--st-ruby-fg);word-break:break-word">${esc((e&&e.message)||String(e))}</div>
   </div>`;
 }
-/* THE INTRO IS FOR ARRIVING, NOT FOR EVERY REPAINT.
-
-   Views are rebuilt wholesale (innerHTML), so the browser sees every render as
-   a first appearance and replays the .view-enter fade-and-slide — including
-   when nothing was navigated at all: the theme flip, the jurisdiction switch,
-   a background response landing, the dashboard's minute refresh. The screen
-   blinked under a reader who hadn't touched it, and every navigation read as
-   a page reload.
-
-   So the last rendered view is remembered here, and a repaint of the SAME view
-   suppresses the entry animations (via .no-view-anim on #content). A genuine
-   change of page still animates once — and after its intro has had time to
-   finish, the suppression is re-applied so partial repaints that bypass
-   setView (search keystrokes, live refreshes) never replay it either. */
-let _lastRenderedView=null, _viewAnimTimer=null;
-function markViewTransition(view){
-  const host=document.getElementById('content');
-  const fresh=_lastRenderedView!==view;
-  _lastRenderedView=view;
-  /* Guarded: the node tests evaluate this module on a cut-down document. */
-  if(!host||!host.classList) return;
-  if(_viewAnimTimer&&typeof clearTimeout==='function') clearTimeout(_viewAnimTimer);
-  host.classList.toggle('no-view-anim',!fresh);
-  if(fresh&&typeof setTimeout==='function')
-    _viewAnimTimer=setTimeout(()=>host.classList.add('no-view-anim'),450);
-}
+/* markViewTransition, _lastRenderedView, _viewAnimTimer and the .no-view-anim
+   class are GONE (WO-12, 24 Aug 2026). They existed only to stop the page's
+   fade-and-slide replaying on a repaint, and the page no longer fades or
+   slides — see the note beside .view-enter in index.html. A page change is
+   instant now, which is what the design does and what the owner asked for. */
 /* The views that watch a contract for the other side's answer. Read by setView
    below; pollWaitingOnThem (js/core.js) asks the same question of the same two
    and the pair must not drift. */
@@ -474,7 +453,6 @@ function setView(view){
   // any other view always lands on the full screen with its exits visible
   if(view==='redline' && state.view!=='redline' && window.rlResetFocus) rlResetFocus();
   state.view=view;
-  markViewTransition(view);
   try{
     if(view==='dashboard') renderDashboard();
     else if(view==='folder') renderFolder();

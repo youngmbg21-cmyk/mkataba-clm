@@ -1039,29 +1039,54 @@
   .ui-btn:disabled{opacity:.45;cursor:not-allowed;}
 
   /* view enter */
-  .view-enter{animation:viewIn .24s var(--ease);}
+  /* ---- NOTHING PLAYS WHEN YOU CHANGE PAGE (owner-reported 24 Aug 2026:
+     "when i flip from tab to tab or page to page in the html, the landing page
+     appears like a flash or like a picture and very stable. In hati, it is
+     like a moving picture") ----
+     MEASURED ON BOTH SIDES. The handover's own demo carries ZERO elements with
+     a transition and ONE named animation in the whole console; clicking through
+     its pages the running count never moves off 1. HaTi played SIX TO TWELVE on
+     every navigation: `viewIn` faded the whole page up from opacity 0 and slid
+     it 6px, `rowIn` slid the register's rows in one after another (four running
+     at once, measured), and the nav item's own transition faded the active
+     marker from the door you left to the door you pressed.
+     The reference is explicit and gives the reason: "Everything else is
+     instant. Do not add transitions; the density reads as sluggish with them."
+     THE SUPPRESSION MACHINERY WENT WITH THEM, which is the tidy part —
+     markViewTransition, its 450ms re-arm and the .no-view-anim class existed
+     ONLY to stop these two replaying on a repaint. Its own comment said so:
+     "the whole screen replayed the fade-and-slide, reading as a flash of
+     reload." The animation was the problem; the machinery was the patch.
+     `viewIn`, `rowIn`, `.stagger` and `.no-view-anim` are STALE — flag any
+     mention. What still moves is listed in WORKORDER-screenshot-fixes.md
+     WO-12: spinners, the owner-asked green blink, the slide-over panels and
+     the land-here flashes.
+     `viewIn` ITSELF STAYS AND IS NOT STALE — `.view-enter` is what stopped
+     reading it. THREE other things still do, and each is a thing APPEARING
+     rather than a page being navigated to: a modal (.modal-in), a Copilot
+     answer arriving (.ai-msg) and the document overlay. Deleting the keyframe
+     with the page's use of it would have broken all three silently, which is
+     what the Bug Fix Rules mean by finding every place a thing appears. */
   @keyframes viewIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
-  /* `backwards` (not `forwards`) so the row settles to its normal static state
-     after the intro — a lingering forwards-filled transform animation keeps a
-     stacking context on every row, which traps absolute popovers (e.g. the row
-     ⋯ menu) behind later rows and makes them look transparent. */
-  .stagger>*{animation:rowIn .34s var(--ease) backwards}
-  @keyframes rowIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
-  /* The intro plays for a NAVIGATION, not for a repaint. Every render rebuilds
-     its view from scratch, so to the browser a background refresh, a theme
-     flip or a search keystroke is indistinguishable from arriving at the page
-     — and the whole screen replayed the fade-and-slide, reading as a flash of
-     reload. setView marks #content with this class for same-view repaints
-     (and once a navigation's intro has finished), so only a genuine change of
-     page animates and everything else holds still. */
-  .no-view-anim .view-enter,.no-view-anim .stagger>*{animation:none!important;}
 
   /* live ping (workspace status + activity live dots) */
   @keyframes livePing{0%{box-shadow:0 0 0 0 rgb(var(--color-accent-600-rgb)/.45)}70%{box-shadow:0 0 0 6px rgb(var(--color-accent-600-rgb)/0)}100%{box-shadow:0 0 0 0 rgb(var(--color-accent-600-rgb)/0)}}
-  .live-ping{animation:livePing 2.4s infinite;}
+  /* ---- ONE LOOPING ANIMATION, WHERE THE REFERENCE PUTS IT (WO-12 tier 2) ----
+     The handover allows exactly one piece of motion in the whole console — the
+     status line's dot at 2.4s — and HaTi ran FOUR at once, measured while idle:
+     two names (`livePing` at 2.4s and `ping` at 1.8s), two durations, both
+     saying "live", on several elements at a time.
+     `.live-ping` IS NOW A STATIC DOT and keeps its five call sites unchanged;
+     only the workspace status line adds `.status-pulse` beside it, which is the
+     one the reference draws. `ping` and `.live-dot::after` are RETIRED — flag
+     any mention as stale.
+     A DEFECT GOES WITH THEM, and it is why the retirement is a mercy: that
+     ripple scaled to 2.1x while carrying `border-radius:0` from the 20 Aug
+     corner sweep, so what was drawn as an expanding RING had been drawing as an
+     expanding SQUARE ever since. `.live-dot` keeps its position:relative — the
+     class still marks a dot, it just no longer pulses. */
+  .status-pulse{animation:livePing 2.4s ease-in-out infinite;}
   .live-dot{position:relative;}
-  .live-dot::after{content:'';position:absolute;inset:-3px;border-radius:0;background:currentColor;opacity:.35;animation:ping 1.8s cubic-bezier(0,0,.2,1) infinite;}
-  @keyframes ping{75%,100%{transform:scale(2.1);opacity:0;}}
 
   /* scrollbars */
   /* Thin means thin. At 9px with a full-width thumb these read as a second
@@ -1081,7 +1106,7 @@
   /* ============================================================
      SHELL — top header / sidebar / command bar / context panel
      ============================================================ */
-  .nav-item{position:relative;display:flex;align-items:center;gap:11px;width:100%;border:1px solid transparent;background:none;color:var(--color-neutral-600);font:inherit;font-family:var(--font-body);font-size:14px;font-weight:400;padding:9px 12px;cursor:pointer;text-align:left;border-radius:0;transition:background .12s,color .12s,border-color .12s;}
+  .nav-item{position:relative;display:flex;align-items:center;gap:11px;width:100%;border:1px solid transparent;background:none;color:var(--color-neutral-600);font:inherit;font-family:var(--font-body);font-size:14px;font-weight:400;padding:9px 12px;cursor:pointer;text-align:left;border-radius:0;}
   .nav-item .nav-rail{position:absolute;left:0;top:4px;bottom:4px;width:2px;background:transparent;border-radius:0;}
   .nav-item svg,.nav-item i{flex:none;opacity:.85;}
   .nav-item:hover{background:var(--color-neutral-100);color:var(--color-text);}
@@ -2575,6 +2600,14 @@
   #side-nav .nav-section-head.static:hover{ color:var(--color-neutral-400); }
   #side-nav .nav-plus{ color:var(--color-neutral-400); }
   #app-shell.rail #side-nav .nav-section-head::before{ color:var(--color-neutral-400); }
+  /* THE ACTIVE MARKER SNAPS (WO-12 tier 1). Taking the transition off
+     `.nav-item` was not enough: `button,[role=button]` carries a blanket 150ms
+     fade, so the marker still drifted from the door you left to the door you
+     pressed on every navigation — measured, four of these running at once.
+     SCOPED TO THE NAV RATHER THAN THE BLANKET RULE, deliberately: that rule is
+     every button's hover in the product, and the 111 transition declarations
+     are tier 3, which the order says is NOT this work. */
+  #side-nav .nav-item{ transition:none; }
   #side-nav .rail-head{ background:var(--color-surface); border-bottom:1px solid var(--color-divider); }
   #side-nav .rail-head-label{ color:var(--color-neutral-500); }
   /* ---- AND THE BUTTON BESIDE THE LABEL (owner-reported 24 Aug 2026: "bring
@@ -4369,7 +4402,7 @@
          updateSidebarStatus writes exactly where it always wrote. -->
     <div class="foot-wrap" id="foot-wrap" style="position:relative;border-top:1px solid var(--color-divider);">
       <button id="foot-toggle" type="button" class="foot-handle" aria-expanded="false" aria-controls="foot-sheet" title="Workspace status" data-i18n-title="foot_status_title">
-        <span class="live-ping" style="width:7px;height:7px;border-radius:50%;background:#10b981;flex:none;"></span>
+        <span class="live-ping status-pulse" style="width:7px;height:7px;border-radius:50%;background:#10b981;flex:none;"></span>
         <span class="foot-card-title" data-i18n="foot_status_title">Workspace status</span>
         <svg class="foot-chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 15-6-6-6 6"/></svg>
       </button>
