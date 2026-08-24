@@ -2577,6 +2577,22 @@
   #app-shell.rail #side-nav .nav-section-head::before{ color:var(--color-neutral-400); }
   #side-nav .rail-head{ background:var(--color-surface); border-bottom:1px solid var(--color-divider); }
   #side-nav .rail-head-label{ color:var(--color-neutral-500); }
+  /* ---- AND THE BUTTON BESIDE THE LABEL (owner-reported 24 Aug 2026: "bring
+     back the ability to collapse the nav panel") ----
+     IT NEVER WENT ANYWHERE. MEASURED where the owner drew an empty box: 26x26,
+     display:grid, opacity 1, visibility visible, perfectly clickable — and its
+     chevron, its fill and its ring were all WHITE on a head this very block had
+     just painted white. Contrast 1:1. The three colours were written for the
+     dark green sidebar and left behind when the column turned white on 24 Aug;
+     the label one line up was re-pointed and the button next to it was not.
+     THE SAME FAULT AS --n-accept's white tick on white and .rl-wall unstyled
+     outside its page — a rule written for a dark ground, outliving the ground.
+     Read from the nav's own inks rather than given literals, so the next time
+     this column changes colour the button comes with it. */
+  #side-nav .rail-toggle{ border-color:var(--color-divider); background:transparent;
+    color:var(--color-neutral-600); }
+  #side-nav .rail-toggle:hover{ background:var(--nav-well); color:var(--color-text); }
+  #side-nav .rail-toggle:focus-visible{ outline-color:var(--color-accent-600); }
 
   /* ---- THE FOOT OF THE COLUMN: A COPILOT DOOR AND A STATUS LINE ----
      The design puts both here, and HaTi already had the second: the folding
@@ -2857,8 +2873,15 @@
        above kept writing white on it, which is the washed-out block the
        drawer was showing. */
     #app-shell.rail #side-nav.open .foot-wrap{ padding:12px; }
-    #app-shell.rail #side-nav.open .foot-card{ background:rgba(255,255,255,.07);
-      border:1px solid rgba(255,255,255,.13); padding:9px 11px 10px; align-items:stretch; gap:5px; }
+    /* THE SWEEP THAT CAME WITH THE BUTTON ABOVE FOUND THIS ONE. Its own
+       comment still says "dark ground, dark-ground ink" — true when it was
+       written and false since the column turned white. It outranks
+       `#side-nav .foot-card` on specificity, so in the floating drawer it put
+       a white-at-7% wash behind a white-at-13% border on a white column: no
+       card at all. Same two tokens the base rule reads, so the two states of
+       one card can no longer disagree. */
+    #app-shell.rail #side-nav.open .foot-card{ background:var(--color-surface);
+      border:1px solid var(--color-divider); padding:9px 11px 10px; align-items:stretch; gap:5px; }
     #app-shell.rail #side-nav.open .foot-card-head{ justify-content:flex-start; }
     #app-shell.rail #side-nav.open .foot-card-title,
     #app-shell.rail #side-nav.open .foot-note{ display:block; }

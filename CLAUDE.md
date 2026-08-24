@@ -6,6 +6,26 @@ Do not rewrite the Bug Fix Rules section without asking the owner first. Updatin
 
 THIS FILE IS THE CONDENSED RULEBOOK (condensed 2026-08-11, owner-approved). The full history — every war story, quoted bug report and design argument behind these rules — is in docs/MAP-HISTORY.md, with matching section subjects. Read the matching section there BEFORE changing anything in that area. When a new lesson lands: the terse rule goes HERE, the full story goes there.
 
+## Scope rules
+
+- Do only what the current request asks. Nothing else.
+- If you notice a separate problem (broken test, bad code,
+  missing file, outdated dependency): DO NOT fix it.
+  Write one line in BUGLOG.md under "Noticed, not fixed"
+  and carry on with the original task.
+- Broken tests that were already failing before this session
+  are not your problem. Leave them red.
+- If the request is unclear, stop and ask. Do not pick
+  the wider interpretation.
+- At the end, list anything you touched that was outside
+  the request. If that list isn't empty, you broke this rule.
+
+THE OWNER'S OWN WORDS, 24 Aug 2026, and they sit ABOVE the Bug Fix Rules
+because they GOVERN them. Rule 2 below says find every place a thing appears;
+this says do not go and fix the other things you find on the way. Read in the
+other order the two can be made to argue. The finding still gets written down —
+BUGLOG.md is where, and it is one line, not a fix.
+
 ## Bug Fix Rules
 
 1. DUPLICATION WARNING: This app draws the same UI in several places. Never assume a fix in one place fixes them all.
