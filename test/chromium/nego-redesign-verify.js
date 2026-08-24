@@ -151,9 +151,11 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        pattern is settled — this owner reads a filled face as shouting rather
        than leading. WHAT THE CLAIM IS REALLY ABOUT SURVIVES: the row must speak
        with ONE voice, so the number of fills is pinned at zero rather than left
-       unasserted, and the act still leads by WEIGHT and position (pinned in
-       pages-read-alike-verify section 5, which owns the two heads together). */
-    check('1b none of them is filled — the row leads by weight, not by fill',
+       unasserted. THE WEIGHT WENT THE SAME MORNING ("publish round should not
+       be bold"), so the act now leads by POSITION and its accent outline alone
+       — pinned in pages-read-alike-verify section 5 and measured against its
+       neighbours in flat-rows-and-alerts-verify section 3. */
+    check('1b none of them is filled — the row leads by position, not by fill',
       acts.filled.length === 0, acts.filled.join(', ') || 'all flat');
     check('1b the playbook pass moved into the More menu, and is still reachable',
       !acts.pbOnRow && acts.pbInMenu, `on row ${acts.pbOnRow} · in menu ${acts.pbInMenu}`);
@@ -295,11 +297,19 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     check('5 and the column is STILL NOT A CARD — no ground, no border',
       col.paneBg === 'rgba(0, 0, 0, 0)' && parseFloat(col.paneBorder) === 0,
       `${col.paneBg} border ${col.paneBorder}`);
-    /* AND THE RENDER B COUNT MARKERS SURVIVED THE BUMP: the hairline box round
-       a resting count is a measured contrast decision six days older than this
-       redesign and was not part of what it reversed. */
-    check('5 a resting count keeps its hairline box',
-      parseFloat(col.restCount) >= 1, col.restCount);
+    /* ---- REVERSED IN PLACE 23 Aug 2026, owner-chose render B1 ----
+       This asserted the hairline box round a resting count, on the grounds that
+       Render B's markers were a measured contrast decision older than the
+       redesign and not part of what it reversed. B1 reverses them on purpose:
+       the count is 19px now — the largest thing on the column — so the box and
+       the live one's fill are a second mark for a fact the size already
+       carries, and the underline is back as the single marker.
+       WHAT THE CLAIM PROTECTS IS UNCHANGED and is asserted the other way up:
+       the live cut must be unmistakable and the resting counts must stay
+       readable. panel-alerts-and-head-verify measures both in full; here it is
+       the one line that used to say the opposite. */
+    check('5 REVERSED — a resting count wears no box; the size is the marker',
+      parseFloat(col.restCount) === 0, col.restCount);
     check('6 the Copilot band is still there, and so is the unsent band',
       col.copilot && col.band, `copilot ${col.copilot} · unsent ${col.band}`);
 

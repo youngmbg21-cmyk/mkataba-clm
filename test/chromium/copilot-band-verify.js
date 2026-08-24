@@ -194,10 +194,20 @@ const BODY = [
     await page.evaluate(() => rlSetDocType(15));
     await pause(500);
 
-    /* ---- 8. THE ALL / MINE / THEIRS ROW (Render B) ----
-       The count carries the state: resting counts are hairline boxes, the live
-       one fills, and the tab underline is gone. Computed, because a fill and a
-       border are exactly what jsdom cannot resolve. */
+    /* ---- 8. THE ALL / MINE / THEIRS ROW (render B1) ----
+       REVERSED IN PLACE 23 Aug 2026, and the history is the useful part.
+       Render B (22 Aug) made the COUNT carry the state: resting counts in
+       hairline boxes, the live one FILLED, the underline gone — because at
+       12px/600 with an underline the three cuts were nearly the same object and
+       the number was the faintest text on the column.
+       Render B1 (23 Aug, owner-chosen off five drawn heads) makes the count the
+       HEADLINE at 19px with the cut's name underneath, so the box and the fill
+       became a second mark for a fact the size already carries, and the
+       underline is back as the single marker.
+       WHAT THE CLAIM PROTECTS HAS NOT MOVED THROUGH EITHER: the live cut must
+       be unmistakable and the resting counts must stay readable. Computed,
+       because a fill, a border and an underline are exactly what jsdom cannot
+       resolve — which is the whole reason this block is in a browser file. */
     const seg = await page.evaluate(() => {
       const one = b => {
         const n = b.querySelector('.rl-fseg-n');
@@ -218,17 +228,19 @@ const BODY = [
     check('all three cuts draw, each with its own count',
       seg.length === 3 && seg.every(x => x.text !== '' && x.box !== '0x0'),
       seg.map(x => x.k + ' ' + x.text + ' (' + x.box + ')').join(', '));
-    check('the live count is FILLED — the marker is the number',
-      !!live && live.bg !== 'rgba(0, 0, 0, 0)' && live.ink === 'rgb(255, 255, 255)',
-      live && live.k + ': ' + live.bg + ' / ' + live.ink);
-    check('a resting count is a hairline box in real ink, never a faded one',
-      rest.every(x => x.opacity === '1' && parseFloat(x.border) >= 1
-        && x.bg !== live.bg),
-      rest.map(x => x.k + ': ' + x.bg + ' border ' + x.border).join(', '));
-    check('and the tab underline is gone — one mark for one fact',
-      seg.every(x => x.underline.indexOf('rgba(0, 0, 0, 0)') >= 0
-        || x.underline.indexOf('transparent') >= 0),
-      seg.map(x => x.k + ': ' + x.underline).join(' | '));
+    check('REVERSED — the live count is not filled; the underline marks it',
+      !!live && live.bg === 'rgba(0, 0, 0, 0)'
+        && parseFloat(live.underline) >= 2
+        && live.underline.indexOf('rgba(0, 0, 0, 0)') < 0,
+      live && live.k + ': ' + live.bg + ' | ' + live.underline);
+    check('REVERSED — a resting count wears no box, and is still real ink',
+      rest.every(x => x.opacity === '1' && parseFloat(x.border) === 0
+        && x.bg === 'rgba(0, 0, 0, 0)' && x.ink !== live.ink),
+      rest.map(x => x.k + ': ' + x.bg + ' border ' + x.border + ' ' + x.ink).join(', '));
+    check('and the resting tabs reserve the underline\'s height without drawing it',
+      rest.every(x => parseFloat(x.underline) === parseFloat(live.underline)
+        && x.underline.indexOf('rgba(0, 0, 0, 0)') >= 0),
+      rest.map(x => x.k + ': ' + x.underline).join(' | '));
 
     await page.click('[data-rl-cardfilter="theirs"]');
     await pause(800);
@@ -238,12 +250,16 @@ const BODY = [
       return {
         k: on && on.getAttribute('data-rl-cardfilter'),
         bg: n && getComputedStyle(n).backgroundColor,
+        underline: on && (getComputedStyle(on).borderBottomWidth + ' '
+          + getComputedStyle(on).borderBottomColor),
         counts: [...document.querySelectorAll('[data-rl-cardfilter]')]
           .map(b => b.getAttribute('data-rl-cardfilter') + ' ' + b.querySelector('.rl-fseg-n').textContent.trim()),
       };
     });
-    check('pressing a cut moves the fill to it',
-      moved.k === 'theirs' && moved.bg === (live && live.bg), moved.k + ' ' + moved.bg);
+    check('pressing a cut moves the marker to it',
+      moved.k === 'theirs' && parseFloat(moved.underline) >= 2
+        && moved.underline.indexOf('rgba(0, 0, 0, 0)') < 0,
+      moved.k + ' ' + moved.underline);
     check('and every count still says its own number — a filter can hide nothing quietly',
       moved.counts.join(', ') === seg.map(x => x.k + ' ' + x.text).join(', '),
       moved.counts.join(', '));

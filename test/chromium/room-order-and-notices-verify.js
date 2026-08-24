@@ -204,27 +204,31 @@ const seen = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
       renderRedline();
     });
     await page.waitForTimeout(900);
+    /* ---- REVERSED IN PLACE 23 Aug 2026, owner-asked ----
+       This asserted that the signal arrives FOLDED behind the bell and that
+       pressing the bell gives the sentence back. The bell opens the workspace
+       ALERTS PANEL now, so the notices it used to fold draw in place — the
+       claim underneath, that this is a card in the bottom-right stack and never
+       a band across the top of the contract, is unchanged and is what the two
+       checks below still say. */
     const signalled = await page.evaluate(([s]) => {
       const seenFn = eval(s);
-      return { bell: seenFn(document.querySelector('#rl-notices [data-rl-notices-open]')),
-        bandNow: seenFn(document.getElementById('nego-ready-signal')) };
-    }, [seen]);
-    check('a signal that they are ready arrives as a bell, not as a band',
-      !!signalled.bell && signalled.bell.on && (!signalled.bandNow || !signalled.bandNow.on),
-      `bell ${JSON.stringify(signalled.bell)}`);
-    await page.evaluate(() => document.querySelector('#rl-notices [data-rl-notices-open]').click());
-    await page.waitForTimeout(700);
-    await page.screenshot({ path: path.join(OUT, '02-negotiate-notices.png') });
-    const opened = await page.evaluate(([s]) => {
-      const seenFn = eval(s);
       const sig = document.getElementById('nego-ready-signal');
-      return { box: seenFn(sig), said: sig ? sig.textContent.replace(/\s+/g, ' ').trim() : '',
-        verb: seenFn(document.getElementById('nego-issue-signing')) };
+      return { bell: seenFn(document.querySelector('#rl-notices .rl-notices-fab')),
+        box: seenFn(sig), said: sig ? sig.textContent.replace(/\s+/g, ' ').trim() : '',
+        verb: seenFn(document.getElementById('nego-issue-signing')),
+        inStack: !!(sig && sig.closest('#rl-notices')) };
     }, [seen]);
-    check('pressing it gives back every word of the sentence',
-      !!opened.box && opened.box.on
-        && /signalled/.test(opened.said) && /Nothing is signed yet/i.test(opened.said),
-      opened.said.slice(0, 110));
+    await page.screenshot({ path: path.join(OUT, '02-negotiate-notices.png') });
+    check('a signal that they are ready is a card in the stack, never a band',
+      !!signalled.box && signalled.box.on && signalled.inStack,
+      JSON.stringify({ on: signalled.box && signalled.box.on, inStack: signalled.inStack }));
+    check('and it says every word of the sentence, with no press to find it',
+      /signalled/.test(signalled.said) && /Nothing is signed yet/i.test(signalled.said),
+      signalled.said.slice(0, 110));
+    check('the bell stands beside it as the door onto the alerts panel',
+      !!signalled.bell && signalled.bell.on, JSON.stringify(signalled.bell));
+    const opened = signalled;
     check('and the button that was on the band came with it',
       !!opened.verb && opened.verb.on, JSON.stringify(opened.verb));
     check('the bands did not come back with it',

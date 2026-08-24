@@ -1769,15 +1769,34 @@ function uploadDocBody(c){
          could be read for Copilot review. None of it is the counterparty's business,
          and shown to them it produced a second Download button competing with
          the portal's own, under copy addressed to somebody else. -->
+    ${''/* ---- THE SAME FIX AS THE BRANCH ABOVE, ONE BRANCH LATE (owner-asked
+         23 Aug 2026: "I do not understand the need for the highlighted alert.
+         Get rid of it") ----
+         On 20 Aug the extracted-text box lost its border and became the page,
+         on the reasoning that this tab already renders inside the standard
+         sheet and a bordered card on it is a contract inside a contract. THIS
+         box is the same thing for an upload whose wording has since been
+         EDITED, and it was missed: an uppercase caption with an icon, an accent
+         border, a padded card, and a sentence underneath explaining what the
+         box was for.
+
+         THE WORDING STAYS AND IS THE PAGE. Deleting the block outright was the
+         obvious reading of the ask and would have been wrong: once c.redlineText
+         exists the branch above stops drawing the file's own text, so this is
+         the ONLY place the agreement's current wording appears on this tab.
+         What goes is the lid, not the contract.
+
+         AND ONE SENTENCE REALLY IS LOST, said out loud rather than absorbed:
+         "This edited text is what versions, Compare and the seal operate on"
+         was the only place in the product that said so. It is a fact about how
+         the seal works rather than about this document, it was being told to
+         every reader of every edited upload for ever, and nothing acts on it.
+         If it is wanted back it wants a home of its own — the evidence pack or
+         the seal's own panel — not a caption over the contract.
+         ct_working_text is STALE. */}
     ${c.redlineText?`
-    <div class="mb-4" data-anchor="redline">
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-        <span style="color:var(--color-accent)">${icon('history','w-3.5 h-3.5')}</span>
-        <span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--color-neutral-600)">${i18t('ct_working_text')}</span>
-      </div>
-      <div style="border:1px solid var(--color-accent-300);background:var(--color-surface);border-radius:0;padding:12px 14px;color:var(--color-doc-text)">${docBodyHtml(c,{size:'13px',lh:'1.7'})}</div>
-      <div style="font-size:12px;color:var(--color-neutral-600);margin-top:4px">This edited text is what versions, Compare and the seal operate on — the original file below is retained unchanged as the received source.</div>
-    </div>`:''}
+    <div class="mb-4" data-anchor="redline" style="color:var(--color-doc-text)">${
+      docBodyHtml(c,{size:'13px',lh:'1.7'})}</div>`:''}
     ${preview}
     ${signatureBlock(c)}`;
 }
@@ -2048,7 +2067,16 @@ function docBody(c){
     const p=flags['c'+n]?FLAGPAL[flags['c'+n].sev]:null;
     const wrap=p?` style="background:${p.box};outline:1px solid ${p.line};border-radius:0;padding:6px 10px;margin-bottom:14px"`:'';
     const tag=p?`<span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:${p.bg};color:${p.fg};padding:1px 6px;border-radius:0;flex:none">${p.tag}</span>`:'';
-    return `<div class="${p?'py-1':'mb-5 px-2 -mx-2 py-1'}" data-anchor="c${n}"${wrap}><div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px"><h4 class="font-display font-600 text-brand-900 text-[13px]" style="margin:0">${n}. ${title}</h4>${tag}</div><p class="text-[13.5px] leading-[1.85]" style="margin:0;color:var(--color-doc-text)">${body}</p></div>`;
+    /* NO FIXED-SIZE UTILITY ON THE PAPER. These carried `text-[13.5px]` and
+       `text-[13px]`, and both LIE: the 22 Aug size sweep moved the compiled
+       values to 15px and 14px and left the class NAMES saying 13.5 and 13.
+       Worse, a fixed size defeats the reader's own A-/A+ control — MEASURED
+       at the 8px, 15px and 20px settings, .doc-surface moved 7.46 -> 14 ->
+       18.66px while every clause paragraph stayed at a flat 15px, so at the
+       small setting the clause TITLE (10.66px) drew smaller than the body it
+       sat above. The body now inherits the sheet's own scaled size and the
+       heading takes a RATIO of it, so both follow the reader. */
+    return `<div class="${p?'py-1':'mb-5 px-2 -mx-2 py-1'}" data-anchor="c${n}"${wrap}><div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px"><h4 class="font-display font-600 text-brand-900" style="margin:0;font-size:1.05em">${n}. ${title}</h4>${tag}</div><p style="margin:0;color:var(--color-doc-text);line-height:var(--lh-doc)">${body}</p></div>`;
   };
   const f=c.fields;
   const D=id=>fDate(id,f[id]);                    // date field
@@ -2204,7 +2232,7 @@ function docBody(c){
      agreement, so it leads. */
   return `
     ${docPaperHeadHtml({...c, name:(c.name||title)},{note:t.kind})}
-    <p class="text-[13px] leading-[1.7] mb-6 px-2 -mx-2 py-1" style="color:var(--color-doc-text)" data-anchor="recital">${recital}</p>
+    <p class="mb-6 px-2 -mx-2 py-1" style="color:var(--color-doc-text);line-height:var(--lh-relaxed)" data-anchor="recital">${recital}</p>
     ${clauses.join('')}
     ${signatureBlock(c)}`;
 }
@@ -5316,7 +5344,7 @@ function renderWorkspace(){
     ? i18t('ct_back_to',{where:FOLDERS[_wr.folderId].name})
     : i18t('ct_back_to',{where:i18t('ct_back_register')});
   content.innerHTML=`
-  <div class="view-enter" style="height:var(--view-h);box-sizing:border-box;padding:6px 16px 12px;display:flex;flex-direction:column;gap:8px">
+  <div class="view-enter" style="height:var(--view-h);box-sizing:border-box;padding:6px var(--page-pad-x) 12px;display:flex;flex-direction:column;gap:8px">
 
     <!-- ============ THE HEAD IS ONE WHITE BAND (owner-asked 23 Aug 2026) ====
          "The highlighted area should be white just like in the attached html."

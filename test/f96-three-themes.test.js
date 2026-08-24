@@ -234,25 +234,30 @@ describe('F96 — the Copilot is a layer, not a hole', () => {
 
   /* Read the value out of each palette block rather than trusting one
      definition: a theme that overrides --color-bg and forgets this is exactly
-     how the blend comes back.
-
-     ---- FOUND BY ITS SELECTOR, NOT BY WHAT FOLLOWS IT (re-pointed 23 Aug
-     2026) ---- This used to anchor on the literal string ":root{\n
-     --color-bg:", which is a claim about ADJACENCY rather than about the
-     palette. The 22 Aug ground retune put an explanatory comment between those
-     two lines and the anchor stopped matching, so this test reported "the
-     light palette is still there" as a failure about a palette that had never
-     moved. The block is located by its SELECTOR and the token by its NAME, so
-     a comment, a reordering or a new token between them costs nothing. */
-  const tokenIn = (selector, name) => {
-    const at = css.search(new RegExp('^\\s*' + selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*\\{', 'm'));
+     how the blend comes back. */
+  /* THE BLOCK IS FOUND BY MATCHING ITS BRACES, NOT BY ASSUMING WHAT FOLLOWS
+     THE OPENING ONE. This read used to anchor on the literal
+     `  :root{\n    --color-bg:` and slice to the first `\n  }` in the FILE —
+     so the day somebody wrote a comment between `:root{` and the first token
+     (22 Aug, the ink retune), the anchor stopped matching, indexOf returned
+     -1, the slice came back EMPTY and all three tokens read undefined. The
+     test then failed on a claim that was still perfectly true: the three
+     colours are #F4F6F6, #ffffff and #eef2f7. A fragile anchor accusing the
+     product of a fault it does not have is worse than no test. */
+  const tokenIn = (blockOpen, name) => {
+    const at = css.indexOf(blockOpen);
     assert.ok(at > 0, 'the ' + name + ' palette is still there');
-    const block = css.slice(at, css.indexOf('\n  }', at));
+    let depth = 0, end = at;
+    for (let i = css.indexOf('{', at); i < css.length; i++){
+      if (css[i] === '{') depth++;
+      else if (css[i] === '}'){ depth--; if (depth === 0){ end = i; break; } }
+    }
+    const block = css.slice(at, end);
     const grab = k => (block.match(new RegExp('--' + k + ':\\s*(#[0-9a-fA-F]{3,8})')) || [])[1];
     return { bg: grab('color-bg'), surface: grab('color-surface'), chat: grab('color-chat-bg') };
   };
 
-  for (const [start, name] of [[':root', 'light'], ['html.dark', 'dark']]) {
+  for (const [start, name] of [['  :root{', 'light'], ['  html.dark{', 'dark']]) {
     test(`${name}: the chat backdrop is its own tone, apart from the page and the panel`, () => {
       const t = tokenIn(start, name);
       assert.ok(t.bg && t.surface && t.chat, `${name} defines all three`);

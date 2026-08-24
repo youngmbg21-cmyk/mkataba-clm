@@ -244,7 +244,7 @@ function renderIntake(){
            flush against the sidebar. 16px 18px 28px is this product's own page
            measure — the same one Templates, Reports and the template library
            use — rather than a number picked for this screen. */}
-    <div class="view-enter" style="padding:16px 18px 28px;display:flex;flex-direction:column;gap:22px;max-width:894px">
+    <div class="view-enter" style="padding:var(--page-pad);display:flex;flex-direction:column;gap:22px;max-width:894px">
       <section style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap">
         <div style="flex:1;min-width:220px">
           <p style="font-size:14px;color:var(--color-neutral-600);line-height:1.6;margin:0">${esc(may?i18t('ik_lead_editor'):i18t('ik_lead_asker'))}</p>

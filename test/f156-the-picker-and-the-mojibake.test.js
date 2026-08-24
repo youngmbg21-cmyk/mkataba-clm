@@ -117,7 +117,13 @@ describe('f156 · the picker is visible', () => {
     assert.match(html, /id="rv-who"/);
     assert.match(html, /<label for="rv-who"/, 'the label points at the field');
     const field = html.slice(html.indexOf('id="rv-who"') - 400, html.indexOf('id="rv-who"') + 400);
-    assert.match(field, /border:1px solid var\(--color-divider\)/, 'it has the house field border');
+    /* REVERSED IN PLACE 23 Aug 2026 — the CLAIM is unchanged and is the point:
+       this field has the house border rather than an invented one. The house
+       border moved from --color-divider to --field-line in the design-system
+       pass, because WCAG 1.4.11 wants 3:1 on a control's own boundary and the
+       divider measures about 1.3:1 — a field edge nobody can see is not an
+       edge. Pinned as the TOKEN, not as a colour, so the next retune is free. */
+    assert.match(field, /border:1px solid var\(--field-line\)/, 'it has the house field border');
     assert.match(field, /role="combobox"/, 'and it is a combobox, not a bare select');
     assert.ok(!/<select id="rv-who"/.test(html), 'the scrolling list is gone');
   });

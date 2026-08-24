@@ -71,7 +71,7 @@ function renderAdviceDesk(){
     </div>`).join('');
 
   document.getElementById('content').innerHTML=`
-  <div class="view-enter" style="height:var(--view-h);box-sizing:border-box;padding:14px 16px 18px;display:flex;flex-direction:column;gap:12px">
+  <div class="view-enter" style="height:var(--view-h);box-sizing:border-box;padding:var(--page-pad-t) var(--page-pad-x) var(--s-4);display:flex;flex-direction:column;gap:12px">
     <style>
       .q-card{transition:border-color .12s ease,box-shadow .12s ease}
       .q-card:hover{border-color:var(--color-accent)!important;box-shadow:var(--shadow-md)!important}

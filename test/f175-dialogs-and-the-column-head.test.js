@@ -152,8 +152,19 @@ describe('f175 · every dialog in the feature wears the same head', () => {
       'flat at rest — the fill belongs to the page\'s one act');
     assert.match(btn[1], /border:1px solid color-mix\(in srgb,var\(--accent-solid\) 45%,transparent\)/,
       'an ACCENT border, never a neutral one — the 17 Aug lesson');
-    assert.match(btn[1], /color:var\(--color-accent-700\)/,
+    /* REVERSED IN PLACE 23 Aug 2026, CLAIM UNCHANGED AND STRENGTHENED. This
+       read the raw ramp step, which had NO dark answer: html.dark redefines
+       the surface, the ink and the whole neutral ramp and never redefines the
+       accent, so every ordinary button in the product measured 3.26:1 at
+       night in teal and 1.58:1 in navy. --accent-ink is the same accent ink
+       and already carried a correct dark value; this class simply never read
+       it. Measured after: 9.59:1. The second assertion is the claim this test
+       is really making — never a neutral — pinned so a refactor that fades it
+       to grey still fails here exactly as it would have before. */
+    assert.match(btn[1], /color:var\(--accent-ink\)/,
       'and accent ink, so it never reads as furniture');
+    assert.doesNotMatch(btn[1], /color:var\(--color-neutral/,
+      'never a neutral ink — the 17 Aug lesson, three times learned');
     assert.doesNotMatch(btn[1], /box-shadow/,
       'no lift: a flat control beside a filled one is the whole hierarchy');
     assert.match(INDEX, /\.ui-btn:not\(\.ui-btn-primary\):hover\{border-color:var\(--accent-solid\)/,
@@ -238,24 +249,56 @@ describe('f175 · the Tracked Changes head is a rule, not a box', () => {
       'the All tab carries it instead');
     assert.ok(/\.rl-idx-n\.is-live\{[^}]*var\(--color-accent-800\)/.test(p.css()),
       'the count rules stay in the sheet for the reviewer head that still draws one');
-    /* REVERSED IN PLACE (owner-chose Render B, 22 Aug 2026). The pressed tab's
-       count used to be the same accent INK as the reviewer's live count. It is
-       a FILLED box now — the count carries the state and the underline is gone
-       — and the fill is accent-700 rather than --accent-solid because white on
-       accent-600 measures 3.74:1, under what a 10.5px number needs. The claim
-       is unchanged in what it protects: the live cut must be unmistakable. */
-    assert.ok(/\.rl-fseg\.on \.rl-fseg-n\{[^}]*background:var\(--color-accent-700\)/.test(p.css()),
-      'the pressed tab\'s count FILLS with the workspace accent');
-    assert.ok(/\.rl-fseg\.on \.rl-fseg-n\{[^}]*color:#fff/.test(p.css()),
-      'and takes white ink, which is the pair that was measured');
-    assert.ok(!/\.rl-fseg\.on\{[^}]*border-bottom-color/.test(p.css()),
-      'and the underline is gone — one mark for one fact, never two');
-    /* The count that is NOT live must stay readable, which is the property the
-       old opacity:.62 was quietly failing. */
+    /* ---- REVERSED IN PLACE AGAIN (owner-chose render B1, 23 Aug 2026) ----
+       The history, because it is the useful part. 16 Aug: the live cut was an
+       accent INK. 22 Aug (Render B, chosen off four drawn options): a FILLED
+       accent-700 box, because at 12px/600 with an underline the live cut and
+       the two resting ones were nearly the same object and the NUMBER — the
+       thing anybody scans this row for — was the faintest text on the column.
+       23 Aug (render B1, chosen off five drawn heads): the number is the
+       HEADLINE at 19px with the cut's name in 11px under it, so the box and the
+       fill are gone — a box round the largest thing on the column is a second
+       mark for a fact the size already carries — and the underline is back as
+       the one marker, which is what a tab row means everywhere else in this
+       product.
+
+       WHAT THE CLAIM PROTECTS HAS NEVER MOVED THROUGH ANY OF IT: the live cut
+       must be unmistakable, and the resting counts must stay readable. Both are
+       asserted below against the arrangement that draws today. */
+    assert.ok(/\.rl-fseg\.on\{[^}]*border-bottom-color:var\(--accent-solid\)/.test(p.css()),
+      'the live tab is marked by its underline');
+    assert.ok(/\.rl-fseg\.on\{[^}]*color:var\(--accent-ink\)/.test(p.css()),
+      'and by the accent ink — --accent-ink, so the dark theme follows with no second rule');
+    assert.ok(!/\.rl-fseg\.on \.rl-fseg-n\{/.test(p.css()),
+      'the fill is gone with the box it filled');
+
+    /* ---- ONE COLOUR DECLARATION, AND BOTH HALVES INHERIT IT ----
+       This is what makes B1 hold together rather than being six edits: the
+       state is set once on the button. Give the number or the word a colour of
+       its own and the live state stops reaching it — which is exactly how the
+       arrangement before this one came to set its live count in two places. */
     const rest = /\.rl-fseg-n\{([^}]*)\}/.exec(p.css())[1];
+    const word = /\.rl-fseg-w\{([^}]*)\}/.exec(p.css())[1];
     assert.ok(!/opacity/.test(rest), 'a resting count is real ink, not a faded one');
-    assert.match(rest, /color:var\(--color-neutral-500\)/, 'set in the head\'s own quiet ink');
-    assert.match(rest, /border:1px solid var\(--color-divider\)/, 'in its own hairline box');
+    assert.ok(!/color:/.test(rest), 'the count states no colour — it inherits the tab\'s');
+    assert.ok(!/color:/.test(word), 'nor does the word under it');
+    assert.ok(!/background:var|border:1px/.test(rest),
+      'and it wears no box — background:none and border:0 are the box being taken off');
+    /* B1 IS "ALL OF IT BLACK", and that is a deliberate exception to the
+       four-shades rule (primary is 14px and up; the secondary shade is where
+       11-13px lives). The owner was shown B3, which keeps the caption and the
+       small word grey, and chose B1. Pinned so it stays a decision. */
+    const tab = /\.rl-fseg\{([^}]*)\}/.exec(p.css())[1];
+    assert.match(tab, /color:var\(--color-text\)/, 'a resting tab is the primary ink');
+    const cap = /\.rl-idx-k\{([^}]*)\}/.exec(p.css())[1];
+    assert.match(cap, /color:var\(--color-text\)/, 'and so is the caption above it');
+    /* The count is the headline and the word is its caption — the whole shape
+       of the render. Asserted as the RELATION, so the next type pass costs no
+       edit here. */
+    const px = t => Number((/font-size:([\d.]+)px/.exec(t) || [])[1]);
+    assert.ok(px(rest) > px(word) + 4,
+      'the number leads by a clear step — it is the thing being scanned');
+    assert.match(word, /text-transform:uppercase/, 'and the word reads as its label');
 
     /* Nothing on the table at all: the tabs still draw, reading zero. */
     const q = await stage();

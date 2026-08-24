@@ -6060,25 +6060,41 @@ function redlineRoundLabel(c){
        explain to their counterparty. */
 let _redlineHeldId = null;
 const redlineHeldId = () => _redlineHeldId;
-/* Statuses that are still ours to move. Anything else has left our hands. */
-const RL_DEMOTABLE = new Set(['Under Review']);
-function redlineEvict(nextId, opts = {}){
-  const prev = _redlineHeldId;
-  if (!prev || prev === nextId) return null;
-  const c = (typeof getContract === 'function') ? getContract(prev) : null;
-  if (!c) return null;
-  if (!RL_DEMOTABLE.has(c.status)) return null;
-  const from = c.status;
-  c.status = 'Draft';
-  c.lastAction = (window.todayStr ? todayStr() : c.lastAction);
-  if (window.logAudit) logAudit(c, 'Lifecycle',
-    `Moved from ${from} back to Draft — the redline workbench took on ${nextId || 'another contract'},`
-    + ' and the bench holds one agreement at a time');
-  if (opts.persist !== false && window.persist) persist(c);
-  if (window.toast) toast(`${c.name} moved back to Draft — the workbench now holds ${
-    (typeof getContract === 'function' && getContract(nextId) || {}).name || 'another contract'}`);
-  return c;
-}
+/* ---- NOTHING IS DEMOTED FOR ARRIVING SECOND (owner-reported 23 Aug 2026) ----
+   This function used to move the PREVIOUS occupant of the bench from Under
+   Review back to Draft, on the premise that "the bench holds one agreement at a
+   time" and the dashboard pipeline should read as what is actually being worked
+   on. THE PREMISE WAS FALSE ABOUT THIS BUSINESS: this workspace runs eighteen
+   live negotiations, so clicking through them demoted them one at a time, and
+   the fifteen doors that open a negotiation — the list, the contract tab, the
+   alerts panel, a playbook finding, the dashboard, the phone — were all
+   eviction doors without saying so.
+
+   THREE THINGS MADE IT WORSE THAN IT SOUNDS, and they are why this is a removal
+   rather than a narrowing:
+
+     · IT WAS ASYMMETRIC. Eviction demoted; arrival promoted nothing. So once a
+       contract had been bumped, coming back and negotiating for an hour left it
+       still calling itself Drafting.
+     · IT WAS SILENT, despite being built not to be. The announcement was a BARE
+       toast call, and a bare call draws nothing by design (see toast in
+       js/core.js) — so the pop-up this feature rested on had never appeared
+       once. Only the audit line recorded it.
+     · AND THE TEST COULD NOT SEE THAT. test/world.js's toast stub records every
+       call and defaults a missing kind to 'ok', so f91 asserted the message was
+       SENT and passed throughout on a product that said nothing. The stub is
+       the opposite of the rule the real function follows.
+
+   A STAGE IS A CLAIM ABOUT A CONTRACT, and which page you last had open is not
+   evidence for it. What moves a contract out of Drafting is somebody sending it
+   to the other side — contractLeavesDrafting, one act behind both send doors.
+
+   KEPT AS A STUB RATHER THAN DELETED, the way negoCounterLineHtml and
+   actionBarHtml are kept: it is published on window and openRedlineWorkbench
+   calls it, so a caller must not be able to bring the demotion back through a
+   door nobody remembered. RL_DEMOTABLE went with the body and is STALE — flag
+   any mention. */
+function redlineEvict(){ return null; }
 /* Bring a contract to the bench. The one entry point, so the eviction cannot
    be skipped by a caller that sets state.activeId and calls setView itself. */
 function openRedlineWorkbench(id, opts = {}){
@@ -10041,17 +10057,41 @@ if (typeof document !== 'undefined' && !document._rlNoticeFoldWired){
   document._rlNoticeFoldWired = true;
   document.addEventListener('click', ev => {
     const t = ev.target;
-    const open = t && t.closest && t.closest('[data-rl-notices-open]');
-    const shut = !open && t && t.closest && t.closest('[data-rl-notices-min]');
+    if (!t || !t.closest) return;
+    const hit = t.closest('[data-rl-alerts-open]');
+    if (hit){
+      ev.preventDefault();
+      /* ---- THE PANEL IS THE PRODUCT'S, NOT THIS PAGE'S ----
+         openPanel is app.js's, reached through window because these are ES
+         modules: a bare call would throw on the counterparty's page and on
+         every node stage that mounts these panes without the shell. Where it is
+         absent the press does nothing rather than half-opening something. */
+      if (typeof window.openPanel !== 'function') return;
+      openPanel('alerts');
+      /* ---- SEEING IT IS THE PANEL'S JOB, AND THE BELL FOLLOWS ----
+         renderContextPanel marks the readiness news seen as it paints, so that
+         the row gets to flash exactly once — the flash is the whole point of
+         opening it. By the time this line runs the fact has moved, and the bell
+         has to be repainted or it holds a green it no longer means. */
+      rlRepaintFrom(hit);
+      return;
+    }
+    /* ---- AND THE PHONE STILL FOLDS, WHICH IS WHY THIS BRANCH SURVIVES ----
+       mNoticeStackHtml builds its own stack with its own bell and its own Hide
+       chip, and there is no alerts panel on that shell to send anybody to. The
+       desktop page stopped emitting these two attributes on 23 Aug 2026; the
+       phone did not, and deleting the handler with them left its bell a dead
+       press — caught by room-order-and-notices-verify, which drives the real
+       phone shell. */
+    const open = t.closest('[data-rl-notices-open]');
+    const shut = !open && t.closest('[data-rl-notices-min]');
     if (!open && !shut) return;
     ev.preventDefault();
     const cid = open ? open.getAttribute('data-rl-notices-open')
       : shut.getAttribute('data-rl-notices-min');
-    /* ---- OPENING IT IS SEEING IT ----
-       Only on the way OPEN, and only for the green half: the reader has now
-       been shown the notice, so the NEWS is settled. The amber bell and the
-       notice behind it are untouched — they are about the WORK, which is
-       settled by issuing the signing link, not by looking. */
+    /* OPENING IT IS SEEING IT — only on the way open, and only for the green
+       half. The amber bell and the notice behind it are about the WORK, which
+       is settled by issuing the signing link, not by looking. */
     if (open && typeof rlMarkReadySeen === 'function'){
       const c = (typeof getContract === 'function') ? getContract(cid) : null;
       if (c) rlMarkReadySeen(c);
@@ -10128,40 +10168,67 @@ function rlNoticeStackHtml(c, alerts, note, id, opts){
      catching clicks meant for the document. */
   if (!n && opts && opts.side === 'counterparty') return '';
   const cid = _nea(String((c && c.id) || ''));
-  let stack;
   /* ---- ONE BELL PER PAGE, AND ON THEIR PAGE IT IS THE HEADER'S ----
-     (owner-asked, 13 Aug 2026.) The counterparty's page has its own bell now,
-     in their header row, with an alerts panel behind it. Two bells on one
-     page, both amber, both about the same contract, is worse than none at
-     all — so the floating one is not drawn on that seat, and their notices
-     are read through the header's panel instead.
-
-     THE OWNER'S WORKBENCH KEEPS ITS FLOATING BELL EXACTLY AS IT IS, and the
-     reason is that there they are genuinely two questions: the header bell is
-     about the whole WORKSPACE and the floating one is about THIS contract. On
-     the counterparty's page there is only one contract, so there is only one
-     question and it gets one door.
-
-     THE READING NOTICE IS NOT AN ALERT and is unaffected on either seat — it
-     never folded and it still does not (see below). */
+     (owner-asked, 13 Aug 2026.) The counterparty's page has its own bell, in
+     their header row, with an alerts panel behind it. Two bells on one page,
+     both amber, both about the same contract, is worse than none at all — so
+     the floating one is not drawn on that seat, and their notices are read
+     through the header's panel instead. */
   const theirs = !!(opts && opts.side === 'counterparty');
-  if (theirs) stack = n;
-  else if (!a) stack = n;
-  else if (rlNoticesFolded(c)) {
-    /* NEWS, not work — see rlBellIsNews. The class is what turns it green and
-       sets it blinking; the LABEL changes with it, because a bell that has
-       changed colour to say something specific and still reads "notices" has
-       told a screen reader nothing. */
-    const news = (typeof rlBellIsNews === 'function') && rlBellIsNews(c);
-    const lbl = _nea(i18t(news ? 'ng_notices_fab_ready' : 'ng_notices_fab'));
-    stack = n + `<button type="button" class="rl-notices-fab${news ? ' is-news' : ''}" data-rl-notices-open="${cid}"
-      aria-label="${lbl}" title="${lbl}">&#128276;<span class="rl-fab-dot"></span></button>`;
-  }
-  else
-    stack = `<button type="button" class="rl-notices-min" data-rl-notices-min="${cid}"
-      aria-label="${_nea(i18t('ng_notices_min_title'))}" title="${_nea(i18t('ng_notices_min_title'))}">${i18t('ng_notices_min')} &#9662;</button>`
-      + a + n;
-  return `<div class="rl-notices" id="${_nea(id || 'rl-notices')}">${stack}</div>`;
+  /* ---- THE BELL IS A DOOR ONTO THE ALERTS PANEL (owner-asked 23 Aug 2026) ----
+     "The bell will work as designed today, but when you click on it the side
+     panel alert system is what appears."
+
+     WHAT THAT CHANGES, AND WHY THE FOLD HAD TO GO WITH IT. Until now the bell
+     folded THIS CONTRACT'S notices behind itself: press it and they slid out,
+     press Hide and they went away again. Pointing the same button at the
+     workspace panel leaves those notices with no door at all — so they stop
+     folding and draw in place, which is where the unfolded state already put
+     them. Nothing is hidden that was visible, and nothing that was reachable
+     has become unreachable; what is lost is the ability to sweep them all away
+     for a sitting, and the one notice anybody ever wanted to sweep — the review
+     banner — has carried its own ✕ since the day it was built.
+
+     THE TWO IDEAS ARE FINALLY APART, which is the gain. A NOTICE is a statement
+     about the page in front of you (which reading you are in, what this desk
+     lets you do); it belongs on the page. An ALERT is something waiting on you
+     across the workspace; it belongs in the panel. They were muddled precisely
+     because one button served both.
+
+     rlNoticesFolded / rlSetNoticesFolded survive and answer as before: the
+     phone's own stack (mNoticeStackHtml) still folds, and it has no panel to
+     open. `ng_notices_min` / `ng_notices_min_title` are STALE on this page. */
+  const body = theirs ? n : (a + n);
+  const bell = theirs ? '' : rlAlertsBellHtml(c);
+  if (!body && !bell) return '';
+  return `<div class="rl-notices" id="${_nea(id || 'rl-notices')}">${body}${bell}</div>`;
+}
+/* ---- THE FLOATING BELL, AND THE NUMBER ON IT ----
+   It counts what the HEADER bell counts, because it now opens the same panel,
+   and a door wearing a different number from the room behind it is a door that
+   lies. alertCount is asked through window and inside a try: this component is
+   mounted on stages that never load the shell (the counterparty's page builds
+   its own, and half the node suite mounts the panes bare), and a bare
+   cross-module read throws rather than falling through.
+
+   NOTHING WAITING, NOTHING DRAWN — the header dot's own rule. An always-present
+   bell over the bottom corner of the contract is furniture, and it would sit
+   there catching presses meant for the document.
+
+   NEWS, not work — see rlBellIsNews. The class is what turns it green and sets
+   it blinking; the LABEL changes with it, because a bell that has changed colour
+   to say something specific and still reads "alerts" has told a screen reader
+   nothing. */
+function rlAlertsBellHtml(c){
+  const news = (typeof rlBellIsNews === 'function') && rlBellIsNews(c);
+  let n = 0;
+  try { if (window.alertCount) n = alertCount() | 0; } catch (_) { n = 0; }
+  if (!n && !news) return '';
+  const lbl = _nea(i18t(news ? 'ng_notices_fab_ready' : 'ng_notices_fab'));
+  const cid = _nea(String((c && c.id) || ''));
+  return `<button type="button" class="rl-notices-fab${news ? ' is-news' : ''}" data-rl-alerts-open="${cid}"
+      aria-label="${lbl}" title="${lbl}">&#128276;${
+    n ? `<span class="rl-fab-dot">${n > 9 ? '9+' : n}</span>` : ''}</button>`;
 }
 /* ---- THE ALERTS THAT FOLD, AS THEIR OWN POPULATION (13 Aug 2026) ----
    ONE list, TWO readers. The owner's floating stack folds it behind its bell;
@@ -11854,8 +11921,8 @@ function redlinePanesHtml(c, opts = {}){
             return `<div class="rl-fsegwrap" role="group" aria-label="${_nea(i18t('ng_filter_group'))}">${
               RL_CARD_FILTERS.map(([k, key]) => `<button type="button" data-rl-cardfilter="${k}"
                 class="rl-fseg${rlCardFilter() === k ? ' on' : ''}" aria-pressed="${rlCardFilter() === k ? 'true' : 'false'}"
-                title="${_nea(i18t(tip[k], { who: c.counterparty || i18t('ng_the_counterparty') }))}">${
-                _ne(i18t(key))}<span class="rl-fseg-n">${n(k)}</span></button>`).join('')}</div>`;
+                title="${_nea(i18t(tip[k], { who: c.counterparty || i18t('ng_the_counterparty') }))}"><span
+                class="rl-fseg-n">${n(k)}</span><span class="rl-fseg-w">${_ne(i18t(key))}</span></button>`).join('')}</div>`;
           })()}
           ${''/* kept for the engine's wiring and the header proxies; the design
                  carries these controls in the page header instead */}
@@ -12073,14 +12140,14 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlCpTypePx, rlCpSetType, rlCpZoom,
   rlUnsentBandHtml, rlUnsentCount,
   rlFitTabRow, rlWireFitTabRow, rlObserveTabRow,
-  redlineHeldId, redlineEvict, openRedlineWorkbench, RL_DEMOTABLE,
+  redlineHeldId, redlineEvict, openRedlineWorkbench,
   rlOwnerOpenActions, rlOwnerOpenTotal, rlJumpHtml,
   rlPbFindClause, rlPlaybookProposals, rlFilePlaybookProposal, rlOpenPlaybookReview,
   rlHiddenFrom, rlMsgVisible, redlineEmbed, negoIsRedeciding, rlSeatAlertsHtml,
   RL_CARD_FILTERS, rlCardFilter, rlSetCardFilter, rlCardFilterPass,
   RL_SEL_ACTIONS, RL_PLACEMENT_NOTE, rlSelActions, rlSelMenu, rlAiPropose, rlStandardAction,
   rlPlanBandHtml, rlPlanIsOpen, rlPlanSetOpen,
-  redlineCardIds, rlCardRank, rlCardSort, rlOneNoticeHtml, rlNoticeStackHtml, rlFloatingNoticesHtml, rlNoticesFolded, rlSetNoticesFolded,
+  redlineCardIds, rlCardRank, rlCardSort, rlOneNoticeHtml, rlNoticeStackHtml, rlAlertsBellHtml, rlFloatingNoticesHtml, rlNoticesFolded, rlSetNoticesFolded,
   rlJumpToClause, rlLinkFocus, rlDeltaOps, rlSayInPanel,
   /* The per-card open/shut model went with the fold (12 Aug 2026), and the
      pop-out went the same way on 16 Aug 2026: rlPopId, rlPopIsOpen, rlPopSet,

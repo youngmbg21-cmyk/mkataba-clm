@@ -131,30 +131,18 @@ const AMBER_BG = 'rgb(254, 243, 199)';
     check('but the whole sentence is still on its hover',
       !!row && /Counterparty ready to sign/i.test(row.title || ''), row && row.title);
 
-    /* ---------- 2. the alerts panel (the owner's image 1) ---------- */
+    /* ---------- 2. the alerts panel (the owner's image 1) ----------
+       ONLY THE BUILDER IS ASKED HERE, and the ordering matters: opening this
+       panel is what SETTLES the news (renderContextPanel marks it seen as it
+       paints), so a press at this point would spend the very thing section 3
+       exists to measure. The panel is opened for real below, through the door
+       the owner named — the bell on the contract — and the header's own door is
+       proved at the end, once there is nothing left to spend. */
     const built = await page.evaluate(() =>
       buildAlerts().filter(r => r.kind === 'cp-ready').map(r => r.text));
     check('a cp-ready row is built — the reported gap', built.length === 1, JSON.stringify(built));
-
-    /* #cmd-panel and #hdr-notify are the two BUTTONS; #context-panel is the one
-       shell they both fill. Reaching for the button's id here is a mistake this
-       file made once and is worth not repeating. */
-    await page.click('#hdr-notify');
-    await page.waitForTimeout(900);
-    const inPanel = await page.evaluate(() => {
-      const panel = document.getElementById('context-panel');
-      const rows = panel ? [...panel.querySelectorAll('[data-alert-i]')] : [];
-      const mine = rows.find(r => /ready to sign/i.test(r.innerText || ''));
-      return { title: (document.getElementById('panel-title') || {}).textContent || '',
-        hit: !!mine, doors: rows.length,
-        vis: mine ? Math.round(mine.getBoundingClientRect().height) : 0 };
-    });
-    check('and it draws as a row in the alerts panel — as visible pixels',
-      inPanel.hit && inPanel.vis > 8, JSON.stringify(inPanel));
-    check('every row in that panel is a door, this one included',
-      inPanel.doors >= 1, inPanel.doors);
-    await page.keyboard.press('Escape');
-    await page.waitForTimeout(500);
+    check('and it is FIRST in the list — they have done their part, the move is yours',
+      await page.evaluate(() => (buildAlerts()[0] || {}).kind) === 'cp-ready');
 
     /* ---------- 3. the bell (the owner's image 2) ----------
        The animation NAME is the whole reason this check is in a browser:
@@ -178,14 +166,40 @@ const AMBER_BG = 'rgb(254, 243, 199)';
     check('and its label says what the news is',
       !!bell && /ready to sign/i.test(bell.label || ''), bell && bell.label);
 
-    await page.evaluate(() => document.querySelector('.rl-notices-fab').click());
-    await page.waitForTimeout(900);
-    check('opening it shows the notice — "you can click on the bell to see the alert"',
+    /* ---- REVERSED IN PLACE 23 Aug 2026, owner-asked ----
+       This used to press the bell to UNFOLD the notice, then press Hide and
+       measure the bell going amber. The bell opens the workspace ALERTS PANEL
+       now, and the notices it used to fold draw in place — so the notice needs
+       no press at all, and what the press has to be measured on is the panel.
+       The claim underneath is the owner's own sentence and has not moved: you
+       click the bell, you see the alert, and it goes back to yellow. */
+    check('the notice is on the page without a press — it no longer folds',
       await page.evaluate(() =>
         /ready to sign/i.test((document.querySelector('.rl-notices') || {}).innerText || '')));
 
-    await page.evaluate(() => { const m = document.querySelector('[data-rl-notices-min]'); if (m) m.click(); });
+    await page.evaluate(() => document.querySelector('.rl-notices-fab').click());
     await page.waitForTimeout(900);
+    const opened = await page.evaluate(() => {
+      const panel = document.getElementById('context-panel');
+      const open = !!(panel && panel.classList.contains('open'));
+      const rows = panel ? [...panel.querySelectorAll('[data-alert-i]')] : [];
+      const mine = rows.find(r => /ready to sign/i.test(r.innerText || ''));
+      return { open, title: (document.getElementById('panel-title') || {}).textContent || '',
+        hit: !!mine, good: !!(mine && mine.classList.contains('al-good')),
+        anim: mine ? getComputedStyle(mine).animationName : null,
+        vis: mine ? Math.round(mine.getBoundingClientRect().height) : 0 };
+    });
+    check('pressing the bell opens the ALERTS panel — "the side panel alert system"',
+      opened.open && /alert/i.test(opened.title), JSON.stringify({ open: opened.open, title: opened.title }));
+    check('with the ready-to-sign row inside it, as visible pixels',
+      opened.hit && opened.vis > 8, JSON.stringify({ hit: opened.hit, vis: opened.vis }));
+    check('the row is GREEN — the only good news on a list of chores',
+      opened.good, opened.good);
+    check('and it FLASHES, once, on the sitting it is first seen — the animation is running',
+      opened.anim === 'al-row-news', opened.anim);
+
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(700);
     bell = await page.evaluate(() => {
       const b = document.querySelector('.rl-notices-fab');
       const cs = b && getComputedStyle(b);
@@ -194,11 +208,49 @@ const AMBER_BG = 'rgb(254, 243, 199)';
     check('"then it goes back to yellow"',
       !!bell && !bell.news && bell.bg === AMBER_BG && bell.anim === 'none', JSON.stringify(bell));
 
+    /* AND THE ROW IS CALM THE SECOND TIME. Opening the panel is what counts as
+       having seen it: the flash is over, the green is not. */
+    await page.evaluate(() => document.querySelector('.rl-notices-fab').click());
+    await page.waitForTimeout(800);
+    const again = await page.evaluate(() => {
+      const r = [...document.querySelectorAll('#context-panel [data-alert-i]')]
+        .find(x => /ready to sign/i.test(x.innerText || ''));
+      return r ? { good: r.classList.contains('al-good'), news: r.classList.contains('al-news'),
+        anim: getComputedStyle(r).animationName } : null;
+    });
+    check('reopening it: still green, no longer flashing',
+      !!again && again.good && !again.news && again.anim === 'none', JSON.stringify(again));
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(500);
+
     /* AMBER IS WORK AND GREEN IS NEWS, and this is the pair that says so.
        Looking cleared the news; it must NOT have cleared the fact. */
     const stillWork = await page.evaluate(id =>
       cpReadyToSign(state.contracts.find(x => x.id === id)), cid);
     check('but the WORK is untouched — the standing rule holds', stillWork === true, stillWork);
+
+    /* ---- AND THE HEADER'S BELL IS THE SAME DOOR ONTO THE SAME PANEL ----
+       Two doors, one room. Asked last because by now the news is spent, so
+       nothing here can be confused with the flash measured above.
+       #cmd-panel and #hdr-notify are the two BUTTONS; #context-panel is the one
+       shell they both fill. Reaching for the button's id is a mistake this file
+       made once and is worth not repeating. */
+    await page.click('#hdr-notify');
+    await page.waitForTimeout(900);
+    const inPanel = await page.evaluate(() => {
+      const panel = document.getElementById('context-panel');
+      const rows = panel ? [...panel.querySelectorAll('[data-alert-i]')] : [];
+      const mine = rows.find(r => /ready to sign/i.test(r.innerText || ''));
+      return { title: (document.getElementById('panel-title') || {}).textContent || '',
+        hit: !!mine, doors: rows.length,
+        vis: mine ? Math.round(mine.getBoundingClientRect().height) : 0 };
+    });
+    check('the header bell fills the same panel with the same row',
+      inPanel.hit && inPanel.vis > 8, JSON.stringify(inPanel));
+    check('every row in that panel is a door, this one included',
+      inPanel.doors >= 1, inPanel.doors);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(500);
 
     /* ---------- 4. "unless you resume negotiations" ---------- */
     await page.evaluate(async id => {

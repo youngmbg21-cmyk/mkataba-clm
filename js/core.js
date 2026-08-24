@@ -1372,6 +1372,14 @@ const hashPassword = (pw,salt) => sha256(`${salt}::${pw}`);
 
 function renderAuth(mode){
   document.getElementById('app-shell').classList.add('hidden');
+  /* NOTHING SIGNED-IN MAY SHOW ON THE SIGN-IN SCREEN. #context-panel and
+     #ai-panel are mounted at page load as body-level siblings, so before this
+     class existed the signed-out page's own text read "… Sign in … ACTIVITY /
+     HaTi Copilot / Searching your live contract data / ANSWERS" to a visitor
+     with no session. A first-impression and a trust problem, and it was in the
+     accessibility tree as well as on screen. Hidden by CSS on this class
+     rather than per-element, so a panel added later cannot forget. */
+  document.body.classList.add('pre-auth');
   const root=document.getElementById('auth-root');
   const shell = inner => `
   <div style="min-height:100vh;display:grid;place-items:center;background:var(--color-bg);padding:40px 16px;">
@@ -1394,7 +1402,11 @@ function renderAuth(mode){
   const H1='font-family:var(--font-mono);font-weight:600;font-size:22px;letter-spacing:-0.01em;color:var(--color-text);margin:0;';
   const SUB='font-size:13px;color:var(--color-neutral-700);margin:4px 0 18px;line-height:1.5;';
   const PBTN='width:100%;padding:9px;font-size:14px;margin-top:2px;';
-  const LINKBTN='margin-top:14px;width:100%;background:none;border:0;font-size:12px;color:var(--color-neutral-600);cursor:pointer;font-family:var(--font-body);';
+  /* min-height is WCAG 2.5.8 (target size, AA): measured at 366x17px, this is
+     the only route back into a locked-out account and it was 7px under the
+     24px floor at every width. The flex centring keeps the label where a
+     plain <button> put it. */
+  const LINKBTN='margin-top:14px;width:100%;min-height:var(--tap-min);display:inline-flex;align-items:center;justify-content:center;background:none;border:0;font-size:12px;color:var(--color-neutral-600);cursor:pointer;font-family:var(--font-body);';
   if(mode==='setup'){
     root.innerHTML = shell(`
       <h1 style="${H1}">${i18t('co_create_workspace_h')}</h1>
@@ -1614,6 +1626,7 @@ function startApp(){
   window.applyLanguage && applyLanguage({repaint:false});
   document.getElementById('auth-root').innerHTML='';
   const shell=document.getElementById('app-shell');
+  document.body.classList.remove('pre-auth');
   shell.classList.remove('hidden');   // renderAuth hides the shell; .hidden is !important so the class must go
   shell.style.display='grid';
   renderSideUser(); renderSideFolders();
@@ -1986,7 +1999,7 @@ function openModal(html, opts={}){
   root.innerHTML=`
   <div style="position:fixed;inset:0;z-index:70;display:grid;place-items:center;padding:16px">
     <div id="modal-scrim" style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 50%,transparent);"></div>
-    <div class="modal-in scroll-thin" style="position:relative;width:100%;max-width:${maxw};${sized}background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:0;">${html}</div>
+    <div class="modal-in scroll-thin" role="dialog" aria-modal="true"${opts.label?` aria-label="${String(opts.label).replace(/"/g,'&quot;')}"`:''} tabindex="-1" style="position:relative;width:100%;max-width:${maxw};${sized}background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:0;">${html}</div>
   </div>`;
   /* ---- THE TWO QUIET WAYS OUT ASK THE SAME QUESTION THE ✕ DOES ----
      Both of these called closeModal() straight, so a modal that had put its own
@@ -1997,6 +2010,30 @@ function openModal(html, opts={}){
      always has. */
   _modalGuard = (typeof opts.onBeforeClose==='function') ? opts.onBeforeClose : null;
   document.getElementById('modal-scrim').addEventListener('click',()=>closeModalGuarded());
+  /* ---- A DIALOG SAYS IT IS ONE, AND KEEPS THE KEYBOARD INSIDE IT ----
+     MEASURED before this: the share dialog — the most-used dialog in the
+     product, 31 focusable controls behind a scrim at z-index 70 — reported
+     role null, aria-modal null and no accessible name, and focus never moved
+     into it. A screen reader was never told it had opened, and Tab walked
+     straight out of it into the page underneath.
+     The panel takes focus on open (or its first control, which is what a
+     sighted keyboard user expects), Tab cycles inside it, and focus returns to
+     whatever opened it on close. Escape already worked and is untouched. */
+  const panel=root.querySelector('[role="dialog"]');
+  if(panel){
+    _modalOpener = document.activeElement;
+    const focusables = () => [...panel.querySelectorAll(
+      'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')]
+      .filter(e=>e.getClientRects().length);
+    setTimeout(()=>{ const f=focusables(); (f[0]||panel).focus({preventScroll:true}); },0);
+    panel.addEventListener('keydown',e=>{
+      if(e.key!=='Tab') return;
+      const f=focusables(); if(!f.length) return;
+      const first=f[0], last=f[f.length-1];
+      if(e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); }
+      else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
+    });
+  }
   // Esc closes, exactly like the scrim click — some modals (Compare, share)
   // otherwise strand keyboard users with no visible way out
   document.addEventListener('keydown',function esc(e){
@@ -2024,7 +2061,17 @@ async function closeModalGuarded(){
     if(ok===false) return; }
   closeModal();
 }
-function closeModal(){ _modalGuard=null; document.getElementById('modal-root').innerHTML=''; }
+let _modalOpener=null;
+/* TWO THINGS ON THE WAY OUT, and both were added on the same day by different
+   hands: the guard is cleared so it cannot outlive its dialog, and focus goes
+   back where it came from — without which a keyboard user is dropped at the
+   top of the document every time they dismiss a dialog. */
+function closeModal(){
+  _modalGuard=null;
+  document.getElementById('modal-root').innerHTML='';
+  try{ if(_modalOpener && _modalOpener.isConnected) _modalOpener.focus({preventScroll:true}); }catch(e){}
+  _modalOpener=null;
+}
 
 /* ---- A PANEL THAT DOES NOT STAND IN FRONT OF WHAT IT IS TALKING ABOUT ----
 
@@ -2239,7 +2286,7 @@ function freezeContractHtml(c){
       return `<div class="hati-doc" data-anchor="redline">${sanitizeRich(c.redlineText)}</div>`;
     }
     const d=document.createElement('div');
-    d.innerHTML=`<div class="text-[13.5px] leading-[1.9] text-brand-800/85 whitespace-pre-wrap" data-anchor="redline">${String(c.redlineText).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</div>`;
+    d.innerHTML=`<div class="text-brand-800/85 whitespace-pre-wrap" style="line-height:var(--lh-doc)" data-anchor="redline">${String(c.redlineText).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</div>`;
     return d.innerHTML;
   }
   const tmp=document.createElement('div');
@@ -2715,7 +2762,13 @@ function shareSummaryStepHtml(c, opts={}){
         background:${x.status==='accepted'?'var(--st-green-bg)':x.status==='rejected'?'var(--st-ruby-bg)':'var(--st-amber-bg)'};
         color:${x.status==='accepted'?'var(--st-green-fg)':x.status==='rejected'?'var(--st-ruby-dot)':'var(--st-amber-fg)'}">${esc(x.status)}</span>
     </li>`).join('') : '';
-  const FLD='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:8px 10px;font-size:13px;font-family:var(--font-body);color:var(--color-text);outline:none;line-height:1.5;';
+  /* THE ONE FIELD SYSTEM. This was one of THREE disagreeing FLD constants —
+     two of them in this file 1,300 lines apart, on 8px/10px vs 6px/10px
+     padding, 13px vs 14px type, and one with no min-height at all. They all
+     read the same tokens now, so a field cannot be 34px in one dialog and
+     39px in another. `outline:none` is GONE: it is what defeated the
+     product's only focus ring on every dialog and on the sign-in form. */
+  const FLD='width:100%;min-height:var(--field-h);border:1px solid var(--field-line);background:var(--color-surface);border-radius:0;padding:var(--field-pad-y) var(--field-pad-x);font-size:var(--field-size);font-family:var(--font-body);color:var(--color-text);line-height:var(--field-lh);';
   /* Which of the two things the first step chose. Both branches render, and the
      wiring shows one — repainting in place rather than rebuilding, because the
      summary textarea below may already carry words the sender typed. */
@@ -3688,6 +3741,43 @@ function reviewSendBlock(c){
   toast(msg,'err');
   return true;
 }
+/* ---- A CONTRACT STOPS BEING A DRAFT WHEN IT GOES TO THE OTHER SIDE ----
+   (owner-reported 23 Aug 2026, on a contract that had been negotiated for a
+   week and still called itself "Drafting" on every screen.)
+
+   THE RULE WAS RIGHT AND ONLY ONE DOOR OBEYED IT. The share dialog has moved
+   Draft → Under Review since the day it was written, on exactly this reasoning:
+   sending it to somebody outside the building IS the transition. But the round
+   send does not go through that dialog — it refreshes the standing link the
+   counterparty already holds — so a contract negotiated entirely from the
+   negotiation page could go through six rounds of real proposals, refusals and
+   counter-wording and never leave Drafting. Reported as "the counterparty is
+   ready to sign but the top still says Drafting", and it also meant the
+   register, the filters, the dashboard pipeline and the reports were all
+   counting live negotiations as drafts.
+
+   SO IT IS ONE ACT WITH TWO DOORS, rather than a second copy of the line. Both
+   sends call this, which is what stops them drifting apart again — and it is
+   where a third door added later will land, for the same reason holdUnsent is
+   written once.
+
+   IT DOES NOT PERSIST. Every caller is mid-send and saves once at the end of
+   its own work; saving here would make it twice. It DOES repaint, guarded,
+   because the status word sits in the room's head and on the negotiation page's
+   head and a status that moves without the head following reads as a stale
+   page — the same fault the share dialog's own block already fixed once.
+
+   ONLY FROM DRAFT. Under Review, Signed and Declined are all somebody's
+   decision and none of them is this function's to overturn. */
+function contractLeavesDrafting(c, why){
+  if(!c || c.status!=='Draft') return false;
+  c.status='Under Review';
+  c.lastAction=todayStr();
+  logAudit(c,'Status changed',`Draft \u2192 Under Review \u2014 ${why}`);
+  try{ if(typeof updateStatusUI==='function') updateStatusUI(c); }catch(_){}
+  try{ if(typeof renderActionBar==='function') renderActionBar(c); }catch(_){}
+  return true;
+}
 async function reshareToLastRecipient(c, opts={}){
   if(!canEdit()) throw new Error('Viewers cannot share contracts');
   /* THE ROUND-SEND IS A SEND. This is the route every negotiation after the
@@ -3765,6 +3855,25 @@ async function reshareToLastRecipient(c, opts={}){
       : ch==='email'
         ? `Updated version published to ${who}'s link${reused?' (existing link)':''} — NOT emailed${r.emailConfigured===false?': this workspace has no mail provider configured':r.emailError?': '+r.emailError:''}`
         : `Updated version published to ${who}'s link${reused?' (existing link)':''} — send it to them by ${ch==='whatsapp'?'WhatsApp':'link'}; nothing was sent automatically`;
+    /* ---- AND IT IS NOT A DRAFT ANY MORE (owner-reported 23 Aug 2026) ----
+       The round send never moved the status at all; only the share DIALOG did,
+       and a round published onto the standing link the counterparty already
+       holds does not go through it. So a contract negotiated entirely from the
+       negotiation page went round after round still calling itself Drafting —
+       on its own head, in the register, in every filter, in the dashboard's
+       pipeline and in the reports.
+
+       IT GOES HERE, IN record(), RATHER THAN AT THE PRESS. Four doors reach
+       this function — the negotiation page's Publish Round, the contract tab's
+       resend, the seen-state resend and the negotiation section's own — and a
+       promotion written at one of them is three doors that still disagree,
+       which is the exact shape of the fault being fixed.
+
+       AFTER THE SEND, NEVER BEFORE: record() runs only once something has
+       actually left, the same rule the turn stamp follows, so a send that
+       throws moves no status. And it sits above the persist that was already
+       here, so the whole act is still ONE save. */
+    contractLeavesDrafting(c, `sent to ${who}`);
     logAudit(c,'Shared',detail+stranded);
     persist(c);
     return { share:r, recipient:last, reused:!!reused, delivered, quiet, channel:ch,
@@ -4043,8 +4152,8 @@ async function openShareModal(c, opts={}){
      wanted later. */
   const quickOk = false;
   let qsActive=quickOk;
-  const FLD='width:100%;min-height:34px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:6px 10px;font-size:14px;font-family:var(--font-body);color:var(--color-text);outline:none;';
-  const LBL='display:block;font-size:12px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;';
+  const FLD='width:100%;min-height:var(--field-h);border:1px solid var(--field-line);background:var(--color-surface);border-radius:0;padding:var(--field-pad-y) var(--field-pad-x);font-size:var(--field-size);font-family:var(--font-body);color:var(--color-text);line-height:var(--field-lh);';
+  const LBL='display:block;font-size:var(--field-label-size);font-weight:var(--field-label-weight);color:var(--color-neutral-600);margin-bottom:var(--field-label-gap);font-family:var(--font-body);letter-spacing:var(--ls-base);';
   const tab=(k,label,active)=>`<button data-share-ch="${k}" style="flex:1;padding:7px 4px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;border:1px solid ${active?'var(--color-accent)':'var(--color-divider)'};background:${active?'var(--color-accent)':'var(--color-surface)'};color:${active?'#fff':'var(--color-neutral-700)'};border-radius:0">${label}</button>`;
   let ch=pre.channel||'email';
   const attr=s=>String(s==null?'':s).replace(/"/g,'&quot;');
@@ -4607,16 +4716,10 @@ async function openShareModal(c, opts={}){
       if(payloadObj.purpose!=='sign' && c.status!=='Signed' && window.negoHandOver){
         try{ negoHandOver(c, { to:'counterparty', by:currentUser()?.name }); }catch(_){}
       }
-      if(c.status==='Draft'){
-        c.status='Under Review';
-        logAudit(c,'Status changed',`Draft → Under Review — sent to ${rcptLabel}`);
-        /* The chip AND the bar. Changing the status without repainting the bar
-           left it still reading "Key terms are set — move it into review", with
-           a button offering to do the thing that had just been done — the same
-           stale-bar fault as after signing, in a different place. */
-        try{ if(typeof updateStatusUI==='function') updateStatusUI(c); }catch(_){}
-        try{ if(typeof renderActionBar==='function') renderActionBar(c); }catch(_){}
-      }
+      /* ONE ACT, TWO DOORS — see contractLeavesDrafting. The line used to live
+         here and only here, which is how the round send came to be sending
+         contracts to the counterparty that still called themselves drafts. */
+      contractLeavesDrafting(c, `sent to ${rcptLabel}`);
       // H-7: record the EXACT destination address on the audit trail, not just a
       // display label — so "who was this sent to" is provable later, especially
       // for a signing link where the address is what a signature rests on.
@@ -5699,25 +5802,43 @@ async function applyNegoProposals(c, r, who){
 
    RETRYING IS RIGHT AND STAYS. What was wrong is that it was invisible. So the
    retry is untouched and the SECOND consecutive failure on the same answer is
-   reported, once per sitting — the second, not the first, because one miss is
-   ordinarily a page that has not finished loading its contracts and crying wolf
-   on that would teach the reader to ignore this box.
+   reported — the second, not the first, because one miss is ordinarily a page
+   that has not finished loading its contracts, and crying wolf on that teaches
+   the reader to ignore the report.
+
+   ---- AND IT IS NOT A POP-UP (owner-reported 23 Aug 2026) ----
+   It shipped as a warn toast, and on a real workspace with four answers in this
+   state the reader got FOUR orange boxes stacked over the change column, each
+   sitting for eight seconds, coming back on the next sitting. "I never want to
+   see this in the platform again." Fair: a toast is for something that has just
+   happened because of a press, and this is a standing condition — it is true
+   until somebody reloads, and it stays true while they read the page.
+
+   SO IT IS A FACT THIS MODULE RECORDS AND THE ALERTS PANEL READS. _pollStuck is
+   the whole of it: one entry per answer that has failed twice running, deleted
+   the moment one lands. buildAlerts turns each into an ordinary row beside
+   everything else waiting on this reader. Nothing jumps in front of anybody and
+   nothing is lost — which was the objection to simply deleting the boxes.
 
    IT WRITES NOTHING TO THE RECORD. An audit line would mean persisting a
    contract we have just failed to apply an answer to, which is the one moment
-   not to be writing to it. The toast plus the standing retry is the whole
-   report.
+   not to be writing to it. The row plus the standing retry is the whole report.
 
    THE NETWORK IS STILL SILENT, deliberately: a fetch that fails between beats
    is ordinary and the next beat fixes it. Only the applying speaks. */
 const POLL_TROUBLE_AT = 2;
 const _pollTrouble = new Map();   // answer key -> consecutive failures
-const _pollTold = new Set();      // reported once per sitting, never nagged
+const _pollStuck   = new Map();   // answer key -> {key,id,name,who} for the panel
+/* THE ONE READING. Returns plain data — buildAlerts must be able to ask this
+   without reaching into a Map that belongs to the poller, and a screen that
+   derived its own answer from _pollTrouble would count the first miss too. */
+function pollStuckAnswers(){ return [..._pollStuck.values()]; }
 async function pollPendingResponses(){
   if(!API_MODE() || !canEdit()) return;
   let list;
   try{ list=await api('shares/pending'); }
   catch(e){ return; }             // transient network — the next beat retries
+  const before=_pollStuck.size;
   for(const item of list){
     const key=String(item.responseId||item.token||'');
     const c=getContract(item.response&&item.response.id);
@@ -5725,7 +5846,7 @@ async function pollPendingResponses(){
     if(c){ try{ ok=await applyResponse(c, item.response, {background:true}); }
            catch(e){ ok=false; } }
     if(ok){
-      _pollTrouble.delete(key); _pollTold.delete(key);
+      _pollTrouble.delete(key); _pollStuck.delete(key);
       // A durable link carries one row per round, so the acknowledgement names
       // the answer just applied. Marking the whole link applied would silence
       // every later round on it.
@@ -5736,16 +5857,24 @@ async function pollPendingResponses(){
     }
     const n=(_pollTrouble.get(key)||0)+1;
     _pollTrouble.set(key,n);
-    if(n>=POLL_TROUBLE_AT && !_pollTold.has(key)){
-      _pollTold.add(key);
-      const id=(item.response&&item.response.id)||'';
-      const who=(item.response&&item.response.name)||'';
-      /* 'warn', not 'err': nothing is lost and nothing was refused — the
-         answer is safe on the server and this browser keeps trying. The action
-         is the one thing that has been shown to clear it. */
-      toast(i18t('co_answer_stuck',{ id:esc(id), who:esc(who) }),'warn',
-        { action:{ label:i18t('co_answer_stuck_act'), onClick:()=>location.reload() } });
+    if(n>=POLL_TROUBLE_AT){
+      const id=String((item.response&&item.response.id)||'');
+      /* THE NAME IS BEST EFFORT AND THE ID IS NOT. The commonest reason an
+         answer will not land is that this browser does not hold the contract at
+         all, so there is usually no name to give — and a row headed by a blank
+         is worse than one headed by the reference the reader can search for. */
+      const named=id?getContract(id):null;
+      _pollStuck.set(key,{ key, id, name:(named&&(named.name||named.id))||id,
+        who:String((item.response&&item.response.name)||'') });
     }
+  }
+  /* The panel is not repainted on a beat that changed nothing — this loop runs
+     every twelve seconds on a watched contract, and rebuilding the open panel
+     each time would fight a reader scrolling it. */
+  if(_pollStuck.size!==before){
+    try{ if(window.updateAlertBadge) updateAlertBadge(); }catch(_){}
+    try{ if(window.renderContextPanel && state.panelOpen && window.panelFace
+      && panelFace()==='alerts') renderContextPanel(); }catch(_){}
   }
 }
 /* ---------- how often to look ----------
@@ -5856,4 +5985,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{cpReadyToSign,READY_META,READY_META_SHORT,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,isArchived,contractSetArchived,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{cpReadyToSign,READY_META,READY_META_SHORT,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,isArchived,contractSetArchived,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});

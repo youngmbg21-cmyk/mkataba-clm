@@ -9,19 +9,33 @@
         starting the next agreement;
      2  the sub-navigation says Redline, which is where it goes;
      3  pressing it hands the contract to the workbench at view-redline, and
-        takes the PREVIOUS occupant of that bench off it, back to Drafting;
+        LEAVES THE CONTRACT IT CAME FROM ALONE;
      4  the column-hiding focus mode is gone from the workbench header — and
         stays gone: the chrome-hiding focus mode that later took the name
         (f94) must never grow back into hiding the work columns.
 
-   Item 3 is the one that needs holding down, because it MOVES A CONTRACT'S
-   STAGE on its own. A stage is a claim: the register, the dashboard pipeline
-   and the renewal calendar all read it. So the demotion is bounded — only a
-   contract still under review, never one that has been signed, declined,
-   closed or has expired — and it is never silent: audited, with a reason, and
-   announced. Those bounds are the tests worth having here; without them a
-   feature meant to tidy a pipeline can quietly reset an executed agreement to
-   Draft. */
+   ITEM 3 IS REVERSED IN PLACE, 23 Aug 2026, and the reversal is the whole
+   point of keeping these tests. This section used to pin a DEMOTION: opening a
+   negotiation took the previous occupant of the bench off it, back to Drafting,
+   on the premise that the bench holds one agreement at a time. Its bounds were
+   pinned carefully — never a signed, declined or closed one, audited, announced
+   — and every one of those bounds held. THE PREMISE DID NOT. This workspace
+   runs eighteen live negotiations, so clicking through them demoted them one at
+   a time; nothing promoted them back on the way in; and the announcement was a
+   BARE toast call, which draws nothing by design, so it had never once appeared.
+
+   THE TEST BELOW ASSERTED THAT ANNOUNCEMENT AND PASSED THROUGHOUT, because
+   test/world.js's toast stub records every call and defaults a missing kind to
+   'ok' — the opposite of what the real function does. That is the lesson worth
+   more than the feature was: a stub kinder than the thing it stands in for
+   turns its test into a description.
+
+   WHAT THE SECTION IS FOR NOW is the mirror claim, and it is the stronger one:
+   NO stage moves when a contract merely leaves the bench. A stage is a claim
+   about a contract — the register, the dashboard pipeline and the renewal
+   calendar all read it — and which page you last had open is not evidence for
+   it. What moves a contract out of Drafting is somebody sending it to the other
+   side; that act is contractLeavesDrafting and it is pinned in f241. */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const { buildWorld } = require('./world');
@@ -64,54 +78,57 @@ describe('F91 (3) — the bench holds one contract, and says which', () => {
     assert.equal(b.win.redlineHeldId(), 'MK-1');
   });
 
-  test('bringing a second contract puts the first back in Drafting', async () => {
+  test('BRINGING A SECOND CONTRACT LEAVES THE FIRST EXACTLY WHERE IT WAS', async () => {
+    /* The reported fault, as the owner met it: eighteen live negotiations, and
+       clicking through them knocked them back to Drafting one at a time. */
     const b = bench(['MK-1', 'MK-2']);
     b.win.openRedlineWorkbench('MK-1');
     assert.equal(b.byId('MK-1').status, 'Under Review');
     b.win.openRedlineWorkbench('MK-2');
-    assert.equal(b.byId('MK-1').status, 'Draft', 'the previous occupant is demoted');
-    assert.equal(b.byId('MK-2').status, 'Under Review', 'and the new one is not');
-    assert.equal(b.win.redlineHeldId(), 'MK-2');
+    assert.equal(b.byId('MK-1').status, 'Under Review',
+      'the contract you just left is not evidence about the contract you opened');
+    assert.equal(b.byId('MK-2').status, 'Under Review');
+    assert.equal(b.win.redlineHeldId(), 'MK-2', 'the bench still records what is on it');
   });
 
-  test('the demotion is written down, with a reason', async () => {
+  test('and nothing is written to its history about it', async () => {
     const b = bench(['MK-1', 'MK-2']);
     b.win.openRedlineWorkbench('MK-1');
     b.win.openRedlineWorkbench('MK-2');
     const line = (b.byId('MK-1').audit || []).map(e => `${e.action} ${e.detail}`).join(' | ');
-    assert.match(line, /back to Draft/, 'a stage that moves on its own must leave a record');
-    assert.match(line, /MK-2/, 'and say what displaced it');
+    assert.ok(!/back to Draft/.test(line),
+      'a permanent record of a thing that no longer happens');
   });
 
-  test('and announced, not slipped past the reader', async () => {
+  test('nor said out loud — there is nothing to announce', async () => {
     const b = bench(['MK-1', 'MK-2']);
     b.win.openRedlineWorkbench('MK-1');
     b.win.openRedlineWorkbench('MK-2');
-    assert.match(b.w.toastText(), /moved back to Draft/);
+    assert.ok(!/moved back to Draft/.test(b.w.toastText()), b.w.toastText());
   });
 
-  test('re-opening the same contract demotes nothing', async () => {
-    const b = bench(['MK-1']);
-    b.win.openRedlineWorkbench('MK-1');
-    b.win.openRedlineWorkbench('MK-1');
-    assert.equal(b.byId('MK-1').status, 'Under Review',
-      'a repaint of the contract you are already on is not a change of occupant');
+  test('walking the whole book leaves every stage untouched', async () => {
+    /* THE REPORTED SCALE, not two contracts. The old rule was one demotion per
+       press, so a reader browsing their negotiations paid for every one. */
+    const ids = ['MK-1', 'MK-2', 'MK-3', 'MK-4', 'MK-5'];
+    const b = bench(ids);
+    ids.forEach(id => b.win.openRedlineWorkbench(id));
+    assert.deepEqual(ids.map(id => b.byId(id).status), ids.map(() => 'Under Review'),
+      ids.map(id => `${id}:${b.byId(id).status}`).join(' '));
   });
 
-  test('a SIGNED contract is never demoted', async () => {
-    /* The bound that matters. "Draft" on an executed agreement is not a tidier
-       pipeline, it is a false statement about a document somebody has signed —
-       and status drives the register, the dashboard counts and the renewal
-       calendar, so the lie would propagate into all three. */
+  test('a SIGNED contract is untouched, as it always was', async () => {
+    /* Kept rather than dropped: this was the bound that mattered under the old
+       rule, and it is the one a future "tidy the pipeline" idea would break
+       first. "Draft" on an executed agreement is not a tidier pipeline, it is a
+       false statement about a document somebody has signed. */
     const b = bench([fixture('MK-1', { status: 'Signed' }), 'MK-2']);
     b.win.openRedlineWorkbench('MK-1');
     b.win.openRedlineWorkbench('MK-2');
     assert.equal(b.byId('MK-1').status, 'Signed');
-    assert.ok(!/moved back to Draft/.test(b.w.toastText()),
-      'and nothing claims it was moved');
   });
 
-  test('nor a declined, closed or expired one', async () => {
+  test('nor a declined or closed one', async () => {
     for (const status of ['Declined', 'Closed']){
       const b = bench([fixture('MK-1', { status }), 'MK-2']);
       b.win.openRedlineWorkbench('MK-1');
@@ -120,19 +137,17 @@ describe('F91 (3) — the bench holds one contract, and says which', () => {
     }
   });
 
-  test('only Under Review is demotable, and that is stated in one place', async () => {
-    const b = bench(['MK-1']);
-    assert.equal([...b.win.RL_DEMOTABLE].join(','), 'Under Review',
-      'the bound must be a list a reader can find, not a condition buried in a branch');
-  });
-
-  test('redlineEvict is the only way in, so no route can skip it', async () => {
+  test('THE DOOR CANNOT BE MADE TO MOVE A STAGE, called directly or not', async () => {
+    /* redlineEvict is kept as a stub rather than deleted — it is published on
+       window and openRedlineWorkbench calls it — so the claim worth pinning is
+       that calling it does nothing at all. RL_DEMOTABLE went with the body and
+       must not come back: a list of demotable statuses is the shape the removed
+       feature had. */
     const b = bench(['MK-1', 'MK-2']);
     b.win.openRedlineWorkbench('MK-1');
-    // called directly, as the tab does, rather than by setting activeId by hand
-    const moved = b.win.redlineEvict('MK-2');
-    assert.ok(moved && moved.id === 'MK-1');
-    assert.equal(b.byId('MK-1').status, 'Draft');
+    assert.equal(b.win.redlineEvict('MK-2'), null, 'it demotes nobody');
+    assert.equal(b.byId('MK-1').status, 'Under Review');
+    assert.equal(b.win.RL_DEMOTABLE, undefined, 'RL_DEMOTABLE is stale');
   });
 });
 

@@ -285,21 +285,29 @@ const SEED = async () => {
       uniq(heads.nego, 'top').length === 1, uniq(heads.nego, 'top'));
     check('5 at the same size',
       uniq(heads.nego, 'fs').length === 1, uniq(heads.nego, 'fs'));
-    /* WEIGHT IS THE ONE THING ALLOWED TO DIFFER, and exactly one act may carry
-       it. REVERSED IN PLACE 23 Aug 2026, owner-asked ("the publish round 1
-       button should also not be shaded"): this used to read "only the FILLED
-       act is bold", because .rl-btn-go was this page's single fill. It is not
-       filled any more — so weight is now the whole of what marks the round's
-       own next step, and the claim is written as the relation it was always
-       about: exactly one bold act, and nothing on the row filled. The third
-       time "one filled act per page" has been reversed on the owner's ask; see
-       FIVE FIXES AND A CALENDAR, where the contract room's head gave its fill
-       up the day before for the same reason. */
+    /* REVERSED IN PLACE A SECOND TIME, 23 Aug 2026, owner-asked ("publish round
+       should not be bold") — and the two reversals were the same morning, which
+       is worth reading as one movement rather than two.
+         · It first read "only the FILLED act is bold", .rl-btn-go being this
+           page's single fill.
+         · The fill came off, so it became "exactly one act is bold — that is
+           what leads now".
+         · The owner has now taken the weight as well. NOTHING on the row is
+           filled and NOTHING is bold; the round's own next step leads by
+           POSITION and by its accent outline alone.
+       WHAT THE CLAIM IS REALLY ABOUT SURVIVES INTACT, and it is why both halves
+       are still pinned rather than deleted: the row must speak with ONE voice.
+       Zero fills and zero bolds is that claim; one of either creeping back is
+       the row disagreeing with itself again. Fourth time "one filled act per
+       page" has been reversed on this owner's ask — see FIVE FIXES AND A
+       CALENDAR, where the contract room's head gave its fill up the day before.
+       The head's flatness is now owned end to end by flat-rows-and-alerts,
+       which measures it against the neighbours it has to match. */
     check('5 nothing on the row is filled',
       heads.nego.every(b => !b.filled),
       heads.nego.map(b => `${b.t}:${b.filled ? 'FILLED' : 'flat'}`));
-    check('5 and exactly one act is bold — that is what leads now',
-      heads.nego.filter(b => b.fw === '700').length === 1,
+    check('5 and nothing on it is bold either — it leads by position, not weight',
+      heads.nego.every(b => Number(b.fw) <= 400),
       heads.nego.map(b => `${b.t}:${b.fw}`));
 
     await page.evaluate(id => openWorkspace(id), cid);

@@ -1451,7 +1451,7 @@ function renderTemplatesPage(){
     <span style="flex:none;width:8px;height:14px;border-radius:0;background:${folderColor(f.id)}"></span><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(f.name.split(' & ')[0].split(' — ')[0])}</span></button>`;
   const HEAD='font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;color:var(--color-neutral-500);text-transform:uppercase;padding:0 11px;margin:0 0 6px';
   document.getElementById('content').innerHTML=`
-  <div class="view-enter" style="padding:16px 18px 28px">
+  <div class="view-enter" style="padding:var(--page-pad)">
     <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:14px">
       <div style="min-width:0">
         <h1 style="margin:0;font-family:var(--font-heading);font-size:19px;font-weight:700;letter-spacing:-.01em;color:var(--color-text);line-height:1.2">${i18t('nav_templates')}</h1>
@@ -1556,7 +1556,7 @@ function renderPlaybookPage(){
     `<button class="st-tab${k===tab?' on':''}" data-pb-tab="${k}" role="tab" aria-selected="${k===tab?'true':'false'}">${esc(i18t(PB_TAB_LABEL[k]))}</button>`).join('')}</div>`;
 
   document.getElementById('content').innerHTML=`
-  <div class="view-enter" style="padding:16px 18px 28px">
+  <div class="view-enter" style="padding:var(--page-pad)">
     ${tabRow}
     <p id="pb-tabsub" class="st-tabsub">${esc(i18t(PB_TAB_SUB[tab]))}</p>
 

@@ -309,7 +309,7 @@ function renderReports(){
   };
 
   document.getElementById('content').innerHTML=`
-  <div class="view-enter" style="padding:16px 18px 28px">
+  <div class="view-enter" style="padding:var(--page-pad)">
     <style>
       .rd-trigger-hero:hover{background:rgba(255,255,255,.30)!important;border-color:rgba(255,255,255,.7)!important}
       .rd-trigger-card:hover{background:var(--color-neutral-100)!important;border-color:var(--color-accent)!important}
