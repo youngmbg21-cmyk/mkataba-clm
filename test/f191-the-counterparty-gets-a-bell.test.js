@@ -117,18 +117,25 @@ describe('f191 (4) — one bell on their page, and the owner keeps theirs', () =
   test('the floating amber bell is not drawn on the counterparty\'s seat', () => {
     /* Two bells on one page, both amber, both about the same contract, is
        worse than none at all. The header bell is the one door. */
+    /* PROSE STRIPPED, for the reason this file's own header records: the
+       comments here name the very identifiers being checked for, so a raw-text
+       search finds them in the explanation and passes — or fails — for the
+       wrong reason. It did exactly that while this reversal was being written. */
     const fn = NEGO.slice(NEGO.indexOf('function rlNoticeStackHtml'),
-      NEGO.indexOf('function rlFloatingNoticesHtml'));
+      NEGO.indexOf('function rlFloatingNoticesHtml'))
+      .replace(/\/\*[\s\S]*?\*\//g, '');
     assert.match(fn, /opts\.side === 'counterparty'/,
       'the stack asks whose seat it is drawing on');
-    /* REVERSED IN PLACE 23 Aug 2026 — the stack stopped folding and the line
-       that expressed this changed shape with it. The CLAIM is untouched: on
-       their seat the body is the reading notice alone and no bell is built. */
+    /* REVERSED IN PLACE TWICE, 23 Aug 2026, and the CLAIM only got stronger.
+       First the stack stopped folding; then the bell went altogether ("I do not
+       want anything floating over the page"), so what used to be "no bell on
+       THEIR seat" is now "no bell on either seat". The half that still matters
+       is that their body is the reading notice alone. */
     assert.match(fn, /const body = theirs \? n : \(a \+ n\);/,
       'on theirs the body is the reading notice alone');
-    assert.match(fn, /const bell = theirs \? '' : rlAlertsBellHtml\(c\);/,
-      'and no bell is built for it');
-    assert.match(NEGO, /rlNoticeStackHtml\(c, rlSeatAlertsHtml\(c, opts\), rlReadNoticeHtml\(\) \|\| '', 'rl-notices', opts\)/,
+    assert.ok(!/(?<!function )rlAlertsBellHtml\(/.test(fn),
+      'and nothing builds a floating bell here for either seat');
+    assert.match(NEGO, /rlNoticeStackHtml\(c, page, rlReadNoticeHtml\(\) \|\| '', 'rl-notices', opts\)/,
       'the seat actually reaches the stack');
     /* AND THE NOTICES IT STOPS FOLDING ARE STILL REACHABLE. Standing the bell
        down must not make a notice disappear — rlSeatAlertsHtml is ONE named
@@ -138,15 +145,22 @@ describe('f191 (4) — one bell on their page, and the owner keeps theirs', () =
       'and the header panel reads that same population');
   });
 
-  test('REVERSED — the owner\'s workbench keeps its bell, as a door onto the panel', () => {
-    /* The reason for the split has not changed: on their page there is one
-       contract and therefore one question, so one door. What changed on 23 Aug
-       2026 is what the OWNER's bell does — it opened a fold of its own and now
-       opens the workspace alerts panel (owner-asked). The claim this test has
-       always made is that the two seats differ, and they still do. */
-    assert.match(NEGO, /function rlAlertsBellHtml/, 'the owner\'s bell has its own builder');
-    assert.match(NEGO, /rl-notices-fab/, 'the fab still exists');
-    assert.match(NEGO, /data-rl-alerts-open=/, 'and it carries the door onto the panel');
+  test('REVERSED AGAIN — neither seat has a floating bell, and the panel is still one press away', () => {
+    /* This claim has been reversed twice in one day and each time it kept the
+       same subject: how many bells are on the page. It was "the owner keeps
+       theirs, the counterparty does not"; then the owner's became a door onto
+       the workspace panel; and now there is none, because the owner asked that
+       nothing float over the page. The two seats no longer differ HERE — they
+       differ in that the counterparty has a bell of their own in their header,
+       which is what the rest of this file pins.
+       THE DOOR IS NOT LOST, which is the half that matters: the workspace's own
+       header bell opens the same panel and carries the same count. */
+    const code = NEGO.replace(/\/\*[\s\S]*?\*\//g, '');
+    /* Its own DECLARATION is not a call — the builder is deliberately kept. */
+    assert.ok(!/(?<!function )\brlAlertsBellHtml\(/.test(code),
+      'nothing calls the floating bell builder any more');
+    assert.match(NEGO, /function rlAlertsBellHtml/,
+      'it is KEPT as a builder rather than deleted, so its rules are not lost');
     /* The fold predicate is not dead: the phone still folds, and it has no
        panel to send anybody to. */
     assert.match(NEGO, /function rlNoticesFolded/, 'the fold survives for the phone');

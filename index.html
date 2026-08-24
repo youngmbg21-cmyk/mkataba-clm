@@ -3338,6 +3338,31 @@
     /* Not "no signal" — a steady wash says the same thing without moving. */
     #panel-body .al-row.al-news{animation:none;background:var(--st-green-bg);}
   }
+  /* ---- THE BELL TURNS GREEN, AND IT IS THE HEADER'S NOW (23 Aug 2026) ----
+     The owner asked for this on 23 Aug — "the bell should loudly turn green and
+     blink" — and it was built on the FLOATING bell in the bottom-right corner.
+     That bell is gone (owner-asked, same day: "I do not want anything floating
+     over the page"), so the treatment moves to the one bell that is left rather
+     than being lost with the button that used to carry it.
+     THE RULES ARE THE FLOATING BELL'S OWN, kept to the letter: green while the
+     news is UNSEEN, three blinks and no more (a bell that blinks for ever is
+     furniture), and opening the panel marks it seen and hands the bell back to
+     amber with the work still counted on it. A tone is about the work; green is
+     about a thing you have not yet looked at. */
+  /* THE RESTING TONE LIVES HERE, NOT INLINE, and that is what makes the green
+     below possible at all: an inline background cannot be beaten by a class
+     rule without !important — the same trap this product already paid for with
+     91 inline `outline:none` declarations defeating its one focus rule. */
+  #hdr-notify-dot{background:var(--st-amber-dot);color:#1c1206;}
+  #hdr-notify.is-news #hdr-notify-dot{background:var(--st-green-dot);color:#04231a;}
+  #hdr-notify.is-news{animation:hdr-bell-news 1s ease-in-out 0s 3;}
+  @keyframes hdr-bell-news{
+    0%,100%{background:transparent;}
+    35%{background:var(--st-green-bg);}
+  }
+  @media (prefers-reduced-motion:reduce){
+    #hdr-notify.is-news{animation:none;background:var(--st-green-bg);}
+  }
   /* ---- THE SCRIM STARTS BELOW THE HEADER, AND THAT IS THE WHOLE POINT ----
      It was inset:0, so with the panel open it lay across the top bar and
      swallowed clicks on the two icons that control the panel — measured in the
@@ -3851,7 +3876,7 @@
            down when the work does. -->
       <button id="hdr-notify" class="hdr-icon-btn" title="Alerts — what is waiting on you" data-i18n-title="sh_alerts_title">
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-bell"/></svg>
-        <span id="hdr-notify-dot" hidden style="position:absolute;top:4px;right:3px;min-width:15px;height:15px;padding:0 3px;box-sizing:border-box;border-radius:0;background:var(--st-amber-dot);color:#1c1206;border:2px solid var(--color-surface);font:inherit;font-size:10px;font-weight:700;line-height:11px;text-align:center;font-family:var(--font-mono);"></span>
+        <span id="hdr-notify-dot" hidden style="position:absolute;top:4px;right:3px;min-width:15px;height:15px;padding:0 3px;box-sizing:border-box;border-radius:0;border:2px solid var(--color-surface);font:inherit;font-size:10px;font-weight:700;line-height:11px;text-align:center;font-family:var(--font-mono);"></span>
       </button>
 
       <button id="cmd-panel" class="hdr-icon-btn" title="Activity — everything happening across the workspace" data-i18n-title="sh_toggle_panel">

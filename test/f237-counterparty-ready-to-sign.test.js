@@ -222,17 +222,29 @@ describe('f237 (4) — the bell: amber is WORK, green is NEWS', async () => {
       '"seen" answers TRUE on an absence, so a bell with no signal is never green');
   });
 
-  test('the fab carries is-news and says why, in the dictionary\'s words', async () => {
-    const { win, c } = await bench();
-    const html = win.rlNoticeStackHtml(c, { side: 'owner' });
-    assert.match(html, /rl-notices-fab[^"]*is-news/);
-    assert.match(html, /ready to sign/i);
+  /* ---- REVERSED IN PLACE 23 Aug 2026, and the FEATURE MOVED rather than went
+     ---- The owner asked for a bell that turns green and blinks, and it was
+     built on the negotiation page's FLOATING bell. That afternoon they asked
+     that nothing float over the page, so the floating bell was removed — and
+     the green treatment moved to the HEADER bell, which is now the only one.
+     The reading is untouched: rlBellIsNews is still the one predicate, still
+     borrowed by the alerts row, and the two claims below still say what they
+     always said — green while unseen, gone once seen — asked of the surface
+     that carries it now. */
+  test('the header bell wears the news state, off the rows\' own reading', async () => {
+    const body = strip(APP).match(/function updateAlertBadge\(\)\{[\s\S]*?\n\}/)[0];
+    assert.match(body, /buildAlerts\(\)\.some\(a=>a && a\.news\)/,
+      'it borrows the rows\' own news flag rather than recomputing the signal');
+    assert.match(body, /classList\.toggle\('is-news'/,
+      'and wears it as a state on the one bell that is left');
   });
 
-  test('and drops it once seen', async () => {
+  test('and the green is only ever the UNSEEN state', async () => {
     const { win, c } = await bench();
+    assert.equal(win.rlBellIsNews(c), true, 'green while unseen');
     win.rlMarkReadySeen(c);
-    assert.doesNotMatch(win.rlNoticeStackHtml(c, { side: 'owner' }), /is-news/);
+    assert.equal(win.rlBellIsNews(c), false,
+      'and the bell hands itself back to amber once the panel has been opened');
   });
 });
 

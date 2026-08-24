@@ -391,21 +391,40 @@ describe('an action by one side shows up on the other', () => {
     // he signals; Wanjiru's page carries the signal and the hand-off
     o.win.negoSignalReady(o.c, { side: 'counterparty', by: 'Erik Lindqvist' });
     o.win.renderRedline();
-    /* IT IS NOT A BAND ANY MORE (12 Aug 2026). "They signalled they are ready
-       to sign" was a full-width strip above the three columns; it became a card
-       in the bottom-right stack, folded behind the bell.
-       AND THE FOLD WENT ON 23 Aug 2026 (owner-asked): the bell now opens the
-       workspace alerts panel, so the notices it used to fold draw in place. The
-       press is gone from this test and the assertions under it are unchanged —
-       the same sentences, now without having to find them. */
-    const sig = o.ownerDoc().querySelector('#nego-ready-signal');
-    assert.ok(sig, 'the signal reaches the owner\'s page');
-    assert.match(sig.textContent, /Erik Lindqvist/);
-    assert.match(sig.textContent, /Nothing is signed yet/);
-    assert.ok(o.ownerDoc().querySelector('#nego-issue-signing'), 'Wanjiru holds the hand-off');
+    /* REVERSED IN PLACE THREE TIMES, and the SUBJECT never moved: does the
+       owner learn their counterparty is ready, and is the hand-off theirs
+       alone? (1) 12 Aug 2026 it stopped being a full-width band above the
+       columns and became a card in a floating stack. (2) 23 Aug the fold went.
+       (3) 23 Aug, later the same day: NOTHING FLOATS OVER THE PAGE at all, so
+       the card left the owner's page entirely.
+
+       IT LOSES NOTHING, and this is where that is proved rather than asserted:
+       cpReadyToSign is the ONE predicate, and it is what the head's status
+       word, the register chip and the alerts panel's cp-ready row all read —
+       three surfaces, none of which is drawn by this page. The HAND-OFF moved
+       with it, onto the contract room head's own lead act. */
+    assert.equal(o.ownerDoc().querySelector('#nego-ready-signal'), null,
+      'nothing floats over the owner\'s contract to say it');
+    assert.equal(o.ownerDoc().querySelector('#nego-issue-signing'), null,
+      'and the hand-off is not a button on a card any more');
+    /* This stage draws the negotiation page and does not load core.js, so
+       cpReadyToSign is not callable here — its own READING is, and that is the
+       fact the three surfaces are built on. */
+    const sig0 = o.win.negoReadySignal(o.c, 'counterparty');
+    assert.ok(sig0 && sig0.by === 'Erik Lindqvist' && !sig0.stale,
+      'the fact is on the record, for the surfaces that do draw it');
+    const src = f => require('node:fs').readFileSync(
+      require('node:path').join(__dirname, '..', f), 'utf8');
+    assert.match(src('js/core.js'), /function cpReadyToSign\(/,
+      'and cpReadyToSign is the one predicate they read it through');
+    assert.match(src('js/views/contract.js'), /kind:'issue-signing'/,
+      'the hand-off is the room head\'s own next act');
 
     // and the signal travels back to Erik's copy too, still without the owner's verb
     const v2 = counterpartyView(o.c);
+    /* THEIR SEAT KEEPS THE CARD, deliberately: the counterparty's page has no
+       head row to print a status word on and no alerts panel of the workspace
+       kind, so rlSeatAlertsHtml is still where this fact reaches them. */
     assert.ok(v2.$('#nego-ready-signal'), 'his own signal is visible on his page');
     assert.equal(v2.$('#nego-issue-signing'), null);
   });

@@ -45,21 +45,30 @@ const cpSignature = () => ({ party: 'counterparty', name: 'Young Mbagaya',
   email: 'young@example.co.ke', at: AT });
 
 describe('F73 — a signature supersedes the signal to sign', () => {
+  /* ---- THE DOCS-PAGE STRIP IS RETIRED (owner-asked 23 Aug 2026: "I do not
+     want anything floating over the page") ----
+     It was a card in a stack that floated over the contract room's own body.
+     THIS FILE'S SUBJECT IS UNTOUCHED BY THAT: it is about a signature
+     superseding the intention to sign, and that lives in negoReadySignal, which
+     is still the ONE reading every surface asks — the room's banner, the status
+     word beside the contract's name, the alerts row and the dashboard's count.
+     So the two tests below now pin the reading rather than the retired card,
+     and the strip is checked to be silent in BOTH states rather than in one. */
   test('before anyone signs, the signal stands', () => {
     const w = buildWorld({ negotiationView: true, contractView: true });
     const c = negotiated(w);
     assert.ok(w.win.negoReadySignal(c, 'counterparty'), 'they said it, and nobody has acted yet');
-    assert.match(w.win.readyToSignStrip(c), /Nothing is signed yet/,
-      'which is true at this point, and worth saying');
+    assert.match(w.win.negoReadySignalHtml(c, { side: 'owner' }), /Nothing is signed yet/,
+      'which is true at this point, and the room is where it is said');
   });
 
-  test('once they have signed, the strip goes', () => {
+  test('once they have signed, the signal goes', () => {
     const w = buildWorld({ negotiationView: true, contractView: true });
     const c = negotiated(w, { signatures: [cpSignature()] });
     assert.equal(w.win.negoReadySignal(c, 'counterparty'), null,
       'the act has overtaken the intention');
     assert.equal(w.win.readyToSignStrip(c), '',
-      'and nothing on the page claims otherwise');
+      'and the retired strip says nothing either way');
   });
 
   test('the negotiation room stops saying it too', () => {

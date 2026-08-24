@@ -2347,11 +2347,18 @@ function negoTabHtml(c, opts = {}){
     ${negoTurnBannerHtml(c, opts)}
     ${negoCompareBarHtml(c)}
     ${negoCleanBarHtml(c)}
+    ${''/* IN FLOW AND ABOVE THE WORK, not floating over its corner (owner-asked
+           23 Aug 2026). It was last in this builder and position:fixed; it is
+           first and in the column now, so a notice pushes the columns down by
+           its own height rather than covering them. It draws nothing at all on
+           an ordinary negotiation — a reading you have not changed and a desk
+           that is not holding you produce no cards — so the space it takes is
+           the space it needs. */}
+    ${window.rlFloatingNoticesHtml ? rlFloatingNoticesHtml(c, opts) : ''}
     <div style="flex:1;min-height:0;display:flex;flex-direction:column;position:relative">
       ${negoPanesHtml(c, opts)}
       ${negoStatusHtml(c, opts)}
     </div>
-    ${window.rlFloatingNoticesHtml ? rlFloatingNoticesHtml(c, opts) : ''}
   </div>`;
 }
 
@@ -10093,10 +10100,28 @@ function rlNoticeStackHtml(c, alerts, note, id, opts){
      rlNoticesFolded / rlSetNoticesFolded survive and answer as before: the
      phone's own stack (mNoticeStackHtml) still folds, and it has no panel to
      open. `ng_notices_min` / `ng_notices_min_title` are STALE on this page. */
+  /* ---- NOTHING FLOATS OVER THE PAGE (owner-asked 23 Aug 2026) ----
+     This stack was position:fixed in the bottom-right corner, over whatever the
+     reader was looking at — on the contract room that meant sitting on top of
+     the Checks card and the activity feed. It draws IN FLOW now, at the top of
+     the surface that mounts it, so a notice takes its own space instead of
+     covering somebody else's.
+
+     AND THE BELL GOES WITH IT. It was a floating button carrying alertCount()
+     — the HEADER's own reading — so it was a second copy of a control already
+     on screen, in the corner the owner is asking to clear. The header bell
+     opens the same panel and says the same number. `rlAlertsBellHtml` is kept
+     as a builder with no caller here rather than deleted, because the phone's
+     own stack is a separate function and this one is published.
+
+     WHAT STAYS IS WHAT IS ABOUT THIS PAGE: which reading you are in, and the
+     one band that says what this desk lets you do right now. Both are
+     statements about the screen in front of you, so neither can move to the
+     alerts panel — and the reading notice may never simply be dropped, because
+     quietly hiding the strikes is this page's most expensive mistake. */
   const body = theirs ? n : (a + n);
-  const bell = theirs ? '' : rlAlertsBellHtml(c);
-  if (!body && !bell) return '';
-  return `<div class="rl-notices" id="${_nea(id || 'rl-notices')}">${body}${bell}</div>`;
+  if (!body) return '';
+  return `<div class="rl-notices" id="${_nea(id || 'rl-notices')}">${body}</div>`;
 }
 /* ---- THE FLOATING BELL, AND THE NUMBER ON IT ----
    It counts what the HEADER bell counts, because it now opens the same panel,
@@ -10143,8 +10168,34 @@ function rlSeatAlertsHtml(c, opts = {}){
     String(opts.extraNotices || ''),
   ].filter(Boolean).join('');
 }
+/* ---- WHAT MAY TAKE A ROW ON THIS PAGE (owner-asked 23 Aug 2026) ----
+   The stack draws in flow now, so anything in it costs the contract and the
+   change column real height. That makes the old question — "is this worth
+   floating over the page?" — into a sharper one, and the product already has
+   the answer written down: a NOTICE is a statement about the page in front of
+   you and belongs on the page; an ALERT is something waiting on you across the
+   workspace and belongs in the panel.
+
+   So the owner's stack carries the two that are about THIS PAGE — which reading
+   you are in, and the one band that says what this desk lets you do right now.
+
+   THE READINESS SIGNAL LEAVES IT, and loses nothing: the head of this very page
+   prints "Counterparty ready to sign" as its status word (cpReadyToSign), the
+   alerts panel carries a cp-ready row FIRST in its running order, and the
+   contract room's own lead button offers the act. Four surfaces for one fact
+   was already three too many; the one that took a row over the work is the one
+   that goes.
+
+   rlSeatAlertsHtml IS UNTOUCHED and still carries it, because it is also the
+   COUNTERPARTY's alerts-panel population (js/views/portal.js) — a panel is
+   exactly where that fact belongs, and their seat never drew this stack's
+   alerts half anyway. */
 function rlFloatingNoticesHtml(c, opts = {}){
-  return rlNoticeStackHtml(c, rlSeatAlertsHtml(c, opts), rlReadNoticeHtml() || '', 'rl-notices', opts);
+  const page = [
+    (window.rlOneNoticeHtml ? rlOneNoticeHtml(c, opts) : '') || '',
+    String(opts.extraNotices || ''),
+  ].filter(Boolean).join('');
+  return rlNoticeStackHtml(c, page, rlReadNoticeHtml() || '', 'rl-notices', opts);
 }
 /* ---- TWO REASONS THIS PERSON CANNOT REACH THE OTHER SIDE, ONE ANSWER ----
    A reviewer mid-review, and somebody who is not the lead of this negotiation.
@@ -11732,6 +11783,15 @@ function redlinePanesHtml(c, opts = {}){
          divider, same defaults: two thirds to the contract). nego-work is kept
          on the grid because the engine scopes its clause tooling under it
          (.nego-work .nego-pane …). -->
+    ${''/* ---- THE NOTICES, IN FLOW AND ABOVE THE WORK ----
+           (owner-asked 23 Aug 2026: "I do not want anything floating over the
+           page".) This was the LAST thing in this builder and position:fixed,
+           so it hung over the bottom-right corner of the contract. It is here,
+           between the turn banner and the grid, so a notice pushes the two
+           columns down by its own height instead of covering them — and it
+           draws NOTHING on an ordinary negotiation, where the reading has not
+           been changed and no desk rule is holding the reader. */}
+    ${rlFloatingNoticesHtml(c, opts)}
     <div class="rl-grid nego-work" id="rl-grid" style="--nego-f:1;--nego-c:320px">
       <!-- THE QUEUE IS AN OVERLAY, NOT A TRACK (owner-asked, 12 Aug 2026). It
            was the first of three grid columns, and it took about 300px off the
@@ -11910,11 +11970,6 @@ function redlinePanesHtml(c, opts = {}){
            was a band in #rl-banner until 12 Aug 2026, it is a card here now, and
            it is passed rather than built inside the stack because it is this
            page's own notice with this page's own button on it. */}
-    ${''/* The readiness signal is part of rlSeatAlertsHtml now — one named
-           population, read both by this stack and by the counterparty's own
-           alerts panel, so a notice cannot exist on one seat and not the
-           other. */}
-    ${rlFloatingNoticesHtml(c, opts)}
   </div>`;
 }
 

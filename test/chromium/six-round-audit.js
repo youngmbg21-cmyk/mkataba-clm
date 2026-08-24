@@ -485,23 +485,27 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     await mailCheck(6, 1, 'six rounds in: still exactly one email to Erik');
 
     await ownerPoll(); await ownerOpenBench();
-    /* UNFOLD THE NOTICES FIRST. The readiness signal used to sit in a band at
-       the top of the page; NOTHING BANDS THE TOP OF THE CONTRACT any more, so
-       it is one of the notices in the floating stack — and that stack arrives
-       FOLDED behind an amber bell, by design, so the notice is not in the DOM
-       until the bell is pressed. Reading it without pressing asks whether the
-       reader has already opened their post, not whether the post arrived. */
-    const signal = await owner.evaluate(async () => {
-      const wait = ms => new Promise(r => setTimeout(r, ms));
-      const bell = document.querySelector('[data-rl-notices-open]');
-      if (bell){ bell.click(); await wait(400); }
-      return { bell: !!bell,
-        sig: !!document.getElementById('nego-ready-signal'),
-        issue: !!document.getElementById('nego-issue-signing') };
+    /* RE-POINTED 23 Aug 2026, owner-asked: NOTHING FLOATS OVER THE PAGE.
+       The readiness signal used to be a band at the top of the contract, then
+       a card in a floating stack behind an amber bell — which is what this
+       block used to press. The card is retired: the fact is the head's own
+       STATUS WORD on this page (cpReadyToSign), and the hand-off is the
+       contract room's lead act. So this reads the head here, and the endgame
+       below presses the act where it now lives. */
+    const signal = await owner.evaluate(() => {
+      const st = document.getElementById('ws-status');
+      return { said: st ? st.textContent.replace(/\s+/g, ' ').trim() : '',
+        floating: !!document.getElementById('nego-ready-signal') };
     });
-    check(6, 'the owner sees the readiness signal, once the notices are opened',
-      signal.sig, `bell:${signal.bell} sig:${signal.sig}`);
-    check(6, 'and holds the hand-off — Issue a signing link', signal.issue);
+    check(6, 'the owner sees the readiness signal, with nothing to press first',
+      /ready to sign/i.test(signal.said) && !signal.floating, JSON.stringify(signal));
+    await owner.evaluate(id => { openWorkspace(id); }, CID);
+    await pause(1200);
+    const handoff = await owner.evaluate(() => {
+      const b = document.querySelector('#ws-next-action[data-na="issue-signing"]');
+      return b ? b.textContent.replace(/\s+/g, ' ').trim() : '';
+    });
+    check(6, 'and holds the hand-off — Issue a signing link', /sign/i.test(handoff), handoff);
     await owner.screenshot({ path: path.join(OUT, 'r6-owner-signal.png') });
   }
 
@@ -515,14 +519,10 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     // banner's hand-off, then the share dialog it opens, prefilled with the
     // address the owner set once at round 1.
     await ownerOpenBench();
-    /* Same fold: the hand-off is a button ON that notice, so it has to be on
-       screen before it can be pressed. */
-    await owner.evaluate(async () => {
-      const wait = ms => new Promise(r => setTimeout(r, ms));
-      const bell = document.querySelector('[data-rl-notices-open]');
-      if (bell){ bell.click(); await wait(400); }
-    });
-    await owner.waitForSelector('#nego-issue-signing', { timeout: 10000 });
+    /* RE-POINTED with the block above: the hand-off is the room head's own
+       lead act now, so the room is where it is pressed. */
+    await owner.evaluate(id => { openWorkspace(id); }, CID);
+    await owner.waitForSelector('#ws-next-action[data-na="issue-signing"]', { timeout: 10000 });
     /* A toast still fading over the corner intercepts the press exactly as the
        panel does. Both are cleared rather than clicked through: forcing a click
        past something that is really on top would prove the button reachable
@@ -533,7 +533,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       const tr = document.getElementById('toast-root'); if (tr) tr.innerHTML = '';
     });
     await pause(300);
-    await owner.click('#nego-issue-signing');
+    await owner.click('#ws-next-action[data-na="issue-signing"]');
     // the share dialog's two steps: the summary, then the send form
     await owner.waitForSelector('#share-next', { timeout: 10000 });
     await owner.click('#share-next');

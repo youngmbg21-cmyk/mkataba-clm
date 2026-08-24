@@ -49,8 +49,15 @@ const check = (name, pass, detail) => {
 /* Measured against the product's own tokens rather than against the words
    "green" and "yellow": --st-green-bg and --st-amber-bg as they resolve in the
    light theme. */
-const GREEN_BG = 'rgb(209, 250, 229)';
-const AMBER_BG = 'rgb(254, 243, 199)';
+/* ---- THE TONE IS ON THE COUNT BADGE NOW, NOT ON A BUTTON'S FACE ----
+   These were --st-green-bg / --st-amber-bg: the WASH behind the floating bell,
+   which was a soft-filled pill. That bell is retired (owner-asked 23 Aug 2026,
+   "I do not want anything floating over the page") and the treatment moved to
+   the header bell, which is an icon with a count badge — so the badge is what
+   carries the tone and the DOT tokens are what it wears. Same two facts, read
+   off the surface that states them now. */
+const GREEN_BG = 'rgb(16, 185, 129)';    /* --st-green-dot */
+const AMBER_BG = 'rgb(245, 158, 11)';    /* --st-amber-dot */
 
 (async () => {
   const h = await startHati();
@@ -149,22 +156,39 @@ const AMBER_BG = 'rgb(254, 243, 199)';
        nothing else can say a rule survived the cascade to actually run. */
     await page.evaluate(id => openRedlineWorkbench(id), cid);
     await page.waitForTimeout(2400);
+    /* ---- THE BELL MOVED, THE OWNER'S SENTENCE DID NOT (23 Aug 2026) ----
+       This measured the FLOATING bell in the bottom-right corner, which is
+       where the owner asked for the green blink. That afternoon they asked that
+       nothing float over the page, so the floating bell went and the green
+       treatment moved to the HEADER bell — the only one left, and the one that
+       already opened this same panel with this same count. Every claim below is
+       word for word what it was; only the element it is asked of has changed.
+       THE COLOUR IS READ OFF THE DOT rather than the button: the header bell is
+       an icon with a count badge, so the badge is what carries the tone, while
+       the blink plays on the button around it. */
     let bell = await page.evaluate(() => {
-      const b = document.querySelector('.rl-notices-fab');
+      const b = document.getElementById('hdr-notify');
       if (!b) return null;
       const cs = getComputedStyle(b);
-      return { news: b.classList.contains('is-news'), bg: cs.backgroundColor,
+      const dot = document.getElementById('hdr-notify-dot');
+      return { news: b.classList.contains('is-news'),
+        bg: dot ? getComputedStyle(dot).backgroundColor : null,
         anim: cs.animationName, count: cs.animationIterationCount,
-        label: b.getAttribute('aria-label') };
+        label: b.getAttribute('title') };
     });
     check('the bell is green', !!bell && bell.news && bell.bg === GREEN_BG,
       bell && bell.bg);
     check('and it is really blinking — the animation is running, not merely declared',
-      !!bell && bell.anim === 'rl-bell-news', bell && bell.anim);
+      !!bell && bell.anim === 'hdr-bell-news', bell && bell.anim);
     check('a few times and then it stops',
       !!bell && Number(bell.count) > 0 && Number(bell.count) < 10, bell && bell.count);
-    check('and its label says what the news is',
-      !!bell && /ready to sign/i.test(bell.label || ''), bell && bell.label);
+    /* THE LABEL IS THE HEADER BELL'S OWN — it names the COUNT, because it is
+       the workspace's bell and speaks for every row behind it, not for one
+       contract. What the news is, is said by the green and by the row itself.
+       Said out loud rather than quietly dropped: the floating bell's label
+       named the signal, and that sentence is not on the bell any more. */
+    check('and it still says what is waiting, in the header bell\'s own words',
+      !!bell && /\d/.test(bell.label || ''), bell && bell.label);
 
     /* ---- REVERSED IN PLACE 23 Aug 2026, owner-asked ----
        This used to press the bell to UNFOLD the notice, then press Hide and
@@ -173,11 +197,16 @@ const AMBER_BG = 'rgb(254, 243, 199)';
        no press at all, and what the press has to be measured on is the panel.
        The claim underneath is the owner's own sentence and has not moved: you
        click the bell, you see the alert, and it goes back to yellow. */
-    check('the notice is on the page without a press — it no longer folds',
+    /* REVERSED AGAIN, same day: the readiness NOTICE left this page's stack
+       when the stack stopped floating — four surfaces for one fact was three
+       too many, and the one that took a row over the work is the one that went.
+       It is said by the status word beside the contract's name and by the row
+       in the panel, both of which this file already measures. */
+    check('the head says it instead — no card, no press, no floating box',
       await page.evaluate(() =>
-        /ready to sign/i.test((document.querySelector('.rl-notices') || {}).innerText || '')));
+        /ready to sign/i.test((document.getElementById('ws-status') || {}).textContent || '')));
 
-    await page.evaluate(() => document.querySelector('.rl-notices-fab').click());
+    await page.evaluate(() => document.getElementById('hdr-notify').click());
     await page.waitForTimeout(900);
     const opened = await page.evaluate(() => {
       const panel = document.getElementById('context-panel');
@@ -201,16 +230,19 @@ const AMBER_BG = 'rgb(254, 243, 199)';
     await page.keyboard.press('Escape');
     await page.waitForTimeout(700);
     bell = await page.evaluate(() => {
-      const b = document.querySelector('.rl-notices-fab');
+      const b = document.getElementById('hdr-notify');
       const cs = b && getComputedStyle(b);
-      return b ? { news: b.classList.contains('is-news'), bg: cs.backgroundColor, anim: cs.animationName } : null;
+      const dot = document.getElementById('hdr-notify-dot');
+      return b ? { news: b.classList.contains('is-news'),
+        bg: dot ? getComputedStyle(dot).backgroundColor : null,
+        anim: cs.animationName } : null;
     });
     check('"then it goes back to yellow"',
       !!bell && !bell.news && bell.bg === AMBER_BG && bell.anim === 'none', JSON.stringify(bell));
 
     /* AND THE ROW IS CALM THE SECOND TIME. Opening the panel is what counts as
        having seen it: the flash is over, the green is not. */
-    await page.evaluate(() => document.querySelector('.rl-notices-fab').click());
+    await page.evaluate(() => document.getElementById('hdr-notify').click());
     await page.waitForTimeout(800);
     const again = await page.evaluate(() => {
       const r = [...document.querySelectorAll('#context-panel [data-alert-i]')]
