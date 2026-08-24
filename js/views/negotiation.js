@@ -4908,6 +4908,49 @@ function rlPaintReadSegs(){
    shut on 19 Aug; the clause pencil and the change column are the rest of it.
    The way back is the tab row, which is on screen the whole time and says which
    reading you are in. */
+/* ---- THE WHOSE-ASKS FILTER, DRAWN IN THE INDEX'S OWN SLOT ----
+   Lifted out of the head below it (WO-8, 24 Aug 2026) so it draws where the
+   markup had already reserved a place for it. The reading is unchanged, line
+   for line: every option carries its own count, counted with countAll so the
+   filter can never move its own numbers, and a narrowed reviewer gets no
+   filter at all because a control with one outcome is furniture. */
+function rlIdxFilterHtml(c, opts, side, tabHidden){
+  if (rlMyCardIds(c, opts)) return '';
+  return (() => {
+            const totals = redlineCardIds(c, { ...opts, hiddenIds: [...tabHidden], countAll: true });
+            const bySide = k => totals.filter(id => {
+              const ch = (typeof negoChangeById === 'function') ? negoChangeById(c, id) : null;
+              if (!ch) return false;
+              const mine = ch.authorSide === (side === 'counterparty' ? 'counterparty' : 'owner');
+              return k === 'mine' ? mine : !mine;
+            }).length;
+            const n = k => (k === 'all' ? totals.length : bySide(k));
+            const tip = { all: 'ng_filter_all_t',
+              mine: 'ng_filter_mine_t', theirs: 'ng_filter_theirs_t' };
+            /* ---- A DROPDOWN, ON THE INDEX'S OWN LINE (owner-asked 24 Aug
+                   2026, pointing at where it should sit) ----
+                   THIS REVERSES "SEGMENTED, NOT A DROPDOWN", and that reversal
+                   was put to the owner with its reason before it was built: the
+                   segmented control came back, after the filter had once been
+                   removed altogether, with three safety properties, and one of
+                   them was that a control which HIDES changes must not be
+                   collapsible — a reader can sit on "Mine" without registering
+                   it and conclude the other side has asked for nothing.
+                   THE OTHER TWO PROPERTIES ARE KEPT AND ARE WHAT MAKE THIS
+                   SAFE: three options only, and every option still carries its
+                   OWN count, unmoved by the filter — so the number of theirs is
+                   readable without opening the control. The third is answered
+                   by rlCardFilterNoteHtml below: while the column is narrowed
+                   it SAYS so and offers the way back, which is the same
+                   mechanism the page already uses when a filter empties it. */
+            return `<select id="rl-cardfilter" class="rl-idx-filter"
+                aria-label="${_nea(i18t('ng_filter_group'))}"
+                title="${_nea(i18t(tip[rlCardFilter()] || tip.all, { who: c.counterparty || i18t('ng_the_counterparty') }))}">${
+              RL_CARD_FILTERS.map(([k, key]) => `<option value="${k}"${rlCardFilter() === k ? ' selected' : ''}
+                >${_ne(i18t(key))} (${n(k)})</option>`).join('')}</select>`;
+          })();
+}
+
 function rlReadOnlyReading(){ return rlReadMode() !== 'marks'; }
 /* The sentence the floating notice prints, and the one place that decides
    whether a notice is owed at all — an empty string means the page is on its
@@ -5211,59 +5254,18 @@ function rlUnsentCount(c, opts = {}){
 
    NEVER ON THEIR SEAT. This is our playbook, our fallbacks and our
    negotiating history, read out loud. */
-function rlPlanBandHtml(c, opts = {}){
-  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
-  if (side === 'counterparty' || (typeof PORTAL_MODE !== 'undefined' && PORTAL_MODE)) return '';
-  if (opts.readonly || (typeof redlinePlan !== 'function')) return '';
-  /* BARE, like the six other calls to this in this file. It was guarded on
-     window.rlActorHeld, which nothing publishes — so the guard was always
-     false and a narrowed reviewer was offered the band anyway. */
-  if (rlActorHeld(c, opts)) return '';
-  const plan = redlinePlan(c);
-  if (!plan.length) return '';
-  const n = rlpCounts(plan);
-  const open = !!_rlPlanOpen;
-  /* A CHIP READING ZERO IS FURNITURE, and at the band's own type it is
-     expensive furniture (22 Aug 2026). The bar carries a title, four chips and
-     a caret in a column that is 300px at its narrowest; once the band stopped
-     shrinking with the reader's document type, four chips left the title no
-     room and it wrapped to four lines — a folded band is meant to be ONE line.
-     Hiding an empty verdict is this product's own rule, the one the alert dot
-     already follows: the number appears when there is a number. What is not
-     lost is the verdict itself — every row below still names its own. */
-  const chip = v => (n[v] ? `<span class="rl-plan-chip rl-plan-${v}">${n[v]} ${_nea(RLP_VERDICTS[v].label)}</span>` : '');
-  const row = r => {
-    const acts = [];
-    if (r.verdict === 'accept')
-      acts.push(`<button class="rl-plan-act" data-nego-accept="${_nea(r.id)}">${i18t('rp_take_it')}</button>`);
-    if (r.verdict === 'push' || r.verdict === 'review')
-      acts.push(`<button class="rl-plan-act" data-rl-cp-open="${_nea(r.clauseId || '')}">${i18t('rp_open_clause')}</button>`);
-    if (r.verdict === 'escalate')
-      acts.push(`<button class="rl-plan-act" data-rl-ask-review="${_nea(r.id)}">${i18t('rp_escalate_it')}</button>`);
-    return `<div class="rl-plan-row">
-      <div class="rl-plan-head">
-        <span class="rl-plan-chip rl-plan-${r.verdict}">${_nea(RLP_VERDICTS[r.verdict].label)}</span>
-        <span class="rl-plan-id">${_nea(r.id)}</span>
-        <span class="rl-plan-clause">${_nea(r.clause || i18t('rp_this_clause'))}</span>
-      </div>
-      ${r.why.map(w => `<p class="rl-plan-why">${_nea(w)}</p>`).join('')}
-      ${r.precedent ? `<p class="rl-plan-prec">${_nea(r.precedent)}</p>` : ''}
-      <div class="rl-plan-acts">${acts.join('')}</div>
-    </div>`;
-  };
-  return `<div class="rl-plan" data-rl-plan>
-    <button type="button" class="rl-plan-bar" data-rl-plan-toggle aria-expanded="${open ? 'true' : 'false'}"
-      title="${_nea(i18t('rp_title', { n: plan.length }))}">
-      <span class="rl-plan-title">${i18t('rp_title', { n: plan.length })}</span>
-      ${chip('escalate')}${chip('push')}${chip('review')}${chip('accept')}
-      <span class="rl-plan-caret">${open ? '\u2013' : '+'}</span>
-    </button>
-    ${open ? `<div class="rl-plan-body">
-      <p class="rl-plan-note">${i18t('rp_note')}</p>
-      ${plan.map(row).join('')}
-    </div>` : ''}
-  </div>`;
+function rlPlanBandHtml(){
+  /* ---- A STUB, NOT A DELETION (WO-3, 24 Aug 2026) ----
+     The owner asked for the strip off the page and the machinery left where it
+     is. Everything this used to build — js/redlineplan.js, the rp_* wording in
+     both languages, the .rl-plan rules — is untouched and dormant; only the
+     drawing stops. Restoring it is putting the body of this function back.
+     IT DECIDED NOTHING AND FILED NOTHING, which is why removing it takes no
+     capability away: every button it drew carried the ordinary cards' own
+     attributes and pressed the ordinary funnel. */
+  return '';
 }
+
 /* Per sitting, in memory — a working posture, not a setting, and shut on
    arrival so the column opens on the cards themselves. */
 let _rlPlanOpen = false;
@@ -11991,10 +11993,25 @@ function redlinePanesHtml(c, opts = {}){
                button nobody could press. It presses data-rl-read, the tab
                row's OWN attribute, so this is the existing door rather than a
                second one. */}
-        ${rlReadOnlyReading() ? `<div class="rl-idx-reading">
-          <span>${_ne(i18t('ng_reading_no_edit'))}</span>
-          <button type="button" data-rl-read="marks">${_ne(i18t('ng_read_back'))}</button>
-        </div>` : ''}
+        ${''/* ---- NO STRIP, AND THE COLUMN STAYS EXACTLY AS IT IS
+               (owner-ruled 24 Aug 2026: "I need the card to stay the same size
+               and look identical from page to page just that the last 2 need
+               to be greyed out. No need to add a reason.") ----
+               The strip said "Reading only — go back to Redlined to make a
+               change" above the column on the two clean readings. It is gone;
+               the greying is UNTOUCHED, so the column still refuses a press on
+               those two readings exactly as before.
+               AND REMOVING IT IS WHAT MAKES THE COLUMN IDENTICAL PAGE TO PAGE,
+               which is the half of the ask that is easy to miss: the strip only
+               drew on two of the three readings, so it pushed the column down
+               on those two and left it at the top on the third. With it gone
+               all three start at the same place.
+               THE STANDING RULE THIS REVERSES, said out loud rather than
+               quietly dropped: "A NON-DEFAULT READING ALWAYS SAYS SO … with the
+               way back" and "THE READING NOTICE NEVER FOLDS". The owner has
+               seen it and ruled that no reason is wanted. The way back is
+               unchanged and one press away — the tab row above the contract.
+               `.rl-idx-reading` is STALE — flag any mention. */}
         <div class="nego-pane index" id="rl-changes-col" aria-label="${i18t('ng_tracked_changes')}" ${rlReadOnlyReading() ? 'aria-disabled="true"' : ''}>
           ${''/* ---- THE CHANGE INDEX (owner-approved render, 24 Aug 2026) ----
                  The head said "TRACKED CHANGES" and a count of what is OPEN,
@@ -12015,7 +12032,21 @@ function redlinePanesHtml(c, opts = {}){
             <div class="rl-idx-foot">
               <span class="rl-idx-sub">${_ne(i18t('ng_n_of_m_decided',{done:p.done,total:p.total}))}</span>
               <span style="flex:1;min-width:6px"></span>
-              <span id="rl-idx-filter-slot"></span>
+              ${''/* ---- THE FILTER DRAWS HERE (owner-asked 24 Aug 2026: "move
+                     the all button to the small red highlighted location on
+                     the top right") ----
+                     This slot was already declared, already named for the
+                     filter, and NOTHING ANYWHERE WROTE INTO IT — one span, no
+                     readers, in any file. The intention was there and the last
+                     step was never taken, so the control drew on the line
+                     below. It is built here now and the line below is gone.
+                     THE THREE SAFETY PROPERTIES ARE UNTOUCHED: three options
+                     only, each still carrying its OWN count unmoved by the
+                     filter, and rlCardFilterNoteHtml still says so and offers
+                     the way back while the column is narrowed. A control that
+                     can hide changes is the one on this page that must never
+                     be silent. */}
+              ${rlIdxFilterHtml(c, opts, side, tabHidden)}
             </div>` : ''}
             ${''/* ---- AND IT SAYS WHEN IT IS NARROWED ----
                    The third of the filter's three safety properties, kept now
@@ -12054,39 +12085,8 @@ function redlinePanesHtml(c, opts = {}){
                  answer once the column holds one person's work, and a control
                  with one outcome is furniture. That rule predates this
                  control; rlMyCardIds returning a set IS the narrowing. */}
-          ${rlMyCardIds(c, opts) ? '' : (() => {
-            const totals = redlineCardIds(c, { ...opts, hiddenIds: [...tabHidden], countAll: true });
-            const bySide = k => totals.filter(id => {
-              const ch = (typeof negoChangeById === 'function') ? negoChangeById(c, id) : null;
-              if (!ch) return false;
-              const mine = ch.authorSide === (side === 'counterparty' ? 'counterparty' : 'owner');
-              return k === 'mine' ? mine : !mine;
-            }).length;
-            const n = k => (k === 'all' ? totals.length : bySide(k));
-            const tip = { all: 'ng_filter_all_t',
-              mine: 'ng_filter_mine_t', theirs: 'ng_filter_theirs_t' };
-            /* ---- A DROPDOWN, ON THE INDEX'S OWN LINE (owner-asked 24 Aug
-                   2026, pointing at where it should sit) ----
-                   THIS REVERSES "SEGMENTED, NOT A DROPDOWN", and that reversal
-                   was put to the owner with its reason before it was built: the
-                   segmented control came back, after the filter had once been
-                   removed altogether, with three safety properties, and one of
-                   them was that a control which HIDES changes must not be
-                   collapsible — a reader can sit on "Mine" without registering
-                   it and conclude the other side has asked for nothing.
-                   THE OTHER TWO PROPERTIES ARE KEPT AND ARE WHAT MAKE THIS
-                   SAFE: three options only, and every option still carries its
-                   OWN count, unmoved by the filter — so the number of theirs is
-                   readable without opening the control. The third is answered
-                   by rlCardFilterNoteHtml below: while the column is narrowed
-                   it SAYS so and offers the way back, which is the same
-                   mechanism the page already uses when a filter empties it. */
-            return `<select id="rl-cardfilter" class="rl-idx-filter"
-                aria-label="${_nea(i18t('ng_filter_group'))}"
-                title="${_nea(i18t(tip[rlCardFilter()] || tip.all, { who: c.counterparty || i18t('ng_the_counterparty') }))}">${
-              RL_CARD_FILTERS.map(([k, key]) => `<option value="${k}"${rlCardFilter() === k ? ' selected' : ''}
-                >${_ne(i18t(key))} (${n(k)})</option>`).join('')}</select>`;
-          })()}
+          ${''/* THE WHOSE-ASKS FILTER MOVED UP into the index block above —
+                 see rlIdxFilterHtml, and the slot it now fills. */}
           ${''/* kept for the engine's wiring and the header proxies; the design
                  carries these controls in the page header instead */}
           <span class="nego-count" id="nego-count" hidden>${p.pending || p.total}</span>
@@ -12106,7 +12106,15 @@ function redlinePanesHtml(c, opts = {}){
                  reading OF those cards. Drawn only on our seat, only where
                  they have actually asked for something, and never for a
                  narrowed reviewer. See rlPlanBandHtml. */}
-          ${rlPlanBandHtml(c, opts)}
+          ${''/* THE COPILOT'S FIRST PASS IS NOT DRAWN (owner-ruled 24 Aug
+                 2026: "delete the copilot first pass feature completely", then
+                 "just delete the strip for now"). The band is gone from the
+                 page; the engine behind it, its wording in both languages and
+                 its styling all stay in place, switched off, so it comes back
+                 in one line if it is ever wanted. rlPlanBandHtml is a stub
+                 rather than a deletion — it is published on window and a third
+                 caller must not be able to bring the strip back through a door
+                 nobody remembered. */}
           ${''/* ---- AND NOW THE BULK VERBS ARE GONE FROM BOTH SEATS ----
                  They left OUR column first: deciding the other side's wording
                  in one press is the act that should cost a press per clause,
