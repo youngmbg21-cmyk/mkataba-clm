@@ -1137,6 +1137,22 @@ function updateAlertBadge(){
     if(btn) btn.title=off?i18t('ap_alerts_not_here')
       :(n?i18tn('sh_alerts_n',n,{n}):i18t('sh_alerts_none'));
   }
+  /* ---- GREEN IS NEWS, AND THE HEADER BELL CARRIES IT NOW ----
+     The owner asked for a bell that turns green and blinks when the counterparty
+     signals they are ready (23 Aug 2026), and it was built on the negotiation
+     page's FLOATING bell. That bell went the same day — "I do not want anything
+     floating over the page" — so the treatment moves here rather than being
+     lost with the button.
+     IT BORROWS THE ROWS' OWN READING. buildAlerts already stamps `news` on a
+     cp-ready row from rlBellIsNews, so the bell and the row it opens onto
+     cannot say different things about one signal — which is the whole reason
+     that flag exists. AMBER IS UNTOUCHED: the count still says what is owed and
+     still clears when the WORK does, never when you look at it. */
+  if(btn){
+    let news=false;
+    try{ news=buildAlerts().some(a=>a && a.news); }catch(_){ news=false; }
+    btn.classList.toggle('is-news', !!news && !off);
+  }
   /* A DISABLED CONTROL WITH A REASON, not a live one that does nothing. */
   if(btn){ btn.disabled=off; btn.style.opacity=off?'.45':''; }
   if(pan){ pan.disabled=off; pan.style.opacity=off?'.45':'';
@@ -1431,8 +1447,16 @@ function renderContextPanel(){
        behind them are untouched — those clear when the work does, which is this
        panel's standing rule. */
     if(window.rlMarkReadySeen && window.getContract){
+      let marked=false;
       rows.forEach(a=>{ if(!a.news||!a.id) return;
-        try{ const c=getContract(a.id); if(c) rlMarkReadySeen(c); }catch(_){} });
+        try{ const c=getContract(a.id); if(c){ rlMarkReadySeen(c); marked=true; } }catch(_){} });
+      /* AND THE BELL HANDS ITSELF BACK. Marking the news seen changes what
+         updateAlertBadge would answer, and nothing was re-asking it — so the
+         header bell stayed green after the panel had been read, which is the
+         half of the owner's own sentence that says "then it goes back to
+         yellow". Only when something was actually marked, so an ordinary
+         opening of this panel costs no extra sweep of the book. */
+      if(marked) try{ updateAlertBadge(); }catch(_){}
     }
   } else {
     body.querySelectorAll('[data-sel-act]').forEach(el=>el.addEventListener('click',()=>selectContract(el.getAttribute('data-sel-act'))));

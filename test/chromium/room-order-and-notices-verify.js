@@ -204,33 +204,40 @@ const seen = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
       renderRedline();
     });
     await page.waitForTimeout(900);
-    /* ---- REVERSED IN PLACE 23 Aug 2026, owner-asked ----
-       This asserted that the signal arrives FOLDED behind the bell and that
-       pressing the bell gives the sentence back. The bell opens the workspace
-       ALERTS PANEL now, so the notices it used to fold draw in place — the
-       claim underneath, that this is a card in the bottom-right stack and never
-       a band across the top of the contract, is unchanged and is what the two
-       checks below still say. */
+    /* ---- REVERSED IN PLACE TWICE, 23 Aug 2026, owner-asked ----
+       First: the signal used to arrive FOLDED behind a floating bell, and the
+       check pressed the bell to get the sentence back. Then the bell became a
+       door onto the workspace alerts panel and the notices drew in place.
+       NOW NOTHING FLOATS AT ALL ("I do not want anything floating over the
+       page"), so the readiness card has left this page — and the SUBJECT of
+       these checks is unchanged, because it was never "there is a card": it
+       was that a reader on this page learns their counterparty is ready, and
+       that the fact does not band the top of the contract.
+
+       THREE SURFACES CARRY IT AND TWO ARE ON THIS SCREEN, which is why the
+       card could go: the head's own status word (cpReadyToSign) and the alerts
+       panel's cp-ready row. The third is the ACT, and it is deliberately not
+       here — this head's slot is filled by the round's own verbs, so the act
+       is offered on the contract room's head instead, which section 3 pins. */
     const signalled = await page.evaluate(([s]) => {
       const seenFn = eval(s);
-      const sig = document.getElementById('nego-ready-signal');
-      return { bell: seenFn(document.querySelector('#rl-notices .rl-notices-fab')),
-        box: seenFn(sig), said: sig ? sig.textContent.replace(/\s+/g, ' ').trim() : '',
-        verb: seenFn(document.getElementById('nego-issue-signing')),
-        inStack: !!(sig && sig.closest('#rl-notices')) };
+      const st = document.getElementById('ws-status');
+      return { floatingCard: seenFn(document.getElementById('nego-ready-signal')),
+        floatingBell: seenFn(document.querySelector('#rl-notices .rl-notices-fab')),
+        status: st ? st.textContent.replace(/\s+/g, ' ').trim() : '',
+        headBell: seenFn(document.getElementById('hdr-notify')),
+        panelRow: (window.buildAlerts ? buildAlerts() : [])
+          .filter(a => a && a.kind === 'cp-ready').length };
     }, [seen]);
     await page.screenshot({ path: path.join(OUT, '02-negotiate-notices.png') });
-    check('a signal that they are ready is a card in the stack, never a band',
-      !!signalled.box && signalled.box.on && signalled.inStack,
-      JSON.stringify({ on: signalled.box && signalled.box.on, inStack: signalled.inStack }));
-    check('and it says every word of the sentence, with no press to find it',
-      /signalled/.test(signalled.said) && /Nothing is signed yet/i.test(signalled.said),
-      signalled.said.slice(0, 110));
-    check('the bell stands beside it as the door onto the alerts panel',
-      !!signalled.bell && signalled.bell.on, JSON.stringify(signalled.bell));
-    const opened = signalled;
-    check('and the button that was on the band came with it',
-      !!opened.verb && opened.verb.on, JSON.stringify(opened.verb));
+    check('nothing floats over the contract to say they are ready',
+      !signalled.floatingCard && !signalled.floatingBell,
+      JSON.stringify({ card: signalled.floatingCard, bell: signalled.floatingBell }));
+    check('the head says it in words instead, on the row with the contract\'s name',
+      /ready to sign/i.test(signalled.status), signalled.status.slice(0, 110));
+    check('the workspace bell is the door, and it carries the row',
+      !!signalled.headBell && signalled.headBell.on && signalled.panelRow === 1,
+      JSON.stringify({ bell: signalled.headBell, rows: signalled.panelRow }));
     check('the bands did not come back with it',
       (await page.evaluate(BAND_SCAN)).bands.length === 0);
 
@@ -243,27 +250,45 @@ const seen = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
       docBands.scanned && docBands.bands.length === 0,
       docBands.scanned ? (docBands.bands.join(' | ') || 'clear') : 'could not scan');
 
+    /* ---- REVERSED IN PLACE 23 Aug 2026, owner-asked: nothing floats ----
+       These three checks pinned a floating stack in the bottom-right corner of
+       this tab holding a "ready to sign" strip and the edited-working-text
+       note. THREE CARDS RETIRED and the stack came down into the flow, above
+       the panes and below the tab row.
+
+       WHAT EACH CHECK WAS REALLY ABOUT SURVIVES, which is why they are reversed
+       rather than deleted: the readiness fact still reaches this tab (the head
+       says it and the lead act offers it — the SAME two surfaces the negotiate
+       page uses, so the two screens cannot come to disagree), the working-text
+       note is still off the paper, and nothing overlaps the contract. */
     const docStack = await page.evaluate(([s]) => {
       const seenFn = eval(s);
       const stack = document.getElementById('ws-notices');
-      const r = stack ? stack.getBoundingClientRect() : null;
+      const panes = document.getElementById('ws-panes') || document.querySelector('.ws-pane');
+      const sr = stack ? stack.getBoundingClientRect() : null;
+      const pr = panes ? panes.getBoundingClientRect() : null;
+      const st = document.getElementById('ws-status');
       return { stack: seenFn(stack),
-        fromRight: r ? Math.round(window.innerWidth - r.right) : null,
-        fromBottom: r ? Math.round(window.innerHeight - r.bottom) : null,
+        aboveThePanes: !!(sr && pr) ? sr.bottom <= pr.top + 1 : null,
         ready: seenFn(document.getElementById('ready-strip')),
-        inStack: !!(stack && stack.querySelector('#ready-strip')),
         working: !!(stack && stack.querySelector('#ws-working-note')),
+        status: st ? st.textContent.replace(/\s+/g, ' ').trim() : '',
+        act: seenFn(document.querySelector('#ws-next-action[data-na="issue-signing"]')),
+        actSays: (document.getElementById('ws-next-action') || {}).textContent || '',
         onPaper: !!document.querySelector('#doc-zoom [data-anchor="recital"]') };
     }, [seen]);
-    check('the room\'s notices float at the bottom right',
-      !!docStack.stack && docStack.stack.on && docStack.fromRight < 60 && docStack.fromBottom < 60,
-      `right ${docStack.fromRight}px, bottom ${docStack.fromBottom}px`);
-    check('"ready to sign" is one of the cards in it, not a strip on the page',
-      docStack.inStack && !!docStack.ready && docStack.ready.on,
-      JSON.stringify(docStack.ready));
-    check('and the "edited working text" note has come off the paper',
-      !docStack.onPaper && docStack.working,
-      `onPaper=${docStack.onPaper} inStack=${docStack.working}`);
+    check('nothing floats over the Document tab either',
+      !docStack.ready && !docStack.working,
+      JSON.stringify({ ready: docStack.ready, working: docStack.working }));
+    check('and where the room does have a notice, it draws above the panes',
+      !docStack.stack || docStack.aboveThePanes === true,
+      docStack.stack ? `aboveThePanes=${docStack.aboveThePanes}` : 'no notice on this contract');
+    check('this tab says it in words AND offers the act, where the card used to',
+      /ready to sign/i.test(docStack.status) && !!docStack.act && docStack.act.on,
+      JSON.stringify({ status: docStack.status,
+        act: docStack.actSays.replace(/\s+/g, ' ').trim() }));
+    check('and the "edited working text" note is still off the paper',
+      !docStack.onPaper, `onPaper=${docStack.onPaper}`);
 
     /* ================= 4. THE TAB ROW'S CONTROLS ========================== */
     /* The reported sequence, in order: sit on Key terms, let the room render,

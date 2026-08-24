@@ -17,6 +17,20 @@
    they stop folding and draw in place, which is where the unfolded state
    already put them.
 
+   ---- AND THAT SAME AFTERNOON THE BELL WENT TOO, owner-asked ----
+   "I do not want anything floating over the page." Removing the fold had left
+   these notices permanently on screen, floating over the bottom-right corner of
+   whatever the reader was looking at — measured on the contract room, on top of
+   the Checks card and the activity feed. So the stack draws IN FLOW now, above
+   the work, and the floating bell went with it: it carried alertCount(), which
+   is the HEADER bell's own reading, so it was a second copy of a control
+   already on screen sitting in the corner the owner is asking to clear.
+
+   THE THREE BELL CLAIMS ARE REVERSED IN PLACE, and what each was really about
+   survives as its mirror: there is no fab, no count on a fab, and no way to
+   press one — and the panel is still exactly one press away, from the header.
+   rlAlertsBellHtml is kept as a builder with no caller rather than deleted.
+
    THE CLAIMS THAT SURVIVE ARE REVERSED IN PLACE rather than deleted, and each
    keeps what it was really about:
    - "news arrives folded, a bell not the cards" becomes: the notices are on
@@ -121,30 +135,28 @@ describe('f172 · the notices draw in place and the bell opens the panel', () =>
       'and the Cancel it carries is reachable');
   });
 
-  test('REVERSED — the bell is a door onto the alerts panel', async () => {
+  test('REVERSED AGAIN — there is no floating bell at all', async () => {
+    /* It was a door onto the alerts panel for one day. The header's own bell
+       opens the same panel and says the same number, so this one was a second
+       copy of a control already on screen — in the corner the owner asked to
+       clear. The NOTICES are untouched by its removal, which is the half worth
+       pinning: taking the bell away must not take them with it. */
     const w = world();
     await mounted(w, 'news');
-    const bell = $(w, '.rl-notices [data-rl-alerts-open]');
-    assert.ok(bell, 'the bell is drawn');
-    press(w, '[data-rl-alerts-open]');
-    assert.deepEqual(w.opened, ['alerts'],
-      'and pressing it opens the workspace alerts panel, not a fold of its own');
+    assert.ok(!$(w, '.rl-notices [data-rl-alerts-open]'), 'no fab is drawn');
+    assert.ok(!$(w, '.rl-notices .rl-notices-fab'), 'nor its class');
     assert.ok($(w, '.rl-notices .rv-banner'),
-      'the notices are untouched by the press — the bell no longer governs them');
+      'and the notices themselves still draw — the stack outlived its bell');
   });
 
-  test('the bell carries the number the panel behind it would show', async () => {
-    /* A door wearing a different number from the room behind it is a door that
-       lies. alertCount is the header bell's own reading. */
-    const w = world({ alerts: 7 });
-    await mounted(w, 'news');
-    const dot = $(w, '.rl-notices .rl-fab-dot');
-    assert.ok(dot, 'the count is drawn on the bell');
-    assert.equal(dot.textContent.trim(), '7');
-    const w9 = world({ alerts: 42 });
-    await mounted(w9, 'news');
-    assert.equal($(w9, '.rl-notices .rl-fab-dot').textContent.trim(), '9+',
-      'and past nine it says so rather than widening');
+  test('and no count rides one, however many alerts are waiting', async () => {
+    /* A count on a floating button was the reason it had to be kept in step
+       with the header's. With no button there is nothing to keep in step. */
+    for (const n of [7, 42]){
+      const w = world({ alerts: n });
+      await mounted(w, 'news');
+      assert.ok(!$(w, '.rl-notices .rl-fab-dot'), `a dot is drawn at ${n} alerts`);
+    }
   });
 
   test('the reading notice never folds — it stands beside the bell', async () => {
@@ -201,13 +213,18 @@ describe('f172 · the notices draw in place and the bell opens the panel', () =>
     assert.match(nego, /rlSetNoticesFolded\(cid, !open\)/);
   });
 
-  test('the bell does nothing rather than half-opening where there is no panel', async () => {
-    /* The counterparty's page and every bare node stage mount these panes
-       without app.js. A bare openPanel call would throw there. */
-    const w = world();
-    await mounted(w, 'news');
-    delete w.win.openPanel;
-    press(w, '[data-rl-alerts-open]');
-    assert.deepEqual(w.opened, [], 'no panel, no press, no throw');
+  test('NOTHING IN THE STACK IS POSITIONED OVER THE PAGE', async () => {
+    /* The owner's rule, and the reason the bell went: a notice may take a row,
+       never cover one. Asked of the STYLESHEET here because jsdom resolves no
+       cascade — the drawn geometry is measured in room-order-and-notices-verify,
+       which puts a real notice on a real page and checks it overlaps nothing. */
+    const css = require('node:fs')
+      .readFileSync(require('node:path').join(__dirname, '..',
+        'js/views/negotiation-css.js'), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '');
+    const rule = css.match(/\.rl-notices\{[^}]*\}/)[0];
+    assert.ok(!/position:fixed/.test(rule), rule);
+    assert.ok(!/position:absolute/.test(rule), rule);
+    assert.match(rule, /\.rl-notices\{display:flex/, 'an ordinary block in the column');
   });
 });

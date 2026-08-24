@@ -266,8 +266,6 @@ const SHELL_ICONS = [
     const landed = await page.evaluate(() => ({
       view: window.state && window.state.view,
       rows: document.querySelectorAll('[data-row]').length,
-      view: window.state && window.state.view,
-      rows: document.querySelectorAll('[data-row]').length,
     }));
     check('pressing a stage still opens the register', landed.view === 'register', landed.view);
     check('and the register has rows in it', landed.rows > 0, String(landed.rows));

@@ -671,23 +671,40 @@ describe('the owner receives it', () => {
       'and the next act is the owner\'s, so the verb is here');
   });
 
-  test('SURFACE 2 — a strip on the Docs page, where somebody who stopped opening the room will see it', async () => {
+  /* ---- SURFACE 2 WAS A FLOATING CARD, AND IT IS RETIRED (owner-asked 23 Aug
+     2026: "I do not want anything floating over the page") ----
+     It was a full-width amber band drawn inside a stack that floated over the
+     bottom-right corner of the contract room, on top of the Checks card and the
+     activity feed. THE POINT OF SURFACE 2 SURVIVES INTACT and is what these two
+     tests pin now — "somebody who stopped opening the room will see it" is
+     answered by the room's own HEAD rather than by a box over its body:
+
+       · the status word beside the contract's name reads "Counterparty ready to
+         sign" (cpReadyToSign, pinned in f237), and stops saying it the moment
+         anything is reopened — which is what the strip's stale branch was for;
+       · the head's lead button becomes "Issue a signing link", which is the act
+         the strip carried and the reason it could not simply be deleted.
+
+     So the count of surfaces did not drop. What changed is that none of them
+     floats. */
+  test('SURFACE 2 — the strip is retired, and nothing floats in its place', async () => {
     const { c } = await delivered();
     const { win } = buildWorld({ contractView: true });
     win.negoInit(c);
-    const html = win.readyToSignStrip(c);
-    assert.match(html, /Ready to sign/);
-    assert.match(html, /Erik Lindqvist/);
-    assert.match(html, /Nothing is signed yet/);
-    assert.match(html, /Issue a signing link/);
+    assert.equal(win.readyToSignStrip(c), '',
+      'the builder is kept as a stub — it is published and still called — but draws nothing');
   });
 
-  test('SURFACE 2 goes quiet once the contract is signed or declined', async () => {
-    const { c } = await delivered();
-    const { win } = buildWorld({ contractView: true });
-    assert.equal(win.readyToSignStrip({ ...c, status: 'Signed' }), '');
-    assert.equal(win.readyToSignStrip({ ...c, status: 'Declined' }), '');
-    assert.equal(win.readyToSignStrip(contract()), '', 'and says nothing when nobody has signalled');
+  test('SURFACE 2\'s ACT moved to the head, so no press was lost', async () => {
+    const src = require('node:fs').readFileSync(
+      require('node:path').join(__dirname, '..', 'js/views/contract.js'), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '');
+    const na = src.match(/function wsNextAction[\s\S]*?\n\}/)[0];
+    assert.match(na, /cpReadyToSign\(/,
+      'the head asks the same predicate the status word and the alerts row ask');
+    assert.match(na, /kind:'issue-signing'/, 'and offers the act as its own next step');
+    assert.match(src, /kind==='issue-signing'\)\{ issueSigningAct\(c\); return; \}/,
+      'wired to the SAME function the room\'s own button calls — one path, two doors');
   });
 
   /* The dashboard proper needs the whole application shell to boot — metrics,
@@ -1135,10 +1152,29 @@ describe('the awkward cases', () => {
     assert.equal(win.document.getElementById('nego-issue-signing'), null,
       'and the next step is not offered for a contract that has gone back into negotiation');
 
+    /* REVERSED IN PLACE 23 Aug 2026 — the Docs-page strip is retired (see
+       SURFACE 2 above). It used to draw the stale case as an amber card whose
+       whole message was that its own message was out of date; it draws nothing
+       now, and the stale reading is carried where it is read: cpReadyToSign
+       answers FALSE on a stale signal, so the status word goes quiet and the
+       head stops offering the act. The claim — a stale signal withdraws the
+       invitation — is unchanged and is asserted on the surface that makes it. */
     const cv = buildWorld({ contractView: true }).win;
-    const strip = cv.readyToSignStrip(c);
-    assert.match(strip, /data-stale="1"/);
-    assert.ok(!/Issue a signing link/.test(strip));
+    assert.equal(cv.readyToSignStrip(c), '', 'the retired strip draws nothing at all');
+    /* AND THE HEAD'S OWN INVITATION IS WITHDRAWN BY THE SAME READING.
+       wsNextAction cannot be CALLED on this stage — it reaches isMonetary and a
+       dozen other shell functions buildWorld deliberately does not load — so
+       the claim is made where it is decided: the head's branch is guarded on
+       cpReadyToSign, and cpReadyToSign answers false on a stale signal. The
+       first half is source (and pinned again in SURFACE 2 above); the second is
+       driven right here, off the signal this test just made stale. */
+    assert.equal(win.negoReadySignal(c, 'counterparty').stale, true);
+    const na = require('node:fs').readFileSync(
+      require('node:path').join(__dirname, '..', 'js/views/contract.js'), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .match(/function wsNextAction[\s\S]*?\n\}/)[0];
+    assert.match(na, /cpReadyToSign\(c\)[\s\S]{0,400}kind:'issue-signing'/,
+      'the act is offered only where that predicate says yes');
 
     const hv = buildWorld({ homeView: true }).win;
     assert.equal(hv.readyToSignItems([c]).length, 0,

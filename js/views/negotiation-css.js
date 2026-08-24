@@ -1309,8 +1309,35 @@ function redlineLayoutCss(){
      at the markup for why. Capped so a long sentence cannot become a panel,
      and pointer-events only on the cards themselves so the empty column below
      them does not swallow clicks on the document. */
-  .rl-notices{position:fixed;right:22px;bottom:22px;z-index:55;display:flex;
-    flex-direction:column;gap:9px;width:344px;max-width:calc(100vw - 44px);pointer-events:none}
+  ${''/* ---- IN FLOW, NEVER OVER THE PAGE (owner-asked 23 Aug 2026: "I do not
+         want anything floating over the page") ----
+         This was position:fixed at the bottom-right, 344px wide, sitting on top
+         of whatever the reader was looking at — measured on the contract room,
+         over the Checks card and the activity feed, with no way to dismiss it
+         since the fold was removed the day before.
+         It is an ordinary block now: full width of the surface that mounts it,
+         above the work rather than across it. pointer-events:none went with
+         the fixed position — it existed so a mostly-empty floating layer would
+         not swallow clicks meant for the document underneath, and in flow there
+         is nothing underneath. The cards keep their own pointer-events:auto,
+         which is now simply the default. */}
+  .rl-notices{display:flex;flex-direction:column;gap:9px;margin:0 0 10px}
+  .rl-notices:empty{display:none;margin:0}
+  ${''/* ---- A CARD FLOATS; A ROW SITS IN FLOW ----
+         The reading notice was drawn as a card — caption over a paragraph over
+         a button — which is right for something floating in a corner and wrong
+         the moment it takes a row above the contract: MEASURED at 109px, which
+         is a band across the top of the work, and this product has an owner
+         rule against exactly that (12 Aug 2026). So in the in-flow stack it
+         lays out as ONE LINE: what you are reading, and the way back, side by
+         side. It measures about a quarter of what it did.
+         SCOPED TO THE READING NOTE. rlOneNoticeHtml's band — a review that is
+         holding you, or a desk that is — genuinely has more to say than fits on
+         a line, and it is rarer still; it keeps the card. */}
+  .rl-notices #rl-read-note{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    padding:7px 12px}
+  .rl-notices #rl-read-note .rl-note-t{margin:0;flex:1;min-width:180px}
+  .rl-notices #rl-read-note .rl-note-btn{margin-top:0;flex:none}
   .rl-note-card{pointer-events:auto;border:1px solid var(--color-divider);
     background:var(--color-surface);border-radius:0;padding:12px 14px;
     box-shadow:0 16px 36px -14px rgba(15,23,42,.34)}

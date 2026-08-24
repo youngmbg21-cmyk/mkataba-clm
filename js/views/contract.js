@@ -1514,12 +1514,13 @@ function docPaperHeadHtml(c, opts={}){
 
    The sentence is not lost: it is a card in the room's bottom-right stack, on
    the screen that actually has those two buttons. See wsNoticesHtml. */
-function docWorkingTextNoteHtml(){
-  return `<div class="rl-note-card" id="ws-working-note">
-    <div class="rl-note-k"><span class="rl-note-dot"></span>${i18t('ct_working_text_short')}</div>
-    <p class="rl-note-t">${i18t('ct_doc_carries')} <strong>${i18t('ct_edited_working')}</strong>. Use <strong>${i18t('act_edit')}</strong> ${i18t('ct_to_change_wording')} <strong>${i18t('ct_compare')}</strong> ${i18t('ct_review_between')}</p>
-  </div>`;
-}
+/* ---- RETIRED 23 Aug 2026, owner-asked ----
+   An explainer, permanently true of any edited document, that never went away
+   and that nothing acts on. It is the TWIN of the caption removed from the
+   paper itself the same week ("I do not understand the need for the highlighted
+   alert. Get rid of it") — same sentence, different corner. A stub, not a
+   deletion: published on window and still called by wsNoticesHtml. */
+function docWorkingTextNoteHtml(){ return ''; }
 function redlineDocBody(c){
   return `
     ${docPaperHeadHtml(c,{note:i18t('ct_working_text_short')})}
@@ -2439,6 +2440,28 @@ function wsNextAction(c){
     return { get label(){ return i18t('ct_review_changes'); }, ic:'history', kind:'review-changes',
       guide:`${c.counterparty||'The counterparty'} is waiting on you — ${n} ${openRds?`round${n===1?'':'s'}`:`change${n===1?'':'s'}`} to decide.` };
   }
+  /* ---- THEY HAVE SAID THEY ARE READY (owner-asked 23 Aug 2026) ----
+     The readiness card used to float over this page carrying the one act it
+     needs — "Issue a signing link". The card is gone, so the act moves to the
+     slot this product already keeps for "the contract's own next step", which
+     is where a reader looks for it anyway.
+
+     ASKED AFTER the returned-changes branch above, deliberately: an unanswered
+     round outranks a readiness signal, because a signal given while something
+     is still on the table is one the change set has already moved past.
+
+     cpReadyToSign IS the reading — the same predicate the status word beside
+     the name and the alerts panel row ask, so the three cannot come to
+     disagree, and it answers false on a stale signal with nothing to clear. */
+  if(window.cpReadyToSign){
+    let ready=false; try{ ready=cpReadyToSign(c); }catch(_){ ready=false; }
+    if(ready){
+      let sig=null; try{ sig=window.negoReadySignal?negoReadySignal(c,'counterparty'):null; }catch(_){ sig=null; }
+      const who=(sig&&sig.by)||c.counterparty||i18t('ct_the_counterparty_cap');
+      return { get label(){ return i18t('ct_issue_signing_link'); }, ic:'send', kind:'issue-signing',
+        guide:`${who} has said they are ready to sign. Nothing is signed yet.` };
+    }
+  }
   /* THEY HAVE SIGNED AND WE HAVE NOT, and nothing on this page said so.
 
      Walked end to end: the counterparty opens the signing link, adopts a mark,
@@ -2648,12 +2671,18 @@ function wireActionBar(c){
     /* Deliberately the same code path as the returned-changes strip's own
        button: two ways to reach one thing, never two things that can drift. */
     if(kind==='review-changes'){
-      const strip=document.getElementById('changes-review');
-      if(strip){ strip.click(); return; }
-      /* Changes that arrived as tracked items rather than as a round have no
-         strip to borrow — the workbench is where they are decided. */
+      /* IT USED TO PRESS THE BAND'S OWN BUTTON. The band is retired, so this
+         calls the act directly — see reviewReturnedRound. Falling through to
+         the workbench instead would quietly send a round carrying proposed
+         wording to the wrong screen. */
+      if(openRounds(c).length){ reviewReturnedRound(c); return; }
+      /* Changes that arrived as tracked items rather than as a round were never
+         the band's business — the workbench is where they are decided. */
       if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); return;
     }
+    /* The readiness act, which the retired card used to carry. Same function
+       the room's own button calls — one path, two doors. */
+    if(kind==='issue-signing'){ issueSigningAct(c); return; }
     if(kind==='share'){ openShareModal(c); return; }
     if(kind==='terms'){ focusKeyTerms(c); return; }
     /* The reading rung: put the document in front of them and open the Checks
@@ -2981,16 +3010,25 @@ function docNothingWrittenHtml(c){
     <p class="rl-note-t">${i18t('fa_nothing_written_t',{btn:esc(btn)})}</p>
   </div>`;
 }
+/* ---- WHAT IS LEFT OF THIS ROOM'S NOTICES (owner-asked 23 Aug 2026) ----
+   Three cards used to float over this page and all three are retired above: the
+   readiness band (said by the status word, the alerts row and now the head's
+   own next act), the returned-changes band (a duplicate of the head's "Review
+   changes" lead button, which its own comment had complained about) and the
+   working-text explainer (nothing acts on it).
+
+   ONE REAL STATE SURVIVES: a document with no wording at all. That is not an
+   explainer — it is the absence of the thing the page is for, and it carries
+   the button that starts one. It draws IN FLOW, above the tab content, so it
+   takes its own row rather than covering the cards beside it, and it is rare
+   enough that the row costs nothing on an ordinary contract.
+
+   NO BELL. rlNoticeStackHtml no longer draws one anywhere; the header's bell is
+   the door onto the alerts panel and always was the same count. */
 function wsNoticesHtml(c){
-  if(!c || !window.rlNoticeStackHtml) return '';
-  /* The working-text note only where its two verbs exist — this room, on the
-     reader's own side. It came off the paper (see redlineDocBody) and it must
-     not follow the document onto a page that has neither Edit nor Compare. */
-  const blank=(docHasNoWording(c) && !PORTAL_MODE);
-  const working=(c.redlineText && !PORTAL_MODE)
-    ? (blank ? docNothingWrittenHtml(c) : docWorkingTextNoteHtml()) : '';
-  const cards=`${readyToSignStrip(c)}${returnedChangesStrip(c)}${working}`;
-  return rlNoticeStackHtml(c, cards, '', 'ws-notices');
+  if(!c || PORTAL_MODE) return '';
+  if(!(c.redlineText && docHasNoWording(c))) return '';
+  return `<div class="rl-notices" id="ws-notices">${docNothingWrittenHtml(c)}</div>`;
 }
 function wsPaintNotices(c){
   const host=document.getElementById('ws-notices-host');
@@ -4545,25 +4583,23 @@ function wireDocResizer(){
    said nothing above the fold. This strip belongs to the contract's state — it
    sits with the status bar, not on the paper, so it cannot be scrolled past. */
 function openRounds(c){ return (c.rounds||[]).filter(r=>r.status==='open'); }
-function returnedChangesStrip(c){
-  const open=openRounds(c);
-  if(!open.length) return '';
-  const latest=open[open.length-1];
-  const withText=open.filter(r=>r.proposedText).length;
-  const who=esc(latest.by||'The counterparty');
-  return `
-    <div id="changes-strip" style="flex:none;display:flex;align-items:center;gap:11px;flex-wrap:wrap;padding:9px 16px;background:var(--st-amber-bg);border-top:1px solid var(--st-amber-line);border-bottom:1px solid var(--st-amber-line)">
-      <span class="changes-pip" style="flex:none;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;background:var(--st-amber-dot);color:#fff;border-radius:0;padding:3px 10px">${i18t('ct_changes_returned')}</span>
-      <span style="font-size:14px;color:var(--st-amber-fg);min-width:0"><b>${who}</b> ${withText?'proposed edits':'requested changes'} — ${open.length} round${open.length===1?'':'s'} awaiting your decision.</span>
-      <span style="flex:1"></span>
-      <button id="changes-review" style="flex:none;font:inherit;font-size:13px;font-weight:600;border:1px solid var(--st-amber-dot);background:var(--color-surface);color:var(--st-amber-fg);border-radius:0;padding:6px 13px;cursor:pointer">${withText?'Review changes':'Read the request'}</button>
-    </div>
-    <style>
-      @keyframes changes-pulse{0%,100%{box-shadow:0 0 0 0 rgba(184,134,43,.55)}50%{box-shadow:0 0 0 6px rgba(184,134,43,0)}}
-      #changes-strip .changes-pip{animation:changes-pulse 1.9s ease-out infinite}
-      @media (prefers-reduced-motion:reduce){ #changes-strip .changes-pip{animation:none} }
-    </style>`;
-}
+/* ---- RETIRED 23 Aug 2026, owner-asked: "I do not want anything floating over
+   the page" ----
+   This drew a full-width amber band — a shape it kept from the status strip it
+   used to live in — inside a stack that floats over the bottom-right corner of
+   the contract, covering the Checks card and the activity feed.
+
+   NOTHING IS LOST, and that is not a hope: wsNextAction ALREADY answers this
+   state with the head's own lead button ("Review changes", guide "X is waiting
+   on you — N rounds to decide"), off the same two readings this counted. Its
+   own comment has complained about this exact duplication since the day it was
+   written — "two primary buttons, two different next steps, one screen" — so
+   the band was the second of the two all along.
+
+   A STUB RATHER THAN A DELETION: it is published on window and wsNoticesHtml
+   calls it, so a caller must not be able to bring the band back through a door
+   nobody remembered (the negoCounterLineHtml precedent). */
+function returnedChangesStrip(){ return ''; }
 /* THE COUNTERPARTY HAS SAID THEY ARE READY, on the Docs page.
 
    The second of the three places this reaches the owner, and the one that
@@ -4605,44 +4641,46 @@ async function issueSigningAct(c){
   }
   openShareModal(c,{ purpose:'sign', onSent(){ supersededLine(); } });
 }
-function readyToSignStrip(c){
-  const sig=window.negoReadySignal?negoReadySignal(c,'counterparty'):null;
-  if(!sig) return '';
-  if(c.status==='Signed'||c.status==='Declined') return '';
-  const when=window.fmtDT?fmtDT(sig.at):String(sig.at||'');
-  const bits=[];
-  if(sig.changes) bits.push(`${sig.changes} change${sig.changes===1?'':'s'} settled`);
-  if(sig.accepted) bits.push(`${sig.accepted} adopted into the wording`);
-  if(sig.withdrawn) bits.push(`${sig.withdrawn} ask${sig.withdrawn===1?'':'s'} withdrawn`);
-  /* A signal the change set has since moved past stays on the strip and stops
-     inviting the next step. Hiding it would lose the fact that they said it;
-     leaving the button on it would have the owner issue a signing link for a
-     contract that has gone back into negotiation. */
-  const stale=!!sig.stale;
-  return `
-    <div id="ready-strip" data-stale="${stale?'1':'0'}" style="flex:none;display:flex;align-items:center;gap:11px;flex-wrap:wrap;padding:9px 16px;background:${stale?'var(--st-amber-bg)':'var(--st-green-bg)'};border-top:1px solid ${stale?'var(--st-amber-line)':'var(--st-green-line)'};border-bottom:1px solid ${stale?'var(--st-amber-line)':'var(--st-green-line)'}">
-      <span style="flex:none;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;background:${stale?'var(--st-amber-dot)':'var(--st-green-fg)'};color:#fff;border-radius:0;padding:3px 10px">${i18t('ct_ready_to_sign')}</span>
-      <span style="font-size:14px;color:${stale?'var(--st-amber-fg)':'var(--st-green-fg)'};min-width:0"><b>${esc(sig.by||c.counterparty||i18t('ct_the_counterparty_cap'))}</b> ${i18t('ct_ready_to_sign_signal',{when:esc(when)})}${bits.length?` · ${esc(bits.join(', '))}`:''}. <b>${i18t('ct_nothing_signed')}</b>${stale?' Something has been reopened since, so this no longer describes where the deal stands.':''}</span>
-      <span style="flex:1"></span>
-      ${canEdit()&&!stale?`<button id="ready-issue" style="flex:none;font:inherit;font-size:13px;font-weight:600;border:1px solid var(--st-green-fg);background:var(--st-green-fg);color:#fff;border-radius:0;padding:6px 13px;cursor:pointer">${i18t('ct_issue_signing_link')}</button>`:''}
-    </div>`;
-}
+/* ---- RETIRED 23 Aug 2026, owner-asked, and the fact is said in three better
+   places than a floating box ----
+     · the STATUS WORD beside the contract's name reads "Counterparty ready to
+       sign" (cpReadyToSign — and it stops saying it the moment anything is
+       reopened, which is the whole of what the stale branch here was for);
+     · the alerts panel carries a `cp-ready` row, first in its running order;
+     · and the head's own lead button now offers the ACT — see wsNextAction,
+       which gained an "Issue a signing link" step so removing this card costs
+       nobody a press.
+   THE STALE CASE SIMPLY SAYS NOTHING NOW. It used to draw an amber card whose
+   entire message was that its own message was out of date; the fact that they
+   signalled survives where it belongs, in the audit trail and the negotiation
+   history, and the status word is already silent on a signal the change set has
+   moved past. A stub, not a deletion — it is published and still called. */
+function readyToSignStrip(){ return ''; }
 /* The strip's one action: open the redline if there is one, otherwise take the
    reader to the round itself rather than leaving the button doing nothing. */
-function wireChangesStrip(c){
-  document.getElementById('changes-review')?.addEventListener('click',()=>{
-    const open=openRounds(c);
-    const redline=open.slice().reverse().find(r=>r.proposedText);
-    if(redline && window.reviewProposedRound) return reviewProposedRound(c, redline.n);
-    _docTopTab='screening'; applyDocTabs();
-    document.getElementById('nego-section')?.scrollIntoView({behavior:'smooth',block:'center'});
-  });
-  document.getElementById('ready-issue')?.addEventListener('click',()=>{
-    /* The same act as the room's button, and deliberately the same code path —
-       two ways to reach one thing, not two things that could drift. */
-    issueSigningAct(c);
-  });
+/* ---- WHAT THE RETURNED-CHANGES BAND DID, KEPT AS AN ACT (23 Aug 2026) ----
+   The band that floated over this page is retired, and the head's own "Review
+   changes" button used to BORROW its button by pressing it. That borrowing was
+   the right shape while both existed — "two ways to reach one thing, never two
+   things that can drift" — and it is exactly what makes deleting the band
+   dangerous: with the button gone the head fell through to the negotiation
+   workbench, which is a DIFFERENT destination for a round carrying proposed
+   wording. So the act moves here and the head calls it directly.
+
+   A ROUND WITH PROPOSED WORDING IS READ IN ITS OWN REVIEWER; anything else is
+   read where rounds are answered, on the Screening tab. Unchanged, both. */
+function reviewReturnedRound(c){
+  const open=openRounds(c);
+  const redline=open.slice().reverse().find(r=>r.proposedText);
+  if(redline && window.reviewProposedRound) return reviewProposedRound(c, redline.n);
+  _docTopTab='screening'; applyDocTabs();
+  document.getElementById('nego-section')?.scrollIntoView({behavior:'smooth',block:'center'});
 }
+/* Both strips this wired are retired, so there is nothing left on the page for
+   it to attach to. Kept as a stub rather than deleted: it is published on
+   window and wsPaintNotices still calls it, and a caller must not be able to
+   re-arm buttons that no longer exist. */
+function wireChangesStrip(){ }
 /* ---- THE HEADER-FOLD TOGGLE IS GONE (owner-asked, 13 Aug 2026) ----
    WS_FOLD_KEY / wsChromeFolded / applyWsCollapse / wireWsCollapse stood here,
    behind a "Collapse the header" / "Show the header" row in the "⋯" menu.
@@ -5425,6 +5463,17 @@ function renderWorkspace(){
          tabs and a sentence on one line is a line that wraps — and a wrapped
          tab row leaves its underline stranded in the middle of the strip. -->
     <div id="ws-actionbar" class="room-quiet" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">${actionBarHtml(c)}</div>
+    ${''/* ---- THE ROOM'S NOTICES, IN FLOW AND ABOVE THE WORK ----
+           (owner-asked 23 Aug 2026: "I do not want anything floating over the
+           page".) This was the LAST element in this column and position:fixed,
+           so it floated over the bottom-right corner — on the Document tab, on
+           top of the Checks card and the activity feed. It is here now, above
+           the panes, because a notice is about the CONTRACT rather than the tab
+           and must survive a tab change; filled by wsPaintNotices, which
+           applyWsTabs runs on every press. It draws nothing at all unless the
+           document has no wording, so it costs no row on an ordinary
+           contract — `.rl-notices:empty` collapses its margin too. */}
+    <div id="ws-notices-host"></div>
 
     <!-- ============ BODY: contract (left) · workspace (right) — the divider sets how wide the contract runs ============ -->
     <div id="doc-grid" data-ws-pane="docs" style="position:relative;flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px">
@@ -5704,7 +5753,7 @@ function renderWorkspace(){
            which applyWsTabs runs on every tab change — the notices describe the
            contract rather than the tab, but the stack has to survive a repaint
            that happens on every press. */}
-    <div id="ws-notices-host"></div>
+
   </div>`;
 
   scanUI = { running:false, filter:'all', expanded:new Set() };
@@ -7139,6 +7188,6 @@ Object.assign(window,{applyDocZoom,exportWordTracked,renderDiscussSection,discus
      never ran on a plain tab swap. It only appeared to work because the routes
      I walked it on re-rendered the workspace, which measures on the way in. */
   layoutDocResizer,renderSignButton,renderSignSide,signBlockHtml,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
-  wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsPaintRoundNeeds,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,docWorkingTextNoteHtml,docNothingWrittenHtml,docHasNoWording,negoRoundNeedsHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
+  wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsPaintRoundNeeds,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,reviewReturnedRound,docWorkingTextNoteHtml,docNothingWrittenHtml,docHasNoWording,negoRoundNeedsHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
   ROOM_TABS,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomCurrentTab,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,roomVersionsHtml,docFillable,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,openCheckPanel,roomHeadHtml,wireRoomHead,
   DOC_SEL_ACTIONS,wireDocCopilotSel,docAiRead,docSelKill});

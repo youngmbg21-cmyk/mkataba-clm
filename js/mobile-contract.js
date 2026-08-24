@@ -756,6 +756,13 @@ function mDoNextAction(kind){
   const c = mContract();
   if(!c) return;
   if(kind==='evidence'){ if(window.downloadEvidence) downloadEvidence(c); return; }
+  /* The readiness act, which the retired floating card used to carry on the
+     desktop. The phone reaches the same function through window — one path. */
+  if(kind==='issue-signing'){
+    if(window.issueSigningAct) return issueSigningAct(c);
+    if(window.toast) toast(i18t('mc_nego_on_computer'));
+    return;
+  }
   if(kind==='review-changes'){
     /* The workbench, on the phone, with the desktop shell stepping back in
        under a back bar — see the m-redline rules in js/mobile.js. It is the one
