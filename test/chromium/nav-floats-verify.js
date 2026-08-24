@@ -1,15 +1,24 @@
-/* Chromium verification: BELOW 1500 THE SIDEBAR FLOATS INSTEAD OF PUSHING.
+/* Chromium verification: BELOW THE LINE THE SIDEBAR FLOATS INSTEAD OF PUSHING.
    ============================================================
    Owner's ask, 13 Aug 2026, reported from a ThinkPad: "anytime I expand the
    nav panel the squeeze significantly impacts how the pages look like."
+
+   THE WIDTHS AND THE COLUMN'S SIZE ARE READ FROM THE APP, NEVER TYPED HERE
+   (24 Aug 2026). This file used to name 1280 / 1366 / 1440 as "below the line"
+   and 256 as the open column. Both moved with the enterprise design — the line
+   to 1280 and the column to 240 — and every one of those literals then
+   reported a fault that did not exist. The claims were always RELATIONS: below
+   the line it floats and the page does not move, above it the column pushes.
+   They are written as relations now, so the next time either number moves this
+   file costs nothing.
 
    It did. Expanding the sidebar cost the page 192px (256 against the 64px
    rail) and NOTHING adapted, because every layout rule in this product
    measures the WINDOW while the page gets the window minus the sidebar. So
    opening the nav shrank the page by a fifth and the layout carried on.
 
-   Below 1500 the sidebar is now a fixed 64px strip with a 64px track held
-   under it, and opening it widens the strip OVER the page. Above 1500 nothing
+   Below the line the sidebar is a fixed 64px strip with a 64px track held
+   under it, and opening it widens the strip OVER the page. Above it nothing
    changed: it is the reader's own remembered choice and it still pushes.
 
    WHY THIS IS A BROWSER FILE. Every claim here is a MEASUREMENT — the content
@@ -71,12 +80,20 @@ const RAIL_KEY = 'hati.v1.railCollapsed';
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const errors = [];
   try {
-    /* 800 and 850 are inside the old 899 drawer breakpoint, which is where the
-       language toggle moves into the sidebar; 1512 is the first size above the
-       line, and 1440 the laptop the line was rounded up to include. */
-    for (const vp of [{ width: 800, height: 700 }, { width: 1280, height: 800 },
-                      { width: 1366, height: 768 }, { width: 1440, height: 900 },
-                      { width: 1512, height: 945 }, { width: 1920, height: 1080 }]) {
+    /* THE WIDTHS STRADDLE THE LINE, THEY DO NOT NAME IT. 800 is inside the old
+       899 drawer breakpoint, where the language toggle moves into the sidebar;
+       the rest are derived from NAV_DRAWER_W so this file follows the line
+       rather than having to be edited whenever it moves. */
+    const probe = await browser.newPage();
+    await probe.goto(h.base + '/', { waitUntil: 'networkidle' });
+    const LINE = await probe.evaluate(() => window.NAV_DRAWER_W);
+    const NAVW = await probe.evaluate(() =>
+      parseInt(getComputedStyle(document.documentElement).getPropertyValue('--nav-w'), 10));
+    await probe.close();
+    console.log(`the line is ${LINE}px and the open column is ${NAVW}px`);
+    for (const vp of [{ width: 800, height: 700 }, { width: LINE - 220, height: 800 },
+                      { width: LINE - 120, height: 768 }, { width: LINE - 1, height: 900 },
+                      { width: LINE + 32, height: 945 }, { width: 1920, height: 1080 }]) {
       const page = await (await browser.newContext({ viewport: vp })).newPage();
       page.on('pageerror', e => errors.push(`${vp.width}: ${e.message}`));
       await page.goto(h.base + '/', { waitUntil: 'networkidle' });
@@ -89,15 +106,15 @@ const RAIL_KEY = 'hati.v1.railCollapsed';
       const w = vp.width;
       console.log(`\n--- ${w} x ${vp.height} ---`);
       const rest = await page.evaluate(READ);
-      const below = w < 1500;
+      const below = w < LINE;
 
       /* THE REST STATE SPLITS AT THE LINE (claim reversed in place, 20 Aug
          2026, owner-approved SAP treatment): ABOVE it the default is now the
          OPEN 256px column with its words — the render the owner approved —
          while BELOW it navDrawerActive() still wins and the strip rests as
          the 64px rail exactly as before. A stored choice still beats both. */
-      check(`${w}: it rests as ${below ? 'the 64px rail' : 'the open 256px column'}`,
-        rest.nav[2] === (below ? 64 : 256), `${rest.nav[2]}px`);
+      check(`${w}: it rests as ${below ? 'the 64px rail' : 'the open ' + NAVW + 'px column'}`,
+        rest.nav[2] === (below ? 64 : NAVW), `${rest.nav[2]}px`);
       check(`${w}: nothing in the strip paints outside it`, rest.spill === 0, `${rest.spill}px over`);
 
       if (below) {
@@ -111,8 +128,8 @@ const RAIL_KEY = 'hati.v1.railCollapsed';
         await page.click('#cmd-rail');
         await page.waitForTimeout(450);
         const open = await page.evaluate(READ);
-        check(`${w}: pressing the chevron widens it to the full 256`,
-          open.nav[2] === 256 && open.navOpen, `${open.nav[2]}px`);
+        check(`${w}: pressing the chevron widens it to the full ${NAVW}`,
+          open.nav[2] === NAVW && open.navOpen, `${open.nav[2]}px`);
         /* THE CLAIM THE WHOLE THING EXISTS FOR. */
         check(`${w}: AND THE PAGE DOES NOT MOVE`,
           open.content.join() === rest.content.join(),
@@ -145,7 +162,10 @@ const RAIL_KEY = 'hati.v1.railCollapsed';
         const rail = await page.evaluate(READ);
         check(`${w}: collapsing it gives the 64px rail`, rail.nav[2] === 64, `${rail.nav[2]}px`);
         check(`${w}: and up here it PUSHES the page, exactly as it always did`,
-          rail.content[0] === 64 && rail.content[2] === rest.content[2] + 192,
+          /* THE GAIN IS THE COLUMN MINUS THE RAIL, not a typed 192 — that
+             number was 256-64 and stopped being true the day the column
+             became 240. The relation is what the claim is about. */
+          rail.content[0] === 64 && rail.content[2] === rest.content[2] + (NAVW - 64),
           `${rest.content.join(',')} → ${rail.content.join(',')}`);
         check(`${w}: no scrim — a column is not a layer`, !rail.scrim);
         const kept = await page.evaluate(k => localStorage.getItem(k), RAIL_KEY);

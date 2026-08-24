@@ -146,6 +146,10 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
         /* and the status line below it is NOT — the mock-up puts its own
            .h-content on the page ground, and so do we. */
         actionbarInBand: !!(band && band.contains(document.getElementById('ws-actionbar'))),
+        /* Where the column ends, so "the head has not moved" can be stated as
+           the relation it is rather than as a number that goes stale. */
+        navRight: (() => { const n = document.getElementById('side-nav');
+          return n ? Math.round(n.getBoundingClientRect().right) : null; })(),
       };
     });
 
@@ -158,9 +162,14 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
     check('1c the crumb, title, facts and tabs are all on it',
       room.headInBand && room.tabsInBand && room.stripsInBand,
       { head: room.headInBand, tabs: room.tabsInBand, strips: room.stripsInBand });
-    check('1d and the head has NOT moved — its content sits where it always did',
-      room.head && room.head.x === 272,
-      { headX: room.head && room.head.x });
+    /* THE RELATION, NOT THE NUMBER (24 Aug 2026). This read 272 — the 256px
+       column plus the view's own 16px padding — and reported a fault the day
+       the column became 240. What the claim is about is that the band bleeds
+       to the shell's edge while NOTHING INSIDE IT MOVES: the head still starts
+       one page-padding in from the column, wherever the column now ends. */
+    check('1d and the head has NOT moved — its content sits one page inset from the column',
+      room.head && room.navRight != null && (room.head.x - room.navRight) === 16,
+      { headX: room.head && room.head.x, navRight: room.navRight });
     check('1e the band ends at the tab row, so the contract keeps the page ground',
       !room.actionbarInBand && room.band && room.tabrow
         && near(room.band.bottom, room.tabrow.bottom, 1),
@@ -228,22 +237,40 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
           padLeft: s.paddingLeft, id: n.id || null,
           active: !!(item && item.classList.contains('active')) };
       });
-      return { rows, view: state.view };
+      /* The two inks are READ FROM THE TOKENS, so the claims below are about
+         which token a count wears rather than about a hex somebody typed into
+         a test the day the sidebar happened to be dark. */
+      const rs = getComputedStyle(document.documentElement);
+      const resolve = v => { const d = document.createElement('span');
+        d.style.color = v; document.body.appendChild(d);
+        const c = getComputedStyle(d).color; d.remove(); return c; };
+      return { rows, view: state.view,
+        labelInk: resolve(rs.getPropertyValue('--color-neutral-500').trim()),
+        amberInk: resolve(rs.getPropertyValue('--st-amber-fg').trim()) };
     });
     const real = counts.rows.filter(r => r.id !== 'nav-intel-new');
     const amber = real.filter(r => r.tone === 'amber');
     const plain = real.filter(r => r.tone !== 'amber');
     const tag = counts.rows.find(r => r.id === 'nav-intel-new');
 
-    check('3a no count is boxed any more',
-      real.length > 0 && real.every(r => r.bg === 'rgba(0, 0, 0, 0)' && r.padLeft === '0px'),
-      real.map(r => `${r.view}:${r.bg}/${r.padLeft}`));
-    check('3b every count that is not a warning is white',
-      plain.length > 0 && plain.every(r => r.color === 'rgb(255, 255, 255)'),
-      plain.map(r => `${r.view}:${r.color}`));
+    /* ---- REVERSED IN PLACE 24 Aug 2026, and the RULE is what survives ----
+       These three were written for a DARK column: no box on any count, white
+       ink for a plain one, #fde68a for a warning. The column is white now, so
+       every one of those values is the wrong side of its own ground — but the
+       rule they were guarding is untouched and is the whole point: A PLAIN
+       COUNT IS A FACT AND AN AMBER ONE IS A WARNING, and NAV_COUNT_TONE still
+       hands amber out only above zero so an empty queue never cries wolf.
+       Written against the semantic tokens rather than typed hexes, so the next
+       ground change costs no test edit. */
+    check('3a a plain count is unboxed — it is a fact, not a tag',
+      plain.length > 0 && plain.every(r => r.bg === 'rgba(0, 0, 0, 0)' && r.padLeft === '0px'),
+      plain.map(r => `${r.view}:${r.bg}/${r.padLeft}`));
+    check('3b and it is the quiet ink, never the loud one',
+      plain.length > 0 && plain.every(r => r.color === counts.labelInk),
+      plain.map(r => `${r.view}:${r.color}`) + ` (label ink ${counts.labelInk})`);
     check('3c AMBER SURVIVES — including on the door the reader is standing on',
       counts.view === 'redline' && amber.length > 0
-        && amber.every(r => r.color === 'rgb(253, 230, 138)'),
+        && amber.every(r => r.color === counts.amberInk && r.color !== counts.labelInk),
       { view: counts.view, amber: amber.map(r => `${r.view}:${r.color} active=${r.active}`) });
     check('3d and at least one of those amber counts IS the active door '
       + '(or this check proves nothing)',
@@ -252,55 +279,47 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
       !!tag && tag.bg !== 'rgba(0, 0, 0, 0)' && tag.padLeft !== '0px',
       tag && { bg: tag.bg, pad: tag.padLeft });
 
-    /* ================= 4 · THE STAGE NAME SHARES THE HEADING LINE =========== */
+    /* ================= 4 · THE HOME PAGE'S OWN HEADING LINES ================
+       REVERSED IN PLACE 24 Aug 2026. This section measured the pipeline card's
+       heading against the stage name beside it and against "Decisions due" —
+       three headings the enterprise design retired with the card they sat on
+       (see home-page-verify, which replaced home-pipeline-ring-verify).
+
+       WHAT THE CLAIM WAS ABOUT SURVIVES and is worth keeping: the page's
+       section headings sit on ONE LINE with the rule and the act beside them,
+       rather than stacking. That is the same geometry, one design later. */
     await page.evaluate(() => setView('dashboard'));
     await pause(2400);
     await page.screenshot({ path: path.join(OUT, '03-home.png') });
 
     const homeLine = await page.evaluate(() => {
-      const mid = sel => {
-        const e = document.querySelector(sel); if (!e) return null;
-        const r = e.getBoundingClientRect();
-        return { y: r.y + r.height / 2, txt: e.textContent.trim().slice(0, 30), x: Math.round(r.x) };
+      const mid = e => { if (!e) return null; const r = e.getBoundingClientRect();
+        return { y: r.y + r.height / 2, txt: e.textContent.trim().slice(0, 30), x: Math.round(r.x) }; };
+      const secs = [...document.querySelectorAll('.hm-sec')];
+      const work = secs[0], decide = secs[secs.length - 1];
+      return {
+        heads: secs.map(sc => mid(sc.querySelector('h2'))),
+        workAct: work ? mid(work.querySelector('.hm-cz')) : null,
+        workRule: work && !!work.querySelector('.hm-rule'),
+        tilesX: (() => { const e = document.querySelector('.hm-tile');
+          return e ? Math.round(e.getBoundingClientRect().x) : null; })(),
+        headX: secs.length ? Math.round(secs[0].querySelector('h2').getBoundingClientRect().x) : null,
+        decideTxt: decide ? decide.querySelector('h2').textContent.trim() : null,
       };
-      return { pipe: mid('.hm-pipe-card h4'), stage: mid('.hm-side-title'),
-        decisions: mid('.hm-decisions h4'),
-        listX: (() => { const e = document.querySelector('.hm-pipe-list .hm-row-name, .hm-pipe-list button');
-          return e ? Math.round(e.getBoundingClientRect().x) : null; })() };
     });
 
-    check('4a all three headings really drew',
-      homeLine.pipe && homeLine.stage && homeLine.decisions,
-      { pipe: homeLine.pipe && homeLine.pipe.txt, stage: homeLine.stage && homeLine.stage.txt,
-        decisions: homeLine.decisions && homeLine.decisions.txt });
-    check('4b THE STAGE NAME IS ON THE HEADING LINE, not below it',
-      homeLine.pipe && homeLine.stage && near(homeLine.pipe.y, homeLine.stage.y, 4),
-      { pipe: homeLine.pipe && +homeLine.pipe.y.toFixed(1),
-        stage: homeLine.stage && +homeLine.stage.y.toFixed(1) });
-    check('4c and that line is the one "Decisions due" is on',
-      homeLine.decisions && homeLine.stage && near(homeLine.decisions.y, homeLine.stage.y, 4),
-      { decisions: homeLine.decisions && +homeLine.decisions.y.toFixed(1),
-        stage: homeLine.stage && +homeLine.stage.y.toFixed(1) });
-    check('4d it still starts on the same vertical as the rows it names',
-      homeLine.listX == null || near(homeLine.stage.x, homeLine.listX, 2),
-      { stage: homeLine.stage && homeLine.stage.x, rows: homeLine.listX });
-
-    /* THE HEAD IS A SECOND PAINT TARGET NOW, and this is what says so: press
-       another stage and the name above the list must follow it. Split out of
-       hmSideHtml and left unfilled, the list would swap and the old stage's
-       name and count would stand over it. */
-    const swap = await page.evaluate(async () => {
-      const before = document.querySelector('.hm-side-title').textContent.trim();
-      const rows = [...document.querySelectorAll('.hm-key .hm-leg, [data-stage]')]
-        .filter(b => b.closest('.hm-key'));
-      const other = rows.find(b => !b.classList.contains('on')) || rows[rows.length - 1];
-      if (other) other.click();
-      await new Promise(r => setTimeout(r, 500));
-      return { before, after: document.querySelector('.hm-side-title').textContent.trim(),
-        count: document.querySelector('.hm-side-count').textContent.trim() };
-    });
-    check('4e pressing another stage moves the NAME too, not just the list',
-      swap.before !== swap.after, swap);
+    check('4a all three section headings really drew',
+      homeLine.heads.length === 3 && homeLine.heads.every(Boolean),
+      homeLine.heads.map(h => h && h.txt));
+    check('4b each heading carries its rule on the same line',
+      homeLine.workRule, homeLine.workRule);
+    check('4c AND ITS ACT IS ON THAT LINE TOO, not below it',
+      homeLine.workAct && near(homeLine.heads[0].y, homeLine.workAct.y, 4),
+      { head: homeLine.heads[0] && +homeLine.heads[0].y.toFixed(1),
+        act: homeLine.workAct && +homeLine.workAct.y.toFixed(1) });
+    check('4d it starts on the same vertical as the tiles it names',
+      homeLine.tilesX == null || near(homeLine.headX, homeLine.tilesX, 2),
+      { head: homeLine.headX, tiles: homeLine.tilesX });
 
     /* ================= 5 · A RESTING TAB IS DARK INK ======================= */
     await page.evaluate(() => setView('intel'));
@@ -438,21 +457,35 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
           const s = getComputedStyle(n);
           return { txt: n.textContent.trim().slice(0, 14),
             active: n.classList.contains('active'), bg: s.backgroundColor,
-            ink: s.color, bgLum: s.backgroundColor === 'rgba(0, 0, 0, 0)' ? null : lum(s.backgroundColor) };
+            ink: s.color, edge: s.borderLeftColor, edgeW: s.borderLeftWidth,
+            bgLum: s.backgroundColor === 'rgba(0, 0, 0, 0)' ? null : lum(s.backgroundColor) };
         });
-      return { panel, panelLum: lum(panel), items };
+      const rs = getComputedStyle(document.documentElement);
+      const d = document.createElement('span');
+      d.style.color = rs.getPropertyValue('--color-text').trim();
+      document.body.appendChild(d); const textInk = getComputedStyle(d).color; d.remove();
+      return { panel, panelLum: lum(panel), items, textInk };
     });
     const live = nav.items.filter(i => i.active);
 
-    check('7a every door in the drawer is pure white',
-      nav.items.length > 2 && nav.items.every(i => i.ink === 'rgb(255, 255, 255)'),
-      nav.items.map(i => `${i.txt}:${i.ink}`).slice(0, 6));
+    /* ---- REVERSED IN PLACE 24 Aug 2026, and the RULE is the part that
+       carries over. The owner's ask on 23 Aug was pure white doors on a dark
+       column and a live door DEEPER than the panel rather than veiled over it.
+       The column is white now, so "as strongly as possible against the ground"
+       is the primary ink rather than white — and "deeper" cannot be a darker
+       green when the ground is white, so it is a filled well plus a 3px rule
+       in the accent. Both halves are still asserted; only the ground moved. */
+    check('7a every door reads at full strength against its own ground',
+      nav.items.length > 2 && nav.items.every(i => i.ink === nav.textInk),
+      nav.items.map(i => `${i.txt}:${i.ink}`).slice(0, 6) + ` (ink ${nav.textInk})`);
     check('7b a door IS live, or 7c proves nothing', live.length === 1,
       live.map(i => i.txt));
-    check('7c THE LIVE DOOR SITS DEEPER THAN THE PANEL, not lighter',
-      live.length === 1 && live[0].bgLum != null && live[0].bgLum < nav.panelLum,
-      { panel: nav.panel, live: live[0] && live[0].bg,
-        deeper: live[0] && live[0].bgLum < nav.panelLum });
+    check('7c THE LIVE DOOR IS MARKED BY ITS OWN GROUND, never by a veil over the panel',
+      live.length === 1 && live[0].bgLum != null && live[0].bgLum !== nav.panelLum,
+      { panel: nav.panel, live: live[0] && live[0].bg });
+    check('7d and by a rule in the accent, which is what survives the dark theme',
+      live.length === 1 && live[0].edge && live[0].edgeW === '3px',
+      { edge: live[0] && live[0].edge, width: live[0] && live[0].edgeW });
 
     /* ================= 8 · THE STRIP IS GONE AND THE CARDS MOVED UP ======== */
     await page.evaluate(id => openWorkspace(id), cid);

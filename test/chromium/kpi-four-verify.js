@@ -103,8 +103,12 @@ const PANEL = `(() => {
       /turn one off/i.test(full.foot), full.foot.slice(0, 70));
 
     /* ================= 2. A FIFTH CANNOT BE ADDED ========================= */
+    /* FIXTURE CORRECTED 24 Aug 2026, not the claim: the default four changed
+       (approvals · negotiations · expiring90 · avgcycle), so expiring90 is now
+       ON and compliance is the one that is OFF and locked. The test needs a
+       metric that is genuinely locked to press, and this is it. */
     const tried = await page.evaluate(() => {
-      const b = document.querySelector('[data-kpi-toggle="expiring90"]');
+      const b = document.querySelector('[data-kpi-toggle="compliance"]');
       b.click();                                   // a real press on a locked row
       return { checked: b.checked };
     });
@@ -119,7 +123,8 @@ const PANEL = `(() => {
     /* ================= 3. THE SWAP, WHICH IS NOW THE ONLY MOVE ============ */
     /* With a ceiling, adding is swapping. The panel used to be destroyed by the
        repaint behind every tick, which made a swap untick → reopen → tick. */
-    await page.evaluate(() => document.querySelector('[data-kpi-toggle="compliance"]').click());
+    /* …and the one turned OFF to free a slot has to be one that is on. */
+    await page.evaluate(() => document.querySelector('[data-kpi-toggle="expiring90"]').click());
     await page.waitForTimeout(800);
     const three = await page.evaluate(PANEL);
     check('3 THE PANEL SURVIVES THE PRESS — it is still open on the same screen',
@@ -129,12 +134,12 @@ const PANEL = `(() => {
       `${three.sel.length} chosen · ${three.lockedOff} locked · count "${three.count}"`);
     await page.screenshot({ path: path.join(OUT, '02-room-for-one.png') });
 
-    await page.evaluate(() => document.querySelector('[data-kpi-toggle="expiring90"]').click());
+    await page.evaluate(() => document.querySelector('[data-kpi-toggle="compliance"]').click());
     await page.waitForTimeout(800);
     const swapped = await page.evaluate(PANEL);
     check('3 and the new metric goes on, back to four',
-      swapped.sel.length === 4 && swapped.sel.includes('expiring90')
-      && !swapped.sel.includes('compliance') && swapped.tiles === 4,
+      swapped.sel.length === 4 && swapped.sel.includes('compliance')
+      && !swapped.sel.includes('expiring90') && swapped.tiles === 4,
       swapped.sel.join(', '));
     check('3 which locks the rest again — the rule holds after a swap, not only at rest',
       swapped.lockedOff === swapped.rows.length - 4 && swapped.liveOff === 0,

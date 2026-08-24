@@ -42,10 +42,13 @@ function stage(saved){
      assigning a fake one silently does nothing and every read comes back null.
      That cost a round of green-instead-of-navy failures. Give it an origin and
      use the real thing. */
+  /* THE FIXTURE IS THE SHELL AS BUILT (24 Aug 2026): one bordered group of two
+     brand swatches and a light/dark toggle, in place of the three-row menu. */
   const dom = new JSDOM(`<!doctype html><html><body>
-    <div style="position:relative">
-      <button id="theme-btn" aria-expanded="false"><span id="theme-swatch"></span></button>
-      <div id="theme-menu" class="room-menu hidden"></div>
+    <div class="sh-grp">
+      <button id="brand-green" class="sh-sw" data-brand-pick="green" hidden><i></i></button>
+      <button id="brand-navy" class="sh-sw" data-brand-pick="navy" hidden><i></i></button>
+      <button id="theme-btn" class="sh-theme" aria-pressed="false"></button>
     </div></body></html>`, { url: 'https://hati.test/' });
   const win = dom.window;
   win.localStorage.clear();
@@ -54,6 +57,9 @@ function stage(saved){
   win.state = { view: 'dashboard' };
   win.setView = () => {};
   win.toast = () => {};
+  /* The swatches ask who is signed in. Default to an admin so the ordinary
+     tests see them; the admin-only test overrides this. */
+  win.currentUser = () => ({ id: 'u1', name: 'Amina', role: 'admin' });
   const ctx = vm.createContext(win);
   /* The theme block's labels read through i18t(), so the dictionary goes in
      first — the same order js/app.js itself loads them. */
@@ -132,40 +138,82 @@ describe('F96 — the choice is remembered, and old choices still mean something
   });
 });
 
-describe('F96 — the menu says which one you are wearing', () => {
-  test('it offers exactly the three, each with a swatch', () => {
-    const s = stage();
-    s.win.wireThemeMenu();
-    const rows = [...s.doc.querySelectorAll('[data-theme-pick]')];
-    assert.deepEqual(rows.map(r => r.getAttribute('data-theme-pick')), ['green', 'navy', 'dark']);
-    for (const r of rows) assert.ok(r.querySelector('.tsw'), 'every row shows the colour it names');
+/* ============================================================
+   REVERSED IN PLACE, 24 Aug 2026 — THE MENU BECAME TWO CONTROLS
+   ============================================================
+   This block asserted a menu of three mutually-exclusive rows: Green, Navy,
+   Dark, each with a swatch and a tick. The enterprise design splits the two
+   axes that were always underneath — and this file's own header already said
+   they were there ("navy-at-night already works in the stylesheet and is one
+   row away in the menu if anybody asks for it"). Somebody asked.
+
+   THE BRAND IS THE WORKSPACE'S and the THEME IS THE PERSON'S, so they are two
+   controls: two swatches, admin-only, and a Light/Dark toggle everyone gets.
+   Four combinations replace three states, and navy-at-night is reachable for
+   the first time.
+
+   WHAT THE OLD CLAIMS WERE REALLY ABOUT SURVIVES, one for one: the control
+   states what you are wearing, pressing it applies AND repaints itself, and
+   nothing stored in anybody's browser moves. */
+describe('F96 — brand and theme are two controls, not three rows', () => {
+  test('the retired menu is gone from the markup and the code', () => {
+    const html = src('index.html');
+    assert.ok(!html.includes('data-theme-pick'),
+      'the three-row menu is retired — flag any mention as stale');
+    assert.ok(!html.includes('id="theme-menu"'));
+    assert.ok(html.includes('data-brand-pick="green"') && html.includes('data-brand-pick="navy"'),
+      'the two brand swatches are what replaced it');
+    assert.ok(html.includes('id="theme-btn"'), 'and the light/dark toggle keeps its id');
   });
 
-  test('the one you are on is ticked, and only that one', () => {
-    const s = stage('navy');
-    s.win.applyTheme('navy');
-    s.win.wireThemeMenu();
-    const on = [...s.doc.querySelectorAll('[data-theme-pick]')].filter(r => r.getAttribute('aria-checked') === 'true');
-    assert.equal(on.length, 1);
-    assert.equal(on[0].getAttribute('data-theme-pick'), 'navy');
-  });
-
-  test('pressing a row applies it and re-ticks', () => {
-    const s = stage();
-    s.win.wireThemeMenu();
-    s.press(s.doc.querySelector('[data-theme-pick="navy"]'));
-    assert.equal(s.root.getAttribute('data-brand'), 'navy');
-    assert.equal(s.store.get('hati-theme'), 'navy');
-    const on = [...s.doc.querySelectorAll('[data-theme-pick]')].filter(r => r.getAttribute('aria-checked') === 'true');
-    assert.equal(on[0].getAttribute('data-theme-pick'), 'navy', 'the menu keeps up with itself');
-  });
-
-  test('the button wears the theme it would open', () => {
+  test('the toggle says which theme you are wearing', () => {
     const s = stage('dark');
     s.win.applyTheme('dark');
     s.win.wireThemeMenu();
-    assert.match(s.doc.getElementById('theme-swatch').getAttribute('style') || '', /linear-gradient/);
-    assert.match(s.doc.getElementById('theme-btn').title, /Dark/);
+    const t = s.doc.getElementById('theme-btn');
+    assert.match(t.textContent, /Dark/);
+    assert.equal(t.getAttribute('aria-pressed'), 'true');
+  });
+
+  test('pressing it flips only the theme, and the brand stays put', () => {
+    const s = stage('navy');
+    s.win.applyTheme('navy');
+    s.win.wireThemeMenu();
+    assert.equal(s.win.darkNow(), false);
+    s.win.setDark(true);
+    assert.equal(s.win.darkNow(), true);
+    assert.equal(s.win.brandNow(), 'navy', 'navy at night — the combination the menu could not reach');
+    assert.equal(s.root.getAttribute('data-brand'), 'navy');
+    assert.ok(s.root.classList.contains('dark'));
+  });
+
+  test('pressing a swatch flips only the brand, and the theme stays put', () => {
+    const s = stage();
+    s.win.setDark(true);
+    s.win.setBrand('navy');
+    assert.equal(s.win.brandNow(), 'navy');
+    assert.equal(s.win.darkNow(), true, 'the theme is not collateral damage');
+  });
+
+  test('NOTHING STORED IN ANYBODY\'S BROWSER MOVES', () => {
+    /* The single legacy key is the only thing an existing reader has. Each of
+       its three values still opens exactly the workspace it always did. */
+    for (const [saved, brand, dark] of [['green','green',false],['navy','navy',false],['dark','green',true]]){
+      const s = stage(saved);
+      assert.equal(s.win.brandNow(), brand, saved + ' -> brand');
+      assert.equal(s.win.darkNow(), dark, saved + ' -> dark');
+    }
+  });
+
+  test('the swatches are ADMIN-ONLY and the toggle is not', () => {
+    const s = stage();
+    s.win.currentUser = () => ({ id:'u1', name:'Ed', role:'editor' });
+    s.win.wireThemeMenu();
+    assert.equal(s.doc.getElementById('brand-navy').hidden, true, 'an editor sees no brand swatch');
+    assert.ok(!s.doc.getElementById('theme-btn').hidden, 'but light/dark is everybody\'s');
+    s.win.currentUser = () => ({ id:'u2', name:'Amina', role:'admin' });
+    s.win.wireThemeMenu();
+    assert.equal(s.doc.getElementById('brand-navy').hidden, false, 'an admin does');
   });
 
   test('the old toggle still works, and steps through all three', () => {

@@ -15,6 +15,7 @@
    label at load. */
 const KPI_EN={
   under_mgmt:'Active contracts', active_value:'Active value', awaiting:'Awaiting counterparty',
+  negotiations:'Live negotiations',
   approvals:'Pending approvals', compliance:'Compliance rating', expiring30:'Expiring < 30 days',
   expiring60:'Expiring < 60 days', expiring90:'Expiring < 90 days', expired:'Term already ended',
   highrisk:'High-risk findings', avgcycle:'Avg turnaround time' };
@@ -24,11 +25,20 @@ const KPI_EN={
 const KPI_META=Object.keys(KPI_EN)
   .reduce((o,k)=>(Object.defineProperty(o,k,{enumerable:true,
     get(){ return typeof t==='function' ? i18t('kpi_'+k) : KPI_EN[k]; }}),o),{});
-const KPI_ALL_ORDER=['under_mgmt','active_value','avgcycle','approvals','compliance','awaiting','expiring30','expiring60','expiring90','expired','highrisk'];
-/* The four the design leads on: how much paper is live, how fast it moves,
-   what is stuck on a person, and how much of it is clean. Everything else in
-   the catalog stays one click away under Customize. */
-const DEFAULT_KPI_SEL=['under_mgmt','avgcycle','approvals','compliance'];
+const KPI_ALL_ORDER=['approvals','negotiations','expiring90','avgcycle','under_mgmt','active_value','compliance','awaiting','expiring30','expiring60','expired','highrisk'];
+/* ---- THE DEFAULT FOUR ARE "WHAT NEEDS ME TODAY" (owner-ruled 24 Aug 2026) ----
+   They were Active contracts · Avg turnaround · Pending approvals · Compliance
+   rating, and two of those were saying what the row beneath them already says:
+   Active contracts is printed in the lifecycle tile's own footnote, and
+   Compliance is a tile of its own on the fixed row. The first thing on the
+   page repeated the second thing on the page.
+
+   THE TWO ROWS NOW ANSWER DIFFERENT QUESTIONS. This one is what is owed —
+   approvals sitting on you, rounds in flight, terms about to end, and how long
+   the last ninety days took. The Portfolio row below is the shape of the book.
+   Nothing left the catalogue: all twelve are still one press away under
+   Customize, and a reader who wants the old four puts them straight back. */
+const DEFAULT_KPI_SEL=['approvals','negotiations','expiring90','avgcycle'];
 /* ---- FOUR, AND FOUR IS THE WHOLE RIBBON (owner-asked, 13 Aug 2026) ----
    "For the 4 main KPI cards, make it so that you cannot have more than 4."
 
@@ -301,6 +311,45 @@ function gsGoTargetExists(k){
    So the computation moved out here and renderDashboard now reads it, exactly
    as the phone does. Not one line of the arithmetic changed in the move —
    deliberately, so the desktop it feeds is the desktop that shipped. */
+/* ---- HOW MUCH OF THE BOOK COPILOT HAS READ (owner-ruled 24 Aug 2026) ----
+   This replaced the Copilot SPEND tile, and the reasoning is worth keeping:
+   spend was the only figure on the page in dollars while everything else is in
+   shillings, the only one an ordinary reader could not act on, and the only
+   one with no list behind it. Coverage has all three the other way round.
+
+   READ MEANS ONE STORED FINDING AGAINST THE CURRENT WORDING — a brief, a
+   playbook pass or a risk scan. ANY ONE of the three: asking for all three
+   would leave the number permanently bad and nobody would trust it.
+
+   OBLIGATIONS ARE DELIBERATELY NOT ONE OF THEM. A person can type an
+   obligation by hand, so counting the list would book somebody's own work to
+   Copilot — the flattering reading, which is the one a dispute destroys.
+
+   THE BRIEF IS ASKED VIA _hasBrief, THE LIST'S BOOLEAN, not _brief itself:
+   the memo rides only the single contract's GET, so a count built on _brief
+   alone would be right in local mode and short in server mode. That is this
+   codebase's recorded defect class, twice paid for. `_brief` is still read
+   beside it for the local mode and the one contract that has been opened. */
+function copilotRead(c){
+  return !!(c && (c._hasBrief || c._brief || c.playbook || c.scan));
+}
+function copilotCoverage(live){
+  const list=Array.isArray(live)?live:[];
+  const read=list.filter(copilotRead);
+  /* A CONTRACT AMENDED SINCE IT WAS LAST UNDERSTOOD IS THE USEFUL HALF. The
+     stored findings are keyed to the wording they were taken from, so when the
+     wording moves they stop answering for it — which is a warning nothing else
+     on this page gives. Counted only where both readings exist; an older
+     record that carries no hash says nothing rather than guessing. */
+  const stale=read.filter(c=>{
+    const at=(c._brief&&c._brief.at)||(c.playbook&&c.playbook.at)||(c.scan&&c.scan.at);
+    const moved=c.updatedAt||c.updated||null;
+    if(!at||!moved) return false;
+    const a=Date.parse(at), m=Date.parse(moved);
+    return !!(a&&m&&m>a);
+  }).length;
+  return { total:list.length, read:read.length, unread:list.length-read.length, stale };
+}
 function hmDashSlices(){
   /* THE ARCHIVE SHELF (WO-5): filed-away contracts leave every dashboard
      figure at the one door the whole dashboard reads through. */
@@ -468,6 +517,19 @@ function hmDashSlices(){
      and never anywhere the counterparty can see it — they get a reply, not a
      notification that we noticed. */
   const myStaleDesks=(window.deskStaleInboxFor?deskStaleInboxFor(cs, me):[]);
+  /* ---- WHAT THE PORTFOLIO ROW COUNTS ----
+     Every one of these is BORROWED from the reading that already owns it, so
+     no figure on this page is worked out twice. Each is guarded, because this
+     module renders on stages that do not load every other one. */
+  const negoLive=(()=>{ try{ return window.negoLiveList?negoLiveList():[]; }catch(e){ return []; } })();
+  const negoNeedsMe=(()=>{ try{
+    return window.negoNeedsYouTotal?negoNeedsYouTotal():0; }catch(e){ return 0; } })();
+  /* THE IMPORT QUEUE is the migration worklist — documents read out of the
+     back catalogue and still waiting for a person. Counted off the same flag
+     the migration page's own worklist reads (migration.needsReview), so the
+     tile and that page can never report different numbers. */
+  const importQ=cs.filter(c=>c.migration&&c.migration.needsReview).length;
+  const cov=copilotCoverage(live);
   const KPI_CATALOG={
     under_mgmt:  {label:KPI_META.under_mgmt,   val:Number(countAll).toLocaleString(jxLocale()),        delta:i18t('home_new_this_week',{n:newThisWeek}),                                    sub:stageSub, grad:G.steel, ic:'building', go:{stage:'all'}},
     /* W2-1: the figure is ONE currency, and where a foreign contract could not
@@ -493,12 +555,25 @@ function hmDashSlices(){
     expired:     {label:KPI_META.expired,      val:Number(lapsed.length).toLocaleString(jxLocale()),    delta:money?i18t('home_no_longer_active',{v:fmtMoneyShort(valOf(lapsed))}):(lapsed.length?i18t('home_longest_ago',{n:Math.abs(dU(effectiveExpiry(lapsed[0])||''))}):i18t('home_none')), sub:i18t('home_past_end_date',{n:lapsed.length}), grad:G.ruby,  ic:'alert',    go:{stage:'all',sort:'expiry',view:'expired'}},
     highrisk:    {label:KPI_META.highrisk,     val:Number(highRisk.length).toLocaleString(jxLocale()),  delta:i18t('home_on_executed',{n:onExecuted}), get sub(){ return i18t('home_risk_60'); }, grad:G.ruby,  ic:'alert',    go:{stage:'all',sort:'risk'}},
     avgcycle:    {label:KPI_META.avgcycle,     val:avgCycle,                                          delta:cycles.length?i18t('home_signed_sampled',{n:cycles.length}):'—', get sub(){ return i18t('home_draft_to_signed'); }, grad:G.green, ic:'clock',    go:{stage:'Signed'}},
+    /* ROUNDS IN FLIGHT. The count is negoLiveList's, which is the same reading
+       the sidebar's Negotiations door and that page's own heading print — one
+       count, three surfaces, the standing rule. Read through window because
+       this module draws on stages where the negotiation view is not loaded,
+       and READ WITHOUT WRITING: negoLiveList asks negoIsLive, which looks at
+       c.changes raw. Asking negoChanges instead would run negoInit and start a
+       negotiation on every contract merely by counting them. */
+    negotiations:{label:KPI_META.negotiations, val:Number(negoLive.length).toLocaleString(jxLocale()),
+                  delta:negoNeedsMe?i18t('home_action_required'):i18t('home_all_clear'),
+                  sub:negoLive.length?i18tn('home_nego_needs_you',negoNeedsMe,{n:negoNeedsMe})
+                                     :i18t('home_nego_none'),
+                  grad:negoNeedsMe?G.amber:G.steel, ic:'clock', go:{nav:'redline'}},
   };
   return { cs, money, m, countAll, valOf, dU, idleOf, STAGE_DEF, stages, expiring, rdd,
     decisions, waitingLongest, fmtDDay, highRisk, awaiting, awaitingCount, me, raisedByMe,
     canApproveSomeStep, myApprovals, newThisWeek, stalled, onExecuted, lapsed, expWithin,
     exp30, exp60, exp90, expVal, expDelta, expSub, cycles, avgCycle, G, stageSub, live,
-    clean, compliancePct, REG_PROFILE, apprMineN, myReviews, myJoinAsks, myStaleDesks, KPI_CATALOG };
+    clean, compliancePct, REG_PROFILE, apprMineN, myReviews, myJoinAsks, myStaleDesks, KPI_CATALOG,
+    negoLive, negoNeedsMe, importQ, cov, agreementsIn };
 }
 
 /* THE EMAIL WARNING, SAID ONCE AND QUIETLY.
@@ -526,7 +601,8 @@ function renderDashboard(){
     decisions, waitingLongest, fmtDDay, highRisk, awaiting, awaitingCount, me, raisedByMe,
     canApproveSomeStep, myApprovals, newThisWeek, stalled, onExecuted, lapsed, expWithin,
     exp30, exp60, exp90, expVal, expDelta, expSub, cycles, avgCycle, G, stageSub, live,
-    clean, compliancePct, REG_PROFILE, apprMineN, myReviews, myJoinAsks, myStaleDesks, KPI_CATALOG } = hmDashSlices();
+    clean, compliancePct, REG_PROFILE, apprMineN, myReviews, myJoinAsks, myStaleDesks, KPI_CATALOG,
+    importQ, cov } = hmDashSlices();
   const kpiSel=currentKpiSel().filter(id=>KPI_CATALOG[id]);
   // Adaptive layout: the redesign's stat cards are wider and quieter than the
   // gradient blocks they replace, so they sit four to a row and wrap.
@@ -589,219 +665,39 @@ function renderDashboard(){
      draft button still opens the one new-contract menu. The numbers in the
      sub-line are BOLD — the values are passed pre-wrapped, so the line is not
      esc()'d; every piece is our own arithmetic or fmtMoneyShort output. */
-  /* No flag emoji: Windows draws them as bare letter pairs in boxes. */
+  /* ---- THE HERO BANNER IS RETIRED (owner-approved render, 24 Aug 2026) ----
+     A dark gradient block carrying a greeting, the page's own title and three
+     live facts. All three survive somewhere better: the greeting is a plain
+     line at the top of the page, "Contract Lifecycle Management" moved into
+     the shell bar (shellTitleFor) which is where a console names the page you
+     are on, and the three facts are said by the tiles — where a number is also
+     a door. .hm-banner, .hm-banner-greet, .hm-banner-cta, .hm-banner-ghost and
+     home_hero_managed / _value / _need are STALE — flag any mention. */
   const REGION_LABEL={SE:'Sweden', KE:'Kenya'};
   const regionNow=REGION_LABEL[state.region]||REGION_LABEL.KE;
-  const activeVal=(money&&typeof fmtMoneyShort==='function')?fmtMoneyShort(valOf(live)):'';
-  const heroLine=[
-    i18tn('home_hero_managed',countAll,{n:`<b>${Number(countAll).toLocaleString(jxLocale())}</b>`}),
-    activeVal?i18t('home_hero_value',{v:`<b>${esc(activeVal)}</b>`}):'',
-    apprMineN?i18tn('home_hero_need',apprMineN,{n:`<b>${apprMineN}</b>`}):'',
-  ].filter(Boolean).join(' · ');
-  /* THE GREETING IS BACK, OWNER-ASKED (20 Aug 2026, off the old hero render —
-     this reverses "a page title is not a salutation"): a small time-of-day
-     line over the page's real title. The hour is the reader's own clock; the
-     name is their first name, falling back to the dictionary's "there". */
-  const hour=new Date().getHours();
-  const greetKey=hour<12?'home_greet_morning':hour<17?'home_greet_afternoon':'home_greet_evening';
-  const firstName=String((me&&me.name)||'').trim().split(/\s+/)[0]||i18t('home_greet_there');
-  const heroSection=`
-    <section class="hm-banner">
-      <div style="min-width:0;">
-        <span class="hm-banner-greet">${i18t(greetKey)}, ${esc(firstName)}</span>
-        <h2>${i18t('home_clm_title')}</h2>
-        <p>${heroLine}</p>
-      </div>
-      <span style="flex:1 1 auto;"></span>
-      ${''/* CUSTOMIZE HAS LEFT THIS BANNER (owner-asked 20 Aug 2026: "why did
-           you put customize inside the card?"). It was never a decision — it
-           lived on the retired KEY METRICS caption row, moved onto the
-           Portfolio strip when that row went, and rode along when the strip
-           became the banner. A quiet preference does not belong on the most
-           prominent surface in the app, competing with the one primary act:
-           it sits on its own thin line directly above the four cards it
-           edits. See kpiBarHtml. The banner keeps ONE act. */}
-      <button id="hero-draft" class="hm-banner-cta">
-        ${icon('plus','w-3.5 h-3.5',2)} ${i18t('home_draft_new')}
-      </button>
-    </section>`;
 
-  /* ---- ACTIVE CONTRACT LIFECYCLE PIPELINE (redesign) ----
-     Three columns for the three things that actually happen to a contract, each
-     showing the live records sitting in that stage. The column headers are the
-     old stage filters, so every click-through the segmented bar used to offer
-     still works. "Closed" is not a lifecycle stage you work in, so it keeps its
-     place on the bar below rather than taking a fourth column. */
+  /* ---- THE LIFECYCLE IS A TILE NOW, NOT A RING (24 Aug 2026) ----
+     The card drew a donut on two thirds with a stage key and a third column
+     listing that stage's contracts. It is three blocks in the Portfolio row:
+     a count, a bar and a word, each of them a DOOR into the register narrowed
+     to that stage.
+
+     WHAT WAS LOST WAS SAID OUT LOUD BEFORE IT WAS BUILT: reading a stage's
+     contracts without leaving the page. Pressing a stage now opens the
+     register, which shows more per contract than the cramped column did — one
+     press either way. The owner was told and chose it.
+
+     RETIRED WITH IT: hmArcsHtml, hmKeyHtml, hmSideHtml, hmSideHeadHtml,
+     hmPaint, hmFit, _hmStage, RING_MIN/RING_MAX, PIPE_DOT and every .hm-pipe-*
+     and .hm-ring-* class. Flag any mention as stale. What SURVIVES is the pair
+     the tile still needs — the three stages and their counts — because they
+     were never the ring's, they were the book's. */
   const PIPE_DEF=[
     {k:'Draft',        n:1, get title(){ return i18t('home_stage_draft'); },  tone:'steel',   fg:'var(--color-neutral-700)', bd:'var(--color-divider)',                              chip:'var(--color-neutral-100)'},
     {k:'Under Review', n:2, get title(){ return i18t('home_stage_review'); },  tone:'amber',   fg:'var(--st-amber-fg)',       bd:'color-mix(in srgb,#f59e0b 34%,transparent)',        chip:'var(--st-amber-bg)'},
     {k:'Signed',       n:3, get title(){ return i18t('home_stage_sign'); },   tone:'emerald', fg:'var(--st-green-fg)',       bd:'color-mix(in srgb,#10b981 34%,transparent)',        chip:'var(--st-green-bg)'},
   ];
-  /* ---- ONE RING AND ONE LIST, NOT THREE COLUMNS (owner-asked, 13 Aug 2026) ----
-     The card drew three scrolling columns side by side. Each was a third of the
-     card wide, so a contract's name was cut off mid-word ("Mutual Non-Disclo…")
-     on every row, and the shape of the book — where the live agreements
-     actually sit — had to be read off three separate counts.
-
-     It is a ring on two thirds and ONE list on one third now: press a segment,
-     or its row in the key, and the list beside it swaps to that stage. NOTHING
-     ABOUT THE CARD CHANGED — same box, same padding, same heading — and it is
-     still exactly as tall as Decisions due beside it. Only what is painted
-     inside it. (The head also carried a "View full register" link until 22 Aug
-     2026, when the owner asked for it to go; the head is the heading alone
-     now. See the note on the head itself.)
-
-     IT IS ALL IN THE MARKUP, NOT PAINTED ON AFTER. The first build filled the
-     ring and the list from script once the card was in the DOM, which left the
-     rendered HTML holding empty placeholders — the dashboard's own tests read
-     that HTML, and a card that is blank until script runs is a card that is
-     blank if script never does. The builders below are used BY the template and
-     again by hmPaint when a stage is pressed.
-
-     THE COLOURS ARE THE CARD'S OWN. Draft has always been drawn in neutral here
-     (PIPE_DEF's fg is --color-neutral-700, its chip --color-neutral-100), and
-     that turns out to be the only workable choice: in a teal workspace the
-     "steel" tone is #14b8a6 and the executed tone is #10b981 — 5.4 apart on the
-     normal-vision scale, which is two slices of one colour once they touch in a
-     ring rather than sitting in separate columns. Neutral for work not started,
-     amber for work in flight, green for work done: measured apart in both
-     themes, and every slice is named in the key besides. */
-  const PIPE_DOT=['var(--color-neutral-500)','var(--st-amber-dot)','var(--st-green-dot)'];
   const hmCounts=PIPE_DEF.map(st=>cs.filter(c=>c.status===st.k).length);
-  const hmTotal=hmCounts.reduce((a,b)=>a+b,0);
-  /* Whichever stage is listed. Per sitting, in memory — a working preference,
-     not a setting. Falls back to the first stage that has anything in it. */
-  if(_hmStage==null||!PIPE_DEF.some(st=>st.k===_hmStage))
-    _hmStage=(PIPE_DEF[Math.max(0,hmCounts.findIndex(n=>n>0))]||PIPE_DEF[0]).k;
-  const hmIdx=()=>Math.max(0,PIPE_DEF.findIndex(st=>st.k===_hmStage));
-  const hmPct=i=>hmTotal?Math.round((hmCounts[i]/hmTotal)*100):0;
-
-  const RING_R=70, RING_C=2*Math.PI*70, RING_SEG_GAP=5;
-  const hmArcsHtml=()=>{ let at=0;
-    return PIPE_DEF.map((st,i)=>{
-      const len=hmTotal?(hmCounts[i]/hmTotal)*RING_C:0;
-      const draw=Math.max(len-RING_SEG_GAP,0), on=i===hmIdx();
-      const arc=`<circle class="hm-seg" cx="100" cy="100" r="${RING_R}" fill="none"`
-        +` stroke="${PIPE_DOT[i]}" stroke-width="${on?34:26}"`
-        +` stroke-dasharray="${draw.toFixed(2)} ${(RING_C-draw).toFixed(2)}" stroke-dashoffset="${(-at).toFixed(2)}"`
-        +` tabindex="0" role="button" aria-pressed="${on}" data-hm-stage="${st.k}"`
-        +` aria-label="${esc(st.n+'. '+st.title)} — ${hmCounts[i]}"></circle>`;
-      at+=len; return arc;
-    }).join('');
-  };
-
-  const hmKeyHtml=()=>PIPE_DEF.map((st,i)=>
-    `<button class="hm-leg" type="button" data-hm-stage="${st.k}" aria-pressed="${i===hmIdx()}">
-      <span class="hm-leg-dot" style="background:${PIPE_DOT[i]}"></span>
-      <span class="hm-leg-name">${st.n}. ${esc(st.title)}</span>
-      <span class="hm-leg-n">${hmCounts[i]}</span>
-      <span class="hm-leg-pct">${hmPct(i)}%</span>
-      <span class="hm-leg-bar"><i style="width:${hmPct(i)}%;background:${PIPE_DOT[i]}"></i></span>
-    </button>`).join('');
-
-  /* A ROW IS TWO LINES, NOT THREE: the name, then the state and the
-     counterparty sharing one — the same facts the old card carried, in two
-     thirds of the height, which is what puts more of them on screen.
-
-     THE FLAG ONLY SAYS WHAT THE HEADING DOES NOT. The list is titled with the
-     stage, so repeating it on every row is the same word twice; what the
-     heading cannot say is which are executed and which need somebody. */
-  const pipeRow=(c,st)=>{
-    const risky=st.k==='Under Review'&&contractRisk(c)>=60;
-    const flag=st.k==='Signed'
-      ? `<span class="hm-row-flag" style="color:var(--st-green-fg);">${icon('check2','w-3 h-3',2)}${c.signedAt?i18t('home_stage_executed'):i18t('home_signed')}</span>`
-      : risky ? `<span class="hm-row-flag" style="color:var(--st-amber-fg);">${i18t('home_action')}</span>` : '';
-    return `<button data-sel="${c.id}" class="hm-row" type="button">
-      <span class="hm-row-name">${esc(c.name)}</span>
-      <span class="hm-row-meta">${flag}${flag?'<span class="hm-row-sep">&middot;</span>':''}<span class="hm-row-cp">${esc(c.counterparty||i18t('home_no_counterparty_yet'))}</span></span>
-    </button>`;
-  };
-
-  /* EIGHT IN THE BOX, THE REST BEHIND THE LINK — and the box takes the height
-     that is left rather than asking for one, so the card cannot grow when the
-     stage changes. */
-  /* ---- THE STAGE NAME SITS ON THE CARD-HEADING LINE (owner-asked 23 Aug 2026)
-     "Draft and template should be in the same line as the decisions due, not
-     below it."  MEASURED before: both card headings drew at y=395.4 and this
-     head at y=429.4 — 34px below the line it is meant to share, and 43px to
-     its title's own text.
-
-     SO THE HEAD IS ITS OWN THING NOW, not the first row inside the bordered
-     list box: it is placed in the pipeline grid's FIRST row, beside the card's
-     own <h4>, while the box below holds the list and the foot. That is the
-     only arrangement that puts the two on one line — leaving the head inside
-     the box and pulling the box up aligns the box's TOP EDGE with the heading
-     and still drops the words nine pixels, which is not what was asked for.
-
-     TWO BUILDERS, BOTH USED TWICE. The card's markup calls each of these and
-     so does hmPaint, because this file's own standing rule is that the card
-     renders complete in the HTML — the dashboard's node tests read the counts
-     out of the rendered markup, and a card that is blank until script runs is
-     a card that is blank if script never does. Splitting the head out means
-     hmPaint has two targets rather than one; it must fill BOTH or a stage
-     press moves the list and leaves the old stage's name above it.
-
-     SAID OUT LOUD: the mock-up does not do this — its own stage list starts
-     below the heading row. This is the owner's call, made after being told
-     that, and the reason it is safe is that the head still sits directly above
-     the list it names, in the same column, reading as that column's header. */
-  const hmSideHeadHtml=()=>{
-    const i=hmIdx(), st=PIPE_DEF[i];
-    return `<h5 class="hm-side-title" style="color:${st.fg};">${st.n}. ${esc(st.title)}</h5>
-      <button class="hm-side-count" type="button" data-stage="${st.k}" style="background:${st.chip};color:${st.fg};">${i18tn('home_docs',hmCounts[i],{n:hmCounts[i]})}</button>`;
-  };
-  const hmSideHtml=()=>{
-    const i=hmIdx(), st=PIPE_DEF[i];
-    const list=cs.filter(c=>c.status===st.k);
-    const shown=(st.k==='Under Review'?list.slice().sort((a,b)=>contractRisk(b)-contractRisk(a)):list).slice(0,8);
-    return `<div class="hm-pipe-list scroll-thin" id="hm-list">${
-        shown.map(c=>pipeRow(c,st)).join('')||`<div class="hm-row-none">${i18t('home_nothing_at_stage')}</div>`}</div>
-      <div class="hm-side-foot">${list.length>shown.length
-        ? `<button data-stage="${st.k}" class="hm-side-more" type="button">${i18t('home_more_arrow',{n:list.length-shown.length})}</button>` : ''}</div>`;
-  };
-
-  const lifecycleSection=`
-    <section class="hm-pipe-card" style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:none;border-radius:0;padding:16px 18px;min-width:0;">
-      <!-- ONE HEADING, NO LINK (owner-asked, 22 Aug 2026). The head carried a
-           "View full register →" button on its right. It went because the card
-           is already made of doors and that one was the vaguest of them: every
-           legend row opens its own stage in the register, the "+ N more" under
-           the list opens the stage being read, and Contracts is a permanent
-           door in the sidebar three inches to the left. A fourth route, to the
-           unfiltered list, sat above three that each carry a filter — so the
-           one that said least took the most prominent corner of the card.
-           Nothing is stranded: data-stage still reaches the register from the
-           rows and the more-button, and both still clear the selection. -->
-      <div class="hm-pipe-cols" style="display:grid;">
-        <!-- ROW 1 — the card's own name, and the stage being listed beside it.
-             Both are placed by CSS into the grid's first row so they share a
-             line with "Decisions due" in the card next door. -->
-        <div class="hm-pipe-title">
-          <h4 style="font-size:15px;margin:0;font-weight:700;">${i18t('home_pipeline_aria')}</h4>
-        </div>
-        <div class="hm-side-head" id="hm-side-head">${hmSideHeadHtml()}</div>
-        <div class="hm-pipe-chart" id="hm-pipe-chart">
-          <div class="hm-ring-row" id="hm-ring-row">
-            <div class="hm-ring-block">
-              <div class="hm-ring-stage">
-                <svg viewBox="0 0 200 200" role="img" aria-label="${esc(i18t('home_pipeline_aria'))}">
-                  <circle cx="100" cy="100" r="${RING_R}" fill="none" stroke="var(--color-neutral-100)" stroke-width="26"></circle>
-                  <g id="hm-segs" transform="rotate(-90 100 100)">${hmArcsHtml()}</g>
-                </svg>
-                <div class="hm-ring-centre">
-                  <div class="hm-ring-fig" id="hm-fig">${hmCounts[hmIdx()]}</div>
-                  <div class="hm-ring-of" id="hm-of">${i18t('home_pipe_of_live',{n:hmTotal})}</div>
-                </div>
-              </div>
-              <div class="hm-ring-what" id="hm-what">${esc(PIPE_DEF[hmIdx()].title)}<small>${esc(i18t('home_pipe_share',{n:hmPct(hmIdx())}))}</small></div>
-            </div>
-            <div class="hm-key" id="hm-key">${hmKeyHtml()}</div>
-          </div>
-          <div class="hm-ring-hint" id="hm-hint">${i18t('home_pipe_pick')}</div>
-        </div>
-        <div class="hm-pipe-side" id="hm-side">${hmSideHtml()}</div>
-      </div>
-    </section>`;
 
   /* ---- DECISIONS DUE (in the design's feed slot) ----
      The audit stream that sat here read "Created — Seeded as sample data" over
@@ -934,64 +830,206 @@ function renderDashboard(){
         </button>
       </div>
     </section>` : '';
+  /* ============================================================
+     THE HOME PAGE — the enterprise design, owner-approved render 24 Aug 2026
+     ============================================================
+     WHAT LEFT, and each because the design answers it better or elsewhere:
+
+     THE HERO BANNER. A dark gradient block carrying a greeting, the page's own
+     title and three live facts. The greeting is a plain line now; the title
+     moved into the shell bar (shellTitleFor), which is where a console names
+     the page you are on; and the three facts are stated by the tiles below,
+     which is where a number belongs when it is also a door. hm-banner and its
+     parts are STALE — flag any mention.
+
+     THE PIPELINE RING. A donut with a stage list beside it and a third column
+     listing that stage's contracts. It is the Contract lifecycle tile now:
+     three blocks, three counts, three DOORS. What is lost is reading the list
+     without leaving the page, and the owner was told that before this was
+     built — the register shows more per contract than the cramped column did.
+
+     THE EMAIL WARNING STRIP. It moves to the alerts panel, where a standing
+     workspace fault belongs; see buildAlerts. emailSetupLineHtml is kept as a
+     builder with no caller on this page rather than deleted, because it is
+     exported and a third caller must not be able to bring the band back
+     through a door nobody remembered.
+
+     ONE RULE DECIDES WHERE A TILE GOES: a card opens the list that would
+     change its number. That is why Compliance opens the contracts that FAIL
+     rather than all of them, and why Turnaround — which looked like it had no
+     list at all, being an average — opens the contracts signed in the last
+     ninety days, which are the ones the average is made of.
+
+     AND A CARD COUNTING ZERO IS NOT A DOOR. The zero still draws, because it
+     is true; the arrow goes and the press is refused, because a door onto an
+     empty list is a press that makes the reader think they did something
+     wrong. hmTile does that from the number itself, so it can never be
+     forgotten on a tile added later. */
+  const hmSec=(title,extra)=>`
+    <div class="hm-sec">
+      <h2>${esc(title)}</h2><span class="hm-rule"></span>${extra||''}
+    </div>`;
+  const hmArrow=`<svg class="hm-go" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><use href="#i-right"/></svg>`;
+  /* A tile is a <button> whichever it is, so the row never changes shape; a
+     dead one is DISABLED rather than merely unpainted, so the browser itself
+     refuses the press and a keyboard reader is told instead of being led to a
+     control that does nothing. */
+  const hmDead=v=>{ const t=String(v==null?'':v).replace(/[^0-9.]/g,''); return t===''||Number(t)===0; };
+  const hmTile=(o)=>{
+    const dead=o.dead!=null?o.dead:hmDead(o.n);
+    /* A DEAD TILE IS REFUSED, AND HOW IT IS REFUSED DEPENDS ON WHAT ELSE IT
+       DOES. A fixed Portfolio tile does one thing, so `disabled` is right: the
+       browser itself declines the press and a keyboard reader is told.
+       A My-work tile is ALSO the drag handle for reordering the four, and a
+       disabled button fires no drag events — so disabling it would take the
+       reader's ability to move a zero card out of first place. Those keep
+       aria-disabled and lose their destination and their arrow, which is what
+       actually advertises a door; the handler checks .is-dead before it
+       navigates. */
+    const draggy=/draggable/.test(o.attrs||'');
+    return `<button type="button" class="hm-tile ${o.tall?'is-port':'is-work'}${dead?' is-dead':''}"
+      style="border-top-color:${o.edge}"
+      ${dead?(draggy?'aria-disabled="true"':'disabled'):`data-hm-go="${esc(o.go||'')}"`}
+      ${o.id?`id="${o.id}"`:''} ${o.attrs||''}>
+      ${dead?'':hmArrow}
+      <span class="hm-t">${o.t}</span>
+      <span class="hm-s">${o.s||''}</span>
+      <span class="hm-sp"></span>
+      <span class="hm-big"><span class="hm-n">${o.n}</span>${o.u?`<span class="hm-u">${o.u}</span>`:''}</span>
+      <span class="hm-foot${o.fc?' '+o.fc:''}">${o.f||''}</span>
+    </button>`;
+  };
+
+  /* MY WORK — the four the reader chooses. Same ids and the same drag-to-
+     reorder as before; only the dress and the door are new. */
+  const workTiles=kpiSel.map(id=>{
+    const k=KPI_CATALOG[id], t=TONE_OF(k.grad);
+    return hmTile({ t:esc(k.label), s:esc(k.sub||''), n:esc(String(k.val)), u:'',
+      f:esc(String(k.delta||'')), fc:'', edge:TONE_EDGE[t], go:'kpi:'+id,
+      attrs:`data-kpi-id="${id}" draggable="true"`,
+      /* An average has no number to test — "—" is not zero, it is "not yet
+         measurable" — so the tile is dead when there is nothing behind it. */
+      dead:String(k.val)==='—'||hmDead(k.val) });
+  }).join('');
+
+  /* PORTFOLIO — fixed furniture, in the design's own order. */
+  const lifeTotal=hmCounts.reduce((a,b)=>a+b,0);
+  const lifeW=n=>Math.round(46+40*(lifeTotal?n/lifeTotal:0.33));
+  const LIFE_CLS=['is-draft','is-review','is-signed'];
+  /* THE TILE USES THE SHORT STAGE WORDS. PIPE_DEF's own titles are the
+     register's ("Draft & Template", "Review & Redline", "Sign & Executed") and
+     they are right there; under a 46px block they overlapped each other. The
+     stage they name is identical — only the label is shorter. */
+  const LIFE_WORD=[i18t('home_stage_draft_short'),i18t('home_stage_review_short'),i18t('home_stage_sign_short')];
+  const lifeStack=PIPE_DEF.map((st,i)=>{
+    const n=hmCounts[i];
+    return `<span class="hm-stg-wrap" style="width:${lifeW(n)}px">
+      <button type="button" class="hm-stg ${LIFE_CLS[i]}${n?'':' is-zero'}"
+        ${n?`data-hm-go="stage:${esc(st.k)}"`:'disabled'}>
+        <span class="hm-sn">${n}</span><span class="hm-bar"></span>
+        <span class="hm-sl">${esc(LIFE_WORD[i]||st.title)}</span>
+      </button></span>`;
+  }).join('');
+  const lifeTile=`
+    <div class="hm-tile is-port is-life" style="border-top-color:var(--color-accent-600)">
+      <span class="hm-t">${i18t('home_lifecycle')}</span>
+      <span class="hm-s">${i18tn('home_live_by_stage',live.length,{n:live.length})}</span>
+      <span class="hm-sp"></span>
+      <span class="hm-life">
+        <span class="hm-stack">${lifeStack}</span>
+        ${''/* A READER WITHOUT canViewValues GETS NO MONEY HALF AT ALL, not a
+             dash under a money label. "Active value under management: —" tells
+             them there is a figure and that it is being kept from them, which
+             is worse than the tile simply being about stages; and the label
+             alone was enough to fail this page's own no-money sweep. */}
+        ${money?`<span class="hm-money">
+          <span class="hm-m">${esc(fmtMoneyShort(valOf(live)))}</span>
+          <span class="hm-ml">${i18t('home_active_value_sub')}</span>
+        </span>`:''}
+      </span>
+      <span class="hm-foot">${i18t('home_agreements_docs',{n:countAll,d:agreementsIn(cs).length})}</span>
+    </div>`;
+
+  const portTiles=lifeTile
+    + hmTile({ t:esc(KPI_META.compliance), s:i18t('home_playbook_conformance'),
+        n:compliancePct+'<span class="hm-u">%</span>', u:'',
+        f:i18t('home_clean_of_live',{clean,live:live.length}),
+        fc:compliancePct>=90?'':'crit', edge:compliancePct>=90?'var(--st-green-dot)':'var(--st-amber-dot)',
+        go:'fails', tall:true, dead:false })
+    + hmTile({ t:i18t('home_import_queue'), s:i18t('home_back_catalogue'),
+        n:Number(importQ).toLocaleString(jxLocale()), u:i18t('home_docs'),
+        f:importQ?i18t('home_import_waiting',{n:importQ}):i18t('home_import_none'),
+        fc:'', edge:'var(--color-accent-600)', go:'nav:migration', tall:true })
+    + hmTile({ t:i18t('home_copilot_coverage'), s:i18t('home_copilot_coverage_sub'),
+        n:Number(cov.unread).toLocaleString(jxLocale()), u:i18t('home_still_to_read'),
+        f:cov.total?[i18t('home_understood',{read:cov.read,total:cov.total}),
+                     cov.stale?i18t('home_changed_since',{n:cov.stale}):''].filter(Boolean).join(' · ')
+                  :i18t('home_copilot_nothing_live'),
+        fc:cov.stale?'crit':'', edge:'var(--color-accent-600)', go:'copilot:unread', tall:true });
+
+  /* NEEDS YOUR DECISION — four rows, then a link that carries the count. It is
+     not drawn at or below four, because pressing it would open the list you
+     are already reading. */
+  /* THE ROWS ARE decisionItems, UNCHANGED. That list is assembled above from
+     five readings — reviews owed, quiet desks, join requests, renewal
+     decisions and contracts sitting in review — and this is a re-dressing of
+     it, not a second reading. The tone follows its own `urgent` flag, so what
+     was a ruby circle is a ruby left rule and nothing about which row is
+     alarming has moved. */
+  const ddAll=decisionItems||[];
+  const ddShown=ddAll.slice(0,4);
+  const ddRows=ddShown.length
+    ? `<div class="hm-rows">${ddShown.map(it=>`
+        <button type="button" class="hm-row ${it.urgent?'is-neg':'is-crit'}" data-sel="${esc(it.cid)}">
+          <span class="hm-rb"><span class="hm-rt">${it.txt}</span><span class="hm-rm">${it.meta}</span></span>
+          <span class="hm-rtag">${esc(it.tag)}</span>
+          <svg class="hm-rchev" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><use href="#i-right"/></svg>
+        </button>`).join('')}</div>`
+    : `<div class="hm-empty">${i18t('home_nothing_to_decide')}</div>`;
+  /* DRAWN ONLY WHERE IT SHOWS SOMETHING NEW — at four or fewer, pressing it
+     would open the list already on screen. */
+  const ddLink=ddAll.length>ddShown.length
+    ? `<button type="button" class="hm-cz" data-hm-go="needsyou">${i18t('home_see_all',{n:ddAll.length})}
+         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><use href="#i-right"/></svg></button>`
+    : '';
+
+  const hour=new Date().getHours();
+  const greetKey=hour<12?'home_greet_morning':hour<17?'home_greet_afternoon':'home_greet_evening';
+  const firstName=String((me&&me.name)||'').trim().split(/\s+/)[0]||i18t('home_greet_there');
+  const REGION_LABEL2={SE:'Sweden', KE:'Kenya'};
+  /* THE WORKSPACE'S NAME, READ THROUGH window. core.js sets it as a property
+     of window rather than a module-scope const, and a bare read here threw on
+     every stage that does not load the shell — which is most of the node
+     suite. The ES-module rule this codebase already states. */
+  const todayLine=[esc((window.FIRST_PARTY)||''), REGION_LABEL2[state.region]||REGION_LABEL2.KE,
+    (()=>{ try{ return new Date().toLocaleDateString(langLocale(),{day:'numeric',month:'long',year:'numeric'}); }
+           catch(e){ return ''; } })()].filter(Boolean).join(' · ');
+
   document.getElementById('content').innerHTML=`
-  <div class="view-enter hm-page" style="display:flex;flex-direction:column;gap:12px;padding:14px 20px 20px;">
-    ${emailSetupLineHtml()}
+  <div class="view-enter hm-page">
     ${firstRunBanner}
 
-    <!-- The Getting started checklist has left this page. It occupied the top
-         of the dashboard permanently to carry four one-off steps; the same
-         steps are visible in the work itself. gettingStartedHtml() is kept
-         intact so it can be put back or moved elsewhere. -->
-
-    <!-- Welcome banner — what this workspace is for, and the button that starts work -->
-    ${heroSection}
-
-    <!-- KPI ribbon — customizable flat cards with a coloured top edge (pick,
-         drag to reorder). The KEY METRICS caption row is retired (the SAP
-         treatment): the cards say what they are, and Customize now sits on
-         the Portfolio strip above. -->
-    <section>
-      <!-- ---- THE THIN LINE THAT CARRIES CUSTOMIZE (owner-chose render A,
-           20 Aug 2026) ---- Right-aligned, because a way OUT of a row reads at
-           its end rather than at its start, and dressed as a quiet link rather
-           than a button: it is a small preference, and it matches the quiet
-           arrow links this page already uses under Decisions due ("16 renewal
-           decisions in the calendar →"). It is paid for by the banner above,
-           which lost the same height it takes — measured, so the cards and
-           everything below them do not move.
-
-           (It used to name the pipeline card's "View full register →" as the
-           thing it matched; that link was removed 22 Aug 2026 on the owner's
-           ask, so the comparison now names the links that are still there.) -->
-      <div class="hm-kpi-bar">
-        <button id="kpi-customize" class="hm-cz" title="${i18t('home_choose_metrics')}">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
-          ${i18t('home_customize_metrics')}
-        </button>
-      </div>
-      <!-- The chosen count is what the row wants; minmax gives it a floor, so
-           on a narrow window the cards wrap onto a second line instead of
-           squeezing every label into 34px of a 92px word. -->
-      <div id="kpi-grid" style="display:grid;grid-template-columns:repeat(${kpiCols},minmax(0,1fr));gap:14px;" data-kpi-cols="${kpiCols}">
-        ${kpiHtml}
-      </div>
-    </section>
-
-    <!-- The lifecycle pipeline and the live feed, side by side (2:1) as in the
-         design. Both cards size to their own content. -->
-    <!-- The pipeline sets the height of this row; the decisions card is filled
-         absolutely into the remaining column so a long list scrolls inside it
-         instead of stretching the row and leaving the pipeline half-empty. -->
-    <div class="hm-main-row" style="display:grid;gap:16px;align-items:stretch;">
-      ${lifecycleSection}
-      <div class="hm-decisions" style="position:relative;min-width:0;">
-        <div style="position:absolute;inset:0;display:flex;flex-direction:column;min-height:0;">
-          ${activitySection}
-        </div>
-      </div>
+    <div class="hm-greet">
+      <h1>${i18t(greetKey)}, ${esc(firstName)}</h1>
+      <span class="hm-greet-sub">${todayLine}</span>
+      <span style="flex:1 1 auto"></span>
+      <button id="hero-draft" class="hm-primary">
+        ${icon('plus','w-3.5 h-3.5',2)} ${i18t('home_draft_new')}
+      </button>
     </div>
 
+    ${hmSec(i18t('home_my_work'),`
+      <button id="kpi-customize" class="hm-cz" title="${i18t('home_choose_metrics')}">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+        ${i18t('home_customize_metrics')}
+      </button>`)}
+    <div id="kpi-grid" class="hm-tiles is-work" data-kpi-cols="${kpiCols}">${workTiles}</div>
+
+    ${hmSec(i18t('home_portfolio_sec'))}
+    <div class="hm-tiles is-port">${portTiles}</div>
+
+    ${hmSec(i18t('home_needs_decision'),ddLink)}
+    ${ddRows}
   </div>`;
 
   // ---- wiring ----
@@ -1002,7 +1040,17 @@ function renderDashboard(){
   let kpiDragId=null;
   kgrid?.querySelectorAll('[data-kpi-id]').forEach(el=>{
     const id=el.getAttribute('data-kpi-id');
-    el.addEventListener('click',()=>{ if(KPI_CATALOG[id]) goReg(KPI_CATALOG[id].go); });
+    el.addEventListener('click',()=>{
+      /* A tile counting zero opens nothing — see hmTile. It stays draggable,
+         so the refusal lives here rather than on the element. */
+      if(el.classList&&el.classList.contains('is-dead')) return;
+      const g=KPI_CATALOG[id]&&KPI_CATALOG[id].go; if(!g) return;
+      /* A metric whose list is not the register names the view it belongs to
+         instead — Live negotiations is a list of negotiations, not of rows in
+         the contracts table. */
+      if(g.nav){ setView(g.nav); return; }
+      goReg(g);
+    });
     el.addEventListener('dragstart',e=>{ kpiDragId=id; el.style.opacity='.35'; try{ e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain',id); }catch(_){} });
     el.addEventListener('dragend',()=>{ kpiDragId=null; el.style.opacity=''; });
     el.addEventListener('dragover',e=>{ e.preventDefault(); try{ e.dataTransfer.dropEffect='move'; }catch(_){} });
@@ -1016,6 +1064,46 @@ function renderDashboard(){
     });
   });
   document.getElementById('kpi-customize')?.addEventListener('click',e=>{ e.stopPropagation(); openKpiCustomizer(e.currentTarget); });
+
+  /* ---- EVERY DOOR ON THIS PAGE GOES THROUGH ONE HANDLER ----
+     One rule decides where each tile lands: it opens the list that would
+     change its number. Written as a destination STRING on the element rather
+     than a listener per tile, so a tile added later is a door by construction
+     and cannot be the one somebody forgot to wire.
+
+     THE NUMBER AND THE LIST MUST MATCH. Each destination below narrows the
+     register with the same reading the tile counted, never a near-enough one —
+     a card that says 11 and opens a list of 14 is a card that is lying. */
+  document.querySelectorAll('[data-hm-go]').forEach(el=>el.addEventListener('click',e=>{
+    e.stopPropagation();
+    const [kind,arg]=String(el.getAttribute('data-hm-go')||'').split(':');
+    const R=()=>{ const r=regState(); r.type='all'; r.sel={}; r.view=null; return r; };
+    if(kind==='stage'){ const r=R(); r.stage=arg; setView('register'); return; }
+    if(kind==='nav'){ setView(arg); return; }
+    if(kind==='needsyou'){
+      /* The rows above are contracts waiting on this reader, so the link stays
+         in contracts. The bell owns the wider "everything owed to you". */
+      const ids=(decisionItems||[]).map(x=>x.cid).filter(Boolean);
+      if(window.regShowOnly && ids.length){ regShowOnly(ids,i18t('home_needs_decision')); return; }
+      const r=R(); r.stage='all'; setView('register'); return;
+    }
+    if(kind==='fails'){
+      /* COMPLIANCE OPENS THE ONES THAT FAIL, NOT ALL OF THEM. Pressing "92%"
+         and landing on every contract in the book tells the reader nothing;
+         the 8% with a finding is the whole point of the number. Same reading
+         the percentage was worked out from — contractRisk at or above 60. */
+      const ids=live.filter(c=>contractRisk(c)>=60).map(c=>c.id);
+      if(window.regShowOnly && ids.length){ regShowOnly(ids,KPI_META.compliance); return; }
+      const r=R(); r.stage='all'; r.sort='risk'; r.dir=-1; setView('register'); return;
+    }
+    if(kind==='copilot'){
+      /* THE LIST IS THE ONES IT HAS NOT READ — the exact set the tile counted,
+         handed over by id so the two can never disagree. */
+      const ids=live.filter(c=>!copilotRead(c)).map(c=>c.id);
+      if(window.regShowOnly && ids.length){ regShowOnly(ids,i18t('home_copilot_coverage')); return; }
+      const r=R(); r.stage='all'; setView('register'); return;
+    }
+  }));
   /* The banner's one button opens the same new-contract menu the command bar
      owns, rather than a second way of creating paper. */
   document.getElementById('hero-draft')?.addEventListener('click',e=>{
@@ -1048,89 +1136,11 @@ function renderDashboard(){
     e.preventDefault(); e.stopPropagation();
     if(typeof openAI==='function') openAI('What needs my attention in the next 90 days — renewals, expiries and anything overdue?');
   });
-  /* ---- PRESSING A STAGE SWAPS THE CARD'S CONTENTS AND NOTHING ELSE ----
-     Repainted in place rather than re-rendering the dashboard: the rest of the
-     page does not so much as reflow. The handlers sit on the three containers,
-     which survive a repaint, so they are attached once per render and never
-     stack. */
-  const hmPane=document.getElementById('hm-pipe-chart');
-  if(hmPane){
-    const hmSegs=document.getElementById('hm-segs');
-    const hmKey=document.getElementById('hm-key');
-    const hmSide=document.getElementById('hm-side');
-    const hmRow=document.getElementById('hm-ring-row');
-
-    const hmPaint=()=>{
-      const i=hmIdx();
-      hmSegs.innerHTML=hmArcsHtml();
-      hmKey.innerHTML=hmKeyHtml();
-      hmSide.innerHTML=hmSideHtml();
-      /* THE HEAD IS A SECOND TARGET since it left the list's box for the
-         card's heading line — fill both, or a stage press moves the list and
-         leaves the previous stage's name and count standing above it. */
-      const hmSideHead=document.getElementById('hm-side-head');
-      if(hmSideHead) hmSideHead.innerHTML=hmSideHeadHtml();
-      document.getElementById('hm-fig').textContent=hmCounts[i];
-      document.getElementById('hm-what').innerHTML=
-        esc(PIPE_DEF[i].title)+'<small>'+esc(i18t('home_pipe_share',{n:hmPct(i)}))+'</small>';
-    };
-
-    /* THE RING IS MEASURED FROM THE CARD, NEVER THE OTHER WAY ROUND. The card's
-       height belongs to .hm-main-row; the chart is sized to whatever it is
-       handed and can never push the card taller. */
-    const RING_FLOOR=84, RING_MIN=120, RING_MAX=200, KEY_MIN=250, PANE_PAD=20, PANE_GAP=18;
-    const hmFit=()=>{
-      if(!hmPane.getBoundingClientRect) return;      // not a measuring DOM
-      const r=hmPane.getBoundingClientRect();
-      if(!r.height||!r.width) return;                // a hidden pane has no width
-      /* Each step down drops the cheapest line left on the card — first the
-         hint, then the proportion bars — and only when the key genuinely does
-         not fit the height the card has. Measured, not a magic width. */
-      hmPane.classList.remove('hm-tight','hm-vtight');
-      const fits=()=>hmKey.scrollHeight<=r.height-PANE_PAD;
-      if(!fits()||r.height<300) hmPane.classList.add('hm-tight');
-      if(!fits()) hmPane.classList.add('hm-vtight');
-      const chrome=hmPane.classList.contains('hm-tight')?34:56;
-      const keyH=hmKey.scrollHeight;
-      const beside=Math.min(r.height-PANE_PAD-chrome, r.width-PANE_PAD-PANE_GAP-KEY_MIN);
-      const stacked=Math.min(r.height-PANE_PAD-chrome-keyH-10, r.width-PANE_PAD);
-      /* THE ROW IS THE DESIGN (owner-approved render, 20 Aug 2026 — this
-         REVERSES "stacking earns its place by leaving a bigger ring"): the
-         ring sits BESIDE its stage list wherever a usable ring fits there,
-         and stacking is only the fallback for a card too narrow to hold both.
-         A bigger ring stopped being a prize the day RING_MAX came down to the
-         render's modest size. Taking the stack on a short card is still what
-         pushes the key out through the bottom of the pane. */
-      const stack=beside<RING_MIN&&stacked>=RING_MIN;
-      hmRow.classList.toggle('hm-stack',stack);
-      /* RING_MIN is a preference, not a floor to clamp UP to — clamping a
-         negative budget up to 120px is how a chart grows larger than the space
-         it is being fitted into. */
-      hmPane.style.setProperty('--hm-ring',
-        Math.max(RING_FLOOR,Math.min(RING_MAX,Math.floor(stack?stacked:beside)))+'px');
-    };
-
-    const hmPick=k=>{
-      if(!k||k===_hmStage) return;
-      _hmStage=k; hmPaint(); hmFit();
-      const hint=document.getElementById('hm-hint'); if(hint) hint.hidden=true;
-    };
-    hmSegs.addEventListener('click',e=>{ const el=e.target.closest&&e.target.closest('.hm-seg'); if(el) hmPick(el.getAttribute('data-hm-stage')); });
-    hmSegs.addEventListener('keydown',e=>{ const el=e.target.closest&&e.target.closest('.hm-seg'); if(!el) return;
-      if(e.key==='Enter'||e.key===' '){ e.preventDefault(); hmPick(el.getAttribute('data-hm-stage')); } });
-    hmKey.addEventListener('click',e=>{ const el=e.target.closest&&e.target.closest('.hm-leg'); if(el) hmPick(el.getAttribute('data-hm-stage')); });
-    /* The list is rebuilt on every press, so its rows are reached by
-       delegation from the pane that survives — not bound per row. */
-    hmSide.addEventListener('click',e=>{
-      const t=e.target.closest&&e.target.closest('[data-sel],[data-stage]');
-      if(!t) return;
-      if(t.hasAttribute('data-sel')) selectContract(t.getAttribute('data-sel'));
-      else { const Rg=regState(); Rg.stage=t.getAttribute('data-stage'); Rg.type='all'; Rg.sel={}; setView('register'); }
-    });
-
-    hmFit();
-    if(typeof ResizeObserver==='function') new ResizeObserver(hmFit).observe(hmPane);
-  }
+  /* THE RING'S OWN WIRING IS RETIRED WITH IT (24 Aug 2026). It repainted the
+     donut, the key and the stage list in place on a press, and measured the
+     ring against the card with a ResizeObserver. The lifecycle tile needs none
+     of it: its three blocks are ordinary doors and go through the one
+     [data-hm-go] handler above like every other tile on the page. */
 
   document.querySelectorAll('[data-sel]').forEach(el=>el.addEventListener('click',()=>selectContract(el.getAttribute('data-sel'))));
   document.querySelectorAll('[data-act-decide]').forEach(el=>el.addEventListener('click',()=>openWorkspace(el.getAttribute('data-act-decide'))));

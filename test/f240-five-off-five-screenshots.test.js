@@ -166,8 +166,17 @@ describe('f240 (4) — your own signature is at the top', () => {
     assert.equal(kinds[1], 'cp-ready', 'they have finished; the next move is one press');
   });
 
-  test('and a date that moved by itself is last', () => {
-    assert.equal(kinds[kinds.length - 1], 'renewal');
+  /* REVERSED IN PLACE 24 Aug 2026. The claim was that a date which moved by
+     itself sorts LAST, and it was pinned to the literal end of the list. A
+     kind has since joined below it — 'email-off', the workspace's own standing
+     fault, which is not work with anybody's name on it and ranks under
+     everything that is. The RELATION is what the claim was always about, so it
+     is written as one and the next kind added costs no test edit. */
+  test('and a date that moved by itself is last of the work rows', () => {
+    const work = kinds.filter(k => k !== 'email-off');
+    assert.equal(work[work.length - 1], 'renewal');
+    assert.equal(kinds[kinds.length - 1], 'email-off',
+      'a setting nobody is blocked on ranks under every piece of work');
     assert.ok(kinds.indexOf('review-out') > kinds.indexOf('review-mine'),
       'what you owe outranks what you are waiting on');
   });

@@ -74,8 +74,12 @@ describe('F3 — the dashboard only ever contains scoped contracts', () => {
     const html = renderWith(page.rows, { shareOverview: overview });
     assert.deepEqual(mentionsFolderB(html), []);
     assert.ok(html.includes('kpi-grid'));   // caption retired with the SAP treatment
-    assert.ok(html.includes('Active contract lifecycle pipeline'));
-    assert.ok(html.includes('Decisions due'));
+    /* REVERSED IN PLACE 24 Aug 2026. The claim is unchanged — every panel on
+       this page is built from the SCOPED list — only the panels moved: the
+       pipeline card became the Contract lifecycle tile and Decisions due
+       became the "Needs your decision" rows. */
+    assert.ok(html.includes('Contract lifecycle'));
+    assert.ok(html.includes('Needs your decision'));
   });
 });
 
@@ -92,6 +96,11 @@ describe('F3 — money KPIs are absent, not greyed out, without the right', () =
     const html = renderWith(sample(), { money: false, kpis: ['under_mgmt', 'active_value'] });
     assert.ok(!html.includes('Active value'), 'the Active value card must not be rendered');
     assert.ok(html.includes('Active contracts'), 'the non-money cards are still there');
+    /* AND THE MONEY IS GONE FROM THE FIXED ROW TOO. The Portfolio row is not
+       the reader's to choose, so a right they do not have has to be answered
+       there as well: the lifecycle tile prints the active value and must not
+       print a figure to somebody who may not see one. */
+    assert.ok(!/KES/.test(html), 'no money figure anywhere on the page');
   });
 
   test('an admin (or anyone with the right) still gets "Active value"', () => {
@@ -124,11 +133,16 @@ describe('F3 — money KPIs are absent, not greyed out, without the right', () =
     assert.ok(!html.includes('48000000') && !html.includes('36000000'), 'a raw amount survived');
   });
 
-  test('the pipeline columns show document counts, never stage totals', () => {
+  /* REVERSED IN PLACE 24 Aug 2026: the three scrolling pipeline columns became
+     the Contract lifecycle tile's three blocks. What the claim was really
+     about survives and is the half that matters — a stage block states a COUNT
+     and never a money figure, so a reader without the right cannot read the
+     book's value off the stage bars. */
+  test('the lifecycle blocks show counts, never money', () => {
     const without = renderWith(sample(), { money: false });
-    assert.match(without, /1 doc</, 'a pipeline column should count documents');
-    assert.ok(!/KES/.test(without.slice(without.indexOf('lifecycle pipeline'))),
-      'a pipeline column must not print a money figure');
+    assert.ok(without.includes('hm-stg'), 'the tile draws its three stage blocks');
+    const tile = without.slice(without.indexOf('hm-life'));
+    assert.ok(!/KES/.test(tile), 'a stage block must not print a money figure');
   });
 });
 

@@ -171,21 +171,34 @@ const check = (name, pass, detail) => {
       return { rights, navRight: Math.round(nav.right) };
     });
 
-    await page.setViewportSize({ width: 1440, height: 900 });
+    /* THE DRAWER IS FOUND BY ASKING WHERE THE LINE IS, not by naming a width.
+       This measured at 1440, which was below the line when it was written and
+       is above it since the line moved to 1280 (24 Aug 2026) — so the press
+       COLLAPSED the open column to the 64px rail, where counts are hidden, and
+       the check reported zero badges. The claim is about the FLOATING drawer,
+       so the width has to be one where the sidebar floats. */
+    const LINE = await page.evaluate(() => window.NAV_DRAWER_W);
+    await page.setViewportSize({ width: LINE - 160, height: 900 });
     await page.waitForTimeout(600);
     await page.click('#cmd-rail');            // the drawer's own door
     await page.waitForTimeout(600);
     let b = await readBadges();
     let spread = b.rights.length ? Math.max(...b.rights) - Math.min(...b.rights) : -1;
-    check('1440 drawer: at least four counts are on screen to measure', b.rights.length >= 4, b.rights.length);
-    check('1440 drawer: every count shares ONE right edge', spread >= 0 && spread <= 1, `spread ${spread}px`);
-    check('1440 drawer: and that edge is the drawer\'s own right padding, not mid-air',
+    check('drawer: at least four counts are on screen to measure', b.rights.length >= 4, b.rights.length);
+    check('drawer: every count shares ONE right edge', spread >= 0 && spread <= 1, `spread ${spread}px`);
+    check('drawer: and that edge is the drawer\'s own right padding, not mid-air',
       b.rights.length && (b.navRight - Math.max(...b.rights)) <= 40,
       `${b.navRight - Math.max(...b.rights)}px in from the drawer's edge`);
     await page.screenshot({ path: path.join(OUT, '4-drawer-counts-aligned.png') });
 
     await page.setViewportSize({ width: 1920, height: 1080 });
     await page.waitForTimeout(800);
+    /* Above the line the column is open by default; the press above collapsed
+       it, so put it back before measuring the column's own straight line. */
+    if (await page.evaluate(() => document.getElementById('app-shell').classList.contains('rail'))) {
+      await page.click('#cmd-rail');
+      await page.waitForTimeout(600);
+    }
     b = await readBadges();
     spread = b.rights.length ? Math.max(...b.rights) - Math.min(...b.rights) : -1;
     check('1920 column: the same straight line, as it always was', spread >= 0 && spread <= 1, `spread ${spread}px`);

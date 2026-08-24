@@ -51,6 +51,18 @@ const DIR = __dirname;
  * keep earning its place or it becomes the furniture. */
 const KNOWN_RED = {
   /* --- stale after a deliberate change: the product moved, the file did not --- */
+  'white-band-and-tabs-verify.js':
+    '34 of 36 PASS. The two that do not are 5d/5e, and they are NOT the home ' +
+    'page rebuild of 24 Aug — MEASURED on a clean tree before that work and ' +
+    'they fail there identically. The register list titles compute a 20px ' +
+    'line box against the reading switch\'s 19.6px, and the claim compares ' +
+    'the two property for property. The cause is two decisions made a day ' +
+    'apart: on 22 Aug those titles were measured byte-identical to that ' +
+    'control, and on 23 Aug the register took --row-line-1 as a STATED line ' +
+    'box so its rows could hit 45px. WHAT IT NEEDS is a ruling on which one ' +
+    'gives — the row rhythm or the shared type — and that is a density ' +
+    'decision, not a drive-by fix. Everything else in the file, including the ' +
+    'white column and the reversed count rules, is green.',
   'six-round-audit.js':
     'ROUNDS 1-6 NOW PASS; the ENDGAME does not. Re-pointed 21 Aug 2026: the ' +
     'clause tool row it filed through (pill -> panel -> plus now), the ask tag ' +

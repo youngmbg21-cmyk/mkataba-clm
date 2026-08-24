@@ -945,6 +945,10 @@ async function saveContract(c){
   // derived reading written back into the record would be stale the moment the
   // wording moved, and then there are two answers to one question.
   delete payload._brief;
+  /* _hasBrief is the LIST's twin of the above: a boolean saying a memo exists,
+     so the home page's coverage tile can count without the memo itself riding
+     every row. Same rule — transport, never record. */
+  delete payload._hasBrief;
   delete payload._renewalAdvice;
   delete payload._signedAt; delete payload._lastAuditAt;
   if(payload.upload && payload.upload.fileId){ payload.upload={...payload.upload, dataUrl:undefined}; }

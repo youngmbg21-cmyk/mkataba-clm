@@ -429,19 +429,20 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       `list ${onList.list} · held ${onList.held} · activeId ${onList.active}`);
     await page.screenshot({ path: path.join(OUT, '09-list-before-theme.png') });
 
+    /* RE-POINTED 24 Aug 2026, not re-scoped: the claim is that a REPAINT is not
+       a navigation — changing the workspace's appearance while standing on the
+       list must not throw the reader into some contract's workbench. What
+       changed is the control. The three-row menu became two axes, so the press
+       that repaints is now the brand swatch, which is the nearest thing to the
+       colour change this check has always made. */
     const themed = await page.evaluate(async () => {
-      const btn = document.getElementById('theme-btn');
-      if (!btn) return { pressed: false };
       const was = document.documentElement.getAttribute('data-brand') || 'green';
-      btn.click();
-      await new Promise(r => setTimeout(r, 200));
-      const rows = [...document.querySelectorAll('#theme-menu [data-theme-pick]')];
-      const other = rows.find(r => r.getAttribute('data-theme-pick') !== was) || rows[1] || rows[0];
-      if (!other) return { pressed: false, rows: rows.length };
-      const picked = other.getAttribute('data-theme-pick');
-      other.click();
+      const other = was === 'navy' ? 'green' : 'navy';
+      const sw = document.getElementById('brand-' + other);
+      if (!sw) return { pressed: false };
+      sw.click();
       await new Promise(r => setTimeout(r, 700));
-      return { pressed: true, was, picked,
+      return { pressed: true, was, picked: other,
         brand: document.documentElement.getAttribute('data-brand') || 'green',
         dark: document.documentElement.classList.contains('dark') };
     });

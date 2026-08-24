@@ -51,7 +51,8 @@ const check = (name, ok, detail) => {
    resolve to. Named rather than swept, so a button that quietly loses its icon
    fails here instead of shrinking the sweep by one. */
 const SHELL_ICONS = [
-  ['#brand-mark',                'i-file'],
+  /* #brand-mark is RETIRED with the 44px shell bar (24 Aug 2026): a 40px tile
+     does not fit, and the wordmark stays as live text. */
   ['.cmd-search',                'i-search'],
   ['#cmd-ai',                    'i-spark'],
   ['#hdr-notify',                'i-bell'],
@@ -231,29 +232,40 @@ const SHELL_ICONS = [
     const hdr = await page.$('header');
     if (hdr) await hdr.screenshot({ path: path.join(OUT, '03-topbar.png') });
 
-    /* ---- 3. THE PIPELINE HEAD LOST ITS LINK AND KEPT ITS WAYS OUT ---- */
-    console.log('\n--- 3. one fewer door, and nothing stranded ---');
+    /* ---- 3. THE LIFECYCLE TILE, AND ITS THREE DOORS ----
+       REVERSED IN PLACE 24 Aug 2026. This block measured the pipeline card's
+       head — a heading, a retired "View full register" link and the stage
+       buttons beside it. The card is gone; the three blocks of the Contract
+       lifecycle tile are what carries the stages now, and the claim that
+       matters is unchanged: the register is still reachable from this tile,
+       and pressing a stage really goes there rather than merely carrying an
+       attribute. */
+    console.log('\n--- 3. the lifecycle tile, and its three doors ---');
     const head = await page.evaluate(() => {
-      const card = document.querySelector('.hm-pipe-card');
-      if (!card) return { err: 'no pipeline card' };
+      const tile = document.querySelector('.hm-tile.is-life');
+      if (!tile) return { err: 'no lifecycle tile' };
       return {
-        link: !!card.querySelector('[data-open-register]'),
-        text: /view full register|visa hela registret/i.test(card.textContent),
-        stages: card.querySelectorAll('[data-stage]').length,
-        heading: (card.querySelector('h4') || {}).textContent || '',
+        link: !!tile.querySelector('[data-open-register]'),
+        text: /view full register|visa hela registret/i.test(tile.textContent),
+        stages: tile.querySelectorAll('.hm-stg').length,
+        live: tile.querySelectorAll('.hm-stg[data-hm-go]').length,
+        heading: (tile.querySelector('.hm-t') || {}).textContent || '',
       };
     });
-    check('the pipeline card exists', !head.err, head.err);
-    check('the "View full register" button is gone', head.link === false);
+    check('the lifecycle tile exists', !head.err, head.err);
+    check('the "View full register" button is still gone', head.link === false);
     check('and its words are gone with it', head.text === false);
-    check('the heading is still there', /pipeline/i.test(head.heading), head.heading);
-    check('the register is still reachable from the card', head.stages > 0,
-      `${head.stages} stage doors`);
+    check('the heading names the thing', /lifecycle|livscykel/i.test(head.heading), head.heading);
+    check('all three stages are drawn', head.stages === 3, `${head.stages} blocks`);
+    check('the register is still reachable from the tile', head.live > 0,
+      `${head.live} of ${head.stages} are doors`);
 
     /* It has to actually GO there, not merely carry the attribute. */
-    await page.evaluate(() => document.querySelector('.hm-pipe-card [data-stage]').click());
+    await page.evaluate(() => document.querySelector('.hm-stg[data-hm-go]').click());
     await page.waitForTimeout(900);
     const landed = await page.evaluate(() => ({
+      view: window.state && window.state.view,
+      rows: document.querySelectorAll('[data-row]').length,
       view: window.state && window.state.view,
       rows: document.querySelectorAll('[data-row]').length,
     }));

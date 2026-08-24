@@ -94,7 +94,12 @@ const CENSUS = () => {
      had gained two colours, and would make the green sample look like a teal
      the sweep missed while you were on navy. Excluded in every pass, so both
      sides of the comparison are the platform itself. */
-  const CONTROL = el => el.closest && el.closest('#theme-menu, #theme-btn');
+  /* WIDENED 24 Aug 2026 for the control that replaced the menu: two brand
+     swatches, which are SAMPLES of the two workspaces exactly as the menu's
+     rows were. The reasoning above is unchanged and is why they have to be
+     here — uncounted, the green sample reads as a teal the sweep missed while
+     the reader is wearing navy, which is what it reported on all ten screens. */
+  const CONTROL = el => el.closest && el.closest('#theme-menu, #theme-btn, [data-brand-pick]');
   for (const el of document.querySelectorAll('*')){
     if (CONTROL(el)) continue;
     const s = getComputedStyle(el);

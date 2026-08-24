@@ -2416,6 +2416,23 @@ app.get('/api/contracts', auth, (req, res) => {
   const rows = db.prepare(`SELECT json, version FROM contracts ${w} ORDER BY seq DESC LIMIT @limit OFFSET @offset`)
     .all({ ...args, limit, offset })
     .map(r => { const c = JSON.parse(r.json); c._v = r.version; return HEAVY(money ? c : maskContractValues(c, moneyKeys)); });
+  /* ---- WHETHER COPILOT HAS READ THIS ONE (24 Aug 2026) ----
+     The home page's coverage tile counts the live agreements Copilot has been
+     through. Two of the three readings — a playbook pass and a risk scan —
+     live on the record and survive HEAVY by construction. THE BRIEF DOES NOT:
+     it is transport off its own table and is attached only by the single
+     contract's GET, so a count built on the list alone would be right in local
+     mode and short in server mode. That is the recorded defect class — the
+     dashboard's "raised by me" and Reports' cycle time both shipped with it.
+
+     A BOOLEAN, NOT THE BRIEF. The memo itself is a document and has no
+     business riding a list; what the tile needs is whether one exists. ONE
+     query for the whole page rather than one per row — the N+1 this file
+     already refuses on the spend ledger. */
+  if (rows.length) {
+    const have = new Set(db.prepare('SELECT contract_id FROM briefs').all().map(x => x.contract_id));
+    rows.forEach(c => { if (have.has(c.id)) c._hasBrief = true; });
+  }
   res.json({ total, offset, limit, rows });
 });
 

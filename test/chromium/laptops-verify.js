@@ -147,28 +147,37 @@ const PROBE = () => {
       cal && cal.hidden === 0 && !cal.scrolls,
       cal ? `${cal.hidden} cells past the edge, scrolls=${cal.scrolls}` : 'no grid');
 
-    /* NO DEAD BAND UNDER THE DASHBOARD.
-       Reported from both a ThinkPad and a larger laptop: the page stopped
-       short and left an empty strip at the bottom, because the dashboard was
-       only ever as tall as its content while the pipeline row never grew.
-       Measured before the fix: 31px of empty page at 1280x590, 162px at
-       1600x770 and 306px at 1920x950. Asserted in both directions — it must
-       not fall short of the window, and it must not run past it either. */
+    /* REVERSED IN PLACE, 24 Aug 2026 — THE DASHBOARD IS A DOCUMENT NOW.
+       The old claim was that the page filled its window EXACTLY: no dead band
+       under it and no overflow past it. That was right about the page it was
+       written for — one pinned to --view-h with a pipeline row that stretched
+       to whatever was left. The enterprise design's home page is a plain
+       column of tiles and rows: it starts at the top, it is as tall as it is,
+       and a window with more room than content simply has room to spare. The
+       reference's own launchpad draws exactly that.
+
+       WHAT THE CLAIM WAS REALLY GUARDING SURVIVES, and it is the half that
+       matters: nothing may be CLIPPED, and the page must never scroll
+       SIDEWAYS. A vertical scroll on a short laptop is the page working. */
     await page.evaluate(x => window.setView(x), 'dashboard');
     await page.waitForTimeout(500);
     const fill = await page.evaluate(() => {
       const sc = document.getElementById('content-scroll');
       const pg = document.querySelector('.hm-page');
       if (!sc || !pg) return null;
+      const last = document.querySelector('.hm-rows, .hm-empty');
       return {
-        gap: Math.round(sc.getBoundingClientRect().bottom - pg.getBoundingClientRect().bottom),
-        overflows: sc.scrollHeight > sc.clientHeight + 1,
+        sideways: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+        /* The last thing on the page has to be reachable — inside the
+           scrollable extent, not cut off below it. */
+        reachable: !last || Math.round(last.getBoundingClientRect().bottom)
+          <= Math.round(sc.getBoundingClientRect().top) + sc.scrollHeight + 2,
+        tiles: document.querySelectorAll('.hm-tile').length,
       };
     });
-    check(`${L.name}: the dashboard fills its window — no dead band, no overflow`,
-      fill && Math.abs(fill.gap) <= 4 && !fill.overflows,
-      fill ? `gap ${fill.gap}px, overflows=${fill.overflows}` : 'no dashboard');
-
+    check(`${L.name}: the dashboard never scrolls sideways and nothing is cut off`,
+      fill && !fill.sideways && fill.reachable && fill.tiles === 8,
+      fill ? `sideways ${fill.sideways} · reachable ${fill.reachable} · ${fill.tiles} tiles` : 'no page');
     /* And the change list has room for a change. */
     await page.evaluate(() => window.openWorkspace(window.state.contracts[0].id));
     await page.waitForTimeout(400);

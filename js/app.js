@@ -220,7 +220,34 @@ const PAGE_OWNS_HEADER = ['dashboard', 'redline', 'workspace', 'templates', 'cal
    line exactly as before — a header that hid the page's own description to save
    a line would be trading the wrong thing. */
 const PAGE_HEAD_INLINE_SUB = ['intel'];
+/* ---- THE SHELL BAR NAMES THE PAGE (24 Aug 2026) ----
+   The 44px bar carries the page's own name where the brand mark and its
+   caption used to sit. It is BORROWED from commandMeta — the same reading the
+   page header prints — so the bar and the heading under it can never name the
+   same screen differently, and it turns over with the reader's language for
+   free.
+
+   THE DASHBOARD IS THE ONE THAT NAMES ITSELF. Its heading is retired with the
+   banner it lived in, so the phrase that banner carried moves here rather than
+   being lost: home_clm_title, which the dictionary already renders in both
+   languages. Every other view falls through to its own title. */
+function shellTitleFor(view){
+  if(view==='dashboard') return i18t('home_clm_title');
+  const [t]=commandMeta(view);
+  return t||'';
+}
+function paintShellTitle(view){
+  const el=document.getElementById('shell-title'); if(!el) return;
+  el.textContent=shellTitleFor(view);
+}
 function renderPageHeader(view){
+  paintShellTitle(view);
+  /* THE SWATCHES ASK WHO IS SIGNED IN, AND AT BOOT NOBODY IS. wireThemeMenu
+     runs once, before the sign-in wall, so brandPickerVisible answered false
+     for everybody and an admin never saw the pair. Repainted here because this
+     runs on every view change, which is the first thing that happens after a
+     successful sign-in. */
+  paintAppearance();
   const host=document.getElementById('page-head'); if(!host) return;
   if(PAGE_OWNS_HEADER.includes(view)){ host.innerHTML=''; host.style.padding='0'; syncViewHeight(); return; }
   const [t,sub]=commandMeta(view);
@@ -899,6 +926,16 @@ const ALERT_KINDS = [
      neither is a thing this reader can clear this minute. */
   { k:'review-out',  tone:'gray',  ic:'&#8987;'  },
   { k:'renewal',     tone:'gray',  ic:'&#128197;'},
+  /* ---- THE WORKSPACE'S OWN FAULTS SORT LAST (24 Aug 2026) ----
+     "Email isn't set up" was a permanent amber strip across the top of the
+     home page. It is a standing condition rather than something that just
+     happened, and the panel is the shelf this product keeps for one — the same
+     argument that moved the stuck-answer report off a toast.
+
+     LAST, DELIBERATELY. Every row above it is a piece of work with somebody's
+     name on it; this is a setting nobody is blocked on this minute. It ranks
+     below them so it can never push a signature turn down the list. */
+  { k:'email-off',   tone:'amber', ic:'&#9993;' },
 ];
 /* Where a kind ranks. An unregistered kind sorts last rather than first, so a
    row nobody has ranked can never displace one somebody did. */
@@ -1035,6 +1072,22 @@ function buildAlerts(){
         ()=>{ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} });
     });
   }
+  /* ---- EMAIL ISN'T SET UP (owner-ruled 24 Aug 2026: it moves here) ----
+     ADMIN ONLY, and that is the whole of why it is not simply the old banner
+     re-parented: an Editor could not act on it, so on their screen it was a
+     permanent amber strip about somebody else's job. An admin can fix it in
+     one press, and the row is that press.
+
+     ASKED THE SAME WAY THE BANNER ASKED IT — emailOff(), the one reading —
+     so the panel and the settings page can never disagree about whether mail
+     is configured. */
+  try{
+    if(typeof emailOff==='function' && emailOff()
+       && typeof isAdmin==='function' && isAdmin()){
+      push('email-off',null,i18t('home_email_not_setup'),
+        ()=>{ if(window.openSettingsAt) openSettingsAt('build','outbox'); else setView('team'); });
+    }
+  }catch(e){}
   /* THE ORDER IS APPLIED ONCE, HERE — see ALERT_KINDS. Sorted at the end rather
      than by rearranging the sweeps above, because the sweeps are grouped by
      what they have to READ (one pass over the book per question, several of
@@ -1136,8 +1189,11 @@ function applyRail(){
      None of this is a second opinion about the rail — the rail is still the
      reader's own remembered choice and comes straight back when the window
      does. */
+  /* THE OPEN COLUMN READS THE TOKEN, NOT A NUMBER TYPED HERE. It was 256 in
+     this one line and 240 in the shell's own grid, which is two answers to one
+     question waiting to disagree; --nav-w is the single one. */
   if(shell.style) shell.style.gridTemplateColumns=
-    (navDrawerActive()?'64px':(on?'64px':'256px'))+' minmax(0,1fr)';
+    (navDrawerActive()?'64px':(on?'64px':'var(--nav-w,240px)'))+' minmax(0,1fr)';
   paintRailToggle();
   /* THE PAGE HAS TO BE TOLD. The negotiation panel writes its own column
      widths from a measurement (rlLayoutResizer) — it solves how much the round's
@@ -1204,10 +1260,22 @@ function toggleRail(){
    while the page gets the window minus the sidebar. So opening the nav shrank
    the page by a fifth and the layout carried on as though it had not.
 
-   THE NUMBER IS DERIVED, NOT PICKED. The dashboard's two cards need 1200px of
-   page width to stand side by side; 1200 + 256 = 1456, so a window narrower
-   than that cannot afford an expanded sidebar. Rounded up to 1500 so a 1440
-   laptop — one of the commonest there is — lands on the right side of it.
+   THE NUMBER IS DERIVED, NOT PICKED, AND THE DERIVATION MOVED (24 Aug 2026).
+   It was 1500: the dashboard's two side-by-side cards needed 1200px of page,
+   and 1200 + a 256px column is 1456, rounded up so a 1440 laptop landed on the
+   right side of it.
+
+   BOTH HALVES OF THAT SUM CHANGED. The column is 240 now, and the dashboard is
+   no longer two wide cards — it is four tiles across, which the enterprise
+   design itself draws in 1040px of page (its whole console is 1280 wide with a
+   240 column). So 1040 + 240 = 1280, and the line goes there: a 1280 laptop
+   gets the open column and exactly the page width the design was drawn at, and
+   a 1440 one — which is what this was rounded up for in the first place — gets
+   it with room to spare rather than being handed a 64px rail.
+
+   NOTHING BELOW THE LINE CHANGED. The rail, the floating layer, the untouched
+   stored preference and the scrim all behave exactly as they did; only where
+   the line sits moved.
 
    Below it the sidebar is the 64px rail, always, and opening it floats the
    labels OVER the page: the page never moves, so it is safe to have it
@@ -1216,7 +1284,7 @@ function toggleRail(){
    with the room asked for. Their stored preference is never overwritten by
    the width; it simply is not honoured below the line, and comes straight back
    above it. */
-const NAV_DRAWER_W = 1500;
+const NAV_DRAWER_W = 1280;
 function navDrawerActive(){
   return typeof innerWidth === 'number' ? innerWidth < NAV_DRAWER_W : false;
 }
@@ -1459,83 +1527,149 @@ const THEME_KEY = 'hati-theme';
 /* 'light' and 'dark' are what the old two-position switch wrote, and they are
    still in people's browsers. Read them rather than resetting somebody who has
    been on dark for a month. */
+/* THE WHOLE-THEME NAME IS DERIVED FROM THE PAIR, never stored beside it. The
+   phone's More sheet prints this and presses toggleTheme, so a second stored
+   copy is how the two shells come to disagree about which theme is on. The
+   legacy key answers only while neither half of the pair has been written. */
 function themeNow(){
+  const b=lsGet(BRAND_KEY), d=lsGet(DARK_KEY);
+  if(b!==null || d!==null) return d==='1' ? 'dark' : (b==='navy' ? 'navy' : 'green');
   let v=''; try{ v=localStorage.getItem(THEME_KEY)||''; }catch(e){}
   if(v==='light') v='green';
   return THEMES.some(t=>t.k===v) ? v : 'green';
 }
+/* applyTheme still answers to a WHOLE-THEME name because boot and several
+   callers pass one. It writes through the pair below rather than keeping its
+   own reading, so there is one painter and it cannot drift. */
 function applyTheme(mode){
-  const root=document.documentElement;
-  if(!root||!root.classList) return;
-  const t=THEMES.find(x=>x.k===mode)
-    || (mode==='dark' ? THEMES[2] : THEMES[0]);   // back-compat: applyTheme('dark')
-  root.classList.toggle('dark', t.dark);
-  if(t.brand) root.setAttribute('data-brand', t.brand);
-  else root.removeAttribute('data-brand');
+  const t=THEMES.find(x=>x.k===mode);
+  if(t){ lsSet(BRAND_KEY, t.brand||'green'); lsSet(DARK_KEY, t.dark?'1':'0'); }
+  applyAppearance();
 }
 function setTheme(mode){
   const t=THEMES.find(x=>x.k===mode); if(!t) return;
-  applyTheme(t.k);
+  /* The legacy key is still written so a browser that downgrades, or any
+     reader that has not been repointed, finds what it expects. */
   try{ localStorage.setItem(THEME_KEY, t.k); }catch(e){}
-  /* Everything on screen was rendered against the old theme — inline-styled
-     chips and render-time SVG colours don't respond to a class flip, so the
-     view is repainted, same as the jurisdiction switch below. */
-  if(window.setView && state && state.view) setView(state.view);
-  renderThemeMenu();
-  /* THE PHONE IS A SECOND SHELL AND setView DOES NOT DRAW IT. Its header
-     carries a swatch of the current theme, which is rendered markup — the
-     colours cascade to it on their own, the swatch does not. Without this the
-     phone goes navy while its own control still shows green, which is the
-     control disagreeing with the screen it sits on. Guarded: the phone shell
-     is not loaded on every page. */
-  if(window.mAppActive && window.mRender && mAppActive()) mRender();
+  lsSet(BRAND_KEY, t.brand||'green');
+  lsSet(DARK_KEY, t.dark?'1':'0');
+  applyAppearance();
+  repaintForAppearance();
 }
 /* Kept because the phone shell and older callers press it. It steps through
    the same three rather than flipping a switch that no longer exists. */
 function toggleTheme(){
-  const i=THEMES.findIndex(t=>t.k===themeNow());
-  setTheme(THEMES[(i+1)%THEMES.length].k);
+  const cur = darkNow() ? 'dark' : brandNow();
+  const i=THEMES.findIndex(t=>t.k===cur);
+  setTheme(THEMES[(i<0?0:i+1)%THEMES.length].k);
 }
 /* The swatch on each row is drawn from the theme's OWN values rather than from
    a list of colours kept here — a second list is a second thing to update, and
    the day it disagrees with the stylesheet the menu starts lying. */
-const THEME_SWATCH = {
-  green:'linear-gradient(135deg,#0d9488,#06b6d4)',
-  navy:'linear-gradient(135deg,#24488f,#3f7ac4)',
-  dark:'linear-gradient(135deg,#1e293b,#0f172a)',
-};
-function renderThemeMenu(){
-  const menu=document.getElementById('theme-menu');
-  const face=document.getElementById('theme-swatch');
-  const cur=themeNow();
-  if(face) face.style.background=THEME_SWATCH[cur]||'';
-  const btn=document.getElementById('theme-btn');
-  if(btn) btn.title='Theme — '+((THEMES.find(t=>t.k===cur)||{}).label||'');
-  if(!menu) return;
-  menu.innerHTML=`<div class="mgroup">${i18t('ap_theme')}</div>`+THEMES.map(t=>`
-    <button type="button" data-theme-pick="${t.k}" role="menuitemradio" aria-checked="${t.k===cur}">
-      <span class="tsw" style="background:${THEME_SWATCH[t.k]}"></span>
-      <span>${t.label}<span class="tnote">${t.note}</span></span>
-      ${t.k===cur?'<span class="ttick" aria-hidden="true">&#10003;</span>':''}
-    </button>`).join('');
+/* ---- BRAND AND THEME ARE TWO AXES, NOT THREE STATES (24 Aug 2026) ----
+   The old control was a menu of three mutually-exclusive themes — Green, Navy,
+   Dark — so a reader on Navy who wanted night lost their brand, and there was
+   no way back to a navy workspace after dark. The enterprise design separates
+   them and it is the better model: the BRAND belongs to the workspace (green
+   or navy), the THEME belongs to the person (light or dark), and four
+   combinations replace three states.
+
+   NOTHING STORED IN ANYBODY'S BROWSER MOVES. The two readings below fall back
+   to the single legacy key, so 'navy' still opens a navy workspace and 'dark'
+   still opens a dark one; the pair is written the first time either is
+   pressed. setTheme survives with its three keys because the phone shell, the
+   settings page and several tests press it by name — it maps onto the pair
+   rather than keeping a second model alive beside it. */
+const BRAND_KEY='hati-brand', DARK_KEY='hati-dark';
+const BRANDS=['green','navy'];
+function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+function brandNow(){
+  const v=lsGet(BRAND_KEY);
+  if(BRANDS.includes(v)) return v;
+  return themeNow()==='navy' ? 'navy' : 'green';     /* legacy key, read never written */
+}
+function darkNow(){
+  const v=lsGet(DARK_KEY);
+  if(v==='1') return true;
+  if(v==='0') return false;
+  return themeNow()==='dark';                        /* legacy key */
+}
+/* THE ONE PAINTER. Both setters and the boot path call it, so the attribute
+   and the class can never be set from two different readings. */
+function applyAppearance(){
+  const root=document.documentElement;
+  if(!root||!root.classList) return;
+  root.classList.toggle('dark', darkNow());
+  if(brandNow()==='navy') root.setAttribute('data-brand','navy');
+  else root.removeAttribute('data-brand');
+}
+/* A repaint, not a re-render of one control: inline-styled chips and
+   render-time SVG colours do not answer a class flip, which is why every
+   appearance change has always redrawn the view. */
+function repaintForAppearance(){
+  paintAppearance();
+  if(window.setView && state && state.view) setView(state.view);
+  if(window.mAppActive && window.mRender && mAppActive()) mRender();
+}
+function setBrand(b){
+  if(!BRANDS.includes(b)) return;
+  lsSet(BRAND_KEY,b); applyAppearance(); repaintForAppearance();
+}
+function setDark(on){
+  lsSet(DARK_KEY, on?'1':'0'); applyAppearance(); repaintForAppearance();
+}
+function toggleDark(){ setDark(!darkNow()); }
+/* THE SWATCHES ARE ADMIN-ONLY (owner-ruled 24 Aug 2026). Light/dark and
+   language change what this reader sees; the brand changes what everyone in
+   the company sees. Asked of the role, and drawn rather than merely dimmed —
+   a control whose only outcome is a refusal is furniture. */
+function brandPickerVisible(){
+  try{ const u=window.currentUser && currentUser(); return !!(u && u.role==='admin'); }
+  catch(e){ return false; }
+}
+/* EVERY DOM CALL BEYOND THE BASICS IS GUARDED, which is this codebase's own
+   standing rule and was paid for once already by a toast that took an act down
+   with it. Test stages stand a minimal element in for a real one: it has a
+   textContent and nothing else, so a bare `el.dataset` threw and took the
+   whole shell's wiring — and therefore five unrelated views — with it. */
+function paintAppearance(){
+  const dark=darkNow(), brand=brandNow(), show=brandPickerVisible();
+  BRANDS.forEach(b=>{
+    const el=document.getElementById('brand-'+b);
+    if(!el) return;
+    try{
+      el.hidden=!show;
+      if(el.setAttribute) el.setAttribute('aria-pressed', String(b===brand));
+      el.title=(b==='navy'?i18t('ap_theme_navy'):i18t('ap_theme_green'));
+    }catch(e){}
+  });
+  const t=document.getElementById('theme-btn');
+  if(t) try{
+    t.textContent=dark?i18t('ap_theme_dark'):i18t('ap_theme_light');
+    if(t.setAttribute) t.setAttribute('aria-pressed', String(dark));
+    t.title=i18t('sh_theme')+' — '+t.textContent;
+  }catch(e){}
+}
+/* Bound once per element, because this runs from wireShell AND from every
+   repaint that calls renderThemeMenu — a second binding toggles the theme
+   twice on one press, which lands back where it started and reads as a dead
+   control. */
+function bindOnce(el,fn){
+  if(!el||!el.addEventListener) return;
+  if(el.dataset){ if(el.dataset.apBound) return; el.dataset.apBound='1'; }
+  else { if(el._apBound) return; el._apBound=1; }
+  el.addEventListener('click',fn);
 }
 function wireThemeMenu(){
-  const btn=document.getElementById('theme-btn'), menu=document.getElementById('theme-menu');
-  renderThemeMenu();
-  if(!btn||!menu) return;
-  const shut=()=>{ menu.classList.add('hidden'); btn.setAttribute('aria-expanded','false'); };
-  btn.addEventListener('click',e=>{ e.stopPropagation();
-    const open=menu.classList.toggle('hidden');
-    btn.setAttribute('aria-expanded',open?'false':'true'); });
-  /* Delegated, because renderThemeMenu rewrites these rows on every change —
-     a listener bound to a row would go with the row it was bound to. */
-  menu.addEventListener('click',e=>{
-    const b=e.target.closest?.('[data-theme-pick]');
-    if(b) setTheme(b.getAttribute('data-theme-pick'));
-    shut();
-  });
-  document.addEventListener('click',ev=>{ if(!menu.contains(ev.target)&&!btn.contains(ev.target)) shut(); });
+  paintAppearance();
+  bindOnce(document.getElementById('theme-btn'),toggleDark);
+  BRANDS.forEach(b=>bindOnce(document.getElementById('brand-'+b),()=>setBrand(b)));
 }
+/* Kept for the callers that name a whole theme: the phone shell, the settings
+   page and the three-key preference somebody may still have stored. */
+function renderThemeMenu(){ paintAppearance(); }
+
 /* ---------- Jurisdiction switcher (top header) ----------
    This control existed and did nothing: it set a data attribute and told the
    reader their jurisdiction had switched, while the app went on formatting
@@ -1654,7 +1788,12 @@ function wireShell(){
   });
 
   // Copilot
-  document.getElementById('cmd-ai')?.addEventListener('click',()=>openAI());
+  /* ONE FUNCTION, TWO DOORS. The bar's spark and the column's Ask Copilot
+     button are the same act; delegated on a marker rather than bound to each,
+     so a third door added later needs no third listener. */
+  document.addEventListener('click',e=>{
+    if(e.target.closest?.('#cmd-ai,[data-copilot-proxy]')) openAI();
+  });
   document.getElementById('side-copilot')?.addEventListener('click',()=>openAI());
   /* THE WORKSPACE-STATUS FOOT FOLDS (owner-asked 20 Aug 2026): the handle
      toggles the sheet that slides up over the nav; Escape closes it. Open
@@ -1872,4 +2011,4 @@ if (typeof window !== 'undefined' && window.addEventListener){
 }
 
 Object.assign(window,{printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,
-  buildAlerts,alertCount,updateAlertBadge,panelSuppressed,openPanel,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
+  buildAlerts,alertCount,updateAlertBadge,panelSuppressed,openPanel,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,brandNow,darkNow,setBrand,setDark,toggleDark,applyAppearance,paintAppearance,brandPickerVisible,BRANDS,shellTitleFor,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});

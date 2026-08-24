@@ -126,6 +126,13 @@
   <symbol id="i-panel" viewBox="0 0 16 16"><rect x="2.4" y="3" width="11.2" height="10" fill="none" stroke="currentColor"/><path d="M10 3v10" fill="none" stroke="currentColor"/></symbol>
   <symbol id="i-out" viewBox="0 0 16 16"><path d="M9.6 3H3.4v10h6.2M11 5.6 13.4 8 11 10.4M7 8h6.2" fill="none" stroke="currentColor"/></symbol>
   <symbol id="i-spark" viewBox="0 0 16 16"><path d="M8 2.2 9.3 6l3.8 1.3L9.3 8.6 8 12.4 6.7 8.6 2.9 7.3 6.7 6 8 2.2Z" fill="currentColor"/><path d="M12.6 11.2l.5 1.4 1.4.5-1.4.5-.5 1.4-.5-1.4-1.4-.5 1.4-.5.5-1.4Z" fill="currentColor"/></symbol>
+  <!-- THE SHELL BAR'S MENU MARK. Added 24 Aug 2026 with the 44px bar, which
+       replaced a three-bar burger drawn inline. A <use> pointing at a symbol
+       that does not exist renders an EMPTY BOX — no error, no warning, a
+       button with a hole in it — which is why type-and-symbols-verify measures
+       every reference's painted box rather than trusting the markup. It caught
+       this one. -->
+  <symbol id="i-grid" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25"><rect x="2.3" y="2.3" width="4.7" height="4.7"/><rect x="9" y="2.3" width="4.7" height="4.7"/><rect x="2.3" y="9" width="4.7" height="4.7"/><rect x="9" y="9" width="4.7" height="4.7"/></symbol>
   <symbol id="i-file" viewBox="0 0 16 16"><path d="M3.6 2.4h6l2.8 2.8v8.4H3.6V2.4Z" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M9.4 2.6v2.8h2.8" fill="none" stroke="currentColor" stroke-width="1.3"/></symbol>
   <symbol id="i-home" viewBox="0 0 16 16"><path d="M2.4 7.4 8 2.8l5.6 4.6v6H2.4v-6Z" fill="none" stroke="currentColor" stroke-linejoin="round"/></symbol>
   <symbol id="i-folder" viewBox="0 0 16 16"><path d="M3.8 2.2h5.4l3 3v8.6H3.8V2.2Z" fill="none" stroke="currentColor" stroke-linejoin="round"/><path d="M9.2 2.4v3h3" fill="none" stroke="currentColor"/></symbol>
@@ -166,7 +173,7 @@
        exactly). #f8fafc is slate-50 — a BLUE near-white, the last of the blue
        family left behind by the ink retune. The design's page is #F4F6F6, a
        neutral grey, and it is what every white panel sits on. */
-    --color-bg:#F4F6F6;
+    --color-bg:#EDF1F2;
     --color-surface:#ffffff;
     /* THE COPILOT'S CONVERSATION AREA IS ITS OWN SURFACE. It was --color-bg,
        which is the PAGE's background — so the panel's feed was painted the
@@ -1117,7 +1124,7 @@
   /* ============================================================
      THE SIDEBAR, COLLAPSED TO ITS ICONS
      ============================================================
-     One class on the shell, and the 256px column becomes a 64px rail. The
+     One class on the shell, and the open column becomes a 64px rail. The
      doors do not change, their order does not change and none of them is
      dropped — only the words come off, and they come off to the `title` each
      button already carries, so the labels move rather than disappear.
@@ -1196,13 +1203,13 @@
 
      ONLY COLOUR IS SET HERE. Every width, height, padding and breakpoint the
      shell already had is untouched: the collapsed rail, the floating layer
-     below 1500 and the short-laptop rules all still drive this sidebar, and
+     below 1280 and the short-laptop rules all still drive this sidebar, and
      they are all layout rules, which is why none of them appear below. */
   /* ---- THE SIDEBAR'S OWN RAMP ----
      Deeper than the accent ramp reaches, and it always was: a navigation column
      is a ground, not an accent. Four values, named here so a theme sets them in
      one place instead of four files finding their own dark green. */
-  :root{ --nav-bg:#0b3d3a; --nav-line:#0a3532; --nav-ink:#9fd8d1; --nav-ink-strong:#ffffff;
+  :root{ --nav-bg:#093733; --nav-line:#0C4741; --nav-ink:#9fd8d1; --nav-ink-strong:#ffffff;
          --nav-deep:#0f4c46; }
 
   /* ============================================================
@@ -1238,7 +1245,7 @@
     --brand-cyan:#3f7ac4; --brand-cyan-600:#2f63a8; --brand-cyan-700:#2b5c9e;
     --brand-hero-deep:#0f2447;
     /* The sidebar's own ground, deeper than the ramp reaches. */
-    --nav-bg:#122a4d; --nav-line:#0e2140; --nav-ink:#a5bde0; --nav-deep:#17376b;
+    --nav-bg:#0F2648; --nav-line:#1A3A66; --nav-ink:#a5bde0; --nav-deep:#17376b;
     /* Navy wore the green band's pale teal second line, because that colour was
        typed into the dashboard rather than named. Now that it has a name, navy
        answers it. */
@@ -2457,6 +2464,12 @@
      GREEN IS NOT BANISHED, it is demoted from ground to accent: the active
      door, the Copilot launcher and every status colour are untouched. */
   html.dark{
+    /* THE WHITE COLUMN'S HOVER AND LIVE-DOOR GROUND NEEDS A NIGHT ANSWER.
+       --nav-well is #EFF3F3 in :root, and left undefined here the live door
+       drew a near-white block behind near-white text — the one row you are
+       standing on was the one row you could not read. The classic fault: a
+       colour whose only definition works in one theme. */
+    --nav-well:#1a2536;
     --nav-bg:#0b1220; --nav-line:#1e293b; --nav-deep:#131f33;
     --nav-ink:#94a3b8; --nav-ink-strong:#f1f5f9;
     --brand-hero-deep:#060c18;
@@ -2468,157 +2481,181 @@
      teal and a grey smudge on near-black, so the dark theme turns it most of
      the way down rather than off — the band keeps its top-right lift without
      looking like a stain. */
-  /* ---- THE DOORS ARE WHITE, AND THE LIVE ONE SITS DEEPER (owner-asked
-     23 Aug 2026: "the names of the tabs plus the menu needs to be pure white
-     and when you select a tab, the highlighted tab should not be a lighter
-     green but an even dark green") ----
+  /* ---- THE COLUMN IS WHITE AND THE BAR IS DARK (the enterprise design,
+     owner-ruled 24 Aug 2026: "side bar should go to white") ----
 
-     THE INK. Every door read --nav-ink, a pale teal (#9fd8d1 in the green
-     workspace, #a5bde0 in the navy one), so the whole column was set in a tint
-     of its own background and only the one you were standing on was white.
-     They all take --nav-ink-strong now — the token that already means "the
-     strong nav ink" and is #ffffff in both workspaces — rather than a
-     hard-coded white, so the dark theme keeps its own near-white and nothing
-     needs a second rule.
+     THIS REVERSES 23 Aug's "the doors are white and the live one sits deeper",
+     and the reasoning behind that decision is exactly what carries over. That
+     day the ask was that a door read as strongly as possible against its
+     ground and that the live one be marked by DEPTH rather than by a veil.
+     Both still hold; the ground moved. On white, "as strongly as possible" is
+     the primary ink, and "deeper" is a filled well rather than a darker green.
 
-     THE LIVE STATE. It was rgba(255,255,255,.15) — a white veil, which LIGHTENS
-     the panel, and the ask is the opposite. It darkens now, and the mock-up
-     agrees: its own nav sets --nav-act #0D332F under a --nav of #123F3A, a
-     deeper green for the door you are on. A BLACK MIX RATHER THAN A NEW TOKEN
-     PER THEME: color-mix darkens whatever --nav-bg happens to be, so the green
-     workspace, the navy one and the dark theme all follow from one line and
-     none of them can drift.
+     WHAT MARKS THE LIVE DOOR IS A 3px LEFT RULE IN THE ACCENT plus that well.
+     A left rule cannot be done with a veil and does not depend on the ground
+     having anywhere darker to go, which is what makes it survive the dark
+     theme with no override of its own.
 
-     HOVER DARKENS TOO, more gently. It used to lighten while the active state
-     lightened harder; with the live door going deeper, a hover that goes the
-     other way makes the column read as two unrelated signals. One direction:
-     the further in, the deeper it sits.
-
-     WITH EVERY DOOR NOW WHITE, THE BACKGROUND IS WHAT MARKS THE LIVE ONE —
-     which is why the ink change and the depth change had to ship together. */
-  #side-nav .nav-item{ color:var(--nav-ink-strong); }
-  #side-nav .nav-item svg{ opacity:.9; }
-  #side-nav .nav-item:hover{ background:color-mix(in srgb, black 12%, var(--nav-bg));
-    color:var(--nav-ink-strong); border-color:transparent; }
+     THE COUNTS KEEP THEIR ONE EXCEPTION. 23 Aug's rule was that a plain count
+     is a fact and an amber count is a warning, and only above zero. That is
+     untouched — only the plain ink changes, from white to the label shade,
+     because the ground did. */
+  #side-nav .nav-item{ color:var(--color-text); min-height:36px; gap:12px;
+    padding:0 16px 0 13px; border:0; border-left:3px solid transparent; }
+  #side-nav .nav-item svg{ opacity:.8; }
+  #side-nav .nav-item:hover{ background:var(--nav-well); color:var(--color-text); }
   #side-nav .nav-item:hover svg{ opacity:1; }
-  #side-nav .nav-item.active{ background:color-mix(in srgb, black 30%, var(--nav-bg));
-    color:var(--nav-ink-strong); border-color:transparent; }
-  html.dark #side-nav .nav-item.active{ color:var(--nav-ink-strong); }
-  /* Insights kept a teal glyph to mark itself out on white; on teal it needs
-     the opposite treatment or it disappears into its own background. */
+  #side-nav .nav-item.active{ background:var(--nav-well); color:var(--color-text);
+    border-left-color:var(--color-accent-600); }
+  #side-nav .nav-item.active .nav-lbl{ font-weight:700; }
   #side-nav .nav-item[data-view="intel"] svg{ color:inherit; }
-  /* ---- THE COUNTS ARE NUMBERS, NOT TAGS (owner-asked 23 Aug 2026) ----
-     "The numbers should be white and nothing boxing them." Every count wore a
-     translucent box and a tinted ink — MEASURED, rgba(255,255,255,.14) behind
-     rgb(159,216,209) — so nine tinted capsules ran down the drawer and the
-     figures themselves were the palest text on it. The box goes and the ink
-     goes white: a count is a fact about the door it sits on, and the door's
-     own label is already white beside it.
 
-     AMBER STAYS, AND THAT IS THE ONE EXCEPTION (owner-ruled the same day,
-     asked and answered before this was built). Amber is how this drawer says
-     "this one is waiting on you" — NAV_COUNT_TONE gives it to Negotiations,
-     Calendar, Requests, Advice Desk, Import and the pipeline, and only when
-     the number is above zero, so it never cries wolf over an empty queue.
-     Turning it white would take the signal off the sidebar entirely. It keeps
-     its #fde68a ink and loses its box like the rest.
+  /* A PLAIN COUNT IS A FACT, AN AMBER ONE IS A WARNING — unchanged from
+     23 Aug, and NAV_COUNT_TONE still hands amber out only above zero so an
+     empty queue never cries wolf. On white the plain ink is the label shade
+     and the amber one takes the semantic pair rather than a typed hex, so the
+     dark theme follows with no second rule. */
+  #side-nav .nav-count{ background:none; padding:1px 0; color:var(--color-neutral-500);
+    font-family:var(--font-body); font-variant-numeric:tabular-nums; }
+  #side-nav .nav-count[data-tone="teal"]{ background:none; color:var(--color-neutral-500); }
+  #side-nav .nav-count[data-tone="amber"]{ background:var(--st-amber-bg); color:var(--st-amber-fg);
+    padding:0 6px; }
 
-     TEAL DOES NOT STAY. It marked the SIZE of the portfolio rather than
-     anything owed, which is exactly what "make the numbers white" is asking
-     for; with the box gone a third ink would be decoration. */
-  #side-nav .nav-count{ background:none; padding:1px 0; color:#fff; }
-  #side-nav .nav-count[data-tone="teal"]{ background:none; color:#fff; }
-  #side-nav .nav-count[data-tone="amber"]{ background:none; color:#fde68a; }
-  /* THE ACTIVE ITEM HAS NO RULE OF ITS OWN ANY MORE, and its absence is the
-     fix rather than an omission. It used to read
-     `#side-nav .nav-item.active .nav-count{background:rgba(255,255,255,.24);color:#fff}`
-     — a stronger box for the door you are standing on — and with every count
-     now white on nothing it says nothing the base rule does not. Left in, it
-     scored (1,3,0) against the amber rule's (1,2,0) and WON: measured, opening
-     Negotiations turned its own amber count white, so the one door whose
-     warning you were looking at was the one door that stopped warning. A tone
-     is about the work, never about where the reader happens to be. */
+  /* "New" ON INSIGHTS IS NOT A COUNT AND KEEPS ITS PILL — it shares the slot,
+     not the meaning: a tag announcing a page worth visiting, which stripped to
+     bare text reads as a word that has wandered into the count column. */
+  #side-nav #nav-intel-new{ background:var(--color-accent-100);
+    color:var(--color-accent-800); padding:1px 7px; }
+  #side-nav .nav-section-head{ color:var(--color-neutral-400); }
+  #side-nav .nav-section-head:hover{ color:var(--color-accent-600); }
+  #side-nav .nav-section-head.static:hover{ color:var(--color-neutral-400); }
+  #side-nav .nav-plus{ color:var(--color-neutral-400); }
+  #app-shell.rail #side-nav .nav-section-head::before{ color:var(--color-neutral-400); }
+  #side-nav .rail-head{ background:var(--color-surface); border-bottom:1px solid var(--color-divider); }
+  #side-nav .rail-head-label{ color:var(--color-neutral-500); }
 
-  /* "New" ON INSIGHTS IS NOT A COUNT AND KEEPS ITS PILL. It shares the class
-     because it shares the slot, but it is a tag announcing a page worth
-     visiting, not a number: stripped to bare white text it reads as a word
-     that has wandered into the count column. The owner's ask names the
-     numbers, and this is the one thing in that column that is not one. */
-  #side-nav #nav-intel-new{ background:rgb(var(--color-accent-300-rgb)/.22);
-    color:var(--color-accent-100); padding:1px 7px; }
-  #side-nav .nav-section-head{ color:rgba(255,255,255,.62); }
-  #side-nav .nav-section-head:hover{ color:rgba(255,255,255,.78); }
-  #side-nav .nav-section-head.static:hover{ color:rgba(255,255,255,.62); }
-  #side-nav .nav-plus{ color:rgba(255,255,255,.55); }
-  #app-shell.rail #side-nav .nav-section-head::before{ color:rgba(255,255,255,.62); }
-  /* The head block sat on deep green to stand off a white rail. On a teal rail
-     it has to go the other way — a lighter panel — or the one control that
-     changes the window's shape vanishes into the wall behind it. */
-  #side-nav .rail-head{ background:rgba(255,255,255,.10); }
-  #side-nav .rail-head-label{ color:rgba(255,255,255,.7); }
-  /* ---- THE STATUS CARD AT THE FOOT OF THE SIDEBAR ----
-     THE SIDEBAR IS DARK IN EVERY THEME (--nav-bg is deep green, deep navy or
-     near-black, never light), so this card is styled ONCE, for a dark ground.
-     Every value here is white at an alpha, so it rides whichever of the three
-     grounds is underneath without a per-theme override. It used to
-     be written for a white rail — a --color-neutral-100 panel with
-     --color-neutral-700 text — and then repainted for the dark by the two
-     rules below it. One override further down was missed, which is how the
-     open drawer ended up drawing a near-white block and then writing white
-     text on it: the card was legible in neither theme, at exactly the size
-     where it is the only status a reader can see. Nothing here reads a
-     light-theme token. */
-  #side-nav .foot-wrap{ border-top-color:rgba(255,255,255,.12); }
-  /* ---- THE FOLDED FOOT (owner-asked 20 Aug 2026) ----
-     A slim handle at rest; the card is a SHEET parked below its own height,
-     invisible, that slides up OVER the nav on the press — transform and
-     visibility, the left panels' own mechanism, never display:none (which
-     cannot animate and drops focus). It sits on the sidebar's opaque ground
-     so the nav rows beneath never show through. */
+  /* ---- THE FOOT OF THE COLUMN: A COPILOT DOOR AND A STATUS LINE ----
+     The design puts both here, and HaTi already had the second: the folding
+     workspace-status card (owner-asked 20 Aug 2026) whose handle is a dot, a
+     title and a chevron — the design's own status line in all but wording. It
+     is kept whole and merely re-dressed for a white ground; every id is the id
+     updateSidebarStatus has always written to.
+
+     THE CARD IS NO LONGER STYLED FOR A DARK GROUND, which is the whole of this
+     block's change. It used to be white-at-an-alpha throughout on the argument
+     that the sidebar is dark in every theme. It is not any more, so every one
+     of those alphas becomes a real token and the dark theme answers through
+     the tokens rather than through a second copy of the rules. */
+  #side-nav .foot-wrap{ border-top-color:var(--color-divider); }
   #side-nav .foot-handle{ display:flex; align-items:center; gap:7px; width:100%; min-width:0;
-    padding:10px 12px; border:0; background:none; cursor:pointer; font:inherit; text-align:left; }
-  #side-nav .foot-handle:hover .foot-card-title{ color:rgba(255,255,255,.85); }
+    padding:10px 16px; border:0; background:none; cursor:pointer; font:inherit; text-align:left; }
+  #side-nav .foot-handle:hover{ background:var(--nav-well); }
   #side-nav .foot-handle .foot-card-title{ flex:1; min-width:0; }
-  #side-nav .foot-chev{ flex:none; color:rgba(255,255,255,.5); transition:transform .18s var(--ease); }
+  #side-nav .foot-chev{ flex:none; color:var(--color-neutral-400); transition:transform .18s var(--ease); }
   #side-nav .foot-wrap.open .foot-chev{ transform:rotate(180deg); }
   #side-nav .foot-sheet{ position:absolute; left:0; right:0; bottom:100%; z-index:6;
-    background:var(--nav-bg); border-top:1px solid rgba(255,255,255,.12); padding:12px;
+    background:var(--color-surface); border-top:1px solid var(--color-divider); padding:12px;
     transform:translateY(10px); opacity:0; visibility:hidden;
     transition:transform .2s var(--ease), opacity .2s, visibility .2s; }
   #side-nav .foot-wrap.open .foot-sheet{ transform:none; opacity:1; visibility:visible; }
   @media (prefers-reduced-motion:reduce){ #side-nav .foot-sheet,#side-nav .foot-chev{ transition:none; } }
-  #side-nav .foot-card{ background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.13);
+  #side-nav .foot-card{ background:var(--color-surface); border:1px solid var(--color-divider);
     border-radius:0; padding:9px 11px 10px; display:flex; flex-direction:column; gap:5px; min-width:0; }
   #side-nav .foot-card-head{ display:flex; align-items:center; gap:7px; min-width:0; padding-bottom:1px; }
-  #side-nav .foot-card-title{ font-family:var(--font-heading); font-size:11px; font-weight:700;
-    letter-spacing:.09em; text-transform:uppercase; color:rgba(255,255,255,.55);
+  #side-nav .foot-card-title{ font-family:var(--font-heading); font-size:12px; font-weight:400;
+    letter-spacing:0; text-transform:none; color:var(--color-neutral-500);
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  /* label left, figure right — the figure is the thing being read, so it is
-     the brighter of the two and never wraps under its own label */
   #side-nav .foot-kpi{ display:flex; align-items:baseline; justify-content:space-between;
     gap:8px; min-width:0; font-size:12px; line-height:1.35; }
-  #side-nav .foot-k{ color:rgba(255,255,255,.58); white-space:nowrap; flex:none; }
-  #side-nav .foot-v{ color:rgba(255,255,255,.92); font-weight:600; min-width:0;
-    text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  #side-nav .foot-v[data-tone="on"]{ color:#6ee7b7; }
-  #side-nav .foot-v[data-tone="off"]{ color:rgba(255,255,255,.55); font-weight:400; }
+  #side-nav .foot-k{ color:var(--color-neutral-500); white-space:nowrap; flex:none; }
+  #side-nav .foot-v{ color:var(--color-text); font-weight:600; min-width:0;
+    text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    font-variant-numeric:tabular-nums; }
+  #side-nav .foot-v[data-tone="on"]{ color:var(--st-green-fg); }
+  #side-nav .foot-v[data-tone="off"]{ color:var(--color-neutral-500); font-weight:400; }
   #side-nav .foot-note{ display:block; font-size:12px; line-height:1.35;
-    color:rgba(255,255,255,.46); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  /* the spend meter is a button, so it has to be told it is not one */
+    color:var(--color-neutral-500); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #side-nav #side-ai-usage{ align-items:flex-start; gap:7px; border:0; background:none;
     cursor:pointer; padding:6px 0 0; margin-top:1px; text-align:left; font:inherit;
-    color:inherit; min-width:0; border-top:1px solid rgba(255,255,255,.10); }
+    color:inherit; min-width:0; border-top:1px solid var(--color-divider); }
   #side-nav #side-ai-usage .foot-ai-dot{ margin-top:4px; }
   #side-nav .foot-ai-body{ display:flex; flex-direction:column; gap:1px; flex:1; min-width:0; }
   #side-nav #side-ai-usage:hover .foot-v{ text-decoration:underline; }
-  /* the drawer below 900 floats this same block over the page */
-  #side-nav .scroll-thin::-webkit-scrollbar-thumb{ background:rgba(255,255,255,.18); }
+
+  /* THE COPILOT DOOR AT THE FOOT — the design's own dress on the button that
+     was already there (#side-copilot). Flat accent, not the brand gradient:
+     this shell draws depth in 1px lines, and a soft drop shadow under the one
+     coloured block in a white column reads as a leftover from another design. */
+  #side-nav .copilot-wrap{ flex:none; border-top:1px solid var(--color-divider); padding:8px 10px; }
+  #side-nav #side-copilot{ position:relative; width:100%; min-height:36px; display:flex;
+    align-items:center; gap:10px; padding:0 10px; background:var(--color-accent-800);
+    border:1px solid var(--color-accent-800); color:#fff; cursor:pointer;
+    font:inherit; font-family:var(--font-body); font-size:14px; font-weight:600;
+    border-radius:0; box-shadow:none; text-align:left; }
+  #side-nav #side-copilot:hover{ background:var(--color-accent-700); border-color:var(--color-accent-700); }
+  #side-nav #side-copilot .sc-label{ flex:1; min-width:0; white-space:nowrap;
+    overflow:hidden; text-overflow:ellipsis; }
+  #side-nav #side-copilot .sc-kb{ flex:none; font-size:11px; font-weight:500; opacity:.75;
+    font-family:var(--font-code); }
+  #app-shell.rail #side-nav .copilot-wrap{ padding:8px 6px; }
+  #app-shell.rail #side-nav #side-copilot{ justify-content:center; padding:0; gap:0; }
+  #app-shell.rail #side-nav #side-copilot .sc-kb{ display:none; }
 
   /* The header's icon controls lose their box. Three bordered grey tiles in a
      row read as a toolbar of equal weights; they are secondary to the search
      and the Copilot, and now look it. */
   .hdr-icon-btn{position:relative;width:36px;height:36px;display:grid;place-items:center;border:1px solid transparent;background:transparent;border-radius:0;color:var(--color-neutral-500);cursor:pointer;transition:background .15s,color .15s;}
   .hdr-icon-btn:hover{background:var(--color-neutral-100);color:var(--color-text);}
+
+  /* ---- THE SHELL BAR'S OWN CHROME (24 Aug 2026) ----
+     Everything in a 44px bar on a dark ground: 32px controls, white ink, and a
+     hover that lightens the ground rather than tinting the glyph. Scoped to
+     #top-header so .hdr-icon-btn keeps its light-ground treatment everywhere
+     else it draws — the class is used well outside this bar. */
+  #top-header .hdr-icon-btn{width:32px;height:32px;color:#fff;flex:none;}
+  #top-header .hdr-icon-btn:hover{background:rgba(255,255,255,.12);color:#fff;}
+  #top-header .sh-div{flex:none;width:1px;height:18px;background:rgba(255,255,255,.24);margin:0 4px;}
+
+  #top-header .cmd-search{flex:0 1 360px;min-width:120px;height:26px;padding:0 9px;gap:7px;
+    background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);color:#fff;}
+  #top-header .cmd-search:focus-within{border-color:rgba(255,255,255,.55);box-shadow:none;}
+  #top-header .cmd-search input{font-size:13px;color:#fff;}
+  #top-header .cmd-search input::placeholder{color:rgba(255,255,255,.8);}
+  #top-header #cmd-k-hint{flex:none;font-size:11px;font-family:var(--font-code);
+    border:1px solid rgba(255,255,255,.28);background:none;color:rgba(255,255,255,.8);
+    padding:1px 5px;border-radius:0;cursor:pointer;}
+  #top-header #cmd-k-hint:hover{background:rgba(255,255,255,.14);}
+
+  /* ONE BORDERED GROUP PER QUESTION — language, then appearance. Both are
+     26px, which is the bar's own control height and the one size the design
+     allows below 32. */
+  #top-header .sh-grp{flex:none;display:flex;align-items:center;border:1px solid rgba(255,255,255,.24);}
+  #top-header .sh-grp > *{height:26px;border:0;background:none;cursor:pointer;color:#fff;font:inherit;}
+  #top-header .sh-grp > *:focus-visible{outline:2px solid #fff;outline-offset:-2px;}
+  #top-header .sh-grp button{font-size:12px;font-weight:600;padding:0 9px;}
+  #top-header .sh-grp button:hover{background:rgba(255,255,255,.12);}
+  #top-header .sh-grp button[aria-pressed="true"]{background:rgba(255,255,255,.16);}
+  /* TWO CLASSES, because `#top-header .sh-grp button` sets a 9px side padding
+     and scores one class plus one type — MEASURED, it won, and the swatch drew
+     an 8px stripe inside a 26px button with the pressed ring covering most of
+     it. Never !important: that wins this fight and hides the next. */
+  #top-header .sh-grp .sh-sw{width:26px;padding:0;}
+  #top-header .sh-sw i{display:block;width:100%;height:100%;}
+  #top-header .sh-sw[hidden]{display:none;}
+  /* The chosen brand is marked by a ring INSIDE the swatch, so the colour
+     itself is never covered by the thing announcing it. */
+  #top-header .sh-sw[aria-pressed="true"] i{box-shadow:inset 0 0 0 2px var(--nav-bg),inset 0 0 0 4px rgba(255,255,255,.9);}
+
+  #top-header #side-avatar{width:32px;height:32px;border-radius:50%;
+    border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.14);color:#fff;
+    display:grid;place-items:center;font-size:11px;font-weight:700;
+    font-family:var(--font-heading);flex:none;}
+  #top-header #rail-avatar:hover #side-avatar{background:rgba(255,255,255,.24);}
+  #top-header #hdr-notify-dot{position:absolute;top:2px;right:1px;min-width:14px;height:14px;
+    padding:0 2px;box-sizing:border-box;border-radius:0;background:var(--st-amber-dot);
+    color:#2A1B04;border:0;font:inherit;font-size:10px;font-weight:700;line-height:14px;
+    text-align:center;font-variant-numeric:tabular-nums;}
+  #top-header #hdr-notify-dot[hidden]{display:none;}
 
   /* THE LANGUAGE TOGGLE. It took the top-bar space the jurisdiction flags used
      to hold — the market is a workspace setting an admin picks once and it
@@ -2721,25 +2758,27 @@
         leaves 134px for the page, which is not a choice between two layouts —
         it is the app not working. -- */
 
-  /* -- BELOW 1500 THE SIDEBAR FLOATS INSTEAD OF PUSHING (13 Aug 2026) --
+  /* -- BELOW 1280 THE SIDEBAR FLOATS INSTEAD OF PUSHING (13 Aug 2026;
+       the line moved from 1500 on 24 Aug 2026 — see NAV_DRAWER_W) --
         Owner-asked, from a ThinkPad: expanding the sidebar squeezed every
         page. It took 192px off the page and no layout rule noticed, because
         every rule in this file measures the WINDOW while the page gets the
         window minus the sidebar.
 
-        So under 1500px the sidebar is a FIXED 64px strip of icons — applyRail
-        keeps a 64px track under it, and the strip simply widens to 256px over
+        So under 1280px the sidebar is a FIXED 64px strip of icons — applyRail
+        keeps a 64px track under it, and the strip simply widens to --nav-w over
         the page when it is opened. The page's own width never changes, which
         is what makes it safe to leave collapsed: opening and closing move
         nothing. The number is derived — the dashboard needs 1200px of page,
-        plus 256px of sidebar, is 1456; rounded up so a 1440 laptop is inside.
+        plus the sidebar, put the line at 1456; it is derived from the tile row
+        and the 240px column now — see NAV_DRAWER_W.
 
         IT USED TO BE 0px AND A MENU BUTTON, at 899 and below. That is right at
         390px and wrong at 1280, where there is ample room for the icons and
         hiding every door behind a press is the worse trade. One behaviour from
-        768 to 1499 now, rather than two systems doing the same job. -- */
+        768 to 1279 now, rather than two systems doing the same job. -- */
   @media (max-width:899px){ #nav-toggle{ display:grid!important; } }
-  @media (max-width:1499px){
+  @media (max-width:1279px){
     #side-nav{
       position:fixed; top:var(--shell-head-h,64px); left:0; bottom:0; z-index:55;
       width:64px; transition:width .22s var(--ease);
@@ -2748,12 +2787,15 @@
        compaction is for a column that has to share the width, and a floating
        panel does not. So the rail rules further up are unwound for the
        duration. */
-    #side-nav.open{ width:256px; box-shadow:var(--shadow-lg); }
+    /* THE OPEN LAYER IS THE COLUMN'S OWN WIDTH, read from the token rather than
+     typed here — the two disagreed the day --nav-w became 240 and the floating
+     drawer went on opening to 256. */
+  #side-nav.open{ width:var(--nav-w,240px); box-shadow:var(--shadow-lg); }
     /* width:100%, never auto: auto shrinks each button to its own text, so the
        count badges landed ragged down the list (owner-reported 20 Aug 2026,
        "line up the numbers"). Full width lets the label's flex:1 push every
        badge to one straight column at the drawer's right edge — the same line
-       the open column above 1500 has always drawn. */
+       the open column above 1280 has always drawn. */
     #app-shell.rail #side-nav.open .nav-item{ width:100%; justify-content:flex-start; padding:9px 12px; gap:11px; margin:0; }
     #app-shell.rail #side-nav.open .nav-item>span:not(.nav-rail){ display:inline!important; }
     #app-shell.rail #side-nav.open .nav-count:not(:empty){ display:inline-block!important; }
@@ -2890,8 +2932,142 @@
      overflow-y:auto on the page is the backstop for a window so short that the
      hero and the metrics alone will not fit — it scrolls rather than clipping,
      and the list keeps a floor so it can never collapse to nothing first. */
-  .hm-page{height:var(--view-h);box-sizing:border-box;overflow-y:auto;}
+  /* ---- THE HOME PAGE, REBUILT TO THE ENTERPRISE DESIGN (24 Aug 2026) ----
+     The page is a plain column now — a greeting row, then three sections of
+     tiles and rows — rather than a hero over a two-card grid. It no longer
+     pins itself to the viewport height: nothing on it scrolls inside itself
+     any more, so there is nothing that needs a bounded parent, and a short
+     laptop scrolls the page as it would any other document. */
+  .hm-page{display:flex;flex-direction:column;gap:0;padding:var(--page-pad);box-sizing:border-box;}
   .hm-page>*{flex:none;}
+
+  .hm-greet{display:flex;align-items:baseline;gap:12px;margin-bottom:4px;}
+  .hm-greet h1{margin:0;font-family:var(--font-heading);font-size:20px;font-weight:700;
+    letter-spacing:-.01em;color:var(--color-text);}
+  .hm-greet-sub{font-size:13px;color:var(--color-neutral-500);min-width:0;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  /* THE ONE ACT ON THE PAGE, AND IT IS WHITE (owner-asked 24 Aug 2026). The
+     surface token rather than a literal #fff, so it is white in the light
+     theme and the panel colour at night and never glares in the dark one; the
+     outline is what keeps it plainly a button on a near-white page, and it
+     reads --link rather than the accent ramp because only --link has an answer
+     in the dark theme. Measured across both themes and both brands: the
+     faintest reading is 5.5:1. */
+  .hm-primary{flex:none;white-space:nowrap;height:var(--ctl-h);display:inline-flex;
+    align-items:center;gap:7px;padding:0 12px;background:var(--color-surface);
+    border:1px solid var(--accent-ink);color:var(--accent-ink);
+    font:inherit;font-family:var(--font-body);font-size:13px;font-weight:600;
+    cursor:pointer;border-radius:0;}
+  .hm-primary:hover{background:var(--nav-well);}
+
+  /* A SECTION HEADING IS A WORD, A RULE AND — where there is one — its own
+     act at the far end. Customize sits on My work's line because that is the
+     row it edits; See all sits on Needs your decision's for the same reason. */
+  .hm-sec{display:flex;align-items:center;gap:10px;margin:14px 0 8px;}
+  .hm-sec h2{margin:0;font-family:var(--font-heading);font-size:14px;font-weight:700;flex:none;
+    color:var(--color-text);}
+  .hm-rule{flex:1 1 auto;height:1px;background:var(--color-divider);}
+
+  .hm-tiles{display:grid;gap:12px;}
+  .hm-tiles.is-work{grid-template-columns:repeat(4,minmax(0,1fr));}
+  .hm-tiles.is-port{grid-template-columns:1.9fr 1fr 1fr 1fr;}
+  /* PURE WHITE, and it is the token that is pure (owner-asked 24 Aug 2026:
+     "the white backgrounds have to be pure white with no shade of any kind").
+     --color-surface is #ffffff; nothing here mixes it with anything. */
+  .hm-tile{position:relative;display:flex;flex-direction:column;min-width:0;
+    background:var(--color-surface);border:1px solid var(--color-divider);
+    border-top:3px solid var(--color-neutral-300);padding:12px 14px;
+    font:inherit;font-family:var(--font-body);color:inherit;text-align:left;
+    border-radius:0;cursor:pointer;}
+  .hm-tile.is-work{height:141px;}
+  .hm-tile.is-port{height:176px;}
+  .hm-tile:hover{background:var(--nav-well);}
+  .hm-tile:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:-2px;}
+  /* A DOOR ONTO NOTHING IS A DEAD PRESS. The zero still draws — it is true —
+     and the tile stops being pressable rather than being dimmed into
+     illegibility, so nobody presses it to reach an empty list. */
+  .hm-tile.is-dead{cursor:default;}
+  .hm-tile.is-dead:hover{background:var(--color-surface);}
+  .hm-tile.is-dead .hm-n{color:var(--color-neutral-400);}
+  .hm-tile.is-life{cursor:default;}
+  .hm-tile.is-life:hover{background:var(--color-surface);}
+  .hm-t{font-size:14px;font-weight:600;color:var(--color-text);padding-right:18px;}
+  .hm-s{font-size:12px;color:var(--color-neutral-500);margin-top:1px;}
+  .hm-tile .hm-s{min-height:1.35em;}
+  .hm-sp{flex:1 1 auto;min-height:6px;}
+  .hm-go{position:absolute;top:11px;right:11px;color:var(--color-neutral-400);}
+  .hm-tile:hover .hm-go{color:var(--accent-ink);}
+  .hm-big{display:flex;align-items:baseline;gap:7px;min-width:0;}
+  .hm-n{font-size:32px;font-weight:700;line-height:1.05;color:var(--color-text);
+    font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .hm-u{font-size:14px;color:var(--color-neutral-500);font-weight:400;}
+  .hm-foot{margin-top:7px;padding-top:7px;border-top:1px solid var(--color-divider);
+    font-size:12px;color:var(--color-neutral-500);line-height:1.35;}
+  .hm-foot.crit{color:var(--st-amber-fg);}
+  /* Two lines PLUS the rule's own padding — box-sizing is border-box, so
+     reserving 2.8em alone still leaves a one-line footnote 7px short and the
+     four figures in the row sit on four different lines. */
+  .hm-tile.is-port .hm-foot{min-height:calc(2.8em + 7px);}
+
+  /* THE LIFECYCLE TILE'S THREE BLOCKS ARE THREE DOORS. This is what replaced
+     the pipeline ring, and the stage list with it: the count is the handle. */
+  .hm-life{display:flex;align-items:flex-end;gap:22px;min-width:0;}
+  .hm-stack{display:flex;gap:6px;flex:none;}
+  .hm-stg-wrap{display:block;}
+  .hm-stg{display:flex;flex-direction:column;align-items:stretch;gap:4px;width:100%;
+    background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;text-align:left;}
+  .hm-stg:hover .hm-bar{filter:brightness(.88);}
+  .hm-stg:hover .hm-sl,.hm-stg:hover .hm-sn{color:var(--accent-ink);}
+  .hm-stg:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:3px;}
+  .hm-stg[disabled]{cursor:default;}
+  .hm-sn{font-size:11px;font-weight:700;line-height:1;color:var(--color-text);
+    font-variant-numeric:tabular-nums;}
+  .hm-bar{width:100%;height:10px;background:var(--color-neutral-300);}
+  .hm-stg.is-review .hm-bar{background:var(--st-amber-dot);}
+  .hm-stg.is-signed .hm-bar{background:var(--st-green-dot);}
+  .hm-stg.is-zero .hm-bar{background:none;border:1px dashed var(--color-neutral-300);}
+  .hm-sl{font-size:11px;color:var(--color-neutral-500);line-height:1;white-space:nowrap;}
+  .hm-money{flex:1 1 auto;min-width:0;}
+  .hm-m{display:block;font-size:26px;font-weight:700;line-height:1.05;white-space:nowrap;
+    color:var(--color-text);font-variant-numeric:tabular-nums;}
+  .hm-ml{display:block;font-size:12px;color:var(--color-neutral-500);margin-top:3px;line-height:1.3;}
+
+  /* NEEDS YOUR DECISION — full-width rows, the tone on a 3px left rule. */
+  .hm-rows{background:var(--color-surface);border:1px solid var(--color-divider);}
+  .hm-row{display:flex;align-items:center;gap:12px;min-height:44px;width:100%;
+    border:0;border-left:3px solid var(--color-neutral-400);
+    border-bottom:1px solid var(--color-divider);
+    padding:9px 14px;background:none;color:inherit;font:inherit;font-family:var(--font-body);
+    text-align:left;cursor:pointer;}
+  .hm-row:last-child{border-bottom:0;}
+  .hm-row:hover{background:var(--nav-well);}
+  .hm-row:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:-2px;}
+  .hm-row.is-crit{border-left-color:var(--st-amber-dot);}
+  .hm-row.is-neg{border-left-color:var(--st-ruby-dot);}
+  .hm-rb{flex:1 1 auto;min-width:0;}
+  .hm-rt{display:block;font-size:14px;font-weight:600;color:var(--color-text);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .hm-rm{display:block;font-size:12px;color:var(--color-neutral-500);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .hm-rtag{flex:none;font-size:13px;font-weight:600;color:var(--color-neutral-500);
+    font-variant-numeric:tabular-nums;}
+  .hm-row.is-crit .hm-rtag{color:var(--st-amber-fg);}
+  .hm-row.is-neg .hm-rtag{color:var(--st-ruby-fg);}
+  .hm-rchev{flex:none;color:var(--color-neutral-400);}
+  .hm-empty{background:var(--color-surface);border:1px solid var(--color-divider);
+    padding:18px 14px;font-size:13px;color:var(--color-neutral-500);}
+
+  /* Below the design's own desktop measure the two tile rows stack two-up
+     rather than crushing four labels into a third of a word each. The design
+     answers nothing under desktop width; this is HaTi's own answer. */
+  @media (max-width:1100px){
+    .hm-tiles.is-work,.hm-tiles.is-port{grid-template-columns:repeat(2,minmax(0,1fr));}
+    .hm-tile.is-port{height:auto;min-height:176px;}
+  }
+  @media (max-width:680px){
+    .hm-tiles.is-work,.hm-tiles.is-port{grid-template-columns:minmax(0,1fr);}
+    .hm-greet{flex-wrap:wrap;}
+  }
   /* A FLOOR, so the row cannot be crushed instead of the page scrolling.
      With min-height:0 the row was free to shrink to nothing, so on a workspace
      still showing its setup banners the pipeline was squeezed to a sliver
@@ -2979,13 +3155,15 @@
   .hm-side-more{border:0;background:none;padding:2px;font:inherit;font-size:12px;font-weight:600;
     color:var(--color-accent-600);cursor:pointer;text-align:left;}
 
-  /* A ROW IS TWO LINES: the name, then the state and the counterparty sharing
-     one. Three separate lines cost 73px a row, which on a short card showed one
-     and a half of them. */
-  .hm-row{flex:none;display:block;width:100%;text-align:left;padding:7px 10px;border-radius:0;
-    background:var(--color-surface);border:1px solid var(--color-divider);font:inherit;color:inherit;
-    cursor:pointer;box-shadow:none;transition:border-color .15s;}
-  .hm-row:hover{border-color:var(--accent-solid);}
+  /* THE PIPELINE CARD'S OWN ROW IS RETIRED with the ring it sat beside
+     (24 Aug 2026). Its rules are DELETED rather than left dormant, and that is
+     the fix rather than tidiness: `.hm-row` is now the name of the decision
+     rows on the new home page, this block sat LATER in the sheet at equal
+     specificity, and it won — measured, the tag and the chevron dropped onto
+     their own line under the meta because this rule made the row display:block.
+     A stale class name is not inert when a live one takes its name.
+     .hm-row-name / -meta / -flag / -sep / -cp / -none below belong to the same
+     retired card and are kept only because nothing else claims those names. */
   .hm-row-name{display:block;font-size:13px;font-weight:400;color:var(--color-text);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .hm-row-meta{display:flex;align-items:center;gap:5px;margin-top:2px;font-size:12px;
@@ -3159,18 +3337,16 @@
 
   /* Our standards — clause library beside the playbook (was 1.4fr 1fr) */
 
-  /* Home — the KPI ribbon. The count is the reader's own choice (Customize),
-     so it is left alone; only the floor is added, and only where the row can
-     no longer hold that many cards. */
-  @media (max-width:1099px){
-    #kpi-grid{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))!important;}
-  }
-  /* 200px, not 150: below that the cards fit but their captions do not, and a
-     KPI whose sub-label reads "draft to signed, from the aud…" has lost the
-     part that says what the number means. */
-  @media (max-width:639px){
-    #kpi-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr))!important;}
-  }
+  /* ---- THE KPI RIBBON'S OWN BREAKPOINTS ARE RETIRED (24 Aug 2026) ----
+     They were two `auto-fit` overrides carrying !important, written when the
+     ribbon could hold anything from one card to eleven. The row is exactly
+     four now and .hm-tiles owns how it stacks — two-up under 1100, one-up
+     under 680 — and an auto-fit rule sitting later in the sheet with
+     !important behind it beat that: MEASURED at 900px, the four tiles drew
+     THREE across and the fourth wrapped alone onto a second line.
+
+     A retired rule with !important on it is not inert; it is the loudest thing
+     in the room. */
 
   /* ---- A PHONE CANNOT AFFORD DESKTOP GUTTERS ----
      Every view sets its own 16-18px side padding inline, which is right on a
@@ -3323,8 +3499,16 @@
      in the order you would expect rather than the order they were written in.
      Off-screen by default and NOT display:none: a transform can be animated,
      and a panel that simply appears is a panel that looks like a bug. */
+  /* ---- IT STARTS BELOW THE SHELL BAR, exactly as its scrim already does ----
+     The scrim was given `top:var(--shell-head-h)` because at inset:0 it
+     swallowed clicks on the two icons that OWN this panel, so the swap between
+     Alerts and Activity was unreachable. The panel itself was left at top:0 and
+     got away with it only because the old 64px header pushed the bell further
+     left than the panel is wide. The 44px bar is more compact, the bell moved
+     under it, and the fault came back — the same fault, through the other
+     element. Both halves now start below the bar. */
   #context-panel{
-    position:fixed;top:0;right:0;bottom:0;z-index:46;
+    position:fixed;top:var(--shell-head-h,44px);right:0;bottom:0;z-index:46;
     width:min(var(--shell-panel-w,292px),88vw);
     display:flex;flex-direction:column;min-height:0;overflow:hidden;
     box-shadow:var(--shadow-lg);
@@ -3372,7 +3556,19 @@
      with it), declared once so the two cannot drift. The header stays lit while
      the page dims, which reads correctly: the control that owns this panel is
      the one thing still live. Everything else still dismisses on a click. */
-  :root{ --shell-head-h:64px; }
+  /* ---- THE SHELL'S FOUR NUMBERS (the enterprise design, 24 Aug 2026) ----
+     The bar is 44px and the nav column is 240, which is the design's own
+     rhythm; --ctl-h stays at HaTi's 28 (owner-ruled: "buttons should stay at
+     28 but the rest should stick to the new design"). Change these together or
+     not at all — they are what every other measurement on the shell hangs off.
+
+     THE BAR IS THE DARK GROUND AND THE COLUMN IS WHITE. That is the swap:
+     --nav-bg has always meant "the deep brand ground, deeper than the accent
+     ramp reaches", and it still does — it has simply moved from the left edge
+     to the top one. Nothing that reads it (the hero's gradient, the phone)
+     needs to know. --nav-well is new and belongs to the WHITE column: the
+     ground a hovered or live door sits on. */
+  :root{ --shell-head-h:44px; --nav-w:240px; --nav-well:#EFF3F3; }
   #panel-scrim{
     position:fixed;left:0;right:0;bottom:0;top:var(--shell-head-h,64px);z-index:45;
     background:color-mix(in srgb,#020617 45%,transparent);
@@ -3771,136 +3967,108 @@
 
 <!-- startApp() shows this with style.display='grid' (js/core.js), so the shell
      stays a grid: a 64px header row spanning both columns, then sidebar + main. -->
-<div id="app-shell" style="display:none;position:fixed;inset:0;grid-template-columns:256px minmax(0,1fr);grid-template-rows:var(--shell-head-h,64px) minmax(0,1fr);background:var(--color-bg);">
+<div id="app-shell" style="display:none;position:fixed;inset:0;grid-template-columns:var(--nav-w,240px) minmax(0,1fr);grid-template-rows:var(--shell-head-h,44px) minmax(0,1fr);background:var(--color-bg);">
 
-  <!-- ================= TOP HEADER (64px, spans both columns) ================= -->
-  <header id="top-header" style="grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 20px;background:var(--color-surface);border-bottom:1px solid var(--color-divider);min-width:0;">
+  <!-- ================= SHELL BAR (44px, spans both columns) =================
+       THE DARK GROUND MOVED UP HERE FROM THE LEFT EDGE (owner-ruled 24 Aug
+       2026). It is the same token it always was — --nav-bg, "the deep brand
+       ground, deeper than the accent ramp reaches" — so the green workspace,
+       the navy one and the dark theme all answer it without a second rule.
 
-    <!-- brand + jurisdiction switcher -->
-    <!-- flex:none, NOT min-width:0. This group holds the brand and the
-         language toggle, and both of those are themselves flex:none — so a
-         group allowed to shrink below its content does not shrink the
-         children, it lets them SPILL out of its right edge and under the
-         search box, which is painted after it. At 1280 that put the search
-         magnifier exactly over the "Svenska" button: on screen, correct size,
-         and unpressable. The search is the thing with room to give (it shrinks
-         from 24rem to 130px), so it is the thing that shrinks. -->
-    <div style="display:flex;align-items:center;gap:20px;flex:none;">
-      <!-- Phone-only door to the nav. Below 900 the sidebar is an off-canvas
-           drawer (see the RESPONSIVE SHELL block), so it needs a handle; above
-           900 the sidebar is on screen and this is hidden. -->
-      <button id="nav-toggle" class="hdr-icon-btn" title="Menu" data-i18n-title="sh_menu" aria-label="Open navigation" data-i18n-aria="sh_open_nav" aria-expanded="false" style="display:none;flex:none;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
-      </button>
-      <div id="brand-block" style="display:flex;align-items:center;gap:11px;flex:none;">
-        <div id="brand-mark" style="width:40px;height:40px;border-radius:0;background:var(--brand-grad);color:#fff;display:grid;place-items:center;box-shadow:0 6px 16px -6px rgb(var(--color-accent-600-rgb)/.55);">
-          <svg width="19" height="19" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-file"/></svg>
-        </div>
-        <div id="brand-wordmark" style="line-height:1.15;">
-          <div style="display:flex;align-items:center;gap:7px;">
-            <span style="font-family:var(--font-heading);font-weight:700;font-size:19px;letter-spacing:-.02em;">HaTi</span>
-            <span style="font-size:12px;padding:1px 8px;border-radius:0;background:color-mix(in srgb,var(--accent-solid) 10%,transparent);border:1px solid color-mix(in srgb,var(--accent-solid) 22%,transparent);color:var(--color-accent-600);font-weight:700;">CLM</span>
-          </div>
-          <div id="brand-caption" data-i18n="sh_brand_caption" style="font-size:12px;color:var(--color-neutral-500);font-weight:400;">SME Contract Platform</div>
-        </div>
-      </div>
+       WHAT LEFT THIS BAR, and each for the same reason: 44px is 20px less than
+       the 64 it had, and the design spends what is left on the contract rather
+       than on chrome. The 40px brand mark, the CLM chip and the "SME Contract
+       Platform" caption are gone; the wordmark stays as live text and the
+       space they held now carries the PAGE'S OWN NAME (#shell-title), which is
+       the fact a reader actually needs and which nothing in the shell stated
+       before. The profile's name-and-role text went the same way — the avatar
+       carries the initials and names the person on its hover. -->
+  <header id="top-header" style="grid-column:1/-1;display:flex;align-items:center;gap:8px;padding:0 8px 0 12px;background:var(--nav-bg);color:#fff;min-width:0;">
 
+    <button id="nav-toggle" class="hdr-icon-btn" title="Menu" data-i18n-title="sh_menu" aria-label="Open navigation" data-i18n-aria="sh_open_nav" aria-expanded="false" style="display:none;flex:none;">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><use href="#i-grid"/></svg>
+    </button>
 
-
-      <!-- WHICH LANGUAGE YOU READ THE APP IN. This has the space the
-           jurisdiction flags used to occupy, and that swap is the point: the
-           market is the COMPANY's, an admin sets it once, and it lives in
-           Settings. The language is the PERSON's — two people in the same
-           workspace can differ — so it belongs where it can be flipped without
-           going looking for it.
-
-           Buttons, not a <select>: with two languages a segmented pair shows
-           the choice AND the current state in one glance, where a dropdown
-           hides the alternative behind a click. Options are still built from
-           js/i18n.js in wireLanguagePicker, so a third language grows the row
-           rather than needing new markup. -->
-      <div id="lang-switch" class="lang-toggle" role="group" aria-label="Language"></div>
+    <div id="brand-block" style="display:flex;align-items:center;gap:8px;flex:none;">
+      <span id="brand-wordmark" style="font-family:var(--font-heading);font-weight:700;font-size:14px;letter-spacing:-.01em;">HaTi</span>
     </div>
+    <span class="sh-div" aria-hidden="true"></span>
+    <!-- THE PAGE'S OWN NAME. renderPageHeader fills it per view (shellTitleFor),
+         so it turns over with the reader's language like every other heading —
+         and it is where "Contract Lifecycle Management" now lives, the phrase
+         the dashboard's retired banner used to carry. -->
+    <span id="shell-title" style="font-size:14px;font-weight:400;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></span>
 
-    <!-- central global search (filters the register; ⌘K opens the jump palette) -->
+    <span style="flex:1 1 auto;min-width:8px;"></span>
+
     <div class="cmd-search">
-      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true" style="opacity:.45;flex:none;"><use href="#i-search"/></svg>
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true" style="opacity:.85;flex:none;"><use href="#i-search"/></svg>
       <input id="cmd-search" data-i18n-ph="sh_search_ph" placeholder="Search contracts, clauses, counterparties…"/>
-      <button id="cmd-k-hint" title="Open global search (Ctrl/Cmd+K)" data-i18n-title="sh_search_hint" style="font-size:12px;border:1px solid var(--color-divider);padding:2px 6px;color:var(--color-neutral-500);font-family:var(--font-code);border-radius:0;background:var(--color-surface);cursor:pointer;flex:none;">⌘K</button>
+      <button id="cmd-k-hint" title="Open global search (Ctrl/Cmd+K)" data-i18n-title="sh_search_hint">⌘K</button>
     </div>
 
-    <!-- right actions: Copilot · theme · notifications · profile -->
-    <div style="display:flex;align-items:center;gap:10px;flex:none;">
-      <button id="cmd-ai" title="Ask Copilot" data-i18n-title="sh_ask_copilot" style="position:relative;display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:0;background:color-mix(in srgb,var(--accent-solid) 10%,transparent);border:1px solid color-mix(in srgb,var(--accent-solid) 30%,transparent);color:var(--color-accent-600);cursor:pointer;font-family:var(--font-body);font-size:13px;font-weight:600;">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-spark"/></svg>
-        <span class="cmd-ai-label" data-i18n="sh_ask_copilot">Ask Copilot</span>
-        <span id="cmd-ai-badge" data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:#f59e0b;border:2px solid var(--color-surface);"></span>
-      </button>
+    <span style="flex:1 1 auto;min-width:8px;"></span>
 
-      <!-- ---- THREE THEMES NEEDS A MENU, NOT A MOON ----
-           A moon is a switch with two positions and it promised night. With
-           Green, Navy and Dark to choose between, pressing a moon and getting a
-           colour change is the control lying about itself. Three named rows, a
-           swatch each, a tick on the one you are wearing.
+    <!-- WHICH LANGUAGE YOU READ THE APP IN — a person's own setting, and it
+         sits beside the other two for that reason. The enterprise design draws
+         no language control at all; HaTi is bilingual, so it needs one, and
+         this bordered group is where a per-person preference belongs. -->
+    <div id="lang-switch" class="sh-grp" role="group" aria-label="Language"></div>
 
-           AND THIS IS AN HTML COMMENT, not ${''/* … */}. That form is a
-           JavaScript template-literal trick and it works in the view files
-           because those build their markup as template strings. This file is
-           plain HTML: the same characters are TEXT, and they printed a
-           paragraph about moons across the top of the platform. Caught by
-           photographing the header. -->
-      <div style="position:relative;flex:none">
-        <button id="theme-btn" class="hdr-icon-btn" aria-haspopup="true" aria-expanded="false" title="Theme" data-i18n-title="sh_theme">
-          <span id="theme-swatch" aria-hidden="true"></span>
-        </button>
-        <div id="theme-menu" class="room-menu hidden" style="min-width:212px"></div>
-      </div>
+    <!-- ---- APPEARANCE: TWO AXES, NOT THREE THEMES ----
+         The old control was a menu of three mutually-exclusive themes — Green,
+         Navy, Dark — so a reader on Navy who wanted night lost their brand.
+         The design separates them, and it is the better model: the BRAND is
+         the workspace's (green or navy) and the THEME is the person's (light
+         or dark), which is four combinations rather than three states.
+         setBrand and setDark write them separately; setTheme still answers to
+         the three old keys, so nothing stored in anybody's browser moves.
 
-      <!-- THE BELL OPENS ALERTS: the things actually waiting on this person.
-           It used to press the button below it — same panel, same content, two
-           icons for one job — and its own tooltip said so. Both still share ONE
-           panel; only the contents differ (see openPanel in js/app.js).
-
-           AND THE DOT COUNTS SOMETHING NOW. It was a hard-coded <span> here:
-           always on, counting nothing, and long since trained out of everybody
-           who uses this. An always-on badge is worse than no badge. It carries
-           a real number, it is `hidden` at zero, and updateAlertBadge is what
-           fills it — nothing marks an alert as merely seen, so the number goes
-           down when the work does. -->
-      <button id="hdr-notify" class="hdr-icon-btn" title="Alerts — what is waiting on you" data-i18n-title="sh_alerts_title">
-        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-bell"/></svg>
-        <span id="hdr-notify-dot" hidden style="position:absolute;top:4px;right:3px;min-width:15px;height:15px;padding:0 3px;box-sizing:border-box;border-radius:0;background:var(--st-amber-dot);color:#1c1206;border:2px solid var(--color-surface);font:inherit;font-size:10px;font-weight:700;line-height:11px;text-align:center;font-family:var(--font-mono);"></span>
-      </button>
-
-      <button id="cmd-panel" class="hdr-icon-btn" title="Activity — everything happening across the workspace" data-i18n-title="sh_toggle_panel">
-        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-panel"/></svg>
-      </button>
-
-      <!-- Collapse the sidebar to its icons. It lives HERE rather than in the
-           sidebar for the reason the collapsed sidebar exists: the control has
-           to be reachable and the same size in both states, and a button
-           inside a 64px rail is neither. Beside the Activity panel toggle
-           because they are the same kind of act — this is the other side of
-           the window. -->
-
-      <!-- regional profile badge — renderSideUser() (js/core.js) fills these -->
-      <div style="display:flex;align-items:center;gap:10px;padding-left:12px;border-left:1px solid var(--color-divider);">
-        <button id="rail-avatar" title="Team &amp; settings" data-i18n-title="sh_team_settings" style="display:flex;align-items:center;gap:9px;border:0;background:none;cursor:pointer;padding:0;text-align:left;color:inherit;min-width:0;">
-          <span id="side-avatar" style="width:32px;height:32px;border-radius:50%;background:var(--brand-grad);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;font-family:var(--font-heading);flex:none;border:1px solid color-mix(in srgb,var(--accent-solid) 40%,transparent);">AM</span>
-          <span id="hdr-profile-meta" style="line-height:1.25;min-width:0;">
-            <span id="side-name" style="display:block;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;">Amina Mwangi</span>
-            <span id="side-role" style="display:block;font-size:12px;color:var(--color-neutral-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;">Admin</span>
-          </span>
-        </button>
-        <button id="side-logout" title="Log out of HaTi" data-i18n-title="sh_logout_title" aria-label="Log out" data-i18n-aria="sh_logout_aria" class="hdr-icon-btn" style="width:32px;height:32px;">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-out"/></svg>
-        </button>
-      </div>
+         THE TWO SWATCHES ARE ADMIN-ONLY (owner-ruled). Light/dark and language
+         change what YOU see; the brand changes what everyone in the company
+         sees, and a control that repaints the whole workspace does not belong
+         one stray click from the search box for every member. -->
+    <div class="sh-grp" role="group" aria-label="Appearance">
+      <button id="brand-green" class="sh-sw" type="button" data-brand-pick="green" hidden><i style="background:#0d9488"></i></button>
+      <button id="brand-navy" class="sh-sw" type="button" data-brand-pick="navy" hidden><i style="background:#24488f"></i></button>
+      <button id="theme-btn" class="sh-theme" type="button" aria-pressed="false" title="Theme" data-i18n-title="sh_theme"></button>
     </div>
+
+    <button id="cmd-ai" class="hdr-icon-btn" title="Ask Copilot" data-i18n-title="sh_ask_copilot" style="position:relative;">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-spark"/></svg>
+      <span id="cmd-ai-badge" data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:3px;right:3px;width:8px;height:8px;border-radius:50%;background:#f59e0b;"></span>
+    </button>
+
+    <!-- THE BELL OPENS ALERTS: the things actually waiting on this person. The
+         count is real and `hidden` at zero — nothing marks an alert as merely
+         seen, so the number goes down when the work does. -->
+    <button id="hdr-notify" class="hdr-icon-btn" title="Alerts — what is waiting on you" data-i18n-title="sh_alerts_title">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-bell"/></svg>
+      <span id="hdr-notify-dot" hidden></span>
+    </button>
+
+    <button id="cmd-panel" class="hdr-icon-btn" title="Activity — everything happening across the workspace" data-i18n-title="sh_toggle_panel">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-panel"/></svg>
+    </button>
+
+    <!-- regional profile badge — renderSideUser() (js/core.js) fills these.
+         #side-name and #side-role stay in the DOM and stay written: they are
+         the accessible name of this button and half the suite reads them. What
+         changed is that the bar no longer PRINTS them beside the circle. -->
+    <button id="rail-avatar" title="Team &amp; settings" data-i18n-title="sh_team_settings" style="display:flex;align-items:center;gap:0;border:0;background:none;cursor:pointer;padding:0;text-align:left;color:inherit;flex:none;">
+      <span id="side-avatar">AM</span>
+      <span id="hdr-profile-meta" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;">
+        <span id="side-name">Amina Mwangi</span>
+        <span id="side-role">Admin</span>
+      </span>
+    </button>
+    <button id="side-logout" title="Log out of HaTi" data-i18n-title="sh_logout_title" aria-label="Log out" data-i18n-aria="sh_logout_aria" class="hdr-icon-btn">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-out"/></svg>
+    </button>
   </header>
 
-  <!-- ================= SIDEBAR (256px, or 64px as the rail) ================= -->
-  <aside id="side-nav" style="display:flex;flex-direction:column;background:var(--nav-bg);border-right:1px solid var(--nav-line);min-height:0;">
+  <!-- ============= SIDEBAR (--nav-w, or 64px as the rail) ============= -->
+  <aside id="side-nav" style="display:flex;flex-direction:column;background:var(--color-surface);border-right:1px solid var(--color-divider);min-height:0;">
 
     <!-- ---- THE COLLAPSE CONTROL, ON THE THING IT COLLAPSES ----
          It lived beside the Activity panel toggle in the top header, which put
@@ -4068,13 +4236,17 @@
       </div>
     </nav>
 
-    <!-- HaTi Copilot launcher — pinned above the footer, on the brand gradient
-         so it stands off the surface in both themes -->
-    <div class="copilot-wrap" style="padding:8px 12px;">
-      <button id="side-copilot" title="Open HaTi Copilot — your contract-intelligence assistant" data-i18n-title="nav_copilot_title" style="position:relative;width:100%;display:flex;align-items:center;justify-content:center;gap:7px;background:var(--brand-grad);color:#fff;border:0;border-radius:0;padding:10px;cursor:pointer;font-family:var(--font-heading);font-weight:700;font-size:13px;letter-spacing:.01em;box-shadow:0 6px 16px -6px rgb(var(--color-accent-600-rgb)/.55);transition:filter .15s;">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-spark"/></svg>
-        <span class="sc-label">HaTi Copilot</span>
-        <span id="ai-badge" data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:-4px;right:-4px;width:11px;height:11px;border-radius:50%;background:#f59e0b;border:2px solid var(--color-surface);"></span>
+    <!-- THE COPILOT DOOR AT THE FOOT OF THE COLUMN.
+         Same button it has always been — same id, same handler, same badge —
+         re-dressed to the design's own: a full-width flat accent block with the
+         keyboard hint at its right. The gradient and the soft drop shadow went
+         with the rest of them: this shell draws depth in 1px lines. -->
+    <div class="copilot-wrap">
+      <button id="side-copilot" title="Open HaTi Copilot — your contract-intelligence assistant" data-i18n-title="nav_copilot_title">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-spark"/></svg>
+        <span class="sc-label" data-i18n="sh_ask_copilot">Ask Copilot</span>
+        <span class="sc-kb" aria-hidden="true">⌘K</span>
+        <span id="ai-badge" data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:3px;right:3px;width:9px;height:9px;border-radius:50%;background:#f59e0b;"></span>
       </button>
     </div>
 
@@ -4094,7 +4266,7 @@
          scrolling. Open state is per sitting, in memory; Escape and the
          handle both close it. The card's ids are untouched, so
          updateSidebarStatus writes exactly where it always wrote. -->
-    <div class="foot-wrap" id="foot-wrap" style="position:relative;border-top:1px solid var(--nav-line);">
+    <div class="foot-wrap" id="foot-wrap" style="position:relative;border-top:1px solid var(--color-divider);">
       <button id="foot-toggle" type="button" class="foot-handle" aria-expanded="false" aria-controls="foot-sheet" title="Workspace status" data-i18n-title="foot_status_title">
         <span class="live-ping" style="width:7px;height:7px;border-radius:50%;background:#10b981;flex:none;"></span>
         <span class="foot-card-title" data-i18n="foot_status_title">Workspace status</span>

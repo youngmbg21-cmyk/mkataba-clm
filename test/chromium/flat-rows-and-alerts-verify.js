@@ -143,7 +143,15 @@ const SEED_UNSENT = async () => {
       const rows = buildAlerts();
       return {
         sigFirst: alertRank('signature'),
-        renewalLast: alertRank('renewal') === ALERT_KINDS.length - 1,
+        /* REVERSED IN PLACE 24 Aug 2026, the same way f240's twin was: the
+           claim is that a date which moved by itself ranks under every piece
+           of WORK, and it was pinned to the literal end of the list. A kind
+           has since joined below it — 'email-off', the workspace's own
+           standing fault, which is not work with anybody's name on it. The
+           RELATION is what this was always about, so it is written as one. */
+        renewalLast: ALERT_KINDS.filter(k => k.k !== 'email-off')
+          .findIndex(k => k.k === 'renewal') === ALERT_KINDS.filter(k => k.k !== 'email-off').length - 1,
+        settingUnderWork: alertRank('email-off') === ALERT_KINDS.length - 1,
         unknownLast: alertRank('no-such-kind') >= ALERT_KINDS.length,
         kinds: rows.map(r => r.kind),
         ranks: rows.map(r => alertRank(r.kind)),
@@ -151,11 +159,14 @@ const SEED_UNSENT = async () => {
         total: rows.length,
       };
       } catch (e) { return { threw: String(e && e.message || e), sigFirst: -1,
-        renewalLast: false, unknownLast: false, kinds: [], ranks: [], sigAt: -1, total: 0 }; }
+        renewalLast: false, settingUnderWork: false, unknownLast: false,
+        kinds: [], ranks: [], sigAt: -1, total: 0 }; }
     });
 
     check('4a your own signature ranks first of all', order.sigFirst === 0, order.sigFirst);
-    check('4b a renewal date ranks last', order.renewalLast);
+    check('4b a renewal date ranks last of the work rows', order.renewalLast);
+    check('4b\u2032 and a setting nobody is blocked on ranks under all of them',
+      order.settingUnderWork);
     check('4c an unranked kind sorts last, never first', order.unknownLast);
     check('4d THE REPORTED ROW EXISTS, and it is at the top',
       order.sigAt === 0, { at: order.sigAt, of: order.total, kinds: order.kinds.slice(0, 8) });
