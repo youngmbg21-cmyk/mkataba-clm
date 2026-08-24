@@ -167,7 +167,10 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
       opened.items.length === 3 && opened.items.join(' ').includes('Verify'), opened.items.join(' | '));
     check('the button says it is open', opened.expanded === 'true', String(opened.expanded));
 
-    await page.click('#ws-history-pane .hist-rail');
+    /* RE-POINTED 24 Aug 2026 — .hist-rail went with the two-column
+       layout; the trail's rows are direct children of the pane. What this
+       press means is unchanged: somewhere outside the menu. */
+    await page.click('#ws-history-pane .hist-ev');
     await page.waitForTimeout(300);
     const closed = await page.evaluate(`(() => {
       const seen = ${SEEN};
@@ -185,7 +188,7 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
     const narrowed = await page.evaluate(`(() => {
       const host = document.getElementById('ws-history-pane');
       return { rows: host.querySelectorAll('.hist-ev').length,
-        pill: (host.querySelector('.pill-x') || {}).textContent.trim(),
+        pill: ((host.querySelector('.hist-cap') || {}).textContent || '').trim(),
         side: (host.querySelector('[data-ht-filter="side"]') || {}).value,
         row: ${SEEN}(host.querySelector('.hist-filters')) };
     })()`);
@@ -208,7 +211,10 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
     await page.click('#hist-more');
     await page.waitForTimeout(300);
     const stillOpens = await page.evaluate(`!!(${SEEN}(document.getElementById('hist-more-menu')) || {}).on`);
-    await page.click('#ws-history-pane .hist-rail');
+    /* RE-POINTED 24 Aug 2026 — .hist-rail went with the two-column
+       layout; the trail's rows are direct children of the pane. What this
+       press means is unchanged: somewhere outside the menu. */
+    await page.click('#ws-history-pane .hist-ev');
     await page.waitForTimeout(300);
     const stillCloses = await page.evaluate(`!!(${SEEN}(document.getElementById('hist-more-menu')) || {}).on`);
     check('after three repaints the menu still opens and shuts on one press each',
@@ -220,7 +226,7 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
       const host = document.getElementById('ws-history-pane');
       return { rows: host.querySelectorAll('.hist-ev').length,
         side: (host.querySelector('[data-ht-filter="side"]') || {}).value,
-        pill: (host.querySelector('.pill-x') || {}).textContent.trim() };
+        pill: ((host.querySelector('.hist-cap') || {}).textContent || '').trim() };
     })()`);
     check('Clear is the one way back, and it puts side back with the rest',
       cleared.rows === before && cleared.side === '', `${cleared.rows} rows · side "${cleared.side}" · ${cleared.pill}`);

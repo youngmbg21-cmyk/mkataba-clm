@@ -2381,19 +2381,33 @@
   .risk-n{ flex:none; font-family:var(--font-mono); font-size:12px; color:var(--color-neutral-500);
     min-width:22px; text-align:right; }
 
-  /* ---- HISTORY: THE STORY, AND THE VERSIONS BESIDE IT ---- */
-  .hist-grid{ display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);
-    gap:14px; max-width:1120px; width:100%; margin:0 auto; }
-  @media (max-width:980px){ .hist-grid{ grid-template-columns:1fr; max-width:680px; } }
-  .hist-rail{ position:relative; padding-left:26px; }
-  .hist-rail::before{ content:""; position:absolute; left:10px; top:10px; bottom:10px;
-    width:1px; background:var(--color-divider); }
-  .hist-ev{ position:relative; padding:7px 0; }
-  .hist-mark{ position:absolute; left:-26px; top:6px; width:21px; height:21px; border-radius:50%;
-    display:grid; place-items:center; font-size:12px; line-height:1;
-    background:var(--color-surface); border:1px solid var(--color-divider); }
-  .hist-text{ font-size:14px; line-height:1.5; }
+  /* ---- HISTORY: ONE FULL-WIDTH TRAIL (owner-approved render, 24 Aug 2026) ----
+     The Versions card that used to take a third of this tab is retired, so the
+     trail has the width — which is what lets each entry say WHAT happened and
+     WHO did it without wrapping. .hist-grid and .hist-rail are STALE; flag any
+     mention. The rail's vertical line went with the two-column layout: it was
+     threading 21px ringed glyphs together, and at 8px in a ruled table the rows
+     are already a list. */
+  .hist-head{ display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    padding:10px 16px; border-bottom:1px solid var(--color-divider); }
+  .hist-cap{ font-size:12px; color:var(--color-neutral-600); }
+  /* THE ROW IS THE DESIGN'S: a fixed time column, the kind as a dot, the event
+     over its actor, and the round at the right wall. Ruled edge to edge, which
+     is why the pane carries no padding of its own. */
+  .hist-ev{ display:flex; gap:14px; align-items:flex-start;
+    padding:11px 16px; border-bottom:1px solid var(--rule); }
+  .hist-ev:last-child{ border-bottom:0; }
+  .hist-ev:hover{ background:var(--nav-well); }
+  .hist-when{ flex:none; width:104px; font-size:13px; color:var(--color-neutral-600);
+    font-variant-numeric:tabular-nums; line-height:20px; }
+  .hist-dot{ flex:none; width:8px; height:8px; border-radius:50%; margin-top:6px; }
+  .hist-body{ flex:1; min-width:0; }
+  .hist-round{ flex:none; font-size:12px; color:var(--color-neutral-400);
+    font-variant-numeric:tabular-nums; line-height:20px; }
+  .hist-text{ font-size:14px; line-height:20px; }
   .hist-meta{ font-size:12px; color:var(--color-neutral-500); margin-top:1px; }
+  .hist-meta:empty{ display:none; }
+  .hist-empty{ padding:22px 16px; font-size:13px; color:var(--color-neutral-600); }
   .hist-fp{ font-family:var(--font-mono); font-size:12px; color:var(--color-neutral-400); }
   /* The redline itself, under the event that made it — the same green-added /
      red-removed convention the exported report prints. */
@@ -2409,13 +2423,24 @@
      a Filter button either, so this rule is what a reader meets on arrival: it
      carries its own bottom rule, which is the line between the controls and the
      record. */
-  .hist-filters{ display:flex; gap:8px; flex-wrap:wrap; padding-bottom:11px;
-    border-bottom:1px solid var(--color-divider); }
-  .hist-f{ display:flex; flex-direction:column; gap:2px; font-size:11px; font-weight:700;
-    letter-spacing:.09em; text-transform:uppercase; color:var(--color-neutral-500); }
+  /* ---- THE FILTERS STAY, AND READ LIKE THE CONTRACTS PAGE'S (owner-asked
+     24 Aug 2026: "keep the filters attached") ----
+     They were labelled in 11px uppercase micro-caps, which is this product's
+     word for a SIGNPOST rather than for a field; the Contracts page's own
+     filters were relabelled on the same day and two filter rows in one product
+     disagreeing about their own dress is how the next screen picks the wrong
+     one. Same 12px sentence-case label, same control metrics. The row is inset
+     and ruled like the head above it, because the pane no longer pads itself. */
+  .hist-filters{ display:flex; gap:8px 12px; flex-wrap:wrap; align-items:flex-end;
+    padding:10px 16px; border-bottom:1px solid var(--color-divider); }
+  #hist-filters{ margin:0; }
+  .hist-f{ display:flex; flex-direction:column; min-width:0; }
+  .hist-f > span{ font-size:12px; font-weight:400; letter-spacing:0; text-transform:none;
+    color:var(--color-neutral-600); margin-bottom:3px; white-space:nowrap; }
   .hist-f select{ font:inherit; font-size:13px; font-weight:400; text-transform:none;
-    letter-spacing:0; border:1px solid var(--color-divider); border-radius:0; padding:4px 6px;
-    background:var(--color-surface); color:var(--color-text); max-width:150px; }
+    letter-spacing:0; border:1px solid var(--color-divider); border-radius:0;
+    padding:5px 9px; background:var(--color-surface); color:var(--color-text);
+    max-width:150px; min-width:96px; }
 
   .sign-grid{ display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);
     gap:14px; max-width:1080px; width:100%; margin:0 auto; }

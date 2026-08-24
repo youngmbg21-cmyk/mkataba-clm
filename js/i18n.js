@@ -3695,6 +3695,12 @@ const STRINGS = {
     ct_hist_print_wording: 'Print the wording that changed under each proposal',
     ct_hist_hide_wording: 'Hide the wording',
     ct_hist_show_wording: 'Show the wording',
+    ct_hist_reading: 'Oldest first · every entry names who and when',
+    ct_hist_none_match: 'Nothing matches these filters.',
+    ct_hist_none_yet: 'Nothing has happened to this contract yet.',
+    ct_hist_events_one: '{n} event',
+    ct_hist_events_other: '{n} events',
+    ct_hist_n_of: '{n} of {all} events',
     ct_filter: 'Filter',
 
     // ---- reports, insights, advice desk and the empty queue ----
@@ -8163,6 +8169,12 @@ const STRINGS = {
     ct_hist_print_wording: 'Visa formuleringen som ändrades under varje förslag',
     ct_hist_hide_wording: 'Dölj formuleringen',
     ct_hist_show_wording: 'Visa formuleringen',
+    ct_hist_reading: 'Äldsta först · varje post namnger vem och när',
+    ct_hist_none_match: 'Inget matchar dessa filter.',
+    ct_hist_none_yet: 'Inget har hänt med detta avtal ännu.',
+    ct_hist_events_one: '{n} händelse',
+    ct_hist_events_other: '{n} händelser',
+    ct_hist_n_of: '{n} av {all} händelser',
     ct_filter: 'Filtrera',
 
     // ---- reports, insights, advice desk and the empty queue ----

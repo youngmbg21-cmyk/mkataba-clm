@@ -3665,6 +3665,22 @@ function renderKeyTermsSide(c){
 const HIST_KIND={ proposed:{mark:'✎',tone:'var(--color-accent)'}, decided:{mark:'✓',tone:'var(--st-green-dot)'},
   withdrawn:{mark:'↩',tone:'var(--color-neutral-400)'}, 'round-closed':{mark:'⊘',tone:'var(--st-steel-dot)'},
   system:{mark:'·',tone:'var(--color-neutral-400)'} };
+/* ---- A REFUSAL IS NOT GREEN (24 Aug 2026) ----
+   'decided' is ONE kind covering both answers, and it was tolerable while the
+   mark was a small ✓ glyph inside a ring — the WORD beside it said which way it
+   went. As a solid 8px dot it stopped being tolerable: green next to "Rejected
+   by Wanjiru Kamau" is the trail's own colour contradicting its own sentence,
+   which is the worst thing a record can do. Caught by looking at the rebuilt
+   page rather than by any test.
+   THE TABLE IS NOT SPLIT — the kind is still one kind, and 'decided' still
+   carries the ✓ for every caller that reads the mark. What is read here is the
+   OUTCOME the event already carries (negoTimeline stamps accepted/rejected on
+   it, and the Outcome filter has always read it), so this invents no new fact
+   and no new store. An outcome nothing matches keeps the kind's own tone. */
+const HIST_OUTCOME_TONE={ accepted:'var(--st-green-dot)', rejected:'var(--st-ruby-dot)',
+  withdrawn:'var(--color-neutral-400)', pending:'var(--st-amber-dot)' };
+const histTone=e=>{ const m=HIST_KIND[e&&e._k]||HIST_KIND.system;
+  return (e&&e.outcome&&HIST_OUTCOME_TONE[e.outcome])||m.tone; };
 /* ---- THE AUDIT TRAIL CONTRIBUTES WHAT THE TIMELINE CANNOT TELL ----
    Merging the two lists naively doubles the page up, and it took putting them
    on one rail to see how badly: the trail writes its OWN entry for every
@@ -3760,9 +3776,20 @@ function roomHistoryHtml(c,f={}){
   const on=Object.values(f||{}).filter(Boolean).length;
   const row=e=>{
     const m=HIST_KIND[e._k]||HIST_KIND.system;
+    /* ---- THE TIME LEADS THE ROW (owner-approved render, 24 Aug 2026) ----
+       It used to sit inside a run of grey meta UNDER the event, so no two
+       entries lined up and a reader could not scan down a column of times —
+       which is the one thing an audit trail is scanned for. It is its own
+       fixed column now, set in the figure face so the digits align.
+       The DATE ONLY, as before: the trail stores a day for most entries and a
+       column that is sometimes a time and sometimes not is worse than one that
+       is always a day. */
     const when=e.at?String(e.at).slice(0,10):'';
-    const meta=[when,e.actor||'',e.round!=null&&e.round!==''?`round ${e.round}`:'',e.clauseLabel||'']
-      .filter(Boolean).map(esc).join(' · ');
+    /* WHO, on its own line under WHAT — the design's shape, and it is what the
+       full width bought. The ROUND leaves this run for a marker at the right
+       edge, so the eye can find where one round ends without reading. */
+    const meta=[e.actor||'',e.clauseLabel||''].filter(Boolean).map(esc).join(' · ');
+    const rd=(e.round!=null&&e.round!=='')?`<span class="hist-round">${esc(i18t('ct_round_n',{n:e.round}))}</span>`:'';
     /* ---- THE WORDING THAT CHANGED, UNDER THE EVENT THAT CHANGED IT ----
        The exported report prints each proposal's redline and the page did not,
        which is why the export read as the fuller record. Same builder, same
@@ -3781,9 +3808,17 @@ function roomHistoryHtml(c,f={}){
       if(!fp||seenFp.has(fp[1])) return '';
       seenFp.add(fp[1]);
       return `<span class="hist-fp" title="${esc(a.detail||'')}">${esc(fp[1].slice(0,18))}…</span>`; }).join('');
-    return `<div class="hist-ev"><span class="hist-mark" style="color:${m.tone};border-color:${m.tone}" aria-hidden="true">${m.mark}</span>
+    /* THE DOT CARRIES THE KIND. It was a 21px ringed glyph in the kind's tone;
+       at 8px solid it is the same reading in the space the design gives it, and
+       the tone is unchanged — HIST_KIND is still the one table. The glyph is
+       not lost: it rides the dot's own hover, so the kind is still nameable
+       rather than colour-only. */
+    return `<div class="hist-ev">
+      <span class="hist-when">${esc(when)}</span>
+      <span class="hist-dot" style="background:${histTone(e)}" title="${esc(m.mark)}" aria-hidden="true"></span>
       <div class="hist-body"><div class="hist-text">${esc(e.text||'')}</div>
-      <div class="hist-meta">${meta}${also?' · '+also:''}</div>${body}${why}${reply}</div></div>`;
+      <div class="hist-meta">${meta}${also?(meta?' · ':'')+also:''}</div>${body}${why}${reply}</div>
+      ${rd}</div>`;
   };
   /* ---- ONE SWITCH, ONE HANDLE, AND NO LID OVER IT ----
      "Whose asks am I looking at" used to be answered TWICE on this head: a
@@ -3811,9 +3846,16 @@ function roomHistoryHtml(c,f={}){
      integrity. It stays a MENU and must never become a <select> — Verify,
      Export and Print are acts, and a select would sit there afterwards wearing
      the last act as though it were a setting. */
-  return `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-      <h6 style="margin:0;font-size:14px;font-weight:700;font-family:var(--font-heading);flex:1">History</h6>
-      <span class="pill-x" style="background:var(--color-neutral-100);color:var(--color-neutral-600)">${on?`${evs.length} of ${all}`:`${all} events`}</span>
+  /* THE HEAD SAYS WHAT YOU ARE LOOKING AT. The count was a grey chip and
+     nothing said which way the list runs — on an audit trail that is the first
+     question, and it is the one thing a reader cannot work out from two
+     entries. The count joins the sentence rather than wearing a pill of its
+     own: it is a fact about the list, not a status. */
+  return `<div class="hist-head">
+      <h6 style="margin:0;font-size:14px;font-weight:700;font-family:var(--font-heading)">History</h6>
+      <span class="hist-cap">${esc(i18t('ct_hist_reading'))} · ${on?esc(i18t('ct_hist_n_of',{n:evs.length,all}))
+        :esc(i18tn('ct_hist_events',all,{n:all}))}</span>
+      <span style="flex:1;min-width:4px"></span>
       ${''/* The long reading. Named for what pressing it does, not for the mode
              it is in — "Detailed" tells you nothing about which way you are
              about to go. */}
@@ -3834,8 +3876,8 @@ function roomHistoryHtml(c,f={}){
     </div>
     <div id="hist-filters" style="margin-bottom:10px">${roomHistoryFiltersHtml(c,f)}</div>
     <div id="ht-verify-result"></div>
-    <div class="hist-rail">${evs.length?evs.map(row).join('')
-      :`<p style="margin:6px 0;font-size:13px;color:var(--color-neutral-600)">${on?'Nothing matches these filters.':'Nothing has happened to this contract yet.'}</p>`}</div>`;
+    ${evs.length?evs.map(row).join('')
+      :`<p class="hist-empty">${on?esc(i18t('ct_hist_none_match')):esc(i18t('ct_hist_none_yet'))}</p>`}`;
 }
 function roomHistoryFiltersHtml(c,f){
   const all=window.negoTimeline?negoTimeline(c):[];
@@ -3870,14 +3912,10 @@ function roomPaintHistory(c,f={}){
   const host=document.getElementById('ws-history-pane');
   if(!host) return;
   host.innerHTML=roomHistoryHtml(c,f);
-  const vhost=document.getElementById('ws-versions-pane');
-  if(vhost){
-    vhost.innerHTML=roomVersionsHtml(c);
-    vhost.querySelectorAll('[data-hist-compare]').forEach(b=>b.addEventListener('click',()=>{
-      if(window.openCompareModal) openCompareModal(c);
-      else toast(i18t('ct_compare_unavailable'),'err');
-    }));
-  }
+  /* THE VERSIONS CARD IS RETIRED — see the pane above. roomVersionsHtml is
+     kept as an exported builder with no caller, this file's own convention for
+     a builder whose feature has gone, so a third caller cannot bring the
+     column back through a door nobody remembered. */
   const read=()=>{ const g=k=>{ const el=host.querySelector(`[data-ht-filter="${k}"]`); return el&&el.value?el.value:''; };
     return {clauseId:g('clauseId'),actor:g('actor'),side:g('side'),round:g('round'),outcome:g('outcome')}; };
   host.querySelectorAll('[data-ht-filter]').forEach(s=>
@@ -5729,10 +5767,21 @@ function renderWorkspace(){
          The header's History button still opens the dialog; both read one
          builder, so they cannot tell different stories. -->
     <div data-ws-pane="history" class="scroll-thin" style="display:none;flex:1;min-height:0;overflow-y:auto;flex-direction:column;padding:2px">
-      <div class="hist-grid">
-        <div id="ws-history-pane" style="${CARD};padding:14px 16px;align-self:start"></div>
-        <div id="ws-versions-pane" style="${CARD};padding:14px 16px;align-self:start"></div>
-      </div>
+      ${''/* ---- ONE FULL-WIDTH TRAIL (owner-approved render, 24 Aug 2026) ----
+             This was a two-column grid with the trail squeezed into 1.6fr and a
+             Versions card taking the other third. The card LISTED versions
+             beside a Compare button, and both were already reachable: Compare
+             sits on the Document tab's toolbar and on the negotiation page, and
+             the Compare window builds its own list of every version WITH
+             restore — so the card was a third door onto something reachable
+             twice, holding a third of the screen to do it.
+             WHAT IS LOST, said out loud: seeing the version list without
+             opening anything. The trail still says "Round 1 closed — version v1
+             captured", so the page never stops telling you they exist.
+             The pane carries no padding of its own now: the head, the filters
+             and each row are ruled edge to edge, which is the design's own
+             shape and cannot be done from a padded box. */}
+      <div id="ws-history-pane" style="${CARD};align-self:start;max-width:1120px;width:100%;margin:0 auto"></div>
       ${''/* The audit-trail CARD has gone: its entries are on the one timeline
              now, marked as system events. The element stays, empty and hidden,
              because renderAuditSection is called from a dozen places and a

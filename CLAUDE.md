@@ -1408,6 +1408,69 @@ AND THE IMPORT BOX SPOKE HALF A SENTENCE IN EACH LANGUAGE. `<b>${i18t('co_or_upl
 
 THE FEATURE ITSELF WAS VERIFIED BEFORE ANY OF THIS, in a browser, in the real room: a marked-up .docx goes in and one change comes out filed as the counterparty's against the right clause, with the margin comment pinned to the clause it was written on, an audit line, a toast, and a wrong file type refused in words. NOT verified: the paste-a-code half, and the API_MODE path where comments post over the network.
 
+## THE HISTORY TAB IS ONE FULL-WIDTH TRAIL (owner-approved render, 24 Aug 2026)
+
+Third page of the page-by-page pass. The tab was a two-column grid — the trail
+squeezed into 1.6fr, a **Versions card** taking the other third — and it is one
+card the width of the page now.
+
+**THE VERSIONS CARD IS RETIRED, AND WHAT IT COST WAS CHECKED BEFORE IT WENT.**
+It listed versions beside a per-version Compare button, and **both were already
+reachable twice**: `ws-compare` sits on the Document tab's toolbar AND on the
+negotiation page, and `openCompareModal` builds its own list of every version
+WITH restore. So the card was a third door onto a thing reachable twice, holding
+a third of the screen. **THE ONE REAL LOSS, said out loud**: seeing the version
+list without opening anything. The trail still reads "Round 1 closed — version
+v1 captured", so the page never stops saying they exist. `roomVersionsHtml` is
+kept as an exported builder with **no caller** — this file's convention for a
+builder whose feature has gone — so a third caller cannot bring the column back
+through a door nobody remembered. `.hist-grid` and `.hist-rail` are STALE.
+
+**THE ROW IS THE DESIGN'S: a fixed time column, a dot, the event over its
+actor, the round at the right wall.** The timestamp used to sit inside a run of
+grey meta UNDER the event, so no two entries lined up and a reader could not
+scan down a column of times — which is the one thing an audit trail is scanned
+for. The ROUND left that run for a marker at the right edge, so where one round
+ends is visible without reading. Rows are ruled edge to edge, which is why **the
+pane carries no padding of its own**.
+
+**AND A REFUSAL WAS GREEN FOR ABOUT TEN MINUTES.** `decided` is ONE kind
+covering both answers with a green tone, which was tolerable while the mark was
+a small ✓ glyph in a ring — the WORD beside it said which way it went. As a
+solid 8px dot it stopped being tolerable: green next to "Rejected by Wanjiru
+Kamau" is the record's own colour contradicting its own sentence. **The table is
+NOT split** — `HIST_KIND` still carries one 'decided' with its ✓ for every
+caller that reads the mark; `histTone(e)` prefers the OUTCOME the event already
+carries (negoTimeline stamps accepted/rejected, and the Outcome filter has read
+it all along), so this invents no fact and no store, and an unmatched outcome
+falls back to the kind's tone. **Caught by looking at the rebuilt page, not by
+any test** — which is the argument for photographing what you build.
+
+**THE FILTERS STAY, ATTACHED, and read like the Contracts page's** (owner-asked
+in those words). They were labelled in 11px uppercase micro-caps — this
+product's word for a SIGNPOST rather than for a field — and the Contracts page's
+filters were relabelled the same day; two filter rows in one product disagreeing
+about their own dress is how the next screen picks the wrong one. **ONE RULE,
+NOT TWO**: the new dress was folded into the existing `.hist-filters` rule
+rather than added above it, because a second rule earlier in the sheet loses the
+cascade fight — this codebase's most repeated visual defect.
+
+**THE HEAD SAYS WHICH WAY THE LIST RUNS.** "Oldest first · every entry names who
+and when · N events". The count left its `.pill-x` chip and joined the sentence:
+it is a fact about the list, not a status. Two empty states became dictionary
+keys (they were hardcoded English).
+
+**THE CENSUS WAS RE-RECORDED, AUDITED FIRST, and it is the smallest one yet:
+ONE value, `rgb(241,245,249)` — `--color-neutral-100`, the count chip's grey —
+gone from history and menu in light, with NOTHING arriving.** It went with the
+`.pill-x` the count used to sit in. Dark never failed, because that token
+resolves there to a value the census already held. Read as a set difference,
+never as a diff.
+
+Tests: history-head-verify (35 — two claims RE-POINTED: the outside-press that
+used to land on `.hist-rail`, and the count read off `.pill-x`), f120/f121/f143/
+f144 unchanged.
+
 ## THE HISTORY HEAD ASKS EACH QUESTION ONCE (owner-reported, 13 Aug 2026)
 
 "Whose asks am I looking at" was answered TWICE on the room's History tab: an Everyone / Ours / Theirs pill on the head AND the Side dropdown in the filter panel. They never disagreed — the chips wrote the same f.side, deliberately — but the duplicate ANNOUNCED ITSELF: a chip counted as "a filter is on", which sprang the panel open, which showed the reader their own choice repeated back in a different vocabulary. THE CHIPS ARE GONE AND THE LID WENT WITH THEM (#hist-filter, the Filter button): the five — Clause / Person / Side / Round / Outcome, plus Clear — sit in the open, and roomPaintHistory auto-opens nothing. .hist-segs / .hist-seg / data-ht-side and the keys ct_whose_changes / ct_filter are STALE — flag any mention (the two dictionary entries are left in place, inert). THE COST WAS WEIGHED AND TAKEN: the filter most reached for is two presses instead of one; it buys a duplicate that cannot come back, four filters that stop being a secret behind a button, and the real prize — ALL THREE HISTORY SCREENS NOW AGREE, because the pop-out record and the counterparty's read-only copy always looked exactly like this.
