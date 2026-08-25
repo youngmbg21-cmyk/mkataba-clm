@@ -163,7 +163,7 @@ function openSignaturePad(opts={}){
         b.style.color=on?'var(--color-accent-800)':'var(--color-neutral-700)';
         b.style.boxShadow=on?'0 0 0 3px var(--color-accent-100)':'none';
       });
-      prev.innerHTML=`<span style="font-family:${currentFont().css.replace(/"/g,'&quot;')};font-size:40px;color:var(--color-accent-800);line-height:1;padding:8px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${(name||'&nbsp;').replace(/</g,'&lt;')}</span>`;
+      prev.innerHTML=`<span style="font-family:${currentFont().css.replace(/"/g,'&quot;')};font-size:40px;color:var(--accent-ink);line-height:1;padding:8px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${(name||'&nbsp;').replace(/</g,'&lt;')}</span>`;
     }
     q('#sig-typed')?.addEventListener('input',paintTypePreview);
 

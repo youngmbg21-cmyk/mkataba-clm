@@ -98,17 +98,17 @@ function bar(label, value, max, valStr, color){
 }
 /* Metric catalogue for the top stat cards. Each customer follows what matters
    to them — value isn't forced. `get(r)` returns {val, sub} from the computed
-   report object; grad/ic set the card's look. */
+   report object; tone/ic set the card's look. */
 const REPORT_METRICS=[
-  {k:'avgCycle',   get label(){ return i18t('rep_avg_cycle'); }, grad:'var(--grad-emerald)', ic:'clock', get:r=>({val:r.avgCycle!=null?Math.round(r.avgCycle)+'d':'—', sub:i18t('rep_signed_sampled',{n:r.cycleN})})},
-  {k:'ageReview',  get label(){ return i18t('rep_avg_age_review'); },       grad:'var(--grad-amber)',   ic:'clock', get:r=>({val:Math.round(r.stageAge['Under Review']||0)+'d', get sub(){ return i18t('rep_time_on_cp'); }})},
-  {k:'ageDraft',   get label(){ return i18t('rep_avg_age_draft'); },        grad:'var(--grad-steel)',   ic:'file',  get:r=>({val:Math.round(r.stageAge['Draft']||0)+'d', sub:i18t('rep_time_internal')})},
-  {k:'renewal',    get label(){ return i18t('rep_renewal_pipeline_12'); },   grad:'var(--grad-emerald)', ic:'trend', get:r=>({val:fmtMoneyShort(r.pipeTotal), sub:i18tn('rep_months_expiries',r.pipeMonthsN,{n:r.pipeMonthsN})})},
-  {k:'totalValue', get label(){ return i18t('rep_total_value'); },     grad:'var(--grad-steel)',   ic:'trend', get:r=>({val:fmtMoneyShort(r.totalValue), sub:r.active+' active contracts'})},
-  {k:'count',      get label(){ return i18t('rep_contracts_total'); },         grad:'var(--grad-steel)',   ic:'file',  get:r=>({val:String(r.total), sub:r.active+' active'})},
-  {k:'expiring',   get label(){ return i18t('rep_expiring_90'); },        grad:'var(--grad-amber)',   ic:'clock', get:r=>({val:String(r.expiring90), sub:'need attention'})},
-  {k:'avgRisk',    get label(){ return i18t('rep_avg_risk'); },            grad:'var(--grad-ruby)',    ic:'shield',get:r=>({val:r.avgRisk!=null?String(Math.round(r.avgRisk)):'—', sub:r.highRisk+' high-risk (≥70)'})},
-  {k:'openOb',     get label(){ return i18t('rep_open_obligations'); },          grad:'var(--grad-amber)',   ic:'list',  get:r=>({val:String(r.openOb), sub:r.overdueOb+' overdue'})},
+  {k:'avgCycle',   get label(){ return i18t('rep_avg_cycle'); }, tone:'green', ic:'clock', get:r=>({val:r.avgCycle!=null?Math.round(r.avgCycle)+'d':'—', sub:i18t('rep_signed_sampled',{n:r.cycleN})})},
+  {k:'ageReview',  get label(){ return i18t('rep_avg_age_review'); },       tone:'amber',   ic:'clock', get:r=>({val:Math.round(r.stageAge['Under Review']||0)+'d', get sub(){ return i18t('rep_time_on_cp'); }})},
+  {k:'ageDraft',   get label(){ return i18t('rep_avg_age_draft'); },        tone:'steel',   ic:'file',  get:r=>({val:Math.round(r.stageAge['Draft']||0)+'d', sub:i18t('rep_time_internal')})},
+  {k:'renewal',    get label(){ return i18t('rep_renewal_pipeline_12'); },   tone:'green', ic:'trend', get:r=>({val:fmtMoneyShort(r.pipeTotal), sub:i18tn('rep_months_expiries',r.pipeMonthsN,{n:r.pipeMonthsN})})},
+  {k:'totalValue', get label(){ return i18t('rep_total_value'); },     tone:'steel',   ic:'trend', get:r=>({val:fmtMoneyShort(r.totalValue), sub:r.active+' active contracts'})},
+  {k:'count',      get label(){ return i18t('rep_contracts_total'); },         tone:'steel',   ic:'file',  get:r=>({val:String(r.total), sub:r.active+' active'})},
+  {k:'expiring',   get label(){ return i18t('rep_expiring_90'); },        tone:'amber',   ic:'clock', get:r=>({val:String(r.expiring90), sub:'need attention'})},
+  {k:'avgRisk',    get label(){ return i18t('rep_avg_risk'); },            tone:'ruby',    ic:'shield',get:r=>({val:r.avgRisk!=null?String(Math.round(r.avgRisk)):'—', sub:r.highRisk+' high-risk (≥70)'})},
+  {k:'openOb',     get label(){ return i18t('rep_open_obligations'); },          tone:'amber',   ic:'list',  get:r=>({val:String(r.openOb), sub:r.overdueOb+' overdue'})},
 ];
 /* "2026-01" as a month, named with its whole year. The two-digit form read as
    a day of the month on a screen full of real dates — see pfMonthLabel. The
@@ -171,10 +171,15 @@ function reportChartSel(){
 function reportDropdown(variant, kind, idx, catalog, selKey){
   const cur=catalog.find(x=>x.k===selKey)||catalog[idx];
   const hero=variant==='hero';
+  // Both triggers read the same tokens; only the SIZE differs, because the
+  // hero's label is a micro-cap over a figure and the card's is a title. The
+  // hero used to be white on a gradient — see the note over the stat card.
+  // 11px uppercase is a label, so it takes the label ink, which is what every
+  // other micro-cap in this product wears.
   const trig=hero
-    ? 'background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.42);color:#fff;font-size:11px;letter-spacing:.09em;text-transform:uppercase;font-weight:600'
+    ? 'background:var(--color-bg);border:1px solid var(--color-divider);color:var(--color-neutral-600);font-size:11px;letter-spacing:.09em;text-transform:uppercase;font-weight:600'
     : 'background:var(--color-bg);border:1px solid var(--color-divider);color:var(--color-text);font-size:15px;font-weight:600';
-  const chev=hero?'#fff':'var(--color-neutral-500)';
+  const chev='var(--color-neutral-500)';
   const opts=catalog.map(x=>`<button type="button" data-rd-opt="${kind}:${idx}:${x.k}" class="rd-opt${x.k===cur.k?' rd-opt-on':''}" style="display:block;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:14px;padding:7px 11px;border-radius:0;cursor:pointer;white-space:nowrap">${_esc(x.label)}</button>`).join('');
   return `<div class="rd" style="position:relative;max-width:100%;${hero?'flex:1;min-width:0':'margin:0 0 10px'}">
     <button type="button" data-rd-trigger="${kind}:${idx}" class="rd-trigger rd-trigger-${hero?'hero':'card'}" title="${esc(hero?i18t('rep_choose_metric'):i18t('rep_choose_chart'))}" style="display:inline-flex;align-items:center;gap:8px;max-width:100%;border-radius:0;padding:4px 9px 4px 12px;cursor:pointer;line-height:1.25;transition:background .12s,border-color .12s;${trig}">
@@ -267,20 +272,28 @@ function renderReports(){
   if(typeof AI_CHARTS!=='undefined'&&typeof aiChartDestroy==='function')
     for(const k of Array.from(AI_CHARTS.keys())) if(String(k).startsWith('repchart-')) aiChartDestroy(k);
 
-  // TOP — gradient hero stat cards. Each card's metric is user-selectable via
-  // the dropdown built into its label, so revenue/value is never forced.
+  // TOP — hero stat cards on the platform card shell, each wearing a 3px top
+  // edge in its metric's own tone. Home's KPI cards are the reference and this
+  // is the same shape: surface, hairline, tone edge. They were WHITE ON A
+  // GRADIENT and that is why they moved — measured, white on --grad-amber is
+  // 1.67:1 and on --grad-emerald 1.92:1, against AA's 4.5. The tone is not
+  // lost: it moved from the fill to the edge and the icon chip, where a
+  // status colour is carried everywhere else in this product.
+  // Each card's metric is user-selectable via the dropdown built into its
+  // label, so revenue/value is never forced.
   const sel=reportMetricSel();
   const statSlot=(idx)=>{
     const m=REPORT_METRICS.find(x=>x.k===sel[idx])||REPORT_METRICS[idx];
     const d=m.get(r);
+    const t=m.tone||'steel';
     return `
-    <div style="display:flex;flex-direction:column;gap:10px;padding:15px 16px;border-radius:0;background:${m.grad};color:#fff;box-shadow:var(--shadow-sm)">
+    <div style="display:flex;flex-direction:column;gap:10px;padding:15px 16px;border-radius:0;background:var(--color-surface);border:1px solid var(--color-divider);border-top:3px solid var(--st-${t}-dot);box-shadow:var(--shadow-sm)">
       <span style="display:flex;align-items:center;gap:9px">
-        <span style="width:30px;height:30px;flex:none;border-radius:0;background:rgba(255,255,255,.22);display:grid;place-items:center;color:#fff">${icon(m.ic,'w-4 h-4',1.7)}</span>
+        <span style="width:30px;height:30px;flex:none;border-radius:0;background:var(--st-${t}-bg);display:grid;place-items:center;color:var(--st-${t}-fg)">${icon(m.ic,'w-4 h-4',1.7)}</span>
         ${reportDropdown('hero','metric',idx,REPORT_METRICS,sel[idx])}
       </span>
-      <span class="tnum" style="font-family:var(--font-mono);font-weight:600;font-size:25px;line-height:1.0;color:#fff">${d.val}</span>
-      <span style="font-size:12px;color:rgba(255,255,255,.85)">${d.sub}</span>
+      <span class="tnum" style="font-family:var(--font-mono);font-weight:600;font-size:25px;line-height:1.0;color:var(--color-text)">${d.val}</span>
+      <span style="font-size:12px;color:var(--color-neutral-600)">${d.sub}</span>
     </div>`;
   };
   const stats=[statSlot(0),statSlot(1),statSlot(2),statSlot(3)].join('');
@@ -311,13 +324,12 @@ function renderReports(){
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="padding:var(--page-pad)">
     <style>
-      .rd-trigger-hero:hover{background:rgba(255,255,255,.30)!important;border-color:rgba(255,255,255,.7)!important}
-      .rd-trigger-card:hover{background:var(--color-neutral-100)!important;border-color:var(--color-accent)!important}
+      .rd-trigger-hero:hover,.rd-trigger-card:hover{background:var(--color-neutral-100)!important;border-color:var(--color-accent)!important}
       .rd-chev{font-size:15px;line-height:1}
       .rd-menu{animation:rdIn .1s ease}
       .rd-opt{color:var(--color-text)}
       .rd-opt:hover{background:var(--color-bg)}
-      .rd-opt-on{background:var(--color-accent-100);color:var(--color-accent-800);font-weight:600}
+      .rd-opt-on{background:var(--st-steel-bg);color:var(--st-steel-fg);font-weight:600}
       @keyframes rdIn{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
     </style>
     <div style="display:flex;flex-direction:column;gap:18px">
@@ -333,7 +345,7 @@ function renderReports(){
             ${(typeof WK_TIERS!=='undefined'?WK_TIERS:['skinny','tower','full']).map(t=>`<option value="${t}"${(typeof wkTier==='function'&&wkTier()===t)?' selected':''}>${i18t('wk_tier_'+t)}</option>`).join('')}
           </select></label>
         <button type="button" id="rep-weekly" style="display:inline-flex;align-items:center;gap:7px;border:1px solid var(--color-divider);background:var(--color-surface);color:var(--color-neutral-700);font:inherit;font-size:13px;font-weight:600;border-radius:0;padding:7px 12px;cursor:pointer">${icon('file','w-3.5 h-3.5')}${i18t('rep_weekly_btn')}</button>
-        <button type="button" id="rep-health" style="display:inline-flex;align-items:center;gap:7px;border:0;background:var(--color-accent);color:#fff;font:inherit;font-size:13px;font-weight:600;border-radius:0;padding:7px 12px;cursor:pointer">${icon('file','w-3.5 h-3.5')}${i18t('rep_health_btn')}</button>
+        <button type="button" id="rep-health" style="display:inline-flex;align-items:center;gap:7px;border:0;background:var(--accent-fill);color:#fff;font:inherit;font-size:13px;font-weight:600;border-radius:0;padding:7px 12px;cursor:pointer">${icon('file','w-3.5 h-3.5')}${i18t('rep_health_btn')}</button>
       </div>
       <section class="rp-stats" style="display:grid;gap:14px">
         ${stats}

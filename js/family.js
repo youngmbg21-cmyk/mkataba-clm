@@ -296,8 +296,8 @@ function openLinkModal(c, onDone, opts={}){
       <p style="font-size:13px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.55">${mode==='child'
         ? `File <b>${_famEsc(c.id)}</b> as part of an existing agreement. The parent's renewal date, risk and KPI count then reflect the family — a master agreement plus its amendments is <b>one</b> agreement, not several.`
         : `Attach an existing document to <b>${_famEsc(c.id)}</b> as an amendment. Families are one level deep: an amendment cannot itself have amendments.`}</p>
-      ${suggested.length?`<div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:0;padding:9px 11px;margin-bottom:12px">
-        <div style="font-size:12px;font-weight:600;color:var(--color-accent-800);margin-bottom:5px">${i18t('fa_hati_suggests')}</div>
+      ${suggested.length?`<div style="border:1px solid var(--color-divider);background:var(--st-steel-bg);border-radius:0;padding:9px 11px;margin-bottom:12px">
+        <div style="font-size:12px;font-weight:600;color:var(--accent-ink);margin-bottom:5px">${i18t('fa_hati_suggests')}</div>
         ${suggested.map(x=>`<label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;padding:3px 0;cursor:pointer">
           <input type="radio" name="lk-sug" value="${_famAttr(x.id)}" style="margin-top:3px;accent-color:var(--color-accent)"/>
           <span><b style="font-family:var(--font-mono)">${_famEsc(x.id)}</b> ${_famEsc(x.c.name)}
@@ -365,7 +365,7 @@ function renderFamilySection(c){
   const eff=effectiveExpiry(c), from=expirySource(c), prop=proposedExpiry(c);
   const btn='font:inherit;font-size:13px;font-weight:600;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:5px 11px;cursor:pointer';
   const row=(x,note)=>`<button type="button" data-fam-open="${_famAttr(x.id)}" style="display:flex;width:100%;gap:8px;align-items:baseline;text-align:left;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;padding:6px 0;cursor:pointer;font:inherit;font-size:13px;color:inherit">
-      <b style="font-family:var(--font-mono);font-size:12px;color:var(--color-accent-700);flex:none">${_famEsc(x.id)}</b>
+      <b style="font-family:var(--font-mono);font-size:12px;color:var(--accent-ink-700);flex:none">${_famEsc(x.id)}</b>
       <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_famEsc(x.name)}</span>
       <span style="flex:none;font-size:12px;color:var(--color-neutral-600)">${_famEsc(note||'')}</span></button>`;
   /* ---- THE BUTTONS ARE A ROW OF THEIR OWN, UNDER THE HEAD ----
@@ -413,7 +413,7 @@ function renderFamilySection(c){
         <div style="margin-top:10px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:0;padding:9px 11px">
           <div style="font-size:12px;font-weight:600;color:var(--st-amber-fg);margin-bottom:3px">${i18t('fa_reads_like_amendment')}</div>
           <div style="font-size:13px;color:var(--st-amber-fg);line-height:1.5">${i18t('fa_hati_proposed',{ids:suggested.map(s=>`<b>${_famEsc(s.id)}</b>`).join(', ')})} <b>${i18t('fa_nothing_linked')}</b>${i18t('fa_confirm_or_standalone')}</div>
-          ${canEdit()?`<div style="display:flex;gap:6px;margin-top:8px"><button id="fam-confirm" style="${btn};border-color:var(--color-accent);color:var(--color-accent-800)">${i18t('fa_review_suggestion')}</button>
+          ${canEdit()?`<div style="display:flex;gap:6px;margin-top:8px"><button id="fam-confirm" style="${btn};border-color:var(--color-accent);color:var(--accent-ink)">${i18t('fa_review_suggestion')}</button>
             <button id="fam-standalone" style="${btn}">${i18t('fa_its_standalone')}</button></div>`:''}
         </div>`:''}
     </div>`;

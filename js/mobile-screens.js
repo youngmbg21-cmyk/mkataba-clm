@@ -175,12 +175,12 @@ function mHomeHtml(){
       ${expHtml}
       <div class="m-card m-list" style="margin:14px 16px 24px">
         <button class="m-row" data-m-act="portfolio">
-          <span style="flex:1;font-size:16px;font-weight:400;color:var(--color-accent-700)">${i18t('m_portfolio')}</span>
+          <span style="flex:1;font-size:16px;font-weight:400;color:var(--accent-ink-700)">${i18t('m_portfolio')}</span>
           <span style="font-size:15px;color:var(--color-neutral-600)">${i18t('m_figures_streams')}</span>
           ${M_CHEV}
         </button>
         <button class="m-row" data-m-act="more">
-          <span style="flex:1;font-size:16px;font-weight:400;color:var(--color-accent-700)">${i18t('m_more')}</span>
+          <span style="flex:1;font-size:16px;font-weight:400;color:var(--accent-ink-700)">${i18t('m_more')}</span>
           <span style="font-size:15px;color:var(--color-neutral-600)">${i18t('m_more_sub')}</span>
           ${M_CHEV}
         </button>
@@ -523,7 +523,7 @@ function mPortfolioHtml(){
 
   return `
     <div class="m-pagehead" style="display:flex;align-items:center;gap:4px;padding:8px 8px">
-      <button class="m-head-btn" data-m-act="back" aria-label="${i18t('m_back')}" style="color:var(--color-accent-700)">
+      <button class="m-head-btn" data-m-act="back" aria-label="${i18t('m_back')}" style="color:var(--accent-ink-700)">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
       </button>
       <div style="font-size:19px;font-weight:600;font-family:var(--font-heading,inherit)">${i18t('m_portfolio')}</div>

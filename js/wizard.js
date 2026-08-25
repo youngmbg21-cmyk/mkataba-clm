@@ -96,7 +96,7 @@ function openWizard(preTid){
   const renderStep=()=>{
     if(!tid){
       const card=t=>`<button data-wz-tid="${t.id}" style="text-align:left;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:12px;cursor:pointer;transition:border-color .15s,box-shadow .15s;" onmouseover="this.style.borderColor='var(--color-accent)';this.style.boxShadow='var(--shadow-sm)'" onmouseout="this.style.borderColor='var(--color-divider)';this.style.boxShadow='none'">
-            <span style="display:flex;align-items:center;gap:8px;"><span style="width:28px;height:28px;display:grid;place-items:center;border-radius:0;background:var(--color-accent-100);color:var(--color-accent);flex:none;">${icon(t.ic||'file','w-3.5 h-3.5')}</span>
+            <span style="display:flex;align-items:center;gap:8px;"><span style="width:28px;height:28px;display:grid;place-items:center;border-radius:0;background:var(--st-steel-bg);color:var(--color-accent);flex:none;">${icon(t.ic||'file','w-3.5 h-3.5')}</span>
             <span style="font-size:14px;font-weight:600;color:var(--color-text);font-family:var(--font-mono);">${t.kind}</span></span>
             <span style="display:block;margin-top:5px;font-size:12px;color:var(--color-neutral-600);line-height:1.4;">${t.blurb||''}</span></button>`;
       const GRID='display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;';
@@ -177,7 +177,7 @@ function openWizard(preTid){
       };
       const inStream=wzStream&&byStream.has(wzStream)?byStream.get(wzStream):null;
       openModal(`<div style="padding:22px 24px;">
-        ${inStream?`<button id="wz-streams-back" style="font-size:12px;color:var(--color-accent-700);font-weight:600;font-family:var(--font-mono);background:none;border:0;cursor:pointer;margin-bottom:8px;padding:0;">← ${i18t('wz_all_streams')}</button>`:''}
+        ${inStream?`<button id="wz-streams-back" style="font-size:12px;color:var(--accent-ink-700);font-weight:600;font-family:var(--font-mono);background:none;border:0;cursor:pointer;margin-bottom:8px;padding:0;">← ${i18t('wz_all_streams')}</button>`:''}
         <h3 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0 0 3px;">${inStream?esc2(fName(wzStream)):i18t('wz_new_from_template')}</h3>
         <p style="font-size:13px;color:var(--color-neutral-600);margin:0 0 14px;line-height:1.5;">${inStream?i18tn('wz_n_in_stream',inStream.length,{n:inStream.length}):i18t('wz_pick_stream')}</p>
         <div id="wz-pick" class="scroll-thin" style="max-height:62vh;overflow-y:auto;">
@@ -261,7 +261,7 @@ function openWizard(preTid){
       return `<label style="display:block;">${lbl}
         <input id="${id}" type="${it}" value="${String(v.def||'').replace(/"/g,'&quot;')}" placeholder="${v.ph||''}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 11px;font-size:14px;font-family:var(--font-body);color:var(--color-text);outline:none;"/></label>`; };
     openModal(`<div style="padding:22px 24px;">
-      <button id="wz-back" style="font-size:12px;color:var(--color-accent-700);font-weight:600;font-family:var(--font-mono);background:none;border:0;cursor:pointer;margin-bottom:8px;padding:0;">← templates</button>
+      <button id="wz-back" style="font-size:12px;color:var(--accent-ink-700);font-weight:600;font-family:var(--font-mono);background:none;border:0;cursor:pointer;margin-bottom:8px;padding:0;">← templates</button>
       <h3 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0 0 3px;">${t.kind}</h3>
       <p style="font-size:13px;color:var(--color-neutral-600);margin:0 0 16px;line-height:1.5;">${t.blurb||''}</p>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">${vars.map(input).join('')}

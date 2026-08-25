@@ -270,8 +270,20 @@ describe('f175 · the Tracked Changes head is a rule, not a box', () => {
        said once, by the filter. */
     assert.match(p.win.document.querySelector('#rl-cardfilter option').textContent, /\(1\)/,
       'the All option carries it instead');
-    assert.ok(/\.rl-idx-n\.is-live\{[^}]*var\(--color-accent-800\)/.test(p.css()),
+    /* RE-POINTED 25 Aug 2026 — PIN THE RELATION, NOT THE LITERAL. This asked
+       for the ramp step by name; the accent-as-text sweep moved every such
+       declaration onto --accent-ink, which IS accent-800 by day, so not one
+       pixel of this rule changed. What the claim was really about is that the
+       reviewer's own count still has a rule at all, and that it still carries
+       the hand-written night answer this file's own history records as the
+       defect it was written for — accent-800 on an almost-black panel at
+       2.4:1. Both are asserted; the light literal is not, because it is now
+       one token away and a token is the thing that keeps them in step. */
+    const css = p.css();
+    assert.ok(/\.rl-idx-n\.is-live\{[^}]*color:var\(--accent-ink\)/.test(css),
       'the count rules stay in the sheet for the reviewer head that still draws one');
+    assert.ok(/html\.dark[^{]*\.rl-idx-n\.is-live\{[^}]*var\(--color-accent-300\)/.test(css),
+      'and it keeps its own night answer, which is why it reads at 2.4:1 no longer');
     /* ---- REVERSED IN PLACE AGAIN (owner-chose render B1, 23 Aug 2026) ----
        The history, because it is the useful part. 16 Aug: the live cut was an
        accent INK. 22 Aug (Render B, chosen off four drawn options): a FILLED

@@ -744,7 +744,7 @@ function openCompareModal(c){
       // structure moved. Reporting "no changes" here would be a lie.
       const fmtOnly=(a.canon||a.text)!==(b.canon||b.text);
       document.getElementById('cmp-out').innerHTML=fmtOnly
-        ? `<div style="font-size:13px;line-height:1.6;color:var(--color-neutral-700);border:1px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:0;padding:10px 12px"><b>${i18t('ve_formatting_changed')}</b> ${i18t('ve_the_wording_of')} <b>${a.short}</b> and <b>${b.short}</b> is word-for-word identical, but the document's structure is not — headings, emphasis, clause numbering, indentation or table layout differ. Word-level comparison has nothing to highlight; open the two versions to see the difference.</div>`
+        ? `<div style="font-size:13px;line-height:1.6;color:var(--color-neutral-700);border:1px solid var(--st-steel-line);background:var(--st-steel-bg);border-radius:0;padding:10px 12px"><b>${i18t('ve_formatting_changed')}</b> ${i18t('ve_the_wording_of')} <b>${a.short}</b> and <b>${b.short}</b> is word-for-word identical, but the document's structure is not — headings, emphasis, clause numbering, indentation or table layout differ. Word-level comparison has nothing to highlight; open the two versions to see the difference.</div>`
         : `<div style="font-size:13px;color:var(--color-neutral-500)">${i18t('ve_identical')} <b>${a.short}</b> and <b>${b.short}</b>.</div>`;
       return; }
     const st=diffStats(aText,bText);
@@ -808,8 +808,8 @@ function reviewProposedRound(c, n){
         ${b.before.trim()?`<del style="background:var(--st-ruby-bg);color:var(--st-ruby-fg);border-radius:0;padding:0 2px">${e(b.before.trim())}</del> `:''}
         ${b.after.trim()?`<ins style="background:var(--st-green-bg);color:var(--st-green-fg);text-decoration:none;border-radius:0;padding:0 2px">${e(b.after.trim())}</ins>`:''}
       </div>
-      ${ask?`<div style="margin-top:8px;border-left:2px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:0;padding:7px 10px">
-        <span style="display:block;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-accent-800);margin-bottom:2px">${i18t('ve_why_they_asked')}</span>
+      ${ask?`<div style="margin-top:8px;border-left:2px solid var(--color-accent-300);background:var(--st-steel-bg);border-radius:0;padding:7px 10px">
+        <span style="display:block;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--accent-ink);margin-bottom:2px">${i18t('ve_why_they_asked')}</span>
         <span style="font-size:13px;line-height:1.55;color:var(--color-neutral-800)">${e(ask)}</span></div>`:''}
       <div style="display:flex;gap:6px;margin-top:9px;align-items:center">
         <button data-dec="accept" data-for="${b.id}" class="ui-btn" style="font-size:13px;padding:5px 12px">${i18t('ve_accept')}</button>

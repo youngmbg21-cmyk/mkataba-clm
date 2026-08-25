@@ -202,7 +202,7 @@ const M_CSS = `
     font:inherit; font-size:16px; font-weight:600; padding:0 14px;
     background:var(--color-surface); border:1px solid var(--color-divider); color:var(--color-text);
   }
-  .m-btn-primary{ background:var(--accent-solid); border-color:var(--accent-solid); color:#fff; }
+  .m-btn-primary{ background:var(--accent-fill); border-color:var(--accent-fill); color:#fff; }
   .m-btn-danger{ background:var(--danger); border-color:var(--danger); color:#fff; }
   .m-btn-quiet{ background:var(--color-bg); }
   .m-btn:disabled{ opacity:.55; cursor:default; }
@@ -253,7 +253,7 @@ const M_CSS = `
     display:flex; flex-direction:column; align-items:center; gap:3px; position:relative;
     color:var(--color-neutral-600); padding:0;
   }
-  .m-tab.on{ color:var(--color-accent-700); }
+  .m-tab.on{ color:var(--accent-ink-700); }
   /* ---- FOUR LABELS, AND THE FOURTH WORD HAD TO GIVE ----
      The bar carried three words at 14px with room to spare. Negotiations joined
      it (12 Aug 2026) and it is the longest word in the app's navigation, so the
@@ -348,7 +348,7 @@ const M_CSS = `
   /* ---- the + button and the register row ---- */
   .m-new{
     flex:none; width:44px; height:44px; border-radius:0; border:0; cursor:pointer;
-    background:var(--accent-solid); color:#fff; display:grid; place-items:center;
+    background:var(--accent-fill); color:#fff; display:grid; place-items:center;
   }
   .m-reg-row{
     display:block; width:100%; text-align:left; background:none; border:0; cursor:pointer;
@@ -387,7 +387,7 @@ const M_CSS = `
     font-size:15px; font-weight:600; color:var(--color-text);
     border-bottom:2px solid transparent;
   }
-  .m-ctab.on{ color:var(--color-accent-900); border-bottom-color:var(--accent-solid); }
+  .m-ctab.on{ color:var(--accent-ink); border-bottom-color:var(--accent-solid); }
   .m-notice{
     display:flex; align-items:center; gap:9px; margin-bottom:12px;
     border:1px solid var(--color-divider); border-radius:0; padding:11px 13px;
@@ -418,8 +418,8 @@ const M_CSS = `
      .rl-notices-min. The two shells draw their own chip and must not disagree
      about whether Hide looks pressable. */
   .m-notices-min{
-    pointer-events:auto; min-height:44px; border:1px solid var(--color-accent-300); border-radius:0;
-    background:var(--color-accent-100); color:var(--color-accent-800); padding:0 16px;
+    pointer-events:auto; min-height:44px; border:1px solid var(--st-steel-line); border-radius:0;
+    background:var(--st-steel-bg); color:var(--st-steel-fg); padding:0 16px;
     font:inherit; font-size:15px; font-weight:700; cursor:pointer;
     box-shadow:0 8px 22px -8px rgba(15,23,42,.28);
   }
@@ -491,7 +491,7 @@ const M_CSS = `
     border-radius:0; padding:13px 14px; border:1.5px solid var(--color-divider);
     background:var(--color-surface); color:inherit;
   }
-  .m-share-kind.on{ border-color:var(--accent-solid); background:var(--color-accent-100); }
+  .m-share-kind.on{ border-color:var(--accent-solid); background:var(--st-steel-bg); }
   .m-radio{
     width:20px; height:20px; border-radius:50%; flex:none; margin-top:2px;
     border:1.5px solid var(--color-divider); background:var(--color-surface);
@@ -927,14 +927,14 @@ function mPeopleHtml(){
           u.id&&u.id===me.id?` <span style="font-weight:400;color:var(--color-neutral-500)">${mEsc(i18t('set_you'))}</span>`:''}</span>
         <span class="m-row-sub">${title}${role?' · '+mEsc(role):''}</span>
         <span class="m-row-sub">${mail
-          ? `<a href="mailto:${mEsc(mail)}" style="color:var(--color-accent-700)">${mEsc(mail)}</a>`
+          ? `<a href="mailto:${mEsc(mail)}" style="color:var(--accent-ink-700)">${mEsc(mail)}</a>`
           : `<span class="dir-none">${mEsc(i18t('dir_no_email'))}</span>`}</span>
       </span>
     </div>`;
   }).join('');
   return `
     <div class="m-pagehead" style="display:flex;align-items:center;gap:4px;padding:8px 8px">
-      <button class="m-head-btn" data-m-act="back" aria-label="${i18t('m_back')}" style="color:var(--color-accent-700)">
+      <button class="m-head-btn" data-m-act="back" aria-label="${i18t('m_back')}" style="color:var(--accent-ink-700)">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
       </button>
       <div style="font-size:19px;font-weight:600;font-family:var(--font-heading,inherit)">${i18t('nav_people')}</div>
@@ -950,7 +950,7 @@ function mHandoffHtml(){
   const d = M_DESK.find(x=>x.view===mS().deskView) || { get label(){ return i18t('m_this_screen'); }, note:'' };
   return `
     <div class="m-pagehead" style="display:flex;align-items:center;gap:4px;padding:8px 8px">
-      <button class="m-head-btn" data-m-act="back" aria-label="${i18t('m_back')}" style="color:var(--color-accent-700)">
+      <button class="m-head-btn" data-m-act="back" aria-label="${i18t('m_back')}" style="color:var(--accent-ink-700)">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
       </button>
       <div style="font-size:19px;font-weight:600;font-family:var(--font-heading,inherit)">${mEsc(d.label)}</div>
@@ -993,11 +993,11 @@ function mRender(){
   if(onRedline){
     const c = (state.activeId && typeof getContract==='function') ? getContract(state.activeId) : null;
     root.innerHTML = `<div class="m-backbar">
-      <button class="m-head-btn" data-m-act="leave-redline" aria-label="${i18t('m_back_to_contract')}" style="color:var(--color-accent-700)">
+      <button class="m-head-btn" data-m-act="leave-redline" aria-label="${i18t('m_back_to_contract')}" style="color:var(--accent-ink-700)">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
       </button>
       <span class="m-backbar-name">${mEsc(c ? (c.name||c.id) : 'Negotiation')}</span>
-      <button class="m-head-btn" data-m-act="copilot-open" aria-label="${i18t('m_open_copilot')}" style="color:var(--color-accent-700);position:relative">
+      <button class="m-head-btn" data-m-act="copilot-open" aria-label="${i18t('m_open_copilot')}" style="color:var(--accent-ink-700);position:relative">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l1.6 4.6 4.6 1.6-4.6 1.6L12 15l-1.6-4.7L5.8 8.7l4.6-1.6L12 2.5z"/></svg>
         <span data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:6px;right:6px;width:10px;height:10px;border-radius:50%;background:var(--st-amber-dot)"></span>
       </button>

@@ -811,6 +811,83 @@ own token.
 
 NOTE FOR THE NEXT SWEEP: no test in the suite asserted a half-pixel font size, which is why 865 replacements cost two test updates rather than fifty. Both were about the Tracked Changes caption, and one of them recorded a real consequence — the count used to be set a hair larger than the caption "because mono runs small at the same size", and that stopped being true when --font-mono was pointed at Inter with everything else. One family, no compensation owed, both 11px.
 
+## THE ACCENT HAD NO NIGHT ANSWER (25 Aug 2026 — the pre-launch UI/UX audit, Phase A)
+
+**ONE STRUCTURAL FACT UNDER ALMOST EVERY DARK-THEME COMPLAINT, and this file had
+already diagnosed it for exactly one selector and never swept it.** `html.dark`
+redefines the surface, the ink and the whole neutral ramp and **never redefines
+the accent**. So a raw ramp step used as TEXT had no dark answer at all.
+
+- **183 DECLARATIONS SET AN ACCENT RAMP STEP AS TEXT** — `color:var(--color-accent-600|700|800|900)`
+  — and measured **2.35:1 at night** where AA wants 4.5. The register's teal
+  tracking numbers alone are 41 of them, at 3.74:1 in **daylight**.
+- **62 MORE SET AN ACCENT TINT AS AN INLINE BACKGROUND** (`--color-accent-100|200`),
+  which at night is a near-white block under near-white text.
+
+**TWO INK TOKENS, NOT ONE, AND THAT IS THE WHOLE REASON LIGHT DID NOT MOVE.**
+`--accent-ink` is accent-800 by day and `--accent-ink-700` is accent-700, so each
+of the two rungs that carried text keeps its own daylight value and only night
+changes. Collapsing them onto one token would have re-coloured 104 of the 183 in
+broad daylight — which is a palette change nobody asked for wearing a contrast
+fix's clothes. **MEASURED, AND THIS IS THE PROOF THE SWEEP RESTS ON: the colour
+census passed on all ten LIGHT screens, every colour unchanged.**
+
+- **`--accent-fill` IS THE TOKEN FOR A WHITE-ON-ACCENT SURFACE** — accent-700,
+  because white on accent-600 is **3.74:1**. `.ui-btn-primary` had taken that
+  rung on 23 Aug and eight more fills had not: the pager's live page,
+  `confirmDialog`'s confirm, the phone's primary button, Reports' health-report
+  button. **`--accent-solid` IS UNTOUCHED** — it is the nav's own fill and this
+  file records it as a brand fill that must not flip.
+- **AN OPACITY IS NOT AN INK, AND THE LIGHT SIDE HAD NEVER BEEN TOLD.**
+  `.text-ink/40…/60` put reading text between 2.36:1 and 4.11:1. The dark theme
+  had re-pointed them and light never had — the same shape as `.text-ink` itself
+  on 22 Aug, which survived for the same reason: **at night it was right.**
+  Collapsed onto the two real inks in HaTi's own sheet, never the compiled blob.
+- **`--danger`, `--danger-hover`, `--rule-strong` and `--rule-faint` GAINED NIGHT
+  ANSWERS.** A refusal that is unreadable at night is a refusal nobody acts on.
+- **THE TEXT-SIZE STEPPER WORE A BORDER SHADE AS AN INK.** `html.dark .rl-type-step
+  button` read `--color-neutral-300`, which answers `#475569` at night — the same
+  value this ramp uses for panel borders. 2.36:1; it takes the label ink now, 8.1:1.
+
+**REPORTS' FOUR HERO CARDS LEFT THEIR GRADIENTS.** White on `--grad-amber` is
+**1.67:1** and on `--grad-emerald` **1.92:1** — the worst contrast in the
+product. They wear the platform card shell with a **3px top edge in the metric's
+own tone**, which is the shape Home's KPI cards already use. **THE TONE IS NOT
+LOST**: it moved from the fill to the edge and the icon chip, which is where a
+status colour is carried everywhere else here. `REPORT_METRICS` states a `tone`
+rather than a `grad` — one fact per metric, beside every other fact about it —
+and the hero dropdown reads the same tokens as its neighbour on the chart cards
+below, differing only in SIZE, because 11px uppercase is a label.
+
+**WHAT WAS MEASURED AND DELIBERATELY NOT SWEPT, said out loud.**
+`--color-neutral-400` carries text in about fifty places and fails AA in **both**
+themes (2.96:1 by day, 4.34:1 at night) — but it carries borders and backgrounds
+in twenty more, so it is the one step in this ramp that is not a type token,
+which is why the four-shades pass already recorded it as excluded. It is not a
+dark-theme finding, and fifty declarations want an eye each. And **the Insights
+hero tile puts `#bde7e1` on `--brand-hero`'s middle stop at 2.80:1** — in the
+teal workspace only; navy and dark both clear 8:1. Fixing it means darkening a
+brand gradient or moving the tile, both the owner's call. Insights is not one of
+the twenty census screens.
+
+**THE CENSUS WAS RE-RECORDED, AUDITED VALUE BY VALUE — the one case the rule
+allows.** All ten LIGHT screens passed unchanged. All ten dark screens moved, on
+exactly **three** values, nothing unexplained: `rgb(204,251,241)` (accent-100 as
+a dark background) GONE; `rgba(20,184,166,.15)` (`--st-steel-bg`, the token those
+62 moved onto) ARRIVED; and `rgb(45,212,191)` (`--accent-ink` at night) ARRIVED
+on **register--dark alone**, because the other nine screens already held it.
+
+Tests: **contrast-verify (NEW, 33, browser — 23 of the 33 fail against the code
+of an hour before**, naming every ratio above; it measures COMPOSITED contrast,
+walking up until the alphas reach opaque, because reading one element's own
+background is how a probe reports 1:1 white-on-white on a page nobody has
+trouble reading; it counts the two exclusions out loud on every run so a green
+run cannot read as "nothing is left"), f238 (five new claims, all five failing
+against the prior code), theme-tokens-verify 40/40, f175 (one claim RE-POINTED
+in place — it pinned the ramp step by name where the claim was a relation, and
+now asserts the token plus the hand-written night answer this file's own history
+records as the defect it was written for).
+
 ## THE DESIGN SYSTEM GREW ITS OTHER HALF (23 Aug 2026 — the launch design audit)
 
 An exhaustive design-system audit, measured in a real browser across 23 screens

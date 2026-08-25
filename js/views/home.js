@@ -133,7 +133,7 @@ function openKpiCustomizer(anchor){
     ${kpiCatalogOrder().map(row).join('')}
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid var(--color-divider);margin-top:6px;padding:8px 8px 4px;">
       <span style="font-size:12px;color:var(--color-neutral-500);">${full?esc(i18t('home_max_metrics',{max:KPI_MAX})):i18t('home_drag_reorder')}</span>
-      <button data-kpi-reset style="border:0;background:none;color:var(--color-accent-700);font-weight:600;font-size:12px;cursor:pointer;padding:0;flex:none;">${i18t('home_reset')}</button>
+      <button data-kpi-reset style="border:0;background:none;color:var(--accent-ink-700);font-weight:600;font-size:12px;cursor:pointer;padding:0;flex:none;">${i18t('home_reset')}</button>
     </div>`;
   anchor.parentElement.style.position='relative';
   anchor.parentElement.appendChild(pop);
@@ -272,7 +272,7 @@ function gettingStartedHtml(){
         <span style="display:block;font-size:14px;font-weight:600;color:${tone};${s.done?'text-decoration:line-through;text-decoration-color:var(--color-neutral-400);':''}">${s.t}</span>
         ${isCur?`<span style="display:block;font-size:12px;color:var(--color-neutral-600);line-height:1.45">${s.d}</span>`:''}
       </span>
-      ${isCur&&(s.k!=='sign'||gsGoTargetExists(s.k))?`<span style="flex:none;font-size:13px;font-weight:600;color:var(--color-accent-700)">${i18t('home_go')}</span>`:''}`;
+      ${isCur&&(s.k!=='sign'||gsGoTargetExists(s.k))?`<span style="flex:none;font-size:13px;font-weight:600;color:var(--accent-ink-700)">${i18t('home_go')}</span>`:''}`;
     /* The whole current row is the button — a target the size of the step,
        not a link the size of an arrow. */
     return isCur&&(s.k!=='sign'||gsGoTargetExists(s.k))
@@ -798,7 +798,7 @@ function renderDashboard(){
      single-purpose panel could safely do) would land a reader on a screen that
      shows none of what they clicked. So the footer names its destination, and
      when the list mixes the two it offers both. */
-  const lnk=(attr,label)=>`<button ${attr} style="border:0;background:none;padding:2px;font:inherit;font-size:12px;font-weight:600;color:var(--color-accent-600);cursor:pointer;text-align:left;">${label}</button>`;
+  const lnk=(attr,label)=>`<button ${attr} style="border:0;background:none;padding:2px;font:inherit;font-size:12px;font-weight:600;color:var(--accent-ink-700);cursor:pointer;text-align:left;">${label}</button>`;
   const renewalN=decisions.length, reviewN=waitingLongest.length;
   /* ---- EVERY LINK HERE NAMES WHERE A ROW ABOVE IT LIVES (owner-asked 20 Aug
      2026: "remove any other shortcuts unrelated to decisions due") ----

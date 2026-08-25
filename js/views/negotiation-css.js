@@ -1255,9 +1255,14 @@ function redlineLayoutCss(){
   .rl-type-step .rl-type-out{min-width:34px;text-align:center;font-family:var(--font-mono);
     font-size:12px;font-weight:600;color:var(--color-neutral-700)}
   html.dark .rl-type-step{background:rgba(148,163,184,.14);border-color:rgba(148,163,184,.28)}
-  html.dark .rl-type-step button{background:rgba(15,23,42,.5);border-color:rgba(148,163,184,.32);color:var(--color-neutral-300)}
+  /* NEUTRAL-300 IS A SURFACE AT NIGHT, NOT AN INK. In dark it answers #475569,
+     which is the same shade this ramp uses for panel borders - so the stepper's
+     own glyphs measured 2.36:1 on the page ground where AA wants 4.5, and the
+     readout beside them the same. The label shade is what 12px reading text
+     wears everywhere else in this product; measured after, 8.1:1. */
+  html.dark .rl-type-step button{background:rgba(15,23,42,.5);border-color:rgba(148,163,184,.32);color:var(--color-neutral-600)}
   html.dark .rl-type-step button:hover{background:rgba(15,23,42,.75)}
-  html.dark .rl-type-step .rl-type-out{color:var(--color-neutral-300)}
+  html.dark .rl-type-step .rl-type-out{color:var(--color-neutral-600)}
   /* ---- ONE SHELL FOR EVERY CONTROL ON THIS ROW ----
      34px tall, 9px radius, on the hairline. Colour is reserved for the one
      primary act (Publish Round) and for small status dots, so the strip reads
@@ -1347,8 +1352,8 @@ function redlineLayoutCss(){
   .rl-note-t{margin:6px 0 0;font-size:14px;line-height:1.5;color:var(--color-neutral-600)}
   .rl-note-btn{margin-top:10px;height:29px;border:1px solid var(--color-divider);
     border-radius:0;background:var(--color-surface);padding:0 12px;font:inherit;font-size:13px;
-    font-weight:600;color:var(--color-accent-700);cursor:pointer}
-  .rl-note-btn:hover{border-color:var(--color-accent-700)}
+    font-weight:600;color:var(--accent-ink-700);cursor:pointer}
+  .rl-note-btn:hover{border-color:var(--accent-ink-700)}
   /* ---- THE NOTICES THAT USED TO BE BANDS ----
      The review's banner and the desk's reading band are built elsewhere (
      js/review.js and js/desk.js) and carry their own colours, because those
@@ -1415,9 +1420,9 @@ function redlineLayoutCss(){
      app's quiet controls wear — the same three tokens, not a new colour — which
      is enough to say "pressable" without competing with the amber bell it turns
      back into. */
-  .rl-notices-min{pointer-events:auto;align-self:flex-end;border:1px solid var(--color-accent-300);
-    background:var(--color-accent-100);border-radius:0;padding:5px 11px;font:inherit;font-size:12px;
-    font-weight:700;color:var(--color-accent-800);cursor:pointer;
+  .rl-notices-min{pointer-events:auto;align-self:flex-end;border:1px solid var(--st-steel-line);
+    background:var(--st-steel-bg);border-radius:0;padding:5px 11px;font:inherit;font-size:12px;
+    font-weight:700;color:var(--st-steel-fg);cursor:pointer;
     box-shadow:0 16px 36px -14px rgba(15,23,42,.34)}
   .rl-notices-min:hover{background:var(--color-accent-200,var(--color-accent-100));
     border-color:var(--color-accent)}
@@ -1469,7 +1474,7 @@ function redlineLayoutCss(){
      four-rung fold ladder — so it keeps its own 11.5px/700 sizing and takes the
      platform's FACE. Change one, change the other. */
   .redline-page .rl-btn{border:1px solid color-mix(in srgb,var(--accent-solid) 45%,transparent);
-    background:transparent;color:var(--color-accent-700);
+    background:transparent;color:var(--accent-ink-700);
     font:inherit;font-size:13px;font-weight:700;padding:6px 12px;
     border-radius:0;cursor:pointer;white-space:nowrap}
   .redline-page .rl-btn:hover:not(:disabled){background:color-mix(in srgb,var(--accent-solid) 10%,transparent);
@@ -1497,7 +1502,7 @@ function redlineLayoutCss(){
      WHAT IT KEEPS is .rl-btn's accent border and ink plus its own 700 weight,
      so the act still LEADS its row by weight and position. The glow came off
      earlier for its own reason and stays off. */
-  .redline-page .rl-btn-go{background:none;color:var(--color-accent-800);
+  .redline-page .rl-btn-go{background:none;color:var(--accent-ink);
     border-color:var(--accent-solid)}
   .redline-page .rl-btn-go:hover:not(:disabled){
     background:color-mix(in srgb,var(--accent-solid) 10%,transparent);
@@ -1563,7 +1568,7 @@ function redlineLayoutCss(){
   .redline-page select.rl-jump option:hover,
   .redline-page select.rl-jump option:focus{background:var(--color-neutral-100)}
   .redline-page select.rl-jump option:checked{background:color-mix(in srgb,var(--accent-solid) 12%,transparent);
-    color:var(--color-accent-600)}
+    color:var(--accent-ink-700)}
   html.dark .redline-page select.rl-jump option:checked{color:var(--color-accent-400)}
   /* The playbook pass wears the Copilot's violet — an AI act, visibly not one
      of the engine's own verbs, and disabled it says it is thinking. */
@@ -1576,7 +1581,7 @@ function redlineLayoutCss(){
      align-self:center because the row is align-items:stretch and a door has
      no business being as tall as the control group. */
   .redline-page .rl-livelist{flex:none;align-self:center;display:inline-flex;align-items:center;
-    gap:7px;border:0;background:none;color:var(--color-accent-800);border-radius:0;padding:0;
+    gap:7px;border:0;background:none;color:var(--accent-ink);border-radius:0;padding:0;
     font:inherit;font-size:13px;font-weight:400;cursor:pointer;
     transition:background .12s,border-color .12s,color .12s}
   .redline-page .rl-livelist:hover{background:none;border-color:var(--color-neutral-400);
@@ -1634,7 +1639,7 @@ function redlineLayoutCss(){
   html.dark .redline-page .rl-focus-btn{background:rgba(15,23,42,.5);border-color:rgba(148,163,184,.32);color:var(--color-neutral-300)}
   html.dark .redline-page .rl-focus-btn:hover{background:rgba(15,23,42,.75)}
   .redline-page .rl-focus-btn.on,
-  html.dark .redline-page .rl-focus-btn.on{background:var(--color-accent-800);border-color:var(--color-accent-800);color:#fff}
+  html.dark .redline-page .rl-focus-btn.on{background:var(--color-accent-800);border-color:var(--accent-ink);color:#fff}
   /* ---- FOCUS MODE, AND WHY IT STOPPED WORKING ----
      This named .rl-shell — the title card this page used to draw for itself.
      That card is gone: both this page and the contract page share one head now.
@@ -1958,7 +1963,7 @@ function redlineLayoutCss(){
   .redline-page .rl-doc .nego-doc{margin:0 auto;font-size:var(--rl-doc-type);line-height:1.75;color:var(--color-text)}
   .redline-page .rl-clause-p{margin:0}
   .redline-page .rl-propose{margin-top:7px;border:0;background:none;padding:0;cursor:pointer;
-    font:inherit;font-size:13px;font-weight:600;color:var(--color-accent-600)}
+    font:inherit;font-size:13px;font-weight:600;color:var(--accent-ink-700)}
   .redline-page .rl-propose:hover{text-decoration:underline}
   /* ---- A REDLINED CLAUSE IS MARKED IN THE MARGIN, NOT WASHED ----
      (owner-asked 16 Aug 2026: "keep the contract page white but add a thin
@@ -2210,7 +2215,7 @@ function redlineLayoutCss(){
   .redline-page .rl-plan-act{border:1px solid var(--color-divider);border-radius:0;
     background:var(--color-bg);cursor:pointer;font:inherit;font-weight:600;
     font-size:13px;color:var(--color-neutral-600);padding:4px 10px}
-  .redline-page .rl-plan-act:hover{border-color:var(--color-accent-300);color:var(--color-accent-700)}
+  .redline-page .rl-plan-act:hover{border-color:var(--color-accent-300);color:var(--accent-ink-700)}
 
   /* ---- THE ASK TAG (OI-12) ----
      An outline pill with a coloured cap: the cap is whose, the glyph is where
@@ -2380,7 +2385,7 @@ function redlineLayoutCss(){
     padding:6px 9px;font-size:14px;line-height:1.55;color:var(--color-text);
     overflow-wrap:anywhere}
   .redline-page .rl-card-why-k{display:block;font-size:11px;font-weight:700;letter-spacing:.09em;
-    text-transform:uppercase;color:var(--color-accent-800);margin-bottom:2px}
+    text-transform:uppercase;color:var(--accent-ink);margin-bottom:2px}
   /* A caption may shout; a name may not. This one is "Achieng Otieno said". */
   .redline-page .rl-said-k{text-transform:none;letter-spacing:.01em}
   .redline-page .rl-card-meta{font-size:13px;color:var(--color-neutral-500);line-height:1.5}
@@ -2415,8 +2420,8 @@ function redlineLayoutCss(){
     border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);
     color:var(--color-neutral-600);transition:border-color .13s,color .13s,background .13s;
     height:30px}
-  .redline-page .rl-open-btn:hover{border-color:var(--color-accent);color:var(--color-accent-700);
-    background:var(--color-accent-100)}
+  .redline-page .rl-open-btn:hover{border-color:var(--color-accent);color:var(--st-steel-fg);
+    background:var(--st-steel-bg)}
   .redline-page .rl-open-btn:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
   /* ---- THE ✦ DOOR ONTO THE CLAUSE EDITOR (25 Aug 2026) ----
      It wears Open's own clothes because it stands beside Open and the two are
@@ -2430,7 +2435,7 @@ function redlineLayoutCss(){
     border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);
     color:var(--accent-ink);transition:border-color .13s,color .13s,background .13s;height:30px}
   .redline-page .rl-cp-editor-btn:hover{border-color:var(--color-accent);
-    color:var(--color-accent-700);background:var(--color-accent-100)}
+    color:var(--st-steel-fg);background:var(--st-steel-bg)}
   .redline-page .rl-cp-editor-btn:focus-visible{outline:2px solid var(--color-accent);
     outline-offset:2px}
   /* The head is the press target — it takes you to the clause — and says so. */
@@ -2640,7 +2645,7 @@ function redlineLayoutCss(){
     color:var(--danger-hover)}
   .redline-page .rl-card-verbs .rl-rej:hover{background:color-mix(in srgb,var(--danger-hover) 10%,transparent)}
   .redline-page .rl-card-verbs .rl-edit{background:transparent;border:1px solid var(--rl-btn-line);
-    color:var(--color-accent-700)}
+    color:var(--accent-ink-700)}
   .redline-page .rl-card-verbs .rl-edit:hover{background:color-mix(in srgb,var(--accent-solid) 10%,transparent)}
   html.dark .redline-page .rl-rej{color:#fda4af}
   ${''/* Accent, not the neutral it carried while it had a border to hold it
@@ -2787,7 +2792,7 @@ function redlineLayoutCss(){
   .redline-page .rl-idx-n{flex:none;font-family:var(--font-mono);font-size:12px;font-weight:700;
     letter-spacing:.01em;font-variant-numeric:tabular-nums;color:var(--color-neutral-500);
     background:none;border:0;border-radius:0;padding:0;line-height:1.2}
-  .redline-page .rl-idx-n.is-live{color:var(--color-accent-800)}
+  .redline-page .rl-idx-n.is-live{color:var(--accent-ink)}
   ${''/* Found while measuring the row (22 Aug 2026): the dark theme does not
      redefine the accent ramp, so accent-800 is a deep green sitting on an
      almost-black panel — 2.4:1, under any readable threshold, and the live
@@ -2907,8 +2912,8 @@ function redlineLayoutCss(){
   .rl-rv-docnote span{flex:1;min-width:0}
   .rl-rv-docnote button{flex:none;font:inherit;font-size:12px;font-weight:700;cursor:pointer;
     border-radius:0;padding:3px 10px;border:1px solid var(--color-divider);
-    background:var(--color-surface);color:var(--color-accent-800)}
-  .rl-rv-docnote button:hover{border-color:var(--color-accent-800)}
+    background:var(--color-surface);color:var(--accent-ink)}
+  .rl-rv-docnote button:hover{border-color:var(--accent-ink)}
   .redline-page .rl-sendslot:empty{display:none}
   /* ---- THE SEND SLOT GETS ITS OWN LINE ----
      #nego-send is hidden on this page (the design carries that act in the page
@@ -2952,7 +2957,7 @@ function redlineLayoutCss(){
   .redline-page .rl-cnote p.rl-cnote-clamp{display:-webkit-box;-webkit-line-clamp:3;
     -webkit-box-orient:vertical;overflow:hidden}
   .redline-page .rl-cnote-more{display:block;margin-top:4px;border:0;background:none;padding:0;
-    font:inherit;font-size:12px;font-weight:700;color:var(--color-accent-700);cursor:pointer}
+    font:inherit;font-size:12px;font-weight:700;color:var(--accent-ink-700);cursor:pointer}
   .redline-page .rl-cnote-more:hover{text-decoration:underline}
   /* ---- THE BUTTON AND THE PROMISE FOLLOW THE SWITCH ----
      Each carries both faces; the pressed side of the visibility switch decides
@@ -2988,7 +2993,7 @@ function redlineLayoutCss(){
   .redline-page .nego-visswitch button{border:1px solid var(--color-divider);background:var(--color-surface);
     border-radius:0;padding:3px 8px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;
     color:var(--color-neutral-600)}
-  .redline-page .nego-visswitch button[aria-pressed="true"]{background:var(--accent-solid);color:#fff;
+  .redline-page .nego-visswitch button[aria-pressed="true"]{background:var(--accent-fill);color:#fff;
     border-color:var(--accent-solid)}
   /* ---- TWO PANES AND A HANDLE ----
      The twelve-column deal is gone: the document takes the left pane (two
@@ -3534,7 +3539,7 @@ function redlineLayoutCss(){
      .rl-cp-act in the panel carries the same colour families on its own
      class, which is why nothing else changed shade. */
   .redline-page .rl-btn-ghost{background:var(--color-neutral-100);color:var(--color-neutral-600)}
-  .redline-page .rl-btn-ghost[aria-pressed="true"]{background:var(--accent-solid);color:#fff;
+  .redline-page .rl-btn-ghost[aria-pressed="true"]{background:var(--accent-fill);color:#fff;
     border-color:var(--accent-solid)}
 
   /* Below lg the two panes stack to one column and the page scrolls, so the
@@ -3770,7 +3775,7 @@ function redlineLayoutCss(){
   .redline-page #ws-head .room-name-id{flex:none;border:0;background:none;font:inherit;
     font-size:15px;font-weight:400;color:var(--color-neutral-600);padding:0;cursor:pointer;
     display:inline-flex;align-items:center;gap:6px;line-height:1.3}
-  .redline-page #ws-head .room-name-id:hover{color:var(--color-accent-800)}
+  .redline-page #ws-head .room-name-id:hover{color:var(--accent-ink)}
   .redline-page #ws-head .room-name-id i{font-style:normal;color:var(--color-neutral-400)}
   .redline-page #ws-head .room-name h1{font-size:15px;font-weight:600;letter-spacing:0;min-width:0;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -3898,7 +3903,7 @@ function redlineLayoutCss(){
 
   .redline-page #ws-head .rl-pb-btn{background:none;
     border:1px solid color-mix(in srgb,var(--accent-solid) 50%,transparent);
-    color:var(--color-accent-800);font-weight:400;box-shadow:none}
+    color:var(--accent-ink);font-weight:400;box-shadow:none}
   .redline-page #ws-head .rl-pb-btn:hover:not(:disabled){
     background:color-mix(in srgb,var(--accent-solid) 8%,transparent)}
   html.dark .redline-page #ws-head .rl-pb-btn{color:var(--color-accent-300)}
@@ -3955,13 +3960,13 @@ function redlineLayoutCss(){
     align-items:stretch}
   .rl-readwrap .rl-seg{height:auto;padding:0 14px;font-size:14px;font-weight:400;
     color:var(--color-text);display:flex;align-items:center;gap:7px;box-shadow:none;background:none}
-  .rl-readwrap .rl-seg:hover{color:var(--color-accent-800)}
-  .rl-readwrap .rl-seg.on{font-weight:700;color:var(--color-accent-800);
+  .rl-readwrap .rl-seg:hover{color:var(--accent-ink)}
+  .rl-readwrap .rl-seg.on{font-weight:700;color:var(--accent-ink);
     background:none;box-shadow:inset 0 -2px var(--accent-solid)}
   html.dark .rl-readwrap .rl-seg.on{background:none}
   .rl-readwrap .rl-seg-n{font-family:var(--font-mono);font-size:12px;font-weight:400;
     font-variant-numeric:tabular-nums;color:var(--color-neutral-500)}
-  .rl-readwrap .rl-seg.on .rl-seg-n{color:var(--color-accent-800)}
+  .rl-readwrap .rl-seg.on .rl-seg-n{color:var(--accent-ink)}
 
   /* ---- 3 · THE RIGHT-HAND CONTROLS QUIETEN DOWN ----
      One box for the text size, a teal-filled seat switch, and a plain link back

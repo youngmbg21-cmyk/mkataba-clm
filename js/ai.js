@@ -3134,7 +3134,7 @@ function renderBriefSection(c){
   const head=(t,tone)=>`<h6 class="br-head br-head-${tone}"><span class="br-dot"></span>${t}</h6>`;
   host.innerHTML=`
     <style>
-      #brief-section .br-fig{font-weight:700;color:var(--color-accent-800);
+      #brief-section .br-fig{font-weight:700;color:var(--accent-ink);
         background:color-mix(in srgb,var(--color-accent) 12%,transparent);
         border-radius:0;padding:0 3px}
       #brief-section .br-lead{font-size:15px;line-height:1.7;color:var(--color-text)}

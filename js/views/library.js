@@ -797,7 +797,7 @@ function openTemplateEditor(tid){
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
       <span style="color:var(--color-accent)">${icon('pencil','w-4 h-4')}</span>
       <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">${i18t('lib_edit_template')}</h3>
-      <span style="font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--color-accent-700);border:1px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:0;padding:1px 6px">v${templateVersionNo(rec)}</span>
+      <span style="font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--st-steel-fg);border:1px solid var(--st-steel-line);background:var(--st-steel-bg);border-radius:0;padding:1px 6px">v${templateVersionNo(rec)}</span>
       <span style="flex:1"></span>
       <button id="te-versions" class="ui-btn" style="font-size:12px;padding:3px 9px;white-space:nowrap">${icon('history','w-3.5 h-3.5')} Versions (${templateVersions(rec).length+1})</button>
     </div>
@@ -1060,12 +1060,12 @@ function openTemplateVersions(tid){
     <div class="scroll-thin" style="max-height:52vh;overflow-y:auto;display:flex;flex-direction:column;gap:6px">
       ${all.map(v=>`
         <div style="display:flex;align-items:center;gap:9px;border:1px solid ${v.n===current.n?'var(--color-accent-300)':'var(--color-divider)'};background:${v.n===current.n?'var(--color-accent-100)':'var(--color-surface)'};border-radius:0;padding:8px 11px">
-          <span style="font-family:var(--font-mono);font-weight:600;font-size:13px;color:var(--color-accent-700);flex:none">v${v.n}</span>
+          <span style="font-family:var(--font-mono);font-weight:600;font-size:13px;color:var(--accent-ink-700);flex:none">v${v.n}</span>
           <span style="min-width:0;flex:1">
             <span style="display:block;font-size:13px;color:var(--color-neutral-800);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(v.note||'Saved')}${v.name!==rec.name?` <span style="color:var(--color-neutral-500)">· named “${_tplEsc(v.name)}”</span>`:''}</span>
             <span style="display:block;font-size:12px;color:var(--color-neutral-500);font-family:var(--font-mono)">${v.by?_tplEsc(v.by)+' · ':''}${v.at?fmtDT(v.at):''} · ${(v.fields||[]).length} blank${(v.fields||[]).length===1?'':'s'} · ${(v.format==='rich'?'formatted':'plain text')}</span>
           </span>
-          ${v.n===current.n?`<span class="badge" style="flex:none;background:var(--color-accent-200);color:var(--color-accent-800)">current</span>`
+          ${v.n===current.n?`<span class="badge" style="flex:none;background:var(--st-steel-bg);color:var(--st-steel-fg)">current</span>`
             :`<button data-tv-view="${v.n}" class="ui-btn" style="flex:none;font-size:12px;padding:3px 9px">${i18t('lib_view')}</button>
               ${canManage?`<button data-tv-revert="${v.n}" class="ui-btn" style="flex:none;font-size:12px;padding:3px 9px">${i18t('lib_revert_to_this')}</button>`:''}`}
         </div>`).join('')}
@@ -1207,7 +1207,7 @@ function openBulkCreateModal(t){
         return;
       }
       ready=r.rows;
-      out.innerHTML=`<div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:0;padding:9px 11px;color:var(--color-accent-800)">
+      out.innerHTML=`<div style="border:1px solid var(--color-divider);background:var(--st-steel-bg);border-radius:0;padding:9px 11px;color:var(--st-steel-fg)">
         <b>${r.rows.length} row${r.rows.length===1?'':'s'} checked, every cell valid.</b> ${i18t('lib_press')} <b>${i18t('lib_create_drafts')}</b> to file them all in one pass.
         <div style="margin-top:5px;color:var(--color-neutral-700);font-size:12px">First few: ${r.rows.slice(0,3).map(x=>_tplEsc(x.name)).join(' · ')}${r.rows.length>3?` … and ${r.rows.length-3} more`:''}</div></div>`;
       go.disabled=false; go.style.opacity='1';
@@ -1252,7 +1252,7 @@ function openTemplatePreview(tpl){
         <span style="font-size:12px;color:var(--color-neutral-600)">${FOLDERS[tpl.folder]?.name||''}</span>
       </div>
       <p style="font-size:12px;color:var(--color-neutral-600);margin:0 0 10px">${tpl.chars?tpl.chars.toLocaleString()+' characters · ':''}added ${tpl.at?fmtDT(tpl.at):''} by ${_tplEsc(tpl.by||'—')}${templateFields(tpl).length?` · <b>${templateFields(tpl).length} blank${templateFields(tpl).length===1?'':'s'}</b>`:' · no blanks yet'}</p>
-      ${templateFields(tpl).length?`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">${templateFields(tpl).map(f=>`<span style="font-size:12px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:2px 7px;color:var(--color-neutral-700)"><b style="font-family:var(--font-mono)">${_tplEsc(f.key)}</b> ${_tplEsc(f.label)}${f.maps?` <span style="color:var(--color-accent-700)">→ ${_tplEsc(tplMapLabel(f.maps))}</span>`:''}</span>`).join('')}</div>`:''}
+      ${templateFields(tpl).length?`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">${templateFields(tpl).map(f=>`<span style="font-size:12px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:2px 7px;color:var(--color-neutral-700)"><b style="font-family:var(--font-mono)">${_tplEsc(f.key)}</b> ${_tplEsc(f.label)}${f.maps?` <span style="color:var(--accent-ink-700)">→ ${_tplEsc(tplMapLabel(f.maps))}</span>`:''}</span>`).join('')}</div>`:''}
       <div class="scroll-thin doc-surface" style="border:1px solid var(--color-divider);border-radius:0;background:var(--color-bg);padding:14px 16px;max-height:55vh;overflow-y:auto">${_tplPreviewHtml(tpl)}</div>
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
         ${canEdit()?`<button id="tp-blanks" class="ui-btn">${templateFields(tpl).length?'Edit blanks':'Add blanks'}</button>`:''}
@@ -1351,7 +1351,7 @@ function tplPageRowHtml(r){
     :(r.stream?folderColor(r.stream):'var(--color-neutral-300)');
   const version=r.version==null?`<span style="color:var(--color-neutral-400)">—</span>`
     :r.mono?`<span style="font-family:var(--font-mono);font-size:12px;color:var(--color-neutral-500)">${_tplEsc(r.version)}</span>`
-    :`<span style="font-weight:700;color:var(--color-accent-700)">${_tplEsc(r.version)}</span>`;
+    :`<span style="font-weight:700;color:var(--accent-ink-700)">${_tplEsc(r.version)}</span>`;
   const B='class="ui-btn" style="font-size:13px;padding:4px 12px"';
   const P='class="ui-btn ui-btn-primary" style="font-size:13px;padding:4px 12px"';
   let acts='';
@@ -1403,7 +1403,7 @@ function tplPagePaintRows(){
     </table></div>
     ${hidden>0?`<div style="display:flex;align-items:center;padding:11px 14px;font-size:13px;color:var(--color-neutral-600)">
       ${i18t('lib_more_kinds',{n:hidden,kinds:hiddenKinds})}<span style="flex:1"></span>
-      <button id="tpl-showall" style="border:0;background:none;cursor:pointer;font:inherit;font-size:13px;font-weight:700;color:var(--color-accent-700)">${i18t('lib_show_all')}</button></div>`:''}`
+      <button id="tpl-showall" style="border:0;background:none;cursor:pointer;font:inherit;font-size:13px;font-weight:700;color:var(--accent-ink-700)">${i18t('lib_show_all')}</button></div>`:''}`
     :`<div style="padding:28px 14px;text-align:center;font-size:13px;color:var(--color-neutral-600)">${i18t('lib_nothing_matches')}</div>`;
   // row verbs (rebound on every paint — the rows are rebuilt wholesale)
   host.querySelectorAll('[data-tpllib-use]').forEach(b=>b.addEventListener('click',()=>tplLibNewContract(b.getAttribute('data-tpllib-use'))));

@@ -142,7 +142,7 @@ function tplCompanySectionHtml() {
       </div>
       <div data-tpllib-open="${t.id}" style="font-size:12px;color:var(--color-neutral-500);cursor:pointer">Last used ${fmtDay(t.lastUsedAt)}</div>
       <div data-tpllib-open="${t.id}" style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--color-neutral-600);cursor:pointer">
-        <span style="font-family:var(--font-mono);font-weight:600;color:var(--color-accent-700)" title="${i18t('tl_current_published')}">${t.publishedVersion ? 'v' + t.publishedVersion : (canManage ? 'v' + t.latestVersion + ' draft' : '—')}</span>
+        <span style="font-family:var(--font-mono);font-weight:600;color:var(--accent-ink-700)" title="${i18t('tl_current_published')}">${t.publishedVersion ? 'v' + t.publishedVersion : (canManage ? 'v' + t.latestVersion + ' draft' : '—')}</span>
         <span>·</span><span title="${i18t('tl_contracts_created')}">${t.contractsCreated} contract${t.contractsCreated === 1 ? '' : 's'}</span>
       </div>
       <div style="display:flex;gap:6px;margin-top:2px;flex-wrap:wrap">
@@ -479,7 +479,7 @@ async function openTemplateLibDetail(id) {
 
   const vRows = versions.slice().reverse().map(v => `
     <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 16px;border-bottom:1px solid var(--color-divider)">
-      <span style="flex:none;font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--color-accent-700);border:1px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:0;padding:1px 7px;margin-top:1px">v${v.versionNumber}</span>
+      <span style="flex:none;font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--st-steel-fg);border:1px solid var(--st-steel-line);background:var(--st-steel-bg);border-radius:0;padding:1px 7px;margin-top:1px">v${v.versionNumber}</span>
       <span style="min-width:0;flex:1">
         <span style="display:block;font-size:13px">${v.status === 'published' ? `Published ${fmtAt(v.publishedAt)}${v.publishedBy ? ' by ' + esc(v.publishedBy) : ''}` : v.status === 'superseded' ? `Superseded — was published ${fmtAt(v.publishedAt)}` : 'Draft in progress'}</span>
         ${v.changeNote ? `<span style="display:block;font-size:12px;color:var(--color-neutral-600);margin-top:2px">“${esc(v.changeNote)}”</span>` : ''}

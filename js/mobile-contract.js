@@ -43,7 +43,7 @@ function mContractHeadHtml(c){
   return `
     <div class="m-pagehead" style="padding:8px 8px 0">
       <div style="display:flex;align-items:center;gap:2px;padding-bottom:8px">
-        <button class="m-head-btn" data-m-act="back" aria-label="${i18t('m_back')}" style="color:var(--color-accent-700)">
+        <button class="m-head-btn" data-m-act="back" aria-label="${i18t('m_back')}" style="color:var(--accent-ink-700)">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
         </button>
         <div style="flex:1;min-width:0">
@@ -288,7 +288,7 @@ function mTermsHtml(c){
      phone cannot come to disagree with the laptop about what matters. Without
      that module loaded it falls back to plain escaped text. */
   const mk = t => (typeof briefMark==='function') ? briefMark(t) : mEsc(t);
-  const briefFig = `<style>.m-brief .br-fig{font-weight:700;color:var(--color-accent-800);
+  const briefFig = `<style>.m-brief .br-fig{font-weight:700;color:var(--accent-ink);
     background:color-mix(in srgb,var(--color-accent) 12%,transparent);border-radius:0;padding:0 3px}</style>`;
   const briefBlock = b ? `${briefFig}
       <div class="m-card m-brief" style="margin:16px 16px 0;padding:14px">

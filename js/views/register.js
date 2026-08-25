@@ -72,7 +72,7 @@ function renderFolder(){
     </style>
     <div style="display:flex;flex-direction:column;gap:10px">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <button id="back-dash" style="width:28px;height:28px;flex:none;display:inline-grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;color:var(--color-accent-700);cursor:pointer" title="${i18t('reg_back_to_portfolio')}">${icon('arrowLeft','w-4 h-4')}</button>
+        <button id="back-dash" style="width:28px;height:28px;flex:none;display:inline-grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;color:var(--accent-ink-700);cursor:pointer" title="${i18t('reg_back_to_portfolio')}">${icon('arrowLeft','w-4 h-4')}</button>
         <span style="width:28px;height:28px;flex:none;display:grid;place-items:center;background:var(--color-accent-800);color:#fff;border-radius:0">${icon(f.ic,'w-4 h-4')}</span>
         <div style="min-width:0">
           <div style="font-family:var(--font-mono);font-weight:600;font-size:17px;color:var(--color-text);line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(f.name)}</div>
@@ -198,7 +198,7 @@ function folderRowsHtml(cs){
       <td style="text-align:center;white-space:nowrap">${window.shareLinkCell?shareLinkCell(c.id):''}</td>
       <td style="text-align:right;padding-right:12px;white-space:nowrap">${window.questionDot?questionDot(c.id):''}${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}</td>
     </tr>`; }).join('') + (cs.length>shown
-      ? `<tr><td colspan="8" style="padding:0"><button id="folder-more" style="width:100%;padding:11px;font-size:14px;font-weight:600;color:var(--color-accent-700);background:none;border:0;border-top:1px solid var(--color-divider);cursor:pointer">Show ${Math.min(FOLDER_PAGE,cs.length-shown)} more · ${cs.length-shown} remaining</button></td></tr>`
+      ? `<tr><td colspan="8" style="padding:0"><button id="folder-more" style="width:100%;padding:11px;font-size:14px;font-weight:600;color:var(--accent-ink-700);background:none;border:0;border-top:1px solid var(--color-divider);cursor:pointer">Show ${Math.min(FOLDER_PAGE,cs.length-shown)} more · ${cs.length-shown} remaining</button></td></tr>`
       : '');
 }
 function folderSelCount(){ const s=state.folderSel||{}; return Object.keys(s).filter(k=>s[k]).length; }
@@ -517,7 +517,7 @@ function regCurPage(cs){ const R=regState(); const n=regPageCount(cs); R.page=Ma
 function regPager(cs){
   const n=regPageCount(cs); if(n<=1) return '';
   const p=regCurPage(cs);
-  const btn=(label,to,disabled,active)=>`<button ${disabled?'disabled':''} data-reg-page="${to}" style="min-width:32px;padding:5px 10px;font:inherit;font-size:13px;font-weight:${active?700:500};border:1px solid ${active?'var(--color-accent)':'var(--color-divider)'};background:${active?'var(--color-accent)':'var(--color-surface)'};color:${active?'#fff':(disabled?'var(--color-neutral-400)':'var(--color-accent-700)')};border-radius:0;cursor:${disabled?'default':'pointer'}">${label}</button>`;
+  const btn=(label,to,disabled,active)=>`<button ${disabled?'disabled':''} data-reg-page="${to}" style="min-width:32px;padding:5px 10px;font:inherit;font-size:13px;font-weight:${active?700:500};border:1px solid ${active?'var(--accent-fill)':'var(--color-divider)'};background:${active?'var(--accent-fill)':'var(--color-surface)'};color:${active?'#fff':(disabled?'var(--color-neutral-400)':'var(--accent-ink-700)')};border-radius:0;cursor:${disabled?'default':'pointer'}">${label}</button>`;
   const nums=[]; const lo=Math.max(1,p-2), hi=Math.min(n,p+2);
   if(lo>1){ nums.push(btn('1',1,false,p===1)); if(lo>2) nums.push('<span style="padding:0 3px;color:var(--color-neutral-500)">…</span>'); }
   for(let i=lo;i<=hi;i++) nums.push(btn(String(i),i,false,i===p));
@@ -545,7 +545,7 @@ function regFooterText(cs){
   /* Neither the amendment fold nor the page counter belongs on a list that
      never pages and groups by something else entirely. */
   const neg=regScope()==='negotiations';
-  const flatBtn=neg?'':` · <button type="button" id="reg-flat" style="border:0;background:none;font:inherit;font-size:inherit;color:var(--color-accent-700);text-decoration:underline;cursor:pointer;padding:0">${R.flat?i18t('reg_group_amendments'):i18t('reg_show_flat')}</button>`;
+  const flatBtn=neg?'':` · <button type="button" id="reg-flat" style="border:0;background:none;font:inherit;font-size:inherit;color:var(--accent-ink-700);text-decoration:underline;cursor:pointer;padding:0">${R.flat?i18t('reg_group_amendments'):i18t('reg_show_flat')}</button>`;
   const pageNote=neg?'':` · ${i18t('reg_page_of',{p,n})}`;
   return `${i18t('reg_showing',{start:B(start.toLocaleString(jxLocale())),end:B(end.toLocaleString(jxLocale())),n:B(cs.length.toLocaleString(jxLocale()))})}${totalNote}${neg?'':famNote}${pageNote}${(typeof canViewValues==='function'&&!canViewValues())?'':` · ${i18t('reg_aggregate')} ${B(fmtMoneyShort(regAggregate(cs)))}`}${flatBtn}`;
 }
@@ -1109,7 +1109,7 @@ function renderRegister(opts){
      every dropdown beside it narrows within this set. */
   const onlyChip=R.only?`<span id="reg-only-chip" title="${esc(i18t('reg_only_title'))}"
       style="display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;border-radius:0;padding:5px 6px 5px 10px;
-        background:var(--color-accent-100);border:1px solid var(--color-accent-300);color:var(--color-accent-800)">
+        background:var(--st-steel-bg);border:1px solid var(--st-steel-line);color:var(--st-steel-fg)">
       <span>${esc(R.only.label||i18t('reg_only_fallback'))}</span>
       <button id="reg-only-clear" title="${esc(i18t('reg_only_clear'))}" aria-label="${esc(i18t('reg_only_clear'))}"
         style="border:0;background:none;font:inherit;font-size:14px;line-height:1;color:inherit;cursor:pointer;padding:0 3px;opacity:.7">&times;</button>
@@ -1134,7 +1134,7 @@ function renderRegister(opts){
   // Clickable, sortable column header: shows a dim ↕ when inactive and a solid
   // ▲/▼ for the active sort direction. Clicking toggles asc/desc (see wiring below).
   const sortCaret=key=>R.sort===key
-    ? `<span style="margin-left:4px;font-size:10px;color:var(--color-accent-700)">${R.dir===1?'▲':'▼'}</span>`
+    ? `<span style="margin-left:4px;font-size:10px;color:var(--accent-ink-700)">${R.dir===1?'▲':'▼'}</span>`
     : `<span class="reg-sort-idle" style="margin-left:4px;font-size:10px;color:var(--color-neutral-400)">↕</span>`;
   const sortableTh=(key,label,extra='')=>`<th class="reg-th-sort${R.sort===key?' active':''}" data-reg-sort="${key}" title="${i18t('reg_sort_by',{col:label})}" aria-sort="${R.sort===key?(R.dir===1?'ascending':'descending'):'none'}" style="cursor:pointer;user-select:none;${extra}">${label}${sortCaret(key)}</th>`;
   const catActive=!!(R.category&&R.category!=='all');
@@ -1300,7 +1300,7 @@ function renderRegister(opts){
          is carrying something. */
       .reg-table{--reg-row-h:36px}   /* the fallback; regDensityVars overrides it per render */
       .reg-mk{font-family:var(--font-mono);font-size:13px;font-weight:400;
-        color:var(--color-accent-600);white-space:nowrap;font-variant-numeric:tabular-nums}
+        color:var(--accent-ink-700);white-space:nowrap;font-variant-numeric:tabular-nums}
       /* The status chip, flattened HERE and not at .badge — that class dresses
          every card, list and panel in the product, and this is a decision about
          a table row. The wash and the ink are untouched. */
@@ -1433,9 +1433,9 @@ function renderRegister(opts){
       .reg-f-l{font-size:12px;color:var(--color-neutral-600);margin-bottom:3px;white-space:nowrap}
       .reg-stg{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;font-weight:400;vertical-align:middle}
       .reg-stg i{width:8px;height:8px;border-radius:50%;flex:none;background:currentColor}
-      .reg-th-sort:hover{color:var(--color-accent-700)!important}
-      .reg-th-sort:hover .reg-sort-idle{color:var(--color-accent-700)}
-      .reg-th-sort.active{color:var(--color-accent-800)!important}
+      .reg-th-sort:hover{color:var(--accent-ink-700)!important}
+      .reg-th-sort:hover .reg-sort-idle{color:var(--accent-ink-700)}
+      .reg-th-sort.active{color:var(--accent-ink)!important}
     </style>
     <div style="display:flex;flex-direction:column;gap:8px;flex:1;min-height:0">
       ${''/* THE BAND — the page's own name, its filters and its search on one
@@ -1469,7 +1469,7 @@ function renderRegister(opts){
                weight Fiori gives it. */}
         <button id="reg-adapt" type="button" title="${esc(i18t('reg_adapt_title'))}"
           style="font-size:12px;font-weight:600;color:var(--accent-ink);background:none;border:0;cursor:pointer;padding:2px 4px;align-self:flex-end;margin-bottom:7px">${esc(i18t('reg_adapt'))}</button>
-        ${filtered?`<button id="reg-clear-filters" style="font-size:12px;font-weight:600;color:var(--color-accent-700);background:none;border:0;cursor:pointer;padding:2px 4px">${i18t('reg_clear')}</button>`:''}
+        ${filtered?`<button id="reg-clear-filters" style="font-size:12px;font-weight:600;color:var(--accent-ink-700);background:none;border:0;cursor:pointer;padding:2px 4px">${i18t('reg_clear')}</button>`:''}
         <span style="flex:1;min-width:8px"></span>
         ${''/* ---- SORT IS STACKED LIKE THE OTHER FIVE (owner-asked 25 Aug 2026:
                "stack Sort's label like the other five") ----

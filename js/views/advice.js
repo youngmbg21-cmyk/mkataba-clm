@@ -35,12 +35,12 @@ function adviceCard(r){
           <span style="font-size:12px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:0;font-variant-numeric:tabular-nums;background:color-mix(in srgb,${etaCol} 12%,#fff);color:${etaCol}">${etaTxt}</span>
         </span>
       </div>
-      <div style="display:flex;align-items:center;gap:6px;font-size:14px;font-weight:400;line-height:1.3"><span style="display:inline-flex;color:var(--color-accent-700);flex:none">${icon(svc.ic,'w-3.5 h-3.5')}</span><span style="min-width:0">${esc(svc.name)}</span></div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:14px;font-weight:400;line-height:1.3"><span style="display:inline-flex;color:var(--accent-ink-700);flex:none">${icon(svc.ic,'w-3.5 h-3.5')}</span><span style="min-width:0">${esc(svc.name)}</span></div>
       <div style="font-size:12px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.name)}${r.company?' · '+esc(r.company):''}</div>
       ${r.contractName?`<div style="font-size:12px;color:var(--color-neutral-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.contractName)}</div>`:''}
       <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;border-top:1px solid color-mix(in srgb,var(--color-text) 8%,transparent);padding-top:5px;margin-top:1px">
         <span style="font-size:12px;font-weight:400;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--color-text)">${fee}</span>
-        ${ini?`<span title="${esc(r.assignee)}" style="width:20px;height:20px;border-radius:50%;background:var(--color-accent-200);color:var(--color-accent-800);display:inline-grid;place-items:center;font-size:10px;font-weight:700;font-family:var(--font-mono);flex:none">${ini}</span>`
+        ${ini?`<span title="${esc(r.assignee)}" style="width:20px;height:20px;border-radius:50%;background:var(--st-steel-bg);color:var(--st-steel-fg);display:inline-grid;place-items:center;font-size:10px;font-weight:700;font-family:var(--font-mono);flex:none">${ini}</span>`
             :`<span style="font-size:12px;color:var(--color-neutral-400)">unassigned</span>`}
       </div>
     </div>`;
@@ -165,7 +165,7 @@ function openAdviceModal(id){
   openModal(`
     <div style="padding:22px 24px">
       <div style="display:flex;align-items:center;gap:9px;margin-bottom:2px">
-        <span style="width:32px;height:32px;flex:none;display:grid;place-items:center;border-radius:0;background:var(--color-accent-100);color:var(--color-accent-800)">${icon(svc.ic,'w-4 h-4')}</span>
+        <span style="width:32px;height:32px;flex:none;display:grid;place-items:center;border-radius:0;background:var(--st-steel-bg);color:var(--st-steel-fg)">${icon(svc.ic,'w-4 h-4')}</span>
         <div style="min-width:0">
           <h2 style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0;line-height:1.25">${esc(svc.name)}</h2>
           <div style="font-family:var(--font-mono);font-size:12px;color:var(--color-neutral-600)">${r.id} · submitted ${fmtDT(r.submittedAt)}</div>
@@ -235,7 +235,7 @@ function openRateCardModal(){
   const rows=Object.values(ADVICE_SERVICES).map(s=>{
     const r=adviceRateFor(s.id);
     return `<tr style="border-bottom:1px solid var(--color-divider)">
-      <td style="padding:8px 10px 8px 0;min-width:0"><span style="display:flex;align-items:center;gap:7px"><span style="display:inline-flex;color:var(--color-accent-700)">${icon(s.ic,'w-3.5 h-3.5')}</span><span style="font-size:13px;font-weight:400">${s.name}</span></span></td>
+      <td style="padding:8px 10px 8px 0;min-width:0"><span style="display:flex;align-items:center;gap:7px"><span style="display:inline-flex;color:var(--accent-ink-700)">${icon(s.ic,'w-3.5 h-3.5')}</span><span style="font-size:13px;font-weight:400">${s.name}</span></span></td>
       <td style="padding:8px 6px;width:92px">${inp('rt-rate-'+s.id,r.rate)}</td>
       <td style="padding:8px 6px;width:64px">${inp('rt-min-'+s.id,r.hoursMin)}</td>
       <td style="padding:8px 6px;width:64px">${inp('rt-max-'+s.id,r.hoursMax)}</td>

@@ -238,9 +238,22 @@ describe('f240 (5) — the rows read at one size and one weight', () => {
     assert.ok(!/\.reg-actlink\{/.test(css), 'and no rule is left dressing one');
   });
 
-  test('AND EVERY COLOUR IS EXACTLY WHAT IT WAS', () => {
-    assert.match(css.match(/\.reg-mk\{[\s\S]*?\}/)[0], /var\(--color-accent-600\)/,
-      'the reference is still the row’s teal handle');
+  test('AND EVERY COLOUR IS EXACTLY WHAT IT WAS — except one, deliberately', () => {
+    /* REVERSED IN PLACE 25 Aug 2026, and this is the ONE colour on this row
+       that really did move — said out loud rather than absorbed. WO-16's claim
+       was that flattening the TYPE moved no colour, and that is still true and
+       is what the three assertions below pin. What moved is the reference's
+       own ink, on its own account: --color-accent-600 as 13px text measures
+       3.74:1 on white, under AA's 4.5, and a real browser counted 41 of these
+       failing on one page. It reads --accent-ink-700 now, which is accent-700
+       by day (5.47:1) and answers properly at night, where the raw ramp step
+       had no answer at all and measured 2.35:1.
+       IT IS STILL THE ROW'S TEAL HANDLE — one rung darker, not a new colour —
+       and that is what this asks: the token, and that it is an accent ink
+       rather than a neutral. */
+    const mk = css.match(/\.reg-mk\{[\s\S]*?\}/)[0];
+    assert.match(mk, /color:var\(--accent-ink-700\)/,
+      'the reference is still the row’s teal handle, at the rung that clears AA');
     assert.match(rowsFn, /renDateColor/, 'the expiry still carries its urgency colour');
     assert.match(rowsFn, /\$\{renColor\}/, 'and so does the countdown');
     assert.match(rowsFn, /folderColor\(c\)/, 'the stream tick is untouched');

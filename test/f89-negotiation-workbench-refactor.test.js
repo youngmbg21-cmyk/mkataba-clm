@@ -977,7 +977,7 @@ describe('F89 (11,12) — the card verbs, their colours, and where Edit lands', 
     assert.match(p.rule('.redline-page .rl-card-verbs .rl-rej') || '', /border:1px solid var\(--rl-btn-line\)/);
     assert.match(p.rule('.redline-page .rl-card-verbs .rl-edit') || '', /background:transparent/);
     assert.match(p.rule('.redline-page .rl-card-verbs .rl-edit') || '', /border:1px solid var\(--rl-btn-line\)/);
-    assert.match(p.rule('.redline-page .rl-card-verbs .rl-edit') || '', /color:var\(--color-accent-700\)/);
+    assert.match(p.rule('.redline-page .rl-card-verbs .rl-edit') || '', /color:var\(--accent-ink-700\)/);
   });
 
   test('the buttons on a live card carry those classes', async () => {

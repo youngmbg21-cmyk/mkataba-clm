@@ -330,3 +330,38 @@ Said plainly rather than left as an implication.
 - **Server-rendered surfaces** (transactional email templates, the PDF and Word exports, the standalone health and weekly report windows) were not audited. They carry their own styling deliberately and are excluded from the token system by design.
 - **No copy or content-design audit.** Roughly half the visible strings in the contract room and ~40 in the counterparty portal are hardcoded English in a bilingual product — flagged as findings, but the tone and wording themselves were not reviewed.
 - **Nothing was changed in the product.** The three deliverables are two new documents and one new file in `prototype/`. Phase 0's five edits are stated and not applied.
+
+---
+
+## 8 · Noticed and not fixed — the overnight run's log
+
+`BUGLOG.md` is not readable or writable in the session this run was worked in
+(it is excluded from the tooling), so the "Noticed, not fixed" lines the
+rulebook asks for are kept here instead. **They belong in `BUGLOG.md` and
+should be moved there** — that is the record, this is a stand-in.
+
+### From Phase A (25 Aug 2026)
+
+- **`--color-neutral-400` is used as an ink in ~50 places and fails AA in both
+  themes** — measured 2.96:1 by day and 4.34:1 at night. It carries borders and
+  backgrounds in twenty more, so it is the one step in this ramp that is not a
+  type token, which is exactly why the four-shades pass recorded it as
+  deliberately left out. It is not a dark-theme finding (it fails in daylight
+  too), and re-pointing fifty declarations one at a time with eyes on is the
+  later type work, not a sweep. Visible on the calendar's out-of-month day
+  numbers, the register's idle sort arrows, and every em-dash standing in for
+  an absent value. `contrast-verify` counts them on every run so the number
+  cannot quietly grow.
+- **The Insights hero tile puts pale text on a brand gradient.** `--brand-hero`
+  runs `#0b3d3a → --color-accent-600 → --brand-cyan-700`, and against its middle
+  stop the 11px label and 12px note (`--brand-hero-sub`, `#bde7e1`) measure
+  **2.80:1** where AA wants 4.5. The 22px figure is white at 3.74:1, which
+  clears the large-text floor of 3. **The navy workspace and the dark theme both
+  pass comfortably** (8.2:1 and above) — it is the teal workspace's own gradient
+  that is too light in its middle. Fixing it means either darkening a brand
+  gradient used elsewhere or moving the tile onto the card shell, both of which
+  are the owner's call. Insights is not one of the twenty census screens.
+- **`.text-ink/40…/60` had no light-mode answer in HaTi's own sheet** — the dark
+  theme had re-pointed them and the light side never had, which is why they
+  survived. Fixed in A1; recorded because it is the second time this exact
+  shape has been found (`.text-ink` itself was the first, on 22 Aug).

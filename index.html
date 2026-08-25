@@ -793,7 +793,7 @@
      one character earlier. */
   .font-medium{font-weight:var(--w-label)}
   a{color:var(--accent-ink);}
-  a:hover{color:var(--color-accent-800);}
+  a:hover{color:var(--accent-ink);}
   ::selection{background:color-mix(in srgb,var(--color-accent) 30%,transparent);}
   input::placeholder,textarea::placeholder{color:var(--color-neutral-500);}
 
@@ -1110,13 +1110,13 @@
      value serves both workspaces and there is no dark override to keep in
      step. --accent-solid itself is UNCHANGED: it is the nav's active fill and
      is documented as a brand fill that must not flip with the theme. */
-  .ui-btn-primary{background:var(--color-accent-700);color:#fff;border-color:var(--color-accent-700);}
+  .ui-btn-primary{background:var(--color-accent-700);color:#fff;border-color:var(--accent-ink-700);}
   .ui-btn-primary:hover{background:var(--accent-solid-hover);}
   /* Secondary action beside a primary. It now resolves to the same face as the
      base class, which is the point — the base IS the outlined level since 22
      Aug 2026. Kept as a name because ~40 call sites use it and a class that
      agrees with the base is cheaper than a sweep that might miss one. */
-  .ui-btn-secondary{color:var(--color-accent-700);border-color:color-mix(in srgb,var(--accent-solid) 45%,transparent);}
+  .ui-btn-secondary{color:var(--accent-ink-700);border-color:color-mix(in srgb,var(--accent-solid) 45%,transparent);}
   .ui-btn-secondary:hover{background:color-mix(in srgb,var(--accent-solid) 9%,transparent);border-color:var(--accent-solid);}
   .ui-btn:disabled{opacity:.45;cursor:not-allowed;}
 
@@ -1202,7 +1202,7 @@
   .nav-item svg,.nav-item i{flex:none;opacity:.85;}
   .nav-item:hover{background:var(--color-neutral-100);color:var(--color-text);}
   .nav-item:hover svg{opacity:1;}
-  .nav-item.active{background:color-mix(in srgb,var(--accent-solid) 10%,transparent);color:var(--color-accent-600);border-color:color-mix(in srgb,var(--accent-solid) 20%,transparent);font-weight:700;letter-spacing:-0.01em;}
+  .nav-item.active{background:color-mix(in srgb,var(--accent-solid) 10%,transparent);color:var(--accent-ink-700);border-color:color-mix(in srgb,var(--accent-solid) 20%,transparent);font-weight:700;letter-spacing:-0.01em;}
   html.dark .nav-item.active{color:var(--color-accent-400);}
   .nav-item.active svg{opacity:1;}
   /* Portfolio Intel keeps the accent whether or not it is the current page —
@@ -1217,7 +1217,7 @@
      colored tag with nothing behind it is a false alarm. */
   .nav-count{flex:none;font-size:12px;font-family:var(--font-mono);font-weight:700;padding:1px 7px;border-radius:0;background:var(--color-neutral-100);color:var(--color-neutral-500);white-space:nowrap;}
   .nav-count:empty{display:none;}
-  .nav-count[data-tone="teal"]{background:color-mix(in srgb,var(--accent-solid) 14%,transparent);color:var(--color-accent-600);}
+  .nav-count[data-tone="teal"]{background:color-mix(in srgb,var(--accent-solid) 14%,transparent);color:var(--accent-ink-700);}
   html.dark .nav-count[data-tone="teal"]{color:var(--color-accent-400);}
   .nav-count[data-tone="amber"]{background:rgba(245,158,11,.18);color:#b45309;}
   html.dark .nav-count[data-tone="amber"]{color:#fcd34d;}
@@ -1233,7 +1233,7 @@
      section holding the active view is still auto-opened in setActiveNav(). */
   .nav-section-head{display:flex;align-items:center;gap:6px;width:100%;border:0;background:none;cursor:pointer;font:inherit;font-family:var(--font-body);font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-400);padding:12px 12px 6px;text-align:left;transition:color .12s;}
   .nav-section:first-child .nav-section-head{padding-top:4px;}
-  .nav-section-head:hover{color:var(--color-accent-600);}
+  .nav-section-head:hover{color:var(--accent-ink-700);}
   /* a label, not a control: no pointer, no hover invitation, nothing to press */
   .nav-section-head.static{cursor:default;}
   .nav-section-head.static:hover{color:var(--color-neutral-400);}
@@ -1390,8 +1390,82 @@
      well on white is 2.4:1 on the dark surface — the app's existing answer for
      accent words in the dark is accent-400, so this token carries it. Use it
      for accent-coloured LABELS; --color-accent still fills shapes. */
-  :root{ --accent-ink:var(--color-accent-800); }
-  html.dark{ --accent-ink:var(--color-accent-400); }
+  /* ═══ AN OPACITY IS NOT AN INK ══════════════════════════════════════════
+     `.text-ink/NN` are COMPILED Tailwind classes that composite the body ink
+     at an alpha. MEASURED, the eight rungs in use put ordinary reading text
+     between 2.36:1 and 4.11:1 — five rungs under AA — and they read
+     differently on every background they land on, which is the deeper fault:
+     the same class means two things on a card and on the page.
+     THE DESIGN CARRIES TWO READING INKS, so the ladder collapses onto them:
+     the two heavy rungs take PRIMARY, the six light ones take SECONDARY.
+     Hierarchy is carried by size and weight, which survive a background
+     change; a fade does not.
+     WRITTEN IN HaTi'S OWN SHEET, NEVER THE BLOB, which regenerates — the
+     font-600 lesson. One id-free class selector each, later in source than
+     the blob, so they win on order with nothing shouted. */
+  .text-ink\/80,.text-ink\/70{ color:var(--color-text); }
+  .text-ink\/65,.text-ink\/60,.text-ink\/55,
+  .text-ink\/50,.text-ink\/45,.text-ink\/40{ color:var(--color-neutral-600); }
+
+  /* ═══ THE ACCENT INKS — the only accent tokens that may carry TEXT ═══════
+     html.dark redefines the surface, the ink and the whole neutral ramp and
+     does NOT redefine the accent ramp. So every `color:var(--color-accent-N)`
+     had no dark answer: MEASURED on the night panel, accent-800 is 2.35:1 and
+     accent-700 is 2.68:1, against AA's 4.5. 182 declarations were doing it.
+
+     TWO TOKENS, NOT ONE, AND THAT IS WHAT KEEPS LIGHT MODE STILL. A single
+     --accent-ink would have swept 104 accent-600/700 declarations onto
+     accent-800 and darkened every one of them by day — a visible change
+     absorbed quietly, which this codebase's own rule forbids. Each rung keeps
+     its own light value and gains a dark one.
+
+     --accent-ink'S OWN DARK VALUE IS NOT TOUCHED. It has been accent-400
+     since 23 Aug, measured at 9.59:1, and it already has two consumers
+     (.ui-btn and a). Moving it would be re-deciding somebody else's measured
+     ruling as a side effect of a sweep. The new token takes the same dark
+     answer, so the two agree at night and differ only by day, which is
+     exactly the difference that has to be preserved.
+     BOTH CLEAR AA IN BOTH WORKSPACES: accent-400 is 9.59:1 in teal and
+     4.71:1 in navy on the panel.
+
+     TWO DELIBERATE LIGHT-MODE MOVES, STATED RATHER THAN ABSORBED:
+       - 14 declarations sat on accent-600 as text = 3.74:1 on white, which
+         FAILS AA. They take --accent-ink-700 (5.47:1). That is the fix the
+         audit asks for by name, not a rounding.
+       - 2 declarations sat on accent-900. They take --accent-ink and lighten
+         from about 8.9:1 to 7.58:1 — both comfortably AAA. */
+  /* ═══ A FILLED ACCENT SURFACE THAT CARRIES WHITE TEXT ════════════════════
+     White on --accent-solid (accent-600) is 3.74:1 — under AA for a normal
+     label — and eight surfaces were doing it: the register's live page
+     button, the phone's primary button and avatar, the negotiation page's two
+     pressed toggles, two controls in the design step, and the language
+     switch. .ui-btn-primary was moved off that value on 23 Aug and the rest
+     were never swept with it.
+     accent-700 gives 5.47:1 in the teal workspace and 11.30:1 in the navy
+     one, so ONE value serves both brands and no dark override is owed.
+     --accent-solid ITSELF IS DELIBERATELY UNTOUCHED: it is the nav's fill and
+     a brand colour this rulebook records as one that must not flip. This is a
+     second token for a second job, not a redefinition of the first. */
+  :root{ --accent-fill:var(--color-accent-700); }
+  :root{ --accent-ink:var(--color-accent-800); --accent-ink-700:var(--color-accent-700); }
+  html.dark{ --accent-ink:var(--color-accent-400); --accent-ink-700:var(--color-accent-400); }
+
+  /* ═══ THREE MORE TOKENS THAT CARRY INK OR A RULE AND HAD NO DARK ANSWER ══
+     MEASURED on the night panel (#0f172a):
+       --danger      #dc2626  3.70:1  — a destructive VERB, under AA's 4.5
+       --rule-strong #C6CFCD 11.23:1  — a hairline, so bright it reads as a
+                                        highlight rather than a division
+       --rule-faint  #ECEFEE 15.43:1  — worse again
+     The two rules have ZERO consumers today, which is why nobody had seen
+     them; they are given answers now so adopting them in Phase C cannot
+     quietly paint two near-white lines across every dense table at night. */
+  html.dark{
+    --danger:#f87171;        /* 7.02:1 on the panel */
+    --danger-hover:#fca5a5;
+    --red-tint:rgba(248,113,113,.14);
+    --rule-strong:#2b3a4f;   /* a division you can see, not a highlight */
+    --rule-faint:#16202f;
+  }
 
   /* ============ THE CONTRACT ROOM ============
      ONE style, TWO shells. The Docs page and the negotiation workbench are
@@ -1510,7 +1584,7 @@
   .room-head{ position:relative; }
   .room-crumb{ flex-basis:100%; display:flex; align-items:center; gap:7px;
     font-size:12px; color:var(--color-neutral-500); min-height:16px; margin-bottom:2px; }
-  .room-crumb button{ font:inherit; color:var(--color-accent-700); background:none;
+  .room-crumb button{ font:inherit; color:var(--accent-ink-700); background:none;
     border:0; padding:0; cursor:pointer; max-width:40ch; overflow:hidden;
     text-overflow:ellipsis; white-space:nowrap; }
   .room-crumb button:hover{ text-decoration:underline; }
@@ -1640,7 +1714,7 @@
     font:inherit; cursor:pointer; padding:13px 15px; border-radius:0;
     border:1px solid var(--color-divider); background:var(--color-surface);
     color:var(--color-text); transition:border-color .12s, background .12s; }
-  .ngl-row:hover{ border-color:var(--color-accent); background:var(--color-accent-100); }
+  .ngl-row:hover{ border-color:var(--color-accent); background:var(--st-steel-bg); }
   .ngl-row:focus-visible{ outline:2px solid var(--color-accent); outline-offset:2px; }
   .ngl-main{ flex:1; min-width:0; display:block; }
   .ngl-name{ display:block; font-weight:600; font-size:15px; line-height:1.35;
@@ -1724,8 +1798,8 @@
   .ngl-head-table h2{ margin:0; display:flex; align-items:baseline; gap:9px; flex-wrap:wrap; }
   .ngl-head-table p{ margin:2px 0 0; }
   .ngl-live{ font-family:var(--font-mono); font-size:13px; font-weight:700;
-    color:var(--color-accent-800); background:var(--color-accent-100);
-    border:1px solid var(--color-accent-300); border-radius:0; padding:1px 9px; }
+    color:var(--st-steel-fg); background:var(--st-steel-bg);
+    border:1px solid var(--st-steel-line); border-radius:0; padding:1px 9px; }
   .ngl-empty h3{ margin:0 0 6px; font-size:16px; font-weight:700; }
   .ngl-empty p{ margin:0 0 16px; font-size:14px; color:var(--color-neutral-600);
     max-width:46ch; margin-inline:auto; line-height:1.6; }
@@ -1821,8 +1895,8 @@
   .dk-chip .dk-who{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .dk-face{ width:24px; height:24px; border-radius:50%; flex:none; display:inline-flex;
     align-items:center; justify-content:center; font-family:var(--font-mono); font-size:12px;
-    font-weight:700; letter-spacing:.02em; background:var(--color-accent-100);
-    color:var(--color-accent-800); border:1px solid var(--color-divider);
+    font-weight:700; letter-spacing:.02em; background:var(--st-steel-bg);
+    color:var(--st-steel-fg); border:1px solid var(--color-divider);
     box-shadow:0 0 0 2px var(--color-bg); }
   .dk-face-lead{ background:var(--color-accent); color:#fff; border-color:var(--color-accent); }
   /* Below the tablet break the header is already wrapping; the name goes and
@@ -1870,7 +1944,7 @@
   .dk-row-ask{ border-color:var(--st-amber-line); background:var(--st-amber-bg); }
   /* The row that is the dialog's SUBJECT rather than one of a list — the
      desk's lead. Image 3's selected card, in the same tint. */
-  .dk-row-lead{ border-color:var(--color-accent-300); background:var(--color-accent-100); }
+  .dk-row-lead{ border-color:var(--st-steel-line); background:var(--st-steel-bg); }
 
   /* ---- ONE SET OF CLOTHES FOR THIS FEATURE'S DIALOGS ----
      The desk sheet, the review ask, the entry chooser, the hand-back and the
@@ -1892,14 +1966,14 @@
      them end up updated and two do not. js/review.js builds the head
      (reviewDialogHeadHtml) and js/desk.js calls it. */
   .rvd-head{ display:flex; align-items:flex-start; gap:11px; padding:15px 20px 13px;
-    background:var(--color-accent-100); border-bottom:1px solid var(--color-accent-300); }
+    background:var(--st-steel-bg); border-bottom:1px solid var(--color-accent-300); }
   .rvd-ico{ flex:none; width:30px; height:30px; border-radius:0; display:grid;
     place-items:center; font-size:15px; line-height:1; background:var(--color-surface);
     border:1px solid var(--color-accent-300); box-shadow:0 1px 2px rgba(15,23,42,.06); }
   .rvd-htxt{ flex:1; min-width:0; }
   .rvd-title{ font-family:var(--font-heading); font-weight:600; font-size:17px; margin:0;
-    line-height:1.3; color:var(--color-accent-800); }
-  .rvd-sub{ font-size:13px; line-height:1.55; margin:3px 0 0; color:var(--color-accent-800);
+    line-height:1.3; color:var(--accent-ink); }
+  .rvd-sub{ font-size:13px; line-height:1.55; margin:3px 0 0; color:var(--accent-ink);
     opacity:.82; }
   .rvd-body{ padding:15px 20px 2px; }
   /* The actions sit on the quiet ground with a rule above them, so a dialog
@@ -1909,17 +1983,17 @@
     background:var(--color-bg); }
   /* The one line a dialog ends on that is a FACT rather than a control — what
      the counterparty is told, what the reviewer will be looking at. */
-  .rvd-note{ border:1px solid var(--color-accent-300); background:var(--color-accent-100);
-    color:var(--color-accent-800); border-radius:0; padding:10px 12px;
+  .rvd-note{ border:1px solid var(--st-steel-line); background:var(--st-steel-bg);
+    color:var(--st-steel-fg); border-radius:0; padding:10px 12px;
     font-size:13px; line-height:1.55; }
   /* The entry chooser's two big options. */
   .rvd-opt{ display:flex; flex-direction:column; align-items:flex-start; gap:3px; width:100%;
     text-align:left; padding:12px 14px; margin-top:9px; border-radius:0; cursor:pointer;
     font:inherit; border:1.5px solid var(--color-divider); background:var(--color-surface);
     transition:border-color .12s, background .12s; }
-  .rvd-opt:hover{ border-color:var(--color-accent); background:var(--color-accent-100); }
+  .rvd-opt:hover{ border-color:var(--color-accent); background:var(--st-steel-bg); }
   .rvd-opt b{ font-size:14px; font-weight:700; color:var(--color-text); }
-  .rvd-opt:hover b{ color:var(--color-accent-800); }
+  .rvd-opt:hover b{ color:var(--accent-ink); }
   .rvd-opt span{ font-size:13px; line-height:1.5; color:var(--color-neutral-600);
     white-space:normal; }
   /* ============================================================
@@ -2003,7 +2077,7 @@
     background:var(--color-surface); cursor:pointer; font:inherit; color:inherit;
     transition:background .12s; }
   .st-row:last-child{ border-bottom:0; }
-  .st-row:hover{ background:var(--color-accent-100); }
+  .st-row:hover{ background:var(--st-steel-bg); }
   .st-row[disabled]{ cursor:default; }
   .st-row[disabled]:hover{ background:var(--color-surface); }
   .st-dot{ flex:none; width:8px; height:8px; border-radius:50%; }
@@ -2015,8 +2089,8 @@
     letter-spacing:.09em; text-transform:uppercase; color:var(--color-neutral-500); }
   .st-row-tag[data-req]{ color:var(--st-amber-fg); font-weight:700; }
   .st-row-chip{ flex:none; font-size:12px; font-weight:700; font-family:var(--font-mono);
-    border-radius:0; padding:2px 9px; background:var(--color-accent-200);
-    color:var(--color-accent-800); }
+    border-radius:0; padding:2px 9px; background:var(--st-steel-bg);
+    color:var(--st-steel-fg); }
   .st-row-go{ flex:none; color:var(--color-neutral-400); font-size:15px; line-height:1; }
   /* ---- people ---- */
   .st-people-head{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
@@ -2030,7 +2104,7 @@
     background:var(--color-surface); cursor:pointer; font:inherit; color:inherit;
     transition:background .12s; }
   .st-person:last-child{ border-bottom:0; }
-  .st-person:hover{ background:var(--color-accent-100); }
+  .st-person:hover{ background:var(--st-steel-bg); }
   .st-person-main{ flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }
   .st-person-name{ font-size:14px; font-weight:600; color:var(--color-text); }
   .st-person-sub{ display:flex; align-items:center; gap:8px; flex-wrap:wrap;
@@ -2053,7 +2127,7 @@
   .dir-row:last-child{ border-bottom:0; }
   .dir-av{ width:30px; height:30px; border-radius:50%; flex:none; display:inline-grid;
     place-items:center; font-size:12px; font-weight:700; font-family:var(--font-mono);
-    background:var(--color-accent-200); color:var(--color-accent-800); }
+    background:var(--st-steel-bg); color:var(--st-steel-fg); }
   .dir-main{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
   .dir-name{ font-size:14px; font-weight:600; color:var(--color-text); }
   .dir-you{ font-weight:400; color:var(--color-neutral-500); font-size:12px; }
@@ -2062,7 +2136,7 @@
     padding:3px 10px; border-radius:0; background:var(--st-gray-bg); color:var(--st-gray-fg); }
   .dir-mail{ flex:none; width:15rem; max-width:38%; font-size:12px; overflow:hidden;
     text-overflow:ellipsis; white-space:nowrap; text-align:right; }
-  .dir-mail a{ color:var(--color-accent-700); text-decoration:none; }
+  .dir-mail a{ color:var(--accent-ink-700); text-decoration:none; }
   .dir-mail a:hover{ text-decoration:underline; }
   .dir-none{ color:var(--color-neutral-400); }
   .dir-note{ font-size:12px; color:var(--color-neutral-500); line-height:1.5;
@@ -2096,7 +2170,7 @@
   .st-dhead .rvd-head{ padding-right:44px; }
   .st-dx{ position:absolute; top:12px; right:12px; width:26px; height:26px; border-radius:0;
     border:1px solid var(--color-accent-300); background:var(--color-surface); cursor:pointer;
-    font-size:13px; line-height:1; color:var(--color-accent-800); }
+    font-size:13px; line-height:1; color:var(--accent-ink); }
   .st-dbody{ flex:1; min-height:0; overflow-y:auto; padding:15px 20px; }
   .st-dfoot{ flex:none; display:flex; flex-direction:column; gap:9px;
     padding:12px 20px; border-top:1px solid var(--color-divider); background:var(--color-bg); }
@@ -2114,8 +2188,8 @@
   .st-sec-h{ display:flex; align-items:center; gap:8px; font-family:var(--font-mono);
     font-weight:600; font-size:14px; color:var(--color-text); margin:0 0 8px; }
   .st-sec-n{ flex:none; width:19px; height:19px; border-radius:50%; display:inline-grid;
-    place-items:center; font-size:12px; font-weight:700; background:var(--color-accent-200);
-    color:var(--color-accent-800); }
+    place-items:center; font-size:12px; font-weight:700; background:var(--st-steel-bg);
+    color:var(--st-steel-fg); }
   .st-note{ display:block; font-size:12px; line-height:1.5; color:var(--color-neutral-600);
     margin-top:4px; }
   .st-quiet{ border:1px solid var(--color-divider); background:var(--color-bg);
@@ -2202,10 +2276,10 @@
      border like Share and Draft new agreement beside it. Reaches the contract
      room's head and the negotiation page's, which draw one builder. */
   .ws-more-btn{ padding:0 10px; gap:6px; font-size:14px; }
-  .ws-more-btn:hover{ border-color:var(--color-accent); color:var(--color-accent-800); }
+  .ws-more-btn:hover{ border-color:var(--color-accent); color:var(--accent-ink); }
   .ws-more-btn .ws-more-caret{ display:inline-flex; transition:transform .15s; }
   .ws-more-btn[aria-expanded="true"]{ border-color:var(--color-accent);
-    background:var(--color-accent-100); color:var(--color-accent-800); }
+    background:var(--st-steel-bg); color:var(--st-steel-fg); }
   .ws-more-btn[aria-expanded="true"] .ws-more-caret{ transform:rotate(180deg); }
   /* The word folds away before the button does — a narrow header keeps the
      control and loses the label, never the other way round. */
@@ -2247,9 +2321,9 @@
      stroke-width is nudged up for that reason too: a knocked-out line has to
      survive being drawn over a dark ground at 14px. */
   .room-menu button svg,
-  .reg-act svg{ flex:none; color:var(--color-accent-800); fill:currentColor;
+  .reg-act svg{ flex:none; color:var(--accent-ink); fill:currentColor;
     stroke:var(--color-surface); stroke-width:1.9; paint-order:stroke fill; }
-  .room-menu button:hover svg{ color:var(--color-accent-800); }
+  .room-menu button:hover svg{ color:var(--accent-ink); }
   /* ---- THE ONE GLYPH WITH NOTHING TO KNOCK OUT OF ----
      Collapse the header is a single horizontal line. A line encloses no area,
      so the fill above paints nothing and the knock-out stroke paints it in the
@@ -2331,7 +2405,7 @@
      BLANK term leaves is the one thing that still shouts, because an unfilled
      commercial term is something a reader must be able to point at. */
   .field-frozen{ font-family:inherit!important; font-weight:600;
-    color:var(--color-doc-text); background:var(--color-accent-100);
+    color:var(--color-doc-text); background:var(--st-steel-bg);
     border-bottom:1.5px solid var(--color-accent-400); border-radius:0;
     padding:0 4px; }
   html.dark .field-frozen{ background:rgb(var(--color-accent-500-rgb)/.15); border-bottom-color:var(--color-accent-500); }
@@ -2663,7 +2737,7 @@
   .check-row{ display:flex; align-items:center; gap:10px; padding:8px 0;
     border-top:1px solid var(--color-divider); font-size:14px; }
   .check-row .ci{ flex:none; width:26px; height:26px; border-radius:0; display:grid;
-    place-items:center; background:var(--color-accent-100); color:var(--color-accent-700); }
+    place-items:center; background:var(--st-steel-bg); color:var(--st-steel-fg); }
   html.dark .check-row .ci{ background:rgb(var(--color-accent-500-rgb)/.16); color:var(--color-accent-300); }
   .check-row .cn{ flex:1; min-width:0; font-weight:600; }
   .check-row .cg{ flex:none; border:0; background:none; cursor:pointer; font:inherit;
@@ -2746,10 +2820,10 @@
   /* "New" ON INSIGHTS IS NOT A COUNT AND KEEPS ITS PILL — it shares the slot,
      not the meaning: a tag announcing a page worth visiting, which stripped to
      bare text reads as a word that has wandered into the count column. */
-  #side-nav #nav-intel-new{ background:var(--color-accent-100);
-    color:var(--color-accent-800); padding:1px 7px; }
+  #side-nav #nav-intel-new{ background:var(--st-steel-bg);
+    color:var(--st-steel-fg); padding:1px 7px; }
   #side-nav .nav-section-head{ color:var(--color-neutral-400); }
-  #side-nav .nav-section-head:hover{ color:var(--color-accent-600); }
+  #side-nav .nav-section-head:hover{ color:var(--accent-ink-700); }
   #side-nav .nav-section-head.static:hover{ color:var(--color-neutral-400); }
   #side-nav .nav-plus{ color:var(--color-neutral-400); }
   #app-shell.rail #side-nav .nav-section-head::before{ color:var(--color-neutral-400); }
@@ -2838,7 +2912,7 @@
     border:1px solid var(--color-accent-800); color:#fff; cursor:pointer;
     font:inherit; font-family:var(--font-body); font-size:14px; font-weight:600;
     border-radius:0; box-shadow:none; text-align:left; }
-  #side-nav #side-copilot:hover{ background:var(--color-accent-700); border-color:var(--color-accent-700); }
+  #side-nav #side-copilot:hover{ background:var(--color-accent-700); border-color:var(--accent-ink-700); }
   #side-nav #side-copilot .sc-label{ flex:1; min-width:0; white-space:nowrap;
     overflow:hidden; text-overflow:ellipsis; }
   #side-nav #side-copilot .sc-kb{ flex:none; font-size:11px; font-weight:500; opacity:.75;
@@ -2916,7 +2990,7 @@
   .lang-toggle{display:inline-flex;align-items:center;background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:0;padding:3px;gap:2px;flex:none;}
   .lang-btn{border:0;background:none;font:inherit;font-family:var(--font-body);font-size:12px;font-weight:600;padding:4px 11px;border-radius:0;cursor:pointer;color:var(--color-neutral-500);transition:background .15s,color .15s;white-space:nowrap;}
   .lang-btn:hover{color:var(--color-text);}
-  .lang-btn[aria-pressed="true"]{background:var(--accent-solid);color:#fff;box-shadow:0 1px 4px rgba(15,23,42,.18);}
+  .lang-btn[aria-pressed="true"]{background:var(--accent-fill);color:#fff;box-shadow:0 1px 4px rgba(15,23,42,.18);}
   .lang-btn:focus-visible{outline:2px solid var(--color-accent-500);outline-offset:1px;}
   /* Below 1180 the words go and the two-letter codes carry it; the button
      itself never shrinks below something a thumb can hit. */
@@ -2941,7 +3015,7 @@
   html.dark #theme-menu .tsw{ border-color:rgb(255 255 255/.2); }
   #theme-menu .tnote{ display:block; font-size:12px; font-weight:400;
     color:var(--color-neutral-500); }
-  #theme-menu .ttick{ margin-left:auto; flex:none; color:var(--color-accent-700); font-weight:700; }
+  #theme-menu .ttick{ margin-left:auto; flex:none; color:var(--accent-ink-700); font-weight:700; }
   html.dark #theme-menu .ttick{ color:var(--color-accent-300); }
   #side-copilot:hover{filter:brightness(1.07);}
   /* narrow shells: shed the language words first, then the global search and
@@ -3477,7 +3551,7 @@
   .hm-side-foot{flex:none;padding:6px 11px 7px;}
   .hm-side-foot:not(:empty){border-top:1px solid var(--color-divider);}
   .hm-side-more{border:0;background:none;padding:2px;font:inherit;font-size:12px;font-weight:600;
-    color:var(--color-accent-600);cursor:pointer;text-align:left;}
+    color:var(--accent-ink-700);cursor:pointer;text-align:left;}
 
   /* THE PIPELINE CARD'S OWN ROW IS RETIRED with the ring it sat beside
      (24 Aug 2026). Its rules are DELETED rather than left dormant, and that is
@@ -3554,8 +3628,8 @@
      than the banner gave up for it. */
   .hm-kpi-bar{display:flex;align-items:center;justify-content:flex-end;height:26px;padding:0 2px;}
   .hm-cz{display:inline-flex;align-items:center;gap:6px;background:none;border:0;padding:2px 0;
-    font:inherit;font-size:13px;font-weight:600;color:var(--color-accent-600);cursor:pointer;}
-  .hm-cz:hover{color:var(--color-accent-800);text-decoration:underline;}
+    font:inherit;font-size:13px;font-weight:600;color:var(--accent-ink-700);cursor:pointer;}
+  .hm-cz:hover{color:var(--accent-ink);text-decoration:underline;}
   .hm-cz:focus-visible{outline:2px solid var(--accent-solid);outline-offset:2px;}
 
   /* Home — lifecycle pipeline: two thirds to the ring, one third to the list
@@ -3812,8 +3886,8 @@
   .ig-lens{transition:background .15s,border-color .15s,color .15s}
 
   /* inline editable fields (contract workspace) */
-  .field{font-family:var(--font-mono);font-size:.95em;color:var(--color-accent-800);background:var(--color-accent-100);border:none;border-bottom:1.5px dashed var(--color-accent-400);padding:1px 6px;border-radius:0;min-width:90px;transition:background .15s,border-color .15s,box-shadow .15s;outline:none;}
-  .field:hover{background:var(--color-accent-200);}
+  .field{font-family:var(--font-mono);font-size:.95em;color:var(--st-steel-fg);background:var(--st-steel-bg);border:none;border-bottom:1.5px dashed var(--color-accent-400);padding:1px 6px;border-radius:0;min-width:90px;transition:background .15s,border-color .15s,box-shadow .15s;outline:none;}
+  .field:hover{background:var(--st-steel-bg);}
   .field:focus{background:#fff;border-bottom-color:var(--color-accent);box-shadow:0 2px 0 0 var(--color-accent),0 0 0 2px color-mix(in srgb,var(--color-accent) 18%,transparent);}
   /* On the dark paper the solid mint ramp would sit as a light chip; a
      translucent teal wash reads as the same affordance on both themes. */
@@ -3854,7 +3928,7 @@
   .toast-in{animation:toastIn .3s cubic-bezier(.22,.61,.36,1);}
   @keyframes toastIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
   .anchor-flash{animation:anchorFlash 1.8s ease;border-radius:0;}
-  @keyframes anchorFlash{0%{background:var(--color-accent-100);box-shadow:0 0 0 3px color-mix(in srgb,var(--color-accent) 30%,transparent);}100%{background:transparent;box-shadow:0 0 0 3px transparent;}}
+  @keyframes anchorFlash{0%{background:var(--st-steel-bg);box-shadow:0 0 0 3px color-mix(in srgb,var(--color-accent) 30%,transparent);}100%{background:transparent;box-shadow:0 0 0 3px transparent;}}
   .scan-pulse{animation:scanPulse 1s ease infinite;}
   @keyframes scanPulse{0%,100%{opacity:.45;}50%{opacity:1;}}
 
@@ -4174,7 +4248,7 @@
             box-decoration-break:clone;
   }
   @keyframes clauseFlash{
-    0%,55%{ background:var(--color-accent-200); box-shadow:0 0 0 3px var(--color-accent-200); }
+    0%,55%{ background:var(--st-steel-bg); box-shadow:0 0 0 3px var(--color-accent-200); }
     100%  { background:transparent;             box-shadow:0 0 0 3px transparent; }
   }
   @media print{ .clause-flash{animation:none!important;background:transparent!important;box-shadow:none!important;} }
@@ -4869,7 +4943,7 @@
 .ai-chip{border:1px dashed var(--color-divider);background:var(--color-surface);color:var(--color-neutral-700);
   font-size:12px;font-weight:400;border-radius:0;padding:4px 10px;cursor:pointer;
   transition:border-color .12s,color .12s,background .12s}
-.ai-chip:hover{border-color:var(--color-accent);color:var(--color-accent-800);border-style:solid;background:var(--color-surface)}
+.ai-chip:hover{border-color:var(--color-accent);color:var(--accent-ink);border-style:solid;background:var(--color-surface)}
 .ai-tone{font-weight:600;border-radius:0;padding:0 3px}
 .ai-tone-pos{color:var(--st-green-fg);background:var(--st-green-bg)}
 .ai-tone-neg{color:var(--st-ruby-fg);background:var(--st-ruby-bg)}
@@ -4880,14 +4954,14 @@
    and the bolded takeaway opening each paragraph reads as its heading. */
 .igf-ai-read .ai-p{margin:0 0 12px}
 .igf-ai-read .ai-p:last-child{margin-bottom:0}
-.igf-ai-read .ai-p>strong:first-child{color:var(--color-accent-700)}
+.igf-ai-read .ai-p>strong:first-child{color:var(--accent-ink-700)}
 .ai-chart{border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;
   padding:10px 12px;margin:.5em 0;position:relative}
 /* The way out of the screen: copy image / PNG / CSV, on every chart card. */
 .ai-chart-actions{position:absolute;top:6px;right:6px;display:flex;gap:2px;z-index:2}
 .ai-chart-btn{display:grid;place-items:center;height:22px;width:22px;border:0;cursor:pointer;
   border-radius:0;background:transparent;color:var(--color-neutral-500);transition:background .12s,color .12s}
-.ai-chart-btn:hover{background:var(--color-bg);color:var(--color-accent-700)}
+.ai-chart-btn:hover{background:var(--color-bg);color:var(--accent-ink-700)}
 .ai-chart-title{font-family:var(--font-heading);font-weight:600;font-size:13px;margin-bottom:6px;padding-right:76px}
 .ai-chart-canvas{position:relative;height:200px}
 .ai-chart-src{font-size:12px;color:var(--color-neutral-600);margin-top:6px;line-height:1.45}

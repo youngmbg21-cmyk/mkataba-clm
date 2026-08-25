@@ -104,7 +104,7 @@ function discussVisBadgeHtml(m){
   const internal = discussIsInternal(m);
   const pal = internal
     ? 'background:var(--st-amber-bg);color:var(--st-amber-fg);border:1px solid rgba(138,106,42,.3)'
-    : 'background:var(--color-accent-100);color:var(--color-accent-800);border:1px solid var(--color-accent-300)';
+    : 'background:var(--st-steel-bg);color:var(--st-steel-fg);border:1px solid var(--st-steel-line)';
   return `<span style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;
     letter-spacing:.04em;border-radius:0;padding:2px 7px;white-space:nowrap;${pal}">${
     internal ? '🔒 Internal only' : '🌐 Shared with counterparty'}</span>`;

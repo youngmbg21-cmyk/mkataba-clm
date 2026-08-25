@@ -1135,7 +1135,7 @@ function openUploadModal(){
         <div id="up-drop" role="button" tabindex="0" aria-label="${i18t('ct_drop_file_here')}" style="border:2px dashed var(--color-accent);border-radius:0;background:var(--color-bg);padding:34px 20px;text-align:center;cursor:pointer;transition:background .15s">
           <div style="font-size:15px;font-weight:600;color:var(--color-text)">${i18t('ct_drop_here')}</div>
           <div style="font-size:13px;color:var(--color-neutral-600);margin-top:5px">${i18t('ct_upload_hint',{max:uploadMaxLabel()})}</div>
-          <div style="font-size:13px;color:var(--color-accent-700);margin-top:8px;font-weight:600">${i18t('ct_thats_all')}</div>
+          <div style="font-size:13px;color:var(--accent-ink-700);margin-top:8px;font-weight:600">${i18t('ct_thats_all')}</div>
         </div>
         <input id="up-file" type="file" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg" class="hidden"/>
         <div id="up-steps" class="hidden" style="margin-top:12px"></div>
@@ -1181,7 +1181,7 @@ function uploadConfirmHtml(ext, meta){
   const esc2=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
   const attr=s=>esc2(s).replace(/"/g,'&quot;');
   const has=k=>meta!=null&&m[k]!=null&&m[k]!==''&&!(typeof m[k]==='number'&&!(m[k]>0));
-  const MARK=`<span style="font-family:var(--font-mono);font-size:10px;color:var(--color-accent-700);letter-spacing:.05em"> ✦ ${i18t('ct_read_from_doc').toUpperCase()}</span>`;
+  const MARK=`<span style="font-family:var(--font-mono);font-size:10px;color:var(--accent-ink-700);letter-spacing:.05em"> ✦ ${i18t('ct_read_from_doc').toUpperCase()}</span>`;
   const found=k=>{ const q=spans[k]; if(!q) return '';
     return `<span style="display:block;margin-top:2px;font-size:12px;line-height:1.4;color:var(--color-neutral-600)">found: <i>“${esc2(String(q).replace(/\s+/g,' ').trim().slice(0,140))}”</i></span>`; };
   /* ---- THREE CHILDREN, ALWAYS, AND THAT IS WHAT KEEPS THE BOXES LEVEL ----
@@ -1203,7 +1203,7 @@ function uploadConfirmHtml(ext, meta){
   const fld=(id,label,opts={})=>{
     const read=!!opts.read;
     return cell(`${label}${read?MARK:''}`,
-      `<input id="${id}" type="${opts.type||'text'}" value="${attr(opts.value||'')}" placeholder="${attr(opts.ph||'')}"${opts.list?` list="${opts.list}"`:''} class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400"${read?' style="border-color:var(--color-accent);background:var(--color-accent-100)"':''}/>`,
+      `<input id="${id}" type="${opts.type||'text'}" value="${attr(opts.value||'')}" placeholder="${attr(opts.ph||'')}"${opts.list?` list="${opts.list}"`:''} class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400"${read?' style="border-color:var(--color-accent);background:var(--st-steel-bg)"':''}/>`,
       `${read?found(opts.foundKey||''):''}${opts.sub?`<span style="display:block;margin-top:2px;font-size:12px;color:var(--color-neutral-600)">${opts.sub}</span>`:''}`);
   };
   const fileBase=ext?String(ext.file.name||'').replace(/\.[^.]+$/,''):'';
@@ -1211,7 +1211,7 @@ function uploadConfirmHtml(ext, meta){
   const suggestedName=nameFromDoc?`${m.contractType} — ${m.counterparty}`:fileBase;
   const readCount=['counterparty','value','expiryDate'].filter(has).length;
   const intro=!ext?'':meta
-    ? `Everything marked <b style="color:var(--color-accent-700)">✦</b> was read out of the document — confirm or correct it. What the machine could not find is left for you.`
+    ? `Everything marked <b style="color:var(--accent-ink-700)">✦</b> was read out of the document — confirm or correct it. What the machine could not find is left for you.`
     : `HaTi could not read text out of this file, so nothing could be pre-filled — add the details yourself. The file itself is attached either way.`;
   /* The details beyond the essentials — renewal, notice, governing law — ride
      along folded: read from the same document, applied on filing, corrected
@@ -1550,7 +1550,7 @@ function openEditDocModal(c){
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="color:var(--color-accent)">${icon('pencil','w-4 h-4')}</span>
           <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">${i18t('ct_edit_document',{id:c.id})}</h3></div>
         <p style="font-size:13px;color:var(--color-neutral-600);margin:0 0 10px;line-height:1.5">${i18t('ct_change_and_save')} <b>new version</b> ${i18t('ct_review_under')} <b>${i18t('ct_compare')}</b> and share the updated text with the counterparty as usual.${firstEdit?` <b>${i18t('ct_note')}</b> the first edit converts the drafted layout into working text; the highlighted quick-fill fields no longer apply after that.`:''}</p>
-        ${wasRich?`<div style="display:flex;gap:7px;align-items:flex-start;border:1px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:0;padding:8px 11px;margin:0 0 10px;font-size:13px;line-height:1.5;color:var(--color-accent-800)">
+        ${wasRich?`<div style="display:flex;gap:7px;align-items:flex-start;border:1px solid var(--st-steel-line);background:var(--st-steel-bg);border-radius:0;padding:8px 11px;margin:0 0 10px;font-size:13px;line-height:1.5;color:var(--st-steel-fg)">
           <span style="flex:none;margin-top:1px">${icon('alert','w-3.5 h-3.5')}</span>
           <span>${i18t('ct_doc_carries')} <b>formatting</b> ${i18t('ct_headings_bold')} <b>${i18t('ct_converts_plain')}</b>${i18t('ct_clause_numbers_text')}</span></div>`:''}
       </div>

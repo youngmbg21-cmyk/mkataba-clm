@@ -272,7 +272,7 @@ function renderPlaybookSection(c){
       ${open&&detail?`<div style="padding:0 2px 10px 28px;display:flex;flex-direction:column;gap:6px">
         ${v.quote?`<div style="font-size:12px;line-height:1.6;color:var(--color-neutral-700);border-left:2px solid var(--color-divider);padding-left:9px;font-style:italic">&ldquo;${_pbEsc(String(v.quote).slice(0,220))}${String(v.quote).length>220?'&hellip;':''}&rdquo;</div>`:''}
         ${v.status!=='aligned'&&v.position?`<div style="font-size:12px;line-height:1.6;color:var(--color-neutral-700)"><b>${i18t('pb_our_standard')}</b> ${_pbEsc(v.position)}</div>`:''}
-        ${editable&&v.redline?`<button data-pb-apply="${i}" style="align-self:flex-start;border:0;background:none;padding:0;font:inherit;font-size:12px;font-weight:600;color:var(--color-accent-700);cursor:pointer">${i18t('pb_apply_suggested')}</button>`:''}
+        ${editable&&v.redline?`<button data-pb-apply="${i}" style="align-self:flex-start;border:0;background:none;padding:0;font:inherit;font-size:12px;font-weight:600;color:var(--accent-ink-700);cursor:pointer">${i18t('pb_apply_suggested')}</button>`:''}
       </div>`:''}
     </div>`;
   }).join('') : '';

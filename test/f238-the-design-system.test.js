@@ -211,6 +211,66 @@ describe('f238 — the design system has its other half', () => {
       '--accent-solid is still the brand fill it was');
   });
 
+  /* ---------- 3b · A1 — THE DARK THEME'S OWN CONTRAST, RATCHETED ----------
+     The 25 Aug pass swept 183 accent-ramp-as-TEXT declarations and 62 inline
+     accent-tint backgrounds onto tokens that answer differently at night. The
+     claims below are what must not come back; the browser half — what actually
+     DRAWS, in both themes, on the census screens — is contrast-verify. */
+
+  test('no view file paints a raw accent ramp step as text', () => {
+    /* The whole of A1's biggest win. html.dark redefines the surface, the ink
+       and the neutral ramp and NEVER redefines the accent, so every one of
+       these measured 2.35:1 at night against AA's 4.5. */
+    const bad = [];
+    for (const f of ['js/core.js', 'js/components.js', 'js/mobile.js',
+                     ...VIEWS.map(v => 'js/views/' + v)]) {
+      const src = JS(f);
+      for (const m of src.matchAll(/(?<!-)color:\s*var\(--color-accent-(600|700|800|900)\)/g))
+        bad.push(f + ' → ' + m[0]);
+    }
+    assert.deepEqual(bad, [], 'accent-ramp-as-text is back in ' + bad.length + ' places');
+  });
+
+  test('both accent inks have a dark answer, and light is where it was', () => {
+    /* TWO tokens, not one, and that is the whole reason light did not move:
+       --accent-ink is accent-800 in light and --accent-ink-700 is accent-700,
+       so each of the two rungs that carried text keeps its own light value and
+       only night changes. Collapsing them onto one would have re-coloured
+       104 of the 183 declarations in broad daylight. */
+    for (const t of ['--accent-ink', '--accent-ink-700'])
+      assert.match(SHEET, new RegExp('html\\.dark\\{[^}]*\\' + t + ':', 's'),
+        t + ' answers differently at night');
+    assert.match(SHEET, /--accent-ink-700:var\(--color-accent-700\)/,
+      '--accent-ink-700 is accent-700 by day, so nothing moved in light mode');
+  });
+
+  test('--accent-fill is the token for white-on-accent, and it is not 3.74:1', () => {
+    /* White on accent-600 measures 3.74:1 — under AA for anything that is not
+       large text. Every surface that puts white on the accent reads this. */
+    assert.match(SHEET, /--accent-fill:var\(--color-accent-700\)/,
+      '--accent-fill is the rung that clears AA, in both workspaces');
+  });
+
+  test('danger and the two rules answer differently at night', () => {
+    for (const t of ['--danger', '--danger-hover', '--rule-strong', '--rule-faint'])
+      assert.match(SHEET, new RegExp('html\\.dark\\{[^}]*\\' + t + ':', 's'),
+        t + ' has a dark answer');
+  });
+
+  test("Reports' hero cards are on the platform shell, not white on a gradient", () => {
+    /* MEASURED before they moved: white on --grad-amber is 1.67:1 and on
+       --grad-emerald 1.92:1. The tone is not lost — it moved from the fill to
+       a 3px top edge and the icon chip, which is where a status colour is
+       carried everywhere else in this product. */
+    const src = JS('js/views/reports.js');
+    assert.doesNotMatch(src, /grad:/, 'the metric table states a tone, not a gradient');
+    assert.match(src, /tone:'(green|amber|steel|ruby)'/, 'every metric names its tone');
+    assert.doesNotMatch(src, /rgba\(255,\s*255,\s*255/,
+      'nothing on this page is a white-on-colour wash any more');
+    assert.match(src, /border-top:3px solid var\(--st-\$\{t\}-dot\)/,
+      'the tone is a 3px top edge, the shape Home\'s KPI cards already use');
+  });
+
   /* ---------- 4 · THE FOCUS RING REACHES WHAT REFUSES AN OUTLINE ---------- */
   test('the focus ring is a box-shadow as well as an outline', () => {
     /* 91 inline `outline:none` declarations defeat any outline rule, and an
@@ -284,7 +344,14 @@ describe('f238 — the design system has its other half', () => {
     const open = core.slice(core.indexOf('function openModal'), core.indexOf('function openModal') + 3000);
     assert.match(open, /role="dialog"/, 'it has the role');
     assert.match(open, /aria-modal="true"/, 'and announces itself as modal');
-    assert.match(open, /e\.key!=='Tab'/, 'Tab cycles inside it');
+    /* RE-POINTED 25 Aug 2026 — the trap was EXTRACTED, not removed. It was
+       written here and was the only overlay in the product that had it; it is
+       trapFocus now, with nine homes. The claim is the same and is asked one
+       layer up: this dialog uses the shared trap, and the shared trap is the
+       thing that cycles Tab and hands focus back. */
+    assert.match(open, /trapFocus\(panel\)/, 'it uses the one shared trap');
+    assert.match(core, /function trapFocus\(/, 'which is defined once');
+    assert.match(core, /e\.key!=='Tab'/, 'Tab cycles inside it');
     assert.match(core, /_modalOpener/, 'and focus goes back where it came from');
   });
 

@@ -1244,7 +1244,7 @@ function openDeskHandover(c, opts = {}){
         <input id="dk-ho-tell" type="checkbox" checked style="margin-top:2px;flex:none"/>
         <span><b style="color:var(--color-text)">${_dkE(i18t('dk_tell_them', { cp: c.counterparty || i18t('dk_the_counterparty') }))}</b>
         <span style="display:block;color:var(--color-neutral-600);margin-top:2px">${_dkE(i18t('dk_tell_them_sub', { who: lead.name }))}</span>
-        <span style="display:block;font-family:var(--font-mono);font-size:12px;color:var(--color-accent-800);margin-top:5px">“${_dkE(i18t('dk_cp_notice', { who: '…' }))}”</span></span>
+        <span style="display:block;font-family:var(--font-mono);font-size:12px;color:var(--accent-ink);margin-top:5px">“${_dkE(i18t('dk_cp_notice', { who: '…' }))}”</span></span>
       </label>
       <p style="font-size:13px;color:var(--color-neutral-600);margin:12px 0 0;line-height:1.55">${_dkE(i18t('dk_ho_you_stay'))}</p>
     </div>

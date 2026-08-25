@@ -194,7 +194,7 @@ function clauseEditorCss(){
     padding:9px 14px; border-top:1px solid var(--color-divider); background:var(--color-surface)}
   .ce-railfoot button{height:30px; padding:0 14px; font:inherit; font-size:13px; font-weight:600;
     background:var(--color-surface); color:var(--color-text); border:1px solid var(--color-divider)}
-  .ce-railfoot button.p{background:var(--color-accent-700); border-color:var(--color-accent-700);
+  .ce-railfoot button.p{background:var(--color-accent-700); border-color:var(--accent-ink-700);
     color:#fff}
   .ce-railfoot button[disabled]{opacity:.45}
 
@@ -272,7 +272,7 @@ function clauseEditorCss(){
      rail read as a sunken well rather than as the panel it is */
   .ce-lane{flex:1; min-height:0; overflow:auto; padding:14px; background:var(--color-surface)}
   .ce-you{display:flex; justify-content:flex-end; margin:0 0 12px}
-  .ce-you span{max-width:86%; background:var(--color-accent-100); color:var(--color-text);
+  .ce-you span{max-width:86%; background:var(--st-steel-bg); color:var(--color-text);
     padding:8px 11px; font-size:13px; line-height:1.5}
   .ce-ai{margin:0 0 16px; padding-left:11px;
     box-shadow:inset 2px 0 0 color-mix(in srgb, var(--accent-solid) 45%, transparent)}
@@ -318,7 +318,7 @@ function clauseEditorCss(){
   .ce-card .av{display:flex; gap:8px; margin-top:9px; flex-wrap:wrap; align-items:center}
   .ce-card .av button{height:26px; padding:0 11px; font:inherit; font-size:12px; font-weight:600;
     background:var(--color-surface); color:var(--accent-ink); border:1px solid var(--color-divider)}
-  .ce-card .av button.p{background:var(--color-accent-700); border-color:var(--color-accent-700);
+  .ce-card .av button.p{background:var(--color-accent-700); border-color:var(--accent-ink-700);
     color:#fff}
   .ce-card .av button:hover{border-color:var(--accent-solid)}
   /* a thumb is a mark on ONE suggestion, so it sits on the card that made it */
@@ -388,7 +388,7 @@ function clauseEditorCss(){
   .ce-reason .hint{font-size:12px; color:var(--color-neutral-600)}
   .ce-reason button{height:28px; padding:0 13px; font:inherit; font-size:13px; font-weight:600;
     background:var(--color-surface); color:var(--color-text); border:1px solid var(--color-divider)}
-  .ce-reason button.p{background:var(--color-accent-700); border-color:var(--color-accent-700);
+  .ce-reason button.p{background:var(--color-accent-700); border-color:var(--accent-ink-700);
     color:#fff}
 
   /* ---- rewriting ONE passage in place ----

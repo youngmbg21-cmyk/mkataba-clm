@@ -276,7 +276,7 @@ function dsPaint(opts) {
   const posChips = DESIGN_LOGO_POSITIONS.map(p => {
     const label = { 'top-left': 'Top left', 'top-center': 'Top centre', 'top-right': 'Top right', footer: 'Footer' }[p];
     const sel = b.logoPosition === p;
-    return `<button data-ds-pos="${p}" class="ui-btn" style="font-size:12px;padding:3px 10px;${sel ? 'background:var(--color-accent-700);border-color:var(--color-accent-700);color:#fff;font-weight:700' : ''}">${label}</button>`;
+    return `<button data-ds-pos="${p}" class="ui-btn" style="font-size:12px;padding:3px 10px;${sel ? 'background:var(--color-accent-700);border-color:var(--accent-ink-700);color:#fff;font-weight:700' : ''}">${label}</button>`;
   }).join('');
 
   /* The colour control is ALWAYS drawn, on every design. It used to appear only
@@ -299,8 +299,8 @@ function dsPaint(opts) {
     <div style="margin-top:14px">
       <span style="display:block;font-size:12px;font-weight:600;margin-bottom:5px">${i18t('ds_accent_colour')}</span>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-        <button data-ds-accentsrc="logo" class="ui-btn" style="font-size:12px;padding:3px 10px;${b.accentSource !== 'manual' ? 'background:var(--color-accent-700);border-color:var(--color-accent-700);color:#fff;font-weight:700' : ''}">${i18t('ds_from_logo')}</button>
-        <button data-ds-accentsrc="manual" class="ui-btn" style="font-size:12px;padding:3px 10px;${b.accentSource === 'manual' ? 'background:var(--color-accent-700);border-color:var(--color-accent-700);color:#fff;font-weight:700' : ''}">${i18t('ds_pick_my_own')}</button>
+        <button data-ds-accentsrc="logo" class="ui-btn" style="font-size:12px;padding:3px 10px;${b.accentSource !== 'manual' ? 'background:var(--color-accent-700);border-color:var(--accent-ink-700);color:#fff;font-weight:700' : ''}">${i18t('ds_from_logo')}</button>
+        <button data-ds-accentsrc="manual" class="ui-btn" style="font-size:12px;padding:3px 10px;${b.accentSource === 'manual' ? 'background:var(--color-accent-700);border-color:var(--accent-ink-700);color:#fff;font-weight:700' : ''}">${i18t('ds_pick_my_own')}</button>
         <span style="display:inline-block;width:15px;height:15px;border-radius:0;background:${accentNow};border:1px solid var(--color-divider)" title="${esc(accentNow)}"></span>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:9px">${swatches}</div>
@@ -335,11 +335,11 @@ function dsPaint(opts) {
   const stepRail = () => {
     const pill = (n, label, state) => `<span style="display:flex;align-items:center;gap:7px;padding:4px 13px 4px 5px;
       border-radius:0;font-size:13px;font-weight:600;white-space:nowrap;${
-        state === 'on' ? 'background:var(--color-accent-100);color:var(--color-accent-700)'
+        state === 'on' ? 'background:var(--st-steel-bg);color:var(--st-steel-fg)'
         : state === 'done' ? 'color:var(--color-good-fg,#047857)'
         : 'color:var(--color-neutral-500)'}">
       <span style="width:19px;height:19px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;flex:none;${
-        state === 'on' ? 'background:var(--accent-solid);color:#fff'
+        state === 'on' ? 'background:var(--accent-fill);color:#fff'
         : state === 'done' ? 'background:var(--st-green-bg);color:var(--st-green-fg);border:1px solid var(--st-green-line)'
         : 'background:var(--color-neutral-100);color:var(--color-neutral-500)'}">${state === 'done' ? '&check;' : n}</span>${label}</span>`;
     const sep = '<span style="width:14px;height:1px;background:var(--color-divider);flex:none"></span>';
@@ -403,8 +403,8 @@ function dsPaint(opts) {
       <section class="ds-rail-pane" style="${PANE}">
         <div style="flex:none;padding:13px 14px 11px;border-bottom:1px solid var(--color-divider)">
           <div data-ds-step="${rh.n}" style="display:flex;align-items:center;gap:7px;font-family:var(--font-heading);font-size:12px;
-            font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--color-accent-700)">
-            <span style="width:17px;height:17px;border-radius:50%;background:var(--accent-solid);color:#fff;
+            font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--accent-ink-700)">
+            <span style="width:17px;height:17px;border-radius:50%;background:var(--accent-fill);color:#fff;
               display:grid;place-items:center;font-size:12px;font-weight:700">${rh.n}</span> ${i18t('ds_step_n_of_2',{n:rh.n})}</div>
           <h4 data-ds-step-title style="font-family:var(--font-heading);font-size:15px;margin:6px 0 3px;letter-spacing:-.015em">${rh.title}</h4>
           <p style="font-size:12px;color:var(--color-neutral-500);line-height:1.45;margin:0">${rh.hint}</p>
@@ -431,7 +431,7 @@ function dsPaint(opts) {
           ${window.rlTypeStepHtml ? rlTypeStepHtml() : ''}
           <button id="ds-focus" class="ui-btn" title="${_ds.focus ? 'Leave full screen' : 'Fill the screen with the document'}"
             aria-pressed="${_ds.focus ? 'true' : 'false'}"
-            style="padding:4px 7px;${_ds.focus ? 'background:var(--color-accent-700);border-color:var(--color-accent-700);color:#fff' : ''}">
+            style="padding:4px 7px;${_ds.focus ? 'background:var(--color-accent-700);border-color:var(--accent-ink-700);color:#fff' : ''}">
             ${icon('expand', 'w-3.5 h-3.5')}</button>
         </div>
         <div id="ds-docpane" class="scroll-thin" style="flex:1;min-height:0;padding:16px;

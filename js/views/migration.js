@@ -917,7 +917,7 @@ function renderMigQueue(){
            <div style="display:flex;align-items:center;gap:9px">
             <span ${active?'class="scan-pulse"':''} style="width:7px;height:7px;border-radius:50%;background:${s.c};flex:none"></span>
             <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${migEsc(q.name)}</span>
-            ${q.id?`<button data-open="${q.id}" style="border:0;background:none;cursor:pointer;font-family:var(--font-mono);font-size:12px;color:var(--color-accent-700);padding:0">${q.id}</button>`:''}
+            ${q.id?`<button data-open="${q.id}" style="border:0;background:none;cursor:pointer;font-family:var(--font-mono);font-size:12px;color:var(--accent-ink-700);padding:0">${q.id}</button>`:''}
             <span style="flex:none;font-size:12px;font-weight:600;color:${s.c}">${s.t}</span>
             ${q.note?`<span style="flex:none;font-size:12px;color:var(--color-neutral-600);max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${migEsc(q.note)}">${migEsc(q.note)}</span>`:''}
            </div>
@@ -951,7 +951,7 @@ function migDupeRowHtml(q, i){
       <button data-dup-skip="${i}" style="${btn}">${i18t('mig_skip')}</button>
       <button data-dup-import="${i}" style="${btn}">${i18t('mig_import_anyway')}</button>
       <span style="display:inline-flex;align-items:center;gap:5px">
-        <button data-dup-link="${i}" style="${btn};border-color:var(--color-accent);color:var(--color-accent-800)">${i18t('mig_import_link_as')}</button>
+        <button data-dup-link="${i}" style="${btn};border-color:var(--color-accent);color:var(--accent-ink)">${i18t('mig_import_link_as')}</button>
         <select data-dup-rel="${i}" style="font:inherit;font-size:12px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:3px 5px">
           ${CONTRACT_RELATIONS.map(r=>`<option value="${r.k}">${r.label}</option>`).join('')}</select>
         <span style="font-size:12px;color:var(--color-neutral-600)">of</span>
@@ -1045,7 +1045,7 @@ function renderMigration(){
       #mig-drop{border:2px dashed var(--color-divider);border-radius:0;padding:32px 16px;
         text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
       #mig-drop:hover{border-color:var(--color-accent)}
-      #mig-drop.dragover{border-color:var(--color-accent);background:var(--color-accent-100)}
+      #mig-drop.dragover{border-color:var(--color-accent);background:var(--st-steel-bg)}
     </style>
     <div style="display:flex;flex-direction:column;gap:12px">
 
@@ -1074,20 +1074,20 @@ function renderMigration(){
             <select id="mig-folder" style="${selStyle}">${folderOpts}</select></label>
           <span style="flex:1"></span>
           <button id="mig-manifest-btn" class="ui-btn" style="font-size:13px;padding:5px 11px">${icon('list','w-3.5 h-3.5')} ${M.manifest?'Replace manifest':'Load manifest CSV'}</button>
-          <button id="mig-manifest-tpl" style="border:0;background:none;cursor:pointer;font-size:12px;color:var(--color-accent-700);text-decoration:underline;padding:0">template</button>
+          <button id="mig-manifest-tpl" style="border:0;background:none;cursor:pointer;font-size:12px;color:var(--accent-ink-700);text-decoration:underline;padding:0">template</button>
           <input id="mig-manifest-file" type="file" accept=".csv" class="hidden" style="display:none">
         </div>
         ${migAllowanceHtml()}
         ${migUnfinishedHtml()}
         ${M.manifestError?`<div style="font-size:13px;color:var(--st-ruby-fg);background:var(--st-ruby-bg);border:1px solid var(--st-ruby-line);border-radius:0;padding:7px 10px;margin-bottom:8px"><strong>${migEsc(M.manifestError.name)}</strong> was not loaded — ${migEsc(M.manifestError.reason)}.${M.manifest?` Still using <strong>${migEsc(M.manifestName)}</strong>.`:''}</div>`:''}
-        ${M.manifest?`<div style="font-size:13px;color:var(--color-accent-800);background:var(--color-accent-100);border:1px solid var(--color-divider);border-radius:0;padding:7px 10px;margin-bottom:12px">${i18t('mig_manifest')} <strong>${migEsc(M.manifestName)}</strong> loaded — ${M.manifest.length} rows. Files are matched by filename; manifest details (counterparty, dates, value, stream, status) take precedence over extraction.${M.manifestDateOrder&&!M.manifestDateOrder.proven?` Slashed dates are being read as <strong>${M.manifestDateOrder.order==='mdy'?'month/day/year':'day/month/year'}</strong>${M.manifestDateOrder.conflict?' — this file contains both orders, so check them':' (nothing in the file settles it either way)'}.`:''} The manifest lives in this session only — re-load it after a refresh to re-run reconciliation.</div>`:''}
+        ${M.manifest?`<div style="font-size:13px;color:var(--st-steel-fg);background:var(--st-steel-bg);border:1px solid var(--color-divider);border-radius:0;padding:7px 10px;margin-bottom:12px">${i18t('mig_manifest')} <strong>${migEsc(M.manifestName)}</strong> loaded — ${M.manifest.length} rows. Files are matched by filename; manifest details (counterparty, dates, value, stream, status) take precedence over extraction.${M.manifestDateOrder&&!M.manifestDateOrder.proven?` Slashed dates are being read as <strong>${M.manifestDateOrder.order==='mdy'?'month/day/year':'day/month/year'}</strong>${M.manifestDateOrder.conflict?' — this file contains both orders, so check them':' (nothing in the file settles it either way)'}.`:''} The manifest lives in this session only — re-load it after a refresh to re-run reconciliation.</div>`:''}
         ${(M.manifestProblems&&M.manifestProblems.length)?`<div style="font-size:13px;color:var(--st-amber-fg);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);border-radius:0;padding:8px 10px;margin-bottom:12px">
           <div style="font-weight:600;margin-bottom:4px">${M.manifestProblems.length} value${M.manifestProblems.length===1?'':'s'} in the manifest could not be read — those cells were left empty rather than guessed:</div>
           <ul style="margin:0;padding-left:16px;line-height:1.6">${M.manifestProblems.slice(0,12).map(p=>`<li><strong>${migEsc(p.label)}</strong> · ${migEsc(p.field)}: ${migEsc(p.message)}</li>`).join('')}</ul>
           ${M.manifestProblems.length>12?`<div style="margin-top:4px">…and ${M.manifestProblems.length-12} more.</div>`:''}
         </div>`:''}
         <div id="mig-drop">
-          <div style="display:inline-grid;place-items:center;width:40px;height:40px;border-radius:0;background:var(--color-neutral-100);color:var(--color-accent-600);margin-bottom:8px">${icon('upload','w-5 h-5')}</div>
+          <div style="display:inline-grid;place-items:center;width:40px;height:40px;border-radius:0;background:var(--color-neutral-100);color:var(--accent-ink-700);margin-bottom:8px">${icon('upload','w-5 h-5')}</div>
           <div style="font-size:14px;font-weight:600">${i18t('mig_drop_files')}</div>
           <div style="font-size:12px;color:var(--color-neutral-600);margin-top:3px">Up to ${MIG_MAX_FILES} files per batch · duplicates skipped automatically</div>
           <input id="mig-files" type="file" multiple accept="${MIG_ACCEPT}" style="display:none">
@@ -1133,7 +1133,7 @@ function renderMigration(){
                   ${c.migration.blocked?`<span style="display:block;font-size:12px;color:var(--st-ruby-fg)">no readable text${c.migration.ocrTotalPages?' (OCR tried)':''}</span>`:need?`<span style="display:block;font-size:12px;color:var(--st-amber-fg)">${c.migration.aiSource==='ai'?'low-confidence fields':'pattern-matched only'}</span>`:''}
                   ${isOcrText(c.migration.textSource)?`<span style="display:block;font-size:12px;color:var(--st-amber-fg)" title="${migEsc(ocrProvenanceLine(c.upload||c.migration))}">machine-read from a scan${c.migration.ocrSkippedPages?` · ${c.migration.ocrSkippedPages} page${c.migration.ocrSkippedPages===1?'':'s'} skipped`:''}</span>`:''}</td>
                 <td style="text-align:right;padding-right:12px;white-space:nowrap" onclick="event.stopPropagation()">
-                  ${(c.linkSuggestions&&c.linkSuggestions.length&&!c.parentId&&!c.linkConfirmed&&canEdit())?`<button data-mig-link="${c.id}" class="ui-btn" style="font-size:12px;padding:3.5px 10px;border-color:var(--color-accent);color:var(--color-accent-800)">${i18t('mig_col_link')}</button>`:''}
+                  ${(c.linkSuggestions&&c.linkSuggestions.length&&!c.parentId&&!c.linkConfirmed&&canEdit())?`<button data-mig-link="${c.id}" class="ui-btn" style="font-size:12px;padding:3.5px 10px;border-color:var(--color-accent);color:var(--accent-ink)">${i18t('mig_col_link')}</button>`:''}
                   ${need&&canEdit()?`<button data-mig-review="${c.id}" class="ui-btn ui-btn-primary" style="font-size:12px;padding:3.5px 10px">${i18t('mig_review')}</button>`:''}
                   <button data-open="${c.id}" class="ui-btn" style="font-size:12px;padding:3.5px 10px">${i18t('mig_open')}</button>
                 </td>

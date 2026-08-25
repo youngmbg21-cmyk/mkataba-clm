@@ -1822,7 +1822,7 @@ function openReviewReturnPicker(c, opts = {}){
     return `<button type="button" data-rv-pick-return="${_rvE(rv.id)}"
       style="display:block;width:100%;text-align:left;font:inherit;cursor:pointer;margin-bottom:8px;
       border:1px solid var(--color-divider);border-radius:0;padding:10px 12px;background:var(--color-surface)">
-      <span style="display:block;font-size:14px;font-weight:700;font-family:var(--font-mono);color:var(--color-accent-800)">${_rvE(reviewTagsFor(rv))}</span>
+      <span style="display:block;font-size:14px;font-weight:700;font-family:var(--font-mono);color:var(--accent-ink)">${_rvE(reviewTagsFor(rv))}</span>
       <span style="display:block;font-size:13px;color:var(--color-neutral-700);margin-top:3px;line-height:1.5">
         ${_rvE(i18t('rv_pick_from', { who: rv.by }))}${rv.due ? ' · ' + _rvE(i18t('rv_due', { when: rv.due })) : ''}
         · ${_rvE(i18tn('rv_pick_left', p.left, { n: p.left, total: p.total }))}</span>

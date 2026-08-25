@@ -111,8 +111,8 @@ describe('F95 — every menu row has a symbol, and the symbols are solid dark gr
     (b.match(new RegExp(prop + ':\\s*([^;]+)')) || [])[1]).filter(Boolean).pop();
 
   test('the room menu paints its icons dark green', () => {
-    assert.equal(decl('.room-menu button svg', 'color'), 'var(--color-accent-800)');
-    assert.equal(decl('.room-menu button:hover svg', 'color'), 'var(--color-accent-800)',
+    assert.equal(decl('.room-menu button svg', 'color'), 'var(--accent-ink)');
+    assert.equal(decl('.room-menu button:hover svg', 'color'), 'var(--accent-ink)',
       'and hovering does not wash it out');
   });
 
@@ -122,7 +122,7 @@ describe('F95 — every menu row has a symbol, and the symbols are solid dark gr
   });
 
   test('the register row menu is the same rule', () => {
-    assert.equal(decl('.reg-act svg', 'color'), 'var(--color-accent-800)');
+    assert.equal(decl('.reg-act svg', 'color'), 'var(--accent-ink)');
   });
 
   test('the destructive rows are red, hover included', () => {

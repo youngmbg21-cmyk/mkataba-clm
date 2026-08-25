@@ -679,10 +679,10 @@ function calStyleCss(){ return `
   .cal-bar .views{display:flex;align-items:stretch;gap:2px;flex:none}
   .cal-bar .views a{display:flex;align-items:center;gap:7px;padding:0 14px;font-size:14px;font-weight:400;
     color:var(--color-text);cursor:pointer;box-shadow:inset 0 -2px transparent;white-space:nowrap}
-  .cal-bar .views a.on{font-weight:700;color:var(--color-accent-800);box-shadow:inset 0 -2px var(--accent-solid)}
+  .cal-bar .views a.on{font-weight:700;color:var(--accent-ink);box-shadow:inset 0 -2px var(--accent-solid)}
   .cal-bar .views a .c{font-family:var(--font-mono);font-size:12px;font-weight:400;
     font-variant-numeric:tabular-nums;color:var(--color-neutral-500)}
-  .cal-bar .views a.on .c{color:var(--color-accent-800)}
+  .cal-bar .views a.on .c{color:var(--accent-ink)}
   html.dark .cal-bar .views a.on,html.dark .cal-bar .views a.on .c{color:var(--color-accent-300)}
   .cal-seg{display:inline-flex;align-items:center;border:1px solid var(--color-divider);height:28px;
     flex:none;align-self:center}
@@ -693,7 +693,7 @@ function calStyleCss(){ return `
   .cal-sel{display:inline-flex;align-items:center;gap:2px;flex:none;align-self:center}
   .cal-sel button{border:0;background:none;font:inherit;font-size:14px;color:var(--color-text);
     cursor:pointer;padding:4px 8px;line-height:1.2}
-  .cal-sel button:hover{color:var(--color-accent-800)}
+  .cal-sel button:hover{color:var(--accent-ink)}
   .cal-sel-now{white-space:nowrap;font-variant-numeric:tabular-nums}
   /* ---- THE PAGE MEASURE, SHARED WITH THE BANDS ABOVE ---- */
   .cal-body{flex:1;min-height:0;padding:16px 24px 20px;display:flex;min-width:0}
@@ -739,7 +739,7 @@ function calStyleCss(){ return `
   .cal-hz-row:hover{background:color-mix(in srgb,var(--color-text) 4%,transparent)}
   .cal-hz-row:focus-visible{outline:2px solid var(--accent-solid);outline-offset:-2px}
   .cal-hz-lab{padding:7px 12px;min-width:0}
-  .cal-hz-lab .n{display:block;font-size:13px;font-weight:600;color:var(--color-accent-700);
+  .cal-hz-lab .n{display:block;font-size:13px;font-weight:600;color:var(--accent-ink-700);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .cal-hz-lab .m{display:block;font-size:12px;color:var(--color-neutral-600);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -807,7 +807,7 @@ function calStyleCss(){ return `
   .cal-chip{font-size:11px;line-height:1.25;padding:2px 4px;border-left:3px solid;flex:none;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .cal-chip.is-done{opacity:.55;text-decoration:line-through}
-  .cal-more{font-size:11px;font-weight:600;color:var(--color-accent-700);flex:none}
+  .cal-more{font-size:11px;font-weight:600;color:var(--accent-ink-700);flex:none}
   html.dark .cal-more{color:var(--color-accent-300)}
   .cal-dots{display:flex;gap:3px;flex-wrap:wrap;flex:none}
   /* ---- THE LEGEND ---- */
@@ -837,12 +837,12 @@ function calStyleCss(){ return `
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .cal-upn .lft{margin-left:auto;font-size:12px;font-weight:700;white-space:nowrap;flex:none}
   .cal-upn-done{flex:none;border:1px solid var(--color-divider);background:var(--color-surface);
-    padding:2px 7px;font:inherit;font-size:12px;font-weight:600;color:var(--color-accent-700);cursor:pointer}
+    padding:2px 7px;font:inherit;font-size:12px;font-weight:600;color:var(--accent-ink-700);cursor:pointer}
   .cal-theirs{flex:none;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
     padding:1px 4px;background:var(--st-amber-bg);color:var(--st-amber-fg)}
   .cal-panel-foot{flex:none;padding:11px 14px}
   .cal-link{border:0;background:none;font:inherit;font-size:13px;font-weight:600;
-    color:var(--color-accent-700);cursor:pointer;padding:0}
+    color:var(--accent-ink-700);cursor:pointer;padding:0}
   html.dark .cal-link,html.dark .cal-upn-done,html.dark .cal-more{color:var(--color-accent-300)}
   .cal-empty{padding:22px 14px;text-align:center}
   .cal-empty-t{font-size:14px;font-weight:600;color:var(--color-text)}

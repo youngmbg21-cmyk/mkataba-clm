@@ -77,9 +77,9 @@ function renderAdviceIntake(){
     <label data-svc="${s.id}" style="display:block;border:1.5px solid var(--color-divider);border-radius:0;background:var(--color-surface);padding:13px 14px;cursor:pointer;transition:border-color .12s ease, box-shadow .12s ease">
       <input type="radio" name="adv-svc" value="${s.id}" style="position:absolute;opacity:0"/>
       <div style="display:flex;align-items:center;gap:8px">
-        <span style="width:30px;height:30px;flex:none;display:grid;place-items:center;border-radius:0;background:var(--color-accent-100);color:var(--color-accent-800)">${icon(s.ic,'w-4 h-4')}</span>
+        <span style="width:30px;height:30px;flex:none;display:grid;place-items:center;border-radius:0;background:var(--st-steel-bg);color:var(--st-steel-fg)">${icon(s.ic,'w-4 h-4')}</span>
         <span style="font-size:14px;font-weight:600;line-height:1.25;min-width:0">${s.name}</span>
-        <span style="margin-left:auto;flex:none;font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--color-accent-800);white-space:nowrap">${fmtMoney(r.rate)}<span style="font-weight:400;color:var(--color-neutral-500)">/hr</span></span>
+        <span style="margin-left:auto;flex:none;font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--accent-ink);white-space:nowrap">${fmtMoney(r.rate)}<span style="font-weight:400;color:var(--color-neutral-500)">/hr</span></span>
       </div>
       <p style="font-size:12px;color:var(--color-neutral-600);margin:7px 0 8px;line-height:1.5">${s.blurb}</p>
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px">
@@ -93,7 +93,7 @@ function renderAdviceIntake(){
       <div>
         <h1 style="font-family:var(--font-heading);font-weight:600;font-size:22px;margin:0 0 4px;color:var(--color-text)">${i18t('apo_what_help')}</h1>
         <p style="font-size:14px;color:var(--color-neutral-700);margin:0 0 16px;line-height:1.55">Pick a service — the hourly rate, typical effort and turnaround are published up front. After you submit, you get a tracking link that shows exactly where your request sits in the pipeline.</p>
-        <div id="adv-queue-note" style="margin-bottom:14px;border:1px solid var(--color-divider);border-radius:0;background:var(--color-accent-100);padding:10px 13px;font-size:13px;color:var(--color-accent-800);line-height:1.5;display:flex;align-items:center;gap:8px">${icon('clock','w-4 h-4')}<span id="adv-queue-text">${i18t('apo_select_service')}</span></div>
+        <div id="adv-queue-note" style="margin-bottom:14px;border:1px solid var(--color-divider);border-radius:0;background:var(--st-steel-bg);padding:10px 13px;font-size:13px;color:var(--st-steel-fg);line-height:1.5;display:flex;align-items:center;gap:8px">${icon('clock','w-4 h-4')}<span id="adv-queue-text">${i18t('apo_select_service')}</span></div>
         <div style="display:grid;grid-template-columns:1fr;gap:10px" class="adv-svc-grid">${Object.values(ADVICE_SERVICES).map(svcCard).join('')}</div>
       </div>
       <aside style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;box-shadow:var(--shadow-sm);padding:18px" class="portal-aside">
@@ -211,12 +211,12 @@ function renderAdviceTracking(r){
     ? `<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:0;padding:12px 14px;font-size:13px;color:var(--st-ruby-fg);line-height:1.5">This request was closed without delivery${reached('Closed')?` on ${fmtDay(reached('Closed').at)}`:''}. Contact the legal team if that's unexpected.</div>`
     : r.status==='Delivered'
     ? `<div style="border:1px solid var(--st-green-line);background:var(--st-green-bg);border-radius:0;padding:12px 14px;font-size:13px;color:var(--st-green-fg);line-height:1.5"><strong>Delivered${reached('Delivered')?' '+fmtDay(reached('Delivered').at):''}.</strong> ${i18t('apo_feedback_with_you')}</div>`
-    : `<div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:0;padding:12px 14px;font-size:13px;color:var(--color-accent-800);line-height:1.5">${i18t('apo_estimated_by')} <strong>${fmtDay(r.eta)}</strong>${left!=null?(left<0?` — running ${-left} day${-left===1?'':'s'} over, the team is on it`:left===0?' — that’s today':` — ${left} day${left===1?'':'s'} away`):''}.</div>`;
+    : `<div style="border:1px solid var(--color-divider);background:var(--st-steel-bg);border-radius:0;padding:12px 14px;font-size:13px;color:var(--st-steel-fg);line-height:1.5">${i18t('apo_estimated_by')} <strong>${fmtDay(r.eta)}</strong>${left!=null?(left<0?` — running ${-left} day${-left===1?'':'s'} over, the team is on it`:left===0?' — that’s today':` — ${left} day${left===1?'':'s'} away`):''}.</div>`;
   root.innerHTML=advicePortalShell(`
     <div style="display:grid;gap:22px;align-items:start" class="portal-grid">
       <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;box-shadow:var(--shadow-sm);padding:22px 24px">
         <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px">
-          <span style="width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:0;background:var(--color-accent-100);color:var(--color-accent-800)">${icon(svc.ic,'w-4 h-4')}</span>
+          <span style="width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:0;background:var(--st-steel-bg);color:var(--st-steel-fg)">${icon(svc.ic,'w-4 h-4')}</span>
           <div style="min-width:0">
             <h1 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0;line-height:1.25;color:var(--color-text)">${pesc(svc.name)}</h1>
             <div style="font-family:var(--font-mono);font-size:12px;color:var(--color-neutral-600)">${pesc(r.id)} · submitted ${fmtDay(r.submittedAt)}</div>

@@ -320,7 +320,7 @@ function portalVerbStyle(){
        pt-more and pt-bell — every button that wears this class — because a row
        where three lose the tint and one keeps it is the report coming straight
        back. */
-    .ui-btn.pt-verb{color:var(--color-accent-800);background:transparent;
+    .ui-btn.pt-verb{color:var(--accent-ink);background:transparent;
       border-color:color-mix(in srgb,var(--accent-solid) 45%,transparent);}
     .ui-btn.pt-verb:hover{background:color-mix(in srgb,var(--accent-solid) 10%,transparent);
       border-color:var(--accent-solid);}
@@ -3506,7 +3506,7 @@ function renderSharePortal(p, opts={}){
           </div>
           <div style="padding:14px 22px;border-top:1px solid var(--color-divider);display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--color-bg)">
             <span id="pt-redline-count" style="font-size:13px;color:var(--color-neutral-600)">${i18t('po_name_from_panel')}</span>
-            <button id="pt-plain-toggle" style="border:0;background:none;padding:0;font:inherit;font-size:13px;color:var(--color-accent-700);cursor:pointer;text-decoration:underline">${i18t('po_edit_whole_doc')}</button>
+            <button id="pt-plain-toggle" style="border:0;background:none;padding:0;font:inherit;font-size:13px;color:var(--accent-ink-700);cursor:pointer;text-decoration:underline">${i18t('po_edit_whole_doc')}</button>
             <span style="flex:1"></span>
             <button id="pt-redline-submit" class="ui-btn ui-btn-primary" style="font-size:14px;padding:10px 20px">${i18t('po_submit_edits')}</button>
           </div>
@@ -3522,7 +3522,7 @@ function renderSharePortal(p, opts={}){
                 wore a different title but was filled from the sender's own
                 textarea in the share dialog, so leaving it would have meant
                 the note was still on their screen. */}
-        ${opts.responded?`<div style="margin-bottom:14px;border-radius:0;background:var(--color-accent-100);border:1px solid var(--color-divider);padding:9px 11px;font-size:12px;color:var(--color-accent-800);display:flex;align-items:center;gap:6px;">${icon('check2','w-3.5 h-3.5')} A response was already submitted for this link.</div>`:''}
+        ${opts.responded?`<div style="margin-bottom:14px;border-radius:0;background:var(--st-steel-bg);border:1px solid var(--color-divider);padding:9px 11px;font-size:12px;color:var(--st-steel-fg);display:flex;align-items:center;gap:6px;">${icon('check2','w-3.5 h-3.5')} A response was already submitted for this link.</div>`:''}
         <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 14px;line-height:1.5;">${opts.token?`Your response is delivered to ${esc(p.sharedBy)} automatically — nothing to send back.`:`Your response is packaged as a secure code — send it back to ${esc(p.sharedBy)} to record it on the contract.`}</p>
         ${input('pt-name','Full name *','e.g. Grace Njeri')}
         ${input('pt-title','Title / role','e.g. Legal Counsel')}
@@ -3588,7 +3588,7 @@ function renderSharePortal(p, opts={}){
         <div style="display:flex;flex-direction:column;gap:8px;">
           <button id="pt-sign" class="ui-btn ui-btn-primary" style="width:100%;padding:11px;font-size:15px;">${icon('finger','w-4 h-4')} ${i18t('po_sign_this_contract')}</button>
           <button id="pt-other-toggle" aria-expanded="false" aria-controls="pt-other"
-            style="width:100%;background:none;border:0;padding:6px 0;font:inherit;font-size:13px;color:var(--color-accent-700);cursor:pointer;text-align:center;text-decoration:underline">${i18t('po_not_ready_sign')}</button>
+            style="width:100%;background:none;border:0;padding:6px 0;font:inherit;font-size:13px;color:var(--accent-ink-700);cursor:pointer;text-align:center;text-decoration:underline">${i18t('po_not_ready_sign')}</button>
           <div id="pt-other" class="hidden" style="display:flex;flex-direction:column;gap:9px;border-top:1px solid var(--color-divider);padding-top:11px">
             ${''/* ---- A BUTTON THAT OPENS NOTHING IS WORSE THAN NO BUTTON ----
                    "Change the wording yourself" opens #portal-redline, and W6
@@ -4021,8 +4021,8 @@ function portalOfferResponseCode(p, response, label){
   const lead=i18t('po_code_send_back',{who,org});
   if(slot){
     slot.innerHTML=`
-      <div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:0;padding:13px;">
-        <div style="display:flex;align-items:center;gap:6px;color:var(--color-accent-800);font-size:13px;font-weight:600;margin-bottom:6px;">${icon('check2','w-3.5 h-3.5')} ${head}</div>
+      <div style="border:1px solid var(--color-divider);background:var(--st-steel-bg);border-radius:0;padding:13px;">
+        <div style="display:flex;align-items:center;gap:6px;color:var(--accent-ink);font-size:13px;font-weight:600;margin-bottom:6px;">${icon('check2','w-3.5 h-3.5')} ${head}</div>
         <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.5;">${lead}</p>
         <textarea id="pt-code" readonly rows="4" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:10px;font-size:12px;font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all;">${code}</textarea>
         <button id="pt-copy" class="ui-btn ui-btn-primary" style="margin-top:8px;width:100%;padding:8px;font-size:13px;">${icon('copy','w-3 h-3')} ${i18t('po_copy_response_code')}</button>
@@ -4291,7 +4291,7 @@ async function portalStartOtp(p, info){
   const box=document.getElementById('portal-result');
   _ptLastOtpSend=Date.now();
   const invited=(PORTAL_OPTS.share&&PORTAL_OPTS.share.recipientEmail)||'';
-  box.innerHTML=`<div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:0;padding:13px;font-size:12px;color:var(--color-neutral-700);">${i18t('po_sending_code_to')} <strong>${esc(invited||'the address this link was issued to')}</strong>…</div>`;
+  box.innerHTML=`<div style="border:1px solid var(--color-divider);background:var(--st-steel-bg);border-radius:0;padding:13px;font-size:12px;color:var(--color-neutral-700);">${i18t('po_sending_code_to')} <strong>${esc(invited||'the address this link was issued to')}</strong>…</div>`;
   let emailSent=true, sentTo=invited, emailWhy='';
   try{
     const r=await api('shares/'+PORTAL_OPTS.token+'/otp','POST',{});

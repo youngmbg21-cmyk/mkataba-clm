@@ -262,10 +262,10 @@ const ST_INPUT='width:100%;border:1px solid var(--color-divider);background:var(
 const ST_MONO='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:5px 8px;font-family:var(--font-mono);font-size:12px;color:inherit;outline:none';
 const ST_BTN='font-family:var(--font-mono);font-weight:600;font-size:14px;padding:6px 14px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);border-radius:0;cursor:pointer;white-space:nowrap';
 const ST_BTN_SM='font-family:var(--font-mono);font-weight:600;font-size:13px;padding:5px 12px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);border-radius:0;cursor:pointer';
-const ST_BTN2='display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-weight:600;font-size:13px;padding:5px 11px;background:var(--color-surface);color:var(--color-accent-800);border:1px solid var(--color-divider);border-radius:0;cursor:pointer';
+const ST_BTN2='display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-weight:600;font-size:13px;padding:5px 11px;background:var(--color-surface);color:var(--accent-ink);border:1px solid var(--color-divider);border-radius:0;cursor:pointer';
 const ST_BTN_DANGER='display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-weight:600;font-size:13px;padding:5px 11px;background:var(--color-surface);color:var(--st-ruby-dot);border:1px solid var(--st-ruby-line);border-radius:0;cursor:pointer';
-const ST_TAG='display:inline-flex;align-items:center;font-size:12px;font-weight:600;letter-spacing:.04em;padding:3px 10px;border-radius:0;background:var(--color-accent-200);color:var(--color-accent-800)';
-const ST_AV='width:24px;height:24px;border-radius:50%;background:var(--color-accent-200);color:var(--color-accent-800);display:inline-grid;place-items:center;font-size:10px;font-weight:700;flex:none;font-family:var(--font-mono)';
+const ST_TAG='display:inline-flex;align-items:center;font-size:12px;font-weight:600;letter-spacing:.04em;padding:3px 10px;border-radius:0;background:var(--st-steel-bg);color:var(--st-steel-fg)';
+const ST_AV='width:24px;height:24px;border-radius:50%;background:var(--st-steel-bg);color:var(--st-steel-fg);display:inline-grid;place-items:center;font-size:10px;font-weight:700;flex:none;font-family:var(--font-mono)';
 const stRoleTag=r=>{ const map={admin:['var(--st-steel-bg)','var(--st-steel-fg)'],legal:['var(--st-amber-bg)','var(--st-amber-fg)'],viewer:['var(--st-gray-bg)','var(--st-gray-fg)']};
   const [bg,fg]=map[r]||map.viewer;
   return `display:inline-flex;align-items:center;font-size:12px;font-weight:600;letter-spacing:.04em;padding:3px 10px;border-radius:0;background:${bg};color:${fg}`; };
@@ -1888,7 +1888,7 @@ const SET_PANELS={
       </div>
       <div class="st-quiet"><b>${i18t('set_workshape_detect')}.</b> ${det.total
         ? esc(i18t('set_workshape_seen',{p:det.project,s:det.standing,u:det.unknown}))
-          +` <button id="ws-use-detected" style="border:0;background:none;padding:0;font:inherit;font-size:12px;font-weight:700;color:var(--color-accent-700);cursor:pointer;text-decoration:underline">${i18t('set_workshape_use')}</button>`
+          +` <button id="ws-use-detected" style="border:0;background:none;padding:0;font:inherit;font-size:12px;font-weight:700;color:var(--accent-ink-700);cursor:pointer;text-decoration:underline">${i18t('set_workshape_use')}</button>`
         : i18t('set_workshape_seen_none')}</div>`;
     },
     wire(){
@@ -2986,7 +2986,7 @@ function renderClauseLibrary(){
         <span style="font-size:11px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.09em;color:var(--color-neutral-500)">${cl.category}</span>
         <span style="font-size:14px;font-weight:600;color:var(--color-text)">${cl.name}</span>
         ${canEditLib?`<span style="margin-left:auto;display:flex;gap:10px;font-size:12px;font-weight:600">
-          <button data-cl-edit="${i}" style="background:none;border:0;cursor:pointer;color:var(--color-accent-700)">${i18t('set_edit_lower')}</button>
+          <button data-cl-edit="${i}" style="background:none;border:0;cursor:pointer;color:var(--accent-ink-700)">${i18t('set_edit_lower')}</button>
           <button data-cl-del="${i}" style="background:none;border:0;cursor:pointer;color:var(--st-ruby-dot)">${i18t('set_remove_lower')}</button></span>`:''}
       </div>
       <div style="margin-top:4px;font-size:12px;color:var(--color-neutral-600)"><b>${i18t('set_preferred')}</b> ${(cl.preferred||'').slice(0,140).replace(/</g,'&lt;')}${(cl.preferred||'').length>140?'…':''}</div>
@@ -3017,11 +3017,11 @@ function renderPlaybookView(){
         <span style="font-size:13px;font-weight:${baseline?700:600};color:${baseline?'var(--color-accent-900)':'var(--color-text)'}">${PB_ESC(label)}</span>
         ${baseline?`<span style="font-size:10px;font-family:var(--font-mono);letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:#fff;background:var(--color-accent);border-radius:0;padding:2px 8px">${i18t('set_applies_all')}</span>`:''}
         ${canEditPb?`<span style="margin-left:auto;display:flex;gap:10px;font-size:12px;font-weight:600">
-          <button data-pb-edit="${key}" style="background:none;border:0;cursor:pointer;color:var(--color-accent-700)">${i18t('set_edit_lower')}</button>
+          <button data-pb-edit="${key}" style="background:none;border:0;cursor:pointer;color:var(--accent-ink-700)">${i18t('set_edit_lower')}</button>
           ${removable?`<button data-pb-del="${key}" style="background:none;border:0;cursor:pointer;color:var(--st-ruby-dot)">${i18t('set_remove_lower')}</button>`:''}
         </span>`:''}
       </div>
-      ${baseline?`<div style="font-size:12px;color:var(--color-accent-800);margin-bottom:7px">${i18t('set_default_positions')}</div>`:''}
+      ${baseline?`<div style="font-size:12px;color:var(--accent-ink);margin-bottom:7px">${i18t('set_default_positions')}</div>`:''}
       <div style="display:flex;flex-wrap:wrap;gap:5px">${positions.map(pbPosChip).join('')}${ranges.map(pbRangeChip).join('')||(positions.length?'':`<span style="font-size:12px;color:var(--color-neutral-500)">${i18t('set_no_positions')}</span>`)}</div>
     </div>`;
   const baseCard=card('_default',i18t('set_all_contracts_baseline'), base.positions||[], base.ranges||[], false, true);
@@ -3069,10 +3069,10 @@ function openPlaybookEditor(key){
       <input id="pb-f-match" value="${PB_ATTR(e.match.join(', '))}" placeholder="${esc(i18t('set_ph_eg_keywords'))}" style="${inp}"></label>
     <div style="font-size:12px;color:var(--color-neutral-600);background:var(--color-bg);border:1px solid var(--color-divider);border-radius:0;padding:7px 9px;margin-bottom:12px">${i18t('set_inherited_baseline')} <span style="display:inline-flex;flex-wrap:wrap;gap:4px;vertical-align:middle">${inherited.positions.map(pbPosChip).join('')}${inherited.ranges.map(pbRangeChip).join('')}</span></div>`:''}
 
-    <div style="display:flex;align-items:center;margin:0 0 6px"><span style="font-size:12px;font-weight:600;color:var(--color-text)">${isBase?i18t('set_positions'):i18t('set_positions_for_type')}</span><button id="pb-add-pos" style="margin-left:auto;font-size:12px;font-weight:600;color:var(--color-accent-700);background:none;border:0;cursor:pointer">${i18t('set_add_position')}</button></div>
+    <div style="display:flex;align-items:center;margin:0 0 6px"><span style="font-size:12px;font-weight:600;color:var(--color-text)">${isBase?i18t('set_positions'):i18t('set_positions_for_type')}</span><button id="pb-add-pos" style="margin-left:auto;font-size:12px;font-weight:600;color:var(--accent-ink-700);background:none;border:0;cursor:pointer">${i18t('set_add_position')}</button></div>
     <div id="pb-pos-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px"></div>
 
-    <div style="display:flex;align-items:center;margin:0 0 6px"><span style="font-size:12px;font-weight:600;color:var(--color-text)">${i18t('set_numeric_limits')}</span><button id="pb-add-rng" style="margin-left:auto;font-size:12px;font-weight:600;color:var(--color-accent-700);background:none;border:0;cursor:pointer">${i18t('set_add_limit')}</button></div>
+    <div style="display:flex;align-items:center;margin:0 0 6px"><span style="font-size:12px;font-weight:600;color:var(--color-text)">${i18t('set_numeric_limits')}</span><button id="pb-add-rng" style="margin-left:auto;font-size:12px;font-weight:600;color:var(--accent-ink-700);background:none;border:0;cursor:pointer">${i18t('set_add_limit')}</button></div>
     <div id="pb-rng-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px"></div>
 
     <div style="display:flex;justify-content:flex-end;gap:8px">
@@ -3169,7 +3169,7 @@ function renderApprovalRules(){
       <div style="display:flex;align-items:center;gap:8px">
         <span style="width:22px;height:22px;display:inline-grid;place-items:center;border-radius:50%;background:var(--tile-steel-bg);font-size:12px;font-weight:700;color:var(--tile-steel-fg);flex:none">${r.order||1}</span>
         <span style="font-size:13px;color:var(--color-text)"><b>${i18t('set_if')}</b> ${condLabel(r.cond)} <b>${i18t('set_then')}</b> ${approverLabelOf(r.approver)}</span>
-        ${isAdmin()?`<span style="margin-left:auto;display:flex;gap:10px;font-size:12px;font-weight:600"><button data-ar-edit="${i}" style="background:none;border:0;cursor:pointer;color:var(--color-accent-700)">${i18t('set_edit_lower')}</button><button data-ar-del="${i}" style="background:none;border:0;cursor:pointer;color:var(--st-ruby-dot)">${i18t('set_remove_lower')}</button></span>`:''}
+        ${isAdmin()?`<span style="margin-left:auto;display:flex;gap:10px;font-size:12px;font-weight:600"><button data-ar-edit="${i}" style="background:none;border:0;cursor:pointer;color:var(--accent-ink-700)">${i18t('set_edit_lower')}</button><button data-ar-del="${i}" style="background:none;border:0;cursor:pointer;color:var(--st-ruby-dot)">${i18t('set_remove_lower')}</button></span>`:''}
       </div>
     </div>`).join(''):`<p style="font-size:12px;color:var(--color-neutral-500)">${i18t('set_no_approval_rules')}</p>`;
   host.querySelectorAll('[data-ar-edit]').forEach(b=>b.addEventListener('click',()=>openApprovalRuleEditor(Number(b.getAttribute('data-ar-edit')))));
@@ -3342,7 +3342,7 @@ async function loadSessions(){
          generic words are the platform's own. */
       const dev=/mobile/i.test(ua)?i18t('set_dev_mobile'):/chrome/i.test(ua)?'Chrome':/firefox/i.test(ua)?'Firefox':/safari/i.test(ua)?'Safari':i18t('set_dev_browser');
       return `<div style="display:flex;align-items:center;gap:8px;border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);padding:7px 10px">
-        <span style="min-width:0"><span style="font-size:13px;font-weight:600;color:var(--color-text)">${dev}${s.current?` <span style="font-size:10px;font-family:var(--font-mono);color:var(--color-accent-700)">${i18t('set_this_device')}</span>`:''}</span>
+        <span style="min-width:0"><span style="font-size:13px;font-weight:600;color:var(--color-text)">${dev}${s.current?` <span style="font-size:10px;font-family:var(--font-mono);color:var(--accent-ink-700)">${i18t('set_this_device')}</span>`:''}</span>
         <span style="display:block;font-size:12px;font-family:var(--font-mono);color:var(--color-neutral-500)">${s.ip||'—'} · ${i18t('set_last_seen',{when:s.lastSeen?fmtDT(s.lastSeen):'—'})}</span></span>
         ${s.current?'':`<button data-sess-revoke="${s.id}" style="margin-left:auto;font-size:12px;font-weight:600;color:var(--st-ruby-dot);background:none;border:0;cursor:pointer">${i18t('set_revoke')}</button>`}
       </div>`; }).join('')}</div>`:`<p style="font-size:12px;color:var(--color-neutral-500)">${i18t('set_no_active_sessions')}</p>`;

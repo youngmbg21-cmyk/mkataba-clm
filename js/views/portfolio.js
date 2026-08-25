@@ -103,7 +103,7 @@ function pfChipsHtml(){
   return `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
     <span style="font-size:12px;color:var(--color-neutral-600)">${i18t('pf_focused_on')}</span>
     ${chips.map(c=>`<button data-pf-unfilter="${c.k}" style="display:inline-flex;align-items:center;gap:6px;border:0;border-radius:0;padding:3px 10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;background:var(--color-accent);color:#fff">${pfEsc(c.l)} ✕</button>`).join('')}
-    <button data-pf-clear style="border:0;background:none;cursor:pointer;font:inherit;font-size:12px;font-weight:600;color:var(--color-accent-700);text-decoration:underline">${i18t('reg_clear')}</button>
+    <button data-pf-clear style="border:0;background:none;cursor:pointer;font:inherit;font-size:12px;font-weight:600;color:var(--accent-ink-700);text-decoration:underline">${i18t('reg_clear')}</button>
   </div>`;
 }
 
@@ -366,7 +366,7 @@ function pfFindings(){
       <span style="min-width:0;flex:1">
         <b style="display:block;font-size:13px;font-weight:700">${pfEsc(f.title||i18t('pf_a_finding'))}</b>
         <span style="font-size:12px;color:var(--color-neutral-600)">${pfEsc(c.name)}${pfWeight(c)>0?' · '+pfEsc(pfMoney(pfWeight(c))):''}</span></span>
-      <span style="flex:none;font-size:12px;font-weight:700;color:var(--color-accent-700)">${i18t('pf_open_arrow')}</span></button>`;
+      <span style="flex:none;font-size:12px;font-weight:700;color:var(--accent-ink-700)">${i18t('pf_open_arrow')}</span></button>`;
   }).join('')}</div>`;
   const more=items.length-shown.length;
   return pfCard(i18t('pf_needs_attention'), `${items.length} ${i18t('pf_open_findings')}`, body,
