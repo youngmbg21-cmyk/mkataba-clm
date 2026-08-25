@@ -320,6 +320,68 @@ let REG_SCOPE = null;
    own cards — `.reg-table` is never rendered there. Fiori states plainly that
    compact and condensed "cannot be interacted with via touch", so the phone
    keeping its own touch sizes is the rule, not an omission. */
+/* ═══ WHICH FILTERS SIT ON THE BAR — "Adapt filters" (25 Aug 2026) ════════
+   SAP Fiori's filter bar shows a user-chosen SUBSET of the available filters
+   and keeps the rest behind an "Adapt filters" link. That is the answer to the
+   problem this bar actually had: it would not fit on one line, and WO-15
+   solved that on 24 Aug by DELETING the Renewal filter outright.
+
+   THIS DOES NOT REVERSE THAT RULING, AND THE DEFAULT IS WHY. The bar's default
+   set is exactly what ships today — stage, stream, saved view, category — and
+   Renewal is NOT on it. The owner asked twice for it to be off their bar and
+   it stays off. What changes is that a reader who wants it can now put it
+   there, on their own browser, instead of the filter being unreachable.
+   Its READING never went anywhere: regFiltered has known how to narrow by
+   renewal type all along (line ~525), so this restores a door to a room that
+   was still standing.
+
+   THE SAFETY PROPERTY, and it is the whole reason this is not dangerous: a
+   filter that is NARROWING THE LIST is drawn on the bar whether or not it was
+   chosen. A hidden control that is quietly cutting the book is exactly the
+   fault the owner's own removal note was guarding against — "so the filter can
+   never be quietly on". It still cannot be. */
+const REG_BAR_KEY = 'hati.v1.regBarFilters';
+const REG_BAR_FILTERS = [
+  { k:'stage',    fixed:true,  get label(){ return i18t('reg_lifecycle_stage'); } },
+  { k:'type',     fixed:true,  get label(){ return i18t('reg_value_stream'); } },
+  { k:'view',     fixed:false, get label(){ return i18t('reg_saved_views'); } },
+  { k:'category', fixed:false, get label(){ return i18t('me_category'); } },
+  { k:'renewal',  fixed:false, get label(){ return i18t('reg_renewal'); } },
+];
+/* Stage and stream are `fixed` — they are the two questions this register is
+   always asked, and a bar with neither is not a filter bar. */
+const REG_BAR_DEFAULT = ['stage','type','view','category'];
+function regBarChosen(){
+  try{
+    const raw = localStorage.getItem(REG_BAR_KEY);
+    if(!raw) return REG_BAR_DEFAULT.slice();
+    const want = JSON.parse(raw);
+    if(!Array.isArray(want)) return REG_BAR_DEFAULT.slice();
+    const ok = REG_BAR_FILTERS.filter(f=>f.fixed||want.includes(f.k)).map(f=>f.k);
+    return ok.length ? ok : REG_BAR_DEFAULT.slice();
+  }catch(_){ return REG_BAR_DEFAULT.slice(); }
+}
+function regBarSetChosen(keys){
+  try{ localStorage.setItem(REG_BAR_KEY, JSON.stringify(
+    REG_BAR_FILTERS.filter(f=>f.fixed||keys.includes(f.k)).map(f=>f.k))); }catch(_){}
+}
+/* IS THIS FILTER ACTUALLY NARROWING ANYTHING RIGHT NOW — the predicate the
+   safety property above rests on. */
+function regFilterActive(k, R){
+  R = R || regState();
+  if(k==='stage')    return R.stage!=='all';
+  if(k==='type')     return R.type!=='all';
+  if(k==='view')     return !!R.view;
+  if(k==='category') return !!R.category && R.category!=='all';
+  if(k==='renewal')  return !!R.renewal && R.renewal!=='all';
+  return false;
+}
+/* Chosen, PLUS anything currently narrowing the list. */
+function regBarShown(R){
+  const chosen = regBarChosen();
+  return REG_BAR_FILTERS.filter(f=>chosen.includes(f.k)||regFilterActive(f.k,R)).map(f=>f.k);
+}
+
 const REG_DENSITY = {
   comfortable:{ h:44, padX:16, line:20 },
   compact:    { h:36, padX:12, line:20 },   /* today's row — the default */
@@ -1029,6 +1091,16 @@ function renderRegister(opts){
   const typeOpts=regTypes().map(t=>`<option value="${t.k}" ${R.type===t.k?'selected':''}>${t.label}</option>`).join('');
   const viewOpts=`<option value="" ${R.view?'':'selected'}>${i18t('reg_saved_views')}</option>`
     +REG_VIEWS.map(v=>`<option value="${v.k}" ${R.view===v.k?'selected':''}>${v.label}</option>`).join('');
+  /* ---- RENEWAL IS BACK, AND IT IS OFF THE BAR BY DEFAULT ----
+     Recovered unchanged from before WO-15 removed it, except that it now goes
+     through selFilter like the other six rather than carrying its own copy of
+     the markup — one builder is what stops them drifting. Every key it needs
+     was still in both dictionaries. */
+  const renewalActive=!!R.renewal&&R.renewal!=='all';
+  const renewalOpts=[['all',i18t('reg_any')],['auto-renew',i18t('reg_renew_auto')],
+                     ['fixed',i18t('reg_fixed')],['evergreen',i18t('reg_evergreen')]]
+    .map(([k,l])=>`<option value="${k}" ${(R.renewal||'all')===k?'selected':''}>${l}</option>`).join('');
+  const BAR=regBarShown(R);
   const densityOpts=['comfortable','compact','condensed']
     .map(k=>`<option value="${k}" ${regDensity()===k?'selected':''}>${esc(i18t('reg_density_'+k))}</option>`).join('');
   const filtered=R.stage!=='all'||R.type!=='all'||!!R.view||(R.renewal&&R.renewal!=='all')||(R.category&&R.category!=='all')||!!R.only;
@@ -1379,12 +1451,24 @@ function renderRegister(opts){
         ${lockChip}
         ${onlyChip}
         ${ftsBlock}
-        ${selFilter('reg-stage-sel',stageOpts,R.stage!=='all',i18t('reg_lifecycle_stage'))}
-        ${selFilter('reg-type-sel',typeOpts,R.type!=='all',i18t('reg_value_stream'))}
+        ${''/* ---- ONLY THE CHOSEN FILTERS DRAW, PLUS ANY THAT ARE NARROWING ----
+               regBarShown() is the union: what this reader put on their bar,
+               and anything currently cutting the list whether they chose it or
+               not. The second half is the safety property — a hidden control
+               quietly shortening the book is the exact fault WO-15's removal
+               note was guarding against. */}
+        ${BAR.includes('stage')?selFilter('reg-stage-sel',stageOpts,R.stage!=='all',i18t('reg_lifecycle_stage')):''}
+        ${BAR.includes('type')?selFilter('reg-type-sel',typeOpts,R.type!=='all',i18t('reg_value_stream')):''}
         ${''/* The long sentence is the TOOLTIP, not the label — used as a label it
                     ran to 460px and pushed the whole bar off the row. */}
-        ${selFilter('reg-view-sel',viewOpts,!!R.view,i18t('reg_saved_views_title'),i18t('reg_saved_views'))}
-        ${categorySel}
+        ${BAR.includes('view')?selFilter('reg-view-sel',viewOpts,!!R.view,i18t('reg_saved_views_title'),i18t('reg_saved_views')):''}
+        ${BAR.includes('category')?categorySel:''}
+        ${BAR.includes('renewal')?selFilter('reg-renewal',renewalOpts,renewalActive,i18t('reg_renewal')):''}
+        ${''/* THE DOOR TO THE REST. A link rather than a button, because it
+               opens a chooser rather than acting on the list — the same
+               weight Fiori gives it. */}
+        <button id="reg-adapt" type="button" title="${esc(i18t('reg_adapt_title'))}"
+          style="font-size:12px;font-weight:600;color:var(--accent-ink);background:none;border:0;cursor:pointer;padding:2px 4px;align-self:flex-end;margin-bottom:7px">${esc(i18t('reg_adapt'))}</button>
         ${filtered?`<button id="reg-clear-filters" style="font-size:12px;font-weight:600;color:var(--color-accent-700);background:none;border:0;cursor:pointer;padding:2px 4px">${i18t('reg_clear')}</button>`:''}
         <span style="flex:1;min-width:8px"></span>
         ${''/* ---- SORT IS STACKED LIKE THE OTHER FIVE (owner-asked 25 Aug 2026:
@@ -1512,6 +1596,44 @@ function renderRegister(opts){
       if(!e.target.closest('[data-menu-pop]')&&!e.target.closest('[data-menu]')) regCloseMenus();
     });
   }
+  /* ---- "ADAPT FILTERS" ----
+     It goes through openModal, which this product already gets right: role,
+     aria-modal, a name, focus in, Tab cycling and focus back to the opener.
+     A second hand-rolled panel would be a second implementation of all of
+     that, and this file's own rule is one builder per job. */
+  document.getElementById('reg-adapt')?.addEventListener('click',()=>{
+    const chosen=regBarChosen();
+    const rows=REG_BAR_FILTERS.map(f=>{
+      const on=chosen.includes(f.k);
+      /* A FIXED FILTER IS SHOWN TICKED AND DISABLED rather than hidden: a
+         chooser that silently omits two of the six leaves the reader counting
+         and wondering where they went. It says what it is instead. */
+      return `<label style="display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--color-divider);${f.fixed?'opacity:.6':'cursor:pointer'}">
+        <input type="checkbox" data-adapt="${f.k}" ${on?'checked':''} ${f.fixed?'disabled':''} style="width:15px;height:15px;flex:none;accent-color:var(--accent-solid)"/>
+        <span style="flex:1;font-size:14px">${esc(f.label)}</span>
+        ${f.fixed?`<span style="font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">${esc(i18t('reg_adapt_always'))}</span>`:''}
+      </label>`;
+    }).join('');
+    openModal(`
+      <div style="padding:16px 18px 10px;border-bottom:1px solid var(--color-divider)">
+        <h3 style="margin:0;font-size:17px;font-weight:700">${esc(i18t('reg_adapt_title'))}</h3>
+        <p style="margin:4px 0 0;font-size:13px;color:var(--color-neutral-600);line-height:1.5">${esc(i18t('reg_adapt_sub'))}</p>
+      </div>
+      <div style="padding:4px 18px 8px">${rows}</div>
+      <div style="padding:12px 18px 16px;display:flex;gap:8px;align-items:center">
+        <button id="reg-adapt-reset" class="ui-btn ui-btn-plain">${esc(i18t('reg_adapt_reset'))}</button>
+        <span style="flex:1"></span>
+        <button id="reg-adapt-done" class="ui-btn ui-btn-primary">${esc(i18t('act_done'))}</button>
+      </div>`,{label:i18t('reg_adapt_title'),maxWidth:'440px'});
+    const read=()=>[...document.querySelectorAll('[data-adapt]:checked')].map(b=>b.getAttribute('data-adapt'));
+    document.getElementById('reg-adapt-reset')?.addEventListener('click',()=>{
+      regBarSetChosen(REG_BAR_DEFAULT.slice()); closeModal(); regRepaint();
+    });
+    document.getElementById('reg-adapt-done')?.addEventListener('click',()=>{
+      regBarSetChosen(read()); closeModal(); regRepaint();
+    });
+  });
+
   /* A DENSITY CHANGE IS A REPAINT, NOT A NAVIGATION: the page, the filters and
      the reader's place are all untouched — only the rows' rhythm moves. */
   document.getElementById('reg-density')?.addEventListener('change',e=>{
@@ -1587,5 +1709,5 @@ function ftsSearch(q){
     }catch(e){ box.classList.add('hidden'); }
   },220);
 }
-Object.assign(window,{REG_DENSITY,regDensity,regSetDensity,regDensityVars,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,regShowOnly,renderRegister,renderRegisterBody,wireRegRows,
+Object.assign(window,{REG_BAR_FILTERS,REG_BAR_DEFAULT,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,regShowOnly,renderRegister,renderRegisterBody,wireRegRows,
   regScope,regSetScope,regRepaint,regPageSize,regFitBandOffset,NEGO_BANDS,NEGO_BAND_DOT,negoGroupByMove,negoBandCounts,negoMovePillHtml,negoBandRowHtml});
