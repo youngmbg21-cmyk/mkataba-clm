@@ -206,19 +206,32 @@ const FREIGHT = [
     if (!btn) return { there: false };
     btn.click();
     await new Promise(r => setTimeout(r, 700));
-    const ai = document.getElementById('ai-panel');
+    const ed = document.getElementById('clause-editor');
+    const stands = ed && ed.querySelector('#ce-stands');
     return { there: true,
       menu: !!document.querySelector('.nego-selmenu'),
-      aiOpen: !!(ai && getComputedStyle(ai).display !== 'none'
-        && ai.getBoundingClientRect().width > 0),
-      panelShut: !document.querySelector('#rl-cp.is-open'),
-      text: ai ? (ai.textContent || '').replace(/\s+/g, ' ').trim() : '' };
+      editor: !!ed,
+      wording: stands ? (stands.innerText || '').replace(/\s+/g, ' ').trim() : '',
+      panelHeld: !!document.querySelector('#rl-cp.is-open') };
   });
   check('5 the panel offers the Copilot on that clause', !!(handed && handed.there));
   check('5 it hands over with no menu in between', !!handed && handed.menu === false,
     handed && handed.menu ? 'a selection menu still opens' : '');
-  check('5 the Copilot panel opens', !!handed && handed.aiOpen);
-  check('5 and it closes the clause panel behind it', !!handed && handed.panelShut);
+  /* ---- REVERSED IN PLACE 25 Aug 2026 ---- the destination moved from the
+     Copilot DRAWER to the clause EDITOR (f245), and with it the answer to what
+     happens to the panel behind: it deliberately STAYS. data-rl-cp-close came
+     off that button because it is handled in the capture phase, so the panel
+     would shut before the page opened and closing the page would land the
+     reader on a shut panel. The claim this check was really making — the
+     hand-over is straight, and it carries THIS clause — is kept and sharpened:
+     the page names the clause's own wording. */
+  check('5 the clause editor opens', !!handed && handed.editor);
+  check('5 and it holds this clause\'s own wording',
+    !!handed && /Confidential/i.test(handed.wording), (handed && handed.wording || '').slice(0, 60));
+  check('5 and the clause panel is still standing behind it, to come back to',
+    !!handed && handed.panelHeld);
+  await page.evaluate(() => { if (window.rlCloseClauseEditor) rlCloseClauseEditor(); });
+  await new Promise(r => setTimeout(r, 300));
   await page.screenshot({ path: path.join(OUT, '03-copilot-on-clause.png'), fullPage: false });
 
   await browser.close();

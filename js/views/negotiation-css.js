@@ -2418,6 +2418,21 @@ function redlineLayoutCss(){
   .redline-page .rl-open-btn:hover{border-color:var(--color-accent);color:var(--color-accent-700);
     background:var(--color-accent-100)}
   .redline-page .rl-open-btn:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
+  /* ---- THE ✦ DOOR ONTO THE CLAUSE EDITOR (25 Aug 2026) ----
+     It wears Open's own clothes because it stands beside Open and the two are
+     one pair, and it is the ✦ ALONE because a receipt is one line: a second
+     labelled button is exactly what would push it to two. Its words are on the
+     hover and on its accessible name, so nothing rests on the mark. The ink is
+     the accent so the pair reads as door-then-door with the Copilot one
+     leading, which is the order the approved journey puts them in. */
+  .redline-page .rl-cp-editor-btn{flex:none;margin-left:2px;padding:0 9px;display:inline-flex;
+    align-items:center;cursor:pointer;font:inherit;font-size:13px;font-weight:400;line-height:1.6;
+    border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);
+    color:var(--accent-ink);transition:border-color .13s,color .13s,background .13s;height:30px}
+  .redline-page .rl-cp-editor-btn:hover{border-color:var(--color-accent);
+    color:var(--color-accent-700);background:var(--color-accent-100)}
+  .redline-page .rl-cp-editor-btn:focus-visible{outline:2px solid var(--color-accent);
+    outline-offset:2px}
   /* The head is the press target — it takes you to the clause — and says so. */
   .redline-page .rl-card-head{cursor:pointer}
   /* The strips that stay visible on the row — on-behalf, revised-by, the

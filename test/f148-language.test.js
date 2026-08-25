@@ -51,6 +51,18 @@ const SAME_IN_BOTH = new Set([
                           // the ordinary Swedish day abbreviation too)
   'set_usd_per',          // "USD per" — the currency code carries it
   'm_copilot',            // the product name
+  'ce_copilot',           // ditto — the clause editor's rail names the product
+  'ce_chip_copilot',      // ditto — the chip on a card the product wrote
+  /* THE MODEL IS INSTRUCTED IN ENGLISH THROUGHOUT THIS CODEBASE, whatever the
+     reader's language: the prompt is a fact about the request, not something
+     shown on a screen. Same reason the other AI prompt strings are not
+     translated anywhere in js/ai.js. */
+  'ce_prompt_ask',
+  'ce_prompt_passage',
+  /* A LABEL THAT IS ALSO A RECORD KEEPS ENGLISH — this file's own standing
+     rule. ce_provenance is written onto the change as its note and is read by
+     whoever opens the trail, in whatever language they work in. */
+  'ce_provenance',
   'ct_risk',              // 'Risk' is the same word in Swedish
   'hr_col_risk',          // ditto — the health report's risk column
   'kind_risk',            // ditto

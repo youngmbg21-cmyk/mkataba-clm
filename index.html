@@ -789,6 +789,17 @@
   body.pre-auth #ai-launch,
   body.pre-auth #cmd-scrim{display:none!important;}
 
+  /* ---- AND WHILE THE CLAUSE EDITOR IS UP (25 Aug 2026) ----
+     That page is a fixed layer at z-index 55 and covers the shell, which puts
+     it above the Copilot drawer and the activity panel by ordering alone. The
+     LAUNCHER is the exception worth naming: it floats over the page rather
+     than sitting inside the shell's grid, so it is the one control that would
+     otherwise hang over a page that has a Copilot of its own — two Copilots on
+     one screen, offering different things. The toast root and modal-root are
+     deliberately NOT in this list: a refusal and a confirm must still land on
+     top of the editor. */
+  body.ce-open #ai-launch{display:none!important;}
+
   /* ---- TARGET SIZE (WCAG 2.5.8, AA) ----
      MEASURED: "Forgot password?" — the only route back into an account —
      rendered 366x17px at 1440 and 304x17px at 390, and the register's pager

@@ -1020,31 +1020,36 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     const btn = document.querySelector('#rl-cp .rl-cp-src.is-on [data-nego-ai-clause]');
     btn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
     await new Promise(r => setTimeout(r, 700));
-    const panel = document.getElementById('ai-panel');
-    return { open: panel.classList.contains('open'), docked: panel.classList.contains('docked'),
-      scrim: document.getElementById('ai-scrim').classList.contains('open'),
-      card: !!document.querySelector('#ai-feed .ai-proposal'),
-      feed: (document.querySelector('#ai-feed') || {}).childElementCount || 0,
-      quoted: /Edit with Copilot|clause/i.test(
-        (document.querySelector('#ai-feed') || {}).textContent || ''),
+    const ed = document.getElementById('clause-editor');
+    const stands = ed && ed.querySelector('#ce-stands');
+    return { editor: !!ed,
+      rail: !!(ed && ed.querySelector('.ce-rail')),
+      wording: stands ? stands.innerText.replace(/\s+/g, ' ').trim().length : 0,
+      lane: (ed && ed.querySelector('#ce-lane')) ? ed.querySelector('#ce-lane').childElementCount : 0,
+      panelHeld: !!document.querySelector('#rl-cp.is-open'),
       dialogs: document.querySelectorAll('.nego-aipop').length,
-      modals: document.querySelectorAll('#modal-root *').length,
-      docVisible: document.getElementById('rl-doc').getBoundingClientRect().width > 200 };
+      modals: document.querySelectorAll('#modal-root *').length };
   });
-  check('4 the Copilot panel opens', routed.open);
-  check('4 docked, with no scrim over the document', routed.docked && !routed.scrim);
-  check('4 the document is still on screen beside it', routed.docVisible);
-  /* ---- RE-POINTED 19 Aug 2026 ---- the old route pressed Simplify, a one-shot
-     action that comes back with a proposal. The panel's Copilot button carries
-     the EDIT action, which is conversational by design: it asks what the edit
-     is for and spends nothing until it is told. So what is measured is what
-     that route must deliver — the exchange lands IN the docked panel, and no
-     popover opens over the document. */
-  check('3 the hand-over lands in the panel, not in a popover',
-    routed.feed > 0 && routed.dialogs === 0,
-    JSON.stringify({ card: routed.card, dialogs: routed.dialogs }));
+  /* ---- REVERSED IN PLACE 25 Aug 2026 ---- the destination moved. This route
+     used to open the Copilot DRAWER — a chat about a clause you cannot see —
+     and since f245 it opens the clause EDITOR: a page about that one clause,
+     with the wording as it stands above the wording being proposed and Copilot
+     down a third of it. Every claim this block was really making is kept and
+     re-pointed: the hand-over is straight, nothing pops over the document, no
+     modal is involved, and the clause's own wording is on screen beside it. */
+  check('4 the clause editor opens', routed.editor);
+  check('4 with its Copilot rail beside the wording', routed.rail && routed.wording > 20,
+    `${routed.wording} characters of standing wording`);
+  check('4 and the clause panel is still standing behind it', routed.panelHeld);
+  check('3 the hand-over lands on the page, not in a popover',
+    routed.lane > 0 && routed.dialogs === 0,
+    JSON.stringify({ lane: routed.lane, dialogs: routed.dialogs }));
   check('3 no modal anywhere on the redline route', routed.modals === 0, routed.modals);
   await page.screenshot({ path: path.join(OUT, '04-copilot-panel.png') });
+  /* CLOSED AGAIN: it is a fixed layer over the whole window, and every check
+     below this point measures pixels it would otherwise be covering. */
+  await page.evaluate(() => { if (window.rlCloseClauseEditor) rlCloseClauseEditor(); });
+  await new Promise(r => setTimeout(r, 300));
 
   /* Tagging is gone (Young, 03 Aug 2026) — the shortcut that opened the
      Discussion composer pre-set to internal was removed with the reason-on-

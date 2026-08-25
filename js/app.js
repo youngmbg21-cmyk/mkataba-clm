@@ -40,6 +40,7 @@ import './redlineplan.js';   // the co-pilot's first pass over their round (W3-1
 import './assurance.js';     // which rung a signature was taken at (W3-3)
 import './views/negotiation-css.js'; // that page's stylesheets, lifted out of the file below (21 Aug 2026)
 import './views/negotiation.js';  // the three-pane redline, rendered for whichever side is looking
+import './views/clauseeditor.js'; // the clause editor: one clause, its redline, and Copilot beside it
 import './views/contract.js';
 import './pdfrich.js';
 import './workshape.js';       // which shapes this business has, and what it calls a piece of work

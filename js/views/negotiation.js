@@ -4421,6 +4421,21 @@ function wireNegotiationTab(c, opts = {}){
          the note beside the button — its own rect is unreadable by the time
          this runs, because closing the panel hides the body it sits in. */
       const fromPanel = !!btn.closest('.rl-cp-src');
+      /* ---- THE CLAUSE EDITOR IS THE FIRST ANSWER (25 Aug 2026) ----
+         Where the page is loaded and will take this clause, it takes it and
+         nothing below runs. Where it REFUSES it has already said why, in
+         words, so falling through to a second route afterwards would answer a
+         refusal with a different feature — the press stops here.
+
+         Where the module is absent entirely the old route runs unchanged, and
+         the panel is closed by hand because its own data-rl-cp-close came off
+         the button (see the note beside it). */
+      if (btn.hasAttribute('data-rl-cp-editor') && window.rlOpenClauseEditor){
+        if (rlOpenClauseEditor(c, clauseId, { ...opts, side, again, by: opts && opts.by })) return;
+        return;
+      }
+      if (fromPanel && window.rlCpSetShown)
+        rlCpSetShown(btn.closest('.redline-page') || document, null);
       const ctx = { c, opts, text, clauseId, rect, side, again, whole: true, event: 'click',
         marked: hasMarks && live, settled: hasMarks && !live, spans: false,
         passage, clauseIds: [clauseId],
@@ -4428,6 +4443,19 @@ function wireNegotiationTab(c, opts = {}){
       _negoKillSelMenu();
       if (typeof opts.selMenu === 'function'){ opts.selMenu(ctx); return; }
       defaultMenu(ctx);
+    }));
+    /* ---- THE ROW'S OWN DOOR ONTO THE CLAUSE EDITOR ----
+       The same act as the panel's Copilot button, resolved the same way: the
+       clause comes off the attribute and rlOpenClauseEditor is the only route.
+       stopPropagation because the row's own press navigates — a door that also
+       moves you is two acts on one press, which is the rule the Open button
+       beside it already states. */
+    host.querySelectorAll('[data-rl-cp-editor-row]').forEach(btn => btn.addEventListener('click', ev => {
+      ev.preventDefault(); ev.stopPropagation();
+      if (!window.rlOpenClauseEditor) return;
+      rlOpenClauseEditor(c, btn.getAttribute('data-rl-cp-editor-row'),
+        { ...opts, side, again, by: opts && opts.by,
+          changeId: btn.getAttribute('data-rl-cp-editor-change') || '' });
     }));
     /* A MOUSEUP ON A CONTROL IS NOT A SELECTION GESTURE, and treating it as one
        made the Redline workbench's AI Assist flash and vanish. The clause
@@ -5793,8 +5821,25 @@ function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
              handler at data-nego-ai-clause, for the reason recorded there: a
              control already narrowed to one action would raise a menu of one
              row, anchored on a button the closing panel has just hidden. */}
-      ${opts.noAi ? '' : `<button type="button" class="rl-cp-act rl-cp-act-ai" data-rl-cp-close="1"
-        data-nego-ai-clause="${id}" data-rl-cp-ai="1"
+      ${''/* ---- AND SINCE 25 Aug 2026 IT OPENS THE CLAUSE EDITOR ----
+             (owner-approved prototype, "The Clause Journey"). It used to hand
+             the clause to the Copilot DRAWER, which is a chat about a clause
+             you cannot see; it opens a page about the clause instead — the
+             wording as it stands above the wording being proposed, with the
+             marks computed between them, and Copilot down a third of it.
+
+             data-nego-ai-clause STAYS ON THE BUTTON and is not a leftover: it
+             is the FALLBACK. The handler tries the editor first and falls
+             through to this exact route where the editor module is not loaded
+             (the browser harnesses build their own script lists), so a stage
+             without js/views/clauseeditor.js behaves precisely as it did.
+
+             data-rl-cp-close CAME OFF, and that is load-bearing rather than
+             tidying: it is handled in the CAPTURE phase, so the panel would
+             shut before the page opened and closing the page would land the
+             reader on a shut panel. The fall-through closes it by hand. */}
+      ${opts.noAi ? '' : `<button type="button" class="rl-cp-act rl-cp-act-ai"
+        data-nego-ai-clause="${id}" data-rl-cp-ai="1" data-rl-cp-editor="1"
         title="${_nea(i18t('ng_cp_copilot_title'))}">&#10024; ${i18t('ng_cp_copilot')}</button>`}
       ${''/* THEY ARE NOT .rl-tool, AND THAT IS A RULE RATHER THAN A STYLE
              CHOICE. The first build wore the sheet's tool-pill class, and the
@@ -11204,6 +11249,31 @@ function redlineChangeCardsHtml(c, opts = {}){
           title="${_nea(i18t('ng_row_open_title'))}"
           aria-label="${_nea(i18t('ng_row_open_title'))} ${_nea(ch.id)}">${i18t('ng_row_open')}</button>`
       : '';
+    /* ---- AND THE SECOND DOOR ONTO THE CLAUSE EDITOR (25 Aug 2026) ----
+       The approved journey puts Edit with Copilot AHEAD of the clause panel on
+       every tracked change, so it LEADS this pair. It is the ✦ alone, with its
+       words on the hover: this row's whole design is that a receipt stays one
+       line, and a second labelled button is what would push it to two.
+
+       IT IS NOT A SECOND ROUTE — data-rl-cp-editor-row carries the clause and
+       the change, and the per-paint handler resolves it exactly as the panel's
+       own Copilot button does, through rlOpenClauseEditor and nothing else.
+
+       DRAWN ON THE SAME TERMS AS Open, plus the two this page can answer
+       before the press: our own seat, and a reader who may actually redline.
+       A door that can only refuse is furniture — the standing rule.
+
+       IT DOES NOT WEAR .rl-open-btn, and that is not tidiness: that class
+       MEANS the Open button — half a dozen checks resolve it by that class
+       alone — and a second element answering to it makes every one of them
+       pick whichever comes first in the markup. It takes the same dressing
+       from the same rule instead, which is where a shared look belongs. */
+    const ceBtn = (openBtn && !previewSeat && side === 'owner' && editable && window.rlOpenClauseEditor)
+      ? `<button type="button" class="rl-cp-editor-btn"
+          data-rl-cp-editor-row="${_nea(ch.clauseId)}" data-rl-cp-editor-change="${_nea(ch.id)}"
+          title="${_nea(i18t('ng_cp_copilot'))}"
+          aria-label="${_nea(i18t('ng_cp_copilot'))} ${_nea(ch.id)}">&#10022;</button>`
+      : '';
     /* ---- WORK BIG, RECEIPTS SMALL (owner-asked 16 Aug 2026, Option 4 of four
        mocked renders — the routing rows "look very empty and almost useless").
        The card's SIZE follows what it needs from the reader:
@@ -11235,7 +11305,7 @@ function redlineChangeCardsHtml(c, opts = {}){
           <span class="rl-badge rl-badge-${badge[0]}"${
           badge[2] ? ` title="${_nea(badge[2])}"` : ''}>${badge[1]}</span>
           <span class="rl-card-meta rl-receipt-cl"${tip ? ` title="${_nea(tip)}"` : ''}>${who}</span>
-          ${openBtn}
+          ${ceBtn}${openBtn}
         </div>
       </article>`;
     }
@@ -11272,7 +11342,7 @@ function redlineChangeCardsHtml(c, opts = {}){
         <div class="rl-card-top"><span class="rl-card-lead"><span class="rl-card-id">${_ne(ch.id)}</span></span>
           ${rvChip}<span class="rl-badge rl-badge-${badge[0]}"${
           badge[2] ? ` title="${_nea(badge[2])}"` : ''}>${badge[1]}</span>${
-          ch.round ? `<span class="rl-card-round" title="${_nea(i18t('ng_proposed_in_round',{n:ch.round}))}">R${_ne(ch.round)}</span>` : ''}${openBtn}</div>
+          ch.round ? `<span class="rl-card-round" title="${_nea(i18t('ng_proposed_in_round',{n:ch.round}))}">R${_ne(ch.round)}</span>` : ''}${ceBtn}${openBtn}</div>
         <div class="rl-card-meta"${tip ? ` title="${_nea(tip)}"` : ''}>${who}</div>
         ${negoCounterLineHtml(c, ch)}${diff}
       </div>
@@ -11911,6 +11981,13 @@ if (typeof document !== 'undefined' && !document._rlCpWired){
        first, exactly as the queue's own handler defers. */
     const mr = document.getElementById('modal-root');
     if (mr && mr.innerHTML.trim()) return;
+    /* AND THE CLAUSE EDITOR OWNS IT TOO (25 Aug 2026). It is a page ON TOP of
+       this panel, opened FROM it, and both handlers sit on document — so one
+       Escape used to close the page and the panel behind it in the same
+       press, and the reader who only wanted to leave the editor lost the
+       place they came from. Caught by driving the journey in a browser; two
+       listeners agreeing to fire is invisible in the source of either. */
+    if (typeof window.clauseEditorOpen === 'function' && clauseEditorOpen()) return;
     rlCpSetShown(document, null);
   });
 }

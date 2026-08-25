@@ -84,7 +84,8 @@ const OCR = 'js/ocr.js';
    builders were lifted into their own file (see its header for why that seam);
    a stage that loaded only the renderer would have negoEnsureStyle reaching for
    a negoStyleHtml nothing had defined. */
-const NEGOTIATION_VIEW = ['js/views/negotiation-css.js', 'js/views/negotiation.js'];
+const NEGOTIATION_VIEW = ['js/views/negotiation-css.js', 'js/views/negotiation.js',
+  'js/views/clauseeditor.js'];
 /* The clause library and playbook engine (buildWorld({playbook:true})). Loaded
    on request because applyClauseRedline no longer edits the document — it files
    a tracked insertClause change — so proving that needs playbook.js and

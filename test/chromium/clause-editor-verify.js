@@ -1,0 +1,321 @@
+/* Chromium verification: the clause editor — a PAGE about one clause.
+   ============================================================
+   Built from the owner-approved prototype "The Clause Journey" (25 Aug 2026).
+   The rules live in f245. This file exists for the parts jsdom cannot answer,
+   and on this page almost every claim is one of them:
+
+     · THE PAGE IS TWO COLUMNS AND THE RAIL IS A THIRD OF THE WINDOW. jsdom
+       resolves no cascade at all, so a grid is a string there and a geometry
+       here. The one-third was asked for in exactly those words.
+     · THE READY-MADE QUESTIONS ARE ONE LINE, ALWAYS. Also asked for in those
+       words, and only measurable by counting line boxes.
+     · A REAL PRESS ON THE DOOR OPENS IT. Both doors are delegated or wired
+       per-paint; a button that renders and is never reached looks identical in
+       a string assertion, and this project has shipped that fault more than
+       once (the unsent band's Send, dead on the counterparty's seat for a day).
+     · THE REDLINE DRAWS. The marks are computed by the product's own engine
+       and painted through the sheet's own ins/del rules — which are scoped, and
+       a rule that loses a cascade fight is a feature that was never built.
+     · THE WHOLE JOURNEY, driven: open, apply, save, say why, file — and the
+       change on the record with the clause panel back up behind it.
+   ============================================================ */
+const fs=require('node:fs'),path=require('node:path'),http=require('node:http');
+const {chromium}=require('playwright-core');
+const ROOT=path.join(__dirname,'..','..');
+const EXEC=process.env.CHROMIUM_BIN
+  ||(fs.existsSync('/opt/pw-browsers/chromium')?'/opt/pw-browsers/chromium':undefined);
+const MIME={'.html':'text/html','.js':'text/javascript','.css':'text/css'};
+const pause=ms=>new Promise(r=>setTimeout(r,ms));
+const R=[];const ck=(n,p,d)=>{R.push(!!p);console.log((p?'PASS':'FAIL')+'  '+n+(d!=null?' — '+d:''))};
+function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
+  const rel=decodeURIComponent(q.url.split('?')[0]).replace(/^\/+/,'');
+  const f=path.join(ROOT,rel||'index.html');
+  if(!f.startsWith(ROOT)||!fs.existsSync(f)||fs.statSync(f).isDirectory()){rep.writeHead(404);rep.end('nf');return}
+  rep.writeHead(200,{'Content-Type':MIME[path.extname(f)]||'application/octet-stream'});
+  fs.createReadStream(f).pipe(rep)});s.listen(0,'127.0.0.1',()=>res(s))})}
+
+(async()=>{
+  const srv=await serve();
+  const br=await chromium.launch({executablePath:EXEC,args:['--no-sandbox']});
+  const p=await br.newPage({viewport:{width:1500,height:1000},deviceScaleFactor:2});
+  const errs=[];p.on('pageerror',e=>errs.push(e.message));
+  await p.goto(`http://127.0.0.1:${srv.address().port}/test/chromium/parity.html`,{waitUntil:'load'});
+  await p.evaluate(()=>window.READY); await pause(500);
+
+  /* One ask on one clause, through the product's own funnel — nothing
+     hand-built, so what this page reads is what the product really holds. */
+  const staged = await p.evaluate(async () => {
+    const c = window.CONTRACT;
+    const cl = negoClauseList(c)[1];
+    const ch = await negoFileChange(c, { clauseId: cl.clauseId, changeType:'modify',
+      side:'counterparty', author:'Henry M.', oldText: cl.text,
+      newText: cl.text.replace(/\.\s*$/, ', in each case at its own cost.'),
+      summary:'add a cost allocation' });
+    renderRedline();
+    return { clauseId: cl.clauseId, id: ch && ch.id };
+  });
+  await pause(400);
+  ck('the fixture has an ask on a clause', !!staged.id, staged.id);
+
+  /* ---- 1. THE DOOR ON THE CHANGE ROW, AND IT LEADS ---- */
+  const rowDoor = await p.evaluate(id => {
+    const card = document.querySelector(`.redline-page [data-rl-card="${id}"]`)
+      || document.querySelector('.redline-page .rl-card');
+    if (!card) return null;
+    const ce = card.querySelector('[data-rl-cp-editor-row]');
+    const open = card.querySelector('.rl-open-btn[data-rl-cp-open]');
+    if (!ce || !open) return { ce:!!ce, open:!!open };
+    const a = ce.getBoundingClientRect(), b = open.getBoundingClientRect();
+    const s = getComputedStyle(ce);
+    return { ce:true, open:true, leads: Math.round(a.left) < Math.round(b.left),
+      sameRow: Math.abs(Math.round(a.top) - Math.round(b.top)) <= 2,
+      w:Math.round(a.width), h:Math.round(a.height), colour:s.color,
+      label: ce.getAttribute('aria-label')||'', vis: s.visibility, disp: s.display };
+  }, staged.id);
+  ck('1a the change row carries the Copilot door as visible pixels',
+     !!rowDoor && rowDoor.ce && rowDoor.w > 10 && rowDoor.h > 10 && rowDoor.disp !== 'none',
+     rowDoor && `${rowDoor.w}x${rowDoor.h}`);
+  ck('1b it LEADS — ahead of Open, on the same line',
+     !!rowDoor && rowDoor.leads && rowDoor.sameRow,
+     rowDoor && `leads ${rowDoor.leads}, same row ${rowDoor.sameRow}`);
+  ck('1c its words are on its accessible name, because a receipt is one line',
+     !!rowDoor && /Copilot|Redigera/.test(rowDoor.label), rowDoor && rowDoor.label);
+  ck('1d it is dressed, not left as an unstyled mark in the row',
+     !!rowDoor && rowDoor.colour !== 'rgb(0, 0, 0)' && rowDoor.h >= 24,
+     rowDoor && `ink ${rowDoor.colour}, ${rowDoor.h}px tall`);
+
+  /* ---- 2. A REAL PRESS OPENS THE PAGE ---- */
+  await p.click(`.redline-page [data-rl-cp-editor-row="${staged.clauseId}"]`);
+  await pause(500);
+  const opened = await p.evaluate(() => {
+    const page = document.getElementById('clause-editor');
+    if (!page) return null;
+    const r = page.getBoundingClientRect(), s = getComputedStyle(page);
+    const grid = page.querySelector('.ce-grid');
+    const col = page.querySelector('.ce-col'), rail = page.querySelector('.ce-rail');
+    const cr = col.getBoundingClientRect(), rr = rail.getBoundingClientRect();
+    return { w:Math.round(r.width), h:Math.round(r.height),
+      pos:s.position, z:s.zIndex, bg:s.backgroundColor,
+      coversWindow: Math.round(r.width) >= window.innerWidth - 1
+        && Math.round(r.height) >= window.innerHeight - 1,
+      cols: getComputedStyle(grid).gridTemplateColumns,
+      colW: Math.round(cr.width), railW: Math.round(rr.width),
+      railRight: Math.round(Math.abs(rr.right - r.right)) <= 1,
+      title: (page.querySelector('#ce-title')||{}).textContent || '',
+      facts: page.querySelectorAll('.ce-facts > div').length };
+  });
+  ck('2a the page mounted and covers the window',
+     !!opened && opened.coversWindow && opened.pos === 'fixed',
+     opened && `${opened.w}x${opened.h} ${opened.pos}`);
+  ck('2b it is opaque — the shell underneath does not show through',
+     !!opened && !/rgba\(0, 0, 0, 0\)|transparent/.test(opened.bg), opened && opened.bg);
+  ck('2c THE RAIL IS ONE THIRD OF THE WINDOW, measured',
+     !!opened && Math.abs(opened.railW / (opened.colW + opened.railW) - 1/3) < 0.02,
+     opened && `${opened.railW} of ${opened.colW + opened.railW} = `
+       + (opened && (opened.railW/(opened.colW+opened.railW)).toFixed(3)));
+  ck('2d and it is on the right, flush with the window edge',
+     !!opened && opened.railRight, opened && `right edge`);
+  ck('2e the clause is named, with four facts under it',
+     !!opened && opened.title.trim().length > 0 && opened.facts === 4,
+     opened && `"${opened.title.trim()}" / ${opened.facts} facts`);
+
+  /* The one control that floats OVER the page rather than sitting inside the
+     shell's grid, and therefore the one z-index alone does not settle: two
+     Copilots on one screen, offering different things. */
+  const launcher = await p.evaluate(() => {
+    /* Standing one in, so the claim is measured rather than skipped: this
+       harness builds its own page and has no #ai-launch of its own, and a
+       check that passes because the element is absent proves nothing about the
+       rule. The rule is in index.html and this stage loads that stylesheet. */
+    let el = document.getElementById('ai-launch');
+    let planted = false;
+    if (!el){ el = document.createElement('button'); el.id = 'ai-launch';
+      document.body.appendChild(el); planted = true; }
+    const s = getComputedStyle(el);
+    const out = { planted, display: s.display, cls: document.body.classList.contains('ce-open') };
+    if (planted) el.remove();
+    return out;
+  });
+  ck('2f the page marks the body, so the shell knows it is covered',
+     launcher.cls, 'body.ce-open');
+  ck('2g and the floating Copilot launcher stands down — two Copilots on one '
+     + 'screen offer different things',
+     launcher.display === 'none', `display ${launcher.display}`);
+
+  /* ---- 3. THE TWO BOXES, AND THE REDLINE BETWEEN THEM ---- */
+  const boxes = await p.evaluate(() => {
+    const stands = document.querySelector('#ce-stands'), prop = document.querySelector('#ce-prop');
+    if (!stands || !prop) return null;
+    const a = stands.getBoundingClientRect(), b = prop.getBoundingClientRect();
+    return { standsText: stands.innerText.replace(/\s+/g,' ').trim().slice(0,120),
+      propText: prop.innerText.replace(/\s+/g,' ').trim().slice(0,120),
+      stacked: Math.round(a.bottom) <= Math.round(b.top) + 2,
+      sameLeft: Math.abs(Math.round(a.left) - Math.round(b.left)) <= 2,
+      ins: prop.querySelectorAll('ins, .nego-ins').length,
+      del: prop.querySelectorAll('del, .nego-del').length,
+      stat: (document.querySelector('#ce-stat')||{}).innerText || '' };
+  });
+  ck('3a the wording as it stands is ABOVE the wording being proposed',
+     !!boxes && boxes.stacked && boxes.sameLeft && boxes.standsText.length > 20,
+     boxes && `stacked ${boxes.stacked}`);
+  ck('3b the redline DRAWS — the counterparty\'s ask is marked against what stands',
+     !!boxes && (boxes.ins + boxes.del) > 0,
+     boxes && `${boxes.ins} ins / ${boxes.del} del`);
+  ck('3c and the counts agree with the marks',
+     !!boxes && /\+\s*\d/.test(boxes.stat), boxes && boxes.stat.replace(/\s+/g,' ').trim());
+
+  const marks = await p.evaluate(() => {
+    const ins = document.querySelector('#ce-prop ins, #ce-prop .nego-ins');
+    const del = document.querySelector('#ce-prop del, #ce-prop .nego-del');
+    return { insColour: ins ? getComputedStyle(ins).color : null,
+      delColour: del ? getComputedStyle(del).color : null,
+      delLine: del ? getComputedStyle(del).textDecorationLine : null };
+  });
+  ck('3d the marks are COLOURED and the deletion is struck — the rule really reaches them',
+     !!marks.insColour && marks.insColour !== marks.delColour
+       && /line-through/.test(marks.delLine || ''),
+     `ins ${marks.insColour}, del ${marks.delColour} ${marks.delLine}`);
+
+  /* ---- 4. THE READY-MADE QUESTIONS ARE ONE LINE ---- */
+  const chips = await p.evaluate(() => {
+    const box = document.querySelector('#ce-chips');
+    if (!box) return null;
+    const bs = [...box.querySelectorAll('button')];
+    const tops = [...new Set(bs.map(b => Math.round(b.getBoundingClientRect().top)))];
+    /* Each chip's own words on one line too: one line box per button. */
+    const wraps = bs.filter(b => {
+      const r = document.createRange(); r.selectNodeContents(b);
+      return r.getClientRects().length > 1;
+    }).length;
+    return { n: bs.length, rows: tops.length, wraps,
+      overflowX: getComputedStyle(box).overflowX, wrap: getComputedStyle(box).flexWrap };
+  });
+  ck('4a the chips are there', !!chips && chips.n >= 3, chips && `${chips.n} chips`);
+  ck('4b THEY NEVER TAKE MORE THAN ONE LINE',
+     !!chips && chips.rows === 1 && chips.wraps === 0 && chips.wrap === 'nowrap',
+     chips && `${chips.rows} row(s), ${chips.wraps} wrapped`);
+  ck('4c and a chip past the edge scrolls rather than wrapping',
+     !!chips && /auto|scroll/.test(chips.overflowX), chips && chips.overflowX);
+
+  /* ---- 5. THE ASK BOX IS A REAL BOX THAT WRAPS AND GROWS ---- */
+  const ask0 = await p.evaluate(() => {
+    const t = document.querySelector('#ce-ask');
+    const r = t.getBoundingClientRect(), s = getComputedStyle(t);
+    return { h: Math.round(r.height), resize: s.resize, ws: s.whiteSpace };
+  });
+  await p.fill('#ce-ask', 'One '.repeat(80));
+  await pause(200);
+  const ask1 = await p.evaluate(() => Math.round(document.querySelector('#ce-ask').getBoundingClientRect().height));
+  ck('5a it is three lines deep at rest, not a single-line field',
+     ask0.h >= 70, `${ask0.h}px`);
+  ck('5b it wraps and GROWS as you write', ask1 > ask0.h && ask0.ws === 'pre-wrap',
+     `${ask0.h} to ${ask1}px`);
+  await p.fill('#ce-ask', '');
+
+  /* ---- 6. APPLY IS THE ONLY THING THAT MOVES THE WORDING, AND IT STACKS ---- */
+  const applied = await p.evaluate(() => {
+    const before = document.querySelector('#ce-prop').innerText.replace(/\s+/g,' ').trim();
+    ceApply('The Supplier shall bear every cost of delivery.', 'test one');
+    const one = document.querySelector('#ce-prop').innerText.replace(/\s+/g,' ').trim();
+    ceApply('The Supplier shall bear half of every cost of delivery.', 'test two');
+    const two = document.querySelector('#ce-prop').innerText.replace(/\s+/g,' ').trim();
+    ceUndo();
+    const back = document.querySelector('#ce-prop').innerText.replace(/\s+/g,' ').trim();
+    return { before, one, two, back,
+      undoLive: !document.querySelector('#ce-undo').disabled,
+      draft: (document.querySelector('#ce-draft')||{}).innerText || '' };
+  });
+  ck('6a Apply moves the lower box', /bear every cost/.test(applied.one), 'applied once');
+  ck('6b it STACKS — a second Apply does not lose the first',
+     /half of every cost/.test(applied.two) && applied.two !== applied.one, 'applied twice');
+  ck('6c Undo steps back ONE, not all the way',
+     /bear every cost/.test(applied.back) && !/half of every cost/.test(applied.back),
+     'one step back');
+  ck('6d the foot says the draft is held', /\d\d:\d\d/.test(applied.draft), applied.draft.trim());
+
+  /* ---- 7. THE WHOLE JOURNEY: SAVE, SAY WHY, FILE ---- */
+  const beforeN = await p.evaluate(() => (window.CONTRACT.changes||[]).length);
+  await p.click('#clause-editor [data-ce-act="save"]');
+  await pause(300);
+  const reason = await p.evaluate(() => {
+    const box = document.querySelector('#ce-reason');
+    const r = box.getBoundingClientRect();
+    return { shown: !box.hidden && r.height > 20,
+      words: box.innerText.replace(/\s+/g,' ').trim(),
+      hasSkip: !!box.querySelector('[data-ce-act="reason-skip"]'),
+      hasBack: !!box.querySelector('[data-ce-act="reason-back"]') };
+  });
+  ck('7a Save does not file — it asks why first',
+     reason.shown && /why/i.test(reason.words) || /[Vv]arför/.test(reason.words),
+     reason.words.slice(0, 70));
+  ck('7b with HaTi\'s own Skip and a way back to the wording',
+     reason.hasSkip && reason.hasBack, 'both drawn');
+
+  await p.fill('#ce-why', 'Delivery costs sit with the supplier under our standard terms.');
+  await p.click('#clause-editor [data-ce-act="reason-file"]');
+  await pause(900);
+  const filed = await p.evaluate(() => {
+    const c = window.CONTRACT;
+    const mine = (c.changes||[]).filter(x => x.authorSide === 'owner');
+    const last = mine[mine.length-1] || null;
+    return { n: (c.changes||[]).length, id: last && last.id,
+      why: last && last.why, newText: last && String(last.newText||'').slice(0,80),
+      pageGone: !document.getElementById('clause-editor'),
+      panelOpen: !!(window.rlCpOpenId && rlCpOpenId()) };
+  });
+  ck('7c the change is on the record, filed through the ordinary funnel',
+     filed.n === beforeN + 1 && !!filed.id && /bear every cost/.test(filed.newText||''),
+     `${filed.id} — "${(filed.newText||'').slice(0,50)}"`);
+  ck('7d the reason travelled with it',
+     /Delivery costs sit with the supplier/.test(filed.why||''), filed.why);
+  ck('7e the editor closed', filed.pageGone, 'closed');
+  ck('7f AND IT LANDED BACK ON THE CLAUSE PANEL it came from',
+     filed.panelOpen, filed.panelOpen ? 'panel up' : 'panel not up');
+
+  /* ---- 8. THE PANEL'S OWN COPILOT BUTTON IS THE OTHER DOOR ---- */
+  await p.evaluate(() => { if (window.rlCpSetShown) rlCpSetShown(document, null); });
+  await pause(200);
+  await p.click(`.redline-page .nego-clause[data-clause="${staged.clauseId}"] .rl-cp-pill`);
+  await pause(500);
+  const panelDoor = await p.evaluate(() => {
+    /* The panel holds ONE body per clause and only the open one is visible, so
+       the button has to be resolved through .is-on — the first of eleven is
+       some other clause's, and it is never on screen. */
+    const b = document.querySelector('#rl-cp .rl-cp-src.is-on .rl-cp-act-ai');
+    if (!b) return null;
+    return { there:true, editor: b.hasAttribute('data-rl-cp-editor'),
+      closes: b.hasAttribute('data-rl-cp-close'),
+      label: b.textContent.replace(/\s+/g,' ').trim() };
+  });
+  ck('8a the panel\'s Copilot button carries the editor marker',
+     !!panelDoor && panelDoor.editor, panelDoor && panelDoor.label);
+  ck('8b and NOT data-rl-cp-close — the panel has to still be there to come back to',
+     !!panelDoor && !panelDoor.closes, panelDoor && `closes ${panelDoor.closes}`);
+  await p.click('#rl-cp .rl-cp-src.is-on .rl-cp-act-ai');
+  await pause(600);
+  const fromPanel = await p.evaluate(() => ({
+    page: !!document.getElementById('clause-editor'),
+    panelStillOpen: !!(window.rlCpOpenId && rlCpOpenId()) }));
+  ck('8c a real press opens the page', fromPanel.page, 'opened');
+  ck('8d and the panel is still standing behind it',
+     fromPanel.panelStillOpen, 'panel held');
+
+  /* ---- 9. THE WAYS OUT ---- */
+  await p.keyboard.press('Escape');
+  await pause(400);
+  const gone = await p.evaluate(() => ({
+    page: !!document.getElementById('clause-editor'),
+    panel: !!(window.rlCpOpenId && rlCpOpenId()),
+    docThere: !!document.querySelector('.redline-page #rl-doc') }));
+  ck('9a Escape closes it', !gone.page, 'closed');
+  ck('9b and lands back on the clause panel, with the contract still there',
+     gone.panel && gone.docThere, `panel ${gone.panel}, doc ${gone.docThere}`);
+
+  /* ---- 10. NO PAGE ERRORS THROUGHOUT ---- */
+  ck('10 the whole journey ran with no page errors', errs.length === 0, errs.join(' | ') || 'none');
+
+  await br.close(); srv.close();
+  const bad = R.filter(x => !x).length;
+  console.log(`\n${R.length - bad}/${R.length} checks passed`);
+  process.exit(bad ? 1 : 0);
+})().catch(e => { console.error(e); process.exit(1); });

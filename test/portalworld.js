@@ -48,6 +48,7 @@ const MODULES = [
   // 21 Aug 2026 that is two files, the stylesheet first (see its own header).
   'js/views/negotiation-css.js',
   'js/views/negotiation.js',
+  'js/views/clauseeditor.js',
   'js/views/portal.js',
 ];
 

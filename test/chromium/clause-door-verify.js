@@ -689,18 +689,33 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      cop.none ? 'no button' : `${cop.tag} "${cop.text}" ${cop.w}x${cop.h}`);
   const copPress = await (async () => {
     await p.click('#rl-cp .rl-cp-src.is-on [data-nego-ai-clause]');
-    await pause(260);
+    await pause(400);
     return p.evaluate(() => {
       const m = document.querySelector('.nego-selmenu');
       const box = m ? m.getBoundingClientRect() : null;
       return { menu: !!m, left: box ? Math.round(box.left) : null,
         top: box ? Math.round(box.top) : null,
-        panelShut: !document.querySelector('#rl-cp.is-open') };
+        editor: !!document.getElementById('clause-editor'),
+        panelHeld: !!document.querySelector('#rl-cp.is-open') };
     });
   })();
-  ck('8d …and pressing it hands straight over, with no dropdown left in the corner',
-     copPress.menu === false,
-     copPress.menu ? `a menu at ${copPress.left},${copPress.top}` : 'no stray menu');
+  /* WHAT THE PRESS HANDS OVER TO CHANGED ON 25 Aug 2026 and this claim is
+     REVERSED IN PLACE: it used to open the Copilot DRAWER, and it opens the
+     clause EDITOR now (f245). The original report is still exactly what is
+     pinned — "the panel disappears and the copilot dropdown appears on the top
+     right corner" — so the no-stray-menu half is untouched, and the half that
+     names the destination follows the destination. */
+  ck('8d …and pressing it opens the clause editor, with no dropdown left in the corner',
+     copPress.menu === false && copPress.editor === true,
+     copPress.menu ? `a menu at ${copPress.left},${copPress.top}`
+       : (copPress.editor ? 'the editor, no stray menu' : 'no editor'));
+  ck('8d2 and the clause panel is still standing behind it, to come back to',
+     copPress.panelHeld === true, copPress.panelHeld ? 'panel held' : 'panel shut');
+  /* CLOSED AGAIN BEFORE THE FILE GOES ON. The editor is a fixed layer over the
+     whole window; left open it covers every pixel the checks below measure,
+     and 14b reported a pill as unreachable for exactly that reason. */
+  await p.evaluate(() => { if (window.rlCloseClauseEditor) rlCloseClauseEditor(); });
+  await pause(300);
 
   /* 8e THE COUNTERPARTY'S UNSENT COUNT. Reported as "the counterparty side the
      changes do not seem to be working", and it PREDATES the clause panel —
