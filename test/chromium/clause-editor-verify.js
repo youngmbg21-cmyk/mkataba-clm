@@ -114,7 +114,10 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
         && Math.round(head.right) <= Math.round(rr.left) + 1,
       headW: Math.round(head.width),
       title: (page.querySelector('#ce-title')||{}).textContent || '',
-      facts: page.querySelectorAll('.ce-facts > div').length };
+      /* RE-POINTED 25 Aug 2026: the facts wear the room head's own .room-facet
+         markup now, so one rule dresses both heads. The claim is unchanged —
+         four facts under the clause's name. */
+      facts: page.querySelectorAll('#ce-facts .room-facet').length };
   });
   ck('2a the page mounted and covers the window',
      !!opened && opened.coversWindow && opened.pos === 'fixed',
@@ -161,6 +164,88 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('2g and the floating Copilot launcher stands down — two Copilots on one '
      + 'screen offer different things',
      launcher.display === 'none', `display ${launcher.display}`);
+
+  /* ---- 2h. THE HEADER IS THE NEGOTIATION HEAD'S OWN DESIGN ----
+     Owner-asked 25 Aug 2026, off two screenshots: "the highlighted part should
+     be the same exact design as image 2 including the font sizes." Measured as
+     a RELATION against the real head rather than against typed numbers, so a
+     later type pass costs no edit here: whatever this product decides a room
+     title, a facet label and a facet value are, this page wears the same. */
+  const dress = await p.evaluate(() => {
+    const T = el => { if (!el) return null; const s = getComputedStyle(el);
+      return { fs:s.fontSize, fw:s.fontWeight, c:s.color, tt:s.textTransform,
+        ls:s.letterSpacing, lh:s.lineHeight }; };
+    const ref = document.querySelector('#ws-head');
+    const ed = document.querySelector('#ce-head');
+    if (!ref || !ed) return null;
+    return {
+      h1: [T(ref.querySelector('h1')), T(ed.querySelector('h1'))],
+      sub: [T(ref.querySelector('.room-headsub')), T(ed.querySelector('.room-sub'))],
+      l: [T(ref.querySelector('.room-facet .l')), T(ed.querySelector('.room-facet .l'))],
+      v: [T(ref.querySelector('.room-facet .v')), T(ed.querySelector('.room-facet .v'))],
+      facets: ed.querySelectorAll('.room-facet').length,
+      dividers: [...ed.querySelectorAll('.room-facet')]
+        .filter(f => getComputedStyle(f).borderRightWidth !== '0px').length };
+  });
+  const alike = k => dress && JSON.stringify(dress[k][0]) === JSON.stringify(dress[k][1]);
+  ck('2h the clause name is set exactly as the head it copies', alike('h1'),
+     dress && JSON.stringify(dress.h1[1]));
+  ck('2i the line under it too', alike('sub'), dress && JSON.stringify(dress.sub[1]));
+  ck('2j and the fact labels and values, property for property',
+     alike('l') && alike('v'),
+     dress && `label ${JSON.stringify(dress.l[1])} / value ${JSON.stringify(dress.v[1])}`);
+  ck('2k four facts, ruled apart the way that head rules its own',
+     !!dress && dress.facets === 4 && dress.dividers === 3,
+     dress && `${dress.facets} facts, ${dress.dividers} dividers`);
+
+  /* ---- 2l. NO COLLAPSE CONTROL ANYWHERE ON THIS PAGE ----
+     "remove the collapse feature entirely in the page with image 1". Asserted
+     as an ABSENCE of the control AND of the state it toggled, because hiding a
+     control while leaving the machinery is how it comes back. */
+  const fold = await p.evaluate(() => {
+    const page = document.getElementById('clause-editor');
+    return { control: page.querySelectorAll('.ce-fold, #ce-fold, [aria-expanded]').length,
+      folded: page.querySelectorAll('.is-folded').length,
+      snap: page.querySelectorAll('.room-snap, #ws-facts-toggle').length };
+  });
+  ck('2l the collapse control is gone, and so is the state it toggled',
+     !!fold && fold.control === 0 && fold.folded === 0 && fold.snap === 0,
+     fold && `control ${fold.control}, folded ${fold.folded}, borrowed ${fold.snap}`);
+
+  /* ---- 2m. THE WAY BACK IS AT THE RIGHT, DRESSED LIKE THE DOOR IT MIRRORS ----
+     "move the back to negotiations button to the right where I have
+     highlighted and it should look like the button in image 3." The reference
+     is built here exactly as the Document tab builds #ws-to-nego, so this is a
+     comparison against the real control rather than against typed values. */
+  const back = await p.evaluate(() => {
+    const page = document.getElementById('clause-editor');
+    const head = page.querySelector('#ce-head');
+    const mine = page.querySelector('.ce-back-btn');
+    if (!mine) return null;
+    const ref = document.createElement('button');
+    ref.className = 'ui-btn';
+    ref.setAttribute('style', 'flex:none;font-size:14px;padding:7px 14px');
+    ref.textContent = 'Open Negotiate';
+    page.appendChild(ref);
+    const T = el => { const s = getComputedStyle(el); return { fs:s.fontSize, fw:s.fontWeight,
+      c:s.color, bg:s.backgroundColor, bw:s.borderTopWidth, bc:s.borderTopColor, pad:s.padding }; };
+    const out = { ref:T(ref), mine:T(mine),
+      hr: head.getBoundingClientRect(), br: mine.getBoundingClientRect(),
+      crumbHasBack: !!page.querySelector('.ce-crumb [data-ce-act="close"]'),
+      waysOut: page.querySelectorAll('[data-ce-act="close"]').length };
+    ref.remove();
+    return out;
+  });
+  ck('2m it is dressed identically to the tab row\'s own door — every property',
+     !!back && JSON.stringify(back.ref) === JSON.stringify(back.mine),
+     back && (JSON.stringify(back.ref) === JSON.stringify(back.mine)
+       ? 'identical' : `ref ${JSON.stringify(back.ref)} / mine ${JSON.stringify(back.mine)}`));
+  ck('2n it sits at the RIGHT of the header, not in the crumb',
+     !!back && Math.round(back.hr.right - back.br.right) < 40 && !back.crumbHasBack,
+     back && `${Math.round(back.hr.right - back.br.right)}px from the right edge`);
+  ck('2o and it is the ONE way out — two controls leaving the same page is the '
+     + 'duplication reported on the contract room the same morning',
+     !!back && back.waysOut === 1, back && `${back.waysOut}`);
 
   /* ---- 3. THE TWO BOXES, AND THE REDLINE BETWEEN THEM ---- */
   const boxes = await p.evaluate(() => {

@@ -49,6 +49,47 @@ describe('F176 — the intent-to-sign step speaks without a button', () => {
       'while still saying what the next step actually is');
   });
 
+  /* ---- AND THE SAME RULE, ON THE SAME HEAD, FOR THE NEGOTIATION ----
+     Owner-reported 25 Aug 2026, off a screenshot with both doors ringed: "you
+     have duplicated the door to negotiations page. Remove the top one." The
+     Document tab already carries #ws-to-nego at the right of its tab row —
+     the ONE door onto the negotiation from this tab, kept bordered there
+     because a bare verb at the far right of a tab row is the one place a
+     control genuinely gets missed. This branch put a second one in the head's
+     lead slot, forty pixels above, so the same destination appeared twice
+     within a glance. Exactly the fault this file is named for. */
+  test('nor does the negotiation branch — the tab row already carries that door', () => {
+    const branch = /if\(!cpSigned && \(notSettled \|\| theirTurn\)\)\{[\s\S]{0,2400}?\n  \}/.exec(SRC);
+    assert.ok(branch, 'the unsettled-negotiation branch is still there to be found');
+    assert.match(branch[0], /kind:'review-changes'/, 'it is the state under test');
+    const wants = branch[0].match(/noButton:\s*true/g) || [];
+    assert.equal(wants.length, 2,
+      'BOTH its answers decline the primary slot — theirs and ours; one of the '
+      + 'two left drawing a button is the duplicate coming back on half the contracts');
+    assert.match(branch[0], /guide:`It is with/,
+      'and the guide still says whose move it is');
+    assert.match(branch[0], /guide:`Your turn/, 'in both directions');
+  });
+
+  test('and NO branch of this head draws that door — all three, not one', () => {
+    /* THE FIRST RULE OF THIS CODEBASE: the same thing is drawn in several
+       places, and a fix in one is not a fix in all. wsNextAction answers with
+       kind:'review-changes' from THREE branches — an open round, their turn,
+       and our turn — and only one of them was in the screenshot. Left half
+       done, the reported duplicate would vanish on one contract and stay on
+       the next; the open-round branch is in fact the commonest state of all. */
+    const doors = SRC.match(/kind:'review-changes'[\s\S]{0,120}?noButton:\s*true/g) || [];
+    const all = SRC.match(/kind:'review-changes'/g) || [];
+    assert.equal(all.length, 3, 'three branches answer with this door');
+    assert.equal(doors.length, all.length,
+      'and every one of them declines the head\'s primary slot');
+  });
+
+  test('the tab row keeps the one door it always had', () => {
+    assert.match(SRC, /id="ws-to-nego"/,
+      'removing the head\'s copy must not remove the door itself');
+  });
+
   test('and the head honours that rather than drawing one anyway', () => {
     assert.match(SRC, /\(na && !na\.noButton\) \?\s*`<button id="ws-next-action"/,
       'the head draws its primary only for an action that wants one');

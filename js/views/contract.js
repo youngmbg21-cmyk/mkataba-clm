@@ -2437,7 +2437,17 @@ function wsNextAction(c){
     .filter(x=>x&&x.status==='pending'&&x.authorSide==='counterparty').length;
   if(openRds||pendingCh){
     const n=openRds||pendingCh;
+    /* noButton for the same reason as the two branches below and the one above
+       them: EVERY door onto the negotiation from this head is a second copy of
+       #ws-to-nego, which sits forty pixels lower on the tab row and already
+       carries the count ("Open Negotiate · 1 waiting"). This is the branch that
+       fires in the commonest state of all — a round is open — so leaving it
+       drawing would have made the reported duplicate disappear on one contract
+       and stay on the next, which is the fault this rulebook opens by warning
+       about. THE SENTENCE IS WHAT MATTERS HERE AND IT STAYS: who is waiting,
+       and how many decisions. */
     return { get label(){ return i18t('ct_review_changes'); }, ic:'history', kind:'review-changes',
+      noButton:true,
       guide:`${c.counterparty||'The counterparty'} is waiting on you — ${n} ${openRds?`round${n===1?'':'s'}`:`change${n===1?'':'s'}`} to decide.` };
   }
   /* ---- THEY HAVE SAID THEY ARE READY (owner-asked 23 Aug 2026) ----
@@ -2528,10 +2538,27 @@ function wsNextAction(c){
   if(!cpSigned && (notSettled || theirTurn)){
     const who=c.counterparty||'the counterparty';
     const mine=liveChanges.filter(x=>x.status==='pending').length;
+    /* ---- NO SECOND DOOR ONTO THE NEGOTIATION (owner-reported 25 Aug 2026,
+       off a screenshot with both ringed: "you have duplicated the door to
+       negotiations page. Remove the top one") ----
+       The Document tab already carries #ws-to-nego at the right of its tab
+       row, forty pixels below this — the ONE door onto the negotiation from
+       this tab, deliberately kept bordered there because a bare verb at the
+       far right of a tab row is the one place a control genuinely gets missed.
+       This branch put a second one in the head's lead slot, so a reader met
+       the same destination twice within one glance.
+
+       noButton, NOT null, and the reasoning is the branch above's own, written
+       for exactly this shape: the head draws nothing and the GUIDE stays, so
+       the status line still answers what the next step is. Returning null
+       would fall through to a later branch and say something true, useless and
+       silent about the round that is actually open. */
     return theirTurn
       ? { get label(){ return i18t('ct_open_negotiation'); }, ic:'history', kind:'review-changes',
+          noButton:true,
           guide:`It is with ${who}. Nothing needs you until they answer.` }
       : { get label(){ return i18t('ct_open_negotiation'); }, ic:'history', kind:'review-changes',
+          noButton:true,
           guide:`Your turn — ${mine||'some'} change${mine===1?'':'s'} still open with ${who}.` };
   }
   // Under Review

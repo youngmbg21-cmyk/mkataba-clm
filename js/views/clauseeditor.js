@@ -115,26 +115,34 @@ function clauseEditorCss(){
   #clause-editor button:disabled{cursor:default}
 
   /* ---- the object header: a crumb, the clause, four facts ----
-     The clause name is the biggest thing on the page because the page is about
-     one clause; the facts under it are what a negotiator checks before touching
-     the wording, and they fold away when they are not wanted. */
-  .ce-ohwrap{position:relative; flex:none}
+     IT IS THE CONTRACT ROOM'S HEAD, and it wears that head's OWN CLASSES rather
+     than a second set that agrees today (owner-asked 25 Aug 2026, off two
+     screenshots: "the same exact design ... including the font sizes"). So
+     .room-head, .room-id, .room-name, its h1, .room-sub, .room-facts,
+     .room-facets and .room-facet's .l/.v are all doing the dressing, from
+     index.html, unscoped — there is nothing here to keep in step with them and
+     nothing that can drift. What is below is only the parts this page has that
+     the room's head does not: the clause picker, the status mark, the passing
+     message and the way back.
+
+     THE COLLAPSE CONTROL IS GONE (same ask, "remove the collapse feature
+     entirely"): .ce-fold, .ce-ohwrap and the is-folded rule are deleted rather
+     than hidden. */
   .ce-head{flex:none; background:var(--color-surface);
-    border-bottom:1px solid var(--color-divider); padding:10px 18px 0}
-  .ce-crumb{display:flex; align-items:center; gap:7px; font-size:12px;
-    color:var(--color-neutral-600); flex-wrap:wrap}
-  .ce-crumb button{background:none; border:0; padding:0; font:inherit; font-size:12px;
-    font-weight:600; color:var(--accent-ink)}
-  .ce-crumb button:hover{text-decoration:underline}
+    border-bottom:1px solid var(--color-divider); padding:10px 18px 12px}
+  .ce-head .room-head{flex-wrap:nowrap}
+  /* THE ONE DECLARATION THE SHARED RULES DO NOT CARRY. Image 2 is the
+     NEGOTIATION page's head, and that page zeroes the global h1 tracking of
+     -0.01em in a block scoped to itself — so .room-head h1 alone leaves this
+     title a fraction wider than the head being copied. MEASURED: -0.15px
+     against the reference's 0. Everything else about the title comes from the
+     shared rule and is not restated here. */
+  .ce-head .room-head h1{letter-spacing:0}
+  .ce-head .room-facts{margin-top:11px}
+  .ce-crumb{display:flex; align-items:center; gap:7px; flex-wrap:wrap}
   .ce-crumb .sep{color:var(--color-neutral-500)}
-  /* the reading acts must never jump to a second line: the row does not wrap,
-     the clause name gives first, then the status message */
-  .ce-titlerow{display:flex; align-items:center; gap:12px; margin-top:6px; flex-wrap:nowrap}
-  .ce-titlerow h1{margin:0; min-width:0; font-size:22px; font-weight:700; letter-spacing:-.01em;
-    color:var(--color-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .ce-titlerow .g{flex:1; min-width:8px}
   .ce-sel{flex:0 1 auto; min-width:110px; max-width:280px; height:24px; padding:0 6px;
-    font:inherit; font-size:12px; font-weight:700; background:var(--color-surface);
+    font:inherit; font-size:13px; font-weight:600; background:var(--color-surface);
     color:var(--color-text); border:1px solid var(--color-divider)}
   .ce-ostat{display:inline-flex; align-items:center; gap:7px; font-size:13px; font-weight:600;
     white-space:nowrap}
@@ -143,20 +151,13 @@ function clauseEditorCss(){
   .ce-ostat.ok{color:var(--st-green-fg)}   .ce-ostat.ok i{background:var(--st-green-dot)}
   .ce-ostat.neu{color:var(--color-neutral-600)}
   .ce-ostat.neu i{background:var(--color-neutral-500)}
-  .ce-facts{display:flex; align-items:flex-start; gap:30px; padding:11px 0 12px; flex-wrap:wrap}
-  .ce-facts .k{font-size:11px; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
-    color:var(--color-neutral-600)}
-  .ce-facts .v{font-size:14px; font-weight:600; color:var(--color-text); margin-top:3px}
-  .ce-head.is-folded .ce-facts{display:none}
-  .ce-fold{position:absolute; left:50%; transform:translateX(-50%); margin-top:-1px; z-index:3;
-    width:44px; height:15px; background:var(--color-surface); border:1px solid var(--color-divider);
-    border-top:0; display:grid; place-items:center; color:var(--color-neutral-600); padding:0;
-    font-size:9px; line-height:1}
-  .ce-head.is-folded + .ce-fold{transform:translateX(-50%) rotate(180deg)}
-  .ce-head .ce-acts{flex:none; display:flex; align-items:center; gap:14px}
-  .ce-head .ce-acts button{background:none; border:0; padding:2px 0; font:inherit; font-size:13px;
-    font-weight:600; color:var(--accent-ink)}
-  .ce-head .ce-acts button:hover{text-decoration:underline}
+  .ce-head .ce-acts{flex:none; display:flex; align-items:center; gap:12px}
+  .ce-head .ce-acts .ce-act-plain{background:none; border:0; padding:2px 0; font:inherit;
+    font-size:13px; font-weight:600; color:var(--accent-ink)}
+  .ce-head .ce-acts .ce-act-plain:hover{text-decoration:underline}
+  /* THE WAY BACK, DRESSED LIKE THE DOOR IT MIRRORS — the tab row's own
+     #ws-to-nego, whose metrics the owner named as the model. */
+  .ce-head .ce-acts .ce-back-btn{flex:none; font-size:14px; padding:7px 14px}
   .ce-say{flex:0 1 auto; min-width:0; max-width:300px; font-size:12px; color:var(--accent-ink);
     font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     opacity:0; transition:opacity .2s}
@@ -586,20 +587,40 @@ function clauseEditorHtml(){
            new that spans "the whole page" goes in the left column too. */}
     <div class="ce-grid">
       <div class="ce-col">
-    <div class="ce-ohwrap">
-      <div class="ce-head" id="ce-head">
-        <div class="ce-crumb" id="ce-crumb"></div>
-        <div class="ce-titlerow">
-          <h1 id="ce-title"></h1>
-          <span class="ce-ostat" id="ce-ostat"></span>
-          <span class="g"></span>
-          <span class="ce-say" id="ce-say" role="status"></span>
-          <span class="ce-acts" id="ce-headacts"></span>
+    ${''/* ---- THE ROOM HEAD'S OWN DRESS, BY WEARING ITS OWN CLASSES ----
+           (owner-asked 25 Aug 2026, off two screenshots: "the highlighted part
+           should be the same exact design as image 2 including the font
+           sizes".) Image 2 is the contract room's head, and the way to be the
+           same as it EXACTLY is to be dressed by the same rules rather than by
+           a second set that agrees today — .room-head, .room-id, .room-name,
+           .room-sub, .room-facts, .room-facets, .room-facet and its .l/.v are
+           all defined unscoped in index.html, so this markup inherits the
+           title's 15px/600, the label's 12px and the value's 15px/600 with
+           nothing to keep in step.
+
+           THE FACTS ARE THIS CLAUSE'S, not the contract's, so roomFactsHtml
+           itself cannot be reused — it reads counterparty, value and term. The
+           SHAPE is shared; the reading is the clause's own.
+
+           AND THE COLLAPSE CONTROL IS GONE ENTIRELY (same ask: "remove the
+           collapse feature entirely in the page with image 1"). This page is
+           about one clause and its head is four short facts; a control for
+           tidying away four facts on a page that has nothing else in its head
+           is furniture. .ce-fold, .ce-ohwrap and the is-folded rule went with
+           it rather than being hidden. */}
+    <div class="ce-head" id="ce-head">
+      <div class="room-head">
+        <div class="room-id">
+          <div class="room-name">
+            <h1 id="ce-title"></h1>
+            <span class="ce-ostat" id="ce-ostat"></span>
+          </div>
+          <div class="room-sub ce-crumb" id="ce-crumb"></div>
         </div>
-        <div class="ce-facts" id="ce-facts"></div>
+        <span class="ce-say" id="ce-say" role="status"></span>
+        <div class="room-acts ce-acts" id="ce-headacts"></div>
       </div>
-      <button class="ce-fold" id="ce-fold" type="button" aria-expanded="true"
-        aria-label="${_ceea(_cet('ce_fold_facts'))}">&#9652;</button>
+      <div class="room-facts"><div class="room-facets" id="ce-facts"></div></div>
     </div>
     <div class="ce-ctx" id="ce-ctx"></div>
         <div class="ce-left">
@@ -771,11 +792,13 @@ function ceRenderHead(){
   const cl = ceClause(), on = ceOnTable();
   const crumb = _ceQ('#ce-crumb');
   if (crumb){
+    /* THE WAY BACK LEFT THIS LINE FOR THE RIGHT-HAND ACTS (owner-asked 25 Aug
+       2026: "move the back to negotiations button to the right where I have
+       highlighted and it should look like the button in image 3"). What stays
+       here is what the line is for — which contract, and which clause of it. */
     const name = String((_ceC && (_ceC.name || _ceC.id)) || '').trim();
     crumb.innerHTML =
-      `<button type="button" data-ce-act="close">${_cet('ce_back_negotiation')}</button>`
-      + `<span class="sep">&rsaquo;</span>`
-      + `<span>${_cee(name)}</span>`
+      `<span>${_cee(name)}</span>`
       + `<span class="sep">&rsaquo;</span>`
       + `<select class="ce-sel" id="ce-sel" aria-label="${_ceea(_cet('ce_which_clause'))}"></select>`;
     const sel = crumb.querySelector('#ce-sel');
@@ -803,8 +826,14 @@ function ceRenderHead(){
      change the wording. Those are the one act in the rail's foot. */
   const acts = _ceQ('#ce-headacts');
   if (acts) acts.innerHTML =
-    `<button type="button" data-ce-tab="scan">${_cet('ce_tab_scan')}</button>`
-    + `<button type="button" data-ce-act="close">${_cet('act_close')}</button>`;
+    `<button type="button" class="ce-act-plain" data-ce-tab="scan">${_cet('ce_tab_scan')}</button>`
+    /* ---- ONE WAY OUT, DRESSED LIKE THE DOOR IT MIRRORS ----
+       .ui-btn with the tab-row door's own metrics, because the owner named
+       that button as the model. It REPLACES the old Close: both did the same
+       thing, and two controls that leave the same page is precisely the
+       duplication reported on the contract room the same morning. */
+    + `<button type="button" class="ui-btn ce-back-btn" data-ce-act="close">${
+      _cet('ce_back_negotiation')}</button>`;
 
   const f = _ceLead;
   let round = '';
@@ -820,8 +849,11 @@ function ceRenderHead(){
       : (on.length ? (_ceC.counterparty || _cet('ce_other_side')) : _cet('ce_move_nobody'))],
   ];
   const box = _ceQ('#ce-facts');
+  /* THE ROOM'S OWN FACET MARKUP, down to the em-dash class it uses for an
+     absence — so the two heads cannot come to read differently. */
   if (box) box.innerHTML = facts.map(([k, v]) =>
-    `<div><div class="k">${_cee(k)}</div><div class="v">${_cee(v)}</div></div>`).join('');
+    `<div class="room-facet"><div class="l">${_cee(k)}</div><div class="v">${
+      v === '—' ? '<span class="room-facet-none">&mdash;</span>' : _cee(v)}</div></div>`).join('');
 
   const ctx = _ceQ('#ce-ctx');
   if (ctx){
@@ -1454,15 +1486,6 @@ function ceWirePage(page){
       case 'scan-run': ceRunScan(); break;
       default: break;
     }
-  });
-
-  /* The facts fold. Title, status and acts never move — a head whose buttons
-     jump when you fold it is one you stop folding. */
-  const fold = page.querySelector('#ce-fold');
-  if (fold) fold.addEventListener('click', () => {
-    const head = page.querySelector('#ce-head'); if (!head) return;
-    const now = head.classList.toggle('is-folded');
-    fold.setAttribute('aria-expanded', now ? 'false' : 'true');
   });
 
   const which = page.querySelector('#ce-crumb');
