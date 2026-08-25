@@ -250,10 +250,24 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     ref.remove();
     return out;
   });
-  ck('2m it is dressed identically to the tab row\'s own door — every property',
-     !!back && JSON.stringify(back.ref) === JSON.stringify(back.mine),
-     back && (JSON.stringify(back.ref) === JSON.stringify(back.mine)
-       ? 'identical' : `ref ${JSON.stringify(back.ref)} / mine ${JSON.stringify(back.mine)}`));
+  /* REVERSED IN PLACE 25 Aug 2026 (owner-asked: "Remove bold lettering from the
+     back to negotiations as well … the same size font like the other buttons in
+     the platform"). The claim this check was written for is UNCHANGED and is
+     still the whole of what it measures — this button is the tab row's own door,
+     compared against the real control rather than against typed values. What
+     moved is ONE property: the weight. MEASURED against the negotiation head's
+     own row, those buttons are --w-body and this was 600, so it read heavier
+     than every button the owner was comparing it with. So the comparison now
+     names the exception out loud and still fails on a drift in any of the other
+     six — which is what it was really guarding. */
+  const BACK_SAME = ['fs', 'c', 'bg', 'bw', 'bc', 'pad'];
+  const backSame = !!back && BACK_SAME.every(k => back.ref[k] === back.mine[k]);
+  ck('2m it is dressed like the tab row\'s own door — every property but the '
+     + 'weight, which the owner asked to come off',
+     backSame && back.mine.fw !== back.ref.fw,
+     back && (backSame
+       ? `same but the weight — ref ${back.ref.fw}, mine ${back.mine.fw}`
+       : `ref ${JSON.stringify(back.ref)} / mine ${JSON.stringify(back.mine)}`));
   ck('2n it sits at the RIGHT of the header, not in the crumb',
      !!back && Math.round(back.hr.right - back.br.right) < 40 && !back.crumbHasBack,
      back && `${Math.round(back.hr.right - back.br.right)}px from the right edge`);

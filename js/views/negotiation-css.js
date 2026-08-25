@@ -2504,10 +2504,22 @@ function redlineLayoutCss(){
   .redline-page .rl-band + .rl-card-d{border-top:0}
   .redline-page .rl-card-d:hover{background:none}
   .redline-page .rl-card-d .rl-card-txt{flex:1 1 0;min-width:0;margin:0;padding:0}
-  .redline-page .rl-card-d .rl-card-meta{font-size:12px;color:var(--color-neutral-600);
-    line-height:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0}
-  .redline-page .rl-card-d .rl-card-sum{font-size:14px;font-weight:700;
-    color:var(--color-text);line-height:19px;margin-top:1px;
+  ${''/* ---- THE CARD READS ONE RUNG SMALLER (owner-asked 25 Aug 2026: "the
+         font in those clause cards should be reduced by a size") ----
+         Each of the three moved one step down this product's own ladder
+         (10, 11, 12, 13, 14, 15, 17, 19, 22): the reference line 12 to 11, the
+         summary 14 to 13, the verbs 13 to 12. The line boxes come with them, so
+         the row keeps its proportions rather than gaining air where type left.
+         THE SUMMARY KEEPS THE PRIMARY INK, and that is a deliberate exception
+         to "primary is 14px and up". It is the wording of the change — the one
+         thing a reader is here to read — and dropping it to the label shade to
+         satisfy a rule about captions would make the column quieter at exactly
+         the point it should not be. Scoped to this card and said out loud, the
+         way the Tracked Changes head's own exception was. */}
+  .redline-page .rl-card-d .rl-card-meta{font-size:11px;color:var(--color-neutral-600);
+    line-height:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0}
+  .redline-page .rl-card-d .rl-card-sum{font-size:13px;font-weight:700;
+    color:var(--color-text);line-height:18px;margin-top:1px;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   ${''/* A SETTLED CHANGE READS QUIETLY. The reference greys the summary under
          Decided: it is a record rather than something to act on, and the ink
@@ -2563,7 +2575,7 @@ function redlineLayoutCss(){
          apart: teal to agree, red to refuse, teal for the alternative. */}
   .redline-page .rl-card-d .rl-card-verbs{margin-top:0;gap:12px;flex-wrap:nowrap}
   .redline-page .rl-card-d .rl-card-verbs button{border:0;background:none;padding:0;
-    height:auto;min-height:0;font-size:13px;font-weight:700;line-height:19px}
+    height:auto;min-height:0;font-size:12px;font-weight:700;line-height:18px}
   .redline-page .rl-card-d .rl-card-verbs button:hover{background:none;
     text-decoration:underline}
 
@@ -2597,6 +2609,31 @@ function redlineLayoutCss(){
          ways INTO this change's wording, then the two things you do ABOUT it.
          Drawn on the row that opens the second group, so a menu that offers
          only the first group draws no stray line. */}
+  ${''/* ---- WHAT THE FACE COULD NOT HOLD (owner-asked 25 Aug 2026) ----
+         The card's own verbs, laid out as menu rows. They arrive as the SAME
+         buttons the face draws — see rlCardMoreHtml — so the ink is each verb's
+         own (Reject red, Send green) and only the box changes: full width, a
+         row's padding, left-aligned like every other row here. The group is
+         ruled off from the doors below it, which are a different kind of thing:
+         these ACT on the change, those go somewhere. */}
+  .redline-page .rl-more-verbs{display:flex;flex-direction:column;
+    border-bottom:1px solid var(--color-divider);padding-bottom:2px;margin-bottom:2px}
+  .redline-page .rl-more-verbs button{display:block;width:100%;text-align:left;
+    border:0;background:none;font:inherit;font-size:13.5px;font-weight:400;
+    line-height:1.5;padding:7px 12px;white-space:nowrap;cursor:pointer}
+  .redline-page .rl-more-verbs button:hover{background:var(--color-neutral-100);
+    text-decoration:none}
+  ${''/* EACH VERB KEEPS ITS OWN INK. The colours are scoped to .rl-card-verbs,
+         which these are not in any more — so they are named again here reading
+         the SAME tokens, never a second set of values. The dark answers come
+         free: html.dark re-points .rl-rej and .rl-edit unscoped, and --accent-ink
+         is the accent token that has a night value of its own. */}
+  .redline-page .rl-more-verbs .rl-acc,
+  .redline-page .rl-more-verbs .rl-send{color:var(--accent-ink);font-weight:700}
+  .redline-page .rl-more-verbs .rl-rej{color:var(--danger-hover)}
+  .redline-page .rl-more-verbs .rl-edit{color:var(--color-accent-700)}
+  html.dark .redline-page .rl-more-verbs .rl-edit{color:var(--color-accent-300)}
+  html.dark .redline-page .rl-more-verbs .rl-rej{color:#fda4af}
   .redline-page .rl-more-row.rl-more-cut{border-top:1px solid var(--color-divider);
     margin-top:4px;padding-top:8px}
 
@@ -3210,14 +3247,13 @@ function redlineLayoutCss(){
      keeps it last). The conversation blocks are HIDDEN by the default face:
      one rule, one class, so the toggle costs a class flip and the one
      engine-wired composer stays alive in the DOM either way. */}
-  .redline-page .rl-cp-segs{order:1;margin-left:auto;display:inline-flex;
-    border:1px solid var(--color-divider);border-radius:0;overflow:hidden;flex:none}
-  .redline-page .rl-cp-segs button{border:0;background:var(--color-surface);cursor:pointer;
-    font:inherit;font-size:12px;font-weight:700;line-height:1.6;padding:3px 9px;
-    color:var(--color-neutral-600);white-space:nowrap}
-  .redline-page .rl-cp-segs button + button{border-left:1px solid var(--color-divider)}
-  .redline-page .rl-cp-segs button.on{background:var(--nav-bg,#0b3d3a);color:#fff}
-  .redline-page .rl-cp-segs button:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
+  ${''/* LAYOUT ONLY. The DRESS is the seat switch's own rule, which names this
+         head beside .rl-actions — see there. Everything this class used to
+         declare (the box, the ink, the 12px/700 buttons and the --nav-bg fill
+         on the live half) is gone rather than overridden: a class that still
+         dressed the control would be the second opinion that made the two
+         disagree in the first place. */}
+  .redline-page .rl-cp-segs{order:1;margin-left:auto;flex:none}
   .redline-page .rl-cp .rl-cnotes{display:none}
   .redline-page .rl-cp.rl-cp-notes .rl-cnotes{display:block}
   .redline-page .rl-cp-label{margin:0;font-size:12px;font-weight:700;letter-spacing:.06em;
@@ -3295,10 +3331,24 @@ function redlineLayoutCss(){
   ${''/* The ＋ wears the nav's colour for the same reason the Edit pill does —
      they are the same act's two doors, and both follow the theme through
      --nav-bg (dark green workspace → dark green, blue → navy). */}
-  .redline-page .rl-cp-act.rl-cp-act-new{background:var(--nav-bg,#0b3d3a);
-    border-color:var(--nav-bg,#0b3d3a);color:#fff}
-  .redline-page .rl-cp-act.rl-cp-act-new:hover{background:color-mix(in srgb,var(--nav-bg,#0b3d3a) 82%,#fff);
-    border-color:color-mix(in srgb,var(--nav-bg,#0b3d3a) 82%,#fff)}
+  ${''/* ---- THE + IS AN ORDINARY BUTTON (owner-asked 25 Aug 2026: "The
+         propose new wording should resemble the normal buttons but edit with
+         copilot to remain the same") ----
+         It was a filled block in --nav-bg — the SIDEBAR's deep green, which is
+         a navigation colour and read as the loudest object in the panel. It
+         takes .ui-btn's own face now: no fill, the platform's button edge, the
+         accent ink that has a dark answer. Fifth time a filled face has come
+         off on this owner's ask; the pattern is settled.
+         THE HEIGHT IS DELIBERATELY NOT TOUCHED. .ui-btn is 28px and these are
+         34; Edit with Copilot sits beside this one and was asked to stay
+         exactly as it is, so matching the platform's box here would leave the
+         pair 6px apart, which reads as a mistake. The FACE is what was
+         reported and the face is what changed. */}
+  .redline-page .rl-cp-act.rl-cp-act-new{background:transparent;
+    border-color:var(--btn-edge);color:var(--accent-ink)}
+  .redline-page .rl-cp-act.rl-cp-act-new:hover{
+    background:color-mix(in srgb,var(--accent-solid) 10%,transparent);
+    border-color:var(--accent-solid)}
   .redline-page .rl-cp-hint{flex-basis:100%;margin:6px 0 0;font-size:13px}
   /* .rl-cp-ai-note is RETIRED (19 Aug 2026) — the Copilot is a BUTTON in this
      panel again, see the note beside it. The words-without-a-pill were right
@@ -3908,8 +3958,21 @@ function redlineLayoutCss(){
          it — pulled down by its own width — so the head reads as one ruled
          line with the title's tab on it, not as two rules at different
          heights. */}
-  .redline-page .rl-idx-title{flex:none;font-size:19px;font-weight:700;
-    color:var(--color-text);letter-spacing:-.01em;line-height:1.25;
+  ${''/* ---- AND IT READS AT THE SEND BUTTON'S SIZE (owner-asked 25 Aug 2026,
+         off a screenshot with the heading ringed: "the tracked changes font
+         should be reduced to the same size Send All button font along with the
+         number") ----
+         MEASURED: the heading 19px against Send all's 13. The count rides
+         INSIDE the name, so "along with the number" needs no second rule — it
+         comes down with the words.
+         NOTHING BELOW IT ENDS UP LARGER, which is what makes a heading this
+         quiet hold: the card summaries under it came down to 13 in the same
+         breath, so the column reads as one compact list rather than as a small
+         title over big rows. THE 2px ACCENT RULE STAYS: with the size gone it
+         is the whole of what marks this as the column's name, and the padding
+         that lays it on the head's own hairline goes with it. */}
+  .redline-page .rl-idx-title{flex:none;font-size:13px;font-weight:700;
+    color:var(--color-text);letter-spacing:0;line-height:1.25;
     padding-bottom:8px;margin-bottom:-1px;border-bottom:2px solid var(--accent-solid)}
   .redline-page .rl-idx-title i{font-style:normal;font-weight:600;
     color:var(--color-neutral-600)}
@@ -4082,13 +4145,22 @@ function redlineLayoutCss(){
      one that earns the fill. accent-700, not --accent-solid: white on accent-600
      is 3.74:1 and this text is 13px. The same measurement that fixed the change
      column's count markers. */
-  .redline-page .rl-actions .rl-segwrap{height:28px;padding:0;gap:0;background:var(--color-surface);
+  ${''/* THE CLAUSE PANEL'S History | + notes IS NAMED HERE, not given a copy
+         of these values (owner-asked 25 Aug 2026). It is the same kind of
+         control — a two-state switch whose live half fills — and the two had
+         already drifted apart once by being written twice. One rule, two
+         homes; f236 pins the pair so it cannot happen again. */}
+  .redline-page .rl-actions .rl-segwrap,
+  .redline-page .rl-cp-head .rl-segwrap{height:28px;padding:0;gap:0;background:var(--color-surface);
     border:1px solid var(--color-divider);align-self:center}
-  .redline-page .rl-actions .rl-segwrap .rl-seg{height:26px;padding:0 12px;font-size:13px;
+  .redline-page .rl-actions .rl-segwrap .rl-seg,
+  .redline-page .rl-cp-head .rl-segwrap .rl-seg{height:26px;padding:0 12px;font-size:13px;
     box-shadow:none;background:none;color:var(--color-neutral-500)}
-  .redline-page .rl-actions .rl-segwrap .rl-seg.on{background:var(--color-accent-700);color:#fff;
+  .redline-page .rl-actions .rl-segwrap .rl-seg.on,
+  .redline-page .rl-cp-head .rl-segwrap .rl-seg.on{background:var(--color-accent-700);color:#fff;
     font-weight:700;box-shadow:none}
-  html.dark .redline-page .rl-actions .rl-segwrap .rl-seg.on{background:var(--color-accent-700);color:#fff}
+  html.dark .redline-page .rl-actions .rl-segwrap .rl-seg.on,
+  html.dark .redline-page .rl-cp-head .rl-segwrap .rl-seg.on{background:var(--color-accent-700);color:#fff}
   /* The way back is words, not a chip. It ends the row, so it needs no box to
      be found — and a bordered control there read as a fifth button rather than
      as the door it is. */

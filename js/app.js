@@ -201,6 +201,36 @@ function pageActionHtml(kind){
    Everything else is a list or a tool with no name of its own, and says who it
    is here. */
 const PAGE_OWNS_HEADER = ['dashboard', 'redline', 'workspace', 'templates', 'calendar'];
+/* ---- WHOSE PAGE OWNS ITS OWN HEIGHT, AND THEREFORE NEEDS NO SCROLLBAR
+   RESERVED (owner-reported 25 Aug 2026, off three screenshots of the top-right
+   corner: "the top card on the right corner … is leaving space in the corner.
+   Ensure that the whole platform all the top cards are stretching to the end of
+   the screen") ----
+   The shell reserves a scrollbar channel permanently (scrollbar-gutter:stable
+   in index.html) so that moving between a scrolling page and a fixed one cannot
+   shift every pixel of content sideways. On a page that is exactly --view-h
+   tall and scrolls INSIDE itself, that channel can never be used — and the
+   white band at the top of the page stops short of the screen by exactly its
+   width. MEASURED at 1500: the band ran to 1490 of 1500 on the contract room,
+   the calendar, Insights and the negotiation page; the register already ran to
+   1500 because it had turned the gutter off in its own injected sheet.
+   ONE LIST RATHER THAN FIVE INJECTED COPIES. The register's own copy is gone
+   and it reads this instead: five views each carrying the same rule is five
+   places for it to drift, and the register had already proved the rule works.
+   A VIEW JOINS THIS LIST ONLY IF ITS ROOT IS height:var(--view-h) — that is
+   what makes the reservation dead space rather than something in use. Home,
+   Reports, Templates, Import and the Approvals queue are all deliberately
+   absent: they grow with their content and the reservation is what stops them
+   jolting. */
+const VIEW_OWNS_HEIGHT = ['workspace', 'redline', 'calendar', 'intel', 'register'];
+/* The class carries the fact; index.html carries the rule. Painted from
+   renderPageHeader, which runs on EVERY view change — including onto a view
+   that is not on the list, which is what takes the class back off again. */
+function paintScrollGutter(view){
+  const sc = typeof document !== 'undefined' && document.getElementById('content-scroll');
+  if(!sc || !sc.classList) return;
+  sc.classList.toggle('view-fixed', VIEW_OWNS_HEIGHT.includes(view));
+}
 /* 'calendar' joined on 22 Aug 2026 with the mock-up's own head: the page
    draws a one-line white band carrying its title, how many decisions fall
    this week, the period and its three acts. Two heads on one page is the
@@ -255,6 +285,9 @@ function paintShellTitle(view){
 }
 function renderPageHeader(view){
   paintShellTitle(view);
+  /* BEFORE the early return below, because that return fires for exactly the
+     views this matters most to — the ones that draw their own head band. */
+  paintScrollGutter(view);
   /* THE SWATCHES ASK WHO IS SIGNED IN, AND AT BOOT NOBODY IS. wireThemeMenu
      runs once, before the sign-in wall, so brandPickerVisible answered false
      for everybody and an admin never saw the pair. Repainted here because this

@@ -2597,7 +2597,7 @@ THE PANEL IS WHERE YOU WRITE (owner-asked 16 Aug 2026: "Now build the editing in
 
 The panel's Copilot button used to hand the clause to the Copilot DRAWER, which is a chat about a clause you cannot see. It opens **js/views/clauseeditor.js** instead: the whole window goes to one clause — the wording as it stands above the wording being proposed, the marks computed between them, and Copilot down a third of the screen. Six of the journey's thirteen steps needed nothing built; what is new is **one page and two doors**.
 
-- **THE PAGE COVERS THE SHELL, IT DOES NOT DISMANTLE IT.** The approved render moves the shell's own brand and controls into the page's two bars; that is a live DOM move of elements other renderers repaint, for a result a reader cannot tell from an opaque cover. So it is a fixed layer at **z-index 55**: above the Copilot drawer and the activity panel, BELOW the toast root and modal-root, so every refusal and every confirm still lands on top of it. Mounted on demand and REMOVED on close — the DOM cost is zero when nobody is in it, and there is no half-built page for another renderer to walk into.
+- **THE PAGE COVERS THE PAGE, NOT THE SHELL — REVERSED IN PLACE 25 Aug 2026** (owner-asked, off a screenshot with both ringed: *"the highlighted bars (nav panel and the top panel) have to be on screen when you are in the editing with copilot"*). **ONLY THE COVER MOVED; THE HALF THAT MATTERED IS UNCHANGED**: the approved render moves the shell's own brand and controls into this page's two bars, that is a live DOM move of elements other renderers repaint, and it is still deliberately not taken. What changed is where the cover starts. MEASURED before: fixed at 0,0 over the whole window, and probing the middle of the shell bar and of the nav column returned this page's own content — both were genuinely hidden. **THE BOX IS MEASURED, NEVER TYPED** — `ceFitToShell` reads `#content-scroll`'s own rect and writes left/top/width/height, with a ResizeObserver bound ONCE on that element. The nav has three states (240px column, 64px rail, a floating layer below 1440), so a typed inset would be right in one and wrong in two; the scroller is the one element that already answers for all three. A rect of zero is refused — the standing rule. **z-index 54, DOWN FROM 55**, and that is what lets the floating nav drawer open OVER this page: `#side-nav` is 55 below the float line and this page is later in the document, so at equal weight it won. Still above the Copilot drawer (50) and the activity panel (46), still below modal-root and the toasts. Mounted on demand and REMOVED on close — the DOM cost is zero when nobody is in it, and there is no half-built page for another renderer to walk into.
 - **THE RAIL RUNS FLOOR TO CEILING, AND THAT IS THE ONE THING TO GET RIGHT** (owner-corrected repeatedly on the prototype, and reported again the day this shipped: *"Confirm the copilot window on the far right goes all the way to the top"*). It did not: the crumb, the title and the fact row were written as a FULL-WIDTH header above both columns, so the rail started **172px down** — MEASURED before it was touched. The header sits INSIDE the left column now and `.ce-grid` is the page's only region, so the rail is 0 to the window's own bottom. **ANYTHING NEW THAT SPANS "THE WHOLE PAGE" GOES IN THE LEFT COLUMN TOO** — that is the rule, and a full-width strip added above the grid later would push the rail down again by exactly its own height. Pinned as a geometry in clause-editor-verify (2d2/2d3), which reports the rail's top and bottom against the page's own, so it can never regress silently.
 - **THE RAIL IS ONE THIRD** (`minmax(0,2fr)` beside `minmax(340px,1fr)`, measured at 0.333 in a real browser). The 340px floor bites only on a window too narrow for a third to be usable, and below 1024px the door is **not offered at all** — `clauseEditorFits`, asked of the window, the same question the stylesheet's own break asks. A page that cannot be used is worse than a page that is not there.
 - **APPLY IS THE ONLY THING THAT MOVES THE WORDING, AND IT MOVES IT INTO THE BOX** — never into the contract. A Copilot suggestion, a playbook standard, a passage rewritten in place and the reader's own typing all go through `ceApply`, which is what makes the redline underneath honest: it is recomputed from the two texts every time, so it cannot describe a route it did not take. **IT STACKS** — apply twice, step back one at a time. Nothing is filed until the one act in the rail's foot is pressed.
@@ -3975,6 +3975,28 @@ and could never have caught a layout fault).
 
 ## ONE WHITE BAND, AND IT REACHES THE SCREEN'S EDGE (owner-reported 25 Aug 2026)
 
+**WIDENED THE SAME DAY, AND THE RULE HAS LEFT THIS PAGE'S OWN SHEET.** The same
+strip was reported on four more screens — the contract room, the Calendar,
+Insights and the negotiation page — and the answer is no longer the register's
+private one. `VIEW_OWNS_HEIGHT` (js/app.js) is the ONE list of views whose root
+is `height:var(--view-h)` and which therefore can never scroll the shell's
+scroller; `paintScrollGutter` puts a class on `#content-scroll` from
+`renderPageHeader`, which runs on every view change — including onto a view that
+is NOT on the list, which is what takes the class off again — and
+`#content-scroll.view-fixed{scrollbar-gutter:auto}` in index.html is the rule.
+Id-plus-class outranks the id alone, so it wins with nothing shouted. The
+register is simply on that list and its behaviour is unchanged; **five views
+each carrying a copy is five places for it to drift**, which is the whole
+argument. **A VIEW JOINS THE LIST ONLY IF ITS ROOT OWNS ITS HEIGHT** — Home,
+Reports, Templates, Import and the Approvals queue are deliberately absent,
+because they grow with their content and the reservation is what stops them
+jolting. **THE ONE EXCEPTION IS THE CALENDAR BELOW 1023px**, where its own sheet
+turns `.cal-page` to `height:auto` and the page really does scroll: that sheet
+puts the gutter back at that width, written where the rule that causes it lives
+and going with the page, so no other view can inherit the exception. MEASURED
+after: the five listed views reach the screen's edge at 1500 and 1366, every
+other page keeps its 10px.
+
 Two screenshots, two sentences: *"remove the separation strip in the top two
 cards and make it one card just like in the negotiations page"*, and *"the top
 white cards should cover all the way to the end of the screen"*.
@@ -4102,6 +4124,117 @@ Tests: f210 (13) — 8 claims, **7 of them fail against the code of an hour
 before**; clause-door-verify section 14 (7, browser — the pencil as reachable
 pixels, the panel's heading, the editor seeded from the proposal, and the save
 proved to leave ONE proposed clause carrying one revision).
+
+## SIX OFF A MORNING OF SCREENSHOTS (owner-asked 25 Aug 2026)
+
+Six reports across four messages, every one reproduced and MEASURED in a real
+browser before it was touched. **AND THE FIRST THING THIS RUN GOT WRONG WAS THE
+CODE IT WAS READING**: the review was written against a branch three commits
+behind main, so it described a Tracked Changes column that had been rebuilt the
+day before and reported two faults that were already fixed. The owner said so
+("Check the code again"), the branch was fast-forwarded, and every measurement
+was taken again. **CHECK THE REMOTE BEFORE MEASURING, not after somebody
+notices** — a review of stale code is worse than no review, because it is
+confidently wrong.
+
+- **ONE MEASURE FOR THE CONTRACT ROOM'S FOUR TABS.** `--room-measure:1440px`,
+  read by `.terms-grid`, `.sign-grid` and `#ws-history-pane`. They had THREE
+  different caps and nobody had put them side by side: MEASURED at 1500, the
+  right-hand gap was 28px on Key terms, 75 on History and 95 on Signing, and at
+  1920 that spread widens to 125 / 285 / 305 because a cap bites harder the more
+  room there is. So one contract read as three differently-sized pages depending
+  which tab you stood on. **1440 IS KEY TERMS' OWN** and its reasoning is
+  unchanged, which is why the cap is not simply deleted. **SIGNING WAS FIXED
+  ALONGSIDE HISTORY** — the owner named only History, and the list they approved
+  named both; one tab left behind is the drift this token exists to stop.
+
+- **THE FIVE HISTORY FILTERS TAKE THE ROW.** They drew at their 96px minimum and
+  used 620px of an 1118px row, so a clause name was cut at about ten characters
+  with half the row empty beside it. `flex:1 1 0` with a 132px floor and the
+  150px ceiling deleted — a ceiling is what left the surplus unused. MEASURED
+  after: five equal 215px fields using 1206 of 1222. The wrap is kept as the
+  narrow-window answer.
+
+- **THE TOP-RIGHT STRIP, FROM ONE LIST** — see ONE WHITE BAND above.
+
+- **THE CLAUSE PANEL'S History | + notes WEARS THE SEAT SWITCH'S OWN CLASSES.**
+  THE CLOTHES FOLLOW THE BUILDER, and this switch had been left behind by its
+  own reference: it was dressed to match the reading segments when those were a
+  grey pill group, the 22 Aug redesign turned those into tabs and gave the SEAT
+  switch the bordered box with a filled live half, and nothing brought this one
+  along. MEASURED side by side: the seat switch fills accent-700 at 13px with
+  the resting half at 400, this one filled `--nav-bg` (the SIDEBAR's deep green,
+  a navigation colour inside a content panel) at 12px with **both halves at
+  700** — so weight, which is what tells the live half from the resting one over
+  there, was doing nothing here. It emits `.rl-segwrap`/`.rl-seg` now and the
+  seat switch's own rule NAMES this head beside `.rl-actions`: one declaration,
+  two homes. `.rl-cp-segs` survives carrying LAYOUT only.
+
+- **AND "+ PROPOSE NEW WORDING" IS AN ORDINARY BUTTON.** It was a filled block
+  in `--nav-bg` and takes `.ui-btn`'s face — no fill, `--btn-edge`,
+  `--accent-ink`. Fifth time a filled face has come off on this owner's ask; the
+  pattern is settled. **THE HEIGHT IS DELIBERATELY NOT TOUCHED**: `.ui-btn` is
+  28px and these are 34, Edit with Copilot sits beside it and was asked to stay
+  exactly as it is, so matching the platform's box would leave the pair 6px
+  apart — which reads as a mistake. The FACE was reported and the face changed.
+
+- **THE CLAUSE EDITOR KEEPS THE SHELL ON SCREEN** — reversed in place under EDIT
+  WITH COPILOT IS A PAGE above. Its duplicate **Playbook scan** went with it: it
+  carried the same attribute, the same handler and the same act as the rail's
+  own tab, so pressing it changed a panel on the far side of the screen.
+  `.ce-act-plain` is STALE. **Back to the negotiation** keeps every property of
+  the door it mirrors but the weight, which the owner asked to come off.
+
+- **TWO VERBS ON THE FACE, THE REST IN THE ⋯.** MEASURED: their pending ask
+  carried three (Accept · Reject · Edit) and our own draft four (Edit · Review ·
+  Retract · Send), against a target picture that draws two and a chevron.
+  **IT IS ONE CUT APPLIED TO THE FINISHED LIST, NOT FOURTEEN EDITED BRANCHES** —
+  every branch still pushes the verb it always pushed, which is what keeps each
+  one's seat, desk and review rules exactly where they were, and `rlFaceSplit`
+  cuts once after. A rule per branch is how a state nobody thought of ends up
+  with three verbs again. `RL_FACE_RANK` decides WHICH two stay and the built
+  order decides how they DRAW, so Edit still reads before Send. Checked state by
+  state: their ask keeps Accept and Reject, our draft Edit and Send, a held
+  answer Send and Undo, a refusal of ours Withdraw and Edit, a refusal we gave
+  Reopen and Send a copy. **ONE EXCEPTION, AND IT IS THE STANDING RULE ABOUT
+  REFUSALS**: a change a reviewer is HOLDING has no decision and nothing to
+  send, and the sentence beside it says the only way forward is to ask that
+  person again — a remedy named in words and then folded into a menu is the
+  fault this file records twice already, so on exactly that card the ask is
+  promoted to the front. The overflow arrives in the menu as the SAME buttons,
+  keeping each verb's own ink.
+
+- **AND IT FIXED A DUPLICATE THE REBUILD HAD SHIPPED.** "Ask a colleague to
+  review" was drawn on the face AND in the ⋯ on every unsent draft — the same
+  act twelve pixels apart, in a menu whose own rule forbids exactly that. The
+  guard tested only for Edit. It reads the face and the overflow as one pool
+  now, so the one test covers both.
+
+- **THE CARD READS ONE RUNG SMALLER AND THE HEADING TWO.** Reference line 12→11,
+  summary 14→13, verbs 13→12; "Tracked changes (N)" 19→13, which is the Send-all
+  button's size the owner named. The count rides INSIDE the name, so "along with
+  the number" needed no second rule. **NOTHING BELOW IT ENDS UP LARGER**, which
+  is what makes a heading this quiet hold — the summaries came down in the same
+  breath. The 2px accent rule STAYS: with the size gone it is the whole of what
+  marks the column's name. **THE SUMMARY KEEPS THE PRIMARY INK** as a deliberate,
+  scoped exception to "primary is 14px and up" — it is the wording of the change.
+
+**A BACKTICK IN A CSS COMMENT COST A RUN, in the file that had never had one.**
+`clauseEditorCss` returns a template literal and a comment there said
+`` `.ce-act-plain` `` in backticks: ONE pair ends the string, evaluates
+`.ce-act-plain` as JS and reports "act is not defined" — the whole editor dead,
+found only by opening it. Third instance recorded here. **Say "terminator", and
+never put a backtick in a comment inside a CSS-emitting literal.**
+
+Tests: f192's two claims REVERSED IN PLACE (the literal three-verb list became
+"the two that ARE the decision, and Edit still on the card"; the no-prose
+comparison excludes the overflow menu for the reason it already excluded the
+verb container), clause-editor-verify 2m reversed in place (every property but
+the weight). Node 4628/4628. Browser: history-head 35, redline 121, clause-door
+97, clause-editor 57, calendar-redesign 46, insights-panels 40, contracts-page
+72, parity 40, nego-redesign 51 — all green. pages-read-alike is 47/50 and was
+PROVED identical on an untouched worktree at the parent commit before it was
+left alone.
 
 ## Line numbers drift
 

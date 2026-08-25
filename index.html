@@ -431,6 +431,26 @@
        head, the calendar head. Its own inset, deliberately wider. */
     --band-pad-x:var(--s-6);
 
+    /* ---- ONE MEASURE FOR THE CONTRACT ROOM'S FOUR TABS (owner-reported
+       25 Aug 2026: "Image 1 shows how far the cards are from the edge … Image 2
+       in the history page shows the space is bigger. Make the history page be
+       close to the edge by the same distance as in image 1") ----
+       The three tabs that cap their width had THREE different caps and nobody
+       had put them side by side. MEASURED at 1500, right-hand gap to the
+       window: Key terms 28px, History 75px, Signing 95px — and at 1920 the
+       spread widens to 125 / 285 / 305, because a cap bites harder the more
+       room there is. So one contract read as three differently-sized pages
+       depending on which tab you were standing on.
+       1440 IS KEPT BECAUSE IT IS KEY TERMS' OWN, and Key terms is the tab the
+       owner named as the reference. Its reasoning is unchanged and is why the
+       cap is not simply deleted: the design's page is 1440 wide, and a
+       key-terms row stretched across an ultra-wide monitor is a label at one
+       end and its value at the other.
+       A TOKEN RATHER THAN THE NUMBER THREE TIMES: this drifted precisely
+       because each tab typed its own, and the next tab added here inherits the
+       decision instead of inventing a fourth. */
+    --room-measure:1440px;
+
     /* CARDS — square, never 16/18. The 2px axis difference in `16px 18px` is
        why the KPI row (12/14) and the pipeline card (16/18) sat out of column. */
     --pad-card:var(--s-4); --pad-card-sm:var(--s-3); --pad-card-lg:var(--s-6);
@@ -1148,6 +1168,17 @@
      screen's edge. One id apiece, and the page's rule comes later in the
      document, so it wins on order with nothing shouted. */
   #content-scroll{scrollbar-gutter:stable;}
+  /* ---- AND IT IS GIVEN BACK WHERE IT CANNOT BE USED (owner-reported 25 Aug
+     2026: "the top card on the right corner … is leaving space in the corner")
+     ----
+     A page that is exactly --view-h tall and scrolls inside itself can never
+     scroll this box, so the reserved channel is dead space — and the white band
+     at the top of it stopped 10px short of the screen. VIEW_OWNS_HEIGHT in
+     js/app.js is the one list of those views and paints this class on every
+     view change; the register used to carry this rule in its own injected sheet
+     and now reads this with the other four. Id + class outranks the id alone,
+     so it wins with nothing shouted. */
+  #content-scroll.view-fixed{scrollbar-gutter:auto;}
   main{scrollbar-width:thin;scrollbar-color:var(--color-neutral-300) transparent;}
 
   /* ============================================================
@@ -2340,7 +2371,7 @@
      exactly where the design stops describing them. */
   .terms-grid{ display:grid;
     grid-template-columns:minmax(0,1.15fr) var(--kt-gap,14px) minmax(0,1fr);
-    gap:0; max-width:1440px; width:100%; margin:0 auto;
+    gap:0; max-width:var(--room-measure); width:100%; margin:0 auto;
     /* A DEFINITE HEIGHT IS WHAT MAKES THE RIGHT COLUMN SCROLL. The pane is a
        flex column; taking its height (flex:1, min-height:0) gives the grid a
        bound to scroll inside instead of a height derived from its own tallest
@@ -2587,16 +2618,29 @@
   .hist-filters{ display:flex; gap:8px 12px; flex-wrap:wrap; align-items:flex-end;
     padding:10px 16px; border-bottom:1px solid var(--color-divider); }
   #hist-filters{ margin:0; }
-  .hist-f{ display:flex; flex-direction:column; min-width:0; }
+  /* ---- THE FIVE FILTERS TAKE THE ROW (owner-reported 25 Aug 2026: "space out
+     the filters and make them longer since there is enough space so that when
+     you filter a word you can see it all for the most part") ----
+     MEASURED before: each box drew at its 96px minimum and the five plus Clear
+     used 620px of an 1118px row — a clause name was cut at about ten characters
+     with half the row standing empty beside it.
+     THEY SHARE WHAT THERE IS (flex:1 1 0) rather than taking a bigger fixed
+     number, so the row is right at every width and after the card widened
+     above; the old 150px ceiling is gone, because a ceiling is what left the
+     surplus unused. min-width is the floor at which they stop shrinking and
+     the row wraps instead — the wrap is the narrow-window answer and is kept. */
+  .hist-f{ display:flex; flex-direction:column; flex:1 1 0; min-width:132px; }
   .hist-f > span{ font-size:12px; font-weight:400; letter-spacing:0; text-transform:none;
     color:var(--color-neutral-600); margin-bottom:3px; white-space:nowrap; }
   .hist-f select{ font:inherit; font-size:13px; font-weight:400; text-transform:none;
     letter-spacing:0; border:1px solid var(--color-divider); border-radius:0;
     padding:5px 9px; background:var(--color-surface); color:var(--color-text);
-    max-width:150px; min-width:96px; }
+    width:100%; min-width:0; }
+  /* Clear is a verb, not a field: it keeps its own size while the five grow. */
+  .hist-filters #ht-clear{ flex:none; }
 
   .sign-grid{ display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);
-    gap:14px; max-width:1080px; width:100%; margin:0 auto; }
+    gap:14px; max-width:var(--room-measure); width:100%; margin:0 auto; }
   @media (max-width:980px){ .sign-grid{ grid-template-columns:1fr; max-width:660px; } }
   .sig-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:11px; }
   .sig-box{ border:1px dashed var(--color-neutral-300); border-radius:0; padding:12px 13px;
