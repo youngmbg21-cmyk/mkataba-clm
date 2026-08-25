@@ -577,6 +577,15 @@ const CE_SEND_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
 
 function clauseEditorHtml(){
   return `<div id="clause-editor" role="region" aria-label="${_ceea(_cet('ce_page_label'))}">
+    ${''/* ---- THE GRID IS THE PAGE, AND THAT IS THE WHOLE POINT ----
+           The Copilot rail runs from the very top of the window to the very
+           bottom. So the crumb, the title, the facts and the chip row are
+           INSIDE the left column, not above both of them: a full-width header
+           pushes the rail down by its own height, which is the one thing this
+           layout was corrected for, repeatedly, before it was built. Anything
+           new that spans "the whole page" goes in the left column too. */}
+    <div class="ce-grid">
+      <div class="ce-col">
     <div class="ce-ohwrap">
       <div class="ce-head" id="ce-head">
         <div class="ce-crumb" id="ce-crumb"></div>
@@ -593,8 +602,6 @@ function clauseEditorHtml(){
         aria-label="${_ceea(_cet('ce_fold_facts'))}">&#9652;</button>
     </div>
     <div class="ce-ctx" id="ce-ctx"></div>
-    <div class="ce-grid">
-      <div class="ce-col">
         <div class="ce-left">
           <section class="ce-box ce-stands">
             <div class="ce-bh"><span class="k">${_cet('ce_as_it_stands')}</span>

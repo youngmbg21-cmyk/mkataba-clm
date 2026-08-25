@@ -94,6 +94,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     const grid = page.querySelector('.ce-grid');
     const col = page.querySelector('.ce-col'), rail = page.querySelector('.ce-rail');
     const cr = col.getBoundingClientRect(), rr = rail.getBoundingClientRect();
+    const head = page.querySelector('.ce-head').getBoundingClientRect();
     return { w:Math.round(r.width), h:Math.round(r.height),
       pos:s.position, z:s.zIndex, bg:s.backgroundColor,
       coversWindow: Math.round(r.width) >= window.innerWidth - 1
@@ -101,6 +102,17 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
       cols: getComputedStyle(grid).gridTemplateColumns,
       colW: Math.round(cr.width), railW: Math.round(rr.width),
       railRight: Math.round(Math.abs(rr.right - r.right)) <= 1,
+      railTop: Math.round(rr.top), railBottom: Math.round(rr.bottom),
+      pageTop: Math.round(r.top), pageBottom: Math.round(r.bottom),
+      /* The rail runs floor to ceiling, and the header sits INSIDE the left
+         column rather than across both — a full-width header pushes the rail
+         down by its own height, which is the one thing about this layout that
+         was corrected repeatedly before it was built. */
+      railFullHeight: Math.round(rr.top) <= Math.round(r.top) + 1
+        && Math.round(rr.bottom) >= Math.round(r.bottom) - 1,
+      headInsideColumn: Math.round(head.width) <= Math.round(cr.width) + 1
+        && Math.round(head.right) <= Math.round(rr.left) + 1,
+      headW: Math.round(head.width),
       title: (page.querySelector('#ce-title')||{}).textContent || '',
       facts: page.querySelectorAll('.ce-facts > div').length };
   });
@@ -115,6 +127,14 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
        + (opened && (opened.railW/(opened.colW+opened.railW)).toFixed(3)));
   ck('2d and it is on the right, flush with the window edge',
      !!opened && opened.railRight, opened && `right edge`);
+  ck('2d2 THE COPILOT RAIL RUNS THE FULL HEIGHT OF THE WINDOW — top to bottom',
+     !!opened && opened.railFullHeight,
+     opened && `rail ${opened.railTop}–${opened.railBottom} of page `
+       + `${opened.pageTop}–${opened.pageBottom}`);
+  ck('2d3 and the header sits INSIDE the left column, never across both — a '
+     + 'full-width header is what pushes the rail down',
+     !!opened && opened.headInsideColumn,
+     opened && `header ${opened.headW}px of a ${opened.colW}px column`);
   ck('2e the clause is named, with four facts under it',
      !!opened && opened.title.trim().length > 0 && opened.facts === 4,
      opened && `"${opened.title.trim()}" / ${opened.facts} facts`);
