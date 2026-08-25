@@ -7328,6 +7328,25 @@ browser clamps it to 700. Left saying 800 on purpose so the day a heavier face
 returns it works again, rather than being quietly rewritten.
 
 **Noticed, not fixed**
+- **The CHARTS do not follow the platform face, and never have.** Asked
+  directly after the swap ("what about Copilot?"). The Copilot PANEL is clean —
+  measured live, every element inside it including the input box resolves to
+  IBM Plex Sans, because js/ai.js names only `var(--font-mono)`,
+  `var(--font-heading)` and `font:inherit`. The CHARTS it draws are the
+  exception: js/aichart.js sets `font:{size:10}` on every axis, tick and legend
+  and NEVER a family, and nothing anywhere sets `Chart.defaults.font.family` —
+  so Chart.js falls back to its own built-in system stack. This is the CANVAS
+  rule this rulebook already records for colour ("`var()` means nothing to
+  `fillStyle`") in its typographic form: a canvas cannot read a token, so a
+  chart's labels have to be told the face by name. NOT CAUSED BY THIS RUN — the
+  labels were not in Inter either — so it is logged rather than fixed, and it
+  is one line (`Chart.defaults.font.family`) whenever somebody wants it. It
+  reaches every chart in the product: Copilot's in-chat charts, the Intelligence
+  dock, the four Reports cards and the health report's embedded PNGs.
+- **Chart.js is fetched from a CDN at runtime** (`AI_CHART_CDN`,
+  cdnjs.cloudflare.com). Noticed while chasing the above, and not this run's to
+  judge — but it means every chart in the product depends on the reader's
+  browser reaching a third-party host.
 - `npm run lint` reports **4 errors**, all `no-dupe-keys` in `js/i18n.js`:
   `co_password_updated` (lines 2019, 6777) and `act_next` (2763, 7443). That
   file is untouched by this run — proved with `git status` — so they pre-date
