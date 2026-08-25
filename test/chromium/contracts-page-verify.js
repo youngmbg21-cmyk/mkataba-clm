@@ -367,6 +367,94 @@ const check = (name, ok, detail) => {
     else await page.evaluate(() => window.langSet('en'));
     await page.waitForTimeout(1200);
 
+    /* ---- 12 · THE FILTER OUTLINE IS THE REFERENCE'S (owner-asked 25 Aug 2026:
+       "Check the demo html and how the outline of the filters in the list of
+       contracts both in the contracts and negotiations pages look like. Apply
+       the same design.") ----
+       The reference draws a list report's filters on `--field-line`, a strong
+       neutral, and keeps the accent for the ACTIVE one alone. THIS REVERSES the
+       day before, when the filters were given the BUTTON'S accent edge on the
+       owner's earlier ask that the two look alike.
+       IN A BROWSER, and as RELATIONS rather than typed colours, because what is
+       being claimed is that three controls differ from each other in the right
+       directions — a literal would pass on a page where all three had drifted
+       together. */
+    const READ_EDGES = () => {
+      const g = e => { if (!e) return null; const s = getComputedStyle(e);
+        return { bc: s.borderTopColor, fg: s.color, fw: s.fontWeight }; };
+      const btn = [...document.querySelectorAll('.ui-btn')]
+        .filter(b => b.getBoundingClientRect().width > 0)
+        .find(b => !b.classList.contains('ui-btn-primary'));
+      const root = getComputedStyle(document.documentElement);
+      return { stage: g(document.getElementById('reg-stage-sel')),
+        type: g(document.getElementById('reg-type-sel')),
+        search: g(document.getElementById('reg-search')),
+        button: btn ? g(btn) : null,
+        fieldLine: root.getPropertyValue('--field-line').trim(),
+        btnEdge: root.getPropertyValue('--btn-edge').trim() };
+    };
+    /* A resolved token vs a computed colour are different spellings of one
+       value, so the comparison is made by painting the token on a probe and
+       reading THAT back — the same trick panel-alerts uses for the body ink. */
+    const RESOLVE = tok => {
+      const d = document.createElement('div');
+      d.style.borderTop = '1px solid var(' + tok + ')';
+      document.body.appendChild(d);
+      const v = getComputedStyle(d).borderTopColor;
+      d.remove(); return v;
+    };
+    await page.evaluate(() => { const R = regState(); R.stage = 'all'; R.type = 'all'; regRepaint(); });
+    await page.waitForTimeout(900);
+    const rest = await page.evaluate(READ_EDGES);
+    const fieldLine = await page.evaluate(RESOLVE, '--field-line');
+    check('12a a resting filter wears --field-line, the reference\'s own neutral',
+      rest.stage && rest.stage.bc === fieldLine
+        && rest.type.bc === fieldLine && rest.search.bc === fieldLine,
+      `${rest.stage && rest.stage.bc} · token ${fieldLine}`);
+    /* COMPARED AGAINST THE TOKEN, NOT A LIVE BUTTON: this page draws only the
+       FILLED primary, which has an edge of its own, so a live comparison here
+       reads `null` and proves nothing. The tokens are what the two controls
+       actually read. */
+    const btnEdge = await page.evaluate(RESOLVE, '--btn-edge');
+    check('12b and it is NOT the button\'s edge any more — that is the reversal',
+      rest.stage.bc !== btnEdge, `filter ${rest.stage.bc} vs button edge ${btnEdge}`);
+    check('12c the button\'s own edge did not move — the owner named the filters',
+      /^(rgba?|color)\(/.test(btnEdge) && btnEdge !== fieldLine, btnEdge);
+
+    /* THE ACTIVE ONE IS THE POINT OF THE CONTROL, and with the resting edge
+       neutral it is the only thing saying the list is narrowed. Three carriers,
+       so colour is never the only one. */
+    await page.evaluate(() => { const R = regState(); R.stage = 'Draft'; regRepaint(); });
+    await page.waitForTimeout(900);
+    const act = await page.evaluate(READ_EDGES);
+    check('12d an active filter takes the accent border, a heavier weight and accent ink',
+      act.stage && act.stage.bc !== fieldLine
+        && Number(act.stage.fw) > Number(rest.stage.fw)
+        && act.stage.fg !== rest.stage.fg,
+      JSON.stringify(act.stage));
+    check('12e and the filters beside it stay resting, so the narrowing is legible',
+      act.type && act.type.bc === fieldLine, act.type && act.type.bc);
+
+    /* AND IT IS READABLE AT NIGHT. `--color-accent-800` had NO dark answer —
+       measured 2.35:1 on the night panel where AA wants 4.5 — so the one thing
+       saying "this list is narrowed" was all but invisible. `--accent-ink` is
+       the same accent ink WITH a dark value. The claim is the RELATION: the
+       active ink must differ from the light theme's, which is what having a
+       dark answer means. */
+    await page.evaluate(() => setTheme('dark'));
+    await page.waitForTimeout(1500);
+    const dark = await page.evaluate(READ_EDGES);
+    const accentInk = await page.evaluate(RESOLVE, '--accent-ink');
+    check('12f the active filter\'s ink follows the theme, rather than staying a light-mode accent',
+      dark.stage && dark.stage.fg === accentInk && dark.stage.fg !== act.stage.fg,
+      `dark ${dark.stage && dark.stage.fg} · light ${act.stage.fg} · token ${accentInk}`);
+    check('12f and a resting filter is still the same neutral at night',
+      dark.type && dark.type.bc === await page.evaluate(RESOLVE, '--field-line'),
+      dark.type && dark.type.bc);
+    await page.evaluate(() => setTheme('light'));
+    await page.evaluate(() => { const R = regState(); R.stage = 'all'; regRepaint(); });
+    await page.waitForTimeout(1000);
+
     /* ============ 11. AND THE NEGOTIATIONS TABLE READS THE SAME ============
        One builder draws both, so the two may not come to disagree about how big
        their type is or how their shared columns are cut. Six of the eight are

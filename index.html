@@ -958,22 +958,34 @@
      measured in pixels. The head rows that wanted the mock-up's larger, lighter
      button take .ui-btn-lg below rather than dragging the whole product with
      them. */
-  /* ---- A FILTER BOX IS OUTLINED LIKE A BUTTON (owner-asked 24 Aug 2026: "the
-     outline of the filter boxes should be similar to the outline of the buttons
-     in the contract and negotiation pages") ----
-     ONE VALUE, READ BY BOTH, so the two can never drift: `.ui-btn` below and
-     the register's filter bar both take --field-edge. It is the button's own
-     accent mix, not a colour invented for the filters.
-     THE DESIGN REFERENCE AGREES THAT THEY SHOULD MATCH and picks a strong grey
-     for both (--field-line). HaTi's buttons went accent in August after the
-     owner reported TWICE that a grey control reads as furniture, so matching
-     them here means matching what the buttons actually are. Recorded as a
-     divergence rather than left to look like drift.
-     AND THE ACTIVE FILTER MUST STILL BE TELLABLE APART: it keeps the FULL
-     accent border plus 600 weight plus accent ink — three carriers, so colour
-     is never the only one. */
-  :root{ --field-edge:color-mix(in srgb,var(--accent-solid) 45%,transparent); }
-  .ui-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:14px;line-height:var(--lh-tight);color:var(--accent-ink);background:transparent;border:1px solid var(--field-edge);border-radius:0;
+  /* ---- THE BUTTON'S OWN EDGE, AND ONLY THE BUTTON'S (owner-asked 25 Aug
+     2026: "Check the demo html and how the outline of the filters in the list
+     of contracts both in the contracts and negotiations pages look like. Apply
+     the same design.") ----
+     THIS REVERSES ITS OWN FIRST PARAGRAPH, WRITTEN THE DAY BEFORE. The ask then
+     was "the outline of the filter boxes should be similar to the outline of
+     the buttons", so one accent value was shared by both. The owner has now
+     pointed at the REFERENCE instead, which draws a list report's filters on
+     `--field-line` — a strong neutral — and keeps the accent for the ACTIVE one
+     alone. So the filters read --field-line, and this token is the button's
+     alone: it is named --btn-edge rather than left called "field", because a
+     token whose name says one thing and whose readers are another is how the
+     next person points the wrong control at it.
+     AND THE REFERENCE IS RIGHT FOR A REASON NEITHER ASK MENTIONED. MEASURED:
+     the accent mix on white is 1.97:1, and WCAG 1.4.11 wants 3:1 on a CONTROL'S
+     BOUNDARY — the very rule --field-line's own comment cites. So the shared
+     edge was failing it, and #8A9795 gives 3.03:1 on white and 5.90:1 on the
+     dark panel, which is why no dark override is owed.
+     IT ALSO MAKES THE ACTIVE FILTER LOUDER, which is the point of the control:
+     a narrowing filter keeps the FULL accent border plus 600 weight plus accent
+     ink, and against a neutral resting edge that reads at a glance where
+     against an accent-45% one it barely did.
+     THE BUTTONS ARE UNTOUCHED and stay accent — the owner named the filters,
+     and a grey button is the thing this product has been told three times reads
+     as furniture. Recorded as a divergence from the reference, which draws both
+     on --field-line. */
+  :root{ --btn-edge:color-mix(in srgb,var(--accent-solid) 45%,transparent); }
+  .ui-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:14px;line-height:var(--lh-tight);color:var(--accent-ink);background:transparent;border:1px solid var(--btn-edge);border-radius:0;
     /* HEIGHT COMES FROM A RUNG, NEVER FROM PADDING. `padding:6px 12px` on a
        14px/1.2 label computes to 30.8px — 2.8px TALLER than .ui-btn-lg's fixed
        28, under a source comment calling the large one the larger. A rung plus

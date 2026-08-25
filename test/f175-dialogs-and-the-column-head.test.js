@@ -150,18 +150,28 @@ describe('f175 · every dialog in the feature wears the same head', () => {
     assert.ok(btn, 'the class is defined');
     assert.match(btn[1], /background:transparent/,
       'flat at rest — the fill belongs to the page\'s one act');
-    /* REVERSED IN PLACE 24 Aug 2026 (WO-4, owner-asked: "the outline of the
-       filter boxes should be similar to the outline of the buttons in the
-       contract and negotiation pages"). The mix moved out of this rule and
-       into a TOKEN, --field-edge, so a filter box and a button read the same
-       edge from one place and cannot drift. THE CLAIM IS UNCHANGED and is
-       asserted in two halves now — the button reads the token, and the token
-       IS the accent mix — so a refactor that fades either to a neutral fails
-       here exactly as it would have before. */
-    assert.match(btn[1], /border:1px solid var\(--field-edge\)/,
-      'the edge comes from the shared token');
-    assert.match(INDEX, /--field-edge:\s*color-mix\(in srgb,var\(--accent-solid\) 45%,transparent\)/,
+    /* REVERSED IN PLACE TWICE, and the second time narrows it back.
+       24 Aug 2026 (WO-4, "the outline of the filter boxes should be similar to
+       the outline of the buttons"): the mix moved out of this rule into a
+       shared token so a filter and a button could not drift.
+       25 Aug 2026: the owner pointed at the design reference instead, which
+       draws a list report's filters on --field-line and keeps the accent for
+       the ACTIVE filter alone. The filters went neutral, so the token has one
+       reader again and is named --btn-edge for it.
+       THE CLAIM THIS TEST IS REALLY MAKING IS UNCHANGED — never a neutral —
+       and is still asserted in two halves, so a refactor that fades the BUTTON
+       to grey fails here exactly as it would have before. What is no longer
+       claimed is that the filter reads the same value; that is the reversal,
+       and contracts-page-verify measures the filters' own edge instead. */
+    assert.match(btn[1], /border:1px solid var\(--btn-edge\)/,
+      'the edge comes from the button\'s own token');
+    assert.match(INDEX, /--btn-edge:\s*color-mix\(in srgb,var\(--accent-solid\) 45%,transparent\)/,
       'and that token is an ACCENT mix, never a neutral one — the 17 Aug lesson');
+    /* And it is the BUTTON'S alone now: a filter reading it again would be the
+       reversal quietly undone. */
+    const REG = fs.readFileSync(path.join(__dirname, '..', 'js/views/register.js'), 'utf8');
+    assert.ok(!/--btn-edge/.test(REG),
+      'the register\'s controls do not read the button edge');
     /* REVERSED IN PLACE 23 Aug 2026, CLAIM UNCHANGED AND STRENGTHENED. This
        read the raw ramp step, which had NO dark answer: html.dark redefines
        the surface, the ink and the whole neutral ramp and never redefines the

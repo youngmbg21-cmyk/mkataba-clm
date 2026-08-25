@@ -3168,16 +3168,39 @@ of this; what follows is the rules that came out of it.
   anything for its missing ✕ to do. negotiations-door-verify presses Clear for
   real and proves the page does not widen.
 
-- **A FILTER BOX WEARS THE BUTTON'S EDGE, FROM ONE PLACE (WO-4).** Six
-  dropdowns and two search boxes each typed their own border. `--field-edge` is
-  the token — `color-mix(in srgb,var(--accent-solid) 45%,transparent)`, which is
-  what `.ui-btn` had typed inline — and both read it now, so a filter and a
-  button cannot drift. **THE 17 Aug LESSON IS WHAT THIS STILL PINS**: never a
-  neutral. f175 asserts it in two halves (the button reads the token, the token
-  is the accent mix), so a refactor that fades either to grey fails exactly as
-  it would have before. **AND THE TABLE HEADERS STOPPED SHOUTING** — the
-  `text-transform:uppercase` came off `.reg-table th` and `.fold-table th` on
-  the owner's ruling "only capitalize the first".
+- **A FILTER BOX WEARS THE REFERENCE'S OWN NEUTRAL EDGE (WO-4, REVERSED IN
+  PLACE 25 Aug 2026).** WO-4's ask was "the outline of the filter boxes should
+  be similar to the outline of the buttons", so six dropdowns and two search
+  boxes stopped typing their own border and took the button's accent mix from a
+  shared token. **THE OWNER THEN POINTED AT THE REFERENCE** — *"Check the demo
+  html and how the outline of the filters in the list of contracts both in the
+  contracts and negotiations pages look like. Apply the same design."* — and
+  the reference draws a list report's filters on `--field-line`, a strong
+  neutral, keeping the accent for the ACTIVE one alone. So the filters read
+  `--field-line`, and the token has one reader again and is named `--btn-edge`
+  for it: a token whose name says one thing and whose readers are another is
+  how the next person points the wrong control at it. `--field-edge` is STALE.
+  **AND THE REFERENCE IS RIGHT FOR A REASON NEITHER ASK MENTIONED.** MEASURED:
+  the accent mix on white is **1.97:1**, and WCAG 1.4.11 wants 3:1 on a
+  CONTROL'S BOUNDARY — the very rule `--field-line`'s own comment cites. The
+  shared edge was failing it; `#8A9795` gives 3.03:1 on white and 5.90:1 on the
+  night panel, which is why no dark override is owed.
+  **AND ONE DEFECT FELL OUT OF MEASURING IT, in the half that now carries the
+  whole signal.** With the resting edge neutral, "this filter is narrowing your
+  list" rests on the accent border, the 600 weight and the accent ink alone —
+  and the ink was `--color-accent-800`, which dark does not redefine: **2.35:1
+  on the night panel where AA wants 4.5.** It takes `--accent-ink` now (9.59:1)
+  — the same accent ink WITH a dark answer, which `.ui-btn` beside it has read
+  since 23 Aug and this control simply never did. The BORDER was fine either
+  way (4.77:1) and is untouched.
+  **THE BUTTONS ARE UNTOUCHED and stay accent** — the owner named the filters,
+  and a grey button is what this product has been told three times reads as
+  furniture. **THE 17 Aug LESSON IS STILL WHAT f175 PINS** (never a neutral),
+  in two halves plus a sweep that the register's controls no longer read the
+  button's token, so the reversal cannot be quietly undone.
+  **AND THE TABLE HEADERS STOPPED SHOUTING** — the `text-transform:uppercase`
+  came off `.reg-table th` and `.fold-table th` on the owner's ruling "only
+  capitalize the first".
 
 - **THE TABLE FITS AT EVERY LANGUAGE, AND A CUT SAYS SO (WO-9).** Reported as
   Swedish tables scrolling sideways. **RE-MEASURED FIRST and the measurement in
@@ -3314,7 +3337,15 @@ should stay at 28 but the rest should stick to the new design"); the row is
 36px, which the design and HaTi now agree on; the reference's italic cut is
 not used anywhere and the font is not asked to carry one; and the reference
 gives no guidance on the change column or the counterparty's page, both of
-which keep their own decisions.
+which keep their own decisions. **ONE DIVERGENCE CLOSED 25 Aug 2026** — the
+filter outline, which now matches the reference exactly; the reference draws
+its BUTTONS on that same neutral and HaTi's stay accent, which is the one half
+still divergent and is the owner's own standing call.
+
+**AND THE FILTER SIZE AND HEIGHT ARE DELIBERATELY NOT TAKEN FROM IT.** The
+reference sets a filter at 14px in a 32px control; HaTi's are 13px in 30px.
+The ask named the OUTLINE, and growing the controls would push the bar toward
+the second line WO-15 exists to prevent — see the note in BUGLOG about 1366.
 
 **THE COLOUR CENSUS WAS RE-RECORDED, AUDITED VALUE BY VALUE FIRST** — the one
 case the standing rule allows, somebody deliberately owning a palette change.

@@ -7089,6 +7089,23 @@ memory (`negoRememberOpened` / `negoLastOpened`) is kept, so the reopen is one
 argument to put back. **Verified** f184 and negotiations-door-verify, which
 asserts the memory is still recorded.
 
+### 4. The filter bar does not fit one line at 1366
+
+**What is broken.** WO-15 removed two filters "so the row fits one line". It
+does at 1280, 1440 and 1500 — and NOT at 1366, where the six controls wrap to
+two.
+
+**Root cause.** 1366 is the narrowest PAGE of the supported set, not the
+narrowest window: at 1280 the sidebar is a 64px rail (the float line), so the
+page is ~1216px, while at 1366 it is the 240px column and the page is ~1126.
+The bar was measured at the comfortable widths.
+
+**Not fixed, deliberately.** Proved pre-existing by running the same probe in
+a worktree at `origin/main` before this change: identical two lines at 1366,
+identical one line at the other three. Closing it means either dropping a
+third filter — which of the six is the owner's call — or shrinking the
+controls, which is a density decision. Reported rather than guessed at.
+
 ### Noticed, not fixed
 
 Per the Scope rules in CLAUDE.md. Each was proved to fail on unmodified

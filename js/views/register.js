@@ -61,7 +61,7 @@ function renderFolder(){
      exactly what happened: the arrow vanished entirely. Base64 has no quotes
      in it, so it survives the trip into the attribute. */
   const selChevron='url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0ibTYgOSA2IDYgNi02Ii8+PC9zdmc+)';
-  const selStyle='font:inherit;font-size:13px;border:1px solid var(--field-edge);background-color:var(--color-surface);border-radius:0;padding:5px 26px 5px 9px;color:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:'+selChevron+';background-repeat:no-repeat;background-position:right 8px center;background-size:12px';
+  const selStyle='font:inherit;font-size:13px;border:1px solid var(--field-line);background-color:var(--color-surface);border-radius:0;padding:5px 26px 5px 9px;color:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:'+selChevron+';background-repeat:no-repeat;background-position:right 8px center;background-size:12px';
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="padding:var(--page-pad)">
     <style>
@@ -879,7 +879,7 @@ function renderRegister(opts){
      exactly what happened: the arrow vanished entirely. Base64 has no quotes
      in it, so it survives the trip into the attribute. */
   const selChevron='url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0ibTYgOSA2IDYgNi02Ii8+PC9zdmc+)';
-  const selStyle='font:inherit;font-size:13px;border:1px solid var(--field-edge);background-color:var(--color-surface);border-radius:0;padding:5px 26px 5px 9px;color:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:'+selChevron+';background-repeat:no-repeat;background-position:right 8px center;background-size:12px';
+  const selStyle='font:inherit;font-size:13px;border:1px solid var(--field-line);background-color:var(--color-surface);border-radius:0;padding:5px 26px 5px 9px;color:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:'+selChevron+';background-repeat:no-repeat;background-position:right 8px center;background-size:12px';
   /* ---- ONE FILTER BAR, NOT THREE TIERS OF PILLS ----
      Stages, streams and saved views used to be three full-width rows of pills
      (plus a legend band and an export band) stacked above the table — the
@@ -894,7 +894,16 @@ function renderRegister(opts){
      its title, so every handler and every test that reaches for it is
      untouched. The row aligns on flex-end, so a labelled control and a bare one
      (the clear button, the sort) still sit on one baseline. */
-  const selFilter=(id,opts,active,title,label)=>`<label class="reg-f"><span class="reg-f-l">${esc(label||title)}</span><select id="${id}" title="${title}" style="${selStyle};max-width:180px${active?';border-color:var(--color-accent);color:var(--color-accent-800);font-weight:600':''}">${opts}</select></label>`;
+  /* ---- THE ACTIVE FILTER IS THE ONE CARRIER NOW, SO IT HAS TO BE READABLE ----
+     The resting edge went neutral on 25 Aug (the reference's own treatment), so
+     "this filter is narrowing your list" is carried by the accent border, the
+     600 weight and the accent ink alone. The INK was `--color-accent-800`, and
+     dark does not redefine the accent ramp — MEASURED, 2.35:1 on the night
+     panel, where AA wants 4.5. `--accent-ink` is the same accent ink WITH a
+     dark answer and measures 9.59:1; the button beside it has read it since
+     23 Aug and this control simply never did. The BORDER is fine either way
+     (4.77:1) and is untouched. */
+  const selFilter=(id,opts,active,title,label)=>`<label class="reg-f"><span class="reg-f-l">${esc(label||title)}</span><select id="${id}" title="${title}" style="${selStyle};max-width:180px${active?';border-color:var(--color-accent);color:var(--accent-ink);font-weight:600':''}">${opts}</select></label>`;
   const stageOpts=REG_STAGES.map(s=>`<option value="${s.k}" ${R.stage===s.k?'selected':''}>${s.label}</option>`).join('');
   const typeOpts=regTypes().map(t=>`<option value="${t.k}" ${R.type===t.k?'selected':''}>${t.label}</option>`).join('');
   const viewOpts=`<option value="" ${R.view?'':'selected'}>${i18t('reg_saved_views')}</option>`
@@ -940,7 +949,7 @@ function renderRegister(opts){
      control. They take the same stacked label as the three above so the bar
      reads as one row of filters rather than two conventions. */
   const categorySel=`<label class="reg-f"><span class="reg-f-l">${esc(i18t('me_category'))}</span>
-    <select id="reg-category" style="${selStyle}${catActive?';border-color:var(--color-accent);color:var(--color-accent-800);font-weight:600':''}">${catOpts.map(([k,l])=>`<option value="${k}" ${(R.category||'all')===k?'selected':''}>${l}</option>`).join('')}</select></label>`;
+    <select id="reg-category" style="${selStyle}${catActive?';border-color:var(--color-accent);color:var(--accent-ink);font-weight:600':''}">${catOpts.map(([k,l])=>`<option value="${k}" ${(R.category||'all')===k?'selected':''}>${l}</option>`).join('')}</select></label>`;
   /* ---- NO RENEWAL FILTER (owner-asked 24 Aug 2026, twice: "delete ... the
      filter i have highlighted", and again for the Negotiations seat) ----
      THE CONTROL GOES AND THE READING STAYS. regFiltered still knows how to
@@ -974,7 +983,7 @@ function renderRegister(opts){
              plainly wrong once it joined the row, which is the head-row lesson
              of 22 Aug in a smaller costume. Matched to selStyle's own padding
              rather than given a height of its own, so the two cannot drift. */}
-      <input id="reg-search" value="${R.query.replace(/"/g,'&quot;')}" placeholder="${esc(i18t('reg_search_ph'))}" style="width:100%;border:1px solid var(--field-edge);background:var(--color-surface);border-radius:0;padding:5px 9px 5px 30px;font:inherit;font-size:13px;outline:none;color:inherit">
+      <input id="reg-search" value="${R.query.replace(/"/g,'&quot;')}" placeholder="${esc(i18t('reg_search_ph'))}" style="width:100%;border:1px solid var(--field-line);background:var(--color-surface);border-radius:0;padding:5px 9px 5px 30px;font:inherit;font-size:13px;outline:none;color:inherit">
       <div id="reg-fts" class="hidden" style="position:absolute;z-index:40;margin-top:4px;width:100%;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:0;max-height:320px;overflow-y:auto"></div>
     </label>`:'';
 
