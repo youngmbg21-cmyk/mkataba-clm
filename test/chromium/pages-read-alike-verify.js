@@ -451,8 +451,16 @@ const SEED = async () => {
         const b = rg.getClientRects()[0]; if (!b || b.height < 2) continue;
         if (ink == null || b.top < ink){ ink = b.top; txt = n.textContent.trim().slice(0, 18); }
       }
+      /* The explanatory line a page header used to carry under its title.
+         Owner-asked 25 Aug 2026: "remove these explanations below the headers
+         in all pages where the explanation is there." Asked of the SHARED
+         header only — Home's date line and the Calendar's counts sit BESIDE
+         their titles and are facts about the workspace, not descriptions of
+         the page, and the room heads' fact line is the contract's own. */
+      const ph = document.querySelector('#page-head p');
       return { size: cs.fontSize, weight: cs.fontWeight, family: cs.fontFamily.split(',')[0],
         ink: ink == null ? null : Math.round(ink - top), inkText: txt,
+        sub: ph ? ph.textContent.trim().slice(0, 40) : null,
         text: (h.textContent || '').trim().slice(0, 20) };
     };
     const PAGES8 = [
@@ -467,6 +475,8 @@ const SEED = async () => {
       ['Approvals',    () => setView('queue')],
       ['Requests',     () => setView('intake')],
       ['People',       () => setView('directory')],
+      /* The page the 25 Aug subtitle ask was screenshotted on. */
+      ['Import',       () => setView('migration')],
       /* The two the first pass missed, and the two that were really out. */
       ['Contract room',    id => openWorkspace(id)],
       ['Negotiation page', id => openRedlineWorkbench(id)],
@@ -533,6 +543,14 @@ const SEED = async () => {
         off.map(([k, h]) => `${k} ${h.ink}px «${h.inkText}» vs Home ${ref && ref.ink}px`).join(' · ')
           || `all at ${ref && ref.ink}px, ${Object.keys(hh).length} pages`);
     }
+    /* ---- NO PAGE HEADER EXPLAINS ITSELF (owner-asked 25 Aug 2026) ----
+       Swept across every page rather than checked on the one that was
+       screenshotted: the line came from ONE builder, so one page still drawing
+       it would mean the builder had grown a branch. */
+    const withSub = others8.concat([['Home', home8]]).filter(([, h]) => h.sub);
+    check('8 and no page header carries a sentence under its title',
+      withSub.length === 0,
+      withSub.map(([k, h]) => `${k}: ${h.sub}`).join(' · ') || `${Object.keys(heads8).length} pages, none`);
     /* AND THE TIGHTENING IS REAL, not the token quietly ignored: a short
        window has to pull every header up TOGETHER, or the rule above is
        satisfied by nothing moving at all. */

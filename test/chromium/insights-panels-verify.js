@@ -267,10 +267,20 @@ const QUESTION = 'why do I have a big workload runway today?';
     await page.screenshot({ path: path.join(OUT, '05-one-line-head.png') });
 
     const f = heads.frame;
-    check('5 the page still says its name and what is on it',
-      f.title === 'Insights' && /portfolio frame/.test(f.sub || ''), `${f.title} — ${f.sub}`);
-    check('5 THE SENTENCE IS NEXT TO THE WORD, not under it',
-      f.sameLine && f.toTheRight, `same line ${f.sameLine} · to the right ${f.toTheRight}`);
+    /* ---- REVERSED IN PLACE 25 Aug 2026 ----
+       Owner-asked, off a screenshot of Import contracts with its line ringed:
+       "remove these explanations below the headers in all pages where the
+       explanation is there". No page header draws a subtitle now.
+       THE CLAIM THIS FILE WAS REALLY MAKING SURVIVES AND IS STRONGER: the
+       13 Aug ask was "move the highlighted sentence to be next to the word
+       Insights, and move the page up so the dashboards have more screen
+       space" — the sentence was moved to buy the charts room, and removing it
+       buys them the rest. So the two checks about WHERE it sat become one
+       about it not being there, and the two about what that bought are
+       untouched. */
+    check('5 the page still says its name', f.title === 'Insights', f.title);
+    check('5 and no sentence under it — none of them draws one now',
+      f.sub === null, f.sub === null ? 'no <p> in the header' : `still there: ${f.sub}`);
     check('5 so the header is one line of chrome, not two',
       f.headH > 0 && f.headH < 48, `${f.headH}px (was 63)`);
     check('5 AND THE CHARTS GOT THE DIFFERENCE',
@@ -281,7 +291,7 @@ const QUESTION = 'why do I have a big workload runway today?';
        tabs does not quietly redraw the header a different way. */
     check('5 and all three tabs read the same, because it is one header',
       ['frame', 'friction', 'map'].every(t =>
-        heads[t].sameLine && heads[t].headH === f.headH && heads[t].scrollH === f.scrollH),
+        heads[t].sub === null && heads[t].headH === f.headH && heads[t].scrollH === f.scrollH),
       ['frame', 'friction', 'map'].map(t =>
         `${t}: ${heads[t].headH}px/${heads[t].scrollH}px`).join(' · '));
 
@@ -341,14 +351,23 @@ const QUESTION = 'why do I have a big workload runway today?';
     await page.evaluate(() => { setView('intel'); });
     await page.waitForTimeout(900);
 
-    /* IT STILL WRAPS RATHER THAN HIDING. Narrow the window until the two cannot
-       share a line: the sentence must come back on its own line, not vanish. */
-    await page.setViewportSize({ width: 720, height: 950 });
+    /* REVERSED IN PLACE 25 Aug 2026 with the sentence itself. This asked that
+       a narrow window WRAP the subtitle rather than hide it — "a header that
+       hid the page's own description to save a line would be trading the wrong
+       thing" — and there is no description to hide now. What the check becomes
+       is the useful half: at 720px the header is still ONE line, so nothing
+       has quietly reappeared under the title on a narrow screen. */
+    /* 820, NOT THE 720 THIS USED TO USE. Below 768 the desktop shell is hidden
+       outright and the phone draws, so #page-head measures 0 there — the old
+       check read its textContent, which a hidden element still has, and so
+       could never have caught a layout fault anyway. 820 is narrow enough that
+       a title and a sentence could not have shared a line, and still desktop. */
+    await page.setViewportSize({ width: 820, height: 950 });
     await page.waitForTimeout(800);
     const narrow = await page.evaluate(HEAD);
-    check('5 on a narrow window the sentence drops to its own line and is still there',
-      /portfolio frame/.test(narrow.sub || ''),
-      narrow.sameLine ? 'still on one line at 720px' : 'wrapped, and still readable');
+    check('5 and a narrow window has nothing to drop — the header stays one line',
+      narrow.sub === null && narrow.headH > 0 && narrow.headH < 48,
+      `${narrow.headH}px at 820px · sub ${narrow.sub === null ? 'none' : narrow.sub}`);
     await page.setViewportSize({ width: 1500, height: 950 });
     await page.waitForTimeout(600);
 

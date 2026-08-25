@@ -3159,7 +3159,9 @@ of this; what follows is the rules that came out of it.
   comfortable sentence in a codebase and the cheapest to check.
 
 - **THE CONTRACTS PAGE LOST A SUBTITLE, A FILTER AND A CHIP (WO-2, WO-15).**
-  The page note went (`case 'register'` returns an empty subtitle); the Renewal
+  **ITS "ONLY THIS PAGE" HALF WAS REVERSED 25 Aug 2026 — see NO PAGE EXPLAINS
+  ITSELF: every page header lost its sentence, and no header draws one at all
+  now.** The page note went (`case 'register'` returns an empty subtitle); the Renewal
   filter and the locked-scope chip went so the filter row fits one line.
   **`regPrimaryAction` HAS NO CALLER and neither does the lock chip's builder**
   — kept as stubs on this file's convention, so a third caller cannot bring
@@ -3551,6 +3553,46 @@ negotiation page at 13 — and then rewritten again to sweep at TWO heights, 100
 and 760, where it reports **all twelve out of line** at the short one. It also
 asserts the tightening is real: a short window has to pull every header up
 TOGETHER, or "they all agree" is satisfied by nothing moving at all.
+
+## NO PAGE EXPLAINS ITSELF UNDER ITS OWN TITLE (owner-asked 25 Aug 2026)
+
+Off a screenshot of Import contracts with its line ringed: *"remove these
+explanations below the headers in all pages where the explanation is there."*
+
+- **THIS FINISHES WHAT 24 Aug STARTED AND REVERSES ITS OTHER HALF.** That day
+  the Contracts page lost its line and the ruling recorded here was "ONLY THIS
+  PAGE — every other page keeps its own"; this is the owner looking at the rest
+  of them and asking for the same thing. The reasoning that removed the first
+  one covers all of them: a sentence describing the page to a reader already
+  looking at it.
+- **DRAWN NOWHERE, RATHER THAN EMPTIED CASE BY CASE.** `commandMeta` still
+  returns its second element and every `pg_*_sub` key stays in the dictionary,
+  inert — eighteen cases each returning `''` is eighteen places a sentence
+  could come back through. There is no `<p>` in the header markup to put one
+  in, which is what f238 asserts.
+- **`PAGE_HEAD_INLINE_SUB` IS STALE** — flag any mention. Insights was its one
+  member, and the 13 Aug ask that put that sentence on the title's line was
+  about WHERE it sat, not whether it should exist; the charts keep the room it
+  bought them and gain the rest.
+- **WHAT IS DELIBERATELY LEFT, and each is a different kind of thing.** Home's
+  date line and the Calendar's counts sit BESIDE their titles and are facts
+  about the workspace, not descriptions of the page. The contract room's and
+  negotiation page's sub-line is the contract's own (stream, round, value,
+  updated). And the Negotiations list keeps `ngl_sub_filtered`, which draws
+  ONLY when a filter is on and exists to resolve a contradiction between two
+  counts on screen — it is not describing the page either. Say so if the owner
+  points at any of them; none was in this ask.
+- **DIVERGES FROM THE DESIGN REFERENCE**, which draws a subtitle on every
+  screen header. Recorded as the owner's ruling, twice made, not as drift.
+
+Tests: f238 (the builder has no paragraph and no branch that could put one on
+the title's line), pages-read-alike section 8 (swept live across all fourteen
+pages, including Import — the one that was screenshotted), insights-panels
+section 5 (four claims REVERSED IN PLACE: what the 13 Aug move bought the
+charts is untouched, where the sentence sat is gone, and its narrow-window
+check moved from 720px to 820 — below 768 the desktop shell is hidden and
+`#page-head` measures 0, so the old check was reading a hidden element's text
+and could never have caught a layout fault).
 
 ## Line numbers drift
 

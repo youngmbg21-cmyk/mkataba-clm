@@ -227,7 +227,11 @@ const PAGE_OWNS_HEADER = ['dashboard', 'redline', 'workspace', 'templates', 'cal
    IT STILL WRAPS. Below the width where both fit, the sentence drops to its own
    line exactly as before — a header that hid the page's own description to save
    a line would be trading the wrong thing. */
-const PAGE_HEAD_INLINE_SUB = ['intel'];
+/* STALE since 25 Aug 2026 — no header draws a subtitle at all, so there is
+   nothing left to put on the title's line. Kept as an EMPTY list rather
+   than deleted: it is published on window and named in a comment further
+   down, and an empty list cannot put a sentence back. */
+const PAGE_HEAD_INLINE_SUB = [];
 /* ---- THE SHELL BAR NAMES THE PAGE (24 Aug 2026) ----
    The 44px bar carries the page's own name where the brand mark and its
    caption used to sit. It is BORROWED from commandMeta — the same reading the
@@ -258,9 +262,27 @@ function renderPageHeader(view){
   paintAppearance();
   const host=document.getElementById('page-head'); if(!host) return;
   if(PAGE_OWNS_HEADER.includes(view)){ host.innerHTML=''; host.style.padding='0'; syncViewHeight(); return; }
-  const [t,sub]=commandMeta(view);
+  /* ---- NO SENTENCE UNDER ANY HEADER (owner-asked 25 Aug 2026, off a
+     screenshot of Import contracts with its line ringed: "remove these
+     explanations below the headers in all pages where the explanation is
+     there") ----
+     THIS FINISHES WHAT 24 Aug STARTED AND REVERSES ITS OTHER HALF. That day
+     the Contracts page lost its line and the ruling was "ONLY THIS PAGE —
+     every other page keeps its own"; this is the owner looking at the rest of
+     them and asking for the same thing. The reasoning that removed the first
+     one covers all of them: a sentence describing the page to a reader already
+     looking at it.
+     DRAWN NOWHERE, RATHER THAN EMPTIED CASE BY CASE. commandMeta still returns
+     its second element and every pg_*_sub key stays in the dictionary, inert —
+     eighteen cases each returning '' is eighteen places a sentence could come
+     back through. There is no <p> to put one in.
+     PAGE_HEAD_INLINE_SUB IS STALE with it (Insights was its one member, and
+     the 13 Aug ask that put that sentence on the title's line was about where
+     it sat, not whether it should exist) — flag any mention.
+     DIVERGES FROM THE DESIGN REFERENCE, which draws a subtitle on every screen
+     header. Recorded as the owner's ruling, twice made, not as drift. */
+  const [t]=commandMeta(view);
   const acts=(PAGE_ACTIONS[view]||[]).map(pageActionHtml).join('');
-  const inlineSub=PAGE_HEAD_INLINE_SUB.includes(view);
   /* THE HEADER LINES UP WITH THE PAGE UNDER IT. It padded to 20px while the
      eleven view bodies beneath it padded to 16, 18, 20 or 0 — so on 10 of the
      11 screens that use this shared header, the page TITLE and the content
@@ -313,9 +335,8 @@ function renderPageHeader(view){
   host.style.padding='var(--page-pad-t) var(--page-pad-x) 0';
   host.innerHTML=`
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap">
-      <div style="min-width:0${inlineSub?';display:flex;align-items:baseline;gap:10px;flex-wrap:wrap':''}">
+      <div style="min-width:0">
         <h1 style="margin:0;font-family:var(--font-heading);font-size:20px;font-weight:700;letter-spacing:-.01em;color:var(--color-text);line-height:1.2">${esc(t)}</h1>
-        ${sub?`<p style="margin:${inlineSub?'0':'3px 0 0'};font-size:13px;color:var(--color-neutral-500);line-height:1.5${inlineSub?';min-width:0':''}">${esc(sub)}</p>`:''}
       </div>
       ${acts?`<div style="display:flex;align-items:center;gap:8px;flex:none">${acts}</div>`:''}
     </div>`;

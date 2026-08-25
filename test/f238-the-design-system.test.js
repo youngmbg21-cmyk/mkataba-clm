@@ -122,6 +122,19 @@ describe('f238 — the design system has its other half', () => {
        header. */
     assert.match(src, /align-items:flex-start;justify-content:space-between/,
       'the header row starts its items at the top, so the title never drifts');
+    /* ---- AND IT DRAWS NO SENTENCE UNDER THE TITLE (owner-asked 25 Aug 2026:
+       "remove these explanations below the headers in all pages where the
+       explanation is there") ----
+       Asserted on the BUILDER rather than on the eighteen cases that feed it:
+       commandMeta still returns its second element and every pg_*_sub key is
+       still written, so the only thing standing between a reader and a
+       reinstated subtitle is that this markup has nowhere to put one. */
+    const headMarkup = (src.split("host.innerHTML=`")[1] || '').split('`')[0];
+    assert.ok(headMarkup.length > 40, 'found the header markup to read');
+    assert.ok(!/<p\b/.test(headMarkup),
+      'the page header has no paragraph — no page explains itself under its own title');
+    assert.ok(!/inlineSub/.test(headMarkup),
+      'and no branch puts one back on the title\'s line');
   });
 
   /* ---------- 3 · CONTRAST ---------- */
