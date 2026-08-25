@@ -1620,8 +1620,16 @@ function tplOverviewHtml(d){
      list is a signpost, and the demo's sentence-case labels are labels ON a
      figure. Different jobs, different dress. */
   const HEAD='font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)';
-  const LBL='font-size:13px;font-weight:400;color:var(--color-neutral-600);line-height:1.4';
-  const FIG='font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.25;margin-top:1px';
+  /* ---- THE CARD CAME DOWN A RUNG (owner-asked 25 Aug 2026, off a screenshot
+     with the two figures ringed: "all the fonts need to be reduced by one size
+     and the ones highlighted (numbers) should be reduced by 2 sizes") ----
+     One step down this product's own ladder (10, 11, 12, 13, 14, 15, 17, 19,
+     22): name 15 to 14, every piece of small text 13 to 12, and the two
+     figures TWO steps, 19 to 15. THE BADGE IS THE ONE THING THAT DID NOT MOVE
+     and it is said out loud: 10px is the ladder's floor, and a smaller one
+     would be the only sub-10px type anywhere in this product. */
+  const LBL='font-size:12px;font-weight:400;color:var(--color-neutral-600);line-height:1.45';
+  const FIG='font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.3;margin-top:1px';
   const cardHtml=c=>{
     const sub=[c.category,c.version&&!c.mono?c.version:null,dated(c)].filter(Boolean).join(' · ');
     return `<button data-tpl-ov-card="${_tplEsc(c.id)}" data-tpl-ov-name="${_tplEsc(c.name)}" title="${i18t('lib_ov_open_in_list')}"
@@ -1639,7 +1647,7 @@ function tplOverviewHtml(d){
             enough to need a third gets one. */}
       <span style="display:block;padding:13px 14px 0">
         ${badge(c)}
-        <span class="tpl-ov-name" style="display:block;font-size:15px;font-weight:700;color:var(--color-text)">${_tplEsc(c.name)}</span>
+        <span class="tpl-ov-name" style="display:block;font-size:14px;font-weight:700;color:var(--color-text)">${_tplEsc(c.name)}</span>
         <span style="display:block;${LBL};margin-top:3px;clear:both;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(sub||'—')}</span>
       </span>
       <span style="display:flex;gap:18px;margin:11px 14px 0;padding-top:11px;border-top:1px solid var(--color-divider)">

@@ -304,22 +304,26 @@ const BOX = sel => {
         && /^rgb/.test(c.bar.bg) && c.bar.bg !== 'rgba(0, 0, 0, 0)'),
       dm.map(c => c.bar));
     check('6b · the state is a small uppercase badge at the card\'s top right',
-      dm.every(c => c.badge && c.badge.size === '10px' && c.badge.weight === '700'
+      dm.every(c => c.badge && c.badge.size === '9px' && c.badge.weight === '700'
         && c.badge.tt === 'uppercase' && parseFloat(c.badge.ls) > 0
         && c.badge.bg !== 'rgba(0, 0, 0, 0)' && c.badge.right <= 16 && c.badge.aboveName),
       dm[0] && dm[0].badge);
-    check('6c · the name is the card\'s one piece of primary type — 15px/700',
-      dm.every(c => c.nm.size === '15px' && c.nm.weight === '700'), dm[0] && dm[0].nm);
-    check('6d · the small text is one size and one ink — 13px regular, secondary',
+    /* THE LADDER, ONE RUNG LOWER (owner-asked 25 Aug 2026: "all the fonts need
+       to be reduced by one size and the ones highlighted (numbers) should be
+       reduced by 2 sizes"). These are pinned as NUMBERS rather than as
+       relations, deliberately: the ask was about the sizes themselves. */
+    check('6c · the name is the card\'s one piece of primary type — 14px/700',
+      dm.every(c => c.nm.size === '14px' && c.nm.weight === '700'), dm[0] && dm[0].nm);
+    check('6d · the small text is one size and one ink — 12px regular, secondary',
       dm.every(c => [c.meta, c.note, ...c.labels].every(x =>
-        x.size === '13px' && x.weight === '400' && x.color === c.meta.color)),
+        x.size === '12px' && x.weight === '400' && x.color === c.meta.color)),
       dm[0] && { meta: dm[0].meta, note: dm[0].note, label: dm[0].labels[0] });
     check('6e · the labels are sentence case, not the uppercase caps the panels use',
       dm.every(c => c.labels.length === 2 && c.labels.every(l => l.tt === 'none'))
       && /NEEDS ATTENTION|Needs attention/.test(attTxt),
       dm[0] && dm[0].labels.map(l => l.txt + ':' + l.tt));
-    check('6f · both figures are 19px/700, and the count is the primary ink',
-      dm.every(c => c.figs.length === 2 && c.figs.every(f => f.size === '19px' && f.weight === '700'))
+    check('6f · both figures are 15px/700 — two rungs — and the count is the primary ink',
+      dm.every(c => c.figs.length === 2 && c.figs.every(f => f.size === '15px' && f.weight === '700'))
       && dm.every(c => c.figs[0].color === c.nm.color),
       dm[0] && dm[0].figs);
 

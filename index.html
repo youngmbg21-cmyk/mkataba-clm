@@ -3610,9 +3610,14 @@
      and dresses every table row and panel in the product; this card wants the
      demo's small uppercase mark and nothing else, so it is its own class
      rather than an override that would drag every other badge with it. */
-  .tpl-ov-badge{ float:right; margin-left:8px; display:inline-block; font-size:10px; font-weight:700;
-    letter-spacing:.06em; text-transform:uppercase; padding:3px 7px; border-radius:0;
-    white-space:nowrap; line-height:1.4; }
+  /* 9px IS THE ONE PLACE THIS PRODUCT GOES BELOW ITS OWN LADDER, and it is a
+     deliberate answer to "all the fonts need to be reduced by one size"
+     (owner-asked 25 Aug 2026): 10 is the floor of the 10/11/12/13/14/15/17/19
+     scale, and left there the badge read heavier than the 14px name beside it
+     once everything else came down. Uppercase with tracking carries it. */
+  .tpl-ov-badge{ float:right; margin-left:8px; display:inline-block; font-size:9px; font-weight:700;
+    letter-spacing:.06em; text-transform:uppercase; padding:2px 6px; border-radius:0;
+    white-space:nowrap; line-height:1.5; }
   /* AND THE ROWS LINE UP ACROSS THE WALL. A name that wraps and a note that
      does not put one card's figures 17px below its neighbour's — measured —
      and a wall of cards whose headings do not agree reads as a rendering

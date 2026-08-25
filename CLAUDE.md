@@ -2230,11 +2230,23 @@ that qualifies them.
   beside it stays primary ink: it is a fact about volume, not a verdict. All
   three read from `--st-*-fg`, which have dark answers — measured in both
   themes, no override owed.
-- **THE TYPE LADDER, since that was half the ask**: name **15/700** primary;
-  badge **10/700** uppercase with tracking; meta, labels and the note all
-  **13/400** on the secondary ink; the two figures **19/700**. That obeys the
-  four-shades rule by construction — primary is 14px and up, and everything
-  11-13px is the label shade.
+- **THE TYPE LADDER, since that was half the ask — AND IT CAME DOWN A RUNG THE
+  SAME DAY** (owner-asked, off a screenshot with the two figures ringed: *"all
+  the fonts need to be reduced by one size and the ones highlighted (numbers)
+  should be reduced by 2 sizes"*). It arrived at name 15 / badge 10 / small
+  text 13 / figures 19, and every one of those moved one step down this
+  product's own scale (10, 11, 12, 13, 14, 15, 17, 19, 22) except the figures,
+  which moved two: **name 14/700, badge 9/700 uppercase with tracking, meta,
+  labels and note 12/400 on the secondary ink, and both figures 15/700.**
+- **9px IS THE ONE PLACE THIS PRODUCT GOES BELOW ITS OWN LADDER**, and it is
+  said out loud rather than slipped in: 10 was the floor and the only sub-10px
+  type anywhere. Left at 10 the badge read HEAVIER than the 14px name once
+  everything else came down — measured — which is the opposite of what the ask
+  was for. Uppercase with tracking carries it.
+- **THE FOUR-SHADES RULE STILL HOLDS BY CONSTRUCTION**: primary ink is 14px and
+  up (the name, and the count, which is 15), and everything 9-12px wears the
+  label shade. The rate is 15px and takes a STATUS shade, which that rule
+  allows by name.
 - **THE LABELS ARE SENTENCE CASE**, not the 11px uppercase caps this product
   uses elsewhere: those are signposts OVER a list (the two panels keep theirs),
   and these are labels ON a figure.
