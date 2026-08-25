@@ -63,7 +63,15 @@ const INDUSTRY_LABEL={ services:'Services & professional', manufacturing:'Manufa
 /* Validated on read: a stored value the table no longer knows is no industry
    at all, not a crash in the picker. */
 function workspaceIndustry(){ const v=state.settings&&state.settings.industry; return INDUSTRY_TEMPLATES[v]?v:null; }
-function builtinUsageCount(tid){ return (state.contracts||[]).filter(c=>c.template===tid && !c.seeded).length; }
+/* ---- ONE READING, TWO CALLERS ----
+   The Templates overview needs the CONTRACTS drafted from a built-in (to ask
+   how many were checked against the playbook, and how many are recent), and
+   this counted them without ever handing them over. A second filter written
+   beside it is how two screens come to disagree about which contracts came
+   from one template — so the ROWS are the reading and the count is its
+   length. The seeded portfolio is excluded exactly as before. */
+function builtinUsageRows(tid){ return (state.contracts||[]).filter(c=>c.template===tid && !c.seeded); }
+function builtinUsageCount(tid){ return builtinUsageRows(tid).length; }
 function forYouTemplates(tmpls){
   const byId={}; tmpls.forEach(t=>{ byId[t.id]=t; });
   const picked=[];
@@ -359,4 +367,4 @@ function createFromWizard(tid, vars, opts){
   setView('workspace'); renderSideFolders&&renderSideFolders();
 }
 
-Object.assign(window,{TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,workspaceIndustry,builtinUsageCount,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard});
+Object.assign(window,{TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard});

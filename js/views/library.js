@@ -1277,6 +1277,15 @@ function openTemplatePreview(tpl){
    card grid offered is still here — Use, Open, bulk creation, blanks,
    versions, delete — the rarer ones behind one … menu per row. */
 let _tplPage={ group:'all', stream:null, q:'', showAll:false };
+/* ONE NUMBER, BOTH TABS: how many templates either tab shows before it says
+   how many more there are. Written twice, the overview would offer "see all
+   12 more" over a list that had already shown eight of them. */
+const TPL_PAGE_CAP=8;
+/* The window the overview's "most used" bars measure, and the floor under a
+   deviation rate. Three is PRECEDENT_MIN's own reasoning: a rate off one
+   contract is not a rate, it is that contract. */
+const TPL_RECENT_DAYS=90;
+const TPL_DEV_MIN=3;
 /* GETTERS: this table is read on every paint, and a plain object built once
    at module load would freeze whatever language the page started in. */
 const TPL_GROUP_LABEL={ get all(){ return i18t('lib_grp_all'); }, get company(){ return i18t('lib_grp_company'); },
@@ -1289,25 +1298,31 @@ function tplPageRows(){
     rows.push({ kind:'company', id:t.id, name:t.name, draft,
       sub:`${(typeof TPLLIB_CATEGORIES!=='undefined'&&TPLLIB_CATEGORIES[t.category])||'Company paper'}${draft?' · not published':''}`,
       stream:null, get origin(){ return i18t('lib_grp_company'); },
+      category:(typeof TPLLIB_CATEGORIES!=='undefined'&&TPLLIB_CATEGORIES[t.category])||null,
       version:t.publishedVersion?('v'+t.publishedVersion):null,
-      used:Number(t.contractsCreated)||0, at:t.lastUsedAt||'' });
+      /* A DATE IS LABELLED WITH WHAT IT IS. The overview prints it beside the
+         version, and "12 Aug 2026" on its own is a fact nobody can read —
+         published, last used and added are three different claims. */
+      used:Number(t.contractsCreated)||0, at:t.lastUsedAt||'', atKind:'used' });
   }
   for(const t of customTemplates()){
     rows.push({ kind:'cp', id:t.id, name:t.name,
       sub:`${FOLDERS[t.folder]?.name||'—'} · ${_tplSourceLabel(t)}${isRich(templateFormat(t))?' · formatted':''}`,
       stream:t.folder, origin:'Counterparty paper', version:'v'+templateVersionNo(t),
-      used:templateUsage(t.id).count, at:t.at||'' });
+      category:FOLDERS[t.folder]?.name||null,
+      used:templateUsage(t.id).count, at:t.at||'', atKind:'added' });
   }
   const myRole=currentUser()?.role||'viewer';
   for(const t of Object.values(TEMPLATES)){
     if(tplCanManage()&&!templateAllowedForRole(t.id,myRole)) continue;
     rows.push({ kind:'builtin', id:t.id, name:t.name, sub:t.blurb||'', stream:t.folder,
-      origin:'HaTi standard', version:t.id, mono:true,
+      origin:'HaTi standard', version:t.id, mono:true, category:FOLDERS[t.folder]?.name||null,
       used:(typeof builtinUsageCount==='function')?builtinUsageCount(t.id):0, at:'' });
   }
   const already=new Set(customTemplates().filter(t=>t.source&&t.source.startsWith('sample:')).map(t=>t.source.slice(7)));
   HATI_SAMPLES.forEach((s,i)=>rows.push({ kind:'sample', id:'smp'+i, i, name:s.name,
     sub:`${FOLDERS[s.folder]?.name||''} · ${s.file}`, stream:s.folder, origin:'Sample',
+    category:FOLDERS[s.folder]?.name||null,
     version:null, used:null, imported:already.has(s.file), at:'' }));
   /* Company paper leads (the whole point of publishing it), then the paper
      you brought in, then HaTi's own, then samples — most-used first inside
@@ -1365,7 +1380,7 @@ function tplPagePaintRows(){
   const all=tplPageRows();
   const rows=tplPageFiltered(all);
   const searching=!!_tplPage.q.trim()||_tplPage.group!=='all'||!!_tplPage.stream;
-  const CAP=8;
+  const CAP=TPL_PAGE_CAP;
   const shown=(_tplPage.showAll||searching)?rows:rows.slice(0,CAP);
   const hidden=rows.length-shown.length;
   const th=t=>`<th style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);text-align:left;padding:7px 8px;border-bottom:1px solid var(--color-divider)">${t}</th>`;
@@ -1439,28 +1454,277 @@ function tplNewMenu(){
   document.getElementById('tn-company')?.addEventListener('click',()=>{ closeModal(); tplLibCreateModal(); });
   document.getElementById('tn-cp')?.addEventListener('click',()=>{ closeModal(); openCreateTemplateModal('paste'); });
 }
+/* ==================================================== TEMPLATES OVERVIEW ====
+   THE PAGE IS TWO TABS (owner-asked 25 Aug 2026, off the demo): "Templates
+   overview" is the demo's own card wall, "Templates" is the table this page
+   has always been, and the two are asked to work together rather than sit
+   side by side.
+
+   THE OVERVIEW IS A SIGNPOST, NOT A SECOND LIBRARY. It answers three
+   questions the table cannot — how often is this paper actually used, how
+   often does what comes off it end up off-standard, and which templates want
+   somebody's attention — and every card, every attention row and the "see
+   all" is a DOOR into the table, narrowed to what was pressed. No verb lives
+   here that does not live there: Use, Open, blanks, bulk, versions and delete
+   are the table's, so there is one place a template is acted on.
+
+   COUNTING IS NOT DRAWING (the Insights panels' own rule): tplOverviewData
+   counts and returns plain data, tplOverviewHtml draws that data and computes
+   nothing. It counts the SAME population tplPageRows builds, so the two tabs
+   can never disagree about what the workspace holds. */
+
+/* Which contracts came from this template. ONE READING PER KIND, each
+   borrowed from the function that already owned it — templateUsage for the
+   workspace's own paper (company and counterparty alike; both are keyed on
+   templateId/templateRef) and builtinUsageRows for HaTi's own. A second
+   filter written here is how two screens come to disagree about which
+   contracts came from one template. A sample has none until it is imported,
+   at which point it IS a counterparty template and answers as one. */
+function tplRowContracts(r){
+  if(!r) return [];
+  if(r.kind==='sample') return [];
+  if(r.kind==='builtin') return (typeof builtinUsageRows==='function')?builtinUsageRows(r.id):[];
+  return (typeof templateUsage==='function')?templateUsage(r.id).rows:[];
+}
+
+function tplOverviewData(){
+  const rows=tplPageRows();
+  const cut=Date.now()-TPL_RECENT_DAYS*86400000;
+  /* Read through window and inside a try: this page renders in stages that do
+     not load reports.js or playbook.js, and a bare cross-module read throws
+     rather than falling through. */
+  const raisedAt=c=>{ try{ return window.repRaisedAt?repRaisedAt(c):null; }catch(_){ return null; } };
+  const devOf=c=>{ try{ return window.deviationSummary?deviationSummary(c):null; }catch(_){ return null; } };
+  const cards=rows.map(r=>{
+    const cs=tplRowContracts(r);
+    /* A RATE MAY ONLY COUNT PAPER A PLAYBOOK HAS ACTUALLY READ. A contract
+       nobody has checked is not an aligned one, and counting it as one
+       flatters every template on this page. So the denominator is what was
+       CHECKED, and what was not is stated on the card rather than trimmed
+       away — the fxMissing rule, on standards instead of money. */
+    const scanned=cs.filter(c=>c&&c.playbook);
+    const off=scanned.filter(c=>{ const s=devOf(c); return !!(s&&(s.dev+s.miss)>0); });
+    const recent=cs.filter(c=>{ const t=raisedAt(c); return t!=null&&t>=cut; }).length;
+    return { kind:r.kind, id:r.id, i:r.i, name:r.name, draft:!!r.draft, imported:!!r.imported,
+      stream:r.stream||null, origin:r.origin, category:r.category||null,
+      version:r.version||null, mono:!!r.mono, at:r.at||'', atKind:r.atKind||null,
+      used:r.used==null?null:r.used,
+      scanned:scanned.length, off:off.length, unscanned:cs.length-scanned.length,
+      rate:scanned.length?(off.length/scanned.length):null,
+      recent };
+  });
+  /* WHAT WANTS SOMEBODY, WORST FIRST. Three rules and no more: a template
+     whose paper keeps coming back off-standard is costing money, a draft is
+     work somebody started and nobody can use, and the workspace's own paper
+     that nothing has been drafted from was made for a reason nobody acted on.
+     A built-in or a sample nobody has used is not a finding — HaTi shipped
+     it, nobody in this workspace chose it. */
+  const attention=[];
+  for(const c of cards){
+    if(c.scanned>=TPL_DEV_MIN&&c.rate!=null&&c.rate>=0.5)
+      attention.push({ id:c.id, kind:c.kind, name:c.name, rank:0,
+        why:i18t('lib_ov_why_deviates',{pct:Math.round(c.rate*100)}) });
+    else if(c.kind==='company'&&c.draft)
+      attention.push({ id:c.id, kind:c.kind, name:c.name, rank:1, why:i18t('lib_ov_why_draft') });
+    else if((c.kind==='company'||c.kind==='cp')&&!c.draft&&c.used===0)
+      attention.push({ id:c.id, kind:c.kind, name:c.name, rank:2, why:i18t('lib_ov_why_unused') });
+  }
+  attention.sort((a,b)=>a.rank-b.rank||String(a.name).localeCompare(String(b.name)));
+  /* THE WALL IS ORDERED BY THE FIGURE ON THE CARD. The table leads with the
+     workspace's own paper, which is right for a library; this is a reading of
+     ACTIVITY, and a first screen of eight templates nothing has come off is
+     not one. Ties keep the table's own order, so the two never shuffle
+     against each other without reason. Same population, different question. */
+  cards.sort((a,b)=>((b.used||0)-(a.used||0)));
+  const mostUsed=cards.filter(c=>c.recent>0)
+    .sort((a,b)=>b.recent-a.recent||String(a.name).localeCompare(String(b.name)))
+    .slice(0,5);
+  const peak=mostUsed.length?mostUsed[0].recent:0;
+  return { cards, attention, attentionShown:attention.slice(0,5),
+    attentionMore:Math.max(0,attention.length-5),
+    mostUsed, peak, days:TPL_RECENT_DAYS,
+    total:cards.length,
+    checked:cards.reduce((n,c)=>n+c.scanned,0),
+    unchecked:cards.reduce((n,c)=>n+c.unscanned,0),
+    /* In server mode the browser holds a working set; templateUsage already
+       answers whether that is the whole book, and a rate measured over half a
+       portfolio must say so rather than read as the portfolio's. */
+    complete:(typeof templateUsage==='function')?templateUsage('__none__').complete:true };
+}
+
+function tplOverviewHtml(d){
+  const CARD='background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;box-shadow:var(--shadow-sm)';
+  const HEAD='font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)';
+  const day=v=>{ const t=Date.parse(v||''); return isNaN(t)?null:new Date(t).toLocaleDateString(langLocale(),{day:'numeric',month:'short',year:'numeric'}); };
+  const badge=c=>{
+    if(c.kind==='company') return c.draft
+      ? `<span class="badge" style="background:var(--st-amber-bg);color:var(--st-amber-fg);flex:none">${i18t('lib_ov_draft')}</span>`
+      : `<span class="badge" style="background:var(--st-green-bg);color:var(--st-green-fg);flex:none">${i18t('tl_published')}</span>`;
+    if(c.kind==='sample'&&c.imported) return `<span class="badge" style="background:var(--st-green-bg);color:var(--st-green-fg);flex:none">${i18t('lib_imported')}</span>`;
+    return `<span class="badge" style="background:var(--color-neutral-100);color:var(--color-neutral-600);flex:none">${_tplEsc(c.origin)}</span>`;
+  };
+  const dated=c=>{
+    const s=day(c.at); if(!s) return null;
+    return c.atKind==='added'?i18t('lib_ov_added',{d:s}):i18t('lib_ov_last_used',{d:s});
+  };
+  const note=c=>{
+    /* NOTHING DRAFTED IS A DIFFERENT FACT FROM NOTHING CHECKED, and reading
+       the first as the second puts a checking gap on a template that has
+       simply never been used. */
+    if(c.rate==null) return (c.used===0||(c.used==null&&c.unscanned===0))
+      ? i18t('lib_ov_why_unused') : i18t('lib_ov_not_checked');
+    const first=i18tn('lib_ov_off_standard',c.scanned,{off:c.off,n:c.scanned});
+    return c.unscanned>0?`${first} ${i18tn('lib_ov_unchecked',c.unscanned,{n:c.unscanned})}`:first;
+  };
+  const stripe=c=>c.kind==='company'
+    ?(c.draft?'var(--st-amber-dot)':'var(--st-green-dot)')
+    :(c.stream?folderColor(c.stream):'var(--color-neutral-300)');
+  const cardHtml=c=>{
+    const sub=[c.category,c.version&&!c.mono?c.version:null,dated(c)].filter(Boolean).join(' · ');
+    return `<button data-tpl-ov-card="${_tplEsc(c.id)}" data-tpl-ov-name="${_tplEsc(c.name)}" title="${i18t('lib_ov_open_in_list')}"
+      style="${CARD};display:flex;flex-direction:column;align-items:stretch;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;padding:0;overflow:hidden"
+      onmouseover="this.style.borderColor='var(--accent-solid)'" onmouseout="this.style.borderColor='var(--color-divider)'">
+      <span style="display:flex;align-items:flex-start;gap:10px;padding:13px 14px 0">
+        <span style="flex:none;width:4px;height:34px;background:${stripe(c)}"></span>
+        <span style="flex:1;min-width:0">
+          <span class="tpl-ov-name" style="display:block;font-size:14px;font-weight:700;color:var(--color-text)">${_tplEsc(c.name)}</span>
+          <span style="display:flex;align-items:center;gap:8px;margin-top:3px">
+            <span style="flex:1;min-width:0;font-size:12px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(sub||'—')}</span>
+            ${badge(c)}
+          </span>
+        </span>
+      </span>
+      <span style="display:flex;gap:18px;padding:11px 14px 0;margin-top:11px;border-top:1px solid var(--color-divider)">
+        <span style="flex:1;min-width:0">
+          <span style="display:block;${HEAD}">${i18t('lib_ov_used')}</span>
+          <span style="display:block;font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--color-text);line-height:1.2">${c.used==null?'—':c.used}</span>
+        </span>
+        <span style="flex:1;min-width:0">
+          <span style="display:block;${HEAD}">${i18t('lib_ov_dev_rate')}</span>
+          <span style="display:block;font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--color-text);line-height:1.2">${c.rate==null?'—':Math.round(c.rate*100)+'%'}</span>
+        </span>
+      </span>
+      <span class="tpl-ov-note" style="display:block;padding:8px 14px 13px;font-size:12px;color:var(--color-neutral-600)">${_tplEsc(note(c))}</span>
+    </button>`;
+  };
+  const shown=d.cards.slice(0,TPL_PAGE_CAP);
+  const more=d.cards.length-shown.length;
+  const attRow=a=>`<button data-tpl-ov-card="${_tplEsc(a.id)}" data-tpl-ov-name="${_tplEsc(a.name)}"
+    style="display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--color-divider);background:none;cursor:pointer;font:inherit;color:inherit;padding:8px 2px"
+    onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
+    <span style="display:block;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(a.name)}</span>
+    <span style="display:block;font-size:12px;color:var(--color-neutral-600);line-height:1.45">${_tplEsc(a.why)}</span></button>`;
+  const barRow=c=>{
+    const w=d.peak?Math.max(6,Math.round(c.recent/d.peak*100)):0;
+    return `<button data-tpl-ov-card="${_tplEsc(c.id)}" data-tpl-ov-name="${_tplEsc(c.name)}"
+      style="display:block;width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;color:inherit;padding:6px 2px">
+      <span style="display:flex;align-items:baseline;gap:8px">
+        <span style="flex:1;min-width:0;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(c.name)}</span>
+        <span style="flex:none;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums">${c.recent}</span>
+      </span>
+      <span style="display:block;height:6px;margin-top:4px;background:var(--color-neutral-100)">
+        <span style="display:block;height:6px;width:${w}%;background:var(--accent-solid)"></span></span></button>`;
+  };
+  const EMPTY='font-size:13px;line-height:1.6;color:var(--color-neutral-600);margin:0';
+  return `
+  <div class="tpl-ov" style="display:grid;gap:16px;align-items:start">
+    <div>
+      <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+        <span style="font-size:13px;color:var(--color-neutral-600)">${i18tn('lib_ov_head',d.total,{n:d.total})}</span>
+        <span style="font-size:13px;color:var(--color-neutral-600)">·</span>
+        <span style="font-size:13px;color:var(--color-neutral-600)">${i18t('lib_ov_coverage',{checked:d.checked,open:d.unchecked})}</span>
+      </div>
+      <div class="tpl-ov-cards" style="display:grid;gap:12px">${shown.map(cardHtml).join('')}</div>
+      ${more>0?`<div style="display:flex;align-items:center;gap:10px;margin-top:12px">
+        <span style="font-size:13px;color:var(--color-neutral-600)">${i18tn('lib_ov_more',more,{n:more})}</span>
+        <button id="tpl-ov-all" style="border:0;background:none;cursor:pointer;font:inherit;font-size:13px;font-weight:700;color:var(--accent-ink)">${i18tn('lib_ov_see_all',d.total,{n:d.total})}</button>
+      </div>`:''}
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <section style="${CARD};padding:14px">
+        <div style="${HEAD};margin-bottom:8px">${i18t('lib_ov_attention')}</div>
+        ${d.attentionShown.length?d.attentionShown.map(attRow).join(''):`<p style="${EMPTY}">${i18t('lib_ov_attention_none')}</p>`}
+        ${d.attentionMore>0?`<p style="${EMPTY};margin-top:8px">${i18tn('lib_ov_more',d.attentionMore,{n:d.attentionMore})}</p>`:''}
+      </section>
+      <section style="${CARD};padding:14px">
+        <div style="${HEAD};margin-bottom:8px">${i18t('lib_ov_most_used',{n:d.days})}</div>
+        ${d.mostUsed.length?d.mostUsed.map(barRow).join(''):`<p style="${EMPTY}">${i18t('lib_ov_most_used_none',{n:d.days})}</p>`}
+      </section>
+    </div>
+  </div>`;
+}
+
+/* THE TAB IS PER SITTING, IN MEMORY — the Settings page's own rule: a stored
+   tab lands a reader somewhere unrelated a week later. */
+const TPL_PAGE_TABS=['overview','list'];
+let _tplPageTab=null;
+function tplPageTab(){ return TPL_PAGE_TABS.includes(_tplPageTab)?_tplPageTab:'overview'; }
+/* A tab press is CLASS AND HIDDEN FLIPS, never a re-render: the table holds a
+   search box the reader may be typing into, and both doors below (a card, the
+   "see all") set that box before switching. */
+function tplPageSetTab(k){
+  if(!TPL_PAGE_TABS.includes(k)) return;
+  _tplPageTab=k;
+  document.querySelectorAll('[data-tpl-tab]').forEach(t=>{
+    const on=t.getAttribute('data-tpl-tab')===k;
+    t.classList.toggle('on',on); t.setAttribute('aria-selected',on?'true':'false');
+  });
+  document.querySelectorAll('[data-tpl-sec]').forEach(s=>{ s.hidden=s.getAttribute('data-tpl-sec')!==k; });
+}
+/* THE TWO TABS WORK TOGETHER HERE. A card, an attention row and a bar all
+   land on the same door: switch to the table, narrowed to that template.
+   THE NARROWING SAYS SO AND OFFERS THE WAY BACK by construction — it is the
+   table's own search box, filled with the name in plain sight, and emptying
+   it is the way back. */
+function tplGoList(name){
+  _tplPage.q=String(name||''); _tplPage.group='all'; _tplPage.stream=null; _tplPage.showAll=false;
+  tplPageSetTab('list');
+  const box=document.getElementById('tpl-search');
+  if(box) box.value=_tplPage.q;
+  tplPagePaintRows();
+  try{ box?.focus(); }catch(_){}
+}
+
 function renderTemplatesPage(){
   const rows=tplPageRows();
   const counts=rows.reduce((m,r)=>{m[r.kind]=(m[r.kind]||0)+1;return m;},{});
   const total=rows.length;
   const lib=(typeof tplLibAll==='function')?tplLibAll():{canManage:false,loaded:true};
   const canManage=tplCanManage();
+  const tab=tplPageTab();
+  const ov=tplOverviewData();
   const railIt=(key,label,n)=>`<button data-tpl-group="${key}" style="display:flex;align-items:center;gap:8px;width:100%;border:0;background:${_tplPage.group===key?'var(--color-accent-100)':'none'};color:${_tplPage.group===key?'var(--color-accent-800)':'var(--color-neutral-700)'};font:inherit;font-size:14px;font-weight:600;padding:7px 11px;border-radius:0;cursor:pointer;text-align:left">
     <span style="flex:1">${label}</span><span style="font-family:var(--font-mono);font-size:12px;color:${_tplPage.group===key?'var(--color-accent-700)':'var(--color-neutral-500)'}">${n}</span></button>`;
   const streamIt=f=>`<button data-tpl-stream="${f.id}" style="display:flex;align-items:center;gap:9px;width:100%;border:0;background:${_tplPage.stream===f.id?'var(--color-accent-100)':'none'};color:var(--color-neutral-700);font:inherit;font-size:13px;font-weight:600;padding:6px 11px;border-radius:0;cursor:pointer;text-align:left">
     <span style="flex:none;width:8px;height:14px;border-radius:0;background:${folderColor(f.id)}"></span><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(f.name.split(' & ')[0].split(' — ')[0])}</span></button>`;
   const HEAD='font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;color:var(--color-neutral-500);text-transform:uppercase;padding:0 11px;margin:0 0 6px';
+  /* NO SENTENCE UNDER THE TITLE and none under the tabs (owner-asked 25 Aug
+     2026, "remove these explanations below the headers in all pages where the
+     explanation is there"). This page owns its own header, so the sweep that
+     emptied the shell's subtitle never reached it; a tab row with a .st-tabsub
+     under it would put the same sentence back one line lower. */
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="padding:var(--page-pad)">
-    <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:14px">
-      <div style="min-width:0">
-        <h1 style="margin:0;font-family:var(--font-heading);font-size:20px;font-weight:700;letter-spacing:-.01em;color:var(--color-text);line-height:1.2">${i18t('nav_templates')}</h1>
-        <p style="margin:3px 0 0;font-size:13px;color:var(--color-neutral-500)">${i18t('lib_templates_sub')}</p>
-      </div>
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:10px">
+      ${''/* THE TITLE'S INK SITS WHERE EVERY OTHER PAGE'S DOES. The row is
+            centre-aligned for the acts beside it, and a 20px title centred
+            against a 28px button lands 3px lower than the shared header's —
+            MEASURED, and it is exactly the spread the owner reported on
+            25 Aug. Home answers this the same way, by taking one element out
+            of the row's alignment rather than by moving the row. */}
+      <h1 style="margin:0;align-self:flex-start;font-family:var(--font-heading);font-size:20px;font-weight:700;letter-spacing:-.01em;color:var(--color-text);line-height:1.2">${i18t('nav_templates')}</h1>
       <span style="flex:1"></span>
       ${canManage?`<button id="tpl-convert" class="ui-btn ui-btn-secondary" style="font-size:13px;padding:6px 13px">${i18t('lib_convert_document')}</button>
       <button id="tpl-new" class="ui-btn ui-btn-primary" style="font-size:13px;padding:6px 14px">${i18t('lib_new_template')}</button>`:''}
     </div>
+    <div class="st-tabs" role="tablist" style="margin-bottom:14px">
+      <button class="st-tab${tab==='overview'?' on':''}" data-tpl-tab="overview" role="tab" aria-selected="${tab==='overview'?'true':'false'}">${i18t('lib_tab_overview')}</button>
+      <button class="st-tab${tab==='list'?' on':''}" data-tpl-tab="list" role="tab" aria-selected="${tab==='list'?'true':'false'}">${i18t('nav_templates')}</button>
+    </div>
+
+    <section data-tpl-sec="overview" ${tab==='overview'?'':'hidden'}>${tplOverviewHtml(ov)}</section>
+
+    <section data-tpl-sec="list" ${tab==='list'?'':'hidden'}>
     <div class="tpl-cols" style="display:grid;gap:16px;align-items:start">
       <div>
         <div style="${HEAD}">${i18t('lib_library')}</div>
@@ -1485,8 +1749,20 @@ function renderTemplatesPage(){
         <div id="tpl-rows" style="overflow-x:auto"></div>
       </div>
     </div>
+    </section>
   </div>`;
   tplPagePaintRows();
+  document.querySelectorAll('[data-tpl-tab]').forEach(b=>b.addEventListener('click',()=>tplPageSetTab(b.getAttribute('data-tpl-tab'))));
+  /* Every door on the overview lands on the same one: the table, narrowed to
+     the template that was pressed. A card, an attention row and a bar are
+     three drawings of one act, so they share one handler and one selector. */
+  document.querySelectorAll('[data-tpl-ov-card]').forEach(b=>b.addEventListener('click',()=>tplGoList(b.getAttribute('data-tpl-ov-name'))));
+  document.getElementById('tpl-ov-all')?.addEventListener('click',()=>{
+    _tplPage.q=''; _tplPage.group='all'; _tplPage.stream=null; _tplPage.showAll=true;
+    tplPageSetTab('list');
+    const box=document.getElementById('tpl-search'); if(box) box.value='';
+    tplPagePaintRows();
+  });
   document.querySelectorAll('[data-tpl-group]').forEach(b=>b.addEventListener('click',()=>{
     _tplPage.group=b.getAttribute('data-tpl-group'); _tplPage.showAll=false; renderTemplatesPage(); }));
   document.querySelectorAll('[data-tpl-stream]').forEach(b=>b.addEventListener('click',()=>{
@@ -1606,4 +1882,4 @@ function renderPlaybookPage(){
 
 Object.assign(window,{HATI_SAMPLES,openBlanksEditor,_tplPreviewHtml,_tplSourceLabel,_richSelection,_richReplaceRange,
   templateVersionNo,templateVersions,templateUsage,templateUsageLabel,saveTemplateVersion,
-  openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,duplicateBuiltinTemplate,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});
+  openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,duplicateBuiltinTemplate,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplRowContracts,tplPageTab,tplPageSetTab,tplGoList,TPL_PAGE_TABS,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});

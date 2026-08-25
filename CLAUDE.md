@@ -2134,6 +2134,98 @@ the neutral resolves there to a value that row already held. That is
 token by this redesign. **No other screen moved and nothing unexplained
 appeared.** 40/40, and it is a working net again.
 
+## THE TEMPLATES PAGE IS TWO TABS (owner-asked 25 Aug 2026, off the demo)
+
+*"Image 1 from the demo should be the first tab called Templates overview.
+Image 2 should be the 2nd tab which is what is currently in the platform and
+that will be called Templates. The connect the two to function together."*
+
+Fifth page of the page-by-page pass. **Templates overview** is the demo's card
+wall; **Templates** is the table this page has always been, unchanged.
+
+- **THE OVERVIEW IS A SIGNPOST, NOT A SECOND LIBRARY.** It answers three
+  questions the table cannot — how often is this paper actually used, how often
+  does what comes off it end up off-standard, and which templates want
+  somebody — and **it acts on nothing**. Use, Open, blanks, bulk, versions and
+  delete stay on the table, so a template is operated on in ONE place and the
+  two tabs can never come to disagree about what a press does.
+- **ONE POPULATION, COUNTED ONCE.** `tplOverviewData` reads `tplPageRows` — the
+  same list the table draws — so neither tab can hold a template the other does
+  not. `TPL_PAGE_CAP` is the one number either tab shows before it says how
+  many more there are; written twice, the overview would offer "see all 12
+  more" over a table that had already shown eight of them.
+- **COUNTING IS NOT DRAWING** (the Insights panels' rule): `tplOverviewData`
+  returns plain data and draws nothing, `tplOverviewHtml` draws it and computes
+  nothing. f244 greps both halves.
+- **WHICH CONTRACTS CAME FROM A TEMPLATE IS ASKED, NEVER RE-DERIVED.**
+  `tplRowContracts` borrows `templateUsage(...).rows` for the workspace's own
+  paper (company and counterparty alike — both keyed on templateId/templateRef)
+  and **`builtinUsageRows`** for HaTi's own, which is NEW: `builtinUsageCount`
+  had counted them without ever handing them over, and a second filter written
+  beside it is how two screens come to disagree about one template's book. The
+  count is now that reading's length.
+- **A DEVIATION RATE MAY ONLY COUNT PAPER A PLAYBOOK HAS READ.** A contract
+  nobody has checked is not an aligned one, and counting it as one flatters
+  every template on the page. So the denominator is what was CHECKED, what was
+  not is stated on the card, and **a template nothing has been drafted from
+  says THAT instead** — three different facts, three different sentences. The
+  fxMissing rule, on standards rather than on money. The page states its own
+  coverage once, at the top.
+- **A RATE OFF ONE CONTRACT IS NOT A RATE.** `TPL_DEV_MIN` is 3 —
+  PRECEDENT_MIN's own reasoning. The rate is still printed on the card; what it
+  cannot do below three is raise the alarm.
+- **NEEDS ATTENTION IS THREE RULES AND NO MORE**, worst first: paper that keeps
+  coming back off-standard (costing money), a draft nobody can use, and the
+  workspace's OWN paper nothing has been drafted from. **A built-in or a sample
+  nobody has used is not a finding** — HaTi shipped it, nobody here chose it —
+  and a rule that flags everything is one nobody reads.
+- **THE WALL IS ORDERED BY THE FIGURE ON THE CARD** (used, descending), not by
+  the table's own order. The table leads with the workspace's own paper, which
+  is right for a library; this is a reading of ACTIVITY, and a first screen of
+  eight templates nothing has come off is not one. Ties keep the table's order.
+- **THE TWO TABS WORK TOGETHER AT ONE DOOR.** A card, an attention row and a
+  bar are three drawings of one act — `data-tpl-ov-card`, one handler,
+  `tplGoList` — which switches to the table narrowed to that template.
+  **THE NARROWING SAYS SO AND OFFERS THE WAY BACK BY CONSTRUCTION**: it is the
+  table's own search box, filled with the name in plain sight, and emptying it
+  is the way back. "See all N" opens the table whole.
+- **THE TAB IS PER SITTING, IN MEMORY** and a press is CLASS AND HIDDEN FLIPS,
+  never a re-render — the Settings page's own rules. Both sections stay in the
+  DOM, so `tplPagePaintRows` still fills `#tpl-rows` by id on every paint and
+  every id a door or a test reaches for stays reachable.
+- **THE PAGE'S OWN SUBTITLE WENT WITH IT.** This page owns its header, so the
+  25 Aug sweep through the shell never reached `lib_templates_sub` (STALE —
+  flag any mention). A `.st-tabsub` under the new tabs would have put the same
+  sentence back one line lower, so there is none.
+- **AND THE TITLE'S INK HAD TO BE PUT BACK WHERE EVERY OTHER PAGE'S SITS.** The
+  new head row is centre-aligned for the acts beside it, and a 20px title
+  centred against a 28px button lands **3px lower** than the shared header's —
+  measured, exactly the spread the owner reported on 25 Aug. `align-self:
+  flex-start` on the h1, which is how Home answers the same question: take one
+  element out of the row's alignment rather than move the row.
+- **THE CARD'S SKELETON IS PINNED SO THE WALL LINES UP.** A `<button>` CENTRES
+  its content vertically when the grid stretches it — measured, one card's
+  heading sat 9px below its neighbour's in the same row — so the card is a flex
+  column; and the name and the note each clamp to two lines AND reserve two, so
+  a wrapping name cannot push one card's figures 17px below its neighbour's.
+  The cost is one blank line on a short name, taken deliberately: the subgrid
+  trick the upload dialog uses cannot reach here, because this wall's rows are
+  implicit and there are none to inherit.
+
+**THE COLOUR CENSUS WAS RE-RECORDED, AUDITED FIRST**, and it is the smallest
+kind: **one screen, one value, nothing leaving.** `rgb(241,245,249)` —
+`--color-neutral-100`, the origin badge's face and the bar track — ARRIVING on
+`templates--light`. Dark did not move at all, because that token resolves there
+to a value the screen already held. No other screen moved.
+
+Tests: f244 (34 — **22 of them fail against the code of an hour before**),
+templates-tabs-verify (21, browser — the tabs pressed for real, the table
+proved to have LEFT the screen rather than merely lost an attribute, the cards
+measured as pixels with both figures and the sentence that qualifies them, a
+card pressed through to a narrowed table, and no sideways scroll at three
+laptop widths), pages-read-alike-verify section 8 (the title's ink, which
+caught the 3px above), theme-tokens-verify 40/40.
+
 ## A ROUND THAT LANDS, AND ONE THAT SAYS WHY IT HAS NOT (owner-reported 23 Aug 2026, MK-349)
 
 *"the counterparty accepted but this acceptance has not been pushed to the owner side hence the limbo it seems."* Reproduced end to end before anything was touched — the owner's own shape, a payment-terms clause inserted from the standards library, shared on a negotiate link, the counterparty accepting it and asking for one of their own in the same Send. **The plumbing was sound: the envelope reached the server, and a forced poll applied both halves with the right audit lines.** What was broken was WHEN the owner's browser asked, and what anybody was told when it did not.
