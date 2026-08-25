@@ -4912,7 +4912,14 @@ function wireWsFocus(c){
    uses for an unfilled blank. */
 /* Whether the head's fact row is folded. Per sitting, in memory — see the note
    in wireRoomHead. */
-let _wsFactsFolded=false;
+/* THREE STATES, NOT TWO (25 Aug 2026, when the header learned to snap).
+   null  = nobody has said, so the scroll position decides
+   true  = the reader folded it, and that wins for the sitting
+   false = the reader opened it, and that wins too
+   A manual press has to beat the automatic behaviour or the two fight: a
+   reader who opens the facts while scrolled down would watch them shut again
+   on the very next scroll event. */
+let _wsFactsFolded=null;
 /* ---- THE THREE CHECKS AS SYMBOLS, ON THE NEGOTIATION HEAD ----
    Owner-asked 24 Aug 2026: "add the red highlighted symbols to where image 3
    shows in the negotiation page. They should then act like buttons so you can
@@ -5466,11 +5473,91 @@ function wireRoomHead(c){
       ftog.title=i18t(shut?'ct_expand_facts_title':'ct_collapse_facts_title');
       const w=ftog.querySelector('.room-snap-word');
       if(w) w.textContent=i18t(shut?'ct_expand':'ct_collapse'); };
-    if(_wsFactsFolded) facts.classList.add('is-folded');
+    if(_wsFactsFolded===true) facts.classList.add('is-folded');
     paint();
     ftog.addEventListener('click',e=>{ e.stopPropagation();
       _wsFactsFolded=facts.classList.toggle('is-folded'); paint(); });
+
+    /* ═══ THE HEADER SNAPS — SAP Fiori's dynamic page header ═══════════════
+       The title, the status and the acts persist; the FACT ROW scrolls away
+       and comes back at the top. HaTi had the fold and only a manual control
+       for it, so the space it buys was only ever bought on purpose.
+
+       IT LISTENS IN THE CAPTURE PHASE ON document, AND THAT IS THE WHOLE
+       MECHANIC. A first attempt bound to #content-scroll and never fired:
+       MEASURED, that element has 0px of scroll in this room. The head sits
+       ABOVE the room's own inner scroller and each tab brings a different one
+       — the Document tab scrolls #doc-scroll, Key terms scrolls its own
+       column. Scroll events do not bubble, but they DO capture, so one
+       listener on document catches whichever scroller the current tab
+       mounted, without this code having to know their names.
+
+       THE MANUAL PRESS WINS. Snapping only runs while _wsFactsFolded is null;
+       the first press pins the reader's choice for the sitting. Without that
+       the two fight: open the facts, scroll one notch, watch them shut.
+
+       FIORI'S "RE-EXPAND ON KEYBOARD FOCUS" IS DELIBERATELY NOT BUILT, and
+       the reason is worth keeping. It was written, and then measured: this
+       fold is `display:none` on .room-facets, and a display:none subtree
+       cannot receive focus at all — so a focusin handler for it can never
+       fire. Dead twice over, in fact: that region holds only divs today, so
+       folding it removes nothing from the tab order in the first place.
+       AND IT WOULD HAVE BEEN ACTIVELY WRONG. The Collapse button and the
+       check rows are inside #ws-facts but OUTSIDE .room-facets, so a handler
+       watching the whole row would have popped the facts open the moment a
+       reader tabbed to Collapse — the one press that means the opposite.
+       If the facet values ever gain a control, the fold has to stop being
+       display:none before any of this becomes reachable.
+
+       BOUND ONCE, on document rather than per render: this head is re-wired
+       on every render and on every tab change. */
+    if(!document._wsSnapBound){
+      document._wsSnapBound=true;
+      let ticking=false, lastTop=0;
+      const paintSnap=()=>{
+        ticking=false;
+        const el=document.getElementById('ws-facts');
+        if(!el) return;                                   /* another view */
+        if(_wsFactsFolded!==null) return;                 /* the reader ruled */
+        /* NO activeElement GUARD. One was written here for the focus
+           behaviour above and left behind when that was removed — and it did
+           real harm: #ws-facts contains the Collapse button, so with focus on
+           that button the snap stopped responding to scroll ENTIRELY. Caught
+           by snap-header-verify section 4, which tabs to Collapse in the
+           section before. A guard for a feature that no longer exists is not
+           inert; it is a condition nobody is checking any more. */
+        /* THE THRESHOLD IS THE ROW'S OWN HEIGHT, never a typed number: fold
+           once the reader has scrolled about as far as folding would save,
+           so the page cannot gain and lose the same pixels in a loop. */
+        const h=el.getBoundingClientRect().height||44;
+        el.classList.toggle('is-folded', lastTop > h);
+        const t=document.getElementById('ws-facts-toggle');
+        if(t){
+          const shut=el.classList.contains('is-folded');
+          t.setAttribute('aria-expanded',shut?'false':'true');
+          const w=t.querySelector('.room-snap-word');
+          if(w) w.textContent=i18t(shut?'ct_expand':'ct_collapse');
+        }
+      };
+      document.addEventListener('scroll',e=>{
+        const t=e.target;
+        if(!t||t===document||t.nodeType!==1) return;
+        /* Only a scroller inside the shell's main column, and never the fact
+           row itself — an unrelated drawer or the Copilot feed must not fold
+           the contract's header. */
+        const main=document.getElementById('content-scroll');
+        if(!main||!main.contains(t)) return;
+        const el=document.getElementById('ws-facts');
+        if(el&&el.contains(t)) return;
+        lastTop=t.scrollTop;
+        if(ticking) return; ticking=true; requestAnimationFrame(paintSnap);
+      },true);
+      /* So a test — and a reader landing mid-page — can settle the state
+         without waiting for a scroll event. */
+      window._wsSnapApply=(top)=>{ if(typeof top==='number') lastTop=top; paintSnap(); };
+    }
   }
+
   const btn=document.getElementById('ws-more'), menu=document.getElementById('ws-more-menu');
   if(btn&&menu){
     const shut=()=>{ menu.classList.add('hidden'); btn.setAttribute('aria-expanded','false'); };
