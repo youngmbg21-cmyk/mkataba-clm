@@ -310,29 +310,37 @@
        which is the ONLY writer of #body-grid's columns — it writes an inline
        style, so a media query aimed at that element would silently lose. */
     --shell-panel-w:292px;
-    /* THE PLATFORM FACE IS INTER (owner-asked, 22 Aug 2026), replacing SAP's
-       "72", which carried it from 20 Aug. All three tokens point at the one
-       family — headings, body and figures differ by WEIGHT, not by face — and
-       the fallback is the ordinary system stack, which is what emails and bare
-       export windows get since they cannot load a custom face.
+    /* THE PLATFORM FACE IS IBM PLEX SANS (owner-asked, 25 Aug 2026), replacing
+       Inter, which carried it from 22 Aug and SAP's "72" before that. All four
+       face tokens point at the one family — headings, body, figures and the
+       contract paper differ by WEIGHT, not by face — and the fallback is the
+       ordinary system stack, which is what emails and bare export windows get
+       since they cannot load a custom face.
 
-       IT WAS ALREADY HERE. --font-doc has resolved to Inter all along, so the
-       product now runs ONE family end to end rather than two; fonts/fonts.css
-       lost 200 KB by dropping "72" rather than gaining anything.
+       THE REASON IS CHARACTER, not a licence and not legibility. Inter is the
+       default face of modern software, so it reads as well-made and generic;
+       Plex was drawn as a corporate voice and reads institutional, which is
+       what contract software should sound like. MEASURED before it was chosen:
+       legibility is a WASH — the same small-letter height, and a clause of
+       wording takes the same five lines at the same measure, so nothing reads
+       smaller and no page holds less contract. What it buys is about 5% of
+       WIDTH back, which is real headroom in the tight columns and in Swedish.
 
-       THE REASON IS A LICENCE, not a look. "72" is SAP's and is distributed
-       for use with SAP's own software; Inter is under the SIL Open Font
-       License — free commercially, free to embed and serve, nothing owed and
-       nobody to credit on screen. See the note at the top of fonts/fonts.css. */
-    --font-heading:Inter,system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
-    --font-body:Inter,'Segoe UI',system-ui,-apple-system,Arial,sans-serif;
+       THE LICENCE IS THE SAME FOOTING AS BEFORE: IBM Plex Sans is under the SIL
+       Open Font License — free commercially, free to embed and serve, nothing
+       owed and nobody to credit on screen. "72" remains out for the reason it
+       always was: it is distributed for use with SAP's own software, and this
+       is not that. See the note at the top of fonts/fonts.css, which carries
+       the measurements and the one coverage narrowing this swap cost. */
+    --font-heading:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
+    --font-body:'IBM Plex Sans','Segoe UI',system-ui,-apple-system,Arial,sans-serif;
     /* THE FIGURE FACE, not a code face. This token is used ~160 times for
        reference ids, dates, day counts and money — data, not code — so it
-       follows the platform face. Inter's digits sit on one width under
+       follows the platform face. Plex's digits sit on one width under
        `font-variant-numeric:tabular-nums`, which is what the money and count
        columns already ask for, so they line up without borrowing a typewriter
        face to do it. */
-    --font-mono:Inter,system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
+    --font-mono:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
     /* True monospace, kept for the two things that are genuinely code: a
        SHA-256 fingerprint and a keyboard chip. Courier New by the owner's own
        spec — the two deliberate exceptions to the platform face. */
@@ -348,12 +356,12 @@
        .doc-surface size, leading and ink below are unchanged — so the paper
        keeps its own measure even though it shares a family with the app.
 
-       AS OF 22 Aug 2026 THAT SENTENCE IS LITERALLY TRUE: the platform moved to
-       Inter, which is the face this token already named, so paper and product
-       are now the same family rather than two that resemble each other. This
-       token stays a token — the paper's face is its own decision, and pointing
-       both at one family today must not make them one setting tomorrow. */
-    --font-doc:Inter,'Segoe UI',system-ui,-apple-system,Arial,sans-serif;
+       SINCE 22 Aug 2026 THAT SENTENCE IS LITERALLY TRUE: the platform and the
+       paper name one family rather than two that resemble each other — Inter
+       then, IBM Plex Sans since 25 Aug. This token stays a token — the paper's
+       face is its own decision, and pointing both at one family today must not
+       make them one setting tomorrow. */
+    --font-doc:'IBM Plex Sans','Segoe UI',system-ui,-apple-system,Arial,sans-serif;
     --font-doc-mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
 
     /* Document text colour. A solid token, deliberately NOT an opacity
@@ -708,6 +716,28 @@
      without a single box moving. */
   .font-600{font-weight:600}
   .font-700{font-weight:700}
+  /* ---- AND ONE CLASS THAT STILL NAMED THE OLD FACE (25 Aug 2026, the Plex swap) ----
+     The compiled blob above bakes a literal family into three rules:
+     `:host,html`, `.font-display` and `.font-serif`. TWO OF THE THREE WERE
+     ALREADY COVERED and needed nothing: the html one loses to HaTi's own
+     `html{font-family:var(--font-body)}`, and `.font-display` is named
+     outright in the h1-h6 rule a few lines above, which is why every clause
+     heading on the contract paper followed the swap on its own.
+     `.font-serif` DID NOT, and the reason is specificity rather than an
+     oversight. It is worn by `<h3>` elements (js/approvals.js's signing route,
+     js/obligations.js's add-obligation and proposed panels, js/views/settings.js's
+     folder-access sheet), and against an `h3.font-serif` the rule above matches
+     only on `h3` — (0,0,1) — while the blob's `.font-serif` scores (0,1,0) and
+     wins. So those headings went on asking for Inter, which is no longer
+     served, and fell through to 'Segoe UI'/system-ui: the reader's own system
+     font, inside a dialog drawn in Plex. Silent, because a font that resolves
+     is never an error — the `.text-ink` fault in a new costume.
+     DECLARED HERE AND NEVER IN THE BLOB, for the reason stated directly above:
+     it is generated and would drop this on the next build. `.font-serif`
+     pointing at a SANS is the blob's own oddity and predates this — it
+     resolved to the platform face before and does now, so this preserves the
+     behaviour rather than changing it. */
+  .font-serif{font-family:var(--font-heading)}
   /* ---- FOUR MORE CLASSES NOTHING EVER DEFINED (23 Aug 2026) ----
      The `font-600` fault again, and found the same way — by reading the
      rendered page rather than the source. The signing-order card tags each

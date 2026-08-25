@@ -7265,3 +7265,74 @@ register}.js.
 **Verified.** Node 4,527/4,527 and lint 0 errors. Browser: the whole set via
 `run-all.js`, plus the colour census re-recorded and audited value by value
 (five differences on three screens, every one attributable to a named item).
+
+
+---
+
+## 25 Aug 2026 — the platform face moves to IBM Plex Sans
+
+**The change.** The four face tokens in `index.html`'s `:root` — `--font-heading`,
+`--font-body`, `--font-mono`, `--font-doc` — now name IBM Plex Sans, and
+`fonts/fonts.css` carries it inlined instead of Inter. `--font-code`
+(Courier New) and `--font-doc-mono` are untouched, as are the two deliberate
+exceptions they exist for. 402 read sites follow from those four lines, so the
+face changes on every screen, the contract paper and the phone at once.
+488 KB to 335 KB, eight inlined faces against nine.
+
+**A brand decision and not a legibility one, and it was measured before it was
+made rather than argued after.** Small-letter height 73.8% of cap height against
+Inter's 75.3%; a clause of contract wording takes the SAME five lines at the same
+measure. The confusable pairs come out MIXED — Plex separates capital I from
+lowercase l far better (58% shape overlap against 95.5%), Inter separates
+lowercase l from the digit 1 better (17.1% against 32.1%) — so this is not a
+clarity win and is not sold as one. What it buys is ~5% of width back, measured
+on this product's own screens.
+
+**Defects found and fixed in this run**
+
+- **`.font-serif` went on naming Inter, and it is the `.text-ink` fault in a new
+  costume.** The compiled Tailwind blob bakes a literal family into three rules.
+  Two were already covered — the `html` one loses to HaTi's own
+  `html{font-family:var(--font-body)}`, and `.font-display` is named outright in
+  the `h1..h6` rule. `.font-serif` was not, and the reason is SPECIFICITY: it is
+  worn by `<h3>` elements (js/approvals.js's signing route, js/obligations.js's
+  add-obligation and proposed panels, js/views/settings.js's folder-access
+  sheet), and against an `h3.font-serif` that rule matches only on `h3` —
+  (0,0,1) — while the blob's `.font-serif` scores (0,1,0) and wins. So those
+  headings asked for a face no longer served and fell to the reader's system
+  font inside a dialog drawn in Plex. Silent, because a font that resolves is
+  never an error. Fixed in HaTi's OWN sheet, never the blob. PROVED
+  load-bearing by disabling the new rule in a live page and re-measuring:
+  IBM Plex Sans with it, Inter without.
+- **HALF THAT DIAGNOSIS WAS WRONG FIRST TIME AND THE MEASUREMENT CAUGHT IT.**
+  The first pass added rules for BOTH `.font-display` and `.font-serif` and
+  wrote a comment claiming both were broken. Switching them off in place showed
+  the faces did not move — `.font-display` was already covered by the h1-h6
+  rule. The redundant rule and the false claim were removed. A fix that changes
+  nothing is worse than no fix: it reads as a defect that once existed.
+
+**A coverage narrowing, named rather than absorbed.** Plex ships six subsets on
+Google Fonts and NO greek-ext, so U+1F00-1FFF is gone: polytonic Greek, the
+accented forms of classical and ancient Greek. Modern Greek (U+0370-03FF) is
+covered in full, and a name on a contract is written in modern Greek — which is
+what f85's Greek claim exists to protect. So the claim MOVED RUNG (it guards
+U+0370 now) rather than being deleted, and the loss is recorded in the test's
+own comment, in `fonts/fonts.css` and in CLAUDE.md. Rewriting a test to match a
+loss is ordinarily the fault this file warns about; what makes it legitimate
+here is that the claim it still makes is the one the test was written to make.
+
+**One weight now clamps, and is left saying what it meant.** Plex's variable
+range is 400-700 against Inter's 300-800. Nothing asks for 300 or below. ONE
+declaration asks for 800 — the `bold-corporate` document style's h1 — and a
+browser clamps it to 700. Left saying 800 on purpose so the day a heavier face
+returns it works again, rather than being quietly rewritten.
+
+**Noticed, not fixed**
+- `npm run lint` reports **4 errors**, all `no-dupe-keys` in `js/i18n.js`:
+  `co_password_updated` (lines 2019, 6777) and `act_next` (2763, 7443). That
+  file is untouched by this run — proved with `git status` — so they pre-date
+  it. Note that the previous run's own entry claims "lint 0 errors", so they
+  arrived after that claim was written or the claim was wrong.
+
+**Files touched.** CLAUDE.md, index.html, fonts/fonts.css,
+test/f85-the-server-serves-the-design.test.js.
