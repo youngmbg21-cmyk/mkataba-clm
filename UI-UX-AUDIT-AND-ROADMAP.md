@@ -90,6 +90,13 @@ Sourced and confidence-marked. `✅` = verified in first-party source or publish
 
 Found by the UI audit, verified by hand, and outside what a visual pass would normally touch.
 
+> **✅ FIXED 25 Aug 2026, after the owner read this section.** All three are closed, with a
+> standing regression test — `test/chromium/toast-and-confirm-verify.js`, 14 checks. It was proved
+> to fail **11 of 15** against the pre-fix code before it was trusted: the payload below really did
+> execute, and the visible message really did truncate to *"Karibu tena, "* because the browser ate
+> the rest as markup. The three sub-sections are kept in full, because the reasoning is the useful
+> part; what changed is recorded under each.
+
 ### 2.1 · `toast()` writes its message into `innerHTML` unescaped — `js/core.js:790`
 
 ```js
@@ -108,6 +115,8 @@ toast(`Workspace "${name}" created — karibu!`)
 
 An Editor who sets their display name to `<img src=x onerror=…>` gets script execution in every colleague's browser the next time a toast names them. **This is stored XSS, and the fix is one word:** `esc(msg)`. `esc` already resolves at that line — the expression beside it calls it.
 
+**✅ Fixed** — `js/core.js:790` now reads `esc(msg)`. Swept before it was changed: **not one** of the 635 call sites passes markup, so nothing was relying on the message rendering as HTML, and none passes a pre-escaped string, so nothing double-escapes. There is exactly **one** `toast()`, it is published on `window`, and the phone's 24 calls come through it — so the fix reaches both shells by construction.
+
 ### 2.2 · `confirmDialog` runs the destructive act on Enter regardless of focus — `js/core.js:2179`
 
 ```js
@@ -117,11 +126,21 @@ document.addEventListener('keydown', onKey);
 
 Tab to **Cancel**, press Enter — the contract is deleted. **Delete the Enter branch entirely.** A focused `<button>` already fires `click` on Enter, so the two buttons then own their own keys and Cancel means Cancel.
 
+**✅ Fixed** — the branch is gone; `onKey` answers Escape only. Verified all three ways: Enter on Cancel returns `false`, Enter on Delete still returns `true` (the browser's own button activation), and Escape still cancels.
+
+**`promptDialog` was checked and deliberately left alone**, and that is a decision rather than an omission. It also answers Enter on `document` — but it submits *the value you typed* rather than confirming a destructive act, it already guards `!opts.multiline` so a textarea keeps Enter for newlines, and type-then-Enter is what every platform text prompt does. Changing it would cost a real convention to close a much weaker case.
+
 ### 2.3 · The toast sits *under* seven overlay layers — `index.html:4779`
 
-`#toast-root` carries a literal `z-[60]` while `--z-toast` is 90 and the docked Copilot drawer sits at `z-100` **in the toast's exact bottom-right corner**. Every confirmation and every refusal raised while Copilot is open is painted behind it. Point it at `var(--z-toast)`.
+`#toast-root` carries a literal `z-[60]` while `--z-toast` is 90 and the docked Copilot drawer sits at `z-100` **in the toast's exact bottom-right corner**. Every confirmation and every refusal raised while Copilot is open is painted behind it.
 
-> These three are stated, not fixed. Fixing them is a change to `core.js` and `index.html`, which is beyond an audit — say the word and they are a ten-minute patch with a test each.
+**✅ Fixed — and this finding's own stated remedy was short, which is worth recording.** "Point it at `var(--z-toast)`" would have moved the toast from 60 to 90 and left it buried under all five layers that really ship: `confirmDialog` at **92**, the portal's dialogs at **94**, the signature and template pickers at **95**, and `#ai-panel.docked` at **100**. Measured before choosing a number. `--z-toast` is **110** now (it had **zero** consumers, so raising it was free), and `#toast-root` is the ladder's first real consumer via an id rule in HaTi's own sheet — never the Tailwind blob, which regenerates. The rest of the ladder is deliberately **not** renumbered: `--z-modal` is 70 against real modals at 92–95, and correcting that means sweeping the 78 literals, which is its own piece of work.
+
+**The same edit closed a second P1**: `#toast-root` now carries `role="status" aria-live="polite" aria-atomic="false"` in the static markup — the persistent-container pattern, so the region exists before a message lands in it. The product's main feedback channel is announced for the first time.
+
+> Two files changed: `js/core.js` and `index.html`, 66 insertions. `npm run lint` is unchanged at
+> its pre-existing 4 errors, all of them duplicate dictionary keys in `js/i18n.js` — a file this
+> work never touched.
 
 ---
 
@@ -222,17 +241,19 @@ Four faults repeat across every remaining surface, and each has one cause:
 
 Sequenced so each phase is independently shippable and nothing later depends on a decision not yet made.
 
-### Phase 0 — Before launch · ~½ day · **do this regardless**
+### Phase 0 — Before launch · ~½ day · **3 of 5 done**
 
-| # | Fix | Where | Cost |
-|---|---|---|---|
-| 1 | `esc(msg)` in `toast()` | `core.js:790` | 1 word |
-| 2 | Delete the `Enter` branch in `confirmDialog` | `core.js:2179` | 1 line |
-| 3 | `#toast-root` → `var(--z-toast)`, add `role="status" aria-live="polite"` | `index.html:4779` | 1 line |
-| 4 | `--focus-color: var(--accent-ink)` | `index.html:544` | 1 token |
-| 5 | `viewport-fit=cover` | `index.html:5` | 1 attribute |
+| # | Fix | Where | Cost | State |
+|---|---|---|---|---|
+| 1 | `esc(msg)` in `toast()` | `core.js:790` | 1 word | ✅ done |
+| 2 | Delete the `Enter` branch in `confirmDialog` | `core.js:2179` | 1 line | ✅ done |
+| 3 | `#toast-root` → `var(--z-toast)` (raised to 110) + `role="status" aria-live="polite"` | `index.html` | 1 rule | ✅ done |
+| 4 | `--focus-color: var(--accent-ink)` | `index.html:544` | 1 token | open |
+| 5 | `viewport-fit=cover` | `index.html:5` | 1 attribute | open |
 
-Five edits. Two are security, one is a keyboard trap, two are one-word contrast fixes. **Each needs one test.**
+Items 1–3 shipped 25 Aug 2026 with `test/chromium/toast-and-confirm-verify.js` (14 checks, proved
+to fail 11 of 15 against the pre-fix code). Items 4 and 5 are each a single token or attribute and
+belong with Phase 1, where the rest of the contrast work is.
 
 ### Phase 1 — Contrast & dark-theme completion · ~2 days
 

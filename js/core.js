@@ -786,8 +786,23 @@ function toast(msg,kind,opts){
     +'background:'+spec.bg+';color:#fff;cursor:pointer;'
     +'padding:11px 15px;box-shadow:var(--shadow-lg);font-size:14px;font-family:var(--font-body);max-width:26rem;';
   const act = opts && opts.action && opts.action.label ? opts.action : null;
+  /* THE MESSAGE IS ESCAPED, AND IT IS THE SAME esc() THE ACTION LABEL TWO
+     LINES DOWN HAS ALWAYS USED (found 25 Aug 2026, by the UI audit). The
+     label was escaped and the message was not, in one expression — so the
+     author knew the rule and the message simply missed it.
+     WHY IT MATTERS RATHER THAN BEING TIDINESS: 117 of 635 toast() calls
+     interpolate a STORED value — a member's own display name, a signer's
+     name, a workspace name typed at setup, a template label. An Editor who
+     sets their display name to an <img onerror=...> gets script execution in
+     every colleague's browser the next time a toast names them. Stored XSS
+     through the product's own confirmation channel.
+     NOTHING BREAKS: swept before it was changed, and NOT ONE of the 635 call
+     sites passes markup, so no caller was relying on the message rendering as
+     HTML; none passes a pre-escaped string either, so nothing double-escapes.
+     ONE toast() exists (this one), it is published on window, and the phone's
+     24 calls come through it — so this reaches both shells by construction. */
   el.innerHTML='<span style="display:inline-flex;flex:none">'+icon(spec.ic)+'</span>'
-    +'<span style="flex:1;min-width:0">'+msg+'</span>'
+    +'<span style="flex:1;min-width:0">'+esc(msg)+'</span>'
     +(act?'<button type="button" data-toast-act style="flex:none;border:1px solid rgba(255,255,255,.55);'
       +'background:rgba(255,255,255,.14);color:#fff;border-radius:0;font:inherit;font-size:13px;'
       +'font-weight:600;padding:5px 9px;cursor:pointer;white-space:nowrap">'+esc(act.label)+'</button>':'');
@@ -2176,7 +2191,19 @@ function confirmDialog(opts={}){
       </div>`;
     document.body.appendChild(ov);
     const done=val=>{ ov.remove(); document.removeEventListener('keydown',onKey); resolve(val); };
-    function onKey(e){ if(e.key==='Escape') done(false); else if(e.key==='Enter') done(true); }
+    /* ENTER DOES NOT CONFIRM FROM HERE (fixed 25 Aug 2026, by the UI audit).
+       This handler sits on DOCUMENT and used to answer Enter with done(true),
+       so it fired whatever the keyboard was actually on: tab to Cancel, press
+       Enter, and the destructive act ran anyway. On the delete-a-contract and
+       restart-the-signing-route confirms that is the worst shape a guard can
+       take — the control that says "no" performing the "yes".
+       DELETED RATHER THAN REDIRECTED, and that is the whole fix: a focused
+       <button> already fires click on Enter by itself, so with this branch
+       gone the two buttons own their own key and Cancel means Cancel. Escape
+       stays on document, because Escape belongs to the LAYER rather than to a
+       control, and the note above records that openModal stands its own
+       Escape down for this one. */
+    function onKey(e){ if(e.key==='Escape') done(false); }
     document.addEventListener('keydown',onKey);
     ov.querySelector('#cf-cancel').addEventListener('click',()=>done(false));
     ov.querySelector('#cf-ok').addEventListener('click',()=>done(true));

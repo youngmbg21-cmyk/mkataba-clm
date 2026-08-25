@@ -513,7 +513,22 @@
     /* ═══ LAYERS ═══ 78 hand-typed z-index values and no ladder, which is how
        the toast came to sit below the panel that raises it. */
     --z-base:0; --z-sticky:20; --z-drawer:40; --z-scrim:60;
-    --z-modal:70; --z-menu:80; --z-toast:90;
+    --z-modal:70; --z-menu:80;
+    /* --z-toast IS 110, NOT 90, AND THE NUMBER IS MEASURED (25 Aug 2026).
+       The comment above was already right about the fault and the ladder was
+       still too low to cure it: MEASURED, what actually ships above the
+       toast's old z-[60] is confirmDialog at 92, the portal's dialogs at 94,
+       the signature and template pickers at 95, and #ai-panel.docked at 100 —
+       which is `position:fixed; top:0; right:0; height:100vh`, so it covers
+       the whole right edge including the toast's own bottom-right corner.
+       Pointing the toast at a 90 would have moved it and still left it buried
+       under all five. The toast is the channel that CONFIRMS what you just
+       did inside those layers, so it has to sit above every one of them.
+       THE REST OF THE LADDER IS DELIBERATELY NOT RENUMBERED HERE — it is
+       below what ships too (--z-modal is 70 against real modals at 92-95),
+       and correcting that means sweeping the 78 literals, which is its own
+       piece of work rather than a rider on this one. */
+    --z-toast:110;
 
     /* ═══ ICONS ═══ measured on ONE screen: five painted box sizes
        (13/14/15/16/19px) and six stroke widths against a sprite documented as
@@ -816,6 +831,14 @@
   }
   /* A control that owns an elevation keeps it and gains the ring beside it. */
   .lift:focus-visible,.hati-card:focus-visible{box-shadow:var(--focus),var(--shadow-md);}
+
+  /* THE TOAST SITS ON THE LADDER, AND THE RULE LIVES HERE (25 Aug 2026).
+     An ID selector is (1,0,0) and the compiled `.z-\[60\]` it replaces is
+     (0,1,0), so this wins on weight with nothing shouted — and it is written
+     in HaTi's OWN sheet rather than the Tailwind blob, which is generated and
+     would drop the change on the next build. That is the same rule the
+     font-600 and text-ink repairs already follow. */
+  #toast-root{ z-index:var(--z-toast); }
 
   /* ---- soft card frame: the old "blueprint" corner-registration marks are
      retired in favour of larger radii + diffuse layered shadows. The corner
@@ -4776,7 +4799,19 @@
 </section>
 
 <div id="modal-root"></div>
-<div id="toast-root" class="fixed bottom-6 right-6 z-[60] space-y-2"></div>
+<!-- THE TOAST ROOT IS ANNOUNCED, AND IT SITS ON THE LADDER (25 Aug 2026).
+     Two faults, one element. (1) `z-[60]` is a compiled Tailwind literal and
+     it put the product's whole confirmation channel UNDER five layers that
+     really ship — see the --z-toast note in :root. The class is gone and the
+     rule below reads the token, so this element is the ladder's first real
+     consumer. (2) It carried no live region at all, so every one of ~340
+     visible toasts — the main way this product tells anybody anything — was
+     silent to a screen reader. role="status" plus aria-live="polite" is the
+     persistent-container pattern: the region must exist in the static markup
+     BEFORE a message lands in it, or assistive tech has nothing to watch.
+     aria-atomic="false" so a second toast announces only itself. -->
+<div id="toast-root" class="fixed bottom-6 right-6 space-y-2"
+     role="status" aria-live="polite" aria-atomic="false"></div>
 <div id="print-root"></div>
 
 <style>
