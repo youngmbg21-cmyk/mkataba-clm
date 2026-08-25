@@ -1021,21 +1021,23 @@ describe('F89 (11,12) — the card verbs, their colours, and where Edit lands', 
 
 });
 
-describe('F89 (14) — the card says what the change is, in two lines', () => {
-  /* CLAIM REVERSED A THIRD TIME, 16 Aug 2026 (Option 4 — work big, receipts
-     small). The copy came off with the routing rows and the owner reported
-     the result: "the cards look very empty and almost useless." So a WORKING
-     card — one with a decision or a send on it — carries the two-line greyed
-     preview again, while a change that needs nothing is a one-line receipt
-     with no copy at all. The fixture's ask awaits a decision, so it is the
-     working kind. */
-  test('the card carries the delta, clamped', async () => {
+describe('F89 (14) — the card says what the change is, in one bold line', () => {
+  /* CLAIM REVERSED A FOURTH TIME, 25 Aug 2026 (the owner's own drawing of the
+     tracked-changes column). What it has always been about is unchanged and is
+     what is asserted below: A CARD ASKING FOR A DECISION MUST SAY WHAT IS
+     BEING DECIDED. What carries that sentence has moved. It was a two-line
+     greyed preview of the marked wording (.rl-card-diff); it is the change's
+     own SUMMARY now, in bold, on its own line — the sentence the author's
+     ops were summarised into, which is the same fact in the author's own
+     terms rather than a second copy of the paper twelve pixels away.
+     .rl-card-diff is STALE. */
+  test('the card carries the delta, in the summary line', async () => {
     const p = await page();
-    const diff = p.$('#rl-changes .rl-card .rl-card-diff');
-    assert.ok(diff, 'a card asking for a decision says what is being decided');
-    assert.ok(diff.textContent.trim().length, 'in words');
-    const r = p.rule('.redline-page .rl-card-diff');
-    assert.match(r, /-webkit-line-clamp:2/, 'two lines: a summary, not a second copy');
+    const sum = p.$('#rl-changes .rl-card .rl-card-sum');
+    assert.ok(sum, 'a card asking for a decision says what is being decided');
+    assert.ok(sum.textContent.trim().length, 'in words');
+    assert.equal(p.$('#rl-changes .rl-card .rl-card-diff'), null,
+      'and not as a second copy of the paper');
     const meta = p.$('#rl-changes .rl-card .rl-card-meta');
     assert.ok(meta && meta.textContent.trim(), 'and the row still names its clause');
     const id = p.$('#rl-changes .rl-card').getAttribute('data-nego-card');
@@ -1207,7 +1209,12 @@ describe('F89 (16) — Send is one click, and the card says so afterwards', () =
        reading matter lives in the clause panel, so the card is one height
        whatever is being read. */
     assert.ok(card.querySelector('.rl-card-head'), 'the head takes you to the clause');
-    assert.ok(card.querySelector('.rl-open-btn'), 'and Open raises the clause panel');
+    /* REVERSED IN PLACE, 25 Aug 2026: Open is a row in the card's ⋯ menu now
+       (the owner's drawing), not a button on the face. The claim is the one it
+       always was — this card carries a door onto the clause panel, and that
+       door names the clause. */
+    assert.ok(card.querySelector('.rl-more-menu [data-rl-cp-open]'),
+      'and a menu row raises the clause panel');
     assert.ok(!p.$('#rl-changes [data-rl-send]'), 'it cannot be sent twice');
   });
 

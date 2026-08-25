@@ -190,7 +190,7 @@ The reviewer picker is a COMBOBOX (matches name AND email, resolves a pasted add
 
 Dialog clothes: reviewDialogHeadHtml builds every dialog head in this feature and in js/desk.js (desk reaches it via window with a bare-heading fallback). Classes .rvd-head/-ico/-title/-sub/-body/-foot/-note/-opt and .dk-row-lead are defined in index.html; f175 checks they exist there (the ui-input lesson as a test). The tint is the share dialog's own accent tokens — no new colour.
 
-Tracked Changes column head is ONE ruled LINE (owner-chose Option 1 of three renders, 16 Aug 2026): caption left, the All / Mine / Theirs filter right, both on the same hairline. THE SEPARATE "N on the table" COUNT STANDS DOWN WHEREVER THE TABS DRAW — it printed the All tab's number twice, twelve pixels apart, at the cost of a whole head row — and survives on exactly ONE head: a narrowed reviewer's, which draws no tabs (a one-outcome filter is furniture) and would otherwise carry no number at all. .rl-idx-n and its is-live accent stay in the sheet for that head; the pressed tab's count wears the same accent. On a column too narrow for one line, flex-wrap drops the tabs to a second line — the old arrangement as the fallback, not the rule. The band and the read-only sentence inside the head carry flex-basis:100% so neither ever shares the caption's line. Its TEXT IS INSET 12px as PADDING (owner-asked, same day: "too close to the edge") — never margin, so the rule still runs the column's width — and the whole head is UP ONE SIZE (caption 10.5, filter 12.5, filter counts 10.5; f173/f175/f84/f93 pin it).
+Tracked Changes column head is ONE ruled LINE — **and the head itself was rebuilt on 25 Aug 2026 to the owner's own drawing (see THE TRACKED-CHANGES COLUMN TAKES THE OWNER'S DRAWING): it names itself "Tracked changes (N)", the filter is a labelled dropdown in the progress foot, and the cards below it sit under four bands. What follows is the history of this head, kept because the reasoning is the useful part.** (owner-chose Option 1 of three renders, 16 Aug 2026): caption left, the All / Mine / Theirs filter right, both on the same hairline. THE SEPARATE "N on the table" COUNT STANDS DOWN WHEREVER THE TABS DRAW — it printed the All tab's number twice, twelve pixels apart, at the cost of a whole head row — and survives on exactly ONE head: a narrowed reviewer's, which draws no tabs (a one-outcome filter is furniture) and would otherwise carry no number at all. .rl-idx-n and its is-live accent stay in the sheet for that head; the pressed tab's count wears the same accent. On a column too narrow for one line, flex-wrap drops the tabs to a second line — the old arrangement as the fallback, not the rule. The band and the read-only sentence inside the head carry flex-basis:100% so neither ever shares the caption's line. Its TEXT IS INSET 12px as PADDING (owner-asked, same day: "too close to the edge") — never margin, so the rule still runs the column's width — and the whole head is UP ONE SIZE (caption 10.5, filter 12.5, filter counts 10.5; f173/f175/f84/f93 pin it).
 
 **THE COUNT IS THE HEADLINE — RENDER B1 (owner-chose it off five drawn heads, 23 Aug 2026: "the highlighted area is not esthetically pleasing", then "render B again but with black font not grey").** The count is **19px** with the cut's name in **11px uppercase underneath it**. **THE CAPTION IS BACK ON THE TABS' OWN LINE (owner-asked 23 Aug 2026, the next morning: "move the all, mine, their to sit next to tracked changes as opposed to below it") — this REVERSES B1's own second half IN PLACE.** B1 gave the caption a line of its own on the reasoning that "a 19px figure cannot share a line with a 12px caption without one of them looking like a mistake"; the owner has now seen both and wants the line back, so **that size difference is the price and it was named before this was built**. `.rl-idx-k` is `flex:1 1 auto` (it was `1 0 100%`) so the caption takes what is left and the tabs are pushed to the right wall — the arrangement of 16 Aug. **THE 19px COUNT IS DELIBERATELY UNTOUCHED**: shrinking it to make the row sit comfortably would be reversing a second decision nobody asked about, and it is one word to do later. **THE WRAP IS THE FALLBACK AND IS KEPT** — the head is still `flex-wrap:wrap`, so a column dragged to its 300px minimum drops the tabs to their own line rather than crushing the caption. The caption's `padding-top` went with the line (it pushed a caption sitting ABOVE the tabs down toward them; beside them the head's own `align-items:center` is what lines the two up) and so did its two short-window overrides. **THE BOX AND THE FILL ARE GONE and the underline is back**: at 19px the size already says which number is being read, so a box round it — and a fill on the live one — is a second mark for a fact already carried, which is the same argument Render B made in the opposite direction when the number was 12px and the faintest thing on the column. **ALL OF IT IS THE PRIMARY INK** (caption, counts and words), and that is a DELIBERATE EXCEPTION to the four-shades rule — primary is 14px and up, the secondary shade is where 11-13px lives — taken knowingly and scoped to this one row: B3, which keeps the caption and the small word grey and blacks only the 19px count, was drawn and shown and NOT chosen. **DO NOT SWEEP IT OUTWARD**: the captions under a signpost are not the signpost, and a pass that took every mid-grey to primary was reverted once already for exactly that. **THE LIVE TAB IS THE ONE COLOURED THING ON THE ROW** — `--accent-ink` for the ink (so dark follows with no second rule) and `--accent-solid` for the 2px underline; the resting tabs carry the same 2px in transparent so the row's height never moves. **ONE COLOUR DECLARATION, AND BOTH HALVES INHERIT IT** — `.rl-fseg` sets `color` and neither `.rl-fseg-n` nor `.rl-fseg-w` states one; give either a colour of its own and the live state stops reaching it, which is how the arrangement before this one came to set its live count in two places. The three safety properties below are untouched, which is the whole condition on redressing this control. `.rl-idx-n.is-live` (the narrowed reviewer's own count, the one head with no tabs) is unchanged. Tests: f175, panel-alerts-and-head-verify, copilot-band-verify and nego-redesign-verify (each with its Render B claim REVERSED IN PLACE).
 
@@ -2799,10 +2799,10 @@ Share dialog arrives ONCE: the first paint is the real first step (shareKindStep
 
 THE CARD IS A ROUTING ROW, AND THE POP-OUT IS RETIRED (owner-asked, 16 Aug 2026 — the two remaining pieces of the clause-panel design, shipped together because one was the other's precondition). The fat card drew id, status, clause, author, company, marked wording, reason and verbs; the floating pop-out a card's ⤢ opened showed its hidden body. The CLAUSE PANEL now says everything both of them said — full wording, author, reason, reviewer's note, history, reply box — on the clause the ask is about, so:
 - THE ROW: id + status badge + round tag + **Open**, the clause name on the meta line, and the rare conditional strips visible under it (.rl-card-info — the desk's "drafted by", on-behalf, revised-by, the reviewer's note; each usually absent. THE AUTHOR'S REASON LEFT THIS LIST on 19 Aug 2026 — owner-asked, and it reads in the clause panel's row now; see THE REASON HAS LEFT THE CARD FOR THE PANEL above). The AUTHOR and ORGANISATION left the visible line for the meta line's HOVER — a sentence removed from a slot stays findable — and the panel's row names them in words. The VERBS ARE UNTOUCHED — same action bar, same engine handlers, a sibling of the head, visible pixels (f180); rlCardSort / redlineCardIds / every count untouched; body press still rlLinkFocus and nothing else.
-- WORK BIG, RECEIPTS SMALL (owner-reported same day: the bare rows "look very empty and almost useless"; Option 4 of four mocked renders, chosen). The card's SIZE follows what it needs from the reader. A change with a MOVE on it — a decision, a send, a withdraw/undo/retract, a reviewer's verdict, a way back (Reopen / Change decision), a cancel, or a CAUTION strip (on-behalf, revised-by, the reviewer's note) — keeps the FULL card, and the full card carries the two-line greyed WORDING PREVIEW again (.rl-card-diff is back, 12px neutral, clamp 2 — a card asking for a decision must say what is being decided). A change that needs NOTHING — our sent ask, an ask out with a reviewer — is a one-line RECEIPT (.rl-receipt): id · state · clause (ellipsised, hover keeps the names) · Open, no verbs, no preview, EVEN Edit dropped (revising is one Open away — the panel's ＋ continues a pending ask of ours). The desk's "drafted by" and the author's own reason are CAPTIONS, not moves — they show on full cards and do not hold a card open, so a sent ask carrying only those still shrinks. The receipt keeps every data attribute and the head press-through. measured: three receipts cost less height than one working card (redline-verify stages the sent state and measures under-half). AND THE PANEL + CARD TYPE WENT UP ONE SIZE across the board (owner-asked, "currently too small"): panel headings 9.5→11, standing/wording 12.5→14 (the panel editor matches at 14), notes 11.5→12.5, card meta 10.5→12, badges 11.5→12.5, verbs/Open 10→11 — redline-verify's check 7 re-pinned at 12 and 12b's editor-match at 14. BOTH SEATS MEASURE IDENTICAL BY CONSTRUCTION (one stylesheet — redlineEmbed calls redlineLayoutCss) and BY MEASUREMENT (owner-asked 16 Aug 2026 "should mirror exactly"; parity-verify 11 rolls the panel's computed sizes on the owner's bench and the counterparty's mount off one record and fails on any drift — the Copilot BUTTON is absent on their seat by design — `noAi` — a presence difference not a size, and is off the roll call).
-- **Open** (.rl-open-btn) carries data-rl-cp-open with the change's CLAUSE id — the clause panel's own delegated door, armed at module load in the capture phase, so it works on every mount and both seats with nothing per-paint to wire. Drawn only where the mount carries the panel (opts.cpPanel — the panes builder passes it; the Word export's canvas does not) and never on an insertClause ask (its clause has no panel body — a door must not open onto nothing).
+- WORK BIG, RECEIPTS SMALL — **SUPERSEDED ON OUR SEAT 25 Aug 2026 by the owner's own drawing of this column (see THE TRACKED-CHANGES COLUMN TAKES THE OWNER'S DRAWING); what follows is the COUNTERPARTY's card, where all of it still stands.** (owner-reported same day: the bare rows "look very empty and almost useless"; Option 4 of four mocked renders, chosen). The card's SIZE follows what it needs from the reader. A change with a MOVE on it — a decision, a send, a withdraw/undo/retract, a reviewer's verdict, a way back (Reopen / Change decision), a cancel, or a CAUTION strip (on-behalf, revised-by, the reviewer's note) — keeps the FULL card, and the full card carries the two-line greyed WORDING PREVIEW again (.rl-card-diff is back, 12px neutral, clamp 2 — a card asking for a decision must say what is being decided). A change that needs NOTHING — our sent ask, an ask out with a reviewer — is a one-line RECEIPT (.rl-receipt): id · state · clause (ellipsised, hover keeps the names) · Open, no verbs, no preview, EVEN Edit dropped (revising is one Open away — the panel's ＋ continues a pending ask of ours). The desk's "drafted by" and the author's own reason are CAPTIONS, not moves — they show on full cards and do not hold a card open, so a sent ask carrying only those still shrinks. The receipt keeps every data attribute and the head press-through. measured: three receipts cost less height than one working card (redline-verify stages the sent state and measures under-half). AND THE PANEL + CARD TYPE WENT UP ONE SIZE across the board (owner-asked, "currently too small"): panel headings 9.5→11, standing/wording 12.5→14 (the panel editor matches at 14), notes 11.5→12.5, card meta 10.5→12, badges 11.5→12.5, verbs/Open 10→11 — redline-verify's check 7 re-pinned at 12 and 12b's editor-match at 14. BOTH SEATS MEASURE IDENTICAL BY CONSTRUCTION (one stylesheet — redlineEmbed calls redlineLayoutCss) and BY MEASUREMENT (owner-asked 16 Aug 2026 "should mirror exactly"; parity-verify 11 rolls the panel's computed sizes on the owner's bench and the counterparty's mount off one record and fails on any drift — the Copilot BUTTON is absent on their seat by design — `noAi` — a presence difference not a size, and is off the roll call).
+- **Open** (.rl-open-btn — **the COUNTERPARTY's card since 25 Aug 2026; on ours it is a worded row in the ⋯ menu**) carries data-rl-cp-open with the change's CLAUSE id — the clause panel's own delegated door, armed at module load in the capture phase, so it works on every mount and both seats with nothing per-paint to wire. Drawn only where the mount carries the panel (opts.cpPanel — the panes builder passes it; the Word export's canvas does not) and never on an insertClause ask (its clause has no panel body — a door must not open onto nothing).
 - THE REPLY BOX MOVED HOME, NOT AWAY. The pop-out existed to BORROW the card's hidden body because the engine binds the composer BY ELEMENT ID scoped to its mount, and a copy is a reply box that posts nothing. That lesson survives the pop-out: rlClausePanelBodyHtml renders the ONE composer per change (rlCardNotesHtml — id nego-ti-&lt;change&gt;, data-nego-send, the visibility switch), inside the mount the engine wires, and the card renders none. cpPush threads messages/org/readonly/canComment through to the panel for it.
-- WHAT IS GONE, all stale — flag any mention: _rlPopId, _rlPopAt, rlPopId/rlPopIsOpen/rlPopSet/rlPopClose/rlPopPaint/rlPopPlace/rlPopFit/rlPopAt/rlPopResetAt/rlPopMount/rlPopReturnBody/rlPopWireDrag/rlPopWireOnce, data-rl-pop, .rl-pop-*, .rl-card-popped, data-rl-popped, .rl-card-body, .rl-card-diff, ng_pop_* (keys left inert in the dictionary), and card-popout-verify.js (deleted, like card-collapse-verify before it). rlCardForgetPins survives and now shuts the CLAUSE PANEL on a contract switch ("shut on arrival" kept true rather than left to a coincidence of clause ids). The older stales stand: .rl-caret / .rl-card-shut / data-rl-open / rlCardIsOpen / rlCardSetOpen / rlCardOpenState / rlCardStateKey / rlCardUnpinAll.
+- WHAT IS GONE, all stale — flag any mention: _rlPopId, _rlPopAt, rlPopId/rlPopIsOpen/rlPopSet/rlPopClose/rlPopPaint/rlPopPlace/rlPopFit/rlPopAt/rlPopResetAt/rlPopMount/rlPopReturnBody/rlPopWireDrag/rlPopWireOnce, data-rl-pop, .rl-pop-*, .rl-card-popped, data-rl-popped, .rl-card-body, .rl-card-diff (which came BACK on 16 Aug and went again on 25 Aug — stale on every seat now), ng_pop_* (keys left inert in the dictionary), and card-popout-verify.js (deleted, like card-collapse-verify before it). rlCardForgetPins survives and now shuts the CLAUSE PANEL on a contract switch ("shut on arrival" kept true rather than left to a coincidence of clause ids). The older stales stand: .rl-caret / .rl-card-shut / data-rl-open / rlCardIsOpen / rlCardSetOpen / rlCardOpenState / rlCardStateKey / rlCardUnpinAll.
 - AND THE CORNERS ARE SQUARE (owner-asked, same day, off a screenshot, both seats): .rl-paper and .rl-doc carry border-radius:0 (a contract page prints square; the doc column clips, so a radius there rounds the sheet), and the clause panel is squared at THREE classes — `.redline-page .rl-col.rl-cp{border-radius:0}` — because the panel wears .rl-col too and .rl-col's own 14px sat LATER in the sheet at equal specificity, which is why the panel's existing radius:0 never won. Every other rounded feature keeps its shape; f95's one-radius claim split in place.
 
 Tests: f100b/e/f (rewritten in place — the row, Open raising the panel on both mounts, the one-composer rule, no hidden body anywhere), F100g's receipt claim (sent = receipt, draft = full with preview and Send), f89/f92/f93/f37/f58/f84/f137/f166/f173/f188 claims re-pointed, redline-verify 14/14b (working card carries the clamped preview, the staged receipt measures under half a working card, Open opens the panel, the column does not move), parity-verify (the edit probe runs on a WORKING card — a receipt has no Edit — and judges continue-vs-restart from the change's own record), paper-grows-verify section 6 re-pointed, clause-door-verify green.
@@ -3693,6 +3693,121 @@ outstanding" — and now prints **Mine · Theirs · Neither**.
 Tests: f184 (three claims REVERSED IN PLACE — the pill's text, the unsent
 state's, and the both-languages roll call), negotiations-door-verify (the same
 reversal, plus the hover), f148 unchanged.
+
+## THE TRACKED-CHANGES COLUMN TAKES THE OWNER'S DRAWING (owner-asked 25 Aug 2026)
+
+*"You neglected to build a very important feature to the app. How the new cards
+in the owner side are designed which is shown in the attached image."* Five
+things in one drawing, and every one is scoped to **OUR SEAT ONLY** — the
+counterparty's column is untouched, as agreed twice, and the owner's PREVIEW of
+their page falls through to their shapes so the window still shows what they
+see. `previewSeat` is what excludes it, read from the mount rather than worked
+out again.
+
+- **THE COLUMN NAMES ITSELF AND THE NAME CARRIES THE TOTAL** — "Tracked changes
+  (7)" where it read "Change index", which named the block rather than what is
+  in it. **THE NUMBER IS BORROWED, NEVER COUNTED HERE**: `changeTotal` is the
+  same reading the filter's options and the bands print, and a second
+  arithmetic on a figure already on the page is how two halves of one column
+  come to disagree. `ng_idx_head` is STALE — flag any mention.
+- **THE THREE-WAY CUT IS LABELLED** — **WHOSE ASKS** beside it, because a
+  dropdown reading "All (6)" says what it is SET to and not what it is ABOUT,
+  and this product has already learned once that a filter whose only label is a
+  title attribute leaves two of them side by side both reading "Any". The
+  aria-label was already this sentence; the drawing makes it visible, which
+  costs the row nothing because the select was alone on it. **THE THREE SAFETY
+  PROPERTIES ARE UNTOUCHED** — three options only, each carrying its OWN count
+  unmoved by the filter, and `rlCardFilterNoteHtml` still says so and offers the
+  way back while the column is narrowed.
+- **THE CARDS SIT UNDER FOUR BANDS, each with its own count** — `RL_CARD_BANDS`
+  / `rlCardBand`, and they are the four questions a negotiator sorts this column
+  by rather than four statuses: what the other side has asked and nobody here
+  has answered · our own work that has not left the building · our asks that
+  have gone · everything settled. Every change lands in EXACTLY ONE, the last
+  branch is a catch-all so a state nobody thought of is filed as decided rather
+  than vanishing off the bottom, and **a band with nothing in it draws
+  NOTHING** (four headings over an empty column is furniture, and the
+  empty-column blurb already answers that state properly).
+  - **THE BAND IS THE OUTER SORT AND rlCardSort IS THE INNER ONE, and this is
+    the half a first pass got wrong.** `rlCardSort` orders by `rlCardRank` —
+    pending, then refused, then settled — and THREE of the four bands are all
+    rank 0, so a column left in rank order INTERLEAVES them: the heading either
+    repeats down the column or, worse, a card sits under a heading that is not
+    true of it. The list is re-sorted by band, and because `Array#sort` is
+    stable the rank order inside each band is exactly what `rlCardSort`
+    produced. The heading carries `data-rl-band`, so the claim can be read in
+    DOCUMENT ORDER, which is the only reading that can see this fault at all.
+- **THE CARD IS TWO STACKED BLOCKS, NOT TWO COLUMNS, and that was MEASURED
+  rather than chosen.** A meta line ("#CHG-006 · Clause 18 · Notices", one line,
+  elides, whole on the hover) over a **bold summary** — the change's own
+  `summary`, quoted from the record and never composed here — then the
+  conditional strips, then an **action row**: where this change stands at the
+  left, the verbs at the right wall, the ⋯ last. A first pass put the text on
+  the left and the acts on the right of ONE flex row; at the divider's resting
+  460px those acts want about 300px, so the text got barely a hundred and every
+  card read "CHG-006 · Cla…" over "hand, by c…" — the two things the reader is
+  there to read, both cut. **Photographing it is what said so; the markup
+  looked perfectly reasonable.** `.rl-card-line` is STALE.
+  - **THE WORDING PREVIEW IS RETIRED AND THE SUMMARY DOES ITS JOB.** What
+    `.rl-card-diff` was really for — "a card asking for a decision must say what
+    is being decided" — is unchanged and is what the bold line carries; the
+    marks are on the paper twelve pixels away and the full text is one press
+    into the panel. `.rl-card-diff` is STALE.
+  - **THE RECEIPT SHAPE HAS LEFT OUR SEAT WITH IT.** Option 4 of 16 Aug ("work
+    big, receipts small") answered "finished business must stop costing
+    card-height" by shrinking a change that needs nothing to one line; the BANDS
+    answer it now — a reader skips a whole pile by skipping a heading. **WHAT IT
+    COSTS, said out loud**: three sent asks used to cost less height than one
+    working card and now cost three cards. `.rl-receipt` is the COUNTERPARTY's
+    shape and is still drawn there.
+  - **EVERY CARD STILL SAYS WHERE IT STANDS, and it is still `.rl-badge`.**
+    Standing the word down under the two bands that seem to repeat it was tried
+    and reversed: that slot is the card's ONE status slot and the rule beside it
+    in the stylesheet says in so many words that it keeps its identity because
+    half this product and half the suite ask it where a change stands; and a
+    card that only reads correctly UNDER ITS OWN HEADING cannot be read anywhere
+    else. The heading says which pile, the badge says where this one change
+    stands, and on their ask those are different facts. The dot is
+    `background:currentColor`, so the four tone rules give it its colour for
+    free. `.rl-state` was a second status element and is STALE.
+- **THE ⋯ MENU CARRIES WHAT WILL NOT FIT, LED BY EDIT WITH COPILOT** — which is
+  where the approved clause journey has always put it, and it replaces the ✦
+  button that was standing in for a menu this page did not have. **IT DECIDES
+  NOTHING**: every row carries a data attribute some other handler already binds
+  (`data-rl-cp-editor-row`, `data-rl-cp-open`, `data-rl-ask-review`,
+  `data-rl-edit`), the rows are deliberately NOT stopped so a press falls
+  through to the handler that owns that act, and this listener's whole job is
+  showing and hiding. Armed ONCE at module load on `document` in the capture
+  phase — the 15 Aug lesson, a listener registered inside a renderer belongs to
+  whichever page rendered first. One menu open at a time. The menu HEAD names
+  the change, because one floating over a column of six has to say which.
+  - **IT NEVER REPEATS A VERB THE FACE ALREADY CARRIES.** Edit is
+    `data-rl-edit`; a "Jump to the clause" row beside it is the same attribute,
+    the same handler and the same act twelve pixels apart, so that row draws
+    only where the face has no Edit. `faceVerbs` is the card's own finished verb
+    markup, handed in — the same string the receipt rule reads — so the two
+    cannot disagree about what is on the face.
+  - **AND THE DOOR ONTO THE CLAUSE PANEL MOVED INTO IT.** `.rl-open-btn` is the
+    counterparty's shape now; on our card the panel is a worded row behind the
+    ⋯. Every check that reached for it presses the ⋯ first, which is the journey
+    a reader walks — f180's rule is that a verb must be visible pixels, and for
+    a menu that means the ⋯ is on the face and the row is on screen once it is
+    pressed.
+- **THE VERBS KEEP THEIR BORDERS, and that was decided rather than left alone.**
+  A first pass stripped them to bare coloured words; that reverses 24 Aug's own
+  owner ruling ("all the buttons should have a similar border line") and this
+  ask was about the column's LAYOUT, not the verbs' outlines. Reversing an owner
+  call nobody asked about is the wider interpretation. The card's rule only puts
+  them on one row.
+
+**WHAT WAS DELIBERATELY LEFT OUT, owner-chosen when asked**: a "+ Raise a
+change" button at the head of the column.
+
+Tests: f246 (NEW, 37 — **28 of them fail against the code of an hour before**),
+redline-verify sections 14 / 14a / 14b (the head's label measured as painted
+boxes, the bands read in document order, the ⋯ pressed for real with its row
+proved VISIBLE, and the whole shape), f100 / f89 / f93 / f84 / f37 (claims
+REVERSED IN PLACE, never deleted — each keeps what it was really pinning).
 
 ## ONE HEADER TOP, ON ALL TWELVE PAGES AND AT EVERY HEIGHT (owner-asked 25 Aug 2026, three times)
 

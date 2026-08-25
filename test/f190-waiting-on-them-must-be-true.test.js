@@ -146,13 +146,24 @@ describe('f190 (3) — the card stops claiming a wait it cannot verify', () => {
     const i = html.indexOf('data-nego-card="' + id + '"');
     return i < 0 ? '' : html.slice(i, html.indexOf('</article>', i));
   };
+  /* THE STATUS SLOT IS READ AS THE WORD IT PRINTS, not as a shape of markup.
+     It said `/rl-badge-no"[^>]*>Refused</`, which is the same claim wearing an
+     assumption about what sits between the tag and the word — and on 25 Aug
+     2026 a DOT went in there (the owner's own drawing of this column), so a
+     true claim started reading as a failure. Pin the relation, not the
+     spelling. */
+  const stateOf = one => {
+    const m = /<span class="rl-badge rl-badge-([a-z]+)"([^>]*)>([\s\S]*?)<\/span>/.exec(one);
+    return m ? { tone: m[1], attrs: m[2], word: m[3].replace(/<[^>]*>/g, '').trim() } : null;
+  };
 
   test('WITH a live link it reads exactly as it did', async () => {
     const { win } = world();
     const { c, ch } = await refusedAskOfTheirs(win);
     reach(win, 'known', LIVE);
     const one = card(win.redlineChangeCardsHtml(c, { side: 'owner' }), ch.id);
-    assert.match(one, /rl-badge-no"[^>]*>Refused</, 'one status slot, one word');
+    const st = stateOf(one);
+    assert.ok(st && st.tone === 'no' && st.word === 'Refused', 'one status slot, one word');
     assert.match(one, /waiting on them/i, 'and the wait is claimed, because it is true');
     assert.ok(!/data-rl-sendcopy/.test(one), 'nothing to fix');
   });
@@ -164,7 +175,8 @@ describe('f190 (3) — the card stops claiming a wait it cannot verify', () => {
     const one = card(win.redlineChangeCardsHtml(c, { side: 'owner' }), ch.id);
     /* THE STATUS SLOT IS NOT DOUBLED. "Refused" is still the state; what
        changes is the sentence under it and the hover above it. */
-    assert.match(one, /rl-badge-no"[^>]*>Refused</, 'still one slot, still one word');
+    const st = stateOf(one);
+    assert.ok(st && st.tone === 'no' && st.word === 'Refused', 'still one slot, still one word');
     assert.equal((one.match(/rl-badge /g) || []).length, 1, 'and only one of it');
     assert.ok(!/waiting on them/i.test(one), 'the claim is not made');
     assert.match(one, /holds no live copy/, 'the truth is said instead');
@@ -180,9 +192,12 @@ describe('f190 (3) — the card stops claiming a wait it cannot verify', () => {
     const one = card(win.redlineChangeCardsHtml(c, { side: 'owner' }), ch.id);
     assert.match(one, /data-rl-sendcopy/, 'the verb is on the card');
     assert.match(one, /Send a copy/);
-    /* In the ACTION BAR, which is a sibling of the head — a verb is visible
-       pixels and nothing folds it away (f180's rule). */
-    const bar = one.slice(one.indexOf('rl-card-actions'));
+    /* In the ACTION ROW, which is a sibling of the text block — a verb is
+       visible pixels and nothing folds it away (f180's rule). RE-POINTED
+       25 Aug 2026: the row is .rl-card-foot on our seat since the owner's
+       drawing; .rl-card-actions is stale here. */
+    const bar = one.slice(one.indexOf('rl-card-foot'));
+    assert.ok(bar, 'the card draws an action row');
     assert.match(bar, /data-rl-sendcopy/);
   });
 

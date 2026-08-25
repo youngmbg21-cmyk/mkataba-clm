@@ -536,7 +536,14 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        CONTENT's natural width. A column of full cards (paragraphs measure
        wide) hid the fault; a column of one-line RECEIPTS exposed it, which is
        why the staging here sends the asks first. jsdom computes no grid, so
-       this geometry can only be measured here. */
+       this geometry can only be measured here.
+
+       RE-POINTED 25 Aug 2026: the one-line receipt is the COUNTERPARTY's shape
+       now — on our seat the owner's own drawing gives every card one shape and
+       four BANDS. What the staging is FOR is unchanged and is what is asserted
+       below: a column whose content is NARROW, so an implicit auto-sized track
+       would follow it rather than the window. A card with no verbs and a
+       one-line summary is that content, and it is what a sent ask draws. */
     await page.evaluate(async () => {
       localStorage.setItem('hati.v1.rlLeftFrac', '0.45');
       const c = getContract(redlineHeldId());
@@ -548,10 +555,19 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       renderRedline();
     });
     await page.waitForTimeout(600);
-    const receiptsOnly = await page.evaluate(() =>
-      document.querySelectorAll('#rl-changes .rl-receipt').length);
-    check('10 the column holds a one-line receipt — the narrow content that showed the void',
-      receiptsOnly >= 1, receiptsOnly + ' receipt(s)');
+    const narrow = await page.evaluate(() => {
+      const cards = [...document.querySelectorAll('#rl-changes .rl-card')];
+      const sent = cards.filter(el => !el.querySelector('[data-rl-send]')
+        && !el.querySelector('[data-nego-accept]'));
+      const widest = Math.max(0, ...sent.map(el => {
+        const t = el.querySelector('.rl-card-sum, .rl-receipt-line');
+        return t ? Math.round(t.getBoundingClientRect().width) : 0; }));
+      return { cards: cards.length, sent: sent.length, widest,
+        col: Math.round(document.getElementById('rl-changes').getBoundingClientRect().width) };
+    });
+    check('10 the column holds NARROW content — what showed the void',
+      narrow.sent >= 1 && narrow.widest > 0 && narrow.widest <= narrow.col,
+      `${narrow.sent} sent of ${narrow.cards} · widest line ${narrow.widest}px in ${narrow.col}px`);
     await page.evaluate(() => rlSetFocus(true));
     await page.waitForTimeout(700);
     const focusGeo = await page.evaluate(() => {

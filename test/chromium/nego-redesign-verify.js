@@ -305,15 +305,22 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
         filterText: (document.getElementById('rl-cardfilter') || {}).textContent || '',
         filter: cs('#rl-cardfilter') && cs('#rl-cardfilter').fontSize,
         restCount: cs('.rl-fseg:not(.on) .rl-fseg-n') && cs('.rl-fseg:not(.on) .rl-fseg-n').borderTopWidth,
-        cardWording: cs('.rl-card-diff') && cs('.rl-card-diff').fontSize,
+        cardWording: cs('.rl-card-sum') && cs('.rl-card-sum').fontSize,
+        oldPreview: !!document.querySelector('#view-redline .rl-card-diff'),
         cardMeta: cs('.rl-card-meta') && cs('.rl-card-meta').fontSize,
         badge: cs('.rl-badge') && cs('.rl-badge').fontSize,
         verb: cs('.rl-card-verbs button') && cs('.rl-card-verbs button').height,
         copilot: !!document.querySelector('#view-redline .rl-plan'),
         band: !!document.querySelector('#view-redline .rl-unsent') };
     });
-    check('5 the wording preview reads at 14px, the card meta at 13',
-      col.cardWording === '14px' && col.cardMeta === '13px',
+    /* RE-POINTED 25 Aug 2026 (the owner's own drawing of this column): what
+       says WHAT IS BEING DECIDED is the change's own summary in bold, where it
+       was a two-line greyed preview of the marked wording. The claim is the
+       relation this always made — the sentence a reader scans is set larger
+       than the reference line above it — so a later type pass costs no edit
+       here. .rl-card-diff is stale and its absence is asserted. */
+    check('5 the summary reads larger than the meta line it sits under',
+      parseFloat(col.cardWording) > parseFloat(col.cardMeta) && !col.oldPreview,
       `${col.cardWording} / ${col.cardMeta}`);
     /* RE-POINTED 24 Aug 2026 — the caption is the change index's title and the
        filter is a select on its own line. Their sizes are the index's now. */

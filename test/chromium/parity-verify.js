@@ -393,7 +393,13 @@ const CARD_EDIT = async () => {
      a monstrous company name on the record, the head must carry no pill AND
      the status badge must still be on the row. The second half is the part
      worth keeping — removing an element is exactly the kind of change that
-     silently relies on a flex rule that went with it. */
+     silently relies on a flex rule that went with it.
+
+     RE-POINTED 25 Aug 2026 to the owner's own drawing of this column: the
+     card's top block is .rl-card-txt (a meta line over a bold summary) and the
+     state sits in the action ROW under it, .rl-card-foot. The claim is
+     unchanged and is now about the CARD rather than one row of it — no pill,
+     and a monstrous name still has nowhere to shove the state off the card. */
   const badges = await page.evaluate(() => {
     /* A company name long enough to have been a problem, pushed through the
        real renderer rather than hoped for in the fixture. */
@@ -407,9 +413,12 @@ const CARD_EDIT = async () => {
     if (!card) return null;
     const st = card.querySelector('.rl-badge');
     const meta = card.querySelector('.rl-card-meta');
-    const head = card.querySelector('.rl-card-top').getBoundingClientRect();
+    /* .rl-card-txt on our seat, .rl-card-top on the counterparty's — one file,
+       both shapes, so the claim reads whichever this page drew. */
+    const top = card.querySelector('.rl-card-txt, .rl-card-top');
+    const head = card.getBoundingClientRect();
     return { pill: !!card.querySelector('.rl-origin'),
-      headText: card.querySelector('.rl-card-top').textContent.replace(/\s+/g, ' ').trim(),
+      headText: top.textContent.replace(/\s+/g, ' ').trim(),
       statusOnRow: st.getBoundingClientRect().right <= head.right + 1,
       spine: getComputedStyle(card).borderLeftColor,
       spineW: getComputedStyle(card).borderLeftWidth,
@@ -442,7 +451,15 @@ const CARD_EDIT = async () => {
      fact about today's code — a portal-side override or a second copy of the
      rules is exactly the drift this file exists to catch. The Copilot note is
      deliberately absent on their seat (presence, not size), so it is not in
-     the roll call. */
+     the roll call.
+
+     AND NEITHER IS THE CARD, since 25 Aug 2026. The two card sizes that were
+     in it — .rl-card-meta and .rl-badge — were riding along because the two
+     seats happened to draw one card shape; the owner's own drawing gives OUR
+     column its own shape (a meta line over a bold summary, with an action row
+     under it) and leaves theirs exactly as it was, which was the whole
+     condition on building it. The PANEL is what this check is about and what
+     the owner asked about, and the panel is still one stylesheet for both. */
   const PANEL_TYPE = `(() => {
     const pill = document.querySelector('.rl-cp-pill[data-rl-cp-open]');
     if (!pill) return { err: 'no pill' };
@@ -454,8 +471,7 @@ const CARD_EDIT = async () => {
     return { h: fz('.rl-cp-h'), stands: fz('.rl-cp-stands'), who: fz('.rl-cp-who'),
       note: fz('.rl-cp-note'), act: fz('.rl-cp-act'), clname: fz('.rl-cp-clname'),
       segs: fz('.rl-cp-segs button'),
-      cardMeta: (el => el ? getComputedStyle(el).fontSize : null)(document.querySelector('.rl-card-meta')),
-      badge: (el => el ? getComputedStyle(el).fontSize : null)(document.querySelector('.rl-badge')) };
+      wd: fz('.rl-cp-wd'), why: fz('.rl-cp-why') };
   })()`;
   await page.evaluate(() => window.SHOW_OWNER());
   await pause(600);
@@ -480,14 +496,14 @@ const CARD_EDIT = async () => {
        for, which is that the panel is DRESSED and not a stale copy of some
        earlier sheet — the same correction main made to the twin claims in
        redline-verify and f173 on the same day.
-       So: the panel's standing wording is the largest thing in it, its section
-       headings are the smallest, and the card meta beside it sits between them.
-       Sizes may move; that order is the design. */
+       So: the panel's standing wording is the largest thing in it and its
+       section headings are the smallest. Sizes may move; that order is the
+       design. (The third leg was the card's meta line and it left the roll
+       call on 25 Aug 2026 with the rest of the card — see the note above.) */
     const sz = k => parseFloat(ownerType[k]);
     check('11 and the panel is dressed, not a stale copy — the order holds',
-      sz('stands') > sz('h') && sz('stands') >= 13 && sz('h') >= 10
-      && sz('cardMeta') >= sz('h') && sz('cardMeta') <= sz('stands'),
-      `stands ${ownerType.stands} · h ${ownerType.h} · meta ${ownerType.cardMeta}`);
+      sz('stands') > sz('h') && sz('stands') >= 13 && sz('h') >= 10,
+      `stands ${ownerType.stands} · h ${ownerType.h}`);
   }
 
   /* The owner's side is the control: if these were absent there too, every

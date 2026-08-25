@@ -7265,3 +7265,43 @@ register}.js.
 **Verified.** Node 4,527/4,527 and lint 0 errors. Browser: the whole set via
 `run-all.js`, plus the colour census re-recorded and audited value by value
 (five differences on three screens, every one attributable to a named item).
+
+## 25 Aug 2026 — the tracked-changes column takes the owner's drawing
+
+"You neglected to build a very important feature to the app. How the new cards
+in the owner side are designed which is shown in the attached image."
+
+Built: the column names itself and carries the total ("Tracked changes (N)");
+the three-way cut wears a visible WHOSE ASKS label; the cards sit under four
+bands each with its own count; the card is a meta line over a bold summary with
+an action row under it; and a ⋯ menu carries what will not fit on that row, led
+by Edit with Copilot. Our seat only — the counterparty's column is untouched,
+and so is the owner's preview of their page.
+
+### Defects found and fixed on the way
+- The band heading repeated, and a card could sit under a heading that is not
+  true of it: rlCardSort orders by rank and three of the four bands are all
+  rank 0, so the column interleaved them. The band is the outer sort now and
+  rlCardSort the inner one.
+- The card's text was crushed to about a hundred pixels — "CHG-006 · Cla…" over
+  "hand, by c…" — because the acts sat beside it on one row rather than under
+  it. Found by photographing the column; the markup looked correct.
+- The ⋯ menu offered "Jump to the clause" beside an Edit on the card's face:
+  the same attribute, the same handler and the same act twelve pixels apart.
+  The row now draws only where the face has no Edit.
+- A first pass invented .rl-state as a second status element, which broke about
+  a dozen checks that resolve a card's state by .rl-badge — the one class that
+  has always meant it, and which the stylesheet's own rule says keeps its
+  identity for exactly that reason.
+- A first pass stripped the verbs' borders on this card, which reverses 24 Aug's
+  own owner ruling and was not part of this ask. Reverted.
+
+### Noticed, not fixed
+- `npm run lint` reports four errors, all pre-existing on main and none of them
+  in anything this change touched: duplicate dictionary keys `co_password_updated`
+  and `act_next`, each written twice in each language, in js/i18n.js.
+- pages-read-alike-verify is 47/50, and all three failures are the negotiation
+  page's head wrapping onto a second line under a long contract name. PROVED
+  pre-existing rather than asserted: a worktree at unmodified origin/main scores
+  the identical 47/50, the same three checks, the same measurements (a wrapped
+  head of 125px against a name of 81 characters).

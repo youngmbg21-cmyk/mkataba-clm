@@ -2444,6 +2444,113 @@ function redlineLayoutCss(){
   /* Compact pills, right-aligned: each verb is only as wide as its word, so the
      card's information leads and the actions follow. flex:1 stretched them into
      a wall of colour that outweighed the change itself. */
+  ${''/* ================================================================
+         THE COLUMN, TO THE DESIGN (owner-asked 25 Aug 2026)
+         ----------------------------------------------------------------
+         Everything below is scoped to .rl-card-d — OUR seat's card — so the
+         counterparty's column and the owner's preview of it keep the shapes
+         above, byte for byte, as agreed. */}
+  ${''/* .rl-idx-title and .rl-idx-open are the INDEX BLOCK's own and are
+         already styled where that block is built — restating them here would
+         be a second rule at equal specificity later in the sheet, which is how
+         two parts of one column come to disagree about a colour. */}
+  .redline-page .rl-idx-fk{font-size:11px;font-weight:700;letter-spacing:.09em;
+    text-transform:uppercase;color:var(--color-neutral-600);margin-right:auto}
+
+  ${''/* THE BAND HEADING. Small, uppercase, quiet — it is a signpost over the
+         rows, not one of them (this file's own rule about captions). The count
+         sits BESIDE the words rather than at the right wall, so the heading
+         reads as one phrase — "AWAITING YOU 5" — rather than as a row with a
+         figure parked at the far end of an empty gap. The words elide; the
+         count never does, which is the same rule the way-out button on the
+         control row keeps. */}
+  .redline-page .rl-band{display:flex;align-items:center;gap:8px;
+    padding:14px 0 6px;font-size:11px;font-weight:700;letter-spacing:.09em;
+    text-transform:uppercase;color:var(--color-neutral-600)}
+  .redline-page .rl-band:first-child{padding-top:2px}
+  .redline-page .rl-band b{font-weight:700;color:var(--color-neutral-600)}
+  .redline-page .rl-band span{min-width:0;overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap}
+
+  ${''/* THE CARD IS TWO STACKED BLOCKS, NOT TWO COLUMNS, and that was
+         MEASURED rather than chosen. A first pass put the text on the left and
+         the state, verbs and ⋯ on the right of one flex row; at the divider's
+         resting 460px those acts want about 300px, so the text got barely a
+         hundred and every card read "CHG-006 · Cla…" over "hand, by c…" — the
+         two things the reader is there to read, both cut. Photographing it is
+         what said so; the markup looked perfectly reasonable.
+
+         So: the text block takes the card's whole width and the ACTION ROW
+         sits under it — the state at the left, the verbs pushed to the right
+         wall, the ⋯ last. The summary is allowed TWO LINES and clamps; the
+         meta line is one and elides, because it is a reference and the whole
+         of it is on the row's own hover. */}
+  .redline-page .rl-card-d{padding:10px 12px}
+  .redline-page .rl-card-d .rl-card-txt{min-width:0;margin:0;padding:0}
+  .redline-page .rl-card-d .rl-card-meta{font-size:12px;color:var(--color-neutral-600);
+    line-height:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0}
+  .redline-page .rl-card-d .rl-card-sum{font-size:14px;font-weight:700;
+    color:var(--color-text);line-height:19px;margin-top:2px;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+    overflow:hidden}
+  .redline-page .rl-card-d .rl-card-foot{display:flex;align-items:center;gap:10px;
+    margin-top:8px}
+  .redline-page .rl-card-d .rl-card-foot .rl-card-verbs{margin-left:auto}
+
+  ${''/* THE STATE IS A DOT AND A WORD, never a filled chip: five chips down a
+         column read as five buttons, which is the argument the register's own
+         stage column settled the same way.
+
+         IT IS STILL .rl-badge AND STILL ITS OWN TONE CLASS, which is the whole
+         of why this is safe: the rule three hundred lines up says that slot
+         keeps its identity because half this product and half the suite ask it
+         where a change stands. This adds a DOT and a size; it does not invent
+         a second status element. A first pass called it .rl-state and broke
+         about a dozen checks that resolve the card's state by the one class
+         that has always meant it.
+
+         AND THE DOT IS currentColor, so the four tone rules above give it its
+         colour for free and there is nothing to keep in step. */}
+  .redline-page .rl-card-d .rl-badge{display:inline-flex;align-items:center;gap:6px;
+    font-size:12.5px;font-weight:600;white-space:nowrap}
+  .redline-page .rl-card-d .rl-badge i{width:7px;height:7px;flex:none;border-radius:50%;
+    background:currentColor}
+
+  ${''/* THE VERBS KEEP THEIR BORDERS, and that was decided rather than left
+         alone. A first pass at this card stripped them to bare coloured words
+         and scoped the stripping here; it reverses 24 Aug's own owner ruling —
+         "all the buttons should have a similar border line like share and more
+         have in the platform right now" — and the ask this card was drawn for
+         was about the column's LAYOUT (the bands, the meta line over the
+         summary, the ⋯), not about the verbs' outlines. Reversing an owner
+         call nobody asked about is the wider interpretation. So this rule only
+         puts them on ONE ROW beside the state and the ⋯: no top margin (they
+         are not under anything any more) and no wrapping, because a verb that
+         drops to a second line takes the row's height with it. */}
+  .redline-page .rl-card-d .rl-card-verbs{margin-top:0;gap:8px;flex-wrap:nowrap}
+
+  ${''/* THE OVERFLOW. The button is the glyph alone; the menu names the change
+         it belongs to, because one floating over a column of six cards has to
+         say which. Anchored to the card rather than the window so it travels
+         with the row when the column scrolls. */}
+  .redline-page .rl-more{position:relative;flex:none}
+  .redline-page .rl-more-btn{border:0;background:transparent;padding:0 2px;
+    font:inherit;font-size:15px;line-height:1;cursor:pointer;
+    color:var(--color-neutral-600)}
+  .redline-page .rl-more-btn:hover{color:var(--color-text)}
+  .redline-page .rl-more-menu{position:absolute;top:100%;right:0;z-index:8;
+    min-width:210px;background:var(--color-surface);
+    border:1px solid var(--color-divider);box-shadow:var(--shadow-md);padding:4px 0}
+  .redline-page .rl-more-menu[hidden]{display:none}
+  .redline-page .rl-more-head{padding:7px 12px 6px;font-size:10.5px;font-weight:700;
+    letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);
+    border-bottom:1px solid var(--color-divider);margin-bottom:4px}
+  .redline-page .rl-more-row{display:block;width:100%;text-align:left;border:0;
+    background:transparent;padding:8px 12px;font:inherit;font-size:13.5px;
+    color:var(--color-text);cursor:pointer}
+  .redline-page .rl-more-row:hover{background:var(--color-neutral-100)}
+  .redline-page .rl-more-row.rl-more-lead{color:var(--accent-ink);font-weight:600}
+
   .redline-page .rl-card-verbs{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;margin-top:9px}
   ${''/* ---- EVERY BUTTON WEARS THE HEAD ROW'S OWN LINE (owner-asked 24 Aug
          2026: "all the buttons should have a similar border line like share

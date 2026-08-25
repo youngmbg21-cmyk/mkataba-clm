@@ -106,7 +106,12 @@ describe('F93 (1) — the origin pill is OFF the card, and the edge still says i
     const card = p.$('#rl-changes [data-nego-card]');
     assert.equal(card.querySelector('.rl-origin'), null,
       'the third tag is gone from the head');
-    assert.doesNotMatch(card.querySelector('.rl-card-top').textContent, /ask/i,
+    /* RE-POINTED 25 Aug 2026: the owner's card draws its top block as
+       .rl-card-txt — the drawing's meta line over the bold summary, with the
+       state and the verbs in an action ROW underneath. .rl-card-top is the
+       counterparty's shape. The claim is unchanged — no replacement pill crept
+       back into the top of the card. */
+    assert.doesNotMatch(card.querySelector('.rl-card-txt, .rl-card-top').textContent, /ask/i,
       'and no replacement pill crept back into the top row');
     /* THE MARKER STAYS. It is what paints the coloured spine, which is the
        fastest fact on the card and the whole reason the pill could go. */
@@ -150,21 +155,31 @@ describe('F93 (1) — the origin pill is OFF the card, and the edge still says i
     assert.doesNotMatch(css, /\.rl-origin-them\{/, 'and its indigo one');
   });
 
-  test('the head is the id, the status and the way into the panel — three things, not four', async () => {
+  test('the row is the id, the status and the way into the panel — three things, not four', async () => {
+    /* RE-POINTED 25 Aug 2026 to the owner's own card. Every half of the claim
+       survives and each has moved home:
+         · the id is no longer a chip of its own — it opens the META LINE,
+           "#CHG-001 · Clause 2 · Payment terms", which is where the drawing
+           puts it and which is also what carries the clause name;
+         · the one status slot is still .rl-badge, deliberately (see the rule
+           beside it in the stylesheet), and it has moved to the action row
+           under the text;
+         · the door into the reasoning is a row in the ⋯ menu rather than a
+           button on the face;
+         · and there is still no origin pill.
+       .rl-card-top, .rl-card-lead and .rl-card-id are the COUNTERPARTY's
+       shape and are asserted there instead, one test down. */
     const p = await page();
-    const top = p.$('#rl-changes [data-nego-card] .rl-card-top');
-    assert.ok(top.querySelector('.rl-card-id'), 'the id is still there');
-    assert.ok(top.querySelector('.rl-badge'), 'so is the one status slot');
-    /* RE-POINTED 16 Aug 2026: the door is Open — the clause panel's own
-       control — since the pop-out is retired. Same slot, same claim. */
-    assert.ok(top.querySelector('.rl-open-btn[data-rl-cp-open]'), 'and the door into the reasoning');
-    assert.equal(top.querySelector('.rl-origin'), null, 'and nothing else');
-    /* THE LEAD GROUP SURVIVES, holding the id alone. It is the flex item that
-       gives width back when the card is narrow; collapsing it would change how
-       the head wraps in a 285px column. */
-    const lead = top.querySelector('.rl-card-lead');
-    assert.ok(lead, 'the lead group is kept');
-    assert.equal(lead.children.length, 1, 'with the id in it and nothing else');
+    const card = p.$('#rl-changes [data-nego-card]');
+    const txt = card.querySelector('.rl-card-txt');
+    const foot = card.querySelector('.rl-card-foot');
+    assert.ok(txt && foot, 'the owner\'s card draws a text block over an action row');
+    const meta = txt.querySelector('.rl-card-meta');
+    assert.ok(meta && /CHG-/.test(meta.textContent), 'the id opens the meta line');
+    assert.ok(foot.querySelector('.rl-badge'), 'so is the one status slot');
+    assert.ok(card.querySelector('.rl-more-menu [data-rl-cp-open]'),
+      'and the door into the reasoning');
+    assert.equal(card.querySelector('.rl-origin'), null, 'and nothing else');
   });
 
   test('AND THE NAME IS STILL ON THE CARD — one hover away on the line under the head', async () => {
@@ -377,7 +392,10 @@ describe('F93 (5) — the counterparty link gets the same column, seat-flipped',
       { side: 'counterparty', org: 'Wanjiru Catering Ltd', hiddenIds: [] });
     const head = box.querySelector('.rl-idx');
     assert.ok(head, 'same head, no portal-shaped copy');
-    assert.match(head.textContent, /change index/i);
+    /* RE-POINTED 25 Aug 2026 with the head's own title — asked of the
+       dictionary, never typed, so a rewording costs no test edit. */
+    assert.ok(head.textContent.includes(
+      p.win.i18t('ng_tracked_head_n', { n: 1 }).replace(/\s*\(\d+\)\s*$/, '')));
     /* Option 1 (16 Aug 2026): the count rides the All tab on every seat that
        draws the tabs — "on the table" survives only on a narrowed reviewer's
        head, which their seat never is. */
