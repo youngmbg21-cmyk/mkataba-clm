@@ -7196,6 +7196,29 @@ writing about being careful. `node --check` caught it in seconds.
 shipped code (0/7) before it was trusted. Section 10e widened in place: it
 asserted EVERY cell clips, which the exemption correctly breaks.
 
+**AND THE REST OF THE PRODUCT WAS SWEPT for the same fault, because one
+instance of a class is never the question.** Two passes:
+
+*The blast radius of the rule itself.* The only `overflow:hidden` this run
+ADDED is `.reg-table td/th`; `.cal-when` and `.reg-title` already carried
+theirs and only changed size. `.reg-table` is rendered from `register.js`
+alone, which draws Contracts and Negotiations — both checked. The stream
+drawer is `.fold-table` and was never given the clip.
+
+*The class, anywhere.* A live sweep of 12 screens for every
+`position:absolute` element a clipping ancestor would crop, with hidden
+pop-ups forced visible for the measurement: **0 on eleven of them.** Two on
+the negotiation page — `#rl-queue` and `#rl-cp` — and both are the DESIGN:
+those panels park outside `#rl-grid` when shut, and that grid clips on purpose
+so a parked panel cannot create a sideways scroll box (CLAUDE.md records it).
+Opened and re-measured, both paint at 9 of 9 sample points.
+
+*Then the menus were driven for real*, since a forced-visible element is not
+the same as a pressed one — Contracts row menu 180x234, contract-room More
+252x395, negotiation-head More 252x385, Calendar More 200x81, and the
+full-text search drop 284x91 with a word actually typed into the box: **all
+painted at 9 of 9.** The register's row menu was the only instance.
+
 ### Noticed, not fixed
 
 Per the Scope rules in CLAUDE.md. Each was proved to fail on unmodified
