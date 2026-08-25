@@ -3697,117 +3697,170 @@ reversal, plus the hover), f148 unchanged.
 ## THE TRACKED-CHANGES COLUMN TAKES THE OWNER'S DRAWING (owner-asked 25 Aug 2026)
 
 *"You neglected to build a very important feature to the app. How the new cards
-in the owner side are designed which is shown in the attached image."* Five
-things in one drawing, and every one is scoped to **OUR SEAT ONLY** — the
-counterparty's column is untouched, as agreed twice, and the owner's PREVIEW of
-their page falls through to their shapes so the window still shows what they
-see. `previewSeat` is what excludes it, read from the mount rather than worked
-out again.
+in the owner side are designed which is shown in the attached image."* — and
+then, after a first build missed it: *"this artifact is what you were supposed
+to build against."*
+
+**THE REFERENCE IS "The Clause Journey Build", the owner's own published
+artifact**, and its thirteen pictures are real screens from the working
+prototype rather than a mock-up. Read it before touching this column again;
+what follows is what it draws and, where they differ, why.
+
+**HOW THE FIRST BUILD WENT WRONG, and it is the lesson worth more than the
+feature.** It was built from ONE SCREENSHOT with no reference to hand, so every
+gap in the picture was filled with HaTi's existing card — and every difference
+landed in exactly those gaps: a boxed card where the reference has flat rows,
+bordered buttons where it has bare words, a stacked two-row card where it has
+one, a status word on every row where it has one only where it adds something.
+**When a picture arrives and there is a plan behind it, ask for the plan.**
 
 - **THE COLUMN NAMES ITSELF AND THE NAME CARRIES THE TOTAL** — "Tracked changes
-  (7)" where it read "Change index", which named the block rather than what is
-  in it. **THE NUMBER IS BORROWED, NEVER COUNTED HERE**: `changeTotal` is the
-  same reading the filter's options and the bands print, and a second
-  arithmetic on a figure already on the page is how two halves of one column
-  come to disagree. `ng_idx_head` is STALE — flag any mention.
+  (7)", with the bracketed figure in the label ink, sitting on a **2px accent
+  rule pulled down onto the head's own hairline** so the head reads as one ruled
+  line with the title's tab on it. **THE NUMBER IS BORROWED, NEVER COUNTED
+  HERE**: `changeTotal` is the same reading the filter's options and the bands
+  print. `ng_idx_head` is STALE.
+- **"N OPEN" IS AN AMBER DOT AND A WORD**, not a chip. It shipped as a dark
+  green filled block, which read as the loudest object on a column whose job is
+  the cards; amber is what this product uses for "waiting on you" everywhere
+  else, and the dot is the same mark the rows carry.
 - **THE THREE-WAY CUT IS LABELLED** — **WHOSE ASKS** beside it, because a
-  dropdown reading "All (6)" says what it is SET to and not what it is ABOUT,
-  and this product has already learned once that a filter whose only label is a
-  title attribute leaves two of them side by side both reading "Any". The
-  aria-label was already this sentence; the drawing makes it visible, which
-  costs the row nothing because the select was alone on it. **THE THREE SAFETY
-  PROPERTIES ARE UNTOUCHED** — three options only, each carrying its OWN count
-  unmoved by the filter, and `rlCardFilterNoteHtml` still says so and offers the
-  way back while the column is narrowed.
-- **THE CARDS SIT UNDER FOUR BANDS, each with its own count** — `RL_CARD_BANDS`
-  / `rlCardBand`, and they are the four questions a negotiator sorts this column
-  by rather than four statuses: what the other side has asked and nobody here
-  has answered · our own work that has not left the building · our asks that
-  have gone · everything settled. Every change lands in EXACTLY ONE, the last
-  branch is a catch-all so a state nobody thought of is filed as decided rather
-  than vanishing off the bottom, and **a band with nothing in it draws
-  NOTHING** (four headings over an empty column is furniture, and the
-  empty-column blurb already answers that state properly).
-  - **THE BAND IS THE OUTER SORT AND rlCardSort IS THE INNER ONE, and this is
-    the half a first pass got wrong.** `rlCardSort` orders by `rlCardRank` —
-    pending, then refused, then settled — and THREE of the four bands are all
-    rank 0, so a column left in rank order INTERLEAVES them: the heading either
-    repeats down the column or, worse, a card sits under a heading that is not
-    true of it. The list is re-sorted by band, and because `Array#sort` is
-    stable the rank order inside each band is exactly what `rlCardSort`
-    produced. The heading carries `data-rl-band`, so the claim can be read in
-    DOCUMENT ORDER, which is the only reading that can see this fault at all.
-- **THE CARD IS TWO STACKED BLOCKS, NOT TWO COLUMNS, and that was MEASURED
-  rather than chosen.** A meta line ("#CHG-006 · Clause 18 · Notices", one line,
-  elides, whole on the hover) over a **bold summary** — the change's own
-  `summary`, quoted from the record and never composed here — then the
-  conditional strips, then an **action row**: where this change stands at the
-  left, the verbs at the right wall, the ⋯ last. A first pass put the text on
-  the left and the acts on the right of ONE flex row; at the divider's resting
-  460px those acts want about 300px, so the text got barely a hundred and every
-  card read "CHG-006 · Cla…" over "hand, by c…" — the two things the reader is
-  there to read, both cut. **Photographing it is what said so; the markup
-  looked perfectly reasonable.** `.rl-card-line` is STALE.
-  - **THE WORDING PREVIEW IS RETIRED AND THE SUMMARY DOES ITS JOB.** What
-    `.rl-card-diff` was really for — "a card asking for a decision must say what
-    is being decided" — is unchanged and is what the bold line carries; the
-    marks are on the paper twelve pixels away and the full text is one press
-    into the panel. `.rl-card-diff` is STALE.
-  - **THE RECEIPT SHAPE HAS LEFT OUR SEAT WITH IT.** Option 4 of 16 Aug ("work
-    big, receipts small") answered "finished business must stop costing
-    card-height" by shrinking a change that needs nothing to one line; the BANDS
-    answer it now — a reader skips a whole pile by skipping a heading. **WHAT IT
-    COSTS, said out loud**: three sent asks used to cost less height than one
-    working card and now cost three cards. `.rl-receipt` is the COUNTERPARTY's
-    shape and is still drawn there.
-  - **EVERY CARD STILL SAYS WHERE IT STANDS, and it is still `.rl-badge`.**
-    Standing the word down under the two bands that seem to repeat it was tried
-    and reversed: that slot is the card's ONE status slot and the rule beside it
-    in the stylesheet says in so many words that it keeps its identity because
-    half this product and half the suite ask it where a change stands; and a
-    card that only reads correctly UNDER ITS OWN HEADING cannot be read anywhere
-    else. The heading says which pile, the badge says where this one change
-    stands, and on their ask those are different facts. The dot is
-    `background:currentColor`, so the four tone rules give it its colour for
-    free. `.rl-state` was a second status element and is STALE.
-- **THE ⋯ MENU CARRIES WHAT WILL NOT FIT, LED BY EDIT WITH COPILOT** — which is
-  where the approved clause journey has always put it, and it replaces the ✦
-  button that was standing in for a menu this page did not have. **IT DECIDES
-  NOTHING**: every row carries a data attribute some other handler already binds
-  (`data-rl-cp-editor-row`, `data-rl-cp-open`, `data-rl-ask-review`,
-  `data-rl-edit`), the rows are deliberately NOT stopped so a press falls
-  through to the handler that owns that act, and this listener's whole job is
-  showing and hiding. Armed ONCE at module load on `document` in the capture
-  phase — the 15 Aug lesson, a listener registered inside a renderer belongs to
-  whichever page rendered first. One menu open at a time. The menu HEAD names
-  the change, because one floating over a column of six has to say which.
-  - **IT NEVER REPEATS A VERB THE FACE ALREADY CARRIES.** Edit is
-    `data-rl-edit`; a "Jump to the clause" row beside it is the same attribute,
-    the same handler and the same act twelve pixels apart, so that row draws
-    only where the face has no Edit. `faceVerbs` is the card's own finished verb
-    markup, handed in — the same string the receipt rule reads — so the two
-    cannot disagree about what is on the face.
+  dropdown reading "All (6)" says what it is SET to and not what it is ABOUT.
+  **THE THREE SAFETY PROPERTIES ARE UNTOUCHED** — three options only, each
+  carrying its OWN count unmoved by the filter, and `rlCardFilterNoteHtml` still
+  says so and offers the way back while the column is narrowed.
+- **THE ROWS SIT UNDER FOUR BANDS, each a FILLED STRIP edge to edge with its own
+  count** — `RL_CARD_BANDS` / `rlCardBand`. They are the four questions a
+  negotiator sorts this column by rather than four statuses: what the other side
+  has asked and nobody here has answered · our own work that has not left the
+  building · our asks that have gone · everything settled. Every change lands in
+  EXACTLY ONE, the last branch is a catch-all, and **a band with nothing in it
+  draws NOTHING**. The strip bleeds to the column's walls (the rail's 16px inset
+  cancelled and put back inside) so the words line up with the rows.
+  - **THE BAND IS THE OUTER SORT AND rlCardSort IS THE INNER ONE, and this was
+    got wrong TWICE.** `rlCardSort` orders by `rlCardRank` — pending, refused,
+    settled — and THREE of the four bands are all rank 0, so a column left in
+    rank order INTERLEAVES them and a heading either repeats or sits over a card
+    it is not true of. A first pass re-sorted in the RENDERER, which fixed the
+    column and left the Tracked Changes pill counting the same changes in a
+    different sequence. It is inside `rlCardSort` now, both callers pass
+    `rlBandOpts(c, opts, side)`, and there is ONE order.
+
+- **A ROW IS NOT A CARD.** The reference draws hairline-separated ROWS on the
+  column's own surface — no border, no fill, no shadow, no coloured spine — with
+  the reference line over the bold summary at the LEFT and the acts at the
+  RIGHT, level with the two lines between them. **`data-rl-origin` is still
+  stamped and whose ask this is is on the meta line in words.**
+  - **SIDE BY SIDE, AND THE FIX FOR "IT LOOKS CRUSHED" IS NOT TO STACK IT.**
+    Built side by side it measured crushed — every row reading "CHG-006 · Cla…"
+    over "hand, by c…" — and a first pass stacked it into two rows. That was the
+    right MEASUREMENT and the wrong CONCLUSION: what was eating the row was
+    HaTi's own BORDERED buttons and its FILLED provenance strip, neither of
+    which the reference carries. Take those two off and it fits with room to
+    spare. **Fix the cause, not the symptom.** `.rl-card-foot` and
+    `.rl-card-line` are STALE.
+  - **BASIS ZERO, NOT AUTO, is what holds the row on one line.** With basis auto
+    a flex item's base size is its MAX-CONTENT, and the summary is one nowrap
+    line — so on a long summary the base sizes overflow and the acts wrap
+    underneath, which is the stacked card coming back through the other door.
+  - **BOTH LINES ARE ONE LINE EACH AND BOTH ELIDE.** The whole of either is on
+    the row's own hover.
+  - **THE SUMMARY IS THE CHANGE'S OWN `summary`, quoted, never composed here.**
+    `.rl-card-diff` — the two-line greyed preview of the marked wording — is
+    STALE; what it was for ("a row asking for a decision must say what is being
+    decided") is what the bold line carries, and the marks are on the paper
+    twelve pixels away.
+  - **A SETTLED CHANGE READS QUIETLY**: under Decided the summary drops to
+    regular weight and the label ink. It is a record rather than something to
+    act on, and the ink is what says so once the row has no box to dim.
+  - **THE CAUTION STRIPS STOP SHOUTING.** The provenance and reviewer strips
+    were filled amber blocks with a 3px edge, written for a card that had a box
+    of its own; on a column of flat rows they became the loudest object on the
+    page and taller than the change they annotate. The FILL and the EDGE go and
+    the amber INK stays. **NOT ONE WORD CHANGES**, and none is dropped — a row
+    with a hole in it and the explanation elsewhere is worse than either.
+  - **THE RECEIPT SHAPE HAS LEFT OUR SEAT.** Option 4 of 16 Aug ("work big,
+    receipts small") answered "finished business must stop costing card-height"
+    by shrinking a change that needs nothing to one line; the BANDS answer it
+    now. `.rl-receipt` is the COUNTERPARTY's shape and is still drawn there.
+
+- **THE STATE DRAWS WHERE IT ADDS SOMETHING, and that is the reference's own
+  rule.** Under AWAITING YOU and YOUR DRAFTS it shows no status word at all —
+  the heading has just said which pile this is, and the row is the reference,
+  the summary and the verbs. It appears the moment it carries a fact the heading
+  does not: Sent, Refused, Accepted, a reviewer's name. **So the two bands it
+  stands down under are exactly the two whose badge word IS the heading**, and
+  every other state still draws.
+  - **WHEREVER IT DRAWS IT IS STILL `.rl-badge` AND ITS OWN TONE CLASS** — half
+    this product and half the suite ask that slot where a change stands, and a
+    first pass that invented `.rl-state` broke about a dozen of them.
+    `.rl-state` is STALE. The dot is `background:currentColor`, so the four tone
+    rules give it its colour for free.
+  - **WHAT THIS COSTS A TEST**: "does the column say this has gone" is now the
+    badge where there is one and the BAND HEADING where there is not. f89, f100
+    and f93 each read it that way; the safety property they exist for — a change
+    that has not gone may not say it has — is unchanged.
+
+- **THE VERBS ARE BARE COLOURED WORDS.** This does NOT reverse 24 Aug's "every
+  button carries the head row's line": that ruling was about the HEAD ROW, and
+  applying it here was the wrong precedent. Scoped to `.rl-card-d`, so the
+  counterparty's card and every head row keep their outlines. The INK is doing
+  ALL the work now — teal to agree, red to refuse, teal for the alternative —
+  and a verb that lost its colour would be indistinguishable from a caption,
+  which is the 17 Aug furniture lesson.
+
+- **THE ⋯ MENU CARRIES WHAT WILL NOT FIT, LED BY EDIT WITH COPILOT** in the
+  **Copilot violet** (the same violet `.rl-btn-alt` has carried since the
+  playbook pass), with a **rule under the two doors** separating the two ways
+  INTO this change's wording from the two things you do about it — drawn on the
+  row that OPENS the second group, so a short menu draws no stray line. **IT
+  DECIDES NOTHING**: every row carries a data attribute some other handler
+  already binds (`data-rl-cp-editor-row`, `data-rl-cp-open`,
+  `data-rl-ask-review`, `data-rl-edit`), the rows are deliberately NOT stopped
+  so a press falls through to the handler that owns that act, and this
+  listener's whole job is showing and hiding. Armed ONCE at module load on
+  `document` in the capture phase — the 15 Aug lesson. One menu open at a time.
+  The menu HEAD names the change.
+  - **IT NEVER REPEATS A VERB THE FACE ALREADY CARRIES.** `faceVerbs` is the
+    row's own finished verb markup, handed in, so the two cannot disagree.
   - **AND THE DOOR ONTO THE CLAUSE PANEL MOVED INTO IT.** `.rl-open-btn` is the
-    counterparty's shape now; on our card the panel is a worded row behind the
-    ⋯. Every check that reached for it presses the ⋯ first, which is the journey
-    a reader walks — f180's rule is that a verb must be visible pixels, and for
-    a menu that means the ⋯ is on the face and the row is on screen once it is
-    pressed.
-- **THE VERBS KEEP THEIR BORDERS, and that was decided rather than left alone.**
-  A first pass stripped them to bare coloured words; that reverses 24 Aug's own
-  owner ruling ("all the buttons should have a similar border line") and this
-  ask was about the column's LAYOUT, not the verbs' outlines. Reversing an owner
-  call nobody asked about is the wider interpretation. The card's rule only puts
-  them on one row.
+    counterparty's shape now. Every check that reached for it presses the ⋯
+    first — f180's rule is that a verb must be visible pixels, and for a menu
+    that means the ⋯ is on the face and the row is on screen once pressed.
 
-**WHAT WAS DELIBERATELY LEFT OUT, owner-chosen when asked**: a "+ Raise a
-change" button at the head of the column.
+**WHERE HaTi STILL DIFFERS FROM THE REFERENCE, said out loud rather than
+absorbed** — three things, none of them an accident:
+- **"+ Raise a change"** sits at the head's right in the reference. The owner
+  was asked and chose to leave it out.
+- **The progress bar and "N of M decided"** are HaTi's own and the reference
+  draws neither. Kept: they are a real reading of the round, and dropping a
+  fact nobody asked to drop is the wider interpretation. One word removes them.
+- **The verb SET.** The reference's row for their ask is Accept · Reject · ⋯ and
+  ours adds Edit; theirs for our draft is Send · Edit and ours is Edit · Retract
+  · Send. Which verbs draw is a permissions-and-behaviour matter that a
+  screenshot cannot settle, so HaTi's own set stands.
 
-Tests: f246 (NEW, 37 — **28 of them fail against the code of an hour before**),
-redline-verify sections 14 / 14a / 14b (the head's label measured as painted
-boxes, the bands read in document order, the ⋯ pressed for real with its row
-proved VISIBLE, and the whole shape), f100 / f89 / f93 / f84 / f37 (claims
-REVERSED IN PLACE, never deleted — each keeps what it was really pinning).
+**THE COLOUR CENSUS WAS RE-RECORDED, AUDITED VALUE BY VALUE FIRST** — the one
+case the standing rule allows, somebody deliberately owning a palette change,
+and it is a small one: **two screens, five values, every one attributable.**
+GONE from `negotiate--light` are `rgb(232,236,241)` and `rgba(38,55,74,.06)` —
+the change card's own BORDER and its faint lift, which left with the box when
+the rows went flat. ARRIVED are the Copilot violet on the ⋯ menu's lead row
+(`rgb(109,40,217)` light, `rgb(196,181,253)` dark) and the dark answer for the
+head's amber "N open" (`rgb(252,211,77)`). Dark loses nothing, because the
+card's border and shadow resolve there to values the census already held.
+**NO OTHER SCREEN MOVED**, and the amber semantic was checked as still alive
+before the baseline was saved — a value that disappears everywhere is a
+regression; one that disappears exactly where the thing drawing it was removed
+is the change.
+
+Tests: f246 (NEW, 41), redline-verify sections 6 / 14 / 14a / 14b (the verbs
+measured as computed values — the only place a cascade fight can be seen — the
+head's label as painted boxes, the bands read in DOCUMENT ORDER, and the ⋯
+pressed for real with its row proved VISIBLE), f100 / f89 / f93 / f84 / f37 /
+f161 / f190 (claims REVERSED IN PLACE, never deleted — each keeps what it was
+really pinning), clause-editor-verify / nego-redesign-verify / paper-grows-verify
+/ negotiations-door-verify / parity-verify (re-pointed at the ⋯ and the row).
 
 ## ONE HEADER TOP, ON ALL TWELVE PAGES AND AT EVERY HEIGHT (owner-asked 25 Aug 2026, three times)
 

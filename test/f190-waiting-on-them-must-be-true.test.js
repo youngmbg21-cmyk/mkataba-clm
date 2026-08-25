@@ -192,11 +192,11 @@ describe('f190 (3) — the card stops claiming a wait it cannot verify', () => {
     const one = card(win.redlineChangeCardsHtml(c, { side: 'owner' }), ch.id);
     assert.match(one, /data-rl-sendcopy/, 'the verb is on the card');
     assert.match(one, /Send a copy/);
-    /* In the ACTION ROW, which is a sibling of the text block — a verb is
+    /* In the ACTS GROUP, which is a sibling of the text block — a verb is
        visible pixels and nothing folds it away (f180's rule). RE-POINTED
-       25 Aug 2026: the row is .rl-card-foot on our seat since the owner's
-       drawing; .rl-card-actions is stale here. */
-    const bar = one.slice(one.indexOf('rl-card-foot'));
+       25 Aug 2026: the group is .rl-card-side on our seat since the column
+       took the reference's own shape; .rl-card-actions is stale here. */
+    const bar = one.slice(one.indexOf('rl-card-side'));
     assert.ok(bar, 'the card draws an action row');
     assert.match(bar, /data-rl-sendcopy/);
   });

@@ -162,8 +162,10 @@ describe('F93 (1) — the origin pill is OFF the card, and the edge still says i
            "#CHG-001 · Clause 2 · Payment terms", which is where the drawing
            puts it and which is also what carries the clause name;
          · the one status slot is still .rl-badge, deliberately (see the rule
-           beside it in the stylesheet), and it has moved to the action row
-           under the text;
+           beside it in the stylesheet) — and it stands DOWN under the two
+           headings that already say it, which is the reference's own rule and
+           f246's subject. This fixture's ask is theirs and awaiting us, so
+           the heading says it and the row does not;
          · the door into the reasoning is a row in the ⋯ menu rather than a
            button on the face;
          · and there is still no origin pill.
@@ -172,11 +174,14 @@ describe('F93 (1) — the origin pill is OFF the card, and the edge still says i
     const p = await page();
     const card = p.$('#rl-changes [data-nego-card]');
     const txt = card.querySelector('.rl-card-txt');
-    const foot = card.querySelector('.rl-card-foot');
-    assert.ok(txt && foot, 'the owner\'s card draws a text block over an action row');
+    const side = card.querySelector('.rl-card-side');
+    assert.ok(txt && side, 'the owner\'s row draws its text and its acts side by side');
     const meta = txt.querySelector('.rl-card-meta');
     assert.ok(meta && /CHG-/.test(meta.textContent), 'the id opens the meta line');
-    assert.ok(foot.querySelector('.rl-badge'), 'so is the one status slot');
+    /* The status slot lives in the acts group WHEREVER IT DRAWS, and there is
+       never a second one anywhere on the row. */
+    assert.equal(card.querySelectorAll('.rl-badge').length,
+      side.querySelectorAll('.rl-badge').length, 'the one status slot, and only there');
     assert.ok(card.querySelector('.rl-more-menu [data-rl-cp-open]'),
       'and the door into the reasoning');
     assert.equal(card.querySelector('.rl-origin'), null, 'and nothing else');

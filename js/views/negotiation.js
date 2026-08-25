@@ -9714,9 +9714,10 @@ function rlCardMoreHtml(c, ch, opts = {}, side = 'owner', st = {}){
   /* The card's own ask condition, character for character: our seat, our unsent
      draft, no review already out or held on it, and a seat that shows reviews
      at all. */
+  const cut = rows.length ? ' rl-more-cut' : '';
   if (own && editable && st.mineUnsent && !st.rvOut && !st.rvHeld
       && window.openReviewAskModal && window.reviewSeatShowsReview && reviewSeatShowsReview(opts))
-    rows.push(`<button type="button" class="rl-more-row"
+    rows.push(`<button type="button" class="rl-more-row${cut}"
       data-rl-ask-review="${_nea(ch.id)}">${i18t('rv_card_ask')}</button>`);
   /* THE MENU NEVER REPEATS A VERB THE FACE ALREADY CARRIES. Edit is
      data-rl-edit — it lights the clause on the paper and opens the panel on it
@@ -9728,7 +9729,8 @@ function rlCardMoreHtml(c, ch, opts = {}, side = 'owner', st = {}){
      handed in — the same string the receipt rule reads — so the two cannot
      come to disagree about what is on the face. */
   if (ch.clauseId && !/data-rl-edit=/.test(String(st.faceVerbs || '')))
-    rows.push(`<button type="button" class="rl-more-row"
+    rows.push(`<button type="button" class="rl-more-row${
+      rows.some(r => r.includes('data-rl-ask-review')) ? '' : cut}"
       data-rl-edit="${_nea(ch.clauseId)}" data-rl-edit-change="${_nea(ch.id)}"
       >${i18t('ng_row_jump')}</button>`);
   if (!rows.length) return '';
@@ -11562,11 +11564,27 @@ function redlineChangeCardsHtml(c, opts = {}){
        our own seat only, and their page — and the owner's preview OF their
        page — falls through to the receipt and full shapes below, unchanged. */
     if (side === 'owner' && !previewSeat){
-      const state = `<span class="rl-badge rl-badge-${badge[0]}"${
+      const band = rlCardBand(ch, side, unsent, heldIds);
+      /* ---- THE STATE DRAWS WHERE IT ADDS SOMETHING, AND THAT IS THE
+             REFERENCE'S OWN RULE ----
+         Under AWAITING YOU and YOUR DRAFTS the drawing shows no state word at
+         all — the row is the reference line, the summary and the verbs, and
+         the heading above has already said which pile this is. It appears the
+         moment it carries a fact the heading does not: Sent, Refused,
+         Accepted, and a reviewer's name.
+
+         SO THIS IS NOT THE HEADING REPEATED. The two bands it stands down
+         under are exactly the two whose badge word IS the heading; every other
+         state still draws, and the tone still comes from the same table. A
+         held or out-for-review change keeps its word under YOUR DRAFTS,
+         because "a colleague has this" is not what that heading says. */
+      const bandSaysIt = (band === 'awaiting' && badge[0] === 'sent' && !rvOut && !rvHeld)
+        || (band === 'drafts' && badge[0] === 'draft' && !rvOut && !rvHeld);
+      const state = bandSaysIt ? '' : `<span class="rl-badge rl-badge-${badge[0]}"${
         badge[2] ? ` title="${_nea(badge[2])}"` : ''}><i></i>${badge[1]}</span>`;
       const meta = [ch.id, who].filter(Boolean).join(' &middot; ');
       const sum = String(ch.summary || '').trim();
-      return `<article class="rl-card rl-card-d" data-nego-card="${_ne(ch.id)}" data-rl-origin="${theirs ? 'them' : 'us'}"${
+      return `<article class="rl-card rl-card-d${band === 'decided' ? ' rl-card-done' : ''}" data-nego-card="${_ne(ch.id)}" data-rl-origin="${theirs ? 'them' : 'us'}"${
         (ch.status === 'rejected' && !ch.withdrawn) ? ` data-contested="${_ne(ch.id)}"` : ''}${
         heldHere ? ` data-unsent="${_ne(ch.id)}"` : ''}${
         rvOut ? ' data-rv-waiting="1"' : ''}${
@@ -11582,21 +11600,23 @@ function redlineChangeCardsHtml(c, opts = {}){
           <div class="rl-card-meta"${tip ? ` title="${_nea(tip)}"` : ''}>${meta}</div>
           ${sum ? `<div class="rl-card-sum">${_ne(sum)}</div>` : ''}
         </div>
-        ${''/* The rare, load-bearing strips — on-behalf, revised-by, the
-               reviewer's note, the desk's "drafted by", the author's reason —
-               and the two sentences that explain a MISSING verb. Each is
-               conditional and usually absent, which is what keeps the card a
-               row; none may be dropped, because a card with a hole in it and
-               the explanation elsewhere is worse than either. */}
-        ${info ? `<div class="rl-card-info">${info}</div>` : ''}
-        ${''/* THE ACTION ROW, under the text rather than beside it: where this
-               change stands at the left, the verbs at the right wall, the ⋯
-               last. Beside the text it left about a hundred pixels for the two
-               things a reader is there to read — see the note in the sheet. */}
-        <div class="rl-card-foot">${state}${
+        ${''/* THE ACTS SIT BESIDE THE TEXT, level with it: where this change
+               stands, then the verbs, then the ⋯. They fit on one row because
+               they are bare coloured words rather than bordered buttons — see
+               the note in the sheet, and the fault a first pass fixed the
+               wrong way round. */}
+        <div class="rl-card-side">${state}${
           (verbs.length || rvCancel) ? `<div class="rl-card-verbs">${verbs.join('')}${rvCancel}</div>` : ''}${
           rlCardMoreHtml(c, ch, opts, side, { editable, preview: previewSeat,
             mineUnsent, rvOut, rvHeld, faceVerbs: verbs.join('') })}</div>
+        ${''/* The rare, load-bearing strips — on-behalf, revised-by, the
+               reviewer's note, the desk's "drafted by", the author's reason —
+               and the two sentences that explain a MISSING verb. Each is
+               conditional and usually absent, which is what keeps the row a
+               row; none may be dropped, because a row with a hole in it and
+               the explanation elsewhere is worse than either. They take the
+               full width and drop UNDER the row. */}
+        ${info ? `<div class="rl-card-info">${info}</div>` : ''}
         ${[noCopyBlock, rvStuckBlock, dkInstead, rvVerbs].filter(Boolean).join('')}
       </article>`;
     }
@@ -12491,8 +12511,14 @@ function redlinePanesHtml(c, opts = {}){
                      the bands all print, and a second arithmetic on a figure
                      already on the page is how two parts of one column come to
                      disagree. `ng_idx_head` is STALE — flag any mention. */}
-              <span class="rl-idx-title">${_ne(i18t('ng_tracked_head_n', { n: changeTotal }))}</span>
+              ${''/* The bracketed total is the quiet half of the name and is
+                     marked so the sheet can say so — one string from the
+                     dictionary either way, so nothing about the words moves. */}
+              <span class="rl-idx-title">${
+                _ne(i18t('ng_tracked_head_n', { n: changeTotal }))
+                  .replace(/\s*(\(\d+\))\s*$/, ' <i>$1</i>')}</span>
               ${p.pending ? `<span class="rl-idx-open">${_ne(i18tn('ng_n_open', p.pending, {n:p.pending}))}</span>` : ''}
+              <span class="rl-idx-sp"></span>
             </div>
             ${p.total ? `<div class="rl-idx-bar" role="img"
               aria-label="${_nea(i18t('ng_n_of_m_decided',{done:p.done,total:p.total}))}"><i

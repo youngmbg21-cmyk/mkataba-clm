@@ -963,7 +963,19 @@ describe('F100g — a card\'s Send sends that card, and only that card', () => {
     const settle = async () => { for (let i = 0; i < 4; i++) await new Promise(r => setImmediate(r)); };
     return { w, win, c, post, $, $$, settle, again: () => win.renderRedline() };
   }
-  const badgeOf = (p, id) => p.$(`[data-nego-card="${id}"] .rl-badge`).textContent.trim();
+  /* WHAT THE COLUMN SAYS ABOUT ONE CHANGE — the badge where the row draws one,
+     and the band heading it sits under where it does not. Since 25 Aug 2026 a
+     row under AWAITING YOU or YOUR DRAFTS draws no status word, because the
+     heading has just said it; the word comes back the moment it carries a fact
+     the heading does not. See f246. */
+  const badgeOf = (p, id) => {
+    const card = p.$(`[data-nego-card="${id}"]`);
+    const b = card && card.querySelector('.rl-badge');
+    if (b) return b.textContent.trim();
+    let n = card && card.previousElementSibling;
+    while (n && !n.classList.contains('rl-band')) n = n.previousElementSibling;
+    return n ? n.textContent.trim() : '';
+  };
 
   test('THE FIX: one card\'s Send publishes that change and holds the other back', async () => {
     const p = await page();
@@ -975,7 +987,7 @@ describe('F100g — a card\'s Send sends that card, and only that card', () => {
     assert.equal(p.post.reshared, 1, 'one round went');
     assert.equal(p.post.modals, 0, 'and no dialog');
     assert.equal(badgeOf(p, a), 'Sent', 'the chosen change has gone');
-    assert.match(badgeOf(p, b), /Draft/, 'the other is still a draft on the desk');
+    assert.match(badgeOf(p, b), /draft/i, 'the other is still a draft on the desk');
     /* Joined, not deep-compared: the page realm's Array prototype is not this
        realm's — the f60 trap this file already documents. */
     assert.equal(p.win.negoUnsentAsks(p.c, 'owner').map(x => x.id).join(','), b,

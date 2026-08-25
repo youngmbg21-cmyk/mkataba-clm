@@ -323,10 +323,19 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       parseFloat(col.cardWording) > parseFloat(col.cardMeta) && !col.oldPreview,
       `${col.cardWording} / ${col.cardMeta}`);
     /* RE-POINTED 24 Aug 2026 — the caption is the change index's title and the
-       filter is a select on its own line. Their sizes are the index's now. */
+       filter is a select on its own line. RE-POINTED AGAIN 25 Aug 2026 against
+       the design reference: the title is the column's one TAB and is set well
+       above the filter under it, which is the relation this ever meant. Pinned
+       as that relation rather than as 15px, so the next type pass costs no
+       edit here. */
     check('5 the index names itself and carries the filter',
-      col.cap === '15px' && !!col.filter, `${col.cap} / ${col.filter}`);
-    check('5 the verbs are 30px tall', col.verb === '30px', col.verb);
+      parseFloat(col.cap) > parseFloat(col.filter) && !!col.filter,
+      `${col.cap} / ${col.filter}`);
+    /* AND THE VERBS ARE BARE WORDS ON THIS COLUMN, so there is no button box
+       left to have a height: what carries them is the line they sit on. The
+       30px box was the bordered button the reference does not draw. */
+    check('5 the verbs sit on the row\'s own line, with no box of their own',
+      parseFloat(col.verb) > 0 && parseFloat(col.verb) <= 22, col.verb);
     /* THE OWNER'S OWN DECISION, KEPT AGAINST THE MOCK-UP. The render boxes this
        column in white; at the 300px the divider allows, a box round a column of
        boxes reads as clutter — so the pane stays transparent. Asserted so a
