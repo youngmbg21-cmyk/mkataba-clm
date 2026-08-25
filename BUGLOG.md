@@ -7089,22 +7089,48 @@ memory (`negoRememberOpened` / `negoLastOpened`) is kept, so the reopen is one
 argument to put back. **Verified** f184 and negotiations-door-verify, which
 asserts the memory is still recorded.
 
-### 4. The filter bar does not fit one line at 1366
+### 4. The filter bar drops its Sort control to a second line
 
-**What is broken.** WO-15 removed two filters "so the row fits one line". It
-does at 1280, 1440 and 1500 — and NOT at 1366, where the six controls wrap to
-two.
+**What is broken.** WO-15 removed two filters "so the row fits one line", and
+the row has six controls left: **Search · Lifecycle stage · Value stream ·
+Saved views · Category · Sort**. **Sort is the one that drops.** It is also the
+only one of the six with NO visible label, which is a second, smaller miss in
+WO-4's own "a filter says what it filters".
 
-**Root cause.** 1366 is the narrowest PAGE of the supported set, not the
-narrowest window: at 1280 the sidebar is a 64px rail (the float line), so the
-page is ~1216px, while at 1366 it is the 240px column and the page is ~1126.
-The bar was measured at the comfortable widths.
+**MEASURED on both pages (Contracts and Negotiations are one renderer and
+behave identically), at every width in `laptops-verify`'s supported set, in
+both languages, resting and with a filter set:**
 
-**Not fixed, deliberately.** Proved pre-existing by running the same probe in
-a worktree at `origin/main` before this change: identical two lines at 1366,
-identical one line at the other three. Closing it means either dropping a
-third filter — which of the six is the owner's call — or shrinking the
-controls, which is a density decision. Reported rather than guessed at.
+| | resting | a filter set |
+|---|---|---|
+| English 1280 · 1440 · 1536 · 1920 | one line | one line |
+| **English 1366** | one line | **two** |
+| Swedish 1280 · 1536 · 1920 | one line | one line |
+| **Swedish 1440** | one line | **two** |
+| **Swedish 1366** | **two** | **two** |
+
+**Root cause — two things compound, and neither is page width alone.**
+(1) **Setting a filter widens it**: the active state adds `font-weight:600`,
+which is ~30px on "Lifecycle stage". So the row is at its widest exactly when
+somebody is using it. (2) **Swedish is longer** — *Livscykelsteg*,
+*Affärsområde*, *Sparade vyer* — which is why the reported case was Swedish.
+1366 is also the narrowest PAGE of the set rather than the narrowest window: at
+1280 the sidebar is a 64px rail, so the page is ~1174px, while at 1366 it is
+the 240px column and the page is ~1084.
+
+**Not fixed, deliberately.** Proved pre-existing by running the same probe in a
+worktree at the commit before the filter-outline change: the table above is
+identical there, so today's colour work moved nothing. Closing it is a
+decision, not a fix — drop a third filter (which of the six is the owner's
+call), shrink the controls, or stop the active state changing the width. And
+labelling Sort, which it wants, makes it WIDER, so the two have to be settled
+together.
+
+**AND MY FIRST REPORT OF THIS WAS WRONG IN ITS DETAIL** — it said "1366" flat,
+with no mention of the language or of needing a filter set. The probe that
+found it had left a filter active from an earlier measurement and I read that
+as the resting state. A probe that carries state between measurements is a
+probe that reports a condition as if it were the rule.
 
 ### Noticed, not fixed
 
