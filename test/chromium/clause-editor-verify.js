@@ -331,6 +331,83 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('9b and lands back on the clause panel, with the contract still there',
      gone.panel && gone.docThere, `panel ${gone.panel}, doc ${gone.docThere}`);
 
+  /* ---- 11. THE COUNTERPARTY'S SEAT IS UNTOUCHED ----
+     Mounted from a REAL share payload, which is the only honest way to ask:
+     their page is not a mode of ours, it is renderSharePortal building a
+     contract back out of what travelled. Checked as a set of absences AND as
+     behaviour, because identical markup can still behave differently — the one
+     thing this work changed in a file their page loads is the clause panel's
+     Escape handler, which now defers while the editor is open. It is never
+     open here, so it must behave exactly as it did. */
+  await p.evaluate(() => window.SHOW_COUNTERPARTY()); await pause(1300);
+  const theirs = await p.evaluate(() => ({
+    rowDoors: document.querySelectorAll('[data-rl-cp-editor-row]').length,
+    panelDoors: document.querySelectorAll('[data-rl-cp-editor]').length,
+    editorClass: document.querySelectorAll('.rl-cp-editor-btn').length,
+    aiButtons: document.querySelectorAll('#share-root [data-nego-ai-clause]').length,
+    cards: document.querySelectorAll('#share-root .rl-card').length }));
+  ck('11a their page holds cards to check', theirs.cards > 0, `${theirs.cards} cards`);
+  ck('11b no ✦ door on any of their tracked changes, and no marker on their panel',
+     theirs.rowDoors === 0 && theirs.panelDoors === 0 && theirs.editorClass === 0,
+     `rows ${theirs.rowDoors}, panel ${theirs.panelDoors}, class ${theirs.editorClass}`);
+  ck('11c and their panel draws no Copilot button at all — it never did',
+     theirs.aiButtons === 0, `${theirs.aiButtons}`);
+
+  const forced = await p.evaluate(() => {
+    const id = negoClauseList(window.CONTRACT)[1].clauseId;
+    const seat = window.clauseEditorRefusal(window.CONTRACT, { side: 'counterparty' });
+    const ro = window.clauseEditorRefusal(window.CONTRACT, { readonly: true });
+    const ok = window.rlOpenClauseEditor(window.CONTRACT, id, { side: 'counterparty' });
+    return { seat, ro, ok, mounted: !!document.getElementById('clause-editor'),
+      body: document.body.className };
+  });
+  ck('11d forced open from their seat is refused, and mounts nothing',
+     forced.ok === false && forced.mounted === false && !/ce-open/.test(forced.body),
+     `${forced.ok}, mounted ${forced.mounted}`);
+  ck('11e each refusal names itself rather than one covering both',
+     typeof forced.seat === 'string' && typeof forced.ro === 'string' && forced.seat !== forced.ro,
+     forced.seat);
+
+  const theirPanel = await p.evaluate(() => {
+    const b = document.querySelector('#share-root .rl-cp-pill');
+    if (!b) return { none: true };
+    b.click(); return { none: false };
+  });
+  await pause(500);
+  const theirOpen = await p.evaluate(() => !!(window.rlCpOpenId && rlCpOpenId()));
+  await p.keyboard.press('Escape');
+  await pause(400);
+  const theirShut = await p.evaluate(() => !(window.rlCpOpenId && rlCpOpenId()));
+  ck('11f their clause panel still opens from the pill',
+     !theirPanel.none && theirOpen, `open ${theirOpen}`);
+  ck('11g and Escape still closes it — the deferral added for the editor never '
+     + 'engages on a page that cannot open one',
+     theirShut, `shut ${theirShut}`);
+
+  const theirVerbs = await p.evaluate(async () => {
+    const btn = document.querySelector('#share-root [data-nego-accept]');
+    if (!btn) return { none: true };
+    const card = btn.closest('.rl-card');
+    const id = (card.querySelector('.rl-card-id') || {}).textContent || '?';
+    btn.click();
+    await new Promise(r => setTimeout(r, 700));
+    /* MEASURED AS A PERSON SEES IT, never off a store: PORTAL_NEGO_DECISIONS is
+       module-local and is not on window, so reading it through window reports
+       zero however well the press worked. What a reader sees is the card's own
+       verbs become Send and Undo, and the unsent band appear. */
+    const after = [...document.querySelectorAll('#share-root .rl-card')]
+      .find(c => ((c.querySelector('.rl-card-id') || {}).textContent || '') === id);
+    return { none: false, id,
+      verbs: after ? [...after.querySelectorAll('button')]
+        .map(b => b.textContent.replace(/\s+/g, ' ').trim()).filter(Boolean) : [],
+      band: !!document.querySelector('#share-root .rl-unsent') };
+  });
+  ck('11h and their own decide verbs still work end to end',
+     !theirVerbs.none && /Send/i.test((theirVerbs.verbs || []).join(' '))
+       && /Undo/i.test((theirVerbs.verbs || []).join(' ')) && theirVerbs.band,
+     theirVerbs.none ? 'no accept verb on their page'
+       : `${theirVerbs.id} now offers ${JSON.stringify(theirVerbs.verbs)}`);
+
   /* ---- 10. NO PAGE ERRORS THROUGHOUT ---- */
   ck('10 the whole journey ran with no page errors', errs.length === 0, errs.join(' | ') || 'none');
 
