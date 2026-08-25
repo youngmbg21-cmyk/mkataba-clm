@@ -7093,9 +7093,14 @@ asserts the memory is still recorded.
 
 **What is broken.** WO-15 removed two filters "so the row fits one line", and
 the row has six controls left: **Search · Lifecycle stage · Value stream ·
-Saved views · Category · Sort**. **Sort is the one that drops.** It is also the
-only one of the six with NO visible label, which is a second, smaller miss in
-WO-4's own "a filter says what it filters".
+Saved views · Category · Sort**. **Sort is the one that drops**, and the reason is
+its LAYOUT rather than a missing name: the other five carry their word ABOVE
+the box (`.reg-f` / `.reg-f-l`, the stacked label WO-4 gave them), while Sort
+keeps the older arrangement with the word BESIDE the box. Two things on one
+line is wider than two things stacked, so it is the widest item on the row and
+the first to fall off. (An earlier version of this entry said Sort had no label
+at all — wrong: it says "Sort" / "Sortera". The probe looked for `.reg-f-l`
+specifically and read the inline label as an absence.)
 
 **MEASURED on both pages (Contracts and Negotiations are one renderer and
 behave identically), at every width in `laptops-verify`'s supported set, in
@@ -7122,9 +7127,9 @@ the 240px column and the page is ~1084.
 worktree at the commit before the filter-outline change: the table above is
 identical there, so today's colour work moved nothing. Closing it is a
 decision, not a fix — drop a third filter (which of the six is the owner's
-call), shrink the controls, or stop the active state changing the width. And
-labelling Sort, which it wants, makes it WIDER, so the two have to be settled
-together.
+call), shrink the controls, stop the active state changing the width, or stack
+Sort's label like the other five, which would also make the row read as one
+set of controls rather than five plus one.
 
 **AND MY FIRST REPORT OF THIS WAS WRONG IN ITS DETAIL** — it said "1366" flat,
 with no mention of the language or of needing a filter set. The probe that
