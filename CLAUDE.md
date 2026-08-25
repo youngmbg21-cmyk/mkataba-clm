@@ -2212,14 +2212,64 @@ wall; **Templates** is the table this page has always been, unchanged.
   trick the upload dialog uses cannot reach here, because this wall's rows are
   implicit and there are none to inherit.
 
+**THE CARD IS THE DEMO'S CARD (owner-asked 25 Aug 2026, off a picture of one:
+"ensure the hati cards resemble it exactly. The color coding, the design how
+the card is color coded at the top … add the font sizes as well").** A **3px
+tone bar across the TOP** rather than a stripe down the left; the state as a
+small uppercase badge at the top right; the name; `category · vN · date`; a
+hairline; then the two figures under quiet sentence-case labels; then the line
+that qualifies them.
+
+- **EACH COLOUR CARRIER ANSWERS ONE QUESTION.** The **bar** is what kind of
+  paper this is and what state it is in — green on published company paper,
+  amber while it is a draft, otherwise the value stream's own colour, which is
+  exactly what the left stripe carried before it moved. The **rate's ink** is
+  how the paper is doing, and **its ruby is the SAME threshold that puts a
+  template in Needs attention**, so a red figure and a row in that panel can
+  never mean different things (amber above a quarter, green below). The count
+  beside it stays primary ink: it is a fact about volume, not a verdict. All
+  three read from `--st-*-fg`, which have dark answers — measured in both
+  themes, no override owed.
+- **THE TYPE LADDER, since that was half the ask**: name **15/700** primary;
+  badge **10/700** uppercase with tracking; meta, labels and the note all
+  **13/400** on the secondary ink; the two figures **19/700**. That obeys the
+  four-shades rule by construction — primary is 14px and up, and everything
+  11-13px is the label shade.
+- **THE LABELS ARE SENTENCE CASE**, not the 11px uppercase caps this product
+  uses elsewhere: those are signposts OVER a list (the two panels keep theirs),
+  and these are labels ON a figure.
+- **THE BADGE FLOATS, and that is load-bearing.** In a flex row it takes a
+  column and every line of the name is short — measured, "Freight &
+  Distribution Agreement" ran out of room on a card with an inch of white
+  beside it. Floated, only the FIRST line is narrowed. It also rules out
+  `-webkit-line-clamp`, which makes its own formatting context and ignores the
+  float, so the name is capped by RESERVING two lines rather than by clamping
+  and a name long enough to need a third gets one.
+- **`.tpl-ov-badge` IS ITS OWN CLASS, NOT AN OVERRIDE OF `.badge`** — that one
+  is 12px with a dot slot and dresses every table row and panel in the product.
+- **A CLEAN TEMPLATE SAYS SO IN PLAIN ENGLISH.** "0 of 3 contracts checked came
+  back off-standard" is accurate and reads like a near miss; paper that all
+  came back on standard is good news (`lib_ov_all_clear`).
+- **THE STREAM NAME IS SHORTENED BY THE RAIL'S OWN FUNCTION** (`tplShortStream`
+  — "Corporate & Compliance" → "Corporate"). The rail has cut it this way since
+  it was built; the card asks the same function rather than carrying a second
+  copy.
+- **WHAT IS DELIBERATELY NOT COPIED**: the demo prints a bare "12 Jun 2026" and
+  HaTi labels it ("last used" / "added"), because a date with no name on it is
+  a fact nobody can read — this feature's own rule, one section up. One word
+  reverses it.
+
 **THE COLOUR CENSUS WAS RE-RECORDED, AUDITED FIRST**, and it is the smallest
 kind: **one screen, one value, nothing leaving.** `rgb(241,245,249)` —
 `--color-neutral-100`, the origin badge's face and the bar track — ARRIVING on
 `templates--light`. Dark did not move at all, because that token resolves there
 to a value the screen already held. No other screen moved.
 
-Tests: f244 (34 — **22 of them fail against the code of an hour before**),
-templates-tabs-verify (21, browser — the tabs pressed for real, the table
+Tests: f244 (35 — **22 of them fail against the code of an hour before**),
+templates-tabs-verify (31, browser — every card measured for the demo's own
+sizes, inks and geometry with the colour claims written as RELATIONS (a high
+rate is not the colour of a clean one, and the ruby one is the template Needs
+attention names) so a palette pass costs no edit; the tabs pressed for real, the table
 proved to have LEFT the screen rather than merely lost an attribute, the cards
 measured as pixels with both figures and the sentence that qualifies them, a
 card pressed through to a narrowed table, and no sideways scroll at three

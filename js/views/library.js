@@ -1286,6 +1286,12 @@ const TPL_PAGE_CAP=8;
    contract is not a rate, it is that contract. */
 const TPL_RECENT_DAYS=90;
 const TPL_DEV_MIN=3;
+/* A value stream's own name runs long — "Corporate & Compliance", "Sales &
+   Route-to-Market" — and both the rail and the overview's meta line print it
+   inside a narrow column. The rail has shortened it this way since it was
+   built; the card asks the same function rather than carrying a second copy,
+   so the two can never disagree about what a stream is called. */
+const tplShortStream=n=>String(n||'').split(' & ')[0].split(' — ')[0];
 /* GETTERS: this table is read on every paint, and a plain object built once
    at module load would freeze whatever language the page started in. */
 const TPL_GROUP_LABEL={ get all(){ return i18t('lib_grp_all'); }, get company(){ return i18t('lib_grp_company'); },
@@ -1309,20 +1315,20 @@ function tplPageRows(){
     rows.push({ kind:'cp', id:t.id, name:t.name,
       sub:`${FOLDERS[t.folder]?.name||'—'} · ${_tplSourceLabel(t)}${isRich(templateFormat(t))?' · formatted':''}`,
       stream:t.folder, origin:'Counterparty paper', version:'v'+templateVersionNo(t),
-      category:FOLDERS[t.folder]?.name||null,
+      category:tplShortStream(FOLDERS[t.folder]?.name)||null,
       used:templateUsage(t.id).count, at:t.at||'', atKind:'added' });
   }
   const myRole=currentUser()?.role||'viewer';
   for(const t of Object.values(TEMPLATES)){
     if(tplCanManage()&&!templateAllowedForRole(t.id,myRole)) continue;
     rows.push({ kind:'builtin', id:t.id, name:t.name, sub:t.blurb||'', stream:t.folder,
-      origin:'HaTi standard', version:t.id, mono:true, category:FOLDERS[t.folder]?.name||null,
+      origin:'HaTi standard', version:t.id, mono:true, category:tplShortStream(FOLDERS[t.folder]?.name)||null,
       used:(typeof builtinUsageCount==='function')?builtinUsageCount(t.id):0, at:'' });
   }
   const already=new Set(customTemplates().filter(t=>t.source&&t.source.startsWith('sample:')).map(t=>t.source.slice(7)));
   HATI_SAMPLES.forEach((s,i)=>rows.push({ kind:'sample', id:'smp'+i, i, name:s.name,
     sub:`${FOLDERS[s.folder]?.name||''} · ${s.file}`, stream:s.folder, origin:'Sample',
-    category:FOLDERS[s.folder]?.name||null,
+    category:tplShortStream(FOLDERS[s.folder]?.name)||null,
     version:null, used:null, imported:already.has(s.file), at:'' }));
   /* Company paper leads (the whole point of publishing it), then the paper
      you brought in, then HaTi's own, then samples — most-used first inside
@@ -1553,19 +1559,38 @@ function tplOverviewData(){
 }
 
 function tplOverviewHtml(d){
+  /* ---- THE CARD IS THE DEMO'S CARD (owner-asked 25 Aug 2026, off a picture
+     of one) ----
+     A 3px tone bar ACROSS THE TOP rather than a stripe down the left; the
+     state as a small uppercase badge at the top right; the name, then
+     category · version · date; a hairline; then the two figures under quiet
+     sentence-case labels; then one line qualifying them.
+
+     WHAT THE COLOUR SAYS, and each carrier answers ONE question. The BAR is
+     what kind of paper this is and what state it is in — company paper green
+     when published and amber while it is a draft, everything else the value
+     stream's own colour, which is exactly what the left stripe carried before
+     it moved. The RATE'S INK is how the paper is doing, and its ruby is the
+     SAME threshold that puts a template in Needs attention, so a red figure
+     and a row in that panel can never mean different things. The count beside
+     it stays the primary ink: it is a fact about volume, not a verdict. */
   const CARD='background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;box-shadow:var(--shadow-sm)';
-  const HEAD='font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)';
   const day=v=>{ const t=Date.parse(v||''); return isNaN(t)?null:new Date(t).toLocaleDateString(langLocale(),{day:'numeric',month:'short',year:'numeric'}); };
+  /* THE TONE BAR — the left stripe's own reading, moved to the demo's place. */
+  const topTone=c=>c.kind==='company'
+    ?(c.draft?'var(--st-amber-dot)':'var(--st-green-dot)')
+    :(c.stream?folderColor(c.stream):'var(--color-neutral-300)');
   const badge=c=>{
+    const chip=(w,bg,fg)=>`<span class="tpl-ov-badge" style="background:${bg};color:${fg}">${_tplEsc(w)}</span>`;
     if(c.kind==='company') return c.draft
-      ? `<span class="badge" style="background:var(--st-amber-bg);color:var(--st-amber-fg);flex:none">${i18t('lib_ov_draft')}</span>`
-      : `<span class="badge" style="background:var(--st-green-bg);color:var(--st-green-fg);flex:none">${i18t('tl_published')}</span>`;
-    if(c.kind==='sample'&&c.imported) return `<span class="badge" style="background:var(--st-green-bg);color:var(--st-green-fg);flex:none">${i18t('lib_imported')}</span>`;
-    return `<span class="badge" style="background:var(--color-neutral-100);color:var(--color-neutral-600);flex:none">${_tplEsc(c.origin)}</span>`;
+      ? chip(i18t('lib_ov_draft'),'var(--st-amber-bg)','var(--st-amber-fg)')
+      : chip(i18t('tl_published'),'var(--st-green-bg)','var(--st-green-fg)');
+    if(c.kind==='sample'&&c.imported) return chip(i18t('lib_imported'),'var(--st-green-bg)','var(--st-green-fg)');
+    return chip(c.origin,'var(--color-neutral-100)','var(--color-neutral-600)');
   };
   const dated=c=>{
-    const s=day(c.at); if(!s) return null;
-    return c.atKind==='added'?i18t('lib_ov_added',{d:s}):i18t('lib_ov_last_used',{d:s});
+    const s2=day(c.at); if(!s2) return null;
+    return c.atKind==='added'?i18t('lib_ov_added',{d:s2}):i18t('lib_ov_last_used',{d:s2});
   };
   const note=c=>{
     /* NOTHING DRAFTED IS A DIFFERENT FACT FROM NOTHING CHECKED, and reading
@@ -1573,38 +1598,61 @@ function tplOverviewHtml(d){
        simply never been used. */
     if(c.rate==null) return (c.used===0||(c.used==null&&c.unscanned===0))
       ? i18t('lib_ov_why_unused') : i18t('lib_ov_not_checked');
-    const first=i18tn('lib_ov_off_standard',c.scanned,{off:c.off,n:c.scanned});
+    /* "0 of 3 contracts checked came back off-standard" is accurate and reads
+       like a near miss. A template whose paper all came back on standard is
+       good news and says so. */
+    const first=c.off===0
+      ? i18tn('lib_ov_all_clear',c.scanned,{n:c.scanned})
+      : i18tn('lib_ov_off_standard',c.scanned,{off:c.off,n:c.scanned});
     return c.unscanned>0?`${first} ${i18tn('lib_ov_unchecked',c.unscanned,{n:c.unscanned})}`:first;
   };
-  const stripe=c=>c.kind==='company'
-    ?(c.draft?'var(--st-amber-dot)':'var(--st-green-dot)')
-    :(c.stream?folderColor(c.stream):'var(--color-neutral-300)');
+  /* RUBY IS THE ATTENTION RULE'S OWN THRESHOLD — a red figure on the card and
+     a row in Needs attention are the same finding, or the page argues with
+     itself. Amber is a rate worth noticing that has not earned the alarm;
+     green is the demo's own answer for a low one. */
+  const rateInk=c=>{
+    if(c.rate==null) return 'var(--color-neutral-400)';
+    if(c.scanned>=TPL_DEV_MIN&&c.rate>=0.5) return 'var(--st-ruby-fg)';
+    if(c.rate>=0.25) return 'var(--st-amber-fg)';
+    return 'var(--st-green-fg)';
+  };
+  /* The two panels' own signposts stay small uppercase caps: a caption OVER a
+     list is a signpost, and the demo's sentence-case labels are labels ON a
+     figure. Different jobs, different dress. */
+  const HEAD='font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)';
+  const LBL='font-size:13px;font-weight:400;color:var(--color-neutral-600);line-height:1.4';
+  const FIG='font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.25;margin-top:1px';
   const cardHtml=c=>{
     const sub=[c.category,c.version&&!c.mono?c.version:null,dated(c)].filter(Boolean).join(' · ');
     return `<button data-tpl-ov-card="${_tplEsc(c.id)}" data-tpl-ov-name="${_tplEsc(c.name)}" title="${i18t('lib_ov_open_in_list')}"
       style="${CARD};display:flex;flex-direction:column;align-items:stretch;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;padding:0;overflow:hidden"
       onmouseover="this.style.borderColor='var(--accent-solid)'" onmouseout="this.style.borderColor='var(--color-divider)'">
-      <span style="display:flex;align-items:flex-start;gap:10px;padding:13px 14px 0">
-        <span style="flex:none;width:4px;height:34px;background:${stripe(c)}"></span>
+      <span style="display:block;height:3px;background:${topTone(c)}"></span>
+      ${''/* THE BADGE FLOATS, which is what the demo draws and what gives a
+            long name its second line whole: in a flex row the badge takes a
+            column and every line of the name is short, so "Freight &
+            Distribution Agreement" ran out of room on a card with an inch of
+            white beside it. Floated, only the FIRST line is narrowed. It also
+            rules out -webkit-line-clamp, which makes its own formatting
+            context and would ignore the float — so the name is capped by
+            reserving two lines rather than by clamping, and a name long
+            enough to need a third gets one. */}
+      <span style="display:block;padding:13px 14px 0">
+        ${badge(c)}
+        <span class="tpl-ov-name" style="display:block;font-size:15px;font-weight:700;color:var(--color-text)">${_tplEsc(c.name)}</span>
+        <span style="display:block;${LBL};margin-top:3px;clear:both;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(sub||'—')}</span>
+      </span>
+      <span style="display:flex;gap:18px;margin:11px 14px 0;padding-top:11px;border-top:1px solid var(--color-divider)">
         <span style="flex:1;min-width:0">
-          <span class="tpl-ov-name" style="display:block;font-size:14px;font-weight:700;color:var(--color-text)">${_tplEsc(c.name)}</span>
-          <span style="display:flex;align-items:center;gap:8px;margin-top:3px">
-            <span style="flex:1;min-width:0;font-size:12px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(sub||'—')}</span>
-            ${badge(c)}
-          </span>
+          <span style="display:block;${LBL}">${i18t('lib_ov_used')}</span>
+          <span style="display:block;${FIG};color:var(--color-text)">${c.used==null?'—':c.used}</span>
+        </span>
+        <span style="flex:1;min-width:0">
+          <span style="display:block;${LBL}">${i18t('lib_ov_dev_rate')}</span>
+          <span style="display:block;${FIG};color:${rateInk(c)}">${c.rate==null?'—':Math.round(c.rate*100)+'%'}</span>
         </span>
       </span>
-      <span style="display:flex;gap:18px;padding:11px 14px 0;margin-top:11px;border-top:1px solid var(--color-divider)">
-        <span style="flex:1;min-width:0">
-          <span style="display:block;${HEAD}">${i18t('lib_ov_used')}</span>
-          <span style="display:block;font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--color-text);line-height:1.2">${c.used==null?'—':c.used}</span>
-        </span>
-        <span style="flex:1;min-width:0">
-          <span style="display:block;${HEAD}">${i18t('lib_ov_dev_rate')}</span>
-          <span style="display:block;font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--color-text);line-height:1.2">${c.rate==null?'—':Math.round(c.rate*100)+'%'}</span>
-        </span>
-      </span>
-      <span class="tpl-ov-note" style="display:block;padding:8px 14px 13px;font-size:12px;color:var(--color-neutral-600)">${_tplEsc(note(c))}</span>
+      <span class="tpl-ov-note" style="display:block;padding:9px 14px 13px;${LBL}">${_tplEsc(note(c))}</span>
     </button>`;
   };
   const shown=d.cards.slice(0,TPL_PAGE_CAP);
@@ -1641,12 +1689,12 @@ function tplOverviewHtml(d){
       </div>`:''}
     </div>
     <div style="display:flex;flex-direction:column;gap:16px">
-      <section style="${CARD};padding:14px">
+      <section id="tpl-ov-attention" style="${CARD};padding:14px">
         <div style="${HEAD};margin-bottom:8px">${i18t('lib_ov_attention')}</div>
         ${d.attentionShown.length?d.attentionShown.map(attRow).join(''):`<p style="${EMPTY}">${i18t('lib_ov_attention_none')}</p>`}
         ${d.attentionMore>0?`<p style="${EMPTY};margin-top:8px">${i18tn('lib_ov_more',d.attentionMore,{n:d.attentionMore})}</p>`:''}
       </section>
-      <section style="${CARD};padding:14px">
+      <section id="tpl-ov-mostused" style="${CARD};padding:14px">
         <div style="${HEAD};margin-bottom:8px">${i18t('lib_ov_most_used',{n:d.days})}</div>
         ${d.mostUsed.length?d.mostUsed.map(barRow).join(''):`<p style="${EMPTY}">${i18t('lib_ov_most_used_none',{n:d.days})}</p>`}
       </section>
@@ -1696,7 +1744,7 @@ function renderTemplatesPage(){
   const railIt=(key,label,n)=>`<button data-tpl-group="${key}" style="display:flex;align-items:center;gap:8px;width:100%;border:0;background:${_tplPage.group===key?'var(--color-accent-100)':'none'};color:${_tplPage.group===key?'var(--color-accent-800)':'var(--color-neutral-700)'};font:inherit;font-size:14px;font-weight:600;padding:7px 11px;border-radius:0;cursor:pointer;text-align:left">
     <span style="flex:1">${label}</span><span style="font-family:var(--font-mono);font-size:12px;color:${_tplPage.group===key?'var(--color-accent-700)':'var(--color-neutral-500)'}">${n}</span></button>`;
   const streamIt=f=>`<button data-tpl-stream="${f.id}" style="display:flex;align-items:center;gap:9px;width:100%;border:0;background:${_tplPage.stream===f.id?'var(--color-accent-100)':'none'};color:var(--color-neutral-700);font:inherit;font-size:13px;font-weight:600;padding:6px 11px;border-radius:0;cursor:pointer;text-align:left">
-    <span style="flex:none;width:8px;height:14px;border-radius:0;background:${folderColor(f.id)}"></span><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(f.name.split(' & ')[0].split(' — ')[0])}</span></button>`;
+    <span style="flex:none;width:8px;height:14px;border-radius:0;background:${folderColor(f.id)}"></span><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(tplShortStream(f.name))}</span></button>`;
   const HEAD='font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;color:var(--color-neutral-500);text-transform:uppercase;padding:0 11px;margin:0 0 6px';
   /* NO SENTENCE UNDER THE TITLE and none under the tabs (owner-asked 25 Aug
      2026, "remove these explanations below the headers in all pages where the

@@ -3605,8 +3605,14 @@
      badge moved down to the meta line to give it that width. Two lines, then
      it is cut: a name long enough to need three is a name a reader is going
      to recognise from two. */
-  .tpl-ov-name{ display:-webkit-box!important; -webkit-line-clamp:2; -webkit-box-orient:vertical;
-    overflow:hidden; line-height:1.3; min-height:2.6em; }
+  .tpl-ov-name{ line-height:1.35; min-height:2.7em; }
+  /* THE STATE, AT THE DEMO'S OWN SIZE. .badge is 12px/.03em with a dot slot
+     and dresses every table row and panel in the product; this card wants the
+     demo's small uppercase mark and nothing else, so it is its own class
+     rather than an override that would drag every other badge with it. */
+  .tpl-ov-badge{ float:right; margin-left:8px; display:inline-block; font-size:10px; font-weight:700;
+    letter-spacing:.06em; text-transform:uppercase; padding:3px 7px; border-radius:0;
+    white-space:nowrap; line-height:1.4; }
   /* AND THE ROWS LINE UP ACROSS THE WALL. A name that wraps and a note that
      does not put one card's figures 17px below its neighbour's — measured —
      and a wall of cards whose headings do not agree reads as a rendering
@@ -3616,7 +3622,7 @@
      uses cannot reach here, because this wall's rows are implicit and there
      are none to inherit. */
   .tpl-ov-note{ display:-webkit-box!important; -webkit-line-clamp:2; -webkit-box-orient:vertical;
-    overflow:hidden; line-height:1.5; min-height:3em; }
+    overflow:hidden; min-height:2.8em; }
   @media (max-width:1099px){ .tpl-ov{grid-template-columns:minmax(0,1fr);} }
 
   /* The contract-essentials form asked by every creation path. Two columns

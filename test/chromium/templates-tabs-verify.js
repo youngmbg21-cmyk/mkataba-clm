@@ -49,18 +49,25 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
    of those off-standard, one raised long ago and one never checked. */
 const SEED = () => {
   const ago = d => new Date(Date.now() - d * 86400000).toISOString();
-  const mk = (id, days, pb) => ({
+  const mk = (id, tpl, days, pb) => ({
     id, name: 'Staged ' + id, counterparty: 'Naivas', status: 'Under Review',
-    template: 'PS', folder: 'proc', value: 1000000, valueType: 'estimated',
+    template: tpl, folder: 'proc', value: 1000000, valueType: 'estimated',
     _raisedAt: ago(days), audit: [{ action: 'Created', at: ago(days), user: 'Amina' }],
     changes: [], playbook: pb || undefined,
   });
-  state.contracts.unshift(
-    mk('ST-1', 5, { verdicts: [{ status: 'deviation' }] }),
-    mk('ST-2', 9, { verdicts: [{ status: 'missing' }] }),
-    mk('ST-3', 20, { verdicts: [{ status: 'ok' }] }),
-    mk('ST-4', 300, null),
-  );
+  const dev = { verdicts: [{ status: 'deviation' }] };
+  const ok = { verdicts: [{ status: 'ok' }] };
+  const rows = [
+    /* HIGH — two of three checked off-standard, and one never checked. This is
+       the card every honesty claim below is read off, and the rate that must
+       draw ruby AND raise a row in Needs attention. */
+    mk('ST-1', 'PS', 5, dev), mk('ST-2', 'PS', 9, dev), mk('ST-3', 'PS', 20, ok), mk('ST-4', 'PS', 300, null),
+    /* MIDDLING — one of four, 25%, the first rung of amber. */
+    mk('ST-5', 'RM', 4, dev), mk('ST-6', 'RM', 6, ok), mk('ST-7', 'RM', 8, ok), mk('ST-8', 'RM', 11, ok),
+    /* CLEAN — nothing off-standard, which is the demo card's own green. */
+    mk('ST-9', 'LE', 3, ok), mk('ST-10', 'LE', 7, ok), mk('ST-11', 'LE', 12, ok),
+  ];
+  state.contracts.unshift(...rows);
   setView('templates');
 };
 
@@ -243,6 +250,101 @@ const BOX = sel => {
     } else {
       check('4e · "see all" opens the table whole', false, 'no #tpl-ov-all drawn');
     }
+
+    /* ================= 6 · THE CARD IS THE DEMO'S CARD =====================
+       Owner-asked 25 Aug 2026, off a picture of one: "ensure the hati cards
+       resemble it exactly. The color coding, the design how the card is color
+       coded at the top … add the font sizes as well."
+
+       EVERY CLAIM IS A COMPUTED VALUE, and the colour ones are RELATIONS —
+       "the rate at 67% is not the colour of the rate at 0%", never a typed
+       rgb — so a palette pass costs no edit here. What is pinned as a number
+       is the type ladder, because that is exactly what the ask was about. */
+    await page.click('[data-tpl-tab="overview"]');
+    await pause(500);
+    const dm = await page.evaluate(() => {
+      const px = e => { const s = getComputedStyle(e);
+        return { size: s.fontSize, weight: s.fontWeight, color: s.color,
+          tt: s.textTransform, ls: s.letterSpacing, bg: s.backgroundColor }; };
+      return [...document.querySelectorAll('.tpl-ov-cards [data-tpl-ov-card]')].map(c => {
+        const cr = c.getBoundingClientRect();
+        const bar = c.firstElementChild, br = bar.getBoundingClientRect();
+        const badge = c.querySelector('.tpl-ov-badge');
+        const bd = badge ? badge.getBoundingClientRect() : null;
+        const name = c.querySelector('.tpl-ov-name');
+        const nr = name.getBoundingClientRect();
+        const labs = [...c.querySelectorAll('span')]
+          .filter(e => e.children.length === 0 && /^(Used|Deviation rate)$/.test(e.textContent.trim()));
+        const figs = labs.map(l => l.nextElementSibling).filter(Boolean);
+        return {
+          name: c.getAttribute('data-tpl-ov-name'),
+          /* Measured against the card's INNER width: the bar sits inside the
+             card's 1px border, which is where the demo's own draws. */
+          bar: { h: Math.round(br.height), w: Math.round(br.width), cw: c.clientWidth,
+            top: Math.round(br.top - cr.top), bg: getComputedStyle(bar).backgroundColor },
+          badge: badge ? Object.assign(px(badge), { txt: badge.textContent.trim(),
+            right: Math.round(cr.right - bd.right), aboveName: bd.top <= nr.top + 2 }) : null,
+          nm: px(name),
+          meta: px(name.nextElementSibling),
+          note: px(c.querySelector('.tpl-ov-note')),
+          labels: labs.map(e => Object.assign(px(e), { txt: e.textContent.trim() })),
+          figs: figs.map(e => Object.assign(px(e), { txt: e.textContent.trim() })),
+        };
+      });
+    });
+    /* THE PANEL'S OWN TEXT, not the whole overview's. Read off the section the
+       cards are in too, "Commercial Property Lease … came back off-standard"
+       matches across two cards' worth of words and the check reports a clean
+       template as accused. */
+    const attTxt = await page.evaluate(() =>
+      document.getElementById('tpl-ov-attention').textContent.replace(/\s+/g, ' '));
+
+    check('6a · every card wears a tone bar across its whole top, and it is the first thing in the card',
+      dm.length > 0 && dm.every(c => c.bar.h === 3 && c.bar.top <= 1 && c.bar.w === c.bar.cw
+        && /^rgb/.test(c.bar.bg) && c.bar.bg !== 'rgba(0, 0, 0, 0)'),
+      dm.map(c => c.bar));
+    check('6b · the state is a small uppercase badge at the card\'s top right',
+      dm.every(c => c.badge && c.badge.size === '10px' && c.badge.weight === '700'
+        && c.badge.tt === 'uppercase' && parseFloat(c.badge.ls) > 0
+        && c.badge.bg !== 'rgba(0, 0, 0, 0)' && c.badge.right <= 16 && c.badge.aboveName),
+      dm[0] && dm[0].badge);
+    check('6c · the name is the card\'s one piece of primary type — 15px/700',
+      dm.every(c => c.nm.size === '15px' && c.nm.weight === '700'), dm[0] && dm[0].nm);
+    check('6d · the small text is one size and one ink — 13px regular, secondary',
+      dm.every(c => [c.meta, c.note, ...c.labels].every(x =>
+        x.size === '13px' && x.weight === '400' && x.color === c.meta.color)),
+      dm[0] && { meta: dm[0].meta, note: dm[0].note, label: dm[0].labels[0] });
+    check('6e · the labels are sentence case, not the uppercase caps the panels use',
+      dm.every(c => c.labels.length === 2 && c.labels.every(l => l.tt === 'none'))
+      && /NEEDS ATTENTION|Needs attention/.test(attTxt),
+      dm[0] && dm[0].labels.map(l => l.txt + ':' + l.tt));
+    check('6f · both figures are 19px/700, and the count is the primary ink',
+      dm.every(c => c.figs.length === 2 && c.figs.every(f => f.size === '19px' && f.weight === '700'))
+      && dm.every(c => c.figs[0].color === c.nm.color),
+      dm[0] && dm[0].figs);
+
+    /* THE COLOUR CODING, AS A RELATION. Three staged templates carry a high, a
+       middling and a clean rate; the three must be three DIFFERENT inks, none
+       of them the count's, and the ruby one must be the template Needs
+       attention names — a red figure and a row in that panel are one finding
+       or the page argues with itself. */
+    const rated = dm.filter(c => /%$/.test(c.figs[1].txt));
+    const inks = [...new Set(rated.map(c => c.figs[1].color))];
+    const worst = rated.slice().sort((a, b) => parseInt(b.figs[1].txt) - parseInt(a.figs[1].txt))[0];
+    const best = rated.slice().sort((a, b) => parseInt(a.figs[1].txt) - parseInt(b.figs[1].txt))[0];
+    check('6g · a high rate, a middling one and a clean one are three different inks',
+      rated.length >= 3 && inks.length >= 3,
+      rated.map(c => c.figs[1].txt + ' ' + c.figs[1].color));
+    check('6h · and none of them is the ink the count wears',
+      rated.every(c => c.figs[1].color !== c.figs[0].color),
+      rated.map(c => c.figs[1].txt + ':' + (c.figs[1].color === c.figs[0].color ? 'same' : 'own')));
+    check('6i · the worst rate is the template Needs attention names',
+      worst && attTxt.includes(worst.name) && parseInt(worst.figs[1].txt) >= 50,
+      worst && worst.name + ' ' + worst.figs[1].txt);
+    check('6j · and the clean one is not accused of anything',
+      best && parseInt(best.figs[1].txt) === 0
+      && !attTxt.includes(best.name),
+      best && best.name + ' ' + best.figs[1].txt);
 
     /* ================= 5 · THE PAGE NEVER SCROLLS SIDEWAYS ================== */
     const widths = [];

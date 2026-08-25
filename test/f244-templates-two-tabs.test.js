@@ -162,6 +162,20 @@ describe('f244 (3) — a deviation rate counts only paper a playbook has read', 
     assert.match(html, /No contract from this template has been checked against the playbook yet\./);
   });
 
+  /* "0 of 3 contracts checked came back off-standard" is accurate and reads
+     like a near miss. Paper that all came back on standard is good news. */
+  test('and a template whose paper all came back clean says THAT', () => {
+    const s = stage({ state: { contracts: [
+      { id: 'MK-7', name: 'P', templateId: 'tpl_1', playbook: { verdicts: [{ status: 'ok' }] }, audit: raised(2) },
+      { id: 'MK-8', name: 'Q', templateId: 'tpl_1', playbook: { verdicts: [{ status: 'ok' }] }, audit: raised(4) },
+    ], settings: { customTemplates: [] }, view: 'templates' } });
+    assert.equal(card(s.tplOverviewData(), 'tpl_1').off, 0);
+    s.renderTemplatesPage();
+    const html = s.document.getElementById('content').innerHTML;
+    assert.match(html, /All 2 contracts checked are on standard\./);
+    assert.ok(!/0 of 2 contracts checked came back off-standard/.test(html));
+  });
+
   test('the page states its own coverage once, at the top', () => {
     const s = stage();
     const d = s.tplOverviewData();
@@ -318,7 +332,8 @@ describe('f244 (8) — it speaks both languages', () => {
       const n = (I18N.match(new RegExp('\\n\\s*' + k + ':', 'g')) || []).length;
       assert.equal(n, 2, `${k} is answered in both languages`);
     }
-    for (const k of ['lib_ov_head', 'lib_ov_off_standard', 'lib_ov_unchecked', 'lib_ov_more', 'lib_ov_see_all'])
+    for (const k of ['lib_ov_head', 'lib_ov_off_standard', 'lib_ov_all_clear',
+      'lib_ov_unchecked', 'lib_ov_more', 'lib_ov_see_all'])
       for (const suf of ['_one', '_other'])
         assert.equal((I18N.match(new RegExp('\\n\\s*' + k + suf + ':', 'g')) || []).length, 2, k + suf);
   });
