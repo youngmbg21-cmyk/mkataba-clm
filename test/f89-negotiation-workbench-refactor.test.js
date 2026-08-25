@@ -27,6 +27,25 @@ const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const { buildWorld } = require('./world');
 
+/* ---- WHAT THE COLUMN SAYS ABOUT THIS CHANGE, 25 Aug 2026 ----
+   The reference's own rule (see f246): under AWAITING YOU and YOUR DRAFTS
+   the row draws no status WORD, because the heading above it has just said
+   which pile this is; the word appears the moment it carries a fact the
+   heading does not — Sent, Refused, Accepted, a reviewer's name. So "what
+   does the column say this is" is the badge where there is one and the band
+   heading where there is not, and every claim below reads THAT rather than
+   the badge alone. The safety property is unchanged and is what these tests
+   are really for: a change that has not gone may not say it has. */
+const columnSays = p => {
+  const card = p.$('#rl-changes .rl-card');
+  const b = card && card.querySelector('.rl-badge');
+  if (b) return b.textContent.trim();
+  let n = card && card.previousElementSibling;
+  while (n && !n.classList.contains('rl-band')) n = n.previousElementSibling;
+  return n ? n.textContent.trim() : '';
+};
+
+
 /* A RICH contract, because structure is the point of half this file. It
    carries the two things a re-typeset document loses: a heading whose number
    is not a plain integer, and a clause body made of more than one block. */
@@ -993,7 +1012,7 @@ describe('F89 (11,12) — the card verbs, their colours, and where Edit lands', 
     const card = p.$('#rl-changes .rl-card');
     const send = card.querySelector('button.rl-send[data-rl-send]');
     assert.ok(send, 'the one state that looks finished and is not must carry its own send');
-    assert.match(card.textContent, /Draft/);
+    assert.match(columnSays(p), /draft/i, 'and the column says it has not gone');
   });
 
   test('Edit jumps to the clause in the document and opens NO editor there', async () => {
@@ -1021,21 +1040,23 @@ describe('F89 (11,12) — the card verbs, their colours, and where Edit lands', 
 
 });
 
-describe('F89 (14) — the card says what the change is, in two lines', () => {
-  /* CLAIM REVERSED A THIRD TIME, 16 Aug 2026 (Option 4 — work big, receipts
-     small). The copy came off with the routing rows and the owner reported
-     the result: "the cards look very empty and almost useless." So a WORKING
-     card — one with a decision or a send on it — carries the two-line greyed
-     preview again, while a change that needs nothing is a one-line receipt
-     with no copy at all. The fixture's ask awaits a decision, so it is the
-     working kind. */
-  test('the card carries the delta, clamped', async () => {
+describe('F89 (14) — the card says what the change is, in one bold line', () => {
+  /* CLAIM REVERSED A FOURTH TIME, 25 Aug 2026 (the owner's own drawing of the
+     tracked-changes column). What it has always been about is unchanged and is
+     what is asserted below: A CARD ASKING FOR A DECISION MUST SAY WHAT IS
+     BEING DECIDED. What carries that sentence has moved. It was a two-line
+     greyed preview of the marked wording (.rl-card-diff); it is the change's
+     own SUMMARY now, in bold, on its own line — the sentence the author's
+     ops were summarised into, which is the same fact in the author's own
+     terms rather than a second copy of the paper twelve pixels away.
+     .rl-card-diff is STALE. */
+  test('the card carries the delta, in the summary line', async () => {
     const p = await page();
-    const diff = p.$('#rl-changes .rl-card .rl-card-diff');
-    assert.ok(diff, 'a card asking for a decision says what is being decided');
-    assert.ok(diff.textContent.trim().length, 'in words');
-    const r = p.rule('.redline-page .rl-card-diff');
-    assert.match(r, /-webkit-line-clamp:2/, 'two lines: a summary, not a second copy');
+    const sum = p.$('#rl-changes .rl-card .rl-card-sum');
+    assert.ok(sum, 'a card asking for a decision says what is being decided');
+    assert.ok(sum.textContent.trim().length, 'in words');
+    assert.equal(p.$('#rl-changes .rl-card .rl-card-diff'), null,
+      'and not as a second copy of the paper');
     const meta = p.$('#rl-changes .rl-card .rl-card-meta');
     assert.ok(meta && meta.textContent.trim(), 'and the row still names its clause');
     const id = p.$('#rl-changes .rl-card').getAttribute('data-nego-card');
@@ -1195,19 +1216,26 @@ describe('F89 (16) — Send is one click, and the card says so afterwards', () =
        becomes a line, and the head carries the fact. Opening it again brings
        the amber Sent back, which the next test pins. */
     const p = await page({ theirChange: false, myChange: true, email: 'erik@kabras.co.ke' });
-    assert.match(p.$('#rl-changes .rl-badge').textContent, /Draft/);
+    assert.match(columnSays(p), /draft/i);
     assert.ok(p.$('#rl-changes .rl-card-verbs'), 'a draft is open — it has verbs to press');
     p.$('#rl-changes [data-rl-send]').click();
     await new Promise(r => setTimeout(r, 20));
     p.win.renderRedline();
-    assert.match(p.$('#rl-changes .rl-badge').textContent, /^Sent$/,
+    /* AND THE WORD ITSELF IS BACK ON THE ROW, because "gone to them" is a fact
+       the heading it now sits under does not carry. */
+    assert.match(p.$('#rl-changes .rl-badge').textContent.trim(), /^Sent$/,
       'the fact is on the card, where nothing can hide it');
     const card = p.$('#rl-changes .rl-card');
     /* The fold is gone (12 Aug 2026), and so is the pop-out (16 Aug 2026): the
        reading matter lives in the clause panel, so the card is one height
        whatever is being read. */
     assert.ok(card.querySelector('.rl-card-head'), 'the head takes you to the clause');
-    assert.ok(card.querySelector('.rl-open-btn'), 'and Open raises the clause panel');
+    /* REVERSED IN PLACE, 25 Aug 2026: Open is a row in the card's ⋯ menu now
+       (the owner's drawing), not a button on the face. The claim is the one it
+       always was — this card carries a door onto the clause panel, and that
+       door names the clause. */
+    assert.ok(card.querySelector('.rl-more-menu [data-rl-cp-open]'),
+      'and a menu row raises the clause panel');
     assert.ok(!p.$('#rl-changes [data-rl-send]'), 'it cannot be sent twice');
   });
 
@@ -1271,8 +1299,9 @@ describe('F89 (16) — Send is one click, and the card says so afterwards', () =
     await new Promise(r => setTimeout(r, 20));
     p.win.renderRedline();
     assert.equal(p.win.negoUnsentAsks(p.c, 'owner').length, 1, 'nothing left the building');
-    assert.match(p.$('#rl-changes .rl-badge').textContent, /Draft/,
-      'so nothing may say it did');
+    assert.match(columnSays(p), /draft/i, 'so nothing may say it did');
+    assert.equal(p.$('#rl-changes .rl-card .rl-badge'), null,
+      'and the row certainly does not claim to have gone');
     assert.ok(p.$('#rl-changes [data-rl-send]'), 'and the send is still offered');
     assert.match(p.w.toastText(), /Could not send/);
   });

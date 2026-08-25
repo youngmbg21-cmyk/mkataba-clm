@@ -854,6 +854,17 @@ function calStyleCss(){ return `
      a 700px window. */
   @media (max-width:1023px){
     .cal-page{height:auto;min-height:var(--view-h)}
+    ${''/* ---- AND THE SCROLLBAR CHANNEL COMES BACK WITH THE SCROLLING ----
+           This page is on VIEW_OWNS_HEIGHT, which gives the reserved gutter
+           back so the head band reaches the screen's edge — right while the
+           page is exactly --view-h tall and cannot scroll. The line ABOVE is
+           what makes that untrue down here: stacked, the page grows and really
+           does scroll, and a channel that is not reserved means the content
+           shifts sideways the moment the bar appears.
+           IT IS WRITTEN HERE, in the calendar's own injected sheet, because
+           this is the rule that causes it — and the sheet goes with the page,
+           so no other view can inherit the exception. */}
+    #content-scroll.view-fixed{scrollbar-gutter:stable}
     .cal-body{padding:12px 16px 18px}
     .cal-head,.cal-bar{padding-left:16px;padding-right:16px}
     .cal-split{grid-template-columns:minmax(0,1fr);height:auto}

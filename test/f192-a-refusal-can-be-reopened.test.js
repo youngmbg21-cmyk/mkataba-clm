@@ -148,8 +148,17 @@ describe('f192 (4) — pressing it puts the ask back on the table', () => {
        click — the click path is wired by the engine and pinned above. */
     p.win.negoResolve(p.c, p.ch.id, 'pending', { side: 'owner', by: 'Young Mbagaya' });
     assert.equal(p.c.changes[0].status, 'pending', 'back on the table');
-    assert.deepEqual(verbsOf(cardOf(column(p))), ['Accept', 'Reject', 'Edit'],
+    /* REVERSED IN PLACE 25 Aug 2026 (owner-asked: "On the change card there
+       should be only 2 options to click on and the rest are in the dropdown").
+       THE CLAIM IS UNCHANGED — reopening puts the decision back — and the two
+       verbs that ARE the decision are still on the face. Edit did not go
+       anywhere: the face now holds the two highest-ranked verbs and the rest
+       ride in the card's own overflow menu, so this asserts BOTH halves rather
+       than a literal list that a cap could quietly empty. */
+    assert.deepEqual(verbsOf(cardOf(column(p))), ['Accept', 'Reject'],
       'and the card is a decision again');
+    assert.ok(/data-rl-edit=/.test(cardOf(column(p)).innerHTML),
+      'and Edit is still on the card — in the menu, one press away, not gone');
   });
 
   test('an ACCEPTED ask is not reopened from here — it has left the column', async () => {
@@ -183,8 +192,16 @@ describe('f192 (6) — the card gained a button and nothing else', () => {
        after — the only difference is one button. */
     const before = await bench(null);
     const after = await bench('rejected');
+    /* REVERSED IN PLACE 25 Aug 2026. The claim is about PROSE — "do not add an
+       explanation" — which is why the verb container was excluded from the
+       comparison from the start. The overflow menu is the same kind of thing:
+       it is where the verbs the face cannot hold now live, so a card with three
+       verbs draws one and a card with two does not, and that difference is the
+       cap working rather than an explanation appearing. It joins the exclusion
+       for exactly the reason .rl-card-verbs is already in it. */
     const blocks = box => [...cardOf(box).querySelectorAll('div[class]')]
-      .map(d => d.className).filter(k => !/rl-card-verbs|rl-card-actions/.test(k)).sort();
+      .map(d => d.className)
+      .filter(k => !/rl-card-verbs|rl-card-actions|rl-more/.test(k)).sort();
     assert.deepEqual(blocks(column(after)), blocks(column(before)),
       'the same blocks on a refused card as on a live one — one more verb, no more prose');
   });

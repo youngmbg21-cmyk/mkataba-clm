@@ -133,8 +133,16 @@ describe('F92 — the six-round negotiation, end to end', () => {
     await t.edit(/Termination/, '<p>Either party may terminate by giving not less than thirty (30) days written notice.</p>');
     win.renderRedline();
 
-    const drafts = t.$$('#rl-changes .rl-badge').map(b => b.textContent.trim());
-    assert.equal(drafts.filter(x => /Draft/.test(x)).length, 2, 'two local drafts, both locked');
+    /* RE-POINTED 25 Aug 2026 (the design reference, f246): a row under YOUR
+       DRAFTS draws no status WORD, because the heading above it has just said
+       which pile this is — the word appears the moment it carries a fact the
+       heading does not. So "two local drafts" is read off the BAND and its
+       count, which is where the column now says it. */
+    const draftBand = t.$$('#rl-changes .rl-band')
+      .find(b => b.getAttribute('data-rl-band') === 'drafts');
+    assert.ok(draftBand, 'the column has a drafts pile');
+    assert.equal(Number(draftBand.querySelector('b').textContent.trim()), 2,
+      'two local drafts, both locked');
     assert.match(t.$('[data-rl-blast]').textContent, /Send All \(2\) Redlines/);
 
     // One click sends the lot; no dialog; badges flip; the verb turns amber.

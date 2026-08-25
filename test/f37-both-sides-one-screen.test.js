@@ -123,7 +123,18 @@ function readScreen(root, win){
     tags: q('[id="rl-cp-body"] .rl-cp-who b').map(n => n.textContent.trim()),
     cards: q('[id="rl-changes"] [data-nego-card]').map(n => ({
       id: n.getAttribute('data-nego-card'),
-      meta: (n.querySelector('.rl-card-meta') || {}).textContent?.replace(/\s+/g, ' ').trim() || '',
+      /* THE CHANGE ID IS STRIPPED OFF THE FRONT, 25 Aug 2026, and that is a
+         difference in the SLOT rather than in the fact. The owner's card
+         (redrawn to the owner's own drawing) opens its meta line with the id —
+         "CHG-003 · Clause 4 · TERMINATION" — while the counterparty's card
+         still carries the id in its own .rl-card-id chip and the meta line
+         beside it. Both seats name the same change and the same clause; only
+         where the id sits differs, and the test below asserts BOTH seats name
+         it. Comparing the raw strings would report a parity failure over the
+         id being printed once on each seat in a different place. */
+      meta: ((n.querySelector('.rl-card-meta') || {}).textContent || '')
+        .replace(/\s+/g, ' ').trim().replace(/^CHG-\d+\s*·\s*/, ''),
+      names: /CHG-\d+/.test((n.textContent || '')),
     })),
     inserted: q('[id="rl-doc"] ins, [id="rl-doc"] .nego-ins').map(n => n.textContent).join(' | '),
     deleted: q('[id="rl-doc"] del, [id="rl-doc"] .nego-del').map(n => n.textContent).join(' | '),
@@ -175,9 +186,12 @@ describe('the counterparty gets the same component, not a lesser screen', () => 
       'the same fingerprints on the same clauses — sides swapped, facts identical');
     assert.equal(theirs.cards.map(x => x.id).join(','), mine.cards.map(x => x.id).join(','),
       'the same ids in the same order');
-    for (let i = 0; i < mine.cards.length; i++)
+    for (let i = 0; i < mine.cards.length; i++){
       assert.equal(theirs.cards[i].meta, mine.cards[i].meta,
         'the same clause labels, authors and organisations on the card');
+      assert.ok(theirs.cards[i].names && mine.cards[i].names,
+        'and both seats name the change itself');
+    }
     assert.ok(mine.cards.length === 3 && theirs.cards.length === 3);
   });
 

@@ -626,9 +626,16 @@ const SHEET = () => {
     /* RE-POINTED 16 Aug 2026: the card pop-out is retired — the row's Open
        raises the clause panel, which lives in the grid's second track and is
        outside the zoom by construction. What this file's subject requires is
-       that the panel is on screen and unaffected by the sheet's zoom. */
+       that the panel is on screen and unaffected by the sheet's zoom.
+       RE-POINTED AGAIN 25 Aug 2026: on our seat that door is a worded row in
+       the card's ⋯ menu (the owner's own drawing), so the ⋯ is pressed first —
+       the journey a reader walks. The subject of the check is unchanged. */
     const pop = await page.evaluate(async () => {
-      const btn = document.querySelector('#rl-changes .rl-card .rl-open-btn');
+      const card = document.querySelector('#rl-changes .rl-card');
+      const more = card && card.querySelector('.rl-more-btn');
+      if (more) more.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      const btn = (card && card.querySelector('.rl-more-menu [data-rl-cp-open]'))
+        || document.querySelector('#rl-changes .rl-card .rl-open-btn');
       if (!btn) return null;
       btn.click();
       await new Promise(r => setTimeout(r, 400));

@@ -453,24 +453,36 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     cards.acc && cards.rej && cards.acc.fg !== cards.rej.fg,
     cards.acc && cards.rej ? `${cards.acc.fg} vs ${cards.rej.fg}` : 'missing');
 
-  /* ---- 14. WORK BIG, RECEIPTS SMALL (claims reversed again 16 Aug 2026,
-     owner-asked — Option 4). A card with a decision or a send on it carries a
-     two-line greyed preview of its redline; a change that needs nothing is a
-     one-line receipt with no copy and no verbs, so finished business stops
-     costing card-height. The pop-out stays gone on both kinds. */
+  /* ---- 14. THE CARD SAYS WHAT IS BEING DECIDED, AND THE BANDS SORT THE PILES
+     (claims reversed in place 25 Aug 2026, the owner's own drawing of this
+     column, which supersedes Option 4 of 16 Aug).
+
+     WHAT OPTION 4 SETTLED and how the drawing answers the same question:
+       · "a card must say what is being decided" — it did that with a two-line
+         greyed preview of the redline; the card says it in the change's own
+         SUMMARY now, in bold, on its own line. .rl-card-diff is STALE;
+       · "finished business must stop costing card-height" — it did that by
+         shrinking a change that needs nothing to a one-line receipt; the four
+         BANDS do it now, so a reader skips a whole pile by skipping a heading.
+         .rl-receipt is the COUNTERPARTY's shape and is measured on their seat;
+       · "the pop-out stays gone" — unchanged, and still asserted here;
+       · "the card carries a door onto the clause panel" — unchanged, and it is
+         a row in the card's ⋯ menu rather than a button on the face. */
   const delta = await page.evaluate(() => {
-    const working = [...document.querySelectorAll('#rl-changes .rl-card:not(.rl-receipt)')]
+    const working = [...document.querySelectorAll('#rl-changes .rl-card')]
       .find(el => el.querySelector('.rl-card-verbs'));
     const wr = working && working.getBoundingClientRect();
     const base = {
+      workingSum: working ? (working.querySelector('.rl-card-sum') || { textContent: '' }).textContent.trim() : '',
       workingDiff: !!(working && working.querySelector('.rl-card-diff')),
       workingMeta: working ? (working.querySelector('.rl-card-meta') || { textContent: '' }).textContent.trim() : '',
       marked: document.querySelectorAll('#rl-doc ins, #rl-doc del').length,
-      openBtn: !!(working && working.querySelector('.rl-open-btn[data-rl-cp-open]')),
+      moreBtn: !!(working && working.querySelector('.rl-more-btn')),
+      openRow: !!(working && working.querySelector('.rl-more-menu [data-rl-cp-open]')),
       popBtn: !!document.querySelector('#rl-changes [data-rl-pop]'),
       body: !!document.querySelector('#rl-changes .rl-card-body'),
       workingH: wr ? Math.round(wr.height) : 0 };
-    /* THE FIXTURE HOLDS NO SENT CHANGE, so the receipt state is STAGED — the
+    /* THE FIXTURE HOLDS NO SENT CHANGE, so the sent state is STAGED — the
        owner's draft is handed over, measured, and the stamp put back exactly,
        so every later section reads the fixture it always read. */
     const n = CONTRACT.negotiation;
@@ -478,49 +490,114 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       ver: CONTRACT.versions.length, aud: CONTRACT.audit.length };
     negoHandOver(CONTRACT, { to: 'counterparty' });
     renderRedline();
-    const receipt = document.querySelector('#rl-changes .rl-card.rl-receipt');
-    const rr = receipt && receipt.getBoundingClientRect();
+    const bands = [...document.querySelectorAll('#rl-changes .rl-band')]
+      .map(el => el.getAttribute('data-rl-band'));
+    /* EVERY CARD SITS UNDER THE BAND THAT IS TRUE OF IT — read by walking the
+       column in DOCUMENT ORDER, which is the only way the claim means
+       anything: a heading that repeats, or a card under the wrong heading, is
+       exactly what a rank-ordered list would produce. */
+    let cur = null; let wrong = 0; const seen = [];
+    for (const el of document.querySelectorAll('#rl-changes .rl-band, #rl-changes .rl-card')){
+      if (el.classList.contains('rl-band')){
+        cur = el.getAttribute('data-rl-band');
+        if (seen.includes(cur)) wrong++;
+        seen.push(cur);
+      } else if (!cur) wrong++;
+    }
+    const sentCard = [...document.querySelectorAll('#rl-changes .rl-card')]
+      .find(el => !el.querySelector('[data-rl-send]') && el.querySelector('.rl-badge'));
     const staged = {
-      hasReceipt: !!receipt,
-      receiptVerbs: receipt ? receipt.querySelectorAll('.rl-card-verbs button').length : -1,
-      receiptDiff: receipt ? !!receipt.querySelector('.rl-card-diff') : null,
-      receiptOpen: !!(receipt && receipt.querySelector('.rl-open-btn')),
-      receiptH: rr ? Math.round(rr.height) : 0 };
+      bands, bandRepeats: wrong,
+      sentSendable: sentCard ? !!sentCard.querySelector('[data-rl-send]') : null,
+      sentDiff: sentCard ? !!sentCard.querySelector('.rl-card-diff') : null,
+      receipt: !!document.querySelector('#rl-changes .rl-card.rl-receipt') };
     n.turn = save.turn; n.turnAt = save.turnAt;
     CONTRACT.versions.length = save.ver; CONTRACT.audit.length = save.aud;
     renderRedline();
     return Object.assign(base, staged);
   });
-  check('14 a working card says what is being decided, clamped', delta.workingDiff);
+  check('14 a working card says what is being decided', !!delta.workingSum, delta.workingSum);
+  check('14 and not as a second copy of the paper', !delta.workingDiff);
   check('14 and names its clause', !!delta.workingMeta, delta.workingMeta);
   check('14 and the document still marks it, so nothing was lost', delta.marked > 0, delta.marked);
-  check('14 the card carries Open — the door to the clause panel',
-    delta.openBtn && !delta.popBtn && !delta.body);
-  check('14 a change needing nothing is a one-line receipt — no verbs, no copy, Open kept',
-    delta.hasReceipt && delta.receiptVerbs === 0 && delta.receiptDiff === false && delta.receiptOpen,
-    `verbs ${delta.receiptVerbs}, diff ${delta.receiptDiff}`);
-  check('14 and the receipt is really SMALL — under half a working card',
-    delta.receiptH > 0 && delta.receiptH * 2 < delta.workingH,
-    `receipt ${delta.receiptH}px vs working ${delta.workingH}px`);
+  check('14 the card carries a ⋯ whose menu opens the clause panel',
+    delta.moreBtn && delta.openRow && !delta.popBtn && !delta.body);
+  check('14 the column is banded, and every band is drawn once',
+    delta.bands.length > 0 && delta.bandRepeats === 0,
+    `${delta.bands.join(' / ')} · out of place ${delta.bandRepeats}`);
+  check('14 a sent ask cannot be sent again, and carries no second copy',
+    delta.sentSendable === false && delta.sentDiff === false,
+    `send ${delta.sentSendable}, diff ${delta.sentDiff}`);
+  check('14 and the receipt shape has left our seat with it', !delta.receipt);
 
-  /* ---- 14b. OPEN RAISES THE CLAUSE PANEL; THE COLUMN DOES NOT MOVE ----
-     The pop-out is retired (16 Aug 2026). Open flips the page's ONE clause
-     panel, so opening a change's reading matter must still move nothing in
-     the column, pressing the row must still only navigate, and hovering must
-     still do nothing at all. */
+  /* ---- 14a. THE COLUMN'S OWN HEAD, AS PIXELS (owner-asked 25 Aug 2026) ----
+     The heading names the column and carries the total; the three-way cut is
+     LABELLED beside it, because a dropdown reading "All (6)" says what it is
+     set to and not what it is about. Both are measured as painted boxes rather
+     than read out of the markup: a label that resolves to nothing, or one that
+     wraps off the row, is exactly what a source read cannot see. */
+  const idxHead = await page.evaluate(() => {
+    const box = el => { if (!el) return null; const r = el.getBoundingClientRect();
+      return { w: Math.round(r.width), h: Math.round(r.height), x: Math.round(r.left),
+               mid: Math.round(r.top + r.height / 2), text: el.textContent.trim() }; };
+    return { title: box(document.querySelector('.rl-idx-title')),
+             open: box(document.querySelector('.rl-idx-open')),
+             label: box(document.querySelector('.rl-idx-fk')),
+             filter: box(document.querySelector('#rl-cardfilter')),
+             cards: document.querySelectorAll('#rl-changes [data-nego-card]').length };
+  });
+  check('14a the column names itself and carries the total',
+    idxHead.title && idxHead.title.w > 0
+      && new RegExp(`\\(${idxHead.cards}\\)`).test(idxHead.title.text),
+    idxHead.title && `${idxHead.title.text} · ${idxHead.cards} cards`);
+  check('14a and the old name is gone',
+    idxHead.title && !/change index/i.test(idxHead.title.text));
+  check('14a the filter wears a visible label',
+    idxHead.label && idxHead.label.w > 0 && idxHead.label.text.length > 0,
+    idxHead.label && idxHead.label.text);
+  check('14a to the LEFT of the control it labels, on the same line',
+    idxHead.label && idxHead.filter
+      && idxHead.label.x < idxHead.filter.x
+      && Math.abs(idxHead.label.mid - idxHead.filter.mid) <= 4,
+    idxHead.label && idxHead.filter
+      ? `label x${idxHead.label.x}/mid${idxHead.label.mid} vs filter x${idxHead.filter.x}/mid${idxHead.filter.mid}`
+      : 'missing');
+
+  /* ---- 14b. THE ⋯ MENU RAISES THE CLAUSE PANEL; THE COLUMN DOES NOT MOVE ----
+     The pop-out is retired (16 Aug 2026) and the door moved into the card's ⋯
+     menu (25 Aug 2026, the owner's drawing). Opening a change's reading matter
+     must still move nothing in the column, pressing the row must still only
+     navigate, and hovering must still do nothing at all.
+
+     THE MENU IS PRESSED FIRST AND ITS ROW IS MEASURED AS PIXELS, because a row
+     reached straight out of hidden markup proves the handler and not the door:
+     f180's rule is that a verb has to be visible, and for a menu that means
+     the ⋯ is on the face and the row is on screen once it is pressed. */
   const pop = await page.evaluate(async () => {
     const settle = () => new Promise(r => setTimeout(r, 360));
     /* FOLLOWED BY ID, not by position: every press repaints the column. */
     const ID = document.querySelector('#rl-changes [data-nego-card]').getAttribute('data-nego-card');
     const card = () => document.querySelector(`#rl-changes [data-nego-card="${CSS.escape(ID)}"]`);
     const press = el => el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    const shown = el => {
+      if (!el) return false;
+      const r = el.getBoundingClientRect();
+      return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden';
+    };
+    const door = () => {
+      press(card().querySelector('.rl-more-btn'));
+      return card().querySelector('.rl-more-menu [data-rl-cp-open]');
+    };
     const h = () => Math.round(card().getBoundingClientRect().height);
     const colH = () => Math.round(document.getElementById('rl-changes').scrollHeight);
     const panelOpen = () => !!document.querySelector('#rl-cp.is-open');
-    const start = { h: h(), col: colH(), panel: panelOpen() };
-    press(card().querySelector('.rl-open-btn')); await settle();
-    const opened = { h: h(), col: colH(), panel: panelOpen() };
-    press(card().querySelector('.rl-open-btn')); await settle();
+    const start = { h: h(), col: colH(), panel: panelOpen(),
+      menuShut: !shown(card().querySelector('.rl-more-menu [data-rl-cp-open]')) };
+    const d1 = door();
+    const rowVisible = shown(d1);
+    press(d1); await settle();
+    const opened = { h: h(), col: colH(), panel: panelOpen(), rowVisible };
+    press(door()); await settle();
     const closed = { panel: panelOpen() };
     /* Pressing the card itself navigates and opens nothing. */
     press(card().querySelector('.rl-card-head')); await settle();
@@ -533,8 +610,11 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     const hovered = { panel: panelOpen() };
     return { start, opened, closed, afterHead, hovered };
   });
-  check('14b nothing is popped out to begin with', !pop.start.panel, JSON.stringify(pop.start));
-  check('14b Open raises the clause panel', pop.opened.panel, JSON.stringify(pop.opened));
+  check('14b nothing is popped out to begin with, and the menu is shut',
+    !pop.start.panel && pop.start.menuShut, JSON.stringify(pop.start));
+  check('14b the ⋯ reveals a real row — visible pixels, not hidden markup',
+    pop.opened.rowVisible);
+  check('14b and it raises the clause panel', pop.opened.panel, JSON.stringify(pop.opened));
   check('14b AND THE COLUMN DOES NOT MOVE — the whole point of the change',
     pop.opened.h === pop.start.h && pop.opened.col === pop.start.col,
     `card ${pop.start.h}→${pop.opened.h}px, column ${pop.start.col}→${pop.opened.col}px`);
@@ -1101,26 +1181,29 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     return { acc: g('.rl-card-verbs .rl-acc'), rej: g('.rl-card-verbs .rl-rej'),
              edit: g('.rl-card-verbs .rl-edit') };
   });
-  /* ---- REVERSED IN PLACE 24 Aug 2026 (owner-asked: "all the buttons should
-     have a similar border line like share and more have in the platform right
-     now") ---- The card offered three KINDS of control — a filled Accept, two
-     bare coloured words — where the head row offers one. Every verb wears the
-     head's own line now, and the FILL had to go for that line to exist at all:
-     an outline the colour of the fill behind it is not an outline.
+  /* ---- REVERSED IN PLACE AGAIN, 25 Aug 2026, against the design reference ----
+     24 Aug's owner ruling — "all the buttons should have a similar border line
+     like share and more have in the platform right now" — was about the HEAD
+     ROW, and applying it to the change rows was the wrong precedent. The
+     reference draws these verbs as BARE COLOURED WORDS, and three bordered
+     buttons on a 460px row are what crushed the reference line and the summary
+     the row exists to show. So on OUR seat the line goes and the FILL stays
+     gone; the counterparty's card and every head row are untouched, which is
+     what the scoping to .rl-card-d buys.
+
      THIS IS STILL THE ONLY PLACE THE QUESTION CAN BE ASKED, which is why the
      claim is reversed here rather than deleted: the rule is present and
      correct in the source whichever way it goes, and only a browser can say
-     which declaration won. The INK claim is untouched and is now doing MORE
-     work, not less — it is what still tells the three verbs apart. */
-  const HEAD_LINE = /0\.0509804 0\.580392 0\.533333 \/ 0\.45|rgba\(13, 148, 136, 0\.45\)/;
+     which declaration won. The INK claim is untouched and is now doing ALL the
+     work — with neither a line nor a fill, a verb that lost its colour would
+     be indistinguishable from a caption, which is the 17 Aug furniture
+     lesson. */
   for (const [k, label, ink] of [['acc', 'Accept', /rgb\(17, 94, 89\)/],
                                  ['rej', 'Reject', /rgb\(185, 28, 28\)/],
                                  ['edit', 'Edit', /rgb\(15, 118, 110\)/]]) {
     const v = verbs[k];
-    check(`6 ${label} wears the head row's own line, and no fill`,
-      !!v && v.w === 1 && v.bg === 'rgba(0, 0, 0, 0)', JSON.stringify(v));
-    check(`6 ${label} draws that line in the row's own colour`,
-      !!v && HEAD_LINE.test(v.col || ''), JSON.stringify(v && v.col));
+    check(`6 ${label} is a bare word — no line, no fill`,
+      !!v && v.w === 0 && v.bg === 'rgba(0, 0, 0, 0)', JSON.stringify(v));
     check(`6 ${label} still carries its own ink, so it is not a caption`,
       !!v && ink.test(v.ink || ''), JSON.stringify(v && v.ink));
   }

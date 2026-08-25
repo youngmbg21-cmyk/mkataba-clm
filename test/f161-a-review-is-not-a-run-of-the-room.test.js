@@ -193,9 +193,14 @@ describe('f161 · a review is internal, and inside the company it is not public 
     sales.win.reviewMark(c, six.id, 'held', { note: 'not at that tenor' });
     const asOther = seat(OTHER, c).win.redlineChangeCardsHtml(c, { side: 'owner' });
     /* CLAIM UPDATED, 13 Aug 2026: the anonymous form was "Held by review" and
-       is now just "Held". The rule under test is untouched — an outsider sees
-       the STATUS and never the name. */
-    assert.match(asOther, /rl-badge-no"[^>]*>&#9209; Held</, 'they can see it is held');
+       is now just "Held". RE-POINTED 25 Aug 2026: the status slot gained a DOT
+       before its word (the owner's own drawing of this column), so a claim
+       spelled as markup started reading as a failure while staying perfectly
+       true. It reads the WORD now. The rule under test is untouched either way
+       — an outsider sees the STATUS and never the name. */
+    const held = /<span class="rl-badge rl-badge-no"[^>]*>([\s\S]*?)<\/span>/.exec(asOther);
+    assert.ok(held && held[1].replace(/<[^>]*>/g, '').includes('Held'),
+      'they can see it is held');
     assert.ok(!/Simon Jordan/.test(asOther), 'and not who held it, nor why');
     const asMe = w.win.redlineChangeCardsHtml(c, { side: 'owner' });
     assert.match(asMe, /Simon Jordan/, 'the requester is told, because they asked');

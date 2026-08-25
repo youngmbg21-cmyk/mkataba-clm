@@ -33,6 +33,19 @@ const { loadViews, STUB_TEMPLATES, STUB_FOLDERS } = require('./dom');
 const ROOT = path.join(__dirname, '..');
 const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
 
+/* ---------- THE DOOR ONTO THE CLAUSE PANEL, 25 Aug 2026 ----------
+   It used to be a button on the card's face; the owner's own drawing of this
+   column puts it in the card's ⋯ menu, because the face carries the verbs and
+   a fourth control competing with them on a 460px row is what the menu exists
+   to stop. This presses the ⋯ FIRST and then the row, so every check that
+   reaches for the door walks the journey a reader walks rather than reaching
+   into markup a person cannot see. */
+const cpDoor = p => {
+  const more = p.$('#rl-changes .rl-card .rl-more-btn');
+  if (more) more.dispatchEvent(new p.win.Event('click', { bubbles: true }));
+  return p.$('#rl-changes .rl-card .rl-more-menu [data-rl-cp-open]');
+};
+
 /* js/components.js on a bare stage: the chat-field helpers are pure enough to
    drive with a hand-rolled element, which is the honest way to test a rule
    about heights without pretending jsdom lays anything out. */
@@ -152,17 +165,20 @@ describe('F100b — the card is a handle, not a copy', () => {
      about. So the card is now a short row: id and state, the clause name, the
      author's reason, and an Open that raises that panel. The pop-out
      (rlPop*, data-rl-pop, .rl-card-body) is retired with it. */
-  test('the card says what is being asked for, in two clamped lines', async () => {
-    /* REVERSED BACK, 16 Aug 2026 (Option 4 — work big, receipts small): a
-       WORKING card carries the two-line greyed preview again, because a card
-       asking for a decision must say what is being decided. The fixture's one
-       draft has Send and Retract on it, so it is a working card. What stays
-       reversed from the fat-card days: a receipt (see F100f) carries none. */
+  test('the card says what is being asked for, in one bold line', async () => {
+    /* REVERSED IN PLACE, 25 Aug 2026 (the owner's own drawing of this column).
+       The claim is the one it has always made — A CARD MUST SAY WHAT IS BEING
+       DECIDED — and what carries the sentence has moved: from a two-line
+       greyed preview of the marked wording to the change's own SUMMARY, in
+       bold, on its own line. It is still the real proposal in words, and the
+       marks are on the paper twelve pixels away. .rl-card-diff is STALE. */
     const p = await page();
     assert.ok(p.$$('#rl-changes .rl-card').length, 'there is a card to look at');
-    const diff = p.$('#rl-changes .rl-card .rl-card-diff');
-    assert.ok(diff, 'the working card carries the delta');
-    assert.ok(diff.textContent.includes('forty-five'), 'and it is the real proposal');
+    const sum = p.$('#rl-changes .rl-card .rl-card-sum');
+    assert.ok(sum, 'the working card says what it is for');
+    assert.ok(sum.textContent.includes('forty-five'), 'and it is the real proposal');
+    assert.equal(p.$('#rl-changes .rl-card .rl-card-diff'), null,
+      'and not as a second copy of the paper');
     const meta = p.$('#rl-changes .rl-card .rl-card-meta');
     assert.ok(meta && meta.textContent.trim(), 'and still names its clause');
   });
@@ -181,10 +197,17 @@ describe('F100b — the card is a handle, not a copy', () => {
     const card = p.$('#rl-changes .rl-card');
     assert.equal(p.win.rlCpOpenId(), null,
       'a panel is open only because somebody opened it');
-    const open = card.querySelector('.rl-open-btn[data-rl-cp-open]');
-    assert.ok(open, 'a real button, wearing a word, opens the clause panel');
+    /* REVERSED IN PLACE, 25 Aug 2026: the door is a row in the card's ⋯ menu
+       now (the owner's drawing), not a button on the face — the face carries
+       the verbs, and a fourth control competing with them on a 460px row is
+       what the menu exists to stop. The claim is unchanged: this card carries
+       a real, worded door onto the clause panel, and it names the clause. */
+    const open = card.querySelector('.rl-more-menu [data-rl-cp-open]');
+    assert.ok(open, 'a real row, wearing a word, opens the clause panel');
+    assert.ok(open.textContent.trim(), 'in words, not a glyph');
     assert.equal(open.getAttribute('data-rl-cp-open'), p.c.changes[0].clauseId,
       'and it names the clause the change sits in');
+    assert.ok(card.querySelector('.rl-more-btn'), 'behind a ⋯ that is on the face');
     assert.equal(card.querySelector('[data-rl-pop]'), null, 'the pop-out door is gone');
     assert.equal(card.querySelector('.rl-card-body'), null,
       'and so is the hidden body it existed to show');
@@ -216,7 +239,7 @@ describe('F100b — the card is a handle, not a copy', () => {
   test('Open raises the clause panel on the change\'s own clause', async () => {
     const p = await page();
     const clauseId = p.c.changes[0].clauseId;
-    p.$('#rl-changes .rl-card .rl-open-btn').click();
+    cpDoor(p).click();
     assert.equal(p.win.rlCpOpenId(), clauseId, 'the panel opened on the right clause');
     const panel = p.$('#rl-cp');
     assert.ok(panel && panel.classList.contains('is-open'), 'and it is the page\'s ONE panel');
@@ -228,16 +251,15 @@ describe('F100b — the card is a handle, not a copy', () => {
 
   test('and the same press closes it', async () => {
     const p = await page();
-    const btn = () => p.$('#rl-changes .rl-card .rl-open-btn');
-    btn().click();
+    cpDoor(p).click();
     assert.ok(p.win.rlCpOpenId());
-    btn().click();
+    cpDoor(p).click();
     assert.equal(p.win.rlCpOpenId(), null, 'the door is a toggle, like the pill');
   });
 
   test('the panel carries the wording in full, which the row does not carry at all', async () => {
     const p = await page();
-    p.$('#rl-changes .rl-card .rl-open-btn').click();
+    cpDoor(p).click();
     const body = p.$('#rl-cp-body .rl-cp-src.is-on');
     assert.ok(body.querySelector('.rl-cp-wd'), 'the ask\'s wording, unclamped');
     assert.ok(p.$('#rl-cp [data-rl-cp-close]'), 'and a way to shut it');
@@ -245,7 +267,7 @@ describe('F100b — the card is a handle, not a copy', () => {
 
   test('an open panel survives the column changing state underneath it', async () => {
     const p = await page();
-    p.$('#rl-changes .rl-card .rl-open-btn').click();
+    cpDoor(p).click();
     const id = p.win.rlCpOpenId();
     assert.ok(id);
     p.win.negoHandOver(p.c, { to: 'counterparty' });
@@ -257,7 +279,7 @@ describe('F100b — the card is a handle, not a copy', () => {
 
   test('and it shuts when its clause leaves the paper', async () => {
     const p = await page();
-    p.$('#rl-changes .rl-card .rl-open-btn').click();
+    cpDoor(p).click();
     p.win.rlCpSetOpen('CL-DOES-NOT-EXIST');
     p.again();
     assert.equal(p.win.rlCpOpenId(), null,
@@ -524,7 +546,10 @@ describe('F100e — the pop-out is retired; Open raises the clause panel', () =>
     const $ = s => win.document.querySelector(s);
     return { w, win, c, $, doc: win.document, again: () => win.renderRedline() };
   }
-  const openBtn = p => p.$('#rl-changes .rl-card .rl-open-btn');
+  /* RE-POINTED 25 Aug 2026: the door onto the panel is a row in the card's ⋯
+     menu. Pressed through the ⋯ rather than reached straight out of the DOM,
+     so this walks the journey a reader walks. */
+  const openBtn = p => cpDoor(p);
 
   test('every card arrives with nothing popped out', async () => {
     /* REVERSED IN PLACE: "popped out" is the clause panel now, and the row
@@ -938,7 +963,19 @@ describe('F100g — a card\'s Send sends that card, and only that card', () => {
     const settle = async () => { for (let i = 0; i < 4; i++) await new Promise(r => setImmediate(r)); };
     return { w, win, c, post, $, $$, settle, again: () => win.renderRedline() };
   }
-  const badgeOf = (p, id) => p.$(`[data-nego-card="${id}"] .rl-badge`).textContent.trim();
+  /* WHAT THE COLUMN SAYS ABOUT ONE CHANGE — the badge where the row draws one,
+     and the band heading it sits under where it does not. Since 25 Aug 2026 a
+     row under AWAITING YOU or YOUR DRAFTS draws no status word, because the
+     heading has just said it; the word comes back the moment it carries a fact
+     the heading does not. See f246. */
+  const badgeOf = (p, id) => {
+    const card = p.$(`[data-nego-card="${id}"]`);
+    const b = card && card.querySelector('.rl-badge');
+    if (b) return b.textContent.trim();
+    let n = card && card.previousElementSibling;
+    while (n && !n.classList.contains('rl-band')) n = n.previousElementSibling;
+    return n ? n.textContent.trim() : '';
+  };
 
   test('THE FIX: one card\'s Send publishes that change and holds the other back', async () => {
     const p = await page();
@@ -950,7 +987,7 @@ describe('F100g — a card\'s Send sends that card, and only that card', () => {
     assert.equal(p.post.reshared, 1, 'one round went');
     assert.equal(p.post.modals, 0, 'and no dialog');
     assert.equal(badgeOf(p, a), 'Sent', 'the chosen change has gone');
-    assert.match(badgeOf(p, b), /Draft/, 'the other is still a draft on the desk');
+    assert.match(badgeOf(p, b), /draft/i, 'the other is still a draft on the desk');
     /* Joined, not deep-compared: the page realm's Array prototype is not this
        realm's — the f60 trap this file already documents. */
     assert.equal(p.win.negoUnsentAsks(p.c, 'owner').map(x => x.id).join(','), b,
@@ -962,27 +999,47 @@ describe('F100g — a card\'s Send sends that card, and only that card', () => {
     assert.match(p.$('.rl-unsent-n').textContent, /1/, 'the band counts what is left');
   });
 
-  test('a sent ask shrinks to a one-line receipt; the draft keeps its full card', async () => {
-    /* Option 4 (owner-asked 16 Aug 2026): the card's size follows what it
-       needs from the reader. After the solo send, change A needs nothing —
-       one line: id, state, clause, Open, no verbs, no preview (even Edit goes;
-       revising is one Open away through the panel's ＋). Change B is still
-       work: full card, preview, its own Send. */
+  test('a sent ask carries no verbs; the draft keeps its Send', async () => {
+    /* ---- REVERSED IN PLACE, 25 Aug 2026 — the owner's own drawing ----
+       Option 4 (owner-asked 16 Aug 2026) answered "the cards look empty" by
+       making the card's SIZE follow what it needs from the reader: a change
+       that needs nothing shrank to one line, a change that needs a decision
+       kept a full card. The new drawing answers the same question a different
+       way: every card on our seat is ONE SHAPE, and the four BANDS say which
+       pile a change is in — so a reader skips "with them" by skipping a
+       heading rather than by reading a shorter row. .rl-receipt is the
+       COUNTERPARTY's shape now and is asserted there (F100f).
+
+       WHAT IT COSTS, said out loud: three sent asks used to cost less height
+       than one working card and now cost three cards. What it buys is that
+       every card reads the same way and states its own summary.
+
+       THE CLAIM IS THE ONE THIS ALWAYS MADE and is unchanged: after the solo
+       send, change A has nothing left to press — it cannot be sent again and
+       there is nothing to decide on our own ask — while change B is still work
+       and still carries its own Send. Edit stays on a sent ask deliberately:
+       revising one is what the funnel's revision fold is for. */
     const p = await page();
     const [a, b] = p.c.changes.map(x => x.id);
     p.$(`[data-nego-card="${a}"] [data-rl-send]`).click();
     await p.settle();
     p.again();
     const sent = p.$(`[data-nego-card="${a}"]`);
-    assert.ok(sent.classList.contains('rl-receipt'), 'the sent ask is a receipt');
-    assert.equal(sent.querySelector('.rl-card-verbs'), null, 'no verbs on a receipt');
-    assert.equal(sent.querySelector('.rl-card-diff'), null, 'and no preview');
-    assert.ok(sent.querySelector('.rl-open-btn'), 'Open is the receipt\'s one door');
+    assert.equal(sent.querySelector('[data-rl-send]'), null, 'the sent ask cannot be sent twice');
+    assert.equal(sent.querySelector('[data-nego-accept],[data-nego-reject]'), null,
+      'and there is nothing to decide on our own ask');
+    assert.equal(sent.querySelector('.rl-card-diff'), null, 'and carries no second copy of the paper');
+    assert.ok(sent.querySelector('.rl-more-menu [data-rl-cp-open]'),
+      'the ⋯ is its door onto the panel');
     assert.ok(sent.querySelector('.rl-card-head'), 'and the body still presses through');
+    assert.ok(sent.querySelector('.rl-badge'), 'and it still says where it stands');
     const draft = p.$(`[data-nego-card="${b}"]`);
-    assert.ok(!draft.classList.contains('rl-receipt'), 'the draft is still work');
-    assert.ok(draft.querySelector('.rl-card-diff'), 'work says what it is about');
+    assert.ok(draft.querySelector('.rl-card-sum'), 'work says what it is about');
     assert.ok(draft.querySelector('[data-rl-send]'), 'and carries its Send');
+    /* THE BANDS ARE WHAT TELL THE TWO PILES APART NOW. */
+    const bands = [...p.$$('#rl-changes .rl-band')].map(x => x.getAttribute('data-rl-band'));
+    assert.ok(bands.includes('with') && bands.includes('drafts'),
+      'one is with them, one is still on the desk, and the column says so');
   });
 
   test('the payload subtracts the held draft the way it subtracts a reviewer\'s holds', () => {

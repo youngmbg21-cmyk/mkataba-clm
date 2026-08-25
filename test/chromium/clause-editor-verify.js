@@ -57,30 +57,44 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   await pause(400);
   ck('the fixture has an ask on a clause', !!staged.id, staged.id);
 
-  /* ---- 1. THE DOOR ON THE CHANGE ROW, AND IT LEADS ---- */
+  /* ---- 1. THE DOOR ON THE CHANGE ROW, AND IT LEADS ----
+     REVERSED IN PLACE, 25 Aug 2026 (the owner's own drawing of this column).
+     The door was a ✦ button sitting on the card's face beside Open; both moved
+     into the card's ⋯ MENU, which is what the drawing puts there and where the
+     approved clause journey has always put Edit with Copilot. Every half of
+     the claim survives and each is asserted below: the door exists, it is
+     VISIBLE PIXELS once the ⋯ is pressed (f180's rule — for a menu, the ⋯ is
+     what has to be on the face), it LEADS the menu, it wears its words, and it
+     is dressed rather than left as an unstyled mark. */
   const rowDoor = await p.evaluate(id => {
     const card = document.querySelector(`.redline-page [data-rl-card="${id}"]`)
       || document.querySelector('.redline-page .rl-card');
     if (!card) return null;
+    const more = card.querySelector('.rl-more-btn');
+    const mr = more && more.getBoundingClientRect();
+    const ms = more && getComputedStyle(more);
+    if (more) more.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     const ce = card.querySelector('[data-rl-cp-editor-row]');
-    const open = card.querySelector('.rl-open-btn[data-rl-cp-open]');
-    if (!ce || !open) return { ce:!!ce, open:!!open };
-    const a = ce.getBoundingClientRect(), b = open.getBoundingClientRect();
+    const rows = [...card.querySelectorAll('.rl-more-row')];
+    if (!ce) return { more: !!more, ce: false };
+    const a = ce.getBoundingClientRect();
     const s = getComputedStyle(ce);
-    return { ce:true, open:true, leads: Math.round(a.left) < Math.round(b.left),
-      sameRow: Math.abs(Math.round(a.top) - Math.round(b.top)) <= 2,
-      w:Math.round(a.width), h:Math.round(a.height), colour:s.color,
-      label: ce.getAttribute('aria-label')||'', vis: s.visibility, disp: s.display };
+    return { more: !!more,
+      moreVisible: !!(mr && mr.width > 10 && mr.height > 10 && ms.display !== 'none'),
+      ce: true, leads: rows[0] === ce,
+      w: Math.round(a.width), h: Math.round(a.height), colour: s.color,
+      label: (ce.textContent || '').trim(), vis: s.visibility, disp: s.display };
   }, staged.id);
-  ck('1a the change row carries the Copilot door as visible pixels',
+  ck('1a the ⋯ is on the card face, as visible pixels',
+     !!rowDoor && rowDoor.more && rowDoor.moreVisible, rowDoor && rowDoor.moreVisible);
+  ck('1a the Copilot door is real pixels once it is pressed',
      !!rowDoor && rowDoor.ce && rowDoor.w > 10 && rowDoor.h > 10 && rowDoor.disp !== 'none',
      rowDoor && `${rowDoor.w}x${rowDoor.h}`);
-  ck('1b it LEADS — ahead of Open, on the same line',
-     !!rowDoor && rowDoor.leads && rowDoor.sameRow,
-     rowDoor && `leads ${rowDoor.leads}, same row ${rowDoor.sameRow}`);
-  ck('1c its words are on its accessible name, because a receipt is one line',
+  ck('1b it LEADS — the menu\'s first row',
+     !!rowDoor && rowDoor.leads, rowDoor && `leads ${rowDoor.leads}`);
+  ck('1c and it wears its words, not a bare mark',
      !!rowDoor && /Copilot|Redigera/.test(rowDoor.label), rowDoor && rowDoor.label);
-  ck('1d it is dressed, not left as an unstyled mark in the row',
+  ck('1d it is dressed, not left as an unstyled row',
      !!rowDoor && rowDoor.colour !== 'rgb(0, 0, 0)' && rowDoor.h >= 24,
      rowDoor && `ink ${rowDoor.colour}, ${rowDoor.h}px tall`);
 
@@ -236,10 +250,24 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     ref.remove();
     return out;
   });
-  ck('2m it is dressed identically to the tab row\'s own door — every property',
-     !!back && JSON.stringify(back.ref) === JSON.stringify(back.mine),
-     back && (JSON.stringify(back.ref) === JSON.stringify(back.mine)
-       ? 'identical' : `ref ${JSON.stringify(back.ref)} / mine ${JSON.stringify(back.mine)}`));
+  /* REVERSED IN PLACE 25 Aug 2026 (owner-asked: "Remove bold lettering from the
+     back to negotiations as well … the same size font like the other buttons in
+     the platform"). The claim this check was written for is UNCHANGED and is
+     still the whole of what it measures — this button is the tab row's own door,
+     compared against the real control rather than against typed values. What
+     moved is ONE property: the weight. MEASURED against the negotiation head's
+     own row, those buttons are --w-body and this was 600, so it read heavier
+     than every button the owner was comparing it with. So the comparison now
+     names the exception out loud and still fails on a drift in any of the other
+     six — which is what it was really guarding. */
+  const BACK_SAME = ['fs', 'c', 'bg', 'bw', 'bc', 'pad'];
+  const backSame = !!back && BACK_SAME.every(k => back.ref[k] === back.mine[k]);
+  ck('2m it is dressed like the tab row\'s own door — every property but the '
+     + 'weight, which the owner asked to come off',
+     backSame && back.mine.fw !== back.ref.fw,
+     back && (backSame
+       ? `same but the weight — ref ${back.ref.fw}, mine ${back.mine.fw}`
+       : `ref ${JSON.stringify(back.ref)} / mine ${JSON.stringify(back.mine)}`));
   ck('2n it sits at the RIGHT of the header, not in the crumb',
      !!back && Math.round(back.hr.right - back.br.right) < 40 && !back.crumbHasBack,
      back && `${Math.round(back.hr.right - back.br.right)}px from the right edge`);
