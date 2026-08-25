@@ -97,10 +97,23 @@ describe('f238 — the design system has its other half', () => {
        carry a ternary — 10px on the inline-subtitle pages, 16 everywhere else —
        so the horizontal measure was shared and the VERTICAL one was not. It is
        ONE value now, which is a stronger claim than the one it replaces: the
-       header cannot differ from page to page in either direction. */
+       header cannot differ from page to page in either direction.
+       REVERSED IN PLACE 25 Aug 2026, and the reversal is the point: this
+       pinned the LITERAL `16px` down, and a literal is exactly what stopped
+       the short-laptop block reaching this header. A window under 820px of
+       page tightens --page-pad-t, every other view root followed it, and this
+       one could not — so on every laptop the shared header sat 8px BELOW the
+       pages it is meant to line up with. It reads the TOKEN in both
+       directions now, which is the claim that was always meant. */
     const src = JS('js/app.js');
-    assert.match(src, /host\.style\.padding='16px var\(--page-pad-x\) 0'/,
-      '#page-head reads one padding — the page measure across, 16px down');
+    assert.match(src, /host\.style\.padding='var\(--page-pad-t\) var\(--page-pad-x\) 0'/,
+      '#page-head reads the page measure in BOTH directions, so a short window '
+      + 'tightens it with every other page rather than leaving it behind');
+    /* `padding='0'` is the OTHER branch — a page that draws its own head gets
+       the shared one cleared — so the ban is on a typed LENGTH, not on a
+       digit. A typed length is what broke this on every laptop. */
+    assert.ok(!/host\.style\.padding='\d+px/.test(src),
+      'and never a typed length, which is what broke this on every laptop');
     assert.ok(!/host\.style\.padding=inlineSub\?/.test(src),
       'and no branch can give one page a different top');
     /* AND THE TITLE'S TOP IS THE PADDING, with or without a subtitle. With

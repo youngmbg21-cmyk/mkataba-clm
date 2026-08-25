@@ -1650,7 +1650,7 @@
      page uses the same wrapper and its head is the shared one, already at 16,
      so widening this to the wrapper would move that page's filter bar for no
      reason. */
-  .ngl-page{ padding-top:16px!important; }
+  .ngl-page{ padding-top:var(--page-pad-t)!important; }
   .ngl-head-table h2{ margin:0; display:flex; align-items:baseline; gap:9px; flex-wrap:wrap; }
   .ngl-head-table p{ margin:2px 0 0; }
   .ngl-live{ font-family:var(--font-mono); font-size:13px; font-weight:700;
@@ -3063,18 +3063,41 @@
      so the big-screen design is untouched.
      ============================================================ */
 
+  /* ---- THE HEADER'S TOP TIGHTENS AS ONE NUMBER (25 Aug 2026) ----
+     owner-reported: "i do not see this in the platform as the headers are
+     still vary as far as distance to the top edge". THE HEADERS DID LINE UP
+     — at 900px of page, which is the one height the sweep that reported it
+     measured. THIS BLOCK'S OWN NOTE, twenty lines up, says exactly why that is
+     worthless: "almost no laptop has 900px of page". The same mistake, in the
+     other dimension, in the file that records it.
+
+     MEASURED at 1440x800, which every laptop is shorter than: Home's header
+     at 10, the Calendar's and the two room heads' at 16, and the seven shared
+     ones at 24 — a 15px spread on the machines anybody actually uses.
+
+     TWO RULES CAUSED IT AND BOTH WERE WRITTEN FOR A HEADER THAT HAS MOVED.
+     `.hm-page` tightened Home's top and nothing else's, so Home rose alone.
+     And `#page-head>div` set the SHARED header's padding back when that inner
+     div was what carried it — since 25 Aug the padding is on #page-head
+     itself, so the rule stopped being a reduction and became an ADDITION: 16
+     plus 8. It is deleted rather than corrected; a second opinion about the
+     header's top is what caused this.
+
+     THE TOP IS ONE TOKEN NOW. --page-pad-t tightens here, every view root
+     reads it, and the headers stay level at every height by construction
+     rather than by four rules agreeing. */
   /* -- short: most laptops, including 1366x768 and 1080p at 125% -- */
   @media (max-height:820px){
-    .hm-page{gap:7px!important;padding-top:10px!important;padding-bottom:12px!important;}
+    :root{ --page-pad-t:10px; }
+    .hm-page{gap:7px!important;padding-bottom:12px!important;}
     #gs-card{padding:12px 16px 10px!important;}
     #email-setup-banner{padding:9px 14px!important;}
-    /* the page header above every view */
-    #page-head>div{padding-top:8px!important;padding-bottom:8px!important;}
   }
   /* -- very short: a 1080p panel at 150%, which is the Windows default on a
         14-inch ThinkPad and therefore the most common single configuration -- */
   @media (max-height:680px){
-    .hm-page{gap:6px!important;padding-top:8px!important;}
+    :root{ --page-pad-t:8px; }
+    .hm-page{gap:6px!important;}
     /* Taken from the card's own frame rather than from the hero: on a 590px
        page the last 8px have to come from somewhere, and a card's padding is
        worth less than the banner a reader actually looks at. */
@@ -3082,7 +3105,6 @@
     .hm-decisions>div>section{padding:12px 14px!important;}
     #gs-card{padding:10px 14px 8px!important;}
     #email-setup-banner{padding:8px 12px!important;}
-    #page-head>div{padding-top:6px!important;padding-bottom:6px!important;}
   }
 
   /* ============================================================

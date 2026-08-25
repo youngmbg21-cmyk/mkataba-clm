@@ -3481,7 +3481,7 @@ Tests: f184 (three claims REVERSED IN PLACE — the pill's text, the unsent
 state's, and the both-languages roll call), negotiations-door-verify (the same
 reversal, plus the hover), f148 unchanged.
 
-## ONE HEADER TOP, ON ALL TWELVE PAGES (owner-asked 25 Aug 2026, twice)
+## ONE HEADER TOP, ON ALL TWELVE PAGES AND AT EVERY HEIGHT (owner-asked 25 Aug 2026, three times)
 
 *"For all the headers, the distance from the edge on top of the screen to the
 header should be the same across the platform and using home page as the
@@ -3522,10 +3522,35 @@ and the two reasons are the useful part.
   20/700 there would be one rule arguing with another. Only the TOP is
   universal.
 
+- **AND IT WAS MEASURED AT ONE HEIGHT, WHICH IS THE THIRD REASON** (owner
+  reported it a third time: *"i do not see this in the platform as the headers
+  are still vary as far as distance to the top edge"*). The headers DID line up
+  — at the 1000px viewport the check runs in. **index.html's own short-laptop
+  block says why that is worthless, in its own words: "almost no laptop has
+  900px of page."** The same mistake, in the other dimension, in the file that
+  records it. MEASURED at 1440x800: Home's header at 10, the Calendar's and the
+  two room heads' at 16, and the seven shared ones at **24** — a **15px spread**
+  on every machine anybody actually uses.
+  **TWO `!important` RULES CAUSED IT AND BOTH WERE WRITTEN FOR A HEADER THAT HAS
+  MOVED.** `.hm-page{padding-top:10px}` tightened HOME's top and nothing else's,
+  so Home rose alone; and `#page-head>div{padding-top:8px}` set the SHARED
+  header's padding back when that inner div was what carried it — the padding is
+  on `#page-head` itself since 25 Aug, so the rule stopped being a reduction and
+  became an **addition**, 16 plus 8. **Both are deleted rather than corrected**:
+  a second opinion about the header's top is what caused this.
+  **THE TOP IS ONE TOKEN AT EVERY HEIGHT NOW.** `--page-pad-t` is what tightens
+  (16 → 10 under 820px of page, → 8 under 680), and every header reads it —
+  `#page-head` through renderPageHeader, `.hm-page`, `.cal-head`, `.ngl-page`,
+  the room wrapper, and the negotiation head through its own calc. The headers
+  stay level at every height BY CONSTRUCTION rather than by four rules agreeing.
+
 Tests: pages-read-alike-verify section 8, rewritten to measure a Range's own
 rect on every page including the two room heads — **it reports eleven pages out
-of line against the code of an hour before**, naming the room at 6px and the
-negotiation page at 13.
+of line against the code that preceded it**, naming the room at 6px and the
+negotiation page at 13 — and then rewritten again to sweep at TWO heights, 1000
+and 760, where it reports **all twelve out of line** at the short one. It also
+asserts the tightening is real: a short window has to pull every header up
+TOGETHER, or "they all agree" is satisfied by nothing moving at all.
 
 ## Line numbers drift
 

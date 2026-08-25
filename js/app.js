@@ -310,7 +310,7 @@ function renderPageHeader(view){
      DOWN — measured, Contracts sat at 23px where Templates sat at 16, on the
      same header. flex-start makes the title's top the container's padding, with
      or without a subtitle, with or without acts. */
-  host.style.padding='16px var(--page-pad-x) 0';
+  host.style.padding='var(--page-pad-t) var(--page-pad-x) 0';
   host.innerHTML=`
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap">
       <div style="min-width:0${inlineSub?';display:flex;align-items:baseline;gap:10px;flex-wrap:wrap':''}">

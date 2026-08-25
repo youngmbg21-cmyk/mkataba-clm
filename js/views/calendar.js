@@ -637,7 +637,7 @@ function calStyleCss(){ return `
      own head rather than the shared one, so it has to be told. The BOTTOM stays
      shallower than the top on purpose — this is a head, not a card, and the
      shared header is 16-top / 0-bottom for the same reason. */
-  .cal-head{flex:none;background:var(--color-surface);padding:16px 24px 10px;display:flex;align-items:center;
+  .cal-head{flex:none;background:var(--color-surface);padding:var(--page-pad-t) 24px 10px;display:flex;align-items:center;
     gap:12px;flex-wrap:nowrap;min-width:0}
   /* 20/700, the size Home sets and every other page head now carries
      (owner-asked 25 Aug 2026). This band is the calendar's own head rather

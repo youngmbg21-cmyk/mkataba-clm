@@ -471,13 +471,33 @@ const SEED = async () => {
       ['Contract room',    id => openWorkspace(id)],
       ['Negotiation page', id => openRedlineWorkbench(id)],
     ];
-    const heads8 = {};
-    for (const [name, go] of PAGES8){
-      try { await page.evaluate(go, cid); } catch (e) { continue; }
-      await pause(1700);
-      const h = await page.evaluate(HEAD8);
-      if (h) heads8[name] = h;
+    /* ---- AND IT SWEEPS AT TWO HEIGHTS (owner-reported 25 Aug 2026: "i do not
+       see this in the platform as the headers are still vary as far as
+       distance to the top edge") ----
+       They lined up — at this file's own 1000px viewport, which is the only
+       height the sweep that reported it measured. index.html's own short-laptop
+       block says why that is worthless, in its own words: "almost no laptop has
+       900px of page". MEASURED at 1440x800 before this: Home's header at 10,
+       the Calendar's at 16 and the seven shared ones at 24, a 15px spread on
+       every machine anybody uses. So the claim is checked TALL and SHORT, and
+       760 is inside the max-height:820 band every laptop lands in. */
+    const HEIGHTS8 = [1000, 760];
+    const runs8 = {};
+    for (const H of HEIGHTS8){
+      await page.setViewportSize({ width: 1500, height: H });
+      await pause(500);
+      const heads = {};
+      for (const [name, go] of PAGES8){
+        try { await page.evaluate(go, cid); } catch (e) { continue; }
+        await pause(1700);
+        const h = await page.evaluate(HEAD8);
+        if (h) heads[name] = h;
+      }
+      runs8[H] = heads;
     }
+    await page.setViewportSize({ width: 1500, height: 1000 });
+    await pause(600);
+    const heads8 = runs8[1000];
     const home8 = heads8.Home;
     const others8 = Object.entries(heads8).filter(([k]) => k !== 'Home');
     /* The size/weight comparison is the PAGE HEADS only: the room and the
@@ -503,11 +523,23 @@ const SEED = async () => {
     check('8 every header block really painted something to measure',
       others8.every(([, h]) => h.ink != null) && home8 && home8.ink != null,
       others8.filter(([, h]) => h.ink == null).map(([k]) => k).join(' · ') || 'all read');
-    const offInk = others8.filter(([, h]) => Math.abs(h.ink - home8.ink) > 1);
-    check('8 and the first glyph of every header sits where Home\'s does',
-      offInk.length === 0,
-      offInk.map(([k, h]) => `${k} ${h.ink}px «${h.inkText}» vs Home ${home8 && home8.ink}px`).join(' · ')
-        || `all at ${home8 && home8.ink}px, ${Object.keys(heads8).length} pages`);
+    for (const H of HEIGHTS8){
+      const hh = runs8[H] || {};
+      const ref = hh.Home;
+      const rest = Object.entries(hh).filter(([k]) => k !== 'Home');
+      const off = ref ? rest.filter(([, h]) => Math.abs(h.ink - ref.ink) > 1) : [];
+      check(`8 at ${H}px tall, the first glyph of every header sits where Home's does`,
+        !!ref && rest.length >= 10 && off.length === 0,
+        off.map(([k, h]) => `${k} ${h.ink}px «${h.inkText}» vs Home ${ref && ref.ink}px`).join(' · ')
+          || `all at ${ref && ref.ink}px, ${Object.keys(hh).length} pages`);
+    }
+    /* AND THE TIGHTENING IS REAL, not the token quietly ignored: a short
+       window has to pull every header up TOGETHER, or the rule above is
+       satisfied by nothing moving at all. */
+    const tall8 = (runs8[1000] || {}).Home, short8 = (runs8[760] || {}).Home;
+    check('8 and a short window pulls them all up rather than none of them',
+      !!tall8 && !!short8 && short8.ink < tall8.ink,
+      `${tall8 && tall8.ink}px at 1000 · ${short8 && short8.ink}px at 760`);
 
 
     /* ---- 9 · THE HEAD'S FACT VALUES ARE BOLD, ON BOTH HEADS
