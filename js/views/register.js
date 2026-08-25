@@ -300,6 +300,50 @@ const REG_VIEWS=[
    about the register, and carrying it across would be one page silently
    answering for the other. */
 let REG_SCOPE = null;
+/* ═══ ROW DENSITY — three heights on one axis (25 Aug 2026) ═══════════════
+   SAP Fiori ships cozy / compact / condensed because the same table is read
+   two different ways: a contract register is SCANNED and an approval queue is
+   read one row at a time. HaTi shipped one 36px row, typed once as
+   --reg-row-h with a single consumer.
+
+   THE MIDDLE RUNG IS 36 AND IT IS THE DEFAULT, so nobody's book moves on the
+   morning this ships. Fiori's own verified ladder is 48/32/24 against a
+   different base; 36 is the value already tuned against THIS product's type,
+   and the bracket is built around it rather than replacing it.
+
+   THREE THINGS TRAVEL TOGETHER, not just the height: the padding and the line
+   box move with it, because a 30px row with 12px of side padding reads as a
+   squeezed 36 rather than as a condensed row.
+
+   IT CANNOT REACH THE PHONE, and that is by construction rather than by a
+   guard: below 768px the desktop shell hides entirely and the phone draws its
+   own cards — `.reg-table` is never rendered there. Fiori states plainly that
+   compact and condensed "cannot be interacted with via touch", so the phone
+   keeping its own touch sizes is the rule, not an omission. */
+const REG_DENSITY = {
+  comfortable:{ h:44, padX:16, line:20 },
+  compact:    { h:36, padX:12, line:20 },   /* today's row — the default */
+  condensed:  { h:30, padX:8,  line:18 },
+};
+const REG_DENSITY_KEY = 'hati.v1.regDensity';
+/* ABSENT MEANS COMPACT — the historic behaviour — so there is no migration
+   and an unknown stored value falls back rather than drawing a broken row. */
+function regDensity(){
+  try{ const v = localStorage.getItem(REG_DENSITY_KEY); return REG_DENSITY[v] ? v : 'compact'; }
+  catch(_){ return 'compact'; }
+}
+function regSetDensity(k){
+  if(!REG_DENSITY[k]) return false;
+  try{ localStorage.setItem(REG_DENSITY_KEY, k); }catch(_){}
+  return true;
+}
+/* The three custom properties the table's own rules already read. Written as
+   a style attribute on .reg-table so one element carries the whole mode. */
+function regDensityVars(k){
+  const d = REG_DENSITY[REG_DENSITY[k] ? k : 'compact'];
+  return `--reg-row-h:${d.h}px;--reg-row-px:${d.padX}px;--reg-row-line:${d.line}px`;
+}
+
 function regScope(){ return REG_SCOPE; }
 function regSetScope(k){ REG_SCOPE = (k === 'negotiations') ? 'negotiations' : null; }
 const REG_STATE_DEF = () => ({query:'',stage:'all',type:'all',category:'all',sort:'updated',dir:-1,page:1,sel:{},view:null,only:null});
@@ -935,6 +979,8 @@ function renderRegister(opts){
   const typeOpts=regTypes().map(t=>`<option value="${t.k}" ${R.type===t.k?'selected':''}>${t.label}</option>`).join('');
   const viewOpts=`<option value="" ${R.view?'':'selected'}>${i18t('reg_saved_views')}</option>`
     +REG_VIEWS.map(v=>`<option value="${v.k}" ${R.view===v.k?'selected':''}>${v.label}</option>`).join('');
+  const densityOpts=['comfortable','compact','condensed']
+    .map(k=>`<option value="${k}" ${regDensity()===k?'selected':''}>${esc(i18t('reg_density_'+k))}</option>`).join('');
   const filtered=R.stage!=='all'||R.type!=='all'||!!R.view||(R.renewal&&R.renewal!=='all')||(R.category&&R.category!=='all')||!!R.only;
   /* THE CHIP IS THE NARROWING AND THE WAY OUT OF IT, in one object — see
      regShowOnly. It leads the bar because it is the widest statement on it:
@@ -1117,7 +1163,7 @@ function renderRegister(opts){
          title's own size it competes with the title and costs every row four
          pixels of height. It is the one place in a row where a size difference
          is carrying something. */
-      .reg-table{--reg-row-h:36px}
+      .reg-table{--reg-row-h:36px}   /* the fallback; regDensityVars overrides it per render */
       .reg-mk{font-family:var(--font-mono);font-size:13px;font-weight:400;
         color:var(--color-accent-600);white-space:nowrap;font-variant-numeric:tabular-nums}
       /* The status chip, flattened HERE and not at .badge — that class dresses
@@ -1156,7 +1202,12 @@ function renderRegister(opts){
          correction toward the design, not a workaround.
          NOTHING IS LOST SILENTLY: every cell that can be cut already carries
          its full text on hover, and the ellipsis is what says there is more. */
-      .reg-table td{height:var(--reg-row-h);padding:0 var(--pad-row-x);line-height:var(--row-line-1);
+      /* PADDING AND LEADING MOVE WITH THE HEIGHT — see REG_DENSITY. The
+         fallbacks are the historic values, so a table rendered before the
+         mode existed (or by a caller that does not set it) draws exactly as
+         it always did. */
+      .reg-table td{height:var(--reg-row-h);padding:0 var(--reg-row-px,var(--pad-row-x));
+        line-height:var(--reg-row-line,var(--row-line-1));
         overflow:hidden;text-overflow:ellipsis}
       .reg-table th{overflow:hidden;text-overflow:ellipsis}
       /* ---- EXCEPT THE CELL THAT HOSTS THE ROW MENU (owner-reported 25 Aug
@@ -1288,6 +1339,16 @@ function renderRegister(opts){
                flag means "this is narrowing your list", and sorting narrows
                nothing — a sort control wearing the accent would claim the list
                was filtered when it is not. */}
+        ${''/* ---- DENSITY SITS BESIDE SORT, AFTER THE SPACER, AND FOR THE SAME
+               REASON (25 Aug 2026) ----
+               Everything LEFT of the spacer narrows the list; these two change
+               how it is DRAWN. `active` is false for the same reason it is
+               false on Sort: on the five filters that flag means "this is
+               narrowing your list", and a density wearing the accent would
+               claim the book had been filtered when it has not.
+               It goes through selFilter — the same builder as the other six —
+               because one builder is what stops them drifting apart. */}
+        ${selFilter('reg-density',densityOpts,false,i18t('reg_density_title'),i18t('reg_density'))}
         ${selFilter('reg-sort',sortOpts,false,i18t('reg_sort'))}
         ${''/* SORTING RUNS INSIDE A GROUP HERE, and the same control on Contracts
                sorts the whole page. A control that quietly means something else
@@ -1299,7 +1360,9 @@ function renderRegister(opts){
       <section class="blueprint bp-round" style="background:var(--color-surface);box-shadow:var(--shadow-sm);flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden">
 
         <div id="reg-scroll" style="flex:1;min-height:0;overflow:auto">
-          <table class="reg-table">
+          <!-- The whole density mode rides on ONE element as three custom
+               properties, so nothing below has to know which mode is on. -->
+          <table class="reg-table" data-reg-density="${regDensity()}" style="${regDensityVars(regDensity())}">
             <thead>
               <!-- THE PROTOTYPE'S SEVEN, with the tracking number added in front.
                    Sorting is kept on the four columns that carried it before —
@@ -1386,6 +1449,11 @@ function renderRegister(opts){
       if(!e.target.closest('[data-menu-pop]')&&!e.target.closest('[data-menu]')) regCloseMenus();
     });
   }
+  /* A DENSITY CHANGE IS A REPAINT, NOT A NAVIGATION: the page, the filters and
+     the reader's place are all untouched — only the rows' rhythm moves. */
+  document.getElementById('reg-density')?.addEventListener('change',e=>{
+    if(regSetDensity(e.target.value)) regRepaint();
+  });
   document.getElementById('reg-sort')?.addEventListener('change',e=>{ R.sort=e.target.value; R.dir=REG_SORT_DEFDIR[R.sort]||-1; R.page=1; regRepaint(); });
   // Column-header sorting: click a header to sort by it; click the active header
   // again to flip ascending/descending. First click uses the column's natural
@@ -1456,5 +1524,5 @@ function ftsSearch(q){
     }catch(e){ box.classList.add('hidden'); }
   },220);
 }
-Object.assign(window,{regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,regShowOnly,renderRegister,renderRegisterBody,wireRegRows,
+Object.assign(window,{REG_DENSITY,regDensity,regSetDensity,regDensityVars,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,regShowOnly,renderRegister,renderRegisterBody,wireRegRows,
   regScope,regSetScope,regRepaint,regPageSize,regFitBandOffset,NEGO_BANDS,NEGO_BAND_DOT,negoGroupByMove,negoBandCounts,negoMovePillHtml,negoBandRowHtml});

@@ -2,7 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<!-- viewport-fit=cover IS WHAT MAKES env(safe-area-inset-*) NON-ZERO (25 Aug
+     2026). Without it the browser lays the page out inside the safe area and
+     every inset reports 0, so the phone shell's 13 env() calls — the bottom
+     bar's clearance over the home indicator, the notch padding on the sheets —
+     were all computing to nothing. Nothing else had to change: every one of
+     those 13 already reads env() with an explicit 0px fallback, so they simply
+     start returning a real number on the handsets that have one. -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>HaTi — Contract Lifecycle Management</title>
 <script>
   // Apply the saved theme BEFORE first paint. This runs ahead of the
@@ -557,7 +564,21 @@
        written, and an inline declaration cannot be beaten without !important —
        but not one of those 91 sites sets box-shadow, so the shadow reaches all
        of them. See the :focus-visible rule further down. */
-    --focus-color:var(--color-accent-700);
+    /* THE RING READS --accent-ink, NOT THE RAW RAMP (25 Aug 2026).
+       html.dark redefines the surface, the ink and the whole neutral ramp and
+       does NOT redefine the accent ramp, so a focus ring painted in
+       accent-700 had no dark answer. MEASURED against the night panel, in
+       both workspaces: teal 3.26:1 and navy 1.58:1, where WCAG 2.4.11 wants
+       3:1 against the ground. The one control a keyboard user cannot work
+       without was the one that disappeared at night.
+       --accent-ink is the only accent token with a dark answer, and it is
+       better in ALL FOUR combinations rather than a trade:
+         teal light 5.47 -> 7.58 · teal dark 3.26 -> 9.59
+         navy light 11.30 -> 14.01 · navy dark 1.58 -> 4.71
+       Order is not a problem: --accent-ink is declared further down this file
+       but both sit on :root, and a var() resolves at USE time rather than at
+       the point it is written. */
+    --focus-color:var(--accent-ink);
     --focus-width:2px; --focus-offset:1px;
     --focus:0 0 0 var(--focus-width) var(--focus-color);
 
