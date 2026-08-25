@@ -3233,14 +3233,31 @@ of this; what follows is the rules that came out of it.
   card must read as greyed, and a coloured numeral inside it is the card
   arguing with itself.
 
-- **THE NAV FLOATS FROM 1280 (WO-5), AND THE NUMBER IS DERIVED.** It was 1500;
-  the column is 240 and the enterprise design draws its console in 1040 of
-  page, so 1040 + 240 = 1280 — a 1280 laptop gets the open column and exactly
-  the width the design was drawn at. **THE SUPPORTED SET IS WHERE THE NUMBER
-  COMES FROM** (`test/chromium/laptops-verify.js`), never from whoever is
-  looking at it: the owner's own ruling was "hati should be built on a number
-  of screen sizes which means hati respects those screen sizes. This rule
-  should be in the code somewhere."
+- **THE NAV FLOATS ON EVERY SUPPORTED LAPTOP (WO-5, and REVISED 25 Aug 2026).**
+  **THE SUPPORTED SET IS WHERE THE NUMBER COMES FROM**
+  (`test/chromium/laptops-verify.js`), never from whoever is looking at it —
+  the owner's ruling: "hati should be built on a number of screen sizes which
+  means hati respects those screen sizes."
+  **WO-5 PUT IT AT 1280 AND THAT WAS WRONG.** The derivation looked sound: the
+  design draws its console in 1040 of page with a 240 column, a push costs 176,
+  so a push is "safe" from 1280 up. **IT ANSWERED THE WRONG QUESTION** — that
+  arithmetic asks *does the design still fit*, and the line has to answer *is
+  this a screen where giving up 176px is felt*. Owner-reported the next day:
+  "the sliding nav panel was supposed to slide over the page for [smaller]
+  sized screens but now when i look in my thinkpad, the nav pushes the screen
+  to the right." MEASURED at 1280: 1366, 1440 and 1536 all pushed, and the
+  first two had floated since the feature was built. **The feature's founding
+  report was a ThinkPad — "expanding the sidebar squeezed every page" — and
+  this is the same person saying it again.**
+  **IT IS 1536**, derived from the set and what a push leaves of the page:
+  1280→1030, 1366→1116, 1440→1190, 1536→1286, 1920→1670. The first four are
+  somebody working on a laptop panel and all land within ~250px of the design's
+  own 1040; 1920 is the full-screen case and lands 630 clear. So every laptop
+  floats and the one desktop-scale size keeps the push.
+  **THE COST, SAID OUT LOUD**: below the line the column rests as the 64px
+  RAIL, so 1281–1536 now arrive on the rail rather than the open column. The
+  two are not separable — a floating column that arrived open would cover the
+  page it floats over — and a stored choice still beats the default.
 
 - **COPILOT GREETS IN THE READER'S LANGUAGE AND ANSWERS IN THE ASKER'S (WO-11,
   owner-ruled).** The greeting was PUSHED INTO `ai.history` at open, so it was

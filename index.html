@@ -2923,11 +2923,13 @@
         hiding every door behind a press is the worse trade. One behaviour from
         768 to 1279 now, rather than two systems doing the same job. -- */
   @media (max-width:899px){ #nav-toggle{ display:grid!important; } }
-  /* 1280 INCLUSIVE — it must match navDrawerActive()'s `<=` exactly, and that
+  /* 1536 INCLUSIVE — it must match navDrawerActive()'s `<=` exactly, and that
      number is derived from the supported screen sizes; see the note beside
-     NAV_DRAWER_W in js/app.js. The ThinkPad at 1280 is the smallest machine
-     HaTi supports and is the one that was getting shoved. */
-  @media (max-width:1280px){
+     NAV_DRAWER_W in js/app.js. EVERY LAPTOP IN THAT SET FLOATS; only the
+     1920 full-screen case still pushes. It read 1280 for a day and the owner
+     reported the shove back on a ThinkPad — 1366, 1440 and 1536 were all
+     pushing, and two of them had floated since the feature was built. */
+  @media (max-width:1536px){
     #side-nav{
       position:fixed; top:var(--shell-head-h,64px); left:0; bottom:0; z-index:55;
       width:64px; transition:width .22s var(--ease);

@@ -78,9 +78,24 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     check('1 the bar is 44px and carries the dark ground',
       shell.bar.h === 44 && shell.bar.ink === 'rgb(255, 255, 255)',
       `${shell.bar.h}px · ${shell.bar.bg}`);
-    check('1 the column is 240px and WHITE',
-      shell.nav.w === 240 && shell.nav.bg === 'rgb(255, 255, 255)',
-      `${shell.nav.w}px · ${shell.nav.bg}`);
+    /* REVISED 25 Aug 2026. This ran at 1440 and asserted the column rests OPEN
+       at 240. That was true while the float line sat at 1280, which put 1440
+       above it — and the owner reported the shove back on a ThinkPad, so the
+       line moved to 1536 and every supported LAPTOP floats now. Below the line
+       the column rests as the 64px rail, deliberately: a floating column that
+       arrived open would cover the page it is floating over.
+       WHAT THIS TEST IS REALLY ABOUT IS THE GROUND — the shell swapped a dark
+       column for a white one — so the WHITE half is asserted at both widths,
+       and the width is asserted as the RULE rather than as one number. */
+    check('1 the column is WHITE, whichever width it rests at',
+      shell.nav.bg === 'rgb(255, 255, 255)', shell.nav.bg);
+    check('1 and below the float line it rests as the rail, not an open column',
+      shell.nav.w === 64, `${shell.nav.w}px at 1440`);
+    const wide = await page.evaluate(async () => {
+      return { line: typeof NAV_DRAWER_W === 'number' ? NAV_DRAWER_W : null };
+    });
+    check('1 the float line is the one the supported set derives',
+      wide.line === 1536, String(wide.line));
     /* The phrase the retired banner used to carry. It is the page's name now
        and it lives in the bar, so losing the banner did not lose it. */
     check('1 the bar names the page, and it is the banner\'s own phrase',

@@ -1286,24 +1286,43 @@ function toggleRail(){
    with the room asked for. Their stored preference is never overwritten by
    the width; it simply is not honoured below the line, and comes straight back
    above it. */
-/* ---- THE LINE IS DERIVED FROM THE SCREEN SIZES HaTi IS BUILT FOR ----
-   Owner, 24 Aug 2026, asked what screen they were on and answered with the
-   rule instead: "hati should be built on a number of screen sizes which means
-   hati respects those screen sizes. This rule should be in the code somewhere."
-   IT IS — test/chromium/laptops-verify.js declares the supported set: 1280
-   (1080p at 150%, the ThinkPad), 1366, 1440, 1536 and 1920.
-   SO THE NUMBER IS ARITHMETIC, NOT TASTE. The design draws its console at 1280
-   with a 240px column and 1040px of page. MEASURED at 1280 with the column
-   pushed open, HaTi's page is 1030 — under the design's own measure — and the
-   Contracts table needs 1054 in Swedish. On the smallest machine HaTi supports,
-   a pushed column leaves less page than either the design assumes or the table
-   needs. So the smallest supported size FLOATS and everything above it pushes:
-   1366 leaves 1126, 1440 leaves 1200, both comfortably clear.
-   AND IT EXPLAINS THE REPORT. The line was `< 1280`, so a 1280 machine sat
-   exactly ON it and got the shove. It is `<=` now.
-   MOVE THE SET, NOT THIS NUMBER: if a smaller machine is ever supported, this
-   follows from laptops-verify's list rather than being re-guessed. */
-const NAV_DRAWER_W = 1280;
+/* ---- WHERE THE SIDEBAR STOPS PUSHING AND STARTS FLOATING ----
+   REVISED 25 Aug 2026, owner-reported: "the sliding nav panel was supposed to
+   slide over the page for [smaller] sized screens but now when i look in my
+   thinkpad, the nav pushes the screen to the right."
+
+   IT WAS 1280 FOR A DAY AND THAT WAS WRONG. The derivation looked sound — the
+   design draws its console in 1040px of page with a 240px column, a push costs
+   176px, so a push is "safe" from 1280 up — and it ANSWERED THE WRONG
+   QUESTION. That arithmetic asks *does the design still fit*. The line has to
+   answer *is this a screen where giving up 176px of page is felt*, and those
+   are not the same question. MEASURED at 1280: 1366, 1440 and 1536 all pushed,
+   and 1366 and 1440 had floated since this feature was built.
+
+   THE FEATURE EXISTS BECAUSE OF A THINKPAD. Its founding report was
+   "expanding the sidebar squeezed every page", from a real machine, and the
+   report above is the same person saying the same thing again.
+
+   DERIVED FROM THE SUPPORTED SET, per the owner's own ruling that the line
+   comes from "the screen sizes HaTi is built for", never from a monitor.
+   laptops-verify names five, and what a push leaves of the page at each:
+
+       1280  ThinkPad, 1080p @150%   ->  1030
+       1366  1366x768                ->  1116
+       1440  MacBook                 ->  1190
+       1536  1080p @125%             ->  1286
+       1920  1080p @100%             ->  1670
+
+   The first four are somebody working on a laptop panel, and all four land
+   within ~250px of the design's own 1040 console. 1920 is the full-screen
+   case and lands 630px clear of it. So EVERY LAPTOP IN THE SET FLOATS and the
+   one desktop-scale size keeps the push, which is what somebody with the room
+   asked for.
+
+   MOVE THE SET, NOT THIS NUMBER: if a size is ever added, this follows from
+   laptops-verify's list rather than being re-guessed. And index.html's
+   `max-width` block must move with it — it has to match this `<=` exactly. */
+const NAV_DRAWER_W = 1536;
 function navDrawerActive(){
   return typeof innerWidth === 'number' ? innerWidth <= NAV_DRAWER_W : false;
 }
