@@ -1547,7 +1547,10 @@
      negotiation anywhere) is still a page of its own rather than an empty table
      under a filter bar. */
   .ngl-wrap{ padding:var(--page-pad); max-width:900px; }
-  .ngl-head h2{ font-family:var(--font-heading); font-weight:600; font-size:20px;
+  /* 700, not 600 — Home sets the tone at 20/700 and every page head matches it
+     (owner-asked 25 Aug 2026). The SIZE was already right here; only the weight
+     was a shade light against the rest. */
+  .ngl-head h2{ font-family:var(--font-heading); font-weight:700; font-size:20px;
     margin:0 0 4px; line-height:1.2; }
   .ngl-head p{ margin:0 0 18px; font-size:14px; color:var(--color-neutral-600); }
   .ngl-list{ display:flex; flex-direction:column; gap:8px; }
@@ -1620,6 +1623,16 @@
   .ngl-band-n{ font-family:var(--font-mono); font-size:12px; font-weight:700;
     color:var(--color-neutral-600); background:var(--color-surface);
     border:1px solid var(--color-divider); border-radius:0; padding:0 7px; }
+  /* ---- ITS TITLE STARTS WHERE EVERY OTHER PAGE'S DOES (owner-asked 25 Aug
+     2026: "the distance between the edge at the top and the header should be
+     the same across all pages") ----
+     This page draws its OWN head INSIDE the register's body wrapper, which
+     pads 14px down, while the shared #page-head pads 16 — so its title sat 2px
+     high. SCOPED TO .ngl-page, which only this page carries: the Contracts
+     page uses the same wrapper and its head is the shared one, already at 16,
+     so widening this to the wrapper would move that page's filter bar for no
+     reason. */
+  .ngl-page{ padding-top:16px!important; }
   .ngl-head-table h2{ margin:0; display:flex; align-items:baseline; gap:9px; flex-wrap:wrap; }
   .ngl-head-table p{ margin:2px 0 0; }
   .ngl-live{ font-family:var(--font-mono); font-size:13px; font-weight:700;

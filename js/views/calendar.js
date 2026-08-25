@@ -632,9 +632,17 @@ function calStyleCss(){ return `
          across the middle. The design draws BOTH rows inside one white box with
          a single rule under the tabs, which is what the bar's own hairline
          already is. So the head draws none: no box-shadow here. */}
-  .cal-head{flex:none;background:var(--color-surface);padding:9px 24px;display:flex;align-items:center;
+  /* 16px ON TOP, so this title starts on the same vertical as every other
+     page's (owner-asked 25 Aug 2026). It was 9, and this band is the calendar's
+     own head rather than the shared one, so it has to be told. The BOTTOM stays
+     shallower than the top on purpose — this is a head, not a card, and the
+     shared header is 16-top / 0-bottom for the same reason. */
+  .cal-head{flex:none;background:var(--color-surface);padding:16px 24px 10px;display:flex;align-items:center;
     gap:12px;flex-wrap:nowrap;min-width:0}
-  .cal-head .ttl{font-family:var(--font-heading);font-size:15px;font-weight:600;color:var(--color-text);flex:none}
+  /* 20/700, the size Home sets and every other page head now carries
+     (owner-asked 25 Aug 2026). This band is the calendar's own head rather
+     than the shared one, so it has to be told; it read 15/600. */
+  .cal-head .ttl{font-family:var(--font-heading);font-size:20px;font-weight:700;color:var(--color-text);flex:none}
   .cal-head .g{flex:1;min-width:0}
   .cal-stat{font-size:14px;font-weight:700;white-space:nowrap;flex:none}
   .cal-stat.crit{color:var(--st-amber-fg)}

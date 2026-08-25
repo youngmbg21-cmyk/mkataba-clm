@@ -352,6 +352,85 @@ const QUESTION = 'why do I have a big workload runway today?';
     await page.setViewportSize({ width: 1500, height: 950 });
     await page.waitForTimeout(600);
 
+    /* ---- 9 · PORTFOLIO SITS WHERE FRICTION SITS (owner-asked 25 Aug 2026:
+       "the negotiation friction card keeps the same distance to the edge of the
+       nav panel when the nav panel is open or collapsed. Portfolio card needs
+       to do the same") ----
+       Portfolio capped at 1280 and CENTRED, so its distance from the column was
+       half of whatever was left over — it moved whenever the content area did,
+       and on a wide monitor it sat 195px off. Friction's body is a plain div
+       and hugs the page measure. Both are plain now.
+       THE CLAIM IS THE RELATION, at two widths: the two tabs put their first
+       panel at the same offset inside the same host, and that offset does not
+       depend on how wide the nav happens to be. */
+    const PANEL = `(() => {
+      const nav = document.getElementById('side-nav').getBoundingClientRect();
+      const host = [...document.querySelectorAll('#ig-frame, #ig-friction')]
+        .find(e => { const r = e.getBoundingClientRect(); return r.width > 50 && r.height > 50; });
+      if (!host) return null;
+      /* THE TAB'S OWN BODY WRAPPER — the element each tab returns, which is
+         exactly what caps and centres or does not. Hunting for "a white panel"
+         finds whichever small card comes first in document order. */
+      const p = [...host.children].find(e => {
+        const r = e.getBoundingClientRect(); return r.width > 50 && r.height > 20; });
+      if (!p) return null;
+      const hr = host.getBoundingClientRect(), pr = p.getBoundingClientRect();
+      const cs = getComputedStyle(p);
+      return { host: host.id, inset: Math.round(pr.left - hr.left),
+        width: Math.round(pr.width), navW: Math.round(nav.width),
+        maxW: cs.maxWidth, mL: cs.marginLeft };
+    })()`;
+    const tab = async which => {
+      await page.evaluate(() => setView('intel'));
+      await page.waitForTimeout(1500);
+      await page.evaluate(w => { const b = [...document.querySelectorAll('[data-ig-tab]')]
+        .find(x => new RegExp(w, 'i').test(x.textContent)); if (b) b.click(); }, which);
+      await page.waitForTimeout(1800);
+      return page.evaluate(PANEL);
+    };
+    /* THE FRICTION TAB DRAWS AN EMPTY STATE WITH NO NEGOTIATIONS, and that
+       state is a centred 960 box — nothing like the card being compared. */
+    await page.evaluate(async () => {
+      const live = state.contracts.filter(x => x.status !== 'Signed' && x.status !== 'Declined').slice(0, 6);
+      for (const c of live){ negoInit(c); const cl = negoClauseList(c);
+        if (cl[0]) await negoEditClause(c, cl[0].clauseId,
+          cl[0].bodyHtml.replace(/\b(\d[\d,]*)\b/, m => String(Number(String(m).replace(/,/g, '')) + 500)),
+          { author: 'Amina Otieno', side: 'owner', why: 'Volume alignment.' }); }
+    });
+    await page.waitForTimeout(1800);
+    const seen = {};
+    for (const W of [1440, 1920]){
+      await page.setViewportSize({ width: W, height: 900 });
+      await page.waitForTimeout(700);
+      seen[W] = { pf: await tab('portfolio'), fr: await tab('friction') };
+    }
+    /* PORTFOLIO IS THE ONE THAT CHANGED, so it carries the claim. Friction is
+       compared only where it has data to draw — with no negotiations it falls
+       to a centred empty state, which is a different object and not what the
+       owner is pointing at. */
+    const frLive = W => seen[W].fr && seen[W].fr.maxW === 'none';
+    check('9 Portfolio reads the page measure at 1440',
+      seen[1440].pf && seen[1440].pf.maxW === 'none' && seen[1440].pf.mL === '0px',
+      JSON.stringify(seen[1440].pf));
+    check('9 and at 1920, where the column is pushed open',
+      seen[1920].pf && seen[1920].pf.maxW === 'none' && seen[1920].pf.mL === '0px',
+      JSON.stringify(seen[1920].pf));
+    check('9 and where Friction has something to draw, the two agree',
+      !frLive(1920) || seen[1920].pf.inset === seen[1920].fr.inset,
+      frLive(1920) ? `pf ${seen[1920].pf.inset} · fr ${seen[1920].fr.inset}`
+                   : 'friction had no negotiations to draw — not compared');
+    check('9 Portfolio no longer caps and centres — its body fills the host',
+      seen[1920].pf && seen[1920].pf.maxW === 'none' && seen[1920].pf.mL === '0px',
+      seen[1920].pf ? `max ${seen[1920].pf.maxW}, margin ${seen[1920].pf.mL}` : 'no body');
+    /* AND THE INSET IS THE HOST'S OWN PADDING, not a leftover: it is the same
+       number at both widths, which is what "keeps the same distance" means. */
+    check('9 and that distance does not move with the width',
+      seen[1440].pf && seen[1920].pf && seen[1440].pf.inset === seen[1920].pf.inset,
+      `${seen[1440].pf && seen[1440].pf.inset} vs ${seen[1920].pf && seen[1920].pf.inset}`);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.waitForTimeout(600);
+
+
     check('no page errors', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {
     await browser.close();

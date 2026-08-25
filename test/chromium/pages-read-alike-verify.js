@@ -401,6 +401,67 @@ const SEED = async () => {
     check('7 and both heads settled on the SAME outline — one class, two pages',
       oRoom[0].bd === oNego[0].bd, { room: oRoom[0].bd, nego: oNego[0].bd });
 
+    /* ---- 8 · EVERY PAGE HEAD8 IS THE SAME SIZE AND STARTS AT THE SAME HEIGHT
+       (owner-asked 25 Aug 2026: "All the headers in every page need to have the
+       same size font in every page like highlighted in the picture. The home
+       page sets the tone. Also, the distance between the edge at the top and
+       the header should be the same across all pages.") ----
+       HOME IS THE REFERENCE, so it is read off the page rather than typed: the
+       claim is that the other nine AGREE WITH IT, which costs no edit the next
+       time the type scale moves. MEASURED before this: 19/700 on the seven
+       pages using the shared header, 20/600 on Negotiations, 15/600 on the
+       Calendar's own band — and tops of 10, 13, 16 and 23. */
+    const HEAD8 = () => {
+      const sels = ['#page-head h1', '.hm-greet h1', '.cal-head .ttl',
+        '.ngl-head h2', '#content h1', '#content h2'];
+      let h = null;
+      for (const s of sels){ const e = document.querySelector(s);
+        if (e){ const r = e.getBoundingClientRect(); if (r.width > 2 && r.height > 2){ h = e; break; } } }
+      if (!h) return null;
+      const cs = getComputedStyle(h), r = h.getBoundingClientRect();
+      const bar = document.getElementById('top-header');
+      const top = bar ? bar.getBoundingClientRect().bottom : 0;
+      return { size: cs.fontSize, weight: cs.fontWeight, family: cs.fontFamily.split(',')[0],
+        top: Math.round(r.top - top), text: (h.textContent || '').trim().slice(0, 20) };
+    };
+    const PAGES8 = [
+      ['Home',         () => setView('dashboard')],
+      ['Contracts',    () => setView('register')],
+      ['Negotiations', () => openNegotiations({ list: true })],
+      ['Calendar',     () => setView('calendar')],
+      ['Insights',     () => setView('intel')],
+      ['Templates',    () => setView('templates')],
+      ['Settings',     () => setView('team')],
+      ['Reports',      () => setView('reports')],
+      ['Approvals',    () => setView('queue')],
+      ['Requests',     () => setView('intake')],
+    ];
+    const heads8 = {};
+    for (const [name, go] of PAGES8){
+      try { await page.evaluate(go); } catch (e) { continue; }
+      await pause(1700);
+      const h = await page.evaluate(HEAD8);
+      if (h) heads8[name] = h;
+    }
+    const home8 = heads8.Home;
+    const others8 = Object.entries(heads8).filter(([k]) => k !== 'Home');
+    check('8 the sweep actually reached the pages', !!home8 && others8.length >= 8,
+      `${Object.keys(heads8).length} heads8 read`);
+    const offSize = others8.filter(([, h]) => h.size !== home8.size);
+    check('8 every page head is the size Home sets',
+      offSize.length === 0,
+      offSize.map(([k, h]) => `${k} ${h.size} vs Home ${home8 && home8.size}`).join(' · ') || (home8 && home8.size));
+    const offWeight = others8.filter(([, h]) => h.weight !== home8.weight);
+    check('8 and the weight Home sets',
+      offWeight.length === 0,
+      offWeight.map(([k, h]) => `${k} ${h.weight}`).join(' · ') || (home8 && home8.weight));
+    const offTop = others8.filter(([, h]) => Math.abs(h.top - home8.top) > 1);
+    check('8 and starts the same distance below the shell bar',
+      offTop.length === 0,
+      offTop.map(([k, h]) => `${k} ${h.top}px vs Home ${home8 && home8.top}px`).join(' · ')
+        || `all at ${home8 && home8.top}px`);
+
+
     check('no page errors', errors.length === 0, errors.slice(0, 3));
   } finally {
     await browser.close();

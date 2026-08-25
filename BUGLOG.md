@@ -7219,6 +7219,17 @@ the same as a pressed one — Contracts row menu 180x234, contract-room More
 full-text search drop 284x91 with a word actually typed into the box: **all
 painted at 9 of 9.** The register's row menu was the only instance.
 
+### 6. The Calendar's head is inset 24 where every other page is 16
+
+Noticed while making every page's title start at the same height. The nine
+other pages put their title at x=80 (the 64px column plus the 16px page
+measure); the Calendar's own white band pads 24, so its title sits at 88.
+
+**Not fixed.** The ask was the font SIZE and the TOP distance, and both are
+done. The band is also a different kind of object — it bleeds edge to edge and
+its 24 is the band's inner padding rather than a page measure — so whether it
+should follow `--page-pad-x` is a decision rather than a slip.
+
 ### Noticed, not fixed
 
 Per the Scope rules in CLAUDE.md. Each was proved to fail on unmodified

@@ -1454,7 +1454,7 @@ function renderTemplatesPage(){
   <div class="view-enter" style="padding:var(--page-pad)">
     <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:14px">
       <div style="min-width:0">
-        <h1 style="margin:0;font-family:var(--font-heading);font-size:19px;font-weight:700;letter-spacing:-.01em;color:var(--color-text);line-height:1.2">${i18t('nav_templates')}</h1>
+        <h1 style="margin:0;font-family:var(--font-heading);font-size:20px;font-weight:700;letter-spacing:-.01em;color:var(--color-text);line-height:1.2">${i18t('nav_templates')}</h1>
         <p style="margin:3px 0 0;font-size:13px;color:var(--color-neutral-500)">${i18t('lib_templates_sub')}</p>
       </div>
       <span style="flex:1"></span>

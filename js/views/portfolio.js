@@ -408,7 +408,19 @@ function portfolioFrameHtml(){
     @media (max-width:1080px){ .pf-6-6,.pf-8-4{grid-template-columns:1fr} .pf-figs{grid-template-columns:repeat(2,1fr)!important} }
     .pf-scroll [data-pf-cat]:hover,.pf-scroll [data-pf-cp]:hover,.pf-scroll [data-pf-open]:hover{background:var(--color-neutral-100)!important}
   </style>
-  <div style="max-width:1280px;margin:0 auto">
+  ${''/* ---- THE PANELS FILL THE PAGE, LIKE NEGOTIATION FRICTION (owner-asked
+         25 Aug 2026: "the negotiation friction card keeps the same distance to
+         the edge of the nav panel when the nav panel is open or collapsed.
+         Portfolio card needs to do the same") ----
+         This capped at 1280 and CENTRED, so its distance from the nav was
+         whatever half the leftover happened to be — it moved whenever the
+         content area did, and on a wide monitor it sat 195px off the column.
+         Friction's own body is a plain div and hugs the page measure; that is
+         the tab the owner is pointing at, and this now matches it.
+         THE SENTENCES INSIDE ARE NOT AFFECTED: the reading columns that need a
+         measure carry their own, exactly as Friction's do — the CARD fills the
+         width, the prose does not. */}
+  <div>
     ${nudge}
     ${pfChipsHtml()}
     ${pfFigures()}

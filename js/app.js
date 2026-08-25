@@ -266,11 +266,29 @@ function renderPageHeader(view){
      11 screens that use this shared header, the page TITLE and the content
      under it did not start on the same vertical. Both now read --page-pad-x,
      so the two can never drift again. */
-  host.style.padding=inlineSub?'10px var(--page-pad-x) 0':'16px var(--page-pad-x) 0';
+  /* ---- ONE HEADER SIZE AND ONE TOP, ON EVERY PAGE (owner-asked 25 Aug 2026:
+     "All the headers in every page need to have the same size font in every
+     page ... The home page sets the tone. Also, the distance between the edge
+     at the top and the header should be the same across all pages") ----
+     HOME IS THE REFERENCE and it draws its own greeting at 20px/700, so this
+     shared header matches it rather than the other way round; MEASURED, it was
+     19/700 on the seven pages that use it.
+     THE TOP IS 16px EVERYWHERE, INCLUDING THE INLINE-SUB PAGES. Insights had
+     10, from the 13 Aug ask to "move the page up so the dashboards have more
+     screen space" — this REVERSES that by six pixels, and it is named here
+     because it is a real cost to that page rather than an oversight.
+     AND align-items IS flex-START, which is the half that actually makes the
+     tops equal. It was flex-END: with a subtitle the title block is taller than
+     the acts and the title sits at the block's top, but with NO subtitle the
+     block is shorter than the act button and flex-end pushed the whole thing
+     DOWN — measured, Contracts sat at 23px where Templates sat at 16, on the
+     same header. flex-start makes the title's top the container's padding, with
+     or without a subtitle, with or without acts. */
+  host.style.padding='16px var(--page-pad-x) 0';
   host.innerHTML=`
-    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap">
       <div style="min-width:0${inlineSub?';display:flex;align-items:baseline;gap:10px;flex-wrap:wrap':''}">
-        <h1 style="margin:0;font-family:var(--font-heading);font-size:19px;font-weight:700;letter-spacing:-.01em;color:var(--color-text);line-height:1.2">${esc(t)}</h1>
+        <h1 style="margin:0;font-family:var(--font-heading);font-size:20px;font-weight:700;letter-spacing:-.01em;color:var(--color-text);line-height:1.2">${esc(t)}</h1>
         ${sub?`<p style="margin:${inlineSub?'0':'3px 0 0'};font-size:13px;color:var(--color-neutral-500);line-height:1.5${inlineSub?';min-width:0':''}">${esc(sub)}</p>`:''}
       </div>
       ${acts?`<div style="display:flex;align-items:center;gap:8px;flex:none">${acts}</div>`:''}

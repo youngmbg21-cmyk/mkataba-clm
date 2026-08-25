@@ -91,9 +91,24 @@ describe('f238 — the design system has its other half', () => {
 
   test('the shared page header lines up with the page under it', () => {
     /* It padded to 20px while the eleven bodies beneath padded to 16/18/20/0,
-       so on 10 of 11 screens the title and its own content did not line up. */
-    assert.match(JS('js/app.js'), /host\.style\.padding=inlineSub\?'[^']*var\(--page-pad-x\)/,
-      '#page-head reads the same horizontal measure the bodies do');
+       so on 10 of 11 screens the title and its own content did not line up.
+       STRENGTHENED 25 Aug 2026 (owner-asked: "the distance between the edge at
+       the top and the header should be the same across all pages"). It used to
+       carry a ternary — 10px on the inline-subtitle pages, 16 everywhere else —
+       so the horizontal measure was shared and the VERTICAL one was not. It is
+       ONE value now, which is a stronger claim than the one it replaces: the
+       header cannot differ from page to page in either direction. */
+    const src = JS('js/app.js');
+    assert.match(src, /host\.style\.padding='16px var\(--page-pad-x\) 0'/,
+      '#page-head reads one padding — the page measure across, 16px down');
+    assert.ok(!/host\.style\.padding=inlineSub\?/.test(src),
+      'and no branch can give one page a different top');
+    /* AND THE TITLE'S TOP IS THE PADDING, with or without a subtitle. With
+       flex-END a title block shorter than the act button was pushed down —
+       measured, Contracts sat at 23px where Templates sat at 16 on the same
+       header. */
+    assert.match(src, /align-items:flex-start;justify-content:space-between/,
+      'the header row starts its items at the top, so the title never drifts');
   });
 
   /* ---------- 3 · CONTRAST ---------- */
