@@ -1361,6 +1361,8 @@ const STRINGS = {
     // ---- the Negotiations page: the Contracts table, grouped by whose move ----
     ngl_n_live_one: '1 live',
     ngl_n_live_other: '{n} live',
+    /* STALE since 25 Aug 2026 — the resting subtitle was deleted on the
+       owner's ask; left inert rather than removed, this file's convention. */
     ngl_sub: 'Every agreement being argued over right now, grouped by whose move it is. A row opens the negotiation.',
     ngl_sub_filtered: 'Showing {n} of {live} live negotiations — the group counts follow your filters. The count on the Negotiations door counts changes waiting on you, not agreements.',
     ngl_band_you: 'Waiting on you',
@@ -6011,6 +6013,7 @@ const STRINGS = {
     // ---- Förhandlingssidan: avtalstabellen, grupperad efter vems tur det är ----
     ngl_n_live_one: '1 pågående',
     ngl_n_live_other: '{n} pågående',
+    /* STALE — see the English side. */
     ngl_sub: 'Alla avtal som förhandlas just nu, grupperade efter vems tur det är. En rad öppnar förhandlingen.',
     ngl_sub_filtered: 'Visar {n} av {live} pågående förhandlingar — gruppsiffrorna följer dina filter. Siffran på Förhandlingar-dörren räknar ändringar som väntar på dig, inte avtal.',
     ngl_band_you: 'Väntar på dig',

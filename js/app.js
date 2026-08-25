@@ -1305,42 +1305,41 @@ function toggleRail(){
    the width; it simply is not honoured below the line, and comes straight back
    above it. */
 /* ---- WHERE THE SIDEBAR STOPS PUSHING AND STARTS FLOATING ----
-   REVISED 25 Aug 2026, owner-reported: "the sliding nav panel was supposed to
+   REVISED TWICE IN TWO DAYS, and both revisions are owner reports from real
+   machines. 25 Aug 2026, on a ThinkPad: "the sliding nav panel was supposed to
    slide over the page for [smaller] sized screens but now when i look in my
-   thinkpad, the nav pushes the screen to the right."
+   thinkpad, the nav pushes the screen to the right." Then, the same day, on
+   the other laptop: "when you open the nav panel it used to push the screen to
+   the right and I still had enough room unlike the thinkpad. The new changes
+   make that not possible anymore."
 
-   IT WAS 1280 FOR A DAY AND THAT WAS WRONG. The derivation looked sound — the
-   design draws its console in 1040px of page with a 240px column, a push costs
-   176px, so a push is "safe" from 1280 up — and it ANSWERED THE WRONG
-   QUESTION. That arithmetic asks *does the design still fit*. The line has to
-   answer *is this a screen where giving up 176px of page is felt*, and those
-   are not the same question. MEASURED at 1280: 1366, 1440 and 1536 all pushed,
-   and 1366 and 1440 had floated since this feature was built.
+   SO THE LINE HAS TO SEPARATE TWO REAL LAPTOPS, and that is the whole of it.
+   1536 caught them both, because a 15.6" 1920x1080 panel at Windows' usual
+   125% scaling reports exactly 1536 CSS px — the boundary itself. It is 1440
+   now: the ThinkPad floats, the wider panel keeps its push and still has
+   1286px of page, which is 246 clear of the design's own 1040 console.
 
-   THE FEATURE EXISTS BECAUSE OF A THINKPAD. Its founding report was
-   "expanding the sidebar squeezed every page", from a real machine, and the
-   report above is the same person saying the same thing again.
+   IT WAS 1280 FOR A DAY BEFORE THAT AND THAT WAS WRONG TOO. The derivation
+   looked sound — the design draws its console in 1040px of page with a 240px
+   column, a push costs 176px, so a push is "safe" from 1280 up — and it
+   ANSWERED THE WRONG QUESTION. That arithmetic asks *does the design still
+   fit*. The line has to answer *is this a screen where giving up 176px of page
+   is felt*, and those are not the same question.
 
    DERIVED FROM THE SUPPORTED SET, per the owner's own ruling that the line
    comes from "the screen sizes HaTi is built for", never from a monitor.
    laptops-verify names five, and what a push leaves of the page at each:
 
-       1280  ThinkPad, 1080p @150%   ->  1030
-       1366  1366x768                ->  1116
-       1440  MacBook                 ->  1190
-       1536  1080p @125%             ->  1286
-       1920  1080p @100%             ->  1670
-
-   The first four are somebody working on a laptop panel, and all four land
-   within ~250px of the design's own 1040 console. 1920 is the full-screen
-   case and lands 630px clear of it. So EVERY LAPTOP IN THE SET FLOATS and the
-   one desktop-scale size keeps the push, which is what somebody with the room
-   asked for.
+       1280  ThinkPad, 1080p @150%   ->  1030   floats
+       1366  1366x768                ->  1116   floats
+       1440  MacBook                 ->  1190   floats
+       1536  1080p @125%             ->  1286   PUSHES
+       1920  1080p @100%             ->  1670   PUSHES
 
    MOVE THE SET, NOT THIS NUMBER: if a size is ever added, this follows from
    laptops-verify's list rather than being re-guessed. And index.html's
    `max-width` block must move with it — it has to match this `<=` exactly. */
-const NAV_DRAWER_W = 1536;
+const NAV_DRAWER_W = 1440;
 function navDrawerActive(){
   return typeof innerWidth === 'number' ? innerWidth <= NAV_DRAWER_W : false;
 }

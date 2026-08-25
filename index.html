@@ -1473,7 +1473,19 @@
     border-right:1px solid var(--color-divider); min-width:0; }
   .room-facet:last-child{ border-right:0; margin-right:0; padding-right:0; }
   .room-facet .l{ font-size:12px; color:var(--color-neutral-500); line-height:16px; }
-  .room-facet .v{ font-size:15px; line-height:20px; color:var(--color-text);
+  /* 600, THE REFERENCE'S OWN WEIGHT (owner-asked 25 Aug 2026, off a screenshot
+     of the negotiation head with these values boxed: "both in contracts and
+     negotiations, the highlighted area needs to be in bold just like in the
+     demo html"). The enterprise reference draws its object-page header facts
+     as a 12px label over a 14px/600 value, and HaTi's carried no weight at all
+     — so the labels and the facts under them read at one weight and the row
+     had no hierarchy in it. ONE RULE REACHES BOTH HEADS, because roomFactsHtml
+     is one builder with two homes (the contract room and the negotiation
+     page); a weight written at one call site is how the two come to disagree.
+     THE SIZE IS DELIBERATELY NOT MOVED: the reference sets 14 and HaTi 15, the
+     ask named the weight, and a size change here moves a row nobody reported. */
+  .room-facet .v{ font-size:15px; line-height:20px; font-weight:600;
+    color:var(--color-text);
     max-width:34ch; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .room-facet-none{ color:var(--color-neutral-400); }
   /* The whose-move facet borrows the register's builder, which brings its own
@@ -2936,13 +2948,13 @@
         hiding every door behind a press is the worse trade. One behaviour from
         768 to 1279 now, rather than two systems doing the same job. -- */
   @media (max-width:899px){ #nav-toggle{ display:grid!important; } }
-  /* 1536 INCLUSIVE — it must match navDrawerActive()'s `<=` exactly, and that
+  /* 1440 INCLUSIVE — it must match navDrawerActive()'s `<=` exactly, and that
      number is derived from the supported screen sizes; see the note beside
-     NAV_DRAWER_W in js/app.js. EVERY LAPTOP IN THAT SET FLOATS; only the
-     1920 full-screen case still pushes. It read 1280 for a day and the owner
-     reported the shove back on a ThinkPad — 1366, 1440 and 1536 were all
-     pushing, and two of them had floated since the feature was built. */
-  @media (max-width:1536px){
+     NAV_DRAWER_W in js/app.js. It read 1280, then 1536, and both were reported
+     from real laptops within a day: 1280 shoved a ThinkPad, and 1536 took the
+     push away from a 15.6-inch panel that has the room for it (1080p at 125%
+     scaling reports exactly 1536, so the boundary itself caught it). */
+  @media (max-width:1440px){
     #side-nav{
       position:fixed; top:var(--shell-head-h,64px); left:0; bottom:0; z-index:55;
       width:64px; transition:width .22s var(--ease);

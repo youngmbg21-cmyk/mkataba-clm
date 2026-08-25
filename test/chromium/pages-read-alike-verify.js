@@ -462,6 +462,50 @@ const SEED = async () => {
         || `all at ${home8 && home8.top}px`);
 
 
+    /* ---- 9 · THE HEAD'S FACT VALUES ARE BOLD, ON BOTH HEADS
+       (owner-asked 25 Aug 2026, off a screenshot of the negotiation head with
+       these values boxed: "both in contracts and negotiations, the highlighted
+       area needs to be in bold just like in the demo html") ----
+       The enterprise reference draws its object-page header facts as a 12px
+       label over a 14px/600 value. HaTi's `.room-facet .v` carried no weight
+       at all, so the label and the fact under it read at ONE weight and the
+       row had no hierarchy in it.
+       WRITTEN AS RELATIONS, not as 600: the value is heavier than its own
+       label, it is not the inherited default, and the two heads agree — which
+       is the claim that matters, because roomFactsHtml is ONE BUILDER WITH TWO
+       HOMES and a weight written at a call site is how they would drift. */
+    const FACTS9 = () => [...document.querySelectorAll('#ws-facts .room-facet')].map(f => {
+      const l = f.querySelector('.l'), v = f.querySelector('.v');
+      const gl = l && getComputedStyle(l), gv = v && getComputedStyle(v);
+      return { k: l && l.textContent.trim(),
+        lw: gl && gl.fontWeight, vw: gv && gv.fontWeight, vs: gv && gv.fontSize };
+    });
+    await page.evaluate(id => openWorkspace(id), cid);
+    await pause(1900);
+    const f9room = await page.evaluate(FACTS9);
+    await page.screenshot({ path: path.join(OUT, '09-room-facts.png') });
+    await page.evaluate(id => openRedlineWorkbench(id), cid);
+    await pause(2200);
+    const f9nego = await page.evaluate(FACTS9);
+    await page.screenshot({ path: path.join(OUT, '09-nego-facts.png') });
+    check('9 the fact row drew on both heads',
+      f9room.length >= 3 && f9nego.length === f9room.length,
+      `room ${f9room.length} · negotiation ${f9nego.length}`);
+    const light9 = [...f9room, ...f9nego].filter(f => +f.vw <= +f.lw);
+    check('9 every value is heavier than its own label',
+      f9room.length > 0 && light9.length === 0,
+      light9.map(f => `${f.k} ${f.vw} vs label ${f.lw}`).join(' · ')
+        || `values ${f9room[0] && f9room[0].vw} over labels ${f9room[0] && f9room[0].lw}`);
+    const plain9 = [...f9room, ...f9nego].filter(f => +f.vw < 600);
+    check('9 and none of them is back at the inherited default',
+      f9room.length > 0 && plain9.length === 0,
+      plain9.map(f => `${f.k} ${f.vw}`).join(' · ') || 'all 600 or heavier');
+    const drift9 = f9room.filter((f, i) =>
+      !f9nego[i] || f9nego[i].vw !== f.vw || f9nego[i].vs !== f.vs);
+    check('9 and the two heads read the facts identically — one builder, two homes',
+      f9room.length > 0 && drift9.length === 0,
+      drift9.map(f => f.k).join(' · ') || `${f9room[0] && f9room[0].vs}/${f9room[0] && f9room[0].vw} on both`);
+
     check('no page errors', errors.length === 0, errors.slice(0, 3));
   } finally {
     await browser.close();

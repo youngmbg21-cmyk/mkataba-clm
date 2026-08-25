@@ -6492,16 +6492,23 @@ function negoListHeadHtml(shown){
   const filtered = !!(R && (String(R.query || '').trim() || R.stage !== 'all' || R.type !== 'all'
     || R.view || (R.renewal && R.renewal !== 'all') || (R.category && R.category !== 'all') || R.only));
   const n = Array.isArray(shown) ? shown.length : live;
-  /* TWO COUNTS ABOUT THE SAME THING ARE ON SCREEN AT ONCE and they measure
-     different units, so the page says which is which rather than letting a
-     reader discover it. The sidebar door counts CHANGES waiting on this person
+  /* THE RESTING SUBTITLE IS GONE (owner-asked 25 Aug 2026, off a screenshot
+     with it boxed: "delete the added words highlighted"). It described the
+     page — "every agreement being argued over right now, grouped by whose move
+     it is" — to a reader already looking at exactly that, which is the same
+     call the Contracts page's own note lost a day earlier. `ngl_sub` is STALE;
+     it is left inert in the dictionary rather than deleted.
+
+     THE FILTERED SENTENCE STAYS, and it is not the same kind of thing. TWO
+     COUNTS ABOUT THE SAME THING ARE ON SCREEN AT ONCE and they measure
+     different units: the sidebar door counts CHANGES waiting on this person
      across every negotiation; the bands count AGREEMENTS in the view they can
-     see. And when a filter is on, the bands are counting the filtered view —
-     said out loud, because a band reading 1 under a door reading 3 with no
-     explanation is the contradiction this page was written to avoid. */
+     see. With a filter on, a band reading 1 under a door reading 3 is a
+     contradiction, and this line is the page resolving it — which is why it
+     draws only when there is a contradiction to resolve. */
   return `<header class="ngl-head ngl-head-table">
     <h2>${i18t('ng_door_title')} <span class="ngl-live">${_ne(i18tn('ngl_n_live', live, { n: live }))}</span></h2>
-    <p>${_ne(filtered ? i18t('ngl_sub_filtered', { n, live }) : i18t('ngl_sub'))}</p>
+    ${filtered ? `<p>${_ne(i18t('ngl_sub_filtered', { n, live }))}</p>` : ''}
   </header>`;
 }
 function renderNegotiationsList(host){

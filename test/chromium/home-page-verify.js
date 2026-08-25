@@ -91,11 +91,30 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       shell.nav.bg === 'rgb(255, 255, 255)', shell.nav.bg);
     check('1 and below the float line it rests as the rail, not an open column',
       shell.nav.w === 64, `${shell.nav.w}px at 1440`);
+    /* THE NUMBER ITSELF IS NOT PINNED HERE — it has moved three times in two
+       days on real reports from real laptops, and a literal would cost a test
+       edit every time. WHAT IS PINNED IS THE DRIFT: the line lives in TWO
+       places, navDrawerActive()'s `<=` in js/app.js and a `max-width` block in
+       index.html, and they have to be the same number. nav-floats-verify
+       straddles the line and owns the behaviour; this owns the pair. */
     const wide = await page.evaluate(async () => {
-      return { line: typeof NAV_DRAWER_W === 'number' ? NAV_DRAWER_W : null };
+      const line = typeof NAV_DRAWER_W === 'number' ? NAV_DRAWER_W : null;
+      let css = null;
+      for (const sh of Array.from(document.styleSheets)) {
+        let rules = null;
+        try { rules = sh.cssRules; } catch (e) { continue; }
+        for (const r of Array.from(rules || [])) {
+          if (!r.conditionText || !/max-width/.test(r.conditionText)) continue;
+          const txt = Array.from(r.cssRules || []).map(x => x.cssText).join(' ');
+          if (!/#side-nav\b/.test(txt) || !/position:\s*fixed/.test(txt)) continue;
+          const m = /max-width:\s*(\d+)px/.exec(r.conditionText);
+          if (m) css = parseInt(m[1], 10);
+        }
+      }
+      return { line, css };
     });
-    check('1 the float line is the one the supported set derives',
-      wide.line === 1536, String(wide.line));
+    check('1 the float line and the stylesheet block are the same number',
+      wide.line != null && wide.line === wide.css, `js ${wide.line} · css ${wide.css}`);
     /* The phrase the retired banner used to carry. It is the page's name now
        and it lives in the bar, so losing the banner did not lose it. */
     check('1 the bar names the page, and it is the banner\'s own phrase',

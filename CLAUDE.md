@@ -548,11 +548,11 @@ They were one: the bell's handler pressed #cmd-panel and its tooltip said so, an
 - THE PHONE draws neither button and has mNeedsYou on Home instead, so it cannot inherit the fault.
 Tests: f187 (23), alerts-and-activity-verify (21, browser — the dot's absence at zero, one shell two contents, the swap, and Insights).
 
-## BELOW 1280 THE SIDEBAR FLOATS INSTEAD OF PUSHING (owner-asked 13 Aug 2026; the line moved from 1500 on 24 Aug 2026)
+## BELOW 1440 THE SIDEBAR FLOATS INSTEAD OF PUSHING (owner-asked 13 Aug 2026; the line has been 1500, 1280, 1536 and is now 1440 — see the entry under SEVENTEEN THINGS)
 
 Reported from a ThinkPad: expanding the sidebar squeezed every page. It cost the page 192px (256 expanded against the 64px rail) and NOTHING ADAPTED — every layout rule in this product measures the WINDOW, while the page gets the window minus the sidebar. So opening the nav shrank the page by a fifth and the layout carried on as though it had not.
 
-THE NUMBER IS DERIVED, NOT PICKED — AND BOTH HALVES OF THE SUM CHANGED (24 Aug 2026). It was 1500: the dashboard's two side-by-side cards needed 1200px of page and 1200 + a 256px column is 1456, rounded up so a 1440 laptop landed on the right side of it. The column is **240** now, and the dashboard is no longer two wide cards — it is four tiles across, which the enterprise design itself draws in **1040px** of page (its whole console is 1280 wide with a 240 column). So 1040 + 240 = **1280**, and the line goes there: a 1280 laptop gets the open column and exactly the page width the design was drawn at, and a 1440 one — which is what the old number was rounded up for — gets it with room to spare rather than a 64px rail. NAV_DRAWER_W / navDrawerActive() (js/app.js) is the one reading, matched by the `max-width:1279px` block in index.html. **NOTHING BELOW THE LINE CHANGED**: the rail, the floating layer, the untouched stored preference and the scrim all behave exactly as they did.
+THE NUMBER IS DERIVED, NOT PICKED, AND IT HAS MOVED THREE TIMES — 1500 → 1280 (24 Aug) → 1536 → **1440** (25 Aug, twice in one day). **THE ARITHMETIC WAS NEVER THE PROBLEM; THE QUESTION WAS.** 1280 came from 1040 (the design's own console) + 240 (the column), which asks *does the design still fit*. The line has to answer *is this a screen where giving up 176px of page is felt*, and the only authority on that is the owner reporting from a real machine. Two did, a day apart: a ThinkPad said the push was a shove, and a 15.6-inch 1920x1080 panel said it wanted the push back. **SO THE LINE'S JOB IS TO SEPARATE THOSE TWO LAPTOPS**, and 1440 does it — everything up to and including 1440 floats, 1536 and 1920 push. That 15.6-inch panel reports exactly **1536** CSS px at Windows' usual 125% scaling, which is why an inclusive `<=1536` caught it on the boundary itself. NAV_DRAWER_W / navDrawerActive() (js/app.js) is the one reading, matched by the `max-width:1440px` block in index.html — **the pair that can silently disagree, which is what home-page-verify pins now rather than the number**. **NOTHING BELOW THE LINE CHANGED**: the rail, the floating layer, the untouched stored preference and the scrim all behave exactly as they did.
 
 - BELOW: `#side-nav` is `position:fixed`, 64px, and applyRail holds a 64px TRACK under it, so it widens to 256 OVER the page and the page's own width never changes. That is what makes rail-at-rest safe down here: opening and closing move nothing. MEASURED at 1280/1366/1440 — the content box is identical before, during and after. (ABOVE the line the DEFAULT is now the OPEN column — the SAP treatment, 20 Aug 2026, owner-approved render; railCollapsed()'s null default flipped to false. Below the line navDrawerActive() still wins and nothing changed; a stored choice still beats both.)
 - ABOVE: nothing moved. The rail is still the reader's own remembered choice and expanding still PUSHES, which is what somebody with the room asked for.
@@ -562,7 +562,7 @@ THE NUMBER IS DERIVED, NOT PICKED — AND BOTH HALVES OF THE SUM CHANGED (24 Aug
 - THE TOGGLE DESCRIBES THE WORDS, NOT THE TRACK. railLabelsShowing() is the one reading (above the line: the stored choice; below: is the layer open) and paintRailToggle() is the one painter, called by applyRail AND setNavDrawer. It was painted off the rail's LOOK, which is on below the line whatever happens — so a reader who had just floated the labels was offered a chevron and a tooltip to show them again.
 - TWO QUESTIONS THAT USED TO SHARE ONE ANSWER. "Is the sidebar a layer?" moved to 1500; "has the header run out of room for the language words?" did NOT — navHeaderTight() (900) is what placeLanguageSwitch asks, matching the stylesheet's own 899 rule. Left on navDrawerActive it posted the toggle into the sidebar on every laptop, styled by a rule that does not apply there.
 - AND THE TOGGLE HAS TO FIT THE STRIP IT SITS IN: at 768–899 it is inside the sidebar, which now rests at 64px rather than the old 240px drawer. Side by side even the two-letter pair measures 86px — MEASURED, 34px of overflow — so at rest it wears its codes and STACKS down the strip, and the words come back when the layer opens.
-Tests: nav-floats-verify (67, browser — the strip, the layer, the page proved unmoved at 1280/1366/1440, the scrim and Escape, the untouched preference, the chevron, and that above 1500 the toggle still pushes and still remembers).
+Tests: nav-floats-verify (browser — the strip, the layer, the page proved unmoved below the line, the scrim and Escape, the untouched preference, the chevron, and that above the line the toggle still pushes and still remembers; **its widths are DERIVED from NAV_DRAWER_W so the file follows the line rather than being edited each time it moves**).
 
 ## THE PHONE
 
@@ -3249,15 +3249,28 @@ of this; what follows is the rules that came out of it.
   first two had floated since the feature was built. **The feature's founding
   report was a ThinkPad — "expanding the sidebar squeezed every page" — and
   this is the same person saying it again.**
-  **IT IS 1536**, derived from the set and what a push leaves of the page:
-  1280→1030, 1366→1116, 1440→1190, 1536→1286, 1920→1670. The first four are
-  somebody working on a laptop panel and all land within ~250px of the design's
-  own 1040; 1920 is the full-screen case and lands 630 clear. So every laptop
-  floats and the one desktop-scale size keeps the push.
+  **IT WENT TO 1536 AND THE OTHER LAPTOP REPORTED IT THE SAME DAY.**
+  Owner-reported 25 Aug 2026, on the machine that is not the ThinkPad: "when
+  you open the nav panel it used to push the screen to the right and I still
+  had enough room unlike the thinkpad. The new changes make that not possible
+  anymore." **A 15.6-INCH 1920x1080 PANEL AT WINDOWS' USUAL 125% SCALING
+  REPORTS EXACTLY 1536 CSS px**, so an inclusive `<=1536` caught it on the
+  boundary itself.
+  **IT IS 1440**, derived from the set and what a push leaves of the page:
+  1280→1030 floats, 1366→1116 floats, 1440→1190 floats, 1536→1286 PUSHES,
+  1920→1670 PUSHES. **THE LINE'S JOB IS TO SEPARATE TWO REAL LAPTOPS** and
+  that is the whole of it: the ThinkPad floats, the wider panel keeps its push
+  and still has 246px of page clear of the design's own 1040 console.
   **THE COST, SAID OUT LOUD**: below the line the column rests as the 64px
-  RAIL, so 1281–1536 now arrive on the rail rather than the open column. The
-  two are not separable — a floating column that arrived open would cover the
-  page it floats over — and a stored choice still beats the default.
+  RAIL, so 1281–1440 arrive on the rail rather than the open column. The two
+  are not separable — a floating column that arrived open would cover the page
+  it floats over — and a stored choice still beats the default.
+  **AND THE NUMBER IS NOT PINNED IN A TEST ANY MORE.** It moved three times in
+  two days on reports from real machines, and a literal costs a test edit every
+  time. nav-floats-verify reads it off the app and straddles it; home-page-verify
+  pins the DRIFT instead — the `<=` in js/app.js and the `max-width` block in
+  index.html read as the same number, which is the pair that can silently
+  disagree.
 
 - **COPILOT GREETS IN THE READER'S LANGUAGE AND ANSWERS IN THE ASKER'S (WO-11,
   owner-ruled).** The greeting was PUSHED INTO `ai.history` at open, so it was
@@ -3383,6 +3396,45 @@ nav-floats (67), home-page (24), contracts-page (38), flat-rows-and-alerts
 (37), calendar-redesign (46), clause-door (89), redline (117),
 negotiations-door (61), history-head (35), theme-tokens (40), kpi-four (19)
 and one-language-per-screen (16).
+
+## THREE OFF THREE SCREENSHOTS (owner-asked 25 Aug 2026)
+
+- **THE FLOAT LINE IS 1440** — see BELOW 1440 THE SIDEBAR FLOATS. The short of
+  it: the line's job is to separate two of the owner's own laptops, and a
+  15.6-inch 1920x1080 panel at 125% scaling reports **exactly 1536**, so the
+  inclusive `<=1536` set the day before caught it on the boundary itself.
+
+- **THE NEGOTIATIONS PAGE LOST ITS RESTING SUBTITLE** ("delete the added words
+  highlighted", off a screenshot with it boxed). "Every agreement being argued
+  over right now, grouped by whose move it is. A row opens the negotiation."
+  described the page to a reader already looking at exactly that — the same
+  call the Contracts page's own note lost a day earlier under WO-2. `ngl_sub`
+  is STALE and is left inert in the dictionary.
+  **THE FILTERED SENTENCE STAYS AND IS NOT THE SAME KIND OF THING**, which is
+  the whole care this needed: `ngl_sub_filtered` resolves a contradiction on
+  screen — the sidebar door counts CHANGES waiting on this person, the bands
+  count AGREEMENTS in the filtered view, so a band reading 1 under a door
+  reading 3 needs saying. It draws only when a filter is on, so there is no
+  resting sentence and no contradiction left unexplained. **A sentence that
+  leaves a slot must be findable in another one before the slot is deleted;
+  this one has no other home, so it kept its own.**
+
+- **THE HEAD'S FACT VALUES ARE BOLD, AT THE REFERENCE'S OWN WEIGHT** ("both in
+  contracts and negotiations, the highlighted area needs to be in bold just
+  like in the demo html"). The enterprise reference draws its object-page
+  header facts as a 12px label over a **14px/600** value; `.room-facet .v`
+  carried no weight at all, so the label and the fact under it read at one
+  weight and the row had no hierarchy in it. It is **600** now.
+  **ONE RULE REACHES BOTH HEADS**, because roomFactsHtml is one builder with
+  two homes — the contract room and the negotiation page (that second home is
+  the 24 Aug reversal, "ONE BUILDER, TWO HOMES") — so a weight written at a
+  call site is how the two would come to disagree. MEASURED on both: all four
+  facts at 600.
+  **THE SIZE IS DELIBERATELY NOT MOVED**: the reference sets 14 and HaTi 15,
+  the ask named the weight, and a size change here moves a row nobody
+  reported. `.room-facet .v .ngl-w` keeps its own 700 — with the base at 600
+  it is still a difference, and the whose-move ink is what carries that facet
+  anyway.
 
 ## Line numbers drift
 

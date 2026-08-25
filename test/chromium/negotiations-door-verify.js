@@ -242,6 +242,7 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
         id: r.getAttribute('data-row'),
         w: Math.round(r.getBoundingClientRect().width),
         state: (r.querySelector('.ngl-w') || {}).textContent })),
+      sub: document.querySelectorAll('.ngl-head-table p').length,
       lock: eval(seen)('#reg-lock-chip'),
       lockOut: document.querySelectorAll('#reg-lock-chip button').length,
       /* It IS the register now — the filter bar is the point, not the fault. */
@@ -251,6 +252,15 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     check('with nothing to reopen it lands on the table', !!list.table && list.table.on,
       list.table ? `${list.table.w}x${list.table.h}` : 'MISSING');
     check('the heading carries the page\'s own live count', /\b1 live\b/.test(list.live || ''), list.live);
+    /* THE RESTING SUBTITLE IS GONE (owner-asked 25 Aug 2026, off a screenshot
+       with it boxed: "delete the added words highlighted") — it described the
+       page to a reader already looking at exactly that, the same call the
+       Contracts page's own note lost under WO-2. THE FILTERED SENTENCE IS A
+       DIFFERENT THING and is asserted in 9b: it resolves a contradiction (the
+       door counts CHANGES, the bands count AGREEMENTS), so it draws only when
+       there is a filter on to create one. */
+    check('and nothing else — the resting head carries no subtitle',
+      list.sub === 0, `${list.sub} paragraph(s)`);
     check('the columns are the Contracts table\'s, ending in Whose move',
       list.cols.length === 8 && list.cols[0] === 'MK' && /Whose move/i.test(list.cols[7] || ''),
       list.cols.join(' | '));
@@ -287,6 +297,13 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     /* ---- 9b. CLEAR CANNOT WIDEN THE PAGE ---- */
     await page.evaluate(() => { const R = regState(); R.stage = 'Draft'; regRepaint(); });
     await page.waitForTimeout(700);
+    const narrowed = await page.evaluate(() => {
+      const h = document.querySelector('.ngl-head-table');
+      const p = h && h.querySelector('p');
+      return { n: h ? h.querySelectorAll('p').length : -1, txt: p ? p.textContent.trim() : '' };
+    });
+    check('but a filter brings back the sentence that explains the two counts',
+      narrowed.n === 1 && /\bdoor\b/i.test(narrowed.txt), `${narrowed.n}: ${narrowed.txt.slice(0, 90)}`);
     const cleared = await page.evaluate(() => {
       const b = document.getElementById('reg-clear-filters');
       if (b) b.click();
