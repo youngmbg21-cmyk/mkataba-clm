@@ -5566,7 +5566,7 @@ function renderWorkspace(){
     ? i18t('ct_back_to',{where:FOLDERS[_wr.folderId].name})
     : i18t('ct_back_to',{where:i18t('ct_back_register')});
   content.innerHTML=`
-  <div class="view-enter" style="height:var(--view-h);box-sizing:border-box;padding:6px var(--page-pad-x) 12px;display:flex;flex-direction:column;gap:8px">
+  <div class="view-enter" style="height:var(--view-h);box-sizing:border-box;padding:var(--page-pad-t) var(--page-pad-x) 12px;display:flex;flex-direction:column;gap:8px">
 
     <!-- ============ THE HEAD IS ONE WHITE BAND (owner-asked 23 Aug 2026) ====
          "The highlighted area should be white just like in the attached html."

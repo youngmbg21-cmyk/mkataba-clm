@@ -642,7 +642,15 @@ function calStyleCss(){ return `
   /* 20/700, the size Home sets and every other page head now carries
      (owner-asked 25 Aug 2026). This band is the calendar's own head rather
      than the shared one, so it has to be told; it read 15/600. */
-  .cal-head .ttl{font-family:var(--font-heading);font-size:20px;font-weight:700;color:var(--color-text);flex:none}
+  /* line-height stated, like every other page title — inherited it was a
+     28px box on a 20px face and its glyphs sat 2px below the rest. */
+  /* ---- THE TITLE SITS AT THE TOP OF THE ROW, NOT ITS MIDDLE (25 Aug 2026) ----
+     This row is align-items:center and carries a 28px control group, so a
+     24px title centred in it began 2px below every other page's on identical
+     padding. align-self takes the title out of the centring; everything else
+     on the row keeps it. See "ONE HEADER TOP" beside #page-head. */
+  .cal-head .ttl{font-family:var(--font-heading);font-size:20px;font-weight:700;
+    line-height:var(--lh-tight);align-self:flex-start;color:var(--color-text);flex:none}
   .cal-head .g{flex:1;min-width:0}
   .cal-stat{font-size:14px;font-weight:700;white-space:nowrap;flex:none}
   .cal-stat.crit{color:var(--st-amber-fg)}

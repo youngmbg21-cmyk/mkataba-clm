@@ -841,7 +841,9 @@ introduced a SECOND grid beside the 5,142 existing px declarations.
   landed on 6 different verticals; `#page-head` padded to 20px while the bodies
   under it padded to 16, 18, 20 or 0, so on 10 of 11 screens the page TITLE and
   its own content did not line up. All of them read `--page-pad` now, header
-  included. The contract room's 6px top is UNTOUCHED — owner-ruled, 22 Aug.
+  included. The contract room's 6px top was UNTOUCHED here — owner-ruled,
+  22 Aug — and REVERSED on 25 Aug, when the owner asked for one header top
+  across the platform; it reads --page-pad-t like every other view root now.
 - **THE ROW IS THE DENSITY LEVER.** The register measured 55.39px against
   Fluent 44, AG Grid / Atlassian 40-42, Material compact / Salesforce 32-36.
   It is 45px, DECLARED rather than emergent: `--pad-row` plus two stated line
@@ -1033,7 +1035,7 @@ home-pipeline 54, calendar 39, kpi-four 19, theme-tokens 40 — all green.
 
 **MEASURED at 1440x900 before the change: 291px sat above the first line of the agreement on the Document tab** — a third of the window — and 148px on the negotiation page. The design spends about 230 and 134.
 
-- **291 → 249 on the Document tab, 148 → 140 on the negotiation.** The savings came out of three joins in the CHROME: `.room-head`'s gap was doing double duty (it separated the crumb from the title AND the title from the fact band, so one number spent 24px on two joins that want different amounts) — 12px to 6; the fact band's own margin 10 to 2 and its padding 12 to 10; and the room wrapper's 14px top padding and 12px gap to 6 and 8.
+- **291 → 249 on the Document tab, 148 → 140 on the negotiation.** **THE ROOM'S 6px TOP WAS REVERSED 25 Aug 2026** on the owner's ask that every header start the same distance below the shell bar (see ONE HEADER TOP): the wrapper reads --page-pad-t (16) again, so the document begins about 10px lower than this paragraph records. The rest of the saving — the head's gap, the fact band's margin and padding — is untouched, and it was the larger half. The savings came out of three joins in the CHROME: `.room-head`'s gap was doing double duty (it separated the crumb from the title AND the title from the fact band, so one number spent 24px on two joins that want different amounts) — 12px to 6; the fact band's own margin 10 to 2 and its padding 12 to 10; and the room wrapper's 14px top padding and 12px gap to 6 and 8.
 - **NOTHING CAME OUT OF THE PAPER.** The sheet keeps its 34px top margin, because that is the DOCUMENT's margin and it is what makes it read as a document rather than as text in a box — the design gives its own sheet 32px for the same reason. A page that reclaims space by cropping the contract has answered the wrong complaint.
 - WHERE IT STANDS AGAINST THE DESIGN: the negotiation page is now within 6px of it, the Document tab within about 18. The remainder is the sub-line, which the design's own head does not draw — it is the obvious next cut if the owner wants one, and it is left in place because its stream, round and updated-on facts are not in the fact row.
 
@@ -3478,6 +3480,52 @@ outstanding" — and now prints **Mine · Theirs · Neither**.
 Tests: f184 (three claims REVERSED IN PLACE — the pill's text, the unsent
 state's, and the both-languages roll call), negotiations-door-verify (the same
 reversal, plus the hover), f148 unchanged.
+
+## ONE HEADER TOP, ON ALL TWELVE PAGES (owner-asked 25 Aug 2026, twice)
+
+*"For all the headers, the distance from the edge on top of the screen to the
+header should be the same across the platform and using home page as the
+reference."* The first pass, the day before, had reported this done. It was not,
+and the two reasons are the useful part.
+
+- **IT MEASURED THE BOX, NOT THE INK.** An element's bounding box top is its
+  LINE box; half-leading puts the glyphs somewhere else inside it. MEASURED:
+  every page head's box sat at exactly 16, and Home's and the Calendar's GLYPHS
+  sat at 18 — because each centres a 24px title in a row carrying a 28px
+  control (Home by `align-items:baseline`, the Calendar by `center`). Identical
+  padding, different-looking gap. **THE FIX IS AT THE CAUSE, NOT A NUDGE**:
+  `#hero-draft` takes `align-self:center` and leaves the greeting's baseline
+  group (a control's baseline is its label's, which sits lower than a title's);
+  `.cal-head .ttl` takes `align-self:flex-start` and leaves its row's centring.
+  **A 2px NUDGE ON EACH WOULD HAVE WORKED AND BEEN WRONG** — it survives until
+  somebody changes a line-height, and says nothing about why.
+- **AND IT SWEPT THE PAGES, NOT THE ROOMS.** The contract room's header began
+  **6px** below the bar and the negotiation page's **13**, against everyone
+  else's 16 — and those two are the ones a reader actually notices; 2px is not.
+  The room's wrapper reads `--page-pad-t` like every other view root now, and
+  `.room-band`'s full-bleed negative margin reads the same tokens rather than
+  typing 6 and 16 (that pair has to equal the wrapper's padding exactly or the
+  crumb moves). **THIS REVERSES THE 6px TOP OF 22 Aug** — an owner ruling, so
+  it is named: the document on the Document tab begins about 10px lower.
+  MEASURED: 249 → 260 above the first line of the agreement.
+- **THE NEGOTIATION HEAD IS ONE ROW, so its title is centred against its own
+  28px buttons** and its glyphs land `(--ctl-h - 18px) / 2` below the row's
+  top. Its padding takes that back, DERIVED FROM THE TOKENS rather than typed,
+  so a change to the control height carries the head with it.
+- **THE RULE, STATED ONCE:** the first painted glyph of a page's header sits
+  `--page-pad-t` below the shell bar, on all twelve pages. **Home is the
+  reference and 16 is Home's own page padding** — what moved on Home was the
+  2px its own button was adding, not the measure.
+- **THE SIZE AND WEIGHT COMPARISON STAYS SCOPED TO THE PAGE HEADS.** The
+  contract room and the negotiation page carry a 15/600 title by the owner's
+  ruling of 22 Aug ("the two heads say the name at one size"); demanding Home's
+  20/700 there would be one rule arguing with another. Only the TOP is
+  universal.
+
+Tests: pages-read-alike-verify section 8, rewritten to measure a Range's own
+rect on every page including the two room heads — **it reports eleven pages out
+of line against the code of an hour before**, naming the room at 6px and the
+negotiation page at 13.
 
 ## Line numbers drift
 

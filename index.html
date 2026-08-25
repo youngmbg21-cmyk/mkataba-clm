@@ -1377,7 +1377,13 @@
      painting them separately leaves the 8px flex gap grey and gives three
      bars instead of one band. */
   .room-band{ display:flex; flex-direction:column; gap:8px; flex:none;
-    background:var(--color-surface); margin:-6px -16px 0; padding:6px 16px 0; }
+    background:var(--color-surface);
+    /* CANCEL THE VIEW'S OWN TOP AND SIDES, PUT THEM BACK INSIDE. Read from the
+       tokens rather than typed: this pair has to equal the wrapper's padding
+       exactly or the crumb moves, and the wrapper reads --page-pad-t since
+       25 Aug 2026 (see "ONE HEADER TOP"). */
+    margin:calc(-1 * var(--page-pad-t)) calc(-1 * var(--page-pad-x)) 0;
+    padding:var(--page-pad-t) var(--page-pad-x) 0; }
 
   .room-head{ display:flex; align-items:flex-start; gap:6px; flex:none; flex-wrap:wrap;
     padding:0 2px; }
@@ -3125,9 +3131,29 @@
   .hm-page>*{flex:none;}
 
   .hm-greet{display:flex;align-items:baseline;gap:12px;margin-bottom:4px;}
+  /* ---- THE BUTTON DOES NOT ANCHOR THE ROW'S BASELINE (25 Aug 2026) ----
+     This row is baseline-aligned so the greeting and the date read off one
+     line, and #hero-draft is a 28px control sitting in it. A control's own
+     baseline is its label's, which sits LOWER than a 20px title's — so the
+     title was pushed 2px down to meet it, and Home's glyphs began 2px below
+     every other page's on identical padding. align-self takes the button out
+     of the baseline group; it centres against the row instead, which is where
+     a button beside a title belongs anyway. */
+  .hm-greet #hero-draft{ align-self:center; }
+  /* THE LEADING IS STATED, and every page title states the same one — see
+     "ONE HEADER TOP" beside #page-head. Left to inherit, this was a 28px line
+     box on a 20px face, so its glyphs sat 2px lower than the nine pages whose
+     title sets 1.2: same padding, different-looking gap. */
   .hm-greet h1{margin:0;font-family:var(--font-heading);font-size:20px;font-weight:700;
+    line-height:var(--lh-tight);
     letter-spacing:-.01em;color:var(--color-text);}
-  .hm-greet-sub{font-size:13px;color:var(--color-neutral-500);min-width:0;
+  /* ITS LEADING IS STATED FOR THE TITLE'S SAKE, not its own. This row is
+     align-items:baseline, so the two baselines are matched — and left to
+     inherit, this 13px line carried ~2px of half-leading above its text,
+     which pushed its baseline down and dragged the h1 down with it. The
+     greeting's glyphs then sat 2px below every other page's, on identical
+     padding. Tight here means both sit on the page measure. */
+  .hm-greet-sub{font-size:13px;line-height:var(--lh-tight);color:var(--color-neutral-500);min-width:0;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   /* THE ONE ACT ON THE PAGE, AND IT IS WHITE (owner-asked 24 Aug 2026). The
      surface token rather than a literal #fff, so it is white in the light

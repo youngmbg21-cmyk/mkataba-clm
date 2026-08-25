@@ -407,22 +407,53 @@ const SEED = async () => {
        page sets the tone. Also, the distance between the edge at the top and
        the header should be the same across all pages.") ----
        HOME IS THE REFERENCE, so it is read off the page rather than typed: the
-       claim is that the other nine AGREE WITH IT, which costs no edit the next
+       claim is that the others AGREE WITH IT, which costs no edit the next
        time the type scale moves. MEASURED before this: 19/700 on the seven
        pages using the shared header, 20/600 on Negotiations, 15/600 on the
-       Calendar's own band — and tops of 10, 13, 16 and 23. */
+       Calendar's own band — and tops of 10, 13, 16 and 23.
+
+       WIDENED 25 Aug 2026, owner-asked again: "the distance from the edge on
+       top of the screen to the header should be the same across the platform
+       and using home page as the reference." TWO THINGS WERE WRONG WITH THE
+       FIRST PASS. It measured the h1's BOX rather than its first painted
+       GLYPH, and those differ by the line box's half-leading — Home and the
+       Calendar each centre their title against a 28px control, so their
+       glyphs sat 2px lower on identical padding. And it swept the ten pages
+       that draw a page head and NOT the contract room or the negotiation
+       page, whose heads began 6px and 13px below the bar against everyone
+       else's 16.
+
+       SO IT MEASURES INK, AND IT SWEEPS ALL TWELVE. The size and weight
+       claims stay scoped to the page heads — the room and the negotiation
+       page carry a 15/600 title by an owner ruling of 22 Aug and are
+       deliberately not in that comparison. */
     const HEAD8 = () => {
       const sels = ['#page-head h1', '.hm-greet h1', '.cal-head .ttl',
-        '.ngl-head h2', '#content h1', '#content h2'];
+        '.ngl-head h2', '.room-head h1', '#content h1', '#content h2'];
       let h = null;
       for (const s of sels){ const e = document.querySelector(s);
         if (e){ const r = e.getBoundingClientRect(); if (r.width > 2 && r.height > 2){ h = e; break; } } }
       if (!h) return null;
-      const cs = getComputedStyle(h), r = h.getBoundingClientRect();
+      const cs = getComputedStyle(h);
       const bar = document.getElementById('top-header');
       const top = bar ? bar.getBoundingClientRect().bottom : 0;
+      /* THE FIRST PAINTED GLYPH ANYWHERE IN THE HEADER BLOCK — what a reader
+         calls "the header", whatever element happens to carry it. On the
+         contract room that is the breadcrumb, not the title. A Range's own
+         rect is the only honest way to ask: an element's box top is its line
+         box, and half-leading puts the ink somewhere else inside it. */
+      const blk = h.closest('#page-head, .hm-page, .cal-head, .ngl-head, #ws-head') || h;
+      const w = document.createTreeWalker(blk, NodeFilter.SHOW_TEXT);
+      let ink = null, txt = '';
+      let n; while ((n = w.nextNode())){
+        if (!n.textContent.trim()) continue;
+        const rg = document.createRange(); rg.selectNodeContents(n);
+        const b = rg.getClientRects()[0]; if (!b || b.height < 2) continue;
+        if (ink == null || b.top < ink){ ink = b.top; txt = n.textContent.trim().slice(0, 18); }
+      }
       return { size: cs.fontSize, weight: cs.fontWeight, family: cs.fontFamily.split(',')[0],
-        top: Math.round(r.top - top), text: (h.textContent || '').trim().slice(0, 20) };
+        ink: ink == null ? null : Math.round(ink - top), inkText: txt,
+        text: (h.textContent || '').trim().slice(0, 20) };
     };
     const PAGES8 = [
       ['Home',         () => setView('dashboard')],
@@ -435,31 +466,48 @@ const SEED = async () => {
       ['Reports',      () => setView('reports')],
       ['Approvals',    () => setView('queue')],
       ['Requests',     () => setView('intake')],
+      ['People',       () => setView('directory')],
+      /* The two the first pass missed, and the two that were really out. */
+      ['Contract room',    id => openWorkspace(id)],
+      ['Negotiation page', id => openRedlineWorkbench(id)],
     ];
     const heads8 = {};
     for (const [name, go] of PAGES8){
-      try { await page.evaluate(go); } catch (e) { continue; }
+      try { await page.evaluate(go, cid); } catch (e) { continue; }
       await pause(1700);
       const h = await page.evaluate(HEAD8);
       if (h) heads8[name] = h;
     }
     const home8 = heads8.Home;
     const others8 = Object.entries(heads8).filter(([k]) => k !== 'Home');
+    /* The size/weight comparison is the PAGE HEADS only: the room and the
+       negotiation page carry a 15/600 title by the owner's own ruling of
+       22 Aug ("the two heads say the name at one size"), so demanding Home's
+       20/700 there would be this file arguing with that decision. The TOP is
+       every page, which is what the 25 Aug ask is about. */
+    const ROOMS = ['Contract room', 'Negotiation page'];
+    const pageHeads8 = others8.filter(([k]) => !ROOMS.includes(k));
     check('8 the sweep actually reached the pages', !!home8 && others8.length >= 8,
       `${Object.keys(heads8).length} heads8 read`);
-    const offSize = others8.filter(([, h]) => h.size !== home8.size);
+    const offSize = pageHeads8.filter(([, h]) => h.size !== home8.size);
     check('8 every page head is the size Home sets',
       offSize.length === 0,
       offSize.map(([k, h]) => `${k} ${h.size} vs Home ${home8 && home8.size}`).join(' · ') || (home8 && home8.size));
-    const offWeight = others8.filter(([, h]) => h.weight !== home8.weight);
+    const offWeight = pageHeads8.filter(([, h]) => h.weight !== home8.weight);
     check('8 and the weight Home sets',
       offWeight.length === 0,
       offWeight.map(([k, h]) => `${k} ${h.weight}`).join(' · ') || (home8 && home8.weight));
-    const offTop = others8.filter(([, h]) => Math.abs(h.top - home8.top) > 1);
-    check('8 and starts the same distance below the shell bar',
-      offTop.length === 0,
-      offTop.map(([k, h]) => `${k} ${h.top}px vs Home ${home8 && home8.top}px`).join(' · ')
-        || `all at ${home8 && home8.top}px`);
+    /* THE ONE THE 25 Aug ASK IS ABOUT, and it is every page including the two
+       room heads. Measured on the INK, which is what a reader sees; ±1px is
+       sub-pixel rounding on a Range rect, not a difference anybody can read. */
+    check('8 every header block really painted something to measure',
+      others8.every(([, h]) => h.ink != null) && home8 && home8.ink != null,
+      others8.filter(([, h]) => h.ink == null).map(([k]) => k).join(' · ') || 'all read');
+    const offInk = others8.filter(([, h]) => Math.abs(h.ink - home8.ink) > 1);
+    check('8 and the first glyph of every header sits where Home\'s does',
+      offInk.length === 0,
+      offInk.map(([k, h]) => `${k} ${h.ink}px «${h.inkText}» vs Home ${home8 && home8.ink}px`).join(' · ')
+        || `all at ${home8 && home8.ink}px, ${Object.keys(heads8).length} pages`);
 
 
     /* ---- 9 · THE HEAD'S FACT VALUES ARE BOLD, ON BOTH HEADS

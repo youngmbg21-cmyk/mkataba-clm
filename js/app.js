@@ -266,7 +266,33 @@ function renderPageHeader(view){
      11 screens that use this shared header, the page TITLE and the content
      under it did not start on the same vertical. Both now read --page-pad-x,
      so the two can never drift again. */
-  /* ---- ONE HEADER SIZE AND ONE TOP, ON EVERY PAGE (owner-asked 25 Aug 2026:
+  /* ---- ONE HEADER TOP — THE SECOND PASS (owner-asked 25 Aug 2026, again:
+     "for all the headers, the distance from the edge on top of the screen to
+     the header should be the same across the platform and using home page as
+     the reference") ----
+     THE FIRST PASS BELOW GOT TWO THINGS WRONG, and both are recorded rather
+     than quietly corrected.
+     (1) IT MEASURED THE BOX, NOT THE INK. An element's box top is its LINE
+     box; half-leading puts the glyphs somewhere else inside it. Home and the
+     Calendar each sit their 24px title in a row carrying a 28px control —
+     Home by baseline, the Calendar by centring — so on identical 16px padding
+     their glyphs began at 18 where the other nine began at 16. The fix is at
+     the cause in each: #hero-draft leaves the greeting's baseline group, and
+     .cal-head .ttl leaves its row's centring.
+     (2) IT SWEPT THE PAGES AND NOT THE ROOMS. The contract room's header began
+     6px below the bar and the negotiation page's 13, against everyone else's
+     16 — and those two are the ones a reader actually notices. The room now
+     reads --page-pad-t like every other view root, which REVERSES the 6px top
+     of 22 Aug (see "THE CONTRACT GETS THE SPACE BACK"): the document begins
+     about 10px lower, said out loud because it was an owner ruling. The
+     negotiation head takes the measure less what its own one-row centring
+     adds, derived from --ctl-h rather than typed.
+     THE RULE, STATED ONCE: the first painted glyph of a page's header sits
+     --page-pad-t below the shell bar, on all twelve. pages-read-alike's
+     section 8 measures exactly that, with a Range rect, and reported eleven
+     pages out of line against the code before this.
+
+     ---- ONE HEADER SIZE AND ONE TOP, ON EVERY PAGE (owner-asked 25 Aug 2026:
      "All the headers in every page need to have the same size font in every
      page ... The home page sets the tone. Also, the distance between the edge
      at the top and the header should be the same across all pages") ----

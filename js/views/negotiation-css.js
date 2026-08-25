@@ -3600,7 +3600,14 @@ function redlineLayoutCss(){
          is exactly what the contract room has always done with this markup.
          align-items:center would centre the fact row against the title row, so
          the head aligns to its top and each row centres its own contents. */}
-  .redline-page #ws-head{background:var(--color-surface);padding:9px 24px;margin:0;
+  /* THE PADDING IS THE PAGE MEASURE LESS WHAT THE ROW'S OWN CENTRING ADDS.
+     This head is ONE row: the title's 18px line box is centred against the
+     28px controls beside it, which puts its glyphs (--ctl-h - 18) / 2 below
+     the row's top. Taking that back here is what lands them on the same
+     vertical as every other page's title — see "ONE HEADER TOP" in
+     index.html. Derived from the tokens, so a change to the control height
+     carries the head with it rather than leaving a typed number behind. */
+  .redline-page #ws-head{background:var(--color-surface);padding:calc(var(--page-pad-t) - ((var(--ctl-h) - 18px) / 2)) 24px 9px;margin:0;
     flex:none;flex-wrap:wrap;box-shadow:inset 0 -1px var(--color-divider);gap:0 12px;
     align-items:center}
   .redline-page #ws-head .room-facts{flex-basis:100%}

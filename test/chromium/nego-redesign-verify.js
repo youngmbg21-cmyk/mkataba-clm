@@ -105,6 +105,8 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       const cs = el ? getComputedStyle(el) : null;
       return { box: s('#view-redline #ws-head'),
         bg: cs && cs.backgroundColor, pad: cs && cs.padding,
+        padX: cs && cs.paddingLeft, padXR: cs && cs.paddingRight,
+        bandX: getComputedStyle(document.documentElement).getPropertyValue('--band-pad-x').trim(),
         rule: cs && cs.boxShadow,
         crumb: !!document.querySelector('#view-redline .room-crumb'),
         back: s('#view-redline #ws-back'),
@@ -117,8 +119,16 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
           .map(e => (e.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 22)) };
     }, SEEN);
     check('1 the head is a white band', head.bg === 'rgb(255, 255, 255)', head.bg);
-    check('1 with a hairline under it and the page measure inside it',
-      /inset/.test(head.rule || '') && head.pad === '9px 24px', `${head.pad} · ${head.rule}`);
+    /* REVERSED IN PLACE 25 Aug 2026 — this pinned the literal `9px 24px`, and
+       the vertical half of that is not a claim about anything: it is whatever
+       lands this head's title on the same vertical as every other page's, and
+       pages-read-alike section 8 owns that. The horizontal IS the claim, and
+       it is a RELATION — the band's own inset, read off the token, so a change
+       to the measure costs no edit here. */
+    check('1 with a hairline under it and the band measure inside it',
+      /inset/.test(head.rule || '')
+        && head.padX === head.bandX && head.padXR === head.bandX,
+      `${head.pad} · x ${head.padX}/${head.padXR} vs --band-pad-x ${head.bandX} · ${head.rule}`);
     /* ---- REVERSED IN PLACE 24 Aug 2026 (owner-approved render) ----
        The head was one line because the render it was built from drew one. The
        owner's new render gives this page the design's FACTS STRIP and a quiet
