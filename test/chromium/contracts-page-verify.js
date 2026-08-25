@@ -353,7 +353,11 @@ const check = (name, ok, detail) => {
        mid-word with nothing to show it was. */
     const cut = await page.evaluate(() => {
       const g = e => getComputedStyle(e);
-      const cells = [...document.querySelectorAll('.reg-table tbody td')];
+      /* EXCEPT THE CELL THAT HOSTS THE ROW MENU. It holds a button and an
+         absolutely-positioned pop-up, not a name or free text, so the
+         reference's own rule does not ask it to clip — and clipping it is what
+         made the menu invisible (section 14). */
+      const cells = [...document.querySelectorAll('.reg-table tbody td:not(.reg-cell-menu)')];
       const heads = [...document.querySelectorAll('.reg-table thead th')];
       const ok = e => g(e).textOverflow === 'ellipsis' && ['hidden', 'clip'].includes(g(e).overflowX);
       return { cells: cells.length, badCells: cells.filter(e => !ok(e)).length,
@@ -553,6 +557,65 @@ const check = (name, ok, detail) => {
     check('11d and the six columns both tables share are cut identically',
       nego && SHARED.every(i => nego.w[i] === pages[0].w[i]),
       nego && SHARED.map(i => `${pages[0].w[i]}/${nego.w[i]}`).join(' '));
+
+    /* ---- 14 · THE ROW MENU IS NOT CLIPPED AWAY (owner-reported 25 Aug 2026:
+       "Previously, the 3 dots at the end were a filter where I had options to
+       archive delete and so forth. What has happened to that feature?") ----
+       WO-9 put overflow:hidden on every cell so a long name would cut with an
+       ellipsis. The actions cell hosts the row menu as an absolutely-positioned
+       pop-up, and overflow:hidden clips an absolute child to its clipping
+       ancestor — so a 180x234 menu was cropped to a 35x36 cell. The button
+       still worked and all seven rows were still in the DOM; the menu was
+       simply invisible. MEASURED against the shipped code: 0 of 7 rows
+       reachable, and 7 of 7 with the exemption.
+       ASKED AS "IS IT PAINTED", NOT "DO THE BOXES OVERLAP": a clipped element
+       still reports its full rectangle, so a geometry check passes on the
+       broken page. document.elementFromPoint at each row's own centre is the
+       only honest question, and it is one a browser alone can answer. */
+    await page.evaluate(() => setView('register'));
+    await page.waitForTimeout(1600);
+    await page.click('#reg-tbody [data-menu]');
+    await page.waitForTimeout(600);
+    const menu = await page.evaluate(() => {
+      const pop = document.querySelector('#reg-tbody [data-menu-pop]');
+      if (!pop) return { absent: true };
+      const items = [...pop.querySelectorAll('button,a')];
+      const hit = items.map(b => {
+        const r = b.getBoundingClientRect();
+        const el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        return { label: b.textContent.trim(),
+          reachable: !!el && (el === b || b.contains(el) || pop.contains(el)) };
+      });
+      const cell = pop.closest('td');
+      /* EVERY ROW has a menu cell, so "the others" means every cell that is not
+         one — comparing against all cells counts the other 39 menu cells and
+         reports the exemption as a leak. */
+      const other = [...document.querySelectorAll('#reg-tbody tr[data-row] td:not(.reg-cell-menu)')];
+      return { shown: pop.style.display === 'flex',
+        items: items.length,
+        reachable: hit.filter(h => h.reachable).length,
+        unreachable: hit.filter(h => !h.reachable).map(h => h.label),
+        labels: hit.map(h => h.label),
+        cellOverflow: getComputedStyle(cell).overflow,
+        othersClipped: other.every(td => getComputedStyle(td).overflow === 'hidden'),
+        otherCount: other.length };
+    });
+    check('14a the menu opens', !menu.absent && menu.shown && menu.items > 0,
+      menu.absent ? 'no menu in the row' : menu.items + ' rows');
+    check('14b every row in it is actually painted, not clipped away',
+      menu.reachable === menu.items,
+      `${menu.reachable}/${menu.items} reachable · missing ${JSON.stringify(menu.unreachable)}`);
+    check('14c and it still carries the acts the row menu is for',
+      /archive/i.test(menu.labels.join(' ')) && /delete/i.test(menu.labels.join(' ')),
+      menu.labels.join(' · '));
+    /* THE EXEMPTION IS NARROW, which is the other half: WO-9's clip must still
+       be doing its job on every cell that holds text. */
+    check('14d the exemption is the menu cell alone — every text cell still clips',
+      menu.cellOverflow === 'visible' && menu.othersClipped && menu.otherCount > 0,
+      `menu cell ${menu.cellOverflow} · ${menu.otherCount} others clipped ${menu.othersClipped}`);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(400);
+
 
     check('the page threw nothing', errors.length === 0, errors.join(' | '));
   } finally {

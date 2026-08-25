@@ -761,7 +761,7 @@ function regRowsHtml(cs){
              through a door nobody remembered, and f240 pins that the row draws
              no verb. */}
       ${neg ? `<td style="text-align:right;white-space:nowrap">${negoMovePillHtml(c)}</td>` : `
-      <td style="position:relative;text-align:right;white-space:nowrap" onclick="event.stopPropagation()">
+      <td class="reg-cell-menu" style="position:relative;text-align:right;white-space:nowrap" onclick="event.stopPropagation()">
         <button data-menu="${c.id}" style="border:0;background:none;cursor:pointer;padding:0 4px;line-height:var(--row-line-1);color:var(--color-neutral-600);font-size:13px;letter-spacing:1px;vertical-align:middle" title="${i18t('reg_more_actions')}">⋯</button>
         <div data-menu-pop="${c.id}" style="display:none;position:absolute;right:8px;top:34px;z-index:30;width:180px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:0;padding:4px;flex-direction:column;text-align:left">${actBtns(c)}</div>
       </td>`}
@@ -1117,6 +1117,25 @@ function renderRegister(opts){
       .reg-table td{height:var(--reg-row-h);padding:0 var(--pad-row-x);line-height:var(--row-line-1);
         overflow:hidden;text-overflow:ellipsis}
       .reg-table th{overflow:hidden;text-overflow:ellipsis}
+      /* ---- EXCEPT THE CELL THAT HOSTS THE ROW MENU (owner-reported 25 Aug
+         2026: "the 3 dots at the end were a filter where I had options to
+         archive delete and so forth. What has happened to that feature?") ----
+         The row menu is a position:absolute pop-up INSIDE its cell, which is
+         position:relative so the menu hangs off it. overflow:hidden clips
+         an absolutely-positioned child to its clipping ancestor, so the rule
+         above cropped a 180x234 menu down to the 35x36 cell — MEASURED, 27x2
+         pixels of it survived. The button still worked and all seven rows were
+         still in the DOM; the menu was simply invisible.
+         THE REFERENCE'S OWN RULE IS WHAT EXEMPTS IT, so this is not a special
+         case bolted on: TYPOGRAPHY.md section 6 asks for the clip on "every
+         table cell that holds a NAME, A TITLE OR FREE TEXT". This cell holds a
+         button and a menu, is white-space:nowrap with one glyph in it, and
+         can never need an ellipsis.
+         NAMED IN THE MARKUP rather than matched with :has(), because which cell
+         hosts a pop-up is a fact about the row builder and belongs there — a
+         selector that has to guess will guess wrong the day a second pop-up is
+         added. */
+      .reg-table td.reg-cell-menu{overflow:visible;text-overflow:clip}
       .reg-table td > span{vertical-align:middle}
       /* The tick no longer spans two lines, so it stops stretching and takes a
          height of its own beside the one line it marks. */

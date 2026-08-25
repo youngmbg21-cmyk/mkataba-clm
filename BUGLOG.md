@@ -7162,6 +7162,40 @@ found it had left a filter active from an earlier measurement and I read that
 as the resting state. A probe that carries state between measurements is a
 probe that reports a condition as if it were the rule.
 
+### 5. WO-9's cell clipping made the row menu invisible
+
+**What was broken.** Owner-reported: *"Previously, the 3 dots at the end were a
+filter where I had options to archive delete and so forth. What has happened to
+that feature?"* The menu opened and drew nothing.
+
+**Root cause.** WO-9 put `overflow:hidden; text-overflow:ellipsis` on every
+`.reg-table td` so a long name would cut with an ellipsis. The actions cell
+hosts the row menu as a `position:absolute` pop-up, and **overflow:hidden clips
+an absolutely-positioned child to its clipping ancestor** — so a 180x234 menu
+was cropped to a 35x36 cell. MEASURED with `document.elementFromPoint` at each
+row's own centre: **0 of 7 rows reachable**. The button still worked and all
+seven acts were still in the DOM; only the paint was gone.
+
+**The fix.** The cell is named `reg-cell-menu` in the row builder and exempted.
+**THE REFERENCE'S OWN RULE IS WHAT EXEMPTS IT** rather than a special case
+bolted on: TYPOGRAPHY.md section 6 asks for the clip on "every table cell that
+holds a NAME, A TITLE OR FREE TEXT", and this one holds a button and a menu.
+NAMED IN THE MARKUP rather than matched with `:has()`, because which cell hosts
+a pop-up is a fact about the row builder and belongs there. **Re-measured: 7 of
+7 reachable**, and the exemption is one cell — 280 text cells still clip.
+
+**Two lessons, and the second one is embarrassing.** (1) A geometry check
+CANNOT see this: a clipped element still reports its full rectangle, so
+comparing boxes passes on the broken page. "Is it painted" is the only honest
+question and only a browser can answer it. (2) Writing the fix's own comment, I
+put backticks in a CSS comment inside a JS template literal and **took the file
+down** — the exact trap this file and CLAUDE.md both record, walked into while
+writing about being careful. `node --check` caught it in seconds.
+
+**Verified.** contracts-page-verify section 14, proved to fail against the
+shipped code (0/7) before it was trusted. Section 10e widened in place: it
+asserted EVERY cell clips, which the exemption correctly breaks.
+
 ### Noticed, not fixed
 
 Per the Scope rules in CLAUDE.md. Each was proved to fail on unmodified
