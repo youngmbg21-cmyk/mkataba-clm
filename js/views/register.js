@@ -1187,9 +1187,22 @@ function renderRegister(opts){
         ${categorySel}
         ${filtered?`<button id="reg-clear-filters" style="font-size:12px;font-weight:600;color:var(--color-accent-700);background:none;border:0;cursor:pointer;padding:2px 4px">${i18t('reg_clear')}</button>`:''}
         <span style="flex:1;min-width:8px"></span>
-        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--color-neutral-700);flex:none">${i18t('reg_sort')}
-          <select id="reg-sort" style="${selStyle}">${sortOpts}</select>
-        </label>
+        ${''/* ---- SORT IS STACKED LIKE THE OTHER FIVE (owner-asked 25 Aug 2026:
+               "stack Sort's label like the other five") ----
+               It carried its word BESIDE the box while the other five carry
+               theirs ABOVE it, which is a wider shape for the same control —
+               MEASURED, it was the widest item on the row and therefore the
+               first to drop to a second line when Swedish's longer words or an
+               active filter's 600 weight pushed the row over.
+               IT GOES THROUGH selFilter, THE SAME BUILDER, rather than being
+               restyled to match: one builder for all six is what stops them
+               drifting apart again, and it is what let this one drift in the
+               first place.
+               `active` IS ALWAYS FALSE, deliberately. On the other five that
+               flag means "this is narrowing your list", and sorting narrows
+               nothing — a sort control wearing the accent would claim the list
+               was filtered when it is not. */}
+        ${selFilter('reg-sort',sortOpts,false,i18t('reg_sort'))}
         ${''/* SORTING RUNS INSIDE A GROUP HERE, and the same control on Contracts
                sorts the whole page. A control that quietly means something else
                is a lie by omission, so the page says it beside the control. */}

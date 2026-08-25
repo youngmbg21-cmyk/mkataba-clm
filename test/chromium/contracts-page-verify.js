@@ -455,6 +455,74 @@ const check = (name, ok, detail) => {
     await page.evaluate(() => { const R = regState(); R.stage = 'all'; regRepaint(); });
     await page.waitForTimeout(1000);
 
+    /* ---- 13 · ALL SIX FILTERS ARE ONE SHAPE (owner-asked 25 Aug 2026: "stack
+       Sort's label like the other five") ----
+       Sort carried its word BESIDE the box while the other five carry theirs
+       ABOVE it. Word-plus-box on one line is wider than word-above-box, which
+       made Sort the widest item on the row and the first to drop to a second
+       line. It goes through selFilter now — the SAME builder as the other five,
+       rather than being restyled to match, because one builder is what stops
+       them drifting apart again.
+       EVERY CLAIM IS A RELATION between the six, never a number: what is being
+       asserted is that they agree with each other, which is exactly what a
+       later type or spacing pass must not be allowed to break. */
+    const six = await page.evaluate(() => {
+      const ids = ['reg-search', 'reg-stage-sel', 'reg-type-sel',
+        'reg-view-sel', 'reg-category', 'reg-sort'];
+      return ids.map(id => {
+        const e = document.getElementById(id);
+        if (!e) return { id, absent: true };
+        const l = e.closest('label'), lab = l && l.querySelector('.reg-f-l');
+        const r = e.getBoundingClientRect(), lr = lab && lab.getBoundingClientRect();
+        const g = lab && getComputedStyle(lab);
+        return { id, stacked: !!(l && l.classList.contains('reg-f')),
+          label: lab ? lab.textContent.trim() : null,
+          boxTop: Math.round(r.top), labelTop: lr ? Math.round(lr.top) : null,
+          size: g ? g.fontSize : null, color: g ? g.color : null };
+      });
+    });
+    check('13a all six controls are present', six.every(f => !f.absent),
+      six.filter(f => f.absent).map(f => f.id).join(',') || 'all six');
+    check('13b every one of them stacks its label, Sort included',
+      six.every(f => f.stacked), six.filter(f => !f.stacked).map(f => f.id).join(','));
+    check('13c every one of them SAYS what it is — no filter named only by a tooltip',
+      six.every(f => f.label && f.label.length > 1),
+      six.map(f => f.id + ':' + f.label).join(' · '));
+    check('13d their labels sit on one line and their boxes on another — one row, not two treatments',
+      new Set(six.map(f => f.labelTop)).size === 1
+        && new Set(six.map(f => f.boxTop)).size === 1,
+      `labels ${[...new Set(six.map(f => f.labelTop))].join('/')} · boxes ${[...new Set(six.map(f => f.boxTop))].join('/')}`);
+    check('13e and the labels are one size and one ink',
+      new Set(six.map(f => f.size)).size === 1 && new Set(six.map(f => f.color)).size === 1,
+      `${[...new Set(six.map(f => f.size))].join('/')} · ${[...new Set(six.map(f => f.color))].join('/')}`);
+    /* AND IT STILL SORTS — a control restyled into silence is the worse fault. */
+    const sortWorks = await page.evaluate(async () => {
+      const before = [...document.querySelectorAll('#reg-tbody tr[data-row]')]
+        .slice(0, 4).map(r => r.getAttribute('data-row')).join(',');
+      const sel = document.getElementById('reg-sort');
+      sel.value = 'name';
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 900));
+      return { before, state: regState().sort,
+        after: [...document.querySelectorAll('#reg-tbody tr[data-row]')]
+          .slice(0, 4).map(r => r.getAttribute('data-row')).join(',') };
+    });
+    check('13f pressing it still sorts the list — restyled, not silenced',
+      sortWorks.state === 'name' && sortWorks.after !== sortWorks.before,
+      `${sortWorks.before} -> ${sortWorks.after}`);
+    /* SORT NEVER WEARS THE ACTIVE ACCENT, deliberately: on the other five that
+       marks "this is narrowing your list", and sorting narrows nothing. */
+    const sortInk = await page.evaluate(() => {
+      const s = getComputedStyle(document.getElementById('reg-sort'));
+      const t = getComputedStyle(document.getElementById('reg-type-sel'));
+      return { sort: s.borderTopColor + '|' + s.fontWeight,
+        resting: t.borderTopColor + '|' + t.fontWeight };
+    });
+    check('13g and a sorted list is not dressed as a filtered one',
+      sortInk.sort === sortInk.resting, JSON.stringify(sortInk));
+    await page.evaluate(() => { const R = regState(); R.sort = 'updated'; regRepaint(); });
+    await page.waitForTimeout(700);
+
     /* ============ 11. AND THE NEGOTIATIONS TABLE READS THE SAME ============
        One builder draws both, so the two may not come to disagree about how big
        their type is or how their shared columns are cut. Six of the eight are

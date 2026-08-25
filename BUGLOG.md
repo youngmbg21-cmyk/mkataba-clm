@@ -7104,7 +7104,7 @@ specifically and read the inline label as an absence.)
 
 **MEASURED on both pages (Contracts and Negotiations are one renderer and
 behave identically), at every width in `laptops-verify`'s supported set, in
-both languages, resting and with a filter set:**
+both languages, resting and with a filter set — BEFORE the fix below:**
 
 | | resting | a filter set |
 |---|---|---|
@@ -7113,6 +7113,27 @@ both languages, resting and with a filter set:**
 | Swedish 1280 · 1536 · 1920 | one line | one line |
 | **Swedish 1440** | one line | **two** |
 | **Swedish 1366** | **two** | **two** |
+
+**PART-FIXED 25 Aug 2026 (owner-asked: "stack Sort's label like the other
+five"), and the measurement halved: 8 two-line cases across the two pages
+became 4.** Sort goes through `selFilter`, the same builder as the other five,
+so its word sits above the box instead of beside it. Re-measured the same
+grid:
+
+| | resting | a filter set |
+|---|---|---|
+| Swedish 1366 | **one line** (was two) | two |
+| Swedish 1440 | one line | **one line** (was two) |
+| English 1366 | one line | two |
+| every other width, both languages | one line | one line |
+
+**WHAT IS LEFT is the OTHER cause and is untouched: 1366 with a filter set,
+in both languages.** The active state's `font-weight:600` still widens the
+control, so the row is at its widest exactly when somebody is using it. Ways
+out, all still the owner's call: drop a third filter, give the selects a
+stated width so weight cannot change their size, or drop the bold — the last
+one costs a carrier, and with the border and the ink both being colour it
+would leave colour as the only signal, which this file's own rule forbids.
 
 **Root cause — two things compound, and neither is page width alone.**
 (1) **Setting a filter widens it**: the active state adds `font-weight:600`,
@@ -7123,13 +7144,17 @@ somebody is using it. (2) **Swedish is longer** — *Livscykelsteg*,
 1280 the sidebar is a 64px rail, so the page is ~1174px, while at 1366 it is
 the 240px column and the page is ~1084.
 
-**Not fixed, deliberately.** Proved pre-existing by running the same probe in a
-worktree at the commit before the filter-outline change: the table above is
-identical there, so today's colour work moved nothing. Closing it is a
-decision, not a fix — drop a third filter (which of the six is the owner's
-call), shrink the controls, stop the active state changing the width, or stack
-Sort's label like the other five, which would also make the row read as one
-set of controls rather than five plus one.
+**Proved pre-existing** by running the same probe in a worktree at the commit
+before the filter-outline change: the first table above is identical there, so
+that colour work moved nothing.
+
+**AND THE SIX READ AS ONE SET NOW**, which was the other half of stacking the
+label and is worth as much as the width it saved: all six carry a 12px label
+in one ink, on one line, with their boxes on the next — measured, one value
+for each. Sorting still works and Sort deliberately never wears the active
+accent, because on the other five that mark means "this is narrowing your
+list" and sorting narrows nothing. Pinned in contracts-page-verify section 13,
+every claim written as a RELATION between the six rather than as a number.
 
 **AND MY FIRST REPORT OF THIS WAS WRONG IN ITS DETAIL** — it said "1366" flat,
 with no mention of the language or of needing a filter set. The probe that
