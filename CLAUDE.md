@@ -3594,6 +3594,55 @@ check moved from 720px to 820 — below 768 the desktop shell is hidden and
 `#page-head` measures 0, so the old check was reading a hidden element's text
 and could never have caught a layout fault).
 
+## ONE WHITE BAND, AND IT REACHES THE SCREEN'S EDGE (owner-reported 25 Aug 2026)
+
+Two screenshots, two sentences: *"remove the separation strip in the top two
+cards and make it one card just like in the negotiations page"*, and *"the top
+white cards should cover all the way to the end of the screen"*.
+
+**ONE CAUSE, BOTH REPORTS.** The shell's scroller reserves a scrollbar gutter
+permanently — `scrollbar-gutter:stable`, so moving between a scrolling page and
+a fixed-height one cannot shift content sideways. `#page-head` sits OUTSIDE that
+scroller and `.reg-band` inside it, so the two white boxes had **different right
+edges**: MEASURED at 1440, the head ran to 1440 and the band stopped at 1430.
+That 10px step is what read as two cards with a strip between them, and the grey
+showing beside the band is what the second screenshot ringed. `.reg-band`'s own
+note already recorded the step as a known compromise — "the head runs 10px wider
+because it sits outside the scroller" — which is how a documented compromise
+becomes a bug report.
+
+- **THE GUTTER IS DEAD SPACE ON THIS PAGE, which is why turning it off here is
+  honest rather than a workaround.** This view is exactly `--view-h` tall and
+  the TABLE does its own scrolling, so the page scroller can never scroll and
+  has no scrollbar to reserve room for. `#content-scroll{scrollbar-gutter:auto}`
+  lives in the register's own injected `<style>`, so it goes with the page and
+  the next view gets the shell's rule back untouched — asserted, because a rule
+  that leaked would take the anti-jolt guarantee with it.
+- **THE SHELL'S DECLARATION HAD TO MOVE OUT OF THE ELEMENT'S `style=""` FIRST.**
+  An inline declaration cannot be beaten by a stylesheet rule without
+  `!important` — the 91-`outline:none` lesson, met again. It is
+  `#content-scroll{scrollbar-gutter:stable}` in index.html's own sheet now; one
+  id apiece and the page's rule comes later in the document, so it wins on order
+  with nothing shouted. **The first attempt put the page rule in and changed
+  nothing at all**, which is what said the inline style was in the way.
+- **BLEEDING THE BAND INTO THE GUTTER WAS TRIED FIRST AND REJECTED.** A negative
+  margin does paint into it (measured — the white reached 1440), and it leaves
+  the scroller with 10px of horizontal overflow that only `overflow-x:hidden`
+  can swallow. A page that has to hide an overflow to look right is one pixel
+  from scrolling sideways, which this rulebook forbids by name.
+- **IT REACHES BOTH PAGES BY CONSTRUCTION** — Contracts and Negotiations are one
+  renderer — and on Contracts it closes the first report too: with the band at
+  1440 the head above it ends on the same vertical, so the two read as one card.
+
+Tests: contracts-page-verify section 15 (9 — **8 of them fail against the code
+of an hour before**, reporting "band 1430 of 1440" and the last column of pixels
+painted by something that is neither the head nor the band). It is measured as
+PAINT, not as boxes: two elements can share a right edge and still leave a seam,
+so it walks the last visible column from the top of the head to the bottom of
+the band and asks both what colour is there AND which element owns it — a colour
+check alone is satisfied by anything laid over the page, and the always-mounted
+Activity and Copilot panels are exactly that kind of thing.
+
 ## Line numbers drift
 
 Line numbers were verified 2026-08-03. Code moves — treat them as starting points, re-verify with grep, and UPDATE THIS MAP when the layout changes.

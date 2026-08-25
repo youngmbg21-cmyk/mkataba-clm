@@ -617,6 +617,85 @@ const check = (name, ok, detail) => {
     await page.waitForTimeout(400);
 
 
+    /* ---- 15 · THE BAND IS ONE CARD AND IT REACHES THE SCREEN'S EDGE
+       (owner-reported 25 Aug 2026, off two screenshots: "remove the separation
+       strip in the top two cards and make it one card just like in the
+       negotiations page", and "the top white cards should cover all the way to
+       the end of the screen") ----
+       ONE CAUSE, BOTH REPORTS. The shell's scroller reserved a scrollbar
+       gutter permanently; #page-head sits OUTSIDE that scroller and the band
+       inside it, so the two white boxes had different right edges — measured
+       at 1440, the head ran to 1440 and the band stopped at 1430. That 10px
+       step read as two cards, and the grey beside the band is what the second
+       screenshot ringed.
+       MEASURED AS PAINT, NOT AS BOXES. Two elements can share a right edge and
+       still leave a seam, so this walks the last visible column of pixels from
+       the top of the head to the bottom of the band and asks what colour is
+       painted there — one answer, all the way down, is the claim. */
+    const EDGE = () => {
+      /* WHAT IS PAINTED AND WHAT IS PAINTING IT. The colour alone can be
+         satisfied by anything laid over the page; the OWNER of the pixel is
+         the claim — the top element at that point has to be the head or the
+         band, or inside one of them. */
+      const atPoint = (x, y) => { const top = document.elementFromPoint(x, y);
+        let n = top, c = 'rgba(0, 0, 0, 0)';
+        while (n && c === 'rgba(0, 0, 0, 0)'){ c = getComputedStyle(n).backgroundColor; n = n.parentElement; }
+        const own = top && top.closest('#page-head, .reg-band');
+        return { c, own: own ? (own.id ? '#' + own.id : '.reg-band') : 'OTHER' }; };
+      const box = s => { const e = document.querySelector(s); if (!e) return null;
+        const r = e.getBoundingClientRect();
+        return { right: Math.round(r.right), top: Math.round(r.top), bottom: Math.round(r.bottom) }; };
+      const sc = document.getElementById('content-scroll');
+      const head = box('#page-head'), band = box('.reg-band');
+      if (!band) return null;
+      const cols = [], owners = [];
+      for (let y = (head && head.height !== 0 ? head.top : band.top) + 2; y < band.bottom - 2; y += 6){
+        const p = atPoint(innerWidth - 3, y); cols.push(p.c); owners.push(p.own);
+      }
+      const surface = getComputedStyle(document.querySelector('.reg-band')).backgroundColor;
+      return { headRight: head && head.right, bandRight: band.right, win: innerWidth,
+        gutter: sc.offsetWidth - sc.clientWidth, surface,
+        owners: [...new Set(owners)],
+        colours: [...new Set(cols)], samples: cols.length };
+    };
+    for (const [name, go] of [['Contracts', () => setView('register')],
+                              ['Negotiations', () => openNegotiations({ list: true })]]){
+      /* A CLEAN PAGE FIRST. Section 14 leaves a row menu behind; whatever it
+         leaves layered over the page is what elementFromPoint would answer
+         with, and every sample would agree — a pass for the wrong reason. */
+      await page.keyboard.press('Escape');
+      await page.evaluate(() => setView('dashboard'));
+      await page.waitForTimeout(900);
+      await page.evaluate(go);
+      await page.waitForTimeout(1700);
+      const e = await page.evaluate(EDGE);
+      check(`15 ${name}: the white band reaches the window's own edge`,
+        !!e && e.bandRight === e.win, e ? `band ${e.bandRight} of ${e.win}` : 'no band');
+      check(`15 ${name}: and the head ends on the same edge, so it reads as one card`,
+        !!e && e.headRight === e.bandRight, e ? `head ${e.headRight} · band ${e.bandRight}` : '-');
+      check(`15 ${name}: nothing but the band's own surface down the last column of pixels`,
+        !!e && e.samples > 6 && e.colours.length === 1 && e.colours[0] === e.surface
+          && !e.owners.includes('OTHER'),
+        e ? `${e.samples} samples · ${e.colours.join(' | ')} vs surface ${e.surface}`
+          + ` · painted by ${e.owners.join(', ')}` : '-');
+      check(`15 ${name}: because a page that cannot scroll reserves no gutter`,
+        !!e && e.gutter === 0, e ? `${e.gutter}px reserved` : '-');
+    }
+    /* AND THE RULE GOES WITH THE PAGE. It lives in the register's own injected
+       <style>, so the next view gets the shell's reserved gutter back — which
+       is what stops content jolting sideways between a scrolling page and a
+       fixed one. A rule that leaked would take that with it. */
+    await page.evaluate(() => setView('dashboard'));
+    await page.waitForTimeout(1500);
+    const elsewhere = await page.evaluate(() => {
+      const sc = document.getElementById('content-scroll');
+      return { gutter: sc.offsetWidth - sc.clientWidth,
+        rule: getComputedStyle(sc).scrollbarGutter };
+    });
+    check('15 and the next page gets its reserved gutter back',
+      elsewhere.gutter > 0 || /stable/.test(elsewhere.rule || ''),
+      `${elsewhere.gutter}px · ${elsewhere.rule}`);
+
     check('the page threw nothing', errors.length === 0, errors.join(' | '));
   } finally {
     await browser.close();

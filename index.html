@@ -1128,6 +1128,15 @@
   .scroll-thin::-webkit-scrollbar-track{background:transparent;}
   /* Firefox has no thumb geometry of its own — this is the whole control. */
   .scroll-thin{scrollbar-width:thin;scrollbar-color:var(--color-neutral-300) transparent;}
+  /* ---- THE SHELL SCROLLER KEEPS ITS GUTTER RESERVED ----
+     Moved out of the element's inline style 25 Aug 2026 and nothing else
+     changed. WHY IT HAD TO MOVE: an inline declaration cannot be beaten
+     by a stylesheet rule without !important, and a page whose view owns
+     its own height has no scrollbar to reserve room for — the register
+     turns it off in its own injected sheet so its white band reaches the
+     screen's edge. One id apiece, and the page's rule comes later in the
+     document, so it wins on order with nothing shouted. */
+  #content-scroll{scrollbar-gutter:stable;}
   main{scrollbar-width:thin;scrollbar-color:var(--color-neutral-300) transparent;}
 
   /* ============================================================
@@ -4622,8 +4631,13 @@
            scrolls: without it, moving between a scrolling page (Home, Reports)
            and a fixed-height one (Register, Queue) made the scrollbar appear
            and vanish, shifting every pixel of content sideways — a horizontal
-           jolt on every navigation wherever scrollbars take up space. -->
-      <main id="content-scroll" class="scroll-thin" style="overflow:auto;min-width:0;min-height:0;scrollbar-gutter:stable;">
+           jolt on every navigation wherever scrollbars take up space.
+           IT IS A STYLESHEET RULE, NOT AN INLINE ONE (25 Aug 2026). An inline
+           declaration cannot be beaten without !important, and a page whose
+           view owns its own height has no scrollbar to reserve room for — the
+           register says so in its own injected sheet and gets the 10px back.
+           See #content-scroll in the styles above. -->
+      <main id="content-scroll" class="scroll-thin" style="overflow:auto;min-width:0;min-height:0;">
         <div id="content"></div>
       </main>
 

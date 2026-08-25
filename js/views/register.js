@@ -1203,6 +1203,31 @@ function renderRegister(opts){
          the content's top, measured), and the head runs 10px wider because it
          sits outside the scroller — that 10px is the scrollbar gutter. */
       #page-head{background:var(--color-surface)}
+      /* ---- AND THE BAND REACHES THE SCREEN'S EDGE (owner-reported 25 Aug
+         2026, off two screenshots: "remove the separation strip in the top two
+         cards and make it one card just like in the negotiations page", and
+         "the top white cards should cover all the way to the end of the
+         screen") ----
+         ONE CAUSE, BOTH REPORTS. The shell's scroller reserves a scrollbar
+         gutter permanently (scrollbar-gutter:stable in index.html, so moving
+         between a scrolling page and a fixed one cannot shift content
+         sideways). #page-head sits OUTSIDE that scroller and the band sits
+         inside it, so the two white boxes had different right edges — MEASURED
+         at 1440: the head ran to 1440 and the band stopped at 1430. That 10px
+         step is what read as two cards with a strip between them, and the
+         grey showing beside the band is what the second screenshot ringed.
+         THE GUTTER IS DEAD SPACE ON THIS PAGE, which is why turning it off
+         here is honest rather than a workaround: this view is exactly
+         --view-h tall and the TABLE does its own scrolling, so the page
+         scroller can never scroll and has no scrollbar to reserve room for.
+         It is written in the register's own injected <style>, so it goes with
+         the page and the next view gets the shell's rule back untouched.
+         BLEEDING THE BAND INTO THE GUTTER WAS TRIED FIRST AND REJECTED: a
+         negative margin does paint into it, and it leaves the scroller with
+         10px of horizontal overflow that only overflow-x:hidden can swallow.
+         A page that has to hide an overflow to look right is one pixel from
+         scrolling sideways. */
+      #content-scroll{scrollbar-gutter:auto}
       .reg-f{display:flex;flex-direction:column;min-width:0}
       .reg-f-l{font-size:12px;color:var(--color-neutral-600);margin-bottom:3px;white-space:nowrap}
       .reg-stg{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;font-weight:400;vertical-align:middle}
