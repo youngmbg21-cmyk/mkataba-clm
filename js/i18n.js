@@ -1369,6 +1369,15 @@ const STRINGS = {
     ngl_band_them: 'With the other side',
     ngl_band_clear: 'Nothing outstanding',
     ngl_col_move: 'Whose move',
+    /* ONE WORD IN THE CELL (owner-asked 25 Aug 2026: "change the highlighted
+       area to simply Mine, theirs, etc."). The sentence each of these
+       replaced — ng_needs_you, ng_not_sent_yet, ng_no_live_copy, ng_door_with
+       — is still written and is now the cell's hover, so none of them is
+       stale. ng_door_clear answers for the third state in its own words: it
+       is not an answer to *whose*, it is the absence of one. */
+    ngl_move_mine: 'Mine',
+    ngl_move_theirs: 'Theirs',
+    ngl_move_none: 'Neither',
     ngl_locked_chip: 'Live negotiations',
     ngl_locked_title: 'This page only ever shows live negotiations. It is what the page is, not a filter — the filters beside it narrow within it.',
     ngl_sort_note: 'sorts within each group',
@@ -6020,6 +6029,10 @@ const STRINGS = {
     ngl_band_them: 'Hos motparten',
     ngl_band_clear: 'Inget utestående',
     ngl_col_move: 'Vems tur',
+    /* "Vems tur" — so the two answers are "Min" and "Deras". */
+    ngl_move_mine: 'Min',
+    ngl_move_theirs: 'Deras',
+    ngl_move_none: 'Ingen',
     ngl_locked_chip: 'Pågående förhandlingar',
     ngl_locked_title: 'Den här sidan visar bara pågående förhandlingar. Det är vad sidan är, inte ett filter — filtren bredvid avgränsar inom den.',
     ngl_sort_note: 'sorterar inom varje grupp',

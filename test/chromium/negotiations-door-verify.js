@@ -241,7 +241,8 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       rows: [...document.querySelectorAll('#reg-tbody tr[data-row]')].map(r => ({
         id: r.getAttribute('data-row'),
         w: Math.round(r.getBoundingClientRect().width),
-        state: (r.querySelector('.ngl-w') || {}).textContent })),
+        state: (r.querySelector('.ngl-w') || {}).textContent,
+        hover: (r.querySelector('.ngl-w') || { getAttribute: () => null }).getAttribute('title') })),
       sub: document.querySelectorAll('.ngl-head-table p').length,
       lock: eval(seen)('#reg-lock-chip'),
       lockOut: document.querySelectorAll('#reg-lock-chip button').length,
@@ -277,8 +278,17 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     check('the live negotiation is a real, pressable row',
       list.rows.length === 1 && list.rows[0].id === cid && list.rows[0].w > 0,
       list.rows.map(r => `${r.id} ${r.w}px ${r.state}`).join(' · '));
-    check('and it says the answer is owed to this reader',
-      /needs you/i.test((list.rows[0] || {}).state || ''), (list.rows[0] || {}).state);
+    /* REVERSED IN PLACE 25 Aug 2026 (owner-asked, off a screenshot with this
+       column ringed: "change the highlighted area to simply Mine, theirs,
+       etc."). THE CLAIM IS UNCHANGED — the row still says the answer is owed
+       to THIS reader — it just says it in one word, with the count it used to
+       print on the hover. Asserted as a PAIR, because losing the sentence
+       altogether is as much a failure as losing the word. */
+    check('and it says the answer is owed to this reader — in one word',
+      /^(Mine|Min)$/.test(((list.rows[0] || {}).state || '').trim()),
+      (list.rows[0] || {}).state);
+    check('with the count it replaced still readable on the hover',
+      /needs you/i.test((list.rows[0] || {}).hover || ''), (list.rows[0] || {}).hover);
     check('the filter bar is there — this page IS the register now',
       list.filters === 3, list.filters + ' controls');
     /* REVERSED IN PLACE 24 Aug 2026 (WO-15, owner-asked: "delete the filters i

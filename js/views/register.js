@@ -581,31 +581,58 @@ function regPrimaryAction(c){
   if (s === 'Declined')     return i18t('reg_act_record');
   return i18t('reg_act_draft');
 }
-/* ---- WHOSE MOVE, AS A PILL ----
-   The same three readings the list has always drawn, in the same three classes,
-   so the colours and the grey-scale fallback are one definition. Built here
+/* ---- WHOSE MOVE, AS ONE WORD ----
+   The same readings the list has always drawn, in the same three classes, so
+   the colours and the grey-scale fallback are one definition. Built here
    because BOTH shells want it: the desktop's last column and the phone's card.
-   The counterparty is NAMED where we know it — a reader scanning this page is
-   deciding what to pick up, and "With Saw Sawa Ltd" answers that where
-   "waiting" only repeats the column heading. */
+
+   IT IS ONE WORD SINCE 25 Aug 2026 (owner-asked, off a screenshot with this
+   column ringed: "change the highlighted area to simply Mine, theirs, etc.")
+   — and that REVERSES the note that stood here, which argued the counterparty
+   should be NAMED because "With Saw Sawa Ltd" answers what a reader scanning
+   the page is deciding. TWO THINGS WERE WRONG WITH IT. The name is already on
+   the row, two columns to the left, so the cell was repeating a cell you can
+   see; and at the width this column gets it was being CUT — the screenshot
+   reads "With Saw Sa…", "With Juno Li…", "1 change not…" — so the detail it
+   was defending was not on screen anyway.
+
+   NOTHING IS LOST ON THE DESKTOP: the sentence each cell used to print is the
+   cell's own hover, which is the treatment the status chip beside it already
+   takes ("a table cell has no room for a sentence"). THE PHONE HAS NO HOVER
+   and therefore does drop the count — said out loud rather than absorbed; its
+   card already prints the counterparty on a line of its own, so only the
+   number goes.
+
+   THE THIRD STATE IS ONE WORD TOO, and that was not the first answer. It was
+   left as "Nothing outstanding" on the reasoning that it is not an answer to
+   *whose* but the absence of one — and photographing the column killed that:
+   at the width this column gets it drew "Nothing outst…", so the one cell
+   still being CUT was the one exempted from the fix. "Neither" is the honest
+   one-word answer to "whose move" when nobody owes one, and the sentence it
+   replaced is its hover like the other two. */
 function negoMovePillHtml(c){
   const m=(typeof window.negWhoseMove==='function')?window.negWhoseMove(c):{k:'clear',n:0};
+  /* One word, one class, and the sentence it replaced on the hover. A title
+     identical to its own word is noise, so the clear state carries none. */
+  const pill=(cls,word,full)=>`<span class="ngl-w ${cls}"${
+    full&&full!==word?` title="${esc(full)}"`:''}>${esc(word)}</span>`;
+  const MINE=()=>i18t('ngl_move_mine');
   /* ---- WAITING ON US, BUT NOT TO DECIDE ANYTHING (13 Aug 2026) ----
      negWhoseMove bands an agreement whose counterparty holds no live copy
      under "Waiting on you", because sending them one is the move. Counting
      decisions here would be wrong twice over — there are none to make, and
-     the number would send the reader to a column with nothing in it. It says
-     what the move IS instead. See negWhoseMove for the whole rule. */
-  if(m.why==='nocopy') return `<span class="ngl-w ngl-w-you">${esc(i18t('ng_no_live_copy'))}</span>`;
+     the number would send the reader to a column with nothing in it. The
+     hover says what the move IS instead. See negWhoseMove for the whole rule. */
+  if(m.why==='nocopy') return pill('ngl-w-you',MINE(),i18t('ng_no_live_copy'));
   /* ---- AND THE SAME FOR WORK WE HAVE NOT SENT (14 Aug 2026) ----
      Same reasoning one step earlier: these are our own asks, still on our desk,
      so there is nothing for this reader to DECIDE and "N needs you" would send
-     them to a column of their own drafting. It says what the move is —
-     publish the round. See negWhoseMove. */
-  if(m.why==='unsent') return `<span class="ngl-w ngl-w-you">${i18tn('ng_not_sent_yet',m.n,{n:m.n})}</span>`;
-  if(m.k==='you') return `<span class="ngl-w ngl-w-you">${i18tn('ng_needs_you',m.n,{n:m.n})}</span>`;
-  if(m.k==='them') return `<span class="ngl-w ngl-w-them">${esc(i18t('ng_door_with',{who:c.counterparty||i18t('ng_door_them')}))}</span>`;
-  return `<span class="ngl-w ngl-w-clear">${i18t('ng_door_clear')}</span>`;
+     them to a column of their own drafting. See negWhoseMove. */
+  if(m.why==='unsent') return pill('ngl-w-you',MINE(),i18tn('ng_not_sent_yet',m.n,{n:m.n}));
+  if(m.k==='you') return pill('ngl-w-you',MINE(),i18tn('ng_needs_you',m.n,{n:m.n}));
+  if(m.k==='them') return pill('ngl-w-them',i18t('ngl_move_theirs'),
+    i18t('ng_door_with',{who:c.counterparty||i18t('ng_door_them')}));
+  return pill('ngl-w-clear',i18t('ngl_move_none'),i18t('ng_door_clear'));
 }
 /* ---- A BAND IS NOT A ROW ----
    It is a full-width heading that happens to live between rows: a coloured dot,

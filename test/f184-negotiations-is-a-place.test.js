@@ -366,9 +366,27 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
       assert.ok(STRINGS[l].ng_live_list_title_one, `${l} has the singular sentence`);
       assert.ok(/\{n\}/.test(STRINGS[l].ng_live_list_title_other), `${l} counts in the plural`);
     });
+    /* The whose-move cell's two words. They answer the column's own heading,
+       so they have to read as an answer to it in each language: "Whose move"
+       -> Mine / Theirs, "Vems tur" -> Min / Deras. */
+    assert.equal(STRINGS.en.ngl_move_mine, 'Mine');
+    assert.equal(STRINGS.en.ngl_move_theirs, 'Theirs');
+    assert.equal(STRINGS.en.ngl_move_none, 'Neither');
+    ['en', 'sv'].forEach(l => {
+      const w = ['ngl_move_mine', 'ngl_move_theirs', 'ngl_move_none'].map(k => STRINGS[l][k]);
+      assert.ok(w.every(Boolean), `${l} answers whose move it is in one word`);
+      assert.equal(new Set(w).size, 3, `${l} tells all three apart`);
+      /* ONE WORD MEANS ONE WORD — the fault this replaced was a cell being
+         cut, so a phrase here would put it straight back. */
+      w.forEach(x => assert.ok(!/\s/.test(x), `${l}: "${x}" is one word`));
+      /* The sentences they replaced are NOT stale — they are the hover now. */
+      ['ng_needs_you_one', 'ng_not_sent_yet_one', 'ng_no_live_copy', 'ng_door_with']
+        .forEach(k => assert.ok(STRINGS[l][k], `${l} still writes ${k} for the hover`));
+    });
   });
 
   test('a row says whose move it is, and pressing it goes in', () => {
+    const { STRINGS } = require('../js/i18n.js');
     const b = world(['MK-1', 'MK-2', 'MK-3']);
     theirAsk(b.byId('MK-1'), 'CHG-1');                       // waiting on us
     /* WAITING ON THEM MEANS THE ASK HAS GONE (14 Aug 2026). This fixture used
@@ -385,10 +403,31 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
     b.byId('MK-3').changes.push({ id: 'CHG-3', status: 'accepted', authorSide: 'owner',
       clauseId: 'c1', kind: 'edit', author: 'Us', seq: 1 }); // settled
     b.win.openNegotiations();
-    const cls = id => b.$(`#reg-tbody [data-row="${id}"] .ngl-w`).className;
+    const cell = id => b.$(`#reg-tbody [data-row="${id}"] .ngl-w`);
+    const cls = id => cell(id).className;
     assert.match(cls('MK-1'), /ngl-w-you/);
     assert.match(cls('MK-2'), /ngl-w-them/);
     assert.match(cls('MK-3'), /ngl-w-clear/);
+    /* ---- ONE WORD IN THE CELL, THE SENTENCE ON THE HOVER (owner-asked
+       25 Aug 2026: "change the highlighted area to simply Mine, theirs,
+       etc.") ---- The colours above are untouched; what moved is the text.
+       ASSERTED AS A PAIR, because losing the sentence altogether is the
+       failure this has to catch as much as losing the word: the cell says
+       Mine, Theirs or Neither, and the detail it replaced is still on the
+       title. ALL THREE, including the clear state — it was left as "Nothing
+       outstanding" at first, on the reasoning that it is not an answer to
+       *whose* but the absence of one, and photographing the column killed
+       that: it drew "Nothing outst…", so the one cell still being CUT was the
+       one exempted from the fix. */
+    assert.equal(cell('MK-1').textContent.trim(), STRINGS.en.ngl_move_mine);
+    assert.equal(cell('MK-2').textContent.trim(), STRINGS.en.ngl_move_theirs);
+    assert.match(cell('MK-1').getAttribute('title') || '', /needs you/i,
+      'the count it replaced is still readable');
+    assert.match(cell('MK-2').getAttribute('title') || '', /with/i,
+      'and so is the counterparty it used to name');
+    assert.equal(cell('MK-3').textContent.trim(), STRINGS.en.ngl_move_none);
+    assert.match(cell('MK-3').getAttribute('title') || '', /nothing outstanding/i,
+      'the third state is one word too — it was the only cell still being cut');
     /* And the same three readings come from ONE function, which is what the
        phone's cards and the bands read too. */
     assert.equal(b.win.negWhoseMove(b.byId('MK-1')).k, 'you');
@@ -399,6 +438,7 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
   });
 
   test('an ask we have written and NOT sent is waiting on US, not on them', () => {
+    const { STRINGS } = require('../js/i18n.js');
     /* Audit finding 4, and the second route into the class the owner reported
        on MK-255. `open` counts every pending change, ours included, and our own
        unpublished asks are held by holdUnsent until Publish Round — so one
@@ -416,8 +456,15 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
     assert.equal(m.why, 'unsent', 'and it says WHICH kind of waiting, not a decision count');
     const pill = b.$('#reg-tbody [data-row="MK-9"] .ngl-w');
     assert.match(pill.className, /ngl-w-you/);
-    assert.match(pill.textContent, /not sent yet/i,
-      'the pill says what the move is rather than counting decisions that do not exist');
+    /* REVERSED IN PLACE 25 Aug 2026 — the cell is one word now and the
+       sentence is its hover. THE CLAIM IS UNCHANGED and is what matters
+       here: this state says what the MOVE is rather than counting decisions
+       that do not exist. It just says it on the title. */
+    assert.equal(pill.textContent.trim(), STRINGS.en.ngl_move_mine);
+    assert.match(pill.getAttribute('title') || '', /not sent yet/i,
+      'the hover says what the move is rather than counting decisions that do not exist');
+    assert.doesNotMatch(pill.getAttribute('title') || '', /needs you/i,
+      'and never the decision count, which is the fault this test was written for');
   });
 
   test('the columns are the register\'s own, in the register\'s own order', () => {

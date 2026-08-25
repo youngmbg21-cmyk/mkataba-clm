@@ -2335,7 +2335,7 @@ Negotiate left the room's tab row for a door in the sidebar under Contracts, rea
 - THE MEMORY: negoRememberOpened, keyed per user in localStorage (hati.v1.lastNegotiation.<id>), written on the PAINT not the navigation. negoLastOpened refuses anything not negoIsLive — signed, declined, deleted or out of reach falls through to the list.
 - THE LIST **IS** THE CONTRACTS TABLE (owner's reversal, 12 Aug 2026 — the earlier "signpost, not a second register" position was read and overruled). renderNegotiationsList calls **renderRegister({scope:'negotiations', nav:'redline', hostId, head})** — one table of contracts in this product, so no row can drift. FOUR differences: the last column is WHOSE MOVE (a state, not an action — the ⋯ menu and the action link go with it); rows sit under THREE banded headers in fixed order (Waiting on you · With the other side · Nothing outstanding), each with its count; the heading carries the live count; and the filter bar carried a LOCKED chip until 24 Aug 2026 (**WO-15 removed it so the filters fit one line — `#reg-lock-chip` is STALE**). What it said is not lost and the claim is stronger without it: the narrowing is a property of the PAGE, regScope, not a filter a reader can press away, so there was never anything for its missing ✕ to do — negotiations-door-verify presses Clear for real and proves the page does not widen.
 - THE SCOPE IS A PROPERTY OF THE PAGE, NOT regShowOnly's `only` (which is deliberately clearable — Clear would have shown all 145 under a heading saying Negotiations). regSetScope/regScope (js/views/register.js); applied FIRST in regFiltered, above `only`; TWO filter states (state.reg / state.regNego) so neither page answers for the other; regRepaint() is what every filter control calls, because a bare renderRegister() would reset the scope. regShowOnly clears the scope first. **The phone sets it in mRender, once per paint.**
-- NO PAGING on this list (live negotiations are few; a band straddling a page break has no honest count) — regPageSize(). A BAND IS NOT A ROW: role="presentation" on tr and td, a heading inside, no data-row, no tab stop, and it is generated at render so the footer's "1–8 of 8" cannot count one. negWhoseMove(c) is the ONE reading behind the whose-move cell and the band. **IT IS WORDS, NOT A CHIP** (owner-asked 19 Aug 2026): every row ended in a filled capsule and sixteen of them down the right edge read as sixteen buttons, on a column that is a STATE and whose press belongs to the row. `.ngl-w` keeps the colour and drops the fill, border, padding and radius — the treatment the contracts page gives its own action text, on the page that IS the contracts table; the three state rules carry `color` only. The cell carries NO stopPropagation (unlike the actions cell on Contracts), so pressing the words opens the negotiation exactly as pressing the row does, and `tr[data-nego-row]:hover .ngl-w` underlines to say so. One builder, so the phone reads the same way. f184. An empty group still prints its zero; with NO live negotiation at all the page draws the old .ngl-empty card instead of a table under a filter bar.
+- NO PAGING on this list (live negotiations are few; a band straddling a page break has no honest count) — regPageSize(). A BAND IS NOT A ROW: role="presentation" on tr and td, a heading inside, no data-row, no tab stop, and it is generated at render so the footer's "1–8 of 8" cannot count one. negWhoseMove(c) is the ONE reading behind the whose-move cell and the band. **IT IS WORDS, NOT A CHIP** (owner-asked 19 Aug 2026): every row ended in a filled capsule and sixteen of them down the right edge read as sixteen buttons, on a column that is a STATE and whose press belongs to the row. `.ngl-w` keeps the colour and drops the fill, border, padding and radius — the treatment the contracts page gives its own action text, on the page that IS the contracts table; the three state rules carry `color` only. The cell carries NO stopPropagation (unlike the actions cell on Contracts), so pressing the words opens the negotiation exactly as pressing the row does, and `tr[data-nego-row]:hover .ngl-w` underlines to say so. One builder, so the phone reads the same way. **AND IT IS ONE WORD SINCE 25 Aug 2026** — Mine · Theirs · Neither, with the sentence each replaced on the cell's own hover (see WHOSE MOVE IS ONE WORD). f184. An empty group still prints its zero; with NO live negotiation at all the page draws the old .ngl-empty card instead of a table under a filter bar.
 - THE PHONE gets phone-shaped cards under the same three headings — mNegotiationsHtml (js/mobile-screens.js), built from regFiltered + NEGO_BANDS + negoMovePillHtml. It decides nothing of its own; only the row shape differs, exactly as Contracts already works.
 - ONE COUNT, FOUR SURFACES: negoNeedsYouIds(c) — the sidebar door (negoNeedsYouTotal, across every live negotiation), the round line under the contract's name, the Document tab's button, and the workbench's own toolbar. THE TRAP: it must READ WITHOUT WRITING. negoChanges() runs negoInit(), which CREATES a negotiation on any contract that has none — a sidebar count asking negoChanges about all 145 contracts would start a negotiation on all 145. Read `c.changes` raw. wsTabRowEndHtml obeys the same rule.
 - THE WAY BACK is the whole reason the tabless page is survivable: roomHeadHtml({backToContract:true}) marks #ws-back with data-back="contract" and makes the title #ws-back-title. Both land on the DOCUMENT tab, always — the decision travels on the ELEMENT because wireRoomHead is given the contract, not the opts. Every other door into a negotiation (Home's decisions card, a returned-changes notice, a playbook finding, the phone) lands on that same page, so this arrow is their exit too.
@@ -3435,6 +3435,49 @@ and one-language-per-screen (16).
   reported. `.room-facet .v .ngl-w` keeps its own 700 — with the base at 600
   it is still a difference, and the whose-move ink is what carries that facet
   anyway.
+
+## WHOSE MOVE IS ONE WORD (owner-asked 25 Aug 2026)
+
+Off a screenshot with the Negotiations page's last column ringed: *"change the
+highlighted area to simply Mine, theirs, etc."* The cell printed a sentence —
+"1 needs you", "2 changes not sent yet", "With Saw Sawa LLC", "Nothing
+outstanding" — and now prints **Mine · Theirs · Neither**.
+
+- **THIS REVERSES negoMovePillHtml'S OWN NOTE**, which argued the counterparty
+  should be NAMED because "With Saw Sawa Ltd" answers what a reader scanning
+  this page is deciding. **TWO THINGS WERE WRONG WITH IT.** The name is already
+  on the row, two columns to the left, so the cell was repeating a cell you can
+  already see; and at the width this column gets it was being **CUT** — the
+  owner's screenshot reads "With Saw Sa…", "With Juno Li…", "1 change not…" —
+  so the detail it was defending was not on screen anyway.
+- **NOTHING IS LOST ON THE DESKTOP**: the sentence each cell used to print is
+  the cell's own **hover**, which is the treatment the status chip beside it
+  already takes ("a table cell has no room for a sentence"). f184 asserts the
+  word and the title AS A PAIR, because losing the sentence altogether is as
+  much a failure as losing the word.
+- **THE PHONE HAS NO HOVER and therefore does drop the count** — said out loud
+  rather than absorbed. Its card already prints the counterparty on a line of
+  its own, so only the number goes. ONE BUILDER, THREE HOMES (the Negotiations
+  column, the contract-room and negotiation-page fact row, the phone card): a
+  word written at a call site is how the three would come to disagree, so the
+  change is in the builder and reaches all of them.
+- **THE THIRD STATE WAS EXEMPTED AT FIRST AND THAT WAS WRONG.** "Nothing
+  outstanding" was kept on the reasoning that it is not an answer to *whose*
+  but the absence of one — and photographing the column killed it: the cell
+  drew "Nothing outst…", so the one cell still being cut was the one left out
+  of the fix. **Neither** is the honest one-word answer, with "Nothing
+  outstanding" on its hover like the other two. **PHOTOGRAPH THE THING YOU
+  CHANGED**; the exemption looked perfectly reasonable in the source.
+- **THE THREE COLOURS ARE UNTOUCHED** (amber `.ngl-w-you`, grey `.ngl-w-them`,
+  green `.ngl-w-clear`) and so is every reading behind them — negWhoseMove's
+  four answers, the bands, the counts and the row's own press. Only the text
+  moved. `ngl_move_mine` / `_theirs` / `_none` in both languages; "Vems tur"
+  answers Min · Deras · Ingen. **ONE WORD MEANS ONE WORD** — f184 fails on a
+  space in any of the three, because a phrase here puts the cut straight back.
+
+Tests: f184 (three claims REVERSED IN PLACE — the pill's text, the unsent
+state's, and the both-languages roll call), negotiations-door-verify (the same
+reversal, plus the hover), f148 unchanged.
 
 ## Line numbers drift
 
