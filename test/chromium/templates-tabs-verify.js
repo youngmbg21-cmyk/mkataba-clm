@@ -171,11 +171,16 @@ const BOX = sel => {
     check('2a · the wall draws cards with real size',
       cards.n >= 4 && cards.cards.every(c => c.w > 180 && c.h > 90),
       { n: cards.n, first: cards.cards[0] });
+    /* THE SENTENCE'S ONE JOB IS SAYING WHAT THE PERCENTAGE ABOVE IT WAS WORKED
+       OUT FROM (owner-reported 25 Aug 2026: "i do not understand what the
+       highlighted area means"). It has to name the sample, name the standards
+       the reader can go and look at, and give "not checked" an object. */
     check('2b · a card carries both figures and the sentence that qualifies them',
       cards.cards.some(c => /Used/.test(c.txt) && /Deviation rate/.test(c.txt))
-      && cards.cards.some(c => /came back off-standard/.test(c.txt))
-      && cards.cards.some(c => /not checked/.test(c.txt)),
-      cards.cards.find(c => /off-standard/.test(c.txt)));
+      && cards.cards.some(c => /\d+ of the \d+ contracts checked did not follow Our standards/.test(c.txt))
+      && cards.cards.some(c => /more (has|have) not been checked/.test(c.txt))
+      && !cards.cards.some(c => /off-standard/.test(c.txt)),
+      cards.cards.find(c => /did not follow/.test(c.txt)));
     check('2c · a template nothing has come off says that, not that nothing was checked',
       cards.cards.some(c => /No contract has been drafted from it yet/.test(c.txt)),
       cards.cards.filter(c => /drafted from it yet/.test(c.txt)).length);
@@ -190,11 +195,12 @@ const BOX = sel => {
       return { txt, bars, wide };
     });
     check('3a · Needs attention names what wants somebody, worst first',
-      /Needs attention/.test(panels.txt) && /off-standard \d+% of the time/.test(panels.txt),
+      /Needs attention/.test(panels.txt) && /\d+% of the contracts checked did not follow/.test(panels.txt),
       (panels.txt.match(/Needs attention.{0,120}/) || [''])[0]);
     check('3b · Most used names its own window and draws bars',
       /Most used, 90 days/.test(panels.txt), (panels.txt.match(/Most used.{0,80}/) || [''])[0]);
-    check('3c · the page states its coverage once', /count only contracts a playbook has read/.test(panels.txt));
+    check('3c · the page states its coverage once',
+      /counts only contracts that have been checked against Our standards/.test(panels.txt));
 
     /* ================= 4 · THE TWO TABS WORK TOGETHER ======================= */
     await page.click('[data-tpl-tab="list"]');

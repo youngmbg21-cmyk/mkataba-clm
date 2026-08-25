@@ -3626,8 +3626,13 @@
      on a short name, paid deliberately: the subgrid trick the upload dialog
      uses cannot reach here, because this wall's rows are implicit and there
      are none to inherit. */
-  .tpl-ov-note{ display:-webkit-box!important; -webkit-line-clamp:2; -webkit-box-orient:vertical;
-    overflow:hidden; min-height:2.8em; }
+  /* THE NOTE GETS A THIRD LINE IF IT NEEDS ONE. It is the sentence that makes
+     the rate above it readable — "3 of the 4 contracts checked did not follow
+     Our standards. 23 more have not been checked" — and clipping the half that
+     names the sample leaves a percentage the reader cannot place. Two lines
+     are still RESERVED, so a card with a short note does not grow. */
+  .tpl-ov-note{ display:-webkit-box!important; -webkit-line-clamp:3; -webkit-box-orient:vertical;
+    overflow:hidden; min-height:2.9em; }
   @media (max-width:1099px){ .tpl-ov{grid-template-columns:minmax(0,1fr);} }
 
   /* The contract-essentials form asked by every creation path. Two columns

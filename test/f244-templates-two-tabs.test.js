@@ -142,11 +142,28 @@ describe('f244 (3) — a deviation rate counts only paper a playbook has read', 
     assert.ok(Math.abs(c.rate - 2 / 3) < 1e-9, 'two thirds — never two quarters');
   });
 
-  test('the card says both facts in words', () => {
+  /* ---- THE LINE HAS TO EXPLAIN THE FIGURE ABOVE IT (owner-reported 25 Aug
+     2026, of a card reading "3 of 4 contracts checked came back off-standard.
+     23 not checked": "i do not understand what the highlighted area means") ----
+     It has ONE job: say what the percentage was worked out from. 75% is three
+     contracts out of four, not twenty out of twenty-seven, and a reader who
+     cannot see that is reading a different number. So the sentence names the
+     sample, names Our standards (which is what the product calls this
+     everywhere else, and is a page the reader can go and look at) and gives
+     "not checked" something to be. */
+  test('the card says what the rate was worked out from, in words', () => {
     const s = stage(); s.renderTemplatesPage();
     const html = s.document.getElementById('content').innerHTML;
-    assert.match(html, /2 of 3 contracts checked came back off-standard\./);
-    assert.match(html, /1 not checked\./);
+    assert.match(html, /2 of the 3 contracts checked did not follow Our standards\./);
+    assert.match(html, /1 more has not been checked\./);
+    assert.ok(!/off-standard/.test(html), 'and it stops speaking in jargon');
+  });
+
+  test('the two labels explain themselves on their own hover', () => {
+    const s = stage(); s.renderTemplatesPage();
+    const html = s.document.getElementById('content').innerHTML;
+    assert.match(html, /title="How many contracts have been drafted from this template\."/);
+    assert.match(html, /Only contracts that have actually been checked are counted\./);
   });
 
   test('nothing drafted is a different sentence from nothing checked', () => {
@@ -159,7 +176,7 @@ describe('f244 (3) — a deviation rate counts only paper a playbook has read', 
     s.renderTemplatesPage();
     const html = s.document.getElementById('content').innerHTML;
     assert.match(html, /No contract has been drafted from it yet\./);
-    assert.match(html, /No contract from this template has been checked against the playbook yet\./);
+    assert.match(html, /None of the contracts drafted from this template have been checked against Our standards yet\./);
   });
 
   /* "0 of 3 contracts checked came back off-standard" is accurate and reads
@@ -172,8 +189,8 @@ describe('f244 (3) — a deviation rate counts only paper a playbook has read', 
     assert.equal(card(s.tplOverviewData(), 'tpl_1').off, 0);
     s.renderTemplatesPage();
     const html = s.document.getElementById('content').innerHTML;
-    assert.match(html, /All 2 contracts checked are on standard\./);
-    assert.ok(!/0 of 2 contracts checked came back off-standard/.test(html));
+    assert.match(html, /All 2 contracts checked follow Our standards\./);
+    assert.ok(!/0 of the 2 contracts checked did not follow/.test(html));
   });
 
   test('the page states its own coverage once, at the top', () => {
@@ -183,7 +200,7 @@ describe('f244 (3) — a deviation rate counts only paper a playbook has read', 
     assert.equal(d.unchecked, 2, 'MK-4 and MK-5');
     s.renderTemplatesPage();
     assert.match(s.document.getElementById('content').innerHTML,
-      /Deviation rates count only contracts a playbook has read — 3 checked, 2 not\./);
+      /A deviation rate counts only contracts that have been checked against Our standards — 3 checked so far, 2 not\./);
   });
 });
 
@@ -192,7 +209,7 @@ describe('f244 (4) — what needs somebody, worst first', () => {
     const d = stage().tplOverviewData();
     assert.deepEqual(d.attention.map(a => a.id), ['tpl_1', 'tpl_2'],
       'ct1 has been drafted from once, so the unused rule does not reach it');
-    assert.match(d.attention[0].why, /67% of the time/);
+    assert.match(d.attention[0].why, /67% of the contracts checked did not follow/);
     assert.equal(d.attention[1].id, 'tpl_2');
     assert.match(d.attention[1].why, /Not published/);
   });
@@ -326,6 +343,7 @@ describe('f244 (8) — it speaks both languages', () => {
   const KEYS = ['lib_tab_overview', 'lib_ov_used', 'lib_ov_dev_rate', 'lib_ov_draft',
     'lib_ov_last_used', 'lib_ov_added', 'lib_ov_open_in_list', 'lib_ov_coverage',
     'lib_ov_not_checked', 'lib_ov_attention', 'lib_ov_attention_none', 'lib_ov_most_used',
+    'lib_ov_used_title', 'lib_ov_dev_rate_title',
     'lib_ov_most_used_none', 'lib_ov_why_deviates', 'lib_ov_why_draft', 'lib_ov_why_unused'];
   test('every new key is answered twice', () => {
     for (const k of KEYS) {

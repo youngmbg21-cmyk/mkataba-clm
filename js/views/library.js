@@ -1598,9 +1598,9 @@ function tplOverviewHtml(d){
        simply never been used. */
     if(c.rate==null) return (c.used===0||(c.used==null&&c.unscanned===0))
       ? i18t('lib_ov_why_unused') : i18t('lib_ov_not_checked');
-    /* "0 of 3 contracts checked came back off-standard" is accurate and reads
-       like a near miss. A template whose paper all came back on standard is
-       good news and says so. */
+    /* "0 of the 3 contracts checked did not follow Our standards" is accurate
+       and reads like a near miss. Paper that all came back clean is good news
+       and says so. */
     const first=c.off===0
       ? i18tn('lib_ov_all_clear',c.scanned,{n:c.scanned})
       : i18tn('lib_ov_off_standard',c.scanned,{off:c.off,n:c.scanned});
@@ -1652,11 +1652,16 @@ function tplOverviewHtml(d){
       </span>
       <span style="display:flex;gap:18px;margin:11px 14px 0;padding-top:11px;border-top:1px solid var(--color-divider)">
         <span style="flex:1;min-width:0">
-          <span style="display:block;${LBL}">${i18t('lib_ov_used')}</span>
+          <span style="display:block;${LBL}" title="${i18t('lib_ov_used_title')}">${i18t('lib_ov_used')}</span>
           <span style="display:block;${FIG};color:var(--color-text)">${c.used==null?'—':c.used}</span>
         </span>
         <span style="flex:1;min-width:0">
-          <span style="display:block;${LBL}">${i18t('lib_ov_dev_rate')}</span>
+          ${''/* A LABEL THAT NEEDS EXPLAINING SAYS SO ON ITS OWN HOVER.
+                "Deviation rate" is the product's word and the figure under it
+                is worked out from a SAMPLE, which is the half a reader cannot
+                see; the line at the foot of the card states the sample and
+                this states the metric. */}
+          <span style="display:block;${LBL}" title="${i18t('lib_ov_dev_rate_title')}">${i18t('lib_ov_dev_rate')}</span>
           <span style="display:block;${FIG};color:${rateInk(c)}">${c.rate==null?'—':Math.round(c.rate*100)+'%'}</span>
         </span>
       </span>

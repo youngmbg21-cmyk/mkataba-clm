@@ -3783,14 +3783,27 @@ const STRINGS = {
     lib_ov_open_in_list: 'Open this template in the list',
     lib_ov_head_one: '{n} template',
     lib_ov_head_other: '{n} templates',
-    lib_ov_coverage: 'Deviation rates count only contracts a playbook has read — {checked} checked, {open} not.',
-    lib_ov_not_checked: 'No contract from this template has been checked against the playbook yet.',
-    lib_ov_all_clear_one: 'The one contract checked is on standard.',
-    lib_ov_all_clear_other: 'All {n} contracts checked are on standard.',
-    lib_ov_off_standard_one: '{off} of {n} contract checked came back off-standard.',
-    lib_ov_off_standard_other: '{off} of {n} contracts checked came back off-standard.',
-    lib_ov_unchecked_one: '{n} not checked.',
-    lib_ov_unchecked_other: '{n} not checked.',
+    lib_ov_coverage: 'A deviation rate counts only contracts that have been checked against Our standards — {checked} checked so far, {open} not.',
+    /* ---- THE LINE UNDER THE FIGURES HAS TO EXPLAIN THEM (owner-reported
+       25 Aug 2026, off a card reading "3 of 4 contracts checked came back
+       off-standard. 23 not checked": "i do not understand what the highlighted
+       area means") ----
+       Three things were wrong with it. "off-standard" is jargon — the product
+       calls this Our standards everywhere else, so the sentence says that and
+       the reader knows which page it means. "23 not checked" named no object.
+       And nothing said WHAT the rate was worked out from, which is the whole
+       reason the line exists: 75% is three contracts out of four, not twenty
+       out of twenty-seven, and a reader who cannot see that is reading a
+       number that means something else. */
+    lib_ov_not_checked: 'None of the contracts drafted from this template have been checked against Our standards yet.',
+    lib_ov_all_clear_one: 'The one contract checked follows Our standards.',
+    lib_ov_all_clear_other: 'All {n} contracts checked follow Our standards.',
+    lib_ov_off_standard_one: 'The one contract checked did not follow Our standards.',
+    lib_ov_off_standard_other: '{off} of the {n} contracts checked did not follow Our standards.',
+    lib_ov_unchecked_one: '{n} more has not been checked.',
+    lib_ov_unchecked_other: '{n} more have not been checked.',
+    lib_ov_used_title: 'How many contracts have been drafted from this template.',
+    lib_ov_dev_rate_title: 'How often paper drafted from this template comes back not following Our standards. Only contracts that have actually been checked are counted.',
     lib_ov_more_one: '{n} more',
     lib_ov_more_other: '{n} more',
     lib_ov_see_all_one: 'See all {n} template',
@@ -3799,7 +3812,7 @@ const STRINGS = {
     lib_ov_attention_none: 'Nothing needs attention.',
     lib_ov_most_used: 'Most used, {n} days',
     lib_ov_most_used_none: 'No contract has been drafted from a template in the last {n} days.',
-    lib_ov_why_deviates: 'Paper drafted from it comes back off-standard {pct}% of the time.',
+    lib_ov_why_deviates: '{pct}% of the contracts checked did not follow Our standards.',
     lib_ov_why_draft: 'Not published — nobody can draft from it.',
     lib_ov_why_unused: 'No contract has been drafted from it yet.',
     lib_grp_all: 'All templates',
@@ -8312,14 +8325,16 @@ const STRINGS = {
     lib_ov_open_in_list: 'Öppna mallen i listan',
     lib_ov_head_one: '{n} mall',
     lib_ov_head_other: '{n} mallar',
-    lib_ov_coverage: 'Avvikelsegraden räknar bara avtal som en spelbok har läst — {checked} kontrollerade, {open} inte.',
-    lib_ov_not_checked: 'Inget avtal från den här mallen har ännu kontrollerats mot spelboken.',
-    lib_ov_all_clear_one: 'Det enda kontrollerade avtalet följer standarden.',
-    lib_ov_all_clear_other: 'Alla {n} kontrollerade avtal följer standarden.',
-    lib_ov_off_standard_one: '{off} av {n} kontrollerat avtal avvek från standarden.',
-    lib_ov_off_standard_other: '{off} av {n} kontrollerade avtal avvek från standarden.',
-    lib_ov_unchecked_one: '{n} inte kontrollerat.',
-    lib_ov_unchecked_other: '{n} inte kontrollerade.',
+    lib_ov_coverage: 'Avvikelsegraden räknar bara avtal som kontrollerats mot Våra standarder — {checked} kontrollerade hittills, {open} inte.',
+    lib_ov_not_checked: 'Inget av avtalen som skrivits från den här mallen har ännu kontrollerats mot Våra standarder.',
+    lib_ov_all_clear_one: 'Det enda kontrollerade avtalet följer Våra standarder.',
+    lib_ov_all_clear_other: 'Alla {n} kontrollerade avtal följer Våra standarder.',
+    lib_ov_off_standard_one: 'Det enda kontrollerade avtalet följde inte Våra standarder.',
+    lib_ov_off_standard_other: '{off} av de {n} kontrollerade avtalen följde inte Våra standarder.',
+    lib_ov_unchecked_one: '{n} till har inte kontrollerats.',
+    lib_ov_unchecked_other: '{n} till har inte kontrollerats.',
+    lib_ov_used_title: 'Hur många avtal som har skrivits från den här mallen.',
+    lib_ov_dev_rate_title: 'Hur ofta avtal som skrivs från den här mallen inte följer Våra standarder. Bara avtal som faktiskt har kontrollerats räknas.',
     lib_ov_more_one: '{n} till',
     lib_ov_more_other: '{n} till',
     lib_ov_see_all_one: 'Visa alla {n} mall',
@@ -8328,7 +8343,7 @@ const STRINGS = {
     lib_ov_attention_none: 'Inget behöver uppmärksamhet.',
     lib_ov_most_used: 'Mest använda, {n} dagar',
     lib_ov_most_used_none: 'Inget avtal har skrivits från en mall de senaste {n} dagarna.',
-    lib_ov_why_deviates: 'Avtal som skrivs från den avviker från standarden {pct} % av gångerna.',
+    lib_ov_why_deviates: '{pct} % av de kontrollerade avtalen följde inte Våra standarder.',
     lib_ov_why_draft: 'Inte publicerad — ingen kan skriva avtal från den.',
     lib_ov_why_unused: 'Inget avtal har ännu skrivits från den.',
     lib_grp_all: 'Alla mallar',

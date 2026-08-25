@@ -2259,9 +2259,31 @@ that qualifies them.
   and a name long enough to need a third gets one.
 - **`.tpl-ov-badge` IS ITS OWN CLASS, NOT AN OVERRIDE OF `.badge`** — that one
   is 12px with a dot slot and dresses every table row and panel in the product.
-- **A CLEAN TEMPLATE SAYS SO IN PLAIN ENGLISH.** "0 of 3 contracts checked came
-  back off-standard" is accurate and reads like a near miss; paper that all
-  came back on standard is good news (`lib_ov_all_clear`).
+- **A CLEAN TEMPLATE SAYS SO IN PLAIN ENGLISH.** "0 of the 3 contracts checked
+  did not follow Our standards" is accurate and reads like a near miss; paper
+  that all came back clean is good news (`lib_ov_all_clear`).
+- **AND THE LINE UNDER THE FIGURES HAS TO EXPLAIN THEM (owner-reported 25 Aug
+  2026, of a card reading "3 of 4 contracts checked came back off-standard. 23
+  not checked": *"i do not understand what the highlighted area means"*).**
+  **THREE THINGS WERE WRONG WITH IT, and the third is the one that mattered.**
+  "off-standard" is jargon — the product calls this **Our standards**
+  everywhere else, and that is a page the reader can go and look at, so the
+  sentence says it. "23 not checked" named no object. And nothing said WHAT the
+  rate was worked out from, which is the whole reason the line exists: **75% is
+  three contracts out of four, not twenty out of twenty-seven**, and a reader
+  who cannot see that is reading a different number. It now reads "3 of the 4
+  contracts checked did not follow Our standards. 23 more have not been
+  checked" — and 4 + 23 is the 27 printed above it, so the arithmetic is
+  visible on the card. The page's own coverage line and the Needs attention row
+  lost the same jargon in the same breath, or one screen would explain the
+  metric in two vocabularies.
+- **THE TWO LABELS EXPLAIN THEMSELVES ON THEIR OWN HOVER** (`lib_ov_used_title`
+  / `lib_ov_dev_rate_title`) — the note states the SAMPLE, the title states the
+  METRIC, and neither can do the other's job in the room a card has.
+- **AND THE NOTE MAY TAKE A THIRD LINE.** Two are still RESERVED, so a card
+  with a short note does not grow; clipping the half that names the sample
+  would leave a percentage the reader cannot place, which is the fault being
+  fixed.
 - **THE STREAM NAME IS SHORTENED BY THE RAIL'S OWN FUNCTION** (`tplShortStream`
   — "Corporate & Compliance" → "Corporate"). The rail has cut it this way since
   it was built; the card asks the same function rather than carrying a second
