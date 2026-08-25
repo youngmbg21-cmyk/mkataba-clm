@@ -763,6 +763,11 @@ function commandPaletteResults(q){
 }
 function openCommandPalette(){
   const prev=document.getElementById('cmd-palette'); if(prev){ prev.querySelector('#cp-input')?.focus(); return; }
+  /* WHO OPENED IT, so focus can go back there. Without this, Escape drops a
+     keyboard reader at the top of the document and they have to Tab in again
+     from the beginning — openModal has done this correctly since 23 Aug and
+     the palette never learned it. */
+  const opener = document.activeElement;
   const ov=document.createElement('div');
   ov.id='cmd-palette';
   ov.style.cssText='position:fixed;inset:0;z-index:85;display:flex;align-items:flex-start;justify-content:center;padding:12vh 16px 16px';
@@ -771,10 +776,14 @@ function openCommandPalette(){
     <div class="modal-in" style="position:relative;width:100%;max-width:560px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:0;overflow:hidden">
       <div style="display:flex;align-items:center;gap:9px;padding:12px 14px;border-bottom:1px solid var(--color-divider)">
         <span style="color:var(--color-neutral-500);display:inline-flex">${icon('search','w-4 h-4')}</span>
-        <input id="cp-input" placeholder="${i18t('ap_search_placeholder')}" autocomplete="off" style="flex:1;border:0;outline:0;background:transparent;font:inherit;font-size:15px;color:inherit"/>
+        <input id="cp-input" placeholder="${i18t('ap_search_placeholder')}" autocomplete="off"
+          role="combobox" aria-expanded="true" aria-controls="cp-list" aria-autocomplete="list"
+          aria-label="${esc(i18t('ap_search_placeholder'))}"
+          style="flex:1;border:0;outline:0;background:transparent;font:inherit;font-size:15px;color:inherit"/>
         <span style="font-size:12px;border:1px solid var(--color-divider);padding:2px 6px;border-radius:0;color:var(--color-neutral-600);font-family:var(--font-mono)">ESC</span>
       </div>
-      <div id="cp-list" class="scroll-thin" style="max-height:52vh;overflow-y:auto;padding:6px"></div>
+      <div id="cp-list" class="scroll-thin" role="listbox" aria-label="${esc(i18t('ap_results'))}"
+        style="max-height:52vh;overflow-y:auto;padding:6px"></div>
     </div>`;
   document.body.appendChild(ov);
   const input=ov.querySelector('#cp-input'), list=ov.querySelector('#cp-list');
@@ -786,7 +795,10 @@ function openCommandPalette(){
      an always-last "Ask Copilot" row that HANDS the question to the existing
      Copilot door with it prefilled — never a second AI path from here. */
   let ftsRows=[], ftsFor='', ftsT=null;
-  const close=()=>{ clearTimeout(ftsT); ov.remove(); document.removeEventListener('keydown',onKey,true); };
+  const close=()=>{
+    clearTimeout(ftsT); ov.remove(); document.removeEventListener('keydown',onKey,true);
+    try{ if(opener&&opener.focus&&document.contains(opener)) opener.focus({preventScroll:true}); }catch(_){}
+  };
   const openItem=it=>{
     if(it.kind==='ask'){
       close();
@@ -824,9 +836,23 @@ function openCommandPalette(){
         get sub(){ return i18t('ap_ask_copilot_sub'); },ic:'sparkle'});
     }
     if(active>=results.length) active=Math.max(0,results.length-1);
-    if(!results.length){ list.innerHTML=`<div style="padding:22px 12px;text-align:center;font-size:14px;color:var(--color-neutral-600)">No matches${input.value.trim()?` for “${input.value.replace(/</g,'&lt;')}”`:''}.</div>`; return; }
+    if(!results.length){
+      /* THE EMPTY STATE SPEAKS THE READER'S LANGUAGE. It was the one string in
+         this palette still hardcoded English, under a translated placeholder
+         twelve pixels above it.
+         AND IT ONLY EVER RUNS ON AN EMPTY QUERY, which is why there is one
+         sentence here and not two. The moment anything is typed an "Ask
+         Copilot" row is pushed unconditionally a few lines up, so
+         results.length can never reach 0 with a query in the box — a
+         "no matches for X" string would have been a translation of a branch
+         that cannot execute. This fires on a workspace with nothing in it. */
+      list.innerHTML=`<div style="padding:22px 12px;text-align:center;font-size:14px;color:var(--color-neutral-600)">${
+        esc(i18t('ap_no_matches'))}</div>`;
+      input.setAttribute('aria-activedescendant','');
+      return;
+    }
     list.innerHTML=results.map((r,i)=>`
-      <button data-cp-i="${i}" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:0;border-radius:0;cursor:pointer;padding:8px 10px;font:inherit;color:inherit;background:${i===active?'color-mix(in srgb,var(--color-accent) 13%,transparent)':'none'}">
+      <button data-cp-i="${i}" id="cp-opt-${i}" role="option" aria-selected="${i===active}" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:0;border-radius:0;cursor:pointer;padding:8px 10px;font:inherit;color:inherit;background:${i===active?'color-mix(in srgb,var(--color-accent) 13%,transparent)':'none'}">
         <span style="width:28px;height:28px;flex:none;display:grid;place-items:center;border-radius:0;border:1px solid var(--color-divider);background:var(--color-bg);color:var(--color-neutral-600)">${icon(r.ic,'w-3.5 h-3.5')}</span>
         <span style="min-width:0;flex:1">
           <span style="display:block;font-size:14px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(r.title||'').replace(/</g,'&lt;')}</span>
@@ -839,10 +865,21 @@ function openCommandPalette(){
       b.addEventListener('click',()=>openItem(results[i]));
       b.addEventListener('mousemove',()=>{ if(active!==i){ active=i; paint(); } });
     });
-    const act=list.querySelector(`[data-cp-i="${active}"]`); if(act) act.scrollIntoView({block:'nearest'});
+    const act=list.querySelector(`[data-cp-i="${active}"]`);
+    if(act) act.scrollIntoView({block:'nearest'});
+    /* THE INPUT KEEPS FOCUS AND POINTS AT THE LIVE ROW. That is what
+       aria-activedescendant is for: the reader stays in the box and types,
+       and the screen reader still announces the row the arrows are on. */
+    input.setAttribute('aria-activedescendant', act ? act.id : '');
   };
   function onKey(e){
-    if(e.key==='Escape'){ e.preventDefault(); close(); }
+    /* ESCAPE BELONGS TO THE TOP LAYER AND STOPS THERE. This handler is on
+       document in the CAPTURE phase, so it runs before everything — and
+       without stopPropagation the same press went on to reach the nav
+       drawer's own Escape (js/app.js) and any dialog behind it, so one press
+       closed three things. promptDialog (js/core.js) already does exactly
+       this; the palette simply never learned it. */
+    if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); close(); }
     else if(e.key==='ArrowDown'){ e.preventDefault(); if(results.length){ active=(active+1)%results.length; paint(); } }
     else if(e.key==='ArrowUp'){ e.preventDefault(); if(results.length){ active=(active-1+results.length)%results.length; paint(); } }
     else if(e.key==='Enter'){ e.preventDefault(); if(results[active]) openItem(results[active]); }
@@ -1877,6 +1914,28 @@ function wireShell(){
     document.addEventListener('keydown',e=>{
       // Cmd/Ctrl+K → global jump palette (works even while typing in a field)
       if((e.metaKey||e.ctrlKey)&&(e.key==='k'||e.key==='K')){ e.preventDefault(); openCommandPalette(); return; }
+      /* ⌘B / Ctrl+B → collapse or open the sidebar. The settled binding —
+         verified in shadcn's own source, which is the de-facto modern
+         dashboard implementation, and the same key Vercel and Linear use.
+         toggleRail() already knows the difference between the two worlds: above
+         the float line it flips the stored preference, below it opens and
+         closes the floating layer and leaves the preference alone.
+
+         IT IS GUARDED WHERE ⌘K IS NOT, AND THAT IS THE WHOLE CARE HERE.
+         ⌘K is deliberately allowed while typing — a jump palette is useful
+         mid-sentence. ⌘B is BOLD in a rich-text editor, and this product has
+         ten contenteditable surfaces: js/richpaste.js:400 binds ⌘B/I/U on the
+         editor element itself for exactly that. That handler calls
+         preventDefault but NOT stopPropagation, so the event still reaches
+         this one — unguarded, typing ⌘B in a clause editor would bold the
+         words AND collapse the sidebar. Both belts: an editable target is
+         skipped outright, and a already-handled event is left alone. */
+      if((e.metaKey||e.ctrlKey)&&(e.key==='b'||e.key==='B')){
+        if(e.defaultPrevented) return;
+        const t=e.target;
+        if(t&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName||''))) return;
+        e.preventDefault(); toggleRail(); return;
+      }
       if(e.key==='/'&&!/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)){ e.preventDefault(); openCommandPalette(); }
     });
   }

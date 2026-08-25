@@ -764,7 +764,8 @@ function regRowsHtml(cs){
     let band='';
     if(neg && c._ngBand!==lastBand){ band=bandsBefore(c._ngBand); lastBand=c._ngBand; }
     return band + `
-    <tr data-row="${c.id}"${neg?' data-nego-row="1"':''} style="cursor:pointer;animation-delay:${Math.min(i,14)*22}ms">
+    <tr data-row="${c.id}"${neg?' data-nego-row="1"':''} tabindex="${i===0?0:-1}"
+      style="cursor:pointer;animation-delay:${Math.min(i,14)*22}ms">
       <td class="reg-mk">${c.id}</td>
       <td style="max-width:300px${c._famChild?';padding-left:30px':''}">
         ${''/* ---- ONE LINE PER CONTRACT (owner-ruled 24 Aug 2026) ----
@@ -859,11 +860,60 @@ function wireRegRows(){
      page, where a row opens the NEGOTIATION. Same table, same builder, one
      different destination, decided off the row's own attribute rather than off
      the scope flag so a row can never disagree with the page that drew it. */
-  document.querySelectorAll('#reg-tbody [data-row]').forEach(el=>el.addEventListener('click',()=>{
+  const openRow=el=>{
     const id=el.getAttribute('data-row');
     if(el.getAttribute('data-nego-row')&&window.openRedlineWorkbench) openRedlineWorkbench(id);
     else selectContract(id);
-  }));
+  };
+  document.querySelectorAll('#reg-tbody [data-row]').forEach(el=>el.addEventListener('click',()=>openRow(el)));
+
+  /* ═══ ARROW KEYS THROUGH THE LIST — the single biggest "this feels fast"
+     signal, and the one every benchmark has and HaTi did not ═══════════════
+     MEASURED before this: js/views/register.js contained zero ArrowDown
+     handling, and on the Negotiations page the row press was the SOLE route
+     in — that list was mouse-only outright.
+
+     ROVING TABINDEX, NOT role="grid". One row is in the tab order at a time
+     and the arrows move which; the table stays a table. Declaring role="grid"
+     would change how the whole thing is announced and how every cell is
+     addressed, which is a much larger claim than "the arrows work" and would
+     reach every existing reading of this table.
+
+     THE BAND HEADINGS ARE SKIPPED BY CONSTRUCTION: they carry no data-row —
+     they are role="presentation" grouping rows with no tab stop — so the
+     query below simply never sees them and Down steps from the last row of
+     one band to the first of the next.
+
+     ONE DELEGATED LISTENER on the tbody, not one per row: this body repaints
+     on every filter, sort and page change, and a listener per row would stack
+     one set per repaint. */
+  const tbody=document.getElementById('reg-tbody');
+  if(tbody && !tbody.dataset.regKeysBound){
+    tbody.dataset.regKeysBound='1';
+    tbody.addEventListener('keydown',e=>{
+      const row=e.target.closest && e.target.closest('[data-row]');
+      if(!row) return;
+      /* A control INSIDE the row owns its own keys — the ⋯ menu button and
+         the family toggle are real buttons and Enter must press them, not
+         open the contract behind them. */
+      if(e.target!==row && /^(BUTTON|A|INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+      const rows=[...tbody.querySelectorAll('[data-row]')];
+      const i=rows.indexOf(row);
+      let to=-1;
+      if(e.key==='ArrowDown') to=Math.min(i+1,rows.length-1);
+      else if(e.key==='ArrowUp') to=Math.max(i-1,0);
+      else if(e.key==='Home') to=0;
+      else if(e.key==='End') to=rows.length-1;
+      else if(e.key==='Enter'||e.key===' '){ e.preventDefault(); openRow(row); return; }
+      else return;
+      e.preventDefault();
+      const next=rows[to]; if(!next||next===row) return;
+      row.setAttribute('tabindex','-1');
+      next.setAttribute('tabindex','0');
+      next.focus({preventScroll:true});
+      next.scrollIntoView({block:'nearest'});
+    });
+  }
   // expand / collapse an agreement's linked documents
   document.querySelectorAll('#reg-tbody [data-fam-toggle]').forEach(b=>b.addEventListener('click',e=>{
     e.stopPropagation(); const R=regState(); const id=b.getAttribute('data-fam-toggle');
@@ -1140,6 +1190,19 @@ function renderRegister(opts){
       .reg-table tbody tr:last-child td{border-bottom:0}
       .reg-table tbody tr{transition:background .12s}
       .reg-table tbody tr:hover{background:color-mix(in srgb,var(--color-text) 4%,transparent)}
+      /* ---- THE KEYBOARD'S OWN ROW, AND WHY IT IS NOT AN OUTLINE ----
+         With border-collapse:collapse a <tr> paints no box of its own, so an
+         outline or a border on the row draws nothing at all — the cells own
+         the edges. Two inset shadows on every cell give one continuous rule
+         across the whole row instead of a box per cell, which is what an
+         outline would have looked like if it had worked.
+         :focus-visible, so a mouse press never draws it — the arrows and Tab
+         do. --focus-color, so it follows the theme like every other ring
+         (and it now has a dark answer, 25 Aug). */
+      .reg-table tbody tr[data-row]:focus{outline:none}
+      .reg-table tbody tr[data-row]:focus-visible td{
+        background:color-mix(in srgb,var(--color-text) 6%,transparent);
+        box-shadow:inset 0 2px 0 var(--focus-color),inset 0 -2px 0 var(--focus-color)}
       /* The tracking number leads the row, so it is set in the figure face and
          never wraps — an id that breaks across two lines stops being an id.
          Teal, like the mockup: the id is the row's own link-coloured handle. */
