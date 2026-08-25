@@ -1038,6 +1038,100 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   await p.evaluate(() => { if (window.rlSetDocType) rlSetDocType(15); });
   await pause(300);
 
+  /* ---- 14. A CLAUSE YOU PROPOSED IS EDITABLE TOO (owner-asked 25 Aug 2026,
+     off a screenshot of a payment-terms clause added from the playbook:
+     "standard clauses added should be editable as well") ----
+     A BROWSER FILE because the claim is a JOURNEY: the pencil has to be
+     pressable pixels on the proposed clause, the panel behind it has to open
+     with the ＋ on it, the editor has to arrive seeded with the proposal, and
+     the save has to revise THE SAME ASK rather than file a second clause into
+     the agreement. f210 pins the model and the markup; this drives it. */
+  const ins = await p.evaluate(async () => {
+    const c = window.CONTRACT;
+    const list = negoClauseList(c);
+    await negoInsertClause(c, list[list.length - 1].clauseId, {
+      headingText: 'Payment terms',
+      bodyHtml: '<p>Paid within thirty (30) days of the invoice date.</p>' },
+      { side: 'owner', author: 'Young Mbagaya' });
+    renderRedline();
+    const ask = negoChanges(c).find(x => x.changeType === 'insertClause');
+    return { id: ask && ask.id, clauseId: ask && ask.clauseId };
+  });
+  await pause(600);
+  /* SCROLLED INTO VIEW FIRST. elementFromPoint only answers about the visible
+     viewport, and the proposed clause is the last thing in the document — a
+     pill below the fold reads as unreachable when it is merely off-screen. */
+  await p.evaluate(id => {
+    const sec = document.querySelector(`.redline-page .nego-clause[data-clause="${id}"]`);
+    if (sec) sec.scrollIntoView({ block: 'center' });
+  }, ins.clauseId);
+  await pause(400);
+  ck('14a the fixture proposes a clause the way the playbook does', !!ins.id, ins.id);
+  const newPill = await p.evaluate(id => {
+    const sec = document.querySelector(`.redline-page .nego-clause[data-clause="${id}"]`);
+    const b = sec && sec.querySelector('.rl-cp-pill');
+    if (!b) return { drawn:false };
+    const r = b.getBoundingClientRect();
+    return { drawn:true, w:Math.round(r.width), h:Math.round(r.height),
+      reachable: document.elementFromPoint(r.left + r.width/2, r.top + r.height/2) === b
+        || b.contains(document.elementFromPoint(r.left + r.width/2, r.top + r.height/2)) };
+  }, ins.clauseId);
+  ck('14b it carries the same door as every other clause, and it is reachable',
+    newPill.drawn && newPill.w > 12 && newPill.h > 10 && newPill.reachable,
+    JSON.stringify(newPill));
+  await p.evaluate(id => {
+    document.querySelector(`.redline-page .nego-clause[data-clause="${id}"] .rl-cp-pill`).click();
+  }, ins.clauseId);
+  await pause(500);
+  const newPanel = await p.evaluate(id => {
+    const b = document.querySelector(`#rl-cp-body .rl-cp-src[data-rl-cp-for="${id}"]`);
+    if (!b) return null;
+    const r = b.getBoundingClientRect();
+    return { on: b.classList.contains('is-on'), w: Math.round(r.width),
+      head: (b.querySelector('.rl-cp-h')||{}).textContent,
+      stands: (b.querySelector('.rl-cp-stands')||{}).textContent.trim().slice(0, 40),
+      act: (b.querySelector('.rl-cp-act-new')||{}).textContent.trim() };
+  }, ins.clauseId);
+  ck('14c the panel opens on it, headed as a PROPOSAL rather than as in force',
+    !!newPanel && newPanel.on && newPanel.w > 100 && !/stands/i.test(newPanel.head||''),
+    JSON.stringify(newPanel));
+  ck('14d and it shows the wording being proposed, with the ＋ over it',
+    !!newPanel && /thirty \(30\)/.test(newPanel.stands||'') && /\+/.test(newPanel.act||''),
+    JSON.stringify(newPanel));
+  await p.evaluate(id => {
+    document.querySelector(`#rl-cp-body .rl-cp-src[data-rl-cp-for="${id}"] .rl-cp-act-new`).click();
+  }, ins.clauseId);
+  await pause(500);
+  const seeded = await p.evaluate(id => {
+    const b = document.querySelector(`#rl-cp-body .rl-cp-src[data-rl-cp-for="${id}"]`);
+    const e = b && b.querySelector('[data-nego-editor]');
+    return e ? { text: e.textContent.trim().slice(0, 40),
+      bar: !!b.querySelector('.nego-edit-bar') } : null;
+  }, ins.clauseId);
+  ck('14e the editor opens in the panel, seeded with the proposal',
+    !!seeded && /thirty \(30\)/.test(seeded.text) && seeded.bar, JSON.stringify(seeded));
+  const filed13 = await p.evaluate(async id => {
+    const b = document.querySelector(`#rl-cp-body .rl-cp-src[data-rl-cp-for="${id}"]`);
+    const e = b.querySelector('[data-nego-editor]');
+    e.innerHTML = '<p>Paid within forty-five (45) days of the invoice date.</p>';
+    b.querySelector('[data-nego-next]').click();
+    await new Promise(r => setTimeout(r, 300));
+    const skip = b.querySelector('[data-nego-skip]');
+    (skip || b.querySelector('[data-nego-save]')).click();
+    await new Promise(r => setTimeout(r, 1200));
+    const all = negoChanges(window.CONTRACT).filter(x => x.changeType === 'insertClause');
+    return { n: all.length, id: all[0] && all[0].id, text: (all[0]||{}).newText || '',
+      revs: ((all[0]||{}).revisions || []).length,
+      paper: [...document.querySelectorAll('.redline-page section.rl-clause-new')]
+        .map(x => x.textContent.replace(/\s+/g, ' ')).join(' | ') };
+  }, ins.clauseId);
+  ck('14f saving revises the SAME ask — one proposed clause, not two',
+    filed13.n === 1 && filed13.id === ins.id && filed13.revs === 1,
+    `${filed13.n} clause(s) · ${filed13.id} · ${filed13.revs} revision(s)`);
+  ck('14g and the new wording is on the paper',
+    /forty-five \(45\)/.test(filed13.text) && /forty-five \(45\)/.test(filed13.paper),
+    filed13.text.slice(0, 70));
+
   ck('no page errors', errs.length===0, errs.join(' | ')||'clean');
   const pass=R.filter(Boolean).length;
   console.log(`\n${pass}/${R.length} checks passed`);

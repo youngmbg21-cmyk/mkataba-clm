@@ -681,6 +681,51 @@ const check = (name, ok, detail) => {
       check(`15 ${name}: because a page that cannot scroll reserves no gutter`,
         !!e && e.gutter === 0, e ? `${e.gutter}px reserved` : '-');
     }
+    /* ---- 15b · AND THE TWO HALVES JOIN AT EVERY WINDOW HEIGHT
+       (owner-reported 25 Aug 2026: "there is still a grey gap in the card that
+       needs to be eliminated") ----
+       The band bleeds to the view's edge by pulling the view's own padding
+       back, and the wrapper TYPED 14px and 16px where the band reads
+       --page-pad-t and --page-pad-x. The two only cancelled by luck, at the one
+       window height where the token happens to be 16 — which is the height
+       every check above runs at. The day --page-pad-t started tightening with
+       the window the luck ran out: MEASURED at 1440x800 a 4px strip of page
+       ground across the card, and 6px under 680.
+       SO IT IS ASKED SHORT AS WELL AS TALL, and asked as PAINT: walk the rows
+       between the head's bottom and the band's top and require every one of
+       them to be owned by one or the other. */
+    const JOIN = () => {
+      const colAt = (x, y) => { const t = document.elementFromPoint(x, y);
+        let n = t, c = 'rgba(0, 0, 0, 0)';
+        while (n && c === 'rgba(0, 0, 0, 0)'){ c = getComputedStyle(n).backgroundColor; n = n.parentElement; }
+        const own = t && t.closest('#page-head, .reg-band');
+        return { c, own: own ? (own.id ? '#' + own.id : '.reg-band') : 'OTHER' }; };
+      const r = s => { const e = document.querySelector(s); return e ? e.getBoundingClientRect() : null; };
+      const head = r('#page-head'), band = r('.reg-band');
+      if (!head || !band) return null;
+      const rows = [];
+      for (let y = Math.round(head.bottom) - 3; y <= Math.round(band.top) + 3; y++)
+        rows.push(colAt(500, y));
+      return { gap: Math.round((band.top - head.bottom) * 10) / 10,
+        padT: getComputedStyle(document.documentElement).getPropertyValue('--page-pad-t').trim(),
+        strangers: rows.filter(x => x.own === 'OTHER').length, rows: rows.length };
+    };
+    for (const H of [1000, 800, 660]){
+      await page.setViewportSize({ width: 1500, height: H });
+      await page.waitForTimeout(400);
+      await page.evaluate(() => setView('dashboard'));
+      await page.waitForTimeout(700);
+      await page.evaluate(() => setView('register'));
+      await page.waitForTimeout(1500);
+      const j = await page.evaluate(JOIN);
+      check(`15b at ${H}px tall the head and the band meet with no gap`,
+        !!j && j.gap <= 0 && j.strangers === 0,
+        j ? `--page-pad-t ${j.padT} · gap ${j.gap}px · ${j.strangers} of ${j.rows} rows painted by neither`
+          : 'nothing to measure');
+    }
+    await page.setViewportSize({ width: 1500, height: 1000 });
+    await page.waitForTimeout(500);
+
     /* AND THE RULE GOES WITH THE PAGE. It lives in the register's own injected
        <style>, so the next view gets the shell's reserved gutter back — which
        is what stops content jolting sideways between a scrolling page and a

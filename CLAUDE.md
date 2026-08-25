@@ -3643,6 +3643,87 @@ the band and asks both what colour is there AND which element owns it — a colo
 check alone is satisfied by anything laid over the page, and the always-mounted
 Activity and Copilot panels are exactly that kind of thing.
 
+## THE JOIN IS TWO TOKENS OR IT IS A GAP (owner-reported 25 Aug 2026)
+
+*"There is still a grey gap in the card that needs to be eliminated."* — the
+Contracts page, on a laptop, a strip of page ground across the white card
+between the title row and the filters.
+
+**THE BAND CANCELS THE VIEW'S PADDING WITH THE TOKEN AND THE WRAPPER TYPED THE
+NUMBER.** `.reg-band` bleeds to the view's edge with
+`margin:calc(var(--page-pad-t) * -1) calc(var(--page-pad-x) * -1)`; the
+register's own wrapper typed `padding:14px 16px 14px`. The two only ever
+cancelled by luck — at the one window height where `--page-pad-t` happens to be
+16. **The day --page-pad-t started tightening with the window (25 Aug, ONE
+HEADER TOP) the luck ran out**: on a laptop it is 10, so the band began
+`14 - 10 = 4px` BELOW the head and the page ground showed through. MEASURED: 4px
+under 820px of page, **6px** under 680, 0 at 900 — which is why every check
+passed. The wrapper reads the tokens now.
+
+- **`.ngl-page{padding-top:...}` IS RETIRED WITH IT**, and its own note is the
+  lesson: it said widening the fix to the wrapper "would move the Contracts
+  page's filter bar for no reason". There was a reason, and this was it.
+- **THE STANDING RULE**: where one rule cancels another's padding, both read the
+  same token. A typed number that happens to match is a gap waiting for the
+  token to move.
+
+Tests: contracts-page-verify 15b — asked at 1000, 800 and 660 and asked as
+PAINT (every row between the head's bottom and the band's top must be owned by
+one or the other); **it reports the reported gap, 4px and 6px, against the code
+of an hour before**.
+
+## A CLAUSE YOU PROPOSED IS EDITABLE TOO (owner-asked 25 Aug 2026)
+
+Off a screenshot of a payment-terms clause added from the playbook: *"standard
+clauses added should be editable as well."*
+
+**IT WAS THE ONE THING ON THE PAPER WITH NO WAY BACK INTO IT.** An
+`insertClause` ask is not in the baseline, so `negoClauseById` answered null and
+every editing door in the product stood down — the pencil was not drawn, the
+card's Open was suppressed, the card's Edit fell back to a jump. A reader who
+added a clause and wanted thirty days to read forty-five had to withdraw the ask
+and add it again.
+
+- **IT IS THE FUNNEL'S OWN REVISION FOLD, NOT A NEW ACT.** `negoFileChange`
+  already revises in place when the same side files again on the same clause in
+  the same round — that is what makes a second edit a revision rather than a
+  rival — and an insert is no different. **`negoReviseInsert(c, clauseId,
+  clause, opts)`** files the SAME clauseId back through the same funnel: the ask
+  keeps its id, its author and its place, its previous wording goes onto
+  `revisions[]` with its hash intact, and a new fingerprint is issued. Every
+  guard the funnel carries — the desk rule, the review gate, the executed-wording
+  freeze — applies unchanged, because none of them is repeated there.
+- **IT ONLY EVER REVISES.** `negoInsertClause` mints a fresh clauseId every
+  time; this one returns null unless there really is a pending insert of OUR OWN
+  on that clause. Without that check a mistyped id would file a second,
+  invisible clause into the agreement.
+- **OUR OWN, AND ONLY WHILE IT IS LIVE.** Their proposal is answered, not edited
+  — the mirror rule this page keeps everywhere — and a settled one is a record.
+  Both fall through to the plain block, so nothing that used to draw stops.
+- **THE PANEL SAYS AS PROPOSED, NOT AS IT STANDS** (`ng_cp_proposed` /
+  `ng_cp_proposed_note`, both languages). A clause nobody has agreed to is not
+  in force, and that heading is the one place the page would be saying it is.
+  `negoClauseNowById` answers null for it, so every reading in the panel comes
+  off the ask itself; the ＋ reads "Continue your draft", which is what the
+  funnel will actually do.
+- **THE EDITOR IS THE SAME EDITOR.** One branch in the `[data-nego-edit]`
+  handler: the clause comes from the ask when the baseline has none, the seed is
+  the ask's own body, and the save routes to `negoReviseInsert`. The two steps,
+  the reason, the Skip, the fingerprint and every refusal are the same code
+  either way. **The ask must be one of the ids the BLOCK carries** — the same
+  wall as everything else there, so the editor can only open on wording the
+  reader is already entitled to see.
+- **A REPLACE THAT MATCHED THE WRONG FUNCTION COST AN HOUR.** The `standing`
+  line this change edits appears twice in the file, and the first occurrence is
+  in `negoLeadChange` — the edit landed there and the whole Negotiations page
+  died with "isNew is not defined". Anchor a replacement on a neighbouring line
+  that is unique, and read back the line numbers before running anything.
+
+Tests: f210 (13) — 8 claims, **7 of them fail against the code of an hour
+before**; clause-door-verify section 14 (7, browser — the pencil as reachable
+pixels, the panel's heading, the editor seeded from the proposal, and the save
+proved to leave ONE proposed clause carrying one revision).
+
 ## Line numbers drift
 
 Line numbers were verified 2026-08-03. Code moves — treat them as starting points, re-verify with grep, and UPDATE THIS MAP when the layout changes.

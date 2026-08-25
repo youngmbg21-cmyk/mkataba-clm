@@ -212,8 +212,16 @@ describe('f208 · the editor opens on the clause as it stands', () => {
        against. Asserted off the source: the seeding is a DOM path with no
        return value, and what is under test is which of two readings it asks. */
     const src = fs.readFileSync(path.join(ROOT, 'js/views/negotiation.js'), 'utf8');
-    const at = src.indexOf('const openOn = (onTable');
+    /* RE-POINTED 25 Aug 2026, claim unchanged. The seed grew a branch in front
+       of it — a clause that is only PROPOSED has no baseline to measure
+       against, so it seeds from its own ask (see f210 (13)) — and this test
+       anchored on the literal `const openOn = (onTable`. What it is really
+       about is which of two readings the seed asks for an ordinary clause, and
+       that is untouched. Anchor on the assignment, not on its first branch. */
+    const at = src.indexOf('const openOn =');
     assert.ok(at > 0, 'the editor still seeds itself here');
+    assert.match(src.slice(at, at + 260), /onTable && String\(onTable\.bodyHtml/,
+      'and the wording on the table is still the floor for an ordinary clause');
     assert.match(src.slice(at - 400, at + 200), /negoClauseNowById\(c, clauseId\)/,
       'it reads the clause as it stands');
     assert.ok(!/const openOn = \(onTable && String\(onTable\.bodyHtml \|\| ''\)\.trim\(\)\)\s*\n\s*\|\| cl\.bodyHtml/.test(src),

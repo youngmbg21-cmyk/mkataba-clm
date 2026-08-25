@@ -1654,12 +1654,18 @@
      2026: "the distance between the edge at the top and the header should be
      the same across all pages") ----
      This page draws its OWN head INSIDE the register's body wrapper, which
-     pads 14px down, while the shared #page-head pads 16 — so its title sat 2px
-     high. SCOPED TO .ngl-page, which only this page carries: the Contracts
-     page uses the same wrapper and its head is the shared one, already at 16,
-     so widening this to the wrapper would move that page's filter bar for no
-     reason. */
-  .ngl-page{ padding-top:var(--page-pad-t)!important; }
+     typed 14px down while the shared #page-head padded 16 — so its title sat
+     2px high, and this rule pushed it back.
+     RETIRED THE SAME DAY, and the reasoning is what matters. The note here
+     said widening the fix to the wrapper "would move the Contracts page's
+     filter bar for no reason". THERE WAS A REASON: the band cancels the
+     wrapper's padding with the TOKEN, so a typed 14 and a token-read 16 only
+     agreed at the one window height where the token is 16. On a laptop it is
+     10 and a 4px strip of page ground opened across the card — which is what
+     the owner reported next. The wrapper reads the tokens now and both pages
+     are right at every height, so this override has nothing left to correct. */
+  /* .ngl-page carries no padding rule any more; the class stays as the hook
+     that says which of the two pages this wrapper is drawing. */
   .ngl-head-table h2{ margin:0; display:flex; align-items:baseline; gap:9px; flex-wrap:wrap; }
   .ngl-head-table p{ margin:2px 0 0; }
   .ngl-live{ font-family:var(--font-mono); font-size:13px; font-weight:700;

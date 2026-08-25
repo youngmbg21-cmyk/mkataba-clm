@@ -1467,6 +1467,10 @@ const STRINGS = {
     ng_cp_close_title: 'Close this clause',
     ng_cp_stands: 'As it stands',
     ng_cp_stands_note: 'The wording in force on this clause right now.',
+    /* A clause somebody has PROPOSED is not in force, so the panel above it
+       may not say it is. Same block, same editor, honest heading. */
+    ng_cp_proposed: 'As proposed',
+    ng_cp_proposed_note: 'This clause is not in the agreement yet — it is on the table.',
     ng_cp_table: 'On the table',
     ng_cp_table_none: 'Nothing is on the table for this clause.',
     ng_cp_history: 'History',
@@ -6101,6 +6105,8 @@ const STRINGS = {
     ng_cp_close_title: 'Stäng klausulen',
     ng_cp_stands: 'Som den lyder',
     ng_cp_stands_note: 'Den formulering som gäller för klausulen just nu.',
+    ng_cp_proposed: 'Som föreslagen',
+    ng_cp_proposed_note: 'Den här klausulen finns inte i avtalet än — den ligger på bordet.',
     ng_cp_table: 'På bordet',
     ng_cp_table_none: 'Inget ligger på bordet för den här klausulen.',
     ng_cp_history: 'Historik',

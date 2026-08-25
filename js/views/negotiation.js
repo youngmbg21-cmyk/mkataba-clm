@@ -3933,10 +3933,39 @@ function wireNegotiationTab(c, opts = {}){
     const body = inPanel ? block.querySelector('.rl-cp-stands')
       : (block.querySelector('.nego-body') || block.querySelector('p'));
     if (!body) return;
+    /* ---- WHAT IS ON SCREEN FOR THIS CLAUSE, READ ONCE ----
+       Moved above the clause lookup 25 Aug 2026 so the proposed-clause branch
+       below can use it. Unchanged otherwise: the ids come off the block the
+       renderer drew, never from a search of c.changes, so the editor can only
+       ever open on wording the reader is already entitled to see (the wall
+       keeps the other side's unsent drafts out of the document). */
+    const anchorEl = inPanel
+      ? host.querySelector(`.nego-pane.working .nego-clause[data-clause="${clauseId}"]`)
+      : block;
+    const shownIds = String((anchorEl && (anchorEl.getAttribute('data-nego-card-anchor')
+      || anchorEl.getAttribute('data-change'))) || '').split(/\s+/).filter(Boolean);
+    /* ---- A CLAUSE THAT IS ONLY PROPOSED (owner-asked 25 Aug 2026: "standard
+       clauses added should be editable as well") ----
+       An insertClause ask has no clause in the baseline, so negoClauseById
+       answers null and this handler used to stop here — which is why a clause
+       added from the playbook was the one thing on the paper with no way back
+       into it. The ASK supplies the clause instead: its own heading and its own
+       proposed wording, which is exactly what the paper and the panel are
+       already showing. OUR OWN AND LIVE ONLY, and it must be one of the ids the
+       block itself carries — the same wall as everything else here. */
+    const meSide = side === 'counterparty' ? 'counterparty' : 'owner';
+    const newAsk = shownIds.length
+      ? (typeof negoChanges === 'function' ? negoChanges(c) : [])
+        .find(x => x && shownIds.includes(x.id) && x.clauseId === clauseId
+          && x.changeType === 'insertClause' && x.status === 'pending' && !x.withdrawn
+          && x.authorSide === meSide)
+      : null;
     /* The clause is edited as the RICH content it is, in place. The old flow
        put the whole document into a <textarea>, which is why headings,
        numbering and tables did not survive being proposed on. */
-    const cl = negoClauseById(c, clauseId);
+    const cl = negoClauseById(c, clauseId)
+      || (newAsk ? { clauseId, headingText: newAsk.headingText || '',
+        text: newAsk.newText || '', bodyHtml: newAsk.bodyHtml } : null);
     if (!cl) return;
     /* ---- THE EDITOR OPENS ON THE WORDING THAT IS ON THE TABLE ----
        Not on the baseline underneath it. This used to read cl.bodyHtml
@@ -4002,11 +4031,6 @@ function wireNegotiationTab(c, opts = {}){
        f144's original fault, back through the new door. The panel reads the
        clause's OWN anchor rather than growing a copy that could drift: one
        canvas, one wall, one list of what is on screen. */
-    const anchorEl = inPanel
-      ? host.querySelector(`.nego-pane.working .nego-clause[data-clause="${clauseId}"]`)
-      : block;
-    const shownIds = String((anchorEl && (anchorEl.getAttribute('data-nego-card-anchor')
-      || anchorEl.getAttribute('data-change'))) || '').split(/\s+/).filter(Boolean);
     const onTable = shownIds.length
       ? (typeof negoChanges === 'function' ? negoChanges(c) : [])
         .find(x => x && shownIds.includes(x.id) && x.status === 'pending'
@@ -4016,9 +4040,13 @@ function wireNegotiationTab(c, opts = {}){
        it — for the reason set out above. Falls back to the baseline reading if
        the model is not loaded, which is the behaviour every stage without it
        had before. */
-    const shown = (typeof negoClauseNowById === 'function')
-      ? (negoClauseNowById(c, clauseId) || cl) : cl;
-    const openOn = (onTable && String(onTable.bodyHtml || '').trim())
+    const shown = newAsk ? cl
+      : ((typeof negoClauseNowById === 'function')
+        ? (negoClauseNowById(c, clauseId) || cl) : cl);
+    /* On a proposed clause the ask IS the wording on screen, so it is the seed;
+       onTable deliberately never matches an insertClause. */
+    const openOn = (newAsk && String(newAsk.bodyHtml || '').trim())
+      || (onTable && String(onTable.bodyHtml || '').trim())
       || shown.bodyHtml || `<p>${_ne(shown.text)}</p>`;
     const holder = document.createElement('div');
     holder.className = 'nego-editing';
@@ -4099,8 +4127,17 @@ function wireNegotiationTab(c, opts = {}){
 
     const file = () => {
       const note = String((why.querySelector('textarea') || {}).value || '').trim();
-      fileAndRepaint(() => negoEditClause(c, clauseId, holder.innerHTML,
-        { side, author: opts.by, why: note || undefined }),
+      /* ---- ONE EDITOR, TWO KINDS OF ASK ----
+         A proposed clause is revised through negoReviseInsert, which files the
+         SAME clauseId back through the same funnel so the ask keeps its id and
+         its place and the previous wording goes onto revisions[]. Everything
+         else about this bar — the two steps, the reason, the Skip, the
+         fingerprint, every refusal — is the same code either way. */
+      fileAndRepaint(() => (newAsk
+        ? negoReviseInsert(c, clauseId, { bodyHtml: holder.innerHTML },
+          { side, author: opts.by, why: note || undefined })
+        : negoEditClause(c, clauseId, holder.innerHTML,
+          { side, author: opts.by, why: note || undefined })),
         ch => `#${ch.id} filed — ${ch.summary}`,
         /* Nothing changed — neither words nor formatting. Said IN the bar,
            beside the button that was pressed: the toast alone made File
@@ -5555,8 +5592,17 @@ function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
      printing the baseline would state the wording that was in force before the
      adoption the reader had just made. negoClauseNowById is the one reading;
      the accept guard, the editor's seed and the paper all measure from it. */
-  const standing = (typeof negoClauseNowById === 'function')
-    ? (negoClauseNowById(c, cl.clauseId) || cl) : cl;
+  /* ---- A CLAUSE THAT IS ONLY PROPOSED HAS NOTHING STANDING (owner-asked
+     25 Aug 2026: "standard clauses added should be editable as well") ----
+     An insertClause ask is not in the baseline, so negoClauseNowById answers
+     null for it and every reading below has to come off the ask itself. The
+     panel says AS PROPOSED rather than AS IT STANDS, because a clause nobody
+     has agreed to is not in force and this heading is the one place the page
+     would be saying it is. Everything else about the panel is the same. */
+  const isNew = !!opts.newClause;
+  const standing = isNew ? cl
+    : ((typeof negoClauseNowById === 'function')
+      ? (negoClauseNowById(c, cl.clauseId) || cl) : cl);
   const standsBody = rlHangRichHtml((typeof negoRichBody === 'function')
     ? negoRichBody(standing) : `<p>${_ne(standing.text || '')}</p>`);
   const live = list.filter(x => x.status === 'pending' && !x.withdrawn);
@@ -5564,7 +5610,8 @@ function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
      starting a rival — the engine's rule, not a decision taken here — so the ＋
      says so instead of promising something else. */
   const mine = live.some(x => x.authorSide === (side === 'counterparty' ? 'counterparty' : 'owner')
-    && x.changeType !== 'deleteClause' && x.changeType !== 'insertClause');
+    && (isNew ? x.changeType === 'insertClause'
+      : (x.changeType !== 'deleteClause' && x.changeType !== 'insertClause')));
   /* What is SETTLED — everything that is not on the table. Same list, same
      order, one predicate apart, so a change cannot be in neither or in both. */
   const past = list.filter(x => !live.includes(x));
@@ -5651,8 +5698,8 @@ function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
   return `<div class="rl-cp-src${rlCpOpenId() === String(cl.clauseId) ? ' is-on' : ''}" data-rl-cp-for="${id}">
     <p class="rl-cp-clname">${_ne(String(cl.headingText || cl.title || '').trim() || i18t('ng_cp_stands'))}</p>
     <section class="rl-cp-sec">
-      <h5 class="rl-cp-h">${i18t('ng_cp_stands')}</h5>
-      <p class="rl-cp-note">${i18t('ng_cp_stands_note')}</p>
+      <h5 class="rl-cp-h">${i18t(isNew ? 'ng_cp_proposed' : 'ng_cp_stands')}</h5>
+      <p class="rl-cp-note">${i18t(isNew ? 'ng_cp_proposed_note' : 'ng_cp_stands_note')}</p>
       <div class="rl-cp-stands">${standsBody}</div>
     </section>
     ${''/* ---- THE ACTS SIT UNDER THE WORDING THEY ACT ON (owner-asked 16 Aug
@@ -9144,14 +9191,14 @@ function redlineDocHtml(c, opts = {}){
      canvas), and the Edit pill stands down with it: a door is drawn only where
      the room behind it exists. */
   const hasPanel = Array.isArray(opts.cpSink);
-  const cpPush = (cl, chs) => {
+  const cpPush = (cl, chs, cpOpts) => {
     if (!hasPanel) return '';
     /* The notes options ride through because the panel now renders each
        change's thread AND its reply box — the engine-wired original, moved
        here from the retired pop-out. See the note inside rlClausePanelBodyHtml. */
     opts.cpSink.push(rlClausePanelBodyHtml(c, cl, chs, side, { editable, noAi: opts.noAi,
       messages: opts.messages, org: opts.org, readonly: opts.readonly,
-      canComment: opts.canComment }));
+      canComment: opts.canComment, ...(cpOpts || {}) }));
     return '';
   };
   /* ---- THE CLAUSE TOOLBAR IS GONE FROM THE PAPER (owner-asked 16 Aug 2026:
@@ -9293,11 +9340,31 @@ function redlineDocHtml(c, opts = {}){
     const inner = window.redlineOpsBlocksHtml
       ? redlineOpsBlocksHtml([{ op: ch.status === 'rejected' ? 'del' : 'ins', text }])
       : `<p><span class="${ch.status === 'rejected' ? 'nego-del' : 'nego-ins'}">${_ne(text)}</span></p>`;
+    /* ---- A CLAUSE YOU PROPOSED IS EDITABLE LIKE ANY OTHER (owner-asked
+       25 Aug 2026, off a screenshot of a payment-terms clause added from the
+       playbook: "standard clauses added should be editable as well") ----
+       Every other clause on this paper carries the pencil; this one did not,
+       because the panel behind it is built per CLAUSE and an insertClause ask
+       has no clause in the baseline to build from. So the ask supplies one:
+       its own heading and its own proposed wording, which is exactly what the
+       panel would show. negoReviseInsert is what the editor files through, and
+       the funnel folds it into this same ask rather than stacking a rival.
+
+       OUR OWN, AND ONLY WHILE IT IS LIVE. Their proposal is answered, not
+       edited — the mirror rule this page keeps everywhere — and a settled one
+       is a record. Both fall through to the plain block, so nothing that used
+       to draw stops drawing. */
+    const me = side === 'counterparty' ? 'counterparty' : 'owner';
+    const revisable = !settled && ch.authorSide === me && editable;
+    const asClause = revisable ? { clauseId: ch.clauseId, headingText: label,
+      text, bodyHtml: ch.bodyHtml || `<p>${_ne(text)}</p>` } : null;
     return `<section class="nego-clause rl-clause is-changed rl-clause-new" data-clause="${_ne(ch.clauseId)}" data-nego-card-anchor="${_ne(ch.id)}">
       <div class="rl-clause-top">
         ${label ? `<h4 class="rl-clause-h">${_ne(label)}</h4>` : ''}
+        ${asClause ? rlClauseEditPillHtml(asClause, { editable, hasPanel }) : ''}
       </div>
       <div class="nego-body">${inner}</div>
+      ${asClause ? cpPush(asClause, [ch], { newClause: true }) : ''}
     </section>`;
   };
   /* Folded to the reviewer's own clauses — see rlRvDocClauses. Null means the

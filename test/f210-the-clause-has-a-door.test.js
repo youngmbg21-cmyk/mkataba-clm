@@ -1331,3 +1331,130 @@ describe('F210 — the clause rail', () => {
       'reserved in the reader\'s own type scale — the pill grows with it');
   });
 });
+
+/* ============================================================
+   13 — AND THE DOOR REACHES A CLAUSE YOU PROPOSED
+   ============================================================
+   Owner-asked 25 Aug 2026, off a screenshot of a payment-terms clause added
+   from the playbook: "standard clauses added should be editable as well."
+
+   IT WAS THE ONE THING ON THE PAPER WITH NO WAY BACK INTO IT. An insertClause
+   ask is not in the baseline, so negoClauseById answered null and every editing
+   door in the product stood down — a reader who added a clause and wanted to
+   change thirty days to forty-five had to withdraw the ask and add it again.
+
+   THE FIX IS THE FUNNEL'S OWN REVISION FOLD, not a new act: negoFileChange
+   already revises in place when the same side files again on the same clause in
+   the same round, and an insert is no different. So the claims here are about
+   the ASK KEEPING ITS IDENTITY — same id, one change, previous wording on
+   revisions[] — because a second insert would put an invisible extra clause
+   into the agreement. */
+describe('f210 (13) — a clause you proposed is editable too', () => {
+  /* A bench whose contract carries OUR OWN pending insertClause ask, the shape
+     the playbook and the clause library both file. */
+  async function withInsert(side = 'owner'){
+    const p = await bench({ ask: false });
+    const list = p.win.negoClauseList(p.c);
+    await p.win.negoInsertClause(p.c, list[list.length - 1].clauseId, {
+      headingText: 'Payment terms',
+      bodyHtml: '<p>Paid within thirty (30) days of the invoice date.</p>',
+    }, { side, author: side === 'owner' ? 'Young Mbagaya' : 'Amina Wanjiru' });
+    const ask = p.win.negoChanges(p.c).find(x => x.changeType === 'insertClause');
+    return { ...p, ask };
+  }
+
+  test('the model revises the ask in place — same id, one change, the old wording kept', async () => {
+    const p = await withInsert();
+    const before = p.ask.id;
+    const out = await p.win.negoReviseInsert(p.c, p.ask.clauseId,
+      { bodyHtml: '<p>Paid within forty-five (45) days of the invoice date.</p>' },
+      { side: 'owner', author: 'Young Mbagaya' });
+    assert.ok(out, 'it filed');
+    const live = p.win.negoChanges(p.c).filter(x => x.changeType === 'insertClause');
+    assert.equal(live.length, 1, 'ONE clause is proposed, not two');
+    assert.equal(live[0].id, before, 'and it is the same ask, so it keeps its place');
+    assert.match(live[0].newText, /forty-five/);
+    assert.equal(live[0].revisions.length, 1, 'the previous wording is on the record');
+    assert.match(live[0].revisions[0].newText, /thirty/);
+  });
+
+  test('it only ever REVISES — it will not create a clause nobody proposed', async () => {
+    const p = await withInsert();
+    const n = () => p.win.negoChanges(p.c).length;
+    const was = n();
+    assert.equal(await p.win.negoReviseInsert(p.c, 'cl_nothing_here',
+      { bodyHtml: '<p>x</p>' }, { side: 'owner' }), null,
+      'an id with no ask behind it files nothing');
+    assert.equal(n(), was, 'and nothing was added');
+  });
+
+  test('and never the other side\'s ask — a proposal is answered, not edited', async () => {
+    const p = await withInsert('counterparty');
+    assert.equal(await p.win.negoReviseInsert(p.c, p.ask.clauseId,
+      { bodyHtml: '<p>ours now</p>' }, { side: 'owner' }), null);
+    assert.match(p.win.negoChanges(p.c)[0].newText, /thirty/, 'their wording is untouched');
+  });
+
+  test('the paper draws the pill on it, like every other clause', async () => {
+    const p = await withInsert();
+    const box = page(p);
+    const proposed = box.querySelector('#rl-doc section.rl-clause-new');
+    assert.ok(proposed, 'the proposed clause is on the paper');
+    assert.ok(proposed.querySelector('.rl-cp-pill'),
+      'and it carries the same door every other clause carries');
+    assert.equal(proposed.querySelector('.rl-cp-pill').getAttribute('data-rl-cp-open'),
+      p.ask.clauseId, 'pointed at its own clause');
+  });
+
+  test('and the panel behind it says AS PROPOSED, because nothing stands yet', async () => {
+    const p = await withInsert();
+    const box = page(p);
+    const body = bodies(box).find(b => b.getAttribute('data-rl-cp-for') === p.ask.clauseId);
+    assert.ok(body, 'the panel has a body for it — a door must not open onto nothing');
+    const { STRINGS } = require('../js/i18n.js');
+    assert.match(body.textContent, new RegExp(STRINGS.en.ng_cp_proposed));
+    assert.ok(!/As it stands/.test(body.querySelector('.rl-cp-h').textContent),
+      'a clause nobody has agreed to is not in force, and this heading is where the page would say it is');
+    assert.match(body.textContent, /thirty \(30\) days/, 'and it shows the wording being proposed');
+    /* The ＋ continues the ask rather than starting a rival, which is what the
+       funnel will actually do. */
+    assert.match(body.querySelector('.rl-cp-act-new').textContent,
+      new RegExp(STRINGS.en.ng_cp_continue));
+  });
+
+  test('their proposal gets no pill on our seat, and a settled one gets none either', async () => {
+    const theirs = await withInsert('counterparty');
+    const tBox = page(theirs);
+    const tSec = tBox.querySelector('#rl-doc section.rl-clause-new');
+    assert.ok(tSec, 'their proposed clause still draws');
+    assert.ok(!tSec.querySelector('.rl-cp-pill'),
+      'but it is answered, not edited — the mirror rule this page keeps everywhere');
+
+    const mine = await withInsert();
+    mine.ask.status = 'accepted';
+    const mBox = page(mine);
+    const mSec = mBox.querySelector('#rl-doc section.rl-clause-new');
+    if (mSec) assert.ok(!mSec.querySelector('.rl-cp-pill'),
+      'a settled ask is a record, not a draft');
+  });
+
+  test('both languages carry the proposed-clause wording', () => {
+    const { STRINGS } = require('../js/i18n.js');
+    for (const l of ['en', 'sv']){
+      assert.ok(STRINGS[l].ng_cp_proposed, `${l} names the heading`);
+      assert.ok(STRINGS[l].ng_cp_proposed_note, `${l} says why it is not in force`);
+      assert.ok(STRINGS[l].ng_cp_proposed !== STRINGS[l].ng_cp_stands,
+        `${l} does not say a proposal is in force`);
+    }
+  });
+
+  test('the editor files through the revise door, never a second insert', () => {
+    /* The one editor has two homes and now two kinds of ask. Read from the
+       source because the branch is what matters: a proposed clause must not
+       reach negoEditClause, which measures against a baseline it is not in. */
+    assert.match(SRC, /negoReviseInsert\(c, clauseId, \{ bodyHtml: holder\.innerHTML \}/,
+      'the save routes a proposed clause to the revise door');
+    assert.match(SRC, /newAsk\s*\?\s*negoReviseInsert/,
+      'and only when the clause is one that is only proposed');
+  });
+});

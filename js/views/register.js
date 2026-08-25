@@ -1017,7 +1017,22 @@ function renderRegister(opts){
   const hostEl=document.getElementById(_regOpts.hostId)||document.getElementById('content');
   if(!hostEl) return;
   hostEl.innerHTML=`
-  <div class="view-enter${neg?' ngl-page':''}" style="height:var(--view-h);box-sizing:border-box;padding:14px 16px 14px;display:flex;flex-direction:column">
+  ${''/* ---- THE WRAPPER READS THE SAME TOKENS THE BAND CANCELS (25 Aug 2026)
+         ----
+         Owner-reported, off a screenshot of Contracts on a laptop: "there is
+         still a grey gap in the card that needs to be eliminated." The band
+         bleeds to the view's edge by pulling the view's own padding back —
+         `margin:calc(var(--page-pad-t) * -1) calc(var(--page-pad-x) * -1)` —
+         and this wrapper TYPED 14px and 16px. The two only cancelled by luck,
+         at the one window height where --page-pad-t happens to be 16.
+         THE DAY --page-pad-t STARTED TIGHTENING WITH THE WINDOW, THE LUCK RAN
+         OUT: on a laptop it is 10, so the band began 14 - 10 = 4px BELOW the
+         head's bottom edge and the page ground showed through as a strip
+         across the card. At the very short step it is 6px. MEASURED at 800:
+         a 4px grey band the full width of the page.
+         The bottom stays a typed 14 — it is the gap above the table, not a
+         join with anything. */}
+  <div class="view-enter${neg?' ngl-page':''}" style="height:var(--view-h);box-sizing:border-box;padding:var(--page-pad-t) var(--page-pad-x) 14px;display:flex;flex-direction:column">
     <style>
       /* ---- THE PROTOTYPE'S TABLE ----
          The reference is a rounded card with an uppercase 10px header band, p-4

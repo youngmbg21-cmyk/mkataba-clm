@@ -1446,6 +1446,49 @@ async function negoInsertClause(c, afterClauseId, clause, opts = {}){
     oldText: '', newText, bodyHtml: body, headingText, afterClauseId: afterClauseId || null,
     clauseLabel: headingText ? negoClauseLabel(clauseParseHeading(headingText)) : 'New clause' }, opts);
 }
+/* ---- REVISING A CLAUSE YOU PROPOSED (owner-asked 25 Aug 2026: "standard
+   clauses added should be editable as well") ----
+   A clause added from the playbook or the standards library is filed as an
+   insertClause ask, and until now it was the ONE thing on the paper with no way
+   back into it: the clause is not in the baseline, so every editing door in the
+   product — which resolves its subject with negoClauseById — found nothing and
+   stood down. A reader who added a payment-terms clause and wanted to change
+   thirty days to forty-five had to withdraw the ask and add it again.
+
+   IT IS THE FUNNEL'S OWN REVISION FOLD, NOT A NEW ACT. negoFileChange already
+   revises in place when the same side files again on the same clause in the
+   same round — that is what makes a second Direct Edit a revision rather than a
+   rival — and an insert is no different. So this files the SAME clauseId back
+   through the same funnel: the ask keeps its id, its author and its place in
+   the document, its previous wording goes onto revisions[] with its hash
+   intact, and a new fingerprint is issued. Every guard the funnel carries —
+   the desk rule, the review gate, the executed-wording freeze — applies
+   unchanged, because none of them is repeated here.
+
+   IT REFUSES TO CREATE ONE. negoInsertClause mints a fresh clauseId every
+   time; this one only ever revises, so it returns null unless there really is
+   a pending insert of OUR OWN on that clause to revise. Without that check a
+   mistyped id would file a second, invisible clause into the agreement. */
+async function negoReviseInsert(c, clauseId, clause, opts = {}){
+  negoInit(c);
+  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
+  const roundN = negoRound(c);
+  const live = negoChanges(c).find(x => x && x.clauseId === clauseId
+    && x.changeType === 'insertClause' && x.status === 'pending' && !x.withdrawn
+    && x.authorSide === side && x.roundN === roundN);
+  if (!live) return null;
+  const body = window.sanitizeRich ? sanitizeRich(clause.bodyHtml || '') : String(clause.bodyHtml || '');
+  const newText = window.richToText ? richToText(body) : '';
+  /* The heading is the ask's own unless this call carries a new one — the
+     editor writes the wording and never the label, so an absent headingText
+     here means "leave it as it is" rather than "clear it". */
+  const headingText = clause.headingText != null
+    ? String(clause.headingText).trim() : String(live.headingText || '');
+  return negoFileChange(c, { clauseId, changeType: 'insertClause',
+    oldText: '', newText, bodyHtml: body, headingText,
+    afterClauseId: live.afterClauseId || null,
+    clauseLabel: headingText ? negoClauseLabel(clauseParseHeading(headingText)) : 'New clause' }, opts);
+}
 /* A proposed deletion. The wording is NOT removed here and is not removed when
    the change is filed — it is struck through in the working pane and stays in
    the document until someone accepts the deletion. */
@@ -3596,7 +3639,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoChanges, negoChangeById, negoPending, negoOpenChanges,
   negoNextId, negoHashInput, negoHash, negoIssue, negoIssuances, negoShortHash,
   verifyChangeChain, negoVerifyCached, negoRefreshVerification, negoInvalidateVerification, NEGO_HASH_V,
-  negoSummariseOps, negoFileChange, negoEditClause, negoInsertClause, negoDeleteClause,
+  negoSummariseOps, negoFileChange, negoEditClause, negoInsertClause, negoReviseInsert, negoDeleteClause,
   negoNoteFor, negoProposedBodyFromText, negoBodyFromText, negoFileProposal, negoResolvedBody, negoResolvedText, negoCommitBody, negoCommitText,
   negoImportReturnedDocx, negoTopicForQuote, negoOriginalBaselineText, negoClauseJourney,
   negoResolve, negoResolveAll, negoWithdraw, negoUnwithdraw, negoRetractDraft,
