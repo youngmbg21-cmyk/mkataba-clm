@@ -7353,5 +7353,47 @@ returns it works again, rather than being quietly rewritten.
   it. Note that the previous run's own entry claims "lint 0 errors", so they
   arrived after that claim was written or the claim was wrong.
 
+**Three browser files went red on the swap, and each was a different thing.**
+Every one was run on an UNMODIFIED main in a worktree before being called mine
+or not — the scope rule, honoured rather than asserted.
+
+- **`type-and-symbols-verify` (2 fails, MINE, and the test was the stale part).**
+  It asserted `/^Inter\b/` on `--font-heading` and on `--font-mono`. Claims
+  reversed in place. Its weight loop asked for 300-800 because Inter is variable
+  across exactly that; Plex is 400-700, so 300 and 800 were dropped from the
+  list with the reason written beside them — asking for them would be asserting
+  a fiction. Clean on main (41/0), so unambiguously this run's.
+- **`laptops-verify` (5 fails, MINE, and a REAL layout regression).** Clean on
+  main. `.hm-n` — Home's 32px figure — carried `line-height:1.05`, tuned to
+  Inter, and Plex does not fit inside it: MEASURED, a 34px box against a
+  scrollHeight of 37, with `overflow:hidden` (there for the ELLIPSIS, a
+  horizontal concern) clipping 3px off the bottom of every big number on Home,
+  at all five laptop sizes. `.hm-m` beside it carried the identical value for
+  the identical reason. Both read `--lh-tight` now — the product's own rung,
+  whose comment already names "counts" — rather than a number invented for the
+  face. 21/21 after.
+- **`pages-read-alike-verify` (5 fails: 3 pre-existing, 2 MINE).** Main fails
+  the same 3 (the negotiation head wrapping, headH 125 against my 126 — the 1px
+  is the face, the failure is not). The 2 new ones were section 8, the header
+  top: the room drew 2px below Home. **THE FIRST DIAGNOSIS WAS WRONG AND IS
+  RECORDED AS SUCH**: the crumb states no leading, so it sat a 12px face in an
+  18px `--lh-base` box, which looked like the answer — stating `--lh-tight`
+  moved the ink by NOTHING, because `align-items:center` was doing the
+  positioning. Centring a 14.4px line box in a 16px min-height inserts an 0.8px
+  offset nothing else on any header has, and Home's own 20px glyph sits 2px
+  ABOVE its box because `--lh-tight` is tighter than Plex's natural 1.313. The
+  crumb is `flex-start` now, so its first line starts where the block's padding
+  puts it, like every other page's. Home 14px, room 15px, inside the ±1px the
+  check allows. The stated leading was KEPT — it is right by the rule every
+  page title already follows — but the comment says plainly which of the two
+  was the cause.
+
+**THE PATTERN WORTH KEEPING FROM ALL THREE:** every regression this swap caused
+was a LEADING or a LINE BOX tuned to the old face's metrics, never a width.
+Plex is ~5% narrower, so nothing ran out of horizontal room anywhere; what broke
+was three places where a box was drawn just tall enough for Inter's glyphs. If
+another face swap ever happens, sweep `line-height` on large type first.
+
 **Files touched.** CLAUDE.md, index.html, fonts/fonts.css,
-test/f85-the-server-serves-the-design.test.js.
+test/f85-the-server-serves-the-design.test.js,
+test/chromium/type-and-symbols-verify.js.

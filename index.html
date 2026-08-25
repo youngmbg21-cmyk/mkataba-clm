@@ -1494,8 +1494,28 @@
      rather than a title with a box bolted to its left. .room-back is retired —
      flag any mention as stale. */
   .room-head{ position:relative; }
-  .room-crumb{ flex-basis:100%; display:flex; align-items:center; gap:7px;
-    font-size:12px; color:var(--color-neutral-500); min-height:16px; margin-bottom:2px; }
+  /* ---- THE HEADER'S FIRST LINE STARTS WHERE THE PADDING PUTS IT (25 Aug 2026,
+     found by the Plex swap) ----
+     The room's first painted glyph is this crumb, not the title, so it is what
+     "every header starts at --page-pad-t" is measured on. TWO THINGS PUT IT
+     WRONG and only the second was the cause — recorded because the first looked
+     like the answer and was not. (1) It named a size and no leading, so it sat
+     a 12px face in an 18px --lh-base line box; stating --lh-tight is right by
+     the rule every page title already follows, and it moved the ink by nothing,
+     because (2) `align-items:center` was doing the positioning. Centring a
+     14.4px line box inside a 16px min-height inserts an 0.8px offset that
+     nothing else on any header has, and against Home — whose 20px glyph sits
+     2px ABOVE its own box, --lh-tight being tighter than Plex's natural
+     ratio — that put the room 2px low. flex-start makes this line start where
+     the block's padding puts it, which is where every other page's first line
+     starts. MEASURED after: Home 14px, room 15px, inside the ±1px the check
+     allows for a Range rect.
+     THE ITEMS ARE ALL ONE SIZE (a button and text separators, all font:inherit)
+     so top-aligning them is identical on screen to centring them — checked in a
+     browser, not assumed. Put an icon in this row and that stops being true. */
+  .room-crumb{ flex-basis:100%; display:flex; align-items:flex-start; gap:7px;
+    font-size:12px; line-height:var(--lh-tight); color:var(--color-neutral-500);
+    min-height:16px; margin-bottom:2px; }
   .room-crumb button{ font:inherit; color:var(--color-accent-700); background:none;
     border:0; padding:0; cursor:pointer; max-width:40ch; overflow:hidden;
     text-overflow:ellipsis; white-space:nowrap; }
@@ -3303,7 +3323,18 @@
   .hm-go{position:absolute;top:11px;right:11px;color:var(--color-neutral-400);}
   .hm-tile:hover .hm-go{color:var(--accent-ink);}
   .hm-big{display:flex;align-items:baseline;gap:7px;min-width:0;}
-  .hm-n{font-size:32px;font-weight:700;line-height:1.05;color:var(--color-text);
+  /* ---- THE LINE BOX HOLDS THE FACE, NOT THE FACE THAT WAS HERE (25 Aug 2026) ----
+     1.05 was tuned to Inter's metrics and IBM Plex Sans does not fit inside it:
+     MEASURED on the dashboard, the box computed 34px against a scrollHeight of
+     37, and `overflow:hidden` — which is here for the ellipsis, a HORIZONTAL
+     concern — then clipped 3px off the bottom of every big figure on Home.
+     Silent on a tall window and caught by laptops-verify at all five laptop
+     sizes, which is the whole reason that file walks height as well as width.
+     --lh-tight is the product's own rung for this and its comment already names
+     "counts", so this reads the ladder rather than inventing a number: 38.4px
+     against the 37 the face needs. `.hm-m` below carried the identical value
+     for the identical reason and moves with it — one fault, two places. */
+  .hm-n{font-size:32px;font-weight:700;line-height:var(--lh-tight);color:var(--color-text);
     font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   /* ---- THE UNIT TAKES ITS NUMERAL'S INK (the black ink, 24 Aug 2026) ----
      "13 agreements", "8 docs", "74 %" — the figure and its unit are one
@@ -3338,7 +3369,7 @@
   .hm-stg.is-zero .hm-bar{background:none;border:1px dashed var(--color-neutral-300);}
   .hm-sl{font-size:11px;color:var(--color-neutral-500);line-height:1;white-space:nowrap;}
   .hm-money{flex:1 1 auto;min-width:0;}
-  .hm-m{display:block;font-size:26px;font-weight:700;line-height:1.05;white-space:nowrap;
+  .hm-m{display:block;font-size:26px;font-weight:700;line-height:var(--lh-tight);white-space:nowrap;
     color:var(--color-text);font-variant-numeric:tabular-nums;}
   .hm-ml{display:block;font-size:12px;color:var(--color-neutral-500);margin-top:3px;line-height:1.3;}
 
