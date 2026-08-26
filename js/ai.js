@@ -2094,7 +2094,16 @@ const AI_NOT_WORDING = [
   /^(?:as\s+an\s+ai|i\s+am\s+an\s+ai|as\s+a\s+language\s+model)\b/i,
   /^(?:sure|certainly|of\s+course|here(?:'|’)?s|here\s+is|absolutely)\b[,!:. ]/i,
   /^(?:note|please\s+note|disclaimer|important|caveat)\s*[:—-]/i,
-  /^(?:please\s+note|disclaimer|caveat)\b/i,
+  /* A HEADING IS NOT A DISCLAIMER (owner-asked 26 Aug 2026, found by measuring
+     the whole guard against test/cuad while AI_TASK_TALK was being written).
+     "DISCLAIMER OF WARRANTY" and "Disclaimer of Representations and Warranties."
+     are real contract SECTION HEADINGS, and this rule read all of them as the
+     model clearing its throat — three of the guard's four hits across 50 real
+     agreements. The tell is grammatical rather than a phrase list: followed by
+     "of", the word is a NOUN PHRASE naming a section; the model's use is the
+     word standing alone as a lead-in, which is what the rule above catches
+     with its colon and what this one catches without. */
+  /^(?:please\s+note|disclaimer|caveat)\b(?!\s+of\b)/i,
   /* The disclaimer itself, wherever it sits in the sentence. Tested only
      against a candidate opening sentence, and no clause in a contract opens by
      announcing that it is not legal advice — so this cannot reach real wording

@@ -1478,9 +1478,47 @@ function ceRenderChips(){
    ========================================================================== */
 function cePlaybookLine(){
   try{
-    const v = (((_ceC && _ceC.playbook) || {}).verdicts || []).filter(x => x && x.status === 'deviation');
+    const v = ceClauseDeviations();
     return v.length ? _cet('ce_pb_flags', { list: v.map(x => x.category).join(', ') }) : '';
   }catch(_){ return ''; }
+}
+/* WHICH DEVIATIONS ARE ABOUT THE CLAUSE IN FRONT OF THE READER (owner-asked
+   26 Aug 2026, after the commentary bug — see COMMENTARY IS NOT WORDING in
+   THE MAP for how it surfaced).
+
+   This read EVERY deviation on the whole contract and handed the categories to
+   the model while the reader was editing ONE clause. The sentence was true —
+   it said "this contract" — and it was still the wrong thing to say here: on
+   Clause 2 the model was shown a Clause 5 concern, noticed the mismatch, and
+   wrote that observation where the wording goes. It was right and the product
+   had handed it a confusing question.
+
+   THE OTHER TWO FACTS ON THIS LIST WERE ALREADY CLAUSE-SCOPED — cePrecedentLine
+   reads this clause's lead change and ceTheirAsk reads this clause's asks — so
+   the playbook line was the odd one out rather than this being a new rule.
+
+   IT ASKS rlPbFindClause, THE ONE MATCHER, and never a second copy of "which
+   clause is this rule about": the rail beside it locates its findings the same
+   way, so the two can never disagree about what belongs here. A deviation the
+   matcher cannot place is left out — after the 26 Aug tightening it refuses
+   when it is not sure, and attributing an unplaced rule to whichever clause
+   happens to be open is the reported fault in quieter clothes.
+
+   WHAT IT COSTS, SAID OUT LOUD: a reader who asks Copilot a whole-contract
+   question from inside this page no longer has the other clauses' flags in
+   front of it. The Playbook scan tab in the same rail still shows all of them,
+   and being told about a rule that is not about this clause is what produced
+   the report. */
+function ceClauseDeviations(){
+  const all = (((_ceC && _ceC.playbook) || {}).verdicts || [])
+    .filter(x => x && x.status === 'deviation');
+  if (!all.length || !_ceClauseId) return [];
+  if (!window.rlPbFindClause) return [];
+  return all.filter(v => {
+    if (!v.quote) return false;
+    try{ const cl = rlPbFindClause(_ceC, v.quote); return !!cl && cl.clauseId === _ceClauseId; }
+    catch(_){ return false; }
+  });
 }
 function cePrecedentLine(){
   const on = ceOnTable(), lead = _ceLead || on[0];
@@ -2082,6 +2120,7 @@ Object.assign(window, {
   clauseEditorHtml, clauseEditorRefusal, clauseEditorFits,
   rlOpenClauseEditor, rlCloseClauseEditor,
   ceApply, ceUndo, ceDiscard, ceFile, ceAsk, ceRunScan, ceScanItems, ceScanGroups, ceAddMissingClause,
+  ceClauseDeviations, cePlaybookLine,
   ceCostLine, ceWordCount, ceLines,
   ceRedlineHtml, ceCounts, ceReadList, ceRenderAll, ceRenderPaper,
   ceEditableReading, ceGoClause,

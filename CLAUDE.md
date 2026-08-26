@@ -4065,26 +4065,46 @@ produced this one: a point raised about some other clause is the advice, not the
 wording. Both format contracts changed together, as f135d has required since it
 was written.
 
-**WHAT IS RECORDED AND NOT FIXED, because it is a different surface's decision.**
-The clause editor's `cePlaybookLine()` reads EVERY deviation on the whole
-contract and hands the categories to the model while the reader is editing ONE
-clause — which is why the model had a Clause 5 concern in front of it on Clause
-2 and, quite correctly, said so. The sentence it sends is true (*"flags this
-contract for…"*, and the negotiation page has sent the same one since it was
-built), and the rail beside it already narrows to this clause through
-`ceScanGroups`. **The model was right and the product handed it a confusing
-question**; narrowing that hand-over changes what the model is told on a surface
-nobody reported, so it is one line in BUGLOG rather than a fix made on the way
-past. **The guard is the net and the net is what was broken** — a model can
+**AND THE PROMPT WAS NARROWED THE SAME DAY, on the owner's ask** — this REVERSES
+the "recorded and not fixed" note that stood here. `cePlaybookLine()` read EVERY
+deviation on the whole contract and handed the categories to the model while the
+reader was editing ONE clause, which is why it had a Clause 5 concern in front of
+it on Clause 2 and, quite correctly, said so. **The model was right and the
+product handed it a confusing question.** `ceClauseDeviations()` is the reading
+and it asks `rlPbFindClause`, THE ONE MATCHER — never a second copy of "which
+clause is this rule about", because the rail beside it locates its findings the
+same way. A deviation the matcher cannot place is left out: after the 26 Aug
+tightening it refuses when unsure, and pinning an unplaced rule to whichever
+clause happens to be open is the reported fault in quieter clothes. **THE OTHER
+TWO FACTS ON THAT LIST WERE ALREADY CLAUSE-SCOPED** (`cePrecedentLine` reads this
+clause's lead change, `ceTheirAsk` this clause's asks), so the playbook line was
+the odd one out rather than this being a new rule. `ce_pb_flags` and
+`ce_read_playbook_none` say *clause* now, in both languages — a narrowed reading
+under a sentence still claiming the whole contract would be a screen telling the
+model something untrue. **WHAT IT COSTS, SAID OUT LOUD:** a whole-contract
+question asked from inside this page no longer has the other clauses' flags in
+front of it; the Playbook scan tab in the same rail still shows all of them.
+**THE GUARD IS STILL THE NET AND IS WHAT WAS ACTUALLY BROKEN** — a model can
 produce commentary for a hundred reasons and the paper must survive all of them.
+Tests: f245 (14) (6, all six failing against the parent).
 
-**ONE PRE-EXISTING FALSE POSITIVE FELL OUT OF THE MEASUREMENT and is reported
-rather than absorbed:** the shipped disclaimer opener
-(`/^(?:note|please note|disclaimer|important|caveat)\s*[:—-]/`) reads four real
-contract SECTION HEADINGS as model talk — *"DISCLAIMER OF WARRANTY"*, *"Note: if
-category…"*. Those are the whole guard's only four hits on that corpus, they
-predate this change, and f135f asserts on AI_TASK_TALK alone so a green run
-cannot read as "the whole guard is clean".
+**A HEADING IS NOT A DISCLAIMER**, and this one was found by measuring the WHOLE
+guard against the corpus rather than by anybody reporting it. The shipped opener
+`/^(?:please note|disclaimer|caveat)\b/` read real contract SECTION HEADINGS as
+the model clearing its throat — *"DISCLAIMER OF WARRANTY"*, *"Disclaimer of
+Representations and Warranties."* — **three of the guard's four hits across 50
+real agreements, and the largest false positive it had. THE TELL IS GRAMMATICAL,
+NOT ANOTHER PHRASE**: followed by "of", the word is a noun phrase naming a
+section; the model's use is the word standing alone as a lead-in, which the
+sibling rule catches by its colon and this one by its absence. So the fix costs
+the guard nothing it was catching, and f135g asserts BOTH halves — the headings
+reaching the card, and the model's own "Disclaimer:" still caught.
+**THE MEASURED NUMBER IS NOW ONE, AND IT IS DELIBERATELY NOT ZERO**: the survivor
+is a schedule footnote opening *"Note:"*, which is genuinely two-sided — a model
+writes "Note:" as often as a schedule does — and it is left on the standing rule
+that the worse error is the other one, a note about the answer filed into the
+agreement as wording. f135g pins the figure so the next person meets a decision
+rather than a mystery.
 
 Tests: f135e (4 — the reported reply as advice with nothing to apply, and pinned
 as carrying no "I" and no question mark so nobody rewrites the fixture into a

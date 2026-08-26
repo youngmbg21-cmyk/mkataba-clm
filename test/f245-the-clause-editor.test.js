@@ -656,3 +656,100 @@ describe('f245 (13) — the card says what the press takes', () => {
       assert.equal((I18N.match(new RegExp(`^    ${k}:`, 'gm')) || []).length, 2, k);
   });
 });
+
+/* ============================================================
+   f245 (14) — WHAT COPILOT IS TOLD IS ABOUT THIS CLAUSE
+   ============================================================
+   Owner-asked 26 Aug 2026, after the commentary bug. cePlaybookLine read EVERY
+   deviation on the whole contract and handed the categories to the model while
+   the reader was editing ONE clause — which is why, on Clause 2, it had a
+   Clause 5 concern in front of it, noticed the mismatch, and wrote that
+   observation where the wording goes. The model was right; the product had
+   handed it a confusing question.
+
+   The other two facts on that list were already clause-scoped, so this was the
+   odd one out rather than a new rule. */
+describe('f245 (14) — the playbook line is about the clause in front of you', () => {
+  async function twoClauseBench(){
+    const w = buildWorld({ negotiationView: true, contractView: true, playbook: true });
+    const { win } = w;
+    win.promptDialog = async () => '';
+    win.openAI = () => {}; win.aiPush = () => {}; win.renderAIFeed = () => {};
+    win.copilotAvailable = () => false;
+    const c = supplyContract();
+    win.negoInit(c);
+    win.state = Object.assign({}, win.state, { contracts: [c], activeId: c.id, view: 'redline' });
+    win.getContract = id => (id === c.id ? c : null);
+    Object.defineProperty(win, 'innerWidth', { value: 1440, configurable: true });
+    const list = win.negoClauseList(c);
+    const here = list[0], elsewhere = list[1];
+    /* ONE deviation on each of two different clauses. The quotes are verbatim,
+       so the matcher's containment path places both with certainty and this
+       test is about the FILTER rather than about how well the matcher guesses. */
+    c.playbook = { key: 'x', label: 't', source: 'ai', verdicts: [
+      { category: 'Payment terms', status: 'deviation', quote: here.text.slice(0, 60),
+        position: 'Payment due within 30 days', redline: '', escalate: false },
+      { category: 'Limitation of liability', status: 'deviation', quote: elsewhere.text.slice(0, 60),
+        position: 'Cap at 12 months of fees', redline: '', escalate: false },
+    ] };
+    return { win, c, here, elsewhere };
+  }
+
+  test('THE FIX: on one clause it names that clause\'s flag and not the other\'s', async () => {
+    const p = await twoClauseBench();
+    p.win.rlOpenClauseEditor(p.c, p.here.clauseId, {});
+    const line = p.win.cePlaybookLine();
+    assert.match(line, /Payment terms/, 'the flag that is about this clause');
+    assert.ok(!/Limitation of liability/.test(line),
+      'and NOT the one about another clause — this is the whole defect, and it '
+      + 'is what put a Clause 5 concern in front of a model editing Clause 2');
+  });
+
+  test('and it mirrors on the other clause, so it is a filter and not an order', async () => {
+    const p = await twoClauseBench();
+    p.win.rlOpenClauseEditor(p.c, p.elsewhere.clauseId, {});
+    const line = p.win.cePlaybookLine();
+    assert.match(line, /Limitation of liability/);
+    assert.ok(!/Payment terms/.test(line),
+      'a filter that only ever kept the first verdict would pass the test above');
+  });
+
+  test('a clause with nothing flagged says nothing at all', async () => {
+    const p = await twoClauseBench();
+    const third = p.win.negoClauseList(p.c)[2];
+    p.win.rlOpenClauseEditor(p.c, third.clauseId, {});
+    assert.equal(p.win.cePlaybookLine(), '',
+      'an empty line, not a list of somebody else\'s problems');
+  });
+
+  test('a deviation the matcher cannot place is left out, never attributed here', async () => {
+    const p = await twoClauseBench();
+    p.c.playbook.verdicts = [{ category: 'Governing law', status: 'deviation',
+      quote: 'wording that appears nowhere in this agreement at all',
+      position: 'Kenyan law', redline: '', escalate: false }];
+    p.win.rlOpenClauseEditor(p.c, p.here.clauseId, {});
+    assert.equal(p.win.cePlaybookLine(), '',
+      'the matcher refuses when unsure, and an unplaced rule pinned to whichever '
+      + 'clause happens to be open is the reported fault in quieter clothes');
+  });
+
+  test('it asks the ONE matcher rather than carrying a second copy', () => {
+    const m = CODE.match(/function ceClauseDeviations\(\)[\s\S]{0,700}?\n\}/);
+    assert.ok(m, 'the reading has a name');
+    assert.match(m[0], /rlPbFindClause\(/,
+      'the rail locates its findings the same way — two copies of "which clause '
+      + 'is this rule about" is how the two come to disagree');
+    assert.ok(!/_rlPbNorm|indexOf|includes\(/.test(m[0]),
+      'and it does not re-derive the match itself');
+  });
+
+  test('the sentence no longer says "this contract", in both languages', () => {
+    assert.match(I18N, /ce_pb_flags: 'Our playbook flags this clause for/);
+    assert.match(I18N, /ce_read_playbook_none: 'Nothing flagged on this clause\./);
+    assert.ok(!/ce_pb_flags: 'Our playbook flags this contract/.test(I18N),
+      'a narrowed reading under a sentence that still claims the whole contract '
+      + 'would be a screen telling the model something untrue');
+    for (const k of ['ce_pb_flags', 'ce_read_playbook_none'])
+      assert.equal((I18N.match(new RegExp(`^    ${k}:`, 'gm')) || []).length, 2, k);
+  });
+});

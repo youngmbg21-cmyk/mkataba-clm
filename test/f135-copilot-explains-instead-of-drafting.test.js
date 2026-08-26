@@ -360,11 +360,9 @@ describe('F135f — the near misses each pattern was narrowed to survive', () =>
        marked up by commercial lawyers. Reading it here costs a fraction of a
        second and turns "I considered the near misses" into a measurement.
 
-       ONLY AI_TASK_TALK is asserted, deliberately. The whole guard reports
-       four hits on this corpus and all four are the SHIPPED disclaimer opener
-       reading a section heading ("DISCLAIMER OF WARRANTY", "Note: if
-       category…"). That is a pre-existing finding, not this rule's, and it is
-       recorded rather than quietly folded in here. */
+       ONLY AI_TASK_TALK is asserted here; the whole guard's own hits are
+       f135g's subject, because they were a pre-existing finding rather than
+       this rule's. */
     const corpus = require(path.join(__dirname, 'cuad', 'contracts.json'));
     const text = corpus.data
       .map(r => r.paragraphs.map(p => p.context || p.text || '').join('\n\n')).join('\n\n');
@@ -375,5 +373,68 @@ describe('F135f — the near misses each pattern was narrowed to survive', () =>
     const ate = sentences.filter(s => ai.AI_TASK_TALK.some(re => re.test(s)));
     assert.deepEqual(ate.map(s => s.slice(0, 90)), [],
       'every one of these is a clause a drafter wrote — none may be read as talk');
+  });
+});
+
+/* ============================================================
+   F135g — A HEADING IS NOT A DISCLAIMER
+   ============================================================
+   Found by measuring the WHOLE guard against test/cuad while F135f was being
+   written, and fixed on the owner's ask the same day. The shipped opener
+   /^(?:please note|disclaimer|caveat)\b/ read real contract SECTION HEADINGS
+   as the model clearing its throat: "DISCLAIMER OF WARRANTY", "Disclaimer of
+   Representations and Warranties." — three of the guard's four hits across 50
+   real agreements, and the largest single false positive it had.
+
+   THE TELL IS GRAMMATICAL, NOT ANOTHER PHRASE. Followed by "of", the word is a
+   noun phrase naming a section. The model's use is the word standing alone as
+   a lead-in — which the sibling rule catches by its colon, and this one by its
+   absence. So the fix costs the guard nothing it was actually catching, and
+   this file asserts BOTH halves rather than only the one that was reported. */
+describe('F135g — a section heading still reaches the card', () => {
+  let ai;
+  beforeEach(() => { ai = loadAi(); });
+
+  const HEADINGS = [
+    'DISCLAIMER OF WARRANTY',
+    'Disclaimer of Representations and Warranties.',
+    'Disclaimer of Warranty and Limitation of Liability',
+    'Caveat of the Purchaser under section 14 of the Sale of Goods Act.',
+  ];
+  for (const h of HEADINGS){
+    test(`"${h.slice(0, 44)}…" is wording, not throat-clearing`, () => {
+      assert.equal(ai.aiLooksConversational(h), false);
+      assert.equal(ai.aiParseProposal(h).proposedText, h, 'and it reaches the card whole');
+    });
+  }
+
+  test('THE OTHER HALF: the model announcing a disclaimer is still caught', () => {
+    /* Without these the fix would have bought a false positive by opening a
+       false negative, which is the same harm one step along. */
+    for (const s of [
+      'Disclaimer: this is a suggestion and not legal advice.',
+      'Disclaimer — the wording below is a draft only.',
+      'Disclaimer, the above should be checked by counsel.',
+      'Please note the clause below has not been reviewed.',
+      'Caveat: the cap figure is a placeholder.',
+    ]) assert.equal(ai.aiLooksConversational(s), true, s.slice(0, 52));
+  });
+
+  test('MEASURED: the whole guard now reads ONE sentence of 50 real agreements as talk', () => {
+    /* The claim is a NUMBER and it is deliberately not zero. The survivor is a
+       contract footnote opening "Note:" — and that one is genuinely two-sided,
+       because a model writes "Note:" as often as a schedule does. Left as it
+       is, on the standing rule that the worse error is the other one: a note
+       about the answer filed into the agreement as wording. Pinned so the next
+       person meets a decision rather than a mystery. */
+    const corpus = require(path.join(__dirname, 'cuad', 'contracts.json'));
+    const text = corpus.data
+      .map(r => r.paragraphs.map(p => p.context || p.text || '').join('\n\n')).join('\n\n');
+    const sentences = text.split(/(?<=[.!?])\s+/)
+      .map(s => s.trim()).filter(s => s.length > 25);
+    const talk = sentences.filter(s => ai.aiLooksConversational(s));
+    assert.equal(talk.length, 1, `expected only the "Note:" footnote, got:\n`
+      + talk.map(s => '  ' + JSON.stringify(s.slice(0, 90))).join('\n'));
+    assert.match(talk[0], /^Note:/, 'and it is the one that was left on purpose');
   });
 });
