@@ -90,18 +90,20 @@ that explicitly stand — the send-all strip the owner kept by name, the
 counterparty's wall line, and a refusal's way forward. Read it before touching
 anything on this item.
 
-**What is still open is the band in the screenshot itself**, because the
-rulebook's own new rule says a band is not deleted on Claude's initiative
-either. It is the amber row reading *"Showing one side only — others are
-hidden / Show all changes"*, drawn under the WHOSE ASKS dropdown on the
-Tracked changes column whenever that dropdown is not on All.
+**The band itself comes off, and the owner ruled it** — 26 Aug 2026, *"put
+removing it to the list of things to be done later"*, in answer to the
+recommendation below. It is the amber row reading *"Showing one side only —
+others are hidden / Show all changes"*, drawn under the WHOSE ASKS dropdown on
+the Tracked changes column whenever that dropdown is not on All. It is on this
+list rather than done, because nothing on this list is built until the owner
+says begin.
 
-### The recommendation, for the owner to rule on
+### Why it goes
 
-**Take it off.** It fails both halves of the test the owner has just set: the
-dropdown ten pixels above it reads "Mine (2)", so the screen already says the
-column is narrowed, and it is the reader's own choice read back to them rather
-than work owed.
+It fails both halves of the test the owner has just set: the dropdown ten
+pixels above it reads "Mine (2)", so the screen already says the column is
+narrowed, and it is the reader's own choice read back to them rather than work
+owed.
 
 ### The one thing that must be checked before it goes
 
