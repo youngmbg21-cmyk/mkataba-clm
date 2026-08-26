@@ -3779,8 +3779,14 @@ function wireNegotiationTab(c, opts = {}){
       const after = _negoActive
         ? (negoChangeById(c, _negoActive) || {}).clauseId
         : null;
+      /* THE STANDARD CLAUSE JOINS THIS PAPER, so its heading is written the way
+         this paper writes headings — the same reading the playbook's own insert
+         asks, and the reason it is one function rather than three. */
+      const heading = window.clauseHeadingFor
+        ? clauseHeadingFor(cl.name, (window.negoClauseList ? negoClauseList(c) : []))
+        : cl.name;
       const ch = await negoInsertClause(c, after || null,
-        { headingText: cl.name, bodyHtml: window.textToRich ? textToRich(cl.preferred) : `<p>${_ne(cl.preferred)}</p>` },
+        { headingText: heading, bodyHtml: window.textToRich ? textToRich(cl.preferred) : `<p>${_ne(cl.preferred)}</p>` },
         { side, author: opts.by,
           summary: `Preferred wording inserted from the playbook — ${cl.name}` });
       if (!ch){ if (window.toast) toast(i18t('ng_clause_not_inserted'), 'err'); return; }
@@ -10527,7 +10533,25 @@ async function rlFilePlaybookProposal(c, item, wording){
     for (const cl of clauses){ if (hasBoiler(cl)) break; after = cl.clauseId; }
     if (after == null && clauses.length) after = clauses[clauses.length - 1].clauseId;
     const body = window.textToRich ? textToRich(words) : `<p>${_ne(words)}</p>`;
-    return await negoInsertClause(c, after, { headingText: String(item.v.category || '').toUpperCase(), bodyHtml: body },
+    /* ---- THE HEADING MATCHES THE PAPER IT IS JOINING (owner-reported 26 Aug
+       2026: "the added clause has all caps in the header while the contract's
+       structure is not all caps") ----
+       It was `.toUpperCase()`, unconditionally, so "Liability cap" arrived as
+       "LIABILITY CAP" in a contract whose own headings read "4. Liability &
+       Governing Law" — the one line on the clause that announced it had been
+       added by a machine.
+
+       THE CATEGORY IS ALREADY WRITTEN SENSIBLY. It comes off the clause
+       library, typed by an admin ("Payment terms", "Data protection"), so this
+       is not a rewrite so much as the removal of one — what is left is a
+       reading of what the DOCUMENT does with a heading, and a document with
+       nothing to read answers null and the category stands exactly as typed.
+
+       NO NUMBER IS ADDED, owner-ruled the same day. */
+    const heading = window.clauseHeadingFor
+      ? clauseHeadingFor(String(item.v.category || ''), clauses)
+      : String(item.v.category || '');
+    return await negoInsertClause(c, after, { headingText: heading, bodyHtml: body },
       { side: 'owner', author, note,
         summary: `Playbook position inserted — ${item.v.category}` });
   }

@@ -249,4 +249,91 @@ test('f40 — the clause model', async t => {
     const ins = win.clauseInsert(doc, first.clauseId, { headingText: 'Clause 2 · Definitions', bodyHtml: '<p>x</p>' });
     assert.ok(ins.html.includes(`<h2 data-clause-id="${ins.clauseId}">`), 'a peer, not a sub-clause');
   });
+
+  /* ---------- HOW THIS DOCUMENT WRITES A HEADING ----------
+     Owner-reported 26 Aug 2026: a standard clause added from the library
+     arrived as "LIABILITY CAP" in a contract whose own headings read
+     "4. Liability & Governing Law". Every claim below fails against the code
+     of that morning, which forced the category to .toUpperCase() outright. */
+
+  await t.test('Title Case reads a shouted heading back in the report\'s own style', () => {
+    assert.strictEqual(win.clauseTitleCase('SPECIFICATIONS, QUALITY & INSPECTION'),
+      'Specifications, Quality & Inspection');
+    assert.strictEqual(win.clauseTitleCase('LIABILITY CAP'), 'Liability Cap');
+    /* A small word stays small in the middle and never at either end. */
+    assert.strictEqual(win.clauseTitleCase('TERM AND TERMINATION'), 'Term and Termination');
+    assert.strictEqual(win.clauseTitleCase('NOTICE OF'), 'Notice Of');
+    /* Hyphens join words inside one token and each part follows the rule. */
+    assert.strictEqual(win.clauseTitleCase('ROUTE-TO-MARKET'), 'Route-to-Market');
+    /* Already-correct wording is left where it is. */
+    assert.strictEqual(win.clauseTitleCase('Liability & Governing Law'),
+      'Liability & Governing Law');
+  });
+
+  await t.test('an acronym somebody TYPED survives; a shouted one is a guess and says so', () => {
+    /* The source is not shouting, so an all-capital token is the author's own
+       acronym and is kept exactly — this is the honest half of the reading. */
+    assert.strictEqual(win.clauseTitleCase('Data protection under GDPR'),
+      'Data Protection Under GDPR');
+    assert.strictEqual(win.clauseSentenceCase('Data protection under GDPR'),
+      'Data protection under GDPR');
+    /* The source IS shouting, so the list is all there is. */
+    assert.strictEqual(win.clauseTitleCase('IP RIGHTS'), 'IP Rights');
+    /* And the two words deliberately left OFF that list, because each is an
+       ordinary word at least as often as it is an initialism. */
+    assert.strictEqual(win.clauseTitleCase('AS IT STANDS'), 'As It Stands');
+  });
+
+  await t.test("the document's habit is a MAJORITY of its headings, never the first", () => {
+    const title = [{title:'Manufacturing Scope'},{title:'Term and Termination'},
+      {title:'Pricing and Payment'}];
+    const shouty = [{title:'SCOPE'},{title:'TERM AND TERMINATION'},{title:'PRICING'}];
+    const sentence = [{title:'Manufacturing scope'},{title:'Term and termination'},
+      {title:'Pricing and payment'}];
+    assert.strictEqual(win.clauseHeadingCase(title), 'title');
+    assert.strictEqual(win.clauseHeadingCase(shouty), 'upper');
+    assert.strictEqual(win.clauseHeadingCase(sentence), 'sentence');
+    /* THE SHAPE THE MAJORITY RULE EXISTS FOR: a contract that shouts its own
+       title and then sets every clause under it in ordinary case. Reading the
+       first heading alone gets exactly the wrong answer here. */
+    assert.strictEqual(win.clauseHeadingCase(
+      [{title:'MASTER SUPPLY AGREEMENT'}].concat(title)), 'title');
+  });
+
+  await t.test('nothing to read is null, and null leaves the heading exactly as typed', () => {
+    assert.strictEqual(win.clauseHeadingCase([{title:''},{title:'  '}]), null);
+    assert.strictEqual(win.clauseHeadingCase([]), null);
+    assert.strictEqual(win.clauseCaseTo('Liability cap', null), 'Liability cap');
+    assert.strictEqual(win.clauseCaseTo('Liability cap', 'nonsense'), 'Liability cap');
+  });
+
+  await t.test('THE REPORTED CASE: a standard clause joins the paper in the paper\'s own case', () => {
+    const paper = [{title:'Manufacturing Scope'},{title:'Term and Termination'},
+      {title:'Pricing and Payment'},{title:'Liability & Governing Law'}];
+    /* What the owner saw was "LIABILITY CAP" on this exact document. */
+    assert.strictEqual(win.clauseHeadingFor('Liability cap', paper), 'Liability Cap');
+    assert.strictEqual(win.clauseHeadingFor('Data protection', paper), 'Data Protection');
+    /* And a contract that really does shout still gets a shouting heading —
+       matching the paper is the rule, not lower case for its own sake. */
+    assert.strictEqual(win.clauseHeadingFor('Liability cap',
+      [{title:'SCOPE'},{title:'TERM AND TERMINATION'}]), 'LIABILITY CAP');
+  });
+
+  await t.test('all THREE clause-insert sites ask the one reading — a fourth must too', () => {
+    const fs = require('node:fs');
+    /* The playbook's own position, and the clause library from each of its two
+       doors. They are one act from the reader's chair and must not come to
+       disagree about how a heading is written. */
+    const sites = ['js/views/negotiation.js', 'js/playbook.js'];
+    let calls = 0;
+    for (const f of sites){
+      const src = fs.readFileSync(f, 'utf8');
+      calls += (src.match(/clauseHeadingFor\(/g) || []).length;
+      assert.ok(!/headingText\s*:\s*[^,}]*toUpperCase\(\)/.test(src),
+        `${f} forces a clause heading to capitals — the reported defect`);
+    }
+    assert.ok(calls >= 3,
+      `expected the three insert sites to ask clauseHeadingFor, found ${calls}`);
+  });
+
 });

@@ -965,6 +965,28 @@ function renderIntel(){
    negotiations already store — no new collection, no model, no estimate.
    A clause "contested" in a deal means at least one tracked change was
    filed against it there, in any round, by either side. */
+/* ---- THE REPORT HAS ONE HOUSE STYLE, WHATEVER THE CONTRACTS UNDER IT DO ----
+   (owner-asked 26 Aug 2026: "although the contracts may have capital letters
+   for the headers, in the analytics report make sure it conforms to uniformity
+   and have proper grammar. Not all caps.")
+
+   A clause name here is the CONTRACT'S own heading, printed back — so one chart
+   carried "SPECIFICATIONS, QUALITY & INSPECT..." beside "Delivery Information"
+   and read as a rendering fault rather than as two contracts drafted by two
+   firms. Title Case is the one style this page prints in, always, and it does
+   not follow the paper: a report comparing eight agreements has to have a
+   voice of its own or every row shouts as loudly as its author did.
+
+   IT CHANGES WHAT IS PRINTED AND NOTHING ELSE. No contract is rewritten, no
+   heading on any paper moves, and the case machinery is clausemodel's — the
+   same reading a clause added to a document asks, from the other direction.
+   Reached through window because a stage without that module must fall back to
+   the raw heading rather than throw: this is a chart label. */
+const _igClauseName = s => {
+  const t=String(s==null?'':s).replace(/\s+/g,' ').trim();
+  if(!t) return '';
+  try{ return window.clauseTitleCase ? clauseTitleCase(t) : t; }catch(_){ return t; }
+};
 function intelFrictionStats(filter){
   const f=filter||null;
   const cutoff=f&&f.days?Date.now()-f.days*86400000:null;
@@ -1005,7 +1027,7 @@ function intelFrictionStats(filter){
     const labels=new Set();
     for(const ch of all){
       if(!ch) continue;
-      const k=String(ch.clauseLabel||ch.headingText||'').replace(/\s+/g,' ').trim();
+      const k=_igClauseName(ch.clauseLabel||ch.headingText||'');
       if(k) labels.add(k.length>44?k.slice(0,44):k);
       const ours=ch.authorSide==='owner';
       if(ch.status==='accepted'){ ours?oursAcc++:theirsAcc++; if(ours) cp.acc++; }
@@ -1014,7 +1036,7 @@ function intelFrictionStats(filter){
         if(!ch.withdrawn){ deadlocks++;
           /* Named, not just counted — "See the six" has to have six to show. */
           if(deadlockList.length<12) deadlockList.push({ id:c.id, name:String(c.name||c.id),
-            clause:String(ch.clauseLabel||ch.headingText||'a clause').replace(/\s+/g,' ').trim().slice(0,60) });
+            clause:(_igClauseName(ch.clauseLabel||ch.headingText||'')||'a clause').slice(0,60) });
         }
       }
       if((ch.status==='accepted'||ch.status==='rejected')&&ch.resolvedAt&&ch.createdAt){
@@ -1023,8 +1045,14 @@ function intelFrictionStats(filter){
       }
     }
     for(const k of labels){
-      if(!per.has(k)) per.set(k,{label:k,ids:new Set()});
-      per.get(k).ids.add(c.id);
+      /* KEYED WITHOUT ITS CASE, so one clause is one row. Two contracts writing
+         "PAYMENT TERMS" and "Payment terms" are arguing about the same clause,
+         and counting them as two halves the figure this chart exists to show.
+         The LABEL is the report's own spelling of it, so whichever arrived
+         first the row reads the same. */
+      const kk=k.toLowerCase();
+      if(!per.has(kk)) per.set(kk,{label:k,ids:new Set()});
+      per.get(kk).ids.add(c.id);
     }
   }
   const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;

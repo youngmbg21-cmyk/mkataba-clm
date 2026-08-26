@@ -148,3 +148,75 @@ describe('N8 (3) — the templates library page', () => {
     assert.match(shell, /Convert a document/); assert.match(shell, /New template/);
   });
 });
+
+/* ---------- the report's own house style ----------
+   Owner-asked 26 Aug 2026: "although the contracts may have capital letters for
+   the headers, in the analytics report make sure it conforms to uniformity and
+   have proper grammar. Not all caps."
+
+   THE STAGE LOADS clausemodel.js ON PURPOSE. _igClauseName falls back to the raw
+   heading where that module is absent, which is right in the product (a chart
+   label must never throw) and fatal in a test: without it every claim below
+   passes against a page doing nothing at all. */
+function casedStage(contracts) {
+  return loadViews(['js/clausemodel.js', 'js/views/intelligence.js'], {
+    state: { contracts, settings: {}, view: 'intel' },
+    negoAllChanges: c => c.changes || [],
+    FOLDERS: STUB_FOLDERS, TEMPLATES: {},
+    getContract: id => contracts.find(c => c.id === id),
+  });
+}
+
+describe('N8 (4) — the report prints clause names in ONE style', () => {
+  /* Two firms' drafting, as it really arrives: one shouts, one does not. */
+  const SHOUTY = [
+    deal('MK-A', 'Juno', 3, [CH('SPECIFICATIONS, QUALITY & INSPECTION', 'rejected', 'owner')]),
+    deal('MK-B', 'Juno', 2, [CH('SPECIFICATIONS, QUALITY & INSPECTION', 'accepted', 'owner')]),
+    deal('MK-C', 'Copia', 2, [CH('Delivery Information', 'accepted', 'owner')]),
+  ];
+
+  test('a shouted heading is printed back in Title Case, never as typed', () => {
+    const st = casedStage(SHOUTY).intelFrictionStats(null);
+    const names = st.clauses.map(c => c.label);
+    assert.ok(names.includes('Specifications, Quality & Inspection'),
+      `expected Title Case, got ${JSON.stringify(names)}`);
+    assert.ok(!names.some(n => /^[^a-z]*$/.test(n) && /[A-Z]{4,}/.test(n)),
+      `a name is still shouting: ${JSON.stringify(names)}`);
+  });
+
+  test('one clause is ONE row however the two contracts capitalised it', () => {
+    /* Owner-ruled the same day: merge them. Before this the chart showed the
+       same clause twice, each with half its real count, and the two rows sat
+       next to each other looking like two different arguments. */
+    const mixed = [
+      deal('MK-A', 'Juno', 3, [CH('PAYMENT TERMS', 'rejected', 'owner')]),
+      deal('MK-B', 'Juno', 2, [CH('Payment terms', 'accepted', 'owner')]),
+      deal('MK-C', 'Copia', 2, [CH('payment terms', 'accepted', 'owner')]),
+    ];
+    const st = casedStage(mixed).intelFrictionStats(null);
+    const pay = st.clauses.filter(c => /payment/i.test(c.label));
+    assert.equal(pay.length, 1, `expected one row, got ${JSON.stringify(pay.map(p => p.label))}`);
+    assert.equal(pay[0].n, 3, 'all three deals count toward the one row');
+    assert.equal(pay[0].label, 'Payment Terms');
+  });
+
+  test('the SENTENCE above the chart reads the same name as the chart does', () => {
+    /* One reading, many surfaces: the costliest-clause sentence, the bar list
+       and the health report all take their name from here, so a fix in one is
+       a fix in all — and a second copy is how they would come to disagree. */
+    const st = casedStage(SHOUTY).intelFrictionStats(null);
+    if (st.insight) assert.ok(!/[A-Z]{4,}/.test(st.insight.label),
+      `the sentence still shouts: ${st.insight.label}`);
+    const dl = (st.deadlockList || []).map(d => d.clause);
+    assert.ok(!dl.some(n => /[A-Z]{4,}/.test(n)),
+      `a refused-change row still shouts: ${JSON.stringify(dl)}`);
+  });
+
+  test('the contract itself is never rewritten — only what is printed', () => {
+    const contracts = JSON.parse(JSON.stringify(SHOUTY));
+    casedStage(contracts).intelFrictionStats(null);
+    assert.equal(contracts[0].changes[0].clauseLabel,
+      'SPECIFICATIONS, QUALITY & INSPECTION',
+      'the stored heading moved — this reading may only change what is DRAWN');
+  });
+});

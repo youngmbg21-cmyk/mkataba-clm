@@ -411,8 +411,11 @@ async function applyClauseRedline(c, clauseText, label){
     negoInit(c);
     const clauses=(window.negoClauseList?negoClauseList(c):[]);
     const after=clauses.length?clauses[clauses.length-1].clauseId:null;
+    /* The heading is written the way THIS paper writes headings — see
+       clauseHeadingFor; the playbook's own insert asks the same one call. */
+    const heading=(window.clauseHeadingFor?clauseHeadingFor(name,clauses):name);
     const ch=await negoInsertClause(c, after,
-      { headingText:name, bodyHtml:(window.textToRich?textToRich(clauseText):`<p>${String(clauseText)}</p>`) },
+      { headingText:heading, bodyHtml:(window.textToRich?textToRich(clauseText):`<p>${String(clauseText)}</p>`) },
       { side:'owner', author:(u&&u.name)||'This workspace',
         summary:`Preferred wording inserted from the playbook — ${name}` });
     if(ch){

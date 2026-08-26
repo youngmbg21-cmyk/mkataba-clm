@@ -206,6 +206,153 @@ function clauseLabel(cl){
   return t.length > 60 ? t.slice(0, 57) + '…' : t;
 }
 
+/* ---------- HOW THIS DOCUMENT WRITES A HEADING ----------
+   (owner-asked 26 Aug 2026, two items off one list. A standard clause added
+   from the library arrived as "LIABILITY CAP" in a contract whose own headings
+   read "4. Liability & Governing Law"; and the analytics report printed the
+   contract's own shouted headings straight back, so one chart carried
+   "SPECIFICATIONS, QUALITY & INSPECT..." beside "Delivery Information".)
+
+   TWO JOBS, ONE READING BETWEEN THEM. A clause going INTO the paper has to
+   match the paper. A clause name printed in a REPORT has to match the report,
+   which has one house style whatever the contracts under it do. Both need the
+   same two questions answered — what case is this written in, and how do I
+   write it in another — so they are answered once here rather than twice at
+   two call sites that would drift.
+
+   NEITHER JOB REWRITES A CONTRACT. The insert only ever chooses the case of a
+   heading it is about to write for the FIRST time; the report only ever
+   changes what it PRINTS. No stored wording moves, no fingerprint moves, and a
+   heading somebody typed is left exactly as they typed it.
+
+   ACRONYMS ARE THE ONE THING A SHOUTED HEADING CANNOT TELL US. In "IP RIGHTS"
+   every letter is a capital, so nothing in the text says whether "IP" is a word
+   or an initialism — the information is simply not in the string. Two answers,
+   in order, and the first is the honest one:
+
+     - where the source is NOT itself all capitals, a token that is all capitals
+       is an acronym somebody typed, and it is kept exactly as it stands;
+     - where the source is all capitals, the list below is all there is.
+
+   So that list is short, holds the initialisms this product actually meets, and
+   deliberately leaves out "IT" and "US" — both are ordinary words as often as
+   they are initialisms, and "As IT Stands" is a worse error than "Hr". It will
+   be wrong now and then on a heading nobody here has seen, and the cost of that
+   is a word on a chart rather than a word in anybody's agreement. */
+const _CL_SMALL = new Set(['a','an','and','as','at','but','by','for','from','in',
+  'nor','of','on','or','per','the','to','via','vs','with']);
+const _CL_ACRONYM = new Set(['ip','nda','vat','gdpr','sla','kpi','eu','uk','hr',
+  'qa','ppe','hse','fob','cif','exw','odpc','tupe','saas','poc','vip']);
+/* The first LETTER, not the first character: a token can open with a bracket or
+   a quotation mark and "(a)" must not become "(A)"-by-accident somewhere else. */
+const _clCap = w => w.toLowerCase().replace(/[a-z]/, ch => ch.toUpperCase());
+/* Does this string shout? One lowercase letter anywhere is the string telling
+   us something about its own case; none at all is it telling us nothing, which
+   is exactly what turns the acronym question from a reading into a guess. */
+const _clShouts = t => /[A-Za-z]/.test(t) && !/[a-z]/.test(t);
+function _clWord(w, first, last, shouts){
+  const bare = w.replace(/[^A-Za-z]/g, '');
+  if (!bare) return w;                                   /* "&", a dash, a number */
+  if (!shouts && w === w.toUpperCase() && bare.length > 1) return w;   /* typed acronym */
+  const low = bare.toLowerCase();
+  if (_CL_ACRONYM.has(low)) return w.replace(bare, bare.toUpperCase());
+  if (!first && !last && _CL_SMALL.has(low)) return w.toLowerCase();
+  return _clCap(w);
+}
+/* Title Case, the convention every style guide shares: small words stay small
+   unless they open or close the heading. "&" is not a word and is left alone —
+   contract headings lean on it constantly. */
+function clauseTitleCase(text){
+  const t = String(text == null ? '' : text).replace(/\s+/g, ' ').trim();
+  if (!t) return '';
+  const shouts = _clShouts(t);
+  const words = t.split(' ');
+  return words.map((w, i) => {
+    const first = i === 0, last = i === words.length - 1;
+    /* A hyphen or a slash joins words INSIDE one token and each part follows the
+       same rule, so "ROUTE-TO-MARKET" comes back as "Route-to-Market". */
+    const parts = w.split(/([-\/])/);
+    return parts.map((p, j) => (p === '-' || p === '/') ? p
+      : _clWord(p, first && j === 0, last && j === parts.length - 1, shouts)).join('');
+  }).join(' ');
+}
+/* Sentence case: the opening word and nothing else, acronyms excepted. */
+function clauseSentenceCase(text){
+  const t = String(text == null ? '' : text).replace(/\s+/g, ' ').trim();
+  if (!t) return '';
+  const shouts = _clShouts(t);
+  return t.split(' ').map((w, i) => {
+    const bare = w.replace(/[^A-Za-z]/g, '');
+    if (!bare) return w;
+    if (!shouts && w === w.toUpperCase() && bare.length > 1) return w;
+    if (_CL_ACRONYM.has(bare.toLowerCase())) return w.replace(bare, bare.toUpperCase());
+    return i === 0 ? _clCap(w) : w.toLowerCase();
+  }).join(' ');
+}
+/* Write a heading in a named case. An unknown style — including the null
+   clauseHeadingCase answers when a document has nothing to read — returns the
+   text UNTOUCHED, because "I could not tell" must never become "so I changed
+   it anyway". */
+function clauseCaseTo(text, style){
+  const t = String(text == null ? '' : text).replace(/\s+/g, ' ').trim();
+  if (!t) return '';
+  if (style === 'upper') return t.toUpperCase();
+  if (style === 'title') return clauseTitleCase(t);
+  if (style === 'sentence') return clauseSentenceCase(t);
+  return t;
+}
+/* ---------- THE DOCUMENT'S OWN HABIT ----------
+   Read off the headings the paper already carries, so a clause added to it can
+   be written the way its neighbours are.
+
+   THE TITLE ALONE, NEVER THE NUMBER. "4." says nothing about case, and a
+   contract is not shouting because it numbers its clauses.
+
+   MAJORITY, NEVER THE FIRST ONE. Contracts routinely shout the agreement's own
+   title and then set every clause under it in ordinary case, so reading one
+   heading — or the first — gets the wrong answer on one of the commonest
+   shapes there is.
+
+   TITLE AND SENTENCE ARE TOLD APART ON THE LATER WORDS, and only headings that
+   HAVE later words get a vote: "Confidentiality" is evidence about shouting and
+   no evidence at all about what this document does with a second word. With no
+   such heading anywhere the answer is 'title', which is the commoner convention
+   in commercial drafting and the one the built-in templates use.
+
+   NULL IS A REAL ANSWER and it means "leave it as typed" — an unheaded wall of
+   paragraphs has no habit, and inventing one for it is a guess. */
+function clauseHeadingCase(clauses){
+  const list = Array.isArray(clauses) ? clauses : [];
+  let upper = 0, plain = 0, title = 0, sentence = 0;
+  for (const cl of list){
+    const t = String((cl && cl.title) || '').replace(/\s+/g, ' ').trim();
+    if (!/[A-Za-z]/.test(t)) continue;
+    if (_clShouts(t)){ upper++; continue; }
+    plain++;
+    /* The words after the first, minus the small ones a title leaves small
+       either way — those carry no evidence and counting them would read every
+       title-cased heading with an "and" in it as sentence case. */
+    const rest = t.split(' ').slice(1)
+      .filter(w => { const b = w.replace(/[^A-Za-z]/g, '');
+        return b && !_CL_SMALL.has(b.toLowerCase()); });
+    if (!rest.length) continue;
+    const caps = rest.filter(w => /^[^a-zA-Z]*[A-Z]/.test(w)).length;
+    if (caps * 2 >= rest.length) title++; else sentence++;
+  }
+  if (!upper && !plain) return null;
+  if (upper > plain) return 'upper';
+  return sentence > title ? 'sentence' : 'title';
+}
+
+/* The heading a clause ABOUT TO BE ADDED to this document should carry: the
+   name somebody typed, written the way this paper writes its headings. The one
+   call the three insert sites share — the playbook's position, and the clause
+   library from each of its two doors — because three copies of "read the habit,
+   then apply it" is three places for them to come to disagree. */
+function clauseHeadingFor(text, clauses){
+  return clauseCaseTo(text, clauseHeadingCase(clauses));
+}
+
 /* ---------- WHERE A NUMBER IS MISSING ----------
    Asked of ONE number against the numbers a document carries, and deliberately
    not of the whole run at once.
@@ -964,6 +1111,7 @@ function clauseRenumberPlan(clauses){
 if (typeof window !== 'undefined') Object.assign(window, {
   CLAUSE_HEADINGS, clauseNewId, clauseParseHeading, clauseLabel, clauseNumberGap,
   CLAUSE_KINDS, clauseKindByKey, clauseKind, ruleKind,
+  clauseTitleCase, clauseSentenceCase, clauseCaseTo, clauseHeadingCase, clauseHeadingFor,
   clauseSegment, clauseFrontMatter, clauseStampIds, clauseCarryIds, clauseList, clauseFindById,
   clauseReplaceBody, clauseReplaceHeading, clauseRemove, clauseInsert,
   clauseRefsInText, clauseResolveRefs, clauseRefNorm,
