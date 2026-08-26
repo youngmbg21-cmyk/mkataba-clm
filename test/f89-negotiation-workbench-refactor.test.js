@@ -933,7 +933,7 @@ describe('F89 (11,12) — the card verbs, their colours, and where Edit lands', 
     const acc = p.rule('.redline-page .rl-card-verbs .rl-acc,.redline-page .rl-card-verbs .rl-send') || '';
     assert.match(acc, /background:transparent/, 'flat, so its outline can be seen');
     assert.match(acc, /color:var\(--accent-ink\)/, 'and an ink that answers in dark');
-    assert.match(acc, /font-weight:700/, 'the row still says which verb leads');
+    assert.match(acc, /font-weight:var\(--w-title\)/, 'the row still says which verb leads');
     assert.match(p.rule('.redline-page .rl-card-verbs button') || '',
       /border:1px solid var\(--rl-btn-line\)/, 'every verb wears the head row\'s own line');
     /* ---- AND THE OUTLINE IS GONE AGAIN, REVERSED IN PLACE (owner-reported

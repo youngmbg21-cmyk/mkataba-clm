@@ -811,6 +811,95 @@ own token.
 
 NOTE FOR THE NEXT SWEEP: no test in the suite asserted a half-pixel font size, which is why 865 replacements cost two test updates rather than fifty. Both were about the Tracked Changes caption, and one of them recorded a real consequence — the count used to be set a hair larger than the caption "because mono runs small at the same size", and that stopped being true when --font-mono was pointed at Inter with everything else. One family, no compensation owed, both 11px.
 
+## THE LADDERS HAVE CONSUMERS NOW (25 Aug 2026 — Phase C)
+
+The audit's whole verdict in one sentence: **"a ladder with no consumers is a
+document, not a system."** HaTi had a mature COLOUR system and essentially
+nothing else — font-size, font-weight, line-height, z-index, duration and
+border-width had zero tokens between them until 23 Aug, and the ladders added
+that day had **four consumers in total** against 2,144 hand-typed font sizes,
+1,065 weights and 1,748 on-grid spacings.
+
+**4,991 DECLARATIONS NOW READ THE LADDERS, AND NOT ONE PIXEL MOVED.** By exact
+value: 30→`--t-display`, 19→`--t-page`, 17→`--t-section`, 15→`--t-card`,
+14→`--t-body`, 13→`--t-meta`, 12→`--t-label`, 11→`--t-micro`, 10→`--t-figure`;
+400/500/600/700→`--w-*`; 4/8/12/16/24/32/40/48→`--s-*`. **A type or spacing
+change is ONE edit now**, which is the whole point of the phase.
+
+**THE PROOF IS A CENSUS AND IT IS IN THE REPO** — `test/design-census.cjs`,
+run by hand in pairs. Every font-size, weight, line-height, letter-spacing,
+padding, margin, gap, shadow and height the browser RESOLVES, on 14 screens in
+both themes, keyed by a stable path. Recorded on a worktree at the parent
+commit and again on the branch: **5,906 element paths, 0 moved, 0 gone, 0
+arrived.**
+
+**IT FLAPPED FIRST, AND THAT IS THE LESSON.** Run twice on an unchanged tree it
+reported 12 moved paths and then moved them back — Reports hydrates its charts
+asynchronously, so the census read the CSS fallback strip (58px) on one run and
+the canvas (220px) on the next, and every ancestor of a chart reported a height
+change. **A census that moves on its own is worse than no census**, and it made
+the three "0 moved" runs before it worthless. It waits for the canvases and for
+the height to stop changing; zero drift on identical code is now the first
+thing it has to earn.
+
+**WHAT IS DELIBERATELY EXCLUDED FROM THE SWEEP, and each for the same reason.**
+Anything inside a `calc()` — that is the contract paper, whose size the reader
+sets with the A⁻/A⁺ stepper, and a token there overrules a preference. Line 74
+of index.html, the compiled Tailwind blob, which regenerates. And **the
+STANDALONE DOCUMENTS**: js/views/healthreport.js and js/views/weekly.js open
+their own windows and carry no `:root`, so a token there resolves to NOTHING —
+the declaration is dropped and the browser falls back to whatever it inherits.
+**A THIRD ONE WAS MISSED AND f143 CAUGHT IT IN ONE RUN**: `negoHistoryExportHtml`
+is a whole-document builder living inside an ordinary view file, so a
+file-level exclusion did not cover it. Its 17 tokens are literals again and the
+function says why at the top. Any new builder emitting a whole document joins
+that list.
+
+**THE OFF-GRID SPACING IS LEFT ALONE, AS THE ORDER ASKS: 3,482 declarations**
+on 10, 6, 9, 14, 7, 5, 2, 11 and 3 px. They are hand-tuned dense rows and they
+want an eye, not a regex.
+
+**SEVENTEEN HALF-PIXEL FONT SIZES WERE ROUNDED UP** — 14.5→15, 13.5→14,
+12.5→13, 11.5→12, 10.5→11 — eleven in the clause editor and six on the
+negotiation page, including the two in the change-card ⋯ menu the order names.
+A fractional size puts the glyph stems between device pixels and renders soft;
+this is the 22 Aug sweep's own rule, finishing the job.
+
+**ONE FIELD PAIR.** Seven local `FLD`/`LBL` constants in three disagreeing
+flavours — two of them in core.js 1,300 lines apart — and `RV_FLD` in
+js/review.js carried a note saying it was a deliberate copy to be kept in step
+and **had already drifted 2px from what it quoted**. `HATI_FLD` / `HATI_LBL` are
+declared once in core.js and published; family, intake and library read them.
+**js/review.js's pair is written out on purpose and says why**: pointing it at
+the shared pair left the share dialog's field with NO STYLE AT ALL on a stage
+that does not load core.js, and f156 caught it within the hour. **What drifts
+is VALUES, not strings** — every declaration there reads `var(--field-*)`, so a
+change to a field's height is still one edit in `:root`. f238 asks for that,
+not for the string.
+
+**TWO SURFACES BETWEEN THE PAGE AND WHITE.** `--surface-2` (a raised strip ON a
+card) and `--surface-3` (a layer ABOVE the page), light going DOWN from white
+and dark going UP from the panel, because that is which way "nearer the reader"
+reads on each ground. Adopted on the room's ⋯ menu and the settings drawer. Every
+rung clears AA in both themes by measurement (11.87:1 for body ink on
+`--surface-3` at night).
+
+**AND THE REGISTER'S FILTER BAR WAS REVERTED WITHIN THE HOUR, WHICH IS THE
+USEFUL HALF.** It is the most obvious raised strip in the product and it is the
+one place a tone is forbidden: the owner reported that head and band reading as
+two cards with a strip between them ("make it one card"), and the fix was one
+white object running to the screen's edge. `--surface-2` put that seam straight
+back — contracts-page 8a and 15 both failed on it. **An owner ruling outranks a
+system rule on the element it names.**
+
+Tests: f238 (the field claim REVERSED IN PLACE and made stronger — one pair,
+published, and no constant typing its own NUMBERS), **`test/tokens.js` (NEW —
+one resolver mapping a token to its value out of `:root`, so a test asserting a
+RELATION reads a number without typing one; six tests use it)**, and twenty
+claims RE-POINTED across f143, f156, f173, f175, f178, f184, f210, f223, f238
+and f240 — seventeen were literals where the claim was a relation, which is
+exactly what rule 4 predicted, and each now costs nothing at the next retune.
+
 ## ONE FOCUS TRAP, NINE HOMES, AND EVERY REFUSAL SPOKEN (25 Aug 2026 — Phase B)
 
 The audit graded accessibility D+ on two measured facts: **the product had ONE

@@ -30,6 +30,7 @@
    contracts would silently start a negotiation on all 145 of them. */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
+const { px: tokenPx } = require('./tokens');
 const fs = require('node:fs');
 const path = require('node:path');
 const { buildWorld } = require('./world');
@@ -754,10 +755,15 @@ describe('F184 (5) — the phone changes the same way', () => {
        bar's labels must never be shrunk to make a longer word fit — so a lift
        satisfies it and a drop below 14 would not. Asserted as >= 14 rather than
        as a number, which is what the claim always meant. */
+    /* RE-POINTED 25 Aug 2026 — the size is a TOKEN now, read through the one
+       resolver. The claim is unchanged and is still a FLOOR, which is what it
+       always meant: a lift satisfies it, a drop below 14 does not, and the
+       next type retune costs no edit here. */
     const css = read('js/mobile.js');
-    const px = /^\.m-tab span\{ font-size:(\d+)px/.exec(css.slice(css.indexOf('.m-tab span{')));
-    assert.ok(px && Number(px[1]) >= 14,
-      `the phone's bar labels sit at or above the 14px floor — got ${px && px[1]}`);
+    const decl = /^\.m-tab span\{ (font-size:[^;]+)/.exec(css.slice(css.indexOf('.m-tab span{')));
+    const size = decl ? tokenPx(decl[1]) : NaN;
+    assert.ok(size >= 14,
+      `the phone's bar labels sit at or above the 14px floor — got ${size}`);
   });
 
   test('the bar press runs the same door, and it opens the list', () => {

@@ -919,7 +919,7 @@ describe('f210 (15) — how the panel reads', () => {
        moved to the BASE and the panel's copy went with it. Two rules for one
        fact is how they come to differ. */
     assert.doesNotMatch(SRC, /\.nego-ins\{[^}]*border-bottom:2px/);
-    assert.doesNotMatch(SRC, /\.nego-ins\{[^}]*font-weight:600/);
+    assert.doesNotMatch(SRC, /\.nego-ins\{[^}]*font-weight:var\(--w-strong\)/);
     /* radius literal moved to 0 with the square-corner sweep, 20 Aug 2026 */
     assert.match(SRC, /\.nego-ins\{background:var\(--n-ins-bg\);color:var\(--n-ins-fg\);\s*\n\s*border-radius:0;padding:0 3px;text-decoration:none\}/);
     /* AND THE DELETION KEEPS ITS STRIKE. Not an inconsistency: colour alone can
@@ -1065,7 +1065,7 @@ describe('f210 (17) — the pills come off the paper, and the marker moves to th
       'a marked clause has exactly the box an unmarked one has');
     assert.match(SRC, /\.rl-clause\.is-changed::after\{content:'';position:absolute;\s*\n\s*top:0;bottom:0;right:-18px/,
       'and the mark is a bar in the sheet\'s own margin, outside the text column');
-    assert.match(SRC, /\.redline-page \.rl-clause\{margin:0 0 16px;padding:0\}/,
+    assert.match(SRC, /\.redline-page \.rl-clause\{margin:0 0 var\(--s-4\);padding:0\}/,
       'so nothing about the wording moves when a change lands');
   });
 
@@ -1293,7 +1293,7 @@ describe('F210 — the clause rail', () => {
   };
 
   test('every clause has the same box, marked or not', () => {
-    assert.match(rule('.redline-page .rl-clause'), /margin:0 0 16px;padding:0/,
+    assert.match(rule('.redline-page .rl-clause'), /margin:0 0 var\(--s-4\);padding:0/,
       'no padding on any of them');
     const marked = rule('.redline-page .rl-clause.is-changed');
     assert.match(marked, /padding:0/, 'including the marked one');

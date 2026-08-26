@@ -92,7 +92,7 @@ const _esc = s => String(s==null?'':s).replace(/</g,'&lt;');
 function bar(label, value, max, valStr, color){
   const pct=max>0?Math.max(0,Math.min(100,Math.round(value/max*100))):0;
   return `<div style="margin-bottom:7px">
-    <div style="display:flex;justify-content:space-between;gap:10px;font-size:12px;margin-bottom:2px"><span style="color:var(--color-neutral-700);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(label)}</span><span style="font-weight:400;font-variant-numeric:tabular-nums;flex:none">${valStr}</span></div>
+    <div style="display:flex;justify-content:space-between;gap:10px;font-size:var(--t-label);margin-bottom:2px"><span style="color:var(--color-neutral-700);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(label)}</span><span style="font-weight:var(--w-body);font-variant-numeric:tabular-nums;flex:none">${valStr}</span></div>
     <div style="height:7px;background:var(--color-neutral-200);border-radius:0;overflow:hidden"><div style="width:${pct}%;height:100%;background:${color};border-radius:0"></div></div>
   </div>`;
 }
@@ -123,7 +123,7 @@ function reportMetricSel(){
   for(let i=0;i<4;i++) if(!REPORT_METRICS.some(m=>m.k===s[i])) s[i]=DEFAULT_REPORT_METRICS[i];
   return s;
 }
-const emptyMsg = t => `<p style="font-size:13px;color:var(--color-neutral-600)">${_esc(t)}</p>`;
+const emptyMsg = t => `<p style="font-size:var(--t-meta);color:var(--color-neutral-600)">${_esc(t)}</p>`;
 /* Chart catalogue for the four lower cards. Like the hero stat cards, each card
    follows a KPI the user picks — value isn't forced. `render(r)` returns the bar
    HTML from the computed report object. */
@@ -177,12 +177,12 @@ function reportDropdown(variant, kind, idx, catalog, selKey){
   // 11px uppercase is a label, so it takes the label ink, which is what every
   // other micro-cap in this product wears.
   const trig=hero
-    ? 'background:var(--color-bg);border:1px solid var(--color-divider);color:var(--color-neutral-600);font-size:11px;letter-spacing:.09em;text-transform:uppercase;font-weight:600'
-    : 'background:var(--color-bg);border:1px solid var(--color-divider);color:var(--color-text);font-size:15px;font-weight:600';
+    ? 'background:var(--color-bg);border:1px solid var(--color-divider);color:var(--color-neutral-600);font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;font-weight:var(--w-strong)'
+    : 'background:var(--color-bg);border:1px solid var(--color-divider);color:var(--color-text);font-size:var(--t-card);font-weight:var(--w-strong)';
   const chev='var(--color-neutral-500)';
-  const opts=catalog.map(x=>`<button type="button" data-rd-opt="${kind}:${idx}:${x.k}" class="rd-opt${x.k===cur.k?' rd-opt-on':''}" style="display:block;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:14px;padding:7px 11px;border-radius:0;cursor:pointer;white-space:nowrap">${_esc(x.label)}</button>`).join('');
+  const opts=catalog.map(x=>`<button type="button" data-rd-opt="${kind}:${idx}:${x.k}" class="rd-opt${x.k===cur.k?' rd-opt-on':''}" style="display:block;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:var(--t-body);padding:7px 11px;border-radius:0;cursor:pointer;white-space:nowrap">${_esc(x.label)}</button>`).join('');
   return `<div class="rd" style="position:relative;max-width:100%;${hero?'flex:1;min-width:0':'margin:0 0 10px'}">
-    <button type="button" data-rd-trigger="${kind}:${idx}" class="rd-trigger rd-trigger-${hero?'hero':'card'}" title="${esc(hero?i18t('rep_choose_metric'):i18t('rep_choose_chart'))}" style="display:inline-flex;align-items:center;gap:8px;max-width:100%;border-radius:0;padding:4px 9px 4px 12px;cursor:pointer;line-height:1.25;transition:background .12s,border-color .12s;${trig}">
+    <button type="button" data-rd-trigger="${kind}:${idx}" class="rd-trigger rd-trigger-${hero?'hero':'card'}" title="${esc(hero?i18t('rep_choose_metric'):i18t('rep_choose_chart'))}" style="display:inline-flex;align-items:center;gap:var(--s-2);max-width:100%;border-radius:0;padding:var(--s-1) 9px var(--s-1) var(--s-3);cursor:pointer;line-height:1.25;transition:background .12s,border-color .12s;${trig}">
       <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(cur.label)}</span>
       <span aria-hidden="true" class="rd-chev" style="flex:none;color:${chev};pointer-events:none">▾</span>
     </button>
@@ -287,13 +287,13 @@ function renderReports(){
     const d=m.get(r);
     const t=m.tone||'steel';
     return `
-    <div style="display:flex;flex-direction:column;gap:10px;padding:15px 16px;border-radius:0;background:var(--color-surface);border:1px solid var(--color-divider);border-top:3px solid var(--st-${t}-dot);box-shadow:var(--shadow-sm)">
+    <div style="display:flex;flex-direction:column;gap:10px;padding:15px var(--s-4);border-radius:0;background:var(--color-surface);border:1px solid var(--color-divider);border-top:3px solid var(--st-${t}-dot);box-shadow:var(--shadow-sm)">
       <span style="display:flex;align-items:center;gap:9px">
         <span style="width:30px;height:30px;flex:none;border-radius:0;background:var(--st-${t}-bg);display:grid;place-items:center;color:var(--st-${t}-fg)">${icon(m.ic,'w-4 h-4',1.7)}</span>
         ${reportDropdown('hero','metric',idx,REPORT_METRICS,sel[idx])}
       </span>
-      <span class="tnum" style="font-family:var(--font-mono);font-weight:600;font-size:25px;line-height:1.0;color:var(--color-text)">${d.val}</span>
-      <span style="font-size:12px;color:var(--color-neutral-600)">${d.sub}</span>
+      <span class="tnum" style="font-family:var(--font-mono);font-weight:var(--w-strong);font-size:25px;line-height:1.0;color:var(--color-text)">${d.val}</span>
+      <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${d.sub}</span>
     </div>`;
   };
   const stats=[statSlot(0),statSlot(1),statSlot(2),statSlot(3)].join('');
@@ -312,8 +312,8 @@ function renderReports(){
     const acts=(cfg&&typeof aiChartActionsHtml==='function')
       ?`<div style="position:relative;flex:none;width:76px;height:24px">${aiChartActionsHtml(key)}</div>`:'';
     return `
-    <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:0;padding:16px">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+    <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:0;padding:var(--s-4)">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:var(--s-2)">
         ${reportDropdown('card','chart',idx,REPORT_CHARTS,csel[idx])}
         ${acts}
       </div>
@@ -325,27 +325,27 @@ function renderReports(){
   <div class="view-enter" style="padding:var(--page-pad)">
     <style>
       .rd-trigger-hero:hover,.rd-trigger-card:hover{background:var(--color-neutral-100)!important;border-color:var(--color-accent)!important}
-      .rd-chev{font-size:15px;line-height:1}
+      .rd-chev{font-size:var(--t-card);line-height:1}
       .rd-menu{animation:rdIn .1s ease}
       .rd-opt{color:var(--color-text)}
       .rd-opt:hover{background:var(--color-bg)}
-      .rd-opt-on{background:var(--st-steel-bg);color:var(--st-steel-fg);font-weight:600}
+      .rd-opt-on{background:var(--st-steel-bg);color:var(--st-steel-fg);font-weight:var(--w-strong)}
       @keyframes rdIn{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
     </style>
     <div style="display:flex;flex-direction:column;gap:18px">
       <div style="display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap">
-        <button type="button" id="rep-export" style="display:inline-flex;align-items:center;gap:7px;border:1px solid var(--color-divider);background:var(--color-surface);color:var(--color-neutral-700);font:inherit;font-size:13px;font-weight:600;border-radius:0;padding:7px 12px;cursor:pointer">${icon('download','w-3.5 h-3.5')}${i18t('rep_export_btn')}</button>
+        <button type="button" id="rep-export" style="display:inline-flex;align-items:center;gap:7px;border:1px solid var(--color-divider);background:var(--color-surface);color:var(--color-neutral-700);font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);border-radius:0;padding:7px var(--s-3);cursor:pointer">${icon('download','w-3.5 h-3.5')}${i18t('rep_export_btn')}</button>
         ${''/* THE WEEKLY REVIEW sits beside the health report because they are the
                same kind of thing — a deterministic document, opened in a tab,
                with no model anywhere near it. The size lives next to the button
                rather than inside the document: choosing it afterwards would mean
                reading the wrong one first. */}
-        <label style="display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--color-neutral-700)">${i18t('rep_weekly_size')}
-          <select id="rep-weekly-tier" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:6px 9px;font:inherit;font-size:13px;color:inherit;outline:none">
+        <label style="display:inline-flex;align-items:center;gap:7px;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700)">${i18t('rep_weekly_size')}
+          <select id="rep-weekly-tier" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:6px 9px;font:inherit;font-size:var(--t-meta);color:inherit;outline:none">
             ${(typeof WK_TIERS!=='undefined'?WK_TIERS:['skinny','tower','full']).map(t=>`<option value="${t}"${(typeof wkTier==='function'&&wkTier()===t)?' selected':''}>${i18t('wk_tier_'+t)}</option>`).join('')}
           </select></label>
-        <button type="button" id="rep-weekly" style="display:inline-flex;align-items:center;gap:7px;border:1px solid var(--color-divider);background:var(--color-surface);color:var(--color-neutral-700);font:inherit;font-size:13px;font-weight:600;border-radius:0;padding:7px 12px;cursor:pointer">${icon('file','w-3.5 h-3.5')}${i18t('rep_weekly_btn')}</button>
-        <button type="button" id="rep-health" style="display:inline-flex;align-items:center;gap:7px;border:0;background:var(--accent-fill);color:#fff;font:inherit;font-size:13px;font-weight:600;border-radius:0;padding:7px 12px;cursor:pointer">${icon('file','w-3.5 h-3.5')}${i18t('rep_health_btn')}</button>
+        <button type="button" id="rep-weekly" style="display:inline-flex;align-items:center;gap:7px;border:1px solid var(--color-divider);background:var(--color-surface);color:var(--color-neutral-700);font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);border-radius:0;padding:7px var(--s-3);cursor:pointer">${icon('file','w-3.5 h-3.5')}${i18t('rep_weekly_btn')}</button>
+        <button type="button" id="rep-health" style="display:inline-flex;align-items:center;gap:7px;border:0;background:var(--accent-fill);color:#fff;font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);border-radius:0;padding:7px var(--s-3);cursor:pointer">${icon('file','w-3.5 h-3.5')}${i18t('rep_health_btn')}</button>
       </div>
       <section class="rp-stats" style="display:grid;gap:14px">
         ${stats}

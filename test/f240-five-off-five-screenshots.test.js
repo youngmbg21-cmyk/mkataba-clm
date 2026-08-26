@@ -35,6 +35,7 @@
    a third off rather than for 32px. */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
+const { px: tokenPx } = require('./tokens');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -84,8 +85,11 @@ describe('f240 (2) — the stripe is a third shorter and the caption shares the 
   test('the band is at least a third shorter than the 50px it measured', () => {
     const band = strip(NCSS).match(/\.rl-unsent\{[\s\S]*?\}/)[0];
     const go = strip(NCSS).match(/\.rl-unsent-go\{[\s\S]*?\}/)[0];
-    const h = Number((go.match(/height:(\d+)px/) || [])[1]);
-    const padY = Number((band.match(/padding:(\d+)px/) || [])[1]);
+    /* RE-POINTED 25 Aug 2026 — the height and the padding are TOKENS now, so
+       they are read through the one resolver. The arithmetic and the claim are
+       unchanged: this is still a relation, and a retune costs no edit here. */
+    const h = tokenPx((go.match(/height:[^;}]+/) || [])[0]);
+    const padY = tokenPx((band.match(/padding:[^;}]+/) || [])[0]);
     assert.ok(h && padY != null, { h, padY });
     /* The BUTTON is what set the old height, which is why trimming the padding
        alone could never have bought a third. 30 + 9 + 9 + 2 borders = 50. */
@@ -97,7 +101,7 @@ describe('f240 (2) — the stripe is a third shorter and the caption shares the 
     const s = strip(NCSS);
     for (const cls of ['rl-unsent-n', 'rl-unsent-s', 'rl-unsent-go']){
       const r = s.match(new RegExp('\\.' + cls + '\\{[\\s\\S]*?\\}'))[0];
-      const px = Number((r.match(/font-size:(\d+)px/) || [])[1]);
+      const px = tokenPx((r.match(/font-size:[^;}]+/) || [])[0]);
       assert.ok(px && px < 14, cls + ' is still ' + px + 'px');
     }
   });
@@ -135,7 +139,7 @@ describe('f240 (2) — the stripe is a third shorter and the caption shares the 
 
 /* ================================================== 3 — NOTHING IN THE HEAD IS BOLD */
 describe('f240 (3) — Publish Round is not bold', () => {
-  const rule = strip(NCSS).match(/#ws-head \.room-acts button:not\([^{]*\{font-weight:400\}/)[0];
+  const rule = strip(NCSS).match(/#ws-head \.room-acts button:not\([^{]*\{font-weight:var\(--w-body\)\}/)[0];
 
   test('the head-row weight rule no longer excludes the lead act', () => {
     assert.ok(!/\.rl-btn-go/.test(rule), rule);
@@ -145,7 +149,7 @@ describe('f240 (3) — Publish Round is not bold', () => {
     assert.match(strip(NCSS), /\.redline-page #ws-head \.room-acts button:not/,
       '.rl-btn also draws on the control bar, whose metrics feed rlFitTabRow');
     const bar = strip(NCSS).match(/\.rl-btn\{[\s\S]*?\}/)[0];
-    assert.match(bar, /font-weight:700/, 'the control bar keeps its own weight');
+    assert.match(bar, /font-weight:var\(--w-title\)/, 'the control bar keeps its own weight');
   });
 
   test('and BOTH buttons wearing the class change, not just the reported one', () => {
@@ -230,10 +234,11 @@ describe('f240 (5) — the rows read at one size and one weight', () => {
      value rather than a literal, so the next density ruling costs no test edit:
      that is the lesson the 1,994-size sweep of 22 Aug paid five times. */
   test('the reference is regular weight, and the row draws no verb', () => {
-    const rowSize = css.match(/\.reg-table\{[^}]*font-size:(\d+)px/)[1];
+    const rowSize = tokenPx(css.match(/\.reg-table\{[^}]*(font-size:[^;}]+)/)[1]);
     const r = css.match(/\.reg-mk\{[\s\S]*?\}/)[0];
-    assert.match(r, new RegExp('font-size:' + rowSize + 'px'));
-    assert.match(r, /font-weight:400/);
+    assert.equal(tokenPx((r.match(/font-size:[^;}]+/) || [])[0]), rowSize,
+      'the reference reads at the row\'s own size');
+    assert.match(r, /font-weight:var\(--w-body\)/);
     assert.ok(!/class="reg-actlink"/.test(rowsFn), 'the row carries no text verb');
     assert.ok(!/\.reg-actlink\{/.test(css), 'and no rule is left dressing one');
   });
@@ -262,11 +267,14 @@ describe('f240 (5) — the rows read at one size and one weight', () => {
   test('the status chip is flattened HERE, never at .badge', () => {
     /* Size reversed in place with the row (WO-16); read from .reg-table so the
        chip can never drift away from the cells beside it. */
-    const rowSize = css.match(/\.reg-table\{[^}]*font-size:(\d+)px/)[1];
-    assert.match(css, new RegExp('\\.reg-table \\.badge\\{font-size:' + rowSize + 'px;font-weight:400\\}'),
+    const rowSize = tokenPx(css.match(/\.reg-table\{[^}]*(font-size:[^;}]+)/)[1]);
+    const badgeRule = css.match(/\.reg-table \.badge\{([^}]*)\}/);
+    assert.ok(badgeRule, 'the chip is flattened here, on the table');
+    assert.equal(tokenPx((badgeRule[1].match(/font-size:[^;}]+/) || [])[0]), rowSize,
       'a table row is not every card, list and panel in the product');
+    assert.match(badgeRule[1], /font-weight:var\(--w-body\)/, 'and it is regular weight');
     const badge = IDX.match(/\.badge\{[^}]*\}/)[0];
-    assert.match(badge, /font-weight:700/, 'the global chip keeps its own dress');
+    assert.match(badge, /font-weight:var\(--w-title\)/, 'the global chip keeps its own dress');
   });
 
   /* REVERSED IN PLACE 24 Aug 2026 (owner-ruled: "drop the document type and go
@@ -300,9 +308,9 @@ describe('f240 (5) — the rows read at one size and one weight', () => {
      cannot reach, so this sweep is what stops the next density ruling leaving
      one of them behind. */
   test('nor set smaller than the row, the kind line excepted', () => {
-    const rowSize = Number(css.match(/\.reg-table\{[^}]*font-size:(\d+)px/)[1]);
-    const small = [...rowsFn.matchAll(/font-size:(\d+)px/g)]
-      .map(m => Number(m[1])).filter(px => px !== rowSize);
+    const rowSize = tokenPx(css.match(/\.reg-table\{[^}]*(font-size:[^;}]+)/)[1]);
+    const small = [...rowsFn.matchAll(/font-size:[^;}"']+/g)]
+      .map(m => tokenPx(m[0])).filter(px => !Number.isNaN(px) && px !== rowSize);
     assert.deepEqual(small, [], 'off the row’s size: ' + JSON.stringify(small));
   });
 
@@ -312,9 +320,10 @@ describe('f240 (5) — the rows read at one size and one weight', () => {
     /* Size reversed in place with the row (WO-16) — the whose-move words are a
        CELL and the 23 Aug ruling is that every cell reads at one size. */
     const w = IDX.match(/(^|\n)\s*\.ngl-w\{[\s\S]*?\}/)[0];
-    const rowSize = css.match(/\.reg-table\{[^}]*font-size:(\d+)px/)[1];
-    assert.match(w, new RegExp('font-size:' + rowSize + 'px'));
-    assert.match(w, /font-weight:400/);
+    const rowSize = tokenPx(css.match(/\.reg-table\{[^}]*(font-size:[^;}]+)/)[1]);
+    assert.equal(tokenPx((w.match(/font-size:[^;}]+/) || [])[0]), rowSize,
+      'the whose-move words read at the row\'s own size');
+    assert.match(w, /font-weight:var\(--w-body\)/);
     for (const [cls, tok] of [['ngl-w-you', '--st-amber-fg'],
       ['ngl-w-them', '--st-gray-fg'], ['ngl-w-clear', '--st-green-fg']])
       assert.match(IDX.match(new RegExp('\\.' + cls + '\\{[^}]*\\}'))[0],
@@ -322,14 +331,14 @@ describe('f240 (5) — the rows read at one size and one weight', () => {
   });
 
   test('THE CONTRACT ROOM’S FACT ROW IS A HEAD, AND KEEPS ITS BOLD', () => {
-    assert.match(IDX, /\.room-facet \.v \.ngl-w\{ font-weight:700; \}/,
+    assert.match(IDX, /\.room-facet \.v \.ngl-w\{ font-weight:var\(--w-title\); \}/,
       'one builder, two homes — only the LIST was reported');
   });
 
   test('and the headers are what still tell a heading from a row', () => {
-    assert.match(css.match(/\.reg-table th\{[\s\S]*?\}/)[0], /font-weight:700/);
+    assert.match(css.match(/\.reg-table th\{[\s\S]*?\}/)[0], /font-weight:var\(--w-title\)/);
     for (const cls of ['ngl-band-k', 'ngl-band-n'])
       assert.match(IDX.match(new RegExp('\\.' + cls + '\\{[\\s\\S]*?\\}'))[0],
-        /font-weight:700/, cls + ' is a heading, not a row');
+        /font-weight:var\(--w-title\)/, cls + ' is a heading, not a row');
   });
 });

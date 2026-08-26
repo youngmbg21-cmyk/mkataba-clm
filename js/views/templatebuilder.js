@@ -51,28 +51,28 @@ const tbPlaceholderUse = key => _tb.blocks.filter(b => b.content.includes(`{{${k
 
 function tbPaint() {
   const CARD = 'background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:0';
-  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 10px;font:inherit;font-size:14px;outline:none';
+  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none';
   const t = _tb.template;
 
   const blockRows = _tb.blocks.map((b, i) => {
     const meta = TB_BLOCK_META[b.blockType] || TB_BLOCK_META.fixed_text;
     const editor = b.blockType === 'branding'
-      ? `<div style="font-size:12px;color:var(--color-neutral-600);padding:6px 0">${i18t('tb_logo_renders')}</div>`
+      ? `<div style="font-size:var(--t-label);color:var(--color-neutral-600);padding:6px 0">${i18t('tb_logo_renders')}</div>`
       : b.blockType === 'signature_block'
         ? `<input data-tb-content="${i}" value="${esc(b.content)}" placeholder="${i18t('tb_who_signs')}" style="${INP}">`
         : `<textarea data-tb-content="${i}" style="${INP};min-height:${b.blockType === 'heading' ? 34 : 64}px;resize:vertical" placeholder="${b.blockType === 'heading' ? 'Section title' : 'Wording — use {{field_key}} where a blank sits'}">${esc(b.content)}</textarea>`;
     return `
-    <div style="display:flex;gap:8px;padding:10px 14px;border-bottom:1px solid var(--color-divider);align-items:flex-start" data-tb-row="${i}">
+    <div style="display:flex;gap:var(--s-2);padding:10px 14px;border-bottom:1px solid var(--color-divider);align-items:flex-start" data-tb-row="${i}">
       <div style="flex:none;display:flex;flex-direction:column;gap:2px;padding-top:2px">
-        <button data-tb-up="${i}" class="ui-btn" style="padding:1px 6px;font-size:12px" ${i === 0 ? 'disabled' : ''} title="${i18t('tb_move_up')}">↑</button>
-        <button data-tb-down="${i}" class="ui-btn" style="padding:1px 6px;font-size:12px" ${i === _tb.blocks.length - 1 ? 'disabled' : ''} title="${i18t('tb_move_down')}">↓</button>
+        <button data-tb-up="${i}" class="ui-btn" style="padding:1px 6px;font-size:var(--t-label)" ${i === 0 ? 'disabled' : ''} title="${i18t('tb_move_up')}">↑</button>
+        <button data-tb-down="${i}" class="ui-btn" style="padding:1px 6px;font-size:var(--t-label)" ${i === _tb.blocks.length - 1 ? 'disabled' : ''} title="${i18t('tb_move_down')}">↓</button>
       </div>
       <div style="min-width:0;flex:1">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+        <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:5px">
           <span class="badge" style="background:var(--color-neutral-100);color:var(--color-neutral-600)" title="${esc(meta.tip)}">${meta.label}</span>
-          ${b.blockType === 'field_group' && !/\{\{[a-z0-9_]+\}\}/.test(b.content) ? `<span style="font-size:12px;color:var(--st-amber-fg)">no {{placeholder}} yet</span>` : ''}
+          ${b.blockType === 'field_group' && !/\{\{[a-z0-9_]+\}\}/.test(b.content) ? `<span style="font-size:var(--t-label);color:var(--st-amber-fg)">no {{placeholder}} yet</span>` : ''}
           <span style="flex:1"></span>
-          <button data-tb-del="${i}" class="ui-btn" style="padding:2px 7px;font-size:12px;border-color:var(--st-ruby-line);color:var(--st-ruby-fg)" title="${i18t('tb_remove_block')}">${icon('x', 'w-3 h-3')}</button>
+          <button data-tb-del="${i}" class="ui-btn" style="padding:2px 7px;font-size:var(--t-label);border-color:var(--st-ruby-line);color:var(--st-ruby-fg)" title="${i18t('tb_remove_block')}">${icon('x', 'w-3 h-3')}</button>
         </div>
         ${editor}
       </div>
@@ -85,64 +85,64 @@ function tbPaint() {
     const conf = f.detectionConfidence !== 'manual' && !f.humanReviewed
       ? `<span class="badge" style="background:${f.detectionConfidence === 'low' ? '#fbeaea' : '#fdf3e2'};color:${f.detectionConfidence === 'low' ? 'var(--st-ruby-fg)' : 'var(--st-amber-fg)'}" title="${i18t('tb_detected_unreviewed')}">${f.detectionConfidence} confidence</span>` : '';
     return `
-    <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--color-divider)">
+    <div style="display:flex;align-items:center;gap:var(--s-2);padding:var(--s-2) 14px;border-bottom:1px solid var(--color-divider)">
       <span style="min-width:0;flex:1">
         <span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-          <b style="font-size:13px">${esc(f.label || f.fieldKey)}</b>
-          ${f.required ? '<span style="color:var(--st-ruby-fg);font-size:12px" title="Required">*</span>' : ''}
+          <b style="font-size:var(--t-meta)">${esc(f.label || f.fieldKey)}</b>
+          ${f.required ? '<span style="color:var(--st-ruby-fg);font-size:var(--t-label)" title="Required">*</span>' : ''}
           ${conf}
         </span>
-        <span style="display:block;font-size:12px;color:var(--color-neutral-600);font-family:var(--font-mono)">{{${esc(f.fieldKey)}}} · ${esc(lib.label)}${f.control === 'guided' ? ` · guided (${f.options.length})` : ''}${f.defaultValue ? ' · default set' : ''} · ${uses ? `in ${uses} block${uses === 1 ? '' : 's'}` : '<span style="color:var(--st-amber-fg)">unplaced</span>'}</span>
+        <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);font-family:var(--font-mono)">{{${esc(f.fieldKey)}}} · ${esc(lib.label)}${f.control === 'guided' ? ` · guided (${f.options.length})` : ''}${f.defaultValue ? ' · default set' : ''} · ${uses ? `in ${uses} block${uses === 1 ? '' : 's'}` : '<span style="color:var(--st-amber-fg)">unplaced</span>'}</span>
       </span>
-      <button data-tb-fcopy="${i}" class="ui-btn" style="font-size:12px;padding:2px 8px" title="${i18t('tb_copy_placeholder')}">${icon('copy', 'w-3 h-3')}</button>
-      <button data-tb-fedit="${i}" class="ui-btn" style="font-size:12px;padding:2px 8px">${i18t('act_edit')}</button>
-      <button data-tb-fdel="${i}" class="ui-btn" style="font-size:12px;padding:2px 7px;border-color:var(--st-ruby-line);color:var(--st-ruby-fg)">${icon('x', 'w-3 h-3')}</button>
+      <button data-tb-fcopy="${i}" class="ui-btn" style="font-size:var(--t-label);padding:2px var(--s-2)" title="${i18t('tb_copy_placeholder')}">${icon('copy', 'w-3 h-3')}</button>
+      <button data-tb-fedit="${i}" class="ui-btn" style="font-size:var(--t-label);padding:2px var(--s-2)">${i18t('act_edit')}</button>
+      <button data-tb-fdel="${i}" class="ui-btn" style="font-size:var(--t-label);padding:2px 7px;border-color:var(--st-ruby-line);color:var(--st-ruby-fg)">${icon('x', 'w-3 h-3')}</button>
     </div>`;
   }).join('');
 
   document.getElementById('content').innerHTML = `
   <div class="view-enter" style="padding:var(--page-pad);display:flex;flex-direction:column;gap:14px;max-width:980px">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <button id="tb-back" class="ui-btn" style="font-size:13px;padding:4px 10px">${icon('arrowLeft', 'w-3.5 h-3.5')} ${esc(t.name)}</button>
-      <span style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--st-steel-fg);border:1px solid var(--st-steel-line);background:var(--st-steel-bg);border-radius:0;padding:1px 7px">${i18t('tb_v_draft',{n:_tb.versionNumber})}</span>
-      <span id="tb-dirty" style="font-size:12px;color:var(--color-neutral-500)">${_tb.dirty ? 'Unsaved changes' : ''}</span>
+      <button id="tb-back" class="ui-btn" style="font-size:var(--t-meta);padding:var(--s-1) 10px">${icon('arrowLeft', 'w-3.5 h-3.5')} ${esc(t.name)}</button>
+      <span style="font-family:var(--font-mono);font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--st-steel-fg);border:1px solid var(--st-steel-line);background:var(--st-steel-bg);border-radius:0;padding:1px 7px">${i18t('tb_v_draft',{n:_tb.versionNumber})}</span>
+      <span id="tb-dirty" style="font-size:var(--t-label);color:var(--color-neutral-500)">${_tb.dirty ? 'Unsaved changes' : ''}</span>
       <span style="flex:1"></span>
-      <button id="tb-save" class="ui-btn" style="font-size:13px;padding:5px 13px">${icon('check2', 'w-3.5 h-3.5')} ${i18t('tb_save_draft')}</button>
-      <button id="tb-publish" class="ui-btn ui-btn-primary" style="font-size:13px;padding:5px 13px">Publish v${_tb.versionNumber}</button>
+      <button id="tb-save" class="ui-btn" style="font-size:var(--t-meta);padding:5px 13px">${icon('check2', 'w-3.5 h-3.5')} ${i18t('tb_save_draft')}</button>
+      <button id="tb-publish" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:5px 13px">Publish v${_tb.versionNumber}</button>
     </div>
 
     <section style="${CARD}">
-      <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--color-divider)">
-        <h4 style="font-family:var(--font-heading);font-weight:600;font-size:15px;margin:0">${i18t('tb_document_blocks')}</h4>
-        <span style="font-size:12px;color:var(--color-neutral-600)">${i18t('tb_in_order')}</span>
+      <div style="display:flex;align-items:center;gap:10px;padding:var(--s-3) var(--s-4);border-bottom:1px solid var(--color-divider)">
+        <h4 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-card);margin:0">${i18t('tb_document_blocks')}</h4>
+        <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${i18t('tb_in_order')}</span>
         <span style="flex:1"></span>
-        <select id="tb-addtype" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:4px 8px;font:inherit;font-size:13px">
+        <select id="tb-addtype" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:var(--s-1) var(--s-2);font:inherit;font-size:var(--t-meta)">
           ${Object.entries(TB_BLOCK_META).map(([k, m]) => `<option value="${k}">${m.label}</option>`).join('')}
         </select>
-        <button id="tb-addblock" class="ui-btn" style="font-size:13px;padding:4px 10px">${icon('plus', 'w-3 h-3')} ${i18t('tb_add_block')}</button>
+        <button id="tb-addblock" class="ui-btn" style="font-size:var(--t-meta);padding:var(--s-1) 10px">${icon('plus', 'w-3 h-3')} ${i18t('tb_add_block')}</button>
       </div>
-      ${blockRows || `<div style="padding:26px;text-align:center;color:var(--color-neutral-500);font-size:13px">${i18t('tb_no_blocks')}</div>`}
+      ${blockRows || `<div style="padding:26px;text-align:center;color:var(--color-neutral-500);font-size:var(--t-meta)">${i18t('tb_no_blocks')}</div>`}
     </section>
 
     <section style="${CARD}">
-      <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--color-divider)">
-        <h4 style="font-family:var(--font-heading);font-weight:600;font-size:15px;margin:0">${i18t('tb_fields')}</h4>
-        <span style="font-size:12px;color:var(--color-neutral-600)">the blanks a contract creator fills — place them in wording as {{field_key}}</span>
+      <div style="display:flex;align-items:center;gap:10px;padding:var(--s-3) var(--s-4);border-bottom:1px solid var(--color-divider)">
+        <h4 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-card);margin:0">${i18t('tb_fields')}</h4>
+        <span style="font-size:var(--t-label);color:var(--color-neutral-600)">the blanks a contract creator fills — place them in wording as {{field_key}}</span>
         <span style="flex:1"></span>
-        <button id="tb-addfield" class="ui-btn" style="font-size:13px;padding:4px 10px">${icon('plus', 'w-3 h-3')} ${i18t('tl_add_field')}</button>
+        <button id="tb-addfield" class="ui-btn" style="font-size:var(--t-meta);padding:var(--s-1) 10px">${icon('plus', 'w-3 h-3')} ${i18t('tl_add_field')}</button>
       </div>
-      ${fieldRows || `<div style="padding:26px;text-align:center;color:var(--color-neutral-500);font-size:13px">${i18t('tb_no_fields')}</div>`}
+      ${fieldRows || `<div style="padding:26px;text-align:center;color:var(--color-neutral-500);font-size:var(--t-meta)">${i18t('tb_no_fields')}</div>`}
     </section>
 
-    <section style="${CARD};padding:14px 16px" id="tb-branding"></section>
+    <section style="${CARD};padding:14px var(--s-4)" id="tb-branding"></section>
 
     <!-- The same two verbs again at the foot: on a long template the top bar
          is screens away by the time the last block is written, and a save
          that requires scrolling back up is a save that gets skipped. -->
     <div style="display:flex;align-items:center;gap:10px;justify-content:flex-end;padding-top:2px">
-      <span id="tb-dirty-bottom" style="font-size:12px;color:var(--color-neutral-500)">${_tb.dirty ? 'Unsaved changes' : ''}</span>
-      <button id="tb-save-bottom" class="ui-btn" style="font-size:13px;padding:5px 13px">${icon('check2', 'w-3.5 h-3.5')} ${i18t('tb_save_draft')}</button>
-      <button id="tb-publish-bottom" class="ui-btn ui-btn-primary" style="font-size:13px;padding:5px 13px">Publish v${_tb.versionNumber}</button>
+      <span id="tb-dirty-bottom" style="font-size:var(--t-label);color:var(--color-neutral-500)">${_tb.dirty ? 'Unsaved changes' : ''}</span>
+      <button id="tb-save-bottom" class="ui-btn" style="font-size:var(--t-meta);padding:5px 13px">${icon('check2', 'w-3.5 h-3.5')} ${i18t('tb_save_draft')}</button>
+      <button id="tb-publish-bottom" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:5px 13px">Publish v${_tb.versionNumber}</button>
     </div>
   </div>`;
 
@@ -246,42 +246,42 @@ function tbFieldModal(index) {
     options: [], required: false, defaultValue: '', helpText: '',
     detectionConfidence: 'manual', humanReviewed: true,
   };
-  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 10px;font:inherit;font-size:14px;outline:none';
+  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none';
   const types = Object.entries(window.FIELD_LIB || {}).map(([k, v]) =>
     `<option value="${k}"${f.fieldType === k ? ' selected' : ''}>${v.label}</option>`).join('');
   openModal(`
     <div style="padding:20px 22px;max-width:520px">
-      <h3 style="margin:0 0 14px;font-family:var(--font-heading);font-size:16px;font-weight:700">${index != null ? 'Edit field' : 'Add field'}</h3>
+      <h3 style="margin:0 0 14px;font-family:var(--font-heading);font-size:16px;font-weight:var(--w-title)">${index != null ? 'Edit field' : 'Add field'}</h3>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <label><span style="display:block;font-size:12px;font-weight:600;margin-bottom:4px">${i18t('tb_label')}</span>
+        <label><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tb_label')}</span>
           <input id="tbf-label" style="${INP}" maxlength="200" value="${esc(f.label)}" placeholder="e.g. KRA PIN"></label>
-        <label><span style="display:block;font-size:12px;font-weight:600;margin-bottom:4px">${i18t('tb_type')}</span>
+        <label><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tb_type')}</span>
           <select id="tbf-type" style="${INP}">${types}</select></label>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
-        <label><span style="display:block;font-size:12px;font-weight:600;margin-bottom:4px">${i18t('tb_answers')}</span>
+        <label><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tb_answers')}</span>
           <select id="tbf-control" style="${INP}">
             <option value="free"${f.control === 'free' ? ' selected' : ''}>${i18t('tb_free')}</option>
             <option value="guided"${f.control === 'guided' ? ' selected' : ''}>${i18t('tb_guided')}</option>
           </select></label>
-        <label style="display:flex;align-items:flex-end;gap:7px;padding-bottom:8px">
+        <label style="display:flex;align-items:flex-end;gap:7px;padding-bottom:var(--s-2)">
           <input type="checkbox" id="tbf-required" ${f.required ? 'checked' : ''}>
-          <span style="font-size:13px">${i18t('tb_required')}</span></label>
+          <span style="font-size:var(--t-meta)">${i18t('tb_required')}</span></label>
       </div>
       <label id="tbf-optwrap" style="display:${f.control === 'guided' ? 'block' : 'none'};margin-top:10px">
-        <span style="display:block;font-size:12px;font-weight:600;margin-bottom:4px">${i18t('tb_approved_options')} <span style="font-weight:400;color:var(--color-neutral-500)">${i18t('tb_one_per_line')}</span></span>
+        <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tb_approved_options')} <span style="font-weight:var(--w-body);color:var(--color-neutral-500)">${i18t('tb_one_per_line')}</span></span>
         <textarea id="tbf-options" style="${INP};min-height:64px">${esc(f.options.join('\n'))}</textarea></label>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
-        <label><span style="display:block;font-size:12px;font-weight:600;margin-bottom:4px">${i18t('tb_default_value')} <span style="font-weight:400;color:var(--color-neutral-500)">(supports {{org.…}})</span></span>
+        <label><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tb_default_value')} <span style="font-weight:var(--w-body);color:var(--color-neutral-500)">(supports {{org.…}})</span></span>
           <input id="tbf-default" style="${INP}" maxlength="2000" value="${esc(f.defaultValue)}" placeholder="e.g. {{org.company_name}}"></label>
-        <label><span style="display:block;font-size:12px;font-weight:600;margin-bottom:4px">${i18t('tb_section')} <span style="font-weight:400;color:var(--color-neutral-500)">${i18t('tb_groups_form')}</span></span>
+        <label><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tb_section')} <span style="font-weight:var(--w-body);color:var(--color-neutral-500)">${i18t('tb_groups_form')}</span></span>
           <input id="tbf-section" style="${INP}" maxlength="200" value="${esc(f.section)}" placeholder="e.g. Company information"></label>
       </div>
-      <label style="display:block;margin-top:10px"><span style="display:block;font-size:12px;font-weight:600;margin-bottom:4px">${i18t('tb_help_text')}</span>
+      <label style="display:block;margin-top:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tb_help_text')}</span>
         <input id="tbf-help" style="${INP}" maxlength="1000" value="${esc(f.helpText)}" placeholder="${i18t('tb_shown_under_input')}"></label>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px">
-        <span style="font-size:12px;color:var(--color-neutral-500);font-family:var(--font-mono)" id="tbf-keyprev">${f.fieldKey ? `{{${esc(f.fieldKey)}}}` : ''}</span>
-        <div style="display:flex;gap:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:var(--s-4)">
+        <span style="font-size:var(--t-label);color:var(--color-neutral-500);font-family:var(--font-mono)" id="tbf-keyprev">${f.fieldKey ? `{{${esc(f.fieldKey)}}}` : ''}</span>
+        <div style="display:flex;gap:var(--s-2)">
           <button class="ui-btn" onclick="closeModal()">${i18t('act_cancel')}</button>
           <button id="tbf-save" class="ui-btn ui-btn-primary">${index != null ? 'Save field' : 'Add field'}</button>
         </div>
@@ -321,27 +321,27 @@ async function tbPaintBranding() {
   let b = null;
   try { b = (await api('org/branding')).branding; } catch (_) {}
   b = b || { logoUrl: null, companyName: '', registrationNumber: '', address: '', defaultFooterText: '' };
-  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 10px;font:inherit;font-size:14px;outline:none';
+  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none';
   host.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-      <h4 style="font-family:var(--font-heading);font-weight:600;font-size:15px;margin:0">${i18t('tb_branding')}</h4>
-      <span style="font-size:12px;color:var(--color-neutral-600)">${i18t('tb_org_wide')}</span>
+      <h4 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-card);margin:0">${i18t('tb_branding')}</h4>
+      <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${i18t('tb_org_wide')}</span>
     </div>
     <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">
       <div style="flex:none;display:flex;flex-direction:column;gap:6px;align-items:center">
         <div style="width:120px;height:64px;border:1px dashed var(--color-divider);border-radius:0;display:grid;place-items:center;overflow:hidden;background:var(--color-bg)">
-          ${b.logoUrl ? `<img src="${b.logoUrl}" alt="logo" style="max-width:100%;max-height:100%">` : `<span style="font-size:12px;color:var(--color-neutral-500)">${i18t('tb_no_logo')}</span>`}
+          ${b.logoUrl ? `<img src="${b.logoUrl}" alt="logo" style="max-width:100%;max-height:100%">` : `<span style="font-size:var(--t-label);color:var(--color-neutral-500)">${i18t('tb_no_logo')}</span>`}
         </div>
         <input type="file" id="tb-logo-file" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="display:none">
-        <button id="tb-logo-btn" class="ui-btn" style="font-size:12px;padding:3px 9px">${icon('upload', 'w-3 h-3')} ${b.logoUrl ? 'Replace logo' : 'Upload logo'}</button>
+        <button id="tb-logo-btn" class="ui-btn" style="font-size:var(--t-label);padding:3px 9px">${icon('upload', 'w-3 h-3')} ${b.logoUrl ? 'Replace logo' : 'Upload logo'}</button>
       </div>
-      <div style="min-width:260px;flex:1;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div style="min-width:260px;flex:1;display:grid;grid-template-columns:1fr 1fr;gap:var(--s-2)">
         <input id="tb-b-name" style="${INP}" placeholder="${i18t('tb_company_name')}" value="${esc(b.companyName)}">
         <input id="tb-b-reg" style="${INP}" placeholder="${i18t('tb_reg_number')}" value="${esc(b.registrationNumber)}">
         <input id="tb-b-addr" style="${INP};grid-column:1/-1" placeholder="${i18t('tb_reg_address')}" value="${esc(b.address)}">
         <input id="tb-b-footer" style="${INP};grid-column:1/-1" placeholder="Footer text (e.g. Registered in ${jxName()} · C.123456)" value="${esc(b.defaultFooterText)}">
         <div style="grid-column:1/-1;display:flex;justify-content:flex-end">
-          <button id="tb-b-save" class="ui-btn" style="font-size:12px;padding:4px 11px">${i18t('tb_save_branding')}</button>
+          <button id="tb-b-save" class="ui-btn" style="font-size:var(--t-label);padding:var(--s-1) 11px">${i18t('tb_save_branding')}</button>
         </div>
       </div>
     </div>`;

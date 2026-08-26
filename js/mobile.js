@@ -138,16 +138,16 @@ const M_CSS = `
      which statute checks run, so a phone that cannot see it is a phone that
      cannot tell you it is showing you Swedish rules. */
   .m-head{
-    flex:none; display:flex; align-items:center; gap:8px;
+    flex:none; display:flex; align-items:center; gap:var(--s-2);
     padding:calc(env(safe-area-inset-top,0px) + 8px) 10px 8px;
     background:var(--color-surface); border-bottom:1px solid var(--color-divider);
   }
   .m-head-mark{
     width:32px; height:32px; flex:none; border-radius:0;
     background:var(--brand-grad); color:#fff; display:grid; place-items:center;
-    font-weight:700; font-size:14px; font-family:var(--font-heading,inherit);
+    font-weight:var(--w-title); font-size:var(--t-body); font-family:var(--font-heading,inherit);
   }
-  .m-head-org{ flex:1; min-width:0; font-size:15px; font-weight:600;
+  .m-head-org{ flex:1; min-width:0; font-size:var(--t-card); font-weight:var(--w-strong);
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .m-head-btn{
     flex:none; width:44px; height:44px; border:0; background:none; cursor:pointer;
@@ -170,12 +170,12 @@ const M_CSS = `
   .m-scroll{ scrollbar-width:none; padding-bottom:64px; }
   .m-pagehead{
     flex:none; background:var(--color-surface); border-bottom:1px solid var(--color-divider);
-    padding:14px 16px;
+    padding:14px var(--s-4);
   }
-  .m-eyebrow{ font-size:15px; font-weight:600; color:var(--color-neutral-600); }
-  .m-title{ font-size:22px; font-weight:600; letter-spacing:-.01em; margin-top:1px;
+  .m-eyebrow{ font-size:var(--t-card); font-weight:var(--w-strong); color:var(--color-neutral-600); }
+  .m-title{ font-size:22px; font-weight:var(--w-strong); letter-spacing:-.01em; margin-top:1px;
     font-family:var(--font-heading,inherit); color:var(--color-text); }
-  .m-sub{ font-size:15px; color:var(--color-neutral-600); margin-top:2px; line-height:1.45; }
+  .m-sub{ font-size:var(--t-card); color:var(--color-neutral-600); margin-top:2px; line-height:1.45; }
 
   /* ---- the card, the row, the list ---- */
   .m-card{ background:var(--color-surface); border:1px solid var(--color-divider);
@@ -183,23 +183,23 @@ const M_CSS = `
   .m-list > *{ border-bottom:1px solid var(--color-divider); }
   .m-list > *:last-child{ border-bottom:0; }
   .m-row{
-    display:flex; width:100%; align-items:center; gap:12px; text-align:left;
+    display:flex; width:100%; align-items:center; gap:var(--s-3); text-align:left;
     background:none; border:0; cursor:pointer; padding:13px 14px; min-height:48px;
     font:inherit; color:inherit;
   }
   .m-row:active{ background:var(--color-neutral-100); }
-  .m-row-name{ display:block; font-size:16px; font-weight:600; line-height:1.3; color:var(--color-text); }
-  .m-row-sub{ display:block; font-size:15px; color:var(--color-neutral-600); margin-top:2px; }
+  .m-row-name{ display:block; font-size:16px; font-weight:var(--w-strong); line-height:1.3; color:var(--color-text); }
+  .m-row-sub{ display:block; font-size:var(--t-card); color:var(--color-neutral-600); margin-top:2px; }
   .m-chev{ flex:none; color:var(--color-neutral-400); }
-  .m-note{ font-size:15px; color:var(--color-neutral-600); line-height:1.55; }
-  .m-lbl{ font-size:15px; font-weight:600; color:var(--color-neutral-600); }
-  .m-capline{ font-size:15px; font-weight:600; color:var(--color-neutral-600);
+  .m-note{ font-size:var(--t-card); color:var(--color-neutral-600); line-height:1.55; }
+  .m-lbl{ font-size:var(--t-card); font-weight:var(--w-strong); color:var(--color-neutral-600); }
+  .m-capline{ font-size:var(--t-card); font-weight:var(--w-strong); color:var(--color-neutral-600);
     letter-spacing:.04em; text-transform:uppercase; }
 
   /* ---- buttons ---- */
   .m-btn{
     display:block; width:100%; min-height:48px; border-radius:0; cursor:pointer;
-    font:inherit; font-size:16px; font-weight:600; padding:0 14px;
+    font:inherit; font-size:16px; font-weight:var(--w-strong); padding:0 14px;
     background:var(--color-surface); border:1px solid var(--color-divider); color:var(--color-text);
   }
   .m-btn-primary{ background:var(--accent-fill); border-color:var(--accent-fill); color:#fff; }
@@ -211,12 +211,12 @@ const M_CSS = `
      Statuses first, then value streams. They scroll rather than wrap because a
      wrapped chip row grows the header downward as you filter, and the list you
      are filtering walks off the bottom of the screen while you do it. */
-  .m-chips{ display:flex; gap:8px; overflow-x:auto; padding:2px 16px 12px; }
+  .m-chips{ display:flex; gap:var(--s-2); overflow-x:auto; padding:2px var(--s-4) var(--s-3); }
   .m-chips::-webkit-scrollbar{ display:none; }
   .m-chips{ scrollbar-width:none; }
   .m-chip{
     flex:none; display:flex; align-items:center; gap:7px; height:44px; padding:0 15px;
-    border-radius:0; cursor:pointer; font:inherit; font-size:15px; font-weight:600;
+    border-radius:0; cursor:pointer; font:inherit; font-size:var(--t-card); font-weight:var(--w-strong);
     white-space:nowrap; border:1px solid var(--color-divider);
     background:var(--color-surface); color:var(--color-text);
   }
@@ -225,12 +225,12 @@ const M_CSS = `
   /* the chip row carries three questions now — a hairline says where one
      ends and the next begins, so the line reads as groups and not as a
      stream of unrelated words */
-  .m-chip-sep{ flex:none; width:1px; align-self:stretch; margin:4px 2px;
+  .m-chip-sep{ flex:none; width:1px; align-self:stretch; margin:var(--s-1) 2px;
     background:var(--color-divider); }
 
   /* ---- the search field ---- */
   .m-search{
-    display:flex; align-items:center; gap:8px; height:44px; padding:0 12px;
+    display:flex; align-items:center; gap:var(--s-2); height:44px; padding:0 var(--s-3);
     border:1px solid var(--color-divider); border-radius:0; background:var(--color-bg);
   }
   .m-search input{
@@ -246,7 +246,7 @@ const M_CSS = `
   .m-tabs{
     flex:none; display:flex; background:var(--color-surface);
     border-top:1px solid var(--color-divider);
-    padding:6px 8px calc(env(safe-area-inset-bottom,0px) + 10px);
+    padding:6px var(--s-2) calc(env(safe-area-inset-bottom,0px) + 10px);
   }
   .m-tab{
     flex:1; min-height:48px; background:none; border:0; cursor:pointer; font:inherit;
@@ -274,16 +274,16 @@ const M_CSS = `
      label is always the short form of the place it opens. Nowrap and ellipsis
      stay as a backstop for a longer translation: a label that breaks onto two
      lines lifts the whole row and shunts the page above it. */
-  .m-tab span{ font-size:15px; font-weight:400; max-width:100%;
+  .m-tab span{ font-size:var(--t-card); font-weight:var(--w-body); max-width:100%;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .m-tab.on span{ font-weight:600; }
+  .m-tab.on span{ font-weight:var(--w-strong); }
   /* Something is owed on a negotiation. Amber here for the same reason it is
      amber on the desktop door and on the round line: one colour means "this is
      waiting on you" across every surface in the product. */
   .m-tab-due{ color:var(--st-amber-fg); }
   .m-tab-badge{
     position:absolute; top:0; right:20%; min-width:21px; height:21px; border-radius:0;
-    background:var(--danger); color:#fff; font-size:15px; font-weight:700; line-height:1;
+    background:var(--danger); color:#fff; font-size:var(--t-card); font-weight:var(--w-title); line-height:1;
     display:grid; place-items:center; padding:0 5px;
   }
 
@@ -295,14 +295,14 @@ const M_CSS = `
   .m-scrim{ position:absolute; inset:0; background:color-mix(in srgb,#020617 45%,transparent); border:0; padding:0; }
   .m-sheet{
     position:relative; background:var(--color-surface); color:var(--color-text);
-    border-radius:0; padding:10px 16px calc(env(safe-area-inset-bottom,0px) + 26px);
+    border-radius:0; padding:10px var(--s-4) calc(env(safe-area-inset-bottom,0px) + 26px);
     max-height:86%; overflow-y:auto; animation:mSheetUp .25s cubic-bezier(.22,.61,.36,1);
     box-shadow:var(--shadow-lg);
   }
   .m-sheet::-webkit-scrollbar{ display:none; }
   .m-grab{ width:36px; height:4px; border-radius:0; background:var(--color-neutral-300); margin:0 auto 10px; }
-  .m-sheet-title{ font-size:18px; font-weight:600; font-family:var(--font-heading,inherit); }
-  .m-sheet-note{ font-size:15px; color:var(--color-neutral-600); margin:2px 0 12px; line-height:1.45; }
+  .m-sheet-title{ font-size:18px; font-weight:var(--w-strong); font-family:var(--font-heading,inherit); }
+  .m-sheet-note{ font-size:var(--t-card); color:var(--color-neutral-600); margin:2px 0 var(--s-3); line-height:1.45; }
   @keyframes mSheetUp{ from{ transform:translateY(48px); opacity:0 } to{ transform:none; opacity:1 } }
   @keyframes mFadeIn{ from{ opacity:0 } to{ opacity:1 } }
 
@@ -312,16 +312,16 @@ const M_CSS = `
      pan sideways to read. */
   .m-input, .m-area{
     width:100%; box-sizing:border-box; border:1px solid var(--color-divider);
-    border-radius:0; padding:12px; font:inherit; font-size:16px; line-height:1.5;
+    border-radius:0; padding:var(--s-3); font:inherit; font-size:16px; line-height:1.5;
     background:var(--color-surface); color:var(--color-text); outline:none;
   }
-  .m-input{ height:48px; padding:0 12px; }
+  .m-input{ height:48px; padding:0 var(--s-3); }
   .m-area{ resize:none; }
-  .m-err{ font-size:15px; color:var(--danger); margin-top:5px; }
+  .m-err{ font-size:var(--t-card); color:var(--danger); margin-top:5px; }
 
   /* ---- the status pill, at phone size ---- */
   .m-pill{
-    flex:none; font-size:15px; font-weight:600; padding:3px 10px; border-radius:0;
+    flex:none; font-size:var(--t-card); font-weight:var(--w-strong); padding:3px 10px; border-radius:0;
     white-space:nowrap;
   }
 
@@ -329,16 +329,16 @@ const M_CSS = `
      Two across, always. Three would fit a figure at 390px and would not fit
      its caption at 320px, and a metric whose caption is cut in half has lost
      the part that says what the number counts. */
-  .m-kpi-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:0 16px; }
+  .m-kpi-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:0 var(--s-4); }
   .m-kpi{
     text-align:left; background:var(--color-surface); border:1px solid var(--color-divider);
-    border-radius:0; padding:12px 14px; cursor:pointer; font:inherit; color:inherit;
+    border-radius:0; padding:var(--s-3) 14px; cursor:pointer; font:inherit; color:inherit;
     box-shadow:var(--shadow-sm); min-height:44px;
   }
-  .m-kpi-label{ display:block; font-size:15px; color:var(--color-neutral-600);
+  .m-kpi-label{ display:block; font-size:var(--t-card); color:var(--color-neutral-600);
     line-height:1.3; overflow:hidden; text-overflow:ellipsis; }
-  .m-kpi-val{ display:block; font-size:20px; font-weight:700; margin-top:2px; letter-spacing:-.02em; }
-  .m-kpi-sub{ display:block; font-size:15px; color:var(--color-neutral-600); margin-top:1px;
+  .m-kpi-val{ display:block; font-size:20px; font-weight:var(--w-title); margin-top:2px; letter-spacing:-.02em; }
+  .m-kpi-sub{ display:block; font-size:var(--t-card); color:var(--color-neutral-600); margin-top:1px;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .m-kpi-gear{
     flex:none; width:44px; height:44px; border:0; background:none; cursor:pointer;
@@ -365,13 +365,13 @@ const M_CSS = `
      name, the count. Same order, same three colours, and the name and number
      ride beside the colour so the page works in grey-scale. Not a row and not
      pressable — a heading between two stacks of cards. */
-  .m-ngband{ display:flex; align-items:center; gap:9px; padding:0 16px 7px; }
+  .m-ngband{ display:flex; align-items:center; gap:9px; padding:0 var(--s-4) 7px; }
   .m-ngband-dot{ width:9px; height:9px; border-radius:50%; flex:none; }
-  .m-ngband-k{ font-size:13px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+  .m-ngband-k{ font-size:var(--t-meta); font-weight:var(--w-title); letter-spacing:.08em; text-transform:uppercase;
     color:var(--color-neutral-600); }
-  .m-ngband-n{ font-family:var(--font-mono); font-size:13px; font-weight:700;
+  .m-ngband-n{ font-family:var(--font-mono); font-size:var(--t-meta); font-weight:var(--w-title);
     color:var(--color-neutral-600); background:var(--color-surface);
-    border:1px solid var(--color-divider); border-radius:0; padding:0 8px; }
+    border:1px solid var(--color-divider); border-radius:0; padding:0 var(--s-2); }
 
   /* ---- the contract screen ---- */
   /* ---- A RESTING TAB IS DARK INK, NOT A CAPTION (owner-asked 23 Aug 2026) ----
@@ -384,12 +384,12 @@ const M_CSS = `
      direction: a fix in a desktop rule does not reach here. */
   .m-ctab{
     flex:1; height:44px; background:none; border:0; cursor:pointer; font:inherit;
-    font-size:15px; font-weight:600; color:var(--color-text);
+    font-size:var(--t-card); font-weight:var(--w-strong); color:var(--color-text);
     border-bottom:2px solid transparent;
   }
   .m-ctab.on{ color:var(--accent-ink); border-bottom-color:var(--accent-solid); }
   .m-notice{
-    display:flex; align-items:center; gap:9px; margin-bottom:12px;
+    display:flex; align-items:center; gap:9px; margin-bottom:var(--s-3);
     border:1px solid var(--color-divider); border-radius:0; padding:11px 13px;
   }
   /* ---- THE NOTICES, FLOATING RATHER THAN BANDING THE CONTRACT ----
@@ -419,8 +419,8 @@ const M_CSS = `
      about whether Hide looks pressable. */
   .m-notices-min{
     pointer-events:auto; min-height:44px; border:1px solid var(--st-steel-line); border-radius:0;
-    background:var(--st-steel-bg); color:var(--st-steel-fg); padding:0 16px;
-    font:inherit; font-size:15px; font-weight:700; cursor:pointer;
+    background:var(--st-steel-bg); color:var(--st-steel-fg); padding:0 var(--s-4);
+    font:inherit; font-size:var(--t-card); font-weight:var(--w-title); cursor:pointer;
     box-shadow:0 8px 22px -8px rgba(15,23,42,.28);
   }
   /* The stack scrolls on its own where a contract has more to say than the
@@ -442,14 +442,14 @@ const M_CSS = `
     color:var(--color-doc-text,var(--color-text));
     border:1px solid var(--color-doc-warm-line,var(--color-divider));
     border-radius:0; box-shadow:var(--shadow-paper,var(--shadow-sm));
-    padding:26px 18px 32px; font-size:15px; line-height:1.7; overflow-wrap:anywhere;
+    padding:26px 18px var(--s-8); font-size:var(--t-card); line-height:1.7; overflow-wrap:anywhere;
   }
   /* The title block keeps its hierarchy at phone size. The KICKER is
      deliberately left alone: the desktop sets it at 10px, and the paper's
      inherit rule above lifts it to the sheet's own 15px here, which is what
      the phone's readability floor requires. Forcing the desktop's 10px back
      was the one thing this block must not do — phone-verify catches it. */
-  .m-paper .rl-paper-title{ font-size:19px!important; }
+  .m-paper .rl-paper-title{ font-size:var(--t-page)!important; }
   .m-paper .rl-paper-kick{ letter-spacing:.16em; }
   /* A FLOOR ON THE DOCUMENT'S TYPE, NOT A REDESIGN OF IT.
      The document body is drawn by the same renderer the desktop uses, and it
@@ -464,7 +464,7 @@ const M_CSS = `
   .m-paper h1{ font-size:20px!important; }
   .m-paper h2{ font-size:18px!important; }
   .m-paper h3, .m-paper h4, .m-paper h5, .m-paper h6{ font-size:16px!important; }
-  .m-paper pre, .m-paper code{ font-size:15px!important; }
+  .m-paper pre, .m-paper code{ font-size:var(--t-card)!important; }
   /* The quick-fill fields inside a generated body are the one thing in the
      paper a finger has to hit. */
   .m-paper input, .m-paper select, .m-paper textarea, .m-paper .field{
@@ -482,7 +482,7 @@ const M_CSS = `
      never be something they have to scroll to find. */
   .m-actionbar{
     flex:none; background:var(--color-surface); border-top:1px solid var(--color-divider);
-    padding:12px 16px calc(env(safe-area-inset-bottom,0px) + 16px);
+    padding:var(--s-3) var(--s-4) calc(env(safe-area-inset-bottom,0px) + 16px);
   }
 
   /* ---- the share sheet's three purposes ---- */
@@ -574,14 +574,14 @@ const M_CSS = `
      pinning it to the window above threw away the rule that said so. */
   body.m-on.m-redline .nego-pane.index.open{ transform:none!important; }
   body.m-on.m-redline .nego-pane.index .nego-index-scroll{ overflow-y:auto!important; }
-  body.m-on.m-redline .nego-doc{ font-size:15px!important; line-height:1.7; }
+  body.m-on.m-redline .nego-doc{ font-size:var(--t-card)!important; line-height:1.7; }
   body.m-on.m-redline .nego-pane.working .nego-doc{ padding-left:14px!important; }
 
   .m-backbar{
-    flex:none; display:flex; align-items:center; gap:6px; height:44px; padding:0 4px;
+    flex:none; display:flex; align-items:center; gap:6px; height:44px; padding:0 var(--s-1);
   }
   .m-backbar-name{
-    flex:1; min-width:0; font-size:15px; font-weight:600;
+    flex:1; min-width:0; font-size:var(--t-card); font-weight:var(--w-strong);
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
 
@@ -595,12 +595,12 @@ const M_CSS = `
     bottom:calc(env(safe-area-inset-bottom,0px) + 158px)!important;
     display:flex; flex-direction:column; align-items:center; pointer-events:none;
   }
-  body.m-on #toast-root > *{ max-width:100%; font-size:15px!important; }
+  body.m-on #toast-root > *{ max-width:100%; font-size:var(--t-card)!important; }
 
   /* ---- the desk handoff ---- */
-  .m-handoff{ margin:16px; padding:22px 18px; text-align:center; }
+  .m-handoff{ margin:var(--s-4); padding:22px 18px; text-align:center; }
   .m-handoff-ic{
-    width:48px; height:48px; border-radius:50%; margin:0 auto 12px; display:grid; place-items:center;
+    width:48px; height:48px; border-radius:50%; margin:0 auto var(--s-3); display:grid; place-items:center;
     background:var(--tile-steel-bg); color:var(--tile-steel-fg);
   }
 }`;
@@ -769,11 +769,11 @@ function mAccountSheetHtml(){
         <span style="flex:1;min-width:0"><span class="m-row-name" style="font-weight:${on?600:500}">${mEsc(l.name)}</span></span>
         ${on?`<span style="flex:none;color:var(--accent-solid)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>`:''}
       </button>`;}).join('')}</div>
-    <div class="m-note" style="margin-top:8px">${i18t('m_language_sub')}</div>
+    <div class="m-note" style="margin-top:var(--s-2)">${i18t('m_language_sub')}</div>
 
     <div class="m-capline" style="margin:14px 0 6px">${i18t('m_jurisdiction')}</div>
     <div class="m-card m-list">${rows}</div>
-    <div class="m-note" style="margin-top:8px">${maySetMarket?i18t('m_jx_sub'):i18t('set_market_admin_only')}</div>
+    <div class="m-note" style="margin-top:var(--s-2)">${maySetMarket?i18t('m_jx_sub'):i18t('set_market_admin_only')}</div>
 
     ${''/* ---- THE REST OF "YOUR ACCOUNT", ON THE PHONE ----
            Settings & Rules is admin-only from the Aug 2026 redesign, and this
@@ -783,11 +783,11 @@ function mAccountSheetHtml(){
            account drawer is the twin; the rows are the same rows and the
            writers are the same writers. */}
     <div class="m-capline" style="margin:14px 0 6px">${i18t('st_acct_job')}</div>
-    <div class="m-card" style="padding:12px">
+    <div class="m-card" style="padding:var(--s-3)">
       <input id="m-acct-title" type="text" value="${mEsc((u&&u.title)||'')}"
         placeholder="${mEsc(i18t('st_f_title'))}"
-        style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:10px 12px;font:inherit;font-size:15px;color:inherit;outline:none"/>
-      <button class="m-btn m-btn-quiet" style="margin-top:8px" data-m-act="acct-title">${i18t('act_save')}</button>
+        style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:10px var(--s-3);font:inherit;font-size:var(--t-card);color:inherit;outline:none"/>
+      <button class="m-btn m-btn-quiet" style="margin-top:var(--s-2)" data-m-act="acct-title">${i18t('act_save')}</button>
       <div class="m-note" style="margin-top:6px">${i18t('st_acct_job_sub')}</div>
     </div>
 
@@ -802,19 +802,19 @@ function mAccountSheetHtml(){
 
     ${(typeof API_MODE==='function'&&API_MODE())?`
     <div class="m-capline" style="margin:14px 0 6px">${i18t('st_acct_sessions')}</div>
-    <div class="m-card" style="padding:12px"><div id="sessions-list" class="m-note">${i18t('set_loading')}</div></div>
+    <div class="m-card" style="padding:var(--s-3)"><div id="sessions-list" class="m-note">${i18t('set_loading')}</div></div>
 
     ${''/* The honest read-only statement, kept exactly as it is on the laptop.
            The checkboxes it replaced were wired to nothing. */}
     <div class="m-capline" style="margin:14px 0 6px">${i18t('st_acct_email')}</div>
-    <div class="m-card" style="padding:12px">
-      <div style="font-size:14px;font-weight:600">${i18t('set_still_emailed')}</div>
-      <div class="m-note" style="margin-top:4px">${i18t('set_three_events')}</div>
+    <div class="m-card" style="padding:var(--s-3)">
+      <div style="font-size:var(--t-body);font-weight:var(--w-strong)">${i18t('set_still_emailed')}</div>
+      <div class="m-note" style="margin-top:var(--s-1)">${i18t('set_three_events')}</div>
     </div>`:''}
 
     <button class="m-btn m-btn-quiet" style="margin-top:14px" data-m-act="acct-backup">${i18t('set_export_backup')}</button>
-    <button class="m-btn m-btn-quiet" style="margin-top:8px" data-m-act="logout">${i18t('m_log_out')}</button>
-    <button class="m-btn m-btn-quiet" style="margin-top:8px" data-m-act="close-sheet">${i18t('act_close')}</button>`;
+    <button class="m-btn m-btn-quiet" style="margin-top:var(--s-2)" data-m-act="logout">${i18t('m_log_out')}</button>
+    <button class="m-btn m-btn-quiet" style="margin-top:var(--s-2)" data-m-act="close-sheet">${i18t('act_close')}</button>`;
 }
 
 /* -------------------------------------------------------------- TAB BAR ----*/
@@ -872,15 +872,15 @@ function mMoreHtml(){
   const desk = M_DESK.map(d=>`
     <button class="m-row" data-m-desk="${d.view}">
       <span style="flex:1;min-width:0">
-        <span class="m-row-name" style="font-weight:400">${mEsc(d.label)}</span>
+        <span class="m-row-name" style="font-weight:var(--w-body)">${mEsc(d.label)}</span>
         <span class="m-row-sub">${mEsc(d.note)}</span>
       </span>
-      <span style="flex:none;font-size:15px;color:var(--color-neutral-600)">${i18t('m_computer')}</span>
+      <span style="flex:none;font-size:var(--t-card);color:var(--color-neutral-600)">${i18t('m_computer')}</span>
     </button>`).join('');
   const people = `
     <button class="m-row" data-m-go="people">
       <span style="flex:1;min-width:0">
-        <span class="m-row-name" style="font-weight:400">${mEsc(i18t('nav_people'))}</span>
+        <span class="m-row-name" style="font-weight:var(--w-body)">${mEsc(i18t('nav_people'))}</span>
         <span class="m-row-sub">${mEsc(i18t('pg_people_sub'))}</span>
       </span>
       <span style="flex:none;font-size:16px;color:var(--color-neutral-500)">›</span>
@@ -891,8 +891,8 @@ function mMoreHtml(){
       <div class="m-sub">${i18t('m_rest_of_hati')}</div>
     </div>
     <div class="m-scroll">
-      <div class="m-card m-list" style="margin:16px">${people}${desk}</div>
-      <div class="m-note" style="margin:0 16px 24px">${i18t('m_nothing_missing')}</div>
+      <div class="m-card m-list" style="margin:var(--s-4)">${people}${desk}</div>
+      <div class="m-note" style="margin:0 var(--s-4) var(--s-6)">${i18t('m_nothing_missing')}</div>
     </div>`;
 }
 
@@ -923,8 +923,8 @@ function mPeopleHtml(){
     return `<div class="m-row" data-m-person="${mEsc(u.id||'')}">
       <span class="dir-av" style="margin-right:10px">${mEsc(ini)}</span>
       <span style="flex:1;min-width:0">
-        <span class="m-row-name" style="font-weight:400">${mEsc(u.name||mail||'—')}${
-          u.id&&u.id===me.id?` <span style="font-weight:400;color:var(--color-neutral-500)">${mEsc(i18t('set_you'))}</span>`:''}</span>
+        <span class="m-row-name" style="font-weight:var(--w-body)">${mEsc(u.name||mail||'—')}${
+          u.id&&u.id===me.id?` <span style="font-weight:var(--w-body);color:var(--color-neutral-500)">${mEsc(i18t('set_you'))}</span>`:''}</span>
         <span class="m-row-sub">${title}${role?' · '+mEsc(role):''}</span>
         <span class="m-row-sub">${mail
           ? `<a href="mailto:${mEsc(mail)}" style="color:var(--accent-ink-700)">${mEsc(mail)}</a>`
@@ -933,15 +933,15 @@ function mPeopleHtml(){
     </div>`;
   }).join('');
   return `
-    <div class="m-pagehead" style="display:flex;align-items:center;gap:4px;padding:8px 8px">
+    <div class="m-pagehead" style="display:flex;align-items:center;gap:var(--s-1);padding:var(--s-2) var(--s-2)">
       <button class="m-head-btn" data-m-act="back" aria-label="${i18t('m_back')}" style="color:var(--accent-ink-700)">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
       </button>
-      <div style="font-size:19px;font-weight:600;font-family:var(--font-heading,inherit)">${i18t('nav_people')}</div>
+      <div style="font-size:var(--t-page);font-weight:var(--w-strong);font-family:var(--font-heading,inherit)">${i18t('nav_people')}</div>
     </div>
     <div class="m-scroll">
-      <div class="m-card m-list" style="margin:16px">${rows||`<div class="m-row"><span class="m-row-sub">${mEsc(i18t('dir_empty'))}</span></div>`}</div>
-      <div class="m-note" style="margin:0 16px 24px">${mEsc(i18t('dir_note'))}</div>
+      <div class="m-card m-list" style="margin:var(--s-4)">${rows||`<div class="m-row"><span class="m-row-sub">${mEsc(i18t('dir_empty'))}</span></div>`}</div>
+      <div class="m-note" style="margin:0 var(--s-4) var(--s-6)">${mEsc(i18t('dir_note'))}</div>
     </div>`;
 }
 
@@ -949,18 +949,18 @@ function mPeopleHtml(){
 function mHandoffHtml(){
   const d = M_DESK.find(x=>x.view===mS().deskView) || { get label(){ return i18t('m_this_screen'); }, note:'' };
   return `
-    <div class="m-pagehead" style="display:flex;align-items:center;gap:4px;padding:8px 8px">
+    <div class="m-pagehead" style="display:flex;align-items:center;gap:var(--s-1);padding:var(--s-2) var(--s-2)">
       <button class="m-head-btn" data-m-act="back" aria-label="${i18t('m_back')}" style="color:var(--accent-ink-700)">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
       </button>
-      <div style="font-size:19px;font-weight:600;font-family:var(--font-heading,inherit)">${mEsc(d.label)}</div>
+      <div style="font-size:var(--t-page);font-weight:var(--w-strong);font-family:var(--font-heading,inherit)">${mEsc(d.label)}</div>
     </div>
     <div class="m-scroll">
       <div class="m-card m-handoff">
         <div class="m-handoff-ic">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="19" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
         </div>
-        <div style="font-size:18px;font-weight:600">${i18t('m_open_on_computer')}</div>
+        <div style="font-size:18px;font-weight:var(--w-strong)">${i18t('m_open_on_computer')}</div>
         <div class="m-note" style="margin-top:6px">${mEsc(d.note)}</div>
       </div>
     </div>`;

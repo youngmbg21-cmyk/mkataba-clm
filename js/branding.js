@@ -393,10 +393,10 @@ function docDesignHeaderHtml(b, c, opts = {}) {
 
   if (d.id === 'classic-letterhead') {
     const align = pos === 'top-left' ? 'left' : pos === 'top-right' ? 'right' : 'center';
-    return `<div data-doc-design="classic-letterhead" style="text-align:${align};padding-bottom:12px;margin-bottom:22px;border-bottom:4px double ${BR_RULE};font-family:${BR_SERIF};color:${BR_INK}">
+    return `<div data-doc-design="classic-letterhead" style="text-align:${align};padding-bottom:var(--s-3);margin-bottom:22px;border-bottom:4px double ${BR_RULE};font-family:${BR_SERIF};color:${BR_INK}">
       ${logoTop ? `<div style="margin-bottom:7px">${logoTop}</div>` : ''}
-      ${name ? `<div style="font-size:17px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">${name}</div>` : ''}
-      ${ident ? `<div style="font-size:12px;color:${BR_SOFT};letter-spacing:.05em;margin-top:2px">${ident}</div>` : ''}
+      ${name ? `<div style="font-size:var(--t-section);font-weight:var(--w-title);letter-spacing:.12em;text-transform:uppercase">${name}</div>` : ''}
+      ${ident ? `<div style="font-size:var(--t-label);color:${BR_SOFT};letter-spacing:.05em;margin-top:2px">${ident}</div>` : ''}
     </div>`;
   }
 
@@ -410,8 +410,8 @@ function docDesignHeaderHtml(b, c, opts = {}) {
       <div style="display:flex;align-items:flex-start;gap:14px">
         ${row}
         <div style="text-align:right;flex:none">
-          ${name ? `<div style="font-size:14px;font-weight:600">${name}</div>` : ''}
-          ${ident ? `<div style="font-size:12px;color:${BR_SOFT};line-height:1.5">${ident}</div>` : ''}
+          ${name ? `<div style="font-size:var(--t-body);font-weight:var(--w-strong)">${name}</div>` : ''}
+          ${ident ? `<div style="font-size:var(--t-label);color:${BR_SOFT};line-height:1.5">${ident}</div>` : ''}
         </div>
       </div>
       <div style="width:46px;height:3px;background:${brAccent(b)};border-radius:0;margin-top:14px"></div>
@@ -420,32 +420,32 @@ function docDesignHeaderHtml(b, c, opts = {}) {
 
   if (d.id === 'formal-legal') {
     const left = pos === 'top-left' ? logoTop
-      : `<span style="font-size:12px;letter-spacing:.22em;color:${BR_SOFT};text-transform:uppercase">${name || '&nbsp;'}</span>`;
+      : `<span style="font-size:var(--t-label);letter-spacing:.22em;color:${BR_SOFT};text-transform:uppercase">${name || '&nbsp;'}</span>`;
     const right = pos === 'top-left'
-      ? `<span style="font-size:12px;letter-spacing:.22em;color:${BR_SOFT};text-transform:uppercase">${name || '&nbsp;'}</span>`
-      : (logoTop || `<span style="font-size:12px;letter-spacing:.22em;color:${BR_SOFT}">&nbsp;</span>`);
-    const centered = pos === 'top-center' && logoTop ? `<div style="text-align:center;margin-bottom:8px">${logoTop}</div>` : '';
+      ? `<span style="font-size:var(--t-label);letter-spacing:.22em;color:${BR_SOFT};text-transform:uppercase">${name || '&nbsp;'}</span>`
+      : (logoTop || `<span style="font-size:var(--t-label);letter-spacing:.22em;color:${BR_SOFT}">&nbsp;</span>`);
+    const centered = pos === 'top-center' && logoTop ? `<div style="text-align:center;margin-bottom:var(--s-2)">${logoTop}</div>` : '';
     return `<div data-doc-design="formal-legal" style="margin-bottom:20px;font-family:${BR_SERIF};color:${BR_INK}">
       ${centered}
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:9px;border-bottom:1px solid ${BR_RULE}">
-        ${pos === 'top-center' ? `<span style="font-size:12px;letter-spacing:.22em;color:${BR_SOFT};text-transform:uppercase">${name || '&nbsp;'}</span><span style="font-size:12px;letter-spacing:.22em;color:${BR_SOFT}">${ident || '&nbsp;'}</span>` : `${left}${right}`}
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--s-3);padding-bottom:9px;border-bottom:1px solid ${BR_RULE}">
+        ${pos === 'top-center' ? `<span style="font-size:var(--t-label);letter-spacing:.22em;color:${BR_SOFT};text-transform:uppercase">${name || '&nbsp;'}</span><span style="font-size:var(--t-label);letter-spacing:.22em;color:${BR_SOFT}">${ident || '&nbsp;'}</span>` : `${left}${right}`}
       </div>
-      ${pos !== 'top-center' && ident ? `<div style="font-size:12px;color:${BR_SOFT};margin-top:4px;letter-spacing:.04em">${ident}</div>` : ''}
+      ${pos !== 'top-center' && ident ? `<div style="font-size:var(--t-label);color:${BR_SOFT};margin-top:var(--s-1);letter-spacing:.04em">${ident}</div>` : ''}
     </div>`;
   }
 
   if (d.id === 'bold-corporate') {
     const bleedX = Number(opts.bleedX) || 0, bleedY = Number(opts.bleedY) || 0;
-    const margin = bleedX || bleedY ? `margin:-${bleedY}px -${bleedX}px 24px;` : 'margin:0 0 24px;border-radius:0;';
-    const pad = bleedX || bleedY ? `padding:18px ${bleedX}px 16px;` : 'padding:18px 22px 16px;';
-    const chip = logoTop ? `<span style="display:inline-block;background:#fff;border-radius:0;padding:5px 8px;line-height:0">${logoTop}</span>` : '';
+    const margin = bleedX || bleedY ? `margin:-${bleedY}px -${bleedX}px 24px;` : 'margin:0 0 var(--s-6);border-radius:0;';
+    const pad = bleedX || bleedY ? `padding:18px ${bleedX}px 16px;` : 'padding:18px 22px var(--s-4);';
+    const chip = logoTop ? `<span style="display:inline-block;background:#fff;border-radius:0;padding:5px var(--s-2);line-height:0">${logoTop}</span>` : '';
     const justify = pos === 'top-right' ? 'row-reverse' : 'row';
     return `<div data-doc-design="bold-corporate" style="${margin}${pad}background:${brAccent(b)};color:#fff;font-family:${BR_SANS}">
       <div style="display:flex;flex-direction:${justify};align-items:center;gap:14px;${pos === 'top-center' ? 'justify-content:center;text-align:center;' : ''}">
         ${chip}
         <div style="min-width:0">
-          ${name ? `<div style="font-size:15px;font-weight:700;letter-spacing:.01em">${name}</div>` : ''}
-          ${ident ? `<div style="font-size:12px;opacity:.85;margin-top:1px">${ident}</div>` : ''}
+          ${name ? `<div style="font-size:var(--t-card);font-weight:var(--w-title);letter-spacing:.01em">${name}</div>` : ''}
+          ${ident ? `<div style="font-size:var(--t-label);opacity:.85;margin-top:1px">${ident}</div>` : ''}
         </div>
       </div>
     </div>`;
@@ -453,16 +453,16 @@ function docDesignHeaderHtml(b, c, opts = {}) {
 
   if (d.id === 'compact-executive') {
     const facts = brGlanceFacts(c);
-    const factsBox = facts.length ? `<div style="display:grid;grid-template-columns:repeat(${Math.min(facts.length, 4)},1fr);gap:8px;background:#eef1f0;border-radius:0;padding:10px 14px;margin-top:12px">
-      ${facts.map(([k, v]) => `<div style="min-width:0"><div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:${BR_SOFT}">${BR_ESC(k)}</div><div style="font-size:13px;font-weight:700;color:${BR_INK};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${BR_ESC(v)}</div></div>`).join('')}
+    const factsBox = facts.length ? `<div style="display:grid;grid-template-columns:repeat(${Math.min(facts.length, 4)},1fr);gap:var(--s-2);background:#eef1f0;border-radius:0;padding:10px 14px;margin-top:var(--s-3)">
+      ${facts.map(([k, v]) => `<div style="min-width:0"><div style="font-size:var(--t-figure);letter-spacing:.08em;text-transform:uppercase;color:${BR_SOFT}">${BR_ESC(k)}</div><div style="font-size:var(--t-meta);font-weight:var(--w-title);color:${BR_INK};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${BR_ESC(v)}</div></div>`).join('')}
     </div>` : '';
     const headLogo = pos !== 'footer' ? brLogoImg(b, 30) : '';
     return `<div data-doc-design="compact-executive" style="margin-bottom:20px;font-family:${BR_SANS};color:${BR_INK}">
-      <div style="display:flex;align-items:center;gap:12px;${pos === 'top-right' ? 'flex-direction:row-reverse;' : ''}${pos === 'top-center' ? 'justify-content:center;' : ''}">
+      <div style="display:flex;align-items:center;gap:var(--s-3);${pos === 'top-right' ? 'flex-direction:row-reverse;' : ''}${pos === 'top-center' ? 'justify-content:center;' : ''}">
         ${headLogo}
         <div style="min-width:0;${pos === 'top-center' ? 'text-align:center;' : ''}">
-          ${name ? `<div style="font-size:13px;font-weight:700">${name}</div>` : ''}
-          ${ident ? `<div style="font-size:10px;color:${BR_SOFT}">${ident}</div>` : ''}
+          ${name ? `<div style="font-size:var(--t-meta);font-weight:var(--w-title)">${name}</div>` : ''}
+          ${ident ? `<div style="font-size:var(--t-figure);color:${BR_SOFT}">${ident}</div>` : ''}
         </div>
       </div>
       ${factsBox}
@@ -472,10 +472,10 @@ function docDesignHeaderHtml(b, c, opts = {}) {
   if (d.id === 'modern-editorial') {
     /* The vertical rule is the paper's (docDesignPaperStyle); the header is an
        asymmetric two-sider: identity one side, a quiet document tag the other. */
-    const tag = `<span style="font-size:10px;letter-spacing:.22em;color:${brAccent(b)};text-transform:uppercase;border:1px solid ${BR_SOFT}40;border-radius:0;padding:4px 10px;white-space:nowrap;align-self:flex-start">Commercial Agreement</span>`;
+    const tag = `<span style="font-size:var(--t-figure);letter-spacing:.22em;color:${brAccent(b)};text-transform:uppercase;border:1px solid ${BR_SOFT}40;border-radius:0;padding:var(--s-1) 10px;white-space:nowrap;align-self:flex-start">Commercial Agreement</span>`;
     const identity = `<div style="min-width:0">
-        ${name ? `<div style="font-size:15px;font-weight:700;letter-spacing:.01em">${name}</div>` : ''}
-        ${ident ? `<div style="font-size:12px;color:${BR_SOFT};margin-top:2px">${ident}</div>` : ''}
+        ${name ? `<div style="font-size:var(--t-card);font-weight:var(--w-title);letter-spacing:.01em">${name}</div>` : ''}
+        ${ident ? `<div style="font-size:var(--t-label);color:${BR_SOFT};margin-top:2px">${ident}</div>` : ''}
       </div>`;
     const centered = pos === 'top-center' && logoTop ? `<div style="text-align:center;margin-bottom:10px">${logoTop}</div>` : '';
     const row = pos === 'top-right'
@@ -483,7 +483,7 @@ function docDesignHeaderHtml(b, c, opts = {}) {
       : `${logoTop ? logoTop : ''}${identity}<span style="flex:1"></span>${tag}`;
     return `<div data-doc-design="modern-editorial" style="margin-bottom:22px;font-family:${BR_SANS};color:${BR_INK}">
       ${centered}
-      <div style="display:flex;align-items:flex-start;gap:14px;padding-bottom:16px;border-bottom:1px solid #e2e8ea">${row}</div>
+      <div style="display:flex;align-items:flex-start;gap:14px;padding-bottom:var(--s-4);border-bottom:1px solid #e2e8ea">${row}</div>
     </div>`;
   }
 
@@ -493,17 +493,17 @@ function docDesignHeaderHtml(b, c, opts = {}) {
        missing image, and a missing image on a treaty is a wound. */
     const initial = (b.companyName || '').trim().charAt(0).toUpperCase();
     const crest = logoTop
-      ? `<div style="margin:2px 0 12px">${logoTop}</div>`
-      : initial ? `<div style="width:46px;height:46px;border:1.5px solid ${BR_INK};border-radius:50%;margin:2px auto 12px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700">${BR_ESC(initial)}</div>` : '';
+      ? `<div style="margin:2px 0 var(--s-3)">${logoTop}</div>`
+      : initial ? `<div style="width:46px;height:46px;border:1.5px solid ${BR_INK};border-radius:50%;margin:2px auto var(--s-3);display:flex;align-items:center;justify-content:center;font-size:var(--t-section);font-weight:var(--w-title)">${BR_ESC(initial)}</div>` : '';
     const between = c && c.counterparty && b.companyName
-      ? `<div style="font-size:12px;letter-spacing:.06em;color:${BR_SOFT};margin-top:16px;line-height:2">entered into between<br>
+      ? `<div style="font-size:var(--t-label);letter-spacing:.06em;color:${BR_SOFT};margin-top:var(--s-4);line-height:2">entered into between<br>
           <b style="color:${BR_INK};letter-spacing:.1em;text-transform:uppercase">${name}</b><br>and<br>
           <b style="color:${BR_INK};letter-spacing:.1em;text-transform:uppercase">${BR_ESC(c.counterparty)}</b></div>` : '';
     return `<div data-doc-design="ceremonial" style="text-align:center;margin-bottom:22px;font-family:${BR_SERIF};color:${BR_INK}">
       ${crest}
-      ${name ? `<div style="font-size:15px;font-weight:700;letter-spacing:.26em;text-transform:uppercase">${name}</div>` : ''}
-      ${ident ? `<div style="font-size:12px;letter-spacing:.14em;color:${BR_SOFT};margin-top:5px;text-transform:uppercase">${ident}</div>` : ''}
-      <div style="display:flex;align-items:center;gap:12px;justify-content:center;margin-top:14px">
+      ${name ? `<div style="font-size:var(--t-card);font-weight:var(--w-title);letter-spacing:.26em;text-transform:uppercase">${name}</div>` : ''}
+      ${ident ? `<div style="font-size:var(--t-label);letter-spacing:.14em;color:${BR_SOFT};margin-top:5px;text-transform:uppercase">${ident}</div>` : ''}
+      <div style="display:flex;align-items:center;gap:var(--s-3);justify-content:center;margin-top:14px">
         <span style="height:1px;width:150px;background:${BR_INK}"></span>
         <span style="width:7px;height:7px;border:1px solid ${BR_INK};transform:rotate(45deg)"></span>
         <span style="height:1px;width:150px;background:${BR_INK}"></span>
@@ -523,7 +523,7 @@ function docDesignHeaderHtml(b, c, opts = {}) {
       if (c.id) facts.push(['Ref', String(c.id)]);
       if (c.expiry) facts.push(['Expires', String(c.expiry)]);
     }
-    const metaLine = facts.length ? `<div style="display:flex;gap:22px;margin-top:12px;padding-top:10px;border-top:1px dashed #cfd8dc;font-size:12px;color:${BR_SOFT}">
+    const metaLine = facts.length ? `<div style="display:flex;gap:22px;margin-top:var(--s-3);padding-top:10px;border-top:1px dashed #cfd8dc;font-size:var(--t-label);color:${BR_SOFT}">
         ${facts.map(([k, v]) => `<span>${BR_ESC(k)} <b style="color:${brAccent(b)}">${BR_ESC(v)}</b></span>`).join('')}
       </div>` : '';
     const cp = c && c.counterparty ? BR_ESC(c.counterparty) : '';
@@ -531,16 +531,16 @@ function docDesignHeaderHtml(b, c, opts = {}) {
     return `<div data-doc-design="facing-parties" style="margin-bottom:22px;font-family:${BR_SANS};color:${BR_INK}">
       ${above}
       <div style="background:#f1f4f5;border:1px solid #e2e8ea;border-left:4px solid ${brAccent(b)};border-radius:0;padding:15px 19px">
-        <div style="font-size:10px;letter-spacing:.2em;color:${BR_SOFT};text-transform:uppercase;margin-bottom:10px">Agreement between</div>
+        <div style="font-size:var(--t-figure);letter-spacing:.2em;color:${BR_SOFT};text-transform:uppercase;margin-bottom:10px">Agreement between</div>
         <div style="display:flex;gap:18px;align-items:center">
           <div style="flex:1;min-width:0">
-            ${name ? `<div style="font-size:15px;font-weight:700">${name}</div>` : ''}
-            ${ident ? `<div style="font-size:12px;color:${BR_SOFT};margin-top:3px;line-height:1.5">${ident}</div>` : ''}
+            ${name ? `<div style="font-size:var(--t-card);font-weight:var(--w-title)">${name}</div>` : ''}
+            ${ident ? `<div style="font-size:var(--t-label);color:${BR_SOFT};margin-top:3px;line-height:1.5">${ident}</div>` : ''}
           </div>
-          ${cp ? `<div style="flex:none;width:30px;height:30px;border-radius:50%;background:${brAccent(b)};color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;letter-spacing:.05em;font-weight:700">AND</div>
+          ${cp ? `<div style="flex:none;width:30px;height:30px;border-radius:50%;background:${brAccent(b)};color:#fff;display:flex;align-items:center;justify-content:center;font-size:var(--t-figure);letter-spacing:.05em;font-weight:var(--w-title)">AND</div>
           <div style="flex:1;min-width:0;text-align:right">
-            <div style="font-size:15px;font-weight:700">${cp}</div>
-            <div style="font-size:12px;color:${BR_SOFT};margin-top:3px">as per the signature page</div>
+            <div style="font-size:var(--t-card);font-weight:var(--w-title)">${cp}</div>
+            <div style="font-size:var(--t-label);color:${BR_SOFT};margin-top:3px">as per the signature page</div>
           </div>` : ''}
         </div>
         ${metaLine}
@@ -559,17 +559,17 @@ function docDesignFooterHtml(b, c) {
   const line = [b.companyName ? BR_ESC(b.companyName) : '', foot].filter(Boolean).join(' · ');
 
   if (d.id === 'classic-letterhead')
-    return `<div style="margin-top:26px;padding-top:10px;border-top:1px solid ${BR_RULE};text-align:center;font-family:${BR_SERIF};font-size:12px;color:${BR_SOFT}">${logoFoot ? logoFoot + '<br>' : ''}${line}</div>`;
+    return `<div style="margin-top:26px;padding-top:10px;border-top:1px solid ${BR_RULE};text-align:center;font-family:${BR_SERIF};font-size:var(--t-label);color:${BR_SOFT}">${logoFoot ? logoFoot + '<br>' : ''}${line}</div>`;
   if (d.id === 'formal-legal')
-    return `<div style="margin-top:26px;padding-top:9px;border-top:1px solid ${BR_RULE};text-align:center;font-family:${BR_SERIF};font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:${BR_SOFT}">${logoFoot ? logoFoot + '<br>' : ''}${line}</div>`;
+    return `<div style="margin-top:26px;padding-top:9px;border-top:1px solid ${BR_RULE};text-align:center;font-family:${BR_SERIF};font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:${BR_SOFT}">${logoFoot ? logoFoot + '<br>' : ''}${line}</div>`;
   if (d.id === 'bold-corporate')
-    return `<div style="margin-top:26px;padding-top:10px;border-top:3px solid ${brAccent(b)};display:flex;align-items:center;gap:10px;font-family:${BR_SANS};font-size:12px;color:${BR_SOFT}">${logoFoot}<span style="flex:1">${line}</span></div>`;
+    return `<div style="margin-top:26px;padding-top:10px;border-top:3px solid ${brAccent(b)};display:flex;align-items:center;gap:10px;font-family:${BR_SANS};font-size:var(--t-label);color:${BR_SOFT}">${logoFoot}<span style="flex:1">${line}</span></div>`;
   if (d.id === 'ceremonial')
-    return `<div style="margin-top:30px;text-align:center;font-family:${BR_SERIF};font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:${BR_SOFT}"><span style="display:block;width:150px;height:1px;background:${BR_INK};margin:0 auto 10px"></span>${logoFoot ? logoFoot + '<br>' : ''}${line}</div>`;
+    return `<div style="margin-top:30px;text-align:center;font-family:${BR_SERIF};font-size:var(--t-figure);letter-spacing:.14em;text-transform:uppercase;color:${BR_SOFT}"><span style="display:block;width:150px;height:1px;background:${BR_INK};margin:0 auto 10px"></span>${logoFoot ? logoFoot + '<br>' : ''}${line}</div>`;
   if (d.id === 'facing-parties')
-    return `<div style="margin-top:26px;padding-top:9px;border-top:2px solid ${brAccent(b)};display:flex;align-items:center;gap:10px;font-family:${BR_SANS};font-size:10px;color:${BR_SOFT}">${logoFoot}<span style="flex:1">${line}</span></div>`;
+    return `<div style="margin-top:26px;padding-top:9px;border-top:2px solid ${brAccent(b)};display:flex;align-items:center;gap:10px;font-family:${BR_SANS};font-size:var(--t-figure);color:${BR_SOFT}">${logoFoot}<span style="flex:1">${line}</span></div>`;
   // modern-minimal + compact-executive + modern-editorial: quiet left-aligned rule
-  return `<div style="margin-top:26px;padding-top:9px;border-top:1px solid #d5dbd9;display:flex;align-items:center;gap:10px;font-family:${BR_SANS};font-size:10px;color:${BR_SOFT}">${logoFoot}<span style="flex:1">${line}</span></div>`;
+  return `<div style="margin-top:26px;padding-top:9px;border-top:1px solid #d5dbd9;display:flex;align-items:center;gap:10px;font-family:${BR_SANS};font-size:var(--t-figure);color:${BR_SOFT}">${logoFoot}<span style="flex:1">${line}</span></div>`;
 }
 
 /* Extra inline CSS the paper div itself needs. Formal Legal asks for the
@@ -665,7 +665,7 @@ function docStructureBodyHtml(b, bodyHtml) {
     </li>`).join('');
 
   return `<nav data-doc-contents="1" style="page-break-after:always;break-after:page;margin:0 0 1.6em">
-    <div style="font-size:.82em;font-weight:700;letter-spacing:.13em;text-transform:uppercase;
+    <div style="font-size:.82em;font-weight:var(--w-title);letter-spacing:.13em;text-transform:uppercase;
       color:var(--doc-design-accent,var(--color-doc-muted,#43524F));padding-bottom:.35em;
       margin-bottom:.7em;border-bottom:1px solid var(--color-doc-rule,#c9ccd1)">${BR_T('br_contents', 'Contents')}</div>
     <ol style="list-style:none;margin:0;padding:0">${rows}</ol>
@@ -683,16 +683,16 @@ function docDesignCoverPageHtml(b, c) {
   const u = c.upload || {};
   const between = [b.companyName, c.counterparty].filter(Boolean).map(BR_ESC).join(' &amp; ');
   return `<div data-doc-design-cover="1" style="page-break-after:always;font-family:${font};color:${BR_INK};padding-top:60px;text-align:center">
-    <div style="font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:${BR_SOFT};margin-bottom:18px">${BR_T('br_contract_record', 'Contract record')}</div>
-    <div style="font-size:24px;font-weight:700;line-height:1.3;max-width:540px;margin:0 auto">${BR_ESC(c.name || 'Contract')}</div>
-    ${between ? `<div style="font-size:13px;color:${BR_SOFT};margin-top:10px">between ${between}</div>` : ''}
+    <div style="font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:${BR_SOFT};margin-bottom:18px">${BR_T('br_contract_record', 'Contract record')}</div>
+    <div style="font-size:24px;font-weight:var(--w-title);line-height:1.3;max-width:540px;margin:0 auto">${BR_ESC(c.name || 'Contract')}</div>
+    ${between ? `<div style="font-size:var(--t-meta);color:${BR_SOFT};margin-top:10px">between ${between}</div>` : ''}
     <div style="width:52px;height:3px;background:${brAccent(b)};margin:26px auto"></div>
-    <table style="margin:0 auto;border-collapse:collapse;font-size:12px;text-align:left">
-      ${c.id ? `<tr><td style="padding:3px 14px 3px 0;color:${BR_SOFT}">${BR_T('br_reference', 'Reference')}</td><td style="font-weight:600">${BR_ESC(c.id)}</td></tr>` : ''}
-      ${u.fileName ? `<tr><td style="padding:3px 14px 3px 0;color:${BR_SOFT}">${BR_T('br_original_file', 'Original file')}</td><td style="font-weight:600">${BR_ESC(u.fileName)}</td></tr>` : ''}
-      ${c.status ? `<tr><td style="padding:3px 14px 3px 0;color:${BR_SOFT}">Status</td><td style="font-weight:600">${BR_ESC(c.status)}</td></tr>` : ''}
+    <table style="margin:0 auto;border-collapse:collapse;font-size:var(--t-label);text-align:left">
+      ${c.id ? `<tr><td style="padding:3px 14px 3px 0;color:${BR_SOFT}">${BR_T('br_reference', 'Reference')}</td><td style="font-weight:var(--w-strong)">${BR_ESC(c.id)}</td></tr>` : ''}
+      ${u.fileName ? `<tr><td style="padding:3px 14px 3px 0;color:${BR_SOFT}">${BR_T('br_original_file', 'Original file')}</td><td style="font-weight:var(--w-strong)">${BR_ESC(u.fileName)}</td></tr>` : ''}
+      ${c.status ? `<tr><td style="padding:3px 14px 3px 0;color:${BR_SOFT}">Status</td><td style="font-weight:var(--w-strong)">${BR_ESC(c.status)}</td></tr>` : ''}
     </table>
-    <p style="font-size:12px;color:${BR_SOFT};margin-top:34px;max-width:440px;margin-left:auto;margin-right:auto;line-height:1.6">This cover page was added by ${BR_ESC(b.companyName || 'the contract owner')}. The document that follows is reproduced from the file as it was received — its own layout and formatting are unchanged.</p>
+    <p style="font-size:var(--t-label);color:${BR_SOFT};margin-top:34px;max-width:440px;margin-left:auto;margin-right:auto;line-height:1.6">This cover page was added by ${BR_ESC(b.companyName || 'the contract owner')}. The document that follows is reproduced from the file as it was received — its own layout and formatting are unchanged.</p>
   </div>`;
 }
 

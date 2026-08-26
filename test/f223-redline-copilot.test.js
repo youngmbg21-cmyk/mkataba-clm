@@ -24,6 +24,7 @@
      negotiating history. */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
+const { px: tokenPx } = require('./tokens');
 const fs = require('node:fs');
 const path = require('node:path');
 const { buildWorld } = require('./world');
@@ -278,7 +279,10 @@ describe('F223 — it decides nothing', () => {
   test('and nothing in the band is smaller than the cards it is a reading of', () => {
     /* The card's own type: id 11.5 mono, badge 12.5, meta 12. The band takes
        that neighbourhood, so the two objects measure alike. */
-    const sizes = planRules().join('\n').match(/font-size:([\d.]+)px/g).map(m => parseFloat(m.slice(10)));
+    /* RE-POINTED 25 Aug 2026 — through the one token resolver, because these
+       sizes are now names. The claim is the relation, unchanged. */
+    const sizes = (planRules().join('\n').match(/font-size:[^;}]+/g) || [])
+      .map(tokenPx).filter(n => !Number.isNaN(n));
     assert.ok(sizes.length >= 8, 'every piece of the band states a size — ' + sizes.length);
     assert.equal(sizes.filter(n => n < 11.5).length, 0,
       'nothing under the card id\'s 11.5 — ' + sizes.join(', '));

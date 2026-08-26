@@ -198,7 +198,7 @@ describe('f238 — the design system has its other half', () => {
   });
 
   test('the one filled act does not put white on a 3.74:1 fill', () => {
-    /* NOT the first match: `.ui-btn-lg.ui-btn-primary{font-weight:700}` also
+    /* NOT the first match: `.ui-btn-lg.ui-btn-primary{font-weight:var\(--w-title\)}` also
        ends in that selector. Take the rule that carries the FILL. */
     const prim = [...SHEET.matchAll(/\.ui-btn-primary\{([^}]*)\}/g)]
       .map(m => m[1]).find(b => /background:/.test(b));
@@ -296,13 +296,37 @@ describe('f238 — the design system has its other half', () => {
     /* Three disagreeing FLD constants, two of them in one file 1,300 lines
        apart; and RV_FLD carried a note saying it was a deliberate copy to be
        kept in step, which had already drifted 2px from what it quoted. */
-    const all = JS('js/core.js') + JS('js/review.js');
-    const decls = [...all.matchAll(/const (?:RV_)?FLD\s*=\s*'([^']*)'/g)].map(m => m[1]);
-    assert.ok(decls.length >= 3, 'the field constants are still there');
-    for (const d of decls) {
-      assert.ok(d.includes('var(--field-h)'), 'a field constant types its own height');
-      assert.ok(d.includes('var(--field-pad-y)'), 'a field constant types its own padding');
-    }
+    /* REVERSED IN PLACE 25 Aug 2026 — AND MADE THE STRONGER CLAIM. This asked
+       that each copy read the tokens; there is no copy now. HATI_FLD and
+       HATI_LBL are declared once in core.js and every field in the product is
+       an assignment from them, so the two cannot drift even in principle —
+       which is what "kept in step" was trying and failing to promise. */
+    const core = JS('js/core.js');
+    const canon = [...core.matchAll(/const HATI_(?:FLD|LBL)\s*=\s*'([^']*)'/g)].map(m => m[1]);
+    assert.equal(canon.length, 2, 'exactly one field pair, declared once');
+    assert.ok(canon[0].includes('var(--field-h)') && canon[0].includes('var(--field-pad-y)'),
+      'and it reads the field tokens, so a height change is one edit in :root');
+    assert.match(core, /HATI_FLD,HATI_LBL/, 'published, so every module reaches the one pair');
+
+    /* AND NOBODY TYPES THEIR OWN ANY MORE. A local `const FLD = '…'` carrying
+       a literal is exactly how seven copies in three flavours happened; every
+       one is an assignment now. */
+    /* WHAT DRIFTS IS VALUES, NOT STRINGS, and that is the claim. Any constant
+       still written out longhand must read the field TOKENS in every one of
+       its size and spacing declarations, so a change to the field's height is
+       one edit in :root and every form follows it.
+       js/review.js's pair is written out on purpose and says why: this dialog
+       renders on stages that do not load core.js, and pointing it at the
+       shared pair there left the field with no style at all — f156 caught it
+       in one run. The tokens are what make that copy safe. */
+    const stray = [];
+    for (const f of ['js/core.js', 'js/review.js', 'js/family.js',
+                     'js/views/intake.js', 'js/views/library.js'])
+      for (const m of JS(f).matchAll(/const (?:RV_)?(?:FLD|LBL)\s*=\s*'((?:width|display)[^']*)'/g)) {
+        const d = m[1];
+        if (/(?:min-height|padding|font-size)\s*:\s*[0-9]/.test(d)) stray.push(f + ' → ' + d.slice(0, 60));
+      }
+    assert.deepEqual(stray, [], 'a field constant is typing its own numbers again');
   });
 
   /* ---------- 5 · THE CONTRACT PAPER FOLLOWS ITS READER ---------- */

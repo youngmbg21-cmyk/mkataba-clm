@@ -67,18 +67,18 @@ function ikRowHtml(r, opts={}){
   const me=currentUser();
   const isMine=!!(me&&r.by&&r.by.id===me.id);
   const acts=[];
-  if(may&&r.status==='open') acts.push(`<button class="ui-btn" data-ik-draft="${esc(r.id)}" style="font-size:12px;padding:4px 10px">${i18t('ik_act_draft')}</button>`);
-  if(may&&r.status==='open') acts.push(`<button class="ui-btn" data-ik-decline="${esc(r.id)}" style="font-size:12px;padding:4px 10px">${i18t('ik_act_decline')}</button>`);
-  if(r.contractId) acts.push(`<button class="ui-btn" data-ik-open="${esc(r.contractId)}" style="font-size:12px;padding:4px 10px">${i18t('ik_act_open')}</button>`);
-  if(isMine&&IK_LIVE.includes(r.status)) acts.push(`<button class="ui-btn" data-ik-withdraw="${esc(r.id)}" style="font-size:12px;padding:4px 10px">${i18t('ik_act_withdraw')}</button>`);
-  return `<article class="ik-row" style="border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);padding:12px 14px;display:flex;flex-direction:column;gap:6px">
+  if(may&&r.status==='open') acts.push(`<button class="ui-btn" data-ik-draft="${esc(r.id)}" style="font-size:var(--t-label);padding:var(--s-1) 10px">${i18t('ik_act_draft')}</button>`);
+  if(may&&r.status==='open') acts.push(`<button class="ui-btn" data-ik-decline="${esc(r.id)}" style="font-size:var(--t-label);padding:var(--s-1) 10px">${i18t('ik_act_decline')}</button>`);
+  if(r.contractId) acts.push(`<button class="ui-btn" data-ik-open="${esc(r.contractId)}" style="font-size:var(--t-label);padding:var(--s-1) 10px">${i18t('ik_act_open')}</button>`);
+  if(isMine&&IK_LIVE.includes(r.status)) acts.push(`<button class="ui-btn" data-ik-withdraw="${esc(r.id)}" style="font-size:var(--t-label);padding:var(--s-1) 10px">${i18t('ik_act_withdraw')}</button>`);
+  return `<article class="ik-row" style="border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);padding:var(--s-3) 14px;display:flex;flex-direction:column;gap:6px">
     <div style="display:flex;align-items:baseline;gap:9px;flex-wrap:wrap">
-      <span style="font-family:var(--font-mono);font-size:12px;color:var(--color-neutral-500)">${esc(r.id)}</span>
-      <span style="font-size:15px;font-weight:600;flex:1;min-width:0">${esc(r.title)}</span>
+      <span style="font-family:var(--font-mono);font-size:var(--t-label);color:var(--color-neutral-500)">${esc(r.id)}</span>
+      <span style="font-size:var(--t-card);font-weight:var(--w-strong);flex:1;min-width:0">${esc(r.title)}</span>
       ${ikChip(r.status)}
     </div>
-    <p style="margin:0;font-size:13px;line-height:1.55;color:var(--color-neutral-700);white-space:pre-wrap">${esc(r.need)}</p>
-    <div style="font-size:12px;color:var(--color-neutral-600)">
+    <p style="margin:0;font-size:var(--t-meta);line-height:1.55;color:var(--color-neutral-700);white-space:pre-wrap">${esc(r.need)}</p>
+    <div style="font-size:var(--t-label);color:var(--color-neutral-600)">
       ${esc(i18t('ik_asked_by',{name:(r.by&&r.by.name)||'—',date:when}))}${r.counterparty?' · '+esc(r.counterparty):''}${r.folder&&FOLDERS[r.folder]?' · '+esc(FOLDERS[r.folder].name):''}
       ${r.note?`<div style="margin-top:3px;font-style:italic">${esc(r.note)}</div>`:''}
     </div>
@@ -93,11 +93,15 @@ function ikRowHtml(r, opts={}){
    which stream) because they are the two the requester always does know. */
 function openIntakeForm(){
   const streams=(typeof visibleFolders==='function')?visibleFolders():Object.values(FOLDERS||{});
-  const FLD='width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:8px 10px;font:inherit;font-size:14px;outline:none';
-  const LBL='display:block;font-size:12px;font-weight:600;margin-bottom:4px';
+  /* READS THE ONE PAIR (25 Aug 2026). It was a local copy on its own
+     padding and type; seven such copies in three flavours is how a form ends
+     up two pixels off the form beside it. Through window because this is a
+     module and a bare cross-module read throws. */
+  const FLD=window.HATI_FLD;
+  const LBL=window.HATI_LBL;
   openModal(`<div style="padding:20px 22px;max-width:520px">
-    <h3 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0 0 4px">${i18t('ik_ask_title')}</h3>
-    <p style="font-size:13px;color:var(--color-neutral-600);margin:0 0 14px;line-height:1.55">${i18t('ik_ask_sub')}</p>
+    <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;margin:0 0 var(--s-1)">${i18t('ik_ask_title')}</h3>
+    <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 14px;line-height:1.55">${i18t('ik_ask_sub')}</p>
     <label style="display:block;margin-bottom:10px"><span style="${LBL}">${i18t('ik_f_title')}</span>
       <input id="ik-title" style="${FLD}" placeholder="${esc(i18t('ik_f_title_ph'))}" maxlength="200"/></label>
     <label style="display:block;margin-bottom:10px"><span style="${LBL}">${i18t('ik_f_need')}</span>
@@ -111,10 +115,10 @@ function openIntakeForm(){
           ${streams.map(f=>`<option value="${esc(f.id)}">${esc(f.name)}</option>`).join('')}
         </select></label>
     </div>
-    <p id="ik-err" style="font-size:13px;color:var(--st-ruby-fg);min-height:16px;margin:8px 0 0"></p>
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
-      <button id="ik-cancel" class="ui-btn" style="font-size:13px;padding:7px 14px">${i18t('act_cancel')}</button>
-      <button id="ik-send" class="ui-btn ui-btn-primary" style="font-size:13px;padding:7px 14px">${i18t('ik_send')}</button>
+    <p id="ik-err" style="font-size:var(--t-meta);color:var(--st-ruby-fg);min-height:16px;margin:var(--s-2) 0 0"></p>
+    <div style="display:flex;gap:var(--s-2);justify-content:flex-end;margin-top:10px">
+      <button id="ik-cancel" class="ui-btn" style="font-size:var(--t-meta);padding:7px 14px">${i18t('act_cancel')}</button>
+      <button id="ik-send" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:7px 14px">${i18t('ik_send')}</button>
     </div>
   </div>`,{maxWidth:'560px'});
   document.getElementById('ik-cancel')?.addEventListener('click',()=>closeModal());
@@ -157,20 +161,20 @@ async function intakeDraft(id){
   if(btnBusy){ btnBusy.disabled=true; btnBusy.textContent=i18t('ct_working'); }
   const pick=await intakeSuggestTemplate(r);
   const ids=Object.keys(TEMPLATES||{});
-  const FLD='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:8px 10px;font:inherit;font-size:14px';
+  const FLD=window.HATI_FLD;
   openModal(`<div style="padding:20px 22px;max-width:520px">
-    <h3 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0 0 4px">${i18t('ik_draft_title')}</h3>
-    <p style="font-size:13px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.55">${esc(r.title)}</p>
-    ${pick?`<p style="font-size:13px;line-height:1.55;margin:0 0 10px;padding:9px 11px;background:var(--st-green-bg);color:var(--st-green-fg);border-radius:0">
+    <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;margin:0 0 var(--s-1)">${i18t('ik_draft_title')}</h3>
+    <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3);line-height:1.55">${esc(r.title)}</p>
+    ${pick?`<p style="font-size:var(--t-meta);line-height:1.55;margin:0 0 10px;padding:9px 11px;background:var(--st-green-bg);color:var(--st-green-fg);border-radius:0">
       ${esc(i18t('ik_suggested',{name:TEMPLATES[pick.id].name}))}${pick.why?' '+esc(pick.why):''}</p>`
-      :`<p style="font-size:13px;color:var(--color-neutral-600);margin:0 0 10px">${esc(i18t('ik_no_suggestion'))}</p>`}
-    <label style="display:block;margin-bottom:12px"><span style="display:block;font-size:12px;font-weight:600;margin-bottom:4px">${i18t('ik_pick_template')}</span>
+      :`<p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 10px">${esc(i18t('ik_no_suggestion'))}</p>`}
+    <label style="display:block;margin-bottom:var(--s-3)"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('ik_pick_template')}</span>
       <select id="ik-tpl" style="${FLD}">
         ${ids.map(t=>`<option value="${esc(t)}"${pick&&pick.id===t?' selected':''}>${esc(TEMPLATES[t].name)}</option>`).join('')}
       </select></label>
-    <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button id="ik-d-cancel" class="ui-btn" style="font-size:13px;padding:7px 14px">${i18t('act_cancel')}</button>
-      <button id="ik-d-go" class="ui-btn ui-btn-primary" style="font-size:13px;padding:7px 14px">${i18t('ik_create_draft')}</button>
+    <div style="display:flex;gap:var(--s-2);justify-content:flex-end">
+      <button id="ik-d-cancel" class="ui-btn" style="font-size:var(--t-meta);padding:7px 14px">${i18t('act_cancel')}</button>
+      <button id="ik-d-go" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:7px 14px">${i18t('ik_create_draft')}</button>
     </div>
   </div>`,{maxWidth:'560px'});
   const restore=()=>{ const b=document.querySelector(`[data-ik-draft="${CSS.escape(id)}"]`); if(b){ b.disabled=false; b.textContent=i18t('ik_act_draft'); } };
@@ -235,7 +239,7 @@ function renderIntake(){
   const host=document.getElementById('content'); if(!host) return;
   const may=(typeof canEdit==='function'&&canEdit());
   const mine=intakeMine(), queue=intakeQueue();
-  const empty=t=>`<p style="font-size:14px;color:var(--color-neutral-600);line-height:1.6;margin:0">${esc(t)}</p>`;
+  const empty=t=>`<p style="font-size:var(--t-body);color:var(--color-neutral-600);line-height:1.6;margin:0">${esc(t)}</p>`;
   host.innerHTML=`
     ${''/* ---- THE PAGE HAS A MARGIN (owner-reported 19 Aug 2026, off a
            screenshot with the left edge ringed: "space is needed between the
@@ -247,16 +251,16 @@ function renderIntake(){
     <div class="view-enter" style="padding:var(--page-pad);display:flex;flex-direction:column;gap:22px;max-width:894px">
       <section style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap">
         <div style="flex:1;min-width:220px">
-          <p style="font-size:14px;color:var(--color-neutral-600);line-height:1.6;margin:0">${esc(may?i18t('ik_lead_editor'):i18t('ik_lead_asker'))}</p>
+          <p style="font-size:var(--t-body);color:var(--color-neutral-600);line-height:1.6;margin:0">${esc(may?i18t('ik_lead_editor'):i18t('ik_lead_asker'))}</p>
         </div>
-        <button id="ik-new" class="ui-btn ui-btn-primary" style="font-size:14px;padding:8px 15px;flex:none">${i18t('ik_ask_btn')}</button>
+        <button id="ik-new" class="ui-btn ui-btn-primary" style="font-size:var(--t-body);padding:var(--s-2) 15px;flex:none">${i18t('ik_ask_btn')}</button>
       </section>
       ${may?`<section>
-        <h3 style="font-size:14px;font-weight:700;font-family:var(--font-heading);margin:0 0 9px">${i18t('ik_queue_head',{n:queue.length})}</h3>
+        <h3 style="font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading);margin:0 0 9px">${i18t('ik_queue_head',{n:queue.length})}</h3>
         <div style="display:flex;flex-direction:column;gap:9px">${queue.length?queue.map(r=>ikRowHtml(r)).join(''):empty(i18t('ik_queue_empty'))}</div>
       </section>`:''}
       <section>
-        <h3 style="font-size:14px;font-weight:700;font-family:var(--font-heading);margin:0 0 9px">${i18t('ik_mine_head')}</h3>
+        <h3 style="font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading);margin:0 0 9px">${i18t('ik_mine_head')}</h3>
         <div style="display:flex;flex-direction:column;gap:9px">${mine.length?mine.map(r=>ikRowHtml(r)).join(''):empty(i18t('ik_mine_empty'))}</div>
       </section>
     </div>`;
