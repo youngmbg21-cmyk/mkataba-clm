@@ -856,3 +856,157 @@ describe('f245 (11) — the editor opens on a clause that is only proposed', () 
     assert.equal(p.win.rlOpenClauseEditor(p.c, 'cl_nothere', {}), false);
   });
 });
+
+/* ============================================================
+   f245 (12) — THE DIVIDER
+   ============================================================
+   Owner-asked 26 Aug 2026, wanting the negotiation page's draggable divider
+   here — "I want the limitation (how far you can drag) in dragging right to
+   left to be identical" — and saying plainly that a previous attempt at this
+   page's layout broke it.
+
+   It did: a strip written across the top of the grid pushed the Copilot rail
+   172px down the window, and it took more than one go to correct. So the claims
+   below are as much about what the divider MUST NOT DO as about what it does,
+   and 2d1-2d3 above are the net that catches the old break.
+   ============================================================ */
+describe('f245 (12) — the divider, and what it must not disturb', () => {
+  const CE = SRC;
+  const NCSS = read('js/views/negotiation-css.js');
+
+  test('THE LEFT-HAND LIMIT IS THE NEGOTIATION PAGE\'S, to the number', () => {
+    /* Owner-asked in those words. Pinned as a RELATION across the two files
+       rather than as a number typed twice: neither constant is published, so
+       this reads both sources and fails if one moves without the other. */
+    const mine = CE.match(/const CE_FMIN = ([\d.]+)/)[1];
+    const theirs = NEGO.match(/const RL_FMIN = ([\d.]+)/)[1];
+    assert.equal(mine, theirs,
+      `the leftward stop must match the negotiation page's — ${mine} against ${theirs}`);
+    const myPx = CE.match(/const CE_LEFT_MIN = (\d+)/)[1];
+    const theirPx = NEGO.match(/RL_LEFT_MIN = (\d+)/)[1];
+    assert.equal(myPx, theirPx,
+      `and so must the pixel floor under it — ${myPx} against ${theirPx}`);
+  });
+
+  test('the OTHER direction is this page\'s own, and it is the rail\'s floor', () => {
+    /* Said out loud rather than quietly matched: the negotiation page lets its
+       right column go to 300 and this rail is built to 340 — it holds a chat
+       box, the chips and two buttons. */
+    const mine = Number(CE.match(/CE_RIGHT_MIN = (\d+)/)[1]);
+    assert.equal(mine, 340, "the rail's own floor");
+    assert.match(CE, /minmax\(340px,1fr\)/,
+      'and the CSS fallback agrees with it, or the two disagree before JS runs');
+  });
+
+  test('the limits BITE, in both directions, at every laptop width', async () => {
+    const p = await bench(); wide(p.win);
+    p.win.rlOpenClauseEditor(p.c, firstClauseId(p), {});
+    const L = p.win.ceSplitLeft;
+    for (const w of [1280, 1440, 1920, 2560]){
+      assert.equal(L(w, 0), Math.round(0.45 * w),
+        `dragged hard left at ${w} the contract stops at 45%`);
+      assert.ok(w - L(w, 1) >= 340,
+        `dragged hard right at ${w} the rail keeps 340px, got ${w - L(w, 1)}`);
+      /* And at rest it is the one third the owner asked for and 2d1 pins. */
+      assert.ok(Math.abs((w - L(w)) / w - 1 / 3) < 0.02,
+        `at rest the rail is a third, got ${((w - L(w)) / w).toFixed(3)} at ${w}`);
+    }
+    p.win.rlCloseClauseEditor();
+  });
+
+  test('IT SAYS WHEN IT WILL NOT GO FURTHER — at BOTH stops, not just the pixel one', async () => {
+    /* Found by dragging it in a real browser. Read off the pixel floors alone
+       the grip stayed grey at the 45% stop, because on a wide window the
+       FRACTION binds and the pixel floor is nowhere near — so the divider
+       stopped and said nothing, which is the one thing a splitter at its limit
+       must not do. Both stops come out of the ONE clamp now, so the mark and
+       the position cannot disagree about where the end is. */
+    const p = await bench(); wide(p.win);
+    p.win.rlOpenClauseEditor(p.c, firstClauseId(p), {});
+    const S = p.win.ceSplit;
+    assert.equal(S(1500).limit, null, 'at rest it is not at a limit');
+    assert.equal(S(1500, 0).limit, 'min', 'the FRACTION stop is marked on a wide window');
+    assert.equal(S(1500, 1).limit, 'max');
+    /* And on a window narrow enough for the pixel floors to bite first. */
+    assert.equal(S(800, 0).limit, 'min');
+    assert.equal(S(800, 0).left, 380, 'the pixel floor, not the fraction');
+    assert.equal(S(800, 1).limit, 'max');
+    assert.equal(S(800, 1).left, 800 - 340);
+    p.win.rlCloseClauseEditor();
+  });
+
+  test('the handle CLAIMS NO TRACK — this is the break that must not come back', () => {
+    /* A third grid child laid out in flow, or any strip spanning both columns,
+       pushes the rail down by its own height and looks perfectly correct in the
+       source. Absolute, inside the grid, and the grid stays two columns. */
+    assert.match(CE, /\.ce-grid\{[^}]*position:relative/,
+      'the grid is the positioned ancestor, so the handle moves with it');
+    assert.match(CE, /grid-template-columns:minmax\(0,2fr\) minmax\(340px,1fr\)/,
+      'still exactly two columns');
+    assert.match(CE, /gridTemplateColumns = left \+ 'px minmax\(0,1fr\)'/,
+      'and the drag writes two, never three');
+    assert.ok(!/grid-template-rows:minmax\(0,1fr\) [^;}]/.test(CE),
+      'and never a second row');
+  });
+
+  test('it wears the negotiation page\'s OWN dressing, shared not copied', () => {
+    assert.match(CE, /id="ce-resizer" class="rl-resizer"/,
+      'the same class, so one rule dresses both');
+    assert.match(NCSS, /(^|\n)\s*\.rl-resizer\{/,
+      'and that rule is unscoped — scoped, this page draws an unstyled strip');
+    assert.ok(!/\.redline-page \.rl-resizer\{position:absolute/.test(NCSS),
+      'the scoped rule was REPLACED, not joined — no cascade fight left to lose');
+  });
+
+  test('STACKED, the inline columns are CLEARED — this page\'s rule has no !important', () => {
+    /* The negotiation page forces its stack with !important; this one does not,
+       so an inline column written on a wide window and left behind would beat
+       the media query and crush the stacked layout. */
+    assert.match(CE, /max-width:1023px\)/, 'the stack point is the stylesheet\'s own');
+    const fit = CE.match(/function ceFitSplit[\s\S]*?\n}/)[0];
+    assert.match(fit, /if \(ceStacked\(\)\)\{[\s\S]{0,160}gridTemplateColumns = ''/,
+      'ceFitSplit clears them before it does anything else');
+    assert.match(CE, /\.ce-grid > \.rl-resizer\{display:none\}/,
+      'and the handle is not drawn across a stacked page');
+  });
+
+  test('an UNMEASURED grid is not measured, and a zero is not a width', () => {
+    const fit = CE.match(/function ceFitSplit[\s\S]*?\n}/)[0];
+    assert.match(fit, /avail < 160\) return/,
+      'writing 0px would collapse a layout the CSS is holding perfectly well');
+  });
+
+  test('ONE geometry, asked for by both halves', () => {
+    /* When the layout and the drag described the page differently, one pixel of
+       pointer bought less than one pixel of column. And the gap: this grid has
+       none, so subtracting one would put the handle 14px off the seam. */
+    assert.equal((CE.match(/_ceAvail\(/g) || []).length, 2,
+      'the layout and the drag both ask the same function, and nothing else does');
+    assert.match(CE, /const _ceAvail = grid => grid\.clientWidth;/,
+      'no gap subtracted — this grid has no gap track');
+  });
+
+  test('the drag reads WHERE THE POINTER IS, never how far it has come', () => {
+    const wire = CE.match(/function ceWireSplit[\s\S]*?\n}\n/)[0];
+    assert.match(wire, /pointerFrac = x =>[\s\S]{0,220}getBoundingClientRect/,
+      'position, not travel — travel leaves a dead band at the limits');
+    assert.match(wire, /grabDx = \(hb\.left \+ hb\.width \/ 2\) - e\.clientX/,
+      'and the grab offset keeps the boundary under the cursor');
+    assert.match(wire, /ResizeObserver/, 'the grid is observed, not guessed at');
+    assert.match(wire, /dataset\.ceSplitBound/, 'bound once per element');
+  });
+
+  test('its own memory, so the two dividers cannot move each other', () => {
+    assert.match(CE, /CE_SPLIT_KEY = 'hati\.v1\.ceLeftFrac'/);
+    assert.ok(!/rlLeftFrac/.test(CE),
+      "the negotiation page's key is a different question about a different page");
+  });
+
+  test('a separator nobody can reach is a control half this workspace lacks', () => {
+    assert.match(CE, /role="separator" aria-orientation="vertical"/);
+    assert.match(CE, /tabindex="0"/);
+    const wire = CE.match(/function ceWireSplit[\s\S]*?\n}\n/)[0];
+    assert.match(wire, /ArrowLeft/, 'the arrows move it');
+    assert.match(wire, /dblclick/, 'and a double-click puts it back');
+  });
+});

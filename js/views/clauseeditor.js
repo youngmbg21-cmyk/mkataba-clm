@@ -267,8 +267,26 @@ function clauseEditorCss(){
   /* ---- two columns from the very top of the working area ----
      The rail is exactly one third: 2fr beside 1fr. The 340px floor only bites
      on a window too narrow for a third to be usable at all. */
-  .ce-grid{flex:1; min-height:0; display:grid;
+  /* ---- position:relative FOR THE DIVIDER, AND NOTHING ELSE MOVES ----
+     (owner-asked 26 Aug 2026, wanting the negotiation page's draggable divider
+     here.) The handle is an ABSOLUTE child of this grid — it claims no track
+     and no row, which is the whole condition on adding it: a third grid child
+     laid out in flow, or any strip spanning both columns, pushes the Copilot
+     rail down by its own height. That is the one thing about this layout that
+     was corrected repeatedly before it was built, and it looks perfectly
+     correct in the source when it is wrong.
+
+     THE COLUMNS BELOW REMAIN THE FALLBACK. ceFitSplit writes them in pixels
+     once it has a measured grid; where it has not — a stage with no layout, a
+     first paint — these hold, and writing 0px there would collapse a layout the
+     CSS is holding perfectly well on its own. */
+  .ce-grid{flex:1; min-height:0; display:grid; position:relative;
     grid-template-columns:minmax(0,2fr) minmax(340px,1fr); grid-template-rows:minmax(0,1fr)}
+  /* Centred ON the seam rather than beside it: unlike the negotiation page's
+     grid this one has no gap track, so the two columns touch and the grab strip
+     straddles the rail's own border. Its LOOK is the negotiation page's, shared
+     rather than copied — see the unscoped .rl-resizer in negotiation-css.js. */
+  .ce-grid > .rl-resizer{transform:translateX(-50%)}
   .ce-col{min-width:0; min-height:0; display:flex; flex-direction:column; overflow:hidden}
   .ce-rail{min-width:0; min-height:0; display:flex; flex-direction:column;
     background:var(--color-surface); border-left:1px solid var(--color-divider)}
@@ -538,6 +556,11 @@ function clauseEditorCss(){
     .ce-grid{grid-template-columns:minmax(0,1fr); grid-template-rows:auto auto}
     .ce-rail{border-left:0; border-top:1px solid var(--color-divider); min-height:320px}
     #clause-editor{overflow:auto}
+    /* A divider between two columns that are no longer side by side is a strip
+       across the middle of the page. ceFitSplit CLEARS its inline columns here
+       as well — this rule carries no !important, so an inline value written on
+       a wide window and left behind would beat it and crush the stack. */
+    .ce-grid > .rl-resizer{display:none}
   }
 </style>`;
 }
@@ -928,8 +951,207 @@ function clauseEditorHtml(){
         </div>
         <div class="ce-railfoot" id="ce-railfoot"></div>
       </aside>
+      ${''/* ---- THE DIVIDER, LAST AND ABSOLUTE ----
+             A CHILD of the grid, so it is positioned against the grid's own box
+             and moves with it; ABSOLUTE, so it claims no track and no row and
+             the rail still runs floor to ceiling. Written last only so it paints
+             over the seam.
+
+             A SEPARATOR NOBODY CAN REACH IS A CONTROL HALF THIS WORKSPACE DOES
+             NOT HAVE — role, orientation, a tab stop and the arrows in
+             ceWireSplit, exactly as Key Terms and the negotiation page carry
+             them. It shares their wording too, because it is the same act. */}
+      <div id="ce-resizer" class="rl-resizer" role="separator" aria-orientation="vertical"
+        tabindex="0" aria-label="${_ceea(_cet('ng_drag_width'))}"
+        title="${_ceea(_cet('ng_drag_width'))}"><span></span></div>
     </div>
   </div>`;
+}
+
+
+/* ============================================================================
+   THE DIVIDER
+   ----------------------------------------------------------------------------
+   (owner-asked 26 Aug 2026: the negotiation page's draggable divider, here, with
+   the same limit going right to left — and a stated worry that a previous
+   attempt at this broke the page.)
+
+   IT IS A PORT, NOT A SECOND IMPLEMENTATION, and that is the whole of why it is
+   safe. Key Terms did this same port from rlLayoutResizer / rlWireResizer and
+   has held since; this is that, again, so what follows is the same five
+   properties in the same order. Each was learned the hard way and each is a
+   separate way for a divider to feel broken:
+
+     1  ONE DESCRIPTION OF THE GEOMETRY, asked for by both halves. When the
+        layout and the drag described the page differently, one pixel of pointer
+        bought less than one pixel of column and the handle fell hundreds of
+        pixels behind the cursor.
+     2  THE DRAG READS WHERE THE POINTER IS, never how far it has travelled.
+        Travelled distance creates a dead band at the limits — push past the end
+        and drag back, and nothing happens until the whole overshoot is retraced
+        (279px of nothing, measured) — so the control reads as broken precisely
+        when somebody is pushing hardest at it.
+     3  A GRAB OFFSET, so taking hold of the handle anywhere along its width does
+        not jump the boundary under the cursor.
+     4  THE GRID IS OBSERVED, not guessed at. The window, the nav opening and
+        closing, the layer being re-fitted — all resize this grid and none of
+        them announces it. No feedback loop: this writes the grid's TRACKS and
+        never its width.
+     5  AN UNMEASURED GRID IS NOT MEASURED. A width of zero is not a width, and
+        writing 0px would collapse a layout the CSS is holding perfectly well.
+
+   AND ONE THING THIS PAGE NEEDS THAT THE NEGOTIATION PAGE DOES NOT: its stacking
+   rule carries no !important, so an inline column written on a wide window and
+   left behind would BEAT it and crush the stacked layout. ceStacked clears them,
+   which is Key Terms' own answer to its own version of this.
+
+   THE GEOMETRY DIFFERS IN EXACTLY ONE VALUE. The negotiation grid has a 14px gap
+   track and subtracts it; this grid has none — its two columns touch and the
+   rail's border is the seam — so the available width IS the grid's width, and
+   the handle straddles the seam rather than sitting in a gap. Subtracting a gap
+   that is not there is precisely how the two halves come to disagree.
+   ========================================================================== */
+/* THE LEFT-HAND LIMIT IS THE NEGOTIATION PAGE'S, TO THE NUMBER — owner-asked
+   ("I want the limitation in dragging right to left to be identical"). Both of
+   its stops are carried, because on a wide window the FRACTION binds first and
+   on a narrow one the pixel floor does, and honouring one without the other
+   would match it at some widths and not others.
+
+   THE OTHER DIRECTION IS THIS PAGE'S OWN, and it is said out loud rather than
+   quietly matched: the negotiation page lets its right-hand column go to 300px
+   and the Copilot rail is built to 340 — it holds a chat box, the suggestion
+   chips and two buttons. Matching 300 there would squeeze a column the owner
+   did not ask to change. */
+const CE_FMIN = 0.45, CE_FMAX = 0.80, CE_F0 = 2 / 3;
+const CE_LEFT_MIN = 380, CE_RIGHT_MIN = 340;
+const CE_SPLIT_KEY = 'hati.v1.ceLeftFrac';
+/* ITS OWN MEMORY, deliberately. The negotiation page's divider sets how much
+   room the change column gets; this one sets how much Copilot gets. Sharing the
+   key would move one page's split by working on the other. */
+function _ceLeftFrac(){
+  try{ const v = Number(localStorage.getItem(CE_SPLIT_KEY));
+    return (v >= CE_FMIN - 0.001 && v <= CE_FMAX + 0.001) ? v : CE_F0; }
+  catch(_){ return CE_F0; }
+}
+/* One geometry, asked for once — see property 1 above. */
+const _ceAvail = grid => grid.clientWidth;
+/* Stacked below 1023px, which is this page's own stylesheet number and the same
+   one clauseEditorFits asks before offering the page at all. Asked of the WINDOW
+   rather than inferred from a width, so the two cannot drift apart. */
+function ceStacked(){
+  try{ return !!(window.matchMedia && window.matchMedia('(max-width:1023px)').matches); }
+  catch(_){ return false; }
+}
+/* COUNTING IS NOT DRAWING, and here it earns its place twice over: the LIMITS
+   are the whole of what the owner asked to be identical, and a browser is the
+   only place clientWidth is a number — so the arithmetic answers on its own and
+   can be proved without one.
+
+   BOTH STOPS IN BOTH DIRECTIONS. The fraction binds on a wide window and the
+   pixel floor on a narrow one, and the pixel pair is applied only where there is
+   room for both: on a window too narrow to give each column its minimum, a
+   floor would push the other pane past its own. */
+function ceSplit(avail, frac){
+  const f = Math.max(CE_FMIN, Math.min(CE_FMAX,
+    typeof frac === 'number' && isFinite(frac) ? frac : _ceLeftFrac()));
+  let left = Math.round(f * avail);
+  /* ---- WHICH STOP IT IS AT COMES OUT OF THE SAME CLAMP ----
+     Found by dragging it in a real browser: read off the PIXEL floors alone the
+     grip stayed grey at the 45% stop, because on a wide window the FRACTION is
+     what binds and the pixel floor is nowhere near. So the divider stopped and
+     said nothing — which is the one thing the negotiation page's own note says
+     a splitter at its limit must not do. Both stops answer here, from the one
+     arithmetic, so the mark and the position cannot disagree about where the
+     end is. */
+  let limit = f <= CE_FMIN ? 'min' : f >= CE_FMAX ? 'max' : null;
+  if (avail >= CE_LEFT_MIN + CE_RIGHT_MIN){
+    if (left <= CE_LEFT_MIN){ left = CE_LEFT_MIN; limit = 'min'; }
+    else if (left >= avail - CE_RIGHT_MIN){ left = avail - CE_RIGHT_MIN; limit = 'max'; }
+  }
+  return { left, limit };
+}
+const ceSplitLeft = (avail, frac) => ceSplit(avail, frac).left;
+function ceFitSplit(scope){
+  const root = (scope && scope.querySelector) ? scope : document;
+  const grid = root.querySelector('#clause-editor .ce-grid');
+  const rez = grid && grid.querySelector('#ce-resizer');
+  if (!grid || !rez) return;
+  if (ceStacked()){
+    grid.style.gridTemplateColumns = '';
+    rez.removeAttribute('data-rl-at-limit');
+    return;
+  }
+  const avail = _ceAvail(grid);
+  if (avail < 160) return;                       /* property 5 */
+  const { left, limit } = ceSplit(avail);
+  grid.style.gridTemplateColumns = left + 'px minmax(0,1fr)';
+  rez.style.left = left + 'px';
+  /* AND IT SAYS WHEN IT WILL NOT GO FURTHER. Reaching a limit is legitimate;
+     reaching it in silence is not — the handle simply stops following the
+     cursor with nothing on screen to say why, and the control reads as broken
+     exactly when somebody is pushing hardest at it. */
+  if (limit) rez.setAttribute('data-rl-at-limit', limit);
+  else rez.removeAttribute('data-rl-at-limit');
+}
+function ceWireSplit(){
+  const grid = document.querySelector('#clause-editor .ce-grid');
+  const rez = grid && grid.querySelector('#ce-resizer');
+  if (!grid || !rez) return;
+  ceFitSplit(document);
+  /* BOUND ONCE PER ELEMENT. The page is built and removed whole, so this is
+     usually a fresh handle — but a second call within one mount would drag the
+     split twice per pointer move, and the flag costs nothing. */
+  if (rez.dataset.ceSplitBound) return;
+  rez.dataset.ceSplitBound = '1';
+  const clamp = f => Math.max(CE_FMIN, Math.min(CE_FMAX, f));
+  const save = f => { try{ localStorage.setItem(CE_SPLIT_KEY, String(f)); }catch(_){} };
+  let grabDx = 0;
+  const pointerFrac = x => {
+    const r = grid.getBoundingClientRect();
+    const avail = Math.max(1, _ceAvail(grid));    /* property 1 */
+    return clamp(((x + grabDx) - r.left) / avail);
+  };
+  const onMove = e => {
+    const x = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
+    save(pointerFrac(x));                          /* property 2 */
+    ceFitSplit(document);
+  };
+  const onUp = () => { delete rez.dataset.drag;
+    document.body.style.cursor = ''; document.body.style.userSelect = '';
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp); };
+  rez.addEventListener('pointerdown', e => { e.preventDefault();
+    rez.dataset.drag = '1';
+    const hb = rez.getBoundingClientRect();
+    grabDx = (hb.left + hb.width / 2) - e.clientX; /* property 3 */
+    document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none';
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp); });
+  /* One step is 2% of the grid — a few pixels, enough to be useful and small
+     enough not to jump. It writes the SAME store the drag writes and re-runs the
+     SAME layout, so there is no second opinion about where the split is. */
+  rez.addEventListener('keydown', e => {
+    if (e.key === 'Home' || e.key === 'Enter'){
+      e.preventDefault(); save(CE_F0); ceFitSplit(document); return;
+    }
+    const step = e.key === 'ArrowLeft' ? -0.02 : e.key === 'ArrowRight' ? 0.02 : 0;
+    if (!step) return;
+    e.preventDefault();
+    save(clamp(_ceLeftFrac() + step));
+    ceFitSplit(document);
+  });
+  rez.addEventListener('dblclick', () => { save(CE_F0); ceFitSplit(document); });
+  /* Property 4. The layer's own fitter writes this page's BOX from the shell's
+     scroller; this writes the grid's TRACKS. Different elements, different
+     properties, no loop — and the first tells the second by resizing the grid. */
+  if (typeof ResizeObserver === 'function' && !grid._ceObs){
+    try{ grid._ceObs = new ResizeObserver(() => ceFitSplit(document));
+      grid._ceObs.observe(grid); }catch(_){}
+  }
+  if (typeof window !== 'undefined' && !window._ceResizeBound){
+    window._ceResizeBound = true;
+    window.addEventListener('resize', () => ceFitSplit(document));
+  }
 }
 
 /* ============================================================================
@@ -1029,6 +1251,9 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
   document.body.classList.add('ce-open');
   ceWirePage(page);
   ceFitToShell(); ceObserveShell();
+  /* AFTER ceFitToShell, so the first split is measured against the box this
+     page actually occupies rather than against one still at its CSS size. */
+  ceWireSplit();
   /* The greeting goes in BEFORE the first paint rather than after it — drawing
      an empty lane and then filling it is two paints for one arrival. */
   _ceThread.push({ who: 'ai', greeting: true });
@@ -2180,4 +2405,5 @@ Object.assign(window, {
   ceCostLine, ceWordCount, ceLines,
   ceRedlineHtml, ceCounts, ceReadList, ceRenderAll, ceRenderPaper,
   ceEditableReading, ceGoClause,
+  ceFitSplit, ceWireSplit, ceStacked, ceSplit, ceSplitLeft, CE_LEFT_MIN, CE_RIGHT_MIN, CE_FMIN, CE_FMAX, CE_SPLIT_KEY,
 });

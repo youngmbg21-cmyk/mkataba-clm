@@ -3852,15 +3852,27 @@ function redlineLayoutCss(){
   }
   /* ---- THE HANDLE ----
      Absolutely positioned over the gap (rlLayoutResizer keeps its left edge
-     on the split), the Doc tab's own grip. Hidden where the panes stack. */
-  .redline-page .rl-resizer{position:absolute;top:0;bottom:0;left:66%;width:14px;z-index:6;
+     on the split), the Doc tab's own grip. Hidden where the panes stack.
+
+     ---- UNSCOPED SINCE 26 Aug 2026, BECAUSE IT HAS TWO HOMES ----
+     The clause editor carries this same divider now, and its grid sits OUTSIDE
+     .redline-page (only the paper inside that page is wrapped). Scoped, the
+     second one would draw as an unstyled strip — the clothes-follow-the-builder
+     fault, which this page has already paid for twice with .rl-segwrap.
+
+     UNSCOPING DROPS SPECIFICITY AND THAT IS SAFE ONLY BECAUSE NOTHING COMPETES:
+     the scoped rule is REPLACED rather than joined, so there is no second
+     opinion left to lose a cascade fight to. The stacking rule below stays
+     scoped on purpose — it is that page's own break, and the editor has its
+     own at a different width. */
+  .rl-resizer{position:absolute;top:0;bottom:0;left:66%;width:14px;z-index:6;
     cursor:col-resize;display:flex;align-items:center;justify-content:center;touch-action:none}
-  .redline-page .rl-resizer span{width:4px;height:72px;border-radius:var(--radius);
+  .rl-resizer span{width:4px;height:72px;border-radius:var(--radius);
     background:var(--color-neutral-300);transition:background var(--dur-1)}
   /* At a limit: the grip goes amber so "it stopped" reads as a boundary rather
      than a broken control. */
-  .redline-page .rl-resizer[data-rl-at-limit] span{background:var(--st-amber-dot)}
-  .redline-page .rl-resizer:hover span,.redline-page .rl-resizer[data-drag] span{
+  .rl-resizer[data-rl-at-limit] span{background:var(--st-amber-dot)}
+  .rl-resizer:hover span,.rl-resizer[data-drag] span{
     background:var(--color-accent)}
 
   /* ---- THE CLAUSE TOOLBAR: AN OVERLAY, REVEALED ON HOVER ----

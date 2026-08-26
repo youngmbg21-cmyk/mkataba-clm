@@ -1130,6 +1130,145 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   await p.evaluate(() => { const b = document.querySelector('#clause-editor [data-ce-act="close"]'); if (b) b.click(); });
   await pause(300);
 
+  /* ==========================================================================
+     16. THE DIVIDER (owner-asked 26 Aug 2026)
+     --------------------------------------------------------------------------
+     Ported from the negotiation page the way Key Terms was. It can only be
+     proved here: a drag through the real input pipeline against a real grid,
+     and a set of geometries a source read cannot answer.
+
+     THE FIRST CLAIM IS THE ONE THE OWNER ASKED FOR BY NAME. A strip written
+     across this grid once pushed the Copilot rail 172px down the window, and it
+     took more than one go to correct — so the rail's own top and bottom are
+     measured again WITH the divider in place, not merely asserted to be
+     unchanged.
+     ======================================================================== */
+  await p.evaluate(() => {
+    const cl = (window.negoClauseList ? negoClauseList(window.CONTRACT) : [])[0];
+    if (window.rlSetReadMode) rlSetReadMode('marks');
+    try{ localStorage.removeItem('hati.v1.ceLeftFrac'); }catch(_){}
+    window.rlOpenClauseEditor(window.CONTRACT, cl.clauseId, {});
+  });
+  await pause(600);
+
+  const box = () => p.evaluate(() => {
+    const page = document.getElementById('clause-editor');
+    const grid = page.querySelector('.ce-grid');
+    const rail = page.querySelector('.ce-rail');
+    const col  = page.querySelector('.ce-col');
+    const rez  = page.querySelector('#ce-resizer');
+    const pr = page.getBoundingClientRect(), rr = rail.getBoundingClientRect();
+    const cr = col.getBoundingClientRect(), zr = rez ? rez.getBoundingClientRect() : null;
+    const cs = rez ? getComputedStyle(rez) : null;
+    return {
+      hasRez: !!rez,
+      pos: cs && cs.position, vis: cs && cs.visibility, cursor: cs && cs.cursor,
+      rezW: zr ? Math.round(zr.width) : 0, rezH: zr ? Math.round(zr.height) : 0,
+      gripW: rez && rez.firstElementChild
+        ? Math.round(rez.firstElementChild.getBoundingClientRect().width) : 0,
+      cols: getComputedStyle(grid).gridTemplateColumns.split(' ').length,
+      colW: Math.round(cr.width), railW: Math.round(rr.width),
+      /* THE BREAK THAT MUST NOT COME BACK. */
+      railTop: Math.round(rr.top), railBottom: Math.round(rr.bottom),
+      pageTop: Math.round(pr.top), pageBottom: Math.round(pr.bottom),
+      railFullHeight: Math.round(rr.top) <= Math.round(pr.top) + 1
+        && Math.round(rr.bottom) >= Math.round(pr.bottom) - 1,
+      /* The handle straddles the seam rather than sitting beside it. */
+      onSeam: zr ? Math.abs(Math.round(zr.left + zr.width / 2) - Math.round(rr.left)) <= 1 : false,
+      sideways: Math.round(document.documentElement.scrollWidth)
+        <= Math.round(document.documentElement.clientWidth),
+      atLimit: rez ? rez.getAttribute('data-rl-at-limit') : null,
+    };
+  });
+
+  const b0 = await box();
+  ck('16a the divider is drawn, as real pixels with the negotiation page\'s grip',
+    b0.hasRez && b0.pos === 'absolute' && b0.vis === 'visible'
+      && b0.rezW > 0 && b0.rezH > 0 && b0.gripW > 0,
+    `${b0.rezW}x${b0.rezH}, grip ${b0.gripW}px, ${b0.pos}/${b0.vis}`);
+  ck('16b and it says it is a divider by the cursor it offers',
+    b0.cursor === 'col-resize', b0.cursor);
+  ck('16c THE RAIL STILL RUNS FLOOR TO CEILING — the break that must not come back',
+    b0.railFullHeight, `rail ${b0.railTop}-${b0.railBottom} of page ${b0.pageTop}-${b0.pageBottom}`);
+  ck('16d the handle claims NO TRACK — the grid is still two columns',
+    b0.cols === 2, `${b0.cols} columns`);
+  ck('16e it straddles the seam rather than sitting beside it',
+    b0.onSeam, `handle centre against the rail's left edge`);
+  ck('16f at rest the rail is still exactly one third',
+    Math.abs(b0.railW / (b0.colW + b0.railW) - 1 / 3) < 0.02,
+    `${b0.railW} of ${b0.colW + b0.railW} = ${(b0.railW / (b0.colW + b0.railW)).toFixed(3)}`);
+  ck('16g and the page does not scroll sideways', b0.sideways, 'no horizontal overflow');
+
+  /* ---- A REAL DRAG, THROUGH THE REAL INPUT PIPELINE ---- */
+  const drag = async dx => {
+    const rz = await p.evaluate(() => {
+      const r = document.querySelector('#ce-resizer').getBoundingClientRect();
+      return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
+    });
+    await p.mouse.move(rz.x, rz.y); await p.mouse.down();
+    await p.mouse.move(rz.x + dx, rz.y, { steps: 14 }); await p.mouse.up();
+    await pause(400);
+    return box();
+  };
+
+  const wide = await drag(-260);
+  ck('16h dragging LEFT gives the room to Copilot, and the contract gives it up',
+    wide.railW > b0.railW + 40 && wide.colW < b0.colW - 40,
+    `rail ${b0.railW} -> ${wide.railW}, contract ${b0.colW} -> ${wide.colW}`);
+  ck('16i and the rail STILL runs floor to ceiling after a drag',
+    wide.railFullHeight, `rail ${wide.railTop}-${wide.railBottom}`);
+  ck('16j nothing scrolls sideways at that split', wide.sideways, 'no horizontal overflow');
+
+  const narrow = await drag(520);
+  ck('16k dragging RIGHT gives it back to the contract',
+    narrow.colW > wide.colW + 40, `contract ${wide.colW} -> ${narrow.colW}`);
+  ck('16l and the rail never goes below its own 340px floor',
+    narrow.railW >= 339, `${narrow.railW}px`);
+  ck('16m at a limit the grip SAYS SO rather than just stopping',
+    narrow.atLimit === 'max', `data-rl-at-limit=${narrow.atLimit}`);
+
+  /* ---- THE LEFT-HAND LIMIT IS THE ONE THE OWNER ASKED TO BE IDENTICAL ---- */
+  const hardLeft = await drag(-900);
+  const frac = hardLeft.colW / (hardLeft.colW + hardLeft.railW);
+  ck('16n dragged hard LEFT it stops at 45% — the negotiation page\'s own limit',
+    Math.abs(frac - 0.45) < 0.02 && hardLeft.atLimit === 'min',
+    `contract at ${(frac * 100).toFixed(1)}%, limit=${hardLeft.atLimit}`);
+  ck('16o and the rail is still floor to ceiling at the extreme',
+    hardLeft.railFullHeight, `rail ${hardLeft.railTop}-${hardLeft.railBottom}`);
+
+  /* ---- AND IT REMEMBERS, AND A DOUBLE-CLICK PUTS IT BACK ---- */
+  const stored = await p.evaluate(() => { try{ return localStorage.getItem('hati.v1.ceLeftFrac'); }
+    catch(_){ return null; } });
+  ck('16p the split is remembered, in its OWN key',
+    stored != null && Number(stored) > 0, `hati.v1.ceLeftFrac = ${stored}`);
+  const otherKey = await p.evaluate(() => { try{ return localStorage.getItem('hati.v1.rlLeftFrac'); }
+    catch(_){ return null; } });
+  ck('16q and the negotiation page\'s divider was not moved by any of this',
+    otherKey == null, `hati.v1.rlLeftFrac = ${otherKey}`);
+
+  await p.evaluate(() => {
+    const r = document.querySelector('#ce-resizer');
+    r.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+  });
+  await pause(300);
+  const reset = await box();
+  ck('16r a double-click puts it back to one third',
+    Math.abs(reset.railW / (reset.colW + reset.railW) - 1 / 3) < 0.02,
+    `${(reset.railW / (reset.colW + reset.railW)).toFixed(3)}`);
+
+  /* ---- THE KEYBOARD REACHES IT ---- */
+  await p.evaluate(() => document.querySelector('#ce-resizer').focus());
+  const focused = await p.evaluate(() => document.activeElement
+    && document.activeElement.id === 'ce-resizer');
+  await p.keyboard.press('ArrowLeft'); await pause(250);
+  const keyed = await box();
+  ck('16s a keyboard reaches it and the arrows move it',
+    focused && keyed.railW > reset.railW,
+    `focused=${focused}, rail ${reset.railW} -> ${keyed.railW}`);
+
+  await p.evaluate(() => { const b = document.querySelector('#clause-editor [data-ce-act="close"]'); if (b) b.click(); });
+  await pause(300);
+
   /* ---- 10. NO PAGE ERRORS THROUGHOUT ---- */
   ck('10 the whole journey ran with no page errors', errs.length === 0, errs.join(' | ') || 'none');
 
