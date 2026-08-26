@@ -698,7 +698,7 @@ function calStyleCss(){ return `
   /* ---- THE PAGE MEASURE, SHARED WITH THE BANDS ABOVE ---- */
   .cal-body{flex:1;min-height:0;padding:16px 24px 20px;display:flex;min-width:0}
   .cal-split{flex:1;min-height:0;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px}
-  .cal-card{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;
+  .cal-card{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);
     display:flex;flex-direction:column;min-height:0;min-width:0;overflow:hidden}
   /* ---- THE MONTH ----
      Six 1fr rows inside a flex:1 card: the whole month always fits and the
@@ -998,13 +998,13 @@ function openCalendarShare(evs){
     <div class="rvd-body">
       <label class="rvd-opt" style="display:block">
         <span style="display:block;font-size:12px;font-weight:600;color:var(--color-neutral-600);margin-bottom:5px">${_esc(i18t('cal_share_who'))}</span>
-        <select id="cal-share-who" style="width:100%;padding:8px 10px;border:1px solid var(--color-divider);border-radius:0;font:inherit;font-size:14px;background:var(--color-surface);color:var(--color-text)">
+        <select id="cal-share-who" style="width:100%;padding:8px 10px;border:1px solid var(--color-divider);border-radius:var(--radius);font:inherit;font-size:14px;background:var(--color-surface);color:var(--color-text)">
           ${people.map(u=>`<option value="${_esc(u.id)}">${_esc(u.name)} — ${_esc(u.email)}</option>`).join('')}
         </select>
       </label>
       <label style="display:block;margin-top:12px">
         <span style="display:block;font-size:12px;font-weight:600;color:var(--color-neutral-600);margin-bottom:5px">${_esc(i18t('cal_share_note'))}</span>
-        <textarea id="cal-share-note" rows="3" style="width:100%;padding:8px 10px;border:1px solid var(--color-divider);border-radius:0;font:inherit;font-size:14px;resize:vertical;background:var(--color-surface);color:var(--color-text)"></textarea>
+        <textarea id="cal-share-note" rows="3" style="width:100%;padding:8px 10px;border:1px solid var(--color-divider);border-radius:var(--radius);font:inherit;font-size:14px;resize:vertical;background:var(--color-surface);color:var(--color-text)"></textarea>
       </label>
       <div class="rvd-note" style="margin-top:10px">${_esc(i18t('cal_share_privacy'))}</div>
       <div id="cal-share-err" class="rvd-note" hidden style="color:var(--danger-hover);margin-top:8px"></div>

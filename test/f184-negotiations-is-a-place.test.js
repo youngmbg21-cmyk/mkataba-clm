@@ -831,7 +831,11 @@ describe('F184 — the whose-move column is words, not pills', () => {
     assert.match(w, /background:none/, 'no fill');
     assert.match(w, /border:0/, 'no outline');
     assert.match(w, /padding:0/, 'and no capsule padding');
-    assert.match(w, /border-radius:0/);
+    /* REVERSED IN PLACE, 26 Aug 2026, and the claim got STRONGER: with the
+       platform on a 2px radius, a bare coloured WORD names no radius at all.
+       There is nothing for a corner to happen to, and a declaration would be
+       noise the next reader has to rule out. */
+    assert.doesNotMatch(w, /border-radius/, 'and nothing for a corner to happen to');
   });
 
   test('but it keeps the colour, which is what the reader actually reads', () => {

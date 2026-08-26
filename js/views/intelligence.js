@@ -437,7 +437,7 @@ async function intelComplianceScan(q){
   }
   const sevPill=s=>{ const lbl=((typeof SEV_META==='object'&&SEV_META&&SEV_META[s]&&SEV_META[s].label)||s);
     const col=s==='high'?['var(--st-ruby-bg)','var(--st-ruby-fg)']:s==='med'?['var(--st-amber-bg)','var(--st-amber-fg)']:['var(--st-gray-bg)','var(--st-gray-fg)'];
-    return `<span style="display:inline-flex;align-items:center;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:1px 7px;border-radius:0;background:${col[0]};color:${col[1]}">${igEsc(lbl)}</span>`; };
+    return `<span style="display:inline-flex;align-items:center;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:1px 7px;border-radius:var(--radius);background:${col[0]};color:${col[1]}">${igEsc(lbl)}</span>`; };
   const top=rows.slice(0,8);
   const totalFindings=rows.reduce((n,r)=>n+r.findings.length,0);
   let html=`<b>${i18t('int_compliance_review')}</b> ${rows.length} of ${cs.length} live contracts carry clauses worth a closer look — ${totalFindings} potential issue${totalFindings===1?'':'s'} in all (risks, missing protections or ambiguous terms), ranked by severity. This is a first-pass review to raise with counsel, not legal advice.`;
@@ -736,7 +736,7 @@ function renderIntel(){
      live or not, so the row had no weight contrast and the duplex 600 did not
      even widen the live one: colour and the underline were doing all the work
      on their own. */
-  const UNDERTAB='border:0;border-radius:0;background:none;margin-bottom:-1px;padding:10px 1px;font:inherit;cursor:pointer;display:flex;align-items:center';
+  const UNDERTAB='border:0;border-radius:var(--radius);background:none;margin-bottom:-1px;padding:10px 1px;font:inherit;cursor:pointer;display:flex;align-items:center';
   /* align-self:stretch, NOT a fixed height. The strip grows when the caption
      runs to two lines on a narrow window; a centred button would leave its
      underline floating in the middle of a tall strip. Stretched, the rule
@@ -802,7 +802,7 @@ function renderIntel(){
       ${intel.tab==='friction'?frictionControls:''}
       ${intel.tab==='map'?`<label style="display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);flex:none">Group by
         <span style="position:relative;display:inline-flex;align-items:center">
-          <select id="ig-group" style="appearance:none;-webkit-appearance:none;-moz-appearance:none;border:1.5px solid var(--color-accent);background:var(--color-accent-100);color:var(--color-accent-800);font-family:var(--font-heading);font-weight:600;font-size:14px;letter-spacing:0;text-transform:none;padding:5px 26px 5px 11px;border-radius:0;cursor:pointer;outline:none">
+          <select id="ig-group" style="appearance:none;-webkit-appearance:none;-moz-appearance:none;border:1.5px solid var(--color-accent);background:var(--color-accent-100);color:var(--color-accent-800);font-family:var(--font-heading);font-weight:600;font-size:14px;letter-spacing:0;text-transform:none;padding:5px 26px 5px 11px;border-radius:var(--radius);cursor:pointer;outline:none">
             ${groupOpts.map(([k,l])=>`<option value="${k}" ${intel.groupBy===k?'selected':''}>${l}</option>`).join('')}
           </select>
           <span style="position:absolute;right:9px;pointer-events:none;color:var(--color-accent);font-size:10px">▼</span>
@@ -1096,12 +1096,12 @@ function intelFrictionHtml(){
     :`<span style="color:var(--color-neutral-500)">0.0</span>`;
   const bars=st.clauses.map(cl=>`
     <span style="font-size:13px;font-weight:600;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${igEsc(cl.label)}">${igEsc(cl.label)}</span>
-    <span style="position:relative;height:13px;border-radius:0;background:var(--color-neutral-100);min-width:0"><span style="position:absolute;inset:0 auto 0 0;width:${Math.max(2,pct(cl.share))}%;background:${cl.extra!=null&&cl.extra>0.05?'var(--accent-solid,var(--color-accent))':'var(--color-neutral-400)'};border-radius:0"></span></span>
+    <span style="position:relative;height:13px;border-radius:var(--radius);background:var(--color-neutral-100);min-width:0"><span style="position:absolute;inset:0 auto 0 0;width:${Math.max(2,pct(cl.share))}%;background:${cl.extra!=null&&cl.extra>0.05?'var(--accent-solid,var(--color-accent))':'var(--color-neutral-400)'};border-radius:var(--radius)"></span></span>
     <span style="font-size:13px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums;text-align:right">${pct(cl.share)}%</span>
     <span style="font-size:12px;font-variant-numeric:tabular-nums;text-align:right">${extraTxt(cl)}</span>`).join('');
   const cpRows=st.counterparties.map(cp=>{
-    const chip=cp.avgRounds>=st.avgRounds+0.5?`<span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:0;background:var(--st-amber-bg,#fef3c7);color:var(--st-amber-fg,#b45309)">slow</span>`
-      :cp.avgRounds<=Math.max(1,st.avgRounds-0.3)?`<span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:0;background:var(--st-green-bg,#d1fae5);color:var(--st-green-fg,#047857)">smooth</span>`:'';
+    const chip=cp.avgRounds>=st.avgRounds+0.5?`<span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:var(--radius);background:var(--st-amber-bg,#fef3c7);color:var(--st-amber-fg,#b45309)">slow</span>`
+      :cp.avgRounds<=Math.max(1,st.avgRounds-0.3)?`<span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:var(--radius);background:var(--st-green-bg,#d1fae5);color:var(--st-green-fg,#047857)">smooth</span>`:'';
     return `<tr data-igf-cp="${igEsc(cp.name)}" style="cursor:pointer" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 4%,transparent)'" onmouseout="this.style.background='none'">
       <td style="padding:6px 8px;${RULE};font-size:13px;font-weight:600">${igEsc(cp.name)}</td>
       <td style="padding:6px 8px;${RULE};font-size:13px;font-variant-numeric:tabular-nums">${cp.deals}</td>
@@ -1149,7 +1149,7 @@ function intelFrictionHtml(){
      readable measure, and the bars and the counterparty table take the extra
      room, which is where it is useful. */
   return `<div>
-    <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;box-shadow:var(--shadow-sm);overflow:hidden">
+    <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);box-shadow:var(--shadow-sm);overflow:hidden">
       ${intelFrictionCopilotHtml(st)}
       <div class="igf-split" style="display:grid">${left}${right}</div>
     </div>
@@ -1179,9 +1179,9 @@ function intelFrictionCopilotHtml(st){
   const ai=intel.frictionAI;
   const on=(typeof copilotAvailable==='function')&&copilotAvailable();
   const head=`<div style="display:flex;align-items:center;gap:8px">
-    <span style="width:22px;height:22px;flex:none;display:grid;place-items:center;border-radius:0;background:var(--color-accent-100);color:var(--color-accent-700)">${icon('sparkle','w-3 h-3',2)}</span>
+    <span style="width:22px;height:22px;flex:none;display:grid;place-items:center;border-radius:var(--radius);background:var(--color-accent-100);color:var(--color-accent-700)">${icon('sparkle','w-3 h-3',2)}</span>
     <span style="font-size:14px;font-weight:700">${i18t('int_copilots_read')}</span>
-    <span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:0;background:var(--color-accent-100);color:var(--color-accent-700)">${i18t('int_optional_ai')}</span>
+    <span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:var(--radius);background:var(--color-accent-100);color:var(--color-accent-700)">${i18t('int_optional_ai')}</span>
   </div>`;
   let body;
   if(ai&&ai.busy&&ai.key===key){
@@ -1190,7 +1190,7 @@ function intelFrictionCopilotHtml(st){
   }else if(ai&&ai.html&&ai.key===key){
     body=`<div class="igf-ai-read" style="font-size:14px;line-height:1.7;color:var(--color-neutral-800)">${ai.html}</div>
       <div style="display:flex;align-items:center;gap:10px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--color-divider);font-size:12px;color:var(--color-neutral-500)">
-        <span style="flex:none;font-size:10px;font-weight:700;padding:1px 7px;border-radius:0;background:var(--st-amber-bg);color:var(--st-amber-fg)">${i18t('int_ai_commentary')}</span>
+        <span style="flex:none;font-size:10px;font-weight:700;padding:1px 7px;border-radius:var(--radius);background:var(--st-amber-bg);color:var(--st-amber-fg)">${i18t('int_ai_commentary')}</span>
         <span style="min-width:0">Generated at ${igEsc(ai.at||'')} from the counted figures below — the numbers are the app's, the interpretation is Copilot's.</span>
         <button id="igf-ai-regen" style="margin-left:auto;border:0;background:none;cursor:pointer;font:inherit;font-size:12px;font-weight:700;color:var(--color-accent-700);flex:none;white-space:nowrap">↻ Regenerate</button>
       </div>`;
@@ -1206,7 +1206,7 @@ function intelFrictionCopilotHtml(st){
       :stale?'The figures below have changed since the last read — generate a fresh one. Nothing runs until you click.'
       :'Copilot explains what is behind the figures below and what to do this week. Nothing runs until you click — the counted report never depends on it.';
     body=`<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <button id="igf-ai-ask" ${on?'':'disabled'} style="display:inline-flex;align-items:center;gap:7px;border:0;border-radius:0;padding:7px 15px;background:${on?'var(--accent-solid,var(--color-accent))':'var(--color-neutral-300)'};color:#fff;font:inherit;font-family:var(--font-heading);font-size:13px;font-weight:700;cursor:${on?'pointer':'not-allowed'};flex:none">${icon('sparkle','w-3 h-3',2)} Interpret these numbers</button>
+      <button id="igf-ai-ask" ${on?'':'disabled'} style="display:inline-flex;align-items:center;gap:7px;border:0;border-radius:var(--radius);padding:7px 15px;background:${on?'var(--accent-solid,var(--color-accent))':'var(--color-neutral-300)'};color:#fff;font:inherit;font-family:var(--font-heading);font-size:13px;font-weight:700;cursor:${on?'pointer':'not-allowed'};flex:none">${icon('sparkle','w-3 h-3',2)} Interpret these numbers</button>
       <span style="font-size:12px;color:var(--color-neutral-600);line-height:1.5;max-width:56ch">${hint}</span>
     </div>`;
   }

@@ -7340,3 +7340,48 @@ plan.
   and all recorded in THE MAP: "+ Raise a change" (owner chose to leave it out),
   the progress bar and "N of M decided" (HaTi's own reading, kept), and the verb
   set on a row (a behaviour matter a screenshot cannot settle).
+
+## 26 Aug 2026 — a 2px corner across the platform, and the contract stays square
+
+Owner-ruled off a drawn preview at 0, 2, 3, 4 and 6px: "implement 2px across
+the platform apart from the contracts themselves when they are visible on
+screen. They should look like word documents when they are on screen."
+
+818 hand-typed zeros now read `--radius` — a token family that had been
+declared for three days with no readers at all — so changing the number again
+is one line. The contract keeps a literal 0 wherever it is on screen, with a
+comment beside each saying why.
+
+### Defects found and fixed on the way
+- `.rounded-full`, the CIRCLE class in the compiled Tailwind blob, had been
+  drawing squares since the 20 Aug sweep took it with everything else. 24
+  elements wear it, the numbered approval steps among them. It is 9999px again,
+  written in HaTi's own sheet rather than the generated blob. Pre-existing, but
+  this change would have turned those squares into 2px squares, so it was fixed
+  in the same breath.
+- The tracked-change marks — the green additions and struck deletions on the
+  paper — were rounded by the first pass. They are drawn ON the document, so
+  they stay square: a tracked change in Word is a plain highlight. Caught by
+  f210, not by eye.
+- Two rules named a radius on something that has no corners: the column head
+  (a hairline under a caption) and the whose-move word on the negotiations list
+  (a bare coloured word, no fill, no border, no padding). Both now name none at
+  all, and the two tests assert the absence, which is a stronger claim.
+- THE STANDALONE HISTORY REPORT LOST ITS CORNERS ENTIRELY, and the file's own
+  comment had warned about exactly this. The negotiation history a counterparty
+  can download is a self-contained document that carries none of the app's
+  stylesheet, so the three `--radius` the sweep wrote into it resolved to
+  nothing and every rounded box in the report squared off silently. Reverted to
+  a literal, and the warning beside it now names the corners as well as the
+  colours. Caught by the test that exists for the colour half of the same trap.
+  Every other standalone document was checked and none was touched by the sweep.
+
+### Noticed, not fixed
+- `npm run lint` reports the same 4 pre-existing errors as before this change:
+  duplicate dictionary keys `co_password_updated` and `act_next`, each written
+  twice in each language.
+- `pages-read-alike-verify` is 47 of 50, and the same three checks fail on an
+  unmodified main with identical measurements — proved by running the file in a
+  worktree at that commit rather than asserted. The negotiation head wraps to a
+  second line at the width the file measures at. Not this change's, and not
+  fixed here.

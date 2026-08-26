@@ -70,7 +70,7 @@ function visibleFolders(){
 }
 function folderLegendHtml(opts={}){
   const short = f => (typeof STREAM_SHORT!=='undefined' && STREAM_SHORT[f.id]) || f.name;
-  const items = visibleFolders().map(f=>`<span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--color-neutral-700);white-space:nowrap"><span style="width:4px;height:12px;border-radius:0;background:${f.color};flex:none"></span>${short(f)}</span>`).join('');
+  const items = visibleFolders().map(f=>`<span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--color-neutral-700);white-space:nowrap"><span style="width:4px;height:12px;border-radius:var(--radius);background:${f.color};flex:none"></span>${short(f)}</span>`).join('');
   return `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;${opts.style||''}">
     <span style="font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('fo_value_streams')}</span>
     ${items}
@@ -104,10 +104,10 @@ function promptNewFolder(){
     ov.style.cssText='position:fixed;inset:0;z-index:95;display:grid;place-items:center;padding:16px';
     ov.innerHTML=`
       <div id="nf-scrim" style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 50%,transparent)"></div>
-      <div class="modal-in" role="dialog" aria-modal="true" style="position:relative;width:100%;max-width:26rem;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:0;padding:22px 24px">
+      <div class="modal-in" role="dialog" aria-modal="true" style="position:relative;width:100%;max-width:26rem;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);padding:22px 24px">
         <h3 style="font-family:var(--font-heading);font-weight:600;font-size:16px;margin:0 0 4px">${i18t('fo_new_stream')}</h3>
         <p style="font-size:13px;color:var(--color-neutral-600);margin:0 0 14px;line-height:1.5">Create a custom folder to file contracts under. It becomes available everywhere streams are used — dropdowns, filters, the map and reports.</p>
-        <input id="nf-name" placeholder="e.g. Legal &amp; Regulatory" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:9px 11px;font:inherit;font-size:14px;outline:none" />
+        <input id="nf-name" placeholder="e.g. Legal &amp; Regulatory" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:9px 11px;font:inherit;font-size:14px;outline:none" />
         <div id="nf-err" style="font-size:12px;color:var(--st-ruby-dot);margin-top:6px;display:none">${i18t('fo_enter_name')}</div>
         <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
           <button id="nf-cancel" class="ui-btn" style="font-size:13px">${i18t('act_cancel')}</button>

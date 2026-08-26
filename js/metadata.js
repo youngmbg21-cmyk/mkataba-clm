@@ -482,7 +482,7 @@ function openMetaReview(meta, onConfirm, opts={}){
       if(isNaN(t)) return String(iso);
       try{ return new Date(t).toLocaleDateString(langLocale(),{day:'2-digit',month:'short',year:'numeric'}); }
       catch(e){ return String(iso); } };
-    return `<span style="display:block;margin-top:4px;padding:5px 7px;border-radius:0;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);color:var(--st-amber-fg);font-size:12px;line-height:1.5">
+    return `<span style="display:block;margin-top:4px;padding:5px 7px;border-radius:var(--radius);border:1px solid var(--st-amber-line);background:var(--st-amber-bg);color:var(--st-amber-fg);font-size:12px;line-height:1.5">
       ${esc(i18t('me_term_mismatch',{n:ck.n, unit:i18t('me_unit_'+String(ck.unit).replace(/s$/,'')), from:pretty(meta.effectiveDate), to:pretty(ck.expected)}))}
       <button type="button" data-mf-use="${k}" data-mf-val="${esc(ck.expected)}" style="border:0;background:none;padding:0;margin-left:4px;font:inherit;font-size:12px;font-weight:700;color:inherit;text-decoration:underline;cursor:pointer">${esc(i18t('me_term_use',{d:pretty(ck.expected)}))}</button>
       ${spans[k] ? '' : `<span style="display:block;margin-top:3px;opacity:.85"><i>“${esc(String(ck.quoted).slice(0,120))}”</i></span>`}</span>`; };
@@ -508,7 +508,7 @@ function openMetaReview(meta, onConfirm, opts={}){
       <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('sparkle','w-4 h-4')}</span>
         <h3 class="font-serif font-600 text-lg text-ink">${i18t('me_review_extracted')}</h3>${pos}</div>
       <p class="text-xs text-ink/60 mb-4">${src}. Check each field — <span class="text-amber font-600">low-confidence</span> ${i18t('me_fields_highlighted')}</p>
-      ${opts.ocrNotice?`<div style="display:flex;align-items:flex-start;gap:8px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:0;padding:8px 11px;font-size:13px;line-height:1.55;margin:-8px 0 14px">
+      ${opts.ocrNotice?`<div style="display:flex;align-items:flex-start;gap:8px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:var(--radius);padding:8px 11px;font-size:13px;line-height:1.55;margin:-8px 0 14px">
         <span style="flex:none;margin-top:1px">${icon('scan','w-3.5 h-3.5')}</span>
         <span>${String(opts.ocrNotice).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))} Every field below is capped at <b>medium</b> confidence until you confirm it.</span></div>`:''}
       <div class="grid grid-cols-2 gap-3" style="max-height:min(52vh,460px);overflow-y:auto;padding-right:4px">${META_FIELDS.map(field).join('')}</div>

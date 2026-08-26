@@ -463,45 +463,62 @@ describe('F95 — the negotiate objects are one set of objects', () => {
      everything on the page. A page where the paper is 14px, the cards are 6px
      and the queue is 2px is the drift this test exists to catch, whichever
      number is current. */
-  test('the queue, the sheet and the change cards share one radius', () => {
-    /* CLAIMS REVERSED IN PLACE, 20 Aug 2026 (owner-asked — the square-corner
-       sweep): the ONE number is now 0, product-wide. What this test exists to
-       catch — a page where the paper, the cards and the queue each round to a
-       different number — survives with the family collapsed to a single
-       value: square everywhere, and true circles (50%) untouched. */
+  test('the paper is square and every card shares ONE token', () => {
+    /* CLAIMS REVERSED IN PLACE TWICE, and what this test exists to catch is
+       unchanged both times: a page where the paper, the cards and the queue
+       each round to a DIFFERENT NUMBER.
+
+       20 Aug 2026 — the square-corner sweep collapsed the family to 0.
+       26 Aug 2026 — the platform took a 2px radius and the family split ON
+       PURPOSE, into exactly two answers that each mean something: the PAPER is
+       square, because a contract on screen should read as a document rather
+       than as a card, and everything else reads --radius. So the claim is now
+       sharper than "one number": the furniture is one TOKEN — never three
+       hand-typed values that agree today — and the paper names a literal 0
+       beside a comment saying why. */
     const radius = sel => {
       const rule = nego.slice(nego.indexOf(sel + '{'));
       const block = rule.slice(0, rule.indexOf('}'));
       return ((block.match(/border-radius:\s*([^;}]+)/) || [])[1] || '').trim();
     };
-    assert.equal(radius('.redline-page .rl-col'), '0',
-      'the column surface is square with the sweep');
+    /* THE PAPER, AND THE TWO THINGS THAT CLIP IT. */
     assert.equal(radius('.redline-page .rl-doc'), '0',
       'the doc column clips square — a radius here rounds the sheet\'s corners');
     assert.equal(radius('.redline-page .rl-paper'), '0',
-      'the paper is square: a contract page prints square');
-    assert.equal(radius('.redline-page .rl-col.rl-cp'), '0',
-      'and the clause panel is square with it, winning on specificity');
-    assert.equal(radius('.redline-page .rl-card'), '0',
-      'a card inside the column shares the one shape, never a different family');
+      'the paper is square: a contract on screen reads as a document');
+    /* THE FURNITURE, all reading the one token. */
+    for (const sel of ['.redline-page .rl-col', '.redline-page .rl-col.rl-cp',
+                       '.redline-page .rl-card'])
+      assert.equal(radius(sel), 'var(--radius)',
+        `${sel} shares the platform's one corner, never a family of its own`);
   });
 
   test('the Document tab\'s own cards were brought with them', () => {
     /* Source-level, like the rest of this file's cross-file claims: the
        workspace screen is too heavy to boot here and what is pinned is one
-       line of source. */
+       line of source. RE-POINTED 26 Aug 2026 at the token — the claim is that
+       the Doc page rail is the SAME card as the Negotiate column, and reading
+       the same token is a stronger way of being the same than sharing a
+       literal that happens to match. */
     const ct = src('js/views/contract.js');
-    assert.match(ct, /const CARD='background:var\(--color-surface\)[^']*border-radius:0'/,
+    assert.match(ct, /const CARD='background:var\(--color-surface\)[^']*border-radius:var\(--radius\)/,
       'the Doc page rail is the same card as the Negotiate column');
   });
 
   test('but the buttons and pills keep their own shape', () => {
-    /* REVERSED 20 Aug 2026 with the sweep: the small round things are square
-       now too — the tokens exist so they move together, and they moved. */
-    assert.match(nego, /--n-r-sm:0/, 'the small controls follow the sweep through their token');
+    /* REVERSED 20 Aug 2026 with the square sweep, and again 26 Aug 2026 when
+       the platform took a 2px radius. What this has always been about is that
+       the small controls do not have a shape FAMILY OF THEIR OWN — they are
+       not pills beside square cards, and they are not soft beside sharp ones.
+       They read the platform's one token now, which is the strongest form of
+       that claim: not a number that happens to match, the same number. */
     const verbs = nego.slice(nego.indexOf('.redline-page .rl-card-verbs button{'));
-    assert.match(verbs.slice(0, verbs.indexOf('}')), /border-radius:0/,
-      'the verbs are square rectangles now, not pills and not soft');
+    assert.match(verbs.slice(0, verbs.indexOf('}')), /border-radius:var\(--radius\)/,
+      'the verbs share the platform\'s corner, not a pill and not a family of their own');
+    /* AND --n-r-* IS THE PAPER'S TOKEN NOW and stays 0 — see the note beside
+       it. It had four readers and they were two different things; the
+       furniture was pointed at --radius and this kept the document. */
+    assert.match(nego, /--n-r-sm:0/, 'the paper\'s own token stays square');
     /* ---- CLAIM REVERSED, 12 Aug 2026, OWNER-ASKED ----
        This used to read "and a status pill is still a pill", asserting
        border-radius:999px. The owner asked for the status corner to stop

@@ -409,14 +409,14 @@ function negoTimelineScreenHtml(c, f = {}, opts = {}){
       .ht .ht-sub{font-size:13px;color:var(--color-neutral-600);margin:0 0 12px}
       .ht .ht-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--color-divider)}
       .ht .ht-f{display:flex;flex-direction:column;gap:2px;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)}
-      .ht .ht-f select{font:inherit;font-size:13px;font-weight:400;text-transform:none;letter-spacing:0;border:1px solid var(--color-divider);border-radius:0;padding:4px 6px;background:var(--color-surface);color:var(--color-text);max-width:180px}
+      .ht .ht-f select{font:inherit;font-size:13px;font-weight:400;text-transform:none;letter-spacing:0;border:1px solid var(--color-divider);border-radius:var(--radius);padding:4px 6px;background:var(--color-surface);color:var(--color-text);max-width:180px}
       .ht .ht-ev{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid color-mix(in srgb,var(--color-divider) 55%,transparent)}
       .ht .ht-mark{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--color-bg);border:1px solid var(--color-divider);font-size:12px}
       .ht .ht-body{flex:1;min-width:0}
       .ht .ht-text{font-size:14px;line-height:1.5;color:var(--color-text)}
       .ht .ht-meta{font-size:12px;color:var(--color-neutral-600);margin-top:1px}
       .ht .ht-clause{font-weight:600}
-      .ht .ht-redline{border:1px solid var(--color-divider);border-radius:0;padding:7px 9px;margin-top:6px;font-size:13px;line-height:1.55;background:var(--color-surface)}
+      .ht .ht-redline{border:1px solid var(--color-divider);border-radius:var(--radius);padding:7px 9px;margin-top:6px;font-size:13px;line-height:1.55;background:var(--color-surface)}
       .ht .ht-redline ins{background:var(--st-green-bg);text-decoration:none}
       .ht .ht-redline del{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
       .ht .ht-note{font-size:12px;color:var(--color-neutral-700);margin-top:4px;border-left:2px solid var(--color-divider);padding-left:8px}
@@ -564,8 +564,8 @@ async function negoHistoryPrintRun(c){
 }
 function negoVerifyResultHtml(r){
   return r.ok
-    ? `<div data-verify-ok="1" style="border:1px solid color-mix(in srgb,var(--st-green-dot) 30%,transparent);background:var(--st-green-bg);border-radius:0;padding:10px 12px;margin-bottom:12px;font-size:13px;color:var(--st-green-fg)">✓ ${_ne(r.detail)}. Verified ${_ne(String(r.at).slice(0, 19).replace('T', ' '))} UTC.</div>`
-    : `<div data-verify-ok="0" style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:0;padding:10px 12px;margin-bottom:12px;font-size:13px;color:var(--st-ruby-fg)"><b>${i18t('ng_integrity_failed')}</b> ${_ne(r.firstBroken || r.detail)}<br><span style="font-size:12px">Nothing has been changed by this check. The first broken link is named above; everything before it verified. Checked ${_ne(String(r.at).slice(0, 19).replace('T', ' '))} UTC.</span></div>`;
+    ? `<div data-verify-ok="1" style="border:1px solid color-mix(in srgb,var(--st-green-dot) 30%,transparent);background:var(--st-green-bg);border-radius:var(--radius);padding:10px 12px;margin-bottom:12px;font-size:13px;color:var(--st-green-fg)">✓ ${_ne(r.detail)}. Verified ${_ne(String(r.at).slice(0, 19).replace('T', ' '))} UTC.</div>`
+    : `<div data-verify-ok="0" style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:var(--radius);padding:10px 12px;margin-bottom:12px;font-size:13px;color:var(--st-ruby-fg)"><b>${i18t('ng_integrity_failed')}</b> ${_ne(r.firstBroken || r.detail)}<br><span style="font-size:12px">Nothing has been changed by this check. The first broken link is named above; everything before it verified. Checked ${_ne(String(r.at).slice(0, 19).replace('T', ' '))} UTC.</span></div>`;
 }
 /* The report a reader with no login can hold: the whole story, every filter
    off, each change as its rendered redline, and the integrity statement —
@@ -578,6 +578,13 @@ function negoVerifyResultHtml(r){
    nothing and every redline printed as flat text with no added/removed
    distinction at all. Literal values, because self-contained has to mean
    self-contained.
+
+   THE SAME TRAP CAUGHT THE CORNERS ON 26 Aug 2026, and it is why this note is
+   worth re-reading before editing anything below: the platform-wide 2px sweep
+   turned three border-radius:0 declarations here into var(--radius), which
+   resolves to nothing in a file that carries no :root. Every rounded box in
+   this report squared off, silently. This block takes LITERAL values — every
+   one of them — and a var() of any kind does not belong in it.
 
    And not colour ALONE. This is a report people print and file: browsers drop
    backgrounds when printing unless told otherwise, and a reader with a colour
@@ -596,12 +603,12 @@ function negoHistoryExportHtml(c, report){
 <style>
   body{font:13px/1.55 Georgia,serif;color:#1c2126;max-width:760px;margin:32px auto;padding:0 18px}
   h1{font-size:21px;margin:0 0 2px} .sub{color:#5a6470;font-size:13px;margin:0 0 18px}
-  .integrity{border:1.5px solid ${report.ok ? '#10b981' : '#f43f5e'};border-radius:0;padding:12px 14px;margin:0 0 20px;font-size:14px}
+  .integrity{border:1.5px solid ${report.ok ? '#10b981' : '#f43f5e'};border-radius:2px;padding:12px 14px;margin:0 0 20px;font-size:14px}
   .ht-ev{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #e3e7ea;page-break-inside:avoid}
   .ht-mark{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;border:1px solid #cdd4da;font-size:12px}
   .ht-body{flex:1;min-width:0} .ht-text{font-size:14px} .ht-meta{font-size:12px;color:#5a6470}
   .ht-clause{font-weight:600}
-  .ht-redline{border:1px solid #e3e7ea;border-radius:0;padding:7px 9px;margin-top:6px;font-size:13px}
+  .ht-redline{border:1px solid #e3e7ea;border-radius:2px;padding:7px 9px;margin-top:6px;font-size:13px}
   /* added wording — LITERAL ON PURPOSE, and f143 is the test that says so. This
      stylesheet is written into a STANDALONE .html file the counterparty saves
      and opens on their own machine; it carries none of the app's :root, so a
@@ -613,7 +620,7 @@ function negoHistoryExportHtml(c, report){
   .ht-redline del{background:#ffe4e6;color:#be123c;text-decoration:line-through}
   .ht-redline ins,.ht-redline del{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .ht-key{margin:0 0 14px;font-size:12px;color:#5a6470}
-  .ht-key ins,.ht-key del{padding:0 3px;border-radius:0}
+  .ht-key ins,.ht-key del{padding:0 3px;border-radius:2px}
   /* OI-5: open the seam between a deletion and its replacement — display only */
   .ht-redline del+ins{margin-left:.3em}
   .ht-note{font-size:12px;color:#3c454e;margin-top:4px;border-left:2px solid #cdd4da;padding-left:8px}
@@ -1444,7 +1451,7 @@ function negoLiveCardsHtml(c, opts){
         ${(side !== 'counterparty' && ch.revisedBy && ch.revisedBy !== ch.author) ? `<div style="font-size:12px;color:var(--n-ink-soft);margin-bottom:7px"
           title="${_ne(i18t('ng_revised_title'))} — ${_ne(String(ch.revisedBy))} / ${_ne(String(ch.author))}"><span aria-hidden="true">&#9998;</span> ${
           i18t('ng_revised_by_after',{who:_ne(_liveShort(ch.revisedBy)),author:_ne(_liveShort(ch.author))})}</div>` : ''}
-        ${(ch.why || ch.note) ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:0;padding:6px 9px;margin-bottom:8px">
+        ${(ch.why || ch.note) ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:var(--radius);padding:6px 9px;margin-bottom:8px">
           <span style="display:block;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--n-slate)">${i18t('ng_why_they_asked')}</span>
           <span class="nego-why-clamp" style="font-size:13px;line-height:1.5;color:var(--n-ink)">${_ne(ch.why || ch.note)}</span></div>` : ''}
         ${ch.reply ? `<div style="border-left:2px solid var(--n-line);padding:6px 9px;margin-bottom:8px;font-size:13px;line-height:1.5;color:var(--n-ink)"><b>${i18t('ng_reply')}</b> ${_ne(ch.reply)}</div>` : ''}
@@ -1452,7 +1459,7 @@ function negoLiveCardsHtml(c, opts){
           const v = window.reviewOn ? reviewOn(ch) : null;
           /* Same rule as the workbench's twin: the note names its author. */
           const sayBy = (v && window.reviewVerdictByFor) ? reviewVerdictByFor(ch, null, c) : (v && v.by);
-          return (v && v.note && sayBy) ? `<div style="border-left:2px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:0;padding:6px 9px;margin-bottom:8px">
+          return (v && v.note && sayBy) ? `<div style="border-left:2px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:var(--radius);padding:6px 9px;margin-bottom:8px">
             ${''/* NOT UPPERCASE, unlike the labels above it: this one holds a
                    PERSON'S NAME. "WHY THEY ASKED" is a caption and capitals
                    read as a caption; "ACHIENG OTIENO SAID" reads as shouting,
@@ -1608,7 +1615,7 @@ function negoHistoryCardHtml(c, ch, r, opts){
     <div style="font-size:14px;font-weight:600;line-height:1.45;margin-bottom:4px">${_ne(ch.summary)}</div>
     <div style="font-size:12px;color:var(--n-ink-soft);margin-bottom:7px">${_ne(ch.clauseLabel || ch.clauseId)}</div>
     <div style="font-size:12px;color:var(--n-ink-soft);margin-bottom:7px">${i18t('ng_author')} <b style="color:var(--n-ink);font-weight:600">${_ne(ch.author)}</b></div>
-    ${(ch.why || ch.note) ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:0;padding:6px 9px;margin-bottom:8px">
+    ${(ch.why || ch.note) ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:var(--radius);padding:6px 9px;margin-bottom:8px">
       <span style="display:block;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--n-slate)">${i18t('ng_why_they_asked')}</span>
       <span class="nego-why-clamp" style="font-size:13px;line-height:1.5;color:var(--n-ink)">${_ne(ch.why || ch.note)}</span></div>` : ''}
     ${ch.reply ? `<div style="border-left:2px solid var(--n-line);padding:6px 9px;margin-bottom:8px;font-size:13px;line-height:1.5;color:var(--n-ink)"><b>${i18t('ng_reply')}</b> ${_ne(ch.reply)}</div>` : ''}
@@ -1884,7 +1891,7 @@ function negoHeadHtml(c, opts){
   return `
     ${negoModeHtml(c, opts)}
     <div style="flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;
-      background:var(--n-paper);border:1px solid var(--n-line);border-radius:0;box-shadow:var(--shadow-sm)">
+      background:var(--n-paper);border:1px solid var(--n-line);border-radius:var(--radius);box-shadow:var(--shadow-sm)">
       <span style="font-size:14px;font-weight:700;color:var(--n-ink)">${i18t('ng_negotiation')}</span>
       <span class="nego-ver">${i18t('ng_round_n',{n:negoRound(c)})}</span>
       <span style="font-size:13px;color:var(--n-ink-soft);min-width:0;flex:1">
@@ -1921,7 +1928,7 @@ function negoReadyHtml(c, opts){
   const withdrawn = negoChanges(c).filter(x => x.withdrawn).length;
   return `
     <div id="nego-ready" style="flex:none;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
-      border:1px solid var(--st-green-line);background:var(--st-green-bg);border-left:4px solid var(--st-green-fg);border-radius:0;
+      border:1px solid var(--st-green-line);background:var(--st-green-bg);border-left:4px solid var(--st-green-fg);border-radius:var(--radius);
       padding:12px 16px;box-shadow:var(--shadow-sm)">
       <span style="flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--st-green-fg);color:#fff;font-size:15px;font-weight:700" aria-hidden="true">✓</span>
       <span style="flex:1;min-width:200px;line-height:1.45">
@@ -2077,7 +2084,7 @@ function negoTurnBannerHtml(c, opts){
   const heldHere = (side === 'owner' && window.negoUnsentAsks)
     ? negoUnsentAsks(c, 'owner').length : (b.unsent || 0);
   return `<div class="nego-turn" id="nego-turn" data-turn="${mine ? 'mine' : 'theirs'}"
-      style="flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-radius:0;padding:9px 14px;
+      style="flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-radius:var(--radius);padding:9px 14px;
       border:1px solid ${mine ? 'var(--st-green-line)' : 'var(--n-line)'};background:${mine ? 'var(--st-green-bg)' : 'var(--n-badge-bg)'};
       border-left:4px solid ${mine ? 'var(--n-accept)' : 'var(--n-slate-soft)'}">
     <span style="flex:1;min-width:200px;font-size:14px;font-weight:600;color:${mine ? 'var(--st-green-fg)' : 'var(--n-ink)'}">
@@ -3330,7 +3337,7 @@ async function negoAiPropose(c, ctx){
   pop.querySelector('.nego-aiwait')?.remove();
   const body = document.createElement('div');
   body.className = 'nego-aibody';
-  body.innerHTML = (note ? `<p style="font-family:var(--n-font-ui);font-size:14px;line-height:1.6;margin:0 0 10px;padding:9px 11px;background:var(--n-canvas);border-radius:0">${e(note)}</p>` : '')
+  body.innerHTML = (note ? `<p style="font-family:var(--n-font-ui);font-size:14px;line-height:1.6;margin:0 0 10px;padding:9px 11px;background:var(--n-canvas);border-radius:var(--radius)">${e(note)}</p>` : '')
     + (canApply
       ? `<div class="nego-redline">${structured || e(proposed)}</div>`
       : `<p style="font-family:var(--n-font-ui);font-size:14px;color:var(--n-ink-soft);margin:0">${note ? i18t('ng_no_wording_note_is_all') : i18t('ng_no_wording_change')}</p>`);
@@ -9976,9 +9983,9 @@ async function rlOpenPlaybookReview(c, again){
     return;
   }
   const chip = it => it.risk === 'high'
-    ? `<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:0;background:var(--st-ruby-bg,#fee2e2);color:var(--st-ruby-fg,var(--danger-hover))">${i18t('ng_high_risk')}</span>`
-    : `<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:0;background:var(--st-amber-bg,var(--st-amber-bg));color:var(--st-amber-fg,var(--st-amber-fg))">${i18t('ng_medium')}</span>`;
-  const itemHtml = (it, i) => `<div id="pbr-item-${i}" style="border:1px solid var(--color-divider);border-radius:0;padding:12px 14px;margin-bottom:10px;background:var(--color-surface)">
+    ? `<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:var(--radius);background:var(--st-ruby-bg,#fee2e2);color:var(--st-ruby-fg,var(--danger-hover))">${i18t('ng_high_risk')}</span>`
+    : `<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:var(--radius);background:var(--st-amber-bg,var(--st-amber-bg));color:var(--st-amber-fg,var(--st-amber-fg))">${i18t('ng_medium')}</span>`;
+  const itemHtml = (it, i) => `<div id="pbr-item-${i}" style="border:1px solid var(--color-divider);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;background:var(--color-surface)">
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <b style="font-size:14px">${_ne(it.v.category)}</b>${chip(it)}
       <span style="font-size:12px;color:var(--color-neutral-500)">${it.v.status === 'missing'
@@ -9987,8 +9994,8 @@ async function rlOpenPlaybookReview(c, again){
     </div>
     ${it.v.position ? `<div style="font-size:13px;color:var(--color-neutral-600);margin-top:5px;line-height:1.5">${_ne(String(it.v.position))}</div>` : ''}
     ${it.oldText && window.redlineStructuredHtml
-      ? `<div style="margin-top:8px;font-size:13px;line-height:1.7;border:1px solid var(--color-divider);border-radius:0;padding:8px 10px;max-height:150px;overflow:auto">${redlineStructuredHtml(it.oldText, it.preferred)}</div>`
-      : `<div style="margin-top:8px;font-size:13px;line-height:1.6;border:1px solid var(--color-divider);border-radius:0;padding:8px 10px;max-height:150px;overflow:auto">${_ne(it.preferred)}</div>`}
+      ? `<div style="margin-top:8px;font-size:13px;line-height:1.7;border:1px solid var(--color-divider);border-radius:var(--radius);padding:8px 10px;max-height:150px;overflow:auto">${redlineStructuredHtml(it.oldText, it.preferred)}</div>`
+      : `<div style="margin-top:8px;font-size:13px;line-height:1.6;border:1px solid var(--color-divider);border-radius:var(--radius);padding:8px 10px;max-height:150px;overflow:auto">${_ne(it.preferred)}</div>`}
     <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:9px" data-pbr-verbs="${i}">
       <button data-pbr-skip="${i}" class="ui-btn" style="font-size:12px;padding:4px 11px">${i18t('ng_skip')}</button>
       ${it.fallback ? `<button data-pbr-fb="${i}" class="ui-btn" style="font-size:12px;padding:4px 11px" title="${i18t('ng_file_fallback_title')}">${i18t('ng_file_fallback')}</button>` : ''}

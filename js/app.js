@@ -487,7 +487,7 @@ const VIEW_LABEL = { dashboard:'Home', folder:'this value stream', intel:'Insigh
 function renderFailedHtml(view, e, cid){
   const esc=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
   return `<div style="max-width:640px;margin:40px auto;border:1px solid var(--st-ruby-line);border-left:4px solid var(--st-ruby-dot);
-      background:var(--st-ruby-bg);border-radius:0;padding:16px 20px">
+      background:var(--st-ruby-bg);border-radius:var(--radius);padding:16px 20px">
     <div style="font-size:15px;font-weight:600;color:var(--st-ruby-fg);margin-bottom:6px">${esc(VIEW_LABEL[view]||view)} could not be drawn</div>
     <div style="font-size:14px;line-height:1.6;color:var(--color-neutral-800)">
       Something in the portfolio stopped this screen from rendering${cid?` — the record involved is <b>${esc(cid)}</b>`:''}.
@@ -660,8 +660,8 @@ function createFromTemplate(tid){
 function renderNewMenu(){
   const menu=document.getElementById('new-menu'); if(!menu) return;
   const item=(ic,bg,fg,title,sub,attrs='')=>`
-    <button ${attrs} class="new-menu-item" style="width:100%;display:flex;align-items:center;gap:10px;border:0;background:none;cursor:pointer;padding:8px;border-radius:0;text-align:left;color:inherit;" onmouseover="this.style.background='rgb(var(--color-accent-600-rgb)/.09)'" onmouseout="this.style.background='none'">
-      <span style="width:30px;height:30px;flex:none;display:grid;place-items:center;border-radius:0;background:${bg};color:${fg};">${icon(ic,'w-[15px] h-[15px]')}</span>
+    <button ${attrs} class="new-menu-item" style="width:100%;display:flex;align-items:center;gap:10px;border:0;background:none;cursor:pointer;padding:8px;border-radius:var(--radius);text-align:left;color:inherit;" onmouseover="this.style.background='rgb(var(--color-accent-600-rgb)/.09)'" onmouseout="this.style.background='none'">
+      <span style="width:30px;height:30px;flex:none;display:grid;place-items:center;border-radius:var(--radius);background:${bg};color:${fg};">${icon(ic,'w-[15px] h-[15px]')}</span>
       <span style="min-width:0;"><span style="display:block;font-size:13px;font-weight:600;">${title}</span><span style="display:block;font-size:12px;color:var(--color-neutral-600);">${sub}</span></span>
     </button>`;
   /* WO N1: the three ways a contract gets INTO HaTi, in one menu, named for
@@ -768,11 +768,11 @@ function openCommandPalette(){
   ov.style.cssText='position:fixed;inset:0;z-index:85;display:flex;align-items:flex-start;justify-content:center;padding:12vh 16px 16px';
   ov.innerHTML=`
     <div style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 42%,transparent)"></div>
-    <div class="modal-in" style="position:relative;width:100%;max-width:560px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:0;overflow:hidden">
+    <div class="modal-in" style="position:relative;width:100%;max-width:560px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);overflow:hidden">
       <div style="display:flex;align-items:center;gap:9px;padding:12px 14px;border-bottom:1px solid var(--color-divider)">
         <span style="color:var(--color-neutral-500);display:inline-flex">${icon('search','w-4 h-4')}</span>
         <input id="cp-input" placeholder="${i18t('ap_search_placeholder')}" autocomplete="off" style="flex:1;border:0;outline:0;background:transparent;font:inherit;font-size:15px;color:inherit"/>
-        <span style="font-size:12px;border:1px solid var(--color-divider);padding:2px 6px;border-radius:0;color:var(--color-neutral-600);font-family:var(--font-mono)">ESC</span>
+        <span style="font-size:12px;border:1px solid var(--color-divider);padding:2px 6px;border-radius:var(--radius);color:var(--color-neutral-600);font-family:var(--font-mono)">ESC</span>
       </div>
       <div id="cp-list" class="scroll-thin" style="max-height:52vh;overflow-y:auto;padding:6px"></div>
     </div>`;
@@ -826,8 +826,8 @@ function openCommandPalette(){
     if(active>=results.length) active=Math.max(0,results.length-1);
     if(!results.length){ list.innerHTML=`<div style="padding:22px 12px;text-align:center;font-size:14px;color:var(--color-neutral-600)">No matches${input.value.trim()?` for “${input.value.replace(/</g,'&lt;')}”`:''}.</div>`; return; }
     list.innerHTML=results.map((r,i)=>`
-      <button data-cp-i="${i}" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:0;border-radius:0;cursor:pointer;padding:8px 10px;font:inherit;color:inherit;background:${i===active?'color-mix(in srgb,var(--color-accent) 13%,transparent)':'none'}">
-        <span style="width:28px;height:28px;flex:none;display:grid;place-items:center;border-radius:0;border:1px solid var(--color-divider);background:var(--color-bg);color:var(--color-neutral-600)">${icon(r.ic,'w-3.5 h-3.5')}</span>
+      <button data-cp-i="${i}" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:0;border-radius:var(--radius);cursor:pointer;padding:8px 10px;font:inherit;color:inherit;background:${i===active?'color-mix(in srgb,var(--color-accent) 13%,transparent)':'none'}">
+        <span style="width:28px;height:28px;flex:none;display:grid;place-items:center;border-radius:var(--radius);border:1px solid var(--color-divider);background:var(--color-bg);color:var(--color-neutral-600)">${icon(r.ic,'w-3.5 h-3.5')}</span>
         <span style="min-width:0;flex:1">
           <span style="display:block;font-size:14px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(r.title||'').replace(/</g,'&lt;')}</span>
           <span style="display:block;font-size:12px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(r.sub||'').replace(/</g,'&lt;')}</span>

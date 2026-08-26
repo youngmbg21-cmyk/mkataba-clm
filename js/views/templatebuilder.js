@@ -50,8 +50,8 @@ function tbKeyFromLabel(label) {
 const tbPlaceholderUse = key => _tb.blocks.filter(b => b.content.includes(`{{${key}}}`)).length;
 
 function tbPaint() {
-  const CARD = 'background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:0';
-  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 10px;font:inherit;font-size:14px;outline:none';
+  const CARD = 'background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius)';
+  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:14px;outline:none';
   const t = _tb.template;
 
   const blockRows = _tb.blocks.map((b, i) => {
@@ -104,7 +104,7 @@ function tbPaint() {
   <div class="view-enter" style="padding:var(--page-pad);display:flex;flex-direction:column;gap:14px;max-width:980px">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       <button id="tb-back" class="ui-btn" style="font-size:13px;padding:4px 10px">${icon('arrowLeft', 'w-3.5 h-3.5')} ${esc(t.name)}</button>
-      <span style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--color-accent-700);border:1px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:0;padding:1px 7px">${i18t('tb_v_draft',{n:_tb.versionNumber})}</span>
+      <span style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--color-accent-700);border:1px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:var(--radius);padding:1px 7px">${i18t('tb_v_draft',{n:_tb.versionNumber})}</span>
       <span id="tb-dirty" style="font-size:12px;color:var(--color-neutral-500)">${_tb.dirty ? 'Unsaved changes' : ''}</span>
       <span style="flex:1"></span>
       <button id="tb-save" class="ui-btn" style="font-size:13px;padding:5px 13px">${icon('check2', 'w-3.5 h-3.5')} ${i18t('tb_save_draft')}</button>
@@ -116,7 +116,7 @@ function tbPaint() {
         <h4 style="font-family:var(--font-heading);font-weight:600;font-size:15px;margin:0">${i18t('tb_document_blocks')}</h4>
         <span style="font-size:12px;color:var(--color-neutral-600)">${i18t('tb_in_order')}</span>
         <span style="flex:1"></span>
-        <select id="tb-addtype" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:4px 8px;font:inherit;font-size:13px">
+        <select id="tb-addtype" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:4px 8px;font:inherit;font-size:13px">
           ${Object.entries(TB_BLOCK_META).map(([k, m]) => `<option value="${k}">${m.label}</option>`).join('')}
         </select>
         <button id="tb-addblock" class="ui-btn" style="font-size:13px;padding:4px 10px">${icon('plus', 'w-3 h-3')} ${i18t('tb_add_block')}</button>
@@ -246,7 +246,7 @@ function tbFieldModal(index) {
     options: [], required: false, defaultValue: '', helpText: '',
     detectionConfidence: 'manual', humanReviewed: true,
   };
-  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 10px;font:inherit;font-size:14px;outline:none';
+  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:14px;outline:none';
   const types = Object.entries(window.FIELD_LIB || {}).map(([k, v]) =>
     `<option value="${k}"${f.fieldType === k ? ' selected' : ''}>${v.label}</option>`).join('');
   openModal(`
@@ -321,7 +321,7 @@ async function tbPaintBranding() {
   let b = null;
   try { b = (await api('org/branding')).branding; } catch (_) {}
   b = b || { logoUrl: null, companyName: '', registrationNumber: '', address: '', defaultFooterText: '' };
-  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 10px;font:inherit;font-size:14px;outline:none';
+  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:14px;outline:none';
   host.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
       <h4 style="font-family:var(--font-heading);font-weight:600;font-size:15px;margin:0">${i18t('tb_branding')}</h4>
@@ -329,7 +329,7 @@ async function tbPaintBranding() {
     </div>
     <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">
       <div style="flex:none;display:flex;flex-direction:column;gap:6px;align-items:center">
-        <div style="width:120px;height:64px;border:1px dashed var(--color-divider);border-radius:0;display:grid;place-items:center;overflow:hidden;background:var(--color-bg)">
+        <div style="width:120px;height:64px;border:1px dashed var(--color-divider);border-radius:var(--radius);display:grid;place-items:center;overflow:hidden;background:var(--color-bg)">
           ${b.logoUrl ? `<img src="${b.logoUrl}" alt="logo" style="max-width:100%;max-height:100%">` : `<span style="font-size:12px;color:var(--color-neutral-500)">${i18t('tb_no_logo')}</span>`}
         </div>
         <input type="file" id="tb-logo-file" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="display:none">

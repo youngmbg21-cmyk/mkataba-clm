@@ -143,8 +143,8 @@ function dsPaint(opts) {
      calls this first for the same reason, so all three strips render the one
      control and step the one stored preference. */
   if (window.redlineLayoutCss) redlineLayoutCss();
-  const CARD = 'background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:0';
-  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 10px;font:inherit;font-size:14px;outline:none';
+  const CARD = 'background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius)';
+  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:14px;outline:none';
   const b = _ds.b;
   const design = docDesignById(b.designId) || DOC_DESIGNS[0];
   const structure = docStructureById(b.structureId) || DOC_STRUCTURES[0];
@@ -166,7 +166,7 @@ function dsPaint(opts) {
       cursor:${o.blockedWhy ? 'not-allowed' : 'pointer'};opacity:${o.blockedWhy ? '.45' : '1'};
       background:${sel ? 'var(--color-accent-100)' : 'var(--color-surface)'};
       border:${sel ? '2px solid var(--color-accent-700)' : '1px solid var(--color-divider)'};
-      border-radius:0;padding:${sel ? '11px 13px' : '12px 14px'};margin-bottom:8px">
+      border-radius:var(--radius);padding:${sel ? '11px 13px' : '12px 14px'};margin-bottom:8px">
       <span style="display:flex;align-items:center;gap:9px">
         ${extra || ''}
         <span style="flex:1;min-width:0">
@@ -183,13 +183,13 @@ function dsPaint(opts) {
      shipped as images: a layout thumbnail that cannot go stale is worth more
      than one that looks nicer. */
   const RULE = 'var(--color-neutral-300)';
-  const bar = (w, mt) => `<span style="display:block;height:2px;border-radius:0;background:${RULE};width:${w};${mt ? 'margin-top:' + mt : ''}"></span>`;
+  const bar = (w, mt) => `<span style="display:block;height:2px;border-radius:var(--radius);background:${RULE};width:${w};${mt ? 'margin-top:' + mt : ''}"></span>`;
   const wire = id => {
     const box = inner => `<span style="flex:none;width:30px;height:40px;border:1px solid var(--color-divider);
-      border-radius:0;background:var(--color-doc-surface);padding:3px;display:flex;flex-direction:column;
+      border-radius:var(--radius);background:var(--color-doc-surface);padding:3px;display:flex;flex-direction:column;
       gap:2px;overflow:hidden">${inner}</span>`;
     if (id === 'margin-numbers') return box(
-      [0, 1, 2].map(() => `<span style="display:flex;gap:2px"><span style="flex:none;width:4px;height:4px;border-radius:0;background:var(--color-accent-700)"></span><span style="flex:1">${bar('100%')}${bar('70%', '2px')}</span></span>`).join(''));
+      [0, 1, 2].map(() => `<span style="display:flex;gap:2px"><span style="flex:none;width:4px;height:4px;border-radius:var(--radius);background:var(--color-accent-700)"></span><span style="flex:1">${bar('100%')}${bar('70%', '2px')}</span></span>`).join(''));
     if (id === 'two-column') return box(
       `<span style="display:flex;gap:3px;flex:1"><span style="flex:1">${bar('100%')}${bar('100%', '2px')}${bar('60%', '2px')}${bar('100%', '2px')}</span><span style="flex:1">${bar('100%')}${bar('70%', '2px')}${bar('100%', '2px')}${bar('90%', '2px')}</span></span>`);
     if (id === 'ruled-clauses') return box(
@@ -226,7 +226,7 @@ function dsPaint(opts) {
       style="flex:1;min-width:0;text-align:left;font:inherit;cursor:pointer;
       background:${sel ? 'var(--color-accent-100)' : 'var(--color-surface)'};
       border:${sel ? '2px solid var(--color-accent-700)' : '1px solid var(--color-divider)'};
-      border-radius:0;padding:${sel ? '8px 9px' : '9px 10px'}">
+      border-radius:var(--radius);padding:${sel ? '8px 9px' : '9px 10px'}">
       <b style="display:block;font-size:13px">${esc(label)}</b>
       <span style="display:block;font-size:12px;color:var(--color-neutral-600);line-height:1.4;margin-top:3px">${esc(sub)}</span>
     </button>`;
@@ -253,7 +253,7 @@ function dsPaint(opts) {
   const blockNote = blockedNow.length ? `
     <div style="display:flex;gap:7px;align-items:flex-start;background:var(--st-amber-bg,#fef3c7);
       border:1px solid var(--st-amber-line,#fcd34d);color:var(--st-amber-fg,#b45309);
-      border-radius:0;padding:8px 10px;font-size:12px;line-height:1.5;margin:2px 0 10px">
+      border-radius:var(--radius);padding:8px 10px;font-size:12px;line-height:1.5;margin:2px 0 10px">
       ${icon('alert', 'w-3 h-3')}
       <span><b>${esc(design.name)}</b> cannot take ${blockedNow.length === 1 ? 'one layout' : blockedNow.length + ' layouts'}.
         ${esc(structureBlockedReason(b.designId, blockedNow[0].id))}</span>
@@ -290,7 +290,7 @@ function dsPaint(opts) {
   ];
   const accentNow = b.accentColor || '#37474f';
   const swatches = ACCENT_PRESETS.map(([hex, name]) => `
-    <button data-ds-swatch="${hex}" title="${name}" aria-label="${name}" style="width:23px;height:23px;border-radius:0;
+    <button data-ds-swatch="${hex}" title="${name}" aria-label="${name}" style="width:23px;height:23px;border-radius:var(--radius);
       cursor:pointer;padding:0;background:${hex};border:1px solid rgba(0,0,0,.18);
       ${hex.toLowerCase() === accentNow.toLowerCase() ? 'box-shadow:0 0 0 2px var(--color-surface),0 0 0 4px var(--accent-solid)' : ''}"></button>`).join('');
   const rawPick = _ds.accentRaw || null;
@@ -301,20 +301,20 @@ function dsPaint(opts) {
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         <button data-ds-accentsrc="logo" class="ui-btn" style="font-size:12px;padding:3px 10px;${b.accentSource !== 'manual' ? 'background:var(--color-accent-700);border-color:var(--color-accent-700);color:#fff;font-weight:700' : ''}">${i18t('ds_from_logo')}</button>
         <button data-ds-accentsrc="manual" class="ui-btn" style="font-size:12px;padding:3px 10px;${b.accentSource === 'manual' ? 'background:var(--color-accent-700);border-color:var(--color-accent-700);color:#fff;font-weight:700' : ''}">${i18t('ds_pick_my_own')}</button>
-        <span style="display:inline-block;width:15px;height:15px;border-radius:0;background:${accentNow};border:1px solid var(--color-divider)" title="${esc(accentNow)}"></span>
+        <span style="display:inline-block;width:15px;height:15px;border-radius:var(--radius);background:${accentNow};border:1px solid var(--color-divider)" title="${esc(accentNow)}"></span>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:9px">${swatches}</div>
       <div style="display:flex;gap:7px;align-items:center;margin-top:9px">
         <input type="color" id="ds-accent" value="${accentNow}" aria-label="${i18t('ds_choose_colour')}"
-          style="width:30px;height:28px;border:1px solid var(--color-divider);border-radius:0;padding:2px;background:var(--color-surface);cursor:pointer">
+          style="width:30px;height:28px;border:1px solid var(--color-divider);border-radius:var(--radius);padding:2px;background:var(--color-surface);cursor:pointer">
         <input id="ds-accent-hex" value="${esc((rawPick || accentNow).toUpperCase())}" maxlength="7" spellcheck="false" aria-label="${i18t('ds_brand_hex')}"
           style="width:92px;font-family:var(--font-code);font-size:13px;text-transform:uppercase;border:1px solid var(--color-divider);
-          background:var(--color-surface);color:var(--color-text);border-radius:0;padding:5px 8px;outline:none">
+          background:var(--color-surface);color:var(--color-text);border-radius:var(--radius);padding:5px 8px;outline:none">
       </div>
-      ${!design.usesAccent ? `<div style="font-size:12px;line-height:1.5;margin-top:8px;padding:6px 8px;border-radius:0;
+      ${!design.usesAccent ? `<div style="font-size:12px;line-height:1.5;margin-top:8px;padding:6px 8px;border-radius:var(--radius);
         background:var(--st-amber-bg,#fef3c7);border:1px solid var(--st-amber-line,#fcd34d);color:var(--st-amber-fg,#b45309)">
         Saved, but <b>${esc(design.name)}</b> is monochrome — this colour will not appear on the document. It shows in Modern Minimal, Bold Corporate, Modern Editorial and Facing Parties.</div>` : ''}
-      ${darkened ? `<div style="font-size:12px;line-height:1.5;margin-top:8px;padding:6px 8px;border-radius:0;
+      ${darkened ? `<div style="font-size:12px;line-height:1.5;margin-top:8px;padding:6px 8px;border-radius:var(--radius);
         background:var(--st-amber-bg,#fef3c7);border:1px solid var(--st-amber-line,#fcd34d);color:var(--st-amber-fg,#b45309)">
         ${esc(rawPick.toUpperCase())} is too light to read as a rule or a band on white paper, so it is darkened to <b>${esc(accentNow.toUpperCase())}</b>${i18t('ds_hue_unchanged')}</div>`
       : design.usesAccent ? `<div style="font-size:12px;color:var(--color-neutral-500);line-height:1.5;margin-top:6px">${
@@ -334,7 +334,7 @@ function dsPaint(opts) {
      two choices are going, even though it is a button rather than a screen. */
   const stepRail = () => {
     const pill = (n, label, state) => `<span style="display:flex;align-items:center;gap:7px;padding:4px 13px 4px 5px;
-      border-radius:0;font-size:13px;font-weight:600;white-space:nowrap;${
+      border-radius:var(--radius);font-size:13px;font-weight:600;white-space:nowrap;${
         state === 'on' ? 'background:var(--color-accent-100);color:var(--color-accent-700)'
         : state === 'done' ? 'color:var(--color-good-fg,#047857)'
         : 'color:var(--color-neutral-500)'}">
@@ -344,7 +344,7 @@ function dsPaint(opts) {
         : 'background:var(--color-neutral-100);color:var(--color-neutral-500)'}">${state === 'done' ? '&check;' : n}</span>${label}</span>`;
     const sep = '<span style="width:14px;height:1px;background:var(--color-divider);flex:none"></span>';
     return `<div style="margin-left:auto;display:flex;align-items:center;background:var(--color-surface);
-      border:1px solid var(--color-divider);border-radius:0;padding:3px;flex:none">
+      border:1px solid var(--color-divider);border-radius:var(--radius);padding:3px;flex:none">
       ${pill(1, 'Style', step === 1 ? 'on' : 'done')}${sep}${pill(2, 'Structure', step === 2 ? 'on' : '')}${sep}${pill(3, publish ? 'Publish' : 'Save', '')}
     </div>`;
   };
@@ -360,7 +360,7 @@ function dsPaint(opts) {
   const paper = `
     <div id="ds-zoom" style="zoom:var(--ds-zoom,1)">
       <div${docDesignPaperAttr(b)} class="ds-sheet" style="background:var(--color-doc-surface);
-        box-shadow:var(--shadow-md);border-radius:0;padding:30px 36px;width:${DS_PAGE_W}px;
+        box-shadow:var(--shadow-md);border-radius:var(--radius);padding:30px 36px;width:${DS_PAGE_W}px;
         margin:0 auto;${docDesignPaperStyle(b)}">
         ${docDesignHeaderHtml(b, dsPreviewContract(), { bleedX: 36, bleedY: 30 })}
         <article class="doc-surface" style="background:transparent"><div class="hati-doc">${dsPreviewBody()}</div></article>
@@ -446,7 +446,7 @@ function dsPaint(opts) {
        <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:14px 16px">
         <h4 style="font-family:var(--font-heading);font-weight:700;font-size:13px;margin:0 0 10px;text-transform:uppercase;letter-spacing:.06em;color:var(--color-neutral-600)">${i18t('ds_company_branding')}</h4>
         <div style="display:flex;gap:10px;align-items:center">
-          <div style="width:86px;height:48px;border:1px dashed var(--color-divider);border-radius:0;display:grid;place-items:center;overflow:hidden;background:var(--color-bg);flex:none">
+          <div style="width:86px;height:48px;border:1px dashed var(--color-divider);border-radius:var(--radius);display:grid;place-items:center;overflow:hidden;background:var(--color-bg);flex:none">
             ${b.logoUrl ? `<img src="${b.logoUrl}" alt="logo" style="max-width:100%;max-height:100%">` : `<span style="font-size:12px;color:var(--color-neutral-500)">${i18t('tb_no_logo')}</span>`}
           </div>
           <div>

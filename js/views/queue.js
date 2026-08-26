@@ -28,10 +28,10 @@ function pipeCard(c){
   const stream = streamLabel(c);
   const val = !isMonetary(c) ? 'n/m' : (c.value ? (window.fmtMoneyShortOf ? fmtMoneyShortOf(c) : (window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value))) : '—');
   return `
-    <div data-card="${c.id}" class="q-card" style="background:var(--color-surface);border:1px solid var(--color-divider);border-left:4px solid ${folderColor(c)};border-radius:0;box-shadow:var(--shadow-sm);padding:11px 12px;cursor:pointer;display:flex;flex-direction:column;gap:5px">
+    <div data-card="${c.id}" class="q-card" style="background:var(--color-surface);border:1px solid var(--color-divider);border-left:4px solid ${folderColor(c)};border-radius:var(--radius);box-shadow:var(--shadow-sm);padding:11px 12px;cursor:pointer;display:flex;flex-direction:column;gap:5px">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
         <span style="font-family:var(--font-mono);font-size:12px;color:var(--color-neutral-600)">${c.id}</span>
-        <span style="background:${rp.bg};color:${rp.fg};font-size:12px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:0;font-variant-numeric:tabular-nums;flex:none">R ${r}</span>
+        <span style="background:${rp.bg};color:${rp.fg};font-size:12px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:var(--radius);font-variant-numeric:tabular-nums;flex:none">R ${r}</span>
       </div>
       <div style="font-size:14px;font-weight:400;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cPrimary(c)}</div>
       <div style="font-size:12px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cSecondary(c)}</div>
@@ -43,8 +43,8 @@ function pipeCard(c){
 }
 function pipeColumnInner(col, list){
   const shown=list.slice(0,PIPE_CAP);
-  const more=list.length>PIPE_CAP?`<button data-pipe-more="${col.k}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:6px 9px;font:inherit;font-size:12px;font-weight:400;color:var(--color-accent-700);cursor:pointer">+${list.length-PIPE_CAP} more in Register →</button>`:'';
-  const empty=list.length?'':`<div style="border:1px dashed var(--color-divider);border-radius:0;padding:22px 10px;text-align:center;font-size:12px;color:var(--color-neutral-500)">${i18t('queue_nothing_here')}</div>`;
+  const more=list.length>PIPE_CAP?`<button data-pipe-more="${col.k}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:6px 9px;font:inherit;font-size:12px;font-weight:400;color:var(--color-accent-700);cursor:pointer">+${list.length-PIPE_CAP} more in Register →</button>`:'';
+  const empty=list.length?'':`<div style="border:1px dashed var(--color-divider);border-radius:var(--radius);padding:22px 10px;text-align:center;font-size:12px;color:var(--color-neutral-500)">${i18t('queue_nothing_here')}</div>`;
   return shown.map(pipeCard).join('')+empty+more;
 }
 function renderPipeline(){
@@ -57,11 +57,11 @@ function renderPipeline(){
       <div style="display:flex;align-items:center;gap:6px;padding:0 2px 8px;min-width:0;flex:none">
         <span style="width:9px;height:9px;border-radius:50%;background:${g.col.color};flex:none;display:inline-block"></span>
         <span style="font-family:var(--font-mono);font-weight:700;font-size:14px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap">${g.col.label}</span>
-        <span style="font-size:12px;background:color-mix(in srgb,var(--color-accent) 11%,transparent);padding:1px 8px;border-radius:0;color:var(--color-neutral-700);flex:none;font-variant-numeric:tabular-nums">${g.list.length}</span>
+        <span style="font-size:12px;background:color-mix(in srgb,var(--color-accent) 11%,transparent);padding:1px 8px;border-radius:var(--radius);color:var(--color-neutral-700);flex:none;font-variant-numeric:tabular-nums">${g.list.length}</span>
         <span style="flex:1;min-width:4px"></span>
         <span style="font-size:12px;color:var(--color-neutral-600);white-space:nowrap;flex:none;font-variant-numeric:tabular-nums">${fmtMoneyShort(g.val)}</span>
       </div>
-      <div class="pipe-col scroll-thin" style="background:color-mix(in srgb,var(--color-accent) 6%,transparent);border:1px solid var(--color-divider);border-radius:0;padding:8px;display:flex;flex-direction:column;gap:8px;flex:1;min-height:0;overflow-y:auto">
+      <div class="pipe-col scroll-thin" style="background:color-mix(in srgb,var(--color-accent) 6%,transparent);border:1px solid var(--color-divider);border-radius:var(--radius);padding:8px;display:flex;flex-direction:column;gap:8px;flex:1;min-height:0;overflow-y:auto">
         ${pipeColumnInner(g.col, g.list)}
       </div>
     </div>`).join('');

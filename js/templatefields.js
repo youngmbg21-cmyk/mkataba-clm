@@ -402,7 +402,7 @@ function openContractEssentials(opts){
   const esc = s => String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
   const fs = essentialFields();
   const ST = 'width:100%;min-height:36px;border:1px solid var(--color-divider);'
-    + 'background:var(--color-surface);border-radius:0;padding:7px 11px;font:inherit;font-size:14px;outline:none;color:inherit';
+    + 'background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font:inherit;font-size:14px;outline:none;color:inherit';
   const input = f => {
     const it = f.type==='date' ? 'date' : (f.type==='num' ? 'number' : (f.type==='email' ? 'email' : 'text'));
     return `<label style="display:block">

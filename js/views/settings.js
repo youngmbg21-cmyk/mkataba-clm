@@ -76,14 +76,14 @@ function openFolderAccessEditor(userId){
   const isAll=(cur==null||cur==='*'||(Array.isArray(cur)&&!cur.length));
   const set=new Set(Array.isArray(cur)?cur:[]);
   const folders=Object.values(FOLDERS);
-  const fRow=f=>`<label style="display:flex;align-items:center;gap:9px;padding:7px 9px;border:1px solid var(--color-divider);border-radius:0;cursor:pointer;font-size:14px">
+  const fRow=f=>`<label style="display:flex;align-items:center;gap:9px;padding:7px 9px;border:1px solid var(--color-divider);border-radius:var(--radius);cursor:pointer;font-size:14px">
       <input type="checkbox" data-fa-folder="${f.id}" ${set.has(f.id)?'checked':''} style="width:15px;height:15px;accent-color:var(--color-accent);flex:none"/>
-      <span style="width:9px;height:9px;border-radius:0;background:${f.color};flex:none"></span>
+      <span style="width:9px;height:9px;border-radius:var(--radius);background:${f.color};flex:none"></span>
       <span style="flex:1;min-width:0">${esc(f.name)}</span></label>`;
   openModal(`<div class="p-6" style="max-width:460px">
     <h3 class="font-serif font-600 text-lg text-ink mb-1">${i18t('set_folder_access_for',{who:(u.name||u.email).replace(/</g,'&lt;')})}</h3>
     <p class="text-xs text-ink/60 mb-3">${i18t('set_grant_streams')}</p>
-    <label style="display:flex;align-items:center;gap:9px;padding:9px;border:1px solid var(--color-divider);border-radius:0;cursor:pointer;font-size:14px;font-weight:600;margin-bottom:10px">
+    <label style="display:flex;align-items:center;gap:9px;padding:9px;border:1px solid var(--color-divider);border-radius:var(--radius);cursor:pointer;font-size:14px;font-weight:600;margin-bottom:10px">
       <input type="checkbox" id="fa-all" ${isAll?'checked':''} style="width:16px;height:16px;accent-color:var(--color-accent)"/> ${i18t('set_all_streams')}</label>
     <div id="fa-list" style="display:${isAll?'none':'grid'};grid-template-columns:1fr;gap:6px;max-height:300px;overflow:auto;margin-bottom:14px">${folders.map(fRow).join('')}</div>
     <div class="flex justify-end gap-2">
@@ -133,7 +133,7 @@ function renderAllowancePanel(a){
   const moneyPct=a.budget>0?Math.min(100,Math.round(a.spent/a.budget*100)):0;
   const docsPct=a.docs>0?Math.min(100,Math.round(a.docsUsed/a.docs*100)):0;
   const pct=Math.max(moneyPct,docsPct);
-  const bar=`<div style="height:6px;background:var(--color-neutral-200);border-radius:0;overflow:hidden;margin-top:5px">
+  const bar=`<div style="height:6px;background:var(--color-neutral-200);border-radius:var(--radius);overflow:hidden;margin-top:5px">
     <div style="width:${pct}%;height:100%;background:${a.exhausted?'var(--st-ruby-fg)':pct>=80?'var(--st-amber-dot)':'var(--st-green-dot)'};transition:width .3s"></div></div>`;
   host.innerHTML=`<div>
     <span style="font-weight:600;color:${a.exhausted?'var(--st-ruby-fg)':'var(--st-green-fg)'}">${a.exhausted?'Used up':'Open'}</span>
@@ -151,7 +151,7 @@ function renderAllowancePanel(a){
 function renderRateTable(rates, meta){
   const host=document.getElementById('ai-rates-table'); if(!host) return;
   const models=Object.keys(rates||{}).sort((a,b)=>a==='default'?1:b==='default'?-1:a.localeCompare(b));
-  const inp='width:74px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:3px 6px;font:inherit;font-family:var(--font-mono);font-size:12px;text-align:right;outline:none';
+  const inp='width:74px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:3px 6px;font:inherit;font-family:var(--font-mono);font-size:12px;text-align:right;outline:none';
   host.innerHTML=models.map(m=>`
     <div data-rate-model="${PB_ATTR(m)}" style="display:flex;align-items:center;gap:8px;padding:3px 2px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent)">
       <span style="flex:1;min-width:0;font-size:12px;font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis${m==='default'?';color:var(--color-neutral-500);font-style:italic':''}">${PB_ESC(m)}</span>
@@ -256,19 +256,19 @@ function settingsPaintShapeBoxes(){
 /* Shared inline tokens. They were declared inside renderTeam(), which meant
    every drawer body that wanted a field had to restate them; one copy is one
    place a control's clothes are decided. */
-const ST_CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:0;padding:16px';
+const ST_CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius);padding:16px';
 const ST_H4='font-family:var(--font-mono);font-weight:600;font-size:15px;margin:0 0 6px;color:var(--color-text)';
-const ST_INPUT='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:6px 9px;font:inherit;font-size:14px;color:inherit;outline:none';
-const ST_MONO='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:5px 8px;font-family:var(--font-mono);font-size:12px;color:inherit;outline:none';
-const ST_BTN='font-family:var(--font-mono);font-weight:600;font-size:14px;padding:6px 14px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);border-radius:0;cursor:pointer;white-space:nowrap';
-const ST_BTN_SM='font-family:var(--font-mono);font-weight:600;font-size:13px;padding:5px 12px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);border-radius:0;cursor:pointer';
-const ST_BTN2='display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-weight:600;font-size:13px;padding:5px 11px;background:var(--color-surface);color:var(--color-accent-800);border:1px solid var(--color-divider);border-radius:0;cursor:pointer';
-const ST_BTN_DANGER='display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-weight:600;font-size:13px;padding:5px 11px;background:var(--color-surface);color:var(--st-ruby-dot);border:1px solid var(--st-ruby-line);border-radius:0;cursor:pointer';
-const ST_TAG='display:inline-flex;align-items:center;font-size:12px;font-weight:600;letter-spacing:.04em;padding:3px 10px;border-radius:0;background:var(--color-accent-200);color:var(--color-accent-800)';
+const ST_INPUT='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:6px 9px;font:inherit;font-size:14px;color:inherit;outline:none';
+const ST_MONO='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:5px 8px;font-family:var(--font-mono);font-size:12px;color:inherit;outline:none';
+const ST_BTN='font-family:var(--font-mono);font-weight:600;font-size:14px;padding:6px 14px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);border-radius:var(--radius);cursor:pointer;white-space:nowrap';
+const ST_BTN_SM='font-family:var(--font-mono);font-weight:600;font-size:13px;padding:5px 12px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);border-radius:var(--radius);cursor:pointer';
+const ST_BTN2='display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-weight:600;font-size:13px;padding:5px 11px;background:var(--color-surface);color:var(--color-accent-800);border:1px solid var(--color-divider);border-radius:var(--radius);cursor:pointer';
+const ST_BTN_DANGER='display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-weight:600;font-size:13px;padding:5px 11px;background:var(--color-surface);color:var(--st-ruby-dot);border:1px solid var(--st-ruby-line);border-radius:var(--radius);cursor:pointer';
+const ST_TAG='display:inline-flex;align-items:center;font-size:12px;font-weight:600;letter-spacing:.04em;padding:3px 10px;border-radius:var(--radius);background:var(--color-accent-200);color:var(--color-accent-800)';
 const ST_AV='width:24px;height:24px;border-radius:50%;background:var(--color-accent-200);color:var(--color-accent-800);display:inline-grid;place-items:center;font-size:10px;font-weight:700;flex:none;font-family:var(--font-mono)';
 const stRoleTag=r=>{ const map={admin:['var(--st-steel-bg)','var(--st-steel-fg)'],legal:['var(--st-amber-bg)','var(--st-amber-fg)'],viewer:['var(--st-gray-bg)','var(--st-gray-fg)']};
   const [bg,fg]=map[r]||map.viewer;
-  return `display:inline-flex;align-items:center;font-size:12px;font-weight:600;letter-spacing:.04em;padding:3px 10px;border-radius:0;background:${bg};color:${fg}`; };
+  return `display:inline-flex;align-items:center;font-size:12px;font-weight:600;letter-spacing:.04em;padding:3px 10px;border-radius:var(--radius);background:${bg};color:${fg}`; };
 const stLimitField=(id,label,sub,min)=>`<label style="display:block">
     <span style="display:block;font-size:12px;color:var(--color-neutral-600);line-height:1.4">${label}<br><span style="color:var(--color-neutral-400)">${sub}</span></span>
     <input id="${id}" type="number" min="${min}" style="margin-top:3px;${ST_MONO}"/></label>`;
@@ -623,9 +623,9 @@ function stSignFolderHtml(u, isNew, folders){
       <option value="pick"${all?'':' selected'}>${esc(i18t('st_folders_pick'))}</option>
     </select>
     <div id="tm-sign-list" style="display:${all?'none':'grid'};grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;margin-top:8px">
-      ${folders.map(f=>`<label style="display:flex;align-items:center;gap:7px;padding:6px 8px;border:1px solid var(--color-divider);border-radius:0;cursor:pointer;font-size:13px">
+      ${folders.map(f=>`<label style="display:flex;align-items:center;gap:7px;padding:6px 8px;border:1px solid var(--color-divider);border-radius:var(--radius);cursor:pointer;font-size:13px">
         <input type="checkbox" data-tm-signfolder="${PB_ATTR(f.id)}"${set.has(f.id)?' checked':''} style="width:14px;height:14px;accent-color:var(--color-accent);flex:none"/>
-        <span style="width:8px;height:8px;border-radius:0;background:${f.color};flex:none"></span>
+        <span style="width:8px;height:8px;border-radius:var(--radius);background:${f.color};flex:none"></span>
         <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.name)}</span></label>`).join('')}
     </div>
     <span class="st-note">${esc(i18t('sf_narrows'))}</span>
@@ -836,9 +836,9 @@ function settingsPersonDrawer(idOrNew){
           <option value="pick"${(!isNew&&!acc.all)?' selected':''}>${esc(i18t('st_folders_pick'))}</option>
         </select>
         <div id="tm-access-list" style="display:${(!isNew&&!acc.all)?'grid':'none'};grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;margin-top:8px">
-          ${folders.map(f=>`<label style="display:flex;align-items:center;gap:7px;padding:6px 8px;border:1px solid var(--color-divider);border-radius:0;cursor:pointer;font-size:13px">
+          ${folders.map(f=>`<label style="display:flex;align-items:center;gap:7px;padding:6px 8px;border:1px solid var(--color-divider);border-radius:var(--radius);cursor:pointer;font-size:13px">
             <input type="checkbox" data-tm-folder="${PB_ATTR(f.id)}"${set.has(f.id)?' checked':''} style="width:14px;height:14px;accent-color:var(--color-accent);flex:none"/>
-            <span style="width:8px;height:8px;border-radius:0;background:${f.color};flex:none"></span>
+            <span style="width:8px;height:8px;border-radius:var(--radius);background:${f.color};flex:none"></span>
             <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.name)}</span></label>`).join('')}
         </div>
         <div id="tm-access-note" style="display:none" class="st-note">${esc(i18t('set_access_admin_note'))}</div>
@@ -1314,7 +1314,7 @@ async function stHooksAdd(){
     openModal(`<div style="padding:20px 22px;max-width:470px">
       <h3 style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0 0 6px">${i18t('st_hooks_secret_title')}</h3>
       <p class="st-note" style="margin:0 0 10px">${esc(i18t('st_hooks_secret_msg'))}</p>
-      <div style="font-family:var(--font-mono);font-size:14px;background:var(--color-bg);border:1px solid var(--color-divider);border-radius:0;padding:10px 12px;word-break:break-all;user-select:all">${esc(r.secret)}</div>
+      <div style="font-family:var(--font-mono);font-size:14px;background:var(--color-bg);border:1px solid var(--color-divider);border-radius:var(--radius);padding:10px 12px;word-break:break-all;user-select:all">${esc(r.secret)}</div>
       <div style="display:flex;justify-content:flex-end;margin-top:12px">
         <button id="wh-done" class="ui-btn ui-btn-primary" style="font-size:13px;padding:7px 14px">${i18t('ts_done')}</button>
       </div></div>`,{maxWidth:'490px'});
@@ -1416,7 +1416,7 @@ async function stTwoStepToggle(){
   openModal(`<div style="padding:22px;max-width:470px">
     <h3 style="margin:0 0 6px;font-size:15px;font-weight:700;font-family:var(--font-heading)">${esc(i18t('ts_enrol_title'))}</h3>
     <p class="st-note" style="margin:0 0 4px">${esc(i18t('ts_enrol_msg'))}</p>
-    <div style="font-family:var(--font-mono);font-size:15px;letter-spacing:.14em;background:var(--color-bg);border:1px solid var(--color-divider);border-radius:0;padding:10px 12px;margin:8px 0;word-break:break-all;user-select:all">${esc(start.secret)}</div>
+    <div style="font-family:var(--font-mono);font-size:15px;letter-spacing:.14em;background:var(--color-bg);border:1px solid var(--color-divider);border-radius:var(--radius);padding:10px 12px;margin:8px 0;word-break:break-all;user-select:all">${esc(start.secret)}</div>
     <p class="st-note" style="margin:8px 0 4px">${esc(i18t('ts_enrol_code_msg'))}</p>
     <input id="ts-code" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" style="${window.RV_FLD||ST_INPUT}"/>
     <p id="ts-err" class="st-note" style="color:var(--st-ruby-fg);min-height:16px;margin:6px 0 0"></p>
@@ -1438,7 +1438,7 @@ async function stTwoStepToggle(){
         <h3 style="margin:0 0 6px;font-size:15px;font-weight:700;font-family:var(--font-heading)">${esc(i18t('ts_recovery_title'))}</h3>
         <p class="st-note" style="margin:0 0 10px">${esc(i18t('ts_recovery_msg'))}</p>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-family:var(--font-mono);font-size:14px;letter-spacing:.08em;user-select:all">
-          ${(r.recovery||[]).map(cd=>`<span style="background:var(--color-bg);border:1px solid var(--color-divider);border-radius:0;padding:6px 10px;text-align:center">${esc(cd)}</span>`).join('')}
+          ${(r.recovery||[]).map(cd=>`<span style="background:var(--color-bg);border:1px solid var(--color-divider);border-radius:var(--radius);padding:6px 10px;text-align:center">${esc(cd)}</span>`).join('')}
         </div>
         <div style="display:flex;justify-content:flex-end;margin-top:14px">
           <button id="ts-done" class="ui-btn ui-btn-primary" style="font-size:13px;padding:7px 14px">${i18t('ts_done')}</button>
@@ -1870,7 +1870,7 @@ const SET_PANELS={
     body(){
       if(typeof wsCfg!=='function') return `<p class="st-note">${i18t('set_workshape_admin_only')}</p>`;
       const cfg=wsCfg(), det=wsDetect();
-      const box=(k,title,sub)=>`<label data-ws-box="${k}" style="display:flex;gap:9px;align-items:flex-start;padding:9px 11px;border:1px solid ${cfg.shapes.includes(k)?WS_BOX_ON.line:WS_BOX_OFF.line};border-radius:0;cursor:pointer;background:${cfg.shapes.includes(k)?WS_BOX_ON.fill:WS_BOX_OFF.fill};flex:1 1 240px;min-width:0">
+      const box=(k,title,sub)=>`<label data-ws-box="${k}" style="display:flex;gap:9px;align-items:flex-start;padding:9px 11px;border:1px solid ${cfg.shapes.includes(k)?WS_BOX_ON.line:WS_BOX_OFF.line};border-radius:var(--radius);cursor:pointer;background:${cfg.shapes.includes(k)?WS_BOX_ON.fill:WS_BOX_OFF.fill};flex:1 1 240px;min-width:0">
         <input type="checkbox" data-ws-shape="${k}" ${cfg.shapes.includes(k)?'checked':''} style="margin-top:2px;flex:none"/>
         <span style="min-width:0"><span style="display:block;font-size:14px;font-weight:600">${title}</span>
         <span style="display:block;font-size:12px;color:var(--color-neutral-600);line-height:1.5;margin-top:2px">${sub}</span></span></label>`;
@@ -1952,7 +1952,7 @@ const SET_PANELS={
       const d=ob&&ob.designId&&window.docDesignById?docDesignById(ob.designId):null;
       return `<p class="st-note" style="margin-bottom:10px">${i18t('set_design_sub')}</p>
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-        <div style="width:74px;height:42px;border:1px dashed var(--color-divider);border-radius:0;display:grid;place-items:center;overflow:hidden;background:var(--color-bg);flex:none">
+        <div style="width:74px;height:42px;border:1px dashed var(--color-divider);border-radius:var(--radius);display:grid;place-items:center;overflow:hidden;background:var(--color-bg);flex:none">
           ${ob&&ob.logoUrl?`<img src="${ob.logoUrl}" alt="logo" style="max-width:100%;max-height:100%">`:`<span style="font-size:10px;color:var(--color-neutral-500)">${i18t('set_no_logo')}</span>`}
         </div>
         <div style="flex:1;min-width:150px">
@@ -2458,13 +2458,13 @@ function stEngineBodyHtml(){
       <div style="font-size:13px;font-weight:600;color:var(--color-text)">${i18t('set_model_routing')}</div>
       <p class="st-note">${i18t('set_override_blank')}</p>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:6px">
-        <div style="border:1px solid var(--color-divider);border-radius:0;padding:8px">
+        <div style="border:1px solid var(--color-divider);border-radius:var(--radius);padding:8px">
           <div style="font-size:12px;font-weight:600;color:var(--color-text)">${i18t('set_fast_tier')}</div>
           <div style="font-size:12px;color:var(--color-neutral-500);margin:2px 0 4px">${i18t('set_fast_sub')}</div>
           <div style="font-size:12px;color:var(--color-neutral-700);margin-bottom:4px">${i18t('set_current')} <span id="ai-model-fast-cur" style="font-family:var(--font-mono)">—</span></div>
           <input id="ai-model-fast" type="text" placeholder="${esc(i18t('set_ph_default_rec'))}" style="${ST_MONO}"/>
         </div>
-        <div style="border:1px solid var(--color-divider);border-radius:0;padding:8px">
+        <div style="border:1px solid var(--color-divider);border-radius:var(--radius);padding:8px">
           <div style="font-size:12px;font-weight:600;color:var(--color-text)">${i18t('set_deep_tier')}</div>
           <div style="font-size:12px;color:var(--color-neutral-500);margin:2px 0 4px">${i18t('set_deep_sub')}</div>
           <div style="font-size:12px;color:var(--color-neutral-700);margin-bottom:4px">${i18t('set_current')} <span id="ai-model-deep-cur" style="font-family:var(--font-mono)">—</span></div>
@@ -2485,7 +2485,7 @@ function stEngineBodyHtml(){
       <div style="font-size:13px;font-weight:600;color:var(--color-text)">${i18t('set_spend_controls')}</div>
       <p class="st-note">${i18t('set_spend_governed')} ${i18t('set_spend_money')}</p>
       <div id="ai-usage" style="font-size:13px;color:var(--color-neutral-700);margin:6px 0 4px">${i18t('set_today_dash')}</div>
-      <div style="height:6px;background:var(--color-neutral-200);border-radius:0;overflow:hidden;margin-bottom:8px"><div id="ai-usage-bar" style="width:0%;height:100%;background:var(--color-accent);transition:width .3s"></div></div>
+      <div style="height:6px;background:var(--color-neutral-200);border-radius:var(--radius);overflow:hidden;margin-bottom:8px"><div id="ai-usage-bar" style="width:0%;height:100%;background:var(--color-accent);transition:width .3s"></div></div>
       <div id="ai-spend-breakdown" style="margin-bottom:10px"></div>
       ${''/* ---- AND THE SAME MONEY BY PERSON ----
              It is here, under the by-feature breakdown, because this is where
@@ -2603,7 +2603,7 @@ function stWireEngine(){
       const bdHost=document.getElementById('ai-spend-breakdown');
       if(bdHost){
         const rows=Object.entries(spend.byFeature||{}).map(([k,v])=>({k,...v})).sort((a,b)=>b.cost-a.cost);
-        bdHost.innerHTML=rows.length?`<div style="border:1px solid var(--color-divider);border-radius:0;overflow:hidden">
+        bdHost.innerHTML=rows.length?`<div style="border:1px solid var(--color-divider);border-radius:var(--radius);overflow:hidden">
           ${rows.map(r=>`<div style="display:flex;align-items:center;gap:8px;padding:4px 8px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent);font-size:12px">
             <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${PB_ESC(r.label||r.k)}</span>
             <span style="color:var(--color-neutral-500);font-family:var(--font-mono);font-size:12px">${Number(r.requests||0).toLocaleString(jxLocale())} req</span>
@@ -2618,7 +2618,7 @@ function stWireEngine(){
         pHost.innerHTML=`
           <div style="font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin:0 0 4px">${
             esc(i18t('set_spend_people'))}</div>
-          ${people.length?`<div style="border:1px solid var(--color-divider);border-radius:0;overflow:hidden">
+          ${people.length?`<div style="border:1px solid var(--color-divider);border-radius:var(--radius);overflow:hidden">
             ${people.map(p=>`<div style="display:flex;align-items:center;gap:8px;padding:4px 8px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent);font-size:12px">
               <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${PB_ESC(p.name||'—')}${
                 p.gone?` <span style="color:var(--color-neutral-500);font-size:12px">${esc(i18t('set_spend_left'))}</span>`:''}</span>
@@ -2853,7 +2853,7 @@ function stLoadActivation(){
       host.innerHTML=`
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:10px">
           ${Object.entries(STEP).map(([k,label])=>{ const e=r.events&&r.events[k];
-            return `<div style="border:1px solid var(--color-divider);border-radius:0;padding:9px 11px;background:${e?'var(--st-green-bg)':'var(--color-bg)'}">
+            return `<div style="border:1px solid var(--color-divider);border-radius:var(--radius);padding:9px 11px;background:${e?'var(--st-green-bg)':'var(--color-bg)'}">
               <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:${e?'var(--st-green-fg)':'var(--color-neutral-600)'}">${e?icon('check2','w-3 h-3'):''}${label}</div>
               <div style="font-size:12px;font-family:var(--font-mono);color:var(--color-neutral-600);margin-top:3px">${e?`${fmtDT(e.first)} · ${e.count}×`:i18t('set_not_yet')}</div>
             </div>`; }).join('')}
@@ -2936,7 +2936,7 @@ function renderPrecedentPanel(){
   if(!sug.length){ host.innerHTML=''; return; }
   const mayAdopt=isAdmin()||currentUser()?.role==='legal';
   host.innerHTML=`
-    <div style="border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);padding:12px 14px">
+    <div style="border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);padding:12px 14px">
       <h4 style="margin:0 0 3px;font-size:14px;font-weight:700;font-family:var(--font-heading)">${esc(i18t('pc_title'))}</h4>
       <p class="st-note" style="margin:0 0 9px">${esc(i18t('pc_sub'))}</p>
       ${sug.map(x=>`
@@ -2981,7 +2981,7 @@ function renderClauseLibrary(){
   const canEditLib=isAdmin()||currentUser()?.role==='legal';
   const lib=clauseLibrary();
   host.innerHTML=lib.map((cl,i)=>`
-    <div style="border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);padding:11px 13px">
+    <div style="border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);padding:11px 13px">
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-size:11px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.09em;color:var(--color-neutral-500)">${cl.category}</span>
         <span style="font-size:14px;font-weight:600;color:var(--color-text)">${cl.name}</span>
@@ -3003,19 +3003,19 @@ const PB_ATTR = s => String(s==null?'':s).replace(/"/g,'&quot;');
 // position chip — red for required/forbidden, steel for preferred; ⚑ = escalate
 function pbPosChip(pos){
   const hard=pos.pos==='required'||pos.pos==='forbidden';
-  return `<span style="font-size:12px;font-family:var(--font-mono);border-radius:0;padding:2px 9px;${hard?'background:var(--st-ruby-bg);color:var(--st-ruby-fg)':'background:var(--st-steel-bg);color:var(--st-steel-fg)'}">${PB_ESC(pos.category)}${pos.escalate?' ⚑':''}</span>`;
+  return `<span style="font-size:12px;font-family:var(--font-mono);border-radius:var(--radius);padding:2px 9px;${hard?'background:var(--st-ruby-bg);color:var(--st-ruby-fg)':'background:var(--st-steel-bg);color:var(--st-steel-fg)'}">${PB_ESC(pos.category)}${pos.escalate?' ⚑':''}</span>`;
 }
-const pbRangeChip = rg => `<span style="font-size:12px;font-family:var(--font-mono);border-radius:0;padding:2px 9px;background:var(--st-amber-bg);color:var(--st-amber-fg)">${PB_ESC(rg.label)} ${rg.op} ${rg.value}${rg.escalate?' ⚑':''}</span>`;
+const pbRangeChip = rg => `<span style="font-size:12px;font-family:var(--font-mono);border-radius:var(--radius);padding:2px 9px;background:var(--st-amber-bg);color:var(--st-amber-fg)">${PB_ESC(rg.label)} ${rg.op} ${rg.value}${rg.escalate?' ⚑':''}</span>`;
 function renderPlaybookView(){
   const pv=document.getElementById('playbook-view'); if(!pv) return;
   const canEditPb=isAdmin()||currentUser()?.role==='legal';
   const pb=playbook();
   const base=pb._default||DEFAULT_PLAYBOOK._default;
   const card=(key,label,positions,ranges,removable,baseline)=>`
-    <div style="margin-bottom:${baseline?'12px':'8px'};border:1px solid ${baseline?'var(--color-accent-300)':'var(--color-divider)'};border-left:3px solid ${baseline?'var(--color-accent)':'var(--color-divider)'};border-radius:0;background:${baseline?'var(--color-accent-100)':'var(--color-surface)'};padding:${baseline?'11px 13px':'10px 12px'}">
+    <div style="margin-bottom:${baseline?'12px':'8px'};border:1px solid ${baseline?'var(--color-accent-300)':'var(--color-divider)'};border-left:3px solid ${baseline?'var(--color-accent)':'var(--color-divider)'};border-radius:var(--radius);background:${baseline?'var(--color-accent-100)':'var(--color-surface)'};padding:${baseline?'11px 13px':'10px 12px'}">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:${baseline?'2px':'6px'}">
         <span style="font-size:13px;font-weight:${baseline?700:600};color:${baseline?'var(--color-accent-900)':'var(--color-text)'}">${PB_ESC(label)}</span>
-        ${baseline?`<span style="font-size:10px;font-family:var(--font-mono);letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:#fff;background:var(--color-accent);border-radius:0;padding:2px 8px">${i18t('set_applies_all')}</span>`:''}
+        ${baseline?`<span style="font-size:10px;font-family:var(--font-mono);letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:#fff;background:var(--color-accent);border-radius:var(--radius);padding:2px 8px">${i18t('set_applies_all')}</span>`:''}
         ${canEditPb?`<span style="margin-left:auto;display:flex;gap:10px;font-size:12px;font-weight:600">
           <button data-pb-edit="${key}" style="background:none;border:0;cursor:pointer;color:var(--color-accent-700)">${i18t('set_edit_lower')}</button>
           ${removable?`<button data-pb-del="${key}" style="background:none;border:0;cursor:pointer;color:var(--st-ruby-dot)">${i18t('set_remove_lower')}</button>`:''}
@@ -3060,14 +3060,14 @@ function openPlaybookEditor(key){
   const e=pb[key]; e.positions=e.positions||[]; e.ranges=e.ranges||[]; e.match=e.match||[];
   const inherited=(!isBase)?resolvePlaybook('_default'):null;
   const POS=[['required',i18t('set_pos_required')],['preferred',i18t('set_pos_preferred')],['forbidden',i18t('set_pos_forbidden')]];
-  const inp='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:6px 8px;font:inherit;font-size:14px;color:inherit;outline:none';
+  const inp='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:6px 8px;font:inherit;font-size:14px;color:inherit;outline:none';
   openModal(`<div style="padding:20px 22px">
     <h3 style="font-family:var(--font-heading);font-weight:600;font-size:16px;margin:0 0 12px">${isNew?i18t('set_add_contract_type'):isBase?i18t('set_edit_baseline'):i18t('set_edit_playbook_for',{label:PB_ESC(e.label||key)})}</h3>
     <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:12px;font-weight:600;color:var(--color-text);margin-bottom:3px">${isBase?i18t('set_name'):i18t('set_type_name')}</span>
       <input id="pb-f-label" value="${PB_ATTR(e.label||'')}" placeholder="${isBase?esc(i18t('set_ph_baseline')):esc(i18t('set_ph_eg_distribution'))}" style="${inp}"></label>
     ${!isBase?`<label style="display:block;margin-bottom:10px"><span style="display:block;font-size:12px;font-weight:600;color:var(--color-text);margin-bottom:3px">${i18t('set_applies_matching')} <span style="font-weight:400;color:var(--color-neutral-500)">${i18t('set_comma_keywords')}</span></span>
       <input id="pb-f-match" value="${PB_ATTR(e.match.join(', '))}" placeholder="${esc(i18t('set_ph_eg_keywords'))}" style="${inp}"></label>
-    <div style="font-size:12px;color:var(--color-neutral-600);background:var(--color-bg);border:1px solid var(--color-divider);border-radius:0;padding:7px 9px;margin-bottom:12px">${i18t('set_inherited_baseline')} <span style="display:inline-flex;flex-wrap:wrap;gap:4px;vertical-align:middle">${inherited.positions.map(pbPosChip).join('')}${inherited.ranges.map(pbRangeChip).join('')}</span></div>`:''}
+    <div style="font-size:12px;color:var(--color-neutral-600);background:var(--color-bg);border:1px solid var(--color-divider);border-radius:var(--radius);padding:7px 9px;margin-bottom:12px">${i18t('set_inherited_baseline')} <span style="display:inline-flex;flex-wrap:wrap;gap:4px;vertical-align:middle">${inherited.positions.map(pbPosChip).join('')}${inherited.ranges.map(pbRangeChip).join('')}</span></div>`:''}
 
     <div style="display:flex;align-items:center;margin:0 0 6px"><span style="font-size:12px;font-weight:600;color:var(--color-text)">${isBase?i18t('set_positions'):i18t('set_positions_for_type')}</span><button id="pb-add-pos" style="margin-left:auto;font-size:12px;font-weight:600;color:var(--color-accent-700);background:none;border:0;cursor:pointer">${i18t('set_add_position')}</button></div>
     <div id="pb-pos-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px"></div>
@@ -3082,22 +3082,22 @@ function openPlaybookEditor(key){
   </div>`, {maxWidth:'34rem'});
 
   const seg=(i)=>POS.map(([v,l])=>{ const on=e.positions[i].pos===v; const hard=v==='required'||v==='forbidden';
-    return `<button data-pb-pos="${i}" data-v="${v}" style="font-size:12px;font-weight:600;border:1px solid ${on?(hard?'var(--st-ruby-line)':'var(--color-accent)'):'var(--color-divider)'};background:${on?(hard?'var(--st-ruby-bg)':'var(--color-accent-100)'):'var(--color-surface)'};color:${on?(hard?'var(--st-ruby-fg)':'var(--color-accent-800)'):'var(--color-neutral-600)'};padding:4px 9px;border-radius:0;cursor:pointer">${l}</button>`; }).join('');
+    return `<button data-pb-pos="${i}" data-v="${v}" style="font-size:12px;font-weight:600;border:1px solid ${on?(hard?'var(--st-ruby-line)':'var(--color-accent)'):'var(--color-divider)'};background:${on?(hard?'var(--st-ruby-bg)':'var(--color-accent-100)'):'var(--color-surface)'};color:${on?(hard?'var(--st-ruby-fg)':'var(--color-accent-800)'):'var(--color-neutral-600)'};padding:4px 9px;border-radius:var(--radius);cursor:pointer">${l}</button>`; }).join('');
   const paint=()=>{
     const pl=document.getElementById('pb-pos-list');
     pl.innerHTML=e.positions.length?e.positions.map((p,i)=>`
-      <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;border:1px solid var(--color-divider);border-radius:0;padding:7px 8px;background:var(--color-bg)">
-        <input data-pb-cat="${i}" value="${PB_ATTR(p.category||'')}" placeholder="${esc(i18t('set_ph_category'))}" style="flex:1;min-width:150px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:5px 7px;font:inherit;font-size:13px;outline:none">
+      <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;border:1px solid var(--color-divider);border-radius:var(--radius);padding:7px 8px;background:var(--color-bg)">
+        <input data-pb-cat="${i}" value="${PB_ATTR(p.category||'')}" placeholder="${esc(i18t('set_ph_category'))}" style="flex:1;min-width:150px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:5px 7px;font:inherit;font-size:13px;outline:none">
         <span style="display:inline-flex;gap:3px">${seg(i)}</span>
         <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--color-neutral-700);white-space:nowrap"><input type="checkbox" data-pb-esc="${i}" ${p.escalate?'checked':''} style="accent-color:var(--color-accent)">${i18t('set_flag_legal')}</label>
         <button data-pb-rmpos="${i}" title="${i18t('act_remove')}" style="background:none;border:0;cursor:pointer;color:var(--color-neutral-500);font-size:15px;line-height:1;padding:0 2px">×</button>
       </div>`).join(''):`<p style="font-size:12px;color:var(--color-neutral-500);margin:0">${isBase?i18t('set_no_specific_positions'):i18t('set_no_specific_inherits')}</p>`;
     const rl=document.getElementById('pb-rng-list');
     rl.innerHTML=e.ranges.length?e.ranges.map((r,i)=>`
-      <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;border:1px solid var(--color-divider);border-radius:0;padding:7px 8px;background:var(--color-bg)">
-        <input data-pb-rlabel="${i}" value="${PB_ATTR(r.label||'')}" placeholder="${esc(i18t('set_ph_label_payment'))}" style="flex:1;min-width:120px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:5px 7px;font:inherit;font-size:13px;outline:none">
-        <select data-pb-rop="${i}" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:5px 6px;font:inherit;font-size:13px;cursor:pointer"><option value="<=" ${r.op==='<='?'selected':''}>≤</option><option value=">=" ${r.op==='>='?'selected':''}>≥</option></select>
-        <input data-pb-rval="${i}" type="number" value="${r.value}" style="width:74px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:5px 7px;font:inherit;font-size:13px;outline:none">
+      <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;border:1px solid var(--color-divider);border-radius:var(--radius);padding:7px 8px;background:var(--color-bg)">
+        <input data-pb-rlabel="${i}" value="${PB_ATTR(r.label||'')}" placeholder="${esc(i18t('set_ph_label_payment'))}" style="flex:1;min-width:120px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:5px 7px;font:inherit;font-size:13px;outline:none">
+        <select data-pb-rop="${i}" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:5px 6px;font:inherit;font-size:13px;cursor:pointer"><option value="<=" ${r.op==='<='?'selected':''}>≤</option><option value=">=" ${r.op==='>='?'selected':''}>≥</option></select>
+        <input data-pb-rval="${i}" type="number" value="${r.value}" style="width:74px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:5px 7px;font:inherit;font-size:13px;outline:none">
         <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--color-neutral-700);white-space:nowrap"><input type="checkbox" data-pb-resc="${i}" ${r.escalate?'checked':''} style="accent-color:var(--color-accent)">${i18t('set_flag_legal')}</label>
         <button data-pb-rmrng="${i}" title="${i18t('act_remove')}" style="background:none;border:0;cursor:pointer;color:var(--color-neutral-500);font-size:15px;line-height:1;padding:0 2px">×</button>
       </div>`).join(''):`<p style="font-size:12px;color:var(--color-neutral-500);margin:0">${i18t('set_no_numeric_limits')}</p>`;
@@ -3165,7 +3165,7 @@ function renderApprovalRules(){
   const host=document.getElementById('approval-rules'); if(!host) return;
   const rules=approvalRules().slice().sort((a,b)=>(a.order||99)-(b.order||99));
   host.innerHTML=rules.length?rules.map((r,i)=>`
-    <div style="border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);padding:10px 12px;margin-bottom:8px">
+    <div style="border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);padding:10px 12px;margin-bottom:8px">
       <div style="display:flex;align-items:center;gap:8px">
         <span style="width:22px;height:22px;display:inline-grid;place-items:center;border-radius:50%;background:var(--tile-steel-bg);font-size:12px;font-weight:700;color:var(--tile-steel-fg);flex:none">${r.order||1}</span>
         <span style="font-size:13px;color:var(--color-text)"><b>${i18t('set_if')}</b> ${condLabel(r.cond)} <b>${i18t('set_then')}</b> ${approverLabelOf(r.approver)}</span>
@@ -3341,7 +3341,7 @@ async function loadSessions(){
       const ua=(s.ua||'').replace(/</g,'&lt;'); /* The BROWSER NAMES are proper nouns and stay as they are; only the two
          generic words are the platform's own. */
       const dev=/mobile/i.test(ua)?i18t('set_dev_mobile'):/chrome/i.test(ua)?'Chrome':/firefox/i.test(ua)?'Firefox':/safari/i.test(ua)?'Safari':i18t('set_dev_browser');
-      return `<div style="display:flex;align-items:center;gap:8px;border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);padding:7px 10px">
+      return `<div style="display:flex;align-items:center;gap:8px;border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);padding:7px 10px">
         <span style="min-width:0"><span style="font-size:13px;font-weight:600;color:var(--color-text)">${dev}${s.current?` <span style="font-size:10px;font-family:var(--font-mono);color:var(--color-accent-700)">${i18t('set_this_device')}</span>`:''}</span>
         <span style="display:block;font-size:12px;font-family:var(--font-mono);color:var(--color-neutral-500)">${s.ip||'—'} · ${i18t('set_last_seen',{when:s.lastSeen?fmtDT(s.lastSeen):'—'})}</span></span>
         ${s.current?'':`<button data-sess-revoke="${s.id}" style="margin-left:auto;font-size:12px;font-weight:600;color:var(--st-ruby-dot);background:none;border:0;cursor:pointer">${i18t('set_revoke')}</button>`}

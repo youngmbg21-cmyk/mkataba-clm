@@ -1029,6 +1029,95 @@ measuring all twelve claims. Node 4,388/4,388. Browser: settings-tabs 65,
 pages-read-alike 38, redline 95, clause-door 89, nav-floats 69,
 home-pipeline 54, calendar 39, kpi-four 19, theme-tokens 40 — all green.
 
+## THE PLATFORM CARRIES A 2px CORNER, AND THE CONTRACT DOES NOT (owner-ruled 26 Aug 2026)
+
+Owner-asked off a drawn preview of Home and the negotiation page at 0, 2, 3, 4
+and 6px: *"implement 2px across the platform apart from the contracts
+themselves when they are visible on screen. They should look like word
+documents when they are on screen."*
+
+**THIS REVERSES "SQUARE CORNERS EVERYWHERE" (20 Aug 2026), and that entry is
+reversed in place rather than deleted** — its exemption list is inherited whole
+and extended, which is the half of it that was always load-bearing.
+
+- **IT IS ONE NUMBER AND IT IS `--radius`.** The token family
+  (`--radius / -sm / -md / -lg`) was declared on 23 Aug 2026 with **zero
+  consumers between them**; 818 hand-typed zeros now read it, which is what
+  makes "one line to change again" true rather than aspirational. **THE FOUR
+  RUNGS ARE DELIBERATELY EQUAL** — one number, one look; splitting them is a
+  later decision and would want its own reason.
+- **2px IS THE MILDEST THAT READS.** Below it nothing changes; above it the
+  product starts to feel friendlier than a legal tool. Measured on a preview
+  before it was built.
+
+**THE CONTRACT STAYS SQUARE, WHEREVER IT IS ON SCREEN**, so it reads as a
+document rather than as a card. Each of these keeps a literal `0` beside a
+comment saying why, and none of them may be pointed at the token:
+- `.rl-paper` (the cream sheet), `.rl-doc` (its canvas), `.rl-clause.is-changed`
+  and its margin rule;
+- `.doc-surface` / `.hati-doc` and the Document tab's own `.blueprint` sheet;
+- `.nego-doc` and `.nego-clause` — the room's two-pane paper;
+- the counterparty's `.pv-sheet` and their `#pt-doc`, on screen and in print;
+- the phone's `.m-paper`;
+- the Compare dialog's sheet, and every `doc-surface` preview pane in the
+  template library;
+- **AND THE MARKS DRAWN ON IT** — `.nego-ins`, `.nego-del`, `.nego-resolved`
+  and the room's `ins`/`del` rules. A tracked change in Word is a plain
+  highlight; a rounded one reads as a chip laid over the wording rather than as
+  the wording itself. This one was MISSED by the first pass and caught by f210.
+
+**`--n-r-*` IS THE PAPER'S TOKEN NOW and stays 0.** It had four readers and
+they were two different things: `.nego-doc` and `.nego-clause` are paper,
+`.nego-card` and `.nego-work` are furniture. The furniture was pointed at
+`--radius` directly and the token kept the document, which is what its name
+means here now. **Do not point it at `--radius`.**
+
+**A RULE HAS NO CORNERS TO ROUND.** `.rl-idx-head` (a hairline under a caption)
+and `.ngl-w` (a bare coloured word) name NO radius at all — not even the
+platform's. Both had one, both had `background:none;border:0;padding:0` beside
+it, and a declaration there is noise the next reader has to rule out. f175 and
+f184 assert the ABSENCE now, which is a stronger claim than the literal 0 they
+pinned before.
+
+**AND `.rounded-full` WAS DRAWING SQUARES — A PRE-EXISTING DEFECT, FOUND BY
+CHECKING RATHER THAN ASSUMING.** The 20 Aug sweep squared every `.rounded*`
+utility in the compiled Tailwind blob and took the CIRCLE class with it, so the
+24 elements wearing it — the numbered approval steps among them — had been
+squares ever since, and would have become 2px squares after this. It is
+`9999px` again, written in **HaTi's own sheet, never the blob** (generated;
+drops the change on the next build — the `font-600` lesson), same specificity,
+later in source. The blob's own line is left exactly as found. **It is not
+`var(--radius)`: a circle is not a corner.**
+
+**OUT OF SCOPE ENTIRELY, each for its own reason** — the two standalone
+documents (`js/views/healthreport.js`, `js/views/weekly.js`), which open in
+their own window and do not carry this sheet; every export path; and the emails
+in `server/server.js`, which were never in the 20 Aug sweep either. **CHECKED
+RATHER THAN ASSUMED**: the sweep touched none of those files, because none of
+them typed a `border-radius:0` to begin with.
+
+**BUT ONE STANDALONE DOCUMENT IS BUILT INSIDE A TOUCHED FILE, AND IT WAS
+BROKEN.** The negotiation-history report a counterparty can download is a whole
+HTML file assembled in js/views/negotiation.js, and the sweep gave three of its
+rules `var(--radius)` — which resolves to NOTHING in a file that carries no
+`:root`, so every rounded box in the report squared off silently. **The block's
+own comment had warned about exactly this**, in its own words, because the same
+trap had already eaten its ins/del COLOURS once ("literal values, because
+self-contained has to mean self-contained"); the warning named colours and the
+next person swept corners. It is a literal `2px` again and the comment now names
+both. f143 is the net and caught it on the first run. **THE STANDING RULE: a
+`var()` of any kind is a bug in a file that will be opened outside this app —
+and "which files are standalone" is answered by looking for the builders, not
+by looking at the filenames.**
+
+**THE COLOUR CENSUS IS UNTOUCHED AND THAT IS THE POINT** — a radius is not a
+colour, theme-tokens-verify stayed 40/40 throughout, and if it had moved
+something else would have moved with it.
+
+Tests: f95, f175, f184, f210, f236, f246, f96 (claims REVERSED IN PLACE, never
+deleted — three of them got STRONGER: "shares one token" beats "shares one
+number", and "names no radius at all" beats "names zero").
+
 ## THE CONTRACT GETS THE SPACE BACK (owner-asked 22 Aug 2026)
 
 "HaTi is not efficiently using the space to give the contracts a proper space."
@@ -1171,7 +1260,7 @@ Twenty-seven line symbols from the design mock-up, in a `<defs>` sprite at the t
 
 **THE FAILURE MODE IS SILENCE, which is why this has a browser file.** A `<use>` pointing at a symbol that does not exist renders an EMPTY BOX — no error, no warning, a button with a hole in it — and jsdom builds no shadow tree for `<use>` at all, so it cannot tell a resolved reference from a dead one. **type-and-symbols-verify** measures each icon's painted `getBBox()`, which is non-zero only if the reference really resolved. It also tells "not painted" apart from "broken": Insights is hidden until the portfolio is big enough, and four doors live in the Administration fold, which starts shut — the file opens the fold, and for a door the app itself hides it asserts the reference is sound and says so in the output rather than counting it as a pass.
 
-SQUARE CORNERS EVERYWHERE (owner-asked 20 Aug 2026, second pass — this completes what the first pass scoped to Home and the shell): ~810 rounded-rectangle radii swept to 0 across index.html and every js/ file — cards, dialogs, chips, badges, inputs, menus, toasts, the phone, exports. True circles stay circles, and the sweep PROVED each one rather than pattern-matching: `border-radius:50%` kept by rule, and a pill value (999/9999/99px) kept ONLY where the same style run declares equal width and height (13 dots and avatars wear pill values — a blanket `*{border-radius:0}` would have squared them). The compiled `.rounded-full` class is the circle class and stays; every other `.rounded*` utility is 0. The negotiation sheet's own radius tokens (--n-r-*) are 0. Emails in server.js are deliberately untouched — their own surface, like their Arial fallback.
+SQUARE CORNERS EVERYWHERE — **REVERSED 26 Aug 2026 by THE PLATFORM CARRIES A 2px CORNER (below); read that first.** The half of this entry that STANDS is its exemption list — circles, the pill rule, the emails — which the new one inherits whole and extends. What follows is the record of the sweep, kept because the reasoning is the useful part. (owner-asked 20 Aug 2026, second pass — this completes what the first pass scoped to Home and the shell): ~810 rounded-rectangle radii swept to 0 across index.html and every js/ file — cards, dialogs, chips, badges, inputs, menus, toasts, the phone, exports. True circles stay circles, and the sweep PROVED each one rather than pattern-matching: `border-radius:50%` kept by rule, and a pill value (999/9999/99px) kept ONLY where the same style run declares equal width and height (13 dots and avatars wear pill values — a blanket `*{border-radius:0}` would have squared them). The compiled `.rounded-full` class is the circle class and stays; every other `.rounded*` utility is 0. The negotiation sheet's own radius tokens (--n-r-*) are 0. Emails in server.js are deliberately untouched — their own surface, like their Arial fallback.
 
 ## THE CONTRACTS PAGE TAKES THE ENTERPRISE DESIGN (owner-approved render, 24 Aug 2026)
 

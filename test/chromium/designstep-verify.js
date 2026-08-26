@@ -103,13 +103,20 @@ const READ = () => {
        read the border-radius alone and wanted 12px — a fair proxy for "this
        control got dressed" until SQUARE CORNERS EVERYWHERE (20 Aug 2026) took
        the radius off every control in the product. The dress it actually wears
-       is a filled ground, a hairline and padding, so those are what is read;
-       the radius is read too, and is now asserted to BE square, so the sweep
-       that squared it is pinned rather than merely tolerated. */
+       is a filled ground, a hairline and padding, so those are what is read.
+       ---- REVERSED IN PLACE 26 Aug 2026 ----
+       It went on to assert the radius was 0px, pinning the 20 Aug squaring
+       rather than merely tolerating it. The owner has since given the platform
+       a 2px corner and kept the CONTRACT square, so a control at 0 is now the
+       odd one out. The claim is the same claim — this control wears whatever
+       the platform's furniture wears — and it is READ FROM THE APP rather than
+       typed, so the next time that number moves this file costs no edit. */
     stepperStyled: (() => {
       const e = document.querySelector('.rl-type-step'); if (!e) return null;
       const s = getComputedStyle(e);
-      return { radius: s.borderRadius, bg: s.backgroundColor,
+      const want = getComputedStyle(document.documentElement)
+        .getPropertyValue('--radius').trim();
+      return { radius: s.borderRadius, want, bg: s.backgroundColor,
                border: parseFloat(s.borderTopWidth) || 0, pad: parseFloat(s.paddingTop) || 0,
                /* The redesign's box has its own HEIGHT and no padding of its
                   own — the buttons inside it carry that now. */
@@ -228,9 +235,11 @@ const READ = () => {
       && m.stepperStyled.border > 0 && (m.stepperStyled.h || 0) >= 24,
     m.stepperStyled ? `bg=${m.stepperStyled.bg}, border=${m.stepperStyled.border}px, h=${m.stepperStyled.h}px`
                     : `stepper=${m.stepper}`);
-  check('5 · and its corners are square, like every other control',
-    !!m.stepperStyled && m.stepperStyled.radius === '0px',
-    m.stepperStyled ? `radius=${m.stepperStyled.radius}` : 'no stepper');
+  check('5 · and it wears the platform\'s own corner, like every other control',
+    !!m.stepperStyled && m.stepperStyled.want !== ''
+      && parseFloat(m.stepperStyled.radius) === parseFloat(m.stepperStyled.want),
+    m.stepperStyled ? `radius=${m.stepperStyled.radius}, --radius=${m.stepperStyled.want}`
+                    : 'no stepper');
   check('5 · and the focus control is here', m.focusBtn);
   check('5 · step 1 offers Next, not Publish', m.nextBtn && !m.publishBtn);
 

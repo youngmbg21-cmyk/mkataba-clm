@@ -71,7 +71,7 @@ function ikRowHtml(r, opts={}){
   if(may&&r.status==='open') acts.push(`<button class="ui-btn" data-ik-decline="${esc(r.id)}" style="font-size:12px;padding:4px 10px">${i18t('ik_act_decline')}</button>`);
   if(r.contractId) acts.push(`<button class="ui-btn" data-ik-open="${esc(r.contractId)}" style="font-size:12px;padding:4px 10px">${i18t('ik_act_open')}</button>`);
   if(isMine&&IK_LIVE.includes(r.status)) acts.push(`<button class="ui-btn" data-ik-withdraw="${esc(r.id)}" style="font-size:12px;padding:4px 10px">${i18t('ik_act_withdraw')}</button>`);
-  return `<article class="ik-row" style="border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);padding:12px 14px;display:flex;flex-direction:column;gap:6px">
+  return `<article class="ik-row" style="border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);padding:12px 14px;display:flex;flex-direction:column;gap:6px">
     <div style="display:flex;align-items:baseline;gap:9px;flex-wrap:wrap">
       <span style="font-family:var(--font-mono);font-size:12px;color:var(--color-neutral-500)">${esc(r.id)}</span>
       <span style="font-size:15px;font-weight:600;flex:1;min-width:0">${esc(r.title)}</span>
@@ -93,7 +93,7 @@ function ikRowHtml(r, opts={}){
    which stream) because they are the two the requester always does know. */
 function openIntakeForm(){
   const streams=(typeof visibleFolders==='function')?visibleFolders():Object.values(FOLDERS||{});
-  const FLD='width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:8px 10px;font:inherit;font-size:14px;outline:none';
+  const FLD='width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:8px 10px;font:inherit;font-size:14px;outline:none';
   const LBL='display:block;font-size:12px;font-weight:600;margin-bottom:4px';
   openModal(`<div style="padding:20px 22px;max-width:520px">
     <h3 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0 0 4px">${i18t('ik_ask_title')}</h3>
@@ -157,11 +157,11 @@ async function intakeDraft(id){
   if(btnBusy){ btnBusy.disabled=true; btnBusy.textContent=i18t('ct_working'); }
   const pick=await intakeSuggestTemplate(r);
   const ids=Object.keys(TEMPLATES||{});
-  const FLD='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:8px 10px;font:inherit;font-size:14px';
+  const FLD='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:8px 10px;font:inherit;font-size:14px';
   openModal(`<div style="padding:20px 22px;max-width:520px">
     <h3 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0 0 4px">${i18t('ik_draft_title')}</h3>
     <p style="font-size:13px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.55">${esc(r.title)}</p>
-    ${pick?`<p style="font-size:13px;line-height:1.55;margin:0 0 10px;padding:9px 11px;background:var(--st-green-bg);color:var(--st-green-fg);border-radius:0">
+    ${pick?`<p style="font-size:13px;line-height:1.55;margin:0 0 10px;padding:9px 11px;background:var(--st-green-bg);color:var(--st-green-fg);border-radius:var(--radius)">
       ${esc(i18t('ik_suggested',{name:TEMPLATES[pick.id].name}))}${pick.why?' '+esc(pick.why):''}</p>`
       :`<p style="font-size:13px;color:var(--color-neutral-600);margin:0 0 10px">${esc(i18t('ik_no_suggestion'))}</p>`}
     <label style="display:block;margin-bottom:12px"><span style="display:block;font-size:12px;font-weight:600;margin-bottom:4px">${i18t('ik_pick_template')}</span>

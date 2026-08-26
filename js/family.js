@@ -286,7 +286,7 @@ function openLinkModal(c, onDone, opts={}){
   // `mode` is 'child' (pick a parent for c) or 'parent' (pick a child to attach to c)
   const mode = opts.mode || (c.parentId ? 'child' : 'child');
   const suggested = (c.linkSuggestions||[]).map(s=>({ ...s, c:getContract(s.id) })).filter(x=>x.c);
-  const relSel = `<select id="lk-rel" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 8px;font:inherit;font-size:14px">
+  const relSel = `<select id="lk-rel" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 8px;font:inherit;font-size:14px">
       ${CONTRACT_RELATIONS.map(r=>`<option value="${r.k}" ${(c.relationGuess||c.relation||'amendment')===r.k?'selected':''}>${r.label} — ${r.blurb}</option>`).join('')}</select>`;
   const candidates = state.contracts.filter(x=>x.id!==c.id && (mode==='child' ? !x.parentId : (!x.parentId||x.parentId===c.id)));
   openModal(`
@@ -296,7 +296,7 @@ function openLinkModal(c, onDone, opts={}){
       <p style="font-size:13px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.55">${mode==='child'
         ? `File <b>${_famEsc(c.id)}</b> as part of an existing agreement. The parent's renewal date, risk and KPI count then reflect the family — a master agreement plus its amendments is <b>one</b> agreement, not several.`
         : `Attach an existing document to <b>${_famEsc(c.id)}</b> as an amendment. Families are one level deep: an amendment cannot itself have amendments.`}</p>
-      ${suggested.length?`<div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:0;padding:9px 11px;margin-bottom:12px">
+      ${suggested.length?`<div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:var(--radius);padding:9px 11px;margin-bottom:12px">
         <div style="font-size:12px;font-weight:600;color:var(--color-accent-800);margin-bottom:5px">${i18t('fa_hati_suggests')}</div>
         ${suggested.map(x=>`<label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;padding:3px 0;cursor:pointer">
           <input type="radio" name="lk-sug" value="${_famAttr(x.id)}" style="margin-top:3px;accent-color:var(--color-accent)"/>
@@ -304,11 +304,11 @@ function openLinkModal(c, onDone, opts={}){
           <span style="display:block;color:var(--color-neutral-600)">${_famEsc(x.why||'')}</span></span></label>`).join('')}
       </div>`:''}
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:12px;font-weight:600;margin-bottom:4px">${mode==='child'?'Parent agreement':'Document to attach'}</span>
-        <input id="lk-search" placeholder="${i18t('fa_search_register')}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:7px 10px;font:inherit;font-size:14px;outline:none"/>
-        <div id="lk-results" class="scroll-thin" style="max-height:180px;overflow-y:auto;border:1px solid var(--color-divider);border-top:0;border-radius:0"></div></label>
+        <input id="lk-search" placeholder="${i18t('fa_search_register')}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:14px;outline:none"/>
+        <div id="lk-results" class="scroll-thin" style="max-height:180px;overflow-y:auto;border:1px solid var(--color-divider);border-top:0;border-radius:var(--radius)"></div></label>
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:12px;font-weight:600;margin-bottom:4px">${i18t('fa_relationship')}</span>${relSel}</label>
       <label style="display:block;margin-bottom:14px"><span style="display:block;font-size:12px;font-weight:600;margin-bottom:4px">${i18t('fa_note_optional')}</span>
-        <input id="lk-note" placeholder="${_famEsc(i18t('fa_ph_link_note'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:7px 10px;font:inherit;font-size:14px;outline:none"/></label>
+        <input id="lk-note" placeholder="${_famEsc(i18t('fa_ph_link_note'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:14px;outline:none"/></label>
       <div id="lk-err" style="font-size:12px;color:var(--st-ruby-fg);min-height:15px;margin-bottom:8px"></div>
       <div style="display:flex;justify-content:flex-end;gap:8px">
         ${(mode==='child'&&suggested.length)?`<button id="lk-standalone" class="ui-btn">${i18t('fa_standalone')}</button>`:''}
@@ -363,7 +363,7 @@ function renderFamilySection(c){
   const kids=familyChildren(c.id), parent=familyParent(c);
   const suggested=(c.linkSuggestions||[]).filter(s=>getContract(s.id));
   const eff=effectiveExpiry(c), from=expirySource(c), prop=proposedExpiry(c);
-  const btn='font:inherit;font-size:13px;font-weight:600;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:5px 11px;cursor:pointer';
+  const btn='font:inherit;font-size:13px;font-weight:600;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:5px 11px;cursor:pointer';
   const row=(x,note)=>`<button type="button" data-fam-open="${_famAttr(x.id)}" style="display:flex;width:100%;gap:8px;align-items:baseline;text-align:left;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;padding:6px 0;cursor:pointer;font:inherit;font-size:13px;color:inherit">
       <b style="font-family:var(--font-mono);font-size:12px;color:var(--color-accent-700);flex:none">${_famEsc(x.id)}</b>
       <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_famEsc(x.name)}</span>
@@ -410,7 +410,7 @@ function renderFamilySection(c){
            <div class="fam-list">${kids.map(k=>row(k, `${RELATION_LABEL[k.relation]||'Amendment'}${ownExpiry(k)?' · term to '+ownExpiry(k):''}`)).join('')}</div>`
         : `<p style="font-size:13px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.55">${i18t('fa_standalone_desc')}</p>`}
       ${(suggested.length&&!c.parentId&&!c.linkConfirmed)?`
-        <div style="margin-top:10px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:0;padding:9px 11px">
+        <div style="margin-top:10px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:var(--radius);padding:9px 11px">
           <div style="font-size:12px;font-weight:600;color:var(--st-amber-fg);margin-bottom:3px">${i18t('fa_reads_like_amendment')}</div>
           <div style="font-size:13px;color:var(--st-amber-fg);line-height:1.5">${i18t('fa_hati_proposed',{ids:suggested.map(s=>`<b>${_famEsc(s.id)}</b>`).join(', ')})} <b>${i18t('fa_nothing_linked')}</b>${i18t('fa_confirm_or_standalone')}</div>
           ${canEdit()?`<div style="display:flex;gap:6px;margin-top:8px"><button id="fam-confirm" style="${btn};border-color:var(--color-accent);color:var(--color-accent-800)">${i18t('fa_review_suggestion')}</button>
@@ -637,8 +637,8 @@ function openCreateAmendmentModal(parent, onDone, opts){
   if(!parent) return;
   if(parent.parentId){ toast(i18t('fa_child_cannot_amend'),'err'); return; }
   const relOpen = (opts && isRelation(opts.relation)) ? opts.relation : 'amendment';
-  const FLD='width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:7px 10px;font:inherit;font-size:14px;outline:none';
-  const SEL='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 8px;font:inherit;font-size:14px';
+  const FLD='width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:14px;outline:none';
+  const SEL='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 8px;font:inherit;font-size:14px';
   const LBL='display:block;font-size:12px;font-weight:600;margin-bottom:4px';
   const HINT='display:block;font-size:12px;font-weight:400;color:var(--color-neutral-600);margin-top:4px;line-height:1.45';
   const kids=familyChildren(parent.id).length;
@@ -677,7 +677,7 @@ function openCreateAmendmentModal(parent, onDone, opts){
              a real amendment opens with and what HaTi reads to recognise one.
              Both are one press, the skeleton leads because it is the safer
              default, and unticking gives exactly the blank page. */}
-      <label style="display:flex;align-items:flex-start;gap:8px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:9px 11px;margin-bottom:14px;cursor:pointer">
+      <label style="display:flex;align-items:flex-start;gap:8px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:9px 11px;margin-bottom:14px;cursor:pointer">
         <input type="checkbox" id="am-skeleton" checked style="margin-top:2px;flex:none;accent-color:var(--color-accent)"/>
         <span style="font-size:13px"><b>${i18t('fa_skeleton')}</b>
           <span style="display:block;color:var(--color-neutral-600);line-height:1.5;margin-top:2px">${i18t('fa_skeleton_hint')}</span></span>
