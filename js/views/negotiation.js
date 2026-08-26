@@ -10359,17 +10359,61 @@ const _rlPbNorm = s => String(s || '').replace(/\s+/g, ' ').trim().toLowerCase()
 const RL_PB_MATCH_MIN = 0.7;    /* of the quote's own long words */
 const RL_PB_MATCH_LEAD = 0.15;  /* and clear of the runner-up by this much */
 const _rlPbWords = t => new Set(_rlPbNorm(t).split(/[^a-z0-9]+/).filter(Boolean));
-function rlPbFindClause(c, quote){
+/* ---- AND THE RULE'S OWN KIND NARROWS THE GUESS (owner-asked 26 Aug 2026) ----
+   The third and last of the playbook-scan fixes. A and the matcher's refusal
+   took the reported risk off the table; this is the one that stops the reading
+   being statistical — a payment rule may only ever touch a payment clause.
+
+   `category` IS THE RULE'S KIND, so there is nothing to configure: every
+   playbook position already names what it governs. Absent, this function
+   behaves exactly as it did before kinds existed, which is what keeps every
+   older caller untouched.
+
+   THE TWO PATHS ARE TREATED DIFFERENTLY AND THAT IS THE WHOLE SAFETY ARGUMENT:
+
+     · CONTAINMENT IS CERTAINTY AND THE KIND MAY NOT OVERRULE IT — but it is
+       certainty about ONE clause only. The same boilerplate sentence can sit
+       in two, and the old single pass returned whichever came first, silently.
+       So containment now collects its matches: exactly one is returned with
+       the kind never consulted; several are broken by kind; and a tie the kind
+       cannot break returns null rather than a coin toss, which is this
+       matcher's own standing rule.
+     · THE OVERLAP SCORE IS A GUESS, so the kind narrows the field before it
+       runs. A clause whose kind is UNKNOWN always stays a candidate — an
+       unheaded upload types as nothing, and dropping it would make a bad guess
+       hide a real finding, which is the mirror of the bug this all began with.
+
+   NARROWING TO NOTHING RETURNS NULL, and null is not lost: `landing` reads it
+   as 'unplaced', the rail draws it on neither list, and the whole-document
+   Playbook review names it with its quote so the reader can go and look. */
+function rlPbFindClause(c, quote, category){
   const q = _rlPbNorm(quote);
   if (!q) return null;
   const clauses = (typeof negoClauseList === 'function') ? negoClauseList(c) : [];
-  let best = null, bestScore = 0, runnerUp = 0;
-  const qw = q.split(/[^a-z0-9]+/).filter(w => w.length > 3);
+  const want = (typeof window !== 'undefined' && window.ruleKind) ? ruleKind(category) : null;
+  const kindOf = cl => (typeof window !== 'undefined' && window.clauseKind) ? clauseKind(cl) : null;
+
+  /* pass 1 — the quote really is in this clause */
+  const held = [];
   for (const cl of clauses){
     const l = _rlPbNorm(cl.text);
-    if (!l) continue;
-    if (l.includes(q) || q.includes(l)) return cl;   /* certain — not a guess */
-    if (!qw.length) continue;
+    if (l && (l.includes(q) || q.includes(l))) held.push(cl);
+  }
+  if (held.length === 1) return held[0];
+  if (held.length > 1){
+    if (!want) return held[0];                       /* exactly as it always was */
+    const right = held.filter(cl => kindOf(cl) === want);
+    return right.length === 1 ? right[0] : null;     /* a tie is still a no */
+  }
+
+  /* pass 2 — the guess, over candidates of the right kind */
+  const qw = q.split(/[^a-z0-9]+/).filter(w => w.length > 3);
+  if (!qw.length) return null;
+  const field = !want ? clauses
+    : clauses.filter(cl => { const k = kindOf(cl); return !k || k === want; });
+  let best = null, bestScore = 0, runnerUp = 0;
+  for (const cl of field){
+    if (!_rlPbNorm(cl.text)) continue;
     const have = _rlPbWords(cl.text);
     let hit = 0;
     for (const w of qw) if (have.has(w)) hit++;
@@ -10388,7 +10432,7 @@ function rlPlaybookProposals(c, rev){
   const lib = (window.clauseLibrary ? clauseLibrary() : []);
   for (const v of ((rev && rev.verdicts) || [])){
     if (!v || v.status === 'aligned') continue;
-    const cl = v.quote ? rlPbFindClause(c, v.quote) : null;
+    const cl = v.quote ? rlPbFindClause(c, v.quote, v.category) : null;
     const libCl = lib.find(x => _rlPbNorm(x.category) === _rlPbNorm(v.category)
       || _rlPbNorm(x.name) === _rlPbNorm(v.category)) || null;
     /* ---- OUR WORDING AND THE MODEL'S ARE TWO DIFFERENT THINGS ----

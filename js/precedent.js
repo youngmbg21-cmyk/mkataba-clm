@@ -50,32 +50,47 @@ function precedentFigure(text, unitRe){
    argument counted for nothing. Same family as the figure reader above — a
    pattern that silently finds nothing, on a feature whose only symptom is
    silence. Found 19 Aug 2026 while photographing the panel. */
-const PRECEDENT_TOPICS = [
-  { key:'payment',  category:'Payment terms',   clause:'cl-pay',
-    re:/\b(payment\w*|invoic\w*|net\s*\d|days? of receipt|payable)\b/i,
+/* ---- ONE TOPIC TABLE, AND IT LIVES IN js/clausemodel.js ----
+   (26 Aug 2026, when clause kinds were built.) This list carried the key, the
+   playbook category and the cue pattern; clause kinds needs exactly those three
+   to decide what a clause is for, and a second copy beside this one is the
+   duplication this codebase opens by warning about. CLAUSE_KINDS is now the one
+   vocabulary and this table JOINS its own numeric columns onto it by key —
+   num/unit/dir are precedent's arithmetic and belong here, because payment is
+   argued in days and liability in months.
+
+   NOTHING ABOUT THIS FEATURE MOVED: the keys, the categories, the cues and
+   above all the ORDER are the values that were written out here, and
+   precedentTopicOf still walks them first-match-wins. f222 is what proves it.
+
+   Read through window, the ES-module rule — but NOT guarded into silence: a
+   missing table here would make every precedent count quietly zero, which is
+   this feature's own recorded failure shape (a pattern whose only symptom is
+   silence). js/app.js imports clausemodel.js at line 10 and this file at 38,
+   and test/world.js loads clausemodel in its base list, so the absence would be
+   a broken build rather than a stage. */
+const PRECEDENT_NUMS = {
+  payment:{ clause:'cl-pay',
     /* The number that IS the position. Payment is argued in days and
        liability in months, so a settled figure is worth more than a settled
        clause: it can be compared, ranked, and offered as a fallback. */
     num:t=>{ const n=precedentFigure(t,'days?'); if(n!=null) return n;
       const net=String(t).match(/\bnet\s*(\d{1,3})\b/i); return net?Number(net[1]):null; },
     unit:'days', dir:'higher-is-worse' },
-  { key:'liability', category:'Liability cap',  clause:'cl-liab',
-    re:/\b(liabilit\w*|indemnif\w*|indemnit\w*|cap(?:ped)? at|aggregate liability)\b/i,
+  liability:{ clause:'cl-liab',
     num:t=>precedentFigure(t,'months?'),
     unit:'months', dir:'lower-is-worse' },
-  { key:'law',       category:'Governing law',  clause:'cl-law',
-    re:/\b(govern(?:ed|ing)\s+law|jurisdiction|forum|arbitrat\w*)\b/i, num:()=>null },
-  { key:'conf',      category:'Confidentiality', clause:'cl-conf',
-    re:/\b(confidential\w*|non-disclosure|secret\w*)\b/i,
+  law:{ clause:'cl-law', num:()=>null },
+  conf:{ clause:'cl-conf',
     num:t=>precedentFigure(t,'years?'),
     unit:'years', dir:'lower-is-worse' },
-  { key:'dp',        category:'Data protection', clause:'cl-dp',
-    re:/\b(data protection|personal data|odpc|gdpr)\b/i, num:()=>null },
-  { key:'term',      category:'Termination',    clause:'cl-term',
-    re:/\b(terminat\w*|notice period|cure period|material breach)\b/i,
+  dp:{ clause:'cl-dp', num:()=>null },
+  term:{ clause:'cl-term',
     num:t=>precedentFigure(t,"days?['’]?\\s*(?:written\\s+)?notice"),
     unit:'days', dir:'lower-is-worse' },
-];
+};
+const PRECEDENT_TOPICS = (window.CLAUSE_KINDS || []).map(k =>
+  Object.assign({ key:k.key, category:k.category, re:k.re }, PRECEDENT_NUMS[k.key] || { num:()=>null }));
 const precedentTopicByKey = k => PRECEDENT_TOPICS.find(t=>t.key===k)||null;
 /* Which standard a piece of wording is about. The clause LABEL is asked
    first — a heading says what a clause is for, and says it in fewer words

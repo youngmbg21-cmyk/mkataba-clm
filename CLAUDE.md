@@ -4002,6 +4002,103 @@ Tests: f203 (22 — the thirteenth-site walk, the ledger's shape, two members' c
 
 copilotPropose (js/ai.js, "WHICH CLAUSE THIS IS, SAID OUT LOUD") tells the model the passage is ONE clause so "4.2 … 4.3 …" is never read as two. The line used to state "Numbers inside it — 4.2, 4.3, (a), (b) — are sub-paragraphs", meaning the numbers as examples — and on a clause with NO numbering the model took them as fact, decided it had been shown a fragment, and refused to draft until "the full clause including its sub-paragraphs" was pasted in, naming those four example numbers back. THE RULE IS NOW AN "IF", NEVER AN ASSERTION: "If it contains numbered or lettered items (for example 4.2 or (a)), treat them as sub-paragraphs of that one clause… Do not ask for sub-paragraphs the passage does not show." Conditional wording was chosen over detecting numbering in the passage because a detector that misses one style (Roman numerals, "a." lists) silently brings the original two-clauses misreading back; an "if" costs nothing when false and binds the same when true. ONE SITE: every entry path — selection menu, clause button, refine, the phone — goes through copilotPropose, so there is no second copy of the line to fix. Tests: f98 both directions (the purpose survives on a numbered passage; the assertion is gone on a plain one).
 
+## A RULE ONLY TOUCHES A CLAUSE OF ITS OWN KIND (owner-asked 26 Aug 2026)
+
+The third and last of the playbook-scan fixes, built from
+WORKORDER-clause-kinds.md after the owner ruled yes. A and the matcher's
+refusal took the reported risk off the table; **this is the one that stops the
+reading being statistical.** Every clause gets a kind from its own heading,
+every playbook position already names the kind it governs — its CATEGORY is its
+name — and a rule may only ever reach a clause of its kind.
+
+**ONE TABLE, AND IT ALREADY EXISTED.** `js/precedent.js` has carried this exact
+vocabulary since W3-2 — key, playbook category, cue pattern — to decide which
+standard a settled argument was about. A second copy is the duplication this
+file opens by warning about, so **`CLAUSE_KINDS` in js/clausemodel.js is the one
+vocabulary and `PRECEDENT_TOPICS` is built FROM it**, joining its own numeric
+columns (`num`/`unit`/`dir`) on by key. **It lives in clausemodel because every
+test world already loads that file and none of them loads precedent.js** — put
+there, the feature would have been silently off in every existing world. f222
+(32) is what proves precedent did not move by a byte.
+
+**THEY ASK DIFFERENT WORDS OF IT, AND THAT IS NOT TWO READINGS.**
+`precedentTopicOf` reads a CHANGE, which has no heading of its own, so it asks
+the label then the wording. `clauseKind` reads a CLAUSE, which has one — and
+asks **THE HEADING AND NOTHING ELSE.**
+
+**WHY THE HEADING ALONE, since the body is right there.** A heading is the
+clause's own statement of what it is for, which is a FACT; a body is full of
+cross-references to other topics, which is a trap. A termination clause
+routinely says *"shall not affect accrued rights to payment"*, and a body
+reading types it as a payment clause — the mis-type then hides every
+termination finding, which is **the mirror of the reported bug and the one way
+this feature could do harm.** Heading-only cannot make that mistake: right on
+headed paper, BLANK on an unheaded wall of paragraphs, which is the safe answer
+rather than a guess. **This is stronger than the work order, which allowed the
+body as a fallback.**
+
+**A HEADING SAYS IT IN DIFFERENT WORDS FROM A BODY, and the measurement is what
+found it.** With the body cue alone, MEASURED on HaTi's own twelve built-in
+templates: **31% of clauses typed, and the misses included "Lease Charges" — the
+very clause from the report that started all this** — along with "Price &
+Contract Value", "Service Charge" and "Tolling Fee". A payment clause's BODY
+says *invoice* and *payable*; its HEADING says *Charges* or *Price*, and neither
+vocabulary contains the other. So each topic carries **both** `re` and `head`,
+and `clauseKind` matches on EITHER — it can only ADD coverage, never lose what
+the body cue already caught. **`re` IS UNTOUCHED**, which is what keeps
+precedent identical. **48% after**, and "Lease Charges" types as payment.
+
+**THE TWO PATHS THROUGH `rlPbFindClause` ARE TREATED DIFFERENTLY, and that is
+the whole safety argument:**
+- **CONTAINMENT IS CERTAINTY AND A KIND MAY NOT OVERRULE IT** — but it is
+  certainty about ONE clause only. The same boilerplate can sit in two, and the
+  old single pass returned whichever came first, **silently**. Containment now
+  collects its matches: exactly one is returned with the kind never consulted;
+  several are broken by kind; and a tie the kind cannot break returns null
+  rather than a coin toss, which is this matcher's own standing rule.
+- **THE OVERLAP SCORE IS A GUESS**, so the kind narrows the field before it
+  runs. **A clause whose kind is UNKNOWN always stays a candidate** — f131's
+  "an unknown clause kind stays a candidate" passes before AND after on purpose:
+  it is not a regression test, it is the WALL, and its job is to fail the day
+  somebody tightens this to "kind must MATCH" and quietly empties every unheaded
+  upload of its findings.
+
+**NARROWING TO NOTHING RETURNS NULL, AND NULL IS NOT LOST**: `landing` reads it
+as 'unplaced', the rail draws it on neither list, and the whole-document
+Playbook review names it with its quote so the reader can go and look.
+
+**`category` IS THE ONLY NEW ARGUMENT** and it is optional — absent, the matcher
+behaves exactly as it did, which is what leaves every older caller untouched.
+Two callers pass it: `rlPlaybookProposals` and `ceClauseDeviations`.
+
+**THE FIVE ACCEPTANCE CONDITIONS ARE TESTS, NOT ASPIRATIONS.** Nothing is
+printed and nothing is stored (a sweep over js/ and js/views/ that fails on the
+kind being interpolated into markup or assigned onto an object — `kind` alone is
+far too common a word here to sweep for); unsure holds nothing back; it only
+narrows and can never conjure a match; no new store and no route; the three
+landings unchanged.
+
+**WHAT THE MEASUREMENT SAYS ABOUT REACH, said out loud rather than claimed
+away.** On 50 real lawyer-marked agreements read as RAW TEXT, about half get at
+least one typed clause; per kind the heading types 10–21 of 50 while the subject
+appears in 46–49 of 50. So on third-party paper this fires perhaps half the
+time and is off the rest, which is the safe direction. Two caveats on that
+figure: the measurement's own heading detector is crude on raw text (HaTi reads
+headings from real `<h2>` elements, so its real coverage is higher), and
+data protection types 0/50 because the subject appears in only 1/50 of that
+largely pre-GDPR corpus — not a failure of the reader.
+
+**WHAT IS DELIBERATELY NOT DONE.** 'Quality & rejection' and 'Stamp duty' are
+playbook categories with no kind, so `ruleKind` answers null and the filter is
+off for them — correct, and cheaper than inventing cues nobody has measured. And
+the kind is used NOWHERE but this match: search, the register and the clause
+library are each their own decision with their own visible surface, and this one
+was ruled invisible.
+
+Tests: f131 Fix 2e (12 — 8 failing against the parent, the headline one
+reporting a Payment rule landing on the TERMINATION clause), f222 unchanged,
+f245 unchanged, clause-editor 91/91, redline 164/164, clause-door 99/99.
+
 ## COMMENTARY IS NOT WORDING, IN EITHER PERSON (owner-reported 26 Aug 2026)
 
 *"i asked copilot to replace an entire clause and this is what it did"* — over a

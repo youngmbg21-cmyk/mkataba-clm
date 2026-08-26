@@ -73,6 +73,99 @@ function clauseNewId(taken){
   throw new Error('clauseNewId: exhausted');
 }
 
+/* ============================================================================
+   WHAT A CLAUSE IS FOR — CLAUSE KINDS (owner-asked 26 Aug 2026)
+   ----------------------------------------------------------------------------
+   Built after the playbook scan offered to replace a lease-charges clause with
+   a data-protection clause. Two fixes had already landed: the rail refuses to
+   put a rule on a clause it did not locate, and the matcher refuses when it is
+   not sure. This is the third and it is the one that stops the reading being
+   statistical: a payment rule may only ever touch a payment clause.
+
+   ONE TABLE, AND IT ALREADY EXISTED. js/precedent.js has carried this exact
+   vocabulary since W3-2 — key, the playbook CATEGORY it answers to, and the
+   cue pattern — to decide which standard a settled argument was about. A
+   second copy here is precisely the duplication this codebase opens by warning
+   about, so PRECEDENT_TOPICS is built FROM this list and keeps its own numeric
+   columns (num/unit/dir) joined by key. Change a cue here and both move.
+
+   THEY ASK DIFFERENT WORDS OF IT, DELIBERATELY, and that is not two readings.
+   precedentTopicOf reads a CHANGE, which has no heading of its own, so it asks
+   the label and then the wording. clauseKind reads a CLAUSE, which does have
+   one — and asks THE HEADING AND NOTHING ELSE.
+
+   WHY THE HEADING ALONE, since the body is right there. A heading is the
+   clause's own statement of what it is for, which is a FACT; the body is full
+   of cross-references to other topics, which is a trap. A termination clause
+   routinely says "shall not affect accrued rights to payment", and a body
+   reading types it as a payment clause — the mis-type then hides a real
+   termination finding, which is the mirror of the reported bug and the one way
+   this feature could do harm. Heading-only cannot make that mistake: it is
+   right on headed paper, and BLANK on an unheaded wall of paragraphs, which is
+   the safe answer rather than a guess.
+
+   A HEADING SAYS IT IN DIFFERENT WORDS FROM A BODY, and that is what `head`
+   is for. MEASURED before it existed, on HaTi's own twelve built-in templates:
+   the body cue alone typed 31% of their clauses and missed *"Lease Charges"* —
+   the very clause from the report that started all this — along with *"Price &
+   Contract Value"*, *"Service Charge"* and *"Tolling Fee"*. A payment clause's
+   BODY says "invoice" and "payable"; its HEADING says "Charges" or "Price",
+   and neither vocabulary contains the other. So each topic carries both, and
+   `clauseKind` matches on EITHER — it can only ever add coverage, never lose
+   what the body cue already caught. **`re` IS UNTOUCHED**, which is what keeps
+   precedent byte-identical; f222 is the proof.
+
+   NULL IS A REAL ANSWER AND IT IS THE SAFE ONE. No heading, a heading matching
+   nothing, a category this workspace invented — all answer null, and a null on
+   either side means the match behaves exactly as it did before kinds existed.
+   ========================================================================== */
+const CLAUSE_KINDS = [
+  { key:'payment',   category:'Payment terms',
+    re:/\b(payment\w*|invoic\w*|net\s*\d|days? of receipt|payable)\b/i,
+    head:/\b(payment\w*|invoic\w*|charge\w*|fees?|price|pricing|consideration|remuneration|tolling|rent)\b/i },
+  { key:'liability', category:'Liability cap',
+    re:/\b(liabilit\w*|indemnif\w*|indemnit\w*|cap(?:ped)? at|aggregate liability)\b/i,
+    head:/\b(liabilit\w*|indemnif\w*|indemnit\w*)\b/i },
+  { key:'law',       category:'Governing law',
+    re:/\b(govern(?:ed|ing)\s+law|jurisdiction|forum|arbitrat\w*)\b/i,
+    head:/\b(govern(?:ed|ing)\s+law|jurisdiction|forum|arbitrat\w*|dispute\w*|applicable law)\b/i },
+  { key:'conf',      category:'Confidentiality',
+    re:/\b(confidential\w*|non-disclosure|secret\w*)\b/i,
+    head:/\b(confidential\w*|non-disclosure|secrecy|secret\w*)\b/i },
+  { key:'dp',        category:'Data protection',
+    re:/\b(data protection|personal data|odpc|gdpr)\b/i,
+    head:/\b(data protection|personal data|data privacy|privacy|odpc|gdpr)\b/i },
+  { key:'term',      category:'Termination',
+    re:/\b(terminat\w*|notice period|cure period|material breach)\b/i,
+    head:/\b(terminat\w*|duration|notice period|renewal)\b/i },
+];
+const clauseKindByKey = k => CLAUSE_KINDS.find(t => t.key === k) || null;
+
+/* The clause's own heading, and nothing else. First match wins, so the order
+   above is the order of specificity — a heading reading "Payment and
+   Termination" is a payment clause, which is what its own first word says. */
+function clauseKind(cl){
+  if (!cl) return null;
+  const head = String(cl.title || '').trim();
+  if (!head) return null;
+  for (const t of CLAUSE_KINDS) if ((t.head && t.head.test(head)) || t.re.test(head)) return t.key;
+  return null;
+}
+
+/* Which kind a playbook position governs. Its CATEGORY is its own name, so
+   there is nothing to configure and nothing for an admin to keep in step — the
+   whole reason this could be built invisibly. The exact category is asked
+   first; a workspace that named its own ("Payment schedule") falls to the cue,
+   and anything else answers null, which turns the filter off for that rule. */
+function ruleKind(category){
+  const cat = String(category == null ? '' : category).trim();
+  if (!cat) return null;
+  const lower = cat.toLowerCase();
+  for (const t of CLAUSE_KINDS) if (t.category.toLowerCase() === lower) return t.key;
+  for (const t of CLAUSE_KINDS) if (t.re.test(cat)) return t.key;
+  return null;
+}
+
 /* ---------- reading a heading ----------
    Both of these are the same clause 4:
 
@@ -870,6 +963,7 @@ function clauseRenumberPlan(clauses){
 
 if (typeof window !== 'undefined') Object.assign(window, {
   CLAUSE_HEADINGS, clauseNewId, clauseParseHeading, clauseLabel, clauseNumberGap,
+  CLAUSE_KINDS, clauseKindByKey, clauseKind, ruleKind,
   clauseSegment, clauseFrontMatter, clauseStampIds, clauseCarryIds, clauseList, clauseFindById,
   clauseReplaceBody, clauseReplaceHeading, clauseRemove, clauseInsert,
   clauseRefsInText, clauseResolveRefs, clauseRefNorm,

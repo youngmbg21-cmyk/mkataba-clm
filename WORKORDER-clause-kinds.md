@@ -1,9 +1,12 @@
 # WORK ORDER — clause kinds (option E)
 
 **Raised by:** Young, 26 Aug 2026, off the playbook-scan bug on a lease.
-**Status:** **PLAN ONLY — nothing here is built.** Written for a ruling, not
-for a branch. Options A, B, C and E's cheap half have shipped; this is what is
-left of E and it is the only piece that needs a decision before anyone starts.
+**Status:** **BUILT, 26 Aug 2026 — owner ruled yes.** THE MAP is the permanent
+record; read "A RULE ONLY TOUCHES A CLAUSE OF ITS OWN KIND" in CLAUDE.md before
+touching any of it. This file is kept for the reasoning behind the decision and
+for the four places the build DIFFERED from the plan, listed at the foot.
+
+What follows is the plan as it was put to the owner.
 
 ---
 
@@ -200,3 +203,43 @@ statistical and starts being explainable, and every later feature that wants to
 know what a clause is for gets it free.
 
 Either answer is defensible. Nothing else is blocked on it.
+
+
+---
+
+## WHAT THE BUILD DID DIFFERENTLY, AND WHY (26 Aug 2026)
+
+Four departures from the plan above. Each was forced by something measured
+rather than chosen.
+
+1. **THE HEADING ALONE, never the body.** The plan's option (a) read "the
+   heading and cue words". Measured against the risk it creates: a termination
+   clause routinely says *"shall not affect accrued rights to payment"*, and a
+   body reading types it as a payment clause — which then hides every
+   termination finding. That is the mirror of the reported bug and condition 2's
+   own stated harm. Heading-only cannot make it.
+
+2. **EACH TOPIC CARRIES TWO CUE SETS, and the measurement is what found it.**
+   With the body cue alone, HaTi's own twelve templates typed at **31%**, and
+   the misses included **"Lease Charges" — the very clause from the report.** A
+   payment clause's body says *invoice*; its heading says *Charges*. So `head`
+   sits beside `re` and `clauseKind` matches on either. **48% after.**
+
+3. **THE TABLE LIVES IN js/clausemodel.js, NOT ITS OWN NEW FILE, and precedent
+   READS it.** The plan said `CLAUSE_KINDS` without saying where. It had to be
+   clausemodel because every test world already loads that file and **none of
+   them loads precedent.js** — anywhere else, the feature would have been
+   silently off in every existing world.
+
+4. **CONTAINMENT GOT A TIE-BREAK the plan did not ask for.** A verbatim quote is
+   certainty about ONE clause; the same boilerplate can sit in two, and the old
+   code returned whichever came first, silently. Several matches are now broken
+   by kind, and a tie the kind cannot break returns null.
+
+**WHAT THE PLAN GOT RIGHT AND IS UNCHANGED:** the five acceptance conditions,
+all of which are tests; `ruleKind` from the existing categories with nothing to
+configure; deterministic only, no model; and nothing printed anywhere.
+
+**THE MEASUREMENT THE PLAN ASKED FOR WAS RUN** and its answer is in THE MAP: on
+50 real agreements read as raw text, about half get at least one typed clause.
+Reach on third-party paper is roughly half, and off — safely — the rest.

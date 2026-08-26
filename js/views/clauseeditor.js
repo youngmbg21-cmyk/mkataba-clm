@@ -1516,7 +1516,7 @@ function ceClauseDeviations(){
   if (!window.rlPbFindClause) return [];
   return all.filter(v => {
     if (!v.quote) return false;
-    try{ const cl = rlPbFindClause(_ceC, v.quote); return !!cl && cl.clauseId === _ceClauseId; }
+    try{ const cl = rlPbFindClause(_ceC, v.quote, v.category); return !!cl && cl.clauseId === _ceClauseId; }
     catch(_){ return false; }
   });
 }

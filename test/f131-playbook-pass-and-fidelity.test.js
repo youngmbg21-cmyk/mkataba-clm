@@ -26,6 +26,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { buildWorld } = require('./world');
 
+const ROOT = path.join(__dirname, '..');
+
 const BASE = [
   'RAW MATERIAL SUPPLY AGREEMENT',
   '1. SUPPLY',
@@ -361,5 +363,214 @@ describe('F131 — Fix 4: where the negotiation started, and what actually moved
     const journey = win.negoClauseJourney(c);
     assert.equal(journey.length, 1, 'one clause moved; the rejected ask is not a move');
     assert.equal(journey[0].n, 1);
+  });
+});
+
+/* ============================================================
+   F131 — FIX 2e: CLAUSE KINDS (owner-asked 26 Aug 2026)
+   ============================================================
+   The third and last of the playbook-scan fixes, and the one that stops the
+   reading being statistical: every clause gets a kind from its own heading,
+   every playbook position already names the kind it governs — its category IS
+   its name — and a rule may only touch a clause of its kind.
+
+   The five acceptance conditions from WORKORDER-clause-kinds.md are the spec,
+   and each one is a test below rather than an aspiration. */
+describe('f131 — Fix 2e: a rule only touches a clause of its own kind', () => {
+  const KINDED = [
+    'SUPPLY AND DISTRIBUTION AGREEMENT',
+    '1. PAYMENT TERMS',
+    '1. All invoices are payable within 90 days from the date of invoice, and any sum '
+      + 'not paid when due shall carry interest at 2% per month above base rate.',
+    '2. TERMINATION',
+    '2. Either party may end this agreement on 30 days notice, and such ending shall '
+      + 'not affect any accrued right to payment of invoices already issued.',
+    '3. LIMITATION OF LIABILITY',
+    '3. The aggregate liability of either party shall be capped at 12 months of fees.',
+  ].join('\n');
+
+  async function kindWorld(text = KINDED){
+    const w = buildWorld({ negotiationView: true, playbook: true });
+    const { win } = w;
+    const c = contractFixture({ redlineText: text });
+    if (typeof win.cKind !== 'function') win.cKind = () => 'raw material supply';
+    win.negoInit(c);
+    win.state = Object.assign({}, win.state, { contracts: [c], activeId: c.id });
+    win.getContract = id => (id === c.id ? c : null);
+    return { win, c };
+  }
+
+  /* ---- the reading itself ---- */
+  test('a clause is typed from its own HEADING, never from its body', async () => {
+    const { win, c } = await kindWorld();
+    const [pay, term, liab] = win.negoClauseList(c);
+    assert.equal(win.clauseKind(pay), 'payment');
+    assert.equal(win.clauseKind(liab), 'liability');
+    /* THE ONE THAT MATTERS. Clause 2's body says "accrued right to payment of
+       invoices" — a body reading types it as a payment clause and then hides
+       every termination finding, which is the mirror of the reported bug. */
+    assert.equal(win.clauseKind(term), 'term',
+      'the heading says Termination; the body mentioning payment must not overrule it');
+  });
+
+  test('no heading, no kind — and that is the safe answer, not a failure', async () => {
+    const { win, c } = await kindWorld(
+      'The Supplier shall invoice monthly and the Customer shall pay within 90 days.\n\n'
+      + 'Either party may terminate on 30 days notice.');
+    for (const cl of win.negoClauseList(c))
+      assert.equal(win.clauseKind(cl), null,
+        'an unheaded upload types as nothing rather than being guessed at');
+  });
+
+  test('a HEADING says it in different words from a BODY, and both are read', () => {
+    /* MEASURED before this existed: the body cue alone typed 31% of HaTi's own
+       twelve templates and missed "Lease Charges" — the very clause from the
+       report that started all this. A payment clause's body says "invoice";
+       its heading says "Charges". Neither vocabulary contains the other. */
+    const w = buildWorld({});
+    const { win } = w;
+    const k = t => win.clauseKind({ title: t });
+    assert.equal(k('Lease Charges'), 'payment', 'the reported clause, by name');
+    for (const [t, want] of [
+      ['Price & Contract Value', 'payment'], ['Service Charge', 'payment'],
+      ['Tolling Fee & Contract Value', 'payment'], ['Consideration', 'payment'],
+      ['Payment Terms', 'payment'], ['Dispute Resolution', 'law'],
+      ['Term and Termination', 'term'], ['Data Privacy', 'dp'],
+      ['Limitation of Liability', 'liability'], ['Confidentiality', 'conf'],
+    ]) assert.equal(k(t), want, t);
+  });
+
+  test('and it does not type a heading no playbook rule governs', () => {
+    const w = buildWorld({});
+    const { win } = w;
+    for (const t of ['Quality & Rejection', 'Force Majeure', 'Insurance', 'Notices',
+      'Assignment', 'Feedback', 'Background', 'Interpretation', 'Exhibit A'])
+      assert.equal(win.clauseKind({ title: t }), null,
+        `"${t}" — a wrong kind hides a real finding, so blank is the safe answer`);
+  });
+
+  test('a rule\'s kind is its own category, and an unknown one answers null', () => {
+    const w = buildWorld({});
+    const { win } = w;
+    assert.equal(win.ruleKind('Payment terms'), 'payment');
+    assert.equal(win.ruleKind('Data protection'), 'dp');
+    assert.equal(win.ruleKind('Liability cap'), 'liability');
+    assert.equal(win.ruleKind('Payment schedule'), 'payment',
+      'a workspace that named its own category falls to the cue');
+    assert.equal(win.ruleKind('Quality & rejection'), null,
+      'a category the table does not cover turns the filter OFF for that rule');
+    assert.equal(win.ruleKind(''), null);
+    assert.equal(win.ruleKind(null), null);
+  });
+
+  /* ---- condition 3: it only ever narrows ---- */
+  test('THE FIX: a rule cannot reach a clause of another kind on the guess path', async () => {
+    const { win, c } = await kindWorld();
+    /* A quote that is NOT verbatim, and whose words are spread so the overlap
+       score lands it on the TERMINATION clause. The three answers below are
+       the whole feature, and they are asserted by CLAUSE rather than by kind
+       so the claim reads the same on the code that has this and the code that
+       does not. */
+    const q = 'ending this agreement on notice shall not affect accrued right to payment of invoices';
+    const [pay, term] = win.negoClauseList(c);
+    assert.equal(win.rlPbFindClause(c, q).clauseId, term.clauseId,
+      'with no kind the guess lands on Termination — this is what shipped');
+    assert.equal(win.rlPbFindClause(c, q, 'Payment terms'), null,
+      'THE FIX: asked as a Payment rule it refuses, because the only clause it '
+      + 'could reach is a termination clause');
+    assert.equal(win.rlPbFindClause(c, q, 'Termination').clauseId, term.clauseId,
+      'and asked as the rule it really is, it lands exactly where it did — the '
+      + 'kind narrows the wrong answers away, it does not narrow the right one');
+    assert.notEqual(pay.clauseId, term.clauseId);
+  });
+
+  test('it NARROWS and never promotes — a rule cannot conjure a match', async () => {
+    const { win, c } = await kindWorld();
+    const q = 'wording that appears nowhere in this agreement whatsoever at all';
+    assert.equal(win.rlPbFindClause(c, q), null, 'no match without a kind');
+    assert.equal(win.rlPbFindClause(c, q, 'Payment terms'), null,
+      'and none with one — the kind removes candidates, it never adds one');
+  });
+
+  /* ---- condition 2: unsure holds nothing back ---- */
+  test('an unknown clause kind stays a candidate', async () => {
+    const { win, c } = await kindWorld(
+      'PREAMBLE\n\nThis agreement is made between the parties.\n\n'
+      + 'ORDERING\n\nThe Customer shall submit purchase orders which are payable '
+      + 'within 90 days of the date of each invoice issued by the Supplier.');
+    const target = win.negoClauseList(c).find(cl => /payable within 90/.test(cl.text));
+    assert.equal(win.clauseKind(target), null, 'the fixture really is untyped');
+    const q = 'purchase orders which are payable within 90 days of the date of each invoice';
+    /* THIS ONE PASSES BOTH BEFORE AND AFTER, DELIBERATELY. It is not a
+       regression test — it is the wall. Its job is to fail the day somebody
+       tightens the filter to "kind must MATCH" and quietly empties every
+       unheaded upload of its findings. */
+    assert.equal(win.rlPbFindClause(c, q, 'Payment terms').clauseId, target.clauseId,
+      'a bad guess must never make a finding quietly vanish — the one way this could do harm');
+  });
+
+  test('containment is certainty and the kind never overrules it', async () => {
+    const { win, c } = await kindWorld();
+    const liab = win.negoClauseList(c)[2];
+    const verbatim = liab.text.slice(0, 60);
+    /* Asked under the WRONG kind on purpose: the quote is demonstrably inside
+       that clause, so the answer is a fact and not this feature's to move. */
+    assert.equal(win.rlPbFindClause(c, verbatim, 'Payment terms').clauseId, liab.clauseId,
+      'the quote is in that clause — a kind may not overrule a certainty');
+  });
+
+  /* ---- condition 5: the three landings are unchanged ---- */
+  test('the three landings still mean what they meant', async () => {
+    const { win, c } = await kindWorld();
+    const pay = win.negoClauseList(c)[0];
+    win.clauseLibrary = () => ([{ id:'cl-pay', category:'Payment terms',
+      name:'Pay in 30', preferred:'Payment within thirty (30) days.', fallback:'' }]);
+    const items = win.rlPlaybookProposals(c, { verdicts: [
+      { category:'Payment terms', status:'deviation', quote: pay.text.slice(0, 60),
+        position:'30 days', redline:'', escalate:false },
+      { category:'Payment terms', status:'missing', quote:'',
+        position:'30 days', redline:'', escalate:false },
+      { category:'Payment terms', status:'deviation',
+        quote:'wording that is nowhere in this agreement at all whatsoever',
+        position:'30 days', redline:'', escalate:false },
+    ] });
+    assert.deepEqual(items.map(i => i.landing).join('|'), 'edit|add|unplaced',
+      'located, missing, and could-not-place — unchanged by kinds');
+  });
+
+  /* ---- condition 1 and 4: nothing printed, nothing stored ---- */
+  test('nothing is printed and nothing is stored', () => {
+    const dirs = ['js', 'js/views'];
+    const drawn = [];
+    for (const d of dirs)
+      for (const f of fs.readdirSync(path.join(ROOT, d)).filter(n => n.endsWith('.js'))){
+        if (d + '/' + f === 'js/clausemodel.js') continue;   /* where it is defined */
+        const src = fs.readFileSync(path.join(ROOT, d, f), 'utf8')
+          .replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
+        /* the kind may be ASKED anywhere; it may never be interpolated into
+           markup, nor written onto a record */
+        if (/\$\{[^}]*clauseKind\(/.test(src)) drawn.push(d + '/' + f + ' — drawn');
+        /* Assigning the answer onto an OBJECT is the storing shape; a local
+           `const k = clauseKind(cl)` is just asking, and asking is allowed
+           anywhere. `kind` on its own is far too common a word in this
+           codebase to sweep for — contract kind, toast kind, alert kind. */
+        if (/\.\w+\s*=\s*clauseKind\(|\b\w+:\s*clauseKind\(/.test(src))
+          drawn.push(d + '/' + f + ' — stored');
+      }
+    assert.deepEqual(drawn, [],
+      'owner-ruled: the label is never visible, and a derived field written back '
+      + 'into a record is stale the moment the wording is re-read');
+  });
+
+  test('ONE table — precedent reads it rather than keeping a second copy', () => {
+    const prec = fs.readFileSync(path.join(ROOT, 'js/precedent.js'), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, ' ');
+    assert.match(prec, /CLAUSE_KINDS/, 'precedent builds its topics from the shared list');
+    assert.ok(!/re:\s*\/\\b\(payment/.test(prec),
+      'and no longer types its own cue patterns — two copies is how they drift');
+    const model = fs.readFileSync(path.join(ROOT, 'js/clausemodel.js'), 'utf8');
+    assert.match(model, /const CLAUSE_KINDS = \[/, 'the one table');
+    assert.ok(!/api\(|fetch\(/.test(model.replace(/\/\*[\s\S]*?\*\//g, ' ')),
+      'no route: what a clause is for is this workspace\'s own business');
   });
 });
