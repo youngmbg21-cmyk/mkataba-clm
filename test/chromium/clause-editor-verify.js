@@ -816,6 +816,131 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      theirVerbs.none ? 'no accept verb on their page'
        : `${theirVerbs.id} now offers ${JSON.stringify(theirVerbs.verbs)}`);
 
+  /* ==========================================================================
+     12. TWO LISTS, TWO VERBS — a rule that is not about this clause
+     --------------------------------------------------------------------------
+     OWNER-REPORTED 26 Aug 2026: on a LEASE CHARGES clause the scan rail listed a
+     DATA PROTECTION rule and its "Use our standard" struck out the whole
+     lease-charge sentence and put a data protection paragraph in its place.
+
+     The rules are pinned in f245. What is asked HERE is what jsdom cannot
+     answer: that both group headings are PAINTED, that the missing card's verbs
+     are visible pixels rather than markup nobody can reach (f180's rule, which
+     this project has shipped the wrong side of before), that the missing card
+     draws NO strike-through against the open clause, and that a REAL press on a
+     REAL delegated listener files a new clause instead of overwriting the one on
+     screen.
+
+     THE CLAUSE LIBRARY IS SUPPLIED ON THE STAGE. parity.html does not load
+     js/playbook.js and is shared by ten browser files, so it is not this
+     change's to add a script to; the library is stood up here instead, in the
+     shape the product's own returns. The claim that "our standard" is the
+     WORKSPACE'S wording is a data claim and is proved in f131 and f245 against
+     the real library — this file proves the pixels and the press.
+     ========================================================================== */
+  await p.evaluate(() => {
+    if (window.rlSetReadMode) rlSetReadMode('marks');
+    window.clauseLibrary = () => ([
+      { id:'cl-pay', category:'Payment terms', name:'Payment within 30 days',
+        preferred:'The Buyer shall pay each undisputed invoice within thirty (30) days of receipt.',
+        fallback:'Payment within forty-five (45) days of a valid invoice.' },
+      { id:'cl-dp', category:'Data protection', name:'Data Protection Act 2019 compliance',
+        preferred:'Where personal data is processed, each party complies with the Data Protection Act, 2019 and applicable ODPC guidance.',
+        fallback:'The parties comply with the Data Protection Act, 2019.' },
+    ]);
+    const cls = negoClauseList(window.CONTRACT);
+    const here = cls[0];
+    window.CONTRACT.playbook = { key:'x', label:'test', source:'ai', verdicts: [
+      { category:'Payment terms', status:'deviation', quote: here.text.slice(0, 60),
+        position:'Payment due within 30 days',
+        redline:'The Buyer shall pay within thirty (30) days of the invoice date.', escalate:false },
+      { category:'Data protection', status:'missing', quote:'',
+        position:'Data protection clause preferred where personal data is involved',
+        redline:'Insert a data protection clause addressing GDPR obligations.', escalate:false },
+    ] };
+    window.rlOpenClauseEditor(window.CONTRACT, here.clauseId, {});
+  });
+  await pause(600);
+  await p.click('#clause-editor [data-ce-tab="scan"]');
+  await pause(300);
+
+  const rail = await p.evaluate(() => {
+    const seen = el => { if (!el) return false;
+      const r = el.getBoundingClientRect();
+      return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'; };
+    const page = document.getElementById('clause-editor');
+    const heads = [...page.querySelectorAll('.ce-scan-h')]
+      .filter(seen).map(h => h.textContent.replace(/\s+/g, ' ').trim());
+    const cards = [...page.querySelectorAll('.ce-rule')];
+    const miss = cards.find(el => /Data protection/.test(el.textContent));
+    const here = cards.find(el => /Payment terms/.test(el.textContent));
+    const verbsOf = el => el ? [...el.querySelectorAll('[data-ce-scan]')]
+      .filter(seen).map(b => b.textContent.replace(/\s+/g, ' ').trim()) : [];
+    const pv = miss ? miss.querySelector('.pv') : null;
+    return {
+      heads,
+      missVerbs: verbsOf(miss), hereVerbs: verbsOf(here),
+      missMarks: pv ? pv.querySelectorAll('del, ins').length : -1,
+      hereMarks: here && here.querySelector('.pv')
+        ? here.querySelector('.pv').querySelectorAll('del, ins').length : -1,
+      missLine: miss ? (miss.querySelector('.l') || {}).textContent || '' : '',
+      pvk: miss ? (miss.querySelector('.pvk') || {}).textContent || '' : '',
+    };
+  });
+  ck('12a both group headings are painted, and the second carries its promise',
+     rail.heads.length === 2 && /This clause/.test(rail.heads[0])
+       && /Missing from the contract/.test(rail.heads[1])
+       && /never replace the clause you are in/.test(rail.heads[1]),
+     JSON.stringify(rail.heads));
+  ck('12b every verb on a missing rule ADDS — none of them offers to replace',
+     rail.missVerbs.length > 0 && rail.missVerbs.every(v => /^Add /.test(v))
+       && !rail.missVerbs.some(v => /^Use /.test(v)),
+     JSON.stringify(rail.missVerbs));
+  ck('12c a located rule keeps the USE verbs, so the split is real either way',
+     rail.hereVerbs.length > 0 && rail.hereVerbs.every(v => /^Use /.test(v)),
+     JSON.stringify(rail.hereVerbs));
+  ck('12d the missing card marks up nothing of the clause on screen',
+     rail.missMarks === 0 && rail.hereMarks > 0,
+     `missing ${rail.missMarks} marks, located ${rail.hereMarks}`);
+  ck('12e "our standard" leads the preview and says whose wording it is',
+     /Our standard/.test(rail.pvk), rail.pvk);
+  /* THE SEPARATOR CLAIM IS NOT ASKED HERE, and that is deliberate rather than an
+     omission. The doubly-escaped "&middot;" came out of pbVerdictLine, which
+     lives in js/playbook.js — absent from this stage, so the rail correctly
+     falls back to the bare position and there is no separator to measure. It is
+     a text claim, jsdom answers it with the real module loaded, and f245 (12)
+     does exactly that and fails against the old code. Stubbing the function
+     here would only prove the stub. */
+
+  /* THE PRESS ITSELF — through the page's own delegated listener. */
+  const pressed = await p.evaluate(async () => {
+    const c = window.CONTRACT;
+    const before = negoChanges(c).length;
+    const id = clauseEditorClauseId();
+    const wordingBefore = String((negoClauseNowById(c, id) || {}).text || '');
+    const btn = [...document.querySelectorAll('#clause-editor [data-ce-scan]')]
+      .find(b => /^Add our standard$/.test(b.textContent.trim()));
+    if (!btn) return { none: true };
+    btn.click();
+    await new Promise(r => setTimeout(r, 400));
+    const chs = negoChanges(c);
+    const ch = chs[chs.length - 1];
+    return { none: false, grew: chs.length - before,
+      type: ch && ch.changeType, status: ch && ch.status,
+      clauseHeld: String((negoClauseNowById(c, id) || {}).text || '') === wordingBefore,
+      settled: /Added as a new clause/.test(document.getElementById('clause-editor').innerHTML) };
+  });
+  ck('12f with no playbook module the line degrades to the position — never blank, never an entity',
+     rail.missLine.trim().length > 0 && !/&middot;|&amp;/.test(rail.missLine), rail.missLine);
+  ck('12g pressing Add files ONE new clause as a proposal',
+     !pressed.none && pressed.grew === 1 && pressed.type === 'insertClause'
+       && pressed.status === 'pending',
+     pressed.none ? 'no Add button found' : `${pressed.grew} change, ${pressed.type}/${pressed.status}`);
+  ck('12h and the clause the reader had open is untouched',
+     !pressed.none && pressed.clauseHeld === true, String(pressed.clauseHeld));
+  ck('12i the card settles rather than offering the same press again',
+     !pressed.none && pressed.settled === true, String(pressed.settled));
+
   /* ---- 10. NO PAGE ERRORS THROUGHOUT ---- */
   ck('10 the whole journey ran with no page errors', errs.length === 0, errs.join(' | ') || 'none');
 

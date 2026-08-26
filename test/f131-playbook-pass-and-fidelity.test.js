@@ -145,6 +145,75 @@ describe('F131 — Fix 2: the playbook pass proposes, a person disposes', () => 
   });
 });
 
+/* ============ OUR WORDING AND THE MODEL'S ARE TWO DIFFERENT THINGS ============
+   Owner-reported 26 Aug 2026: a card labelled "Use our standard" served
+   Copilot's improvisation — an instruction to a drafter citing GDPR — while the
+   workspace's own approved Kenyan clause sat on the quieter button beside it.
+   `preferred` read `v.redline || libCl.preferred`, the MODEL'S suggestion
+   FIRST, and every surface then printed it under the workspace's name.
+
+   Three named slots now. Nothing is lost and nothing wears another's label. */
+describe('F131 — Fix 2b: whose wording is whose', () => {
+  /* A review whose redline deliberately DIFFERS from the clause library, which
+     is the only shape that can tell the two apart. */
+  const rev = () => ({ verdicts: [
+    { category: 'Data protection', status: 'missing', quote: '',
+      position: 'Data protection clause preferred where personal data is involved',
+      redline: 'Insert a data protection clause addressing GDPR obligations.', escalate: false },
+  ] });
+
+  test('preferred is the clause library\'s wording, never the model\'s', async () => {
+    const { win, c } = await world();
+    const it = win.rlPlaybookProposals(c, rev())[0];
+    assert.ok(it, 'the verdict still proposes');
+    assert.match(it.preferred, /Data Protection Act, 2019/,
+      'our standard is the approved wording out of the clause library');
+    assert.ok(!/GDPR/.test(it.preferred), 'and never what the model wrote');
+  });
+
+  test('the model\'s wording is kept — under its own name', async () => {
+    const { win, c } = await world();
+    const it = win.rlPlaybookProposals(c, rev())[0];
+    assert.match(it.draft, /GDPR/, 'a draft carries the model\'s suggestion');
+    assert.equal(it.leadKind, 'standard',
+      'and the approved wording is what a card previews when there is one');
+    assert.equal(it.lead, it.preferred, 'the preview and the first button agree');
+  });
+
+  test('a draft that merely repeats a library wording is not offered twice', async () => {
+    const { win, c } = await world();
+    const lib = win.clauseLibrary().find(x => x.category === 'Data protection');
+    const r = rev(); r.verdicts[0].redline = lib.preferred;
+    const it = win.rlPlaybookProposals(c, r)[0];
+    assert.equal(it.draft, '', 'the same words under two names is two buttons doing one thing');
+    assert.equal(it.preferred, lib.preferred, 'and the approved one is the one that stands');
+  });
+
+  test('a position the library has no entry for still proposes — as a draft', async () => {
+    const { win, c } = await world();
+    const r = { verdicts: [{ category: 'Nothing we hold wording for', status: 'missing',
+      quote: '', position: 'a position', redline: 'Some wording the model wrote.', escalate: false }] };
+    const it = win.rlPlaybookProposals(c, r)[0];
+    assert.ok(it, 'the finding is not thrown away for want of a library entry');
+    assert.equal(it.preferred, '', 'there is no approved wording to claim');
+    assert.equal(it.leadKind, 'draft', 'so the card leads with the draft');
+    assert.equal(it.lead, it.draft, 'and says so');
+  });
+
+  test('the review modal offers the draft, and draws no button with nothing behind it', async () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const SRC = fs.readFileSync(path.join(__dirname, '..', 'js/views/negotiation.js'), 'utf8');
+    assert.match(SRC, /data-pbr-draft/, 'the draft is reachable on that screen too');
+    assert.match(SRC, /it\.draft \? `<button data-pbr-draft/,
+      'and only where there is a draft to file');
+    assert.match(SRC, /it\.preferred \? `<button data-pbr-go/,
+      'the preferred button used to draw unconditionally — a press that filed nothing');
+    assert.match(SRC, /redlineStructuredHtml\(it\.oldText, it\.lead\)/,
+      'the preview draws the same wording the first button serves');
+  });
+});
+
 describe('F131 — Fix 1 / OI-5: the seam between a deletion and its replacement', () => {
   test('the seam is opened by CSS, and by CSS alone — the renderer stays byte-honest', async () => {
     const fs = require('node:fs');

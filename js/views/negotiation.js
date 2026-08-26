@@ -10368,17 +10368,52 @@ function rlPlaybookProposals(c, rev){
     const cl = v.quote ? rlPbFindClause(c, v.quote) : null;
     const libCl = lib.find(x => _rlPbNorm(x.category) === _rlPbNorm(v.category)
       || _rlPbNorm(x.name) === _rlPbNorm(v.category)) || null;
-    const preferred = String(v.redline || (libCl ? libCl.preferred : '') || '').trim();
+    /* ---- OUR WORDING AND THE MODEL'S ARE TWO DIFFERENT THINGS ----
+       (owner-reported 26 Aug 2026, off a lease whose data-protection card
+       offered to insert a GDPR paragraph.) `preferred` used to read
+       `v.redline || libCl.preferred` — the MODEL'S suggestion first — and every
+       surface then printed it under a button reading "Use our standard". So a
+       workspace whose approved position is the Data Protection Act, 2019 was
+       shown Copilot's improvisation, citing the wrong country's regime, wearing
+       a label that says somebody here approved it. The reader had no way to
+       tell the two apart, and the one that WAS approved sat on the quieter
+       button beside it.
+
+       THREE NAMED WORDINGS NOW, AND NOTHING IS LOST. `preferred` and
+       `fallback` are the clause library's — the workspace's own, approved,
+       editable in Settings — and `draft` is what Copilot wrote. Each keeps its
+       own slot, so a surface can offer all three and NAME each one; what it may
+       no longer do is print one under the other's name. A draft that merely
+       repeats a library wording is dropped rather than drawn twice.
+
+       `lead` is which of the three a card should PREVIEW, in that order, so the
+       preview and the first button can never disagree about what a press does.
+       It is deliberately not "whichever is best" — that judgement belongs to
+       whoever is reading, and the three buttons are how they make it. */
+    const preferred = String((libCl && libCl.preferred) || '').trim();
     let fallback = String((libCl && libCl.fallback) || '').trim();
     if (fallback && fallback === preferred) fallback = '';
-    if (!preferred && !fallback) continue;   // review-only verdict — nothing proposable
+    let draft = String((v && v.redline) || '').trim();
+    if (draft && (draft === preferred || draft === fallback)) draft = '';
+    if (!preferred && !fallback && !draft) continue;   // review-only verdict — nothing proposable
     out.push({ v, clauseId: cl ? cl.clauseId : null,
       clauseLabel: cl && window.negoClauseLabel ? negoClauseLabel(cl) : '',
       oldText: cl ? cl.text : '',
-      preferred: preferred || fallback, fallback: preferred ? fallback : '',
+      preferred, fallback, draft,
+      lead: preferred || fallback || draft,
+      leadKind: preferred ? 'standard' : (fallback ? 'fallback' : 'draft'),
       risk: v.escalate ? 'high' : 'medium' });
   }
   return out;
+}
+/* WHOSE WORDING IS THIS — ONE NAMING, EVERY SURFACE. The clause editor's scan
+   rail and the Playbook review modal both print it, and a second copy is how
+   two screens come to call the same thing by two different names. A getter map
+   is deliberately NOT used: this resolves at the moment it is read, so it
+   follows a reader who switches language mid-sitting. */
+const RL_PB_WORDING_KEY = { standard: 'pb_w_ours', fallback: 'pb_w_fallback', draft: 'pb_w_draft' };
+function rlPbWordingLabel(kind){
+  return i18t(RL_PB_WORDING_KEY[kind] || RL_PB_WORDING_KEY.standard);
 }
 /* File one proposal. A located clause is a modify through negoEditClause —
    merged into the clause's own markup — and a missing position is an insert
@@ -10457,18 +10492,26 @@ async function rlOpenPlaybookReview(c, again){
         : (it.clauseLabel ? `deviation &middot; ${_ne(it.clauseLabel)}` : 'deviation')}</span>
     </div>
     ${it.v.position ? `<div style="font-size:var(--t-meta);color:var(--color-neutral-600);margin-top:5px;line-height:1.5">${_ne(String(it.v.position))}</div>` : ''}
+    ${''/* THE PREVIEW NAMES WHOSE WORDING IT IS, and it draws `lead` — the same
+           order the buttons run in — so the picture and the first press can
+           never describe different wording. */}
+    <div style="margin-top:var(--s-2);font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)">${_ne(rlPbWordingLabel(it.leadKind))}</div>
     ${it.oldText && window.redlineStructuredHtml
-      ? `<div style="margin-top:var(--s-2);font-size:var(--t-meta);line-height:1.7;border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-2) 10px;max-height:150px;overflow:auto">${redlineStructuredHtml(it.oldText, it.preferred)}</div>`
-      : `<div style="margin-top:var(--s-2);font-size:var(--t-meta);line-height:1.6;border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-2) 10px;max-height:150px;overflow:auto">${_ne(it.preferred)}</div>`}
-    <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:9px" data-pbr-verbs="${i}">
+      ? `<div style="margin-top:4px;font-size:var(--t-meta);line-height:1.7;border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-2) 10px;max-height:150px;overflow:auto">${redlineStructuredHtml(it.oldText, it.lead)}</div>`
+      : `<div style="margin-top:4px;font-size:var(--t-meta);line-height:1.6;border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-2) 10px;max-height:150px;overflow:auto">${_ne(it.lead)}</div>`}
+    ${''/* A BUTTON IS DRAWN ONLY WHERE ITS WORDING EXISTS. The preferred one
+           used to draw unconditionally, so a position the clause library has
+           no entry for offered a press that files nothing. */}
+    <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:9px;flex-wrap:wrap" data-pbr-verbs="${i}">
       <button data-pbr-skip="${i}" class="ui-btn" style="font-size:var(--t-label);padding:var(--s-1) 11px">${i18t('ng_skip')}</button>
+      ${it.draft ? `<button data-pbr-draft="${i}" class="ui-btn" style="font-size:var(--t-label);padding:var(--s-1) 11px" title="${_nea(i18t('ng_file_draft_title'))}">${i18t('ng_file_draft')}</button>` : ''}
       ${it.fallback ? `<button data-pbr-fb="${i}" class="ui-btn" style="font-size:var(--t-label);padding:var(--s-1) 11px" title="${i18t('ng_file_fallback_title')}">${i18t('ng_file_fallback')}</button>` : ''}
-      <button data-pbr-go="${i}" class="ui-btn ui-btn-primary" style="font-size:var(--t-label);padding:var(--s-1) 11px" title="${_nea(i18t('ng_file_preferred_title'))}">${i18t('ng_file_preferred')}</button>
+      ${it.preferred ? `<button data-pbr-go="${i}" class="ui-btn ui-btn-primary" style="font-size:var(--t-label);padding:var(--s-1) 11px" title="${_nea(i18t('ng_file_preferred_title'))}">${i18t('ng_file_preferred')}</button>` : ''}
     </div>
   </div>`;
   openModal(`<div style="padding:20px var(--s-6);max-height:calc(100vh - 80px);overflow-y:auto">
     <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;margin:0 0 var(--s-1)">&#10022; ${i18tn('ng_playbook_review',items.length,{n:items.length})}</h2>
-    <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 14px;line-height:1.55">${aligned} position${aligned === 1 ? '' : 's'} aligned${rev.source === 'ai' ? ' &middot; Copilot-assisted review' : ' &middot; rule-based review'}. A proposal files as an ordinary fingerprinted change only when you press it — nothing applies itself. <b>${i18t('ng_preferred')}</b> ${i18t('ng_opening_position')} <b>fallback</b> ${i18t('ng_concession_allowed')}</p>
+    <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 14px;line-height:1.55">${aligned} position${aligned === 1 ? '' : 's'} aligned${rev.source === 'ai' ? ' &middot; Copilot-assisted review' : ' &middot; rule-based review'}. A proposal files as an ordinary fingerprinted change only when you press it — nothing applies itself. <b>${i18t('ng_preferred')}</b> ${i18t('ng_opening_position')} <b>fallback</b> ${i18t('ng_concession_allowed')} ${i18t('ng_draft_is_copilots')}</p>
     ${items.map(itemHtml).join('')}
     <div style="display:flex;justify-content:flex-end"><button id="pbr-close" class="ui-btn">${i18t('act_close')}</button></div>
   </div>`, { maxWidth: '780px' });
@@ -10494,6 +10537,8 @@ async function rlOpenPlaybookReview(c, again){
     b.addEventListener('click', () => fileFrom(b, 'data-pbr-go', it => it.preferred)));
   root.querySelectorAll('[data-pbr-fb]').forEach(b =>
     b.addEventListener('click', () => fileFrom(b, 'data-pbr-fb', it => it.fallback)));
+  root.querySelectorAll('[data-pbr-draft]').forEach(b =>
+    b.addEventListener('click', () => fileFrom(b, 'data-pbr-draft', it => it.draft)));
   root.querySelectorAll('[data-pbr-skip]').forEach(b => b.addEventListener('click', () =>
     settle(Number(b.getAttribute('data-pbr-skip')), 'Skipped', 'var(--color-neutral-500)')));
   root.querySelector('#pbr-close')?.addEventListener('click', () => { if (window.closeModal) closeModal(); });
@@ -13467,7 +13512,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlFitTabRow, rlWireFitTabRow, rlObserveTabRow,
   redlineHeldId, redlineEvict, openRedlineWorkbench,
   rlOwnerOpenActions, rlOwnerOpenTotal, rlJumpHtml,
-  rlPbFindClause, rlPlaybookProposals, rlFilePlaybookProposal, rlOpenPlaybookReview,
+  rlPbFindClause, rlPlaybookProposals, rlPbWordingLabel, rlFilePlaybookProposal, rlOpenPlaybookReview,
   rlHiddenFrom, rlMsgVisible, redlineEmbed, negoIsRedeciding, rlSeatAlertsHtml,
   RL_CARD_FILTERS, rlCardFilter, rlSetCardFilter, rlCardFilterPass,
   RL_CARD_BANDS,

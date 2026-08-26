@@ -208,12 +208,30 @@ const _pbEsc = s => String(s==null?'':s).replace(/[&<>"]/g,ch=>({'&':'&amp;','<'
 /* The one line under the category. It says what the verdict MEANS, in the
    reader's words rather than the engine's — "Our standard is ≤ 45 days" is a
    sentence; "deviation" is a label you have to translate first. */
-function pbVerdictLine(v){
-  const pos=String(v.position||'').trim();
-  if(v.status==='aligned') return pos ? `Matches Our standards &middot; ${_pbEsc(pos)}` : 'Matches Our standards';
-  if(v.status==='deviation') return pos ? `Our standard is ${_pbEsc(pos)}` : 'Off Our standard';
-  return pos ? `Not in this document &middot; Our standard is ${_pbEsc(pos)}` : 'Not in this document';
+/* ONE READING, TWO DRESSES (owner-reported 26 Aug 2026, off a scan card
+   printing the literal characters "&middot;" where a separator belongs).
+
+   This was ONE function and it returned MARKUP. The clause editor's scan rail
+   needs the same sentence as plain text, so it stripped the tags out of the
+   markup and escaped what was left — and stripping tags does not touch an
+   ENTITY, so the ampersand was escaped a second time and "&middot;" arrived on
+   screen as five visible characters.
+
+   So the sentence is built once in plain characters and dressed once. Nothing
+   on the playbook panel moves: `·` and `&middot;` render identically, and the
+   only strings _pbEsc touches here are the position, exactly as before.
+
+   THE STANDING RULE: a reading that has to serve a markup slot AND a text slot
+   is built as text and dressed at the slot. Never dressed and then undressed —
+   the undressing is lossy and the loss is silent. */
+function pbVerdictWords(v){
+  const pos=String((v&&v.position)||'').trim();
+  const st=(v&&v.status)||'';
+  if(st==='aligned') return pos ? `Matches Our standards · ${pos}` : 'Matches Our standards';
+  if(st==='deviation') return pos ? `Our standard is ${pos}` : 'Off Our standard';
+  return pos ? `Not in this document · Our standard is ${pos}` : 'Not in this document';
 }
+function pbVerdictLine(v){ return _pbEsc(pbVerdictWords(v)); }
 /* The pill on the header. Escalation outranks a plain count, because "two of
    these need Legal" is a different message from "two of these are open".
 
@@ -535,4 +553,4 @@ function openClausePicker(c, opts){
   document.querySelectorAll('[data-cl-ins]').forEach(b=>b.addEventListener('click',()=>{ const cl=clauseById(b.getAttribute('data-cl-ins')); closeModal(); onPick(cl); }));
 }
 
-Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,playbookReviewHeuristic,runPlaybookReview,deviationSummary,renderPlaybookSection,applyClauseRedline,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear});
+Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,playbookReviewHeuristic,runPlaybookReview,deviationSummary,renderPlaybookSection,applyClauseRedline,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictWords,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear});

@@ -3251,7 +3251,74 @@ because none of that was what the owner was looking at.
 - **THE PANEL'S ESCAPE NOW DEFERS TO THE PAGE.** Both handlers sit on `document`, so one Escape closed the editor AND the panel behind it in the same press. Caught only by driving the journey in a browser — two listeners agreeing to fire is invisible in the source of either.
 - **THE NAME IS `rlOpenClauseEditor`, NOT `openClauseEditor`** — js/views/settings.js has owned that name for the clause LIBRARY editor all along, and f48 caught the collision on the first run.
 - **ONE CARD PER ASK, and that is a deliberate difference from the render**, which showed two or three ways to answer. Each alternative is a separate paid call to the model; the ready-made chips make a firmer or a plainer version one press each, so the reader spends that money when they want it. **WHAT COPILOT READ IS OUR OWN READING, NOT THE MODEL'S**: the playbook position, what this workspace settled before (`precedentForChange`) and what the other side actually asked are computed from the record and PASSED IN. A model naming its own sources cannot be checked; a list built from the record can.
-- **THE SCAN IS THE PLAYBOOK'S OWN.** `runPlaybookReview` for the run, `rlPlaybookProposals` for what is proposable, narrowed to this clause and drawn in the same card shape, handing its standards to the same Apply. A rule that is MET offers nothing to apply.
+- **THE SCAN IS THE PLAYBOOK'S OWN.** `runPlaybookReview` for the run,
+  `rlPlaybookProposals` for what is proposable, narrowed to this clause and
+  drawn in the same card shape. A rule that is MET offers nothing to apply.
+  **IT NO LONGER ALL HANDS TO THE SAME APPLY — see the section below.**
+
+- **TWO LISTS, TWO VERBS, AND A RULE THAT IS NOT ABOUT THIS CLAUSE CANNOT
+  REPLACE IT** (owner-reported 26 Aug 2026, off Clause 2 of an equipment lease).
+  The rail on a LEASE CHARGES clause listed a DATA PROTECTION rule and its "Use
+  our standard" struck out the whole lease-charge sentence and put a data
+  protection paragraph in its place. **THREE FAULTS STACKED.**
+  - **THE PANEL SHOWED HOMELESS RULES INSIDE WHICHEVER CLAUSE WAS OPEN.** The
+    reading was "this clause's findings, plus the ones that matched no clause at
+    all", and that INTENTION is right and is kept — a standard missing from the
+    whole contract is worth knowing about while you are drafting one.
+  - **BUT BOTH GROUPS WERE HANDED THE PAGE'S ONE VERB**, which replaces the
+    clause you are looking at. A finding with no clause of its own has nothing
+    here to replace: it is answered by ADDING a clause, which is what the
+    negotiation page's Playbook review has always done with it. **`ceScanGroups`
+    is the split, taken at SOURCE rather than at the draw** — `here` may be
+    edited in place, `missing` may only be added — so neither list can reach the
+    other's verb, because the verb is chosen from the list a finding is in. The
+    order is asked `!it.clauseId` FIRST: with no clause open, both sides of an
+    equality on null are null, and testing the match first files every homeless
+    finding under "this clause". `ceScanItems` is the flat list the press
+    handler indexes and is BUILT from the groups, so the two cannot drift.
+  - **AND THE MISSING CARD DREW A REDLINE AGAINST A CLAUSE IT HAD NOTHING TO DO
+    WITH** — the visual lie at the heart of the report. A rule that located no
+    clause prints its wording PLAINLY; only a located rule is marked up.
+  - **ADDING GOES THROUGH `rlFilePlaybookProposal`**, never a second filing path
+    here: that function already knows where a new clause may land (ahead of the
+    execution wording, never after it) and what note it carries. The card then
+    settles into "Added as a new clause" — per sitting, in memory — because it
+    is the only press on this rail that puts a tracked change on the record
+    rather than filling a box the reader can undo.
+- **OUR WORDING AND THE MODEL'S ARE TWO DIFFERENT THINGS** (same report, and the
+  half worth fixing first). `preferred` read `v.redline || libCl.preferred` — the
+  MODEL'S suggestion FIRST — and every surface printed it under a button reading
+  **"Use our standard"**. So a workspace whose approved position is the Data
+  Protection Act, 2019 was shown Copilot's improvisation citing **GDPR**, wearing
+  a label saying somebody here approved it; the approved clause sat on the
+  quieter **fallback** button beside it. **THREE NAMED SLOTS NOW AND NOTHING IS
+  LOST**: `preferred` and `fallback` are the clause library's, `draft` is the
+  model's, a draft repeating a library wording is dropped rather than drawn
+  twice, and `lead`/`leadKind` say which one a card previews so the picture and
+  the first button cannot disagree. **BOTH SURFACES CHANGED TOGETHER** — the rail
+  and the Playbook review modal — and `rlPbWordingLabel` is the ONE naming, so
+  neither can call the same thing by another name. The modal also stopped drawing
+  its preferred button unconditionally: a position the library has no entry for
+  offered a press that filed nothing. Tests: f245 (12), f131 (Fix 2b),
+  clause-editor-verify 12a-12i.
+- **A REDLINE IS WORDING, NOT A NOTE ABOUT WORDING** (the third half, on the
+  server). The prompt asked for "a suggested redline in the preferred wording" —
+  loose enough to be read as a DESCRIPTION of it — and the field is filed into
+  the contract VERBATIM, so what came back was *"Insert a data protection clause
+  addressing … (e.g., GDPR)"*: an instruction to a drafter, citing the wrong
+  country's regime under a prompt that opens "practising under Kenyan law".
+  `AI_REDLINE_RULE(jurisdiction)` is stated ONCE beside `AI_QUOTE_RULE` and used
+  in the schema field AND the prompt, so the two cannot drift; it takes the
+  jurisdiction because half of what it fixes is naming the wrong country's law.
+  `const J = orgJx()` moved above the tool that reads it. Tests: f230 (5b).
+- **A READING THAT SERVES A MARKUP SLOT AND A TEXT SLOT IS BUILT AS TEXT AND
+  DRESSED AT THE SLOT.** `pbVerdictLine` returned MARKUP; this rail needed the
+  same sentence as plain text, stripped its tags and escaped the result — and
+  stripping tags does not touch an ENTITY, so the ampersand was escaped a second
+  time and `&middot;` arrived on screen as five visible characters.
+  `pbVerdictWords` is the plain core and `pbVerdictLine` is `_pbEsc` of it, so
+  the playbook panel does not move by a pixel. **Never dress and then undress —
+  the undressing is lossy and the loss is silent.**
 - **AND A SCAN THAT COMES BACK WITH NOTHING SAYS SO WHERE THE READER IS LOOKING
   (owner-asked 26 Aug 2026: "you should be able to run the playbook scan by
   pressing the highlighted button").** THE BUTTON WAS WIRED AND DOES RUN —

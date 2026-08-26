@@ -382,3 +382,176 @@ describe('f245 (11) — the playbook scan reports its own failure', () => {
       assert.equal((I18N.match(new RegExp(`^    ${k}:`, 'gm')) || []).length, 2, k);
   });
 });
+
+/* ============================== 12 — TWO LISTS, TWO VERBS, AND WHOSE WORDING */
+describe('f245 (12) — a rule that is not about this clause cannot replace it', () => {
+  /* ---- OWNER-REPORTED 26 Aug 2026, off Clause 2 of an equipment lease ----
+     The scan rail on a LEASE CHARGES clause listed a DATA PROTECTION rule, and
+     pressing its "Use our standard" struck out the whole lease-charge sentence
+     and put a data protection paragraph in its place. Three faults stacked:
+
+       1  the panel showed rules that matched NO clause inside whichever clause
+          happened to be open — right intention, since a standard missing from
+          the contract is worth knowing about while drafting;
+       2  it then handed those rules the page's ONE verb, which replaces the
+          clause you are looking at, when the honest answer to a missing
+          standard is to ADD a clause; and
+       3  the button labelled "Use our standard" served Copilot's improvisation
+          rather than the workspace's approved wording — the workspace's own
+          Kenyan Data Protection Act clause was on the quieter button beside it,
+          while the "standard" cited GDPR.
+
+     Every claim below is DRIVEN — the page is opened, the rail is drawn, the
+     button is pressed — because "does the reading split" and "can this press
+     still overwrite the clause" are different questions and only the second one
+     is what was reported. */
+
+  async function scanBench(){
+    /* The clause library has to be REAL here: with playbook.js absent there is
+       no approved wording at all, every card falls back to Copilot's draft, and
+       a check written on that stage would pass against the broken code. */
+    const w = buildWorld({ negotiationView: true, contractView: true, playbook: true });
+    const { win } = w;
+    win.promptDialog = async () => '';
+    win.openAI = () => {}; win.aiPush = () => {}; win.renderAIFeed = () => {};
+    win.copilotAvailable = () => false;
+    const c = supplyContract();
+    win.negoInit(c);
+    win.state = Object.assign({}, win.state, { contracts: [c], activeId: c.id, view: 'redline' });
+    win.getContract = id => (id === c.id ? c : null);
+    Object.defineProperty(win, 'innerWidth', { value: 1440, configurable: true });
+    const cls = win.negoClauseList(c);
+    const here = cls[0], other = cls[1];
+    /* The reported shape: one rule that quotes THIS clause, one that is missing
+       from the whole contract, and one that belongs to a DIFFERENT clause. */
+    c.playbook = { key: 'x', label: 'test', source: 'ai', verdicts: [
+      { category: 'Payment terms', status: 'deviation', quote: here.text.slice(0, 60),
+        position: 'Payment due within 30 days',
+        redline: 'The Buyer shall pay within thirty (30) days of the invoice date.', escalate: false },
+      { category: 'Data protection', status: 'missing', quote: '',
+        position: 'Data protection clause preferred where personal data is involved',
+        redline: 'Insert a data protection clause addressing GDPR obligations.', escalate: false },
+      { category: 'Liability cap', status: 'deviation', quote: other.text.slice(0, 60),
+        position: 'At least 12 months of fees', redline: '', escalate: true },
+    ] };
+    win.rlOpenClauseEditor(c, here.clauseId, {});
+    const doc = win.document;
+    doc.querySelector('[data-ce-tab="scan"]').click();
+    const lane = () => doc.querySelector('.ce-lane') || doc.querySelector('#ce-lane');
+    return { w, win, c, doc, here, other, lane };
+  }
+
+  test('the reading splits: this clause, the homeless ones, and nobody else', async () => {
+    const p = await scanBench();
+    const g = p.win.ceScanGroups();
+    /* Compared as strings: the world runs in a vm, so an array built inside it
+       carries that realm's prototype and deepStrictEqual fails on two lists
+       whose contents are identical. */
+    const names = list => list.map(i => i.v.category).join('|');
+    assert.equal(names(g.here), 'Payment terms',
+      'a rule whose quote located THIS clause is answerable here');
+    assert.equal(names(g.missing), 'Data protection',
+      'a rule that located no clause at all is the reader\'s business while drafting');
+    /* A rule about ANOTHER clause belongs on that clause's own page and is in
+       neither list — it was never drawn here and must not start being. */
+    const all = names(p.win.ceScanItems());
+    assert.ok(!/Liability cap/.test(all), 'a rule about another clause is in neither list');
+    assert.equal(all, 'Payment terms|Data protection',
+      'and the flat list the press handler indexes is here-then-missing');
+  });
+
+  test('the missing group offers ADD, and cannot reach the replace verb at all', async () => {
+    const p = await scanBench();
+    const html = p.lane().innerHTML;
+    const cards = [...p.doc.querySelectorAll('.ce-rule')];
+    const missCard = cards.find(el => /Data protection/.test(el.textContent));
+    assert.ok(missCard, 'the missing rule draws a card');
+    const verbs = [...missCard.querySelectorAll('[data-ce-scan]')].map(b => b.textContent.trim());
+    assert.ok(verbs.length, 'and it offers something to press');
+    for (const v of verbs)
+      assert.ok(/^Add /.test(v), `every verb on a missing rule adds a clause, got "${v}"`);
+    /* THE REPORTED PRESS, BY NAME. Nothing on that card may say "Use". */
+    assert.ok(!verbs.some(v => /^Use /.test(v)),
+      'nothing on a missing rule offers to replace the clause the reader is in');
+    assert.match(html, /Missing from the contract/, 'the group says what it is');
+    assert.match(html, /never replace the clause you are in/,
+      'and the heading carries the promise of what a press inside it does');
+  });
+
+  test('a missing rule prints its wording plainly — it never marks up this clause', async () => {
+    const p = await scanBench();
+    const cards = [...p.doc.querySelectorAll('.ce-rule')];
+    const missCard = cards.find(el => /Data protection/.test(el.textContent));
+    const pv = missCard.querySelector('.pv');
+    assert.ok(pv, 'it still shows the wording it would add');
+    /* THE VISUAL LIE AT THE HEART OF THE REPORT: the card used to draw a
+       redline FROM the open clause TO the standard, so the screenshot showed
+       the lease-charge sentence struck through. A rule with no clause has
+       nothing here to mark up. */
+    assert.equal(pv.querySelectorAll('del').length, 0, 'nothing of this clause is struck through');
+    assert.equal(pv.querySelectorAll('ins').length, 0, 'and nothing is marked as inserted into it');
+    /* while a rule that DID locate this clause still draws the marks, because
+       there its redline is true. */
+    const hereCard = cards.find(el => /Payment terms/.test(el.textContent));
+    assert.ok(hereCard.querySelector('.pv del'), 'a located rule still shows a real redline');
+  });
+
+  test('pressing Add files a new clause and leaves the open clause alone', async () => {
+    const p = await scanBench();
+    const before = p.win.negoChanges(p.c).length;
+    const wordingBefore = String((p.win.negoClauseNowById(p.c, p.here.clauseId) || {}).text || '');
+    const btn = [...p.doc.querySelectorAll('[data-ce-scan]')]
+      .find(b => /^Add our standard$/.test(b.textContent.trim()));
+    assert.ok(btn, 'the workspace\'s own wording is what the primary add offers');
+    btn.click();
+    await new Promise(r => setTimeout(r, 30));
+    const chs = p.win.negoChanges(p.c);
+    assert.equal(chs.length, before + 1, 'exactly one change filed');
+    const ch = chs[chs.length - 1];
+    assert.equal(ch.changeType, 'insertClause', 'a missing standard is ADDED, never swapped in');
+    assert.equal(ch.status, 'pending', 'and it is a proposal like any other');
+    assert.match(String(ch.note || ''), /^Playbook — /, 'carrying the position it enforces');
+    assert.equal(String((p.win.negoClauseNowById(p.c, p.here.clauseId) || {}).text || ''),
+      wordingBefore, 'the clause the reader had open is untouched');
+    assert.match(p.lane().innerHTML, /Added as a new clause/,
+      'and the card settles rather than offering the same press again');
+  });
+
+  test('"our standard" is the workspace\'s, and Copilot\'s draft says whose it is', async () => {
+    const p = await scanBench();
+    const it = p.win.ceScanItems().find(x => x.v.category === 'Data protection');
+    /* The reported case, in one assertion: the approved Kenyan clause is what
+       "our standard" serves; the model's GDPR sentence is a DRAFT and is
+       labelled as one. */
+    assert.match(it.preferred, /Data Protection Act, 2019/,
+      'the preferred wording is the clause library\'s own');
+    assert.ok(!/GDPR/.test(it.preferred), 'never the model\'s improvisation');
+    assert.match(it.draft, /GDPR/, 'the model\'s wording is kept — under its own name');
+    assert.equal(it.leadKind, 'standard', 'and the approved one is what the card previews');
+    const html = p.lane().innerHTML;
+    assert.match(html, /Add Copilot&#39;s draft|Add Copilot's draft/,
+      'the draft is offered, and the button says whose wording it is');
+  });
+
+  test('the verdict line is plain text — the separator is not printed as an entity', async () => {
+    const p = await scanBench();
+    const cards = [...p.doc.querySelectorAll('.ce-rule')];
+    const missCard = cards.find(el => /Data protection/.test(el.textContent));
+    const line = missCard.querySelector('.l').textContent;
+    /* pbVerdictLine returns MARKUP. This rail stripped its tags and escaped the
+       result — and stripping tags leaves an ENTITY behind, so the ampersand was
+       escaped a second time and "&middot;" arrived on screen as five visible
+       characters. */
+    assert.ok(!/&middot;|&amp;/.test(line), `the line prints no raw entity, got "${line}"`);
+    assert.match(line, /Not in this document · Our standard is/,
+      'it reads as one sentence with a real separator');
+  });
+
+  test('both languages', () => {
+    for (const k of ['ce_scan_here', 'ce_scan_missing', 'ce_scan_missing_sub',
+                     'ce_use_draft', 'ce_add_standard', 'ce_add_fallback', 'ce_add_draft',
+                     'ce_scan_added', 'ce_scan_added_row', 'ce_scan_add_failed',
+                     'ce_scan_add_unavailable', 'pb_w_ours', 'pb_w_fallback', 'pb_w_draft'])
+      assert.equal((I18N.match(new RegExp(`^    ${k}:`, 'gm')) || []).length, 2, k);
+  });
+});

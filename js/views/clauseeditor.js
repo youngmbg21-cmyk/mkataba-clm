@@ -420,6 +420,25 @@ function clauseEditorCss(){
   .ce-rule .l{display:block; margin-top:5px; font-size:var(--t-meta); line-height:1.5}
   .ce-rule .r{display:block; margin-top:6px; font-size:var(--t-label);
     color:var(--color-neutral-600); line-height:1.45}
+  ${''/* THE TWO GROUPS ARE LABELLED, because the verb under them differs: the
+         first list edits the clause you are in, the second files a NEW clause.
+         The heading wears this product's own signpost dress (11px uppercase,
+         .09em) and the second one carries the promise of what a press inside it
+         does — which is a band saying what the page will do with what you
+         press, not a narration of the screen. */}
+  .ce-scan-h{margin:14px 0 var(--s-2); font-size:var(--t-micro); font-weight:var(--w-title);
+    letter-spacing:.09em; text-transform:uppercase; color:var(--color-neutral-600)}
+  .ce-scan-h:first-child{margin-top:0}
+  .ce-scan-h .s{display:block; margin-top:3px; font-size:var(--t-label); font-weight:var(--w-body);
+    letter-spacing:0; text-transform:none; color:var(--color-neutral-600); line-height:1.45}
+  ${''/* The preview names whose wording it is, so a card offering three of them
+         can never leave the reader guessing which one it drew. */}
+  .ce-rule .pvk{display:block; margin-top:var(--s-2); font-size:var(--t-figure); font-weight:var(--w-title);
+    letter-spacing:.09em; text-transform:uppercase; color:var(--color-neutral-600)}
+  .ce-rule .pv{display:block; margin-top:4px; padding:var(--s-2) 10px; background:var(--color-surface);
+    border:1px solid var(--color-divider); font-size:var(--t-meta); line-height:1.65;
+    max-height:120px; overflow:auto}
+  .ce-rule .filed{font-size:var(--t-label); font-weight:var(--w-strong); color:var(--st-green-fg)}
   .ce-rule .av{display:flex; gap:var(--s-2); margin-top:9px; flex-wrap:wrap}
   .ce-rule .av button{height:26px; padding:0 11px; font:inherit; font-size:var(--t-label); font-weight:var(--w-strong);
     background:var(--color-surface); color:var(--accent-ink); border:1px solid var(--color-divider)}
@@ -589,17 +608,61 @@ function ceStanding(){
 /* The playbook rules this clause is off, counted from the review the contract
    already holds. Never run on open: a scan costs money and a number nobody
    asked for is not worth spending it on. */
-function ceScanItems(){
+/* TWO GROUPS, BECAUSE THEY ARE TWO DIFFERENT ACTS (owner-reported 26 Aug 2026:
+   the scan on a Lease Charges clause offered "Use our standard" on a DATA
+   PROTECTION rule, and pressing it struck out the whole lease-charge sentence
+   and put a data protection paragraph in its place).
+
+   The rule this panel had was "show this clause's findings, plus the ones that
+   matched no clause at all", and that INTENTION was right — a standard missing
+   from the whole contract is worth knowing about while you are drafting one.
+   What was wrong is that both groups were then handed the page's ONE verb,
+   which replaces the clause you are looking at. A finding with no clause of its
+   own has nothing to replace: it is answered by ADDING a clause, which is
+   exactly what the negotiation page's own Playbook review has always done with
+   it, through rlFilePlaybookProposal.
+
+   So the reading is split at source rather than at the draw. `here` may be
+   edited in place; `missing` may only be added. Neither list can reach the
+   other's verb, because the verb is chosen from the list a finding is in — and
+   a finding cannot be in both. */
+function ceScanGroups(){
   const rev = _ceScan || (_ceC && _ceC.playbook) || null;
-  if (!rev) return [];
+  if (!rev) return { here: [], missing: [] };
   let items = [];
   try{ items = window.rlPlaybookProposals ? rlPlaybookProposals(_ceC, rev) : []; }
   catch(_){ items = []; }
-  /* This clause's own rules first, then the ones that matched no clause at all
-     — a standard that is MISSING from the document has no clause to sit on and
-     is still the reader's business while they are writing one. */
-  return items.filter(it => !it.clauseId || it.clauseId === _ceClauseId);
+  const here = [], missing = [];
+  for (const it of items){
+    if (!it) continue;
+    /* ASKED IN THIS ORDER ON PURPOSE. With no clause open both sides of an
+       equality on null are null, so testing the match first would file every
+       homeless finding under "this clause" on a page that has none. */
+    if (!it.clauseId) missing.push(it);
+    else if (it.clauseId === _ceClauseId) here.push(it);
+  }
+  return { here, missing };
 }
+/* The flat list, in the order the panel draws it — this clause first. The press
+   handler resolves a card by its position in THIS list, so the two have to stay
+   in step; building the flat one out of the groups is what keeps them so. */
+function ceScanItems(){
+  const g = ceScanGroups();
+  return g.here.concat(g.missing);
+}
+/* Whose wording, named by the negotiation page's own helper so the rail and the
+   Playbook review modal cannot come to call the same thing by two names. Read
+   through window (the ES-module rule) with the plainest possible fallback. */
+function ceWordingLabel(kind){
+  try{ if (typeof window.rlPbWordingLabel === 'function') return rlPbWordingLabel(kind); }catch(_){}
+  return _cet(kind === 'draft' ? 'pb_w_draft' : kind === 'fallback' ? 'pb_w_fallback' : 'pb_w_ours');
+}
+/* WHAT WAS FILED THIS SITTING, so a card that has just been added says so
+   instead of offering the same press again. Per sitting and in memory, like
+   every other posture on this page: the change itself is on the record, and a
+   re-scan is what tells you whether the standard is still missing. */
+let _ceScanFiled = {};
+const ceScanKey = it => `${(it && it.v && it.v.category) || '?'}::${(it && it.v && it.v.status) || '?'}`;
 const ceDeviationCount = () => ceScanItems().filter(it => it.v && it.v.status !== 'aligned').length;
 
 /* ---------- the redline between the two boxes ----------
@@ -857,7 +920,7 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
   _ceEditing = true;
   _ceTab = opts.tab === 'scan' ? 'scan' : 'chat';
   _ceThread = []; _ceBusy = false; _ceScanBusy = false; _ceScanErr = null; _ceReason = false; _ceSel = null;
-  _ceScan = null;
+  _ceScan = null; _ceScanFiled = {};
 
   ceEnsureStyle();
   /* ---- THE PAPER'S OWN SHEET, ASKED FOR RATHER THAN ASSUMED ----
@@ -1473,22 +1536,84 @@ function ceScanHtml(){
   if (!items.length) return `<p class="ce-empty">${_cee(_cet('ce_scan_clean'))}</p>`
     + `<div class="ce-rule"><div class="av"><button type="button" data-ce-act="scan-run">${
       _cet('ce_scan_again')}</button></div></div>`;
-  return items.map((it, i) => {
-    const v = it.v || {};
-    const tone = CE_RULE_TONE[v.status] || 'dev';
-    const line = window.pbVerdictLine ? String(pbVerdictLine(v)).replace(/<[^>]*>/g, '') : (v.position || '');
-    const marked = it.preferred ? ceRedlineHtml(_ceText, it.preferred) : '';
-    return `<div class="ce-rule ${tone}">
-      <div class="n"><span>${_cee(v.category || _cet('ce_rule'))}</span></div>
-      <span class="l">${_cee(line)}</span>
-      ${v.quote ? `<span class="r">${_cee(_cet('ce_scan_quote', { quote: String(v.quote).slice(0, 220) }))}</span>` : ''}
-      ${marked ? `<span class="pv" style="display:block;margin-top:var(--s-2);padding:var(--s-2) 10px;background:var(--color-surface);border:1px solid var(--color-divider);font-size:var(--t-meta);line-height:1.65;max-height:120px;overflow:auto">${marked}</span>` : ''}
-      <div class="av">
-        ${it.preferred ? `<button type="button" data-ce-scan="${i}:preferred">${_cet('ce_use_standard')}</button>` : ''}
-        ${it.fallback ? `<button type="button" data-ce-scan="${i}:fallback">${_cet('ce_use_fallback')}</button>` : ''}
-      </div>
-    </div>`;
-  }).join('');
+  const g = ceScanGroups();
+  const head = (key, sub) => `<div class="ce-scan-h">${_cee(_cet(key))}${
+    sub ? `<span class="s">${_cee(_cet(sub))}</span>` : ''}</div>`;
+  let html = '';
+  if (g.here.length)
+    html += head('ce_scan_here') + g.here.map((it, k) => ceScanCardHtml(it, k, 'here')).join('');
+  if (g.missing.length)
+    html += head('ce_scan_missing', 'ce_scan_missing_sub')
+      + g.missing.map((it, k) => ceScanCardHtml(it, g.here.length + k, 'missing')).join('');
+  return html;
+}
+/* WHICH WORDINGS A CARD OFFERS, AND WHAT A PRESS DOES WITH ONE. The verb is the
+   only difference between the two groups, and it is decided here — once, from
+   the group — rather than at each button. A card in `here` fills the box; a card
+   in `missing` files a new clause. */
+const CE_SCAN_VERBS = {
+  here:    { preferred: 'ce_use_standard', fallback: 'ce_use_fallback', draft: 'ce_use_draft' },
+  missing: { preferred: 'ce_add_standard', fallback: 'ce_add_fallback', draft: 'ce_add_draft' },
+};
+function ceScanCardHtml(it, i, group){
+  const v = it.v || {};
+  const tone = CE_RULE_TONE[v.status] || 'dev';
+  /* pbVerdictWords, NEVER pbVerdictLine. This slot takes plain text and the
+     line is markup; stripping its tags leaves the entities behind, which is how
+     the separator came to be printed here as the five characters "&middot;". */
+  const line = window.pbVerdictWords ? String(pbVerdictWords(v)) : String(v.position || '');
+  /* ONLY A LOCATED RULE IS DRAWN AS A REDLINE. A rule that matched no clause has
+     nothing in this document to mark up, so marking it against whichever clause
+     happens to be open is a picture of an edit nobody proposed — which is the
+     whole of what was reported. It prints its wording plainly instead. */
+  const preview = !it.lead ? ''
+    : (group === 'here' ? ceRedlineHtml(_ceText, it.lead) : `<p>${_cee(it.lead)}</p>`);
+  const verbs = CE_SCAN_VERBS[group] || CE_SCAN_VERBS.here;
+  const btn = (kind, words) => words
+    ? `<button type="button" data-ce-scan="${i}:${kind}">${_cet(verbs[kind])}</button>` : '';
+  const filed = !!_ceScanFiled[ceScanKey(it)];
+  return `<div class="ce-rule ${tone}">
+    <div class="n"><span>${_cee(v.category || _cet('ce_rule'))}</span></div>
+    <span class="l">${_cee(line)}</span>
+    ${v.quote ? `<span class="r">${_cee(_cet('ce_scan_quote', { quote: String(v.quote).slice(0, 220) }))}</span>` : ''}
+    ${preview ? `<span class="pvk">${_cee(ceWordingLabel(it.leadKind))}</span><span class="pv">${preview}</span>` : ''}
+    <div class="av">${filed
+      ? `<span class="filed">${_cee(_cet('ce_scan_added_row'))}</span>`
+      : btn('preferred', it.preferred) + btn('fallback', it.fallback) + btn('draft', it.draft)}</div>
+  </div>`;
+}
+/* ADDING A MISSING STANDARD IS A REAL FILING, and it goes through the
+   negotiation page's own rlFilePlaybookProposal rather than growing a second
+   filing path here. That function already knows the two things this page does
+   not: where a new clause may land (ahead of the execution wording, never after
+   it — text below the signatures can be argued as outside what was signed) and
+   what note it carries. Nothing else about this page changes: its own Save
+   still goes through negoEditClause on the clause it is open on.
+
+   IT IS A DIFFERENT WEIGHT OF ACT FROM EVERYTHING ELSE ON THIS RAIL, and it
+   says so rather than being asked about — every other press here only fills a
+   box the reader can still undo, and this one puts a tracked change on the
+   record. So the card settles into "Added as a new clause" and the page says
+   what happened; the change is a PROPOSAL like any other and is withdrawn from
+   the change column if it was a mistake. */
+async function ceAddMissingClause(it, words, btn){
+  if (!clauseEditorOpen() || !it || it.clauseId) return false;
+  if (typeof window.rlFilePlaybookProposal !== 'function'){
+    ceSay(_cet('ce_scan_add_unavailable')); return false; }
+  if (btn) btn.disabled = true;
+  let ch = null;
+  try{ ch = await rlFilePlaybookProposal(_ceC, it, words); }
+  catch(_){ ch = null; }
+  if (!ch){
+    if (btn) btn.disabled = false;
+    ceSay(_cet('ce_scan_add_failed'));
+    return false;
+  }
+  try{ if (window.persist) persist(_ceC); }catch(_){}
+  _ceScanFiled[ceScanKey(it)] = true;
+  ceRenderLane();
+  ceSay(_cet('ce_scan_added', { name: String((it.v && it.v.category) || '') }));
+  return true;
 }
 /* The one sentence, and it does NOT re-derive why. runPlaybookReview owns the
    reading of whether there is wording to check, and a second copy of that test
@@ -1771,8 +1896,16 @@ function ceWirePage(page){
     if (scan){ ev.preventDefault();
       const parts = String(scan.getAttribute('data-ce-scan')).split(':');
       const it = ceScanItems()[Number(parts[0])];
-      const words = it ? String(parts[1] === 'fallback' ? it.fallback : it.preferred || '').trim() : '';
-      if (words) ceApply(words, _cet('ce_step_playbook'));
+      if (!it) return;
+      const words = String((parts[1] === 'fallback' ? it.fallback
+        : parts[1] === 'draft' ? it.draft : it.preferred) || '').trim();
+      if (!words) return;
+      /* THE VERB FOLLOWS THE FINDING, never the button that was pressed. A rule
+         that located THIS clause fills the box and files nothing; a rule that
+         located no clause at all has nothing here to replace, so it files a new
+         clause instead. One decision, taken from the finding's own clauseId. */
+      if (it.clauseId) ceApply(words, _cet('ce_step_playbook'));
+      else ceAddMissingClause(it, words, scan);
       return; }
 
     const inlineChip = hit('[data-ce-inline-chip]');
@@ -1888,7 +2021,7 @@ Object.assign(window, {
   clauseEditorOpen, clauseEditorClauseId, clauseEditorContract, clauseEditorDirty, clauseEditorCss,
   clauseEditorHtml, clauseEditorRefusal, clauseEditorFits,
   rlOpenClauseEditor, rlCloseClauseEditor,
-  ceApply, ceUndo, ceDiscard, ceFile, ceAsk, ceRunScan, ceScanItems, ceLines,
+  ceApply, ceUndo, ceDiscard, ceFile, ceAsk, ceRunScan, ceScanItems, ceScanGroups, ceAddMissingClause, ceLines,
   ceRedlineHtml, ceCounts, ceReadList, ceRenderAll, ceRenderPaper,
   ceEditableReading, ceGoClause,
 });

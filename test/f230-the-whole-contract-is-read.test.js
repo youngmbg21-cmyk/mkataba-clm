@@ -193,6 +193,45 @@ describe('F230 — the whole contract is read', () => {
       'the playbook prompt says it in its own words');
   });
 
+  /* ---------- 5b. a redline is wording, not a note about wording ---------- */
+
+  /* ---- OWNER-REPORTED 26 Aug 2026, off a Kenyan equipment lease ----
+     The data-protection card offered to file this into the agreement:
+     "Insert a data protection clause addressing the parties' obligations under
+     applicable data protection law (e.g., GDPR), including data processing
+     terms, security measures, and breach notification obligations."
+
+     An instruction to a drafter rather than a clause — and this field is filed
+     VERBATIM, so the note becomes the wording — citing GDPR in a contract whose
+     prompt opens "practising under Kenyan law". The ask was "a suggested
+     redline in the preferred wording", loose enough to be read as a DESCRIPTION
+     of the preferred wording rather than the wording itself. */
+
+  test('the redline rule is stated once and names the jurisdiction', () => {
+    const decls = SERVER_CODE.match(/const AI_REDLINE_RULE = /g) || [];
+    assert.equal(decls.length, 1, 'two copies of one rule will drift apart');
+    const rule = SERVER_CODE.match(/const AI_REDLINE_RULE = j => `([^`]*)`/)[1];
+    assert.match(rule, /WORDING THE CONTRACT COULD CARRY/, 'wording, not a description of it');
+    assert.match(rule, /NEVER an instruction to a drafter/, 'the reported shape, refused by name');
+    assert.match(rule, /filed into the agreement verbatim/, 'and why it matters');
+    /* The jurisdiction half: the model wrote GDPR under Kenyan law. */
+    assert.match(rule, /\$\{j\} law/, 'the rule takes the jurisdiction rather than assuming one');
+    assert.match(rule, /never cite another jurisdiction/, 'and forbids the one that was reported');
+    /* A refusal needs its way forward, exactly as the quoting rule has. */
+    assert.match(rule, /leave this empty rather than describing what it would say/);
+  });
+
+  test('it reaches the schema field AND the prompt, so the two cannot drift', () => {
+    assert.match(SERVER_CODE, /redline: \{ type: 'string'[^}]*AI_REDLINE_RULE\(J\.adjective\)/,
+      'the field a redline is returned in says what a redline is');
+    assert.match(SERVER_CODE, /a suggested redline in the preferred wording\.\$\{AI_REDLINE_RULE\(J\.adjective\)\}/,
+      'and the prompt that asks for one says it too');
+    /* The jurisdiction has to be in scope before the tool that names it. */
+    const j = SERVER_CODE.indexOf('const J = orgJx();');
+    const use = SERVER_CODE.indexOf('AI_REDLINE_RULE(J.adjective)');
+    assert.ok(j > -1 && j < use, 'the jurisdiction is read before the tool that reads it');
+  });
+
   /* ---------- 6. and it says so when it finds nothing ---------- */
 
   /* ---- 7. an answer cut short is not an empty answer ---- */

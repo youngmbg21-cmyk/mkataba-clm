@@ -1356,6 +1356,26 @@ const AI_TRUNC_MARK = '\n\n[…truncated by HaTi before sending to Copilot…]';
    that returns a quote, so the four cannot drift apart. */
 const AI_QUOTE_RULE = ' Quote ONE continuous run of text, copied character for character — never join two separate passages with "..." or an ellipsis. If no single passage carries the whole answer, quote the one that carries most of it. If the document says nothing on the point, return nothing at all — never a sentence describing what is absent.';
 
+/* A REDLINE IS WORDING, NOT A NOTE ABOUT WORDING (owner-reported 26 Aug 2026,
+   off a Kenyan equipment lease whose data-protection card offered to file this
+   into the agreement: "Insert a data protection clause addressing the parties'
+   obligations under applicable data protection law (e.g., GDPR), including data
+   processing terms, security measures, and breach notification obligations").
+
+   TWO THINGS ARE WRONG WITH THAT SENTENCE AND THE PROMPT ASKED FOR BOTH. It is
+   an instruction to a drafter rather than a clause — and this field is filed
+   into the contract VERBATIM, so a note about wording becomes the wording. And
+   it cites GDPR in a contract governed by Kenyan law, whose own regime is the
+   Data Protection Act, 2019; the prompt already opens "practising under Kenyan
+   law" and nothing downstream of that said the redline had to obey it.
+
+   The old ask was "a suggested redline in the preferred wording" — loose enough
+   to be read as a description of the preferred wording rather than the wording
+   itself. One sentence, on the schema field AND in the prompt, so the two
+   cannot drift apart; it takes the jurisdiction because half of what it fixes
+   is naming the wrong country's law. */
+const AI_REDLINE_RULE = j => ` Write it as WORDING THE CONTRACT COULD CARRY — the clause exactly as it would be printed, in the register of the document you are reading. NEVER an instruction to a drafter: "Insert a clause addressing X" is a note about wording rather than wording, and this field is filed into the agreement verbatim. Write it under ${j} law and name only the statutes and regulators that apply there; never cite another jurisdiction's regime. If you cannot write the wording itself, leave this empty rather than describing what it would say.`;
+
 /* ONE CEILING FOR ONE CONTRACT, AND IT SAYS SO WHEN IT BITES.
 
    TWO DIFFERENT JOBS WERE WEARING ONE NUMBER, and a third number nobody
@@ -4889,6 +4909,8 @@ app.post('/api/ai/renewal', auth, editor, rlAiDeep, aiFeature('renewal'), aiBudg
    its tests prove it. Always the deep tier: this is a legal-review synthesis
    by nature, whichever door it is called through. */
 async function aiPlaybookVerdicts(key, { text, playbook, kind }, meter) {
+  /* Read BEFORE the tool, because the redline rule names the jurisdiction. */
+  const J = orgJx();
   const tool = {
     name: 'playbook_review',
     description: 'Judge the document against the playbook positions and ranges.',
@@ -4900,15 +4922,14 @@ async function aiPlaybookVerdicts(key, { text, playbook, kind }, meter) {
           status: { type: 'string', enum: ['aligned','deviation','missing'], description: 'aligned = meets the position; deviation = present but off-position; missing = absent.' },
           quote: { type: 'string', description: 'Verbatim clause snippet from the document (empty if missing).' },
           position: { type: 'string', description: 'The playbook’s preferred position, briefly.' },
-          redline: { type: 'string', description: 'Suggested replacement wording in the preferred position (only for deviation/missing).' },
+          redline: { type: 'string', description: 'Suggested replacement wording in the preferred position (only for deviation/missing).' + AI_REDLINE_RULE(J.adjective) },
           escalate: { type: 'boolean', description: 'True if this deviation/absence requires Legal approval per the playbook.' },
         }, required: ['category','status'] } },
       },
       required: ['verdicts'],
     },
   };
-  const J = orgJx();
-  const prompt = `You are a contracts reviewer practising under ${J.adjective} law. Judge the DOCUMENT against the PLAYBOOK for a ${kind || 'contract'}. For every playbook position and range, return a verdict (aligned / deviation / missing) with a verbatim quote where present — one continuous run of text copied exactly, never two passages joined with "..." — the preferred position, and — for deviations or missing items — a suggested redline in the preferred wording. Mark escalate=true where the playbook flags Legal approval. Return via playbook_review.\n\nPLAYBOOK:\n${JSON.stringify(playbook || {})}\n\nDOCUMENT:\n${aiDocText(null, text)}`;
+  const prompt = `You are a contracts reviewer practising under ${J.adjective} law. Judge the DOCUMENT against the PLAYBOOK for a ${kind || 'contract'}. For every playbook position and range, return a verdict (aligned / deviation / missing) with a verbatim quote where present — one continuous run of text copied exactly, never two passages joined with "..." — the preferred position, and — for deviations or missing items — a suggested redline in the preferred wording.${AI_REDLINE_RULE(J.adjective)} Mark escalate=true where the playbook flags Legal approval. Return via playbook_review.\n\nPLAYBOOK:\n${JSON.stringify(playbook || {})}\n\nDOCUMENT:\n${aiDocText(null, text)}`;
   const resp = await anthropicMessages(key, 'deep', { max_tokens: 2500, tools: [tool], tool_choice: { type: 'tool', name: 'playbook_review' }, messages: [{ role: 'user', content: prompt }] }, { feature: (meter && meter.feature) || 'playbook', who: (meter && meter.who) || null });
   if (!resp.ok) return { ok: false, resp };
   const block = (resp.data.content || []).find(b => b.type === 'tool_use');
