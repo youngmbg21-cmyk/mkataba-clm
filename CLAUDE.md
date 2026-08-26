@@ -262,7 +262,7 @@ Tracked Changes column head is ONE ruled LINE — **and the head itself was rebu
 
 **THE COUNT IS THE HEADLINE — RENDER B1 (owner-chose it off five drawn heads, 23 Aug 2026: "the highlighted area is not esthetically pleasing", then "render B again but with black font not grey").** The count is **19px** with the cut's name in **11px uppercase underneath it**. **THE CAPTION IS BACK ON THE TABS' OWN LINE (owner-asked 23 Aug 2026, the next morning: "move the all, mine, their to sit next to tracked changes as opposed to below it") — this REVERSES B1's own second half IN PLACE.** B1 gave the caption a line of its own on the reasoning that "a 19px figure cannot share a line with a 12px caption without one of them looking like a mistake"; the owner has now seen both and wants the line back, so **that size difference is the price and it was named before this was built**. `.rl-idx-k` is `flex:1 1 auto` (it was `1 0 100%`) so the caption takes what is left and the tabs are pushed to the right wall — the arrangement of 16 Aug. **THE 19px COUNT IS DELIBERATELY UNTOUCHED**: shrinking it to make the row sit comfortably would be reversing a second decision nobody asked about, and it is one word to do later. **THE WRAP IS THE FALLBACK AND IS KEPT** — the head is still `flex-wrap:wrap`, so a column dragged to its 300px minimum drops the tabs to their own line rather than crushing the caption. The caption's `padding-top` went with the line (it pushed a caption sitting ABOVE the tabs down toward them; beside them the head's own `align-items:center` is what lines the two up) and so did its two short-window overrides. **THE BOX AND THE FILL ARE GONE and the underline is back**: at 19px the size already says which number is being read, so a box round it — and a fill on the live one — is a second mark for a fact already carried, which is the same argument Render B made in the opposite direction when the number was 12px and the faintest thing on the column. **ALL OF IT IS THE PRIMARY INK** (caption, counts and words), and that is a DELIBERATE EXCEPTION to the four-shades rule — primary is 14px and up, the secondary shade is where 11-13px lives — taken knowingly and scoped to this one row: B3, which keeps the caption and the small word grey and blacks only the 19px count, was drawn and shown and NOT chosen. **DO NOT SWEEP IT OUTWARD**: the captions under a signpost are not the signpost, and a pass that took every mid-grey to primary was reverted once already for exactly that. **THE LIVE TAB IS THE ONE COLOURED THING ON THE ROW** — `--accent-ink` for the ink (so dark follows with no second rule) and `--accent-solid` for the 2px underline; the resting tabs carry the same 2px in transparent so the row's height never moves. **ONE COLOUR DECLARATION, AND BOTH HALVES INHERIT IT** — `.rl-fseg` sets `color` and neither `.rl-fseg-n` nor `.rl-fseg-w` states one; give either a colour of its own and the live state stops reaching it, which is how the arrangement before this one came to set its live count in two places. The three safety properties below are untouched, which is the whole condition on redressing this control. `.rl-idx-n.is-live` (the narrowed reviewer's own count, the one head with no tabs) is unchanged. Tests: f175, panel-alerts-and-head-verify, copilot-band-verify and nego-redesign-verify (each with its Render B claim REVERSED IN PLACE).
 
-**THE ARRANGEMENT IT REPLACED, kept because the reasoning is the useful part — RENDER B (owner-chose it off four drawn renders, 22 Aug 2026: "it needs a far more elegant design").** What was wrong was contrast, not structure: at 12px/600 with a 2px accent underline the live cut and the two resting ones were nearly the same object, and the NUMBER — the thing anybody actually scans this row for — was set at `opacity:.62`, about 2.5:1 on white and the faintest text on the column. **So the number carries the state.** Every count sits in its own square hairline box; the live one FILLS and takes white ink; **the tab underline is gone entirely** (`.rl-fseg.on` no longer sets a border-bottom-color) — the fill already says which cut is being read, and two marks for one fact is how they come to disagree. **THE FILL IS accent-700, NOT --accent-solid, and that is measured rather than aesthetic**: white on accent-600 is 3.74:1, under what a 10.5px number needs, while accent-700 gives 5.5:1 in the teal workspace and about 11:1 in the navy one — so ONE rule serves both themes and both accents and there is no dark override to keep in step. **THE RESTING COUNTS GOT MORE LEGIBLE, not less**: the opacity became a real ink (neutral-500), 4.8:1 on white and 7:1 in the dark. The three safety properties below are untouched, which is the whole condition on redressing this control. **AND ONE DEFECT FELL OUT OF MEASURING IT**: dark does not redefine the accent ramp, so `.rl-idx-n.is-live` — the narrowed reviewer's own count, the one head that still draws one — was accent-800 on an almost-black panel at 2.4:1 and all but invisible at night; it takes accent-300 in dark now. The cards below keep their own 2px: bordered objects under a label, a table header's relationship to its rows. The pane under it stayed transparent for a fortnight — "the change column is not a card" — and that is REVERSED (owner-asked 22 Aug 2026, see FIVE FIXES AND A CALENDAR): the column wears .rl-col's own white card again, and this head's hairline is what separates the caption from the cards inside it rather than standing in for a box that was not there. The filter was removed once (a control that hides a change can lose one) and came back with three safety properties — do not drop any: three options only (not states), every option shows its OWN count unmoved by the filter, and **SEGMENTED not a dropdown — REVERSED by "The negotiation page takes the render" (24 Aug 2026), which made it a `<select>`; WO-8 the same day MOVED that control into the head's top-right slot where the owner drew it and did not change its shape**. The other two properties are kept and are what make it safe, and the third is answered instead by rlCardFilterNoteHtml — while the column is narrowed it SAYS so and offers the way back, which is the thing a collapsible control could otherwise hide. **AND AN EMPTY BOOK DRAWS NO FILTER AT ALL**: in its new home it lives in the progress foot, drawn only where there is progress to report, and three ways of showing nothing is furniture. The safety property survives because that foot's total counts EVERY change, not the filtered ones. **THE B1 HEAD WENT WITH THE SHAPE and nothing re-pointed its net**: `.rl-fseg`, the 19px count and its uppercase caption are STALE, and panel-alerts-and-head-verify still asks for all of them — it is 7 red on main for that reason, logged rather than chased. A column emptied BY the filter says so and offers the way back. rlCardFilterPass is asked by redlineChangeCardsHtml AND redlineCardIds (the pill must count its own list); chip totals pass countAll. 'mine'/'theirs' read against the SEAT. In memory, reset by negoResetView. Not drawn for a narrowed reviewer (one-outcome control is furniture). f175.
+**THE ARRANGEMENT IT REPLACED, kept because the reasoning is the useful part — RENDER B (owner-chose it off four drawn renders, 22 Aug 2026: "it needs a far more elegant design").** What was wrong was contrast, not structure: at 12px/600 with a 2px accent underline the live cut and the two resting ones were nearly the same object, and the NUMBER — the thing anybody actually scans this row for — was set at `opacity:.62`, about 2.5:1 on white and the faintest text on the column. **So the number carries the state.** Every count sits in its own square hairline box; the live one FILLS and takes white ink; **the tab underline is gone entirely** (`.rl-fseg.on` no longer sets a border-bottom-color) — the fill already says which cut is being read, and two marks for one fact is how they come to disagree. **THE FILL IS accent-700, NOT --accent-solid, and that is measured rather than aesthetic**: white on accent-600 is 3.74:1, under what a 10.5px number needs, while accent-700 gives 5.5:1 in the teal workspace and about 11:1 in the navy one — so ONE rule serves both themes and both accents and there is no dark override to keep in step. **THE RESTING COUNTS GOT MORE LEGIBLE, not less**: the opacity became a real ink (neutral-500), 4.8:1 on white and 7:1 in the dark. The three safety properties below are untouched, which is the whole condition on redressing this control. **AND ONE DEFECT FELL OUT OF MEASURING IT**: dark does not redefine the accent ramp, so `.rl-idx-n.is-live` — the narrowed reviewer's own count, the one head that still draws one — was accent-800 on an almost-black panel at 2.4:1 and all but invisible at night; it takes accent-300 in dark now. The cards below keep their own 2px: bordered objects under a label, a table header's relationship to its rows. The pane under it stayed transparent for a fortnight — "the change column is not a card" — and that is REVERSED (owner-asked 22 Aug 2026, see FIVE FIXES AND A CALENDAR): the column wears .rl-col's own white card again, and this head's hairline is what separates the caption from the cards inside it rather than standing in for a box that was not there. The filter was removed once (a control that hides a change can lose one) and came back with three safety properties — do not drop any: three options only (not states), every option shows its OWN count unmoved by the filter, and **SEGMENTED not a dropdown — REVERSED by "The negotiation page takes the render" (24 Aug 2026), which made it a `<select>`; WO-8 the same day MOVED that control into the head's top-right slot where the owner drew it and did not change its shape**. The other two properties are kept and are what make it safe, and **the third is answered by the CONTROL ITSELF since 26 Aug 2026** — it is labelled WHOSE ASKS, it names the live cut and it prints that cut's own count, so a narrowed column states the narrowing by being set to it. The amber band that used to say it (`rlCardFilterNoteHtml` / `.rl-idx-narrowed` / `ng_filter_narrowed`) is RETIRED — see A NARROWED COLUMN IS SAID BY ITS OWN CONTROL. **AND AN EMPTY BOOK DRAWS NO FILTER AT ALL**: in its new home it lives in the progress foot, drawn only where there is progress to report, and three ways of showing nothing is furniture. The safety property survives because that foot's total counts EVERY change, not the filtered ones. **THE B1 HEAD WENT WITH THE SHAPE and nothing re-pointed its net**: `.rl-fseg`, the 19px count and its uppercase caption are STALE, and panel-alerts-and-head-verify still asks for all of them — it is 7 red on main for that reason, logged rather than chased. A column emptied BY the filter says so and offers the way back. rlCardFilterPass is asked by redlineChangeCardsHtml AND redlineCardIds (the pill must count its own list); chip totals pass countAll. 'mine'/'theirs' read against the SEAT. In memory, reset by negoResetView. Not drawn for a narrowed reviewer (one-outcome control is furniture). f175.
 
 THE SERVER IS THE AUTHORITY (server/server.js): its own read-only reading — rvOpenList / rvOpenFor / rvWithheldIds / rvActorHeld / rvUnreviewedIds. Every question is asked of the STORED contract, never the request body. rvUnsentOurs repeats negoUnsentAsks's arithmetic deliberately.
 - POST /api/shares, in order: refuses a sender holding an open review (403, names the way out), refuses when the gate is on and the payload carries unreviewed content, then STRIPS held/out-for-review from the envelope (a race is ordinary; losing a round over one clause is wrong) and returns withheldByReview.
@@ -3929,8 +3929,9 @@ of this; what follows is the rules that came out of it.
   render in passing is the wider interpretation, and the Scope rules forbid it.
   **THE THREE SAFETY PROPERTIES ARE WHAT WO-8 HAD TO KEEP** — three options
   only; every option still carrying its OWN count unmoved by the filter; and
-  `rlCardFilterNoteHtml` saying so and offering the way back while the column
-  is narrowed, which is what a collapsible control could otherwise hide. **THE SLOT WAS ALREADY THERE AND NOTHING WROTE INTO
+  the narrowing said out loud, which since 26 Aug 2026 is the CONTROL's own
+  job rather than a band beneath it (see A NARROWED COLUMN IS SAID BY ITS OWN
+  CONTROL). **THE SLOT WAS ALREADY THERE AND NOTHING WROTE INTO
   IT** — one span, named for the filter, no readers in any file; the intention
   was there and the last step had never been taken. **AND AN EMPTY BOOK DRAWS
   NO FILTER**: it lives in the progress foot, which is drawn only where there
@@ -4137,8 +4138,9 @@ one, a status word on every row where it has one only where it adds something.
 - **THE THREE-WAY CUT IS LABELLED** — **WHOSE ASKS** beside it, because a
   dropdown reading "All (6)" says what it is SET to and not what it is ABOUT.
   **THE THREE SAFETY PROPERTIES ARE UNTOUCHED** — three options only, each
-  carrying its OWN count unmoved by the filter, and `rlCardFilterNoteHtml` still
-  says so and offers the way back while the column is narrowed.
+  carrying its OWN count unmoved by the filter, and the narrowing said out loud,
+  which since 26 Aug 2026 is the labelled control's own job rather than a band
+  beneath it (see A NARROWED COLUMN IS SAID BY ITS OWN CONTROL).
 - **THE ROWS SIT UNDER FOUR BANDS, each a FILLED STRIP edge to edge with its own
   count** — `RL_CARD_BANDS` / `rlCardBand`. They are the four questions a
   negotiator sorts this column by rather than four statuses: what the other side
@@ -4645,6 +4647,142 @@ the weight). Node 4628/4628. Browser: history-head 35, redline 121, clause-door
 72, parity 40, nego-redesign 51 — all green. pages-read-alike is 47/50 and was
 PROVED identical on an untouched worktree at the parent commit before it was
 left alone.
+
+## SIX OFF THE OWNER'S LIST (26 Aug 2026 — WORKORDER-fixes-26-aug.md)
+
+Six items written down over a morning and built in one run. Two of them turned
+out to be one line each; two were reproduced only by driving a real browser;
+and one was a name that had been resolving to the wrong function since 24 Aug.
+
+- **THE ⋯ MENU READS AS ONE KIND OF ROW (L-1).** *"The drop down should always
+  be the same font size as Edit and Send, not in bold size, never wrap texted
+  and they should have a symbol before the word just like review. Always limit
+  the description like 'Open in the clause panel' should be 'Open clause
+  panel'."* Every row is `--t-label`, which IS the face verbs' own token, so
+  the claim is written as the RELATION and the next type pass moves both or
+  neither; nothing is bold (the Copilot lead row keeps its violet and loses its
+  weight — colour was already saying it); `white-space:nowrap` is a GUARANTEE
+  rather than a measurement, and it is the LABEL that gets shorter when one
+  does not fit, never the type.
+  **THE SYMBOLS COME FROM THE SHELL'S SPRITE**, one hairline family in
+  `currentColor`, so each mark takes its row's own ink and Reject stays red
+  with nothing said twice. `i-check` and `i-x` were ADDED to that sprite for
+  the two decision verbs, which had no mark in the set. `rlMoreWithIcon`
+  inserts after the opening tag and rebuilds nothing — the borrowed verbs are
+  still the SAME buttons the face draws, so a verb cannot mean one thing on the
+  face and another in the menu; a verb the table does not recognise keeps its
+  own markup, because a row with no symbol is a smaller fault than a row
+  wearing the wrong one.
+  **AND THE PERSON EMOJI CAME OFF THE REVIEW BUTTON.** It was the only mark on
+  any verb — odd on a face of bare coloured words, and a SECOND mark in the
+  menu on the one row that already had one.
+
+- **A NARROWED COLUMN IS SAID BY ITS OWN CONTROL (L-2).** The amber band
+  reading "Showing one side only — others are hidden" is RETIRED — it was the
+  row the owner ringed when setting NO NEW BANDS ON THE PAGE, and it fails that
+  rule both ways: the dropdown ten pixels above is labelled WHOSE ASKS and
+  reads "Mine (2)", and it was the reader's own choice read back to them.
+  **THE SAFETY PROPERTY IS NOT LOST, which was the whole condition on removing
+  it**, and it is now carried by two things already on the screen: the control
+  states the live cut AND that cut's own count and is drawn wherever there is
+  any change to hide (the same `p.total` gate), and a column emptied BY the
+  filter still says so in its own empty state, which is a different surface and
+  is untouched. `rlCardFilterNoteHtml`, `.rl-idx-narrowed` and
+  `ng_filter_narrowed` are STALE; `ng_filter_show_all` stays live on the empty
+  state.
+
+- **A PANEL THAT WILL NOT OPEN SAYS SO (L-3).** Reported as *"in the
+  counterparty page, if you click Edit in the card it should take you to the
+  attached edit window not to the contract"*. **NOT REPRODUCED, and that is
+  said plainly rather than papered over**: driven on both seats, over every
+  card type including a proposed new clause, one press of Edit opens the panel
+  on the right clause every time. (A first "reproduction" was a fixture fault
+  of my own — an insert armed with the wrong argument — which is this file's
+  own recorded lesson that an attack failing to ARM reads exactly like one that
+  succeeds.) What WAS found is the hole that makes the report possible from any
+  cause: `rlCpSetShown` refuses to slide an empty panel out — right — and
+  refused SILENTLY, so the press scrolled the paper to the clause and stopped,
+  which from the reader's chair is a dead button. It RETURNS whether it opened
+  now and the card's Edit says `ng_cp_cannot_open` when it did not.
+  **AND THE NET HAD A KINDNESS IN IT, which is why a granted ask could stop
+  working unnoticed**: parity-verify pressed Edit and then, if the panel had
+  not opened, pressed the clause pill instead — written on 20 Aug "for a world
+  where it did not". From that day it passed either way. The answer is taken
+  BEFORE the fallback now and asserted on its own, on both seats.
+
+- **ONE CARD, ONE HEIGHT, NO RESERVED HOLES (L-4).** Both bands the owner
+  ringed on Home were space the cards were TOLD to hold open, and all of it was
+  measured before anything moved: two typed heights 35px apart, a spacer
+  swallowing the leftover (6px on the top row, **25px** on the bottom), and a
+  footer holding two-and-a-bit lines open over one-line text — about 42px of
+  hole per Portfolio card. **BOTH RESERVATIONS WERE BUYING ALIGNMENT** and
+  deleting them alone would have traded one bad row for another.
+  **THE ROW OWNS THREE REGIONS AND EVERY CARD BORROWS THEM**: `--hm-r1` header
+  · `--hm-r2` figure · `--hm-r3` foot, each card `grid-row:span 3` with
+  `grid-template-rows:subgrid`, so titles line up with titles and figures with
+  figures because they sit in the same row of one skeleton. **BOTH GRIDS READ
+  THE SAME THREE TOKENS**, which is what makes the two rows one height by
+  construction rather than by two numbers agreeing; the height is DERIVED —
+  37 + 50 + 31 + 24 + 4 = **146px** against 141 and 176, so the page is ~23px
+  shorter. Every row is `minmax(token, auto)`: Swedish is longer and a narrow
+  window wraps, and a region that clipped would be worse than the fault fixed.
+  **ROW GAP ZERO IS LOAD-BEARING** — a card spans all three rows, so a row gap
+  falls INSIDE it; left at the ladder's 12px the cards measured 171 with 24px
+  of pure gap between a title and its number, which is the band being removed
+  put back by the mechanism removing it. The column gap is untouched.
+  `.hm-sp` is STALE and `.hm-head` is the new header region — a subgrid places
+  children by ROW, so title and detail must be ONE span or they take two of the
+  three rows between them.
+
+- **A REFRESH LEAVES YOU WHERE YOU WERE, AND THE CAUSE IS A SHADOWED NAME
+  (L-5).** Reproduced first, on a real server through real reloads: **all
+  twelve pages lost, every time, and the stored position was the literal text
+  `[object Object]`.** js/core.js publishes `lsGet`/`lsSet`, which JSON-encode.
+  The 24 Aug brand-and-theme work declared its own `function lsGet` /
+  `function lsSet` in **js/app.js** — deliberately plain, because the brand keys
+  hold bare strings and encoding them would rewrite what is already in every
+  reader's browser. Both correct alone. But **a function declaration is hoisted
+  over the whole module**, so from that day every bare `lsSet` anywhere in
+  app.js resolved to the string one — including `setView`'s, five hundred lines
+  above, which stores which page you are on. It wrote text nothing could parse,
+  the resume read null, and null is exactly what a first visit looks like.
+  **NOTHING FAILED AND NOTHING LOGGED.** The rename to `brandRead`/`brandWrite`
+  is the whole fix. **THE NET IS f232-6**: no module may declare a top-level
+  name another module publishes — same name, two meanings, and which one wins
+  is decided by the file the call happens to sit in. Three older clashes
+  (`approvalState`, `approveContract`, `esc`) are NAMED and printed in that
+  test rather than swept up on the way past.
+
+- **A FULL-WINDOW LAYER COMES DOWN WHEN THE PAGE CHANGES (L-6).** Edit with
+  Copilot is a layer over the page area, taken down only by its own Back,
+  Escape and File. **The nav press was never dead — its result was hidden**:
+  the app really went to Home and drew it underneath. Worse than a dead button,
+  because the reader was then looking at a clause while the app was elsewhere
+  and Back returned them to a page it had already left. `viewLayersClosed` sits
+  at the top of `setView`, so all five doors inherit it and none has to
+  remember; **MEASURED, the clause editor is the only full-window layer in the
+  product** — everything else is a dialog on #modal-root or a slide-over inside
+  its page — and a second one joins that function rather than growing a rule.
+  **A REPAINT IS NOT A NAVIGATION**: same view in, layer untouched, or a
+  background answer landing would ask a reader mid-sentence whether they meant
+  to leave.
+  **IT ASKS BEFORE THROWING AWAY WORDING, AND THE PREDICATE IS NOT THE FOOT'S.**
+  The foot enables Discard on "has the wording moved from what STANDS", which
+  is TRUE from the first frame on a clause that already carries an ask — written
+  that way the guard fired on every clean open and pressing Home appeared to do
+  nothing, the exact fault in new clothes. `clauseEditorDirty` measures against
+  the text the editor OPENED with, so apply-twice-undo-twice is honestly clean.
+  The confirm is async and setView is not, so the answer re-enters through the
+  same door with `_leavingCe` set: one question per press.
+
+Tests: **six-fixes-verify (NEW, 20, browser** — every claim a computed value, a
+painted `getBBox`, a measured height or a real reload; three of them failed
+against my own first attempt and each named a real fault), f232 (two new
+claims), parity-verify (the fallback's hole closed, both seats), and claims
+REVERSED IN PLACE in f246, f175 and f93 — each keeping the property it was
+written for and re-pointing it at what carries it now. Node 4647/4647. Browser:
+redline 121, clause-door 97, clause-editor 57, nav-floats 67, home-page 26,
+laptops 21, kpi-four 19, parity 44, theme-tokens 40/40 unmoved.
 
 ## Line numbers drift
 

@@ -134,7 +134,18 @@ describe('f246 (2) — the three-way cut says what it is about', () => {
 
   test('THE THREE SAFETY PROPERTIES ARE UNTOUCHED', async () => {
     /* This control can hide a change, so it is the one on the page that may
-       never be silent. Labelling it must not have cost any of the three. */
+       never be silent. Labelling it must not have cost any of the three.
+
+       THE THIRD IS REVERSED IN PLACE (owner-asked 26 Aug 2026). It used to be
+       carried by an amber band under the head reading "Showing one side only —
+       others are hidden"; that band was the one the owner ringed when they set
+       the standing rule NO NEW BANDS ON THE PAGE, and it went. THE PROPERTY
+       DID NOT GO WITH IT, which is the whole condition on removing it — it is
+       carried by the control itself, which is labelled, names the live cut and
+       prints that cut's own count. So the claim here is stronger than the one
+       it replaces: not "something says so somewhere" but "the control the
+       reader set is itself the statement", plus the band's proved absence so
+       nobody quietly puts it back. */
     const p = await bench();
     const opts = p.$$('#rl-cardfilter option');
     assert.equal(opts.length, 3, 'three options, not states');
@@ -142,8 +153,15 @@ describe('f246 (2) — the three-way cut says what it is about', () => {
       assert.match(o.textContent, /\(\d+\)/, 'each carries its OWN count');
     p.win.rlSetCardFilter('mine');
     p.again();
-    assert.ok(p.$('.rl-idx-narrowed'), 'and a narrowed column says so');
-    assert.ok(p.$('.rl-idx-narrowed [data-rl-cardfilter="all"]'), 'and offers the way back');
+    const sel = p.$('#rl-cardfilter');
+    assert.ok(sel, 'the control is still drawn while the column is narrowed');
+    assert.equal(sel.value, 'mine', 'and it is set to the cut being shown');
+    const live = p.$$('#rl-cardfilter option').find(o => o.value === 'mine');
+    assert.match(live.textContent, /\(\d+\)/,
+      'so the narrowing is stated in words with its own count, by the control itself');
+    assert.ok(p.$('.rl-idx-fk'), 'under a label saying what it filters');
+    assert.equal(p.$('.rl-idx-narrowed'), null,
+      'and the band that used to say it is gone, not merely hidden');
     p.win.rlSetCardFilter('all');
   });
 

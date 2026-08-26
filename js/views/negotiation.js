@@ -8573,7 +8573,20 @@ function rlWireClauseTools(c, host, opts){
       if (window.toast) toast(i18t('ng_clause_gone'), 'err');
       return;
     }
-    rlCpSetShown(btn.closest('.redline-page') || document, clauseId);
+    /* AND IF THE PANEL WILL NOT OPEN, THE PRESS SAYS SO (owner-reported
+       26 Aug 2026, L-3: "if you click Edit in the card it should take you to
+       the attached edit window not to the contract").
+
+       Edit does two things — scroll the paper to the clause, then open the
+       panel on it — and the second half can be refused: the panel holds a body
+       per clause, and where it holds none for this one it will not slide out
+       empty. Until now that refusal was silent, so the reader got the jump and
+       nothing else, which is the report word for word. Nothing is invented
+       here: where the panel can show the clause it opens exactly as before,
+       and where it cannot the reader is told rather than left guessing whether
+       they pressed it properly. */
+    if (!rlCpSetShown(btn.closest('.redline-page') || document, clauseId)
+        && window.toast) toast(i18t('ng_cp_cannot_open'), 'warn');
   }));
 
   /* The origin filter and the sidebar's mode tabs were wired here. Both
@@ -9789,6 +9802,40 @@ function rlFaceSplit(verbs){
    THE HEAD NAMES THE CHANGE, because a menu floating over a column of six
    cards has to say which one it belongs to — the design draws that head and it
    is the reason it works. */
+/* ---- EVERY ROW IN THIS MENU CARRIES A SYMBOL (owner-asked 26 Aug 2026) ----
+   "they should have a symbol before the word just like review." Two of the four
+   rows had one and two did not, so the menu read as two kinds of row.
+
+   THE MARKS COME FROM THE SHELL'S SPRITE, never from glyphs invented here: one
+   16 box, a hairline stroke, currentColor — so each mark takes the ink of the
+   row it sits on and Reject stays red, Send stays green, Copilot stays violet
+   with nothing said twice. `i-check` and `i-x` were added to that sprite for
+   the two decision verbs, which had no mark in the set.
+
+   THE VERBS ARRIVE AS FINISHED BUTTONS and are NOT rebuilt — they are the same
+   markup the face draws, with the same attributes and the same handlers, so a
+   verb cannot come to mean one thing on the face and another here. The icon is
+   inserted after the opening tag and nothing else about the button is touched;
+   `_nea` escapes '>' inside every attribute, which is what makes matching to
+   the first '>' the end of the tag rather than a guess. A verb this list does
+   not recognise simply keeps its own markup — a menu row with no symbol is a
+   smaller fault than a row wearing the wrong one. */
+const RL_MORE_ICONS = [
+  [/data-nego-accept/, 'i-check'], [/data-nego-reject/, 'i-x'],
+  [/data-rl-send\b/, 'i-out'], [/data-rl-retract\b|data-nego-withdraw/, 'i-left'],
+  [/data-nego-undo|data-rl-reopen|data-nego-redecide/, 'i-up'],
+  [/data-rl-ask-review/, 'i-people'], [/data-rl-cp-editor-row/, 'i-spark'],
+  [/data-rl-cp-open/, 'i-panel'], [/data-rl-edit=/, 'i-file'],
+];
+const rlMoreIcon = id =>
+  `<svg class="rl-more-i" viewBox="0 0 16 16" aria-hidden="true"><use href="#${id}"/></svg>`;
+function rlMoreWithIcon(html){
+  const s = String(html || '');
+  if (!s || /class="rl-more-i"/.test(s)) return s;
+  const hit = RL_MORE_ICONS.find(([re]) => re.test(s));
+  if (!hit) return s;
+  return s.replace(/(<button\b[^>]*>)/, `$1${rlMoreIcon(hit[1])}`);
+}
 function rlCardMoreHtml(c, ch, opts = {}, side = 'owner', st = {}){
   const rows = [];
   /* EVERY FLAG IS THE CARD'S OWN, handed in rather than worked out again here:
@@ -9802,7 +9849,7 @@ function rlCardMoreHtml(c, ch, opts = {}, side = 'owner', st = {}){
   if (own && editable && panel && typeof window !== 'undefined' && window.rlOpenClauseEditor)
     rows.push(`<button type="button" class="rl-more-row rl-more-lead"
       data-rl-cp-editor-row="${_nea(ch.clauseId)}" data-rl-cp-editor-change="${_nea(ch.id)}"
-      >&#10022; ${i18t('ng_cp_copilot')}</button>`);
+      >${i18t('ng_cp_copilot')}</button>`);
   if (panel)
     rows.push(`<button type="button" class="rl-more-row"
       data-rl-cp-open="${_nea(ch.clauseId)}">${i18t('ng_row_open_panel')}</button>`);
@@ -9854,8 +9901,8 @@ function rlCardMoreHtml(c, ch, opts = {}, side = 'owner', st = {}){
       aria-label="${_nea(i18t('ng_row_more_title'))} ${_nea(ch.id)}">&#8943;</button>
     <div class="rl-more-menu" id="rl-more-${_nea(ch.id)}" role="menu" hidden>
       <div class="rl-more-head">${_ne(label)}</div>
-      ${over.length ? `<div class="rl-more-verbs">${over.join('')}</div>` : ''}
-      ${rows.join('')}
+      ${over.length ? `<div class="rl-more-verbs">${over.map(rlMoreWithIcon).join('')}</div>` : ''}
+      ${rows.map(rlMoreWithIcon).join('')}
     </div>
   </div>`;
 }
@@ -11348,7 +11395,14 @@ function redlineChangeCardsHtml(c, opts = {}){
     if (editable && mineUnsent && !rvOut && !rvHeld && window.openReviewAskModal
         && window.reviewSeatShowsReview && reviewSeatShowsReview(opts))
       verbs.push(`<button class="rl-edit" data-rl-ask-review="${_nea(ch.id)}"
-        title="${_nea(i18t('rv_card_ask_title'))}">&#128100; ${i18t('rv_card_ask')}</button>`);
+        ${''/* THE PERSON EMOJI CAME OFF (owner-asked 26 Aug 2026). It was the
+             only mark on any verb: bare words on the face beside four other
+             bare words, and in the ⋯ menu — where every row now carries a
+             sprite symbol — a SECOND mark on the one row that already had one.
+             The sprite's own i-people is what this row wears there, at the
+             menu's hairline weight and in the row's own ink, which a colour
+             emoji could never do. */}
+        title="${_nea(i18t('rv_card_ask_title'))}">${i18t('rv_card_ask')}</button>`);
     /* ---- AND THE WAY OUT OF A HOLD ----
        A held change had ONE verb on it — Edit — and no route anywhere. Send was
        gone (correctly), the ask was gone (because it tested mineUnsent, which a
@@ -12374,6 +12428,14 @@ function rlCpSetShown(scope, clauseId){
     const close = root.querySelector('#rl-cp-min');
     if (close && close.focus){ try{ close.focus({ preventScroll: true }); }catch(_){ try{ close.focus(); }catch(_e){} } }
   }
+  /* IT SAYS WHETHER IT OPENED (owner-reported 26 Aug 2026, L-3). The refusal
+     above is right — a panel sliding out empty reads as broken — but it was
+     SILENT, and a caller that asked for the panel and got nothing had no way
+     to tell. From the reader's chair that is indistinguishable from a dead
+     button: the press scrolls the paper to the clause and then stops, which is
+     exactly "it takes you to the contract" as reported. The callers decide
+     what to say; this only stops them having to guess. */
+  return on;
 }
 /* A repaint rebuilds the panel from the markup, so the class the open body was
    wearing goes with it. Called LAST in the page's own wiring, after the engine
@@ -12694,19 +12756,34 @@ function redlinePanesHtml(c, opts = {}){
                      be silent. */}
               ${rlIdxFilterHtml(c, opts, side, tabHidden)}
             </div>` : ''}
-            ${''/* ---- AND IT SAYS WHEN IT IS NARROWED ----
-                   The third of the filter's three safety properties, kept now
-                   that the control is a dropdown: a collapsed control can hide
-                   changes quietly, so while the column is showing one side it
-                   states that and offers the way back. The button carries
-                   data-rl-cardfilter, so this is the page's existing door
-                   rather than a second one. Drawn only when narrowed — an
-                   always-on band is furniture. */}
-            ${rlCardFilter() !== 'all' ? `<div class="rl-idx-narrowed">
-              <span>${_ne(i18t('ng_filter_narrowed'))}</span>
-              <span style="flex:1"></span>
-              <button type="button" data-rl-cardfilter="all">${_ne(i18t('ng_filter_show_all'))}</button>
-            </div>` : ''}
+            ${''/* ---- THE NARROWED BAND IS GONE (owner-asked 26 Aug 2026) ----
+                   It read "Showing one side only — others are hidden" with a
+                   Show all changes beside it, and it was the amber row the
+                   owner ringed when they set the standing rule NO NEW BANDS ON
+                   THE PAGE. It fails both halves of that rule's test: the
+                   dropdown TEN PIXELS ABOVE IT is labelled WHOSE ASKS and reads
+                   "Mine (2)", so the screen already said it — and it was the
+                   reader's own choice read back to them rather than work owed.
+
+                   THE SAFETY PROPERTY IT CARRIED IS NOT LOST, and that was the
+                   condition on removing it. This file recorded the filter's
+                   three properties and this band as the third; the third is now
+                   carried by two things that were already on the screen:
+                     · THE CONTROL SAYS WHAT IT IS SET TO. It is a labelled
+                       dropdown printing the live cut AND that cut's own count,
+                       and it is drawn whenever there is any change to hide
+                       (this same p.total gate) — so a narrowed column can never
+                       be silent about being narrowed.
+                     · A COLUMN EMPTIED BY THE FILTER STILL SAYS SO and still
+                       offers the way back, in its own empty state, which is
+                       untouched and is a different surface from this band.
+                   The other two properties — three options only, and every
+                   option carrying its own count unmoved by the filter — are
+                   untouched.
+
+                   `ng_filter_narrowed` and `.rl-idx-narrowed` are STALE; the
+                   key is left inert in the dictionary and ng_filter_show_all
+                   stays live on the empty-column message. */}
           </div>
           <div class="nego-index-head rl-idx-head">
           ${''/* THE COLUMN'S TITLE IS THE INDEX BLOCK'S OWN, one region up —

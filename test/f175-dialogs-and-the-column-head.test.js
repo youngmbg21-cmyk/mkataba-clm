@@ -445,17 +445,21 @@ describe('f175 · the strip filters by who asked', () => {
     /* The head no longer carries a filtered count (Option 1 — the tab counts
        deliberately do NOT move with the filter; that is their safety). What
        says "you are reading the Mine cut" is the pressed tab itself. */
-    /* RE-POINTED 24 Aug 2026 — the pressed TAB is a selected OPTION now. And
-       because a collapsed control can hide a change quietly, the column also
-       SAYS it is narrowed and offers the way back: that band is the third of
-       this filter's three safety properties and is asserted here, since the
-       dropdown is what made it necessary. */
-    assert.equal(p.win.document.getElementById('rl-cardfilter').value, 'mine',
-      'the filter names the cut it is showing');
-    const band = p.$('.rl-idx-narrowed');
-    assert.ok(band, 'and the column says it is showing one side only');
-    assert.ok(band.querySelector('[data-rl-cardfilter="all"]'),
-      'with the way back on the same band');
+    /* RE-POINTED 24 Aug 2026 — the pressed TAB is a selected OPTION now.
+       REVERSED IN PLACE 26 Aug 2026: the amber band that used to state the
+       narrowing was the one the owner ringed when setting the standing rule NO
+       NEW BANDS ON THE PAGE, and it fails that rule's own test — the dropdown
+       ten pixels above already said it, and it was the reader's own choice
+       read back to them. THE SAFETY PROPERTY IS NOT LOST, which is the whole
+       condition on removing it: the CONTROL is the statement. It is labelled,
+       it names the live cut, and it prints that cut's own count. */
+    const sel = p.win.document.getElementById('rl-cardfilter');
+    assert.equal(sel.value, 'mine', 'the filter names the cut it is showing');
+    const live = [...sel.options].find(o => o.value === 'mine');
+    assert.match(live.textContent, /\(\d+\)/,
+      'and states it in words with its own count, so the narrowing is never silent');
+    assert.equal(p.$('.rl-idx-narrowed'), null,
+      'the band that used to say it is gone, not merely hidden');
     assert.equal(p.win.document.querySelectorAll('#rl-changes [data-nego-card]').length, 1,
       'one card on screen');
   });

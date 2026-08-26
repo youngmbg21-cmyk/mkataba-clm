@@ -2,10 +2,18 @@
 
 **Raised by:** Young, 26 Aug 2026, off annotated screenshots.
 **Branch:** `claude/ui-text-dropdown-styling-j2nat5`.
-**Status:** **NOT STARTED — NOTHING IS TO BE BUILT YET.** The owner's exact
-words were *"Do not code yet but add to a list of things to be done later and
-I will add more."* This file is the list. It stays open; the owner is adding
-to it. Wait for their word before writing a line of code.
+**Status:** **DONE — all six built 26 Aug 2026** on the owner's word
+("implement all six items"). What each turned into, and the two places the
+work differed from the plan, are recorded in CLAUDE.md under SIX OFF THE
+OWNER'S LIST and in BUGLOG.md. The items below are kept as written, because
+the reasoning in them is what the build was measured against.
+
+Two things did not go as this file predicted, and both are worth reading
+before trusting a prediction in it again: **L-3 did not reproduce** (the route
+works on both seats; what was fixed is the silent refusal that makes the
+report possible from any cause), and **L-5's cause was not either of the two
+gaps guessed here** — it was a name in js/app.js shadowing one core.js
+publishes, which lost the stored position on every page, not just some.
 
 ---
 

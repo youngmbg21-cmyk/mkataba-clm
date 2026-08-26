@@ -259,12 +259,20 @@ describe('F93 (2) — the origin filter is gone, and nothing hides a card', () =
       'three options only — not five views of the round');
     for (const o of sel.options) assert.match(o.textContent, /\(\d+\)/,
       'every option carries its own count, so the split reads without opening it');
-    /* and while it is narrowed the column says so, with the way back */
+    /* AND WHILE IT IS NARROWED THE COLUMN SAYS SO — reversed in place 26 Aug
+       2026. It used to be an amber band under the head; the owner ringed that
+       band when setting the standing rule NO NEW BANDS ON THE PAGE, and it
+       failed the rule's own test twice over (the screen already said it, and
+       it was the reader's own choice read back). The property survives in the
+       control itself, which is the stronger place for it: the thing the reader
+       set is the thing that states it. */
     p.win.rlSetCardFilter('mine');
     p.win.renderRedline();
-    const band = p.$('.rl-idx-narrowed');
-    assert.ok(band, 'a narrowed column says it is narrowed');
-    assert.ok(band.querySelector('[data-rl-cardfilter="all"]'), 'and offers the way back');
+    const sel2 = p.doc.getElementById('rl-cardfilter');
+    assert.equal(sel2.value, 'mine', 'the control names the cut being shown');
+    assert.match([...sel2.options].find(o => o.value === 'mine').textContent, /\(\d+\)/,
+      'in words, with its own count — so a narrowed column is never silent');
+    assert.equal(p.$('.rl-idx-narrowed'), null, 'and the band is gone, not hidden');
     p.win.rlSetCardFilter('all');
   });
 

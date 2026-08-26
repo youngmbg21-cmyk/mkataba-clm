@@ -2600,15 +2600,41 @@ function redlineLayoutCss(){
   .redline-page .rl-more-head{padding:7px var(--s-3) 6px;font-size:var(--t-micro);font-weight:var(--w-title);
     letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);
     border-bottom:1px solid var(--color-divider);margin-bottom:var(--s-1)}
-  .redline-page .rl-more-row{display:block;width:100%;text-align:left;border:0;
-    background:transparent;padding:var(--s-2) var(--s-3);font:inherit;font-size:var(--t-body);
-    color:var(--color-text);cursor:pointer}
+  ${''/* ---- ONE SIZE, NO BOLD, NEVER WRAPPED (owner-asked 26 Aug 2026) ----
+         "The drop down should always be the same font size as Edit and Send,
+         not in bold size, never wrap texted."
+
+         --t-label IS Edit and Send's own size — the face verbs a few pixels
+         above are dressed by .rl-card-d .rl-card-verbs button at that same
+         token, and NO BACKTICK MAY APPEAR IN A COMMENT HERE: this file returns
+         its CSS from a template literal, so one ends the string and a balanced
+         pair gets the words between them EVALUATED. f236 caught this very
+         sentence. So
+         this is written as the RELATION the owner asked for rather than as a
+         number, and the next type pass moves both together or neither.
+
+         NOWRAP IS A GUARANTEE, not a measurement: no label, in either
+         language, at any menu width, can drop to a second line. The menu has
+         a min-width and grows to its longest row instead, which is what a
+         menu is for. It is the LABEL that gets shorter when one does not fit
+         — see ng_row_open_panel — never the type. */}
+  .redline-page .rl-more-row{display:flex;align-items:center;gap:var(--s-2);
+    width:100%;text-align:left;border:0;white-space:nowrap;
+    background:transparent;padding:var(--s-2) var(--s-3);font:inherit;font-size:var(--t-label);
+    font-weight:var(--w-body);color:var(--color-text);cursor:pointer}
   .redline-page .rl-more-row:hover{background:var(--color-neutral-100)}
+  ${''/* The mark takes the row's own ink and never shrinks: flex:none, or a
+         long label squeezes the symbol out of shape rather than widening the
+         menu. Sized against the type so the two move together. */}
+  .redline-page .rl-more-i{flex:none;width:15px;height:15px;color:inherit}
   ${''/* COPILOT IS VIOLET HERE, as it is everywhere else in this product —
          the reference draws this row in the Copilot colour rather than the
          workspace accent, and .rl-btn-alt on the control bar has carried the
          same violet since the playbook pass was built. */}
-  .redline-page .rl-more-row.rl-more-lead{color:#6d28d9;font-weight:var(--w-title)}
+  ${''/* THE VIOLET STAYS, THE WEIGHT GOES. Copilot's colour is how this
+         product names it everywhere; the extra weight was the second mark for
+         one fact and it is what the owner pointed at. */}
+  .redline-page .rl-more-row.rl-more-lead{color:#6d28d9}
   html.dark .redline-page .rl-more-row.rl-more-lead{color:#c4b5fd}
   ${''/* A RULE UNDER THE TWO DOORS. The reference groups the menu: the two
          ways INTO this change's wording, then the two things you do ABOUT it.
@@ -2623,8 +2649,13 @@ function redlineLayoutCss(){
          these ACT on the change, those go somewhere. */}
   .redline-page .rl-more-verbs{display:flex;flex-direction:column;
     border-bottom:1px solid var(--color-divider);padding-bottom:2px;margin-bottom:2px}
-  .redline-page .rl-more-verbs button{display:block;width:100%;text-align:left;
-    border:0;background:none;font:inherit;font-size:13.5px;font-weight:var(--w-body);
+  ${''/* The borrowed verbs read as the rows they now are: the same size as the
+         face's Edit and Send, the same regular weight, the same symbol gutter.
+         The 13.5px here was a half-pixel left behind by an earlier pass — a
+         fractional size renders soft, which is this page's own rule. */}
+  .redline-page .rl-more-verbs button{display:flex;align-items:center;gap:var(--s-2);
+    width:100%;text-align:left;
+    border:0;background:none;font:inherit;font-size:var(--t-label);font-weight:var(--w-body);
     line-height:1.5;padding:7px var(--s-3);white-space:nowrap;cursor:pointer}
   .redline-page .rl-more-verbs button:hover{background:var(--color-neutral-100);
     text-decoration:none}
@@ -2633,8 +2664,12 @@ function redlineLayoutCss(){
          the SAME tokens, never a second set of values. The dark answers come
          free: html.dark re-points .rl-rej and .rl-edit unscoped, and --accent-ink
          is the accent token that has a night value of its own. */}
+  ${''/* THE INK STAYS AND THE WEIGHT GOES — the same call as the lead row
+         above. With a symbol on every row and one weight throughout, colour is
+         doing the whole job of telling these verbs apart, which is what it was
+         always for. */}
   .redline-page .rl-more-verbs .rl-acc,
-  .redline-page .rl-more-verbs .rl-send{color:var(--accent-ink);font-weight:var(--w-title)}
+  .redline-page .rl-more-verbs .rl-send{color:var(--accent-ink)}
   .redline-page .rl-more-verbs .rl-rej{color:var(--danger-hover)}
   .redline-page .rl-more-verbs .rl-edit{color:var(--accent-ink-700)}
   html.dark .redline-page .rl-more-verbs .rl-edit{color:var(--color-accent-300)}
@@ -4004,16 +4039,13 @@ function redlineLayoutCss(){
     padding:0 var(--s-6) 0 var(--s-2);cursor:pointer;border-radius:0;appearance:none;-webkit-appearance:none;
     background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235F6D6B' stroke-width='2'><path d='M6 9l6 6 6-6'/></svg>");
     background-repeat:no-repeat;background-position:right 6px center}
-  ${''/* WHILE THE COLUMN IS NARROWED IT SAYS SO. This is the third of the
-         filter's three safety properties, kept when the control became a
-         dropdown: a collapsed control can hide changes quietly, so the column
-         states the narrowing and offers the way back. The button carries
-         data-rl-cardfilter, so it is the page's existing door, not a second. */}
-  .redline-page .rl-idx-narrowed{display:flex;align-items:center;gap:var(--s-2);margin:10px var(--s-3) 0;
-    padding:5px 9px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);
-    font-size:var(--t-meta);color:var(--st-amber-fg)}
-  .redline-page .rl-idx-narrowed button{border:0;background:none;font:inherit;font-size:var(--t-meta);
-    font-weight:var(--w-title);color:var(--st-amber-fg);text-decoration:underline;cursor:pointer;padding:0}
+  ${''/* .rl-idx-narrowed IS RETIRED (owner-asked 26 Aug 2026) and its rules
+         go with it rather than being left to dress an element nothing draws.
+         It was the amber band reading "Showing one side only" and it was the
+         screen printing the reader's own choice back at them, twelve pixels
+         under a labelled dropdown already saying it. See the note at its
+         builder for what carries its safety property now. The dropdown above
+         is untouched. */}
 
   ${''/* ---- AND THE LAST BOLD ONE FLATTENED TOO (owner-asked 23 Aug 2026:
          "publish round should not be bold") ----

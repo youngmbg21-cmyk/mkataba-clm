@@ -936,10 +936,18 @@ function renderDashboard(){
       style="border-top-color:${o.edge}"
       ${dead?(draggy?'aria-disabled="true"':'disabled'):`data-hm-go="${esc(o.go||'')}"`}
       ${o.id?`id="${o.id}"`:''} ${o.attrs||''}>
+      ${''/* ---- THREE REGIONS, THE SAME ON EVERY CARD (owner-asked 26 Aug
+             2026: "The top cards and the bottom cards have to be the same size
+             as far as height and remove empty spaces which makes the card look
+             empty. Create a well structured card like a fiori card…") ----
+             Header · figure · footing fact, and they are REGIONS rather than a
+             run of children so the grid can line them up across the row. The
+             header is one span holding the title and its detail, because the
+             two are one region and a subgrid places children by ROW: left
+             loose they would take two of the three rows between them and put
+             the figure where the foot belongs. */}
       ${dead?'':hmArrow}
-      <span class="hm-t">${o.t}</span>
-      <span class="hm-s">${o.s||''}</span>
-      <span class="hm-sp"></span>
+      <span class="hm-head"><span class="hm-t">${o.t}</span><span class="hm-s">${o.s||''}</span></span>
       <span class="hm-big"><span class="hm-n"${o.ink&&!dead?` style="color:${o.ink}"`:''}>${o.n}</span>${o.u?`<span class="hm-u">${o.u}</span>`:''}</span>
       <span class="hm-foot${o.fc?' '+o.fc:''}">${o.f||''}</span>
     </button>`;
@@ -983,9 +991,11 @@ function renderDashboard(){
   }).join('');
   const lifeTile=`
     <div class="hm-tile is-port is-life" style="border-top-color:var(--color-accent-600)">
-      <span class="hm-t">${i18t('home_lifecycle')}</span>
-      <span class="hm-s">${i18tn('home_live_by_stage',live.length,{n:live.length})}</span>
-      <span class="hm-sp"></span>
+      <span class="hm-head"><span class="hm-t">${i18t('home_lifecycle')}</span><span class="hm-s">${i18tn('home_live_by_stage',live.length,{n:live.length})}</span></span>
+      ${''/* THE WIDE CARD FILLS THE SAME THREE REGIONS, which is the test of
+             whether the skeleton is right: its figure region holds a stage bar
+             beside the money rather than one numeral, and it is the tallest
+             thing any card puts there — which is where --hm-r2 comes from. */}
       <span class="hm-life">
         <span class="hm-stack">${lifeStack}</span>
         ${''/* A READER WITHOUT canViewValues GETS NO MONEY HALF AT ALL, not a

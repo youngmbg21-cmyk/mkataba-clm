@@ -544,7 +544,67 @@ function renderFailedHtml(view, e, cid){
    below; pollWaitingOnThem (js/core.js) asks the same question of the same two
    and the pair must not drift. */
 const POLL_ON_ARRIVAL = ['workspace','redline'];
+
+/* ---- A FULL-WINDOW LAYER COMES DOWN WHEN THE PAGE CHANGES ----
+   (owner-reported 26 Aug 2026, L-6: "I am on this page and i try to switch to
+   another tab in the nav panel it keeps me in the same page which is a bug.")
+
+   THE PRESS WAS NEVER DEAD — the result of it was hidden. Edit with Copilot is
+   a layer laid over the page area, put up when it opens and taken down by its
+   own three controls (Back, Escape, filing) and by nothing else. So a nav press
+   drew the new page UNDERNEATH it and the reader saw nothing move, which is
+   worse than a dead button: the app was on Home while the reader was still
+   looking at a clause, and Back to the negotiation then returned them to a page
+   the app had already left.
+
+   IT IS ANSWERED HERE, ONCE, AND THAT IS THE WHOLE POINT. Five doors change the
+   page — the sidebar, the command palette, an alert row, a deep link from an
+   email, and the code's own setView calls — and a rule written at the sidebar is
+   a rule the other four walk past. This is the one funnel they all go through.
+
+   MEASURED FIRST: the clause editor is the ONLY full-window layer in the
+   product. Every other overlay is a dialog on #modal-root or a slide-over
+   (the alerts panel, the Copilot drawer, the clause panel, the round queue),
+   and each of those already closes itself or sits inside the page it belongs
+   to. If a second one is ever built, it joins this function rather than
+   growing a rule of its own.
+
+   ASKED, NEVER SILENT, WHERE SOMETHING WAS TYPED. clauseEditorDirty is the
+   editor's own reading — the same one its Discard button is drawn from — so
+   an untouched editor closes without a word and the guard cannot become the
+   thing everybody clicks through. The confirm is async and setView is not, so
+   the answer re-enters through this same door with `_leavingCe` set: one
+   question per press, and no second guard on the way back in. */
+let _leavingCe = false;
+function viewLayersClosed(view){
+  /* A REPAINT IS NOT A NAVIGATION, and this is the half of that rule that
+     matters most here: a background answer landing repaints the page under the
+     layer, and a reader mid-sentence must never be asked whether they meant to
+     leave a page nobody asked to leave. Same view in, layer untouched. */
+  if(state.view === view) return true;
+  if(!(typeof window!=='undefined' && window.clauseEditorOpen && clauseEditorOpen())) return true;
+  if(_leavingCe) return true;
+  if(!(window.clauseEditorDirty && clauseEditorDirty())){
+    if(window.rlCloseClauseEditor) rlCloseClauseEditor();
+    return true;
+  }
+  if(!window.confirmDialog){ if(window.rlCloseClauseEditor) rlCloseClauseEditor(); return true; }
+  confirmDialog({ title:i18t('ce_leave_title'), message:i18t('ce_leave_body'),
+    confirmLabel:i18t('ce_leave_go'), cancelLabel:i18t('act_cancel'), danger:true })
+    .then(ok=>{
+      if(!ok) return;
+      if(window.rlCloseClauseEditor) rlCloseClauseEditor();
+      _leavingCe = true;
+      try{ setView(view); } finally { _leavingCe = false; }
+    }).catch(()=>{});
+  return false;
+}
+
 function setView(view){
+  /* The layer over the page area is asked about BEFORE anything is drawn — a
+     page rendered behind a guard the reader then cancels is a navigation that
+     half happened. */
+  if(!viewLayersClosed(view)) return;
   /* Focus mode belongs to the negotiation bench. Leaving it must give the
      navigation back — a reader who exits in focus mode and lands on the
      register would otherwise find the sidebar and the top strip missing. */
@@ -1760,7 +1820,7 @@ const THEME_KEY = 'hati-theme';
    copy is how the two shells come to disagree about which theme is on. The
    legacy key answers only while neither half of the pair has been written. */
 function themeNow(){
-  const b=lsGet(BRAND_KEY), d=lsGet(DARK_KEY);
+  const b=brandRead(BRAND_KEY), d=brandRead(DARK_KEY);
   if(b!==null || d!==null) return d==='1' ? 'dark' : (b==='navy' ? 'navy' : 'green');
   let v=''; try{ v=localStorage.getItem(THEME_KEY)||''; }catch(e){}
   if(v==='light') v='green';
@@ -1771,7 +1831,7 @@ function themeNow(){
    own reading, so there is one painter and it cannot drift. */
 function applyTheme(mode){
   const t=THEMES.find(x=>x.k===mode);
-  if(t){ lsSet(BRAND_KEY, t.brand||'green'); lsSet(DARK_KEY, t.dark?'1':'0'); }
+  if(t){ brandWrite(BRAND_KEY, t.brand||'green'); brandWrite(DARK_KEY, t.dark?'1':'0'); }
   applyAppearance();
 }
 function setTheme(mode){
@@ -1779,8 +1839,8 @@ function setTheme(mode){
   /* The legacy key is still written so a browser that downgrades, or any
      reader that has not been repointed, finds what it expects. */
   try{ localStorage.setItem(THEME_KEY, t.k); }catch(e){}
-  lsSet(BRAND_KEY, t.brand||'green');
-  lsSet(DARK_KEY, t.dark?'1':'0');
+  brandWrite(BRAND_KEY, t.brand||'green');
+  brandWrite(DARK_KEY, t.dark?'1':'0');
   applyAppearance();
   repaintForAppearance();
 }
@@ -1810,15 +1870,37 @@ function toggleTheme(){
    rather than keeping a second model alive beside it. */
 const BRAND_KEY='hati-brand', DARK_KEY='hati-dark';
 const BRANDS=['green','navy'];
-function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
-function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+/* ---- THESE ARE brandRead / brandWrite AND NOT lsGet / lsSet (26 Aug 2026) ----
+   They were called lsGet and lsSet, and that ONE fact broke returning to the
+   page you were on for every reader of this product.
+
+   core.js publishes lsGet/lsSet, which JSON-encode; these two are deliberately
+   PLAIN because the brand and dark keys hold bare strings ('green', '1') and
+   have done since before either pair existed — encoding them would rewrite
+   what is already in every reader's browser, which this section's own promise
+   forbids. Both correct on their own. But a `function` declaration is hoisted
+   over the whole module, so from the day these were written every bare lsSet
+   ANYWHERE in js/app.js resolved to the string one — including setView's, 500
+   lines above, which stores {view, activeId, folderId}. It wrote the literal
+   text "[object Object]", core.js's lsGet could not parse it, the resume read
+   null, and every refresh landed on the dashboard however deep in the product
+   the reader was.
+
+   NOTHING FAILED AND NOTHING LOGGED, which is why it survived: the write
+   succeeded, the read succeeded and returned null, and null is exactly what a
+   first visit looks like. The names are the whole fix — renamed, the bare call
+   in setView reaches the published pair again and the stored position is
+   readable. See f238 for the net: no module may re-declare a name core.js
+   publishes. */
+function brandRead(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function brandWrite(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
 function brandNow(){
-  const v=lsGet(BRAND_KEY);
+  const v=brandRead(BRAND_KEY);
   if(BRANDS.includes(v)) return v;
   return themeNow()==='navy' ? 'navy' : 'green';     /* legacy key, read never written */
 }
 function darkNow(){
-  const v=lsGet(DARK_KEY);
+  const v=brandRead(DARK_KEY);
   if(v==='1') return true;
   if(v==='0') return false;
   return themeNow()==='dark';                        /* legacy key */
@@ -1842,10 +1924,10 @@ function repaintForAppearance(){
 }
 function setBrand(b){
   if(!BRANDS.includes(b)) return;
-  lsSet(BRAND_KEY,b); applyAppearance(); repaintForAppearance();
+  brandWrite(BRAND_KEY,b); applyAppearance(); repaintForAppearance();
 }
 function setDark(on){
-  lsSet(DARK_KEY, on?'1':'0'); applyAppearance(); repaintForAppearance();
+  brandWrite(DARK_KEY, on?'1':'0'); applyAppearance(); repaintForAppearance();
 }
 function toggleDark(){ setDark(!darkNow()); }
 /* THE SWATCHES ARE ADMIN-ONLY (owner-ruled 24 Aug 2026). Light/dark and

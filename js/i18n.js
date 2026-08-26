@@ -1517,6 +1517,12 @@ const STRINGS = {
     ce_no_changes_yet: 'No changes yet',
     ce_undo: 'Undo the last change',
     ce_discard: 'Discard changes',
+    /* The guard the shell puts up when a nav door is pressed with wording in
+       the box. It names what is lost — the wording, not "changes" — because
+       nothing has been filed and there is no change yet to lose. */
+    ce_leave_title: 'Leave this clause?',
+    ce_leave_body: 'The wording you have written here has not been filed as a change. Leaving now throws it away.',
+    ce_leave_go: 'Leave and lose it',
     ce_file_as_change: 'File as a change',
     ce_save_to: 'Save to {id}',
     ce_applied: 'Applied to the wording below.',
@@ -1678,8 +1684,12 @@ const STRINGS = {
     ng_band_drafts: 'Your drafts',
     ng_band_with: 'With {who}',
     ng_band_decided: 'Decided',
-    ng_row_open_panel: 'Open in the clause panel',
-    ng_row_jump: 'Jump to the clause',
+    /* SHORT, BECAUSE THIS MENU IS ONE LINE PER ROW (owner-asked 26 Aug 2026:
+       "Always limit the description like 'Open in the clause panel' should be
+       'Open clause panel'"). The row carries a symbol now, so the article and
+       the preposition were doing no work the icon and the noun do not. */
+    ng_row_open_panel: 'Open clause panel',
+    ng_row_jump: 'Go to clause',
     ng_row_more_title: 'More for this change',
     ng_filter_all: 'All',
     ng_filter_all_t: 'Every change on the table, from both sides',
@@ -2595,6 +2605,10 @@ const STRINGS = {
     ng_agreed_carried: 'Agreed wording carried to the Docs tab — sign it there when you are ready',
     ng_round_cannot_close: 'The round cannot close with changes still pending',
     ng_clause_gone: 'That clause is no longer in the document',
+    /* The clause panel refusing to open, said out loud. It holds a body per
+       clause and will not slide out empty; before this the press simply
+       stopped after the jump and read as a dead button. */
+    ng_cp_cannot_open: 'This clause has nothing to open in the panel yet',
     ng_nothing_to_send: 'There is nothing to send on this round yet',
     ng_playbook_not_loaded: 'The playbook module is not loaded on this page',
     ng_review_failed: 'The review could not run: ',
@@ -6335,6 +6349,9 @@ const STRINGS = {
     ce_no_changes_yet: 'Inga ändringar ännu',
     ce_undo: 'Ångra senaste ändringen',
     ce_discard: 'Släng ändringarna',
+    ce_leave_title: 'Lämna klausulen?',
+    ce_leave_body: 'Lydelsen du har skrivit här är inte registrerad som en ändring. Lämnar du nu försvinner den.',
+    ce_leave_go: 'Lämna och släng den',
     ce_file_as_change: 'Registrera som ändring',
     ce_save_to: 'Spara till {id}',
     ce_applied: 'Infört i lydelsen nedan.',
@@ -6490,7 +6507,7 @@ const STRINGS = {
     ng_band_drafts: 'Dina utkast',
     ng_band_with: 'Hos {who}',
     ng_band_decided: 'Avgjorda',
-    ng_row_open_panel: 'Öppna i klausulpanelen',
+    ng_row_open_panel: 'Öppna klausulpanelen',
     ng_row_jump: 'Gå till klausulen',
     ng_row_more_title: 'Mer för den här ändringen',
     ng_filter_all: 'Alla',
@@ -7323,6 +7340,7 @@ const STRINGS = {
     ng_agreed_carried: 'Den överenskomna formuleringen har förts till fliken Dokument — underteckna den där när du är redo',
     ng_round_cannot_close: 'Rundan kan inte stängas med ändringar som fortfarande väntar',
     ng_clause_gone: 'Klausulen finns inte längre i dokumentet',
+    ng_cp_cannot_open: 'Den här klausulen har ännu inget att öppna i panelen',
     ng_nothing_to_send: 'Det finns inget att skicka i den här rundan ännu',
     ng_playbook_not_loaded: 'Förhandlingsguidens modul är inte laddad på den här sidan',
     ng_review_failed: 'Granskningen kunde inte köras: ',

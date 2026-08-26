@@ -7552,3 +7552,65 @@ rule:
   the claim compares against is not on the face any more. Proved failing on an
   unmodified main in a worktree before it was called pre-existing.
 
+---
+
+## 26 Aug 2026 — the owner's six-item list (WORKORDER-fixes-26-aug.md)
+
+All six built in one run, on branch `claude/ui-text-dropdown-styling-j2nat5`.
+Node 4647/4647 after two runs (the first found four, all mine). Browser:
+six-fixes 20/20 (new), redline 121, clause-door 97, clause-editor 57,
+parity 44, nav-floats 67, home-page 26, laptops 21, kpi-four 19,
+theme-tokens 40/40 unmoved.
+
+### Defects found and fixed
+
+- **The stored screen position was unreadable, so every refresh landed on the
+  dashboard.** js/app.js declared its own `function lsGet` / `function lsSet`
+  for the brand and dark keys on 24 Aug — plain, deliberately, because those
+  keys hold bare strings. A function declaration is hoisted over the whole
+  module, so `setView`'s bare `lsSet` five hundred lines above resolved to the
+  string one and wrote the literal text `[object Object]`. Nothing failed and
+  nothing logged: the write succeeded, the read returned null, and null is what
+  a first visit looks like. Reproduced on a real server through real reloads —
+  ALL TWELVE pages lost — before it was touched. Renamed to
+  `brandRead`/`brandWrite`; net added as f232-6.
+- **A nav press did nothing while Edit with Copilot was open.** The layer is
+  taken down only by its own three controls, so the app really changed page and
+  drew the new one underneath it. Closed in `setView`, once, so all five doors
+  inherit it.
+- **`rlCpSetShown` refused silently.** A clause the panel holds no body for
+  left the reader on the contract with no word — indistinguishable from a dead
+  button, and the shape of the counterparty Edit report. It returns its answer
+  now and the card's Edit says so.
+- **Two reserved holes on Home** (a spacer taking 25px on the Portfolio row, a
+  footer holding 2.8 lines open over one line of text) and two typed card
+  heights 35px apart. Replaced with three shared row tokens and subgrid.
+- **A backtick in a CSS comment in js/views/negotiation-css.js** — written by
+  me, caught by f236 on the same run. Fourth recorded instance.
+- **parity-verify could not fail.** Its Edit probe fell back to pressing the
+  clause pill when the panel had not opened, so from 20 Aug it passed whether
+  or not the granted behaviour worked. The answer is taken before the fallback
+  now and asserted on both seats.
+- **My own first fix of L-6 was wrong and the run caught it**: the leave guard
+  used the foot's "moved from what stands" reading, which is true from the
+  first frame on any clause carrying an ask, so it fired on every clean open.
+
+### Not a defect, said out loud
+
+- **L-3 did not reproduce.** Edit was driven on both seats over every card type
+  including a proposed new clause; one press opens the panel on the right
+  clause every time. A first "reproduction" was my own fixture fault — an
+  insert armed with the wrong argument — which is this codebase's own lesson
+  that an attack failing to arm reads exactly like one that succeeds. The
+  silent-refusal hole above is what was fixed instead.
+
+### Noticed, not fixed
+
+- `js/i18n.js` has four duplicate keys — `co_password_updated` and `act_next`,
+  each in both language blocks. They are the only errors `npm run lint`
+  reports and they predate this run.
+- Three published names are declared in two modules each: `approvalState` and
+  `approveContract` (js/core.js and js/approvals.js — and `approveContract`
+  takes different arguments in each), and `esc` (js/components.js escapes
+  quotes, js/views/advice.js does not). Same class as the lsSet fault above.
+  Named and printed in f232-6 rather than swept up here.

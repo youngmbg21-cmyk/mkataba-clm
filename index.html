@@ -162,6 +162,15 @@
   <symbol id="i-plus" viewBox="0 0 16 16"><path d="M8 2.6v10.8M2.6 8h10.8" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
   <symbol id="i-sliders" viewBox="0 0 16 16"><path d="M3 3v10M8 3v10M13 3v10" fill="none" stroke="currentColor"/><path d="M1.6 6h2.8M6.6 9.4h2.8M11.6 5h2.8" fill="none" stroke="currentColor"/></symbol>
   <symbol id="i-clock" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.6" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M8 4.8V8l2.4 1.6" fill="none" stroke="currentColor" stroke-width="1.3"/></symbol>
+  <!-- ADDED 26 Aug 2026 for the change card's overflow menu, which the owner
+       asked to carry a symbol on EVERY row. The menu's two decision verbs had
+       no mark in this set and there was nowhere honest to take one from — a
+       tick and a cross are the two most conventional marks in the product's
+       own vocabulary and every other row already had one. Same rule as the
+       rest of the sprite: a 16 box, a hairline stroke, currentColor, no fill,
+       so each inherits the verb's own ink. -->
+  <symbol id="i-check" viewBox="0 0 16 16"><path d="M3.2 8.4l3.1 3.1 6.5-6.9" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-x" viewBox="0 0 16 16"><path d="M4.2 4.2l7.6 7.6M11.8 4.2l-7.6 7.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></symbol>
 </defs></svg>
 
 
@@ -491,6 +500,17 @@
     --pad-row-y:var(--s-1); --pad-row-x:var(--s-3);
     --pad-row:var(--pad-row-y) var(--pad-row-x);
     --row-line-1:20px; --row-line-2:16px;
+
+    /* DASHBOARD CARD REGIONS — the three rows every Home card borrows, and the
+       reason both card rows are one height. MEASURED on the real dashboard
+       rather than chosen: the title's line box is 20px and its detail's 17, so
+       the header needs 37; an ordinary figure is 38 and the lifecycle card's
+       stage bar beside its money is 50, which is the tallest thing any card
+       puts in that region; and a footer is its 16px line plus a 7px rule and
+       7px of margin, so 31. They add to a 146px card against the 141 and 176
+       that were typed here before. Change one and both rows follow — that is
+       the whole point of their being tokens. See .hm-tiles. */
+    --hm-r1:37px; --hm-r2:50px; --hm-r3:31px;
 
     /* CONTROLS — the VERTICAL comes from a height rung, never from padding.
        That is what stops a control inventing a half-rung box: .ui-btn's
@@ -3499,19 +3519,74 @@
     line-height:1.25;color:var(--color-text);}
   .hm-rule{flex:1 1 auto;height:1px;background:var(--color-divider);}
 
-  .hm-tiles{display:grid;gap:var(--s-3);}
+  /* ---- ONE CARD, ONE HEIGHT, NO RESERVED HOLES (owner-asked 26 Aug 2026:
+     "The top cards and the bottom cards have to be the same size as far as
+     height and remove empty spaces which makes the card look empty. Create a
+     well structured card like a fiori card but fitting within the dashboard
+     format we are creating.") ----
+
+     WHAT WAS WRONG WAS TWO TYPED HEIGHTS AND TWO RESERVATIONS, and all four
+     were measured on the real dashboard before anything moved: the two rows
+     were set to 141px and 176px, a spacer inside each card swallowed the
+     leftover — 6px on the top row and 25px on the bottom, which is the band
+     the owner ringed — and the bottom row's footer held two-and-a-bit lines
+     open over one-line text, which is the other one. About 42px of hole per
+     Portfolio card.
+
+     BOTH RESERVATIONS WERE BUYING SOMETHING and deleting them alone would
+     have traded one bad row for another: they existed so four cards with
+     different-length text still put their figures and footers on the same
+     lines. So the alignment is bought a different way — the ROW owns the three
+     regions and every card borrows them:
+
+       --hm-r1  header   the title and its one line of detail
+       --hm-r2  figure   the number, or the lifecycle card's bar and money
+       --hm-r3  foot     the one line qualifying the figure, with its rule
+
+     Each card spans all three and takes them with `subgrid`, so titles line up
+     with titles and figures with figures BECAUSE THEY SIT IN THE SAME ROW OF
+     ONE SKELETON — not because the short ones were padded out. A card with
+     nothing for a region leaves it empty and the row still lines up.
+
+     THE TWO GRIDS READ THE SAME THREE TOKENS, which is what makes the top and
+     bottom rows the same height by construction rather than by two numbers
+     agreeing. The height is DERIVED: 37 + 50 + 31 + 24 of padding + 4 of
+     border = 146px, against 141 and 176 before, so the page is 21px shorter
+     overall and neither row is a typed guess.
+
+     EVERY ROW IS minmax(token, auto). The tokens are what the content measured
+     at, not a ceiling: Swedish is longer than English and a narrow window
+     wraps a footer, and a region that clipped would be a worse fault than the
+     one being fixed. Under ordinary content both rows are exactly the minima
+     and the two are identical. */
+  /* ROW GAP ZERO, AND IT IS LOAD-BEARING: every card spans all three rows, so
+     a row gap falls INSIDE the card rather than between cards. Measured with
+     the ladder's own 12px on both axes the cards came back 171px — 24 of pure
+     gap sitting between a title and its number, which is the band this change
+     exists to remove, put back by the mechanism removing it. The COLUMN gap is
+     the one that separates cards and is untouched. */
+  .hm-tiles{display:grid;gap:0 var(--s-3);
+    grid-template-rows:minmax(var(--hm-r1),auto) minmax(var(--hm-r2),auto) minmax(var(--hm-r3),auto);}
   .hm-tiles.is-work{grid-template-columns:repeat(4,minmax(0,1fr));}
   .hm-tiles.is-port{grid-template-columns:1.9fr 1fr 1fr 1fr;}
   /* PURE WHITE, and it is the token that is pure (owner-asked 24 Aug 2026:
      "the white backgrounds have to be pure white with no shade of any kind").
      --color-surface is #ffffff; nothing here mixes it with anything. */
-  .hm-tile{position:relative;display:flex;flex-direction:column;min-width:0;
+  .hm-tile{position:relative;display:grid;grid-row:span 3;grid-template-rows:subgrid;min-width:0;
     background:var(--color-surface);border:1px solid var(--color-divider);
     border-top:3px solid var(--color-neutral-300);padding:var(--s-3) 14px;
     font:inherit;font-family:var(--font-body);color:inherit;text-align:left;
     border-radius:0;cursor:pointer;}
-  .hm-tile.is-work{height:141px;}
-  .hm-tile.is-port{height:176px;}
+  /* WHERE subgrid IS NOT UNDERSTOOD the card falls back to the column it was
+     before and simply stops sharing its neighbours' baselines — the regions
+     are still in order and nothing is clipped, which is the right shape for a
+     layout nicety. The upload dialog's two columns take the same fallback for
+     the same reason. */
+  @supports not (grid-template-rows:subgrid){
+    .hm-tile{display:flex;flex-direction:column;grid-row:auto;
+      min-height:calc(var(--hm-r1) + var(--hm-r2) + var(--hm-r3) + var(--s-3) + var(--s-3));}
+    .hm-tile .hm-big,.hm-tile .hm-life{margin-top:auto;margin-bottom:auto;}
+  }
   .hm-tile:hover{background:var(--nav-well);}
   .hm-tile:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:-2px;}
   /* A DOOR ONTO NOTHING IS A DEAD PRESS. The zero still draws — it is true —
@@ -3526,10 +3601,24 @@
   .hm-tile.is-dead .hm-n,.hm-tile.is-dead .hm-u{color:var(--color-neutral-400);}
   .hm-tile.is-life{cursor:default;}
   .hm-tile.is-life:hover{background:var(--color-surface);}
-  .hm-t{font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);padding-right:18px;}
-  .hm-s{font-size:var(--t-label);color:var(--color-neutral-500);margin-top:1px;}
+  /* THE HEADER IS ONE REGION holding two lines. It carries no height of its
+     own: --hm-r1 is what the row reserves, and the detail keeps its 1.35em
+     floor so a card with nothing to say there still leaves the line rather
+     than pulling its figure up out of line with its neighbours'. */
+  .hm-head{display:block;min-width:0;}
+  .hm-t{display:block;font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);padding-right:18px;}
+  .hm-s{display:block;font-size:var(--t-label);color:var(--color-neutral-500);margin-top:1px;}
   .hm-tile .hm-s{min-height:1.35em;}
-  .hm-sp{flex:1 1 auto;min-height:6px;}
+  /* THE FIGURE SITS IN THE MIDDLE OF ITS OWN REGION. --hm-r2 is the tallest
+     thing any card puts there (the lifecycle bar), so an ordinary numeral has
+     about twelve pixels of room around it — six above and six below, which
+     reads as air round a number rather than as the band this replaced. It is
+     the ONE place slack can collect now, and it can never be more than the
+     difference between a numeral and that bar. */
+  .hm-tile .hm-big,.hm-tile .hm-life{align-self:center;}
+  /* .hm-sp IS RETIRED — flag any mention as stale. It was the spacer that
+     swallowed a fixed card's leftover and became the hole the owner ringed;
+     with the regions owning the layout there is no leftover for it to hold. */
   .hm-go{position:absolute;top:11px;right:11px;color:var(--color-neutral-400);}
   .hm-tile:hover .hm-go{color:var(--accent-ink);}
   .hm-big{display:flex;align-items:baseline;gap:7px;min-width:0;}
@@ -3552,13 +3641,15 @@
      numeral in the primary one. The design gives both the same ink. Matched to
      .hm-n rather than given a colour of its own, so the two cannot drift. */
   .hm-u{font-size:var(--t-body);color:var(--color-text);font-weight:var(--w-body);}
-  .hm-foot{margin-top:7px;padding-top:7px;border-top:1px solid var(--color-divider);
+  .hm-foot{align-self:end;margin-top:7px;padding-top:7px;border-top:1px solid var(--color-divider);
     font-size:var(--t-label);color:var(--color-neutral-500);line-height:1.35;}
   .hm-foot.crit{color:var(--st-amber-fg);}
-  /* Two lines PLUS the rule's own padding — box-sizing is border-box, so
-     reserving 2.8em alone still leaves a one-line footnote 7px short and the
-     four figures in the row sit on four different lines. */
-  .hm-tile.is-port .hm-foot{min-height:calc(2.8em + 7px);}
+  /* THE TWO-LINE RESERVATION IS GONE (owner-asked 26 Aug 2026). It held
+     2.8em open on every Portfolio card so four one-line footers would still
+     line up, and on a row where every footer IS one line that is a strip of
+     empty card under all four of them — the second band the owner ringed. The
+     row's own --hm-r3 lines them up now, and it is sized to what a footer
+     actually is rather than to what the longest one might become. */
 
   /* THE LIFECYCLE TILE'S THREE BLOCKS ARE THREE DOORS. This is what replaced
      the pipeline ring, and the stage list with it: the count is the handle. */
@@ -3613,7 +3704,8 @@
      answers nothing under desktop width; this is HaTi's own answer. */
   @media (max-width:1100px){
     .hm-tiles.is-work,.hm-tiles.is-port{grid-template-columns:repeat(2,minmax(0,1fr));}
-    .hm-tile.is-port{height:auto;min-height:176px;}
+    /* The rows already grow with their content, so the height override this
+       rule used to carry has nothing left to undo. */
   }
   @media (max-width:680px){
     .hm-tiles.is-work,.hm-tiles.is-port{grid-template-columns:minmax(0,1fr);}

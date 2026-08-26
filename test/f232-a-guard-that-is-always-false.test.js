@@ -232,4 +232,91 @@ describe('F232 — every window.foo a module reads is one some module publishes'
     assert.ok(pub.has('negoLastRefusal'),
       'a getter published with Object.defineProperty is published, and must be seen as such');
   });
+
+  /* ============================================================
+     f232-6 · A NAME THAT RESOLVES TO THE WRONG THING
+     ------------------------------------------------------------
+     THE SAME FAULT AS THIS FILE'S FOUNDING ONE, one step along, and it cost
+     the product the ability to return you to the page you were on.
+
+     js/core.js publishes lsGet/lsSet, which JSON-encode. On 24 Aug 2026 the
+     brand-and-theme work declared its own `function lsGet` / `function lsSet`
+     in js/app.js — deliberately plain, because the brand keys hold bare
+     strings and encoding them would rewrite what is already in every reader's
+     browser. Both correct alone. But a function declaration is HOISTED over
+     the whole module, so from that day every bare lsSet anywhere in app.js
+     resolved to the string one — including setView's, five hundred lines
+     above, which stores which page you are on. It wrote the literal text
+     "[object Object]", the resume could not parse it, and every refresh landed
+     on the dashboard.
+
+     NOTHING FAILED AND NOTHING LOGGED: the write succeeded, the read returned
+     null, and null is exactly what a first visit looks like. Only driving a
+     real browser through a real reload found it — which is why the claim now
+     lives here, where it costs nothing to keep.
+
+     THE RULE: a module may not declare a top-level name that another module
+     publishes to window. Same name, two meanings, and the one that wins is
+     decided by which file the call happens to sit in.
+     ============================================================ */
+  test('f232-6 no module re-declares a name another module publishes', () => {
+    const pub = published();
+    /* Declared at the top level of a module: `function x(`, or a
+       const/let/var at column 0. Anything indented is inside something and
+       cannot shadow the module's own scope. */
+    const decls = f => {
+      const s = blank(fs.readFileSync(f, 'utf8'));
+      const out = new Set();
+      let m;
+      const fn = /^(?:async\s+)?function\s+([A-Za-z_$][\w$]*)/gm;
+      while ((m = fn.exec(s))) out.add(m[1]);
+      const kw = /^(?:const|let|var)\s+([A-Za-z_$][\w$]*)/gm;
+      while ((m = kw.exec(s))) out.add(m[1]);
+      return out;
+    };
+    /* Where a module publishes a name it declared itself, it is the owner and
+       not a shadow — so a name is only a clash when some OTHER file publishes
+       it. */
+    const owner = new Map();
+    for (const f of files) for (const n of decls(f)) {
+      if (!owner.has(n)) owner.set(n, []);
+      owner.get(n).push(path.relative(ROOT, f));
+    }
+    /* ---- THREE THAT PREDATE THIS RULE, NAMED SO THEY STAY READABLE ----
+       Found by this sweep the day it was written, every one a genuine
+       duplicate of a published name and every one older than the change that
+       added the net. They are NOT this rule's to fix — see the Scope rules —
+       and they are logged in BUGLOG.md under "Noticed, not fixed" rather than
+       swept up on the way past. Each is listed with what actually differs, so
+       the next reader can judge it rather than inherit a bare allow-list:
+
+         approvalState    core.js and approvals.js, same shape
+         approveContract  core.js takes (c), approvals.js takes (c, comment)
+         esc              components.js escapes quotes too, advice.js does not
+
+       A permanent exception has to stay readable or it becomes the furniture,
+       which is why this prints rather than hides. Take one off the day it is
+       genuinely fixed; never add to it to make a run go green. */
+    const PRE_EXISTING = new Set(['approvalState', 'approveContract', 'esc']);
+    const clashes = [];
+    const known = [];
+    for (const [n, where] of owner) {
+      if (!pub.has(n) || where.length < 2) continue;
+      (PRE_EXISTING.has(n) ? known : clashes).push(`${n} declared in ${where.join(' and ')}`);
+    }
+    if (known.length) console.log('    (known, pre-dating this rule: ' + known.join('; ') + ')');
+    assert.deepEqual(clashes, [],
+      'a published name declared in two modules resolves differently depending '
+      + 'on which file the call is in — rename the private one');
+  });
+
+  test('f232-6b the sweep catches its own founding example', () => {
+    /* The bug in miniature, so a green run means the net works rather than
+       that the tree happens to be clean. */
+    const pub = new Set(['lsSet']);
+    const owner = new Map([['lsSet', ['js/core.js', 'js/app.js']]]);
+    const clashes = [...owner.entries()].filter(([n, w]) => pub.has(n) && w.length > 1);
+    assert.equal(clashes.length, 1);
+    assert.equal(clashes[0][0], 'lsSet');
+  });
 });
