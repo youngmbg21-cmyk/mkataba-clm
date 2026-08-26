@@ -595,7 +595,10 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
       onTable: (() => { const t = [...sec].find(x =>
         /On the table/i.test((x.querySelector('.rl-cp-h')||{}).textContent||''));
         return t ? t.querySelectorAll('.rl-cp-row').length : -1; })(),
-      plusWord: (document.querySelector('#rl-cp .rl-cp-src.is-on [data-rl-cp-edit]')||{}).textContent };
+      plusWord: (document.querySelector('#rl-cp .rl-cp-src.is-on [data-rl-cp-edit]')||{}).textContent,
+      /* The LABEL is fixed since 26 Aug 2026 and the hover is where the act is
+         named, so both are captured — see 7m. */
+      plusTitle: (document.querySelector('#rl-cp .rl-cp-src.is-on [data-rl-cp-edit]')||{}).title };
   }, target);
   ck('7i FILING FROM THE PANEL PUTS A REAL CHANGE ON THE RECORD',
      filed.n === nBefore + 1 && filed.clause && filed.hasOps && filed.side === 'owner',
@@ -632,8 +635,18 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      filed.card && filed.marked, `card ${filed.card}, marked ${filed.marked}`);
   ck('7l …the panel still open on the same clause, now showing it on the table',
      filed.panelStillOpen && filed.onTable === 1, `open ${filed.panelStillOpen}, table ${filed.onTable}`);
-  ck('7m …and the ＋ now says it would continue that draft',
-     /Continue your draft/.test(filed.plusWord||''), filed.plusWord);
+  /* REVERSED IN PLACE, 26 Aug 2026 (owner-asked: "the highlighted box should
+     always be called propose new wording but it seems it changes based on how
+     you get there"). This asserted the LABEL changed to "Continue your draft"
+     once an ask of ours was on the clause. The behaviour is unchanged — the
+     engine still folds a second edit into that ask — but the button's NAME may
+     no longer move with it, so what was pinned here now lives on the hover.
+     BOTH HALVES, because dropping the second would let the product quietly
+     stop saying what the press does. */
+  ck('7m …the ＋ keeps its one name, whatever it is about to do',
+     /Propose new wording/.test(filed.plusWord||''), filed.plusWord);
+  ck('7m2 …and the hover says it would continue that draft',
+     /already have on this clause/i.test(filed.plusTitle||''), filed.plusTitle);
   await p.evaluate(()=>rlCpSetShown(document,null)); await pause(300);
 
   /* ---- 8. THE THREE FAULTS REPORTED THE MORNING AFTER THE EDITING LANDED ---- */

@@ -3510,8 +3510,39 @@
     border-top:3px solid var(--color-neutral-300);padding:var(--s-3) 14px;
     font:inherit;font-family:var(--font-body);color:inherit;text-align:left;
     border-radius:0;cursor:pointer;}
-  .hm-tile.is-work{height:141px;}
-  .hm-tile.is-port{height:176px;}
+  /* ---- BOTH ROWS ARE ONE HEIGHT, AND IT IS ONE VALUE (owner-asked 26 Aug
+     2026: "make the cards in the second line have the same height as the cards
+     in the 1st line") ----
+     They were 141 and 176 — two numbers typed 35px apart, so My work and
+     Portfolio read as two unrelated bands rather than as one board. THE FIX IS
+     A TOKEN, never the same number written twice: written twice they agree
+     until somebody edits one of them, which is exactly how they came to differ.
+
+     ---- THE NUMBER IS 176, AND IT WAS MEASURED RATHER THAN CHOSEN ----
+     The owner named the FIRST line as the reference, so the obvious move was
+     to take Portfolio DOWN to 141. MEASURED in a real browser at 1280, 1366,
+     1440, 1536 and 1920, that clips ALL FOUR Portfolio tiles, not just the
+     tall one: the three ordinary ones need 156 and the lifecycle tile needs
+     167, against 140 for a My work tile. So there is no 141 that fits, and the
+     shared height has to be the TALLER row's.
+
+     WHY THE PORTFOLIO TILES GENUINELY NEED MORE, since the obvious next move
+     is to trim it out of them: three of the four are the same shape as a My
+     work tile and cost 16px more only because of the two-line footnote
+     reservation directly below — which is not decoration, it is what keeps the
+     four big figures in that row sitting on ONE line. The lifecycle tile costs
+     11px more again because its content is a three-stage stack beside a money
+     figure rather than a single numeral. Both are content, not padding.
+
+     WHAT THIS COSTS, said plainly: the My work row grows 35px. That is against
+     this page's recent grain (the 36px register row, "the contract gets the
+     space back"), and it is the price of equal heights with nothing clipped.
+     Taking 9px off by using the measured 167 was refused: today's 167 is one
+     language and one workspace's data, and a Swedish footnote is longer.
+     home-page-verify measures every tile's content against its box, so this
+     note is checked rather than trusted. */
+  .hm-tiles{--hm-tile-h:176px;}
+  .hm-tile.is-work,.hm-tile.is-port{height:var(--hm-tile-h);}
   .hm-tile:hover{background:var(--nav-well);}
   .hm-tile:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:-2px;}
   /* A DOOR ONTO NOTHING IS A DEAD PRESS. The zero still draws — it is true —

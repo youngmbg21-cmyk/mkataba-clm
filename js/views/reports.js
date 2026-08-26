@@ -213,8 +213,13 @@ function wireReportDropdowns(){
 /* ---- E7 charts, drawn for real ----
    The eight selectable cards used to be hand-drawn CSS strips. They now build
    a genuine chart (through aiSimpleChart / the shared Copilot recipes, so a
-   chart is ONE look everywhere) and keep the strip HTML as the fallback for a
-   workspace with no outbound network — Chart.js arrives from a CDN. */
+   chart is ONE look everywhere) and keep the strip HTML as the fallback for
+   any workspace where the chart library does not load. THAT USED TO MEAN "no
+   outbound network", because Chart.js arrived from cdnjs; since 26 Aug 2026 it
+   is served by this workspace itself (vendor/README.md), so the strips are now
+   the answer to a half-deployed build rather than to a customer's firewall.
+   They are KEPT either way: a card that cannot draw its chart still has to
+   show its numbers. */
 function repChartConfig(k, r){
   if(typeof aiSimpleChart!=='function') return null;
   const mLbl=repMonthLabel;

@@ -388,12 +388,29 @@ describe('f246 (5) — the overflow menu', () => {
     }
   });
 
-  test('the menu names the change it belongs to', async () => {
+  test('the menu names no change — the card under it does', async () => {
+    /* ---- REVERSED IN PLACE (owner-asked 26 Aug 2026: "remove the header from
+       the dropdown") ----
+       This asserted the opposite: a .rl-more-head naming the change, on the
+       reasoning that "one menu floating over a column of six cards has to say
+       which". TWO THINGS RETIRED THAT ARGUMENT. The menu opens hard against
+       the ⋯ it was pressed on, ON the card, whose id and clause name are a few
+       centimetres to the left and still on screen — so the head repeated two
+       facts already under the reader's eye, in shouting micro-caps. And the
+       same press now lights that card and scrolls the paper to its clause, so
+       which row the menu belongs to is the most conspicuous thing on the page.
+       WHAT IS STILL GUARDED: the change is still NAMED to somebody who cannot
+       see any of that. A screen reader gets it from the button's own
+       accessible name, and this is the assertion that stops that being lost
+       along with the visible head. */
     const p = await bench();
     const card = p.$('#rl-changes .rl-card-d');
-    const head = card.querySelector('.rl-more-head');
-    assert.ok(head && head.textContent.includes(card.getAttribute('data-nego-card')),
-      'one menu floating over a column of six cards has to say which');
+    assert.equal(card.querySelector('.rl-more-head'), null,
+      'the head is gone — a selector nothing emits is a mention, so its rule went too');
+    const btn = card.querySelector('.rl-more-btn');
+    assert.ok(btn, 'the ⋯ is still there');
+    assert.ok((btn.getAttribute('aria-label') || '').includes(card.getAttribute('data-nego-card')),
+      'and it still names its change to a reader who cannot see the card');
   });
 
   test('it opens SHUT, and the button says so', async () => {

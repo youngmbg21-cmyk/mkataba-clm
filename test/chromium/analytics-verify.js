@@ -25,14 +25,18 @@ const check = (ok, what) => {
   await seedWorkspace(h);
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-  /* The sandbox this runs in cannot reach cdnjs; a local copy of Chart.js
-     (CHARTJS_LOCAL, e.g. node_modules/chart.js/dist/chart.umd.js) is served
-     in its place so the REAL chart path is exercised, not only the fallback. */
-  const chartLocal = process.env.CHARTJS_LOCAL;
-  if (chartLocal && fs.existsSync(chartLocal)) {
-    await ctx.route('**/cdnjs.cloudflare.com/**/chart.umd.min.js', route =>
-      route.fulfill({ contentType: 'application/javascript', body: fs.readFileSync(chartLocal, 'utf8') }));
-  }
+  /* ---- NOTHING IS STUBBED HERE ANY MORE (26 Aug 2026) ----
+     This used to route cdnjs to a local copy of Chart.js behind a CHARTJS_LOCAL
+     env var, because the sandbox cannot reach cdnjs and without it only the
+     FALLBACK path was ever exercised. The library is served by the workspace
+     itself now (vendor/README.md), so the real chart path runs on every
+     machine, with no outbound network and no env var — and this file is the
+     thing that proves the vendored bytes actually draw.
+     BLOCK THE OPEN INTERNET OUTRIGHT, so a chart that appears below can only
+     have come from our own copy: if the src ever drifts back to a CDN, this
+     file goes red instead of passing on somebody's well-connected laptop. */
+  await ctx.route('**://cdnjs.cloudflare.com/**', r => r.abort());
+  await ctx.route('**://cdn.jsdelivr.net/**', r => r.abort());
   const page = await ctx.newPage();
 
   await page.goto(h.base + '/', { waitUntil: 'networkidle' });

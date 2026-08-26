@@ -2459,8 +2459,23 @@ function redlineLayoutCss(){
          already styled where that block is built — restating them here would
          be a second rule at equal specificity later in the sheet, which is how
          two parts of one column come to disagree about a colour. */}
-  .redline-page .rl-idx-fk{font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;
-    text-transform:uppercase;color:var(--color-neutral-600);margin-right:auto}
+  ${''/* ---- IT IS A LABEL, NOT A SIGNPOST (owner-asked 26 Aug 2026: "Whose
+         Ask should be like tracked changes as in not in full capital
+         letters") ----
+         It wore this product's micro-caps — 11px, uppercase, .09em — which is
+         the dress reserved for a SIGNPOST OVER a list (the band headings below
+         still wear it, correctly). This is a label ON one control, sitting a
+         few pixels from "Tracked changes (7)" in sentence case, and shouting
+         beside it made the smaller of the two the louder.
+         IT TAKES .rl-idx-title's OWN TYPE, deliberately, so the head reads as
+         one line written by one hand: same size, same weight, same zeroed
+         tracking. What it does NOT take is that rule's ink or its accent
+         underline — the title is the column's name and this is a label for the
+         dropdown beside it, so it stays on the label shade. Sentence case
+         comes from the dictionary, which has said 'Whose asks' all along; only
+         the CSS was shouting. */}
+  .redline-page .rl-idx-fk{font-size:var(--t-meta);font-weight:var(--w-title);letter-spacing:0;
+    line-height:1.25;color:var(--color-neutral-600);margin-right:auto}
 
   ${''/* THE BAND HEADING IS A FILLED STRIP, edge to edge, with the count
          beside the words. Small, uppercase, quiet — it is a signpost over the
@@ -2593,13 +2608,32 @@ function redlineLayoutCss(){
     font:inherit;font-size:var(--t-card);line-height:1;cursor:pointer;
     color:var(--color-neutral-600)}
   .redline-page .rl-more-btn:hover{color:var(--color-text)}
-  .redline-page .rl-more-menu{position:absolute;top:100%;right:0;z-index:8;
+  ${''/* ---- IT NEVER OPENS OFF THE BOTTOM OF THE PAGE (owner-asked 26 Aug
+         2026: "the dropdown always has to be fully visible. If you are at the
+         bottom of the page then the dropdown should drop up") ----
+         It was top:100% and nothing else, so a card near the foot of the
+         column opened its menu into the space below the column — clipped by
+         the scroller, with the last row or two simply unreachable. The card
+         most likely to need its menu is the one at the bottom, because that is
+         where the newest work sits.
+         TWO HALVES, and both are needed. The rl-more-up class flips it to open
+         UPWARDS, chosen by measurement in the handler rather than by a guess
+         here — CSS cannot see how much room is left. And a max-height with its
+         own scroll, because on a short window a long menu fits in NEITHER
+         direction and flipping it would only move which rows are lost.
+         --rl-more-max is written by the handler from the room it measured; the
+         fallback is for a menu shown before anything measures it. */}
+  .redline-page .rl-more-menu{position:absolute;top:100%;bottom:auto;right:0;z-index:8;
     min-width:210px;background:var(--color-surface);
-    border:1px solid var(--color-divider);box-shadow:var(--shadow-md);padding:var(--s-1) 0}
+    border:1px solid var(--color-divider);box-shadow:var(--shadow-md);padding:var(--s-1) 0;
+    max-height:var(--rl-more-max,70vh);overflow-y:auto;overscroll-behavior:contain}
+  .redline-page .rl-more-menu.rl-more-up{top:auto;bottom:100%}
   .redline-page .rl-more-menu[hidden]{display:none}
-  .redline-page .rl-more-head{padding:7px var(--s-3) 6px;font-size:var(--t-micro);font-weight:var(--w-title);
-    letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);
-    border-bottom:1px solid var(--color-divider);margin-bottom:var(--s-1)}
+  ${''/* .rl-more-head is RETIRED (owner-asked 26 Aug 2026) — the menu names no
+         change any more; the card it hangs off does, and the same press now
+         lights that card. Its rule is deleted rather than left standing: a
+         selector nothing emits is a mention, and mentions of retired things
+         get flagged. */}
   .redline-page .rl-more-row{display:block;width:100%;text-align:left;border:0;
     background:transparent;padding:var(--s-2) var(--s-3);font:inherit;font-size:var(--t-body);
     color:var(--color-text);cursor:pointer}
@@ -2766,8 +2800,27 @@ function redlineLayoutCss(){
      furniture, and there the stronger mark is what makes the pairing findable. */
   .redline-page .rl-clause.is-linked{outline:1px dotted var(--color-neutral-400);
     outline-offset:3px}
-  .redline-page .rl-card.is-linked{box-shadow:0 0 0 2px var(--accent-solid);
-    border-color:var(--accent-solid)}
+  ${''/* ---- AND THE CARD'S RING IS FAINT NOW (owner-asked 26 Aug 2026: "the
+         outline on the card should be visible but faint and not like the
+         outline thickness currently in the picture") ----
+         THIS REVERSES THE SENTENCE DIRECTLY ABOVE, which said the card keeps
+         the accent ring because "a row in a column is furniture, and there the
+         stronger mark is what makes the pairing findable". That reasoning was
+         written when the cards were BOXES: a 2px accent ring read as one more
+         border among many. The column is flat rows on one surface now (25 Aug
+         2026), so the same 2px is the heaviest object on the whole column and
+         a selected row shouts louder than the change it points at.
+         WHAT IS KEPT IS THE COLOUR, and that is the half that was load-bearing:
+         accent is how this page says "this and that are one thing shown
+         twice", and a grey ring here would be a second vocabulary. So it stays
+         accent and drops to ONE pixel at a third strength — measured on both
+         themes as visible against the surface and quieter than the row's own
+         text, which is what "visible but faint" has to mean.
+         ONE RING, NOT A RING PLUS A BORDER: the border-color line went with the
+         weight. Two marks for one fact is how they come to disagree, and on a
+         flat row the border is what separates it from the row beneath it. */}
+  .redline-page .rl-card.is-linked{
+    box-shadow:0 0 0 1px color-mix(in srgb, var(--accent-solid) 34%, transparent)}
 
   /* ---- THE COLUMN'S HEAD IS A CAPTION AND A COUNT ----
      It used to be a toolbar: a filter, two bulk verbs and a second send. All

@@ -1313,6 +1313,186 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     back.mode === 'marks' && !back.greyed && back.pills > 0 && back.inert !== 'none',
     JSON.stringify(back));
 
+  /* ================================================================
+     18. FOUR OFF FOUR SCREENSHOTS OF THIS COLUMN (owner-asked 26 Aug 2026)
+     ----------------------------------------------------------------
+     ALL OF IT IS MEASURED IN A BROWSER because all of it is a computed value
+     or a geometry: whether a rule is uppercase, how thick a ring paints, which
+     way a menu opened, and whether pressing one thing moved another. jsdom
+     resolves no cascade and lays nothing out, so it can answer none of them.
+     ================================================================ */
+
+  /* THE CLAUSE PANEL IS SHUT FIRST, and that is not housekeeping. Section 16
+     leaves it open, it is an overlay sitting in the cards column's own grid
+     track, and every press below lands on the cards underneath it — the run
+     failed here first with Playwright reporting the panel "intercepts pointer
+     events". Shut through the app's own setter rather than by pressing
+     Escape, so this does not quietly become a test of the key handler. */
+  await page.evaluate(() => {
+    if (typeof window.rlCpSetShown === 'function') window.rlCpSetShown(document, null);
+    document.querySelectorAll('.rl-cp.is-open').forEach(el => el.classList.remove('is-open'));
+  });
+  await pause(350);
+
+  /* ---- 18a. "Whose asks" is a label, not a signpost ----
+     It wore this product's micro-caps — 11px uppercase with .09em — a few
+     pixels from "Tracked changes (N)" in sentence case, so the smaller of the
+     two was the louder. PINNED AS A RELATION against the title beside it, not
+     as a number, so a later type pass costs no edit here. */
+  const fk = await page.evaluate(() => {
+    const l = document.querySelector('#view-redline .rl-idx-fk');
+    const t = document.querySelector('#view-redline .rl-idx-title');
+    if (!l || !t) return null;
+    const ls = getComputedStyle(l), ts = getComputedStyle(t);
+    return { tf: ls.textTransform, size: ls.fontSize, tsize: ts.fontSize,
+      track: ls.letterSpacing, text: l.textContent.trim(),
+      painted: l.getBoundingClientRect().height > 0 };
+  });
+  check('18a the whose-asks label is drawn', !!fk && fk.painted, fk && fk.text);
+  check('18a it is not shouted in capitals', fk && fk.tf === 'none', fk && fk.tf);
+  check('18a and it is set like the title beside it, not smaller',
+    fk && fk.size === fk.tsize, fk && `${fk.size} vs title ${fk.tsize}`);
+
+  /* ---- 18b. the ⋯ menu carries no head ----
+     It named the change — "CHG-001 · PAYMENT TERMS" — repeating two facts the
+     card three centimetres to the left already carries. The NAME is still owed
+     to a reader who cannot see the card, so the button's accessible name is
+     checked in the same breath: removing the head must not remove the fact. */
+  const moreBtn = '#rl-changes .rl-card-d .rl-more-btn';
+  const menuShape = await page.evaluate(sel => {
+    const b = document.querySelector(sel);
+    if (!b) return null;
+    const card = b.closest('[data-nego-card]');
+    return { head: !!b.parentElement.querySelector('.rl-more-head'),
+      aria: b.getAttribute('aria-label') || '',
+      id: card.getAttribute('data-nego-card') };
+  }, moreBtn);
+  check('18b the dropdown has no header', menuShape && !menuShape.head);
+  check('18b and the ⋯ still names its change to a screen reader',
+    menuShape && menuShape.aria.includes(menuShape.id), menuShape && menuShape.aria);
+
+  /* ---- 18c. pressing the ⋯ lights the card AND takes you to the clause ----
+     "Merely selecting the 3 dots ... should also highlight the card and take
+     you to the clause in the contract not only clicking the card." Measured as
+     the PAPER ACTUALLY MOVING, not as a class appearing: is-linked could be set
+     by a handler that never scrolls, and the ask is about arriving at the
+     clause. */
+  await page.evaluate(() => {
+    document.querySelectorAll('.is-linked').forEach(n => n.classList.remove('is-linked'));
+    const d = document.getElementById('rl-doc');
+    if (d) d.scrollTop = 0;
+  });
+  await pause(200);
+  await page.click(moreBtn);
+  await pause(900);
+  const pressed = await page.evaluate(sel => {
+    const b = document.querySelector(sel);
+    const card = b.closest('[data-nego-card]');
+    const id = card.getAttribute('data-nego-card');
+    const clause = document.querySelector(`#rl-doc [data-nego-card-anchor~="${id}"]`);
+    const doc = document.getElementById('rl-doc');
+    const menu = b.parentElement.querySelector('.rl-more-menu');
+    return { cardLit: card.classList.contains('is-linked'),
+      clauseLit: !!(clause && clause.classList.contains('is-linked')),
+      menuOpen: menu && !menu.hidden,
+      scrolled: doc ? doc.scrollTop : -1 };
+  }, moreBtn);
+  check('18c pressing the ⋯ highlights its own card', pressed && pressed.cardLit);
+  check('18c and lights the clause it belongs to on the paper', pressed && pressed.clauseLit);
+  check('18c and the menu is open at the same time — one press, both jobs',
+    pressed && pressed.menuOpen);
+  await page.screenshot({ path: path.join(OUT, '18-more-menu.png'), fullPage: false });
+
+  /* ---- 18d. the selected card's ring is visible but faint ----
+     It was 2px of solid accent plus a matching border — the heaviest object on
+     a column that is flat rows on one surface. PINNED AS A RELATION: one pixel
+     rather than two, and no second mark beside it. The colour is deliberately
+     NOT pinned to a literal — accent is what says "this and that are one thing
+     shown twice", and that must survive a palette pass. */
+  const ring = await page.evaluate(() => {
+    const el = document.querySelector('#rl-changes .rl-card.is-linked');
+    if (!el) return null;
+    /* MEASURED ON ONE CARD, TOGGLED — never against a neighbour. A first pass
+       compared this card's border to some other row's and reported a
+       difference that was only its POSITION in the list: these rows are
+       separated by hairlines, so the first row and a middle row legitimately
+       carry different edges. Comparing an element with itself is the only
+       reading of "selecting it changes nothing but the ring". */
+    const read = () => { const s = getComputedStyle(el);
+      return { shadow: s.boxShadow, top: s.borderTopWidth, bottom: s.borderBottomWidth,
+        left: s.borderLeftWidth, right: s.borderRightWidth, col: s.borderTopColor }; };
+    const on = read();
+    el.classList.remove('is-linked');
+    const off = read();
+    el.classList.add('is-linked');
+    /* The spread is the FOURTH length in "rgb(...) 0px 0px 0px 1px" — the first
+       is offset-x and reading that reports 0 whatever the ring is doing. */
+    const lens = (on.shadow.match(/(-?\d+(?:\.\d+)?)px/g) || []).map(parseFloat);
+    return { on, off, spread: lens.length >= 4 ? lens[3] : null };
+  });
+  check('18d the selected card is marked at all',
+    ring && ring.on.shadow !== 'none' && ring.off.shadow !== ring.on.shadow,
+    ring && ring.on.shadow);
+  check('18d but faintly — one pixel of ring, not two',
+    ring && ring.spread !== null && ring.spread > 0 && ring.spread <= 1,
+    ring && `spread ${ring.spread}px`);
+  check('18d and the ring is the ONLY mark — selecting moves no border',
+    ring && ['top', 'bottom', 'left', 'right', 'col'].every(k => ring.on[k] === ring.off[k]),
+    ring && `borders ${ring.on.top}/${ring.on.bottom} unchanged, colour ${ring.on.col}`);
+
+  /* ---- 18e. the menu is never clipped, and drops UP at the bottom ----
+     "The dropdown always has to be fully visible. If you are at the bottom of
+     the page then the dropdown should drop up." Driven on the LAST card in the
+     column, scrolled to the bottom, which is the state that produced the
+     report. What is asserted is the requirement itself — every row inside the
+     menu is within its scroller — rather than the mechanism, because flipping
+     up is only one of the two ways to satisfy it and a short window needs the
+     other. */
+  const lastMore = await page.evaluate(() => {
+    const btns = [...document.querySelectorAll('#rl-changes .rl-card-d .rl-more-btn')];
+    const b = btns[btns.length - 1];
+    if (!b) return false;
+    b.closest('[data-nego-card]').scrollIntoView({ block: 'end' });
+    b.setAttribute('data-probe-last', '1');
+    return true;
+  });
+  check('18e there is a last card with a menu to test', lastMore);
+  if (lastMore) {
+    await pause(400);
+    await page.click('[data-probe-last]');
+    await pause(500);
+    const fit = await page.evaluate(() => {
+      const b = document.querySelector('[data-probe-last]');
+      const menu = b.parentElement.querySelector('.rl-more-menu');
+      if (!menu || menu.hidden) return { open: false };
+      const m = menu.getBoundingClientRect();
+      let host = null;
+      for (let el = b.parentElement; el && el !== document.body; el = el.parentElement){
+        const cs = getComputedStyle(el);
+        if (/auto|scroll|hidden/.test(cs.overflowY + ' ' + cs.overflow)
+            && el.scrollHeight > el.clientHeight + 1){ host = el; break; }
+      }
+      const bound = host ? host.getBoundingClientRect()
+        : { top: 0, bottom: window.innerHeight };
+      const rows = [...menu.querySelectorAll('.rl-more-row, .rl-more-verbs button')];
+      const lastRow = rows.length ? rows[rows.length - 1].getBoundingClientRect() : null;
+      return { open: true, up: menu.classList.contains('rl-more-up'),
+        overflowsBottom: +(m.bottom - bound.bottom).toFixed(1),
+        overflowsTop: +(bound.top - m.top).toFixed(1),
+        scrolls: menu.scrollHeight > menu.clientHeight + 1,
+        lastRowInside: lastRow ? lastRow.bottom <= m.bottom + 1 : true,
+        rows: rows.length };
+    });
+    check('18e the last card\'s menu opens', fit.open);
+    check('18e and it is not cut off by the column it hangs in',
+      fit.open && fit.overflowsBottom <= 1 && fit.overflowsTop <= 1,
+      fit.open ? `over bottom ${fit.overflowsBottom}px, over top ${fit.overflowsTop}px`
+        + (fit.up ? ' (dropped up)' : ' (dropped down)') : '');
+    check('18e every choice in it is reachable — nothing hidden below the fold',
+      fit.open && (fit.lastRowInside || fit.scrolls),
+      fit.open ? `${fit.rows} rows${fit.scrolls ? ', scrolls inside itself' : ''}` : '');
+  }
+
   await browser.close();
   srv.close();
   const failed = results.filter(r => !r.pass);

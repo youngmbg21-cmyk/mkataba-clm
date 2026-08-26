@@ -7552,3 +7552,30 @@ rule:
   the claim compares against is not on the face any more. Proved failing on an
   unmodified main in a worktree before it was called pre-existing.
 
+
+## Run — 26 Aug 2026: the chart library, and six off five screenshots
+
+Owner-asked: bring the charting library in-house, then six fixes off five
+screenshots (home tile heights; the card ⋯ dropdown's header and its clipping;
+the WHOSE ASKS label; the selected-card outline and what the ⋯ press does; the
+"Propose new wording" button's changing name).
+
+### Noticed, not fixed
+
+- `js/i18n.js` has FOUR duplicate-key errors that break `npm run lint`'s
+  zero-error bar: `co_password_updated` (lines 2032, 6813) and `act_next`
+  (2776, 7479), one pair per language block. PROVED PRE-EXISTING — the same
+  four reproduce on an untouched tree.
+- `test/chromium/analytics-verify.js` looks for its fallback bars with
+  `div[style*="border-radius:999px"]`, a pill shape SQUARE CORNERS EVERYWHERE
+  (20 Aug 2026) squared away, so that selector matches nothing anywhere. The
+  canvas half of its check now passes offline (this run's change), so the file
+  is green — but the offline FALLBACK it was written to guard is still
+  unguarded. Recorded in run-all.js's own note beside the file.
+- `js/aichart.js` builds its reader-facing sentences in hardcoded English
+  (`aiChartNote('There is no data in your portfolio for that chart yet.')` and
+  the load-failure card this run reworded). Consistent within that file, and
+  outside this ask.
+- The OCR path still fetches pdf.js and Tesseract from cdnjs/jsdelivr
+  (`js/ocr.js`), so reading a scanned or PDF upload keeps the third-party
+  dependency the charts just lost. Same fix shape, separate job.

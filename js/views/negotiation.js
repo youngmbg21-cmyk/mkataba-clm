@@ -4038,8 +4038,9 @@ function wireNegotiationTab(c, opts = {}){
        2026, caught by f144 the day the clause's own editor retired). The
        anchor lives on the DOCUMENT's clause block; the panel body never
        carried one, so in the panel `shownIds` came back empty, onTable came
-       back null, and a ＋ whose label read "Continue your draft" opened on
-       the standing wording with the writer's own ask nowhere on screen —
+       back null, and the ＋ — which then carried its own "Continue your draft"
+       label, retired 26 Aug 2026 — opened on the standing wording with the
+       writer's own ask nowhere on screen —
        f144's original fault, back through the new door. The panel reads the
        clause's OWN anchor rather than growing a copy that could drift: one
        canvas, one wall, one list of what is on screen. */
@@ -5769,14 +5770,29 @@ function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
              draft" is not a second act this panel performs; it is where the
              one editor happens to open.
 
-             ITS WORD CHANGES WITH WHAT IS ALREADY THERE. With one of our own
-             asks still pending on this clause the editor continues THAT draft
-             rather than starting a rival — the engine's own rule, unchanged —
-             so the button must not say "propose new wording" over a press that
-             does something else. */}
+             ---- ITS WORD IS FIXED (owner-asked 26 Aug 2026: "the highlighted
+             box should always be called propose new wording but it seems it
+             changes based on how you get there") ----
+             THIS REVERSES "its word changes with what is already there". That
+             rule read the state honestly — with one of our own asks pending the
+             editor continues THAT draft rather than starting a rival — and it
+             was right about the BEHAVIOUR and wrong about what a button name is
+             for. A control that renames itself is one the reader cannot learn:
+             the owner met it as the same box in the same corner of the same
+             panel wearing two different names, with nothing on screen
+             explaining which they would get, and read that as a fault rather
+             than as a briefing.
+             THE BEHAVIOUR IS UNTOUCHED — the engine still folds a second edit
+             into the pending ask, which is what stops the column filling with
+             rivals — and the fact has not been dropped: it moved to the HOVER,
+             where a title is allowed to say more than a name can. So the button
+             says one thing for ever and the tooltip still tells the truth about
+             this particular press: ng_cp_continue_title is that sentence and is
+             live. ng_cp_continue — the LABEL — is retired and left inert in the
+             dictionary; flag any mention of it as stale. */}
       <button type="button" class="rl-cp-act rl-cp-act-new" data-rl-cp-edit="${id}"
         title="${_nea(i18t(mine ? 'ng_cp_continue_title' : 'ng_cp_propose_title'))}"
-        >&#43; ${i18t(mine ? 'ng_cp_continue' : 'ng_cp_propose')}</button>
+        >&#43; ${i18t('ng_cp_propose')}</button>
       ${''/* DIRECT EDIT HAS LEFT THIS PANEL (owner-asked 16 Aug 2026: "Direct
              edit will not be needed because the window is already open for
              direct editing"). It is the same act as the ＋ beside it, one press
@@ -9846,14 +9862,24 @@ function rlCardMoreHtml(c, ch, opts = {}, side = 'owner', st = {}){
      which way a press goes. */
   const over = (st.overflow || []).filter(Boolean);
   if (!rows.length && !over.length) return '';
-  const label = [ch.id, String(ch.clauseLabel || ch.clauseId || '').trim()].filter(Boolean).join(' · ');
+  /* ---- THE HEAD IS GONE (owner-asked 26 Aug 2026) ----
+     It named the change — "CHG-001 · PAYMENT TERMS" — on the reasoning that a
+     menu floating over a column of six cards has to say which one it belongs
+     to. TWO THINGS KILLED THAT ARGUMENT. The menu opens hard against the ⋯ it
+     was pressed on, ON the card, whose own id and clause name are three
+     centimetres to the left and still on screen — so the head repeated, in
+     shouting micro-caps, the two facts already under the reader's eye. And
+     since the same press now lights that card and scrolls the paper to its
+     clause (see the ⋯ handler), which card this menu belongs to is the most
+     conspicuous thing on the page.
+     THE NAME IS NOT LOST: the ⋯ button's own aria-label still carries the
+     change id, so a screen reader is told which row it has opened. */
   return `<div class="rl-more">
     <button type="button" class="rl-more-btn" data-rl-more="${_nea(ch.id)}"
       aria-haspopup="true" aria-expanded="false"
       title="${_nea(i18t('ng_row_more_title'))}"
       aria-label="${_nea(i18t('ng_row_more_title'))} ${_nea(ch.id)}">&#8943;</button>
     <div class="rl-more-menu" id="rl-more-${_nea(ch.id)}" role="menu" hidden>
-      <div class="rl-more-head">${_ne(label)}</div>
       ${over.length ? `<div class="rl-more-verbs">${over.join('')}</div>` : ''}
       ${rows.join('')}
     </div>
@@ -10508,6 +10534,59 @@ if (typeof document !== 'undefined' && !document._rlNoticeFoldWired){
    and several paths repaint that mount — an element-bound listener is dropped
    by the first of them. The "show me all of them" button on the filtered-empty
    state carries the same attribute, so it is the same door. */
+/* ---- WHICH WAY THE ⋯ MENU OPENS, MEASURED (owner-asked 26 Aug 2026) ----
+   "The dropdown always has to be fully visible. If you are at the bottom of
+   the page then the dropdown should drop up so that all the choices are never
+   hidden."
+
+   IT IS MEASURED, NEVER GUESSED. A media query cannot answer this: the menu's
+   height depends on how many rows that particular change earned, and the room
+   below it depends on where the card sits in a column the reader has scrolled.
+   Both are facts only the browser holds, and only once the menu is on screen —
+   which is why this runs AFTER the unhide, on a menu whose box is real.
+
+   THE ROOM IS THE SCROLLER'S, NOT THE WINDOW'S. The cards live in their own
+   scrolling column inside the page; a menu that cleared the bottom of the
+   WINDOW could still be clipped by the column two hundred pixels above it. So
+   the bound is the nearest scrolling ancestor's own rect where there is one,
+   and the viewport only where there is not.
+
+   AND FLIPPING IS NOT ALWAYS ENOUGH, which is the half a first pass would
+   miss: on a short window a long menu fits in neither direction, and flipping
+   it there only changes WHICH rows are lost. So it also caps its own height to
+   the room actually available and scrolls inside it — the owner's "never
+   hidden" is the requirement, and up-or-down is only one of its two answers.
+   It prefers DOWN on a tie, because that is where a menu is expected. */
+function rlMorePlace(btn, menu){
+  if (!btn || !menu || !menu.getBoundingClientRect) return;
+  menu.classList.remove('rl-more-up');
+  menu.style.removeProperty('--rl-more-max');
+  const anchor = btn.getBoundingClientRect();
+  /* The nearest ancestor that actually scrolls — the card column — else the
+     window. `overflow` covers auto, scroll and hidden alike: a clipped box is
+     just as good at hiding the last row as a scrolling one. */
+  let bound = null;
+  for (let el = btn.parentElement; el && el !== document.body; el = el.parentElement){
+    let ov = '';
+    try{ const cs = getComputedStyle(el); ov = cs.overflowY + ' ' + cs.overflow; }catch(_){ break; }
+    if (/auto|scroll|hidden/.test(ov) && el.scrollHeight > el.clientHeight + 1){
+      bound = el.getBoundingClientRect();
+      break;
+    }
+  }
+  const top = bound ? bound.top : 0;
+  const bottom = bound ? bound.bottom : (window.innerHeight || document.documentElement.clientHeight || 0);
+  const GAP = 8;                                   // never flush against the edge
+  const below = bottom - anchor.bottom - GAP;
+  const above = anchor.top - top - GAP;
+  const want = menu.scrollHeight;
+  /* Down unless it genuinely does not fit AND up is the roomier of the two. */
+  const up = want > below && above > below;
+  if (up) menu.classList.add('rl-more-up');
+  const room = Math.max(96, Math.floor(up ? above : below));
+  if (want > room) menu.style.setProperty('--rl-more-max', room + 'px');
+}
+
 /* ---- THE CARD'S OVERFLOW MENU, ARMED ONCE AT MODULE LOAD ----
    On `document`, never inside a renderer: a listener registered by the owner's
    page cannot belong to another mount, and that exact fault made the unsent
@@ -10532,8 +10611,14 @@ if (typeof document !== 'undefined' && !document._rlMoreWired){
     if (!t || !t.closest) return;
     const btn = t.closest('.rl-more-btn');
     if (btn){
-      /* The card's own head navigates, so this press must not also travel —
-         the same rule the Open button and the ask tag beside it already keep. */
+      /* STILL STOPPED, and for a new reason. It used to be stopped so the
+         press would NOT navigate ("the card's own head navigates, so this
+         press must not also travel"). The owner has reversed that half — see
+         below — so the stop is now only about not being handled twice: this
+         handler does the navigating itself, deliberately, rather than letting
+         the press fall through to the head's own listener, which would also
+         re-enter this listener's shut(null) branch and close the menu it just
+         opened. */
       ev.preventDefault(); ev.stopPropagation();
       const menu = btn.parentElement && btn.parentElement.querySelector('.rl-more-menu');
       if (!menu) return;
@@ -10541,6 +10626,29 @@ if (typeof document !== 'undefined' && !document._rlMoreWired){
       shut(open ? menu : null);
       menu.hidden = !open;
       btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open){
+        rlMorePlace(btn, menu);
+        /* ---- THE ⋯ TAKES YOU TO THE CLAUSE TOO (owner-asked 26 Aug 2026:
+               "merely selecting the 3 dots ... should also highlight the card
+               and take you to the clause in the contract not only clicking the
+               card") ----
+               THE SAME ACT THE CARD'S HEAD PERFORMS, not a second path: one
+               call to rlLinkFocus, the one function that lights the card, its
+               clause, its thread and its queue row together. Reaching for the
+               menu IS reaching for that change, so the paper should already be
+               showing it by the time the reader reads the rows.
+               'card' as the source, exactly as the head press passes, so the
+               COLUMN does not scroll under the hand that is already on it —
+               only the paper moves.
+               THE CONTRACT IS RESOLVED HERE because this listener is armed at
+               module load and closes over nothing. Null is a safe answer and
+               not a broken one: rlLinkFocus guards its one use of it (the
+               queue sync), so on a mount with no held contract — the
+               counterparty's — the card and clause still light. */
+        const held = typeof redlineHeldId === 'function' ? redlineHeldId() : null;
+        const cur = (held && typeof getContract === 'function') ? getContract(held) : null;
+        try{ rlLinkFocus(cur, btn.getAttribute('data-rl-more'), 'card'); }catch(_){}
+      }
       return;
     }
     /* A row inside: shut the menu and let the press carry on to whichever
@@ -11633,8 +11741,9 @@ function redlineChangeCardsHtml(c, opts = {}){
          complaint answered.
 
        THE RECEIPT DROPS EVEN Edit, deliberately: revising a sent ask is one
-       Open away (the panel's ＋ reads "Continue your draft" on a pending ask
-       of ours), and a receipt with a button it does not need is a card again.
+       Open away (the panel's ＋ continues a pending ask of ours rather than
+       stacking a rival — it says so on its hover), and a receipt with a button
+       it does not need is a card again.
        The body press still navigates to the clause, as on every card. */
     /* ================================================================
        THE OWNER'S CARD, TO THE DESIGN (owner-asked 25 Aug 2026, off a drawing
