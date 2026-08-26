@@ -182,5 +182,100 @@ against exactly the state being reported.
 
 ---
 
-## L-4 — *(awaiting the owner)*
+## L-4 — ONE CARD, ONE HEIGHT, NO DEAD BANDS (the Home dashboard)
+
+**Owner's words, 26 Aug 2026:** *"The top cards and the bottom cards have to
+be the same size as far as height and remove empty spaces which makes the card
+look empty. Create a well structured card like a fiori card but fitting within
+the dashboard format we are creating."* Two bands were ringed on the
+screenshot: one across all four My-work cards between the sub-line and the big
+figure, and one across the foot of all four Portfolio cards.
+
+### BOTH RINGED BANDS ARE RESERVED SPACE, AND IT IS ALREADY MEASURED
+
+Neither is a rendering fault; both are space the cards are TOLD to hold open,
+and the two heights are typed:
+
+- **The two rows are set to two different heights** — the My-work row and the
+  Portfolio row carry their own fixed numbers, 35px apart. That is the owner's
+  first sentence, and it is one value, not a layout puzzle.
+- **The band above the figure is a spacer** that takes up whatever is left
+  over inside the card. Against a FIXED height with short content it stops
+  being a spacer and becomes a hole — which is precisely what was ringed.
+- **The band under the foot is a reserved two-and-a-bit lines** on the
+  Portfolio cards, held open even where the footer is one line. All four
+  footers in the screenshot are one line, so all four show the reservation.
+
+### WHY THEY WERE PUT THERE — do not just delete them
+
+Both reservations exist to keep four cards in a row LINED UP when their
+content is different lengths: without them, one card's figure and footer sit
+at a different height from its neighbour's, and a row of four cards whose
+numbers do not share a baseline looks worse than the empty space does. **So
+deleting the spacer and the minimum without replacing the mechanism trades one
+ugly row for another** — and the second one will be reported too.
+
+### THE ANSWER THE OWNER ALREADY NAMED: give the card an anatomy
+
+A Fiori card is not a box that content falls into — it is a fixed set of
+regions, and every card in a row shares them, which is exactly how alignment
+is bought without padding the shortest card with a hole. Take the STRUCTURE,
+not the look; the dress stays HaTi's own.
+
+The regions this dashboard actually needs, read off the cards already on it:
+
+1. **Header** — title, and one line of supporting detail
+   ("80 drafting · 21 in review · 47 executed · 2 closed").
+2. **The figure** — the number, its unit or scale, and its tone.
+3. **The footing fact** — one line qualifying the figure
+   ("+2 this week", "0 stalled > 14d", "SEK 8.80M exposure").
+
+Every card fills the same three regions and each region is the same height on
+every card, so titles line up with titles and figures with figures **because
+they are in the same row of the same skeleton** — not because a spacer was
+told to swallow the difference. A card with nothing for a region leaves it
+empty and the row still lines up; what it must never do is hold open a region
+this dashboard does not use.
+
+**The lifecycle card is the one that will fight this**, and it is the test of
+whether the skeleton is right: it is wide, its figure sits beside a
+three-stage bar rather than under a sub-line, and it has a second state
+entirely for a reader who may not see money. Fit it into the same three
+regions or say plainly why it is the exception.
+
+### The decision the owner has to make, and what to measure first
+
+One height for all eight means either the top row grows by 35px or the bottom
+row shrinks by it. **MEASURE BEFORE PROPOSING**: find the tallest thing each
+region genuinely has to hold — the longest sub-line in both languages, the
+lifecycle card's stage bar, a two-line footer if any card really has one — and
+let the height fall out of that. Then say what it costs in page height and let
+the owner rule. **A number typed to make today's screenshot look right is what
+produced the two numbers being reported.**
+
+### What must survive it
+
+- The four My-work cards are the reader's own choice and are **drag-to-reorder**;
+  the card is the drag handle. A skeleton that breaks dragging has failed.
+- **A card counting zero is not a door** — it keeps its number, loses its
+  arrow, and refuses the press, and the two rows refuse it differently on
+  purpose (one is disabled outright, the other must stay draggable). Both
+  behaviours survive unchanged.
+- The 3px top edge in each card's own tone, and the numeral matching it.
+- The narrow-window branch, where the Portfolio row is already allowed to grow
+  with its content — it has to keep agreeing with whatever the new height is.
+- A reader who may not see money still gets no money figure at all, not a
+  labelled blank.
+
+### Prove it with pixels, not with the stylesheet
+
+The claim is a RELATION and must be written as one: **every card in both rows
+returns the same height, and no card contains a run of empty space taller than
+the gap between its own regions.** Written as a typed number it costs a test
+edit at the next type pass and passes against a card that is the right height
+and still hollow.
+
+---
+
+## L-5 — *(awaiting the owner)*
 
