@@ -7799,3 +7799,29 @@ theirs" on a column with no edge at all. Fixed while reversing it.
 - ct_executed_outside is now read nowhere in the product, so "there is nothing
   to sign here" is not said anywhere for a migrated record. Reported to the
   owner; it wants a home of its own rather than a band over the contract.
+
+### Merged with main, same day
+
+One commit each side and NO CONFLICT — main's "The decided row goes, and the
+cards stop folding the header" and this run's column work are genuinely
+independent, and that was PROVED rather than assumed: the twelve items were
+re-measured on the merged tree (14/14), main's own new net
+tracked-changes-scroll-verify passes 5/5 against the re-spaced column, node is
+4664/4664, the colour census 40/40, and lint is byte-identical to main's own
+warning set (165 problems — the extra one over this branch's 164 came from
+main's commit, not from the merge).
+
+The two touch the same head without arguing: main deleted the "N of M decided"
+row from it, this run changed the head's own inset and put Send all in its
+top-right slot. Measured after the merge, the head still starts flush against
+the first pile heading and every edge still lines up.
+
+### Noticed, not fixed
+
+- main's commit updated no documentation. CLAUDE.md does not name
+  `.rl-idx-foot` or `.rl-idx-sub` (checked, not assumed), but it describes THE
+  PROGRESS FOOT in prose in three places — including the live claim that the
+  whose-asks filter "lives in the progress foot, drawn only where there is
+  progress to report". That foot no longer exists as of c86aa44, and the filter
+  it names was retired the same morning. Stale on both counts; not this
+  session's to rewrite.
