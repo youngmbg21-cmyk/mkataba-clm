@@ -1972,7 +1972,33 @@ function aiSplitItems(text, want){
   const t = String(text == null ? '' : text).trim();
   let parts = t.split(/\r?\n+/).map(x => x.trim()).filter(Boolean);
   if (parts.length >= 2) return parts;
-  parts = t.split(/(?=(?:\(\s*[a-zA-Z0-9ivxlcdm]+\s*\)|\d{1,3}(?:\.\d+)*[.)]|[•●▪◦‣])\s)/)
+  /* ---- A NUMBER IN BRACKETS IS NOT A LIST MARKER ----
+     (owner-reported 26 Aug 2026, off a screenshot of a replaced clause: "now
+     the structure is breaking".) The old alternation read
+     `\(\s*[a-zA-Z0-9ivxlcdm]+\s*\)|\d{1,3}(?:\.\d+)*[.)]` and matched at TWO
+     overlapping places inside "three (3) years" — once before "(3)" and again
+     before "3)" — so a paragraph of ordinary drafting came apart into
+     "…three" / "(" / "3) years…", with the lone bracket on a line of its own.
+     Reproduced character for character before it was touched.
+
+     "thirty (30) days", "forty-five (45) days", "three (3) years" is how legal
+     drafting writes a number; it is in almost every contract, and splitting
+     inside it is never right. TWO NARROWINGS, and each is what the near misses
+     forced:
+       · a BRACKETED marker carries a single letter or a roman numeral —
+         "(a)", "(iv)" — never digits. "(the)" and "(and)" fail it too, which
+         is the same rule doing a second job.
+       · a BARE marker — "1.", "2)" — may not sit inside a bracket. The
+         lookbehind spans the digits as well, or "(30)" merely breaks one
+         character later, at "(3" / "0)". My own first attempt did exactly
+         that and the test caught it.
+
+     WHAT IS LOST, SAID OUT LOUD: a run-on list numbered "(1) … (2) …" no
+     longer re-splits, because its markers are bracketed digits and are now
+     indistinguishable from a gloss. It falls through to one line — untidy and
+     TRUE, which beats the mangling above. A wrong break invents a
+     sub-paragraph nobody drafted; a missed one only leaves a long line. */
+  parts = t.split(/(?=(?:\(\s*(?:[a-zA-Z]|[ivxlcdmIVXLCDM]{1,6})\s*\)|(?<!\(\s?\d{0,2})\d{1,3}(?:\.\d+)*[.)]|[•●▪◦‣])\s)/)
     .map(x => x.trim()).filter(Boolean);
   if (parts.length >= 2) return parts;
   if (want >= 2){

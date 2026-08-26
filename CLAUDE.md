@@ -4002,6 +4002,65 @@ Tests: f203 (22 — the thirteenth-site walk, the ledger's shape, two members' c
 
 copilotPropose (js/ai.js, "WHICH CLAUSE THIS IS, SAID OUT LOUD") tells the model the passage is ONE clause so "4.2 … 4.3 …" is never read as two. The line used to state "Numbers inside it — 4.2, 4.3, (a), (b) — are sub-paragraphs", meaning the numbers as examples — and on a clause with NO numbering the model took them as fact, decided it had been shown a fragment, and refused to draft until "the full clause including its sub-paragraphs" was pasted in, naming those four example numbers back. THE RULE IS NOW AN "IF", NEVER AN ASSERTION: "If it contains numbered or lettered items (for example 4.2 or (a)), treat them as sub-paragraphs of that one clause… Do not ask for sub-paragraphs the passage does not show." Conditional wording was chosen over detecting numbering in the passage because a detector that misses one style (Roman numerals, "a." lists) silently brings the original two-clauses misreading back; an "if" costs nothing when false and binds the same when true. ONE SITE: every entry path — selection menu, clause button, refine, the phone — goes through copilotPropose, so there is no second copy of the line to fix. Tests: f98 both directions (the purpose survives on a numbered passage; the assertion is gone on a plain one).
 
+## A NUMBER IN BRACKETS IS NOT A LIST MARKER (owner-reported 26 Aug 2026)
+
+*"now the structure is breaking"*, over a screenshot of a clause replaced with
+one paragraph of ordinary drafting and drawn on the paper as:
+
+> …has an initial term of three
+> **(**
+> **3)**  years from the Effective Date. Either party may terminate by six
+> **(**
+> **6)**  months' written notice…
+
+**`aiSplitItems`' MARKER ALTERNATION MATCHED AT TWO OVERLAPPING PLACES INSIDE
+"three (3) years"** — once before `(3)` and again before `3)` — so the lone
+bracket landed on a line of its own, and the digit after it was then read by
+`RL_MARKER` as a sub-paragraph number and put in the hanging indent's gutter.
+Reproduced character for character before anything was touched.
+
+**IT IS REACHED FROM `aiPreserveTypography`, WHICH IS RIGHT TO EXIST.** That
+function puts the model's wording back into the shape of the passage it
+REPLACES; the clause here was a two-limb list, the answer was one paragraph, so
+it went looking for a second item and the broken pattern found two. The
+function's own note, three lines below, already describes this damage for
+INSERTS ("breaking the sentence at its own semicolon to find them") — inserts
+were exempted and replaces were not.
+
+**"thirty (30) days" IS HOW LEGAL DRAFTING WRITES A NUMBER**, and it is in
+almost every contract, so splitting inside it is never right. TWO NARROWINGS,
+each forced by a near miss:
+- a **bracketed** marker carries a single letter or a roman numeral — `(a)`,
+  `(iv)` — never digits. `(the)` and `(and)` fail it too, which is the same
+  rule doing a second job.
+- a **bare** marker — `1.`, `2)` — may not sit inside a bracket, and the
+  lookbehind spans the digits as well: written `(?<!\()` it merely breaks one
+  character later, at `(3` / `0)`. **My own first attempt did exactly that and
+  the test caught it.**
+
+**WHAT IS LOST, SAID OUT LOUD:** a run-on list numbered `(1) … (2) …` no longer
+re-splits, because bracketed digits are now indistinguishable from a gloss. It
+falls through to one line — untidy and TRUE, which beats the mangling above. A
+wrong break invents a sub-paragraph nobody drafted; a missed one only leaves a
+long line. f97d pins that cost so the next person meets a decision rather than a
+mystery.
+
+**ONLY ONE COPY OF THE PATTERN EXISTED**, checked rather than assumed:
+`DOC_LABEL` (js/docx.js) and `RL_MARKER` (js/redline.js) are both anchored at
+`^`, so neither can split mid-sentence.
+
+**AND THE BROWSER CHECK WAS WRITTEN WRONG FIRST, which is the lesson worth more
+than the fix.** It stubbed the ask and pressed "the first `[data-ce-apply]`" —
+but parity.html **seeds a proposal card of its own**, so it applied THAT card
+and passed identically on the broken code. It was caught only by running it
+against the parent commit. It now drives `aiPreserveTypography` with the real
+clause's own text, and against the parent it reports the owner's screenshot
+verbatim: `"…three\n(\n3) years…"`, offenders `["(", "3) years…", "(", "6)…"]`.
+**Run a new browser check against the parent before believing it.**
+
+Tests: f97d (6 — 4 failing against the parent), clause-editor-verify section 15
+(4 — 3 failing, reproducing the reported screen).
+
 ## A RULE ONLY TOUCHES A CLAUSE OF ITS OWN KIND (owner-asked 26 Aug 2026)
 
 The third and last of the playbook-scan fixes, built from

@@ -775,3 +775,94 @@ describe('F97 — the reason typed on the proposal card is filed with the change
   });
 });
 
+
+/* ============================================================
+   F97d — A NUMBER IN BRACKETS IS NOT A LIST MARKER
+   ============================================================
+   Owner-reported 26 Aug 2026, off a screenshot of a replaced clause: "now the
+   structure is breaking". A whole clause was replaced with one paragraph of
+   ordinary drafting and it came back on the paper as:
+
+       …has an initial term of three
+       (
+       3)  years from the Effective Date. Either party may terminate by six
+       (
+       6)  months' written notice…
+
+   aiSplitItems' marker alternation matched at TWO overlapping places inside
+   "three (3) years" — once before "(3)" and again before "3)" — so the lone
+   bracket landed on a line of its own and the digit that followed it was read
+   as a sub-paragraph number and put in the hanging indent's gutter.
+
+   "thirty (30) days" is how legal drafting writes a number and it is in almost
+   every contract, so this could not stay. The FALSE-POSITIVE direction is half
+   of this file as usual: the lists the splitter exists for must still split. */
+describe('F97d — ordinary drafting survives the item splitter', () => {
+  let ai;
+  beforeEach(() => { ai = loadAi(); });
+
+  const REPORTED = "This Agreement has an initial term of three (3) years from the "
+    + "Effective Date. Either party may terminate by six (6) months' written notice.";
+
+  test('THE FIX: the reported wording comes back as ONE line', () => {
+    /* Through the real repair, against a three-line passage — which is what
+       makes it go looking for items in the first place. */
+    const out = ai.aiPreserveTypography(
+      'Either party may terminate immediately if:\na) insolvency; or\nb) casualty.',
+      REPORTED);
+    assert.equal(out.split('\n').filter(Boolean).length, 1,
+      'a paragraph of drafting is a paragraph, not three lines and two brackets');
+    assert.match(out, /three \(3\) years/, 'and the numeral is still whole');
+    assert.match(out, /six \(6\) months/);
+  });
+
+  test('the lone bracket is gone — the shape the owner photographed', () => {
+    /* .join rather than deepEqual: an array built inside the vm world carries
+       that realm's prototype and deepStrictEqual fails on identical contents. */
+    const parts = ai.aiSplitItems(REPORTED, 3);
+    assert.equal(parts.filter(p => /^\($/.test(p.trim())).join('|'), '',
+      'no part is a bracket on its own');
+    assert.equal(parts.filter(p => /^\d\)/.test(p.trim())).join('|'), '',
+      'and none begins with the back half of one');
+    assert.equal(parts.length, 1);
+  });
+
+  test('every way legal drafting writes a number stays whole', () => {
+    for (const t of [
+      'All invoices are payable within thirty (30) days from the date of issue.',
+      'Terminable on forty-five (45) days written notice by either party.',
+      'A cap of one hundred and twenty (120) days from the Effective Date.',
+      'The Term is three (3) years and renews for one (1) further year.',
+      'Notice of not less than six (6) months shall be given in writing.',
+      'within thirty ( 30 ) days of receipt of the invoice.',
+    ]) assert.equal(ai.aiSplitItems(t, 3).length, 1, t.slice(0, 52));
+  });
+
+  test('AND THE LISTS IT EXISTS FOR STILL SPLIT', () => {
+    /* Without these the fix would have bought one bug by opening another. */
+    const cases = [
+      ['The Supplier shall: (a) issue invoices (b) reference the PO (c) attach the CoA.', 4],
+      ['as follows: (i) the first item (ii) the second item (iii) the third item.', 4],
+      ['1. The Term begins on the Effective Date. 2. Either party may terminate.', 2],
+      ['The parties agree: • deliver on time • invoice monthly • report quarterly.', 4],
+    ];
+    for (const [t, n] of cases)
+      assert.equal(ai.aiSplitItems(t, n).length, n, t.slice(0, 52));
+  });
+
+  test('a bracketed word is not a marker either', () => {
+    assert.equal(ai.aiSplitItems('the Supplier (the Seller) shall deliver the Goods.', 2).length, 1,
+      '"(the)" is three letters and no kind of marker — the same rule doing a second job');
+  });
+
+  test('WHAT IS LOST, pinned rather than discovered later', () => {
+    /* A run-on list numbered with BRACKETED DIGITS no longer re-splits, because
+       its markers are now indistinguishable from a numeral gloss. It falls
+       through to one line — untidy and TRUE, which beats the mangling above: a
+       wrong break invents a sub-paragraph nobody drafted, a missed one only
+       leaves a long line. Written down so the next person meets a decision
+       rather than a mystery. */
+    const parts = ai.aiSplitItems('as follows: (1) the first item (2) the second item', 2);
+    assert.equal(parts.length, 1, 'the known cost of the fix');
+  });
+});

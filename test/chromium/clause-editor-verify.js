@@ -1074,6 +1074,62 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   await p.evaluate(() => { const b = document.querySelector('#clause-editor [data-ce-act="close"]'); if (b) b.click(); });
   await pause(300);
 
+  /* ---- 15. ORDINARY DRAFTING IS NOT BROKEN INTO SUB-PARAGRAPHS ----
+     Owner-reported 26 Aug 2026, off a screenshot: "now the structure is
+     breaking". A whole clause replaced with one paragraph came back on the
+     paper as "…three" / "(" / "3) years…", the lone bracket on a line of its
+     own and the digit that followed it read as a sub-paragraph number and put
+     in the hanging indent's gutter. The rule is in F97d.
+
+     DRIVEN THROUGH aiPreserveTypography WITH THE REAL CLAUSE'S OWN TEXT, not
+     through a stubbed ask: this page's harness already seeds a proposal card
+     of its own, so a check that pressed "the first [data-ce-apply]" applied
+     THAT and passed identically on the broken code. It was written that way
+     first and caught by running it against the parent commit — which is the
+     only reason this section says anything at all.
+
+     Clause 1 is the right fixture on both counts: its text is TWO lines, which
+     is what sends the repair looking for items, and it already carries a
+     numeral gloss of its own. */
+  const CLAUSE_PROSE = 'This Agreement has an initial term of three (3) years from the '
+    + "Effective Date. Either party may terminate by six (6) months' written notice.";
+
+  const gloss = await p.evaluate(async ({ prose }) => {
+    const c = window.CONTRACT;
+    const cl = negoClauseList(c)[1];
+    window.rlOpenClauseEditor(c, cl.clauseId, {});
+    await new Promise(r => setTimeout(r, 200));
+    /* the product's own repair, on the passage the editor really sends */
+    const repaired = String(window.aiPreserveTypography
+      ? aiPreserveTypography(cl.text, prose) : '');
+    ceApply(repaired, 'test');
+    await new Promise(r => setTimeout(r, 300));
+    const body = document.querySelector('#ce-clausebody');
+    return { baseLines: String(cl.text).split('\n').filter(Boolean).length,
+      repaired,
+      repairedLines: repaired.split('\n').filter(l => l.trim()).length,
+      lines: [...(body ? body.querySelectorAll('.rl-line') : [])]
+        .map(el => el.textContent.replace(/\s+/g, ' ').trim()),
+      text: body ? body.textContent.replace(/\s+/g, ' ') : '' };
+  }, { prose: CLAUSE_PROSE });
+
+  ck('15a the fixture really is the shape that triggers the repair',
+     gloss.baseLines > 1, `${gloss.baseLines} lines in the clause it replaces`);
+  ck('15b THE FIX: one paragraph of drafting stays one paragraph',
+     gloss.repairedLines === 1, `${gloss.repairedLines} line(s): ${JSON.stringify(gloss.repaired.slice(0, 90))}`);
+  ck('15c and no lone bracket is left anywhere in it',
+     !/\n\(\s*\n/.test(gloss.repaired) && !/(^|\n)\d\)/.test(gloss.repaired),
+     JSON.stringify(gloss.repaired.slice(0, 70)));
+  /* `.every` on an empty list is true, so the count is asserted first. */
+  ck('15d and the paper draws it whole, numerals and all',
+     gloss.lines.length > 0 && gloss.lines.every(l => l !== '(' && !/^\d\)/.test(l))
+       && /three \(3\) years/.test(gloss.text),
+     `${gloss.lines.length} lines; offenders `
+       + JSON.stringify(gloss.lines.filter(l => l === '(' || /^\d\)/.test(l))));
+
+  await p.evaluate(() => { const b = document.querySelector('#clause-editor [data-ce-act="close"]'); if (b) b.click(); });
+  await pause(300);
+
   /* ---- 10. NO PAGE ERRORS THROUGHOUT ---- */
   ck('10 the whole journey ran with no page errors', errs.length === 0, errs.join(' | ') || 'none');
 
