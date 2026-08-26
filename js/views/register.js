@@ -765,7 +765,9 @@ function regRowsHtml(cs){
     const sub  = filtered ? i18t('reg_widen') : i18t('reg_create_from_template');
     const btn  = filtered
       ? `<button id="reg-empty-clear" class="ui-btn" style="font-size:var(--t-meta);padding:6px 14px">${i18t('reg_clear_all_filters')}</button>`
-      : `<button id="reg-empty-new" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:6px 14px">${i18t('pg_new_contract')}</button>`;
+      /* The same act as the header's, so the same button — see pageActionHtml. */
+      : `<button id="reg-empty-new" class="hm-primary">${
+          icon('plus','w-3.5 h-3.5',2)} ${i18t('home_draft_new')}</button>`;
     /* THIS SHAPE IS NOW THE PRODUCT'S — it was the one screen that had a
        designed empty state, and emptyStateHtml is it, extracted so the other
        six can be it too. Read through window: this is a module. */

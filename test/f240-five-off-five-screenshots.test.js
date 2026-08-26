@@ -342,3 +342,60 @@ describe('f240 (5) — the rows read at one size and one weight', () => {
         /font-weight:var\(--w-title\)/, cls + ' is a heading, not a row');
   });
 });
+
+/* ============================================================
+   f240 (6) — ONE ACT, ONE BUTTON
+   ============================================================
+   Owner-asked 26 Aug 2026: "the new contract should look like the draft new
+   agreement in the home page. Same feature same button looking button." The
+   words as well, ruled the same day.
+
+   It was a solid navy block on Contracts while Home's — the same act, one page
+   away — is white with an accent outline and reads "Draft new agreement".
+   ============================================================ */
+describe('f240 (6) — the new-contract button is Home\'s', () => {
+  const HOME = read('js/views/home.js');
+  const btn = strip(APP).match(/kind==='new'\)[\s\S]{0,320}/)[0];
+
+  test('it wears Home\'s own class, not a filled block', () => {
+    assert.match(btn, /class="hm-primary"/, "Home's own dressing");
+    assert.doesNotMatch(btn, /ui-btn-primary/, 'never the solid block again');
+    /* THE SAME CLASS, not a copy of its declarations — a second set agrees on
+       the day it is written and drifts from then on. */
+    assert.match(strip(HOME), /class="hm-primary"/, 'and Home still wears it');
+  });
+
+  test('and it says what Home says — the same key, so the two cannot drift', () => {
+    assert.match(btn, /home_draft_new/, 'the same label key as Home');
+    assert.doesNotMatch(btn, /pg_new_contract/, 'the old label is retired');
+    assert.match(strip(HOME), /home_draft_new/);
+  });
+
+  test('the register\'s empty state is the same button, not a lookalike', () => {
+    /* Two doors onto one act. Left behind, the empty page would offer a navy
+       block and the header above it a white one, on the same screen. */
+    const empty = strip(REG).match(/reg-empty-new[\s\S]{0,200}/)[0];
+    assert.match(empty, /class="hm-primary"/);
+    assert.match(empty, /home_draft_new/);
+  });
+
+  test('the delegated handler still finds it — the id is what the shell binds', () => {
+    assert.match(btn, /data-page-new/,
+      'the look changed and the wiring did not');
+  });
+
+  test('.hm-primary is NOT scoped to the dashboard, or the other two lose their dress', () => {
+    /* The clothes follow the builder: this rule now has three homes and a scope
+       added later would silently strip two of them. */
+    assert.match(IDX, /(^|\})\s*\.hm-primary\{/m,
+      '.hm-primary must stay a bare class rule');
+  });
+
+  test('a sentence that NAMES the button follows it', () => {
+    /* The stream drawer's empty state says "Create one with ...". Pointing at a
+       control that is no longer called that sends the reader hunting. */
+    const I18N = read('js/i18n.js');
+    assert.match(I18N, /reg_stream_create_hint: 'Create one with Draft new agreement/);
+    assert.doesNotMatch(I18N, /reg_stream_create_hint: 'Create one with New contract/);
+  });
+});

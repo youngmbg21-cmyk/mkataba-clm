@@ -446,11 +446,15 @@ const STRINGS = {
     // -- charts leave the screen: the copy/PNG/CSV toolbar (js/aichart.js) --
     /* THE STREAM DRAWER'S EMPTY STATE. Four English sentences on a page whose
        every other word turns over — including the button, which the page
-       header two rows up already draws in Swedish from pg_new_contract. */
+       header two rows up already draws in Swedish from home_draft_new. */
     reg_stream_none_match: 'No contracts match "{q}"',
     reg_stream_none_yet: 'No contracts in this value stream yet',
     reg_stream_widen: 'Clear the search, or ask HaTi Copilot to look across all folders.',
-    reg_stream_create_hint: 'Create one with New contract, or upload received paper.',
+    /* NAMES THE BUTTON, so it had to follow when the button was renamed to match
+       Home's (26 Aug 2026). A hint pointing at "New contract" on a page whose
+       button reads "Draft new agreement" sends the reader looking for a control
+       that is not there. */
+    reg_stream_create_hint: 'Create one with Draft new agreement, or upload received paper.',
     /* THE COPILOT PANEL'S OWN CHROME. Four tooltips and the live sub-line
        carried no data-i18n attribute at all, so the panel that answers in the
        reader's language was framed entirely in English. */
@@ -5514,7 +5518,7 @@ const STRINGS = {
     reg_stream_none_match: 'Inga avtal matchar "{q}"',
     reg_stream_none_yet: 'Inga avtal i den här värdeströmmen ännu',
     reg_stream_widen: 'Rensa sökningen, eller be HaTi Copilot leta i alla mappar.',
-    reg_stream_create_hint: 'Skapa ett med Nytt avtal, eller ladda upp mottagna handlingar.',
+    reg_stream_create_hint: 'Skapa ett med Upprätta nytt avtal, eller ladda upp mottagna handlingar.',
     ai_expand_panel: 'Utöka panelen',
     ai_shrink_panel: 'Förminska panelen',
     ai_delete_conversation: 'Radera konversationen',

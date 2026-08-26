@@ -193,7 +193,16 @@ const PAGE_ACTIONS = {
 function pageActionHtml(kind){
   if(kind==='export') return `<button data-page-export class="ui-btn" style="font-size:var(--t-meta);padding:6px var(--s-3)" title="${i18t('ap_export_working_set')}">`+
     `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:-2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>${i18t('ap_export')}</button>`;
-  if(kind==='new') return `<button data-page-new class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:6px 14px">${i18t('pg_new_contract')}</button>`;
+  /* ---- ONE ACT, ONE BUTTON (owner-asked 26 Aug 2026: "the new contract should
+     look like the draft new agreement in the home page. Same feature same
+     button looking button") ----
+     It was a solid navy block while Home's — the SAME act, one page away — is
+     white with an accent outline. Both the look and the WORDS follow Home now,
+     by wearing Home's own class rather than a second set of declarations that
+     agrees today: .hm-primary is unscoped and this is its second home.
+     `pg_new_contract` is STALE as a label and left inert in the dictionary. */
+  if(kind==='new') return `<button data-page-new class="hm-primary">${
+    icon('plus','w-3.5 h-3.5',2)} ${i18t('home_draft_new')}</button>`;
   return '';
 }
 /* PAGES THAT ALREADY STATE THEIR OWN NAME get no header from here — putting
