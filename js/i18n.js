@@ -3295,6 +3295,13 @@ const STRINGS = {
     pf_open_arrow: 'open →',
     pf_more_here: 'more here.',
     pf_findings_foot: 'Most serious first, then the largest contract behind them.',
+    /* ---- THE PAGER (owner-asked 26 Aug 2026) ---- The card used to say
+       "61 more here" in bold with nothing behind it. It pages now, and the
+       range says which ten of how many are on screen — a pair of arrows with
+       no numbers beside them leaves the reader counting. */
+    pf_findings_range: '{from}\u2013{to} of {total}',
+    pf_findings_prev: 'Previous findings',
+    pf_findings_next: 'More findings',
     pf_empty_title: 'No contracts yet',
     pf_empty_body: 'These six panels appear as soon as there is a book to read. They are the same six for every business.',
     pf_honesty_note: 'Every figure on this page is arithmetic over your own contracts — values, dates and categories read off the records, negotiation rounds and findings from HaTi’s own filing and review. Nothing is estimated, benchmarked, or taken from anywhere else.',
@@ -8126,6 +8133,9 @@ const STRINGS = {
     pf_open_arrow: 'öppna →',
     pf_more_here: 'till här.',
     pf_findings_foot: 'Allvarligast först, därefter det största avtalet bakom dem.',
+    pf_findings_range: '{from}\u2013{to} av {total}',
+    pf_findings_prev: 'Föregående fynd',
+    pf_findings_next: 'Fler fynd',
     pf_empty_title: 'Inga avtal ännu',
     pf_empty_body: 'De här sex panelerna visas så snart det finns en bok att läsa. De är desamma för varje verksamhet.',
     pf_honesty_note: 'Varje siffra på den här sidan är räknad ur dina egna avtal — värden, datum och kategorier avlästa ur posterna, förhandlingsrundor och anmärkningar ur HaTi:s egen registrering och granskning. Inget är uppskattat, jämfört mot index eller hämtat någon annanstans ifrån.',

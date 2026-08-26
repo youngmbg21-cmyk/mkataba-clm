@@ -348,3 +348,86 @@ describe('F183 — scope, money and caps hold', () => {
     assert.ok(!w.pfPanelsData().renewal_runway);
   });
 });
+
+/* ============================================================
+   F183 (7) — THE FINDINGS CARD PAGES, AND ITS DOOR ADDS NO ROUTE
+   ============================================================
+   Owner-asked 26 Aug 2026. The card showed six findings and said "61 more
+   here" in bold with nothing behind it — a count of work the reader could see
+   and could not reach — and Open landed on the contract and no further.
+
+   The BEHAVIOUR is proved in portfolio-frame-verify, where a real press walks
+   the journey. What is pinned here is the half a browser cannot state: that
+   the door presses the product's OWN doors rather than growing a second way to
+   open a panel or draw a finding.
+   ============================================================ */
+describe('F183 (7) — the findings card, and the door onto a finding', () => {
+  const PF = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'portfolio.js'), 'utf8');
+  const CODE = PF.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+
+  test('ten a page, and the old cap is retired with the dead-end it was', () => {
+    assert.match(CODE, /const PF_FINDINGS_PAGE = 10;/);
+    assert.ok(!/PF_MAX_FINDINGS/.test(CODE),
+      'the cap is gone, not left beside the pager for the next reader to choose from');
+    assert.ok(!/pf_more_here/.test(CODE),
+      'and so is the bold count that led nowhere');
+  });
+
+  test('the page is CLAMPED on the way out, never written back', () => {
+    /* The book shrinks under this card — a finding is dismissed, a filter is
+       set — and a stored page past the end would draw an empty card with no way
+       off it. Clamping on read means the card always has rows AND that widening
+       the filter again puts the reader back where they were. */
+    assert.match(CODE, /Math\.min\(Math\.max\(0, F\.findPage\|0\), pages-1\)/);
+    const paint = CODE.match(/function pfFindings\(\)[\s\S]*?\n}/)[0];
+    assert.ok(!/F\.findPage\s*=/.test(paint),
+      'drawing the card must not rewrite the reader\'s page');
+  });
+
+  test('THE DOOR PRESSES THE PRODUCT\'S OWN DOORS, and grows no second one', () => {
+    const door = CODE.match(/function pfOpenContract[\s\S]*?\n}/)[0];
+    assert.match(door, /openWorkspace/, 'the room opens the way every other door opens it');
+    assert.match(door, /roomGoTab\(c,'docs'\)/, 'the tab is chosen through the room\'s own function');
+    assert.match(door, /openCheckPanel\(c,'scan'\)/, 'and the panel through its own opener');
+    /* Never a second renderer, never a second store, never its own markup. */
+    assert.ok(!/renderScanSection|openSidePanel|innerHTML/.test(door),
+      'this door opens things; it does not draw them');
+    assert.ok(!/runScan|scanRules/.test(door), 'and it never re-runs a scan to fill a panel');
+  });
+
+  test('the finding is marked EXPANDED before the panel is built, not after', () => {
+    /* openCheckPanel renders the panel on the way in, so a finding expanded
+       afterwards would need a second paint to open — and the reader would watch
+       the panel arrive shut on the very row they pressed. */
+    const door = CODE.match(/function pfOpenContract[\s\S]*?\n}/)[0];
+    const addAt = door.indexOf('scanUI.expanded.add(');
+    /* The CALL, not the guard: `typeof openCheckPanel!=='function'` sits above
+       both and would make this claim pass on any ordering. */
+    const openAt = door.indexOf("openCheckPanel(c,'scan')");
+    assert.ok(addAt > -1 && openAt > -1 && addAt < openAt,
+      'scanUI.expanded is the panel\'s OWN record and must be set first');
+  });
+
+  test('a contract with no finding named still just opens, as it always did', () => {
+    const door = CODE.match(/function pfOpenContract[\s\S]*?\n}/)[0];
+    assert.match(door, /if\(!findingId[^)]*\)\{ open\(\); return; \}/,
+      'the rows elsewhere on this page carry no finding and must be unaffected');
+  });
+
+  test('the blink is the alerts panel\'s own rule — three times, then it stops', () => {
+    const IDX = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+    assert.match(IDX, /#scan-section \.pf-found\{animation:pf-found-blink 1s ease-in-out 0s 3;\}/,
+      'something that blinks for ever stops being noticed');
+    assert.match(IDX, /@keyframes pf-found-blink[\s\S]{0,120}var\(--st-ruby-bg\)/,
+      'light red from the product\'s own token, so the dark theme answers too');
+    assert.match(IDX, /prefers-reduced-motion:reduce\)\{\s*#scan-section \.pf-found\{animation:none;background:var\(--st-ruby-bg\);\}/,
+      'and a reader who has turned animation off gets the signal, not silence');
+  });
+
+  test('both new words are in both languages', () => {
+    const I18N = fs.readFileSync(path.join(__dirname, '..', 'js', 'i18n.js'), 'utf8');
+    for (const k of ['pf_findings_range', 'pf_findings_prev', 'pf_findings_next'])
+      assert.equal((I18N.match(new RegExp(k + ':', 'g')) || []).length, 2,
+        `${k} must be in English and Swedish`);
+  });
+});

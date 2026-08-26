@@ -218,6 +218,133 @@ const PANELS = () => {
       /Var värdet ligger/.test(sv) && /Riskkartan/.test(sv) && /avtal/.test(sv));
     await page.evaluate(() => window.langSet && window.langSet('en'));
 
+
+    /* ======================================================================
+       THE FINDINGS CARD PAGES, AND OPEN LANDS ON THE FINDING
+       ----------------------------------------------------------------------
+       Owner-asked 26 Aug 2026: "Make the card a scrollable card with 10 per
+       page and you can click to more pages in the card to see more of them.
+       When you click on open, it should take you to the contract in documents
+       page where the side panel is open and the respective risk is blinking in
+       light red."
+
+       Before this the card showed six and said "61 more here" in bold text with
+       nothing behind it — a count of work the reader could see and could not
+       reach. Every claim below is measured on the real page: a source read
+       cannot tell a pager that draws from one that works.
+       ====================================================================== */
+    await page.evaluate(() => {
+      /* Enough findings to need three pages. Two per contract keeps them
+         spread across the book rather than piled on one row. */
+      const sev = i => (i % 3 === 0 ? 'high' : i % 3 === 1 ? 'med' : 'low');
+      for (let i = 0; i < 12; i++){
+        state.contracts.push({ id: 'MK-P' + i, name: 'Paged contract ' + i,
+          counterparty: 'Pager Ltd', folder: 'proc', value: 1000000 + i, status: 'Signed',
+          expiry: new Date(Date.now() + 400 * 864e5).toISOString().slice(0, 10),
+          rounds: [], metadata: { category: 'supplier' }, audit: [], changes: [],
+          scan: { findings: [
+            { id: 'p' + i + 'a', title: 'Paged finding ' + i + 'A', sev: sev(i),
+              what: 'w', why: 'y', fix: 'f', anchor: 'doc' },
+            { id: 'p' + i + 'b', title: 'Paged finding ' + i + 'B', sev: sev(i + 1),
+              what: 'w', why: 'y', fix: 'f', anchor: 'doc' } ], dismissed: [] } });
+      }
+      window.setView('intel');
+    });
+    await page.waitForTimeout(800);
+
+    const card = () => page.evaluate(() => {
+      const rows = [...document.querySelectorAll('[data-pf-open][data-pf-find]')];
+      const scroller = document.querySelector('.pf-find-scroll');
+      const pager = [...document.querySelectorAll('[data-pf-find-page]')];
+      const host = document.getElementById('ig-frame');
+      const foot = host ? (host.textContent.match(/\d+–\d+ of \d+/) || [''])[0] : '';
+      return {
+        rows: rows.length,
+        first: rows.length ? rows[0].textContent.replace(/\s+/g, ' ').trim().slice(0, 46) : '',
+        ids: rows.map(r => r.getAttribute('data-pf-find')),
+        scrolls: !!scroller && scroller.scrollHeight > 0
+          && getComputedStyle(scroller).overflowY === 'auto',
+        bounded: !!scroller && scroller.getBoundingClientRect().height <= 400,
+        pager: pager.map(b => b.getAttribute('data-pf-find-page')),
+        prevOff: pager[0] ? pager[0].disabled : null,
+        nextOff: pager[1] ? pager[1].disabled : null,
+        range: foot,
+      };
+    });
+
+    const c1 = await card();
+    check('the findings card shows TEN a page, not six',
+      c1.rows === 10, `${c1.rows} rows`);
+    check('and it scrolls inside itself rather than stretching the row',
+      c1.scrolls && c1.bounded, `overflow-y auto, ${c1.bounded ? 'bounded' : 'UNBOUNDED'}`);
+    check('the foot says which ten of how many, not a bold dead-end count',
+      /^1–10 of \d+$/.test(c1.range), c1.range || '(none)');
+    check('and there is no "N more here" left anywhere on the page',
+      !(await page.evaluate(() => /more here/i.test(
+        (document.getElementById('ig-frame') || {}).textContent || ''))),
+      'the sentence with nothing behind it is gone');
+    check('on the first page there is nowhere back, and the control SAYS so',
+      c1.pager.join('|') === 'prev|next' && c1.prevOff === true && c1.nextOff === false,
+      `prev disabled=${c1.prevOff}, next disabled=${c1.nextOff}`);
+
+    await page.click('[data-pf-find-page="next"]');
+    await page.waitForTimeout(500);
+    const c2 = await card();
+    check('THE REPORTED FIX: pressing the pager reaches the rest of them',
+      c2.rows === 10 && c2.ids[0] !== c1.ids[0] && /^11–20 of \d+$/.test(c2.range),
+      `${c2.range}, first row now "${c2.first}"`);
+    check('and no finding appears on two pages at once',
+      c2.ids.every(id => !c1.ids.includes(id)), 'no overlap');
+
+    await page.click('[data-pf-find-page="prev"]');
+    await page.waitForTimeout(500);
+    const c3 = await card();
+    check('and back again lands on exactly the page it left',
+      c3.ids.join('|') === c1.ids.join('|'), c3.range);
+
+    /* ---- OPEN LANDS ON THE FINDING ---- */
+    const target = await page.evaluate(() => {
+      const rows = [...document.querySelectorAll('[data-pf-open][data-pf-find]')];
+      const r = rows[0];
+      return { id: r.getAttribute('data-pf-open'), find: r.getAttribute('data-pf-find') };
+    });
+    await page.click('[data-pf-open][data-pf-find]');
+    await page.waitForTimeout(1200);
+
+    const landed = await page.evaluate(() => {
+      const panel = document.getElementById('scan-section');
+      const marked = document.querySelector('#scan-section .pf-found');
+      const cs = marked ? getComputedStyle(marked) : null;
+      return {
+        view: state.view,
+        activeId: state.activeId,
+        tab: typeof roomCurrentTab === 'function' ? roomCurrentTab() : null,
+        panelOpen: !!panel && panel.getBoundingClientRect().width > 0,
+        panelText: panel ? panel.textContent.replace(/\s+/g, ' ').trim().slice(0, 60) : '',
+        marked: !!marked,
+        markedId: marked ? (marked.querySelector('[data-scan-toggle]') || {}).getAttribute
+          ? marked.querySelector('[data-scan-toggle]').getAttribute('data-scan-toggle') : null : null,
+        /* The finding is OPEN, not merely present — the reader pressed a row
+           that named a risk and must see what it says. */
+        expanded: !!marked && /Suggested fix|Why it matters|What it says/i.test(marked.textContent),
+        anim: cs ? cs.animationName : '',
+        iter: cs ? cs.animationIterationCount : '',
+      };
+    });
+    check('Open lands on the contract, on the DOCUMENT tab',
+      landed.view === 'workspace' && landed.activeId === target.id && landed.tab === 'docs',
+      `${landed.view}/${landed.activeId}/${landed.tab}`);
+    check('with the risk panel OPEN, as real width on the page',
+      landed.panelOpen, landed.panelText.slice(0, 40));
+    check('THE REPORTED FIX: on the very finding the card was pointing at',
+      landed.marked && landed.markedId === target.find,
+      `marked ${landed.markedId}, wanted ${target.find}`);
+    check('and that finding is opened, not merely highlighted shut',
+      landed.expanded, 'its own what/why/fix are on screen');
+    check('it blinks in light red — and STOPS, three times over',
+      landed.anim === 'pf-found-blink' && landed.iter === '3',
+      `${landed.anim} × ${landed.iter}`);
+
     check('no page errors', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {
     await browser.close();

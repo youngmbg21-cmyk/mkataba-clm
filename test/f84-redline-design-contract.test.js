@@ -248,8 +248,16 @@ describe('F84 — two panes, a drag handle, and a sidebar that shows one face', 
     const rez = p.$('#rl-resizer');
     assert.ok(rez, 'the split handle must be in the grid');
     assert.equal(rez.getAttribute('role'), 'separator');
-    assert.match(p.css(), /\.redline-page \.rl-resizer\{[^}]*position:absolute/,
+    /* REVERSED IN PLACE 26 Aug 2026: the rule is UNSCOPED now, because the
+       clause editor carries this same divider and its grid sits outside
+       .redline-page. The claim this test was always making is untouched and is
+       what is asserted — absolute, so it claims no grid track of its own —
+       and it is stronger unscoped: one rule dresses both dividers, so they
+       cannot come to look different. */
+    assert.match(p.css(), /(^|[\s}])\.rl-resizer\{[^}]*position:absolute/,
       'absolute over the gap, so it claims no grid track of its own');
+    assert.ok(!/\.redline-page \.rl-resizer\{[^}]*position:absolute/.test(p.css()),
+      'and the scoped rule was REPLACED, not joined — no cascade fight to lose');
     assert.match(p.css(), /@media \(max-width:1023px\)\{[\s\S]*?\.rl-resizer\{display:none\}/,
       'a drag handle over stacked panes resizes nothing');
   });

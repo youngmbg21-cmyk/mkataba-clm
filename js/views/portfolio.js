@@ -29,10 +29,18 @@
    ========================================================================= */
 
 const PF_MAX_ROWS = 8;          // the leaderboard shows the largest eight
-const PF_MAX_FINDINGS = 6;      // six at most; a long list is a list nobody reads
+/* ---- TEN A PAGE, AND A WAY TO THE REST (owner-asked 26 Aug 2026) ----
+   It showed six and said "61 more here" in bold text with nothing behind it —
+   a count of work the reader could see and could not reach. Ten a page now,
+   with page buttons in the card and a scroller of its own, which is what the
+   owner asked for by name. PF_MAX_FINDINGS is retired with the cap it was. */
+const PF_FINDINGS_PAGE = 10;
 const PF_SOON_DAYS = 90;        // "ends soon" — the same window the register's saved view uses
 
-function pfState(){ if(!state.pf) state.pf={cat:null, cp:null}; return state.pf; }
+/* Per sitting, in memory — like every other reading on this page. A page number
+   that outlived the sitting would open this card three pages down on a book the
+   reader has not looked at yet. */
+function pfState(){ if(!state.pf) state.pf={cat:null, cp:null, findPage:0}; return state.pf; }
 const pfEsc = s => String(s==null?'':s).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
 
 /* The book this frame reads. Declined contracts are not live — the same rule
@@ -366,19 +374,59 @@ function pfFindings(){
   const tone=s=>s==='high'?{bg:'var(--st-ruby-bg)',fg:'var(--st-ruby-fg)'}
     :s==='med'?{bg:'var(--st-amber-bg)',fg:'var(--st-amber-fg)'}
     :{bg:'var(--color-neutral-100)',fg:'var(--color-neutral-700)'};
-  const shown=items.slice(0,PF_MAX_FINDINGS);
-  const body=`<div style="display:flex;flex-direction:column">${shown.map(({c,f})=>{
+  /* ---- THE PAGE IS CLAMPED ON THE WAY OUT, NOT WRITTEN BACK ----
+     The book shrinks under this card — a finding is dismissed, a filter is set —
+     and a stored page past the end would draw an empty card with no way off it.
+     Reading it clamped means the card always has rows; the stored number is left
+     alone, so widening the filter again puts the reader back where they were. */
+  const pages=Math.max(1, Math.ceil(items.length/PF_FINDINGS_PAGE));
+  const F=pfState();
+  const page=Math.min(Math.max(0, F.findPage|0), pages-1);
+  const shown=items.slice(page*PF_FINDINGS_PAGE, page*PF_FINDINGS_PAGE+PF_FINDINGS_PAGE);
+  /* ---- ITS OWN SCROLLER ---- Ten rows is taller than six, and this card sits
+     in a grid beside another: without a bound of its own it would stretch the
+     row and drag its neighbour with it. */
+  const body=`<div class="pf-find-scroll" style="display:flex;flex-direction:column;max-height:392px;overflow-y:auto">${shown.map(({c,f})=>{
     const t=tone(f.sev);
-    return `<button data-pf-open="${pfEsc(c.id)}" style="display:flex;gap:9px;align-items:flex-start;width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;padding:var(--s-2) 2px;border-bottom:1px dashed var(--color-divider)">
+    /* THE FINDING'S OWN ID TRAVELS WITH THE PRESS. Without it the door can open
+       the contract and no more; with it the panel can open ON the row this card
+       was pointing at. */
+    return `<button data-pf-open="${pfEsc(c.id)}" data-pf-find="${pfEsc(f.id||'')}" style="display:flex;gap:9px;align-items:flex-start;width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;padding:var(--s-2) 2px;border-bottom:1px dashed var(--color-divider)">
       <span style="flex:none;margin-top:2px;font-size:var(--t-label);font-weight:var(--w-title);padding:1px 7px;border-radius:var(--radius);background:${t.bg};color:${t.fg};text-transform:uppercase;letter-spacing:.04em">${pfEsc(f.sev||'low')}</span>
       <span style="min-width:0;flex:1">
         <b style="display:block;font-size:var(--t-meta);font-weight:var(--w-title)">${pfEsc(f.title||i18t('pf_a_finding'))}</b>
         <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${pfEsc(c.name)}${pfWeight(c)>0?' · '+pfEsc(pfMoney(pfWeight(c))):''}</span></span>
       <span style="flex:none;font-size:var(--t-label);font-weight:var(--w-title);color:var(--accent-ink-700)">${i18t('pf_open_arrow')}</span></button>`;
   }).join('')}</div>`;
-  const more=items.length-shown.length;
   return pfCard(i18t('pf_needs_attention'), `${items.length} ${i18t('pf_open_findings')}`, body,
-    `${more>0?`<b>${more} ${i18t('pf_more_here')}</b> `:''}${i18t('pf_findings_foot')}`);
+    pfFindingsFoot(page, pages, items.length));
+}
+/* ---- THE FOOT IS THE WAY TO THE REST ----
+   ONE PAGE DRAWS NO CONTROLS AT ALL: a pager over a list that fits is furniture,
+   and this card carried a bold "61 more here" for exactly as long as it had no
+   way to reach them. The sentence about the ORDER stays either way, because it
+   is true of one page and of nine. */
+function pfFindingsFoot(page, pages, total){
+  const say=i18t('pf_findings_foot');
+  if(pages<2) return say;
+  const from=page*PF_FINDINGS_PAGE+1;
+  const to=Math.min(total, from+PF_FINDINGS_PAGE-1);
+  /* A press that cannot go anywhere is genuinely DISABLED rather than dimmed —
+     the browser refuses it and a keyboard reader is told, where an opacity is a
+     live control that happens to look faint. */
+  const step=(dir,label,off)=>`<button data-pf-find-page="${dir}"${off?' disabled':''}
+    aria-label="${pfEsc(label)}" title="${pfEsc(label)}"
+    style="border:1px solid var(--field-line);background:var(--color-surface);color:var(--accent-ink);
+      border-radius:var(--radius);cursor:${off?'default':'pointer'};font:inherit;
+      font-size:var(--t-label);font-weight:var(--w-title);padding:2px 9px;${off?'opacity:.4;':''}">${
+    dir==='prev'?'&lsaquo;':'&rsaquo;'}</button>`;
+  return `<div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
+    <span style="flex:1;min-width:0">${say}</span>
+    <span style="flex:none;color:var(--color-neutral-600)">${
+      i18t('pf_findings_range',{from,to,total})}</span>
+    <span style="flex:none;display:flex;gap:5px">${
+      step('prev', i18t('pf_findings_prev'), page<=0)}${
+      step('next', i18t('pf_findings_next'), page>=pages-1)}</span></div>`;
 }
 
 /* ------------------------------------------------------- the whole frame --- */
@@ -486,12 +534,68 @@ function wirePortfolioFrame(rerender){
     if(typeof runMetaBackfill==='function') runMetaBackfill({missingCategory:true});
   });
   document.querySelectorAll('[data-pf-open]').forEach(el=>el.addEventListener('click',()=>{
-    const id=el.getAttribute('data-pf-open');
-    if(typeof openWorkspace==='function') openWorkspace(id);
-    else { state.activeId=id; if(typeof setView==='function') setView('workspace'); } }));
+    pfOpenContract(el.getAttribute('data-pf-open'), el.getAttribute('data-pf-find')||''); }));
+  /* The pager is a CLASS OF PRESS, not two buttons — a third step added later
+     joins the same handler rather than needing its own. */
+  document.querySelectorAll('[data-pf-find-page]').forEach(el=>el.addEventListener('click',()=>{
+    const F=pfState();
+    F.findPage=Math.max(0,(F.findPage|0)+(el.getAttribute('data-pf-find-page')==='next'?1:-1));
+    if(typeof renderIntel==='function') renderIntel();
+  }));
 }
 
-Object.assign(window,{PF_SOON_DAYS,PF_MAX_ROWS,PF_MAX_FINDINGS,pfState,pfLive,pfRows,pfSum,pfWeight,pfN,pfMoneyOk,
+/* ---------- OPEN LANDS ON THE FINDING, NOT MERELY ON THE CONTRACT ----------
+   (owner-asked 26 Aug 2026: "when you click on open, it should take you to the
+   contract in documents page where the side panel is open and the respective
+   risk is blinking in light red".)
+
+   IT ADDS NO ROUTE. openWorkspace, roomGoTab and openCheckPanel are the doors
+   the product already has, pressed in the order a reader would press them, and
+   scanUI.expanded is the panel's own record of which finding is open. Nothing
+   here draws a finding, decides one, or keeps a second copy of anything.
+
+   THE ORDER IS LOAD-BEARING. setView renders synchronously, so the room is on
+   screen before the tab is chosen and the tab is chosen before the panel opens;
+   and the finding is marked EXPANDED BEFORE the panel is built, because
+   openCheckPanel renders the panel on the way in and would otherwise draw it
+   shut and need a second paint to open it.
+
+   THE BLINK WAITS ONE BEAT and does not care whether it gets one. The panel is
+   built synchronously but a side panel can animate in, so the row is marked on
+   the next frame; where the row is not there the reader simply gets an open
+   panel, which is still most of what they asked for. */
+function pfOpenContract(id, findingId){
+  const c=(typeof getContract==='function') ? getContract(id) : null;
+  const open=()=>{ if(typeof openWorkspace==='function') openWorkspace(id);
+    else { state.activeId=id; if(typeof setView==='function') setView('workspace'); } };
+  if(!findingId || !c || typeof openCheckPanel!=='function'){ open(); return; }
+  try{ if(window.scanUI && scanUI.expanded && scanUI.expanded.add) scanUI.expanded.add(findingId); }catch(_){}
+  open();
+  try{ if(typeof roomGoTab==='function') roomGoTab(c,'docs'); }catch(_){}
+  try{ openCheckPanel(c,'scan'); }catch(_){ return; }
+  pfMarkFinding(findingId);
+}
+/* ---- LIGHT RED, THREE TIMES, THEN IT STOPS ----
+   The alerts panel's own rule, kept to the letter: something that blinks for
+   ever stops being noticed, and the one row that mattered goes past unread with
+   it. A reader who has turned animation off gets a steady wash instead of
+   silence — the signal is the point, the movement is not. */
+function pfMarkFinding(findingId){
+  const paint=()=>{
+    const row=document.querySelector(`#scan-section [data-scan-toggle="${
+      String(findingId).replace(/["\\]/g,'\\$&')}"]`);
+    const card=row && row.parentElement;
+    if(!card) return;
+    card.classList.remove('pf-found');
+    void card.offsetWidth;            /* restart it if the same row is opened twice */
+    card.classList.add('pf-found');
+    if(card.scrollIntoView) card.scrollIntoView({block:'nearest'});
+  };
+  if(typeof requestAnimationFrame==='function') requestAnimationFrame(()=>requestAnimationFrame(paint));
+  else paint();
+}
+
+Object.assign(window,{PF_SOON_DAYS,PF_MAX_ROWS,PF_FINDINGS_PAGE,pfState,pfOpenContract,pfMarkFinding,pfFindingsFoot,pfLive,pfRows,pfSum,pfWeight,pfN,pfMoneyOk,
   pfPct,pfShare,pfCategoryOf,pfCatLabel,pfFindingsOf,pfRounds,pfSentences,pfFigures,pfWhereValueSits,pfRiskMap,pfBiggest,
   pfReadout,pfFindings,portfolioFrameHtml,wirePortfolioFrame});
 

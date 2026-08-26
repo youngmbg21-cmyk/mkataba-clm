@@ -4302,6 +4302,23 @@
     /* Not "no signal" — a steady wash says the same thing without moving. */
     #panel-body .al-row.al-news{animation:none;background:var(--st-green-bg);}
   }
+  /* ---- AND A FINDING OPENED FROM INSIGHTS BLINKS THE SAME WAY, IN RED ----
+     (owner-asked 26 Aug 2026: "when you click on open, it should take you to
+     the contract in documents page where the side panel is open and the
+     respective risk is blinking in light red".)
+     THE RULE ABOVE IS THE PRECEDENT AND IS FOLLOWED TO THE LETTER — one second,
+     three times, then it stops, because something that blinks for ever stops
+     being noticed and takes the one row that mattered past unread with it. The
+     tone is the product's own light-red wash rather than a colour typed here,
+     so it answers in the dark theme with no second rule. */
+  #scan-section .pf-found{animation:pf-found-blink 1s ease-in-out 0s 3;}
+  @keyframes pf-found-blink{
+    0%,100%{background:transparent;}
+    35%{background:var(--st-ruby-bg);}
+  }
+  @media (prefers-reduced-motion:reduce){
+    #scan-section .pf-found{animation:none;background:var(--st-ruby-bg);}
+  }
   /* ---- THE BELL TURNS GREEN, AND IT IS THE HEADER'S NOW (23 Aug 2026) ----
      The owner asked for this on 23 Aug — "the bell should loudly turn green and
      blink" — and it was built on the FLOATING bell in the bottom-right corner.
