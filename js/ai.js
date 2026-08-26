@@ -518,7 +518,7 @@ function scrollToQuote(quote){
       if(r.collapsed) continue;
       const mark=document.createElement('span');
       mark.className='anchor-flash';
-      mark.style.cssText='background:var(--st-amber-bg);border-radius:0;box-shadow:0 0 0 2px var(--st-amber-bg)';
+      mark.style.cssText='background:var(--st-amber-bg);border-radius:var(--radius);box-shadow:0 0 0 2px var(--st-amber-bg)';
       r.surroundContents(mark);
       marks.push(mark);
     }catch(_){ /* a malformed node is skipped, not fatal */ }
@@ -593,7 +593,7 @@ function renderAIStyleToggle(){
   const host=document.getElementById('ai-style'); if(!host) return;
   const on=aiStyle();
   const btn=(k,label,hint)=>`<button data-ai-style="${k}" title="${hint}"
-    class="px-2.5 py-1 text-[11px] font-600 transition" style="border-radius:0;border:1px solid ${on===k?'transparent':'var(--color-divider)'};background:${on===k?'var(--color-accent)':'transparent'};color:${on===k?'#fff':'var(--color-neutral-600)'}">${label}</button>`;
+    class="px-2.5 py-1 text-[11px] font-600 transition" style="border-radius:var(--radius);border:1px solid ${on===k?'transparent':'var(--color-divider)'};background:${on===k?'var(--color-accent)':'transparent'};color:${on===k?'#fff':'var(--color-neutral-600)'}">${label}</button>`;
   host.innerHTML = btn('plain',i18t('ai_style_plain'),i18t('ai_style_plain_hint'))
     + btn('legal',i18t('ai_style_legal'),i18t('ai_style_legal_hint'));
   host.querySelectorAll('[data-ai-style]').forEach(b=>b.addEventListener('click',()=>{
@@ -2462,7 +2462,7 @@ function aiProposalPlacementHtml(p){
       const on = x === current;
       return `<button type="button" data-ai-prop-place="${e(p.id)}" data-place="${e(x)}"
         aria-pressed="${on}" title="${e(AI_PLACEMENT_LABEL[x])} — nothing is re-drafted, only where it goes"
-        style="font:inherit;font-size:var(--t-label);line-height:1;cursor:pointer;border-radius:0;padding:var(--s-1) 9px;
+        style="font:inherit;font-size:var(--t-label);line-height:1;cursor:pointer;border-radius:var(--radius);padding:var(--s-1) 9px;
           border:1px solid ${on ? '#6366f1' : 'var(--color-divider)'};
           background:${on ? 'rgba(99,102,241,.18)' : 'var(--color-surface)'};
           color:${on ? 'color-mix(in srgb,#6366f1 55%,var(--color-text))' : 'var(--color-neutral-600)'};
@@ -2481,24 +2481,24 @@ function aiProposalCardHtml(p){
   return `
   <div class="ai-proposal" data-ai-proposal="${e(p.id)}"
     style="border:1px solid ${done ? 'var(--color-divider)' : 'rgba(99,102,241,.35)'};background:${done ? 'var(--color-bg)' : 'var(--color-surface)'};
-      border-radius:0;padding:var(--s-3) 14px;display:flex;flex-direction:column;gap:9px;${done ? 'opacity:.72' : ''}">
+      border-radius:var(--radius);padding:var(--s-3) 14px;display:flex;flex-direction:column;gap:9px;${done ? 'opacity:.72' : ''}">
     <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
       <span style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;
-        background:rgba(99,102,241,.18);color:color-mix(in srgb,#6366f1 55%,var(--color-text));border-radius:0;padding:2px var(--s-2)">${i18t('ai_proposed_wording')}</span>
+        background:rgba(99,102,241,.18);color:color-mix(in srgb,#6366f1 55%,var(--color-text));border-radius:var(--radius);padding:2px var(--s-2)">${i18t('ai_proposed_wording')}</span>
       ${p.clauseLabel ? `<span style="font-size:var(--t-label);color:var(--color-neutral-600);font-family:var(--font-mono)">${e(p.clauseLabel)}</span>` : ''}
       ${p.strict === false ? `<span title="The Copilot did not return the structured shape, so this is its whole reply treated as wording."
         style="font-size:var(--t-label);color:var(--st-amber-fg)">${i18t('ai_unstructured_reply')}</span>` : ''}
     </div>
     ${p.editing
       ? `<textarea data-ai-prop-edit="${e(p.id)}" class="ai-suggestion-editor" spellcheck="true" rows="6"
-          style="width:100%;font:inherit;font-size:var(--t-body);line-height:1.6;border:1px solid rgba(99,102,241,.35);border-radius:0;
+          style="width:100%;font:inherit;font-size:var(--t-body);line-height:1.6;border:1px solid rgba(99,102,241,.35);border-radius:var(--radius);
             padding:9px 11px;background:var(--color-surface);color:inherit;resize:vertical">${e(p.text)}</textarea>`
       : `<div class="ai-proposal-text" style="font-size:var(--t-body);line-height:1.65;white-space:pre-wrap;
           border-left:2px solid rgba(99,102,241,.45);padding-left:10px;color:var(--color-neutral-800)">${e(p.text)}</div>`}
     ${aiProposalAnchorHtml(p)}
     ${aiProposalPlacementHtml(p)}
     ${p.note ? `<div style="font-size:var(--t-label);line-height:1.5;color:var(--st-amber-fg)">${e(p.note)}</div>` : ''}
-    ${done ? '' : `<label style="display:block;border:1px solid var(--st-ruby-line);border-radius:0;padding:var(--s-2) 10px;
+    ${done ? '' : `<label style="display:block;border:1px solid var(--st-ruby-line);border-radius:var(--radius);padding:var(--s-2) 10px;
         background:color-mix(in srgb,var(--st-ruby-bg) 55%,transparent)">
         ${''/* A VERY LIGHT RED, ASKED FOR BY NAME (Young, 03 Aug 2026). On the
               editor the why question is a STEP — filing stops until it is
@@ -2512,10 +2512,10 @@ function aiProposalCardHtml(p){
         <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:3px">${i18t('ai_why_change_optional')}</span>
         <textarea data-ai-prop-why="${e(p.id)}" rows="2" wrap="soft" spellcheck="true"
           placeholder="${_aiEsc(i18t('ng_ph_reason_example'))}"
-          style="box-sizing:border-box;width:100%;max-width:100%;min-height:44px;resize:vertical;border:1px solid var(--color-divider);border-radius:0;padding:7px 9px;font:inherit;font-size:var(--t-meta);line-height:1.6;background:var(--color-surface);color:var(--color-text);outline:none;white-space:pre-wrap;overflow-wrap:anywhere">${e(p.why || '')}</textarea>
+          style="box-sizing:border-box;width:100%;max-width:100%;min-height:44px;resize:vertical;border:1px solid var(--color-divider);border-radius:var(--radius);padding:7px 9px;font:inherit;font-size:var(--t-meta);line-height:1.6;background:var(--color-surface);color:var(--color-text);outline:none;white-space:pre-wrap;overflow-wrap:anywhere">${e(p.why || '')}</textarea>
       </label>`}
     ${done
-      ? `<div style="font-size:var(--t-label);font-weight:var(--w-strong);border-radius:0;padding:5px 9px;background:${tone[0]};color:${tone[1]}">${tone[2]}</div>`
+      ? `<div style="font-size:var(--t-label);font-weight:var(--w-strong);border-radius:var(--radius);padding:5px 9px;background:${tone[0]};color:${tone[1]}">${tone[2]}</div>`
       : `<div style="display:flex;gap:7px;flex-wrap:wrap">
           <button class="ui-btn ui-btn-primary" data-ai-prop-apply="${e(p.id)}" style="font-size:var(--t-meta);padding:5px 11px">${i18t('ai_apply_redline')}</button>
           <button class="ui-btn" data-ai-prop-decline="${e(p.id)}" style="font-size:var(--t-meta);padding:5px 11px">${i18t('ai_decline')}</button>
@@ -3136,7 +3136,7 @@ function renderBriefSection(c){
     <style>
       #brief-section .br-fig{font-weight:var(--w-title);color:var(--accent-ink);
         background:color-mix(in srgb,var(--color-accent) 12%,transparent);
-        border-radius:0;padding:0 3px}
+        border-radius:var(--radius);padding:0 3px}
       #brief-section .br-lead{font-size:var(--t-card);line-height:1.7;color:var(--color-text)}
       #brief-section .br-head{display:flex;align-items:center;gap:7px;margin:var(--s-4) 0 7px;
         font-size:var(--t-label);font-weight:var(--w-title);letter-spacing:.06em;text-transform:uppercase}
@@ -3147,7 +3147,7 @@ function renderBriefSection(c){
       #brief-section .br-head-odd .br-dot{background:var(--st-gray-dot)}
       #brief-section .br-list{margin:0;padding:0;list-style:none;display:flex;
         flex-direction:column;gap:var(--s-2)}
-      #brief-section .br-item{border-radius:0;padding:10px var(--s-3);border:1px solid transparent}
+      #brief-section .br-item{border-radius:var(--radius);padding:10px var(--s-3);border:1px solid transparent}
       #brief-section .br-watch{background:var(--st-amber-bg);border-left:3px solid var(--st-amber-dot)}
       /* Grey, not a second colour: "unusual" is worth knowing, not a warning,
          and three tints in one panel would flatten the one that matters. */
@@ -3156,7 +3156,7 @@ function renderBriefSection(c){
       #brief-section .br-quote{font-size:var(--t-meta);line-height:1.5;color:var(--color-neutral-600);
         font-style:italic;margin-top:5px}
       #brief-section .br-facts{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;
-        margin:var(--s-3) 0;padding:11px 13px;background:var(--color-bg);border-radius:0;
+        margin:var(--s-3) 0;padding:11px 13px;background:var(--color-bg);border-radius:var(--radius);
         border:1px solid var(--color-divider)}
       #brief-section .br-facts dt{font-family:var(--font-mono);font-size:var(--t-micro);letter-spacing:.09em;
         text-transform:uppercase;color:var(--color-neutral-600);padding-top:2px}
@@ -3263,7 +3263,7 @@ function renewalCardHtml(c){
     : '';
   /* The way out, said once and only where there is something to correct. */
   const fixLine=(w.notice&&may)?_aiEsc(i18t('rn_fix_terms')):'';
-  return `<section id="renewal-section" class="kt-side-card" style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:0;padding:13px 15px">
+  return `<section id="renewal-section" class="kt-side-card" style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius);padding:13px 15px">
     <div style="display:flex;flex-direction:row;align-items:center;gap:var(--s-2);margin-bottom:6px;flex:none">
       <h6 style="margin:0;font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading);flex:1">${i18t('rn_title')}</h6>
       ${w.auto?`<span class="pill-x" style="background:var(--st-amber-bg);color:var(--st-amber-fg)">${i18t('rn_auto')}</span>`:''}
@@ -3299,7 +3299,7 @@ function renderRenewalSection(c){
      says so, in the card, with the way forward on it — and never escapes. */
   try{ host.innerHTML=renewalCardHtml(c); }
   catch(e){
-    host.innerHTML=`<section id="renewal-section" class="kt-side-card" style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:0;padding:13px 15px">
+    host.innerHTML=`<section id="renewal-section" class="kt-side-card" style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius);padding:13px 15px">
       <h6 style="margin:0 0 6px;font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading)">${_aiEsc(i18t('rn_title'))}</h6>
       <p style="margin:0 0 9px;font-size:var(--t-meta);line-height:1.55;color:var(--st-amber-fg)">${_aiEsc(i18t('rn_card_broken'))}</p>
       <button class="ui-btn" data-rn-ask style="font-size:var(--t-label);padding:5px 11px">${_aiEsc(i18t('rn_try_again'))}</button>

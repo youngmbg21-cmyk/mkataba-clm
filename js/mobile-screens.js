@@ -204,7 +204,7 @@ function mKpiSheetHtml(){
        refusing on the tap — the same statement the desktop rows make. */
     return `<button class="m-row" data-m-kpi-toggle="${id}"${shut?' style="opacity:.45"':''}>
       <span style="flex:1;min-width:0"><span class="m-row-name" style="font-weight:var(--w-body)">${mEsc(KPI_META[id]||id)}</span></span>
-      <span style="flex:none;width:22px;height:22px;border-radius:0;display:grid;place-items:center;border:1.5px solid ${on?'var(--accent-solid)':'var(--color-divider)'};background:${on?'var(--accent-solid)':'transparent'};color:#fff">
+      <span style="flex:none;width:22px;height:22px;border-radius:var(--radius);display:grid;place-items:center;border:1.5px solid ${on?'var(--accent-solid)':'var(--color-divider)'};background:${on?'var(--accent-solid)':'transparent'};color:#fff">
         ${on?`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`:''}
       </span>
     </button>`;

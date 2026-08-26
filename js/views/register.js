@@ -61,7 +61,7 @@ function renderFolder(){
      exactly what happened: the arrow vanished entirely. Base64 has no quotes
      in it, so it survives the trip into the attribute. */
   const selChevron='url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0ibTYgOSA2IDYgNi02Ii8+PC9zdmc+)';
-  const selStyle='font:inherit;font-size:var(--t-meta);border:1px solid var(--field-line);background-color:var(--color-surface);border-radius:0;padding:5px 26px 5px 9px;color:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:'+selChevron+';background-repeat:no-repeat;background-position:right 8px center;background-size:12px';
+  const selStyle='font:inherit;font-size:var(--t-meta);border:1px solid var(--field-line);background-color:var(--color-surface);border-radius:var(--radius);padding:5px 26px 5px 9px;color:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:'+selChevron+';background-repeat:no-repeat;background-position:right 8px center;background-size:12px';
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="padding:var(--page-pad)">
     <style>
@@ -72,8 +72,8 @@ function renderFolder(){
     </style>
     <div style="display:flex;flex-direction:column;gap:10px">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <button id="back-dash" style="width:28px;height:28px;flex:none;display:inline-grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;color:var(--accent-ink-700);cursor:pointer" title="${i18t('reg_back_to_portfolio')}">${icon('arrowLeft','w-4 h-4')}</button>
-        <span style="width:28px;height:28px;flex:none;display:grid;place-items:center;background:var(--color-accent-800);color:#fff;border-radius:0">${icon(f.ic,'w-4 h-4')}</span>
+        <button id="back-dash" style="width:28px;height:28px;flex:none;display:inline-grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);color:var(--accent-ink-700);cursor:pointer" title="${i18t('reg_back_to_portfolio')}">${icon('arrowLeft','w-4 h-4')}</button>
+        <span style="width:28px;height:28px;flex:none;display:grid;place-items:center;background:var(--color-accent-800);color:#fff;border-radius:var(--radius)">${icon(f.ic,'w-4 h-4')}</span>
         <div style="min-width:0">
           <div style="font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-section);color:var(--color-text);line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(f.name)}</div>
           <div style="font-size:var(--t-label);color:var(--color-neutral-600)"><span id="fold-count">${cs.length}</span> contracts${(typeof canViewValues==='function'&&!canViewValues())?'':` · ${fmtMoneyShort(val)} active value`}</div>
@@ -84,14 +84,14 @@ function renderFolder(){
         </label>
         <div style="position:relative">
           <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--color-neutral-500);display:inline-flex">${icon('search','w-3.5 h-3.5')}</span>
-          <input id="folder-search" value="${(state.folderQuery||'').replace(/"/g,'&quot;')}" type="text" placeholder="${i18t('reg_search_folder')}" style="width:230px;max-width:60vw;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:6px 9px 6px 30px;font:inherit;font-size:var(--t-meta);outline:none;color:inherit">
+          <input id="folder-search" value="${(state.folderQuery||'').replace(/"/g,'&quot;')}" type="text" placeholder="${i18t('reg_search_folder')}" style="width:230px;max-width:60vw;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:6px 9px 6px 30px;font:inherit;font-size:var(--t-meta);outline:none;color:inherit">
         </div>
       </div>
 
-      <div id="fold-selbar" class="flex hidden items-center justify-between" style="gap:var(--s-3);border:1px solid var(--color-accent-800);background:var(--color-accent-800);color:#fff;border-radius:0;padding:var(--s-2) var(--s-3)">
+      <div id="fold-selbar" class="flex hidden items-center justify-between" style="gap:var(--s-3);border:1px solid var(--color-accent-800);background:var(--color-accent-800);color:#fff;border-radius:var(--radius);padding:var(--s-2) var(--s-3)">
         <span id="fold-sel-count" style="font-size:var(--t-meta);font-weight:var(--w-strong)">${i18t('reg_n_selected',{n:0})}</span>
         <div style="display:flex;align-items:center;gap:var(--s-2)">
-          <button id="fold-export" style="display:inline-flex;align-items:center;gap:6px;border:0;background:rgba(255,255,255,.16);color:#fff;border-radius:0;padding:5px 10px;font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);cursor:pointer">${icon('download','w-3.5 h-3.5')} Export CSV</button>
+          <button id="fold-export" style="display:inline-flex;align-items:center;gap:6px;border:0;background:rgba(255,255,255,.16);color:#fff;border-radius:var(--radius);padding:5px 10px;font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);cursor:pointer">${icon('download','w-3.5 h-3.5')} Export CSV</button>
           <button id="fold-clear" style="border:0;background:none;color:rgba(255,255,255,.72);padding:5px var(--s-2);font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);cursor:pointer">${i18t('reg_clear')}</button>
         </div>
       </div>
@@ -183,7 +183,7 @@ function folderRowsHtml(cs){
     <tr data-open="${c.id}" style="cursor:pointer;animation-delay:${Math.min(i,14)*22}ms">
       <td style="padding-left:var(--s-3)" onclick="event.stopPropagation()"><input type="checkbox" data-fsel="${c.id}" ${sel[c.id]?'checked':''} style="accent-color:var(--color-accent)"></td>
       <td style="max-width:260px"><div style="display:flex;align-items:center;gap:9px;min-width:0">
-        <span style="width:26px;height:26px;flex:none;display:grid;place-items:center;border-radius:0;border:1px solid var(--color-divider);background:${isUpload(c)?'var(--color-accent-200)':'var(--color-bg)'};color:${isUpload(c)?'var(--color-accent-800)':'var(--color-neutral-600)'}" ${isUpload(c)?`title="${i18t('reg_uploaded_from_cp')}"`:''}>${icon(cIcon(c),'w-3.5 h-3.5')}</span>
+        <span style="width:26px;height:26px;flex:none;display:grid;place-items:center;border-radius:var(--radius);border:1px solid var(--color-divider);background:${isUpload(c)?'var(--color-accent-200)':'var(--color-bg)'};color:${isUpload(c)?'var(--color-accent-800)':'var(--color-neutral-600)'}" ${isUpload(c)?`title="${i18t('reg_uploaded_from_cp')}"`:''}>${icon(cIcon(c),'w-3.5 h-3.5')}</span>
         <span style="min-width:0">
           <span style="display:block;font-weight:var(--w-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.name)}</span>
           <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="font-family:var(--font-mono)">${esc(c.id)}</span> · ${esc(c.counterparty||'No counterparty yet')}</span>
@@ -517,7 +517,7 @@ function regCurPage(cs){ const R=regState(); const n=regPageCount(cs); R.page=Ma
 function regPager(cs){
   const n=regPageCount(cs); if(n<=1) return '';
   const p=regCurPage(cs);
-  const btn=(label,to,disabled,active)=>`<button ${disabled?'disabled':''} data-reg-page="${to}" style="min-width:32px;padding:5px 10px;font:inherit;font-size:var(--t-meta);font-weight:${active?700:500};border:1px solid ${active?'var(--accent-fill)':'var(--color-divider)'};background:${active?'var(--accent-fill)':'var(--color-surface)'};color:${active?'#fff':(disabled?'var(--color-neutral-400)':'var(--accent-ink-700)')};border-radius:0;cursor:${disabled?'default':'pointer'}">${label}</button>`;
+  const btn=(label,to,disabled,active)=>`<button ${disabled?'disabled':''} data-reg-page="${to}" style="min-width:32px;padding:5px 10px;font:inherit;font-size:var(--t-meta);font-weight:${active?700:500};border:1px solid ${active?'var(--accent-fill)':'var(--color-divider)'};background:${active?'var(--accent-fill)':'var(--color-surface)'};color:${active?'#fff':(disabled?'var(--color-neutral-400)':'var(--accent-ink-700)')};border-radius:var(--radius);cursor:${disabled?'default':'pointer'}">${label}</button>`;
   const nums=[]; const lo=Math.max(1,p-2), hi=Math.min(n,p+2);
   if(lo>1){ nums.push(btn('1',1,false,p===1)); if(lo>2) nums.push('<span style="padding:0 3px;color:var(--color-neutral-500)">…</span>'); }
   for(let i=lo;i<=hi;i++) nums.push(btn(String(i),i,false,i===p));
@@ -803,7 +803,7 @@ function regRowsHtml(cs){
     return out;
   };
   let lastBand=null;
-  const actBtns=c=>REG_ROW_ACTIONS.filter(a=>!a.when||a.when(c)).map(a=>`<button data-act="${a.k}" data-id="${c.id}" class="reg-act${a.ruby?' danger':''}" style="display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;font:inherit;font-size:var(--t-meta);text-align:left;padding:6px 9px;border-radius:0;cursor:pointer;color:${a.ruby?'var(--st-ruby-fg)':'inherit'}">${window.icon?icon(a.ic,'w-3.5 h-3.5'):''}${a.label}</button>`).join('');
+  const actBtns=c=>REG_ROW_ACTIONS.filter(a=>!a.when||a.when(c)).map(a=>`<button data-act="${a.k}" data-id="${c.id}" class="reg-act${a.ruby?' danger':''}" style="display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;font:inherit;font-size:var(--t-meta);text-align:left;padding:6px 9px;border-radius:var(--radius);cursor:pointer;color:${a.ruby?'var(--st-ruby-fg)':'inherit'}">${window.icon?icon(a.ic,'w-3.5 h-3.5'):''}${a.label}</button>`).join('');
   return pageRows.map((c,i)=>{
     const eff=effectiveExpiry(c);
     const din=eff?daysUntil(eff):null;
@@ -899,7 +899,7 @@ function regRowsHtml(cs){
       ${neg ? `<td style="text-align:right;white-space:nowrap">${negoMovePillHtml(c)}</td>` : `
       <td class="reg-cell-menu" style="position:relative;text-align:right;white-space:nowrap" onclick="event.stopPropagation()">
         <button data-menu="${c.id}" style="border:0;background:none;cursor:pointer;padding:0 var(--s-1);line-height:var(--row-line-1);color:var(--color-neutral-600);font-size:var(--t-meta);letter-spacing:1px;vertical-align:middle" title="${i18t('reg_more_actions')}">⋯</button>
-        <div data-menu-pop="${c.id}" style="display:none;position:absolute;right:8px;top:34px;z-index:30;width:180px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:0;padding:var(--s-1);flex-direction:column;text-align:left">${actBtns(c)}</div>
+        <div data-menu-pop="${c.id}" style="display:none;position:absolute;right:8px;top:34px;z-index:30;width:180px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:var(--radius);padding:var(--s-1);flex-direction:column;text-align:left">${actBtns(c)}</div>
       </td>`}
     </tr>`;}).join('')
     /* Any band with no rows under it still gets its header and its zero — and
@@ -1064,7 +1064,7 @@ function renderRegister(opts){
      exactly what happened: the arrow vanished entirely. Base64 has no quotes
      in it, so it survives the trip into the attribute. */
   const selChevron='url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0ibTYgOSA2IDYgNi02Ii8+PC9zdmc+)';
-  const selStyle='font:inherit;font-size:var(--t-meta);border:1px solid var(--field-line);background-color:var(--color-surface);border-radius:0;padding:5px 26px 5px 9px;color:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:'+selChevron+';background-repeat:no-repeat;background-position:right 8px center;background-size:12px';
+  const selStyle='font:inherit;font-size:var(--t-meta);border:1px solid var(--field-line);background-color:var(--color-surface);border-radius:var(--radius);padding:5px 26px 5px 9px;color:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:'+selChevron+';background-repeat:no-repeat;background-position:right 8px center;background-size:12px';
   /* ---- ONE FILTER BAR, NOT THREE TIERS OF PILLS ----
      Stages, streams and saved views used to be three full-width rows of pills
      (plus a legend band and an export band) stacked above the table — the
@@ -1110,7 +1110,7 @@ function renderRegister(opts){
      regShowOnly. It leads the bar because it is the widest statement on it:
      every dropdown beside it narrows within this set. */
   const onlyChip=R.only?`<span id="reg-only-chip" title="${esc(i18t('reg_only_title'))}"
-      style="display:inline-flex;align-items:center;gap:7px;font-size:var(--t-meta);font-weight:var(--w-strong);border-radius:0;padding:5px 6px 5px 10px;
+      style="display:inline-flex;align-items:center;gap:7px;font-size:var(--t-meta);font-weight:var(--w-strong);border-radius:var(--radius);padding:5px 6px 5px 10px;
         background:var(--st-steel-bg);border:1px solid var(--st-steel-line);color:var(--st-steel-fg)">
       <span>${esc(R.only.label||i18t('reg_only_fallback'))}</span>
       <button id="reg-only-clear" title="${esc(i18t('reg_only_clear'))}" aria-label="${esc(i18t('reg_only_clear'))}"
@@ -1186,8 +1186,8 @@ function renderRegister(opts){
              plainly wrong once it joined the row, which is the head-row lesson
              of 22 Aug in a smaller costume. Matched to selStyle's own padding
              rather than given a height of its own, so the two cannot drift. */}
-      <input id="reg-search" value="${R.query.replace(/"/g,'&quot;')}" placeholder="${esc(i18t('reg_search_ph'))}" style="width:100%;border:1px solid var(--field-line);background:var(--color-surface);border-radius:0;padding:5px 9px 5px 30px;font:inherit;font-size:var(--t-meta);outline:none;color:inherit">
-      <div id="reg-fts" class="hidden" style="position:absolute;z-index:40;margin-top:var(--s-1);width:100%;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:0;max-height:320px;overflow-y:auto"></div>
+      <input id="reg-search" value="${R.query.replace(/"/g,'&quot;')}" placeholder="${esc(i18t('reg_search_ph'))}" style="width:100%;border:1px solid var(--field-line);background:var(--color-surface);border-radius:var(--radius);padding:5px 9px 5px 30px;font:inherit;font-size:var(--t-meta);outline:none;color:inherit">
+      <div id="reg-fts" class="hidden" style="position:absolute;z-index:40;margin-top:var(--s-1);width:100%;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:var(--radius);max-height:320px;overflow-y:auto"></div>
     </label>`:'';
 
   const hostEl=document.getElementById(_regOpts.hostId)||document.getElementById('content');
@@ -1726,7 +1726,7 @@ function ftsSearch(q){
       if(!r.hits||!r.hits.length){ box.innerHTML=`<div style="padding:10px var(--s-3);font-size:var(--t-meta);color:var(--color-neutral-600)">${i18t('reg_no_fulltext')}</div>`; box.classList.remove('hidden'); return; }
       box.innerHTML=r.hits.map(h=>`<button data-fts-open="${h.id}" style="display:block;width:100%;text-align:left;padding:var(--s-2) var(--s-3);border:0;border-bottom:1px solid var(--color-divider);background:none;cursor:pointer;font:inherit">
         <div style="font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(h.name||h.id)} <span style="font-family:var(--font-mono);font-size:var(--t-label);color:var(--color-neutral-500)">${h.id}</span></div>
-        ${h.snippet?`<div style="font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px">${h.snippet.replace(/</g,'&lt;').replace(/\[/g,'<mark style="background:var(--st-amber-bg);border-radius:0;padding:0 2px">').replace(/\]/g,'</mark>')}</div>`:(h.counterparty?`<div style="font-size:var(--t-label);color:var(--color-neutral-500)">${h.counterparty}</div>`:'')}
+        ${h.snippet?`<div style="font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px">${h.snippet.replace(/</g,'&lt;').replace(/\[/g,'<mark style="background:var(--st-amber-bg);border-radius:var(--radius);padding:0 2px">').replace(/\]/g,'</mark>')}</div>`:(h.counterparty?`<div style="font-size:var(--t-label);color:var(--color-neutral-500)">${h.counterparty}</div>`:'')}
       </button>`).join('');
       box.classList.remove('hidden');
       box.querySelectorAll('[data-fts-open]').forEach(b=>b.addEventListener('click',()=>{ box.classList.add('hidden'); openWorkspace(b.getAttribute('data-fts-open')); }));

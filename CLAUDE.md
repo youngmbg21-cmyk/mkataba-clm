@@ -33,6 +33,74 @@ rules OVERWROTE it, on the assumption that an instruction to write a file meant
 the file was free; nothing was lost, git had it, and it was caught by reading a
 diffstat rather than by any test. `ls` costs nothing.
 
+## NO NEW BANDS ON THE PAGE — ASK FIRST (owner-asked 26 Aug 2026)
+
+THE OWNER'S OWN WORDS, and they are a STANDING RULE rather than one screen's
+fix. They sit here, above the Bug Fix Rules, because they govern what may be
+put on a page at all:
+
+> *"I want to add a rule for claude to stop adding such alerts as attached
+> unless I say so. I am talking about alerts that remind you of something
+> minor assuming people are stupid. Think how SAP would manage such things and
+> not unilaterally add these blinding alerts to the page. I asked for the send
+> all stripe so keep that one. If Claude sees a need to add one, ask me
+> first."*
+
+**NEVER ADD A BAND, STRIP, NOTICE, BANNER, CALLOUT OR TIP TO A PAGE ON YOUR
+OWN INITIATIVE.** Not as a courtesy, not as a way forward, not "while we are
+in here". If one looks genuinely needed, ASK — say what it would say and why
+the screen cannot already say it. The owner rules; you build what they rule.
+
+**THE TEST, AND BOTH HALVES MUST PASS.** It is written as a question about the
+SCREEN rather than about the code, because that is where it has to be answered:
+
+1. **Does it say something the screen does not already say?** If a control, a
+   count, a heading or a status word twelve pixels away carries the fact, the
+   band is that fact printed twice — and the second printing is the one that
+   reads as an alarm.
+2. **Is it about work owed, or a promise made — and does it carry the act?** A
+   band is where the product says *somebody has to do something*, or *here is
+   what this page will do with what you type*. It is not where the product
+   narrates itself.
+
+**THE READER'S OWN CHOICE, READ BACK TO THEM, IS NEVER A BAND.** The one that
+prompted this rule said "Showing one side only — others are hidden" directly
+under a dropdown labelled WHOSE ASKS reading "Mine (2)". The reader set that
+dropdown a second earlier. A control that is set to something SAYS so by being
+set to it, and a band repeating it tells the reader they cannot read their own
+screen — which is the whole of what the owner objected to.
+
+**THIS IS THE SAP RULE AND THE REASON IT WORKS IS NOT TASTE.** Enterprise
+software of that kind ranks its channels by how much of the reader's attention
+each one costs and spends the least that will do the job: a transient
+confirmation for something that has just happened, an inline state for
+something a control already carries, a strip kept for context that changes
+what the reader can do, and a blocking dialog only for a decision that cannot
+proceed without them. What it does not do is line a working column with amber.
+Amber that is always there stops being read — and then the one band that
+really is a warning goes past unread with it. That is the cost, and it lands
+on the band you most wanted seen.
+
+**WHAT STANDS, so nobody sweeps it as furniture.** Each was asked for or is
+load-bearing, and each passes both halves of the test:
+
+- **"N not sent — they cannot answer yet", with Send all N on it.** The owner
+  asked for this one by name and it stays. Nothing else on that page says the
+  other side cannot answer yet, and the act is on the band.
+- **The counterparty's wall line** — that their decisions stay on their page
+  until they press Send. A promise made before they start, and already the one
+  exception recorded under NOTHING FLOATS OVER THE PAGE.
+- **A refusal's way forward.** Where a rule refuses an act in words, the
+  remedy stays on the same screen as the refusal. That standing rule is
+  untouched and this one does not override it.
+
+**IT CUTS BOTH WAYS: DO NOT GO AND DELETE BANDS EITHER.** Every band still on
+a page was argued for by somebody, and several carry a safety property this
+rulebook names by name. Removing one is as much a change as adding one — it
+goes on the list and to the owner in exactly the same way. The Scope rules
+apply unchanged: a band you think fails the test is one line in BUGLOG.md and
+a sentence to the owner, never a fix made on the way past.
+
 ## Bug Fix Rules
 
 1. DUPLICATION WARNING: This app draws the same UI in several places. Never assume a fix in one place fixes them all.
@@ -194,7 +262,7 @@ Tracked Changes column head is ONE ruled LINE — **and the head itself was rebu
 
 **THE COUNT IS THE HEADLINE — RENDER B1 (owner-chose it off five drawn heads, 23 Aug 2026: "the highlighted area is not esthetically pleasing", then "render B again but with black font not grey").** The count is **19px** with the cut's name in **11px uppercase underneath it**. **THE CAPTION IS BACK ON THE TABS' OWN LINE (owner-asked 23 Aug 2026, the next morning: "move the all, mine, their to sit next to tracked changes as opposed to below it") — this REVERSES B1's own second half IN PLACE.** B1 gave the caption a line of its own on the reasoning that "a 19px figure cannot share a line with a 12px caption without one of them looking like a mistake"; the owner has now seen both and wants the line back, so **that size difference is the price and it was named before this was built**. `.rl-idx-k` is `flex:1 1 auto` (it was `1 0 100%`) so the caption takes what is left and the tabs are pushed to the right wall — the arrangement of 16 Aug. **THE 19px COUNT IS DELIBERATELY UNTOUCHED**: shrinking it to make the row sit comfortably would be reversing a second decision nobody asked about, and it is one word to do later. **THE WRAP IS THE FALLBACK AND IS KEPT** — the head is still `flex-wrap:wrap`, so a column dragged to its 300px minimum drops the tabs to their own line rather than crushing the caption. The caption's `padding-top` went with the line (it pushed a caption sitting ABOVE the tabs down toward them; beside them the head's own `align-items:center` is what lines the two up) and so did its two short-window overrides. **THE BOX AND THE FILL ARE GONE and the underline is back**: at 19px the size already says which number is being read, so a box round it — and a fill on the live one — is a second mark for a fact already carried, which is the same argument Render B made in the opposite direction when the number was 12px and the faintest thing on the column. **ALL OF IT IS THE PRIMARY INK** (caption, counts and words), and that is a DELIBERATE EXCEPTION to the four-shades rule — primary is 14px and up, the secondary shade is where 11-13px lives — taken knowingly and scoped to this one row: B3, which keeps the caption and the small word grey and blacks only the 19px count, was drawn and shown and NOT chosen. **DO NOT SWEEP IT OUTWARD**: the captions under a signpost are not the signpost, and a pass that took every mid-grey to primary was reverted once already for exactly that. **THE LIVE TAB IS THE ONE COLOURED THING ON THE ROW** — `--accent-ink` for the ink (so dark follows with no second rule) and `--accent-solid` for the 2px underline; the resting tabs carry the same 2px in transparent so the row's height never moves. **ONE COLOUR DECLARATION, AND BOTH HALVES INHERIT IT** — `.rl-fseg` sets `color` and neither `.rl-fseg-n` nor `.rl-fseg-w` states one; give either a colour of its own and the live state stops reaching it, which is how the arrangement before this one came to set its live count in two places. The three safety properties below are untouched, which is the whole condition on redressing this control. `.rl-idx-n.is-live` (the narrowed reviewer's own count, the one head with no tabs) is unchanged. Tests: f175, panel-alerts-and-head-verify, copilot-band-verify and nego-redesign-verify (each with its Render B claim REVERSED IN PLACE).
 
-**THE ARRANGEMENT IT REPLACED, kept because the reasoning is the useful part — RENDER B (owner-chose it off four drawn renders, 22 Aug 2026: "it needs a far more elegant design").** What was wrong was contrast, not structure: at 12px/600 with a 2px accent underline the live cut and the two resting ones were nearly the same object, and the NUMBER — the thing anybody actually scans this row for — was set at `opacity:.62`, about 2.5:1 on white and the faintest text on the column. **So the number carries the state.** Every count sits in its own square hairline box; the live one FILLS and takes white ink; **the tab underline is gone entirely** (`.rl-fseg.on` no longer sets a border-bottom-color) — the fill already says which cut is being read, and two marks for one fact is how they come to disagree. **THE FILL IS accent-700, NOT --accent-solid, and that is measured rather than aesthetic**: white on accent-600 is 3.74:1, under what a 10.5px number needs, while accent-700 gives 5.5:1 in the teal workspace and about 11:1 in the navy one — so ONE rule serves both themes and both accents and there is no dark override to keep in step. **THE RESTING COUNTS GOT MORE LEGIBLE, not less**: the opacity became a real ink (neutral-500), 4.8:1 on white and 7:1 in the dark. The three safety properties below are untouched, which is the whole condition on redressing this control. **AND ONE DEFECT FELL OUT OF MEASURING IT**: dark does not redefine the accent ramp, so `.rl-idx-n.is-live` — the narrowed reviewer's own count, the one head that still draws one — was accent-800 on an almost-black panel at 2.4:1 and all but invisible at night; it takes accent-300 in dark now. The cards below keep their own 2px: bordered objects under a label, a table header's relationship to its rows. The pane under it stayed transparent for a fortnight — "the change column is not a card" — and that is REVERSED (owner-asked 22 Aug 2026, see FIVE FIXES AND A CALENDAR): the column wears .rl-col's own white card again, and this head's hairline is what separates the caption from the cards inside it rather than standing in for a box that was not there. The filter was removed once (a control that hides a change can lose one) and came back with three safety properties — do not drop any: three options only (not states), every option shows its OWN count unmoved by the filter, and **SEGMENTED not a dropdown — REVERSED by "The negotiation page takes the render" (24 Aug 2026), which made it a `<select>`; WO-8 the same day MOVED that control into the head's top-right slot where the owner drew it and did not change its shape**. The other two properties are kept and are what make it safe, and the third is answered instead by rlCardFilterNoteHtml — while the column is narrowed it SAYS so and offers the way back, which is the thing a collapsible control could otherwise hide. **AND AN EMPTY BOOK DRAWS NO FILTER AT ALL**: in its new home it lives in the progress foot, drawn only where there is progress to report, and three ways of showing nothing is furniture. The safety property survives because that foot's total counts EVERY change, not the filtered ones. **THE B1 HEAD WENT WITH THE SHAPE and nothing re-pointed its net**: `.rl-fseg`, the 19px count and its uppercase caption are STALE, and panel-alerts-and-head-verify still asks for all of them — it is 7 red on main for that reason, logged rather than chased. A column emptied BY the filter says so and offers the way back. rlCardFilterPass is asked by redlineChangeCardsHtml AND redlineCardIds (the pill must count its own list); chip totals pass countAll. 'mine'/'theirs' read against the SEAT. In memory, reset by negoResetView. Not drawn for a narrowed reviewer (one-outcome control is furniture). f175.
+**THE ARRANGEMENT IT REPLACED, kept because the reasoning is the useful part — RENDER B (owner-chose it off four drawn renders, 22 Aug 2026: "it needs a far more elegant design").** What was wrong was contrast, not structure: at 12px/600 with a 2px accent underline the live cut and the two resting ones were nearly the same object, and the NUMBER — the thing anybody actually scans this row for — was set at `opacity:.62`, about 2.5:1 on white and the faintest text on the column. **So the number carries the state.** Every count sits in its own square hairline box; the live one FILLS and takes white ink; **the tab underline is gone entirely** (`.rl-fseg.on` no longer sets a border-bottom-color) — the fill already says which cut is being read, and two marks for one fact is how they come to disagree. **THE FILL IS accent-700, NOT --accent-solid, and that is measured rather than aesthetic**: white on accent-600 is 3.74:1, under what a 10.5px number needs, while accent-700 gives 5.5:1 in the teal workspace and about 11:1 in the navy one — so ONE rule serves both themes and both accents and there is no dark override to keep in step. **THE RESTING COUNTS GOT MORE LEGIBLE, not less**: the opacity became a real ink (neutral-500), 4.8:1 on white and 7:1 in the dark. The three safety properties below are untouched, which is the whole condition on redressing this control. **AND ONE DEFECT FELL OUT OF MEASURING IT**: dark does not redefine the accent ramp, so `.rl-idx-n.is-live` — the narrowed reviewer's own count, the one head that still draws one — was accent-800 on an almost-black panel at 2.4:1 and all but invisible at night; it takes accent-300 in dark now. The cards below keep their own 2px: bordered objects under a label, a table header's relationship to its rows. The pane under it stayed transparent for a fortnight — "the change column is not a card" — and that is REVERSED (owner-asked 22 Aug 2026, see FIVE FIXES AND A CALENDAR): the column wears .rl-col's own white card again, and this head's hairline is what separates the caption from the cards inside it rather than standing in for a box that was not there. The filter was removed once (a control that hides a change can lose one) and came back with three safety properties — do not drop any: three options only (not states), every option shows its OWN count unmoved by the filter, and **SEGMENTED not a dropdown — REVERSED by "The negotiation page takes the render" (24 Aug 2026), which made it a `<select>`; WO-8 the same day MOVED that control into the head's top-right slot where the owner drew it and did not change its shape**. The other two properties are kept and are what make it safe, and **the third is answered by the CONTROL ITSELF since 26 Aug 2026** — it is labelled WHOSE ASKS, it names the live cut and it prints that cut's own count, so a narrowed column states the narrowing by being set to it. The amber band that used to say it (`rlCardFilterNoteHtml` / `.rl-idx-narrowed` / `ng_filter_narrowed`) is RETIRED — see A NARROWED COLUMN IS SAID BY ITS OWN CONTROL. **AND AN EMPTY BOOK DRAWS NO FILTER AT ALL**: in its new home it lives in the progress foot, drawn only where there is progress to report, and three ways of showing nothing is furniture. The safety property survives because that foot's total counts EVERY change, not the filtered ones. **THE B1 HEAD WENT WITH THE SHAPE and nothing re-pointed its net**: `.rl-fseg`, the 19px count and its uppercase caption are STALE, and panel-alerts-and-head-verify still asks for all of them — it is 7 red on main for that reason, logged rather than chased. A column emptied BY the filter says so and offers the way back. rlCardFilterPass is asked by redlineChangeCardsHtml AND redlineCardIds (the pill must count its own list); chip totals pass countAll. 'mine'/'theirs' read against the SEAT. In memory, reset by negoResetView. Not drawn for a narrowed reviewer (one-outcome control is furniture). f175.
 
 THE SERVER IS THE AUTHORITY (server/server.js): its own read-only reading — rvOpenList / rvOpenFor / rvWithheldIds / rvActorHeld / rvUnreviewedIds. Every question is asked of the STORED contract, never the request body. rvUnsentOurs repeats negoUnsentAsks's arithmetic deliberately.
 - POST /api/shares, in order: refuses a sender holding an open review (403, names the way out), refuses when the gate is on and the payload carries unreviewed content, then STRIPS held/out-for-review from the envelope (a race is ordinary; losing a round over one clause is wrong) and returns withheldByReview.
@@ -1371,6 +1439,95 @@ measuring all twelve claims. Node 4,388/4,388. Browser: settings-tabs 65,
 pages-read-alike 38, redline 95, clause-door 89, nav-floats 69,
 home-pipeline 54, calendar 39, kpi-four 19, theme-tokens 40 — all green.
 
+## THE PLATFORM CARRIES A 2px CORNER, AND THE CONTRACT DOES NOT (owner-ruled 26 Aug 2026)
+
+Owner-asked off a drawn preview of Home and the negotiation page at 0, 2, 3, 4
+and 6px: *"implement 2px across the platform apart from the contracts
+themselves when they are visible on screen. They should look like word
+documents when they are on screen."*
+
+**THIS REVERSES "SQUARE CORNERS EVERYWHERE" (20 Aug 2026), and that entry is
+reversed in place rather than deleted** — its exemption list is inherited whole
+and extended, which is the half of it that was always load-bearing.
+
+- **IT IS ONE NUMBER AND IT IS `--radius`.** The token family
+  (`--radius / -sm / -md / -lg`) was declared on 23 Aug 2026 with **zero
+  consumers between them**; 818 hand-typed zeros now read it, which is what
+  makes "one line to change again" true rather than aspirational. **THE FOUR
+  RUNGS ARE DELIBERATELY EQUAL** — one number, one look; splitting them is a
+  later decision and would want its own reason.
+- **2px IS THE MILDEST THAT READS.** Below it nothing changes; above it the
+  product starts to feel friendlier than a legal tool. Measured on a preview
+  before it was built.
+
+**THE CONTRACT STAYS SQUARE, WHEREVER IT IS ON SCREEN**, so it reads as a
+document rather than as a card. Each of these keeps a literal `0` beside a
+comment saying why, and none of them may be pointed at the token:
+- `.rl-paper` (the cream sheet), `.rl-doc` (its canvas), `.rl-clause.is-changed`
+  and its margin rule;
+- `.doc-surface` / `.hati-doc` and the Document tab's own `.blueprint` sheet;
+- `.nego-doc` and `.nego-clause` — the room's two-pane paper;
+- the counterparty's `.pv-sheet` and their `#pt-doc`, on screen and in print;
+- the phone's `.m-paper`;
+- the Compare dialog's sheet, and every `doc-surface` preview pane in the
+  template library;
+- **AND THE MARKS DRAWN ON IT** — `.nego-ins`, `.nego-del`, `.nego-resolved`
+  and the room's `ins`/`del` rules. A tracked change in Word is a plain
+  highlight; a rounded one reads as a chip laid over the wording rather than as
+  the wording itself. This one was MISSED by the first pass and caught by f210.
+
+**`--n-r-*` IS THE PAPER'S TOKEN NOW and stays 0.** It had four readers and
+they were two different things: `.nego-doc` and `.nego-clause` are paper,
+`.nego-card` and `.nego-work` are furniture. The furniture was pointed at
+`--radius` directly and the token kept the document, which is what its name
+means here now. **Do not point it at `--radius`.**
+
+**A RULE HAS NO CORNERS TO ROUND.** `.rl-idx-head` (a hairline under a caption)
+and `.ngl-w` (a bare coloured word) name NO radius at all — not even the
+platform's. Both had one, both had `background:none;border:0;padding:0` beside
+it, and a declaration there is noise the next reader has to rule out. f175 and
+f184 assert the ABSENCE now, which is a stronger claim than the literal 0 they
+pinned before.
+
+**AND `.rounded-full` WAS DRAWING SQUARES — A PRE-EXISTING DEFECT, FOUND BY
+CHECKING RATHER THAN ASSUMING.** The 20 Aug sweep squared every `.rounded*`
+utility in the compiled Tailwind blob and took the CIRCLE class with it, so the
+24 elements wearing it — the numbered approval steps among them — had been
+squares ever since, and would have become 2px squares after this. It is
+`9999px` again, written in **HaTi's own sheet, never the blob** (generated;
+drops the change on the next build — the `font-600` lesson), same specificity,
+later in source. The blob's own line is left exactly as found. **It is not
+`var(--radius)`: a circle is not a corner.**
+
+**OUT OF SCOPE ENTIRELY, each for its own reason** — the two standalone
+documents (`js/views/healthreport.js`, `js/views/weekly.js`), which open in
+their own window and do not carry this sheet; every export path; and the emails
+in `server/server.js`, which were never in the 20 Aug sweep either. **CHECKED
+RATHER THAN ASSUMED**: the sweep touched none of those files, because none of
+them typed a `border-radius:0` to begin with.
+
+**BUT ONE STANDALONE DOCUMENT IS BUILT INSIDE A TOUCHED FILE, AND IT WAS
+BROKEN.** The negotiation-history report a counterparty can download is a whole
+HTML file assembled in js/views/negotiation.js, and the sweep gave three of its
+rules `var(--radius)` — which resolves to NOTHING in a file that carries no
+`:root`, so every rounded box in the report squared off silently. **The block's
+own comment had warned about exactly this**, in its own words, because the same
+trap had already eaten its ins/del COLOURS once ("literal values, because
+self-contained has to mean self-contained"); the warning named colours and the
+next person swept corners. It is a literal `2px` again and the comment now names
+both. f143 is the net and caught it on the first run. **THE STANDING RULE: a
+`var()` of any kind is a bug in a file that will be opened outside this app —
+and "which files are standalone" is answered by looking for the builders, not
+by looking at the filenames.**
+
+**THE COLOUR CENSUS IS UNTOUCHED AND THAT IS THE POINT** — a radius is not a
+colour, theme-tokens-verify stayed 40/40 throughout, and if it had moved
+something else would have moved with it.
+
+Tests: f95, f175, f184, f210, f236, f246, f96 (claims REVERSED IN PLACE, never
+deleted — three of them got STRONGER: "shares one token" beats "shares one
+number", and "names no radius at all" beats "names zero").
+
 ## THE CONTRACT GETS THE SPACE BACK (owner-asked 22 Aug 2026)
 
 "HaTi is not efficiently using the space to give the contracts a proper space."
@@ -1513,7 +1670,7 @@ Twenty-seven line symbols from the design mock-up, in a `<defs>` sprite at the t
 
 **THE FAILURE MODE IS SILENCE, which is why this has a browser file.** A `<use>` pointing at a symbol that does not exist renders an EMPTY BOX — no error, no warning, a button with a hole in it — and jsdom builds no shadow tree for `<use>` at all, so it cannot tell a resolved reference from a dead one. **type-and-symbols-verify** measures each icon's painted `getBBox()`, which is non-zero only if the reference really resolved. It also tells "not painted" apart from "broken": Insights is hidden until the portfolio is big enough, and four doors live in the Administration fold, which starts shut — the file opens the fold, and for a door the app itself hides it asserts the reference is sound and says so in the output rather than counting it as a pass.
 
-SQUARE CORNERS EVERYWHERE (owner-asked 20 Aug 2026, second pass — this completes what the first pass scoped to Home and the shell): ~810 rounded-rectangle radii swept to 0 across index.html and every js/ file — cards, dialogs, chips, badges, inputs, menus, toasts, the phone, exports. True circles stay circles, and the sweep PROVED each one rather than pattern-matching: `border-radius:50%` kept by rule, and a pill value (999/9999/99px) kept ONLY where the same style run declares equal width and height (13 dots and avatars wear pill values — a blanket `*{border-radius:0}` would have squared them). The compiled `.rounded-full` class is the circle class and stays; every other `.rounded*` utility is 0. The negotiation sheet's own radius tokens (--n-r-*) are 0. Emails in server.js are deliberately untouched — their own surface, like their Arial fallback.
+SQUARE CORNERS EVERYWHERE — **REVERSED 26 Aug 2026 by THE PLATFORM CARRIES A 2px CORNER (below); read that first.** The half of this entry that STANDS is its exemption list — circles, the pill rule, the emails — which the new one inherits whole and extends. What follows is the record of the sweep, kept because the reasoning is the useful part. (owner-asked 20 Aug 2026, second pass — this completes what the first pass scoped to Home and the shell): ~810 rounded-rectangle radii swept to 0 across index.html and every js/ file — cards, dialogs, chips, badges, inputs, menus, toasts, the phone, exports. True circles stay circles, and the sweep PROVED each one rather than pattern-matching: `border-radius:50%` kept by rule, and a pill value (999/9999/99px) kept ONLY where the same style run declares equal width and height (13 dots and avatars wear pill values — a blanket `*{border-radius:0}` would have squared them). The compiled `.rounded-full` class is the circle class and stays; every other `.rounded*` utility is 0. The negotiation sheet's own radius tokens (--n-r-*) are 0. Emails in server.js are deliberately untouched — their own surface, like their Arial fallback.
 
 ## THE CONTRACTS PAGE TAKES THE ENTERPRISE DESIGN (owner-approved render, 24 Aug 2026)
 
@@ -3861,8 +4018,9 @@ of this; what follows is the rules that came out of it.
   render in passing is the wider interpretation, and the Scope rules forbid it.
   **THE THREE SAFETY PROPERTIES ARE WHAT WO-8 HAD TO KEEP** — three options
   only; every option still carrying its OWN count unmoved by the filter; and
-  `rlCardFilterNoteHtml` saying so and offering the way back while the column
-  is narrowed, which is what a collapsible control could otherwise hide. **THE SLOT WAS ALREADY THERE AND NOTHING WROTE INTO
+  the narrowing said out loud, which since 26 Aug 2026 is the CONTROL's own
+  job rather than a band beneath it (see A NARROWED COLUMN IS SAID BY ITS OWN
+  CONTROL). **THE SLOT WAS ALREADY THERE AND NOTHING WROTE INTO
   IT** — one span, named for the filter, no readers in any file; the intention
   was there and the last step had never been taken. **AND AN EMPTY BOOK DRAWS
   NO FILTER**: it lives in the progress foot, which is drawn only where there
@@ -4069,8 +4227,9 @@ one, a status word on every row where it has one only where it adds something.
 - **THE THREE-WAY CUT IS LABELLED** — **WHOSE ASKS** beside it, because a
   dropdown reading "All (6)" says what it is SET to and not what it is ABOUT.
   **THE THREE SAFETY PROPERTIES ARE UNTOUCHED** — three options only, each
-  carrying its OWN count unmoved by the filter, and `rlCardFilterNoteHtml` still
-  says so and offers the way back while the column is narrowed.
+  carrying its OWN count unmoved by the filter, and the narrowing said out loud,
+  which since 26 Aug 2026 is the labelled control's own job rather than a band
+  beneath it (see A NARROWED COLUMN IS SAID BY ITS OWN CONTROL).
 - **THE ROWS SIT UNDER FOUR BANDS, each a FILLED STRIP edge to edge with its own
   count** — `RL_CARD_BANDS` / `rlCardBand`. They are the four questions a
   negotiator sorts this column by rather than four statuses: what the other side
@@ -4708,6 +4867,154 @@ was touched, and two of them reverse decisions recorded in this file.
 lint` reports four duplicate-key errors in js/i18n.js. They reproduce
 identically on an untouched tree, so they are not this run's; logged in BUGLOG
 under "Noticed, not fixed".
+
+## SIX OFF THE OWNER'S LIST (26 Aug 2026 — WORKORDER-fixes-26-aug.md)
+
+Six items written down over a morning and built in one run. Two of them turned
+out to be one line each; two were reproduced only by driving a real browser;
+and one was a name that had been resolving to the wrong function since 24 Aug.
+
+- **THE ⋯ MENU READS AS ONE KIND OF ROW (L-1).** *"The drop down should always
+  be the same font size as Edit and Send, not in bold size, never wrap texted
+  and they should have a symbol before the word just like review. Always limit
+  the description like 'Open in the clause panel' should be 'Open clause
+  panel'."* Every row is `--t-label`, which IS the face verbs' own token, so
+  the claim is written as the RELATION and the next type pass moves both or
+  neither; nothing is bold (the Copilot lead row keeps its violet and loses its
+  weight — colour was already saying it); `white-space:nowrap` is a GUARANTEE
+  rather than a measurement, and it is the LABEL that gets shorter when one
+  does not fit, never the type.
+  **THE SYMBOLS COME FROM THE SHELL'S SPRITE**, one hairline family in
+  `currentColor`, so each mark takes its row's own ink and Reject stays red
+  with nothing said twice. `i-check` and `i-x` were ADDED to that sprite for
+  the two decision verbs, which had no mark in the set. `rlMoreWithIcon`
+  inserts after the opening tag and rebuilds nothing — the borrowed verbs are
+  still the SAME buttons the face draws, so a verb cannot mean one thing on the
+  face and another in the menu; a verb the table does not recognise keeps its
+  own markup, because a row with no symbol is a smaller fault than a row
+  wearing the wrong one.
+  **AND THE PERSON EMOJI CAME OFF THE REVIEW BUTTON.** It was the only mark on
+  any verb — odd on a face of bare coloured words, and a SECOND mark in the
+  menu on the one row that already had one.
+
+- **A NARROWED COLUMN IS SAID BY ITS OWN CONTROL (L-2).** The amber band
+  reading "Showing one side only — others are hidden" is RETIRED — it was the
+  row the owner ringed when setting NO NEW BANDS ON THE PAGE, and it fails that
+  rule both ways: the dropdown ten pixels above is labelled WHOSE ASKS and
+  reads "Mine (2)", and it was the reader's own choice read back to them.
+  **THE SAFETY PROPERTY IS NOT LOST, which was the whole condition on removing
+  it**, and it is now carried by two things already on the screen: the control
+  states the live cut AND that cut's own count and is drawn wherever there is
+  any change to hide (the same `p.total` gate), and a column emptied BY the
+  filter still says so in its own empty state, which is a different surface and
+  is untouched. `rlCardFilterNoteHtml`, `.rl-idx-narrowed` and
+  `ng_filter_narrowed` are STALE; `ng_filter_show_all` stays live on the empty
+  state.
+
+- **A PANEL THAT WILL NOT OPEN SAYS SO (L-3).** Reported as *"in the
+  counterparty page, if you click Edit in the card it should take you to the
+  attached edit window not to the contract"*. **NOT REPRODUCED, and that is
+  said plainly rather than papered over**: driven on both seats, over every
+  card type including a proposed new clause, one press of Edit opens the panel
+  on the right clause every time. (A first "reproduction" was a fixture fault
+  of my own — an insert armed with the wrong argument — which is this file's
+  own recorded lesson that an attack failing to ARM reads exactly like one that
+  succeeds.) What WAS found is the hole that makes the report possible from any
+  cause: `rlCpSetShown` refuses to slide an empty panel out — right — and
+  refused SILENTLY, so the press scrolled the paper to the clause and stopped,
+  which from the reader's chair is a dead button. It RETURNS whether it opened
+  now and the card's Edit says `ng_cp_cannot_open` when it did not.
+  **AND THE NET HAD A KINDNESS IN IT, which is why a granted ask could stop
+  working unnoticed**: parity-verify pressed Edit and then, if the panel had
+  not opened, pressed the clause pill instead — written on 20 Aug "for a world
+  where it did not". From that day it passed either way. The answer is taken
+  BEFORE the fallback now and asserted on its own, on both seats.
+
+- **ONE CARD, ONE HEIGHT, NO RESERVED HOLES (L-4).** Both bands the owner
+  ringed on Home were space the cards were TOLD to hold open, and all of it was
+  measured before anything moved: two typed heights 35px apart, a spacer
+  swallowing the leftover (6px on the top row, **25px** on the bottom), and a
+  footer holding two-and-a-bit lines open over one-line text — about 42px of
+  hole per Portfolio card. **BOTH RESERVATIONS WERE BUYING ALIGNMENT** and
+  deleting them alone would have traded one bad row for another.
+  **THE ROW OWNS THREE REGIONS AND EVERY CARD BORROWS THEM**: `--hm-r1` header
+  · `--hm-r2` figure · `--hm-r3` foot, each card `grid-row:span 3` with
+  `grid-template-rows:subgrid`, so titles line up with titles and figures with
+  figures because they sit in the same row of one skeleton. **BOTH GRIDS READ
+  THE SAME THREE TOKENS**, which is what makes the two rows one height by
+  construction rather than by two numbers agreeing; the height is DERIVED —
+  37 + 50 + 31 + 24 + 4 = **146px** against 141 and 176, so the page is ~23px
+  shorter. Every row is `minmax(token, auto)`: Swedish is longer and a narrow
+  window wraps, and a region that clipped would be worse than the fault fixed.
+  **ROW GAP ZERO IS LOAD-BEARING** — a card spans all three rows, so a row gap
+  falls INSIDE it; left at the ladder's 12px the cards measured 171 with 24px
+  of pure gap between a title and its number, which is the band being removed
+  put back by the mechanism removing it. The column gap is untouched.
+  `.hm-sp` is STALE and `.hm-head` is the new header region — a subgrid places
+  children by ROW, so title and detail must be ONE span or they take two of the
+  three rows between them.
+
+- **A REFRESH LEAVES YOU WHERE YOU WERE, AND THE CAUSE IS A SHADOWED NAME
+  (L-5).** Reproduced first, on a real server through real reloads: **all
+  twelve pages lost, every time, and the stored position was the literal text
+  `[object Object]`.** js/core.js publishes `lsGet`/`lsSet`, which JSON-encode.
+  The 24 Aug brand-and-theme work declared its own `function lsGet` /
+  `function lsSet` in **js/app.js** — deliberately plain, because the brand keys
+  hold bare strings and encoding them would rewrite what is already in every
+  reader's browser. Both correct alone. But **a function declaration is hoisted
+  over the whole module**, so from that day every bare `lsSet` anywhere in
+  app.js resolved to the string one — including `setView`'s, five hundred lines
+  above, which stores which page you are on. It wrote text nothing could parse,
+  the resume read null, and null is exactly what a first visit looks like.
+  **NOTHING FAILED AND NOTHING LOGGED.** The rename to `brandRead`/`brandWrite`
+  is the whole fix. **THE NET IS f232-6**: no module may declare a top-level
+  name another module publishes — same name, two meanings, and which one wins
+  is decided by the file the call happens to sit in. Three older clashes
+  (`approvalState`, `approveContract`, `esc`) are NAMED and printed in that
+  test rather than swept up on the way past.
+
+- **A FULL-WINDOW LAYER COMES DOWN WHEN THE PAGE CHANGES (L-6).** Edit with
+  Copilot is a layer over the page area, taken down only by its own Back,
+  Escape and File. **The nav press was never dead — its result was hidden**:
+  the app really went to Home and drew it underneath. Worse than a dead button,
+  because the reader was then looking at a clause while the app was elsewhere
+  and Back returned them to a page it had already left. `viewLayersClosed` sits
+  at the top of `setView`, so all five doors inherit it and none has to
+  remember; **MEASURED, the clause editor is the only full-window layer in the
+  product** — everything else is a dialog on #modal-root or a slide-over inside
+  its page — and a second one joins that function rather than growing a rule.
+  **A REPAINT IS NOT A NAVIGATION**: same view in, layer untouched, or a
+  background answer landing would ask a reader mid-sentence whether they meant
+  to leave.
+  **IT ASKS BEFORE THROWING AWAY WORDING, AND THE PREDICATE IS NOT THE FOOT'S.**
+  The foot enables Discard on "has the wording moved from what STANDS", which
+  is TRUE from the first frame on a clause that already carries an ask — written
+  that way the guard fired on every clean open and pressing Home appeared to do
+  nothing, the exact fault in new clothes. `clauseEditorDirty` measures against
+  the text the editor OPENED with, so apply-twice-undo-twice is honestly clean.
+  The confirm is async and setView is not, so the answer re-enters through the
+  same door with `_leavingCe` set: one question per press.
+
+Tests: **six-fixes-verify (NEW, 20, browser** — every claim a computed value, a
+painted `getBBox`, a measured height or a real reload; three of them failed
+against my own first attempt and each named a real fault), f232 (two new
+claims), parity-verify (the fallback's hole closed, both seats), and claims
+REVERSED IN PLACE in f246, f175 and f93 — each keeping the property it was
+written for and re-pointing it at what carries it now. Node 4647/4647. Browser:
+redline 121, clause-door 97, clause-editor 57, nav-floats 67, home-page 26,
+laptops 21, kpi-four 19, parity 44, theme-tokens 40/40 unmoved.
+
+**MERGED WITH MAIN THE SAME DAY, and two of these met a parallel session's work
+on the same controls.** Both are resolved in favour of what the owner asked for
+rather than by date: the ⋯ menu's HEAD row went (main's ask — it repeated the
+card three centimetres away) and every row still carries a symbol (this one's),
+which do not argue; and the Home cards keep the THREE-REGION skeleton rather
+than main's single 176px height, because that answer covered "the same height"
+and made "remove empty spaces" worse — the top row grew 35px and every pixel of
+it landed in the spacer. Main's measurement that no 141 fits is superseded, not
+contradicted: it is true while the spacer and the two-line footer reservation
+stand, and taking those out is the half of the ask it did not cover. The
+platform's 2px corner from that merge is kept. `--hm-tile-h` is STALE.
 
 ## Line numbers drift
 

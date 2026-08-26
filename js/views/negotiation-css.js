@@ -77,7 +77,14 @@ function negoStyleHtml(){
        Accept button is a button, and squaring it would make it a box. Only
        the CARDS change. --n-r-sm is what the small round things use, so it is
        left alone. */
-    --n-r-sm:0; --n-r-md:0; --n-r-lg:0;
+    /* ---- THIS IS THE PAPER'S TOKEN NOW, AND IT STAYS 0 (26 Aug 2026) ----
+     It had four readers and they were two different things: .nego-doc and
+     .nego-clause are the CONTRACT, .nego-card and .nego-work are furniture.
+     The platform took a 2px corner and the contract did not, so the two
+     pieces of furniture were pointed at --radius directly and this token
+     kept the document — which is what its name means here now.
+     DO NOT POINT IT AT --radius. */
+  --n-r-sm:0; --n-r-md:0; --n-r-lg:0;
     --n-shadow-card:0 1px 2px rgba(38,55,74,.06),0 4px 14px rgba(38,55,74,.07);
     --n-shadow-pop:0 8px 30px rgba(38,55,74,.18);
   }
@@ -112,7 +119,7 @@ function negoStyleHtml(){
   .nego-topbar{background:var(--n-slate);color:#fff;display:flex;align-items:center;gap:var(--s-4);
     padding:0 18px;height:52px;flex:0 0 auto}
   .nego-brand{display:flex;align-items:center;gap:10px;font-weight:var(--w-title);font-size:16px;letter-spacing:.2px;flex:none}
-  .nego-brand .mark{width:26px;height:26px;border-radius:0;
+  .nego-brand .mark{width:26px;height:26px;border-radius:var(--radius);
     background:linear-gradient(135deg,#4d6d8f,#33475c 65%);border:1px solid rgba(255,255,255,.25);
     display:grid;place-items:center;font-size:var(--t-meta);font-weight:var(--w-title)}
   .nego-brand small{font-weight:var(--w-body);opacity:.75;font-size:var(--t-meta);margin-left:2px}
@@ -122,15 +129,15 @@ function negoStyleHtml(){
      thing would be furniture. Esc does it too. */
   .nego-exit{display:inline-flex;align-items:center;gap:6px;flex:none;
     background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.18);color:#fff;
-    border-radius:0;padding:var(--s-1) 11px;font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);cursor:pointer;
+    border-radius:var(--radius);padding:var(--s-1) 11px;font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);cursor:pointer;
     transition:background var(--dur-1) ease}
   .nego-exit:hover{background:rgba(255,255,255,.26)}
   .nego-crumbs .sep{opacity:.45;flex:none}
   .nego-crumbs .path{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .nego-crumbs .draft-chip{flex:none;border:1px solid rgba(255,255,255,.35);border-radius:0;
+  .nego-crumbs .draft-chip{flex:none;border:1px solid rgba(255,255,255,.35);border-radius:var(--radius);
     padding:1px var(--s-2);font-size:var(--t-label);letter-spacing:.4px;text-transform:uppercase;color:#dfe7ef}
   .nego-top-actions{margin-left:auto;display:flex;align-items:center;gap:var(--s-2);flex:none}
-  .nego-tbtn{border-radius:0;padding:6px 13px;font:inherit;font-size:var(--t-body);font-weight:var(--w-strong);
+  .nego-tbtn{border-radius:var(--radius);padding:6px 13px;font:inherit;font-size:var(--t-body);font-weight:var(--w-strong);
     border:1px solid transparent;cursor:pointer;transition:filter var(--dur-1) ease,transform var(--dur-1) ease}
   .nego-tbtn:active{transform:translateY(1px)}
   .nego-tbtn.ghost{background:transparent;color:#e6ecf2;border-color:rgba(255,255,255,.28)}
@@ -162,7 +169,7 @@ function negoStyleHtml(){
      does reach. */
   .nego-readysig{display:flex;align-items:flex-start;gap:11px;flex-wrap:wrap;margin:10px 14px 0;
     border:1px solid var(--st-green-line);border-left:4px solid var(--n-accept,var(--st-green-fg));background:var(--st-green-bg);
-    border-radius:0;padding:10px 14px}
+    border-radius:var(--radius);padding:10px 14px}
   .nego-readysig .tick{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;
     background:var(--n-accept,var(--st-green-fg));color:#fff;font-size:var(--t-label);font-weight:var(--w-title)}
   .nego-readysig .body{flex:1;min-width:220px;font-size:var(--t-meta);line-height:1.5;color:var(--st-green-fg)}
@@ -174,7 +181,7 @@ function negoStyleHtml(){
   .nego-readysig.stale{border-color:var(--st-amber-line);border-left-color:var(--st-amber-dot);background:var(--st-amber-bg)}
   .nego-readysig.stale .tick{background:var(--st-amber-dot)}
   .nego-readysig.stale .body{color:var(--st-amber-fg)}
-  .nego-closed{display:flex;align-items:flex-start;gap:11px;margin:10px 14px 0;border-radius:0;
+  .nego-closed{display:flex;align-items:flex-start;gap:11px;margin:10px 14px 0;border-radius:var(--radius);
     padding:10px 14px;border:1px solid var(--n-line);background:var(--n-badge-bg);
     border-left:4px solid var(--n-slate)}
   .nego-closed[data-state="signed"]{border-color:var(--st-green-line);border-left-color:var(--n-accept);background:var(--st-green-bg)}
@@ -189,7 +196,7 @@ function negoStyleHtml(){
      stands — the banner slot above the panes answers that one question and
      stays answering only it. Amber while the draft can still be tidied; slate
      once the contract is executed and the gap is part of the record. */
-  .nego-gaps{display:flex;align-items:flex-start;gap:10px;margin:0 0 18px;border-radius:0;
+  .nego-gaps{display:flex;align-items:flex-start;gap:10px;margin:0 0 18px;border-radius:var(--radius);
     padding:10px 13px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-left:4px solid var(--st-amber-dot)}
   .nego-gaps[data-locked="1"]{border-color:var(--n-line);background:var(--n-badge-bg);
     border-left-color:var(--n-slate)}
@@ -202,11 +209,11 @@ function negoStyleHtml(){
   /* The one door out of the notice (N2-T5) — drafts only; the executed notice
      never renders it at all. */
   .nego-gaps .renum{display:inline-block;margin-top:7px;font:inherit;font-size:var(--t-label);font-weight:var(--w-title);
-    color:var(--st-amber-fg);background:var(--n-paper);border:1px solid var(--st-amber-dot);border-radius:0;padding:var(--s-1) 10px;cursor:pointer}
+    color:var(--st-amber-fg);background:var(--n-paper);border:1px solid var(--st-amber-dot);border-radius:var(--radius);padding:var(--s-1) 10px;cursor:pointer}
   .nego-gaps .renum:hover{background:var(--st-amber-dot);color:#fff}
   /* Their name, in the room, because the room is their page. */
   .nego-who{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(255,255,255,.28);
-    border-radius:0;padding:2px var(--s-1) 2px 9px;background:rgba(255,255,255,.06)}
+    border-radius:var(--radius);padding:2px var(--s-1) 2px 9px;background:rgba(255,255,255,.06)}
   .nego-who .lbl{font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:#c3cfda}
   .nego-who input{width:150px;border:0;outline:none;background:transparent;color:#fff;
     font:inherit;font-size:var(--t-body);padding:5px 6px}
@@ -235,7 +242,7 @@ function negoStyleHtml(){
 
   .nego-rz{position:relative;background:var(--n-line);cursor:col-resize;
     display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none}
-  .nego-rz::before{content:"";width:2px;height:60px;border-radius:0;background:#c4cfdb;transition:background var(--dur-1) ease}
+  .nego-rz::before{content:"";width:2px;height:60px;border-radius:var(--radius);background:#c4cfdb;transition:background var(--dur-1) ease}
   .nego-rz:hover::before,.nego-rz[data-drag]::before{background:var(--n-slate-soft)}
   .nego-rz[data-drag]{background:#dbe3ec}
   html.dark .nego-rz::before{background:var(--color-neutral-600)}
@@ -247,11 +254,11 @@ function negoStyleHtml(){
     font-size:var(--t-body);font-weight:var(--w-title);color:var(--n-ink)}
   .nego-ver{font-family:var(--n-font-mono);font-size:var(--t-label);font-weight:var(--w-strong);
     background:var(--n-badge-bg);color:var(--n-slate-soft);
-    border:1px solid #d6e0ea;border-radius:0;padding:1px 7px;flex:none}
+    border:1px solid #d6e0ea;border-radius:var(--radius);padding:1px 7px;flex:none}
   .nego-sub{font-weight:var(--w-body);color:var(--n-ink-soft);font-size:var(--t-meta);min-width:0;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .nego-fold{margin-left:auto;flex:none;border:1px solid #d6e0ea;background:var(--n-badge-bg);
-    color:var(--n-slate-soft);border-radius:0;padding:2px var(--s-2);font:inherit;font-size:var(--t-label);
+    color:var(--n-slate-soft);border-radius:var(--radius);padding:2px var(--s-2);font:inherit;font-size:var(--t-label);
     font-weight:var(--w-title);cursor:pointer}
   .nego-fold:hover{background:#e3eaf2}
   html.dark .nego-ver,html.dark .nego-fold{border-color:var(--color-neutral-700)}
@@ -360,11 +367,11 @@ function negoStyleHtml(){
      them. Above the scrim, under the drawer: the menu stays crisp and live,
      and the drawer still wins where the two actually overlap. */
   .nego-selmenu{position:fixed;z-index:66;display:flex;flex-direction:column;gap:1px;
-    min-width:236px;padding:5px;border-radius:0;background:var(--n-paper);
+    min-width:236px;padding:5px;border-radius:var(--radius);background:var(--n-paper);
     border:1px solid var(--n-line);box-shadow:0 10px 30px -8px rgba(20,32,48,.35)}
   .nego-selmenu button{display:flex;align-items:center;gap:9px;width:100%;text-align:left;
     font:inherit;font-family:var(--n-font-ui);font-size:var(--t-body);color:var(--n-ink);
-    background:none;border:0;border-radius:0;padding:7px 9px;cursor:pointer}
+    background:none;border:0;border-radius:var(--radius);padding:7px 9px;cursor:pointer}
   .nego-selmenu button:hover,.nego-selmenu button:focus-visible{background:var(--n-badge-bg)}
   .nego-selmenu .nego-selhead{font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;
     color:var(--n-ink-soft);padding:5px 9px var(--s-1)}
@@ -382,7 +389,7 @@ function negoStyleHtml(){
   /* 67, one above the selection menu and one above the scrim — see the note on
      .nego-selmenu for why the scrim is the layer that matters here. */
   .nego-aipop{position:fixed;z-index:67;width:min(460px,calc(100vw - 32px));
-    border-radius:0;background:var(--n-paper);border:1px solid var(--n-line);
+    border-radius:var(--radius);background:var(--n-paper);border:1px solid var(--n-line);
     box-shadow:0 18px 44px -12px rgba(20,32,48,.42);overflow:hidden}
   .nego-aipop header{display:flex;align-items:center;gap:var(--s-2);padding:11px 14px;
     border-bottom:1px solid var(--n-line);background:var(--n-canvas)}
@@ -402,18 +409,18 @@ function negoStyleHtml(){
   /* ---- a thread singled out by its badge ---- */
   .nego-card.is-linked{box-shadow:0 0 0 3px rgba(184,134,43,.35);border-color:var(--st-amber-dot)}
   .nego-filterbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;
-    font-family:var(--n-font-ui);font-size:var(--t-meta);padding:7px 11px;border-radius:0;
+    font-family:var(--n-font-ui);font-size:var(--t-meta);padding:7px 11px;border-radius:var(--radius);
     background:var(--st-amber-bg);border:1px solid var(--st-amber-line);color:var(--st-amber-fg);margin-bottom:9px}
   .nego-filterbar button{font:inherit;font-size:var(--t-label);font-weight:var(--w-strong);cursor:pointer;
-    border:1px solid var(--st-amber-line);background:var(--n-paper);color:var(--st-amber-fg);border-radius:0;padding:3px 9px}
+    border:1px solid var(--st-amber-line);background:var(--n-paper);color:var(--st-amber-fg);border-radius:var(--radius);padding:3px 9px}
 
   /* ---- visibility on a comment ---- */
   .nego-vis{display:inline-flex;align-items:center;gap:var(--s-1);font-family:var(--n-font-ui);
-    font-size:var(--t-label);font-weight:var(--w-title);letter-spacing:.04em;border-radius:0;padding:2px var(--s-2);white-space:nowrap}
+    font-size:var(--t-label);font-weight:var(--w-title);letter-spacing:.04em;border-radius:var(--radius);padding:2px var(--s-2);white-space:nowrap}
   .nego-vis-int{background:#f4ecd8;color:var(--st-amber-fg);border:1px solid rgba(138,106,42,.3)}
   .nego-vis-sh{background:#e8f0f8;color:#2c455d;border:1px solid #b5d9fd}
   .nego-msg.is-internal{background:#fdfaf1;border-left:3px solid var(--st-amber-dot);padding-left:9px}
-  .nego-visswitch{display:inline-flex;border:1px solid var(--n-line);border-radius:0;overflow:hidden}
+  .nego-visswitch{display:inline-flex;border:1px solid var(--n-line);border-radius:var(--radius);overflow:hidden}
   .nego-visswitch button{font:inherit;font-family:var(--n-font-ui);font-size:var(--t-label);font-weight:var(--w-strong);
     cursor:pointer;border:0;background:var(--n-paper);color:var(--n-ink-soft);padding:var(--s-1) 9px}
   .nego-visswitch button + button{border-left:1px solid var(--n-line)}
@@ -429,7 +436,7 @@ function negoStyleHtml(){
 
   /* ---- which mode the room is in ---- */
   .nego-mode{display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex:none;
-    font-family:var(--n-font-ui);font-size:var(--t-meta);padding:var(--s-2) 13px;border-radius:0;
+    font-family:var(--n-font-ui);font-size:var(--t-meta);padding:var(--s-2) 13px;border-radius:var(--radius);
     border:1px solid var(--n-line);background:var(--n-paper)}
   .nego-mode.is-sandbox{border-left:4px solid var(--st-amber-dot);background:color-mix(in srgb,var(--st-amber-dot) 6%,var(--n-paper));color:var(--st-amber-fg)}
   .nego-mode.is-published{border-left:4px solid var(--n-slate);background:#f5f8fb;color:var(--n-ink)}
@@ -570,7 +577,7 @@ function negoStyleHtml(){
   .nego-badge{position:absolute;right:calc(100% + 6px);top:10px;
     font-family:var(--n-font-mono);font-size:calc(10px * var(--doc-scale,1));font-weight:var(--w-title);letter-spacing:.2px;
     background:var(--n-badge-bg);color:var(--n-slate-soft);
-    border:1.5px solid var(--n-slate-soft);border-radius:0;
+    border:1.5px solid var(--n-slate-soft);border-radius:var(--radius);
     padding:calc(2px * var(--doc-scale,1)) calc(8px * var(--doc-scale,1));
     white-space:nowrap;user-select:none;cursor:pointer;
     transition:transform var(--dur-1) ease,box-shadow var(--dur-1) ease,background var(--dur-2) ease,color var(--dur-2) ease,border-color var(--dur-2) ease}
@@ -586,7 +593,7 @@ function negoStyleHtml(){
      --doc-scale is 1 wherever nothing sets it, which is every surface without a
      stepper — a print, an export, a card. */
   .nego-note{display:inline-block;font-family:var(--n-font-ui);font-size:calc(11px * var(--doc-scale,1));
-    font-weight:var(--w-title);border-radius:0;
+    font-weight:var(--w-title);border-radius:var(--radius);
     padding:calc(1px * var(--doc-scale,1)) calc(7px * var(--doc-scale,1));
     margin-left:var(--s-2);vertical-align:1px;letter-spacing:.3px}
   .nego-note.ok{background:var(--n-ins-bg);color:var(--n-ins-fg)}
@@ -605,13 +612,13 @@ function negoStyleHtml(){
   .nego-pane.index{background:var(--color-neutral-100)}
   .nego-index-head{flex:none;padding:var(--s-3) var(--s-4) 10px;background:var(--n-paper);border-bottom:1px solid var(--n-line)}
   .nego-count{font-family:var(--n-font-mono);font-size:var(--t-label);font-weight:var(--w-title);
-    background:var(--n-slate);color:#fff;border-radius:0;padding:1px var(--s-2)}
-  .nego-track{height:5px;background:#e6ebf1;border-radius:0;overflow:hidden;margin-bottom:7px}
+    background:var(--n-slate);color:#fff;border-radius:var(--radius);padding:1px var(--s-2)}
+  .nego-track{height:5px;background:#e6ebf1;border-radius:var(--radius);overflow:hidden;margin-bottom:7px}
   html.dark .nego-track{background:var(--n-line)}
-  .nego-fill{height:100%;border-radius:0;
+  .nego-fill{height:100%;border-radius:var(--radius);
     background:linear-gradient(90deg,var(--n-slate-soft),var(--n-accept));transition:width .4s ease}
   .nego-index-scroll{flex:1;overflow-y:auto;padding:var(--s-3) var(--s-3) 90px}
-  .nego-card{background:var(--n-paper);border:1px solid var(--n-line);border-radius:var(--n-r-md);
+  .nego-card{background:var(--n-paper);border:1px solid var(--n-line);border-radius:var(--radius);
     box-shadow:var(--n-shadow-card);padding:var(--s-3) 13px;margin-bottom:11px;cursor:pointer;
     transition:box-shadow var(--dur-2) ease,border-color var(--dur-2) ease,transform var(--dur-2) ease}
   .nego-card:hover{border-color:#c9d5e1}
@@ -620,7 +627,7 @@ function negoStyleHtml(){
     box-shadow:0 0 0 2px rgba(69,106,143,.25),var(--n-shadow-pop);transform:translateY(-1px)}
   .nego-id{font-family:var(--n-font-mono);font-size:var(--t-label);font-weight:var(--w-title);
     background:var(--n-badge-bg);color:var(--n-slate-soft);border:1.5px solid var(--n-slate-soft);
-    border-radius:0;padding:1px var(--s-2)}
+    border-radius:var(--radius);padding:1px var(--s-2)}
   /* The clause tools. They were in the margin, revealed on hover — which put
      them outside the pane, so the pane clipped them, and made them invisible
      until you happened to point at the right paragraph. They are now the ONLY
@@ -641,7 +648,7 @@ function negoStyleHtml(){
      is the spacing and the margin would double it. */
   .nego-tools .nego-note{margin-left:0;vertical-align:baseline}
   .nego-tool{font-size:var(--t-label);font-weight:var(--w-title);border:1px solid var(--n-slate);
-    background:var(--n-slate);color:#fff;border-radius:0;padding:3px 9px;white-space:nowrap;
+    background:var(--n-slate);color:#fff;border-radius:var(--radius);padding:3px 9px;white-space:nowrap;
     cursor:pointer;font-family:inherit;letter-spacing:.01em;
     box-shadow:0 1px 2px rgba(38,55,74,.18);transition:filter var(--dur-1) ease}
   .nego-tool:hover,.nego-tool:focus-visible{filter:brightness(1.18)}
@@ -670,10 +677,10 @@ function negoStyleHtml(){
      scaling one offset without its partner walks a pair apart. */
   .nego-fmt-bar{display:flex;gap:calc(4px * var(--doc-scale,1));
     margin:0 0 calc(6px * var(--doc-scale,1));padding:calc(4px * var(--doc-scale,1));width:max-content;
-    background:var(--n-well,#f1f5f9);border:1px solid var(--n-line,#e2e8f0);border-radius:0}
+    background:var(--n-well,#f1f5f9);border:1px solid var(--n-line,#e2e8f0);border-radius:var(--radius)}
   .nego-fmt-bar button{width:calc(28px * var(--doc-scale,1));height:calc(28px * var(--doc-scale,1));
     display:inline-grid;place-items:center;
-    background:var(--n-paper,#fff);border:1px solid var(--n-line,#e2e8f0);border-radius:0;
+    background:var(--n-paper,#fff);border:1px solid var(--n-line,#e2e8f0);border-radius:var(--radius);
     font-family:inherit;font-size:calc(13px * var(--doc-scale,1));color:var(--n-ink,#1e293b);cursor:pointer;
     box-shadow:0 1px 2px rgba(15,23,42,.08);transition:background var(--dur-1),border-color var(--dur-1)}
   .nego-fmt-bar button:hover{border-color:var(--n-ink-soft,#94a3b8);background:var(--n-well,#f8fafc)}
@@ -706,7 +713,7 @@ function negoStyleHtml(){
   .nego-why-clamp.open{display:block;-webkit-line-clamp:unset;line-clamp:unset;overflow:visible}
   .nego-why-more{display:block;margin-top:3px;border:0;background:none;padding:0;cursor:pointer;
     font:inherit;font-size:var(--t-label);font-weight:var(--w-title);color:var(--color-accent-700,#0f766e)}
-  .nego-why-more:focus-visible{outline:2px solid var(--color-accent,#0d9488);outline-offset:2px;border-radius:0}
+  .nego-why-more:focus-visible{outline:2px solid var(--color-accent,#0d9488);outline-offset:2px;border-radius:var(--radius)}
   .nego-reason{display:block;margin-top:calc(8px * var(--doc-scale,1))}
   .nego-reason.hidden,.nego-fmt-bar.hidden{display:none}
   /* Step two: the wording is still there and still exactly where it was, but it
@@ -717,14 +724,14 @@ function negoStyleHtml(){
   .nego-reason>span{display:block;font-size:calc(10px * var(--doc-scale,1));font-weight:var(--w-title);letter-spacing:.04em;
     text-transform:uppercase;color:var(--n-ink-soft);margin-bottom:calc(3px * var(--doc-scale,1))}
   .nego-reason textarea{display:block;box-sizing:border-box;width:100%;max-width:100%;
-    min-height:calc(52px * var(--doc-scale,1));resize:vertical;border:1px solid var(--n-line);border-radius:0;
+    min-height:calc(52px * var(--doc-scale,1));resize:vertical;border:1px solid var(--n-line);border-radius:var(--radius);
     padding:calc(7px * var(--doc-scale,1)) calc(9px * var(--doc-scale,1));
     font:inherit;font-size:calc(12px * var(--doc-scale,1));line-height:1.6;
     background:var(--n-paper);color:var(--n-ink);outline:none;
     white-space:pre-wrap;overflow-wrap:anywhere}
   .nego-reason textarea:focus{border-color:var(--n-focus)}
   .nego-edit-bar{display:flex;gap:calc(6px * var(--doc-scale,1));margin-top:calc(6px * var(--doc-scale,1))}
-  .nego-edit-bar button{font-size:calc(11px * var(--doc-scale,1));font-weight:var(--w-title);border-radius:0;
+  .nego-edit-bar button{font-size:calc(11px * var(--doc-scale,1));font-weight:var(--w-title);border-radius:var(--radius);
     padding:calc(4px * var(--doc-scale,1)) calc(10px * var(--doc-scale,1));
     border:1.5px solid transparent;font-family:inherit;cursor:pointer}
   .nego-edit-bar .b-save{background:var(--n-accept);color:#fff}
@@ -738,12 +745,12 @@ function negoStyleHtml(){
   body.nego-room-open #ai-scrim{z-index:65}
   body.nego-room-open #ai-panel{z-index:70}
   .nego-vsel{font:inherit;font-size:var(--t-meta);font-weight:var(--w-title);color:var(--n-ink);background:var(--n-paper);
-    border:1px solid var(--n-line);border-radius:0;padding:var(--s-1) var(--s-2);max-width:min(60%,320px);cursor:pointer}
+    border:1px solid var(--n-line);border-radius:var(--radius);padding:var(--s-1) var(--s-2);max-width:min(60%,320px);cursor:pointer}
   .nego-vsel:hover{border-color:var(--n-slate-soft)}
   .nego-cmp-bar{flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 14px;
-    border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-left:4px solid var(--st-amber-dot);border-radius:0;padding:9px 13px}
+    border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-left:4px solid var(--st-amber-dot);border-radius:var(--radius);padding:9px 13px}
   .nego-cmp-tag{flex:none;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;
-    background:var(--st-amber-dot);color:#fff;border-radius:0;padding:2px 7px}
+    background:var(--st-amber-dot);color:#fff;border-radius:var(--radius);padding:2px 7px}
   .nego-cmp-txt{flex:1;min-width:220px;font-size:var(--t-meta);line-height:1.5;color:var(--st-amber-fg)}
   /* Clean read is a HYPOTHETICAL, not history — so it is the room's own slate
      rather than the amber of "you are looking at an old version". Same shape,
@@ -755,17 +762,17 @@ function negoStyleHtml(){
   .nego-cmp-bar.clean .nego-cmp-exit{border-color:var(--n-slate);background:var(--n-slate)}
   /* The toggle itself, at the end of the working pane's header row. */
   .nego-clean-btn{margin-left:auto;flex:none;border:1px solid var(--n-slate);background:var(--n-paper);
-    color:var(--n-slate);border-radius:0;padding:3px 10px;font:inherit;font-size:var(--t-label);font-weight:var(--w-title);
+    color:var(--n-slate);border-radius:var(--radius);padding:3px 10px;font:inherit;font-size:var(--t-label);font-weight:var(--w-title);
     white-space:nowrap;cursor:pointer;transition:background var(--dur-1) ease,color var(--dur-1) ease}
   .nego-clean-btn:hover{background:var(--n-badge-bg)}
   .nego-clean-btn[aria-pressed="true"]{background:var(--n-slate);color:#fff}
   /* On an amber banner a ghost button is white-on-cream and unreadable — the
      way out of a mode has to be the most legible thing in it. */
-  .nego-cmp-exit{flex:none;border:1px solid var(--st-amber-fg);background:var(--st-amber-fg);color:#fff;border-radius:0;
+  .nego-cmp-exit{flex:none;border:1px solid var(--st-amber-fg);background:var(--st-amber-fg);color:#fff;border-radius:var(--radius);
     padding:6px 13px;font:inherit;font-size:var(--t-meta);font-weight:var(--w-title);cursor:pointer}
   .nego-cmp-exit:hover{filter:brightness(1.15)}
   .nego-st{margin-left:auto;font-size:var(--t-micro);letter-spacing:.09em;font-weight:var(--w-title);letter-spacing:.4px;text-transform:uppercase;
-    border-radius:0;padding:2px 7px}
+    border-radius:var(--radius);padding:2px 7px}
   .nego-st.pending{background:#fdf3e3;color:#9a6a1f}
   html.dark .nego-st.pending{background:var(--st-amber-bg);color:var(--st-amber-fg)}
   .nego-st.accepted{background:var(--n-ins-bg);color:var(--n-ins-fg)}
@@ -810,7 +817,7 @@ function negoStyleHtml(){
      correct: a reader who cannot find how to send has a contract that goes
      nowhere. */
   .nego-go{font-size:var(--t-body);font-weight:var(--w-strong);letter-spacing:.01em;padding:9px 20px;
-    border-radius:0;box-shadow:0 1px 2px rgba(20,42,74,.18),0 2px 8px rgba(20,42,74,.14);
+    border-radius:var(--radius);box-shadow:0 1px 2px rgba(20,42,74,.18),0 2px 8px rgba(20,42,74,.14);
     transition:transform var(--dur-1) ease,box-shadow var(--dur-1) ease}
   .nego-go:hover{box-shadow:0 2px 4px rgba(20,42,74,.2),0 4px 14px rgba(20,42,74,.2)}
   .nego-go:active{transform:translateY(1px)}
@@ -820,7 +827,7 @@ function negoStyleHtml(){
      and had to be looked for; the padding absorbs the extra so nothing shifts. */
   .nego-card.is-mine{border-left:5px solid var(--n-mine,#1f3f6e);padding-left:11px}
   .nego-whose{margin-left:0;font-size:var(--t-label);font-weight:var(--w-title);letter-spacing:.04em;
-    border-radius:0;padding:2px var(--s-2);white-space:nowrap;max-width:170px;
+    border-radius:var(--radius);padding:2px var(--s-2);white-space:nowrap;max-width:170px;
     overflow:hidden;text-overflow:ellipsis;
     background:var(--n-badge-bg);color:var(--n-slate);border:1px solid #dde5ee}
   .nego-whose.mine{background:#eaf0f8;color:var(--n-mine,#1f3f6e);border-color:#b9cbe4}
@@ -840,7 +847,7 @@ function negoStyleHtml(){
   .nego-history{margin-top:18px;border-top:1px solid var(--n-line);padding-top:var(--s-3)}
   .nego-history-head{font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;
     color:var(--n-closed,#8c2f28);margin:0 2px var(--s-2)}
-  .nego-round{margin-bottom:var(--s-2);border:1px solid var(--n-line);border-radius:0;
+  .nego-round{margin-bottom:var(--s-2);border:1px solid var(--n-line);border-radius:var(--radius);
     background:var(--n-badge-bg);overflow:hidden}
   .nego-round-tog{display:flex;align-items:center;gap:var(--s-2);width:100%;text-align:left;cursor:pointer;
     background:none;border:0;padding:9px 11px;font:inherit;color:var(--n-closed,#8c2f28)}
@@ -865,14 +872,14 @@ function negoStyleHtml(){
   html.dark .nego-st.past{border-color:var(--color-neutral-700);color:var(--n-ink-soft)}
   .nego-past-thread{margin-top:9px;border-top:1px dashed var(--n-line);padding-top:var(--s-2)}
   .nego-counterline{font-size:var(--t-label);color:var(--n-ink-soft);margin-bottom:7px}
-  .nego-contested{border-left:2px solid var(--n-reject);background:var(--n-del-bg);border-radius:0;
+  .nego-contested{border-left:2px solid var(--n-reject);background:var(--n-del-bg);border-radius:var(--radius);
     padding:6px 9px;margin-bottom:var(--s-2);font-size:var(--t-label);line-height:1.5;color:var(--n-ink)}
   .nego-hash{font-family:var(--n-font-mono);font-size:var(--t-label);color:var(--n-slate-soft);
-    background:var(--n-badge-bg);border:1px solid #dde5ee;border-radius:0;padding:var(--s-1) 7px;
+    background:var(--n-badge-bg);border:1px solid #dde5ee;border-radius:var(--radius);padding:var(--s-1) 7px;
     margin-bottom:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   html.dark .nego-hash{border-color:var(--color-neutral-700)}
   .nego-acts{display:flex;gap:6px}
-  .nego-acts button{flex:1;border-radius:0;padding:6px 0;font:inherit;font-size:var(--t-meta);font-weight:var(--w-title);
+  .nego-acts button{flex:1;border-radius:var(--radius);padding:6px 0;font:inherit;font-size:var(--t-meta);font-weight:var(--w-title);
     border:1.5px solid transparent;background:var(--n-paper);cursor:pointer;transition:all var(--dur-1) ease}
   .nego-acts .b-acc{border-color:var(--n-accept);color:var(--n-accept)}
   .nego-acts .b-acc:hover{background:var(--n-accept);color:#fff}
@@ -918,7 +925,7 @@ function negoStyleHtml(){
      verbs about the whole deal, where it read as a third answer to the deal
      rather than the postbox for the answers already given. */
   .nego-index-send{margin-top:9px;border-top:1px dashed var(--n-line);padding-top:9px}
-  .nego-index-send button{width:100%;border:0;border-radius:0;padding:var(--s-2) 0;font:inherit;font-size:var(--t-meta);
+  .nego-index-send button{width:100%;border:0;border-radius:var(--radius);padding:var(--s-2) 0;font:inherit;font-size:var(--t-meta);
     font-weight:var(--w-title);color:#fff;background:var(--n-slate);cursor:pointer;transition:filter var(--dur-1) ease}
   .nego-index-send button:hover{filter:brightness(1.12)}
   /* ---- decisions that have not left the browser ----
@@ -937,7 +944,7 @@ function negoStyleHtml(){
   }
   .nego-index-send .why{display:block;font-size:var(--t-label);line-height:1.45;color:var(--n-ink-soft);margin-top:5px}
   .nego-bulk{display:flex;gap:var(--s-2);margin-top:10px}
-  .nego-bulk button{flex:1;border:0;border-radius:0;padding:7px 0;font:inherit;font-size:var(--t-meta);
+  .nego-bulk button{flex:1;border:0;border-radius:var(--radius);padding:7px 0;font:inherit;font-size:var(--t-meta);
     font-weight:var(--w-title);color:#fff;cursor:pointer;transition:filter var(--dur-1) ease}
   .nego-bulk .b-acc{background:var(--n-accept)}
   .nego-bulk .b-rej{background:var(--n-reject)}
@@ -953,7 +960,7 @@ function negoStyleHtml(){
   /* The way back to a card the size it was, at the top of the thread so a long
      conversation never puts it out of reach. */
   .nego-tmin{flex:none;border:1px solid var(--n-line);background:var(--n-paper);
-    color:var(--n-ink-soft);border-radius:0;padding:2px 9px;font:inherit;font-size:var(--t-label);
+    color:var(--n-ink-soft);border-radius:var(--radius);padding:2px 9px;font:inherit;font-size:var(--t-label);
     font-weight:var(--w-title);cursor:pointer;transition:background var(--dur-1) ease,color var(--dur-1) ease}
   .nego-tmin:hover{background:var(--n-badge-bg);color:var(--n-slate)}
   /* A CEILING ON THE CONVERSATION. Without it one change with a dozen replies
@@ -962,10 +969,10 @@ function negoStyleHtml(){
   .nego-tbody{max-height:260px;overflow-y:auto;padding-right:2px;
     display:flex;flex-direction:column;gap:6px}
   .nego-compose{display:flex;gap:6px;margin-top:var(--s-2)}
-  .nego-compose input{flex:1;min-width:0;border:1px solid var(--n-line);border-radius:0;
+  .nego-compose input{flex:1;min-width:0;border:1px solid var(--n-line);border-radius:var(--radius);
     padding:6px 9px;font:inherit;font-size:var(--t-meta);background:var(--n-paper);outline:none}
   .nego-compose input:focus{outline:2px solid var(--n-focus);outline-offset:1px;border-color:transparent}
-  .nego-compose button{background:var(--n-slate);color:#fff;border:0;border-radius:0;padding:0 var(--s-3);
+  .nego-compose button{background:var(--n-slate);color:#fff;border:0;border-radius:var(--radius);padding:0 var(--s-3);
     font:inherit;font-size:var(--t-meta);font-weight:var(--w-title);cursor:pointer}
   .nego-compose button:hover{filter:brightness(1.12)}
 
@@ -987,7 +994,7 @@ function negoStyleHtml(){
   #nego-root{display:flex;flex-direction:column;gap:10px;height:100%;min-height:0;
     flex:1;width:100%;min-width:0;background:var(--n-canvas);
     font-family:var(--n-font-ui);color:var(--n-ink)}
-  #nego-root .nego-work{border:1px solid var(--n-line);border-radius:var(--n-r-md);overflow:hidden}
+  #nego-root .nego-work{border:1px solid var(--n-line);border-radius:var(--radius);overflow:hidden}
 
   /* ---- responsive ----
      The baseline pane is the first thing to go, then the index becomes a
@@ -1235,7 +1242,7 @@ function redlineLayoutCss(){
   /* The tab group is the only thing in this row that stretches; the round tag
      rides at its centre rather than being pulled to the row's full height. */
   .redline-page .rl-tabrow .rl-round{align-self:center}
-  .redline-page .rl-round{flex:none;font-size:var(--t-label);font-weight:var(--w-title);padding:2px var(--s-2);border-radius:0;
+  .redline-page .rl-round{flex:none;font-size:var(--t-label);font-weight:var(--w-title);padding:2px var(--s-2);border-radius:var(--radius);
     background:var(--st-amber-bg);color:var(--st-amber-fg);border:1px solid color-mix(in srgb,var(--st-amber-dot) 25%,transparent)}
   /* ---- THE TEXT-SIZE STEPPER ----
      A⁻ / readout / A⁺ in a slate pill (the reference's bg-slate-100 p-1
@@ -1245,9 +1252,9 @@ function redlineLayoutCss(){
      here and reused verbatim by the Doc tab's toolbar (contract.js calls
      redlineLayoutCss() first), so the two strips render the same control. */
   .rl-type-step{display:flex;align-items:center;gap:var(--s-1);flex:none;
-    background:var(--color-neutral-100);border:1px solid var(--color-divider);padding:var(--s-1);border-radius:0}
+    background:var(--color-neutral-100);border:1px solid var(--color-divider);padding:var(--s-1);border-radius:var(--radius)}
   .rl-type-step button{width:24px;height:24px;flex:none;display:inline-grid;place-items:center;
-    background:#fff;border:1px solid var(--color-divider);border-radius:0;cursor:pointer;
+    background:#fff;border:1px solid var(--color-divider);border-radius:var(--radius);cursor:pointer;
     font:inherit;font-size:var(--t-label);font-weight:var(--w-title);color:var(--color-neutral-700);line-height:1;
     transition:background var(--dur-1),border-color var(--dur-1)}
   .rl-type-step button:hover{background:var(--color-bg);border-color:var(--color-neutral-300)}
@@ -1284,13 +1291,13 @@ function redlineLayoutCss(){
      nothing inside the mount changes weight. */
   .rl-segwrap,
   .redline-page .rl-segwrap{display:flex;align-items:center;gap:3px;background:var(--color-neutral-100);
-    border:1px solid var(--color-divider);padding:3px;border-radius:0;height:34px;flex:none}
+    border:1px solid var(--color-divider);padding:3px;border-radius:var(--radius);height:34px;flex:none}
   /* 10px, not 12: five of these sit on the tab row and the four pixels each
      one gives back are what lets a 1600px laptop keep the controls up there
      instead of dropping them to a line of their own. */
   .rl-seg,
   .redline-page .rl-seg{border:0;background:none;font:inherit;font-size:var(--t-meta);font-weight:var(--w-body);
-    height:26px;padding:0 10px;border-radius:0;cursor:pointer;color:var(--color-neutral-500);
+    height:26px;padding:0 10px;border-radius:var(--radius);cursor:pointer;color:var(--color-neutral-500);
     white-space:nowrap;transition:background var(--dur-1),color var(--dur-1)}
   .rl-seg.on,
   .redline-page .rl-seg.on{background:var(--color-surface);color:var(--color-text);font-weight:var(--w-strong);
@@ -1302,11 +1309,11 @@ function redlineLayoutCss(){
      count and the arrow says it goes somewhere. Deliberately NOT filled — it
      is a way into the work, not the act that ends the round. */
   .redline-page .rl-needs{display:flex;align-items:center;gap:var(--s-2);height:auto;flex:none;border:0;
-    background:none;border-radius:0;padding:0;font:inherit;font-size:var(--t-meta);font-weight:var(--w-body);
+    background:none;border-radius:var(--radius);padding:0;font:inherit;font-size:var(--t-meta);font-weight:var(--w-body);
     color:var(--st-amber-fg);cursor:pointer;white-space:nowrap}
   .redline-page .rl-needs:hover{border-color:var(--color-neutral-400);color:var(--st-amber-fg);
     background:none;text-decoration:underline}
-  .redline-page .rl-needs-dot{width:8px;height:8px;border-radius:0;background:var(--st-amber-dot);
+  .redline-page .rl-needs-dot{width:8px;height:8px;border-radius:var(--radius);background:var(--st-amber-dot);
     flex:none;animation:none}
   .redline-page .rl-needs-go{color:var(--color-neutral-400)}
   /* ---- THE FLOATING NOTICES ----
@@ -1344,14 +1351,14 @@ function redlineLayoutCss(){
   .rl-notices #rl-read-note .rl-note-t{margin:0;flex:1;min-width:180px}
   .rl-notices #rl-read-note .rl-note-btn{margin-top:0;flex:none}
   .rl-note-card{pointer-events:auto;border:1px solid var(--color-divider);
-    background:var(--color-surface);border-radius:0;padding:var(--s-3) 14px;
+    background:var(--color-surface);border-radius:var(--radius);padding:var(--s-3) 14px;
     box-shadow:0 16px 36px -14px rgba(15,23,42,.34)}
   .rl-note-k{display:flex;align-items:center;gap:var(--s-2);font-size:var(--t-label);font-weight:var(--w-title);
     letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500)}
-  .rl-note-dot{width:6px;height:6px;border-radius:0;background:var(--color-neutral-400);flex:none}
+  .rl-note-dot{width:6px;height:6px;border-radius:var(--radius);background:var(--color-neutral-400);flex:none}
   .rl-note-t{margin:6px 0 0;font-size:var(--t-body);line-height:1.5;color:var(--color-neutral-600)}
   .rl-note-btn{margin-top:10px;height:29px;border:1px solid var(--color-divider);
-    border-radius:0;background:var(--color-surface);padding:0 var(--s-3);font:inherit;font-size:var(--t-meta);
+    border-radius:var(--radius);background:var(--color-surface);padding:0 var(--s-3);font:inherit;font-size:var(--t-meta);
     font-weight:var(--w-strong);color:var(--accent-ink-700);cursor:pointer}
   .rl-note-btn:hover{border-color:var(--accent-ink-700)}
   /* ---- THE NOTICES THAT USED TO BE BANDS ----
@@ -1377,7 +1384,7 @@ function redlineLayoutCss(){
      quiet — minimising is housekeeping, not an act. Both hug the corner
      (flex-end) rather than stretching to the stack's width. */
   .rl-notices-fab{pointer-events:auto;align-self:flex-end;position:relative;
-    width:42px;height:42px;border-radius:0;border:1px solid var(--st-amber-line);
+    width:42px;height:42px;border-radius:var(--radius);border:1px solid var(--st-amber-line);
     background:var(--st-amber-bg);color:var(--st-amber-fg);cursor:pointer;font-size:var(--t-section);line-height:1;
     display:flex;align-items:center;justify-content:center;
     box-shadow:0 16px 36px -14px rgba(15,23,42,.34)}
@@ -1410,7 +1417,7 @@ function redlineLayoutCss(){
      are the same object, and the surface-coloured ring is what keeps it legible
      over the bell's own amber or green face. */}
   .rl-fab-dot{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;padding:0 3px;
-    border-radius:0;background:var(--st-amber-dot);border:2px solid var(--color-surface);
+    border-radius:var(--radius);background:var(--st-amber-dot);border:2px solid var(--color-surface);
     color:#fff;font-size:var(--t-micro);font-weight:var(--w-title);line-height:13px;text-align:center;
     font-variant-numeric:tabular-nums}
   /* ---- AND HIDE IS A CONTROL, SO IT IS COLOURED LIKE ONE ----
@@ -1421,7 +1428,7 @@ function redlineLayoutCss(){
      is enough to say "pressable" without competing with the amber bell it turns
      back into. */
   .rl-notices-min{pointer-events:auto;align-self:flex-end;border:1px solid var(--st-steel-line);
-    background:var(--st-steel-bg);border-radius:0;padding:5px 11px;font:inherit;font-size:var(--t-label);
+    background:var(--st-steel-bg);border-radius:var(--radius);padding:5px 11px;font:inherit;font-size:var(--t-label);
     font-weight:var(--w-title);color:var(--st-steel-fg);cursor:pointer;
     box-shadow:0 16px 36px -14px rgba(15,23,42,.34)}
   .rl-notices-min:hover{background:var(--color-accent-200,var(--color-accent-100));
@@ -1441,7 +1448,7 @@ function redlineLayoutCss(){
      the builders are the band's, so these have to outrank them. */
   .rl-notices #ready-strip,
   .rl-notices #changes-strip{display:block!important;padding:var(--s-3) 14px!important;
-    border:1px solid var(--color-divider)!important;border-radius:0!important;
+    border:1px solid var(--color-divider)!important;border-radius:var(--radius)!important;
     box-shadow:0 16px 36px -14px rgba(15,23,42,.34);pointer-events:auto}
   .rl-notices #ready-strip{border-color:var(--st-green-line)!important}
   .rl-notices #ready-strip[data-stale="1"]{border-color:var(--st-amber-line)!important}
@@ -1476,7 +1483,7 @@ function redlineLayoutCss(){
   .redline-page .rl-btn{border:1px solid color-mix(in srgb,var(--accent-solid) 45%,transparent);
     background:transparent;color:var(--accent-ink-700);
     font:inherit;font-size:var(--t-meta);font-weight:var(--w-title);padding:6px var(--s-3);
-    border-radius:0;cursor:pointer;white-space:nowrap}
+    border-radius:var(--radius);cursor:pointer;white-space:nowrap}
   .redline-page .rl-btn:hover:not(:disabled){background:color-mix(in srgb,var(--accent-solid) 10%,transparent);
     border-color:var(--accent-solid)}
   .redline-page .rl-btn:disabled{opacity:.45;cursor:not-allowed}
@@ -1547,7 +1554,7 @@ function redlineLayoutCss(){
      by accident. */
   .redline-page select.rl-jump{flex:0 1 auto;min-width:96px;max-width:calc(220px + 9ch);overflow:hidden;
     text-overflow:ellipsis;white-space:nowrap;border:1px solid var(--color-divider);
-    background:var(--color-surface);border-radius:0;padding:6px var(--s-2);font:inherit;font-family:var(--font-mono);
+    background:var(--color-surface);border-radius:var(--radius);padding:6px var(--s-2);font:inherit;font-family:var(--font-mono);
     font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text);cursor:pointer}
   .redline-page select.rl-jump:hover{border-color:var(--color-neutral-300)}
   /* THE OPEN LIST, DRESSED TOO. Browsers draw a select's popup themselves —
@@ -1558,13 +1565,13 @@ function redlineLayoutCss(){
      fallback: styling degrades, the control never does. */
   .redline-page select.rl-jump,
   .redline-page select.rl-jump::picker(select){appearance:base-select}
-  .redline-page select.rl-jump::picker(select){border:1px solid var(--color-neutral-300);border-radius:0;
+  .redline-page select.rl-jump::picker(select){border:1px solid var(--color-neutral-300);border-radius:var(--radius);
     background:var(--color-surface);padding:var(--s-1);margin-top:var(--s-1);
     box-shadow:0 8px 24px rgba(15,23,42,.14)}
   html.dark .redline-page select.rl-jump::picker(select){border-color:rgba(148,163,184,.35);
     box-shadow:0 8px 24px rgba(0,0,0,.5)}
   .redline-page select.rl-jump option{font:inherit;font-family:var(--font-mono);font-size:var(--t-label);font-weight:var(--w-strong);
-    color:var(--color-text);padding:6px 9px;border-radius:0;cursor:pointer}
+    color:var(--color-text);padding:6px 9px;border-radius:var(--radius);cursor:pointer}
   .redline-page select.rl-jump option:hover,
   .redline-page select.rl-jump option:focus{background:var(--color-neutral-100)}
   .redline-page select.rl-jump option:checked{background:color-mix(in srgb,var(--accent-solid) 12%,transparent);
@@ -1581,14 +1588,14 @@ function redlineLayoutCss(){
      align-self:center because the row is align-items:stretch and a door has
      no business being as tall as the control group. */
   .redline-page .rl-livelist{flex:none;align-self:center;display:inline-flex;align-items:center;
-    gap:7px;border:0;background:none;color:var(--accent-ink);border-radius:0;padding:0;
+    gap:7px;border:0;background:none;color:var(--accent-ink);border-radius:var(--radius);padding:0;
     font:inherit;font-size:var(--t-meta);font-weight:var(--w-body);cursor:pointer;
     transition:background var(--dur-1),border-color var(--dur-1),color var(--dur-1)}
   .redline-page .rl-livelist:hover{background:none;border-color:var(--color-neutral-400);
     color:var(--color-text);border:0;text-decoration:underline}
   .redline-page .rl-livelist .rl-livelist-n{font-family:var(--font-mono);font-size:var(--t-figure);font-weight:var(--w-title);
     line-height:1.7;color:var(--color-neutral-600);background:var(--color-neutral-100);
-    border:1px solid var(--color-divider);border-radius:0;padding:0 6px}
+    border:1px solid var(--color-divider);border-radius:var(--radius);padding:0 6px}
   ${''/* THE PURPLE CAME OFF (owner-asked 20 Aug 2026, off a screenshot of the
         row): the two review buttons wear the "N needs you" chip's own
         neutral clothes — surface, hairline, quiet ink — and keep their bold
@@ -1596,7 +1603,7 @@ function redlineLayoutCss(){
         override went with the violet. */}
   .redline-page .rl-pb-btn{flex:none;border:1px solid var(--color-divider);background:var(--color-surface);
     color:var(--color-neutral-700);
-    border-radius:0;padding:6px 11px;font:inherit;font-size:var(--t-meta);font-weight:var(--w-title);cursor:pointer;
+    border-radius:var(--radius);padding:6px 11px;font:inherit;font-size:var(--t-meta);font-weight:var(--w-title);cursor:pointer;
     transition:background var(--dur-1),border-color var(--dur-1),color var(--dur-1)}
   .redline-page .rl-pb-btn:not([data-rl-dead]):hover{border-color:var(--color-neutral-400);color:var(--color-text)}
   .redline-page .rl-pb-btn:disabled{opacity:.6;cursor:wait}
@@ -1633,7 +1640,7 @@ function redlineLayoutCss(){
      beside it. */
   .redline-page{position:relative}
   .redline-page .rl-focus-btn{width:34px;height:34px;flex:none;display:inline-grid;place-items:center;
-    background:#fff;border:1px solid var(--color-divider);border-radius:0;cursor:pointer;color:var(--color-neutral-700);
+    background:#fff;border:1px solid var(--color-divider);border-radius:var(--radius);cursor:pointer;color:var(--color-neutral-700);
     transition:background var(--dur-1),border-color var(--dur-1)}
   .redline-page .rl-focus-btn:hover{background:var(--color-bg);border-color:var(--color-neutral-300)}
   html.dark .redline-page .rl-focus-btn{background:rgba(15,23,42,.5);border-color:rgba(148,163,184,.32);color:var(--color-neutral-300)}
@@ -1692,7 +1699,7 @@ function redlineLayoutCss(){
      the other way round (the look scoped, the showing shared) their copy draws
      as an unstyled word in the corner, which is what the first attempt did. */
   .rl-focus-exit{position:fixed;right:18px;bottom:18px;z-index:70;
-    align-items:center;gap:7px;border:0;border-radius:0;cursor:pointer;
+    align-items:center;gap:7px;border:0;border-radius:var(--radius);cursor:pointer;
     font:inherit;font-size:var(--t-meta);font-weight:var(--w-title);padding:9px 15px;
     background:var(--accent-solid,var(--color-accent));color:#fff;box-shadow:var(--shadow-md)}
   .redline-page.rl-focus .rl-focus-exit{display:inline-flex}
@@ -1709,7 +1716,7 @@ function redlineLayoutCss(){
      unscoped, because unscoping drops specificity and this file has already
      lost that fight once. */
   .redline-page .rl-wall, .pw-page .rl-wall{display:flex;align-items:flex-start;gap:9px;flex:none;
-    background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:0;
+    background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:var(--radius);
     padding:7px var(--s-3);font-size:var(--t-meta);line-height:1.55;color:var(--color-neutral-700)}
   .redline-page .rl-wall-ic, .pw-page .rl-wall-ic{flex:none;color:var(--st-amber-fg)}
   .redline-page .rl-wall b, .pw-page .rl-wall b{color:var(--color-text)}
@@ -2073,7 +2080,7 @@ function redlineLayoutCss(){
   .redline-page .rl-cp-pill{position:absolute;right:0;top:0;z-index:2;flex:none;
     display:inline-flex;align-items:center;justify-content:center;
     border:1px solid transparent;background:transparent;color:var(--accent-solid,#0d9488);
-    border-radius:0;padding:calc(3px * var(--doc-scale,1)) calc(4px * var(--doc-scale,1));
+    border-radius:var(--radius);padding:calc(3px * var(--doc-scale,1)) calc(4px * var(--doc-scale,1));
     font:inherit;font-size:calc(11px * var(--doc-scale,1));font-weight:var(--w-title);line-height:1;
     cursor:pointer;white-space:nowrap;-webkit-user-select:none;user-select:none;
     transition:background var(--dur-1),color var(--dur-1)}
@@ -2126,16 +2133,16 @@ function redlineLayoutCss(){
          the 12px gap to the cards below — this is a height, not a redesign, and
          the band still has to read as the one warning on the column. */}
   .redline-page .rl-unsent{display:flex;flex-basis:100%;align-items:center;gap:9px;
-    margin:0 0 var(--s-3);padding:var(--s-1) var(--s-2) var(--s-1) 10px;border-radius:0;
+    margin:0 0 var(--s-3);padding:var(--s-1) var(--s-2) var(--s-1) 10px;border-radius:var(--radius);
     border:1px solid var(--st-amber-line);background:var(--st-amber-bg);white-space:nowrap;
     overflow:hidden}
-  .redline-page .rl-unsent-dot{width:8px;height:8px;border-radius:0;
+  .redline-page .rl-unsent-dot{width:8px;height:8px;border-radius:var(--radius);
     background:var(--st-amber-dot);flex:none}
   .redline-page .rl-unsent-n{font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--st-amber-fg);flex:none}
   .redline-page .rl-unsent-s{font-size:var(--t-meta);color:var(--color-neutral-700);flex:1;min-width:0;
     overflow:hidden;text-overflow:ellipsis}
   html.dark .redline-page .rl-unsent-s{color:var(--color-neutral-600)}
-  .redline-page .rl-unsent-go{flex:none;border:0;border-radius:0;cursor:pointer;
+  .redline-page .rl-unsent-go{flex:none;border:0;border-radius:var(--radius);cursor:pointer;
     background:var(--st-amber-fg);color:#fff;font:inherit;font-size:var(--t-meta);font-weight:var(--w-title);
     padding:0 10px;white-space:nowrap;height:22px;display:inline-flex;align-items:center}
   .redline-page .rl-unsent-go:hover:not(:disabled){filter:brightness(1.08)}
@@ -2181,7 +2188,7 @@ function redlineLayoutCss(){
      the reasoning the card meta's 12. The two objects finally measure alike. */}
   .redline-page .rl-plan{flex-basis:100%;margin-top:6px;--doc-scale:1}
   .redline-page .rl-plan-bar{display:flex;align-items:center;gap:6px;width:100%;
-    border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);
+    border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);
     padding:7px 10px;cursor:pointer;font:inherit;text-align:left}
   .redline-page .rl-plan-bar:hover{border-color:var(--color-accent-300)}
   .redline-page .rl-plan-bar:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
@@ -2192,13 +2199,13 @@ function redlineLayoutCss(){
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .redline-page .rl-plan-caret{flex:none;font-family:var(--font-mono);font-size:var(--t-body);color:var(--color-neutral-600)}
   .redline-page .rl-plan-chip{flex:none;font-size:var(--t-meta);font-weight:var(--w-title);
-    border-radius:0;padding:1px 7px;white-space:nowrap}
+    border-radius:var(--radius);padding:1px 7px;white-space:nowrap}
   .redline-page .rl-plan-accept{background:var(--st-green-bg);color:var(--st-green-fg)}
   .redline-page .rl-plan-push{background:var(--st-amber-bg);color:var(--st-amber-fg)}
   .redline-page .rl-plan-escalate{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
   .redline-page .rl-plan-review{background:var(--st-steel-bg);color:var(--st-steel-fg)}
   .redline-page .rl-plan-body{border:1px solid var(--color-divider);border-top:0;
-    border-radius:0;background:var(--color-surface);padding:9px 10px 11px}
+    border-radius:var(--radius);background:var(--color-surface);padding:9px 10px 11px}
   .redline-page .rl-plan-note{margin:0 0 var(--s-2);font-size:var(--t-meta);
     color:var(--color-neutral-600);line-height:1.5}
   .redline-page .rl-plan-row{border-top:1px solid var(--color-divider);padding:var(--s-2) 0 6px}
@@ -2212,7 +2219,7 @@ function redlineLayoutCss(){
   .redline-page .rl-plan-prec{margin:3px 0 0;font-size:var(--t-meta);
     line-height:1.5;color:var(--color-neutral-600);font-style:italic}
   .redline-page .rl-plan-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:var(--s-2)}
-  .redline-page .rl-plan-act{border:1px solid var(--color-divider);border-radius:0;
+  .redline-page .rl-plan-act{border:1px solid var(--color-divider);border-radius:var(--radius);
     background:var(--color-bg);cursor:pointer;font:inherit;font-weight:var(--w-strong);
     font-size:var(--t-meta);color:var(--color-neutral-600);padding:var(--s-1) 10px}
   .redline-page .rl-plan-act:hover{border-color:var(--color-accent-300);color:var(--accent-ink-700)}
@@ -2226,7 +2233,7 @@ function redlineLayoutCss(){
   .redline-page .rl-asktag{flex:none;display:inline-flex;align-items:stretch;
     font:inherit;font-size:calc(11px * var(--doc-scale,1));
     font-weight:var(--w-strong);letter-spacing:.04em;cursor:pointer;
-    border-radius:0;white-space:nowrap;overflow:hidden;
+    border-radius:var(--radius);white-space:nowrap;overflow:hidden;
     background:var(--color-surface);color:var(--color-neutral-700);
     border:1px solid var(--color-divider);
     transition:box-shadow var(--dur-1) ease,border-color var(--dur-1) ease,background var(--dur-1) ease}
@@ -2249,10 +2256,10 @@ function redlineLayoutCss(){
      the clause stays the thing being read. */
   .redline-page .rl-askrv{display:flex;gap:calc(9px * var(--doc-scale,1));
     margin:calc(9px * var(--doc-scale,1)) 0 0;padding:calc(8px * var(--doc-scale,1)) 10px
-      calc(8px * var(--doc-scale,1)) 0;border-radius:0;overflow:hidden;
+      calc(8px * var(--doc-scale,1)) 0;border-radius:var(--radius);overflow:hidden;
     background:color-mix(in srgb,var(--color-neutral-100) 70%,transparent)}
   html.dark .redline-page .rl-askrv{background:color-mix(in srgb,var(--color-neutral-200) 45%,transparent)}
-  .redline-page .rl-askrv-bar{width:3px;flex:none;border-radius:0}
+  .redline-page .rl-askrv-bar{width:3px;flex:none;border-radius:var(--radius)}
   .redline-page .rl-askrv-them .rl-askrv-bar{background:var(--st-amber-dot)}
   .redline-page .rl-askrv-us .rl-askrv-bar{background:var(--color-accent)}
   .redline-page .rl-askrv-bd{flex:1;min-width:0;padding-left:calc(9px * var(--doc-scale,1))}
@@ -2270,7 +2277,7 @@ function redlineLayoutCss(){
   .redline-page .rl-askrv-reopen{font:inherit;font-family:var(--font-body);
     font-size:calc(11px * var(--doc-scale,1));font-weight:var(--w-strong);line-height:1.4;
     padding:calc(4px * var(--doc-scale,1)) calc(10px * var(--doc-scale,1));
-    border:1px solid var(--color-divider);border-radius:0;
+    border:1px solid var(--color-divider);border-radius:var(--radius);
     background:var(--color-surface);color:var(--color-neutral-700);cursor:pointer;
     transition:border-color var(--dur-1),color var(--dur-1)}
   .redline-page .rl-askrv-reopen:hover{border-color:var(--color-neutral-500);color:var(--color-neutral-900)}
@@ -2299,7 +2306,7 @@ function redlineLayoutCss(){
      it, so the three columns read as one set of objects (Young, 10 Aug 2026).
      The spine survives the reshape at 3px on the left — it is the fastest fact
      on the card and the radius does not soften it. */
-  .redline-page .rl-card{border:1px solid #e8ecf1;border-radius:0;padding:var(--s-3) 14px 14px;
+  .redline-page .rl-card{border:1px solid #e8ecf1;border-radius:var(--radius);padding:var(--s-3) 14px 14px;
     margin-bottom:11px;background:var(--color-surface);cursor:pointer;
     box-shadow:0 1px 2px rgba(38,55,74,.06),0 4px 14px rgba(38,55,74,.06);
     transition:box-shadow var(--dur-2) ease,border-color var(--dur-2) ease;
@@ -2311,7 +2318,7 @@ function redlineLayoutCss(){
   .redline-page .rl-card-top{display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);margin-bottom:5px}
   .redline-page .rl-card-lead{display:inline-flex;align-items:center;gap:6px;min-width:0}
   .redline-page .rl-card-id{font-family:var(--font-mono);font-size:var(--t-label);font-weight:var(--w-strong);
-    background:var(--color-neutral-100);color:var(--color-neutral-700);border-radius:0;
+    background:var(--color-neutral-100);color:var(--color-neutral-700);border-radius:var(--radius);
     padding:2px var(--s-2);white-space:nowrap}
   /* The round the ask belongs to, at the far right of the head — "R3" — so a
      card carried over from an earlier round says so without being opened. */
@@ -2341,7 +2348,7 @@ function redlineLayoutCss(){
      is the only enclosed shape left in the row, which is what makes it read
      as a mark rather than as another status. Do not tidy it away. */
   .redline-page .rl-badge{font-size:var(--t-body);font-weight:var(--w-title);white-space:nowrap;padding:0;border:0;
-    border-radius:0;background:none;line-height:1.3}
+    border-radius:var(--radius);background:none;line-height:1.3}
   .redline-page .rl-badge-sent{color:var(--st-steel-fg)}
   .redline-page .rl-badge-draft{color:var(--st-amber-fg)}
   .redline-page .rl-badge-ok{color:var(--st-green-fg)}
@@ -2377,11 +2384,11 @@ function redlineLayoutCss(){
      sentence as well is the third signal for one fact this file keeps warning
      about. The claim it makes is unchanged and so is its colour. */
   .redline-page .rl-card-behalf{margin-top:6px;border-left:2px solid var(--st-amber-dot);
-    background:var(--st-amber-bg);border-radius:0;padding:5px 9px;
+    background:var(--st-amber-bg);border-radius:var(--radius);padding:5px 9px;
     font-size:var(--t-meta);font-weight:var(--w-body);line-height:1.5;color:var(--st-amber-fg);
     overflow-wrap:anywhere}
   .redline-page .rl-card-why{margin-top:6px;border-left:2px solid var(--color-accent);
-    background:color-mix(in srgb,var(--color-accent) 6%,transparent);border-radius:0;
+    background:color-mix(in srgb,var(--color-accent) 6%,transparent);border-radius:var(--radius);
     padding:6px 9px;font-size:var(--t-body);line-height:1.55;color:var(--color-text);
     overflow-wrap:anywhere}
   .redline-page .rl-card-why-k{display:block;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;
@@ -2417,7 +2424,7 @@ function redlineLayoutCss(){
      same fault one size up. */
   .redline-page .rl-open-btn{flex:none;margin-left:2px;padding:0 var(--s-3);display:inline-flex;
     align-items:center;cursor:pointer;font:inherit;font-size:var(--t-body);font-weight:var(--w-body);line-height:1.6;
-    border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);
+    border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);
     color:var(--color-neutral-600);transition:border-color var(--dur-1),color var(--dur-1),background var(--dur-1);
     height:30px}
   .redline-page .rl-open-btn:hover{border-color:var(--color-accent);color:var(--st-steel-fg);
@@ -2432,7 +2439,7 @@ function redlineLayoutCss(){
      leading, which is the order the approved journey puts them in. */
   .redline-page .rl-cp-editor-btn{flex:none;margin-left:2px;padding:0 9px;display:inline-flex;
     align-items:center;cursor:pointer;font:inherit;font-size:var(--t-meta);font-weight:var(--w-body);line-height:1.6;
-    border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);
+    border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);
     color:var(--accent-ink);transition:border-color var(--dur-1),color var(--dur-1),background var(--dur-1);height:30px}
   .redline-page .rl-cp-editor-btn:hover{border-color:var(--color-accent);
     color:var(--st-steel-fg);background:var(--st-steel-bg)}
@@ -2510,7 +2517,7 @@ function redlineLayoutCss(){
          THE SPINE GOES WITH THE BOX, said out loud: data-rl-origin is still
          stamped and still means what it meant, and whose ask this is is on the
          meta line in words. */}
-  .redline-page .rl-card-d{padding:11px 0;border:0;border-radius:0;
+  .redline-page .rl-card-d{padding:11px 0;border:0;border-radius:var(--radius);
     border-top:1px solid var(--color-divider);background:none;box-shadow:none;
     display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap}
   ${''/* BASIS ZERO, NOT AUTO, AND THAT IS THE WHOLE OF WHY THE ROW HOLDS.
@@ -2629,20 +2636,47 @@ function redlineLayoutCss(){
     max-height:var(--rl-more-max,70vh);overflow-y:auto;overscroll-behavior:contain}
   .redline-page .rl-more-menu.rl-more-up{top:auto;bottom:100%}
   .redline-page .rl-more-menu[hidden]{display:none}
-  ${''/* .rl-more-head is RETIRED (owner-asked 26 Aug 2026) — the menu names no
-         change any more; the card it hangs off does, and the same press now
-         lights that card. Its rule is deleted rather than left standing: a
-         selector nothing emits is a mention, and mentions of retired things
-         get flagged. */}
-  .redline-page .rl-more-row{display:block;width:100%;text-align:left;border:0;
-    background:transparent;padding:var(--s-2) var(--s-3);font:inherit;font-size:var(--t-body);
-    color:var(--color-text);cursor:pointer}
+  ${''/* .rl-more-head is RETIRED (owner-asked 26 Aug 2026, in a parallel
+         session) — the menu names no change any more; the card it hangs off
+         does, and the same press now lights that card. Its rule is deleted
+         rather than left standing: a selector nothing emits is a mention, and
+         mentions of retired things get flagged. */}
+  ${''/* ---- ONE SIZE, NO BOLD, NEVER WRAPPED (owner-asked 26 Aug 2026) ----
+         "The drop down should always be the same font size as Edit and Send,
+         not in bold size, never wrap texted."
+
+         --t-label IS Edit and Send's own size — the face verbs a few pixels
+         above are dressed by .rl-card-d .rl-card-verbs button at that same
+         token — so this is written as the RELATION the owner asked for rather
+         than as a number, and the next type pass moves both together or
+         neither.
+
+         NO BACKTICK MAY APPEAR IN A COMMENT HERE: this file returns its CSS
+         from a template literal, so one ends the string and a balanced pair
+         gets the words between them EVALUATED. f236 caught this very sentence.
+
+         NOWRAP IS A GUARANTEE, not a measurement: no label, in either
+         language, at any menu width, can drop to a second line. The menu has
+         a min-width and grows to its longest row instead, which is what a
+         menu is for. It is the LABEL that gets shorter when one does not fit
+         — see ng_row_open_panel — never the type. */}
+  .redline-page .rl-more-row{display:flex;align-items:center;gap:var(--s-2);
+    width:100%;text-align:left;border:0;white-space:nowrap;
+    background:transparent;padding:var(--s-2) var(--s-3);font:inherit;font-size:var(--t-label);
+    font-weight:var(--w-body);color:var(--color-text);cursor:pointer}
   .redline-page .rl-more-row:hover{background:var(--color-neutral-100)}
+  ${''/* The mark takes the row's own ink and never shrinks: flex:none, or a
+         long label squeezes the symbol out of shape rather than widening the
+         menu. Sized against the type so the two move together. */}
+  .redline-page .rl-more-i{flex:none;width:15px;height:15px;color:inherit}
   ${''/* COPILOT IS VIOLET HERE, as it is everywhere else in this product —
          the reference draws this row in the Copilot colour rather than the
          workspace accent, and .rl-btn-alt on the control bar has carried the
          same violet since the playbook pass was built. */}
-  .redline-page .rl-more-row.rl-more-lead{color:#6d28d9;font-weight:var(--w-title)}
+  ${''/* THE VIOLET STAYS, THE WEIGHT GOES. Copilot's colour is how this
+         product names it everywhere; the extra weight was the second mark for
+         one fact and it is what the owner pointed at. */}
+  .redline-page .rl-more-row.rl-more-lead{color:#6d28d9}
   html.dark .redline-page .rl-more-row.rl-more-lead{color:#c4b5fd}
   ${''/* A RULE UNDER THE TWO DOORS. The reference groups the menu: the two
          ways INTO this change's wording, then the two things you do ABOUT it.
@@ -2657,8 +2691,13 @@ function redlineLayoutCss(){
          these ACT on the change, those go somewhere. */}
   .redline-page .rl-more-verbs{display:flex;flex-direction:column;
     border-bottom:1px solid var(--color-divider);padding-bottom:2px;margin-bottom:2px}
-  .redline-page .rl-more-verbs button{display:block;width:100%;text-align:left;
-    border:0;background:none;font:inherit;font-size:13.5px;font-weight:var(--w-body);
+  ${''/* The borrowed verbs read as the rows they now are: the same size as the
+         face's Edit and Send, the same regular weight, the same symbol gutter.
+         The 13.5px here was a half-pixel left behind by an earlier pass — a
+         fractional size renders soft, which is this page's own rule. */}
+  .redline-page .rl-more-verbs button{display:flex;align-items:center;gap:var(--s-2);
+    width:100%;text-align:left;
+    border:0;background:none;font:inherit;font-size:var(--t-label);font-weight:var(--w-body);
     line-height:1.5;padding:7px var(--s-3);white-space:nowrap;cursor:pointer}
   .redline-page .rl-more-verbs button:hover{background:var(--color-neutral-100);
     text-decoration:none}
@@ -2667,8 +2706,12 @@ function redlineLayoutCss(){
          the SAME tokens, never a second set of values. The dark answers come
          free: html.dark re-points .rl-rej and .rl-edit unscoped, and --accent-ink
          is the accent token that has a night value of its own. */}
+  ${''/* THE INK STAYS AND THE WEIGHT GOES — the same call as the lead row
+         above. With a symbol on every row and one weight throughout, colour is
+         doing the whole job of telling these verbs apart, which is what it was
+         always for. */}
   .redline-page .rl-more-verbs .rl-acc,
-  .redline-page .rl-more-verbs .rl-send{color:var(--accent-ink);font-weight:var(--w-title)}
+  .redline-page .rl-more-verbs .rl-send{color:var(--accent-ink)}
   .redline-page .rl-more-verbs .rl-rej{color:var(--danger-hover)}
   .redline-page .rl-more-verbs .rl-edit{color:var(--accent-ink-700)}
   html.dark .redline-page .rl-more-verbs .rl-edit{color:var(--color-accent-300)}
@@ -2691,7 +2734,7 @@ function redlineLayoutCss(){
          green, refuse red, edit grey. What goes is the FILL: a border the same
          colour as the fill behind it is not a border, so the outline the owner
          asked for is only visible on a flat face. */}
-  .redline-page .rl-card-verbs button{border:1px solid var(--rl-btn-line);border-radius:0;
+  .redline-page .rl-card-verbs button{border:1px solid var(--rl-btn-line);border-radius:var(--radius);
     padding:0 var(--s-3);font:inherit;
     font-size:var(--t-body);font-weight:var(--w-body);line-height:1;cursor:pointer;transition:filter var(--dur-1);
     height:30px;display:inline-flex;align-items:center;background:transparent}
@@ -2880,8 +2923,14 @@ function redlineLayoutCss(){
      old 2, so the caption, the unsent band and every card share one left edge,
      which is what the mock-up draws and what makes the column read as one
      object. The head's rule still runs the card's full inner width. */}
+  /* NO RADIUS AT ALL, not even the platform's (26 Aug 2026). This is a
+     HAIRLINE under a caption — background:none, border:0, one bottom rule —
+     and a rule has no corners to round. It carried a 0 for as long as the
+     product was square, which read as a decision; it is noise the next reader
+     has to rule out, so it names none. f175 asserts the ABSENCE, which is a
+     stronger claim than the literal it pinned before. */
   .redline-page .rl-idx-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px;
-    background:none;border:0;border-bottom:1px solid var(--color-divider);border-radius:0;
+    background:none;border:0;border-bottom:1px solid var(--color-divider);
     padding:0 var(--s-4) 10px;margin:0 0 var(--s-3)}
   /* The tabs carry their own bottom padding down to the rule, so the head must
      not carry it too. :has() and not a class because the filter's absence is
@@ -2930,7 +2979,7 @@ function redlineLayoutCss(){
     text-transform:uppercase;color:var(--color-text)}
   .redline-page .rl-idx-n{flex:none;font-family:var(--font-mono);font-size:var(--t-label);font-weight:var(--w-title);
     letter-spacing:.01em;font-variant-numeric:tabular-nums;color:var(--color-neutral-500);
-    background:none;border:0;border-radius:0;padding:0;line-height:1.2}
+    background:none;border:0;border-radius:var(--radius);padding:0;line-height:1.2}
   .redline-page .rl-idx-n.is-live{color:var(--accent-ink)}
   ${''/* Found while measuring the row (22 Aug 2026): the dark theme does not
      redefine the accent ramp, so accent-800 is a deep green sitting on an
@@ -2987,7 +3036,7 @@ function redlineLayoutCss(){
      options and no more, every option showing its OWN count unmoved by the
      filter, and a row of choices rather than a dropdown. */}
   .redline-page .rl-fsegwrap{flex:none;display:flex;gap:26px;padding:0;background:none;border:0;
-    border-radius:0}
+    border-radius:var(--radius)}
   ${''/* THE SIZE MOVED, THE DESIGN DID NOT (22 Aug 2026). The render bumps
          these to 14px; the Render B decisions taken six days earlier — the
          transparent underline that reserves the row's height, the hairline box
@@ -2996,7 +3045,7 @@ function redlineLayoutCss(){
          reasons, and were NOT part of what the render reversed. They stay. */}
   .redline-page .rl-fseg{flex:none;min-width:0;display:flex;flex-direction:column;align-items:flex-start;
     gap:1px;border:0;border-bottom:2px solid transparent;background:none;font:inherit;
-    color:var(--color-text);padding:0 0 9px;margin-bottom:-1px;border-radius:0;cursor:pointer;
+    color:var(--color-text);padding:0 0 9px;margin-bottom:-1px;border-radius:var(--radius);cursor:pointer;
     white-space:nowrap;transition:color var(--dur-1),border-color var(--dur-1)}
   ${''/* ONE COLOUR DECLARATION FOR THE WHOLE TAB, and the number and the word
      INHERIT it. That is what makes B1 a two-line change rather than six: the
@@ -3009,7 +3058,7 @@ function redlineLayoutCss(){
     border-bottom-color:var(--accent-solid)}
   /* A borderless button gets no focus ring from the browser worth having. */
   .redline-page .rl-fseg:focus-visible{outline:2px solid var(--color-accent);
-    outline-offset:2px;border-radius:0}
+    outline-offset:2px;border-radius:var(--radius)}
   /* The count rides INSIDE its own tab: it is the thing that stops a filter
      hiding a change quietly, so it must be readable on the resting face too. */
   ${''/* ---- THE COUNT IS THE HEADLINE AND THE WORD IS ITS CAPTION ----
@@ -3028,7 +3077,7 @@ function redlineLayoutCss(){
      nothing, and font-variant-numeric is what actually lines the digits up. */}
   .redline-page .rl-fseg-n{flex:none;font-size:var(--t-page);font-weight:var(--w-strong);line-height:1.1;
     letter-spacing:-.01em;font-variant-numeric:tabular-nums;
-    padding:0;background:none;border:0;border-radius:0}
+    padding:0;background:none;border:0;border-radius:var(--radius)}
   .redline-page .rl-fseg-w{flex:none;font-size:var(--t-micro);font-weight:var(--w-strong);letter-spacing:.05em;
     text-transform:uppercase;line-height:1.35}
   /* MOUNTED, UNSEEN, AND STILL CLICKABLE. Not display:none — a hidden control
@@ -3046,11 +3095,11 @@ function redlineLayoutCss(){
   /* The reviewer's folded-document notice. Reads as a note about the page, not
      as a warning: nothing is wrong, it is simply showing less on purpose. */
   .rl-rv-docnote{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 14px;
-    padding:var(--s-2) var(--s-3);border-radius:0;font-size:var(--t-meta);line-height:1.5;
+    padding:var(--s-2) var(--s-3);border-radius:var(--radius);font-size:var(--t-meta);line-height:1.5;
     border:1px dashed var(--color-divider);background:var(--color-bg);color:var(--color-neutral-700)}
   .rl-rv-docnote span{flex:1;min-width:0}
   .rl-rv-docnote button{flex:none;font:inherit;font-size:var(--t-label);font-weight:var(--w-title);cursor:pointer;
-    border-radius:0;padding:3px 10px;border:1px solid var(--color-divider);
+    border-radius:var(--radius);padding:3px 10px;border:1px solid var(--color-divider);
     background:var(--color-surface);color:var(--accent-ink)}
   .rl-rv-docnote button:hover{border-color:var(--accent-ink)}
   .redline-page .rl-sendslot:empty{display:none}
@@ -3084,7 +3133,7 @@ function redlineLayoutCss(){
      and push the column wider than its pane. min-width:0 on the author cell
      for the same reason: a flex child will not shrink below its content
      without it, so the timestamp was the first thing to go. */
-  .redline-page .rl-cnote{margin-top:var(--s-2);min-width:0;padding:var(--s-2) 10px;border-radius:0;
+  .redline-page .rl-cnote{margin-top:var(--s-2);min-width:0;padding:var(--s-2) 10px;border-radius:var(--radius);
     background:var(--color-bg);border:1px solid var(--color-divider)}
   /* A message that went to the other side wears the steel wash, so the two
      kinds are tellable apart at a glance in a thread that mixes them. */
@@ -3108,15 +3157,15 @@ function redlineLayoutCss(){
     font-size:var(--t-meta);margin-bottom:2px;color:var(--color-neutral-400)}
   .redline-page .rl-cnote-top b{min-width:0;overflow-wrap:anywhere;font-weight:var(--w-strong);color:var(--color-neutral-600)}
   .redline-page .rl-cnote-int{margin-left:auto;flex:none;border:1px solid var(--color-divider);
-    border-radius:0;padding:1px 7px;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-500)}
+    border-radius:var(--radius);padding:1px 7px;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-500)}
   .redline-page .rl-cnote p{margin:0;font-size:var(--t-body);line-height:1.55;color:var(--color-neutral-700);
     white-space:pre-wrap;overflow-wrap:anywhere}
   .redline-page textarea.rl-cnote-in{width:100%;margin-top:9px;border:1px solid var(--color-divider);
-    border-radius:0;padding:var(--s-2) 10px;font:inherit;font-size:var(--t-body);line-height:1.5;
+    border-radius:var(--radius);padding:var(--s-2) 10px;font:inherit;font-size:var(--t-body);line-height:1.5;
     color:inherit;background:var(--color-surface);outline:none;box-sizing:border-box}
   .redline-page textarea.rl-cnote-in:focus{border-color:var(--color-accent-500)}
   .redline-page .rl-cnote-foot{display:flex;align-items:center;gap:9px;margin-top:7px}
-  .redline-page .rl-cnote-add{flex:none;border:1px solid var(--color-divider);border-radius:0;
+  .redline-page .rl-cnote-add{flex:none;border:1px solid var(--color-divider);border-radius:var(--radius);
     background:var(--color-surface);padding:5px var(--s-3);font:inherit;font-size:var(--t-body);font-weight:var(--w-body);
     color:var(--color-neutral-700);cursor:pointer}
   .redline-page .rl-cnote-add:hover{border-color:var(--color-neutral-400);color:var(--color-text)}
@@ -3130,7 +3179,7 @@ function redlineLayoutCss(){
     white-space:pre-wrap;overflow-wrap:anywhere;font-family:inherit;box-sizing:border-box}
   .redline-page .nego-visswitch{display:flex;gap:var(--s-1);margin-bottom:6px}
   .redline-page .nego-visswitch button{border:1px solid var(--color-divider);background:var(--color-surface);
-    border-radius:0;padding:3px var(--s-2);font:inherit;font-size:var(--t-label);font-weight:var(--w-strong);cursor:pointer;
+    border-radius:var(--radius);padding:3px var(--s-2);font:inherit;font-size:var(--t-label);font-weight:var(--w-strong);cursor:pointer;
     color:var(--color-neutral-600)}
   .redline-page .nego-visswitch button[aria-pressed="true"]{background:var(--accent-fill);color:#fff;
     border-color:var(--accent-solid)}
@@ -3219,7 +3268,7 @@ function redlineLayoutCss(){
      grid simply wins, and it is the better of the two. */
   .redline-page .rl-queue{
     position:absolute;left:0;top:0;bottom:0;z-index:56;
-    width:min(320px,88vw);min-width:0;border-radius:0;
+    width:min(320px,88vw);min-width:0;border-radius:var(--radius);
     border:0;border-right:1px solid var(--color-divider);
     box-shadow:var(--shadow-lg);
     transform:translateX(-105%);
@@ -3284,7 +3333,7 @@ function redlineLayoutCss(){
      would still be on screen and still tabbable. */
   .redline-page .rl-cp{
     position:absolute;grid-column:2;grid-row:1;
-    inset:0;width:auto;min-width:0;z-index:56;border-radius:0;
+    inset:0;width:auto;min-width:0;z-index:56;border-radius:var(--radius);
     border:0;border-left:1px solid var(--color-divider);
     box-shadow:var(--shadow-lg);
     display:flex;flex-direction:column;
@@ -3357,7 +3406,7 @@ function redlineLayoutCss(){
      colour — teal ours, amber theirs — so the panel speaks the language the
      column beside it already speaks rather than inventing a second one. */
   .redline-page .rl-cp-row{display:flex;gap:var(--s-2);margin:0 0 10px}
-  .redline-page .rl-cp-bar{flex:none;width:3px;border-radius:0;background:var(--color-divider)}
+  .redline-page .rl-cp-bar{flex:none;width:3px;border-radius:var(--radius);background:var(--color-divider)}
   .redline-page .rl-cp-row-us .rl-cp-bar{background:var(--color-accent-500)}
   .redline-page .rl-cp-row-them .rl-cp-bar{background:var(--st-amber-dot)}
   .redline-page .rl-cp-rowbd{min-width:0;flex:1}
@@ -3381,7 +3430,7 @@ function redlineLayoutCss(){
      same two acts; fixed sizes, because the panel is not the document and does
      not follow the reader's document type. */
   .redline-page .rl-cp-act{border:1px solid var(--color-divider);background:var(--color-surface);
-    border-radius:0;padding:5px var(--s-3);font:inherit;font-size:var(--t-body);font-weight:var(--w-strong);
+    border-radius:var(--radius);padding:5px var(--s-3);font:inherit;font-size:var(--t-body);font-weight:var(--w-strong);
     line-height:1.6;color:var(--color-neutral-600);cursor:pointer;white-space:nowrap;
     box-shadow:0 1px 2px rgba(15,23,42,.08);
     transition:border-color var(--dur-1),color var(--dur-1),background var(--dur-1)}
@@ -3417,7 +3466,7 @@ function redlineLayoutCss(){
      should shout louder than the record it sits in. */
   .redline-page .rl-cp-act-row{margin-top:6px}
   .redline-page .rl-cp-reopen{border:1px solid var(--color-divider);background:var(--color-surface);
-    border-radius:0;padding:3px 10px;font:inherit;font-size:var(--t-label);font-weight:var(--w-strong);
+    border-radius:var(--radius);padding:3px 10px;font:inherit;font-size:var(--t-label);font-weight:var(--w-strong);
     color:var(--color-neutral-600);cursor:pointer}
   .redline-page .rl-cp-reopen:hover{border-color:var(--accent-solid);color:var(--color-text)}
   /* ---- THE PANEL IS WHERE YOU WRITE (owner-asked 16 Aug 2026) ----
@@ -3433,7 +3482,7 @@ function redlineLayoutCss(){
      CONTRACT's type — a control shrinking because somebody made the paper
      smaller. The paper scales; the panel does not. */
   .redline-page .rl-cp-src{--doc-scale:1}
-  .redline-page .rl-cp-src .nego-editing{border:1px solid var(--accent-solid);border-radius:0;
+  .redline-page .rl-cp-src .nego-editing{border:1px solid var(--accent-solid);border-radius:var(--radius);
     padding:9px 11px;min-height:120px;font-size:var(--t-card);line-height:1.65;
     background:var(--color-surface);color:var(--color-text);outline:none}
   .redline-page .rl-cp-src .nego-editing.is-review{border-color:var(--color-divider);
@@ -3490,7 +3539,7 @@ function redlineLayoutCss(){
     display:flex;align-items:center;gap:6px;
     font:inherit;font-size:var(--t-label);font-weight:var(--w-title);cursor:pointer;
     padding:9px 6px 9px 5px;border:1px solid var(--color-divider);border-left:0;
-    border-radius:0;background:var(--color-surface);color:var(--color-text);
+    border-radius:var(--radius);background:var(--color-surface);color:var(--color-text);
     box-shadow:var(--shadow-md);transition:background var(--dur-1),padding var(--dur-1);
   }
   /* Outward, away from the wall — padding-left would push it INTO the page's
@@ -3525,19 +3574,19 @@ function redlineLayoutCss(){
      Same corner the fold chevron used, same id, and it is now what it always
      looked like: the way out of the panel. */
   .redline-page .rl-q-min{position:absolute;top:9px;right:6px;width:22px;height:22px;
-    display:grid;place-items:center;padding:0;border:0;border-radius:0;background:none;
+    display:grid;place-items:center;padding:0;border:0;border-radius:var(--radius);background:none;
     color:var(--color-neutral-500);cursor:pointer;transition:background var(--dur-1),color var(--dur-1)}
   .redline-page .rl-q-min:hover{background:var(--color-neutral-100);color:var(--color-text)}
   /* The stacked read-out belonged to the 34px rail, which no longer exists —
      the score reads on the door now (.rl-q-tab). Kept in the markup and unseen
      so the two numbers have exactly one source. */
   .redline-page .rl-q-mini{display:none}
-  .redline-page .rl-q-bar{height:5px;border-radius:0;background:var(--color-neutral-200);overflow:hidden}
-  .redline-page .rl-q-bar span{display:block;height:100%;border-radius:0;
+  .redline-page .rl-q-bar{height:5px;border-radius:var(--radius);background:var(--color-neutral-200);overflow:hidden}
+  .redline-page .rl-q-bar span{display:block;height:100%;border-radius:var(--radius);
     background:var(--accent-solid,var(--color-accent));transition:width var(--dur-3) ease}
   .redline-page .rl-q-row{display:flex;align-items:center;gap:4.5px;width:100%;text-align:left;
     font:inherit;font-size:var(--t-body);color:var(--color-text);cursor:pointer;background:none;
-    border:1px solid transparent;border-radius:0;padding:var(--s-2) 5px;margin-bottom:2px}
+    border:1px solid transparent;border-radius:var(--radius);padding:var(--s-2) 5px;margin-bottom:2px}
   .redline-page .rl-q-row:hover{background:var(--color-neutral-100)}
   .redline-page .rl-q-k{flex:1;min-width:0;font-size:var(--t-label);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -3546,7 +3595,7 @@ function redlineLayoutCss(){
      so its absence is itself information: this row is one ask. */
   .redline-page .rl-q-n{flex:none;font-family:var(--font-mono);font-size:var(--t-label);font-weight:var(--w-title);
     background:var(--color-neutral-100);color:var(--color-neutral-600);
-    border:1px solid var(--color-divider);border-radius:0;padding:0 6px}
+    border:1px solid var(--color-divider);border-radius:var(--radius);padding:0 6px}
   /* The mark column is a fixed width on every row, answered or not, so the
      clause names line up down the list instead of stepping in and out. */
   .redline-page .rl-q-mark{flex:none;width:14px;text-align:center;font-weight:var(--w-title);line-height:1}
@@ -3638,7 +3687,7 @@ function redlineLayoutCss(){
      on the split), the Doc tab's own grip. Hidden where the panes stack. */
   .redline-page .rl-resizer{position:absolute;top:0;bottom:0;left:66%;width:14px;z-index:6;
     cursor:col-resize;display:flex;align-items:center;justify-content:center;touch-action:none}
-  .redline-page .rl-resizer span{width:4px;height:72px;border-radius:0;
+  .redline-page .rl-resizer span{width:4px;height:72px;border-radius:var(--radius);
     background:var(--color-neutral-300);transition:background var(--dur-1)}
   /* At a limit: the grip goes amber so "it stopped" reads as a boundary rather
      than a broken control. */
@@ -3710,7 +3759,7 @@ function redlineLayoutCss(){
     .redline-page .rl-queue{position:static!important;transform:none!important;
       visibility:visible!important;
       width:auto!important;grid-column:auto;min-height:0;max-height:46vh;
-      border:1px solid var(--color-divider)!important;border-radius:0!important;
+      border:1px solid var(--color-divider)!important;border-radius:var(--radius)!important;
       box-shadow:0 1px 2px rgba(15,23,42,.05)!important;z-index:auto!important}
     .redline-page .rl-q-scrim,.redline-page .rl-q-tab,
     .redline-page .rl-q-min{display:none!important}
@@ -3757,14 +3806,14 @@ function redlineLayoutCss(){
      2026) — which is also what finally lets the warm paper read as paper,
      since a cream sheet on a white card is just a slightly grubby card. */
   .redline-page .rl-col{background:var(--color-surface);border:1px solid var(--color-divider);
-    border-radius:0;box-shadow:0 1px 2px rgba(15,23,42,.05);min-height:0;overflow:hidden;
+    border-radius:var(--radius);box-shadow:0 1px 2px rgba(15,23,42,.05);min-height:0;overflow:hidden;
     display:flex;flex-direction:column}
   ${''/* The clause panel wears .rl-col too, and this .rl-col rule sits LATER
-     in the sheet than .rl-cp's own border-radius:0 at equal specificity — so
+     in the sheet than .rl-cp's own border-radius:var(--radius) at equal specificity — so
      order handed the panel the column's 14px corners. Written at three
      classes so the square corner wins on specificity, not on position
      (owner-asked 16 Aug 2026: square, both seats). */}
-  .redline-page .rl-col.rl-cp{border-radius:0}
+  .redline-page .rl-col.rl-cp{border-radius:var(--radius)}
   ${''/* ---- THE CHANGE COLUMN IS ONE WHITE CARD AGAIN (owner-reported 22 Aug
          2026, off the mock-up's own rail: "tracked changes should be a large
          white card that looks like the image with change cards laid over the
@@ -3791,7 +3840,7 @@ function redlineLayoutCss(){
          THE HEAD'S HAIRLINE SURVIVES AND STILL MEANS WHAT IT MEANT: it
          separates the caption row from the cards. What it no longer has to do
          is stand in for a box that was not there. */}
-  .redline-page .rl-side{border-radius:0;overflow:visible;padding:var(--s-3) 0 0}
+  .redline-page .rl-side{border-radius:var(--radius);overflow:visible;padding:var(--s-3) 0 0}
   ${''/* radius 0, not 14: the doc column clips (overflow:hidden), so a radius
      here rounds the sheet's own corners even with no border of its own —
      see the square-corners note on .rl-paper. */}
@@ -3807,7 +3856,7 @@ function redlineLayoutCss(){
   @media (max-width:900px){
     .redline-page .rl-setwrap{border-left:0;padding-left:0}
   }
-  .redline-page #rl-changes-col{border-radius:0}
+  .redline-page #rl-changes-col{border-radius:var(--radius)}
   .redline-page #rl-changes-col h3{font-size:var(--t-label);letter-spacing:.08em;text-transform:uppercase;
     color:var(--color-neutral-500);font-weight:var(--w-title)}
   /* ---- THE COLUMN'S CONTROLS ARE THE CONTROLS ----
@@ -4054,19 +4103,16 @@ function redlineLayoutCss(){
          count in its words so the split is readable without opening it. */}
   .redline-page .rl-idx-filter{font:inherit;font-size:var(--t-meta);height:24px;
     border:1px solid var(--rl-btn-line);background:var(--color-surface);color:var(--color-text);
-    padding:0 var(--s-6) 0 var(--s-2);cursor:pointer;border-radius:0;appearance:none;-webkit-appearance:none;
+    padding:0 var(--s-6) 0 var(--s-2);cursor:pointer;border-radius:var(--radius);appearance:none;-webkit-appearance:none;
     background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235F6D6B' stroke-width='2'><path d='M6 9l6 6 6-6'/></svg>");
     background-repeat:no-repeat;background-position:right 6px center}
-  ${''/* WHILE THE COLUMN IS NARROWED IT SAYS SO. This is the third of the
-         filter's three safety properties, kept when the control became a
-         dropdown: a collapsed control can hide changes quietly, so the column
-         states the narrowing and offers the way back. The button carries
-         data-rl-cardfilter, so it is the page's existing door, not a second. */}
-  .redline-page .rl-idx-narrowed{display:flex;align-items:center;gap:var(--s-2);margin:10px var(--s-3) 0;
-    padding:5px 9px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);
-    font-size:var(--t-meta);color:var(--st-amber-fg)}
-  .redline-page .rl-idx-narrowed button{border:0;background:none;font:inherit;font-size:var(--t-meta);
-    font-weight:var(--w-title);color:var(--st-amber-fg);text-decoration:underline;cursor:pointer;padding:0}
+  ${''/* .rl-idx-narrowed IS RETIRED (owner-asked 26 Aug 2026) and its rules
+         go with it rather than being left to dress an element nothing draws.
+         It was the amber band reading "Showing one side only" and it was the
+         screen printing the reader's own choice back at them, twelve pixels
+         under a labelled dropdown already saying it. See the note at its
+         builder for what carries its safety property now. The dropdown above
+         is untouched. */}
 
   ${''/* ---- AND THE LAST BOLD ONE FLATTENED TOO (owner-asked 23 Aug 2026:
          "publish round should not be bold") ----

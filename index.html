@@ -162,6 +162,15 @@
   <symbol id="i-plus" viewBox="0 0 16 16"><path d="M8 2.6v10.8M2.6 8h10.8" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
   <symbol id="i-sliders" viewBox="0 0 16 16"><path d="M3 3v10M8 3v10M13 3v10" fill="none" stroke="currentColor"/><path d="M1.6 6h2.8M6.6 9.4h2.8M11.6 5h2.8" fill="none" stroke="currentColor"/></symbol>
   <symbol id="i-clock" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.6" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M8 4.8V8l2.4 1.6" fill="none" stroke="currentColor" stroke-width="1.3"/></symbol>
+  <!-- ADDED 26 Aug 2026 for the change card's overflow menu, which the owner
+       asked to carry a symbol on EVERY row. The menu's two decision verbs had
+       no mark in this set and there was nowhere honest to take one from — a
+       tick and a cross are the two most conventional marks in the product's
+       own vocabulary and every other row already had one. Same rule as the
+       rest of the sprite: a 16 box, a hairline stroke, currentColor, no fill,
+       so each inherits the verb's own ink. -->
+  <symbol id="i-check" viewBox="0 0 16 16"><path d="M3.2 8.4l3.1 3.1 6.5-6.9" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-x" viewBox="0 0 16 16"><path d="M4.2 4.2l7.6 7.6M11.8 4.2l-7.6 7.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></symbol>
 </defs></svg>
 
 
@@ -492,6 +501,17 @@
     --pad-row:var(--pad-row-y) var(--pad-row-x);
     --row-line-1:20px; --row-line-2:16px;
 
+    /* DASHBOARD CARD REGIONS — the three rows every Home card borrows, and the
+       reason both card rows are one height. MEASURED on the real dashboard
+       rather than chosen: the title's line box is 20px and its detail's 17, so
+       the header needs 37; an ordinary figure is 38 and the lifecycle card's
+       stage bar beside its money is 50, which is the tallest thing any card
+       puts in that region; and a footer is its 16px line plus a 7px rule and
+       7px of margin, so 31. They add to a 146px card against the 141 and 176
+       that were typed here before. Change one and both rows follow — that is
+       the whole point of their being tokens. See .hm-tiles. */
+    --hm-r1:37px; --hm-r2:50px; --hm-r3:31px;
+
     /* CONTROLS — the VERTICAL comes from a height rung, never from padding.
        That is what stops a control inventing a half-rung box: .ui-btn's
        `padding:6px var(--s-3)` computed to 30.8px against .ui-btn-lg's fixed 28,
@@ -585,11 +605,38 @@
        one 16x16 hairline family. */
     --icon-sm:14px; --icon:16px; --icon-lg:20px; --icon-stroke:1.5;
 
-    /* RADIUS IS ZERO AND THAT IS OWNER-RULED (20 Aug 2026, ~810 radii swept).
-       Named rather than deleted so a new component reaches for the token and
-       gets the product's answer instead of inventing 8px. True circles use
-       border-radius:50% and are not this token. */
-    --radius:0; --radius-sm:0; --radius-md:0; --radius-lg:0;
+    /* THE PLATFORM CARRIES A 2px CORNER, AND THE CONTRACT DOES NOT
+       (owner-ruled 26 Aug 2026, off a drawn preview at 0, 2, 3, 4 and 6px:
+       "implement 2px across the platform apart from the contracts themselves
+       when they are visible on screen. They should look like word documents
+       when they are on screen.")
+
+       THIS REVERSES "RADIUS IS ZERO" (20 Aug 2026) AND KEEPS ITS EXEMPTIONS.
+       That entry named the token "so a new component reaches for the token and
+       gets the product's answer instead of inventing 8px" — and for three days
+       it had ZERO consumers, so every one of ~810 corners was a hand-typed 0
+       and the token answered nobody. 800-odd of them read it now, which is what
+       makes changing this number again one line rather than another sweep.
+
+       THE FOUR RUNGS ARE DELIBERATELY EQUAL. One number, one look; splitting
+       them is a later decision and would want its own reason.
+
+       2px IS THE MILDEST THAT READS — measured on a preview before it was
+       built. Below it nothing changes; above it the product starts to feel
+       friendlier than a legal tool.
+
+       WHAT MAY NEVER READ THIS TOKEN, so the contract goes on reading as a
+       document rather than as a card: the cream sheet and its canvas, the
+       Document tab's surfaces, the room's two-pane paper, the counterparty's
+       sheet on screen and in print, the phone's paper, the Compare dialog, the
+       template library's preview panes — AND THE MARKS DRAWN ON IT (the green
+       insertion and the struck deletion). A tracked change in Word is a plain
+       highlight; a rounded one reads as a chip laid over the wording rather
+       than as the wording itself. Each keeps a literal 0 with a note beside it.
+
+       True circles use border-radius:50% (or .rounded-full) and are not this
+       token: a circle is not a corner. */
+    --radius:2px; --radius-sm:2px; --radius-md:2px; --radius-lg:2px;
 
     --shadow-sm:0 1px 2px rgba(15,23,42,.05), 0 10px 26px -12px rgba(15,23,42,.18);
     --shadow-md:0 4px 10px rgba(15,23,42,.07), 0 18px 40px -14px rgba(15,23,42,.25);
@@ -805,6 +852,21 @@
      without a single box moving. */
   .font-600{font-weight:var(--w-strong)}
   .font-700{font-weight:var(--w-title)}
+  /* ---- .rounded-full IS THE CIRCLE CLASS, AND IT WAS DRAWING SQUARES ----
+     (found 26 Aug 2026, while giving the platform its 2px corner.)
+     The 20 Aug sweep squared every .rounded* utility in the compiled blob and
+     took .rounded-full with it, so the 24 elements wearing it — the numbered
+     approval steps among them — have been squares ever since. That was a real
+     defect on its own; this change would have turned them into 2px squares,
+     which is why it is fixed in the same breath rather than logged.
+
+     WRITTEN HERE, NEVER IN THE BLOB, which is generated and would drop it on
+     the next build (the font-600 lesson). Same specificity, later in source,
+     so it wins on order with nothing shouted; the blob's own line is left
+     exactly as found.
+
+     AND IT IS NOT var(--radius): a circle is not a corner. */
+  .rounded-full{border-radius:9999px}
   /* ---- AND ONE CLASS THAT STILL NAMED THE OLD FACE (25 Aug 2026, the Plex swap) ----
      The compiled blob above bakes a literal family into three rules:
      `:host,html`, `.font-display` and `.font-serif`. TWO OF THE THREE WERE
@@ -951,14 +1013,14 @@
   .blueprint>.corner{display:none;}
 
   /* card rounding */
-  .bp-round{border-radius:0;}
+  .bp-round{border-radius:var(--radius);}
   /* the Doc right panel is a scrolling flex column; its cards carry
      overflow:hidden (→ flex min-height:0), so pin flex-shrink to stop them
      collapsing to zero height when the content is taller than the panel */
   #doc-right>*{flex-shrink:0;}
 
   /* status badge — pill-shaped chip (optional leading dot) */
-  .badge{display:inline-flex;align-items:center;gap:5px;font-size:var(--t-label);font-weight:var(--w-title);letter-spacing:.03em;padding:3px 9px;border-radius:0;white-space:nowrap;font-family:var(--font-body);}
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:var(--t-label);font-weight:var(--w-title);letter-spacing:.03em;padding:3px 9px;border-radius:var(--radius);white-space:nowrap;font-family:var(--font-body);}
   .badge>.dot{width:6px;height:6px;border-radius:50%;flex:none;}
 
   /* scan-finding severity (SEV_META in js/ai.js) — status tokens, so the
@@ -1136,7 +1198,7 @@
      exactly that until this line. */
   .sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
     overflow:hidden;clip:rect(0,0,0,0);clip-path:inset(50%);white-space:nowrap;border:0}
-  .ui-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-body);line-height:var(--lh-tight);color:var(--accent-ink);background:transparent;border:1px solid var(--btn-edge);border-radius:0;
+  .ui-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-body);line-height:var(--lh-tight);color:var(--accent-ink);background:transparent;border:1px solid var(--btn-edge);border-radius:var(--radius);
     /* HEIGHT COMES FROM A RUNG, NEVER FROM PADDING. `padding:6px var(--s-3)` on a
        14px/1.2 label computes to 30.8px — 2.8px TALLER than .ui-btn-lg's fixed
        28, under a source comment calling the large one the larger. A rung plus
@@ -1259,7 +1321,7 @@
      one the reference draws. `ping` and `.live-dot::after` are RETIRED — flag
      any mention as stale.
      A DEFECT GOES WITH THEM, and it is why the retirement is a mercy: that
-     ripple scaled to 2.1x while carrying `border-radius:0` from the 20 Aug
+     ripple scaled to 2.1x while carrying `border-radius:var(--radius)` from the 20 Aug
      corner sweep, so what was drawn as an expanding RING had been drawing as an
      expanding SQUARE ever since. `.live-dot` keeps its position:relative — the
      class still marks a dot, it just no longer pulses. */
@@ -1273,7 +1335,7 @@
      inset from the track by a transparent border, so it is still easy to grab
      and no longer competes with the card's own edge. */
   .scroll-thin::-webkit-scrollbar{width:9px;height:9px;}
-  .scroll-thin::-webkit-scrollbar-thumb{background:var(--color-neutral-300);border-radius:0;
+  .scroll-thin::-webkit-scrollbar-thumb{background:var(--color-neutral-300);border-radius:var(--radius);
     border:2px solid transparent;background-clip:content-box;}
   .scroll-thin::-webkit-scrollbar-thumb:hover{background:var(--color-neutral-400);background-clip:content-box;}
   .scroll-thin::-webkit-scrollbar-track{background:transparent;}
@@ -1304,8 +1366,8 @@
   /* ============================================================
      SHELL — top header / sidebar / command bar / context panel
      ============================================================ */
-  .nav-item{position:relative;display:flex;align-items:center;gap:11px;width:100%;border:1px solid transparent;background:none;color:var(--color-neutral-600);font:inherit;font-family:var(--font-body);font-size:var(--t-body);font-weight:var(--w-body);padding:9px var(--s-3);cursor:pointer;text-align:left;border-radius:0;}
-  .nav-item .nav-rail{position:absolute;left:0;top:4px;bottom:4px;width:2px;background:transparent;border-radius:0;}
+  .nav-item{position:relative;display:flex;align-items:center;gap:11px;width:100%;border:1px solid transparent;background:none;color:var(--color-neutral-600);font:inherit;font-family:var(--font-body);font-size:var(--t-body);font-weight:var(--w-body);padding:9px var(--s-3);cursor:pointer;text-align:left;border-radius:var(--radius);}
+  .nav-item .nav-rail{position:absolute;left:0;top:4px;bottom:4px;width:2px;background:transparent;border-radius:var(--radius);}
   .nav-item svg,.nav-item i{flex:none;opacity:.85;}
   .nav-item:hover{background:var(--color-neutral-100);color:var(--color-text);}
   .nav-item:hover svg{opacity:1;}
@@ -1322,14 +1384,14 @@
      teal for portfolio totals, amber for work waiting on someone, neutral
      gray for everything else — and a zero always renders neutral, because a
      colored tag with nothing behind it is a false alarm. */
-  .nav-count{flex:none;font-size:var(--t-label);font-family:var(--font-mono);font-weight:var(--w-title);padding:1px 7px;border-radius:0;background:var(--color-neutral-100);color:var(--color-neutral-500);white-space:nowrap;}
+  .nav-count{flex:none;font-size:var(--t-label);font-family:var(--font-mono);font-weight:var(--w-title);padding:1px 7px;border-radius:var(--radius);background:var(--color-neutral-100);color:var(--color-neutral-500);white-space:nowrap;}
   .nav-count:empty{display:none;}
   .nav-count[data-tone="teal"]{background:color-mix(in srgb,var(--accent-solid) 14%,transparent);color:var(--accent-ink-700);}
   html.dark .nav-count[data-tone="teal"]{color:var(--color-accent-400);}
   .nav-count[data-tone="amber"]{background:rgba(245,158,11,.18);color:#b45309;}
   html.dark .nav-count[data-tone="amber"]{color:#fcd34d;}
   /* the design's right-aligned tag on a nav row ("2 Open" on Redline) */
-  .nav-badge{margin-left:auto;flex:none;font-size:var(--t-figure);font-weight:var(--w-title);padding:1px 6px;border-radius:0;
+  .nav-badge{margin-left:auto;flex:none;font-size:var(--t-figure);font-weight:var(--w-title);padding:1px 6px;border-radius:var(--radius);
     background:rgba(245,158,11,.2);color:#b45309;white-space:nowrap;}
   html.dark .nav-badge{color:#fcd34d;}
   /* Collapsible nav sections: the group label is a +/- toggle that shows or
@@ -1345,7 +1407,7 @@
   .nav-section-head.static{cursor:default;}
   .nav-section-head.static:hover{color:var(--color-neutral-400);}
   .nav-plus{margin-left:auto;position:relative;width:12px;height:12px;flex:none;opacity:.8;}
-  .nav-plus::before,.nav-plus::after{content:'';position:absolute;background:currentColor;border-radius:0;transition:opacity var(--dur-1);}
+  .nav-plus::before,.nav-plus::after{content:'';position:absolute;background:currentColor;border-radius:var(--radius);transition:opacity var(--dur-1);}
   .nav-plus::before{left:1px;right:1px;top:5px;height:2px;}   /* horizontal bar (always shown) */
   .nav-plus::after{top:1px;bottom:1px;left:5px;width:2px;}    /* vertical bar (hidden when open → minus) */
   .nav-section.open .nav-plus::after{opacity:0;}
@@ -1358,7 +1420,7 @@
 
   /* top-header global search (⌘K) — a flex item that may shrink, so the
      jurisdiction switcher and the search never overlap on narrower shells */
-  .cmd-search{display:flex;align-items:center;gap:var(--s-2);border:1px solid var(--color-divider);background:var(--color-surface);padding:6px var(--s-3);flex:0 1 24rem;min-width:130px;border-radius:0;transition:border-color var(--dur-1),box-shadow var(--dur-1);}
+  .cmd-search{display:flex;align-items:center;gap:var(--s-2);border:1px solid var(--color-divider);background:var(--color-surface);padding:6px var(--s-3);flex:0 1 24rem;min-width:130px;border-radius:var(--radius);transition:border-color var(--dur-1),box-shadow var(--dur-1);}
   .cmd-search:focus-within{border-color:var(--color-accent-500);box-shadow:0 0 0 1px var(--color-accent-500);}
   .cmd-search input{border:0;outline:0;background:transparent;font:inherit;font-family:var(--font-body);font-size:var(--t-body);flex:1;min-width:0;color:inherit;}
 
@@ -1779,7 +1841,7 @@
      hover, per the owner's ruling that no state dot is wanted. */
   .room-checks{ display:flex; align-items:center; gap:2px; margin-left:auto; flex:none; }
   .room-check{ width:28px; height:28px; display:grid; place-items:center; padding:0;
-    border:1px solid transparent; border-radius:0; background:transparent; cursor:pointer;
+    border:1px solid transparent; border-radius:var(--radius); background:transparent; cursor:pointer;
     color:var(--color-neutral-600); }
   .room-check:hover{ background:var(--nav-well); color:var(--accent-ink); }
   .room-check.has-run{ color:var(--accent-ink); }
@@ -1802,7 +1864,7 @@
     margin:0; text-align:left; cursor:pointer; max-width:100%; min-width:0;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:block; }
   .room-title-back:hover{ color:var(--accent-ink); }
-  .room-title-back:focus-visible{ outline:2px solid var(--color-accent); outline-offset:3px; border-radius:0; }
+  .room-title-back:focus-visible{ outline:2px solid var(--color-accent); outline-offset:3px; border-radius:var(--radius); }
   /* ---- WHAT THE NEGOTIATE TAB'S COUNT BECAME ----
      The amber pill on that tab was how a reader on Key terms knew answers were
      owed. The tab is gone, so the signal reads on the round line instead — same
@@ -1812,7 +1874,7 @@
   .room-sub-needs{ font:inherit; font-weight:var(--w-strong); color:var(--st-amber-fg);
     background:none; border:0; padding:0; margin:0; cursor:pointer; }
   .room-sub-needs:hover{ text-decoration:underline; }
-  .room-sub-needs:focus-visible{ outline:2px solid var(--color-accent); outline-offset:2px; border-radius:0; }
+  .room-sub-needs:focus-visible{ outline:2px solid var(--color-accent); outline-offset:2px; border-radius:var(--radius); }
   /* The Document tab's one door, when it has answers waiting behind it. The
      button is already the head's filled primary; this is the amber dot that
      says the press is owed rather than merely available. */
@@ -1838,7 +1900,7 @@
   .ngl-head p{ margin:0 0 18px; font-size:var(--t-body); color:var(--color-neutral-600); }
   .ngl-list{ display:flex; flex-direction:column; gap:var(--s-2); }
   .ngl-row{ display:flex; align-items:center; gap:14px; width:100%; text-align:left;
-    font:inherit; cursor:pointer; padding:13px 15px; border-radius:0;
+    font:inherit; cursor:pointer; padding:13px 15px; border-radius:var(--radius);
     border:1px solid var(--color-divider); background:var(--color-surface);
     color:var(--color-text); transition:border-color var(--dur-1), background var(--dur-1); }
   .ngl-row:hover{ border-color:var(--color-accent); background:var(--st-steel-bg); }
@@ -1869,14 +1931,17 @@
      like any other and the 23 Aug ruling is that every cell reads at one size.
      .room-facet .v .ngl-w keeps its own weight: one builder, two homes, and
      only the LIST was in the ask. */
+  /* NO RADIUS AT ALL, not even the platform's (26 Aug 2026): this is a bare
+     coloured WORD — no fill, no border, no padding — and there is no box to
+     round. f184 asserts the absence rather than a literal 0. */
   .ngl-w{ flex:none; font-size:var(--t-meta); font-weight:var(--w-body); white-space:nowrap;
-    background:none; border:0; padding:0; border-radius:0; }
+    background:none; border:0; padding:0; }
   .ngl-w-you{ color:var(--st-amber-fg); }
   .ngl-w-them{ color:var(--st-gray-fg); }
   .ngl-w-clear{ color:var(--st-green-fg); }
   tr[data-nego-row]:hover .ngl-w{ text-decoration:underline; }
   .ngl-empty{ background:var(--color-surface); border:1px solid var(--color-divider);
-    border-radius:0; padding:34px; text-align:center; box-shadow:var(--shadow-sm); }
+    border-radius:var(--radius); padding:34px; text-align:center; box-shadow:var(--shadow-sm); }
   /* ---- THE BAND ----
      A full-width heading between rows: a coloured dot, the name in small caps,
      the count. It is the thing a flat register cannot produce, and it is what
@@ -1905,7 +1970,7 @@
     color:var(--color-neutral-600); }
   .ngl-band-n{ font-family:var(--font-mono); font-size:var(--t-label); font-weight:var(--w-title);
     color:var(--color-neutral-600); background:var(--color-surface);
-    border:1px solid var(--color-divider); border-radius:0; padding:0 7px; }
+    border:1px solid var(--color-divider); border-radius:var(--radius); padding:0 7px; }
   /* ---- ITS TITLE STARTS WHERE EVERY OTHER PAGE'S DOES (owner-asked 25 Aug
      2026: "the distance between the edge at the top and the header should be
      the same across all pages") ----
@@ -1926,7 +1991,7 @@
   .ngl-head-table p{ margin:2px 0 0; }
   .ngl-live{ font-family:var(--font-mono); font-size:var(--t-meta); font-weight:var(--w-title);
     color:var(--st-steel-fg); background:var(--st-steel-bg);
-    border:1px solid var(--st-steel-line); border-radius:0; padding:1px 9px; }
+    border:1px solid var(--st-steel-line); border-radius:var(--radius); padding:1px 9px; }
   .ngl-empty h3{ margin:0 0 6px; font-size:16px; font-weight:var(--w-title); }
   .ngl-empty p{ margin:0 0 var(--s-4); font-size:var(--t-body); color:var(--color-neutral-600);
     max-width:46ch; margin-inline:auto; line-height:1.6; }
@@ -1979,7 +2044,7 @@
      greying the whole column would make it read as broken rather than closed. */
   .sign-closed-note{ margin:0; padding:9px var(--s-3); font-size:var(--t-meta); line-height:1.55;
     border:1px solid var(--st-green-line); background:var(--st-green-bg);
-    color:var(--st-green-fg); border-radius:0; }
+    color:var(--st-green-fg); border-radius:var(--radius); }
   .sign-side-closed button:disabled,
   .sign-side-closed select:disabled,
   .sign-side-closed input:disabled{ opacity:.5; cursor:default; }
@@ -1989,7 +2054,7 @@
   .up-grid > .up-f > .up-l{ align-self:start; }
   .up-grid > .up-f > .up-h:empty{ display:none; }
   .dk-chip{ display:inline-flex; align-items:center; gap:7px; flex:none; cursor:default;
-    padding:0 14px 0 0; margin-right:2px; border-radius:0; font:inherit; font-size:var(--t-meta);
+    padding:0 14px 0 0; margin-right:2px; border-radius:var(--radius); font:inherit; font-size:var(--t-meta);
     border:0; border-right:1px solid var(--color-divider); background:none;
     color:var(--color-neutral-600); box-shadow:none;
     max-width:min(46vw,260px); }
@@ -2034,7 +2099,7 @@
     .dk-chip.dk-chip-empty .dk-who{ display:inline; }
     .dk-chip.dk-chip-empty{ padding:0 10px; } }
   .dk-face-more{ background:var(--color-bg); color:var(--color-neutral-600); font-size:var(--t-figure); }
-  .dk-pip{ flex:none; min-width:17px; height:17px; padding:0 var(--s-1); border-radius:0;
+  .dk-pip{ flex:none; min-width:17px; height:17px; padding:0 var(--s-1); border-radius:var(--radius);
     background:var(--st-amber-fg); color:var(--color-surface); font-family:var(--font-mono);
     font-size:var(--t-label); font-weight:var(--w-title); display:inline-flex; align-items:center; justify-content:center; }
   /* ---- THE ONE NOTICE, AND ONLY FOR SOMEBODY WHO CANNOT ACT ----
@@ -2046,7 +2111,7 @@
      contract. The phone still stacks it inline, where a floating card would
      cover the very document it is talking about. */
   .dk-notice{ display:flex; align-items:center; gap:10px; padding:9px 13px; margin:0 0 10px;
-    border-radius:0; border:1px solid var(--st-amber-line); background:var(--st-amber-bg);
+    border-radius:var(--radius); border:1px solid var(--st-amber-line); background:var(--st-amber-bg);
     color:var(--st-amber-fg); font-size:var(--t-meta); line-height:1.5; }
   /* The dismiss. Quiet, in the notice's own ink, and the same shape as the
      review banner's — two notices in one corner should not close two ways. */
@@ -2055,15 +2120,15 @@
     padding:1px 2px; margin:-1px -3px 0 2px; }
   .dk-notice-x:hover{ opacity:1; }
   .dk-notice-tag{ flex:none; font-family:var(--font-mono); font-size:var(--t-figure); font-weight:var(--w-title);
-    letter-spacing:.07em; border:1px solid currentColor; border-radius:0; padding:2px 6px; }
+    letter-spacing:.07em; border:1px solid currentColor; border-radius:var(--radius); padding:2px 6px; }
   .dk-notice-txt{ flex:1; min-width:0; }
   .dk-notice-said{ flex:none; opacity:.8; font-style:italic; }
   .dk-notice-btn{ flex:none; font:inherit; font-size:var(--t-label); font-weight:var(--w-title); cursor:pointer;
-    border-radius:0; padding:var(--s-1) 10px; border:1.5px solid currentColor; background:transparent;
+    border-radius:var(--radius); padding:var(--s-1) 10px; border:1.5px solid currentColor; background:transparent;
     color:inherit; }
   /* Rows in the desk sheet. */
   .dk-row{ display:flex; align-items:center; gap:9px; border:1px solid var(--color-divider);
-    border-radius:0; padding:7px 10px; margin-bottom:6px; background:var(--color-surface); }
+    border-radius:var(--radius); padding:7px 10px; margin-bottom:6px; background:var(--color-surface); }
   .dk-row-id{ flex:1; min-width:0; display:flex; flex-direction:column; }
   .dk-row-name{ font-size:var(--t-body); font-weight:var(--w-strong); color:var(--color-text); }
   .dk-row-sub{ font-size:var(--t-label); color:var(--color-neutral-600); overflow:hidden;
@@ -2094,7 +2159,7 @@
      (reviewDialogHeadHtml) and js/desk.js calls it. */
   .rvd-head{ display:flex; align-items:flex-start; gap:11px; padding:15px 20px 13px;
     background:var(--st-steel-bg); border-bottom:1px solid var(--color-accent-300); }
-  .rvd-ico{ flex:none; width:30px; height:30px; border-radius:0; display:grid;
+  .rvd-ico{ flex:none; width:30px; height:30px; border-radius:var(--radius); display:grid;
     place-items:center; font-size:var(--t-card); line-height:1; background:var(--color-surface);
     border:1px solid var(--color-accent-300); box-shadow:0 1px 2px rgba(15,23,42,.06); }
   .rvd-htxt{ flex:1; min-width:0; }
@@ -2111,11 +2176,11 @@
   /* The one line a dialog ends on that is a FACT rather than a control — what
      the counterparty is told, what the reviewer will be looking at. */
   .rvd-note{ border:1px solid var(--st-steel-line); background:var(--st-steel-bg);
-    color:var(--st-steel-fg); border-radius:0; padding:10px var(--s-3);
+    color:var(--st-steel-fg); border-radius:var(--radius); padding:10px var(--s-3);
     font-size:var(--t-meta); line-height:1.55; }
   /* The entry chooser's two big options. */
   .rvd-opt{ display:flex; flex-direction:column; align-items:flex-start; gap:3px; width:100%;
-    text-align:left; padding:var(--s-3) 14px; margin-top:9px; border-radius:0; cursor:pointer;
+    text-align:left; padding:var(--s-3) 14px; margin-top:9px; border-radius:var(--radius); cursor:pointer;
     font:inherit; border:1.5px solid var(--color-divider); background:var(--color-surface);
     transition:border-color var(--dur-1), background var(--dur-1); }
   .rvd-opt:hover{ border-color:var(--color-accent); background:var(--st-steel-bg); }
@@ -2197,7 +2262,7 @@
      current state, whether it has to be answered. It is a button because it is
      a door; nothing on it is a control of its own. */
   .st-rows{ display:flex; flex-direction:column; border:1px solid var(--color-divider);
-    border-radius:0; overflow:hidden; background:var(--color-surface);
+    border-radius:var(--radius); overflow:hidden; background:var(--color-surface);
     box-shadow:var(--shadow-sm); }
   .st-row{ display:flex; align-items:center; gap:11px; width:100%; text-align:left;
     padding:11px 14px; border:0; border-bottom:1px solid var(--color-divider);
@@ -2216,7 +2281,7 @@
     letter-spacing:.09em; text-transform:uppercase; color:var(--color-neutral-500); }
   .st-row-tag[data-req]{ color:var(--st-amber-fg); font-weight:var(--w-title); }
   .st-row-chip{ flex:none; font-size:var(--t-label); font-weight:var(--w-title); font-family:var(--font-mono);
-    border-radius:0; padding:2px 9px; background:var(--st-steel-bg);
+    border-radius:var(--radius); padding:2px 9px; background:var(--st-steel-bg);
     color:var(--st-steel-fg); }
   .st-row-go{ flex:none; color:var(--color-neutral-400); font-size:var(--t-card); line-height:1; }
   /* ---- people ---- */
@@ -2224,7 +2289,7 @@
   .st-people-count{ font-family:var(--font-heading); font-weight:var(--w-strong); font-size:var(--t-card);
     color:var(--color-text); flex:1; }
   .st-people{ display:flex; flex-direction:column; border:1px solid var(--color-divider);
-    border-radius:0; overflow:hidden; background:var(--color-surface);
+    border-radius:var(--radius); overflow:hidden; background:var(--color-surface);
     box-shadow:var(--shadow-sm); }
   .st-person{ display:flex; align-items:center; gap:11px; width:100%; text-align:left;
     padding:10px 14px; border:0; border-bottom:1px solid var(--color-divider);
@@ -2242,7 +2307,7 @@
      is a column of buttons that open an editor, this one is a table you read.
      So no cursor, no hover tint, no ›, and the only press on the page is a
      mailto — a directory you cannot act on is a list. */
-  .dir-card{ border:1px solid var(--color-divider); border-radius:0; overflow:hidden;
+  .dir-card{ border:1px solid var(--color-divider); border-radius:var(--radius); overflow:hidden;
     background:var(--color-surface); box-shadow:var(--shadow-sm); }
   .dir-head{ display:flex; align-items:center; gap:10px; padding:10px 14px;
     border-bottom:1px solid var(--color-divider); background:var(--color-bg); }
@@ -2260,7 +2325,7 @@
   .dir-you{ font-weight:var(--w-body); color:var(--color-neutral-500); font-size:var(--t-label); }
   .dir-title{ font-size:var(--t-label); color:var(--color-neutral-600); }
   .dir-role{ flex:none; font-size:var(--t-label); font-weight:var(--w-strong); letter-spacing:.04em;
-    padding:3px 10px; border-radius:0; background:var(--st-gray-bg); color:var(--st-gray-fg); }
+    padding:3px 10px; border-radius:var(--radius); background:var(--st-gray-bg); color:var(--st-gray-fg); }
   .dir-mail{ flex:none; width:15rem; max-width:38%; font-size:var(--t-label); overflow:hidden;
     text-overflow:ellipsis; white-space:nowrap; text-align:right; }
   .dir-mail a{ color:var(--accent-ink-700); text-decoration:none; }
@@ -2275,12 +2340,12 @@
     .dir-row{ flex-wrap:wrap; }
     .dir-mail{ width:100%; max-width:100%; text-align:left; padding-left:41px; }
   }
-  .st-chip{ flex:none; font-size:var(--t-label); font-weight:var(--w-title); border-radius:0;
+  .st-chip{ flex:none; font-size:var(--t-label); font-weight:var(--w-title); border-radius:var(--radius);
     padding:3px 10px; background:var(--st-green-bg); color:var(--st-green-fg); }
   .st-chip[data-tone="warn"]{ background:var(--st-amber-bg); color:var(--st-amber-fg); }
   /* AN AMBER COUNT WITH NOBODY'S NAME ON IT IS A NUMBER YOU CANNOT ACT ON. */
   .st-banner{ display:flex; align-items:flex-start; gap:10px; border:1px solid var(--st-amber-line);
-    background:var(--st-amber-bg); border-left:4px solid var(--st-amber-dot); border-radius:0;
+    background:var(--st-amber-bg); border-left:4px solid var(--st-amber-dot); border-radius:var(--radius);
     padding:10px 13px; margin-bottom:var(--s-3); font-size:var(--t-meta); line-height:1.5;
     color:var(--st-amber-fg); }
   .st-banner-ic{ flex:none; color:var(--st-amber-dot); display:inline-flex; margin-top:1px; }
@@ -2295,7 +2360,7 @@
   .st-drawer.open{ transform:translateX(0); }
   .st-dhead{ position:relative; flex:none; }
   .st-dhead .rvd-head{ padding-right:44px; }
-  .st-dx{ position:absolute; top:12px; right:12px; width:26px; height:26px; border-radius:0;
+  .st-dx{ position:absolute; top:12px; right:12px; width:26px; height:26px; border-radius:var(--radius);
     border:1px solid var(--color-accent-300); background:var(--color-surface); cursor:pointer;
     font-size:var(--t-meta); line-height:1; color:var(--accent-ink); }
   .st-dbody{ flex:1; min-height:0; overflow-y:auto; padding:15px 20px; }
@@ -2308,7 +2373,7 @@
      46px the moment it appeared, which is the fault this page was rebuilt to
      stop; pinned in the foot it also cannot be scrolled out of view. */
   .st-refusal{ border:1px solid var(--st-ruby-line); background:var(--st-ruby-bg);
-    color:var(--st-ruby-fg); border-radius:0; padding:9px var(--s-3);
+    color:var(--st-ruby-fg); border-radius:var(--radius); padding:9px var(--s-3);
     font-size:var(--t-meta); line-height:1.55; font-weight:var(--w-strong); }
   .st-sec{ margin-bottom:18px; padding-bottom:2px; }
   .st-sec + .st-sec{ border-top:1px solid var(--color-divider); padding-top:15px; }
@@ -2320,7 +2385,7 @@
   .st-note{ display:block; font-size:var(--t-label); line-height:1.5; color:var(--color-neutral-600);
     margin-top:var(--s-1); }
   .st-quiet{ border:1px solid var(--color-divider); background:var(--color-bg);
-    border-radius:0; padding:10px var(--s-3); font-size:var(--t-meta); line-height:1.55;
+    border-radius:var(--radius); padding:10px var(--s-3); font-size:var(--t-meta); line-height:1.55;
     color:var(--color-neutral-700); }
   .st-facts{ display:flex; flex-direction:column; gap:5px; font-size:var(--t-meta); }
   .st-facts > div{ display:flex; align-items:baseline; gap:var(--s-2); }
@@ -2330,7 +2395,7 @@
     white-space:nowrap; color:var(--color-text); }
   .st-roles{ display:flex; flex-direction:column; gap:6px; }
   .st-role, .st-toggle{ display:flex; align-items:flex-start; gap:9px; padding:9px 11px;
-    border:1px solid var(--color-divider); border-radius:0; cursor:pointer;
+    border:1px solid var(--color-divider); border-radius:var(--radius); cursor:pointer;
     font-size:var(--t-meta); background:var(--color-surface); }
   .st-role:hover, .st-toggle:hover{ border-color:var(--color-accent); }
   .st-role[data-locked]{ cursor:default; opacity:.65; }
@@ -2341,9 +2406,9 @@
   .st-frow{ display:flex; align-items:center; gap:9px; padding:7px 2px;
     border-bottom:1px solid var(--color-divider); font-size:var(--t-meta); }
   .st-frow:last-child{ border-bottom:0; }
-  .st-fdot{ flex:none; width:9px; height:9px; border-radius:0; }
+  .st-fdot{ flex:none; width:9px; height:9px; border-radius:var(--radius); }
   .st-fname{ flex:1; min-width:0; font-size:var(--t-meta); font-weight:var(--w-strong); color:var(--color-text);
-    border:1px solid transparent; background:none; border-radius:0; padding:3px 5px;
+    border:1px solid transparent; background:none; border-radius:var(--radius); padding:3px 5px;
     font-family:inherit; outline:none; }
   input.st-fname:hover, input.st-fname:focus{ border-color:var(--color-divider);
     background:var(--color-surface); }
@@ -2369,7 +2434,7 @@
   .dk-face-sm{ width:18px; height:18px; font-size:8px; box-shadow:none; }
   .dk-card-instead{ font-size:var(--t-label); line-height:1.5; color:var(--color-neutral-700);
     background:var(--color-bg); border:1px solid var(--color-divider);
-    border-radius:0; padding:6px 9px; margin-top:7px; }
+    border-radius:var(--radius); padding:6px 9px; margin-top:7px; }
   /* Draft new agreement. Solid green, by the owner's call: starting the next
      agreement is a first-class act here, not a second thought beside whatever
      this one contract happens to need. .ui-btn-primary carries the fill; this
@@ -2415,11 +2480,11 @@
   /* A MENU IS A LAYER ABOVE THE PAGE, so it takes --surface-3 rather than the
      same white as the card it hangs over — see the note by the token. */
   .room-menu{ position:absolute; right:0; top:calc(100% + 6px); z-index:60; min-width:252px;
-    background:var(--surface-3); border:1px solid var(--color-divider); border-radius:0;
+    background:var(--surface-3); border:1px solid var(--color-divider); border-radius:var(--radius);
     box-shadow:0 10px 30px rgba(15,23,42,.16); padding:6px; }
   .room-menu button{ display:flex; align-items:center; gap:9px; width:100%; text-align:left;
     border:0; background:none; cursor:pointer; font:inherit; font-size:var(--t-body); font-weight:var(--w-body);
-    color:var(--color-text); border-radius:0; padding:var(--s-2) 10px; }
+    color:var(--color-text); border-radius:var(--radius); padding:var(--s-2) 10px; }
   .room-menu button:hover{ background:var(--color-neutral-100); }
   .room-menu button .mnote{ margin-left:auto; font-size:var(--t-label); color:var(--color-neutral-500);
     font-weight:var(--w-body); }
@@ -2502,7 +2567,7 @@
      shade the three resting tabs read as captions under the live one. The live
      state is what marks the live tab; the resting ones do not have to be faded
      as well. */
-  .room-tab{ display:flex; align-items:center; gap:6px; border:0; border-radius:0;
+  .room-tab{ display:flex; align-items:center; gap:6px; border:0; border-radius:var(--radius);
     border-bottom:2px solid transparent; background:none; margin-bottom:-1px;
     padding:9px 1px; font:inherit; font-size:var(--t-body); font-weight:var(--w-body); cursor:pointer;
     white-space:nowrap; color:var(--color-text);
@@ -2520,7 +2585,7 @@
      and at most one button. Not a card — it explains the page, it is not part
      of it. */
   .room-quiet{ display:flex; align-items:center; gap:9px; flex:none; flex-wrap:wrap;
-    background:var(--color-surface); border:1px solid var(--color-divider); border-radius:0;
+    background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius);
     padding:7px 13px; font-size:var(--t-meta); line-height:1.5; color:var(--color-neutral-700); }
   .room-quiet .rq-go{ margin-left:auto; flex:none; }
 
@@ -2535,7 +2600,7 @@
      commercial term is something a reader must be able to point at. */
   .field-frozen{ font-family:inherit!important; font-weight:var(--w-strong);
     color:var(--color-doc-text); background:var(--st-steel-bg);
-    border-bottom:1.5px solid var(--color-accent-400); border-radius:0;
+    border-bottom:1.5px solid var(--color-accent-400); border-radius:var(--radius);
     padding:0 var(--s-1); }
   html.dark .field-frozen{ background:rgb(var(--color-accent-500-rgb)/.15); border-bottom-color:var(--color-accent-500); }
   .field-frozen[title]{ background:var(--st-amber-bg); border-bottom-color:var(--st-amber-dot);
@@ -2618,7 +2683,7 @@
     background:none; border:0; padding:0; touch-action:none; }
   .kt-resizer::before{ content:''; position:absolute; top:2px; bottom:2px;
     left:50%; width:1px; margin-left:-0.5px; background:var(--color-divider);
-    border-radius:0; transition:background var(--dur-1), width var(--dur-1); }
+    border-radius:var(--radius); transition:background var(--dur-1), width var(--dur-1); }
   .kt-resizer:hover::before,.kt-resizer:focus-visible::before,
   .kt-resizer[data-drag]::before{ background:var(--color-accent); width:3px; margin-left:-1.5px; }
   .kt-resizer:focus-visible{ outline:2px solid var(--color-accent); outline-offset:-2px; }
@@ -2639,7 +2704,7 @@
      Values read as values. The row lights faintly on hover to say it can be
      changed, and only the row you press turns into a field. */
   .kt-row{ display:flex; align-items:center; gap:10px; min-height:34px;
-    padding:5px var(--s-2); margin:0 -8px; border-radius:0;
+    padding:5px var(--s-2); margin:0 -8px; border-radius:var(--radius);
     border-bottom:1px solid var(--color-divider); }
   .kt-row:last-of-type{ border-bottom:0; }
   .kt-k{ color:var(--color-neutral-600); font-size:var(--t-meta); flex:1; min-width:0; }
@@ -2666,7 +2731,7 @@
     justify-content:flex-end;
     border:1px solid var(--color-divider); background:var(--color-bg);
     cursor:pointer; font:inherit; font-size:var(--t-meta); font-weight:var(--w-strong); color:inherit;
-    padding:3px 7px; margin:-3px -7px; border-radius:0; text-align:right;
+    padding:3px 7px; margin:-3px -7px; border-radius:var(--radius); text-align:right;
     transition:border-color var(--dur-1), background var(--dur-1); }
   .kt-row.is-editable .kt-read[data-kt-empty]{ border-style:dashed;
     min-width:138px; justify-content:space-between;
@@ -2758,7 +2823,7 @@
      resting FILL, and the utilities that were on them only ever set a border. */
   .ob-btn{ display:inline-flex; align-items:center; gap:6px; cursor:pointer;
     font:inherit; font-size:var(--t-label); font-weight:var(--w-strong); line-height:1.2;
-    border:1px solid; border-radius:0; padding:6px var(--s-3);
+    border:1px solid; border-radius:var(--radius); padding:6px var(--s-3);
     transition:background var(--dur-1), border-color var(--dur-1); }
   .ob-btn-add{ color:var(--accent-ink);
     border-color:color-mix(in srgb,var(--color-accent) 45%,var(--color-divider));
@@ -2776,8 +2841,8 @@
   .risk-row{ display:flex; align-items:center; gap:9px; padding:var(--s-1) 0; font-size:var(--t-meta); }
   .risk-k{ flex:0 0 40%; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
     color:var(--color-neutral-700); }
-  .risk-bar{ flex:1; height:6px; border-radius:0; background:var(--color-neutral-200); overflow:hidden; }
-  .risk-bar i{ display:block; height:100%; border-radius:0; }
+  .risk-bar{ flex:1; height:6px; border-radius:var(--radius); background:var(--color-neutral-200); overflow:hidden; }
+  .risk-bar i{ display:block; height:100%; border-radius:var(--radius); }
   .risk-n{ flex:none; font-family:var(--font-mono); font-size:var(--t-label); color:var(--color-neutral-500);
     min-width:22px; text-align:right; }
 
@@ -2811,7 +2876,7 @@
   .hist-fp{ font-family:var(--font-mono); font-size:var(--t-label); color:var(--color-neutral-400); }
   /* The redline itself, under the event that made it — the same green-added /
      red-removed convention the exported report prints. */
-  .hist-redline{ border:1px solid var(--color-divider); border-radius:0; padding:var(--s-2) 10px;
+  .hist-redline{ border:1px solid var(--color-divider); border-radius:var(--radius); padding:var(--s-2) 10px;
     margin-top:6px; font-size:var(--t-meta); line-height:1.6; background:var(--color-surface); }
   .hist-redline ins{ background:var(--st-green-bg); color:var(--st-green-fg); text-decoration:underline; }
   .hist-redline del{ background:var(--st-ruby-bg); color:var(--st-ruby-fg); }
@@ -2849,7 +2914,7 @@
   .hist-f > span{ font-size:var(--t-label); font-weight:var(--w-body); letter-spacing:0; text-transform:none;
     color:var(--color-neutral-600); margin-bottom:3px; white-space:nowrap; }
   .hist-f select{ font:inherit; font-size:var(--t-meta); font-weight:var(--w-body); text-transform:none;
-    letter-spacing:0; border:1px solid var(--color-divider); border-radius:0;
+    letter-spacing:0; border:1px solid var(--color-divider); border-radius:var(--radius);
     padding:5px 9px; background:var(--color-surface); color:var(--color-text);
     width:100%; min-width:0; }
   /* Clear is a verb, not a field: it keeps its own size while the five grow. */
@@ -2859,7 +2924,7 @@
     gap:14px; max-width:var(--room-measure); width:100%; margin:0 auto; }
   @media (max-width:980px){ .sign-grid{ grid-template-columns:1fr; max-width:660px; } }
   .sig-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:11px; }
-  .sig-box{ border:1px dashed var(--color-neutral-300); border-radius:0; padding:var(--s-3) 13px;
+  .sig-box{ border:1px dashed var(--color-neutral-300); border-radius:var(--radius); padding:var(--s-3) 13px;
     text-align:center; background:var(--color-bg); }
   .sig-box.is-signed{ border-style:solid; border-color:var(--st-green-line);
     background:color-mix(in srgb, var(--st-green-bg) 55%, transparent); }
@@ -2871,14 +2936,14 @@
   .sig-who{ border-top:1px solid var(--color-divider); margin-top:9px; padding-top:var(--s-2);
     font-size:var(--t-label); line-height:1.5; color:var(--color-neutral-600); }
   .sig-at{ font-family:var(--font-mono); font-size:var(--t-label); }
-  .pill-x{ font-size:var(--t-label); font-weight:var(--w-title); padding:2px 9px; border-radius:0; white-space:nowrap; }
+  .pill-x{ font-size:var(--t-label); font-weight:var(--w-title); padding:2px 9px; border-radius:var(--radius); white-space:nowrap; }
 
   /* The Checks card's rows — an icon, a name, and the verb. Replaces two
      full-height cards that each carried a paragraph and a filled button
      before anything had been run. */
   .check-row{ display:flex; align-items:center; gap:10px; padding:var(--s-2) 0;
     border-top:1px solid var(--color-divider); font-size:var(--t-body); }
-  .check-row .ci{ flex:none; width:26px; height:26px; border-radius:0; display:grid;
+  .check-row .ci{ flex:none; width:26px; height:26px; border-radius:var(--radius); display:grid;
     place-items:center; background:var(--st-steel-bg); color:var(--st-steel-fg); }
   html.dark .check-row .ci{ background:rgb(var(--color-accent-500-rgb)/.16); color:var(--color-accent-300); }
   .check-row .cn{ flex:1; min-width:0; font-weight:var(--w-strong); }
@@ -3022,7 +3087,7 @@
   #side-nav .foot-wrap.open .foot-sheet{ transform:none; opacity:1; visibility:visible; }
   @media (prefers-reduced-motion:reduce){ #side-nav .foot-sheet,#side-nav .foot-chev{ transition:none; } }
   #side-nav .foot-card{ background:var(--color-surface); border:1px solid var(--color-divider);
-    border-radius:0; padding:9px 11px 10px; display:flex; flex-direction:column; gap:5px; min-width:0; }
+    border-radius:var(--radius); padding:9px 11px 10px; display:flex; flex-direction:column; gap:5px; min-width:0; }
   #side-nav .foot-card-head{ display:flex; align-items:center; gap:7px; min-width:0; padding-bottom:1px; }
   #side-nav .foot-card-title{ font-family:var(--font-heading); font-size:var(--t-label); font-weight:var(--w-body);
     letter-spacing:0; text-transform:none; color:var(--color-neutral-500);
@@ -3053,7 +3118,7 @@
     align-items:center; gap:10px; padding:0 10px; background:var(--color-accent-800);
     border:1px solid var(--color-accent-800); color:#fff; cursor:pointer;
     font:inherit; font-family:var(--font-body); font-size:var(--t-body); font-weight:var(--w-strong);
-    border-radius:0; box-shadow:none; text-align:left; }
+    border-radius:var(--radius); box-shadow:none; text-align:left; }
   #side-nav #side-copilot:hover{ background:var(--color-accent-700); border-color:var(--accent-ink-700); }
   #side-nav #side-copilot .sc-label{ flex:1; min-width:0; white-space:nowrap;
     overflow:hidden; text-overflow:ellipsis; }
@@ -3066,7 +3131,7 @@
   /* The header's icon controls lose their box. Three bordered grey tiles in a
      row read as a toolbar of equal weights; they are secondary to the search
      and the Copilot, and now look it. */
-  .hdr-icon-btn{position:relative;width:36px;height:36px;display:grid;place-items:center;border:1px solid transparent;background:transparent;border-radius:0;color:var(--color-neutral-500);cursor:pointer;transition:background var(--dur-1),color var(--dur-1);}
+  .hdr-icon-btn{position:relative;width:36px;height:36px;display:grid;place-items:center;border:1px solid transparent;background:transparent;border-radius:var(--radius);color:var(--color-neutral-500);cursor:pointer;transition:background var(--dur-1),color var(--dur-1);}
   .hdr-icon-btn:hover{background:var(--color-neutral-100);color:var(--color-text);}
 
   /* ---- THE SHELL BAR'S OWN CHROME (24 Aug 2026) ----
@@ -3085,7 +3150,7 @@
   #top-header .cmd-search input::placeholder{color:rgba(255,255,255,.8);}
   #top-header #cmd-k-hint{flex:none;font-size:var(--t-micro);font-family:var(--font-code);
     border:1px solid rgba(255,255,255,.28);background:none;color:rgba(255,255,255,.8);
-    padding:1px 5px;border-radius:0;cursor:pointer;}
+    padding:1px 5px;border-radius:var(--radius);cursor:pointer;}
   #top-header #cmd-k-hint:hover{background:rgba(255,255,255,.14);}
 
   /* ONE BORDERED GROUP PER QUESTION — language, then appearance. Both are
@@ -3114,7 +3179,7 @@
     font-family:var(--font-heading);flex:none;}
   #top-header #rail-avatar:hover #side-avatar{background:rgba(255,255,255,.24);}
   #top-header #hdr-notify-dot{position:absolute;top:2px;right:1px;min-width:14px;height:14px;
-    padding:0 2px;box-sizing:border-box;border-radius:0;background:var(--st-amber-dot);
+    padding:0 2px;box-sizing:border-box;border-radius:var(--radius);background:var(--st-amber-dot);
     color:#2A1B04;border:0;font:inherit;font-size:var(--t-figure);font-weight:var(--w-title);line-height:14px;
     text-align:center;font-variant-numeric:tabular-nums;}
   #top-header #hdr-notify-dot[hidden]{display:none;}
@@ -3129,8 +3194,8 @@
      its current state are the same glance, and a <select> hides the second
      option behind a click. It degrades by dropping the words, not the control,
      so the tap target survives a narrow window. */
-  .lang-toggle{display:inline-flex;align-items:center;background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:0;padding:3px;gap:2px;flex:none;}
-  .lang-btn{border:0;background:none;font:inherit;font-family:var(--font-body);font-size:var(--t-label);font-weight:var(--w-strong);padding:var(--s-1) 11px;border-radius:0;cursor:pointer;color:var(--color-neutral-500);transition:background var(--dur-1),color var(--dur-1);white-space:nowrap;}
+  .lang-toggle{display:inline-flex;align-items:center;background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:var(--radius);padding:3px;gap:2px;flex:none;}
+  .lang-btn{border:0;background:none;font:inherit;font-family:var(--font-body);font-size:var(--t-label);font-weight:var(--w-strong);padding:var(--s-1) 11px;border-radius:var(--radius);cursor:pointer;color:var(--color-neutral-500);transition:background var(--dur-1),color var(--dur-1);white-space:nowrap;}
   .lang-btn:hover{color:var(--color-text);}
   .lang-btn[aria-pressed="true"]{background:var(--accent-fill);color:#fff;box-shadow:0 1px 4px rgba(15,23,42,.18);}
   .lang-btn:focus-visible{outline:2px solid var(--color-accent-500);outline-offset:1px;}
@@ -3145,14 +3210,14 @@
      the shortest possible answer to "which one am I on", readable without
      opening anything. The rows below carry their own swatch for the same
      reason: naming a colour is slower than showing it. */
-  #theme-swatch{ width:15px; height:15px; border-radius:0; display:block;
+  #theme-swatch{ width:15px; height:15px; border-radius:var(--radius); display:block;
     background:var(--brand-grad); border:1px solid rgb(0 0 0/.14); }
   html.dark #theme-swatch{ background:var(--color-neutral-800); border-color:rgb(255 255 255/.22); }
   #theme-menu button{ display:flex; align-items:center; gap:10px; width:100%; text-align:left;
     border:0; background:none; cursor:pointer; font:inherit; font-size:var(--t-body); font-weight:var(--w-body);
-    color:var(--color-text); border-radius:0; padding:var(--s-2) 10px; }
+    color:var(--color-text); border-radius:var(--radius); padding:var(--s-2) 10px; }
   #theme-menu button:hover{ background:var(--color-neutral-100); }
-  #theme-menu .tsw{ width:16px; height:16px; border-radius:0; flex:none;
+  #theme-menu .tsw{ width:16px; height:16px; border-radius:var(--radius); flex:none;
     border:1px solid rgb(0 0 0/.16); }
   html.dark #theme-menu .tsw{ border-color:rgb(255 255 255/.2); }
   #theme-menu .tnote{ display:block; font-size:var(--t-label); font-weight:var(--w-body);
@@ -3474,7 +3539,7 @@
     align-items:center;gap:7px;padding:0 var(--s-3);background:var(--color-surface);
     border:1px solid var(--accent-ink);color:var(--accent-ink);
     font:inherit;font-family:var(--font-body);font-size:var(--t-meta);font-weight:var(--w-strong);
-    cursor:pointer;border-radius:0;}
+    cursor:pointer;border-radius:var(--radius);}
   .hm-primary:hover{background:var(--nav-well);}
 
   /* A SECTION HEADING IS A WORD, A RULE AND — where there is one — its own
@@ -3499,50 +3564,97 @@
     line-height:1.25;color:var(--color-text);}
   .hm-rule{flex:1 1 auto;height:1px;background:var(--color-divider);}
 
-  .hm-tiles{display:grid;gap:var(--s-3);}
+  /* ---- ONE CARD, ONE HEIGHT, NO RESERVED HOLES (owner-asked 26 Aug 2026:
+     "The top cards and the bottom cards have to be the same size as far as
+     height and remove empty spaces which makes the card look empty. Create a
+     well structured card like a fiori card but fitting within the dashboard
+     format we are creating.") ----
+
+     WHAT WAS WRONG WAS TWO TYPED HEIGHTS AND TWO RESERVATIONS, and all four
+     were measured on the real dashboard before anything moved: the two rows
+     were set to 141px and 176px, a spacer inside each card swallowed the
+     leftover — 6px on the top row and 25px on the bottom, which is the band
+     the owner ringed — and the bottom row's footer held two-and-a-bit lines
+     open over one-line text, which is the other one. About 42px of hole per
+     Portfolio card.
+
+     BOTH RESERVATIONS WERE BUYING SOMETHING and deleting them alone would
+     have traded one bad row for another: they existed so four cards with
+     different-length text still put their figures and footers on the same
+     lines. So the alignment is bought a different way — the ROW owns the three
+     regions and every card borrows them:
+
+       --hm-r1  header   the title and its one line of detail
+       --hm-r2  figure   the number, or the lifecycle card's bar and money
+       --hm-r3  foot     the one line qualifying the figure, with its rule
+
+     Each card spans all three and takes them with `subgrid`, so titles line up
+     with titles and figures with figures BECAUSE THEY SIT IN THE SAME ROW OF
+     ONE SKELETON — not because the short ones were padded out. A card with
+     nothing for a region leaves it empty and the row still lines up.
+
+     THE TWO GRIDS READ THE SAME THREE TOKENS, which is what makes the top and
+     bottom rows the same height by construction rather than by two numbers
+     agreeing. The height is DERIVED: 37 + 50 + 31 + 24 of padding + 4 of
+     border = 146px, against 141 and 176 before, so the page is 21px shorter
+     overall and neither row is a typed guess.
+
+     EVERY ROW IS minmax(token, auto). The tokens are what the content measured
+     at, not a ceiling: Swedish is longer than English and a narrow window
+     wraps a footer, and a region that clipped would be a worse fault than the
+     one being fixed. Under ordinary content both rows are exactly the minima
+     and the two are identical. */
+  /* ROW GAP ZERO, AND IT IS LOAD-BEARING: every card spans all three rows, so
+     a row gap falls INSIDE the card rather than between cards. Measured with
+     the ladder's own 12px on both axes the cards came back 171px — 24 of pure
+     gap sitting between a title and its number, which is the band this change
+     exists to remove, put back by the mechanism removing it. The COLUMN gap is
+     the one that separates cards and is untouched. */
+  .hm-tiles{display:grid;gap:0 var(--s-3);
+    grid-template-rows:minmax(var(--hm-r1),auto) minmax(var(--hm-r2),auto) minmax(var(--hm-r3),auto);}
   .hm-tiles.is-work{grid-template-columns:repeat(4,minmax(0,1fr));}
   .hm-tiles.is-port{grid-template-columns:1.9fr 1fr 1fr 1fr;}
   /* PURE WHITE, and it is the token that is pure (owner-asked 24 Aug 2026:
      "the white backgrounds have to be pure white with no shade of any kind").
      --color-surface is #ffffff; nothing here mixes it with anything. */
-  .hm-tile{position:relative;display:flex;flex-direction:column;min-width:0;
+  .hm-tile{position:relative;display:grid;grid-row:span 3;grid-template-rows:subgrid;min-width:0;
     background:var(--color-surface);border:1px solid var(--color-divider);
     border-top:3px solid var(--color-neutral-300);padding:var(--s-3) 14px;
     font:inherit;font-family:var(--font-body);color:inherit;text-align:left;
-    border-radius:0;cursor:pointer;}
-  /* ---- BOTH ROWS ARE ONE HEIGHT, AND IT IS ONE VALUE (owner-asked 26 Aug
-     2026: "make the cards in the second line have the same height as the cards
-     in the 1st line") ----
-     They were 141 and 176 — two numbers typed 35px apart, so My work and
-     Portfolio read as two unrelated bands rather than as one board. THE FIX IS
-     A TOKEN, never the same number written twice: written twice they agree
-     until somebody edits one of them, which is exactly how they came to differ.
+    border-radius:var(--radius);cursor:pointer;}
+  /* ---- TWO ANSWERS TO ONE ASK, ON THE SAME DAY, AND WHY THIS IS THE ONE ----
+     A parallel session read the owner's "make the cards in the second line
+     have the same height as the cards in the 1st line" and answered it with a
+     single shared height of 176px, both rows, keeping the spacer and the
+     two-line footer reservation. That is a correct answer to that sentence and
+     is NOT what the owner asked here, which was three things in one breath:
+     the same height, "remove empty spaces which makes the card look empty",
+     and a well-structured card. MEASURED, the 176 answer makes the second half
+     WORSE — the My work row grows 35px and every pixel of it lands in the
+     spacer, so the hole the owner ringed on the Portfolio row appears on the
+     top row too.
 
-     ---- THE NUMBER IS 176, AND IT WAS MEASURED RATHER THAN CHOSEN ----
-     The owner named the FIRST line as the reference, so the obvious move was
-     to take Portfolio DOWN to 141. MEASURED in a real browser at 1280, 1366,
-     1440, 1536 and 1920, that clips ALL FOUR Portfolio tiles, not just the
-     tall one: the three ordinary ones need 156 and the lifecycle tile needs
-     167, against 140 for a My work tile. So there is no 141 that fits, and the
-     shared height has to be the TALLER row's.
+     THE MEASUREMENT ITS NOTE RESTS ON IS ALSO SUPERSEDED rather than
+     contradicted. It found no 141 that fits, which is true WHILE the spacer
+     and the two-line footer reservation stand: the three ordinary Portfolio
+     tiles needed 156 and the lifecycle tile 167. Take the two reservations
+     out — which is the half of the ask that answer did not cover — and the
+     tallest thing any card genuinely holds is 146. Both rows sit there with
+     nothing clipped, checked at every laptop width.
 
-     WHY THE PORTFOLIO TILES GENUINELY NEED MORE, since the obvious next move
-     is to trim it out of them: three of the four are the same shape as a My
-     work tile and cost 16px more only because of the two-line footnote
-     reservation directly below — which is not decoration, it is what keeps the
-     four big figures in that row sitting on ONE line. The lifecycle tile costs
-     11px more again because its content is a three-stage stack beside a money
-     figure rather than a single numeral. Both are content, not padding.
-
-     WHAT THIS COSTS, said plainly: the My work row grows 35px. That is against
-     this page's recent grain (the 36px register row, "the contract gets the
-     space back"), and it is the price of equal heights with nothing clipped.
-     Taking 9px off by using the measured 167 was refused: today's 167 is one
-     language and one workspace's data, and a Swedish footnote is longer.
-     home-page-verify measures every tile's content against its box, so this
-     note is checked rather than trusted. */
-  .hm-tiles{--hm-tile-h:176px;}
-  .hm-tile.is-work,.hm-tile.is-port{height:var(--hm-tile-h);}
+     WHAT IS KEPT FROM IT: the platform's 2px corner, which arrived in the same
+     merge and has nothing to do with heights. `--hm-tile-h` is STALE.
+     See .hm-tiles above for how the three regions line up instead. */
+  /* WHERE subgrid IS NOT UNDERSTOOD the card falls back to the column it was
+     before and simply stops sharing its neighbours' baselines — the regions
+     are still in order and nothing is clipped, which is the right shape for a
+     layout nicety. The upload dialog's two columns take the same fallback for
+     the same reason. */
+  @supports not (grid-template-rows:subgrid){
+    .hm-tile{display:flex;flex-direction:column;grid-row:auto;
+      min-height:calc(var(--hm-r1) + var(--hm-r2) + var(--hm-r3) + var(--s-3) + var(--s-3));}
+    .hm-tile .hm-big,.hm-tile .hm-life{margin-top:auto;margin-bottom:auto;}
+  }
   .hm-tile:hover{background:var(--nav-well);}
   .hm-tile:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:-2px;}
   /* A DOOR ONTO NOTHING IS A DEAD PRESS. The zero still draws — it is true —
@@ -3557,10 +3669,24 @@
   .hm-tile.is-dead .hm-n,.hm-tile.is-dead .hm-u{color:var(--color-neutral-400);}
   .hm-tile.is-life{cursor:default;}
   .hm-tile.is-life:hover{background:var(--color-surface);}
-  .hm-t{font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);padding-right:18px;}
-  .hm-s{font-size:var(--t-label);color:var(--color-neutral-500);margin-top:1px;}
+  /* THE HEADER IS ONE REGION holding two lines. It carries no height of its
+     own: --hm-r1 is what the row reserves, and the detail keeps its 1.35em
+     floor so a card with nothing to say there still leaves the line rather
+     than pulling its figure up out of line with its neighbours'. */
+  .hm-head{display:block;min-width:0;}
+  .hm-t{display:block;font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);padding-right:18px;}
+  .hm-s{display:block;font-size:var(--t-label);color:var(--color-neutral-500);margin-top:1px;}
   .hm-tile .hm-s{min-height:1.35em;}
-  .hm-sp{flex:1 1 auto;min-height:6px;}
+  /* THE FIGURE SITS IN THE MIDDLE OF ITS OWN REGION. --hm-r2 is the tallest
+     thing any card puts there (the lifecycle bar), so an ordinary numeral has
+     about twelve pixels of room around it — six above and six below, which
+     reads as air round a number rather than as the band this replaced. It is
+     the ONE place slack can collect now, and it can never be more than the
+     difference between a numeral and that bar. */
+  .hm-tile .hm-big,.hm-tile .hm-life{align-self:center;}
+  /* .hm-sp IS RETIRED — flag any mention as stale. It was the spacer that
+     swallowed a fixed card's leftover and became the hole the owner ringed;
+     with the regions owning the layout there is no leftover for it to hold. */
   .hm-go{position:absolute;top:11px;right:11px;color:var(--color-neutral-400);}
   .hm-tile:hover .hm-go{color:var(--accent-ink);}
   .hm-big{display:flex;align-items:baseline;gap:7px;min-width:0;}
@@ -3583,13 +3709,15 @@
      numeral in the primary one. The design gives both the same ink. Matched to
      .hm-n rather than given a colour of its own, so the two cannot drift. */
   .hm-u{font-size:var(--t-body);color:var(--color-text);font-weight:var(--w-body);}
-  .hm-foot{margin-top:7px;padding-top:7px;border-top:1px solid var(--color-divider);
+  .hm-foot{align-self:end;margin-top:7px;padding-top:7px;border-top:1px solid var(--color-divider);
     font-size:var(--t-label);color:var(--color-neutral-500);line-height:1.35;}
   .hm-foot.crit{color:var(--st-amber-fg);}
-  /* Two lines PLUS the rule's own padding — box-sizing is border-box, so
-     reserving 2.8em alone still leaves a one-line footnote 7px short and the
-     four figures in the row sit on four different lines. */
-  .hm-tile.is-port .hm-foot{min-height:calc(2.8em + 7px);}
+  /* THE TWO-LINE RESERVATION IS GONE (owner-asked 26 Aug 2026). It held
+     2.8em open on every Portfolio card so four one-line footers would still
+     line up, and on a row where every footer IS one line that is a strip of
+     empty card under all four of them — the second band the owner ringed. The
+     row's own --hm-r3 lines them up now, and it is sized to what a footer
+     actually is rather than to what the longest one might become. */
 
   /* THE LIFECYCLE TILE'S THREE BLOCKS ARE THREE DOORS. This is what replaced
      the pipeline ring, and the stage list with it: the count is the handle. */
@@ -3644,7 +3772,8 @@
      answers nothing under desktop width; this is HaTi's own answer. */
   @media (max-width:1100px){
     .hm-tiles.is-work,.hm-tiles.is-port{grid-template-columns:repeat(2,minmax(0,1fr));}
-    .hm-tile.is-port{height:auto;min-height:176px;}
+    /* The rows already grow with their content, so the height override this
+       rule used to carry has nothing left to undo. */
   }
   @media (max-width:680px){
     .hm-tiles.is-work,.hm-tiles.is-port{grid-template-columns:minmax(0,1fr);}
@@ -3670,7 +3799,7 @@
      Type comes from the app's own tokens — --font-heading for the figure and
      the stage name, everything else inherits --font-body. */
   .hm-pipe-chart{min-height:0;min-width:0;overflow:hidden;border:0;
-    border-radius:0;background:none;padding:6px 2px;
+    border-radius:var(--radius);background:none;padding:6px 2px;
     display:flex;flex-direction:column;justify-content:flex-start;gap:var(--s-2);}
   /* A GRID, NOT A FLEX ROW: as flex items the key could be sized below its own
      content, and on a short card its three rows were squeezed into 24px and
@@ -3701,24 +3830,24 @@
 
   .hm-key{min-width:0;display:flex;flex-direction:column;gap:3px;}
   .hm-leg{flex:none;display:grid;grid-template-columns:11px 1fr auto auto;align-items:center;
-    gap:3px 10px;width:100%;background:none;border:1px solid transparent;border-radius:0;
+    gap:3px 10px;width:100%;background:none;border:1px solid transparent;border-radius:var(--radius);
     padding:var(--s-2) 10px;cursor:pointer;text-align:left;font:inherit;color:var(--color-text);}
   .hm-leg:hover{background:var(--color-surface);border-color:var(--color-divider);}
   .hm-leg:focus-visible{outline:2px solid var(--accent-solid);outline-offset:2px;}
   .hm-leg[aria-pressed="true"]{background:var(--color-surface);border-color:var(--color-divider);box-shadow:var(--shadow-sm);}
-  .hm-leg-dot{width:11px;height:11px;border-radius:0;}
+  .hm-leg-dot{width:11px;height:11px;border-radius:var(--radius);}
   .hm-leg-name{font-size:var(--t-meta);font-weight:var(--w-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .hm-leg-n{font-size:var(--t-card);font-weight:var(--w-title);font-variant-numeric:tabular-nums;}
   .hm-leg-pct{font-size:var(--t-label);color:var(--color-neutral-500);width:30px;text-align:right;font-variant-numeric:tabular-nums;}
   /* The ring says share by angle; the bar says it by length — the same fact in
      the form that is easiest to compare. First thing to go when space is short. */
-  .hm-leg-bar{grid-column:2/-1;height:4px;border-radius:0;background:var(--color-neutral-100);overflow:hidden;}
-  .hm-leg-bar i{display:block;height:100%;border-radius:0;}
+  .hm-leg-bar{grid-column:2/-1;height:4px;border-radius:var(--radius);background:var(--color-neutral-100);overflow:hidden;}
+  .hm-leg-bar i{display:block;height:100%;border-radius:var(--radius);}
   .hm-vtight .hm-leg-bar{display:none;}
   .hm-vtight .hm-leg{padding:6px 10px;}
 
   .hm-pipe-side{display:flex;flex-direction:column;min-width:0;min-height:0;
-    border:1px solid var(--color-divider);border-radius:0;overflow:hidden;}
+    border:1px solid var(--color-divider);border-radius:var(--radius);overflow:hidden;}
   /* ---- THE STAGE HEAD SHARES THE CARD-HEADING LINE (owner-asked 23 Aug 2026)
      It was the first row inside the bordered list box, 34px below the two card
      headings; it is now a grid cell in the pipeline's first row, beside the
@@ -3730,7 +3859,7 @@
   .hm-side-title{font-family:var(--font-heading);font-size:var(--t-body);font-weight:var(--w-title);margin:0;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .hm-side-count{margin-left:auto;flex:none;border:0;font:inherit;font-size:var(--t-label);font-weight:var(--w-title);
-    padding:3px 9px;border-radius:0;cursor:pointer;font-variant-numeric:tabular-nums;}
+    padding:3px 9px;border-radius:var(--radius);cursor:pointer;font-variant-numeric:tabular-nums;}
   .hm-pipe-side .hm-pipe-list{padding:0 9px 5px;display:flex;flex-direction:column;gap:5px;}
   .hm-side-foot{flex:none;padding:6px 11px 7px;}
   .hm-side-foot:not(:empty){border-top:1px solid var(--color-divider);}
@@ -3929,7 +4058,7 @@
      scale, and left there the badge read heavier than the 14px name beside it
      once everything else came down. Uppercase with tracking carries it. */
   .tpl-ov-badge{ float:right; margin-left:var(--s-2); display:inline-block; font-size:9px; font-weight:var(--w-title);
-    letter-spacing:.06em; text-transform:uppercase; padding:2px 6px; border-radius:0;
+    letter-spacing:.06em; text-transform:uppercase; padding:2px 6px; border-radius:var(--radius);
     white-space:nowrap; line-height:1.5; }
   /* AND THE ROWS LINE UP ACROSS THE WALL. A name that wraps and a note that
      does not put one card's figures 17px below its neighbour's — measured —
@@ -3993,7 +4122,7 @@
     #top-header{padding:0 10px!important;gap:var(--s-2)!important;}
     #brand-wordmark{display:none;}
     /* Every control stays reachable — they are tightened, never dropped. */
-    #top-header #brand-mark{width:30px!important;height:30px!important;border-radius:0!important;}
+    #top-header #brand-mark{width:30px!important;height:30px!important;border-radius:var(--radius)!important;}
     #top-header .hdr-icon-btn{width:30px!important;height:30px!important;}
     #top-header #side-logout{width:30px!important;height:30px!important;}
     #top-header #side-avatar{width:28px!important;height:28px!important;}
@@ -4025,7 +4154,7 @@
      NO COLUMN IS EVER HIDDEN — the density is the design. */
   .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin;}
   .table-scroll::-webkit-scrollbar{height:9px;}
-  .table-scroll::-webkit-scrollbar-thumb{background:var(--color-neutral-300);border-radius:0;}
+  .table-scroll::-webkit-scrollbar-thumb{background:var(--color-neutral-300);border-radius:var(--radius);}
   /* THE FLOOR ONLY APPLIES WHERE THERE IS NO ROOM.
      It was unconditional, and that was a regression on the machine most
      customers use: on a 1280-wide laptop the members table was forced to
@@ -4076,7 +4205,7 @@
   .ig-lens{transition:background var(--dur-1),border-color var(--dur-1),color var(--dur-1)}
 
   /* inline editable fields (contract workspace) */
-  .field{font-family:var(--font-mono);font-size:.95em;color:var(--st-steel-fg);background:var(--st-steel-bg);border:none;border-bottom:1.5px dashed var(--color-accent-400);padding:1px 6px;border-radius:0;min-width:90px;transition:background var(--dur-1),border-color var(--dur-1),box-shadow var(--dur-1);outline:none;}
+  .field{font-family:var(--font-mono);font-size:.95em;color:var(--st-steel-fg);background:var(--st-steel-bg);border:none;border-bottom:1.5px dashed var(--color-accent-400);padding:1px 6px;border-radius:var(--radius);min-width:90px;transition:background var(--dur-1),border-color var(--dur-1),box-shadow var(--dur-1);outline:none;}
   .field:hover{background:var(--st-steel-bg);}
   .field:focus{background:#fff;border-bottom-color:var(--color-accent);box-shadow:0 2px 0 0 var(--color-accent),0 0 0 2px color-mix(in srgb,var(--color-accent) 18%,transparent);}
   /* On the dark paper the solid mint ramp would sit as a light chip; a
@@ -4117,7 +4246,7 @@
   .seal-pop{animation:sealIn .5s cubic-bezier(.34,1.56,.64,1) forwards}
   .toast-in{animation:toastIn .3s cubic-bezier(.22,.61,.36,1);}
   @keyframes toastIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
-  .anchor-flash{animation:anchorFlash 1.8s ease;border-radius:0;}
+  .anchor-flash{animation:anchorFlash 1.8s ease;border-radius:var(--radius);}
   @keyframes anchorFlash{0%{background:var(--st-steel-bg);box-shadow:0 0 0 3px color-mix(in srgb,var(--color-accent) 30%,transparent);}100%{background:transparent;box-shadow:0 0 0 3px transparent;}}
   .scan-pulse{animation:scanPulse 1s ease infinite;}
   @keyframes scanPulse{0%,100%{opacity:.45;}50%{opacity:1;}}
@@ -4297,7 +4426,7 @@
   #ai-scrim{opacity:0;pointer-events:none;transition:opacity var(--dur-3);}
   #ai-scrim.open{opacity:1;pointer-events:auto;}
   .ai-msg{animation:viewIn .25s cubic-bezier(.22,.61,.36,1);}
-  .typing span{display:inline-block;width:5px;height:5px;border-radius:0;background:var(--color-accent-400);margin-right:3px;animation:blink 1.2s infinite;}
+  .typing span{display:inline-block;width:5px;height:5px;border-radius:var(--radius);background:var(--color-accent-400);margin-right:3px;animation:blink 1.2s infinite;}
   .typing span:nth-child(2){animation-delay:.2s;} .typing span:nth-child(3){animation-delay:.4s;}
   @keyframes blink{0%,80%,100%{opacity:.25;transform:translateY(0);}40%{opacity:1;transform:translateY(-2px);}}
 
@@ -4408,7 +4537,7 @@
      therefore take a click. Filled values render as plain document text with
      none of this — the styling belongs to emptiness, not to fields. */
   .hati-doc .hati-field{background:var(--color-neutral-100);color:var(--color-neutral-600);
-    border-bottom:1px dotted var(--color-neutral-500);padding:0 3px;border-radius:0;}
+    border-bottom:1px dotted var(--color-neutral-500);padding:0 3px;border-radius:var(--radius);}
   .hati-doc .hati-field[data-field-key]{cursor:pointer;}
   .hati-doc .hati-field[data-field-key]:hover{background:var(--color-neutral-200);
     border-bottom-style:solid;}
@@ -4417,7 +4546,7 @@
      ever hold plain text, which is the thing we are trying to stop losing */
   .hati-editor{outline:none;overflow-y:auto;
     border:1px solid var(--color-divider);background:var(--color-surface);
-    border-radius:0;padding:14px var(--s-4);}
+    border-radius:var(--radius);padding:14px var(--s-4);}
   .hati-editor:focus{border-color:var(--color-accent);box-shadow:var(--focus);}
   .hati-editor:empty::before,
   .hati-editor[data-empty="1"]::before{content:attr(data-placeholder);
@@ -4428,7 +4557,7 @@
      permanent highlight would become part of how the contract looks. */
   .clause-flash{
     animation:clauseFlash 2.6s ease-out;
-    border-radius:0;
+    border-radius:var(--radius);
     scroll-margin:90px;
     /* In a plain-text document the clause is not an element, so it is wrapped in
        an inline span for the duration of the flash. That span usually spans
@@ -4983,7 +5112,7 @@
     <!-- Anchored at body level and positioned under whichever button opened it,
          because the trigger is now re-rendered per view rather than living in a
          strip that never moved. -->
-    <div id="new-menu" class="hidden" style="position:fixed;width:300px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:0;padding:6px;z-index:60;max-height:70vh;overflow-y:auto;"></div>
+    <div id="new-menu" class="hidden" style="position:fixed;width:300px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:var(--radius);padding:6px;z-index:60;max-height:70vh;overflow-y:auto;"></div>
 
     <!-- body grid: content only.
          The Activity panel USED TO TAKE A COLUMN HERE, and opening it re-laid
@@ -5053,7 +5182,7 @@
 <div id="ai-scrim" class="fixed inset-0 z-40" style="background:color-mix(in srgb,#020617 45%,transparent);"></div>
 <section id="ai-panel" class="hati-copilot-panel fixed top-0 right-0 bottom-0 w-full z-50 flex flex-col" style="max-width:430px;background:var(--color-surface);border-left:1px solid var(--color-divider);">
   <header class="px-5 py-4 flex items-center gap-3" style="background:var(--color-accent-900);color:#fff;">
-    <div class="h-9 w-9 grid place-items-center shrink-0" style="background:var(--color-accent);color:#fff;border-radius:0;" data-ic-big="sparkle"></div>
+    <div class="h-9 w-9 grid place-items-center shrink-0" style="background:var(--color-accent);color:#fff;border-radius:var(--radius);" data-ic-big="sparkle"></div>
     <div class="flex-1 leading-tight">
       <div class="font-display font-600">HaTi Copilot</div>
       <div id="ai-brain-sub" class="text-[11px] flex items-center gap-1.5" style="color:var(--color-accent-200);"><span class="h-1.5 w-1.5 rounded-full live-dot" style="background:var(--st-green-dot);"></span><span data-i18n="ai_searching_live">Searching your live contract data</span></div>
@@ -5077,8 +5206,8 @@
 
   <footer class="px-5 pb-5 pt-3" style="border-top:1px solid var(--color-divider);background:var(--color-surface);">
     <div class="flex items-center gap-2">
-      <textarea id="ai-input" rows="1" data-i18n-ph="ai_input_ph" placeholder="Search, summarize, or ask about your contracts…  (Shift+Enter for a new line)" class="chat-field flex-1 px-3.5 py-2.5 text-sm outline-none transition" style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;"></textarea>
-      <button id="ai-send" class="h-10 w-10 shrink-0 grid place-items-center text-white transition" style="background:var(--color-accent);border-radius:0;" data-ic-big="send"></button>
+      <textarea id="ai-input" rows="1" data-i18n-ph="ai_input_ph" placeholder="Search, summarize, or ask about your contracts…  (Shift+Enter for a new line)" class="chat-field flex-1 px-3.5 py-2.5 text-sm outline-none transition" style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);"></textarea>
+      <button id="ai-send" class="h-10 w-10 shrink-0 grid place-items-center text-white transition" style="background:var(--color-accent);border-radius:var(--radius);" data-ic-big="send"></button>
     </div>
   </footer>
 </section>
@@ -5110,7 +5239,7 @@
 #ai-feed ol.ai-list{list-style:decimal}
 #ai-feed .ai-list li{margin:.15em 0}
 #ai-feed .ai-quote{border-left:2px solid var(--color-divider);padding-left:.65rem;margin:.4em 0;color:var(--color-neutral-700)}
-#ai-feed .ai-code{background:var(--color-bg);border:1px solid var(--color-divider);border-radius:0;
+#ai-feed .ai-code{background:var(--color-bg);border:1px solid var(--color-divider);border-radius:var(--radius);
   padding:.5rem .65rem;overflow-x:auto;font-family:var(--font-mono);font-size:var(--t-label);margin:.4em 0}
 #ai-feed .ai-table-wrap{overflow-x:auto;margin:.45em 0}
 #ai-feed .ai-table{width:100%;border-collapse:collapse;font-size:var(--t-meta)}
@@ -5123,7 +5252,7 @@
    the question. Quoted and set in the document face, so it reads as the
    contract's words rather than as the Copilot's. */
 #ai-feed .ai-target{border-left:2px solid var(--color-accent-300);
-  background:var(--color-bg);border-radius:0;padding:var(--s-2) 11px;margin:0 0 var(--s-2)}
+  background:var(--color-bg);border-radius:var(--radius);padding:var(--s-2) 11px;margin:0 0 var(--s-2)}
 #ai-feed .ai-target-head{font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;
   text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:var(--s-1)}
 #ai-feed .ai-target-body{font-family:var(--font-doc);font-size:var(--t-body);line-height:1.6;
@@ -5131,10 +5260,10 @@
 #ai-feed .ai-target-ask{font-size:var(--t-body);line-height:1.55}
 /* Suggested-question chips: shown on an empty panel only (js/ai.js). */
 .ai-chip{border:1px dashed var(--color-divider);background:var(--color-surface);color:var(--color-neutral-700);
-  font-size:var(--t-label);font-weight:var(--w-body);border-radius:0;padding:var(--s-1) 10px;cursor:pointer;
+  font-size:var(--t-label);font-weight:var(--w-body);border-radius:var(--radius);padding:var(--s-1) 10px;cursor:pointer;
   transition:border-color var(--dur-1),color var(--dur-1),background var(--dur-1)}
 .ai-chip:hover{border-color:var(--color-accent);color:var(--accent-ink);border-style:solid;background:var(--color-surface)}
-.ai-tone{font-weight:var(--w-strong);border-radius:0;padding:0 3px}
+.ai-tone{font-weight:var(--w-strong);border-radius:var(--radius);padding:0 3px}
 .ai-tone-pos{color:var(--st-green-fg);background:var(--st-green-bg)}
 .ai-tone-neg{color:var(--st-ruby-fg);background:var(--st-ruby-bg)}
 .ai-tone-warn{color:var(--st-amber-fg);background:var(--st-amber-bg)}
@@ -5145,12 +5274,12 @@
 .igf-ai-read .ai-p{margin:0 0 var(--s-3)}
 .igf-ai-read .ai-p:last-child{margin-bottom:0}
 .igf-ai-read .ai-p>strong:first-child{color:var(--accent-ink-700)}
-.ai-chart{border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;
+.ai-chart{border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);
   padding:10px var(--s-3);margin:.5em 0;position:relative}
 /* The way out of the screen: copy image / PNG / CSV, on every chart card. */
 .ai-chart-actions{position:absolute;top:6px;right:6px;display:flex;gap:2px;z-index:2}
 .ai-chart-btn{display:grid;place-items:center;height:22px;width:22px;border:0;cursor:pointer;
-  border-radius:0;background:transparent;color:var(--color-neutral-500);transition:background var(--dur-1),color var(--dur-1)}
+  border-radius:var(--radius);background:transparent;color:var(--color-neutral-500);transition:background var(--dur-1),color var(--dur-1)}
 .ai-chart-btn:hover{background:var(--color-bg);color:var(--accent-ink-700)}
 .ai-chart-title{font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-meta);margin-bottom:6px;padding-right:76px}
 .ai-chart-canvas{position:relative;height:200px}
@@ -5169,7 +5298,7 @@
     white-space:pre-wrap;overflow-wrap:anywhere;font-family:inherit;box-sizing:border-box;
     scrollbar-width:thin}
   textarea.chat-field::-webkit-scrollbar{width:6px}
-  textarea.chat-field::-webkit-scrollbar-thumb{background:var(--color-divider);border-radius:0}
+  textarea.chat-field::-webkit-scrollbar-thumb{background:var(--color-divider);border-radius:var(--radius)}
 </style>
 
 <script type="module" src="js/app.js"></script>

@@ -51,7 +51,7 @@ const advicePortalShell = inner => `
   <div style="min-height:100vh;background:var(--color-bg);">
     <header style="background:var(--color-accent-900);color:#fff;padding:14px var(--s-6);">
       <div style="max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:var(--s-3);">
-        <div style="width:34px;height:34px;background:var(--color-accent);color:#fff;display:grid;place-items:center;font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-card);letter-spacing:.02em;border-radius:0;flex:none;">HT</div>
+        <div style="width:34px;height:34px;background:var(--color-accent);color:#fff;display:grid;place-items:center;font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-card);letter-spacing:.02em;border-radius:var(--radius);flex:none;">HT</div>
         <div style="line-height:1.25;min-width:0;">
           <div style="font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-card);">${pesc(ADVICE_PORTAL.org)} · Legal Advice Desk</div>
           <div style="font-size:var(--t-label);color:var(--color-accent-200);font-family:var(--font-mono);">${i18t('apo_tagline')}</div>
@@ -69,22 +69,22 @@ const advicePortalShell = inner => `
 /* ---------- intake ---------- */
 function renderAdviceIntake(){
   const root=document.getElementById('share-root');
-  const inputStyle='width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 11px;font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);outline:none';
+  const inputStyle='width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);outline:none';
   const field=(id,label,ph,type='text')=>`<label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-mono);letter-spacing:.02em">${label}</span><input id="${id}" type="${type}" placeholder="${ph}" style="${inputStyle}"/></label>`;
   const svcCard=s=>{
     const r=adviceRateFor(s.id);
     return `
-    <label data-svc="${s.id}" style="display:block;border:1.5px solid var(--color-divider);border-radius:0;background:var(--color-surface);padding:13px 14px;cursor:pointer;transition:border-color var(--dur-1) ease, box-shadow var(--dur-1) ease">
+    <label data-svc="${s.id}" style="display:block;border:1.5px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);padding:13px 14px;cursor:pointer;transition:border-color var(--dur-1) ease, box-shadow var(--dur-1) ease">
       <input type="radio" name="adv-svc" value="${s.id}" style="position:absolute;opacity:0"/>
       <div style="display:flex;align-items:center;gap:var(--s-2)">
-        <span style="width:30px;height:30px;flex:none;display:grid;place-items:center;border-radius:0;background:var(--st-steel-bg);color:var(--st-steel-fg)">${icon(s.ic,'w-4 h-4')}</span>
+        <span style="width:30px;height:30px;flex:none;display:grid;place-items:center;border-radius:var(--radius);background:var(--st-steel-bg);color:var(--st-steel-fg)">${icon(s.ic,'w-4 h-4')}</span>
         <span style="font-size:var(--t-body);font-weight:var(--w-strong);line-height:1.25;min-width:0">${s.name}</span>
         <span style="margin-left:auto;flex:none;font-family:var(--font-mono);font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--accent-ink);white-space:nowrap">${fmtMoney(r.rate)}<span style="font-weight:var(--w-body);color:var(--color-neutral-500)">/hr</span></span>
       </div>
       <p style="font-size:var(--t-label);color:var(--color-neutral-600);margin:7px 0 var(--s-2);line-height:1.5">${s.blurb}</p>
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:var(--t-label)">
-        <span style="background:var(--color-bg);border:1px solid var(--color-divider);border-radius:0;padding:2px var(--s-2);color:var(--color-neutral-700);font-variant-numeric:tabular-nums">typically ${r.hoursMin}–${r.hoursMax} hrs · ${fmtMoneyShort(r.rate*r.hoursMin)}–${fmtMoneyShort(r.rate*r.hoursMax)}</span>
-        <span style="background:var(--st-green-bg);border:1px solid var(--st-green-line);border-radius:0;padding:2px var(--s-2);color:var(--st-green-fg);font-variant-numeric:tabular-nums">feedback in ~${r.days} business day${r.days===1?'':'s'}</span>
+        <span style="background:var(--color-bg);border:1px solid var(--color-divider);border-radius:var(--radius);padding:2px var(--s-2);color:var(--color-neutral-700);font-variant-numeric:tabular-nums">typically ${r.hoursMin}–${r.hoursMax} hrs · ${fmtMoneyShort(r.rate*r.hoursMin)}–${fmtMoneyShort(r.rate*r.hoursMax)}</span>
+        <span style="background:var(--st-green-bg);border:1px solid var(--st-green-line);border-radius:var(--radius);padding:2px var(--s-2);color:var(--st-green-fg);font-variant-numeric:tabular-nums">feedback in ~${r.days} business day${r.days===1?'':'s'}</span>
       </div>
     </label>`;
   };
@@ -93,10 +93,10 @@ function renderAdviceIntake(){
       <div>
         <h1 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:22px;margin:0 0 var(--s-1);color:var(--color-text)">${i18t('apo_what_help')}</h1>
         <p style="font-size:var(--t-body);color:var(--color-neutral-700);margin:0 0 var(--s-4);line-height:1.55">Pick a service — the hourly rate, typical effort and turnaround are published up front. After you submit, you get a tracking link that shows exactly where your request sits in the pipeline.</p>
-        <div id="adv-queue-note" style="margin-bottom:14px;border:1px solid var(--color-divider);border-radius:0;background:var(--st-steel-bg);padding:10px 13px;font-size:var(--t-meta);color:var(--st-steel-fg);line-height:1.5;display:flex;align-items:center;gap:var(--s-2)">${icon('clock','w-4 h-4')}<span id="adv-queue-text">${i18t('apo_select_service')}</span></div>
+        <div id="adv-queue-note" style="margin-bottom:14px;border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--st-steel-bg);padding:10px 13px;font-size:var(--t-meta);color:var(--st-steel-fg);line-height:1.5;display:flex;align-items:center;gap:var(--s-2)">${icon('clock','w-4 h-4')}<span id="adv-queue-text">${i18t('apo_select_service')}</span></div>
         <div style="display:grid;grid-template-columns:1fr;gap:10px" class="adv-svc-grid">${Object.values(ADVICE_SERVICES).map(svcCard).join('')}</div>
       </div>
-      <aside style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;box-shadow:var(--shadow-sm);padding:18px" class="portal-aside">
+      <aside style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);box-shadow:var(--shadow-sm);padding:18px" class="portal-aside">
         <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:16px;color:var(--color-text);margin:0 0 var(--s-1)">${i18t('apo_submit_request')}</h2>
         <p style="font-size:var(--t-label);color:var(--color-neutral-700);margin:0 0 14px;line-height:1.5">${ADVICE_PORTAL.remote?'Your request goes straight to the legal team — no account needed.':'Demo mode — this request is stored in this browser only.'}</p>
         ${field('ap-name','Full name *','e.g. Grace Njeri')}
@@ -152,10 +152,10 @@ function renderAdviceIntake(){
     }catch(e){ toast(e.message,'err'); return; }
     const link=location.origin+location.pathname+'#advice='+(ADVICE_PORTAL.remote?'t:':'')+req.token;
     document.getElementById('ap-result').innerHTML=`
-      <div style="border:1px solid color-mix(in srgb,var(--st-green-dot) 30%,transparent);background:var(--st-green-bg);border-radius:0;padding:14px">
+      <div style="border:1px solid color-mix(in srgb,var(--st-green-dot) 30%,transparent);background:var(--st-green-bg);border-radius:var(--radius);padding:14px">
         <div style="display:flex;align-items:center;gap:6px;color:var(--st-green-fg);font-size:var(--t-body);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${icon('check2','w-4 h-4')} Request ${pesc(req.id)} submitted</div>
         <p style="font-size:var(--t-label);color:var(--color-neutral-700);margin:0 0 var(--s-2);line-height:1.5">${i18t('apo_estimated_by')} <strong>${fmtDay(req.eta)}</strong>${i18t('apo_follow_stage')}</p>
-        <textarea id="ap-link" readonly rows="2" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:9px;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all">${link}</textarea>
+        <textarea id="ap-link" readonly rows="2" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:9px;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all">${link}</textarea>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s-2);margin-top:var(--s-2)">
           <button id="ap-copy" class="ui-btn" style="padding:var(--s-2);font-size:var(--t-meta)">${icon('copy','w-3 h-3')} ${i18t('po_copy_link')}</button>
           <button id="ap-open" class="ui-btn ui-btn-primary" style="padding:var(--s-2);font-size:var(--t-meta)">${i18t('apo_open_tracking')}</button>
@@ -173,7 +173,7 @@ function renderAdviceTracking(r){
   if(!r){
     root.innerHTML=advicePortalShell(`
       <div style="display:grid;place-items:center;padding:var(--s-10) 0">
-        <div style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:0;padding:var(--s-8);text-align:center;max-width:24rem">
+        <div style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);padding:var(--s-8);text-align:center;max-width:24rem">
           <div style="color:var(--st-ruby-dot);margin-bottom:var(--s-3);display:flex;justify-content:center">${icon('ban','w-8 h-8')}</div>
           <h1 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:20px;color:var(--color-text);margin:0">${i18t('apo_not_found')}</h1>
           <p style="font-size:var(--t-body);color:var(--color-neutral-700);margin-top:6px;line-height:1.5">${i18t('apo_invalid_link')}</p>
@@ -208,15 +208,15 @@ function renderAdviceTracking(r){
   }).join('');
   const row=(k,v)=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);font-size:var(--t-meta)"><span style="color:var(--color-neutral-600);flex:none">${k}</span><span style="font-weight:var(--w-body);text-align:right;min-width:0">${v}</span></div>`;
   const etaBanner = closed
-    ? `<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:0;padding:var(--s-3) 14px;font-size:var(--t-meta);color:var(--st-ruby-fg);line-height:1.5">This request was closed without delivery${reached('Closed')?` on ${fmtDay(reached('Closed').at)}`:''}. Contact the legal team if that's unexpected.</div>`
+    ? `<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:var(--radius);padding:var(--s-3) 14px;font-size:var(--t-meta);color:var(--st-ruby-fg);line-height:1.5">This request was closed without delivery${reached('Closed')?` on ${fmtDay(reached('Closed').at)}`:''}. Contact the legal team if that's unexpected.</div>`
     : r.status==='Delivered'
-    ? `<div style="border:1px solid var(--st-green-line);background:var(--st-green-bg);border-radius:0;padding:var(--s-3) 14px;font-size:var(--t-meta);color:var(--st-green-fg);line-height:1.5"><strong>Delivered${reached('Delivered')?' '+fmtDay(reached('Delivered').at):''}.</strong> ${i18t('apo_feedback_with_you')}</div>`
-    : `<div style="border:1px solid var(--color-divider);background:var(--st-steel-bg);border-radius:0;padding:var(--s-3) 14px;font-size:var(--t-meta);color:var(--st-steel-fg);line-height:1.5">${i18t('apo_estimated_by')} <strong>${fmtDay(r.eta)}</strong>${left!=null?(left<0?` — running ${-left} day${-left===1?'':'s'} over, the team is on it`:left===0?' — that’s today':` — ${left} day${left===1?'':'s'} away`):''}.</div>`;
+    ? `<div style="border:1px solid var(--st-green-line);background:var(--st-green-bg);border-radius:var(--radius);padding:var(--s-3) 14px;font-size:var(--t-meta);color:var(--st-green-fg);line-height:1.5"><strong>Delivered${reached('Delivered')?' '+fmtDay(reached('Delivered').at):''}.</strong> ${i18t('apo_feedback_with_you')}</div>`
+    : `<div style="border:1px solid var(--color-divider);background:var(--st-steel-bg);border-radius:var(--radius);padding:var(--s-3) 14px;font-size:var(--t-meta);color:var(--st-steel-fg);line-height:1.5">${i18t('apo_estimated_by')} <strong>${fmtDay(r.eta)}</strong>${left!=null?(left<0?` — running ${-left} day${-left===1?'':'s'} over, the team is on it`:left===0?' — that’s today':` — ${left} day${left===1?'':'s'} away`):''}.</div>`;
   root.innerHTML=advicePortalShell(`
     <div style="display:grid;gap:22px;align-items:start" class="portal-grid">
-      <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;box-shadow:var(--shadow-sm);padding:22px var(--s-6)">
+      <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);box-shadow:var(--shadow-sm);padding:22px var(--s-6)">
         <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px">
-          <span style="width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:0;background:var(--st-steel-bg);color:var(--st-steel-fg)">${icon(svc.ic,'w-4 h-4')}</span>
+          <span style="width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:var(--radius);background:var(--st-steel-bg);color:var(--st-steel-fg)">${icon(svc.ic,'w-4 h-4')}</span>
           <div style="min-width:0">
             <h1 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0;line-height:1.25;color:var(--color-text)">${pesc(svc.name)}</h1>
             <div style="font-family:var(--font-mono);font-size:var(--t-label);color:var(--color-neutral-600)">${pesc(r.id)} · submitted ${fmtDay(r.submittedAt)}</div>
@@ -227,7 +227,7 @@ function renderAdviceTracking(r){
         <h3 style="font-size:var(--t-micro);color:var(--color-neutral-600);letter-spacing:.09em;text-transform:uppercase;margin:18px 0 var(--s-3)">${i18t('apo_where_request')}</h3>
         ${steps}
       </div>
-      <aside style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;box-shadow:var(--shadow-sm);padding:18px" class="portal-aside">
+      <aside style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);box-shadow:var(--shadow-sm);padding:18px" class="portal-aside">
         <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-card);color:var(--color-text);margin:0 0 var(--s-2)">${i18t('apo_fee_estimate')}</h2>
         ${row('Hourly rate', q.rate?fmtMoney(q.rate)+' / hr':'—')}
         ${row('Typical effort', q.rate?`${q.hoursMin}–${q.hoursMax} hrs`:'—')}

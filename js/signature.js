@@ -62,7 +62,7 @@ function openSignaturePad(opts={}){
     const C='var(--color-divider)', ACC='var(--color-accent)', ACC8='var(--color-accent-800)', TXT='var(--color-text)', N6='var(--color-neutral-600)', N7='var(--color-neutral-700)';
     ov.innerHTML=`
       <div style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 45%,transparent)"></div>
-      <div class="modal-in" style="position:relative;width:100%;max-width:560px;background:var(--color-surface);border:1px solid ${C};box-shadow:var(--shadow-lg);border-radius:0;overflow:hidden">
+      <div class="modal-in" style="position:relative;width:100%;max-width:560px;background:var(--color-surface);border:1px solid ${C};box-shadow:var(--shadow-lg);border-radius:var(--radius);overflow:hidden">
         <div style="padding:var(--s-4) 20px 0">
           <div style="display:flex;align-items:center;gap:var(--s-2);">
             <span style="color:${ACC};display:inline-flex">${icon('finger','w-4 h-4')}</span>
@@ -77,25 +77,25 @@ function openSignaturePad(opts={}){
         <div style="padding:var(--s-4) 20px var(--s-1)">
           <!-- DRAW -->
           <div data-sig-pane="draw">
-            <canvas id="sig-canvas" width="${SIG_W}" height="${SIG_H}" style="width:100%;height:auto;border:1.5px dashed ${C};border-radius:0;background:var(--color-bg);touch-action:none;cursor:crosshair;display:block"></canvas>
+            <canvas id="sig-canvas" width="${SIG_W}" height="${SIG_H}" style="width:100%;height:auto;border:1.5px dashed ${C};border-radius:var(--radius);background:var(--color-bg);touch-action:none;cursor:crosshair;display:block"></canvas>
             <button id="sig-clear" style="margin-top:var(--s-2);font:inherit;font-size:var(--t-label);color:${N6};background:none;border:0;cursor:pointer;">Clear</button>
           </div>
           <!-- TYPE -->
           <div data-sig-pane="type" style="display:none">
-            <input id="sig-typed" type="text" value="${String(opts.name||'').replace(/"/g,'&quot;')}" placeholder="${i18t('si_type_full_name')}" style="width:100%;min-height:38px;border:1px solid ${C};background:var(--color-surface);border-radius:0;padding:var(--s-2) var(--s-3);font-size:var(--t-card);color:${TXT};outline:none;margin-bottom:10px"/>
-            <div id="sig-type-preview" style="height:${SIG_H*0.55}px;border:1.5px dashed ${C};border-radius:0;background:var(--color-bg);display:grid;place-items:center;overflow:hidden"></div>
+            <input id="sig-typed" type="text" value="${String(opts.name||'').replace(/"/g,'&quot;')}" placeholder="${i18t('si_type_full_name')}" style="width:100%;min-height:38px;border:1px solid ${C};background:var(--color-surface);border-radius:var(--radius);padding:var(--s-2) var(--s-3);font-size:var(--t-card);color:${TXT};outline:none;margin-bottom:10px"/>
+            <div id="sig-type-preview" style="height:${SIG_H*0.55}px;border:1.5px dashed ${C};border-radius:var(--radius);background:var(--color-bg);display:grid;place-items:center;overflow:hidden"></div>
             <div id="sig-style-pick" style="display:flex;gap:var(--s-2);margin-top:10px;flex-wrap:wrap"></div>
           </div>
           <!-- UPLOAD -->
           <div data-sig-pane="upload" style="display:none">
-            <label style="display:grid;place-items:center;height:${SIG_H}px;border:1.5px dashed ${C};border-radius:0;background:var(--color-bg);cursor:pointer;text-align:center;padding:var(--s-3)">
+            <label style="display:grid;place-items:center;height:${SIG_H}px;border:1.5px dashed ${C};border-radius:var(--radius);background:var(--color-bg);cursor:pointer;text-align:center;padding:var(--s-3)">
               <input id="sig-file" type="file" accept="image/*" style="display:none"/>
               <span id="sig-upload-label" style="font-size:var(--t-meta);color:${N7};line-height:1.6">${icon('upload','w-5 h-5')}<br>${i18t('si_click_upload')}</span>
             </label>
           </div>
           <!-- SAVED -->
           ${saved?`<div data-sig-pane="saved" style="display:none">
-            <div style="height:${SIG_H}px;border:1.5px solid ${C};border-radius:0;background:var(--color-bg);display:grid;place-items:center;overflow:hidden"><img src="${saved.image}" alt="${i18t('si_saved_signature')}" style="max-width:90%;max-height:80%"/></div>
+            <div style="height:${SIG_H}px;border:1.5px solid ${C};border-radius:var(--radius);background:var(--color-bg);display:grid;place-items:center;overflow:hidden"><img src="${saved.image}" alt="${i18t('si_saved_signature')}" style="max-width:90%;max-height:80%"/></div>
             <div style="font-size:var(--t-label);color:${N6};margin-top:var(--s-2);font-family:var(--font-mono)">${i18t('si_your_adopted',{form:saved.form})}</div>
           </div>`:''}
         </div>
@@ -150,7 +150,7 @@ function openSignaturePad(opts={}){
     // ---- type ----
     const styleWrap=q('#sig-style-pick');
     if(styleWrap){
-      styleWrap.innerHTML=SIG_FONTS.map(f=>`<button data-sig-font="${f.id}" style="border:1px solid var(--color-divider);border-radius:0;padding:6px 14px;font-family:${f.css.replace(/"/g,'&quot;')};font-size:20px;color:var(--color-neutral-700);background:var(--color-surface);cursor:pointer">${String(opts.name||'Your Name').replace(/</g,'&lt;')}</button>`).join('');
+      styleWrap.innerHTML=SIG_FONTS.map(f=>`<button data-sig-font="${f.id}" style="border:1px solid var(--color-divider);border-radius:var(--radius);padding:6px 14px;font-family:${f.css.replace(/"/g,'&quot;')};font-size:20px;color:var(--color-neutral-700);background:var(--color-surface);cursor:pointer">${String(opts.name||'Your Name').replace(/</g,'&lt;')}</button>`).join('');
       styleWrap.querySelectorAll('[data-sig-font]').forEach(b=>b.addEventListener('click',()=>{ fontId=b.getAttribute('data-sig-font'); paintTypePreview(); }));
     }
     function currentFont(){ return SIG_FONTS.find(f=>f.id===fontId)||SIG_FONTS[0]; }

@@ -538,7 +538,7 @@ function openSigningLockedNotice(c, opts){
   const admin=(typeof isAdmin==='function') && isAdmin();
   openModal(`<div class="p-6" style="max-width:520px">
     <h3 class="font-serif font-600 text-lg text-ink mb-1">${i18t('ap_signing_route')}</h3>
-    <div style="border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:0;padding:11px 13px;margin:10px 0 var(--s-3)">
+    <div style="border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:var(--radius);padding:11px 13px;margin:10px 0 var(--s-3)">
       <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-body);font-weight:var(--w-title);color:var(--st-amber-fg);margin-bottom:5px">${icon('alert','w-3.5 h-3.5')} ${i18t('ap_route_locked')}</div>
       <p style="margin:0;font-size:var(--t-meta);line-height:1.6;color:var(--st-amber-fg)">${
         esc(i18tn('ap_route_locked_why',Math.max(1,done.length||marks),{ who }))}</p>

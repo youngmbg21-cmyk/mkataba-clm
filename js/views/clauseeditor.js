@@ -84,6 +84,26 @@ let _ceLead = null;         /* the change this editor opened on, if any */
 const clauseEditorOpen = () => !!_ceClauseId;
 const clauseEditorClauseId = () => _ceClauseId;
 const clauseEditorContract = () => _ceC;
+/* ---- IS THERE UNFINISHED WORK IN HERE (owner-asked 26 Aug 2026, L-6) ----
+   The shell asks this before it takes the page down on a navigation, so a
+   half-written clause is never thrown away silently — and with nothing typed
+   it answers false and the page closes without a word, because a guard that
+   fires on an untouched editor is one everybody learns to click through.
+
+   IT IS NOT THE FOOT'S OWN READING, and the difference cost an hour. The foot
+   enables Discard and File on `_ceText !== _ceBase` — has the wording moved
+   from what STANDS in the contract — which is right for those two buttons and
+   wrong for this question: opening the editor on a clause that already carries
+   an ask seeds the box with that ask's wording, so `moved` is TRUE from the
+   first frame. Written that way the guard fired on every clean open, the nav
+   press raised a confirm nobody had earned, and pressing Home appeared to do
+   nothing at all — the very fault this was built to fix, in new clothes.
+
+   THE QUESTION IS "HAS THE READER CHANGED ANYTHING SINCE IT OPENED", so it is
+   measured against the text it opened WITH. Applying twice and stepping back
+   twice lands on that text again and is honestly not dirty. */
+let _ceOpenText = '';
+const clauseEditorDirty = () => clauseEditorOpen() && _ceText !== _ceOpenText;
 
 /* ============================================================================
    THE STYLESHEET
@@ -791,6 +811,7 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
   _ceSteps = [{ label: _cet('ce_step_stands'), text: _ceBase }];
   if (_ceText !== _ceBase) _ceSteps.push({ label: (_ceLead && _ceLead.id) || _cet('ce_proposed'), text: _ceText });
   _ceStep = _ceSteps.length - 1;
+  _ceOpenText = _ceText;   /* the mark clauseEditorDirty measures against */
   _ceSavedAt = _ceText !== _ceBase ? ceNowHm() : null;
   _ceView = 'redlines';
   _ceTab = opts.tab === 'scan' ? 'scan' : 'chat';
@@ -823,6 +844,7 @@ function rlCloseClauseEditor(opts = {}){
   const again = _ceAgain;
   _ceC = null; _ceClauseId = null; _ceOpts = null; _ceAgain = null;
   _ceThread = []; _ceSteps = []; _ceStep = 0; _ceSel = null; _ceLead = null;
+  _ceOpenText = '';
   _ceBusy = false; _ceReason = false;
   clearTimeout(_ceSayTimer);
   /* A repaint only where something actually moved. Closing without filing must
@@ -1633,7 +1655,7 @@ if (typeof document !== 'undefined' && !document._ceWired){
 }
 
 Object.assign(window, {
-  clauseEditorOpen, clauseEditorClauseId, clauseEditorContract, clauseEditorCss,
+  clauseEditorOpen, clauseEditorClauseId, clauseEditorContract, clauseEditorDirty, clauseEditorCss,
   clauseEditorHtml, clauseEditorRefusal, clauseEditorFits,
   rlOpenClauseEditor, rlCloseClauseEditor,
   ceApply, ceUndo, ceDiscard, ceFile, ceAsk, ceRunScan, ceScanItems, ceLines,

@@ -298,7 +298,7 @@ const EMAIL_SETUP_LINE = 'Email isn’t set up on this workspace yet, so nothing
 function emailSetupBannerHtml(){
   if(!emailOff()) return '';
   return `
-    <div id="email-setup-banner" style="display:flex;align-items:flex-start;flex-wrap:wrap;gap:11px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-left:4px solid var(--st-amber-dot);border-radius:0;padding:var(--s-3) var(--s-4)">
+    <div id="email-setup-banner" style="display:flex;align-items:flex-start;flex-wrap:wrap;gap:11px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-left:4px solid var(--st-amber-dot);border-radius:var(--radius);padding:var(--s-3) var(--s-4)">
       <span style="flex:none;margin-top:1px;color:var(--st-amber-dot);display:inline-flex">${icon('alert','w-4 h-4')}</span>
       <span style="flex:1;min-width:0;line-height:1.5">
         <span style="display:block;font-size:var(--t-body);font-weight:var(--w-strong);color:var(--st-amber-fg)">${i18t('co_email_not_setup')}</span>
@@ -620,7 +620,7 @@ const questionCount = cid => {
   const hit=w.find(x=>x.contractId===cid);
   return hit?hit.count:0; };
 const questionDot = cid => { const n=questionCount(cid); if(!n) return '';
-  return `<span title="${i18tn('co_questions_waiting',n,{n})}" style="display:inline-block;margin-right:6px;vertical-align:middle;font-size:var(--t-label);font-weight:var(--w-title);font-family:var(--font-mono);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:0;padding:1px 6px;flex:none">${n}&nbsp;?</span>`; };
+  return `<span title="${i18tn('co_questions_waiting',n,{n})}" style="display:inline-block;margin-right:6px;vertical-align:middle;font-size:var(--t-label);font-weight:var(--w-title);font-family:var(--font-mono);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:var(--radius);padding:1px 6px;flex:none">${n}&nbsp;?</span>`; };
 
 // ---- Risk model: bands ≥60 ruby / 35–59 amber / <35 emerald ----
 const RISK_PAL = {
@@ -781,7 +781,7 @@ function toast(msg,kind,opts){
      the last thing that should be able to take an act down with it. */
   try{ el.setAttribute('role', k==='err' ? 'alert' : 'status'); }catch(e){}
   try{ el.dataset.toastKind=k; }catch(e){}
-  el.style.cssText='display:flex;align-items:center;gap:10px;border-radius:0;'
+  el.style.cssText='display:flex;align-items:center;gap:10px;border-radius:var(--radius);'
     +'border:1px solid color-mix(in srgb,#fff 20%,transparent);'
     +'background:'+spec.bg+';color:#fff;cursor:pointer;'
     +'padding:11px 15px;box-shadow:var(--shadow-lg);font-size:var(--t-body);font-family:var(--font-body);max-width:26rem;';
@@ -804,7 +804,7 @@ function toast(msg,kind,opts){
   el.innerHTML='<span style="display:inline-flex;flex:none">'+icon(spec.ic)+'</span>'
     +'<span style="flex:1;min-width:0">'+esc(msg)+'</span>'
     +(act?'<button type="button" data-toast-act style="flex:none;border:1px solid rgba(255,255,255,.55);'
-      +'background:rgba(255,255,255,.14);color:#fff;border-radius:0;font:inherit;font-size:var(--t-meta);'
+      +'background:rgba(255,255,255,.14);color:#fff;border-radius:var(--radius);font:inherit;font-size:var(--t-meta);'
       +'font-weight:var(--w-strong);padding:5px 9px;cursor:pointer;white-space:nowrap">'+esc(act.label)+'</button>':'');
   const go=()=>{ if(!el.isConnected) return;
     el.style.transition='opacity .3s, transform .3s'; el.style.opacity=0;
@@ -1425,20 +1425,20 @@ function renderAuth(mode){
   <div style="min-height:100vh;display:grid;place-items:center;background:var(--color-bg);padding:var(--s-10) var(--s-4);">
     <div style="width:100%;max-width:420px;">
       <div style="display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:20px;">
-        <div style="width:36px;height:36px;background:var(--color-accent-800);color:#fff;display:grid;place-items:center;font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-section);letter-spacing:.02em;border-radius:0;">HT</div>
+        <div style="width:36px;height:36px;background:var(--color-accent-800);color:#fff;display:grid;place-items:center;font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-section);letter-spacing:.02em;border-radius:var(--radius);">HT</div>
         <div style="line-height:1.15;">
           <div style="font-family:var(--font-mono);font-weight:var(--w-strong);font-size:20px;letter-spacing:.01em;color:var(--color-text);">HaTi</div>
           <div style="font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);">${i18t('co_clm')}</div>
         </div>
       </div>
-      <div style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:0;padding:26px;">${inner}</div>
+      <div style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);padding:26px;">${inner}</div>
       <p style="text-align:center;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:14px;line-height:1.6;">${REMOTE?'Connected to your HaTi server — accounts and contracts are stored centrally.':'MVP demo — no data leaves this browser.'}</p>
     </div>
   </div>`;
   const input=(id,label,type='text',ph='')=>`
     <label style="display:block;margin-bottom:14px;">
       <span style="display:block;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:5px;font-family:var(--font-mono);letter-spacing:.02em;">${label}</span>
-      <input id="${id}" type="${type}" placeholder="${ph}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 11px;font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);outline:none;"/></label>`;
+      <input id="${id}" type="${type}" placeholder="${ph}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);outline:none;"/></label>`;
   const H1='font-family:var(--font-mono);font-weight:var(--w-strong);font-size:22px;letter-spacing:-0.01em;color:var(--color-text);margin:0;';
   const SUB='font-size:var(--t-meta);color:var(--color-neutral-700);margin:var(--s-1) 0 18px;line-height:1.5;';
   const PBTN='width:100%;padding:9px;font-size:var(--t-body);margin-top:2px;';
@@ -1463,7 +1463,7 @@ function renderAuth(mode){
            afterwards and re-read everything it had just been shown. */''}
       <label style="display:block;margin-bottom:14px;">
         <span style="display:block;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:5px;font-family:var(--font-mono);letter-spacing:.02em;">${i18t('co_where_you_operate')}</span>
-        <select id="su-market" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 11px;font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);outline:none;">
+        <select id="su-market" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);outline:none;">
           ${jxList().map(p=>`<option value="${p.id}"${p.id===jxId()?' selected':''}>${p.name}</option>`).join('')}
         </select>
         <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:var(--s-1);line-height:1.45">${i18t('co_market_sets')}</span></label>
@@ -1514,7 +1514,7 @@ function renderAuth(mode){
            Settings), the same place signing codes queue — so the shortcut that
            used to open the reset form for anyone is gone. */
         const outboxHint = r.emailSent ? '' : ` <br/>${i18t('co_outbox_hint')}`;
-        document.getElementById('fp-result').innerHTML=`<div style="border-radius:0;background:var(--st-steel-bg);border:1px solid var(--color-divider);padding:11px;font-size:var(--t-label);color:var(--st-steel-fg);line-height:1.5;">${i18t('co_reset_sent')}${outboxHint}</div>`;
+        document.getElementById('fp-result').innerHTML=`<div style="border-radius:var(--radius);background:var(--st-steel-bg);border:1px solid var(--color-divider);padding:11px;font-size:var(--t-label);color:var(--st-steel-fg);line-height:1.5;">${i18t('co_reset_sent')}${outboxHint}</div>`;
       }catch(e){ toast(e.message,'err'); }
     });
   } else if(mode && mode.startsWith('reset:')){
@@ -1625,10 +1625,10 @@ function renderMustChangePassword(){
   const authRoot=document.getElementById('auth-root');
   const shell=document.getElementById('app-shell');
   shell.classList.add('hidden'); shell.style.display='none';
-  const F='width:100%;min-height:38px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:var(--s-2) 11px;font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);outline:none;margin-bottom:10px;';
+  const F='width:100%;min-height:38px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:var(--s-2) 11px;font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);outline:none;margin-bottom:10px;';
   authRoot.innerHTML=`
     <div style="min-height:100vh;display:grid;place-items:center;background:var(--color-bg);padding:0 var(--s-4);">
-      <div style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:0;padding:30px;max-width:25rem;width:100%;">
+      <div style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);padding:30px;max-width:25rem;width:100%;">
         <h1 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:20px;color:var(--color-text);margin:0 0 6px;">${i18t('co_choose_own_password')}</h1>
         <p style="font-size:var(--t-body);color:var(--color-neutral-700);margin:0 0 var(--s-4);line-height:1.55;">${i18t('co_temp_password_body')}</p>
         <input id="cp-current" type="password" placeholder="${i18t('co_temporary_password')}" style="${F}"/>
@@ -2058,7 +2058,7 @@ function emptyStateHtml(o){
     ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[ch]));
   const glyph = (typeof icon === 'function' && o.icon) ? icon(o.icon, 'w-5 h-5') : '';
   return `<div class="hati-empty" style="max-width:340px;margin:0 auto;text-align:center">
-    ${glyph ? `<div style="width:44px;height:44px;margin:0 auto var(--s-3);display:grid;place-items:center;border-radius:0;background:var(--color-bg);color:var(--color-neutral-500)">${glyph}</div>` : ''}
+    ${glyph ? `<div style="width:44px;height:44px;margin:0 auto var(--s-3);display:grid;place-items:center;border-radius:var(--radius);background:var(--color-bg);color:var(--color-neutral-500)">${glyph}</div>` : ''}
     <div style="font-size:var(--t-card);font-weight:var(--w-strong);color:var(--color-text)">${e(o.title)}</div>
     ${o.sub ? `<div style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:var(--s-1) 0 14px;line-height:1.5">${e(o.sub)}</div>` : ''}
     ${o.action || ''}
@@ -2084,7 +2084,7 @@ function emptyStateHtml(o){
    template literal reads `${FLD}` in forty places, and a rename there is forty
    chances to typo something no test would catch. One line each, reading the
    one truth. */
-const HATI_FLD='width:100%;min-height:var(--field-h);border:1px solid var(--field-line);background:var(--color-surface);border-radius:0;padding:var(--field-pad-y) var(--field-pad-x);font-size:var(--field-size);font-family:var(--font-body);color:var(--color-text);line-height:var(--field-lh);';
+const HATI_FLD='width:100%;min-height:var(--field-h);border:1px solid var(--field-line);background:var(--color-surface);border-radius:var(--radius);padding:var(--field-pad-y) var(--field-pad-x);font-size:var(--field-size);font-family:var(--font-body);color:var(--color-text);line-height:var(--field-lh);';
 const HATI_LBL='display:block;font-size:var(--field-label-size);font-weight:var(--field-label-weight);color:var(--color-neutral-600);margin-bottom:var(--field-label-gap);font-family:var(--font-body);letter-spacing:var(--ls-base);';
 
 /* ============================================================
@@ -2159,7 +2159,7 @@ function openModal(html, opts={}){
   root.innerHTML=`
   <div style="position:fixed;inset:0;z-index:70;display:grid;place-items:center;padding:var(--s-4)">
     <div id="modal-scrim" style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 50%,transparent);"></div>
-    <div class="modal-in scroll-thin" role="dialog" aria-modal="true"${opts.label?` aria-label="${String(opts.label).replace(/"/g,'&quot;')}"`:''} tabindex="-1" style="position:relative;width:100%;max-width:${maxw};${sized}background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:0;">${html}</div>
+    <div class="modal-in scroll-thin" role="dialog" aria-modal="true"${opts.label?` aria-label="${String(opts.label).replace(/"/g,'&quot;')}"`:''} tabindex="-1" style="position:relative;width:100%;max-width:${maxw};${sized}background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);">${html}</div>
   </div>`;
   /* ---- THE TWO QUIET WAYS OUT ASK THE SAME QUESTION THE ✕ DOES ----
      Both of these called closeModal() straight, so a modal that had put its own
@@ -2250,7 +2250,7 @@ function openSidePanel(html, opts={}){
     <div style="flex:none;display:flex;align-items:center;gap:var(--s-2);padding:var(--s-3) 14px;border-bottom:1px solid var(--color-divider);">
       <span style="font-family:var(--font-heading);font-weight:var(--w-title);font-size:var(--t-body);color:var(--color-text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${String(opts.title||'')}</span>
       <button id="side-panel-x" title="${i18t('co_close_esc')}" aria-label="${i18t('act_close')}"
-        style="margin-left:auto;flex:none;width:26px;height:26px;border-radius:0;border:1px solid var(--color-divider);background:var(--color-bg);color:var(--color-neutral-600);cursor:pointer;display:grid;place-items:center;padding:0;font:inherit;">
+        style="margin-left:auto;flex:none;width:26px;height:26px;border-radius:var(--radius);border:1px solid var(--color-divider);background:var(--color-bg);color:var(--color-neutral-600);cursor:pointer;display:grid;place-items:center;padding:0;font:inherit;">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
       </button>
     </div>
@@ -2295,9 +2295,9 @@ function confirmDialog(opts={}){
     const btnBg=danger?'var(--danger)':'var(--accent-fill)';
     ov.innerHTML=`
       <div style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 50%,transparent)"></div>
-      <div class="modal-in" role="alertdialog" aria-modal="true" style="position:relative;width:100%;max-width:30rem;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:0;padding:22px var(--s-6)">
+      <div class="modal-in" role="alertdialog" aria-modal="true" style="position:relative;width:100%;max-width:30rem;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);padding:22px var(--s-6)">
         <div style="display:flex;align-items:flex-start;gap:var(--s-3);margin-bottom:${message?'6px':'14px'}">
-          <span style="width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:0;background:${danger?'var(--red-tint,rgba(176,69,60,.1))':'var(--st-steel-bg)'};color:${danger?'var(--danger)':'var(--accent-ink-700)'}">${icon(danger?'alert':'shield','w-4 h-4')}</span>
+          <span style="width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:var(--radius);background:${danger?'var(--red-tint,rgba(176,69,60,.1))':'var(--st-steel-bg)'};color:${danger?'var(--danger)':'var(--accent-ink-700)'}">${icon(danger?'alert':'shield','w-4 h-4')}</span>
           <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);margin:0;line-height:1.3;padding-top:5px">${esc(title)}</h3>
         </div>
         ${message?`<p style="font-size:var(--t-body);color:var(--color-neutral-700);line-height:1.55;margin:0 0 var(--s-4);padding-left:46px">${esc(message)}</p>`:''}
@@ -2362,9 +2362,9 @@ function promptDialog(opts={}){
     ov.style.cssText='position:fixed;inset:0;z-index:92;display:grid;place-items:center;padding:var(--s-4)';
     ov.innerHTML=`
       <div style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 50%,transparent)"></div>
-      <div class="modal-in" role="dialog" aria-modal="true" style="position:relative;width:100%;max-width:30rem;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:0;padding:22px var(--s-6)">
+      <div class="modal-in" role="dialog" aria-modal="true" style="position:relative;width:100%;max-width:30rem;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);padding:22px var(--s-6)">
         <div style="display:flex;align-items:flex-start;gap:var(--s-3);margin-bottom:${message?'6px':'12px'}">
-          <span style="width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:0;background:var(--st-steel-bg);color:var(--st-steel-fg)">${icon('pencil','w-4 h-4')}</span>
+          <span style="width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:var(--radius);background:var(--st-steel-bg);color:var(--st-steel-fg)">${icon('pencil','w-4 h-4')}</span>
           <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);margin:0;line-height:1.3;padding-top:5px">${esc(title)}</h3>
         </div>
         ${message?`<p style="font-size:var(--t-body);color:var(--color-neutral-700);line-height:1.55;margin:0 0 var(--s-3);padding-left:46px">${esc(message)}</p>`:''}
@@ -2378,9 +2378,9 @@ function promptDialog(opts={}){
                  field sideways. Same three declarations as the clause
                  editor's reason box, and for the same reason. */
               `<textarea id="pd-input" rows="3" wrap="soft" placeholder="${esc(placeholder).replace(/"/g,'&quot;')}"
-                 style="box-sizing:border-box;width:100%;max-width:100%;min-height:70px;resize:vertical;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:var(--s-2) 11px;font:inherit;font-size:var(--t-body);line-height:1.6;outline:none;white-space:pre-wrap;overflow-wrap:anywhere">${esc(opts.value)}</textarea>`
+                 style="box-sizing:border-box;width:100%;max-width:100%;min-height:70px;resize:vertical;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:var(--s-2) 11px;font:inherit;font-size:var(--t-body);line-height:1.6;outline:none;white-space:pre-wrap;overflow-wrap:anywhere">${esc(opts.value)}</textarea>`
             : `<input id="pd-input" type="text" value="${esc(opts.value).replace(/"/g,'&quot;')}" placeholder="${esc(placeholder).replace(/"/g,'&quot;')}"
-                 style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:var(--s-2) 11px;font:inherit;font-size:var(--t-body);outline:none"/>`}
+                 style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:var(--s-2) 11px;font:inherit;font-size:var(--t-body);outline:none"/>`}
           <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:14px">
             <button id="pd-cancel" class="ui-btn">${esc(cancelLabel)}</button>
             <button id="pd-ok" class="ui-btn ui-btn-primary">${esc(confirmLabel)}</button>
@@ -2854,7 +2854,7 @@ function shareKindOptionsHtml(c, sel){
   const card = (k, title, blurb, on, disabled) => `
     <button type="button" data-share-kind="${k}" aria-pressed="${on?'true':'false'}"${disabled?' disabled':''}
       style="display:flex;gap:11px;align-items:flex-start;text-align:left;width:100%;font:inherit;
-      cursor:${disabled?'not-allowed':'pointer'};opacity:${disabled?'.5':'1'};border-radius:0;padding:13px 14px;
+      cursor:${disabled?'not-allowed':'pointer'};opacity:${disabled?'.5':'1'};border-radius:var(--radius);padding:13px 14px;
       border:1.5px solid ${on?'var(--color-accent)':'var(--color-divider)'};
       background:${on?'var(--color-accent-100)':'var(--color-surface)'}">
       <span style="flex:none;margin-top:2px;width:13px;height:13px;border-radius:50%;
@@ -2892,7 +2892,7 @@ function shareKindStepHtml(c, sel){
 function sharePurposePickerHtml(c, sel){
   const btn=(k)=>{ const on=sel===k, m=SHARE_PURPOSE_COPY[k];
     return `<button type="button" data-share-purpose="${k}" aria-pressed="${on?'true':'false'}"
-      style="flex:1;min-width:190px;text-align:left;cursor:pointer;font:inherit;border-radius:0;padding:10px var(--s-3);
+      style="flex:1;min-width:190px;text-align:left;cursor:pointer;font:inherit;border-radius:var(--radius);padding:10px var(--s-3);
       border:1.5px solid ${on?'var(--color-accent)':'var(--color-divider)'};
       background:${on?'var(--color-accent-100)':'var(--color-surface)'}">
       <span style="display:flex;align-items:center;gap:7px">
@@ -2938,12 +2938,12 @@ function shareSummaryStepHtml(c, opts={}){
   const rows = s && s.lines.length ? s.lines.map(x=>`
     <li style="display:flex;gap:9px;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--color-divider)">
       <span style="flex:none;font-family:var(--font-mono);font-size:var(--t-label);font-weight:var(--w-title);border:1.5px solid var(--color-accent);
-        color:var(--color-accent);border-radius:0;padding:1px 7px;margin-top:1px">#${esc(x.id)}</span>
+        color:var(--color-accent);border-radius:var(--radius);padding:1px 7px;margin-top:1px">#${esc(x.id)}</span>
       <span style="flex:1;min-width:0">
         <span style="display:block;font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);line-height:1.45">${esc(x.summary||x.kind)}</span>
         <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:1px">${esc(x.clause)} · ${esc(x.kind)} · ${esc(x.mine?'yours':x.author)}</span>
       </span>
-      <span style="flex:none;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;border-radius:0;padding:2px 6px;margin-top:1px;
+      <span style="flex:none;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;border-radius:var(--radius);padding:2px 6px;margin-top:1px;
         background:${x.status==='accepted'?'var(--st-green-bg)':x.status==='rejected'?'var(--st-ruby-bg)':'var(--st-amber-bg)'};
         color:${x.status==='accepted'?'var(--st-green-fg)':x.status==='rejected'?'var(--st-ruby-dot)':'var(--st-amber-fg)'}">${esc(x.status)}</span>
     </li>`).join('') : '';
@@ -2973,7 +2973,7 @@ function shareSummaryStepHtml(c, opts={}){
              note the sender has already typed goes with it. */}
       <div id="share-signers"${(opts.purposeSel||defaultSharePurpose(c))==='sign'?'':' class="hidden"'}>${
         shareSignerPickHtml(c, opts.signerSel||null)}</div>
-      <div id="share-hist-note"${hist?'':' class="hidden"'} style="margin:0 0 14px;border:1px solid var(--st-steel-line);background:var(--st-steel-bg);border-radius:0;padding:10px var(--s-3);font-size:var(--t-meta);line-height:1.55;color:var(--st-steel-fg)">
+      <div id="share-hist-note"${hist?'':' class="hidden"'} style="margin:0 0 14px;border:1px solid var(--st-steel-line);background:var(--st-steel-bg);border-radius:var(--radius);padding:10px var(--s-3);font-size:var(--t-meta);line-height:1.55;color:var(--st-steel-fg)">
         <b>${i18t('co_no_purpose')}</b> This link opens the negotiation history and nothing else — the
         same screen ${esc(c.counterparty||'the counterparty')} already sees, read-only. The agreement
         itself does not travel with it, and there is nothing on it to answer or sign.</div>
@@ -3001,8 +3001,8 @@ function shareSummaryStepHtml(c, opts={}){
              Rendered from the product's own negoTimelineScreenHtml so the
              preview cannot drift from the page it is previewing. */}
       <div id="share-manifest"${hist?' class="hidden"':''}>
-        ${s&&s.lines.length?`<ul style="list-style:none;margin:0 0 14px;padding:0;max-height:230px;overflow-y:auto;border:1px solid var(--color-divider);border-radius:0;padding:2px 11px">${rows}</ul>`
-          :`<div style="margin:0 0 14px;border:1px dashed var(--color-divider);border-radius:0;padding:14px;font-size:var(--t-meta);color:var(--color-neutral-600);text-align:center">${i18t('co_nothing_proposed')}</div>`}
+        ${s&&s.lines.length?`<ul style="list-style:none;margin:0 0 14px;padding:0;max-height:230px;overflow-y:auto;border:1px solid var(--color-divider);border-radius:var(--radius);padding:2px 11px">${rows}</ul>`
+          :`<div style="margin:0 0 14px;border:1px dashed var(--color-divider);border-radius:var(--radius);padding:14px;font-size:var(--t-meta);color:var(--color-neutral-600);text-align:center">${i18t('co_nothing_proposed')}</div>`}
       </div>
       ${''/* Inert on purpose: this is a picture of the recipient's screen, not
              a second copy of it. Their filters and Verify integrity work; these
@@ -3013,7 +3013,7 @@ function shareSummaryStepHtml(c, opts={}){
         <style>
           #share-hist-preview .ht{max-height:none;padding:var(--s-3) 14px;max-width:none}
           #share-hist-preview .ht h3{font-size:var(--t-card)}
-          #share-hist-preview .ht-inert{max-height:330px;overflow-y:auto;border:1px solid var(--color-divider);border-radius:0}
+          #share-hist-preview .ht-inert{max-height:330px;overflow-y:auto;border:1px solid var(--color-divider);border-radius:var(--radius)}
           #share-hist-preview .ht-filters{margin-bottom:10px;padding-bottom:var(--s-2)}
           #share-hist-preview .ht-inert *{pointer-events:none}
         </style>
@@ -3042,7 +3042,7 @@ function shareSummaryStepHtml(c, opts={}){
         <textarea id="sh-summary" rows="4" style="${FLD}" placeholder="${
           hist?'e.g. The full record of our negotiation, for your file.'
              :'e.g. We have moved on payment terms but not on the liability cap.'}"></textarea></label>
-      ${opts.handOver?`<div id="share-handover" style="margin-top:var(--s-3);border:1px solid var(--st-green-line);background:var(--st-green-bg);border-left:3px solid var(--st-green-fg);border-radius:0;padding:9px var(--s-3);font-size:var(--t-meta);line-height:1.5;color:var(--st-green-fg)">
+      ${opts.handOver?`<div id="share-handover" style="margin-top:var(--s-3);border:1px solid var(--st-green-line);background:var(--st-green-bg);border-left:3px solid var(--st-green-fg);border-radius:var(--radius);padding:9px var(--s-3);font-size:var(--t-meta);line-height:1.5;color:var(--st-green-fg)">
         <b>${i18t('co_closes_your_turn')}</b> Once it goes out, this contract shows as waiting on ${esc(c.counterparty||'them')} until they reply. Nothing moves if you close this without sending.</div>`:''}
       <div style="margin-top:14px;display:flex;align-items:center;gap:var(--s-2);justify-content:flex-end;">
         <button id="share-back-kind" class="ui-btn">${icon('arrow-right','w-3.5 h-3.5')} Back</button>
@@ -3105,7 +3105,7 @@ function shareSignerRowsHtml(c, sel){
       : i18t('co_signer_internal');
     return `<${pickable?'button type="button"':'div'} ${pickable?`data-share-signer="${esc(s.id)}"`:''}
       style="display:flex;align-items:flex-start;gap:var(--s-2);width:100%;text-align:left;font:inherit;border:1px solid ${on?'var(--color-accent)':'var(--color-divider)'};
-        background:${on?'var(--color-accent-100)':'var(--color-surface)'};border-radius:0;padding:7px 9px;margin-bottom:5px;
+        background:${on?'var(--color-accent-100)':'var(--color-surface)'};border-radius:var(--radius);padding:7px 9px;margin-bottom:5px;
         cursor:${pickable?'pointer':'default'};opacity:${pickable||s.signed?'1':'.7'}">
       <span style="flex:none;width:17px;height:17px;border-radius:50%;display:grid;place-items:center;font-size:var(--t-label);font-weight:var(--w-title);
         background:${on?'var(--color-accent)':'var(--color-neutral-100)'};color:${on?'#fff':'var(--color-neutral-700)'}">${i+1}</span>
@@ -3136,7 +3136,7 @@ function shareSignerPickHtml(c, sel){
   const box=need
     ? 'border:1px solid var(--st-amber-line);background:var(--st-amber-bg)'
     : 'border:1px solid var(--color-divider);background:var(--color-bg)';
-  return `<div id="share-signers-box" data-need-signers="${need?'1':'0'}" style="margin:0 0 14px;${box};border-radius:0;padding:11px var(--s-3)">
+  return `<div id="share-signers-box" data-need-signers="${need?'1':'0'}" style="margin:0 0 14px;${box};border-radius:var(--radius);padding:11px var(--s-3)">
     <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-2)">
       ${need?`<span style="flex:none;display:inline-flex;color:var(--st-amber-fg)">${icon('alert','w-3.5 h-3.5')}</span>`:''}
       <span style="flex:1;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:${need?'var(--st-amber-fg)':'var(--color-neutral-600)'}">${i18t('co_who_signs')}</span>
@@ -3178,7 +3178,7 @@ function readinessPanelHtml(c){
   const list=(items,color)=>`<ul style="margin:0;padding-left:var(--s-4);font-size:var(--t-meta);line-height:1.65;color:${color};">
       ${items.map(x=>`<li>${esc(x.label)}</li>`).join('')}
     </ul>`;
-  return `<div id="share-readiness" style="margin:0 0 var(--s-3);border:1px solid ${tone.line};background:${tone.bg};border-radius:0;padding:10px var(--s-3);">
+  return `<div id="share-readiness" style="margin:0 0 var(--s-3);border:1px solid ${tone.line};background:${tone.bg};border-radius:var(--radius);padding:10px var(--s-3);">
     <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-meta);font-weight:var(--w-strong);color:${tone.fg};margin-bottom:6px;">${icon('alert','w-3.5 h-3.5')} ${tone.head}</div>
     ${blocks.length?list(blocks,tone.fg):''}
     ${notes.length?`<div style="${blocks.length?'margin-top:9px;padding-top:var(--s-2);border-top:1px solid '+tone.line+';':''}">
@@ -3216,7 +3216,7 @@ function quickSendStepHtml(c, pre, purpose, warns){
   <div id="share-step-0">
     <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:10px;"><span style="display:inline-flex;color:var(--color-accent);">${icon('send')}</span>
       <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;color:var(--color-text);margin:0;">${i18t('co_send_named',{name:esc(c.name)})}</h2></div>
-    <div style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:14px var(--s-4);margin-bottom:10px">
+    <div style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:14px var(--s-4);margin-bottom:10px">
       <p style="margin:0;font-size:var(--t-card);line-height:1.6;color:var(--color-text)">To <b style="color:var(--accent-ink)">${who}</b> — ${quickSendPhrase(purpose)}.</p>
       <p style="margin:6px 0 0;font-size:var(--t-meta);line-height:1.5;color:var(--color-neutral-600)">${i18t('co_secure_link')}</p>
     </div>
@@ -4339,7 +4339,7 @@ async function openShareModal(c, opts={}){
   let qsActive=quickOk;
   const FLD=HATI_FLD;
   const LBL=HATI_LBL;
-  const tab=(k,label,active)=>`<button data-share-ch="${k}" style="flex:1;padding:7px var(--s-1);font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);cursor:pointer;border:1px solid ${active?'var(--color-accent)':'var(--color-divider)'};background:${active?'var(--color-accent)':'var(--color-surface)'};color:${active?'#fff':'var(--color-neutral-700)'};border-radius:0">${label}</button>`;
+  const tab=(k,label,active)=>`<button data-share-ch="${k}" style="flex:1;padding:7px var(--s-1);font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);cursor:pointer;border:1px solid ${active?'var(--color-accent)':'var(--color-divider)'};background:${active?'var(--color-accent)':'var(--color-surface)'};color:${active?'#fff':'var(--color-neutral-700)'};border-radius:var(--radius)">${label}</button>`;
   let ch=pre.channel||'email';
   const attr=s=>String(s==null?'':s).replace(/"/g,'&quot;');
   /* The opening handler stands down the instant the real one is about to go
@@ -4360,15 +4360,15 @@ async function openShareModal(c, opts={}){
       <p id="share-send-blurb" style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:0 0 var(--s-3);line-height:1.55;">Send ${esc(c.counterparty||'the counterparty')} a secure review link — they can review, sign, request changes or decline, <strong>${i18t('co_no_account_needed')}</strong>. ${server?'Each recipient gets their own tracked link; the outcome arrives on this contract automatically and lands in your email.':'Their response comes back as a code you import below the document.'}</p>
       <p id="share-send-blurb-hist" class="hidden" style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:0 0 var(--s-3);line-height:1.55;">${i18t('co_send_readonly_to')} <strong>negotiation history</strong> ${i18t('co_every_change_who')} <strong>${i18t('co_no_account_needed')}</strong>${i18t('co_nothing_to_sign')}</p>
       ${readinessPanelHtml(c)}
-      ${emailOff()?`<div id="sh-noemail" style="margin:0 0 var(--s-3);border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:0;padding:10px var(--s-3);font-size:var(--t-meta);line-height:1.55;color:var(--st-amber-fg)">
+      ${emailOff()?`<div id="sh-noemail" style="margin:0 0 var(--s-3);border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:var(--radius);padding:10px var(--s-3);font-size:var(--t-meta);line-height:1.55;color:var(--st-amber-fg)">
         <b>${i18t('co_not_emailed')}</b> ${EMAIL_SETUP_LINE} ${i18t('co_press_create_link',{what:i18t('co_create_link'),who:esc(c.counterparty||i18t('co_them'))})}</div>`:''}
-      ${server?'':`<div style="margin:0 0 var(--s-3);border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:0;padding:10px var(--s-3);">
+      ${server?'':`<div style="margin:0 0 var(--s-3);border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:var(--radius);padding:10px var(--s-3);">
         <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--st-ruby-fg);margin-bottom:5px;">${icon('alert','w-3.5 h-3.5')} ${i18t('co_demo_sharing')}</div>
         <p style="margin:0;font-size:var(--t-meta);line-height:1.6;color:var(--st-ruby-fg);">${i18t('co_without_server')} <strong>${i18t('co_inside_link')}</strong>. That link <strong>${i18t('co_never_expires')}</strong> — anyone who is forwarded it, now or in a year, can read this contract, and you will have no record that they did. Do not send a real contract this way. Run the HaTi server for tracked links that expire, can be withdrawn, and report back when they are opened.</p>
       </div>`}
       <div id="share-tabs" style="display:flex;gap:6px;margin-bottom:var(--s-3);">${tab('email','✉ Email',true)}${tab('whatsapp','WhatsApp',false)}${tab('link',i18t('co_copy_link'),false)}</div>
       <div id="share-fields">
-        ${preNote?`<div id="sh-prefill-note" data-prefill-src="${attr(pre.source)}" style="display:flex;align-items:center;gap:7px;margin:0 0 9px;font-size:var(--t-meta);color:var(--color-neutral-700);border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:7px 10px">
+        ${preNote?`<div id="sh-prefill-note" data-prefill-src="${attr(pre.source)}" style="display:flex;align-items:center;gap:7px;margin:0 0 9px;font-size:var(--t-meta);color:var(--color-neutral-700);border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:7px 10px">
           <span style="flex:none;color:var(--color-accent);display:inline-flex">${icon('check2','w-3.5 h-3.5')}</span>
           <span style="flex:1;min-width:0">${preNote}</span>
         </div>`:''}
@@ -4391,7 +4391,7 @@ async function openShareModal(c, opts={}){
                channel changes. It speaks for BOTH boxes: the step-1 note and
                this one are joined into one message before they travel. */}
         <div id="sh-msg-where" style="margin-top:5px;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600)"></div>
-        ${server?`<div style="margin-top:11px;border:1px solid var(--color-divider);border-radius:0;padding:9px 11px">
+        ${server?`<div style="margin-top:11px;border:1px solid var(--color-divider);border-radius:var(--radius);padding:9px 11px">
           <label style="display:flex;align-items:flex-start;gap:var(--s-2);font-size:var(--t-meta);color:var(--color-neutral-800);cursor:pointer">
             ${''/* A SIGNING LINK OPENS ONE-SHOT, and the dialog's own words say
                    why: "the right choice for a final signature, where one copy
@@ -4405,7 +4405,7 @@ async function openShareModal(c, opts={}){
           </label>
         </div>
         <label style="display:flex;align-items:center;gap:var(--s-2);margin-top:10px;font-size:var(--t-meta);color:var(--color-neutral-700)">Link expires in
-          <select id="sh-exp" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:var(--s-1) 6px;font:inherit;font-size:var(--t-meta);color:inherit;">
+          <select id="sh-exp" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:var(--s-1) 6px;font:inherit;font-size:var(--t-meta);color:inherit;">
             ${[7,14,30,60].map(d=>`<option value="${d}" ${d===14?'selected':''}>${d} days</option>`).join('')}
           </select></label>`:''}
       </div>
@@ -4636,9 +4636,9 @@ async function openShareModal(c, opts={}){
   const resultBox=(html)=>{ const host=document.getElementById(qsActive?'qs-result':'sh-result');
     if(host) host.innerHTML=reuseNote+html; };
   const copyBox=(link,note)=>`
-    <div style="border:1px solid var(--color-divider);background:var(--st-steel-bg);border-radius:0;padding:var(--s-3);">
+    <div style="border:1px solid var(--color-divider);background:var(--st-steel-bg);border-radius:var(--radius);padding:var(--s-3);">
       ${note?`<div style="font-size:var(--t-meta);color:var(--accent-ink);font-weight:var(--w-strong);margin-bottom:6px;display:flex;align-items:center;gap:6px">${icon('check2','w-3.5 h-3.5')} ${note}</div>`:''}
-      <textarea id="share-link" readonly rows="3" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:9px;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all;">${link}</textarea>
+      <textarea id="share-link" readonly rows="3" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:9px;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all;">${link}</textarea>
       <button id="share-copy" class="ui-btn" style="margin-top:6px;font-size:var(--t-meta);">${icon('copy','w-3 h-3')} ${i18t('co_copy_link')}</button>
     </div>`;
   const wireCopy=()=>document.getElementById('share-copy')?.addEventListener('click',async()=>{
@@ -4798,7 +4798,7 @@ async function openShareModal(c, opts={}){
               signerId:(payloadObj.purpose==='sign' && signerSel) ? signerSel : undefined });
       }
       catch(e){ toast(e.message,'err'); return false; }
-      reuseNote = reuse ? `<div style="border:1px solid var(--color-divider);background:var(--st-steel-bg);border-radius:0;padding:10px var(--s-3);font-size:var(--t-meta);line-height:1.55;color:var(--st-steel-fg);margin-bottom:var(--s-2)">
+      reuseNote = reuse ? `<div style="border:1px solid var(--color-divider);background:var(--st-steel-bg);border-radius:var(--radius);padding:10px var(--s-3);font-size:var(--t-meta);line-height:1.55;color:var(--st-steel-fg);margin-bottom:var(--s-2)">
         <b>${i18t('co_already_had_link',{who:esc(name||email)})}</b>
         No second link was created — there is still exactly one, and nothing older is left open.</div>` : '';
       if(ch==='email'){
@@ -4808,12 +4808,12 @@ async function openShareModal(c, opts={}){
         // which of the three actually happened, and quote the reason.
         const link=r.link?`<div style="margin-top:var(--s-2)"><span style="font-family:var(--font-mono);font-size:var(--t-label);word-break:break-all">${esc(r.link)}</span></div>`:'';
         if(r.emailSent){
-          resultBox(`<div style="border:1px solid color-mix(in srgb,var(--st-green-dot) 30%,transparent);background:var(--st-green-bg);border-radius:0;padding:var(--s-3);font-size:var(--t-meta);color:var(--st-green-fg);display:flex;align-items:flex-start;gap:var(--s-2);">${icon('check2','w-4 h-4')}<span><strong>${i18t('co_email_sent')}</strong> to ${esc(email)}. Their answers land on the contract here as they make them — watch it in Negotiation rather than your inbox. Fill in another recipient to share again.</span></div>`);
+          resultBox(`<div style="border:1px solid color-mix(in srgb,var(--st-green-dot) 30%,transparent);background:var(--st-green-bg);border-radius:var(--radius);padding:var(--s-3);font-size:var(--t-meta);color:var(--st-green-fg);display:flex;align-items:flex-start;gap:var(--s-2);">${icon('check2','w-4 h-4')}<span><strong>${i18t('co_email_sent')}</strong> to ${esc(email)}. Their answers land on the contract here as they make them — watch it in Negotiation rather than your inbox. Fill in another recipient to share again.</span></div>`);
         } else if(r.alreadySentAt){
           /* Nothing was refused: their live link already went, and no
              duplicate was emailed on purpose. Saying "Not delivered" here was
              the false alarm of 02 Aug 2026. */
-          resultBox(`<div style="border:1px solid color-mix(in srgb,var(--st-green-dot) 30%,transparent);background:var(--st-green-bg);border-radius:0;padding:var(--s-3);font-size:var(--t-meta);color:var(--st-green-fg);display:flex;align-items:flex-start;gap:var(--s-2);">${icon('check2','w-4 h-4')}<span><strong>${i18t('co_already_sent')}</strong> ${esc(email)} received their link ${fmtDT(r.alreadySentAt)}, and it is still live — no duplicate was sent. This link now shows the current version.${link}</span></div>`);
+          resultBox(`<div style="border:1px solid color-mix(in srgb,var(--st-green-dot) 30%,transparent);background:var(--st-green-bg);border-radius:var(--radius);padding:var(--s-3);font-size:var(--t-meta);color:var(--st-green-fg);display:flex;align-items:flex-start;gap:var(--s-2);">${icon('check2','w-4 h-4')}<span><strong>${i18t('co_already_sent')}</strong> ${esc(email)} received their link ${fmtDT(r.alreadySentAt)}, and it is still live — no duplicate was sent. This link now shows the current version.${link}</span></div>`);
         } else if(r.heldForTurn){
           /* ---- NOTHING WAS REFUSED. NOTHING WAS ATTEMPTED. ----
              A signing link bound to a signer who is not first is created,
@@ -4841,7 +4841,7 @@ async function openShareModal(c, opts={}){
              concludes the link is broken. It is not withheld silently — the
              Shares panel lists every link and is the durable record. */
           const waitOn=(r.heldFor&&r.heldFor.name)?esc(r.heldFor.name):i18t('co_held_earlier_signer');
-          resultBox(`<div style="border:1px solid var(--st-steel-line);background:var(--st-steel-bg);border-radius:0;padding:var(--s-3);font-size:var(--t-meta);color:var(--st-steel-fg);display:flex;align-items:flex-start;gap:var(--s-2);">${icon('clock','w-4 h-4')}<span><strong>${i18t('co_link_held')}</strong> ${
+          resultBox(`<div style="border:1px solid var(--st-steel-line);background:var(--st-steel-bg);border-radius:var(--radius);padding:var(--s-3);font-size:var(--t-meta);color:var(--st-steel-fg);display:flex;align-items:flex-start;gap:var(--s-2);">${icon('clock','w-4 h-4')}<span><strong>${i18t('co_link_held')}</strong> ${
             i18t('co_link_held_body',{who:esc(email),waiting:waitOn})}<br><span style="display:inline-block;margin-top:6px;font-size:var(--t-label);opacity:.85">${i18t('co_link_held_where')}</span></span></div>`);
         } else if(r.emailConfigured){
           /* A REAL refusal, which always carries a reason: sendEmail returns
@@ -4852,7 +4852,7 @@ async function openShareModal(c, opts={}){
              non-attempt stops being reported as a refusal. */
           resultBox(`<div style="border:1px solid color-mix(in srgb,var(--st-amber-dot) 45%,transparent);background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border-radius:0;padding:var(--s-3);font-size:var(--t-meta);color:var(--st-amber-fg);display:flex;align-items:flex-start;gap:var(--s-2);">${icon('alert','w-4 h-4')}<span><strong>${i18t('co_not_delivered')}</strong> The link was created and is safe to send another way, but ${esc(email)} has not received anything.${r.emailError?`<br><span style="display:inline-block;margin-top:6px;font-family:var(--font-mono);font-size:var(--t-label);line-height:1.5">${esc(r.emailError)}</span>`:''}${link}</span></div>`);
         } else {
-          resultBox(`<div style="border:1px solid color-mix(in srgb,var(--st-amber-dot) 45%,transparent);background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border-radius:0;padding:var(--s-3);font-size:var(--t-meta);color:var(--st-amber-fg);display:flex;align-items:flex-start;gap:var(--s-2);">${icon('alert','w-4 h-4')}<span><strong>${i18t('co_queued_not_sent')}</strong> This server has no mail provider set up, so nothing left HaTi. An admin can read the message and the link in the outbox under Team &amp; Settings.${link}</span></div>`);
+          resultBox(`<div style="border:1px solid color-mix(in srgb,var(--st-amber-dot) 45%,transparent);background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border-radius:var(--radius);padding:var(--s-3);font-size:var(--t-meta);color:var(--st-amber-fg);display:flex;align-items:flex-start;gap:var(--s-2);">${icon('alert','w-4 h-4')}<span><strong>${i18t('co_queued_not_sent')}</strong> This server has no mail provider set up, so nothing left HaTi. An admin can read the message and the link in the outbox under Team &amp; Settings.${link}</span></div>`);
         }
       } else if(ch==='whatsapp'){
         const wa=waShareLink(phone, shareMessageText(c,r.link,msg,r.expiresAt));
@@ -5009,7 +5009,7 @@ function reshareNotSentModal(c, out, who){
       <p style="font-size:var(--t-body);color:var(--color-neutral-700);margin:0 0 var(--s-3);line-height:1.55">
         ${esc(who)} is now looking at the current wording <b>${i18t('co_if_they_open')}</b> — but they have not been told.
         ${reason} Send them this link yourself:</p>
-      <textarea id="rs-link" readonly rows="3" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:9px;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all">${esc(out.link||'')}</textarea>
+      <textarea id="rs-link" readonly rows="3" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:9px;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all">${esc(out.link||'')}</textarea>
       <div style="display:flex;gap:var(--s-2);justify-content:flex-end;margin-top:var(--s-3)">
         <button id="rs-copy" class="ui-btn">${icon('copy','w-3 h-3')} ${i18t('co_copy_link')}</button>
         <button id="rs-close" class="ui-btn ui-btn-primary">${i18t('act_close')}</button>
@@ -5053,12 +5053,12 @@ function counterpartySeenHtml(c, shares){
   const esc=s=>String(s==null?'':s).replace(/[&<>]/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[x]));
   const stale=days>=3;
   if(st.kind==='opened') return `
-    <div id="seen-state" style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:9px 13px;margin-bottom:var(--s-3);font-size:var(--t-meta);color:var(--color-neutral-700)">
+    <div id="seen-state" style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:9px 13px;margin-bottom:var(--s-3);font-size:var(--t-meta);color:var(--color-neutral-700)">
       <span style="flex:none;color:var(--st-green-fg);display:inline-flex">${icon('check2','w-3.5 h-3.5')}</span>
       <span style="flex:1;min-width:160px">${i18t('co_opened_no_response',{who:esc(st.who),when:days===0?i18t('co_opened_today'):i18tn('co_opened_days',days,{n:days})})}</span>
     </div>`;
   return `
-    <div id="seen-state" style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;border:1px solid ${stale?'var(--st-amber-line)':'var(--color-divider)'};background:${stale?'var(--st-amber-bg)':'var(--color-surface)'};border-radius:0;padding:9px 13px;margin-bottom:var(--s-3);font-size:var(--t-meta);color:${stale?'var(--st-amber-fg)':'var(--color-neutral-700)'}">
+    <div id="seen-state" style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;border:1px solid ${stale?'var(--st-amber-line)':'var(--color-divider)'};background:${stale?'var(--st-amber-bg)':'var(--color-surface)'};border-radius:var(--radius);padding:9px 13px;margin-bottom:var(--s-3);font-size:var(--t-meta);color:${stale?'var(--st-amber-fg)':'var(--color-neutral-700)'}">
       <span style="flex:none;color:${stale?'var(--st-amber-dot)':'var(--color-neutral-500)'};display:inline-flex">${icon(stale?'alert':'clock','w-3.5 h-3.5')}</span>
       <span style="flex:1;min-width:160px"><b>${esc(st.who)} has not opened the current version.</b> Sent ${days===0?'today':`${days} day${days===1?'':'s'} ago`}${stale?' — worth chasing, or check the link reached them.':'.'}</span>
       ${canEdit()?`<button id="seen-resend" class="ui-btn" style="flex:none;font-size:var(--t-label);padding:5px 11px">${i18t('co_send_again')}</button>`:''}
@@ -5120,7 +5120,7 @@ function shareJourneyHtml(c, shares){
       <div style="font-size:var(--t-label);color:var(--color-neutral-600);margin:3px 0 0 18px;line-height:1.45">${esc(s.words)}</div>
     </div>`;
   };
-  return `<div id="share-journey" style="border:1px solid ${j.stale?'var(--st-amber-line)':'var(--color-divider)'};background:${j.stale?'var(--st-amber-bg)':'var(--color-bg)'};border-radius:0;padding:11px 13px;margin-bottom:var(--s-3)">
+  return `<div id="share-journey" style="border:1px solid ${j.stale?'var(--st-amber-line)':'var(--color-divider)'};background:${j.stale?'var(--st-amber-bg)':'var(--color-bg)'};border-radius:var(--radius);padding:11px 13px;margin-bottom:var(--s-3)">
     <div style="display:flex;gap:10px;flex-wrap:wrap">${j.stages.map(cell).join('')}</div>
     <div style="display:flex;align-items:center;gap:9px;margin-top:9px;padding-top:var(--s-2);border-top:1px dashed var(--color-divider)">
       <span style="flex:1;font-size:var(--t-meta);line-height:1.5;font-weight:${(j.responded&&!j.signed)?'600':'500'};color:${j.signed?'var(--st-green-fg)':(j.responded||j.stale)?'var(--st-amber-fg)':'var(--color-neutral-700)'}">${esc(j.sentence)}</span>
@@ -5201,7 +5201,7 @@ async function renderSharesSection(c){
           s.firstOpenedAt?`opened ${fmtDT(s.firstOpenedAt)}`:null,
           s.respondedAt?`responded ${fmtDT(s.respondedAt)}`:null,
           (!s.respondedAt&&!s.revokedAt&&s.expiresAt)?`expires ${String(s.expiresAt).slice(0,10)}`:null].filter(Boolean).join(' · ');
-        return `<div style="border:1px solid var(--color-divider);border-radius:0;padding:var(--s-2) 10px;background:var(--color-bg)">
+        return `<div style="border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-2) 10px;background:var(--color-bg)">
           <div style="display:flex;align-items:center;gap:var(--s-2);min-width:0">
             ${shareChip(s.state)}
             <span style="flex:1;min-width:0;font-size:var(--t-meta);font-weight:var(--w-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${who}">${who}</span>
@@ -5302,7 +5302,7 @@ function openImportModal(c){
       <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-1);"><span style="display:inline-flex;color:var(--color-accent);">${icon('upload')}</span>
         <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;color:var(--color-text);margin:0;">${i18t('co_import_cp_response')}</h2></div>
       <p style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:0 0 var(--s-3);line-height:1.55;">${i18t('co_paste_response_code')}</p>
-      <textarea id="imp-code" rows="5" placeholder="${i18t('co_paste_response')}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:11px;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-text);outline:none;"></textarea>
+      <textarea id="imp-code" rows="5" placeholder="${i18t('co_paste_response')}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:11px;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-text);outline:none;"></textarea>
       <div style="margin-top:14px;display:flex;align-items:center;gap:var(--s-2);justify-content:flex-end;">
         <button id="imp-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="imp-go" class="ui-btn ui-btn-primary">${i18t('co_import')}</button>

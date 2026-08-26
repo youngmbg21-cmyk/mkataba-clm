@@ -179,7 +179,26 @@ const CARD_EDIT = async () => {
      to the contract"), so the pill press is only the fallback for a world
      where it did not. Pressing the pill unconditionally would TOGGLE the
      freshly opened panel shut — the pill's own deliberate behaviour. */
-  if (!document.querySelector('.rl-cp-src.is-on')){
+  /* ---- WHAT THE EDIT PRESS ALONE DID, RECORDED BEFORE THE FALLBACK ----
+     (owner-reported 26 Aug 2026, L-3: "In the counterparty page, if you click
+     Edit in the card it should take you to the attached edit window not to the
+     contract.")
+
+     THE FALLBACK BELOW IS WHY NOBODY NOTICED. It was written on 20 Aug as a
+     kindness — press the pill "for a world where it did not" — and a kindness
+     in a test is a hole: from that day this file passed whether or not Edit
+     opened the panel, because the pill press put it right before anything was
+     measured. The granted ask then stopped working on one seat and 40/40 went
+     on being printed.
+
+     So the answer is taken FIRST and asserted on its own. The fallback stays,
+     because the measurements after it are about the editor and the clause and
+     want the panel open however it got there — but it can no longer stand in
+     for the claim it was hiding. */
+  const openedFromEdit = !!document.querySelector('.rl-cp-src.is-on');
+  const openedOnThisClause = openedFromEdit
+    && document.querySelector('.rl-cp-src.is-on').getAttribute('data-rl-cp-for') === id;
+  if (!openedFromEdit){
     const pill = clause.querySelector('[data-rl-cp-open]');
     if (pill) pill.click();
     await new Promise(r => setTimeout(r, 250));
@@ -203,6 +222,7 @@ const CARD_EDIT = async () => {
        after markers: the editor must show the NEW wording (continuing the
        redline) and not only the old (restarting from underneath it). */
     opensOn: ed ? ed.textContent.replace(/\s+/g, ' ').trim() : null,
+    openedFromEdit, openedOnThisClause,
     marker, goneWord };
 };
 
@@ -348,6 +368,14 @@ const CARD_EDIT = async () => {
       check(`9 ${who}: the clause says it has arrived, without the picker's name`,
         r.arrived && !r.wearsPickerClass,
         `arrived:${r.arrived} wearsPickerClass:${r.wearsPickerClass}`);
+      /* THE CLAIM THE FALLBACK WAS ABSORBING (owner-reported 26 Aug 2026).
+         Not "the panel is open by the time we measure" — one press of Edit,
+         and the panel open ON THE CLAUSE THAT CARD NAMES. A press that lands
+         the reader on the contract and stops is exactly what was reported. */
+      check(`9 ${who}: ONE press of Edit opens the clause panel`,
+        r.openedFromEdit, `panel open after Edit alone: ${r.openedFromEdit}`);
+      check(`9 ${who}: and it opens on the clause the card names`,
+        r.openedOnThisClause, `right clause: ${r.openedOnThisClause}`);
       check(`9 ${who}: the editor opened in the panel, and the panel knows it`,
         r.editorOpen && r.editing, `editor:${r.editorOpen} is-editing:${r.editing}`);
       /* The editor arrives dressed as wording: the body rules have to reach

@@ -279,7 +279,7 @@ function buildHealthReportHtml(d, imgs){
   .toolbar{display:flex;justify-content:flex-end;gap:10px;padding:14px 0;border-bottom:1px solid #e5e7eb;
     font-family:Inter,-apple-system,'Segoe UI',Arial,sans-serif}
   .toolbar button{border:0;background:#0d9488;color:#fff;font:inherit;font-size:14px;font-weight:600;
-    border-radius:0;padding:8px 16px;cursor:pointer}
+    border-radius:var(--radius);padding:8px 16px;cursor:pointer}
   h1{font-size:26px;margin:26px 0 4px}
   .sub{color:#6b7280;font-size:14px;margin:0 0 22px;font-family:Inter,-apple-system,'Segoe UI',Arial,sans-serif}
   h2{font-size:16px;margin:30px 0 8px;padding-top:14px;border-top:1px solid #e5e7eb}
@@ -290,7 +290,7 @@ function buildHealthReportHtml(d, imgs){
   .amb{color:#b45309;font-weight:600}
   .neg{color:#b91c1c;font-weight:600}
   .ok{color:#0f7a58}
-  .chip{display:inline-block;border-radius:0;padding:3px 12px;font-size:15px;font-weight:700;
+  .chip{display:inline-block;border-radius:var(--radius);padding:3px 12px;font-size:15px;font-weight:700;
     font-family:Inter,-apple-system,'Segoe UI',Arial,sans-serif}
   .chip.c-strong,.chip.c-good{background:#e6f4ef;color:#0f7a58}
   .chip.c-fair{background:#fdf3e0;color:#b45309}
@@ -310,7 +310,7 @@ function buildHealthReportHtml(d, imgs){
   figure{margin:14px 0;page-break-inside:avoid}
   figcaption{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;margin-bottom:6px;
     font-family:Inter,-apple-system,'Segoe UI',Arial,sans-serif}
-  figure img{max-width:100%;border:1px solid #e5e7eb;border-radius:0}
+  figure img{max-width:100%;border:1px solid #e5e7eb;border-radius:var(--radius)}
   ul{margin:6px 0 14px;padding-left:20px}
   li{margin:3px 0}
   .foot{margin-top:34px;padding-top:12px;border-top:1px solid #e5e7eb;color:#6b7280;font-size:13px;

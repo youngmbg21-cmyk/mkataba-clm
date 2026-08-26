@@ -409,14 +409,14 @@ function negoTimelineScreenHtml(c, f = {}, opts = {}){
       .ht .ht-sub{font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3)}
       .ht .ht-filters{display:flex;gap:var(--s-2);flex-wrap:wrap;margin-bottom:14px;padding-bottom:var(--s-3);border-bottom:1px solid var(--color-divider)}
       .ht .ht-f{display:flex;flex-direction:column;gap:2px;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)}
-      .ht .ht-f select{font:inherit;font-size:var(--t-meta);font-weight:var(--w-body);text-transform:none;letter-spacing:0;border:1px solid var(--color-divider);border-radius:0;padding:var(--s-1) 6px;background:var(--color-surface);color:var(--color-text);max-width:180px}
+      .ht .ht-f select{font:inherit;font-size:var(--t-meta);font-weight:var(--w-body);text-transform:none;letter-spacing:0;border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-1) 6px;background:var(--color-surface);color:var(--color-text);max-width:180px}
       .ht .ht-ev{display:flex;gap:10px;padding:var(--s-2) 0;border-bottom:1px solid color-mix(in srgb,var(--color-divider) 55%,transparent)}
       .ht .ht-mark{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--color-bg);border:1px solid var(--color-divider);font-size:var(--t-label)}
       .ht .ht-body{flex:1;min-width:0}
       .ht .ht-text{font-size:var(--t-body);line-height:1.5;color:var(--color-text)}
       .ht .ht-meta{font-size:var(--t-label);color:var(--color-neutral-600);margin-top:1px}
       .ht .ht-clause{font-weight:var(--w-strong)}
-      .ht .ht-redline{border:1px solid var(--color-divider);border-radius:0;padding:7px 9px;margin-top:6px;font-size:var(--t-meta);line-height:1.55;background:var(--color-surface)}
+      .ht .ht-redline{border:1px solid var(--color-divider);border-radius:var(--radius);padding:7px 9px;margin-top:6px;font-size:var(--t-meta);line-height:1.55;background:var(--color-surface)}
       .ht .ht-redline ins{background:var(--st-green-bg);text-decoration:none}
       .ht .ht-redline del{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
       .ht .ht-note{font-size:var(--t-label);color:var(--color-neutral-700);margin-top:var(--s-1);border-left:2px solid var(--color-divider);padding-left:var(--s-2)}
@@ -564,8 +564,8 @@ async function negoHistoryPrintRun(c){
 }
 function negoVerifyResultHtml(r){
   return r.ok
-    ? `<div data-verify-ok="1" style="border:1px solid color-mix(in srgb,var(--st-green-dot) 30%,transparent);background:var(--st-green-bg);border-radius:0;padding:10px var(--s-3);margin-bottom:var(--s-3);font-size:var(--t-meta);color:var(--st-green-fg)">✓ ${_ne(r.detail)}. Verified ${_ne(String(r.at).slice(0, 19).replace('T', ' '))} UTC.</div>`
-    : `<div data-verify-ok="0" style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:0;padding:10px var(--s-3);margin-bottom:var(--s-3);font-size:var(--t-meta);color:var(--st-ruby-fg)"><b>${i18t('ng_integrity_failed')}</b> ${_ne(r.firstBroken || r.detail)}<br><span style="font-size:var(--t-label)">Nothing has been changed by this check. The first broken link is named above; everything before it verified. Checked ${_ne(String(r.at).slice(0, 19).replace('T', ' '))} UTC.</span></div>`;
+    ? `<div data-verify-ok="1" style="border:1px solid color-mix(in srgb,var(--st-green-dot) 30%,transparent);background:var(--st-green-bg);border-radius:var(--radius);padding:10px var(--s-3);margin-bottom:var(--s-3);font-size:var(--t-meta);color:var(--st-green-fg)">✓ ${_ne(r.detail)}. Verified ${_ne(String(r.at).slice(0, 19).replace('T', ' '))} UTC.</div>`
+    : `<div data-verify-ok="0" style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:var(--radius);padding:10px var(--s-3);margin-bottom:var(--s-3);font-size:var(--t-meta);color:var(--st-ruby-fg)"><b>${i18t('ng_integrity_failed')}</b> ${_ne(r.firstBroken || r.detail)}<br><span style="font-size:var(--t-label)">Nothing has been changed by this check. The first broken link is named above; everything before it verified. Checked ${_ne(String(r.at).slice(0, 19).replace('T', ' '))} UTC.</span></div>`;
 }
 /* The report a reader with no login can hold: the whole story, every filter
    off, each change as its rendered redline, and the integrity statement —
@@ -578,6 +578,13 @@ function negoVerifyResultHtml(r){
    nothing and every redline printed as flat text with no added/removed
    distinction at all. Literal values, because self-contained has to mean
    self-contained.
+
+   THE SAME TRAP CAUGHT THE CORNERS ON 26 Aug 2026, and it is why this note is
+   worth re-reading before editing anything below: the platform-wide 2px sweep
+   turned three border-radius:0 declarations here into var(--radius), which
+   resolves to nothing in a file that carries no :root. Every rounded box in
+   this report squared off, silently. This block takes LITERAL values — every
+   one of them — and a var() of any kind does not belong in it.
 
    And not colour ALONE. This is a report people print and file: browsers drop
    backgrounds when printing unless told otherwise, and a reader with a colour
@@ -608,12 +615,12 @@ function negoHistoryExportHtml(c, report){
 <style>
   body{font:13px/1.55 Georgia,serif;color:#1c2126;max-width:760px;margin:32px auto;padding:0 18px}
   h1{font-size:21px;margin:0 0 2px} .sub{color:#5a6470;font-size:13px;margin:0 0 18px}
-  .integrity{border:1.5px solid ${report.ok ? '#10b981' : '#f43f5e'};border-radius:0;padding:12px 14px;margin:0 0 20px;font-size:14px}
+  .integrity{border:1.5px solid ${report.ok ? '#10b981' : '#f43f5e'};border-radius:2px;padding:12px 14px;margin:0 0 20px;font-size:14px}
   .ht-ev{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #e3e7ea;page-break-inside:avoid}
   .ht-mark{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;border:1px solid #cdd4da;font-size:12px}
   .ht-body{flex:1;min-width:0} .ht-text{font-size:14px} .ht-meta{font-size:12px;color:#5a6470}
   .ht-clause{font-weight:600}
-  .ht-redline{border:1px solid #e3e7ea;border-radius:0;padding:7px 9px;margin-top:6px;font-size:13px}
+  .ht-redline{border:1px solid #e3e7ea;border-radius:2px;padding:7px 9px;margin-top:6px;font-size:13px}
   /* added wording — LITERAL ON PURPOSE, and f143 is the test that says so. This
      stylesheet is written into a STANDALONE .html file the counterparty saves
      and opens on their own machine; it carries none of the app's :root, so a
@@ -625,7 +632,7 @@ function negoHistoryExportHtml(c, report){
   .ht-redline del{background:#ffe4e6;color:#be123c;text-decoration:line-through}
   .ht-redline ins,.ht-redline del{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .ht-key{margin:0 0 14px;font-size:12px;color:#5a6470}
-  .ht-key ins,.ht-key del{padding:0 3px;border-radius:0}
+  .ht-key ins,.ht-key del{padding:0 3px;border-radius:2px}
   /* OI-5: open the seam between a deletion and its replacement — display only */
   .ht-redline del+ins{margin-left:.3em}
   .ht-note{font-size:12px;color:#3c454e;margin-top:4px;border-left:2px solid #cdd4da;padding-left:8px}
@@ -1456,7 +1463,7 @@ function negoLiveCardsHtml(c, opts){
         ${(side !== 'counterparty' && ch.revisedBy && ch.revisedBy !== ch.author) ? `<div style="font-size:var(--t-label);color:var(--n-ink-soft);margin-bottom:7px"
           title="${_ne(i18t('ng_revised_title'))} — ${_ne(String(ch.revisedBy))} / ${_ne(String(ch.author))}"><span aria-hidden="true">&#9998;</span> ${
           i18t('ng_revised_by_after',{who:_ne(_liveShort(ch.revisedBy)),author:_ne(_liveShort(ch.author))})}</div>` : ''}
-        ${(ch.why || ch.note) ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:0;padding:6px 9px;margin-bottom:var(--s-2)">
+        ${(ch.why || ch.note) ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:var(--radius);padding:6px 9px;margin-bottom:var(--s-2)">
           <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--n-slate)">${i18t('ng_why_they_asked')}</span>
           <span class="nego-why-clamp" style="font-size:var(--t-meta);line-height:1.5;color:var(--n-ink)">${_ne(ch.why || ch.note)}</span></div>` : ''}
         ${ch.reply ? `<div style="border-left:2px solid var(--n-line);padding:6px 9px;margin-bottom:var(--s-2);font-size:var(--t-meta);line-height:1.5;color:var(--n-ink)"><b>${i18t('ng_reply')}</b> ${_ne(ch.reply)}</div>` : ''}
@@ -1464,7 +1471,7 @@ function negoLiveCardsHtml(c, opts){
           const v = window.reviewOn ? reviewOn(ch) : null;
           /* Same rule as the workbench's twin: the note names its author. */
           const sayBy = (v && window.reviewVerdictByFor) ? reviewVerdictByFor(ch, null, c) : (v && v.by);
-          return (v && v.note && sayBy) ? `<div style="border-left:2px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:0;padding:6px 9px;margin-bottom:var(--s-2)">
+          return (v && v.note && sayBy) ? `<div style="border-left:2px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:var(--radius);padding:6px 9px;margin-bottom:var(--s-2)">
             ${''/* NOT UPPERCASE, unlike the labels above it: this one holds a
                    PERSON'S NAME. "WHY THEY ASKED" is a caption and capitals
                    read as a caption; "ACHIENG OTIENO SAID" reads as shouting,
@@ -1620,7 +1627,7 @@ function negoHistoryCardHtml(c, ch, r, opts){
     <div style="font-size:var(--t-body);font-weight:var(--w-strong);line-height:1.45;margin-bottom:var(--s-1)">${_ne(ch.summary)}</div>
     <div style="font-size:var(--t-label);color:var(--n-ink-soft);margin-bottom:7px">${_ne(ch.clauseLabel || ch.clauseId)}</div>
     <div style="font-size:var(--t-label);color:var(--n-ink-soft);margin-bottom:7px">${i18t('ng_author')} <b style="color:var(--n-ink);font-weight:var(--w-strong)">${_ne(ch.author)}</b></div>
-    ${(ch.why || ch.note) ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:0;padding:6px 9px;margin-bottom:var(--s-2)">
+    ${(ch.why || ch.note) ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:var(--radius);padding:6px 9px;margin-bottom:var(--s-2)">
       <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--n-slate)">${i18t('ng_why_they_asked')}</span>
       <span class="nego-why-clamp" style="font-size:var(--t-meta);line-height:1.5;color:var(--n-ink)">${_ne(ch.why || ch.note)}</span></div>` : ''}
     ${ch.reply ? `<div style="border-left:2px solid var(--n-line);padding:6px 9px;margin-bottom:var(--s-2);font-size:var(--t-meta);line-height:1.5;color:var(--n-ink)"><b>${i18t('ng_reply')}</b> ${_ne(ch.reply)}</div>` : ''}
@@ -1896,7 +1903,7 @@ function negoHeadHtml(c, opts){
   return `
     ${negoModeHtml(c, opts)}
     <div style="flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;
-      background:var(--n-paper);border:1px solid var(--n-line);border-radius:0;box-shadow:var(--shadow-sm)">
+      background:var(--n-paper);border:1px solid var(--n-line);border-radius:var(--radius);box-shadow:var(--shadow-sm)">
       <span style="font-size:var(--t-body);font-weight:var(--w-title);color:var(--n-ink)">${i18t('ng_negotiation')}</span>
       <span class="nego-ver">${i18t('ng_round_n',{n:negoRound(c)})}</span>
       <span style="font-size:var(--t-meta);color:var(--n-ink-soft);min-width:0;flex:1">
@@ -1933,7 +1940,7 @@ function negoReadyHtml(c, opts){
   const withdrawn = negoChanges(c).filter(x => x.withdrawn).length;
   return `
     <div id="nego-ready" style="flex:none;display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap;
-      border:1px solid var(--st-green-line);background:var(--st-green-bg);border-left:4px solid var(--st-green-fg);border-radius:0;
+      border:1px solid var(--st-green-line);background:var(--st-green-bg);border-left:4px solid var(--st-green-fg);border-radius:var(--radius);
       padding:var(--s-3) var(--s-4);box-shadow:var(--shadow-sm)">
       <span style="flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--st-green-fg);color:#fff;font-size:var(--t-card);font-weight:var(--w-title)" aria-hidden="true">✓</span>
       <span style="flex:1;min-width:200px;line-height:1.45">
@@ -2089,7 +2096,7 @@ function negoTurnBannerHtml(c, opts){
   const heldHere = (side === 'owner' && window.negoUnsentAsks)
     ? negoUnsentAsks(c, 'owner').length : (b.unsent || 0);
   return `<div class="nego-turn" id="nego-turn" data-turn="${mine ? 'mine' : 'theirs'}"
-      style="flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-radius:0;padding:9px 14px;
+      style="flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-radius:var(--radius);padding:9px 14px;
       border:1px solid ${mine ? 'var(--st-green-line)' : 'var(--n-line)'};background:${mine ? 'var(--st-green-bg)' : 'var(--n-badge-bg)'};
       border-left:4px solid ${mine ? 'var(--n-accept)' : 'var(--n-slate-soft)'}">
     <span style="flex:1;min-width:200px;font-size:var(--t-body);font-weight:var(--w-strong);color:${mine ? 'var(--st-green-fg)' : 'var(--n-ink)'}">
@@ -3342,7 +3349,7 @@ async function negoAiPropose(c, ctx){
   pop.querySelector('.nego-aiwait')?.remove();
   const body = document.createElement('div');
   body.className = 'nego-aibody';
-  body.innerHTML = (note ? `<p style="font-family:var(--n-font-ui);font-size:var(--t-body);line-height:1.6;margin:0 0 10px;padding:9px 11px;background:var(--n-canvas);border-radius:0">${e(note)}</p>` : '')
+  body.innerHTML = (note ? `<p style="font-family:var(--n-font-ui);font-size:var(--t-body);line-height:1.6;margin:0 0 10px;padding:9px 11px;background:var(--n-canvas);border-radius:var(--radius)">${e(note)}</p>` : '')
     + (canApply
       ? `<div class="nego-redline">${structured || e(proposed)}</div>`
       : `<p style="font-family:var(--n-font-ui);font-size:var(--t-body);color:var(--n-ink-soft);margin:0">${note ? i18t('ng_no_wording_note_is_all') : i18t('ng_no_wording_change')}</p>`);
@@ -8589,7 +8596,20 @@ function rlWireClauseTools(c, host, opts){
       if (window.toast) toast(i18t('ng_clause_gone'), 'err');
       return;
     }
-    rlCpSetShown(btn.closest('.redline-page') || document, clauseId);
+    /* AND IF THE PANEL WILL NOT OPEN, THE PRESS SAYS SO (owner-reported
+       26 Aug 2026, L-3: "if you click Edit in the card it should take you to
+       the attached edit window not to the contract").
+
+       Edit does two things — scroll the paper to the clause, then open the
+       panel on it — and the second half can be refused: the panel holds a body
+       per clause, and where it holds none for this one it will not slide out
+       empty. Until now that refusal was silent, so the reader got the jump and
+       nothing else, which is the report word for word. Nothing is invented
+       here: where the panel can show the clause it opens exactly as before,
+       and where it cannot the reader is told rather than left guessing whether
+       they pressed it properly. */
+    if (!rlCpSetShown(btn.closest('.redline-page') || document, clauseId)
+        && window.toast) toast(i18t('ng_cp_cannot_open'), 'warn');
   }));
 
   /* The origin filter and the sidebar's mode tabs were wired here. Both
@@ -9805,6 +9825,40 @@ function rlFaceSplit(verbs){
    THE HEAD NAMES THE CHANGE, because a menu floating over a column of six
    cards has to say which one it belongs to — the design draws that head and it
    is the reason it works. */
+/* ---- EVERY ROW IN THIS MENU CARRIES A SYMBOL (owner-asked 26 Aug 2026) ----
+   "they should have a symbol before the word just like review." Two of the four
+   rows had one and two did not, so the menu read as two kinds of row.
+
+   THE MARKS COME FROM THE SHELL'S SPRITE, never from glyphs invented here: one
+   16 box, a hairline stroke, currentColor — so each mark takes the ink of the
+   row it sits on and Reject stays red, Send stays green, Copilot stays violet
+   with nothing said twice. `i-check` and `i-x` were added to that sprite for
+   the two decision verbs, which had no mark in the set.
+
+   THE VERBS ARRIVE AS FINISHED BUTTONS and are NOT rebuilt — they are the same
+   markup the face draws, with the same attributes and the same handlers, so a
+   verb cannot come to mean one thing on the face and another here. The icon is
+   inserted after the opening tag and nothing else about the button is touched;
+   `_nea` escapes '>' inside every attribute, which is what makes matching to
+   the first '>' the end of the tag rather than a guess. A verb this list does
+   not recognise simply keeps its own markup — a menu row with no symbol is a
+   smaller fault than a row wearing the wrong one. */
+const RL_MORE_ICONS = [
+  [/data-nego-accept/, 'i-check'], [/data-nego-reject/, 'i-x'],
+  [/data-rl-send\b/, 'i-out'], [/data-rl-retract\b|data-nego-withdraw/, 'i-left'],
+  [/data-nego-undo|data-rl-reopen|data-nego-redecide/, 'i-up'],
+  [/data-rl-ask-review/, 'i-people'], [/data-rl-cp-editor-row/, 'i-spark'],
+  [/data-rl-cp-open/, 'i-panel'], [/data-rl-edit=/, 'i-file'],
+];
+const rlMoreIcon = id =>
+  `<svg class="rl-more-i" viewBox="0 0 16 16" aria-hidden="true"><use href="#${id}"/></svg>`;
+function rlMoreWithIcon(html){
+  const s = String(html || '');
+  if (!s || /class="rl-more-i"/.test(s)) return s;
+  const hit = RL_MORE_ICONS.find(([re]) => re.test(s));
+  if (!hit) return s;
+  return s.replace(/(<button\b[^>]*>)/, `$1${rlMoreIcon(hit[1])}`);
+}
 function rlCardMoreHtml(c, ch, opts = {}, side = 'owner', st = {}){
   const rows = [];
   /* EVERY FLAG IS THE CARD'S OWN, handed in rather than worked out again here:
@@ -9818,7 +9872,7 @@ function rlCardMoreHtml(c, ch, opts = {}, side = 'owner', st = {}){
   if (own && editable && panel && typeof window !== 'undefined' && window.rlOpenClauseEditor)
     rows.push(`<button type="button" class="rl-more-row rl-more-lead"
       data-rl-cp-editor-row="${_nea(ch.clauseId)}" data-rl-cp-editor-change="${_nea(ch.id)}"
-      >&#10022; ${i18t('ng_cp_copilot')}</button>`);
+      >${i18t('ng_cp_copilot')}</button>`);
   if (panel)
     rows.push(`<button type="button" class="rl-more-row"
       data-rl-cp-open="${_nea(ch.clauseId)}">${i18t('ng_row_open_panel')}</button>`);
@@ -9880,8 +9934,12 @@ function rlCardMoreHtml(c, ch, opts = {}, side = 'owner', st = {}){
       title="${_nea(i18t('ng_row_more_title'))}"
       aria-label="${_nea(i18t('ng_row_more_title'))} ${_nea(ch.id)}">&#8943;</button>
     <div class="rl-more-menu" id="rl-more-${_nea(ch.id)}" role="menu" hidden>
-      ${over.length ? `<div class="rl-more-verbs">${over.join('')}</div>` : ''}
-      ${rows.join('')}
+      ${''/* MAIN'S HEAD REMOVAL AND THIS BRANCH'S SYMBOLS ARE THE SAME DAY'S
+             WORK ON ONE MENU, and they do not argue: the head went because it
+             repeated the card three centimetres away, and every row carries a
+             mark because the menu read as two kinds of row. Both kept. */}
+      ${over.length ? `<div class="rl-more-verbs">${over.map(rlMoreWithIcon).join('')}</div>` : ''}
+      ${rows.map(rlMoreWithIcon).join('')}
     </div>
   </div>`;
 }
@@ -10115,9 +10173,9 @@ async function rlOpenPlaybookReview(c, again){
     return;
   }
   const chip = it => it.risk === 'high'
-    ? `<span style="font-size:var(--t-figure);font-weight:var(--w-title);padding:2px 7px;border-radius:0;background:var(--st-ruby-bg,#fee2e2);color:var(--st-ruby-fg,var(--danger-hover))">${i18t('ng_high_risk')}</span>`
-    : `<span style="font-size:var(--t-figure);font-weight:var(--w-title);padding:2px 7px;border-radius:0;background:var(--st-amber-bg,var(--st-amber-bg));color:var(--st-amber-fg,var(--st-amber-fg))">${i18t('ng_medium')}</span>`;
-  const itemHtml = (it, i) => `<div id="pbr-item-${i}" style="border:1px solid var(--color-divider);border-radius:0;padding:var(--s-3) 14px;margin-bottom:10px;background:var(--color-surface)">
+    ? `<span style="font-size:var(--t-figure);font-weight:var(--w-title);padding:2px 7px;border-radius:var(--radius);background:var(--st-ruby-bg,#fee2e2);color:var(--st-ruby-fg,var(--danger-hover))">${i18t('ng_high_risk')}</span>`
+    : `<span style="font-size:var(--t-figure);font-weight:var(--w-title);padding:2px 7px;border-radius:var(--radius);background:var(--st-amber-bg,var(--st-amber-bg));color:var(--st-amber-fg,var(--st-amber-fg))">${i18t('ng_medium')}</span>`;
+  const itemHtml = (it, i) => `<div id="pbr-item-${i}" style="border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-3) 14px;margin-bottom:10px;background:var(--color-surface)">
     <div style="display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap">
       <b style="font-size:var(--t-body)">${_ne(it.v.category)}</b>${chip(it)}
       <span style="font-size:var(--t-label);color:var(--color-neutral-500)">${it.v.status === 'missing'
@@ -10126,8 +10184,8 @@ async function rlOpenPlaybookReview(c, again){
     </div>
     ${it.v.position ? `<div style="font-size:var(--t-meta);color:var(--color-neutral-600);margin-top:5px;line-height:1.5">${_ne(String(it.v.position))}</div>` : ''}
     ${it.oldText && window.redlineStructuredHtml
-      ? `<div style="margin-top:var(--s-2);font-size:var(--t-meta);line-height:1.7;border:1px solid var(--color-divider);border-radius:0;padding:var(--s-2) 10px;max-height:150px;overflow:auto">${redlineStructuredHtml(it.oldText, it.preferred)}</div>`
-      : `<div style="margin-top:var(--s-2);font-size:var(--t-meta);line-height:1.6;border:1px solid var(--color-divider);border-radius:0;padding:var(--s-2) 10px;max-height:150px;overflow:auto">${_ne(it.preferred)}</div>`}
+      ? `<div style="margin-top:var(--s-2);font-size:var(--t-meta);line-height:1.7;border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-2) 10px;max-height:150px;overflow:auto">${redlineStructuredHtml(it.oldText, it.preferred)}</div>`
+      : `<div style="margin-top:var(--s-2);font-size:var(--t-meta);line-height:1.6;border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-2) 10px;max-height:150px;overflow:auto">${_ne(it.preferred)}</div>`}
     <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:9px" data-pbr-verbs="${i}">
       <button data-pbr-skip="${i}" class="ui-btn" style="font-size:var(--t-label);padding:var(--s-1) 11px">${i18t('ng_skip')}</button>
       ${it.fallback ? `<button data-pbr-fb="${i}" class="ui-btn" style="font-size:var(--t-label);padding:var(--s-1) 11px" title="${i18t('ng_file_fallback_title')}">${i18t('ng_file_fallback')}</button>` : ''}
@@ -11456,7 +11514,14 @@ function redlineChangeCardsHtml(c, opts = {}){
     if (editable && mineUnsent && !rvOut && !rvHeld && window.openReviewAskModal
         && window.reviewSeatShowsReview && reviewSeatShowsReview(opts))
       verbs.push(`<button class="rl-edit" data-rl-ask-review="${_nea(ch.id)}"
-        title="${_nea(i18t('rv_card_ask_title'))}">&#128100; ${i18t('rv_card_ask')}</button>`);
+        ${''/* THE PERSON EMOJI CAME OFF (owner-asked 26 Aug 2026). It was the
+             only mark on any verb: bare words on the face beside four other
+             bare words, and in the ⋯ menu — where every row now carries a
+             sprite symbol — a SECOND mark on the one row that already had one.
+             The sprite's own i-people is what this row wears there, at the
+             menu's hairline weight and in the row's own ink, which a colour
+             emoji could never do. */}
+        title="${_nea(i18t('rv_card_ask_title'))}">${i18t('rv_card_ask')}</button>`);
     /* ---- AND THE WAY OUT OF A HOLD ----
        A held change had ONE verb on it — Edit — and no route anywhere. Send was
        gone (correctly), the ask was gone (because it tested mineUnsent, which a
@@ -12483,6 +12548,14 @@ function rlCpSetShown(scope, clauseId){
     const close = root.querySelector('#rl-cp-min');
     if (close && close.focus){ try{ close.focus({ preventScroll: true }); }catch(_){ try{ close.focus(); }catch(_e){} } }
   }
+  /* IT SAYS WHETHER IT OPENED (owner-reported 26 Aug 2026, L-3). The refusal
+     above is right — a panel sliding out empty reads as broken — but it was
+     SILENT, and a caller that asked for the panel and got nothing had no way
+     to tell. From the reader's chair that is indistinguishable from a dead
+     button: the press scrolls the paper to the clause and then stops, which is
+     exactly "it takes you to the contract" as reported. The callers decide
+     what to say; this only stops them having to guess. */
+  return on;
 }
 /* A repaint rebuilds the panel from the markup, so the class the open body was
    wearing goes with it. Called LAST in the page's own wiring, after the engine
@@ -12803,19 +12876,34 @@ function redlinePanesHtml(c, opts = {}){
                      be silent. */}
               ${rlIdxFilterHtml(c, opts, side, tabHidden)}
             </div>` : ''}
-            ${''/* ---- AND IT SAYS WHEN IT IS NARROWED ----
-                   The third of the filter's three safety properties, kept now
-                   that the control is a dropdown: a collapsed control can hide
-                   changes quietly, so while the column is showing one side it
-                   states that and offers the way back. The button carries
-                   data-rl-cardfilter, so this is the page's existing door
-                   rather than a second one. Drawn only when narrowed — an
-                   always-on band is furniture. */}
-            ${rlCardFilter() !== 'all' ? `<div class="rl-idx-narrowed">
-              <span>${_ne(i18t('ng_filter_narrowed'))}</span>
-              <span style="flex:1"></span>
-              <button type="button" data-rl-cardfilter="all">${_ne(i18t('ng_filter_show_all'))}</button>
-            </div>` : ''}
+            ${''/* ---- THE NARROWED BAND IS GONE (owner-asked 26 Aug 2026) ----
+                   It read "Showing one side only — others are hidden" with a
+                   Show all changes beside it, and it was the amber row the
+                   owner ringed when they set the standing rule NO NEW BANDS ON
+                   THE PAGE. It fails both halves of that rule's test: the
+                   dropdown TEN PIXELS ABOVE IT is labelled WHOSE ASKS and reads
+                   "Mine (2)", so the screen already said it — and it was the
+                   reader's own choice read back to them rather than work owed.
+
+                   THE SAFETY PROPERTY IT CARRIED IS NOT LOST, and that was the
+                   condition on removing it. This file recorded the filter's
+                   three properties and this band as the third; the third is now
+                   carried by two things that were already on the screen:
+                     · THE CONTROL SAYS WHAT IT IS SET TO. It is a labelled
+                       dropdown printing the live cut AND that cut's own count,
+                       and it is drawn whenever there is any change to hide
+                       (this same p.total gate) — so a narrowed column can never
+                       be silent about being narrowed.
+                     · A COLUMN EMPTIED BY THE FILTER STILL SAYS SO and still
+                       offers the way back, in its own empty state, which is
+                       untouched and is a different surface from this band.
+                   The other two properties — three options only, and every
+                   option carrying its own count unmoved by the filter — are
+                   untouched.
+
+                   `ng_filter_narrowed` and `.rl-idx-narrowed` are STALE; the
+                   key is left inert in the dictionary and ng_filter_show_all
+                   stays live on the empty-column message. */}
           </div>
           <div class="nego-index-head rl-idx-head">
           ${''/* THE COLUMN'S TITLE IS THE INDEX BLOCK'S OWN, one region up —

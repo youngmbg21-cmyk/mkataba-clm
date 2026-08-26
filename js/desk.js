@@ -1119,7 +1119,7 @@ function deskSheetHtml(c){
       <ul id="dk-who-list" role="listbox" hidden
         style="list-style:none;margin:2px 0 0;padding:0;position:absolute;left:0;right:0;top:100%;z-index:5;
         max-height:212px;overflow-y:auto;background:var(--color-surface);border:1px solid var(--color-divider);
-        border-radius:0;box-shadow:var(--shadow-lg)"></ul>
+        border-radius:var(--radius);box-shadow:var(--shadow-lg)"></ul>
     </div>
     <div id="dk-who-say" style="font-size:var(--t-meta);line-height:1.5;margin-top:5px;color:var(--color-neutral-600)">${_dkE(i18t('dk_add_hint'))}</div>
     <input type="hidden" id="dk-who-id" value=""/>
@@ -1227,7 +1227,7 @@ function openDeskHandover(c, opts = {}){
         <ul id="dk-who-list" role="listbox" hidden
           style="list-style:none;margin:2px 0 0;padding:0;position:absolute;left:0;right:0;top:100%;z-index:5;
           max-height:212px;overflow-y:auto;background:var(--color-surface);border:1px solid var(--color-divider);
-          border-radius:0;box-shadow:var(--shadow-lg)"></ul>
+          border-radius:var(--radius);box-shadow:var(--shadow-lg)"></ul>
       </div>
       <div id="dk-who-say" style="font-size:var(--t-meta);line-height:1.5;margin-top:5px;color:var(--color-neutral-600)">${_dkE(i18t('dk_add_hint'))}</div>
       <input type="hidden" id="dk-who-id" value=""/>
@@ -1239,7 +1239,7 @@ function openDeskHandover(c, opts = {}){
              Ticked by default, because the polite thing should be the quiet
              path through the form. */}
       <label style="display:flex;gap:9px;align-items:flex-start;font-size:var(--t-meta);line-height:1.5;
-        cursor:pointer;margin-top:var(--s-3);border:1px solid var(--color-divider);border-radius:0;
+        cursor:pointer;margin-top:var(--s-3);border:1px solid var(--color-divider);border-radius:var(--radius);
         padding:10px var(--s-3);background:var(--color-bg)">
         <input id="dk-ho-tell" type="checkbox" checked style="margin-top:2px;flex:none"/>
         <span><b style="color:var(--color-text)">${_dkE(i18t('dk_tell_them', { cp: c.counterparty || i18t('dk_the_counterparty') }))}</b>

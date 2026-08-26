@@ -93,7 +93,7 @@ function bar(label, value, max, valStr, color){
   const pct=max>0?Math.max(0,Math.min(100,Math.round(value/max*100))):0;
   return `<div style="margin-bottom:7px">
     <div style="display:flex;justify-content:space-between;gap:10px;font-size:var(--t-label);margin-bottom:2px"><span style="color:var(--color-neutral-700);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(label)}</span><span style="font-weight:var(--w-body);font-variant-numeric:tabular-nums;flex:none">${valStr}</span></div>
-    <div style="height:7px;background:var(--color-neutral-200);border-radius:0;overflow:hidden"><div style="width:${pct}%;height:100%;background:${color};border-radius:0"></div></div>
+    <div style="height:7px;background:var(--color-neutral-200);border-radius:var(--radius);overflow:hidden"><div style="width:${pct}%;height:100%;background:${color};border-radius:var(--radius)"></div></div>
   </div>`;
 }
 /* Metric catalogue for the top stat cards. Each customer follows what matters
@@ -180,13 +180,13 @@ function reportDropdown(variant, kind, idx, catalog, selKey){
     ? 'background:var(--color-bg);border:1px solid var(--color-divider);color:var(--color-neutral-600);font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;font-weight:var(--w-strong)'
     : 'background:var(--color-bg);border:1px solid var(--color-divider);color:var(--color-text);font-size:var(--t-card);font-weight:var(--w-strong)';
   const chev='var(--color-neutral-500)';
-  const opts=catalog.map(x=>`<button type="button" data-rd-opt="${kind}:${idx}:${x.k}" class="rd-opt${x.k===cur.k?' rd-opt-on':''}" style="display:block;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:var(--t-body);padding:7px 11px;border-radius:0;cursor:pointer;white-space:nowrap">${_esc(x.label)}</button>`).join('');
+  const opts=catalog.map(x=>`<button type="button" data-rd-opt="${kind}:${idx}:${x.k}" class="rd-opt${x.k===cur.k?' rd-opt-on':''}" style="display:block;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:var(--t-body);padding:7px 11px;border-radius:var(--radius);cursor:pointer;white-space:nowrap">${_esc(x.label)}</button>`).join('');
   return `<div class="rd" style="position:relative;max-width:100%;${hero?'flex:1;min-width:0':'margin:0 0 10px'}">
-    <button type="button" data-rd-trigger="${kind}:${idx}" class="rd-trigger rd-trigger-${hero?'hero':'card'}" title="${esc(hero?i18t('rep_choose_metric'):i18t('rep_choose_chart'))}" style="display:inline-flex;align-items:center;gap:var(--s-2);max-width:100%;border-radius:0;padding:var(--s-1) 9px var(--s-1) var(--s-3);cursor:pointer;line-height:1.25;transition:background var(--dur-1),border-color var(--dur-1);${trig}">
+    <button type="button" data-rd-trigger="${kind}:${idx}" class="rd-trigger rd-trigger-${hero?'hero':'card'}" title="${esc(hero?i18t('rep_choose_metric'):i18t('rep_choose_chart'))}" style="display:inline-flex;align-items:center;gap:var(--s-2);max-width:100%;border-radius:var(--radius);padding:var(--s-1) 9px var(--s-1) var(--s-3);cursor:pointer;line-height:1.25;transition:background var(--dur-1),border-color var(--dur-1);${trig}">
       <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(cur.label)}</span>
       <span aria-hidden="true" class="rd-chev" style="flex:none;color:${chev};pointer-events:none">▾</span>
     </button>
-    <div data-rd-menu="${kind}:${idx}" class="rd-menu" style="display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:50;min-width:220px;max-width:300px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:0;padding:5px">${opts}</div>
+    <div data-rd-menu="${kind}:${idx}" class="rd-menu" style="display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:50;min-width:220px;max-width:300px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:var(--radius);padding:5px">${opts}</div>
   </div>`;
 }
 // Toggle / select / outside-close wiring for every reportDropdown on the page.
@@ -292,9 +292,9 @@ function renderReports(){
     const d=m.get(r);
     const t=m.tone||'steel';
     return `
-    <div style="display:flex;flex-direction:column;gap:10px;padding:15px var(--s-4);border-radius:0;background:var(--color-surface);border:1px solid var(--color-divider);border-top:3px solid var(--st-${t}-dot);box-shadow:var(--shadow-sm)">
+    <div style="display:flex;flex-direction:column;gap:10px;padding:15px var(--s-4);border-radius:var(--radius);background:var(--color-surface);border:1px solid var(--color-divider);border-top:3px solid var(--st-${t}-dot);box-shadow:var(--shadow-sm)">
       <span style="display:flex;align-items:center;gap:9px">
-        <span style="width:30px;height:30px;flex:none;border-radius:0;background:var(--st-${t}-bg);display:grid;place-items:center;color:var(--st-${t}-fg)">${icon(m.ic,'w-4 h-4',1.7)}</span>
+        <span style="width:30px;height:30px;flex:none;border-radius:var(--radius);background:var(--st-${t}-bg);display:grid;place-items:center;color:var(--st-${t}-fg)">${icon(m.ic,'w-4 h-4',1.7)}</span>
         ${reportDropdown('hero','metric',idx,REPORT_METRICS,sel[idx])}
       </span>
       <span class="tnum" style="font-family:var(--font-mono);font-weight:var(--w-strong);font-size:25px;line-height:1.0;color:var(--color-text)">${d.val}</span>
@@ -317,7 +317,7 @@ function renderReports(){
     const acts=(cfg&&typeof aiChartActionsHtml==='function')
       ?`<div style="position:relative;flex:none;width:76px;height:24px">${aiChartActionsHtml(key)}</div>`:'';
     return `
-    <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:0;padding:var(--s-4)">
+    <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius);padding:var(--s-4)">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:var(--s-2)">
         ${reportDropdown('card','chart',idx,REPORT_CHARTS,csel[idx])}
         ${acts}
@@ -339,18 +339,18 @@ function renderReports(){
     </style>
     <div style="display:flex;flex-direction:column;gap:18px">
       <div style="display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap">
-        <button type="button" id="rep-export" style="display:inline-flex;align-items:center;gap:7px;border:1px solid var(--color-divider);background:var(--color-surface);color:var(--color-neutral-700);font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);border-radius:0;padding:7px var(--s-3);cursor:pointer">${icon('download','w-3.5 h-3.5')}${i18t('rep_export_btn')}</button>
+        <button type="button" id="rep-export" style="display:inline-flex;align-items:center;gap:7px;border:1px solid var(--color-divider);background:var(--color-surface);color:var(--color-neutral-700);font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);border-radius:var(--radius);padding:7px var(--s-3);cursor:pointer">${icon('download','w-3.5 h-3.5')}${i18t('rep_export_btn')}</button>
         ${''/* THE WEEKLY REVIEW sits beside the health report because they are the
                same kind of thing — a deterministic document, opened in a tab,
                with no model anywhere near it. The size lives next to the button
                rather than inside the document: choosing it afterwards would mean
                reading the wrong one first. */}
         <label style="display:inline-flex;align-items:center;gap:7px;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700)">${i18t('rep_weekly_size')}
-          <select id="rep-weekly-tier" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:6px 9px;font:inherit;font-size:var(--t-meta);color:inherit;outline:none">
+          <select id="rep-weekly-tier" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:6px 9px;font:inherit;font-size:var(--t-meta);color:inherit;outline:none">
             ${(typeof WK_TIERS!=='undefined'?WK_TIERS:['skinny','tower','full']).map(t=>`<option value="${t}"${(typeof wkTier==='function'&&wkTier()===t)?' selected':''}>${i18t('wk_tier_'+t)}</option>`).join('')}
           </select></label>
-        <button type="button" id="rep-weekly" style="display:inline-flex;align-items:center;gap:7px;border:1px solid var(--color-divider);background:var(--color-surface);color:var(--color-neutral-700);font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);border-radius:0;padding:7px var(--s-3);cursor:pointer">${icon('file','w-3.5 h-3.5')}${i18t('rep_weekly_btn')}</button>
-        <button type="button" id="rep-health" style="display:inline-flex;align-items:center;gap:7px;border:0;background:var(--accent-fill);color:#fff;font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);border-radius:0;padding:7px var(--s-3);cursor:pointer">${icon('file','w-3.5 h-3.5')}${i18t('rep_health_btn')}</button>
+        <button type="button" id="rep-weekly" style="display:inline-flex;align-items:center;gap:7px;border:1px solid var(--color-divider);background:var(--color-surface);color:var(--color-neutral-700);font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);border-radius:var(--radius);padding:7px var(--s-3);cursor:pointer">${icon('file','w-3.5 h-3.5')}${i18t('rep_weekly_btn')}</button>
+        <button type="button" id="rep-health" style="display:inline-flex;align-items:center;gap:7px;border:0;background:var(--accent-fill);color:#fff;font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);border-radius:var(--radius);padding:7px var(--s-3);cursor:pointer">${icon('file','w-3.5 h-3.5')}${i18t('rep_health_btn')}</button>
       </div>
       <section class="rp-stats" style="display:grid;gap:14px">
         ${stats}

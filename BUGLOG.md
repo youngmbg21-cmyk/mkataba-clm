@@ -7579,3 +7579,140 @@ the WHOSE ASKS label; the selected-card outline and what the ⋯ press does; the
 - The OCR path still fetches pdf.js and Tesseract from cdnjs/jsdelivr
   (`js/ocr.js`), so reading a scanned or PDF upload keeps the third-party
   dependency the charts just lost. Same fix shape, separate job.
+
+## 26 Aug 2026 — a 2px corner across the platform, and the contract stays square
+
+Owner-ruled off a drawn preview at 0, 2, 3, 4 and 6px: "implement 2px across
+the platform apart from the contracts themselves when they are visible on
+screen. They should look like word documents when they are on screen."
+
+818 hand-typed zeros now read `--radius` — a token family that had been
+declared for three days with no readers at all — so changing the number again
+is one line. The contract keeps a literal 0 wherever it is on screen, with a
+comment beside each saying why.
+
+### Defects found and fixed on the way
+- `.rounded-full`, the CIRCLE class in the compiled Tailwind blob, had been
+  drawing squares since the 20 Aug sweep took it with everything else. 24
+  elements wear it, the numbered approval steps among them. It is 9999px again,
+  written in HaTi's own sheet rather than the generated blob. Pre-existing, but
+  this change would have turned those squares into 2px squares, so it was fixed
+  in the same breath.
+- The tracked-change marks — the green additions and struck deletions on the
+  paper — were rounded by the first pass. They are drawn ON the document, so
+  they stay square: a tracked change in Word is a plain highlight. Caught by
+  f210, not by eye.
+- Two rules named a radius on something that has no corners: the column head
+  (a hairline under a caption) and the whose-move word on the negotiations list
+  (a bare coloured word, no fill, no border, no padding). Both now name none at
+  all, and the two tests assert the absence, which is a stronger claim.
+- THE STANDALONE HISTORY REPORT LOST ITS CORNERS ENTIRELY, and the file's own
+  comment had warned about exactly this. The negotiation history a counterparty
+  can download is a self-contained document that carries none of the app's
+  stylesheet, so the three `--radius` the sweep wrote into it resolved to
+  nothing and every rounded box in the report squared off silently. Reverted to
+  a literal, and the warning beside it now names the corners as well as the
+  colours. Caught by the test that exists for the colour half of the same trap.
+  Every other standalone document was checked and none was touched by the sweep.
+
+### Noticed, not fixed
+- `npm run lint` reports the same 4 pre-existing errors as before this change:
+  duplicate dictionary keys `co_password_updated` and `act_next`, each written
+  twice in each language.
+- `pages-read-alike-verify` is 47 of 50 and `reopen-a-refusal-verify` is 12 of
+  15. Both fail identically on an unmodified main, with the same measurements —
+  proved by running each file in a worktree at that commit rather than
+  asserted. The first is the negotiation head wrapping to a second line at the
+  width the file measures at; the second is a claim that Reopen is drawn like
+  Edit, written before the tracked-changes rebuild moved Edit off the card and
+  into the overflow menu. Neither is this change's, and neither is fixed here.
+
+### A note on the merge
+This change was written before nineteen commits landed on main — a change of
+typeface across the product, and a design pass that gave it its type, spacing,
+motion and elevation ladders. That work rewrote most of the same declarations
+the corner sweep touches, so the two collided in forty-three files. Rather than
+resolve them one by one, main's version of every code file was taken whole and
+the sweep re-run over it: it is a mechanical substitution plus a short list of
+hand-written decisions, so rebuilding it is cheaper and safer than untangling
+it. The count went from 796 to 801 because main's own pass added a few more
+corners. The twenty-one exemptions are now anchored on a fragment of each
+declaration rather than on a line number, so a future rewrite cannot move
+them.
+---
+
+## 26 Aug 2026 — the owner's six-item list (WORKORDER-fixes-26-aug.md)
+
+All six built in one run, on branch `claude/ui-text-dropdown-styling-j2nat5`.
+Node 4647/4647 after two runs (the first found four, all mine). Browser:
+six-fixes 20/20 (new), redline 121, clause-door 97, clause-editor 57,
+parity 44, nav-floats 67, home-page 26, laptops 21, kpi-four 19,
+theme-tokens 40/40 unmoved.
+
+### Defects found and fixed
+
+- **The stored screen position was unreadable, so every refresh landed on the
+  dashboard.** js/app.js declared its own `function lsGet` / `function lsSet`
+  for the brand and dark keys on 24 Aug — plain, deliberately, because those
+  keys hold bare strings. A function declaration is hoisted over the whole
+  module, so `setView`'s bare `lsSet` five hundred lines above resolved to the
+  string one and wrote the literal text `[object Object]`. Nothing failed and
+  nothing logged: the write succeeded, the read returned null, and null is what
+  a first visit looks like. Reproduced on a real server through real reloads —
+  ALL TWELVE pages lost — before it was touched. Renamed to
+  `brandRead`/`brandWrite`; net added as f232-6.
+- **A nav press did nothing while Edit with Copilot was open.** The layer is
+  taken down only by its own three controls, so the app really changed page and
+  drew the new one underneath it. Closed in `setView`, once, so all five doors
+  inherit it.
+- **`rlCpSetShown` refused silently.** A clause the panel holds no body for
+  left the reader on the contract with no word — indistinguishable from a dead
+  button, and the shape of the counterparty Edit report. It returns its answer
+  now and the card's Edit says so.
+- **Two reserved holes on Home** (a spacer taking 25px on the Portfolio row, a
+  footer holding 2.8 lines open over one line of text) and two typed card
+  heights 35px apart. Replaced with three shared row tokens and subgrid.
+- **A backtick in a CSS comment in js/views/negotiation-css.js** — written by
+  me, caught by f236 on the same run. Fourth recorded instance.
+- **parity-verify could not fail.** Its Edit probe fell back to pressing the
+  clause pill when the panel had not opened, so from 20 Aug it passed whether
+  or not the granted behaviour worked. The answer is taken before the fallback
+  now and asserted on both seats.
+- **My own first fix of L-6 was wrong and the run caught it**: the leave guard
+  used the foot's "moved from what stands" reading, which is true from the
+  first frame on any clause carrying an ask, so it fired on every clean open.
+
+### Not a defect, said out loud
+
+- **L-3 did not reproduce.** Edit was driven on both seats over every card type
+  including a proposed new clause; one press opens the panel on the right
+  clause every time. A first "reproduction" was my own fixture fault — an
+  insert armed with the wrong argument — which is this codebase's own lesson
+  that an attack failing to arm reads exactly like one that succeeds. The
+  silent-refusal hole above is what was fixed instead.
+
+### Noticed, not fixed
+
+- `js/i18n.js` has four duplicate keys — `co_password_updated` and `act_next`,
+  each in both language blocks. They are the only errors `npm run lint`
+  reports and they predate this run.
+- Three published names are declared in two modules each: `approvalState` and
+  `approveContract` (js/core.js and js/approvals.js — and `approveContract`
+  takes different arguments in each), and `esc` (js/components.js escapes
+  quotes, js/views/advice.js does not). Same class as the lsSet fault above.
+  Named and printed in f232-6 rather than swept up here.
+
+### Merged with main, same day
+
+Two of the six met a parallel session that had answered the same screenshots.
+Resolved in favour of the owner's words rather than by date, and said out loud
+rather than quietly: the ⋯ menu keeps BOTH changes (main's head removal, this
+run's symbol on every row — they do not argue), and the Home cards keep the
+three-region skeleton rather than main's single 176px height, because that
+answered "the same height" and made "remove empty spaces" worse — the top row
+grew 35px and all of it landed in the spacer the owner had ringed. Main's
+measurement that no 141 fits is true WHILE the spacer and the two-line footer
+reservation stand; removing those is the half of the ask it did not cover, and
+146 then fits both rows with nothing clipped at any laptop width. The 2px
+platform corner from that merge is kept. `--hm-tile-h` is stale.
+
