@@ -4002,6 +4002,95 @@ Tests: f203 (22 — the thirteenth-site walk, the ledger's shape, two members' c
 
 copilotPropose (js/ai.js, "WHICH CLAUSE THIS IS, SAID OUT LOUD") tells the model the passage is ONE clause so "4.2 … 4.3 …" is never read as two. The line used to state "Numbers inside it — 4.2, 4.3, (a), (b) — are sub-paragraphs", meaning the numbers as examples — and on a clause with NO numbering the model took them as fact, decided it had been shown a fragment, and refused to draft until "the full clause including its sub-paragraphs" was pasted in, naming those four example numbers back. THE RULE IS NOW AN "IF", NEVER AN ASSERTION: "If it contains numbered or lettered items (for example 4.2 or (a)), treat them as sub-paragraphs of that one clause… Do not ask for sub-paragraphs the passage does not show." Conditional wording was chosen over detecting numbering in the passage because a detector that misses one style (Roman numerals, "a." lists) silently brings the original two-clauses misreading back; an "if" costs nothing when false and binds the same when true. ONE SITE: every entry path — selection menu, clause button, refine, the phone — goes through copilotPropose, so there is no second copy of the line to fix. Tests: f98 both directions (the purpose survives on a numbered passage; the assertion is gone on a plain one).
 
+## COMMENTARY IS NOT WORDING, IN EITHER PERSON (owner-reported 26 Aug 2026)
+
+*"i asked copilot to replace an entire clause and this is what it did"* — over a
+screenshot of Clause 2 struck through in red with this filed as its replacement:
+
+> "The drafter wants to replace Clause 2 (Term and Termination), but the
+> playbook concern is about Clause 5 (Limitation of Liability), not Clause 2.
+> This is a mismatch. The passage shown is indeed Clause 2 and contains only
+> term and termination language — nothing about liability."
+
+**THE FOURTH MEMBER OF THE FAMILY F88 (refusals), F98 (questions) and F135
+(explanations) started, and every one of those guards missed it for ONE REASON:
+it is written entirely in the THIRD PERSON.** It does not refuse, so the
+anchored refusal openers saw nothing. It does not ask, and carries no question
+mark, so neither ask-back rule fired. And it never says "I" — which is the whole
+of what AI_MODEL_VOICE reads. Reproduced against the real parser before anything
+was written: `proposedText` came back as the entire paragraph and `advice` came
+back empty.
+
+**AI_MODEL_VOICE's own note says contract wording is third person about the
+parties. That is true and it is only half the rule** — a model can talk in the
+third person too. The half that was missing, and `AI_TASK_TALK` is it: **contract
+wording is about the PARTIES AND WHAT THEY MUST DO, so a sentence whose subject
+is one of the CONVERSATION'S own objects — who asked, what they were shown, what
+the check said — is the model talking, whatever person it talks in.**
+
+**EACH PATTERN IS NARROWER THAN THE OBVIOUS ONE, and the narrowing is the whole
+safety argument** — a guard that eats real wording is the same harm pointing the
+other way, which is the rule this family is written under. Every narrowing below
+is a real clause that forced it:
+
+- **"the drafter" alone is REAL WORDING** — *"shall not be construed against the
+  drafter"* is contra proferentem — so a verb of WANTING is required. **"asks"
+  and "requests" are deliberately NOT on that verb list**: a SaaS agreement
+  genuinely says *"where the User asks us to delete their data"*.
+- **"the passage shown" is the model's word for what it was handed.** "text",
+  "wording" and "clause" are words a contract uses about ITSELF (*"the wording
+  shown in Exhibit A"*), so those are caught only in the *you sent / you quoted*
+  form — and *"the text you provided"* is dropped from even that, because
+  platform terms really do say it.
+- **"playbook" alone is not enough** — a distribution agreement can carry a Brand
+  Playbook — so it must be the playbook SPEAKING: its concern, its position,
+  what it flags.
+- **The verdict is anchored at the front**, like every opener beside it: a clause
+  does not begin *"This is a mismatch"*, and *"This is an Agreement between the
+  Parties"* does not match it.
+
+**MEASURED, RATHER THAN CONSIDERED: 7,607 sentences of real commercial drafting
+(test/cuad's 50 lawyer-marked agreements, already committed for the extraction
+scorecard) and AI_TASK_TALK reads NOT ONE of them as a remark.** f135f makes that
+a standing claim, and it was proved to BITE by widening the rule the two obvious
+ways and watching five real clauses get eaten. **A false-positive net that has
+never been shown to fail is a description.**
+
+**AND THE FENCE WAS WIDENED WITH THE NET.** `AI_PROPOSAL_FORMAT` and
+`AI_EDIT_FORMAT` forbade *"a question, an apology or a note about missing
+context"* — and the reported reply is none of those three. **A fence that lists
+three kinds of talk teaches the model a fourth kind is allowed**, so it names the
+SHAPE now (a remark about the request itself) and states the exact case that
+produced this one: a point raised about some other clause is the advice, not the
+wording. Both format contracts changed together, as f135d has required since it
+was written.
+
+**WHAT IS RECORDED AND NOT FIXED, because it is a different surface's decision.**
+The clause editor's `cePlaybookLine()` reads EVERY deviation on the whole
+contract and hands the categories to the model while the reader is editing ONE
+clause — which is why the model had a Clause 5 concern in front of it on Clause
+2 and, quite correctly, said so. The sentence it sends is true (*"flags this
+contract for…"*, and the negotiation page has sent the same one since it was
+built), and the rail beside it already narrows to this clause through
+`ceScanGroups`. **The model was right and the product handed it a confusing
+question**; narrowing that hand-over changes what the model is told on a surface
+nobody reported, so it is one line in BUGLOG rather than a fix made on the way
+past. **The guard is the net and the net is what was broken** — a model can
+produce commentary for a hundred reasons and the paper must survive all of them.
+
+**ONE PRE-EXISTING FALSE POSITIVE FELL OUT OF THE MEASUREMENT and is reported
+rather than absorbed:** the shipped disclaimer opener
+(`/^(?:note|please note|disclaimer|important|caveat)\s*[:—-]/`) reads four real
+contract SECTION HEADINGS as model talk — *"DISCLAIMER OF WARRANTY"*, *"Note: if
+category…"*. Those are the whole guard's only four hits on that corpus, they
+predate this change, and f135f asserts on AI_TASK_TALK alone so a green run
+cannot read as "the whole guard is clean".
+
+Tests: f135e (4 — the reported reply as advice with nothing to apply, and pinned
+as carrying no "I" and no question mark so nobody rewrites the fixture into a
+case an older rule would catch), f135f (19 — the near misses each pattern was
+narrowed to survive, plus the corpus), f135d reversed in place and made stronger.
+
 ## THE CHARTS, AND THE HEALTH REPORT
 
 ONE box of recipes: js/aichart.js — Copilot in-chat charts, the Intelligence dock, the four Reports cards (js/views/reports.js; CSS strips kept as the fallback for any workspace where the library does not load), the health report's embedded PNGs. **THE LIBRARY IS SERVED BY THIS WORKSPACE SINCE 26 Aug 2026 — see THE CHART LIBRARY IS OURS TO SERVE below; it used to arrive from cdnjs, so every one of those four surfaces drew only if the READER'S browser could reach a third party.** The AI names a KIND; the recipes read live state; the AI NEVER supplies chart data. Copy-image / PNG / CSV buttons come from ONE delegated listener registered in aichart.js — new surfaces get them free.

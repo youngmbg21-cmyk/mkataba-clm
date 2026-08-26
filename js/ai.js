@@ -1830,7 +1830,10 @@ const AI_PROPOSAL_FORMAT = () => 'Reply with ONE JSON object and nothing else �
   + '}\n\n'
   + 'proposedText is CONTRACT WORDING ONLY. If you need more information, or cannot draft '
   + 'from what you were shown, say so in "advice" and return proposedText as an empty string '
-  + '— never put a question, an apology or a note about missing context where wording goes.';
+  + '— never put a question, an apology, a note about missing context, or a remark about '
+  + 'the request itself where wording goes. If the instruction does not match what you '
+  + 'were shown, or the point raised is about some other clause, that observation IS the '
+  + 'advice — say it there and return proposedText as an empty string.';
 
 /* ---------- WHERE THE WORDING GOES ----------
    Every proposal on this path used to do one thing: swap out the passage the
@@ -1909,7 +1912,10 @@ const AI_EDIT_FORMAT = () => 'Reply with ONE JSON object and nothing else — no
   + 'a list filed as one paragraph loses the numbering a contract is cited by.\n\n'
   + 'proposedText is CONTRACT WORDING ONLY. If you need more information, or cannot draft '
   + 'from what you were shown, say so in "advice" and return proposedText as an empty string '
-  + '— never put a question, an apology or a note about missing context where wording goes.';
+  + '— never put a question, an apology, a note about missing context, or a remark about '
+  + 'the request itself where wording goes. If the instruction does not match what you '
+  + 'were shown, or the point raised is about some other clause, that observation IS the '
+  + 'advice — say it there and return proposedText as an empty string.';
 
 /* ---------- TYPOGRAPHY SURVIVES THE REWRITE ----------
    A model handed a numbered sub-clause returns prose. It is not wrong about the
@@ -2161,6 +2167,68 @@ const AI_MODEL_VOICE = new RegExp(
   + '|do\\s+not|don(?:\'|’)t|have\\s+(?:not|no|only|received)|haven(?:\'|’)t'
   + '|would|apologi[sz]e)\\b)');
 
+/* ---------- AND THE SAME FAULT WITH THE "I" TAKEN OUT ----------
+   (owner-reported 26 Aug 2026: "i asked copilot to replace an entire clause
+   and this is what it did", over a screenshot of Clause 2 struck through and
+   this filed as its replacement wording:
+
+     "The drafter wants to replace Clause 2 (Term and Termination), but the
+      playbook concern is about Clause 5 (Limitation of Liability), not
+      Clause 2. This is a mismatch. The passage shown is indeed Clause 2 and
+      contains only term and termination language — nothing about liability."
+
+   The fourth member of the family, and every guard above missed it for ONE
+   reason: it is written entirely in the THIRD PERSON. It does not refuse, it
+   does not ask, it carries no question mark, and it never says "I" — so the
+   anchored lists saw nothing, aiAsksTheReader needed a question mark it does
+   not have, and AI_MODEL_VOICE is a rule about the word "I". Reproduced
+   against the real parser before anything was written: proposedText came back
+   as the whole paragraph, advice empty.
+
+   AI_MODEL_VOICE's own note says contract wording is third person about the
+   parties. That is true and it is only half the rule, because a model can talk
+   in the third person too. The half that was missing: contract wording is
+   about the PARTIES AND WHAT THEY MUST DO — so a sentence whose subject is one
+   of the CONVERSATION'S own objects (who asked, what they were shown, what the
+   check said) is the model talking, whether or not it says "I".
+
+   EACH PATTERN IS NARROWER THAN THE OBVIOUS ONE, and the narrowing is the
+   whole safety argument — a guard that eats real wording is the same harm
+   pointing the other way, which is the rule this section is written under.
+   MEASURED against 7,607 sentences of real commercial drafting (test/cuad's
+   50 lawyer-marked agreements, every sentence over 25 characters): zero hits,
+   on every pattern. f135f makes that a standing claim and it was proved to
+   BITE — widen these two ways and five real clauses get eaten.
+
+     · "the drafter" alone is REAL WORDING — "shall not be construed against
+       the drafter" is contra proferentem and appears in ordinary contracts —
+       so a verb of WANTING is required. "asks" and "requests" are deliberately
+       NOT in that verb list either: a SaaS agreement genuinely says "where the
+       User asks us to delete their data".
+     · "the passage shown" is the model's word for what it was handed. "text",
+       "wording" and "clause" are words a contract uses about ITSELF ("the
+       wording shown in Exhibit A"), so those three are caught only in the
+       "you sent / you quoted" form — and "the text you provided" is dropped
+       from even that, because platform terms really do say it.
+     · "playbook" alone is not enough — a distribution agreement can carry a
+       Brand Playbook — so it must be the playbook SPEAKING: its concern, its
+       position, what it flags.
+     · The verdict is anchored at the front, like every opener above: a clause
+       does not begin "This is a mismatch", and "This is an Agreement between
+       the Parties" does not match it. */
+const AI_TASK_TALK = [
+  /* Who asked, and what they want. Never "asks"/"requests" — see above. */
+  /(?:^|[^\w'’])(?:the\s+)?(?:drafter|user|reader|requester)\s+(?:wants?|wanted|would\s+like|is\s+trying|is\s+asking\s+(?:for|to|me|us)|has\s+asked\s+(?:for|to|me|us)|seems\s+to|appears\s+to)\b/i,
+  /* What it was handed. The model's own three nouns for the material. */
+  /\b(?:passage|excerpt|snippet)\s+(?:shown|quoted|provided|supplied|pasted|highlighted|selected)\b/i,
+  /* The same, addressed to the reader — safe for the three riskier nouns. */
+  /\b(?:passage|excerpt|snippet|wording)\s+you\s+(?:sent|gave|quoted|provided|shared|showed|selected|pasted)\b/i,
+  /* Our own machinery quoted as a source. */
+  /\bplaybook\s+(?:concern|position|point|entry|rule|item|standard|says|flags?|requires|expects|is\s+about)\b/i,
+  /* A verdict on the request rather than wording for the contract. */
+  /^this\s+(?:is|appears\s+to\s+be|looks\s+like|seems\s+to\s+be)\s+an?\s+(?:mismatch|error|mistake|inconsistency|discrepancy|conflict)\b/i,
+];
+
 /* Markdown is not an opener. "**Please paste…**" is "Please paste…" wearing
    bold, and the anchored lists must see the sentence, not the asterisks. Only
    decoration is stripped — never "(a)", never a digit — so a numbered
@@ -2174,6 +2242,7 @@ const aiLooksConversational = s => {
   if (AI_NOT_WORDING.some(re => re.test(bare))) return true;
   if (AI_ASKS_BACK.some(re => re.test(bare))) return true;
   if (AI_MODEL_VOICE.test(t)) return true;
+  if (AI_TASK_TALK.some(re => re.test(bare))) return true;
   return AI_ASKS_WHOLE.test(bare) || aiAsksTheReader(t);
 };
 /* Take a disclaimer off the FRONT of otherwise good wording and hand it back
@@ -3345,7 +3414,7 @@ Object.assign(window,{
   AI_PROPOSAL_FORMAT,AI_EDIT_FORMAT,AI_ADVICE_FIELD,AI_KEEP_TAGS,AI_PROPOSAL_OPEN,aiProposals,aiSyncDock,
   AI_PLACEMENTS,AI_PLACEMENT_LABEL,AI_PLACEMENT_SHORT,aiNormalizePlacement,aiIsInsert,
   aiProposalAnchorHtml,aiProposalPlacementHtml,aiProposalSetPlacement,aiCleanAddedWording,
-  AI_NOT_WORDING,AI_ASKS_BACK,AI_ASKS_WHOLE,AI_MODEL_VOICE,aiAsksTheReader,aiLooksConversational,
+  AI_NOT_WORDING,AI_ASKS_BACK,AI_ASKS_WHOLE,AI_MODEL_VOICE,AI_TASK_TALK,aiAsksTheReader,aiLooksConversational,
   savedResultLang,
   aiBareText,aiSplitDisclaimer,aiSplitReply,
   aiRephrase,aiOpenRephraseSession,aiActiveRephrase,aiCloseRephraseSession,

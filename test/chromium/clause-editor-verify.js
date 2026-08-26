@@ -1007,6 +1007,73 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      !!std && !!draft && std !== draft && /keeps none/.test(std) && /keeps \d/.test(draft),
      JSON.stringify({ std, draft }));
 
+  /* ---- 14. COMMENTARY NEVER REACHES THE CARD (owner-reported 26 Aug 2026) ----
+     "i asked copilot to replace an entire clause and this is what it did", over
+     a screenshot of the clause struck through with the model's own commentary
+     filed as its replacement wording. The rule is in f135e; what only a browser
+     can answer is the half the owner actually saw — whether a CARD is drawn,
+     and whether the words are still readable when it is not.
+
+     THE STUB IS window.copilotAsk, NOT copilotPropose, and that is the whole
+     point of doing it here: copilotPropose reads window.copilotAsk by name and
+     then calls the REAL aiParseProposal, so everything between the model's
+     reply and the pixels is the product's own. selection-verify stubs
+     copilotPropose instead, which is why no browser file has ever exercised
+     this parser. */
+  const THIRD_PERSON = 'The drafter wants to replace Clause 2 (Term and Termination), '
+    + 'but the playbook concern is about Clause 5 (Limitation of Liability), not Clause 2. '
+    + 'This is a mismatch. The passage shown is indeed Clause 2 and contains only term '
+    + 'and termination language — nothing about liability.';
+  const REAL_WORDING = 'This Agreement shall continue for three (3) years from the '
+    + 'Effective Date and may be terminated by either Party on ninety (90) days written notice.';
+
+  const askWith = async reply => await p.evaluate(async ({ reply, THIRD_PERSON }) => {
+    const cl = negoClauseList(window.CONTRACT)[1];
+    window.rlOpenClauseEditor(window.CONTRACT, cl.clauseId, {});
+    /* the rail's chat, not the scan */
+    const tab = document.querySelector('#clause-editor [data-ce-tab="chat"]');
+    if (tab) tab.click();
+    window.copilotAvailable = () => true;
+    window.copilotAsk = async () => reply;
+    return { before: (document.querySelector('#ce-paper, .ce-doc, #clause-editor .rl-doc')
+      || document.body).textContent.length };
+  }, { reply, THIRD_PERSON });
+
+  const readLane = async () => await p.evaluate(() => {
+    const lane = document.querySelector('#ce-lane');
+    const card = lane && lane.querySelector('.ce-card');
+    const cr = card ? card.getBoundingClientRect() : null;
+    const bubbles = [...(lane ? lane.querySelectorAll('.ce-ai p.t') : [])];
+    const said = bubbles.map(b => ({ text: b.textContent.replace(/\s+/g, ' ').trim(),
+      painted: b.getBoundingClientRect().width > 0 && b.getBoundingClientRect().height > 0 }));
+    return { cardPainted: !!(cr && cr.width > 0 && cr.height > 0), said };
+  });
+
+  await askWith(THIRD_PERSON);
+  await p.fill('#ce-ask', 'replace this clause');
+  await p.click('#clause-editor [data-ce-act="ask"]');
+  await pause(600);
+  const talk = await readLane();
+  const spoken = talk.said.find(x => /playbook concern is about Clause 5/.test(x.text));
+  ck('14a THE FIX: commentary draws NO card — nothing to apply over a remark',
+     !talk.cardPainted, talk.cardPainted ? 'a card was drawn' : 'no card');
+  ck('14b and the reader still reads every word of it, as painted pixels',
+     !!spoken && spoken.painted && /nothing about liability/.test(spoken.text),
+     spoken ? spoken.text.slice(0, 80) : 'the words are nowhere on screen');
+
+  /* THE NEGATIVE CONTROL, and without it 14a passes on a broken stub: a reply
+     that IS wording must still draw its card through the identical path. */
+  await askWith(REAL_WORDING);
+  await p.fill('#ce-ask', 'make the term three years');
+  await p.click('#clause-editor [data-ce-act="ask"]');
+  await pause(600);
+  const drafted = await readLane();
+  ck('14c CONTROL: real wording down the same stub still draws its card',
+     drafted.cardPainted, drafted.cardPainted ? 'card drawn' : 'no card — the stub is broken, 14a proves nothing');
+
+  await p.evaluate(() => { const b = document.querySelector('#clause-editor [data-ce-act="close"]'); if (b) b.click(); });
+  await pause(300);
+
   /* ---- 10. NO PAGE ERRORS THROUGHOUT ---- */
   ck('10 the whole journey ran with no page errors', errs.length === 0, errs.join(' | ') || 'none');
 
