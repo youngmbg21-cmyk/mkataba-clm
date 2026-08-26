@@ -7341,6 +7341,245 @@ plan.
   the progress bar and "N of M decided" (HaTi's own reading, kept), and the verb
   set on a row (a behaviour matter a screenshot cannot settle).
 
+---
+
+## 25 Aug 2026 — the platform face moves to IBM Plex Sans
+
+**The change.** The four face tokens in `index.html`'s `:root` — `--font-heading`,
+`--font-body`, `--font-mono`, `--font-doc` — now name IBM Plex Sans, and
+`fonts/fonts.css` carries it inlined instead of Inter. `--font-code`
+(Courier New) and `--font-doc-mono` are untouched, as are the two deliberate
+exceptions they exist for. 402 read sites follow from those four lines, so the
+face changes on every screen, the contract paper and the phone at once.
+488 KB to 335 KB, eight inlined faces against nine.
+
+**A brand decision and not a legibility one, and it was measured before it was
+made rather than argued after.** Small-letter height 73.8% of cap height against
+Inter's 75.3%; a clause of contract wording takes the SAME five lines at the same
+measure. The confusable pairs come out MIXED — Plex separates capital I from
+lowercase l far better (58% shape overlap against 95.5%), Inter separates
+lowercase l from the digit 1 better (17.1% against 32.1%) — so this is not a
+clarity win and is not sold as one. What it buys is ~5% of width back, measured
+on this product's own screens.
+
+**Defects found and fixed in this run**
+
+- **`.font-serif` went on naming Inter, and it is the `.text-ink` fault in a new
+  costume.** The compiled Tailwind blob bakes a literal family into three rules.
+  Two were already covered — the `html` one loses to HaTi's own
+  `html{font-family:var(--font-body)}`, and `.font-display` is named outright in
+  the `h1..h6` rule. `.font-serif` was not, and the reason is SPECIFICITY: it is
+  worn by `<h3>` elements (js/approvals.js's signing route, js/obligations.js's
+  add-obligation and proposed panels, js/views/settings.js's folder-access
+  sheet), and against an `h3.font-serif` that rule matches only on `h3` —
+  (0,0,1) — while the blob's `.font-serif` scores (0,1,0) and wins. So those
+  headings asked for a face no longer served and fell to the reader's system
+  font inside a dialog drawn in Plex. Silent, because a font that resolves is
+  never an error. Fixed in HaTi's OWN sheet, never the blob. PROVED
+  load-bearing by disabling the new rule in a live page and re-measuring:
+  IBM Plex Sans with it, Inter without.
+- **HALF THAT DIAGNOSIS WAS WRONG FIRST TIME AND THE MEASUREMENT CAUGHT IT.**
+  The first pass added rules for BOTH `.font-display` and `.font-serif` and
+  wrote a comment claiming both were broken. Switching them off in place showed
+  the faces did not move — `.font-display` was already covered by the h1-h6
+  rule. The redundant rule and the false claim were removed. A fix that changes
+  nothing is worse than no fix: it reads as a defect that once existed.
+
+**A coverage narrowing, named rather than absorbed.** Plex ships six subsets on
+Google Fonts and NO greek-ext, so U+1F00-1FFF is gone: polytonic Greek, the
+accented forms of classical and ancient Greek. Modern Greek (U+0370-03FF) is
+covered in full, and a name on a contract is written in modern Greek — which is
+what f85's Greek claim exists to protect. So the claim MOVED RUNG (it guards
+U+0370 now) rather than being deleted, and the loss is recorded in the test's
+own comment, in `fonts/fonts.css` and in CLAUDE.md. Rewriting a test to match a
+loss is ordinarily the fault this file warns about; what makes it legitimate
+here is that the claim it still makes is the one the test was written to make.
+
+**One weight now clamps, and is left saying what it meant.** Plex's variable
+range is 400-700 against Inter's 300-800. Nothing asks for 300 or below. ONE
+declaration asks for 800 — the `bold-corporate` document style's h1 — and a
+browser clamps it to 700. Left saying 800 on purpose so the day a heavier face
+returns it works again, rather than being quietly rewritten.
+
+**Noticed, not fixed**
+- **The CHARTS do not follow the platform face, and never have.** Asked
+  directly after the swap ("what about Copilot?"). The Copilot PANEL is clean —
+  measured live, every element inside it including the input box resolves to
+  IBM Plex Sans, because js/ai.js names only `var(--font-mono)`,
+  `var(--font-heading)` and `font:inherit`. The CHARTS it draws are the
+  exception: js/aichart.js sets `font:{size:10}` on every axis, tick and legend
+  and NEVER a family, and nothing anywhere sets `Chart.defaults.font.family` —
+  so Chart.js falls back to its own built-in system stack. This is the CANVAS
+  rule this rulebook already records for colour ("`var()` means nothing to
+  `fillStyle`") in its typographic form: a canvas cannot read a token, so a
+  chart's labels have to be told the face by name. NOT CAUSED BY THIS RUN — the
+  labels were not in Inter either — so it is logged rather than fixed, and it
+  is one line (`Chart.defaults.font.family`) whenever somebody wants it. It
+  reaches every chart in the product: Copilot's in-chat charts, the Intelligence
+  dock, the four Reports cards and the health report's embedded PNGs.
+- **Chart.js is fetched from a CDN at runtime** (`AI_CHART_CDN`,
+  cdnjs.cloudflare.com). Noticed while chasing the above, and not this run's to
+  judge — but it means every chart in the product depends on the reader's
+  browser reaching a third-party host.
+- `npm run lint` reports **4 errors**, all `no-dupe-keys` in `js/i18n.js`:
+  `co_password_updated` (lines 2019, 6777) and `act_next` (2763, 7443). That
+  file is untouched by this run — proved with `git status` — so they pre-date
+  it. Note that the previous run's own entry claims "lint 0 errors", so they
+  arrived after that claim was written or the claim was wrong.
+
+**Three browser files went red on the swap, and each was a different thing.**
+Every one was run on an UNMODIFIED main in a worktree before being called mine
+or not — the scope rule, honoured rather than asserted.
+
+- **`type-and-symbols-verify` (2 fails, MINE, and the test was the stale part).**
+  It asserted `/^Inter\b/` on `--font-heading` and on `--font-mono`. Claims
+  reversed in place. Its weight loop asked for 300-800 because Inter is variable
+  across exactly that; Plex is 400-700, so 300 and 800 were dropped from the
+  list with the reason written beside them — asking for them would be asserting
+  a fiction. Clean on main (41/0), so unambiguously this run's.
+- **`laptops-verify` (5 fails, MINE, and a REAL layout regression).** Clean on
+  main. `.hm-n` — Home's 32px figure — carried `line-height:1.05`, tuned to
+  Inter, and Plex does not fit inside it: MEASURED, a 34px box against a
+  scrollHeight of 37, with `overflow:hidden` (there for the ELLIPSIS, a
+  horizontal concern) clipping 3px off the bottom of every big number on Home,
+  at all five laptop sizes. `.hm-m` beside it carried the identical value for
+  the identical reason. Both read `--lh-tight` now — the product's own rung,
+  whose comment already names "counts" — rather than a number invented for the
+  face. 21/21 after.
+- **`pages-read-alike-verify` (5 fails: 3 pre-existing, 2 MINE).** Main fails
+  the same 3 (the negotiation head wrapping, headH 125 against my 126 — the 1px
+  is the face, the failure is not). The 2 new ones were section 8, the header
+  top: the room drew 2px below Home. **THE FIRST DIAGNOSIS WAS WRONG AND IS
+  RECORDED AS SUCH**: the crumb states no leading, so it sat a 12px face in an
+  18px `--lh-base` box, which looked like the answer — stating `--lh-tight`
+  moved the ink by NOTHING, because `align-items:center` was doing the
+  positioning. Centring a 14.4px line box in a 16px min-height inserts an 0.8px
+  offset nothing else on any header has, and Home's own 20px glyph sits 2px
+  ABOVE its box because `--lh-tight` is tighter than Plex's natural 1.313. The
+  crumb is `flex-start` now, so its first line starts where the block's padding
+  puts it, like every other page's. Home 14px, room 15px, inside the ±1px the
+  check allows. The stated leading was KEPT — it is right by the rule every
+  page title already follows — but the comment says plainly which of the two
+  was the cause.
+
+**THE PATTERN WORTH KEEPING FROM ALL THREE:** every regression this swap caused
+was a LEADING or a LINE BOX tuned to the old face's metrics, never a width.
+Plex is ~5% narrower, so nothing ran out of horizontal room anywhere; what broke
+was three places where a box was drawn just tall enough for Inter's glyphs. If
+another face swap ever happens, sweep `line-height` on large type first.
+
+**Files touched.** CLAUDE.md, index.html, fonts/fonts.css,
+test/f85-the-server-serves-the-design.test.js,
+test/chromium/type-and-symbols-verify.js.
+
+---
+
+## 26 Aug 2026 - the design-system branch meets main (the merge)
+
+**WHAT THIS RUN WAS.** Not new work: bringing the four design-system phases
+(A accent/contrast, B keyboard and focus, C token consumers, D the four
+ladders) together with what main did in the meantime - the IBM Plex swap, the
+tracked-changes column rebuilt to the owner's own drawing, and the
+screenshot-fix batch. Fifteen conflicts across five files.
+
+**THE RESOLUTION RULE, STATED ONCE AND FOLLOWED EVERYWHERE:** main's substance
+wins wherever it made a real fix or an owner-asked change; the token renames
+and the accent-ink contrast fixes are re-applied ON TOP. All eight conflicts in
+`js/views/negotiation-css.js` were taken from main wholesale and then re-swept,
+because that file is where the column rebuild lives and a hand-merged
+stylesheet is how a rebuilt column comes back half-rebuilt.
+
+**AND THE SWEEP BROKE THE REDUCED-MOTION KILL SWITCH A SECOND TIME.** Phase D
+found it (`transition-duration:.001ms!important` read as an ad-hoc value and
+mapped to a 120ms rung - turning an accessibility setting into a 120ms
+setting), and re-running the sweep on the merged tree put it straight back.
+**THE FIRST FIX WAS THE SYMPTOM AND NOT THE TOOL**, which is the whole lesson:
+`test/SWEEP-NOTES.md` now carries the five rules a sweep over this codebase has
+to obey - never map `.001ms`, never find the Tailwind blob by line number
+(it has moved from 74 to 81 already), never sweep inside `calc()`, never sweep
+a whole-document builder, and print WHAT moved rather than only how many.
+f238 pins the kill switch and the blob.
+
+**FOUR REPAIRS THE MERGE ITSELF NEEDED,** each a new arrival meeting an older
+rule:
+- `.rl-more-verbs .rl-edit` came in from main setting `--color-accent-700` as
+  TEXT - a new instance of the exact class Phase A closed, and dark has no
+  answer for that ramp step. It reads `--accent-ink-700`.
+- `js/aichart.js`'s fallback face still named Inter. It is Plex now, so the
+  charts and the page agree even before the token is read. **Main's own BUGLOG
+  line "the charts do not follow the platform face, and never have" is closed
+  by Phase D** - `Chart.defaults.font.family` reads `--font-body` - and the
+  fallback is what makes it true where the token cannot be read.
+- f246's `font-weight:400` claim re-pointed at `var(--w-body)`.
+- Two browser claims REVERSED IN PLACE (below).
+
+**TWO CLAIMS REVERSED IN PLACE, and neither reversal is this branch's doing.**
+- `nego-redesign-verify` 5: "the index names itself and carries the filter"
+  asserted the column's title is set larger than the filter under it. Main
+  brought that title DOWN to the rows' own size on purpose - that rule's own
+  comment says "with the size gone [the 2px accent rule] is the whole of what
+  marks this as the column's name" - so SIZE stopped being the marker, and the
+  claim survived that change only by the accident of a half-pixel: the filter
+  was 12.5px, which this product's own whole-pixel rule then rounded to 13.
+  It now asserts what the claim protected: the 2px accent rule is drawn in a
+  real colour, the filter is there, and nothing under the title is set larger
+  than it. 51/51.
+- `adapt-filters-verify` 2: "a sixth filter costs a second line at 1440"
+  pinned a COST. WO-16 brought the register's rows down a rung and the bar's
+  own controls with them, so six filters now fit at 1440 where five barely
+  did. **A cost that has gone is not a failure**, and pinning it would make
+  the next type change look like a regression. It asserts the safety property
+  instead: whatever the reader chooses, the bar never hides a filter and never
+  scrolls the page sideways - checked at 1440, 1760 and 1366. 20/20.
+
+**MEASURED AFTER.** Lint: the 4 pre-existing errors only. Node: 4,645 pass,
+0 fail. Colour census re-recorded 40/40 after an audit identical to Phase A's
+- all ten LIGHT screens unchanged, three attributable values in dark. Browser:
+76 of 78 green.
+
+### Noticed, not fixed
+
+- `pages-read-alike-verify` 47/50 - the negotiation head wraps to three rows
+  (headH 126). **Main's own entry for the Plex swap already records this as
+  pre-existing there**, at headH 125; the 1px is the face. Proved again by
+  construction: the test file is byte-identical to main, the `#ws-head` block
+  is value-identical to main, the diff to `js/views/negotiation.js` touches no
+  head markup at all, and all four tokens that rule reads resolve to main's
+  own values.
+- `reopen-a-refusal-verify` 12/15 - Reopen no longer reads like the Edit
+  beside it (`18px vs 0px`, and the row is `["Reopen","Send a copy"]`). Main's
+  own column rebuild moved Edit into the overflow menu on our seat, so the verb
+  the claim compares against is not on the face any more. Proved failing on an
+  unmodified main in a worktree before it was called pre-existing.
+
+
+## Run — 26 Aug 2026: the chart library, and six off five screenshots
+
+Owner-asked: bring the charting library in-house, then six fixes off five
+screenshots (home tile heights; the card ⋯ dropdown's header and its clipping;
+the WHOSE ASKS label; the selected-card outline and what the ⋯ press does; the
+"Propose new wording" button's changing name).
+
+### Noticed, not fixed
+
+- `js/i18n.js` has FOUR duplicate-key errors that break `npm run lint`'s
+  zero-error bar: `co_password_updated` (lines 2032, 6813) and `act_next`
+  (2776, 7479), one pair per language block. PROVED PRE-EXISTING — the same
+  four reproduce on an untouched tree.
+- `test/chromium/analytics-verify.js` looks for its fallback bars with
+  `div[style*="border-radius:999px"]`, a pill shape SQUARE CORNERS EVERYWHERE
+  (20 Aug 2026) squared away, so that selector matches nothing anywhere. The
+  canvas half of its check now passes offline (this run's change), so the file
+  is green — but the offline FALLBACK it was written to guard is still
+  unguarded. Recorded in run-all.js's own note beside the file.
+- `js/aichart.js` builds its reader-facing sentences in hardcoded English
+  (`aiChartNote('There is no data in your portfolio for that chart yet.')` and
+  the load-failure card this run reworded). Consistent within that file, and
+  outside this ask.
+- The OCR path still fetches pdf.js and Tesseract from cdnjs/jsdelivr
+  (`js/ocr.js`), so reading a scanned or PDF upload keeps the third-party
+  dependency the charts just lost. Same fix shape, separate job.
+
 ## 26 Aug 2026 — a 2px corner across the platform, and the contract stays square
 
 Owner-ruled off a drawn preview at 0, 2, 3, 4 and 6px: "implement 2px across

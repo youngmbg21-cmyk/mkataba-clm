@@ -123,37 +123,37 @@ function mHomeHtml(){
   const expiring = (D && D.expiring) || [];
 
   const needsHtml = needs.length ? `
-    <div class="m-lbl" style="margin:0 16px 6px">${i18t('m_needs_you',{n:needs.length})}</div>
-    <div class="m-card m-list" style="margin:0 16px">
+    <div class="m-lbl" style="margin:0 var(--s-4) 6px">${i18t('m_needs_you',{n:needs.length})}</div>
+    <div class="m-card m-list" style="margin:0 var(--s-4)">
       ${needs.map(n=>`
         <button class="m-row" data-m-open="${mEsc(n.c.id)}" style="align-items:flex-start">
           <span style="width:10px;height:10px;border-radius:50%;flex:none;margin-top:6px;background:${n.dot}"></span>
           <span style="flex:1;min-width:0">
             <span class="m-row-name">${mEsc(n.c.name||n.c.id)}</span>
             <span class="m-row-sub">${mEsc((typeof cParty==='function'?cParty(n.c):n.c.counterparty)||'No counterparty yet')}</span>
-            <span style="display:block;font-size:15px;margin-top:5px;line-height:1.45;color:${n.tone}">${mEsc(n.reason)}</span>
+            <span style="display:block;font-size:var(--t-card);margin-top:5px;line-height:1.45;color:${n.tone}">${mEsc(n.reason)}</span>
           </span>
-          <span style="flex:none;margin-top:12px">${M_CHEV}</span>
+          <span style="flex:none;margin-top:var(--s-3)">${M_CHEV}</span>
         </button>`).join('')}
     </div>` : `
-    <div class="m-card" style="margin:0 16px;padding:30px 20px;text-align:center">
+    <div class="m-card" style="margin:0 var(--s-4);padding:30px 20px;text-align:center">
       <div style="width:44px;height:44px;border-radius:50%;background:var(--st-green-bg);color:var(--st-green-fg);display:grid;place-items:center;margin:0 auto 10px">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
       </div>
-      <div style="font-size:18px;font-weight:600">${i18t('m_nothing_needs_you')}</div>
-      <div class="m-note" style="margin-top:4px">${i18t('m_nothing_needs_sub')}</div>
+      <div style="font-size:18px;font-weight:var(--w-strong)">${i18t('m_nothing_needs_you')}</div>
+      <div class="m-note" style="margin-top:var(--s-1)">${i18t('m_nothing_needs_sub')}</div>
     </div>`;
 
   const expHtml = expiring.length ? `
-    <div class="m-lbl" style="margin:14px 16px 6px">${i18t('m_expiring_next')}</div>
-    <div class="m-card m-list" style="margin:0 16px">
+    <div class="m-lbl" style="margin:14px var(--s-4) 6px">${i18t('m_expiring_next')}</div>
+    <div class="m-card m-list" style="margin:0 var(--s-4)">
       ${expiring.slice(0,6).map(x=>`
         <button class="m-row" data-m-open="${mEsc(x.c.id)}">
           <span style="flex:1;min-width:0">
-            <span class="m-row-name" style="font-weight:400">${mEsc(x.c.name||x.c.id)}</span>
+            <span class="m-row-name" style="font-weight:var(--w-body)">${mEsc(x.c.name||x.c.id)}</span>
             <span class="m-row-sub">${mEsc((typeof cParty==='function'?cParty(x.c):x.c.counterparty)||'—')}</span>
           </span>
-          <span style="flex:none;font-size:15px;color:var(--color-neutral-600);white-space:nowrap">${mEsc(x.d===0?'today':'in '+x.d+'d')}</span>
+          <span style="flex:none;font-size:var(--t-card);color:var(--color-neutral-600);white-space:nowrap">${mEsc(x.d===0?'today':'in '+x.d+'d')}</span>
         </button>`).join('')}
     </div>` : '';
 
@@ -164,7 +164,7 @@ function mHomeHtml(){
       <div class="m-sub">${mEsc(subline)}</div>
     </div>
     <div class="m-scroll">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin:16px 16px 6px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);margin:var(--s-4) var(--s-4) 6px">
         <span class="m-lbl">${i18t('m_your_metrics')}</span>
         <button class="m-kpi-gear" data-m-act="kpis" aria-label="${i18t('m_choose_metrics')}">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
@@ -173,15 +173,15 @@ function mHomeHtml(){
       ${mKpiHtml(D)}
       ${needsHtml}
       ${expHtml}
-      <div class="m-card m-list" style="margin:14px 16px 24px">
+      <div class="m-card m-list" style="margin:14px var(--s-4) var(--s-6)">
         <button class="m-row" data-m-act="portfolio">
-          <span style="flex:1;font-size:16px;font-weight:400;color:var(--color-accent-700)">${i18t('m_portfolio')}</span>
-          <span style="font-size:15px;color:var(--color-neutral-600)">${i18t('m_figures_streams')}</span>
+          <span style="flex:1;font-size:16px;font-weight:var(--w-body);color:var(--accent-ink-700)">${i18t('m_portfolio')}</span>
+          <span style="font-size:var(--t-card);color:var(--color-neutral-600)">${i18t('m_figures_streams')}</span>
           ${M_CHEV}
         </button>
         <button class="m-row" data-m-act="more">
-          <span style="flex:1;font-size:16px;font-weight:400;color:var(--color-accent-700)">${i18t('m_more')}</span>
-          <span style="font-size:15px;color:var(--color-neutral-600)">${i18t('m_more_sub')}</span>
+          <span style="flex:1;font-size:16px;font-weight:var(--w-body);color:var(--accent-ink-700)">${i18t('m_more')}</span>
+          <span style="font-size:var(--t-card);color:var(--color-neutral-600)">${i18t('m_more_sub')}</span>
           ${M_CHEV}
         </button>
       </div>
@@ -203,7 +203,7 @@ function mKpiSheetHtml(){
     /* A row that cannot be turned on goes quiet rather than staying bright and
        refusing on the tap — the same statement the desktop rows make. */
     return `<button class="m-row" data-m-kpi-toggle="${id}"${shut?' style="opacity:.45"':''}>
-      <span style="flex:1;min-width:0"><span class="m-row-name" style="font-weight:400">${mEsc(KPI_META[id]||id)}</span></span>
+      <span style="flex:1;min-width:0"><span class="m-row-name" style="font-weight:var(--w-body)">${mEsc(KPI_META[id]||id)}</span></span>
       <span style="flex:none;width:22px;height:22px;border-radius:var(--radius);display:grid;place-items:center;border:1.5px solid ${on?'var(--accent-solid)':'var(--color-divider)'};background:${on?'var(--accent-solid)':'transparent'};color:#fff">
         ${on?`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`:''}
       </span>
@@ -213,10 +213,10 @@ function mKpiSheetHtml(){
     <div class="m-grab"></div>
     <div class="m-sheet-title">${i18t('m_show_metrics')}</div>
     <div class="m-sheet-note">${full?mEsc(i18t('m_max_metrics',{max})):i18t('m_same_choice')}</div>
-    <div class="m-sheet-note" style="font-weight:700">${i18t('home_metrics_count',{n:sel.length,max})}</div>
+    <div class="m-sheet-note" style="font-weight:var(--w-title)">${i18t('home_metrics_count',{n:sel.length,max})}</div>
     <div class="m-card m-list">${rows}</div>
-    <button class="m-btn m-btn-quiet" style="margin-top:12px" data-m-act="kpi-reset">${i18t('m_reset_four')}</button>
-    <button class="m-btn m-btn-quiet" style="margin-top:8px" data-m-act="close-sheet">${i18t('m_done')}</button>`;
+    <button class="m-btn m-btn-quiet" style="margin-top:var(--s-3)" data-m-act="kpi-reset">${i18t('m_reset_four')}</button>
+    <button class="m-btn m-btn-quiet" style="margin-top:var(--s-2)" data-m-act="close-sheet">${i18t('m_done')}</button>`;
 }
 
 /* ------------------------------------------------------------- CONTRACTS ---
@@ -273,34 +273,34 @@ function mContractsHtml(){
 
   const total = (state.contracts||[]).length;
   const list = rows.length ? `
-    <div class="m-card m-list" style="margin:16px">
+    <div class="m-card m-list" style="margin:var(--s-4)">
       ${rows.map(c=>`
         <button class="m-reg-row" data-m-open="${mEsc(c.id)}">
           <span class="m-stripe" style="background:${(typeof folderColor==='function')?folderColor(c):'var(--color-neutral-300)'}"></span>
-          <span style="display:flex;align-items:flex-start;gap:8px">
-            <span style="flex:1;min-width:0;font-size:16px;font-weight:600;line-height:1.3">${mEsc(c.name||c.id)}</span>
+          <span style="display:flex;align-items:flex-start;gap:var(--s-2)">
+            <span style="flex:1;min-width:0;font-size:16px;font-weight:var(--w-strong);line-height:1.3">${mEsc(c.name||c.id)}</span>
             ${mPill(c)}
           </span>
           <span class="m-row-sub">${mEsc((typeof cParty==='function'?cParty(c):c.counterparty)||'No counterparty yet')}</span>
-          <span style="display:flex;gap:10px;margin-top:5px;font-size:15px">
-            <span style="font-weight:600">${mEsc(mMoney(c))}</span>
+          <span style="display:flex;gap:10px;margin-top:5px;font-size:var(--t-card)">
+            <span style="font-weight:var(--w-strong)">${mEsc(mMoney(c))}</span>
             <span style="color:var(--color-neutral-600)">${mEsc(mExpiry(c))}</span>
           </span>
         </button>`).join('')}
     </div>
-    <div style="padding:0 16px 24px;text-align:center;font-size:15px;color:var(--color-neutral-600)">
+    <div style="padding:0 var(--s-4) var(--s-6);text-align:center;font-size:var(--t-card);color:var(--color-neutral-600)">
       ${rows.length===total ? i18t('m_showing_all',{n:total}) : i18t('m_n_of_total_match',{n:rows.length,total})}
     </div>`
   : `
-    <div class="m-card" style="margin:16px;padding:34px 20px;text-align:center">
-      <div style="font-size:16px;font-weight:600">${total?'No contracts match these filters':'No contracts yet'}</div>
-      <div class="m-note" style="margin-top:4px">${total?'Widen the filters, or clear them to see everything.':'Start one from a company standard template with the + button.'}</div>
+    <div class="m-card" style="margin:var(--s-4);padding:34px 20px;text-align:center">
+      <div style="font-size:16px;font-weight:var(--w-strong)">${total?'No contracts match these filters':'No contracts yet'}</div>
+      <div class="m-note" style="margin-top:var(--s-1)">${total?'Widen the filters, or clear them to see everything.':'Start one from a company standard template with the + button.'}</div>
       ${total?`<button class="m-btn m-btn-quiet" style="margin-top:14px" data-m-act="clear-filters">${i18t('m_clear_all_filters')}</button>`:''}
     </div>`;
 
   return `
     <div class="m-pagehead" style="padding-bottom:0">
-      <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:10px">
+      <div style="display:flex;align-items:flex-start;gap:var(--s-2);margin-bottom:10px">
         <div style="flex:1;min-width:0">
           <div class="m-title" style="margin-top:0">${i18t('m_contracts')}</div>
           <div class="m-sub">${i18t('m_filter_and_act')}</div>
@@ -342,8 +342,8 @@ function mNegotiationsHtml(){
       <div class="m-title">${i18t('ng_door_title')}</div>
     </div>
     <div class="m-scroll">
-      <div class="m-card" style="margin:16px;padding:30px 20px;text-align:center">
-        <div style="font-size:16px;font-weight:600">${mEsc(i18t('ng_door_none'))}</div>
+      <div class="m-card" style="margin:var(--s-4);padding:30px 20px;text-align:center">
+        <div style="font-size:16px;font-weight:var(--w-strong)">${mEsc(i18t('ng_door_none'))}</div>
         <div class="m-note" style="margin-top:5px;line-height:1.5">${mEsc(i18t('ng_door_none_how'))}</div>
         <button class="m-btn m-btn-quiet" style="margin-top:14px" data-m-tab="contracts">${mEsc(i18t('ng_open_register'))}</button>
       </div>
@@ -355,11 +355,11 @@ function mNegotiationsHtml(){
   const card = c => `
     <button class="m-reg-row" data-m-nego="${mEsc(c.id)}">
       <span class="m-stripe" style="background:${(typeof folderColor==='function')?folderColor(c):'var(--color-neutral-300)'}"></span>
-      <span style="display:flex;align-items:flex-start;gap:8px">
-        <span style="flex:1;min-width:0;font-size:16px;font-weight:600;line-height:1.3">${mEsc(c.name||c.id)}</span>
+      <span style="display:flex;align-items:flex-start;gap:var(--s-2)">
+        <span style="flex:1;min-width:0;font-size:16px;font-weight:var(--w-strong);line-height:1.3">${mEsc(c.name||c.id)}</span>
       </span>
       <span class="m-row-sub">${mEsc(c.counterparty||i18t('ng_door_them'))}</span>
-      <span style="display:flex;gap:8px;margin-top:7px;align-items:center">
+      <span style="display:flex;gap:var(--s-2);margin-top:7px;align-items:center">
         ${(typeof negoMovePillHtml==='function')?negoMovePillHtml(c):''}
       </span>
     </button>`;
@@ -375,7 +375,7 @@ function mNegotiationsHtml(){
         <span class="m-ngband-k">${mEsc(b.label)}</span>
         <span class="m-ngband-n">${counts[b.k]||0}</span>
       </div>
-      ${mine.length ? `<div class="m-card m-list" style="margin:0 16px 14px">${mine.map(card).join('')}</div>` : ''}`;
+      ${mine.length ? `<div class="m-card m-list" style="margin:0 var(--s-4) 14px">${mine.map(card).join('')}</div>` : ''}`;
   }).join('');
 
   return `
@@ -404,22 +404,22 @@ function mNewSheetHtml(){
   const routes = `
     <button class="m-row" data-m-act="new-wizard">
       <span style="flex:1;min-width:0">
-        <span class="m-row-name" style="font-weight:400">${i18t('m_draft_from_template')}</span>
+        <span class="m-row-name" style="font-weight:var(--w-body)">${i18t('m_draft_from_template')}</span>
         <span class="m-row-sub">${i18t('m_hati_standard')}</span>
       </span>${M_CHEV}
     </button>
     <button class="m-row" data-m-act="new-upload">
       <span style="flex:1;min-width:0">
-        <span class="m-row-name" style="font-weight:400">${i18t('m_upload_received')}</span>
+        <span class="m-row-name" style="font-weight:var(--w-body)">${i18t('m_upload_received')}</span>
         <span class="m-row-sub">${i18t('m_their_word_pdf')}</span>
       </span>${M_CHEV}
     </button>
     <button class="m-row" data-m-act="new-import">
       <span style="flex:1;min-width:0">
-        <span class="m-row-name" style="font-weight:400">${i18t('m_import_many')}</span>
+        <span class="m-row-name" style="font-weight:var(--w-body)">${i18t('m_import_many')}</span>
         <span class="m-row-sub">${i18t('m_import_many_sub')}</span>
       </span>
-      <span style="flex:none;font-size:15px;color:var(--color-neutral-600)">${i18t('m_computer')}</span>
+      <span style="flex:none;font-size:var(--t-card);color:var(--color-neutral-600)">${i18t('m_computer')}</span>
     </button>`;
   return `
     <div class="m-grab"></div>
@@ -427,7 +427,7 @@ function mNewSheetHtml(){
     ${''/* No caption above them. "Other ways in" was true while the standards
            sat on top and is a heading about nothing now that they do not. */}
     <div class="m-card m-list" style="background:var(--color-bg)">${routes}</div>
-    <button class="m-btn m-btn-quiet" style="margin-top:12px" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
+    <button class="m-btn m-btn-quiet" style="margin-top:var(--s-3)" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
 }
 
 /* ------------------------------------------------------------- APPROVALS ---
@@ -459,7 +459,7 @@ function mApprovalsHtml(){
     const reqAt = (typeof repRaisedAt==='function') ? repRaisedAt(c) : null;
     const requested = (reqBy||reqAt) ? { user:reqBy, at:reqAt?new Date(reqAt).toISOString():null } : null;
     return `
-    <div class="m-card" style="margin-bottom:12px">
+    <div class="m-card" style="margin-bottom:var(--s-3)">
       <button class="m-row" data-m-appr="${mEsc(c.id)}" style="align-items:flex-start;padding:14px">
         <span style="flex:1;min-width:0">
           <span class="m-row-name">${mEsc(c.name||c.id)}</span>
@@ -469,10 +469,10 @@ function mApprovalsHtml(){
       </button>
       ${open?`
       <div style="border-top:1px solid var(--color-divider);padding:14px">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 14px">
-          <div><div class="m-note">${i18t('m_counterparty')}</div><div style="font-size:16px;font-weight:400;margin-top:1px">${mEsc((typeof cParty==='function'?cParty(c):c.counterparty)||'—')}</div></div>
-          <div><div class="m-note">${i18t('m_value')}</div><div style="font-size:16px;font-weight:600;margin-top:1px">${mEsc(mMoney(c))}</div></div>
-          <div style="grid-column:1 / -1"><div class="m-note">${requested&&requested.user?'Requested by':'Waiting'}</div><div style="font-size:16px;font-weight:400;margin-top:1px">${
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s-3) 14px">
+          <div><div class="m-note">${i18t('m_counterparty')}</div><div style="font-size:16px;font-weight:var(--w-body);margin-top:1px">${mEsc((typeof cParty==='function'?cParty(c):c.counterparty)||'—')}</div></div>
+          <div><div class="m-note">${i18t('m_value')}</div><div style="font-size:16px;font-weight:var(--w-strong);margin-top:1px">${mEsc(mMoney(c))}</div></div>
+          <div style="grid-column:1 / -1"><div class="m-note">${requested&&requested.user?'Requested by':'Waiting'}</div><div style="font-size:16px;font-weight:var(--w-body);margin-top:1px">${
             [requested&&requested.user ? mEsc(requested.user) : '',
              x.idle ? `${x.idle} day${x.idle===1?'':'s'} ago` : 'since today'].filter(Boolean).join(' · ')}</div></div>
         </div>
@@ -481,8 +481,8 @@ function mApprovalsHtml(){
           <button class="m-btn" style="flex:1;border-color:var(--st-ruby-line);color:var(--st-ruby-fg)" data-m-reject="${mEsc(c.id)}">${i18t('m_reject')}</button>
         </div>
         ${rejecting?`
-        <div style="margin-top:12px">
-          <div style="font-size:15px;font-weight:600;margin-bottom:5px">${i18t('m_why_rejecting')}</div>
+        <div style="margin-top:var(--s-3)">
+          <div style="font-size:var(--t-card);font-weight:var(--w-strong);margin-bottom:5px">${i18t('m_why_rejecting')}</div>
           <textarea class="m-area" id="m-reject-why" rows="3" placeholder="${i18t('m_reason_goes_back')}"${s.apprErr?' style="border-color:var(--danger)"':''}>${mEsc(s.apprWhy||'')}</textarea>
           ${s.apprErr?`<div class="m-err">${i18t('m_give_reason')}</div>`:''}
           <button class="m-btn m-btn-danger" style="margin-top:10px" data-m-reject-send="${mEsc(c.id)}">${i18t('m_reject_send_back')}</button>
@@ -497,10 +497,10 @@ function mApprovalsHtml(){
       <div class="m-sub">${items.length?`${items.length} contract${items.length===1?'':'s'} waiting on your sign-off`:'All caught up'}</div>
     </div>
     <div class="m-scroll">
-      <div style="margin:16px">
+      <div style="margin:var(--s-4)">
         ${items.length?cards:`
-        <div class="m-card" style="padding:24px;text-align:center">
-          <div style="font-size:16px;font-weight:600">${i18t('m_no_approvals')}</div>
+        <div class="m-card" style="padding:var(--s-6);text-align:center">
+          <div style="font-size:16px;font-weight:var(--w-strong)">${i18t('m_no_approvals')}</div>
           <div class="m-note" style="margin-top:3px">${i18t('m_new_requests_here')}</div>
         </div>`}
       </div>
@@ -522,20 +522,20 @@ function mPortfolioHtml(){
   if(D) rows.push({ get label(){ return i18t('m_high_risk'); }, value:String((D.highRisk||[]).length) });
 
   return `
-    <div class="m-pagehead" style="display:flex;align-items:center;gap:4px;padding:8px 8px">
-      <button class="m-head-btn" data-m-act="back" aria-label="${i18t('m_back')}" style="color:var(--color-accent-700)">
+    <div class="m-pagehead" style="display:flex;align-items:center;gap:var(--s-1);padding:var(--s-2) var(--s-2)">
+      <button class="m-head-btn" data-m-act="back" aria-label="${i18t('m_back')}" style="color:var(--accent-ink-700)">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
       </button>
-      <div style="font-size:19px;font-weight:600;font-family:var(--font-heading,inherit)">${i18t('m_portfolio')}</div>
+      <div style="font-size:var(--t-page);font-weight:var(--w-strong);font-family:var(--font-heading,inherit)">${i18t('m_portfolio')}</div>
     </div>
     <div class="m-scroll">
-      <div class="m-card m-list" style="margin:16px">
-        ${rows.map(r=>`<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 14px">
-          <span style="font-size:15px;color:var(--color-neutral-600)">${mEsc(r.label)}</span>
-          <span style="font-size:16px;font-weight:600">${mEsc(r.value)}</span>
+      <div class="m-card m-list" style="margin:var(--s-4)">
+        ${rows.map(r=>`<div style="display:flex;align-items:center;justify-content:space-between;gap:var(--s-3);padding:13px 14px">
+          <span style="font-size:var(--t-card);color:var(--color-neutral-600)">${mEsc(r.label)}</span>
+          <span style="font-size:16px;font-weight:var(--w-strong)">${mEsc(r.value)}</span>
         </div>`).join('')}
       </div>
-      <div class="m-note" style="margin:0 16px 24px">${i18t('m_reports_desk_work')}</div>
+      <div class="m-note" style="margin:0 var(--s-4) var(--s-6)">${i18t('m_reports_desk_work')}</div>
     </div>`;
 }
 

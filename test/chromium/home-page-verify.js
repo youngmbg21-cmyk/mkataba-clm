@@ -287,6 +287,38 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     }
     await page.setViewportSize({ width: 1440, height: 900 });
 
+    /* ============ 10. ONE BOARD, NOT TWO BANDS (owner-asked 26 Aug 2026) ====
+       "Make the cards in the second line have the same height as the cards in
+       the 1st line." They were 141 and 176, two numbers typed 35px apart.
+
+       THE HEIGHT IS PINNED AS A RELATION, NEVER A NUMBER — "every tile is the
+       same height as every other" — so the next time somebody re-measures this
+       page it costs no test edit. That lesson has been paid for four times in
+       this suite already.
+
+       AND THE CLIP CHECK IS THE HALF THAT EARNS ITS PLACE. Matching the rows is
+       one line of CSS; matching them WITHOUT cutting content off is the thing
+       that is easy to get wrong, and the first attempt did — 141 clipped all
+       four Portfolio tiles, including three that look identical to a My work
+       tile. scrollHeight against clientHeight is how a browser answers it, and
+       nothing but a browser can. */
+    for (const w of [1280, 1366, 1440, 1920]) {
+      await page.setViewportSize({ width: w, height: 860 });
+      await page.waitForTimeout(600);
+      const t = await page.evaluate(() => [...document.querySelectorAll('.hm-tile')].map(el => ({
+        name: (el.querySelector('.hm-t') || {}).textContent || '?',
+        h: Math.round(el.getBoundingClientRect().height),
+        clipped: el.scrollHeight > el.clientHeight + 1,
+      })));
+      const heights = [...new Set(t.map(x => x.h))];
+      check(`10 ${w}: both rows are one height`, heights.length === 1,
+        heights.length === 1 ? `${heights[0]}px` : 'heights: ' + heights.join(', '));
+      const clipped = t.filter(x => x.clipped).map(x => x.name.trim());
+      check(`10 ${w}: and no tile has its content cut off`, clipped.length === 0,
+        clipped.length ? 'clipped: ' + clipped.join(', ') : `${t.length} tiles clear`);
+    }
+    await page.setViewportSize({ width: 1440, height: 900 });
+
     check('no page errors', errors.length === 0, errors.slice(0, 2).join(' | ') || 'clean');
   } catch (e) {
     check('the run completed', false, e.message);

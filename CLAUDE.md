@@ -653,15 +653,25 @@ Tests: f198 (13 — fails FOUR ways against the old code on the dashboard half, 
 
 ## THE SAP TREATMENT — Home and the shell (owner-asked 20 Aug 2026, built from an owner-approved render)
 
-**THE PLATFORM FACE IS INTER (owner-asked 22 Aug 2026 — this REVERSES "72" IN PLACE, two days after it arrived).** One family end to end: --font-heading, --font-body, --font-mono AND --font-doc all resolve to it, so the product's chrome and the contract paper share a face for the first time. --font-code is Courier New, the owner's two deliberate exceptions (the ⌘K chip and the SHA-256 seal), unchanged. Plus Jakarta Sans is gone, and so is "72" — flag any mention of either as stale.
+**THE PLATFORM FACE IS IBM PLEX SANS (owner-asked 25 Aug 2026 — this REVERSES "INTER" IN PLACE, which had itself reversed "72").** One family end to end: --font-heading, --font-body, --font-mono AND --font-doc all resolve to it, so the product's chrome and the contract paper share a face. --font-code is Courier New, the owner's two deliberate exceptions (the ⌘K chip and the SHA-256 seal), unchanged. Jakarta Sans, "72" and now Inter are all gone — flag any mention of any of them as stale.
+
+**THIS ONE IS A BRAND DECISION, AND THAT IS THE WHOLE OF IT — which makes it the odd one out in this section.** The two swaps before it were forced: "72" left over a LICENCE, and the weights below were a FACT about what a family shipped. Nothing was wrong with Inter. It is the default face of modern software — Figma, GitHub, most of the dashboards this product sits beside — so it reads as well-made and generic, and Plex was drawn as a corporate voice and reads institutional, which is what contract software should sound like.
+
+**WHAT THE SWAP ACTUALLY BROKE WAS LEADING, NEVER WIDTH — three places, and the pattern is the useful part.** Plex is ~5% narrower, so nothing ran out of horizontal room anywhere in the product. What broke was three boxes drawn just tall enough for Inter's glyphs: `.hm-n` and `.hm-m`, Home's two big figures, carried `line-height:1.05` and clipped 3px off every number on the dashboard at all five laptop sizes (caught by laptops-verify, which is why that file walks HEIGHT as well as width); and `.room-crumb` centred its line in a 16px min-height, which against a Home title whose 20px glyph sits 2px ABOVE its own box — `--lh-tight` being tighter than Plex's natural 1.313 — put the room's header 2px low. The figures read `--lh-tight` now and the crumb is `flex-start`. **IF A FACE IS EVER SWAPPED AGAIN, SWEEP `line-height` ON LARGE TYPE FIRST** — that is where the whole cost of this one landed.
+
+**LEGIBILITY IS A WASH, AND IT WAS MEASURED BEFORE THE CHOICE RATHER THAN ARGUED AFTER IT.** Small-letter height 73.8% of cap height against Inter's 75.3%, and a clause of contract wording takes the SAME five lines at the same measure — so nothing reads smaller and no page holds less contract. The confusable pairs come out MIXED rather than better, which is the finding that stopped this being sold as a clarity win: Plex separates capital I from lowercase l far more clearly (58% shape overlap against Inter's 95.5%), and Inter separates lowercase l from the digit 1 more clearly (17.1% against 32.1%). Neither bites much here — reference ids are capitals and digits, clause numbers are digits alone. **WHAT IT ACTUALLY BUYS IS WIDTH**: about 5%, measured on this product's own screens ("KES 78,000,000" 113px against 119, "Negotiations" 80px against 84), which is real headroom in the tight columns and in Swedish. **THE LICENCE BAR IS UNMOVED** — Plex is SIL Open Font Licensed exactly as Inter was, so the paragraph below still governs and "72" stays out for its own reason.
 
 **THE REASON IS A LICENCE, NOT A LOOK, and it is the half worth remembering.** "72" is SAP's, distributed for use with SAP's own software, and HaTi is not that — nobody had checked before shipping it as the face of a product sold to customers. Inter is under the SIL Open Font License: free commercially, free to embed and serve, no fee, and **nothing owed on screen** — keeping the licence beside the font files is the entire obligation. The same question was asked of the alternatives and answered the same way: a font you cannot legally serve (Segoe UI, Helvetica Neue, anything Monotype) is not a candidate however good it looks.
 
-**IT WAS ALREADY IN THE BUILDING, which is what made this cheap.** --font-doc had resolved to Inter all along, so this is a REMOVAL plus a widening rather than a new dependency: fonts/fonts.css went from 688 KB to about 490 KB by dropping four static cuts of a face nothing asks for any more.
+**IT WAS ALREADY IN THE BUILDING, which is what made the INTER swap cheap** (history, 22 Aug 2026): --font-doc had resolved to Inter all along, so that one was a REMOVAL plus a widening rather than a new dependency, and fonts/fonts.css went from 688 KB to about 490 KB. **THE PLEX SWAP IS A REAL REPLACEMENT and still came in smaller**: 488 KB to 335 KB, eight inlined faces against nine, because a 400-700 variable range needs fewer files than 300-800 plus italics did.
+
+**A VARIABLE FACE, 400-700 SINCE 25 Aug 2026 — NARROWER THAN INTER'S 300-800, AND CHECKED BEFORE IT WAS ACCEPTED.** Nothing in this product asks for 300, 200 or 100. ONE declaration asks for 800 — the `bold-corporate` document style's h1 in index.html — and a browser clamps it to 700 against this range. **IT IS LEFT SAYING 800 ON PURPOSE**, so the day a heavier face returns it works again rather than having been quietly rewritten; a source that says 800 and renders 700 is the lesser evil against a decision erased. 400/500/600/700 are all real here, exactly as under Inter. What follows is the INTER-era note, kept because its reasoning is the useful part:
 
 **A VARIABLE FACE, 300-800, AND THAT IS A GAIN.** "72" shipped four cuts and nothing else, so 500 and 800 resolved to a neighbour; Inter carries every weight in the range for real, and italics, which "72" had none of. **The DUPLEX property is what was given up** — 72's 600 took exactly regular's widths, so bolding never shifted a layout, and Inter's does not. Measured on the shell and Home: nothing moved enough to see. Bear it in mind before adding weight to something in a tight row.
 
-**AND THE COVERAGE WAS PUT BACK RATHER THAN QUIETLY LOST.** The "72" cuts were the -full editions (extended Latin + Greek + Cyrillic); Inter was bundled for the DOCUMENT alone and carried Latin and Latin-ext only. Promoting it as-is would have dropped a counterparty or colleague named in Greek or Cyrillic to a system sans mid-sentence — invisible until the day it matters. Five subsets were added for the upright face. Italic stays Latin-only, deliberately: it was before, and no surface here sets a Greek or Cyrillic string in italic. f85 asserts both ranges, so the next person cannot narrow it by accident.
+**AND THE COVERAGE WAS PUT BACK RATHER THAN QUIETLY LOST.** The "72" cuts were the -full editions (extended Latin + Greek + Cyrillic); Inter was bundled for the DOCUMENT alone and carried Latin and Latin-ext only. Promoting it as-is would have dropped a counterparty or colleague named in Greek or Cyrillic to a system sans mid-sentence — invisible until the day it matters. Five subsets were added for the upright face. Italic stays Latin-only, deliberately: it was before, and no surface here sets a Greek or Cyrillic string in italic. f85 asserts the ranges, so the next person cannot narrow it by accident.
+
+**AND ON 25 Aug 2026 THAT NET DID ITS JOB AND CAUGHT A REAL NARROWING — SAID OUT LOUD RATHER THAN ABSORBED.** Plex ships SIX subsets on Google Fonts (latin, latin-ext, greek, cyrillic, cyrillic-ext, vietnamese) and **no greek-ext**, so the swap lost U+1F00-1FFF: POLYTONIC Greek, the accented forms of classical and ancient Greek. MODERN Greek (U+0370-03FF) is covered in full, and a name on a contract is written in modern Greek — which is this net's own stated purpose. So the narrowing was accepted and f85's Greek claim MOVED RUNG rather than being deleted: it guards U+0370 now and its comment says why, and says that if polytonic Greek ever matters here it needs a face that carries it rather than a looser test. **A TEST REWRITTEN TO MATCH A LOSS IS ORDINARILY THE FAULT THIS FILE WARNS ABOUT** — what makes this one legitimate is that the claim it still makes is the one the test was written to make, and the part that went is named here, in the test, and in fonts/fonts.css.
 
 THE WEIGHTS ARE THE PART THAT WAS OFF (owner-reported 20 Aug 2026, against the approved SAP HTML: "the fonts do not seem to match … especially with regards to bold letter and also in tab names"). The FACE was never wrong — same four cuts, same stack, same size ladder as the render. Four faults, all measured in a browser before they were touched:
 - **TWO WEIGHT CLASSES WERE NEVER DEFINED.** `font-600` (98 uses) and `font-700` (14) are written all over this app and NOTHING declared them, so every one rendered at whatever it inherited — proved live: an element carrying `font-600` computed to **400**. The `ui-input` lesson exactly. They are declared in HaTi's OWN sheet, never the compiled Tailwind blob, which is generated and would drop them on the next build. Adding `font-600` moved NO layout, because the 600 cut is the duplex (below).
@@ -810,6 +820,338 @@ own token.
 **THE OLD COMMENT SAID THE OPPOSITE and was wrong**: "the dense 10-13px interface type is deliberately NOT scaled — that density is the design." Density was never what the halves bought. They cost sharpness and bought nothing.
 
 NOTE FOR THE NEXT SWEEP: no test in the suite asserted a half-pixel font size, which is why 865 replacements cost two test updates rather than fifty. Both were about the Tracked Changes caption, and one of them recorded a real consequence — the count used to be set a hair larger than the caption "because mono runs small at the same size", and that stopped being true when --font-mono was pointed at Inter with everything else. One family, no compensation owed, both 11px.
+
+## THE FOUR LADDERS THAT DID NOT EXIST (25 Aug 2026 — Phase D)
+
+**MOTION.** 183 transitions across **twelve** ad-hoc durations — .08, .12, .13,
+.14, .15, .18, .2, .22, .25, .28, .3, .4 — each chosen by whoever wrote the
+rule. Three rungs, and the question each answers is WHAT IS MOVING rather than
+how far: `--dur-1` (120ms) for something that changes in place, `--dur-2` (180)
+for a control that grows or swaps, `--dur-3` (240) for a layer arriving or
+leaving. `--ease-exit` is flatter than `--ease`, because a layer leaving should
+get out of the way rather than perform. **NEAREST RUNG, NEVER A BUCKET** — .22
+is nearer 240 than 180 and a bucket would have said otherwise. **Anything past
+300ms is left alone**: a seal stamping and a badge breathing are animations,
+not transition rungs.
+
+**AND THE SWEEP BROKE THE REDUCED-MOTION SETTING FOR TEN MINUTES.**
+`transition-duration:.001ms!important` is not a duration somebody chose — it is
+"as close to zero as a stylesheet can say" — and the sweep read it as an
+ad-hoc value and mapped it to the nearest rung, **turning the accessibility
+setting into a 120ms setting**. Caught because the sweep PRINTED what it moved
+rather than only how many. `.001ms` is never a token; f238 pins it.
+
+**AND THE BLOB-GUARD WAS PINNED TO A LINE NUMBER, WHICH IS THE EXPENSIVE HALF.**
+The compiled Tailwind blob was line 74 when the rule was written and is line 81
+now, because tokens were added above it — so a sweep skipping index 73 walked
+straight into it and rewrote 60 declarations, and the repair for the kill
+switch then turned Tailwind's own `.transition` utility from 150ms into
+effectively instant. **The blob was restored byte for byte from the pre-run
+tree.** It is found by its signature now (`*,:after,:before{--tw-border-spacing-x`),
+never by its position, and f238 fails on any design token appearing inside it.
+**PHASE C SHIPPED WITH THAT DAMAGE AND PHASE D REPAIRS IT** — said out loud
+rather than quietly fixed, because the commit in between is on the branch.
+
+**BREAKPOINTS — AND A CSS TOKEN IS IMPOSSIBLE HERE.** 30 distinct widths across
+the product's media queries, and they are mostly ALREADY a ladder that was
+never named: 767/768, 899/900, 1023/1024, 1439/1440 are max/min pairs of four
+rungs, which is the correct idiom. **`@media (max-width: var(--bp-tablet))` is
+not valid CSS** — a media query is evaluated before custom properties resolve —
+so a `:root` block of `--bp-*` would have **zero consumers by construction**,
+which is the exact fault this whole pass exists to fix. The rungs are named in
+`js/app.js` as `BP`, where JavaScript asks the window the same questions the
+stylesheet asks. **NAV_DRAWER_W IS NOT ONE OF THEM** and says so: the float
+line was set from two of the owner's own laptops and moved three times in two
+days to get there.
+
+**ONE SHAPE FOR "THERE IS NOTHING HERE".** Seven ad-hoc treatments, each with
+its own class name, icon size, type and idea of whether to offer a way forward.
+`emptyStateHtml({icon,title,sub,action})` is the register's — the one that was
+designed — extracted so the register, Intake, the Directory and the Calendar's
+agenda are all it. **THE ACT IS THE POINT**: an empty screen that only says
+"nothing here" leaves the reader to work out whether that is because there is
+nothing, because a filter is on, or because something failed.
+
+**THE CHARTS SPEAK THE PLATFORM'S TYPEFACE, AND DRAW SQUARE.** A canvas cannot
+read a CSS token, so Chart.js was drawing every axis label and legend in its
+own default stack — Helvetica Neue, Arial — while every word around it was
+Inter: **two faces on one screen**. `Chart.defaults.font.family` is set from
+`--font-body`, the same token the rest of the product reads, refreshed by the
+palette refresh a theme toggle already calls. And the 20 Aug square-corners
+sweep reached ~810 radii in CSS and could not reach a canvas, so **nine bar
+charts kept a 4px corner**; Chart.js takes it as a number, not a stylesheet.
+
+**DENSITY — THE F — SHIPPED EARLIER IN THIS RUN.** `--reg-row-h` /
+`--reg-row-px` with comfortable (44) / compact (36) / condensed (30), a control
+in the register's toolbar, remembered per browser. **The middle rung is HaTi's
+shipped 36px and the default does not move** — that is what makes the control
+safe, and it is the owner's decision 5 taken at its stated default.
+
+**LOADING STATES ARE NOT BUILT, AND THE REASON IS THIS PRODUCT'S OWN RECORD.**
+The order asks for a skeleton in the row rhythm for eight data views.
+MEASURED: there is no skeleton machinery in the product at all — and the ONE
+place a skeleton was built, the share dialog, it was REMOVED as the fault it
+caused. F178's own name is *"the share dialog arrives once, at its final
+size"*, and its first claim is that the opening markup is the real first
+question **and not a skeleton**. Adding eight more unattended, against that
+record, is the wider interpretation. It wants a measurement of where a gap
+actually exists first.
+
+Tests: f238 (six new claims, five failing against the parent commit — the sixth
+is the kill switch, which was intact there and is the one this phase broke and
+fixed), f177 unchanged.
+
+## THE LADDERS HAVE CONSUMERS NOW (25 Aug 2026 — Phase C)
+
+The audit's whole verdict in one sentence: **"a ladder with no consumers is a
+document, not a system."** HaTi had a mature COLOUR system and essentially
+nothing else — font-size, font-weight, line-height, z-index, duration and
+border-width had zero tokens between them until 23 Aug, and the ladders added
+that day had **four consumers in total** against 2,144 hand-typed font sizes,
+1,065 weights and 1,748 on-grid spacings.
+
+**4,991 DECLARATIONS NOW READ THE LADDERS, AND NOT ONE PIXEL MOVED.** By exact
+value: 30→`--t-display`, 19→`--t-page`, 17→`--t-section`, 15→`--t-card`,
+14→`--t-body`, 13→`--t-meta`, 12→`--t-label`, 11→`--t-micro`, 10→`--t-figure`;
+400/500/600/700→`--w-*`; 4/8/12/16/24/32/40/48→`--s-*`. **A type or spacing
+change is ONE edit now**, which is the whole point of the phase.
+
+**THE PROOF IS A CENSUS AND IT IS IN THE REPO** — `test/design-census.cjs`,
+run by hand in pairs. Every font-size, weight, line-height, letter-spacing,
+padding, margin, gap, shadow and height the browser RESOLVES, on 14 screens in
+both themes, keyed by a stable path. Recorded on a worktree at the parent
+commit and again on the branch: **5,906 element paths, 0 moved, 0 gone, 0
+arrived.**
+
+**IT FLAPPED FIRST, AND THAT IS THE LESSON.** Run twice on an unchanged tree it
+reported 12 moved paths and then moved them back — Reports hydrates its charts
+asynchronously, so the census read the CSS fallback strip (58px) on one run and
+the canvas (220px) on the next, and every ancestor of a chart reported a height
+change. **A census that moves on its own is worse than no census**, and it made
+the three "0 moved" runs before it worthless. It waits for the canvases and for
+the height to stop changing; zero drift on identical code is now the first
+thing it has to earn.
+
+**WHAT IS DELIBERATELY EXCLUDED FROM THE SWEEP, and each for the same reason.**
+Anything inside a `calc()` — that is the contract paper, whose size the reader
+sets with the A⁻/A⁺ stepper, and a token there overrules a preference. Line 74
+of index.html, the compiled Tailwind blob, which regenerates. And **the
+STANDALONE DOCUMENTS**: js/views/healthreport.js and js/views/weekly.js open
+their own windows and carry no `:root`, so a token there resolves to NOTHING —
+the declaration is dropped and the browser falls back to whatever it inherits.
+**A THIRD ONE WAS MISSED AND f143 CAUGHT IT IN ONE RUN**: `negoHistoryExportHtml`
+is a whole-document builder living inside an ordinary view file, so a
+file-level exclusion did not cover it. Its 17 tokens are literals again and the
+function says why at the top. Any new builder emitting a whole document joins
+that list.
+
+**THE OFF-GRID SPACING IS LEFT ALONE, AS THE ORDER ASKS: 3,482 declarations**
+on 10, 6, 9, 14, 7, 5, 2, 11 and 3 px. They are hand-tuned dense rows and they
+want an eye, not a regex.
+
+**SEVENTEEN HALF-PIXEL FONT SIZES WERE ROUNDED UP** — 14.5→15, 13.5→14,
+12.5→13, 11.5→12, 10.5→11 — eleven in the clause editor and six on the
+negotiation page, including the two in the change-card ⋯ menu the order names.
+A fractional size puts the glyph stems between device pixels and renders soft;
+this is the 22 Aug sweep's own rule, finishing the job.
+
+**ONE FIELD PAIR.** Seven local `FLD`/`LBL` constants in three disagreeing
+flavours — two of them in core.js 1,300 lines apart — and `RV_FLD` in
+js/review.js carried a note saying it was a deliberate copy to be kept in step
+and **had already drifted 2px from what it quoted**. `HATI_FLD` / `HATI_LBL` are
+declared once in core.js and published; family, intake and library read them.
+**js/review.js's pair is written out on purpose and says why**: pointing it at
+the shared pair left the share dialog's field with NO STYLE AT ALL on a stage
+that does not load core.js, and f156 caught it within the hour. **What drifts
+is VALUES, not strings** — every declaration there reads `var(--field-*)`, so a
+change to a field's height is still one edit in `:root`. f238 asks for that,
+not for the string.
+
+**TWO SURFACES BETWEEN THE PAGE AND WHITE.** `--surface-2` (a raised strip ON a
+card) and `--surface-3` (a layer ABOVE the page), light going DOWN from white
+and dark going UP from the panel, because that is which way "nearer the reader"
+reads on each ground. Adopted on the room's ⋯ menu and the settings drawer. Every
+rung clears AA in both themes by measurement (11.87:1 for body ink on
+`--surface-3` at night).
+
+**AND THE REGISTER'S FILTER BAR WAS REVERTED WITHIN THE HOUR, WHICH IS THE
+USEFUL HALF.** It is the most obvious raised strip in the product and it is the
+one place a tone is forbidden: the owner reported that head and band reading as
+two cards with a strip between them ("make it one card"), and the fix was one
+white object running to the screen's edge. `--surface-2` put that seam straight
+back — contracts-page 8a and 15 both failed on it. **An owner ruling outranks a
+system rule on the element it names.**
+
+Tests: f238 (the field claim REVERSED IN PLACE and made stronger — one pair,
+published, and no constant typing its own NUMBERS), **`test/tokens.js` (NEW —
+one resolver mapping a token to its value out of `:root`, so a test asserting a
+RELATION reads a number without typing one; six tests use it)**, and twenty
+claims RE-POINTED across f143, f156, f173, f175, f178, f184, f210, f223, f238
+and f240 — seventeen were literals where the claim was a relation, which is
+exactly what rule 4 predicted, and each now costs nothing at the next retune.
+
+## ONE FOCUS TRAP, NINE HOMES, AND EVERY REFUSAL SPOKEN (25 Aug 2026 — Phase B)
+
+The audit graded accessibility D+ on two measured facts: **the product had ONE
+focus trap** — openModal's, written on 23 Aug — against nine overlays that
+needed one, and **ZERO aria-live regions in the whole product.**
+
+**A LAYER THAT DOES NOT HOLD FOCUS IS NOT A MODAL.** Tab walked out of the
+settings drawer, the alerts panel, the command palette, the counterparty's
+alerts panel, the KPI customizer, confirmDialog, promptDialog and all seven
+phone sheets into the page underneath — where a sighted reader watches nothing
+happen and a screen-reader user is read the page BEHIND the dialog. **`trapFocus(panel, opts)`**
+is that one implementation, extracted from openModal with its reasoning intact
+and adopted at all nine.
+
+- **IT RETURNS ITS OWN UNDO.** `release()` unbinds and hands focus back to
+  whatever opened the layer. Three jobs that are really one job: separated, the
+  third is the one that gets forgotten, and a keyboard reader is then dropped at
+  the top of the document every time they dismiss anything. Calling it twice is
+  safe, because a layer with two ways out will do exactly that.
+- **IT DOES NOT OWN ESCAPE, deliberately.** Every one of these layers already
+  has its own Escape with its own guard about which overlay is on top, and a
+  second opinion here is how two of them come to disagree — a fault this product
+  has already paid for once, when Escape on a "Discard these changes?" guard
+  both answered it and closed the editor underneath in one keystroke.
+- **RELEASE BEFORE THE MARKUP GOES.** The trap restores focus to the opener, and
+  an element cannot take focus once its panel has been torn out from under it.
+- **THE PHONE'S SHEETS ARE SET AFTER THE PAINT, NOT AT THE PRESS**, because that
+  shell repaints wholesale on every act and the node the press opened is gone by
+  the next frame. The opener is remembered by ID across the repaint, which is
+  what survives; the element does not.
+- **AND THE SEVEN SHEETS HAD NO SEMANTICS AT ALL** across 3,419 lines — no role,
+  no modal announcement, no name. They say `role="dialog"`, `aria-modal` and a
+  NAME now, taken from the sheet's own title where it draws one (six of seven
+  do) and from a getter map for the one that does not. A getter, never a literal:
+  an object literal freezes whatever language was current at load, which is the
+  trap this file records four separate times.
+
+**FOUR aria-live REGIONS, EACH ON THE ELEMENT THAT RECEIVES THE MESSAGE** — the
+toast root, the settings drawer's refusal, the register's result count, and the
+counterparty's own signature confirmation. That last one is the most
+consequential moment on their page — they have just executed a contract — and
+the whole confirmation was **a band repainted in place**, which changes nothing
+a screen reader is told: the page it was reading still said "ready to sign".
+
+**EVERY ACT NOW HAS A KEY BESIDE ITS CLICK.** The register's sortable column
+heads (a click, a pointer cursor and `aria-sort`, and no way to press them
+without a mouse), the negotiation page's split divider (Key Terms' own divider
+has had arrows since it was built — this is that, ported, writing the SAME store
+and re-running the SAME layout so the two cannot disagree), the room's tab row
+(one tab stop with arrows inside it, which is what a tablist is for), the risk
+map's dots, and the KPI row, where **dragging was the only way to reorder** —
+Alt+Arrow, through the same splice as the drop.
+
+**AND `aria-selected` WAS SET ONCE, WHEN THE ROW WAS BUILT.** The room's tab
+paint flipped only the class, so from the second tab onward the row announced
+the tab the reader started on for as long as they stayed in the room. The class
+and the attribute come off one reading now.
+
+**REFUSING THE POINTER IS NOT REFUSING THE KEYBOARD.** On the 'as agreed' and
+'with changes' readings the change column is greyed and `pointer-events:none`
+refuses the press — and MEASURED, Tab still reached every verb in it and Enter
+still fired them, so the one route the greying exists to close was open to
+anybody not using a mouse. `aria-disabled` merely SAYS unavailable; **`inert`**
+takes it away.
+
+**THREE THINGS FELL OUT OF DRIVING IT RATHER THAN READING IT, and all three
+would have passed a markup check.** `.sr-only` **did not exist anywhere in the
+product** and was written into the KPI hint — the `ui-input` fault, this
+codebase's own recorded example — so it is defined in HaTi's own sheet in the
+same change; **`.click()` is a no-op on an SVG element**, so a keyboard handler
+on the risk-map `<g>` dots did nothing at all, silently (a dispatched MouseEvent
+reaches the same delegated handler the mouse does); and **the dashboard has two
+KPI-card builders, one of them dead** — `kpiHtml` is computed and never
+interpolated — so a hint written onto it reached nothing.
+
+Tests: **keyboard-reach-verify (NEW, 40, browser — 25 of the 40 fail against the
+code of an hour before**; every claim is DRIVEN with real Tab and Arrow presses
+and read off `document.activeElement`, because "does the element carry
+role=dialog" is a different question from "can somebody reach this without a
+mouse" and only the second one matters), f238 (six new claims, five failing
+against the prior code — the sixth is the extraction itself, which landed in
+Phase A's commit by an accident of timing and is named there), F97 (one claim
+RE-POINTED: it anchored on a literal opening tag that gained an attribute, so
+`indexOf` came back -1 and `slice(-1)` handed two checks a one-character string
+they both passed against — a false pass is the expensive half).
+
+## THE ACCENT HAD NO NIGHT ANSWER (25 Aug 2026 — the pre-launch UI/UX audit, Phase A)
+
+**ONE STRUCTURAL FACT UNDER ALMOST EVERY DARK-THEME COMPLAINT, and this file had
+already diagnosed it for exactly one selector and never swept it.** `html.dark`
+redefines the surface, the ink and the whole neutral ramp and **never redefines
+the accent**. So a raw ramp step used as TEXT had no dark answer at all.
+
+- **183 DECLARATIONS SET AN ACCENT RAMP STEP AS TEXT** — `color:var(--color-accent-600|700|800|900)`
+  — and measured **2.35:1 at night** where AA wants 4.5. The register's teal
+  tracking numbers alone are 41 of them, at 3.74:1 in **daylight**.
+- **62 MORE SET AN ACCENT TINT AS AN INLINE BACKGROUND** (`--color-accent-100|200`),
+  which at night is a near-white block under near-white text.
+
+**TWO INK TOKENS, NOT ONE, AND THAT IS THE WHOLE REASON LIGHT DID NOT MOVE.**
+`--accent-ink` is accent-800 by day and `--accent-ink-700` is accent-700, so each
+of the two rungs that carried text keeps its own daylight value and only night
+changes. Collapsing them onto one token would have re-coloured 104 of the 183 in
+broad daylight — which is a palette change nobody asked for wearing a contrast
+fix's clothes. **MEASURED, AND THIS IS THE PROOF THE SWEEP RESTS ON: the colour
+census passed on all ten LIGHT screens, every colour unchanged.**
+
+- **`--accent-fill` IS THE TOKEN FOR A WHITE-ON-ACCENT SURFACE** — accent-700,
+  because white on accent-600 is **3.74:1**. `.ui-btn-primary` had taken that
+  rung on 23 Aug and eight more fills had not: the pager's live page,
+  `confirmDialog`'s confirm, the phone's primary button, Reports' health-report
+  button. **`--accent-solid` IS UNTOUCHED** — it is the nav's own fill and this
+  file records it as a brand fill that must not flip.
+- **AN OPACITY IS NOT AN INK, AND THE LIGHT SIDE HAD NEVER BEEN TOLD.**
+  `.text-ink/40…/60` put reading text between 2.36:1 and 4.11:1. The dark theme
+  had re-pointed them and light never had — the same shape as `.text-ink` itself
+  on 22 Aug, which survived for the same reason: **at night it was right.**
+  Collapsed onto the two real inks in HaTi's own sheet, never the compiled blob.
+- **`--danger`, `--danger-hover`, `--rule-strong` and `--rule-faint` GAINED NIGHT
+  ANSWERS.** A refusal that is unreadable at night is a refusal nobody acts on.
+- **THE TEXT-SIZE STEPPER WORE A BORDER SHADE AS AN INK.** `html.dark .rl-type-step
+  button` read `--color-neutral-300`, which answers `#475569` at night — the same
+  value this ramp uses for panel borders. 2.36:1; it takes the label ink now, 8.1:1.
+
+**REPORTS' FOUR HERO CARDS LEFT THEIR GRADIENTS.** White on `--grad-amber` is
+**1.67:1** and on `--grad-emerald` **1.92:1** — the worst contrast in the
+product. They wear the platform card shell with a **3px top edge in the metric's
+own tone**, which is the shape Home's KPI cards already use. **THE TONE IS NOT
+LOST**: it moved from the fill to the edge and the icon chip, which is where a
+status colour is carried everywhere else here. `REPORT_METRICS` states a `tone`
+rather than a `grad` — one fact per metric, beside every other fact about it —
+and the hero dropdown reads the same tokens as its neighbour on the chart cards
+below, differing only in SIZE, because 11px uppercase is a label.
+
+**WHAT WAS MEASURED AND DELIBERATELY NOT SWEPT, said out loud.**
+`--color-neutral-400` carries text in about fifty places and fails AA in **both**
+themes (2.96:1 by day, 4.34:1 at night) — but it carries borders and backgrounds
+in twenty more, so it is the one step in this ramp that is not a type token,
+which is why the four-shades pass already recorded it as excluded. It is not a
+dark-theme finding, and fifty declarations want an eye each. And **the Insights
+hero tile puts `#bde7e1` on `--brand-hero`'s middle stop at 2.80:1** — in the
+teal workspace only; navy and dark both clear 8:1. Fixing it means darkening a
+brand gradient or moving the tile, both the owner's call. Insights is not one of
+the twenty census screens.
+
+**THE CENSUS WAS RE-RECORDED, AUDITED VALUE BY VALUE — the one case the rule
+allows.** All ten LIGHT screens passed unchanged. All ten dark screens moved, on
+exactly **three** values, nothing unexplained: `rgb(204,251,241)` (accent-100 as
+a dark background) GONE; `rgba(20,184,166,.15)` (`--st-steel-bg`, the token those
+62 moved onto) ARRIVED; and `rgb(45,212,191)` (`--accent-ink` at night) ARRIVED
+on **register--dark alone**, because the other nine screens already held it.
+
+Tests: **contrast-verify (NEW, 33, browser — 23 of the 33 fail against the code
+of an hour before**, naming every ratio above; it measures COMPOSITED contrast,
+walking up until the alphas reach opaque, because reading one element's own
+background is how a probe reports 1:1 white-on-white on a page nobody has
+trouble reading; it counts the two exclusions out loud on every run so a green
+run cannot read as "nothing is left"), f238 (five new claims, all five failing
+against the prior code), theme-tokens-verify 40/40, f175 (one claim RE-POINTED
+in place — it pinned the ramp step by name where the claim was a relation, and
+now asserts the token plus the hand-written night answer this file's own history
+records as the defect it was written for).
 
 ## THE DESIGN SYSTEM GREW ITS OTHER HALF (23 Aug 2026 — the launch design audit)
 
@@ -2675,7 +3017,7 @@ THE CLAUSE HAS A DOOR (owner-asked 16 Aug 2026: "Just add a green pill that says
 THE PANEL IS WHERE YOU WRITE (owner-asked 16 Aug 2026: "Now build the editing inside the panel").
 
 - **ONE EDITOR, TWO HOMES.** The panel does not get an editor of its own; it gets the ENGINE's, opened on a different element. The `[data-nego-edit]` handler now answers `[data-nego-edit],[data-rl-cp-edit]` and the difference is three lines — which element the editor replaces. Everything else (the formatting bar, the two-step Save → reason → File, the Skip, the fingerprint, every refusal, the funnel) is the same code in both places, so the two can never come to disagree about what filing a change costs. f210 asserts there is exactly ONE place an editor is built.
-- **THE ＋ COPIES WHAT STANDS INTO A DRAFT** — literally, because the element it opens on is the panel's "As it stands" block, which is `negoClauseNowById`. So "copy the standing wording" is not a second act the panel performs; it is where the one editor happens to open, and there is no second reading of what "what stands" means. ITS WORD FOLLOWS THE STATE: with one of OUR OWN asks pending on the clause the engine continues that draft rather than stacking a rival (its own rule, unchanged), so the button reads "Continue your draft" instead of "Propose new wording". Theirs pending is not ours — a counterparty ask leaves it saying "Propose new wording", because a different hand stacks a new change.
+- **THE ＋ COPIES WHAT STANDS INTO A DRAFT** — literally, because the element it opens on is the panel's "As it stands" block, which is `negoClauseNowById`. So "copy the standing wording" is not a second act the panel performs; it is where the one editor happens to open, and there is no second reading of what "what stands" means. **ITS WORD IS FIXED SINCE 26 Aug 2026** (owner-asked: "the highlighted box should always be called propose new wording but it seems it changes based on how you get there") — this REVERSES "its word follows the state", which had the button read "Continue your draft" wherever one of our own asks was already pending. **THAT RULE READ THE STATE HONESTLY AND WAS STILL WRONG ABOUT WHAT A BUTTON NAME IS FOR**: a control that renames itself is one nobody can learn, and the owner met it as the same box in the same corner of the same panel wearing two names with nothing on screen saying which they would get. **THE BEHAVIOUR IS UNTOUCHED** — the engine still folds a second edit into the pending ask rather than stacking a rival, which is what stops the column filling with rivals — and the fact moved to the HOVER, where a title may say more than a name can. `ng_cp_continue` is retired as a LABEL and left inert in the dictionary (flag any mention as stale); `ng_cp_continue_title` is live and is the sentence the hover carries. Tests: f210's two claims REVERSED IN PLACE, each pinning the label as CONSTANT and the title as the thing that still varies.
 - **DIRECT EDIT HAS LEFT THE PANEL** (owner: "Direct edit will not be needed because the window is already open for direct editing"). It was the same act as the ＋, one press further away and pointed at the clause BEHIND the panel. It stayed on the clause's own hover row for the rest of that day — and then the whole row retired with it (see NO EDITS ON THE PAPER below). The ＋ does NOT carry `data-rl-cp-close` (it opens into the panel).
 - **THE PANEL DOES NOT FOLLOW THE READER'S DOCUMENT TYPE.** `.rl-cp-src{--doc-scale:1}`. Every piece of the editor's furniture was taught to scale on `--doc-scale` (15 Aug 2026, the third report of one fault) and that token is written on the `.redline-page` ROOT by the document-type stepper — so inside the panel it would be a Save button shrinking because somebody made the PAPER smaller. The paper scales; the panel does not. Measured both ways in the browser. **IT HAS ITS OWN STEPPER INSTEAD** (owner-asked 20 Aug 2026: "only adjust the panel and nothing more"): A⁻/readout/A⁺ in the panel head beside the History switch, the toolbar stepper's exact mechanism — a stored px (`hati.v1.cpType`, base 14, the shared 8–20 bounds), applied live with no repaint as a CSS **zoom on the panel BODY alone** (`--cp-zoom`; zoom is the sheet's own mechanism), both seats, `rlCpTypePx`/`rlCpSetType`. THE READOUT IS `.rl-cp-type-out`, NEVER `.rl-type-out` — rlSetDocType repaints every `.rl-type-out` on the page with the DOCUMENT's px, and one shared class is how two steppers come to lie about each other's value. f210 (19).
 - **THE COPILOT: ONE BUTTON, ONE NARROWED OFFER, ONE MENU.** The "Edit with Copilot" button stays (owner-asked). A highlight INSIDE the panel's editor is a legal selection — `paneSel` gained `.rl-cp-src [data-nego-editor]`, and the holder carries `data-clause` in the panel only (in the document the clause section already has one and a second inside it would give a passage two answers). **Narrowed to the EDITOR, not the panel**: the panel also prints the history, and a highlight there would be offered a redraft of a settled record. THE GUARD THAT BLOCKED IT IS EXEMPTED NARROWLY — `[data-nego-editor]` is on the "this press is somebody operating the page" list because dragging inside the DOCUMENT's clause editor is somebody selecting words to bold them; the panel's editor is exempt, and the formatting bar stays outside the exemption BY CONSTRUCTION (it is a SIBLING of the holder — `holder.before(fmt)` — so its buttons still read as controls).
@@ -2686,7 +3028,7 @@ THE PANEL IS WHERE YOU WRITE (owner-asked 16 Aug 2026: "Now build the editing in
 
 The panel's Copilot button used to hand the clause to the Copilot DRAWER, which is a chat about a clause you cannot see. It opens **js/views/clauseeditor.js** instead: the whole window goes to one clause — the wording as it stands above the wording being proposed, the marks computed between them, and Copilot down a third of the screen. Six of the journey's thirteen steps needed nothing built; what is new is **one page and two doors**.
 
-- **THE PAGE COVERS THE SHELL, IT DOES NOT DISMANTLE IT.** The approved render moves the shell's own brand and controls into the page's two bars; that is a live DOM move of elements other renderers repaint, for a result a reader cannot tell from an opaque cover. So it is a fixed layer at **z-index 55**: above the Copilot drawer and the activity panel, BELOW the toast root and modal-root, so every refusal and every confirm still lands on top of it. Mounted on demand and REMOVED on close — the DOM cost is zero when nobody is in it, and there is no half-built page for another renderer to walk into.
+- **THE PAGE COVERS THE PAGE, NOT THE SHELL — REVERSED IN PLACE 25 Aug 2026** (owner-asked, off a screenshot with both ringed: *"the highlighted bars (nav panel and the top panel) have to be on screen when you are in the editing with copilot"*). **ONLY THE COVER MOVED; THE HALF THAT MATTERED IS UNCHANGED**: the approved render moves the shell's own brand and controls into this page's two bars, that is a live DOM move of elements other renderers repaint, and it is still deliberately not taken. What changed is where the cover starts. MEASURED before: fixed at 0,0 over the whole window, and probing the middle of the shell bar and of the nav column returned this page's own content — both were genuinely hidden. **THE BOX IS MEASURED, NEVER TYPED** — `ceFitToShell` reads `#content-scroll`'s own rect and writes left/top/width/height, with a ResizeObserver bound ONCE on that element. The nav has three states (240px column, 64px rail, a floating layer below 1440), so a typed inset would be right in one and wrong in two; the scroller is the one element that already answers for all three. A rect of zero is refused — the standing rule. **z-index 54, DOWN FROM 55**, and that is what lets the floating nav drawer open OVER this page: `#side-nav` is 55 below the float line and this page is later in the document, so at equal weight it won. Still above the Copilot drawer (50) and the activity panel (46), still below modal-root and the toasts. Mounted on demand and REMOVED on close — the DOM cost is zero when nobody is in it, and there is no half-built page for another renderer to walk into.
 - **THE RAIL RUNS FLOOR TO CEILING, AND THAT IS THE ONE THING TO GET RIGHT** (owner-corrected repeatedly on the prototype, and reported again the day this shipped: *"Confirm the copilot window on the far right goes all the way to the top"*). It did not: the crumb, the title and the fact row were written as a FULL-WIDTH header above both columns, so the rail started **172px down** — MEASURED before it was touched. The header sits INSIDE the left column now and `.ce-grid` is the page's only region, so the rail is 0 to the window's own bottom. **ANYTHING NEW THAT SPANS "THE WHOLE PAGE" GOES IN THE LEFT COLUMN TOO** — that is the rule, and a full-width strip added above the grid later would push the rail down again by exactly its own height. Pinned as a geometry in clause-editor-verify (2d2/2d3), which reports the rail's top and bottom against the page's own, so it can never regress silently.
 - **THE RAIL IS ONE THIRD** (`minmax(0,2fr)` beside `minmax(340px,1fr)`, measured at 0.333 in a real browser). The 340px floor bites only on a window too narrow for a third to be usable, and below 1024px the door is **not offered at all** — `clauseEditorFits`, asked of the window, the same question the stylesheet's own break asks. A page that cannot be used is worse than a page that is not there.
 - **APPLY IS THE ONLY THING THAT MOVES THE WORDING, AND IT MOVES IT INTO THE BOX** — never into the contract. A Copilot suggestion, a playbook standard, a passage rewritten in place and the reader's own typing all go through `ceApply`, which is what makes the redline underneath honest: it is recomputed from the two texts every time, so it cannot describe a route it did not take. **IT STACKS** — apply twice, step back one at a time. Nothing is filed until the one act in the rail's foot is pressed.
@@ -2815,7 +3157,7 @@ THE ROUTING ROWS AND THE POP-OUT'S RETIREMENT ARE DONE (16 Aug 2026) — see THE
 
 A CARD'S SEND SENDS THAT CARD, AND ONLY THAT CARD (owner-reported 16 Aug 2026 as a bug, in these words: "if I click on one card to send, it sends all the cards" — and this REVERSES the 11 Aug "one send, batch semantics" decision on the owner's ruling). The press still goes through the page's ONE postbox (#nego-send) — never a second transport — but it marks itself a SOLO send (`_rlSoloSendId`, alive only for the synchronous press; onSendDirect consumes it on its first line, before the first await). A solo send calls **negoHoldOthers**: every OTHER unsent owner draft goes onto `negotiation.holdIds`, buildSharePayload subtracts that set UNCONDITIONALLY (the same fold, for the same reason, as reviewWithheldIds — the round send passes no options), and the round that leaves carries exactly the chosen change. THE HOLD IS ITS OWN RECORD because `turnAt` cannot say "this went and that did not": one timestamp for the whole desk, and a solo send that moved it would flip every older draft to Sent without it ever leaving. negoUnsentAsks therefore reads holdIds beside the stamp (owner side only), so the held drafts keep their Draft badge, their own Send, and the band's "N not sent" count. **negoHeldBackIds is SELF-CLEANING** (only ids still pending on our side count) and **the BATCH DOORS RELEASE THE HOLD** — the band's Send all and Publish Round are [data-redline-proxy] doors, and the delegated proxy listener clears the marker while onSendDirect clears the hold (negoReleaseHold), because a batch door means "send everything, including what a solo send kept back". A released draft's createdAt predates the stamp, so negoHandOver is told `sentAnyway` and still stamps/files the round the arithmetic would call a no-op. THE COUNTERPARTY'S SEAT IS UNTOUCHED: their card Send still posts everything their page holds to #nego-send-decisions as one response envelope, and its title still says so. The share-DIALOG path knows nothing of solo sends (it holds whatever stands held, which is the safe direction). The solo toast names what stayed behind ("— N other drafts still unsent"). Tests: F100g (5 — the fix end to end, the unconditional payload fold, the batch release, the self-cleaning hold, their seat untouched), f92's round-1 "send the lot" re-pointed at the batch door.
 
-THE LINKED CLAUSE WEARS A THIN GREY DOTTED LINE (owner-asked 16 Aug 2026, off a screenshot): `.rl-clause.is-linked` was a solid 2px accent ring — a heavy blue box around the contract's own words in the blue workspace — and is now `outline:1px dotted` neutral, offset off the text, both seats from the one rule. The CARD's is-linked ring keeps the accent: a row in a column is furniture, and the stronger mark is what makes the pairing findable there. The rl-arrived pulse (the fading flash when a card's Edit lands you on a clause) is a different marker and is untouched.
+THE LINKED CLAUSE WEARS A THIN GREY DOTTED LINE (owner-asked 16 Aug 2026, off a screenshot): `.rl-clause.is-linked` was a solid 2px accent ring — a heavy blue box around the contract's own words in the blue workspace — and is now `outline:1px dotted` neutral, offset off the text, both seats from the one rule. **THE CARD'S RING IS FAINT SINCE 26 Aug 2026** (owner-asked: "the outline on the card should be visible but faint and not like the outline thickness currently in the picture") — this REVERSES the sentence that stood here, which said the card keeps the 2px accent ring because "a row in a column is furniture, and the stronger mark is what makes the pairing findable". **THAT REASONING WAS WRITTEN WHEN THE CARDS WERE BOXES**, where a 2px ring was one border among many; the column is flat rows on one surface since 25 Aug, so the same 2px became the heaviest object on it and a selected row shouted louder than the change it points at. It is **1px of accent at 34%** — the COLOUR is kept deliberately, because accent is how this page says "this and that are one thing shown twice" and a grey ring here would be a second vocabulary — and the `border-color` line went with the weight, so there is ONE mark rather than a ring plus a border. The rl-arrived pulse (the fading flash when a card's Edit lands you on a clause) is a different marker and is untouched.
 
 A CHANGE THAT ARRIVED ON THE PAYLOAD HAS ALREADY BEEN SENT (owner-reported 16 Aug 2026: "The counterparty side the changes do not seem to be working" — reproduced on the browser harness, and it PREDATES the clause panel; measured against the commit before it, same numbers). The portal's `onChange` guard was `!PORTAL_NEGO_PROPOSED_SENT[ch.id]`, and that store starts EMPTY in a fresh browser — it fills only when the reader presses Send. So on a link carrying asks this side had made in an earlier round, the first act of ANY kind swept every one of them into "held here until you send them": a reader who redlined once was told six changes were not sent and offered "Send all 6", over asks the owner had been reading for a week. THE PAYLOAD IS THE RECORD OF WHAT HAS REACHED THE OTHER SIDE, so it is asked each time rather than stored — nothing to persist, nothing to migrate, no second store to keep in step, and a refreshed link brings its own answer. A stale entry from before the rule is deleted on sight, because nothing else ever removed one.
 
@@ -3222,7 +3564,7 @@ copilotPropose (js/ai.js, "WHICH CLAUSE THIS IS, SAID OUT LOUD") tells the model
 
 ## THE CHARTS, AND THE HEALTH REPORT
 
-ONE box of recipes: js/aichart.js — Copilot in-chat charts, the Intelligence dock, the four Reports cards (js/views/reports.js; CSS strips kept as no-internet fallback), the health report's embedded PNGs. The AI names a KIND; the recipes read live state; the AI NEVER supplies chart data. Copy-image / PNG / CSV buttons come from ONE delegated listener registered in aichart.js — new surfaces get them free.
+ONE box of recipes: js/aichart.js — Copilot in-chat charts, the Intelligence dock, the four Reports cards (js/views/reports.js; CSS strips kept as the fallback for any workspace where the library does not load), the health report's embedded PNGs. **THE LIBRARY IS SERVED BY THIS WORKSPACE SINCE 26 Aug 2026 — see THE CHART LIBRARY IS OURS TO SERVE below; it used to arrive from cdnjs, so every one of those four surfaces drew only if the READER'S browser could reach a third party.** The AI names a KIND; the recipes read live state; the AI NEVER supplies chart data. Copy-image / PNG / CSV buttons come from ONE delegated listener registered in aichart.js — new surfaces get them free.
 
 The shape is askable: the `breakdown` kind splits group (stream/counterparty/status/risk/month) × measure (value/count) × shape (pie/doughnut/bar/hbar/line); AI_CHART_RULES carries a HARD rule that a named shape is honoured, never substituted;
 
@@ -4064,6 +4406,28 @@ and could never have caught a layout fault).
 
 ## ONE WHITE BAND, AND IT REACHES THE SCREEN'S EDGE (owner-reported 25 Aug 2026)
 
+**WIDENED THE SAME DAY, AND THE RULE HAS LEFT THIS PAGE'S OWN SHEET.** The same
+strip was reported on four more screens — the contract room, the Calendar,
+Insights and the negotiation page — and the answer is no longer the register's
+private one. `VIEW_OWNS_HEIGHT` (js/app.js) is the ONE list of views whose root
+is `height:var(--view-h)` and which therefore can never scroll the shell's
+scroller; `paintScrollGutter` puts a class on `#content-scroll` from
+`renderPageHeader`, which runs on every view change — including onto a view that
+is NOT on the list, which is what takes the class off again — and
+`#content-scroll.view-fixed{scrollbar-gutter:auto}` in index.html is the rule.
+Id-plus-class outranks the id alone, so it wins with nothing shouted. The
+register is simply on that list and its behaviour is unchanged; **five views
+each carrying a copy is five places for it to drift**, which is the whole
+argument. **A VIEW JOINS THE LIST ONLY IF ITS ROOT OWNS ITS HEIGHT** — Home,
+Reports, Templates, Import and the Approvals queue are deliberately absent,
+because they grow with their content and the reservation is what stops them
+jolting. **THE ONE EXCEPTION IS THE CALENDAR BELOW 1023px**, where its own sheet
+turns `.cal-page` to `height:auto` and the page really does scroll: that sheet
+puts the gutter back at that width, written where the rule that causes it lives
+and going with the page, so no other view can inherit the exception. MEASURED
+after: the five listed views reach the screen's edge at 1500 and 1366, every
+other page keeps its 10px.
+
 Two screenshots, two sentences: *"remove the separation strip in the top two
 cards and make it one card just like in the negotiations page"*, and *"the top
 white cards should cover all the way to the end of the screen"*.
@@ -4191,6 +4555,248 @@ Tests: f210 (13) — 8 claims, **7 of them fail against the code of an hour
 before**; clause-door-verify section 14 (7, browser — the pencil as reachable
 pixels, the panel's heading, the editor seeded from the proposal, and the save
 proved to leave ONE proposed clause carrying one revision).
+
+## SIX OFF A MORNING OF SCREENSHOTS (owner-asked 25 Aug 2026)
+
+Six reports across four messages, every one reproduced and MEASURED in a real
+browser before it was touched. **AND THE FIRST THING THIS RUN GOT WRONG WAS THE
+CODE IT WAS READING**: the review was written against a branch three commits
+behind main, so it described a Tracked Changes column that had been rebuilt the
+day before and reported two faults that were already fixed. The owner said so
+("Check the code again"), the branch was fast-forwarded, and every measurement
+was taken again. **CHECK THE REMOTE BEFORE MEASURING, not after somebody
+notices** — a review of stale code is worse than no review, because it is
+confidently wrong.
+
+- **ONE MEASURE FOR THE CONTRACT ROOM'S FOUR TABS.** `--room-measure:1440px`,
+  read by `.terms-grid`, `.sign-grid` and `#ws-history-pane`. They had THREE
+  different caps and nobody had put them side by side: MEASURED at 1500, the
+  right-hand gap was 28px on Key terms, 75 on History and 95 on Signing, and at
+  1920 that spread widens to 125 / 285 / 305 because a cap bites harder the more
+  room there is. So one contract read as three differently-sized pages depending
+  which tab you stood on. **1440 IS KEY TERMS' OWN** and its reasoning is
+  unchanged, which is why the cap is not simply deleted. **SIGNING WAS FIXED
+  ALONGSIDE HISTORY** — the owner named only History, and the list they approved
+  named both; one tab left behind is the drift this token exists to stop.
+
+- **THE FIVE HISTORY FILTERS TAKE THE ROW.** They drew at their 96px minimum and
+  used 620px of an 1118px row, so a clause name was cut at about ten characters
+  with half the row empty beside it. `flex:1 1 0` with a 132px floor and the
+  150px ceiling deleted — a ceiling is what left the surplus unused. MEASURED
+  after: five equal 215px fields using 1206 of 1222. The wrap is kept as the
+  narrow-window answer.
+
+- **THE TOP-RIGHT STRIP, FROM ONE LIST** — see ONE WHITE BAND above.
+
+- **THE CLAUSE PANEL'S History | + notes WEARS THE SEAT SWITCH'S OWN CLASSES.**
+  THE CLOTHES FOLLOW THE BUILDER, and this switch had been left behind by its
+  own reference: it was dressed to match the reading segments when those were a
+  grey pill group, the 22 Aug redesign turned those into tabs and gave the SEAT
+  switch the bordered box with a filled live half, and nothing brought this one
+  along. MEASURED side by side: the seat switch fills accent-700 at 13px with
+  the resting half at 400, this one filled `--nav-bg` (the SIDEBAR's deep green,
+  a navigation colour inside a content panel) at 12px with **both halves at
+  700** — so weight, which is what tells the live half from the resting one over
+  there, was doing nothing here. It emits `.rl-segwrap`/`.rl-seg` now and the
+  seat switch's own rule NAMES this head beside `.rl-actions`: one declaration,
+  two homes. `.rl-cp-segs` survives carrying LAYOUT only.
+
+- **AND "+ PROPOSE NEW WORDING" IS AN ORDINARY BUTTON.** It was a filled block
+  in `--nav-bg` and takes `.ui-btn`'s face — no fill, `--btn-edge`,
+  `--accent-ink`. Fifth time a filled face has come off on this owner's ask; the
+  pattern is settled. **THE HEIGHT IS DELIBERATELY NOT TOUCHED**: `.ui-btn` is
+  28px and these are 34, Edit with Copilot sits beside it and was asked to stay
+  exactly as it is, so matching the platform's box would leave the pair 6px
+  apart — which reads as a mistake. The FACE was reported and the face changed.
+
+- **THE CLAUSE EDITOR KEEPS THE SHELL ON SCREEN** — reversed in place under EDIT
+  WITH COPILOT IS A PAGE above. Its duplicate **Playbook scan** went with it: it
+  carried the same attribute, the same handler and the same act as the rail's
+  own tab, so pressing it changed a panel on the far side of the screen.
+  `.ce-act-plain` is STALE. **Back to the negotiation** keeps every property of
+  the door it mirrors but the weight, which the owner asked to come off.
+
+- **TWO VERBS ON THE FACE, THE REST IN THE ⋯.** MEASURED: their pending ask
+  carried three (Accept · Reject · Edit) and our own draft four (Edit · Review ·
+  Retract · Send), against a target picture that draws two and a chevron.
+  **IT IS ONE CUT APPLIED TO THE FINISHED LIST, NOT FOURTEEN EDITED BRANCHES** —
+  every branch still pushes the verb it always pushed, which is what keeps each
+  one's seat, desk and review rules exactly where they were, and `rlFaceSplit`
+  cuts once after. A rule per branch is how a state nobody thought of ends up
+  with three verbs again. `RL_FACE_RANK` decides WHICH two stay and the built
+  order decides how they DRAW, so Edit still reads before Send. Checked state by
+  state: their ask keeps Accept and Reject, our draft Edit and Send, a held
+  answer Send and Undo, a refusal of ours Withdraw and Edit, a refusal we gave
+  Reopen and Send a copy. **ONE EXCEPTION, AND IT IS THE STANDING RULE ABOUT
+  REFUSALS**: a change a reviewer is HOLDING has no decision and nothing to
+  send, and the sentence beside it says the only way forward is to ask that
+  person again — a remedy named in words and then folded into a menu is the
+  fault this file records twice already, so on exactly that card the ask is
+  promoted to the front. The overflow arrives in the menu as the SAME buttons,
+  keeping each verb's own ink.
+
+- **AND IT FIXED A DUPLICATE THE REBUILD HAD SHIPPED.** "Ask a colleague to
+  review" was drawn on the face AND in the ⋯ on every unsent draft — the same
+  act twelve pixels apart, in a menu whose own rule forbids exactly that. The
+  guard tested only for Edit. It reads the face and the overflow as one pool
+  now, so the one test covers both.
+
+- **THE CARD READS ONE RUNG SMALLER AND THE HEADING TWO.** Reference line 12→11,
+  summary 14→13, verbs 13→12; "Tracked changes (N)" 19→13, which is the Send-all
+  button's size the owner named. The count rides INSIDE the name, so "along with
+  the number" needed no second rule. **NOTHING BELOW IT ENDS UP LARGER**, which
+  is what makes a heading this quiet hold — the summaries came down in the same
+  breath. The 2px accent rule STAYS: with the size gone it is the whole of what
+  marks the column's name. **THE SUMMARY KEEPS THE PRIMARY INK** as a deliberate,
+  scoped exception to "primary is 14px and up" — it is the wording of the change.
+
+**A BACKTICK IN A CSS COMMENT COST A RUN, in the file that had never had one.**
+`clauseEditorCss` returns a template literal and a comment there said
+`` `.ce-act-plain` `` in backticks: ONE pair ends the string, evaluates
+`.ce-act-plain` as JS and reports "act is not defined" — the whole editor dead,
+found only by opening it. Third instance recorded here. **Say "terminator", and
+never put a backtick in a comment inside a CSS-emitting literal.**
+
+Tests: f192's two claims REVERSED IN PLACE (the literal three-verb list became
+"the two that ARE the decision, and Edit still on the card"; the no-prose
+comparison excludes the overflow menu for the reason it already excluded the
+verb container), clause-editor-verify 2m reversed in place (every property but
+the weight). Node 4628/4628. Browser: history-head 35, redline 121, clause-door
+97, clause-editor 57, calendar-redesign 46, insights-panels 40, contracts-page
+72, parity 40, nego-redesign 51 — all green. pages-read-alike is 47/50 and was
+PROVED identical on an untouched worktree at the parent commit before it was
+left alone.
+
+## THE CHART LIBRARY IS OURS TO SERVE (owner-asked 26 Aug 2026)
+
+Reported as a finding rather than a bug: *"the charting library is fetched from
+an outside website each time someone opens a chart. So charts only work if the
+reader's browser can reach that third party."*
+
+**IT WAS TRUE, AND THE REACH WAS EVERY CHART IN THE PRODUCT** — the Copilot's
+in-chat charts, the Insights dock, the four Reports cards and the health
+report's embedded pictures all go through `aiChartLib()`, and it fetched
+Chart.js 4.4.1 from `cdnjs.cloudflare.com` on first use. Rarely a problem in an
+ordinary office; **total in the building this product is sold into**, where a
+bank, a ministry or a large law firm blocks outside sites outright and every
+chart quietly stops drawing.
+
+- **NO CONTRACT DATA EVER WENT THERE, and that half of the design held.** The
+  model names a KIND and the recipes build the chart from live state in the
+  browser, so cdnjs only ever handed over a blank drawing tool. What it saw was
+  the reader's address; what it could do was fail. Both are gone.
+- **THE BYTES ARE IN `vendor/`, NOT `js/vendor/`, and that is deliberate.** Six
+  tests walk `js/` RECURSIVELY (f148 and f232 among them) on the assumption
+  that everything under it is a module somebody here wrote; a 205KB minified
+  bundle under that roof is a trap for every one of them and for the next sweep
+  somebody adds. `js/` means our source. `vendor/README.md` carries the
+  provenance, the one line removed (a `sourceMappingURL` pointing at a map that
+  is not shipped, which would 404 on every chart) and the upgrade recipe.
+- **SERVED AT `/vendor`** by a route beside `/fonts` in server/server.js, cached
+  hard for the same reason: a file there is never edited in place. No CSP entry
+  was needed — `'self'` already covers it, and the cdnjs entries stay because
+  **the OCR path still uses them** (js/ocr.js fetches pdf.js and Tesseract);
+  that is the same fault in another feature and is logged, not fixed here.
+- **THE GRACEFUL CARD IS KEPT AND ITS WORDS CHANGED.** A local path can 404 too
+  — a half-deployed build, a static host not serving /vendor — so the fallback
+  still earns its place. It may no longer say *"Charts need an internet
+  connection"*: the library is ours, so a failure is ours, and telling the
+  reader to check their connection sends them to look in the one place the
+  fault is not. `hr_charts_offline` moved with it, in both languages.
+- **`AI_CHART_CDN` IS RENAMED `AI_CHART_SRC`** — a constant called CDN pointing
+  at a local file is exactly the name that misleads the next reader.
+
+**WHAT PROVES IT, and it is two files answering different questions.** f177
+carries the SOURCE claim — the one src is the workspace's own copy, the bytes
+are actually committed (a local path that 404s is worse than the CDN it
+replaced), the failure card no longer blames the reader's network, and a SWEEP
+over js/ that fails on the next surface reaching for a CDN, which is how the
+original one arrived. A browser file cannot answer that: run on a
+well-connected laptop it passes either way, because the chart draws. So
+**analytics-verify carries the other half and now ABORTS every request to
+cdnjs and jsdelivr outright**, then requires a real canvas — it reports 4
+canvases and 4 embedded report images with the open internet cut off, which is
+the thing that was impossible the day before. Its old CHARTJS_LOCAL env-var
+dance is gone with the stub it fed.
+
+## SIX OFF FIVE SCREENSHOTS (owner-asked 26 Aug 2026)
+
+Sent with the charting fix above. Every one reproduced and MEASURED before it
+was touched, and two of them reverse decisions recorded in this file.
+
+- **HOME IS ONE BOARD, NOT TWO BANDS.** *"Make the cards in the second line have
+  the same height as the cards in the 1st line."* They were `141px` and `176px`
+  — two numbers typed 35px apart. **THE FIX IS A TOKEN** (`--hm-tile-h`), never
+  the same number written twice: written twice they agree until somebody edits
+  one, which is how they came to differ. **THE NUMBER IS 176 AND IT WAS
+  MEASURED, NOT CHOSEN.** The obvious move was to take Portfolio DOWN to the
+  first row's 141; measured at five laptop widths that **clips all FOUR
+  Portfolio tiles**, not just the tall one — the three ordinary ones need 156
+  and the lifecycle tile 167, against 140 for a My work tile. So there is no
+  141 that fits. **WHY THEY GENUINELY NEED MORE**, since the next move is to
+  trim it out of them: three of the four cost 16px more only because of the
+  two-line footnote reservation, which is not decoration — it is what keeps the
+  four big figures in that row on ONE line; the lifecycle tile costs 11px more
+  again because its content is a three-stage stack beside a money figure rather
+  than a single numeral. Both are content. **WHAT IT COSTS, said plainly: the
+  My work row grows 35px**, which is against this page's recent grain and is
+  the price of equal heights with nothing clipped. Taking the measured 167 was
+  refused — that is one language and one workspace's data, and a Swedish
+  footnote is longer. Tests: home-page-verify section 10, which pins the
+  height as a RELATION ("every tile the same as every other") and measures
+  every tile's scrollHeight against its box.
+- **THE ⋯ DROPDOWN LOST ITS HEADER.** It named the change — "CHG-001 · PAYMENT
+  TERMS" — on the reasoning that a menu floating over a column of six cards has
+  to say which one it belongs to. **TWO THINGS RETIRED THAT ARGUMENT**: the
+  menu opens hard against the ⋯ it was pressed on, ON the card, whose id and
+  clause name are three centimetres to the left and still on screen; and the
+  same press now lights that card and scrolls the paper to its clause, so which
+  row it belongs to is the most conspicuous thing on the page. **THE NAME IS
+  NOT LOST** — the ⋯ button's own aria-label still carries the change id, which
+  is what f246's reversed claim pins. `.rl-more-head` is STALE and its rule is
+  deleted rather than left standing.
+- **AND IT IS NEVER CLIPPED.** *"The dropdown always has to be fully visible. If
+  you are at the bottom of the page then the dropdown should drop up."* It was
+  `top:100%` and nothing else, so a card near the foot opened its menu into the
+  space below the column — measured at **151px past the bottom**, with the last
+  rows unreachable, and the card most likely to need its menu is the one at the
+  bottom because that is where the newest work sits. **`rlMorePlace` MEASURES
+  RATHER THAN GUESSES**: CSS cannot see how many rows that change earned or how
+  far the reader has scrolled. **THE ROOM IS THE SCROLLER'S, NOT THE
+  WINDOW'S** — the cards live in their own scrolling column, so a menu clearing
+  the bottom of the WINDOW could still be clipped by the column above it; the
+  bound is the nearest scrolling ancestor. **AND FLIPPING IS NOT ALWAYS
+  ENOUGH**, which is the half a first pass would miss: on a short window a long
+  menu fits in neither direction and flipping only changes WHICH rows are lost,
+  so it also caps its height to the room available and scrolls inside it.
+  Down is preferred on a tie. The browser file pins the REQUIREMENT (every row
+  inside its scroller) rather than the mechanism.
+- **THE ⋯ ALSO TAKES YOU TO THE CLAUSE.** *"Merely selecting the 3 dots ...
+  should also highlight the card and take you to the clause in the contract not
+  only clicking the card."* **THE SAME ACT THE CARD'S HEAD PERFORMS, not a
+  second path**: one call to `rlLinkFocus`, the one function that lights the
+  card, its clause, its thread and its queue row together, with `'card'` as the
+  source so the COLUMN does not scroll under the hand already on it. The press
+  is still `stopPropagation`'d, but **for a new reason** — this handler does the
+  navigating itself rather than letting the press fall through, which would
+  re-enter the same listener's shut branch and close the menu it just opened.
+  The contract is resolved from `redlineHeldId()` because this listener is
+  armed at module load and closes over nothing; null is a safe answer, not a
+  broken one, since rlLinkFocus guards its one use of it.
+- **"WHOSE ASKS" IS A LABEL, NOT A SIGNPOST.** It wore this product's micro-caps
+  — 11px uppercase with .09em, the dress reserved for a heading OVER a list
+  (the band headings still wear it, correctly) — sitting a few pixels from
+  "Tracked changes (7)" in sentence case, so the smaller of the two was the
+  louder. It takes `.rl-idx-title`'s own type, so the head reads as one line
+  written by one hand; what it does NOT take is that rule's ink or its accent
+  underline, because the title is the column's name and this is a label for the
+  dropdown beside it. **The dictionary has said 'Whose asks' all along — only
+  the CSS was shouting.**
+
+**WHAT WAS LEFT RED ON PURPOSE, and proved rather than asserted:** `npm run
+lint` reports four duplicate-key errors in js/i18n.js. They reproduce
+identically on an untouched tree, so they are not this run's; logged in BUGLOG
+under "Noticed, not fixed".
 
 ## Line numbers drift
 

@@ -127,16 +127,16 @@ function openTemplateFillModal(t){
        the same word as the label — see the note in js/wizard.js. */
     const _map=f.maps?String(tplMapLabel(f.maps)||''):'';
     const _mapNote=(_map && _map.trim().toLowerCase()!==String(f.label||'').trim().toLowerCase())
-      ? `<span style="font-weight:400;color:var(--color-neutral-500)"> → ${_tplEsc(_map)}</span>` : '';
-    const lbl=`<span style="display:block;font-size:12px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">${_tplEsc(f.label)}${f.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}${_mapNote}</span>`;
-    const st='width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font:inherit;font-size:14px;outline:none';
+      ? `<span style="font-weight:var(--w-body);color:var(--color-neutral-500)"> → ${_tplEsc(_map)}</span>` : '';
+    const lbl=`<span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${_tplEsc(f.label)}${f.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}${_mapNote}</span>`;
+    const st='width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font:inherit;font-size:var(--t-body);outline:none';
     if(f.type==='select') return `<label style="display:block">${lbl}<select id="${id}" style="${st}">${(f.opts||[]).map(o=>`<option value="${_tplEsc(o).replace(/"/g,'&quot;')}" ${f.def===o?'selected':''}>${_tplEsc(o)}</option>`).join('')}</select></label>`;
     const it=f.type==='date'?'date':(f.type==='num'?'number':'text');
     return `<label style="display:block">${lbl}<input id="${id}" type="${it}" value="${String(f.def||'').replace(/"/g,'&quot;')}" placeholder="${_tplEsc(f.ph||'')}" style="${st}"/></label>`; };
   openModal(`<div style="padding:20px 22px">
-    <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0 0 3px">${_tplEsc(t.name)}</h3>
-    <p style="font-size:13px;color:var(--color-neutral-600);margin:0 0 14px;line-height:1.55">Fill in the blanks. Everything you type is filed as contract data as well as printed into the document — the register, filters, folder routing and reports pick it up with no second data-entry step.</p>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0 0 3px">${_tplEsc(t.name)}</h3>
+    <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 14px;line-height:1.55">Fill in the blanks. Everything you type is filed as contract data as well as printed into the document — the register, filters, folder routing and reports pick it up with no second data-entry step.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s-3)">
       ${''/* OUR SIDE, ASKED HERE TOO. A customer's own template may carry a
              blank of its own mapped to `party`, in which case that one wins —
              this answer is set on the record first and applyTemplateValues
@@ -144,8 +144,8 @@ function openTemplateFillModal(t){
              only place the entity can be named, and without it every contract
              made from a saved template goes on naming the workspace. */}
       <label style="display:block">
-        <span style="display:block;font-size:12px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">${i18t('tf_our_party')}<span style="font-weight:400;color:var(--color-neutral-500)"> → ${_tplEsc(i18t('tf_our_party_hint'))}</span></span>
-        <input id="tf-party" type="text" value="${_tplEsc((typeof FIRST_PARTY!=='undefined'&&FIRST_PARTY)||'').replace(/"/g,'&quot;')}" placeholder="${_tplEsc(i18t('tf_our_party_ph'))}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font:inherit;font-size:14px;outline:none"/></label>
+        <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${i18t('tf_our_party')}<span style="font-weight:var(--w-body);color:var(--color-neutral-500)"> → ${_tplEsc(i18t('tf_our_party_hint'))}</span></span>
+        <input id="tf-party" type="text" value="${_tplEsc((typeof FIRST_PARTY!=='undefined'&&FIRST_PARTY)||'').replace(/"/g,'&quot;')}" placeholder="${_tplEsc(i18t('tf_our_party_ph'))}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font:inherit;font-size:var(--t-body);outline:none"/></label>
       ${fs.map(inp).join('')}
       ${''/* THE SAME QUESTION THE BUILT-IN TEMPLATES ASK, because this is the
              same act. Saved templates create contracts through their own fill
@@ -153,11 +153,11 @@ function openTemplateFillModal(t){
              contract made from "Counterparty Templates" back where it started: asked in
              the negotiation room, and again by the share dialog. */}
       <label style="display:block">
-        <span style="display:block;font-size:12px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">${i18t('lib_their_email')}<span style="font-weight:400;color:var(--color-neutral-500)"> ${i18t('lib_so_you_can_send')}</span></span>
-        <input id="tf-cpemail" type="email" placeholder="${(typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font:inherit;font-size:14px;outline:none"/></label>
+        <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${i18t('lib_their_email')}<span style="font-weight:var(--w-body);color:var(--color-neutral-500)"> ${i18t('lib_so_you_can_send')}</span></span>
+        <input id="tf-cpemail" type="email" placeholder="${(typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font:inherit;font-size:var(--t-body);outline:none"/></label>
     </div>
-    <div id="tf-err" style="font-size:12px;color:var(--st-ruby-fg);min-height:15px;margin-top:8px"></div>
-    <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+    <div id="tf-err" style="font-size:var(--t-label);color:var(--st-ruby-fg);min-height:15px;margin-top:var(--s-2)"></div>
+    <div style="display:flex;align-items:center;gap:var(--s-2);margin-top:var(--s-2)">
       <button id="tf-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <span style="flex:1"></span>
       <button id="tf-skip" class="ui-btn" title="${esc(i18t('lib_create_now_fill_later'))}">${i18t('lib_skip_for_now')}</button>
@@ -212,14 +212,14 @@ function saveContractAsTemplate(c){
   const opts=folderOptionsHtml(c.folder, false);
   openModal(`
     <div style="padding:20px 22px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="color:var(--color-accent)">${icon('copy','w-4 h-4')}</span>
-        <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">${i18t('lib_save_as_template')}</h3></div>
-      <p style="font-size:13px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.5">Saves this document's current text (${text.length.toLocaleString()} characters${rich?', with its formatting':''}) as a reusable template. It will appear under <b>${i18t('lib_cp_templates')}</b> ${i18t('lib_and_in_new_menu')}</p>
-      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:12px;font-weight:600;margin-bottom:4px">${i18t('lib_template_name')}</span>
-        <input id="tpl-name" value="${defName.replace(/"/g,'&quot;')}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:14px;outline:none"/></label>
-      <label style="display:block;margin-bottom:14px"><span style="display:block;font-size:12px;font-weight:600;margin-bottom:4px">${i18t('lib_value_stream')}</span>
-        <select id="tpl-folder" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 8px;font:inherit;font-size:14px">${opts}</select></label>
-      <div style="display:flex;justify-content:flex-end;gap:8px">
+      <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:6px"><span style="color:var(--color-accent)">${icon('copy','w-4 h-4')}</span>
+        <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">${i18t('lib_save_as_template')}</h3></div>
+      <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3);line-height:1.5">Saves this document's current text (${text.length.toLocaleString()} characters${rich?', with its formatting':''}) as a reusable template. It will appear under <b>${i18t('lib_cp_templates')}</b> ${i18t('lib_and_in_new_menu')}</p>
+      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('lib_template_name')}</span>
+        <input id="tpl-name" value="${defName.replace(/"/g,'&quot;')}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none"/></label>
+      <label style="display:block;margin-bottom:14px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('lib_value_stream')}</span>
+        <select id="tpl-folder" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px var(--s-2);font:inherit;font-size:var(--t-body)">${opts}</select></label>
+      <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
         <button id="tpl-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="tpl-save" class="ui-btn ui-btn-primary">${i18t('lib_save_template')}</button>
       </div>
@@ -254,26 +254,27 @@ function openCreateTemplateModal(mode){
   let report=null;          // pasteConversionReport(...)
   let editor=null;
 
-  const FLD='width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:14px;outline:none';
-  const tabBtn=(k,label,sub)=>`<button data-ct-tab="${k}" style="flex:1;text-align:left;padding:9px 12px;font:inherit;cursor:pointer;border:1px solid ${tab===k?'var(--color-accent)':'var(--color-divider)'};background:${tab===k?'var(--color-accent-100)':'var(--color-surface)'};border-radius:var(--radius)">
-      <span style="display:block;font-size:14px;font-weight:600;color:${tab===k?'var(--color-accent-800)':'var(--color-neutral-800)'}">${label}</span>
-      <span style="display:block;font-size:12px;color:var(--color-neutral-600);margin-top:1px">${sub}</span></button>`;
+  /* READS THE ONE PAIR (25 Aug 2026) — see HATI_FLD in core.js. */
+  const FLD=window.HATI_FLD;
+  const tabBtn=(k,label,sub)=>`<button data-ct-tab="${k}" style="flex:1;text-align:left;padding:9px var(--s-3);font:inherit;cursor:pointer;border:1px solid ${tab===k?'var(--color-accent)':'var(--color-divider)'};background:${tab===k?'var(--color-accent-100)':'var(--color-surface)'};border-radius:var(--radius)">
+      <span style="display:block;font-size:var(--t-body);font-weight:var(--w-strong);color:${tab===k?'var(--color-accent-800)':'var(--color-neutral-800)'}">${label}</span>
+      <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:1px">${sub}</span></button>`;
 
   openModal(`
     <div style="padding:20px 22px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="color:var(--color-accent)">${icon('copy','w-4 h-4')}</span>
-        <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">${i18t('lib_create_template')}</h3></div>
-      <p style="font-size:13px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.5">${i18t('lib_bring_standard_paper')}</p>
+      <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:6px"><span style="color:var(--color-accent)">${icon('copy','w-4 h-4')}</span>
+        <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">${i18t('lib_create_template')}</h3></div>
+      <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3);line-height:1.5">${i18t('lib_bring_standard_paper')}</p>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px" id="ct-tabs">
         ${tabBtn('paste','Paste the document','From Word or Google Docs — keeps the formatting')}
         ${tabBtn('upload','Upload a file','A PDF or text file you already have')}
       </div>
 
-      <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:10px;margin-bottom:12px">
-        <label style="display:block"><span style="display:block;font-size:12px;font-weight:600;margin-bottom:4px">${i18t('lib_template_name')}</span>
+      <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:10px;margin-bottom:var(--s-3)">
+        <label style="display:block"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('lib_template_name')}</span>
           <input id="ct-name" placeholder="e.g. Standard Distribution Agreement" style="${FLD}"/></label>
-        <label style="display:block"><span style="display:block;font-size:12px;font-weight:600;margin-bottom:4px">${i18t('lib_value_stream')}</span>
+        <label style="display:block"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('lib_value_stream')}</span>
           <select id="ct-folder" style="${FLD};background:var(--color-surface)">${opts}</select></label>
       </div>
 
@@ -282,28 +283,28 @@ function openCreateTemplateModal(mode){
            resize the panel, because a centred modal that resizes also moves. -->
       <div id="ct-panes" style="display:grid">
       <div id="ct-pane-paste" style="grid-area:1/1">
-        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px">
-          <span style="font-size:12px;font-weight:600">${i18t('lib_paste_contract_here')}</span>
+        <div style="display:flex;align-items:baseline;gap:var(--s-2);margin-bottom:var(--s-1)">
+          <span style="font-size:var(--t-label);font-weight:var(--w-strong)">${i18t('lib_paste_contract_here')}</span>
           <span style="flex:1"></span>
-          <button id="ct-preview" class="ui-btn" style="font-size:12px;padding:3px 9px">${i18t('lib_preview')}</button>
-          <button id="ct-clear" class="ui-btn" style="font-size:12px;padding:3px 9px">Clear</button>
+          <button id="ct-preview" class="ui-btn" style="font-size:var(--t-label);padding:3px 9px">${i18t('lib_preview')}</button>
+          <button id="ct-clear" class="ui-btn" style="font-size:var(--t-label);padding:3px 9px">Clear</button>
         </div>
-        <div id="ct-editor" class="scroll-thin doc-surface" style="height:270px;font-size:14px"
+        <div id="ct-editor" class="scroll-thin doc-surface" style="height:270px;font-size:var(--t-body)"
              data-placeholder="${i18t('lb_open_in_word')}"></div>
         <div id="ct-previewpane" class="scroll-thin doc-surface" style="display:none;height:270px;overflow-y:auto;border:1px solid var(--color-accent-300);background:var(--color-bg);border-radius:0;padding:14px 18px"></div>
-        <p style="font-size:12px;color:var(--color-neutral-600);margin:6px 0 0;line-height:1.5">${RICH_EDITOR_NOTE}</p>
-        <div id="ct-report" style="font-size:12px;margin-top:7px;min-height:16px;line-height:1.5"></div>
+        <p style="font-size:var(--t-label);color:var(--color-neutral-600);margin:6px 0 0;line-height:1.5">${RICH_EDITOR_NOTE}</p>
+        <div id="ct-report" style="font-size:var(--t-label);margin-top:7px;min-height:16px;line-height:1.5"></div>
       </div>
 
       <div id="ct-pane-upload" style="grid-area:1/1;visibility:hidden;pointer-events:none">
-        <p style="font-size:13px;color:var(--color-neutral-600);margin:0 0 8px;line-height:1.5">${i18t('lib_pdf_or_text')} <b>${i18t('lib_rebuilds_structure')}</b> — headings, bold, italics, numbered clauses and indentation — from the type sizes and positions the PDF states. That recovers most of a document but not all of it: <b>${i18t('lib_pasting_more_faithful')}</b>${i18t('lib_because_clipboard')}</p>
-        <label style="display:block;margin-bottom:6px"><span style="display:block;font-size:12px;font-weight:600;margin-bottom:4px">${i18t('lib_document_file')}</span>
-          <input id="ct-file" type="file" accept=".pdf,.docx,.txt,.md,text/plain,application/pdf" style="${FLD};font-size:13px"/></label>
+        <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-2);line-height:1.5">${i18t('lib_pdf_or_text')} <b>${i18t('lib_rebuilds_structure')}</b> — headings, bold, italics, numbered clauses and indentation — from the type sizes and positions the PDF states. That recovers most of a document but not all of it: <b>${i18t('lib_pasting_more_faithful')}</b>${i18t('lib_because_clipboard')}</p>
+        <label style="display:block;margin-bottom:6px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('lib_document_file')}</span>
+          <input id="ct-file" type="file" accept=".pdf,.docx,.txt,.md,text/plain,application/pdf" style="${FLD};font-size:var(--t-meta)"/></label>
       </div>
       </div>
 
-      <div id="ct-status" style="font-size:12px;color:var(--color-neutral-600);min-height:16px;margin:10px 0"></div>
-      <div style="display:flex;justify-content:flex-end;gap:8px">
+      <div id="ct-status" style="font-size:var(--t-label);color:var(--color-neutral-600);min-height:16px;margin:10px 0"></div>
+      <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
         <button id="ct-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="ct-save" class="ui-btn ui-btn-primary">${i18t('lib_save_template')}</button>
       </div>
@@ -360,9 +361,9 @@ function openCreateTemplateModal(mode){
           via: res.via==='text'?i18t('lib_paste_via_text'):'',
           preview: i18t('lib_preview') })}</span>`);
       } else {
-        rep(`<span style="display:block;border:1px solid var(--st-ruby-line);background:rgba(176,69,60,.06);border-radius:var(--radius);padding:8px 10px;color:var(--st-ruby-fg)">
+        rep(`<span style="display:block;border:1px solid var(--st-ruby-line);background:rgba(176,69,60,.06);border-radius:var(--radius);padding:var(--s-2) 10px;color:var(--st-ruby-fg)">
           <b>${i18t('lib_did_not_come_across')}</b> ${_tplEsc(report.reason)}
-          Paste it again, or <button type="button" id="ct-fallback" style="border:0;background:none;padding:0;font:inherit;font-weight:600;color:var(--st-ruby-fg);text-decoration:underline;cursor:pointer">${i18t('lib_use_plain_text')}</button> ${i18t('lib_lose_formatting')}</span>`);
+          Paste it again, or <button type="button" id="ct-fallback" style="border:0;background:none;padding:0;font:inherit;font-weight:var(--w-strong);color:var(--st-ruby-fg);text-decoration:underline;cursor:pointer">${i18t('lib_use_plain_text')}</button> ${i18t('lib_lose_formatting')}</span>`);
         document.getElementById('ct-fallback')?.addEventListener('click',()=>{
           editor.set(textToRich(res.plain||''));
           pasted={ ...res, via:'text' };
@@ -564,20 +565,20 @@ function openBlanksEditor(tid){
     const used=bodyPlaceholders(body);
     const orphanFields=fields.filter(f=>!used.includes(f.key));
     const orphanBlanks=used.filter(k=>!fields.some(f=>f.key===k));
-    const st='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:4px 7px;font:inherit;font-size:13px;outline:none';
+    const st='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:var(--s-1) 7px;font:inherit;font-size:var(--t-meta);outline:none';
     const rows=fields.map((f,i)=>`
-      <div data-fld="${i}" style="display:grid;grid-template-columns:1.3fr .9fr 1.2fr auto auto;gap:6px;align-items:center;padding:4px 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent)">
+      <div data-fld="${i}" style="display:grid;grid-template-columns:1.3fr .9fr 1.2fr auto auto;gap:6px;align-items:center;padding:var(--s-1) 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent)">
         <input data-f="label" value="${String(f.label||'').replace(/"/g,'&quot;')}" placeholder="${i18t('lb_label')}" style="${st}"/>
         <select data-f="type" style="${st}">${TPL_FIELD_TYPES.map(x=>`<option value="${x.k}" ${f.type===x.k?'selected':''}>${x.label}</option>`).join('')}</select>
         <select data-f="maps" style="${st}">${TPL_MAPS.map(x=>`<option value="${x.k}" ${(f.maps||'')===x.k?'selected':''}>${x.label}</option>`).join('')}</select>
-        <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--color-neutral-600);white-space:nowrap"><input data-f="required" type="checkbox" ${f.required?'checked':''} style="accent-color:var(--color-accent)"/>req</label>
-        <button data-del="${i}" title="${i18t('lb_remove_blank')}" style="border:1px solid var(--st-ruby-line);background:none;color:var(--st-ruby-fg);border-radius:var(--radius);font:inherit;font-size:12px;padding:2px 7px;cursor:pointer">×</button>
+        <label style="display:inline-flex;align-items:center;gap:var(--s-1);font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap"><input data-f="required" type="checkbox" ${f.required?'checked':''} style="accent-color:var(--color-accent)"/>req</label>
+        <button data-del="${i}" title="${i18t('lb_remove_blank')}" style="border:1px solid var(--st-ruby-line);background:none;color:var(--st-ruby-fg);border-radius:var(--radius);font:inherit;font-size:var(--t-label);padding:2px 7px;cursor:pointer">×</button>
         ${f.type==='select'?`<input data-f="opts" value="${String((f.opts||[]).join(', ')).replace(/"/g,'&quot;')}" placeholder="${i18t('lb_choices_comma')}" style="${st};grid-column:1 / -1"/>`:''}
-        <div style="grid-column:1 / -1;font-size:12px;color:var(--color-neutral-500);font-family:var(--font-mono)">{{${f.key}}}${orphanFields.includes(f)?` <span style="color:var(--st-ruby-fg)">${i18t('lib_blank_unused')}</span>`:''}</div>
+        <div style="grid-column:1 / -1;font-size:var(--t-label);color:var(--color-neutral-500);font-family:var(--font-mono)">{{${f.key}}}${orphanFields.includes(f)?` <span style="color:var(--st-ruby-fg)">${i18t('lib_blank_unused')}</span>`:''}</div>
       </div>`).join('');
     const host=document.getElementById('be-fields');
     if(host){
-      host.innerHTML=rows||`<div style="font-size:13px;color:var(--color-neutral-600);padding:6px 0">${i18t('lib_no_blanks_yet')} <b>${i18t('lib_make_this_blank')}</b>.</div>`;
+      host.innerHTML=rows||`<div style="font-size:var(--t-meta);color:var(--color-neutral-600);padding:6px 0">${i18t('lib_no_blanks_yet')} <b>${i18t('lib_make_this_blank')}</b>.</div>`;
       host.querySelectorAll('[data-fld]').forEach(row=>{
         const i=Number(row.getAttribute('data-fld'));
         row.querySelectorAll('[data-f]').forEach(el=>el.addEventListener('change',()=>{
@@ -606,22 +607,22 @@ function openBlanksEditor(tid){
   };
 
   openModal(`<div style="padding:20px 22px">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="color:var(--color-accent)">${icon('copy','w-4 h-4')}</span>
-      <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Blanks in “${_tplEsc(rec.name)}”</h3></div>
-    <p style="font-size:13px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.55">The blanks in a template are the database. Anything you mark here becomes a guided field when someone creates a contract, and its value is filed as contract data — so the register, filters, folder routing and reports get structured information with no separate data entry.</p>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-      <button id="be-make" class="ui-btn ui-btn-primary" style="font-size:13px;padding:5px 11px">${i18t('lib_make_selection_blank')}</button>
-      <button id="be-detect" class="ui-btn" style="font-size:13px;padding:5px 11px">${i18t('lib_detect_brackets')}</button>
-      ${(API_MODE()&&state.aiConfigured)?`<button id="be-suggest" class="ui-btn" style="font-size:13px;padding:5px 11px">${icon('sparkle','w-3.5 h-3.5')} Suggest blanks</button>`:''}
+    <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-1)"><span style="color:var(--color-accent)">${icon('copy','w-4 h-4')}</span>
+      <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">Blanks in “${_tplEsc(rec.name)}”</h3></div>
+    <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3);line-height:1.55">The blanks in a template are the database. Anything you mark here becomes a guided field when someone creates a contract, and its value is filed as contract data — so the register, filters, folder routing and reports get structured information with no separate data entry.</p>
+    <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;margin-bottom:10px">
+      <button id="be-make" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:5px 11px">${i18t('lib_make_selection_blank')}</button>
+      <button id="be-detect" class="ui-btn" style="font-size:var(--t-meta);padding:5px 11px">${i18t('lib_detect_brackets')}</button>
+      ${(API_MODE()&&state.aiConfigured)?`<button id="be-suggest" class="ui-btn" style="font-size:var(--t-meta);padding:5px 11px">${icon('sparkle','w-3.5 h-3.5')} Suggest blanks</button>`:''}
     </div>
-    <div id="be-fields" class="scroll-thin" style="max-height:190px;overflow-y:auto;border:1px solid var(--color-divider);border-radius:var(--radius);padding:6px 9px;margin-bottom:8px"></div>
-    <div id="be-warn" style="font-size:12px;margin-bottom:8px;min-height:14px"></div>
-    <label style="display:block;margin-bottom:12px"><span style="display:block;font-size:12px;font-weight:600;margin-bottom:4px">Template body — select text, then “Make selection a blank”${rich?` <span style="font-weight:400;color:var(--color-neutral-500)">${i18t('lib_formatted_template')}</span>`:''}</span>
+    <div id="be-fields" class="scroll-thin" style="max-height:190px;overflow-y:auto;border:1px solid var(--color-divider);border-radius:var(--radius);padding:6px 9px;margin-bottom:var(--s-2)"></div>
+    <div id="be-warn" style="font-size:var(--t-label);margin-bottom:var(--s-2);min-height:14px"></div>
+    <label style="display:block;margin-bottom:var(--s-3)"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">Template body — select text, then “Make selection a blank”${rich?` <span style="font-weight:var(--w-body);color:var(--color-neutral-500)">${i18t('lib_formatted_template')}</span>`:''}</span>
       ${rich
         ? `<div id="be-body" class="scroll-thin doc-surface" style="width:100%;height:210px;overflow-y:auto;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:9px 13px"></div>`
-        : `<textarea id="be-body" class="scroll-thin" style="width:100%;height:210px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:9px 11px;font:inherit;font-size:13px;line-height:1.6;font-family:var(--font-mono);outline:none;resize:vertical"></textarea>`}</label>
-    <div id="be-status" style="font-size:12px;color:var(--color-neutral-600);min-height:15px;margin-bottom:8px"></div>
-    <div style="display:flex;justify-content:flex-end;gap:8px">
+        : `<textarea id="be-body" class="scroll-thin" style="width:100%;height:210px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:9px 11px;font:inherit;font-size:var(--t-meta);line-height:1.6;font-family:var(--font-mono);outline:none;resize:vertical"></textarea>`}</label>
+    <div id="be-status" style="font-size:var(--t-label);color:var(--color-neutral-600);min-height:15px;margin-bottom:var(--s-2)"></div>
+    <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
       <button id="be-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <button id="be-save" class="ui-btn ui-btn-primary">${i18t('lib_save_blanks')}</button>
     </div></div>`, {maxWidth:'760px',
@@ -792,55 +793,56 @@ function openTemplateEditor(tid){
   const startedRich=isRich(format);
   const bodyText=()=> isRich(format) ? richToText(body) : body;
 
-  const FLD='width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:14px;outline:none';
+  /* READS THE ONE PAIR (25 Aug 2026) — see HATI_FLD in core.js. */
+  const FLD=window.HATI_FLD;
   openModal(`<div style="padding:20px 22px">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+    <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:3px">
       <span style="color:var(--color-accent)">${icon('pencil','w-4 h-4')}</span>
-      <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">${i18t('lib_edit_template')}</h3>
-      <span style="font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--color-accent-700);border:1px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:var(--radius);padding:1px 6px">v${templateVersionNo(rec)}</span>
+      <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">${i18t('lib_edit_template')}</h3>
+      <span style="font-family:var(--font-mono);font-size:var(--t-label);font-weight:var(--w-strong);color:var(--st-steel-fg);border:1px solid var(--st-steel-line);background:var(--st-steel-bg);border-radius:var(--radius);padding:1px 6px">v${templateVersionNo(rec)}</span>
       <span style="flex:1"></span>
-      <button id="te-versions" class="ui-btn" style="font-size:12px;padding:3px 9px;white-space:nowrap">${icon('history','w-3.5 h-3.5')} Versions (${templateVersions(rec).length+1})</button>
+      <button id="te-versions" class="ui-btn" style="font-size:var(--t-label);padding:3px 9px;white-space:nowrap">${icon('history','w-3.5 h-3.5')} Versions (${templateVersions(rec).length+1})</button>
     </div>
-    <p style="font-size:13px;color:var(--color-neutral-600);margin:0 0 4px;line-height:1.5">
+    <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-1);line-height:1.5">
       ${_tplEsc(templateUsageLabel(usage))} · saving creates <b>v${templateVersionNo(rec)+1}</b>.</p>
-    <div style="display:flex;gap:7px;align-items:flex-start;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:7px 10px;margin:0 0 12px;font-size:12px;line-height:1.5;color:var(--color-neutral-700)">
+    <div style="display:flex;gap:7px;align-items:flex-start;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:7px 10px;margin:0 0 var(--s-3);font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-700)">
       <span style="flex:none;margin-top:1px;color:var(--color-accent)">${icon('shield','w-3.5 h-3.5')}</span>
       <span><b>${i18t('lib_existing_unaffected')}</b> A contract copies the wording when it is created; it does not follow the template afterwards. Changes here apply to the next draft you generate.</span>
     </div>
 
-    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:10px;margin-bottom:12px">
-      <label style="display:block"><span style="display:block;font-size:12px;font-weight:600;margin-bottom:4px">${i18t('lib_template_name')}</span>
+    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:10px;margin-bottom:var(--s-3)">
+      <label style="display:block"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('lib_template_name')}</span>
         <input id="te-name" value="${String(name).replace(/"/g,'&quot;')}" style="${FLD}"/></label>
-      <label style="display:block"><span style="display:block;font-size:12px;font-weight:600;margin-bottom:4px">${i18t('lib_value_stream')}</span>
+      <label style="display:block"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('lib_value_stream')}</span>
         <select id="te-folder" style="${FLD};background:var(--color-surface)">${folderOptionsHtml(folder,false)}</select></label>
     </div>
 
-    <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px">
-      <span style="font-size:12px;font-weight:600">${i18t('lib_document')}</span>
-      <span style="font-size:12px;color:var(--color-neutral-600)">${startedRich?'formatted — paste over it to replace, or edit in place':'plain text — paste formatted paper here to upgrade it'}</span>
+    <div style="display:flex;align-items:baseline;gap:var(--s-2);margin-bottom:var(--s-1)">
+      <span style="font-size:var(--t-label);font-weight:var(--w-strong)">${i18t('lib_document')}</span>
+      <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${startedRich?'formatted — paste over it to replace, or edit in place':'plain text — paste formatted paper here to upgrade it'}</span>
       <span style="flex:1"></span>
-      <button id="te-blank" class="ui-btn" style="font-size:12px;padding:3px 9px">${i18t('lib_make_selection_blank')}</button>
-      <button id="te-preview" class="ui-btn" style="font-size:12px;padding:3px 9px">${i18t('lib_preview')}</button>
+      <button id="te-blank" class="ui-btn" style="font-size:var(--t-label);padding:3px 9px">${i18t('lib_make_selection_blank')}</button>
+      <button id="te-preview" class="ui-btn" style="font-size:var(--t-label);padding:3px 9px">${i18t('lib_preview')}</button>
     </div>
-    <div id="te-body" class="scroll-thin doc-surface" style="height:230px;font-size:14px"
+    <div id="te-body" class="scroll-thin doc-surface" style="height:230px;font-size:var(--t-body)"
          data-placeholder="${i18t('lb_paste_or_type')}"></div>
     <div id="te-previewpane" class="scroll-thin doc-surface" style="display:none;height:230px;overflow-y:auto;border:1px solid var(--color-accent-300);background:var(--color-bg);border-radius:0;padding:14px 18px"></div>
-    <p style="font-size:12px;color:var(--color-neutral-600);margin:6px 0 0;line-height:1.5">${RICH_EDITOR_NOTE}</p>
+    <p style="font-size:var(--t-label);color:var(--color-neutral-600);margin:6px 0 0;line-height:1.5">${RICH_EDITOR_NOTE}</p>
 
-    <div style="display:flex;align-items:baseline;gap:8px;margin:12px 0 4px">
-      <span style="font-size:12px;font-weight:600">${i18t('lib_blanks')}</span>
-      <span style="font-size:12px;color:var(--color-neutral-600)">${i18t('lib_blanks_become_fields')}</span>
+    <div style="display:flex;align-items:baseline;gap:var(--s-2);margin:var(--s-3) 0 var(--s-1)">
+      <span style="font-size:var(--t-label);font-weight:var(--w-strong)">${i18t('lib_blanks')}</span>
+      <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${i18t('lib_blanks_become_fields')}</span>
     </div>
     <div id="te-fields" class="scroll-thin" style="max-height:150px;overflow-y:auto;border:1px solid var(--color-divider);border-radius:var(--radius);padding:6px 9px"></div>
-    <div id="te-warn" style="font-size:12px;margin:7px 0;min-height:15px;line-height:1.5"></div>
+    <div id="te-warn" style="font-size:var(--t-label);margin:7px 0;min-height:15px;line-height:1.5"></div>
 
-    <label style="display:block;margin-bottom:12px"><span style="display:block;font-size:12px;font-weight:600;margin-bottom:4px">${i18t('lib_what_changed')} <span style="font-weight:400;color:var(--color-neutral-500)">(recorded against v${templateVersionNo(rec)+1})</span></span>
+    <label style="display:block;margin-bottom:var(--s-3)"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('lib_what_changed')} <span style="font-weight:var(--w-body);color:var(--color-neutral-500)">(recorded against v${templateVersionNo(rec)+1})</span></span>
       <input id="te-note" placeholder="${esc(i18t('lib_ph_version_note'))}" style="${FLD}"/></label>
 
-    <div id="te-status" style="font-size:12px;min-height:16px;margin-bottom:8px"></div>
-    <div style="display:flex;justify-content:space-between;gap:8px">
+    <div id="te-status" style="font-size:var(--t-label);min-height:16px;margin-bottom:var(--s-2)"></div>
+    <div style="display:flex;justify-content:space-between;gap:var(--s-2)">
       <button id="te-delete" class="ui-btn" style="border-color:var(--st-ruby-line);color:var(--st-ruby-fg)">${i18t('lib_delete_template')}</button>
-      <span style="display:flex;gap:8px">
+      <span style="display:flex;gap:var(--s-2)">
         <button id="te-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="te-save" class="ui-btn ui-btn-primary" style="white-space:nowrap">${icon('check2','w-3.5 h-3.5')} Save as v${templateVersionNo(rec)+1}</button>
       </span>
@@ -882,19 +884,19 @@ function openTemplateEditor(tid){
     const used=usedIn();
     const orphanFields=fields.filter(f=>!used.includes(f.key));      // a field with no blank
     const orphanBlanks=used.filter(k=>!fields.some(f=>f.key===k));   // a blank with no field
-    const stl='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:4px 7px;font:inherit;font-size:13px;outline:none';
+    const stl='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:var(--s-1) 7px;font:inherit;font-size:var(--t-meta);outline:none';
     const host2=document.getElementById('te-fields'); if(!host2) return;
     host2.innerHTML=fields.length?fields.map((f,i)=>`
-      <div data-fld="${i}" style="display:grid;grid-template-columns:1.3fr .9fr 1.2fr auto auto;gap:6px;align-items:center;padding:4px 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent)">
+      <div data-fld="${i}" style="display:grid;grid-template-columns:1.3fr .9fr 1.2fr auto auto;gap:6px;align-items:center;padding:var(--s-1) 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent)">
         <input data-f="label" value="${String(f.label||'').replace(/"/g,'&quot;')}" placeholder="${i18t('lb_label')}" style="${stl}"/>
         <select data-f="type" style="${stl}">${TPL_FIELD_TYPES.map(x=>`<option value="${x.k}" ${f.type===x.k?'selected':''}>${x.label}</option>`).join('')}</select>
         <select data-f="maps" style="${stl}">${TPL_MAPS.map(x=>`<option value="${x.k}" ${(f.maps||'')===x.k?'selected':''}>${x.label}</option>`).join('')}</select>
-        <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--color-neutral-600);white-space:nowrap"><input data-f="required" type="checkbox" ${f.required?'checked':''} style="accent-color:var(--color-accent)"/>req</label>
-        <button data-del="${i}" title="${i18t('lb_remove_blank')}" style="border:1px solid var(--st-ruby-line);background:none;color:var(--st-ruby-fg);border-radius:var(--radius);font:inherit;font-size:12px;padding:2px 7px;cursor:pointer">×</button>
+        <label style="display:inline-flex;align-items:center;gap:var(--s-1);font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap"><input data-f="required" type="checkbox" ${f.required?'checked':''} style="accent-color:var(--color-accent)"/>req</label>
+        <button data-del="${i}" title="${i18t('lb_remove_blank')}" style="border:1px solid var(--st-ruby-line);background:none;color:var(--st-ruby-fg);border-radius:var(--radius);font:inherit;font-size:var(--t-label);padding:2px 7px;cursor:pointer">×</button>
         ${f.type==='select'?`<input data-f="opts" value="${String((f.opts||[]).join(', ')).replace(/"/g,'&quot;')}" placeholder="${i18t('lb_choices_comma')}" style="${stl};grid-column:1 / -1"/>`:''}
-        <div style="grid-column:1 / -1;font-size:12px;color:var(--color-neutral-500);font-family:var(--font-mono)">{{${f.key}}}${orphanFields.includes(f)?` <span style="color:var(--st-ruby-fg)">${i18t('lib_not_used_above')}</span>`:''}</div>
+        <div style="grid-column:1 / -1;font-size:var(--t-label);color:var(--color-neutral-500);font-family:var(--font-mono)">{{${f.key}}}${orphanFields.includes(f)?` <span style="color:var(--st-ruby-fg)">${i18t('lib_not_used_above')}</span>`:''}</div>
       </div>`).join('')
-      :`<div style="font-size:13px;color:var(--color-neutral-600);padding:6px 0">${i18t('lib_no_blanks_press')} <b>${i18t('lib_make_selection_blank')}</b>.</div>`;
+      :`<div style="font-size:var(--t-meta);color:var(--color-neutral-600);padding:6px 0">${i18t('lib_no_blanks_press')} <b>${i18t('lib_make_selection_blank')}</b>.</div>`;
     host2.querySelectorAll('[data-fld]').forEach(row=>{
       const i=Number(row.getAttribute('data-fld'));
       row.querySelectorAll('[data-f]').forEach(el=>el.addEventListener('change',()=>{
@@ -919,7 +921,7 @@ function openTemplateEditor(tid){
     // to fix it just makes them cancel.
     const warn=document.getElementById('te-warn');
     if(warn){
-      const act=(a,k,label)=>`<button type="button" data-fix="${a}" data-k="${k}" style="border:0;background:none;padding:0;font:inherit;font-size:inherit;font-weight:600;color:inherit;text-decoration:underline;cursor:pointer">${label}</button>`;
+      const act=(a,k,label)=>`<button type="button" data-fix="${a}" data-k="${k}" style="border:0;background:none;padding:0;font:inherit;font-size:inherit;font-weight:var(--w-strong);color:inherit;text-decoration:underline;cursor:pointer">${label}</button>`;
       const bits=[];
       if(orphanBlanks.length) bits.push(`<span style="display:block;color:var(--st-ruby-fg)"><b>${orphanBlanks.length} placeholder${orphanBlanks.length===1?'':'s'}</b> in the document with no matching blank: ${orphanBlanks.map(k=>`{{${k}}} — ${act('mk',k,'create the blank')} or ${act('rm',k,'remove it from the document')}`).join('; ')}. Saving is blocked until this is resolved: an unmatched placeholder prints as literal braces in every contract.</span>`);
       if(orphanFields.length) bits.push(`<span style="display:block;color:var(--st-amber-fg);margin-top:3px"><b>${orphanFields.length} blank${orphanFields.length===1?'':'s'}</b> no longer used in the document: ${orphanFields.map(f=>`${_tplEsc(f.label||f.key)} — ${act('del',f.key,'remove the blank')} or ${act('ins',f.key,'put {{'+f.key+'}} back at the end')}`).join('; ')}. Left as-is ${orphanFields.length===1?'it':'they'} will still be asked for, and the answer will go nowhere.</span>`);
@@ -1052,25 +1054,25 @@ function openTemplateVersions(tid){
   const canManage=tplCanManage();
 
   openModal(`<div style="padding:20px 22px">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+    <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:3px">
       <span style="color:var(--color-accent)">${icon('history','w-4 h-4')}</span>
-      <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">${i18t('lib_versions_of',{name:_tplEsc(rec.name)})}</h3>
+      <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">${i18t('lib_versions_of',{name:_tplEsc(rec.name)})}</h3>
     </div>
-    <p style="font-size:13px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.5">${i18t('lib_every_save_kept')} <b>new</b> ${i18t('lib_history_intact')} <b>${i18t('lib_no_contract_changes')}</b>${i18t('lib_copies_wording')}</p>
+    <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3);line-height:1.5">${i18t('lib_every_save_kept')} <b>new</b> ${i18t('lib_history_intact')} <b>${i18t('lib_no_contract_changes')}</b>${i18t('lib_copies_wording')}</p>
     <div class="scroll-thin" style="max-height:52vh;overflow-y:auto;display:flex;flex-direction:column;gap:6px">
       ${all.map(v=>`
-        <div style="display:flex;align-items:center;gap:9px;border:1px solid ${v.n===current.n?'var(--color-accent-300)':'var(--color-divider)'};background:${v.n===current.n?'var(--color-accent-100)':'var(--color-surface)'};border-radius:var(--radius);padding:8px 11px">
-          <span style="font-family:var(--font-mono);font-weight:600;font-size:13px;color:var(--color-accent-700);flex:none">v${v.n}</span>
+        <div style="display:flex;align-items:center;gap:9px;border:1px solid ${v.n===current.n?'var(--color-accent-300)':'var(--color-divider)'};background:${v.n===current.n?'var(--color-accent-100)':'var(--color-surface)'};border-radius:var(--radius);padding:var(--s-2) 11px">
+          <span style="font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-meta);color:var(--accent-ink-700);flex:none">v${v.n}</span>
           <span style="min-width:0;flex:1">
-            <span style="display:block;font-size:13px;color:var(--color-neutral-800);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(v.note||'Saved')}${v.name!==rec.name?` <span style="color:var(--color-neutral-500)">· named “${_tplEsc(v.name)}”</span>`:''}</span>
-            <span style="display:block;font-size:12px;color:var(--color-neutral-500);font-family:var(--font-mono)">${v.by?_tplEsc(v.by)+' · ':''}${v.at?fmtDT(v.at):''} · ${(v.fields||[]).length} blank${(v.fields||[]).length===1?'':'s'} · ${(v.format==='rich'?'formatted':'plain text')}</span>
+            <span style="display:block;font-size:var(--t-meta);color:var(--color-neutral-800);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(v.note||'Saved')}${v.name!==rec.name?` <span style="color:var(--color-neutral-500)">· named “${_tplEsc(v.name)}”</span>`:''}</span>
+            <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-500);font-family:var(--font-mono)">${v.by?_tplEsc(v.by)+' · ':''}${v.at?fmtDT(v.at):''} · ${(v.fields||[]).length} blank${(v.fields||[]).length===1?'':'s'} · ${(v.format==='rich'?'formatted':'plain text')}</span>
           </span>
-          ${v.n===current.n?`<span class="badge" style="flex:none;background:var(--color-accent-200);color:var(--color-accent-800)">current</span>`
-            :`<button data-tv-view="${v.n}" class="ui-btn" style="flex:none;font-size:12px;padding:3px 9px">${i18t('lib_view')}</button>
-              ${canManage?`<button data-tv-revert="${v.n}" class="ui-btn" style="flex:none;font-size:12px;padding:3px 9px">${i18t('lib_revert_to_this')}</button>`:''}`}
+          ${v.n===current.n?`<span class="badge" style="flex:none;background:var(--st-steel-bg);color:var(--st-steel-fg)">current</span>`
+            :`<button data-tv-view="${v.n}" class="ui-btn" style="flex:none;font-size:var(--t-label);padding:3px 9px">${i18t('lib_view')}</button>
+              ${canManage?`<button data-tv-revert="${v.n}" class="ui-btn" style="flex:none;font-size:var(--t-label);padding:3px 9px">${i18t('lib_revert_to_this')}</button>`:''}`}
         </div>`).join('')}
     </div>
-    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
+    <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:14px">
       ${canManage?`<button id="tv-edit" class="ui-btn">${i18t('lib_back_to_editing')}</button>`:''}
       <button id="tv-close" class="ui-btn ui-btn-primary">${i18t('act_close')}</button>
     </div></div>`, {maxWidth:'760px'});
@@ -1166,16 +1168,16 @@ function openBulkCreateModal(t){
   const fs=templateFields(t);
   if(!fs.length){ toast(i18t('lb_no_blanks_add_first'),'err'); return; }
   openModal(`<div style="padding:20px 22px">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="color:var(--color-accent)">${icon('list','w-4 h-4')}</span>
-      <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Create in bulk — ${_tplEsc(t.name||t.kind)}</h3></div>
-    <p style="font-size:13px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.55">For high-volume, low-variation paper — distributor agreements, employment letters. Download the sheet, fill one row per contract, upload it back. <b>${i18t('lib_every_row_checked')}</b>${i18t('lib_bad_cell_note')} Up to ${TPL_BULK_MAX} rows.</p>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-      <button id="bk-csv" class="ui-btn" style="font-size:13px;padding:5px 11px">${icon('download','w-3.5 h-3.5')} ${i18tn('lib_download_csv',fs.length,{n:fs.length})}</button>
-      <label class="ui-btn" style="font-size:13px;padding:5px 11px;cursor:pointer">${icon('upload','w-3.5 h-3.5')} Upload the filled sheet
+    <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-1)"><span style="color:var(--color-accent)">${icon('list','w-4 h-4')}</span>
+      <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">Create in bulk — ${_tplEsc(t.name||t.kind)}</h3></div>
+    <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3);line-height:1.55">For high-volume, low-variation paper — distributor agreements, employment letters. Download the sheet, fill one row per contract, upload it back. <b>${i18t('lib_every_row_checked')}</b>${i18t('lib_bad_cell_note')} Up to ${TPL_BULK_MAX} rows.</p>
+    <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;margin-bottom:var(--s-3)">
+      <button id="bk-csv" class="ui-btn" style="font-size:var(--t-meta);padding:5px 11px">${icon('download','w-3.5 h-3.5')} ${i18tn('lib_download_csv',fs.length,{n:fs.length})}</button>
+      <label class="ui-btn" style="font-size:var(--t-meta);padding:5px 11px;cursor:pointer">${icon('upload','w-3.5 h-3.5')} Upload the filled sheet
         <input id="bk-file" type="file" accept=".csv" style="display:none"/></label>
     </div>
-    <div id="bk-out" style="font-size:13px;color:var(--color-neutral-700);min-height:20px"></div>
-    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
+    <div id="bk-out" style="font-size:var(--t-meta);color:var(--color-neutral-700);min-height:20px"></div>
+    <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:14px">
       <button id="bk-cancel" class="ui-btn">${i18t('act_close')}</button>
       <button id="bk-go" class="ui-btn ui-btn-primary" disabled style="opacity:.5">${i18t('lib_create_drafts')}</button>
     </div></div>`, {maxWidth:'700px'});
@@ -1198,7 +1200,7 @@ function openBulkCreateModal(t){
         const byRow={};
         r.errors.forEach(er=>{ (byRow[er.row]=byRow[er.row]||[]).push(er); });
         out.innerHTML=`<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:var(--radius);padding:9px 11px">
-          <div style="font-weight:600;color:var(--st-ruby-fg);margin-bottom:5px">${r.errors.length} problem${r.errors.length===1?'':'s'} found — <b>${i18t('lib_nothing_created')}</b>.</div>
+          <div style="font-weight:var(--w-strong);color:var(--st-ruby-fg);margin-bottom:5px">${r.errors.length} problem${r.errors.length===1?'':'s'} found — <b>${i18t('lib_nothing_created')}</b>.</div>
           <div class="scroll-thin" style="max-height:200px;overflow-y:auto">
           ${Object.keys(byRow).sort((a,b)=>a-b).map(rn=>`<div style="padding:2px 0;color:var(--st-ruby-fg)">
             ${rn==='0'?`<b>${i18t('lib_sheet')}</b>`:`<b>Row ${rn}</b>`} — ${byRow[rn].map(er=>`${er.cell?`<i>${_tplEsc(er.cell)}</i>: `:''}${_tplEsc(er.msg)}`).join('; ')}</div>`).join('')}
@@ -1207,9 +1209,9 @@ function openBulkCreateModal(t){
         return;
       }
       ready=r.rows;
-      out.innerHTML=`<div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:var(--radius);padding:9px 11px;color:var(--color-accent-800)">
+      out.innerHTML=`<div style="border:1px solid var(--color-divider);background:var(--st-steel-bg);border-radius:var(--radius);padding:9px 11px;color:var(--st-steel-fg)">
         <b>${r.rows.length} row${r.rows.length===1?'':'s'} checked, every cell valid.</b> ${i18t('lib_press')} <b>${i18t('lib_create_drafts')}</b> to file them all in one pass.
-        <div style="margin-top:5px;color:var(--color-neutral-700);font-size:12px">First few: ${r.rows.slice(0,3).map(x=>_tplEsc(x.name)).join(' · ')}${r.rows.length>3?` … and ${r.rows.length-3} more`:''}</div></div>`;
+        <div style="margin-top:5px;color:var(--color-neutral-700);font-size:var(--t-label)">First few: ${r.rows.slice(0,3).map(x=>_tplEsc(x.name)).join(' · ')}${r.rows.length>3?` … and ${r.rows.length-3} more`:''}</div></div>`;
       go.disabled=false; go.style.opacity='1';
     }catch(err){ out.innerHTML=`<span style="color:var(--st-ruby-fg)">${i18t('lib_bad_csv',{err:_tplEsc(err.message)})}</span>`; }
   });
@@ -1242,19 +1244,19 @@ function _tplPreviewHtml(tpl){
     return renderDocHtml(markPlaceholders(body, labels), RICH_FORMAT);
   }
   return window.documentTextHtml ? documentTextHtml(body)
-    : `<div style="font-size:14px;line-height:1.65;white-space:pre-wrap">${_tplEsc(body)}</div>`;
+    : `<div style="font-size:var(--t-body);line-height:1.65;white-space:pre-wrap">${_tplEsc(body)}</div>`;
 }
 function openTemplatePreview(tpl){
   openModal(`
     <div style="padding:20px 22px">
-      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:4px">
-        <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">${_tplEsc(tpl.name)}</h3>
-        <span style="font-size:12px;color:var(--color-neutral-600)">${FOLDERS[tpl.folder]?.name||''}</span>
+      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:var(--s-1)">
+        <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">${_tplEsc(tpl.name)}</h3>
+        <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${FOLDERS[tpl.folder]?.name||''}</span>
       </div>
-      <p style="font-size:12px;color:var(--color-neutral-600);margin:0 0 10px">${tpl.chars?tpl.chars.toLocaleString()+' characters · ':''}added ${tpl.at?fmtDT(tpl.at):''} by ${_tplEsc(tpl.by||'—')}${templateFields(tpl).length?` · <b>${templateFields(tpl).length} blank${templateFields(tpl).length===1?'':'s'}</b>`:' · no blanks yet'}</p>
-      ${templateFields(tpl).length?`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">${templateFields(tpl).map(f=>`<span style="font-size:12px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:2px 7px;color:var(--color-neutral-700)"><b style="font-family:var(--font-mono)">${_tplEsc(f.key)}</b> ${_tplEsc(f.label)}${f.maps?` <span style="color:var(--color-accent-700)">→ ${_tplEsc(tplMapLabel(f.maps))}</span>`:''}</span>`).join('')}</div>`:''}
-      <div class="scroll-thin doc-surface" style="border:1px solid var(--color-divider);border-radius:0;background:var(--color-bg);padding:14px 16px;max-height:55vh;overflow-y:auto">${_tplPreviewHtml(tpl)}</div>
-      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
+      <p style="font-size:var(--t-label);color:var(--color-neutral-600);margin:0 0 10px">${tpl.chars?tpl.chars.toLocaleString()+' characters · ':''}added ${tpl.at?fmtDT(tpl.at):''} by ${_tplEsc(tpl.by||'—')}${templateFields(tpl).length?` · <b>${templateFields(tpl).length} blank${templateFields(tpl).length===1?'':'s'}</b>`:' · no blanks yet'}</p>
+      ${templateFields(tpl).length?`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">${templateFields(tpl).map(f=>`<span style="font-size:var(--t-label);border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:2px 7px;color:var(--color-neutral-700)"><b style="font-family:var(--font-mono)">${_tplEsc(f.key)}</b> ${_tplEsc(f.label)}${f.maps?` <span style="color:var(--accent-ink-700)">→ ${_tplEsc(tplMapLabel(f.maps))}</span>`:''}</span>`).join('')}</div>`:''}
+      <div class="scroll-thin doc-surface" style="border:1px solid var(--color-divider);border-radius:0;background:var(--color-bg);padding:14px var(--s-4);max-height:55vh;overflow-y:auto">${_tplPreviewHtml(tpl)}</div>
+      <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:14px">
         ${canEdit()?`<button id="tp-blanks" class="ui-btn">${templateFields(tpl).length?'Edit blanks':'Add blanks'}</button>`:''}
         ${canEdit()?`<button id="tp-use" class="ui-btn ui-btn-primary">${i18t('lib_use_template')}</button>`:''}
         <button id="tp-close" class="ui-btn">${i18t('act_close')}</button>
@@ -1350,35 +1352,35 @@ function tplPageRowHtml(r){
     ?(r.draft?'var(--st-amber-dot)':'var(--st-green-dot)')
     :(r.stream?folderColor(r.stream):'var(--color-neutral-300)');
   const version=r.version==null?`<span style="color:var(--color-neutral-400)">—</span>`
-    :r.mono?`<span style="font-family:var(--font-mono);font-size:12px;color:var(--color-neutral-500)">${_tplEsc(r.version)}</span>`
-    :`<span style="font-weight:700;color:var(--color-accent-700)">${_tplEsc(r.version)}</span>`;
-  const B='class="ui-btn" style="font-size:13px;padding:4px 12px"';
-  const P='class="ui-btn ui-btn-primary" style="font-size:13px;padding:4px 12px"';
+    :r.mono?`<span style="font-family:var(--font-mono);font-size:var(--t-label);color:var(--color-neutral-500)">${_tplEsc(r.version)}</span>`
+    :`<span style="font-weight:var(--w-title);color:var(--accent-ink-700)">${_tplEsc(r.version)}</span>`;
+  const B='class="ui-btn" style="font-size:var(--t-meta);padding:var(--s-1) var(--s-3)"';
+  const P='class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:var(--s-1) var(--s-3)"';
   let acts='';
   if(r.kind==='company') acts=r.draft
     ?`<button data-tpllib-open="${_tplEsc(r.id)}" ${B}>${i18t('lib_continue_editing')}</button>`
     :`${canManage?`<button data-tpllib-use="${_tplEsc(r.id)}" ${P}>${i18t('lib_use')}</button>`:''}<button data-tpllib-open="${_tplEsc(r.id)}" ${B}>${i18t('act_open')}</button>`;
-  else if(r.kind==='cp') acts=`${canManage?`<button data-tpl-use="${_tplEsc(r.id)}" ${P}>${i18t('lib_use')}</button>`:''}<button data-tpl-prev="${_tplEsc(r.id)}" ${B}>${i18t('act_open')}</button>${canManage?`<button data-tpl-more="${_tplEsc(r.id)}" class="ui-btn" style="font-size:13px;padding:4px 9px" title="${i18t('lb_edit_blanks_bulk')}">⋯</button>`:''}`;
+  else if(r.kind==='cp') acts=`${canManage?`<button data-tpl-use="${_tplEsc(r.id)}" ${P}>${i18t('lib_use')}</button>`:''}<button data-tpl-prev="${_tplEsc(r.id)}" ${B}>${i18t('act_open')}</button>${canManage?`<button data-tpl-more="${_tplEsc(r.id)}" class="ui-btn" style="font-size:var(--t-meta);padding:var(--s-1) 9px" title="${i18t('lb_edit_blanks_bulk')}">⋯</button>`:''}`;
   else if(r.kind==='builtin') acts=`${canManage?`<button data-tpl-builtin="${_tplEsc(r.id)}" ${P}>${i18t('lib_use')}</button><button data-tpl-bulk-b="${_tplEsc(r.id)}" ${B}>${i18t('lib_bulk')}</button>`:''}`;
   else acts=r.imported
     ?`<span class="badge" style="background:var(--st-green-bg);color:var(--st-green-fg)"><span class="dot" style="background:var(--st-green-dot)"></span>${i18t('lib_imported')}</span>`
     :(canManage?`<button data-sample-imp="${r.i}" ${B}>${i18t('lib_import_as_template')}</button>`:'');
   return `<tr>
-    <td style="padding:10px 8px 10px 14px;${RULE}">
+    <td style="padding:10px var(--s-2) 10px 14px;${RULE}">
       <div style="display:flex;gap:11px;align-items:flex-start">
         <span style="flex:none;width:4px;height:30px;border-radius:var(--radius);background:${stripe};margin-top:2px"></span>
         <div style="min-width:0">
-          <div style="display:flex;align-items:center;gap:8px;min-width:0">
-            <span style="font-size:14px;font-weight:700;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(r.name)}</span>
-            ${r.draft?`<span style="flex:none;font-size:10px;font-weight:700;padding:1px 7px;border-radius:var(--radius);background:var(--st-amber-bg);color:var(--st-amber-fg)">Draft</span>`:''}
+          <div style="display:flex;align-items:center;gap:var(--s-2);min-width:0">
+            <span style="font-size:var(--t-body);font-weight:var(--w-title);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(r.name)}</span>
+            ${r.draft?`<span style="flex:none;font-size:var(--t-figure);font-weight:var(--w-title);padding:1px 7px;border-radius:var(--radius);background:var(--st-amber-bg);color:var(--st-amber-fg)">Draft</span>`:''}
           </div>
-          <div style="font-size:12px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px">${_tplEsc(r.sub)}</div>
+          <div style="font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px">${_tplEsc(r.sub)}</div>
         </div>
       </div></td>
-    <td style="padding:10px 8px;${RULE};font-size:13px;color:var(--color-neutral-600);white-space:nowrap">${_tplEsc(r.origin)}</td>
-    <td style="padding:10px 8px;${RULE};font-size:13px;font-variant-numeric:tabular-nums">${version}</td>
-    <td style="padding:10px 8px;${RULE};font-size:13px;font-variant-numeric:tabular-nums;color:var(--color-neutral-700)">${r.used==null?'—':r.used}</td>
-    <td style="padding:10px 14px 10px 8px;${RULE};text-align:right;white-space:nowrap"><div style="display:inline-flex;gap:6px">${acts}</div></td>
+    <td style="padding:10px var(--s-2);${RULE};font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap">${_tplEsc(r.origin)}</td>
+    <td style="padding:10px var(--s-2);${RULE};font-size:var(--t-meta);font-variant-numeric:tabular-nums">${version}</td>
+    <td style="padding:10px var(--s-2);${RULE};font-size:var(--t-meta);font-variant-numeric:tabular-nums;color:var(--color-neutral-700)">${r.used==null?'—':r.used}</td>
+    <td style="padding:10px 14px 10px var(--s-2);${RULE};text-align:right;white-space:nowrap"><div style="display:inline-flex;gap:6px">${acts}</div></td>
   </tr>`;
 }
 function tplPagePaintRows(){
@@ -1389,7 +1391,7 @@ function tplPagePaintRows(){
   const CAP=TPL_PAGE_CAP;
   const shown=(_tplPage.showAll||searching)?rows:rows.slice(0,CAP);
   const hidden=rows.length-shown.length;
-  const th=t=>`<th style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);text-align:left;padding:7px 8px;border-bottom:1px solid var(--color-divider)">${t}</th>`;
+  const th=t=>`<th style="font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);text-align:left;padding:7px var(--s-2);border-bottom:1px solid var(--color-divider)">${t}</th>`;
   const hiddenKinds=hidden>0?Object.entries(rows.slice(CAP).reduce((m,r)=>{m[r.kind]=(m[r.kind]||0)+1;return m;},{}))
     /* Keyed on the KIND, not on the label's words — comparing the label to
        "Samples" stops being true the moment the label can be translated. */
@@ -1401,10 +1403,10 @@ function tplPagePaintRows(){
       <tr>${th(i18t('lib_col_template'))}${th(i18t('lib_col_origin'))}${th(i18t('lib_col_version'))}${th(i18t('lib_col_used'))}<th style="border-bottom:1px solid var(--color-divider)"></th></tr>
       ${shown.map(tplPageRowHtml).join('')}
     </table></div>
-    ${hidden>0?`<div style="display:flex;align-items:center;padding:11px 14px;font-size:13px;color:var(--color-neutral-600)">
+    ${hidden>0?`<div style="display:flex;align-items:center;padding:11px 14px;font-size:var(--t-meta);color:var(--color-neutral-600)">
       ${i18t('lib_more_kinds',{n:hidden,kinds:hiddenKinds})}<span style="flex:1"></span>
-      <button id="tpl-showall" style="border:0;background:none;cursor:pointer;font:inherit;font-size:13px;font-weight:700;color:var(--color-accent-700)">${i18t('lib_show_all')}</button></div>`:''}`
-    :`<div style="padding:28px 14px;text-align:center;font-size:13px;color:var(--color-neutral-600)">${i18t('lib_nothing_matches')}</div>`;
+      <button id="tpl-showall" style="border:0;background:none;cursor:pointer;font:inherit;font-size:var(--t-meta);font-weight:var(--w-title);color:var(--accent-ink-700)">${i18t('lib_show_all')}</button></div>`:''}`
+    :`<div style="padding:28px 14px;text-align:center;font-size:var(--t-meta);color:var(--color-neutral-600)">${i18t('lib_nothing_matches')}</div>`;
   // row verbs (rebound on every paint — the rows are rebuilt wholesale)
   host.querySelectorAll('[data-tpllib-use]').forEach(b=>b.addEventListener('click',()=>tplLibNewContract(b.getAttribute('data-tpllib-use'))));
   host.querySelectorAll('[data-tpllib-open]').forEach(b=>b.addEventListener('click',()=>openTemplateLibDetail(b.getAttribute('data-tpllib-open'))));
@@ -1423,16 +1425,16 @@ function tplPagePaintRows(){
    card offered, none of it stealing a column from every row. */
 function tplRowMoreMenu(tid){
   const t=customTemplates().find(x=>x.id===tid); if(!t) return;
-  const item=(id,label,sub)=>`<button id="${id}" style="display:block;width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;padding:9px 12px;border-radius:var(--radius)" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
-    <span style="display:block;font-size:14px;font-weight:600">${label}</span><span style="display:block;font-size:12px;color:var(--color-neutral-600)">${sub}</span></button>`;
-  openModal(`<div style="padding:16px 14px;min-width:280px">
-    <div style="font-size:14px;font-weight:700;padding:0 12px 8px">${_tplEsc(t.name)}</div>
+  const item=(id,label,sub)=>`<button id="${id}" style="display:block;width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;padding:9px var(--s-3);border-radius:var(--radius)" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
+    <span style="display:block;font-size:var(--t-body);font-weight:var(--w-strong)">${label}</span><span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600)">${sub}</span></button>`;
+  openModal(`<div style="padding:var(--s-4) 14px;min-width:280px">
+    <div style="font-size:var(--t-body);font-weight:var(--w-title);padding:0 var(--s-3) var(--s-2)">${_tplEsc(t.name)}</div>
     ${item('tm-edit','Edit the wording','Every save becomes a new version')}
     ${item('tm-blanks',templateFields(t).length?`Blanks (${templateFields(t).length})`:'Add blanks','The guided fields a drafter completes')}
     ${templateFields(t).length?item('tm-bulk','Create in bulk','Many contracts from one CSV of answers'):''}
     ${item('tm-vers',`Version history (${templateVersions(t).length+1})`,'What changed, when, by whom')}
     ${item('tm-del','Delete template','Usage is shown before anything is removed')}
-    <div style="display:flex;justify-content:flex-end;padding:8px 12px 0"><button id="tm-close" class="ui-btn" style="font-size:13px">${i18t('act_close')}</button></div>
+    <div style="display:flex;justify-content:flex-end;padding:var(--s-2) var(--s-3) 0"><button id="tm-close" class="ui-btn" style="font-size:var(--t-meta)">${i18t('act_close')}</button></div>
   </div>`);
   document.getElementById('tm-close')?.addEventListener('click',closeModal);
   document.getElementById('tm-edit')?.addEventListener('click',()=>{ closeModal(); openTemplateEditor(tid); });
@@ -1448,13 +1450,13 @@ function tplNewMenu(){
   const lib=(typeof tplLibAll==='function')?tplLibAll():{canManage:false};
   const companyOk=API_MODE()&&lib.canManage;
   if(!companyOk){ openCreateTemplateModal('paste'); return; }
-  const opt=(id,label,sub)=>`<button id="${id}" style="display:block;width:100%;text-align:left;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:13px 15px;cursor:pointer;font:inherit;margin-bottom:8px">
-    <span style="display:block;font-size:14px;font-weight:700">${label}</span><span style="display:block;font-size:12px;color:var(--color-neutral-600);margin-top:2px;line-height:1.45">${sub}</span></button>`;
+  const opt=(id,label,sub)=>`<button id="${id}" style="display:block;width:100%;text-align:left;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:13px 15px;cursor:pointer;font:inherit;margin-bottom:var(--s-2)">
+    <span style="display:block;font-size:var(--t-body);font-weight:var(--w-title)">${label}</span><span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px;line-height:1.45">${sub}</span></button>`;
   openModal(`<div style="padding:20px 22px;max-width:380px">
-    <h3 style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0 0 10px">${i18t('lib_what_kind')}</h3>
+    <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);margin:0 0 10px">${i18t('lib_what_kind')}</h3>
     ${opt('tn-company',i18t('lib_grp_company'),i18t('lib_published_whole_team'))}
     ${opt('tn-cp','Counterparty paper','Their template, saved so the negotiation runs through HaTi.')}
-    <div style="display:flex;justify-content:flex-end"><button id="tn-close" class="ui-btn" style="font-size:13px">${i18t('act_cancel')}</button></div>
+    <div style="display:flex;justify-content:flex-end"><button id="tn-close" class="ui-btn" style="font-size:var(--t-meta)">${i18t('act_cancel')}</button></div>
   </div>`);
   document.getElementById('tn-close')?.addEventListener('click',closeModal);
   document.getElementById('tn-company')?.addEventListener('click',()=>{ closeModal(); tplLibCreateModal(); });
@@ -1619,7 +1621,7 @@ function tplOverviewHtml(d){
   /* The two panels' own signposts stay small uppercase caps: a caption OVER a
      list is a signpost, and the demo's sentence-case labels are labels ON a
      figure. Different jobs, different dress. */
-  const HEAD='font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)';
+  const HEAD='font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)';
   /* ---- THE CARD CAME DOWN A RUNG (owner-asked 25 Aug 2026, off a screenshot
      with the two figures ringed: "all the fonts need to be reduced by one size
      and the ones highlighted (numbers) should be reduced by 2 sizes") ----
@@ -1628,8 +1630,8 @@ function tplOverviewHtml(d){
      figures TWO steps, 19 to 15. THE BADGE IS THE ONE THING THAT DID NOT MOVE
      and it is said out loud: 10px is the ladder's floor, and a smaller one
      would be the only sub-10px type anywhere in this product. */
-  const LBL='font-size:12px;font-weight:400;color:var(--color-neutral-600);line-height:1.45';
-  const FIG='font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.3;margin-top:1px';
+  const LBL='font-size:var(--t-label);font-weight:var(--w-body);color:var(--color-neutral-600);line-height:1.45';
+  const FIG='font-size:var(--t-card);font-weight:var(--w-title);font-variant-numeric:tabular-nums;line-height:1.3;margin-top:1px';
   const cardHtml=c=>{
     const sub=[c.category,c.version&&!c.mono?c.version:null,dated(c)].filter(Boolean).join(' · ');
     return `<button data-tpl-ov-card="${_tplEsc(c.id)}" data-tpl-ov-name="${_tplEsc(c.name)}" title="${i18t('lib_ov_open_in_list')}"
@@ -1647,7 +1649,7 @@ function tplOverviewHtml(d){
             enough to need a third gets one. */}
       <span style="display:block;padding:13px 14px 0">
         ${badge(c)}
-        <span class="tpl-ov-name" style="display:block;font-size:14px;font-weight:700;color:var(--color-text)">${_tplEsc(c.name)}</span>
+        <span class="tpl-ov-name" style="display:block;font-size:var(--t-body);font-weight:var(--w-title);color:var(--color-text)">${_tplEsc(c.name)}</span>
         <span style="display:block;${LBL};margin-top:3px;clear:both;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(sub||'—')}</span>
       </span>
       <span style="display:flex;gap:18px;margin:11px 14px 0;padding-top:11px;border-top:1px solid var(--color-divider)">
@@ -1671,44 +1673,44 @@ function tplOverviewHtml(d){
   const shown=d.cards.slice(0,TPL_PAGE_CAP);
   const more=d.cards.length-shown.length;
   const attRow=a=>`<button data-tpl-ov-card="${_tplEsc(a.id)}" data-tpl-ov-name="${_tplEsc(a.name)}"
-    style="display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--color-divider);background:none;cursor:pointer;font:inherit;color:inherit;padding:8px 2px"
+    style="display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--color-divider);background:none;cursor:pointer;font:inherit;color:inherit;padding:var(--s-2) 2px"
     onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
-    <span style="display:block;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(a.name)}</span>
-    <span style="display:block;font-size:12px;color:var(--color-neutral-600);line-height:1.45">${_tplEsc(a.why)}</span></button>`;
+    <span style="display:block;font-size:var(--t-meta);font-weight:var(--w-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(a.name)}</span>
+    <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.45">${_tplEsc(a.why)}</span></button>`;
   const barRow=c=>{
     const w=d.peak?Math.max(6,Math.round(c.recent/d.peak*100)):0;
     return `<button data-tpl-ov-card="${_tplEsc(c.id)}" data-tpl-ov-name="${_tplEsc(c.name)}"
       style="display:block;width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;color:inherit;padding:6px 2px">
-      <span style="display:flex;align-items:baseline;gap:8px">
-        <span style="flex:1;min-width:0;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(c.name)}</span>
-        <span style="flex:none;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums">${c.recent}</span>
+      <span style="display:flex;align-items:baseline;gap:var(--s-2)">
+        <span style="flex:1;min-width:0;font-size:var(--t-meta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(c.name)}</span>
+        <span style="flex:none;font-size:var(--t-meta);font-weight:var(--w-title);font-variant-numeric:tabular-nums">${c.recent}</span>
       </span>
-      <span style="display:block;height:6px;margin-top:4px;background:var(--color-neutral-100)">
+      <span style="display:block;height:6px;margin-top:var(--s-1);background:var(--color-neutral-100)">
         <span style="display:block;height:6px;width:${w}%;background:var(--accent-solid)"></span></span></button>`;
   };
-  const EMPTY='font-size:13px;line-height:1.6;color:var(--color-neutral-600);margin:0';
+  const EMPTY='font-size:var(--t-meta);line-height:1.6;color:var(--color-neutral-600);margin:0';
   return `
-  <div class="tpl-ov" style="display:grid;gap:16px;align-items:start">
+  <div class="tpl-ov" style="display:grid;gap:var(--s-4);align-items:start">
     <div>
       <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-        <span style="font-size:13px;color:var(--color-neutral-600)">${i18tn('lib_ov_head',d.total,{n:d.total})}</span>
-        <span style="font-size:13px;color:var(--color-neutral-600)">·</span>
-        <span style="font-size:13px;color:var(--color-neutral-600)">${i18t('lib_ov_coverage',{checked:d.checked,open:d.unchecked})}</span>
+        <span style="font-size:var(--t-meta);color:var(--color-neutral-600)">${i18tn('lib_ov_head',d.total,{n:d.total})}</span>
+        <span style="font-size:var(--t-meta);color:var(--color-neutral-600)">·</span>
+        <span style="font-size:var(--t-meta);color:var(--color-neutral-600)">${i18t('lib_ov_coverage',{checked:d.checked,open:d.unchecked})}</span>
       </div>
-      <div class="tpl-ov-cards" style="display:grid;gap:12px">${shown.map(cardHtml).join('')}</div>
-      ${more>0?`<div style="display:flex;align-items:center;gap:10px;margin-top:12px">
-        <span style="font-size:13px;color:var(--color-neutral-600)">${i18tn('lib_ov_more',more,{n:more})}</span>
-        <button id="tpl-ov-all" style="border:0;background:none;cursor:pointer;font:inherit;font-size:13px;font-weight:700;color:var(--accent-ink)">${i18tn('lib_ov_see_all',d.total,{n:d.total})}</button>
+      <div class="tpl-ov-cards" style="display:grid;gap:var(--s-3)">${shown.map(cardHtml).join('')}</div>
+      ${more>0?`<div style="display:flex;align-items:center;gap:10px;margin-top:var(--s-3)">
+        <span style="font-size:var(--t-meta);color:var(--color-neutral-600)">${i18tn('lib_ov_more',more,{n:more})}</span>
+        <button id="tpl-ov-all" style="border:0;background:none;cursor:pointer;font:inherit;font-size:var(--t-meta);font-weight:var(--w-title);color:var(--accent-ink)">${i18tn('lib_ov_see_all',d.total,{n:d.total})}</button>
       </div>`:''}
     </div>
-    <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;flex-direction:column;gap:var(--s-4)">
       <section id="tpl-ov-attention" style="${CARD};padding:14px">
-        <div style="${HEAD};margin-bottom:8px">${i18t('lib_ov_attention')}</div>
+        <div style="${HEAD};margin-bottom:var(--s-2)">${i18t('lib_ov_attention')}</div>
         ${d.attentionShown.length?d.attentionShown.map(attRow).join(''):`<p style="${EMPTY}">${i18t('lib_ov_attention_none')}</p>`}
-        ${d.attentionMore>0?`<p style="${EMPTY};margin-top:8px">${i18tn('lib_ov_more',d.attentionMore,{n:d.attentionMore})}</p>`:''}
+        ${d.attentionMore>0?`<p style="${EMPTY};margin-top:var(--s-2)">${i18tn('lib_ov_more',d.attentionMore,{n:d.attentionMore})}</p>`:''}
       </section>
       <section id="tpl-ov-mostused" style="${CARD};padding:14px">
-        <div style="${HEAD};margin-bottom:8px">${i18t('lib_ov_most_used',{n:d.days})}</div>
+        <div style="${HEAD};margin-bottom:var(--s-2)">${i18t('lib_ov_most_used',{n:d.days})}</div>
         ${d.mostUsed.length?d.mostUsed.map(barRow).join(''):`<p style="${EMPTY}">${i18t('lib_ov_most_used_none',{n:d.days})}</p>`}
       </section>
     </div>
@@ -1754,11 +1756,11 @@ function renderTemplatesPage(){
   const canManage=tplCanManage();
   const tab=tplPageTab();
   const ov=tplOverviewData();
-  const railIt=(key,label,n)=>`<button data-tpl-group="${key}" style="display:flex;align-items:center;gap:8px;width:100%;border:0;background:${_tplPage.group===key?'var(--color-accent-100)':'none'};color:${_tplPage.group===key?'var(--color-accent-800)':'var(--color-neutral-700)'};font:inherit;font-size:14px;font-weight:600;padding:7px 11px;border-radius:var(--radius);cursor:pointer;text-align:left">
-    <span style="flex:1">${label}</span><span style="font-family:var(--font-mono);font-size:12px;color:${_tplPage.group===key?'var(--color-accent-700)':'var(--color-neutral-500)'}">${n}</span></button>`;
-  const streamIt=f=>`<button data-tpl-stream="${f.id}" style="display:flex;align-items:center;gap:9px;width:100%;border:0;background:${_tplPage.stream===f.id?'var(--color-accent-100)':'none'};color:var(--color-neutral-700);font:inherit;font-size:13px;font-weight:600;padding:6px 11px;border-radius:var(--radius);cursor:pointer;text-align:left">
+  const railIt=(key,label,n)=>`<button data-tpl-group="${key}" style="display:flex;align-items:center;gap:var(--s-2);width:100%;border:0;background:${_tplPage.group===key?'var(--color-accent-100)':'none'};color:${_tplPage.group===key?'var(--color-accent-800)':'var(--color-neutral-700)'};font:inherit;font-size:var(--t-body);font-weight:var(--w-strong);padding:7px 11px;border-radius:var(--radius);cursor:pointer;text-align:left">
+    <span style="flex:1">${label}</span><span style="font-family:var(--font-mono);font-size:var(--t-label);color:${_tplPage.group===key?'var(--color-accent-700)':'var(--color-neutral-500)'}">${n}</span></button>`;
+  const streamIt=f=>`<button data-tpl-stream="${f.id}" style="display:flex;align-items:center;gap:9px;width:100%;border:0;background:${_tplPage.stream===f.id?'var(--color-accent-100)':'none'};color:var(--color-neutral-700);font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);padding:6px 11px;border-radius:var(--radius);cursor:pointer;text-align:left">
     <span style="flex:none;width:8px;height:14px;border-radius:var(--radius);background:${folderColor(f.id)}"></span><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(tplShortStream(f.name))}</span></button>`;
-  const HEAD='font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;color:var(--color-neutral-500);text-transform:uppercase;padding:0 11px;margin:0 0 6px';
+  const HEAD='font-family:var(--font-mono);font-size:var(--t-figure);letter-spacing:.12em;color:var(--color-neutral-500);text-transform:uppercase;padding:0 11px;margin:0 0 6px';
   /* NO SENTENCE UNDER THE TITLE and none under the tabs (owner-asked 25 Aug
      2026, "remove these explanations below the headers in all pages where the
      explanation is there"). This page owns its own header, so the sweep that
@@ -1773,10 +1775,10 @@ function renderTemplatesPage(){
             MEASURED, and it is exactly the spread the owner reported on
             25 Aug. Home answers this the same way, by taking one element out
             of the row's alignment rather than by moving the row. */}
-      <h1 style="margin:0;align-self:flex-start;font-family:var(--font-heading);font-size:20px;font-weight:700;letter-spacing:-.01em;color:var(--color-text);line-height:1.2">${i18t('nav_templates')}</h1>
+      <h1 style="margin:0;align-self:flex-start;font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);letter-spacing:-.01em;color:var(--color-text);line-height:1.2">${i18t('nav_templates')}</h1>
       <span style="flex:1"></span>
-      ${canManage?`<button id="tpl-convert" class="ui-btn ui-btn-secondary" style="font-size:13px;padding:6px 13px">${i18t('lib_convert_document')}</button>
-      <button id="tpl-new" class="ui-btn ui-btn-primary" style="font-size:13px;padding:6px 14px">${i18t('lib_new_template')}</button>`:''}
+      ${canManage?`<button id="tpl-convert" class="ui-btn ui-btn-secondary" style="font-size:var(--t-meta);padding:6px 13px">${i18t('lib_convert_document')}</button>
+      <button id="tpl-new" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:6px 14px">${i18t('lib_new_template')}</button>`:''}
     </div>
     <div class="st-tabs" role="tablist" style="margin-bottom:14px">
       <button class="st-tab${tab==='overview'?' on':''}" data-tpl-tab="overview" role="tab" aria-selected="${tab==='overview'?'true':'false'}">${i18t('lib_tab_overview')}</button>
@@ -1786,7 +1788,7 @@ function renderTemplatesPage(){
     <section data-tpl-sec="overview" ${tab==='overview'?'':'hidden'}>${tplOverviewHtml(ov)}</section>
 
     <section data-tpl-sec="list" ${tab==='list'?'':'hidden'}>
-    <div class="tpl-cols" style="display:grid;gap:16px;align-items:start">
+    <div class="tpl-cols" style="display:grid;gap:var(--s-4);align-items:start">
       <div>
         <div style="${HEAD}">${i18t('lib_library')}</div>
         ${railIt('all',TPL_GROUP_LABEL.all,total)}
@@ -1794,7 +1796,7 @@ function renderTemplatesPage(){
         ${railIt('cp',TPL_GROUP_LABEL.cp,counts.cp||0)}
         ${railIt('builtin',TPL_GROUP_LABEL.builtin,counts.builtin||0)}
         ${railIt('sample',TPL_GROUP_LABEL.sample,counts.sample||0)}
-        <div style="${HEAD};margin-top:16px">${i18t('lib_value_stream')}</div>
+        <div style="${HEAD};margin-top:var(--s-4)">${i18t('lib_value_stream')}</div>
         ${Object.values(FOLDERS).map(streamIt).join('')}
         <!-- Our standards used to hang off this rail, because the clause
              library and playbook had no door of their own. They have one now,
@@ -1802,10 +1804,10 @@ function renderTemplatesPage(){
              the fault WO N1 removed — so the rail no longer carries it. -->
       </div>
       <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);box-shadow:var(--shadow-sm);overflow:hidden">
-        <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--color-divider)">
+        <div style="display:flex;align-items:center;gap:var(--s-3);padding:var(--s-3) 14px;border-bottom:1px solid var(--color-divider)">
           <input id="tpl-search" type="search" placeholder="${i18t('lb_search_templates')}" autocomplete="off" value="${_tplEsc(_tplPage.q)}"
-            style="flex:none;width:min(320px,50%);border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:7px 12px;font:inherit;font-size:13px;color:inherit;outline:none"/>
-          <span id="tpl-count" style="font-size:12px;color:var(--color-neutral-500)"></span>
+            style="flex:none;width:min(320px,50%);border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:7px var(--s-3);font:inherit;font-size:var(--t-meta);color:inherit;outline:none"/>
+          <span id="tpl-count" style="font-size:var(--t-label);color:var(--color-neutral-500)"></span>
         </div>
         <div id="tpl-rows" style="overflow-x:auto"></div>
       </div>
@@ -1879,14 +1881,14 @@ function renderPlaybookPage(){
     .filter(x=>x.s&&(x.s.dev+x.s.miss)>0)
     .sort((a,b)=>(b.s.dev+b.s.miss)-(a.s.dev+a.s.miss)).slice(0,8);
   const devHtml=devRows.length?devRows.map(x=>`
-    <button data-dev-open="${x.c.id}" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 2px;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
+    <button data-dev-open="${x.c.id}" style="display:flex;align-items:center;gap:var(--s-2);width:100%;padding:6px 2px;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
       <span style="flex:1;min-width:0">
-        <span style="display:block;font-size:13px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${x.c.name}</span>
-        <span style="display:block;font-size:12px;color:var(--color-neutral-600)">${x.c.id} · ${x.c.counterparty||'—'}</span>
+        <span style="display:block;font-size:var(--t-meta);font-weight:var(--w-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${x.c.name}</span>
+        <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600)">${x.c.id} · ${x.c.counterparty||'—'}</span>
       </span>
       <span class="badge" style="background:var(--st-amber-bg);color:var(--st-amber-fg);flex:none">${x.s.dev+x.s.miss} deviation${x.s.dev+x.s.miss===1?'':'s'}</span>
     </button>`).join('')
-    :`<p style="font-size:13px;color:var(--color-neutral-600);margin:0;line-height:1.6">${i18t('lib_no_deviations')} <b>${i18t('lib_copilot_review')}</b> ${i18t('lib_from_workspace')}</p>`;
+    :`<p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0;line-height:1.6">${i18t('lib_no_deviations')} <b>${i18t('lib_copilot_review')}</b> ${i18t('lib_from_workspace')}</p>`;
 
   const tab=pbPageTab();
   const tabRow=`<div class="st-tabs" role="tablist">${PB_PAGE_TABS.map(k=>
@@ -1901,23 +1903,23 @@ function renderPlaybookPage(){
           word on the pressed tab twelve pixels above is the same word twice.
           The meta line and the controls stay: they carry what the tab
           cannot (who may edit, and the Add clause door). */}
-    <section data-pb-sec="clauses" ${tab==='clauses'?'':'hidden'} style="${CARD};padding:16px">
+    <section data-pb-sec="clauses" ${tab==='clauses'?'':'hidden'} style="${CARD};padding:var(--s-4)">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-        <span style="font-size:12px;color:var(--color-neutral-600)">${i18t('lib_fallback_wording')} · ${canEditLib?i18t('lib_admin_legal_edit'):i18t('lib_read_only_role')}</span>
+        <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${i18t('lib_fallback_wording')} · ${canEditLib?i18t('lib_admin_legal_edit'):i18t('lib_read_only_role')}</span>
         <span style="flex:1"></span>
-        ${canEditLib?`<button id="cl-add" class="ui-btn ui-btn-primary" style="font-size:13px;padding:5px 12px">${icon('plus','w-3.5 h-3.5')} ${i18t('lib_add_clause')}</button>`:''}
+        ${canEditLib?`<button id="cl-add" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:5px var(--s-3)">${icon('plus','w-3.5 h-3.5')} ${i18t('lib_add_clause')}</button>`:''}
       </div>
-      <div id="clause-lib" style="display:flex;flex-direction:column;gap:8px"></div>
+      <div id="clause-lib" style="display:flex;flex-direction:column;gap:var(--s-2)"></div>
       <!-- W3-2: what the workspace's own settled rounds say the fallback
            should be. Empty (and undrawn) until there is real history. -->
       <div id="precedent-panel" class="empty:hidden" style="margin-top:10px"></div>
     </section>
 
-    <section data-pb-sec="playbook" ${tab==='playbook'?'':'hidden'} style="${CARD};padding:16px">
+    <section data-pb-sec="playbook" ${tab==='playbook'?'':'hidden'} style="${CARD};padding:var(--s-4)">
       <div id="playbook-view"></div>
     </section>
 
-    <section data-pb-sec="deviations" ${tab==='deviations'?'':'hidden'} style="${CARD};padding:16px">
+    <section data-pb-sec="deviations" ${tab==='deviations'?'':'hidden'} style="${CARD};padding:var(--s-4)">
       ${devHtml}
     </section>
   </div>`;

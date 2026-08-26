@@ -10,7 +10,7 @@
 //
 // It runs BEFORE the sanitiser, and that ordering is the whole point: the
 // sanitiser strips every `style` attribute, so this is the only place where
-// `font-weight:700`, `text-transform:uppercase` and Word's `mso-list` metadata
+// `font-weight:var(--w-title)`, `text-transform:uppercase` and Word's `mso-list` metadata
 // can still be read. What survives is meaning — bold, italic, underline, real
 // capitals, heading level, list structure and its NUMBERS. What is thrown away
 // is the machine the document was written on: typeface, point size, colour,

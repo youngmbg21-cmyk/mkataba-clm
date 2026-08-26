@@ -58,54 +58,54 @@ function openSignaturePad(opts={}){
   return new Promise(resolve=>{
     const ov=document.createElement('div');
     ov.id='sig-pad';
-    ov.style.cssText='position:fixed;inset:0;z-index:95;display:flex;align-items:center;justify-content:center;padding:16px';
+    ov.style.cssText='position:fixed;inset:0;z-index:95;display:flex;align-items:center;justify-content:center;padding:var(--s-4)';
     const C='var(--color-divider)', ACC='var(--color-accent)', ACC8='var(--color-accent-800)', TXT='var(--color-text)', N6='var(--color-neutral-600)', N7='var(--color-neutral-700)';
     ov.innerHTML=`
       <div style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 45%,transparent)"></div>
       <div class="modal-in" style="position:relative;width:100%;max-width:560px;background:var(--color-surface);border:1px solid ${C};box-shadow:var(--shadow-lg);border-radius:var(--radius);overflow:hidden">
-        <div style="padding:16px 20px 0">
-          <div style="display:flex;align-items:center;gap:8px;">
+        <div style="padding:var(--s-4) 20px 0">
+          <div style="display:flex;align-items:center;gap:var(--s-2);">
             <span style="color:${ACC};display:inline-flex">${icon('finger','w-4 h-4')}</span>
-            <h2 style="font-family:var(--font-heading);font-weight:600;font-size:16px;color:${TXT};margin:0;">${i18t('si_adopt')}</h2>
+            <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:16px;color:${TXT};margin:0;">${i18t('si_adopt')}</h2>
           </div>
-          <p style="font-size:13px;color:${N6};margin:6px 0 12px;line-height:1.5;">${i18t('si_draw_type_upload')}</p>
-          <div id="sig-tabs" style="display:flex;gap:4px;border-bottom:1px solid ${C};">
-            ${['draw','type','upload'].map((k,i)=>`<button data-sig-tab="${k}" style="flex:0 0 auto;padding:8px 14px;font:inherit;font-size:14px;font-weight:600;font-family:var(--font-mono);letter-spacing:.02em;cursor:pointer;background:none;border:0;border-bottom:2px solid transparent;color:${N6};">${k==='draw'?'✎ Draw':k==='type'?'⌨ Type':'⭱ Upload'}</button>`).join('')}
-            ${saved?`<button data-sig-tab="saved" style="margin-left:auto;padding:8px 14px;font:inherit;font-size:14px;font-weight:600;font-family:var(--font-mono);cursor:pointer;background:none;border:0;border-bottom:2px solid transparent;color:${N6};">★ Saved</button>`:''}
+          <p style="font-size:var(--t-meta);color:${N6};margin:6px 0 var(--s-3);line-height:1.5;">${i18t('si_draw_type_upload')}</p>
+          <div id="sig-tabs" style="display:flex;gap:var(--s-1);border-bottom:1px solid ${C};">
+            ${['draw','type','upload'].map((k,i)=>`<button data-sig-tab="${k}" style="flex:0 0 auto;padding:var(--s-2) 14px;font:inherit;font-size:var(--t-body);font-weight:var(--w-strong);font-family:var(--font-mono);letter-spacing:.02em;cursor:pointer;background:none;border:0;border-bottom:2px solid transparent;color:${N6};">${k==='draw'?'✎ Draw':k==='type'?'⌨ Type':'⭱ Upload'}</button>`).join('')}
+            ${saved?`<button data-sig-tab="saved" style="margin-left:auto;padding:var(--s-2) 14px;font:inherit;font-size:var(--t-body);font-weight:var(--w-strong);font-family:var(--font-mono);cursor:pointer;background:none;border:0;border-bottom:2px solid transparent;color:${N6};">★ Saved</button>`:''}
           </div>
         </div>
-        <div style="padding:16px 20px 4px">
+        <div style="padding:var(--s-4) 20px var(--s-1)">
           <!-- DRAW -->
           <div data-sig-pane="draw">
             <canvas id="sig-canvas" width="${SIG_W}" height="${SIG_H}" style="width:100%;height:auto;border:1.5px dashed ${C};border-radius:var(--radius);background:var(--color-bg);touch-action:none;cursor:crosshair;display:block"></canvas>
-            <button id="sig-clear" style="margin-top:8px;font:inherit;font-size:12px;color:${N6};background:none;border:0;cursor:pointer;">Clear</button>
+            <button id="sig-clear" style="margin-top:var(--s-2);font:inherit;font-size:var(--t-label);color:${N6};background:none;border:0;cursor:pointer;">Clear</button>
           </div>
           <!-- TYPE -->
           <div data-sig-pane="type" style="display:none">
-            <input id="sig-typed" type="text" value="${String(opts.name||'').replace(/"/g,'&quot;')}" placeholder="${i18t('si_type_full_name')}" style="width:100%;min-height:38px;border:1px solid ${C};background:var(--color-surface);border-radius:var(--radius);padding:8px 12px;font-size:15px;color:${TXT};outline:none;margin-bottom:10px"/>
+            <input id="sig-typed" type="text" value="${String(opts.name||'').replace(/"/g,'&quot;')}" placeholder="${i18t('si_type_full_name')}" style="width:100%;min-height:38px;border:1px solid ${C};background:var(--color-surface);border-radius:var(--radius);padding:var(--s-2) var(--s-3);font-size:var(--t-card);color:${TXT};outline:none;margin-bottom:10px"/>
             <div id="sig-type-preview" style="height:${SIG_H*0.55}px;border:1.5px dashed ${C};border-radius:var(--radius);background:var(--color-bg);display:grid;place-items:center;overflow:hidden"></div>
-            <div id="sig-style-pick" style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"></div>
+            <div id="sig-style-pick" style="display:flex;gap:var(--s-2);margin-top:10px;flex-wrap:wrap"></div>
           </div>
           <!-- UPLOAD -->
           <div data-sig-pane="upload" style="display:none">
-            <label style="display:grid;place-items:center;height:${SIG_H}px;border:1.5px dashed ${C};border-radius:var(--radius);background:var(--color-bg);cursor:pointer;text-align:center;padding:12px">
+            <label style="display:grid;place-items:center;height:${SIG_H}px;border:1.5px dashed ${C};border-radius:var(--radius);background:var(--color-bg);cursor:pointer;text-align:center;padding:var(--s-3)">
               <input id="sig-file" type="file" accept="image/*" style="display:none"/>
-              <span id="sig-upload-label" style="font-size:13px;color:${N7};line-height:1.6">${icon('upload','w-5 h-5')}<br>${i18t('si_click_upload')}</span>
+              <span id="sig-upload-label" style="font-size:var(--t-meta);color:${N7};line-height:1.6">${icon('upload','w-5 h-5')}<br>${i18t('si_click_upload')}</span>
             </label>
           </div>
           <!-- SAVED -->
           ${saved?`<div data-sig-pane="saved" style="display:none">
             <div style="height:${SIG_H}px;border:1.5px solid ${C};border-radius:var(--radius);background:var(--color-bg);display:grid;place-items:center;overflow:hidden"><img src="${saved.image}" alt="${i18t('si_saved_signature')}" style="max-width:90%;max-height:80%"/></div>
-            <div style="font-size:12px;color:${N6};margin-top:8px;font-family:var(--font-mono)">${i18t('si_your_adopted',{form:saved.form})}</div>
+            <div style="font-size:var(--t-label);color:${N6};margin-top:var(--s-2);font-family:var(--font-mono)">${i18t('si_your_adopted',{form:saved.form})}</div>
           </div>`:''}
         </div>
-        <div style="display:flex;align-items:center;gap:12px;padding:12px 20px 18px;flex-wrap:wrap;border-top:1px solid ${C};margin-top:8px">
-          <label style="display:flex;align-items:center;gap:7px;font-size:13px;color:${N7};cursor:pointer">
+        <div style="display:flex;align-items:center;gap:var(--s-3);padding:var(--s-3) 20px 18px;flex-wrap:wrap;border-top:1px solid ${C};margin-top:var(--s-2)">
+          <label style="display:flex;align-items:center;gap:7px;font-size:var(--t-meta);color:${N7};cursor:pointer">
             <input id="sig-adopt" type="checkbox" ${saved?'checked':''} style="width:15px;height:15px;accent-color:${ACC}"/> Save my signature for next time
           </label>
-          <div style="margin-left:auto;display:flex;gap:8px">
-            <button id="sig-cancel" class="ui-btn" style="padding:8px 16px;font-size:14px">${i18t('act_cancel')}</button>
-            <button id="sig-adopt-go" class="ui-btn ui-btn-primary" style="padding:8px 18px;font-size:14px">${icon('finger','w-4 h-4')} ${i18t('si_adopt_and_sign')}</button>
+          <div style="margin-left:auto;display:flex;gap:var(--s-2)">
+            <button id="sig-cancel" class="ui-btn" style="padding:var(--s-2) var(--s-4);font-size:var(--t-body)">${i18t('act_cancel')}</button>
+            <button id="sig-adopt-go" class="ui-btn ui-btn-primary" style="padding:var(--s-2) 18px;font-size:var(--t-body)">${icon('finger','w-4 h-4')} ${i18t('si_adopt_and_sign')}</button>
           </div>
         </div>
       </div>`;
@@ -163,7 +163,7 @@ function openSignaturePad(opts={}){
         b.style.color=on?'var(--color-accent-800)':'var(--color-neutral-700)';
         b.style.boxShadow=on?'0 0 0 3px var(--color-accent-100)':'none';
       });
-      prev.innerHTML=`<span style="font-family:${currentFont().css.replace(/"/g,'&quot;')};font-size:40px;color:var(--color-accent-800);line-height:1;padding:8px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${(name||'&nbsp;').replace(/</g,'&lt;')}</span>`;
+      prev.innerHTML=`<span style="font-family:${currentFont().css.replace(/"/g,'&quot;')};font-size:40px;color:var(--accent-ink);line-height:1;padding:var(--s-2) var(--s-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${(name||'&nbsp;').replace(/</g,'&lt;')}</span>`;
     }
     q('#sig-typed')?.addEventListener('input',paintTypePreview);
 

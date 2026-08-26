@@ -106,7 +106,29 @@ const clauseEditorContract = () => _ceC;
    ========================================================================== */
 function clauseEditorCss(){
   return `<style id="ce-style">
-  #clause-editor{position:fixed; inset:0; z-index:55; display:flex; flex-direction:column;
+  ${''/* ---- IT COVERS THE PAGE, NOT THE SHELL (owner-asked 25 Aug 2026, off a
+         screenshot with the nav column and the top bar ringed: "the highlighted
+         bars (nav panel and the top panel) have to be on screen when you are in
+         the editing with copilot") ----
+         THIS REVERSES "the nav column and the shell bar step out while you are
+         here", and only that half of it: the render's own move of the shell's
+         brand and controls INTO this page is still not taken, for the reason
+         written above — it is a live DOM move of elements other renderers
+         repaint. What changes is where the cover starts. MEASURED before:
+         fixed at 0,0 over the whole 1500x1000 window, and probing the middle
+         of the shell bar and of the nav column returned this page's own
+         content, so both really were hidden rather than merely overdrawn.
+         THE BOX IS MEASURED, NEVER TYPED — ceFitToShell reads #content-scroll's
+         own rect and writes it here. The nav has three states (240px column,
+         64px rail, and a floating layer below 1440), so a typed inset would be
+         right in one of them and wrong in the other two; the scroller is the
+         one element that already answers for all three.
+         z-index 54, DOWN FROM 55, and that is what lets the floating nav drawer
+         open OVER this page rather than under it — #side-nav is 55 below the
+         float line and this page is later in the document, so at equal weight
+         it would have won. Still above the Copilot drawer (50) and the activity
+         panel (46), and still below modal-root and the toasts. */}
+  #clause-editor{position:fixed; inset:0; z-index:54; display:flex; flex-direction:column;
     background:var(--color-bg); color:var(--color-text);
     font-family:var(--font-body, inherit)}
   #clause-editor[hidden]{display:none}
@@ -129,7 +151,7 @@ function clauseEditorCss(){
      entirely"): .ce-fold, .ce-ohwrap and the is-folded rule are deleted rather
      than hidden. */
   .ce-head{flex:none; background:var(--color-surface);
-    border-bottom:1px solid var(--color-divider); padding:10px 18px 12px}
+    border-bottom:1px solid var(--color-divider); padding:10px 18px var(--s-3)}
   .ce-head .room-head{flex-wrap:nowrap}
   /* THE ONE DECLARATION THE SHARED RULES DO NOT CARRY. Image 2 is the
      NEGOTIATION page's head, and that page zeroes the global h1 tracking of
@@ -142,25 +164,31 @@ function clauseEditorCss(){
   .ce-crumb{display:flex; align-items:center; gap:7px; flex-wrap:wrap}
   .ce-crumb .sep{color:var(--color-neutral-500)}
   .ce-sel{flex:0 1 auto; min-width:110px; max-width:280px; height:24px; padding:0 6px;
-    font:inherit; font-size:13px; font-weight:600; background:var(--color-surface);
+    font:inherit; font-size:var(--t-meta); font-weight:var(--w-strong); background:var(--color-surface);
     color:var(--color-text); border:1px solid var(--color-divider)}
-  .ce-ostat{display:inline-flex; align-items:center; gap:7px; font-size:13px; font-weight:600;
+  .ce-ostat{display:inline-flex; align-items:center; gap:7px; font-size:var(--t-meta); font-weight:var(--w-strong);
     white-space:nowrap}
   .ce-ostat i{width:8px; height:8px; flex:none}
   .ce-ostat.wait{color:var(--st-amber-fg)} .ce-ostat.wait i{background:var(--st-amber-dot)}
   .ce-ostat.ok{color:var(--st-green-fg)}   .ce-ostat.ok i{background:var(--st-green-dot)}
   .ce-ostat.neu{color:var(--color-neutral-600)}
   .ce-ostat.neu i{background:var(--color-neutral-500)}
-  .ce-head .ce-acts{flex:none; display:flex; align-items:center; gap:12px}
-  .ce-head .ce-acts .ce-act-plain{background:none; border:0; padding:2px 0; font:inherit;
-    font-size:13px; font-weight:600; color:var(--accent-ink)}
-  .ce-head .ce-acts .ce-act-plain:hover{text-decoration:underline}
+  .ce-head .ce-acts{flex:none; display:flex; align-items:center; gap:var(--s-3)}
   /* THE WAY BACK, DRESSED LIKE THE DOOR IT MIRRORS — the tab row's own
-     #ws-to-nego, whose metrics the owner named as the model. */
-  .ce-head .ce-acts .ce-back-btn{flex:none; font-size:14px; padding:7px 14px}
-  .ce-say{flex:0 1 auto; min-width:0; max-width:300px; font-size:12px; color:var(--accent-ink);
-    font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    opacity:0; transition:opacity .2s}
+     #ws-to-nego, whose metrics the owner named as the model.
+     NOT BOLD (owner-asked 25 Aug 2026: "Remove bold lettering from the back to
+     negotiations as well … the same size font like the other buttons in the
+     platform"). MEASURED against the negotiation head's own row: those are
+     14px at --w-body and this was 14px at 600, so it read heavier than every
+     button the owner was comparing it with. .ui-btn's base weight is 600 and
+     .ui-btn-lg's is --w-body; this takes the head row's answer.
+     .ce-act-plain is STALE — the row's other button has gone; flag any
+     mention. */
+  .ce-head .ce-acts .ce-back-btn{flex:none; font-size:var(--t-body); font-weight:var(--w-body);
+    padding:7px 14px}
+  .ce-say{flex:0 1 auto; min-width:0; max-width:300px; font-size:var(--t-label); color:var(--accent-ink);
+    font-weight:var(--w-strong); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    opacity:0; transition:opacity var(--dur-2)}
   /* a faded-out message still occupied its width, which squeezed the clause
      name to an ellipsis for seconds after every Apply */
   .ce-say:not(.is-on){max-width:0; overflow:hidden}
@@ -168,9 +196,9 @@ function clauseEditorCss(){
 
   /* ---- what is on the table for this clause, as chips ---- */
   .ce-ctx{flex:none; display:flex; align-items:center; gap:7px; flex-wrap:wrap;
-    padding:7px 16px; background:var(--color-bg); border-bottom:1px solid var(--color-divider)}
+    padding:7px var(--s-4); background:var(--color-bg); border-bottom:1px solid var(--color-divider)}
   .ce-chip{display:inline-flex; align-items:center; gap:6px; height:24px; padding:0 9px;
-    font:inherit; font-size:12px; font-weight:600; background:var(--color-surface);
+    font:inherit; font-size:var(--t-label); font-weight:var(--w-strong); background:var(--color-surface);
     color:var(--color-text); border:1px solid var(--color-divider)}
   .ce-chip.is-on{border-color:var(--accent-solid); box-shadow:inset 0 -2px 0 var(--accent-solid)}
   .ce-chip i{width:7px; height:7px; flex:none; border-radius:50%;
@@ -178,8 +206,8 @@ function clauseEditorCss(){
   .ce-chip i.wait{background:var(--st-amber-dot)}
   .ce-chip i.ok{background:var(--st-green-dot)}
   .ce-chip i.no{background:var(--st-ruby-dot)}
-  .ce-ctx .ce-none{font-size:12px; color:var(--color-neutral-600)}
-  .ce-chip-new{color:var(--accent-ink); font-weight:700}
+  .ce-ctx .ce-none{font-size:var(--t-label); color:var(--color-neutral-600)}
+  .ce-chip-new{color:var(--accent-ink); font-weight:var(--w-title)}
 
   /* ---- two columns from the very top of the working area ----
      The rail is exactly one third: 2fr beside 1fr. The 340px floor only bites
@@ -190,11 +218,11 @@ function clauseEditorCss(){
   .ce-rail{min-width:0; min-height:0; display:flex; flex-direction:column;
     background:var(--color-surface); border-left:1px solid var(--color-divider)}
   .ce-rail .ce-lane{flex:1; min-height:0}
-  .ce-railfoot{flex:none; display:flex; align-items:center; justify-content:flex-end; gap:8px;
+  .ce-railfoot{flex:none; display:flex; align-items:center; justify-content:flex-end; gap:var(--s-2);
     padding:9px 14px; border-top:1px solid var(--color-divider); background:var(--color-surface)}
-  .ce-railfoot button{height:30px; padding:0 14px; font:inherit; font-size:13px; font-weight:600;
+  .ce-railfoot button{height:30px; padding:0 14px; font:inherit; font-size:var(--t-meta); font-weight:var(--w-strong);
     background:var(--color-surface); color:var(--color-text); border:1px solid var(--color-divider)}
-  .ce-railfoot button.p{background:var(--color-accent-700); border-color:var(--color-accent-700);
+  .ce-railfoot button.p{background:var(--color-accent-700); border-color:var(--accent-ink-700);
     color:#fff}
   .ce-railfoot button[disabled]{opacity:.45}
 
@@ -203,45 +231,45 @@ function clauseEditorCss(){
      happens, so the top box takes only the height it needs — capped, so a long
      clause scrolls inside itself rather than squeezing the box below. */
   .ce-left{flex:1; min-width:0; min-height:0; display:flex; flex-direction:column;
-    gap:14px; padding:14px 16px 16px}
+    gap:14px; padding:14px var(--s-4) var(--s-4)}
   .ce-box{min-height:0; display:flex; flex-direction:column; background:var(--color-surface);
     border:1px solid var(--color-divider)}
   .ce-box.ce-stands{flex:0 1 auto; max-height:34%}
   .ce-box.ce-prop{flex:1 1 auto; min-height:0; position:relative}
-  .ce-box .ce-bh{flex:none; display:flex; align-items:center; gap:10px; padding:8px 12px;
+  .ce-box .ce-bh{flex:none; display:flex; align-items:center; gap:10px; padding:var(--s-2) var(--s-3);
     border-bottom:1px solid var(--color-divider)}
-  .ce-box .ce-bh .k{font-size:11px; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+  .ce-box .ce-bh .k{font-size:var(--t-micro); font-weight:var(--w-title); letter-spacing:.09em; text-transform:uppercase;
     color:var(--color-neutral-600); white-space:nowrap}
   .ce-box .ce-bh .g{flex:1; min-width:4px}
   /* both boxes are white — the cream paper tint reads as a document surface,
      and on this page the wording is being WORKED on rather than read as paper */
-  .ce-box .ce-bd{flex:1; min-height:0; overflow:auto; padding:14px 16px;
-    background:var(--color-surface); font-size:14.5px; line-height:1.8}
+  .ce-box .ce-bd{flex:1; min-height:0; overflow:auto; padding:14px var(--s-4);
+    background:var(--color-surface); font-size:var(--t-card); line-height:1.8}
   .ce-box .ce-bd:focus{outline:none; box-shadow:inset 0 0 0 2px var(--accent-solid)}
   .ce-box .ce-bd p{margin:0 0 .7em}
   .ce-box .ce-bd p:last-child{margin-bottom:0}
   .ce-box .ce-bd del{color:var(--st-ruby-fg); text-decoration:line-through}
-  .ce-box .ce-bd ins{color:var(--st-green-fg); text-decoration:none; font-weight:600}
+  .ce-box .ce-bd ins{color:var(--st-green-fg); text-decoration:none; font-weight:var(--w-strong)}
   .ce-box .ce-bd del + ins{margin-left:.3em}
   .ce-box.ce-stands .ce-bd{color:var(--color-neutral-600)}
 
   /* the two readings of the lower box — the product's own tab treatment */
-  .ce-seg{display:flex; gap:16px}
-  .ce-seg button{background:none; border:0; padding:2px 1px; font:inherit; font-size:13px;
+  .ce-seg{display:flex; gap:var(--s-4)}
+  .ce-seg button{background:none; border:0; padding:2px 1px; font:inherit; font-size:var(--t-meta);
     color:var(--color-text); border-bottom:2px solid transparent}
-  .ce-seg button.is-on{font-weight:700; color:var(--accent-ink);
+  .ce-seg button.is-on{font-weight:var(--w-title); color:var(--accent-ink);
     border-bottom-color:var(--accent-solid)}
-  .ce-stat{font-size:12px; font-weight:700; white-space:nowrap}
+  .ce-stat{font-size:var(--t-label); font-weight:var(--w-title); white-space:nowrap}
   .ce-stat .i{color:var(--st-green-fg)} .ce-stat .d{color:var(--st-ruby-fg)}
-  .ce-stat .ce-none{color:var(--color-neutral-600); font-weight:400}
+  .ce-stat .ce-none{color:var(--color-neutral-600); font-weight:var(--w-body)}
 
   /* ---- the foot of the left column: what is saved, and the way back ---- */
   .ce-foot{flex:none; display:flex; align-items:center; gap:10px; padding:9px 18px;
     background:var(--color-surface); border-top:1px solid var(--color-divider);
     flex-wrap:wrap; min-height:48px}
-  .ce-foot .draft{font-size:12px; color:var(--color-neutral-600)}
-  .ce-foot .draft b{font-weight:700; color:var(--color-text); font-variant-numeric:tabular-nums}
-  .ce-foot .undo{background:none; border:0; font:inherit; font-size:12px; font-weight:700;
+  .ce-foot .draft{font-size:var(--t-label); color:var(--color-neutral-600)}
+  .ce-foot .draft b{font-weight:var(--w-title); color:var(--color-text); font-variant-numeric:tabular-nums}
+  .ce-foot .undo{background:none; border:0; font:inherit; font-size:var(--t-label); font-weight:var(--w-title);
     color:var(--accent-ink); padding:2px 0}
   .ce-foot .undo[disabled]{color:var(--color-neutral-500)}
   .ce-foot .g{flex:1; min-width:8px}
@@ -253,33 +281,33 @@ function clauseEditorCss(){
      keeps the violet it has always worn. */
   .ce-ah{flex:none; display:flex; align-items:center; gap:18px; padding:0 14px;
     border-bottom:1px solid var(--color-divider)}
-  .ce-ah .sp{display:inline-flex; align-items:center; gap:7px; font-size:13px; font-weight:700;
-    color:var(--accent-ink); padding:12px 0}
+  .ce-ah .sp{display:inline-flex; align-items:center; gap:7px; font-size:var(--t-meta); font-weight:var(--w-title);
+    color:var(--accent-ink); padding:var(--s-3) 0}
   .ce-tabs{display:flex; gap:18px; margin-left:auto}
-  .ce-tabs button{background:none; border:0; padding:12px 1px; font:inherit; font-size:13px;
+  .ce-tabs button{background:none; border:0; padding:var(--s-3) 1px; font:inherit; font-size:var(--t-meta);
     color:var(--color-text); border-bottom:2px solid transparent}
-  .ce-tabs button.is-on{font-weight:700; color:var(--accent-ink);
+  .ce-tabs button.is-on{font-weight:var(--w-title); color:var(--accent-ink);
     border-bottom-color:var(--accent-solid)}
-  .ce-tabs .n{font-size:11px; font-weight:700; margin-left:5px; padding:1px 5px;
+  .ce-tabs .n{font-size:var(--t-micro); font-weight:var(--w-title); margin-left:5px; padding:1px 5px;
     background:var(--st-amber-bg); color:var(--st-amber-fg)}
-  .ce-disc{flex:none; display:flex; align-items:center; gap:8px; padding:8px 14px;
+  .ce-disc{flex:none; display:flex; align-items:center; gap:var(--s-2); padding:var(--s-2) 14px;
     background:var(--color-surface); border-bottom:1px solid var(--color-divider);
-    font-size:12px; color:var(--color-neutral-600)}
-  .ce-disc b{color:var(--accent-ink); font-weight:700; flex:none}
+    font-size:var(--t-label); color:var(--color-neutral-600)}
+  .ce-disc b{color:var(--accent-ink); font-weight:var(--w-title); flex:none}
   .ce-disc span{min-width:0}
 
   /* the chat is WHITE, like HaTi's own Copilot panel — a grey ground made the
      rail read as a sunken well rather than as the panel it is */
   .ce-lane{flex:1; min-height:0; overflow:auto; padding:14px; background:var(--color-surface)}
-  .ce-you{display:flex; justify-content:flex-end; margin:0 0 12px}
-  .ce-you span{max-width:86%; background:var(--color-accent-100); color:var(--color-text);
-    padding:8px 11px; font-size:13px; line-height:1.5}
-  .ce-ai{margin:0 0 16px; padding-left:11px;
+  .ce-you{display:flex; justify-content:flex-end; margin:0 0 var(--s-3)}
+  .ce-you span{max-width:86%; background:var(--st-steel-bg); color:var(--color-text);
+    padding:var(--s-2) 11px; font-size:var(--t-meta); line-height:1.5}
+  .ce-ai{margin:0 0 var(--s-4); padding-left:11px;
     box-shadow:inset 2px 0 0 color-mix(in srgb, var(--accent-solid) 45%, transparent)}
-  .ce-ai p.t{margin:0 0 11px; font-size:13px; line-height:1.6}
+  .ce-ai p.t{margin:0 0 11px; font-size:var(--t-meta); line-height:1.6}
   .ce-ai p.t:last-child{margin-bottom:0}
-  .ce-work{display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600;
-    color:var(--accent-ink); margin:0 0 12px}
+  .ce-work{display:flex; align-items:center; gap:var(--s-2); font-size:var(--t-label); font-weight:var(--w-strong);
+    color:var(--accent-ink); margin:0 0 var(--s-3)}
   .ce-work i{width:12px; height:12px; flex:none; border:2px solid currentColor;
     border-radius:50%; border-right-color:transparent; animation:cespin .9s linear infinite}
   @keyframes cespin{to{transform:rotate(360deg)}}
@@ -287,38 +315,38 @@ function clauseEditorCss(){
 
   /* what Copilot read before it answered — the facts, named, so the answer
      rests on something a reader can check */
-  .ce-read{margin:0 0 16px; padding:0; display:flex; flex-direction:column; gap:8px}
-  .ce-read li{list-style:none; display:flex; gap:9px; font-size:12.5px; line-height:1.5}
-  .ce-read li b{flex:none; width:96px; color:var(--color-neutral-600); font-weight:700;
-    font-size:11px; letter-spacing:.05em; text-transform:uppercase; padding-top:2px}
+  .ce-read{margin:0 0 var(--s-4); padding:0; display:flex; flex-direction:column; gap:var(--s-2)}
+  .ce-read li{list-style:none; display:flex; gap:9px; font-size:var(--t-meta); line-height:1.5}
+  .ce-read li b{flex:none; width:96px; color:var(--color-neutral-600); font-weight:var(--w-title);
+    font-size:var(--t-micro); letter-spacing:.05em; text-transform:uppercase; padding-top:2px}
   .ce-read li span{flex:1; min-width:0}
 
   /* ONE CARD SHAPE, whether it comes from the chat or from the scan. On a
      white lane a white card needs its edge to do the work the ground used to
      do, so the border stays and the fill goes very slightly off-white. */
   .ce-card{background:var(--color-neutral-100); color:var(--color-text);
-    border:1px solid var(--color-divider); padding:10px 11px; margin-bottom:8px}
-  .ce-card .n{display:flex; align-items:center; gap:8px; font-size:13.5px; font-weight:700}
+    border:1px solid var(--color-divider); padding:10px 11px; margin-bottom:var(--s-2)}
+  .ce-card .n{display:flex; align-items:center; gap:var(--s-2); font-size:var(--t-body); font-weight:var(--w-title)}
   .ce-card .n .g{flex:1; min-width:4px}
-  .ce-card .chip{flex:none; font-size:10px; font-weight:700; letter-spacing:.06em;
+  .ce-card .chip{flex:none; font-size:var(--t-figure); font-weight:var(--w-title); letter-spacing:.06em;
     text-transform:uppercase; padding:2px 6px}
   .ce-card .chip.ok{background:var(--st-green-bg); color:var(--st-green-fg)}
   .ce-card .chip.no{background:var(--st-ruby-bg); color:var(--st-ruby-fg)}
   .ce-card .chip.wait{background:var(--st-amber-bg); color:var(--st-amber-fg)}
-  .ce-card .l{display:block; margin-top:5px; font-size:12.5px; line-height:1.5}
-  .ce-card .r{display:block; margin-top:6px; font-size:12px;
+  .ce-card .l{display:block; margin-top:5px; font-size:var(--t-meta); line-height:1.5}
+  .ce-card .r{display:block; margin-top:6px; font-size:var(--t-label);
     color:var(--color-neutral-600); line-height:1.45}
   /* the wording preview is white too — the same wording is white in both boxes
      on the left, and one tinted patch left over reads as a miss */
-  .ce-card .pv{display:block; margin-top:8px; padding:8px 10px; background:var(--color-surface);
-    border:1px solid var(--color-divider); font-size:12.5px; line-height:1.65;
+  .ce-card .pv{display:block; margin-top:var(--s-2); padding:var(--s-2) 10px; background:var(--color-surface);
+    border:1px solid var(--color-divider); font-size:var(--t-meta); line-height:1.65;
     max-height:120px; overflow:auto}
   .ce-card .pv del{color:var(--st-ruby-fg); text-decoration:line-through}
-  .ce-card .pv ins{color:var(--st-green-fg); text-decoration:none; font-weight:600}
-  .ce-card .av{display:flex; gap:8px; margin-top:9px; flex-wrap:wrap; align-items:center}
-  .ce-card .av button{height:26px; padding:0 11px; font:inherit; font-size:12px; font-weight:600;
+  .ce-card .pv ins{color:var(--st-green-fg); text-decoration:none; font-weight:var(--w-strong)}
+  .ce-card .av{display:flex; gap:var(--s-2); margin-top:9px; flex-wrap:wrap; align-items:center}
+  .ce-card .av button{height:26px; padding:0 11px; font:inherit; font-size:var(--t-label); font-weight:var(--w-strong);
     background:var(--color-surface); color:var(--accent-ink); border:1px solid var(--color-divider)}
-  .ce-card .av button.p{background:var(--color-accent-700); border-color:var(--color-accent-700);
+  .ce-card .av button.p{background:var(--color-accent-700); border-color:var(--accent-ink-700);
     color:#fff}
   .ce-card .av button:hover{border-color:var(--accent-solid)}
   /* a thumb is a mark on ONE suggestion, so it sits on the card that made it */
@@ -328,16 +356,16 @@ function clauseEditorCss(){
 
   /* the scan reads as a list of verdicts, then the same cards */
   .ce-rule{background:var(--color-surface); border:1px solid var(--color-divider);
-    border-left:3px solid var(--color-divider); padding:9px 11px; margin-bottom:8px}
+    border-left:3px solid var(--color-divider); padding:9px 11px; margin-bottom:var(--s-2)}
   .ce-rule.dev{border-left-color:var(--st-amber-dot)}
   .ce-rule.miss{border-left-color:var(--st-ruby-dot)}
   .ce-rule.ok{border-left-color:var(--st-green-dot)}
-  .ce-rule .n{display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700}
-  .ce-rule .l{display:block; margin-top:5px; font-size:12.5px; line-height:1.5}
-  .ce-rule .r{display:block; margin-top:6px; font-size:12px;
+  .ce-rule .n{display:flex; align-items:center; gap:var(--s-2); font-size:var(--t-meta); font-weight:var(--w-title)}
+  .ce-rule .l{display:block; margin-top:5px; font-size:var(--t-meta); line-height:1.5}
+  .ce-rule .r{display:block; margin-top:6px; font-size:var(--t-label);
     color:var(--color-neutral-600); line-height:1.45}
-  .ce-rule .av{display:flex; gap:8px; margin-top:9px; flex-wrap:wrap}
-  .ce-rule .av button{height:26px; padding:0 11px; font:inherit; font-size:12px; font-weight:600;
+  .ce-rule .av{display:flex; gap:var(--s-2); margin-top:9px; flex-wrap:wrap}
+  .ce-rule .av button{height:26px; padding:0 11px; font:inherit; font-size:var(--t-label); font-weight:var(--w-strong);
     background:var(--color-surface); color:var(--accent-ink); border:1px solid var(--color-divider)}
   .ce-rule .av button:hover{border-color:var(--accent-solid)}
 
@@ -353,17 +381,17 @@ function clauseEditorCss(){
   .ce-chips::-webkit-scrollbar{height:5px}
   .ce-chips::-webkit-scrollbar-thumb{background:var(--color-neutral-200)}
   .ce-chips:empty{padding:0}
-  .ce-chips button{flex:none; height:25px; padding:0 9px; font:inherit; font-size:11.5px;
+  .ce-chips button{flex:none; height:25px; padding:0 9px; font:inherit; font-size:var(--t-label);
     white-space:nowrap; background:var(--color-surface); color:var(--color-neutral-600);
     border:1px solid var(--color-divider)}
   .ce-chips button:hover{color:var(--color-text); border-color:var(--accent-solid)}
 
   /* the box you type in is a real box — three lines deep at rest, growing as
      you write and wrapping like any other text area */
-  .ce-ask{flex:none; display:flex; gap:8px; padding:10px 14px;
+  .ce-ask{flex:none; display:flex; gap:var(--s-2); padding:10px 14px;
     border-top:1px solid var(--color-divider); align-items:flex-end}
   .ce-ask textarea{flex:1; min-width:0; height:74px; min-height:74px; max-height:200px;
-    padding:9px 11px; font:inherit; font-size:13px; line-height:1.5; resize:none;
+    padding:9px 11px; font:inherit; font-size:var(--t-meta); line-height:1.5; resize:none;
     white-space:pre-wrap; overflow-wrap:break-word; background:var(--color-surface);
     border:1px solid var(--color-divider); color:var(--color-text); outline:none}
   .ce-ask textarea:focus{box-shadow:var(--focus)}
@@ -375,20 +403,20 @@ function clauseEditorCss(){
 
   /* ---- the reason is asked as a STEP, in HaTi's own words ---- */
   .ce-reason{flex:none; background:var(--color-surface); border:1px solid var(--accent-solid);
-    padding:11px 12px}
+    padding:11px var(--s-3)}
   .ce-reason[hidden]{display:none}
-  .ce-reason label{display:block; font-size:11px; font-weight:700; letter-spacing:.09em;
+  .ce-reason label{display:block; font-size:var(--t-micro); font-weight:var(--w-title); letter-spacing:.09em;
     text-transform:uppercase; color:var(--color-neutral-600); margin-bottom:7px}
-  .ce-reason textarea{width:100%; min-height:52px; padding:8px 10px; font:inherit; font-size:13px;
+  .ce-reason textarea{width:100%; min-height:52px; padding:var(--s-2) 10px; font:inherit; font-size:var(--t-meta);
     line-height:1.5; resize:vertical; background:var(--color-surface);
     border:1px solid var(--color-divider); color:var(--color-text); outline:none}
   .ce-reason textarea:focus{box-shadow:var(--focus)}
-  .ce-reason .row{display:flex; align-items:center; gap:8px; margin-top:9px; flex-wrap:wrap}
+  .ce-reason .row{display:flex; align-items:center; gap:var(--s-2); margin-top:9px; flex-wrap:wrap}
   .ce-reason .g{flex:1; min-width:4px}
-  .ce-reason .hint{font-size:12px; color:var(--color-neutral-600)}
-  .ce-reason button{height:28px; padding:0 13px; font:inherit; font-size:13px; font-weight:600;
+  .ce-reason .hint{font-size:var(--t-label); color:var(--color-neutral-600)}
+  .ce-reason button{height:28px; padding:0 13px; font:inherit; font-size:var(--t-meta); font-weight:var(--w-strong);
     background:var(--color-surface); color:var(--color-text); border:1px solid var(--color-divider)}
-  .ce-reason button.p{background:var(--color-accent-700); border-color:var(--color-accent-700);
+  .ce-reason button.p{background:var(--color-accent-700); border-color:var(--accent-ink-700);
     color:#fff}
 
   /* ---- rewriting ONE passage in place ----
@@ -399,27 +427,27 @@ function clauseEditorCss(){
     background:var(--color-surface); border:1px solid var(--accent-solid);
     box-shadow:var(--shadow-md); padding:9px 10px; display:none}
   .ce-inline.is-on{display:block}
-  .ce-inline .q{display:block; font-size:12px; color:var(--color-neutral-600); line-height:1.45;
-    margin-bottom:8px; max-height:34px; overflow:hidden}
-  .ce-inline .q b{color:var(--color-text); font-weight:600}
+  .ce-inline .q{display:block; font-size:var(--t-label); color:var(--color-neutral-600); line-height:1.45;
+    margin-bottom:var(--s-2); max-height:34px; overflow:hidden}
+  .ce-inline .q b{color:var(--color-text); font-weight:var(--w-strong)}
   .ce-inline .row{display:flex; gap:7px; align-items:flex-end}
   .ce-inline textarea{flex:1; min-width:0; min-height:30px; max-height:76px; padding:6px 9px;
-    font:inherit; font-size:12.5px; line-height:1.4; resize:none; background:var(--color-surface);
+    font:inherit; font-size:var(--t-meta); line-height:1.4; resize:none; background:var(--color-surface);
     border:1px solid var(--color-divider); color:var(--color-text); outline:none}
   .ce-inline textarea:focus{box-shadow:var(--focus)}
   .ce-inline .snd{flex:none; display:inline-grid; place-items:center; width:30px; height:30px;
     padding:0; background:var(--color-accent-700); border:1px solid var(--color-accent-700);
     color:#fff}
   .ce-inline .snd svg{width:15px; height:15px; display:block}
-  .ce-inline .chips{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px}
-  .ce-inline .chips button{height:23px; padding:0 8px; font:inherit; font-size:11.5px;
+  .ce-inline .chips{display:flex; gap:6px; flex-wrap:wrap; margin-top:var(--s-2)}
+  .ce-inline .chips button{height:23px; padding:0 var(--s-2); font:inherit; font-size:var(--t-label);
     background:var(--color-surface); color:var(--accent-ink);
     border:1px solid var(--color-divider)}
   .ce-inline .chips button:hover{border-color:var(--accent-solid)}
-  .ce-inline .work{font-size:12px; color:var(--accent-ink); font-weight:600; margin-top:8px}
-  .ce-inline .bad{font-size:12px; color:var(--st-ruby-fg); font-weight:600; margin-top:8px}
+  .ce-inline .work{font-size:var(--t-label); color:var(--accent-ink); font-weight:var(--w-strong); margin-top:var(--s-2)}
+  .ce-inline .bad{font-size:var(--t-label); color:var(--st-ruby-fg); font-weight:var(--w-strong); margin-top:var(--s-2)}
 
-  .ce-empty{font-size:12.5px; color:var(--color-neutral-600); line-height:1.6}
+  .ce-empty{font-size:var(--t-meta); color:var(--color-neutral-600); line-height:1.6}
 
   /* BELOW THE WIDTH WHERE TWO COLUMNS STOP MAKING SENSE the page is not
      offered at all (see clauseEditorFits) — this is the belt to that braces,
@@ -707,6 +735,42 @@ function clauseEditorHtml(){
    to — and the clause panel they came from is still standing behind this, so
    closing lands them exactly where they started.
    ========================================================================== */
+/* ---- THE PAGE IS FITTED TO THE CONTENT AREA, MEASURED (owner-asked 25 Aug
+   2026 — see the stylesheet's note at #clause-editor) ----
+   #content-scroll is the shell's own content box: below the top bar, right of
+   whatever the nav currently is. Reading its rect is what makes this right in
+   all three nav states without a number typed anywhere, and it is the pattern
+   this page already uses for every other geometry (_rlAvail, regFitBandOffset,
+   ktFitSplit).
+   A BOX OF ZERO IS NOT A BOX — the standing rule. If the scroller has not been
+   laid out yet the page keeps inset:0 and the next observation corrects it,
+   which is strictly better than pinning it to nothing. */
+function ceFitToShell(){
+  if (typeof document === 'undefined') return;
+  const page = document.getElementById('clause-editor');
+  const sc = document.getElementById('content-scroll');
+  if (!page || !sc || !page.style || !sc.getBoundingClientRect) return;
+  const r = sc.getBoundingClientRect();
+  if (!(r.width > 0 && r.height > 0)) return;
+  page.style.inset = 'auto';
+  page.style.left = Math.round(r.left) + 'px';
+  page.style.top = Math.round(r.top) + 'px';
+  page.style.width = Math.round(r.width) + 'px';
+  page.style.height = Math.round(r.height) + 'px';
+}
+/* OBSERVED, NOT MEASURED ONCE. The rail opens and closes, the window resizes,
+   and the float line moves the nav in and out of the page's flow — every one of
+   those resizes the scroller and none of them tells this page. Bound ONCE on
+   the element (the dataset flag), because rlOpenClauseEditor runs on every
+   opening and a second observer per opening is a listener stack. */
+function ceObserveShell(){
+  if (typeof document === 'undefined' || typeof ResizeObserver === 'undefined') return;
+  const sc = document.getElementById('content-scroll');
+  if (!sc || !sc.dataset || sc.dataset.ceFitBound) return;
+  sc.dataset.ceFitBound = '1';
+  try{ new ResizeObserver(() => ceFitToShell()).observe(sc); }catch(_){}
+}
+
 function rlOpenClauseEditor(c, clauseId, opts = {}){
   const refusal = clauseEditorRefusal(c, opts);
   if (refusal){ if (window.toast) toast(refusal, 'err'); return false; }
@@ -742,6 +806,7 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
   document.body.appendChild(page);
   document.body.classList.add('ce-open');
   ceWirePage(page);
+  ceFitToShell(); ceObserveShell();
   /* The greeting goes in BEFORE the first paint rather than after it — drawing
      an empty lane and then filling it is two paints for one arrival. */
   _ceThread.push({ who: 'ai', greeting: true });
@@ -825,14 +890,21 @@ function ceRenderHead(){
   /* The acts a negotiator reaches for while READING — never the ones that
      change the wording. Those are the one act in the rail's foot. */
   const acts = _ceQ('#ce-headacts');
+  /* ---- ONE WAY OUT, DRESSED LIKE THE DOOR IT MIRRORS ----
+     .ui-btn with the tab-row door's own metrics, because the owner named that
+     button as the model. It REPLACES the old Close: both did the same thing,
+     and two controls that leave the same page is precisely the duplication
+     reported on the contract room the same morning.
+     ---- AND PLAYBOOK SCAN HAS GONE FROM THIS ROW (owner-asked 25 Aug 2026:
+     "remove the playbook scan on the left because it is a duplicate") ----
+     It carried data-ce-tab="scan" — the SAME attribute, the same handler and
+     the same act as the Playbook scan tab at the top of the Copilot rail, so
+     pressing it changed a panel on the far side of the screen. Nothing is lost:
+     the rail's own tab is the one door and it is on screen throughout.
+     `.ce-act-plain` went with it — it had no other caller — so a control cannot
+     come back wearing a dress nobody remembered writing. */
   if (acts) acts.innerHTML =
-    `<button type="button" class="ce-act-plain" data-ce-tab="scan">${_cet('ce_tab_scan')}</button>`
-    /* ---- ONE WAY OUT, DRESSED LIKE THE DOOR IT MIRRORS ----
-       .ui-btn with the tab-row door's own metrics, because the owner named
-       that button as the model. It REPLACES the old Close: both did the same
-       thing, and two controls that leave the same page is precisely the
-       duplication reported on the contract room the same morning. */
-    + `<button type="button" class="ui-btn ce-back-btn" data-ce-act="close">${
+    `<button type="button" class="ui-btn ce-back-btn" data-ce-act="close">${
       _cet('ce_back_negotiation')}</button>`;
 
   const f = _ceLead;
@@ -1196,7 +1268,7 @@ function ceScanHtml(){
       <div class="n"><span>${_cee(v.category || _cet('ce_rule'))}</span></div>
       <span class="l">${_cee(line)}</span>
       ${v.quote ? `<span class="r">${_cee(_cet('ce_scan_quote', { quote: String(v.quote).slice(0, 220) }))}</span>` : ''}
-      ${marked ? `<span class="pv" style="display:block;margin-top:8px;padding:8px 10px;background:var(--color-surface);border:1px solid var(--color-divider);font-size:12.5px;line-height:1.65;max-height:120px;overflow:auto">${marked}</span>` : ''}
+      ${marked ? `<span class="pv" style="display:block;margin-top:var(--s-2);padding:var(--s-2) 10px;background:var(--color-surface);border:1px solid var(--color-divider);font-size:var(--t-meta);line-height:1.65;max-height:120px;overflow:auto">${marked}</span>` : ''}
       <div class="av">
         ${it.preferred ? `<button type="button" data-ce-scan="${i}:preferred">${_cet('ce_use_standard')}</button>` : ''}
         ${it.fallback ? `<button type="button" data-ce-scan="${i}:fallback">${_cet('ce_use_fallback')}</button>` : ''}

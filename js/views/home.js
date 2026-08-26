@@ -99,7 +99,10 @@ function kpiApply(cur){
 }
 function openKpiCustomizer(anchor){
   const prev=document.getElementById('kpi-cust-pop');
-  if(prev){ prev.remove(); return; }   // second click on the gear closes it
+  /* Second click on the gear closes it. The trap hands focus back to whatever
+     opened it, which on this path is the gear the reader has just pressed —
+     so the release runs while the node is still in the document. */
+  if(prev){ if(prev._kpiRelease){ try{ prev._kpiRelease(); }catch(_){} } prev.remove(); return; }
   /* The outside-press listener from a popover this one replaces. It removes
      itself on the next document click, but a run of ticks would stack one per
      tick until then — armed once, dropped here. */
@@ -108,7 +111,7 @@ function openKpiCustomizer(anchor){
   const full=kpiAtMax(sel);
   const pop=document.createElement('div');
   pop.id='kpi-cust-pop';
-  pop.style.cssText='position:absolute;z-index:60;top:calc(100% + 6px);right:0;width:252px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:var(--radius);padding:8px;';
+  pop.style.cssText='position:absolute;z-index:60;top:calc(100% + 6px);right:0;width:252px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:var(--radius);padding:var(--s-2);';
   /* At four, the rows that cannot be turned on SAY SO before they are pressed —
      dimmed, not pointing, and carrying the sentence as a tooltip. The ticked
      four stay live, because turning one off is the way forward. */
@@ -116,7 +119,7 @@ function openKpiCustomizer(anchor){
     const on=sel.includes(id), shut=full&&!on;
     return `
     <label ${shut?`title="${esc(i18t('home_max_metrics',{max:KPI_MAX}))}"`:''}
-      style="display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:var(--radius);font-size:14px;${
+      style="display:flex;align-items:center;gap:9px;padding:7px var(--s-2);border-radius:var(--radius);font-size:var(--t-body);${
         shut?'cursor:default;opacity:.45;':'cursor:pointer;'}"${
         shut?'':` onmouseover="this.style.background='color-mix(in srgb,var(--color-accent) 9%,transparent)'" onmouseout="this.style.background='none'"`}>
       <input type="checkbox" data-kpi-toggle="${id}" ${on?'checked':''} ${shut?'disabled':''} style="width:15px;height:15px;accent-color:var(--color-accent);flex:none;"/>
@@ -124,19 +127,34 @@ function openKpiCustomizer(anchor){
     </label>`;
   };
   pop.innerHTML=`
-    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:4px 8px 6px;">
-      <span style="font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);font-weight:700;">${i18t('home_show_metrics')}</span>
+    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:var(--s-2);padding:var(--s-1) var(--s-2) 6px;">
+      <span style="font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);font-weight:var(--w-title);">${i18t('home_show_metrics')}</span>
       ${''/* The count is the rule, stated without being pressed: a reader who
              sees "4 of 4" never has to discover the ceiling by hitting it. */}
-      <span id="kpi-cust-count" style="font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;color:${full?'var(--color-accent-700)':'var(--color-neutral-500)'};">${i18t('home_metrics_count',{n:sel.length,max:KPI_MAX})}</span>
+      <span id="kpi-cust-count" style="font-size:var(--t-label);font-weight:var(--w-title);font-variant-numeric:tabular-nums;color:${full?'var(--color-accent-700)':'var(--color-neutral-500)'};">${i18t('home_metrics_count',{n:sel.length,max:KPI_MAX})}</span>
     </div>
     ${kpiCatalogOrder().map(row).join('')}
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid var(--color-divider);margin-top:6px;padding:8px 8px 4px;">
-      <span style="font-size:12px;color:var(--color-neutral-500);">${full?esc(i18t('home_max_metrics',{max:KPI_MAX})):i18t('home_drag_reorder')}</span>
-      <button data-kpi-reset style="border:0;background:none;color:var(--color-accent-700);font-weight:600;font-size:12px;cursor:pointer;padding:0;flex:none;">${i18t('home_reset')}</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);border-top:1px solid var(--color-divider);margin-top:6px;padding:var(--s-2) var(--s-2) var(--s-1);">
+      <span style="font-size:var(--t-label);color:var(--color-neutral-500);">${full?esc(i18t('home_max_metrics',{max:KPI_MAX})):i18t('home_drag_reorder')}</span>
+      <button data-kpi-reset style="border:0;background:none;color:var(--accent-ink-700);font-weight:var(--w-strong);font-size:var(--t-label);cursor:pointer;padding:0;flex:none;">${i18t('home_reset')}</button>
     </div>`;
   anchor.parentElement.style.position='relative';
   anchor.parentElement.appendChild(pop);
+  /* ---- THE KEYBOARD STAYS IN THE POPOVER, AND ESCAPE SHUTS IT ---- (25 Aug 2026)
+     It had neither. Measured: Tab from the last tick walked into the KPI cards
+     behind it — cards that are also DRAG HANDLES — and the only way to dismiss
+     it was a mouse click somewhere else, which a keyboard reader does not have.
+     kpiApply re-opens this popover against the freshly drawn button on every
+     tick, so the trap is set here, where the element is created, and the two
+     always match; the ways out below each release it. */
+  const popRelease = (typeof window.trapFocus==='function') ? window.trapFocus(pop) : null;
+  const shut = () => {
+    if(popRelease){ try{ popRelease(); }catch(_){} }
+    pop.remove(); document.removeEventListener('keydown', onEsc, true);
+  };
+  const onEsc = e => { if(e.key==='Escape' && pop.isConnected){ e.stopPropagation(); shut(); } };
+  document.addEventListener('keydown', onEsc, true);
+  pop._kpiRelease = shut;
   pop.querySelectorAll('[data-kpi-toggle]').forEach(cb=>cb.addEventListener('change',()=>{
     const id=cb.getAttribute('data-kpi-toggle');
     let cur=currentKpiSel();
@@ -150,7 +168,7 @@ function openKpiCustomizer(anchor){
     kpiApply(cur);
   }));
   pop.querySelector('[data-kpi-reset]')?.addEventListener('click',()=>{ kpiApply(DEFAULT_KPI_SEL.slice()); });
-  setTimeout(()=>{ const onDoc=e=>{ if(!pop.contains(e.target)&&e.target!==anchor&&!anchor.contains(e.target)){ pop.remove(); document.removeEventListener('click',onDoc,true); if(_kpiPopOff===onDoc) _kpiPopOff=null; } }; _kpiPopOff=onDoc; document.addEventListener('click',onDoc,true); },0);
+  setTimeout(()=>{ const onDoc=e=>{ if(!pop.contains(e.target)&&e.target!==anchor&&!anchor.contains(e.target)){ shut(); document.removeEventListener('click',onDoc,true); if(_kpiPopOff===onDoc) _kpiPopOff=null; } }; _kpiPopOff=onDoc; document.addEventListener('click',onDoc,true); },0);
 }
 /* ---- THE THIRD PLACE A READINESS SIGNAL REACHES THE OWNER ------------------
    The waiting-on-you card on the dashboard, which is the one surface they see
@@ -186,14 +204,14 @@ function readyToSignRowsHtml(items){
   if(!items||!items.length) return '';
   return `
     <div style="margin-bottom:10px" id="dd-ready-rows">
-      <div style="font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--st-green-fg);margin-bottom:5px">${i18t('home_ready_to_sign')}</div>
+      <div style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--st-green-fg);margin-bottom:5px">${i18t('home_ready_to_sign')}</div>
       ${items.slice(0,6).map(r=>`
-        <button data-sel="${esc(r.c.id)}" style="display:flex;align-items:flex-start;gap:9px;width:100%;padding:7px 4px;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
+        <button data-sel="${esc(r.c.id)}" style="display:flex;align-items:flex-start;gap:9px;width:100%;padding:7px var(--s-1);border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
           <span style="flex:1;min-width:0">
-            <span style="display:block;font-size:13px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.c.name)}</span>
-            <span style="display:block;font-size:12px;color:var(--color-neutral-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.sig.by||r.c.counterparty||'They')} signalled ready — nothing is signed yet</span>
+            <span style="display:block;font-size:var(--t-meta);font-weight:var(--w-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.c.name)}</span>
+            <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.sig.by||r.c.counterparty||'They')} signalled ready — nothing is signed yet</span>
           </span>
-          <span style="font-size:12px;font-weight:600;font-family:var(--font-mono);color:var(--st-green-fg);flex:none">issue link</span>
+          <span style="font-size:var(--t-label);font-weight:var(--w-strong);font-family:var(--font-mono);color:var(--st-green-fg);flex:none">issue link</span>
         </button>`).join('')}
     </div>`;
 }
@@ -260,7 +278,7 @@ function gettingStartedHtml(){
   const done=steps.filter(s=>s.done).length;
   const all=done===steps.length;
   const cur=steps.find(s=>!s.done);
-  const CIRCLE='width:20px;height:20px;flex:none;display:grid;place-items:center;border-radius:50%;font-size:12px;font-weight:700;font-family:var(--font-mono)';
+  const CIRCLE='width:20px;height:20px;flex:none;display:grid;place-items:center;border-radius:50%;font-size:var(--t-label);font-weight:var(--w-title);font-family:var(--font-mono)';
   const rows=steps.map((s,i)=>{
     const isCur=!all&&cur&&s.k===cur.k;
     const dot=s.done
@@ -269,26 +287,26 @@ function gettingStartedHtml(){
     const tone=s.done?'var(--color-neutral-500)':isCur?'var(--color-text)':'var(--color-neutral-500)';
     const body=`${dot}
       <span style="min-width:0;flex:1">
-        <span style="display:block;font-size:14px;font-weight:600;color:${tone};${s.done?'text-decoration:line-through;text-decoration-color:var(--color-neutral-400);':''}">${s.t}</span>
-        ${isCur?`<span style="display:block;font-size:12px;color:var(--color-neutral-600);line-height:1.45">${s.d}</span>`:''}
+        <span style="display:block;font-size:var(--t-body);font-weight:var(--w-strong);color:${tone};${s.done?'text-decoration:line-through;text-decoration-color:var(--color-neutral-400);':''}">${s.t}</span>
+        ${isCur?`<span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.45">${s.d}</span>`:''}
       </span>
-      ${isCur&&(s.k!=='sign'||gsGoTargetExists(s.k))?`<span style="flex:none;font-size:13px;font-weight:600;color:var(--color-accent-700)">${i18t('home_go')}</span>`:''}`;
+      ${isCur&&(s.k!=='sign'||gsGoTargetExists(s.k))?`<span style="flex:none;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--accent-ink-700)">${i18t('home_go')}</span>`:''}`;
     /* The whole current row is the button — a target the size of the step,
        not a link the size of an arrow. */
     return isCur&&(s.k!=='sign'||gsGoTargetExists(s.k))
-      ?`<button data-gs-go="${s.k}" style="display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border:1px solid color-mix(in srgb,var(--color-accent) 25%,transparent);border-radius:var(--radius);background:color-mix(in srgb,var(--color-accent) 6%,transparent);cursor:pointer;font:inherit;text-align:left;color:inherit">${body}</button>`
-      :`<div style="display:flex;align-items:center;gap:10px;padding:8px 10px">${body}</div>`;
+      ?`<button data-gs-go="${s.k}" style="display:flex;align-items:center;gap:10px;width:100%;padding:var(--s-2) 10px;border:1px solid color-mix(in srgb,var(--color-accent) 25%,transparent);border-radius:var(--radius);background:color-mix(in srgb,var(--color-accent) 6%,transparent);cursor:pointer;font:inherit;text-align:left;color:inherit">${body}</button>`
+      :`<div style="display:flex;align-items:center;gap:10px;padding:var(--s-2) 10px">${body}</div>`;
   }).join('');
   return `
-    <section id="gs-card" style="border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);padding:16px 18px 14px;">
-      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:8px">
-        <h2 style="margin:0;font-family:var(--font-heading);font-weight:700;font-size:15px;color:var(--color-text)">${all?'You’re set up — first contract signed ⚡':'Getting started'}</h2>
-        <span style="font-size:12px;color:var(--color-neutral-600);font-family:var(--font-mono)">${done} of ${steps.length} done</span>
+    <section id="gs-card" style="border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);padding:var(--s-4) 18px 14px;">
+      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:var(--s-2)">
+        <h2 style="margin:0;font-family:var(--font-heading);font-weight:var(--w-title);font-size:var(--t-card);color:var(--color-text)">${all?'You’re set up — first contract signed ⚡':'Getting started'}</h2>
+        <span style="font-size:var(--t-label);color:var(--color-neutral-600);font-family:var(--font-mono)">${done} of ${steps.length} done</span>
         <span style="flex:1"></span>
-        <button id="gs-dismiss" class="ui-btn" title="${i18t('home_hide_checklist')}" style="font-size:12px;padding:3px 10px">${all?'Done — hide this':'Hide'}</button>
+        <button id="gs-dismiss" class="ui-btn" title="${i18t('home_hide_checklist')}" style="font-size:var(--t-label);padding:3px 10px">${all?'Done — hide this':'Hide'}</button>
       </div>
       <div style="height:6px;border-radius:var(--radius);background:var(--color-neutral-100);margin-bottom:10px"><i style="display:block;height:100%;border-radius:var(--radius);background:var(--color-accent);width:${Math.round(done/steps.length*100)}%"></i></div>
-      ${all?`<p style="margin:0;font-size:13px;color:var(--color-neutral-600);line-height:1.55">Your workspace has done the whole journey — a contract in, scanned, sent and signed. Everything from here is more of the same.</p>`:rows}
+      ${all?`<p style="margin:0;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.55">Your workspace has done the whole journey — a contract in, scanned, sent and signed. Everything from here is more of the same.</p>`:rows}
     </section>`;
 }
 /* "Watch it come back signed" is a wait, not a task — it is a button only
@@ -586,10 +604,10 @@ function emailSetupLineHtml(){
   if(typeof emailOff!=='function' || !emailOff()) return '';
   const admin=(typeof isAdmin==='function')&&isAdmin();
   return `
-    <div id="email-setup-banner" style="display:flex;align-items:center;gap:9px;padding:8px 13px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:var(--radius);font-size:13px;color:var(--st-amber-fg);line-height:1.45;">
+    <div id="email-setup-banner" style="display:flex;align-items:center;gap:9px;padding:var(--s-2) 13px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:var(--radius);font-size:var(--t-meta);color:var(--st-amber-fg);line-height:1.45;">
       <span style="flex:none;display:inline-flex;color:var(--st-amber-dot);">${icon('alert','w-3.5 h-3.5')}</span>
       <span style="flex:1;min-width:0;">${i18t('home_email_not_setup')}</span>
-      ${admin?`<button id="email-setup-go" style="flex:none;border:0;background:none;padding:0;font:inherit;font-size:13px;font-weight:700;color:var(--st-amber-fg);cursor:pointer;text-decoration:underline;text-underline-offset:2px;">${i18t('home_set_it_up')}</button>`:''}
+      ${admin?`<button id="email-setup-go" style="flex:none;border:0;background:none;padding:0;font:inherit;font-size:var(--t-meta);font-weight:var(--w-title);color:var(--st-amber-fg);cursor:pointer;text-decoration:underline;text-underline-offset:2px;">${i18t('home_set_it_up')}</button>`:''}
     </div>`;
 }
 
@@ -651,13 +669,13 @@ function renderDashboard(){
   const HM_ROW_INKS =['var(--color-accent-700)','var(--st-amber-fg)',
     'var(--st-ruby-fg)','var(--st-green-fg)'];
   const kpiCard=id=>{ const k=KPI_CATALOG[id], t=TONE_OF(k.grad); return `
-    <button data-kpi-id="${id}" draggable="true" class="hati-stat" style="position:relative;display:flex;flex-direction:column;gap:7px;align-items:stretch;border:1px solid var(--color-divider);border-top:3px solid ${TONE_EDGE[t]};border-radius:var(--radius);background:var(--color-surface);padding:12px 14px;font:inherit;color:inherit;cursor:grab;text-align:left;box-shadow:none;transition:transform .2s var(--ease),opacity .15s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
-      <span style="display:block;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;line-height:1.3;color:var(--color-neutral-500);">${k.label}</span>
+    <button data-kpi-id="${id}" draggable="true" class="hati-stat" style="position:relative;display:flex;flex-direction:column;gap:7px;align-items:stretch;border:1px solid var(--color-divider);border-top:3px solid ${TONE_EDGE[t]};border-radius:var(--radius);background:var(--color-surface);padding:var(--s-3) 14px;font:inherit;color:inherit;cursor:grab;text-align:left;box-shadow:none;transition:transform var(--dur-2) var(--ease),opacity var(--dur-1);" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+      <span style="display:block;font-size:var(--t-label);font-weight:var(--w-title);letter-spacing:.1em;text-transform:uppercase;line-height:1.3;color:var(--color-neutral-500);">${k.label}</span>
       <span style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;">
-        <span class="tnum" style="font-family:var(--font-mono);font-weight:600;font-size:22px;line-height:1.1;letter-spacing:-.02em;color:var(--color-text);">${k.val}</span>
-        <span style="font-size:12px;font-weight:600;color:${TONE_FG[t]};text-align:right;">${k.delta}</span>
+        <span class="tnum" style="font-family:var(--font-mono);font-weight:var(--w-strong);font-size:22px;line-height:1.1;letter-spacing:-.02em;color:var(--color-text);">${k.val}</span>
+        <span style="font-size:var(--t-label);font-weight:var(--w-strong);color:${TONE_FG[t]};text-align:right;">${k.delta}</span>
       </span>
-      <span style="font-size:12px;color:var(--color-neutral-500);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${k.sub||''}</span>
+      <span style="font-size:var(--t-label);color:var(--color-neutral-500);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${k.sub||''}</span>
     </button>`; };
   const kpiHtml=kpiSel.map(kpiCard).join('');
 
@@ -739,7 +757,7 @@ function renderDashboard(){
        colleague who sent you three redlines on Tuesday does. */
     ...myReviews.map(x=>({
       cid:x.c.id, urgent:!!(x.rv.due&&String(x.rv.due)<new Date().toISOString().slice(0,10)), ic:'users',
-      txt:i18t('rv_home_title')+' — <strong style="font-weight:600">'+esc(x.c.name)+'</strong>',
+      txt:i18t('rv_home_title')+' — <strong style="font-weight:var(--w-strong)">'+esc(x.c.name)+'</strong>',
       meta:`${esc(i18t('rv_home_from',{who:x.rv.by}))} · ${esc(i18tn('rv_home_sub',x.st.total,{n:x.st.total}))}`,
       tag:x.rv.due?esc(String(x.rv.due)):esc(i18t('rv_home_open')),
     })),
@@ -754,25 +772,25 @@ function renderDashboard(){
     ...myStaleDesks.map(x=>({
       cid:x.c.id, urgent:true, ic:'clock',
       txt:i18t('dk_stale_card',{who:esc(x.c.counterparty||i18t('home_no_counterparty'))})
-        +' — <strong style="font-weight:600">'+esc(x.c.name)+'</strong>',
+        +' — <strong style="font-weight:var(--w-strong)">'+esc(x.c.name)+'</strong>',
       meta:esc(i18tn('dk_stale_sub',x.stale.n,{n:x.stale.n,who:x.stale.lead.name})),
       tag:esc(i18t('dk_stale_tag',{n:x.stale.days})),
     })),
     ...myJoinAsks.map(x=>({
       cid:x.c.id, urgent:false, ic:'users',
-      txt:i18t('dk_join_card',{who:esc(x.req.name)})+' — <strong style="font-weight:600">'+esc(x.c.name)+'</strong>',
+      txt:i18t('dk_join_card',{who:esc(x.req.name)})+' — <strong style="font-weight:var(--w-strong)">'+esc(x.c.name)+'</strong>',
       meta:x.req.why?`“${esc(x.req.why)}”`:esc(x.c.counterparty||i18t('home_no_counterparty')),
       tag:esc(i18t('dk_ask_tag')),
     })),
     ...decisions.map(x=>({
       cid:x.c.id, urgent:x.d<=30, ic:'calendar',
-      txt:i18t('home_renew_or_exit',{name:`<strong style="font-weight:600">${esc(x.c.name)}</strong>`}),
+      txt:i18t('home_renew_or_exit',{name:`<strong style="font-weight:var(--w-strong)">${esc(x.c.name)}</strong>`}),
       meta:i18t('home_decide_by',{who:esc(x.c.counterparty||i18t('home_no_counterparty')),when:fmtDDay(x.dd)}),
       tag:x.d===0?i18t('home_today'):i18t('home_in_days',{n:x.d}),
     })),
     ...waitingLongest.map(x=>({
       cid:x.c.id, urgent:x.idle>=30, ic:'clock',
-      txt:i18t('home_waiting_on_review',{name:`<strong style="font-weight:600">${esc(x.c.name)}</strong>`}),
+      txt:i18t('home_waiting_on_review',{name:`<strong style="font-weight:var(--w-strong)">${esc(x.c.name)}</strong>`}),
       meta:`${esc(x.c.counterparty||i18t('home_no_counterparty'))} · ${esc(x.c.id)}`,
       tag:i18t('home_idle_days',{n:x.idle}),
     })),
@@ -783,14 +801,14 @@ function renderDashboard(){
     return `<button data-sel="${esc(it.cid)}" style="display:flex;gap:11px;width:100%;padding:9px 2px;border:0;border-bottom:1px solid var(--color-divider);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;">
       <span style="width:30px;height:30px;flex:none;border-radius:50%;background:${bg};color:${fg};display:grid;place-items:center;">${icon(it.ic,'w-3.5 h-3.5',1.8)}</span>
       <span style="flex:1;min-width:0;">
-        <span style="display:flex;align-items:baseline;gap:8px;">
-          <span style="flex:1;min-width:0;font-size:13px;line-height:1.4;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${it.txt}</span>
-          <span style="flex:none;font-size:12px;font-weight:600;font-family:var(--font-mono);color:${fg};">${esc(it.tag)}</span>
+        <span style="display:flex;align-items:baseline;gap:var(--s-2);">
+          <span style="flex:1;min-width:0;font-size:var(--t-meta);line-height:1.4;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${it.txt}</span>
+          <span style="flex:none;font-size:var(--t-label);font-weight:var(--w-strong);font-family:var(--font-mono);color:${fg};">${esc(it.tag)}</span>
         </span>
-        <span style="display:block;margin-top:2px;font-size:12px;color:var(--color-neutral-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${it.meta}</span>
+        <span style="display:block;margin-top:2px;font-size:var(--t-label);color:var(--color-neutral-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${it.meta}</span>
       </span>
     </button>`; }).join('')
-    || `<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--color-neutral-500);padding:12px 2px;"><span style="color:var(--st-green-fg);display:inline-flex;">${icon('check2','w-4 h-4')}</span>${i18t('home_nothing_to_decide')}</div>`;
+    || `<div style="display:flex;align-items:center;gap:var(--s-2);font-size:var(--t-meta);color:var(--color-neutral-500);padding:var(--s-3) 2px;"><span style="color:var(--st-green-fg);display:inline-flex;">${icon('check2','w-4 h-4')}</span>${i18t('home_nothing_to_decide')}</div>`;
   /* The footer link has to lead where the rows actually live, and this card
      holds two different kinds of item. A renewal decision is a date, so the
      calendar is its home; a contract sitting in review is not on any calendar —
@@ -798,7 +816,7 @@ function renderDashboard(){
      single-purpose panel could safely do) would land a reader on a screen that
      shows none of what they clicked. So the footer names its destination, and
      when the list mixes the two it offers both. */
-  const lnk=(attr,label)=>`<button ${attr} style="border:0;background:none;padding:2px;font:inherit;font-size:12px;font-weight:600;color:var(--color-accent-600);cursor:pointer;text-align:left;">${label}</button>`;
+  const lnk=(attr,label)=>`<button ${attr} style="border:0;background:none;padding:2px;font:inherit;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink-700);cursor:pointer;text-align:left;">${label}</button>`;
   const renewalN=decisions.length, reviewN=waitingLongest.length;
   /* ---- EVERY LINK HERE NAMES WHERE A ROW ABOVE IT LIVES (owner-asked 20 Aug
      2026: "remove any other shortcuts unrelated to decisions due") ----
@@ -813,14 +831,14 @@ function renderDashboard(){
     reviewN?lnk('data-open-review',i18t('home_waiting_in_review',{n:reviewN})):'',
   ].filter(Boolean);
   const decisionFooter=(decisionItems.length>8||footerLinks.length>1)&&footerLinks.length
-    ? `<div style="flex:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--color-divider);display:flex;flex-direction:column;gap:2px;align-items:flex-start;">${footerLinks.join('')}</div>`
+    ? `<div style="flex:none;margin-top:var(--s-2);padding-top:var(--s-2);border-top:1px solid var(--color-divider);display:flex;flex-direction:column;gap:2px;align-items:flex-start;">${footerLinks.join('')}</div>`
     : '';
   const activitySection=`
-    <section style="flex:1;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:none;border-radius:var(--radius);padding:16px 18px;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex:none;">
-        <h4 style="font-size:15px;margin:0;font-weight:700;">${i18t('home_decisions_due')}</h4>
+    <section style="flex:1;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:none;border-radius:var(--radius);padding:var(--s-4) 18px;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:6px;flex:none;">
+        <h4 style="font-size:var(--t-card);margin:0;font-weight:var(--w-title);">${i18t('home_decisions_due')}</h4>
         <span class="live-ping" style="width:7px;height:7px;border-radius:50%;background:${decisionItems.length?'var(--st-amber-dot)':'var(--st-green-dot)'};flex:none;"></span>
-        ${decisionItems.length?`<span style="margin-left:auto;font-size:12px;font-weight:700;padding:2px 8px;background:var(--st-amber-bg);color:var(--st-amber-fg);">${decisionItems.length}</span>`:''}
+        ${decisionItems.length?`<span style="margin-left:auto;font-size:var(--t-label);font-weight:var(--w-title);padding:2px var(--s-2);background:var(--st-amber-bg);color:var(--st-amber-fg);">${decisionItems.length}</span>`:''}
       </div>
       <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;">${decisionRows}</div>
       ${decisionFooter}
@@ -840,20 +858,20 @@ function renderDashboard(){
      additive, so nothing that already renders disappears. */
   const firstRunBanner = countAll===0 ? `
     <section style="border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);padding:22px 22px 20px;">
-      <h2 style="margin:0 0 4px;font-family:var(--font-heading);font-weight:700;font-size:19px;color:var(--color-text);">${i18t('home_welcome')}</h2>
-      <p style="margin:0 0 16px;font-size:14px;color:var(--color-neutral-600);max-width:64ch;line-height:1.55;">${i18t('home_welcome_sub')}</p>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;">
+      <h2 style="margin:0 0 var(--s-1);font-family:var(--font-heading);font-weight:var(--w-title);font-size:var(--t-page);color:var(--color-text);">${i18t('home_welcome')}</h2>
+      <p style="margin:0 0 var(--s-4);font-size:var(--t-body);color:var(--color-neutral-600);max-width:64ch;line-height:1.55;">${i18t('home_welcome_sub')}</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:var(--s-3);">
         <button id="fr-draft" style="text-align:left;border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-bg);padding:15px;cursor:pointer;font:inherit;">
-          <div style="font-weight:700;font-size:14px;color:var(--color-text);margin-bottom:3px;">${i18t('home_draft_contract')}</div>
-          <div style="font-size:13px;color:var(--color-neutral-600);line-height:1.5;">Fill in the blanks on a ${regionNow} template — the register, filters and reminders populate as you type.</div>
+          <div style="font-weight:var(--w-title);font-size:var(--t-body);color:var(--color-text);margin-bottom:3px;">${i18t('home_draft_contract')}</div>
+          <div style="font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.5;">Fill in the blanks on a ${regionNow} template — the register, filters and reminders populate as you type.</div>
         </button>
         <button id="fr-import" style="text-align:left;border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-bg);padding:15px;cursor:pointer;font:inherit;">
-          <div style="font-weight:700;font-size:14px;color:var(--color-text);margin-bottom:3px;">${i18t('home_import_existing')}</div>
-          <div style="font-size:13px;color:var(--color-neutral-600);line-height:1.5;">${i18t('home_import_sub')}</div>
+          <div style="font-weight:var(--w-title);font-size:var(--t-body);color:var(--color-text);margin-bottom:3px;">${i18t('home_import_existing')}</div>
+          <div style="font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.5;">${i18t('home_import_sub')}</div>
         </button>
         <button id="fr-explore" style="text-align:left;border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-bg);padding:15px;cursor:pointer;font:inherit;">
-          <div style="font-weight:700;font-size:14px;color:var(--color-text);margin-bottom:3px;">${i18t('home_explore_register')}</div>
-          <div style="font-size:13px;color:var(--color-neutral-600);line-height:1.5;">${i18t('home_explore_sub')}</div>
+          <div style="font-weight:var(--w-title);font-size:var(--t-body);color:var(--color-text);margin-bottom:3px;">${i18t('home_explore_register')}</div>
+          <div style="font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.5;">${i18t('home_explore_sub')}</div>
         </button>
       </div>
     </section>` : '';
@@ -933,7 +951,13 @@ function renderDashboard(){
     const k=KPI_CATALOG[id];
     return hmTile({ t:esc(k.label), s:esc(k.sub||''), n:esc(String(k.val)), u:'',
       f:esc(String(k.delta||'')), fc:'', edge:HM_ROW_TONES[i%4], ink:HM_ROW_INKS[i%4], go:'kpi:'+id,
-      attrs:`data-kpi-id="${id}" draggable="true"`,
+      /* aria-describedby names the sr-only sentence under the row that tells a
+         screen reader these cards reorder with Alt+Arrow. It goes HERE, on the
+         builder that actually draws the row. kpiCard() further up is a second
+         builder for the same tile whose output (kpiHtml) is computed and never
+         interpolated — this line was written on that one first and reached
+         nothing on the dashboard, which a browser press is what caught. */
+      attrs:`data-kpi-id="${id}" draggable="true" aria-describedby="kpi-reorder-hint"`,
       /* An average has no number to test — "—" is not zero, it is "not yet
          measurable" — so the tile is dead when there is nothing behind it. */
       dead:String(k.val)==='—'||hmDead(k.val) });
@@ -1051,6 +1075,11 @@ function renderDashboard(){
         ${i18t('home_customize_metrics')}
       </button>`)}
     <div id="kpi-grid" class="hm-tiles is-work" data-kpi-cols="${kpiCols}">${workTiles}</div>
+    ${''/* A KEYBOARD AFFORDANCE NOBODY IS TOLD ABOUT IS ONE NOBODY USES. Drawn
+         for a screen reader only, because the cards already SAY "drag to
+         reorder" in the customizer's foot for everybody else and a second
+         visible sentence under the row is furniture. */}
+    <span id="kpi-reorder-hint" class="sr-only">${i18t('home_reorder_keys')}</span>
 
     ${hmSec(i18t('home_portfolio_sec'))}
     <div class="hm-tiles is-port">${portTiles}</div>
@@ -1080,6 +1109,29 @@ function renderDashboard(){
     });
     el.addEventListener('dragstart',e=>{ kpiDragId=id; el.style.opacity='.35'; try{ e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain',id); }catch(_){} });
     el.addEventListener('dragend',()=>{ kpiDragId=null; el.style.opacity=''; });
+    /* ---- AND THE KEYBOARD CAN REORDER THEM TOO ---- (25 Aug 2026)
+       Dragging is the only way this row could be reordered, and drag-and-drop
+       reaches nobody working from a keyboard, switch access or a screen
+       reader. Alt+Arrow is the pattern browsers and editors already use for
+       "move this item"; it is Alt-modified deliberately, because a bare arrow
+       on a KPI card is how a reader scrolls the dashboard.
+       IT GOES THROUGH THE SAME ARITHMETIC AS THE DROP — one array, one splice,
+       one setKpiSel — so the two ways of moving a card cannot come to disagree
+       about what the order is. */
+    el.addEventListener('keydown',e=>{
+      if(!e.altKey) return;
+      const d = e.key==='ArrowLeft' ? -1 : e.key==='ArrowRight' ? 1 : 0;
+      if(!d) return;
+      e.preventDefault();
+      const arr=currentKpiSel().filter(x=>KPI_CATALOG[x]);
+      const from=arr.indexOf(id); if(from<0) return;
+      const to=from+d; if(to<0||to>=arr.length) return;
+      arr.splice(from,1); arr.splice(to,0,id); setKpiSel(arr); renderDashboard();
+      /* The row is rebuilt, so the card the reader is moving is a NEW element —
+         find it again and put focus back on it, or every press drops them at
+         the top of the page. */
+      setTimeout(()=>{ document.querySelector(`[data-kpi-id="${id}"]`)?.focus({preventScroll:true}); },0);
+    });
     el.addEventListener('dragover',e=>{ e.preventDefault(); try{ e.dataTransfer.dropEffect='move'; }catch(_){} });
     el.addEventListener('drop',e=>{ e.preventDefault();
       const overId=id, dId=kpiDragId||(e.dataTransfer&&e.dataTransfer.getData('text/plain'));

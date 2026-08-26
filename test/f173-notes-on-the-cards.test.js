@@ -192,7 +192,7 @@ describe('f173 · the column head is a caption and a count', () => {
        the design's — its workhorse is 14px where HaTi's was 11-12 — so every
        size at or below 14px moved up one rung. The RELATION each of these
        lines asserts is the claim and is unchanged. */
-    assert.ok(/\.rl-idx-k\{[^}]*font-size:12px;font-weight:700;letter-spacing:\.12em/.test(css),
+    assert.ok(/\.rl-idx-k\{[^}]*font-size:var\(--t-label\);font-weight:var\(--w-title\);letter-spacing:\.12em/.test(css),
       'the caption keeps its label type, on a whole pixel');
     const n = /\.rl-idx-n\{([^}]*)\}/.exec(css)[1];
     assert.match(n, /font-family:var\(--font-mono\)/,

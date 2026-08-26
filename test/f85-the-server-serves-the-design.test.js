@@ -58,15 +58,20 @@ describe('F85 — the design\'s assets reach the browser', () => {
   });
 
   test('and it actually carries the design\'s face', async () => {
-    /* CLAIM REVERSED IN PLACE 22 Aug 2026 (owner-asked: "let's use Inter
-       everywhere"). It read "both of the design's faces" and named "72" as the
-       platform's — there is ONE family now, Inter, carrying the chrome and the
-       paper. "72" is SAP's and licensed around SAP's own software; Inter is
-       SIL Open Font Licensed, which is the whole reason for the swap.
-       Jakarta Sans retired earlier, with the design before last. */
+    /* CLAIM REVERSED IN PLACE 25 Aug 2026 (owner-asked). The one family is IBM
+       Plex Sans now, carrying the chrome and the paper; it was Inter from
+       22 Aug and "72" before that. Both swaps kept the same rule — ONE family
+       end to end — and the licence bar is unchanged: Plex and Inter are both
+       SIL Open Font Licensed, "72" is SAP's and licensed around SAP's own
+       software, which is why it stays out. Jakarta Sans retired earlier still.
+       THE FACE IS NAMED HERE ON PURPOSE rather than matched loosely: a
+       stylesheet that serves SOME family would pass a vaguer check while the
+       product silently ran on the wrong one. */
     const css = await (await get('/fonts/fonts.css')).text();
-    assert.match(css, /font-family:\s*'Inter'/,
+    assert.match(css, /font-family:\s*'IBM Plex Sans'/,
       'the platform face is missing from the served stylesheet');
+    assert.doesNotMatch(css, /font-family:\s*'Inter'/,
+      'Inter is retired — two families inlined is every reader downloading a face nothing asks for');
     assert.doesNotMatch(css, /font-family:\s*'72'/,
       '"72" is retired — a face nothing asks for is 316 KB every reader downloads');
     // The faces are inlined as data URIs; a stylesheet of @font-face rules
@@ -82,8 +87,19 @@ describe('F85 — the design\'s assets reach the browser', () => {
        regression this whole file exists for. */
     const ranges = css.match(/unicode-range:[^;]+;/g) || [];
     const joined = ranges.join(' ');
-    assert.match(joined, /U\+0400-045F/, 'Cyrillic coverage was lost with "72"');
-    assert.match(joined, /U\+1F00-1FFF/, 'Greek coverage was lost with "72"');
+    assert.match(joined, /U\+0400-045F/, 'Cyrillic coverage was lost');
+    /* ---- THE GREEK CLAIM MOVED RUNG, AND THE NARROWING IS NAMED (25 Aug 2026)
+       This asserted U+1F00-1FFF — greek-ext, the accented forms of POLYTONIC
+       (classical and ancient) Greek — because that is the rung "72" and Inter
+       both happened to ship. Google Fonts does not slice a greek-ext subset for
+       IBM Plex Sans; the family does not offer one there, so the swap to Plex
+       genuinely lost it. THAT IS RECORDED RATHER THAN ABSORBED: it is a real
+       narrowing, and the reason it was accepted is that this test's own purpose
+       is a NAME on a contract falling back to a system sans mid-sentence, and a
+       name is written in MODERN Greek — U+0370-03FF, which Plex covers in full
+       and which is what this line now guards. If polytonic Greek ever matters
+       here, it needs a face that carries it, not a looser test. */
+    assert.match(joined, /U\+0370/, 'modern Greek coverage was lost');
   });
 
   test('the ES module entry point is served', async () => {

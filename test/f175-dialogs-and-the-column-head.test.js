@@ -25,6 +25,7 @@
    ============================================================ */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
+const { px: tokenPx } = require('./tokens');
 const fs = require('node:fs');
 const path = require('node:path');
 const { buildWorld } = require('./world');
@@ -247,14 +248,14 @@ describe('f175 · the Tracked Changes head is a rule, not a box', () => {
        the design's — its workhorse is 14px where HaTi's was 11-12 — so every
        size at or below 14px moved up one rung. The RELATION each of these
        lines asserts is the claim and is unchanged. */
-    assert.match(k, /font-size:12px/, 'the caption is the queue label\'s type');
+    assert.match(k, /font-size:var\(--t-label\)/, 'the caption is the queue label\'s type');
     /* ---- AND THE HALF-STEP BETWEEN THEM IS GONE, FOR A REAL REASON ----
        The count used to be set a hair larger than the caption "because mono
        runs small at the same size". That stopped being true on 22 Aug 2026,
        when --font-mono was pointed at Inter with the rest of the platform:
        label and figure are ONE FAMILY now, so at the same px they are the same
        size, and the compensation was compensating for nothing. Both 11px. */
-    assert.match(n, /font-size:12px/,
+    assert.match(n, /font-size:var\(--t-label\)/,
       'the count matches the caption — one family, so no compensation is owed');
     assert.match(n, /color:var\(--color-neutral-500\)/,
       'set below the caption in ink, which is what keeps it quieter');
@@ -275,8 +276,20 @@ describe('f175 · the Tracked Changes head is a rule, not a box', () => {
        said once, by the filter. */
     assert.match(p.win.document.querySelector('#rl-cardfilter option').textContent, /\(1\)/,
       'the All option carries it instead');
-    assert.ok(/\.rl-idx-n\.is-live\{[^}]*var\(--color-accent-800\)/.test(p.css()),
+    /* RE-POINTED 25 Aug 2026 — PIN THE RELATION, NOT THE LITERAL. This asked
+       for the ramp step by name; the accent-as-text sweep moved every such
+       declaration onto --accent-ink, which IS accent-800 by day, so not one
+       pixel of this rule changed. What the claim was really about is that the
+       reviewer's own count still has a rule at all, and that it still carries
+       the hand-written night answer this file's own history records as the
+       defect it was written for — accent-800 on an almost-black panel at
+       2.4:1. Both are asserted; the light literal is not, because it is now
+       one token away and a token is the thing that keeps them in step. */
+    const css = p.css();
+    assert.ok(/\.rl-idx-n\.is-live\{[^}]*color:var\(--accent-ink\)/.test(css),
       'the count rules stay in the sheet for the reviewer head that still draws one');
+    assert.ok(/html\.dark[^{]*\.rl-idx-n\.is-live\{[^}]*var\(--color-accent-300\)/.test(css),
+      'and it keeps its own night answer, which is why it reads at 2.4:1 no longer');
     /* ---- REVERSED IN PLACE AGAIN (owner-chose render B1, 23 Aug 2026) ----
        The history, because it is the useful part. 16 Aug: the live cut was an
        accent INK. 22 Aug (Render B, chosen off four drawn options): a FILLED
@@ -323,7 +336,11 @@ describe('f175 · the Tracked Changes head is a rule, not a box', () => {
     /* The count is the headline and the word is its caption — the whole shape
        of the render. Asserted as the RELATION, so the next type pass costs no
        edit here. */
-    const px = t => Number((/font-size:([\d.]+)px/.exec(t) || [])[1]);
+    /* RE-POINTED 25 Aug 2026 — the sizes are TOKENS now, so the relation is
+       read through the one resolver rather than off a literal. The claim is
+       unchanged and is still a relation, which is the point: the next type
+       retune costs no edit here. */
+    const px = t => tokenPx(t);
     assert.ok(px(rest) > px(word) + 4,
       'the number leads by a clear step — it is the thing being scanned');
     assert.match(word, /text-transform:uppercase/, 'and the word reads as its label');

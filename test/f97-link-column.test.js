@@ -104,7 +104,15 @@ describe('F97 — one builder, so the two tables cannot disagree', () => {
   test('the folder page carries the link legend, and the register does not', () => {
     const legends = reg.match(/shareLegendHtml\(/g) || [];
     assert.equal(legends.length, 1, 'the folder page still keys its marks');
-    const foot = reg.slice(reg.indexOf('<span id="reg-showing">'));
+    /* RE-POINTED 25 Aug 2026 — anchor on the ID, not the whole opening tag.
+       That span gained aria-live so a screen reader is told when the count
+       moves, the literal stopped matching, indexOf came back -1, and slice(-1)
+       handed the two checks below a ONE-CHARACTER string they both passed
+       against. A false pass is the expensive half: the claim about what is NOT
+       in the foot was satisfied by there being no foot. */
+    const at = reg.indexOf('id="reg-showing"');
+    assert.ok(at > 0, 'the footer is where this test thinks it is');
+    const foot = reg.slice(at);
     assert.ok(!/shareLegendHtml\(/.test(foot),
       'the register footer was the crowded one; the link key came out of it');
     assert.ok(/folderLegendHtml\(/.test(foot),

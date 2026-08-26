@@ -103,19 +103,19 @@ const KNOWN_RED = {
     'endgame issues a NEGOTIATE link where it wants a signing one, so the ' +
     'share dialog opened by the readiness hand-off needs the same treatment. ' +
     'Naming a signer was necessary and not sufficient.',
-  /* NOT LISTED, deliberately: analytics-verify.js, and the reasoning is worth
-     keeping because it is two faults wearing one symptom.
-     Its check is `canvases > 0 || bars > 0`. BOTH halves fail in a sandboxed
-     dev environment: js/aichart.js fetches Chart.js from cdnjs and the sandbox
-     proxy refuses the tunnel (403), so there is no canvas; and the fallback
+  /* NOT LISTED, deliberately: analytics-verify.js. It was two faults wearing
+     one symptom and ONE OF THEM IS NOW CLOSED BY CONSTRUCTION.
+     Its check is `canvases > 0 || bars > 0`. The canvas half used to fail in a
+     sandboxed dev environment because js/aichart.js fetched Chart.js from
+     cdnjs and the sandbox proxy refuses that tunnel (403). Since 26 Aug 2026
+     the library is served by the workspace itself (vendor/README.md), so the
+     canvas half now passes with NO outbound network at all — which is the
+     whole point of that change and is why this file is worth more than it was.
+     WHAT IS STILL BROKEN, and it is not this change's to fix: the fallback
      half looks for `div[style*="border-radius:999px"]`, a pill-shaped CSS bar
-     that SQUARE CORNERS EVERYWHERE (20 Aug 2026) squared away — so the
-     fallback selector now matches nothing anywhere, offline or not.
-     CI has ordinary outbound network, so the canvas half carries it and the
-     file passes there. It stays in the run rather than on the list: if it does
-     go red in CI, that is a real answer worth having rather than one to
-     suppress. Re-point the `bars` selector when somebody is next in this file —
-     until then the offline fallback it was written to guard is unguarded. */
+     that SQUARE CORNERS EVERYWHERE (20 Aug 2026) squared away, so that
+     selector matches nothing anywhere. The offline fallback it was written to
+     guard is still unguarded — logged in BUGLOG under "Noticed, not fixed". */
 };
 
 /* NOT A TEST. These live in the same folder and are run by hand for their

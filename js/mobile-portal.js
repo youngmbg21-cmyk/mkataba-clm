@@ -36,40 +36,40 @@ const M_PORTAL_CSS = `
      panes give up their inner scroll and grow. */
   .pw-page{
     height:auto!important; min-height:100dvh; overflow:visible!important;
-    padding:8px 10px calc(env(safe-area-inset-bottom,0px) + 96px)!important;
-    gap:8px!important;
+    padding:var(--s-2) 10px calc(env(safe-area-inset-bottom,0px) + 96px)!important;
+    gap:var(--s-2)!important;
   }
   /* ---- the identity strip ----
      Six things on one line at 390px is six things clipped. It wraps, the name
      gets the full width, and the reading verbs fall underneath where they are
      still 44px each. */
-  .pw-id{ flex-wrap:wrap!important; padding:10px 12px!important; row-gap:8px!important; }
+  .pw-id{ flex-wrap:wrap!important; padding:10px var(--s-3)!important; row-gap:var(--s-2)!important; }
   .pw-id-main{ flex:1 1 100%!important; order:1; }
   .pw-id-badge{ order:0; }
-  .pw-id-main h1{ font-size:17px!important; white-space:normal!important; }
-  .pw-id-sub{ font-size:15px!important; }
+  .pw-id-main h1{ font-size:var(--t-section)!important; white-space:normal!important; }
+  .pw-id-sub{ font-size:var(--t-card)!important; }
   .pw-id-read{ order:2; flex:1 1 100%!important; }
   .pw-id .nego-who{ order:3; margin-left:0!important; flex:1 1 100%!important; }
   .pw-id .nego-who input{ min-width:0!important; width:100%; font-size:16px!important; min-height:44px!important; }
   .pw-id-rule{ display:none!important; }
-  .ui-btn.pw-id-verb{ flex:1 1 auto!important; min-height:44px!important; font-size:15px!important; }
+  .ui-btn.pw-id-verb{ flex:1 1 auto!important; min-height:44px!important; font-size:var(--t-card)!important; }
 
   /* ---- the panes ---- */
   .pw-mount{ min-height:0!important; }
   .pw-mount>*{ min-height:0!important; }
   .nego-work{ grid-template-columns:100%!important; }
   .nego-pane{ min-height:0; }
-  .nego-pane .nego-doc{ padding:20px 14px!important; font-size:15px!important; line-height:1.7; }
+  .nego-pane .nego-doc{ padding:20px 14px!important; font-size:var(--t-card)!important; line-height:1.7; }
   .nego-pane.working .nego-doc{ padding-left:14px!important; }
   .nego-doc h1{ font-size:18px!important; }
   .nego-badge{ position:static!important; display:inline-block!important; margin:0 0 6px!important; }
-  .nego-pane-head{ padding:10px 12px!important; }
+  .nego-pane-head{ padding:10px var(--s-3)!important; }
 
   /* ---- every verb on these pages ----
      The counterparty is doing something consequential on a phone they were
      handed a link on. Nothing they press should be smaller than a thumb. */
   .pw-page .ui-btn, .pv-page .ui-btn, .nego-card .ui-btn{
-    min-height:44px!important; font-size:15px!important; padding:0 14px!important;
+    min-height:44px!important; font-size:var(--t-card)!important; padding:0 14px!important;
   }
   .pw-page input[type=text], .pw-page input[type=email], .pw-page textarea,
   .pv-page input, .pv-page textarea{ font-size:16px!important; }
@@ -79,34 +79,34 @@ const M_PORTAL_CSS = `
      reachable without scrolling to the end of a contract, so the page's action
      bar sticks to the bottom — the decisions themselves are still held until it
      is pressed, which is the rule that matters and is not changed here. */
-  .pw-notes{ gap:8px!important; }
+  .pw-notes{ gap:var(--s-2)!important; }
   #nego-actions, .nego-actionbar, .pt-actions{
     position:sticky!important; bottom:0; z-index:8;
     background:var(--color-surface); border-top:1px solid var(--color-divider);
-    padding:10px 12px calc(env(safe-area-inset-bottom,0px) + 12px)!important;
+    padding:10px var(--s-3) calc(env(safe-area-inset-bottom,0px) + 12px)!important;
     margin:0 -10px -12px!important;
-    display:flex; flex-wrap:wrap; gap:8px;
+    display:flex; flex-wrap:wrap; gap:var(--s-2);
   }
   #nego-actions .ui-btn, .nego-actionbar .ui-btn, .pt-actions .ui-btn{ flex:1 1 45%; }
 
   /* ---- the change cards ---- */
-  .nego-card{ padding:12px 13px!important; }
-  .nego-card, .nego-card *{ font-size:15px; }
+  .nego-card{ padding:var(--s-3) 13px!important; }
+  .nego-card, .nego-card *{ font-size:var(--t-card); }
   .nego-card .nego-card-head{ flex-wrap:wrap; }
 
   /* ---- the read-only viewer ----
      A frozen snapshot, watermarked, and printable. Nothing else — there is no
      reply channel on this page and there must not appear to be one. */
-  .pv-page{ padding:14px 12px calc(env(safe-area-inset-bottom,0px) + 40px)!important; }
-  .pv-sheet{ padding:22px 16px!important; font-size:15px; }
+  .pv-page{ padding:14px var(--s-3) calc(env(safe-area-inset-bottom,0px) + 40px)!important; }
+  .pv-sheet{ padding:22px var(--s-4)!important; font-size:var(--t-card); }
   /* The mark scales with the sheet rather than the viewport, so it stays
      readable-through rather than becoming a wall at 320px. */
   .pv-sheet::before{ font-size:clamp(20px,9vw,34px)!important; }
-  .pv-banner{ padding:12px 14px!important; }
-  .pv-banner .pv-sub{ font-size:15px!important; }
-  .pv-chg-body{ font-size:15px!important; }
-  .pv-note, .pv-foot, .pv-chg-state{ font-size:15px!important; }
-  .pv-changes h2{ font-size:17px!important; }
+  .pv-banner{ padding:var(--s-3) 14px!important; }
+  .pv-banner .pv-sub{ font-size:var(--t-card)!important; }
+  .pv-chg-body{ font-size:var(--t-card)!important; }
+  .pv-note, .pv-foot, .pv-chg-state{ font-size:var(--t-card)!important; }
+  .pv-changes h2{ font-size:var(--t-section)!important; }
 
   /* ---- the signing surface ----
      The bound identity, the step it is on, what changed, and the mark. The
@@ -115,7 +115,7 @@ const M_PORTAL_CSS = `
   .sig-pad, canvas.sig-canvas, [data-sig-canvas]{
     width:100%!important; height:200px!important; touch-action:none;
   }
-  .sig-tabs button, [data-sig-tab]{ min-height:44px!important; font-size:15px!important; }
+  .sig-tabs button, [data-sig-tab]{ min-height:44px!important; font-size:var(--t-card)!important; }
 }`;
 
 let _mPortalCssDone = false;

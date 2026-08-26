@@ -106,33 +106,38 @@ const SHELL_ICONS = [
       const heading = getComputedStyle(document.documentElement)
         .getPropertyValue('--font-heading').trim();
       return {
-        loaded300: document.fonts.check('300 16px Inter'),
-        loaded400: document.fonts.check('400 16px Inter'),
-        loaded600: document.fonts.check('600 16px Inter'),
-        loaded700: document.fonts.check('700 16px Inter'),
-        /* 500 and 800 are the two weights "72" never carried — the old rule was
-           that they resolved to a neighbour. Inter is variable, 300-800, so
-           both are real now and this records that the swap actually bought it. */
-        loaded500: document.fonts.check('500 16px Inter'),
-        loaded800: document.fonts.check('800 16px Inter'),
+        loaded400: document.fonts.check("400 16px 'IBM Plex Sans'"),
+        loaded500: document.fonts.check("500 16px 'IBM Plex Sans'"),
+        loaded600: document.fonts.check("600 16px 'IBM Plex Sans'"),
+        loaded700: document.fonts.check("700 16px 'IBM Plex Sans'"),
         headingToken: heading,
         bodyStack: body,
-        widthInter: mk('Inter'),
+        widthFace: mk("'IBM Plex Sans'"),
         widthFallback: mk('Arial'),
-        /* If Inter failed to load, "Inter" and the fallback measure the same,
-           because "Inter" would BE the fallback. */
+        /* If the face failed to load it and the fallback measure the same,
+           because the face would BE the fallback. */
       };
     });
-    check('the stylesheet asks for Inter first',
-      /^Inter\b/.test(face.headingToken), face.headingToken);
+    /* CLAIM REVERSED IN PLACE 25 Aug 2026: the platform face is IBM Plex Sans;
+       it was Inter from 22 Aug and "72" before that. The token is written with
+       quotes because the family name has spaces, so the test allows for them. */
+    check('the stylesheet asks for IBM Plex Sans first',
+      /^'?IBM Plex Sans'?/.test(face.headingToken), face.headingToken);
     check('and "72" is nowhere in the platform stack',
       !/72/.test(face.headingToken + ' ' + face.bodyStack), face.headingToken);
-    for (const w of [300, 400, 500, 600, 700, 800]) {
+    /* ---- THE RANGE NARROWED WITH THE FACE, AND THE LIST FOLLOWS IT ----
+       This asked for 300 through 800 because Inter is variable across exactly
+       that. IBM Plex Sans is variable 400-700, so 300 and 800 are no longer
+       real and asking for them would be asserting a fiction. NOTHING IN THE
+       PRODUCT ASKS FOR 300 OR BELOW; one declaration asks for 800 — the
+       bold-corporate document style's h1 — and a browser clamps it to 700,
+       which is recorded at that declaration rather than hidden here. */
+    for (const w of [400, 500, 600, 700]) {
       check(`weight ${w} is really available`, face['loaded' + w] === true);
     }
-    check('Inter is a different face from the fallback, so it genuinely loaded',
-      Math.abs(face.widthInter - face.widthFallback) > 1,
-      `Inter ${face.widthInter.toFixed(1)}px vs Arial ${face.widthFallback.toFixed(1)}px`);
+    check('the face is different from the fallback, so it genuinely loaded',
+      Math.abs(face.widthFace - face.widthFallback) > 1,
+      `IBM Plex Sans ${face.widthFace.toFixed(1)}px vs Arial ${face.widthFallback.toFixed(1)}px`);
 
     /* THE FIGURE FACE IS THE PLATFORM FACE. --font-mono is used ~160 times for
        ids, dates, counts and money — data, not code — and the columns line up
@@ -140,7 +145,8 @@ const SHELL_ICONS = [
        drifts back to a monospace the money columns change width overnight. */
     const mono = await page.evaluate(() => getComputedStyle(document.documentElement)
       .getPropertyValue('--font-mono').trim());
-    check('the figure token follows the platform face', /^Inter\b/.test(mono), mono);
+    check('the figure token follows the platform face',
+      /^'?IBM Plex Sans'?/.test(mono), mono);
 
     /* ---- 2. EVERY SHELL SYMBOL RESOLVES TO PAINTED PIXELS ---- */
     console.log('\n--- 2. every symbol in the shell resolves ---');
