@@ -270,12 +270,14 @@ describe('f175 · the Tracked Changes head is a rule, not a box', () => {
        a narrowed reviewer's, whose filter is furniture and is not drawn. */
     const p = await stage();
     assert.equal(p.$('.rl-idx-n'), null,
-      'no separate count beside a drawn filter — one number, said once');
-    /* RE-POINTED 24 Aug 2026 — the cut is an OPTION now, and its count rides
-       in the option's words ("All (1)"). The claim is the same: the number is
-       said once, by the filter. */
-    assert.match(p.win.document.querySelector('#rl-cardfilter option').textContent, /\(1\)/,
-      'the All option carries it instead');
+      'no separate count — one number, said once');
+    /* RE-POINTED 24 Aug 2026 onto the filter's own option, and AGAIN 26 Aug
+       2026 when that filter was retired ("delete the whose ask feature"). The
+       claim has never changed: the number is said once. The head's own title
+       is the once. */
+    assert.equal(p.$('#rl-cardfilter'), null, 'the filter is gone with its count');
+    assert.match(p.$('.rl-idx-title').textContent, /\(1\)/,
+      'and the head\'s own title carries it instead');
     /* RE-POINTED 25 Aug 2026 — PIN THE RELATION, NOT THE LITERAL. This asked
        for the ramp step by name; the accent-as-text sweep moved every such
        declaration onto --accent-ink, which IS accent-800 by day, so not one
@@ -364,17 +366,15 @@ describe('f175 · the Tracked Changes head is a rule, not a box', () => {
       'an empty book draws no filter — three ways of showing nothing is furniture');
     assert.ok(q.win.document.querySelector('.rl-idx-title'),
       'but the head itself still draws, so the column is never a blank');
-    /* And the moment there IS an ask, the control is back with its own count,
-       whichever cut the reader happens to be sitting on. */
+    /* RE-POINTED 26 Aug 2026: the filter is retired ("delete the whose ask
+       feature"), so what this half was really guarding — that the head does
+       not vanish with the thing beside it — is read off the head itself. */
     const r = await stage();
-    r.win.rlSetCardFilter && r.win.rlSetCardFilter('mine');
     r.win.renderRedline();
-    assert.ok(r.win.document.querySelector('#rl-cardfilter'),
-      'a narrowed column still draws the control');
-    assert.match([...r.win.document.querySelectorAll('#rl-cardfilter option')]
-      .map(o => o.textContent).join(' '), /\(1\)/,
-      'and its counts are the whole book, not the cut being shown');
-    r.win.rlSetCardFilter && r.win.rlSetCardFilter('all');
+    assert.equal(r.win.document.querySelector('#rl-cardfilter'), null,
+      'the retired control draws nowhere, empty book or not');
+    assert.match(r.win.document.querySelector('.rl-idx-title').textContent, /\(\d+\)/,
+      'and the head carries the count, whole book, on its own');
   });
 });
 
@@ -421,93 +421,48 @@ const press = (p, k) => {
   s.value = k;
   s.dispatchEvent(new p.win.Event('change', { bubbles: true, cancelable: true }));
 };
+/* ---- THE WHOSE-ASKS FILTER IS RETIRED (owner-asked 26 Aug 2026: "delete the
+   whose ask feature") ----
+   THIS BLOCK IS REVERSED IN PLACE, not deleted. It held the control to the
+   three safety properties that made a change-hiding filter safe at all — three
+   options, each with its OWN count unmoved by the filter, and the narrowing
+   never silent. There is no control, so there is nothing for those to be true
+   of, and what it existed FOR is answered twice by what replaced it: the piles
+   SORT by the same reading rather than hiding, and the front edge of every row
+   is coloured by whose ask it is.
 
-describe('f175 · the strip filters by who asked', () => {
-  test('three options, each carrying its own count', async () => {
+   SO THE CLAIM IS THE STRONGEST FORM OF THE OLD ONE: nothing on this column
+   can hide a change. A retired control whose machinery still narrows would be
+   a filter nobody can see, which is worse than the filter was. */
+describe('f175 · nothing on the column hides a change', () => {
+  test('the control is gone, and so is the band that explained it', async () => {
     const p = await withBoth();
-    assert.deepEqual(chips(p).map(b => b.value),
-      ['all', 'mine', 'theirs'], 'all three, in that order');
-    const n = k => (chips(p).find(b => b.value === k).textContent.match(/\((\d+)\)/) || [])[1];
-    assert.equal(n('all'), '2');
-    assert.equal(n('mine'), '1');
-    assert.equal(n('theirs'), '1');
-    /* THE COUNTS DO NOT MOVE WITH THE FILTER — that is what stops one hiding
-       a change quietly. Reading "Theirs 1" while you are on Mine is the whole
-       safety property. */
-    press(p, 'mine');
-    const after = k => (chips(p).find(b => b.value === k).textContent.match(/\((\d+)\)/) || [])[1];
-    assert.equal(after('theirs'), '1', 'still says one is over there');
-    assert.equal(after('all'), '2');
+    assert.equal(filterSel(p), null, 'no filter');
+    assert.equal(p.$('.rl-idx-fk'), null, 'and no label for one');
+    assert.equal(p.$('.rl-idx-narrowed'), null, 'and no band saying it narrowed');
   });
 
-  test('picking a side narrows the column, and the count above it follows', async () => {
+  test('and the machinery behind it cannot narrow either', async () => {
     const p = await withBoth();
     assert.equal(p.win.redlineCardIds(p.c, { side: 'owner' }).length, 2, 'both to start');
-    press(p, 'mine');
-    const ours = p.win.negoChanges(p.c).filter(x => x.authorSide === 'owner').map(x => x.id);
-    assert.deepEqual(p.win.redlineCardIds(p.c, { side: 'owner' }), ours,
-      'the list is ours alone');
-    /* The head no longer carries a filtered count (Option 1 — the tab counts
-       deliberately do NOT move with the filter; that is their safety). What
-       says "you are reading the Mine cut" is the pressed tab itself. */
-    /* RE-POINTED 24 Aug 2026 — the pressed TAB is a selected OPTION now.
-       REVERSED IN PLACE 26 Aug 2026: the amber band that used to state the
-       narrowing was the one the owner ringed when setting the standing rule NO
-       NEW BANDS ON THE PAGE, and it fails that rule's own test — the dropdown
-       ten pixels above already said it, and it was the reader's own choice
-       read back to them. THE SAFETY PROPERTY IS NOT LOST, which is the whole
-       condition on removing it: the CONTROL is the statement. It is labelled,
-       it names the live cut, and it prints that cut's own count. */
-    const sel = p.win.document.getElementById('rl-cardfilter');
-    assert.equal(sel.value, 'mine', 'the filter names the cut it is showing');
-    const live = [...sel.options].find(o => o.value === 'mine');
-    assert.match(live.textContent, /\(\d+\)/,
-      'and states it in words with its own count, so the narrowing is never silent');
-    assert.equal(p.$('.rl-idx-narrowed'), null,
-      'the band that used to say it is gone, not merely hidden');
-    assert.equal(p.win.document.querySelectorAll('#rl-changes [data-nego-card]').length, 1,
-      'one card on screen');
+    for (const cut of ['mine', 'theirs']){
+      p.win.rlSetCardFilter(cut);
+      p.win.renderRedline();
+      assert.equal(p.win.redlineCardIds(p.c, { side: 'owner' }).length, 2,
+        'the retired filter hides nothing: ' + cut);
+      assert.equal(p.win.document.querySelectorAll('#rl-changes [data-nego-card]').length, 2,
+        'and the column still draws both');
+    }
+    p.win.rlSetCardFilter('all');
   });
 
-  test('a column emptied by the filter says so, and offers the way back', async () => {
-    const p = await stage();                     // only OUR ask exists
-    press(p, 'theirs');
-    const empty = p.$('.rl-cards-empty');
-    assert.ok(empty, 'the column is empty');
-    assert.match(empty.textContent, /none from the side you picked/i,
-      'and it says WHICH emptiness this is, not "no changes on the table"');
-    const back = empty.querySelector('[data-rl-cardfilter="all"]');
-    assert.ok(back, 'with the way back on it');
-    back.dispatchEvent(new p.win.Event('click', { bubbles: true, cancelable: true }));
-    assert.equal(p.win.rlCardFilter(), 'all', 'pressing it clears the filter');
-    assert.ok(p.win.document.querySelector('#rl-changes [data-nego-card]'), 'and the card is back');
-  });
-
-  test('mine and theirs are read against the SEAT, not the company', async () => {
-    /* On the counterparty's own page their asks are "mine". Same predicate,
-       flipped by the seat, so their page and our preview of it both answer
-       correctly rather than one of them being backwards. */
+  test('whose ask it is is answered by the front edge instead', async () => {
+    /* The question the filter asked, answered at a glance without a control.
+       The stamp is what the colour hangs on, so the stamp is what is pinned
+       here; the pixels are measured in redline-verify. */
     const p = await withBoth();
-    const ourAsk = p.win.negoChanges(p.c).find(x => x.authorSide === 'owner');
-    p.win.rlSetCardFilter('mine');
-    assert.ok(p.win.rlCardFilterPass(ourAsk, 'owner'), 'ours is "mine" on our seat');
-    assert.ok(!p.win.rlCardFilterPass(ourAsk, 'counterparty'), 'and "theirs" on theirs');
-  });
-
-  test('a reviewer, already narrowed to their own clauses, is offered no filter', async () => {
-    /* The rule predates this control: every setting gives the same answer once
-       the column holds one person's work, and a control with one outcome is
-       furniture. rlMyCardIds returning a set IS that narrowing. */
-    const p = await stage();
-    assert.ok(chips(p).length, 'ordinarily the chips are there');
-    p.win.reviewAsk(p.c, { reviewer: SALES, ids: [p.mine.id] });
-    const asSales = buildWorld({ user: SALES, negotiationView: true, contractView: true });
-    asSales.win.getUsers = () => TEAM;
-    asSales.win.userById = id => TEAM.find(u => u.id === id) || null;
-    asSales.win.negoInit(p.c);
-    assert.ok(asSales.win.rlMyCardIds(p.c, { side: 'owner' }),
-      'fixture: the reviewer\'s column really is narrowed');
-    assert.equal(p.win.redlineChangeCardsHtml(p.c, { side: 'owner' }).includes('data-rl-cardfilter'),
-      false, 'and the cards carry no filter of their own');
+    const sides = [...p.win.document.querySelectorAll('#rl-changes .rl-card-d')]
+      .map(el => el.getAttribute('data-rl-origin')).sort();
+    assert.deepEqual(sides, ['them', 'us'], 'every row says whose ask it is');
   });
 });

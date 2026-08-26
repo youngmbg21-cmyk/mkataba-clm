@@ -251,52 +251,41 @@ describe('F93 (2) — the origin filter is gone, and nothing hides a card', () =
       'the five-view filter this file was written about stays retired');
   });
 
-  test('and the three-way cut, as a dropdown, cannot hide a change quietly', async () => {
+  /* ---- REVERSED IN PLACE 26 Aug 2026 (owner-asked: "delete the whose ask
+     feature") ---- This file is about a filter that HIDES cards, and the two
+     tests here held the replacement to the properties that made hiding safe.
+     There is no control now, and the question it asked — whose ask is this —
+     is answered by the coloured front edge of every row instead. So the claim
+     becomes the strongest form of the one this file has always made: nothing
+     on this column hides a card, by control or by machinery. */
+  test('and no cut can hide a change, by control or by machinery', async () => {
     const p = await page({ myChange: true });
-    const sel = p.doc.getElementById('rl-cardfilter');
-    assert.ok(sel, 'the cut is drawn');
-    assert.deepEqual([...sel.options].map(o => o.value), ['all', 'mine', 'theirs'],
-      'three options only — not five views of the round');
-    for (const o of sel.options) assert.match(o.textContent, /\(\d+\)/,
-      'every option carries its own count, so the split reads without opening it');
-    /* AND WHILE IT IS NARROWED THE COLUMN SAYS SO — reversed in place 26 Aug
-       2026. It used to be an amber band under the head; the owner ringed that
-       band when setting the standing rule NO NEW BANDS ON THE PAGE, and it
-       failed the rule's own test twice over (the screen already said it, and
-       it was the reader's own choice read back). The property survives in the
-       control itself, which is the stronger place for it: the thing the reader
-       set is the thing that states it. */
-    p.win.rlSetCardFilter('mine');
-    p.win.renderRedline();
-    const sel2 = p.doc.getElementById('rl-cardfilter');
-    assert.equal(sel2.value, 'mine', 'the control names the cut being shown');
-    assert.match([...sel2.options].find(o => o.value === 'mine').textContent, /\(\d+\)/,
-      'in words, with its own count — so a narrowed column is never silent');
-    assert.equal(p.$('.rl-idx-narrowed'), null, 'and the band is gone, not hidden');
+    assert.equal(p.doc.getElementById('rl-cardfilter'), null, 'the cut is gone too');
+    assert.equal(p.doc.querySelector('.rl-idx-fk'), null, 'and its label with it');
+    const all = p.cardIds().length;
+    for (const cut of ['mine', 'theirs']){
+      p.win.rlSetCardFilter(cut);
+      p.win.renderRedline();
+      assert.equal(p.cardIds().length, all, 'the retired filter hides nothing: ' + cut);
+    }
     p.win.rlSetCardFilter('all');
   });
 
-  test('ours and theirs sit in the column together', async () => {
+  test('whose ask it is is answered by the front edge instead', async () => {
     const p = await page({ myChange: true });
-    assert.ok(p.$('#rl-changes [data-rl-origin="us"]'), 'our own ask has a card');
-    assert.ok(p.$('#rl-changes [data-rl-origin="them"]'), 'and so does theirs');
-    assert.equal(p.cardIds().length, 2,
-      'both, together, with nothing narrowing the column');
+    const rows = [...p.doc.querySelectorAll('#rl-changes .rl-card-d')];
+    assert.ok(rows.length, 'the column drew rows');
+    for (const el of rows)
+      assert.match(el.getAttribute('data-rl-origin') || '', /^(us|them)$/,
+        'every row says whose ask it is, for the colour to hang on');
   });
 
   test('the count above the cards counts the cards', async () => {
-    /* The pill and the list it labels are the pair the old filter could put
-       out of step — a column showing four under a head reading two. Same
-       reading now, from redlineCardIds, so they cannot disagree.
-       SINCE THE ONE-LINE HEAD (Option 1, 16 Aug 2026) the count lives in the
-       filter's own All tab — the separate "N on the table" drew the same
-       number twice and cost the head a row. Same claim, read off the tab. */
     const p = await page({ myChange: true });
-    assert.equal(p.$('.rl-idx-n'), null,
-      'the separate count is gone where the filter draws');
+    assert.equal(p.$('.rl-idx-n'), null, 'no separate count span');
     assert.equal(
-      (p.doc.getElementById('rl-cardfilter').options[0].textContent.match(/\((\d+)\)/) || [])[1],
-      String(p.cardIds().length), 'the All option carries the count instead');
+      (p.$('.rl-idx-title').textContent.match(/\((\d+)\)/) || [])[1],
+      String(p.cardIds().length), 'the head\'s own title carries it');
   });
 });
 
@@ -414,11 +403,11 @@ describe('F93 (5) — the counterparty link gets the same column, seat-flipped',
        dictionary, never typed, so a rewording costs no test edit. */
     assert.ok(head.textContent.includes(
       p.win.i18t('ng_tracked_head_n', { n: 1 }).replace(/\s*\(\d+\)\s*$/, '')));
-    /* Option 1 (16 Aug 2026): the count rides the All tab on every seat that
-       draws the tabs — "on the table" survives only on a narrowed reviewer's
-       head, which their seat never is. */
-    assert.match(box.querySelector('#rl-cardfilter').textContent, /\(\d+\)/,
-      'the filter carries the count on their seat too');
+    /* RE-POINTED 26 Aug 2026 with the filter's retirement: the count is on the
+       head's own title, on their seat as on ours — one builder, one answer. */
+    assert.match(box.querySelector('.rl-idx-title').textContent, /\(\d+\)/,
+      'the title carries the count on their seat too');
+    assert.equal(box.querySelector('#rl-cardfilter'), null, 'and no whose-asks filter there');
     assert.equal(box.querySelector('#rl-card-filter'), null, 'and no filter dropdown on their seat either');
   });
 });

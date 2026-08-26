@@ -282,9 +282,12 @@ describe('F84 — the Tracked Changes head is a caption and a count', () => {
     assert.ok(head, 'the column heads itself');
     assert.ok(head.textContent.includes(p.win.i18t('ng_tracked_head_n', { n: 1 }).replace(/\s*\(\d+\)\s*$/, '')),
       'what it is');
-    const all = p.$('#rl-cardfilter');
-    assert.ok(all && /\(\d+\)/.test(all.textContent),
-      'and how much is in it — carried by the filter, said once');
+    /* RE-POINTED 26 Aug 2026 — the WHOSE ASKS filter is retired ("delete the
+       whose ask feature"), so the count it carried is back on the head's own
+       title. THE CLAIM IS UNCHANGED: how much is in it, said exactly once. */
+    assert.match(p.$('.rl-idx-title').textContent, /\(\d+\)/,
+      'and how much is in it — carried by the title, said once');
+    assert.equal(p.$('#rl-cardfilter'), null, 'and by nothing else');
     assert.match(head.textContent, /\d+ of \d+/, 'and how far through the round it is');
   });
 

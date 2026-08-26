@@ -121,59 +121,53 @@ describe('f246 (1) — the column names itself, and the name carries the total',
 });
 
 /* ========================================================== 2 — WHOSE ASKS */
-describe('f246 (2) — the three-way cut says what it is about', () => {
-  test('a visible label sits beside the dropdown', async () => {
+/* ---- SECTION 2 REVERSED IN PLACE (owner-asked 26 Aug 2026: "delete the
+   whose ask feature") ----
+   It held the WHOSE ASKS dropdown to its label and to three safety properties,
+   because a control that HIDES changes is the one on this page that may never
+   be silent. The control is gone, so the properties have nothing to be true
+   of — and what it existed FOR is answered twice over by what replaced it: the
+   piles SORT by the same reading instead of hiding, and the front edge of every
+   row is coloured by whose ask it is.
+
+   WHAT IS MEASURED HERE NOW is the only thing that still matters about it, and
+   it is the stronger claim: the column cannot narrow AT ALL. A retired control
+   whose machinery still narrows is a filter nobody can see, which is worse than
+   the filter was. */
+describe('f246 (2) — nothing hides a change any more', () => {
+  test('the control is gone from the page', async () => {
     const p = await bench();
-    const k = p.$('.rl-idx-fk');
-    assert.ok(k, 'the filter is labelled on screen, not only in a title attribute');
-    assert.equal(k.textContent.trim(), p.win.i18t('ng_whose_asks'));
-    const sel = p.$('#rl-cardfilter');
-    assert.ok(sel, 'and the control it labels is the page\'s one filter');
-    assert.equal(k.compareDocumentPosition(sel) & 4, 4, 'the label comes first');
+    assert.equal(p.$('#rl-cardfilter'), null, 'no dropdown');
+    assert.equal(p.$('.rl-idx-fk'), null, 'and no label for one');
+    assert.equal(p.$('.rl-idx-narrowed'), null, 'and no band saying it narrowed');
   });
 
-  test('THE THREE SAFETY PROPERTIES ARE UNTOUCHED', async () => {
-    /* This control can hide a change, so it is the one on the page that may
-       never be silent. Labelling it must not have cost any of the three.
-
-       THE THIRD IS REVERSED IN PLACE (owner-asked 26 Aug 2026). It used to be
-       carried by an amber band under the head reading "Showing one side only —
-       others are hidden"; that band was the one the owner ringed when they set
-       the standing rule NO NEW BANDS ON THE PAGE, and it went. THE PROPERTY
-       DID NOT GO WITH IT, which is the whole condition on removing it — it is
-       carried by the control itself, which is labelled, names the live cut and
-       prints that cut's own count. So the claim here is stronger than the one
-       it replaces: not "something says so somewhere" but "the control the
-       reader set is itself the statement", plus the band's proved absence so
-       nobody quietly puts it back. */
+  test('and the machinery behind it cannot narrow either', async () => {
     const p = await bench();
-    const opts = p.$$('#rl-cardfilter option');
-    assert.equal(opts.length, 3, 'three options, not states');
-    for (const o of opts)
-      assert.match(o.textContent, /\(\d+\)/, 'each carries its OWN count');
-    p.win.rlSetCardFilter('mine');
-    p.again();
-    const sel = p.$('#rl-cardfilter');
-    assert.ok(sel, 'the control is still drawn while the column is narrowed');
-    assert.equal(sel.value, 'mine', 'and it is set to the cut being shown');
-    const live = p.$$('#rl-cardfilter option').find(o => o.value === 'mine');
-    assert.match(live.textContent, /\(\d+\)/,
-      'so the narrowing is stated in words with its own count, by the control itself');
-    assert.ok(p.$('.rl-idx-fk'), 'under a label saying what it filters');
-    assert.equal(p.$('.rl-idx-narrowed'), null,
-      'and the band that used to say it is gone, not merely hidden');
+    const all = p.$$('#rl-changes .rl-card').length;
+    assert.ok(all > 0, 'the column drew something');
+    for (const cut of ['mine', 'theirs']){
+      p.win.rlSetCardFilter(cut);
+      p.again();
+      assert.equal(p.$$('#rl-changes .rl-card').length, all,
+        `setting the retired filter to ${cut} hides nothing`);
+    }
     p.win.rlSetCardFilter('all');
+    p.again();
+    /* AND THE PILL COUNTS THE SAME LIST, which is the property those two have
+       always had to share. */
+    assert.equal(p.win.redlineCardIds(p.c, { side: 'owner' }).length, all,
+      'the pill above the column counts what the column draws');
   });
 
-  test('the counts do not move when the filter does', async () => {
-    const p = await bench();
-    const before = p.$$('#rl-cardfilter option').map(o => o.textContent.trim());
-    p.win.rlSetCardFilter('theirs');
-    p.again();
-    const after = p.$$('#rl-cardfilter option').map(o => o.textContent.trim());
-    assert.equal(after.join('|'), before.join('|'),
-      'the number of theirs is readable without opening the control');
-    p.win.rlSetCardFilter('all');
+  test('whose ask it is is answered by the front edge instead', async () => {
+    /* The question the filter asked, answered at a glance and without a
+       control. Read off the RULE rather than a computed colour, because jsdom
+       resolves no cascade — the pixels are measured in redline-verify. */
+    assert.match(NCSS, /\.rl-card-d\{border-left:3px solid/,
+      'every row carries a coloured front edge');
+    assert.match(NCSS, /\.rl-card-d\[data-rl-origin="them"\]\{border-left-color/,
+      'and theirs is a different colour from ours');
   });
 });
 

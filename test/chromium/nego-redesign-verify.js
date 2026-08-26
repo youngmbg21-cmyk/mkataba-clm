@@ -195,8 +195,8 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       const all = document.querySelector('#view-redline .rl-fseg[data-rl-cardfilter="all"] .rl-fseg-n');
       return { bg: rcs.backgroundColor, h: Math.round(row.getBoundingClientRect().height),
         rule: rcs.boxShadow, segs, count: n && n.textContent.trim(),
-        allCount: (() => { const f = document.getElementById('rl-cardfilter');
-          return f ? ((f.options[0].textContent.match(/\((\d+)\)/) || [])[1] || null) : null; })() };
+        allCount: (() => { const f = document.querySelector('.rl-idx-title');
+          return f ? ((f.textContent.match(/\((\d+)\)/) || [])[1] || null) : null; })() };
     });
     check('2 the control bar is a white band 44px tall',
       tabs.bg === 'rgb(255, 255, 255)' && tabs.h === 44, `${tabs.bg} ${tabs.h}px`);
@@ -216,10 +216,10 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     /* ONE COUNT, TWO SURFACES. The tab's number is passed in by the caller
        precisely so it cannot be a second reading — proved by comparing it with
        the change column's own All tab. */
-    /* RE-POINTED 24 Aug 2026 — the column's own count is carried by the
-       filter's All option ("All (2)") rather than a segmented tab. The claim is
-       the one that matters and is unchanged: the tab's number is the COLUMN's
-       number, not a second reading. */
+    /* RE-POINTED 24 Aug 2026 onto the filter's All option, and AGAIN 26 Aug
+       2026 when that filter was deleted — the column's own count is on the
+       head's own title now. The claim is the one that matters and has never
+       changed: the tab's number is the COLUMN's number, not a second reading. */
     check('2 Redlined carries a count, and it is the column\'s own',
       !!tabs.count && tabs.count === tabs.allCount,
       `tab "${tabs.count}" · column All "${tabs.allCount}"`);
@@ -305,6 +305,11 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
         capRule: cs('.rl-idx-title') && cs('.rl-idx-title').borderBottomWidth,
         capRuleColor: cs('.rl-idx-title') && cs('.rl-idx-title').borderBottomColor,
         filterText: (document.getElementById('rl-cardfilter') || {}).textContent || '',
+        /* the front edge, by whose ask it is — what replaced the filter */
+        edgeOurs: (() => { const el = document.querySelector('#rl-changes .rl-card-d[data-rl-origin="us"]');
+          return el ? getComputedStyle(el).borderLeftColor : null; })(),
+        edgeTheirs: (() => { const el = document.querySelector('#rl-changes .rl-card-d[data-rl-origin="them"]');
+          return el ? getComputedStyle(el).borderLeftColor : null; })(),
         filter: cs('#rl-cardfilter') && cs('#rl-cardfilter').fontSize,
         restCount: cs('.rl-fseg:not(.on) .rl-fseg-n') && cs('.rl-fseg:not(.on) .rl-fseg-n').borderTopWidth,
         cardWording: cs('.rl-card-sum') && cs('.rl-card-sum').fontSize,
@@ -340,10 +345,16 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        the column still names itself unmistakably (the 2px accent rule is drawn
        and is a real colour), the filter is still there, and nothing under the
        title is set larger than it. */
-    check('5 the index names itself and carries the filter',
-      parseFloat(col.capRule) >= 2 && !/^rgba\(0, 0, 0, 0\)$/.test(col.capRuleColor || '')
-      && !!col.filter && parseFloat(col.filter) <= parseFloat(col.cap),
-      `rule ${col.capRule} ${col.capRuleColor} · cap ${col.cap} / filter ${col.filter}`);
+    /* RE-POINTED 26 Aug 2026: the WHOSE ASKS filter is deleted, so the half of
+       this that measured it against the title has nothing to measure. What the
+       claim protects is untouched — the column still names itself
+       unmistakably, by the 2px accent rule that its own comment calls "the
+       whole of what marks this as the column's name". */
+    check('5 the index names itself, by its rule rather than its size',
+      parseFloat(col.capRule) >= 2 && !/^rgba\(0, 0, 0, 0\)$/.test(col.capRuleColor || ''),
+      `rule ${col.capRule} ${col.capRuleColor} · cap ${col.cap}`);
+    check('5 and the whose-asks filter is gone from the head',
+      !col.filter, String(col.filter));
     /* AND THE VERBS ARE BARE WORDS ON THIS COLUMN, so there is no button box
        left to have a height: what carries them is the line they sit on. The
        30px box was the bordered button the reference does not draw. */
@@ -372,8 +383,14 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        own words. What the claim protects is unchanged and is asserted where it
        can be: every option states its number, so the split reads without
        opening the control. */
-    check('5 every cut still states its own count, unopened',
-      ((col.filterText || '').match(/\(\d+\)/g) || []).length >= 3, col.filterText);
+    /* REVERSED IN PLACE 26 Aug 2026. This held every cut of the filter to its
+       own count, which is what made a change-hiding control safe. The control
+       is deleted, and the question it asked — whose ask is this — is answered
+       by the coloured front edge of every row instead. So what is measured is
+       the property that replaced it. */
+    check('5 whose ask it is is answered by the front edge instead',
+      col.edgeOurs && col.edgeTheirs && col.edgeOurs !== col.edgeTheirs,
+      `${col.edgeOurs} vs ${col.edgeTheirs}`);
     /* REVERSED IN PLACE 24 Aug 2026 (WO-3, owner-asked: "delete the copilot
        first pass feature completely", then "Just delete the strip for now").
        This pinned that the 22 Aug redesign had not quietly taken the band with

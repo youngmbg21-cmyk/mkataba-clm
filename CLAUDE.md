@@ -4224,12 +4224,40 @@ one, a status word on every row where it has one only where it adds something.
   green filled block, which read as the loudest object on a column whose job is
   the cards; amber is what this product uses for "waiting on you" everywhere
   else, and the dot is the same mark the rows carry.
-- **THE THREE-WAY CUT IS LABELLED** — **WHOSE ASKS** beside it, because a
-  dropdown reading "All (6)" says what it is SET to and not what it is ABOUT.
-  **THE THREE SAFETY PROPERTIES ARE UNTOUCHED** — three options only, each
-  carrying its OWN count unmoved by the filter, and the narrowing said out loud,
-  which since 26 Aug 2026 is the labelled control's own job rather than a band
-  beneath it (see A NARROWED COLUMN IS SAID BY ITS OWN CONTROL).
+- **THE THREE-WAY CUT IS RETIRED — REVERSED IN PLACE 26 Aug 2026** (owner-asked:
+  *"delete the whose ask feature and let the cards be color coded at the front
+  edge of the card"*). What stood here held it to a visible WHOSE ASKS label and
+  to three safety properties, because a control that HIDES changes is the one on
+  this page that may never be silent. **THE PILES ANSWERED IT OUT OF EXISTENCE**:
+  the filter's whole job was "show me only mine", and the headings answer that by
+  SORTING rather than hiding, which is the same reading with nothing taken off
+  the screen.
+  - **`rlCardFilterPass` RETURNS TRUE FOR EVERYTHING** and `rlIdxFilterHtml` is a
+    `return ''` stub. `RL_CARD_FILTERS`, `rlCardFilter` and `rlSetCardFilter` are
+    left INERT rather than deleted — exported, reached by half the suite, and a
+    stub that cannot narrow is safer than a name a third caller could bring back.
+    **BOTH SEATS**: a filter kept on one and not the other is the drift f49
+    exists to catch.
+  - **AND THE FRONT EDGE ANSWERS THE QUESTION IT ASKED.** The spine is back on
+    our seat's row — 3px, teal for ours and amber for theirs, off `data-rl-origin`
+    — which is the fastest reading of "is this mine or theirs" and needs no
+    control at all. It went with the BOX on 25 Aug; it comes back because the
+    filter went.
+  - **ONE QUESTION, ONE COLOUR.** The boxed card carries a THIRD colour here,
+    ruby on a refusal, and that rule is untouched where it earns its place: that
+    card has no heading over it saying which pile it is in. **This row does** —
+    so a ruby edge would say in colour what the heading says in words AND cost
+    the row the one thing the edge is for, since a refused ask of THEIRS would
+    stop being amber.
+- **AND THE CARDS SCROLL INSIDE THEMSELVES, AND NOWHERE ELSE** (owner-asked the
+  same day: *"the entire page should not expand and collapse based on the
+  scrolling in the cards section. It should only happen in the contracts
+  section"*). The column has always had its own scroller and that was never the
+  complaint: a browser CHAINS the rest of a gesture to whatever scroller is
+  behind an inner one, so reaching the bottom of the cards carried on scrolling
+  the page — and the page moving is what makes this room's header come and go.
+  `overscroll-behavior:contain`, scoped to the cards and nothing else, so the
+  contract pane still moves the page exactly as it did.
 - **THE PILE SAYS IT, SO THE ROW SAYS NOTHING — the settled pile is THREE and
   the drafts pile is THREE (owner-asked 26 Aug 2026).** *"You do not need to add
   sent and refused. If it is sent, then it is in the category of With Sawa Sawa

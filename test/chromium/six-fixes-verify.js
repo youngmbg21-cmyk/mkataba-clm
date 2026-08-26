@@ -247,10 +247,16 @@ for (let i = 1; i <= 12; i++)
     });
     check('2a the "showing one side only" band is gone from the page',
       band.band === false, `band present: ${band.band}`);
-    check('2b and the control the reader set says so itself, with its own count',
-      band.selSeen && band.value === 'mine' && /\(\d+\)/.test(band.liveText || ''),
-      `${band.label} → ${band.liveText}`);
-    await page.evaluate(() => rlSetCardFilter('all'));
+    /* REVERSED IN PLACE 26 Aug 2026 (owner-asked: "delete the whose ask
+       feature"). When the amber band went, the safety property it carried
+       moved to the CONTROL — labelled, naming the live cut and printing its
+       count. The control is now deleted too, and the property has nothing left
+       to be true of because nothing narrows: the piles SORT by the same reading
+       instead of hiding, and the front edge of every row is coloured by whose
+       ask it is. So the claim becomes the strongest form of the original —
+       there is no band AND no way to narrow the column at all. */
+    check('2b and there is no control left to narrow it either',
+      !band.selSeen && !band.label, `select ${band.selSeen}, label ${band.label}`);
 
     /* ============================================================
        5 · A NAV PRESS WITH EDIT WITH COPILOT OPEN

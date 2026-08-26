@@ -618,6 +618,20 @@ function negoStyleHtml(){
   .nego-fill{height:100%;border-radius:var(--radius);
     background:linear-gradient(90deg,var(--n-slate-soft),var(--n-accept));transition:width .4s ease}
   .nego-index-scroll{flex:1;overflow-y:auto;padding:var(--s-3) var(--s-3) 90px}
+  ${''/* ---- THE CARDS SCROLL INSIDE THEMSELVES, AND NOWHERE ELSE (owner-asked
+         26 Aug 2026: "the entire page should not expand and collapse based on
+         the scrolling in the cards section. It should only happen in the
+         contracts section") ----
+         The column has always had its own scroller, and that was never the
+         complaint: what a browser does at the END of an inner scroller is
+         CHAIN the rest of the gesture to whatever scroller is behind it, so
+         reaching the bottom of the cards carried on scrolling the page — and
+         the page moving is what makes this room's header come and go.
+         overscroll-behavior:contain stops the gesture at this box's own edge.
+         SCOPED TO THE CARDS AND NOTHING ELSE, which is what the owner asked
+         for in so many words: the contract pane is untouched, so scrolling
+         over the paper still moves the page exactly as it did. */}
+  .redline-page .rl-side .nego-index-scroll{overscroll-behavior:contain}
   .nego-card{background:var(--n-paper);border:1px solid var(--n-line);border-radius:var(--radius);
     box-shadow:var(--n-shadow-card);padding:var(--s-3) 13px;margin-bottom:11px;cursor:pointer;
     transition:box-shadow var(--dur-2) ease,border-color var(--dur-2) ease,transform var(--dur-2) ease}
@@ -2547,6 +2561,40 @@ function redlineLayoutCss(){
     display:grid;grid-template-columns:minmax(0,2fr) minmax(var(--rl-verb-floor),1fr);
     align-items:center;gap:var(--s-3)}
   .redline-page .rl-card-d > .rl-card-txt{min-width:0}
+  ${''/* ---- AND THE FRONT EDGE IS COLOURED BY WHOSE ASK IT IS (owner-asked
+         26 Aug 2026: "let the cards be color coded at the front edge of the
+         card") ----
+         THE SPINE IS BACK, and it comes back for a reason the day it left did
+         not have: it went with the BOX on 25 Aug, when the boxed card became a
+         flat row and its note said out loud that data-rl-origin was still
+         stamped and whose ask it was would be carried in words. On 26 Aug the
+         WHOSE ASKS filter was retired, so the fastest reading of "is this mine
+         or theirs" left the column with it — and a 3px edge is what answers
+         that at a glance without a control.
+
+         TEAL FOR OURS, AMBER FOR THEIRS, RUBY FOR A REFUSAL — the same three
+         this page has always used, and the same rule the boxed card carries
+         thirteen hundred lines up, so the two seats cannot come to different
+         answers about what a colour means. IT IS A BORDER, NOT A PSEUDO-
+         ELEMENT: the row is a grid and an absolutely-positioned edge would
+         need a positioned ancestor it does not have, while a border is what
+         the boxed card already uses.
+
+         AND THE ROW GAINS ITS WIDTH BACK IN PADDING, so no wording moves: the
+         edge sits in the 8px the row now pads on its left, which is inside the
+         column's own inset rather than eating into it. */}
+  .redline-page .rl-card-d{border-left:3px solid var(--accent-solid,var(--color-accent));
+    padding-left:var(--s-2)}
+  .redline-page .rl-card-d[data-rl-origin="them"]{border-left-color:var(--st-amber-dot)}
+  ${''/* ---- AND THE EDGE ANSWERS ONE QUESTION ONLY ----
+         The boxed card carries a THIRD colour here — ruby on a refusal — and
+         that rule is untouched thirteen hundred lines up, where it earns its
+         place: that card has no heading over it saying which pile it is in.
+         This row does. Refused is a pile of its own now, so a ruby edge would
+         say in colour what the heading two lines above says in words AND cost
+         the row the one thing the edge is for: a refused ask of THEIRS would
+         stop being amber, and whose ask it is is exactly the question the
+         retired WHOSE ASKS filter used to answer. One question, one colour. */}
   .redline-page .rl-card-d:first-child,
   .redline-page .rl-band + .rl-card-d{border-top:0}
   .redline-page .rl-card-d:hover{background:none}

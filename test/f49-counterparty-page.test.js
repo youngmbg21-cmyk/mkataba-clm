@@ -255,25 +255,27 @@ describe('what is ours stays ours', () => {
       { side: 'counterparty', author: 'Erik Lindqvist' });
     const v = theirPage(c);
     const cards = () => v.$$('#pt-nego [data-nego-card]').length;
-    /* RE-POINTED 24 Aug 2026 — the three-way cut is a <select> on the change
-       index's own line now (owner-asked). A select answers to CHANGE, never to
-       click. THE CLAIM IS UNCHANGED and is the one that matters here: the
-       control really narrows THEIR column, seat-flipped, not just its own
-       state. */
-    const filt = () => v.$('#pt-nego #rl-cardfilter');
-    const tab = k => { const s = filt(); return s && [...s.options].find(o => o.value === k); };
-    const press = k => { const s = filt(); s.value = k;
-      s.dispatchEvent(new v.win.Event('change', { bubbles: true, cancelable: true })); };
-
-    assert.ok(tab('mine'), 'the filter is drawn on their page at all');
-    const all = cards();
-    assert.equal(all, 3, 'three asks on the table to begin with');
-    press('mine');
-    assert.equal(cards(), 1, 'Mine leaves only the one they asked for');
-    press('theirs');
-    assert.equal(cards(), 2, 'Theirs leaves the two we asked for');
-    press('all');
-    assert.equal(cards(), all, 'and All puts the column back');
+    /* ---- REVERSED IN PLACE 26 Aug 2026 (owner-asked: "delete the whose ask
+       feature") ---- The control is retired on BOTH seats, which is the right
+       answer for a page whose column has always been drawn by the same builder
+       as ours: a filter kept on one seat and not the other is exactly the
+       drift this file exists to catch. What the question it asked is answered
+       by instead — whose ask is this — is the coloured front edge of every
+       row, and their seat gets it by construction. */
+    assert.equal(v.$('#pt-nego #rl-cardfilter'), null,
+      'the retired control is gone from their page too');
+    assert.equal(cards(), 3, 'and all three asks are on the table, none hidden');
+    /* AND THE MACHINERY BEHIND IT CANNOT NARROW EITHER, asked of the predicate
+       both the column and its count go through — on THIS seat, which is the
+       half this file is for. */
+    const ours = v.win.negoChanges(c).find(x => x.authorSide === 'owner');
+    const theirs = v.win.negoChanges(c).find(x => x.authorSide === 'counterparty');
+    for (const cut of ['mine', 'theirs']){
+      v.win.rlSetCardFilter(cut);
+      assert.ok(v.win.rlCardFilterPass(ours, 'counterparty'), 'ours still passes on ' + cut);
+      assert.ok(v.win.rlCardFilterPass(theirs, 'counterparty'), 'theirs still passes on ' + cut);
+    }
+    v.win.rlSetCardFilter('all');
   });
 
   test('our filing structure is nowhere on their page', async () => {

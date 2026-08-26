@@ -208,10 +208,15 @@ describe('f173 · the column head is a caption and a count', () => {
        decided", with the three-way cut as a dropdown on that line. THE CLAIM
        IS UNCHANGED and is what this always guarded: the number is said ONCE.
        The old .rl-idx-k caption is stood down where the index draws. */
+    /* RE-POINTED AGAIN 26 Aug 2026: the WHOSE ASKS filter is retired (the
+       owner: "delete the whose ask feature"), so there is no longer a second
+       place a count could be said. THE CLAIM IS THE ONE IT HAS ALWAYS BEEN
+       and it is simply narrower now — the number is said ONCE, and the head's
+       own title is where. */
     assert.ok(p.$('.rl-idx-title'), 'the index names itself');
-    assert.ok(p.$('.rl-idx-n') === null
-      ? !!p.$('#rl-cardfilter')
-      : !p.$('#rl-cardfilter'),
-      'the count appears exactly once — in the filter, or as its own span, never both');
+    assert.match(p.$('.rl-idx-title').textContent, /\(\d+\)/,
+      'and carries the count');
+    assert.equal(p.$('#rl-cardfilter'), null, 'the retired filter says none');
+    assert.equal(p.$('.rl-idx-n'), null, 'and no separate span says it either');
   });
 });

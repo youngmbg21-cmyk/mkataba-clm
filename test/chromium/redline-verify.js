@@ -561,16 +561,14 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     idxHead.title && `${idxHead.title.text} · ${idxHead.cards} cards`);
   check('14a and the old name is gone',
     idxHead.title && !/change index/i.test(idxHead.title.text));
-  check('14a the filter wears a visible label',
-    idxHead.label && idxHead.label.w > 0 && idxHead.label.text.length > 0,
-    idxHead.label && idxHead.label.text);
-  check('14a to the LEFT of the control it labels, on the same line',
-    idxHead.label && idxHead.filter
-      && idxHead.label.x < idxHead.filter.x
-      && Math.abs(idxHead.label.mid - idxHead.filter.mid) <= 4,
-    idxHead.label && idxHead.filter
-      ? `label x${idxHead.label.x}/mid${idxHead.label.mid} vs filter x${idxHead.filter.x}/mid${idxHead.filter.mid}`
-      : 'missing');
+  /* REVERSED IN PLACE 26 Aug 2026 (owner-asked: "delete the whose ask
+     feature"). These two held the filter to a visible label sitting to its
+     left; there is no filter. What the pair were really protecting is that the
+     head says what the column holds without a second control to help it, and
+     the check above this one is where that now lives. */
+  check('14a and the whose-asks filter is gone, label and all',
+    !idxHead.label && !idxHead.filter,
+    `label ${!!idxHead.label}, select ${!!idxHead.filter}`);
 
   /* ---- 14b. THE ⋯ MENU RAISES THE CLAUSE PANEL; THE COLUMN DOES NOT MOVE ----
      The pop-out is retired (16 Aug 2026) and the door moved into the card's ⋯
@@ -1343,24 +1341,12 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   });
   await pause(350);
 
-  /* ---- 18a. "Whose asks" is a label, not a signpost ----
-     It wore this product's micro-caps — 11px uppercase with .09em — a few
-     pixels from "Tracked changes (N)" in sentence case, so the smaller of the
-     two was the louder. PINNED AS A RELATION against the title beside it, not
-     as a number, so a later type pass costs no edit here. */
-  const fk = await page.evaluate(() => {
-    const l = document.querySelector('#view-redline .rl-idx-fk');
-    const t = document.querySelector('#view-redline .rl-idx-title');
-    if (!l || !t) return null;
-    const ls = getComputedStyle(l), ts = getComputedStyle(t);
-    return { tf: ls.textTransform, size: ls.fontSize, tsize: ts.fontSize,
-      track: ls.letterSpacing, text: l.textContent.trim(),
-      painted: l.getBoundingClientRect().height > 0 };
-  });
-  check('18a the whose-asks label is drawn', !!fk && fk.painted, fk && fk.text);
-  check('18a it is not shouted in capitals', fk && fk.tf === 'none', fk && fk.tf);
-  check('18a and it is set like the title beside it, not smaller',
-    fk && fk.size === fk.tsize, fk && `${fk.size} vs title ${fk.tsize}`);
+  /* ---- 18a. RETIRED WITH THE CONTROL IT MEASURED (owner-asked 26 Aug 2026)
+     ---- It held "Whose asks" to the title's own type rather than this
+     product's micro-caps. The filter is deleted, so the label went with it;
+     section 20 asserts the absence, and the front edge answers the question it
+     asked. Nothing to measure here any more, and the block is removed rather
+     than left passing vacuously. */
 
   /* ---- 18b. the ⋯ menu carries no head ----
      It named the change — "CHG-001 · PAYMENT TERMS" — repeating two facts the
@@ -1693,6 +1679,55 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     if (col) await col.screenshot({ path: path.join(OUT, '19b-the-piles.png') });
     await page.evaluate(() => { if (window.__restorePiles) window.__restorePiles(); });
   }
+
+  /* ---- 20. THE FRONT EDGE, AND A SCROLL THAT STAYS PUT (owner-asked 26 Aug
+         2026) ---- Three asks in one message: delete the whose-asks filter,
+     colour the front edge of the cards by whose ask it is, and stop the page
+     moving when the cards are scrolled. All three are pixels or gestures, so
+     all three are asked here. */
+  const edge = await page.evaluate(async () => {
+    const rows = [...document.querySelectorAll('#rl-changes .rl-card-d')];
+    const tone = el => getComputedStyle(el).borderLeftColor;
+    const width = el => getComputedStyle(el).borderLeftWidth;
+    const ours = rows.find(r => r.getAttribute('data-rl-origin') === 'us');
+    const thrs = rows.find(r => r.getAttribute('data-rl-origin') === 'them');
+
+    /* THE PAGE MOVING IS THE THING TO MEASURE, so drive a real wheel gesture
+       at the BOTTOM of the cards scroller and watch what the page does. */
+    const scroller = document.querySelector('.redline-page .rl-side .nego-index-scroll');
+    const pageScroller = document.scrollingElement;
+    let chained = null, contained = null;
+    if (scroller){
+      scroller.scrollTop = scroller.scrollHeight;               // sit at the end
+      const before = pageScroller.scrollTop;
+      scroller.dispatchEvent(new window.WheelEvent('wheel',
+        { deltaY: 400, bubbles: true, cancelable: true }));
+      await new Promise(r => requestAnimationFrame(r));
+      chained = pageScroller.scrollTop !== before;
+      contained = getComputedStyle(scroller).overscrollBehaviorY;
+    }
+    return { n: rows.length,
+      filter: !!document.getElementById('rl-cardfilter'),
+      label: !!document.querySelector('.rl-idx-fk'),
+      ourTone: ours ? tone(ours) : null, ourW: ours ? width(ours) : null,
+      theirTone: thrs ? tone(thrs) : null, theirW: thrs ? width(thrs) : null,
+      scroller: !!scroller, chained, contained,
+      /* and the row's own wording did not move to make room for the edge */
+      sum: (() => { const el = document.querySelector('#rl-changes .rl-card-sum');
+        return el ? Math.round(el.getBoundingClientRect().width) : 0; })() };
+  });
+  check('20 the whose-asks filter is gone from the page',
+    !edge.filter && !edge.label, `select ${edge.filter}, label ${edge.label}`);
+  check('20 every row carries a front edge, and it is drawn',
+    edge.ourW && parseFloat(edge.ourW) >= 2 && edge.theirW && parseFloat(edge.theirW) >= 2,
+    `ours ${edge.ourW}, theirs ${edge.theirW}`);
+  check('20 and our ask is a different colour from theirs',
+    !!edge.ourTone && !!edge.theirTone && edge.ourTone !== edge.theirTone,
+    `${edge.ourTone} vs ${edge.theirTone}`);
+  check('20 the cards have a scroller of their own', edge.scroller, String(edge.scroller));
+  check('20 and scrolling past its end does not move the page',
+    edge.chained === false, `page moved: ${edge.chained} · overscroll ${edge.contained}`);
+  check('20 the wording still has room beside the edge', edge.sum > 100, `${edge.sum}px`);
 
   await browser.close();
   srv.close();

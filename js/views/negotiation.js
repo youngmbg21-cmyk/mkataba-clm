@@ -4900,12 +4900,28 @@ function rlSetCardFilter(v){
    the count above it. Two copies of this reading is exactly the fault
    redlineCardIds exists to prevent: a pill that counts something other than
    the list it labels. */
-function rlCardFilterPass(ch, side){
-  const f = rlCardFilter();
-  if (f === 'all' || !ch) return true;
-  const mine = ch.authorSide === (side === 'counterparty' ? 'counterparty' : 'owner');
-  return f === 'mine' ? mine : !mine;
-}
+/* ---- THE WHOSE-ASKS FILTER IS RETIRED (owner-asked 26 Aug 2026: "delete the
+       whose ask feature") ----
+   IT ANSWERS TRUE FOR EVERYTHING NOW, and the function stays rather than every
+   caller losing a line, because it is what redlineCardIds AND
+   redlineChangeCardsHtml both ask — leaving it in place is what keeps the pill
+   and the column reading one population, which is the property those two have
+   always had to share.
+
+   THE THING IT WAS FOR IS ANSWERED BY THE PILES. It was a control that HID
+   changes, and it came back after an earlier removal carrying three safety
+   properties precisely because hiding is dangerous: a reader can sit on "Mine"
+   without registering it and conclude the other side has asked for nothing.
+   The column is banded now — WHOSE ASKS was answering "show me only mine" and
+   the headings answer it by SORTING instead of hiding, which is the same
+   reading with nothing taken off the screen. And since 26 Aug the front edge
+   of every row is coloured by whose ask it is, so the question the filter
+   asked is answered at a glance without a control at all.
+
+   RL_CARD_FILTERS, rlCardFilter and rlSetCardFilter are left INERT rather than
+   deleted: they are exported, half the suite reaches for them, and a stub that
+   cannot narrow is safer than a name a third caller could bring back. */
+function rlCardFilterPass(ch, side){ return true; }
 
 /* ---- THE REVIEWER'S DOCUMENT OPENS ON THEIR OWN CLAUSE ----
    Asked for as distraction (Young, 09 Aug 2026): a colleague handed one clause
@@ -5000,6 +5016,13 @@ function rlPaintReadSegs(){
    filter can never move its own numbers, and a narrowed reviewer gets no
    filter at all because a control with one outcome is furniture. */
 function rlIdxFilterHtml(c, opts, side, tabHidden){
+  /* RETIRED 26 Aug 2026 — see rlCardFilterPass. A `return ''` STUB rather than
+     a deletion, on this file's own convention: it is exported and the progress
+     foot calls it, so a third caller must not be able to bring the control back
+     through a door nobody remembered. Everything below is dead and is kept so
+     that putting it back is uncommenting one line. */
+  return '';
+  /* eslint-disable no-unreachable */
   if (rlMyCardIds(c, opts)) return '';
   return (() => {
             const totals = redlineCardIds(c, { ...opts, hiddenIds: [...tabHidden], countAll: true });
@@ -5043,6 +5066,7 @@ function rlIdxFilterHtml(c, opts, side, tabHidden){
               RL_CARD_FILTERS.map(([k, key]) => `<option value="${k}"${rlCardFilter() === k ? ' selected' : ''}
                 >${_ne(i18t(key))} (${n(k)})</option>`).join('')}</select>`;
           })();
+  /* eslint-enable no-unreachable */
 }
 
 function rlReadOnlyReading(){ return rlReadMode() !== 'marks'; }
