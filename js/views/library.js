@@ -129,7 +129,7 @@ function openTemplateFillModal(t){
     const _mapNote=(_map && _map.trim().toLowerCase()!==String(f.label||'').trim().toLowerCase())
       ? `<span style="font-weight:var(--w-body);color:var(--color-neutral-500)"> → ${_tplEsc(_map)}</span>` : '';
     const lbl=`<span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${_tplEsc(f.label)}${f.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}${_mapNote}</span>`;
-    const st='width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 11px;font:inherit;font-size:var(--t-body);outline:none';
+    const st='width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font:inherit;font-size:var(--t-body);outline:none';
     if(f.type==='select') return `<label style="display:block">${lbl}<select id="${id}" style="${st}">${(f.opts||[]).map(o=>`<option value="${_tplEsc(o).replace(/"/g,'&quot;')}" ${f.def===o?'selected':''}>${_tplEsc(o)}</option>`).join('')}</select></label>`;
     const it=f.type==='date'?'date':(f.type==='num'?'number':'text');
     return `<label style="display:block">${lbl}<input id="${id}" type="${it}" value="${String(f.def||'').replace(/"/g,'&quot;')}" placeholder="${_tplEsc(f.ph||'')}" style="${st}"/></label>`; };
@@ -145,7 +145,7 @@ function openTemplateFillModal(t){
              made from a saved template goes on naming the workspace. */}
       <label style="display:block">
         <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${i18t('tf_our_party')}<span style="font-weight:var(--w-body);color:var(--color-neutral-500)"> → ${_tplEsc(i18t('tf_our_party_hint'))}</span></span>
-        <input id="tf-party" type="text" value="${_tplEsc((typeof FIRST_PARTY!=='undefined'&&FIRST_PARTY)||'').replace(/"/g,'&quot;')}" placeholder="${_tplEsc(i18t('tf_our_party_ph'))}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 11px;font:inherit;font-size:var(--t-body);outline:none"/></label>
+        <input id="tf-party" type="text" value="${_tplEsc((typeof FIRST_PARTY!=='undefined'&&FIRST_PARTY)||'').replace(/"/g,'&quot;')}" placeholder="${_tplEsc(i18t('tf_our_party_ph'))}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font:inherit;font-size:var(--t-body);outline:none"/></label>
       ${fs.map(inp).join('')}
       ${''/* THE SAME QUESTION THE BUILT-IN TEMPLATES ASK, because this is the
              same act. Saved templates create contracts through their own fill
@@ -154,7 +154,7 @@ function openTemplateFillModal(t){
              the negotiation room, and again by the share dialog. */}
       <label style="display:block">
         <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${i18t('lib_their_email')}<span style="font-weight:var(--w-body);color:var(--color-neutral-500)"> ${i18t('lib_so_you_can_send')}</span></span>
-        <input id="tf-cpemail" type="email" placeholder="${(typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px 11px;font:inherit;font-size:var(--t-body);outline:none"/></label>
+        <input id="tf-cpemail" type="email" placeholder="${(typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font:inherit;font-size:var(--t-body);outline:none"/></label>
     </div>
     <div id="tf-err" style="font-size:var(--t-label);color:var(--st-ruby-fg);min-height:15px;margin-top:var(--s-2)"></div>
     <div style="display:flex;align-items:center;gap:var(--s-2);margin-top:var(--s-2)">
@@ -216,9 +216,9 @@ function saveContractAsTemplate(c){
         <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">${i18t('lib_save_as_template')}</h3></div>
       <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3);line-height:1.5">Saves this document's current text (${text.length.toLocaleString()} characters${rich?', with its formatting':''}) as a reusable template. It will appear under <b>${i18t('lib_cp_templates')}</b> ${i18t('lib_and_in_new_menu')}</p>
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('lib_template_name')}</span>
-        <input id="tpl-name" value="${defName.replace(/"/g,'&quot;')}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none"/></label>
+        <input id="tpl-name" value="${defName.replace(/"/g,'&quot;')}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none"/></label>
       <label style="display:block;margin-bottom:14px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('lib_value_stream')}</span>
-        <select id="tpl-folder" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:7px var(--s-2);font:inherit;font-size:var(--t-body)">${opts}</select></label>
+        <select id="tpl-folder" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px var(--s-2);font:inherit;font-size:var(--t-body)">${opts}</select></label>
       <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
         <button id="tpl-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="tpl-save" class="ui-btn ui-btn-primary">${i18t('lib_save_template')}</button>
@@ -256,7 +256,7 @@ function openCreateTemplateModal(mode){
 
   /* READS THE ONE PAIR (25 Aug 2026) — see HATI_FLD in core.js. */
   const FLD=window.HATI_FLD;
-  const tabBtn=(k,label,sub)=>`<button data-ct-tab="${k}" style="flex:1;text-align:left;padding:9px var(--s-3);font:inherit;cursor:pointer;border:1px solid ${tab===k?'var(--color-accent)':'var(--color-divider)'};background:${tab===k?'var(--color-accent-100)':'var(--color-surface)'};border-radius:0">
+  const tabBtn=(k,label,sub)=>`<button data-ct-tab="${k}" style="flex:1;text-align:left;padding:9px var(--s-3);font:inherit;cursor:pointer;border:1px solid ${tab===k?'var(--color-accent)':'var(--color-divider)'};background:${tab===k?'var(--color-accent-100)':'var(--color-surface)'};border-radius:var(--radius)">
       <span style="display:block;font-size:var(--t-body);font-weight:var(--w-strong);color:${tab===k?'var(--color-accent-800)':'var(--color-neutral-800)'}">${label}</span>
       <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:1px">${sub}</span></button>`;
 
@@ -361,7 +361,7 @@ function openCreateTemplateModal(mode){
           via: res.via==='text'?i18t('lib_paste_via_text'):'',
           preview: i18t('lib_preview') })}</span>`);
       } else {
-        rep(`<span style="display:block;border:1px solid var(--st-ruby-line);background:rgba(176,69,60,.06);border-radius:0;padding:var(--s-2) 10px;color:var(--st-ruby-fg)">
+        rep(`<span style="display:block;border:1px solid var(--st-ruby-line);background:rgba(176,69,60,.06);border-radius:var(--radius);padding:var(--s-2) 10px;color:var(--st-ruby-fg)">
           <b>${i18t('lib_did_not_come_across')}</b> ${_tplEsc(report.reason)}
           Paste it again, or <button type="button" id="ct-fallback" style="border:0;background:none;padding:0;font:inherit;font-weight:var(--w-strong);color:var(--st-ruby-fg);text-decoration:underline;cursor:pointer">${i18t('lib_use_plain_text')}</button> ${i18t('lib_lose_formatting')}</span>`);
         document.getElementById('ct-fallback')?.addEventListener('click',()=>{
@@ -565,14 +565,14 @@ function openBlanksEditor(tid){
     const used=bodyPlaceholders(body);
     const orphanFields=fields.filter(f=>!used.includes(f.key));
     const orphanBlanks=used.filter(k=>!fields.some(f=>f.key===k));
-    const st='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:var(--s-1) 7px;font:inherit;font-size:var(--t-meta);outline:none';
+    const st='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:var(--s-1) 7px;font:inherit;font-size:var(--t-meta);outline:none';
     const rows=fields.map((f,i)=>`
       <div data-fld="${i}" style="display:grid;grid-template-columns:1.3fr .9fr 1.2fr auto auto;gap:6px;align-items:center;padding:var(--s-1) 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent)">
         <input data-f="label" value="${String(f.label||'').replace(/"/g,'&quot;')}" placeholder="${i18t('lb_label')}" style="${st}"/>
         <select data-f="type" style="${st}">${TPL_FIELD_TYPES.map(x=>`<option value="${x.k}" ${f.type===x.k?'selected':''}>${x.label}</option>`).join('')}</select>
         <select data-f="maps" style="${st}">${TPL_MAPS.map(x=>`<option value="${x.k}" ${(f.maps||'')===x.k?'selected':''}>${x.label}</option>`).join('')}</select>
         <label style="display:inline-flex;align-items:center;gap:var(--s-1);font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap"><input data-f="required" type="checkbox" ${f.required?'checked':''} style="accent-color:var(--color-accent)"/>req</label>
-        <button data-del="${i}" title="${i18t('lb_remove_blank')}" style="border:1px solid var(--st-ruby-line);background:none;color:var(--st-ruby-fg);border-radius:0;font:inherit;font-size:var(--t-label);padding:2px 7px;cursor:pointer">×</button>
+        <button data-del="${i}" title="${i18t('lb_remove_blank')}" style="border:1px solid var(--st-ruby-line);background:none;color:var(--st-ruby-fg);border-radius:var(--radius);font:inherit;font-size:var(--t-label);padding:2px 7px;cursor:pointer">×</button>
         ${f.type==='select'?`<input data-f="opts" value="${String((f.opts||[]).join(', ')).replace(/"/g,'&quot;')}" placeholder="${i18t('lb_choices_comma')}" style="${st};grid-column:1 / -1"/>`:''}
         <div style="grid-column:1 / -1;font-size:var(--t-label);color:var(--color-neutral-500);font-family:var(--font-mono)">{{${f.key}}}${orphanFields.includes(f)?` <span style="color:var(--st-ruby-fg)">${i18t('lib_blank_unused')}</span>`:''}</div>
       </div>`).join('');
@@ -615,12 +615,12 @@ function openBlanksEditor(tid){
       <button id="be-detect" class="ui-btn" style="font-size:var(--t-meta);padding:5px 11px">${i18t('lib_detect_brackets')}</button>
       ${(API_MODE()&&state.aiConfigured)?`<button id="be-suggest" class="ui-btn" style="font-size:var(--t-meta);padding:5px 11px">${icon('sparkle','w-3.5 h-3.5')} Suggest blanks</button>`:''}
     </div>
-    <div id="be-fields" class="scroll-thin" style="max-height:190px;overflow-y:auto;border:1px solid var(--color-divider);border-radius:0;padding:6px 9px;margin-bottom:var(--s-2)"></div>
+    <div id="be-fields" class="scroll-thin" style="max-height:190px;overflow-y:auto;border:1px solid var(--color-divider);border-radius:var(--radius);padding:6px 9px;margin-bottom:var(--s-2)"></div>
     <div id="be-warn" style="font-size:var(--t-label);margin-bottom:var(--s-2);min-height:14px"></div>
     <label style="display:block;margin-bottom:var(--s-3)"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">Template body — select text, then “Make selection a blank”${rich?` <span style="font-weight:var(--w-body);color:var(--color-neutral-500)">${i18t('lib_formatted_template')}</span>`:''}</span>
       ${rich
         ? `<div id="be-body" class="scroll-thin doc-surface" style="width:100%;height:210px;overflow-y:auto;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:9px 13px"></div>`
-        : `<textarea id="be-body" class="scroll-thin" style="width:100%;height:210px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:9px 11px;font:inherit;font-size:var(--t-meta);line-height:1.6;font-family:var(--font-mono);outline:none;resize:vertical"></textarea>`}</label>
+        : `<textarea id="be-body" class="scroll-thin" style="width:100%;height:210px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:9px 11px;font:inherit;font-size:var(--t-meta);line-height:1.6;font-family:var(--font-mono);outline:none;resize:vertical"></textarea>`}</label>
     <div id="be-status" style="font-size:var(--t-label);color:var(--color-neutral-600);min-height:15px;margin-bottom:var(--s-2)"></div>
     <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
       <button id="be-cancel" class="ui-btn">${i18t('act_cancel')}</button>
@@ -799,13 +799,13 @@ function openTemplateEditor(tid){
     <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:3px">
       <span style="color:var(--color-accent)">${icon('pencil','w-4 h-4')}</span>
       <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">${i18t('lib_edit_template')}</h3>
-      <span style="font-family:var(--font-mono);font-size:var(--t-label);font-weight:var(--w-strong);color:var(--st-steel-fg);border:1px solid var(--st-steel-line);background:var(--st-steel-bg);border-radius:0;padding:1px 6px">v${templateVersionNo(rec)}</span>
+      <span style="font-family:var(--font-mono);font-size:var(--t-label);font-weight:var(--w-strong);color:var(--st-steel-fg);border:1px solid var(--st-steel-line);background:var(--st-steel-bg);border-radius:var(--radius);padding:1px 6px">v${templateVersionNo(rec)}</span>
       <span style="flex:1"></span>
       <button id="te-versions" class="ui-btn" style="font-size:var(--t-label);padding:3px 9px;white-space:nowrap">${icon('history','w-3.5 h-3.5')} Versions (${templateVersions(rec).length+1})</button>
     </div>
     <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-1);line-height:1.5">
       ${_tplEsc(templateUsageLabel(usage))} · saving creates <b>v${templateVersionNo(rec)+1}</b>.</p>
-    <div style="display:flex;gap:7px;align-items:flex-start;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:7px 10px;margin:0 0 var(--s-3);font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-700)">
+    <div style="display:flex;gap:7px;align-items:flex-start;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:7px 10px;margin:0 0 var(--s-3);font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-700)">
       <span style="flex:none;margin-top:1px;color:var(--color-accent)">${icon('shield','w-3.5 h-3.5')}</span>
       <span><b>${i18t('lib_existing_unaffected')}</b> A contract copies the wording when it is created; it does not follow the template afterwards. Changes here apply to the next draft you generate.</span>
     </div>
@@ -833,7 +833,7 @@ function openTemplateEditor(tid){
       <span style="font-size:var(--t-label);font-weight:var(--w-strong)">${i18t('lib_blanks')}</span>
       <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${i18t('lib_blanks_become_fields')}</span>
     </div>
-    <div id="te-fields" class="scroll-thin" style="max-height:150px;overflow-y:auto;border:1px solid var(--color-divider);border-radius:0;padding:6px 9px"></div>
+    <div id="te-fields" class="scroll-thin" style="max-height:150px;overflow-y:auto;border:1px solid var(--color-divider);border-radius:var(--radius);padding:6px 9px"></div>
     <div id="te-warn" style="font-size:var(--t-label);margin:7px 0;min-height:15px;line-height:1.5"></div>
 
     <label style="display:block;margin-bottom:var(--s-3)"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('lib_what_changed')} <span style="font-weight:var(--w-body);color:var(--color-neutral-500)">(recorded against v${templateVersionNo(rec)+1})</span></span>
@@ -884,7 +884,7 @@ function openTemplateEditor(tid){
     const used=usedIn();
     const orphanFields=fields.filter(f=>!used.includes(f.key));      // a field with no blank
     const orphanBlanks=used.filter(k=>!fields.some(f=>f.key===k));   // a blank with no field
-    const stl='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:var(--s-1) 7px;font:inherit;font-size:var(--t-meta);outline:none';
+    const stl='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:var(--s-1) 7px;font:inherit;font-size:var(--t-meta);outline:none';
     const host2=document.getElementById('te-fields'); if(!host2) return;
     host2.innerHTML=fields.length?fields.map((f,i)=>`
       <div data-fld="${i}" style="display:grid;grid-template-columns:1.3fr .9fr 1.2fr auto auto;gap:6px;align-items:center;padding:var(--s-1) 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent)">
@@ -892,7 +892,7 @@ function openTemplateEditor(tid){
         <select data-f="type" style="${stl}">${TPL_FIELD_TYPES.map(x=>`<option value="${x.k}" ${f.type===x.k?'selected':''}>${x.label}</option>`).join('')}</select>
         <select data-f="maps" style="${stl}">${TPL_MAPS.map(x=>`<option value="${x.k}" ${(f.maps||'')===x.k?'selected':''}>${x.label}</option>`).join('')}</select>
         <label style="display:inline-flex;align-items:center;gap:var(--s-1);font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap"><input data-f="required" type="checkbox" ${f.required?'checked':''} style="accent-color:var(--color-accent)"/>req</label>
-        <button data-del="${i}" title="${i18t('lb_remove_blank')}" style="border:1px solid var(--st-ruby-line);background:none;color:var(--st-ruby-fg);border-radius:0;font:inherit;font-size:var(--t-label);padding:2px 7px;cursor:pointer">×</button>
+        <button data-del="${i}" title="${i18t('lb_remove_blank')}" style="border:1px solid var(--st-ruby-line);background:none;color:var(--st-ruby-fg);border-radius:var(--radius);font:inherit;font-size:var(--t-label);padding:2px 7px;cursor:pointer">×</button>
         ${f.type==='select'?`<input data-f="opts" value="${String((f.opts||[]).join(', ')).replace(/"/g,'&quot;')}" placeholder="${i18t('lb_choices_comma')}" style="${stl};grid-column:1 / -1"/>`:''}
         <div style="grid-column:1 / -1;font-size:var(--t-label);color:var(--color-neutral-500);font-family:var(--font-mono)">{{${f.key}}}${orphanFields.includes(f)?` <span style="color:var(--st-ruby-fg)">${i18t('lib_not_used_above')}</span>`:''}</div>
       </div>`).join('')
@@ -1061,7 +1061,7 @@ function openTemplateVersions(tid){
     <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3);line-height:1.5">${i18t('lib_every_save_kept')} <b>new</b> ${i18t('lib_history_intact')} <b>${i18t('lib_no_contract_changes')}</b>${i18t('lib_copies_wording')}</p>
     <div class="scroll-thin" style="max-height:52vh;overflow-y:auto;display:flex;flex-direction:column;gap:6px">
       ${all.map(v=>`
-        <div style="display:flex;align-items:center;gap:9px;border:1px solid ${v.n===current.n?'var(--color-accent-300)':'var(--color-divider)'};background:${v.n===current.n?'var(--color-accent-100)':'var(--color-surface)'};border-radius:0;padding:var(--s-2) 11px">
+        <div style="display:flex;align-items:center;gap:9px;border:1px solid ${v.n===current.n?'var(--color-accent-300)':'var(--color-divider)'};background:${v.n===current.n?'var(--color-accent-100)':'var(--color-surface)'};border-radius:var(--radius);padding:var(--s-2) 11px">
           <span style="font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-meta);color:var(--accent-ink-700);flex:none">v${v.n}</span>
           <span style="min-width:0;flex:1">
             <span style="display:block;font-size:var(--t-meta);color:var(--color-neutral-800);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(v.note||'Saved')}${v.name!==rec.name?` <span style="color:var(--color-neutral-500)">· named “${_tplEsc(v.name)}”</span>`:''}</span>
@@ -1199,7 +1199,7 @@ function openBulkCreateModal(t){
       if(r.errors.length){
         const byRow={};
         r.errors.forEach(er=>{ (byRow[er.row]=byRow[er.row]||[]).push(er); });
-        out.innerHTML=`<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:0;padding:9px 11px">
+        out.innerHTML=`<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:var(--radius);padding:9px 11px">
           <div style="font-weight:var(--w-strong);color:var(--st-ruby-fg);margin-bottom:5px">${r.errors.length} problem${r.errors.length===1?'':'s'} found — <b>${i18t('lib_nothing_created')}</b>.</div>
           <div class="scroll-thin" style="max-height:200px;overflow-y:auto">
           ${Object.keys(byRow).sort((a,b)=>a-b).map(rn=>`<div style="padding:2px 0;color:var(--st-ruby-fg)">
@@ -1209,7 +1209,7 @@ function openBulkCreateModal(t){
         return;
       }
       ready=r.rows;
-      out.innerHTML=`<div style="border:1px solid var(--color-divider);background:var(--st-steel-bg);border-radius:0;padding:9px 11px;color:var(--st-steel-fg)">
+      out.innerHTML=`<div style="border:1px solid var(--color-divider);background:var(--st-steel-bg);border-radius:var(--radius);padding:9px 11px;color:var(--st-steel-fg)">
         <b>${r.rows.length} row${r.rows.length===1?'':'s'} checked, every cell valid.</b> ${i18t('lib_press')} <b>${i18t('lib_create_drafts')}</b> to file them all in one pass.
         <div style="margin-top:5px;color:var(--color-neutral-700);font-size:var(--t-label)">First few: ${r.rows.slice(0,3).map(x=>_tplEsc(x.name)).join(' · ')}${r.rows.length>3?` … and ${r.rows.length-3} more`:''}</div></div>`;
       go.disabled=false; go.style.opacity='1';
@@ -1254,7 +1254,7 @@ function openTemplatePreview(tpl){
         <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${FOLDERS[tpl.folder]?.name||''}</span>
       </div>
       <p style="font-size:var(--t-label);color:var(--color-neutral-600);margin:0 0 10px">${tpl.chars?tpl.chars.toLocaleString()+' characters · ':''}added ${tpl.at?fmtDT(tpl.at):''} by ${_tplEsc(tpl.by||'—')}${templateFields(tpl).length?` · <b>${templateFields(tpl).length} blank${templateFields(tpl).length===1?'':'s'}</b>`:' · no blanks yet'}</p>
-      ${templateFields(tpl).length?`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">${templateFields(tpl).map(f=>`<span style="font-size:var(--t-label);border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:2px 7px;color:var(--color-neutral-700)"><b style="font-family:var(--font-mono)">${_tplEsc(f.key)}</b> ${_tplEsc(f.label)}${f.maps?` <span style="color:var(--accent-ink-700)">→ ${_tplEsc(tplMapLabel(f.maps))}</span>`:''}</span>`).join('')}</div>`:''}
+      ${templateFields(tpl).length?`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">${templateFields(tpl).map(f=>`<span style="font-size:var(--t-label);border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:2px 7px;color:var(--color-neutral-700)"><b style="font-family:var(--font-mono)">${_tplEsc(f.key)}</b> ${_tplEsc(f.label)}${f.maps?` <span style="color:var(--accent-ink-700)">→ ${_tplEsc(tplMapLabel(f.maps))}</span>`:''}</span>`).join('')}</div>`:''}
       <div class="scroll-thin doc-surface" style="border:1px solid var(--color-divider);border-radius:0;background:var(--color-bg);padding:14px var(--s-4);max-height:55vh;overflow-y:auto">${_tplPreviewHtml(tpl)}</div>
       <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:14px">
         ${canEdit()?`<button id="tp-blanks" class="ui-btn">${templateFields(tpl).length?'Edit blanks':'Add blanks'}</button>`:''}
@@ -1368,11 +1368,11 @@ function tplPageRowHtml(r){
   return `<tr>
     <td style="padding:10px var(--s-2) 10px 14px;${RULE}">
       <div style="display:flex;gap:11px;align-items:flex-start">
-        <span style="flex:none;width:4px;height:30px;border-radius:0;background:${stripe};margin-top:2px"></span>
+        <span style="flex:none;width:4px;height:30px;border-radius:var(--radius);background:${stripe};margin-top:2px"></span>
         <div style="min-width:0">
           <div style="display:flex;align-items:center;gap:var(--s-2);min-width:0">
             <span style="font-size:var(--t-body);font-weight:var(--w-title);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(r.name)}</span>
-            ${r.draft?`<span style="flex:none;font-size:var(--t-figure);font-weight:var(--w-title);padding:1px 7px;border-radius:0;background:var(--st-amber-bg);color:var(--st-amber-fg)">Draft</span>`:''}
+            ${r.draft?`<span style="flex:none;font-size:var(--t-figure);font-weight:var(--w-title);padding:1px 7px;border-radius:var(--radius);background:var(--st-amber-bg);color:var(--st-amber-fg)">Draft</span>`:''}
           </div>
           <div style="font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px">${_tplEsc(r.sub)}</div>
         </div>
@@ -1425,7 +1425,7 @@ function tplPagePaintRows(){
    card offered, none of it stealing a column from every row. */
 function tplRowMoreMenu(tid){
   const t=customTemplates().find(x=>x.id===tid); if(!t) return;
-  const item=(id,label,sub)=>`<button id="${id}" style="display:block;width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;padding:9px var(--s-3);border-radius:0" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
+  const item=(id,label,sub)=>`<button id="${id}" style="display:block;width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;padding:9px var(--s-3);border-radius:var(--radius)" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
     <span style="display:block;font-size:var(--t-body);font-weight:var(--w-strong)">${label}</span><span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600)">${sub}</span></button>`;
   openModal(`<div style="padding:var(--s-4) 14px;min-width:280px">
     <div style="font-size:var(--t-body);font-weight:var(--w-title);padding:0 var(--s-3) var(--s-2)">${_tplEsc(t.name)}</div>
@@ -1450,7 +1450,7 @@ function tplNewMenu(){
   const lib=(typeof tplLibAll==='function')?tplLibAll():{canManage:false};
   const companyOk=API_MODE()&&lib.canManage;
   if(!companyOk){ openCreateTemplateModal('paste'); return; }
-  const opt=(id,label,sub)=>`<button id="${id}" style="display:block;width:100%;text-align:left;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:13px 15px;cursor:pointer;font:inherit;margin-bottom:var(--s-2)">
+  const opt=(id,label,sub)=>`<button id="${id}" style="display:block;width:100%;text-align:left;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:13px 15px;cursor:pointer;font:inherit;margin-bottom:var(--s-2)">
     <span style="display:block;font-size:var(--t-body);font-weight:var(--w-title)">${label}</span><span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px;line-height:1.45">${sub}</span></button>`;
   openModal(`<div style="padding:20px 22px;max-width:380px">
     <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);margin:0 0 10px">${i18t('lib_what_kind')}</h3>
@@ -1576,7 +1576,7 @@ function tplOverviewHtml(d){
      SAME threshold that puts a template in Needs attention, so a red figure
      and a row in that panel can never mean different things. The count beside
      it stays the primary ink: it is a fact about volume, not a verdict. */
-  const CARD='background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;box-shadow:var(--shadow-sm)';
+  const CARD='background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);box-shadow:var(--shadow-sm)';
   const day=v=>{ const t=Date.parse(v||''); return isNaN(t)?null:new Date(t).toLocaleDateString(langLocale(),{day:'numeric',month:'short',year:'numeric'}); };
   /* THE TONE BAR — the left stripe's own reading, moved to the demo's place. */
   const topTone=c=>c.kind==='company'
@@ -1756,10 +1756,10 @@ function renderTemplatesPage(){
   const canManage=tplCanManage();
   const tab=tplPageTab();
   const ov=tplOverviewData();
-  const railIt=(key,label,n)=>`<button data-tpl-group="${key}" style="display:flex;align-items:center;gap:var(--s-2);width:100%;border:0;background:${_tplPage.group===key?'var(--color-accent-100)':'none'};color:${_tplPage.group===key?'var(--color-accent-800)':'var(--color-neutral-700)'};font:inherit;font-size:var(--t-body);font-weight:var(--w-strong);padding:7px 11px;border-radius:0;cursor:pointer;text-align:left">
+  const railIt=(key,label,n)=>`<button data-tpl-group="${key}" style="display:flex;align-items:center;gap:var(--s-2);width:100%;border:0;background:${_tplPage.group===key?'var(--color-accent-100)':'none'};color:${_tplPage.group===key?'var(--color-accent-800)':'var(--color-neutral-700)'};font:inherit;font-size:var(--t-body);font-weight:var(--w-strong);padding:7px 11px;border-radius:var(--radius);cursor:pointer;text-align:left">
     <span style="flex:1">${label}</span><span style="font-family:var(--font-mono);font-size:var(--t-label);color:${_tplPage.group===key?'var(--color-accent-700)':'var(--color-neutral-500)'}">${n}</span></button>`;
-  const streamIt=f=>`<button data-tpl-stream="${f.id}" style="display:flex;align-items:center;gap:9px;width:100%;border:0;background:${_tplPage.stream===f.id?'var(--color-accent-100)':'none'};color:var(--color-neutral-700);font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);padding:6px 11px;border-radius:0;cursor:pointer;text-align:left">
-    <span style="flex:none;width:8px;height:14px;border-radius:0;background:${folderColor(f.id)}"></span><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(tplShortStream(f.name))}</span></button>`;
+  const streamIt=f=>`<button data-tpl-stream="${f.id}" style="display:flex;align-items:center;gap:9px;width:100%;border:0;background:${_tplPage.stream===f.id?'var(--color-accent-100)':'none'};color:var(--color-neutral-700);font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);padding:6px 11px;border-radius:var(--radius);cursor:pointer;text-align:left">
+    <span style="flex:none;width:8px;height:14px;border-radius:var(--radius);background:${folderColor(f.id)}"></span><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(tplShortStream(f.name))}</span></button>`;
   const HEAD='font-family:var(--font-mono);font-size:var(--t-figure);letter-spacing:.12em;color:var(--color-neutral-500);text-transform:uppercase;padding:0 11px;margin:0 0 6px';
   /* NO SENTENCE UNDER THE TITLE and none under the tabs (owner-asked 25 Aug
      2026, "remove these explanations below the headers in all pages where the
@@ -1803,10 +1803,10 @@ function renderTemplatesPage(){
              under Administration, and a governance screen with two homes is
              the fault WO N1 removed — so the rail no longer carries it. -->
       </div>
-      <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;box-shadow:var(--shadow-sm);overflow:hidden">
+      <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);box-shadow:var(--shadow-sm);overflow:hidden">
         <div style="display:flex;align-items:center;gap:var(--s-3);padding:var(--s-3) 14px;border-bottom:1px solid var(--color-divider)">
           <input id="tpl-search" type="search" placeholder="${i18t('lb_search_templates')}" autocomplete="off" value="${_tplEsc(_tplPage.q)}"
-            style="flex:none;width:min(320px,50%);border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:7px var(--s-3);font:inherit;font-size:var(--t-meta);color:inherit;outline:none"/>
+            style="flex:none;width:min(320px,50%);border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:7px var(--s-3);font:inherit;font-size:var(--t-meta);color:inherit;outline:none"/>
           <span id="tpl-count" style="font-size:var(--t-label);color:var(--color-neutral-500)"></span>
         </div>
         <div id="tpl-rows" style="overflow-x:auto"></div>
@@ -1872,7 +1872,7 @@ const PB_TAB_SUB={clauses:'lib_clause_library_sub',playbook:'lib_playbook_sub',d
 let _pbPageTab=null;
 function pbPageTab(){ return PB_PAGE_TABS.includes(_pbPageTab)?_pbPageTab:'clauses'; }
 function renderPlaybookPage(){
-  const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:0';
+  const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius)';
   const canEditLib=isAdmin()||currentUser()?.role==='legal';
 
   // portfolio deviations (from the existing playbook review results)

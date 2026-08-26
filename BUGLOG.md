@@ -7552,6 +7552,93 @@ rule:
   the claim compares against is not on the face any more. Proved failing on an
   unmodified main in a worktree before it was called pre-existing.
 
+
+## Run — 26 Aug 2026: the chart library, and six off five screenshots
+
+Owner-asked: bring the charting library in-house, then six fixes off five
+screenshots (home tile heights; the card ⋯ dropdown's header and its clipping;
+the WHOSE ASKS label; the selected-card outline and what the ⋯ press does; the
+"Propose new wording" button's changing name).
+
+### Noticed, not fixed
+
+- `js/i18n.js` has FOUR duplicate-key errors that break `npm run lint`'s
+  zero-error bar: `co_password_updated` (lines 2032, 6813) and `act_next`
+  (2776, 7479), one pair per language block. PROVED PRE-EXISTING — the same
+  four reproduce on an untouched tree.
+- `test/chromium/analytics-verify.js` looks for its fallback bars with
+  `div[style*="border-radius:999px"]`, a pill shape SQUARE CORNERS EVERYWHERE
+  (20 Aug 2026) squared away, so that selector matches nothing anywhere. The
+  canvas half of its check now passes offline (this run's change), so the file
+  is green — but the offline FALLBACK it was written to guard is still
+  unguarded. Recorded in run-all.js's own note beside the file.
+- `js/aichart.js` builds its reader-facing sentences in hardcoded English
+  (`aiChartNote('There is no data in your portfolio for that chart yet.')` and
+  the load-failure card this run reworded). Consistent within that file, and
+  outside this ask.
+- The OCR path still fetches pdf.js and Tesseract from cdnjs/jsdelivr
+  (`js/ocr.js`), so reading a scanned or PDF upload keeps the third-party
+  dependency the charts just lost. Same fix shape, separate job.
+
+## 26 Aug 2026 — a 2px corner across the platform, and the contract stays square
+
+Owner-ruled off a drawn preview at 0, 2, 3, 4 and 6px: "implement 2px across
+the platform apart from the contracts themselves when they are visible on
+screen. They should look like word documents when they are on screen."
+
+818 hand-typed zeros now read `--radius` — a token family that had been
+declared for three days with no readers at all — so changing the number again
+is one line. The contract keeps a literal 0 wherever it is on screen, with a
+comment beside each saying why.
+
+### Defects found and fixed on the way
+- `.rounded-full`, the CIRCLE class in the compiled Tailwind blob, had been
+  drawing squares since the 20 Aug sweep took it with everything else. 24
+  elements wear it, the numbered approval steps among them. It is 9999px again,
+  written in HaTi's own sheet rather than the generated blob. Pre-existing, but
+  this change would have turned those squares into 2px squares, so it was fixed
+  in the same breath.
+- The tracked-change marks — the green additions and struck deletions on the
+  paper — were rounded by the first pass. They are drawn ON the document, so
+  they stay square: a tracked change in Word is a plain highlight. Caught by
+  f210, not by eye.
+- Two rules named a radius on something that has no corners: the column head
+  (a hairline under a caption) and the whose-move word on the negotiations list
+  (a bare coloured word, no fill, no border, no padding). Both now name none at
+  all, and the two tests assert the absence, which is a stronger claim.
+- THE STANDALONE HISTORY REPORT LOST ITS CORNERS ENTIRELY, and the file's own
+  comment had warned about exactly this. The negotiation history a counterparty
+  can download is a self-contained document that carries none of the app's
+  stylesheet, so the three `--radius` the sweep wrote into it resolved to
+  nothing and every rounded box in the report squared off silently. Reverted to
+  a literal, and the warning beside it now names the corners as well as the
+  colours. Caught by the test that exists for the colour half of the same trap.
+  Every other standalone document was checked and none was touched by the sweep.
+
+### Noticed, not fixed
+- `npm run lint` reports the same 4 pre-existing errors as before this change:
+  duplicate dictionary keys `co_password_updated` and `act_next`, each written
+  twice in each language.
+- `pages-read-alike-verify` is 47 of 50 and `reopen-a-refusal-verify` is 12 of
+  15. Both fail identically on an unmodified main, with the same measurements —
+  proved by running each file in a worktree at that commit rather than
+  asserted. The first is the negotiation head wrapping to a second line at the
+  width the file measures at; the second is a claim that Reopen is drawn like
+  Edit, written before the tracked-changes rebuild moved Edit off the card and
+  into the overflow menu. Neither is this change's, and neither is fixed here.
+
+### A note on the merge
+This change was written before nineteen commits landed on main — a change of
+typeface across the product, and a design pass that gave it its type, spacing,
+motion and elevation ladders. That work rewrote most of the same declarations
+the corner sweep touches, so the two collided in forty-three files. Rather than
+resolve them one by one, main's version of every code file was taken whole and
+the sweep re-run over it: it is a mechanical substitution plus a short list of
+hand-written decisions, so rebuilding it is cheaper and safer than untangling
+it. The count went from 796 to 801 because main's own pass added a few more
+corners. The twenty-one exemptions are now anchored on a fragment of each
+declaration rather than on a line number, so a future rewrite cannot move
+them.
 ---
 
 ## 26 Aug 2026 — the owner's six-item list (WORKORDER-fixes-26-aug.md)
@@ -7614,3 +7701,18 @@ theme-tokens 40/40 unmoved.
   takes different arguments in each), and `esc` (js/components.js escapes
   quotes, js/views/advice.js does not). Same class as the lsSet fault above.
   Named and printed in f232-6 rather than swept up here.
+
+### Merged with main, same day
+
+Two of the six met a parallel session that had answered the same screenshots.
+Resolved in favour of the owner's words rather than by date, and said out loud
+rather than quietly: the ⋯ menu keeps BOTH changes (main's head removal, this
+run's symbol on every row — they do not argue), and the Home cards keep the
+three-region skeleton rather than main's single 176px height, because that
+answered "the same height" and made "remove empty spaces" worse — the top row
+grew 35px and all of it landed in the spacer the owner had ringed. Main's
+measurement that no 141 fits is true WHILE the spacer and the two-line footer
+reservation stand; removing those is the half of the ask it did not cover, and
+146 then fits both rows with nothing clipped at any laptop width. The 2px
+platform corner from that merge is kept. `--hm-tile-h` is stale.
+

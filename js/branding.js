@@ -414,7 +414,7 @@ function docDesignHeaderHtml(b, c, opts = {}) {
           ${ident ? `<div style="font-size:var(--t-label);color:${BR_SOFT};line-height:1.5">${ident}</div>` : ''}
         </div>
       </div>
-      <div style="width:46px;height:3px;background:${brAccent(b)};border-radius:0;margin-top:14px"></div>
+      <div style="width:46px;height:3px;background:${brAccent(b)};border-radius:var(--radius);margin-top:14px"></div>
     </div>`;
   }
 
@@ -436,9 +436,9 @@ function docDesignHeaderHtml(b, c, opts = {}) {
 
   if (d.id === 'bold-corporate') {
     const bleedX = Number(opts.bleedX) || 0, bleedY = Number(opts.bleedY) || 0;
-    const margin = bleedX || bleedY ? `margin:-${bleedY}px -${bleedX}px 24px;` : 'margin:0 0 var(--s-6);border-radius:0;';
+    const margin = bleedX || bleedY ? `margin:-${bleedY}px -${bleedX}px 24px;` : 'margin:0 0 var(--s-6);border-radius:var(--radius);';
     const pad = bleedX || bleedY ? `padding:18px ${bleedX}px 16px;` : 'padding:18px 22px var(--s-4);';
-    const chip = logoTop ? `<span style="display:inline-block;background:#fff;border-radius:0;padding:5px var(--s-2);line-height:0">${logoTop}</span>` : '';
+    const chip = logoTop ? `<span style="display:inline-block;background:#fff;border-radius:var(--radius);padding:5px var(--s-2);line-height:0">${logoTop}</span>` : '';
     const justify = pos === 'top-right' ? 'row-reverse' : 'row';
     return `<div data-doc-design="bold-corporate" style="${margin}${pad}background:${brAccent(b)};color:#fff;font-family:${BR_SANS}">
       <div style="display:flex;flex-direction:${justify};align-items:center;gap:14px;${pos === 'top-center' ? 'justify-content:center;text-align:center;' : ''}">
@@ -453,7 +453,7 @@ function docDesignHeaderHtml(b, c, opts = {}) {
 
   if (d.id === 'compact-executive') {
     const facts = brGlanceFacts(c);
-    const factsBox = facts.length ? `<div style="display:grid;grid-template-columns:repeat(${Math.min(facts.length, 4)},1fr);gap:var(--s-2);background:#eef1f0;border-radius:0;padding:10px 14px;margin-top:var(--s-3)">
+    const factsBox = facts.length ? `<div style="display:grid;grid-template-columns:repeat(${Math.min(facts.length, 4)},1fr);gap:var(--s-2);background:#eef1f0;border-radius:var(--radius);padding:10px 14px;margin-top:var(--s-3)">
       ${facts.map(([k, v]) => `<div style="min-width:0"><div style="font-size:var(--t-figure);letter-spacing:.08em;text-transform:uppercase;color:${BR_SOFT}">${BR_ESC(k)}</div><div style="font-size:var(--t-meta);font-weight:var(--w-title);color:${BR_INK};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${BR_ESC(v)}</div></div>`).join('')}
     </div>` : '';
     const headLogo = pos !== 'footer' ? brLogoImg(b, 30) : '';
@@ -472,7 +472,7 @@ function docDesignHeaderHtml(b, c, opts = {}) {
   if (d.id === 'modern-editorial') {
     /* The vertical rule is the paper's (docDesignPaperStyle); the header is an
        asymmetric two-sider: identity one side, a quiet document tag the other. */
-    const tag = `<span style="font-size:var(--t-figure);letter-spacing:.22em;color:${brAccent(b)};text-transform:uppercase;border:1px solid ${BR_SOFT}40;border-radius:0;padding:var(--s-1) 10px;white-space:nowrap;align-self:flex-start">Commercial Agreement</span>`;
+    const tag = `<span style="font-size:var(--t-figure);letter-spacing:.22em;color:${brAccent(b)};text-transform:uppercase;border:1px solid ${BR_SOFT}40;border-radius:var(--radius);padding:var(--s-1) 10px;white-space:nowrap;align-self:flex-start">Commercial Agreement</span>`;
     const identity = `<div style="min-width:0">
         ${name ? `<div style="font-size:var(--t-card);font-weight:var(--w-title);letter-spacing:.01em">${name}</div>` : ''}
         ${ident ? `<div style="font-size:var(--t-label);color:${BR_SOFT};margin-top:2px">${ident}</div>` : ''}
@@ -530,7 +530,7 @@ function docDesignHeaderHtml(b, c, opts = {}) {
     const above = logoTop ? `<div style="margin-bottom:10px;${pos === 'top-right' ? 'text-align:right' : pos === 'top-center' ? 'text-align:center' : ''}">${logoTop}</div>` : '';
     return `<div data-doc-design="facing-parties" style="margin-bottom:22px;font-family:${BR_SANS};color:${BR_INK}">
       ${above}
-      <div style="background:#f1f4f5;border:1px solid #e2e8ea;border-left:4px solid ${brAccent(b)};border-radius:0;padding:15px 19px">
+      <div style="background:#f1f4f5;border:1px solid #e2e8ea;border-left:4px solid ${brAccent(b)};border-radius:var(--radius);padding:15px 19px">
         <div style="font-size:var(--t-figure);letter-spacing:.2em;color:${BR_SOFT};text-transform:uppercase;margin-bottom:10px">Agreement between</div>
         <div style="display:flex;gap:18px;align-items:center">
           <div style="flex:1;min-width:0">

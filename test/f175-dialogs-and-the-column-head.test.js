@@ -222,7 +222,12 @@ describe('f175 · the Tracked Changes head is a rule, not a box', () => {
     assert.match(head, /border-bottom:1px solid var\(--color-divider\)/,
       'the head is drawn by its rule');
     assert.match(head, /background:none/, 'and by nothing else — no band');
-    assert.match(head, /border-radius:0/, 'a rule has no corners to round');
+    /* REVERSED IN PLACE, 26 Aug 2026, and the claim got STRONGER. It asserted
+       the literal 0 that the 20 Aug sweep put here; with the platform on a 2px
+       radius the honest answer is that a hairline names NO radius at all — no
+       fill, no box, nothing for a corner to happen to, and a declaration here
+       would be noise the next reader has to rule out. */
+    assert.doesNotMatch(head, /border-radius/, 'a rule has no corners to round');
     assert.ok(!/--n-paper/.test(head), 'and never the room\'s white token');
   });
 

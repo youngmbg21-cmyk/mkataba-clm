@@ -71,7 +71,7 @@ function ikRowHtml(r, opts={}){
   if(may&&r.status==='open') acts.push(`<button class="ui-btn" data-ik-decline="${esc(r.id)}" style="font-size:var(--t-label);padding:var(--s-1) 10px">${i18t('ik_act_decline')}</button>`);
   if(r.contractId) acts.push(`<button class="ui-btn" data-ik-open="${esc(r.contractId)}" style="font-size:var(--t-label);padding:var(--s-1) 10px">${i18t('ik_act_open')}</button>`);
   if(isMine&&IK_LIVE.includes(r.status)) acts.push(`<button class="ui-btn" data-ik-withdraw="${esc(r.id)}" style="font-size:var(--t-label);padding:var(--s-1) 10px">${i18t('ik_act_withdraw')}</button>`);
-  return `<article class="ik-row" style="border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);padding:var(--s-3) 14px;display:flex;flex-direction:column;gap:6px">
+  return `<article class="ik-row" style="border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);padding:var(--s-3) 14px;display:flex;flex-direction:column;gap:6px">
     <div style="display:flex;align-items:baseline;gap:9px;flex-wrap:wrap">
       <span style="font-family:var(--font-mono);font-size:var(--t-label);color:var(--color-neutral-500)">${esc(r.id)}</span>
       <span style="font-size:var(--t-card);font-weight:var(--w-strong);flex:1;min-width:0">${esc(r.title)}</span>
@@ -165,7 +165,7 @@ async function intakeDraft(id){
   openModal(`<div style="padding:20px 22px;max-width:520px">
     <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;margin:0 0 var(--s-1)">${i18t('ik_draft_title')}</h3>
     <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3);line-height:1.55">${esc(r.title)}</p>
-    ${pick?`<p style="font-size:var(--t-meta);line-height:1.55;margin:0 0 10px;padding:9px 11px;background:var(--st-green-bg);color:var(--st-green-fg);border-radius:0">
+    ${pick?`<p style="font-size:var(--t-meta);line-height:1.55;margin:0 0 10px;padding:9px 11px;background:var(--st-green-bg);color:var(--st-green-fg);border-radius:var(--radius)">
       ${esc(i18t('ik_suggested',{name:TEMPLATES[pick.id].name}))}${pick.why?' '+esc(pick.why):''}</p>`
       :`<p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 10px">${esc(i18t('ik_no_suggestion'))}</p>`}
     <label style="display:block;margin-bottom:var(--s-3)"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('ik_pick_template')}</span>

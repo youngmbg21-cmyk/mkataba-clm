@@ -1439,6 +1439,95 @@ measuring all twelve claims. Node 4,388/4,388. Browser: settings-tabs 65,
 pages-read-alike 38, redline 95, clause-door 89, nav-floats 69,
 home-pipeline 54, calendar 39, kpi-four 19, theme-tokens 40 — all green.
 
+## THE PLATFORM CARRIES A 2px CORNER, AND THE CONTRACT DOES NOT (owner-ruled 26 Aug 2026)
+
+Owner-asked off a drawn preview of Home and the negotiation page at 0, 2, 3, 4
+and 6px: *"implement 2px across the platform apart from the contracts
+themselves when they are visible on screen. They should look like word
+documents when they are on screen."*
+
+**THIS REVERSES "SQUARE CORNERS EVERYWHERE" (20 Aug 2026), and that entry is
+reversed in place rather than deleted** — its exemption list is inherited whole
+and extended, which is the half of it that was always load-bearing.
+
+- **IT IS ONE NUMBER AND IT IS `--radius`.** The token family
+  (`--radius / -sm / -md / -lg`) was declared on 23 Aug 2026 with **zero
+  consumers between them**; 818 hand-typed zeros now read it, which is what
+  makes "one line to change again" true rather than aspirational. **THE FOUR
+  RUNGS ARE DELIBERATELY EQUAL** — one number, one look; splitting them is a
+  later decision and would want its own reason.
+- **2px IS THE MILDEST THAT READS.** Below it nothing changes; above it the
+  product starts to feel friendlier than a legal tool. Measured on a preview
+  before it was built.
+
+**THE CONTRACT STAYS SQUARE, WHEREVER IT IS ON SCREEN**, so it reads as a
+document rather than as a card. Each of these keeps a literal `0` beside a
+comment saying why, and none of them may be pointed at the token:
+- `.rl-paper` (the cream sheet), `.rl-doc` (its canvas), `.rl-clause.is-changed`
+  and its margin rule;
+- `.doc-surface` / `.hati-doc` and the Document tab's own `.blueprint` sheet;
+- `.nego-doc` and `.nego-clause` — the room's two-pane paper;
+- the counterparty's `.pv-sheet` and their `#pt-doc`, on screen and in print;
+- the phone's `.m-paper`;
+- the Compare dialog's sheet, and every `doc-surface` preview pane in the
+  template library;
+- **AND THE MARKS DRAWN ON IT** — `.nego-ins`, `.nego-del`, `.nego-resolved`
+  and the room's `ins`/`del` rules. A tracked change in Word is a plain
+  highlight; a rounded one reads as a chip laid over the wording rather than as
+  the wording itself. This one was MISSED by the first pass and caught by f210.
+
+**`--n-r-*` IS THE PAPER'S TOKEN NOW and stays 0.** It had four readers and
+they were two different things: `.nego-doc` and `.nego-clause` are paper,
+`.nego-card` and `.nego-work` are furniture. The furniture was pointed at
+`--radius` directly and the token kept the document, which is what its name
+means here now. **Do not point it at `--radius`.**
+
+**A RULE HAS NO CORNERS TO ROUND.** `.rl-idx-head` (a hairline under a caption)
+and `.ngl-w` (a bare coloured word) name NO radius at all — not even the
+platform's. Both had one, both had `background:none;border:0;padding:0` beside
+it, and a declaration there is noise the next reader has to rule out. f175 and
+f184 assert the ABSENCE now, which is a stronger claim than the literal 0 they
+pinned before.
+
+**AND `.rounded-full` WAS DRAWING SQUARES — A PRE-EXISTING DEFECT, FOUND BY
+CHECKING RATHER THAN ASSUMING.** The 20 Aug sweep squared every `.rounded*`
+utility in the compiled Tailwind blob and took the CIRCLE class with it, so the
+24 elements wearing it — the numbered approval steps among them — had been
+squares ever since, and would have become 2px squares after this. It is
+`9999px` again, written in **HaTi's own sheet, never the blob** (generated;
+drops the change on the next build — the `font-600` lesson), same specificity,
+later in source. The blob's own line is left exactly as found. **It is not
+`var(--radius)`: a circle is not a corner.**
+
+**OUT OF SCOPE ENTIRELY, each for its own reason** — the two standalone
+documents (`js/views/healthreport.js`, `js/views/weekly.js`), which open in
+their own window and do not carry this sheet; every export path; and the emails
+in `server/server.js`, which were never in the 20 Aug sweep either. **CHECKED
+RATHER THAN ASSUMED**: the sweep touched none of those files, because none of
+them typed a `border-radius:0` to begin with.
+
+**BUT ONE STANDALONE DOCUMENT IS BUILT INSIDE A TOUCHED FILE, AND IT WAS
+BROKEN.** The negotiation-history report a counterparty can download is a whole
+HTML file assembled in js/views/negotiation.js, and the sweep gave three of its
+rules `var(--radius)` — which resolves to NOTHING in a file that carries no
+`:root`, so every rounded box in the report squared off silently. **The block's
+own comment had warned about exactly this**, in its own words, because the same
+trap had already eaten its ins/del COLOURS once ("literal values, because
+self-contained has to mean self-contained"); the warning named colours and the
+next person swept corners. It is a literal `2px` again and the comment now names
+both. f143 is the net and caught it on the first run. **THE STANDING RULE: a
+`var()` of any kind is a bug in a file that will be opened outside this app —
+and "which files are standalone" is answered by looking for the builders, not
+by looking at the filenames.**
+
+**THE COLOUR CENSUS IS UNTOUCHED AND THAT IS THE POINT** — a radius is not a
+colour, theme-tokens-verify stayed 40/40 throughout, and if it had moved
+something else would have moved with it.
+
+Tests: f95, f175, f184, f210, f236, f246, f96 (claims REVERSED IN PLACE, never
+deleted — three of them got STRONGER: "shares one token" beats "shares one
+number", and "names no radius at all" beats "names zero").
+
 ## THE CONTRACT GETS THE SPACE BACK (owner-asked 22 Aug 2026)
 
 "HaTi is not efficiently using the space to give the contracts a proper space."
@@ -1581,7 +1670,7 @@ Twenty-seven line symbols from the design mock-up, in a `<defs>` sprite at the t
 
 **THE FAILURE MODE IS SILENCE, which is why this has a browser file.** A `<use>` pointing at a symbol that does not exist renders an EMPTY BOX — no error, no warning, a button with a hole in it — and jsdom builds no shadow tree for `<use>` at all, so it cannot tell a resolved reference from a dead one. **type-and-symbols-verify** measures each icon's painted `getBBox()`, which is non-zero only if the reference really resolved. It also tells "not painted" apart from "broken": Insights is hidden until the portfolio is big enough, and four doors live in the Administration fold, which starts shut — the file opens the fold, and for a door the app itself hides it asserts the reference is sound and says so in the output rather than counting it as a pass.
 
-SQUARE CORNERS EVERYWHERE (owner-asked 20 Aug 2026, second pass — this completes what the first pass scoped to Home and the shell): ~810 rounded-rectangle radii swept to 0 across index.html and every js/ file — cards, dialogs, chips, badges, inputs, menus, toasts, the phone, exports. True circles stay circles, and the sweep PROVED each one rather than pattern-matching: `border-radius:50%` kept by rule, and a pill value (999/9999/99px) kept ONLY where the same style run declares equal width and height (13 dots and avatars wear pill values — a blanket `*{border-radius:0}` would have squared them). The compiled `.rounded-full` class is the circle class and stays; every other `.rounded*` utility is 0. The negotiation sheet's own radius tokens (--n-r-*) are 0. Emails in server.js are deliberately untouched — their own surface, like their Arial fallback.
+SQUARE CORNERS EVERYWHERE — **REVERSED 26 Aug 2026 by THE PLATFORM CARRIES A 2px CORNER (below); read that first.** The half of this entry that STANDS is its exemption list — circles, the pill rule, the emails — which the new one inherits whole and extends. What follows is the record of the sweep, kept because the reasoning is the useful part. (owner-asked 20 Aug 2026, second pass — this completes what the first pass scoped to Home and the shell): ~810 rounded-rectangle radii swept to 0 across index.html and every js/ file — cards, dialogs, chips, badges, inputs, menus, toasts, the phone, exports. True circles stay circles, and the sweep PROVED each one rather than pattern-matching: `border-radius:50%` kept by rule, and a pill value (999/9999/99px) kept ONLY where the same style run declares equal width and height (13 dots and avatars wear pill values — a blanket `*{border-radius:0}` would have squared them). The compiled `.rounded-full` class is the circle class and stays; every other `.rounded*` utility is 0. The negotiation sheet's own radius tokens (--n-r-*) are 0. Emails in server.js are deliberately untouched — their own surface, like their Arial fallback.
 
 ## THE CONTRACTS PAGE TAKES THE ENTERPRISE DESIGN (owner-approved render, 24 Aug 2026)
 
@@ -2996,7 +3085,7 @@ THE CLAUSE HAS A DOOR (owner-asked 16 Aug 2026: "Just add a green pill that says
 THE PANEL IS WHERE YOU WRITE (owner-asked 16 Aug 2026: "Now build the editing inside the panel").
 
 - **ONE EDITOR, TWO HOMES.** The panel does not get an editor of its own; it gets the ENGINE's, opened on a different element. The `[data-nego-edit]` handler now answers `[data-nego-edit],[data-rl-cp-edit]` and the difference is three lines — which element the editor replaces. Everything else (the formatting bar, the two-step Save → reason → File, the Skip, the fingerprint, every refusal, the funnel) is the same code in both places, so the two can never come to disagree about what filing a change costs. f210 asserts there is exactly ONE place an editor is built.
-- **THE ＋ COPIES WHAT STANDS INTO A DRAFT** — literally, because the element it opens on is the panel's "As it stands" block, which is `negoClauseNowById`. So "copy the standing wording" is not a second act the panel performs; it is where the one editor happens to open, and there is no second reading of what "what stands" means. ITS WORD FOLLOWS THE STATE: with one of OUR OWN asks pending on the clause the engine continues that draft rather than stacking a rival (its own rule, unchanged), so the button reads "Continue your draft" instead of "Propose new wording". Theirs pending is not ours — a counterparty ask leaves it saying "Propose new wording", because a different hand stacks a new change.
+- **THE ＋ COPIES WHAT STANDS INTO A DRAFT** — literally, because the element it opens on is the panel's "As it stands" block, which is `negoClauseNowById`. So "copy the standing wording" is not a second act the panel performs; it is where the one editor happens to open, and there is no second reading of what "what stands" means. **ITS WORD IS FIXED SINCE 26 Aug 2026** (owner-asked: "the highlighted box should always be called propose new wording but it seems it changes based on how you get there") — this REVERSES "its word follows the state", which had the button read "Continue your draft" wherever one of our own asks was already pending. **THAT RULE READ THE STATE HONESTLY AND WAS STILL WRONG ABOUT WHAT A BUTTON NAME IS FOR**: a control that renames itself is one nobody can learn, and the owner met it as the same box in the same corner of the same panel wearing two names with nothing on screen saying which they would get. **THE BEHAVIOUR IS UNTOUCHED** — the engine still folds a second edit into the pending ask rather than stacking a rival, which is what stops the column filling with rivals — and the fact moved to the HOVER, where a title may say more than a name can. `ng_cp_continue` is retired as a LABEL and left inert in the dictionary (flag any mention as stale); `ng_cp_continue_title` is live and is the sentence the hover carries. Tests: f210's two claims REVERSED IN PLACE, each pinning the label as CONSTANT and the title as the thing that still varies.
 - **DIRECT EDIT HAS LEFT THE PANEL** (owner: "Direct edit will not be needed because the window is already open for direct editing"). It was the same act as the ＋, one press further away and pointed at the clause BEHIND the panel. It stayed on the clause's own hover row for the rest of that day — and then the whole row retired with it (see NO EDITS ON THE PAPER below). The ＋ does NOT carry `data-rl-cp-close` (it opens into the panel).
 - **THE PANEL DOES NOT FOLLOW THE READER'S DOCUMENT TYPE.** `.rl-cp-src{--doc-scale:1}`. Every piece of the editor's furniture was taught to scale on `--doc-scale` (15 Aug 2026, the third report of one fault) and that token is written on the `.redline-page` ROOT by the document-type stepper — so inside the panel it would be a Save button shrinking because somebody made the PAPER smaller. The paper scales; the panel does not. Measured both ways in the browser. **IT HAS ITS OWN STEPPER INSTEAD** (owner-asked 20 Aug 2026: "only adjust the panel and nothing more"): A⁻/readout/A⁺ in the panel head beside the History switch, the toolbar stepper's exact mechanism — a stored px (`hati.v1.cpType`, base 14, the shared 8–20 bounds), applied live with no repaint as a CSS **zoom on the panel BODY alone** (`--cp-zoom`; zoom is the sheet's own mechanism), both seats, `rlCpTypePx`/`rlCpSetType`. THE READOUT IS `.rl-cp-type-out`, NEVER `.rl-type-out` — rlSetDocType repaints every `.rl-type-out` on the page with the DOCUMENT's px, and one shared class is how two steppers come to lie about each other's value. f210 (19).
 - **THE COPILOT: ONE BUTTON, ONE NARROWED OFFER, ONE MENU.** The "Edit with Copilot" button stays (owner-asked). A highlight INSIDE the panel's editor is a legal selection — `paneSel` gained `.rl-cp-src [data-nego-editor]`, and the holder carries `data-clause` in the panel only (in the document the clause section already has one and a second inside it would give a passage two answers). **Narrowed to the EDITOR, not the panel**: the panel also prints the history, and a highlight there would be offered a redraft of a settled record. THE GUARD THAT BLOCKED IT IS EXEMPTED NARROWLY — `[data-nego-editor]` is on the "this press is somebody operating the page" list because dragging inside the DOCUMENT's clause editor is somebody selecting words to bold them; the panel's editor is exempt, and the formatting bar stays outside the exemption BY CONSTRUCTION (it is a SIBLING of the holder — `holder.before(fmt)` — so its buttons still read as controls).
@@ -3136,7 +3225,7 @@ THE ROUTING ROWS AND THE POP-OUT'S RETIREMENT ARE DONE (16 Aug 2026) — see THE
 
 A CARD'S SEND SENDS THAT CARD, AND ONLY THAT CARD (owner-reported 16 Aug 2026 as a bug, in these words: "if I click on one card to send, it sends all the cards" — and this REVERSES the 11 Aug "one send, batch semantics" decision on the owner's ruling). The press still goes through the page's ONE postbox (#nego-send) — never a second transport — but it marks itself a SOLO send (`_rlSoloSendId`, alive only for the synchronous press; onSendDirect consumes it on its first line, before the first await). A solo send calls **negoHoldOthers**: every OTHER unsent owner draft goes onto `negotiation.holdIds`, buildSharePayload subtracts that set UNCONDITIONALLY (the same fold, for the same reason, as reviewWithheldIds — the round send passes no options), and the round that leaves carries exactly the chosen change. THE HOLD IS ITS OWN RECORD because `turnAt` cannot say "this went and that did not": one timestamp for the whole desk, and a solo send that moved it would flip every older draft to Sent without it ever leaving. negoUnsentAsks therefore reads holdIds beside the stamp (owner side only), so the held drafts keep their Draft badge, their own Send, and the band's "N not sent" count. **negoHeldBackIds is SELF-CLEANING** (only ids still pending on our side count) and **the BATCH DOORS RELEASE THE HOLD** — the band's Send all and Publish Round are [data-redline-proxy] doors, and the delegated proxy listener clears the marker while onSendDirect clears the hold (negoReleaseHold), because a batch door means "send everything, including what a solo send kept back". A released draft's createdAt predates the stamp, so negoHandOver is told `sentAnyway` and still stamps/files the round the arithmetic would call a no-op. THE COUNTERPARTY'S SEAT IS UNTOUCHED: their card Send still posts everything their page holds to #nego-send-decisions as one response envelope, and its title still says so. The share-DIALOG path knows nothing of solo sends (it holds whatever stands held, which is the safe direction). The solo toast names what stayed behind ("— N other drafts still unsent"). Tests: F100g (5 — the fix end to end, the unconditional payload fold, the batch release, the self-cleaning hold, their seat untouched), f92's round-1 "send the lot" re-pointed at the batch door.
 
-THE LINKED CLAUSE WEARS A THIN GREY DOTTED LINE (owner-asked 16 Aug 2026, off a screenshot): `.rl-clause.is-linked` was a solid 2px accent ring — a heavy blue box around the contract's own words in the blue workspace — and is now `outline:1px dotted` neutral, offset off the text, both seats from the one rule. The CARD's is-linked ring keeps the accent: a row in a column is furniture, and the stronger mark is what makes the pairing findable there. The rl-arrived pulse (the fading flash when a card's Edit lands you on a clause) is a different marker and is untouched.
+THE LINKED CLAUSE WEARS A THIN GREY DOTTED LINE (owner-asked 16 Aug 2026, off a screenshot): `.rl-clause.is-linked` was a solid 2px accent ring — a heavy blue box around the contract's own words in the blue workspace — and is now `outline:1px dotted` neutral, offset off the text, both seats from the one rule. **THE CARD'S RING IS FAINT SINCE 26 Aug 2026** (owner-asked: "the outline on the card should be visible but faint and not like the outline thickness currently in the picture") — this REVERSES the sentence that stood here, which said the card keeps the 2px accent ring because "a row in a column is furniture, and the stronger mark is what makes the pairing findable". **THAT REASONING WAS WRITTEN WHEN THE CARDS WERE BOXES**, where a 2px ring was one border among many; the column is flat rows on one surface since 25 Aug, so the same 2px became the heaviest object on it and a selected row shouted louder than the change it points at. It is **1px of accent at 34%** — the COLOUR is kept deliberately, because accent is how this page says "this and that are one thing shown twice" and a grey ring here would be a second vocabulary — and the `border-color` line went with the weight, so there is ONE mark rather than a ring plus a border. The rl-arrived pulse (the fading flash when a card's Edit lands you on a clause) is a different marker and is untouched.
 
 A CHANGE THAT ARRIVED ON THE PAYLOAD HAS ALREADY BEEN SENT (owner-reported 16 Aug 2026: "The counterparty side the changes do not seem to be working" — reproduced on the browser harness, and it PREDATES the clause panel; measured against the commit before it, same numbers). The portal's `onChange` guard was `!PORTAL_NEGO_PROPOSED_SENT[ch.id]`, and that store starts EMPTY in a fresh browser — it fills only when the reader presses Send. So on a link carrying asks this side had made in an earlier round, the first act of ANY kind swept every one of them into "held here until you send them": a reader who redlined once was told six changes were not sent and offered "Send all 6", over asks the owner had been reading for a week. THE PAYLOAD IS THE RECORD OF WHAT HAS REACHED THE OTHER SIDE, so it is asked each time rather than stored — nothing to persist, nothing to migrate, no second store to keep in step, and a refreshed link brings its own answer. A stale entry from before the rule is deleted on sight, because nothing else ever removed one.
 
@@ -3543,7 +3632,7 @@ copilotPropose (js/ai.js, "WHICH CLAUSE THIS IS, SAID OUT LOUD") tells the model
 
 ## THE CHARTS, AND THE HEALTH REPORT
 
-ONE box of recipes: js/aichart.js — Copilot in-chat charts, the Intelligence dock, the four Reports cards (js/views/reports.js; CSS strips kept as no-internet fallback), the health report's embedded PNGs. The AI names a KIND; the recipes read live state; the AI NEVER supplies chart data. Copy-image / PNG / CSV buttons come from ONE delegated listener registered in aichart.js — new surfaces get them free.
+ONE box of recipes: js/aichart.js — Copilot in-chat charts, the Intelligence dock, the four Reports cards (js/views/reports.js; CSS strips kept as the fallback for any workspace where the library does not load), the health report's embedded PNGs. **THE LIBRARY IS SERVED BY THIS WORKSPACE SINCE 26 Aug 2026 — see THE CHART LIBRARY IS OURS TO SERVE below; it used to arrive from cdnjs, so every one of those four surfaces drew only if the READER'S browser could reach a third party.** The AI names a KIND; the recipes read live state; the AI NEVER supplies chart data. Copy-image / PNG / CSV buttons come from ONE delegated listener registered in aichart.js — new surfaces get them free.
 
 The shape is askable: the `breakdown` kind splits group (stream/counterparty/status/risk/month) × measure (value/count) × shape (pie/doughnut/bar/hbar/line); AI_CHART_RULES carries a HARD rule that a named shape is honoured, never substituted;
 
@@ -4648,6 +4737,137 @@ the weight). Node 4628/4628. Browser: history-head 35, redline 121, clause-door
 PROVED identical on an untouched worktree at the parent commit before it was
 left alone.
 
+## THE CHART LIBRARY IS OURS TO SERVE (owner-asked 26 Aug 2026)
+
+Reported as a finding rather than a bug: *"the charting library is fetched from
+an outside website each time someone opens a chart. So charts only work if the
+reader's browser can reach that third party."*
+
+**IT WAS TRUE, AND THE REACH WAS EVERY CHART IN THE PRODUCT** — the Copilot's
+in-chat charts, the Insights dock, the four Reports cards and the health
+report's embedded pictures all go through `aiChartLib()`, and it fetched
+Chart.js 4.4.1 from `cdnjs.cloudflare.com` on first use. Rarely a problem in an
+ordinary office; **total in the building this product is sold into**, where a
+bank, a ministry or a large law firm blocks outside sites outright and every
+chart quietly stops drawing.
+
+- **NO CONTRACT DATA EVER WENT THERE, and that half of the design held.** The
+  model names a KIND and the recipes build the chart from live state in the
+  browser, so cdnjs only ever handed over a blank drawing tool. What it saw was
+  the reader's address; what it could do was fail. Both are gone.
+- **THE BYTES ARE IN `vendor/`, NOT `js/vendor/`, and that is deliberate.** Six
+  tests walk `js/` RECURSIVELY (f148 and f232 among them) on the assumption
+  that everything under it is a module somebody here wrote; a 205KB minified
+  bundle under that roof is a trap for every one of them and for the next sweep
+  somebody adds. `js/` means our source. `vendor/README.md` carries the
+  provenance, the one line removed (a `sourceMappingURL` pointing at a map that
+  is not shipped, which would 404 on every chart) and the upgrade recipe.
+- **SERVED AT `/vendor`** by a route beside `/fonts` in server/server.js, cached
+  hard for the same reason: a file there is never edited in place. No CSP entry
+  was needed — `'self'` already covers it, and the cdnjs entries stay because
+  **the OCR path still uses them** (js/ocr.js fetches pdf.js and Tesseract);
+  that is the same fault in another feature and is logged, not fixed here.
+- **THE GRACEFUL CARD IS KEPT AND ITS WORDS CHANGED.** A local path can 404 too
+  — a half-deployed build, a static host not serving /vendor — so the fallback
+  still earns its place. It may no longer say *"Charts need an internet
+  connection"*: the library is ours, so a failure is ours, and telling the
+  reader to check their connection sends them to look in the one place the
+  fault is not. `hr_charts_offline` moved with it, in both languages.
+- **`AI_CHART_CDN` IS RENAMED `AI_CHART_SRC`** — a constant called CDN pointing
+  at a local file is exactly the name that misleads the next reader.
+
+**WHAT PROVES IT, and it is two files answering different questions.** f177
+carries the SOURCE claim — the one src is the workspace's own copy, the bytes
+are actually committed (a local path that 404s is worse than the CDN it
+replaced), the failure card no longer blames the reader's network, and a SWEEP
+over js/ that fails on the next surface reaching for a CDN, which is how the
+original one arrived. A browser file cannot answer that: run on a
+well-connected laptop it passes either way, because the chart draws. So
+**analytics-verify carries the other half and now ABORTS every request to
+cdnjs and jsdelivr outright**, then requires a real canvas — it reports 4
+canvases and 4 embedded report images with the open internet cut off, which is
+the thing that was impossible the day before. Its old CHARTJS_LOCAL env-var
+dance is gone with the stub it fed.
+
+## SIX OFF FIVE SCREENSHOTS (owner-asked 26 Aug 2026)
+
+Sent with the charting fix above. Every one reproduced and MEASURED before it
+was touched, and two of them reverse decisions recorded in this file.
+
+- **HOME IS ONE BOARD, NOT TWO BANDS.** *"Make the cards in the second line have
+  the same height as the cards in the 1st line."* They were `141px` and `176px`
+  — two numbers typed 35px apart. **THE FIX IS A TOKEN** (`--hm-tile-h`), never
+  the same number written twice: written twice they agree until somebody edits
+  one, which is how they came to differ. **THE NUMBER IS 176 AND IT WAS
+  MEASURED, NOT CHOSEN.** The obvious move was to take Portfolio DOWN to the
+  first row's 141; measured at five laptop widths that **clips all FOUR
+  Portfolio tiles**, not just the tall one — the three ordinary ones need 156
+  and the lifecycle tile 167, against 140 for a My work tile. So there is no
+  141 that fits. **WHY THEY GENUINELY NEED MORE**, since the next move is to
+  trim it out of them: three of the four cost 16px more only because of the
+  two-line footnote reservation, which is not decoration — it is what keeps the
+  four big figures in that row on ONE line; the lifecycle tile costs 11px more
+  again because its content is a three-stage stack beside a money figure rather
+  than a single numeral. Both are content. **WHAT IT COSTS, said plainly: the
+  My work row grows 35px**, which is against this page's recent grain and is
+  the price of equal heights with nothing clipped. Taking the measured 167 was
+  refused — that is one language and one workspace's data, and a Swedish
+  footnote is longer. Tests: home-page-verify section 10, which pins the
+  height as a RELATION ("every tile the same as every other") and measures
+  every tile's scrollHeight against its box.
+- **THE ⋯ DROPDOWN LOST ITS HEADER.** It named the change — "CHG-001 · PAYMENT
+  TERMS" — on the reasoning that a menu floating over a column of six cards has
+  to say which one it belongs to. **TWO THINGS RETIRED THAT ARGUMENT**: the
+  menu opens hard against the ⋯ it was pressed on, ON the card, whose id and
+  clause name are three centimetres to the left and still on screen; and the
+  same press now lights that card and scrolls the paper to its clause, so which
+  row it belongs to is the most conspicuous thing on the page. **THE NAME IS
+  NOT LOST** — the ⋯ button's own aria-label still carries the change id, which
+  is what f246's reversed claim pins. `.rl-more-head` is STALE and its rule is
+  deleted rather than left standing.
+- **AND IT IS NEVER CLIPPED.** *"The dropdown always has to be fully visible. If
+  you are at the bottom of the page then the dropdown should drop up."* It was
+  `top:100%` and nothing else, so a card near the foot opened its menu into the
+  space below the column — measured at **151px past the bottom**, with the last
+  rows unreachable, and the card most likely to need its menu is the one at the
+  bottom because that is where the newest work sits. **`rlMorePlace` MEASURES
+  RATHER THAN GUESSES**: CSS cannot see how many rows that change earned or how
+  far the reader has scrolled. **THE ROOM IS THE SCROLLER'S, NOT THE
+  WINDOW'S** — the cards live in their own scrolling column, so a menu clearing
+  the bottom of the WINDOW could still be clipped by the column above it; the
+  bound is the nearest scrolling ancestor. **AND FLIPPING IS NOT ALWAYS
+  ENOUGH**, which is the half a first pass would miss: on a short window a long
+  menu fits in neither direction and flipping only changes WHICH rows are lost,
+  so it also caps its height to the room available and scrolls inside it.
+  Down is preferred on a tie. The browser file pins the REQUIREMENT (every row
+  inside its scroller) rather than the mechanism.
+- **THE ⋯ ALSO TAKES YOU TO THE CLAUSE.** *"Merely selecting the 3 dots ...
+  should also highlight the card and take you to the clause in the contract not
+  only clicking the card."* **THE SAME ACT THE CARD'S HEAD PERFORMS, not a
+  second path**: one call to `rlLinkFocus`, the one function that lights the
+  card, its clause, its thread and its queue row together, with `'card'` as the
+  source so the COLUMN does not scroll under the hand already on it. The press
+  is still `stopPropagation`'d, but **for a new reason** — this handler does the
+  navigating itself rather than letting the press fall through, which would
+  re-enter the same listener's shut branch and close the menu it just opened.
+  The contract is resolved from `redlineHeldId()` because this listener is
+  armed at module load and closes over nothing; null is a safe answer, not a
+  broken one, since rlLinkFocus guards its one use of it.
+- **"WHOSE ASKS" IS A LABEL, NOT A SIGNPOST.** It wore this product's micro-caps
+  — 11px uppercase with .09em, the dress reserved for a heading OVER a list
+  (the band headings still wear it, correctly) — sitting a few pixels from
+  "Tracked changes (7)" in sentence case, so the smaller of the two was the
+  louder. It takes `.rl-idx-title`'s own type, so the head reads as one line
+  written by one hand; what it does NOT take is that rule's ink or its accent
+  underline, because the title is the column's name and this is a label for the
+  dropdown beside it. **The dictionary has said 'Whose asks' all along — only
+  the CSS was shouting.**
+
+**WHAT WAS LEFT RED ON PURPOSE, and proved rather than asserted:** `npm run
+lint` reports four duplicate-key errors in js/i18n.js. They reproduce
+identically on an untouched tree, so they are not this run's; logged in BUGLOG
+under "Noticed, not fixed".
+
 ## SIX OFF THE OWNER'S LIST (26 Aug 2026 — WORKORDER-fixes-26-aug.md)
 
 Six items written down over a morning and built in one run. Two of them turned
@@ -4783,6 +5003,18 @@ REVERSED IN PLACE in f246, f175 and f93 — each keeping the property it was
 written for and re-pointing it at what carries it now. Node 4647/4647. Browser:
 redline 121, clause-door 97, clause-editor 57, nav-floats 67, home-page 26,
 laptops 21, kpi-four 19, parity 44, theme-tokens 40/40 unmoved.
+
+**MERGED WITH MAIN THE SAME DAY, and two of these met a parallel session's work
+on the same controls.** Both are resolved in favour of what the owner asked for
+rather than by date: the ⋯ menu's HEAD row went (main's ask — it repeated the
+card three centimetres away) and every row still carries a symbol (this one's),
+which do not argue; and the Home cards keep the THREE-REGION skeleton rather
+than main's single 176px height, because that answer covered "the same height"
+and made "remove empty spaces" worse — the top row grew 35px and every pixel of
+it landed in the spacer. Main's measurement that no 141 fits is superseded, not
+contradicted: it is true while the spacer and the two-line footer reservation
+stand, and taking those out is the half of the ask it did not cover. The
+platform's 2px corner from that merge is kept. `--hm-tile-h` is STALE.
 
 ## Line numbers drift
 

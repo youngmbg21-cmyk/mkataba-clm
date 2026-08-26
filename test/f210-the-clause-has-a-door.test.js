@@ -667,30 +667,59 @@ describe('f210 (11) — the editing is in the panel', () => {
       'and there is exactly one place an editor is built');
   });
 
-  test('the ＋ says which act it is', async () => {
-    /* With one of OUR asks already pending the engine continues that draft
-       rather than starting a rival — its own rule, not a decision taken here —
-       so the button must not promise "new wording" over a press that does
-       something else. */
+  test('the ＋ says ONE thing, whatever it is about to do', async () => {
+    /* ---- REVERSED IN PLACE (owner-asked 26 Aug 2026) ----
+       This test used to be called "the ＋ says which act it is" and asserted
+       the opposite of what it asserts now: with one of OUR asks pending the
+       label read "Continue your draft", because the engine folds a second edit
+       into that ask rather than stacking a rival.
+       THE OWNER MET THAT AS A FAULT — "it seems it changes based on how you get
+       there" — and the reason is worth keeping: a control that renames itself
+       is one nobody can learn, and the reader had nothing on screen telling
+       them which of the two names they were about to get.
+       WHAT THIS STILL GUARDS is the half that mattered. The BEHAVIOUR is
+       unchanged and must not be quietly promised away, so the button still has
+       to say — on its hover, which is where a title may say more than a name —
+       that this particular press continues an ask that already exists. The
+       label is pinned as CONSTANT across all three states; the title is pinned
+       as the thing that still varies. */
     const p = await bench({ side: 'owner', author: 'Young Mbagaya' });
     /* The body for the clause the ask is ON — the panel holds one per clause
        and every other clause is untouched, which is itself the point. */
     const onIt = bodies(page(p)).find(b => b.querySelector('.rl-cp-row'));
-    assert.match(onIt.querySelector('[data-rl-cp-edit]').textContent, /Continue your draft/);
+    const onItBtn = onIt.querySelector('[data-rl-cp-edit]');
+    assert.match(onItBtn.textContent, /Propose new wording/,
+      'the label does not change because an ask of ours is already pending');
+    assert.match(onItBtn.getAttribute('title') || '', /already have on this clause/,
+      'the hover still says this press continues the existing draft');
+
     const untouched = bodies(page(p)).find(b => !b.querySelector('.rl-cp-row'));
     assert.match(untouched.querySelector('[data-rl-cp-edit]').textContent, /Propose new wording/,
-      'every other clause still offers new wording');
+      'every other clause reads the same');
+
     const q = await bench({ ask: false });
-    assert.match(page(q).querySelector('.rl-cp-acts [data-rl-cp-edit]').textContent,
-      /Propose new wording/);
+    const bare = page(q).querySelector('.rl-cp-acts [data-rl-cp-edit]');
+    assert.match(bare.textContent, /Propose new wording/);
+    assert.doesNotMatch(bare.getAttribute('title') || '', /already have on this clause/,
+      'and with nothing pending the hover does not claim there is');
+
+    /* THE RETIRED LABEL IS GONE FROM THE SCREEN, not merely unused: the whole
+       point of the ruling is that this word never appears on the button again. */
+    assert.doesNotMatch(page(p).textContent, /Continue your draft/,
+      'ng_cp_continue is retired as a LABEL — flag any mention as stale');
   });
 
-  test('THEIRS pending is not ours — the ＋ still offers new wording', async () => {
+  test('THEIRS pending is not ours — and the hover says so', async () => {
     /* The engine stacks a new change when a different hand comes back, so a
-       counterparty ask on the clause does not make this "continue your draft". */
+       counterparty ask on the clause is not a draft of ours to continue. The
+       LABEL no longer carries that distinction (above), so what is pinned here
+       is that the TITLE does not wrongly promise to continue somebody else's
+       ask. */
     const p = await bench();                       // their ask, by default
     const onIt = bodies(page(p)).find(b => b.querySelector('.rl-cp-row'));
-    assert.match(onIt.querySelector('[data-rl-cp-edit]').textContent, /Propose new wording/);
+    const btn = onIt.querySelector('[data-rl-cp-edit]');
+    assert.match(btn.textContent, /Propose new wording/);
+    assert.doesNotMatch(btn.getAttribute('title') || '', /already have on this clause/);
   });
 
   test('the panel\'s editor does not follow the reader\'s DOCUMENT type', async () => {
@@ -1416,10 +1445,19 @@ describe('f210 (13) — a clause you proposed is editable too', () => {
     assert.ok(!/As it stands/.test(body.querySelector('.rl-cp-h').textContent),
       'a clause nobody has agreed to is not in force, and this heading is where the page would say it is');
     assert.match(body.textContent, /thirty \(30\) days/, 'and it shows the wording being proposed');
-    /* The ＋ continues the ask rather than starting a rival, which is what the
-       funnel will actually do. */
-    assert.match(body.querySelector('.rl-cp-act-new').textContent,
-      new RegExp(STRINGS.en.ng_cp_continue));
+    /* ---- REVERSED IN PLACE (owner-asked 26 Aug 2026) ----
+       This asserted the label read ng_cp_continue here, because the ＋ does
+       continue the ask rather than starting a rival. The BEHAVIOUR is
+       unchanged and is still what the funnel does; the owner has ruled that
+       the button's NAME may not move with it, so the fact lives on the hover.
+       Both halves are pinned, because dropping the second would let the
+       product quietly stop saying what the press does. */
+    const plus = body.querySelector('.rl-cp-act-new');
+    assert.match(plus.textContent, new RegExp(STRINGS.en.ng_cp_propose),
+      'one name, on a proposed clause as everywhere else');
+    assert.match(plus.getAttribute('title') || '',
+      new RegExp(STRINGS.en.ng_cp_continue_title),
+      'and the hover still says it continues the ask already on this clause');
   });
 
   test('their proposal gets no pill on our seat, and a settled one gets none either', async () => {

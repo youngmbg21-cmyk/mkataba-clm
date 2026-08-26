@@ -11067,6 +11067,19 @@ app.use('/fonts', express.static(path.join(__dirname, '..', 'fonts'), {
   // the file, and index.html is served with no cache lifetime either way.
   maxAge: '30d', immutable: true,
 }));
+/* THE CHART LIBRARY IS OURS TO SERVE NOW (owner-asked 26 Aug 2026).
+   js/aichart.js used to fetch Chart.js from cdnjs on first use, so every chart
+   in the product — the Copilot's, Insights, the four Reports cards, the health
+   report's pictures — worked only if the READER'S browser could reach a third
+   party. That is exactly the network a bank, a ministry or a large law firm
+   does not give its staff, which is the customer this product is sold to. The
+   bytes live in vendor/ and are reached at /vendor; see vendor/README.md for
+   where they came from and how to upgrade them.
+   Cached like the faces beside it and for the same reason: a file in vendor/ is
+   never edited in place, so a change is a different file. */
+app.use('/vendor', express.static(path.join(__dirname, '..', 'vendor'), {
+  maxAge: '30d', immutable: true,
+}));
 app.use('/sample-contracts', express.static(path.join(__dirname, '..', 'sample-contracts')));
 
 // Log the port actually bound, not the one requested — with PORT=0 the OS

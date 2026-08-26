@@ -143,7 +143,7 @@ const M_CSS = `
     background:var(--color-surface); border-bottom:1px solid var(--color-divider);
   }
   .m-head-mark{
-    width:32px; height:32px; flex:none; border-radius:0;
+    width:32px; height:32px; flex:none; border-radius:var(--radius);
     background:var(--brand-grad); color:#fff; display:grid; place-items:center;
     font-weight:var(--w-title); font-size:var(--t-body); font-family:var(--font-heading,inherit);
   }
@@ -151,12 +151,12 @@ const M_CSS = `
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .m-head-btn{
     flex:none; width:44px; height:44px; border:0; background:none; cursor:pointer;
-    display:grid; place-items:center; border-radius:0; color:var(--color-neutral-600);
+    display:grid; place-items:center; border-radius:var(--radius); color:var(--color-neutral-600);
   }
   .m-head-btn:active{ background:var(--color-neutral-100); }
   /* The theme swatch. Bigger than the desktop's, because a thumb has to hit it
      and because it is the only thing on this row carrying colour. */
-  .m-theme-sw{ width:19px; height:19px; border-radius:0; display:block;
+  .m-theme-sw{ width:19px; height:19px; border-radius:var(--radius); display:block;
     border:1px solid rgb(0 0 0/.16); }
   html.dark .m-theme-sw{ border-color:rgb(255 255 255/.22); }
 
@@ -179,7 +179,7 @@ const M_CSS = `
 
   /* ---- the card, the row, the list ---- */
   .m-card{ background:var(--color-surface); border:1px solid var(--color-divider);
-    border-radius:0; box-shadow:var(--shadow-sm); overflow:hidden; }
+    border-radius:var(--radius); box-shadow:var(--shadow-sm); overflow:hidden; }
   .m-list > *{ border-bottom:1px solid var(--color-divider); }
   .m-list > *:last-child{ border-bottom:0; }
   .m-row{
@@ -198,7 +198,7 @@ const M_CSS = `
 
   /* ---- buttons ---- */
   .m-btn{
-    display:block; width:100%; min-height:48px; border-radius:0; cursor:pointer;
+    display:block; width:100%; min-height:48px; border-radius:var(--radius); cursor:pointer;
     font:inherit; font-size:16px; font-weight:var(--w-strong); padding:0 14px;
     background:var(--color-surface); border:1px solid var(--color-divider); color:var(--color-text);
   }
@@ -216,12 +216,12 @@ const M_CSS = `
   .m-chips{ scrollbar-width:none; }
   .m-chip{
     flex:none; display:flex; align-items:center; gap:7px; height:44px; padding:0 15px;
-    border-radius:0; cursor:pointer; font:inherit; font-size:var(--t-card); font-weight:var(--w-strong);
+    border-radius:var(--radius); cursor:pointer; font:inherit; font-size:var(--t-card); font-weight:var(--w-strong);
     white-space:nowrap; border:1px solid var(--color-divider);
     background:var(--color-surface); color:var(--color-text);
   }
   .m-chip.on{ background:var(--color-accent-900); border-color:var(--color-accent-900); color:#fff; }
-  .m-chip-dot{ width:8px; height:8px; border-radius:0; flex:none; }
+  .m-chip-dot{ width:8px; height:8px; border-radius:var(--radius); flex:none; }
   /* the chip row carries three questions now — a hairline says where one
      ends and the next begins, so the line reads as groups and not as a
      stream of unrelated words */
@@ -231,7 +231,7 @@ const M_CSS = `
   /* ---- the search field ---- */
   .m-search{
     display:flex; align-items:center; gap:var(--s-2); height:44px; padding:0 var(--s-3);
-    border:1px solid var(--color-divider); border-radius:0; background:var(--color-bg);
+    border:1px solid var(--color-divider); border-radius:var(--radius); background:var(--color-bg);
   }
   .m-search input{
     flex:1; min-width:0; height:44px; border:0; outline:none; background:transparent;
@@ -282,7 +282,7 @@ const M_CSS = `
      waiting on you" across every surface in the product. */
   .m-tab-due{ color:var(--st-amber-fg); }
   .m-tab-badge{
-    position:absolute; top:0; right:20%; min-width:21px; height:21px; border-radius:0;
+    position:absolute; top:0; right:20%; min-width:21px; height:21px; border-radius:var(--radius);
     background:var(--danger); color:#fff; font-size:var(--t-card); font-weight:var(--w-title); line-height:1;
     display:grid; place-items:center; padding:0 5px;
   }
@@ -295,12 +295,12 @@ const M_CSS = `
   .m-scrim{ position:absolute; inset:0; background:color-mix(in srgb,#020617 45%,transparent); border:0; padding:0; }
   .m-sheet{
     position:relative; background:var(--color-surface); color:var(--color-text);
-    border-radius:0; padding:10px var(--s-4) calc(env(safe-area-inset-bottom,0px) + 26px);
+    border-radius:var(--radius); padding:10px var(--s-4) calc(env(safe-area-inset-bottom,0px) + 26px);
     max-height:86%; overflow-y:auto; animation:mSheetUp .25s cubic-bezier(.22,.61,.36,1);
     box-shadow:var(--shadow-lg);
   }
   .m-sheet::-webkit-scrollbar{ display:none; }
-  .m-grab{ width:36px; height:4px; border-radius:0; background:var(--color-neutral-300); margin:0 auto 10px; }
+  .m-grab{ width:36px; height:4px; border-radius:var(--radius); background:var(--color-neutral-300); margin:0 auto 10px; }
   .m-sheet-title{ font-size:18px; font-weight:var(--w-strong); font-family:var(--font-heading,inherit); }
   .m-sheet-note{ font-size:var(--t-card); color:var(--color-neutral-600); margin:2px 0 var(--s-3); line-height:1.45; }
   @keyframes mSheetUp{ from{ transform:translateY(48px); opacity:0 } to{ transform:none; opacity:1 } }
@@ -312,7 +312,7 @@ const M_CSS = `
      pan sideways to read. */
   .m-input, .m-area{
     width:100%; box-sizing:border-box; border:1px solid var(--color-divider);
-    border-radius:0; padding:var(--s-3); font:inherit; font-size:16px; line-height:1.5;
+    border-radius:var(--radius); padding:var(--s-3); font:inherit; font-size:16px; line-height:1.5;
     background:var(--color-surface); color:var(--color-text); outline:none;
   }
   .m-input{ height:48px; padding:0 var(--s-3); }
@@ -321,7 +321,7 @@ const M_CSS = `
 
   /* ---- the status pill, at phone size ---- */
   .m-pill{
-    flex:none; font-size:var(--t-card); font-weight:var(--w-strong); padding:3px 10px; border-radius:0;
+    flex:none; font-size:var(--t-card); font-weight:var(--w-strong); padding:3px 10px; border-radius:var(--radius);
     white-space:nowrap;
   }
 
@@ -332,7 +332,7 @@ const M_CSS = `
   .m-kpi-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:0 var(--s-4); }
   .m-kpi{
     text-align:left; background:var(--color-surface); border:1px solid var(--color-divider);
-    border-radius:0; padding:var(--s-3) 14px; cursor:pointer; font:inherit; color:inherit;
+    border-radius:var(--radius); padding:var(--s-3) 14px; cursor:pointer; font:inherit; color:inherit;
     box-shadow:var(--shadow-sm); min-height:44px;
   }
   .m-kpi-label{ display:block; font-size:var(--t-card); color:var(--color-neutral-600);
@@ -342,12 +342,12 @@ const M_CSS = `
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .m-kpi-gear{
     flex:none; width:44px; height:44px; border:0; background:none; cursor:pointer;
-    display:grid; place-items:center; border-radius:0; color:var(--color-neutral-600);
+    display:grid; place-items:center; border-radius:var(--radius); color:var(--color-neutral-600);
   }
 
   /* ---- the + button and the register row ---- */
   .m-new{
-    flex:none; width:44px; height:44px; border-radius:0; border:0; cursor:pointer;
+    flex:none; width:44px; height:44px; border-radius:var(--radius); border:0; cursor:pointer;
     background:var(--accent-fill); color:#fff; display:grid; place-items:center;
   }
   .m-reg-row{
@@ -358,7 +358,7 @@ const M_CSS = `
   /* The stream stripe. It is the only thing on a phone row that says which part
      of the business a contract belongs to — the desktop has a whole column for
      it and the phone has three pixels, so they are the same three colours. */
-  .m-stripe{ position:absolute; left:0; top:10px; bottom:10px; width:3px; border-radius:0; }
+  .m-stripe{ position:absolute; left:0; top:10px; bottom:10px; width:3px; border-radius:var(--radius); }
 
   /* ---- the negotiations screen's group headings ----
      The desktop's three bands in the phone's own idiom: a coloured dot, the
@@ -371,7 +371,7 @@ const M_CSS = `
     color:var(--color-neutral-600); }
   .m-ngband-n{ font-family:var(--font-mono); font-size:var(--t-meta); font-weight:var(--w-title);
     color:var(--color-neutral-600); background:var(--color-surface);
-    border:1px solid var(--color-divider); border-radius:0; padding:0 var(--s-2); }
+    border:1px solid var(--color-divider); border-radius:var(--radius); padding:0 var(--s-2); }
 
   /* ---- the contract screen ---- */
   /* ---- A RESTING TAB IS DARK INK, NOT A CAPTION (owner-asked 23 Aug 2026) ----
@@ -390,7 +390,7 @@ const M_CSS = `
   .m-ctab.on{ color:var(--accent-ink); border-bottom-color:var(--accent-solid); }
   .m-notice{
     display:flex; align-items:center; gap:9px; margin-bottom:var(--s-3);
-    border:1px solid var(--color-divider); border-radius:0; padding:11px 13px;
+    border:1px solid var(--color-divider); border-radius:var(--radius); padding:11px 13px;
   }
   /* ---- THE NOTICES, FLOATING RATHER THAN BANDING THE CONTRACT ----
      Bottom-right and clear of the Copilot launcher, which sits 96px up: this
@@ -405,7 +405,7 @@ const M_CSS = `
   .m-notices .m-notice{ pointer-events:auto; margin:0; width:100%;
     background:var(--color-surface); box-shadow:0 16px 36px -14px rgba(15,23,42,.34); }
   .m-notices-fab{
-    pointer-events:auto; position:relative; width:52px; height:52px; border-radius:0;
+    pointer-events:auto; position:relative; width:52px; height:52px; border-radius:var(--radius);
     border:1px solid var(--st-amber-line); background:var(--st-amber-bg); color:var(--st-amber-fg);
     font-size:21px; line-height:1; display:flex; align-items:center; justify-content:center;
     box-shadow:0 8px 22px -8px rgba(15,23,42,.4); cursor:pointer;
@@ -418,7 +418,7 @@ const M_CSS = `
      .rl-notices-min. The two shells draw their own chip and must not disagree
      about whether Hide looks pressable. */
   .m-notices-min{
-    pointer-events:auto; min-height:44px; border:1px solid var(--st-steel-line); border-radius:0;
+    pointer-events:auto; min-height:44px; border:1px solid var(--st-steel-line); border-radius:var(--radius);
     background:var(--st-steel-bg); color:var(--st-steel-fg); padding:0 var(--s-4);
     font:inherit; font-size:var(--t-card); font-weight:var(--w-title); cursor:pointer;
     box-shadow:0 8px 22px -8px rgba(15,23,42,.28);
@@ -488,7 +488,7 @@ const M_CSS = `
   /* ---- the share sheet's three purposes ---- */
   .m-share-kind{
     display:flex; width:100%; gap:11px; text-align:left; cursor:pointer; font:inherit;
-    border-radius:0; padding:13px 14px; border:1.5px solid var(--color-divider);
+    border-radius:var(--radius); padding:13px 14px; border:1.5px solid var(--color-divider);
     background:var(--color-surface); color:inherit;
   }
   .m-share-kind.on{ border-color:var(--accent-solid); background:var(--st-steel-bg); }
@@ -786,7 +786,7 @@ function mAccountSheetHtml(){
     <div class="m-card" style="padding:var(--s-3)">
       <input id="m-acct-title" type="text" value="${mEsc((u&&u.title)||'')}"
         placeholder="${mEsc(i18t('st_f_title'))}"
-        style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:10px var(--s-3);font:inherit;font-size:var(--t-card);color:inherit;outline:none"/>
+        style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:10px var(--s-3);font:inherit;font-size:var(--t-card);color:inherit;outline:none"/>
       <button class="m-btn m-btn-quiet" style="margin-top:var(--s-2)" data-m-act="acct-title">${i18t('act_save')}</button>
       <div class="m-note" style="margin-top:6px">${i18t('st_acct_job_sub')}</div>
     </div>
