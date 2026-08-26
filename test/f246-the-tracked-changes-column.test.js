@@ -97,9 +97,20 @@ describe('f246 (1) — the column names itself, and the name carries the total',
       'and works nothing out for itself');
   });
 
-  test('and the head still says how far through the round it is', async () => {
+  /* REVERSED IN PLACE 26 Aug 2026 (owner-asked, ringing the row: "delete this
+     area completely"). The head said how far through the round you are TWICE:
+     "Tracked changes (4)" and "3 open" on its own line, and "1 of 4 decided"
+     twenty pixels lower. The sentence went; the BAR stays, because it is a
+     glance rather than a number and was outside what the owner ringed. So the
+     claim is the one that survives: the head still shows the round's shape,
+     and it shows it once. */
+  test('and the head still shows the round\'s shape, without saying it twice', async () => {
     const p = await bench();
-    assert.match(p.$('.rl-idx-foot').textContent, /\d+ of \d+/);
+    assert.equal(p.$('.rl-idx-foot'), null, 'the decided row is deleted, not hidden');
+    assert.ok(p.$('.rl-idx-bar'), 'the bar still shows how far through it is');
+    const head = p.$('.rl-idx').textContent;
+    assert.equal((head.match(/\d+ of \d+/g) || []).length, 0,
+      'and no sentence repeats what the title and the open count already say');
   });
 
   test('the title sits on its own rule, and "N open" is an amber dot and word', () => {
