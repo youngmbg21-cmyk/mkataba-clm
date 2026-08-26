@@ -7,9 +7,9 @@ at `e0c2ce2` as this was written).
 `https://claude.ai/code/artifact/877214ce-b253-40b3-9102-17f888923af0`.
 The earlier side-by-side proposal (`44ac19aa…`) is SUPERSEDED and is kept only
 as the record of a direction the owner looked at and did not take.
-**Status:** **NOT STARTED. No code until the owner says begin.** Three
-decisions below are open and one of them is a sequencing question that blocks
-nothing but will cost a day if it is answered late.
+**Status:** **READY TO BUILD — all three decisions ruled, 26 Aug 2026. No code
+until the owner says begin.** The rulings are recorded at the foot of this file
+in the owner's own words.
 
 ---
 
@@ -44,8 +44,9 @@ Nine commits landed. Five of them matter here:
    is taking rows OFF this product, not adding them.
 3. **The "N not sent" strip is retired**, its act moved to the head's top-right
    slot. **This reverses the one exception NO NEW BANDS wrote down by name** —
-   which makes the band question in this order live rather than settled. See
-   the first open decision.
+   which is what made the band in this order a question rather than a given. It
+   is ruled and recorded at the foot of this file, with both halves of the
+   standing test answered.
 4. **The clause pencil is hover-only and grey**, measured at 6.14:1 on the
    cream sheet, with focus, an open panel and `(hover:none)` keeping it
    reachable. The approved design draws exactly this, so **reuse
@@ -154,11 +155,29 @@ column on those two readings, for the reason that governs here too: those
 readings hide the marks, so what you would be editing is not what is on the
 record. Applying it to the paper is that rule reaching one more surface.
 
-### Phase 5 — the queue rail
+### Phase 5 — the yellow strip
 
-The reference screenshot carries **THIS ROUND'S QUEUE 1/4** down the left.
-**Decide before building** (see the open questions) — it is the round's reading
-order, and this page is about one clause.
+On **As agreed** and **With changes**, above the paper: *"This page is not
+editable — Back to Redlined"*, with the way back on the band. Owner-asked, in
+those words, and recorded under the rulings at the foot of this file with the
+standing band test answered.
+
+- **It is `rlReadNoticeHtml`'s job, not a new builder.** That function said
+  exactly this sentence on the negotiation page and is a `return ''` stub there
+  since 24 Aug. Restore its body for THIS page only — the negotiation page's
+  reasoning for retiring it (its tab row and greyed column say it twice) does
+  not apply here and must not be undone.
+- **The way back presses `data-rl-read`**, the reading tabs' own attribute, so
+  it is the existing door and never a second one.
+- It draws on **Redlined never**, so it cannot become furniture.
+
+### Phase 6 — the queue rail: NOT BUILT
+
+The reference screenshot carries **THIS ROUND'S QUEUE 1/4** down the left. The
+owner has ruled it out for this page — *"Should not be in the edit page"* — so
+nothing is built and nothing is left dormant. The strip stays on the
+negotiation page, where a round is worked through. **Any future drawing showing
+it here is stale.**
 
 ---
 
@@ -194,25 +213,64 @@ Each is already pinned; each needs re-pointing rather than deleting.
 - **theme-tokens-verify 40/40** — the cream sheet arrives on a page that had
   none, so the census WILL move. Audit it value by value and re-record in the
   same commit, per the standing rule.
+- **The band is asserted BOTH WAYS, or it is half a net**: drawn on the two
+  non-editable readings with a way back that really presses the reading tabs,
+  and **absent on Redlined**. And the negotiation page's own retirement is
+  re-asserted in the same run — restoring that builder's body must not put its
+  band back where the owner took it from.
+- **The queue rail is asserted ABSENT** on this page, as pixels and as a
+  published name, so a later reader cannot bring it back through a door nobody
+  remembered.
 
 ---
 
-## OPEN — THE OWNER'S TO RULE
+## RULED — 26 Aug 2026, IN THE OWNER'S OWN WORDS
 
-**1 · The yellow strip.** The approved design carries a band on the two
-non-editable readings: *"This page is not editable — Back to Redlined"*, in the
-owner's own words. **It is a band, and the standing rule is ask first** — and
-main has just retired the one exception that rule named. It is recorded here as
-**owner-approved** so nobody sweeps it. The cheaper alternative, if the owner
-would rather have no band at all: the reading tab already says which reading is
-live, and the pencils are simply absent. One word either way.
+> *"1: leave the bar. 2: Should not be in the edit page. 3: Your
+> recommendation"*
 
-**2 · The queue rail.** Keep it, or leave it to the negotiation page? It is the
-round's reading order and this page is about one clause — but the reference
-drawing has it.
+**1 · The yellow strip STAYS.** *Leave the bar* is read as KEEP IT — it answers
+a question whose recommendation was to keep it, and it is written down here in
+that form so a later reader cannot take "leave" as "leave it out". So on the
+two non-editable readings the paper carries the band the owner drew, in the
+owner's own words: *"This page is not editable — Back to Redlined"*, with the
+way back ON the band.
 
-**3 · Sequencing against the design-system run.** This order changes a page's
-SHAPE; that one changes the platform's TOKENS. **Recommendation: this first** —
-then the token sweep has one shape to sweep rather than two. If the design
-system runs first, this order must be re-measured against it before Phase 1,
-because every spacing number in the approved design would have moved.
+**IT IS AN OWNER-ASKED BAND AND IT PASSES BOTH HALVES OF THE STANDING TEST**,
+which is what has to be recorded rather than assumed:
+
+- *Does it say something the screen does not already say?* **Yes, and more so
+  than when this was drawn.** The pencil that lets you edit a clause has been
+  hover-only since 26 Aug — so on a reading that refuses editing, nothing on
+  screen is missing that a reader could see was missing. Without the band the
+  page simply does not respond, which reads as a fault rather than as a rule.
+- *Is it about work owed or a promise made, and does it carry the act?*
+  **Yes** — it says what this page will and will not do with what you type, and
+  Back to Redlined is on the band.
+
+**IT IS ALSO NOT A NEW BAND**, which settles the point that made this question
+live: `rlReadNoticeHtml` already said exactly this on the negotiation page and
+was retired there on 24 Aug because the tab row and the greyed column had come
+to say it twice. Here there is no greyed column to say it — so this is that
+notice reaching the one surface that still needs it, at the owner's word.
+
+**2 · NO QUEUE RAIL on the edit page.** *"Should not be in the edit page."* The
+round's reading order stays on the negotiation page, which is where a round is
+worked through; this page is about one clause. **Phase 5 is therefore DELETED,
+not deferred** — nothing is built and nothing is left dormant, so there is no
+half-feature for a later reader to switch on. The reference screenshot's
+`THIS ROUND'S QUEUE 1/4` strip is STALE for this page and any future drawing of
+it should be read as the negotiation page's, never as this one's.
+
+**3 · THIS ORDER RUNS FIRST**, before `WORKORDER-design-system-overnight.md`.
+*"Your recommendation."* The reason, restated so the next person does not
+re-open it: this order changes a page's SHAPE and that one changes the
+platform's TOKENS, so run this way round and the token sweep has one shape to
+sweep instead of two. Run the other way round and every spacing number in the
+approved design has moved before Phase 1 starts, and the whole design has to be
+re-measured against a page nobody has looked at yet.
+
+**WHAT THIS MEANS FOR THE OTHER ORDER, said out loud:** it waits. It is
+unattended and touches the same stylesheets, so starting it while this is in
+flight would put two hands on `negotiation-css.js` and `clauseeditor.js` at
+once.
