@@ -2462,49 +2462,98 @@ function redlineLayoutCss(){
   .redline-page .rl-idx-fk{font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;
     text-transform:uppercase;color:var(--color-neutral-600);margin-right:auto}
 
-  ${''/* THE BAND HEADING. Small, uppercase, quiet — it is a signpost over the
-         rows, not one of them (this file's own rule about captions). The count
-         sits BESIDE the words rather than at the right wall, so the heading
-         reads as one phrase — "AWAITING YOU 5" — rather than as a row with a
-         figure parked at the far end of an empty gap. The words elide; the
-         count never does, which is the same rule the way-out button on the
-         control row keeps. */}
+  ${''/* THE BAND HEADING IS A FILLED STRIP, edge to edge, with the count
+         beside the words. Small, uppercase, quiet — it is a signpost over the
+         rows, not one of them (this file's own rule about captions) — and the
+         fill is what separates one pile from the next now that the rows
+         underneath carry no boxes of their own. It bleeds to the column's
+         walls: the rail's own 16px inset is cancelled and put back inside, so
+         the strip runs the full width while the words line up with the rows. */}
   .redline-page .rl-band{display:flex;align-items:center;gap:var(--s-2);
-    padding:14px 0 6px;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;
+    margin:0 -16px;padding:7px var(--s-4) 6px;background:var(--color-neutral-100);
+    border-top:1px solid var(--color-divider);border-bottom:1px solid var(--color-divider);
+    font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;
     text-transform:uppercase;color:var(--color-neutral-600)}
-  .redline-page .rl-band:first-child{padding-top:2px}
+  .redline-page .rl-band:first-child{border-top:0}
   .redline-page .rl-band b{font-weight:var(--w-title);color:var(--color-neutral-600)}
   .redline-page .rl-band span{min-width:0;overflow:hidden;text-overflow:ellipsis;
     white-space:nowrap}
 
-  ${''/* THE CARD IS TWO STACKED BLOCKS, NOT TWO COLUMNS, and that was
-         MEASURED rather than chosen. A first pass put the text on the left and
-         the state, verbs and ⋯ on the right of one flex row; at the divider's
-         resting 460px those acts want about 300px, so the text got barely a
-         hundred and every card read "CHG-006 · Cla…" over "hand, by c…" — the
-         two things the reader is there to read, both cut. Photographing it is
-         what said so; the markup looked perfectly reasonable.
+  ${''/* THE CARD IS A ROW, AND IT IS NOT A CARD.
+         The reference draws these as hairline-separated ROWS on the column's
+         own surface — no border, no fill, no shadow, no coloured spine — with
+         the reference line over the bold summary at the left and the acts at
+         the right, level with the two lines between them.
 
-         So: the text block takes the card's whole width and the ACTION ROW
-         sits under it — the state at the left, the verbs pushed to the right
-         wall, the ⋯ last. The summary is allowed TWO LINES and clamps; the
-         meta line is one and elides, because it is a reference and the whole
-         of it is on the row's own hover. */}
-  .redline-page .rl-card-d{padding:10px var(--s-3)}
-  .redline-page .rl-card-d .rl-card-txt{min-width:0;margin:0;padding:0}
-  .redline-page .rl-card-d .rl-card-meta{font-size:var(--t-label);color:var(--color-neutral-600);
-    line-height:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0}
-  .redline-page .rl-card-d .rl-card-sum{font-size:var(--t-body);font-weight:var(--w-title);
-    color:var(--color-text);line-height:19px;margin-top:2px;
-    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
-    overflow:hidden}
-  .redline-page .rl-card-d .rl-card-foot{display:flex;align-items:center;gap:10px;
-    margin-top:var(--s-2)}
-  .redline-page .rl-card-d .rl-card-foot .rl-card-verbs{margin-left:auto}
+         A FIRST PASS KEPT HaTi'S BOX AND STACKED THE TWO HALVES, because side
+         by side the text was being crushed to about a hundred pixels. That was
+         the right measurement and the wrong conclusion: what was eating the
+         row was HaTi's own BORDERED buttons and its amber provenance strip,
+         neither of which the reference carries. Take those two off and the row
+         fits with room to spare. Fix the cause, not the symptom.
 
-  ${''/* THE STATE IS A DOT AND A WORD, never a filled chip: five chips down a
-         column read as five buttons, which is the argument the register's own
-         stage column settled the same way.
+         THE SPINE GOES WITH THE BOX, said out loud: data-rl-origin is still
+         stamped and still means what it meant, and whose ask this is is on the
+         meta line in words. */}
+  .redline-page .rl-card-d{padding:11px 0;border:0;border-radius:0;
+    border-top:1px solid var(--color-divider);background:none;box-shadow:none;
+    display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap}
+  ${''/* BASIS ZERO, NOT AUTO, AND THAT IS THE WHOLE OF WHY THE ROW HOLDS.
+         With basis auto a flex item's base size is its MAX-CONTENT, and the
+         summary is one nowrap line — so on a long summary the base sizes
+         overflowed the line and the acts wrapped underneath, which is the
+         two-row card coming back through the other door. At basis 0 the text
+         claims only what is left after the acts and elides inside it. */}
+  .redline-page .rl-card-d > .rl-card-txt{flex:1 1 0}
+  .redline-page .rl-card-d:first-child,
+  .redline-page .rl-band + .rl-card-d{border-top:0}
+  .redline-page .rl-card-d:hover{background:none}
+  .redline-page .rl-card-d .rl-card-txt{flex:1 1 0;min-width:0;margin:0;padding:0}
+  ${''/* ---- THE CARD READS ONE RUNG SMALLER (owner-asked 25 Aug 2026: "the
+         font in those clause cards should be reduced by a size") ----
+         Each of the three moved one step down this product's own ladder
+         (10, 11, 12, 13, 14, 15, 17, 19, 22): the reference line 12 to 11, the
+         summary 14 to 13, the verbs 13 to 12. The line boxes come with them, so
+         the row keeps its proportions rather than gaining air where type left.
+         THE SUMMARY KEEPS THE PRIMARY INK, and that is a deliberate exception
+         to "primary is 14px and up". It is the wording of the change — the one
+         thing a reader is here to read — and dropping it to the label shade to
+         satisfy a rule about captions would make the column quieter at exactly
+         the point it should not be. Scoped to this card and said out loud, the
+         way the Tracked Changes head's own exception was. */}
+  .redline-page .rl-card-d .rl-card-meta{font-size:var(--t-micro);color:var(--color-neutral-600);
+    line-height:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0}
+  .redline-page .rl-card-d .rl-card-sum{font-size:var(--t-meta);font-weight:var(--w-title);
+    color:var(--color-text);line-height:18px;margin-top:1px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  ${''/* A SETTLED CHANGE READS QUIETLY. The reference greys the summary under
+         Decided: it is a record rather than something to act on, and the ink
+         is what says so once the row has no box to dim. */}
+  .redline-page .rl-card-d.rl-card-done .rl-card-sum{font-weight:var(--w-body);
+    color:var(--color-neutral-600)}
+  .redline-page .rl-card-d .rl-card-side{flex:none;display:flex;align-items:center;gap:var(--s-3)}
+  ${''/* The provenance and reviewer strips take the whole row's width and drop
+         under it — they are rare, and none may be dropped (a row with a hole
+         in it and the explanation elsewhere is worse than either).
+
+         AND THEY STOP SHOUTING. They were filled amber blocks with a 3px edge,
+         written for a card that had a box of its own; on a column of flat rows
+         they became the loudest object on the page and taller than the change
+         they annotate. The reference draws no such block. So the FILL and the
+         EDGE go and the amber INK stays, which is what carries a caution once
+         nothing else on the row is filled — the same argument the status word
+         two rules up already makes. NOT ONE WORD CHANGES. */}
+  .redline-page .rl-card-d .rl-card-info,
+  .redline-page .rl-card-d .rl-card-why,
+  .redline-page .rl-card-d .rl-card-behalf,
+  .redline-page .rl-card-d .rl-card-rvnote{flex:1 0 100%;margin-top:var(--s-1);
+    background:none;border:0;padding:0;font-size:var(--t-label);line-height:16px}
+  .redline-page .rl-card-d .rl-card-why-k{margin-bottom:0;margin-right:6px;
+    display:inline;font-size:var(--t-micro)}
+
+  ${''/* THE STATE IS A DOT AND A WORD, inline with the verbs — never a filled
+         chip: five chips down a column read as five buttons, which is the
+         argument the register's own stage column settled the same way.
 
          IT IS STILL .rl-badge AND STILL ITS OWN TONE CLASS, which is the whole
          of why this is safe: the rule three hundred lines up says that slot
@@ -2517,22 +2566,23 @@ function redlineLayoutCss(){
          AND THE DOT IS currentColor, so the four tone rules above give it its
          colour for free and there is nothing to keep in step. */}
   .redline-page .rl-card-d .rl-badge{display:inline-flex;align-items:center;gap:6px;
-    font-size:var(--t-meta);font-weight:var(--w-strong);white-space:nowrap}
+    font-size:var(--t-meta);font-weight:var(--w-title);white-space:nowrap}
   .redline-page .rl-card-d .rl-badge i{width:7px;height:7px;flex:none;border-radius:50%;
     background:currentColor}
 
-  ${''/* THE VERBS KEEP THEIR BORDERS, and that was decided rather than left
-         alone. A first pass at this card stripped them to bare coloured words
-         and scoped the stripping here; it reverses 24 Aug's own owner ruling —
-         "all the buttons should have a similar border line like share and more
-         have in the platform right now" — and the ask this card was drawn for
-         was about the column's LAYOUT (the bands, the meta line over the
-         summary, the ⋯), not about the verbs' outlines. Reversing an owner
-         call nobody asked about is the wider interpretation. So this rule only
-         puts them on ONE ROW beside the state and the ⋯: no top margin (they
-         are not under anything any more) and no wrapping, because a verb that
-         drops to a second line takes the row's height with it. */}
-  .redline-page .rl-card-d .rl-card-verbs{margin-top:0;gap:var(--s-2);flex-wrap:nowrap}
+  ${''/* THE VERBS ARE BARE COLOURED WORDS — the reference's own drawing, and
+         this is scoped to .rl-card-d so the counterparty's card keeps its
+         outlines and so does every head row on the page. It does not reverse
+         24 Aug's "every button carries the head row's line": that ruling was
+         about the HEAD ROW, and applying it here was the wrong precedent — a
+         row of three bordered buttons is what crushed the text this card
+         exists to show. The INK is untouched and is what still tells them
+         apart: teal to agree, red to refuse, teal for the alternative. */}
+  .redline-page .rl-card-d .rl-card-verbs{margin-top:0;gap:var(--s-3);flex-wrap:nowrap}
+  .redline-page .rl-card-d .rl-card-verbs button{border:0;background:none;padding:0;
+    height:auto;min-height:0;font-size:var(--t-label);font-weight:var(--w-title);line-height:18px}
+  .redline-page .rl-card-d .rl-card-verbs button:hover{background:none;
+    text-decoration:underline}
 
   ${''/* THE OVERFLOW. The button is the glyph alone; the menu names the change
          it belongs to, because one floating over a column of six cards has to
@@ -2554,7 +2604,43 @@ function redlineLayoutCss(){
     background:transparent;padding:var(--s-2) var(--s-3);font:inherit;font-size:var(--t-body);
     color:var(--color-text);cursor:pointer}
   .redline-page .rl-more-row:hover{background:var(--color-neutral-100)}
-  .redline-page .rl-more-row.rl-more-lead{color:var(--accent-ink);font-weight:var(--w-strong)}
+  ${''/* COPILOT IS VIOLET HERE, as it is everywhere else in this product —
+         the reference draws this row in the Copilot colour rather than the
+         workspace accent, and .rl-btn-alt on the control bar has carried the
+         same violet since the playbook pass was built. */}
+  .redline-page .rl-more-row.rl-more-lead{color:#6d28d9;font-weight:var(--w-title)}
+  html.dark .redline-page .rl-more-row.rl-more-lead{color:#c4b5fd}
+  ${''/* A RULE UNDER THE TWO DOORS. The reference groups the menu: the two
+         ways INTO this change's wording, then the two things you do ABOUT it.
+         Drawn on the row that opens the second group, so a menu that offers
+         only the first group draws no stray line. */}
+  ${''/* ---- WHAT THE FACE COULD NOT HOLD (owner-asked 25 Aug 2026) ----
+         The card's own verbs, laid out as menu rows. They arrive as the SAME
+         buttons the face draws — see rlCardMoreHtml — so the ink is each verb's
+         own (Reject red, Send green) and only the box changes: full width, a
+         row's padding, left-aligned like every other row here. The group is
+         ruled off from the doors below it, which are a different kind of thing:
+         these ACT on the change, those go somewhere. */}
+  .redline-page .rl-more-verbs{display:flex;flex-direction:column;
+    border-bottom:1px solid var(--color-divider);padding-bottom:2px;margin-bottom:2px}
+  .redline-page .rl-more-verbs button{display:block;width:100%;text-align:left;
+    border:0;background:none;font:inherit;font-size:13.5px;font-weight:var(--w-body);
+    line-height:1.5;padding:7px var(--s-3);white-space:nowrap;cursor:pointer}
+  .redline-page .rl-more-verbs button:hover{background:var(--color-neutral-100);
+    text-decoration:none}
+  ${''/* EACH VERB KEEPS ITS OWN INK. The colours are scoped to .rl-card-verbs,
+         which these are not in any more — so they are named again here reading
+         the SAME tokens, never a second set of values. The dark answers come
+         free: html.dark re-points .rl-rej and .rl-edit unscoped, and --accent-ink
+         is the accent token that has a night value of its own. */}
+  .redline-page .rl-more-verbs .rl-acc,
+  .redline-page .rl-more-verbs .rl-send{color:var(--accent-ink);font-weight:var(--w-title)}
+  .redline-page .rl-more-verbs .rl-rej{color:var(--danger-hover)}
+  .redline-page .rl-more-verbs .rl-edit{color:var(--accent-ink-700)}
+  html.dark .redline-page .rl-more-verbs .rl-edit{color:var(--color-accent-300)}
+  html.dark .redline-page .rl-more-verbs .rl-rej{color:#fda4af}
+  .redline-page .rl-more-row.rl-more-cut{border-top:1px solid var(--color-divider);
+    margin-top:var(--s-1);padding-top:var(--s-2)}
 
   .redline-page .rl-card-verbs{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;margin-top:9px}
   ${''/* ---- EVERY BUTTON WEARS THE HEAD ROW'S OWN LINE (owner-asked 24 Aug
@@ -3166,14 +3252,13 @@ function redlineLayoutCss(){
      keeps it last). The conversation blocks are HIDDEN by the default face:
      one rule, one class, so the toggle costs a class flip and the one
      engine-wired composer stays alive in the DOM either way. */}
-  .redline-page .rl-cp-segs{order:1;margin-left:auto;display:inline-flex;
-    border:1px solid var(--color-divider);border-radius:0;overflow:hidden;flex:none}
-  .redline-page .rl-cp-segs button{border:0;background:var(--color-surface);cursor:pointer;
-    font:inherit;font-size:var(--t-label);font-weight:var(--w-title);line-height:1.6;padding:3px 9px;
-    color:var(--color-neutral-600);white-space:nowrap}
-  .redline-page .rl-cp-segs button + button{border-left:1px solid var(--color-divider)}
-  .redline-page .rl-cp-segs button.on{background:var(--nav-bg,#0b3d3a);color:#fff}
-  .redline-page .rl-cp-segs button:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
+  ${''/* LAYOUT ONLY. The DRESS is the seat switch's own rule, which names this
+         head beside .rl-actions — see there. Everything this class used to
+         declare (the box, the ink, the 12px/700 buttons and the --nav-bg fill
+         on the live half) is gone rather than overridden: a class that still
+         dressed the control would be the second opinion that made the two
+         disagree in the first place. */}
+  .redline-page .rl-cp-segs{order:1;margin-left:auto;flex:none}
   .redline-page .rl-cp .rl-cnotes{display:none}
   .redline-page .rl-cp.rl-cp-notes .rl-cnotes{display:block}
   .redline-page .rl-cp-label{margin:0;font-size:var(--t-label);font-weight:var(--w-title);letter-spacing:.06em;
@@ -3251,10 +3336,24 @@ function redlineLayoutCss(){
   ${''/* The ＋ wears the nav's colour for the same reason the Edit pill does —
      they are the same act's two doors, and both follow the theme through
      --nav-bg (dark green workspace → dark green, blue → navy). */}
-  .redline-page .rl-cp-act.rl-cp-act-new{background:var(--nav-bg,#0b3d3a);
-    border-color:var(--nav-bg,#0b3d3a);color:#fff}
-  .redline-page .rl-cp-act.rl-cp-act-new:hover{background:color-mix(in srgb,var(--nav-bg,#0b3d3a) 82%,#fff);
-    border-color:color-mix(in srgb,var(--nav-bg,#0b3d3a) 82%,#fff)}
+  ${''/* ---- THE + IS AN ORDINARY BUTTON (owner-asked 25 Aug 2026: "The
+         propose new wording should resemble the normal buttons but edit with
+         copilot to remain the same") ----
+         It was a filled block in --nav-bg — the SIDEBAR's deep green, which is
+         a navigation colour and read as the loudest object in the panel. It
+         takes .ui-btn's own face now: no fill, the platform's button edge, the
+         accent ink that has a dark answer. Fifth time a filled face has come
+         off on this owner's ask; the pattern is settled.
+         THE HEIGHT IS DELIBERATELY NOT TOUCHED. .ui-btn is 28px and these are
+         34; Edit with Copilot sits beside this one and was asked to stay
+         exactly as it is, so matching the platform's box here would leave the
+         pair 6px apart, which reads as a mistake. The FACE is what was
+         reported and the face is what changed. */}
+  .redline-page .rl-cp-act.rl-cp-act-new{background:transparent;
+    border-color:var(--btn-edge);color:var(--accent-ink)}
+  .redline-page .rl-cp-act.rl-cp-act-new:hover{
+    background:color-mix(in srgb,var(--accent-solid) 10%,transparent);
+    border-color:var(--accent-solid)}
   .redline-page .rl-cp-hint{flex-basis:100%;margin:6px 0 0;font-size:var(--t-meta)}
   /* .rl-cp-ai-note is RETIRED (19 Aug 2026) — the Copilot is a BUTTON in this
      panel again, see the note beside it. The words-without-a-pill were right
@@ -3852,15 +3951,46 @@ function redlineLayoutCss(){
   .redline-page{--rl-btn-line:color-mix(in srgb,var(--accent-solid) 45%,transparent)}
   ${''/* ---- THE CHANGE INDEX (owner-approved render, 24 Aug 2026) ---- */}
   .redline-page .rl-idx{padding:var(--s-3) var(--s-3) 11px;border-bottom:1px solid var(--color-divider)}
-  .redline-page .rl-idx-top{display:flex;align-items:center;gap:10px}
-  .redline-page .rl-idx-title{flex:1;font-size:var(--t-card);font-weight:var(--w-title);color:var(--color-text);
-    letter-spacing:-.01em}
-  ${''/* The open count is the one dark object on this column, which is what
-         makes it readable at a glance. It takes the nav's own deep ground
-         rather than a new slate, so it follows the workspace brand and the
-         dark theme with no second rule. */}
-  .redline-page .rl-idx-open{flex:none;font-size:var(--t-label);font-weight:var(--w-title);color:#fff;
-    background:var(--nav-bg);padding:2px 9px}
+  .redline-page .rl-idx-top{display:flex;align-items:flex-end;gap:var(--s-3);
+    border-bottom:1px solid var(--color-divider);margin-bottom:9px}
+  .redline-page .rl-idx-top .rl-idx-sp{flex:1;min-width:6px}
+  ${''/* THE TITLE SITS ON ITS OWN UNDERLINE — the reference draws it as the
+         column's one tab, a 2px accent rule under the words and nothing else,
+         so the head reads as a heading rather than as a row of chips. The
+         count in brackets is the quiet half of the name and takes the label
+         ink; the title itself is the primary. */}
+  ${''/* The 2px accent rule sits ON the head's own hairline rather than above
+         it — pulled down by its own width — so the head reads as one ruled
+         line with the title's tab on it, not as two rules at different
+         heights. */}
+  ${''/* ---- AND IT READS AT THE SEND BUTTON'S SIZE (owner-asked 25 Aug 2026,
+         off a screenshot with the heading ringed: "the tracked changes font
+         should be reduced to the same size Send All button font along with the
+         number") ----
+         MEASURED: the heading 19px against Send all's 13. The count rides
+         INSIDE the name, so "along with the number" needs no second rule — it
+         comes down with the words.
+         NOTHING BELOW IT ENDS UP LARGER, which is what makes a heading this
+         quiet hold: the card summaries under it came down to 13 in the same
+         breath, so the column reads as one compact list rather than as a small
+         title over big rows. THE 2px ACCENT RULE STAYS: with the size gone it
+         is the whole of what marks this as the column's name, and the padding
+         that lays it on the head's own hairline goes with it. */}
+  .redline-page .rl-idx-title{flex:none;font-size:var(--t-meta);font-weight:var(--w-title);
+    color:var(--color-text);letter-spacing:0;line-height:1.25;
+    padding-bottom:var(--s-2);margin-bottom:-1px;border-bottom:2px solid var(--accent-solid)}
+  .redline-page .rl-idx-title i{font-style:normal;font-weight:var(--w-strong);
+    color:var(--color-neutral-600)}
+  ${''/* HOW MANY STILL NEED SOMEBODY IS THE COLUMN'S ONE WARNING, so it is
+         AMBER and it is a dot and a word — not a filled chip. It shipped as a
+         dark green block, which read as the loudest object on a column whose
+         job is the cards; amber is what this product uses for "waiting on
+         you" everywhere else, and the dot is the same mark the cards carry. */}
+  .redline-page .rl-idx-open{flex:none;display:inline-flex;align-items:center;gap:6px;
+    font-size:var(--t-meta);font-weight:var(--w-title);color:var(--st-amber-fg);background:none;padding:0}
+  .redline-page .rl-idx-open::before{content:"";width:7px;height:7px;flex:none;
+    border-radius:50%;background:var(--st-amber-dot)}
+  html.dark .redline-page .rl-idx-open{color:#fcd34d}
   .redline-page .rl-idx-bar{margin-top:9px;height:8px;background:var(--color-neutral-200);
     position:relative;overflow:hidden}
   .redline-page .rl-idx-bar i{position:absolute;left:0;top:0;bottom:0;display:block;
@@ -4020,13 +4150,22 @@ function redlineLayoutCss(){
      one that earns the fill. accent-700, not --accent-solid: white on accent-600
      is 3.74:1 and this text is 13px. The same measurement that fixed the change
      column's count markers. */
-  .redline-page .rl-actions .rl-segwrap{height:28px;padding:0;gap:0;background:var(--color-surface);
+  ${''/* THE CLAUSE PANEL'S History | + notes IS NAMED HERE, not given a copy
+         of these values (owner-asked 25 Aug 2026). It is the same kind of
+         control — a two-state switch whose live half fills — and the two had
+         already drifted apart once by being written twice. One rule, two
+         homes; f236 pins the pair so it cannot happen again. */}
+  .redline-page .rl-actions .rl-segwrap,
+  .redline-page .rl-cp-head .rl-segwrap{height:28px;padding:0;gap:0;background:var(--color-surface);
     border:1px solid var(--color-divider);align-self:center}
-  .redline-page .rl-actions .rl-segwrap .rl-seg{height:26px;padding:0 var(--s-3);font-size:var(--t-meta);
+  .redline-page .rl-actions .rl-segwrap .rl-seg,
+  .redline-page .rl-cp-head .rl-segwrap .rl-seg{height:26px;padding:0 var(--s-3);font-size:var(--t-meta);
     box-shadow:none;background:none;color:var(--color-neutral-500)}
-  .redline-page .rl-actions .rl-segwrap .rl-seg.on{background:var(--color-accent-700);color:#fff;
+  .redline-page .rl-actions .rl-segwrap .rl-seg.on,
+  .redline-page .rl-cp-head .rl-segwrap .rl-seg.on{background:var(--color-accent-700);color:#fff;
     font-weight:var(--w-title);box-shadow:none}
-  html.dark .redline-page .rl-actions .rl-segwrap .rl-seg.on{background:var(--color-accent-700);color:#fff}
+  html.dark .redline-page .rl-actions .rl-segwrap .rl-seg.on,
+  html.dark .redline-page .rl-cp-head .rl-segwrap .rl-seg.on{background:var(--color-accent-700);color:#fff}
   /* The way back is words, not a chip. It ends the row, so it needs no box to
      be found — and a bordered control there read as a fifth button rather than
      as the door it is. */

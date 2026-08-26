@@ -9711,6 +9711,63 @@ function rlCardRank(ch, held){
   if (!ch.withdrawn && ch.status === 'rejected') return 1;
   return 2;
 }
+/* ---------- TWO VERBS ON THE FACE, THE REST IN THE MENU ----------
+   (owner-asked 25 Aug 2026, against a target picture of the finished column:
+   "On the change card there should be only 2 options to click on and the rest
+   are in the dropdown.")
+
+   MEASURED before: their pending ask carried three (Accept · Reject · Edit) and
+   our own draft four (Edit · Review · Retract · Send), so the row the design
+   draws with two verbs and a chevron was carrying twice that.
+
+   IT IS ONE CUT APPLIED TO THE FINISHED LIST, not fourteen edited branches.
+   Every branch above still pushes the verb it has always pushed — which is
+   what keeps each one's own seat rules, desk rules and review rules exactly
+   where they were — and the split happens once, after. A rule per branch is
+   how a state nobody thought of ends up with three verbs again.
+
+   THE RANK IS WHAT DECIDES, AND THE BUILT ORDER IS WHAT DRAWS. The two that
+   stay are the two highest-ranked; they are then drawn in the order the
+   branches built them, so Edit still reads before Send on a draft rather than
+   jumping about because a rank list put it second.
+
+   WHY THIS ORDER: the decision on the other side's ask outranks everything (it
+   is the only thing that moves the round); then the act that makes an answer
+   real; then taking one back; then revising. Checked state by state —
+   their pending ask keeps Accept and Reject, our draft keeps Edit and Send, a
+   held answer keeps Send and Undo, a refusal of ours keeps Withdraw and Edit.
+
+   ONE EXCEPTION, AND IT IS THE STANDING RULE ABOUT REFUSALS. A change a
+   reviewer is HOLDING has no decision and nothing to send, and the sentence
+   printed beside it says the only way forward is to ask that person again. A
+   remedy named in words and then folded into a menu is the fault this codebase
+   already records twice (Cancel in the review notice, Reopen behind a tag), so
+   on exactly that card the ask is promoted to the front. */
+const RL_FACE_MAX = 2;
+const RL_FACE_RANK = ['data-nego-accept', 'data-nego-reject', 'data-rv-cancel',
+  'data-rl-sendcopy', 'data-rl-send', 'data-nego-undo', 'data-nego-redecide',
+  'data-nego-withdraw', 'data-rl-edit', 'data-rl-retract', 'data-rl-ask-review'];
+function rlFaceRank(html, promoteAsk){
+  const h = String(html || '');
+  if (promoteAsk && h.includes('data-rl-ask-review')) return -1;
+  for (let i = 0; i < RL_FACE_RANK.length; i++) if (h.includes(RL_FACE_RANK[i])) return i;
+  return RL_FACE_RANK.length;
+}
+/* Returns {face, overflow} — both in the order the branches built them. */
+function rlFaceSplit(verbs){
+  const list = (verbs || []).filter(Boolean);
+  if (list.length <= RL_FACE_MAX) return { face: list, overflow: [] };
+  /* No decision to take and nothing to send: see the exception above. */
+  const promoteAsk = !list.some(v => /data-nego-accept|data-nego-reject|data-rl-send\b/.test(v));
+  const keep = list.map((v, i) => ({ v, i, r: rlFaceRank(v, promoteAsk) }))
+    .sort((a, b) => (a.r - b.r) || (a.i - b.i))
+    .slice(0, RL_FACE_MAX)
+    .map(x => x.i);
+  const keepSet = new Set(keep);
+  return { face: list.filter((_, i) => keepSet.has(i)),
+    overflow: list.filter((_, i) => !keepSet.has(i)) };
+}
+
 /* ---------- THE CARD'S OVERFLOW MENU (owner-asked 25 Aug 2026) ----------
    The design puts the row's quieter routes behind a ⋯ instead of beside Open,
    and EDIT WITH COPILOT LEADS IT — which is what the approved journey asked for
@@ -9752,9 +9809,19 @@ function rlCardMoreHtml(c, ch, opts = {}, side = 'owner', st = {}){
   /* The card's own ask condition, character for character: our seat, our unsent
      draft, no review already out or held on it, and a seat that shows reviews
      at all. */
+  const cut = rows.length ? ' rl-more-cut' : '';
+  /* ---- AND IT NEVER REPEATS A VERB THE OVERFLOW CARRIES EITHER ----
+     This row and the card's own Review button were drawn on the SAME condition,
+     so before the face was capped they appeared TOGETHER on every unsent draft:
+     the same act, twelve pixels apart, in a menu whose own rule two paragraphs
+     down forbids exactly that. It was invisible because the guard below tests
+     only for Edit. Now that the capped verbs arrive here as `overflow`, the one
+     test covers both — the face and the overflow are the same pool. */
+  const carried = String(st.faceVerbs || '') + (st.overflow || []).join('');
   if (own && editable && st.mineUnsent && !st.rvOut && !st.rvHeld
+      && !/data-rl-ask-review/.test(carried)
       && window.openReviewAskModal && window.reviewSeatShowsReview && reviewSeatShowsReview(opts))
-    rows.push(`<button type="button" class="rl-more-row"
+    rows.push(`<button type="button" class="rl-more-row${cut}"
       data-rl-ask-review="${_nea(ch.id)}">${i18t('rv_card_ask')}</button>`);
   /* THE MENU NEVER REPEATS A VERB THE FACE ALREADY CARRIES. Edit is
      data-rl-edit — it lights the clause on the paper and opens the panel on it
@@ -9765,11 +9832,20 @@ function rlCardMoreHtml(c, ch, opts = {}, side = 'owner', st = {}){
      whose face is bare. `faceVerbs` is the card's own finished verb markup,
      handed in — the same string the receipt rule reads — so the two cannot
      come to disagree about what is on the face. */
-  if (ch.clauseId && !/data-rl-edit=/.test(String(st.faceVerbs || '')))
-    rows.push(`<button type="button" class="rl-more-row"
+  if (ch.clauseId && !/data-rl-edit=/.test(carried))
+    rows.push(`<button type="button" class="rl-more-row${
+      rows.some(r => r.includes('data-rl-ask-review')) ? '' : cut}"
       data-rl-edit="${_nea(ch.clauseId)}" data-rl-edit-change="${_nea(ch.id)}"
       >${i18t('ng_row_jump')}</button>`);
-  if (!rows.length) return '';
+  /* ---- THE CARD'S OWN VERBS COME FIRST (owner-asked 25 Aug 2026) ----
+     What the face could not hold arrives here as finished buttons — the SAME
+     markup, the same attributes, the same per-paint handlers. Nothing is
+     rebuilt, so a verb cannot mean one thing on the face and another in the
+     menu; they are laid out as menu rows by .rl-more-verbs and keep their own
+     ink, because Reject red and Send green are how this column has always said
+     which way a press goes. */
+  const over = (st.overflow || []).filter(Boolean);
+  if (!rows.length && !over.length) return '';
   const label = [ch.id, String(ch.clauseLabel || ch.clauseId || '').trim()].filter(Boolean).join(' · ');
   return `<div class="rl-more">
     <button type="button" class="rl-more-btn" data-rl-more="${_nea(ch.id)}"
@@ -9778,6 +9854,7 @@ function rlCardMoreHtml(c, ch, opts = {}, side = 'owner', st = {}){
       aria-label="${_nea(i18t('ng_row_more_title'))} ${_nea(ch.id)}">&#8943;</button>
     <div class="rl-more-menu" id="rl-more-${_nea(ch.id)}" role="menu" hidden>
       <div class="rl-more-head">${_ne(label)}</div>
+      ${over.length ? `<div class="rl-more-verbs">${over.join('')}</div>` : ''}
       ${rows.join('')}
     </div>
   </div>`;
@@ -11464,6 +11541,7 @@ function redlineChangeCardsHtml(c, opts = {}){
       verbs.push(`<button type="button" class="rl-send" data-rl-sendcopy="1"
         title="${_nea(i18t('ng_send_copy_title', { who: whoThem }))}">${i18t('ng_send_copy')}</button>`);
     const rvVerbs = window.reviewVerbsHtml ? reviewVerbsHtml(c, ch, opts) : '';
+    const _rlFace = rlFaceSplit(rvCancel ? verbs.concat([rvCancel]) : verbs);
     const actions = [
       noCopyBlock,
       rvStuckBlock,
@@ -11600,11 +11678,27 @@ function redlineChangeCardsHtml(c, opts = {}){
        our own seat only, and their page — and the owner's preview OF their
        page — falls through to the receipt and full shapes below, unchanged. */
     if (side === 'owner' && !previewSeat){
-      const state = `<span class="rl-badge rl-badge-${badge[0]}"${
+      const band = rlCardBand(ch, side, unsent, heldIds);
+      /* ---- THE STATE DRAWS WHERE IT ADDS SOMETHING, AND THAT IS THE
+             REFERENCE'S OWN RULE ----
+         Under AWAITING YOU and YOUR DRAFTS the drawing shows no state word at
+         all — the row is the reference line, the summary and the verbs, and
+         the heading above has already said which pile this is. It appears the
+         moment it carries a fact the heading does not: Sent, Refused,
+         Accepted, and a reviewer's name.
+
+         SO THIS IS NOT THE HEADING REPEATED. The two bands it stands down
+         under are exactly the two whose badge word IS the heading; every other
+         state still draws, and the tone still comes from the same table. A
+         held or out-for-review change keeps its word under YOUR DRAFTS,
+         because "a colleague has this" is not what that heading says. */
+      const bandSaysIt = (band === 'awaiting' && badge[0] === 'sent' && !rvOut && !rvHeld)
+        || (band === 'drafts' && badge[0] === 'draft' && !rvOut && !rvHeld);
+      const state = bandSaysIt ? '' : `<span class="rl-badge rl-badge-${badge[0]}"${
         badge[2] ? ` title="${_nea(badge[2])}"` : ''}><i></i>${badge[1]}</span>`;
       const meta = [ch.id, who].filter(Boolean).join(' &middot; ');
       const sum = String(ch.summary || '').trim();
-      return `<article class="rl-card rl-card-d" data-nego-card="${_ne(ch.id)}" data-rl-origin="${theirs ? 'them' : 'us'}"${
+      return `<article class="rl-card rl-card-d${band === 'decided' ? ' rl-card-done' : ''}" data-nego-card="${_ne(ch.id)}" data-rl-origin="${theirs ? 'them' : 'us'}"${
         (ch.status === 'rejected' && !ch.withdrawn) ? ` data-contested="${_ne(ch.id)}"` : ''}${
         heldHere ? ` data-unsent="${_ne(ch.id)}"` : ''}${
         rvOut ? ' data-rv-waiting="1"' : ''}${
@@ -11620,21 +11714,28 @@ function redlineChangeCardsHtml(c, opts = {}){
           <div class="rl-card-meta"${tip ? ` title="${_nea(tip)}"` : ''}>${meta}</div>
           ${sum ? `<div class="rl-card-sum">${_ne(sum)}</div>` : ''}
         </div>
+        ${''/* THE ACTS SIT BESIDE THE TEXT, level with it: where this change
+               stands, then the verbs, then the ⋯. They fit on one row because
+               they are bare coloured words rather than bordered buttons — see
+               the note in the sheet, and the fault a first pass fixed the
+               wrong way round. */}
+        ${''/* TWO ON THE FACE, THE REST IN THE MENU — see rlFaceSplit. The
+               cancel rides in the pool rather than beside it: it is the one way
+               out of a review the reader started, and letting it sit outside
+               the cap is how a card ends up with three controls again. */}
+        <div class="rl-card-side">${state}${
+          (_rlFace.face.length) ? `<div class="rl-card-verbs">${_rlFace.face.join('')}</div>` : ''}${
+          rlCardMoreHtml(c, ch, opts, side, { editable, preview: previewSeat,
+            mineUnsent, rvOut, rvHeld, faceVerbs: _rlFace.face.join(''),
+            overflow: _rlFace.overflow })}</div>
         ${''/* The rare, load-bearing strips — on-behalf, revised-by, the
                reviewer's note, the desk's "drafted by", the author's reason —
                and the two sentences that explain a MISSING verb. Each is
-               conditional and usually absent, which is what keeps the card a
-               row; none may be dropped, because a card with a hole in it and
-               the explanation elsewhere is worse than either. */}
+               conditional and usually absent, which is what keeps the row a
+               row; none may be dropped, because a row with a hole in it and
+               the explanation elsewhere is worse than either. They take the
+               full width and drop UNDER the row. */}
         ${info ? `<div class="rl-card-info">${info}</div>` : ''}
-        ${''/* THE ACTION ROW, under the text rather than beside it: where this
-               change stands at the left, the verbs at the right wall, the ⋯
-               last. Beside the text it left about a hundred pixels for the two
-               things a reader is there to read — see the note in the sheet. */}
-        <div class="rl-card-foot">${state}${
-          (verbs.length || rvCancel) ? `<div class="rl-card-verbs">${verbs.join('')}${rvCancel}</div>` : ''}${
-          rlCardMoreHtml(c, ch, opts, side, { editable, preview: previewSeat,
-            mineUnsent, rvOut, rvHeld, faceVerbs: verbs.join('') })}</div>
         ${[noCopyBlock, rvStuckBlock, dkInstead, rvVerbs].filter(Boolean).join('')}
       </article>`;
     }
@@ -12152,13 +12253,30 @@ function rlCpSetNotes(scope, on){
   });
   return _rlCpNotes;
 }
+/* ---- IT WEARS THE SEAT SWITCH'S OWN CLASSES (owner-asked 25 Aug 2026: "The
+   history and notes buttons design should resemble the internal and
+   counterparty") ----
+   THE CLOTHES FOLLOW THE BUILDER, and this switch had been left behind by its
+   own reference. It was dressed to match "the toolbar's reading segments" when
+   those were a grey pill group; the 22 Aug redesign turned the reading control
+   into tabs and gave the SEAT switch the bordered box with a filled live half,
+   and nothing brought this one along. MEASURED side by side before: the seat
+   switch fills accent-700 at 13px with the resting half at weight 400, this one
+   filled --nav-bg (the SIDEBAR's deep green, a navigation colour inside a
+   content panel) at 12px with BOTH halves at 700 — so weight, which is what
+   tells the live half from the resting one over there, was doing nothing here.
+   SO IT TAKES .rl-segwrap / .rl-seg RATHER THAN A COPY OF THEIR VALUES, and the
+   seat switch's own rule names this head beside .rl-actions: one declaration,
+   two homes, nothing to keep in step. .rl-cp-segs survives carrying LAYOUT
+   only — where in the head row it sits — which is this page's own convention
+   for a class that positions rather than dresses. */
 function rlCpSegsHtml(){
   const on = rlCpNotesOn();
-  return `<div class="rl-cp-segs" role="group" aria-label="${_nea(i18t('ng_cp_notes_group'))}">
+  return `<div class="rl-cp-segs rl-segwrap" role="group" aria-label="${_nea(i18t('ng_cp_notes_group'))}">
     <button type="button" data-rl-cp-notes="off" aria-pressed="${on ? 'false' : 'true'}"
-      class="${on ? '' : 'on'}" title="${_nea(i18t('ng_cp_hist_title'))}">${i18t('ng_cp_hist')}</button>
+      class="rl-seg${on ? '' : ' on'}" title="${_nea(i18t('ng_cp_hist_title'))}">${i18t('ng_cp_hist')}</button>
     <button type="button" data-rl-cp-notes="on" aria-pressed="${on ? 'true' : 'false'}"
-      class="${on ? 'on' : ''}" title="${_nea(i18t('ng_cp_hist_notes_title'))}">${i18t('ng_cp_hist_notes')}</button>
+      class="rl-seg${on ? ' on' : ''}" title="${_nea(i18t('ng_cp_hist_notes_title'))}">${i18t('ng_cp_hist_notes')}</button>
   </div>`;
 }
 /* ---- THE PANEL'S OWN TYPE STEPPER (owner-asked 20 Aug 2026: "Add the font
@@ -12545,8 +12663,14 @@ function redlinePanesHtml(c, opts = {}){
                      the bands all print, and a second arithmetic on a figure
                      already on the page is how two parts of one column come to
                      disagree. `ng_idx_head` is STALE — flag any mention. */}
-              <span class="rl-idx-title">${_ne(i18t('ng_tracked_head_n', { n: changeTotal }))}</span>
+              ${''/* The bracketed total is the quiet half of the name and is
+                     marked so the sheet can say so — one string from the
+                     dictionary either way, so nothing about the words moves. */}
+              <span class="rl-idx-title">${
+                _ne(i18t('ng_tracked_head_n', { n: changeTotal }))
+                  .replace(/\s*(\(\d+\))\s*$/, ' <i>$1</i>')}</span>
               ${p.pending ? `<span class="rl-idx-open">${_ne(i18tn('ng_n_open', p.pending, {n:p.pending}))}</span>` : ''}
+              <span class="rl-idx-sp"></span>
             </div>
             ${p.total ? `<div class="rl-idx-bar" role="img"
               aria-label="${_nea(i18t('ng_n_of_m_decided',{done:p.done,total:p.total}))}"><i

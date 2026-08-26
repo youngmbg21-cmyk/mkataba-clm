@@ -1436,18 +1436,19 @@ function renderRegister(opts){
          at 1440: the head ran to 1440 and the band stopped at 1430. That 10px
          step is what read as two cards with a strip between them, and the
          grey showing beside the band is what the second screenshot ringed.
-         THE GUTTER IS DEAD SPACE ON THIS PAGE, which is why turning it off
-         here is honest rather than a workaround: this view is exactly
-         --view-h tall and the TABLE does its own scrolling, so the page
-         scroller can never scroll and has no scrollbar to reserve room for.
-         It is written in the register's own injected <style>, so it goes with
-         the page and the next view gets the shell's rule back untouched.
+         THE GUTTER IS DEAD SPACE ON THIS PAGE: this view is exactly --view-h
+         tall and the TABLE does its own scrolling, so the page scroller can
+         never scroll and has no scrollbar to reserve room for.
+         THE RULE HAS MOVED OUT OF THIS SHEET (25 Aug 2026, second report — the
+         same strip was reported on four more pages). It is VIEW_OWNS_HEIGHT in
+         js/app.js and #content-scroll.view-fixed in index.html now: five views
+         share the one rule rather than each carrying a copy, and 'register' is
+         simply on that list. Nothing about this page's behaviour changed.
          BLEEDING THE BAND INTO THE GUTTER WAS TRIED FIRST AND REJECTED: a
          negative margin does paint into it, and it leaves the scroller with
          10px of horizontal overflow that only overflow-x:hidden can swallow.
          A page that has to hide an overflow to look right is one pixel from
          scrolling sideways. */
-      #content-scroll{scrollbar-gutter:auto}
       .reg-f{display:flex;flex-direction:column;min-width:0}
       .reg-f-l{font-size:var(--t-label);color:var(--color-neutral-600);margin-bottom:3px;white-space:nowrap}
       .reg-stg{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;font-weight:var(--w-body);vertical-align:middle}

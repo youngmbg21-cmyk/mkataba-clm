@@ -332,29 +332,37 @@
        which is the ONLY writer of #body-grid's columns — it writes an inline
        style, so a media query aimed at that element would silently lose. */
     --shell-panel-w:292px;
-    /* THE PLATFORM FACE IS INTER (owner-asked, 22 Aug 2026), replacing SAP's
-       "72", which carried it from 20 Aug. All three tokens point at the one
-       family — headings, body and figures differ by WEIGHT, not by face — and
-       the fallback is the ordinary system stack, which is what emails and bare
-       export windows get since they cannot load a custom face.
+    /* THE PLATFORM FACE IS IBM PLEX SANS (owner-asked, 25 Aug 2026), replacing
+       Inter, which carried it from 22 Aug and SAP's "72" before that. All four
+       face tokens point at the one family — headings, body, figures and the
+       contract paper differ by WEIGHT, not by face — and the fallback is the
+       ordinary system stack, which is what emails and bare export windows get
+       since they cannot load a custom face.
 
-       IT WAS ALREADY HERE. --font-doc has resolved to Inter all along, so the
-       product now runs ONE family end to end rather than two; fonts/fonts.css
-       lost 200 KB by dropping "72" rather than gaining anything.
+       THE REASON IS CHARACTER, not a licence and not legibility. Inter is the
+       default face of modern software, so it reads as well-made and generic;
+       Plex was drawn as a corporate voice and reads institutional, which is
+       what contract software should sound like. MEASURED before it was chosen:
+       legibility is a WASH — the same small-letter height, and a clause of
+       wording takes the same five lines at the same measure, so nothing reads
+       smaller and no page holds less contract. What it buys is about 5% of
+       WIDTH back, which is real headroom in the tight columns and in Swedish.
 
-       THE REASON IS A LICENCE, not a look. "72" is SAP's and is distributed
-       for use with SAP's own software; Inter is under the SIL Open Font
-       License — free commercially, free to embed and serve, nothing owed and
-       nobody to credit on screen. See the note at the top of fonts/fonts.css. */
-    --font-heading:Inter,system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
-    --font-body:Inter,'Segoe UI',system-ui,-apple-system,Arial,sans-serif;
+       THE LICENCE IS THE SAME FOOTING AS BEFORE: IBM Plex Sans is under the SIL
+       Open Font License — free commercially, free to embed and serve, nothing
+       owed and nobody to credit on screen. "72" remains out for the reason it
+       always was: it is distributed for use with SAP's own software, and this
+       is not that. See the note at the top of fonts/fonts.css, which carries
+       the measurements and the one coverage narrowing this swap cost. */
+    --font-heading:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
+    --font-body:'IBM Plex Sans','Segoe UI',system-ui,-apple-system,Arial,sans-serif;
     /* THE FIGURE FACE, not a code face. This token is used ~160 times for
        reference ids, dates, day counts and money — data, not code — so it
-       follows the platform face. Inter's digits sit on one width under
+       follows the platform face. Plex's digits sit on one width under
        `font-variant-numeric:tabular-nums`, which is what the money and count
        columns already ask for, so they line up without borrowing a typewriter
        face to do it. */
-    --font-mono:Inter,system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
+    --font-mono:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
     /* True monospace, kept for the two things that are genuinely code: a
        SHA-256 fingerprint and a keyboard chip. Courier New by the owner's own
        spec — the two deliberate exceptions to the platform face. */
@@ -370,12 +378,12 @@
        .doc-surface size, leading and ink below are unchanged — so the paper
        keeps its own measure even though it shares a family with the app.
 
-       AS OF 22 Aug 2026 THAT SENTENCE IS LITERALLY TRUE: the platform moved to
-       Inter, which is the face this token already named, so paper and product
-       are now the same family rather than two that resemble each other. This
-       token stays a token — the paper's face is its own decision, and pointing
-       both at one family today must not make them one setting tomorrow. */
-    --font-doc:Inter,'Segoe UI',system-ui,-apple-system,Arial,sans-serif;
+       SINCE 22 Aug 2026 THAT SENTENCE IS LITERALLY TRUE: the platform and the
+       paper name one family rather than two that resemble each other — Inter
+       then, IBM Plex Sans since 25 Aug. This token stays a token — the paper's
+       face is its own decision, and pointing both at one family today must not
+       make them one setting tomorrow. */
+    --font-doc:'IBM Plex Sans','Segoe UI',system-ui,-apple-system,Arial,sans-serif;
     --font-doc-mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
 
     /* Document text colour. A solid token, deliberately NOT an opacity
@@ -452,6 +460,26 @@
     /* A full-bleed BAND is not a padded page — the room's head, the negotiation
        head, the calendar head. Its own inset, deliberately wider. */
     --band-pad-x:var(--s-6);
+
+    /* ---- ONE MEASURE FOR THE CONTRACT ROOM'S FOUR TABS (owner-reported
+       25 Aug 2026: "Image 1 shows how far the cards are from the edge … Image 2
+       in the history page shows the space is bigger. Make the history page be
+       close to the edge by the same distance as in image 1") ----
+       The three tabs that cap their width had THREE different caps and nobody
+       had put them side by side. MEASURED at 1500, right-hand gap to the
+       window: Key terms 28px, History 75px, Signing 95px — and at 1920 the
+       spread widens to 125 / 285 / 305, because a cap bites harder the more
+       room there is. So one contract read as three differently-sized pages
+       depending on which tab you were standing on.
+       1440 IS KEPT BECAUSE IT IS KEY TERMS' OWN, and Key terms is the tab the
+       owner named as the reference. Its reasoning is unchanged and is why the
+       cap is not simply deleted: the design's page is 1440 wide, and a
+       key-terms row stretched across an ultra-wide monitor is a label at one
+       end and its value at the other.
+       A TOKEN RATHER THAN THE NUMBER THREE TIMES: this drifted precisely
+       because each tab typed its own, and the next tab added here inherits the
+       decision instead of inventing a fourth. */
+    --room-measure:1440px;
 
     /* CARDS — square, never 16/18. The 2px axis difference in `16px 18px` is
        why the KPI row (12/14) and the pipeline card (16/18) sat out of column. */
@@ -777,6 +805,28 @@
      without a single box moving. */
   .font-600{font-weight:var(--w-strong)}
   .font-700{font-weight:var(--w-title)}
+  /* ---- AND ONE CLASS THAT STILL NAMED THE OLD FACE (25 Aug 2026, the Plex swap) ----
+     The compiled blob above bakes a literal family into three rules:
+     `:host,html`, `.font-display` and `.font-serif`. TWO OF THE THREE WERE
+     ALREADY COVERED and needed nothing: the html one loses to HaTi's own
+     `html{font-family:var(--font-body)}`, and `.font-display` is named
+     outright in the h1-h6 rule a few lines above, which is why every clause
+     heading on the contract paper followed the swap on its own.
+     `.font-serif` DID NOT, and the reason is specificity rather than an
+     oversight. It is worn by `<h3>` elements (js/approvals.js's signing route,
+     js/obligations.js's add-obligation and proposed panels, js/views/settings.js's
+     folder-access sheet), and against an `h3.font-serif` the rule above matches
+     only on `h3` — (0,0,1) — while the blob's `.font-serif` scores (0,1,0) and
+     wins. So those headings went on asking for Inter, which is no longer
+     served, and fell through to 'Segoe UI'/system-ui: the reader's own system
+     font, inside a dialog drawn in Plex. Silent, because a font that resolves
+     is never an error — the `.text-ink` fault in a new costume.
+     DECLARED HERE AND NEVER IN THE BLOB, for the reason stated directly above:
+     it is generated and would drop this on the next build. `.font-serif`
+     pointing at a SANS is the blob's own oddity and predates this — it
+     resolved to the platform face before and does now, so this preserves the
+     behaviour rather than changing it. */
+  .font-serif{font-family:var(--font-heading)}
   /* ---- FOUR MORE CLASSES NOTHING EVER DEFINED (23 Aug 2026) ----
      The `font-600` fault again, and found the same way — by reading the
      rendered page rather than the source. The signing-order card tags each
@@ -1238,6 +1288,17 @@
      screen's edge. One id apiece, and the page's rule comes later in the
      document, so it wins on order with nothing shouted. */
   #content-scroll{scrollbar-gutter:stable;}
+  /* ---- AND IT IS GIVEN BACK WHERE IT CANNOT BE USED (owner-reported 25 Aug
+     2026: "the top card on the right corner … is leaving space in the corner")
+     ----
+     A page that is exactly --view-h tall and scrolls inside itself can never
+     scroll this box, so the reserved channel is dead space — and the white band
+     at the top of it stopped 10px short of the screen. VIEW_OWNS_HEIGHT in
+     js/app.js is the one list of those views and paints this class on every
+     view change; the register used to carry this rule in its own injected sheet
+     and now reads this with the other four. Id + class outranks the id alone,
+     so it wins with nothing shouted. */
+  #content-scroll.view-fixed{scrollbar-gutter:auto;}
   main{scrollbar-width:thin;scrollbar-color:var(--color-neutral-300) transparent;}
 
   /* ============================================================
@@ -1628,8 +1689,28 @@
      rather than a title with a box bolted to its left. .room-back is retired —
      flag any mention as stale. */
   .room-head{ position:relative; }
-  .room-crumb{ flex-basis:100%; display:flex; align-items:center; gap:7px;
-    font-size:var(--t-label); color:var(--color-neutral-500); min-height:16px; margin-bottom:2px; }
+  /* ---- THE HEADER'S FIRST LINE STARTS WHERE THE PADDING PUTS IT (25 Aug 2026,
+     found by the Plex swap) ----
+     The room's first painted glyph is this crumb, not the title, so it is what
+     "every header starts at --page-pad-t" is measured on. TWO THINGS PUT IT
+     WRONG and only the second was the cause — recorded because the first looked
+     like the answer and was not. (1) It named a size and no leading, so it sat
+     a 12px face in an 18px --lh-base line box; stating --lh-tight is right by
+     the rule every page title already follows, and it moved the ink by nothing,
+     because (2) `align-items:center` was doing the positioning. Centring a
+     14.4px line box inside a 16px min-height inserts an 0.8px offset that
+     nothing else on any header has, and against Home — whose 20px glyph sits
+     2px ABOVE its own box, --lh-tight being tighter than Plex's natural
+     ratio — that put the room 2px low. flex-start makes this line start where
+     the block's padding puts it, which is where every other page's first line
+     starts. MEASURED after: Home 14px, room 15px, inside the ±1px the check
+     allows for a Range rect.
+     THE ITEMS ARE ALL ONE SIZE (a button and text separators, all font:inherit)
+     so top-aligning them is identical on screen to centring them — checked in a
+     browser, not assumed. Put an icon in this row and that stops being true. */
+  .room-crumb{ flex-basis:100%; display:flex; align-items:flex-start; gap:7px;
+    font-size:var(--t-label); line-height:var(--lh-tight); color:var(--color-neutral-500);
+    min-height:16px; margin-bottom:2px; }
   .room-crumb button{ font:inherit; color:var(--accent-ink-700); background:none;
     border:0; padding:0; cursor:pointer; max-width:40ch; overflow:hidden;
     text-overflow:ellipsis; white-space:nowrap; }
@@ -2506,7 +2587,7 @@
      exactly where the design stops describing them. */
   .terms-grid{ display:grid;
     grid-template-columns:minmax(0,1.15fr) var(--kt-gap,14px) minmax(0,1fr);
-    gap:0; max-width:1440px; width:100%; margin:0 auto;
+    gap:0; max-width:var(--room-measure); width:100%; margin:0 auto;
     /* A DEFINITE HEIGHT IS WHAT MAKES THE RIGHT COLUMN SCROLL. The pane is a
        flex column; taking its height (flex:1, min-height:0) gives the grid a
        bound to scroll inside instead of a height derived from its own tallest
@@ -2753,16 +2834,29 @@
   .hist-filters{ display:flex; gap:var(--s-2) var(--s-3); flex-wrap:wrap; align-items:flex-end;
     padding:10px var(--s-4); border-bottom:1px solid var(--color-divider); }
   #hist-filters{ margin:0; }
-  .hist-f{ display:flex; flex-direction:column; min-width:0; }
+  /* ---- THE FIVE FILTERS TAKE THE ROW (owner-reported 25 Aug 2026: "space out
+     the filters and make them longer since there is enough space so that when
+     you filter a word you can see it all for the most part") ----
+     MEASURED before: each box drew at its 96px minimum and the five plus Clear
+     used 620px of an 1118px row — a clause name was cut at about ten characters
+     with half the row standing empty beside it.
+     THEY SHARE WHAT THERE IS (flex:1 1 0) rather than taking a bigger fixed
+     number, so the row is right at every width and after the card widened
+     above; the old 150px ceiling is gone, because a ceiling is what left the
+     surplus unused. min-width is the floor at which they stop shrinking and
+     the row wraps instead — the wrap is the narrow-window answer and is kept. */
+  .hist-f{ display:flex; flex-direction:column; flex:1 1 0; min-width:132px; }
   .hist-f > span{ font-size:var(--t-label); font-weight:var(--w-body); letter-spacing:0; text-transform:none;
     color:var(--color-neutral-600); margin-bottom:3px; white-space:nowrap; }
   .hist-f select{ font:inherit; font-size:var(--t-meta); font-weight:var(--w-body); text-transform:none;
     letter-spacing:0; border:1px solid var(--color-divider); border-radius:0;
     padding:5px 9px; background:var(--color-surface); color:var(--color-text);
-    max-width:150px; min-width:96px; }
+    width:100%; min-width:0; }
+  /* Clear is a verb, not a field: it keeps its own size while the five grow. */
+  .hist-filters #ht-clear{ flex:none; }
 
   .sign-grid{ display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);
-    gap:14px; max-width:1080px; width:100%; margin:0 auto; }
+    gap:14px; max-width:var(--room-measure); width:100%; margin:0 auto; }
   @media (max-width:980px){ .sign-grid{ grid-template-columns:1fr; max-width:660px; } }
   .sig-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:11px; }
   .sig-box{ border:1px dashed var(--color-neutral-300); border-radius:0; padding:var(--s-3) 13px;
@@ -3439,7 +3533,18 @@
   .hm-go{position:absolute;top:11px;right:11px;color:var(--color-neutral-400);}
   .hm-tile:hover .hm-go{color:var(--accent-ink);}
   .hm-big{display:flex;align-items:baseline;gap:7px;min-width:0;}
-  .hm-n{font-size:32px;font-weight:var(--w-title);line-height:1.05;color:var(--color-text);
+  /* ---- THE LINE BOX HOLDS THE FACE, NOT THE FACE THAT WAS HERE (25 Aug 2026) ----
+     1.05 was tuned to Inter's metrics and IBM Plex Sans does not fit inside it:
+     MEASURED on the dashboard, the box computed 34px against a scrollHeight of
+     37, and `overflow:hidden` — which is here for the ellipsis, a HORIZONTAL
+     concern — then clipped 3px off the bottom of every big figure on Home.
+     Silent on a tall window and caught by laptops-verify at all five laptop
+     sizes, which is the whole reason that file walks height as well as width.
+     --lh-tight is the product's own rung for this and its comment already names
+     "counts", so this reads the ladder rather than inventing a number: 38.4px
+     against the 37 the face needs. `.hm-m` below carried the identical value
+     for the identical reason and moves with it — one fault, two places. */
+  .hm-n{font-size:32px;font-weight:var(--w-title);line-height:var(--lh-tight);color:var(--color-text);
     font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   /* ---- THE UNIT TAKES ITS NUMERAL'S INK (the black ink, 24 Aug 2026) ----
      "13 agreements", "8 docs", "74 %" — the figure and its unit are one
@@ -3474,7 +3579,7 @@
   .hm-stg.is-zero .hm-bar{background:none;border:1px dashed var(--color-neutral-300);}
   .hm-sl{font-size:var(--t-micro);color:var(--color-neutral-500);line-height:1;white-space:nowrap;}
   .hm-money{flex:1 1 auto;min-width:0;}
-  .hm-m{display:block;font-size:26px;font-weight:var(--w-title);line-height:1.05;white-space:nowrap;
+  .hm-m{display:block;font-size:26px;font-weight:var(--w-title);line-height:var(--lh-tight);white-space:nowrap;
     color:var(--color-text);font-variant-numeric:tabular-nums;}
   .hm-ml{display:block;font-size:var(--t-label);color:var(--color-neutral-500);margin-top:3px;line-height:1.3;}
 

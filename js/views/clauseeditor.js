@@ -106,7 +106,29 @@ const clauseEditorContract = () => _ceC;
    ========================================================================== */
 function clauseEditorCss(){
   return `<style id="ce-style">
-  #clause-editor{position:fixed; inset:0; z-index:55; display:flex; flex-direction:column;
+  ${''/* ---- IT COVERS THE PAGE, NOT THE SHELL (owner-asked 25 Aug 2026, off a
+         screenshot with the nav column and the top bar ringed: "the highlighted
+         bars (nav panel and the top panel) have to be on screen when you are in
+         the editing with copilot") ----
+         THIS REVERSES "the nav column and the shell bar step out while you are
+         here", and only that half of it: the render's own move of the shell's
+         brand and controls INTO this page is still not taken, for the reason
+         written above — it is a live DOM move of elements other renderers
+         repaint. What changes is where the cover starts. MEASURED before:
+         fixed at 0,0 over the whole 1500x1000 window, and probing the middle
+         of the shell bar and of the nav column returned this page's own
+         content, so both really were hidden rather than merely overdrawn.
+         THE BOX IS MEASURED, NEVER TYPED — ceFitToShell reads #content-scroll's
+         own rect and writes it here. The nav has three states (240px column,
+         64px rail, and a floating layer below 1440), so a typed inset would be
+         right in one of them and wrong in the other two; the scroller is the
+         one element that already answers for all three.
+         z-index 54, DOWN FROM 55, and that is what lets the floating nav drawer
+         open OVER this page rather than under it — #side-nav is 55 below the
+         float line and this page is later in the document, so at equal weight
+         it would have won. Still above the Copilot drawer (50) and the activity
+         panel (46), and still below modal-root and the toasts. */}
+  #clause-editor{position:fixed; inset:0; z-index:54; display:flex; flex-direction:column;
     background:var(--color-bg); color:var(--color-text);
     font-family:var(--font-body, inherit)}
   #clause-editor[hidden]{display:none}
@@ -152,12 +174,18 @@ function clauseEditorCss(){
   .ce-ostat.neu{color:var(--color-neutral-600)}
   .ce-ostat.neu i{background:var(--color-neutral-500)}
   .ce-head .ce-acts{flex:none; display:flex; align-items:center; gap:var(--s-3)}
-  .ce-head .ce-acts .ce-act-plain{background:none; border:0; padding:2px 0; font:inherit;
-    font-size:var(--t-meta); font-weight:var(--w-strong); color:var(--accent-ink)}
-  .ce-head .ce-acts .ce-act-plain:hover{text-decoration:underline}
   /* THE WAY BACK, DRESSED LIKE THE DOOR IT MIRRORS — the tab row's own
-     #ws-to-nego, whose metrics the owner named as the model. */
-  .ce-head .ce-acts .ce-back-btn{flex:none; font-size:var(--t-body); padding:7px 14px}
+     #ws-to-nego, whose metrics the owner named as the model.
+     NOT BOLD (owner-asked 25 Aug 2026: "Remove bold lettering from the back to
+     negotiations as well … the same size font like the other buttons in the
+     platform"). MEASURED against the negotiation head's own row: those are
+     14px at --w-body and this was 14px at 600, so it read heavier than every
+     button the owner was comparing it with. .ui-btn's base weight is 600 and
+     .ui-btn-lg's is --w-body; this takes the head row's answer.
+     .ce-act-plain is STALE — the row's other button has gone; flag any
+     mention. */
+  .ce-head .ce-acts .ce-back-btn{flex:none; font-size:var(--t-body); font-weight:var(--w-body);
+    padding:7px 14px}
   .ce-say{flex:0 1 auto; min-width:0; max-width:300px; font-size:var(--t-label); color:var(--accent-ink);
     font-weight:var(--w-strong); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     opacity:0; transition:opacity var(--dur-2)}
@@ -707,6 +735,42 @@ function clauseEditorHtml(){
    to — and the clause panel they came from is still standing behind this, so
    closing lands them exactly where they started.
    ========================================================================== */
+/* ---- THE PAGE IS FITTED TO THE CONTENT AREA, MEASURED (owner-asked 25 Aug
+   2026 — see the stylesheet's note at #clause-editor) ----
+   #content-scroll is the shell's own content box: below the top bar, right of
+   whatever the nav currently is. Reading its rect is what makes this right in
+   all three nav states without a number typed anywhere, and it is the pattern
+   this page already uses for every other geometry (_rlAvail, regFitBandOffset,
+   ktFitSplit).
+   A BOX OF ZERO IS NOT A BOX — the standing rule. If the scroller has not been
+   laid out yet the page keeps inset:0 and the next observation corrects it,
+   which is strictly better than pinning it to nothing. */
+function ceFitToShell(){
+  if (typeof document === 'undefined') return;
+  const page = document.getElementById('clause-editor');
+  const sc = document.getElementById('content-scroll');
+  if (!page || !sc || !page.style || !sc.getBoundingClientRect) return;
+  const r = sc.getBoundingClientRect();
+  if (!(r.width > 0 && r.height > 0)) return;
+  page.style.inset = 'auto';
+  page.style.left = Math.round(r.left) + 'px';
+  page.style.top = Math.round(r.top) + 'px';
+  page.style.width = Math.round(r.width) + 'px';
+  page.style.height = Math.round(r.height) + 'px';
+}
+/* OBSERVED, NOT MEASURED ONCE. The rail opens and closes, the window resizes,
+   and the float line moves the nav in and out of the page's flow — every one of
+   those resizes the scroller and none of them tells this page. Bound ONCE on
+   the element (the dataset flag), because rlOpenClauseEditor runs on every
+   opening and a second observer per opening is a listener stack. */
+function ceObserveShell(){
+  if (typeof document === 'undefined' || typeof ResizeObserver === 'undefined') return;
+  const sc = document.getElementById('content-scroll');
+  if (!sc || !sc.dataset || sc.dataset.ceFitBound) return;
+  sc.dataset.ceFitBound = '1';
+  try{ new ResizeObserver(() => ceFitToShell()).observe(sc); }catch(_){}
+}
+
 function rlOpenClauseEditor(c, clauseId, opts = {}){
   const refusal = clauseEditorRefusal(c, opts);
   if (refusal){ if (window.toast) toast(refusal, 'err'); return false; }
@@ -742,6 +806,7 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
   document.body.appendChild(page);
   document.body.classList.add('ce-open');
   ceWirePage(page);
+  ceFitToShell(); ceObserveShell();
   /* The greeting goes in BEFORE the first paint rather than after it — drawing
      an empty lane and then filling it is two paints for one arrival. */
   _ceThread.push({ who: 'ai', greeting: true });
@@ -825,14 +890,21 @@ function ceRenderHead(){
   /* The acts a negotiator reaches for while READING — never the ones that
      change the wording. Those are the one act in the rail's foot. */
   const acts = _ceQ('#ce-headacts');
+  /* ---- ONE WAY OUT, DRESSED LIKE THE DOOR IT MIRRORS ----
+     .ui-btn with the tab-row door's own metrics, because the owner named that
+     button as the model. It REPLACES the old Close: both did the same thing,
+     and two controls that leave the same page is precisely the duplication
+     reported on the contract room the same morning.
+     ---- AND PLAYBOOK SCAN HAS GONE FROM THIS ROW (owner-asked 25 Aug 2026:
+     "remove the playbook scan on the left because it is a duplicate") ----
+     It carried data-ce-tab="scan" — the SAME attribute, the same handler and
+     the same act as the Playbook scan tab at the top of the Copilot rail, so
+     pressing it changed a panel on the far side of the screen. Nothing is lost:
+     the rail's own tab is the one door and it is on screen throughout.
+     `.ce-act-plain` went with it — it had no other caller — so a control cannot
+     come back wearing a dress nobody remembered writing. */
   if (acts) acts.innerHTML =
-    `<button type="button" class="ce-act-plain" data-ce-tab="scan">${_cet('ce_tab_scan')}</button>`
-    /* ---- ONE WAY OUT, DRESSED LIKE THE DOOR IT MIRRORS ----
-       .ui-btn with the tab-row door's own metrics, because the owner named
-       that button as the model. It REPLACES the old Close: both did the same
-       thing, and two controls that leave the same page is precisely the
-       duplication reported on the contract room the same morning. */
-    + `<button type="button" class="ui-btn ce-back-btn" data-ce-act="close">${
+    `<button type="button" class="ui-btn ce-back-btn" data-ce-act="close">${
       _cet('ce_back_negotiation')}</button>`;
 
   const f = _ceLead;

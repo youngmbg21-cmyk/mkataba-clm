@@ -395,11 +395,18 @@ const CARD_EDIT = async () => {
      worth keeping — removing an element is exactly the kind of change that
      silently relies on a flex rule that went with it.
 
-     RE-POINTED 25 Aug 2026 to the owner's own drawing of this column: the
-     card's top block is .rl-card-txt (a meta line over a bold summary) and the
-     state sits in the action ROW under it, .rl-card-foot. The claim is
-     unchanged and is now about the CARD rather than one row of it — no pill,
-     and a monstrous name still has nowhere to shove the state off the card. */
+     RE-POINTED 25 Aug 2026 to the design reference: our seat's row is
+     .rl-card-txt (a reference line over a bold summary) beside .rl-card-side
+     (the state, the verbs, the ⋯), on hairlines rather than in a box. So two
+     of the three claims move home and neither loses anything:
+       · "the status badge is still on the row" becomes "the ACTS group is" —
+         the badge itself stands down under the two headings that already say
+         it (see f246), and what the check has always been for is that a
+         monstrous name cannot shove the acts off the row;
+       · "the coloured left edge still marks it as theirs" becomes the ORIGIN
+         ATTRIBUTE plus the words on the meta line. The spine went with the box
+         — the reference draws neither — and the channel the pill's removal
+         rested on is the attribute, which no renderer can forget to draw. */
   const badges = await page.evaluate(() => {
     /* A company name long enough to have been a problem, pushed through the
        real renderer rather than hoped for in the fixture. */
@@ -411,17 +418,17 @@ const CARD_EDIT = async () => {
     renderRedline();
     const card = document.querySelector('#rl-changes [data-rl-origin="them"]');
     if (!card) return null;
-    const st = card.querySelector('.rl-badge');
     const meta = card.querySelector('.rl-card-meta');
     /* .rl-card-txt on our seat, .rl-card-top on the counterparty's — one file,
        both shapes, so the claim reads whichever this page drew. */
     const top = card.querySelector('.rl-card-txt, .rl-card-top');
-    const head = card.getBoundingClientRect();
+    const acts = card.querySelector('.rl-card-side, .rl-card-verbs');
+    const box = card.getBoundingClientRect();
     return { pill: !!card.querySelector('.rl-origin'),
       headText: top.textContent.replace(/\s+/g, ' ').trim(),
-      statusOnRow: st.getBoundingClientRect().right <= head.right + 1,
-      spine: getComputedStyle(card).borderLeftColor,
-      spineW: getComputedStyle(card).borderLeftWidth,
+      actsOnRow: !!acts && acts.getBoundingClientRect().right <= box.right + 1
+        && acts.getBoundingClientRect().width > 0,
+      origin: card.getAttribute('data-rl-origin'),
       meta: (meta ? meta.textContent : '').replace(/\s+/g, ' ').trim(),
       metaTitle: meta ? (meta.getAttribute('title') || '') : '' };
   });
@@ -431,9 +438,9 @@ const CARD_EDIT = async () => {
     check('10 THE ORIGIN PILL IS GONE FROM THE HEAD', !badges.pill && !/ask/i.test(badges.headText),
       badges.headText);
     check('10 and a monstrous company name no longer has anywhere to shove anything',
-      badges.statusOnRow, `status on row: ${badges.statusOnRow}`);
-    check('10 the coloured left edge still marks it as theirs',
-      parseFloat(badges.spineW) >= 2 && !!badges.spine, `${badges.spineW} ${badges.spine}`);
+      badges.actsOnRow, `acts on row: ${badges.actsOnRow}`);
+    check('10 the row still knows whose ask it is',
+      badges.origin === 'them', badges.origin);
     /* RE-POINTED 16 Aug 2026: the routing row's visible meta line is the
        clause; the organisation moved into that line's HOVER (and, in words,
        into the clause panel's row). The claim — the monstrous name is still

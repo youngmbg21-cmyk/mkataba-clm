@@ -147,7 +147,12 @@ const VISIBLE = `(el) => {
     const after = await page.evaluate(() => {
       const card = document.querySelector('.redline-page .rl-card');
       return { verbs: [...card.querySelectorAll('.rl-card-verbs button')].map(b => b.textContent.trim()),
-        badge: (card.querySelector('.rl-badge') || {}).textContent.trim(),
+        /* THE STATUS WORD STANDS DOWN under the two headings that already say
+           it (the design reference's own rule, f246) — an ask back on the
+           table sits under AWAITING YOU and draws none. An absent word is
+           exactly as good for this claim as one that no longer says Refused,
+           and the empty string reads that way. */
+        badge: ((card.querySelector('.rl-badge') || {}).textContent || '').trim(),
         status: getContract(state.activeId).changes.slice(-1)[0].status,
         reopen: !!card.querySelector('[data-rl-reopen]') };
     });

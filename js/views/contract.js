@@ -6079,7 +6079,7 @@ function renderWorkspace(){
              The pane carries no padding of its own now: the head, the filters
              and each row are ruled edge to edge, which is the design's own
              shape and cannot be done from a padded box. */}
-      <div id="ws-history-pane" style="${CARD};align-self:start;max-width:1120px;width:100%;margin:0 auto"></div>
+      <div id="ws-history-pane" style="${CARD};align-self:start;max-width:var(--room-measure);width:100%;margin:0 auto"></div>
       ${''/* The audit-trail CARD has gone: its entries are on the one timeline
              now, marked as system events. The element stays, empty and hidden,
              because renderAuditSection is called from a dozen places and a

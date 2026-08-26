@@ -89,18 +89,44 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
   await page.click('#reg-adapt-done');
   await page.waitForTimeout(700);
   ok('ticking Renewal puts it on the bar', (await onBar()).renewal === true);
-  /* AND IT COSTS A SECOND LINE AT 1440, WHICH IS THE HONEST CLAIM AND NOT A
-     FAILURE. A sixth filter does not fit beside the other five at this width
-     — that is exactly the constraint WO-15 was up against. The difference is
-     that the reader is now making that trade knowingly and on their own
-     browser, rather than the filter being unreachable for everyone. The
-     DEFAULT bar is what must stay on one line, and section 1 pins that. */
-  const withSix = await barLines();
-  ok('a sixth filter costs a second line at 1440 — the reader\'s own trade',
-     withSix === 2, withSix + ' line(s)');
-  await page.setViewportSize({ width: 1760, height: 900 });
-  await page.waitForTimeout(500);
-  ok('and it fits on one line again on a wider screen', (await barLines()) === 1, (await barLines()) + ' line(s)');
+  /* THIS PINNED THE COST — a sixth filter took a second line at 1440, which
+     was the honest claim when it was written and is the very constraint WO-15
+     was up against. It is REVERSED IN PLACE 26 Aug 2026, and by somebody
+     else's change rather than by this file: the register's rows came down a
+     rung (WO-16, owner-asked) and the bar's own controls with them, so six
+     filters now fit at 1440 where five barely did.
+     A COST THAT HAS GONE IS NOT A FAILURE, and pinning it would make the next
+     type change look like a regression. WHAT THE CLAIM PROTECTS IS UNCHANGED
+     and is asserted the other way up: whatever the reader chooses, the bar
+     never hides a filter and never scrolls the page sideways — it wraps if it
+     must. The DEFAULT staying on one line is section 1's claim and is the one
+     that carries the owner's ruling. */
+  const six = await page.evaluate(() => {
+    const bar = document.querySelector('.reg-filterbar');
+    const el  = document.getElementById('reg-renewal');
+    if (!bar || !el) return null;
+    const b = bar.getBoundingClientRect(), r = el.getBoundingClientRect();
+    return { drawn: r.width > 0 && r.height > 0,
+             inside: r.right <= b.right + 1 && r.bottom <= b.bottom + 1,
+             wide: document.documentElement.scrollWidth <= window.innerWidth + 1,
+             lines: 0 };
+  });
+  ok('the sixth filter the reader chose is drawn, whole, inside the bar',
+     !!six && six.drawn && six.inside, JSON.stringify(six));
+  ok('and choosing it never makes the page scroll sideways', !!six && six.wide);
+  for (const w of [1760, 1366]) {
+    await page.setViewportSize({ width: w, height: 900 });
+    await page.waitForTimeout(500);
+    const st = await page.evaluate(() => {
+      const bar = document.querySelector('.reg-filterbar');
+      const el  = document.getElementById('reg-renewal');
+      if (!bar || !el) return null;
+      const b = bar.getBoundingClientRect(), r = el.getBoundingClientRect();
+      return { drawn: r.width > 0, inside: r.right <= b.right + 1 && r.bottom <= b.bottom + 1,
+               wide: document.documentElement.scrollWidth <= window.innerWidth + 1 };
+    });
+    ok('and it still holds at ' + w, !!st && st.drawn && st.inside && st.wide, JSON.stringify(st));
+  }
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.waitForTimeout(400);
 

@@ -101,6 +101,23 @@ describe('f246 (1) — the column names itself, and the name carries the total',
     const p = await bench();
     assert.match(p.$('.rl-idx-foot').textContent, /\d+ of \d+/);
   });
+
+  test('the title sits on its own rule, and "N open" is an amber dot and word', () => {
+    /* The reference draws the title as the column's one tab — a 2px accent
+       rule under the words — and the open count as a warning rather than as a
+       block: it shipped as a dark green chip, which read as the loudest object
+       on a column whose job is the cards. */
+    const t = NCSS.slice(NCSS.indexOf('.redline-page .rl-idx-title{'),
+      NCSS.indexOf('.redline-page .rl-idx-title i{'));
+    assert.match(t, /border-bottom:2px solid var\(--accent-solid\)/, 'the title is a tab');
+    assert.match(t, /margin-bottom:-1px/, 'sitting ON the head\'s hairline, not above it');
+    const o = NCSS.slice(NCSS.indexOf('.redline-page .rl-idx-open{'),
+      NCSS.indexOf('.redline-page .rl-idx-open::before'));
+    assert.match(o, /color:var\(--st-amber-fg\)/, 'amber, the product\'s own "waiting on you"');
+    assert.match(o, /background:none/, 'and not a filled chip');
+    assert.match(NCSS.slice(NCSS.indexOf('.redline-page .rl-idx-open::before')),
+      /border-radius:50%/, 'with a dot, the same mark the rows carry');
+  });
 });
 
 /* ========================================================== 2 — WHOSE ASKS */
@@ -219,23 +236,39 @@ describe('f246 (3) — the four bands', () => {
 
 /* ================================================================ 4 — CARD */
 describe('f246 (4) — the card is a meta line, a summary and an action row', () => {
-  test('the text block sits above the acts, never beside them', async () => {
-    /* MEASURED, not chosen: side by side at the divider's resting 460px the
-       acts want about 300 and the text got barely a hundred, so every card
-       read "CHG-006 · Cla…" over "hand, by c…" — the two things the reader is
-       there to read, both cut. The claim is the RELATION: the text comes
-       first in the card and the action row after it. */
+  test('the row is the text and the acts, side by side and not stacked', async () => {
+    /* THE REFERENCE'S OWN SHAPE, and a first pass got it wrong twice. It was
+       built side by side, MEASURED as crushed — every card reading
+       "CHG-006 · Cla…" over "hand, by c…" — and stacked into two rows. That
+       was the right measurement and the wrong conclusion: what was eating the
+       row was HaTi's BORDERED buttons and its filled provenance strip, neither
+       of which the reference carries. Take those two off and it fits. Fix the
+       cause, not the symptom. .rl-card-foot is STALE. */
     const p = await bench();
     const card = p.$('#rl-changes .rl-card-d');
-    assert.ok(card, 'our seat draws the drawing\'s card');
+    assert.ok(card, 'our seat draws the drawing\'s row');
     const txt = card.querySelector('.rl-card-txt');
-    const foot = card.querySelector('.rl-card-foot');
-    assert.ok(txt && foot);
-    assert.equal(txt.compareDocumentPosition(foot) & 4, 4, 'the text is first');
+    const side = card.querySelector('.rl-card-side');
+    assert.ok(txt && side, 'the text and the acts');
+    assert.equal(txt.compareDocumentPosition(side) & 4, 4, 'the text comes first');
     assert.equal(txt.parentElement, card, 'and neither is inside the other');
-    assert.equal(foot.parentElement, card);
-    assert.equal(card.querySelector('.rl-card-line'), null,
-      'the one-row shape is gone — .rl-card-line is stale');
+    assert.equal(side.parentElement, card);
+    assert.equal(card.querySelector('.rl-card-foot'), null,
+      'the stacked shape is gone — .rl-card-foot is stale');
+  });
+
+  test('and it is a ROW, not a card — no box, no spine', async () => {
+    /* The reference draws hairline-separated rows on the column's own
+       surface. Read off the sheet, because a rule that loses a cascade fight
+       looks perfectly correct in the source — the computed half is measured in
+       redline-verify. */
+    const i = NCSS.indexOf('.redline-page .rl-card-d{');
+    assert.ok(i > -1, 'the row has a rule');
+    const rule = NCSS.slice(i, NCSS.indexOf('}', i));
+    assert.match(rule, /border:0/, 'no box');
+    assert.match(rule, /background:none/, 'no fill');
+    assert.match(rule, /box-shadow:none/, 'no lift');
+    assert.match(rule, /border-top:1px solid/, 'a hairline between rows instead');
   });
 
   test('the meta line names the change and its clause; the summary says what it is for', async () => {
@@ -249,19 +282,42 @@ describe('f246 (4) — the card is a meta line, a summary and an action row', ()
       'and the bold line is the change\'s own summary, quoted, never composed here');
   });
 
-  test('every card says where it stands, and it is the ONE status slot', async () => {
-    /* Suppressing the word under the heading that seems to repeat it was
-       tried and reversed: .rl-badge is this card's one status slot, half the
-       product asks that slot where a change stands, and a card that only
-       reads correctly under its own heading cannot be read anywhere else. */
+  test('the state draws where it adds something, and is the ONE status slot', async () => {
+    /* THE REFERENCE'S OWN RULE. Under AWAITING YOU and YOUR DRAFTS it shows no
+       state word at all — the heading has said which pile this is, and the row
+       is the reference, the summary and the verbs. It appears the moment it
+       carries a fact the heading does not: Sent, Refused, Accepted, a
+       reviewer's name. So the two bands it stands down under are exactly the
+       two whose badge word IS the heading, and every other state still draws.
+
+       WHEREVER IT DRAWS IT IS STILL .rl-badge AND ITS OWN TONE — half this
+       product and half the suite ask that slot where a change stands, and a
+       first pass that invented .rl-state broke about a dozen of them. */
     const p = await bench();
+    const unsent = new Set(p.win.negoUnsentAsks(p.c, 'owner').map(x => x.id));
+    let drawn = 0;
     for (const card of p.$$('#rl-changes .rl-card-d')){
+      const ch = p.c.changes.find(x => x.id === card.getAttribute('data-nego-card'));
+      const band = p.win.rlCardBand(ch, 'owner', unsent, null);
       const b = card.querySelector('.rl-badge');
-      assert.ok(b && b.textContent.trim(), 'the state is on the card');
-      assert.match(b.className, /rl-badge-(sent|draft|ok|no)/, 'wearing its own tone');
+      if (b){
+        drawn++;
+        assert.match(b.className, /rl-badge-(sent|draft|ok|no)/, 'wearing its own tone');
+        assert.ok(b.textContent.trim(), 'and saying a word');
+      } else {
+        assert.ok(band === 'awaiting' || band === 'drafts',
+          'a state only stands down where the heading already says it');
+      }
+      assert.ok(card.querySelectorAll('.rl-badge').length <= 1, 'never twice');
     }
     assert.equal(p.$('#rl-changes .rl-state'), null,
       '.rl-state was a second status element and is retired');
+    /* AND IT REALLY DOES DRAW SOMEWHERE — a rule that stood every state down
+       would satisfy the loop above and say nothing. */
+    p.win.negoHandOver(p.c, { to: 'counterparty' });
+    p.again();
+    assert.ok(p.$('#rl-changes .rl-card-d .rl-badge'),
+      'a sent ask says so, because its heading does not');
   });
 
   test('the verbs are untouched — the same engine attributes, on one row', async () => {
@@ -270,8 +326,8 @@ describe('f246 (4) — the card is a meta line, a summary and an action row', ()
       .find(el => el.querySelector('[data-nego-accept]'));
     assert.ok(theirs, 'their ask still offers a decision');
     assert.ok(theirs.querySelector('[data-nego-reject]'), 'both ways');
-    assert.ok(theirs.querySelector('.rl-card-foot .rl-card-verbs'),
-      'and the verbs are in the action row');
+    assert.ok(theirs.querySelector('.rl-card-side .rl-card-verbs'),
+      'and the verbs are beside the text');
     const mine = p.$$('#rl-changes .rl-card-d')
       .find(el => el.querySelector('[data-rl-send]'));
     assert.ok(mine, 'our draft still carries its own Send');
@@ -284,9 +340,12 @@ describe('f246 (4) — the card is a meta line, a summary and an action row', ()
     const card = p.$$('#rl-changes .rl-card-d').find(el => el.querySelector('.rl-card-info'));
     if (!card) return;                       // the fixture may carry none
     const info = card.querySelector('.rl-card-info');
-    const foot = card.querySelector('.rl-card-foot');
-    assert.equal(info.compareDocumentPosition(foot) & 4, 4,
-      'a caution reads before the buttons it is about');
+    assert.equal(info.parentElement, card, 'the strip is the row\'s own child');
+    /* It takes the whole width and drops UNDER the row, which is what keeps
+       the row a row. */
+    const i = NCSS.indexOf('.redline-page .rl-card-d .rl-card-info,');
+    assert.ok(i > -1);
+    assert.match(NCSS.slice(i, NCSS.indexOf('}', i)), /flex:1 0 100%/);
   });
 });
 
@@ -301,6 +360,32 @@ describe('f246 (5) — the overflow menu', () => {
     assert.ok(rows[0].hasAttribute('data-rl-cp-editor-row'), 'and Copilot is first');
     assert.equal(rows[0].getAttribute('data-rl-cp-editor-change'),
       card.getAttribute('data-nego-card'), 'named for this change');
+  });
+
+  test('Copilot is violet, and a rule groups the two doors from the two acts', () => {
+    /* The reference draws this row in the Copilot colour rather than the
+       workspace accent — the same violet .rl-btn-alt has carried since the
+       playbook pass — and groups the menu: the two ways INTO this change's
+       wording, then the two things you do about it. */
+    const i = NCSS.indexOf('.redline-page .rl-more-row.rl-more-lead{');
+    assert.ok(i > -1);
+    const rule = NCSS.slice(i, NCSS.indexOf('}', i));
+    assert.ok(!/--accent/.test(rule), 'not the workspace accent');
+    assert.match(rule, /color:#6d28d9/, 'the Copilot violet');
+    assert.ok(NCSS.includes('html.dark .redline-page .rl-more-row.rl-more-lead'),
+      'with a night answer');
+    assert.ok(NCSS.includes('.redline-page .rl-more-row.rl-more-cut{'),
+      'and the group rule exists');
+  });
+
+  test('the rule is drawn on the row that OPENS the second group, never stray', async () => {
+    const p = await bench();
+    for (const menu of p.$$('#rl-changes .rl-more-menu')){
+      const rows = [...menu.querySelectorAll('.rl-more-row')];
+      const cuts = rows.filter(r => r.classList.contains('rl-more-cut'));
+      assert.ok(cuts.length <= 1, 'at most one rule per menu');
+      if (cuts.length) assert.notEqual(rows[0], cuts[0], 'never on the first row');
+    }
   });
 
   test('the menu names the change it belongs to', async () => {
@@ -397,7 +482,7 @@ describe('f246 (6) — the counterparty\'s column is untouched', () => {
 describe('f246 (7) — the rules that draw it', () => {
   test('every new rule is scoped to this page and to this card', () => {
     for (const sel of ['.rl-band', '.rl-card-d .rl-card-meta', '.rl-card-d .rl-card-sum',
-                       '.rl-card-d .rl-card-foot', '.rl-more-menu', '.rl-idx-fk'])
+                       '.rl-card-d .rl-card-side', '.rl-more-menu', '.rl-idx-fk'])
       assert.ok(NCSS.includes('.redline-page ' + sel),
         `${sel} is written for the negotiation page`);
   });
@@ -409,23 +494,52 @@ describe('f246 (7) — the rules that draw it', () => {
       'so the four tone rules give it its colour for free');
   });
 
-  test('the summary is allowed two lines and the meta line one', () => {
-    const sum = NCSS.slice(NCSS.indexOf('.redline-page .rl-card-d .rl-card-sum'),
-      NCSS.indexOf('.redline-page .rl-card-d .rl-card-foot'));
-    assert.match(sum, /-webkit-line-clamp:2/, 'the summary may wrap once');
-    const meta = NCSS.slice(NCSS.indexOf('.redline-page .rl-card-d .rl-card-meta'),
-      NCSS.indexOf('.redline-page .rl-card-d .rl-card-sum'));
-    assert.match(meta, /white-space:nowrap/, 'the reference is one line and elides');
+  test('both lines are one line each, and they elide', () => {
+    /* The reference's row is exactly two lines tall — the reference over the
+       summary — with the acts level beside them. A summary allowed to wrap
+       would take the acts with it. */
+    for (const k of ['.rl-card-meta', '.rl-card-sum']){
+      const i = NCSS.indexOf('.redline-page .rl-card-d ' + k + '{');
+      assert.ok(i > -1, k + ' has a rule');
+      const rule = NCSS.slice(i, NCSS.indexOf('}', i));
+      assert.match(rule, /white-space:nowrap/, k + ' is one line');
+      assert.match(rule, /text-overflow:ellipsis/, 'and elides');
+    }
   });
 
-  test('the verbs are NOT stripped of their borders here', () => {
-    /* 24 Aug's owner ruling — "all the buttons should have a similar border
-       line" — is not this ask's to reverse, and the ask was about the column's
-       layout. The card's rule only puts the verbs on one row. */
-    const i = NCSS.indexOf('.redline-page .rl-card-d .rl-card-verbs{');
+  test('the text claims what is LEFT, not its own content width', () => {
+    /* BASIS ZERO, NOT AUTO. With basis auto a flex item's base size is its
+       max-content, and on a long summary the base sizes overflow the line and
+       the acts wrap underneath — the stacked card coming back through the
+       other door. */
+    const i = NCSS.indexOf('.redline-page .rl-card-d .rl-card-txt{');
     assert.ok(i > -1);
+    assert.match(NCSS.slice(i, NCSS.indexOf('}', i)), /flex:1 1 0/);
+  });
+
+  test('the verbs are bare coloured words on this row, and only on this row', () => {
+    /* The reference's own drawing. It does NOT reverse 24 Aug's "every button
+       carries the head row's line": that ruling was about the HEAD ROW, and
+       applying it here was the wrong precedent — three bordered buttons are
+       what crushed the text this row exists to show. Scoped to .rl-card-d, so
+       the counterparty's card and every head row keep their outlines. */
+    const i = NCSS.indexOf('.redline-page .rl-card-d .rl-card-verbs button{');
+    assert.ok(i > -1, 'the verbs have a rule of their own on this row');
     const rule = NCSS.slice(i, NCSS.indexOf('}', i));
-    assert.ok(!/border\s*:/.test(rule), 'this card takes no view on the verbs\' outlines');
+    assert.match(rule, /border:0/, 'no outline');
+    assert.match(rule, /background:none/, 'and no fill');
+    assert.ok(!NCSS.includes('.redline-page .rl-card-verbs button{border:0'),
+      'and the base rule is untouched, so the other seat keeps its own');
+  });
+
+  test('a settled change reads quietly', () => {
+    const i = NCSS.indexOf('.redline-page .rl-card-d.rl-card-done .rl-card-sum{');
+    assert.ok(i > -1, 'the Decided band greys its summaries');
+    /* RE-POINTED on the merge, 25 Aug 2026 — PIN THE RELATION, NOT THE NUMBER.
+       The weight sweep gave 1,065 declarations the ladder, so a settled
+       summary now reads var(--w-body), which IS 400. The claim is that it
+       drops back to the regular weight, and that is what is asserted. */
+    assert.match(NCSS.slice(i, NCSS.indexOf('}', i)), /font-weight:var\(--w-body\)/);
   });
 });
 

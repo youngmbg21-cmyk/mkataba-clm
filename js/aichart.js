@@ -104,7 +104,10 @@ const _acGrid = { color: 'rgba(38,55,74,.08)' };
    and a font swap would come through the same token). */
 function _acRefreshFont(){
   if (typeof Chart === 'undefined' || !Chart.defaults) return;
-  const fam = _acVar('--font-body', "Inter,'Segoe UI',system-ui,-apple-system,Arial,sans-serif");
+  /* THE FALLBACK FOLLOWS THE PLATFORM FACE (25 Aug 2026, the Plex swap). The
+     token is what actually answers; this is only for a stage that has no
+     :root, and a stale fallback there names a face that is no longer served. */
+  const fam = _acVar('--font-body', "'IBM Plex Sans','Segoe UI',system-ui,-apple-system,Arial,sans-serif");
   Chart.defaults.font.family = fam;
   Chart.defaults.color = AC_INK;
 }
