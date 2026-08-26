@@ -7825,3 +7825,54 @@ the first pile heading and every edge still lines up.
   progress to report". That foot no longer exists as of c86aa44, and the filter
   it names was retired the same morning. Stale on both counts; not this
   session's to rewrite.
+
+## 26 Aug 2026 — Edit with Copilot becomes the paper (WORKORDER-clause-editor-on-the-paper.md)
+
+The clause editor's two stacked boxes became the contract itself, with the
+product's own three readings above it and Copilot unchanged down the right.
+Built after the owner ruled on the three open decisions.
+
+Defects found and fixed on the way, each reproduced or measured before it was
+touched:
+
+- **The marks had no colour on the new page.** `.nego-ins` / `.nego-del` are
+  unscoped and read four tokens the negotiation ROOM declares on its own
+  selectors, so on a page with no room around it the colour declaration was
+  dropped outright and every insertion and deletion came out in the document's
+  own ink. The four are declared in the redline page's own sheet now; f36 reads
+  the two blocks against each other, value for value.
+- **`rlReadMode` was never published to window**, so the clause editor's reads
+  of it were silence: the draft would have answered 'marks' on every reading in
+  the real app, and the page underneath would never have been brought back in
+  step. **The browser file passed on it** — those harnesses load these files as
+  classic scripts, where every top-level function really is a global. f232 is
+  what caught it.
+- **The draft ignored the reading.** The three readings governed every clause on
+  the paper except the one the reader was working on.
+- **The draft's own acts had to stand down with the caret.** A band reading
+  "This page is not editable" over a live Save button is a page arguing with
+  itself; Apply, Undo, Discard and File now go through the same predicate the
+  pencil and the caret do.
+- **`ceSelection`, `cePullText` and the in-place popup were anchored to a box
+  that no longer exists** — re-pointed at the clause's own body on the paper.
+
+Noticed, not fixed:
+
+- `npm run lint` reports four pre-existing duplicate-key errors in js/i18n.js
+  (`co_password_updated` and `act_next`, each in both dictionaries). They
+  reproduce on an untouched tree and are not this run's.
+- **SIX BROWSER FILES ARE RED AND NOT ONE OF THEM IS THIS RUN'S. PROVED, NOT
+  ASSERTED**: a worktree was made at this branch's parent commit and each file
+  was run there, and every one came back with the identical count and the
+  identical failing checks. They are the same morning's WHOSE ASKS retirement
+  and the settled-piles rebuild on main, which moved the tracked-changes column
+  under nets nobody re-pointed.
+  - `flat-rows-and-alerts-verify` 34/37 — the retired filter (2d, 2e, 2f)
+  - `pages-read-alike-verify` 47/50 — the negotiation head wrapping
+  - `reopen-a-refusal-verify` 12/15 — Reopen's row and its dress
+  - `room-order-and-notices-verify` 28/29 — the retired All/Mine/Theirs cuts
+  - `settled-ask-reopen-verify` 11/12 — an adopted change now HAS a card
+  - `portal-header-verbs-verify` 29/30 — the retired unsent band
+  Every browser file this change could touch is green: clause-editor 75,
+  redline 164, clause-door 99, parity 44, nego-redesign 52,
+  counterparty-reading-and-more 63, theme-tokens 40/40, six-fixes 20.

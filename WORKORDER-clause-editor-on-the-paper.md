@@ -7,9 +7,25 @@ at `e0c2ce2` as this was written).
 `https://claude.ai/code/artifact/877214ce-b253-40b3-9102-17f888923af0`.
 The earlier side-by-side proposal (`44ac19aa…`) is SUPERSEDED and is kept only
 as the record of a direction the owner looked at and did not take.
-**Status:** **READY TO BUILD — all three decisions ruled, 26 Aug 2026. No code
-until the owner says begin.** The rulings are recorded at the foot of this file
-in the owner's own words.
+**Status:** **BUILT, 26 Aug 2026.** All three decisions were ruled first and are
+recorded at the foot of this file in the owner's own words. The rulebook entry
+is under EDIT WITH COPILOT IS A PAGE, NOT A DRAWER; what follows is the plan as
+it was approved, kept because the reasoning is the useful part.
+
+**WHAT THE BUILD FOUND THAT THE PLAN DID NOT.** Three things, each said out loud
+rather than absorbed:
+1. **The draft ignored the reading.** Phase 2 said the readings govern the
+   document and Phase 3 said the draft is drawn from live ops; nobody joined
+   them, so the one clause the reader was working on was the one clause that did
+   not obey the tab they had just pressed. Caught by driving it.
+2. **The marks had no colour.** `.nego-ins` / `.nego-del` read tokens declared on
+   the negotiation room's own selectors, so on a page with no room around it the
+   colour declaration was dropped and the redline came out in document ink.
+   Clothes-follow-the-builder, one layer deeper than this plan looked.
+3. **The acts had to stand down with the caret.** A band reading "This page is
+   not editable" over a live Save is a page arguing with itself. Phase 4 said
+   pencil and caret; it needed Apply, Undo, Discard and File too, which is one
+   predicate rather than four.
 
 ---
 

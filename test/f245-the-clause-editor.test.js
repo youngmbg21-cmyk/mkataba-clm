@@ -150,15 +150,15 @@ describe('f245 (3) — Apply is the only thing that moves the wording', () => {
   test('it stacks, and Undo steps back one at a time', async () => {
     const p = await bench(); wide(p.win);
     assert.ok(p.win.rlOpenClauseEditor(p.c, firstClauseId(p), {}), 'the page opens');
-    const base = p.doc.querySelector('#ce-prop').textContent;
+    const base = p.doc.querySelector('#ce-clausebody').textContent;
     p.win.ceApply('First go at it.', 'one');
     p.win.ceApply('Second go at it.', 'two');
-    assert.ok(/Second go at it/.test(p.doc.querySelector('#ce-prop').textContent));
+    assert.ok(/Second go at it/.test(p.doc.querySelector('#ce-clausebody').textContent));
     p.win.ceUndo();
-    assert.ok(/First go at it/.test(p.doc.querySelector('#ce-prop').textContent),
+    assert.ok(/First go at it/.test(p.doc.querySelector('#ce-clausebody').textContent),
       'one step back, not all the way');
     p.win.ceUndo();
-    assert.ok(!/First go at it/.test(p.doc.querySelector('#ce-prop').textContent));
+    assert.ok(!/First go at it/.test(p.doc.querySelector('#ce-clausebody').textContent));
     assert.ok(base.length > 0);
     p.win.rlCloseClauseEditor();
   });
@@ -168,7 +168,7 @@ describe('f245 (3) — Apply is the only thing that moves the wording', () => {
     p.win.rlOpenClauseEditor(p.c, firstClauseId(p), {});
     p.win.ceApply('Something else entirely.', 'x');
     p.win.ceDiscard();
-    const shown = p.doc.querySelector('#ce-prop').textContent;
+    const shown = p.doc.querySelector('#ce-clausebody').textContent;
     assert.ok(!/Something else entirely/.test(shown), 'the draft is gone');
     p.win.rlCloseClauseEditor();
   });
@@ -217,7 +217,7 @@ describe('f245 (5) — sub-paragraph lines survive', () => {
     /* Joined rather than deepEqual'd, for the cross-realm reason above. */
     assert.equal([...p.win.ceLines()].join('|'), '(a) The first limb.|(b) The second limb.',
       'two lines in, two lines held');
-    const boxes = [...p.doc.querySelectorAll('#ce-prop p')];
+    const boxes = [...p.doc.querySelectorAll('#ce-clausebody p')];
     assert.ok(boxes.length >= 2, 'and two blocks drawn — a numbered limb is what a contract is cited by');
     p.win.rlCloseClauseEditor();
   });

@@ -11,6 +11,8 @@
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const { buildWorld, supplyContract } = require('./world');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const BASE = [
   'WAREHOUSING AND LOGISTICS SERVICES AGREEMENT',
@@ -744,6 +746,44 @@ describe('the room wears the prototype\'s visual language, and keeps it to itsel
     for (const sel of selectors)
       assert.ok(/nego|^from$|^to$/.test(sel),
         `every selector must be namespaced to the component — found "${sel}"`);
+  });
+
+  /* ---- AND THE PAGE'S OWN COPY AGREES WITH IT, VALUE FOR VALUE (26 Aug 2026)
+     ----
+     .nego-ins and .nego-del are UNSCOPED and read four tokens the ROOM
+     declares. The redline PAGE draws that same paper, and on the clause editor
+     there is no room around it — so those declarations resolved to nothing and
+     the marks came out in the document's own ink. The page declares the four in
+     its OWN sheet, because the room's may not name another component's selector
+     (that is the check directly above, and it caught this).
+     TWO DECLARATIONS OF ONE FACT IS EXACTLY WHAT THIS FILE WARNS ABOUT, so the
+     two are read against each other here rather than trusted: a contract must
+     not read in two palettes depending on which page it was opened from. */
+  test('the paper\'s mark tokens agree with the room\'s, value for value', () => {
+    /* READ FROM SOURCE, both of them: this is a claim about two DECLARATIONS
+       agreeing, and both live in one file. Calling the two builders would need
+       a stage that has mounted both sheets, which is a heavier instrument for a
+       lighter question. */
+    const src = fs.readFileSync(
+      path.join(__dirname, '..', 'js', 'views', 'negotiation-css.js'), 'utf8');
+    const read = (anchor, label) => {
+      const at = src.indexOf(anchor);
+      assert.ok(at >= 0, `${label} block is where this test expects it`);
+      const body = src.slice(src.indexOf('{', at) + 1, src.indexOf('}', at));
+      const out = {};
+      for (const m of body.matchAll(/(--n-(?:ins|del)-(?:bg|fg))\s*:\s*([^;}]+)/g))
+        out[m[1]] = m[2].trim();
+      return out;
+    };
+    const room = read('.nego-room, #nego-root, .nego-selmenu, .nego-aipop{', 'the room\'s');
+    const page = read('.redline-page{\n    --n-ins-bg', 'the redline page\'s');
+    const KEYS = ['--n-ins-bg', '--n-ins-fg', '--n-del-bg', '--n-del-fg'];
+    for (const k of KEYS){
+      assert.ok(room[k], `the room declares ${k}`);
+      assert.equal(page[k], room[k],
+        `${k} must be the same on both sheets — one contract, one palette, `
+        + 'whichever page it was opened from');
+    }
   });
 
   test('the floating layers can reach the tokens they are painted with', async () => {

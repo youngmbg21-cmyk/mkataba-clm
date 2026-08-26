@@ -3132,7 +3132,110 @@ THE PANEL IS WHERE YOU WRITE (owner-asked 16 Aug 2026: "Now build the editing in
 
 ## EDIT WITH COPILOT IS A PAGE, NOT A DRAWER (owner-approved prototype, 25 Aug 2026 — "The Clause Journey")
 
-The panel's Copilot button used to hand the clause to the Copilot DRAWER, which is a chat about a clause you cannot see. It opens **js/views/clauseeditor.js** instead: the whole window goes to one clause — the wording as it stands above the wording being proposed, the marks computed between them, and Copilot down a third of the screen. Six of the journey's thirteen steps needed nothing built; what is new is **one page and two doors**.
+The panel's Copilot button used to hand the clause to the Copilot DRAWER, which is a chat about a clause you cannot see. It opens **js/views/clauseeditor.js** instead: the whole window goes to one clause, with Copilot down a third of the screen. Six of the journey's thirteen steps needed nothing built; what is new is **one page and two doors**.
+
+**THE MIDDLE OF IT IS THE CONTRACT NOW (owner-asked 26 Aug 2026, over two rounds
+of drawing — WORKORDER-clause-editor-on-the-paper.md):** *"There is no current
+wording vs proposed wording windows. Just one screen in which you can edit like
+you were able to edit in the proposed wording. It should also include the
+redlined, as agreed and with changes features but the difference is that the
+copilot window sits on the right to help with the editing."* **This REVERSES the
+two stacked boxes IN PLACE and keeps everything else in this section** — the
+cover, the rail, the third, Apply, the funnel, the reason step, the two doors —
+because none of that was what the owner was looking at.
+
+- **IT IS THE PRODUCT'S OWN CANVAS, NOT A THIRD RENDERER.** `redlineDocHtml`,
+  the same builder the negotiation page and the counterparty's page draw,
+  wrapped in `.redline-page` / `.rl-doc` / `.nego-scroll` so it borrows the
+  paper's own sheet rather than growing a second set that agrees today.
+  `.ce-box`, `.ce-stands`, `.ce-prop`, `.ce-bh`, `.ce-seg`, `#ce-stands`,
+  `#ce-prop`, `ce_as_it_stands`, `ce_proposed`, `ce_view_redlines` and
+  `ce_view_edit` are STALE — flag any mention; the two keys are left inert in
+  both dictionaries.
+- **THE ONE HARD PART IS A DRAFT THAT IS NOT ON THE RECORD YET**, and it was
+  stated before it was planned around. Every mark that canvas draws belongs to a
+  change that has been FILED, and this rulebook forbids re-diffing there in so
+  many words — *a mark drawn from a fresh diff would not be the mark the other
+  side verified*. The editor's whole point is the opposite: you type and you see
+  what your typing WOULD do. **THE SEAM IS A BODY, NOT A DIFF**: `opts.live =
+  {clauseId, html}` — the caller hands over finished markup for exactly ONE
+  clause and the canvas draws it where that clause goes. Nothing there computes
+  it, nothing stores it, it dies with the page. **FOUR PROPERTIES, each true by
+  construction rather than by care**: one clause; a filed change's marks still
+  come from its own stored ops; it never persists (it is a string on its way to
+  innerHTML); and the counterparty cannot reach it — they have no editor here
+  and never pass it, which is asserted rather than assumed.
+- **THE THREE READINGS ARE `rlReadSegsHtml`, IN ITS THIRD HOME** — never a
+  second control. The two-way Redlines|Edit toggle it replaces is retired with
+  the box it sat in: **editing is no longer a VIEW of a box, it is what the paper
+  does.** `_ceEditing` is whether the one clause is typeable; `rlReadMode` is how
+  the whole document is drawn. Two questions, two answers.
+- **AND THE DRAFT ANSWERS THE READING TOO.** A first build drew the draft's
+  marks in all three, so the one clause the reader was working on was the one
+  clause that did not obey the tab they had just pressed. As agreed = what the
+  clause says today (a draft nobody has filed is not in the agreement); With
+  changes = the draft as ordinary wording. Both go through the same op renderer
+  with the two texts equal, which is how they inherit the hanging indents and the
+  sub-paragraph shape the rest of the paper has.
+- **THE PENCIL IS THE PRODUCT'S OWN, AND A CALLER MAY SAY WHAT ITS OWN ONE
+  DOES.** `rlClauseEditPillHtml` gained `opts.pill = {attr, label, title,
+  pressed}`, and `redlineDocHtml` routes all four of its clause branches through
+  one `pillFor`. Here it turns typing on and off; on another clause it MOVES the
+  page to that clause, through `ceGoClause` — the same act the crumb's dropdown
+  performs, because a second copy is how the two come to disagree about what an
+  unfinished draft costs. Its words may be a FUNCTION of the clause, or one
+  pencil tells nineteen clauses it will do something it will not. Absent the
+  hook, the control is byte for byte what it always was.
+- **PHASE 4 IS ONE PREDICATE, ASKED IN THREE PLACES.** `ceEditableReading()` —
+  As agreed and With changes draw the paper without its marks, so anything typed
+  there would be measured against a document the reader is not being shown. The
+  pencil stands down inside `rlClauseEditPillHtml` (so this page inherits the
+  rule rather than remembering to ask it), the caret stands down at the paint,
+  **`ceApply` REFUSES IN WORDS** — it is the third door into the wording and a
+  rule kept in two of three places is not a rule — and Undo, Discard and File
+  grey with the reason on the hover, because a band saying *not editable* over a
+  live Save is a page arguing with itself. The cost is one press and it is the
+  honest one: file from the reading that shows you what you are filing.
+- **THE BAND IS `rlReadNoticeHtml`, ITS BODY BACK FOR ONE SURFACE.** Owner-asked,
+  in the owner's own words — *"this page is not editable - back to redline"*,
+  SIMPLY, so it is one sentence and one button. `opts.on` is what protects the
+  negotiation page's own retirement: the notice stack calls it with nothing and
+  still gets nothing. It passes both halves of the standing band test — it says
+  something no control on that screen says (the pencil is hover-only since this
+  morning, so nothing on a refusing reading looks missing), and the way back is
+  ON it, pressing `data-rl-read`, the reading tabs' own attribute. **On Redlined
+  it draws nothing at all**, so it cannot become furniture.
+- **NO QUEUE RAIL** (owner-ruled: *"Should not be in the edit page"*). The
+  round's reading order stays on the negotiation page, where a round is worked
+  through; this page is about one clause. Nothing is built and nothing is left
+  dormant, and its ABSENCE is asserted.
+- **THE READING IS THE PRODUCT'S, NOT THIS PAGE'S** — and that costs one line.
+  `rlSetReadMode` repaints the negotiation page's TAB ROW while this page covers
+  it, so a reader leaving on As agreed would come back to a page whose tabs said
+  one thing over a document still carrying its marks. The reading at OPEN is
+  remembered and closing repaints the page below **only when it actually moved**.
+- **AND THE BROWSER FILE PASSED ON A FAULT THE REAL APP WOULD HAVE HAD — f232
+  is what caught it, and this is the lesson worth more than the feature.** This
+  page reads the negotiation view's readings through `window`, and `rlReadMode`
+  was NOT on its export list. In the product that is `undefined`, so the draft
+  would have answered 'marks' on every reading and the page underneath would
+  never have been brought back in step — the rlPaperFootHtml class, silently.
+  **The browser harnesses load these files as CLASSIC SCRIPTS**, where every
+  top-level function really is a global, so `window.rlReadMode` resolved there
+  and every claim about the readings passed. **A browser file cannot see an
+  unpublished name; only the sweep can.** Run f232 before believing a green
+  browser run on anything that crosses a module boundary.
+- **THE MARKS HAD NO COLOUR ON ARRIVAL, and it is the clothes-follow-the-builder
+  lesson one layer deeper.** `.nego-ins` / `.nego-del` are UNSCOPED and read
+  `--n-ins-fg` / `--n-del-fg`, which are declared on `.nego-room, #nego-root,
+  …` — so on the negotiation page they resolve because the paper sits inside
+  `#nego-root`, and on a page with no room around it the colour declaration was
+  dropped outright and every insertion and deletion came out in the document's
+  own ink: a redline with no red in it. `.redline-page` joined that token list.
+  **ON THE NEGOTIATION PAGE THIS MOVES NOTHING** and that is what makes it safe
+  rather than convenient — `#nego-root` is nearer the marks and defines the same
+  values, and no rule scoped to `.redline-page` reads an n-token at all.
+  Measured before it was written; the colour census stayed 40/40 throughout.
 
 - **THE PAGE COVERS THE PAGE, NOT THE SHELL — REVERSED IN PLACE 25 Aug 2026** (owner-asked, off a screenshot with both ringed: *"the highlighted bars (nav panel and the top panel) have to be on screen when you are in the editing with copilot"*). **ONLY THE COVER MOVED; THE HALF THAT MATTERED IS UNCHANGED**: the approved render moves the shell's own brand and controls into this page's two bars, that is a live DOM move of elements other renderers repaint, and it is still deliberately not taken. What changed is where the cover starts. MEASURED before: fixed at 0,0 over the whole window, and probing the middle of the shell bar and of the nav column returned this page's own content — both were genuinely hidden. **THE BOX IS MEASURED, NEVER TYPED** — `ceFitToShell` reads `#content-scroll`'s own rect and writes left/top/width/height, with a ResizeObserver bound ONCE on that element. The nav has three states (240px column, 64px rail, a floating layer below 1440), so a typed inset would be right in one and wrong in two; the scroller is the one element that already answers for all three. A rect of zero is refused — the standing rule. **z-index 54, DOWN FROM 55**, and that is what lets the floating nav drawer open OVER this page: `#side-nav` is 55 below the float line and this page is later in the document, so at equal weight it won. Still above the Copilot drawer (50) and the activity panel (46), still below modal-root and the toasts. Mounted on demand and REMOVED on close — the DOM cost is zero when nobody is in it, and there is no half-built page for another renderer to walk into.
 - **THE RAIL RUNS FLOOR TO CEILING, AND THAT IS THE ONE THING TO GET RIGHT** (owner-corrected repeatedly on the prototype, and reported again the day this shipped: *"Confirm the copilot window on the far right goes all the way to the top"*). It did not: the crumb, the title and the fact row were written as a FULL-WIDTH header above both columns, so the rail started **172px down** — MEASURED before it was touched. The header sits INSIDE the left column now and `.ce-grid` is the page's only region, so the rail is 0 to the window's own bottom. **ANYTHING NEW THAT SPANS "THE WHOLE PAGE" GOES IN THE LEFT COLUMN TOO** — that is the rule, and a full-width strip added above the grid later would push the rail down again by exactly its own height. Pinned as a geometry in clause-editor-verify (2d2/2d3), which reports the rail's top and bottom against the page's own, so it can never regress silently.
@@ -3184,7 +3287,7 @@ The panel's Copilot button used to hand the clause to the Copilot DRAWER, which 
 
 **WHAT IS DELIBERATELY NOT DONE, said out loud:** the counterparty's page is untouched, as agreed — the editor refuses their seat outright and the ✦ is never drawn on it; there is no phone layout, and below 1024px the door is not offered; and the answers Copilot gives are only as good as the instruction behind them, which has been written but not yet tested against a shelf of real clauses.
 
-Tests: f245 (37), f176 (widened — every branch of the head declines that door), clause-editor-verify (56, browser — the rail measured floor to ceiling AND at one third, the chips proved to take one line, the redline proved to DRAW with its marks coloured and struck, and the whole journey driven: open, apply, apply again, undo, save, say why, file, and the change on the record with the panel back up behind it), clause-door-verify 8d REVERSED IN PLACE (the destination moved; the corner-dropdown report it was written for is still exactly what is pinned), redline-verify's hand-over block reversed the same way, f48 / f232 / f148 / f100 each catching one real fault on the first run.
+Tests: f245 (37, with its two-box claims re-pointed at the paper — the claim was never the boxes, it was that the reader can see their draft marked against what stands), f232 (the three reading names published, or the reads are silence), f148 (both languages), f176 (widened — every branch of the head declines that door), clause-editor-verify (74, browser — the rail measured floor to ceiling AND at one third, the chips proved to take one line, the redline proved to DRAW with its marks coloured and struck, and the whole journey driven: open, apply, apply again, undo, save, say why, file, and the change on the record with the panel back up behind it), clause-door-verify 8d REVERSED IN PLACE (the destination moved; the corner-dropdown report it was written for is still exactly what is pinned), redline-verify's hand-over block reversed the same way (its "the clause's own wording is on screen beside the rail" claim re-pointed off the retired upper box onto the clause the page is about), f48 / f232 / f148 / f100 each catching one real fault on the first run. **The 26 Aug rebuild added clause-editor-verify sections 12a-12n (14 claims, every one MEASURED BEHAVIOUR rather than a class): the clause opens typeable, the pencil is the product's own control, typing produces a live mark, the three readings really change what the paper draws, nothing on a refusing reading takes a caret, Apply is refused there and the wording provably does not move, the acts grey with their reason, the band draws with its way back and draws NOTHING on Redlined, the negotiation page's own retirement still holds, the queue rail is absent, the pencil on another clause moves the page, and leaving on a clean reading leaves the page underneath in step.** Two of them failed against my own first attempt and each named a real fault — the draft ignoring the reading, and the marks arriving only when you stop typing. **Node 4663/4663. Browser: every file this change can touch is green — clause-editor 75, redline 164, clause-door 99, parity 44, nego-redesign 52, counterparty-reading-and-more 63, theme-tokens 40/40, six-fixes 20. Six files are red and NOT ONE IS THIS RUN'S** — each was re-run in a worktree at the parent commit and came back with the identical count and the identical failing checks; they are the same morning's WHOSE ASKS retirement and settled-piles rebuild, and they are listed by name in BUGLOG.
 
 FIVE THINGS OFF FIVE SCREENSHOTS (owner-asked 16 Aug 2026). Together they finish the paper's half of the clause-panel design.
 

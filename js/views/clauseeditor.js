@@ -65,11 +65,30 @@ let _ceC = null;            /* the contract */
 let _ceClauseId = null;     /* which clause — null means the page is shut */
 let _ceOpts = null;         /* the mount's opts, so filing carries the same author */
 let _ceAgain = null;        /* the caller's repaint */
+/* ---- THE READING IS THE PRODUCT'S, NOT THIS PAGE'S ----
+   rlReadMode is one value for the whole product and this page is the third
+   surface to draw it, which is right: it is the same contract and a reader who
+   asks to see it clean means it. The cost is that the negotiation page
+   UNDERNEATH does not repaint while this page is over it — and rlSetReadMode
+   does repaint its tab row, so left alone the reader would come back to a page
+   whose tabs said "As agreed" over a document still carrying its marks. That is
+   precisely the fault the reading notice was written for: a document silently
+   disagreeing with the control above it.
+   So the reading at OPEN is remembered, and closing repaints the page below
+   only when it actually moved. */
+let _ceRead0 = null;
 let _ceBase = '';           /* the wording AS IT STANDS (negoClauseNowById) */
 let _ceText = '';           /* the wording being proposed */
 let _ceSteps = [];          /* [{label, text}] — Apply stacks, Undo steps back */
 let _ceStep = 0;
-let _ceView = 'redlines';   /* redlines | edit */
+/* ---- IS THE CLAUSE BEING TYPED IN RIGHT NOW ----
+   The two-way Redlines|Edit toggle this replaces was a reading of a BOX; with
+   the paper in its place there are two different questions and they need two
+   different answers. How the whole DOCUMENT is drawn is rlReadMode — the
+   product's own three readings, shared with the negotiation page. Whether the
+   one clause you came in on is typeable is this, and the control for it is the
+   pencil already on that clause. */
+let _ceEditing = false;
 let _ceTab = 'chat';        /* chat | scan */
 let _ceThread = [];         /* the conversation, this sitting only */
 let _ceBusy = false;
@@ -261,39 +280,41 @@ function clauseEditorCss(){
     color:#fff}
   .ce-railfoot button[disabled]{opacity:.45}
 
-  /* the two boxes fill the column, so the foot really sits at the foot. The
-     standing wording is REFERENCE and the proposed wording is where the work
-     happens, so the top box takes only the height it needs — capped, so a long
-     clause scrolls inside itself rather than squeezing the box below. */
-  .ce-left{flex:1; min-width:0; min-height:0; display:flex; flex-direction:column;
-    gap:14px; padding:14px var(--s-4) var(--s-4)}
-  .ce-box{min-height:0; display:flex; flex-direction:column; background:var(--color-surface);
-    border:1px solid var(--color-divider)}
-  .ce-box.ce-stands{flex:0 1 auto; max-height:34%}
-  .ce-box.ce-prop{flex:1 1 auto; min-height:0; position:relative}
-  .ce-box .ce-bh{flex:none; display:flex; align-items:center; gap:10px; padding:var(--s-2) var(--s-3);
-    border-bottom:1px solid var(--color-divider)}
-  .ce-box .ce-bh .k{font-size:var(--t-micro); font-weight:var(--w-title); letter-spacing:.09em; text-transform:uppercase;
-    color:var(--color-neutral-600); white-space:nowrap}
-  .ce-box .ce-bh .g{flex:1; min-width:4px}
-  /* both boxes are white — the cream paper tint reads as a document surface,
-     and on this page the wording is being WORKED on rather than read as paper */
-  .ce-box .ce-bd{flex:1; min-height:0; overflow:auto; padding:14px var(--s-4);
-    background:var(--color-surface); font-size:var(--t-card); line-height:1.8}
-  .ce-box .ce-bd:focus{outline:none; box-shadow:inset 0 0 0 2px var(--accent-solid)}
-  .ce-box .ce-bd p{margin:0 0 .7em}
-  .ce-box .ce-bd p:last-child{margin-bottom:0}
-  .ce-box .ce-bd del{color:var(--st-ruby-fg); text-decoration:line-through}
-  .ce-box .ce-bd ins{color:var(--st-green-fg); text-decoration:none; font-weight:var(--w-strong)}
-  .ce-box .ce-bd del + ins{margin-left:.3em}
-  .ce-box.ce-stands .ce-bd{color:var(--color-neutral-600)}
+  /* ---- THE MIDDLE OF THE PAGE IS THE CONTRACT (owner-asked 26 Aug 2026) ----
+     "There is no current wording vs proposed wording windows. Just one screen
+     in which you can edit like you were able to edit in the proposed wording."
 
-  /* the two readings of the lower box — the product's own tab treatment */
-  .ce-seg{display:flex; gap:var(--s-4)}
-  .ce-seg button{background:none; border:0; padding:2px 1px; font:inherit; font-size:var(--t-meta);
-    color:var(--color-text); border-bottom:2px solid transparent}
-  .ce-seg button.is-on{font-weight:var(--w-title); color:var(--accent-ink);
-    border-bottom-color:var(--accent-solid)}
+     So the two stacked boxes are gone and what fills the column is
+     redlineDocHtml's own output — the product's ONE contract canvas, the same
+     one the negotiation page and the counterparty's page draw. It is wrapped
+     in .redline-page because that is where the paper's own sheet is scoped, and
+     it carries .rl-doc and .nego-scroll for the same reason: this page borrows
+     the paper's rules rather than growing a second set that agrees today.
+
+     .ce-box, .ce-stands, .ce-prop, .ce-bh and .ce-seg are STALE with the boxes
+     they dressed. */
+  .ce-left{flex:1; min-width:0; min-height:0; display:flex; flex-direction:column;
+    gap:10px; padding:12px var(--s-4) var(--s-4)}
+  .ce-readbar{flex:none; display:flex; align-items:center; gap:var(--s-3); min-height:26px}
+  .ce-readbar .g{flex:1; min-width:4px}
+  .ce-band{flex:none}
+  .ce-band:empty{display:none}
+  /* The paper's own frame. position:relative because the one-sentence popup
+     hangs inside it — it used to hang inside .ce-box.ce-prop, and a popup
+     measured from a box that no longer exists lands in the corner. */
+  .ce-paperwrap{flex:1; min-width:0; min-height:0; display:flex; position:relative;
+    background:var(--color-surface); border:1px solid var(--color-divider)}
+  .ce-paperwrap .rl-doc{flex:1; min-width:0; min-height:0}
+  /* THE CLAUSE BEING TYPED IN, marked so a reader can see at a glance which of
+     twenty clauses this page is about. Quiet on purpose: the paper already
+     draws its own red margin rule for a clause under change, and a second loud
+     marker for one fact is what this rulebook keeps warning about. */
+  .ce-paperwrap .rl-clause-live{position:relative}
+  .ce-paperwrap .rl-clause-live::before{content:""; position:absolute; left:-14px; top:-6px;
+    bottom:-6px; width:3px; background:var(--accent-solid)}
+  .ce-paperwrap .ce-typing{outline:none; box-shadow:0 0 0 2px var(--accent-solid);
+    background:var(--color-surface); padding:8px 10px; margin:-8px -10px}
+  .ce-paperwrap .ce-typing:focus{box-shadow:0 0 0 2px var(--accent-solid)}
   .ce-stat{font-size:var(--t-label); font-weight:var(--w-title); white-space:nowrap}
   .ce-stat .i{color:var(--st-green-fg)} .ce-stat .d{color:var(--st-ruby-fg)}
   .ce-stat .ce-none{color:var(--color-neutral-600); font-weight:var(--w-body)}
@@ -687,23 +708,23 @@ function clauseEditorHtml(){
     </div>
     <div class="ce-ctx" id="ce-ctx"></div>
         <div class="ce-left">
-          <section class="ce-box ce-stands">
-            <div class="ce-bh"><span class="k">${_cet('ce_as_it_stands')}</span>
-              <span class="g"></span><span class="k" id="ce-stands-k"></span></div>
-            <div class="ce-bd" id="ce-stands"></div>
-          </section>
-          <section class="ce-box ce-prop">
-            <div class="ce-bh">
-              <span class="k">${_cet('ce_proposed')}</span>
-              <span class="g"></span>
-              <span class="ce-seg" id="ce-seg" role="group"
-                aria-label="${_ceea(_cet('ce_reading_group'))}">
-                <button type="button" data-ce-view="redlines">${_cet('ce_view_redlines')}</button>
-                <button type="button" data-ce-view="edit">${_cet('ce_view_edit')}</button>
-              </span>
-              <span class="ce-stat" id="ce-stat"></span>
+    ${''/* ---- THE THREE READINGS, FROM THE PRODUCT'S OWN BUILDER ----
+           Redlined / As agreed / With changes, drawn by rlReadSegsHtml — the
+           same control the negotiation page and the counterparty's header
+           carry, so this is its third home rather than a second control that
+           agrees today. The clothes follow the builder, which is a fault this
+           page has already paid for twice.
+
+           The two-way Redlines|Edit toggle it replaces is retired with the box
+           it sat in: editing is no longer a VIEW of a box, it is what the paper
+           does, and the pencil on the clause is what turns it on. */}
+          <div class="ce-readbar" id="ce-readbar"></div>
+          <div class="ce-band" id="ce-band"></div>
+          <div class="redline-page ce-paperwrap">
+            <div class="rl-doc">
+              <div class="nego-scroll" id="ce-doc"
+                aria-label="${_ceea(_cet('ce_paper_label'))}"></div>
             </div>
-            <div class="ce-bd" id="ce-prop"></div>
             <div class="ce-inline" id="ce-inline">
               <span class="q" id="ce-inline-q"></span>
               <div class="row">
@@ -716,7 +737,7 @@ function clauseEditorHtml(){
               <div class="chips" id="ce-inline-chips"></div>
               <div id="ce-inline-note"></div>
             </div>
-          </section>
+          </div>
           <div class="ce-reason" id="ce-reason" hidden>
             <label for="ce-why">${_cet('ng_why_this_change')}</label>
             <textarea id="ce-why" rows="2"
@@ -812,6 +833,7 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
   const probeC = c, probeId = String(clauseId || '');
   if (!probeId){ if (window.toast) toast(_cet('ce_no_clause'), 'err'); return false; }
   _ceC = probeC; _ceClauseId = probeId; _ceOpts = opts || {};
+  try{ _ceRead0 = window.rlReadMode ? rlReadMode() : null; }catch(_){ _ceRead0 = null; }
   _ceAgain = typeof opts.again === 'function' ? opts.again
     : (window.renderRedline ? () => renderRedline() : () => {});
   const cl = ceClause();
@@ -828,12 +850,25 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
   _ceStep = _ceSteps.length - 1;
   _ceOpenText = _ceText;   /* the mark clauseEditorDirty measures against */
   _ceSavedAt = _ceText !== _ceBase ? ceNowHm() : null;
-  _ceView = 'redlines';
+  /* THE CLAUSE YOU CAME IN ON OPENS TYPEABLE. This page was pressed to change
+     wording; arriving on a read-only contract and having to find the pencil
+     first is a step nobody asked for. It stands down by itself on a reading
+     that refuses editing — ceEditableReading is asked at the paint. */
+  _ceEditing = true;
   _ceTab = opts.tab === 'scan' ? 'scan' : 'chat';
   _ceThread = []; _ceBusy = false; _ceScanBusy = false; _ceScanErr = null; _ceReason = false; _ceSel = null;
   _ceScan = null;
 
   ceEnsureStyle();
+  /* ---- THE PAPER'S OWN SHEET, ASKED FOR RATHER THAN ASSUMED ----
+     The middle of this page is redlineDocHtml's output and its rules live in
+     the negotiation page's two stylesheets, scoped to .redline-page. Both are
+     injected into <head> and both are idempotent, so asking here costs nothing
+     on the ordinary route (this page is reached from the negotiation page,
+     which has already injected them) and is what stops a stage that mounts
+     this page alone drawing a contract with no rules on it. */
+  try{ if (window.negoEnsureStyle) negoEnsureStyle(); }catch(_){}
+  try{ if (window.redlineLayoutCss) redlineLayoutCss(); }catch(_){}
   const old = document.getElementById('clause-editor');
   if (old) old.remove();
   const holder = document.createElement('div');
@@ -847,6 +882,10 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
      an empty lane and then filling it is two paints for one arrival. */
   _ceThread.push({ who: 'ai', greeting: true });
   ceRenderAll();
+  /* THE CLAUSE YOU CAME IN ON IS WHAT THIS PAGE IS ABOUT, and on a long
+     contract it can be twenty clauses down. Bringing it into view is the whole
+     difference between arriving at the clause and arriving at the contract. */
+  ceScrollToClause();
   const back = page.querySelector('[data-ce-act="close"]');
   if (back && back.focus){ try{ back.focus({ preventScroll: true }); }catch(_){ try{ back.focus(); }catch(_e){} } }
   return true;
@@ -857,6 +896,9 @@ function rlCloseClauseEditor(opts = {}){
   if (page) page.remove();
   document.body.classList.remove('ce-open');
   const again = _ceAgain;
+  let readMoved = false;
+  try{ readMoved = _ceRead0 != null && window.rlReadMode && rlReadMode() !== _ceRead0; }catch(_){}
+  _ceRead0 = null;
   _ceC = null; _ceClauseId = null; _ceOpts = null; _ceAgain = null;
   _ceThread = []; _ceSteps = []; _ceStep = 0; _ceSel = null; _ceLead = null;
   _ceOpenText = '';
@@ -864,7 +906,7 @@ function rlCloseClauseEditor(opts = {}){
   clearTimeout(_ceSayTimer);
   /* A repaint only where something actually moved. Closing without filing must
      leave the page underneath exactly as it was, scroll position included. */
-  if (opts.repaint && typeof again === 'function'){ try{ again(); }catch(_){} }
+  if ((opts.repaint || readMoved) && typeof again === 'function'){ try{ again(); }catch(_){} }
 }
 function ceNowHm(){
   const d = new Date();
@@ -881,7 +923,7 @@ function ceNowHm(){
 const _ceQ = sel => { const p = document.getElementById('clause-editor'); return p ? p.querySelector(sel) : null; };
 
 function ceRenderAll(){
-  ceRenderHead(); ceRenderBoxes(); ceRenderFoot(); ceRenderTabs(); ceRenderLane(); ceRenderChips();
+  ceRenderHead(); ceRenderPaper(); ceRenderFoot(); ceRenderTabs(); ceRenderLane(); ceRenderChips();
 }
 
 function ceRenderHead(){
@@ -912,8 +954,6 @@ function ceRenderHead(){
   }
   const title = _ceQ('#ce-title');
   if (title) title.textContent = ceClauseLabel(cl) || _cet('ce_this_clause');
-  const standsK = _ceQ('#ce-stands-k');
-  if (standsK) standsK.textContent = ceClauseLabel(cl) || '';
 
   /* Whose move, from the change record and not from a second reading of it. */
   const theirs = on.some(x => x.authorSide === 'counterparty');
@@ -979,30 +1019,135 @@ function ceRenderHead(){
   }
 }
 
-function ceRenderBoxes(){
+/* ---- MOVING TO ANOTHER CLAUSE IS ONE ACT, NOT TWO ----
+   The crumb's dropdown and the pencil on another clause both mean "work on
+   that one instead", and both go through here — a second copy is how the two
+   come to disagree about what an unfinished draft costs. Reopening is what
+   resets the whole page: the wording, the step stack, the Copilot thread and
+   the change this editor is speaking for. */
+function ceGoClause(clauseId){
+  if (!clauseEditorOpen() || !clauseId || clauseId === _ceClauseId) return;
+  const c = _ceC, opts = _ceOpts;
+  rlCloseClauseEditor();
+  rlOpenClauseEditor(c, clauseId, opts);
+}
+/* Bring the clause this page is about into the reader's view. Deferred a frame
+   for the same reason the caret is: the paper it scrolls inside is written by
+   the paint that is still running. */
+function ceScrollToClause(){
+  const go = () => {
+    const host = _ceQ('#ce-doc');
+    const box = _ceQ('#ce-clausebody');
+    if (!host || !box) return;
+    try{
+      const sec = box.closest ? box.closest('.rl-clause') : null;
+      const target = sec || box;
+      const hb = host.getBoundingClientRect(), tb = target.getBoundingClientRect();
+      host.scrollTop = Math.max(0, host.scrollTop + (tb.top - hb.top) - 24);
+    }catch(_){}
+  };
+  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(go); else go();
+}
+/* The caret goes where the reader just asked to type. Deferred a frame because
+   the box it belongs to is written by the paint that is still running. */
+function ceFocusTyping(){
+  if (typeof requestAnimationFrame !== 'function') return;
+  requestAnimationFrame(() => {
+    const box = _ceQ('#ce-clausebody');
+    if (!box || !ceIsTyping()) return;
+    try{ box.focus({ preventScroll: true }); }catch(_){ try{ box.focus(); }catch(__){} }
+  });
+}
+
+/* ---- A READING THAT REFUSES EDITING (Phase 4) ----
+   'As agreed' and 'With changes' draw the paper WITHOUT its marks, so anything
+   typed there would be measured against a document the reader is not being
+   shown. That is not a new rule — the negotiation page refuses its change
+   column on exactly those two readings, for exactly that reason — and asking
+   it in ONE predicate is what stops the pencil, the caret and Apply coming to
+   three different answers. */
+function ceEditableReading(){
+  try{ return !(window.rlReadOnlyReading && rlReadOnlyReading()); }catch(_){ return true; }
+}
+const ceIsTyping = () => _ceEditing && ceEditableReading();
+
+/* ---- THE PAPER ----
+   ONE canvas, and it is the product's own: redlineDocHtml, the same builder the
+   negotiation page and the counterparty's page draw. Nothing about a clause is
+   re-read here and no mark is written by hand — what this page contributes is
+   the body of ONE clause, the one being typed in, whose wording is not on the
+   record yet. See the note on liveId in redlineDocHtml for the four properties
+   that keeps honest. */
+function ceRenderPaper(){
   if (!clauseEditorOpen()) return;
-  const stands = _ceQ('#ce-stands');
-  if (stands) stands.innerHTML = ceLinesHtml(_ceBase);
-  const box = _ceQ('#ce-prop');
-  const page = document.getElementById('clause-editor');
-  if (page) page.querySelectorAll('[data-ce-view]').forEach(b =>
-    b.classList.toggle('is-on', b.getAttribute('data-ce-view') === _ceView));
-  if (box){
-    if (_ceView === 'edit'){
-      box.setAttribute('contenteditable', 'true');
-      box.setAttribute('role', 'textbox');
-      box.setAttribute('spellcheck', 'true');
-      box.innerHTML = ceLinesHtml(_ceText);
-    } else {
-      box.removeAttribute('contenteditable'); box.removeAttribute('role');
-      box.innerHTML = ceRedlineHtml(_ceBase, _ceText);
-    }
+  ceRenderReadBar();
+  const host = _ceQ('#ce-doc');
+  if (!host || !window.redlineDocHtml) return;
+  const typing = ceIsTyping();
+  /* ---- THE DRAFT ANSWERS THE READING TOO ----
+     Typing shows the wording as LINES — a clause carries one sub-paragraph per
+     line and that is what the document builder reads back into real numbering
+     at filing time. Otherwise it is the SAME question the rest of the paper is
+     answering, asked of a draft rather than of a filed change:
+       · Redlined   — the draft marked against what stands.
+       · As agreed  — what the clause says today. A draft nobody has filed is
+                      not in the agreement, so it is simply not there.
+       · With changes — the draft, read as ordinary wording.
+     A first build ignored this and drew the marks in all three, so the one
+     clause on the page the reader is working on was the one clause that did not
+     obey the tab they had just pressed. Both clean readings go through the same
+     op renderer with the two texts equal, which is how they inherit the
+     hanging indents and the sub-paragraph shape the rest of the paper has. */
+  let clean = null;
+  if (!typing){
+    const mode = (window.rlReadMode ? rlReadMode() : 'marks');
+    if (mode === 'agreed') clean = ceRedlineHtml(_ceBase, _ceBase);
+    else if (mode === 'proposed') clean = ceRedlineHtml(_ceText, _ceText);
   }
-  const n = ceCounts(_ceBase, _ceText);
-  const stat = _ceQ('#ce-stat');
-  if (stat) stat.innerHTML = (n.ins || n.del)
-    ? `<span class="i">+${n.ins}</span> <span class="d">&minus;${n.del}</span>`
-    : `<span class="ce-none">${_cee(_cet('ce_no_change_yet'))}</span>`;
+  const body = typing
+    ? `<div class="nego-body ce-typing" id="ce-clausebody" contenteditable="true"
+        role="textbox" spellcheck="true">${ceLinesHtml(_ceText)}</div>`
+    : `<div class="nego-body" id="ce-clausebody">${
+        clean == null ? ceRedlineHtml(_ceBase, _ceText) : clean}</div>`;
+  /* The reader's place on the page is the one thing they are holding on to, so
+     a repaint on every keystroke's worth of Apply must not throw it away. */
+  const keep = host.scrollTop;
+  let html = '';
+  try{
+    html = redlineDocHtml(_ceC, {
+      side: 'owner',
+      canEdit: true,
+      noAi: true,
+      live: { clauseId: _ceClauseId, html: body },
+      /* THE PENCIL IS THE PRODUCT'S OWN and this page only says what its own
+         one does: here it turns typing on and off, and on another clause it
+         moves the page to that clause. */
+      pill: { attr: 'data-ce-pencil', pressed: typing ? _ceClauseId : '',
+        label: cl => (String(cl.clauseId) !== String(_ceClauseId)) ? _cet('ce_pencil_move')
+          : (typing ? _cet('ce_pencil_stop') : _cet('ce_pencil')),
+        title: cl => (String(cl.clauseId) !== String(_ceClauseId)) ? _cet('ce_pencil_move')
+          : (typing ? _cet('ce_pencil_stop_title') : _cet('ce_pencil_title')) },
+    });
+  }catch(e){ html = ''; }
+  host.innerHTML = html || `<p class="rl-clause-p">${_cee(_cet('ce_this_clause'))}</p>`;
+  host.scrollTop = keep;
+}
+
+/* The three readings, the band that says a reading refuses editing, and the
+   count. One row, painted together because they are one statement about how
+   this page is being read. */
+function ceRenderReadBar(){
+  const bar = _ceQ('#ce-readbar');
+  if (bar && window.rlReadSegsHtml){
+    const n = ceCounts(_ceBase, _ceText);
+    const stat = (n.ins || n.del)
+      ? `<span class="i">+${n.ins}</span> <span class="d">&minus;${n.del}</span>`
+      : `<span class="ce-none">${_cee(_cet('ce_no_change_yet'))}</span>`;
+    bar.innerHTML = rlReadSegsHtml() + `<span class="g"></span>`
+      + `<span class="ce-stat" id="ce-stat">${stat}</span>`;
+  }
+  const band = _ceQ('#ce-band');
+  if (band) band.innerHTML = window.rlReadNoticeHtml ? rlReadNoticeHtml({ on: true }) : '';
 }
 /* A clause's text carries ONE SUB-PARAGRAPH PER LINE, and that is what the
    document builder reads back into real numbering at filing time. So the
@@ -1013,8 +1158,8 @@ function ceLinesHtml(text){
   return out || '<p><br></p>';
 }
 function cePullText(){
-  const box = _ceQ('#ce-prop');
-  if (_ceView !== 'edit' || !box) return;
+  const box = _ceQ('#ce-clausebody');
+  if (!ceIsTyping() || !box) return;
   /* Block by block, so the sub-paragraph structure survives a hand edit. */
   const blocks = [...box.children].filter(el => el.tagName);
   const lines = blocks.length
@@ -1028,16 +1173,32 @@ function cePullText(){
 function ceRenderFoot(){
   if (!clauseEditorOpen()) return;
   const moved = _ceText !== _ceBase;
+  /* ---- THE ACTS STAND DOWN WITH THE CARET (Phase 4) ----
+     A page whose band says "This page is not editable" over a live Save button
+     is a page arguing with itself. Undo, Discard and File all act on the draft,
+     and the reading that refuses the caret refuses them for the same reason —
+     the reader cannot see what they would be committing, because the marks are
+     off. GREYED, NOT HIDDEN, with the reason on the hover: this page can know
+     before the press, which is the product's own rule for exactly that, and the
+     way forward is on the band directly above the paper.
+     The cost is one press — go back to Redlined and file from the reading that
+     shows you what you are filing — and it is the honest one. */
+  const live = ceEditableReading();
+  const why = live ? '' : ` title="${_ceea(_cet('ce_reading_only'))}"`;
+  const off = live ? '' : ' disabled';
   const draft = _ceQ('#ce-draft');
   if (draft) draft.innerHTML = moved
     ? _cet('ce_draft_saved', { at: `<b>${_cee(_ceSavedAt || ceNowHm())}</b>` })
     : _cee(_cet('ce_no_changes_yet'));
   const undo = _ceQ('#ce-undo');
-  if (undo) undo.disabled = _ceStep === 0;
+  if (undo){
+    undo.disabled = _ceStep === 0 || !live;
+    if (live) undo.removeAttribute('title'); else undo.setAttribute('title', _cet('ce_reading_only'));
+  }
   const foot = _ceQ('#ce-railfoot');
   if (foot) foot.innerHTML =
-    `<button type="button" data-ce-act="discard"${moved ? '' : ' disabled'}>${_cet('ce_discard')}</button>`
-    + `<button type="button" class="p" data-ce-act="save"${moved ? '' : ' disabled'}>${
+    `<button type="button" data-ce-act="discard"${moved && live ? '' : ' disabled'}${why}>${_cet('ce_discard')}</button>`
+    + `<button type="button" class="p" data-ce-act="save"${moved && live ? '' : ' disabled'}${why}>${
       _ceLead ? _cee(_cet('ce_save_to', { id: _ceLead.id })) : _cee(_cet('ce_file_as_change'))}</button>`;
 }
 
@@ -1062,6 +1223,18 @@ function ceSay(msg){
 function ceApply(text, label, opts = {}){
   if (!clauseEditorOpen()) return false;
   if (text == null) return false;
+  /* ---- NOT ON A READING THAT HIDES THE MARKS (Phase 4) ----
+     'As agreed' and 'With changes' draw the paper without its marks, so wording
+     applied there would move under a reader who cannot see it move. The pencil
+     and the caret already stand down; this is the third door into the wording —
+     a Copilot card, a playbook standard, a passage rewritten in place — and a
+     rule enforced in two of three places is not a rule. It REFUSES IN WORDS
+     naming the way back, which is on the band directly above the paper. */
+  if (!ceEditableReading()){
+    ceSay(_cet('ce_reading_only'));
+    if (window.toast) toast(_cet('ce_reading_only'), 'warn');
+    return false;
+  }
   const next = String(text);
   if (next === _ceText){ ceSay(_cet('ce_already_in_box')); return false; }
   /* The reason was written about the OLD wording — it may not travel with new
@@ -1072,8 +1245,11 @@ function ceApply(text, label, opts = {}){
   _ceStep = _ceSteps.length - 1;
   _ceText = next;
   _ceSavedAt = ceNowHm();
-  if (_ceView === 'edit' && !opts.keepView) _ceView = 'redlines';
-  ceRenderBoxes(); ceRenderFoot(); ceRenderHead();
+  /* Wording that arrived from somewhere else — a Copilot card, a playbook
+     standard, a passage rewritten in place — drops out of typing so the marks
+     it made are the first thing seen. Typing keeps the caret (keepView). */
+  if (_ceEditing && !opts.keepView) _ceEditing = false;
+  ceRenderPaper(); ceRenderFoot(); ceRenderHead();
   if (!opts.quiet) ceSay(_cet('ce_applied'));
   return true;
 }
@@ -1083,7 +1259,7 @@ function ceUndo(){
   _ceStep -= 1;
   _ceText = _ceSteps[_ceStep].text;
   if (_ceReason) ceCloseReason();
-  ceRenderBoxes(); ceRenderFoot(); ceRenderHead();
+  ceRenderPaper(); ceRenderFoot(); ceRenderHead();
   ceSay(_cet('ce_stepped_back', { label: _ceSteps[_ceStep].label }));
 }
 function ceDiscard(){
@@ -1091,7 +1267,7 @@ function ceDiscard(){
   _ceSteps = [{ label: _cet('ce_step_stands'), text: _ceBase }];
   _ceStep = 0; _ceText = _ceBase; _ceSavedAt = null;
   if (_ceReason) ceCloseReason();
-  ceRenderBoxes(); ceRenderFoot(); ceRenderHead();
+  ceRenderPaper(); ceRenderFoot(); ceRenderHead();
   ceSay(_cet('ce_discarded'));
 }
 
@@ -1348,7 +1524,7 @@ async function ceRunScan(){
    untouched.
    ========================================================================== */
 function ceSelection(){
-  const box = _ceQ('#ce-prop'); if (!box || typeof window.getSelection !== 'function') return null;
+  const box = _ceQ('#ce-clausebody'); if (!box || typeof window.getSelection !== 'function') return null;
   const sel = window.getSelection();
   if (!sel || sel.isCollapsed || !sel.rangeCount) return null;
   const r = sel.getRangeAt(0);
@@ -1392,11 +1568,12 @@ function ceOpenInline(sel){
   if (chips) chips.innerHTML = [_cet('ce_inline_shorten'), _cet('ce_inline_firmer'), _cet('ce_inline_plain')]
     .map(w => `<button type="button" data-ce-inline-chip="${_ceea(w)}">${_cee(w)}</button>`).join('');
   const note = _ceQ('#ce-inline-note'); if (note) note.innerHTML = '';
-  /* POSITIONED AGAINST THE BOX IT HANGS IN, not against the scrolling area
-     inside it. The popup is absolute inside .ce-box.ce-prop; measuring from
-     #ce-prop — which starts under the box's own head — put it a head's height
-     too high on every open. */
-  const host = pop.parentElement, box = _ceQ('#ce-prop');
+  /* POSITIONED AGAINST THE FRAME IT HANGS IN, not against the scrolling area
+     inside it. The popup is absolute inside .ce-paperwrap; measuring from the
+     scroller — which starts inside the frame — put it out by the frame's own
+     inset on every open, and measuring from a box that no longer exists put it
+     in the corner. */
+  const host = pop.parentElement, box = _ceQ('#ce-doc');
   if (host && box && sel.rect){
     const hb = host.getBoundingClientRect();
     const top = Math.max(6, Math.min(sel.rect.bottom - hb.top + 6, hb.height - 46));
@@ -1528,11 +1705,32 @@ function ceWirePage(page){
     if (!t || !t.closest) return;
     const hit = sel => t.closest(sel);
 
-    const view = hit('[data-ce-view]');
-    if (view){ ev.preventDefault();
+    /* ---- THE PENCIL ON THE CLAUSE ----
+       The product's own control, in its second home. On the clause you are
+       working on it turns typing on and off; on any other clause it moves the
+       page to that clause, which is what the crumb's dropdown does and is
+       deliberately the same act rather than a second one. */
+    const pencil = hit('[data-ce-pencil]');
+    if (pencil){ ev.preventDefault();
+      const id = pencil.getAttribute('data-ce-pencil');
+      if (id && id !== _ceClauseId){ ceGoClause(id); return; }
       cePullText();
-      _ceView = view.getAttribute('data-ce-view') === 'edit' ? 'edit' : 'redlines';
-      ceCloseInline(); ceRenderBoxes(); return; }
+      _ceEditing = !_ceEditing;
+      ceCloseInline(); ceRenderPaper();
+      if (ceIsTyping()) ceFocusTyping();
+      return; }
+
+    /* ---- THE THREE READINGS ----
+       stopPropagation is load-bearing: this attribute is also handled by a
+       delegated listener on `document` (the negotiation page's), which would
+       set the mode a second time and then repaint the page UNDERNEATH this one
+       from a press made on top of it. This page is a body-level layer, so a
+       listener on the page itself runs first and can stop it there. */
+    const read = hit('[data-rl-read]');
+    if (read){ ev.preventDefault(); ev.stopPropagation();
+      cePullText();
+      if (window.rlSetReadMode) rlSetReadMode(read.getAttribute('data-rl-read'));
+      ceCloseInline(); ceRenderPaper(); ceRenderFoot(); return; }
 
     const tab = hit('[data-ce-tab]');
     if (tab){ ev.preventDefault();
@@ -1614,9 +1812,7 @@ function ceWirePage(page){
   if (which) which.addEventListener('change', ev => {
     const sel = ev.target && ev.target.closest ? ev.target.closest('#ce-sel') : null;
     if (!sel) return;
-    const c = _ceC, opts = _ceOpts;
-    rlCloseClauseEditor();
-    rlOpenClauseEditor(c, sel.value, opts);
+    ceGoClause(sel.value);
   });
 
   const ask = page.querySelector('#ce-ask');
@@ -1640,13 +1836,19 @@ function ceWirePage(page){
   /* A hand edit is an Apply like any other, taken when the box loses focus —
      so the redline, the counts, the draft line and the file button all follow
      typing exactly as they follow a suggestion. */
-  const prop = page.querySelector('#ce-prop');
-  if (prop) prop.addEventListener('blur', () => { cePullText(); ceRenderFoot(); }, true);
+  /* The typing box is rebuilt by every paint, so the handler is delegated on
+     the page rather than bound to an element a repaint throws away. Capture,
+     because blur does not bubble. */
+  page.addEventListener('blur', ev => {
+    const t = ev.target;
+    if (!t || !t.closest || !t.closest('#ce-clausebody')) return;
+    cePullText(); ceRenderFoot();
+  }, true);
 
   /* ONE SENTENCE AT A TIME — only in the reading, never while typing: a drag
      inside a contenteditable box is somebody selecting words to work on them. */
   page.addEventListener('mouseup', ev => {
-    if (_ceView === 'edit') return;
+    if (ceIsTyping()) return;
     if (ev.target && ev.target.closest && ev.target.closest('#ce-inline')) return;
     setTimeout(() => {
       const sel = ceSelection();
@@ -1687,5 +1889,6 @@ Object.assign(window, {
   clauseEditorHtml, clauseEditorRefusal, clauseEditorFits,
   rlOpenClauseEditor, rlCloseClauseEditor,
   ceApply, ceUndo, ceDiscard, ceFile, ceAsk, ceRunScan, ceScanItems, ceLines,
-  ceRedlineHtml, ceCounts, ceReadList, ceRenderAll,
+  ceRedlineHtml, ceCounts, ceReadList, ceRenderAll, ceRenderPaper,
+  ceEditableReading, ceGoClause,
 });

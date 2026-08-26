@@ -50,7 +50,7 @@ function negoStyleHtml(){
      layers keep reading from the same ramp as the room they belong to, and
      they stay inside the component's own namespace — nothing here is declared
      on :root, which would restyle the whole product from inside a component. */
-  .nego-room, #nego-root, .nego-selmenu, .nego-aipop{
+.nego-room, #nego-root, .nego-selmenu, .nego-aipop{
     --n-slate:#33475c; --n-slate-deep:#26374a; --n-slate-soft:#456a8f;
     --n-badge-bg:#eef2f6;
     --n-ins-bg:#e4f1ea; --n-ins-fg:var(--st-green-fg);
@@ -1098,6 +1098,34 @@ function redlineLayoutCss(){
      (16 Aug 2026): the routing row carries no wording, its own sizes are the
      literal chrome sizes every card element always had, and a token nothing
      reads is a token nobody can read. */
+  ${''/* ---- THE MARKS' OWN TOKENS, IN THIS PAGE'S OWN NAMESPACE ----
+     (26 Aug 2026, and it is the clothes-follow-the-builder lesson one layer
+     deeper than this file has met it before.) .nego-ins and .nego-del are
+     UNSCOPED and read the four n-tokens, which the ROOM declares on its own
+     selectors. On the negotiation page they resolve because the paper sits
+     inside a nego-namespaced ancestor; the CLAUSE EDITOR draws that same paper
+     on a page with no room around it, so var(--n-ins-fg) resolved to nothing,
+     the colour declaration was dropped outright, and every insertion and
+     deletion came out in the document's own ink — a redline with no red in it.
+
+     WHY THEY ARE DECLARED HERE AND NOT ADDED TO THE ROOM'S LIST: that block
+     already carries two selectors that are not the room, and both are
+     nego-namespaced on purpose — the room's sheet may not reach outside the
+     component's own namespace, and f36 is the net that says so. This page's
+     sheet is where this page's namespace belongs.
+
+     THEY MUST AGREE WITH THE ROOM'S, VALUE FOR VALUE, or one contract would
+     read in two palettes depending on which page it was opened from. Three of
+     the four are the platform token itself and cannot drift; the fourth is a
+     literal and f36 reads the two sheets against each other rather than
+     trusting this comment.
+
+     ON THE NEGOTIATION PAGE THIS MOVES NOTHING and that is what makes it safe:
+     the room's own selector is nearer the marks and defines the same values, so
+     it goes on winning for its own subtree. Measured before it was written. */}
+  .redline-page{
+    --n-ins-bg:#e4f1ea; --n-ins-fg:var(--st-green-fg);
+    --n-del-bg:var(--st-ruby-bg); --n-del-fg:var(--st-ruby-dot)}
   .redline-page{--rl-doc-type:15px;
     ${''/* THE ACTS' OWN WIDTH, and the floor the row's second track stops at.
            Accept and Reject at 12px/700 plus the ⋯, with the row's two 12px
@@ -1382,6 +1410,27 @@ function redlineLayoutCss(){
     border-radius:var(--radius);background:var(--color-surface);padding:0 var(--s-3);font:inherit;font-size:var(--t-meta);
     font-weight:var(--w-strong);color:var(--accent-ink-700);cursor:pointer}
   .rl-note-btn:hover{border-color:var(--accent-ink-700)}
+  ${''/* ---- THE READING BAND, ON THE CLAUSE EDITOR'S PAPER ONLY ----
+     (owner-asked 26 Aug 2026: the two non-editable readings say "this page is
+     not editable - back to redline". SIMPLY, in the owner's own word, so it is
+     one sentence and one button and nothing else.)
+     Amber, because it is the reader being told a rule bites here. The way back
+     is on the band and presses the reading tabs own attribute, so the band
+     carries the act rather than pointing at one. It is drawn only where
+     rlReadNoticeHtml is called with on:true — the negotiation page still gets
+     nothing. Its rules are unscoped because they dress one builder wherever it
+     draws, which is the clothes-follow-the-builder lesson this page has paid
+     for three times. */}
+  .rl-readnote{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    padding:7px var(--s-3);border:1px solid var(--st-amber-line);
+    background:var(--st-amber-bg);border-radius:var(--radius)}
+  .rl-readnote-t{flex:1;min-width:160px;font-size:var(--t-meta);line-height:1.45;
+    color:var(--st-amber-fg)}
+  .rl-readnote-b{flex:none;height:26px;padding:0 var(--s-3);font:inherit;
+    font-size:var(--t-label);font-weight:var(--w-strong);cursor:pointer;
+    border:1px solid var(--st-amber-line);border-radius:var(--radius);
+    background:var(--color-surface);color:var(--st-amber-fg)}
+  .rl-readnote-b:hover{border-color:var(--st-amber-fg)}
   /* ---- THE NOTICES THAT USED TO BE BANDS ----
      The review's banner and the desk's reading band are built elsewhere (
      js/review.js and js/desk.js) and carry their own colours, because those

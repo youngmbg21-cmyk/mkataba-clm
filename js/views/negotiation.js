@@ -5279,8 +5279,39 @@ if (typeof document !== 'undefined' && !document._rlReadWired){
    owner was looking at.
    KEPT AS A BUILDER WITH NO CONTENT rather than deleted: it is exported and
    called from the notice stack, and a third caller must not be able to bring
-   the band back through a door nobody remembered. */
-function rlReadNoticeHtml(){ return ''; }
+   the band back through a door nobody remembered.
+
+   ---- AND ITS BODY IS BACK FOR ONE SURFACE (owner-asked 26 Aug 2026: the
+   clause editor's two non-editable readings say "this page is not editable -
+   back to redline", in the owner's own words) ----
+   THE NEGOTIATION PAGE'S RETIREMENT STANDS AND IS WHAT `opts.on` PROTECTS: the
+   notice stack calls this with nothing and still gets nothing, so the band the
+   owner took off that page cannot come back through this door. What changed is
+   that a second surface asked for it — and there the reasoning that retired it
+   does not hold. That page says the reading twice (the tab row, and a change
+   column that greys itself and names the way back); the clause editor has no
+   change column, and since 26 Aug its pencil is HOVER-ONLY, so on a reading
+   that refuses editing there is nothing on screen a reader could see is
+   missing. The page simply stops responding, which reads as a fault rather
+   than as a rule.
+
+   IT PASSES BOTH HALVES OF THE STANDING BAND TEST, which is why it is drawn
+   rather than asked about again: it says something no control on that screen
+   says, and it carries its own act — the way back is ON the band. That act
+   presses `data-rl-read`, the reading tabs' own attribute, so it is the
+   existing door and never a second one.
+
+   ON THE TWO CLEAN READINGS ONLY. On Redlined it draws nothing at all, so it
+   cannot become furniture. */
+function rlReadNoticeHtml(opts = {}){
+  if (!opts || !opts.on) return '';
+  if (!rlReadOnlyReading()) return '';
+  return `<div class="rl-readnote" role="status">
+    <span class="rl-readnote-t">${_ne(i18t('ce_not_editable'))}</span>
+    <button type="button" class="rl-readnote-b" data-rl-read="marks"
+      title="${_nea(i18t('ng_read_marks_title'))}">${_ne(i18t('ng_read_back'))}</button>
+  </div>`;
+}
 
 /* ---------- THE REDLINE PAGE ----------
    The workbench as a top-level destination, not only a tab inside a contract
@@ -5616,16 +5647,46 @@ function rlAskRevealHtml(c, ch, side, opts = {}){
    a hesitant pointer both still get "Edit". The ink is the workspace accent —
    the established answer to "visible but not furniture" (the folded-notices
    chip, .ui-btn), and lighter than the nav-bg fill it replaces. */
+/* ---- ONE PENCIL, TWO DOORS (owner-asked 26 Aug 2026) ----
+   The clause editor draws THIS SAME PAPER, and on it the pencil cannot mean
+   "open the clause panel" — the panel is the page the reader came FROM. So a
+   caller may say what its own pencil does, and everything else about the
+   control — where it sits, what it looks like, when it stands down, and that
+   it is hover-only with a keyboard and an active state keeping it reachable —
+   comes from this one builder rather than from a second pencil written beside
+   it. A second pencil is how the two surfaces come to disagree about a control
+   the owner ruled on twice in one week.
+
+   `opts.pill` is that hook: {attr, label, title, pressed}. Absent, this is
+   byte for byte the control it has always been. `hasPanel` still gates the
+   default door, because that door needs a panel to open; a caller supplying
+   its own attribute is supplying its own room and is not asked for one. */
 function rlClauseEditPillHtml(cl, opts = {}){
-  if (!cl || opts.editable === false || !opts.hasPanel) return '';
+  const pill = opts.pill || null;
+  if (!cl || opts.editable === false || (!opts.hasPanel && !pill)) return '';
   /* NOT ON A READING. Asked here rather than at the three call sites, so the
-     three clause branches cannot come to disagree about it. */
+     three clause branches cannot come to disagree about it — and the clause
+     editor inherits Phase 4's rule by construction rather than by remembering
+     to ask it again. */
   if (rlReadOnlyReading()) return '';
   const id = _ne(cl.clauseId);
-  return `<button type="button" class="rl-cp-pill" data-rl-cp-open="${id}"
-    aria-expanded="${rlCpOpenId() === String(cl.clauseId) ? 'true' : 'false'}"
-    aria-label="${_nea(i18t('ng_cp_edit'))}"
-    title="${_nea(i18t('ng_cp_open_title'))}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg></button>`;
+  const attr = (pill && pill.attr) ? String(pill.attr) : 'data-rl-cp-open';
+  const on = pill ? String(pill.pressed == null ? '' : pill.pressed) === String(cl.clauseId)
+    : rlCpOpenId() === String(cl.clauseId);
+  /* A caller's words may be a FUNCTION of the clause, because on the clause
+     editor the same pencil means two different things depending on whether it
+     is the clause being worked on — and the alternative is one pencil telling
+     nineteen clauses it will do something it will not. */
+  const say = (v, fb) => {
+    if (typeof v === 'function'){ try{ return v(cl); }catch(_){ return fb; } }
+    return v || fb;
+  };
+  const label = say(pill && pill.label, i18t('ng_cp_edit'));
+  const title = say(pill && pill.title, i18t('ng_cp_open_title'));
+  return `<button type="button" class="rl-cp-pill" ${attr}="${id}"
+    aria-expanded="${on ? 'true' : 'false'}"
+    aria-label="${_nea(label)}"
+    title="${_nea(title)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg></button>`;
 }
 
 /* ---- ONE CLAUSE, ONE SHAPE, WHEREVER IT IS DRAWN ----
@@ -9373,6 +9434,32 @@ function redlineDocHtml(c, opts = {}){
      canvas), and the Edit pill stands down with it: a door is drawn only where
      the room behind it exists. */
   const hasPanel = Array.isArray(opts.cpSink);
+  /* ---- A DRAFT THAT IS NOT ON THE RECORD YET (owner-asked 26 Aug 2026) ----
+     Edit with Copilot became this paper, and its whole point is the opposite of
+     what this canvas does: you type, and you see what your typing WOULD do,
+     before anything is filed. Every mark drawn below belongs to a change that
+     has been filed, and this file says why in so many words — a mark drawn
+     from a fresh diff would not be the mark the other side verified.
+
+     So the seam is deliberately narrow and it is a BODY, not a diff: the caller
+     hands over finished markup for exactly ONE clause and this canvas draws it
+     where that clause goes. Nothing here computes it, nothing here stores it,
+     and it dies with the page.
+
+     FOUR PROPERTIES, each of them true by construction rather than by care:
+       · ONE clause. `live.clauseId` is a single id; every other clause on the
+         page is drawn from the record exactly as it always was.
+       · NOTHING IS RE-DIFFED ON A FILED CHANGE. A filed change's marks still
+         come from its own stored ops, below, untouched.
+       · IT NEVER PERSISTS. This is a string on its way to innerHTML.
+       · THE COUNTERPARTY CANNOT REACH IT. Their page has no editor here and
+         never passes it; the refusal is in rlOpenClauseEditor and is asserted
+         rather than assumed. */
+  const liveId = (opts.live && opts.live.clauseId != null) ? String(opts.live.clauseId) : null;
+  const liveHtml = liveId ? String(opts.live.html == null ? '' : opts.live.html) : '';
+  /* ONE PENCIL FOR THE WHOLE CANVAS, so the four clause branches cannot come to
+     disagree about which door it opens. */
+  const pillFor = cl => rlClauseEditPillHtml(cl, { editable, hasPanel, pill: opts.pill });
   const cpPush = (cl, chs, cpOpts) => {
     if (!hasPanel) return '';
     /* The notes options ride through because the panel now renders each
@@ -9488,6 +9575,20 @@ function redlineDocHtml(c, opts = {}){
      column. Rendered through the same ops path as every other redline so the
      wording carries the insertion marks the rest of the document uses. */
   const insertBlock = ch => {
+    /* A clause somebody PROPOSED can be the one being typed in too — the funnel
+       folds a revision into the same ask rather than stacking a rival — so the
+       override has to reach here as well or the editor would draw the filed
+       wording under a reader who is changing it. */
+    if (liveId && String(ch.clauseId) === liveId){
+      const liveLabel = String(ch.headingText || '').trim();
+      return `<section class="nego-clause rl-clause is-changed rl-clause-new rl-clause-live" data-clause="${_ne(ch.clauseId)}" data-nego-working="${_ne(ch.clauseId)}" data-nego-card-anchor="${_ne(ch.id)}">
+        <div class="rl-clause-top">
+          ${liveLabel ? `<h4 class="rl-clause-h">${_ne(liveLabel)}</h4>` : ''}
+          ${pillFor({ clauseId: ch.clauseId })}
+        </div>
+        ${liveHtml}
+      </section>`;
+    }
     const theirs = ch.authorSide !== side;
     /* A CLAUSE NOBODY HAS AGREED TO IS NOT IN THE AGREED READING. Under "As
        agreed" a live insertion simply is not there — that is what "the wording
@@ -9543,7 +9644,7 @@ function redlineDocHtml(c, opts = {}){
     return `<section class="nego-clause rl-clause is-changed rl-clause-new" data-clause="${_ne(ch.clauseId)}" data-nego-card-anchor="${_ne(ch.id)}">
       <div class="rl-clause-top">
         ${label ? `<h4 class="rl-clause-h">${_ne(label)}</h4>` : ''}
-        ${asClause ? rlClauseEditPillHtml(asClause, { editable, hasPanel }) : ''}
+        ${asClause ? pillFor(asClause) : ''}
       </div>
       <div class="nego-body">${inner}</div>
       ${asClause ? cpPush(asClause, [ch], { newClause: true }) : ''}
@@ -9557,6 +9658,24 @@ function redlineDocHtml(c, opts = {}){
   const body = clauses.filter(cl => !_rvOnly || _rvOnly.has(String(cl.clauseId))).map(cl => {
     const after = (insertsAfter.get(cl.clauseId) || []).map(insertBlock).join('');
     const chs = byClause.get(cl.clauseId) || [];
+    /* The one clause whose wording is being typed right now — see the note on
+       liveId above. It is drawn is-changed because it IS changed: there is a
+       draft on it, and a clause reading as untouched while somebody types into
+       it is the same untruth as a clause reading as untouched after an
+       adoption. Every attribute the rest of the canvas stamps stays on it, so
+       rlLinkFocus and the selection helpers find it exactly as they find any
+       other clause. */
+    if (liveId && String(cl.clauseId) === liveId){
+      const liveAnchor = _ne(chs.map(x => x.id).reverse().join(' '));
+      return `<section class="nego-clause rl-clause is-changed rl-clause-live" data-clause="${_ne(cl.clauseId)}" data-nego-working="${_ne(cl.clauseId)}"${
+        liveAnchor ? ` data-nego-card-anchor="${liveAnchor}"` : ''}>
+        <div class="rl-clause-top">
+          ${heading(cl)}
+          ${pillFor(cl)}
+        </div>
+        ${liveHtml}
+      </section>${after}`;
+    }
     /* ---- THE PAPER MUST SHOW WHAT WAS ADOPTED (owner-reported 15 Aug 2026)
        ----
        This was `chs[chs.length - 1]` — draw the NEWEST change and give the
@@ -9621,7 +9740,7 @@ function redlineDocHtml(c, opts = {}){
         return `<section class="nego-clause rl-clause" data-clause="${_ne(cl.clauseId)}" data-nego-working="${_ne(cl.clauseId)}" data-nego-card-anchor="${anchorIds}">
           <div class="rl-clause-top">
             ${heading(cl)}
-            ${rlClauseEditPillHtml(cl, { editable, hasPanel })}
+            ${pillFor(cl)}
           </div>
           ${''/* A formatting-only ask read "as agreed" is simply the clause. */}
           ${clean == null ? richBody(cl) : clean}
@@ -9661,7 +9780,7 @@ function redlineDocHtml(c, opts = {}){
                  no caller on this canvas; negoDocHtml's own badges are a
                  different marker and are untouched. */}
           ${fmtChip}
-          ${rlClauseEditPillHtml(cl, { editable, hasPanel })}
+          ${pillFor(cl)}
         </div>
         ${clean == null ? richBody(cl) : clean}
         ${cpPush(cl, chs)}
@@ -9670,7 +9789,7 @@ function redlineDocHtml(c, opts = {}){
     return `<section class="nego-clause rl-clause" data-clause="${_ne(cl.clauseId)}" data-nego-working="${_ne(cl.clauseId)}">
       <div class="rl-clause-top">
         ${heading(cl)}
-        ${rlClauseEditPillHtml(cl, { editable, hasPanel })}
+        ${pillFor(cl)}
       </div>
       ${richBody(cl)}
       ${cpPush(cl, chs)}
@@ -13333,6 +13452,12 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlApplyDocZoom, rlObserveDocPane, RL_PAGE_W, RL_ZOOM_MAX,
   rlFocusOn, rlSetFocus, rlResetFocus, rlWireFocusKey, rlPaintFocusBtn, rlFocusPage,
   rlReadSegsHtml, rlPaintReadSegs, rlBellIsNews, rlReadySeen, rlMarkReadySeen,
+  /* The reading, for the clause editor: that page draws this same paper and
+     has to ask the same three questions of it — which reading is live, does
+     that reading refuse editing, and the band that says so. Read through
+     window from another module, so they have to be published or the reads
+     are silence rather than answers (f232's whole subject). */
+  rlReadMode, rlSetReadMode, rlReadOnlyReading, rlReadNoticeHtml,
   rlAskTagHtml, rlAskRevealHtml, rlAskGlyph, rlAskWord, rlAskOpenId, rlAskSetOpen, rlAskResetOpen,
   rlChangeWordingHtml, rlClauseEditPillHtml, rlClausePanelBodyHtml, rlClausePanelHtml,
   rlHangRichHtml,

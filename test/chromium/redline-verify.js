@@ -1151,10 +1151,14 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     btn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
     await new Promise(r => setTimeout(r, 700));
     const ed = document.getElementById('clause-editor');
-    const stands = ed && ed.querySelector('#ce-stands');
+    /* RE-POINTED 26 Aug 2026 and the claim is unchanged: "the clause's own
+       wording is on screen beside the rail". It used to read the upper of two
+       stacked boxes; the two boxes became the contract itself, so it reads the
+       clause the page is about ON that contract. */
+    const live = ed && ed.querySelector('.rl-clause-live');
     return { editor: !!ed,
       rail: !!(ed && ed.querySelector('.ce-rail')),
-      wording: stands ? stands.innerText.replace(/\s+/g, ' ').trim().length : 0,
+      wording: live ? live.innerText.replace(/\s+/g, ' ').trim().length : 0,
       lane: (ed && ed.querySelector('#ce-lane')) ? ed.querySelector('#ce-lane').childElementCount : 0,
       panelHeld: !!document.querySelector('#rl-cp.is-open'),
       dialogs: document.querySelectorAll('.nego-aipop').length,

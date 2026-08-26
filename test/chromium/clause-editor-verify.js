@@ -218,7 +218,12 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      control while leaving the machinery is how it comes back. */
   const fold = await p.evaluate(() => {
     const page = document.getElementById('clause-editor');
-    return { control: page.querySelectorAll('.ce-fold, #ce-fold, [aria-expanded]').length,
+    /* RE-POINTED 26 Aug 2026, and the claim is unchanged. It used to count
+       every [aria-expanded] on the page as a proxy for "a collapse control",
+       which was true only while this page had no toggles at all; the paper's
+       own pencils carry that attribute, so the proxy started reporting eleven
+       collapse controls on a page that has none. Named machinery only. */
+    return { control: page.querySelectorAll('.ce-fold, #ce-fold, .ce-ohwrap').length,
       folded: page.querySelectorAll('.is-folded').length,
       snap: page.querySelectorAll('.room-snap, #ws-facts-toggle').length };
   });
@@ -275,39 +280,75 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      + 'duplication reported on the contract room the same morning',
      !!back && back.waysOut === 1, back && `${back.waysOut}`);
 
-  /* ---- 3. THE TWO BOXES, AND THE REDLINE BETWEEN THEM ---- */
-  const boxes = await p.evaluate(() => {
-    const stands = document.querySelector('#ce-stands'), prop = document.querySelector('#ce-prop');
-    if (!stands || !prop) return null;
-    const a = stands.getBoundingClientRect(), b = prop.getBoundingClientRect();
-    return { standsText: stands.innerText.replace(/\s+/g,' ').trim().slice(0,120),
-      propText: prop.innerText.replace(/\s+/g,' ').trim().slice(0,120),
-      stacked: Math.round(a.bottom) <= Math.round(b.top) + 2,
-      sameLeft: Math.abs(Math.round(a.left) - Math.round(b.left)) <= 2,
-      ins: prop.querySelectorAll('ins, .nego-ins').length,
-      del: prop.querySelectorAll('del, .nego-del').length,
-      stat: (document.querySelector('#ce-stat')||{}).innerText || '' };
+  /* ---- 3. THE MIDDLE OF THE PAGE IS THE CONTRACT ----
+     REVERSED IN PLACE 26 Aug 2026 (owner-asked: "There is no current wording vs
+     proposed wording windows. Just one screen in which you can edit like you
+     were able to edit in the proposed wording"). What this section guarded was
+     never the two boxes — it was that the reader can SEE their draft marked
+     against what stands, in colour, with the counts agreeing. Every one of
+     those claims is still made; they are made about the paper now. */
+  const paper = await p.evaluate(() => {
+    const page = document.getElementById('clause-editor');
+    const wrap = page.querySelector('.ce-paperwrap');
+    const host = page.querySelector('#ce-doc');
+    if (!wrap || !host) return null;
+    const sheet = host.querySelector('.rl-paper');
+    const live = host.querySelector('.rl-clause-live');
+    const clauses = host.querySelectorAll('.rl-clause').length;
+    return {
+      /* The RETIRED ids, named literally: this check is the absence of the two
+         boxes, so it must not be re-pointed at whatever replaced them. */
+      boxes: page.querySelectorAll('#ce-stands, #ce-prop, .ce-box, .ce-seg').length,
+      sheet: !!sheet,
+      clauses,
+      live: !!live,
+      liveIsOne: host.querySelectorAll('.rl-clause-live').length,
+      liveText: live ? live.innerText.replace(/\s+/g, ' ').trim().slice(0, 140) : '',
+      /* the whole document, not one clause: the paper carries the front matter
+         and the signature lines the rest of the product draws */
+      head: !!host.querySelector('.rl-paper-head'),
+      foot: !!host.querySelector('.rl-paper-foot'),
+      scrolls: getComputedStyle(host).overflowY,
+    };
   });
-  ck('3a the wording as it stands is ABOVE the wording being proposed',
-     !!boxes && boxes.stacked && boxes.sameLeft && boxes.standsText.length > 20,
-     boxes && `stacked ${boxes.stacked}`);
-  ck('3b the redline DRAWS — the counterparty\'s ask is marked against what stands',
-     !!boxes && (boxes.ins + boxes.del) > 0,
-     boxes && `${boxes.ins} ins / ${boxes.del} del`);
-  ck('3c and the counts agree with the marks',
-     !!boxes && /\+\s*\d/.test(boxes.stat), boxes && boxes.stat.replace(/\s+/g,' ').trim());
+  ck('3a the two boxes are GONE and one contract stands in their place',
+     !!paper && paper.boxes === 0 && paper.sheet && paper.clauses > 1,
+     paper && `boxes ${paper.boxes}, clauses ${paper.clauses}, sheet ${paper.sheet}`);
+  ck('3a2 it is the whole document — front matter and signature lines, not one clause',
+     !!paper && paper.head && paper.foot && /auto|scroll/.test(paper.scrolls || ''),
+     paper && `head ${paper.head}, foot ${paper.foot}, scrolls ${paper.scrolls}`);
+  ck('3a3 EXACTLY ONE clause carries the live draft — the override is one clause '
+     + 'wide or it is a second document renderer',
+     !!paper && paper.liveIsOne === 1, paper && `${paper.liveIsOne} live`);
 
-  const marks = await p.evaluate(() => {
-    const ins = document.querySelector('#ce-prop ins, #ce-prop .nego-ins');
-    const del = document.querySelector('#ce-prop del, #ce-prop .nego-del');
-    return { insColour: ins ? getComputedStyle(ins).color : null,
+  /* The draft's own marks. Read after leaving the typing state, because the
+     clause opens TYPEABLE — which is a claim of its own, below. */
+  const marked = await p.evaluate(() => {
+    const page = document.getElementById('clause-editor');
+    const pen = page.querySelector('.rl-clause-live [data-ce-pencil]');
+    if (pen && pen.getAttribute('aria-expanded') === 'true') pen.click();
+    const body = page.querySelector('#ce-clausebody');
+    if (!body) return null;
+    const ins = body.querySelector('ins, .nego-ins');
+    const del = body.querySelector('del, .nego-del');
+    return { ins: body.querySelectorAll('ins, .nego-ins').length,
+      del: body.querySelectorAll('del, .nego-del').length,
+      insColour: ins ? getComputedStyle(ins).color : null,
       delColour: del ? getComputedStyle(del).color : null,
-      delLine: del ? getComputedStyle(del).textDecorationLine : null };
+      delLine: del ? getComputedStyle(del).textDecorationLine : null,
+      stat: (page.querySelector('#ce-stat') || {}).innerText || '',
+      editable: body.getAttribute('contenteditable') };
   });
+  ck('3b the redline DRAWS on the paper — the counterparty\'s ask is marked '
+     + 'against what stands',
+     !!marked && (marked.ins + marked.del) > 0,
+     marked && `${marked.ins} ins / ${marked.del} del`);
+  ck('3c and the counts agree with the marks',
+     !!marked && /\+\s*\d/.test(marked.stat), marked && marked.stat.replace(/\s+/g, ' ').trim());
   ck('3d the marks are COLOURED and the deletion is struck — the rule really reaches them',
-     !!marks.insColour && marks.insColour !== marks.delColour
-       && /line-through/.test(marks.delLine || ''),
-     `ins ${marks.insColour}, del ${marks.delColour} ${marks.delLine}`);
+     !!marked && !!marked.insColour && marked.insColour !== marked.delColour
+       && /line-through/.test(marked.delLine || ''),
+     marked && `ins ${marked.insColour}, del ${marked.delColour} ${marked.delLine}`);
 
   /* ---- 4. THE READY-MADE QUESTIONS ARE ONE LINE ---- */
   const chips = await p.evaluate(() => {
@@ -347,13 +388,13 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
 
   /* ---- 6. APPLY IS THE ONLY THING THAT MOVES THE WORDING, AND IT STACKS ---- */
   const applied = await p.evaluate(() => {
-    const before = document.querySelector('#ce-prop').innerText.replace(/\s+/g,' ').trim();
+    const before = document.querySelector('#ce-clausebody').innerText.replace(/\s+/g,' ').trim();
     ceApply('The Supplier shall bear every cost of delivery.', 'test one');
-    const one = document.querySelector('#ce-prop').innerText.replace(/\s+/g,' ').trim();
+    const one = document.querySelector('#ce-clausebody').innerText.replace(/\s+/g,' ').trim();
     ceApply('The Supplier shall bear half of every cost of delivery.', 'test two');
-    const two = document.querySelector('#ce-prop').innerText.replace(/\s+/g,' ').trim();
+    const two = document.querySelector('#ce-clausebody').innerText.replace(/\s+/g,' ').trim();
     ceUndo();
-    const back = document.querySelector('#ce-prop').innerText.replace(/\s+/g,' ').trim();
+    const back = document.querySelector('#ce-clausebody').innerText.replace(/\s+/g,' ').trim();
     return { before, one, two, back,
       undoLive: !document.querySelector('#ce-undo').disabled,
       draft: (document.querySelector('#ce-draft')||{}).innerText || '' };
@@ -443,6 +484,255 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('9a Escape closes it', !gone.page, 'closed');
   ck('9b and lands back on the clause panel, with the contract still there',
      gone.panel && gone.docThere, `panel ${gone.panel}, doc ${gone.docThere}`);
+
+  /* ============================================================================
+     12. THE PAPER IS WHERE YOU TYPE, AND A READING CAN REFUSE IT
+     ----------------------------------------------------------------------------
+     (owner-asked 26 Aug 2026: "Just one screen in which you can edit like you
+     were able to edit in the proposed wording. It should also include the
+     redlined, as agreed and with changes features".)
+
+     EVERY CLAIM HERE IS MEASURED BEHAVIOUR, NEVER A CLASS. "Nothing is
+     typeable" asked as "does the element carry a class" is satisfied by a page
+     that still accepts a caret, which is the one thing Phase 4 exists to stop;
+     so it is asked of contenteditable, of the pencil's presence as pixels, and
+     of whether Apply actually moves the wording.
+     ========================================================================== */
+  await p.evaluate(() => {
+    const cl = (window.negoClauseList ? negoClauseList(window.CONTRACT) : [])[0];
+    if (window.rlSetReadMode) rlSetReadMode('marks');
+    window.rlOpenClauseEditor(window.CONTRACT, cl.clauseId, {});
+  });
+  await pause(600);
+
+  const typing = await p.evaluate(() => {
+    const page = document.getElementById('clause-editor');
+    const body = page.querySelector('#ce-clausebody');
+    const live = page.querySelector('.rl-clause-live');
+    const pen = live ? live.querySelector('[data-ce-pencil]') : null;
+    const pr = pen ? pen.getBoundingClientRect() : null;
+    return {
+      editable: body ? body.getAttribute('contenteditable') : null,
+      pencils: page.querySelectorAll('[data-ce-pencil]').length,
+      penPressed: pen ? pen.getAttribute('aria-expanded') : null,
+      penPainted: !!pr && pr.width > 0 && pr.height > 0,
+      /* the pencil the paper draws is the product's own control, not a second
+         one written beside it */
+      penClass: pen ? pen.className : '',
+      cpDoors: page.querySelectorAll('[data-rl-cp-open]').length,
+    };
+  });
+  ck('12a the clause you came in on opens TYPEABLE, in place on the paper',
+     typing.editable === 'true' && typing.penPressed === 'true' && typing.penPainted,
+     `contenteditable ${typing.editable}, pencil pressed ${typing.penPressed}`);
+  ck('12b the pencil is the PRODUCT\'S OWN control, in its second home — a second '
+     + 'pencil is how the two surfaces come to disagree',
+     /rl-cp-pill/.test(typing.penClass) && typing.pencils > 1 && typing.cpDoors === 0,
+     `${typing.pencils} pencils, class "${typing.penClass}", panel doors ${typing.cpDoors}`);
+
+  /* Typing for real, then blurring — a hand edit is an Apply like any other. */
+  await p.evaluate(() => {
+    const body = document.querySelector('#ce-clausebody');
+    body.focus();
+    body.innerHTML = '<p>The Buyer shall pay within ninety days of invoice.</p>';
+    body.blur();
+  });
+  await pause(400);
+  const typed = await p.evaluate(() => {
+    const page = document.getElementById('clause-editor');
+    const stat = (page.querySelector('#ce-stat') || {}).innerText.replace(/\s+/g, ' ').trim();
+    /* THE COUNTS MOVE AS YOU TYPE; THE MARKS ARRIVE WHEN YOU STOP. While the
+       caret is in the clause the reader is looking at their own wording, not at
+       strikes drawn over it — the pencil is the toggle, and it is what this
+       presses. */
+    page.querySelector('.rl-clause-live [data-ce-pencil]').click();
+    const body = page.querySelector('#ce-clausebody');
+    /* THE WHOLE BODY, never a slice: a clause replaced outright draws as one
+       long strike followed by the new sentence, so the typed words sit well
+       past the first hundred characters and a slice reports them missing. */
+    return { marks: body.querySelectorAll('ins, .nego-ins, del, .nego-del').length,
+      text: body.innerText.replace(/\s+/g, ' ').trim(),
+      ins: [...body.querySelectorAll('ins, .nego-ins')]
+        .map(e => e.textContent).join(' ').replace(/\s+/g, ' ').trim(),
+      stat, editableAfter: body.getAttribute('contenteditable') };
+  });
+  ck('12c TYPING ON THE PAPER PRODUCES A LIVE MARK — a draft nobody has filed, '
+     + 'drawn on the contract',
+     typed.marks > 0 && /ninety/.test(typed.ins) && /\+\s*\d/.test(typed.stat)
+       && typed.editableAfter !== 'true',
+     `${typed.marks} marks, counts "${typed.stat}", inserted "${typed.ins.slice(0, 60)}"`);
+
+  /* ---- THE THREE READINGS ---- */
+  const segs = await p.evaluate(() => {
+    const page = document.getElementById('clause-editor');
+    const wrap = page.querySelector('.rl-readwrap');
+    if (!wrap) return null;
+    const bs = [...wrap.querySelectorAll('[data-rl-read]')];
+    return { n: bs.length, vals: bs.map(b => b.getAttribute('data-rl-read')),
+      on: bs.filter(b => b.getAttribute('aria-pressed') === 'true')
+        .map(b => b.getAttribute('data-rl-read')),
+      seg: bs.every(b => /rl-seg/.test(b.className)) };
+  });
+  ck('12d the three readings are the product\'s OWN builder, in its third home',
+     !!segs && segs.n === 3 && segs.seg
+       && segs.vals.join(',') === 'marks,agreed,proposed' && segs.on.join(',') === 'marks',
+     segs && `${segs.n} tabs ${JSON.stringify(segs.vals)}, live ${JSON.stringify(segs.on)}`);
+
+  /* MEASURED ON THE LIVE CLAUSE, not on the whole document. A SETTLED change
+     keeps its marks in all three readings — an accepted insertion IS the
+     wording and a refused one is struck rather than dropped — and that rule is
+     older than this page. What a reading governs is what is still being argued
+     about, and the draft is the most live thing on the paper. */
+  const marksBefore = await p.evaluate(() =>
+    document.querySelectorAll('.rl-clause-live ins, .rl-clause-live .nego-ins,'
+      + ' .rl-clause-live del, .rl-clause-live .nego-del').length);
+  /* How the draft's own acts look while they WORK — the reference 12i3 measures
+     the greyed state against. */
+  const actsLive = await p.evaluate(() => {
+    const page = document.getElementById('clause-editor');
+    const pick = sel => { const b = page.querySelector(sel); if (!b) return { look: '' };
+      const cs = getComputedStyle(b); return { look: cs.color + '|' + cs.opacity }; };
+    return { save: pick('[data-ce-act="save"]'), undo: pick('#ce-undo') };
+  });
+  await p.click('#clause-editor [data-rl-read="agreed"]');
+  await pause(500);
+  const agreed = await p.evaluate(() => {
+    const page = document.getElementById('clause-editor');
+    const host = page.querySelector('#ce-doc');
+    const band = page.querySelector('#ce-band .rl-readnote');
+    const back = band ? band.querySelector('[data-rl-read]') : null;
+    const br = back ? back.getBoundingClientRect() : null;
+    return {
+      marks: page.querySelectorAll('.rl-clause-live ins, .rl-clause-live .nego-ins,'
+        + ' .rl-clause-live del, .rl-clause-live .nego-del').length,
+      /* MEASURED BEHAVIOUR: is there anything on this page a caret can land in */
+      editables: host.querySelectorAll('[contenteditable="true"]').length,
+      pencils: page.querySelectorAll('[data-ce-pencil]').length,
+      band: !!band,
+      bandWords: band ? band.innerText.replace(/\s+/g, ' ').trim() : '',
+      backTo: back ? back.getAttribute('data-rl-read') : null,
+      backPainted: !!br && br.width > 0 && br.height > 0,
+      /* the round's reading order is the negotiation page's, not this one's */
+      queue: page.querySelectorAll('.rl-q-tab, .rl-queue, [data-rl-queue-ids]').length,
+    };
+  });
+  ck('12e a reading really changes what the paper draws — the draft\'s marks '
+     + 'come off',
+     marksBefore > 0 && agreed.marks === 0,
+     `${marksBefore} marks on Redlined, ${agreed.marks} on As agreed`);
+  ck('12f AND NOTHING ON IT IS TYPEABLE — asked of the caret and of the pencil, '
+     + 'never of a class',
+     agreed.editables === 0 && agreed.pencils === 0,
+     `${agreed.editables} editable, ${agreed.pencils} pencils`);
+  ck('12g the band says so, in the owner\'s own words, and CARRIES the way back',
+     agreed.band && /not editable/i.test(agreed.bandWords) && agreed.backTo === 'marks'
+       && agreed.backPainted,
+     agreed.band ? `"${agreed.bandWords}"` : 'no band');
+  ck('12h and the round\'s queue rail is NOT on this page — it is about the round '
+     + 'and this page is about one clause',
+     agreed.queue === 0, `${agreed.queue}`);
+
+  /* Apply is the third door into the wording, and a rule kept in two of three
+     places is not a rule. */
+  const refused = await p.evaluate(() => {
+    const before = document.querySelector('#ce-clausebody').innerText.replace(/\s+/g, ' ').trim();
+    const took = window.ceApply('Something the reader cannot see arriving.', 'x');
+    const after = document.querySelector('#ce-clausebody').innerText.replace(/\s+/g, ' ').trim();
+    return { took, moved: before !== after };
+  });
+  ck('12i Apply is refused on a clean reading too — and the wording provably '
+     + 'does not move',
+     refused.took === false && refused.moved === false,
+     `took ${refused.took}, moved ${refused.moved}`);
+
+  /* A band saying "not editable" over a live Save is a page arguing with
+     itself. GREYED, not hidden, with the reason on the hover. */
+  const acts = await p.evaluate(() => {
+    const page = document.getElementById('clause-editor');
+    const pick = sel => { const b = page.querySelector(sel); if (!b) return { there: false };
+      const cs = getComputedStyle(b);
+      return { there: true, off: b.disabled, why: (b.getAttribute('title') || ''),
+        look: cs.color + '|' + cs.opacity }; };
+    return { save: pick('[data-ce-act="save"]'), discard: pick('[data-ce-act="discard"]'),
+      undo: pick('#ce-undo') };
+  });
+  ck('12i2 and the draft\'s own acts stand down with the caret — greyed, drawn, '
+     + 'and each saying why',
+     acts.save.there && acts.save.off && /not editable|Endast|reading only/i.test(acts.save.why)
+       && acts.discard.off && acts.undo.off,
+     `save off ${acts.save.off} ("${acts.save.why}"), discard ${acts.discard.off}, undo ${acts.undo.off}`);
+  /* A DIMMED CONTROL THAT STILL LOOKS LIVE IS WORSE THAN NO SIGNAL, so the
+     greying is measured against how the same controls look when they work —
+     a relation, never a typed colour. */
+  ck('12i3 and the greying really READS — measured against the same controls live',
+     !!actsLive && actsLive.save.look !== acts.save.look && actsLive.undo.look !== acts.undo.look,
+     actsLive && `save ${actsLive.save.look} → ${acts.save.look}, undo ${actsLive.undo.look} → ${acts.undo.look}`);
+
+  /* The way back, pressed for real. */
+  await p.click('#clause-editor #ce-band [data-rl-read="marks"]');
+  await pause(500);
+  const backOn = await p.evaluate(() => {
+    const page = document.getElementById('clause-editor');
+    return { marks: page.querySelectorAll('.rl-clause-live ins, .rl-clause-live .nego-ins,'
+        + ' .rl-clause-live del, .rl-clause-live .nego-del').length,
+      band: page.querySelectorAll('#ce-band .rl-readnote').length,
+      pencils: page.querySelectorAll('[data-ce-pencil]').length,
+      /* the negotiation page's own retirement stands: the notice stack calls
+         this builder with nothing and still gets nothing */
+      retired: (window.rlReadNoticeHtml ? rlReadNoticeHtml() : 'x') === '' };
+  });
+  ck('12j the way back on the band really works — the marks return',
+     backOn.marks > 0 && backOn.pencils > 0, `${backOn.marks} marks, ${backOn.pencils} pencils`);
+  ck('12k and on Redlined the band draws NOTHING — a band that is always there '
+     + 'stops being read',
+     backOn.band === 0, `${backOn.band} bands`);
+  ck('12l THE NEGOTIATION PAGE\'S OWN RETIREMENT STANDS — its notice stack asks '
+     + 'this same builder and still gets nothing',
+     backOn.retired, backOn.retired ? 'still empty there' : 'the band came back on that page');
+
+  /* Moving to another clause is ONE act, whether it is the crumb or a pencil. */
+  const moved = await p.evaluate(() => {
+    const page = document.getElementById('clause-editor');
+    const here = window.clauseEditorClauseId();
+    const other = [...page.querySelectorAll('[data-ce-pencil]')]
+      .map(b => b.getAttribute('data-ce-pencil')).find(id => id && id !== here);
+    if (!other) return null;
+    page.querySelector(`[data-ce-pencil="${other}"]`).click();
+    return { from: here, to: other };
+  });
+  await pause(600);
+  const landed = await p.evaluate(() => ({
+    on: window.clauseEditorClauseId(),
+    open: !!document.getElementById('clause-editor') }));
+  ck('12m the pencil on ANOTHER clause moves the page to that clause',
+     !!moved && landed.open && landed.on === moved.to && landed.on !== moved.from,
+     moved && `${moved.from} → ${landed.on}`);
+
+  /* ---- THE PAGE UNDERNEATH COMES BACK IN STEP ----
+     The reading is one value for the whole product, so a reader who leaves this
+     page on 'As agreed' has set the negotiation page's reading too — and
+     rlSetReadMode repaints that page's TAB ROW while it is covered. Left there,
+     they would come back to a page whose tabs say As agreed over a document
+     still carrying its marks, which is the exact fault the reading notice
+     exists for. */
+  await p.evaluate(() => { if (window.rlSetReadMode) rlSetReadMode('agreed'); });
+  await p.evaluate(() => window.rlCloseClauseEditor());
+  await pause(600);
+  const under = await p.evaluate(() => {
+    const doc = document.querySelector('.redline-page #rl-doc') || document.querySelector('#rl-doc');
+    const tab = document.querySelector('.redline-page .rl-readwrap [data-rl-read="agreed"]');
+    return { mode: window.rlReadMode ? rlReadMode() : null,
+      tabOn: tab ? tab.getAttribute('aria-pressed') : null,
+      marks: doc ? doc.querySelectorAll('.rl-clause:not(.is-changed) ins, '
+        + '.rl-clause:not(.is-changed) del').length : -1,
+      pencils: doc ? doc.querySelectorAll('[data-rl-cp-open]').length : -1 };
+  });
+  ck('12n leaving on a clean reading leaves the page underneath IN STEP — its '
+     + 'tabs and its document say the same thing',
+     under.mode === 'agreed' && under.tabOn === 'true' && under.pencils === 0,
+     `mode ${under.mode}, tab ${under.tabOn}, pencils ${under.pencils}`);
+  await p.evaluate(() => { if (window.rlSetReadMode) rlSetReadMode('marks'); if (window.renderRedline) renderRedline(); });
+  await pause(500);
 
   /* ---- 11. THE COUNTERPARTY'S SEAT IS UNTOUCHED ----
      Mounted from a REAL share payload, which is the only honest way to ask:
