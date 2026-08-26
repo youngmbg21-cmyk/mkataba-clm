@@ -13014,25 +13014,21 @@ function redlinePanesHtml(c, opts = {}){
             ${p.total ? `<div class="rl-idx-bar" role="img"
               aria-label="${_nea(i18t('ng_n_of_m_decided',{done:p.done,total:p.total}))}"><i
               style="width:${p.pct}%"></i></div>
-            <div class="rl-idx-foot">
-              <span class="rl-idx-sub">${_ne(i18t('ng_n_of_m_decided',{done:p.done,total:p.total}))}</span>
-              <span style="flex:1;min-width:6px"></span>
-              ${''/* ---- THE FILTER DRAWS HERE (owner-asked 24 Aug 2026: "move
-                     the all button to the small red highlighted location on
-                     the top right") ----
-                     This slot was already declared, already named for the
-                     filter, and NOTHING ANYWHERE WROTE INTO IT — one span, no
-                     readers, in any file. The intention was there and the last
-                     step was never taken, so the control drew on the line
-                     below. It is built here now and the line below is gone.
-                     THE THREE SAFETY PROPERTIES ARE UNTOUCHED: three options
-                     only, each still carrying its OWN count unmoved by the
-                     filter, and rlCardFilterNoteHtml still says so and offers
-                     the way back while the column is narrowed. A control that
-                     can hide changes is the one on this page that must never
-                     be silent. */}
-              ${rlIdxFilterHtml(c, opts, side, tabHidden)}
-            </div>` : ''}
+            ${''/* ---- THE "N OF M DECIDED" ROW IS DELETED (owner-asked
+                   26 Aug 2026, ringing it: "delete this area completely") ----
+                   It held that sentence and, until the same morning, the
+                   WHOSE ASKS filter; with the filter retired the row was one
+                   line of prose repeating what the line above it already says.
+                   THE HEAD SAYS BOTH NUMBERS ALREADY — "Tracked changes (4)"
+                   and "3 open" — so "1 of 4 decided" was the same arithmetic
+                   printed a second time, twenty pixels lower.
+                   THE BAR STAYS, and that is a decision rather than an
+                   oversight: it was outside what the owner ringed, and it is a
+                   different kind of thing — a glance at how far through the
+                   round you are, not a number to read. One word removes it.
+                   .rl-idx-foot and .rl-idx-sub are STALE, and so is
+                   rlIdxFilterHtml's last caller — that builder is now a stub
+                   with no caller at all. */}` : ''}
             ${''/* ---- THE NARROWED BAND IS GONE (owner-asked 26 Aug 2026) ----
                    It read "Showing one side only — others are hidden" with a
                    Show all changes beside it, and it was the amber row the

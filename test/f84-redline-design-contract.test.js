@@ -288,7 +288,15 @@ describe('F84 — the Tracked Changes head is a caption and a count', () => {
     assert.match(p.$('.rl-idx-title').textContent, /\(\d+\)/,
       'and how much is in it — carried by the title, said once');
     assert.equal(p.$('#rl-cardfilter'), null, 'and by nothing else');
-    assert.match(head.textContent, /\d+ of \d+/, 'and how far through the round it is');
+    /* REVERSED IN PLACE 26 Aug 2026 (owner-asked, ringing the row: "delete
+       this area completely"). The head said the round's shape twice — the
+       title's total and "N open" on one line, "N of M decided" twenty pixels
+       lower. The sentence went and the BAR stayed, so the claim is the one it
+       was really making: the head still shows how far through the round it is,
+       and now it shows it once. */
+    assert.ok(p.$('.rl-idx-bar'), 'and how far through the round it is');
+    assert.equal((head.textContent.match(/\d+ of \d+/g) || []).length, 0,
+      'said once — the sentence that repeated it is deleted');
   });
 
   test('the controls that used to crowd it are gone', async () => {

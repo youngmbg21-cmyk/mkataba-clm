@@ -5587,6 +5587,28 @@ function wireRoomHead(c){
         if(!main||!main.contains(t)) return;
         const el=document.getElementById('ws-facts');
         if(el&&el.contains(t)) return;
+        /* ---- AND ON THE NEGOTIATION PAGE, ONLY THE CONTRACT MAY FOLD IT
+               (owner-asked 26 Aug 2026: "fix scrolling in the tracked changes
+               area so that when you scroll down the page does not collapse ...
+               It should only happen in the contracts section") ----
+           MEASURED, and this is what the report is: scrolling the tracked-
+           changes column folded this header and the head went from 120px to
+           95px, then back to 120 on scrolling the cards up again — the page
+           expanding and collapsing under a gesture that has nothing to do with
+           the contract. The guard above already excluded the fact row itself;
+           it did not exclude the OTHER scrollers in the room, and that page has
+           four (the cards, the clause panel, the round queue, a ⋯ menu).
+           A FIRST PASS AIMED AT THE WRONG MECHANISM and is worth recording:
+           overscroll-behavior stops a scroll CHAINING to the page behind it,
+           which is a different thing from a scroll EVENT that some listener
+           acts on. That rule is right and stays; it was never going to fix
+           this, and only driving the page proved which of the two it was.
+           WRITTEN AS A POSITIVE RULE rather than a list of what to skip: on
+           this page the fold answers the DOCUMENT pane and nothing else, so a
+           scroller added to that column later inherits the answer instead of
+           having to be remembered. */
+        const rl=document.querySelector('.redline-page');
+        if(rl&&rl.contains(t)&&!(t.closest&&t.closest('.rl-doc'))) return;
         lastTop=t.scrollTop;
         if(ticking) return; ticking=true; requestAnimationFrame(paintSnap);
       },true);
