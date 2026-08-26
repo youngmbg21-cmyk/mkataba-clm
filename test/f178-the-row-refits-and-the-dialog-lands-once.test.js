@@ -88,7 +88,7 @@ describe('F178 — the tab row re-fits when the ROW changes width, not the windo
 
 describe('F178 — the share dialog arrives once, at its final size', () => {
   test('the first paint is the real first question, not a skeleton', () => {
-    assert.match(CORE, /function shareOpeningHtml\(c, purposeSel\)\{\s*return `<div style="padding:22px 24px;">\$\{shareKindStepHtml\(c, purposeSel\)\}<\/div>`;/,
+    assert.match(CORE, /function shareOpeningHtml\(c, purposeSel\)\{\s*return `<div style="padding:22px var\(--s-6\);">\$\{shareKindStepHtml\(c, purposeSel\)\}<\/div>`;/,
       'the opening markup IS the step the settled dialog shows');
     assert.ok(!/aria-hidden="true" style="display:grid;gap:9px"/.test(CORE),
       'the grey placeholder boxes are gone — they were the flicker');

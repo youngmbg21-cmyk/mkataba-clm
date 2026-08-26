@@ -76,14 +76,14 @@ function openFolderAccessEditor(userId){
   const isAll=(cur==null||cur==='*'||(Array.isArray(cur)&&!cur.length));
   const set=new Set(Array.isArray(cur)?cur:[]);
   const folders=Object.values(FOLDERS);
-  const fRow=f=>`<label style="display:flex;align-items:center;gap:9px;padding:7px 9px;border:1px solid var(--color-divider);border-radius:0;cursor:pointer;font-size:14px">
+  const fRow=f=>`<label style="display:flex;align-items:center;gap:9px;padding:7px 9px;border:1px solid var(--color-divider);border-radius:0;cursor:pointer;font-size:var(--t-body)">
       <input type="checkbox" data-fa-folder="${f.id}" ${set.has(f.id)?'checked':''} style="width:15px;height:15px;accent-color:var(--color-accent);flex:none"/>
       <span style="width:9px;height:9px;border-radius:0;background:${f.color};flex:none"></span>
       <span style="flex:1;min-width:0">${esc(f.name)}</span></label>`;
   openModal(`<div class="p-6" style="max-width:460px">
     <h3 class="font-serif font-600 text-lg text-ink mb-1">${i18t('set_folder_access_for',{who:(u.name||u.email).replace(/</g,'&lt;')})}</h3>
     <p class="text-xs text-ink/60 mb-3">${i18t('set_grant_streams')}</p>
-    <label style="display:flex;align-items:center;gap:9px;padding:9px;border:1px solid var(--color-divider);border-radius:0;cursor:pointer;font-size:14px;font-weight:600;margin-bottom:10px">
+    <label style="display:flex;align-items:center;gap:9px;padding:9px;border:1px solid var(--color-divider);border-radius:0;cursor:pointer;font-size:var(--t-body);font-weight:var(--w-strong);margin-bottom:10px">
       <input type="checkbox" id="fa-all" ${isAll?'checked':''} style="width:16px;height:16px;accent-color:var(--color-accent)"/> ${i18t('set_all_streams')}</label>
     <div id="fa-list" style="display:${isAll?'none':'grid'};grid-template-columns:1fr;gap:6px;max-height:300px;overflow:auto;margin-bottom:14px">${folders.map(fRow).join('')}</div>
     <div class="flex justify-end gap-2">
@@ -134,9 +134,9 @@ function renderAllowancePanel(a){
   const docsPct=a.docs>0?Math.min(100,Math.round(a.docsUsed/a.docs*100)):0;
   const pct=Math.max(moneyPct,docsPct);
   const bar=`<div style="height:6px;background:var(--color-neutral-200);border-radius:0;overflow:hidden;margin-top:5px">
-    <div style="width:${pct}%;height:100%;background:${a.exhausted?'var(--st-ruby-fg)':pct>=80?'var(--st-amber-dot)':'var(--st-green-dot)'};transition:width .3s"></div></div>`;
+    <div style="width:${pct}%;height:100%;background:${a.exhausted?'var(--st-ruby-fg)':pct>=80?'var(--st-amber-dot)':'var(--st-green-dot)'};transition:width var(--dur-3)"></div></div>`;
   host.innerHTML=`<div>
-    <span style="font-weight:600;color:${a.exhausted?'var(--st-ruby-fg)':'var(--st-green-fg)'}">${a.exhausted?'Used up':'Open'}</span>
+    <span style="font-weight:var(--w-strong);color:${a.exhausted?'var(--st-ruby-fg)':'var(--st-green-fg)'}">${a.exhausted?'Used up':'Open'}</span>
     ${a.budget>0?` · <b>${money(a.spent)}</b> of <b>${money(a.budget)}</b>`:' · no money cap'}
     ${a.docs>0?` · <b>${a.docsUsed}</b> of <b>${a.docs}</b> documents`:''}
     ${a.openedBy?`<span style="color:var(--color-neutral-500)"> · opened by ${PB_ESC(a.openedBy)}</span>`:''}
@@ -151,12 +151,12 @@ function renderAllowancePanel(a){
 function renderRateTable(rates, meta){
   const host=document.getElementById('ai-rates-table'); if(!host) return;
   const models=Object.keys(rates||{}).sort((a,b)=>a==='default'?1:b==='default'?-1:a.localeCompare(b));
-  const inp='width:74px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:3px 6px;font:inherit;font-family:var(--font-mono);font-size:12px;text-align:right;outline:none';
+  const inp='width:74px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:3px 6px;font:inherit;font-family:var(--font-mono);font-size:var(--t-label);text-align:right;outline:none';
   host.innerHTML=models.map(m=>`
-    <div data-rate-model="${PB_ATTR(m)}" style="display:flex;align-items:center;gap:8px;padding:3px 2px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent)">
-      <span style="flex:1;min-width:0;font-size:12px;font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis${m==='default'?';color:var(--color-neutral-500);font-style:italic':''}">${PB_ESC(m)}</span>
-      <label style="font-size:12px;color:var(--color-neutral-500)">${i18t('set_rate_in')} <input data-rate="in" type="number" min="0" step="0.01" value="${Number(rates[m].in)}" style="${inp}"/></label>
-      <label style="font-size:12px;color:var(--color-neutral-500)">${i18t('set_rate_out')} <input data-rate="out" type="number" min="0" step="0.01" value="${Number(rates[m].out)}" style="${inp}"/></label>
+    <div data-rate-model="${PB_ATTR(m)}" style="display:flex;align-items:center;gap:var(--s-2);padding:3px 2px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent)">
+      <span style="flex:1;min-width:0;font-size:var(--t-label);font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis${m==='default'?';color:var(--color-neutral-500);font-style:italic':''}">${PB_ESC(m)}</span>
+      <label style="font-size:var(--t-label);color:var(--color-neutral-500)">${i18t('set_rate_in')} <input data-rate="in" type="number" min="0" step="0.01" value="${Number(rates[m].in)}" style="${inp}"/></label>
+      <label style="font-size:var(--t-label);color:var(--color-neutral-500)">${i18t('set_rate_out')} <input data-rate="out" type="number" min="0" step="0.01" value="${Number(rates[m].out)}" style="${inp}"/></label>
     </div>`).join('');
   const metaEl=document.getElementById('ai-rates-meta');
   if(metaEl) metaEl.textContent = meta && meta.verifiedOn
@@ -256,21 +256,21 @@ function settingsPaintShapeBoxes(){
 /* Shared inline tokens. They were declared inside renderTeam(), which meant
    every drawer body that wanted a field had to restate them; one copy is one
    place a control's clothes are decided. */
-const ST_CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:0;padding:16px';
-const ST_H4='font-family:var(--font-mono);font-weight:600;font-size:15px;margin:0 0 6px;color:var(--color-text)';
-const ST_INPUT='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:6px 9px;font:inherit;font-size:14px;color:inherit;outline:none';
-const ST_MONO='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:5px 8px;font-family:var(--font-mono);font-size:12px;color:inherit;outline:none';
-const ST_BTN='font-family:var(--font-mono);font-weight:600;font-size:14px;padding:6px 14px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);border-radius:0;cursor:pointer;white-space:nowrap';
-const ST_BTN_SM='font-family:var(--font-mono);font-weight:600;font-size:13px;padding:5px 12px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);border-radius:0;cursor:pointer';
-const ST_BTN2='display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-weight:600;font-size:13px;padding:5px 11px;background:var(--color-surface);color:var(--color-accent-800);border:1px solid var(--color-divider);border-radius:0;cursor:pointer';
-const ST_BTN_DANGER='display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-weight:600;font-size:13px;padding:5px 11px;background:var(--color-surface);color:var(--st-ruby-dot);border:1px solid var(--st-ruby-line);border-radius:0;cursor:pointer';
-const ST_TAG='display:inline-flex;align-items:center;font-size:12px;font-weight:600;letter-spacing:.04em;padding:3px 10px;border-radius:0;background:var(--color-accent-200);color:var(--color-accent-800)';
-const ST_AV='width:24px;height:24px;border-radius:50%;background:var(--color-accent-200);color:var(--color-accent-800);display:inline-grid;place-items:center;font-size:10px;font-weight:700;flex:none;font-family:var(--font-mono)';
+const ST_CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:0;padding:var(--s-4)';
+const ST_H4='font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-card);margin:0 0 6px;color:var(--color-text)';
+const ST_INPUT='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:6px 9px;font:inherit;font-size:var(--t-body);color:inherit;outline:none';
+const ST_MONO='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:5px var(--s-2);font-family:var(--font-mono);font-size:var(--t-label);color:inherit;outline:none';
+const ST_BTN='font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-body);padding:6px 14px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);border-radius:0;cursor:pointer;white-space:nowrap';
+const ST_BTN_SM='font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-meta);padding:5px var(--s-3);background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);border-radius:0;cursor:pointer';
+const ST_BTN2='display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-meta);padding:5px 11px;background:var(--color-surface);color:var(--accent-ink);border:1px solid var(--color-divider);border-radius:0;cursor:pointer';
+const ST_BTN_DANGER='display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-meta);padding:5px 11px;background:var(--color-surface);color:var(--st-ruby-dot);border:1px solid var(--st-ruby-line);border-radius:0;cursor:pointer';
+const ST_TAG='display:inline-flex;align-items:center;font-size:var(--t-label);font-weight:var(--w-strong);letter-spacing:.04em;padding:3px 10px;border-radius:0;background:var(--st-steel-bg);color:var(--st-steel-fg)';
+const ST_AV='width:24px;height:24px;border-radius:50%;background:var(--st-steel-bg);color:var(--st-steel-fg);display:inline-grid;place-items:center;font-size:var(--t-figure);font-weight:var(--w-title);flex:none;font-family:var(--font-mono)';
 const stRoleTag=r=>{ const map={admin:['var(--st-steel-bg)','var(--st-steel-fg)'],legal:['var(--st-amber-bg)','var(--st-amber-fg)'],viewer:['var(--st-gray-bg)','var(--st-gray-fg)']};
   const [bg,fg]=map[r]||map.viewer;
-  return `display:inline-flex;align-items:center;font-size:12px;font-weight:600;letter-spacing:.04em;padding:3px 10px;border-radius:0;background:${bg};color:${fg}`; };
+  return `display:inline-flex;align-items:center;font-size:var(--t-label);font-weight:var(--w-strong);letter-spacing:.04em;padding:3px 10px;border-radius:0;background:${bg};color:${fg}`; };
 const stLimitField=(id,label,sub,min)=>`<label style="display:block">
-    <span style="display:block;font-size:12px;color:var(--color-neutral-600);line-height:1.4">${label}<br><span style="color:var(--color-neutral-400)">${sub}</span></span>
+    <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.4">${label}<br><span style="color:var(--color-neutral-400)">${sub}</span></span>
     <input id="${id}" type="number" min="${min}" style="margin-top:3px;${ST_MONO}"/></label>`;
 
 /* ---- WHAT A NON-ADMIN LOST, SAID OUT LOUD ----
@@ -375,9 +375,17 @@ function stWireDrawerOnce(){
   });
   document.addEventListener('keydown',e=>{ if(e.key==='Escape' && _stOpen) stDrawerClose(); });
 }
+/* The keyboard's way out of the drawer, held so the close can hand it back.
+   One value, because only one drawer is ever open. */
+let _stTrap=null;
 function stDrawerClose(){
   _stOpen=null;
   const d=document.getElementById('st-drawer'), s=document.getElementById('st-scrim');
+  /* RELEASE FIRST, WHILE THE DRAWER IS STILL THERE. The trap puts focus back
+     on the row that opened it, and this drawer is dismissed by hiding rather
+     than by tearing out — so releasing after the hide would move focus into an
+     element the browser has just stopped drawing. */
+  if(_stTrap){ try{ _stTrap(); }catch(e){} _stTrap=null; }
   if(d){ d.classList.remove('open'); d.setAttribute('hidden',''); }
   if(s){ s.classList.remove('open'); s.setAttribute('hidden',''); }
 }
@@ -415,6 +423,15 @@ function stDrawerPaint(d){
      element stops being hidden or the transition has nothing to run from. */
   const show=()=>{ el.classList.add('open'); if(scrim) scrim.classList.add('open'); };
   if(typeof requestAnimationFrame==='function') requestAnimationFrame(show); else show();
+  /* ---- THE KEYBOARD STAYS IN THE DRAWER ---- (25 Aug 2026)
+     Measured before this: the drawer opened over a dimmed page and Tab walked
+     straight out of it into the settings rows behind — which a sighted reader
+     watches happen with nothing visibly moving, and a screen-reader user
+     cannot follow at all. One shared trap, published from core.js; read
+     through window because this is a module and a bare cross-module read
+     throws rather than falling through. */
+  if(_stTrap){ try{ _stTrap(); }catch(e){} _stTrap=null; }
+  if(typeof window.trapFocus==='function') _stTrap=window.trapFocus(el);
   if(typeof d.wire==='function') d.wire();
   if(d.foot==='save' && typeof d.save==='function')
     document.getElementById('st-dsave')?.addEventListener('click',()=>d.save());
@@ -425,6 +442,16 @@ function stDrawerPaint(d){
 function stDrawerRefuse(msg){
   const r=document.getElementById('st-drawer-refusal');
   if(!r){ if(window.toast) toast(msg,'err'); return; }
+  /* ---- AND IT IS SPOKEN, NOT ONLY DRAWN ---- (25 Aug 2026)
+     MEASURED by the UI audit: ZERO aria-live regions in the whole product. A
+     refusal that appears silently in the foot of a drawer is a refusal a
+     screen-reader user never learns about — they press Save, nothing happens,
+     and there is nothing to go and read. 'assertive' rather than 'polite'
+     because this is the answer to a press the reader has just made and is
+     waiting on. Set on the ELEMENT rather than in the markup so it cannot be
+     lost the next time this foot is rebuilt. */
+  r.setAttribute('role','alert');
+  r.setAttribute('aria-live','assertive');
   r.textContent=msg; r.removeAttribute('hidden');
 }
 function stDrawerClearRefusal(){ document.getElementById('st-drawer-refusal')?.setAttribute('hidden',''); }
@@ -523,9 +550,9 @@ function stPeopleHtml(){
     const miss=stPersonMissing(u);
     const acc=stAccessOf(u);
     return `<button class="st-person" data-st-panel="person:${PB_ATTR(u.id)}">
-      <span style="${ST_AV};width:30px;height:30px;font-size:12px">${esc(ini)}</span>
+      <span style="${ST_AV};width:30px;height:30px;font-size:var(--t-label)">${esc(ini)}</span>
       <span class="st-person-main">
-        <span class="st-person-name">${esc(u.name||u.email)}${u.id===me.id?` <span style="font-weight:400;color:var(--color-neutral-500);font-size:12px">${i18t('set_you')}</span>`:''}</span>
+        <span class="st-person-name">${esc(u.name||u.email)}${u.id===me.id?` <span style="font-weight:var(--w-body);color:var(--color-neutral-500);font-size:var(--t-label)">${i18t('set_you')}</span>`:''}</span>
         <span class="st-person-sub">
           <span style="${stRoleTag(u.role)}">${esc(roleName(u.role))}</span>
           <span>${u.title?esc(u.title):`<span style="color:var(--st-amber-fg)">${i18t('set_no_job_title')}</span>`}</span>
@@ -543,7 +570,7 @@ function stPeopleHtml(){
   return `${banner}
     <div class="st-people-head">
       <span class="st-people-count">${i18tn('st_people_count',users.length,{n:users.length})}</span>
-      <button id="st-add-person" class="ui-btn ui-btn-primary" style="font-size:13px;padding:5px 12px" data-st-panel="person:new">${i18t('st_add_person')}</button>
+      <button id="st-add-person" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:5px var(--s-3)" data-st-panel="person:new">${i18t('st_add_person')}</button>
     </div>
     <div class="st-people">${rows}</div>`;
 }
@@ -562,7 +589,7 @@ function stSigningSectionHtml(u, isNew){
   const sentence=(typeof signCapSentence==='function')?signCapSentence(u,cap,enforced):'';
   const body=(u.role==='viewer'||u.role==='admin')
     ? `<p class="st-note" id="tm-cap-says">${esc(sentence)}</p>`
-    : `<label class="st-toggle" style="margin-bottom:8px">
+    : `<label class="st-toggle" style="margin-bottom:var(--s-2)">
          <input id="tm-cap-none" type="checkbox"${(cap.answered&&cap.limit==null)?' checked':''}/>
          <span><span class="st-role-name">${esc(i18t('sc_no_limit'))}</span></span></label>
        <label style="display:block">
@@ -570,7 +597,7 @@ function stSigningSectionHtml(u, isNew){
          <input id="tm-cap" type="number" min="0" step="1000" value="${cap.limit==null?'':String(cap.limit)}"
            style="${window.RV_FLD||ST_INPUT}"${(cap.answered&&cap.limit==null)?' disabled':''}/>
          <span class="st-note">${esc(i18t('sc_cap_hint'))}</span></label>
-       <p class="st-note" id="tm-cap-says" style="margin-top:8px">${esc(sentence)}</p>`;
+       <p class="st-note" id="tm-cap-says" style="margin-top:var(--s-2)">${esc(sentence)}</p>`;
   return `<section class="st-sec">
     <h3 class="st-sec-h"><span class="st-sec-n">4</span>${esc(i18t('sc_section'))}</h3>${body}</section>`;
 }
@@ -622,8 +649,8 @@ function stSignFolderHtml(u, isNew, folders){
       <option value="*"${all?' selected':''}>${esc(i18t('sf_every_they_see'))}</option>
       <option value="pick"${all?'':' selected'}>${esc(i18t('st_folders_pick'))}</option>
     </select>
-    <div id="tm-sign-list" style="display:${all?'none':'grid'};grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;margin-top:8px">
-      ${folders.map(f=>`<label style="display:flex;align-items:center;gap:7px;padding:6px 8px;border:1px solid var(--color-divider);border-radius:0;cursor:pointer;font-size:13px">
+    <div id="tm-sign-list" style="display:${all?'none':'grid'};grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;margin-top:var(--s-2)">
+      ${folders.map(f=>`<label style="display:flex;align-items:center;gap:7px;padding:6px var(--s-2);border:1px solid var(--color-divider);border-radius:0;cursor:pointer;font-size:var(--t-meta)">
         <input type="checkbox" data-tm-signfolder="${PB_ATTR(f.id)}"${set.has(f.id)?' checked':''} style="width:14px;height:14px;accent-color:var(--color-accent);flex:none"/>
         <span style="width:8px;height:8px;border-radius:0;background:${f.color};flex:none"></span>
         <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.name)}</span></label>`).join('')}
@@ -656,8 +683,8 @@ function stReviewSectionHtml(u, isNew){
     .filter(x=>x&&x.id!==u.id&&x.role!=='viewer');
   return `<section class="st-sec">
     <h3 class="st-sec-h"><span class="st-sec-n">5</span>${esc(i18t('rv_who_checks'))}</h3>
-    ${on?'':`<p class="st-note" style="margin-bottom:8px">${esc(i18t('rv_person_gate_off'))}</p>`}
-    <label class="st-toggle" style="margin-bottom:8px">
+    ${on?'':`<p class="st-note" style="margin-bottom:var(--s-2)">${esc(i18t('rv_person_gate_off'))}</p>`}
+    <label class="st-toggle" style="margin-bottom:var(--s-2)">
       <input id="tm-rv-checked" type="checkbox"${checked?' checked':''}/>
       <span><span class="st-role-name">${esc(i18t('rv_person_checked'))}</span>
       <span class="st-note">${esc(i18t('rv_person_checked_sub'))}</span></span></label>
@@ -668,7 +695,7 @@ function stReviewSectionHtml(u, isNew){
         ${cand.map(x=>`<option value="${PB_ATTR(x.id)}"${String(u.reviewerId||'')===String(x.id)?' selected':''}>${esc(x.name||x.email)}</option>`).join('')}
       </select>
       <span class="st-note">${esc(i18t('rv_person_reviewer_sub'))}</span></label>
-    <p class="st-note" id="tm-rv-says" style="margin-top:8px"></p>
+    <p class="st-note" id="tm-rv-says" style="margin-top:var(--s-2)"></p>
   </section>`;
 }
 /* The live sentence, read off the two controls rather than off the record — it
@@ -713,7 +740,7 @@ function stOverseerSectionHtml(u, isNew){
     .filter(x=>x&&x.id!==u.id&&x.role!=='viewer');
   return `<section class="st-sec">
     <h3 class="st-sec-h"><span class="st-sec-n">6</span>${esc(i18t('ov_section'))}</h3>
-    ${on?'':`<p class="st-note" style="margin-bottom:8px">${esc(i18t('ov_says_not_enforced'))}</p>`}
+    ${on?'':`<p class="st-note" style="margin-bottom:var(--s-2)">${esc(i18t('ov_says_not_enforced'))}</p>`}
     <label style="display:block">
       <span style="${window.RV_LBL||''}">${esc(i18t('ov_person'))}</span>
       <select id="tm-overseer" style="${window.RV_FLD||ST_INPUT}">
@@ -721,7 +748,7 @@ function stOverseerSectionHtml(u, isNew){
         ${cand.map(x=>`<option value="${PB_ATTR(x.id)}"${String(u.overseerId||'')===String(x.id)?' selected':''}>${esc(x.name||x.email)}</option>`).join('')}
       </select>
       <span class="st-note">${esc(i18t('ov_person_sub'))}</span></label>
-    <p class="st-note" id="tm-ov-says" style="margin-top:8px"></p>
+    <p class="st-note" id="tm-ov-says" style="margin-top:var(--s-2)"></p>
     <p class="st-note">${esc(i18t('ov_no_owner'))}</p>
   </section>`;
 }
@@ -781,7 +808,7 @@ function settingsPersonDrawer(idOrNew){
       fld('tm-name',i18t('st_f_name'),'','text',u.name)
       +fld('tm-email',i18t('st_f_email'),'','email',u.email)
       +fld('tm-title',i18t('st_f_title'),i18t('st_f_title_note'),'text',u.title)
-      +(isNew?`<label style="display:block;margin-bottom:4px">
+      +(isNew?`<label style="display:block;margin-bottom:var(--s-1)">
           <span style="${window.RV_LBL||''}">${esc(i18t('st_f_temp_pass'))}</span>
           <input id="tm-pass" type="password" style="${window.RV_FLD||ST_INPUT}"/>
           <span class="st-note">${esc(i18t('st_f_temp_pass_note'))}</span></label>`:'')
@@ -796,7 +823,7 @@ function settingsPersonDrawer(idOrNew){
              your account page, not with admin rank. The server refuses it too;
              this is the sign, that is the wall. */)
       +((!isNew && isAdmin() && !isMe && API_MODE())?`
-        <div style="display:flex;align-items:center;gap:10px;margin-top:4px">
+        <div style="display:flex;align-items:center;gap:10px;margin-top:var(--s-1)">
           <span class="st-note" style="flex:1;margin:0">${esc(u.twoStep?i18t('ts_person_on'):i18t('ts_person_off'))}</span>
           ${u.twoStep?`<button id="tm-clear-2fa" data-uid="${PB_ATTR(u.id)}" style="${ST_BTN_SM};flex:none">${esc(i18t('ts_clear_btn'))}</button>`:''}
         </div>`:''))}
@@ -835,8 +862,8 @@ function settingsPersonDrawer(idOrNew){
           <option value="*"${(!isNew&&acc.all)?' selected':''}>${esc(i18t('st_folders_all'))}</option>
           <option value="pick"${(!isNew&&!acc.all)?' selected':''}>${esc(i18t('st_folders_pick'))}</option>
         </select>
-        <div id="tm-access-list" style="display:${(!isNew&&!acc.all)?'grid':'none'};grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;margin-top:8px">
-          ${folders.map(f=>`<label style="display:flex;align-items:center;gap:7px;padding:6px 8px;border:1px solid var(--color-divider);border-radius:0;cursor:pointer;font-size:13px">
+        <div id="tm-access-list" style="display:${(!isNew&&!acc.all)?'grid':'none'};grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;margin-top:var(--s-2)">
+          ${folders.map(f=>`<label style="display:flex;align-items:center;gap:7px;padding:6px var(--s-2);border:1px solid var(--color-divider);border-radius:0;cursor:pointer;font-size:var(--t-meta)">
             <input type="checkbox" data-tm-folder="${PB_ATTR(f.id)}"${set.has(f.id)?' checked':''} style="width:14px;height:14px;accent-color:var(--color-accent);flex:none"/>
             <span style="width:8px;height:8px;border-radius:0;background:${f.color};flex:none"></span>
             <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.name)}</span></label>`).join('')}
@@ -1124,7 +1151,7 @@ function stAccountBodyHtml(){
     <section class="st-sec">
       <h3 class="st-sec-h">${esc(i18t('st_acct_job'))}</h3>
       <p class="st-note" style="margin-bottom:6px">${esc(i18t('st_acct_job_sub'))}</p>
-      <div style="display:flex;gap:8px;align-items:flex-end">
+      <div style="display:flex;gap:var(--s-2);align-items:flex-end">
         <label style="flex:1;min-width:0"><span style="${window.RV_LBL||''}">${esc(i18t('st_f_title'))}</span>
           <input id="acct-title" type="text" value="${PB_ATTR(u.title||'')}" style="${window.RV_FLD||ST_INPUT}"/></label>
         <button id="acct-title-save" style="${ST_BTN_SM}">${i18t('act_save')}</button>
@@ -1146,7 +1173,7 @@ function stAccountBodyHtml(){
     <section class="st-sec">
       <h3 class="st-sec-h">${esc(i18t('st_acct_sessions'))}</h3>
       <p class="st-note" style="margin-bottom:6px">${i18t('set_sessions_sub')}</p>
-      <div id="sessions-list" style="font-size:13px;color:var(--color-neutral-700)">${i18t('set_loading')}</div>
+      <div id="sessions-list" style="font-size:var(--t-meta);color:var(--color-neutral-700)">${i18t('set_loading')}</div>
     </section>
 
     ${''/* THE HONEST READ-ONLY STATEMENT STAYS. The checkboxes that used to be
@@ -1157,7 +1184,7 @@ function stAccountBodyHtml(){
     <section class="st-sec">
       <h3 class="st-sec-h">${esc(i18t('st_acct_email'))}</h3>
       <div class="st-quiet">
-        <span style="font-weight:600;display:block;color:var(--color-text)">${i18t('set_still_emailed')}</span>
+        <span style="font-weight:var(--w-strong);display:block;color:var(--color-text)">${i18t('set_still_emailed')}</span>
         ${i18t('set_three_events')}
       </div>
       ${''/* THE ONE LIVE CHOICE BESIDE THE HONEST STATEMENT (WO-3, widened
@@ -1170,7 +1197,7 @@ function stAccountBodyHtml(){
              like every other setting in this drawer: a choice that only
              saves if you remember to press Save is a choice that is wrong
              when it matters. */}
-      <div class="st-sec-lead" style="margin-top:12px;font-weight:600;font-size:14px;color:var(--color-text)">${i18t('set_brief_how_often')}</div>
+      <div class="st-sec-lead" style="margin-top:var(--s-3);font-weight:var(--w-strong);font-size:var(--t-body);color:var(--color-text)">${i18t('set_brief_how_often')}</div>
       ${''/* THE GROUP NAME IS UNIQUE PER RENDERING, and that is not decoration:
              this section is drawn on the You tab AND again inside the drawer
              that opens over it, so a shared radio name would make the two
@@ -1180,7 +1207,7 @@ function stAccountBodyHtml(){
       ${(_briefGroup++, '')}${[['daily','set_brief_daily','set_brief_daily_sub'],
          ['weekly','set_brief_weekly','set_brief_weekly_sub'],
          ['off','set_brief_off','set_brief_off_sub']].map(([v,k,sub])=>`
-        <label class="st-toggle" style="margin-top:8px">
+        <label class="st-toggle" style="margin-top:var(--s-2)">
           <input type="radio" name="pref-brief-every-${_briefGroup}" data-pref-brief="${v}"${briefCadenceOf(u)===v?' checked':''}/>
           <span><span class="st-role-name">${i18t(k)}</span>
           <span class="st-note">${i18t(sub)}</span></span>
@@ -1284,7 +1311,7 @@ async function stHooksLoad(){
   host.innerHTML=rows.map(w=>{
     const tone=w.lastOk===false?'ruby':(w.lastOk?'green':'steel');
     const said=w.lastAt?`${w.lastOk?i18t('st_hooks_ok'):i18t('st_hooks_bad')} · ${esc(w.lastStatus||'')}`:i18t('st_hooks_never');
-    return `<div style="display:flex;align-items:center;gap:9px;font-size:13px">
+    return `<div style="display:flex;align-items:center;gap:9px;font-size:var(--t-meta)">
       <span class="pill-x" style="background:var(--st-${tone}-bg);color:var(--st-${tone}-fg);flex:none">${w.active?i18t('st_hooks_live'):i18t('st_hooks_off')}</span>
       <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(w.url)}
         <span class="st-note" style="margin:0">${esc(said)}</span></span>
@@ -1312,11 +1339,11 @@ async function stHooksAdd(){
        a screen that could re-read it would hand it to anybody who reaches the
        screen. Said plainly rather than left for somebody to discover. */
     openModal(`<div style="padding:20px 22px;max-width:470px">
-      <h3 style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0 0 6px">${i18t('st_hooks_secret_title')}</h3>
+      <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);margin:0 0 6px">${i18t('st_hooks_secret_title')}</h3>
       <p class="st-note" style="margin:0 0 10px">${esc(i18t('st_hooks_secret_msg'))}</p>
-      <div style="font-family:var(--font-mono);font-size:14px;background:var(--color-bg);border:1px solid var(--color-divider);border-radius:0;padding:10px 12px;word-break:break-all;user-select:all">${esc(r.secret)}</div>
-      <div style="display:flex;justify-content:flex-end;margin-top:12px">
-        <button id="wh-done" class="ui-btn ui-btn-primary" style="font-size:13px;padding:7px 14px">${i18t('ts_done')}</button>
+      <div style="font-family:var(--font-mono);font-size:var(--t-body);background:var(--color-bg);border:1px solid var(--color-divider);border-radius:0;padding:10px var(--s-3);word-break:break-all;user-select:all">${esc(r.secret)}</div>
+      <div style="display:flex;justify-content:flex-end;margin-top:var(--s-3)">
+        <button id="wh-done" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:7px 14px">${i18t('ts_done')}</button>
       </div></div>`,{maxWidth:'490px'});
     document.getElementById('wh-done')?.addEventListener('click',()=>closeModal());
   }catch(e){ stDrawerRefuse((e&&e.message)||i18t('co_settings_save_failed')); }
@@ -1349,7 +1376,7 @@ function stFxPaintPicker(){
     /* NAMED, NEVER COUNTED: "3 currencies have no rate" is a number nobody can
        act on; the codes are what an admin goes and looks up. */
     need.innerHTML=codes.length
-      ? `<p class="st-note" style="margin:0 0 8px;color:var(--st-amber-fg)">${
+      ? `<p class="st-note" style="margin:0 0 var(--s-2);color:var(--st-amber-fg)">${
           esc(i18tn('st_fx_needed',codes.length,{n:codes.length,codes:codes.join(', ')}))}</p>`
       : '';
   }
@@ -1362,8 +1389,8 @@ function stFxPaint(){
   if(!codes.length){ host.innerHTML=`<p class="st-note" style="margin:0">${esc(i18t('st_fx_none'))}</p>`; return; }
   host.innerHTML=codes.map(code=>{
     const r=rates[code]||{};
-    return `<div style="display:flex;align-items:center;gap:10px;font-size:13px">
-      <span style="font-family:var(--font-mono);font-weight:600;min-width:40px">${esc(code)}</span>
+    return `<div style="display:flex;align-items:center;gap:10px;font-size:var(--t-meta)">
+      <span style="font-family:var(--font-mono);font-weight:var(--w-strong);min-width:40px">${esc(code)}</span>
       <span style="flex:1;min-width:0">${esc(i18t('st_fx_line',{code,rate:Number(r.rate).toLocaleString(),cur:jxCurrency()}))}
         <span class="st-note" style="margin:0">${r.at?esc(i18t('st_fx_set_on',{date:r.at})):''}</span></span>
       <button data-fx-del="${esc(code)}" style="${ST_BTN_SM};flex:none">${i18t('st_fx_remove')}</button>
@@ -1414,15 +1441,15 @@ async function stTwoStepToggle(){
   try{ start=await api('me/totp/start','POST',{}); }
   catch(e){ toast((e&&e.message)||i18t('ts_failed'),'err'); return; }
   openModal(`<div style="padding:22px;max-width:470px">
-    <h3 style="margin:0 0 6px;font-size:15px;font-weight:700;font-family:var(--font-heading)">${esc(i18t('ts_enrol_title'))}</h3>
-    <p class="st-note" style="margin:0 0 4px">${esc(i18t('ts_enrol_msg'))}</p>
-    <div style="font-family:var(--font-mono);font-size:15px;letter-spacing:.14em;background:var(--color-bg);border:1px solid var(--color-divider);border-radius:0;padding:10px 12px;margin:8px 0;word-break:break-all;user-select:all">${esc(start.secret)}</div>
-    <p class="st-note" style="margin:8px 0 4px">${esc(i18t('ts_enrol_code_msg'))}</p>
+    <h3 style="margin:0 0 6px;font-size:var(--t-card);font-weight:var(--w-title);font-family:var(--font-heading)">${esc(i18t('ts_enrol_title'))}</h3>
+    <p class="st-note" style="margin:0 0 var(--s-1)">${esc(i18t('ts_enrol_msg'))}</p>
+    <div style="font-family:var(--font-mono);font-size:var(--t-card);letter-spacing:.14em;background:var(--color-bg);border:1px solid var(--color-divider);border-radius:0;padding:10px var(--s-3);margin:var(--s-2) 0;word-break:break-all;user-select:all">${esc(start.secret)}</div>
+    <p class="st-note" style="margin:var(--s-2) 0 var(--s-1)">${esc(i18t('ts_enrol_code_msg'))}</p>
     <input id="ts-code" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" style="${window.RV_FLD||ST_INPUT}"/>
     <p id="ts-err" class="st-note" style="color:var(--st-ruby-fg);min-height:16px;margin:6px 0 0"></p>
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+    <div style="display:flex;gap:var(--s-2);justify-content:flex-end;margin-top:var(--s-3)">
       <button id="ts-cancel" style="${ST_BTN2}">${i18t('act_cancel')}</button>
-      <button id="ts-confirm" class="ui-btn ui-btn-primary" style="font-size:13px;padding:7px 14px">${i18t('ts_confirm')}</button>
+      <button id="ts-confirm" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:7px 14px">${i18t('ts_confirm')}</button>
     </div>
   </div>`,{maxWidth:'490px'});
   document.getElementById('ts-cancel')?.addEventListener('click',()=>closeModal());
@@ -1435,13 +1462,13 @@ async function stTwoStepToggle(){
       closeModal();
       // the ten one-time codes, shown exactly ONCE — the server keeps hashes
       openModal(`<div style="padding:22px;max-width:470px">
-        <h3 style="margin:0 0 6px;font-size:15px;font-weight:700;font-family:var(--font-heading)">${esc(i18t('ts_recovery_title'))}</h3>
+        <h3 style="margin:0 0 6px;font-size:var(--t-card);font-weight:var(--w-title);font-family:var(--font-heading)">${esc(i18t('ts_recovery_title'))}</h3>
         <p class="st-note" style="margin:0 0 10px">${esc(i18t('ts_recovery_msg'))}</p>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-family:var(--font-mono);font-size:14px;letter-spacing:.08em;user-select:all">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-family:var(--font-mono);font-size:var(--t-body);letter-spacing:.08em;user-select:all">
           ${(r.recovery||[]).map(cd=>`<span style="background:var(--color-bg);border:1px solid var(--color-divider);border-radius:0;padding:6px 10px;text-align:center">${esc(cd)}</span>`).join('')}
         </div>
         <div style="display:flex;justify-content:flex-end;margin-top:14px">
-          <button id="ts-done" class="ui-btn ui-btn-primary" style="font-size:13px;padding:7px 14px">${i18t('ts_done')}</button>
+          <button id="ts-done" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:7px 14px">${i18t('ts_done')}</button>
         </div>
       </div>`,{maxWidth:'490px'});
       document.getElementById('ts-done')?.addEventListener('click',()=>{ closeModal(); toast(i18t('ts_on_done'),'ok'); openMyAccount(); });
@@ -1524,12 +1551,12 @@ const SET_PANELS={
       return `
       <section class="st-sec">
         <h3 class="st-sec-h">${esc(i18t('set_market'))}</h3>
-        <p class="st-note" style="margin-bottom:8px">${i18t('set_market_sub')}</p>
-        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <p class="st-note" style="margin-bottom:var(--s-2)">${i18t('set_market_sub')}</p>
+        <div style="display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap">
           <select id="set-market" style="min-width:190px;${window.RV_FLD||ST_INPUT}width:auto">
             ${jxList().map(p=>`<option value="${p.id}"${p.id===jxId()?' selected':''}>${esc(p.name)}</option>`).join('')}
           </select>
-          <div id="set-market-facts" style="font-size:12px;color:var(--color-neutral-600);line-height:1.6">${settingsMarketFactsHtml()}</div>
+          <div id="set-market-facts" style="font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.6">${settingsMarketFactsHtml()}</div>
         </div>
       </section>
       ${''/* ---- THE LEGAL IDENTITY LIVES HERE NOW (C, 14 Aug 2026) ----
@@ -1564,7 +1591,7 @@ const SET_PANELS={
              the legal name field. */}
       <section class="st-sec">
         <h3 class="st-sec-h">${esc(i18t('st_p_company'))}</h3>
-        <p class="st-note" style="margin-bottom:8px">${esc(i18t('st_company_legal_sub'))}</p>
+        <p class="st-note" style="margin-bottom:var(--s-2)">${esc(i18t('st_company_legal_sub'))}</p>
         <div style="display:grid;gap:9px">
           <label><span style="${window.RV_LBL||''}">${esc(i18t('st_company_name'))}</span>
             <input id="st-co-name" type="text" maxlength="200" style="${window.RV_FLD||ST_INPUT}"
@@ -1596,7 +1623,7 @@ const SET_PANELS={
              which currency is "home". */}
       <section class="st-sec">
         <h3 class="st-sec-h">${esc(i18t('st_fx'))}</h3>
-        <p class="st-note" style="margin-bottom:8px">${esc(i18t('st_fx_sub',{cur:jxCurrency()}))}</p>
+        <p class="st-note" style="margin-bottom:var(--s-2)">${esc(i18t('st_fx_sub',{cur:jxCurrency()}))}</p>
         <div id="st-fx-need"></div>
         <div id="st-fx-list" style="display:grid;gap:6px;margin-bottom:9px"></div>
         ${''/* ---- A SEARCH WITH OPTIONS, AND A BUTTON THAT SAYS THERE CAN BE
@@ -1625,7 +1652,7 @@ const SET_PANELS={
                figure. That is the owner's "in case you have contracts from
                other currencies", answered with this workspace's own facts. */}
         <button id="st-fx-add" style="${ST_BTN2}">&#43; ${i18t('st_fx_add')}</button>
-        <div id="st-fx-row" hidden style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-top:9px">
+        <div id="st-fx-row" hidden style="display:flex;gap:var(--s-2);align-items:flex-end;flex-wrap:wrap;margin-top:9px">
           <label style="flex:1 1 210px;min-width:180px"><span style="${window.RV_LBL||''}">${esc(i18t('st_fx_code'))}</span>
             ${''/* THE VALUE IS UPPERCASED, THE PROMPT IS NOT. text-transform
                    catches the placeholder too, so the search hint rendered as
@@ -1640,11 +1667,11 @@ const SET_PANELS={
             <input id="st-fx-rate" type="number" step="any" min="0" placeholder="129.50" style="${window.RV_FLD||ST_INPUT}"/></label>
           <button id="st-fx-save" style="${ST_BTN_SM};flex:none">${i18t('act_save')}</button>
         </div>
-        <p class="st-note" style="margin-top:8px">${esc(i18t('st_fx_note'))}</p>
+        <p class="st-note" style="margin-top:var(--s-2)">${esc(i18t('st_fx_note'))}</p>
       </section>
       <section class="st-sec">
         <h3 class="st-sec-h">${esc(i18t('st_p_design'))}</h3>
-        <p class="st-note" style="margin-bottom:8px">${esc(i18t('st_company_design_sub'))}</p>
+        <p class="st-note" style="margin-bottom:var(--s-2)">${esc(i18t('st_company_design_sub'))}</p>
         <button id="st-company-design" style="${ST_BTN2}">${i18t('st_company_design_btn')}</button>
       </section>`;
     },
@@ -1733,7 +1760,7 @@ const SET_PANELS={
     state(){ const n=Object.keys(FOLDERS).length;
       return { dot:'ok', text:i18tn('st_p_folders_count',n,{n})+' · '+Object.values(FOLDERS).slice(0,3).map(f=>esc(f.name)).join(', ')+(n>3?'…':'') }; },
     body(){ return `<div id="st-folder-list"></div>
-      <div style="display:flex;gap:8px;margin-top:10px;align-items:flex-end">
+      <div style="display:flex;gap:var(--s-2);margin-top:10px;align-items:flex-end">
         <label style="flex:1;min-width:0"><span style="${window.RV_LBL||''}">${esc(i18t('st_p_folders_add'))}</span>
           <input id="st-folder-new" type="text" style="${window.RV_FLD||ST_INPUT}"/></label>
         <button id="st-folder-add" style="${ST_BTN_SM}">${i18t('set_add')}</button>
@@ -1760,7 +1787,7 @@ const SET_PANELS={
     chip(){ const n=(typeof approvalRules==='function'?approvalRules():[]).length; return n?String(n):''; },
     body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('set_rules_sub')}</p>
       <div id="approval-rules"></div>
-      <button id="ar-add" style="margin-top:8px;${ST_BTN2}">${icon('plus','w-3.5 h-3.5')} ${i18t('set_add_rule_btn')}</button>
+      <button id="ar-add" style="margin-top:var(--s-2);${ST_BTN2}">${icon('plus','w-3.5 h-3.5')} ${i18t('set_add_rule_btn')}</button>
       ${''/* ---- THE OTHER HALF OF THE SAME QUESTION ----
              The rules above decide who must say YES before a contract is
              signed. This decides how much each person may sign FOR. They
@@ -1769,19 +1796,19 @@ const SET_PANELS={
              off by default and the ladder is a record until it is on. */}
       <div class="st-sec">
         <h3 class="st-sec-h">${esc(i18t('sc_rule_title'))}</h3>
-        <label class="st-toggle" style="margin-bottom:8px">
+        <label class="st-toggle" style="margin-bottom:var(--s-2)">
           <input id="sc-rule-on" type="checkbox"${((typeof signCapEnforced==='function')&&signCapEnforced())?' checked':''}/>
           <span><span class="st-role-name">${esc(i18t('sc_rule_on'))}</span>
           <span class="st-note">${esc(i18t('sc_rule_sub'))}</span></span></label>
-        <label class="st-toggle" style="margin-bottom:8px">
+        <label class="st-toggle" style="margin-bottom:var(--s-2)">
           <input id="ov-rule-on" type="checkbox"${((typeof overseerEnforced==='function')&&overseerEnforced())?' checked':''}/>
           <span><span class="st-role-name">${esc(i18t('ov_rule_on'))}</span>
           <span class="st-note">${esc(i18t('ov_rule_sub'))}</span></span></label>
-        <label class="st-toggle" style="margin-bottom:8px">
+        <label class="st-toggle" style="margin-bottom:var(--s-2)">
           <input id="sf-rule-on" type="checkbox"${((typeof signFolderEnforced==='function')&&signFolderEnforced())?' checked':''}/>
           <span><span class="st-role-name">${esc(i18t('sf_rule_on'))}</span>
           <span class="st-note">${esc(i18t('sf_rule_sub'))}</span></span></label>
-        <div style="font-size:12px;font-weight:600;color:var(--color-text);margin:10px 0 6px">${esc(i18t('sc_ladder'))}</div>
+        <div style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text);margin:10px 0 6px">${esc(i18t('sc_ladder'))}</div>
         <div id="sc-ladder"></div>
       </div>`; },
     wire(){
@@ -1854,9 +1881,9 @@ const SET_PANELS={
     title:()=>i18t('st_p_renewals'),
     sub:()=>i18t('set_renewal_sub'),
     state(){ return { dot:'ok', text:[90,60,30].map(d=>i18t('set_days_out',{n:d})).join(' · ') }; },
-    body(){ return `<p class="st-note" style="margin-bottom:8px">${i18t('set_renewal_sub')}</p>
+    body(){ return `<p class="st-note" style="margin-bottom:var(--s-2)">${i18t('set_renewal_sub')}</p>
       <div style="display:flex;gap:6px">${[90,60,30].map(d=>`<span style="${ST_TAG}">${i18t('set_days_out',{n:d})}</span>`).join('')}</div>
-      <p class="st-note" style="margin-top:8px">${i18t('set_delivered_resend')}</p>`; },
+      <p class="st-note" style="margin-top:var(--s-2)">${i18t('set_delivered_resend')}</p>`; },
     wire(){},
   },
 
@@ -1872,15 +1899,15 @@ const SET_PANELS={
       const cfg=wsCfg(), det=wsDetect();
       const box=(k,title,sub)=>`<label data-ws-box="${k}" style="display:flex;gap:9px;align-items:flex-start;padding:9px 11px;border:1px solid ${cfg.shapes.includes(k)?WS_BOX_ON.line:WS_BOX_OFF.line};border-radius:0;cursor:pointer;background:${cfg.shapes.includes(k)?WS_BOX_ON.fill:WS_BOX_OFF.fill};flex:1 1 240px;min-width:0">
         <input type="checkbox" data-ws-shape="${k}" ${cfg.shapes.includes(k)?'checked':''} style="margin-top:2px;flex:none"/>
-        <span style="min-width:0"><span style="display:block;font-size:14px;font-weight:600">${title}</span>
-        <span style="display:block;font-size:12px;color:var(--color-neutral-600);line-height:1.5;margin-top:2px">${sub}</span></span></label>`;
+        <span style="min-width:0"><span style="display:block;font-size:var(--t-body);font-weight:var(--w-strong)">${title}</span>
+        <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5;margin-top:2px">${sub}</span></span></label>`;
       return `<p class="st-note" style="margin-bottom:10px">${i18t('set_workshape_sub')}</p>
-      <div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:12px">
+      <div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:var(--s-3)">
         ${box('standing',i18t('set_shape_standing'),i18t('set_shape_standing_sub'))}
         ${box('project',i18t('set_shape_project'),i18t('set_shape_project_sub'))}
       </div>
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px">
-        <label style="display:flex;align-items:center;gap:9px;font-size:13px;font-weight:600">${i18t('set_work_word')}
+      <div style="display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap;margin-bottom:var(--s-3)">
+        <label style="display:flex;align-items:center;gap:9px;font-size:var(--t-meta);font-weight:var(--w-strong)">${i18t('set_work_word')}
           <select id="set-work-word" style="min-width:150px;${window.RV_FLD||ST_INPUT}width:auto">
             ${WS_WORDS.map(w=>`<option value="${w}"${w===cfg.word?' selected':''}>${esc(i18t('ww_'+w+'_title'))}</option>`).join('')}
           </select></label>
@@ -1888,7 +1915,7 @@ const SET_PANELS={
       </div>
       <div class="st-quiet"><b>${i18t('set_workshape_detect')}.</b> ${det.total
         ? esc(i18t('set_workshape_seen',{p:det.project,s:det.standing,u:det.unknown}))
-          +` <button id="ws-use-detected" style="border:0;background:none;padding:0;font:inherit;font-size:12px;font-weight:700;color:var(--color-accent-700);cursor:pointer;text-decoration:underline">${i18t('set_workshape_use')}</button>`
+          +` <button id="ws-use-detected" style="border:0;background:none;padding:0;font:inherit;font-size:var(--t-label);font-weight:var(--w-title);color:var(--accent-ink-700);cursor:pointer;text-decoration:underline">${i18t('set_workshape_use')}</button>`
         : i18t('set_workshape_seen_none')}</div>`;
     },
     wire(){
@@ -1931,9 +1958,9 @@ const SET_PANELS={
     sub:()=>i18t('st_p_directory_sub'),
     state(){ const n=(((state.settings||{}).directory)||[]).length;
       return { dot:n?'ok':'off', text:n?i18tn('set_directory',n,{n}):i18t('st_p_directory_empty') }; },
-    body(){ return `<p class="st-note" style="margin-bottom:8px">${i18t('set_bulk_signers')} <b>${i18t('set_csv_columns')}</b>.</p>
+    body(){ return `<p class="st-note" style="margin-bottom:var(--s-2)">${i18t('set_bulk_signers')} <b>${i18t('set_csv_columns')}</b>.</p>
       <div id="st-dir-list"></div>
-      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+      <div style="display:flex;gap:var(--s-2);margin-top:10px;flex-wrap:wrap">
         <label style="${ST_BTN2};cursor:pointer">${icon('upload','w-3.5 h-3.5')} ${i18t('set_import_csv')}<input id="dir-import" type="file" accept=".csv,text/csv" style="display:none"/></label>
         <button id="dir-clear" style="${ST_BTN_DANGER}">${i18t('set_clear_directory')}</button>
       </div>`; },
@@ -1951,14 +1978,14 @@ const SET_PANELS={
       const ob=(typeof window!=='undefined'&&window.ORG_BRANDING)||null;
       const d=ob&&ob.designId&&window.docDesignById?docDesignById(ob.designId):null;
       return `<p class="st-note" style="margin-bottom:10px">${i18t('set_design_sub')}</p>
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap">
         <div style="width:74px;height:42px;border:1px dashed var(--color-divider);border-radius:0;display:grid;place-items:center;overflow:hidden;background:var(--color-bg);flex:none">
-          ${ob&&ob.logoUrl?`<img src="${ob.logoUrl}" alt="logo" style="max-width:100%;max-height:100%">`:`<span style="font-size:10px;color:var(--color-neutral-500)">${i18t('set_no_logo')}</span>`}
+          ${ob&&ob.logoUrl?`<img src="${ob.logoUrl}" alt="logo" style="max-width:100%;max-height:100%">`:`<span style="font-size:var(--t-figure);color:var(--color-neutral-500)">${i18t('set_no_logo')}</span>`}
         </div>
         <div style="flex:1;min-width:150px">
-          ${d?`<div style="font-size:14px;font-weight:700">${esc(d.name)}</div>
+          ${d?`<div style="font-size:var(--t-body);font-weight:var(--w-title)">${esc(d.name)}</div>
             <div class="st-note">${i18t('set_logo_pos',{pos:esc({'top-left':i18t('set_pos_top_left'),'top-center':i18t('set_pos_top_center'),'top-right':i18t('set_pos_top_right'),footer:i18t('set_pos_footer')}[ob.logoPosition]||ob.logoPosition||'—')})}</div>`
-          :`<div style="font-size:13px;color:var(--color-neutral-600)">${i18t('set_no_design')}</div>`}
+          :`<div style="font-size:var(--t-meta);color:var(--color-neutral-600)">${i18t('set_no_design')}</div>`}
         </div>
         <button id="brand-edit" style="${ST_BTN2}">${d?i18t('set_edit_design'):i18t('set_choose_design')}</button>
       </div>`;
@@ -1972,11 +1999,11 @@ const SET_PANELS={
     title:()=>i18t('st_p_report'),
     sub:()=>i18t('set_monthly_report_sub'),
     state(){ return { dot:'off', text:i18t('set_monthly_report_sub') }; },
-    body(){ return `<p class="st-note" style="margin-bottom:8px">${i18t('set_monthly_report_sub')}</p>
-      <div id="mr-status" style="font-size:12px;color:var(--color-neutral-700);margin-bottom:8px">${i18t('set_checking')}</div>
-      <label class="st-toggle" style="margin-bottom:8px">
+    body(){ return `<p class="st-note" style="margin-bottom:var(--s-2)">${i18t('set_monthly_report_sub')}</p>
+      <div id="mr-status" style="font-size:var(--t-label);color:var(--color-neutral-700);margin-bottom:var(--s-2)">${i18t('set_checking')}</div>
+      <label class="st-toggle" style="margin-bottom:var(--s-2)">
         <input id="mr-enabled" type="checkbox"/><span><span class="st-role-name">${i18t('set_monthly_report_on')}</span></span></label>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <div style="display:flex;gap:var(--s-2);align-items:center;flex-wrap:wrap">
         <select id="mr-recipients" aria-label="${i18t('set_mr_recipients_aria')}" style="min-width:170px;${window.RV_FLD||ST_INPUT}width:auto">
           <option value="admins">${i18t('set_mr_admins')}</option>
           <option value="all">${i18t('set_mr_all')}</option>
@@ -2004,7 +2031,7 @@ const SET_PANELS={
     },
     body(){ return `<p class="st-note" style="margin-bottom:9px">${i18t('st_hooks_sub')}</p>
       <div id="wh-list" style="display:flex;flex-direction:column;gap:7px;margin-bottom:10px"></div>
-      <label style="display:block;margin-bottom:8px"><span style="${window.RV_LBL||''}">${esc(i18t('st_hooks_url'))}</span>
+      <label style="display:block;margin-bottom:var(--s-2)"><span style="${window.RV_LBL||''}">${esc(i18t('st_hooks_url'))}</span>
         <input id="wh-url" type="url" placeholder="https://example.com/hooks/hati" style="${window.RV_FLD||ST_INPUT}"/></label>
       ${''/* AN ENDPOINT IS TOLD WHAT IT SUBSCRIBED TO. The server treats an
              empty list as NOTHING (fail closed), so this list is not a
@@ -2012,9 +2039,9 @@ const SET_PANELS={
              ticked because that is what somebody adding an address means. */}
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:5px;margin-bottom:9px">
         ${(state.webhookEvents||['contract.signed','round.received','obligation.due','intake.requested']).map(ev=>
-          `<label style="display:flex;align-items:center;gap:7px;font-size:13px">
+          `<label style="display:flex;align-items:center;gap:7px;font-size:var(--t-meta)">
             <input type="checkbox" data-wh-ev="${esc(ev)}" checked style="width:14px;height:14px;accent-color:var(--color-accent)"/>
-            <span style="font-family:var(--font-mono);font-size:12px">${esc(ev)}</span></label>`).join('')}
+            <span style="font-family:var(--font-mono);font-size:var(--t-label)">${esc(ev)}</span></label>`).join('')}
       </div>
       <div style="display:flex;justify-content:flex-end">
         <button id="wh-add" style="${ST_BTN_SM}">${i18t('st_hooks_add')}</button>
@@ -2029,7 +2056,7 @@ const SET_PANELS={
     sub:()=>API_MODE()?i18t('set_backup_server'):i18t('set_backup_local'),
     state(){ const at=stLastBackup(); return { dot:at?'ok':'off', text:at?`${i18t('set_export_backup')} · ${fmtDT(at)}`:i18t('st_not_set') }; },
     body(){ return `<p class="st-note" style="margin-bottom:10px">${API_MODE()?i18t('set_backup_server'):i18t('set_backup_local')}</p>
-      <div style="display:flex;flex-wrap:wrap;gap:8px">
+      <div style="display:flex;flex-wrap:wrap;gap:var(--s-2)">
         <button id="bk-export" style="${ST_BTN2}">${icon('download','w-3.5 h-3.5')} ${i18t('set_export_backup')}</button>
         ${API_MODE()?`<a id="bk-zip" href="api/export/workspace.zip" style="${ST_BTN2};text-decoration:none">${icon('download','w-3.5 h-3.5')} ${i18t('set_full_workspace_zip')}</a>`:`
         <label style="${ST_BTN2};cursor:pointer">${icon('upload','w-3.5 h-3.5')} ${i18t('set_restore_backup')}<input id="bk-import" type="file" accept=".json,application/json" style="display:none"/></label>`}
@@ -2093,11 +2120,11 @@ const SET_PANELS={
         return { dot:'warn', text:i18tn('set_email_failing', emailFailedCount(), { n:emailFailedCount() }) };
       return { dot:'ok', text:i18t('set_email_configured') }; },
     body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('set_email_sub')}</p>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+      <div style="display:flex;flex-wrap:wrap;gap:var(--s-2);margin-bottom:10px">
         <button id="rem-run" style="${ST_BTN2}">${icon('clock','w-3.5 h-3.5')} ${i18t('set_check_renewals')}</button>
         <button id="ob-refresh" style="${ST_BTN2}">${icon('history','w-3.5 h-3.5')} ${i18t('set_refresh_outbox')}</button>
       </div>
-      <div id="outbox-list" style="font-size:13px;color:var(--color-neutral-700)">${i18t('set_loading_outbox')}</div>`; },
+      <div id="outbox-list" style="font-size:var(--t-meta);color:var(--color-neutral-700)">${i18t('set_loading_outbox')}</div>`; },
     wire(){ stWireOutbox(); },
   },
 
@@ -2107,7 +2134,7 @@ const SET_PANELS={
     sub:()=>i18t('set_activation_sub'),
     state(){ return { dot:'off', text:i18t('set_activation_sub') }; },
     body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('set_activation_sub')}</p>
-      <div id="activation-funnel" style="font-size:13px;color:var(--color-neutral-700)">${i18t('set_loading')}</div>`; },
+      <div id="activation-funnel" style="font-size:var(--t-meta);color:var(--color-neutral-700)">${i18t('set_loading')}</div>`; },
     wire(){ stLoadActivation(); },
   },
 
@@ -2149,7 +2176,7 @@ const SET_PANELS={
     state(){ const r=_stIntegrity;
       return { dot: r? (r.faults? 'warn':'ok') : 'off',
         text: r? i18t('set_integrity_result',{checked:r.checked,clean:r.clean,faults:r.faults}) : i18t('set_integrity_never') }; },
-    body(){ return `<p class="st-note" style="margin-bottom:8px">${i18t('set_integrity_sub')}</p>
+    body(){ return `<p class="st-note" style="margin-bottom:var(--s-2)">${i18t('set_integrity_sub')}</p>
       ${(typeof sha256IsReal==='function'&&!sha256IsReal())?`<div class="st-refusal" style="display:block">${i18t('set_integrity_weak')}</div>`:''}
       <div id="st-integrity-out" class="st-quiet">${_stIntegrity?stIntegrityHtml(_stIntegrity):i18t('set_integrity_never')}</div>
       <button id="st-integrity-run" style="margin-top:10px;${ST_BTN_SM}">${i18t('set_integrity_run')}</button>`; },
@@ -2436,56 +2463,56 @@ function stGoLive(){
    because the API bills in USD. */
 function stEngineBodyHtml(){
   if(!API_MODE()){
-    return `<div id="ai-cfg-status" style="font-size:12px;color:var(--color-neutral-700);margin-bottom:8px">${i18t('set_checking')}</div>
-      <div style="display:flex;gap:8px;align-items:flex-end">
+    return `<div id="ai-cfg-status" style="font-size:var(--t-label);color:var(--color-neutral-700);margin-bottom:var(--s-2)">${i18t('set_checking')}</div>
+      <div style="display:flex;gap:var(--s-2);align-items:flex-end">
         <label style="flex:1;min-width:0"><span style="${window.RV_LBL||''}">${i18t('set_api_key')}</span>
           <input id="ai-key" type="password" placeholder="sk-ant-…" style="${window.RV_FLD||ST_INPUT}"/></label>
         <button id="ai-key-save" style="${ST_BTN}">${i18t('set_save_key')}</button>
       </div>
-      <button id="ai-key-clear" style="margin-top:6px;font-size:12px;font-weight:600;color:var(--st-ruby-dot);background:none;border:0;cursor:pointer;padding:0">${i18t('set_remove_key')}</button>
-      <p class="st-note" style="margin-top:12px">${i18t('set_local_mode_note')}</p>`;
+      <button id="ai-key-clear" style="margin-top:6px;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--st-ruby-dot);background:none;border:0;cursor:pointer;padding:0">${i18t('set_remove_key')}</button>
+      <p class="st-note" style="margin-top:var(--s-3)">${i18t('set_local_mode_note')}</p>`;
   }
   return `
-    <div id="ai-cfg-status" style="font-size:12px;color:var(--color-neutral-700);margin-bottom:8px">${i18t('set_checking')}</div>
-    <div style="display:flex;gap:8px;align-items:flex-end">
+    <div id="ai-cfg-status" style="font-size:var(--t-label);color:var(--color-neutral-700);margin-bottom:var(--s-2)">${i18t('set_checking')}</div>
+    <div style="display:flex;gap:var(--s-2);align-items:flex-end">
       <label style="flex:1;min-width:0"><span style="${window.RV_LBL||''}">${i18t('set_api_key')}</span>
         <input id="ai-key" type="password" placeholder="sk-ant-…" style="${window.RV_FLD||ST_INPUT}"/></label>
       <button id="ai-key-save" style="${ST_BTN}">${i18t('set_save_key')}</button>
     </div>
-    <button id="ai-key-clear" style="margin-top:6px;font-size:12px;font-weight:600;color:var(--st-ruby-dot);background:none;border:0;cursor:pointer;padding:0">${i18t('set_remove_key')}</button>
+    <button id="ai-key-clear" style="margin-top:6px;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--st-ruby-dot);background:none;border:0;cursor:pointer;padding:0">${i18t('set_remove_key')}</button>
 
     <div class="st-sec">
-      <div style="font-size:13px;font-weight:600;color:var(--color-text)">${i18t('set_model_routing')}</div>
+      <div style="font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text)">${i18t('set_model_routing')}</div>
       <p class="st-note">${i18t('set_override_blank')}</p>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:6px">
-        <div style="border:1px solid var(--color-divider);border-radius:0;padding:8px">
-          <div style="font-size:12px;font-weight:600;color:var(--color-text)">${i18t('set_fast_tier')}</div>
-          <div style="font-size:12px;color:var(--color-neutral-500);margin:2px 0 4px">${i18t('set_fast_sub')}</div>
-          <div style="font-size:12px;color:var(--color-neutral-700);margin-bottom:4px">${i18t('set_current')} <span id="ai-model-fast-cur" style="font-family:var(--font-mono)">—</span></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--s-2);margin-top:6px">
+        <div style="border:1px solid var(--color-divider);border-radius:0;padding:var(--s-2)">
+          <div style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text)">${i18t('set_fast_tier')}</div>
+          <div style="font-size:var(--t-label);color:var(--color-neutral-500);margin:2px 0 var(--s-1)">${i18t('set_fast_sub')}</div>
+          <div style="font-size:var(--t-label);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${i18t('set_current')} <span id="ai-model-fast-cur" style="font-family:var(--font-mono)">—</span></div>
           <input id="ai-model-fast" type="text" placeholder="${esc(i18t('set_ph_default_rec'))}" style="${ST_MONO}"/>
         </div>
-        <div style="border:1px solid var(--color-divider);border-radius:0;padding:8px">
-          <div style="font-size:12px;font-weight:600;color:var(--color-text)">${i18t('set_deep_tier')}</div>
-          <div style="font-size:12px;color:var(--color-neutral-500);margin:2px 0 4px">${i18t('set_deep_sub')}</div>
-          <div style="font-size:12px;color:var(--color-neutral-700);margin-bottom:4px">${i18t('set_current')} <span id="ai-model-deep-cur" style="font-family:var(--font-mono)">—</span></div>
+        <div style="border:1px solid var(--color-divider);border-radius:0;padding:var(--s-2)">
+          <div style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text)">${i18t('set_deep_tier')}</div>
+          <div style="font-size:var(--t-label);color:var(--color-neutral-500);margin:2px 0 var(--s-1)">${i18t('set_deep_sub')}</div>
+          <div style="font-size:var(--t-label);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${i18t('set_current')} <span id="ai-model-deep-cur" style="font-family:var(--font-mono)">—</span></div>
           <input id="ai-model-deep" type="text" placeholder="${esc(i18t('set_ph_default_rec'))}" style="${ST_MONO}"/>
         </div>
       </div>
-      <details style="font-size:12px;margin-top:8px">
+      <details style="font-size:var(--t-label);margin-top:var(--s-2)">
         <summary style="cursor:pointer;color:var(--color-neutral-600)">${i18t('set_advanced_override')}</summary>
-        <div style="margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;gap:8px">
+        <div style="margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;gap:var(--s-2)">
           <input id="ai-model-global" type="text" placeholder="${esc(i18t('set_ph_none'))}" style="${ST_MONO};width:220px"/>
-          <span style="font-size:12px;color:var(--color-neutral-500)">${i18t('set_forces_one_model')}</span>
+          <span style="font-size:var(--t-label);color:var(--color-neutral-500)">${i18t('set_forces_one_model')}</span>
         </div>
       </details>
-      <button id="ai-model-save" style="margin-top:8px;${ST_BTN_SM}">${i18t('set_save_model')}</button>
+      <button id="ai-model-save" style="margin-top:var(--s-2);${ST_BTN_SM}">${i18t('set_save_model')}</button>
     </div>
 
     <div class="st-sec">
-      <div style="font-size:13px;font-weight:600;color:var(--color-text)">${i18t('set_spend_controls')}</div>
+      <div style="font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text)">${i18t('set_spend_controls')}</div>
       <p class="st-note">${i18t('set_spend_governed')} ${i18t('set_spend_money')}</p>
-      <div id="ai-usage" style="font-size:13px;color:var(--color-neutral-700);margin:6px 0 4px">${i18t('set_today_dash')}</div>
-      <div style="height:6px;background:var(--color-neutral-200);border-radius:0;overflow:hidden;margin-bottom:8px"><div id="ai-usage-bar" style="width:0%;height:100%;background:var(--color-accent);transition:width .3s"></div></div>
+      <div id="ai-usage" style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:6px 0 var(--s-1)">${i18t('set_today_dash')}</div>
+      <div style="height:6px;background:var(--color-neutral-200);border-radius:0;overflow:hidden;margin-bottom:var(--s-2)"><div id="ai-usage-bar" style="width:0%;height:100%;background:var(--color-accent);transition:width var(--dur-3)"></div></div>
       <div id="ai-spend-breakdown" style="margin-bottom:10px"></div>
       ${''/* ---- AND THE SAME MONEY BY PERSON ----
              It is here, under the by-feature breakdown, because this is where
@@ -2499,7 +2526,7 @@ function stEngineBodyHtml(){
              figure. The note says what the figure IS, because somebody will
              read it as a performance measure otherwise. */}
       <div id="ai-spend-people" style="margin-bottom:10px"></div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--s-2)">
         ${stLimitField('ai-daily-spend',i18t('set_lim_daily_spend'),i18t('set_lim_daily_spend_sub'),0)}
         ${stLimitField('ai-estimate-confirm',i18t('set_lim_confirm'),i18t('set_lim_confirm_sub'),0)}
         ${stLimitField('ai-rate-light',i18t('set_lim_light'),i18t('set_lim_light_sub'),1)}
@@ -2511,7 +2538,7 @@ function stEngineBodyHtml(){
         ${stLimitField('ai-docchars',i18t('set_lim_doc'),i18t('set_lim_doc_sub'),1000)}
         ${stLimitField('ai-maxcontracts',i18t('set_lim_contracts'),i18t('set_lim_contracts_sub'),1)}
       </div>
-      <label style="display:flex;align-items:flex-start;gap:8px;margin-top:9px;font-size:12px;color:var(--color-neutral-700);line-height:1.45;cursor:pointer">
+      <label style="display:flex;align-items:flex-start;gap:var(--s-2);margin-top:9px;font-size:var(--t-label);color:var(--color-neutral-700);line-height:1.45;cursor:pointer">
         <input id="ai-thorough" type="checkbox" style="margin-top:2px;width:14px;height:14px;accent-color:var(--color-accent);flex:none"/>
         <span><b>${i18t('set_thorough_extraction')}</b> ${i18t('set_thorough_body')}
         <span style="color:var(--st-amber-fg)">${i18t('set_thorough_warn')}</span> ${i18t('set_preflight')}</span></label>
@@ -2519,35 +2546,35 @@ function stEngineBodyHtml(){
     </div>
 
     <div class="st-sec">
-      <div style="font-size:13px;font-weight:600;color:var(--color-text)">${i18t('set_onboarding_allowance')}</div>
+      <div style="font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text)">${i18t('set_onboarding_allowance')}</div>
       <p class="st-note">${i18t('set_allowance_sub')}</p>
-      <div id="ai-allowance-state" style="font-size:13px;color:var(--color-neutral-700);margin:6px 0">—</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">
+      <div id="ai-allowance-state" style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:6px 0">—</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--s-2)">
         ${stLimitField('ai-allow-budget',i18t('set_lim_allow_budget'),i18t('set_lim_allow_budget_sub'),0)}
         ${stLimitField('ai-allow-docs',i18t('set_lim_allow_docs'),i18t('set_lim_allow_docs_sub'),0)}
       </div>
-      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+      <div style="display:flex;gap:var(--s-2);margin-top:var(--s-2);flex-wrap:wrap">
         <button id="ai-allow-open" style="${ST_BTN_SM}">${i18t('set_open_allowance')}</button>
-        <button id="ai-allow-topup" style="${ST_BTN2};font-size:13px;padding:5px 10px">${i18t('set_top_up')}</button>
-        <button id="ai-allow-close" style="${ST_BTN2};font-size:13px;padding:5px 10px">${i18t('act_close')}</button>
+        <button id="ai-allow-topup" style="${ST_BTN2};font-size:var(--t-meta);padding:5px 10px">${i18t('set_top_up')}</button>
+        <button id="ai-allow-close" style="${ST_BTN2};font-size:var(--t-meta);padding:5px 10px">${i18t('act_close')}</button>
       </div>
     </div>
 
     <div class="st-sec">
-      <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
-        <div style="font-size:13px;font-weight:600;color:var(--color-text)">${i18t('set_rate_table')}</div>
-        <span id="ai-rates-meta" style="font-size:12px;color:var(--color-neutral-500)"></span>
+      <div style="display:flex;align-items:baseline;gap:var(--s-2);flex-wrap:wrap">
+        <div style="font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text)">${i18t('set_rate_table')}</div>
+        <span id="ai-rates-meta" style="font-size:var(--t-label);color:var(--color-neutral-500)"></span>
       </div>
       <p class="st-note">${i18t('set_usd_per')} ${i18t('set_per_million')}</p>
       <div id="ai-rates-table" style="max-height:220px;overflow-y:auto" class="scroll-thin"></div>
-      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+      <div style="display:flex;gap:var(--s-2);margin-top:var(--s-2);flex-wrap:wrap">
         <button id="ai-rates-save" style="${ST_BTN_SM}">${i18t('set_save_rates')}</button>
-        <button id="ai-rates-reset" style="${ST_BTN2};font-size:13px;padding:5px 10px">${i18t('set_reset_defaults')}</button>
+        <button id="ai-rates-reset" style="${ST_BTN2};font-size:var(--t-meta);padding:5px 10px">${i18t('set_reset_defaults')}</button>
       </div>
     </div>
 
     <div class="st-sec">
-      <div style="font-size:13px;font-weight:600;color:var(--color-text);margin-bottom:2px">${i18t('set_file_existing')}</div>
+      <div style="font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text);margin-bottom:2px">${i18t('set_file_existing')}</div>
       <p class="st-note">${i18t('set_file_existing_sub')}</p>
       <button id="meta-backfill" style="margin-top:6px;${ST_BTN2}">${icon('sparkle','w-3.5 h-3.5')} <span id="meta-backfill-lbl">${i18t('set_extract_metadata')}</span></button>
     </div>`;
@@ -2559,8 +2586,8 @@ function stWireEngine(){
        interpreter. */
     const st=document.getElementById('ai-cfg-status');
     const refresh=()=>{ if(!st) return; const k=lsGet('hati.v1.aikey');
-      st.innerHTML=k?`<span style="color:var(--st-green-fg);font-weight:600">● Configured</span> · key ••••${String(k).slice(-4)} stored in this browser — Copilot is live.`
-                    :`<span style="color:var(--st-amber-fg);font-weight:600">● Not configured</span> — Copilot and Copilot features use the built-in interpreter.`; };
+      st.innerHTML=k?`<span style="color:var(--st-green-fg);font-weight:var(--w-strong)">● Configured</span> · key ••••${String(k).slice(-4)} stored in this browser — Copilot is live.`
+                    :`<span style="color:var(--st-amber-fg);font-weight:var(--w-strong)">● Not configured</span> — Copilot and Copilot features use the built-in interpreter.`; };
     refresh();
     const refreshAiIndicators=()=>{ if(typeof renderSideUser==='function') renderSideUser(); if(typeof updateAiBrainPill==='function') updateAiBrainPill(); };
     document.getElementById('ai-key-save')?.addEventListener('click',()=>{
@@ -2604,37 +2631,37 @@ function stWireEngine(){
       if(bdHost){
         const rows=Object.entries(spend.byFeature||{}).map(([k,v])=>({k,...v})).sort((a,b)=>b.cost-a.cost);
         bdHost.innerHTML=rows.length?`<div style="border:1px solid var(--color-divider);border-radius:0;overflow:hidden">
-          ${rows.map(r=>`<div style="display:flex;align-items:center;gap:8px;padding:4px 8px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent);font-size:12px">
+          ${rows.map(r=>`<div style="display:flex;align-items:center;gap:var(--s-2);padding:var(--s-1) var(--s-2);border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent);font-size:var(--t-label)">
             <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${PB_ESC(r.label||r.k)}</span>
-            <span style="color:var(--color-neutral-500);font-family:var(--font-mono);font-size:12px">${Number(r.requests||0).toLocaleString(jxLocale())} req</span>
-            <span style="font-family:var(--font-mono);font-weight:600;min-width:62px;text-align:right">${'$'+Number(r.cost||0).toFixed(4)}</span>
+            <span style="color:var(--color-neutral-500);font-family:var(--font-mono);font-size:var(--t-label)">${Number(r.requests||0).toLocaleString(jxLocale())} req</span>
+            <span style="font-family:var(--font-mono);font-weight:var(--w-strong);min-width:62px;text-align:right">${'$'+Number(r.cost||0).toFixed(4)}</span>
           </div>`).join('')}</div>`
-          :`<div style="font-size:12px;color:var(--color-neutral-500)">${i18t('set_no_spend')}</div>`;
+          :`<div style="font-size:var(--t-label);color:var(--color-neutral-500)">${i18t('set_no_spend')}</div>`;
       }
       const pHost=document.getElementById('ai-spend-people');
       if(pHost){
         const people=Array.isArray(spend.byPerson)?spend.byPerson:[];
         const un=Number(spend.unattributed||0);
         pHost.innerHTML=`
-          <div style="font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin:0 0 4px">${
+          <div style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin:0 0 var(--s-1)">${
             esc(i18t('set_spend_people'))}</div>
           ${people.length?`<div style="border:1px solid var(--color-divider);border-radius:0;overflow:hidden">
-            ${people.map(p=>`<div style="display:flex;align-items:center;gap:8px;padding:4px 8px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent);font-size:12px">
+            ${people.map(p=>`<div style="display:flex;align-items:center;gap:var(--s-2);padding:var(--s-1) var(--s-2);border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent);font-size:var(--t-label)">
               <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${PB_ESC(p.name||'—')}${
-                p.gone?` <span style="color:var(--color-neutral-500);font-size:12px">${esc(i18t('set_spend_left'))}</span>`:''}</span>
-              <span style="color:var(--color-neutral-500);font-family:var(--font-mono);font-size:12px">${Number(p.requests||0).toLocaleString(jxLocale())} req</span>
-              <span style="font-family:var(--font-mono);font-weight:600;min-width:62px;text-align:right">${'$'+Number(p.cost||0).toFixed(4)}</span>
+                p.gone?` <span style="color:var(--color-neutral-500);font-size:var(--t-label)">${esc(i18t('set_spend_left'))}</span>`:''}</span>
+              <span style="color:var(--color-neutral-500);font-family:var(--font-mono);font-size:var(--t-label)">${Number(p.requests||0).toLocaleString(jxLocale())} req</span>
+              <span style="font-family:var(--font-mono);font-weight:var(--w-strong);min-width:62px;text-align:right">${'$'+Number(p.cost||0).toFixed(4)}</span>
             </div>`).join('')}</div>`
-          :`<div style="font-size:12px;color:var(--color-neutral-500)">${esc(i18t('set_spend_people_none'))}</div>`}
+          :`<div style="font-size:var(--t-label);color:var(--color-neutral-500)">${esc(i18t('set_spend_people_none'))}</div>`}
           ${''/* THE GAP IS A FIGURE, NOT A DISCOVERY. Anything running outside
                  a signed-in request counts toward the workspace total and
                  against nobody, so the two lists need not agree — and an admin
                  must not have to subtract to find that out. Drawn only when
                  there IS a gap; an always-on "$0.0000 not attributed" is
                  furniture. */}
-          ${un>0.000001?`<div style="font-size:12px;color:var(--st-amber-fg);margin-top:4px">${
+          ${un>0.000001?`<div style="font-size:var(--t-label);color:var(--st-amber-fg);margin-top:var(--s-1)">${
             esc(i18t('set_spend_unattributed',{amount:'$'+un.toFixed(4)}))}</div>`:''}
-          <div style="font-size:12px;color:var(--color-neutral-500);line-height:1.5;margin-top:5px">${
+          <div style="font-size:var(--t-label);color:var(--color-neutral-500);line-height:1.5;margin-top:5px">${
             esc(i18t('set_spend_people_note'))}</div>`;
       }
       const fillN=(id,v)=>{ const n=document.getElementById(id); if(n&&document.activeElement!==n&&v!==undefined) n.value=v; };
@@ -2851,14 +2878,14 @@ function stLoadActivation(){
       const r=await api('activation'); _stActivation=r;
       const STEP={ added:i18t('set_step_added'), scanned:i18t('set_step_scanned'), sent:i18t('set_step_sent'), signed:i18t('set_step_signed') };
       host.innerHTML=`
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:10px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--s-2);margin-bottom:10px">
           ${Object.entries(STEP).map(([k,label])=>{ const e=r.events&&r.events[k];
             return `<div style="border:1px solid var(--color-divider);border-radius:0;padding:9px 11px;background:${e?'var(--st-green-bg)':'var(--color-bg)'}">
-              <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:${e?'var(--st-green-fg)':'var(--color-neutral-600)'}">${e?icon('check2','w-3 h-3'):''}${label}</div>
-              <div style="font-size:12px;font-family:var(--font-mono);color:var(--color-neutral-600);margin-top:3px">${e?`${fmtDT(e.first)} · ${e.count}×`:i18t('set_not_yet')}</div>
+              <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-label);font-weight:var(--w-strong);color:${e?'var(--st-green-fg)':'var(--color-neutral-600)'}">${e?icon('check2','w-3 h-3'):''}${label}</div>
+              <div style="font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-neutral-600);margin-top:3px">${e?`${fmtDT(e.first)} · ${e.count}×`:i18t('set_not_yet')}</div>
             </div>`; }).join('')}
         </div>
-        <div style="font-size:13px;line-height:1.5;color:${r.northStar.withinSevenDays===true?'var(--st-green-fg)':r.northStar.withinSevenDays===false?'var(--st-amber-fg)':'var(--color-neutral-700)'}">
+        <div style="font-size:var(--t-meta);line-height:1.5;color:${r.northStar.withinSevenDays===true?'var(--st-green-fg)':r.northStar.withinSevenDays===false?'var(--st-amber-fg)':'var(--color-neutral-700)'}">
           ${r.northStar.firstSendDays==null
             ? i18t('set_north_star_none')
             : r.northStar.withinSevenDays
@@ -2909,7 +2936,7 @@ function renderMyAccountPage(){
     <div class="st-quiet" style="margin-bottom:14px">
       <b>${esc(i18t('st_admin_only_page'))}</b><br>${esc(i18t('st_admin_only_body'))}
     </div>
-    <h2 class="st-tabsub" style="font-size:15px;font-weight:600;color:var(--color-text)">${esc(i18t('st_you_title'))}</h2>
+    <h2 class="st-tabsub" style="font-size:var(--t-card);font-weight:var(--w-strong);color:var(--color-text)">${esc(i18t('st_you_title'))}</h2>
     <div class="st-you">${stAccountBodyHtml()}</div>
   </div>`;
   stWireDrawerOnce();
@@ -2936,19 +2963,19 @@ function renderPrecedentPanel(){
   if(!sug.length){ host.innerHTML=''; return; }
   const mayAdopt=isAdmin()||currentUser()?.role==='legal';
   host.innerHTML=`
-    <div style="border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);padding:12px 14px">
-      <h4 style="margin:0 0 3px;font-size:14px;font-weight:700;font-family:var(--font-heading)">${esc(i18t('pc_title'))}</h4>
+    <div style="border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);padding:var(--s-3) 14px">
+      <h4 style="margin:0 0 3px;font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading)">${esc(i18t('pc_title'))}</h4>
       <p class="st-note" style="margin:0 0 9px">${esc(i18t('pc_sub'))}</p>
       ${sug.map(x=>`
         <div style="border-top:1px solid var(--color-divider);padding:9px 0 3px">
-          <div style="font-size:13px;line-height:1.55">${esc(i18t('pc_line',{
+          <div style="font-size:var(--t-meta);line-height:1.55">${esc(i18t('pc_line',{
             category:x.category, figure:x.figure, unit:x.unit, seen:x.seen, settled:x.settled }))}</div>
-          <div style="font-size:12px;color:var(--color-neutral-600);margin-top:3px">${
+          <div style="font-size:var(--t-label);color:var(--color-neutral-600);margin-top:3px">${
             x.currentFigure!=null
               ? esc(i18t('pc_current',{figure:x.currentFigure,unit:x.unit}))
               : esc(i18t('pc_current_none'))}
             · ${esc(i18tn('pc_from_n',x.contracts.length,{n:x.contracts.length}))}</div>
-          ${mayAdopt?`<button class="ui-btn" data-pc-adopt="${esc(x.key)}" style="font-size:12px;padding:4px 10px;margin-top:6px">${esc(i18t('pc_adopt'))}</button>`:''}
+          ${mayAdopt?`<button class="ui-btn" data-pc-adopt="${esc(x.key)}" style="font-size:var(--t-label);padding:var(--s-1) 10px;margin-top:6px">${esc(i18t('pc_adopt'))}</button>`:''}
         </div>`).join('')}
     </div>`;
   host.querySelectorAll('[data-pc-adopt]').forEach(b=>b.addEventListener('click',()=>precedentAdopt(b.getAttribute('data-pc-adopt'))));
@@ -2982,15 +3009,15 @@ function renderClauseLibrary(){
   const lib=clauseLibrary();
   host.innerHTML=lib.map((cl,i)=>`
     <div style="border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);padding:11px 13px">
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:11px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.09em;color:var(--color-neutral-500)">${cl.category}</span>
-        <span style="font-size:14px;font-weight:600;color:var(--color-text)">${cl.name}</span>
-        ${canEditLib?`<span style="margin-left:auto;display:flex;gap:10px;font-size:12px;font-weight:600">
-          <button data-cl-edit="${i}" style="background:none;border:0;cursor:pointer;color:var(--color-accent-700)">${i18t('set_edit_lower')}</button>
+      <div style="display:flex;align-items:center;gap:var(--s-2)">
+        <span style="font-size:var(--t-micro);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.09em;color:var(--color-neutral-500)">${cl.category}</span>
+        <span style="font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text)">${cl.name}</span>
+        ${canEditLib?`<span style="margin-left:auto;display:flex;gap:10px;font-size:var(--t-label);font-weight:var(--w-strong)">
+          <button data-cl-edit="${i}" style="background:none;border:0;cursor:pointer;color:var(--accent-ink-700)">${i18t('set_edit_lower')}</button>
           <button data-cl-del="${i}" style="background:none;border:0;cursor:pointer;color:var(--st-ruby-dot)">${i18t('set_remove_lower')}</button></span>`:''}
       </div>
-      <div style="margin-top:4px;font-size:12px;color:var(--color-neutral-600)"><b>${i18t('set_preferred')}</b> ${(cl.preferred||'').slice(0,140).replace(/</g,'&lt;')}${(cl.preferred||'').length>140?'…':''}</div>
-    </div>`).join('')||`<p style="font-size:12px;color:var(--color-neutral-500)">${i18t('set_no_clauses')}</p>`;
+      <div style="margin-top:var(--s-1);font-size:var(--t-label);color:var(--color-neutral-600)"><b>${i18t('set_preferred')}</b> ${(cl.preferred||'').slice(0,140).replace(/</g,'&lt;')}${(cl.preferred||'').length>140?'…':''}</div>
+    </div>`).join('')||`<p style="font-size:var(--t-label);color:var(--color-neutral-500)">${i18t('set_no_clauses')}</p>`;
   host.querySelectorAll('[data-cl-edit]').forEach(b=>b.addEventListener('click',()=>openClauseEditor(Number(b.getAttribute('data-cl-edit')))));
   host.querySelectorAll('[data-cl-del]').forEach(b=>b.addEventListener('click',()=>{ const i=Number(b.getAttribute('data-cl-del')); const lib2=clauseLibrary().slice(); lib2.splice(i,1); saveClauseLibrary(lib2); renderClauseLibrary(); toast(i18t('set_t_clause_removed')); }));
   document.getElementById('cl-add')?.addEventListener('click',()=>openClauseEditor(-1));
@@ -3003,9 +3030,9 @@ const PB_ATTR = s => String(s==null?'':s).replace(/"/g,'&quot;');
 // position chip — red for required/forbidden, steel for preferred; ⚑ = escalate
 function pbPosChip(pos){
   const hard=pos.pos==='required'||pos.pos==='forbidden';
-  return `<span style="font-size:12px;font-family:var(--font-mono);border-radius:0;padding:2px 9px;${hard?'background:var(--st-ruby-bg);color:var(--st-ruby-fg)':'background:var(--st-steel-bg);color:var(--st-steel-fg)'}">${PB_ESC(pos.category)}${pos.escalate?' ⚑':''}</span>`;
+  return `<span style="font-size:var(--t-label);font-family:var(--font-mono);border-radius:0;padding:2px 9px;${hard?'background:var(--st-ruby-bg);color:var(--st-ruby-fg)':'background:var(--st-steel-bg);color:var(--st-steel-fg)'}">${PB_ESC(pos.category)}${pos.escalate?' ⚑':''}</span>`;
 }
-const pbRangeChip = rg => `<span style="font-size:12px;font-family:var(--font-mono);border-radius:0;padding:2px 9px;background:var(--st-amber-bg);color:var(--st-amber-fg)">${PB_ESC(rg.label)} ${rg.op} ${rg.value}${rg.escalate?' ⚑':''}</span>`;
+const pbRangeChip = rg => `<span style="font-size:var(--t-label);font-family:var(--font-mono);border-radius:0;padding:2px 9px;background:var(--st-amber-bg);color:var(--st-amber-fg)">${PB_ESC(rg.label)} ${rg.op} ${rg.value}${rg.escalate?' ⚑':''}</span>`;
 function renderPlaybookView(){
   const pv=document.getElementById('playbook-view'); if(!pv) return;
   const canEditPb=isAdmin()||currentUser()?.role==='legal';
@@ -3013,29 +3040,29 @@ function renderPlaybookView(){
   const base=pb._default||DEFAULT_PLAYBOOK._default;
   const card=(key,label,positions,ranges,removable,baseline)=>`
     <div style="margin-bottom:${baseline?'12px':'8px'};border:1px solid ${baseline?'var(--color-accent-300)':'var(--color-divider)'};border-left:3px solid ${baseline?'var(--color-accent)':'var(--color-divider)'};border-radius:0;background:${baseline?'var(--color-accent-100)':'var(--color-surface)'};padding:${baseline?'11px 13px':'10px 12px'}">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:${baseline?'2px':'6px'}">
-        <span style="font-size:13px;font-weight:${baseline?700:600};color:${baseline?'var(--color-accent-900)':'var(--color-text)'}">${PB_ESC(label)}</span>
-        ${baseline?`<span style="font-size:10px;font-family:var(--font-mono);letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:#fff;background:var(--color-accent);border-radius:0;padding:2px 8px">${i18t('set_applies_all')}</span>`:''}
-        ${canEditPb?`<span style="margin-left:auto;display:flex;gap:10px;font-size:12px;font-weight:600">
-          <button data-pb-edit="${key}" style="background:none;border:0;cursor:pointer;color:var(--color-accent-700)">${i18t('set_edit_lower')}</button>
+      <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:${baseline?'2px':'6px'}">
+        <span style="font-size:var(--t-meta);font-weight:${baseline?700:600};color:${baseline?'var(--color-accent-900)':'var(--color-text)'}">${PB_ESC(label)}</span>
+        ${baseline?`<span style="font-size:var(--t-figure);font-family:var(--font-mono);letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-title);color:#fff;background:var(--color-accent);border-radius:0;padding:2px var(--s-2)">${i18t('set_applies_all')}</span>`:''}
+        ${canEditPb?`<span style="margin-left:auto;display:flex;gap:10px;font-size:var(--t-label);font-weight:var(--w-strong)">
+          <button data-pb-edit="${key}" style="background:none;border:0;cursor:pointer;color:var(--accent-ink-700)">${i18t('set_edit_lower')}</button>
           ${removable?`<button data-pb-del="${key}" style="background:none;border:0;cursor:pointer;color:var(--st-ruby-dot)">${i18t('set_remove_lower')}</button>`:''}
         </span>`:''}
       </div>
-      ${baseline?`<div style="font-size:12px;color:var(--color-accent-800);margin-bottom:7px">${i18t('set_default_positions')}</div>`:''}
-      <div style="display:flex;flex-wrap:wrap;gap:5px">${positions.map(pbPosChip).join('')}${ranges.map(pbRangeChip).join('')||(positions.length?'':`<span style="font-size:12px;color:var(--color-neutral-500)">${i18t('set_no_positions')}</span>`)}</div>
+      ${baseline?`<div style="font-size:var(--t-label);color:var(--accent-ink);margin-bottom:7px">${i18t('set_default_positions')}</div>`:''}
+      <div style="display:flex;flex-wrap:wrap;gap:5px">${positions.map(pbPosChip).join('')}${ranges.map(pbRangeChip).join('')||(positions.length?'':`<span style="font-size:var(--t-label);color:var(--color-neutral-500)">${i18t('set_no_positions')}</span>`)}</div>
     </div>`;
   const baseCard=card('_default',i18t('set_all_contracts_baseline'), base.positions||[], base.ranges||[], false, true);
   const typeCards=Object.keys(pb).filter(k=>k!=='_default').map(k=>{ const rp=resolvePlaybook(k); return card(k, pb[k].label||k, rp.positions, rp.ranges, true); }).join('');
   pv.innerHTML=`
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-      <span style="font-size:13px;font-weight:600;color:var(--color-text)">${i18t('set_playbook_by_type')}</span>
-      ${canEditPb?`<span style="margin-left:auto;display:flex;gap:8px">
-        <button id="pb-add" class="ui-btn ui-btn-primary" style="font-size:12px;padding:4px 10px">${icon('plus','w-3 h-3')} ${i18t('set_add_type')}</button>
-        <button id="pb-reset" style="font-size:12px;font-weight:600;color:var(--color-neutral-600);background:none;border:0;cursor:pointer">${i18t('set_reset_defaults2')}</button>
+    <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-2)">
+      <span style="font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text)">${i18t('set_playbook_by_type')}</span>
+      ${canEditPb?`<span style="margin-left:auto;display:flex;gap:var(--s-2)">
+        <button id="pb-add" class="ui-btn ui-btn-primary" style="font-size:var(--t-label);padding:var(--s-1) 10px">${icon('plus','w-3 h-3')} ${i18t('set_add_type')}</button>
+        <button id="pb-reset" style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600);background:none;border:0;cursor:pointer">${i18t('set_reset_defaults2')}</button>
       </span>`:''}
     </div>
     ${baseCard}${typeCards}
-    <p style="font-size:12px;color:var(--color-neutral-500);margin-top:4px">${i18t('set_flag_legend')}${canEditPb?i18t('set_flag_legend_more'):''}</p>`;
+    <p style="font-size:var(--t-label);color:var(--color-neutral-500);margin-top:var(--s-1)">${i18t('set_flag_legend')}${canEditPb?i18t('set_flag_legend_more'):''}</p>`;
   if(!canEditPb) return;
   pv.querySelectorAll('[data-pb-edit]').forEach(b=>b.addEventListener('click',()=>openPlaybookEditor(b.getAttribute('data-pb-edit'))));
   pv.querySelectorAll('[data-pb-del]').forEach(b=>b.addEventListener('click',async()=>{
@@ -3060,47 +3087,47 @@ function openPlaybookEditor(key){
   const e=pb[key]; e.positions=e.positions||[]; e.ranges=e.ranges||[]; e.match=e.match||[];
   const inherited=(!isBase)?resolvePlaybook('_default'):null;
   const POS=[['required',i18t('set_pos_required')],['preferred',i18t('set_pos_preferred')],['forbidden',i18t('set_pos_forbidden')]];
-  const inp='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:6px 8px;font:inherit;font-size:14px;color:inherit;outline:none';
+  const inp='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:6px var(--s-2);font:inherit;font-size:var(--t-body);color:inherit;outline:none';
   openModal(`<div style="padding:20px 22px">
-    <h3 style="font-family:var(--font-heading);font-weight:600;font-size:16px;margin:0 0 12px">${isNew?i18t('set_add_contract_type'):isBase?i18t('set_edit_baseline'):i18t('set_edit_playbook_for',{label:PB_ESC(e.label||key)})}</h3>
-    <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:12px;font-weight:600;color:var(--color-text);margin-bottom:3px">${isBase?i18t('set_name'):i18t('set_type_name')}</span>
+    <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:16px;margin:0 0 var(--s-3)">${isNew?i18t('set_add_contract_type'):isBase?i18t('set_edit_baseline'):i18t('set_edit_playbook_for',{label:PB_ESC(e.label||key)})}</h3>
+    <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text);margin-bottom:3px">${isBase?i18t('set_name'):i18t('set_type_name')}</span>
       <input id="pb-f-label" value="${PB_ATTR(e.label||'')}" placeholder="${isBase?esc(i18t('set_ph_baseline')):esc(i18t('set_ph_eg_distribution'))}" style="${inp}"></label>
-    ${!isBase?`<label style="display:block;margin-bottom:10px"><span style="display:block;font-size:12px;font-weight:600;color:var(--color-text);margin-bottom:3px">${i18t('set_applies_matching')} <span style="font-weight:400;color:var(--color-neutral-500)">${i18t('set_comma_keywords')}</span></span>
+    ${!isBase?`<label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text);margin-bottom:3px">${i18t('set_applies_matching')} <span style="font-weight:var(--w-body);color:var(--color-neutral-500)">${i18t('set_comma_keywords')}</span></span>
       <input id="pb-f-match" value="${PB_ATTR(e.match.join(', '))}" placeholder="${esc(i18t('set_ph_eg_keywords'))}" style="${inp}"></label>
-    <div style="font-size:12px;color:var(--color-neutral-600);background:var(--color-bg);border:1px solid var(--color-divider);border-radius:0;padding:7px 9px;margin-bottom:12px">${i18t('set_inherited_baseline')} <span style="display:inline-flex;flex-wrap:wrap;gap:4px;vertical-align:middle">${inherited.positions.map(pbPosChip).join('')}${inherited.ranges.map(pbRangeChip).join('')}</span></div>`:''}
+    <div style="font-size:var(--t-label);color:var(--color-neutral-600);background:var(--color-bg);border:1px solid var(--color-divider);border-radius:0;padding:7px 9px;margin-bottom:var(--s-3)">${i18t('set_inherited_baseline')} <span style="display:inline-flex;flex-wrap:wrap;gap:var(--s-1);vertical-align:middle">${inherited.positions.map(pbPosChip).join('')}${inherited.ranges.map(pbRangeChip).join('')}</span></div>`:''}
 
-    <div style="display:flex;align-items:center;margin:0 0 6px"><span style="font-size:12px;font-weight:600;color:var(--color-text)">${isBase?i18t('set_positions'):i18t('set_positions_for_type')}</span><button id="pb-add-pos" style="margin-left:auto;font-size:12px;font-weight:600;color:var(--color-accent-700);background:none;border:0;cursor:pointer">${i18t('set_add_position')}</button></div>
+    <div style="display:flex;align-items:center;margin:0 0 6px"><span style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text)">${isBase?i18t('set_positions'):i18t('set_positions_for_type')}</span><button id="pb-add-pos" style="margin-left:auto;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink-700);background:none;border:0;cursor:pointer">${i18t('set_add_position')}</button></div>
     <div id="pb-pos-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px"></div>
 
-    <div style="display:flex;align-items:center;margin:0 0 6px"><span style="font-size:12px;font-weight:600;color:var(--color-text)">${i18t('set_numeric_limits')}</span><button id="pb-add-rng" style="margin-left:auto;font-size:12px;font-weight:600;color:var(--color-accent-700);background:none;border:0;cursor:pointer">${i18t('set_add_limit')}</button></div>
-    <div id="pb-rng-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px"></div>
+    <div style="display:flex;align-items:center;margin:0 0 6px"><span style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text)">${i18t('set_numeric_limits')}</span><button id="pb-add-rng" style="margin-left:auto;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink-700);background:none;border:0;cursor:pointer">${i18t('set_add_limit')}</button></div>
+    <div id="pb-rng-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:var(--s-4)"></div>
 
-    <div style="display:flex;justify-content:flex-end;gap:8px">
-      <button id="pb-cancel" class="ui-btn" style="font-size:13px;padding:6px 14px">${i18t('act_cancel')}</button>
-      <button id="pb-save" class="ui-btn ui-btn-primary" style="font-size:13px;padding:6px 16px">${i18t('act_save')}</button>
+    <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
+      <button id="pb-cancel" class="ui-btn" style="font-size:var(--t-meta);padding:6px 14px">${i18t('act_cancel')}</button>
+      <button id="pb-save" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:6px var(--s-4)">${i18t('act_save')}</button>
     </div>
   </div>`, {maxWidth:'34rem'});
 
   const seg=(i)=>POS.map(([v,l])=>{ const on=e.positions[i].pos===v; const hard=v==='required'||v==='forbidden';
-    return `<button data-pb-pos="${i}" data-v="${v}" style="font-size:12px;font-weight:600;border:1px solid ${on?(hard?'var(--st-ruby-line)':'var(--color-accent)'):'var(--color-divider)'};background:${on?(hard?'var(--st-ruby-bg)':'var(--color-accent-100)'):'var(--color-surface)'};color:${on?(hard?'var(--st-ruby-fg)':'var(--color-accent-800)'):'var(--color-neutral-600)'};padding:4px 9px;border-radius:0;cursor:pointer">${l}</button>`; }).join('');
+    return `<button data-pb-pos="${i}" data-v="${v}" style="font-size:var(--t-label);font-weight:var(--w-strong);border:1px solid ${on?(hard?'var(--st-ruby-line)':'var(--color-accent)'):'var(--color-divider)'};background:${on?(hard?'var(--st-ruby-bg)':'var(--color-accent-100)'):'var(--color-surface)'};color:${on?(hard?'var(--st-ruby-fg)':'var(--color-accent-800)'):'var(--color-neutral-600)'};padding:var(--s-1) 9px;border-radius:0;cursor:pointer">${l}</button>`; }).join('');
   const paint=()=>{
     const pl=document.getElementById('pb-pos-list');
     pl.innerHTML=e.positions.length?e.positions.map((p,i)=>`
-      <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;border:1px solid var(--color-divider);border-radius:0;padding:7px 8px;background:var(--color-bg)">
-        <input data-pb-cat="${i}" value="${PB_ATTR(p.category||'')}" placeholder="${esc(i18t('set_ph_category'))}" style="flex:1;min-width:150px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:5px 7px;font:inherit;font-size:13px;outline:none">
+      <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;border:1px solid var(--color-divider);border-radius:0;padding:7px var(--s-2);background:var(--color-bg)">
+        <input data-pb-cat="${i}" value="${PB_ATTR(p.category||'')}" placeholder="${esc(i18t('set_ph_category'))}" style="flex:1;min-width:150px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:5px 7px;font:inherit;font-size:var(--t-meta);outline:none">
         <span style="display:inline-flex;gap:3px">${seg(i)}</span>
-        <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--color-neutral-700);white-space:nowrap"><input type="checkbox" data-pb-esc="${i}" ${p.escalate?'checked':''} style="accent-color:var(--color-accent)">${i18t('set_flag_legal')}</label>
-        <button data-pb-rmpos="${i}" title="${i18t('act_remove')}" style="background:none;border:0;cursor:pointer;color:var(--color-neutral-500);font-size:15px;line-height:1;padding:0 2px">×</button>
-      </div>`).join(''):`<p style="font-size:12px;color:var(--color-neutral-500);margin:0">${isBase?i18t('set_no_specific_positions'):i18t('set_no_specific_inherits')}</p>`;
+        <label style="display:inline-flex;align-items:center;gap:var(--s-1);font-size:var(--t-label);color:var(--color-neutral-700);white-space:nowrap"><input type="checkbox" data-pb-esc="${i}" ${p.escalate?'checked':''} style="accent-color:var(--color-accent)">${i18t('set_flag_legal')}</label>
+        <button data-pb-rmpos="${i}" title="${i18t('act_remove')}" style="background:none;border:0;cursor:pointer;color:var(--color-neutral-500);font-size:var(--t-card);line-height:1;padding:0 2px">×</button>
+      </div>`).join(''):`<p style="font-size:var(--t-label);color:var(--color-neutral-500);margin:0">${isBase?i18t('set_no_specific_positions'):i18t('set_no_specific_inherits')}</p>`;
     const rl=document.getElementById('pb-rng-list');
     rl.innerHTML=e.ranges.length?e.ranges.map((r,i)=>`
-      <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;border:1px solid var(--color-divider);border-radius:0;padding:7px 8px;background:var(--color-bg)">
-        <input data-pb-rlabel="${i}" value="${PB_ATTR(r.label||'')}" placeholder="${esc(i18t('set_ph_label_payment'))}" style="flex:1;min-width:120px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:5px 7px;font:inherit;font-size:13px;outline:none">
-        <select data-pb-rop="${i}" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:5px 6px;font:inherit;font-size:13px;cursor:pointer"><option value="<=" ${r.op==='<='?'selected':''}>≤</option><option value=">=" ${r.op==='>='?'selected':''}>≥</option></select>
-        <input data-pb-rval="${i}" type="number" value="${r.value}" style="width:74px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:5px 7px;font:inherit;font-size:13px;outline:none">
-        <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--color-neutral-700);white-space:nowrap"><input type="checkbox" data-pb-resc="${i}" ${r.escalate?'checked':''} style="accent-color:var(--color-accent)">${i18t('set_flag_legal')}</label>
-        <button data-pb-rmrng="${i}" title="${i18t('act_remove')}" style="background:none;border:0;cursor:pointer;color:var(--color-neutral-500);font-size:15px;line-height:1;padding:0 2px">×</button>
-      </div>`).join(''):`<p style="font-size:12px;color:var(--color-neutral-500);margin:0">${i18t('set_no_numeric_limits')}</p>`;
+      <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;border:1px solid var(--color-divider);border-radius:0;padding:7px var(--s-2);background:var(--color-bg)">
+        <input data-pb-rlabel="${i}" value="${PB_ATTR(r.label||'')}" placeholder="${esc(i18t('set_ph_label_payment'))}" style="flex:1;min-width:120px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:5px 7px;font:inherit;font-size:var(--t-meta);outline:none">
+        <select data-pb-rop="${i}" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:5px 6px;font:inherit;font-size:var(--t-meta);cursor:pointer"><option value="<=" ${r.op==='<='?'selected':''}>≤</option><option value=">=" ${r.op==='>='?'selected':''}>≥</option></select>
+        <input data-pb-rval="${i}" type="number" value="${r.value}" style="width:74px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:5px 7px;font:inherit;font-size:var(--t-meta);outline:none">
+        <label style="display:inline-flex;align-items:center;gap:var(--s-1);font-size:var(--t-label);color:var(--color-neutral-700);white-space:nowrap"><input type="checkbox" data-pb-resc="${i}" ${r.escalate?'checked':''} style="accent-color:var(--color-accent)">${i18t('set_flag_legal')}</label>
+        <button data-pb-rmrng="${i}" title="${i18t('act_remove')}" style="background:none;border:0;cursor:pointer;color:var(--color-neutral-500);font-size:var(--t-card);line-height:1;padding:0 2px">×</button>
+      </div>`).join(''):`<p style="font-size:var(--t-label);color:var(--color-neutral-500);margin:0">${i18t('set_no_numeric_limits')}</p>`;
     // wire row inputs → live working copy
     pl.querySelectorAll('[data-pb-cat]').forEach(el=>el.addEventListener('input',()=>{ e.positions[+el.dataset.pbCat].category=el.value; }));
     pl.querySelectorAll('[data-pb-esc]').forEach(el=>el.addEventListener('change',()=>{ e.positions[+el.dataset.pbEsc].escalate=el.checked; }));
@@ -3165,13 +3192,13 @@ function renderApprovalRules(){
   const host=document.getElementById('approval-rules'); if(!host) return;
   const rules=approvalRules().slice().sort((a,b)=>(a.order||99)-(b.order||99));
   host.innerHTML=rules.length?rules.map((r,i)=>`
-    <div style="border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);padding:10px 12px;margin-bottom:8px">
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="width:22px;height:22px;display:inline-grid;place-items:center;border-radius:50%;background:var(--tile-steel-bg);font-size:12px;font-weight:700;color:var(--tile-steel-fg);flex:none">${r.order||1}</span>
-        <span style="font-size:13px;color:var(--color-text)"><b>${i18t('set_if')}</b> ${condLabel(r.cond)} <b>${i18t('set_then')}</b> ${approverLabelOf(r.approver)}</span>
-        ${isAdmin()?`<span style="margin-left:auto;display:flex;gap:10px;font-size:12px;font-weight:600"><button data-ar-edit="${i}" style="background:none;border:0;cursor:pointer;color:var(--color-accent-700)">${i18t('set_edit_lower')}</button><button data-ar-del="${i}" style="background:none;border:0;cursor:pointer;color:var(--st-ruby-dot)">${i18t('set_remove_lower')}</button></span>`:''}
+    <div style="border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);padding:10px var(--s-3);margin-bottom:var(--s-2)">
+      <div style="display:flex;align-items:center;gap:var(--s-2)">
+        <span style="width:22px;height:22px;display:inline-grid;place-items:center;border-radius:50%;background:var(--tile-steel-bg);font-size:var(--t-label);font-weight:var(--w-title);color:var(--tile-steel-fg);flex:none">${r.order||1}</span>
+        <span style="font-size:var(--t-meta);color:var(--color-text)"><b>${i18t('set_if')}</b> ${condLabel(r.cond)} <b>${i18t('set_then')}</b> ${approverLabelOf(r.approver)}</span>
+        ${isAdmin()?`<span style="margin-left:auto;display:flex;gap:10px;font-size:var(--t-label);font-weight:var(--w-strong)"><button data-ar-edit="${i}" style="background:none;border:0;cursor:pointer;color:var(--accent-ink-700)">${i18t('set_edit_lower')}</button><button data-ar-del="${i}" style="background:none;border:0;cursor:pointer;color:var(--st-ruby-dot)">${i18t('set_remove_lower')}</button></span>`:''}
       </div>
-    </div>`).join(''):`<p style="font-size:12px;color:var(--color-neutral-500)">${i18t('set_no_approval_rules')}</p>`;
+    </div>`).join(''):`<p style="font-size:var(--t-label);color:var(--color-neutral-500)">${i18t('set_no_approval_rules')}</p>`;
   host.querySelectorAll('[data-ar-edit]').forEach(b=>b.addEventListener('click',()=>openApprovalRuleEditor(Number(b.getAttribute('data-ar-edit')))));
   host.querySelectorAll('[data-ar-del]').forEach(b=>b.addEventListener('click',()=>{ const rules2=approvalRules().slice(); rules2.splice(Number(b.getAttribute('data-ar-del')),1); saveApprovalRules(rules2); renderApprovalRules(); toast(i18t('set_rule_removed')); }));
 }
@@ -3204,7 +3231,7 @@ function openApprovalRuleEditor(idx){
         ${orphan?`<option value="orphan" selected>${esc(orphan)} — ${i18t('set_approver_gone')}</option>`:''}
         ${members.map(m=>`<option value="member:${m.name}" ${r.approver.kind==='member'&&r.approver.name===m.name?'selected':''}>${m.name} (${roleName(m.role)})</option>`).join('')}
       </select>
-      ${orphan?`<span style="display:block;margin-top:6px;font-size:12px;color:var(--st-amber-fg);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);padding:6px 9px">${i18t('set_approver_gone_note',{name:esc(orphan)})}</span>`:''}</label>
+      ${orphan?`<span style="display:block;margin-top:6px;font-size:var(--t-label);color:var(--st-amber-fg);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);padding:6px 9px">${i18t('set_approver_gone_note',{name:esc(orphan)})}</span>`:''}</label>
     <div class="flex justify-end gap-2 mt-2"><button id="ar-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_cancel')}</button>
       <button id="ar-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${i18t('set_save_rule')}</button></div>
   </div>`);
@@ -3242,9 +3269,9 @@ function renderReviewGatePanel(){
   const dis=admin?'':' disabled';
   const money=(window.jxCurrency?jxCurrency():'');
   host.innerHTML=`
-    <label style="display:flex;gap:9px;align-items:flex-start;font-size:13px;line-height:1.5;cursor:${admin?'pointer':'not-allowed'};margin-bottom:10px">
+    <label style="display:flex;gap:9px;align-items:flex-start;font-size:var(--t-meta);line-height:1.5;cursor:${admin?'pointer':'not-allowed'};margin-bottom:10px">
       <input id="rv-gate-on" type="checkbox"${cfg.on?' checked':''}${dis} style="margin-top:2px"/>
-      <span style="font-weight:600;color:var(--color-text)">${i18t('rv_set_on')}</span>
+      <span style="font-weight:var(--w-strong);color:var(--color-text)">${i18t('rv_set_on')}</span>
     </label>
     <div id="rv-gate-more"${cfg.on?'':' hidden'}>
       ${''/* ---- WHO IS CHECKED IS PER PERSON ----
@@ -3254,23 +3281,23 @@ function renderReviewGatePanel(){
              which is what keeps a workspace that already had this on behaving
              exactly as it did. The unchecked are NAMED here rather than
              counted, because an admin acts on names. */}
-      <p style="font-size:12px;color:var(--color-neutral-600);margin:0 0 9px;line-height:1.5">${i18t('rv_set_per_person')}
+      <p style="font-size:var(--t-label);color:var(--color-neutral-600);margin:0 0 9px;line-height:1.5">${i18t('rv_set_per_person')}
         ${(()=>{ const off=(typeof reviewUncheckedPeople==='function')?reviewUncheckedPeople():[];
           return off.length
             ? `<span style="color:var(--st-amber-fg)">${esc(i18tn('rv_set_unchecked',off.length,{n:off.length,who:off.map(u=>u.name||u.email).join(', ')}))}</span>`
             : esc(i18t('rv_set_all_checked')); })()}</p>
-      <label style="display:flex;gap:9px;align-items:flex-start;font-size:13px;line-height:1.5;cursor:${admin?'pointer':'not-allowed'};margin-bottom:10px">
+      <label style="display:flex;gap:9px;align-items:flex-start;font-size:var(--t-meta);line-height:1.5;cursor:${admin?'pointer':'not-allowed'};margin-bottom:10px">
         <input id="rv-gate-newchecked" type="checkbox"${cfg.newChecked?' checked':''}${dis} style="margin-top:2px"/>
-        <span style="font-weight:600;color:var(--color-text)">${i18t('rv_set_new_checked')}</span>
+        <span style="font-weight:var(--w-strong);color:var(--color-text)">${i18t('rv_set_new_checked')}</span>
       </label>
-      <label style="display:block;font-size:12px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">${i18t('rv_set_when')}</label>
+      <label style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${i18t('rv_set_when')}</label>
       <select id="rv-gate-when"${dis} style="${window.RV_FLD||''}margin-bottom:9px">
         <option value="always"${cfg.when==='always'?' selected':''}>${i18t('rv_set_when_always')}</option>
         <option value="deviation"${cfg.when==='deviation'?' selected':''}>${i18t('rv_set_when_deviation')}</option>
         <option value="value"${cfg.when==='value'?' selected':''}>${i18t('rv_set_when_value')}</option>
       </select>
       <div id="rv-gate-valwrap"${cfg.when==='value'?'':' hidden'}>
-        <label style="display:block;font-size:12px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">${i18t('rv_set_value')}${money?` (${money})`:''}</label>
+        <label style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${i18t('rv_set_value')}${money?` (${money})`:''}</label>
         <input id="rv-gate-value" type="number" min="0" step="1000"${dis} value="${Number(cfg.value||0)}" style="${window.RV_FLD||''}"/>
       </div>
     </div>`;
@@ -3304,11 +3331,11 @@ function renderDeskRulePanel(){
   const admin=isAdmin();
   const cfg=(window.deskCfg?deskCfg():{on:false});
   host.innerHTML=`
-    <label style="display:flex;gap:9px;align-items:flex-start;font-size:13px;line-height:1.5;cursor:${admin?'pointer':'not-allowed'}">
+    <label style="display:flex;gap:9px;align-items:flex-start;font-size:var(--t-meta);line-height:1.5;cursor:${admin?'pointer':'not-allowed'}">
       <input id="dk-rule-on" type="checkbox"${cfg.on?' checked':''}${admin?'':' disabled'} style="margin-top:2px"/>
-      <span style="font-weight:600;color:var(--color-text)">${i18t('dk_set_on')}</span>
+      <span style="font-weight:var(--w-strong);color:var(--color-text)">${i18t('dk_set_on')}</span>
     </label>
-    <p style="font-size:12px;color:var(--color-neutral-600);margin:8px 0 0;line-height:1.6">${i18t('dk_set_detail')}</p>
+    <p style="font-size:var(--t-label);color:var(--color-neutral-600);margin:var(--s-2) 0 0;line-height:1.6">${i18t('dk_set_detail')}</p>
     ${''/* ---- THE PRICE OF ONE DOOR OUT, AND IT IS SET HERE ----
            Independent of the switch above on purpose: a deal going quiet
            because the lead is on leave is worth knowing about whether or not
@@ -3316,8 +3343,8 @@ function renderDeskRulePanel(){
            is never told we noticed. Too short and it becomes noise people learn
            to scroll past; too long and it fires after they have already
            chased. Five working days is the default. */}
-    <div style="margin-top:12px;border-top:1px solid var(--color-divider);padding-top:11px">
-      <label for="dk-stale" style="display:block;font-size:12px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">${i18t('dk_set_stale')}</label>
+    <div style="margin-top:var(--s-3);border-top:1px solid var(--color-divider);padding-top:11px">
+      <label for="dk-stale" style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${i18t('dk_set_stale')}</label>
       <input id="dk-stale" type="number" min="1" max="60" step="1"${admin?'':' disabled'}
         value="${Number(cfg.staleDays||5)}" style="${window.RV_FLD||''}max-width:120px"/>
     </div>`;
@@ -3341,16 +3368,16 @@ async function loadSessions(){
       const ua=(s.ua||'').replace(/</g,'&lt;'); /* The BROWSER NAMES are proper nouns and stay as they are; only the two
          generic words are the platform's own. */
       const dev=/mobile/i.test(ua)?i18t('set_dev_mobile'):/chrome/i.test(ua)?'Chrome':/firefox/i.test(ua)?'Firefox':/safari/i.test(ua)?'Safari':i18t('set_dev_browser');
-      return `<div style="display:flex;align-items:center;gap:8px;border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);padding:7px 10px">
-        <span style="min-width:0"><span style="font-size:13px;font-weight:600;color:var(--color-text)">${dev}${s.current?` <span style="font-size:10px;font-family:var(--font-mono);color:var(--color-accent-700)">${i18t('set_this_device')}</span>`:''}</span>
-        <span style="display:block;font-size:12px;font-family:var(--font-mono);color:var(--color-neutral-500)">${s.ip||'—'} · ${i18t('set_last_seen',{when:s.lastSeen?fmtDT(s.lastSeen):'—'})}</span></span>
-        ${s.current?'':`<button data-sess-revoke="${s.id}" style="margin-left:auto;font-size:12px;font-weight:600;color:var(--st-ruby-dot);background:none;border:0;cursor:pointer">${i18t('set_revoke')}</button>`}
-      </div>`; }).join('')}</div>`:`<p style="font-size:12px;color:var(--color-neutral-500)">${i18t('set_no_active_sessions')}</p>`;
+      return `<div style="display:flex;align-items:center;gap:var(--s-2);border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);padding:7px 10px">
+        <span style="min-width:0"><span style="font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text)">${dev}${s.current?` <span style="font-size:var(--t-figure);font-family:var(--font-mono);color:var(--accent-ink-700)">${i18t('set_this_device')}</span>`:''}</span>
+        <span style="display:block;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-neutral-500)">${s.ip||'—'} · ${i18t('set_last_seen',{when:s.lastSeen?fmtDT(s.lastSeen):'—'})}</span></span>
+        ${s.current?'':`<button data-sess-revoke="${s.id}" style="margin-left:auto;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--st-ruby-dot);background:none;border:0;cursor:pointer">${i18t('set_revoke')}</button>`}
+      </div>`; }).join('')}</div>`:`<p style="font-size:var(--t-label);color:var(--color-neutral-500)">${i18t('set_no_active_sessions')}</p>`;
     host.querySelectorAll('[data-sess-revoke]').forEach(b=>b.addEventListener('click',async()=>{
       try{ await api('sessions/'+b.getAttribute('data-sess-revoke'),'DELETE'); toast(i18t('set_t_session_revoked')); loadSessions(); }
       catch(e){ toast(e.message,'err'); }
     }));
-  }catch(e){ host.innerHTML=`<p style="font-size:12px;color:var(--color-neutral-500)">${i18t('set_could_not_load_sessions')}</p>`; }
+  }catch(e){ host.innerHTML=`<p style="font-size:var(--t-label);color:var(--color-neutral-500)">${i18t('set_could_not_load_sessions')}</p>`; }
 }
 
 /* Exported because a cross-module call that is never exported silently takes

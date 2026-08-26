@@ -302,6 +302,8 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       const pane = cs('.nego-pane.index');
       return { paneBg: pane && pane.backgroundColor, paneBorder: pane && pane.borderTopWidth,
         cap: cs('.rl-idx-title') && cs('.rl-idx-title').fontSize,
+        capRule: cs('.rl-idx-title') && cs('.rl-idx-title').borderBottomWidth,
+        capRuleColor: cs('.rl-idx-title') && cs('.rl-idx-title').borderBottomColor,
         filterText: (document.getElementById('rl-cardfilter') || {}).textContent || '',
         filter: cs('#rl-cardfilter') && cs('#rl-cardfilter').fontSize,
         restCount: cs('.rl-fseg:not(.on) .rl-fseg-n') && cs('.rl-fseg:not(.on) .rl-fseg-n').borderTopWidth,
@@ -324,13 +326,24 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       `${col.cardWording} / ${col.cardMeta}`);
     /* RE-POINTED 24 Aug 2026 — the caption is the change index's title and the
        filter is a select on its own line. RE-POINTED AGAIN 25 Aug 2026 against
-       the design reference: the title is the column's one TAB and is set well
-       above the filter under it, which is the relation this ever meant. Pinned
-       as that relation rather than as 15px, so the next type pass costs no
-       edit here. */
+       the design reference: the title is the column's one TAB and was set well
+       above the filter under it.
+       REVERSED IN PLACE 26 Aug 2026, and the reversal is the owner's, not this
+       sweep's. The column was rebuilt to the owner's own drawing and the title
+       came DOWN to the rows' own size on purpose — that rule's comment says so
+       in its own words: "with the size gone [the 2px accent rule] is the whole
+       of what marks this as the column's name", and "nothing below it ends up
+       larger". So SIZE stopped being the title's marker, and the old claim
+       survived that change only by the accident of a half-pixel — the filter
+       was 12.5px, which this product's own whole-pixel rule then rounded to 13.
+       WHAT THE CLAIM PROTECTS IS UNCHANGED and is asserted the other way up:
+       the column still names itself unmistakably (the 2px accent rule is drawn
+       and is a real colour), the filter is still there, and nothing under the
+       title is set larger than it. */
     check('5 the index names itself and carries the filter',
-      parseFloat(col.cap) > parseFloat(col.filter) && !!col.filter,
-      `${col.cap} / ${col.filter}`);
+      parseFloat(col.capRule) >= 2 && !/^rgba\(0, 0, 0, 0\)$/.test(col.capRuleColor || '')
+      && !!col.filter && parseFloat(col.filter) <= parseFloat(col.cap),
+      `rule ${col.capRule} ${col.capRuleColor} · cap ${col.cap} / filter ${col.filter}`);
     /* AND THE VERBS ARE BARE WORDS ON THIS COLUMN, so there is no button box
        left to have a height: what carries them is the line they sit on. The
        30px box was the bordered button the reference does not draw. */

@@ -492,4 +492,67 @@ describe('f177 — a named shape is honoured in code, not only in the prompt', (
     assert.match(rules, /NOT statusBreakdown/,
       'and the wrong answer named beside it');
   });
+
+  /* ================================================================
+     THE CHART LIBRARY IS OURS TO SERVE (owner-asked 26 Aug 2026)
+     ----------------------------------------------------------------
+     js/aichart.js used to fetch Chart.js from cdnjs on first use, so every
+     chart in the product — this feed, the Insights dock, the four Reports
+     cards and the health report's pictures — drew only if the READER'S OWN
+     browser could reach a third party. Ordinary offices are fine; a bank, a
+     ministry or a large law firm blocks outside sites outright, and those are
+     the buildings this product is sold into. The bytes are in vendor/ now.
+
+     WHY THIS IS A SOURCE CLAIM AND NOT ONLY A BROWSER ONE: a browser file run
+     on a well-connected laptop passes whether the src is local or remote — the
+     chart draws either way. Only reading the source can say WHERE it came
+     from. analytics-verify carries the other half: it aborts every request to
+     the two CDN hosts and then requires a real canvas, so the two together say
+     "local, and it actually draws".
+     ================================================================ */
+  test('no chart surface fetches its library from a third party', () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const root = path.join(__dirname, '..');
+
+    const src = fs.readFileSync(path.join(root, 'js/aichart.js'), 'utf8');
+    assert.match(src, /AI_CHART_SRC\s*=\s*'vendor\/chart\.umd\.min\.js'/,
+      'the one src is the workspace\'s own copy');
+    assert.ok(fs.existsSync(path.join(root, 'vendor/chart.umd.min.js')),
+      'and the bytes are actually committed — a local path that 404s is worse '
+      + 'than the CDN it replaced');
+
+    /* THE SWEEP IS THE POINT. Pinning one constant guards today; this is what
+       fails on the NEXT surface that reaches for a CDN, which is how the
+       original one arrived. Comments are blanked first so this file's own
+       prose about cdnjs does not trip it. */
+    const bad = [];
+    const walk = dir => {
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })){
+        const p = path.join(dir, e.name);
+        if (e.isDirectory()) { walk(p); continue; }
+        if (!e.name.endsWith('.js')) continue;
+        const body = fs.readFileSync(p, 'utf8')
+          .replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ');
+        if (/(cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net|unpkg\.com)[^'"`\s]*chart/i.test(body))
+          bad.push(path.relative(root, p));
+      }
+    };
+    walk(path.join(root, 'js'));
+    assert.deepEqual(bad, [],
+      'a chart library is fetched from a third party in: ' + bad.join(', '));
+  });
+
+  test('the failure it can still hit does not blame the reader\'s connection', () => {
+    /* The fallback is KEPT — a local file can 404 on a half-deployed build —
+       but it may no longer say "no internet", which sends somebody to look in
+       the one place the fault is not. */
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const src = fs.readFileSync(path.join(__dirname, '..', 'js/aichart.js'), 'utf8');
+    const line = src.split('\n').find(l => /aiChartNote\(/.test(l) && /did not load|internet/.test(l));
+    assert.ok(line, 'the graceful card is still there');
+    assert.doesNotMatch(line, /internet connection/,
+      'the library is ours now, so a failure is ours and not the reader\'s network');
+  });
 });

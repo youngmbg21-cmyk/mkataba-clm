@@ -157,7 +157,13 @@ describe('F179 — "More" says it is a button and says what it opens', () => {
     const rule = INDEX.match(/\.ws-more-btn\{[^}]*\}/)[0];
     assert.ok(!/border/.test(rule),
       'it must inherit .ui-btn\'s outline, never name one: ' + rule);
-    assert.match(INDEX, /\.ws-more-btn\[aria-expanded="true"\]\{[^}]*background:var\(--color-accent-100\)/,
+    /* RE-POINTED 25 Aug 2026 — PIN THE RELATION. The accent-tint sweep moved
+       every inline accent-100 background onto --st-steel-bg, which IS
+       var(--color-accent-100) in light and is the reason the census did not
+       move by a shade in daylight; at NIGHT the raw ramp step is a near-white
+       block under near-white text and the token answers properly. The claim
+       is unchanged: open is a state this button SHOWS. */
+    assert.match(INDEX, /\.ws-more-btn\[aria-expanded="true"\]\{[^}]*background:var\(--st-steel-bg\)/,
       'open is a state the button shows');
     assert.match(INDEX, /\.ws-more-btn\[aria-expanded="true"\] \.ws-more-caret\{ transform:rotate\(180deg\); \}/,
       'and the caret turns over with the menu');

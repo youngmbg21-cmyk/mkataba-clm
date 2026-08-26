@@ -21,15 +21,36 @@
 /* Chart.js, fetched on first use. Not in index.html's <head>, because most
    sessions never ask a question that draws one and this is 200KB. A workspace
    with no outbound network gets the graceful card rather than a broken panel —
-   the same treatment as a recipe with no data. */
-const AI_CHART_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js';
+   the same treatment as a recipe with no data.
+
+   ---- IT COMES FROM US NOW, NOT FROM cdnjs (owner-asked 26 Aug 2026) ----
+   This read `https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/...`, so
+   every chart in the product — this feed, the Insights dock, the four Reports
+   cards and the health report's embedded pictures — drew only if the READER'S
+   OWN BROWSER could reach a third party. Rarely a problem in an ordinary
+   office; total in the building this product is sold into, where a bank, a
+   ministry or a large law firm blocks outside sites outright and every chart
+   quietly stops drawing with nothing on screen to say why.
+
+   NO DATA EVER WENT THERE and none does now: the model names a KIND and the
+   recipes build the chart from live state in this browser, so cdnjs only ever
+   handed over a blank drawing tool. What it did see was the reader's address,
+   and what it could have done is fail. Both are gone.
+
+   THE FALLBACK BELOW IS KEPT AND IS STILL RIGHT. A local path can 404 too — a
+   half-deployed build, a stale cache, a static host that does not serve
+   /vendor — and a chart that cannot draw must still say so rather than leave a
+   blank panel. It is simply no longer the ordinary case.
+
+   The bytes and their provenance: vendor/README.md. */
+const AI_CHART_SRC = 'vendor/chart.umd.min.js';
 let _chartLib = null;
 function aiChartLib(){
   if (_chartLib) return _chartLib;
   _chartLib = new Promise((resolve, reject) => {
     if (window.Chart) return resolve(window.Chart);
     const s = document.createElement('script');
-    s.src = AI_CHART_CDN;
+    s.src = AI_CHART_SRC;
     s.async = true;
     s.onload = () => window.Chart ? resolve(window.Chart) : reject(new Error('Chart.js did not load'));
     s.onerror = () => reject(new Error('Chart.js could not be fetched'));
@@ -95,6 +116,22 @@ function _acMonthsAhead(n){
 const _acVar = (n, fb) => { try{ const v = getComputedStyle(document.documentElement).getPropertyValue(n).trim(); return v || fb; }catch(e){ return fb; } };
 let AC_INK = '#475569', AC_MUTED = '#94a3b8', AC_ACCENT = '#0d9488', AC_GOOD = '#10b981', AC_WARN = '#f59e0b', AC_BAD = '#f43f5e';
 const _acGrid = { color: 'rgba(38,55,74,.08)' };
+/* ---- THE CHARTS SPEAK THE PLATFORM'S OWN TYPEFACE ---- (25 Aug 2026)
+   A canvas cannot read a CSS token, so Chart.js was drawing every axis label
+   and legend in ITS OWN default stack — Helvetica Neue, Arial — while every
+   word around it was Inter. On one screen, two faces. Chart.defaults is where
+   a canvas is told, and it is set from the SAME token the rest of the product
+   reads, resolved once per palette refresh (a theme toggle already calls this,
+   and a font swap would come through the same token). */
+function _acRefreshFont(){
+  if (typeof Chart === 'undefined' || !Chart.defaults) return;
+  /* THE FALLBACK FOLLOWS THE PLATFORM FACE (25 Aug 2026, the Plex swap). The
+     token is what actually answers; this is only for a stage that has no
+     :root, and a stale fallback there names a face that is no longer served. */
+  const fam = _acVar('--font-body', "'IBM Plex Sans','Segoe UI',system-ui,-apple-system,Arial,sans-serif");
+  Chart.defaults.font.family = fam;
+  Chart.defaults.color = AC_INK;
+}
 function _acRefreshPalette(){
   AC_INK    = _acVar('--color-neutral-600', '#475569');
   AC_MUTED  = _acVar('--st-gray-dot', '#94a3b8');
@@ -104,6 +141,10 @@ function _acRefreshPalette(){
   AC_BAD    = _acVar('--st-ruby-dot', '#f43f5e');
   const dark = !!(document.documentElement.classList && document.documentElement.classList.contains('dark'));
   _acGrid.color = dark ? 'rgba(148,163,184,.14)' : 'rgba(38,55,74,.08)';
+  /* SQUARE CORNERS EVERYWHERE (owner-asked 20 Aug 2026) reached ~810 radii
+     in CSS and could not reach a canvas, so nine bar charts kept a 4px
+     corner. Chart.js takes it as a number, not a stylesheet. */
+  _acRefreshFont();
 }
 
 /* A Chart.js config, with the house style applied once. Money axes format
@@ -204,7 +245,7 @@ const AI_CHART_RECIPES = {
     const colour = (_, i) => i < 3 ? AC_BAD : i < 6 ? AC_WARN : AC_ACCENT;
     return _acConfig('bar', { labels: months.map(_acMonthLabel),
       datasets: [{ get label(){ return _acT('ch_s_contracts_expiring','Contracts expiring'); }, data: months.map(m => buckets[m]),
-        backgroundColor: months.map(colour), borderRadius: 4 }] }, { legend: false });
+        backgroundColor: months.map(colour), borderRadius: 0 }] }, { legend: false });
   },
 
   valueByCounterparty(){
@@ -219,7 +260,7 @@ const AI_CHART_RECIPES = {
        turns them into rotated stubs nobody reads. */
     const cfg = _acConfig('bar', { labels: top.map(x => x[0]),
       datasets: [{ get label(){ return _acT('ch_s_contract_value','Contract value'); }, data: top.map(x => x[1]),
-        backgroundColor: AC_ACCENT, borderRadius: 4, _unit: 'money' }] },
+        backgroundColor: AC_ACCENT, borderRadius: 0, _unit: 'money' }] },
       { legend: false, unit: 'money', scales: {
         x: { beginAtZero: true, grid: _acGrid,
           ticks: { font: { size: 10 }, color: AC_INK, callback: v => _acMoney(v) } },
@@ -243,7 +284,7 @@ const AI_CHART_RECIPES = {
     if (!any) return null;
     const cfg = _acConfig('bar', { labels: months.map(_acMonthLabel), datasets: [
       { type: 'bar', label: _acT('ch_s_value_up_for_renewal','Value up for renewal'), data: months.map(m => value[m]),
-        backgroundColor: AC_ACCENT, borderRadius: 4, yAxisID: 'y', _unit: 'money' },
+        backgroundColor: AC_ACCENT, borderRadius: 0, yAxisID: 'y', _unit: 'money' },
       { type: 'line', label: _acT('ch_s_decisions_due','Decisions due'), data: months.map(m => count[m]),
         borderColor: AC_WARN, backgroundColor: AC_WARN, tension: .3, yAxisID: 'y1' },
     ] }, { unit: 'money' });
@@ -270,7 +311,7 @@ const AI_CHART_RECIPES = {
     const value = ids.map(id => cs.filter(c => c.folder === id).reduce((s, c) => s + _acVal(c), 0));
     if (!count.some(Boolean)) return null;
     const cfg = _acConfig('bar', { labels: ids.map(id => F[id].name), datasets: [
-      { type: 'bar', label: _acT('ch_s_contracts','Contracts'), data: count, backgroundColor: AC_ACCENT, borderRadius: 4, yAxisID: 'y' },
+      { type: 'bar', label: _acT('ch_s_contracts','Contracts'), data: count, backgroundColor: AC_ACCENT, borderRadius: 0, yAxisID: 'y' },
       { type: 'line', label: _acT('ch_s_value','Value'), data: value, borderColor: AC_GOOD, backgroundColor: AC_GOOD,
         tension: .3, yAxisID: 'y1', _unit: 'money' },
     ] });
@@ -310,7 +351,7 @@ const AI_CHART_RECIPES = {
     if (!labels.length) return null;
     const avg = labels.map(k => Math.round(spans[k].reduce((a, b) => a + b, 0) / spans[k].length));
     return _acConfig('bar', { labels, datasets: [{ get label(){ return _acT('ch_s_average_days','Average days'); }, data: avg,
-      backgroundColor: AC_ACCENT, borderRadius: 4 }] }, { legend: false });
+      backgroundColor: AC_ACCENT, borderRadius: 0 }] }, { legend: false });
   },
 
   obligationsDue(){
@@ -335,7 +376,7 @@ const AI_CHART_RECIPES = {
     const labels = ['Overdue'].concat(months.map(_acMonthLabel));
     const data = [overdue].concat(months.map(m => open[m]));
     return _acConfig('bar', { labels, datasets: [{ get label(){ return _acT('ch_s_open_obligations','Open obligations'); }, data,
-      backgroundColor: labels.map((_, i) => i === 0 ? AC_BAD : AC_ACCENT), borderRadius: 4 }] },
+      backgroundColor: labels.map((_, i) => i === 0 ? AC_BAD : AC_ACCENT), borderRadius: 0 }] },
       { legend: false });
   },
 };
@@ -703,7 +744,7 @@ function aiSimpleChart(kind, labels, values, opts = {}){
       borderWidth: 0 }] }, { unit: opts.unit });
   const cfg = _acConfig(kind === 'line' ? 'line' : 'bar',
     { labels, datasets: [{ label: opts.label || '', data: values,
-      backgroundColor: opts.colors || color, borderColor: color, tension: .3, borderRadius: 4,
+      backgroundColor: opts.colors || color, borderColor: color, tension: .3, borderRadius: 0,
       _unit: money ? 'money' : '' }] },
     { legend: false, unit: opts.unit });
   if (kind === 'hbar'){
@@ -873,7 +914,7 @@ function aiQuotedConfig(spec){
     if (cfg) return cfg;
   }
   return _acConfig('bar', { labels, datasets: [{ label: String(spec.label || 'Stated in this answer'),
-    data, backgroundColor: AC_WARN, borderRadius: 4, _unit: money ? 'money' : '' }] },
+    data, backgroundColor: AC_WARN, borderRadius: 0, _unit: money ? 'money' : '' }] },
     { legend: false, unit: money ? 'money' : '' });
 }
 
@@ -895,7 +936,7 @@ function aiCustomConfig(spec){
       data: months.map(k => s.at(cs, k)),
       borderColor: d.color || palette[i % palette.length],
       backgroundColor: d.color || palette[i % palette.length],
-      fill: d.display === 'area', tension: .3, borderRadius: 4,
+      fill: d.display === 'area', tension: .3, borderRadius: 0,
       _unit: s.unit === 'money' ? 'money' : '' };
   });
   if (!datasets.some(d => d.data.some(v => v))) return { empty: true };
@@ -953,7 +994,12 @@ async function aiHydrateCharts(blocks){
   catch(e){
     for (const b of live){
       const host = document.getElementById(b.key);
-      if (host) host.innerHTML = aiChartNote('Charts need an internet connection, and this workspace has none right now.');
+      /* NOT "no internet" ANY MORE (26 Aug 2026). The library is served by
+         this workspace, so reaching this branch means OUR file did not load —
+         a half-deployed build, a stale cache, a static host not serving
+         /vendor — and telling the reader to check their connection sends them
+         to look in the one place the fault is not. */
+      if (host) host.innerHTML = aiChartNote('The chart tool did not load, so this chart could not be drawn. The figures behind it are unaffected.');
     }
     return;
   }
@@ -1128,7 +1174,7 @@ The register wanted (an answer should read like this):
    renewals of standard paper.}"`;
 
 if (typeof window !== 'undefined') Object.assign(window, {
-  AI_CHART_RECIPES, AI_SERIES, AI_CHARTS, AI_CHART_CDN,
+  AI_CHART_RECIPES, AI_SERIES, AI_CHARTS, AI_CHART_SRC,
   aiChartLib, aiChartDestroy, aiChartDestroyAll, aiChartSweep,
   aiExtractCharts, aiPlaceCharts, aiChartHtml, aiHydrateCharts, aiChartCard, aiChartNote,
   aiChartActionsHtml, aiChartExportCanvas, aiChartCsv, aiChartWireActions, aiSimpleChart, _acRefreshPalette,

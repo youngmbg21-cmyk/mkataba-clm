@@ -26,9 +26,18 @@ const INDEX = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const JS = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
 const VIEWS = fs.readdirSync(path.join(ROOT, 'js/views')).filter(f => f.endsWith('.js'));
 
-/* The hand-written sheet only. Line 74 is the COMPILED Tailwind blob, which is
-   generated and must never be asserted on as though somebody wrote it. */
-const SHEET = INDEX.split('\n').filter((l, i) => i !== 73).join('\n');
+/* The hand-written sheet only. One line of index.html is the COMPILED Tailwind
+   blob, which is generated and must never be asserted on as though somebody
+   wrote it — nor EDITED.
+   FOUND BY ITS SIGNATURE, NEVER BY ITS LINE NUMBER (25 Aug 2026). It was line
+   74 when this was written and it is line 81 now, because tokens were added
+   above it — and a sweep whose blob-guard was pinned to 73 walked straight
+   into it and rewrote 60 declarations, one of which turned Tailwind's own
+   .transition utility from 150ms into effectively instant. The blob was
+   restored byte for byte from the pre-run tree; this is the guard. */
+const BLOB_SIG = '*,:after,:before{--tw-border-spacing-x';
+const BLOB_LINE = INDEX.split('\n').findIndex(l => l.startsWith(BLOB_SIG));
+const SHEET = INDEX.split('\n').filter((_, i) => i !== BLOB_LINE).join('\n');
 
 describe('f238 — the design system has its other half', () => {
 
@@ -198,7 +207,7 @@ describe('f238 — the design system has its other half', () => {
   });
 
   test('the one filled act does not put white on a 3.74:1 fill', () => {
-    /* NOT the first match: `.ui-btn-lg.ui-btn-primary{font-weight:700}` also
+    /* NOT the first match: `.ui-btn-lg.ui-btn-primary{font-weight:var\(--w-title\)}` also
        ends in that selector. Take the rule that carries the FILL. */
     const prim = [...SHEET.matchAll(/\.ui-btn-primary\{([^}]*)\}/g)]
       .map(m => m[1]).find(b => /background:/.test(b));
@@ -209,6 +218,156 @@ describe('f238 — the design system has its other half', () => {
        codebase records it as a brand fill that must not flip with the theme. */
     assert.match(SHEET, /--accent-solid:var\(--color-accent-600\)/,
       '--accent-solid is still the brand fill it was');
+  });
+
+  /* ---------- 3b · A1 — THE DARK THEME'S OWN CONTRAST, RATCHETED ----------
+     The 25 Aug pass swept 183 accent-ramp-as-TEXT declarations and 62 inline
+     accent-tint backgrounds onto tokens that answer differently at night. The
+     claims below are what must not come back; the browser half — what actually
+     DRAWS, in both themes, on the census screens — is contrast-verify. */
+
+  test('no view file paints a raw accent ramp step as text', () => {
+    /* The whole of A1's biggest win. html.dark redefines the surface, the ink
+       and the neutral ramp and NEVER redefines the accent, so every one of
+       these measured 2.35:1 at night against AA's 4.5. */
+    const bad = [];
+    for (const f of ['js/core.js', 'js/components.js', 'js/mobile.js',
+                     ...VIEWS.map(v => 'js/views/' + v)]) {
+      const src = JS(f);
+      for (const m of src.matchAll(/(?<!-)color:\s*var\(--color-accent-(600|700|800|900)\)/g))
+        bad.push(f + ' → ' + m[0]);
+    }
+    assert.deepEqual(bad, [], 'accent-ramp-as-text is back in ' + bad.length + ' places');
+  });
+
+  test('both accent inks have a dark answer, and light is where it was', () => {
+    /* TWO tokens, not one, and that is the whole reason light did not move:
+       --accent-ink is accent-800 in light and --accent-ink-700 is accent-700,
+       so each of the two rungs that carried text keeps its own light value and
+       only night changes. Collapsing them onto one would have re-coloured
+       104 of the 183 declarations in broad daylight. */
+    for (const t of ['--accent-ink', '--accent-ink-700'])
+      assert.match(SHEET, new RegExp('html\\.dark\\{[^}]*\\' + t + ':', 's'),
+        t + ' answers differently at night');
+    assert.match(SHEET, /--accent-ink-700:var\(--color-accent-700\)/,
+      '--accent-ink-700 is accent-700 by day, so nothing moved in light mode');
+  });
+
+  test('--accent-fill is the token for white-on-accent, and it is not 3.74:1', () => {
+    /* White on accent-600 measures 3.74:1 — under AA for anything that is not
+       large text. Every surface that puts white on the accent reads this. */
+    assert.match(SHEET, /--accent-fill:var\(--color-accent-700\)/,
+      '--accent-fill is the rung that clears AA, in both workspaces');
+  });
+
+  test('danger and the two rules answer differently at night', () => {
+    for (const t of ['--danger', '--danger-hover', '--rule-strong', '--rule-faint'])
+      assert.match(SHEET, new RegExp('html\\.dark\\{[^}]*\\' + t + ':', 's'),
+        t + ' has a dark answer');
+  });
+
+  test("Reports' hero cards are on the platform shell, not white on a gradient", () => {
+    /* MEASURED before they moved: white on --grad-amber is 1.67:1 and on
+       --grad-emerald 1.92:1. The tone is not lost — it moved from the fill to
+       a 3px top edge and the icon chip, which is where a status colour is
+       carried everywhere else in this product. */
+    const src = JS('js/views/reports.js');
+    assert.doesNotMatch(src, /grad:/, 'the metric table states a tone, not a gradient');
+    assert.match(src, /tone:'(green|amber|steel|ruby)'/, 'every metric names its tone');
+    assert.doesNotMatch(src, /rgba\(255,\s*255,\s*255/,
+      'nothing on this page is a white-on-colour wash any more');
+    assert.match(src, /border-top:3px solid var\(--st-\$\{t\}-dot\)/,
+      'the tone is a 3px top edge, the shape Home\'s KPI cards already use');
+  });
+
+  test('the compiled Tailwind blob is not hand-edited', () => {
+    /* RULE 8, AS A NET. It regenerates, so every edit to it is thrown away on
+       the next build — and worse, it looks permanent until then. The 25 Aug
+       ladder sweep reached it because its guard named a LINE rather than the
+       line's content, and the repair for THAT then rewrote its transition
+       utilities. Two faults from one pinned number.
+       A design token in there is the tell: the blob is generated from a
+       Tailwind config that knows nothing about HaTi's :root. */
+    const blob = INDEX.split('\n')[BLOB_LINE] || '';
+    assert.ok(blob.length > 10000, 'the blob was found by its signature, not a line number');
+    const tokens = [...blob.matchAll(/var\((--(?:t|w|s|dur)-[a-z0-9-]+)\)/g)].map(m => m[1]);
+    assert.deepEqual([...new Set(tokens)], [],
+      'a design token is in the compiled blob — it was hand-edited and will be lost');
+  });
+
+  /* ---------- 3d · PHASE D — THE LADDERS THAT DID NOT EXIST ---------- */
+
+  test('the motion ladder exists and nothing types its own duration', () => {
+    /* 183 transitions across TWELVE ad-hoc durations, chosen one at a time by
+       whoever wrote the rule. Three rungs, and the question each answers is
+       WHAT IS MOVING rather than how far. */
+    for (const [tok, ms] of [['--dur-1','120ms'],['--dur-2','180ms'],['--dur-3','240ms']])
+      assert.match(SHEET, new RegExp(tok + ':' + ms), tok + ' is ' + ms);
+    assert.match(SHEET, /--ease-exit:/, 'and a flatter curve for a layer leaving');
+
+    const stray = [];
+    for (const f of ['js/core.js', 'js/app.js', 'js/mobile.js',
+                     ...VIEWS.map(v => 'js/views/' + v)]) {
+      if (/healthreport|weekly/.test(f)) continue;      // standalone documents
+      for (const line of JS(f).split('\n')) {
+        if (!/transition[^;:]*:/.test(line)) continue;
+        for (const m of line.matchAll(/(?<![\w.-])([0-9.]+m?s)(?![\w-])/g)) {
+          const ms = m[1].endsWith('ms') ? parseFloat(m[1]) : parseFloat(m[1]) * 1000;
+          /* A deliberate long animation is not a transition rung, and 0 is not
+             a duration. Anything between is one of the three. */
+          if (ms > 0 && ms <= 300) stray.push(f + ' → ' + m[1]);
+        }
+      }
+    }
+    assert.deepEqual(stray, [], 'a transition is typing its own duration again');
+  });
+
+  test('the reduced-motion kill switch is never a token', () => {
+    /* .001ms is not a duration somebody chose, it is "as close to zero as a
+       stylesheet can say" — and the motion sweep read it as an ad-hoc value
+       and mapped it to the nearest rung, which turned the reduced-motion
+       SETTING into a 120ms setting. */
+    const kill = /@media \(prefers-reduced-motion: ?reduce\)\{\*[^}]*\}/.exec(SHEET);
+    assert.ok(kill, 'the global kill switch is there');
+    assert.match(kill[0], /transition-duration:\.001ms!important/, 'and it really kills');
+    assert.doesNotMatch(kill[0], /var\(--dur/, 'a rung has no business in here');
+  });
+
+  test('the breakpoint rungs are named where they can be READ', () => {
+    /* AND A CSS TOKEN IS IMPOSSIBLE, which is why they are not in :root.
+       `@media (max-width: var(--bp-tablet))` is not valid CSS — a media query
+       is evaluated before custom properties resolve — so a :root block of
+       --bp-* would have ZERO consumers by construction, which is the exact
+       fault this whole pass exists to fix. */
+    assert.match(JS('js/app.js'), /const BP = \{ phone: 480, tablet: 768, laptop: 1024, desk: 1440, wide: 1800 \}/,
+      'the rungs are JS constants, where JS can ask the window');
+    assert.doesNotMatch(SHEET, /--bp-(phone|tablet|laptop|desk|wide)\s*:/,
+      'and NOT dead tokens in :root that no media query could ever read');
+    /* THE FLOAT LINE IS BESPOKE AND IS NOT ONE OF THESE. It was set from two of
+       the owner's own laptops and moved three times in two days to get there. */
+    assert.match(JS('js/app.js'), /const NAV_DRAWER_W = 1440;/,
+      'the nav float line is its own number and stays its own number');
+  });
+
+  test('one shape for "there is nothing here", with a way forward', () => {
+    /* Seven ad-hoc treatments across the product, each with its own class
+       name, icon size and idea of whether to offer an act. */
+    assert.match(JS('js/core.js'), /function emptyStateHtml\(o\)/, 'one builder');
+    assert.match(JS('js/core.js'), /emptyStateHtml,/, 'published');
+    for (const f of ['js/views/register.js', 'js/views/intake.js',
+                     'js/views/directory.js', 'js/views/calendar.js'])
+      assert.match(JS(f), /emptyStateHtml\(/, f + ' reads it');
+  });
+
+  test('the charts speak the platform typeface and draw square', () => {
+    /* A canvas cannot read a CSS token, so Chart.js drew every axis label in
+       ITS OWN default stack while every word around it was Inter — two faces
+       on one screen. And the 20 Aug square-corners sweep reached ~810 radii in
+       CSS and could not reach a canvas, so nine bar charts kept a 4px corner. */
+    const src = JS('js/aichart.js');
+    assert.match(src, /Chart\.defaults\.font\.family = fam/, 'the canvas is told the face');
+    assert.match(src, /_acVar\('--font-body'/, 'from the same token the rest of the product reads');
+    assert.doesNotMatch(src, /borderRadius:\s*[1-9]/, 'and no bar keeps a rounded corner');
   });
 
   /* ---------- 4 · THE FOCUS RING REACHES WHAT REFUSES AN OUTLINE ---------- */
@@ -236,13 +395,37 @@ describe('f238 — the design system has its other half', () => {
     /* Three disagreeing FLD constants, two of them in one file 1,300 lines
        apart; and RV_FLD carried a note saying it was a deliberate copy to be
        kept in step, which had already drifted 2px from what it quoted. */
-    const all = JS('js/core.js') + JS('js/review.js');
-    const decls = [...all.matchAll(/const (?:RV_)?FLD\s*=\s*'([^']*)'/g)].map(m => m[1]);
-    assert.ok(decls.length >= 3, 'the field constants are still there');
-    for (const d of decls) {
-      assert.ok(d.includes('var(--field-h)'), 'a field constant types its own height');
-      assert.ok(d.includes('var(--field-pad-y)'), 'a field constant types its own padding');
-    }
+    /* REVERSED IN PLACE 25 Aug 2026 — AND MADE THE STRONGER CLAIM. This asked
+       that each copy read the tokens; there is no copy now. HATI_FLD and
+       HATI_LBL are declared once in core.js and every field in the product is
+       an assignment from them, so the two cannot drift even in principle —
+       which is what "kept in step" was trying and failing to promise. */
+    const core = JS('js/core.js');
+    const canon = [...core.matchAll(/const HATI_(?:FLD|LBL)\s*=\s*'([^']*)'/g)].map(m => m[1]);
+    assert.equal(canon.length, 2, 'exactly one field pair, declared once');
+    assert.ok(canon[0].includes('var(--field-h)') && canon[0].includes('var(--field-pad-y)'),
+      'and it reads the field tokens, so a height change is one edit in :root');
+    assert.match(core, /HATI_FLD,HATI_LBL/, 'published, so every module reaches the one pair');
+
+    /* AND NOBODY TYPES THEIR OWN ANY MORE. A local `const FLD = '…'` carrying
+       a literal is exactly how seven copies in three flavours happened; every
+       one is an assignment now. */
+    /* WHAT DRIFTS IS VALUES, NOT STRINGS, and that is the claim. Any constant
+       still written out longhand must read the field TOKENS in every one of
+       its size and spacing declarations, so a change to the field's height is
+       one edit in :root and every form follows it.
+       js/review.js's pair is written out on purpose and says why: this dialog
+       renders on stages that do not load core.js, and pointing it at the
+       shared pair there left the field with no style at all — f156 caught it
+       in one run. The tokens are what make that copy safe. */
+    const stray = [];
+    for (const f of ['js/core.js', 'js/review.js', 'js/family.js',
+                     'js/views/intake.js', 'js/views/library.js'])
+      for (const m of JS(f).matchAll(/const (?:RV_)?(?:FLD|LBL)\s*=\s*'((?:width|display)[^']*)'/g)) {
+        const d = m[1];
+        if (/(?:min-height|padding|font-size)\s*:\s*[0-9]/.test(d)) stray.push(f + ' → ' + d.slice(0, 60));
+      }
+    assert.deepEqual(stray, [], 'a field constant is typing its own numbers again');
   });
 
   /* ---------- 5 · THE CONTRACT PAPER FOLLOWS ITS READER ---------- */
@@ -284,8 +467,96 @@ describe('f238 — the design system has its other half', () => {
     const open = core.slice(core.indexOf('function openModal'), core.indexOf('function openModal') + 3000);
     assert.match(open, /role="dialog"/, 'it has the role');
     assert.match(open, /aria-modal="true"/, 'and announces itself as modal');
-    assert.match(open, /e\.key!=='Tab'/, 'Tab cycles inside it');
+    /* RE-POINTED 25 Aug 2026 — the trap was EXTRACTED, not removed. It was
+       written here and was the only overlay in the product that had it; it is
+       trapFocus now, with nine homes. The claim is the same and is asked one
+       layer up: this dialog uses the shared trap, and the shared trap is the
+       thing that cycles Tab and hands focus back. */
+    assert.match(open, /trapFocus\(panel\)/, 'it uses the one shared trap');
+    assert.match(core, /function trapFocus\(/, 'which is defined once');
+    assert.match(core, /e\.key!=='Tab'/, 'Tab cycles inside it');
     assert.match(core, /_modalOpener/, 'and focus goes back where it came from');
+  });
+
+  /* ---------- 5b · PHASE B — ONE TRAP, AND EVERY REFUSAL SPOKEN ----------
+     The audit measured ONE focus trap against nine overlays that needed one,
+     and ZERO aria-live regions in the whole product. Source claims only; what
+     a keyboard can actually REACH is keyboard-reach-verify, because "does the
+     element carry role=dialog" is a different question from "can somebody get
+     to this without a mouse" and only the second one matters. */
+
+  test('the focus trap is one function with one definition', () => {
+    const core = JS('js/core.js');
+    assert.equal((core.match(/function trapFocus\(/g) || []).length, 1,
+      'defined once');
+    assert.match(core, /trapFocus,/, 'and published, so nine modules can reach it');
+    /* IT RETURNS ITS OWN UNDO. Separated from the trap, the restore is the
+       part that gets forgotten — which drops a keyboard reader at the top of
+       the document every time they dismiss anything. */
+    assert.match(core, /return function release\(\)/, 'it hands back a release');
+  });
+
+  test('every overlay that needed a trap has one', () => {
+    /* NINE HOMES, named. A layer missing from this list is a layer Tab walks
+       out of, and the only way to know is to look. */
+    const homes = [
+      ['js/core.js',            /trapFocus\(panel\)/,                 'openModal'],
+      ['js/core.js',            /trapFocus\(ov\.querySelector\('\[role="alertdialog"\]'\)/, 'confirmDialog'],
+      ['js/core.js',            /trapFocus\(ov\.querySelector\('\[role="dialog"\]'\)/,      'promptDialog'],
+      ['js/app.js',             /_panelTrap\s*=\s*trapFocus\(panel\)/, 'the alerts panel'],
+      ['js/app.js',             /trapFocus\([^)]*modal-in[^)]*\)/,    'the command palette'],
+      ['js/views/settings.js',  /_stTrap\s*=\s*window\.trapFocus\(el\)/, 'the settings drawer'],
+      ['js/views/home.js',      /window\.trapFocus\(pop\)/,           'the KPI customizer'],
+      ['js/views/portal.js',    /PT_ALERTS_TRAP\s*=\s*window\.trapFocus\(panel\)/, "the counterparty's alerts"],
+      ['js/mobile.js',          /_mSheetTrap\s*=\s*window\.trapFocus\(panel/, "the phone's seven sheets"],
+    ];
+    for (const [f, re, what] of homes)
+      assert.match(JS(f), re, what + ' holds the keyboard');
+  });
+
+  test('a refusal and a result are announced, not only drawn', () => {
+    /* The audit measured ZERO aria-live regions in 30,000 lines. Four now, and
+       each sits on the element that RECEIVES the message rather than on a
+       wrapper — a region announces its own subtree, so one wrapped around a
+       whole page announces the page. */
+    assert.match(JS('js/views/settings.js'), /r\.setAttribute\('aria-live','assertive'\)/,
+      "the settings drawer's refusal");
+    assert.match(JS('js/views/register.js'), /id="reg-showing" role="status" aria-live="polite"/,
+      "the register's result count");
+    assert.match(JS('js/views/portal.js'), /band\.setAttribute\('aria-live','polite'\)/,
+      "the counterparty's own signature confirmation");
+    assert.match(SHEET, /id="toast-root"[^>]*aria-live="polite"/, 'and the toast root');
+  });
+
+  test('.sr-only exists, because something now writes it', () => {
+    /* The ui-input lesson, which this codebase records by name: a class the
+       app never defines is a class that styles nothing. The KPI row's keyboard
+       hint is its one consumer and the two arrived together. */
+    assert.match(SHEET, /\.sr-only\{[^}]*clip-path:inset\(50%\)/,
+      'clipped rather than display:none — a hidden element says nothing at all');
+    assert.match(JS('js/views/home.js'), /class="sr-only"/, 'and it has a consumer');
+  });
+
+  test('the live door and the live tab say so, not only look so', () => {
+    assert.match(JS('js/app.js'), /setAttribute\('aria-current','page'\)/,
+      'the nav marks where the reader is');
+    assert.match(JS('js/app.js'), /removeAttribute\('aria-current'\)/,
+      'and REMOVES it elsewhere — aria-current="false" is still current');
+    /* aria-selected was set once, when the row was BUILT, so from the second
+       tab onward the row announced the tab the reader started on. */
+    assert.match(JS('js/views/contract.js'), /b\.setAttribute\('aria-selected', on\?'true':'false'\)/,
+      'the room tabs re-state it on every change');
+    assert.match(JS('js/views/contract.js'), /b\.tabIndex = on \? 0 : -1/,
+      'and a tablist takes ONE tab stop, with arrows inside it');
+  });
+
+  test('refusing the pointer also refuses the keyboard', () => {
+    /* pointer-events:none is not a refusal to somebody using a keyboard —
+       measured, Tab reached every verb in the greyed column and Enter fired
+       them. aria-disabled SAYS unavailable; inert makes it so. */
+    assert.match(JS('js/views/negotiation.js'),
+      /rlReadOnlyReading\(\) \? 'aria-disabled="true" inert' : ''/,
+      'the change column is inert on a reading, not merely faded');
   });
 
   test('a text-styled button still clears the target-size floor', () => {

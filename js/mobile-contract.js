@@ -41,16 +41,16 @@ function mContractHeadHtml(c){
   const tab = k => `<button class="m-ctab${s.tab===k?' on':''}" data-m-ctab="${k}">`;
   const party = (typeof cParty==='function' ? cParty(c) : c.counterparty) || 'No counterparty yet';
   return `
-    <div class="m-pagehead" style="padding:8px 8px 0">
-      <div style="display:flex;align-items:center;gap:2px;padding-bottom:8px">
-        <button class="m-head-btn" data-m-act="back" aria-label="${i18t('m_back')}" style="color:var(--color-accent-700)">
+    <div class="m-pagehead" style="padding:var(--s-2) var(--s-2) 0">
+      <div style="display:flex;align-items:center;gap:2px;padding-bottom:var(--s-2)">
+        <button class="m-head-btn" data-m-act="back" aria-label="${i18t('m_back')}" style="color:var(--accent-ink-700)">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
         </button>
         <div style="flex:1;min-width:0">
-          <div style="font-size:17px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${mEsc(c.name||c.id)}</div>
-          <div style="display:flex;align-items:center;gap:8px;margin-top:1px">
+          <div style="font-size:var(--t-section);font-weight:var(--w-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${mEsc(c.name||c.id)}</div>
+          <div style="display:flex;align-items:center;gap:var(--s-2);margin-top:1px">
             ${mPill(c)}
-            <span style="flex:1;min-width:0;font-size:15px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${mEsc(c.id)} · ${mEsc(party)}</span>
+            <span style="flex:1;min-width:0;font-size:var(--t-card);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${mEsc(c.id)} · ${mEsc(party)}</span>
           </div>
           ${mDeskLineHtml(c)}
         </div>
@@ -104,13 +104,13 @@ function mReviewNoticeHtml(c){
                                    : i18t('rv_waiting_title_anon'))
     : '';
   const bits=[];
-  if(line) bits.push(`<div style="font-size:16px;font-weight:600;color:var(--st-amber-fg)">${mEsc(line)}</div>`);
+  if(line) bits.push(`<div style="font-size:16px;font-weight:var(--w-strong);color:var(--st-amber-fg)">${mEsc(line)}</div>`);
   if(held) bits.push(`<div class="m-note" style="margin-top:3px">${mEsc(i18tn('rv_phone_held',held,{n:held}))}</div>`);
   if(st.phase==='yours') bits.push(`<div class="m-note" style="margin-top:3px">${mEsc(i18t('rv_phone_desktop'))}</div>`);
-  return `<div class="m-notice" style="display:flex;align-items:flex-start;gap:8px;background:var(--st-amber-bg);border-color:var(--st-amber-line)">
+  return `<div class="m-notice" style="display:flex;align-items:flex-start;gap:var(--s-2);background:var(--st-amber-bg);border-color:var(--st-amber-line)">
     <span style="flex:1;min-width:0">${bits.join('')}</span>
     <button type="button" data-m-rv-clear aria-label="${mEsc(i18t('rv_clear_banner'))}"
-      style="flex:none;font:inherit;font-size:19px;line-height:1;border:0;background:transparent;color:inherit;opacity:.65;padding:2px 4px">&times;</button>
+      style="flex:none;font:inherit;font-size:var(--t-page);line-height:1;border:0;background:transparent;color:inherit;opacity:.65;padding:2px var(--s-1)">&times;</button>
   </div>`;
 }
 
@@ -155,12 +155,12 @@ function mDeskNoticeHtml(c){
   if(!window.deskIsMember || deskIsMember(c)) return '';
   const lead=deskLead(c)||{name:''};
   const asked=window.deskJoinPendingFor?deskJoinPendingFor(c):null;
-  return `<div class="m-notice" style="display:flex;align-items:flex-start;gap:8px;background:var(--st-amber-bg);border-color:var(--st-amber-line)">
+  return `<div class="m-notice" style="display:flex;align-items:flex-start;gap:var(--s-2);background:var(--st-amber-bg);border-color:var(--st-amber-line)">
     <span style="flex:1;min-width:0">
-      <div style="font-size:15px;font-weight:600;color:var(--st-amber-fg)">${mEsc(i18t('dk_reading',{who:lead.name}))}</div>
+      <div style="font-size:var(--t-card);font-weight:var(--w-strong);color:var(--st-amber-fg)">${mEsc(i18t('dk_reading',{who:lead.name}))}</div>
       <div class="m-note" style="margin-top:3px">${mEsc(asked?i18t('dk_asked_already'):i18t('dk_phone_ask'))}</div>
     </span>
-    ${asked?'':`<button type="button" data-dk-join="1" style="flex:none;font:inherit;font-size:14px;font-weight:700;
+    ${asked?'':`<button type="button" data-dk-join="1" style="flex:none;font:inherit;font-size:var(--t-body);font-weight:var(--w-title);
       border:1.5px solid currentColor;background:transparent;color:inherit;border-radius:0;padding:5px 11px">${mEsc(i18t('dk_ask_to_join'))}</button>`}
   </div>`;
 }
@@ -177,14 +177,14 @@ function mDocNoticesHtml(c){
   if(mLocked(c)) return `
     <div class="m-notice" style="background:var(--st-gray-bg);border-color:var(--st-gray-line)">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--color-neutral-600)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-      <span style="font-size:15px;color:var(--color-neutral-700);line-height:1.45">${i18t('mc_executed_sealed')}</span>
+      <span style="font-size:var(--t-card);color:var(--color-neutral-700);line-height:1.45">${i18t('mc_executed_sealed')}</span>
     </div>`;
 
   const blocked = (typeof negoRenumberBlocked==='function') ? negoRenumberBlocked(c) : 'locked';
   if(blocked==='locked' && typeof negoLiveNumbered==='function' && negoLiveNumbered(c)) return rv + `
     <div class="m-notice" style="background:var(--st-steel-bg);border-color:var(--st-steel-line)">
       <span style="width:8px;height:8px;border-radius:50%;background:var(--st-steel-dot);flex:none"></span>
-      <span style="font-size:15px;color:var(--st-steel-fg);line-height:1.45">${i18t('mc_numbers_live')}</span>
+      <span style="font-size:var(--t-card);color:var(--st-steel-fg);line-height:1.45">${i18t('mc_numbers_live')}</span>
     </div>`;
   if(blocked) return rv;
 
@@ -195,7 +195,7 @@ function mDocNoticesHtml(c){
   const refs = (plan && Array.isArray(plan.refs) ? plan.refs.length : 0);
   return rv + `
     <div class="m-notice" style="display:block;background:var(--st-amber-bg);border-color:var(--st-amber-line)">
-      <div style="font-size:16px;font-weight:600;color:var(--st-amber-fg)">${i18t('mc_numbering_gap')}</div>
+      <div style="font-size:16px;font-weight:var(--w-strong);color:var(--st-amber-fg)">${i18t('mc_numbering_gap')}</div>
       <div class="m-note" style="margin-top:3px">${moves.length} heading${moves.length===1?'':'s'} still read at their old number${refs?`, and ${refs} cross-reference${refs===1?'':'s'} point${refs===1?'s':''} at them`:''}.</div>
       <button class="m-btn" style="margin-top:10px;border-color:var(--st-amber-fg);color:var(--st-amber-fg)" data-m-act="renumber">${i18t('mc_renumber')}</button>
     </div>`;
@@ -231,7 +231,7 @@ function mDocHtml(c){
   try{ body = (typeof docBody==='function') ? docBody(c) : ''; }
   catch(e){ body = `<div class="m-note">${i18t('mc_could_not_draw')}</div>`; }
   return `
-    <div class="m-scroll" style="padding:12px">
+    <div class="m-scroll" style="padding:var(--s-3)">
       <div class="m-paper">${body}</div>
       <div style="height:8px"></div>
     </div>
@@ -288,27 +288,27 @@ function mTermsHtml(c){
      phone cannot come to disagree with the laptop about what matters. Without
      that module loaded it falls back to plain escaped text. */
   const mk = t => (typeof briefMark==='function') ? briefMark(t) : mEsc(t);
-  const briefFig = `<style>.m-brief .br-fig{font-weight:700;color:var(--color-accent-800);
+  const briefFig = `<style>.m-brief .br-fig{font-weight:var(--w-title);color:var(--accent-ink);
     background:color-mix(in srgb,var(--color-accent) 12%,transparent);border-radius:0;padding:0 3px}</style>`;
   const briefBlock = b ? `${briefFig}
-      <div class="m-card m-brief" style="margin:16px 16px 0;padding:14px">
-        <div style="font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:6px">${mEsc(i18t('br_title'))}</div>
-        <div style="font-size:15px;line-height:1.6">${mk(b.overview||'')}</div>
-        ${(b.watchouts||[]).length?`<ul style="margin:8px 0 0;padding-left:18px;list-style:none">${(b.watchouts||[]).map(w=>`<li style="font-size:14px;line-height:1.55;margin:6px 0;padding:8px 10px;border-radius:0;background:var(--st-amber-bg);border-left:3px solid var(--st-amber-dot)">${mk(w.point||'')}</li>`).join('')}</ul>`:''}
+      <div class="m-card m-brief" style="margin:var(--s-4) var(--s-4) 0;padding:14px">
+        <div style="font-size:var(--t-meta);font-weight:var(--w-title);letter-spacing:.04em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:6px">${mEsc(i18t('br_title'))}</div>
+        <div style="font-size:var(--t-card);line-height:1.6">${mk(b.overview||'')}</div>
+        ${(b.watchouts||[]).length?`<ul style="margin:var(--s-2) 0 0;padding-left:18px;list-style:none">${(b.watchouts||[]).map(w=>`<li style="font-size:var(--t-body);line-height:1.55;margin:6px 0;padding:var(--s-2) 10px;border-radius:0;background:var(--st-amber-bg);border-left:3px solid var(--st-amber-dot)">${mk(w.point||'')}</li>`).join('')}</ul>`:''}
       </div>` : '';
   return `
     <div class="m-scroll">
       ${briefBlock}
-      <div class="m-card m-list" style="margin:16px">
+      <div class="m-card m-list" style="margin:var(--s-4)">
         ${rows.map(r=>{
           const empty = !String(r.value||'').trim();
           return `<div style="display:flex;align-items:baseline;justify-content:space-between;gap:14px;padding:13px 14px">
-            <span style="font-size:15px;color:var(--color-neutral-600);flex:none">${mEsc(r.label)}</span>
-            <span style="font-size:16px;font-weight:400;text-align:right;min-width:0;color:${empty&&r.miss?'var(--danger)':'var(--color-text)'}">${mEsc(empty?(r.miss?'Not set':'—'):r.value)}</span>
+            <span style="font-size:var(--t-card);color:var(--color-neutral-600);flex:none">${mEsc(r.label)}</span>
+            <span style="font-size:16px;font-weight:var(--w-body);text-align:right;min-width:0;color:${empty&&r.miss?'var(--danger)':'var(--color-text)'}">${mEsc(empty?(r.miss?'Not set':'—'):r.value)}</span>
           </div>`;
         }).join('')}
       </div>
-      ${missing?`<div class="m-note" style="margin:0 16px 24px">${missing===1?'One key term is':'Two key terms are'} still empty. Fill ${missing===1?'it':'them'} to move this contract forward — on a computer, where the fields are edited.</div>`:''}
+      ${missing?`<div class="m-note" style="margin:0 var(--s-4) var(--s-6)">${missing===1?'One key term is':'Two key terms are'} still empty. Fill ${missing===1?'it':'them'} to move this contract forward — on a computer, where the fields are edited.</div>`:''}
     </div>`;
 }
 
@@ -348,16 +348,16 @@ function mHistHtml(c){
     return `<div style="display:flex;gap:11px;padding:13px 0;border-bottom:1px solid var(--color-divider)">
       <span style="width:9px;height:9px;border-radius:50%;background:${M_HIST_DOT[g]};flex:none;margin-top:7px"></span>
       <span style="min-width:0;flex:1">
-        <span style="display:flex;align-items:baseline;gap:8px">
-          <span style="flex:1;min-width:0;font-size:15px;font-weight:600;line-height:1.35">${mEsc(e.text)}</span>
-          ${e.round?`<span style="flex:none;font-size:15px;color:var(--color-neutral-600)">Round ${mEsc(e.round)}</span>`:''}
+        <span style="display:flex;align-items:baseline;gap:var(--s-2)">
+          <span style="flex:1;min-width:0;font-size:var(--t-card);font-weight:var(--w-strong);line-height:1.35">${mEsc(e.text)}</span>
+          ${e.round?`<span style="flex:none;font-size:var(--t-card);color:var(--color-neutral-600)">Round ${mEsc(e.round)}</span>`:''}
         </span>
-        ${e.clauseLabel?`<span style="display:block;font-size:15px;color:var(--color-neutral-600);margin-top:2px">${mEsc(e.clauseLabel)}</span>`:''}
-        ${reason?`<span style="display:block;font-size:15px;color:var(--color-neutral-700);margin-top:5px;padding-left:9px;border-left:2px solid var(--color-neutral-300);line-height:1.5">“${mEsc(reason)}”</span>`:''}
-        <span style="display:block;font-size:15px;color:var(--color-neutral-600);margin-top:4px">${mEsc([e.actor, when(e.at)].filter(Boolean).join(' · '))}</span>
+        ${e.clauseLabel?`<span style="display:block;font-size:var(--t-card);color:var(--color-neutral-600);margin-top:2px">${mEsc(e.clauseLabel)}</span>`:''}
+        ${reason?`<span style="display:block;font-size:var(--t-card);color:var(--color-neutral-700);margin-top:5px;padding-left:9px;border-left:2px solid var(--color-neutral-300);line-height:1.5">“${mEsc(reason)}”</span>`:''}
+        <span style="display:block;font-size:var(--t-card);color:var(--color-neutral-600);margin-top:var(--s-1)">${mEsc([e.actor, when(e.at)].filter(Boolean).join(' · '))}</span>
       </span>
     </div>`;
-  }).join('') : `<div style="padding:22px 2px;text-align:center;font-size:15px;color:var(--color-neutral-600)">${
+  }).join('') : `<div style="padding:22px 2px;text-align:center;font-size:var(--t-card);color:var(--color-neutral-600)">${
     s.hist==='all'
       ? 'Nothing has happened on this contract yet — its story starts with the first change or the first share.'
       : "Nothing of that kind in this contract's story yet."}</div>`;
@@ -365,19 +365,19 @@ function mHistHtml(c){
   const v = s.verify;
   return `
     <div class="m-scroll">
-      <div class="m-chips" style="padding:14px 16px 4px">${chips}</div>
-      <div class="m-note" style="padding:6px 16px 0">${i18t('mc_labels_as_then')}</div>
+      <div class="m-chips" style="padding:14px var(--s-4) var(--s-1)">${chips}</div>
+      <div class="m-note" style="padding:6px var(--s-4) 0">${i18t('mc_labels_as_then')}</div>
       ${v?`
-      <div style="margin:12px 16px 0;display:flex;gap:10px;border-radius:0;padding:13px;animation:mFadeIn .3s ease;
+      <div style="margin:var(--s-3) var(--s-4) 0;display:flex;gap:10px;border-radius:0;padding:13px;animation:mFadeIn .3s ease;
         background:${v.ok?'var(--st-green-bg)':'var(--st-ruby-bg)'};border:1px solid ${v.ok?'var(--st-green-line)':'var(--st-ruby-line)'}">
         <span style="min-width:0">
-          <span style="display:block;font-size:16px;font-weight:600;color:${v.ok?'var(--st-green-fg)':'var(--st-ruby-fg)'}">
+          <span style="display:block;font-size:16px;font-weight:var(--w-strong);color:${v.ok?'var(--st-green-fg)':'var(--st-ruby-fg)'}">
             ${v.ok?'Record verified — no entries altered since creation':'Integrity check failed'}</span>
           <span class="m-note" style="display:block;margin-top:2px">${mEsc(v.ok?v.detail:(v.firstBroken||v.detail))} · ${mEsc(String(v.at).slice(0,19).replace('T',' '))} UTC</span>
         </span>
       </div>`:''}
-      <div class="m-card" style="margin:12px 16px 0;padding:4px 14px;box-shadow:none">${list}</div>
-      <div style="display:flex;gap:10px;margin:12px 16px 24px">
+      <div class="m-card" style="margin:var(--s-3) var(--s-4) 0;padding:var(--s-1) 14px;box-shadow:none">${list}</div>
+      <div style="display:flex;gap:10px;margin:var(--s-3) var(--s-4) var(--s-6)">
         <button class="m-btn" style="flex:1" data-m-act="verify">${i18t('mc_verify_integrity')}</button>
         <button class="m-btn" style="flex:1" data-m-act="export-history">${i18t('mc_export_history')}</button>
       </div>
@@ -412,7 +412,7 @@ function mContractHtml(){
   const c = mContract();
   if(!c) return `
     <div class="m-pagehead"><div class="m-title">${i18t('mc_no_contract_open')}</div></div>
-    <div class="m-scroll"><div class="m-card" style="margin:16px;padding:24px;text-align:center">
+    <div class="m-scroll"><div class="m-card" style="margin:var(--s-4);padding:var(--s-6);text-align:center">
       <div class="m-note">${i18t('mc_pick_from_contracts')}</div>
       <button class="m-btn m-btn-primary" style="margin-top:14px" data-m-tab="contracts">${i18t('mc_open_contracts')}</button>
     </div></div>`;
@@ -446,9 +446,9 @@ function mOverflowSheetHtml(){
   return `
     <div class="m-grab"></div>
     ${items.map(i=>`
-      <button class="m-row" data-m-act="${i.k}" style="padding:0 12px;border-radius:0">
-        <span style="flex:1;font-size:16px;font-weight:400;color:${i.muted?'var(--color-neutral-400)':'var(--color-text)'}">${mEsc(i.label)}</span>
-        ${i.desk?`<span style="flex:none;font-size:15px;color:var(--color-neutral-600)">${i18t('m_computer')}</span>`:''}
+      <button class="m-row" data-m-act="${i.k}" style="padding:0 var(--s-3);border-radius:0">
+        <span style="flex:1;font-size:16px;font-weight:var(--w-body);color:${i.muted?'var(--color-neutral-400)':'var(--color-text)'}">${mEsc(i.label)}</span>
+        ${i.desk?`<span style="flex:none;font-size:var(--t-card);color:var(--color-neutral-600)">${i18t('m_computer')}</span>`:''}
       </button>`).join('')}
     <button class="m-btn m-btn-quiet" style="margin-top:6px" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
 }
@@ -469,7 +469,7 @@ function mShareSheetHtml(){
     return `<button class="m-share-kind${on?' on':''}" data-m-share="${k}">
       <span class="m-radio"><span class="m-radio-dot" style="background:${on?'var(--accent-solid)':'transparent'}"></span></span>
       <span style="min-width:0;flex:1">
-        <span style="display:block;font-size:16px;font-weight:600">${label}</span>
+        <span style="display:block;font-size:16px;font-weight:var(--w-strong)">${label}</span>
         <span class="m-note" style="display:block;margin-top:2px">${note}</span>
       </span>
     </button>`;
@@ -493,24 +493,24 @@ function mShareSheetHtml(){
     <div class="m-grab"></div>
     <div class="m-sheet-title">${i18t('mc_share_link')}</div>
     <div class="m-sheet-note">One link, one purpose. A negotiation link can't sign, a signing link can't redline, a read-only link can do nothing at all.</div>
-    <div style="display:flex;flex-direction:column;gap:8px">${kinds}</div>
-    <div class="m-card m-list" style="margin-top:12px;background:var(--color-bg)">
-      <div style="display:flex;align-items:center;gap:12px;padding:13px 14px">
+    <div style="display:flex;flex-direction:column;gap:var(--s-2)">${kinds}</div>
+    <div class="m-card m-list" style="margin-top:var(--s-3);background:var(--color-bg)">
+      <div style="display:flex;align-items:center;gap:var(--s-3);padding:13px 14px">
         <span style="flex:1;font-size:16px">${i18t('mc_expires')}</span>
-        <span style="font-size:16px;font-weight:600">${expiry} days</span>
+        <span style="font-size:16px;font-weight:var(--w-strong)">${expiry} days</span>
       </div>
       <div style="padding:13px 14px">
         <div style="font-size:16px">${i18t('mc_email_verification')}</div>
         <div class="m-note" style="margin-top:2px">${verifyNote}</div>
       </div>
     </div>
-    <label style="display:block;margin-top:12px">
+    <label style="display:block;margin-top:var(--s-3)">
       <span class="m-capline" style="display:block;margin-bottom:5px">${i18t('mc_send_it_to')}</span>
       <input class="m-input" id="m-share-email" inputmode="email" autocomplete="off" placeholder="them@theircompany.co.ke" value="${mEsc(s.shareEmail||'')}">
     </label>
     ${s.shareErr?`<div class="m-err">${mEsc(s.shareErr)}</div>`:''}
-    <button class="m-btn m-btn-primary" style="margin-top:12px" data-m-act="share-create">${cta}</button>
-    <button class="m-btn m-btn-quiet" style="margin-top:8px" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
+    <button class="m-btn m-btn-primary" style="margin-top:var(--s-3)" data-m-act="share-create">${cta}</button>
+    <button class="m-btn m-btn-quiet" style="margin-top:var(--s-2)" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
 }
 
 /* --------------------------------------------------- THE SIGNER PICKER ------
@@ -577,7 +577,7 @@ function mSignersSheetHtml(){
     <div class="m-grab"></div>
     <div class="m-sheet-title">${i18t('mc_signers_title')}</div>
     <div class="m-sheet-note">${i18t('mc_signers_locked')}</div>
-    <button class="m-btn m-btn-quiet" style="margin-top:12px" data-m-act="close-sheet">${i18t('act_close')}</button>`;
+    <button class="m-btn m-btn-quiet" style="margin-top:var(--s-3)" data-m-act="close-sheet">${i18t('act_close')}</button>`;
   const st = mSignersState(c);
   const extra = Math.max(0, (c.signerPlan || []).length - 2);
   const slot = (k, cap, who) => `
@@ -585,9 +585,9 @@ function mSignersSheetHtml(){
       <div class="m-capline" style="margin-bottom:6px">${cap}</div>
       <input class="m-input" data-m-signer="${k}.name" inputmode="text" autocomplete="off"
         placeholder="${i18t('mc_signer_name_ph')}" value="${mEsc(who.name || '')}">
-      <input class="m-input" style="margin-top:8px" data-m-signer="${k}.email" inputmode="email" autocomplete="off"
+      <input class="m-input" style="margin-top:var(--s-2)" data-m-signer="${k}.email" inputmode="email" autocomplete="off"
         placeholder="${i18t('mc_signer_email_ph')}" value="${mEsc(who.email || '')}">
-      <input class="m-input" style="margin-top:8px" data-m-signer="${k}.role" inputmode="text" autocomplete="off"
+      <input class="m-input" style="margin-top:var(--s-2)" data-m-signer="${k}.role" inputmode="text" autocomplete="off"
         placeholder="${i18t('mc_signer_role_ph')}" value="${mEsc(who.role || '')}">
     </div>`;
   return `
@@ -599,8 +599,8 @@ function mSignersSheetHtml(){
     ${extra ? `<div class="m-note" style="margin-top:10px">${i18t('mc_signers_more_on_computer', { n: extra })}</div>`
             : `<div class="m-note" style="margin-top:10px">${i18t('mc_signers_reorder_on_computer')}</div>`}
     ${mS().signersErr ? `<div class="m-err">${mEsc(mS().signersErr)}</div>` : ''}
-    <button class="m-btn m-btn-primary" style="margin-top:12px" data-m-act="signers-save">${i18t('mc_signers_save')}</button>
-    <button class="m-btn m-btn-quiet" style="margin-top:8px" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
+    <button class="m-btn m-btn-primary" style="margin-top:var(--s-3)" data-m-act="signers-save">${i18t('mc_signers_save')}</button>
+    <button class="m-btn m-btn-quiet" style="margin-top:var(--s-2)" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
 }
 /* THE SAVE IS THE DESKTOP'S. This builds two rows and hands them over; every
    rule about what a route IS — the shape, the refusal, the audit line, the
@@ -643,16 +643,16 @@ function mRenumberSheetHtml(){
     <div class="m-sheet-note">${i18t('mc_nothing_moves')}</div>
     <div class="m-card m-list" style="background:var(--color-bg)">
       ${moves.map(mv=>`
-        <div style="display:flex;align-items:center;gap:10px;padding:12px 14px">
+        <div style="display:flex;align-items:center;gap:10px;padding:var(--s-3) 14px">
           <span style="flex:1;min-width:0;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${mEsc(mv.title||mv.heading||'')}</span>
           <span style="flex:none;font-size:16px;color:var(--color-neutral-600)">${mEsc(mv.from)}</span>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--color-neutral-400)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-          <span style="flex:none;font-size:16px;font-weight:600">${mEsc(mv.to)}</span>
+          <span style="flex:none;font-size:16px;font-weight:var(--w-strong)">${mEsc(mv.to)}</span>
         </div>`).join('')}
     </div>
     ${refs.length?`<div class="m-note" style="margin-top:10px">${refs.length} cross-reference${refs.length===1?'':'s'} ${refs.length===1?'is':'are'} repointed in the same plan.</div>`:''}
-    <button class="m-btn m-btn-primary" style="margin-top:12px" data-m-act="renumber-apply">Renumber ${moves.length} heading${moves.length===1?'':'s'}</button>
-    <button class="m-btn m-btn-quiet" style="margin-top:8px" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
+    <button class="m-btn m-btn-primary" style="margin-top:var(--s-3)" data-m-act="renumber-apply">Renumber ${moves.length} heading${moves.length===1?'':'s'}</button>
+    <button class="m-btn m-btn-quiet" style="margin-top:var(--s-2)" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
 }
 
 /* ------------------------------------------------------------- BEHAVIOUR ---*/

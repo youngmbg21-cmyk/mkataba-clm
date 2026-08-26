@@ -548,9 +548,10 @@ function calPanelHtml(evs){
            viewer, and the Done control outside the row's own button — are all
            still true of it. An anchor moved for no reason is a test rewritten
            for no reason. */}
-    <div id="cal-agenda" class="cal-upn-list scroll-thin">${rows||`<div class="cal-empty">
-      <div class="cal-empty-t">${_esc(i18t('cal_nothing_due',{n:CAL_AGENDA_DAYS}))}</div>
-      <div class="cal-empty-s">${_esc(i18t('cal_nothing_due_sub'))}</div></div>`}</div>
+    <div id="cal-agenda" class="cal-upn-list scroll-thin">${rows||`<div class="cal-empty">${typeof window.emptyStateHtml==='function'
+      ? window.emptyStateHtml({ title:i18t('cal_nothing_due',{n:CAL_AGENDA_DAYS}), sub:i18t('cal_nothing_due_sub') })
+      : `<div class="cal-empty-t">${_esc(i18t('cal_nothing_due',{n:CAL_AGENDA_DAYS}))}</div>`
+        + `<div class="cal-empty-s">${_esc(i18t('cal_nothing_due_sub'))}</div>`}</div>`}</div>
     <div class="cal-panel-foot"><button class="cal-link" id="cal-open-reg">${_esc(i18t('cal_open_register'))} →</button></div>
   </section>`;
 }
@@ -637,8 +638,8 @@ function calStyleCss(){ return `
      own head rather than the shared one, so it has to be told. The BOTTOM stays
      shallower than the top on purpose — this is a head, not a card, and the
      shared header is 16-top / 0-bottom for the same reason. */
-  .cal-head{flex:none;background:var(--color-surface);padding:var(--page-pad-t) 24px 10px;display:flex;align-items:center;
-    gap:12px;flex-wrap:nowrap;min-width:0}
+  .cal-head{flex:none;background:var(--color-surface);padding:var(--page-pad-t) var(--s-6) 10px;display:flex;align-items:center;
+    gap:var(--s-3);flex-wrap:nowrap;min-width:0}
   /* 20/700, the size Home sets and every other page head now carries
      (owner-asked 25 Aug 2026). This band is the calendar's own head rather
      than the shared one, so it has to be told; it read 15/600. */
@@ -649,10 +650,10 @@ function calStyleCss(){ return `
      24px title centred in it began 2px below every other page's on identical
      padding. align-self takes the title out of the centring; everything else
      on the row keeps it. See "ONE HEADER TOP" beside #page-head. */
-  .cal-head .ttl{font-family:var(--font-heading);font-size:20px;font-weight:700;
+  .cal-head .ttl{font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);
     line-height:var(--lh-tight);align-self:flex-start;color:var(--color-text);flex:none}
   .cal-head .g{flex:1;min-width:0}
-  .cal-stat{font-size:14px;font-weight:700;white-space:nowrap;flex:none}
+  .cal-stat{font-size:var(--t-body);font-weight:var(--w-title);white-space:nowrap;flex:none}
   .cal-stat.crit{color:var(--st-amber-fg)}
   /* ---- THE HEAD'S SUB-FACTS ARE 13px (the black ink, 24 Aug 2026) ----
      Both sit on the secondary ink at 14px, which this product's four-shades
@@ -662,42 +663,42 @@ function calStyleCss(){ return `
      .cal-stat.crit IS DELIBERATELY NOT IN THIS RULE: it is amber, a STATUS
      colour rather than the secondary ink, so it never broke the rule, and at
      14px/700 it is the one thing on this line that is meant to be an alarm. */
-  .cal-stat.neu{font-size:13px;color:var(--color-neutral-600);font-weight:400}
-  .cal-when{font-size:13px;color:var(--color-neutral-600);flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .cal-acts{display:flex;align-items:center;gap:4px;flex:none;position:relative}
+  .cal-stat.neu{font-size:var(--t-meta);color:var(--color-neutral-600);font-weight:var(--w-body)}
+  .cal-when{font-size:var(--t-meta);color:var(--color-neutral-600);flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cal-acts{display:flex;align-items:center;gap:var(--s-1);flex:none;position:relative}
   .cal-menu{position:absolute;right:0;top:calc(100% + 4px);z-index:40;min-width:200px;
     background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);
-    padding:4px;display:flex;flex-direction:column}
+    padding:var(--s-1);display:flex;flex-direction:column}
   .cal-menu[hidden]{display:none}
-  .cal-menu button{border:0;background:none;font:inherit;font-size:14px;text-align:left;padding:8px 10px;
+  .cal-menu button{border:0;background:none;font:inherit;font-size:var(--t-body);text-align:left;padding:var(--s-2) 10px;
     cursor:pointer;color:var(--color-text)}
   .cal-menu button:hover{background:color-mix(in srgb,var(--color-text) 6%,transparent)}
   /* ---- THE CONTROL BAR ---- */
-  .cal-bar{flex:none;background:var(--color-surface);padding:0 24px;height:44px;display:flex;
-    align-items:stretch;gap:12px;box-shadow:inset 0 -1px var(--color-divider);min-width:0}
+  .cal-bar{flex:none;background:var(--color-surface);padding:0 var(--s-6);height:44px;display:flex;
+    align-items:stretch;gap:var(--s-3);box-shadow:inset 0 -1px var(--color-divider);min-width:0}
   .cal-bar .g{flex:1;min-width:0}
   .cal-bar .views{display:flex;align-items:stretch;gap:2px;flex:none}
-  .cal-bar .views a{display:flex;align-items:center;gap:7px;padding:0 14px;font-size:14px;font-weight:400;
+  .cal-bar .views a{display:flex;align-items:center;gap:7px;padding:0 14px;font-size:var(--t-body);font-weight:var(--w-body);
     color:var(--color-text);cursor:pointer;box-shadow:inset 0 -2px transparent;white-space:nowrap}
-  .cal-bar .views a.on{font-weight:700;color:var(--color-accent-800);box-shadow:inset 0 -2px var(--accent-solid)}
-  .cal-bar .views a .c{font-family:var(--font-mono);font-size:12px;font-weight:400;
+  .cal-bar .views a.on{font-weight:var(--w-title);color:var(--accent-ink);box-shadow:inset 0 -2px var(--accent-solid)}
+  .cal-bar .views a .c{font-family:var(--font-mono);font-size:var(--t-label);font-weight:var(--w-body);
     font-variant-numeric:tabular-nums;color:var(--color-neutral-500)}
-  .cal-bar .views a.on .c{color:var(--color-accent-800)}
+  .cal-bar .views a.on .c{color:var(--accent-ink)}
   html.dark .cal-bar .views a.on,html.dark .cal-bar .views a.on .c{color:var(--color-accent-300)}
   .cal-seg{display:inline-flex;align-items:center;border:1px solid var(--color-divider);height:28px;
     flex:none;align-self:center}
-  .cal-seg span{display:flex;align-items:center;padding:0 12px;font-size:13px;color:var(--color-neutral-600);cursor:pointer}
+  .cal-seg span{display:flex;align-items:center;padding:0 var(--s-3);font-size:var(--t-meta);color:var(--color-neutral-600);cursor:pointer}
   /* accent-700, not the lighter step: white on accent-600 measures 3.74:1 and
      this is 13px. The darker step reads in both workspace accents. */
-  .cal-seg span.on{background:var(--color-accent-700);color:#fff;font-weight:700}
+  .cal-seg span.on{background:var(--color-accent-700);color:#fff;font-weight:var(--w-title)}
   .cal-sel{display:inline-flex;align-items:center;gap:2px;flex:none;align-self:center}
-  .cal-sel button{border:0;background:none;font:inherit;font-size:14px;color:var(--color-text);
-    cursor:pointer;padding:4px 8px;line-height:1.2}
-  .cal-sel button:hover{color:var(--color-accent-800)}
+  .cal-sel button{border:0;background:none;font:inherit;font-size:var(--t-body);color:var(--color-text);
+    cursor:pointer;padding:var(--s-1) var(--s-2);line-height:1.2}
+  .cal-sel button:hover{color:var(--accent-ink)}
   .cal-sel-now{white-space:nowrap;font-variant-numeric:tabular-nums}
   /* ---- THE PAGE MEASURE, SHARED WITH THE BANDS ABOVE ---- */
-  .cal-body{flex:1;min-height:0;padding:16px 24px 20px;display:flex;min-width:0}
-  .cal-split{flex:1;min-height:0;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px}
+  .cal-body{flex:1;min-height:0;padding:var(--s-4) var(--s-6) 20px;display:flex;min-width:0}
+  .cal-split{flex:1;min-height:0;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:var(--s-4)}
   .cal-card{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;
     display:flex;flex-direction:column;min-height:0;min-width:0;overflow:hidden}
   /* ---- THE MONTH ----
@@ -724,24 +725,24 @@ function calStyleCss(){ return `
          background, not by twelve elements per row: one gradient, repeated,
          so a row costs one box however many months it spans. */}
   .cal-hz{flex:1;min-height:0;overflow:auto}
-  .cal-hz-t{font-size:14px;font-weight:700;color:var(--color-text)}
-  .cal-hz-h{font-size:12px;color:var(--color-neutral-600)}
-  .cal-hz-col{padding:7px 12px;font-size:11px;font-weight:700;letter-spacing:.06em;
+  .cal-hz-t{font-size:var(--t-body);font-weight:var(--w-title);color:var(--color-text)}
+  .cal-hz-h{font-size:var(--t-label);color:var(--color-neutral-600)}
+  .cal-hz-col{padding:7px var(--s-3);font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.06em;
     text-transform:uppercase;color:var(--color-neutral-500)}
   .cal-hz-ruler{display:grid;grid-template-columns:300px minmax(0,1fr);position:sticky;top:0;z-index:2;
     background:var(--color-surface);box-shadow:inset 0 -1px var(--color-divider)}
   .cal-hz-months{display:grid;grid-template-columns:repeat(12,minmax(0,1fr))}
-  .cal-hz-months span{padding:7px 6px;font-size:11px;font-weight:700;letter-spacing:.06em;
+  .cal-hz-months span{padding:7px 6px;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.06em;
     text-transform:uppercase;color:var(--color-neutral-500);border-left:1px solid var(--rule);
     white-space:nowrap;overflow:hidden}
   .cal-hz-row{display:grid;grid-template-columns:300px minmax(0,1fr);align-items:center;
     box-shadow:inset 0 -1px var(--rule);cursor:pointer}
   .cal-hz-row:hover{background:color-mix(in srgb,var(--color-text) 4%,transparent)}
   .cal-hz-row:focus-visible{outline:2px solid var(--accent-solid);outline-offset:-2px}
-  .cal-hz-lab{padding:7px 12px;min-width:0}
-  .cal-hz-lab .n{display:block;font-size:13px;font-weight:600;color:var(--color-accent-700);
+  .cal-hz-lab{padding:7px var(--s-3);min-width:0}
+  .cal-hz-lab .n{display:block;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--accent-ink-700);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .cal-hz-lab .m{display:block;font-size:12px;color:var(--color-neutral-600);
+  .cal-hz-lab .m{display:block;font-size:var(--t-label);color:var(--color-neutral-600);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   ${''/* ---- THE NOTE NEVER SITS ON THE BAR (owner-reported 24 Aug 2026: "you
          keep using fonts that are invisible") ----
@@ -756,9 +757,9 @@ function calStyleCss(){ return `
   .cal-hz-bar{position:absolute;left:0;top:9px;height:14px;opacity:.9}
   .cal-hz-end{position:absolute;top:6px;width:2px;height:20px;background:var(--color-text);
     transform:translateX(-1px)}
-  .cal-hz-nip{position:absolute;top:-2px;font-style:normal;font-size:11px;color:var(--st-amber-fg);
+  .cal-hz-nip{position:absolute;top:-2px;font-style:normal;font-size:var(--t-micro);color:var(--st-amber-fg);
     transform:translateX(-50%);line-height:1}
-  .cal-hz-note{position:absolute;top:30px;font-size:11px;white-space:nowrap;
+  .cal-hz-note{position:absolute;top:30px;font-size:var(--t-micro);white-space:nowrap;
     color:var(--color-neutral-700)}
   ${''/* Right-aligned to the bar's end once the end is far enough across that a
          left-aligned note would run off the ruler. Both sit on white. */}
@@ -769,12 +770,12 @@ function calStyleCss(){ return `
          alarms. */}
   .cal-ladder{flex:none;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1px;
     background:var(--color-divider);box-shadow:inset 0 1px var(--color-divider)}
-  .cal-lad{background:var(--color-surface);padding:9px 12px;border-top:3px solid}
-  .cal-lad-k{font-size:12px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .cal-lad-n{font-size:19px;font-weight:700;line-height:1.2;font-variant-numeric:tabular-nums}
-  .cal-lad-v{font-size:12px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums}
+  .cal-lad{background:var(--color-surface);padding:9px var(--s-3);border-top:3px solid}
+  .cal-lad-k{font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cal-lad-n{font-size:var(--t-page);font-weight:var(--w-title);line-height:1.2;font-variant-numeric:tabular-nums}
+  .cal-lad-v{font-size:var(--t-label);color:var(--color-neutral-600);font-variant-numeric:tabular-nums}
   .cal-split.is-wide{grid-template-columns:minmax(0,1fr)}
-  .cal-cardbar{flex:none;display:flex;align-items:center;gap:10px;padding:9px 12px;
+  .cal-cardbar{flex:none;display:flex;align-items:center;gap:10px;padding:9px var(--s-3);
     box-shadow:inset 0 -1px var(--color-divider)}
   .cal-cardbar .g{flex:1}
   ${''/* box-shadow, NOT just border — the base .cal-legend carries an inset
@@ -785,11 +786,11 @@ function calStyleCss(){ return `
   .cal-cardbar .cal-legend{margin:0;padding:0;border:0;box-shadow:none;flex:none}
   .cal-dow{flex:none;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));
     background:var(--color-neutral-100);box-shadow:inset 0 -1px var(--color-divider)}
-  .cal-dow span{padding:7px 8px;font-size:11px;font-weight:700;letter-spacing:.06em;
+  .cal-dow span{padding:7px var(--s-2);font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.06em;
     text-transform:uppercase;color:var(--color-neutral-500);white-space:nowrap;overflow:hidden}
   .cal-weeks{flex:1;min-height:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));
     grid-template-rows:repeat(6,minmax(0,1fr));gap:1px;background:var(--color-divider)}
-  .cal-day{background:var(--color-surface);padding:4px 4px 6px;display:flex;
+  .cal-day{background:var(--color-surface);padding:var(--s-1) var(--s-1) 6px;display:flex;
     flex-direction:column;gap:3px;min-width:0;min-height:0;overflow:hidden}
   .cal-day.is-mute{background:var(--color-neutral-100)}
   .cal-day[data-cal-day]{cursor:pointer}
@@ -798,55 +799,55 @@ function calStyleCss(){ return `
   ${''/* THE NUMERAL IS A CHIP, so today's filled square is the same shape as
          every other day rather than a box that appears from nowhere. Tabular,
          so 9 and 30 hold one column down the week. */}
-  .cal-dn{font-size:11px;font-weight:700;color:var(--color-text);font-variant-numeric:tabular-nums;
+  .cal-dn{font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-text);font-variant-numeric:tabular-nums;
     flex:none;line-height:20px;min-width:20px;height:20px;display:inline-flex;
-    align-items:center;justify-content:center;align-self:flex-start;padding:0 4px}
+    align-items:center;justify-content:center;align-self:flex-start;padding:0 var(--s-1)}
   .cal-day.is-mute .cal-dn{color:var(--color-neutral-400)}
   .cal-day.is-today .cal-dn{background:var(--color-accent-800);color:#fff}
   .cal-chips{display:flex;flex-direction:column;gap:2px;min-height:0;overflow:hidden}
-  .cal-chip{font-size:11px;line-height:1.25;padding:2px 4px;border-left:3px solid;flex:none;
+  .cal-chip{font-size:var(--t-micro);line-height:1.25;padding:2px var(--s-1);border-left:3px solid;flex:none;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .cal-chip.is-done{opacity:.55;text-decoration:line-through}
-  .cal-more{font-size:11px;font-weight:600;color:var(--color-accent-700);flex:none}
+  .cal-more{font-size:var(--t-micro);font-weight:var(--w-strong);color:var(--accent-ink-700);flex:none}
   html.dark .cal-more{color:var(--color-accent-300)}
   .cal-dots{display:flex;gap:3px;flex-wrap:wrap;flex:none}
   /* ---- THE LEGEND ---- */
   .cal-legend{flex:none;display:flex;gap:18px;flex-wrap:wrap;padding:10px 14px;
     box-shadow:inset 0 1px var(--color-divider)}
-  .cal-legend span{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--color-neutral-600)}
+  .cal-legend span{display:inline-flex;align-items:center;gap:7px;font-size:var(--t-label);color:var(--color-neutral-600)}
   .cal-legend i{width:10px;height:10px;display:block;flex:none}
   /* ---- NEXT 30 DAYS ---- */
-  .cal-panel-head{flex:none;display:flex;align-items:center;gap:8px;padding:11px 14px;
+  .cal-panel-head{flex:none;display:flex;align-items:center;gap:var(--s-2);padding:11px 14px;
     box-shadow:inset 0 -1px var(--color-divider)}
-  .cal-panel-head h5{margin:0;font-family:var(--font-heading);font-size:14px;font-weight:700;color:var(--color-text)}
+  .cal-panel-head h5{margin:0;font-family:var(--font-heading);font-size:var(--t-body);font-weight:var(--w-title);color:var(--color-text)}
   .cal-panel-head .g{flex:1}
-  .cal-cnt{font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--color-neutral-600);
+  .cal-cnt{font-family:var(--font-mono);font-size:var(--t-label);font-weight:var(--w-title);color:var(--color-neutral-600);
     font-variant-numeric:tabular-nums}
   .cal-upn-list{flex:1;min-height:0;overflow-y:auto}
-  .cal-upn{display:flex;align-items:center;gap:11px;padding:8px 12px;
+  .cal-upn{display:flex;align-items:center;gap:11px;padding:var(--s-2) var(--s-3);
     border-left:3px solid transparent;box-shadow:inset 0 -1px var(--color-divider)}
   .cal-upn:hover{background:color-mix(in srgb,var(--color-text) 4%,transparent)}
   .cal-upn .dt{width:44px;flex:none;display:flex;flex-direction:column;line-height:1.15;
     font-variant-numeric:tabular-nums}
-  .cal-upn .dt b{font-size:12px;font-weight:700;color:var(--color-text)}
-  .cal-upn .dt i{font-size:12px;font-style:normal;color:var(--color-neutral-400)}
+  .cal-upn .dt b{font-size:var(--t-label);font-weight:var(--w-title);color:var(--color-text)}
+  .cal-upn .dt i{font-size:var(--t-label);font-style:normal;color:var(--color-neutral-400)}
   .cal-upn .g{flex:1;min-width:0;border:0;background:none;font:inherit;text-align:left;cursor:pointer;
     color:inherit;padding:0}
-  .cal-upn .n2{display:block;font-size:13px;font-weight:600;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .cal-upn .m3{display:block;font-size:12px;color:var(--color-neutral-600);margin-top:2px;
+  .cal-upn .n2{display:block;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cal-upn .m3{display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .cal-upn .lft{margin-left:auto;font-size:12px;font-weight:700;white-space:nowrap;flex:none}
+  .cal-upn .lft{margin-left:auto;font-size:var(--t-label);font-weight:var(--w-title);white-space:nowrap;flex:none}
   .cal-upn-done{flex:none;border:1px solid var(--color-divider);background:var(--color-surface);
-    padding:2px 7px;font:inherit;font-size:12px;font-weight:600;color:var(--color-accent-700);cursor:pointer}
-  .cal-theirs{flex:none;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
-    padding:1px 4px;background:var(--st-amber-bg);color:var(--st-amber-fg)}
+    padding:2px 7px;font:inherit;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink-700);cursor:pointer}
+  .cal-theirs{flex:none;font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.04em;text-transform:uppercase;
+    padding:1px var(--s-1);background:var(--st-amber-bg);color:var(--st-amber-fg)}
   .cal-panel-foot{flex:none;padding:11px 14px}
-  .cal-link{border:0;background:none;font:inherit;font-size:13px;font-weight:600;
-    color:var(--color-accent-700);cursor:pointer;padding:0}
+  .cal-link{border:0;background:none;font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);
+    color:var(--accent-ink-700);cursor:pointer;padding:0}
   html.dark .cal-link,html.dark .cal-upn-done,html.dark .cal-more{color:var(--color-accent-300)}
   .cal-empty{padding:22px 14px;text-align:center}
-  .cal-empty-t{font-size:14px;font-weight:600;color:var(--color-text)}
-  .cal-empty-s{font-size:12px;color:var(--color-neutral-600);margin-top:3px;line-height:1.5}
+  .cal-empty-t{font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text)}
+  .cal-empty-s{font-size:var(--t-label);color:var(--color-neutral-600);margin-top:3px;line-height:1.5}
   /* ---- NARROW ----
      Below the width where a 360px panel and a readable month can share a row,
      the two stack and the PAGE scrolls — two independently scrolling boxes on
@@ -865,8 +866,8 @@ function calStyleCss(){ return `
            this is the rule that causes it — and the sheet goes with the page,
            so no other view can inherit the exception. */}
     #content-scroll.view-fixed{scrollbar-gutter:stable}
-    .cal-body{padding:12px 16px 18px}
-    .cal-head,.cal-bar{padding-left:16px;padding-right:16px}
+    .cal-body{padding:var(--s-3) var(--s-4) 18px}
+    .cal-head,.cal-bar{padding-left:var(--s-4);padding-right:var(--s-4)}
     .cal-split{grid-template-columns:minmax(0,1fr);height:auto}
     .cal-card{min-height:380px}
   }
@@ -1008,17 +1009,17 @@ function openCalendarShare(evs){
       <div class="rvd-sub">${_esc(i18tn('cal_share_sub',lines.length,{n:lines.length}))}</div></div></div>
     <div class="rvd-body">
       <label class="rvd-opt" style="display:block">
-        <span style="display:block;font-size:12px;font-weight:600;color:var(--color-neutral-600);margin-bottom:5px">${_esc(i18t('cal_share_who'))}</span>
-        <select id="cal-share-who" style="width:100%;padding:8px 10px;border:1px solid var(--color-divider);border-radius:0;font:inherit;font-size:14px;background:var(--color-surface);color:var(--color-text)">
+        <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600);margin-bottom:5px">${_esc(i18t('cal_share_who'))}</span>
+        <select id="cal-share-who" style="width:100%;padding:var(--s-2) 10px;border:1px solid var(--color-divider);border-radius:0;font:inherit;font-size:var(--t-body);background:var(--color-surface);color:var(--color-text)">
           ${people.map(u=>`<option value="${_esc(u.id)}">${_esc(u.name)} — ${_esc(u.email)}</option>`).join('')}
         </select>
       </label>
-      <label style="display:block;margin-top:12px">
-        <span style="display:block;font-size:12px;font-weight:600;color:var(--color-neutral-600);margin-bottom:5px">${_esc(i18t('cal_share_note'))}</span>
-        <textarea id="cal-share-note" rows="3" style="width:100%;padding:8px 10px;border:1px solid var(--color-divider);border-radius:0;font:inherit;font-size:14px;resize:vertical;background:var(--color-surface);color:var(--color-text)"></textarea>
+      <label style="display:block;margin-top:var(--s-3)">
+        <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600);margin-bottom:5px">${_esc(i18t('cal_share_note'))}</span>
+        <textarea id="cal-share-note" rows="3" style="width:100%;padding:var(--s-2) 10px;border:1px solid var(--color-divider);border-radius:0;font:inherit;font-size:var(--t-body);resize:vertical;background:var(--color-surface);color:var(--color-text)"></textarea>
       </label>
       <div class="rvd-note" style="margin-top:10px">${_esc(i18t('cal_share_privacy'))}</div>
-      <div id="cal-share-err" class="rvd-note" hidden style="color:var(--danger-hover);margin-top:8px"></div>
+      <div id="cal-share-err" class="rvd-note" hidden style="color:var(--danger-hover);margin-top:var(--s-2)"></div>
     </div>
     <div class="rvd-foot">
       <button class="ui-btn" data-close>${_esc(i18t('act_cancel'))}</button>

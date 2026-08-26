@@ -61,38 +61,38 @@ function renderFolder(){
      exactly what happened: the arrow vanished entirely. Base64 has no quotes
      in it, so it survives the trip into the attribute. */
   const selChevron='url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0ibTYgOSA2IDYgNi02Ii8+PC9zdmc+)';
-  const selStyle='font:inherit;font-size:13px;border:1px solid var(--field-line);background-color:var(--color-surface);border-radius:0;padding:5px 26px 5px 9px;color:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:'+selChevron+';background-repeat:no-repeat;background-position:right 8px center;background-size:12px';
+  const selStyle='font:inherit;font-size:var(--t-meta);border:1px solid var(--field-line);background-color:var(--color-surface);border-radius:0;padding:5px 26px 5px 9px;color:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:'+selChevron+';background-repeat:no-repeat;background-position:right 8px center;background-size:12px';
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="padding:var(--page-pad)">
     <style>
-      .fold-table{width:100%;border-collapse:collapse;font-size:14px}
-      .fold-table th{text-align:left;font-size:12px;color:color-mix(in srgb,var(--color-text) 60%,transparent);padding:6.8px;border-bottom:1px solid var(--color-divider);white-space:nowrap;background:var(--color-neutral-100)}
+      .fold-table{width:100%;border-collapse:collapse;font-size:var(--t-body)}
+      .fold-table th{text-align:left;font-size:var(--t-label);color:color-mix(in srgb,var(--color-text) 60%,transparent);padding:6.8px;border-bottom:1px solid var(--color-divider);white-space:nowrap;background:var(--color-neutral-100)}
       .fold-table td{padding:6.8px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 8%,transparent);vertical-align:middle}
       .fold-table tbody tr:hover{background:color-mix(in srgb,var(--color-text) 4%,transparent)}
     </style>
     <div style="display:flex;flex-direction:column;gap:10px">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <button id="back-dash" style="width:28px;height:28px;flex:none;display:inline-grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;color:var(--color-accent-700);cursor:pointer" title="${i18t('reg_back_to_portfolio')}">${icon('arrowLeft','w-4 h-4')}</button>
+        <button id="back-dash" style="width:28px;height:28px;flex:none;display:inline-grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;color:var(--accent-ink-700);cursor:pointer" title="${i18t('reg_back_to_portfolio')}">${icon('arrowLeft','w-4 h-4')}</button>
         <span style="width:28px;height:28px;flex:none;display:grid;place-items:center;background:var(--color-accent-800);color:#fff;border-radius:0">${icon(f.ic,'w-4 h-4')}</span>
         <div style="min-width:0">
-          <div style="font-family:var(--font-mono);font-weight:600;font-size:17px;color:var(--color-text);line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(f.name)}</div>
-          <div style="font-size:12px;color:var(--color-neutral-600)"><span id="fold-count">${cs.length}</span> contracts${(typeof canViewValues==='function'&&!canViewValues())?'':` · ${fmtMoneyShort(val)} active value`}</div>
+          <div style="font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-section);color:var(--color-text);line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(f.name)}</div>
+          <div style="font-size:var(--t-label);color:var(--color-neutral-600)"><span id="fold-count">${cs.length}</span> contracts${(typeof canViewValues==='function'&&!canViewValues())?'':` · ${fmtMoneyShort(val)} active value`}</div>
         </div>
         <span style="flex:1"></span>
-        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--color-neutral-700)">${i18t('reg_sort')}
+        <label style="display:flex;align-items:center;gap:6px;font-size:var(--t-label);color:var(--color-neutral-700)">${i18t('reg_sort')}
           <select id="folder-sort" style="${selStyle}">${sortOpts}</select>
         </label>
         <div style="position:relative">
           <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--color-neutral-500);display:inline-flex">${icon('search','w-3.5 h-3.5')}</span>
-          <input id="folder-search" value="${(state.folderQuery||'').replace(/"/g,'&quot;')}" type="text" placeholder="${i18t('reg_search_folder')}" style="width:230px;max-width:60vw;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:6px 9px 6px 30px;font:inherit;font-size:13px;outline:none;color:inherit">
+          <input id="folder-search" value="${(state.folderQuery||'').replace(/"/g,'&quot;')}" type="text" placeholder="${i18t('reg_search_folder')}" style="width:230px;max-width:60vw;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:6px 9px 6px 30px;font:inherit;font-size:var(--t-meta);outline:none;color:inherit">
         </div>
       </div>
 
-      <div id="fold-selbar" class="flex hidden items-center justify-between" style="gap:12px;border:1px solid var(--color-accent-800);background:var(--color-accent-800);color:#fff;border-radius:0;padding:8px 12px">
-        <span id="fold-sel-count" style="font-size:13px;font-weight:600">${i18t('reg_n_selected',{n:0})}</span>
-        <div style="display:flex;align-items:center;gap:8px">
-          <button id="fold-export" style="display:inline-flex;align-items:center;gap:6px;border:0;background:rgba(255,255,255,.16);color:#fff;border-radius:0;padding:5px 10px;font:inherit;font-size:13px;font-weight:600;cursor:pointer">${icon('download','w-3.5 h-3.5')} Export CSV</button>
-          <button id="fold-clear" style="border:0;background:none;color:rgba(255,255,255,.72);padding:5px 8px;font:inherit;font-size:13px;font-weight:600;cursor:pointer">${i18t('reg_clear')}</button>
+      <div id="fold-selbar" class="flex hidden items-center justify-between" style="gap:var(--s-3);border:1px solid var(--color-accent-800);background:var(--color-accent-800);color:#fff;border-radius:0;padding:var(--s-2) var(--s-3)">
+        <span id="fold-sel-count" style="font-size:var(--t-meta);font-weight:var(--w-strong)">${i18t('reg_n_selected',{n:0})}</span>
+        <div style="display:flex;align-items:center;gap:var(--s-2)">
+          <button id="fold-export" style="display:inline-flex;align-items:center;gap:6px;border:0;background:rgba(255,255,255,.16);color:#fff;border-radius:0;padding:5px 10px;font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);cursor:pointer">${icon('download','w-3.5 h-3.5')} Export CSV</button>
+          <button id="fold-clear" style="border:0;background:none;color:rgba(255,255,255,.72);padding:5px var(--s-2);font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);cursor:pointer">${i18t('reg_clear')}</button>
         </div>
       </div>
 
@@ -102,14 +102,14 @@ function renderFolder(){
           <table class="fold-table">
             <thead>
               <tr>
-                <th style="width:26px;padding-left:12px"><input id="fold-selall" type="checkbox" style="accent-color:var(--color-accent)"></th>
+                <th style="width:26px;padding-left:var(--s-3)"><input id="fold-selall" type="checkbox" style="accent-color:var(--color-accent)"></th>
                 <th>${i18t('reg_col_contract')}</th>
                 <th>${i18t('reg_col_type')}</th>
                 <th style="text-align:right">${i18t('reg_col_value')}</th>
                 <th>${i18t('reg_col_expires')}</th>
                 <th>${i18t('reg_col_updated')}</th>
                 <th style="width:58px;text-align:center" title="${i18t('reg_link_title')}">${i18t('reg_col_link')}</th>
-                <th style="text-align:right;padding-right:12px">${i18t('reg_col_status')}</th>
+                <th style="text-align:right;padding-right:var(--s-3)">${i18t('reg_col_status')}</th>
               </tr>
             </thead>
             <tbody id="fold-tbody">${folderRowsHtml(cs)}</tbody>
@@ -119,8 +119,8 @@ function renderFolder(){
                a footer strip to hold it — the register already had one. A
                column of coloured marks and no key is the thing that prompted
                all of this. */}
-        <div style="border-top:1px solid var(--color-divider);padding:6px 12px">
-          ${window.shareLegendHtml?shareLegendHtml({style:'font-size:12px'}):''}
+        <div style="border-top:1px solid var(--color-divider);padding:6px var(--s-3)">
+          ${window.shareLegendHtml?shareLegendHtml({style:'font-size:var(--t-label)'}):''}
         </div>
       </section>
     </div>
@@ -166,13 +166,13 @@ function folderExpiryCell(c){
     else if(d<30){ col='var(--st-ruby-fg)'; weight=600; hint=`${i18t('reg_in_days',{n:d})}${from?' · from '+from.id:''}`; }
     else if(d<=90){ col='var(--st-amber-fg)'; hint=`${i18t('reg_in_days',{n:d})}${from?' · from '+from.id:''}`; }
   }
-  return `<span style="color:${col};font-weight:${weight};font-variant-numeric:tabular-nums">${dt}</span>${hint?`<span style="display:block;font-size:12px;color:${col}">${hint}</span>`:''}`;
+  return `<span style="color:${col};font-weight:${weight};font-variant-numeric:tabular-nums">${dt}</span>${hint?`<span style="display:block;font-size:var(--t-label);color:${col}">${hint}</span>`:''}`;
 }
 // Render up to state.folderShown rows as a table body, with a "Show more" pager.
 function folderRowsHtml(cs){
   if(!cs.length) return `<tr><td colspan="8" style="padding:44px 20px;text-align:center">
-      <div style="font-size:14px;font-weight:600;color:var(--color-text)">${(state.folderQuery||'').trim()?i18t('reg_stream_none_match',{q:state.folderQuery}):i18t('reg_stream_none_yet')}</div>
-      <div style="font-size:13px;color:var(--color-neutral-600);margin-top:4px">${(state.folderQuery||'').trim()?i18t('reg_stream_widen'):i18t('reg_stream_create_hint')}</div>
+      <div style="font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text)">${(state.folderQuery||'').trim()?i18t('reg_stream_none_match',{q:state.folderQuery}):i18t('reg_stream_none_yet')}</div>
+      <div style="font-size:var(--t-meta);color:var(--color-neutral-600);margin-top:var(--s-1)">${(state.folderQuery||'').trim()?i18t('reg_stream_widen'):i18t('reg_stream_create_hint')}</div>
     </td></tr>`;
   const shown=Math.min(cs.length, state.folderShown||FOLDER_PAGE);
   const sel=state.folderSel||{};
@@ -181,24 +181,24 @@ function folderRowsHtml(cs){
     const scan=o.length?`<span class="badge" style="margin-left:6px;background:var(--st-ruby-bg);color:var(--st-ruby-fg)" title="${i18t('reg_open_findings')}">${icon('scan','w-2.5 h-2.5')}${o.length}</span>`:'';
     return `
     <tr data-open="${c.id}" style="cursor:pointer;animation-delay:${Math.min(i,14)*22}ms">
-      <td style="padding-left:12px" onclick="event.stopPropagation()"><input type="checkbox" data-fsel="${c.id}" ${sel[c.id]?'checked':''} style="accent-color:var(--color-accent)"></td>
+      <td style="padding-left:var(--s-3)" onclick="event.stopPropagation()"><input type="checkbox" data-fsel="${c.id}" ${sel[c.id]?'checked':''} style="accent-color:var(--color-accent)"></td>
       <td style="max-width:260px"><div style="display:flex;align-items:center;gap:9px;min-width:0">
         <span style="width:26px;height:26px;flex:none;display:grid;place-items:center;border-radius:0;border:1px solid var(--color-divider);background:${isUpload(c)?'var(--color-accent-200)':'var(--color-bg)'};color:${isUpload(c)?'var(--color-accent-800)':'var(--color-neutral-600)'}" ${isUpload(c)?`title="${i18t('reg_uploaded_from_cp')}"`:''}>${icon(cIcon(c),'w-3.5 h-3.5')}</span>
         <span style="min-width:0">
-          <span style="display:block;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.name)}</span>
-          <span style="display:block;font-size:12px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="font-family:var(--font-mono)">${esc(c.id)}</span> · ${esc(c.counterparty||'No counterparty yet')}</span>
+          <span style="display:block;font-weight:var(--w-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.name)}</span>
+          <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="font-family:var(--font-mono)">${esc(c.id)}</span> · ${esc(c.counterparty||'No counterparty yet')}</span>
         </span>
       </div></td>
-      <td style="font-size:13px;color:var(--color-neutral-700);white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:6px">${icon(cIcon(c),'w-4 h-4')}${cKind(c)}</span>${scan}</td>
-      <td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:400;white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}" ${!isMonetary(c)?`title="${i18t('reg_non_monetary')}"`:''}>${!isMonetary(c)?'n/m':(c.value?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):'—')}</td>
-      <td style="font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap">${folderExpiryCell(c)}</td>
-      <td style="font-size:12px;color:var(--color-neutral-600);white-space:nowrap">${c.lastAction||'—'}</td>
+      <td style="font-size:var(--t-meta);color:var(--color-neutral-700);white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:6px">${icon(cIcon(c),'w-4 h-4')}${cKind(c)}</span>${scan}</td>
+      <td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:var(--w-body);white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}" ${!isMonetary(c)?`title="${i18t('reg_non_monetary')}"`:''}>${!isMonetary(c)?'n/m':(c.value?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):'—')}</td>
+      <td style="font-size:var(--t-meta);font-variant-numeric:tabular-nums;white-space:nowrap">${folderExpiryCell(c)}</td>
+      <td style="font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap">${c.lastAction||'—'}</td>
       ${''/* Same split as the register: the link mark to its own column, the
              question pill left with the stage it qualifies. */}
       <td style="text-align:center;white-space:nowrap">${window.shareLinkCell?shareLinkCell(c.id):''}</td>
-      <td style="text-align:right;padding-right:12px;white-space:nowrap">${window.questionDot?questionDot(c.id):''}${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}</td>
+      <td style="text-align:right;padding-right:var(--s-3);white-space:nowrap">${window.questionDot?questionDot(c.id):''}${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}</td>
     </tr>`; }).join('') + (cs.length>shown
-      ? `<tr><td colspan="8" style="padding:0"><button id="folder-more" style="width:100%;padding:11px;font-size:14px;font-weight:600;color:var(--color-accent-700);background:none;border:0;border-top:1px solid var(--color-divider);cursor:pointer">Show ${Math.min(FOLDER_PAGE,cs.length-shown)} more · ${cs.length-shown} remaining</button></td></tr>`
+      ? `<tr><td colspan="8" style="padding:0"><button id="folder-more" style="width:100%;padding:11px;font-size:var(--t-body);font-weight:var(--w-strong);color:var(--accent-ink-700);background:none;border:0;border-top:1px solid var(--color-divider);cursor:pointer">Show ${Math.min(FOLDER_PAGE,cs.length-shown)} more · ${cs.length-shown} remaining</button></td></tr>`
       : '');
 }
 function folderSelCount(){ const s=state.folderSel||{}; return Object.keys(s).filter(k=>s[k]).length; }
@@ -300,6 +300,112 @@ const REG_VIEWS=[
    about the register, and carrying it across would be one page silently
    answering for the other. */
 let REG_SCOPE = null;
+/* ═══ ROW DENSITY — three heights on one axis (25 Aug 2026) ═══════════════
+   SAP Fiori ships cozy / compact / condensed because the same table is read
+   two different ways: a contract register is SCANNED and an approval queue is
+   read one row at a time. HaTi shipped one 36px row, typed once as
+   --reg-row-h with a single consumer.
+
+   THE MIDDLE RUNG IS 36 AND IT IS THE DEFAULT, so nobody's book moves on the
+   morning this ships. Fiori's own verified ladder is 48/32/24 against a
+   different base; 36 is the value already tuned against THIS product's type,
+   and the bracket is built around it rather than replacing it.
+
+   THREE THINGS TRAVEL TOGETHER, not just the height: the padding and the line
+   box move with it, because a 30px row with 12px of side padding reads as a
+   squeezed 36 rather than as a condensed row.
+
+   IT CANNOT REACH THE PHONE, and that is by construction rather than by a
+   guard: below 768px the desktop shell hides entirely and the phone draws its
+   own cards — `.reg-table` is never rendered there. Fiori states plainly that
+   compact and condensed "cannot be interacted with via touch", so the phone
+   keeping its own touch sizes is the rule, not an omission. */
+/* ═══ WHICH FILTERS SIT ON THE BAR — "Adapt filters" (25 Aug 2026) ════════
+   SAP Fiori's filter bar shows a user-chosen SUBSET of the available filters
+   and keeps the rest behind an "Adapt filters" link. That is the answer to the
+   problem this bar actually had: it would not fit on one line, and WO-15
+   solved that on 24 Aug by DELETING the Renewal filter outright.
+
+   THIS DOES NOT REVERSE THAT RULING, AND THE DEFAULT IS WHY. The bar's default
+   set is exactly what ships today — stage, stream, saved view, category — and
+   Renewal is NOT on it. The owner asked twice for it to be off their bar and
+   it stays off. What changes is that a reader who wants it can now put it
+   there, on their own browser, instead of the filter being unreachable.
+   Its READING never went anywhere: regFiltered has known how to narrow by
+   renewal type all along (line ~525), so this restores a door to a room that
+   was still standing.
+
+   THE SAFETY PROPERTY, and it is the whole reason this is not dangerous: a
+   filter that is NARROWING THE LIST is drawn on the bar whether or not it was
+   chosen. A hidden control that is quietly cutting the book is exactly the
+   fault the owner's own removal note was guarding against — "so the filter can
+   never be quietly on". It still cannot be. */
+const REG_BAR_KEY = 'hati.v1.regBarFilters';
+const REG_BAR_FILTERS = [
+  { k:'stage',    fixed:true,  get label(){ return i18t('reg_lifecycle_stage'); } },
+  { k:'type',     fixed:true,  get label(){ return i18t('reg_value_stream'); } },
+  { k:'view',     fixed:false, get label(){ return i18t('reg_saved_views'); } },
+  { k:'category', fixed:false, get label(){ return i18t('me_category'); } },
+  { k:'renewal',  fixed:false, get label(){ return i18t('reg_renewal'); } },
+];
+/* Stage and stream are `fixed` — they are the two questions this register is
+   always asked, and a bar with neither is not a filter bar. */
+const REG_BAR_DEFAULT = ['stage','type','view','category'];
+function regBarChosen(){
+  try{
+    const raw = localStorage.getItem(REG_BAR_KEY);
+    if(!raw) return REG_BAR_DEFAULT.slice();
+    const want = JSON.parse(raw);
+    if(!Array.isArray(want)) return REG_BAR_DEFAULT.slice();
+    const ok = REG_BAR_FILTERS.filter(f=>f.fixed||want.includes(f.k)).map(f=>f.k);
+    return ok.length ? ok : REG_BAR_DEFAULT.slice();
+  }catch(_){ return REG_BAR_DEFAULT.slice(); }
+}
+function regBarSetChosen(keys){
+  try{ localStorage.setItem(REG_BAR_KEY, JSON.stringify(
+    REG_BAR_FILTERS.filter(f=>f.fixed||keys.includes(f.k)).map(f=>f.k))); }catch(_){}
+}
+/* IS THIS FILTER ACTUALLY NARROWING ANYTHING RIGHT NOW — the predicate the
+   safety property above rests on. */
+function regFilterActive(k, R){
+  R = R || regState();
+  if(k==='stage')    return R.stage!=='all';
+  if(k==='type')     return R.type!=='all';
+  if(k==='view')     return !!R.view;
+  if(k==='category') return !!R.category && R.category!=='all';
+  if(k==='renewal')  return !!R.renewal && R.renewal!=='all';
+  return false;
+}
+/* Chosen, PLUS anything currently narrowing the list. */
+function regBarShown(R){
+  const chosen = regBarChosen();
+  return REG_BAR_FILTERS.filter(f=>chosen.includes(f.k)||regFilterActive(f.k,R)).map(f=>f.k);
+}
+
+const REG_DENSITY = {
+  comfortable:{ h:44, padX:16, line:20 },
+  compact:    { h:36, padX:12, line:20 },   /* today's row — the default */
+  condensed:  { h:30, padX:8,  line:18 },
+};
+const REG_DENSITY_KEY = 'hati.v1.regDensity';
+/* ABSENT MEANS COMPACT — the historic behaviour — so there is no migration
+   and an unknown stored value falls back rather than drawing a broken row. */
+function regDensity(){
+  try{ const v = localStorage.getItem(REG_DENSITY_KEY); return REG_DENSITY[v] ? v : 'compact'; }
+  catch(_){ return 'compact'; }
+}
+function regSetDensity(k){
+  if(!REG_DENSITY[k]) return false;
+  try{ localStorage.setItem(REG_DENSITY_KEY, k); }catch(_){}
+  return true;
+}
+/* The three custom properties the table's own rules already read. Written as
+   a style attribute on .reg-table so one element carries the whole mode. */
+function regDensityVars(k){
+  const d = REG_DENSITY[REG_DENSITY[k] ? k : 'compact'];
+  return `--reg-row-h:${d.h}px;--reg-row-px:${d.padX}px;--reg-row-line:${d.line}px`;
+}
+
 function regScope(){ return REG_SCOPE; }
 function regSetScope(k){ REG_SCOPE = (k === 'negotiations') ? 'negotiations' : null; }
 const REG_STATE_DEF = () => ({query:'',stage:'all',type:'all',category:'all',sort:'updated',dir:-1,page:1,sel:{},view:null,only:null});
@@ -411,7 +517,7 @@ function regCurPage(cs){ const R=regState(); const n=regPageCount(cs); R.page=Ma
 function regPager(cs){
   const n=regPageCount(cs); if(n<=1) return '';
   const p=regCurPage(cs);
-  const btn=(label,to,disabled,active)=>`<button ${disabled?'disabled':''} data-reg-page="${to}" style="min-width:32px;padding:5px 10px;font:inherit;font-size:13px;font-weight:${active?700:500};border:1px solid ${active?'var(--color-accent)':'var(--color-divider)'};background:${active?'var(--color-accent)':'var(--color-surface)'};color:${active?'#fff':(disabled?'var(--color-neutral-400)':'var(--color-accent-700)')};border-radius:0;cursor:${disabled?'default':'pointer'}">${label}</button>`;
+  const btn=(label,to,disabled,active)=>`<button ${disabled?'disabled':''} data-reg-page="${to}" style="min-width:32px;padding:5px 10px;font:inherit;font-size:var(--t-meta);font-weight:${active?700:500};border:1px solid ${active?'var(--accent-fill)':'var(--color-divider)'};background:${active?'var(--accent-fill)':'var(--color-surface)'};color:${active?'#fff':(disabled?'var(--color-neutral-400)':'var(--accent-ink-700)')};border-radius:0;cursor:${disabled?'default':'pointer'}">${label}</button>`;
   const nums=[]; const lo=Math.max(1,p-2), hi=Math.min(n,p+2);
   if(lo>1){ nums.push(btn('1',1,false,p===1)); if(lo>2) nums.push('<span style="padding:0 3px;color:var(--color-neutral-500)">…</span>'); }
   for(let i=lo;i<=hi;i++) nums.push(btn(String(i),i,false,i===p));
@@ -439,7 +545,7 @@ function regFooterText(cs){
   /* Neither the amendment fold nor the page counter belongs on a list that
      never pages and groups by something else entirely. */
   const neg=regScope()==='negotiations';
-  const flatBtn=neg?'':` · <button type="button" id="reg-flat" style="border:0;background:none;font:inherit;font-size:inherit;color:var(--color-accent-700);text-decoration:underline;cursor:pointer;padding:0">${R.flat?i18t('reg_group_amendments'):i18t('reg_show_flat')}</button>`;
+  const flatBtn=neg?'':` · <button type="button" id="reg-flat" style="border:0;background:none;font:inherit;font-size:inherit;color:var(--accent-ink-700);text-decoration:underline;cursor:pointer;padding:0">${R.flat?i18t('reg_group_amendments'):i18t('reg_show_flat')}</button>`;
   const pageNote=neg?'':` · ${i18t('reg_page_of',{p,n})}`;
   return `${i18t('reg_showing',{start:B(start.toLocaleString(jxLocale())),end:B(end.toLocaleString(jxLocale())),n:B(cs.length.toLocaleString(jxLocale()))})}${totalNote}${neg?'':famNote}${pageNote}${(typeof canViewValues==='function'&&!canViewValues())?'':` · ${i18t('reg_aggregate')} ${B(fmtMoneyShort(regAggregate(cs)))}`}${flatBtn}`;
 }
@@ -658,15 +764,17 @@ function regRowsHtml(cs){
     const line = filtered ? i18t('reg_none_match') : i18t('reg_none_yet');
     const sub  = filtered ? i18t('reg_widen') : i18t('reg_create_from_template');
     const btn  = filtered
-      ? `<button id="reg-empty-clear" class="ui-btn" style="font-size:13px;padding:6px 14px">${i18t('reg_clear_all_filters')}</button>`
-      : `<button id="reg-empty-new" class="ui-btn ui-btn-primary" style="font-size:13px;padding:6px 14px">${i18t('pg_new_contract')}</button>`;
-    return `<tr><td colspan="8" style="padding:48px 12px;text-align:center">
-      <div style="max-width:340px;margin:0 auto">
-        <div style="width:44px;height:44px;margin:0 auto 12px;display:grid;place-items:center;border-radius:0;background:var(--color-bg);color:var(--color-neutral-500)">${icon('list','w-5 h-5')}</div>
-        <div style="font-size:15px;font-weight:600;color:var(--color-text)">${line}</div>
-        <div style="font-size:13px;color:var(--color-neutral-600);margin:4px 0 14px;line-height:1.5">${sub}</div>
-        ${btn}
-      </div></td></tr>`;
+      ? `<button id="reg-empty-clear" class="ui-btn" style="font-size:var(--t-meta);padding:6px 14px">${i18t('reg_clear_all_filters')}</button>`
+      : `<button id="reg-empty-new" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:6px 14px">${i18t('pg_new_contract')}</button>`;
+    /* THIS SHAPE IS NOW THE PRODUCT'S — it was the one screen that had a
+       designed empty state, and emptyStateHtml is it, extracted so the other
+       six can be it too. Read through window: this is a module. */
+    return `<tr><td colspan="8" style="padding:var(--s-12) var(--s-3);text-align:center">${
+      typeof window.emptyStateHtml==='function'
+        ? window.emptyStateHtml({ icon:'list', title:line, sub, action:btn })
+        : `<div style="max-width:340px;margin:0 auto"><div style="font-size:var(--t-card);font-weight:var(--w-strong)">${line}</div>`
+          + `<div style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:var(--s-1) 0 14px">${sub}</div>${btn}</div>`
+      }</td></tr>`;
   }
   const p=regCurPage(cs); const size=regPageSize(); const start=(p-1)*size;
   const pageRows=cs.slice(start, start+size);
@@ -695,7 +803,7 @@ function regRowsHtml(cs){
     return out;
   };
   let lastBand=null;
-  const actBtns=c=>REG_ROW_ACTIONS.filter(a=>!a.when||a.when(c)).map(a=>`<button data-act="${a.k}" data-id="${c.id}" class="reg-act${a.ruby?' danger':''}" style="display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;font:inherit;font-size:13px;text-align:left;padding:6px 9px;border-radius:0;cursor:pointer;color:${a.ruby?'var(--st-ruby-fg)':'inherit'}">${window.icon?icon(a.ic,'w-3.5 h-3.5'):''}${a.label}</button>`).join('');
+  const actBtns=c=>REG_ROW_ACTIONS.filter(a=>!a.when||a.when(c)).map(a=>`<button data-act="${a.k}" data-id="${c.id}" class="reg-act${a.ruby?' danger':''}" style="display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;font:inherit;font-size:var(--t-meta);text-align:left;padding:6px 9px;border-radius:0;cursor:pointer;color:${a.ruby?'var(--st-ruby-fg)':'inherit'}">${window.icon?icon(a.ic,'w-3.5 h-3.5'):''}${a.label}</button>`).join('');
   return pageRows.map((c,i)=>{
     const eff=effectiveExpiry(c);
     const din=eff?daysUntil(eff):null;
@@ -720,7 +828,8 @@ function regRowsHtml(cs){
     let band='';
     if(neg && c._ngBand!==lastBand){ band=bandsBefore(c._ngBand); lastBand=c._ngBand; }
     return band + `
-    <tr data-row="${c.id}"${neg?' data-nego-row="1"':''} style="cursor:pointer;animation-delay:${Math.min(i,14)*22}ms">
+    <tr data-row="${c.id}"${neg?' data-nego-row="1"':''} tabindex="${i===0?0:-1}"
+      style="cursor:pointer;animation-delay:${Math.min(i,14)*22}ms">
       <td class="reg-mk">${c.id}</td>
       <td style="max-width:300px${c._famChild?';padding-left:30px':''}">
         ${''/* ---- ONE LINE PER CONTRACT (owner-ruled 24 Aug 2026) ----
@@ -737,7 +846,7 @@ function regRowsHtml(cs){
               in full width. */}
         <span style="display:flex;align-items:center;gap:9px;min-width:0">
         <span class="reg-tick" style="background:${folderColor(c)}"></span>
-        <span class="reg-title" style="min-width:0;flex:1;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(regTitleOf(c))} · ${esc(cKind(c))}">${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:13px;font-weight:400" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc(c.parentId)}">↳ </span>`:''}${regTitleOf(c)}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:400;font-size:13px;font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
+        <span class="reg-title" style="min-width:0;flex:1;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(regTitleOf(c))} · ${esc(cKind(c))}">${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:var(--t-meta);font-weight:var(--w-body)" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc(c.parentId)}">↳ </span>`:''}${regTitleOf(c)}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:var(--w-body);font-size:var(--t-meta);font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
         </span>
       </td>
       <td style="color:var(--color-neutral-700);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.counterparty||'—')}</td>
@@ -751,10 +860,10 @@ function regRowsHtml(cs){
              something you scan a register for, and it drew an em-dash on every
              row of an ordinary workspace. It is on the contract's own page. */}
       <td style="color:var(--color-neutral-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc((window.FOLDERS&&FOLDERS[c.folder]&&FOLDERS[c.folder].name)||'')}">${esc((window.FOLDERS&&FOLDERS[c.folder]&&FOLDERS[c.folder].name)||'—')}</td>
-      <td style="text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:400;white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}">${val}</td>
+      <td style="text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:var(--w-body);white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}">${val}</td>
       ${''/* The mockup's expiry cell: the date, then "· in Nd" in the urgency
             colour — red inside 30 days, amber to 90 — carrying its weight. */}
-      <td style="white-space:nowrap;font-variant-numeric:tabular-nums"><span style="font-weight:400;color:${renDateColor}">${renDate}</span>${renIn?` <span style="font-size:13px;font-weight:400;color:${renColor}">· ${renIn}</span>`:''}</td>
+      <td style="white-space:nowrap;font-variant-numeric:tabular-nums"><span style="font-weight:var(--w-body);color:${renDateColor}">${renDate}</span>${renIn?` <span style="font-size:var(--t-meta);font-weight:var(--w-body);color:${renColor}">· ${renIn}</span>`:''}</td>
       ${''/* ---- THE STAGE IS A DOT AND A WORD (owner-approved render, 24 Aug
              2026) ---- It was a filled chip, and five of them running down the
              middle of the page read as five buttons. The dot is the shape a
@@ -789,8 +898,8 @@ function regRowsHtml(cs){
              no verb. */}
       ${neg ? `<td style="text-align:right;white-space:nowrap">${negoMovePillHtml(c)}</td>` : `
       <td class="reg-cell-menu" style="position:relative;text-align:right;white-space:nowrap" onclick="event.stopPropagation()">
-        <button data-menu="${c.id}" style="border:0;background:none;cursor:pointer;padding:0 4px;line-height:var(--row-line-1);color:var(--color-neutral-600);font-size:13px;letter-spacing:1px;vertical-align:middle" title="${i18t('reg_more_actions')}">⋯</button>
-        <div data-menu-pop="${c.id}" style="display:none;position:absolute;right:8px;top:34px;z-index:30;width:180px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:0;padding:4px;flex-direction:column;text-align:left">${actBtns(c)}</div>
+        <button data-menu="${c.id}" style="border:0;background:none;cursor:pointer;padding:0 var(--s-1);line-height:var(--row-line-1);color:var(--color-neutral-600);font-size:var(--t-meta);letter-spacing:1px;vertical-align:middle" title="${i18t('reg_more_actions')}">⋯</button>
+        <div data-menu-pop="${c.id}" style="display:none;position:absolute;right:8px;top:34px;z-index:30;width:180px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:0;padding:var(--s-1);flex-direction:column;text-align:left">${actBtns(c)}</div>
       </td>`}
     </tr>`;}).join('')
     /* Any band with no rows under it still gets its header and its zero — and
@@ -815,11 +924,60 @@ function wireRegRows(){
      page, where a row opens the NEGOTIATION. Same table, same builder, one
      different destination, decided off the row's own attribute rather than off
      the scope flag so a row can never disagree with the page that drew it. */
-  document.querySelectorAll('#reg-tbody [data-row]').forEach(el=>el.addEventListener('click',()=>{
+  const openRow=el=>{
     const id=el.getAttribute('data-row');
     if(el.getAttribute('data-nego-row')&&window.openRedlineWorkbench) openRedlineWorkbench(id);
     else selectContract(id);
-  }));
+  };
+  document.querySelectorAll('#reg-tbody [data-row]').forEach(el=>el.addEventListener('click',()=>openRow(el)));
+
+  /* ═══ ARROW KEYS THROUGH THE LIST — the single biggest "this feels fast"
+     signal, and the one every benchmark has and HaTi did not ═══════════════
+     MEASURED before this: js/views/register.js contained zero ArrowDown
+     handling, and on the Negotiations page the row press was the SOLE route
+     in — that list was mouse-only outright.
+
+     ROVING TABINDEX, NOT role="grid". One row is in the tab order at a time
+     and the arrows move which; the table stays a table. Declaring role="grid"
+     would change how the whole thing is announced and how every cell is
+     addressed, which is a much larger claim than "the arrows work" and would
+     reach every existing reading of this table.
+
+     THE BAND HEADINGS ARE SKIPPED BY CONSTRUCTION: they carry no data-row —
+     they are role="presentation" grouping rows with no tab stop — so the
+     query below simply never sees them and Down steps from the last row of
+     one band to the first of the next.
+
+     ONE DELEGATED LISTENER on the tbody, not one per row: this body repaints
+     on every filter, sort and page change, and a listener per row would stack
+     one set per repaint. */
+  const tbody=document.getElementById('reg-tbody');
+  if(tbody && !tbody.dataset.regKeysBound){
+    tbody.dataset.regKeysBound='1';
+    tbody.addEventListener('keydown',e=>{
+      const row=e.target.closest && e.target.closest('[data-row]');
+      if(!row) return;
+      /* A control INSIDE the row owns its own keys — the ⋯ menu button and
+         the family toggle are real buttons and Enter must press them, not
+         open the contract behind them. */
+      if(e.target!==row && /^(BUTTON|A|INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+      const rows=[...tbody.querySelectorAll('[data-row]')];
+      const i=rows.indexOf(row);
+      let to=-1;
+      if(e.key==='ArrowDown') to=Math.min(i+1,rows.length-1);
+      else if(e.key==='ArrowUp') to=Math.max(i-1,0);
+      else if(e.key==='Home') to=0;
+      else if(e.key==='End') to=rows.length-1;
+      else if(e.key==='Enter'||e.key===' '){ e.preventDefault(); openRow(row); return; }
+      else return;
+      e.preventDefault();
+      const next=rows[to]; if(!next||next===row) return;
+      row.setAttribute('tabindex','-1');
+      next.setAttribute('tabindex','0');
+      next.focus({preventScroll:true});
+      next.scrollIntoView({block:'nearest'});
+    });
+  }
   // expand / collapse an agreement's linked documents
   document.querySelectorAll('#reg-tbody [data-fam-toggle]').forEach(b=>b.addEventListener('click',e=>{
     e.stopPropagation(); const R=regState(); const id=b.getAttribute('data-fam-toggle');
@@ -906,7 +1064,7 @@ function renderRegister(opts){
      exactly what happened: the arrow vanished entirely. Base64 has no quotes
      in it, so it survives the trip into the attribute. */
   const selChevron='url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0ibTYgOSA2IDYgNi02Ii8+PC9zdmc+)';
-  const selStyle='font:inherit;font-size:13px;border:1px solid var(--field-line);background-color:var(--color-surface);border-radius:0;padding:5px 26px 5px 9px;color:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:'+selChevron+';background-repeat:no-repeat;background-position:right 8px center;background-size:12px';
+  const selStyle='font:inherit;font-size:var(--t-meta);border:1px solid var(--field-line);background-color:var(--color-surface);border-radius:0;padding:5px 26px 5px 9px;color:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:'+selChevron+';background-repeat:no-repeat;background-position:right 8px center;background-size:12px';
   /* ---- ONE FILTER BAR, NOT THREE TIERS OF PILLS ----
      Stages, streams and saved views used to be three full-width rows of pills
      (plus a legend band and an export band) stacked above the table — the
@@ -930,21 +1088,33 @@ function renderRegister(opts){
      dark answer and measures 9.59:1; the button beside it has read it since
      23 Aug and this control simply never did. The BORDER is fine either way
      (4.77:1) and is untouched. */
-  const selFilter=(id,opts,active,title,label)=>`<label class="reg-f"><span class="reg-f-l">${esc(label||title)}</span><select id="${id}" title="${title}" style="${selStyle};max-width:180px${active?';border-color:var(--color-accent);color:var(--accent-ink);font-weight:600':''}">${opts}</select></label>`;
+  const selFilter=(id,opts,active,title,label)=>`<label class="reg-f"><span class="reg-f-l">${esc(label||title)}</span><select id="${id}" title="${title}" style="${selStyle};max-width:180px${active?';border-color:var(--color-accent);color:var(--accent-ink);font-weight:var(--w-strong)':''}">${opts}</select></label>`;
   const stageOpts=REG_STAGES.map(s=>`<option value="${s.k}" ${R.stage===s.k?'selected':''}>${s.label}</option>`).join('');
   const typeOpts=regTypes().map(t=>`<option value="${t.k}" ${R.type===t.k?'selected':''}>${t.label}</option>`).join('');
   const viewOpts=`<option value="" ${R.view?'':'selected'}>${i18t('reg_saved_views')}</option>`
     +REG_VIEWS.map(v=>`<option value="${v.k}" ${R.view===v.k?'selected':''}>${v.label}</option>`).join('');
+  /* ---- RENEWAL IS BACK, AND IT IS OFF THE BAR BY DEFAULT ----
+     Recovered unchanged from before WO-15 removed it, except that it now goes
+     through selFilter like the other six rather than carrying its own copy of
+     the markup — one builder is what stops them drifting. Every key it needs
+     was still in both dictionaries. */
+  const renewalActive=!!R.renewal&&R.renewal!=='all';
+  const renewalOpts=[['all',i18t('reg_any')],['auto-renew',i18t('reg_renew_auto')],
+                     ['fixed',i18t('reg_fixed')],['evergreen',i18t('reg_evergreen')]]
+    .map(([k,l])=>`<option value="${k}" ${(R.renewal||'all')===k?'selected':''}>${l}</option>`).join('');
+  const BAR=regBarShown(R);
+  const densityOpts=['comfortable','compact','condensed']
+    .map(k=>`<option value="${k}" ${regDensity()===k?'selected':''}>${esc(i18t('reg_density_'+k))}</option>`).join('');
   const filtered=R.stage!=='all'||R.type!=='all'||!!R.view||(R.renewal&&R.renewal!=='all')||(R.category&&R.category!=='all')||!!R.only;
   /* THE CHIP IS THE NARROWING AND THE WAY OUT OF IT, in one object — see
      regShowOnly. It leads the bar because it is the widest statement on it:
      every dropdown beside it narrows within this set. */
   const onlyChip=R.only?`<span id="reg-only-chip" title="${esc(i18t('reg_only_title'))}"
-      style="display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;border-radius:0;padding:5px 6px 5px 10px;
-        background:var(--color-accent-100);border:1px solid var(--color-accent-300);color:var(--color-accent-800)">
+      style="display:inline-flex;align-items:center;gap:7px;font-size:var(--t-meta);font-weight:var(--w-strong);border-radius:0;padding:5px 6px 5px 10px;
+        background:var(--st-steel-bg);border:1px solid var(--st-steel-line);color:var(--st-steel-fg)">
       <span>${esc(R.only.label||i18t('reg_only_fallback'))}</span>
       <button id="reg-only-clear" title="${esc(i18t('reg_only_clear'))}" aria-label="${esc(i18t('reg_only_clear'))}"
-        style="border:0;background:none;font:inherit;font-size:14px;line-height:1;color:inherit;cursor:pointer;padding:0 3px;opacity:.7">&times;</button>
+        style="border:0;background:none;font:inherit;font-size:var(--t-body);line-height:1;color:inherit;cursor:pointer;padding:0 3px;opacity:.7">&times;</button>
     </span>`:'';
   /* ---- AND THE LOCKED ONE, WHICH SAYS WHAT THE PAGE IS ----
      It wears the accent like the chip above it and carries a padlock, and it
@@ -966,9 +1136,15 @@ function renderRegister(opts){
   // Clickable, sortable column header: shows a dim ↕ when inactive and a solid
   // ▲/▼ for the active sort direction. Clicking toggles asc/desc (see wiring below).
   const sortCaret=key=>R.sort===key
-    ? `<span style="margin-left:4px;font-size:10px;color:var(--color-accent-700)">${R.dir===1?'▲':'▼'}</span>`
-    : `<span class="reg-sort-idle" style="margin-left:4px;font-size:10px;color:var(--color-neutral-400)">↕</span>`;
-  const sortableTh=(key,label,extra='')=>`<th class="reg-th-sort${R.sort===key?' active':''}" data-reg-sort="${key}" title="${i18t('reg_sort_by',{col:label})}" aria-sort="${R.sort===key?(R.dir===1?'ascending':'descending'):'none'}" style="cursor:pointer;user-select:none;${extra}">${label}${sortCaret(key)}</th>`;
+    ? `<span style="margin-left:var(--s-1);font-size:var(--t-figure);color:var(--accent-ink-700)">${R.dir===1?'▲':'▼'}</span>`
+    : `<span class="reg-sort-idle" style="margin-left:var(--s-1);font-size:var(--t-figure);color:var(--color-neutral-400)">↕</span>`;
+  /* ---- A COLUMN HEAD IS A CONTROL, SO IT TAKES THE KEYBOARD ---- (25 Aug 2026)
+     It carried a click, a pointer cursor and aria-sort — everything except a
+     way to press it without a mouse. role="button" and a tab stop are what
+     make the existing handler reachable; Enter and Space are wired beside the
+     click rather than in it, because a <th> is not a <button> and fires
+     neither by itself. */
+  const sortableTh=(key,label,extra='')=>`<th class="reg-th-sort${R.sort===key?' active':''}" data-reg-sort="${key}" role="button" tabindex="0" title="${i18t('reg_sort_by',{col:label})}" aria-sort="${R.sort===key?(R.dir===1?'ascending':'descending'):'none'}" style="cursor:pointer;user-select:none;${extra}">${label}${sortCaret(key)}</th>`;
   const catActive=!!(R.category&&R.category!=='all');
   const catOpts=[['all',i18t('reg_any')]].concat(regCategories().map(k=>[k,regCatLabel(k)]))
     .concat([['none',i18t('reg_uncategorised')]]);
@@ -976,7 +1152,7 @@ function renderRegister(opts){
      control. They take the same stacked label as the three above so the bar
      reads as one row of filters rather than two conventions. */
   const categorySel=`<label class="reg-f"><span class="reg-f-l">${esc(i18t('me_category'))}</span>
-    <select id="reg-category" style="${selStyle}${catActive?';border-color:var(--color-accent);color:var(--accent-ink);font-weight:600':''}">${catOpts.map(([k,l])=>`<option value="${k}" ${(R.category||'all')===k?'selected':''}>${l}</option>`).join('')}</select></label>`;
+    <select id="reg-category" style="${selStyle}${catActive?';border-color:var(--color-accent);color:var(--accent-ink);font-weight:var(--w-strong)':''}">${catOpts.map(([k,l])=>`<option value="${k}" ${(R.category||'all')===k?'selected':''}>${l}</option>`).join('')}</select></label>`;
   /* ---- NO RENEWAL FILTER (owner-asked 24 Aug 2026, twice: "delete ... the
      filter i have highlighted", and again for the Negotiations seat) ----
      THE CONTROL GOES AND THE READING STAYS. regFiltered still knows how to
@@ -1010,8 +1186,8 @@ function renderRegister(opts){
              plainly wrong once it joined the row, which is the head-row lesson
              of 22 Aug in a smaller costume. Matched to selStyle's own padding
              rather than given a height of its own, so the two cannot drift. */}
-      <input id="reg-search" value="${R.query.replace(/"/g,'&quot;')}" placeholder="${esc(i18t('reg_search_ph'))}" style="width:100%;border:1px solid var(--field-line);background:var(--color-surface);border-radius:0;padding:5px 9px 5px 30px;font:inherit;font-size:13px;outline:none;color:inherit">
-      <div id="reg-fts" class="hidden" style="position:absolute;z-index:40;margin-top:4px;width:100%;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:0;max-height:320px;overflow-y:auto"></div>
+      <input id="reg-search" value="${R.query.replace(/"/g,'&quot;')}" placeholder="${esc(i18t('reg_search_ph'))}" style="width:100%;border:1px solid var(--field-line);background:var(--color-surface);border-radius:0;padding:5px 9px 5px 30px;font:inherit;font-size:var(--t-meta);outline:none;color:inherit">
+      <div id="reg-fts" class="hidden" style="position:absolute;z-index:40;margin-top:var(--s-1);width:100%;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:0;max-height:320px;overflow-y:auto"></div>
     </label>`:'';
 
   const hostEl=document.getElementById(_regOpts.hostId)||document.getElementById('content');
@@ -1057,7 +1233,7 @@ function renderRegister(opts){
          which is that check's other half.
          DIVERGES FROM THE DESIGN REFERENCE, whose type scale puts table row
          text at 14px. Recorded as the owner's ruling. */
-      .reg-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:13px}
+      .reg-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:var(--t-meta)}
       .reg-table thead th{position:sticky;top:0;z-index:3}
       /* ---- THE COLUMN HEADS ARE NOT SHOUTED (owner-asked 24 Aug 2026: "the
          headers highlighted should not be in capital letters apart from the
@@ -1072,7 +1248,7 @@ function renderRegister(opts){
          DIVERGES FROM THE DESIGN REFERENCE, which states uppercase column
          headers twice — in its type scale and again in its letter-spacing
          rule. The owner has seen both and ruled. Recorded, not drift. */
-      .reg-table th{text-align:left;font-size:12px;font-weight:700;
+      .reg-table th{text-align:left;font-size:var(--t-label);font-weight:var(--w-title);
         color:var(--color-neutral-500);padding:var(--s-2) var(--pad-row-x);
         border-bottom:1px solid var(--color-divider);white-space:nowrap;
         background:var(--color-surface)}
@@ -1092,8 +1268,21 @@ function renderRegister(opts){
       .reg-table td{padding:var(--pad-row);border-bottom:1px solid var(--rule);vertical-align:middle;
         overflow:hidden}
       .reg-table tbody tr:last-child td{border-bottom:0}
-      .reg-table tbody tr{transition:background .12s}
+      .reg-table tbody tr{transition:background var(--dur-1)}
       .reg-table tbody tr:hover{background:color-mix(in srgb,var(--color-text) 4%,transparent)}
+      /* ---- THE KEYBOARD'S OWN ROW, AND WHY IT IS NOT AN OUTLINE ----
+         With border-collapse:collapse a <tr> paints no box of its own, so an
+         outline or a border on the row draws nothing at all — the cells own
+         the edges. Two inset shadows on every cell give one continuous rule
+         across the whole row instead of a box per cell, which is what an
+         outline would have looked like if it had worked.
+         :focus-visible, so a mouse press never draws it — the arrows and Tab
+         do. --focus-color, so it follows the theme like every other ring
+         (and it now has a dark answer, 25 Aug). */
+      .reg-table tbody tr[data-row]:focus{outline:none}
+      .reg-table tbody tr[data-row]:focus-visible td{
+        background:color-mix(in srgb,var(--color-text) 6%,transparent);
+        box-shadow:inset 0 2px 0 var(--focus-color),inset 0 -2px 0 var(--focus-color)}
       /* The tracking number leads the row, so it is set in the figure face and
          never wraps — an id that breaks across two lines stops being an id.
          Teal, like the mockup: the id is the row's own link-coloured handle. */
@@ -1117,14 +1306,14 @@ function renderRegister(opts){
          title's own size it competes with the title and costs every row four
          pixels of height. It is the one place in a row where a size difference
          is carrying something. */
-      .reg-table{--reg-row-h:36px}
-      .reg-mk{font-family:var(--font-mono);font-size:13px;font-weight:400;
-        color:var(--color-accent-600);white-space:nowrap;font-variant-numeric:tabular-nums}
+      .reg-table{--reg-row-h:36px}   /* the fallback; regDensityVars overrides it per render */
+      .reg-mk{font-family:var(--font-mono);font-size:var(--t-meta);font-weight:var(--w-body);
+        color:var(--accent-ink-700);white-space:nowrap;font-variant-numeric:tabular-nums}
       /* The status chip, flattened HERE and not at .badge — that class dresses
          every card, list and panel in the product, and this is a decision about
          a table row. The wash and the ink are untouched. */
-      .reg-table .badge{font-size:13px;font-weight:400}
-      .reg-title{font-weight:400;color:var(--color-text);line-height:var(--row-line-1)}
+      .reg-table .badge{font-size:var(--t-meta);font-weight:var(--w-body)}
+      .reg-title{font-weight:var(--w-body);color:var(--color-text);line-height:var(--row-line-1)}
       /* ---- THE ROW IS ONE LINE AND 36px (owner-ruled 24 Aug 2026) ----
          The cell padding is what sets it: 8px above and below a 20px line box
          is 36, which is the design's own --row-h. It was 4px above and below
@@ -1156,7 +1345,12 @@ function renderRegister(opts){
          correction toward the design, not a workaround.
          NOTHING IS LOST SILENTLY: every cell that can be cut already carries
          its full text on hover, and the ellipsis is what says there is more. */
-      .reg-table td{height:var(--reg-row-h);padding:0 var(--pad-row-x);line-height:var(--row-line-1);
+      /* PADDING AND LEADING MOVE WITH THE HEIGHT — see REG_DENSITY. The
+         fallbacks are the historic values, so a table rendered before the
+         mode existed (or by a caller that does not set it) draws exactly as
+         it always did. */
+      .reg-table td{height:var(--reg-row-h);padding:0 var(--reg-row-px,var(--pad-row-x));
+        line-height:var(--reg-row-line,var(--row-line-1));
         overflow:hidden;text-overflow:ellipsis}
       .reg-table th{overflow:hidden;text-overflow:ellipsis}
       /* ---- EXCEPT THE CELL THAT HOSTS THE ROW MENU (owner-reported 25 Aug
@@ -1204,10 +1398,21 @@ function renderRegister(opts){
          own padding so the white runs to the shell's edge, and the padding
          puts it back inside so nothing it contains moves by a pixel — the
          room band's own trick, and asserted rather than assumed. */
+      ${''/* IT STAYS --color-surface, AND THAT IS AN OWNER RULING, NOT AN
+             OVERSIGHT. The 25 Aug surface ladder gave this strip --surface-2 on
+             the reasoning that a filter bar is a raised layer on the card — and
+             it is, everywhere else in this product. HERE it is not allowed to
+             be: the owner reported the head and this band reading as two cards
+             with a strip between them ("make it one card"), and the fix was to
+             make them one white object running to the screen's edge. A tone
+             here puts that seam straight back — MEASURED, contracts-page 8a and
+             15 both failed on it within the hour.
+             --surface-2 draws on menus and drawers instead, where "a layer
+             above the page" is the whole reading and no ruling covers it. */}
       .reg-band{background:var(--color-surface);border-bottom:1px solid var(--color-divider);
         margin:calc(var(--page-pad-t) * -1) calc(var(--page-pad-x) * -1) 0;
         padding:var(--page-pad-t) var(--page-pad-x) 10px;
-        display:flex;flex-direction:column;gap:8px}
+        display:flex;flex-direction:column;gap:var(--s-2)}
       /* AND THE PAGE'S NAME IS ON THE BAND WITH IT. The title, its sentence and
          the one act are drawn by the SHELL into #page-head, which is a sibling
          ABOVE #content and cannot be wrapped from in here — so it is painted
@@ -1245,14 +1450,14 @@ function renderRegister(opts){
          A page that has to hide an overflow to look right is one pixel from
          scrolling sideways. */
       .reg-f{display:flex;flex-direction:column;min-width:0}
-      .reg-f-l{font-size:12px;color:var(--color-neutral-600);margin-bottom:3px;white-space:nowrap}
-      .reg-stg{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;font-weight:400;vertical-align:middle}
+      .reg-f-l{font-size:var(--t-label);color:var(--color-neutral-600);margin-bottom:3px;white-space:nowrap}
+      .reg-stg{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;font-weight:var(--w-body);vertical-align:middle}
       .reg-stg i{width:8px;height:8px;border-radius:50%;flex:none;background:currentColor}
-      .reg-th-sort:hover{color:var(--color-accent-700)!important}
-      .reg-th-sort:hover .reg-sort-idle{color:var(--color-accent-700)}
-      .reg-th-sort.active{color:var(--color-accent-800)!important}
+      .reg-th-sort:hover{color:var(--accent-ink-700)!important}
+      .reg-th-sort:hover .reg-sort-idle{color:var(--accent-ink-700)}
+      .reg-th-sort.active{color:var(--accent-ink)!important}
     </style>
-    <div style="display:flex;flex-direction:column;gap:8px;flex:1;min-height:0">
+    <div style="display:flex;flex-direction:column;gap:var(--s-2);flex:1;min-height:0">
       ${''/* THE BAND — the page's own name, its filters and its search on one
              white ground, with the table's card below it on the page grey. */}
       <div class="reg-band">
@@ -1262,17 +1467,29 @@ function renderRegister(opts){
            then sort, full-text search (server mode) and the export — a single
            compact strip where three tiers of pills used to stack, so the table
            itself starts above the fold. -->
-      <div class="reg-filterbar" style="display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-end">
+      <div class="reg-filterbar" style="display:flex;flex-wrap:wrap;gap:var(--s-2) 10px;align-items:flex-end">
         ${lockChip}
         ${onlyChip}
         ${ftsBlock}
-        ${selFilter('reg-stage-sel',stageOpts,R.stage!=='all',i18t('reg_lifecycle_stage'))}
-        ${selFilter('reg-type-sel',typeOpts,R.type!=='all',i18t('reg_value_stream'))}
+        ${''/* ---- ONLY THE CHOSEN FILTERS DRAW, PLUS ANY THAT ARE NARROWING ----
+               regBarShown() is the union: what this reader put on their bar,
+               and anything currently cutting the list whether they chose it or
+               not. The second half is the safety property — a hidden control
+               quietly shortening the book is the exact fault WO-15's removal
+               note was guarding against. */}
+        ${BAR.includes('stage')?selFilter('reg-stage-sel',stageOpts,R.stage!=='all',i18t('reg_lifecycle_stage')):''}
+        ${BAR.includes('type')?selFilter('reg-type-sel',typeOpts,R.type!=='all',i18t('reg_value_stream')):''}
         ${''/* The long sentence is the TOOLTIP, not the label — used as a label it
                     ran to 460px and pushed the whole bar off the row. */}
-        ${selFilter('reg-view-sel',viewOpts,!!R.view,i18t('reg_saved_views_title'),i18t('reg_saved_views'))}
-        ${categorySel}
-        ${filtered?`<button id="reg-clear-filters" style="font-size:12px;font-weight:600;color:var(--color-accent-700);background:none;border:0;cursor:pointer;padding:2px 4px">${i18t('reg_clear')}</button>`:''}
+        ${BAR.includes('view')?selFilter('reg-view-sel',viewOpts,!!R.view,i18t('reg_saved_views_title'),i18t('reg_saved_views')):''}
+        ${BAR.includes('category')?categorySel:''}
+        ${BAR.includes('renewal')?selFilter('reg-renewal',renewalOpts,renewalActive,i18t('reg_renewal')):''}
+        ${''/* THE DOOR TO THE REST. A link rather than a button, because it
+               opens a chooser rather than acting on the list — the same
+               weight Fiori gives it. */}
+        <button id="reg-adapt" type="button" title="${esc(i18t('reg_adapt_title'))}"
+          style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink);background:none;border:0;cursor:pointer;padding:2px var(--s-1);align-self:flex-end;margin-bottom:7px">${esc(i18t('reg_adapt'))}</button>
+        ${filtered?`<button id="reg-clear-filters" style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink-700);background:none;border:0;cursor:pointer;padding:2px var(--s-1)">${i18t('reg_clear')}</button>`:''}
         <span style="flex:1;min-width:8px"></span>
         ${''/* ---- SORT IS STACKED LIKE THE OTHER FIVE (owner-asked 25 Aug 2026:
                "stack Sort's label like the other five") ----
@@ -1289,18 +1506,30 @@ function renderRegister(opts){
                flag means "this is narrowing your list", and sorting narrows
                nothing — a sort control wearing the accent would claim the list
                was filtered when it is not. */}
+        ${''/* ---- DENSITY SITS BESIDE SORT, AFTER THE SPACER, AND FOR THE SAME
+               REASON (25 Aug 2026) ----
+               Everything LEFT of the spacer narrows the list; these two change
+               how it is DRAWN. `active` is false for the same reason it is
+               false on Sort: on the five filters that flag means "this is
+               narrowing your list", and a density wearing the accent would
+               claim the book had been filtered when it has not.
+               It goes through selFilter — the same builder as the other six —
+               because one builder is what stops them drifting apart. */}
+        ${selFilter('reg-density',densityOpts,false,i18t('reg_density_title'),i18t('reg_density'))}
         ${selFilter('reg-sort',sortOpts,false,i18t('reg_sort'))}
         ${''/* SORTING RUNS INSIDE A GROUP HERE, and the same control on Contracts
                sorts the whole page. A control that quietly means something else
                is a lie by omission, so the page says it beside the control. */}
-        ${neg?`<span id="reg-sort-note" style="flex:none;font-size:12px;color:var(--color-neutral-500)">${esc(i18t('ngl_sort_note'))}</span>`:''}
+        ${neg?`<span id="reg-sort-note" style="flex:none;font-size:var(--t-label);color:var(--color-neutral-500)">${esc(i18t('ngl_sort_note'))}</span>`:''}
       </div>
       </div>
 
       <section class="blueprint bp-round" style="background:var(--color-surface);box-shadow:var(--shadow-sm);flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden">
 
         <div id="reg-scroll" style="flex:1;min-height:0;overflow:auto">
-          <table class="reg-table">
+          <!-- The whole density mode rides on ONE element as three custom
+               properties, so nothing below has to know which mode is on. -->
+          <table class="reg-table" data-reg-density="${regDensity()}" style="${regDensityVars(regDensity())}">
             <thead>
               <!-- THE PROTOTYPE'S SEVEN, with the tracking number added in front.
                    Sorting is kept on the four columns that carried it before —
@@ -1341,8 +1570,8 @@ function renderRegister(opts){
             <tbody id="reg-tbody">${regRowsHtml(cs)}</tbody>
           </table>
         </div>
-        <div style="flex:none;border-top:1px solid var(--color-divider);display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;padding:5px 12px;font-size:12px;color:var(--color-neutral-600)">
-          <span id="reg-showing">${regFooterText(cs)}</span>
+        <div style="flex:none;border-top:1px solid var(--color-divider);display:flex;align-items:center;justify-content:space-between;gap:10px var(--s-4);flex-wrap:wrap;padding:5px var(--s-3);font-size:var(--t-label);color:var(--color-neutral-600)">
+          <span id="reg-showing" role="status" aria-live="polite" aria-atomic="true">${regFooterText(cs)}</span>
           <div id="reg-pager" style="display:flex;align-items:center;gap:6px">${regPager(cs)}</div>
           ${''/* ONE LEGEND DOWN HERE, NOT TWO. The strip carried both the link
                  states (sent · opened · changes · signed · declined · not sent)
@@ -1354,7 +1583,7 @@ function renderRegister(opts){
                  on hover, so it explains itself where a reader is already
                  looking. The folder page keeps its link key — there the strip
                  holds nothing else, and the marks are why it exists. */}
-          ${folderLegendHtml({style:'font-size:12px'})}
+          ${folderLegendHtml({style:'font-size:var(--t-label)'})}
           <span>${neg?esc(i18t('ngl_no_paging')):i18t('reg_per_page',{n:REG_PAGE})}</span>
         </div>
       </section>
@@ -1387,10 +1616,57 @@ function renderRegister(opts){
       if(!e.target.closest('[data-menu-pop]')&&!e.target.closest('[data-menu]')) regCloseMenus();
     });
   }
+  /* ---- "ADAPT FILTERS" ----
+     It goes through openModal, which this product already gets right: role,
+     aria-modal, a name, focus in, Tab cycling and focus back to the opener.
+     A second hand-rolled panel would be a second implementation of all of
+     that, and this file's own rule is one builder per job. */
+  document.getElementById('reg-adapt')?.addEventListener('click',()=>{
+    const chosen=regBarChosen();
+    const rows=REG_BAR_FILTERS.map(f=>{
+      const on=chosen.includes(f.k);
+      /* A FIXED FILTER IS SHOWN TICKED AND DISABLED rather than hidden: a
+         chooser that silently omits two of the six leaves the reader counting
+         and wondering where they went. It says what it is instead. */
+      return `<label style="display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--color-divider);${f.fixed?'opacity:.6':'cursor:pointer'}">
+        <input type="checkbox" data-adapt="${f.k}" ${on?'checked':''} ${f.fixed?'disabled':''} style="width:15px;height:15px;flex:none;accent-color:var(--accent-solid)"/>
+        <span style="flex:1;font-size:var(--t-body)">${esc(f.label)}</span>
+        ${f.fixed?`<span style="font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">${esc(i18t('reg_adapt_always'))}</span>`:''}
+      </label>`;
+    }).join('');
+    openModal(`
+      <div style="padding:var(--s-4) 18px 10px;border-bottom:1px solid var(--color-divider)">
+        <h3 style="margin:0;font-size:var(--t-section);font-weight:var(--w-title)">${esc(i18t('reg_adapt_title'))}</h3>
+        <p style="margin:var(--s-1) 0 0;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.5">${esc(i18t('reg_adapt_sub'))}</p>
+      </div>
+      <div style="padding:var(--s-1) 18px var(--s-2)">${rows}</div>
+      <div style="padding:var(--s-3) 18px var(--s-4);display:flex;gap:var(--s-2);align-items:center">
+        <button id="reg-adapt-reset" class="ui-btn ui-btn-plain">${esc(i18t('reg_adapt_reset'))}</button>
+        <span style="flex:1"></span>
+        <button id="reg-adapt-done" class="ui-btn ui-btn-primary">${esc(i18t('act_done'))}</button>
+      </div>`,{label:i18t('reg_adapt_title'),maxWidth:'440px'});
+    const read=()=>[...document.querySelectorAll('[data-adapt]:checked')].map(b=>b.getAttribute('data-adapt'));
+    document.getElementById('reg-adapt-reset')?.addEventListener('click',()=>{
+      regBarSetChosen(REG_BAR_DEFAULT.slice()); closeModal(); regRepaint();
+    });
+    document.getElementById('reg-adapt-done')?.addEventListener('click',()=>{
+      regBarSetChosen(read()); closeModal(); regRepaint();
+    });
+  });
+
+  /* A DENSITY CHANGE IS A REPAINT, NOT A NAVIGATION: the page, the filters and
+     the reader's place are all untouched — only the rows' rhythm moves. */
+  document.getElementById('reg-density')?.addEventListener('change',e=>{
+    if(regSetDensity(e.target.value)) regRepaint();
+  });
   document.getElementById('reg-sort')?.addEventListener('change',e=>{ R.sort=e.target.value; R.dir=REG_SORT_DEFDIR[R.sort]||-1; R.page=1; regRepaint(); });
   // Column-header sorting: click a header to sort by it; click the active header
   // again to flip ascending/descending. First click uses the column's natural
   // direction (e.g. renewal nearest-first, value high-first).
+  document.querySelectorAll('[data-reg-sort]').forEach(el=>el.addEventListener('keydown',e=>{
+    if(e.key!=='Enter' && e.key!==' ' && e.key!=='Spacebar') return;
+    e.preventDefault(); el.click();
+  }));
   document.querySelectorAll('[data-reg-sort]').forEach(el=>el.addEventListener('click',()=>{
     const key=el.getAttribute('data-reg-sort');
     if(R.sort===key) R.dir=-R.dir; else { R.sort=key; R.dir=REG_SORT_DEFDIR[key]||-1; }
@@ -1447,15 +1723,15 @@ function ftsSearch(q){
   ftsTimer=setTimeout(async()=>{
     try{
       const r=await api('search?q='+encodeURIComponent(q)+'&limit=12');
-      if(!r.hits||!r.hits.length){ box.innerHTML=`<div style="padding:10px 12px;font-size:13px;color:var(--color-neutral-600)">${i18t('reg_no_fulltext')}</div>`; box.classList.remove('hidden'); return; }
-      box.innerHTML=r.hits.map(h=>`<button data-fts-open="${h.id}" style="display:block;width:100%;text-align:left;padding:8px 12px;border:0;border-bottom:1px solid var(--color-divider);background:none;cursor:pointer;font:inherit">
-        <div style="font-size:14px;font-weight:600;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(h.name||h.id)} <span style="font-family:var(--font-mono);font-size:12px;color:var(--color-neutral-500)">${h.id}</span></div>
-        ${h.snippet?`<div style="font-size:12px;color:var(--color-neutral-600);margin-top:2px">${h.snippet.replace(/</g,'&lt;').replace(/\[/g,'<mark style="background:var(--st-amber-bg);border-radius:0;padding:0 2px">').replace(/\]/g,'</mark>')}</div>`:(h.counterparty?`<div style="font-size:12px;color:var(--color-neutral-500)">${h.counterparty}</div>`:'')}
+      if(!r.hits||!r.hits.length){ box.innerHTML=`<div style="padding:10px var(--s-3);font-size:var(--t-meta);color:var(--color-neutral-600)">${i18t('reg_no_fulltext')}</div>`; box.classList.remove('hidden'); return; }
+      box.innerHTML=r.hits.map(h=>`<button data-fts-open="${h.id}" style="display:block;width:100%;text-align:left;padding:var(--s-2) var(--s-3);border:0;border-bottom:1px solid var(--color-divider);background:none;cursor:pointer;font:inherit">
+        <div style="font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(h.name||h.id)} <span style="font-family:var(--font-mono);font-size:var(--t-label);color:var(--color-neutral-500)">${h.id}</span></div>
+        ${h.snippet?`<div style="font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px">${h.snippet.replace(/</g,'&lt;').replace(/\[/g,'<mark style="background:var(--st-amber-bg);border-radius:0;padding:0 2px">').replace(/\]/g,'</mark>')}</div>`:(h.counterparty?`<div style="font-size:var(--t-label);color:var(--color-neutral-500)">${h.counterparty}</div>`:'')}
       </button>`).join('');
       box.classList.remove('hidden');
       box.querySelectorAll('[data-fts-open]').forEach(b=>b.addEventListener('click',()=>{ box.classList.add('hidden'); openWorkspace(b.getAttribute('data-fts-open')); }));
     }catch(e){ box.classList.add('hidden'); }
   },220);
 }
-Object.assign(window,{regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,regShowOnly,renderRegister,renderRegisterBody,wireRegRows,
+Object.assign(window,{REG_BAR_FILTERS,REG_BAR_DEFAULT,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,regShowOnly,renderRegister,renderRegisterBody,wireRegRows,
   regScope,regSetScope,regRepaint,regPageSize,regFitBandOffset,NEGO_BANDS,NEGO_BAND_DOT,negoGroupByMove,negoBandCounts,negoMovePillHtml,negoBandRowHtml});

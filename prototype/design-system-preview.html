@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HaTi — Design system preview</title>
+<link rel="stylesheet" href="../fonts/fonts.css" />
+<style>
+/* ============================================================================
+   HaTi — DESIGN SYSTEM PREVIEW
+   Companion to DESIGN-SYSTEM-SPEC.md and UI-UX-AUDIT-AND-ROADMAP.md.
+
+   WHAT THIS FILE IS. A working showcase of the design system HaTi already
+   declares in index.html's :root, drawn correctly — plus the four ladders the
+   spec adds (motion, breakpoints, density, elevation-by-tone). Every token
+   name below is HaTi's OWN name. Nothing here is invented vocabulary, so a
+   value proved here can be pasted into index.html and will land on the same
+   token every view already reads.
+
+   WHY IT EXISTS. index.html declares --t-display..--t-figure and --s-0..--s-12
+   and then 2,394 font-size declarations and 3,566 padding declarations ignore
+   them (2 consumers each, measured). You cannot see a ladder that nothing
+   stands on. This page stands the whole product on it, so the ladder can be
+   judged before the sweep that adopts it.
+
+   THE THREE TOGGLES ARE THE POINT, not chrome. Each one is a decision the
+   audit found HaTi has taken implicitly and never re-examined side by side:
+
+     THEME      light / dark. 24 colour tokens carry no dark answer, and 40
+                `color:var(--color-accent-800)` declarations land at 2.35:1 on
+                the night panel. Flip this and read the "Status & semantics"
+                and "Buttons" rows: everything here is theme-complete, which is
+                what the product is not yet.
+
+     DENSITY    comfortable 44 / compact 36 / condensed 30. SAP Fiori ships
+                three row heights because a contract register and an approval
+                queue are not read the same way. HaTi has ONE (36px, typed once
+                as --reg-row-h with one consumer). The whole table below
+                re-rhythms from a single token.
+
+     RADIUS     0px / 4px. HaTi swept ~810 radii to 0 on the owner's own ask,
+                and every benchmark in the brief (Apple, Linear, Stripe,
+                Vercel, Ramp) uses 4-8px. THIS FILE DOES NOT ARGUE. It shows
+                both at full fidelity so the owner can look once and rule. The
+                default here is 0 — the owner's standing decision — and the
+                spec records it as a ruling, not a defect.
+
+   READ IT AT 1280px OR WIDER for the shell section; it degrades to a single
+   column below 900px, which is the responsive behaviour the spec asks for.
+   ========================================================================== */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   1 · TOKENS
+   The colour, type, spacing, border, shadow and status tokens are HaTi's own,
+   copied from index.html :root so this page is a true preview and not a
+   parallel invention. The MOTION, BREAKPOINT, DENSITY and TONAL-ELEVATION
+   ladders are what the spec adds — they are marked NEW.
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root{
+  /* -- surfaces & ink (HaTi's own) -- */
+  --color-bg:#EDF1F2;
+  --color-surface:#ffffff;
+  --color-text:#0E1A18;
+  --color-divider:#DFE4E3;
+  --rule-strong:#C6CFCD;
+  --rule-faint:#ECEFEE;
+  --field-line:#8A9795;
+
+  --color-neutral-400:#8A9997;
+  --color-neutral-600:#54635F;   /* SECONDARY ink — labels, 11-13px */
+  --color-neutral-900:#0E1A18;   /* PRIMARY ink — 14px and up */
+
+  /* -- accent ramp (HaTi's own teal workspace) -- */
+  --color-accent-50:#f0fdfa;  --color-accent-100:#ccfbf1; --color-accent-200:#99f6e4;
+  --color-accent-300:#5eead4; --color-accent-400:#2dd4bf; --color-accent-500:#14b8a6;
+  --color-accent-600:#0d9488; --color-accent-700:#0f766e; --color-accent-800:#115e59;
+  --color-accent-900:#134e4a;
+  --accent-solid:var(--color-accent-600);
+  /* THE ONE ACCENT TOKEN WITH A DARK ANSWER. Every accent used as INK must
+     read this and never the raw ramp — that is the single highest-value fix
+     in the audit (40 declarations at 2.35:1 at night). */
+  --accent-ink:var(--color-accent-800);
+  --btn-edge:color-mix(in srgb,var(--accent-solid) 45%,transparent);
+
+  --nav-bg:#093733;
+  --nav-well:rgba(255,255,255,.08);
+  --nav-ink:#ffffff;
+
+  /* -- NEW: elevation by TONE, not only by shadow (Linear/Stripe) --
+     A surface one step above its ground should differ in TONE first and carry
+     a shadow only when it genuinely floats. HaTi has --shadow-sm/md/lg and no
+     tonal ladder, so a card and a page currently differ by a shadow alone. */
+  --surface-0:var(--color-bg);        /* the page ground */
+  --surface-1:var(--color-surface);   /* a card, a table, a panel */
+  --surface-2:#F7F9F9;                /* a nested well: a filter bar, a footer */
+  --surface-3:#ffffff;                /* a true float: menu, drawer, modal */
+
+  /* -- type ladder (HaTi's own; 2 consumers today, everything below reads it) -- */
+  --t-display:30px; --t-page:19px; --t-section:17px; --t-card:15px;
+  --t-body:14px;    --t-meta:13px;  --t-label:12px;  --t-micro:11px; --t-figure:10px;
+  --w-body:400; --w-label:500; --w-strong:600; --w-title:700;
+  --lh-tight:1.2; --lh-snug:1.35; --lh-base:1.5; --lh-relaxed:1.6;
+  --ls-micro:.09em; --ls-title:-0.01em; --ls-base:0;
+
+  --font-heading:Inter,system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
+  --font-body:Inter,'Segoe UI',system-ui,-apple-system,Arial,sans-serif;
+  --font-mono:Inter,system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
+
+  /* -- spacing (HaTi's own 4pt grid; 2 consumers today) -- */
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-6:24px; --s-8:32px; --s-10:40px;
+  --page-pad-x:var(--s-6); --page-pad-t:var(--s-4);
+
+  /* -- controls -- */
+  --ctl-h-sm:24px; --ctl-h:28px; --ctl-h-lg:32px; --ctl-h-touch:44px;
+  --pad-ctl-x:var(--s-3);
+  --field-h:36px;
+
+  /* -- NEW: DENSITY. One token drives the whole table's rhythm.
+     Fiori ships cozy/compact/condensed; HaTi ships one 36px row. -- */
+  --row-h:36px;          /* set by [data-density] below */
+  --row-pad-x:var(--s-3);
+
+  /* -- borders, focus, z -- */
+  --border-w:1px;
+  --focus-color:var(--color-accent-700);
+  --focus:0 0 0 2px var(--focus-color);
+  --z-sticky:20; --z-drawer:40; --z-scrim:60; --z-modal:70; --z-menu:80; --z-toast:90;
+
+  /* -- radius: owner-ruled 0. The toggle writes 4px here and nowhere else. -- */
+  --radius:0px;
+
+  /* -- shadows (HaTi's own) -- */
+  --shadow-sm:0 1px 2px rgba(15,23,42,.05), 0 10px 26px -12px rgba(15,23,42,.18);
+  --shadow-md:0 4px 10px rgba(15,23,42,.07), 0 18px 40px -14px rgba(15,23,42,.25);
+  --shadow-lg:0 12px 32px color-mix(in srgb,#0f172a 22%,transparent);
+
+  /* -- NEW: MOTION LADDER. HaTi ships 113 transitions across 12 ad-hoc
+     durations (.12s x63, .15s x58, .13s, .14s, .18s, .22s, .25s, .28s, .2s,
+     .3s ...) and --ease has 5 consumers. Three durations and two curves is
+     what Apple, Linear and Stripe all converge on. -- */
+  --ease:cubic-bezier(.2,.7,.3,1);       /* standard: things that move on screen */
+  --ease-exit:cubic-bezier(.4,0,1,1);    /* leaving: faster out than in */
+  --dur-1:120ms;   /* state change on a control: hover, press, tick */
+  --dur-2:180ms;   /* something appears or repositions: menu, tooltip, chip */
+  --dur-3:240ms;   /* something travels: drawer, panel, modal */
+
+  /* -- status / semantic roles (HaTi's own; fully theme-aware already) -- */
+  --st-gray-bg:#f1f5f9;  --st-gray-fg:#475569;  --st-gray-dot:#94a3b8;  --st-gray-line:#cbd5e1;
+  --st-amber-bg:#fef3c7; --st-amber-fg:#b45309; --st-amber-dot:#f59e0b; --st-amber-line:#e0c48a;
+  --st-green-bg:#d1fae5; --st-green-fg:#047857; --st-green-dot:#10b981; --st-green-line:#a8cbb8;
+  --st-ruby-bg:#ffe4e6;  --st-ruby-fg:#be123c;  --st-ruby-dot:#f43f5e;  --st-ruby-line:#e6c9c1;
+  --st-steel-bg:var(--color-accent-100); --st-steel-fg:var(--color-accent-800);
+  --st-steel-dot:var(--color-accent-500); --st-steel-line:var(--color-accent-200);
+
+  --danger:#dc2626;
+}
+
+/* ── DARK. Every token that carries ink or a rule gets an answer here. The
+   audit's finding is that 24 of HaTi's do not; this block is what complete
+   looks like. ─────────────────────────────────────────────────────────────── */
+[data-theme="dark"]{
+  --color-bg:#020617;
+  --color-surface:#0f172a;
+  --color-text:#EAF1EF;
+  --color-divider:#1e293b;
+  --rule-strong:#2b3a4f;      /* NEW dark answer — light #C6CFCD is 11.2:1 here */
+  --rule-faint:#16202f;       /* NEW dark answer — light #ECEFEE is 15.4:1 here */
+  --field-line:#8A9795;       /* deliberately unchanged: 5.90:1 on the panel */
+
+  --color-neutral-400:#64748b;
+  --color-neutral-600:#94a3b8;
+  --color-neutral-900:#EAF1EF;
+
+  --surface-0:#020617; --surface-1:#0f172a; --surface-2:#111f38; --surface-3:#16233d;
+
+  /* THE FIX, IN ONE LINE. accent-800 is 2.35:1 on this panel; accent-300 is
+     9.59:1. Nothing else about the ramp needs a dark answer, because nothing
+     else should be carrying ink. */
+  --accent-ink:var(--color-accent-300);
+  --btn-edge:color-mix(in srgb,var(--color-accent-400) 45%,transparent);
+
+  --nav-bg:#071f1d;
+  --nav-well:rgba(255,255,255,.10);
+
+  --danger:#f87171;           /* NEW dark answer — #dc2626 is 3.70:1 here */
+
+  --st-gray-bg:#1e293b;  --st-gray-fg:#cbd5e1;  --st-gray-dot:#64748b;  --st-gray-line:#334155;
+  --st-amber-bg:#3a2a08; --st-amber-fg:#fcd34d; --st-amber-dot:#f59e0b; --st-amber-line:#5a431a;
+  --st-green-bg:#062b21; --st-green-fg:#6ee7b7; --st-green-dot:#10b981; --st-green-line:#12513e;
+  --st-ruby-bg:#3a0d1a;  --st-ruby-fg:#fda4af;  --st-ruby-dot:#f43f5e;  --st-ruby-line:#5e1e30;
+  --st-steel-bg:#0c3733; --st-steel-fg:#5eead4; --st-steel-dot:#14b8a6; --st-steel-line:#155e57;
+
+  --shadow-sm:0 1px 2px rgba(0,0,0,.4), 0 10px 26px -12px rgba(0,0,0,.6);
+  --shadow-md:0 4px 10px rgba(0,0,0,.45), 0 18px 40px -14px rgba(0,0,0,.65);
+  --shadow-lg:0 12px 32px rgba(0,0,0,.7);
+}
+
+/* ── DENSITY. Three modes, one token each. ────────────────────────────────── */
+[data-density="comfortable"]{ --row-h:44px; --row-pad-x:var(--s-4); }
+[data-density="compact"]    { --row-h:36px; --row-pad-x:var(--s-3); }
+[data-density="condensed"]  { --row-h:30px; --row-pad-x:var(--s-2); }
+
+/* ── REDUCED MOTION. One block, and it collapses the whole ladder. ────────── */
+@media (prefers-reduced-motion:reduce){
+  :root{ --dur-1:0ms; --dur-2:0ms; --dur-3:0ms; }
+  *,*::before,*::after{ animation-duration:.001ms !important; animation-iteration-count:1 !important; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   2 · BASE
+   ═══════════════════════════════════════════════════════════════════════════ */
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--surface-0); color:var(--color-text);
+  font-family:var(--font-body); font-size:var(--t-body); line-height:var(--lh-base);
+  -webkit-font-smoothing:antialiased; font-feature-settings:'cv11';
+  transition:background var(--dur-2) var(--ease), color var(--dur-2) var(--ease);
+}
+h1,h2,h3{margin:0; font-family:var(--font-heading); letter-spacing:var(--ls-title); line-height:var(--lh-snug);}
+p{margin:0;}
+button{font:inherit; color:inherit;}
+/* THE FOCUS RING IS A BOX-SHADOW, NOT AN OUTLINE. HaTi carries 59 inline
+   `outline:none` declarations that no stylesheet can beat without !important —
+   but none of them sets box-shadow, so the shadow form reaches all of them.
+   This is HaTi's own solution and it is correct; it is reproduced here so the
+   preview cannot accidentally teach the wrong pattern. */
+:focus-visible{ outline:none; box-shadow:var(--focus); }
+
+/* numbers that sit in a column line up. */
+.num{ font-variant-numeric:tabular-nums; font-feature-settings:'tnum' 1; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   3 · PROTOTYPE CHROME — the toolbar. Deliberately NOT part of the system;
+   it is styled plainly so it cannot be mistaken for a component spec.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.pv-bar{
+  position:sticky; top:0; z-index:var(--z-toast);
+  display:flex; flex-wrap:wrap; align-items:center; gap:var(--s-4);
+  padding:10px var(--s-6);
+  background:var(--surface-1); border-bottom:1px solid var(--rule-strong);
+  box-shadow:var(--shadow-sm);
+}
+.pv-bar b{ font-size:var(--t-meta); font-weight:var(--w-title); letter-spacing:var(--ls-micro); text-transform:uppercase; color:var(--color-neutral-600); }
+.pv-group{ display:flex; align-items:center; gap:var(--s-2); }
+.pv-group>span{ font-size:var(--t-label); color:var(--color-neutral-600); }
+.pv-seg{ display:inline-flex; border:1px solid var(--field-line); border-radius:var(--radius); overflow:hidden; }
+.pv-seg button{
+  border:0; background:transparent; cursor:pointer;
+  font-size:var(--t-label); font-weight:var(--w-strong); color:var(--color-neutral-600);
+  padding:0 10px; height:var(--ctl-h);
+  transition:background var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
+}
+.pv-seg button+button{ border-left:1px solid var(--rule-strong); }
+.pv-seg button[aria-pressed="true"]{ background:var(--accent-solid); color:#fff; }
+
+/* section scaffolding for the page */
+.pv-wrap{ max-width:1360px; margin:0 auto; padding:var(--s-8) var(--s-6) 96px; }
+.pv-sec{ margin-top:var(--s-10); }
+.pv-sec>h2{
+  font-size:var(--t-micro); font-weight:var(--w-title); letter-spacing:var(--ls-micro);
+  text-transform:uppercase; color:var(--color-neutral-600);
+  padding-bottom:var(--s-2); border-bottom:1px solid var(--rule-strong); margin-bottom:var(--s-4);
+}
+.pv-note{ font-size:var(--t-meta); color:var(--color-neutral-600); line-height:var(--lh-relaxed); margin:calc(var(--s-2)*-1) 0 var(--s-4); max-width:78ch; }
+.pv-row{ display:flex; flex-wrap:wrap; align-items:center; gap:var(--s-3); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   4 · THE SHELL — 44px bar, 240px column, page header band.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.shell{
+  border:1px solid var(--rule-strong); border-radius:var(--radius); overflow:hidden;
+  background:var(--surface-1); box-shadow:var(--shadow-sm);
+}
+.shell-bar{
+  height:44px; display:flex; align-items:center; gap:var(--s-3);
+  padding:0 var(--s-4); background:var(--nav-bg); color:var(--nav-ink);
+}
+.shell-mark{ font-weight:var(--w-title); font-size:var(--t-card); letter-spacing:var(--ls-title); }
+.shell-title{ font-size:var(--t-meta); color:rgba(255,255,255,.72); }
+.shell-bar .sp{ flex:1; }
+.chip-k{
+  display:inline-flex; align-items:center; gap:6px; height:var(--ctl-h); padding:0 10px;
+  border:1px solid rgba(255,255,255,.28); border-radius:var(--radius);
+  font-size:var(--t-label); color:rgba(255,255,255,.86); background:rgba(255,255,255,.06);
+  cursor:pointer; transition:background var(--dur-1) var(--ease);
+}
+.chip-k:hover{ background:rgba(255,255,255,.14); }
+.chip-k kbd{ font-family:'Courier New',monospace; font-size:var(--t-figure); border:1px solid rgba(255,255,255,.3); padding:1px 4px; border-radius:2px; }
+.shell-avatar{ width:26px; height:26px; border-radius:50%; background:var(--accent-solid); color:#fff; display:grid; place-items:center; font-size:var(--t-micro); font-weight:var(--w-title); }
+
+.shell-body{ display:grid; grid-template-columns:240px minmax(0,1fr); min-height:520px; }
+.shell-nav{ background:var(--surface-1); border-right:1px solid var(--rule-strong); padding:var(--s-3) 0; }
+.nav-cap{ font-size:var(--t-micro); font-weight:var(--w-title); letter-spacing:var(--ls-micro); text-transform:uppercase; color:var(--color-neutral-400); padding:var(--s-3) var(--s-4) var(--s-1); }
+.nav-item{
+  display:flex; align-items:center; gap:10px; width:100%;
+  padding:0 var(--s-4); height:34px; border:0; background:transparent; cursor:pointer;
+  font-size:var(--t-meta); font-weight:var(--w-body); color:var(--color-text); text-align:left;
+  border-left:3px solid transparent;
+  transition:background var(--dur-1) var(--ease);
+}
+.nav-item:hover{ background:var(--nav-well); }
+/* THE LIVE DOOR IS A LEFT RULE PLUS A WELL — never a lighter veil. A veil
+   lightens, which reads as "disabled" on a white column and cannot survive
+   the dark theme without a second rule. */
+.nav-item.on{ background:var(--nav-well); border-left-color:var(--accent-solid); font-weight:var(--w-strong); }
+.nav-item .ico{ width:16px; height:16px; flex:none; opacity:.75; }
+.nav-item.on .ico{ opacity:1; color:var(--accent-ink); }
+.nav-item .sp{ flex:1; }
+.nav-count{ font-size:var(--t-micro); font-weight:var(--w-title); color:var(--color-neutral-600); font-variant-numeric:tabular-nums; }
+.nav-count.warn{ color:var(--st-amber-fg); }
+
+.shell-main{ background:var(--surface-0); min-width:0; }
+.page-head{
+  display:flex; align-items:center; gap:var(--s-3);
+  padding:var(--page-pad-t) var(--page-pad-x);
+  background:var(--surface-1); border-bottom:1px solid var(--rule-strong);
+}
+.page-head h1{ font-size:var(--t-page); font-weight:var(--w-title); }
+.page-head .sp{ flex:1; }
+.page-head .fact{ font-size:var(--t-meta); color:var(--color-neutral-600); }
+.page-body{ padding:var(--s-4) var(--page-pad-x) var(--s-6); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   5 · BUTTONS — three strengths, one rung. Height comes from --ctl-h and
+   padding is horizontal-only, so no control can invent a half-rung box.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.ui-btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  cursor:pointer; font-family:var(--font-heading);
+  font-weight:var(--w-strong); font-size:var(--t-body); line-height:var(--lh-tight);
+  color:var(--accent-ink); background:transparent;
+  border:1px solid var(--btn-edge); border-radius:var(--radius);
+  min-height:var(--ctl-h); padding:0 var(--pad-ctl-x);
+  transition:background var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
+}
+.ui-btn:hover{ background:color-mix(in srgb,var(--accent-solid) 10%,transparent); }
+.ui-btn:not(.ui-btn-primary):hover{ border-color:var(--accent-solid); }
+.ui-btn:active{ transform:translateY(.5px); }
+.ui-btn[disabled],.ui-btn[aria-disabled="true"]{ opacity:.45; cursor:not-allowed; }
+.ui-btn[disabled]:hover{ background:transparent; border-color:var(--btn-edge); }
+/* accent-700 not -600: white on accent-600 is 3.74:1, under AA for a 14px
+   label. -700 gives 5.47:1 in teal and 11.30:1 in navy, so ONE value serves
+   both workspaces and no dark override is owed. */
+.ui-btn-primary{ background:var(--color-accent-700); border-color:var(--color-accent-700); color:#fff; }
+.ui-btn-primary:hover{ background:var(--color-accent-800); border-color:var(--color-accent-800); }
+.ui-btn-plain{ border-color:transparent; }
+.ui-btn-danger{ color:var(--danger); border-color:color-mix(in srgb,var(--danger) 45%,transparent); }
+.ui-btn-danger:hover{ background:color-mix(in srgb,var(--danger) 10%,transparent); border-color:var(--danger); }
+.ui-btn-sm{ min-height:var(--ctl-h-sm); font-size:var(--t-meta); padding:0 var(--s-2); }
+.ui-btn-lg{ min-height:var(--ctl-h-lg); }
+/* a busy button keeps its width so the row does not jump */
+.ui-btn[aria-busy="true"]{ pointer-events:none; }
+.ui-btn[aria-busy="true"] .lbl{ opacity:.35; }
+.spin{ width:13px; height:13px; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:spin .7s linear infinite; position:absolute; }
+@keyframes spin{ to{ transform:rotate(360deg); } }
+.btn-busy-wrap{ position:relative; display:inline-flex; align-items:center; justify-content:center; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   6 · BADGES & STATUS — a dot carries the tone, a word carries the meaning.
+   Colour is never the only carrier.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.badge{
+  display:inline-flex; align-items:center; gap:5px;
+  font-size:var(--t-label); font-weight:var(--w-title); letter-spacing:.03em;
+  padding:2px 9px; border-radius:var(--radius); white-space:nowrap;
+  border:1px solid transparent;
+}
+.badge>.dot{ width:6px; height:6px; border-radius:50%; flex:none; }
+.b-gray  { background:var(--st-gray-bg);  color:var(--st-gray-fg);  border-color:var(--st-gray-line); }
+.b-amber { background:var(--st-amber-bg); color:var(--st-amber-fg); border-color:var(--st-amber-line); }
+.b-green { background:var(--st-green-bg); color:var(--st-green-fg); border-color:var(--st-green-line); }
+.b-ruby  { background:var(--st-ruby-bg);  color:var(--st-ruby-fg);  border-color:var(--st-ruby-line); }
+.b-steel { background:var(--st-steel-bg); color:var(--st-steel-fg); border-color:var(--st-steel-line); }
+.d-gray{background:var(--st-gray-dot)} .d-amber{background:var(--st-amber-dot)}
+.d-green{background:var(--st-green-dot)} .d-ruby{background:var(--st-ruby-dot)}
+.d-steel{background:var(--st-steel-dot)}
+/* THE QUIET FORM — a dot and a word, no wash. This is what belongs in a table
+   cell: five filled chips down the middle of a register read as five buttons. */
+.stat{ display:inline-flex; align-items:center; gap:7px; font-size:var(--t-meta); color:var(--color-text); white-space:nowrap; }
+.stat>.dot{ width:7px; height:7px; border-radius:50%; flex:none; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   7 · KPI CARDS — a figure, its name, its movement. Three facts, no more.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.kpi-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:var(--s-3); }
+.kpi{
+  position:relative; text-align:left;
+  background:var(--surface-1); border:1px solid var(--color-divider); border-radius:var(--radius);
+  padding:var(--s-4) var(--s-4) var(--s-3);
+  cursor:pointer; display:flex; flex-direction:column; gap:var(--s-1);
+  transition:box-shadow var(--dur-2) var(--ease), transform var(--dur-2) var(--ease);
+}
+.kpi::before{ content:''; position:absolute; inset:0 0 auto 0; height:3px; background:var(--tone,var(--accent-solid)); }
+/* NEVER touch border-color on hover — it erases the 3px tone edge. */
+.kpi:hover{ box-shadow:var(--shadow-sm); transform:translateY(-1px); }
+.kpi-lbl{ font-size:var(--t-label); font-weight:var(--w-label); color:var(--color-neutral-600); }
+.kpi-fig{ font-size:26px; font-weight:var(--w-title); line-height:var(--lh-tight); letter-spacing:var(--ls-title); font-variant-numeric:tabular-nums; color:var(--tone-ink,var(--color-text)); }
+.kpi-sub{ font-size:var(--t-label); color:var(--color-neutral-600); display:flex; align-items:center; gap:5px; }
+.kpi-arrow{ margin-left:auto; color:var(--color-neutral-400); transition:transform var(--dur-1) var(--ease), color var(--dur-1) var(--ease); }
+.kpi:hover .kpi-arrow{ transform:translateX(2px); color:var(--accent-ink); }
+/* A CARD COUNTING ZERO IS NOT A DOOR. The zero still draws — it is true — but
+   the arrow goes and the press is refused. */
+.kpi.is-dead{ cursor:default; }
+.kpi.is-dead .kpi-fig{ color:var(--color-neutral-400); }
+.kpi.is-dead .kpi-arrow{ display:none; }
+.kpi.is-dead:hover{ box-shadow:none; transform:none; }
+.t-steel{--tone:var(--st-steel-dot); --tone-ink:var(--color-text);}
+.t-amber{--tone:var(--st-amber-dot);}
+.t-green{--tone:var(--st-green-dot);}
+.t-ruby {--tone:var(--st-ruby-dot);}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   8 · FILTER BAR — a filter says what it filters. A label above, never a
+   title attribute alone: two dropdowns both reading "Any" are unreadable.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.filterbar{
+  display:flex; flex-wrap:wrap; align-items:flex-end; gap:var(--s-3);
+  padding:var(--s-3) var(--row-pad-x);
+  background:var(--surface-2); border:1px solid var(--color-divider); border-bottom:0;
+  border-radius:var(--radius) var(--radius) 0 0;
+}
+.fld{ display:flex; flex-direction:column; gap:var(--s-1); min-width:0; }
+.fld>label{ font-size:var(--t-label); font-weight:var(--w-label); color:var(--color-neutral-600); }
+.fld select,.fld input{
+  height:var(--ctl-h-lg); min-width:130px;
+  border:1px solid var(--field-line); border-radius:var(--radius);
+  background:var(--surface-1); color:var(--color-text);
+  font-family:var(--font-body); font-size:var(--t-meta); padding:0 10px;
+  transition:border-color var(--dur-1) var(--ease);
+}
+.fld input{ min-width:190px; }
+.fld select:hover,.fld input:hover{ border-color:var(--color-neutral-400); }
+/* A FILTER THAT IS NARROWING SAYS SO — accent edge, accent ink, 600 weight.
+   The ink must be --accent-ink and not the raw ramp, or it is 2.35:1 at night. */
+.fld select.on{ border-color:var(--accent-solid); color:var(--accent-ink); font-weight:var(--w-strong); }
+.filterbar .sp{ flex:1; }
+.chip-clear{
+  display:inline-flex; align-items:center; gap:6px; height:var(--ctl-h); padding:0 10px;
+  border:1px solid var(--field-line); border-radius:var(--radius); background:var(--surface-1);
+  font-size:var(--t-label); color:var(--color-neutral-600); cursor:pointer;
+}
+.chip-clear:hover{ border-color:var(--danger); color:var(--danger); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   9 · TABLE — fixed layout, percentage widths summing to 100, so no page of
+   results can shift a column and nothing scrolls sideways.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.tbl-wrap{ border:1px solid var(--color-divider); border-radius:0 0 var(--radius) var(--radius); background:var(--surface-1); overflow:hidden; }
+table.tbl{ width:100%; border-collapse:collapse; table-layout:fixed; }
+/* A COLUMN HEAD IS SENTENCE CASE, NOT A MICRO LABEL. Uppercase plus .09em
+   tracking is this product's signpost treatment and it costs a column head
+   about 40% of its width — measured, "REFERENCE" needed 106px of a 97px cell
+   at 1280 and cut mid-glyph. The owner's own 24 Aug ruling already took
+   uppercase off .reg-table th ("only capitalize the first"); this matches it,
+   and the width problem goes with it. The BAND headings below stay uppercase:
+   with every row at one weight they are the only thing left telling a heading
+   from a row. */
+table.tbl th{
+  text-align:left; font-size:var(--t-micro); font-weight:var(--w-title);
+  letter-spacing:var(--ls-base); color:var(--color-neutral-600);
+  padding:var(--s-2) var(--row-pad-x); height:32px;
+  background:var(--surface-1); border-bottom:1px solid var(--rule-strong);
+  position:sticky; top:0; z-index:var(--z-sticky);
+  /* A HEAD CELL ELLIPSISES LIKE A BODY CELL. Its text is fixed and known, so
+     it should always fit — but a language change or a type pass can push it
+     over, and a header cut mid-glyph reads as a rendering fault where a body
+     cell's ellipsis reads as "there is more". */
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+table.tbl th.sortable{ cursor:pointer; user-select:none; }
+table.tbl th.sortable:hover{ color:var(--accent-ink); }
+table.tbl th .caret{ opacity:.45; font-size:9px; margin-left:3px; }
+table.tbl th[aria-sort] .caret{ opacity:1; color:var(--accent-ink); }
+table.tbl td{
+  padding:0 var(--row-pad-x); height:var(--row-h);
+  font-size:var(--t-meta); color:var(--color-text);
+  border-bottom:1px solid var(--rule-faint);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  transition:background var(--dur-1) var(--ease);
+}
+table.tbl tbody tr{ cursor:pointer; }
+table.tbl tbody tr:hover td{ background:var(--nav-well); }
+table.tbl tbody tr:focus-visible{ outline:none; }
+table.tbl tbody tr:focus-visible td{ background:var(--nav-well); box-shadow:inset 0 0 0 1px var(--focus-color); }
+table.tbl tbody tr:last-child td{ border-bottom:0; }
+/* THE REFERENCE IS THE ONE ACCENT THING ON A ROW. */
+.mk{ color:var(--accent-ink); font-weight:var(--w-strong); font-variant-numeric:tabular-nums; }
+.ttl{ font-weight:var(--w-body); }
+.money{ font-variant-numeric:tabular-nums; text-align:right; }
+.dt{ font-variant-numeric:tabular-nums; color:var(--color-neutral-600); }
+.dt b{ font-weight:var(--w-title); }
+.dt .soon{ color:var(--st-amber-fg); } .dt .urgent{ color:var(--st-ruby-fg); }
+/* a 3px tick beside the title, not a whole column */
+.tick{ display:inline-block; width:3px; height:12px; vertical-align:-2px; margin-right:7px; background:var(--tick,var(--st-gray-dot)); }
+/* BAND HEADER — a grouping row, not a data row. role=presentation, no tab
+   stop, and the pinned offset is a token so it can never leave a slot. */
+tr.band td{
+  height:auto; padding:var(--s-3) var(--row-pad-x) var(--s-1);
+  background:var(--surface-1); border-bottom:1px solid var(--rule-strong);
+  position:sticky; top:32px; z-index:calc(var(--z-sticky) - 1);
+}
+tr.band h3{ font-size:var(--t-micro); font-weight:var(--w-title); letter-spacing:var(--ls-micro); text-transform:uppercase; color:var(--color-neutral-600); }
+tr.band h3 span{ color:var(--color-neutral-400); font-variant-numeric:tabular-nums; }
+.tbl-foot{ display:flex; align-items:center; gap:var(--s-3); padding:var(--s-2) var(--row-pad-x); border-top:1px solid var(--rule-strong); font-size:var(--t-label); color:var(--color-neutral-600); background:var(--surface-2); }
+.tbl-foot .sp{ flex:1; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   10 · STATES — empty, loading, error. Designed, not a bare sentence.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.state{
+  display:flex; flex-direction:column; align-items:center; gap:var(--s-2);
+  padding:var(--s-10) var(--s-6); text-align:center;
+  background:var(--surface-1); border:1px solid var(--color-divider); border-radius:var(--radius);
+}
+.state .glyph{ width:38px; height:38px; color:var(--color-neutral-400); }
+.state h3{ font-size:var(--t-card); font-weight:var(--w-strong); }
+.state p{ font-size:var(--t-meta); color:var(--color-neutral-600); max-width:46ch; line-height:var(--lh-relaxed); }
+.state.err{ border-color:var(--st-ruby-line); background:var(--st-ruby-bg); }
+.state.err h3{ color:var(--st-ruby-fg); }
+.state.err p{ color:var(--st-ruby-fg); opacity:.9; }
+
+/* SKELETON — matches the row rhythm it stands in for, so nothing jumps when
+   the data lands. Shimmer is one keyframe and it stands down under
+   prefers-reduced-motion with the rest of the ladder. */
+.sk{ background:linear-gradient(90deg,var(--rule-faint) 25%,var(--color-divider) 37%,var(--rule-faint) 63%); background-size:400% 100%; animation:sk 1.4s ease infinite; height:9px; border-radius:var(--radius); }
+@keyframes sk{ 0%{background-position:100% 50%} 100%{background-position:0 50%} }
+@media (prefers-reduced-motion:reduce){ .sk{ animation:none; background:var(--rule-faint); } }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   11 · DRAWER & MODAL — the two overlay shapes. A drawer is for a form you
+   fill and dismiss; a modal is for a question you answer.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.scrim{ position:fixed; inset:0; background:rgba(8,20,18,.42); z-index:var(--z-scrim); opacity:0; pointer-events:none; transition:opacity var(--dur-3) var(--ease); }
+.scrim.on{ opacity:1; pointer-events:auto; }
+.drawer{
+  position:fixed; top:0; right:0; bottom:0; width:min(440px,100vw);
+  background:var(--surface-3); border-left:1px solid var(--rule-strong);
+  box-shadow:var(--shadow-lg); z-index:var(--z-drawer);
+  display:flex; flex-direction:column;
+  transform:translateX(100%); visibility:hidden;
+  transition:transform var(--dur-3) var(--ease), visibility 0s linear var(--dur-3);
+}
+.drawer.on{ transform:none; visibility:visible; transition:transform var(--dur-3) var(--ease), visibility 0s; }
+.dw-head{ display:flex; align-items:flex-start; gap:var(--s-3); padding:var(--s-4) var(--s-4) var(--s-3); border-bottom:1px solid var(--rule-strong); }
+.dw-head h3{ font-size:var(--t-section); font-weight:var(--w-title); }
+.dw-head p{ font-size:var(--t-meta); color:var(--color-neutral-600); margin-top:3px; }
+.dw-x{ margin-left:auto; border:0; background:transparent; cursor:pointer; color:var(--color-neutral-600); width:var(--ctl-h); height:var(--ctl-h); border-radius:var(--radius); font-size:16px; }
+.dw-x:hover{ background:var(--nav-well); color:var(--color-text); }
+.dw-body{ flex:1; overflow-y:auto; padding:var(--s-4); display:flex; flex-direction:column; gap:var(--s-4); }
+/* THE FOOT HOLDS THE REFUSAL. Above the fields it pushes everything down 46px
+   the moment it appears and pulls it back when it clears; pinned in the foot
+   it also cannot be scrolled away from. */
+.dw-foot{ padding:var(--s-3) var(--s-4); border-top:1px solid var(--rule-strong); background:var(--surface-2); display:flex; align-items:center; gap:var(--s-2); }
+.dw-foot .sp{ flex:1; }
+.dw-refuse{ display:flex; align-items:center; gap:7px; font-size:var(--t-label); color:var(--st-ruby-fg); padding:var(--s-2) var(--s-4); background:var(--st-ruby-bg); border-top:1px solid var(--st-ruby-line); }
+.fld-block{ display:flex; flex-direction:column; gap:var(--s-1); }
+.fld-block>label{ font-size:var(--t-label); font-weight:var(--w-label); color:var(--color-neutral-600); }
+.fld-block input,.fld-block textarea,.fld-block select{
+  width:100%; min-height:var(--field-h);
+  border:1px solid var(--field-line); border-radius:var(--radius);
+  background:var(--surface-1); color:var(--color-text);
+  font-family:var(--font-body); font-size:var(--t-body); line-height:20px; padding:7px 10px;
+  transition:border-color var(--dur-1) var(--ease), box-shadow var(--dur-1) var(--ease);
+}
+.fld-block input:focus,.fld-block textarea:focus{ border-color:var(--accent-solid); }
+.fld-block .hint{ font-size:var(--t-label); color:var(--color-neutral-600); }
+
+.modal{
+  position:fixed; left:50%; top:50%; transform:translate(-50%,-48%) scale(.985);
+  width:min(560px,calc(100vw - 32px)); max-height:min(80vh,720px);
+  background:var(--surface-3); border:1px solid var(--rule-strong); border-radius:var(--radius);
+  box-shadow:var(--shadow-lg); z-index:var(--z-modal);
+  display:flex; flex-direction:column; opacity:0; visibility:hidden;
+  transition:opacity var(--dur-2) var(--ease), transform var(--dur-2) var(--ease), visibility 0s linear var(--dur-2);
+}
+.modal.on{ opacity:1; transform:translate(-50%,-50%) scale(1); visibility:visible; transition:opacity var(--dur-2) var(--ease), transform var(--dur-2) var(--ease), visibility 0s; }
+.md-head{ display:flex; align-items:flex-start; gap:var(--s-3); padding:var(--s-4); border-bottom:1px solid var(--rule-strong); }
+.md-ico{ width:32px; height:32px; flex:none; display:grid; place-items:center; background:var(--st-steel-bg); color:var(--st-steel-fg); border-radius:var(--radius); }
+.md-head h3{ font-size:var(--t-section); font-weight:var(--w-title); }
+.md-head p{ font-size:var(--t-meta); color:var(--color-neutral-600); margin-top:2px; }
+.md-body{ padding:var(--s-4); overflow-y:auto; display:flex; flex-direction:column; gap:var(--s-3); }
+.md-foot{ padding:var(--s-3) var(--s-4); border-top:1px solid var(--rule-strong); background:var(--surface-2); display:flex; gap:var(--s-2); }
+.md-foot .sp{ flex:1; }
+/* a diff read is a document read: the two sides sit in one measure */
+.diff{ border:1px solid var(--color-divider); background:var(--surface-1); font-size:var(--t-meta); line-height:var(--lh-relaxed); }
+.diff div{ padding:7px 10px; border-bottom:1px solid var(--rule-faint); }
+.diff div:last-child{ border-bottom:0; }
+.diff ins{ background:var(--st-green-bg); color:var(--st-green-fg); text-decoration:none; padding:0 2px; }
+.diff del{ background:var(--st-ruby-bg); color:var(--st-ruby-fg); padding:0 2px; }
+.diff .mkr{ color:var(--color-neutral-400); font-variant-numeric:tabular-nums; margin-right:8px; }
+
+/* TOAST — three kinds, three dwells, and never a dwell of zero. */
+.toasts{ position:fixed; right:var(--s-4); bottom:var(--s-4); z-index:var(--z-toast); display:flex; flex-direction:column; gap:var(--s-2); }
+.toast{ display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:var(--radius); box-shadow:var(--shadow-md); font-size:var(--t-meta); color:#fff; min-width:250px; }
+.toast .dot{ width:7px; height:7px; border-radius:50%; background:currentColor; flex:none; }
+.t-ok{ background:var(--color-accent-800); } .t-warn{ background:#b45309; } .t-err{ background:#b91c1c; }
+
+/* token swatch grid */
+.sw-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr)); gap:var(--s-2); }
+.sw{ border:1px solid var(--color-divider); border-radius:var(--radius); overflow:hidden; background:var(--surface-1); }
+.sw i{ display:block; height:40px; }
+.sw span{ display:block; padding:6px 8px; font-size:var(--t-figure); color:var(--color-neutral-600); font-family:var(--font-mono); }
+.scale-row{ display:flex; align-items:baseline; gap:var(--s-3); padding:5px 0; border-bottom:1px solid var(--rule-faint); }
+.scale-row code{ font-size:var(--t-figure); color:var(--color-neutral-600); font-family:var(--font-mono); width:110px; flex:none; }
+.scale-row .px{ font-size:var(--t-figure); color:var(--color-neutral-400); width:46px; flex:none; text-align:right; font-variant-numeric:tabular-nums; }
+
+/* ── RESPONSIVE. Four breakpoints, not thirty-one. ───────────────────────── */
+@media (max-width:1200px){ .shell-body{ grid-template-columns:64px minmax(0,1fr); } .shell-nav .lbl,.nav-cap,.nav-count{ display:none; } .nav-item{ justify-content:center; padding:0; } }
+@media (max-width:900px){ .shell-body{ grid-template-columns:minmax(0,1fr); } .shell-nav{ display:none; } .pv-wrap{ padding:var(--s-6) var(--s-4) 80px; } }
+@media (max-width:640px){ .kpi-grid{ grid-template-columns:1fr 1fr; } .filterbar{ flex-direction:column; align-items:stretch; } .fld select,.fld input{ width:100%; } }
+</style>
+</head>
+<body data-theme="light" data-density="compact">
+
+<!-- ═══ PROTOTYPE CHROME ═══ -->
+<div class="pv-bar">
+  <b>HaTi · design system preview</b>
+  <div class="pv-group"><span>Theme</span>
+    <div class="pv-seg" id="sw-theme">
+      <button data-v="light" aria-pressed="true">Light</button>
+      <button data-v="dark" aria-pressed="false">Dark</button>
+    </div>
+  </div>
+  <div class="pv-group"><span>Density</span>
+    <div class="pv-seg" id="sw-density">
+      <button data-v="comfortable" aria-pressed="false">Comfortable</button>
+      <button data-v="compact" aria-pressed="true">Compact</button>
+      <button data-v="condensed" aria-pressed="false">Condensed</button>
+    </div>
+  </div>
+  <div class="pv-group"><span>Radius</span>
+    <div class="pv-seg" id="sw-radius">
+      <button data-v="0px" aria-pressed="true">0 · today</button>
+      <button data-v="4px" aria-pressed="false">4px</button>
+    </div>
+  </div>
+</div>
+
+<div class="pv-wrap">
+
+  <!-- ═══ THE SHELL ═══ -->
+  <section class="pv-sec" style="margin-top:var(--s-6)">
+    <h2>1 · The shell</h2>
+    <p class="pv-note">A 44px brand bar over a 240px white column and the page's own header band. The live door is marked by a <b>3px left rule and a tonal well</b> — never a lighter veil, which reads as disabled on white and needs a second rule to survive the dark theme. Counts are plain facts; only a count that is <i>owed</i> goes amber, and only above zero.</p>
+    <div class="shell">
+      <div class="shell-bar">
+        <span class="shell-mark">HaTi</span>
+        <span class="shell-title">Contracts</span>
+        <span class="sp"></span>
+        <button class="chip-k">Search <kbd>⌘K</kbd></button>
+        <span class="shell-avatar">AO</span>
+      </div>
+      <div class="shell-body">
+        <nav class="shell-nav">
+          <div class="nav-cap">Everyday</div>
+          <button class="nav-item"><svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8.5 8 3l6 5.5"/><path d="M3.5 7.5V13h9V7.5"/></svg><span class="lbl">Home</span><span class="sp"></span></button>
+          <button class="nav-item on"><svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="2" width="10" height="12"/><path d="M5.5 5.5h5M5.5 8h5M5.5 10.5h3"/></svg><span class="lbl">Contracts</span><span class="sp"></span><span class="nav-count num">148</span></button>
+          <button class="nav-item"><svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h7"/></svg><span class="lbl">Negotiations</span><span class="sp"></span><span class="nav-count warn num">7</span></button>
+          <button class="nav-item"><svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8.5 6.5 12 13 4.5"/></svg><span class="lbl">Approvals</span><span class="sp"></span><span class="nav-count warn num">3</span></button>
+          <button class="nav-item"><svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2.5" y="3.5" width="11" height="10"/><path d="M2.5 6.5h11M5.5 2v3M10.5 2v3"/></svg><span class="lbl">Calendar</span><span class="sp"></span></button>
+          <button class="nav-item"><svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 13V7M6.5 13V3M10 13V9M13.5 13v-4"/></svg><span class="lbl">Insights</span><span class="sp"></span></button>
+          <div class="nav-cap">Administration</div>
+          <button class="nav-item"><svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5.5" r="2.2"/><path d="M2.5 13c0-2 1.6-3.2 3.5-3.2S9.5 11 9.5 13"/><circle cx="11.5" cy="6.5" r="1.7"/></svg><span class="lbl">People</span><span class="sp"></span></button>
+          <button class="nav-item"><svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2.5 5h11M2.5 8h11M2.5 11h11"/><circle cx="6" cy="5" r="1.6" fill="currentColor" stroke="none"/><circle cx="10" cy="11" r="1.6" fill="currentColor" stroke="none"/></svg><span class="lbl">Settings &amp; rules</span><span class="sp"></span></button>
+        </nav>
+        <main class="shell-main">
+          <div class="page-head">
+            <h1>Contracts</h1>
+            <span class="sp"></span>
+            <span class="fact num">148 agreements · KES 2.41B under management</span>
+            <button class="ui-btn ui-btn-primary">+ New contract</button>
+          </div>
+          <div class="page-body">
+
+            <!-- KPI row -->
+            <div class="kpi-grid" style="margin-bottom:var(--s-4)">
+              <button class="kpi t-amber"><span class="kpi-lbl">Awaiting your approval</span><span class="kpi-fig num">3</span><span class="kpi-sub">2 over 5 days<span class="kpi-arrow">→</span></span></button>
+              <button class="kpi t-steel"><span class="kpi-lbl">Live negotiations</span><span class="kpi-fig num">7</span><span class="kpi-sub">4 waiting on them<span class="kpi-arrow">→</span></span></button>
+              <button class="kpi t-ruby"><span class="kpi-lbl">Expiring in 90 days</span><span class="kpi-fig num">12</span><span class="kpi-sub">KES 184M at risk<span class="kpi-arrow">→</span></span></button>
+              <button class="kpi t-green is-dead" aria-disabled="true"><span class="kpi-lbl">Overdue obligations</span><span class="kpi-fig num">0</span><span class="kpi-sub">nothing outstanding</span></button>
+            </div>
+
+            <!-- filter bar -->
+            <div class="filterbar">
+              <div class="fld"><label for="f-q">Search</label><input id="f-q" type="search" placeholder="Name, counterparty, reference…" /></div>
+              <div class="fld"><label for="f-stage">Lifecycle stage</label><select id="f-stage"><option>Any stage</option><option>Draft</option><option>Under review</option><option>Signed</option></select></div>
+              <div class="fld"><label for="f-stream">Value stream</label><select id="f-stream" class="on"><option>Sales &amp; route-to-market</option><option>Any stream</option></select></div>
+              <div class="fld"><label for="f-owner">Owner</label><select id="f-owner"><option>Anyone</option><option>Me</option></select></div>
+              <span class="sp"></span>
+              <button class="chip-clear">Clear · 1 filter ✕</button>
+            </div>
+
+            <!-- table -->
+            <div class="tbl-wrap">
+              <table class="tbl">
+                <!-- PERCENTAGES SUMMING TO EXACTLY 100. With table-layout:fixed
+                     the head row's widths govern every page, so no page of
+                     results can shift a column and nothing scrolls sideways.
+                     A stated width must FIT what the column really carries, in
+                     both languages — "Counterparty ready" and a date plus its
+                     countdown are the two longest cells here and they are what
+                     these numbers were measured against. -->
+                <colgroup><col style="width:11%"><col style="width:24%"><col style="width:17%"><col style="width:18%"><col style="width:13%"><col style="width:17%"></colgroup>
+                <thead><tr>
+                  <th class="sortable">Reference<span class="caret">▾</span></th>
+                  <th class="sortable" aria-sort="ascending">Agreement<span class="caret">▴</span></th>
+                  <th>Counterparty</th>
+                  <th class="sortable">Stage<span class="caret">▾</span></th>
+                  <th class="sortable" style="text-align:right">Value<span class="caret">▾</span></th>
+                  <th class="sortable">Term ends<span class="caret">▾</span></th>
+                </tr></thead>
+                <tbody>
+                  <tr class="band"><td colspan="6"><h3>Waiting on you <span>· 3</span></h3></td></tr>
+                  <tr tabindex="0">
+                    <td class="mk">MK-311</td>
+                    <td class="ttl"><i class="tick" style="--tick:var(--st-steel-dot)"></i>Master supply agreement</td>
+                    <td>Saw Sawa Ltd</td>
+                    <td><span class="stat"><i class="dot d-amber"></i>Under review</span></td>
+                    <td class="money">78,000,000</td>
+                    <td class="dt"><b>25.08.2026</b> <span class="urgent">· 12 d</span></td>
+                  </tr>
+                  <tr tabindex="0">
+                    <td class="mk">MK-349</td>
+                    <td class="ttl"><i class="tick" style="--tick:var(--st-green-dot)"></i>Distribution &amp; logistics</td>
+                    <td>Juno Lines</td>
+                    <td><span class="stat"><i class="dot d-amber"></i>Under review</span></td>
+                    <td class="money">12,400,000</td>
+                    <td class="dt"><b>04.11.2026</b> <span class="soon">· 71 d</span></td>
+                  </tr>
+                  <tr tabindex="0">
+                    <td class="mk">MK-358</td>
+                    <td class="ttl"><i class="tick" style="--tick:var(--st-amber-dot)"></i>Warehouse lease — Mombasa Rd</td>
+                    <td>Nordkust Industri</td>
+                    <td><span class="stat"><i class="dot d-steel"></i>Counterparty ready</span></td>
+                    <td class="money">4,800,000</td>
+                    <td class="dt"><b>31.12.2027</b></td>
+                  </tr>
+                  <tr class="band"><td colspan="6"><h3>With the other side <span>· 2</span></h3></td></tr>
+                  <tr tabindex="0">
+                    <td class="mk">MK-255</td>
+                    <td class="ttl"><i class="tick" style="--tick:var(--st-steel-dot)"></i>Reseller agreement</td>
+                    <td>Momo Beach Holdings</td>
+                    <td><span class="stat"><i class="dot d-gray"></i>Draft</span></td>
+                    <td class="money">—</td>
+                    <td class="dt">—</td>
+                  </tr>
+                  <tr tabindex="0">
+                    <td class="mk">MK-402</td>
+                    <td class="ttl"><i class="tick" style="--tick:var(--st-green-dot)"></i>Mutual non-disclosure</td>
+                    <td>Kilifi Agritech</td>
+                    <td><span class="stat"><i class="dot d-green"></i>Signed</span></td>
+                    <td class="money">—</td>
+                    <td class="dt"><b>19.03.2028</b></td>
+                  </tr>
+                  <tr class="band"><td colspan="6"><h3>Nothing outstanding <span>· 1</span></h3></td></tr>
+                  <tr tabindex="0">
+                    <td class="mk">MK-118</td>
+                    <td class="ttl"><i class="tick" style="--tick:var(--st-gray-dot)"></i>Facilities &amp; maintenance</td>
+                    <td>Tatu Services</td>
+                    <td><span class="stat"><i class="dot d-ruby"></i>Declined</span></td>
+                    <td class="money">920,000</td>
+                    <td class="dt">—</td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="tbl-foot"><span class="num">1–6 of 148</span><span class="sp"></span><button class="ui-btn ui-btn-sm ui-btn-plain">‹ Prev</button><button class="ui-btn ui-btn-sm ui-btn-plain">Next ›</button></div>
+            </div>
+
+          </div>
+        </main>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ BUTTONS ═══ -->
+  <section class="pv-sec">
+    <h2>2 · Buttons</h2>
+    <p class="pv-note">Height comes from a rung (<code>--ctl-h</code>), padding is horizontal only — <code>padding:6px 12px</code> on a 14px/1.2 label computes to 30.8px and quietly invents a half-rung box. One filled act per row; the rest are outlined or plain, and none of them is grey, which this product has learned three times reads as furniture.</p>
+    <div class="pv-row" style="margin-bottom:var(--s-3)">
+      <button class="ui-btn ui-btn-primary">Publish round</button>
+      <button class="ui-btn">Internal review</button>
+      <button class="ui-btn">Share</button>
+      <button class="ui-btn ui-btn-plain">More ▾</button>
+      <button class="ui-btn ui-btn-danger">Decline</button>
+      <button class="ui-btn" disabled>Sign — 2 clauses unsettled</button>
+      <span class="btn-busy-wrap"><button class="ui-btn" aria-busy="true"><span class="lbl">Sending…</span></button><i class="spin"></i></span>
+    </div>
+    <div class="pv-row">
+      <button class="ui-btn ui-btn-sm">Small · 24px</button>
+      <button class="ui-btn">Default · 28px</button>
+      <button class="ui-btn ui-btn-lg">Large · 32px</button>
+    </div>
+  </section>
+
+  <!-- ═══ STATUS ═══ -->
+  <section class="pv-sec">
+    <h2>3 · Status &amp; semantics</h2>
+    <p class="pv-note">Five tonal roles, four tokens each (<code>-bg / -fg / -dot / -line</code>), every one with a dark answer. <b>Colour is never the only carrier</b> — the word travels with the tone. Use the <i>chip</i> where a shape helps a scan; use the <i>quiet form</i> inside a table row, where five filled chips down the middle read as five buttons.</p>
+    <div class="pv-row" style="margin-bottom:var(--s-3)">
+      <span class="badge b-gray"><i class="dot d-gray"></i>Draft</span>
+      <span class="badge b-amber"><i class="dot d-amber"></i>Under review</span>
+      <span class="badge b-steel"><i class="dot d-steel"></i>Counterparty ready</span>
+      <span class="badge b-green"><i class="dot d-green"></i>Signed</span>
+      <span class="badge b-ruby"><i class="dot d-ruby"></i>Declined</span>
+    </div>
+    <div class="pv-row">
+      <span class="stat"><i class="dot d-gray"></i>Draft</span>
+      <span class="stat"><i class="dot d-amber"></i>Under review</span>
+      <span class="stat"><i class="dot d-steel"></i>Counterparty ready</span>
+      <span class="stat"><i class="dot d-green"></i>Signed</span>
+      <span class="stat"><i class="dot d-ruby"></i>Declined</span>
+    </div>
+  </section>
+
+  <!-- ═══ STATES ═══ -->
+  <section class="pv-sec">
+    <h2>4 · Empty, loading, error</h2>
+    <p class="pv-note">Measured in HaTi today: 25 skeleton hits in the whole product, <code>aria-busy</code> zero, <code>aria-live</code> zero. A screen that says nothing while it works is indistinguishable from a dead button — this product has already reported that fault four separate times.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:var(--s-3)">
+      <div class="state">
+        <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="4" y="3" width="16" height="18"/><path d="M8 8h8M8 12h8M8 16h4"/></svg>
+        <h3>No contracts in this stream yet</h3>
+        <p>When you file an agreement under Sales &amp; route-to-market it will appear here.</p>
+        <button class="ui-btn ui-btn-primary" style="margin-top:var(--s-1)">+ New contract</button>
+      </div>
+      <div class="state" style="align-items:stretch;text-align:left;padding:var(--s-4)">
+        <div class="sk" style="width:38%;height:11px"></div>
+        <div class="sk" style="width:88%;margin-top:14px"></div>
+        <div class="sk" style="width:72%;margin-top:9px"></div>
+        <div class="sk" style="width:80%;margin-top:9px"></div>
+        <div class="sk" style="width:54%;margin-top:9px"></div>
+        <p style="margin-top:14px" aria-live="polite">Loading 148 agreements…</p>
+      </div>
+      <div class="state err">
+        <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.2v.6"/></svg>
+        <h3>We could not reach the server</h3>
+        <p>Your work is safe on this device. Nothing has been lost — try again, or reload the page.</p>
+        <button class="ui-btn ui-btn-danger" style="margin-top:var(--s-1)">Try again</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ OVERLAYS ═══ -->
+  <section class="pv-sec">
+    <h2>5 · Drawer, modal, toast</h2>
+    <p class="pv-note">A <b>drawer</b> is for a form you fill and dismiss; a <b>modal</b> is for a question you answer. Both trap focus, both close on Escape and on the scrim, and both return focus to whatever opened them. A refusal lives in the <i>foot</i> — above the fields it pushes everything down 46px the moment it appears and cannot be scrolled back to.</p>
+    <div class="pv-row">
+      <button class="ui-btn" id="open-drawer">Open drawer — edit a person</button>
+      <button class="ui-btn" id="open-modal">Open modal — accept a change</button>
+      <button class="ui-btn ui-btn-plain" id="fire-toasts">Fire the three toasts</button>
+    </div>
+  </section>
+
+  <!-- ═══ THE LADDERS ═══ -->
+  <section class="pv-sec">
+    <h2>6 · The ladders</h2>
+    <p class="pv-note">The type and spacing ladders below are already declared in <code>index.html</code>. They have <b>two consumers each</b> across 2,394 font-size and 3,566 padding declarations — which is why the product does not look like them yet. Everything on this page reads them.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:var(--s-6)">
+      <div>
+        <div class="scale-row"><code>--t-display</code><span class="px">30</span><span style="font-size:var(--t-display);font-weight:var(--w-title)">Aa</span></div>
+        <div class="scale-row"><code>--t-page</code><span class="px">19</span><span style="font-size:var(--t-page);font-weight:var(--w-title)">Page title</span></div>
+        <div class="scale-row"><code>--t-section</code><span class="px">17</span><span style="font-size:var(--t-section);font-weight:var(--w-title)">Section head</span></div>
+        <div class="scale-row"><code>--t-card</code><span class="px">15</span><span style="font-size:var(--t-card);font-weight:var(--w-strong)">Card title</span></div>
+        <div class="scale-row"><code>--t-body</code><span class="px">14</span><span style="font-size:var(--t-body)">Body copy and table values</span></div>
+        <div class="scale-row"><code>--t-meta</code><span class="px">13</span><span style="font-size:var(--t-meta);color:var(--color-neutral-600)">Secondary metadata</span></div>
+        <div class="scale-row"><code>--t-label</code><span class="px">12</span><span style="font-size:var(--t-label);color:var(--color-neutral-600)">Field label</span></div>
+        <div class="scale-row"><code>--t-micro</code><span class="px">11</span><span style="font-size:var(--t-micro);letter-spacing:var(--ls-micro);text-transform:uppercase;color:var(--color-neutral-600)">Micro label</span></div>
+        <div class="scale-row"><code>--t-figure</code><span class="px">10</span><span style="font-size:var(--t-figure);color:var(--color-neutral-600)">Count in a chip</span></div>
+        <p class="pv-note" style="margin-top:var(--s-3)"><b>The rule that assigns them:</b> primary ink is 14px and up; the secondary shade is where 11–13px lives. Anything 11px must be an uppercase micro label — never a sentence.</p>
+      </div>
+      <div>
+        <div class="sw-grid" style="margin-bottom:var(--s-4)">
+          <div class="sw"><i style="background:var(--surface-0)"></i><span>--surface-0</span></div>
+          <div class="sw"><i style="background:var(--surface-1)"></i><span>--surface-1</span></div>
+          <div class="sw"><i style="background:var(--surface-2)"></i><span>--surface-2</span></div>
+          <div class="sw"><i style="background:var(--surface-3)"></i><span>--surface-3</span></div>
+          <div class="sw"><i style="background:var(--accent-solid)"></i><span>--accent-solid</span></div>
+          <div class="sw"><i style="background:var(--accent-ink)"></i><span>--accent-ink</span></div>
+          <div class="sw"><i style="background:var(--color-neutral-600)"></i><span>--neutral-600</span></div>
+          <div class="sw"><i style="background:var(--color-text)"></i><span>--color-text</span></div>
+        </div>
+        <div id="sp-scale"></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- overlays -->
+<div class="scrim" id="scrim"></div>
+
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dw-t">
+  <div class="dw-head">
+    <div><h3 id="dw-t">Wanjiru Kamau</h3><p>Editor · Finance &amp; procurement</p></div>
+    <button class="dw-x" data-close aria-label="Close">✕</button>
+  </div>
+  <div class="dw-body">
+    <div class="fld-block"><label for="d-name">Full name</label><input id="d-name" value="Wanjiru Kamau" /></div>
+    <div class="fld-block"><label for="d-mail">Email</label><input id="d-mail" type="email" value="wanjiru@example.co.ke" /><span class="hint">Used for review requests and the daily brief.</span></div>
+    <div class="fld-block"><label for="d-role">Role</label><select id="d-role"><option>Viewer</option><option selected>Editor</option><option>Admin</option></select></div>
+    <div class="fld-block"><label for="d-cap">Signing limit</label><input id="d-cap" value="5,000,000" class="num" /><span class="hint">In the workspace currency. Leave blank for no limit.</span></div>
+  </div>
+  <div class="dw-refuse">⚠ A signing limit needs a figure, or clear it to mean “no limit”.</div>
+  <div class="dw-foot"><span class="sp"></span><button class="ui-btn ui-btn-plain" data-close>Cancel</button><button class="ui-btn ui-btn-primary">Save changes</button></div>
+</aside>
+
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="md-t">
+  <div class="md-head">
+    <div class="md-ico"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 8.5 6.5 12 13 4.5"/></svg></div>
+    <div><h3 id="md-t">Accept this change?</h3><p>CHG-006 · Clause 18 · Notices — asked by Saw Sawa Ltd</p></div>
+  </div>
+  <div class="md-body">
+    <div class="diff">
+      <div><span class="mkr">18.1</span>Any notice under this Agreement shall be given in writing and delivered by hand, by <del>registered post</del><ins>courier or by electronic mail</ins> to the address set out in Schedule 1.</div>
+      <div><span class="mkr">18.2</span>A notice is deemed received <del>five (5)</del><ins>two (2)</ins> business days after despatch.</div>
+    </div>
+    <p style="font-size:var(--t-meta);color:var(--color-neutral-600);line-height:var(--lh-relaxed)">Accepting adopts this wording into the agreement. It does not close the round — you can still reopen it until the round is published.</p>
+  </div>
+  <div class="md-foot"><span class="sp"></span><button class="ui-btn ui-btn-plain" data-close>Cancel</button><button class="ui-btn ui-btn-danger">Reject…</button><button class="ui-btn ui-btn-primary">Accept change</button></div>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite" role="status"></div>
+
+<script>
+/* Prototype behaviour only — none of this is product code. */
+(function(){
+  var body = document.body;
+
+  function seg(id, apply){
+    var el = document.getElementById(id);
+    el.addEventListener('click', function(e){
+      var b = e.target.closest('button[data-v]'); if(!b) return;
+      el.querySelectorAll('button').forEach(function(x){ x.setAttribute('aria-pressed', String(x===b)); });
+      apply(b.getAttribute('data-v'));
+    });
+  }
+  seg('sw-theme',   function(v){ body.setAttribute('data-theme', v); });
+  seg('sw-density', function(v){ body.setAttribute('data-density', v); });
+  seg('sw-radius',  function(v){ document.documentElement.style.setProperty('--radius', v); });
+
+  /* spacing ladder, drawn from the tokens themselves */
+  var steps = [['--s-1',4],['--s-2',8],['--s-3',12],['--s-4',16],['--s-6',24],['--s-8',32],['--s-10',40]];
+  document.getElementById('sp-scale').innerHTML = steps.map(function(s){
+    return '<div class="scale-row"><code>'+s[0]+'</code><span class="px">'+s[1]+'</span>'+
+           '<i style="display:block;height:10px;width:'+s[1]*4+'px;background:var(--accent-solid);opacity:.55"></i></div>';
+  }).join('');
+
+  /* overlays: focus trap, Escape, scrim, focus return */
+  var scrim = document.getElementById('scrim'), opener = null, live = null;
+  function focusables(el){ return el.querySelectorAll('a[href],button:not([disabled]),input,select,textarea,[tabindex]:not([tabindex="-1"])'); }
+  function open(el, from){
+    opener = from; live = el;
+    el.classList.add('on'); scrim.classList.add('on');
+    var f = focusables(el); if(f.length) f[0].focus();
+  }
+  function close(){
+    if(!live) return;
+    live.classList.remove('on'); scrim.classList.remove('on');
+    if(opener) opener.focus();
+    live = null; opener = null;
+  }
+  document.getElementById('open-drawer').addEventListener('click', function(e){ open(document.getElementById('drawer'), e.currentTarget); });
+  document.getElementById('open-modal').addEventListener('click', function(e){ open(document.getElementById('modal'), e.currentTarget); });
+  scrim.addEventListener('click', close);
+  document.addEventListener('click', function(e){ if(e.target.closest('[data-close]')) close(); });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape'){ close(); return; }
+    if(e.key === 'Tab' && live){
+      var f = focusables(live); if(!f.length) return;
+      var first = f[0], last = f[f.length-1];
+      if(e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+      else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+    }
+  });
+
+  /* toasts — three kinds, three dwells, never a dwell of zero */
+  var KINDS = [
+    { cls:'t-ok',   dwell:2600, msg:'Round 3 published — sent to Saw Sawa Ltd' },
+    { cls:'t-warn', dwell:8000, msg:'Sent, but no mail provider is configured — it is in the outbox' },
+    { cls:'t-err',  dwell:5000, msg:'Two clauses are still unsettled — settle them before signing' }
+  ];
+  document.getElementById('fire-toasts').addEventListener('click', function(){
+    var host = document.getElementById('toasts');
+    KINDS.forEach(function(k, i){
+      setTimeout(function(){
+        var t = document.createElement('div');
+        t.className = 'toast ' + k.cls;
+        t.innerHTML = '<i class="dot"></i><span></span>';
+        t.querySelector('span').textContent = k.msg;
+        host.appendChild(t);
+        setTimeout(function(){ t.remove(); }, k.dwell);
+      }, i * 260);
+    });
+  });
+})();
+</script>
+</body>
+</html>

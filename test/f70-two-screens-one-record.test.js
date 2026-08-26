@@ -391,7 +391,7 @@ describe('F70 — the sends are prominent, and there is one of each', () => {
        this test is about is that the weight is REAL — a size and a shadow the
        browser acts on, rather than a class name nothing reads — so the number
        moving is not the claim. */
-    assert.match(css, /\.nego-go\{[^}]*font-size:14px/);
+    assert.match(css, /\.nego-go\{[^}]*font-size:var\(--t-body\)/);
     assert.match(css, /\.nego-go\{[^}]*box-shadow:/);
   });
 

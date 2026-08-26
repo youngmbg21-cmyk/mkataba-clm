@@ -97,6 +97,12 @@ function setActiveNav(view){
   document.querySelectorAll('.nav-item').forEach(b=>{
     const on=b.getAttribute('data-view')===navFor;
     b.classList.toggle('active',on);
+    /* ---- WHICH DOOR AM I STANDING IN ---- (25 Aug 2026)
+       The live door was marked by a class, a 3px accent rule and a filled
+       well — three signals a screen reader cannot see one of. aria-current is
+       the one it can, and it is REMOVED rather than set to "false", because
+       the attribute's presence is the statement. */
+    if(on) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current');
     // keep the active tab visible: open its collapsible section (never closes others)
     if(on){ const sec=b.closest('.nav-section'); if(sec && !sec.classList.contains('open')) openNavSection(sec,true); }
   });
@@ -185,9 +191,9 @@ const PAGE_ACTIONS = {
   reports:  ['export'],
 };
 function pageActionHtml(kind){
-  if(kind==='export') return `<button data-page-export class="ui-btn" style="font-size:13px;padding:6px 12px" title="${i18t('ap_export_working_set')}">`+
+  if(kind==='export') return `<button data-page-export class="ui-btn" style="font-size:var(--t-meta);padding:6px var(--s-3)" title="${i18t('ap_export_working_set')}">`+
     `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:-2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>${i18t('ap_export')}</button>`;
-  if(kind==='new') return `<button data-page-new class="ui-btn ui-btn-primary" style="font-size:13px;padding:6px 14px">${i18t('pg_new_contract')}</button>`;
+  if(kind==='new') return `<button data-page-new class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:6px 14px">${i18t('pg_new_contract')}</button>`;
   return '';
 }
 /* PAGES THAT ALREADY STATE THEIR OWN NAME get no header from here — putting
@@ -370,9 +376,9 @@ function renderPageHeader(view){
   host.innerHTML=`
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap">
       <div style="min-width:0">
-        <h1 style="margin:0;font-family:var(--font-heading);font-size:20px;font-weight:700;letter-spacing:-.01em;color:var(--color-text);line-height:1.2">${esc(t)}</h1>
+        <h1 style="margin:0;font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);letter-spacing:-.01em;color:var(--color-text);line-height:1.2">${esc(t)}</h1>
       </div>
-      ${acts?`<div style="display:flex;align-items:center;gap:8px;flex:none">${acts}</div>`:''}
+      ${acts?`<div style="display:flex;align-items:center;gap:var(--s-2);flex:none">${acts}</div>`:''}
     </div>`;
   syncViewHeight();
 }
@@ -519,14 +525,14 @@ const VIEW_LABEL = { dashboard:'Home', folder:'this value stream', intel:'Insigh
    asked to. */
 function renderFailedHtml(view, e, cid){
   const esc=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
-  return `<div style="max-width:640px;margin:40px auto;border:1px solid var(--st-ruby-line);border-left:4px solid var(--st-ruby-dot);
-      background:var(--st-ruby-bg);border-radius:0;padding:16px 20px">
-    <div style="font-size:15px;font-weight:600;color:var(--st-ruby-fg);margin-bottom:6px">${esc(VIEW_LABEL[view]||view)} could not be drawn</div>
-    <div style="font-size:14px;line-height:1.6;color:var(--color-neutral-800)">
+  return `<div style="max-width:640px;margin:var(--s-10) auto;border:1px solid var(--st-ruby-line);border-left:4px solid var(--st-ruby-dot);
+      background:var(--st-ruby-bg);border-radius:0;padding:var(--s-4) 20px">
+    <div style="font-size:var(--t-card);font-weight:var(--w-strong);color:var(--st-ruby-fg);margin-bottom:6px">${esc(VIEW_LABEL[view]||view)} could not be drawn</div>
+    <div style="font-size:var(--t-body);line-height:1.6;color:var(--color-neutral-800)">
       Something in the portfolio stopped this screen from rendering${cid?` — the record involved is <b>${esc(cid)}</b>`:''}.
       Every other screen still works, and nothing has been changed or lost.
     </div>
-    <div style="margin-top:10px;font-family:var(--font-mono);font-size:12px;color:var(--st-ruby-fg);word-break:break-word">${esc((e&&e.message)||String(e))}</div>
+    <div style="margin-top:10px;font-family:var(--font-mono);font-size:var(--t-label);color:var(--st-ruby-fg);word-break:break-word">${esc((e&&e.message)||String(e))}</div>
   </div>`;
 }
 /* markViewTransition, _lastRenderedView, _viewAnimTimer and the .no-view-anim
@@ -693,9 +699,9 @@ function createFromTemplate(tid){
 function renderNewMenu(){
   const menu=document.getElementById('new-menu'); if(!menu) return;
   const item=(ic,bg,fg,title,sub,attrs='')=>`
-    <button ${attrs} class="new-menu-item" style="width:100%;display:flex;align-items:center;gap:10px;border:0;background:none;cursor:pointer;padding:8px;border-radius:0;text-align:left;color:inherit;" onmouseover="this.style.background='rgb(var(--color-accent-600-rgb)/.09)'" onmouseout="this.style.background='none'">
+    <button ${attrs} class="new-menu-item" style="width:100%;display:flex;align-items:center;gap:10px;border:0;background:none;cursor:pointer;padding:var(--s-2);border-radius:0;text-align:left;color:inherit;" onmouseover="this.style.background='rgb(var(--color-accent-600-rgb)/.09)'" onmouseout="this.style.background='none'">
       <span style="width:30px;height:30px;flex:none;display:grid;place-items:center;border-radius:0;background:${bg};color:${fg};">${icon(ic,'w-[15px] h-[15px]')}</span>
-      <span style="min-width:0;"><span style="display:block;font-size:13px;font-weight:600;">${title}</span><span style="display:block;font-size:12px;color:var(--color-neutral-600);">${sub}</span></span>
+      <span style="min-width:0;"><span style="display:block;font-size:var(--t-meta);font-weight:var(--w-strong);">${title}</span><span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);">${sub}</span></span>
     </button>`;
   /* WO N1: the three ways a contract gets INTO HaTi, in one menu, named for
      what they do. "Import many at once" reaches the same bulk-import page the
@@ -796,21 +802,36 @@ function commandPaletteResults(q){
 }
 function openCommandPalette(){
   const prev=document.getElementById('cmd-palette'); if(prev){ prev.querySelector('#cp-input')?.focus(); return; }
+  /* WHO OPENED IT, so focus can go back there. Without this, Escape drops a
+     keyboard reader at the top of the document and they have to Tab in again
+     from the beginning — openModal has done this correctly since 23 Aug and
+     the palette never learned it. */
+  const opener = document.activeElement;
   const ov=document.createElement('div');
   ov.id='cmd-palette';
-  ov.style.cssText='position:fixed;inset:0;z-index:85;display:flex;align-items:flex-start;justify-content:center;padding:12vh 16px 16px';
+  ov.style.cssText='position:fixed;inset:0;z-index:85;display:flex;align-items:flex-start;justify-content:center;padding:12vh var(--s-4) var(--s-4)';
   ov.innerHTML=`
     <div style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 42%,transparent)"></div>
     <div class="modal-in" style="position:relative;width:100%;max-width:560px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:0;overflow:hidden">
-      <div style="display:flex;align-items:center;gap:9px;padding:12px 14px;border-bottom:1px solid var(--color-divider)">
+      <div style="display:flex;align-items:center;gap:9px;padding:var(--s-3) 14px;border-bottom:1px solid var(--color-divider)">
         <span style="color:var(--color-neutral-500);display:inline-flex">${icon('search','w-4 h-4')}</span>
-        <input id="cp-input" placeholder="${i18t('ap_search_placeholder')}" autocomplete="off" style="flex:1;border:0;outline:0;background:transparent;font:inherit;font-size:15px;color:inherit"/>
-        <span style="font-size:12px;border:1px solid var(--color-divider);padding:2px 6px;border-radius:0;color:var(--color-neutral-600);font-family:var(--font-mono)">ESC</span>
+        <input id="cp-input" placeholder="${i18t('ap_search_placeholder')}" autocomplete="off"
+          role="combobox" aria-expanded="true" aria-controls="cp-list" aria-autocomplete="list"
+          aria-label="${esc(i18t('ap_search_placeholder'))}"
+          style="flex:1;border:0;outline:0;background:transparent;font:inherit;font-size:var(--t-card);color:inherit"/>
+        <span style="font-size:var(--t-label);border:1px solid var(--color-divider);padding:2px 6px;border-radius:0;color:var(--color-neutral-600);font-family:var(--font-mono)">ESC</span>
       </div>
-      <div id="cp-list" class="scroll-thin" style="max-height:52vh;overflow-y:auto;padding:6px"></div>
+      <div id="cp-list" class="scroll-thin" role="listbox" aria-label="${esc(i18t('ap_results'))}"
+        style="max-height:52vh;overflow-y:auto;padding:6px"></div>
     </div>`;
   document.body.appendChild(ov);
   const input=ov.querySelector('#cp-input'), list=ov.querySelector('#cp-list');
+  /* THE KEYBOARD STAYS IN THE PALETTE. focus:false because this overlay
+     focuses its own box — Tab is what was walking out of it into the page,
+     and the trap's own restore is the same one written by hand below, kept
+     rather than removed so a build without core.js still hands focus back. */
+  const trapRelease = (typeof trapFocus==='function')
+    ? trapFocus(ov.querySelector('.modal-in'), { opener, focus:false }) : null;
   let results=[], active=0;
   /* ---- ASK-YOUR-BOOK (WO-4). Two additions ride the sync results: ----
      "In the wording" rows off the server's own full-text index (GET
@@ -819,7 +840,12 @@ function openCommandPalette(){
      an always-last "Ask Copilot" row that HANDS the question to the existing
      Copilot door with it prefilled — never a second AI path from here. */
   let ftsRows=[], ftsFor='', ftsT=null;
-  const close=()=>{ clearTimeout(ftsT); ov.remove(); document.removeEventListener('keydown',onKey,true); };
+  const close=()=>{
+    clearTimeout(ftsT);
+    if(trapRelease){ try{ trapRelease(); }catch(_){} }
+    ov.remove(); document.removeEventListener('keydown',onKey,true);
+    try{ if(opener&&opener.focus&&document.contains(opener)) opener.focus({preventScroll:true}); }catch(_){}
+  };
   const openItem=it=>{
     if(it.kind==='ask'){
       close();
@@ -857,25 +883,50 @@ function openCommandPalette(){
         get sub(){ return i18t('ap_ask_copilot_sub'); },ic:'sparkle'});
     }
     if(active>=results.length) active=Math.max(0,results.length-1);
-    if(!results.length){ list.innerHTML=`<div style="padding:22px 12px;text-align:center;font-size:14px;color:var(--color-neutral-600)">No matches${input.value.trim()?` for “${input.value.replace(/</g,'&lt;')}”`:''}.</div>`; return; }
+    if(!results.length){
+      /* THE EMPTY STATE SPEAKS THE READER'S LANGUAGE. It was the one string in
+         this palette still hardcoded English, under a translated placeholder
+         twelve pixels above it.
+         AND IT ONLY EVER RUNS ON AN EMPTY QUERY, which is why there is one
+         sentence here and not two. The moment anything is typed an "Ask
+         Copilot" row is pushed unconditionally a few lines up, so
+         results.length can never reach 0 with a query in the box — a
+         "no matches for X" string would have been a translation of a branch
+         that cannot execute. This fires on a workspace with nothing in it. */
+      list.innerHTML=`<div style="padding:22px var(--s-3);text-align:center;font-size:var(--t-body);color:var(--color-neutral-600)">${
+        esc(i18t('ap_no_matches'))}</div>`;
+      input.setAttribute('aria-activedescendant','');
+      return;
+    }
     list.innerHTML=results.map((r,i)=>`
-      <button data-cp-i="${i}" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:0;border-radius:0;cursor:pointer;padding:8px 10px;font:inherit;color:inherit;background:${i===active?'color-mix(in srgb,var(--color-accent) 13%,transparent)':'none'}">
+      <button data-cp-i="${i}" id="cp-opt-${i}" role="option" aria-selected="${i===active}" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:0;border-radius:0;cursor:pointer;padding:var(--s-2) 10px;font:inherit;color:inherit;background:${i===active?'color-mix(in srgb,var(--color-accent) 13%,transparent)':'none'}">
         <span style="width:28px;height:28px;flex:none;display:grid;place-items:center;border-radius:0;border:1px solid var(--color-divider);background:var(--color-bg);color:var(--color-neutral-600)">${icon(r.ic,'w-3.5 h-3.5')}</span>
         <span style="min-width:0;flex:1">
-          <span style="display:block;font-size:14px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(r.title||'').replace(/</g,'&lt;')}</span>
-          <span style="display:block;font-size:12px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(r.sub||'').replace(/</g,'&lt;')}</span>
+          <span style="display:block;font-size:var(--t-body);font-weight:var(--w-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(r.title||'').replace(/</g,'&lt;')}</span>
+          <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(r.sub||'').replace(/</g,'&lt;')}</span>
         </span>
-        ${r.kind==='contract'&&window.statusChip?`<span style="flex:none">${statusChip(r.status)}</span>`:`<span style="flex:none;font-size:11px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.09em;color:var(--color-neutral-500)">${r.tag||r.kind}</span>`}
+        ${r.kind==='contract'&&window.statusChip?`<span style="flex:none">${statusChip(r.status)}</span>`:`<span style="flex:none;font-size:var(--t-micro);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.09em;color:var(--color-neutral-500)">${r.tag||r.kind}</span>`}
       </button>`).join('');
     list.querySelectorAll('[data-cp-i]').forEach(b=>{
       const i=+b.getAttribute('data-cp-i');
       b.addEventListener('click',()=>openItem(results[i]));
       b.addEventListener('mousemove',()=>{ if(active!==i){ active=i; paint(); } });
     });
-    const act=list.querySelector(`[data-cp-i="${active}"]`); if(act) act.scrollIntoView({block:'nearest'});
+    const act=list.querySelector(`[data-cp-i="${active}"]`);
+    if(act) act.scrollIntoView({block:'nearest'});
+    /* THE INPUT KEEPS FOCUS AND POINTS AT THE LIVE ROW. That is what
+       aria-activedescendant is for: the reader stays in the box and types,
+       and the screen reader still announces the row the arrows are on. */
+    input.setAttribute('aria-activedescendant', act ? act.id : '');
   };
   function onKey(e){
-    if(e.key==='Escape'){ e.preventDefault(); close(); }
+    /* ESCAPE BELONGS TO THE TOP LAYER AND STOPS THERE. This handler is on
+       document in the CAPTURE phase, so it runs before everything — and
+       without stopPropagation the same press went on to reach the nav
+       drawer's own Escape (js/app.js) and any dialog behind it, so one press
+       closed three things. promptDialog (js/core.js) already does exactly
+       this; the palette simply never learned it. */
+    if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); close(); }
     else if(e.key==='ArrowDown'){ e.preventDefault(); if(results.length){ active=(active+1)%results.length; paint(); } }
     else if(e.key==='ArrowUp'){ e.preventDefault(); if(results.length){ active=(active-1+results.length)%results.length; paint(); } }
     else if(e.key==='Enter'){ e.preventDefault(); if(results[active]) openItem(results[active]); }
@@ -1420,6 +1471,28 @@ function toggleRail(){
    MOVE THE SET, NOT THIS NUMBER: if a size is ever added, this follows from
    laptops-verify's list rather than being re-guessed. And index.html's
    `max-width` block must move with it — it has to match this `<=` exactly. */
+/* ---- THE BREAKPOINT RUNGS ---- (25 Aug 2026)
+   MEASURED: 30 distinct widths across the product's media queries. They are
+   mostly ALREADY a ladder and simply were not named — 767/768, 899/900,
+   1023/1024, 1439/1440 are max/min pairs of four rungs, which is the correct
+   idiom for a query pair.
+
+   AND A CSS TOKEN IS IMPOSSIBLE HERE, which is worth stating rather than
+   discovering: `@media (max-width: var(--bp-tablet))` is not valid CSS — a
+   media query is evaluated before custom properties are resolved. A
+   :root block of --bp-* would have ZERO consumers by construction, which is
+   the exact fault this whole design-system pass exists to fix. So the rungs
+   are named HERE, for the JavaScript that asks the window the same questions
+   the stylesheet asks, and the stylesheet's own numbers stay literal with
+   these as the reference.
+
+   THE VALUES THAT ARE GENUINELY BESPOKE STAY BESPOKE AND SAY SO:
+   NAV_DRAWER_W is the float line and is NOT one of these — it was set from two
+   of the owner's own laptops and moved three times in two days to get there.
+   980 (the Key Terms stack) and 1023/1024 (the negotiation grid) are layout
+   limits of their own components, not device classes. */
+const BP = { phone: 480, tablet: 768, laptop: 1024, desk: 1440, wide: 1800 };
+
 const NAV_DRAWER_W = 1440;
 function navDrawerActive(){
   return typeof innerWidth === 'number' ? innerWidth <= NAV_DRAWER_W : false;
@@ -1463,7 +1536,18 @@ function applyPanelLayout(){
   if(scrim&&scrim.classList) scrim.classList.toggle('open',show);
   const btn=document.getElementById('cmd-panel');
   if(btn) btn.setAttribute('aria-expanded',show?'true':'false');
+  /* ---- THE KEYBOARD STAYS IN THE PANEL WHILE IT IS UP ---- (25 Aug 2026)
+     Every row in here is a DOOR — that is this panel's whole design — and Tab
+     used to walk out of it into the page behind, where the rows the reader
+     came to press are not. ONE PLACE, because this function is the single
+     answer to "is the panel showing": openPanel, the bell, the swap and
+     closeContextPanel all arrive here, so a trap wired at any one of them
+     would be a trap the other three do not set. */
+  if(show && !_panelTrap && typeof trapFocus==='function') _panelTrap=trapFocus(panel);
+  else if(!show && _panelTrap){ try{ _panelTrap(); }catch(e){} _panelTrap=null; }
 }
+/* One value: one panel, two contents, never two layers. */
+let _panelTrap=null;
 function closeContextPanel(){
   if(!state.panelOpen) return;
   state.panelOpen=false; applyPanelLayout();
@@ -1586,18 +1670,18 @@ function activityPanelHtml(){
   refreshActivityFeed();   // server mode: keep the whole-workspace feed current
   const feed=buildActivityFeed();
   return `
-      <div style="padding:10px 12px;">
-        <div style="display:flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:8px;">
+      <div style="padding:10px var(--s-3);">
+        <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:var(--s-2);">
           <span class="live-ping" style="width:6px;height:6px;border-radius:50%;background:var(--st-green-dot);"></span>${i18t('ap_scope_workspace')}
         </div>
         ${feed.length?feed.map(a=>`
           <button data-sel-act="${a.id}" style="display:flex;gap:9px;width:100%;padding:7px 2px;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
-            <span style="width:8px;height:8px;border-radius:50%;background:${CAT_DOT[a.cat]};flex:none;margin-top:4px;"></span>
+            <span style="width:8px;height:8px;border-radius:50%;background:${CAT_DOT[a.cat]};flex:none;margin-top:var(--s-1);"></span>
             <span style="flex:1;min-width:0;">
-              <span style="display:block;font-size:13px;line-height:1.4;">${a.txt}</span>
-              <span style="display:block;font-size:12px;color:var(--color-neutral-500);margin-top:1px;font-family:var(--font-mono);">${a.id} · ${a.when}</span>
+              <span style="display:block;font-size:var(--t-meta);line-height:1.4;">${a.txt}</span>
+              <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-500);margin-top:1px;font-family:var(--font-mono);">${a.id} · ${a.when}</span>
             </span>
-          </button>`).join(''):`<div style="font-size:13px;color:var(--color-neutral-600);padding:12px 2px;">${i18t('ap_no_activity')}</div>`}
+          </button>`).join(''):`<div style="font-size:var(--t-meta);color:var(--color-neutral-600);padding:var(--s-3) 2px;">${i18t('ap_no_activity')}</div>`}
       </div>`;
 }
 /* "NOTHING NEEDS YOU RIGHT NOW" IS A REAL MESSAGE and a good one — an empty
@@ -1618,23 +1702,23 @@ function activityPanelHtml(){
 function alertsPanelHtml(){
   const rows=buildAlerts();
   return `
-      <div style="padding:10px 12px;">
-        <div style="display:flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:8px;">
+      <div style="padding:10px var(--s-3);">
+        <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:var(--s-2);">
           <span style="width:6px;height:6px;border-radius:50%;background:${rows.length?'var(--st-amber-dot)':'var(--st-green-dot)'};"></span>${i18t('ap_scope_you')}
         </div>
         ${rows.length?rows.map((a,i)=>`
           <button data-alert-i="${i}" data-alert-kind="${a.kind}" class="al-row${a.tone==='green'?' al-good':''}${a.news?' al-news':''}" style="display:flex;gap:9px;width:100%;padding:9px 2px;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
             <span style="width:8px;height:8px;border-radius:50%;background:${ALERT_TONE[a.tone]};flex:none;margin-top:5px;"></span>
             <span style="flex:1;min-width:0;">
-              <span class="al-t" style="display:block;font-size:13px;line-height:1.4;font-weight:600;">${esc(a.text)}</span>
-              ${a.name?`<span style="display:block;font-size:12px;color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(a.name)}</span>`:''}
-              <span style="display:block;font-size:12px;color:var(--color-neutral-500);font-family:var(--font-mono);">${esc(a.id)}</span>
+              <span class="al-t" style="display:block;font-size:var(--t-meta);line-height:1.4;font-weight:var(--w-strong);">${esc(a.text)}</span>
+              ${a.name?`<span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(a.name)}</span>`:''}
+              <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-500);font-family:var(--font-mono);">${esc(a.id)}</span>
             </span>
           </button>`).join(''):`
           <div style="padding:26px 6px;text-align:center;">
             <div style="width:38px;height:38px;margin:0 auto 10px;display:grid;place-items:center;border-radius:50%;background:var(--st-green-bg);color:var(--st-green-fg);">&#10003;</div>
-            <div style="font-size:14px;font-weight:600;color:var(--color-text);">${i18t('ap_nothing_needs_you')}</div>
-            <div style="font-size:13px;color:var(--color-neutral-600);margin-top:4px;line-height:1.5;">${i18t('ap_nothing_needs_you_sub')}</div>
+            <div style="font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);">${i18t('ap_nothing_needs_you')}</div>
+            <div style="font-size:var(--t-meta);color:var(--color-neutral-600);margin-top:var(--s-1);line-height:1.5;">${i18t('ap_nothing_needs_you_sub')}</div>
           </div>`}
       </div>`;
 }
@@ -1910,6 +1994,28 @@ function wireShell(){
     document.addEventListener('keydown',e=>{
       // Cmd/Ctrl+K → global jump palette (works even while typing in a field)
       if((e.metaKey||e.ctrlKey)&&(e.key==='k'||e.key==='K')){ e.preventDefault(); openCommandPalette(); return; }
+      /* ⌘B / Ctrl+B → collapse or open the sidebar. The settled binding —
+         verified in shadcn's own source, which is the de-facto modern
+         dashboard implementation, and the same key Vercel and Linear use.
+         toggleRail() already knows the difference between the two worlds: above
+         the float line it flips the stored preference, below it opens and
+         closes the floating layer and leaves the preference alone.
+
+         IT IS GUARDED WHERE ⌘K IS NOT, AND THAT IS THE WHOLE CARE HERE.
+         ⌘K is deliberately allowed while typing — a jump palette is useful
+         mid-sentence. ⌘B is BOLD in a rich-text editor, and this product has
+         ten contenteditable surfaces: js/richpaste.js:400 binds ⌘B/I/U on the
+         editor element itself for exactly that. That handler calls
+         preventDefault but NOT stopPropagation, so the event still reaches
+         this one — unguarded, typing ⌘B in a clause editor would bold the
+         words AND collapse the sidebar. Both belts: an editable target is
+         skipped outright, and a already-handled event is left alone. */
+      if((e.metaKey||e.ctrlKey)&&(e.key==='b'||e.key==='B')){
+        if(e.defaultPrevented) return;
+        const t=e.target;
+        if(t&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName||''))) return;
+        e.preventDefault(); toggleRail(); return;
+      }
       if(e.key==='/'&&!/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)){ e.preventDefault(); openCommandPalette(); }
     });
   }
@@ -2159,8 +2265,8 @@ function fillPrintRoot(){
     const title = (document.querySelector('.room-name h1,#page-head h1,h1')||{}).textContent||'';
     root.dataset.autofill = '1';
     root.innerHTML =
-      '<div style="font-family:var(--font-body);padding:24px;color:#1B2A28">'
-      + (title ? '<h1 style="font-size:19px;font-weight:700;margin:0 0 16px">'
+      '<div style="font-family:var(--font-body);padding:var(--s-6);color:#1B2A28">'
+      + (title ? '<h1 style="font-size:var(--t-page);font-weight:var(--w-title);margin:0 0 var(--s-4)">'
                  + String(title).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))
                  + '</h1>' : '')
       + src.innerHTML
@@ -2180,3 +2286,4 @@ if (typeof window !== 'undefined' && window.addEventListener){
 
 Object.assign(window,{printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,
   buildAlerts,alertCount,updateAlertBadge,panelSuppressed,openPanel,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,brandNow,darkNow,setBrand,setDark,toggleDark,applyAppearance,paintAppearance,brandPickerVisible,BRANDS,shellTitleFor,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
+Object.assign(window,{BP});
