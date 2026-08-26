@@ -555,3 +555,104 @@ describe('f245 (12) — a rule that is not about this clause cannot replace it',
       assert.equal((I18N.match(new RegExp(`^    ${k}:`, 'gm')) || []).length, 2, k);
   });
 });
+
+/* ================================= 13 — WHAT A PRESS COSTS (owner-asked C) */
+describe('f245 (13) — the card says what the press takes', () => {
+  /* ---- OWNER-ASKED 26 Aug 2026, off a drawn render and ruled before it was
+     built. The marks alone do not say how much of the clause is going: a
+     playbook standard striking out every word you have reads, at a glance,
+     exactly like a change of three. ONE QUIET LINE, in the label shade —
+     amber on every total swap would be an alarm that is always on, and
+     replacing a whole clause is often exactly right. ---- */
+
+  async function costBench(){
+    const w = buildWorld({ negotiationView: true, contractView: true, playbook: true });
+    const { win } = w;
+    win.promptDialog = async () => '';
+    win.openAI = () => {}; win.aiPush = () => {}; win.renderAIFeed = () => {};
+    win.copilotAvailable = () => false;
+    const c = supplyContract();
+    win.negoInit(c);
+    win.state = Object.assign({}, win.state, { contracts: [c], activeId: c.id, view: 'redline' });
+    win.getContract = id => (id === c.id ? c : null);
+    Object.defineProperty(win, 'innerWidth', { value: 1440, configurable: true });
+    const here = win.negoClauseList(c)[0];
+    /* A deviation on THIS clause whose Copilot draft is surgical — the two
+       wordings then cost different amounts, which is the whole point. */
+    c.playbook = { key: 'x', label: 't', source: 'ai', verdicts: [
+      { category: 'Payment terms', status: 'deviation', quote: here.text.slice(0, 50),
+        position: 'Payment due within 30 days',
+        redline: here.text.replace('twelve (12) months', 'twenty-four (24) months'), escalate: false },
+      { category: 'Data protection', status: 'missing', quote: '',
+        position: 'DP preferred', redline: '', escalate: false },
+    ] };
+    win.rlOpenClauseEditor(c, here.clauseId, {});
+    const doc = win.document;
+    doc.querySelector('[data-ce-tab="scan"]').click();
+    return { win, c, doc, here };
+  }
+
+  test('it reads three ways, and says nothing where there is nothing to say', async () => {
+    const p = await costBench();
+    const { win } = p;
+    assert.match(win.ceCostLine('one two three four', 'alpha beta gamma delta'), /all 4 words/,
+      'everything goes');
+    assert.match(win.ceCostLine('one two three four', 'one two three zebra'), /1 of 4 words.*keeps 3/,
+      'some of it goes, and it says what survives');
+    assert.match(win.ceCostLine('one two three', 'one two three four five'), /Adds 2 words/,
+      'nothing of the reader\'s wording is at risk, so it says what arrives');
+    /* A line reading "changes 0 of 16" is worse than no line. */
+    assert.equal(win.ceCostLine('same words here', 'same words here'), null, 'no change, no line');
+    assert.equal(win.ceCostLine('', 'anything'), null, 'nothing to compare, no line');
+  });
+
+  test('it counts with the page\'s own counter, never a second one', () => {
+    /* redlineStats counts WORDS and is what the foot's +N -N already prints,
+       so the line and the header can never disagree about what a word is. */
+    assert.match(CODE, /function ceCostLine[\s\S]{0,400}ceCounts\(/,
+      'the reading asks ceCounts, which is redlineStats');
+    assert.ok(!/function ceCostLine[\s\S]{0,600}split\(\/\\s\+\/\)[\s\S]{0,40}length[\s\S]{0,80}ins/.test(CODE),
+      'and it does not count the marks itself');
+  });
+
+  test('it draws on a rule about THIS clause and not on one that adds a clause', async () => {
+    const p = await costBench();
+    const cards = [...p.doc.querySelectorAll('.ce-rule')];
+    const here = cards.find(el => /Payment terms/.test(el.textContent));
+    const miss = cards.find(el => /Data protection/.test(el.textContent));
+    assert.ok(here.querySelector('.cost'), 'the located rule says what it takes');
+    assert.match(here.querySelector('.cost').textContent, /Replaces all \d+ words/);
+    /* A rule in the missing group replaces nothing — it files a NEW clause — so
+       a line about what it takes away would describe an act that never happens. */
+    assert.equal(miss.querySelector('.cost'), null, 'and a rule that adds one says nothing about taking');
+  });
+
+  test('each verb carries its OWN cost, so two wordings can be compared unpressed', async () => {
+    const p = await costBench();
+    const card = [...p.doc.querySelectorAll('.ce-rule')].find(el => /Payment terms/.test(el.textContent));
+    const titles = {};
+    for (const b of card.querySelectorAll('[data-ce-scan]'))
+      titles[b.textContent.trim()] = b.getAttribute('title');
+    assert.match(titles['Use our standard'] || '', /keeps none/,
+      'the library\'s generic wording is a total swap and says so');
+    assert.match(titles['Use Copilot\'s draft'] || '', /keeps \d+\./,
+      'and the targeted draft keeps most of the clause');
+    assert.notEqual(titles['Use our standard'], titles['Use Copilot\'s draft'],
+      'two wordings that cost different amounts must not read alike');
+  });
+
+  test('it is drawn quiet — the label shade, never an alarm', () => {
+    const rule = (SRC.match(/\.ce-rule \.cost\{[^}]*\}/) || [''])[0];
+    assert.ok(rule, 'the line has a rule of its own');
+    assert.match(rule, /--color-neutral-600/, 'the label shade');
+    assert.ok(!/--st-amber|--st-ruby|--danger/.test(rule),
+      'never amber or ruby: a total swap is often right, and an alarm always on is one nobody reads');
+    assert.match(rule, /tabular-nums/, 'and the figures line up down a column');
+  });
+
+  test('both languages', () => {
+    for (const k of ['ce_cost_all_one', 'ce_cost_all_other', 'ce_cost_some_one',
+                     'ce_cost_some_other', 'ce_cost_add_one', 'ce_cost_add_other'])
+      assert.equal((I18N.match(new RegExp(`^    ${k}:`, 'gm')) || []).length, 2, k);
+  });
+});

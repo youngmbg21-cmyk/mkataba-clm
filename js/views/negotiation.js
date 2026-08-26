@@ -10339,24 +10339,47 @@ const _rlPbNorm = s => String(s || '').replace(/\s+/g, ' ').trim().toLowerCase()
 /* The verdict's quote is verbatim from the document, so containment finds the
    clause in the ordinary case; the word-overlap fallback covers a quote the
    review trimmed or re-punctuated. Below half overlap nothing is claimed. */
+/* ---- IT REFUSES WHEN IT IS NOT SURE (owner-asked 26 Aug 2026) ----
+   The cheap half of clause types, and it buys most of their safety for an
+   afternoon. Containment is CERTAIN — the quote is verbatim in that clause and
+   nothing else is being weighed. The fallback beneath it was a guess, and it
+   was loose in three separate ways at once:
+
+     · the bar was HALF the quote's words, which contract clauses share freely
+       — payment, party, notice, days, written;
+     · a word was counted by `includes`, a SUBSTRING test, so "days" scored
+       against "holidays" and "payment" against "prepayment"; and
+     · it returned the best clause even when the runner-up was a whisker
+       behind, which is a coin toss reported as a finding.
+
+   So: words are matched as WORDS, the bar is RL_PB_MATCH_MIN, and the winner
+   must also be RL_PB_MATCH_LEAD clear of whatever came second. Two clauses that
+   score alike is exactly the state that must answer "I do not know", because
+   the wrong one of them looks identical to the right one. */
+const RL_PB_MATCH_MIN = 0.7;    /* of the quote's own long words */
+const RL_PB_MATCH_LEAD = 0.15;  /* and clear of the runner-up by this much */
+const _rlPbWords = t => new Set(_rlPbNorm(t).split(/[^a-z0-9]+/).filter(Boolean));
 function rlPbFindClause(c, quote){
   const q = _rlPbNorm(quote);
   if (!q) return null;
   const clauses = (typeof negoClauseList === 'function') ? negoClauseList(c) : [];
-  let best = null, bestScore = 0;
+  let best = null, bestScore = 0, runnerUp = 0;
   const qw = q.split(/[^a-z0-9]+/).filter(w => w.length > 3);
   for (const cl of clauses){
     const l = _rlPbNorm(cl.text);
     if (!l) continue;
-    if (l.includes(q) || q.includes(l)) return cl;
-    if (qw.length){
-      let hit = 0;
-      for (const w of qw) if (l.includes(w)) hit++;
-      const score = hit / qw.length;
-      if (score > bestScore){ bestScore = score; best = cl; }
-    }
+    if (l.includes(q) || q.includes(l)) return cl;   /* certain — not a guess */
+    if (!qw.length) continue;
+    const have = _rlPbWords(cl.text);
+    let hit = 0;
+    for (const w of qw) if (have.has(w)) hit++;
+    const score = hit / qw.length;
+    if (score > bestScore){ runnerUp = bestScore; bestScore = score; best = cl; }
+    else if (score > runnerUp) runnerUp = score;
   }
-  return bestScore >= 0.5 ? best : null;
+  if (bestScore < RL_PB_MATCH_MIN) return null;
+  if (bestScore - runnerUp < RL_PB_MATCH_LEAD) return null;   /* a tie is a no */
+  return best;
 }
 /* Review result → the proposal list the modal draws. Pure — no DOM, no
    filing — so the tests can hold it to account without a screen. */
@@ -10396,10 +10419,22 @@ function rlPlaybookProposals(c, rev){
     let draft = String((v && v.redline) || '').trim();
     if (draft && (draft === preferred || draft === fallback)) draft = '';
     if (!preferred && !fallback && !draft) continue;   // review-only verdict — nothing proposable
+    /* ---- WHERE THIS PROPOSAL MAY LAND, and there are THREE answers ----
+       A located clause is EDITED. A standard the scan found nowhere in the
+       document is ADDED. And a deviation we could not place is NEITHER: we know
+       the wording is in the contract and not which clause holds it, so editing
+       would land on the wrong one and adding would put a second copy of a
+       clause the document already has.
+
+       That third state is not new — a quote the scan trimmed has always failed
+       to match — but it used to fall through to the insert, silently. Naming it
+       is what lets the rail, the review modal and the filing path all refuse
+       the same thing for the same reason. */
+    const landing = cl ? 'edit' : (v.status === 'missing' ? 'add' : 'unplaced');
     out.push({ v, clauseId: cl ? cl.clauseId : null,
       clauseLabel: cl && window.negoClauseLabel ? negoClauseLabel(cl) : '',
       oldText: cl ? cl.text : '',
-      preferred, fallback, draft,
+      preferred, fallback, draft, landing,
       lead: preferred || fallback || draft,
       leadKind: preferred ? 'standard' : (fallback ? 'fallback' : 'draft'),
       risk: v.escalate ? 'high' : 'medium' });
@@ -10422,6 +10457,11 @@ function rlPbWordingLabel(kind){
 async function rlFilePlaybookProposal(c, item, wording){
   const words = String(wording == null ? '' : wording).trim();
   if (!words) return null;
+  /* THE WALL, not a decision about pixels. A deviation nobody could place has
+     no clause to edit and must not be added, or the contract grows a second
+     copy of a clause it already carries. Every surface that offers this act
+     asks the same reading first; this is what holds if one forgets. */
+  if (item && item.landing === 'unplaced') return null;
   const author = (window.currentUser && currentUser()?.name) || 'This workspace';
   const note = `Playbook — ${item.v.category}${item.v.escalate ? ' (escalation position)' : ''}${
     item.v.position ? ': ' + String(item.v.position).slice(0, 300) : ''}`;
@@ -10502,12 +10542,18 @@ async function rlOpenPlaybookReview(c, again){
     ${''/* A BUTTON IS DRAWN ONLY WHERE ITS WORDING EXISTS. The preferred one
            used to draw unconditionally, so a position the clause library has
            no entry for offered a press that files nothing. */}
-    <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:9px;flex-wrap:wrap" data-pbr-verbs="${i}">
+    ${''/* AN UNPLACED DEVIATION IS A FINDING, NOT A PROPOSAL. Neither verb is
+           safe on it, and a control whose one outcome is a refusal is
+           furniture — so it draws none and says what to do instead. The quote
+           above is what tells the reader where to look. */}
+    ${it.landing === 'unplaced'
+      ? `<div style="margin-top:9px;font-size:var(--t-meta);line-height:1.5;color:var(--color-neutral-600)">${i18t('ng_pb_unplaced')}</div>`
+      : `<div style="display:flex;justify-content:flex-end;gap:6px;margin-top:9px;flex-wrap:wrap" data-pbr-verbs="${i}">
       <button data-pbr-skip="${i}" class="ui-btn" style="font-size:var(--t-label);padding:var(--s-1) 11px">${i18t('ng_skip')}</button>
       ${it.draft ? `<button data-pbr-draft="${i}" class="ui-btn" style="font-size:var(--t-label);padding:var(--s-1) 11px" title="${_nea(i18t('ng_file_draft_title'))}">${i18t('ng_file_draft')}</button>` : ''}
       ${it.fallback ? `<button data-pbr-fb="${i}" class="ui-btn" style="font-size:var(--t-label);padding:var(--s-1) 11px" title="${i18t('ng_file_fallback_title')}">${i18t('ng_file_fallback')}</button>` : ''}
       ${it.preferred ? `<button data-pbr-go="${i}" class="ui-btn ui-btn-primary" style="font-size:var(--t-label);padding:var(--s-1) 11px" title="${_nea(i18t('ng_file_preferred_title'))}">${i18t('ng_file_preferred')}</button>` : ''}
-    </div>
+    </div>`}
   </div>`;
   openModal(`<div style="padding:20px var(--s-6);max-height:calc(100vh - 80px);overflow-y:auto">
     <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;margin:0 0 var(--s-1)">&#10022; ${i18tn('ng_playbook_review',items.length,{n:items.length})}</h2>

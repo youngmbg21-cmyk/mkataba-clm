@@ -3396,6 +3396,64 @@ because none of that was what the owner was looking at.
   in the schema field AND the prompt, so the two cannot drift; it takes the
   jurisdiction because half of what it fixes is naming the wrong country's law.
   `const J = orgJx()` moved above the tool that reads it. Tests: f230 (5b).
+- **THE CARD SAYS WHAT THE PRESS TAKES** (owner-asked 26 Aug 2026, drawn and
+  ruled before it was built). The marks alone do not say how much of the clause
+  is going: a standard striking out every word reads, at a glance, exactly like
+  a change of three. `ceCostLine(from, to)` is that sentence and **it counts
+  nothing new** — `ceCounts` is `redlineStats`, which counts WORDS and is what
+  the page foot's own +N -N already prints, so the line and the header cannot
+  disagree about what a word is. Three shapes, because the honest sentence
+  differs: everything goes, some goes, or nothing of the reader's is at risk and
+  wording merely arrives. **NULL WHERE THERE IS NOTHING HONEST TO SAY** — a line
+  reading "changes 0 of 16" is worse than no line. **DRAWN QUIET (owner-ruled):**
+  the label shade, never amber — replacing a whole clause is often exactly right,
+  and an alarm that is always on is the one nobody reads. **NOT ON THE MISSING
+  GROUP AT ALL**: a rule there replaces nothing, so a line about what it takes
+  away would describe an act that never happens. **AND EACH VERB CARRIES ITS OWN
+  COST ON ITS HOVER** — the visible line describes the wording being SHOWN, and a
+  card offering three of them would otherwise make the reader press one to find
+  out. Tests: f245 (13), clause-editor-verify 13a-13d.
+- **A MATCH IT IS NOT SURE OF IS NO MATCH** (owner-asked 26 Aug 2026 — the cheap
+  half of clause types, bought for an afternoon). `rlPbFindClause` matched a rule
+  to a clause by hunting for the quoted sentence and, failing that, GUESSING by
+  shared words. The guess was loose in three ways at once: the bar was HALF the
+  quote's long words, which contract clauses share freely; a word was counted by
+  `includes`, a SUBSTRING test, so "days" scored against "holidays"; and it
+  returned the best clause however close the runner-up, which is a coin toss
+  reported as a finding. **CONTAINMENT IS UNTOUCHED** — a verbatim quote is
+  certain and is not weighed. Beneath it, words are matched as WORDS
+  (`_rlPbWords`), the bar is `RL_PB_MATCH_MIN` (0.7), and the winner must also be
+  `RL_PB_MATCH_LEAD` (0.15) clear of second place: **two clauses scoring alike is
+  the one state that must answer "I do not know"**, because the wrong one of them
+  looks identical to the right one. MEASURED against the old matcher: quotes
+  whose words are spread over two clauses used to locate one of them and now
+  locate neither.
+- **AND REFUSING CREATED A THIRD LANDING, WHICH IS THE PART TO GET RIGHT.**
+  `landing` is named once in `rlPlaybookProposals` and has THREE answers: a
+  located clause is **edit**, a standard the scan found nowhere is **add**, and a
+  deviation nobody could place is **unplaced** — we know the wording is in the
+  contract and not which clause holds it, so editing would land on the wrong one
+  and adding would put a second copy of a clause the document already has. That
+  state is NOT new (a quote the scan trimmed has always failed to match) and it
+  used to fall through to the insert, silently. **THREE SURFACES ASK THE ONE
+  READING**: the rail draws it on neither list, the review modal offers it no
+  verb and names the state instead (`ng_pb_unplaced`), and
+  `rlFilePlaybookProposal` refuses it outright — the wall, so a surface that
+  forgets cannot file one. Tests: f131 (Fix 2c, 2d).
+- **A DEVIATION IS EDITED, NOT BULLDOZED** (owner-asked 26 Aug 2026 — option D).
+  `AI_REDLINE_RULE` asked for "replacement wording" and got exactly that: on a
+  lease-charges clause the library's generic payment wording went over
+  "The Lessee shall pay ... in advance, exclusive of VAT", losing "in advance"
+  and renaming the **Lessee** to the **Buyer**, because a generic clause does not
+  know what document it landed in. The rule now asks a deviation for the
+  **SMALLEST change that meets the position**, keeping every word that is not
+  off-position — the parties' defined names, the amounts, the dates and anything
+  plainly negotiated — and forbids pasting a generic clause over one the document
+  already has; a MISSING position has nothing to keep and is still written out in
+  full. **THE LABELS ARE UNTOUCHED**, which is what keeps this honest: the
+  library's own wording is still what "our standard" serves, and the fitted
+  version is still Copilot's draft under its own name. What C then adds is that
+  the two costs are readable without pressing either. Tests: f230 (5c).
 - **A READING THAT SERVES A MARKUP SLOT AND A TEXT SLOT IS BUILT AS TEXT AND
   DRESSED AT THE SLOT.** `pbVerdictLine` returned MARKUP; this rail needed the
   same sentence as plain text, stripped its tags and escaped the result — and

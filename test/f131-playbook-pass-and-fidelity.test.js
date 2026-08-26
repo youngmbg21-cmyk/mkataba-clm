@@ -22,6 +22,8 @@
        a fight the clause won is not a move. */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const { buildWorld } = require('./world');
 
 const BASE = [
@@ -211,6 +213,97 @@ describe('F131 — Fix 2b: whose wording is whose', () => {
       'the preferred button used to draw unconditionally — a press that filed nothing');
     assert.match(SRC, /redlineStructuredHtml\(it\.oldText, it\.lead\)/,
       'the preview draws the same wording the first button serves');
+  });
+});
+
+/* ============ IT REFUSES WHEN IT IS NOT SURE (owner-asked 26 Aug 2026) ======
+   The cheap half of clause types. rlPbFindClause matched a rule to a clause by
+   hunting for the quoted sentence and, failing that, GUESSING by shared words —
+   half the quote's long words, counted by substring, winner takes it however
+   close the runner-up. Contract clauses share a great many words, so the guess
+   could land on the wrong clause and still look confident: the reported bug one
+   step earlier in the chain. */
+describe('F131 — Fix 2c: a match it is not sure of is no match', () => {
+  test('a verbatim quote still locates its clause — containment is certain', async () => {
+    const { win, c } = await world();
+    const cl = win.negoClauseList(c).find(x => /90 days/.test(x.text));
+    const hit = win.rlPbFindClause(c, cl.text.slice(0, 40));
+    assert.ok(hit, 'the ordinary case is untouched');
+    assert.equal(hit.clauseId, cl.clauseId);
+  });
+
+  test('words scattered across two clauses no longer buy either of them', async () => {
+    const { win, c } = await world();
+    /* MEASURED against the old matcher, which LOCATED all three of these and
+       reported the result as that clause's own fight. Each is words the fixture
+       really does contain — spread over the supply clause AND the payment one,
+       which is precisely the coin toss that must answer "I do not know". */
+    assert.equal(win.rlPbFindClause(c, 'invoices supply date estimated'), null,
+      'half the words from each of two clauses is not a match to either');
+    assert.equal(win.rlPbFindClause(c, 'supply invoices payable estimated annum'), null,
+      'nor is a near tie between them');
+    /* And the plainly hopeless cases, which the old bar already refused. */
+    assert.equal(win.rlPbFindClause(c,
+      'the party shall provide written notice within days under this agreement'), null);
+    assert.equal(win.rlPbFindClause(c, 'zebra xylophone quasar meridian'), null);
+  });
+
+  test('a word is a WORD, not a run of letters inside another one', async () => {
+    const { win, c } = await world();
+    const src = fs.readFileSync(path.join(__dirname, '..', 'js/views/negotiation.js'), 'utf8');
+    assert.match(src, /const have = _rlPbWords\(cl\.text\);/,
+      'the clause is read as a set of words');
+    assert.match(src, /if \(have\.has\(w\)\) hit\+\+;/,
+      'and membership is the test — "days" used to score against "holidays"');
+  });
+
+  test('a tie is a no: the winner must be clear of the runner-up', () => {
+    const src = fs.readFileSync(path.join(__dirname, '..', 'js/views/negotiation.js'), 'utf8');
+    assert.match(src, /RL_PB_MATCH_MIN/, 'there is a bar');
+    assert.match(src, /RL_PB_MATCH_LEAD/, 'and a lead over whatever came second');
+    assert.match(src, /if \(bestScore - runnerUp < RL_PB_MATCH_LEAD\) return null;/,
+      'two clauses scoring alike is the one state that must answer "I do not know"');
+  });
+});
+
+/* ============ AND THE THIRD LANDING THAT REFUSING CREATES ================= */
+describe('F131 — Fix 2d: a deviation nobody could place is neither verb', () => {
+  const rev = quote => ({ verdicts: [
+    { category: 'Liability cap', status: 'deviation', quote, position: 'p', redline: '', escalate: false },
+  ] });
+
+  test('the three landings are named once, off the verdict and the match', async () => {
+    const { win, c } = await world();
+    const cl = win.negoClauseList(c).find(x => /90 days/.test(x.text));
+    const all = win.rlPlaybookProposals(c, { verdicts: [
+      { category: 'Payment terms', status: 'deviation', quote: cl.text.slice(0, 40),
+        position: 'p', redline: '', escalate: false },
+      { category: 'Data protection', status: 'missing', quote: '', position: 'p', redline: '', escalate: false },
+      { category: 'Liability cap', status: 'deviation',
+        quote: 'the party shall provide written notice within days', position: 'p', redline: '', escalate: false },
+    ] });
+    const seen = all.map(it => `${it.v.category}=${it.landing}`).join('|');
+    assert.equal(seen,
+      'Payment terms=edit|Data protection=add|Liability cap=unplaced',
+      'located edits, absent adds, and unplaced is its own answer');
+  });
+
+  test('the filing path refuses it — adding would duplicate a clause the document has', async () => {
+    const { win, c } = await world();
+    const it = win.rlPlaybookProposals(c, rev('the party shall provide written notice within days'))[0];
+    assert.equal(it.landing, 'unplaced');
+    const before = win.negoChanges(c).length;
+    const ch = await win.rlFilePlaybookProposal(c, it, 'Some wording nobody asked to insert.');
+    assert.equal(ch, null, 'it refuses');
+    assert.equal(win.negoChanges(c).length, before, 'and nothing reaches the record');
+  });
+
+  test('the review modal offers it no verb at all, and says what to do instead', () => {
+    const src = fs.readFileSync(path.join(__dirname, '..', 'js/views/negotiation.js'), 'utf8');
+    assert.match(src, /it\.landing === 'unplaced'/, 'the modal asks the same reading');
+    assert.match(src, /ng_pb_unplaced/, 'and names the state rather than drawing a dead button');
+    const i18n = fs.readFileSync(path.join(__dirname, '..', 'js/i18n.js'), 'utf8');
+    assert.equal((i18n.match(/^    ng_pb_unplaced:/gm) || []).length, 2, 'both languages');
   });
 });
 

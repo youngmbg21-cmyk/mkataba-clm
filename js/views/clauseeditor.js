@@ -57,6 +57,7 @@ const _cee = s => String(s == null ? '' : s)
   .replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
 const _ceea = s => _cee(s).replace(/"/g, '&quot;');
 const _cet = (k, v) => (typeof window !== 'undefined' && window.i18t) ? i18t(k, v) : k;
+const _cetn = (k, n, v) => (typeof window !== 'undefined' && window.i18tn) ? i18tn(k, n, v) : k;
 
 /* ---------- STATE ----------
    Per sitting, in memory. Nothing here is persisted: an editor that reopened
@@ -438,6 +439,11 @@ function clauseEditorCss(){
   .ce-rule .pv{display:block; margin-top:4px; padding:var(--s-2) 10px; background:var(--color-surface);
     border:1px solid var(--color-divider); font-size:var(--t-meta); line-height:1.65;
     max-height:120px; overflow:auto}
+  ${''/* WHAT THE PRESS COSTS. Quiet on purpose — see ceCostLine. Tabular figures
+         so a column of these lines up rather than dancing. */}
+  .ce-rule .cost{display:block; margin-top:7px; font-size:var(--t-label); line-height:1.45;
+    color:var(--color-neutral-600); font-variant-numeric:tabular-nums}
+  .ce-rule .cost b{font-weight:var(--w-strong); color:var(--color-text)}
   .ce-rule .filed{font-size:var(--t-label); font-weight:var(--w-strong); color:var(--st-green-fg)}
   .ce-rule .av{display:flex; gap:var(--s-2); margin-top:9px; flex-wrap:wrap}
   .ce-rule .av button{height:26px; padding:0 11px; font:inherit; font-size:var(--t-label); font-weight:var(--w-strong);
@@ -635,11 +641,15 @@ function ceScanGroups(){
   const here = [], missing = [];
   for (const it of items){
     if (!it) continue;
-    /* ASKED IN THIS ORDER ON PURPOSE. With no clause open both sides of an
-       equality on null are null, so testing the match first would file every
-       homeless finding under "this clause" on a page that has none. */
-    if (!it.clauseId) missing.push(it);
-    else if (it.clauseId === _ceClauseId) here.push(it);
+    /* ROUTED BY WHERE IT MAY LAND, never by whether it happens to carry a
+       clause id. The third landing — a deviation nobody could place — is drawn
+       on NEITHER list: we know the wording is somewhere in this contract and
+       not that it is here, so offering to replace this clause would be the
+       reported fault again, and offering to add one would duplicate a clause
+       the document already has. It is the whole-document Playbook review's to
+       report, where the reader can see the quote and go and look. */
+    if (it.landing === 'add') missing.push(it);
+    else if (it.landing === 'edit' && it.clauseId === _ceClauseId) here.push(it);
   }
   return { here, missing };
 }
@@ -664,6 +674,42 @@ function ceWordingLabel(kind){
 let _ceScanFiled = {};
 const ceScanKey = it => `${(it && it.v && it.v.category) || '?'}::${(it && it.v && it.v.status) || '?'}`;
 const ceDeviationCount = () => ceScanItems().filter(it => it.v && it.v.status !== 'aligned').length;
+
+/* ============================================================================
+   WHAT A PRESS COSTS (owner-asked 26 Aug 2026, drawn and ruled first)
+   ----------------------------------------------------------------------------
+   The card draws the marks, and the marks alone do not say how much of the
+   clause is going. On a lease-charges clause a playbook standard can strike out
+   every word you have and put a generic paragraph in its place, and that reads
+   at a glance exactly like a change of three words.
+
+   IT COUNTS NOTHING NEW. redlineStats already counts WORDS, and it is the same
+   counter behind the +36 -16 on this page's own foot — so the line and the
+   figures in the header can never disagree about what a word is.
+
+   IT IS A LABEL, NOT A LOCK, AND IT IS DRAWN QUIET (owner-ruled). Replacing a
+   whole clause is often exactly right; amber on every one of those would be an
+   alarm that is always on, which this rulebook records as the way the one real
+   warning stops being read. The label shade, and no colour of its own.
+   ========================================================================== */
+function ceWordCount(t){
+  const w = String(t == null ? '' : t).trim();
+  return w ? w.split(/\s+/).length : 0;
+}
+/* null where there is nothing honest to say — the two texts are the same, or
+   there is no wording to compare. The caller draws nothing rather than a line
+   reading "changes 0 of 16". */
+function ceCostLine(from, to){
+  const total = ceWordCount(from);
+  if (!total || String(from) === String(to)) return null;
+  const { ins, del } = ceCounts(from, to);
+  if (!ins && !del) return null;
+  /* PURE ADDITION — nothing of the reader's wording is at risk, so the line
+     says what arrives rather than what goes. */
+  if (!del) return _cetn('ce_cost_add', ins, { n: ins, total });
+  if (del >= total) return _cetn('ce_cost_all', total, { total });
+  return _cetn('ce_cost_some', del, { n: del, total, kept: total - del });
+}
 
 /* ---------- the redline between the two boxes ----------
    COMPUTED, never scripted, and computed by the product's own engine — the
@@ -1568,15 +1614,29 @@ function ceScanCardHtml(it, i, group){
      whole of what was reported. It prints its wording plainly instead. */
   const preview = !it.lead ? ''
     : (group === 'here' ? ceRedlineHtml(_ceText, it.lead) : `<p>${_cee(it.lead)}</p>`);
+  /* ONLY WHERE SOMETHING OF THIS CLAUSE IS AT RISK. A rule in the missing group
+     replaces nothing — it files a new clause — so a line about what it takes
+     away would be a sentence about an act that does not happen. */
+  const cost = (group === 'here' && it.lead) ? ceCostLine(_ceText, it.lead) : null;
   const verbs = CE_SCAN_VERBS[group] || CE_SCAN_VERBS.here;
-  const btn = (kind, words) => words
-    ? `<button type="button" data-ce-scan="${i}:${kind}">${_cet(verbs[kind])}</button>` : '';
+  /* EACH BUTTON CARRIES ITS OWN COST ON ITS HOVER. The visible line under the
+     preview describes the wording being SHOWN; a card offering three of them
+     would otherwise make the reader press one to find out what it takes. The
+     hover is where a control may say more than its name can — the register
+     row's own rule — and it costs the card no height. */
+  const btn = (kind, words) => {
+    if (!words) return '';
+    const own = group === 'here' ? ceCostLine(_ceText, words) : null;
+    return `<button type="button" data-ce-scan="${i}:${kind}"${
+      own ? ` title="${_ceea(own)}"` : ''}>${_cet(verbs[kind])}</button>`;
+  };
   const filed = !!_ceScanFiled[ceScanKey(it)];
   return `<div class="ce-rule ${tone}">
     <div class="n"><span>${_cee(v.category || _cet('ce_rule'))}</span></div>
     <span class="l">${_cee(line)}</span>
     ${v.quote ? `<span class="r">${_cee(_cet('ce_scan_quote', { quote: String(v.quote).slice(0, 220) }))}</span>` : ''}
     ${preview ? `<span class="pvk">${_cee(ceWordingLabel(it.leadKind))}</span><span class="pv">${preview}</span>` : ''}
+    ${cost ? `<span class="cost">${_cee(cost)}</span>` : ''}
     <div class="av">${filed
       ? `<span class="filed">${_cee(_cet('ce_scan_added_row'))}</span>`
       : btn('preferred', it.preferred) + btn('fallback', it.fallback) + btn('draft', it.draft)}</div>
@@ -2021,7 +2081,8 @@ Object.assign(window, {
   clauseEditorOpen, clauseEditorClauseId, clauseEditorContract, clauseEditorDirty, clauseEditorCss,
   clauseEditorHtml, clauseEditorRefusal, clauseEditorFits,
   rlOpenClauseEditor, rlCloseClauseEditor,
-  ceApply, ceUndo, ceDiscard, ceFile, ceAsk, ceRunScan, ceScanItems, ceScanGroups, ceAddMissingClause, ceLines,
+  ceApply, ceUndo, ceDiscard, ceFile, ceAsk, ceRunScan, ceScanItems, ceScanGroups, ceAddMissingClause,
+  ceCostLine, ceWordCount, ceLines,
   ceRedlineHtml, ceCounts, ceReadList, ceRenderAll, ceRenderPaper,
   ceEditableReading, ceGoClause,
 });

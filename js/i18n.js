@@ -1392,6 +1392,7 @@ const STRINGS = {
     ng_file_fallback: 'File fallback',
     ng_file_preferred: 'File preferred',
     ng_file_draft: 'File Copilot\'s draft',
+    ng_pb_unplaced: 'Our standard is in this contract somewhere, but HaTi could not tell which clause holds it \u2014 so it is not offering to change one. The quoted wording above is where to look.',
     ng_draft_is_copilots: 'A draft is Copilot\'s own wording for this contract — useful, but not a position anybody here has approved.',
     ng_preferred: 'Preferred',
     ng_opening_position: 'is your opening position;',
@@ -1596,6 +1597,15 @@ const STRINGS = {
     ce_use_standard: 'Use our standard',
     ce_use_fallback: 'Use our fallback',
     ce_use_draft: 'Use Copilot\'s draft',
+    /* WHAT A PRESS COSTS. Three shapes, because the honest sentence differs:
+       everything goes, some of it goes, or nothing of yours goes and wording
+       merely arrives. Counted in WORDS by the same counter as the page foot. */
+    ce_cost_all_one: 'Replaces the only word you have \u2014 keeps none.',
+    ce_cost_all_other: 'Replaces all {total} words \u2014 keeps none.',
+    ce_cost_some_one: 'Changes 1 of {total} words \u2014 keeps {kept}.',
+    ce_cost_some_other: 'Changes {n} of {total} words \u2014 keeps {kept}.',
+    ce_cost_add_one: 'Adds 1 word \u2014 changes none of your {total}.',
+    ce_cost_add_other: 'Adds {n} words \u2014 changes none of your {total}.',
     /* THE TWO GROUPS. The second heading carries the promise of what a press
        inside it does, because the act there differs from every other press on
        this rail: it files a tracked change rather than filling a box. */
@@ -6396,6 +6406,7 @@ const STRINGS = {
     ng_file_fallback: 'Arkivera reservposition',
     ng_file_preferred: 'Arkivera föredragen',
     ng_file_draft: 'Arkivera Copilots utkast',
+    ng_pb_unplaced: 'Vår standard finns någonstans i avtalet, men HaTi kunde inte avgöra vilken klausul som bär den \u2014 så den erbjuder sig inte att ändra någon. Den citerade formuleringen ovan är var du ska leta.',
     ng_draft_is_copilots: 'Ett utkast är Copilots egen formulering för det här avtalet — användbar, men ingen position som någon här har godkänt.',
     ng_preferred: 'Föredragen',
     ng_opening_position: 'är din utgångsposition;',
@@ -6566,6 +6577,12 @@ const STRINGS = {
     ce_use_standard: 'Använd vår standard',
     ce_use_fallback: 'Använd vår reservposition',
     ce_use_draft: 'Använd Copilots utkast',
+    ce_cost_all_one: 'Ersätter det enda ordet du har \u2014 behåller inget.',
+    ce_cost_all_other: 'Ersätter alla {total} orden \u2014 behåller inget.',
+    ce_cost_some_one: 'Ändrar 1 av {total} ord \u2014 behåller {kept}.',
+    ce_cost_some_other: 'Ändrar {n} av {total} ord \u2014 behåller {kept}.',
+    ce_cost_add_one: 'Lägger till 1 ord \u2014 ändrar inget av dina {total}.',
+    ce_cost_add_other: 'Lägger till {n} ord \u2014 ändrar inget av dina {total}.',
     ce_scan_here: 'Den här klausulen',
     ce_scan_missing: 'Saknas i avtalet',
     ce_scan_missing_sub: 'Finns inte i avtalet alls. De här registreras som en ny klausul sist bland villkoren — de ersätter aldrig klausulen du är i.',

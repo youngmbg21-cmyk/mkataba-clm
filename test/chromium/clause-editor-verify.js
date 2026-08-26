@@ -941,6 +941,72 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('12i the card settles rather than offering the same press again',
      !pressed.none && pressed.settled === true, String(pressed.settled));
 
+  /* ==========================================================================
+     13. WHAT A PRESS COSTS — drawn, quiet, and per verb
+     --------------------------------------------------------------------------
+     The rules are in f245 (13). What is asked HERE is what jsdom cannot answer:
+     that the line is PAINTED under the preview, that its computed colour is the
+     label shade rather than an alarm, and that two verbs offering wordings of
+     different cost really do carry different hovers — which is the whole reason
+     the hover exists.
+     ========================================================================== */
+  await p.evaluate(() => {
+    if (window.rlSetReadMode) rlSetReadMode('marks');
+    window.clauseLibrary = () => ([
+      { id:'cl-pay', category:'Payment terms', name:'Payment within 30 days',
+        preferred:'The Buyer shall pay each undisputed invoice within thirty (30) days of receipt.',
+        fallback:'Payment within forty-five (45) days of a valid invoice.' },
+    ]);
+    const here = negoClauseList(window.CONTRACT)[0];
+    window.CONTRACT.playbook = { key:'x', label:'t', source:'ai', verdicts: [
+      { category:'Payment terms', status:'deviation', quote: here.text.slice(0, 50),
+        position:'Payment due within 30 days',
+        /* a SURGICAL draft, so the two wordings cost different amounts */
+        redline: here.text.replace(/\.$/, ', in each case within thirty (30) days.'), escalate:false },
+    ] };
+    window.rlOpenClauseEditor(window.CONTRACT, here.clauseId, {});
+  });
+  await pause(600);
+  await p.click('#clause-editor [data-ce-tab="scan"]');
+  await pause(300);
+
+  const cost = await p.evaluate(() => {
+    const card = document.querySelector('#clause-editor .ce-rule');
+    if (!card) return { none: true };
+    const line = card.querySelector('.cost');
+    const pv = card.querySelector('.pv');
+    const cs = line ? getComputedStyle(line) : null;
+    const r = line ? line.getBoundingClientRect() : null;
+    const titles = {};
+    for (const b of card.querySelectorAll('[data-ce-scan]'))
+      titles[b.textContent.replace(/\s+/g, ' ').trim()] = b.getAttribute('title');
+    /* the label shade, resolved — and the two alarm tones, resolved, to compare
+       against rather than typing a hex that a palette pass would move */
+    const probe = document.createElement('span');
+    document.body.appendChild(probe);
+    const tone = v => { probe.style.color = `var(${v})`; return getComputedStyle(probe).color; };
+    const label = tone('--color-neutral-600'), amber = tone('--st-amber-fg'), ruby = tone('--st-ruby-fg');
+    probe.remove();
+    return { none: false,
+      text: line ? line.textContent.replace(/\s+/g, ' ').trim() : null,
+      painted: !!(r && r.width > 0 && r.height > 0),
+      colour: cs ? cs.color : null, label, amber, ruby,
+      belowPreview: !!(line && pv && (line.compareDocumentPosition(pv) & Node.DOCUMENT_POSITION_PRECEDING)),
+      titles };
+  });
+  ck('13a the cost line is painted under the preview, not merely in the markup',
+     !cost.none && cost.painted && cost.belowPreview, cost.none ? 'no card' : `"${cost.text}"`);
+  ck('13b it reads as a count of this clause\'s own words',
+     !cost.none && /\d+ words?/.test(cost.text || ''), cost.text);
+  ck('13c and it is drawn QUIET — the label shade, and neither alarm tone',
+     !cost.none && cost.colour === cost.label && cost.colour !== cost.amber && cost.colour !== cost.ruby,
+     `${cost.colour} (label ${cost.label}, amber ${cost.amber}, ruby ${cost.ruby})`);
+  const t = cost.titles || {};
+  const std = t['Use our standard'], draft = t["Use Copilot's draft"];
+  ck('13d each verb carries its OWN cost, so the two can be compared unpressed',
+     !!std && !!draft && std !== draft && /keeps none/.test(std) && /keeps \d/.test(draft),
+     JSON.stringify({ std, draft }));
+
   /* ---- 10. NO PAGE ERRORS THROUGHOUT ---- */
   ck('10 the whole journey ran with no page errors', errs.length === 0, errs.join(' | ') || 'none');
 

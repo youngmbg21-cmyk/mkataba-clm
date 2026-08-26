@@ -232,6 +232,27 @@ describe('F230 — the whole contract is read', () => {
     assert.ok(j > -1 && j < use, 'the jurisdiction is read before the tool that reads it');
   });
 
+  /* ------- 5c. a deviation is edited, not bulldozed (owner-asked D) -------
+     On a lease-charges clause, "Use our standard" pasted the library's generic
+     payment clause over wording that read "The Lessee shall pay ... in advance,
+     exclusive of VAT" — losing "in advance", and renaming the Lessee to the
+     Buyer, because a generic clause does not know what document it landed in.
+     The prompt asked for "replacement wording" and got exactly that. */
+
+  test('a deviation asks for the SMALLEST change, and a missing position does not', () => {
+    const rule = SERVER_CODE.match(/const AI_REDLINE_RULE = j => `([^`]*)`/)[1];
+    assert.match(rule, /SMALLEST change that meets the position/,
+      'a clause the document already has is edited, not replaced');
+    assert.match(rule, /keep every word that is not off-position/,
+      'and what is not off-position survives');
+    /* The two failures that were actually reported, refused by name. */
+    assert.match(rule, /parties' defined names/, 'the Lessee does not become the Buyer');
+    assert.match(rule, /Do not paste a generic clause over one the document already has/);
+    /* A MISSING position has nothing to keep, so the rule must not ask it to. */
+    assert.match(rule, /For a MISSING position there is nothing to keep/,
+      'the two cases are told apart inside the one rule');
+  });
+
   /* ---------- 6. and it says so when it finds nothing ---------- */
 
   /* ---- 7. an answer cut short is not an empty answer ---- */
