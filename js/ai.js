@@ -2062,6 +2062,69 @@ function aiPreserveTypography(original, proposed){
   return aiRestoreEmphasis(src, out);
 }
 
+/* ---------- THE HEADING IS ALREADY ON THE PAGE ----------
+   (owner-reported 26 Aug 2026, over a screenshot of Clause 2 replaced whole:
+   "when you edit a header, in this case i asked copilot to edit the whole
+   clause, then it should not be there twice. It should replace it with the
+   same structure.")
+
+   A clause on this engine runs from one HEADING to the next, and every surface
+   that draws one draws the heading SEPARATELY from the body — the editor's box,
+   the paper, the panel. So the passage handed to the model is the body alone,
+   and a model asked to redraft "the whole clause" quite reasonably writes the
+   clause's own title back at the top of its answer. The page then draws the
+   heading, and the answer draws it again underneath.
+
+   THE PROMPT IS TOLD, AND THE PROMPT CANNOT BIND — this file's own recorded
+   rule, paid for by the shape request that had to become code. So the ask is
+   made in copilotPropose and the reconciliation is made here, and only the
+   second one is a guarantee.
+
+   IT REFUSES IN THREE PLACES, and each refusal is a real shape rather than
+   caution for its own sake:
+
+     - where the PASSAGE itself opens with that heading, the reader selected it
+       and the answer is right to restate it. Dropping it there would delete a
+       heading that belongs;
+     - where dropping it would leave nothing at all, because a duplicated
+       heading is a smaller fault than an empty clause;
+     - where there is no heading to compare against, or one too short to be
+       distinctive.
+
+   A heading is matched on its WORDS, never its characters: the paper writes
+   "1. Manufacturing Scope" and the label reads "Clause 1 · Manufacturing
+   Scope", and a comparison that cannot see past the numbering sees two
+   different strings. */
+const _aiHeadKey = s => String(s == null ? '' : s)
+  .replace(/<[^>]*>/g, ' ')
+  .replace(/&[a-z]+;|&#\d+;/gi, ' ')
+  .replace(/^\s*(clause|section|article)\b/i, ' ')
+  .replace(/^[\s\d.()\[\]:·•\-–—]+/, ' ')
+  .replace(/[^a-z0-9]+/gi, ' ')
+  .trim().toLowerCase();
+function aiDropRestatedHeading(text, label, passage){
+  const key = _aiHeadKey(label);
+  /* A floor rather than a length judgement: the test below is that the WHOLE
+     first line equals the heading, which is already a strong constraint, so
+     this only needs to keep an empty or near-empty label from matching. Set
+     higher it refuses real clauses — "Term" and "Fees" are headings a contract
+     really uses, and a line reading exactly "Term" is not wording. */
+  if (!key || key.length < 3) return text;
+  const t = String(text == null ? '' : text);
+  if (!t.trim()) return t;
+  /* The reader selected the heading, so the answer keeps it. */
+  const src = String(passage == null ? '' : passage);
+  if (_aiHeadKey(src.split('\n')[0]) === key) return t;
+  const keep = rest => rest.trim() ? rest : t;
+  if (/^\s*<(h[1-6]|p|div)\b/i.test(t)){
+    const m = t.match(/^\s*<(h[1-6]|p|div)\b[^>]*>([\s\S]*?)<\/\1>\s*/i);
+    return (m && _aiHeadKey(m[2]) === key) ? keep(t.slice(m[0].length)) : t;
+  }
+  const lines = t.split('\n');
+  if (lines.length < 2 || _aiHeadKey(lines[0]) !== key) return t;
+  return keep(lines.slice(1).join('\n').replace(/^\s+/, ''));
+}
+
 /* ---------- AN ADDITION IS NOT MEASURED AGAINST WHAT IT SITS BESIDE ----------
    aiPreserveTypography above is a comparison: it reads the shape of the passage
    the answer REPLACES — its item count, its list and paragraph tags — and puts
@@ -2503,7 +2566,17 @@ async function copilotPropose(opts){
       + 'numbered or lettered items (for example 4.2 or (a)), treat them as sub-paragraphs of '
       + 'that one clause, never as separate clauses. Do not ask for sub-paragraphs the passage '
       + 'does not show — what is shown is the whole selection. Your wording acts on the '
-      + 'passage shown and on nothing outside it.' : '',
+      + 'passage shown and on nothing outside it. '
+      /* ---- AND THE HEADING IS NOT PART OF IT (owner-reported 26 Aug 2026) ----
+         Every surface draws a clause's heading separately from its body, so the
+         passage is the body alone and a model asked to redraft "the whole
+         clause" writes the title back at the top — where the page then draws it
+         a second time. Asked here and RECONCILED in code, because a prompt
+         cannot bind; see aiDropRestatedHeading. */
+      + 'The clause heading is already on the page and is not part of the passage: '
+      + 'return the wording only, and do not restate the heading, number it, or add a '
+      + 'new one. Match the drafting around it — the same register, the same way of '
+      + 'numbering sub-paragraphs, the same way of writing a defined term.' : '',
     placements
       ? 'The drafter has selected this wording. It is the ANCHOR — depending on the placement '
         + 'you choose, your wording may replace it, sit after it, sit before it, or become a new '
@@ -2549,7 +2622,12 @@ async function copilotPropose(opts){
     headingText: placement === 'newClause' ? String(parsed.headingText || '') : '',
     proposedText: aiIsInsert(placement)
       ? aiCleanAddedWording(passage, parsed.proposedText)
-      : aiPreserveTypography(passage, parsed.proposedText) };
+      /* BEFORE the typography repair, never after: that repair counts the
+         passage's sub-paragraphs and reshapes the answer to match, so a
+         restated heading left in place is one line it would try to make the
+         wording account for. See aiDropRestatedHeading. */
+      : aiPreserveTypography(passage,
+          aiDropRestatedHeading(parsed.proposedText, o.clauseLabel, passage)) };
 }
 
 /* ---------- the proposal card ----------
@@ -3497,7 +3575,7 @@ Object.assign(window,{
   aiBareText,aiSplitDisclaimer,aiSplitReply,
   aiRephrase,aiOpenRephraseSession,aiActiveRephrase,aiCloseRephraseSession,
   AI_SESSION_TURNS,aiRephraseRemember,aiRephraseHistory,
-  aiKeepStructuralTags,aiStructureOf,aiSplitItems,aiRestoreEmphasis,aiPreserveTypography,
+  aiKeepStructuralTags,aiStructureOf,aiSplitItems,aiRestoreEmphasis,aiPreserveTypography,aiDropRestatedHeading,
   aiParseProposal,copilotPropose,aiProposalCardHtml,aiOpenProposal,aiActiveProposal,
   aiProposalApply,aiProposalDecline,aiProposalToggleEdit,aiWireProposals,aiRefineProposal,aiStepBackIfSummoned,
   AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,aiCompareTable,aiChatMessages,aiChatContext,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,runContractBrief,aiNoteRead,briefMark,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});

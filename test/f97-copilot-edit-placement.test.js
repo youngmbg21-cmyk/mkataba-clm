@@ -866,3 +866,104 @@ describe('F97d — ordinary drafting survives the item splitter', () => {
     assert.equal(parts.length, 1, 'the known cost of the fix');
   });
 });
+
+/* ============================================================
+   F97i — THE HEADING IS ALREADY ON THE PAGE
+   ============================================================
+   Owner-reported 26 Aug 2026, over a screenshot of Clause 2 replaced whole:
+   the page drew "1. Manufacturing Scope" as the clause's heading and the
+   answer drew "1.   Manufacturing Scope" again as its first line of wording.
+
+   A clause runs from one heading to the next, and every surface draws the
+   heading separately from the body — so the passage handed to the model is the
+   body alone, and a model asked to redraft "the whole clause" reasonably writes
+   the title back at the top of its answer.
+
+   THE PROMPT IS TOLD AND THE PROMPT CANNOT BIND, which is this file's own
+   recorded lesson, so the guarantee is the reconciliation and the ask is the
+   courtesy. Both are pinned below. */
+describe('F97i — a restated clause heading is not wording', () => {
+  let ai;
+  beforeEach(() => { ai = loadAi(); });
+
+  const LABEL = 'Clause 1 · Manufacturing Scope';
+  const BODY = 'The Co-Packer shall manufacture all products in accordance with the recipe.\n'
+    + 'The Co-Packer shall maintain full traceability of all materials.';
+
+  test('THE REPORTED CASE: the heading comes off, the wording stays whole', () => {
+    const out = ai.aiDropRestatedHeading('1.   Manufacturing Scope\n' + BODY, LABEL, BODY);
+    assert.equal(out, BODY);
+  });
+
+  test('it matches on WORDS, so numbering on either side cannot hide it', () => {
+    /* The paper writes "1. Manufacturing Scope" and the label reads
+       "Clause 1 · Manufacturing Scope" — a character comparison sees two
+       different strings and lets the duplicate through. */
+    for (const restated of ['Manufacturing Scope', '1. Manufacturing Scope',
+      'Clause 1 · Manufacturing Scope', '(1) MANUFACTURING SCOPE', '1.2  Manufacturing scope']){
+      assert.equal(ai.aiDropRestatedHeading(restated + '\n' + BODY, LABEL, BODY), BODY,
+        `not recognised as the heading: ${restated}`);
+    }
+  });
+
+  test('ordinary wording that merely MENTIONS the clause is untouched', () => {
+    const opens = 'The manufacturing scope of this Agreement is set out below.\n' + BODY;
+    assert.equal(ai.aiDropRestatedHeading(opens, LABEL, BODY), opens,
+      'a sentence about the clause is not the heading and must survive');
+    assert.equal(ai.aiDropRestatedHeading(BODY, LABEL, BODY), BODY);
+  });
+
+  test('IT REFUSES where the passage itself opened with the heading', () => {
+    /* The reader selected the heading, so the answer is right to restate it and
+       dropping it would delete a heading that belongs on the page. */
+    const selected = 'Manufacturing Scope\n' + BODY;
+    assert.equal(ai.aiDropRestatedHeading(selected, LABEL, selected), selected);
+  });
+
+  test('IT REFUSES where dropping would leave nothing at all', () => {
+    /* A duplicated heading is a smaller fault than an empty clause. */
+    assert.equal(ai.aiDropRestatedHeading('Manufacturing Scope', LABEL, BODY),
+      'Manufacturing Scope');
+  });
+
+  test('IT REFUSES with no heading to compare against', () => {
+    assert.equal(ai.aiDropRestatedHeading('Anything\nelse', '', BODY), 'Anything\nelse');
+    assert.equal(ai.aiDropRestatedHeading('Anything\nelse', null, BODY), 'Anything\nelse');
+  });
+
+  test('an HTML answer loses its heading BLOCK, not a stray tag', () => {
+    assert.equal(
+      ai.aiDropRestatedHeading('<h3>Manufacturing Scope</h3><p>The Co-Packer shall manufacture.</p>',
+        LABEL, BODY),
+      '<p>The Co-Packer shall manufacture.</p>');
+    /* A first paragraph that is real wording stays exactly where it is. */
+    const keep = '<p>The Co-Packer shall manufacture.</p><p>And maintain traceability.</p>';
+    assert.equal(ai.aiDropRestatedHeading(keep, LABEL, BODY), keep);
+  });
+
+  test('END TO END: the funnel drops it before the typography repair', async () => {
+    /* BEFORE, and it matters: the repair counts the passage's sub-paragraphs and
+       reshapes the answer to match, so a heading left in place is one line it
+       would try to make the wording account for. */
+    ai.window.copilotAsk = async () => JSON.stringify({
+      advice: 'Tightened.',
+      proposedText: 'Manufacturing Scope\n' + BODY });
+    const out = await ai.copilotPropose({ passage: BODY, clauseLabel: LABEL });
+    assert.ok(out && out.proposedText, 'no proposal came back');
+    assert.ok(!/^\s*Manufacturing Scope/i.test(out.proposedText),
+      `the heading is still on the wording: ${JSON.stringify(out.proposedText.slice(0, 60))}`);
+    assert.match(out.proposedText, /shall manufacture all products/);
+  });
+
+  test('and the model is ASKED, as the courtesy half of the same rule', () => {
+    let sent = '';
+    ai.window.copilotAsk = async msgs => { sent = msgs[0].content; return '{"proposedText":"x"}'; };
+    return ai.copilotPropose({ passage: BODY, clauseLabel: LABEL }).then(() => {
+      assert.match(sent, /heading is already on the page/i);
+      assert.match(sent, /do not restate the heading/i);
+      /* The other half of what the owner asked for: wording that does not look
+         out of place beside the drafting around it. */
+      assert.match(sent, /Match the drafting around it/i);
+    });
+  });
+});
