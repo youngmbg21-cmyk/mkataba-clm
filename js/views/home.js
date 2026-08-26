@@ -99,7 +99,10 @@ function kpiApply(cur){
 }
 function openKpiCustomizer(anchor){
   const prev=document.getElementById('kpi-cust-pop');
-  if(prev){ prev.remove(); return; }   // second click on the gear closes it
+  /* Second click on the gear closes it. The trap hands focus back to whatever
+     opened it, which on this path is the gear the reader has just pressed —
+     so the release runs while the node is still in the document. */
+  if(prev){ if(prev._kpiRelease){ try{ prev._kpiRelease(); }catch(_){} } prev.remove(); return; }
   /* The outside-press listener from a popover this one replaces. It removes
      itself on the next document click, but a run of ticks would stack one per
      tick until then — armed once, dropped here. */
@@ -137,6 +140,21 @@ function openKpiCustomizer(anchor){
     </div>`;
   anchor.parentElement.style.position='relative';
   anchor.parentElement.appendChild(pop);
+  /* ---- THE KEYBOARD STAYS IN THE POPOVER, AND ESCAPE SHUTS IT ---- (25 Aug 2026)
+     It had neither. Measured: Tab from the last tick walked into the KPI cards
+     behind it — cards that are also DRAG HANDLES — and the only way to dismiss
+     it was a mouse click somewhere else, which a keyboard reader does not have.
+     kpiApply re-opens this popover against the freshly drawn button on every
+     tick, so the trap is set here, where the element is created, and the two
+     always match; the ways out below each release it. */
+  const popRelease = (typeof window.trapFocus==='function') ? window.trapFocus(pop) : null;
+  const shut = () => {
+    if(popRelease){ try{ popRelease(); }catch(_){} }
+    pop.remove(); document.removeEventListener('keydown', onEsc, true);
+  };
+  const onEsc = e => { if(e.key==='Escape' && pop.isConnected){ e.stopPropagation(); shut(); } };
+  document.addEventListener('keydown', onEsc, true);
+  pop._kpiRelease = shut;
   pop.querySelectorAll('[data-kpi-toggle]').forEach(cb=>cb.addEventListener('change',()=>{
     const id=cb.getAttribute('data-kpi-toggle');
     let cur=currentKpiSel();
@@ -150,7 +168,7 @@ function openKpiCustomizer(anchor){
     kpiApply(cur);
   }));
   pop.querySelector('[data-kpi-reset]')?.addEventListener('click',()=>{ kpiApply(DEFAULT_KPI_SEL.slice()); });
-  setTimeout(()=>{ const onDoc=e=>{ if(!pop.contains(e.target)&&e.target!==anchor&&!anchor.contains(e.target)){ pop.remove(); document.removeEventListener('click',onDoc,true); if(_kpiPopOff===onDoc) _kpiPopOff=null; } }; _kpiPopOff=onDoc; document.addEventListener('click',onDoc,true); },0);
+  setTimeout(()=>{ const onDoc=e=>{ if(!pop.contains(e.target)&&e.target!==anchor&&!anchor.contains(e.target)){ shut(); document.removeEventListener('click',onDoc,true); if(_kpiPopOff===onDoc) _kpiPopOff=null; } }; _kpiPopOff=onDoc; document.addEventListener('click',onDoc,true); },0);
 }
 /* ---- THE THIRD PLACE A READINESS SIGNAL REACHES THE OWNER ------------------
    The waiting-on-you card on the dashboard, which is the one surface they see
@@ -933,7 +951,13 @@ function renderDashboard(){
     const k=KPI_CATALOG[id];
     return hmTile({ t:esc(k.label), s:esc(k.sub||''), n:esc(String(k.val)), u:'',
       f:esc(String(k.delta||'')), fc:'', edge:HM_ROW_TONES[i%4], ink:HM_ROW_INKS[i%4], go:'kpi:'+id,
-      attrs:`data-kpi-id="${id}" draggable="true"`,
+      /* aria-describedby names the sr-only sentence under the row that tells a
+         screen reader these cards reorder with Alt+Arrow. It goes HERE, on the
+         builder that actually draws the row. kpiCard() further up is a second
+         builder for the same tile whose output (kpiHtml) is computed and never
+         interpolated — this line was written on that one first and reached
+         nothing on the dashboard, which a browser press is what caught. */
+      attrs:`data-kpi-id="${id}" draggable="true" aria-describedby="kpi-reorder-hint"`,
       /* An average has no number to test — "—" is not zero, it is "not yet
          measurable" — so the tile is dead when there is nothing behind it. */
       dead:String(k.val)==='—'||hmDead(k.val) });
@@ -1051,6 +1075,11 @@ function renderDashboard(){
         ${i18t('home_customize_metrics')}
       </button>`)}
     <div id="kpi-grid" class="hm-tiles is-work" data-kpi-cols="${kpiCols}">${workTiles}</div>
+    ${''/* A KEYBOARD AFFORDANCE NOBODY IS TOLD ABOUT IS ONE NOBODY USES. Drawn
+         for a screen reader only, because the cards already SAY "drag to
+         reorder" in the customizer's foot for everybody else and a second
+         visible sentence under the row is furniture. */}
+    <span id="kpi-reorder-hint" class="sr-only">${i18t('home_reorder_keys')}</span>
 
     ${hmSec(i18t('home_portfolio_sec'))}
     <div class="hm-tiles is-port">${portTiles}</div>
@@ -1080,6 +1109,29 @@ function renderDashboard(){
     });
     el.addEventListener('dragstart',e=>{ kpiDragId=id; el.style.opacity='.35'; try{ e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain',id); }catch(_){} });
     el.addEventListener('dragend',()=>{ kpiDragId=null; el.style.opacity=''; });
+    /* ---- AND THE KEYBOARD CAN REORDER THEM TOO ---- (25 Aug 2026)
+       Dragging is the only way this row could be reordered, and drag-and-drop
+       reaches nobody working from a keyboard, switch access or a screen
+       reader. Alt+Arrow is the pattern browsers and editors already use for
+       "move this item"; it is Alt-modified deliberately, because a bare arrow
+       on a KPI card is how a reader scrolls the dashboard.
+       IT GOES THROUGH THE SAME ARITHMETIC AS THE DROP — one array, one splice,
+       one setKpiSel — so the two ways of moving a card cannot come to disagree
+       about what the order is. */
+    el.addEventListener('keydown',e=>{
+      if(!e.altKey) return;
+      const d = e.key==='ArrowLeft' ? -1 : e.key==='ArrowRight' ? 1 : 0;
+      if(!d) return;
+      e.preventDefault();
+      const arr=currentKpiSel().filter(x=>KPI_CATALOG[x]);
+      const from=arr.indexOf(id); if(from<0) return;
+      const to=from+d; if(to<0||to>=arr.length) return;
+      arr.splice(from,1); arr.splice(to,0,id); setKpiSel(arr); renderDashboard();
+      /* The row is rebuilt, so the card the reader is moving is a NEW element —
+         find it again and put focus back on it, or every press drops them at
+         the top of the page. */
+      setTimeout(()=>{ document.querySelector(`[data-kpi-id="${id}"]`)?.focus({preventScroll:true}); },0);
+    });
     el.addEventListener('dragover',e=>{ e.preventDefault(); try{ e.dataTransfer.dropEffect='move'; }catch(_){} });
     el.addEventListener('drop',e=>{ e.preventDefault();
       const overId=id, dId=kpiDragId||(e.dataTransfer&&e.dataTransfer.getData('text/plain'));

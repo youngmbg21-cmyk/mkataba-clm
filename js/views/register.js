@@ -1136,7 +1136,13 @@ function renderRegister(opts){
   const sortCaret=key=>R.sort===key
     ? `<span style="margin-left:4px;font-size:10px;color:var(--accent-ink-700)">${R.dir===1?'▲':'▼'}</span>`
     : `<span class="reg-sort-idle" style="margin-left:4px;font-size:10px;color:var(--color-neutral-400)">↕</span>`;
-  const sortableTh=(key,label,extra='')=>`<th class="reg-th-sort${R.sort===key?' active':''}" data-reg-sort="${key}" title="${i18t('reg_sort_by',{col:label})}" aria-sort="${R.sort===key?(R.dir===1?'ascending':'descending'):'none'}" style="cursor:pointer;user-select:none;${extra}">${label}${sortCaret(key)}</th>`;
+  /* ---- A COLUMN HEAD IS A CONTROL, SO IT TAKES THE KEYBOARD ---- (25 Aug 2026)
+     It carried a click, a pointer cursor and aria-sort — everything except a
+     way to press it without a mouse. role="button" and a tab stop are what
+     make the existing handler reachable; Enter and Space are wired beside the
+     click rather than in it, because a <th> is not a <button> and fires
+     neither by itself. */
+  const sortableTh=(key,label,extra='')=>`<th class="reg-th-sort${R.sort===key?' active':''}" data-reg-sort="${key}" role="button" tabindex="0" title="${i18t('reg_sort_by',{col:label})}" aria-sort="${R.sort===key?(R.dir===1?'ascending':'descending'):'none'}" style="cursor:pointer;user-select:none;${extra}">${label}${sortCaret(key)}</th>`;
   const catActive=!!(R.category&&R.category!=='all');
   const catOpts=[['all',i18t('reg_any')]].concat(regCategories().map(k=>[k,regCatLabel(k)]))
     .concat([['none',i18t('reg_uncategorised')]]);
@@ -1551,7 +1557,7 @@ function renderRegister(opts){
           </table>
         </div>
         <div style="flex:none;border-top:1px solid var(--color-divider);display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;padding:5px 12px;font-size:12px;color:var(--color-neutral-600)">
-          <span id="reg-showing">${regFooterText(cs)}</span>
+          <span id="reg-showing" role="status" aria-live="polite" aria-atomic="true">${regFooterText(cs)}</span>
           <div id="reg-pager" style="display:flex;align-items:center;gap:6px">${regPager(cs)}</div>
           ${''/* ONE LEGEND DOWN HERE, NOT TWO. The strip carried both the link
                  states (sent · opened · changes · signed · declined · not sent)
@@ -1643,6 +1649,10 @@ function renderRegister(opts){
   // Column-header sorting: click a header to sort by it; click the active header
   // again to flip ascending/descending. First click uses the column's natural
   // direction (e.g. renewal nearest-first, value high-first).
+  document.querySelectorAll('[data-reg-sort]').forEach(el=>el.addEventListener('keydown',e=>{
+    if(e.key!=='Enter' && e.key!==' ' && e.key!=='Spacebar') return;
+    e.preventDefault(); el.click();
+  }));
   document.querySelectorAll('[data-reg-sort]').forEach(el=>el.addEventListener('click',()=>{
     const key=el.getAttribute('data-reg-sort');
     if(R.sort===key) R.dir=-R.dir; else { R.sort=key; R.dir=REG_SORT_DEFDIR[key]||-1; }

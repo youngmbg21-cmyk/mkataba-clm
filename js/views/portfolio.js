@@ -225,8 +225,16 @@ function pfRiskMap(){
       placed.push({x:lx,y:ly});
       labels.push(`<text x="${lx}" y="${ly}" text-anchor="${anchor}" font-size="10" font-weight="700" fill="var(--color-text)" stroke="var(--color-surface)" stroke-width="3" paint-order="stroke">${pfEsc(name)}</text>`);
     }
-    return `<g data-pf-cp="${pfEsc(p.c.counterparty||'')}" style="cursor:pointer">
-      <title>${pfEsc(p.c.name)} — ${pfEsc(pfMoney(pfWeight(p.c)))} · ${pfN(pfRounds(p.c),'rounds')}</title>
+    /* ---- A DOT IS A FILTER, SO IT TAKES THE KEYBOARD ---- (25 Aug 2026)
+       Every dot narrows the whole Insights page to its counterparty, and the
+       only way to press one was a mouse. An SVG <g> takes a tab stop with an
+       explicit tabindex and role; the <title> above is already its accessible
+       name for a pointer, and aria-label is what a screen reader reads —
+       stated rather than left to the title, because a <title> inside <g> is
+       announced inconsistently across readers. */
+    const dotName = `${pfEsc(p.c.name)} — ${pfEsc(pfMoney(pfWeight(p.c)))} · ${pfN(pfRounds(p.c),'rounds')}`;
+    return `<g data-pf-cp="${pfEsc(p.c.counterparty||'')}" tabindex="0" role="button" aria-label="${dotName}" aria-pressed="${sel?'true':'false'}" style="cursor:pointer">
+      <title>${dotName}</title>
       <circle cx="${p.x}" cy="${p.y}" r="${sel?9.5:7}" fill="${pal.dot}" stroke="var(--color-surface)" stroke-width="2"${F.cp&&!sel?' opacity=".35"':''}/></g>`;
   }).join('');
   const axis='font-size="9.5" fill="var(--color-neutral-600)"';
@@ -442,6 +450,31 @@ function portfolioFrameHtml(){
 function wirePortfolioFrame(rerender){
   const F=pfState();
   const again=()=>{ if(typeof rerender==='function') rerender(); };
+  /* ---- EVERY FILTER ON THIS PAGE TAKES THE KEYBOARD ---- (25 Aug 2026)
+     The rows, the bars and the risk-map dots all carried a click, a pointer
+     cursor and nothing else — so the whole of Insights' filtering was a mouse
+     feature. Wired ONCE here, beside the clicks, over the same selectors, and
+     it fires the element's own click rather than repeating what the click
+     does: two paths into one filter is how they come to disagree.
+     A <g> and a <tr> fire neither Enter nor Space by themselves, which is why
+     this is needed at all — a real <button> would not want it. */
+  const KEYABLE = '[data-pf-cat],[data-pf-cp],[data-pf-open],[data-pf-unfilter]';
+  document.querySelectorAll(KEYABLE).forEach(el=>{
+    if(el.tagName==='BUTTON') return;   // it already has its own key
+    if(!el.hasAttribute('tabindex')) el.tabIndex=0;
+    if(!el.getAttribute('role')) el.setAttribute('role','button');
+    el.addEventListener('keydown',e=>{
+      if(e.key!=='Enter' && e.key!==' ' && e.key!=='Spacebar') return;
+      e.preventDefault();
+      /* DISPATCH, DO NOT CALL .click(). An SVG <g> is an SVGElement, and
+         HTMLElement.click() is not on its prototype — the risk-map dots are
+         exactly the controls this exists for, so calling it there is a silent
+         no-op. Measured: the dot took focus, took Enter, and nothing happened.
+         A synthesised click bubbles to the same delegated handler the mouse
+         reaches, so there is still one path into the filter. */
+      el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    });
+  });
   document.querySelectorAll('[data-pf-cat]').forEach(el=>el.addEventListener('click',()=>{
     const k=el.getAttribute('data-pf-cat'); F.cat = F.cat===k ? null : k; again(); }));
   document.querySelectorAll('[data-pf-cp]').forEach(el=>el.addEventListener('click',()=>{

@@ -665,6 +665,7 @@ const STRINGS = {
     // ---- dashboard ----
     home_show_metrics: 'Show metrics',
     home_drag_reorder: 'Drag cards to reorder',
+    home_reorder_keys: 'Press Alt with the left or right arrow to move this card.',
     home_reset: 'Reset',
     home_ready_to_sign: 'Ready to sign — issue a signing link',
     home_go: 'Go &rarr;',
@@ -5543,6 +5544,7 @@ const STRINGS = {
     // ---- dashboard ----
     home_show_metrics: 'Visa nyckeltal',
     home_drag_reorder: 'Dra korten för att ändra ordning',
+    home_reorder_keys: 'Tryck Alt med vänster- eller högerpil för att flytta kortet.',
     home_reset: 'Återställ',
     home_ready_to_sign: 'Klart att underteckna — utfärda en signeringslänk',
     home_go: 'Öppna &rarr;',

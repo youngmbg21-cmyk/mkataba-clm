@@ -355,6 +355,87 @@ describe('f238 — the design system has its other half', () => {
     assert.match(core, /_modalOpener/, 'and focus goes back where it came from');
   });
 
+  /* ---------- 5b · PHASE B — ONE TRAP, AND EVERY REFUSAL SPOKEN ----------
+     The audit measured ONE focus trap against nine overlays that needed one,
+     and ZERO aria-live regions in the whole product. Source claims only; what
+     a keyboard can actually REACH is keyboard-reach-verify, because "does the
+     element carry role=dialog" is a different question from "can somebody get
+     to this without a mouse" and only the second one matters. */
+
+  test('the focus trap is one function with one definition', () => {
+    const core = JS('js/core.js');
+    assert.equal((core.match(/function trapFocus\(/g) || []).length, 1,
+      'defined once');
+    assert.match(core, /trapFocus,/, 'and published, so nine modules can reach it');
+    /* IT RETURNS ITS OWN UNDO. Separated from the trap, the restore is the
+       part that gets forgotten — which drops a keyboard reader at the top of
+       the document every time they dismiss anything. */
+    assert.match(core, /return function release\(\)/, 'it hands back a release');
+  });
+
+  test('every overlay that needed a trap has one', () => {
+    /* NINE HOMES, named. A layer missing from this list is a layer Tab walks
+       out of, and the only way to know is to look. */
+    const homes = [
+      ['js/core.js',            /trapFocus\(panel\)/,                 'openModal'],
+      ['js/core.js',            /trapFocus\(ov\.querySelector\('\[role="alertdialog"\]'\)/, 'confirmDialog'],
+      ['js/core.js',            /trapFocus\(ov\.querySelector\('\[role="dialog"\]'\)/,      'promptDialog'],
+      ['js/app.js',             /_panelTrap\s*=\s*trapFocus\(panel\)/, 'the alerts panel'],
+      ['js/app.js',             /trapFocus\([^)]*modal-in[^)]*\)/,    'the command palette'],
+      ['js/views/settings.js',  /_stTrap\s*=\s*window\.trapFocus\(el\)/, 'the settings drawer'],
+      ['js/views/home.js',      /window\.trapFocus\(pop\)/,           'the KPI customizer'],
+      ['js/views/portal.js',    /PT_ALERTS_TRAP\s*=\s*window\.trapFocus\(panel\)/, "the counterparty's alerts"],
+      ['js/mobile.js',          /_mSheetTrap\s*=\s*window\.trapFocus\(panel/, "the phone's seven sheets"],
+    ];
+    for (const [f, re, what] of homes)
+      assert.match(JS(f), re, what + ' holds the keyboard');
+  });
+
+  test('a refusal and a result are announced, not only drawn', () => {
+    /* The audit measured ZERO aria-live regions in 30,000 lines. Four now, and
+       each sits on the element that RECEIVES the message rather than on a
+       wrapper — a region announces its own subtree, so one wrapped around a
+       whole page announces the page. */
+    assert.match(JS('js/views/settings.js'), /r\.setAttribute\('aria-live','assertive'\)/,
+      "the settings drawer's refusal");
+    assert.match(JS('js/views/register.js'), /id="reg-showing" role="status" aria-live="polite"/,
+      "the register's result count");
+    assert.match(JS('js/views/portal.js'), /band\.setAttribute\('aria-live','polite'\)/,
+      "the counterparty's own signature confirmation");
+    assert.match(SHEET, /id="toast-root"[^>]*aria-live="polite"/, 'and the toast root');
+  });
+
+  test('.sr-only exists, because something now writes it', () => {
+    /* The ui-input lesson, which this codebase records by name: a class the
+       app never defines is a class that styles nothing. The KPI row's keyboard
+       hint is its one consumer and the two arrived together. */
+    assert.match(SHEET, /\.sr-only\{[^}]*clip-path:inset\(50%\)/,
+      'clipped rather than display:none — a hidden element says nothing at all');
+    assert.match(JS('js/views/home.js'), /class="sr-only"/, 'and it has a consumer');
+  });
+
+  test('the live door and the live tab say so, not only look so', () => {
+    assert.match(JS('js/app.js'), /setAttribute\('aria-current','page'\)/,
+      'the nav marks where the reader is');
+    assert.match(JS('js/app.js'), /removeAttribute\('aria-current'\)/,
+      'and REMOVES it elsewhere — aria-current="false" is still current');
+    /* aria-selected was set once, when the row was BUILT, so from the second
+       tab onward the row announced the tab the reader started on. */
+    assert.match(JS('js/views/contract.js'), /b\.setAttribute\('aria-selected', on\?'true':'false'\)/,
+      'the room tabs re-state it on every change');
+    assert.match(JS('js/views/contract.js'), /b\.tabIndex = on \? 0 : -1/,
+      'and a tablist takes ONE tab stop, with arrows inside it');
+  });
+
+  test('refusing the pointer also refuses the keyboard', () => {
+    /* pointer-events:none is not a refusal to somebody using a keyboard —
+       measured, Tab reached every verb in the greyed column and Enter fired
+       them. aria-disabled SAYS unavailable; inert makes it so. */
+    assert.match(JS('js/views/negotiation.js'),
+      /rlReadOnlyReading\(\) \? 'aria-disabled="true" inert' : ''/,
+      'the change column is inert on a reading, not merely faded');
+  });
+
   test('a text-styled button still clears the target-size floor', () => {
     /* "Forgot password?" — the only route back into a locked-out account —
        measured 366x17px, 7px under WCAG 2.5.8 at every width. */

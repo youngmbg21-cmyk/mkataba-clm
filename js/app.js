@@ -97,6 +97,12 @@ function setActiveNav(view){
   document.querySelectorAll('.nav-item').forEach(b=>{
     const on=b.getAttribute('data-view')===navFor;
     b.classList.toggle('active',on);
+    /* ---- WHICH DOOR AM I STANDING IN ---- (25 Aug 2026)
+       The live door was marked by a class, a 3px accent rule and a filled
+       well — three signals a screen reader cannot see one of. aria-current is
+       the one it can, and it is REMOVED rather than set to "false", because
+       the attribute's presence is the statement. */
+    if(on) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current');
     // keep the active tab visible: open its collapsible section (never closes others)
     if(on){ const sec=b.closest('.nav-section'); if(sec && !sec.classList.contains('open')) openNavSection(sec,true); }
   });
@@ -787,6 +793,12 @@ function openCommandPalette(){
     </div>`;
   document.body.appendChild(ov);
   const input=ov.querySelector('#cp-input'), list=ov.querySelector('#cp-list');
+  /* THE KEYBOARD STAYS IN THE PALETTE. focus:false because this overlay
+     focuses its own box — Tab is what was walking out of it into the page,
+     and the trap's own restore is the same one written by hand below, kept
+     rather than removed so a build without core.js still hands focus back. */
+  const trapRelease = (typeof trapFocus==='function')
+    ? trapFocus(ov.querySelector('.modal-in'), { opener, focus:false }) : null;
   let results=[], active=0;
   /* ---- ASK-YOUR-BOOK (WO-4). Two additions ride the sync results: ----
      "In the wording" rows off the server's own full-text index (GET
@@ -796,7 +808,9 @@ function openCommandPalette(){
      Copilot door with it prefilled — never a second AI path from here. */
   let ftsRows=[], ftsFor='', ftsT=null;
   const close=()=>{
-    clearTimeout(ftsT); ov.remove(); document.removeEventListener('keydown',onKey,true);
+    clearTimeout(ftsT);
+    if(trapRelease){ try{ trapRelease(); }catch(_){} }
+    ov.remove(); document.removeEventListener('keydown',onKey,true);
     try{ if(opener&&opener.focus&&document.contains(opener)) opener.focus({preventScroll:true}); }catch(_){}
   };
   const openItem=it=>{
@@ -1467,7 +1481,18 @@ function applyPanelLayout(){
   if(scrim&&scrim.classList) scrim.classList.toggle('open',show);
   const btn=document.getElementById('cmd-panel');
   if(btn) btn.setAttribute('aria-expanded',show?'true':'false');
+  /* ---- THE KEYBOARD STAYS IN THE PANEL WHILE IT IS UP ---- (25 Aug 2026)
+     Every row in here is a DOOR — that is this panel's whole design — and Tab
+     used to walk out of it into the page behind, where the rows the reader
+     came to press are not. ONE PLACE, because this function is the single
+     answer to "is the panel showing": openPanel, the bell, the swap and
+     closeContextPanel all arrive here, so a trap wired at any one of them
+     would be a trap the other three do not set. */
+  if(show && !_panelTrap && typeof trapFocus==='function') _panelTrap=trapFocus(panel);
+  else if(!show && _panelTrap){ try{ _panelTrap(); }catch(e){} _panelTrap=null; }
 }
+/* One value: one panel, two contents, never two layers. */
+let _panelTrap=null;
 function closeContextPanel(){
   if(!state.panelOpen) return;
   state.panelOpen=false; applyPanelLayout();

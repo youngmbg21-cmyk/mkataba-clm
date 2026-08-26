@@ -1048,6 +1048,39 @@ function mRender(){
     + (typeof mAiLauncherHtml==='function' ? mAiLauncherHtml() : '')
     + mSheetHtml();
   mWire();
+  mSheetFocus();
+}
+/* ---- THE KEYBOARD STAYS IN THE SHEET ---- (25 Aug 2026)
+   The phone repaints wholesale on every act, so the trap cannot be set where
+   the sheet is opened — that node is gone by the next paint. It is set HERE,
+   after the paint, from the one fact that decides it: is a sheet showing.
+   The opener is remembered across the repaint, because the element that was
+   pressed no longer exists by the time the sheet is drawn; the id is what
+   survives, and it is looked up again on release.
+
+   A PHONE STILL NEEDS THIS. A tablet at this width has a keyboard, a phone
+   can have one paired, and switch access and a screen reader both walk the
+   same focus order — a layer that does not hold focus reads on into the page
+   behind it, which is exactly what a modal sheet is for. */
+let _mSheetTrap=null, _mSheetOpenerId=null, _mSheetKind=null;
+function mSheetFocus(){
+  const kind = mS().sheet || null;
+  const panel = document.querySelector('.m-sheet-wrap .m-sheet');
+  if(kind && panel){
+    /* Same sheet, fresh markup: re-arm on the new node and keep the opener. */
+    if(_mSheetTrap){ try{ _mSheetTrap(); }catch(_){} _mSheetTrap=null; }
+    if(kind!==_mSheetKind){
+      const a=document.activeElement;
+      _mSheetOpenerId = (a && a.id) ? a.id : null;
+      _mSheetKind = kind;
+    }
+    if(typeof window.trapFocus==='function')
+      _mSheetTrap = window.trapFocus(panel, {
+        opener: _mSheetOpenerId ? document.getElementById(_mSheetOpenerId) : null });
+    return;
+  }
+  if(_mSheetTrap){ try{ _mSheetTrap(); }catch(_){} _mSheetTrap=null; }
+  _mSheetKind=null; _mSheetOpenerId=null;
 }
 
 /* Is the owner's app the thing on screen at all? A share link renders the
@@ -1075,8 +1108,25 @@ function mSheetHtml(){
   else if(s.sheet==='signers')  inner = mSignersSheetHtml();
   else if(s.sheet==='kpis')     inner = mKpiSheetHtml();
   else return '';
-  return `<div class="m-sheet-wrap"><button class="m-scrim" data-m-act="close-sheet" aria-label="${i18t('act_close')}"></button><div class="m-sheet">${inner}</div></div>`;
+  /* ---- IT SAYS IT IS A DIALOG, AND IT SAYS WHICH ONE ---- (25 Aug 2026)
+     MEASURED before this: the seven sheets carried ZERO accessibility
+     semantics between them — no role, no modal announcement, no name — so a
+     screen reader was never told a layer had opened over the page and read
+     straight on through the screen underneath. The name comes from the
+     sheet's own title where it draws one, which is what a reader hears; the
+     kind is the fallback, and it is a translated word rather than a key. */
+  const named = /class="m-sheet-title"[^>]*>([^<]{1,80})/.exec(inner);
+  const label = (named && named[1].trim()) || M_SHEET_LABEL[s.sheet] || i18t('act_close');
+  return `<div class="m-sheet-wrap"><button class="m-scrim" data-m-act="close-sheet" aria-label="${i18t('act_close')}"></button>`
+    + `<div class="m-sheet" role="dialog" aria-modal="true" aria-label="${mEsc(label)}" tabindex="-1">${inner}</div></div>`;
 }
+/* SIX OF THE SEVEN DRAW THEIR OWN TITLE and that is what a reader hears, so
+   this map holds only the one that does not. A GETTER, never a plain value: an
+   object literal freezes whatever language was current when this file loaded,
+   which is a trap this codebase has recorded four separate times. */
+const M_SHEET_LABEL = {
+  get overflow(){ return i18t('ct_more'); },
+};
 
 function mOpenSheet(k, extra){ Object.assign(mS(), extra||{}, {sheet:k}); mRender(); }
 function mCloseSheet(){ mS().sheet=null; mRender(); }

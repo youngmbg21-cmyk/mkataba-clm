@@ -9131,6 +9131,32 @@ function rlWireResizer(host){
   rez.addEventListener('dblclick', () => {
     try { localStorage.removeItem(RL_SPLIT_KEY); } catch (e2) {}
     rlLayoutResizer(scope); });
+  /* ---- AND THE ARROWS MOVE IT ---- (25 Aug 2026, ported from ktWireSplit)
+     One step is 2% of the grid — a few pixels, enough to be useful and small
+     enough not to jump. Home puts the default back, which is what the
+     double-click does, so the keyboard has every act the pointer has. It
+     writes the SAME store the drag writes and re-runs the SAME layout, so
+     there is no second opinion about where the split is. */
+  rez.addEventListener('keydown', e => {
+    if (e.key === 'Home' || e.key === 'Enter'){
+      e.preventDefault();
+      try { localStorage.removeItem(RL_SPLIT_KEY); } catch (e2) {}
+      rlLayoutResizer(scope); return;
+    }
+    const step = e.key === 'ArrowLeft' ? -0.02 : e.key === 'ArrowRight' ? 0.02 : 0;
+    if (!step) return;
+    e.preventDefault();
+    /* Read the split the page is ACTUALLY at, never the stored fraction: with
+       nothing stored _rlLeftFrac answers null on purpose ("nobody has chosen"
+       is a different answer from "two thirds"), and the resting split is a
+       width. The grid's own tracks are where the truth is. */
+    const avail = _rlAvail(grid);
+    const doc = grid.querySelector('.nego-pane.working') || grid.firstElementChild;
+    const left = doc ? doc.getBoundingClientRect().width : 0;
+    const cur = (avail > 0 && left > 0) ? clamp(left / avail) : RL_F0;
+    try { localStorage.setItem(RL_SPLIT_KEY, String(clamp(cur + step))); } catch (e2) {}
+    rlLayoutResizer(scope);
+  });
   /* ---- AND THE SPLIT FOLLOWS THE GRID, WHATEVER MOVED IT ----
      The resting split is a WIDTH now (the change column opens at RL_RIGHT_W0),
      and a width has to be recomputed from the grid's own size — where a
@@ -12418,7 +12444,12 @@ function redlinePanesHtml(c, opts = {}){
         <div class="nego-scroll" id="nego-scroll-work">${_cpDoc}</div>
       </section>
 
+      ${''/* A SEPARATOR NOBODY CAN REACH IS A CONTROL HALF THIS WORKSPACE DOES
+             NOT HAVE. It carried role and orientation and no tab stop, so the
+             arrows below had nothing to fire on. Key Terms' own divider has had
+             both since it was built — ktWireSplit — and this is that, ported. */}
       <div id="rl-resizer" class="rl-resizer" role="separator" aria-orientation="vertical"
+        tabindex="0" aria-label="${_nea(i18t('ng_drag_width'))}"
         title="${_nea(i18t('ng_drag_width'))}"><span></span></div>
 
       ${''/* ---- ONE COLUMN NOW, NOT TWO FACES OF ONE ----
@@ -12471,7 +12502,18 @@ function redlinePanesHtml(c, opts = {}){
                seen it and ruled that no reason is wanted. The way back is
                unchanged and one press away — the tab row above the contract.
                `.rl-idx-reading` is STALE — flag any mention. */}
-        <div class="nego-pane index" id="rl-changes-col" aria-label="${i18t('ng_tracked_changes')}" ${rlReadOnlyReading() ? 'aria-disabled="true"' : ''}>
+        ${''/* ---- REFUSING THE POINTER IS NOT REFUSING THE KEYBOARD ---- (25 Aug 2026)
+             On 'as agreed' and 'with changes' this column is inert: it draws
+             faded and pointer-events:none refuses the press, because a change
+             filed here would be measured against a document the reader is not
+             being shown. MEASURED: Tab still walked into every verb in it and
+             Enter still fired them, so the one route the greying exists to
+             close was open to anybody not using a mouse — and aria-disabled
+             merely SAYS so, it takes nothing away.
+             `inert` is what actually takes it away: no focus, no clicks, and
+             removed from the accessibility tree. It is a boolean attribute, so
+             it is emitted or it is not — never inert="false", which is inert. */}
+        <div class="nego-pane index" id="rl-changes-col" aria-label="${i18t('ng_tracked_changes')}" ${rlReadOnlyReading() ? 'aria-disabled="true" inert' : ''}>
           ${''/* ---- THE CHANGE INDEX (owner-approved render, 24 Aug 2026) ----
                  The head said "TRACKED CHANGES" and a count of what is OPEN,
                  which never told a reader how far through the round they were.

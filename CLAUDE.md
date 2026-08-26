@@ -811,6 +811,92 @@ own token.
 
 NOTE FOR THE NEXT SWEEP: no test in the suite asserted a half-pixel font size, which is why 865 replacements cost two test updates rather than fifty. Both were about the Tracked Changes caption, and one of them recorded a real consequence — the count used to be set a hair larger than the caption "because mono runs small at the same size", and that stopped being true when --font-mono was pointed at Inter with everything else. One family, no compensation owed, both 11px.
 
+## ONE FOCUS TRAP, NINE HOMES, AND EVERY REFUSAL SPOKEN (25 Aug 2026 — Phase B)
+
+The audit graded accessibility D+ on two measured facts: **the product had ONE
+focus trap** — openModal's, written on 23 Aug — against nine overlays that
+needed one, and **ZERO aria-live regions in the whole product.**
+
+**A LAYER THAT DOES NOT HOLD FOCUS IS NOT A MODAL.** Tab walked out of the
+settings drawer, the alerts panel, the command palette, the counterparty's
+alerts panel, the KPI customizer, confirmDialog, promptDialog and all seven
+phone sheets into the page underneath — where a sighted reader watches nothing
+happen and a screen-reader user is read the page BEHIND the dialog. **`trapFocus(panel, opts)`**
+is that one implementation, extracted from openModal with its reasoning intact
+and adopted at all nine.
+
+- **IT RETURNS ITS OWN UNDO.** `release()` unbinds and hands focus back to
+  whatever opened the layer. Three jobs that are really one job: separated, the
+  third is the one that gets forgotten, and a keyboard reader is then dropped at
+  the top of the document every time they dismiss anything. Calling it twice is
+  safe, because a layer with two ways out will do exactly that.
+- **IT DOES NOT OWN ESCAPE, deliberately.** Every one of these layers already
+  has its own Escape with its own guard about which overlay is on top, and a
+  second opinion here is how two of them come to disagree — a fault this product
+  has already paid for once, when Escape on a "Discard these changes?" guard
+  both answered it and closed the editor underneath in one keystroke.
+- **RELEASE BEFORE THE MARKUP GOES.** The trap restores focus to the opener, and
+  an element cannot take focus once its panel has been torn out from under it.
+- **THE PHONE'S SHEETS ARE SET AFTER THE PAINT, NOT AT THE PRESS**, because that
+  shell repaints wholesale on every act and the node the press opened is gone by
+  the next frame. The opener is remembered by ID across the repaint, which is
+  what survives; the element does not.
+- **AND THE SEVEN SHEETS HAD NO SEMANTICS AT ALL** across 3,419 lines — no role,
+  no modal announcement, no name. They say `role="dialog"`, `aria-modal` and a
+  NAME now, taken from the sheet's own title where it draws one (six of seven
+  do) and from a getter map for the one that does not. A getter, never a literal:
+  an object literal freezes whatever language was current at load, which is the
+  trap this file records four separate times.
+
+**FOUR aria-live REGIONS, EACH ON THE ELEMENT THAT RECEIVES THE MESSAGE** — the
+toast root, the settings drawer's refusal, the register's result count, and the
+counterparty's own signature confirmation. That last one is the most
+consequential moment on their page — they have just executed a contract — and
+the whole confirmation was **a band repainted in place**, which changes nothing
+a screen reader is told: the page it was reading still said "ready to sign".
+
+**EVERY ACT NOW HAS A KEY BESIDE ITS CLICK.** The register's sortable column
+heads (a click, a pointer cursor and `aria-sort`, and no way to press them
+without a mouse), the negotiation page's split divider (Key Terms' own divider
+has had arrows since it was built — this is that, ported, writing the SAME store
+and re-running the SAME layout so the two cannot disagree), the room's tab row
+(one tab stop with arrows inside it, which is what a tablist is for), the risk
+map's dots, and the KPI row, where **dragging was the only way to reorder** —
+Alt+Arrow, through the same splice as the drop.
+
+**AND `aria-selected` WAS SET ONCE, WHEN THE ROW WAS BUILT.** The room's tab
+paint flipped only the class, so from the second tab onward the row announced
+the tab the reader started on for as long as they stayed in the room. The class
+and the attribute come off one reading now.
+
+**REFUSING THE POINTER IS NOT REFUSING THE KEYBOARD.** On the 'as agreed' and
+'with changes' readings the change column is greyed and `pointer-events:none`
+refuses the press — and MEASURED, Tab still reached every verb in it and Enter
+still fired them, so the one route the greying exists to close was open to
+anybody not using a mouse. `aria-disabled` merely SAYS unavailable; **`inert`**
+takes it away.
+
+**THREE THINGS FELL OUT OF DRIVING IT RATHER THAN READING IT, and all three
+would have passed a markup check.** `.sr-only` **did not exist anywhere in the
+product** and was written into the KPI hint — the `ui-input` fault, this
+codebase's own recorded example — so it is defined in HaTi's own sheet in the
+same change; **`.click()` is a no-op on an SVG element**, so a keyboard handler
+on the risk-map `<g>` dots did nothing at all, silently (a dispatched MouseEvent
+reaches the same delegated handler the mouse does); and **the dashboard has two
+KPI-card builders, one of them dead** — `kpiHtml` is computed and never
+interpolated — so a hint written onto it reached nothing.
+
+Tests: **keyboard-reach-verify (NEW, 40, browser — 25 of the 40 fail against the
+code of an hour before**; every claim is DRIVEN with real Tab and Arrow presses
+and read off `document.activeElement`, because "does the element carry
+role=dialog" is a different question from "can somebody reach this without a
+mouse" and only the second one matters), f238 (six new claims, five failing
+against the prior code — the sixth is the extraction itself, which landed in
+Phase A's commit by an accident of timing and is named there), F97 (one claim
+RE-POINTED: it anchored on a literal opening tag that gained an attribute, so
+`indexOf` came back -1 and `slice(-1)` handed two checks a one-character string
+they both passed against — a false pass is the expensive half).
+
 ## THE ACCENT HAD NO NIGHT ANSWER (25 Aug 2026 — the pre-launch UI/UX audit, Phase A)
 
 **ONE STRUCTURAL FACT UNDER ALMOST EVERY DARK-THEME COMPLAINT, and this file had

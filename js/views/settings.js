@@ -375,9 +375,17 @@ function stWireDrawerOnce(){
   });
   document.addEventListener('keydown',e=>{ if(e.key==='Escape' && _stOpen) stDrawerClose(); });
 }
+/* The keyboard's way out of the drawer, held so the close can hand it back.
+   One value, because only one drawer is ever open. */
+let _stTrap=null;
 function stDrawerClose(){
   _stOpen=null;
   const d=document.getElementById('st-drawer'), s=document.getElementById('st-scrim');
+  /* RELEASE FIRST, WHILE THE DRAWER IS STILL THERE. The trap puts focus back
+     on the row that opened it, and this drawer is dismissed by hiding rather
+     than by tearing out — so releasing after the hide would move focus into an
+     element the browser has just stopped drawing. */
+  if(_stTrap){ try{ _stTrap(); }catch(e){} _stTrap=null; }
   if(d){ d.classList.remove('open'); d.setAttribute('hidden',''); }
   if(s){ s.classList.remove('open'); s.setAttribute('hidden',''); }
 }
@@ -415,6 +423,15 @@ function stDrawerPaint(d){
      element stops being hidden or the transition has nothing to run from. */
   const show=()=>{ el.classList.add('open'); if(scrim) scrim.classList.add('open'); };
   if(typeof requestAnimationFrame==='function') requestAnimationFrame(show); else show();
+  /* ---- THE KEYBOARD STAYS IN THE DRAWER ---- (25 Aug 2026)
+     Measured before this: the drawer opened over a dimmed page and Tab walked
+     straight out of it into the settings rows behind — which a sighted reader
+     watches happen with nothing visibly moving, and a screen-reader user
+     cannot follow at all. One shared trap, published from core.js; read
+     through window because this is a module and a bare cross-module read
+     throws rather than falling through. */
+  if(_stTrap){ try{ _stTrap(); }catch(e){} _stTrap=null; }
+  if(typeof window.trapFocus==='function') _stTrap=window.trapFocus(el);
   if(typeof d.wire==='function') d.wire();
   if(d.foot==='save' && typeof d.save==='function')
     document.getElementById('st-dsave')?.addEventListener('click',()=>d.save());
@@ -425,6 +442,16 @@ function stDrawerPaint(d){
 function stDrawerRefuse(msg){
   const r=document.getElementById('st-drawer-refusal');
   if(!r){ if(window.toast) toast(msg,'err'); return; }
+  /* ---- AND IT IS SPOKEN, NOT ONLY DRAWN ---- (25 Aug 2026)
+     MEASURED by the UI audit: ZERO aria-live regions in the whole product. A
+     refusal that appears silently in the foot of a drawer is a refusal a
+     screen-reader user never learns about — they press Save, nothing happens,
+     and there is nothing to go and read. 'assertive' rather than 'polite'
+     because this is the answer to a press the reader has just made and is
+     waiting on. Set on the ELEMENT rather than in the markup so it cannot be
+     lost the next time this foot is rebuilt. */
+  r.setAttribute('role','alert');
+  r.setAttribute('aria-live','assertive');
   r.textContent=msg; r.removeAttribute('hidden');
 }
 function stDrawerClearRefusal(){ document.getElementById('st-drawer-refusal')?.setAttribute('hidden',''); }

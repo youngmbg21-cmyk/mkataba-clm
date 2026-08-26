@@ -1040,6 +1040,19 @@
      as furniture. Recorded as a divergence from the reference, which draws both
      on --field-line. */
   :root{ --btn-edge:color-mix(in srgb,var(--accent-solid) 45%,transparent); }
+  /* ---- SAID TO A SCREEN READER, DRAWN FOR NOBODY ---- (25 Aug 2026)
+     A keyboard affordance nobody is told about is one nobody uses, and some
+     of those sentences have no visible home — the KPI row's Alt+Arrow reorder
+     is the first. THE OLD TRICK OF display:none WOULD NOT DO: a hidden
+     element is removed from the accessibility tree too, so it says nothing to
+     anybody. This is the standard clip: one pixel, out of flow, still read.
+     white-space:nowrap matters — without it a long sentence wraps inside a
+     1px box and some readers announce it a word at a time.
+     DEFINED HERE BECAUSE NOTHING DEFINED IT. Writing a class the app does not
+     carry is this codebase's own recorded fault (ui-input), and .sr-only was
+     exactly that until this line. */
+  .sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+    overflow:hidden;clip:rect(0,0,0,0);clip-path:inset(50%);white-space:nowrap;border:0}
   .ui-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:14px;line-height:var(--lh-tight);color:var(--accent-ink);background:transparent;border:1px solid var(--btn-edge);border-radius:0;
     /* HEIGHT COMES FROM A RUNG, NEVER FROM PADDING. `padding:6px 12px` on a
        14px/1.2 label computes to 30.8px — 2.8px TALLER than .ui-btn-lg's fixed

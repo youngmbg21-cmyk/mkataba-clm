@@ -2248,7 +2248,17 @@ function confirmDialog(opts={}){
         </div>
       </div>`;
     document.body.appendChild(ov);
-    const done=val=>{ ov.remove(); document.removeEventListener('keydown',onKey); resolve(val); };
+    /* THE KEYBOARD STAYS IN THE GUARD, AND GOES BACK WHERE IT CAME FROM.
+       Measured before this: Tab from Confirm walked into the page underneath —
+       which on a delete confirm means a reader can be typing into the very
+       record the dialog is asking about. focus:false because the line at the
+       foot of this function already focuses Confirm deliberately, and moving
+       that decision here would change which button a reader lands on. */
+    const release = (typeof trapFocus==='function')
+      ? trapFocus(ov.querySelector('[role="alertdialog"]'), { focus:false }) : null;
+    const done=val=>{
+      if(release){ try{ release(); }catch(_){} }
+      ov.remove(); document.removeEventListener('keydown',onKey); resolve(val); };
     /* ENTER DOES NOT CONFIRM FROM HERE (fixed 25 Aug 2026, by the UI audit).
        This handler sits on DOCUMENT and used to answer Enter with done(true),
        so it fired whatever the keyboard was actually on: tab to Cancel, press
@@ -2320,7 +2330,13 @@ function promptDialog(opts={}){
       </div>`;
     document.body.appendChild(ov);
     const input=ov.querySelector('#pd-input');
-    const done=val=>{ ov.remove(); document.removeEventListener('keydown',onKey,true); resolve(val); };
+    /* Same trap, same reasoning as confirmDialog. focus:false because this one
+       focuses its own text box, which is the whole point of a prompt. */
+    const release = (typeof trapFocus==='function')
+      ? trapFocus(ov.querySelector('[role="dialog"]'), { focus:false }) : null;
+    const done=val=>{
+      if(release){ try{ release(); }catch(_){} }
+      ov.remove(); document.removeEventListener('keydown',onKey,true); resolve(val); };
     function onKey(e){
       if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); done(null); }
       /* Enter submits a one-line field and types a newline in a multiline one,

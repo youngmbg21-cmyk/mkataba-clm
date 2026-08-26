@@ -365,3 +365,21 @@ should be moved there** — that is the record, this is a stand-in.
   theme had re-pointed them and the light side never had, which is why they
   survived. Fixed in A1; recorded because it is the second time this exact
   shape has been found (`.text-ink` itself was the first, on 22 Aug).
+
+### From Phase B (25 Aug 2026)
+
+- **The dashboard has two KPI-card builders and one of them is dead.**
+  `kpiCard` builds a tile, `kpiHtml` joins four of them, and `kpiHtml` is never
+  interpolated into anything — measured, zero occurrences. The live row is built
+  by `hmTile`. It cost a real mistake to find: a keyboard hint written onto the
+  dead builder reached nothing, and only pressing the key in a browser said so.
+  Not removed, because removing a builder is outside this run's order.
+- **`.sr-only` did not exist.** It was written into the KPI row's keyboard hint
+  and then found to be undefined anywhere in the product — the `ui-input` fault,
+  which is this codebase's own recorded example. Defined in HaTi's own sheet in
+  the same change, so the class and its one consumer arrived together.
+- **`.click()` is a no-op on an SVG element.** The Insights risk-map dots are
+  `<g>` elements, and a keyboard handler calling `el.click()` on one did nothing
+  at all — silently, which is the worst shape. A dispatched `MouseEvent` reaches
+  the same delegated handler the mouse does. Worth knowing before the next
+  keyboard pass touches a chart.

@@ -732,6 +732,17 @@ function portalMarkSigned(p, info){
   const band=document.getElementById('pt-agreed');
   if(!band) return;
   const who=esc((info&&info.name)||'You');
+  /* ---- AND IT IS SPOKEN ---- (25 Aug 2026)
+     This is the single most consequential moment on the counterparty's page —
+     they have just executed a contract — and the whole confirmation was a
+     BAND REPAINTED IN PLACE, which changes nothing a screen reader is told:
+     the page it was reading still says "ready to sign". role="status" is what
+     makes the swap an announcement. Set on the ELEMENT rather than in the
+     markup, because the band draws in several states and only THIS one is an
+     answer to a press. */
+  band.setAttribute('role','status');
+  band.setAttribute('aria-live','polite');
+  band.setAttribute('aria-atomic','true');
   band.style.background='var(--st-green-bg)';
   band.style.borderLeftColor='var(--st-green-fg)';
   band.innerHTML=`
@@ -2797,6 +2808,8 @@ function portalAlertsBodyHtml(rows, notices){
           <span class="pt-alert-dot" style="background:${PT_ALERT_TONE[a.tone] || PT_ALERT_TONE.gray}"></span>
           <span class="pt-alert-t">${esc(a.text)}</span></div>`).join('');
 }
+/* The keyboard's way out, held between the open and the close. */
+let PT_ALERTS_TRAP=null;
 function portalAlertsOpen(on){
   const panel=document.getElementById('pt-alerts');
   const scrim=document.getElementById('pt-alerts-scrim');
@@ -2806,6 +2819,16 @@ function portalAlertsOpen(on){
   panel.setAttribute('aria-hidden', on?'false':'true');
   if(scrim) scrim.hidden=!on;
   if(bell) bell.setAttribute('aria-expanded', on?'true':'false');
+  /* ---- AND THE KEYBOARD STAYS INSIDE IT ---- (25 Aug 2026)
+     Every row here is a door, exactly as on the owner's own panel, and Tab
+     used to walk out of it into the contract behind. ONE PLACE, because this
+     function is the single answer to "is the panel showing" — the bell, the
+     ✕, the scrim and Escape all arrive here. Read through window: this is a
+     module, and a bare cross-module read throws rather than falling through,
+     which on the counterparty's page would take the whole panel down. */
+  if(on && !PT_ALERTS_TRAP && typeof window.trapFocus==='function')
+    PT_ALERTS_TRAP=window.trapFocus(panel);
+  else if(!on && PT_ALERTS_TRAP){ try{ PT_ALERTS_TRAP(); }catch(_){} PT_ALERTS_TRAP=null; }
 }
 const portalAlertsClose = () => portalAlertsOpen(false);
 /* Repainted rather than re-rendered, so the count and the rows follow the page

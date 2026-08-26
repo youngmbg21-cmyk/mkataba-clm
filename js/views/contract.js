@@ -3107,8 +3107,21 @@ function applyWsTabs(c){
       const on=p.getAttribute('data-ws-pane')===k;
       p.style.display=on?(p.id==='doc-grid'?'grid':'flex'):'none';
     });
-    document.querySelectorAll('#ws-tabs [data-ws-tab]').forEach(b=>
-      b.classList.toggle('on',b.getAttribute('data-ws-tab')===k));
+    document.querySelectorAll('#ws-tabs [data-ws-tab]').forEach(b=>{
+      const on=b.getAttribute('data-ws-tab')===k;
+      b.classList.toggle('on',on);
+      /* ---- THE ROW SAYS WHICH TAB IS LIVE, ON EVERY CHANGE ---- (25 Aug 2026)
+         The markup set aria-selected once, when the row was BUILT, and this
+         paint only ever flipped the class — so from the second tab onward the
+         row announced the tab you started on for as long as you stayed in the
+         room. The class and the attribute are set in one place now, off one
+         reading, so they cannot come apart again.
+         AND THE ROVING TAB STOP: a tablist takes ONE stop, and the arrows move
+         within it. Without this, Tab walks through four tabs before it reaches
+         the document — which is the pattern a tablist exists to avoid. */
+      b.setAttribute('aria-selected', on?'true':'false');
+      b.tabIndex = on ? 0 : -1;
+    });
   };
   paint(_wsTab);
   /* THE STRIP DESCRIBES THE TAB YOU ARE ON, so it is repainted when the tab
@@ -3190,6 +3203,31 @@ function roomGoTab(c,k){
   _wsTab=k; _wsTabFor=c.id; applyWsTabs(c);
 }
 function wireWsTabs(c){
+  /* ---- AND THE ARROWS MOVE BETWEEN THEM ---- (25 Aug 2026)
+     Bound ONCE on the row, guarded on the element, because this function runs
+     from the room's render AND from every repaint — a listener per paint
+     stacks one per press, which is a fault this file records twice already.
+     Home and End are part of the pattern and cost one line each. */
+  const tabrow=document.getElementById('ws-tabs');
+  if(tabrow && !tabrow.dataset.wsTabKeys){
+    tabrow.dataset.wsTabKeys='1';
+    tabrow.addEventListener('keydown',e=>{
+      const KEYS={ArrowRight:1,ArrowLeft:-1,Home:'first',End:'last'};
+      if(!(e.key in KEYS)) return;
+      const tabs=[...tabrow.querySelectorAll('[data-ws-tab]')];
+      if(!tabs.length) return;
+      const at=tabs.indexOf(document.activeElement); if(at<0) return;
+      e.preventDefault();
+      const d=KEYS[e.key];
+      const to = d==='first' ? 0 : d==='last' ? tabs.length-1
+        : (at + d + tabs.length) % tabs.length;
+      /* AUTOMATIC ACTIVATION, which is the right half of the pattern here:
+         each of these tabs is already drawn and switching costs nothing, so
+         moving to one and not opening it would leave the row and the page
+         disagreeing about where the reader is. */
+      tabs[to].focus(); tabs[to].click();
+    });
+  }
   document.querySelectorAll('#ws-tabs [data-ws-tab]').forEach(b=>b.addEventListener('click',()=>
     roomGoTab(c,b.getAttribute('data-ws-tab'))));
   /* The one door off the Document tab rides on this row now, and it is wired
