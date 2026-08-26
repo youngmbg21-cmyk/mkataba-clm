@@ -683,9 +683,94 @@ THE HEAD IS ONE LINE (owner-asked, 13 Aug 2026: "move the highlighted sentence t
 
 **AND THE HEADER AND THE TABS ARE ONE WHITE CARD** (owner-reported 24 Aug 2026, off a screenshot with both rows ringed: *"the highlighted area should just be one big white card not divided into grey and white"*). The tab strip has always painted itself on `--color-surface`; the TITLE line above it is the shell's `#page-head`, which paints nothing and so sat on the page's grey ground. MEASURED: a transparent 33px band directly on top of a white 42px one, **with no gap between them** — two halves of what reads as one header, in two different colours. **WRITTEN IN THE PAGE, NOT IN THE SHELL**, and that is what keeps it safe: the rule rides a `<style>` block inside `#content`, so it is thrown away the moment the reader leaves Insights and cannot quietly repaint the header of a page that has not asked for it — the register's own precedent, painting the same element the same way for the same reason. The claim is a RELATION (the two resolve to the same colour, whatever the token is, and nothing sits between them) plus one that the rule does NOT follow the reader to another page. Tests: insights-panels-verify section 5b (35 — 3 of them fail against the code of an hour before).
 
-Insights has three tabs, opens on Portfolio (js/views/portfolio.js, rendered by renderIntel): six panels every business gets. LIVE = everything except Declined — the same definition aiPortfolioSnapshot uses; f151 pins that all surfaces count the same book. NOT on the phone — deliberate (listed under More; note lives in M_DESK).
+Insights has FOUR tabs since 26 Aug 2026 — Portfolio · Negotiation friction · Obligations · Contract graph — and opens on Portfolio (js/views/portfolio.js, rendered by renderIntel): six panels every business gets. LIVE = everything except Declined — the same definition aiPortfolioSnapshot uses; f151 pins that all surfaces count the same book. NOT on the phone — deliberate (listed under More; note lives in M_DESK).
 
 THE SHAPED FILL: project-shaped panels (workload runway, money held back, live promises, won/lost) or a renewal runway for standing agreements. Which shapes, and the word for a piece of work, are COMPANY settings (js/workshape.js; org record, browser fallback, PUT /api/org/workshape). wsIsProject() is the ONE classification rule — the Settings suggestion, the panels and their counts all call it. Won/lost is the one panel past the live book: won = Signed, lost = Declined, still out = Under Review or draft with a live share; no new status invented.
+
+
+## WHERE OBLIGATIONS GO QUIET — the fourth Insights tab (owner-asked 26 Aug 2026)
+
+Built from the owner's own approved report. The friction tab beside it asks
+where deals get STUCK; this one asks where promises get FORGOTTEN, which is the
+quieter failure — a stalled negotiation has somebody waiting on it and a dropped
+obligation has nobody at all.
+
+**IT IS A READING, AND IT ADDS NO STORE, NO ROUTE AND NO FIELD.** Every figure
+is counted in the browser off `state.contracts` — the caller's own already-scoped
+bootstrap — exactly as the friction tab and the portfolio panels are, so it is
+live on every draw and there is nothing to schedule or invalidate. f247 greps
+both halves for `api(` and `fetch(`: there must never be a route, because how
+far behind a company is on its own promises is this workspace's business.
+
+**COUNTING IS NOT DRAWING**, the Insights panels' own rule: `intelObligationsData`
+returns plain data and draws nothing, `intelObligationsHtml` draws it and
+computes nothing. **AND IT BORROWS EVERY READING** — `obligationDue` for the
+date, `obState` for open/overdue/done, `obligationIsTheirs` for the side,
+`daysUntil` for the arithmetic, and the live book is the one `openObligations`
+reads (not Declined, not archived, nothing already done). A second copy of "is
+this overdue" is how two screens come to disagree about one commitment.
+
+**THE CLAIM THE WHOLE PAGE RESTS ON IS "NO EMAIL WILL BE SENT ABOUT THIS", AND
+THAT IS NOT THIS PAGE'S OPINION TO HOLD.** `OB_LAST_OWNED` (-4), `OB_LAST_UNOWNED`
+(-1) and `OB_BRIEF_FLOOR` (-30) mirror runReminders' own milestones: with an
+assignee that resolves to a member the sweep writes to THEM at 7 days, on the
+day and the day after, and escalates to admins on day 4; with none it writes
+ONCE, to the admins, on day 1; the daily brief carries an item until 30 days
+overdue and then drops it. Past the last of those, nothing is ever sent again.
+**f247 reads those milestones off server/server.js**, so a change to the sweep
+fails there rather than leaving the page confidently contradicting the thing
+that actually sends the mail.
+
+**AN OBLIGATION IS SILENT WHEN NO REMINDER WILL REACH THE PERSON WHO OWES IT,
+EVER AGAIN** — no readable date (nothing fires at all), or nobody the mail
+resolves to (the one admin note on day 1 is a note to a bystander, not a
+reminder to an owner), or past the last milestone. **THE REASON ROWS ADD UP TO
+MORE THAN THE HEADLINE AND THE PAGE SAYS SO**: an obligation can fail two tests
+at once, the headline counts it once, and the overlap is printed rather than
+quietly reconciled. The assignee is resolved exactly as the server's
+`obligationRecipient` does — email first, then name, case-insensitively, and only
+where the member has an address to write to — off the roster every browser
+already holds.
+
+**WHAT IT CANNOT SEE IS STATED, NEVER GUESSED.** Nothing on the record says a
+contract was ever READ for obligations, so "N contracts with none on file" is
+reported as two possibilities (read and genuinely clear, or never looked) rather
+than as a finding; and nothing says WHEN one was completed, so the on-time panel
+says what field it needs instead of estimating a trend. `canSeeScan` and
+`canSeeCompletedOn` are `false` on the data object and flip the day either field
+exists.
+
+**COLOUR DOES ONE JOB PER CHART AND NEVER CARRIES A READING ALONE.** OURS is the
+workspace accent and THEIRS is amber — the pair has to survive the teal
+workspace, the navy one and the dark theme, and two accent-ish hues collapse
+into one in at least one of them, which the calendar's own legend already paid
+for. On the AGE chart colour answers a different question — is anything still
+being sent? — so the first two buckets are amber and the last two ruby, with the
+Day 4 and Day 30 marks named under them. Every bar carries its figure and every
+legend spells its count out.
+
+**THE TAB LIST IS ONE LIST AND BOTH THE ROW AND THE GUARD READ IT.** `IG_TABS` /
+`IG_TAB_LABEL` (labels are KEYS, never resolved strings — the getter trap).
+renderIntel's guard was a bare `['frame','map','friction']` written out
+separately from the tab row, so the first build's new button **drew, registered
+its press, and redrew the OVERVIEW** with nothing anywhere saying why. Nothing
+failed and nothing logged; it was found by looking at the page. A fifth surface
+is a name added to that list and nowhere else.
+
+**WHAT WAS DELIBERATELY NOT BUILT, said out loud**: no row on this page is a
+door yet. The approved report is a reading, the numbers and the lists behind
+them do not yet match one-for-one anywhere in the register, and a door whose
+destination narrows differently from the figure above it is the fault Home's own
+rule exists to prevent. The `<details>` chase list is the one disclosure.
+
+Tests: f247 (30 — the one list read by both halves, counting-not-drawing, the
+milestones read off the server, the live book, every panel's reading, and both
+languages), obligations-report-verify (27, browser — the press DRIVEN and what
+arrives read off the page, every headline figure checked against the number the
+counter returned, the ours/theirs pair measured as computed colours in light,
+dark and the navy workspace, three laptop widths with no sideways scroll, and
+the empty book). `buildWorld({intelView:true})` is new and pulls js/obligations.js
+under it.
 
 THE WEEKLY REVIEW (js/views/weekly.js): deterministic document, window.open first then fill, five fixed slots (slot 5 "what we did not look at" prints every week), sizes add pages AFTER the five. Reached from Reports. No model writes a word.
 

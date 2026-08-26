@@ -7876,3 +7876,81 @@ Noticed, not fixed:
   Every browser file this change could touch is green: clause-editor 75,
   redline 164, clause-door 99, parity 44, nego-redesign 52,
   counterparty-reading-and-more 63, theme-tokens 40/40, six-fixes 20.
+
+
+## 26 Aug 2026 — Where obligations go quiet (the fourth Insights tab)
+
+Owner-asked: build the approved obligations report into Insights, between
+Negotiation friction and Contract graph. Asked and answered first: how often
+would it update, and how often do the Insights analytics update — the answer
+being that nothing there is scheduled or cached, every panel is recounted in
+the browser on every draw, and the new report behaves identically.
+
+Built:
+
+- **`intelObligationsData` / `intelObligationsHtml`** in js/views/intelligence.js,
+  beside the friction tab and following its own split: one counts and draws
+  nothing, the other draws and counts nothing. Hero (what is quiet and why),
+  then six panels — contracts with nothing recorded, how long overdue, the next
+  90 days ours against theirs, who is carrying what, marked repeating never
+  repeated, and the on-time question the record cannot answer yet — then the
+  honest footer.
+- **The silence test mirrors the sweep that actually sends.** `OB_LAST_OWNED`
+  (-4), `OB_LAST_UNOWNED` (-1) and `OB_BRIEF_FLOOR` (-30) are runReminders' own
+  milestones, and f247 reads them off server/server.js so a change there fails
+  the test rather than leaving the page contradicting the mail.
+- **Two dictionary blocks, 102 keys, both languages.**
+- **`buildWorld({intelView:true})`** — new, and it pulls js/obligations.js under
+  it, because the report is a reading of that model and a stage without it would
+  exercise this module's absent-function fallbacks rather than the product.
+
+Defects found and fixed, all three by looking at the page rather than the source:
+
+- **THE TAB DREW, THE PRESS REGISTERED, AND THE PAGE REDREW THE OVERVIEW.**
+  renderIntel carried a bare `['frame','map','friction']` whitelist written out
+  separately from the tab row. Nothing failed and nothing logged. It is one
+  list now — `IG_TABS` — read by the row AND the guard, and both f247 and the
+  browser file catch the old shape (the browser one reports `"tab":"frame"`
+  after a real press of Obligations).
+- **"3 {n} overdue"** — the count was printed twice, once by a local helper and
+  once by the key's own `{n}`. It goes through `i18tn`, the plural helper the
+  product already has.
+- **"Invalid Date" on every month column** — `pfMonthLabel` takes an OFFSET from
+  this month, not an ISO key. `obMonthLabel` is this page's own, reading
+  `langLocale()` (a month is a WORD, so it follows the reader's language rather
+  than the market) and carrying its whole year.
+- **`int_ob_cov_other` collided with the plural convention** — f148 sweeps for
+  an `_other` with no `_one`. Renamed `int_ob_cov_rest`.
+
+Not built, said out loud: no row on this page is a door. The numbers and the
+lists behind them do not yet match one-for-one anywhere in the register, and a
+door that narrows differently from the figure above it is the fault Home's own
+rule exists to prevent.
+
+Tests: f247 (30, node — 2 of its 30 fail against the guard as first written),
+obligations-report-verify (27, browser — 4 of its first 7 fail against the same,
+reporting the reader thrown back to the Portfolio overview).
+
+Noticed, not fixed:
+
+- `npm run lint` still reports the four pre-existing duplicate-key errors in
+  js/i18n.js (`co_password_updated`, `act_next`). Unchanged by this run; they
+  reproduce on an untouched tree.
+- CLAUDE.md's INTERNAL REVIEW section says "there is no window.state". There is
+  — js/core.js exports `state` in its own Object.assign — and both the friction
+  tab and this one guard on `window.state` because of it. The note is stale
+  rather than wrong about the class of fault it records.
+- **SEVEN BROWSER FILES ARE RED AND NOT ONE OF THEM IS THIS RUN'S. PROVED,
+  NOT ASSERTED**: a worktree was made at this branch's parent (61b72f6,
+  unmodified) and every one was run there. Each came back with the IDENTICAL
+  count and the identical failing checks — flat-rows-and-alerts 34/37,
+  portal-header-verbs 29/30, pages-read-alike 47/50, reopen-a-refusal 12/15,
+  room-order-and-notices 28/29, settled-ask-reopen 11/12, and standard-paper
+  13/14 (failing on the same one check, "it holds this clause's own wording").
+  Six of the seven were already named in the previous run's entry; the seventh,
+  standard-paper, is one CLAUDE.md itself already records as never re-pointed
+  after the clause tool row was retired.
+  Every file this change could touch is green: obligations-report 27/27,
+  insights-panels 40/40, portfolio-frame 21/21. white-band-and-tabs is 36/38,
+  which is exactly what its KNOWN_RED entry promises.
+  Node: 4707/4707.

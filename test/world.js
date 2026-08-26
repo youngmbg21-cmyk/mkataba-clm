@@ -109,6 +109,12 @@ const REGISTER_VIEW = 'js/views/register.js';
 const FAMILY = 'js/family.js';
 /* Obligations and renewal decisions (buildWorld({obligations:true})). */
 const OBLIGATIONS = 'js/obligations.js';
+/* The Insights page (buildWorld({intelView:true})). Loaded on request like the
+   other views. It needs js/obligations.js under it — the obligations report is
+   a READING of that model and borrows every one of its predicates rather than
+   keeping a second copy — so the option pulls both in, obligations first, the
+   order js/app.js uses. */
+const INTEL_VIEW = 'js/views/intelligence.js';
 
 /* The element ids the render paths write into. Present so a render call lands
    somewhere readable rather than silently doing nothing. */
@@ -336,6 +342,12 @@ function buildWorld(opts = {}) {
      when it is absent, which is the order js/app.js uses too. */
   if (opts.family) files.push(FAMILY);
   if (opts.obligations) files.push(OBLIGATIONS);
+  /* Insights sits on the obligations model, so asking for the view brings it
+     even where the caller did not ask for it by name — a stage that drew the
+     report without it would exercise this module's own absent-function
+     fallbacks rather than the product. */
+  if (opts.intelView && !opts.obligations) files.push(OBLIGATIONS);
+  if (opts.intelView) files.push(INTEL_VIEW);
   /* The register draws against the whole application shell — value streams,
      status chips, share marks, the money formatter. This stage has the change
      model, not that shell, so the pieces it reaches for are stood in for here

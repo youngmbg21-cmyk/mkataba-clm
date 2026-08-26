@@ -84,6 +84,20 @@ const riskScore = c => openFindings(c).reduce((s,f)=>s+SEV_WEIGHT[f.sev],0);
 const daysUntil = iso => Math.ceil((new Date(iso+'T00:00:00') - Date.now())/86400000);
 window.intelUI = { scanning:false, scannedAt:null };
 
+/* ---- THE FOUR SURFACES UNDER ONE NAV ITEM, IN ONE LIST ----
+   The tab ROW is built from this and renderIntel's own guard reads it, so a
+   name that is on the row is a name the guard accepts. They were written out
+   separately and drifted the moment a fourth tab arrived: the button drew, the
+   press registered, and the guard — a bare ['frame','map','friction'] — sent
+   the reader straight back to the frame with nothing on screen saying why.
+   ORDER IS THE ROW'S ORDER and the first entry is the default.
+   LABELS ARE KEYS, NEVER RESOLVED STRINGS: an object literal holding i18t(...)
+   freezes whatever language was current at load, which is the getter trap this
+   codebase has recorded four separate times. */
+const IG_TABS = ['frame','friction','obligations','map'];
+const IG_TAB_LABEL = { frame:'pf_tab', friction:'int_negotiation_friction',
+  obligations:'int_obligations', map:'int_contract_graph' };
+
 function scanPortfolio(){
   state.contracts.forEach(c=>runScan(c));
   intelUI.scannedAt = new Date().toLocaleString(langLocale(),{dateStyle:'medium',timeStyle:'short'});
@@ -721,10 +735,18 @@ function renderIntel(){
   /* Two surfaces under one nav item: the graph, and the negotiation-friction
      read of the same portfolio. The tab lives on the module state so a
      repaint comes back where the reader was. */
-  /* Three surfaces under one nav item. The frame is first and is the default:
-     it is the overview every business gets, and the other two are the two
-     specific questions you go on to ask. */
-  if(['frame','map','friction'].indexOf(intel.tab)<0) intel.tab='frame';
+  /* Four surfaces under one nav item. The frame is first and is the default:
+     it is the overview every business gets, and the other three are the
+     specific questions you go on to ask — where deals get stuck, where
+     promises go quiet, and how the book hangs together.
+
+     IT IS ONE LIST AND THE TAB ROW READS IT, so a fifth surface is a name
+     added HERE and nowhere else. Written as a bare array beside the row, this
+     whitelist silently sent every press of a new tab back to the frame: the
+     button drew, the press registered, the page redrew the overview, and
+     nothing anywhere said why. f247 asserts the row and the guard hold the
+     same names in the same order. */
+  if(IG_TABS.indexOf(intel.tab)<0) intel.tab=IG_TABS[0];
   const groupOpts=[['folder','Value stream'],['counterparty','Customer'],['status','Status'],['valueBand','Value'],['kind','Type'],['expiry','Expiry window'],['risk','Risk'],['source','Origin']];
   /* UNDERLINE TABS, not pills. Both controls in this strip read the same way:
      the live one is the one with the accent rule under it. The -1px bottom
@@ -755,7 +777,7 @@ function renderIntel(){
      ink for the same reason — they are the same control at 13px, and leaving
      them faded would put the fault back one row down. */
   const tabBtn=(k,label)=>`<button data-ig-tab="${k}" style="${UNDERTAB};border-bottom:2px solid ${intel.tab===k?'var(--accent-solid,var(--color-accent))':'transparent'};font-size:var(--t-body);font-weight:${intel.tab===k?700:400};color:${intel.tab===k?'var(--accent-ink,var(--color-accent))':'var(--color-text)'}">${label}</button>`;
-  const tabsHtml=`<div style="${TABROW};gap:20px">${tabBtn('frame',i18t('pf_tab'))}${tabBtn('friction',i18t('int_negotiation_friction'))}${tabBtn('map',i18t('int_contract_graph'))}</div>`;
+  const tabsHtml=`<div style="${TABROW};gap:20px">${IG_TABS.map(k=>tabBtn(k,i18t(IG_TAB_LABEL[k]))).join('')}</div>`;
   /* The friction levers live IN the header strip (the approved comp): the
      period toggle and the counterparty select sit beside the tabs, so the
      panel below is all answer and no chrome. */
@@ -856,6 +878,21 @@ function renderIntel(){
       renderIntel();
     }));
     intelFrictionWireAI();
+    setActiveNav('intel');
+    return;
+  }
+  if(intel.tab==='obligations'){
+    /* THE SAME SHELL AS THE FRICTION TAB — header strip, then one scrolling
+       body. This page carries no header levers of its own and that is
+       deliberate: every number on it is a count of the whole live book, and a
+       filter would put a narrowed figure under a heading that claims to be
+       about the portfolio. */
+    document.getElementById('content').innerHTML=`
+    <div class="view-enter" style="height:var(--view-h);display:flex;flex-direction:column;min-height:0">
+      ${headerHtml}
+      <div id="ig-oblig" class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;background:var(--color-bg);padding:9px 20px 14px">${intelObligationsHtml()}</div>
+    </div>`;
+    document.querySelectorAll('[data-ig-tab]').forEach(b=>b.addEventListener('click',()=>{ intel.tab=b.getAttribute('data-ig-tab'); renderIntel(); }));
     setActiveNav('intel');
     return;
   }
@@ -1263,6 +1300,446 @@ async function intelFrictionAsk(){
   if(state.view==='intel'&&intel.tab==='friction') intelFrictionRepaintAI();
 }
 
+
+/* ============================================================
+   WHERE OBLIGATIONS GO QUIET — the promises nobody will be reminded about
+   ============================================================
+   The negotiation tab beside this one asks where deals get STUCK. This one
+   asks where they get FORGOTTEN — which is the quieter failure, because a
+   stalled negotiation has somebody waiting on it and a dropped obligation has
+   nobody at all.
+
+   COUNTING IS NOT DRAWING, the Insights panels' own rule: intelObligationsData
+   returns plain data and draws nothing, intelObligationsHtml draws it and
+   computes nothing. f247 greps both halves.
+
+   IT BORROWS EVERY READING AND INVENTS NONE — obligationDue for the date,
+   obState for open/overdue/done, obligationIsTheirs for the side, daysUntil
+   for the arithmetic, and the live book is the same one openObligations reads
+   (not Declined, not archived). A second copy of "is this overdue" is how two
+   screens come to disagree about the same commitment.
+
+   THE SILENCE TEST IS THE SWEEP'S OWN MILESTONES, MIRRORED — see OB_LAST_*
+   below. This page's whole claim is "no email will be sent about this", and a
+   second opinion here about when the mail fires would be a page confidently
+   contradicting the thing that actually sends it.
+
+   WHAT IT CANNOT SEE IS SAID OUT LOUD RATHER THAN GUESSED. Nothing on the
+   record says whether a contract was ever READ for obligations, and nothing
+   says WHEN one was completed — so "58 contracts with none on file" is
+   reported as two possibilities and not as a finding, and the on-time panel
+   states what it needs instead of estimating it. */
+const OB_ROWS = 5;            // row lists cap at five and say when they have
+const OB_HORIZON = 90;        // the forward window — the renewal card's own 90
+/* THE SWEEP'S MILESTONES (server/server.js, runReminders). With an assignee
+   that resolves to a member the sweep writes to THEM 7 days before, on the
+   day, and the day after, and escalates to the admins on day 4. With no
+   assignee that resolves it writes ONCE, to the admins, on day 1. Past the
+   last of those, nothing about that obligation is ever sent again. The daily
+   brief carries an item until 30 days overdue and then drops it. */
+const OB_LAST_OWNED = -4, OB_LAST_UNOWNED = -1, OB_BRIEF_FLOOR = -30;
+
+function intelObligationsData(){
+  const S=(window.state&&Array.isArray(state.contracts))?state.contracts:[];
+  /* The live book — the same reading openObligations uses. A deal nobody is
+     doing has no deliverables, and an archived record is filed, not live. */
+  const live=S.filter(c=>c&&c.status!=='Declined'&&!c.archived);
+
+  /* WHO THE MAIL WOULD REACH, resolved exactly as the server's
+     obligationRecipient does: email first, then name, case-insensitively, and
+     only where the member has an address to write to. The whole roster is in
+     every browser already (the reviewer picker and the approval rules need
+     it), so this needs no route — but it must stay the SAME reading, or the
+     page and the sweep disagree about who gets told. */
+  const mem=(typeof window.getUsers==='function')?(getUsers()||[]):[];
+  const byEmail=new Set(), byName=new Set();
+  mem.forEach(u=>{
+    const em=String((u&&u.email)||'').trim();
+    if(!/.+@.+\..+/.test(em)) return;      // an account with no address is nowhere to write to
+    byEmail.add(em.toLowerCase());
+    const nm=String((u&&u.name)||'').trim(); if(nm) byName.add(nm.toLowerCase());
+  });
+  const resolves=a=>{ const q=String(a||'').trim().toLowerCase();
+    return !!q&&(byEmail.has(q)||byName.has(q)); };
+
+  const dueOf=o=>(typeof obligationDue==='function')?obligationDue(o):(((o&&o.due)||null));
+  const stateOf=o=>(typeof obState==='function')?obState(o):((o&&o.status)==='done'?'done':'open');
+  const isTheirs=o=>(typeof obligationIsTheirs==='function')?obligationIsTheirs(o):((o&&o.party)==='theirs');
+
+  let total=0, open=0, done=0, overdue=0, silent=0, reasonSum=0;
+  const why={ nodate:0, unreadable:0, noowner:0, gone:0, spent:0 };
+  const ages=[0,0,0,0];                    // 1–4 · 5–30 · 31–90 · 90+ days overdue
+  const months=new Map();                  // 'YYYY-MM' → {ours, theirs}
+  const chase=new Map();                   // counterparty → what they owe us
+  const owners=new Map();                  // our side, by the person carrying it
+  const repeat={ monthly:0, quarterly:0, annual:0 };
+  let repeatTotal=0, ahead=0, aheadOurs=0, aheadTheirs=0;
+  const cover={ withOb:0, none:0, noneSigned:0, noneReview:0, noneDraft:0, noneOther:0 };
+
+  live.forEach(c=>{
+    const list=(c.obligations||[]);
+    if(list.length) cover.withOb++;
+    else {
+      cover.none++;
+      if(c.status==='Signed') cover.noneSigned++;
+      else if(c.status==='Under Review') cover.noneReview++;
+      else if(c.status==='Draft') cover.noneDraft++;
+      else cover.noneOther++;
+    }
+    list.forEach(o=>{
+      total++;
+      if(stateOf(o)==='done'){
+        done++;
+        /* MARKED REPEATING, NEVER REPEATED. Ticking a quarterly report done
+           does not create next quarter's — nothing in this product rolls a
+           cadence forward. A commitment counts as STOPPED only where no
+           obligation with the same wording is still open on the same contract,
+           so somebody who re-created it by hand is not accused of dropping it. */
+        const cad=String((o&&o.recurring)||'none').toLowerCase();
+        if(cad!=='none'&&Object.prototype.hasOwnProperty.call(repeat,cad)){
+          const d=String((o&&o.desc)||'').trim().toLowerCase();
+          const alive=list.some(x=>x!==o&&String((x&&x.desc)||'').trim().toLowerCase()===d&&stateOf(x)!=='done');
+          if(!alive){ repeat[cad]++; repeatTotal++; }
+        }
+        return;
+      }
+      open++;
+      const raw=String((o&&o.due)||'').trim();
+      const due=dueOf(o);
+      const od=due?daysUntil(due):null;
+      const named=!!String((o&&o.assignee)||'').trim();
+      const owned=resolves(o&&o.assignee);
+
+      /* ---- WILL A REMINDER REACH THE PERSON WHO OWES THIS, EVER AGAIN? ----
+         No readable date and nothing fires at all. Nobody the mail resolves to
+         and nothing ever reaches a person who owes it — the one admin note on
+         day 1 is a note to a bystander, not a reminder to an owner. Past the
+         last milestone and every mail has already gone. */
+      const bad=(due==null);
+      const spent=(due!=null&&od!=null&&od<(owned?OB_LAST_OWNED:OB_LAST_UNOWNED));
+      const quiet=bad||!owned||(od!=null&&od<OB_LAST_OWNED);
+      if(quiet){
+        silent++;
+        const r=[];
+        if(bad) r.push(raw?'unreadable':'nodate');
+        if(!named) r.push('noowner'); else if(!owned) r.push('gone');
+        if(spent) r.push('spent');
+        r.forEach(k=>{ why[k]++; });
+        reasonSum+=r.length;
+      }
+
+      if(due!=null&&od!=null&&od<0){
+        overdue++;
+        const a=-od;
+        if(a<=4) ages[0]++; else if(a<=30) ages[1]++; else if(a<=90) ages[2]++; else ages[3]++;
+      }
+
+      if(due!=null&&od!=null&&od>=0&&od<=OB_HORIZON){
+        ahead++;
+        const k=due.slice(0,7);
+        const m=months.get(k)||{key:k,ours:0,theirs:0};
+        if(isTheirs(o)){ m.theirs++; aheadTheirs++; } else { m.ours++; aheadOurs++; }
+        months.set(k,m);
+        if(isTheirs(o)){
+          const cp=String((c&&c.counterparty)||'').trim()||'—';
+          const e=chase.get(cp)||{name:cp,n:0,soonest:null,what:[]};
+          e.n++;
+          if(!e.soonest||due<e.soonest) e.soonest=due;
+          if(e.what.length<2&&(o&&o.desc)) e.what.push(String(o.desc));
+          chase.set(cp,e);
+        }
+      }
+
+      /* WHO IS CARRYING WHAT is OUR side only: we hold no staff list for the
+         counterparty and are not going to keep one, so "theirs" has no owner
+         to group by — which is exactly why the chase list above exists. */
+      if(!isTheirs(o)){
+        const nm=String((o&&o.assignee)||'').trim();
+        const e=owners.get(nm)||{name:nm,n:0,over:0,resolves:nm?owned:false};
+        e.n++;
+        if(od!=null&&od<0) e.over++;
+        owners.set(nm,e);
+      }
+    });
+  });
+
+  /* THE UNASSIGNED PILE SORTS FIRST ON PURPOSE: it is the only row on that
+     panel nobody is being emailed about. Everyone else by load, heaviest
+     first, and a name that no longer resolves keeps its place with its own
+     mark rather than being folded into "nobody". */
+  const ownerRows=[...owners.values()].sort((a,b)=>
+    (a.name?1:0)-(b.name?1:0) || b.n-a.n || String(a.name).localeCompare(String(b.name)));
+  const chaseRows=[...chase.values()].sort((a,b)=>
+    String(a.soonest||'9999').localeCompare(String(b.soonest||'9999')) || b.n-a.n);
+  const monthRows=[...months.values()].sort((a,b)=>a.key.localeCompare(b.key));
+
+  return {
+    contracts:live.length, total, open, done, overdue,
+    silent, why, reasonSum, silentOverlap:Math.max(0,reasonSum-silent),
+    ages, pastBoth:ages[2]+ages[3],
+    ahead, aheadOurs, aheadTheirs, months:monthRows,
+    chase:chaseRows.slice(0,OB_ROWS),
+    chaseMore:Math.max(0,chaseRows.length-OB_ROWS),
+    chaseMoreN:chaseRows.slice(OB_ROWS).reduce((s,r)=>s+r.n,0),
+    owners:ownerRows.slice(0,OB_ROWS+1),
+    ownersMore:Math.max(0,ownerRows.length-(OB_ROWS+1)),
+    repeat, repeatTotal, cover,
+    /* SAID OUT LOUD, not guessed: neither of these is on the record today. */
+    canSeeScan:false, canSeeCompletedOn:false,
+  };
+}
+
+/* THE CARD CHROME QUOTES portfolio.js's PF_CARD, so the three Insights tabs
+   read as one page. Every value is a TOKEN — surface, divider, radius, the
+   type ladder — so a change to the ladder moves both and there is nothing to
+   keep in step by hand; the two padding literals are the one exception and
+   f247 pins them to each other rather than to a number, which is what stopped
+   RV_FLD's copy drifting 2px from the thing it quoted. */
+const OB_CARD='background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);padding:13px 15px;display:flex;flex-direction:column;min-width:0';
+const OB_H='display:flex;align-items:baseline;gap:var(--s-2);margin-bottom:9px;flex-wrap:wrap';
+const OB_TITLE='font-size:var(--t-body);font-weight:var(--w-title);letter-spacing:-.01em';
+const OB_HINT='font-size:var(--t-label);color:var(--color-neutral-600);margin-left:auto';
+const OB_LEAD='font-size:var(--t-meta);line-height:1.55;color:var(--color-neutral-700);margin:0 0 11px';
+const OB_NOTE='font-size:var(--t-label);line-height:1.55;color:var(--color-neutral-600);margin:10px 0 0';
+const OB_NUM='font-family:var(--font-heading);font-weight:var(--w-title);font-variant-numeric:tabular-nums;letter-spacing:-.02em';
+const obCard=(title,hint,body,foot)=>`<section style="${OB_CARD}">
+  <div style="${OB_H}"><span style="${OB_TITLE}">${title}</span>${hint?`<span style="${OB_HINT}">${hint}</span>`:''}</div>
+  <div style="flex:1 1 auto;min-height:0">${body}</div>
+  ${foot?`<div style="margin-top:auto;padding-top:10px;font-size:var(--t-label);line-height:1.55;color:var(--color-neutral-600)">${foot}</div>`:''}</section>`;
+/* A flag on a card head says what KIND of thing the card is, in a word:
+   a gap in the record, a commitment that has stopped, a field we do not keep. */
+const obFlag=(txt,bg,fg)=>`<span style="font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:var(--radius);background:${bg};color:${fg};margin-left:auto;flex:none">${txt}</span>`;
+
+/* ---- COLOUR DOES ONE JOB PER CHART, AND NEVER ON ITS OWN ----
+   OURS is the workspace's own accent — our team's workload — and THEIRS is
+   amber, which is this product's word for work owed by somebody else and
+   waiting on a chaser. Amber is fixed in both the teal and the navy workspace,
+   so the pair stays tellable apart whichever brand is on; a second accent-ish
+   hue would collapse into the accent in one of them, which is the trap the
+   calendar's own legend already paid for once.
+   On the AGE chart colour answers a different question — is anything still
+   being sent? — so the first two bars are amber and the last two ruby, and the
+   line under them says where the cut falls. Every bar carries its own figure
+   and every legend spells the count out, so no reading rests on the hue. */
+/* A MONTH IS A WORD, so it follows the reader's LANGUAGE and not the market's
+   (langLocale), and it carries its whole YEAR — "Jan" on an axis beside a
+   calendar showing next January is two surfaces that read as though they
+   disagree. portfolio.js's pfMonthLabel says the same thing and cannot be
+   borrowed: it takes an OFFSET from this month, and these keys are calendar
+   months off the obligations themselves. */
+function obMonthLabel(key){
+  const m=/^(\d{4})-(\d{2})$/.exec(String(key||''));
+  if(!m) return String(key||'');
+  const d=new Date(Number(m[1]), Number(m[2])-1, 1);
+  try{ return d.toLocaleDateString(langLocale(),{month:'short',year:'numeric'}); }
+  catch(e){ return String(key); }
+}
+const OB_OURS='var(--accent-solid,var(--color-accent))';
+const OB_THEIRS='var(--st-amber-dot,#f59e0b)';
+const OB_REACHED='var(--st-amber-dot,#f59e0b)';
+const OB_UNREACHED='var(--st-ruby-dot,#e11d48)';
+
+function intelObligationsHtml(){
+  const d=intelObligationsData();
+  const E=igEsc;
+  const n=(v)=>Number(v||0).toLocaleString(jxLocale());
+  if(!d.total) return `<div style="max-width:960px;margin:0 auto">
+    <div style="max-width:560px;margin:var(--s-10) auto;text-align:center;color:var(--color-neutral-600);font-size:var(--t-body);line-height:1.6">
+    <b style="color:var(--color-text)">${i18t('int_ob_none')}</b><br/>${i18t('int_ob_none_why')}</div></div>`;
+
+  /* ---- the hero: what is quiet, and why ---- */
+  const RULE='border-bottom:1px solid var(--color-divider)';
+  const reasons=[
+    ['nodate',    i18t('int_ob_r_nodate'),     i18t('int_ob_r_nodate_why')],
+    ['noowner',   i18t('int_ob_r_noowner'),    i18t('int_ob_r_noowner_why')],
+    ['spent',     i18t('int_ob_r_spent'),      i18t('int_ob_r_spent_why')],
+    ['gone',      i18t('int_ob_r_gone'),       i18t('int_ob_r_gone_why')],
+    ['unreadable',i18t('int_ob_r_unreadable'), i18t('int_ob_r_unreadable_why')],
+  ].map(([k,label,why])=>({k,label,why,v:d.why[k]||0}))
+   .filter(r=>r.v>0).sort((a,b)=>b.v-a.v);
+  const rmax=reasons.length?reasons[0].v:1;
+  const bar=(w,fill)=>`<span style="display:block;height:7px;margin-top:5px;border-radius:var(--radius);background:var(--color-neutral-100);overflow:hidden"><span style="display:block;height:100%;width:${Math.max(2,Math.round(w))}%;border-radius:var(--radius);background:${fill}"></span></span>`;
+  const reasonRows=reasons.map(r=>`<div style="display:grid;grid-template-columns:1fr 46px;gap:9px;align-items:center;padding:7px 0;${RULE}">
+    <span style="min-width:0"><span style="font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text)">${E(r.label)}</span>
+      <span style="font-size:var(--t-label);color:var(--color-neutral-600)"> — ${E(r.why)}</span>
+      ${bar(r.v/rmax*100, OB_UNREACHED)}</span>
+    <span style="text-align:right;font-size:var(--t-section);${OB_NUM}">${n(r.v)}</span></div>`).join('');
+  const heroShare=d.open?Math.round(d.silent/d.open*1000)/10:0;
+  const hero=`<section style="${OB_CARD};display:grid;grid-template-columns:minmax(260px,1fr) minmax(300px,1.35fr);gap:var(--s-3) 26px;padding:15px 17px">
+    <div style="min-width:0;max-width:46ch">
+      <div style="font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)">${i18t('int_ob_hero_k')}</div>
+      <div style="${OB_NUM};font-size:44px;line-height:1.02;margin:2px 0 6px;color:${d.silent?'var(--st-ruby-fg,#b91c1c)':'var(--color-text)'}">${n(d.silent)}</div>
+      <p style="font-size:var(--t-body);line-height:1.55;color:var(--color-neutral-800);margin:0">${
+        d.silent
+          ? i18t('int_ob_hero_say',{n:n(d.silent),total:n(d.open)})
+          : i18t('int_ob_hero_clear',{total:n(d.open)})}</p>
+      <div style="font-size:var(--t-label);color:var(--color-neutral-600);margin-top:8px;font-variant-numeric:tabular-nums">${
+        i18t('int_ob_hero_of',{pct:heroShare, open:n(d.open), contracts:n(d.contracts)})}</div>
+    </div>
+    <div style="min-width:0">
+      ${reasons.length?`<div style="display:flex;align-items:baseline;gap:var(--s-2)">
+        <span style="font-size:var(--t-body);font-weight:var(--w-title)">${i18t('int_ob_why_each')}</span>
+        <span style="${OB_HINT}">${i18t('int_ob_open_word')}</span></div>
+      <div role="img" aria-label="${E(i18t('int_ob_why_aria')+' '+reasons.map(r=>`${r.label}: ${r.v}`).join('; '))}" style="margin-top:var(--s-2)">${reasonRows}</div>
+      ${d.silentOverlap?`<p style="${OB_NOTE}">${i18t('int_ob_overlap',{sum:n(d.reasonSum),n:n(d.silent),over:n(d.silentOverlap)})}</p>`:''}`
+      :`<p style="${OB_LEAD};margin:0">${i18t('int_ob_all_reachable')}</p>`}
+    </div>
+  </section>`;
+
+  /* ---- 1 · coverage, and the unknown inside it ---- */
+  const covRows=[
+    [i18t('int_ob_cov_signed'), i18t('int_ob_cov_signed_why'), d.cover.noneSigned, 'var(--st-ruby-fg,#b91c1c)'],
+    [i18t('int_ob_cov_review'), i18t('int_ob_cov_review_why'), d.cover.noneReview, 'var(--st-amber-fg,#b45309)'],
+    [i18t('int_ob_cov_draft'),  i18t('int_ob_cov_draft_why'),  d.cover.noneDraft,  'var(--color-text)'],
+    [i18t('int_ob_cov_rest'),  i18t('int_ob_cov_rest_why'),  d.cover.noneOther,  'var(--color-text)'],
+  ].filter(r=>r[2]>0).map(([t,w,v,c])=>`<tr>
+    <td style="padding:6px 0;${RULE};font-size:var(--t-meta)"><b>${E(t)}</b><br><span style="font-size:var(--t-label);color:var(--color-neutral-600)">${E(w)}</span></td>
+    <td style="padding:6px 0;${RULE};text-align:right;font-size:var(--t-card);${OB_NUM};color:${c}">${n(v)}</td></tr>`).join('');
+  const covPct=d.contracts?Math.round(d.cover.withOb/d.contracts*100):0;
+  const coverage=obCard(i18t('int_ob_cov_title'), obFlag(i18t('int_ob_flag_blind'),'var(--st-amber-bg,#fef3c7)','var(--st-amber-fg,#b45309)'),
+    `<p style="${OB_LEAD}">${i18t('int_ob_cov_lead')}</p>
+     <div role="img" aria-label="${E(i18t('int_ob_cov_aria',{total:n(d.contracts),withOb:n(d.cover.withOb),none:n(d.cover.none)}))}"
+       style="display:flex;height:26px;border-radius:var(--radius);overflow:hidden;background:var(--color-neutral-100)">
+       ${d.cover.withOb?`<span style="width:${covPct}%;min-width:2px;background:${OB_OURS};color:#fff;font-size:var(--t-label);font-weight:var(--w-title);display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap">${n(d.cover.withOb)}</span>`:''}
+       ${d.cover.none?`<span style="flex:1;min-width:2px;background:${OB_THEIRS};color:#3B2A05;font-size:var(--t-label);font-weight:var(--w-title);display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap">${n(d.cover.none)}</span>`:''}
+     </div>
+     <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:7px;font-size:var(--t-label);color:var(--color-neutral-600)">
+       <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:9px;height:9px;border-radius:var(--radius);background:${OB_OURS};display:inline-block"></i>${i18t('int_ob_cov_key_on')}</span>
+       <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:9px;height:9px;border-radius:var(--radius);background:${OB_THEIRS};display:inline-block"></i>${i18t('int_ob_cov_key_none')}</span>
+     </div>
+     ${d.cover.none?`<p style="${OB_NOTE}">${i18t('int_ob_cov_split',{n:n(d.cover.none)})}</p>
+     <table style="border-collapse:collapse;width:100%;margin-top:8px">${covRows}</table>`:''}`,
+    d.cover.noneSigned?i18t('int_ob_cov_foot',{n:n(d.cover.noneSigned)}):i18t('int_ob_cov_foot_clear'));
+
+  /* ---- 2 · how long overdue, against the sweep's own thresholds ---- */
+  const amax=Math.max(...d.ages,1);
+  const ageCols=[
+    [i18t('int_ob_age_1'), i18t('int_ob_age_1_sub'), d.ages[0], OB_REACHED],
+    [i18t('int_ob_age_2'), i18t('int_ob_age_2_sub'), d.ages[1], OB_REACHED],
+    [i18t('int_ob_age_3'), i18t('int_ob_age_3_sub'), d.ages[2], OB_UNREACHED],
+    [i18t('int_ob_age_4'), i18t('int_ob_age_4_sub'), d.ages[3], OB_UNREACHED],
+  ].map(([k,sub,v,c])=>`<div style="display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0">
+    <div style="height:96px;display:flex;align-items:flex-end;width:100%;max-width:52px">
+      <span style="display:block;width:100%;height:${Math.max(3,Math.round(v/amax*96))}px;border-radius:var(--radius);background:${v?c:'var(--color-neutral-100)'}"></span></div>
+    <div style="font-size:var(--t-section);${OB_NUM}">${n(v)}</div>
+    <div style="font-size:var(--t-label);font-weight:var(--w-strong);text-align:center;line-height:1.3">${E(k)}<br><span style="font-weight:var(--w-body);color:var(--color-neutral-600)">${E(sub)}</span></div>
+  </div>`).join('');
+  const ageing=obCard(i18t('int_ob_age_title'), `<span style="${OB_HINT}">${i18tn('int_ob_overdue',d.overdue,{n:n(d.overdue)})}</span>`,
+    d.overdue
+      ? `<p style="${OB_LEAD}">${i18t('int_ob_age_lead')}</p>
+         <div role="img" aria-label="${E(i18t('int_ob_age_aria',{a:d.ages[0],b:d.ages[1],c:d.ages[2],e:d.ages[3]}))}"
+           style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s-3);align-items:end">${ageCols}</div>
+         <div style="display:flex;flex-direction:column;gap:3px;margin-top:12px;padding-top:9px;border-top:1px solid var(--color-divider);font-size:var(--t-label);color:var(--color-neutral-600)">
+           <span>${i18t('int_ob_age_mark4')}</span><span>${i18t('int_ob_age_mark30')}</span></div>`
+      : `<p style="${OB_LEAD};margin:0">${i18t('int_ob_age_clear')}</p>`,
+    d.pastBoth?i18t('int_ob_age_foot',{n:n(d.pastBoth)}):'');
+
+  /* ---- 3 · the next 90 days, ours against theirs ---- */
+  const mmax=Math.max(1,...d.months.map(m=>Math.max(m.ours,m.theirs)));
+  const monthCols=d.months.map(m=>{
+    const b=(v,fill)=>`<span style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;min-width:0">
+      <b style="font-size:var(--t-label);${OB_NUM};font-weight:var(--w-title)">${n(v)}</b>
+      <span style="display:block;width:100%;max-width:26px;height:${Math.max(3,Math.round(v/mmax*84))}px;border-radius:var(--radius);background:${v?fill:'var(--color-neutral-100)'}"></span></span>`;
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0">
+      <div style="display:flex;align-items:flex-end;gap:5px;height:100px;width:100%;justify-content:center">${b(m.ours,OB_OURS)}${b(m.theirs,OB_THEIRS)}</div>
+      <div style="font-size:var(--t-label);font-weight:var(--w-strong);white-space:nowrap">${E(obMonthLabel(m.key))}</div></div>`;
+  }).join('');
+  const chaseRows=d.chase.map(r=>`<tr>
+    <td style="padding:6px 0;${RULE};font-size:var(--t-meta);font-weight:var(--w-strong)">${E(r.name)}</td>
+    <td style="padding:6px var(--s-2);${RULE};font-size:var(--t-label);color:var(--color-neutral-600)">${E(r.what.join(', '))}</td>
+    <td style="padding:6px 0;${RULE};font-size:var(--t-meta);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap">${E((typeof regDotDate==='function'&&r.soonest)?regDotDate(r.soonest):(r.soonest||'—'))}</td>
+    <td style="padding:6px 0 6px var(--s-2);${RULE};font-size:var(--t-meta);text-align:right;${OB_NUM}">${n(r.n)}</td></tr>`).join('');
+  const ahead=obCard(i18t('int_ob_90_title'), `<span style="${OB_HINT}">${i18t('int_ob_90_hint',{n:n(d.ahead)})}</span>`,
+    d.ahead
+      ? `<p style="${OB_LEAD}">${i18t('int_ob_90_lead')}</p>
+         <div role="img" aria-label="${E(i18t('int_ob_90_aria',{ours:n(d.aheadOurs),theirs:n(d.aheadTheirs)}))}"
+           style="display:grid;grid-template-columns:repeat(${Math.max(1,d.months.length)},1fr);gap:var(--s-3);align-items:end">${monthCols}</div>
+         <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:9px;font-size:var(--t-label);color:var(--color-neutral-600)">
+           <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:9px;height:9px;border-radius:var(--radius);background:${OB_OURS};display:inline-block"></i>${i18t('int_ob_90_key_ours',{n:n(d.aheadOurs)})}</span>
+           <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:9px;height:9px;border-radius:var(--radius);background:${OB_THEIRS};display:inline-block"></i>${i18t('int_ob_90_key_theirs',{n:n(d.aheadTheirs)})}</span>
+         </div>
+         ${d.chase.length?`<details style="margin-top:11px">
+           <summary style="cursor:pointer;font-size:var(--t-meta);font-weight:var(--w-title);color:var(--accent-ink-700)">${i18t('int_ob_90_chase',{n:n(d.aheadTheirs)})}</summary>
+           <div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;margin-top:6px">
+             <tr>${[i18t('int_ob_90_th_cp'),i18t('int_ob_90_th_what'),i18t('int_ob_90_th_soon'),i18t('int_ob_90_th_n')]
+               .map((t,i)=>`<th style="font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500);text-align:${i>1?'right':'left'};padding:4px 0 4px ${i?'var(--s-2)':'0'};${RULE}">${E(t)}</th>`).join('')}</tr>${chaseRows}
+             ${d.chaseMore?`<tr><td colspan="4" style="padding:6px 0;font-size:var(--t-label);color:var(--color-neutral-500)">${i18t('int_ob_90_more',{cp:n(d.chaseMore),n:n(d.chaseMoreN)})}</td></tr>`:''}
+           </table></div></details>`:''}`
+      : `<p style="${OB_LEAD};margin:0">${i18t('int_ob_90_none')}</p>`,'');
+
+  /* ---- 4 · who is carrying what ---- */
+  const omax=Math.max(1,...d.owners.map(o=>o.n));
+  const ownerRows=d.owners.map(o=>{
+    const nobody=!o.name, lost=!!o.name&&!o.resolves;
+    const label=nobody
+      ? `<span style="color:var(--st-ruby-fg,#b91c1c);font-weight:var(--w-strong)">${i18t('int_ob_own_nobody')}</span> <span style="color:var(--color-neutral-600)">— ${i18t('int_ob_own_nobody_why')}</span>`
+      : `<span style="font-weight:var(--w-strong)">${E(o.name)}</span>${lost?` <span style="color:var(--st-ruby-fg,#b91c1c)">— ${i18t('int_ob_own_gone_why')}</span>`:''}${o.over?` <span style="color:var(--color-neutral-600)">— ${i18t('int_ob_own_over',{n:n(o.over)})}</span>`:''}`;
+    return `<div style="display:grid;grid-template-columns:1fr 46px;gap:9px;align-items:center;padding:7px 0;${RULE}">
+      <span style="min-width:0"><span style="font-size:var(--t-meta);color:var(--color-text)">${label}</span>
+        ${bar(o.n/omax*100, (nobody||lost)?OB_UNREACHED:OB_OURS)}</span>
+      <span style="text-align:right;font-size:var(--t-card);${OB_NUM}">${n(o.n)}</span></div>`;
+  }).join('');
+  const load=obCard(i18t('int_ob_own_title'), `<span style="${OB_HINT}">${i18t('int_ob_own_hint')}</span>`,
+    d.owners.length
+      ? `<p style="${OB_LEAD}">${i18t('int_ob_own_lead')}</p>
+         <div role="img" aria-label="${E(i18t('int_ob_own_aria')+' '+d.owners.map(o=>`${o.name||i18t('int_ob_own_nobody')}: ${o.n}`).join('; '))}">${ownerRows}</div>
+         ${d.ownersMore?`<p style="${OB_NOTE}">${i18t('int_ob_own_more',{n:n(d.ownersMore)})}</p>`:''}`
+      : `<p style="${OB_LEAD};margin:0">${i18t('int_ob_own_none')}</p>`,'');
+
+  /* ---- 5 · marked repeating, never repeated ---- */
+  const repRows=[
+    ['quarterly', i18t('int_ob_rep_quarterly')],
+    ['monthly',   i18t('int_ob_rep_monthly')],
+    ['annual',    i18t('int_ob_rep_annual')],
+  ].map(([k,label])=>({k,label,v:d.repeat[k]||0})).filter(r=>r.v>0).sort((a,b)=>b.v-a.v);
+  const rpmax=repRows.length?repRows[0].v:1;
+  const repeating=obCard(i18t('int_ob_rep_title'),
+    d.repeatTotal?obFlag(i18t('int_ob_rep_flag',{n:n(d.repeatTotal)}),'var(--st-ruby-bg,#ffe4e6)','var(--st-ruby-fg,#b91c1c)'):'',
+    d.repeatTotal
+      ? `<p style="${OB_LEAD}">${i18t('int_ob_rep_lead')}</p>
+         <div role="img" aria-label="${E(i18t('int_ob_rep_aria')+' '+repRows.map(r=>`${r.label}: ${r.v}`).join('; '))}">${
+           repRows.map(r=>`<div style="display:grid;grid-template-columns:1fr 46px;gap:9px;align-items:center;padding:7px 0;${RULE}">
+             <span style="min-width:0"><span style="font-size:var(--t-meta);font-weight:var(--w-strong)">${E(r.label)}</span>
+               <span style="font-size:var(--t-label);color:var(--color-neutral-600)"> — ${i18t('int_ob_rep_why')}</span>
+               ${bar(r.v/rpmax*100, OB_THEIRS)}</span>
+             <span style="text-align:right;font-size:var(--t-card);${OB_NUM}">${n(r.v)}</span></div>`).join('')}</div>`
+      : `<p style="${OB_LEAD};margin:0">${i18t('int_ob_rep_none')}</p>`,
+    d.repeatTotal?i18t('int_ob_rep_foot'):'');
+
+  /* ---- 6 · the record this product does not keep ---- */
+  /* THE THIRD FLAG IS NEUTRAL AND THAT IS THE POINT. Amber says "look at this"
+     and ruby says "this is a loss"; this one says "the product does not keep
+     that field yet", which is neither. It also may not wear the accent —
+     --st-steel-* resolves to the workspace accent, and on this page the accent
+     already means OURS. */
+  const ontime=obCard(i18t('int_ob_time_title'), obFlag(i18t('int_ob_flag_field'),'var(--color-neutral-100)','var(--color-neutral-600)'),
+    `<p style="${OB_LEAD}">${i18t('int_ob_time_lead')}</p>
+     <div style="display:flex;flex-direction:column;gap:9px;padding:12px 14px;border:1px dashed var(--color-neutral-300);border-radius:var(--radius);background:var(--color-bg)">
+       <p style="${OB_NOTE};margin:0">${i18t('int_ob_time_a',{n:n(d.done)})}</p>
+       <p style="${OB_NOTE};margin:0">${i18t('int_ob_time_b')}</p>
+     </div>`,'');
+
+  /* ---- the honest footer ---- */
+  const blind=`<section style="${OB_CARD};padding:15px 17px">
+    <div style="font-size:var(--t-body);font-weight:var(--w-title);letter-spacing:-.01em;margin-bottom:10px">${i18t('int_ob_blind_title')}</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:var(--s-3) 22px">
+      ${[[i18t('int_ob_blind_1'),i18t('int_ob_blind_1_why')],
+         [i18t('int_ob_blind_2'),i18t('int_ob_blind_2_why')],
+         [i18t('int_ob_blind_3'),i18t('int_ob_blind_3_why')]]
+        .map(([t,w])=>`<div style="min-width:0"><div style="font-size:var(--t-meta);font-weight:var(--w-title);margin-bottom:3px">${E(t)}</div><p style="${OB_NOTE};margin:0">${w}</p></div>`).join('')}
+    </div>
+    <p style="${OB_NOTE};padding-top:11px;margin-top:11px;border-top:1px solid var(--color-divider)">${i18t('int_ob_method')}</p>
+  </section>`;
+
+  return `<div id="ig-ob" style="display:flex;flex-direction:column;gap:var(--s-3);max-width:100%;margin:0 auto">
+    ${hero}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:var(--s-3);align-items:stretch">
+      ${coverage}${ageing}${ahead}${load}${repeating}${ontime}
+    </div>
+    ${blind}
+  </div>`;
+}
+
 /* ---- right-hand Copilot dock ---- */
 function igSyncDockWidth(){
   const dock=document.getElementById('ig-dock'); if(!dock) return;
@@ -1509,4 +1986,4 @@ function openPartyModal(name){
   modal.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click',()=>{ closePartyModal(); openWorkspace(el.getAttribute('data-open')); }));
 }
 
-Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,intelFrictionStats,intelFrictionHtml,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
+Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,intelObligationsData,intelObligationsHtml,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
