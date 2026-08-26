@@ -81,5 +81,46 @@ panel.
 
 ---
 
-## L-2 — *(awaiting the owner)*
+## L-2 — THE "SHOWING ONE SIDE ONLY" BAND, AND THE RULE BEHIND IT
+
+**The rule is done and is not on this list.** It is written into the rulebook
+as **NO NEW BANDS ON THE PAGE — ASK FIRST**, above the Bug Fix Rules, with the
+owner's words verbatim, the two-part test, the SAP reasoning, and the bands
+that explicitly stand — the send-all strip the owner kept by name, the
+counterparty's wall line, and a refusal's way forward. Read it before touching
+anything on this item.
+
+**What is still open is the band in the screenshot itself**, because the
+rulebook's own new rule says a band is not deleted on Claude's initiative
+either. It is the amber row reading *"Showing one side only — others are
+hidden / Show all changes"*, drawn under the WHOSE ASKS dropdown on the
+Tracked changes column whenever that dropdown is not on All.
+
+### The recommendation, for the owner to rule on
+
+**Take it off.** It fails both halves of the test the owner has just set: the
+dropdown ten pixels above it reads "Mine (2)", so the screen already says the
+column is narrowed, and it is the reader's own choice read back to them rather
+than work owed.
+
+### The one thing that must be checked before it goes
+
+This band was put there deliberately and the rulebook names it as one of three
+safety properties of that filter — *"while the column is narrowed it SAYS so
+and offers the way back, which is the thing a collapsible control could
+otherwise hide"*. A control that hides changes with nothing saying so is a
+real hazard on this page, so the argument for removal rests entirely on the
+screen still carrying the fact without it. **On the screenshot it does, three
+times over** — the dropdown reads "Mine (2)", the heading reads "Tracked
+changes (2)", and the line under the progress bar reads "1 of 3 decided", so
+the 2 and the 3 disagree in plain sight. Measure that on the real page before
+removing anything, and if any of the three is missing in some state, say so
+and stop rather than leaving the filter silent.
+
+The rulebook's three-safety-properties passage has to be corrected in the same
+breath, or the next person reads the removal as drift and puts it back.
+
+---
+
+## L-3 — *(awaiting the owner)*
 

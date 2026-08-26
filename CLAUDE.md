@@ -33,6 +33,74 @@ rules OVERWROTE it, on the assumption that an instruction to write a file meant
 the file was free; nothing was lost, git had it, and it was caught by reading a
 diffstat rather than by any test. `ls` costs nothing.
 
+## NO NEW BANDS ON THE PAGE — ASK FIRST (owner-asked 26 Aug 2026)
+
+THE OWNER'S OWN WORDS, and they are a STANDING RULE rather than one screen's
+fix. They sit here, above the Bug Fix Rules, because they govern what may be
+put on a page at all:
+
+> *"I want to add a rule for claude to stop adding such alerts as attached
+> unless I say so. I am talking about alerts that remind you of something
+> minor assuming people are stupid. Think how SAP would manage such things and
+> not unilaterally add these blinding alerts to the page. I asked for the send
+> all stripe so keep that one. If Claude sees a need to add one, ask me
+> first."*
+
+**NEVER ADD A BAND, STRIP, NOTICE, BANNER, CALLOUT OR TIP TO A PAGE ON YOUR
+OWN INITIATIVE.** Not as a courtesy, not as a way forward, not "while we are
+in here". If one looks genuinely needed, ASK — say what it would say and why
+the screen cannot already say it. The owner rules; you build what they rule.
+
+**THE TEST, AND BOTH HALVES MUST PASS.** It is written as a question about the
+SCREEN rather than about the code, because that is where it has to be answered:
+
+1. **Does it say something the screen does not already say?** If a control, a
+   count, a heading or a status word twelve pixels away carries the fact, the
+   band is that fact printed twice — and the second printing is the one that
+   reads as an alarm.
+2. **Is it about work owed, or a promise made — and does it carry the act?** A
+   band is where the product says *somebody has to do something*, or *here is
+   what this page will do with what you type*. It is not where the product
+   narrates itself.
+
+**THE READER'S OWN CHOICE, READ BACK TO THEM, IS NEVER A BAND.** The one that
+prompted this rule said "Showing one side only — others are hidden" directly
+under a dropdown labelled WHOSE ASKS reading "Mine (2)". The reader set that
+dropdown a second earlier. A control that is set to something SAYS so by being
+set to it, and a band repeating it tells the reader they cannot read their own
+screen — which is the whole of what the owner objected to.
+
+**THIS IS THE SAP RULE AND THE REASON IT WORKS IS NOT TASTE.** Enterprise
+software of that kind ranks its channels by how much of the reader's attention
+each one costs and spends the least that will do the job: a transient
+confirmation for something that has just happened, an inline state for
+something a control already carries, a strip kept for context that changes
+what the reader can do, and a blocking dialog only for a decision that cannot
+proceed without them. What it does not do is line a working column with amber.
+Amber that is always there stops being read — and then the one band that
+really is a warning goes past unread with it. That is the cost, and it lands
+on the band you most wanted seen.
+
+**WHAT STANDS, so nobody sweeps it as furniture.** Each was asked for or is
+load-bearing, and each passes both halves of the test:
+
+- **"N not sent — they cannot answer yet", with Send all N on it.** The owner
+  asked for this one by name and it stays. Nothing else on that page says the
+  other side cannot answer yet, and the act is on the band.
+- **The counterparty's wall line** — that their decisions stay on their page
+  until they press Send. A promise made before they start, and already the one
+  exception recorded under NOTHING FLOATS OVER THE PAGE.
+- **A refusal's way forward.** Where a rule refuses an act in words, the
+  remedy stays on the same screen as the refusal. That standing rule is
+  untouched and this one does not override it.
+
+**IT CUTS BOTH WAYS: DO NOT GO AND DELETE BANDS EITHER.** Every band still on
+a page was argued for by somebody, and several carry a safety property this
+rulebook names by name. Removing one is as much a change as adding one — it
+goes on the list and to the owner in exactly the same way. The Scope rules
+apply unchanged: a band you think fails the test is one line in BUGLOG.md and
+a sentence to the owner, never a fix made on the way past.
+
 ## Bug Fix Rules
 
 1. DUPLICATION WARNING: This app draws the same UI in several places. Never assume a fix in one place fixes them all.
