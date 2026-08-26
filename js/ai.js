@@ -2177,6 +2177,23 @@ const aiAsksTheReader = t => /\?/.test(t)
      "(i)" of a sub-paragraph — are the near miss this is written to survive. */
   && /(?:^|[^\w'’])I(?:'|’)?(?:m|d|ll|ve)?(?=\s|[,.?!;:])/.test(t);
 
+/* ---------- A QUESTION IS NOT WORDING, AND THE "I" WAS NEVER NEEDED ----------
+   (owner-reported 26 Aug 2026, second time in the same family: a whole
+   paragraph ending "The question is: does Young want to allow AIT easier
+   assignment rights?" was filed into the clause.)
+
+   The conjunction above — a question mark AND the model naming itself — was
+   written when nobody had measured how often a contract asks a question. It
+   was too conservative by a distance. MEASURED across test/cuad's 50
+   lawyer-marked agreements: of 3,550 paragraphs, **not one** ends in a
+   question mark, and of 7,607 sentences exactly TWO contain one at all — both
+   a quoted title inside a list of content features, neither a question.
+
+   So a passage that ENDS by asking is the model asking. The conjunction stays
+   for a question mark sitting mid-passage, where a quoted title really can put
+   one; this is the anchored, measured half beside it. */
+const AI_ENDS_ASKING = /\?["'’”)\]]*$/;
+
 /* ---------- AND WHAT THE MODEL TALKING ABOUT ITSELF IS ----------
    The third way in, found on another screenshot: the model neither refused nor
    asked a question. It EXPLAINED — "The contract text I received is truncated
@@ -2262,6 +2279,31 @@ const AI_TASK_TALK = [
   /\bplaybook\s+(?:concern|position|point|entry|rule|item|standard|says|flags?|requires|expects|is\s+about)\b/i,
   /* A verdict on the request rather than wording for the contract. */
   /^this\s+(?:is|appears\s+to\s+be|looks\s+like|seems\s+to\s+be)\s+an?\s+(?:mismatch|error|mistake|inconsistency|discrepancy|conflict)\b/i,
+  /* ---- ADDED 26 Aug 2026, after the same family came back in new clothes ----
+     A reply about an assignment clause was filed whole, and not one pattern
+     above touched it: it never said "I", never named the passage, never
+     mentioned the playbook. What it did do was talk about the DRAFTING JOB.
+     Every one of these measured ZERO across 50 real agreements — 7,607
+     sentences and 3,550 paragraphs — and each is narrowed by a real clause:
+
+       · "me" IS THE MODEL TOO. AI_MODEL_VOICE reads the word "I", and a model
+         says "me" just as often ("if you want me to draft a softer version").
+         A DRAFTING verb is required, so "appoint the Attorney to act on my
+         behalf" and "we shall let the carrier know" are untouched.
+       · "please confirm WHETHER" is a question wearing an instruction's
+         clothes. "Please confirm your acceptance by countersigning" is real
+         wording and is why plain "please confirm" is deliberately not here.
+       · THE DRAFTING REGISTER — "a softer version", "the plainer wording".
+         Only the words that describe how something is WRITTEN: "a revised
+         version of Schedule 2" and "a shorter notice period" are ordinary
+         drafting, and a first attempt that included them ate all three.
+       · WHO THE READER ACTS FOR is a fact about the conversation. "authorised
+         to act for and on behalf of the Company" is not caught — it is the
+         second person that gives it away. */
+  /\b(?:want|like|need|prefer|wish)\s+(?:me|us)\s+to\s+(?:draft|write|propose|suggest|rewrite|redraft|revise|flag|check|review|prepare|produce|make|add|remove|shorten|soften|tighten)\b|\blet\s+me\s+know\b|\b(?:shall|should)\s+I\b/i,
+  /\bplease\s+(?:confirm|advise|tell|say|clarify)\s+(?:whether|if|which|what|who|how)\b/i,
+  /\b(?:a|the)\s+(?:softer|firmer|plainer|tighter|looser|blander|punchier)\s+(?:version|draft|wording|clause|language)\b/i,
+  /\byou\s+(?:act|are\s+acting)\s+for\b/i,
 ];
 
 /* Markdown is not an opener. "**Please paste…**" is "Please paste…" wearing
@@ -2278,6 +2320,7 @@ const aiLooksConversational = s => {
   if (AI_ASKS_BACK.some(re => re.test(bare))) return true;
   if (AI_MODEL_VOICE.test(t)) return true;
   if (AI_TASK_TALK.some(re => re.test(bare))) return true;
+  if (AI_ENDS_ASKING.test(bare)) return true;
   return AI_ASKS_WHOLE.test(bare) || aiAsksTheReader(t);
 };
 /* Take a disclaimer off the FRONT of otherwise good wording and hand it back
@@ -3449,7 +3492,7 @@ Object.assign(window,{
   AI_PROPOSAL_FORMAT,AI_EDIT_FORMAT,AI_ADVICE_FIELD,AI_KEEP_TAGS,AI_PROPOSAL_OPEN,aiProposals,aiSyncDock,
   AI_PLACEMENTS,AI_PLACEMENT_LABEL,AI_PLACEMENT_SHORT,aiNormalizePlacement,aiIsInsert,
   aiProposalAnchorHtml,aiProposalPlacementHtml,aiProposalSetPlacement,aiCleanAddedWording,
-  AI_NOT_WORDING,AI_ASKS_BACK,AI_ASKS_WHOLE,AI_MODEL_VOICE,AI_TASK_TALK,aiAsksTheReader,aiLooksConversational,
+  AI_NOT_WORDING,AI_ASKS_BACK,AI_ASKS_WHOLE,AI_MODEL_VOICE,AI_TASK_TALK,AI_ENDS_ASKING,aiAsksTheReader,aiLooksConversational,
   savedResultLang,
   aiBareText,aiSplitDisclaimer,aiSplitReply,
   aiRephrase,aiOpenRephraseSession,aiActiveRephrase,aiCloseRephraseSession,

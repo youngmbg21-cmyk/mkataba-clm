@@ -4244,6 +4244,57 @@ front of it; the Playbook scan tab in the same rail still shows all of them.
 produce commentary for a hundred reasons and the paper must survive all of them.
 Tests: f245 (14) (6, all six failing against the parent).
 
+**AND IT CAME BACK THE SAME DAY IN NEW CLOTHES (owner-reported 26 Aug 2026: "I
+asked for a softer version of a clause and I got this").** Four paragraphs of
+Copilot discussing an assignment clause, filed into it whole. **IT WAS NOT A
+REGRESSION and that was checked before anything else was said** — measured
+against the commit before AI_TASK_TALK, the same reply was filed identically,
+1058 characters either way. But it was not FIXED either, and saying so plainly
+was the honest answer to the owner's question.
+
+**AI_TASK_TALK WAS STILL A PHRASE LIST**, built around the phrasings of the
+first screenshot, and this reply used none of them: it never says "I", never
+names the passage, never mentions the playbook. What was missing was a
+MEASUREMENT rather than another phrase.
+
+**A QUESTION IS NOT WORDING, AND THE "I" WAS NEVER NEEDED.** `aiAsksTheReader`
+demanded a question mark AND the model naming itself — a conjunction written
+before anybody had counted how often a contract asks a question. MEASURED
+across the same 50 lawyer-marked agreements: **of 3,550 paragraphs not ONE ends
+in a question mark**, and of 7,607 sentences exactly TWO contain one at all,
+both a quoted title inside a marketing exhibit. `AI_ENDS_ASKING` is that
+measured half — a passage that ENDS by asking is the model asking — and the old
+conjunction stays for a question mark sitting mid-passage, where a quoted title
+really can put one.
+
+**AND THREE TELLS FOR TALK ABOUT THE DRAFTING JOB**, each measured at ZERO
+across that corpus and each narrowed by a real clause:
+- **"me" IS THE MODEL TOO.** AI_MODEL_VOICE reads the word "I" and a model says
+  "me" just as often ("if you want me to draft a softer version"). A DRAFTING
+  verb is required, so *"appoint the Attorney to act on my behalf"* and *"we
+  shall let the carrier know"* are untouched.
+- **"please confirm WHETHER"** is a question wearing an instruction's clothes.
+  Plain "please confirm" is deliberately absent, because *"Please confirm your
+  acceptance by countersigning"* is real wording.
+- **THE DRAFTING REGISTER ONLY** — "a softer version", "the plainer wording":
+  the words that describe how something is WRITTEN. A first attempt included
+  *revised*, *shorter* and *longer* and ate three real clauses; the near misses
+  are in f135i.
+- **WHO THE READER ACTS FOR** is a fact about the conversation, and it is the
+  SECOND PERSON that gives it away — *"authorised to act for and on behalf of
+  the Company"* is not caught.
+
+**THE MEASURED COST WENT FROM ONE TO THREE** and every survivor is named in
+f135g: the "Note:" footnote, plus two lines of a marketing exhibit listing
+content titles, one carrying a question mark. Bounded, and worth it — the unit
+the guard is really asked about is the PARAGRAPH, where the corpus figure is
+zero.
+
+Tests: f135h (5), f135i (13 — twelve near misses that pass before AND after,
+because they are the wall rather than a regression test), f135g's figure
+REVERSED IN PLACE with the paragraph claim added beside it. Six fail against
+the parent.
+
 **A HEADING IS NOT A DISCLAIMER**, and this one was found by measuring the WHOLE
 guard against the corpus rather than by anybody reporting it. The shipped opener
 `/^(?:please note|disclaimer|caveat)\b/` read real contract SECTION HEADINGS as

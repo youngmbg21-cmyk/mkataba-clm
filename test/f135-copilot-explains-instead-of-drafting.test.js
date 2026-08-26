@@ -420,21 +420,161 @@ describe('F135g — a section heading still reaches the card', () => {
     ]) assert.equal(ai.aiLooksConversational(s), true, s.slice(0, 52));
   });
 
-  test('MEASURED: the whole guard now reads ONE sentence of 50 real agreements as talk', () => {
-    /* The claim is a NUMBER and it is deliberately not zero. The survivor is a
-       contract footnote opening "Note:" — and that one is genuinely two-sided,
-       because a model writes "Note:" as often as a schedule does. Left as it
-       is, on the standing rule that the worse error is the other one: a note
-       about the answer filed into the agreement as wording. Pinned so the next
-       person meets a decision rather than a mystery. */
+  test('MEASURED: the whole guard reads THREE sentences of 50 real agreements as talk', () => {
+    /* The claim is a NUMBER and it is deliberately not zero. Three survivors,
+       each left on purpose and each a decision rather than a mystery:
+
+         · a schedule footnote opening "Note:" — genuinely two-sided, because a
+           model writes "Note:" as often as a schedule does;
+         · two lines of a MARKETING EXHIBIT listing content-feature titles, one
+           of which carries a question mark inside a quoted title.
+
+       Those last two are the measured cost of F135h's question rule, and they
+       are worth it: across the same corpus not one PARAGRAPH ends in a question
+       mark, which is the unit the guard is really asked about, and the reply
+       that forced the rule was four paragraphs of commentary filed into a
+       contract. Left on the standing rule that the worse error is the other
+       one. */
     const corpus = require(path.join(__dirname, 'cuad', 'contracts.json'));
     const text = corpus.data
       .map(r => r.paragraphs.map(p => p.context || p.text || '').join('\n\n')).join('\n\n');
     const sentences = text.split(/(?<=[.!?])\s+/)
       .map(s => s.trim()).filter(s => s.length > 25);
     const talk = sentences.filter(s => ai.aiLooksConversational(s));
-    assert.equal(talk.length, 1, `expected only the "Note:" footnote, got:\n`
+    assert.equal(talk.length, 3, `three known survivors, got:\n`
       + talk.map(s => '  ' + JSON.stringify(s.slice(0, 90))).join('\n'));
-    assert.match(talk[0], /^Note:/, 'and it is the one that was left on purpose');
+    assert.equal(talk.filter(s => /^Note:/.test(s)).length, 1, 'the footnote');
+    assert.equal(talk.filter(s => /\?/.test(s)).length, 2, 'and the two quoted titles');
+
+    /* THE UNIT THAT ACTUALLY MATTERS. aiSplitReply judges PARAGRAPHS, and not
+       one paragraph of 50 real agreements is read as talk. */
+    const paras = text.split(/\n\s*\n/).map(x => x.trim()).filter(x => x.length > 25);
+    assert.ok(paras.length > 2000, `a corpus worth measuring (${paras.length})`);
+    assert.equal(paras.filter(x => ai.AI_ENDS_ASKING.test(x)).length, 0,
+      'a contract does not end a paragraph by asking a question');
+  });
+});
+
+/* ============================================================
+   F135h — THE SAME FAMILY, IN NEW CLOTHES
+   ============================================================
+   Owner-reported 26 Aug 2026, the SAME DAY F135e shipped: "I asked for a
+   softer version of a clause and I got this" — four paragraphs of Copilot
+   discussing the assignment clause, filed into it whole.
+
+   F135e was still a phrase list, and this reply used none of its phrases: it
+   never says "I", never names the passage, never mentions the playbook. IT WAS
+   NOT A REGRESSION — measured against the commit before F135e, the same reply
+   was filed identically, 1058 characters either way — but it was not fixed
+   either, and saying so plainly was the honest answer.
+
+   WHAT WAS MISSING WAS THE MEASUREMENT, not another phrase. A QUESTION IS NOT
+   WORDING: of 3,550 paragraphs in 50 lawyer-marked agreements, not one ends in
+   a question mark. The old rule demanded a question mark AND the model naming
+   itself, a conjunction written before anybody had counted. Beside it, three
+   narrow tells for talk ABOUT THE DRAFTING JOB, each measured at zero across
+   the same corpus and each narrowed by a real clause. */
+const THE_SOFTER_REPLY = [
+  'Since the current clause already permits assignment to affiliates without consent, '
+    + 'a softer version would likely ease restrictions further — perhaps allowing assignment '
+    + 'more broadly, or loosening the definition of "affiliate," or removing consent '
+    + 'requirements altogether in more situations.',
+  "However, from Young LLC's perspective (you act for Young LLC, the customer here), the "
+    + 'current wording is fairly balanced: it prevents the counterparty (AIT) from assigning '
+    + 'to a third party without consent, but allows both parties to assign to affiliates freely.',
+  'A "softer" version that relaxes this *further* could expose Young to the risk of AIT '
+    + 'assigning its obligations to a less capable or creditworthy subcontractor. If the '
+    + 'drafter is asking *you* to propose softer language, this is likely a counterparty '
+    + 'request in the negotiation. The question is: does Young want to allow AIT easier '
+    + 'assignment rights?',
+  "If you want me to draft a softer version, please confirm whether that serves Young's "
+    + 'interests, or whether you want me to flag the commercial risk first.',
+].join('\n\n');
+
+describe('F135h — a reply about the drafting job is not the drafting', () => {
+  let ai;
+  beforeEach(() => { ai = loadAi(); });
+
+  test('THE FIX: the reported reply is advice, whole, with nothing to apply', () => {
+    const p = ai.aiParseProposal(THE_SOFTER_REPLY);
+    assert.equal(p.proposedText, '',
+      'no Apply button over four paragraphs of discussion');
+    assert.equal(p.advice, THE_SOFTER_REPLY.trim(),
+      'and every word still reaches the reader, in order');
+  });
+
+  test('EVERY paragraph is caught, so no one rule is carrying it', () => {
+    for (const para of THE_SOFTER_REPLY.split(/\n\s*\n/))
+      assert.equal(ai.aiLooksConversational(para), true, para.slice(0, 56));
+  });
+
+  test('it says no "I" — which is why F135e\'s rules could not see it', () => {
+    assert.equal(ai.AI_MODEL_VOICE.test(THE_SOFTER_REPLY), false);
+    assert.equal(ai.AI_TASK_TALK.slice(0, 5).some(re => re.test(THE_SOFTER_REPLY)), false,
+      'and none of the five patterns F135e shipped matches it either');
+  });
+
+  test('a passage that ENDS by asking is the model asking', () => {
+    for (const s of [
+      'Does Young want to allow AIT easier assignment rights?',
+      'Would you like this made mutual?',
+      'Shall I keep the cap at twelve months?',
+      'The question is: which of the two do you prefer?',
+    ]) assert.equal(ai.aiLooksConversational(s), true, s.slice(0, 50));
+  });
+
+  test('the model asking to be told what to do next', () => {
+    for (const s of [
+      'If you want me to draft a softer version, please confirm whether that serves your interests.',
+      'Let me know if you would prefer a firmer cap.',
+      'Please advise whether the notice period should stay at ninety days.',
+      'Here is the plainer wording you asked for.',
+      'You act for the Buyer here, so the current position favours you.',
+    ]) assert.equal(ai.aiLooksConversational(s), true, s.slice(0, 50));
+  });
+});
+
+/* ============================================================
+   F135i — AND THE NEW RULES DO NOT EAT REAL DRAFTING
+   ============================================================
+   Half of every test in this family. Each clause below brushes one of the four
+   rules on purpose, and each is the sentence that forced its narrowing. */
+describe('F135i — the near misses F135h was narrowed to survive', () => {
+  let ai;
+  beforeEach(() => { ai = loadAi(); });
+
+  const WORDING = [
+    /* "please confirm" is real — which is why only "confirm WHETHER" is caught */
+    'Please confirm your acceptance of these terms by countersigning and returning the duplicate.',
+    'The Supplier shall confirm whether the Goods conform to the specification within five days.',
+    /* "me"/"us" need a DRAFTING verb after them */
+    'I, the undersigned, hereby appoint the Attorney to act on my behalf.',
+    'The Customer shall notify us if the Goods are damaged and we shall let the carrier know.',
+    'The Buyer may require us to replace any defective Goods at our own cost.',
+    /* the drafting register: only how something is WRITTEN */
+    'Either party may request a revised version of Schedule 2 at any time.',
+    'The Supplier shall provide a longer version of the specification on request.',
+    'A shorter notice period may be agreed between the Parties in writing.',
+    'A stronger indemnity shall apply where the loss arises from wilful default.',
+    /* "act for" is ordinary; it is the SECOND PERSON that gives the other away */
+    'The Agent is authorised to act for and on behalf of the Company in all dealings.',
+    /* and plain wording that merely mentions the clause */
+    'Neither party may assign or transfer this Agreement without the prior written consent of the other party.',
+    'Subject to this clause, the Supplier may sub-contract any part of the Services.',
+  ];
+  for (const w of WORDING){
+    test(`"${w.slice(0, 44)}…" still reaches the card`, () => {
+      assert.equal(ai.aiLooksConversational(w), false, 'not read as talk');
+      assert.equal(ai.aiParseProposal(w).proposedText, w, 'and it is the wording, whole');
+    });
+  }
+
+  test('a clause is still a clause when it happens to contain a question mark', () => {
+    /* The cost of the question rule is bounded to passages that END by asking.
+       A quoted title mid-clause — the only shape the corpus turned up — still
+       reaches the card. */
+    const w = 'The content features shall include "Is Your Diet Working?" and two others.';
+    assert.equal(ai.AI_ENDS_ASKING.test(w), false, 'it does not end by asking');
+    assert.equal(ai.aiParseProposal(w).proposedText, w);
   });
 });
