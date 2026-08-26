@@ -123,7 +123,7 @@ function negoStyleHtml(){
   .nego-exit{display:inline-flex;align-items:center;gap:6px;flex:none;
     background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.18);color:#fff;
     border-radius:0;padding:var(--s-1) 11px;font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);cursor:pointer;
-    transition:background .12s ease}
+    transition:background var(--dur-1) ease}
   .nego-exit:hover{background:rgba(255,255,255,.26)}
   .nego-crumbs .sep{opacity:.45;flex:none}
   .nego-crumbs .path{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -131,7 +131,7 @@ function negoStyleHtml(){
     padding:1px var(--s-2);font-size:var(--t-label);letter-spacing:.4px;text-transform:uppercase;color:#dfe7ef}
   .nego-top-actions{margin-left:auto;display:flex;align-items:center;gap:var(--s-2);flex:none}
   .nego-tbtn{border-radius:0;padding:6px 13px;font:inherit;font-size:var(--t-body);font-weight:var(--w-strong);
-    border:1px solid transparent;cursor:pointer;transition:filter .12s ease,transform .12s ease}
+    border:1px solid transparent;cursor:pointer;transition:filter var(--dur-1) ease,transform var(--dur-1) ease}
   .nego-tbtn:active{transform:translateY(1px)}
   .nego-tbtn.ghost{background:transparent;color:#e6ecf2;border-color:rgba(255,255,255,.28)}
   .nego-tbtn.ghost:hover{background:rgba(255,255,255,.1)}
@@ -235,7 +235,7 @@ function negoStyleHtml(){
 
   .nego-rz{position:relative;background:var(--n-line);cursor:col-resize;
     display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none}
-  .nego-rz::before{content:"";width:2px;height:60px;border-radius:0;background:#c4cfdb;transition:background .15s ease}
+  .nego-rz::before{content:"";width:2px;height:60px;border-radius:0;background:#c4cfdb;transition:background var(--dur-1) ease}
   .nego-rz:hover::before,.nego-rz[data-drag]::before{background:var(--n-slate-soft)}
   .nego-rz[data-drag]{background:#dbe3ec}
   html.dark .nego-rz::before{background:var(--color-neutral-600)}
@@ -270,7 +270,7 @@ function negoStyleHtml(){
   .nego-doc .nego-meta{text-align:center;font-family:var(--n-font-ui);font-size:var(--t-label);
     color:var(--n-ink-soft);margin-bottom:26px;padding-bottom:18px;border-bottom:1px solid var(--n-line)}
   .nego-clause{position:relative;margin-bottom:22px;padding:10px var(--s-3);border-radius:var(--n-r-md);
-    transition:background .25s ease,box-shadow .25s ease}
+    transition:background var(--dur-3) ease,box-shadow var(--dur-3) ease}
   .nego-clause h2{font-size:var(--t-card);margin:0 0 5px;font-family:var(--n-font-doc);font-weight:var(--w-title)}
   /* THE LINE BREAKS ARE THE DOCUMENT, and the browser was eating them.
 
@@ -573,7 +573,7 @@ function negoStyleHtml(){
     border:1.5px solid var(--n-slate-soft);border-radius:0;
     padding:calc(2px * var(--doc-scale,1)) calc(8px * var(--doc-scale,1));
     white-space:nowrap;user-select:none;cursor:pointer;
-    transition:transform .15s ease,box-shadow .15s ease,background .2s ease,color .2s ease,border-color .2s ease}
+    transition:transform var(--dur-1) ease,box-shadow var(--dur-1) ease,background var(--dur-2) ease,color var(--dur-2) ease,border-color var(--dur-2) ease}
   .nego-badge:hover{transform:scale(1.06);box-shadow:var(--n-shadow-card)}
   .nego-badge.is-active{background:var(--n-slate);border-color:var(--n-slate);color:#fff}
   .nego-badge.is-accepted{background:var(--n-ins-bg);border-color:var(--n-ins-fg);color:var(--n-ins-fg)}
@@ -613,7 +613,7 @@ function negoStyleHtml(){
   .nego-index-scroll{flex:1;overflow-y:auto;padding:var(--s-3) var(--s-3) 90px}
   .nego-card{background:var(--n-paper);border:1px solid var(--n-line);border-radius:var(--n-r-md);
     box-shadow:var(--n-shadow-card);padding:var(--s-3) 13px;margin-bottom:11px;cursor:pointer;
-    transition:box-shadow .2s ease,border-color .2s ease,transform .2s ease}
+    transition:box-shadow var(--dur-2) ease,border-color var(--dur-2) ease,transform var(--dur-2) ease}
   .nego-card:hover{border-color:#c9d5e1}
   html.dark .nego-card:hover{border-color:var(--color-neutral-700)}
   .nego-card.is-active{border-color:var(--n-slate-soft);
@@ -643,7 +643,7 @@ function negoStyleHtml(){
   .nego-tool{font-size:var(--t-label);font-weight:var(--w-title);border:1px solid var(--n-slate);
     background:var(--n-slate);color:#fff;border-radius:0;padding:3px 9px;white-space:nowrap;
     cursor:pointer;font-family:inherit;letter-spacing:.01em;
-    box-shadow:0 1px 2px rgba(38,55,74,.18);transition:filter .12s ease}
+    box-shadow:0 1px 2px rgba(38,55,74,.18);transition:filter var(--dur-1) ease}
   .nego-tool:hover,.nego-tool:focus-visible{filter:brightness(1.18)}
   .nego-tool.danger{background:var(--n-del-fg);border-color:var(--n-del-fg)}
 
@@ -675,7 +675,7 @@ function negoStyleHtml(){
     display:inline-grid;place-items:center;
     background:var(--n-paper,#fff);border:1px solid var(--n-line,#e2e8f0);border-radius:0;
     font-family:inherit;font-size:calc(13px * var(--doc-scale,1));color:var(--n-ink,#1e293b);cursor:pointer;
-    box-shadow:0 1px 2px rgba(15,23,42,.08);transition:background .12s,border-color .12s}
+    box-shadow:0 1px 2px rgba(15,23,42,.08);transition:background var(--dur-1),border-color var(--dur-1)}
   .nego-fmt-bar button:hover{border-color:var(--n-ink-soft,#94a3b8);background:var(--n-well,#f8fafc)}
   .nego-fmt-bar button:active{box-shadow:none;transform:translateY(.5px)}
   /* ---- WHY THE CHANGE, ASKED WHERE THE CHANGE IS MADE ----
@@ -756,7 +756,7 @@ function negoStyleHtml(){
   /* The toggle itself, at the end of the working pane's header row. */
   .nego-clean-btn{margin-left:auto;flex:none;border:1px solid var(--n-slate);background:var(--n-paper);
     color:var(--n-slate);border-radius:0;padding:3px 10px;font:inherit;font-size:var(--t-label);font-weight:var(--w-title);
-    white-space:nowrap;cursor:pointer;transition:background .12s ease,color .12s ease}
+    white-space:nowrap;cursor:pointer;transition:background var(--dur-1) ease,color var(--dur-1) ease}
   .nego-clean-btn:hover{background:var(--n-badge-bg)}
   .nego-clean-btn[aria-pressed="true"]{background:var(--n-slate);color:#fff}
   /* On an amber banner a ghost button is white-on-cream and unreadable — the
@@ -811,7 +811,7 @@ function negoStyleHtml(){
      nowhere. */
   .nego-go{font-size:var(--t-body);font-weight:var(--w-strong);letter-spacing:.01em;padding:9px 20px;
     border-radius:0;box-shadow:0 1px 2px rgba(20,42,74,.18),0 2px 8px rgba(20,42,74,.14);
-    transition:transform .08s ease,box-shadow .12s ease}
+    transition:transform var(--dur-1) ease,box-shadow var(--dur-1) ease}
   .nego-go:hover{box-shadow:0 2px 4px rgba(20,42,74,.2),0 4px 14px rgba(20,42,74,.2)}
   .nego-go:active{transform:translateY(1px)}
   /* WHOSE ASK THIS IS, readable without reading. It pairs with the "Your ask"
@@ -873,7 +873,7 @@ function negoStyleHtml(){
   html.dark .nego-hash{border-color:var(--color-neutral-700)}
   .nego-acts{display:flex;gap:6px}
   .nego-acts button{flex:1;border-radius:0;padding:6px 0;font:inherit;font-size:var(--t-meta);font-weight:var(--w-title);
-    border:1.5px solid transparent;background:var(--n-paper);cursor:pointer;transition:all .12s ease}
+    border:1.5px solid transparent;background:var(--n-paper);cursor:pointer;transition:all var(--dur-1) ease}
   .nego-acts .b-acc{border-color:var(--n-accept);color:var(--n-accept)}
   .nego-acts .b-acc:hover{background:var(--n-accept);color:#fff}
   .nego-acts .b-rej{border-color:var(--n-reject);color:var(--n-reject)}
@@ -919,7 +919,7 @@ function negoStyleHtml(){
      rather than the postbox for the answers already given. */
   .nego-index-send{margin-top:9px;border-top:1px dashed var(--n-line);padding-top:9px}
   .nego-index-send button{width:100%;border:0;border-radius:0;padding:var(--s-2) 0;font:inherit;font-size:var(--t-meta);
-    font-weight:var(--w-title);color:#fff;background:var(--n-slate);cursor:pointer;transition:filter .12s ease}
+    font-weight:var(--w-title);color:#fff;background:var(--n-slate);cursor:pointer;transition:filter var(--dur-1) ease}
   .nego-index-send button:hover{filter:brightness(1.12)}
   /* ---- decisions that have not left the browser ----
      Held answers are the one state on this screen with a deadline attached to
@@ -938,7 +938,7 @@ function negoStyleHtml(){
   .nego-index-send .why{display:block;font-size:var(--t-label);line-height:1.45;color:var(--n-ink-soft);margin-top:5px}
   .nego-bulk{display:flex;gap:var(--s-2);margin-top:10px}
   .nego-bulk button{flex:1;border:0;border-radius:0;padding:7px 0;font:inherit;font-size:var(--t-meta);
-    font-weight:var(--w-title);color:#fff;cursor:pointer;transition:filter .12s ease}
+    font-weight:var(--w-title);color:#fff;cursor:pointer;transition:filter var(--dur-1) ease}
   .nego-bulk .b-acc{background:var(--n-accept)}
   .nego-bulk .b-rej{background:var(--n-reject)}
   .nego-bulk button:hover{filter:brightness(1.08)}
@@ -954,7 +954,7 @@ function negoStyleHtml(){
      conversation never puts it out of reach. */
   .nego-tmin{flex:none;border:1px solid var(--n-line);background:var(--n-paper);
     color:var(--n-ink-soft);border-radius:0;padding:2px 9px;font:inherit;font-size:var(--t-label);
-    font-weight:var(--w-title);cursor:pointer;transition:background .12s ease,color .12s ease}
+    font-weight:var(--w-title);cursor:pointer;transition:background var(--dur-1) ease,color var(--dur-1) ease}
   .nego-tmin:hover{background:var(--n-badge-bg);color:var(--n-slate)}
   /* A CEILING ON THE CONVERSATION. Without it one change with a dozen replies
      fills the index and pushes every other change on the table off the screen.
@@ -1010,7 +1010,7 @@ function negoStyleHtml(){
     .nego-work{grid-template-columns:100%;position:relative}
     .nego-rz{display:none}
     .nego-pane.index{position:absolute;right:0;top:0;bottom:0;width:min(88vw,335px);z-index:6;
-      box-shadow:var(--n-shadow-pop);transform:translateX(105%);transition:transform .25s ease}
+      box-shadow:var(--n-shadow-pop);transform:translateX(105%);transition:transform var(--dur-3) ease}
     .nego-pane.index.open{transform:translateX(0)}
     #nego-drawer{display:grid !important}
     .nego-crumbs .path{display:none}
@@ -1249,7 +1249,7 @@ function redlineLayoutCss(){
   .rl-type-step button{width:24px;height:24px;flex:none;display:inline-grid;place-items:center;
     background:#fff;border:1px solid var(--color-divider);border-radius:0;cursor:pointer;
     font:inherit;font-size:var(--t-label);font-weight:var(--w-title);color:var(--color-neutral-700);line-height:1;
-    transition:background .12s,border-color .12s}
+    transition:background var(--dur-1),border-color var(--dur-1)}
   .rl-type-step button:hover{background:var(--color-bg);border-color:var(--color-neutral-300)}
   .rl-type-step button:disabled{opacity:.4;cursor:not-allowed}
   .rl-type-step .rl-type-out{min-width:34px;text-align:center;font-family:var(--font-mono);
@@ -1291,7 +1291,7 @@ function redlineLayoutCss(){
   .rl-seg,
   .redline-page .rl-seg{border:0;background:none;font:inherit;font-size:var(--t-meta);font-weight:var(--w-body);
     height:26px;padding:0 10px;border-radius:0;cursor:pointer;color:var(--color-neutral-500);
-    white-space:nowrap;transition:background .12s,color .12s}
+    white-space:nowrap;transition:background var(--dur-1),color var(--dur-1)}
   .rl-seg.on,
   .redline-page .rl-seg.on{background:var(--color-surface);color:var(--color-text);font-weight:var(--w-strong);
     box-shadow:0 1px 2px rgba(15,23,42,.08)}
@@ -1583,7 +1583,7 @@ function redlineLayoutCss(){
   .redline-page .rl-livelist{flex:none;align-self:center;display:inline-flex;align-items:center;
     gap:7px;border:0;background:none;color:var(--accent-ink);border-radius:0;padding:0;
     font:inherit;font-size:var(--t-meta);font-weight:var(--w-body);cursor:pointer;
-    transition:background .12s,border-color .12s,color .12s}
+    transition:background var(--dur-1),border-color var(--dur-1),color var(--dur-1)}
   .redline-page .rl-livelist:hover{background:none;border-color:var(--color-neutral-400);
     color:var(--color-text);border:0;text-decoration:underline}
   .redline-page .rl-livelist .rl-livelist-n{font-family:var(--font-mono);font-size:var(--t-figure);font-weight:var(--w-title);
@@ -1597,7 +1597,7 @@ function redlineLayoutCss(){
   .redline-page .rl-pb-btn{flex:none;border:1px solid var(--color-divider);background:var(--color-surface);
     color:var(--color-neutral-700);
     border-radius:0;padding:6px 11px;font:inherit;font-size:var(--t-meta);font-weight:var(--w-title);cursor:pointer;
-    transition:background .12s,border-color .12s,color .12s}
+    transition:background var(--dur-1),border-color var(--dur-1),color var(--dur-1)}
   .redline-page .rl-pb-btn:not([data-rl-dead]):hover{border-color:var(--color-neutral-400);color:var(--color-text)}
   .redline-page .rl-pb-btn:disabled{opacity:.6;cursor:wait}
   /* ---- THE COUNTERPARTY PREVIEW'S DEAD FACE (19 Aug 2026) ----
@@ -1634,7 +1634,7 @@ function redlineLayoutCss(){
   .redline-page{position:relative}
   .redline-page .rl-focus-btn{width:34px;height:34px;flex:none;display:inline-grid;place-items:center;
     background:#fff;border:1px solid var(--color-divider);border-radius:0;cursor:pointer;color:var(--color-neutral-700);
-    transition:background .12s,border-color .12s}
+    transition:background var(--dur-1),border-color var(--dur-1)}
   .redline-page .rl-focus-btn:hover{background:var(--color-bg);border-color:var(--color-neutral-300)}
   html.dark .redline-page .rl-focus-btn{background:rgba(15,23,42,.5);border-color:rgba(148,163,184,.32);color:var(--color-neutral-300)}
   html.dark .redline-page .rl-focus-btn:hover{background:rgba(15,23,42,.75)}
@@ -2076,7 +2076,7 @@ function redlineLayoutCss(){
     border-radius:0;padding:calc(3px * var(--doc-scale,1)) calc(4px * var(--doc-scale,1));
     font:inherit;font-size:calc(11px * var(--doc-scale,1));font-weight:var(--w-title);line-height:1;
     cursor:pointer;white-space:nowrap;-webkit-user-select:none;user-select:none;
-    transition:background .15s,color .15s}
+    transition:background var(--dur-1),color var(--dur-1)}
   .redline-page .rl-cp-pill svg{width:calc(15px * var(--doc-scale,1));height:calc(15px * var(--doc-scale,1));display:block}
   .redline-page .rl-cp-pill:hover{background:var(--color-accent-100,#ccfbf1);
     color:var(--color-accent-800,#115e59)}
@@ -2229,7 +2229,7 @@ function redlineLayoutCss(){
     border-radius:0;white-space:nowrap;overflow:hidden;
     background:var(--color-surface);color:var(--color-neutral-700);
     border:1px solid var(--color-divider);
-    transition:box-shadow .14s ease,border-color .14s ease,background .14s ease}
+    transition:box-shadow var(--dur-1) ease,border-color var(--dur-1) ease,background var(--dur-1) ease}
   .redline-page .rl-asktag-cap{width:calc(5px * var(--doc-scale,1));flex:none}
   .redline-page .rl-cap-them{background:var(--st-amber-dot)}
   .redline-page .rl-cap-us{background:var(--color-accent)}
@@ -2272,7 +2272,7 @@ function redlineLayoutCss(){
     padding:calc(4px * var(--doc-scale,1)) calc(10px * var(--doc-scale,1));
     border:1px solid var(--color-divider);border-radius:0;
     background:var(--color-surface);color:var(--color-neutral-700);cursor:pointer;
-    transition:border-color .15s,color .15s}
+    transition:border-color var(--dur-1),color var(--dur-1)}
   .redline-page .rl-askrv-reopen:hover{border-color:var(--color-neutral-500);color:var(--color-neutral-900)}
   .redline-page .rl-askrv-reopen:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
   /* A READING POSTURE IS NOT ON THE PAPER. Print and every export take the
@@ -2302,7 +2302,7 @@ function redlineLayoutCss(){
   .redline-page .rl-card{border:1px solid #e8ecf1;border-radius:0;padding:var(--s-3) 14px 14px;
     margin-bottom:11px;background:var(--color-surface);cursor:pointer;
     box-shadow:0 1px 2px rgba(38,55,74,.06),0 4px 14px rgba(38,55,74,.06);
-    transition:box-shadow .2s ease,border-color .2s ease;
+    transition:box-shadow var(--dur-2) ease,border-color var(--dur-2) ease;
     border-left:3px solid var(--accent-solid,var(--color-accent))}
   html.dark .redline-page .rl-card{border-color:var(--color-divider);box-shadow:0 1px 2px rgba(0,0,0,.3)}
   .redline-page .rl-card[data-rl-origin="them"]{border-left-color:var(--st-amber-dot)}
@@ -2418,7 +2418,7 @@ function redlineLayoutCss(){
   .redline-page .rl-open-btn{flex:none;margin-left:2px;padding:0 var(--s-3);display:inline-flex;
     align-items:center;cursor:pointer;font:inherit;font-size:var(--t-body);font-weight:var(--w-body);line-height:1.6;
     border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);
-    color:var(--color-neutral-600);transition:border-color .13s,color .13s,background .13s;
+    color:var(--color-neutral-600);transition:border-color var(--dur-1),color var(--dur-1),background var(--dur-1);
     height:30px}
   .redline-page .rl-open-btn:hover{border-color:var(--color-accent);color:var(--st-steel-fg);
     background:var(--st-steel-bg)}
@@ -2433,7 +2433,7 @@ function redlineLayoutCss(){
   .redline-page .rl-cp-editor-btn{flex:none;margin-left:2px;padding:0 9px;display:inline-flex;
     align-items:center;cursor:pointer;font:inherit;font-size:var(--t-meta);font-weight:var(--w-body);line-height:1.6;
     border:1px solid var(--color-divider);border-radius:0;background:var(--color-surface);
-    color:var(--accent-ink);transition:border-color .13s,color .13s,background .13s;height:30px}
+    color:var(--accent-ink);transition:border-color var(--dur-1),color var(--dur-1),background var(--dur-1);height:30px}
   .redline-page .rl-cp-editor-btn:hover{border-color:var(--color-accent);
     color:var(--st-steel-fg);background:var(--st-steel-bg)}
   .redline-page .rl-cp-editor-btn:focus-visible{outline:2px solid var(--color-accent);
@@ -2573,7 +2573,7 @@ function redlineLayoutCss(){
          asked for is only visible on a flat face. */}
   .redline-page .rl-card-verbs button{border:1px solid var(--rl-btn-line);border-radius:0;
     padding:0 var(--s-3);font:inherit;
-    font-size:var(--t-body);font-weight:var(--w-body);line-height:1;cursor:pointer;transition:filter .15s;
+    font-size:var(--t-body);font-weight:var(--w-body);line-height:1;cursor:pointer;transition:filter var(--dur-1);
     height:30px;display:inline-flex;align-items:center;background:transparent}
   /* washes darken a touch on hover in light, lift in dark — a brightness
      bump on a near-white tint is invisible */
@@ -2858,7 +2858,7 @@ function redlineLayoutCss(){
   .redline-page .rl-fseg{flex:none;min-width:0;display:flex;flex-direction:column;align-items:flex-start;
     gap:1px;border:0;border-bottom:2px solid transparent;background:none;font:inherit;
     color:var(--color-text);padding:0 0 9px;margin-bottom:-1px;border-radius:0;cursor:pointer;
-    white-space:nowrap;transition:color .12s,border-color .12s}
+    white-space:nowrap;transition:color var(--dur-1),border-color var(--dur-1)}
   ${''/* ONE COLOUR DECLARATION FOR THE WHOLE TAB, and the number and the word
      INHERIT it. That is what makes B1 a two-line change rather than six: the
      resting state, the hover and the live state each set 'color' once on the
@@ -3091,14 +3091,14 @@ function redlineLayoutCss(){
        switched with no delay on the way IN so the slide is still watched, and
        only after the slide on the way out. */
     visibility:hidden;
-    transition:transform .3s cubic-bezier(.22,.61,.36,1),visibility 0s linear .3s;
+    transition:transform var(--dur-3) cubic-bezier(.22,.61,.36,1),visibility 0s linear var(--dur-3);
   }
   .redline-page .rl-queue.is-open{transform:none;visibility:visible;
-    transition:transform .3s cubic-bezier(.22,.61,.36,1),visibility 0s}
+    transition:transform var(--dur-3) cubic-bezier(.22,.61,.36,1),visibility 0s}
   .redline-page .rl-q-scrim{
     position:fixed;inset:0;z-index:55;
     background:color-mix(in srgb,#020617 45%,transparent);
-    opacity:0;pointer-events:none;transition:opacity .25s;
+    opacity:0;pointer-events:none;transition:opacity var(--dur-3);
   }
   .redline-page .rl-q-scrim.is-open{opacity:1;pointer-events:auto}
   /* Motion is a preference. With it reduced the panel still arrives; it stops
@@ -3151,10 +3151,10 @@ function redlineLayoutCss(){
     display:flex;flex-direction:column;
     transform:translateX(100%);
     visibility:hidden;
-    transition:transform .3s cubic-bezier(.22,.61,.36,1),visibility 0s linear .3s;
+    transition:transform var(--dur-3) cubic-bezier(.22,.61,.36,1),visibility 0s linear var(--dur-3);
   }
   .redline-page .rl-cp.is-open{transform:none;visibility:visible;
-    transition:transform .3s cubic-bezier(.22,.61,.36,1),visibility 0s}
+    transition:transform var(--dur-3) cubic-bezier(.22,.61,.36,1),visibility 0s}
   @media (prefers-reduced-motion:reduce){
     .redline-page .rl-cp{transition:none}
   }
@@ -3246,7 +3246,7 @@ function redlineLayoutCss(){
     border-radius:0;padding:5px var(--s-3);font:inherit;font-size:var(--t-body);font-weight:var(--w-strong);
     line-height:1.6;color:var(--color-neutral-600);cursor:pointer;white-space:nowrap;
     box-shadow:0 1px 2px rgba(15,23,42,.08);
-    transition:border-color .15s,color .15s,background .15s}
+    transition:border-color var(--dur-1),color var(--dur-1),background var(--dur-1)}
   .redline-page .rl-cp-act:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
   ${''/* The ＋ wears the nav's colour for the same reason the Edit pill does —
      they are the same act's two doors, and both follow the theme through
@@ -3339,7 +3339,7 @@ function redlineLayoutCss(){
     font:inherit;font-size:var(--t-label);font-weight:var(--w-title);cursor:pointer;
     padding:9px 6px 9px 5px;border:1px solid var(--color-divider);border-left:0;
     border-radius:0;background:var(--color-surface);color:var(--color-text);
-    box-shadow:var(--shadow-md);transition:background .12s,padding .12s;
+    box-shadow:var(--shadow-md);transition:background var(--dur-1),padding var(--dur-1);
   }
   /* Outward, away from the wall — padding-left would push it INTO the page's
      border, which is the one edge it is fixed to. */
@@ -3374,7 +3374,7 @@ function redlineLayoutCss(){
      looked like: the way out of the panel. */
   .redline-page .rl-q-min{position:absolute;top:9px;right:6px;width:22px;height:22px;
     display:grid;place-items:center;padding:0;border:0;border-radius:0;background:none;
-    color:var(--color-neutral-500);cursor:pointer;transition:background .12s,color .12s}
+    color:var(--color-neutral-500);cursor:pointer;transition:background var(--dur-1),color var(--dur-1)}
   .redline-page .rl-q-min:hover{background:var(--color-neutral-100);color:var(--color-text)}
   /* The stacked read-out belonged to the 34px rail, which no longer exists —
      the score reads on the door now (.rl-q-tab). Kept in the markup and unseen
@@ -3382,7 +3382,7 @@ function redlineLayoutCss(){
   .redline-page .rl-q-mini{display:none}
   .redline-page .rl-q-bar{height:5px;border-radius:0;background:var(--color-neutral-200);overflow:hidden}
   .redline-page .rl-q-bar span{display:block;height:100%;border-radius:0;
-    background:var(--accent-solid,var(--color-accent));transition:width .3s ease}
+    background:var(--accent-solid,var(--color-accent));transition:width var(--dur-3) ease}
   .redline-page .rl-q-row{display:flex;align-items:center;gap:4.5px;width:100%;text-align:left;
     font:inherit;font-size:var(--t-body);color:var(--color-text);cursor:pointer;background:none;
     border:1px solid transparent;border-radius:0;padding:var(--s-2) 5px;margin-bottom:2px}
@@ -3487,7 +3487,7 @@ function redlineLayoutCss(){
   .redline-page .rl-resizer{position:absolute;top:0;bottom:0;left:66%;width:14px;z-index:6;
     cursor:col-resize;display:flex;align-items:center;justify-content:center;touch-action:none}
   .redline-page .rl-resizer span{width:4px;height:72px;border-radius:0;
-    background:var(--color-neutral-300);transition:background .15s}
+    background:var(--color-neutral-300);transition:background var(--dur-1)}
   /* At a limit: the grip goes amber so "it stopped" reads as a boundary rather
      than a broken control. */
   .redline-page .rl-resizer[data-rl-at-limit] span{background:var(--st-amber-dot)}

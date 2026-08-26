@@ -95,7 +95,7 @@ function openWizard(preTid){
   let wzStream=null;
   const renderStep=()=>{
     if(!tid){
-      const card=t=>`<button data-wz-tid="${t.id}" style="text-align:left;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:var(--s-3);cursor:pointer;transition:border-color .15s,box-shadow .15s;" onmouseover="this.style.borderColor='var(--color-accent)';this.style.boxShadow='var(--shadow-sm)'" onmouseout="this.style.borderColor='var(--color-divider)';this.style.boxShadow='none'">
+      const card=t=>`<button data-wz-tid="${t.id}" style="text-align:left;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:0;padding:var(--s-3);cursor:pointer;transition:border-color var(--dur-1),box-shadow var(--dur-1);" onmouseover="this.style.borderColor='var(--color-accent)';this.style.boxShadow='var(--shadow-sm)'" onmouseout="this.style.borderColor='var(--color-divider)';this.style.boxShadow='none'">
             <span style="display:flex;align-items:center;gap:var(--s-2);"><span style="width:28px;height:28px;display:grid;place-items:center;border-radius:0;background:var(--st-steel-bg);color:var(--color-accent);flex:none;">${icon(t.ic||'file','w-3.5 h-3.5')}</span>
             <span style="font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);font-family:var(--font-mono);">${t.kind}</span></span>
             <span style="display:block;margin-top:5px;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.4;">${t.blurb||''}</span></button>`;

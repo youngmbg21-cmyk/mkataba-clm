@@ -77,7 +77,9 @@ function renderDirectory(){
         ${admin?`<button id="dir-manage" class="ui-btn" style="margin-left:auto;font-size:var(--t-meta);padding:var(--s-1) var(--s-3)">${
           i18t('dir_manage')}</button>`:''}
       </div>
-      <div class="dir-rows">${people.map(dirRowHtml).join('')||`<p class="dir-empty">${i18t('dir_empty')}</p>`}</div>
+      <div class="dir-rows">${people.map(dirRowHtml).join('')||(typeof window.emptyStateHtml==='function'
+        ? window.emptyStateHtml({ icon:'users', title:i18t('dir_empty') })
+        : `<p class="dir-empty">${i18t('dir_empty')}</p>`)}</div>
       <p class="dir-note">${esc(i18t('dir_note'))}</p>
     </section>
   </div>`;

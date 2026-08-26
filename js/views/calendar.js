@@ -548,9 +548,10 @@ function calPanelHtml(evs){
            viewer, and the Done control outside the row's own button — are all
            still true of it. An anchor moved for no reason is a test rewritten
            for no reason. */}
-    <div id="cal-agenda" class="cal-upn-list scroll-thin">${rows||`<div class="cal-empty">
-      <div class="cal-empty-t">${_esc(i18t('cal_nothing_due',{n:CAL_AGENDA_DAYS}))}</div>
-      <div class="cal-empty-s">${_esc(i18t('cal_nothing_due_sub'))}</div></div>`}</div>
+    <div id="cal-agenda" class="cal-upn-list scroll-thin">${rows||`<div class="cal-empty">${typeof window.emptyStateHtml==='function'
+      ? window.emptyStateHtml({ title:i18t('cal_nothing_due',{n:CAL_AGENDA_DAYS}), sub:i18t('cal_nothing_due_sub') })
+      : `<div class="cal-empty-t">${_esc(i18t('cal_nothing_due',{n:CAL_AGENDA_DAYS}))}</div>`
+        + `<div class="cal-empty-s">${_esc(i18t('cal_nothing_due_sub'))}</div>`}</div>`}</div>
     <div class="cal-panel-foot"><button class="cal-link" id="cal-open-reg">${_esc(i18t('cal_open_register'))} →</button></div>
   </section>`;
 }

@@ -383,3 +383,30 @@ should be moved there** — that is the record, this is a stand-in.
   at all — silently, which is the worst shape. A dispatched `MouseEvent` reaches
   the same delegated handler the mouse does. Worth knowing before the next
   keyboard pass touches a chart.
+
+### From Phase C and D (25 Aug 2026)
+
+- **The design tokens are declared in a `<style>` in the BODY, not the head.**
+  Found the hard way: a Playwright `addStyleTag` override, which appends to
+  `<head>`, lands EARLIER in the document and loses the source-order tie to
+  every token it is trying to override — producing three identical sets of
+  "before and after" screenshots. Anything overriding a token from outside the
+  file has to append to the body.
+- **The compiled Tailwind blob moved from line 74 to line 81**, and two sweeps
+  whose guard named the line rather than the line's content walked into it. It
+  was restored byte for byte and is now found by its signature; `f238` fails on
+  any design token appearing inside it. **Phase C shipped with that damage and
+  Phase D repairs it.**
+- **`@media` cannot read a custom property.** A `:root` block of `--bp-*` would
+  have zero consumers by construction. The breakpoint rungs are named in JS,
+  where JS asks the window; the stylesheet's numbers stay literal.
+- **The dashboard's `kpiHtml` is computed and never used** (logged under Phase B
+  too). Still not removed — outside this run's order.
+- **110 hand-rolled `box-shadow` declarations** remain, none of them on the
+  three rungs and none with a dark answer. Collapsing them moves ~50 elements,
+  which is why it was not done inside a phase whose promise is that nothing
+  moves. It wants an eye.
+- **116 off-ladder font sizes** remain typed as literals: 58 at 16px, 25 at 18,
+  13 at 20, 6 at 22, and a tail of 14 more. Each wants resolving to the nearest
+  rung with eyes on; the full inventory is in the run summary.
+- **3,482 off-grid spacing declarations** remain, deliberately, per the order.

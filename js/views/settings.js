@@ -134,7 +134,7 @@ function renderAllowancePanel(a){
   const docsPct=a.docs>0?Math.min(100,Math.round(a.docsUsed/a.docs*100)):0;
   const pct=Math.max(moneyPct,docsPct);
   const bar=`<div style="height:6px;background:var(--color-neutral-200);border-radius:0;overflow:hidden;margin-top:5px">
-    <div style="width:${pct}%;height:100%;background:${a.exhausted?'var(--st-ruby-fg)':pct>=80?'var(--st-amber-dot)':'var(--st-green-dot)'};transition:width .3s"></div></div>`;
+    <div style="width:${pct}%;height:100%;background:${a.exhausted?'var(--st-ruby-fg)':pct>=80?'var(--st-amber-dot)':'var(--st-green-dot)'};transition:width var(--dur-3)"></div></div>`;
   host.innerHTML=`<div>
     <span style="font-weight:var(--w-strong);color:${a.exhausted?'var(--st-ruby-fg)':'var(--st-green-fg)'}">${a.exhausted?'Used up':'Open'}</span>
     ${a.budget>0?` · <b>${money(a.spent)}</b> of <b>${money(a.budget)}</b>`:' · no money cap'}
@@ -2512,7 +2512,7 @@ function stEngineBodyHtml(){
       <div style="font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text)">${i18t('set_spend_controls')}</div>
       <p class="st-note">${i18t('set_spend_governed')} ${i18t('set_spend_money')}</p>
       <div id="ai-usage" style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:6px 0 var(--s-1)">${i18t('set_today_dash')}</div>
-      <div style="height:6px;background:var(--color-neutral-200);border-radius:0;overflow:hidden;margin-bottom:var(--s-2)"><div id="ai-usage-bar" style="width:0%;height:100%;background:var(--color-accent);transition:width .3s"></div></div>
+      <div style="height:6px;background:var(--color-neutral-200);border-radius:0;overflow:hidden;margin-bottom:var(--s-2)"><div id="ai-usage-bar" style="width:0%;height:100%;background:var(--color-accent);transition:width var(--dur-3)"></div></div>
       <div id="ai-spend-breakdown" style="margin-bottom:10px"></div>
       ${''/* ---- AND THE SAME MONEY BY PERSON ----
              It is here, under the by-feature breakdown, because this is where

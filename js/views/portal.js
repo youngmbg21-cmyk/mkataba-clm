@@ -2896,9 +2896,9 @@ function portalAlertsStyle(){
     .pt-alerts{position:fixed;top:0;right:0;bottom:0;width:min(360px,88vw);z-index:71;
       background:var(--color-surface);border-left:1px solid var(--color-divider);
       box-shadow:-14px 0 40px rgba(15,23,42,.18);display:flex;flex-direction:column;
-      transform:translateX(102%);transition:transform .22s ease,visibility 0s linear .22s;
+      transform:translateX(102%);transition:transform var(--dur-3) ease,visibility 0s linear var(--dur-3);
       visibility:hidden;}
-    .pt-alerts.open{transform:none;visibility:visible;transition:transform .22s ease;}
+    .pt-alerts.open{transform:none;visibility:visible;transition:transform var(--dur-3) ease;}
     .pt-alerts-head{flex:none;display:flex;align-items:center;gap:var(--s-2);
       padding:var(--s-3) 14px;border-bottom:1px solid var(--color-divider);}
     .pt-alerts-title{flex:1;font-size:var(--t-label);font-weight:var(--w-title);letter-spacing:.12em;
@@ -2990,7 +2990,7 @@ function portalWorkbenchStyle(){
        the reading group and a left-aligned panel would run off the edge. */
     .pw-more-wrap{position:relative;flex:none;}
     .pw-more-wrap .room-menu{right:0;left:auto;top:calc(100% + 6px);}
-    .pw-more-caret{display:inline-flex;transition:transform .15s ease;}
+    .pw-more-caret{display:inline-flex;transition:transform var(--dur-1) ease;}
     #pt-more[aria-expanded="true"] .pw-more-caret{transform:rotate(180deg);}
     /* The reading switch is the owner's own control, drawn by the shared
        builder, so it needs no colours here — only the room to sit in a row

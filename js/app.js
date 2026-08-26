@@ -1438,6 +1438,28 @@ function toggleRail(){
    MOVE THE SET, NOT THIS NUMBER: if a size is ever added, this follows from
    laptops-verify's list rather than being re-guessed. And index.html's
    `max-width` block must move with it — it has to match this `<=` exactly. */
+/* ---- THE BREAKPOINT RUNGS ---- (25 Aug 2026)
+   MEASURED: 30 distinct widths across the product's media queries. They are
+   mostly ALREADY a ladder and simply were not named — 767/768, 899/900,
+   1023/1024, 1439/1440 are max/min pairs of four rungs, which is the correct
+   idiom for a query pair.
+
+   AND A CSS TOKEN IS IMPOSSIBLE HERE, which is worth stating rather than
+   discovering: `@media (max-width: var(--bp-tablet))` is not valid CSS — a
+   media query is evaluated before custom properties are resolved. A
+   :root block of --bp-* would have ZERO consumers by construction, which is
+   the exact fault this whole design-system pass exists to fix. So the rungs
+   are named HERE, for the JavaScript that asks the window the same questions
+   the stylesheet asks, and the stylesheet's own numbers stay literal with
+   these as the reference.
+
+   THE VALUES THAT ARE GENUINELY BESPOKE STAY BESPOKE AND SAY SO:
+   NAV_DRAWER_W is the float line and is NOT one of these — it was set from two
+   of the owner's own laptops and moved three times in two days to get there.
+   980 (the Key Terms stack) and 1023/1024 (the negotiation grid) are layout
+   limits of their own components, not device classes. */
+const BP = { phone: 480, tablet: 768, laptop: 1024, desk: 1440, wide: 1800 };
+
 const NAV_DRAWER_W = 1440;
 function navDrawerActive(){
   return typeof innerWidth === 'number' ? innerWidth <= NAV_DRAWER_W : false;
@@ -2231,3 +2253,4 @@ if (typeof window !== 'undefined' && window.addEventListener){
 
 Object.assign(window,{printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,
   buildAlerts,alertCount,updateAlertBadge,panelSuppressed,openPanel,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,brandNow,darkNow,setBrand,setDark,toggleDark,applyAppearance,paintAppearance,brandPickerVisible,BRANDS,shellTitleFor,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
+Object.assign(window,{BP});

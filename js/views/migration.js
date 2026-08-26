@@ -861,7 +861,7 @@ function migAllowanceHtml(){
       ${a.docs>0?`<span style="font-family:var(--font-mono)">${a.docsUsed} / ${a.docs} docs</span>`:''}
     </div>
     <div style="height:5px;background:color-mix(in srgb,var(--color-text) 10%,transparent);border-radius:0;overflow:hidden;margin-top:6px">
-      <div style="width:${pct}%;height:100%;background:${done?'var(--st-ruby-fg)':pct>=80?'var(--st-amber-dot)':'var(--st-green-dot)'};transition:width .3s"></div></div>
+      <div style="width:${pct}%;height:100%;background:${done?'var(--st-ruby-fg)':pct>=80?'var(--st-amber-dot)':'var(--st-green-dot)'};transition:width var(--dur-3)"></div></div>
     ${done?`<div style="margin-top:6px;line-height:1.5">The import carries on with the built-in pattern matcher — nothing fails and nothing is lost, but extracted details will need more review. An admin can top the allowance up in Team &amp; Settings.</div>`:''}
   </div>`;
 }
@@ -907,7 +907,7 @@ function renderMigQueue(){
         <span style="flex:1"></span>
         ${M.running?`<button id="mig-cancel" class="ui-btn" style="font-size:var(--t-meta);padding:var(--s-1) 10px">${i18t('mig_stop_after_current')}</button>`:''}
       </div>
-      <div style="height:6px;background:var(--color-neutral-200);border-radius:0;overflow:hidden;margin-bottom:10px"><div style="width:${pct}%;height:100%;background:var(--color-accent);transition:width .3s"></div></div>
+      <div style="height:6px;background:var(--color-neutral-200);border-radius:0;overflow:hidden;margin-bottom:10px"><div style="width:${pct}%;height:100%;background:var(--color-accent);transition:width var(--dur-3)"></div></div>
       ${M.ocrError?`<div style="font-size:var(--t-meta);color:var(--st-amber-fg);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);border-radius:0;padding:7px 10px;margin-bottom:var(--s-2)">A scanned document could not be read: ${migEsc(M.ocrError)}. Those files were imported with no text — open each one and enter the details, or fix the reader and use “Re-run Copilot extraction”.</div>`:''}
       ${M.aiDown?`<div style="font-size:var(--t-meta);color:var(--st-amber-fg);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);border-radius:0;padding:7px 10px;margin-bottom:var(--s-2)">${migEsc(M.aiDownMsg||'Copilot unavailable')} — remaining files use the built-in pattern-matcher and are flagged for review. Use “Re-run Copilot extraction” once the limit resets.</div>`:''}
       <div class="scroll-thin" style="max-height:260px;overflow-y:auto">
@@ -1043,7 +1043,7 @@ function renderMigration(){
       @media (min-width:1024px){ .mig-kpis{grid-template-columns:repeat(5,minmax(0,1fr))} }
       .mig-table tbody tr:hover{background:color-mix(in srgb,var(--color-text) 4%,transparent)}
       #mig-drop{border:2px dashed var(--color-divider);border-radius:0;padding:var(--s-8) var(--s-4);
-        text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
+        text-align:center;cursor:pointer;transition:border-color var(--dur-1),background var(--dur-1)}
       #mig-drop:hover{border-color:var(--color-accent)}
       #mig-drop.dragover{border-color:var(--color-accent);background:var(--st-steel-bg)}
     </style>

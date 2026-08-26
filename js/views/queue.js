@@ -69,7 +69,7 @@ function renderPipeline(){
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="height:var(--view-h);box-sizing:border-box;padding:var(--page-pad-t) var(--page-pad-x) var(--s-4);display:flex;flex-direction:column">
     <style>
-      .q-card{transition:border-color .12s ease,box-shadow .12s ease}
+      .q-card{transition:border-color var(--dur-1) ease,box-shadow var(--dur-1) ease}
       /* keep the category stripe (border-left) on hover — only the other three sides + shadow react */
       .q-card:hover{border-top-color:var(--color-accent)!important;border-right-color:var(--color-accent)!important;border-bottom-color:var(--color-accent)!important;box-shadow:var(--shadow-md)!important}
     </style>

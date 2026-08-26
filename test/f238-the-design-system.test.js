@@ -26,9 +26,18 @@ const INDEX = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const JS = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
 const VIEWS = fs.readdirSync(path.join(ROOT, 'js/views')).filter(f => f.endsWith('.js'));
 
-/* The hand-written sheet only. Line 74 is the COMPILED Tailwind blob, which is
-   generated and must never be asserted on as though somebody wrote it. */
-const SHEET = INDEX.split('\n').filter((l, i) => i !== 73).join('\n');
+/* The hand-written sheet only. One line of index.html is the COMPILED Tailwind
+   blob, which is generated and must never be asserted on as though somebody
+   wrote it — nor EDITED.
+   FOUND BY ITS SIGNATURE, NEVER BY ITS LINE NUMBER (25 Aug 2026). It was line
+   74 when this was written and it is line 81 now, because tokens were added
+   above it — and a sweep whose blob-guard was pinned to 73 walked straight
+   into it and rewrote 60 declarations, one of which turned Tailwind's own
+   .transition utility from 150ms into effectively instant. The blob was
+   restored byte for byte from the pre-run tree; this is the guard. */
+const BLOB_SIG = '*,:after,:before{--tw-border-spacing-x';
+const BLOB_LINE = INDEX.split('\n').findIndex(l => l.startsWith(BLOB_SIG));
+const SHEET = INDEX.split('\n').filter((_, i) => i !== BLOB_LINE).join('\n');
 
 describe('f238 — the design system has its other half', () => {
 
@@ -269,6 +278,96 @@ describe('f238 — the design system has its other half', () => {
       'nothing on this page is a white-on-colour wash any more');
     assert.match(src, /border-top:3px solid var\(--st-\$\{t\}-dot\)/,
       'the tone is a 3px top edge, the shape Home\'s KPI cards already use');
+  });
+
+  test('the compiled Tailwind blob is not hand-edited', () => {
+    /* RULE 8, AS A NET. It regenerates, so every edit to it is thrown away on
+       the next build — and worse, it looks permanent until then. The 25 Aug
+       ladder sweep reached it because its guard named a LINE rather than the
+       line's content, and the repair for THAT then rewrote its transition
+       utilities. Two faults from one pinned number.
+       A design token in there is the tell: the blob is generated from a
+       Tailwind config that knows nothing about HaTi's :root. */
+    const blob = INDEX.split('\n')[BLOB_LINE] || '';
+    assert.ok(blob.length > 10000, 'the blob was found by its signature, not a line number');
+    const tokens = [...blob.matchAll(/var\((--(?:t|w|s|dur)-[a-z0-9-]+)\)/g)].map(m => m[1]);
+    assert.deepEqual([...new Set(tokens)], [],
+      'a design token is in the compiled blob — it was hand-edited and will be lost');
+  });
+
+  /* ---------- 3d · PHASE D — THE LADDERS THAT DID NOT EXIST ---------- */
+
+  test('the motion ladder exists and nothing types its own duration', () => {
+    /* 183 transitions across TWELVE ad-hoc durations, chosen one at a time by
+       whoever wrote the rule. Three rungs, and the question each answers is
+       WHAT IS MOVING rather than how far. */
+    for (const [tok, ms] of [['--dur-1','120ms'],['--dur-2','180ms'],['--dur-3','240ms']])
+      assert.match(SHEET, new RegExp(tok + ':' + ms), tok + ' is ' + ms);
+    assert.match(SHEET, /--ease-exit:/, 'and a flatter curve for a layer leaving');
+
+    const stray = [];
+    for (const f of ['js/core.js', 'js/app.js', 'js/mobile.js',
+                     ...VIEWS.map(v => 'js/views/' + v)]) {
+      if (/healthreport|weekly/.test(f)) continue;      // standalone documents
+      for (const line of JS(f).split('\n')) {
+        if (!/transition[^;:]*:/.test(line)) continue;
+        for (const m of line.matchAll(/(?<![\w.-])([0-9.]+m?s)(?![\w-])/g)) {
+          const ms = m[1].endsWith('ms') ? parseFloat(m[1]) : parseFloat(m[1]) * 1000;
+          /* A deliberate long animation is not a transition rung, and 0 is not
+             a duration. Anything between is one of the three. */
+          if (ms > 0 && ms <= 300) stray.push(f + ' → ' + m[1]);
+        }
+      }
+    }
+    assert.deepEqual(stray, [], 'a transition is typing its own duration again');
+  });
+
+  test('the reduced-motion kill switch is never a token', () => {
+    /* .001ms is not a duration somebody chose, it is "as close to zero as a
+       stylesheet can say" — and the motion sweep read it as an ad-hoc value
+       and mapped it to the nearest rung, which turned the reduced-motion
+       SETTING into a 120ms setting. */
+    const kill = /@media \(prefers-reduced-motion: ?reduce\)\{\*[^}]*\}/.exec(SHEET);
+    assert.ok(kill, 'the global kill switch is there');
+    assert.match(kill[0], /transition-duration:\.001ms!important/, 'and it really kills');
+    assert.doesNotMatch(kill[0], /var\(--dur/, 'a rung has no business in here');
+  });
+
+  test('the breakpoint rungs are named where they can be READ', () => {
+    /* AND A CSS TOKEN IS IMPOSSIBLE, which is why they are not in :root.
+       `@media (max-width: var(--bp-tablet))` is not valid CSS — a media query
+       is evaluated before custom properties resolve — so a :root block of
+       --bp-* would have ZERO consumers by construction, which is the exact
+       fault this whole pass exists to fix. */
+    assert.match(JS('js/app.js'), /const BP = \{ phone: 480, tablet: 768, laptop: 1024, desk: 1440, wide: 1800 \}/,
+      'the rungs are JS constants, where JS can ask the window');
+    assert.doesNotMatch(SHEET, /--bp-(phone|tablet|laptop|desk|wide)\s*:/,
+      'and NOT dead tokens in :root that no media query could ever read');
+    /* THE FLOAT LINE IS BESPOKE AND IS NOT ONE OF THESE. It was set from two of
+       the owner's own laptops and moved three times in two days to get there. */
+    assert.match(JS('js/app.js'), /const NAV_DRAWER_W = 1440;/,
+      'the nav float line is its own number and stays its own number');
+  });
+
+  test('one shape for "there is nothing here", with a way forward', () => {
+    /* Seven ad-hoc treatments across the product, each with its own class
+       name, icon size and idea of whether to offer an act. */
+    assert.match(JS('js/core.js'), /function emptyStateHtml\(o\)/, 'one builder');
+    assert.match(JS('js/core.js'), /emptyStateHtml,/, 'published');
+    for (const f of ['js/views/register.js', 'js/views/intake.js',
+                     'js/views/directory.js', 'js/views/calendar.js'])
+      assert.match(JS(f), /emptyStateHtml\(/, f + ' reads it');
+  });
+
+  test('the charts speak the platform typeface and draw square', () => {
+    /* A canvas cannot read a CSS token, so Chart.js drew every axis label in
+       ITS OWN default stack while every word around it was Inter — two faces
+       on one screen. And the 20 Aug square-corners sweep reached ~810 radii in
+       CSS and could not reach a canvas, so nine bar charts kept a 4px corner. */
+    const src = JS('js/aichart.js');
+    assert.match(src, /Chart\.defaults\.font\.family = fam/, 'the canvas is told the face');
+    assert.match(src, /_acVar\('--font-body'/, 'from the same token the rest of the product reads');
+    assert.doesNotMatch(src, /borderRadius:\s*[1-9]/, 'and no bar keeps a rounded corner');
   });
 
   /* ---------- 4 · THE FOCUS RING REACHES WHAT REFUSES AN OUTLINE ---------- */

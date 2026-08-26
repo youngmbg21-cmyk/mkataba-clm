@@ -160,7 +160,7 @@ function clauseEditorCss(){
   .ce-head .ce-acts .ce-back-btn{flex:none; font-size:var(--t-body); padding:7px 14px}
   .ce-say{flex:0 1 auto; min-width:0; max-width:300px; font-size:var(--t-label); color:var(--accent-ink);
     font-weight:var(--w-strong); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    opacity:0; transition:opacity .2s}
+    opacity:0; transition:opacity var(--dur-2)}
   /* a faded-out message still occupied its width, which squeezed the clause
      name to an ellipsis for seconds after every Apply */
   .ce-say:not(.is-on){max-width:0; overflow:hidden}

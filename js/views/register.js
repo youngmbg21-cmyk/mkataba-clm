@@ -766,13 +766,15 @@ function regRowsHtml(cs){
     const btn  = filtered
       ? `<button id="reg-empty-clear" class="ui-btn" style="font-size:var(--t-meta);padding:6px 14px">${i18t('reg_clear_all_filters')}</button>`
       : `<button id="reg-empty-new" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:6px 14px">${i18t('pg_new_contract')}</button>`;
-    return `<tr><td colspan="8" style="padding:var(--s-12) var(--s-3);text-align:center">
-      <div style="max-width:340px;margin:0 auto">
-        <div style="width:44px;height:44px;margin:0 auto var(--s-3);display:grid;place-items:center;border-radius:0;background:var(--color-bg);color:var(--color-neutral-500)">${icon('list','w-5 h-5')}</div>
-        <div style="font-size:var(--t-card);font-weight:var(--w-strong);color:var(--color-text)">${line}</div>
-        <div style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:var(--s-1) 0 14px;line-height:1.5">${sub}</div>
-        ${btn}
-      </div></td></tr>`;
+    /* THIS SHAPE IS NOW THE PRODUCT'S — it was the one screen that had a
+       designed empty state, and emptyStateHtml is it, extracted so the other
+       six can be it too. Read through window: this is a module. */
+    return `<tr><td colspan="8" style="padding:var(--s-12) var(--s-3);text-align:center">${
+      typeof window.emptyStateHtml==='function'
+        ? window.emptyStateHtml({ icon:'list', title:line, sub, action:btn })
+        : `<div style="max-width:340px;margin:0 auto"><div style="font-size:var(--t-card);font-weight:var(--w-strong)">${line}</div>`
+          + `<div style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:var(--s-1) 0 14px">${sub}</div>${btn}</div>`
+      }</td></tr>`;
   }
   const p=regCurPage(cs); const size=regPageSize(); const start=(p-1)*size;
   const pageRows=cs.slice(start, start+size);
@@ -1266,7 +1268,7 @@ function renderRegister(opts){
       .reg-table td{padding:var(--pad-row);border-bottom:1px solid var(--rule);vertical-align:middle;
         overflow:hidden}
       .reg-table tbody tr:last-child td{border-bottom:0}
-      .reg-table tbody tr{transition:background .12s}
+      .reg-table tbody tr{transition:background var(--dur-1)}
       .reg-table tbody tr:hover{background:color-mix(in srgb,var(--color-text) 4%,transparent)}
       /* ---- THE KEYBOARD'S OWN ROW, AND WHY IT IS NOT AN OUTLINE ----
          With border-collapse:collapse a <tr> paints no box of its own, so an

@@ -669,7 +669,7 @@ function renderDashboard(){
   const HM_ROW_INKS =['var(--color-accent-700)','var(--st-amber-fg)',
     'var(--st-ruby-fg)','var(--st-green-fg)'];
   const kpiCard=id=>{ const k=KPI_CATALOG[id], t=TONE_OF(k.grad); return `
-    <button data-kpi-id="${id}" draggable="true" class="hati-stat" style="position:relative;display:flex;flex-direction:column;gap:7px;align-items:stretch;border:1px solid var(--color-divider);border-top:3px solid ${TONE_EDGE[t]};border-radius:0;background:var(--color-surface);padding:var(--s-3) 14px;font:inherit;color:inherit;cursor:grab;text-align:left;box-shadow:none;transition:transform .2s var(--ease),opacity .15s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+    <button data-kpi-id="${id}" draggable="true" class="hati-stat" style="position:relative;display:flex;flex-direction:column;gap:7px;align-items:stretch;border:1px solid var(--color-divider);border-top:3px solid ${TONE_EDGE[t]};border-radius:0;background:var(--color-surface);padding:var(--s-3) 14px;font:inherit;color:inherit;cursor:grab;text-align:left;box-shadow:none;transition:transform var(--dur-2) var(--ease),opacity var(--dur-1);" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
       <span style="display:block;font-size:var(--t-label);font-weight:var(--w-title);letter-spacing:.1em;text-transform:uppercase;line-height:1.3;color:var(--color-neutral-500);">${k.label}</span>
       <span style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;">
         <span class="tnum" style="font-family:var(--font-mono);font-weight:var(--w-strong);font-size:22px;line-height:1.1;letter-spacing:-.02em;color:var(--color-text);">${k.val}</span>

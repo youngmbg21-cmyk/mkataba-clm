@@ -239,7 +239,12 @@ function renderIntake(){
   const host=document.getElementById('content'); if(!host) return;
   const may=(typeof canEdit==='function'&&canEdit());
   const mine=intakeMine(), queue=intakeQueue();
-  const empty=t=>`<p style="font-size:var(--t-body);color:var(--color-neutral-600);line-height:1.6;margin:0">${esc(t)}</p>`;
+  /* ONE SHAPE FOR "NOTHING HERE" (25 Aug 2026) — it was a bare paragraph, one
+     of seven different treatments of the same state across the product.
+     Read through window: this is a module. */
+  const empty=t=>(typeof window.emptyStateHtml==='function'
+    ? window.emptyStateHtml({ icon:'list', title:t })
+    : `<p style="font-size:var(--t-body);color:var(--color-neutral-600);line-height:1.6;margin:0">${esc(t)}</p>`);
   host.innerHTML=`
     ${''/* ---- THE PAGE HAS A MARGIN (owner-reported 19 Aug 2026, off a
            screenshot with the left edge ringed: "space is needed between the

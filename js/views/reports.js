@@ -182,7 +182,7 @@ function reportDropdown(variant, kind, idx, catalog, selKey){
   const chev='var(--color-neutral-500)';
   const opts=catalog.map(x=>`<button type="button" data-rd-opt="${kind}:${idx}:${x.k}" class="rd-opt${x.k===cur.k?' rd-opt-on':''}" style="display:block;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:var(--t-body);padding:7px 11px;border-radius:0;cursor:pointer;white-space:nowrap">${_esc(x.label)}</button>`).join('');
   return `<div class="rd" style="position:relative;max-width:100%;${hero?'flex:1;min-width:0':'margin:0 0 10px'}">
-    <button type="button" data-rd-trigger="${kind}:${idx}" class="rd-trigger rd-trigger-${hero?'hero':'card'}" title="${esc(hero?i18t('rep_choose_metric'):i18t('rep_choose_chart'))}" style="display:inline-flex;align-items:center;gap:var(--s-2);max-width:100%;border-radius:0;padding:var(--s-1) 9px var(--s-1) var(--s-3);cursor:pointer;line-height:1.25;transition:background .12s,border-color .12s;${trig}">
+    <button type="button" data-rd-trigger="${kind}:${idx}" class="rd-trigger rd-trigger-${hero?'hero':'card'}" title="${esc(hero?i18t('rep_choose_metric'):i18t('rep_choose_chart'))}" style="display:inline-flex;align-items:center;gap:var(--s-2);max-width:100%;border-radius:0;padding:var(--s-1) 9px var(--s-1) var(--s-3);cursor:pointer;line-height:1.25;transition:background var(--dur-1),border-color var(--dur-1);${trig}">
       <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(cur.label)}</span>
       <span aria-hidden="true" class="rd-chev" style="flex:none;color:${chev};pointer-events:none">▾</span>
     </button>

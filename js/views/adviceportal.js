@@ -74,7 +74,7 @@ function renderAdviceIntake(){
   const svcCard=s=>{
     const r=adviceRateFor(s.id);
     return `
-    <label data-svc="${s.id}" style="display:block;border:1.5px solid var(--color-divider);border-radius:0;background:var(--color-surface);padding:13px 14px;cursor:pointer;transition:border-color .12s ease, box-shadow .12s ease">
+    <label data-svc="${s.id}" style="display:block;border:1.5px solid var(--color-divider);border-radius:0;background:var(--color-surface);padding:13px 14px;cursor:pointer;transition:border-color var(--dur-1) ease, box-shadow var(--dur-1) ease">
       <input type="radio" name="adv-svc" value="${s.id}" style="position:absolute;opacity:0"/>
       <div style="display:flex;align-items:center;gap:var(--s-2)">
         <span style="width:30px;height:30px;flex:none;display:grid;place-items:center;border-radius:0;background:var(--st-steel-bg);color:var(--st-steel-fg)">${icon(s.ic,'w-4 h-4')}</span>

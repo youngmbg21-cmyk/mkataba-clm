@@ -811,6 +811,86 @@ own token.
 
 NOTE FOR THE NEXT SWEEP: no test in the suite asserted a half-pixel font size, which is why 865 replacements cost two test updates rather than fifty. Both were about the Tracked Changes caption, and one of them recorded a real consequence — the count used to be set a hair larger than the caption "because mono runs small at the same size", and that stopped being true when --font-mono was pointed at Inter with everything else. One family, no compensation owed, both 11px.
 
+## THE FOUR LADDERS THAT DID NOT EXIST (25 Aug 2026 — Phase D)
+
+**MOTION.** 183 transitions across **twelve** ad-hoc durations — .08, .12, .13,
+.14, .15, .18, .2, .22, .25, .28, .3, .4 — each chosen by whoever wrote the
+rule. Three rungs, and the question each answers is WHAT IS MOVING rather than
+how far: `--dur-1` (120ms) for something that changes in place, `--dur-2` (180)
+for a control that grows or swaps, `--dur-3` (240) for a layer arriving or
+leaving. `--ease-exit` is flatter than `--ease`, because a layer leaving should
+get out of the way rather than perform. **NEAREST RUNG, NEVER A BUCKET** — .22
+is nearer 240 than 180 and a bucket would have said otherwise. **Anything past
+300ms is left alone**: a seal stamping and a badge breathing are animations,
+not transition rungs.
+
+**AND THE SWEEP BROKE THE REDUCED-MOTION SETTING FOR TEN MINUTES.**
+`transition-duration:.001ms!important` is not a duration somebody chose — it is
+"as close to zero as a stylesheet can say" — and the sweep read it as an
+ad-hoc value and mapped it to the nearest rung, **turning the accessibility
+setting into a 120ms setting**. Caught because the sweep PRINTED what it moved
+rather than only how many. `.001ms` is never a token; f238 pins it.
+
+**AND THE BLOB-GUARD WAS PINNED TO A LINE NUMBER, WHICH IS THE EXPENSIVE HALF.**
+The compiled Tailwind blob was line 74 when the rule was written and is line 81
+now, because tokens were added above it — so a sweep skipping index 73 walked
+straight into it and rewrote 60 declarations, and the repair for the kill
+switch then turned Tailwind's own `.transition` utility from 150ms into
+effectively instant. **The blob was restored byte for byte from the pre-run
+tree.** It is found by its signature now (`*,:after,:before{--tw-border-spacing-x`),
+never by its position, and f238 fails on any design token appearing inside it.
+**PHASE C SHIPPED WITH THAT DAMAGE AND PHASE D REPAIRS IT** — said out loud
+rather than quietly fixed, because the commit in between is on the branch.
+
+**BREAKPOINTS — AND A CSS TOKEN IS IMPOSSIBLE HERE.** 30 distinct widths across
+the product's media queries, and they are mostly ALREADY a ladder that was
+never named: 767/768, 899/900, 1023/1024, 1439/1440 are max/min pairs of four
+rungs, which is the correct idiom. **`@media (max-width: var(--bp-tablet))` is
+not valid CSS** — a media query is evaluated before custom properties resolve —
+so a `:root` block of `--bp-*` would have **zero consumers by construction**,
+which is the exact fault this whole pass exists to fix. The rungs are named in
+`js/app.js` as `BP`, where JavaScript asks the window the same questions the
+stylesheet asks. **NAV_DRAWER_W IS NOT ONE OF THEM** and says so: the float
+line was set from two of the owner's own laptops and moved three times in two
+days to get there.
+
+**ONE SHAPE FOR "THERE IS NOTHING HERE".** Seven ad-hoc treatments, each with
+its own class name, icon size, type and idea of whether to offer a way forward.
+`emptyStateHtml({icon,title,sub,action})` is the register's — the one that was
+designed — extracted so the register, Intake, the Directory and the Calendar's
+agenda are all it. **THE ACT IS THE POINT**: an empty screen that only says
+"nothing here" leaves the reader to work out whether that is because there is
+nothing, because a filter is on, or because something failed.
+
+**THE CHARTS SPEAK THE PLATFORM'S TYPEFACE, AND DRAW SQUARE.** A canvas cannot
+read a CSS token, so Chart.js was drawing every axis label and legend in its
+own default stack — Helvetica Neue, Arial — while every word around it was
+Inter: **two faces on one screen**. `Chart.defaults.font.family` is set from
+`--font-body`, the same token the rest of the product reads, refreshed by the
+palette refresh a theme toggle already calls. And the 20 Aug square-corners
+sweep reached ~810 radii in CSS and could not reach a canvas, so **nine bar
+charts kept a 4px corner**; Chart.js takes it as a number, not a stylesheet.
+
+**DENSITY — THE F — SHIPPED EARLIER IN THIS RUN.** `--reg-row-h` /
+`--reg-row-px` with comfortable (44) / compact (36) / condensed (30), a control
+in the register's toolbar, remembered per browser. **The middle rung is HaTi's
+shipped 36px and the default does not move** — that is what makes the control
+safe, and it is the owner's decision 5 taken at its stated default.
+
+**LOADING STATES ARE NOT BUILT, AND THE REASON IS THIS PRODUCT'S OWN RECORD.**
+The order asks for a skeleton in the row rhythm for eight data views.
+MEASURED: there is no skeleton machinery in the product at all — and the ONE
+place a skeleton was built, the share dialog, it was REMOVED as the fault it
+caused. F178's own name is *"the share dialog arrives once, at its final
+size"*, and its first claim is that the opening markup is the real first
+question **and not a skeleton**. Adding eight more unattended, against that
+record, is the wider interpretation. It wants a measurement of where a gap
+actually exists first.
+
+Tests: f238 (six new claims, five failing against the parent commit — the sixth
+is the kill switch, which was intact there and is the one this phase broke and
+fixed), f177 unchanged.
+
 ## THE LADDERS HAVE CONSUMERS NOW (25 Aug 2026 — Phase C)
 
 The audit's whole verdict in one sentence: **"a ladder with no consumers is a

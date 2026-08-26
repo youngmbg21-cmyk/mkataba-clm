@@ -95,6 +95,19 @@ function _acMonthsAhead(n){
 const _acVar = (n, fb) => { try{ const v = getComputedStyle(document.documentElement).getPropertyValue(n).trim(); return v || fb; }catch(e){ return fb; } };
 let AC_INK = '#475569', AC_MUTED = '#94a3b8', AC_ACCENT = '#0d9488', AC_GOOD = '#10b981', AC_WARN = '#f59e0b', AC_BAD = '#f43f5e';
 const _acGrid = { color: 'rgba(38,55,74,.08)' };
+/* ---- THE CHARTS SPEAK THE PLATFORM'S OWN TYPEFACE ---- (25 Aug 2026)
+   A canvas cannot read a CSS token, so Chart.js was drawing every axis label
+   and legend in ITS OWN default stack — Helvetica Neue, Arial — while every
+   word around it was Inter. On one screen, two faces. Chart.defaults is where
+   a canvas is told, and it is set from the SAME token the rest of the product
+   reads, resolved once per palette refresh (a theme toggle already calls this,
+   and a font swap would come through the same token). */
+function _acRefreshFont(){
+  if (typeof Chart === 'undefined' || !Chart.defaults) return;
+  const fam = _acVar('--font-body', "Inter,'Segoe UI',system-ui,-apple-system,Arial,sans-serif");
+  Chart.defaults.font.family = fam;
+  Chart.defaults.color = AC_INK;
+}
 function _acRefreshPalette(){
   AC_INK    = _acVar('--color-neutral-600', '#475569');
   AC_MUTED  = _acVar('--st-gray-dot', '#94a3b8');
@@ -104,6 +117,10 @@ function _acRefreshPalette(){
   AC_BAD    = _acVar('--st-ruby-dot', '#f43f5e');
   const dark = !!(document.documentElement.classList && document.documentElement.classList.contains('dark'));
   _acGrid.color = dark ? 'rgba(148,163,184,.14)' : 'rgba(38,55,74,.08)';
+  /* SQUARE CORNERS EVERYWHERE (owner-asked 20 Aug 2026) reached ~810 radii
+     in CSS and could not reach a canvas, so nine bar charts kept a 4px
+     corner. Chart.js takes it as a number, not a stylesheet. */
+  _acRefreshFont();
 }
 
 /* A Chart.js config, with the house style applied once. Money axes format
@@ -204,7 +221,7 @@ const AI_CHART_RECIPES = {
     const colour = (_, i) => i < 3 ? AC_BAD : i < 6 ? AC_WARN : AC_ACCENT;
     return _acConfig('bar', { labels: months.map(_acMonthLabel),
       datasets: [{ get label(){ return _acT('ch_s_contracts_expiring','Contracts expiring'); }, data: months.map(m => buckets[m]),
-        backgroundColor: months.map(colour), borderRadius: 4 }] }, { legend: false });
+        backgroundColor: months.map(colour), borderRadius: 0 }] }, { legend: false });
   },
 
   valueByCounterparty(){
@@ -219,7 +236,7 @@ const AI_CHART_RECIPES = {
        turns them into rotated stubs nobody reads. */
     const cfg = _acConfig('bar', { labels: top.map(x => x[0]),
       datasets: [{ get label(){ return _acT('ch_s_contract_value','Contract value'); }, data: top.map(x => x[1]),
-        backgroundColor: AC_ACCENT, borderRadius: 4, _unit: 'money' }] },
+        backgroundColor: AC_ACCENT, borderRadius: 0, _unit: 'money' }] },
       { legend: false, unit: 'money', scales: {
         x: { beginAtZero: true, grid: _acGrid,
           ticks: { font: { size: 10 }, color: AC_INK, callback: v => _acMoney(v) } },
@@ -243,7 +260,7 @@ const AI_CHART_RECIPES = {
     if (!any) return null;
     const cfg = _acConfig('bar', { labels: months.map(_acMonthLabel), datasets: [
       { type: 'bar', label: _acT('ch_s_value_up_for_renewal','Value up for renewal'), data: months.map(m => value[m]),
-        backgroundColor: AC_ACCENT, borderRadius: 4, yAxisID: 'y', _unit: 'money' },
+        backgroundColor: AC_ACCENT, borderRadius: 0, yAxisID: 'y', _unit: 'money' },
       { type: 'line', label: _acT('ch_s_decisions_due','Decisions due'), data: months.map(m => count[m]),
         borderColor: AC_WARN, backgroundColor: AC_WARN, tension: .3, yAxisID: 'y1' },
     ] }, { unit: 'money' });
@@ -270,7 +287,7 @@ const AI_CHART_RECIPES = {
     const value = ids.map(id => cs.filter(c => c.folder === id).reduce((s, c) => s + _acVal(c), 0));
     if (!count.some(Boolean)) return null;
     const cfg = _acConfig('bar', { labels: ids.map(id => F[id].name), datasets: [
-      { type: 'bar', label: _acT('ch_s_contracts','Contracts'), data: count, backgroundColor: AC_ACCENT, borderRadius: 4, yAxisID: 'y' },
+      { type: 'bar', label: _acT('ch_s_contracts','Contracts'), data: count, backgroundColor: AC_ACCENT, borderRadius: 0, yAxisID: 'y' },
       { type: 'line', label: _acT('ch_s_value','Value'), data: value, borderColor: AC_GOOD, backgroundColor: AC_GOOD,
         tension: .3, yAxisID: 'y1', _unit: 'money' },
     ] });
@@ -310,7 +327,7 @@ const AI_CHART_RECIPES = {
     if (!labels.length) return null;
     const avg = labels.map(k => Math.round(spans[k].reduce((a, b) => a + b, 0) / spans[k].length));
     return _acConfig('bar', { labels, datasets: [{ get label(){ return _acT('ch_s_average_days','Average days'); }, data: avg,
-      backgroundColor: AC_ACCENT, borderRadius: 4 }] }, { legend: false });
+      backgroundColor: AC_ACCENT, borderRadius: 0 }] }, { legend: false });
   },
 
   obligationsDue(){
@@ -335,7 +352,7 @@ const AI_CHART_RECIPES = {
     const labels = ['Overdue'].concat(months.map(_acMonthLabel));
     const data = [overdue].concat(months.map(m => open[m]));
     return _acConfig('bar', { labels, datasets: [{ get label(){ return _acT('ch_s_open_obligations','Open obligations'); }, data,
-      backgroundColor: labels.map((_, i) => i === 0 ? AC_BAD : AC_ACCENT), borderRadius: 4 }] },
+      backgroundColor: labels.map((_, i) => i === 0 ? AC_BAD : AC_ACCENT), borderRadius: 0 }] },
       { legend: false });
   },
 };
@@ -703,7 +720,7 @@ function aiSimpleChart(kind, labels, values, opts = {}){
       borderWidth: 0 }] }, { unit: opts.unit });
   const cfg = _acConfig(kind === 'line' ? 'line' : 'bar',
     { labels, datasets: [{ label: opts.label || '', data: values,
-      backgroundColor: opts.colors || color, borderColor: color, tension: .3, borderRadius: 4,
+      backgroundColor: opts.colors || color, borderColor: color, tension: .3, borderRadius: 0,
       _unit: money ? 'money' : '' }] },
     { legend: false, unit: opts.unit });
   if (kind === 'hbar'){
@@ -873,7 +890,7 @@ function aiQuotedConfig(spec){
     if (cfg) return cfg;
   }
   return _acConfig('bar', { labels, datasets: [{ label: String(spec.label || 'Stated in this answer'),
-    data, backgroundColor: AC_WARN, borderRadius: 4, _unit: money ? 'money' : '' }] },
+    data, backgroundColor: AC_WARN, borderRadius: 0, _unit: money ? 'money' : '' }] },
     { legend: false, unit: money ? 'money' : '' });
 }
 
@@ -895,7 +912,7 @@ function aiCustomConfig(spec){
       data: months.map(k => s.at(cs, k)),
       borderColor: d.color || palette[i % palette.length],
       backgroundColor: d.color || palette[i % palette.length],
-      fill: d.display === 'area', tension: .3, borderRadius: 4,
+      fill: d.display === 'area', tension: .3, borderRadius: 0,
       _unit: s.unit === 'money' ? 'money' : '' };
   });
   if (!datasets.some(d => d.data.some(v => v))) return { empty: true };

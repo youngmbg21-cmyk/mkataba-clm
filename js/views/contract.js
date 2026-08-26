@@ -1132,7 +1132,7 @@ function openUploadModal(){
         <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('upload')}</span>
           <h2 class="font-display font-700 text-brand-900">${i18t('ct_add_received')}</h2></div>
         <p class="text-xs text-brand-800/70 mb-4">A contract another company sent you — on their own paper. Drop the file: HaTi reads the counterparty, value and dates out of the document, and you check them before anything is filed.</p>
-        <div id="up-drop" role="button" tabindex="0" aria-label="${i18t('ct_drop_file_here')}" style="border:2px dashed var(--color-accent);border-radius:0;background:var(--color-bg);padding:34px 20px;text-align:center;cursor:pointer;transition:background .15s">
+        <div id="up-drop" role="button" tabindex="0" aria-label="${i18t('ct_drop_file_here')}" style="border:2px dashed var(--color-accent);border-radius:0;background:var(--color-bg);padding:34px 20px;text-align:center;cursor:pointer;transition:background var(--dur-1)">
           <div style="font-size:var(--t-card);font-weight:var(--w-strong);color:var(--color-text)">${i18t('ct_drop_here')}</div>
           <div style="font-size:var(--t-meta);color:var(--color-neutral-600);margin-top:5px">${i18t('ct_upload_hint',{max:uploadMaxLabel()})}</div>
           <div style="font-size:var(--t-meta);color:var(--accent-ink-700);margin-top:var(--s-2);font-weight:var(--w-strong)">${i18t('ct_thats_all')}</div>
@@ -4286,10 +4286,10 @@ function openNegoProposeModal(c){
   });
 }
 function topTabBtn(k,label,ic){
-  return `<button data-top-tab="${k}" title="${label}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:0;background:none;cursor:pointer;font:inherit;font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-neutral-600);padding:var(--s-2) var(--s-1);white-space:nowrap;transition:background .12s,color .12s">${icon(ic,'w-4 h-4')}<span>${label}</span></button>`;
+  return `<button data-top-tab="${k}" title="${label}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:0;background:none;cursor:pointer;font:inherit;font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-neutral-600);padding:var(--s-2) var(--s-1);white-space:nowrap;transition:background var(--dur-1),color var(--dur-1)">${icon(ic,'w-4 h-4')}<span>${label}</span></button>`;
 }
 function innerTabBtn(k,label,ic){
-  return `<button data-inner-tab="${k}" title="${label}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;border:0;border-radius:0;background:none;cursor:pointer;font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-neutral-600);padding:7px var(--s-1);white-space:nowrap;transition:background .12s,color .12s">${icon(ic,'w-3.5 h-3.5')}<span>${label}</span></button>`;
+  return `<button data-inner-tab="${k}" title="${label}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;border:0;border-radius:0;background:none;cursor:pointer;font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-neutral-600);padding:7px var(--s-1);white-space:nowrap;transition:background var(--dur-1),color var(--dur-1)">${icon(ic,'w-3.5 h-3.5')}<span>${label}</span></button>`;
 }
 function applyDocTabs(){
   const root=document.getElementById('doc-right'); if(!root) return;
@@ -5989,7 +5989,7 @@ function renderWorkspace(){
 
       <!-- Divider: drag right to widen the contract (default → +25%), never narrower. Double-click resets. -->
       <div id="doc-resizer" title="${i18t('ct_drag_width')}" style="position:absolute;top:0;bottom:0;left:0;width:14px;z-index:6;cursor:col-resize;display:flex;align-items:center;justify-content:center;touch-action:none" onmouseover="this.firstElementChild.style.background='var(--color-accent)'" onmouseout="if(!this.dataset.drag)this.firstElementChild.style.background='var(--color-neutral-300)'">
-        <span style="width:4px;height:72px;border-radius:0;background:var(--color-neutral-300);transition:background .15s"></span>
+        <span style="width:4px;height:72px;border-radius:0;background:var(--color-neutral-300);transition:background var(--dur-1)"></span>
       </div>
     </div>
 
