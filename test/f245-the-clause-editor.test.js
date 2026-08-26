@@ -256,13 +256,20 @@ describe('f245 (6) — one sentence at a time', () => {
 });
 
 describe('f245 (7) — it files through the funnel and nothing else', () => {
-  test('negoEditClause is the only way in', () => {
-    assert.ok(/negoEditClause\(/.test(CODE), 'it files through negoEditClause');
+  /* REVERSED IN PLACE 26 Aug 2026: there are TWO wrappers now, not one — a
+     clause somebody proposed is revised through negoReviseInsert so the ask
+     keeps its id rather than gaining a rival. The safety property is unchanged
+     and is what this claim was always really about: never the raw funnel, never
+     the array, and no second door for adding or removing a clause. */
+  test('the two wrappers are the only ways in', () => {
+    assert.ok(/negoEditClause\(/.test(CODE), 'wording in the agreement');
+    assert.ok(/negoReviseInsert\(/.test(CODE), 'and a clause still only proposed');
     assert.ok(!/negoFileChange\(/.test(CODE),
       'never the funnel directly — the wrapper carries the clause reading');
     assert.ok(!/changes\.push/.test(CODE), 'and never the array');
-    assert.ok(!/negoInsertClause|negoDeleteClause/.test(CODE),
-      'this page changes wording; adding and removing clauses have their own doors');
+    assert.ok(!/negoInsertClause\(|negoDeleteClause\(/.test(CODE),
+      'this page changes wording; ADDING and removing clauses have their own '
+      + 'doors — revising one already proposed is not adding it again');
   });
 
   test('a filing that changes nothing says so in the page, not only in a toast', () => {
@@ -751,5 +758,101 @@ describe('f245 (14) — the playbook line is about the clause in front of you', 
       + 'would be a screen telling the model something untrue');
     for (const k of ['ce_pb_flags', 'ce_read_playbook_none'])
       assert.equal((I18N.match(new RegExp(`^    ${k}:`, 'gm')) || []).length, 2, k);
+  });
+});
+
+/* ============================================================
+   f245 (11) — A CLAUSE YOU PROPOSED OPENS HERE TOO
+   ============================================================
+   Owner-reported 26 Aug 2026: "when I click on edit with copilot for standard
+   company clauses added to the contract i get the error on the bottom right. I
+   should be able to edit even standard company clauses."
+
+   The error was "That clause is no longer in the document" — a sentence that is
+   not even true of it. A clause added from the library or the playbook is an
+   ASK, so negoClauseNowById answers null and this page turned the reader away.
+   The clause PANEL closed the same gap on 25 Aug and this page was not brought
+   along; the duplication warning in its usual direction.
+   ============================================================ */
+async function withProposed(){
+  const p = await bench(); wide(p.win);
+  const list = p.win.negoClauseList(p.c);
+  const ch = await p.win.negoInsertClause(p.c, list[list.length - 1].clauseId,
+    { headingText: 'Liability Cap',
+      bodyHtml: '<p>Aggregate liability is capped at the fees paid in the preceding twelve months.</p>' },
+    { side: 'owner', author: 'You' });
+  return { ...p, ch };
+}
+
+describe('f245 (11) — the editor opens on a clause that is only proposed', () => {
+  test('THE REPORTED CASE: the page opens instead of refusing', async () => {
+    const p = await withProposed();
+    assert.ok(p.ch && p.ch.clauseId, 'the fixture really did propose a clause');
+    assert.equal(p.win.negoClauseNowById(p.c, p.ch.clauseId), null,
+      'and it is genuinely NOT in the agreement — otherwise this proves nothing');
+    assert.ok(p.win.rlOpenClauseEditor(p.c, p.ch.clauseId, {}),
+      'the page refused a clause the reader had just added');
+    p.win.rlCloseClauseEditor();
+  });
+
+  test('it opens on the PROPOSED wording, which is what the reader is changing', async () => {
+    const p = await withProposed();
+    p.win.rlOpenClauseEditor(p.c, p.ch.clauseId, {});
+    const shown = p.doc.querySelector('#ce-clausebody').textContent;
+    assert.match(shown, /capped at the fees paid/,
+      'the ask supplies the clause: its own heading and its own wording');
+    p.win.rlCloseClauseEditor();
+  });
+
+  test('filing FOLDS INTO THE SAME ASK rather than stacking a rival', async () => {
+    /* The whole reason it routes through negoReviseInsert. A second ask on one
+       clause is the state "one proposal on the table" exists to prevent. */
+    const p = await withProposed();
+    const before = p.c.changes.filter(x => x.clauseId === p.ch.clauseId).length;
+    p.win.rlOpenClauseEditor(p.c, p.ch.clauseId, {});
+    p.win.ceApply('Aggregate liability is capped at the fees paid in the preceding six months.', 'x');
+    await p.win.ceFile('Tightened the cap.');
+    const mine = p.c.changes.filter(x => x.clauseId === p.ch.clauseId
+      && x.status === 'pending' && !x.withdrawn);
+    assert.equal(mine.length, 1, `expected one live ask, got ${mine.length}`);
+    assert.equal(before, 1, 'and there was one before, so nothing was stacked');
+    assert.equal(mine[0].changeType, 'insertClause',
+      'it is still a proposed clause, not a modification of one');
+    assert.match(String(mine[0].newText || ''), /preceding six months/,
+      'and it carries the revised wording');
+  });
+
+  test('the heading is untouched — this page writes wording, never the label', async () => {
+    const p = await withProposed();
+    p.win.rlOpenClauseEditor(p.c, p.ch.clauseId, {});
+    p.win.ceApply('Something shorter.', 'x');
+    await p.win.ceFile('');
+    const mine = p.c.changes.find(x => x.clauseId === p.ch.clauseId
+      && x.status === 'pending' && !x.withdrawn);
+    assert.equal(String(mine.headingText || ''), 'Liability Cap',
+      'an absent headingText means "leave it as it is", never "clear it"');
+  });
+
+  test('THEIR proposal is answered, not rewritten — and a settled one is a record', async () => {
+    /* The panel's own three bounds, kept: ours, and only while it is live. */
+    const p = await bench(); wide(p.win);
+    const list = p.win.negoClauseList(p.c);
+    const theirs = await p.win.negoInsertClause(p.c, list[list.length - 1].clauseId,
+      { headingText: 'Their Clause', bodyHtml: '<p>Their wording.</p>' },
+      { side: 'counterparty', author: 'Amina Wanjiru' });
+    assert.equal(p.win.rlOpenClauseEditor(p.c, theirs.clauseId, {}), false,
+      'their proposal is answered on the card, never edited here');
+
+    const mine = await p.win.negoInsertClause(p.c, list[list.length - 1].clauseId,
+      { headingText: 'Settled Clause', bodyHtml: '<p>Agreed wording.</p>' },
+      { side: 'owner', author: 'You' });
+    p.c.changes.find(x => x.id === mine.id).status = 'accepted';
+    assert.equal(p.win.rlOpenClauseEditor(p.c, mine.clauseId, {}), false,
+      'a settled ask is a record');
+  });
+
+  test('a clause id that is genuinely nowhere still refuses, in the same words', async () => {
+    const p = await bench(); wide(p.win);
+    assert.equal(p.win.rlOpenClauseEditor(p.c, 'cl_nothere', {}), false);
   });
 });

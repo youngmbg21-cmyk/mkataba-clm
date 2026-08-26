@@ -569,8 +569,50 @@ function ceEnsureStyle(){
    adopted change as though the author had just made it (MK-311). */
 function ceClause(){
   if (!_ceC || !_ceClauseId) return null;
-  try{ return window.negoClauseNowById ? negoClauseNowById(_ceC, _ceClauseId) : null; }
-  catch(_){ return null; }
+  try{ const cl = window.negoClauseNowById ? negoClauseNowById(_ceC, _ceClauseId) : null;
+    if (cl) return cl; }catch(_){}
+  return ceProposedClause();
+}
+/* ---- A CLAUSE YOU PROPOSED IS EDITABLE HERE TOO (owner-reported 26 Aug 2026:
+   "when I click on edit with copilot for standard company clauses added to the
+   contract i get the error ... I should be able to edit even standard company
+   clauses") ----
+   A clause added from the library or the playbook is an ASK, not yet part of
+   the agreement, so negoClauseNowById answers null for it and this page turned
+   the reader away with "That clause is no longer in the document" — a sentence
+   that is not even true of it: it has never been in the document.
+
+   THE PANEL ALREADY SOLVED THIS on 25 Aug and this page was not brought along —
+   the duplication warning in its usual direction. The ask supplies the clause:
+   its own heading and its own proposed wording, which is exactly what the panel
+   shows. Nothing new is invented and nothing is stored.
+
+   OUR OWN, AND ONLY WHILE IT IS LIVE, the panel's own three bounds: their
+   proposal is answered rather than rewritten, and a settled one is a record.
+   Anything else answers null and the page refuses exactly as it did.
+
+   THE SEAT IS OWNER BY CONSTRUCTION — clauseEditorRefusal turns the
+   counterparty away before this is ever reached, and rlOpenClauseEditor is not
+   drawn on their page at all. */
+function ceProposedClause(){
+  const list = (_ceC && Array.isArray(_ceC.changes)) ? _ceC.changes : [];
+  const ch = list.find(x => x && String(x.clauseId) === String(_ceClauseId)
+    && x.changeType === 'insertClause' && x.status === 'pending'
+    && !x.withdrawn && x.authorSide === 'owner');
+  if (!ch) return null;
+  const headingText = String(ch.headingText || '').trim();
+  let head = { num: '', title: headingText };
+  try{ if (headingText && window.clauseParseHeading) head = clauseParseHeading(headingText); }catch(_){}
+  return { clauseId: _ceClauseId, num: head.num || '', title: head.title || headingText,
+    headingText, text: String(ch.proposedText || ch.newText || ''),
+    bodyHtml: ch.bodyHtml || '', _ceProposed: true };
+}
+/* Is the clause on this page an ask of ours rather than wording in the
+   agreement? Asked once, so the door, the filing route and anything added later
+   cannot come to disagree about it. */
+function ceIsProposed(){
+  const cl = ceClause();
+  return !!(cl && cl._ceProposed);
 }
 function ceClauseLabel(cl){
   if (!cl) return '';
@@ -1884,16 +1926,30 @@ async function ceFile(why){
   if (_ceBusy) return;
   if (_ceText === _ceBase){ ceSay(_cet('ce_nothing_to_file')); return; }
   const c = _ceC, clauseId = _ceClauseId;
-  if (!window.negoEditClause){ if (window.toast) toast(_cet('ce_cannot_file'), 'err'); return; }
+  /* ---- ONE EDITOR, TWO KINDS OF ASK ----
+     A clause somebody PROPOSED is revised through negoReviseInsert, which files
+     the SAME clauseId back through the same funnel: the ask keeps its id, its
+     author and its place, its previous wording goes onto revisions[] and a new
+     fingerprint is issued. Everything else about this page — the two steps, the
+     reason, the Skip, every guard the funnel carries — is the same code either
+     way, which is the whole reason it routes here rather than growing a second
+     filing path. The panel's own editor branches in exactly these words. */
+  const proposed = ceIsProposed();
+  const need = proposed ? window.negoReviseInsert : window.negoEditClause;
+  if (!need){ if (window.toast) toast(_cet('ce_cannot_file'), 'err'); return; }
   const html = window.negoRichFromLines ? negoRichFromLines(_ceText)
     : `<p>${_cee(_ceText).replace(/\n/g, '</p><p>')}</p>`;
   const note = _cet('ce_provenance');
   _ceBusy = true;
   let ch = null, err = null;
   try{
-    ch = await negoEditClause(c, clauseId, html,
-      { side: 'owner', author: (_ceOpts && _ceOpts.by) || undefined,
-        why: String(why || '').trim() || undefined, note });
+    const o = { side: 'owner', author: (_ceOpts && _ceOpts.by) || undefined,
+      why: String(why || '').trim() || undefined, note };
+    /* The HEADING is not passed: this page writes wording and never the label,
+       and negoReviseInsert reads an absent headingText as "leave it as it is"
+       rather than as "clear it". */
+    ch = proposed ? await negoReviseInsert(c, clauseId, { bodyHtml: html }, o)
+      : await negoEditClause(c, clauseId, html, o);
   }catch(e){ err = e; }
   _ceBusy = false;
   if (err){ if (window.toast) toast(_cet('ce_file_failed', { why: (err && err.message) || String(err) }), 'err'); return; }
