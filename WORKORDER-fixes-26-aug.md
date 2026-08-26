@@ -346,5 +346,66 @@ recorded either way rather than left to the next report.
 
 ---
 
-## L-6 — *(awaiting the owner)*
+## L-6 — THE NAV IS DEAD WHILE EDIT WITH COPILOT IS OPEN
+
+**Owner's words, 26 Aug 2026:** *"then I am on this page and i try to switch to
+another tab in the nav panel it keeps me in the same page which is a bug."*
+The page is **Edit with Copilot** — the full-window clause editor, screenshot
+showing Clause 3 · Term with the Copilot rail down the right and the sidebar's
+Home ringed.
+
+### FOUND, and it is worse than it looks
+
+The clause editor is a LAYER laid over the page area, not a page the shell
+draws. It is put up when it opens and taken down when it closes — and the only
+things that take it down are its own controls: Back to the negotiation,
+Escape, and filing a change. **Nothing in the shell's own page-switching closes
+it.**
+
+So pressing Home in the sidebar does exactly what it always does: **the app
+really does go to Home.** It draws Home underneath, and the clause editor is
+still lying on top of it, so the reader sees nothing happen. The press is not
+dead — the result of it is hidden.
+
+**That is why this is more than a cosmetic bug.** The reader is looking at the
+clause editor while the app believes they are on Home. Anything they do next
+is being done against a page that is no longer the one underneath — including
+Back to the negotiation, which returns them to a page the app has already left.
+
+### The fix, and where it goes
+
+**One place: the shell's own page switch closes the layer before it draws the
+new page.** Every door inherits it — the sidebar, the command palette, a link
+in an alert, a deep link from an email — and there is nothing to remember to
+do at each. A rule written at the sidebar is a rule the other four doors walk
+past, which is this rulebook's most repeated defect.
+
+**Check for other layers while you are there.** If anything else in the
+product is a full-window layer put up over the page area, it has the same
+hole and takes the same fix in the same breath — but only after looking, not
+on the assumption.
+
+### The decision the owner has to make
+
+**This page can be holding unfinished work** — a proposal half typed and a
+reason half written — and both are thrown away when it closes. The page
+already has a Discard changes button, which is the product saying out loud
+that leaving with unsaved wording is a thing worth confirming.
+
+So: **should pressing a nav door with unsaved wording ask first, or leave
+silently?** Recommendation is to ask, and only where something has actually
+been typed — an editor with nothing in it should close without a word, or the
+guard becomes the thing everybody clicks through. That matches how the page
+already treats Discard.
+
+### The check
+
+Open the clause editor, press a sidebar door, and assert **the new page is on
+screen and the editor is gone** — not merely that the app's idea of the page
+changed, which is true today and is the whole bug. Do it for at least two
+different doors, so a fix written at one is not mistaken for a fix.
+
+---
+
+## L-7 — *(awaiting the owner)*
 
