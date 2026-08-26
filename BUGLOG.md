@@ -7619,8 +7619,23 @@ comment beside each saying why.
 - `npm run lint` reports the same 4 pre-existing errors as before this change:
   duplicate dictionary keys `co_password_updated` and `act_next`, each written
   twice in each language.
-- `pages-read-alike-verify` is 47 of 50, and the same three checks fail on an
-  unmodified main with identical measurements — proved by running the file in a
-  worktree at that commit rather than asserted. The negotiation head wraps to a
-  second line at the width the file measures at. Not this change's, and not
-  fixed here.
+- `pages-read-alike-verify` is 47 of 50 and `reopen-a-refusal-verify` is 12 of
+  15. Both fail identically on an unmodified main, with the same measurements —
+  proved by running each file in a worktree at that commit rather than
+  asserted. The first is the negotiation head wrapping to a second line at the
+  width the file measures at; the second is a claim that Reopen is drawn like
+  Edit, written before the tracked-changes rebuild moved Edit off the card and
+  into the overflow menu. Neither is this change's, and neither is fixed here.
+
+### A note on the merge
+This change was written before nineteen commits landed on main — a change of
+typeface across the product, and a design pass that gave it its type, spacing,
+motion and elevation ladders. That work rewrote most of the same declarations
+the corner sweep touches, so the two collided in forty-three files. Rather than
+resolve them one by one, main's version of every code file was taken whole and
+the sweep re-run over it: it is a mechanical substitution plus a short list of
+hand-written decisions, so rebuilding it is cheaper and safer than untangling
+it. The count went from 796 to 801 because main's own pass added a few more
+corners. The twenty-one exemptions are now anchored on a fragment of each
+declaration rather than on a line number, so a future rewrite cannot move
+them.
